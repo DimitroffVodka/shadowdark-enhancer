@@ -15,3 +15,6 @@ package-lock.json
 
 # Local development
 *.log
+
+# Claude Code per-project state (session/cache — never commit)
+.claude/

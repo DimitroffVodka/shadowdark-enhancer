@@ -5,104 +5,104 @@
     {
       "id": 0,
       "subject": "Task 0: Repo + module skeleton",
-      "status": "pending",
+      "status": "completed",
       "description": "**Goal:** Module directory has a valid module.json that Foundry loads, plus a git repo with .gitignore and seed CHANGELOG/README. Foundry shows the module in Manage Modules. No UI yet.\n\n**Files:**\n- Create: module.json, README.md, CHANGELOG.md, LICENSE, .gitignore, scripts/shadowdark-enhancer.mjs, languages/en.json, styles/shadowdark-enhancer.css, templates/.gitkeep\n\n**Verify:** mcp__foundry-vtt__evaluate returns { active: true, version: '0.1.0' } and console shows 'shadowdark-enhancer | init'.\n\n```json:metadata\n{\"files\":[\"module.json\",\"scripts/shadowdark-enhancer.mjs\",\"README.md\",\"CHANGELOG.md\",\"LICENSE\",\".gitignore\",\"languages/en.json\",\"styles/shadowdark-enhancer.css\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate: return { active: game.modules.get('shadowdark-enhancer')?.active, version: game.modules.get('shadowdark-enhancer')?.version }\",\"acceptanceCriteria\":[\"git repo initialized\",\"Foundry shows Shadowdark Enhancer v0.1.0 in Manage Modules\",\"Console logs 'shadowdark-enhancer | init' on activation\",\"No console errors\"]}\n```"
     },
     {
       "id": 1,
       "subject": "Task 1: Settings registration",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [0],
       "description": "**Goal:** All five module settings from spec §7.3 + internal crawlState world setting registered at init time, visible under Configure Settings.\n\n**Files:**\n- Create: scripts/settings.mjs\n- Modify: scripts/shadowdark-enhancer.mjs, languages/en.json\n\n**Verify:** mcp__foundry-vtt__evaluate reading all five settings returns defaults: combatMovementDefault=30, oocMovementBudget=90, oocEnforceBudget=true, hideHiddenNpcCards=true, warnIfCrawlHelperEnabled=true.\n\n```json:metadata\n{\"files\":[\"scripts/settings.mjs\",\"scripts/shadowdark-enhancer.mjs\",\"languages/en.json\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate read all 5 module settings\",\"acceptanceCriteria\":[\"All 5 settings visible in Configure Settings\",\"All defaults match spec §7.3\",\"Internal crawlState setting registered (config:false)\"]}\n```"
     },
     {
       "id": 2,
       "subject": "Task 2: CrawlState singleton + socket sync",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [1],
       "description": "**Goal:** World-settings-backed singleton holds 3-state model, broadcasts mutations via socket, emits sde.stateChanged hook. Mode-transition combat hooks wired.\n\n**Files:**\n- Create: scripts/crawl-state.mjs\n- Modify: scripts/shadowdark-enhancer.mjs\n\n**Verify:** Probe sequence: off → startCrawl → crawl → nextCrawlTurn → crawl turn=1 → endCrawl → off turn=0.\n\n```json:metadata\n{\"files\":[\"scripts/crawl-state.mjs\",\"scripts/shadowdark-enhancer.mjs\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate sequence: startCrawl, nextCrawlTurn, endCrawl with state assertions\",\"acceptanceCriteria\":[\"mode getter starts at 'off'\",\"startCrawl/endCrawl/nextCrawlTurn mutate correctly\",\"combatStart sets mode=combat, deleteCombat restores prior mode\",\"sde.stateChanged hook fires on every mutation\",\"State syncs to second client via socket\"]}\n```"
     },
     {
       "id": 3,
       "subject": "Task 3: Strip mount + empty header + bounds tracking",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [2],
       "description": "**Goal:** Header-only Crawl Strip mounts at top of screen for GMs. Bounds-tracks sidebar/scene-nav. Players see nothing while mode=off.\n\n**Files:**\n- Create: scripts/crawl-strip.mjs, templates/crawl-strip.hbs\n- Modify: styles/shadowdark-enhancer.css, scripts/shadowdark-enhancer.mjs\n\n**Verify:** Strip element mounted; bounds rect sane; visual screenshot showing 'Start Crawl' button (GM).\n\n```json:metadata\n{\"files\":[\"scripts/crawl-strip.mjs\",\"templates/crawl-strip.hbs\",\"styles/shadowdark-enhancer.css\",\"scripts/shadowdark-enhancer.mjs\"],\"verifyCommand\":\"mcp__foundry-vtt__screenshot + DOM rect probe\",\"acceptanceCriteria\":[\"Strip mounts as #shadowdark-enhancer-strip in #interface\",\"Hidden for non-GM in off mode\",\"Header shows mode pill + crawlTurn or round/turn\",\"Sidebar collapse adjusts strip right edge\",\"No listener leaks across re-renders\"]}\n```"
     },
     {
       "id": 4,
       "subject": "Task 4: Stat panel widgets (HP, Movement, Luck)",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [3],
       "description": "**Goal:** Three small ES modules render one card cell each. Shared contract: render(actor, ctx?) → HTML string. Luck reads system.luck + hasLuckToken; click delegates spendLuck action.\n\n**Files:**\n- Create: scripts/stat-panels/{hp,movement,luck}-panel.mjs\n- Modify: styles/shadowdark-enhancer.css\n\n**Verify:** Probe runs all three render() functions against Druchor (PC) and Acrobat (NPC); validates strings include expected values + classes.\n\n```json:metadata\n{\"files\":[\"scripts/stat-panels/hp-panel.mjs\",\"scripts/stat-panels/movement-panel.mjs\",\"scripts/stat-panels/luck-panel.mjs\",\"styles/shadowdark-enhancer.css\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate calling each panel.render() with test actors\",\"acceptanceCriteria\":[\"hpPanel adds sde-hp-low when value<=0\",\"movementPanel adds sde-mv-over when used>budget\",\"luckPanel renders pips per remaining/available; — for NPCs\",\"luck pip click attribute data-action='spendLuck'\"]}\n```"
     },
     {
       "id": 5,
       "subject": "Task 5: Crawl-mode card layout",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [4],
       "description": "**Goal:** While mode=crawl, strip renders one card per Player actor in active scene with HP, Movement (placeholder used=0), Luck, Init. Sorted by oocInitiative desc, else alphabetically.\n\n**Files:**\n- Modify: scripts/crawl-strip.mjs, templates/crawl-strip.hbs, styles/shadowdark-enhancer.css\n\n**Verify:** Screenshot + DOM probe: 2 PC cards with portraits, names alphabetical.\n\n```json:metadata\n{\"files\":[\"scripts/crawl-strip.mjs\",\"templates/crawl-strip.hbs\",\"styles/shadowdark-enhancer.css\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate DOM card count + names\",\"acceptanceCriteria\":[\"One card per scene Player actor\",\"Cards show HP, Mv (0/90), Luck, Init '—'\",\"Sorted alphabetically with no init set\",\"No NPCs render in crawl mode\",\"Re-renders on updateActor / updateToken\"]}\n```"
     },
     {
       "id": 6,
       "subject": "Task 6: Out-of-combat initiative — roll & reset",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [5],
       "description": "**Goal:** Roll Initiative button rolls 1d20 + bonus (advantage via shadowdark.dice.applyAdvantage) for unrolled PCs; whispers to GM; persists in CrawlState.oocInitiative; cards re-sort. Reset clears.\n\n**Files:**\n- Create: scripts/initiative-manager.mjs\n- Modify: scripts/crawl-strip.mjs, templates/crawl-strip.hbs, styles/shadowdark-enhancer.css\n\n**Verify:** Probe rollOocForAll → 2 entries with finite rolls; clear → 0 entries.\n\n```json:metadata\n{\"files\":[\"scripts/initiative-manager.mjs\",\"scripts/crawl-strip.mjs\",\"templates/crawl-strip.hbs\",\"styles/shadowdark-enhancer.css\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate sequence: rollOocForAll, inspect oocInitiative, clearOocInitiative\",\"acceptanceCriteria\":[\"Roll button only rolls unrolled PCs\",\"Uses applyAdvantage when advantage != 0\",\"Whisper-to-GM chat message fires\",\"Cards re-sort by roll descending\",\"Reset clears the map (GM only)\"]}\n```"
     },
     {
       "id": 7,
       "subject": "Task 7: Combat-mode card layout + hidden-NPC filter",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [6],
       "description": "**Goal:** While mode=combat, strip renders cards in game.combat.turns order, hides combatants where token.hidden || combatant.hidden (gated by hideHiddenNpcCards setting). Active combatant highlighted. Round/turn header live.\n\n**Files:**\n- Modify: scripts/crawl-strip.mjs\n\n**Verify:** Create combat programmatically; probe card count + active flag.\n\n```json:metadata\n{\"files\":[\"scripts/crawl-strip.mjs\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate to create combat + inspect cards + screenshot\",\"acceptanceCriteria\":[\"Cards from game.combat.turns in order\",\"Hidden combatants excluded when setting is on\",\"Active combatant has .sde-card-active class\",\"Header shows 'Round N • Turn N/M' live\"]}\n```"
     },
     {
       "id": 8,
       "subject": "Task 8: Hidden-NPC bidirectional sync hooks",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [7],
       "description": "**Goal:** Forked from Vagabond Crawler. Toggling token.hidden syncs to combatant.hidden and vice versa. GM-only. Self-guarded against infinite loops via equality check.\n\n**Files:**\n- Create: scripts/hidden-sync.mjs\n- Modify: scripts/shadowdark-enhancer.mjs\n\n**Verify:** Probe before/after token.update({hidden: !hidden}) → combatant.hidden matches; then reverse direction.\n\n```json:metadata\n{\"files\":[\"scripts/hidden-sync.mjs\",\"scripts/shadowdark-enhancer.mjs\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate toggle each side and verify sync within 50ms\",\"acceptanceCriteria\":[\"updateToken with hidden change updates combatant.hidden\",\"updateCombatant with hidden change updates token.hidden\",\"No infinite hook loop (equality guard)\",\"GM-only enforcement\"]}\n```"
     },
     {
       "id": 9,
       "subject": "Task 9: Movement tracker — combat red-line + turn-start capture",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [8],
       "description": "**Goal:** turnStart flag captured on combatStart and combatTurn for active combatant. usedFor(token, mode) computes grid Chebyshev distance from origin. Strip Mv cell turns red when used>budget.\n\n**Files:**\n- Create: scripts/movement-tracker.mjs\n- Modify: scripts/shadowdark-enhancer.mjs, scripts/crawl-strip.mjs\n\n**Verify:** Start combat → probe active combatant's turnStart flag matches token position; move token; usedFor returns distance > 0.\n\n```json:metadata\n{\"files\":[\"scripts/movement-tracker.mjs\",\"scripts/shadowdark-enhancer.mjs\",\"scripts/crawl-strip.mjs\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate inspect turnStart flag + usedFor distance\",\"acceptanceCriteria\":[\"combatStart captures turnStart for all combatants\",\"combatTurn captures turnStart for new active combatant\",\"deleteCombat clears all turnStart flags\",\"usedFor returns Chebyshev distance in feet\",\"Strip Mv cell shows live used/budget; red when over\"]}\n```"
     },
     {
       "id": 10,
       "subject": "Task 10: Crawl-anchor capture + OoC budget enforcement",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [9],
       "description": "**Goal:** Next Crawl Turn captures crawlAnchor on every scene token. preUpdateToken refuses moves past budget when oocEnforceBudget=true. Mv cell shows live used/90.\n\n**Files:**\n- Modify: scripts/crawl-state.mjs, scripts/movement-tracker.mjs\n\n**Verify:** Probe: start crawl → next crawl turn → attempt 2000-px move on PC → blocked=true. Toggle setting off → move succeeds.\n\n```json:metadata\n{\"files\":[\"scripts/crawl-state.mjs\",\"scripts/movement-tracker.mjs\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate startCrawl + nextCrawlTurn + attempt over-budget move + verify blocked\",\"acceptanceCriteria\":[\"startCrawl + nextCrawlTurn capture crawlAnchor flags\",\"endCrawl clears crawlAnchor flags\",\"preUpdateToken refuses moves exceeding budget when setting on\",\"Setting off allows the move; Mv cell turns red\"]}\n```"
     },
     {
       "id": 11,
       "subject": "Task 11: Luck-spend click + Combat HUD dropdown",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [10],
       "description": "**Goal:** Clicking a filled luck pip on a PC card calls actor.system.useLuckToken(). Active combatant card has HUD trigger that opens dropdown with Status/Actions/Movement tabs.\n\n**Files:**\n- Create: scripts/npc-action-menu.mjs, templates/npc-action-menu.hbs\n- Modify: scripts/crawl-strip.mjs, styles/shadowdark-enhancer.css\n\n**Verify:** Set luck remaining=2 → click pip → probe luck.remaining → confirm decrement. Open HUD → click Rollback → token returns to turn-start coords.\n\n```json:metadata\n{\"files\":[\"scripts/npc-action-menu.mjs\",\"templates/npc-action-menu.hbs\",\"scripts/crawl-strip.mjs\",\"styles/shadowdark-enhancer.css\"],\"verifyCommand\":\"mcp__foundry-vtt__evaluate luck before/after click + HUD open/close + rollback\",\"acceptanceCriteria\":[\"Click pip calls useLuckToken(); remaining decrements correctly\",\"Active card shows '▼ HUD ▼' trigger\",\"Dropdown opens beneath card; tabs switch on click\",\"Status tab: HP +/− buttons work; spend luck gated by hasLuckToken\",\"Actions tab: Open Sheet works\",\"Movement tab: Rollback moves token back to turnStart\",\"Dropdown closes on outside click and on combatTurn\"]}\n```"
     },
     {
       "id": 12,
       "subject": "Task 12: Coexistence warning for shadowdark-crawl-helper",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [11],
       "description": "**Goal:** At ready, if shadowdark-crawl-helper is active AND warnIfCrawlHelperEnabled is true, show a ui.notifications.warn message.\n\n**Files:**\n- Modify: scripts/shadowdark-enhancer.mjs, languages/en.json\n\n**Verify:** Enable Crawl Helper → reload → see yellow warning. Disable setting → reload → no warning.\n\n```json:metadata\n{\"files\":[\"scripts/shadowdark-enhancer.mjs\",\"languages/en.json\"],\"verifyCommand\":\"manual: enable Crawl Helper module, reload, observe notification\",\"acceptanceCriteria\":[\"Warning shows when Crawl Helper active + setting on\",\"No warning when setting off\",\"No warning when Crawl Helper inactive\"]}\n```"
     },
     {
       "id": 13,
       "subject": "Task 13: CSS polish + Shadowdark palette",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [12],
       "description": "**Goal:** Replace placeholder palette with parchment/iron/torch tones. Verify ruler color works under Foundry v14; defer if API parity issue. Polish hover, spacing, card wrap.\n\n**Files:**\n- Modify: styles/shadowdark-enhancer.css\n- (Conditional) scripts/movement-tracker.mjs\n\n**Verify:** Visual screenshots in crawl mode (4 PCs) and combat mode (6 combatants, one hidden); compare to spec §6.1/§6.2 mockups.\n\n```json:metadata\n{\"files\":[\"styles/shadowdark-enhancer.css\",\"scripts/movement-tracker.mjs\",\"README.md\"],\"verifyCommand\":\"mcp__foundry-vtt__screenshot in both modes\",\"acceptanceCriteria\":[\"Palette uses warm parchment/torch tones\",\"Active combatant has amber glow\",\"All buttons have hover states\",\"Cards wrap to second row beyond ~6\",\"Ruler color works OR documented as follow-up\"]}\n```"
     },
     {
       "id": 14,
       "subject": "Task 14: README + version bump + manual UAT pass",
-      "status": "pending",
+      "status": "completed",
       "blockedBy": [13],
       "description": "**Goal:** Finalize README for v0.1.0; move CHANGELOG Unreleased → 0.1.0 dated entry; run full spec §11 UAT checklist; tag v0.1.0.\n\n**Files:**\n- Modify: README.md, CHANGELOG.md\n- Tag: v0.1.0\n\n**Verify:** Spec §11 checklist walk-through; each item ✓ or recorded as known-issue.\n\n```json:metadata\n{\"files\":[\"README.md\",\"CHANGELOG.md\"],\"verifyCommand\":\"manual UAT walkthrough of spec §11 in running world\",\"acceptanceCriteria\":[\"README covers install/requirements/features/settings/known issues\",\"CHANGELOG dated v0.1.0 entry\",\"All spec §11 UAT items pass or recorded as known issue\",\"git tag v0.1.0 created\"]}\n```"
     }
