@@ -518,6 +518,22 @@ body.theme-light .sde-bar-phase-badge {
   50%      { box-shadow: 0 0 10px rgba(180, 200, 255, 0.7); }
 }
 
+/* Chat — initiative roll total badge in the flavor line */
+.sde-chat-init-total {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  background: rgba(20, 18, 14, 0.92);
+  color: var(--sde-bar-accent);
+  border: 1px solid var(--sde-bar-accent);
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 1.15em;
+  letter-spacing: 0.5px;
+}
+.sde-chat-adv { color: #6fb86f; font-style: italic; font-size: 0.9em; }
+.sde-chat-dis { color: #c44a3a; font-style: italic; font-size: 0.9em; }
+
 /* Init result badge — replaces the dice button once an initiative is recorded. */
 .sde-strip-init-badge {
   position: absolute;
