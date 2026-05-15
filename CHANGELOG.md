@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.12] — 2026-05-15
+
+### Fixed
+- **Luck pill never showed 1 when the actor had an unspent base Luck Token.** `_extractData` was reading `system.luck.remaining` first — but the base Shadowdark Luck Token lives at `system.luck.available: true` with `remaining: 0`. So a fresh PC with one unspent token displayed 0. Now: `remaining > 0` → show remaining; else if `available` → show 1; else 0.
+- **Luck pill is now click-to-spend.** Clicking the shamrock pill on the strip calls `actor.system.useLuckToken()` and re-renders. Cursor + hover styling applied only when there's actually a token to spend.
+
+### Added
+- **AC pill on every card** (PC + NPC). Reads `actor.system.attributes.ac.value`. Renders as a small `AC 16` pill before the Luck/Movement pills. NPCs without AC fall back gracefully (no pill rendered).
+- **PC Abilities tab** in the per-combatant action menu. New third tab (after Weapons / Spells) listing `Talent` and `Class Ability` items. Clicking dispatches to `actor.system.useAbility(itemUuid)` — passive talents (like "Ambitious") open a description card, active ones (like Avorn's "Petrifying Gaze") trigger their roll/check. Tabs hide when empty, so a Cleric without spells shows only Weapons + Abilities.
+
 ## [0.1.11] — 2026-05-15
 
 ### Changed

@@ -101,6 +101,18 @@ function _buildPcSpells(actor) {
     }));
 }
 
+// PC Abilities tab — class/ancestry talents + class abilities (e.g. Avorn's Petrifying Gaze).
+function _buildPcAbilities(actor) {
+  return (actor.items?.contents ?? [])
+    .filter(i => i.type === "Talent" || i.type === "Class Ability")
+    .map(item => ({
+      label: item.name || "Unnamed",
+      dmg: "",
+      itemId: item.id,
+      kind: "ability",
+    }));
+}
+
 // ─── Menu Data ────────────────────────────────────────────────────────────────
 
 function _buildMenuData(actor, isNPC) {
@@ -115,8 +127,10 @@ function _buildMenuData(actor, isNPC) {
   return {
     tabA: "Weapons",
     tabB: "Spells",
+    tabC: "Abilities",
     itemsA: _buildPcWeapons(actor),
     itemsB: _buildPcSpells(actor),
+    itemsC: _buildPcAbilities(actor),
   };
 }
 
@@ -129,14 +143,17 @@ function _buildMenuData(actor, isNPC) {
 export function buildTabStripHTML(actor, isNPC) {
   if (!actor) return "";
   const menu = _buildMenuData(actor, isNPC);
-  const { tabA, tabB, itemsA, itemsB } = menu;
-  const hasA = itemsA.length > 0;
-  const hasB = itemsB.length > 0;
-  if (!hasA && !hasB) return "";
+  const { tabA, tabB, tabC, itemsA, itemsB, itemsC } = menu;
+  const hasA = itemsA && itemsA.length > 0;
+  const hasB = itemsB && itemsB.length > 0;
+  const hasC = itemsC && itemsC.length > 0;
+  if (!hasA && !hasB && !hasC) return "";
+  const firstShown = hasA ? "a" : hasB ? "b" : "c";
   return `
     <div class="sde-strip-action-tabs" data-actor-id="${actor.id}">
-      ${hasA ? `<button class="sde-strip-atab sde-strip-atab-active" data-tab="a">${tabA}</button>` : ""}
-      ${hasB ? `<button class="sde-strip-atab ${!hasA ? "sde-strip-atab-active" : ""}" data-tab="b">${tabB}</button>` : ""}
+      ${hasA ? `<button class="sde-strip-atab ${firstShown === "a" ? "sde-strip-atab-active" : ""}" data-tab="a">${tabA}</button>` : ""}
+      ${hasB ? `<button class="sde-strip-atab ${firstShown === "b" ? "sde-strip-atab-active" : ""}" data-tab="b">${tabB}</button>` : ""}
+      ${hasC ? `<button class="sde-strip-atab ${firstShown === "c" ? "sde-strip-atab-active" : ""}" data-tab="c">${tabC}</button>` : ""}
     </div>`;
 }
 
@@ -170,10 +187,13 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
   _removePanel();
 
   const menu = _buildMenuData(actor, isNPC);
-  const { tabA, tabB, itemsA, itemsB } = menu;
-  const startTab = activeTab ?? (itemsA.length ? "a" : "b");
+  const { tabA, tabB, tabC, itemsA, itemsB, itemsC } = menu;
+  const hasA = itemsA && itemsA.length > 0;
+  const hasB = itemsB && itemsB.length > 0;
+  const hasC = itemsC && itemsC.length > 0;
+  const startTab = activeTab ?? (hasA ? "a" : hasB ? "b" : "c");
 
-  const renderItems = (items) => items.length
+  const renderItems = (items) => items && items.length
     ? items.map(it => {
         const dataAttrs = it.itemId ? `data-item-id="${it.itemId}"` : "";
         return `<button type="button" class="sde-strip-panel-item" data-kind="${it.kind}" ${dataAttrs}>
@@ -188,11 +208,13 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
   panel.dataset.tokenId = cardWrap.querySelector(".sde-strip-member")?.dataset.tokenId ?? "";
   panel.innerHTML = `
     <div class="sde-strip-panel-tabs">
-      ${itemsA.length ? `<button class="sde-strip-ptab ${startTab === "a" ? "sde-strip-ptab-active" : ""}" data-tab="a">${tabA}</button>` : ""}
-      ${itemsB.length ? `<button class="sde-strip-ptab ${startTab === "b" ? "sde-strip-ptab-active" : ""}" data-tab="b">${tabB}</button>` : ""}
+      ${hasA ? `<button class="sde-strip-ptab ${startTab === "a" ? "sde-strip-ptab-active" : ""}" data-tab="a">${tabA}</button>` : ""}
+      ${hasB ? `<button class="sde-strip-ptab ${startTab === "b" ? "sde-strip-ptab-active" : ""}" data-tab="b">${tabB}</button>` : ""}
+      ${hasC ? `<button class="sde-strip-ptab ${startTab === "c" ? "sde-strip-ptab-active" : ""}" data-tab="c">${tabC}</button>` : ""}
     </div>
-    ${itemsA.length ? `<div class="sde-strip-panel-body" data-panel="a" style="${startTab !== "a" ? "display:none" : ""}">${renderItems(itemsA)}</div>` : ""}
-    ${itemsB.length ? `<div class="sde-strip-panel-body" data-panel="b" style="${startTab !== "b" ? "display:none" : ""}">${renderItems(itemsB)}</div>` : ""}`;
+    ${hasA ? `<div class="sde-strip-panel-body" data-panel="a" style="${startTab !== "a" ? "display:none" : ""}">${renderItems(itemsA)}</div>` : ""}
+    ${hasB ? `<div class="sde-strip-panel-body" data-panel="b" style="${startTab !== "b" ? "display:none" : ""}">${renderItems(itemsB)}</div>` : ""}
+    ${hasC ? `<div class="sde-strip-panel-body" data-panel="c" style="${startTab !== "c" ? "display:none" : ""}">${renderItems(itemsC)}</div>` : ""}`;
 
   stripEl.appendChild(panel);
   _activePanel = panel;
@@ -269,6 +291,18 @@ async function _onItemClick(actor, kind, itemId) {
         // PC castSpell takes a UUID (uses fromUuid internally), not an ID.
         if (typeof actor.system?.castSpell === "function") {
           return await actor.system.castSpell(item.uuid);
+        }
+        return item.sheet.render(true);
+
+      case "ability":
+        // PC talents / class abilities — system.useAbility takes a UUID.
+        // Passive talents (e.g. "Ambitious") fall through to item.displayCard;
+        // active ones (e.g. Avorn's "Petrifying Gaze") trigger their roll/check.
+        if (typeof actor.system?.useAbility === "function") {
+          return await actor.system.useAbility(item.uuid);
+        }
+        if (typeof actor.useAbility === "function") {
+          return await actor.useAbility(item.id);
         }
         return item.sheet.render(true);
 

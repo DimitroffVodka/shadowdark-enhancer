@@ -287,19 +287,28 @@ export const CrawlStrip = {
         : (data?.moveExhausted ? "sde-strip-pill-empty" : "");
 
       // Pills:
-      //   - PCs always show luck + movement
-      //   - NPCs in combat show movement only
+      //   - PCs always show AC + luck + movement
+      //   - NPCs in combat show AC + movement (no luck — NPCs don't carry it)
       let pills = "";
       if (data) {
+        const acPill = (data.ac != null)
+          ? `<div class="sde-strip-pill sde-strip-pill-ac" title="Armor Class">AC ${data.ac}</div>`
+          : "";
         if (m.type === "player") {
+          // Luck pill is clickable → spends a luck token via actor.system.useLuckToken().
+          // Only attach the data-action when there's actually a token to spend.
+          const luckClickable = data.luck > 0 ? `data-action="spendLuck" data-actor-id="${m.actorId ?? ""}"` : "";
+          const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : "No Luck Tokens";
           pills = `
         <div class="sde-strip-pills">
-          <div class="sde-strip-pill ${luckClass}">${ICONS.shamrock}${data.luck}</div>
+          ${acPill}
+          <div class="sde-strip-pill ${luckClass}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
         </div>`;
         } else if (m.type === "npc" && inCombat) {
           pills = `
         <div class="sde-strip-pills">
+          ${acPill}
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
         </div>`;
         }
@@ -433,12 +442,19 @@ export const CrawlStrip = {
   _extractData(actor, inCombat = false, tokenDoc = null) {
     const s = actor.system ?? {};
     const hp = s.attributes?.hp ?? { value: 0, max: 0 };
+    const ac = s.attributes?.ac?.value ?? null;   // Shadowdark stores derived AC at system.attributes.ac.value
 
-    // Luck: prefer `remaining` if present, fall back to `available` for older sheet schemas.
+    // Luck count for the shamrock pill.
+    //   - `remaining > 0`  → count of spendable tokens (e.g. luck die rolled 3)
+    //   - else `available` → 1 (the base single-use Luck token)
+    //   - else            → 0
     const luckObj = s.luck ?? {};
-    const luck = (typeof luckObj.remaining === "number")
-      ? luckObj.remaining
-      : (typeof luckObj.available === "number" ? luckObj.available : 0);
+    let luck = 0;
+    if (typeof luckObj.remaining === "number" && luckObj.remaining > 0) {
+      luck = luckObj.remaining;
+    } else if (luckObj.available === true) {
+      luck = 1;
+    }
 
     // Movement — module setting drives the budget. No per-actor speed in Shadowdark.
     // Reads the per-token moveRemaining flag directly (Vagabond pattern).
@@ -449,6 +465,7 @@ export const CrawlStrip = {
     return {
       hp:           hp.value ?? 0,
       hpMax:        hp.max   ?? 0,
+      ac,
       luck,
       activeSpeed,
       moveRemaining,
@@ -470,6 +487,17 @@ export const CrawlStrip = {
       });
       card.addEventListener("click", async (ev) => {
         if (ev.target.closest(".sde-strip-activate-btn")) return;
+
+        // Luck pill click → spend a luck token via the actor's system method.
+        const luckBtn = ev.target.closest('[data-action="spendLuck"]');
+        if (luckBtn) {
+          ev.stopPropagation();
+          const actorId = luckBtn.dataset.actorId || card.dataset.actorId;
+          const actor = actorId ? game.actors.get(actorId) : null;
+          if (actor?.system?.useLuckToken) await actor.system.useLuckToken();
+          return;
+        }
+
         const tokenId = card.dataset.tokenId;
         if (!tokenId) return;
         const token = canvas.tokens?.get(tokenId);

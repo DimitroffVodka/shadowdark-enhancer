@@ -687,6 +687,16 @@ body.theme-light .sde-bar-phase-badge {
 .sde-bar-icon-shamrock            { width: 14px; height: 14px; vertical-align: middle; margin-right: 2px; }
 .sde-strip-pill i.fa-person-walking { color: #60d060; }
 .sde-strip-pill.sde-strip-pill-empty { opacity: 0.35; }
+.sde-strip-pill.sde-strip-pill-ac {
+  background: rgba(60, 60, 80, 0.35);
+  color: #c8d8ff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.sde-strip-pill[data-action="spendLuck"] { cursor: pointer; }
+.sde-strip-pill[data-action="spendLuck"]:hover {
+  background: rgba(80, 140, 80, 0.35);
+}
 .sde-strip-pill.sde-strip-pill-over {
   color: #ff8a8a;
   background: rgba(157, 0, 0, 0.18);
