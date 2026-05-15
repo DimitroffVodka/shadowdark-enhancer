@@ -320,14 +320,15 @@ export const CrawlStrip = {
     const sidebarWidth = sidebar?.getBoundingClientRect()?.width ?? 0;
     const rightOffset = `${Math.max(0, sidebarWidth + 8)}px`;
 
-    // Top strip must dodge the scene-navigation pills as well.
+    // Top strip: static 8px from top. We do NOT dynamically dodge
+    // #scene-navigation because in some Foundry v14 layouts the scene-nav
+    // is a tall vertical column whose bounding rect bottom can be at the
+    // viewport bottom (~1255px), which would push the strip off-screen.
+    // Z-index keeps the strip layered above scene-nav pills if they overlap.
     if (this._top) {
-      const sceneNav = document.getElementById("scene-navigation") ?? document.getElementById("navigation");
-      const navRect = sceneNav?.getBoundingClientRect();
-      const navBottom = navRect ? (navRect.bottom + 6) : 8;
       this._top.style.left = `8px`;
       this._top.style.right = rightOffset;
-      this._top.style.top = `${navBottom}px`;
+      this._top.style.top = `8px`;
     }
 
     if (this._bottom) {
