@@ -1,0 +1,17 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build artifacts (none for MVP, but reserve)
+dist/
+*.tgz
+*.zip
+
+# Node (in case we add tooling later)
+node_modules/
+package-lock.json
+
+# Local development
+*.log
