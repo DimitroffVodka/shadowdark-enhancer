@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.14] — 2026-05-15
+
+### Changed
+- **PC Abilities tab now lists only `Class Ability` items** (the "Special Abilities" section on the character sheet — e.g. Avorn's Petrifying Gaze). Excludes passive Talents (Stone Skin, Ambitious, etc.) which belonged in the sheet's Talents block, not Special Abilities.
+
 ## [0.1.13] — 2026-05-15
 
 ### Changed

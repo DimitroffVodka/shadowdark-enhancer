@@ -101,10 +101,12 @@ function _buildPcSpells(actor) {
     }));
 }
 
-// PC Abilities tab — class/ancestry talents + class abilities (e.g. Avorn's Petrifying Gaze).
+// PC Abilities tab — only `Class Ability` items (Special Abilities section on
+// the character sheet, e.g. Avorn's Petrifying Gaze). Excludes Talents — those
+// are passive bonuses (Stone Skin, Ambitious, etc.) that don't belong here.
 function _buildPcAbilities(actor) {
   return (actor.items?.contents ?? [])
-    .filter(i => i.type === "Talent" || i.type === "Class Ability")
+    .filter(i => i.type === "Class Ability")
     .map(item => ({
       label: item.name || "Unnamed",
       dmg: "",
