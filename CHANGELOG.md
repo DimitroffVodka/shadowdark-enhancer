@@ -4,6 +4,7 @@
 
 ### Added
 - **Init result badge on cards** — once a combatant has an initiative value (combat or out-of-combat), the dice button position is replaced by a small gold-bordered badge showing the rolled number. So you can see at a glance who's rolled and what they got.
+- **Thrown weapons appear as dual entries in the action menu.** Weapons with the `thrown` property (Spear, Dagger, etc.) now show up twice in the Weapons tab — once as their native melee variant and once as a `(thrown)` ranged variant. Clicking the thrown variant passes `attack: { type: "ranged" }` to `actor.system.rollAttack`, so the system's roll generator uses the ranged ability mod (DEX) and the weapon's thrown range. Mirrors the character sheet's RANGED ATTACKS section, which already lists thrown weapons alongside true ranged weapons.
 
 ### Fixed
 - **OoC initiative chat card now uses the Shadowdark system's native roll-card style** — same look as the system's Attack Roll / Damage Roll cards, including the reroll-icon affordance and prominent total. The InitiativeManager dispatches through `shadowdark.dice.rollFromConfig` (which is what `actor.system.rollAttack` / `castSpell` use internally) instead of the generic `Roll#toMessage`. Falls back to the generic path if the system API isn't available.

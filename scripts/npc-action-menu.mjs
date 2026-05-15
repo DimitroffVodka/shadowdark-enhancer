@@ -79,15 +79,38 @@ function _buildNpcAbilities(actor) {
     }));
 }
 
+// Build the PC weapons list mirroring the system's sheet structure:
+//   - each equipped weapon contributes one attack entry for its native type
+//     (melee or ranged)
+//   - if a weapon is "thrown" AND native type is melee, ALSO add a ranged
+//     entry so the player can throw it (matches the sheet's RANGED ATTACKS
+//     section listing thrown weapons too).
 function _buildPcWeapons(actor) {
-  return (actor.items?.contents ?? [])
-    .filter(i => i.type === "Weapon" && i.system?.equipped)
-    .map(item => ({
-      label: item.name || "Unnamed",
-      dmg: _weaponDmgLabel(item),
-      itemId: item.id,
+  const weapons = (actor.items?.contents ?? []).filter(i => i.system?.isWeapon && i.system?.equipped);
+  const entries = [];
+  for (const w of weapons) {
+    const nativeType = w.system?.type === "ranged" ? "ranged" : "melee";
+    entries.push({
+      label: w.name || "Unnamed",
+      dmg: _weaponDmgLabel(w),
+      itemUuid: w.uuid,
+      itemId: w.id,
+      attackType: nativeType,
       kind: "weapon",
-    }));
+    });
+    // Thrown weapons that are natively melee also get a ranged entry.
+    if (w.system?.isThrown && nativeType === "melee") {
+      entries.push({
+        label: `${w.name || "Unnamed"} (thrown)`,
+        dmg: _weaponDmgLabel(w),
+        itemUuid: w.uuid,
+        itemId: w.id,
+        attackType: "ranged",
+        kind: "weapon",
+      });
+    }
+  }
+  return entries;
 }
 
 function _buildPcSpells(actor) {
@@ -197,7 +220,10 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
 
   const renderItems = (items) => items && items.length
     ? items.map(it => {
-        const dataAttrs = it.itemId ? `data-item-id="${it.itemId}"` : "";
+        const dataAttrs = [
+          it.itemId       ? `data-item-id="${it.itemId}"`         : "",
+          it.attackType   ? `data-attack-type="${it.attackType}"` : "",
+        ].filter(Boolean).join(" ");
         return `<button type="button" class="sde-strip-panel-item" data-kind="${it.kind}" ${dataAttrs}>
           <span class="sde-strip-panel-name">${it.label}</span>${it.dmg}
         </button>`;
@@ -239,7 +265,9 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
         ui.notifications.warn("You don't control this character.");
         return;
       }
-      await _onItemClick(resolvedActor, item.dataset.kind, item.dataset.itemId);
+      await _onItemClick(resolvedActor, item.dataset.kind, item.dataset.itemId, {
+        attackType: item.dataset.attackType,
+      });
       _removePanel();
     });
   });
@@ -266,7 +294,7 @@ function _positionPanel(panel, cardWrap, stripEl) {
 
 // ─── Item Click Dispatch ──────────────────────────────────────────────────────
 
-async function _onItemClick(actor, kind, itemId) {
+async function _onItemClick(actor, kind, itemId, opts = {}) {
   if (!itemId) return;
   const item = actor.items.get(itemId);
   if (!item) return;
@@ -282,12 +310,17 @@ async function _onItemClick(actor, kind, itemId) {
         }
         return item.sheet.render(true);
 
-      case "weapon":
-        // PC rollAttack takes a UUID (uses fromUuid internally), not an ID.
+      case "weapon": {
+        // PC rollAttack takes a UUID. For thrown weapons we may pass an
+        // attack-variant override (melee vs ranged) so the system's roll
+        // generator picks the right ability mod + range.
         if (typeof actor.system?.rollAttack === "function") {
-          return await actor.system.rollAttack(item.uuid);
+          const config = {};
+          if (opts?.attackType) config.attack = { type: opts.attackType };
+          return await actor.system.rollAttack(item.uuid, config);
         }
         return item.sheet.render(true);
+      }
 
       case "spell":
         // PC castSpell takes a UUID (uses fromUuid internally), not an ID.
