@@ -14,6 +14,11 @@
       <button class="sde-btn" data-action="nextCrawlTurn">Next Crawl Turn</button>
       <button class="sde-btn sde-btn-quiet" data-action="endCrawl">End Crawl</button>
     {{/if}}
+    <span class="sde-spacer"></span>
+    <button class="sde-btn" data-action="rollOocInit">Roll Initiative</button>
+    {{#if isGM}}
+      <button class="sde-btn sde-btn-quiet" data-action="resetOocInit">Reset</button>
+    {{/if}}
   {{/if}}
 
   {{#if (eq mode "combat")}}

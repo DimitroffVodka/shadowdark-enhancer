@@ -3,6 +3,7 @@ import { CrawlState } from "./crawl-state.mjs";
 import { hpPanel }       from "./stat-panels/hp-panel.mjs";
 import { movementPanel } from "./stat-panels/movement-panel.mjs";
 import { luckPanel }     from "./stat-panels/luck-panel.mjs";
+import { InitiativeManager } from "./initiative-manager.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
 const TEMPLATE = `modules/${MODULE_ID}/templates/crawl-strip.hbs`;
@@ -162,6 +163,8 @@ export const CrawlStrip = {
         case "startCrawl":    return CrawlState.startCrawl();
         case "endCrawl":      return CrawlState.endCrawl();
         case "nextCrawlTurn": return CrawlState.nextCrawlTurn();
+        case "rollOocInit":   return InitiativeManager.rollOocForAll();
+        case "resetOocInit":  return CrawlState.clearOocInitiative();
       }
     });
   },
