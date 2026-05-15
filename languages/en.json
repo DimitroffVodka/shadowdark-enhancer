@@ -5,6 +5,8 @@
   "SDE.settings.oocMovementBudget.hint": "Default movement budget per crawl turn. Reset on Next Crawl Turn.",
   "SDE.settings.oocEnforceBudget.name": "Enforce out-of-combat movement budget",
   "SDE.settings.oocEnforceBudget.hint": "If on, refuse moves that exceed the crawl budget. Off: still colors red but lets the move commit.",
+  "SDE.settings.combatEnforceBudget.name": "Enforce combat movement budget",
+  "SDE.settings.combatEnforceBudget.hint": "If on, refuse combat moves that exceed the remaining movement. Default off — Shadowdark combat traditionally relies on player honesty rather than hard enforcement.",
   "SDE.settings.hideHiddenNpcCards.name": "Hide hidden NPCs from the strip",
   "SDE.settings.hideHiddenNpcCards.hint": "If on, combatants with token.hidden or combatant.hidden are suppressed from the strip.",
   "SDE.settings.warnIfCrawlHelperEnabled.name": "Warn when shadowdark-crawl-helper is enabled",

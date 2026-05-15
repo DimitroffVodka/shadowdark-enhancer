@@ -28,6 +28,15 @@ export function registerSettings() {
     default: true,
   });
 
+  game.settings.register(MODULE_ID, "combatEnforceBudget", {
+    name: "SDE.settings.combatEnforceBudget.name",
+    hint: "SDE.settings.combatEnforceBudget.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
   game.settings.register(MODULE_ID, "hideHiddenNpcCards", {
     name: "SDE.settings.hideHiddenNpcCards.name",
     hint: "SDE.settings.hideHiddenNpcCards.hint",

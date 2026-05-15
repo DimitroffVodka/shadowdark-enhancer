@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.8] — 2026-05-15
+
+### Changed
+- **Movement tracker rewritten as a faithful Vagabond Crawler port (deduction model).** The previous cumulative-`usedMovement` accumulator is replaced with Vagabond's `moveRemaining` deduction pipeline:
+  - Each tracked token carries a `moveRemaining` flag (feet left this turn). Reset to full budget on `combatStart`, on every combat round/turn change, and at `startCrawl` / `nextCrawlTurn` / when added mid-crawl.
+  - `preUpdateToken` computes the segment distance from `_source.x/y` (avoids Foundry v14's animation interpolation) and caches it in `_pendingDeduct[tokenId]`. `updateToken` reads the cache, subtracts from `moveRemaining`, deletes the entry, and re-renders the strip.
+  - 5-ft rounding applied at every distance computation.
+- **`SDETokenRuler` subclass (ported from Vagabond's `VCSTokenRuler`).** Extends `foundry.canvas.placeables.tokens.TokenRuler`. Walks the waypoint `previous` linked list summing pending `cost`, then colors segments + grid highlights green within budget, red over. Registered via `CONFIG.Token.rulerClass` for new tokens; explicitly installed on existing canvas tokens via `_installRulers()` from `init()` and on every `canvasReady`.
+- **Rollback teleports + refunds.** The "Rollback Movement" token-HUD button teleports the token back to its turn-start position (with `teleport: true, animate: false` to bypass walls and skip movement accounting) and refunds the full base speed. Player clicks relay to the GM over the module socket.
+
+### Added
+- **`combatEnforceBudget` setting** (default `false`). Mirrors `oocEnforceBudget` for combat mode. Off by default — Shadowdark combat traditionally relies on player honesty, not hard enforcement.
+- **`MovementTracker.remainingFor(tokenDoc, mode)`** — reads the per-token `moveRemaining` flag directly, falling back to the full mode budget when unset. The strip's `_extractData` now uses this instead of computing `budget - used`.
+- **`controlToken` hook** clears stale ruler ghosts when token selection changes.
+
+### Adaptations from Vagabond
+- No per-actor speed lookup — budget comes from module settings (`combatMovementDefault` / `oocMovementBudget`).
+- No Rush mechanic (combat caps at `moveRemaining`, floors at 0). No overloaded check. No terrain difficulty regions.
+- No fly/swim/climb effective-mode resolution.
+- Actor types `Player` / `NPC` (capitalized).
+- `CrawlState.members` is a flat array of token IDs (Vagabond uses `[{actorId, tokenId, type}]`).
+- `moveRemaining` stored on the **token** (not actor), since members are tracked by tokenId and the same actor may have multiple tokens.
+
 ## [0.1.7] — 2026-05-15
 
 ### Fixed

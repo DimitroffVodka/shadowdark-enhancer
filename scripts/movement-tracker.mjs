@@ -1,115 +1,463 @@
-import { MODULE_ID } from "./module-id.mjs";
-import { CrawlState } from "./crawl-state.mjs";
-
 /**
- * MovementTracker — cumulative path-based movement counter.
+ * Shadowdark Enhancer — Movement Tracker
  *
- * Each token carries a `usedMovement` flag (feet used since the last reset).
- * Every position change increments it by the grid-Chebyshev distance between
- * old and new position (so moving forward 3 + back 2 = 5 ft used, not 1).
+ * Faithful port of vagabond-crawler/scripts/movement-tracker.mjs adapted for
+ * Shadowdark's data model.
  *
- * Resets:
- *   - crawl mode: startCrawl, nextCrawlTurn, endCrawl (cleared)
- *   - combat mode: combatStart (all combatants); combatTurn (new active only);
- *                  deleteCombat (cleared)
+ * Crawl mode: hard-blocks movement beyond crawl budget (when enforcement on).
+ * Combat mode: budget = combat speed; ruler turns red when over.
+ *              Floors at 0 (no Rush mechanic in Shadowdark).
  *
- * Anchors:
- *   - `turnStart` (combat-only) stays as a position record for the
- *     "Rollback to Turn Start" action — distinct from used-movement tracking.
- *   - `crawlAnchor` is retained as a positional record so the strip can still
- *     anchor for visual purposes, but distance computation no longer uses it.
+ * Adaptations from Vagabond:
+ *   - No per-actor speed: budget is module-setting-driven (combatMovementDefault / oocMovementBudget).
+ *   - No Rush, no overloaded check, no terrain difficulty regions.
+ *   - No fly/swim/climb effective-mode resolution.
+ *   - Actor types are "Player" and "NPC" (capitalized).
+ *   - CrawlState.members is [tokenId, ...] (array of strings), NOT objects.
+ *   - CrawlState mode flags: `CrawlState.mode === "combat"` replaces Vagabond's `paused`.
+ *   - moveRemaining is stored on the TOKEN (not actor) — members are tracked by tokenId
+ *     and the same actor may have multiple tokens.
+ *
+ * TokenRulerWaypoint (what _getSegmentStyle receives) is NOT the same
+ * object as the TokenMeasuredMovementWaypoint passed to refresh().
+ * Foundry creates new DeepReadonly<TokenRulerWaypoint> objects internally
+ * with `previous` (linked list), `stage` ("passed"|"pending"|"planned"),
+ * and `cost` carried over from the original waypoint.
+ *
+ * We compute cumulative cost by walking the `previous` chain, counting
+ * only "pending" waypoints (passed costs are already deducted from the
+ * token's moveRemaining flag).
  */
 
-const FLAG_USED         = "usedMovement";
-const FLAG_TURN_START   = "turnStart";
-const FLAG_CRAWL_ANCHOR = "crawlAnchor";
+import { MODULE_ID }  from "./module-id.mjs";
+import { CrawlState } from "./crawl-state.mjs";
+import { CrawlStrip } from "./crawl-strip.mjs";
+import { ICONS }      from "./icons.mjs";
+
+// ── Shared speed helpers ────────────────────────────────────────────────────
+
+/**
+ * Visual movement budget for a token.
+ * Combat: combatMovementDefault setting (default 30).
+ * Crawl:  oocMovementBudget setting (default 90).
+ * Shadowdark has no per-actor speed field — module settings drive the budget.
+ */
+function _getBaseSpeed(actor, tokenDoc = null) {
+  if (!actor) return 0;
+  const inCombat = CrawlState.mode === "combat";
+  return inCombat
+    ? game.settings.get(MODULE_ID, "combatMovementDefault")
+    : game.settings.get(MODULE_ID, "oocMovementBudget");
+}
+
+// Terrain difficulty support deferred — always 1× until Shadowdark gets a
+// region-based terrain system worth integrating with.
+
+// ── SDE TokenRuler subclass ─────────────────────────────────────────────────
+
+class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  get _moveRemaining() {
+    const doc = this.token?.document;
+    const actor = this.token?.actor;
+    if (!doc || !actor) return Infinity;
+    const stored = doc.getFlag(MODULE_ID, "moveRemaining");
+    return (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);
+  }
+
+  get _isTracked() {
+    if (!CrawlState.isActive) return false;
+    const doc = this.token?.document;
+    if (!doc) return false;
+    return CrawlState.members.includes(doc.id);
+  }
+
+  /**
+   * Walk the waypoint's `previous` linked list and sum costs of pending
+   * waypoints only.  Passed waypoints have already been deducted from the
+   * token's moveRemaining flag, so including them would double-count.
+   */
+  _cumulativeAt(waypoint) {
+    let total = 0;
+    let wp = waypoint;
+    while (wp) {
+      if (wp.stage === "passed") break;   // stop at committed waypoints
+      total += (wp.cost ?? 0);
+      wp = wp.previous ?? null;
+    }
+    return total;
+  }
+
+  _colorForFt(ft) {
+    const r = this._moveRemaining;
+    return ft <= r ? 0x00cc00 : 0xcc2200;  // green: within budget, red: over
+  }
+
+  _clearHighlight() {
+    const layerName = `TokenRuler.${this.token.id}`;
+    canvas.interface.grid.clearHighlightLayer(layerName);
+  }
+
+  clear() {
+    this._clearHighlight();
+    super.clear();
+  }
+
+  // ── refresh ────────────────────────────────────────────────────────────
+
+  /** No custom bookkeeping needed — style methods walk the linked list. */
+  refresh(args) {
+    super.refresh(args);
+  }
+
+  // ── Style overrides ────────────────────────────────────────────────────
+
+  _getSegmentStyle(waypoint) {
+    const base = super._getSegmentStyle(waypoint);
+    if (!this._isTracked) return base;
+    base.color = this._colorForFt(this._cumulativeAt(waypoint));
+    return base;
+  }
+
+  _getWaypointStyle(waypoint) {
+    const base = super._getWaypointStyle(waypoint);
+    if (!this._isTracked) return base;
+    base.color = this._colorForFt(this._cumulativeAt(waypoint));
+    return base;
+  }
+
+  _getGridHighlightStyle(waypoint, offset) {
+    const base = super._getGridHighlightStyle(waypoint, offset);
+    if (!this._isTracked) return base;
+    if (this._cumulativeAt(waypoint) > this._moveRemaining) {
+      base.color = 0xcc2200;
+      base.alpha = Math.min(1, (base.alpha ?? 0.25) * 1.5);
+    }
+    return base;
+  }
+
+  _getWaypointLabelContext(waypoint, state) {
+    const base = super._getWaypointLabelContext(waypoint, state);
+    if (!this._isTracked || !base) return base;
+    const after = this._moveRemaining - this._cumulativeAt(waypoint);
+    const tag   = after < 0 ? `OVER: ${after}ft` : `${after}ft left`;
+    base.label  = base.label ? `${base.label} (${tag})` : tag;
+    return base;
+  }
+}
+
+// ── MovementTracker ─────────────────────────────────────────────────────────
 
 export const MovementTracker = {
+
+  _turnStartPos: {},   // tokenId → {x, y} snapshotted at turn/round start
+  _pendingDeduct: {},  // tokenId → distance feet awaiting deduction
+  _clearTimers:   {},  // tokenId → setTimeout handle for ruler clear
+
+  /** Snapshot a token's current position as the rollback target. */
+  snapshotPosition(tokenId) {
+    const token = canvas.tokens?.get(tokenId);
+    if (token) this._turnStartPos[tokenId] = { x: token.document._source.x, y: token.document._source.y };
+  },
+
   init() {
-    // Combat start — record turn-start positions AND reset usedMovement for all.
-    Hooks.on("combatStart", async (combat) => {
-      if (!game.user.isGM) return;
-      for (const c of combat.turns) {
-        const tokenDoc = c.token;
-        if (!tokenDoc) continue;
-        await this._setFlag(tokenDoc, FLAG_TURN_START, this._sourcePos(tokenDoc));
-        await this._setFlag(tokenDoc, FLAG_USED, 0);
-      }
-    });
+    CONFIG.Token.rulerClass = SDETokenRuler;
+    console.log(`${MODULE_ID} | Registered SDETokenRuler`);
 
-    // Turn change — refresh active combatant's turn-start AND reset their used.
-    Hooks.on("combatTurn", async (combat) => {
-      if (!game.user.isGM) return;
-      const c = combat.combatant;
-      const tokenDoc = c?.token;
-      if (!tokenDoc) return;
-      await this._setFlag(tokenDoc, FLAG_TURN_START, this._sourcePos(tokenDoc));
-      await this._setFlag(tokenDoc, FLAG_USED, 0);
-    });
+    // CONFIG.Token.rulerClass only affects newly created tokens.
+    // Swap ruler instances on all tokens already on canvas.
+    this._installRulers();
+    Hooks.on("canvasReady", () => this._installRulers());
 
-    // Combat end — clear turn-start and used for all combatants.
-    Hooks.on("deleteCombat", async (combat) => {
-      if (!game.user.isGM) return;
-      for (const c of combat.turns) {
-        const tokenDoc = c.token;
-        if (!tokenDoc) continue;
-        await this._clearFlag(tokenDoc, FLAG_TURN_START);
-        await this._clearFlag(tokenDoc, FLAG_USED);
-      }
-    });
+    Hooks.on("preUpdateToken", (doc, changes, opts, userId) => {
+      if (opts?.[MODULE_ID]?.rollback) return; // skip accounting for rollback moves
+      if (changes.x !== undefined || changes.y !== undefined) {
 
-    // Position-change tracking + crawl-mode enforcement.
-    // preUpdateToken fires BEFORE the commit, so tokenDoc._source still has
-    // the old coordinates and `changes` carries the new ones. We compute the
-    // delta, decide whether to enforce a budget, and if the move proceeds,
-    // schedule the flag increment to land after the current update commits.
-    Hooks.on("preUpdateToken", (tokenDoc, changes) => {
-      if (!game.user.isGM) return;
-      if (!("x" in changes) && !("y" in changes)) return;
-
-      const inCombat = CrawlState.mode === "combat" && !!game.combat;
-      const inCrawl  = CrawlState.mode === "crawl";
-      if (!inCombat && !inCrawl) return;
-
-      // In combat we only track PCs + NPCs that are combatants; in crawl only PCs.
-      if (inCrawl && tokenDoc.actor?.type !== "Player") return;
-
-      const oldPos = this._sourcePos(tokenDoc);
-      const newPos = {
-        x: changes.x ?? oldPos.x,
-        y: changes.y ?? oldPos.y,
-      };
-      const delta = this._gridDistance(oldPos, newPos);
-      if (delta === 0) return;
-
-      const currentUsed = tokenDoc.flags?.[MODULE_ID]?.[FLAG_USED] ?? 0;
-      const proposedUsed = currentUsed + delta;
-
-      // Crawl mode enforcement — refuse if the cumulative would exceed budget.
-      if (inCrawl && game.settings.get(MODULE_ID, "oocEnforceBudget")) {
-        const budget = this.budgetFor("crawl");
-        if (proposedUsed > budget) {
-          ui.notifications.warn(
-            `${tokenDoc.actor?.name ?? "Token"}: crawl movement budget exceeded (${proposedUsed}/${budget} ft).`
-          );
-          return false;   // cancel the update
+        // Compute and cache the distance now, while we still have old position.
+        // Foundry v14 interpolates doc.x/doc.y mid-animation — use _source for
+        // the data-model coords.
+        if (CrawlState.isActive) {
+          const scene    = doc.parent;
+          const gridSize = scene?.grid?.size     ?? 100;
+          const gridDist = scene?.grid?.distance ?? 5;
+          const oldX = doc._source?.x ?? doc.x;
+          const oldY = doc._source?.y ?? doc.y;
+          const newX = changes.x ?? oldX;
+          const newY = changes.y ?? oldY;
+          const dx = (newX - oldX) / gridSize;
+          const dy = (newY - oldY) / gridSize;
+          // Terrain difficulty deferred — multiplier of 1.
+          const distanceFt = Math.round((Math.max(Math.abs(dx), Math.abs(dy)) * gridDist) / 5) * 5;
+          this._pendingDeduct[doc.id] = distanceFt;
         }
       }
+      // Block move if it exceeds remaining movement
+      return this._onPreUpdate(doc, changes, userId, this._pendingDeduct[doc.id]);
+    });
 
-      // Schedule the increment to land after this update commits.
-      // setFlag inside the same preUpdate would re-enter the hook chain.
-      Promise.resolve().then(async () => {
-        await this._setFlag(tokenDoc, FLAG_USED, proposedUsed);
+    Hooks.on("updateToken", (doc, changes, opts) => {
+      if (opts?.[MODULE_ID]?.rollback) return;
+      if (changes.x !== undefined || changes.y !== undefined) {
+        // Deduct movement after the move has successfully committed
+        if (CrawlState.isActive) {
+          const actor    = doc.actor;
+          const isMember = CrawlState.members.includes(doc.id);
+          const inCombat = CrawlState.mode === "combat";
+          // In combat we also track tokens that aren't crawl members
+          // (combatants get added to the combat tracker, not the crawl roster).
+          const tracked  = isMember || inCombat;
+          if (actor && tracked) {
+            const distanceFt = this._pendingDeduct[doc.id] ?? 0;
+            delete this._pendingDeduct[doc.id];
+            if (distanceFt > 0) {
+              const stored = doc.getFlag(MODULE_ID, "moveRemaining");
+              const moveRemaining = (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);
+              // Shadowdark: no Rush, always floor at 0.
+              const raw = Math.round((moveRemaining - distanceFt) / 5) * 5;
+              const newRemaining = Math.max(0, raw);
+              doc.setFlag(MODULE_ID, "moveRemaining", newRemaining)
+                .then(() => CrawlStrip.queueRender());
+            }
+          }
+        }
+
+        // Delay ruler clear to after #continueMovement finishes all segments
+        const tokenId = doc.id;
+        clearTimeout(this._clearTimers[tokenId]);
+        this._clearTimers[tokenId] = setTimeout(() => {
+          delete this._clearTimers[tokenId];
+          const token = canvas.tokens?.get(tokenId);
+          token?.ruler?.clear();
+          const highlight = canvas.interface.grid.highlight.children
+            ?.find(c => c.name === `TokenRuler.${tokenId}`);
+          if (highlight) highlight.visible = false;
+        }, 100);
+      }
+    });
+
+    Hooks.on("renderTokenHUD", (hud, html, data) => {
+      if (!CrawlState.isActive) return;
+      const token = hud.object;
+      if (!token?.isOwner) return;
+      const tokenDoc = token.document;
+      const inCombat = CrawlState.mode === "combat";
+      const isMember = CrawlState.members.includes(tokenDoc.id);
+      // Show rollback HUD button for crawl members in crawl mode, and for any
+      // owned combatant in combat mode.
+      if (!isMember && !inCombat) return;
+
+      const root = html instanceof HTMLElement ? html : html?.[0];
+      if (!root) return;
+
+      const btn = document.createElement("div");
+      btn.classList.add("control-icon");
+      btn.title = "Rollback Movement";
+      btn.innerHTML = ICONS.rollbackMove;
+      btn.addEventListener("click", () => {
+        hud.close();
+        this.rollback(token.id);
       });
+      root.querySelector(".col.left")?.appendChild(btn);
+    });
+
+    Hooks.on("controlToken", (token, controlled) => {
+      // Clear all rulers when token selection changes — catches any stale ghost trails
+      canvas.tokens?.placeables?.forEach(t => {
+        if (t.ruler && !t.isMoving) t.ruler.clear();
+      });
+    });
+
+    Hooks.on("combatStart", async () => {
+      if (!CrawlState.isActive || !game.user.isGM) return;
+      await this.resetAll();
+    });
+
+    Hooks.on("updateCombat", async (combat, changes) => {
+      if (!CrawlState.isActive || !game.user.isGM) return;
+      // Reset on round change OR turn change (each combatant gets fresh budget)
+      if (changes.round === undefined && changes.turn === undefined) return;
+      await this.resetAll();
+    });
+
+    // Socket relay — players ask GM to perform rollback (turn-start positions
+    // are tracked on the GM client).
+    game.socket.on(`module.${MODULE_ID}`, (msg) => {
+      if (msg?.action === "rollbackMove" && game.user.isGM) {
+        this.rollback(msg.tokenId);
+      }
     });
   },
 
+  // ── Ruler installation ────────────────────────────────────────────────────
+
+  _installRulers() {
+    const tokens = canvas.tokens?.placeables ?? [];
+    for (const token of tokens) {
+      if (token.ruler instanceof SDETokenRuler) continue;
+      try { token.ruler?.destroy(); } catch(e) {}
+      token.ruler = new SDETokenRuler(token);
+      token.ruler.draw().catch(() => {});
+      console.log(`${MODULE_ID} | Installed SDETokenRuler on ${token.name}`);
+    }
+  },
+
+  // ── preUpdateToken ────────────────────────────────────────────────────────
+
+  _onPreUpdate(doc, changes, userId, precomputedFt) {
+    if (!CrawlState.isActive) return;
+    if (changes.x === undefined && changes.y === undefined) return;
+
+    const actor = doc.actor;
+    if (!actor) return;
+
+    const inCombat = CrawlState.mode === "combat";
+    const isMember = CrawlState.members.includes(doc.id);
+    if (!isMember && !inCombat) return;
+
+    const enforce = inCombat
+      ? game.settings.get(MODULE_ID, "combatEnforceBudget")
+      : game.settings.get(MODULE_ID, "oocEnforceBudget");
+    if (!enforce) return;
+
+    const stored = doc.getFlag(MODULE_ID, "moveRemaining");
+    const moveRemaining = (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);
+
+    let segFt = precomputedFt;
+    if (segFt == null) {
+      const scene    = doc.parent;
+      const gridSize = scene?.grid?.size     ?? 100;
+      const gridDist = scene?.grid?.distance ?? 5;
+      const oldX = doc._source?.x ?? doc.x;
+      const oldY = doc._source?.y ?? doc.y;
+      const newX = changes.x ?? oldX;
+      const newY = changes.y ?? oldY;
+      const dx = (newX - oldX) / gridSize;
+      const dy = (newY - oldY) / gridSize;
+      segFt = Math.round((Math.max(Math.abs(dx), Math.abs(dy)) * gridDist) / 5) * 5;
+    }
+
+    // Shadowdark has no Rush — the cap is just moveRemaining in both modes.
+    const limit = moveRemaining;
+
+    if (segFt > limit) {
+      delete this._pendingDeduct[doc.id];
+      if (userId === game.userId) {
+        const msg = `${actor.name}: only ${Math.max(0, moveRemaining)}ft remaining.`;
+        ui.notifications.warn(msg);
+        // Schedule repeated clear attempts — #continueMovement may redraw after our first clear
+        const tokenId = doc.id;
+        let attempts = 0;
+        const clearLoop = setInterval(() => {
+          const token = canvas.tokens?.get(tokenId);
+          token?.ruler?.clear();
+          const h = canvas.interface?.grid?.highlight?.children
+            ?.find(c => c.name === `TokenRuler.${tokenId}`);
+          if (h) h.visible = false;
+          if (++attempts >= 10) clearInterval(clearLoop);
+        }, 50);
+      }
+      return false;
+    }
+  },
+
+  // ── Rollback ──────────────────────────────────────────────────────────────
+
+  async rollback(tokenId) {
+    // Players relay to GM (turn-start positions are only tracked on the GM client)
+    if (!game.user.isGM) {
+      game.socket.emit(`module.${MODULE_ID}`, { action: "rollbackMove", tokenId });
+      return;
+    }
+    const start = this._turnStartPos[tokenId];
+    if (!start) { ui.notifications.warn("No turn-start position recorded for this token."); return; }
+
+    const token = canvas.tokens?.get(tokenId);
+    const doc   = token?.document;
+    if (!doc) return;
+
+    const actor = doc.actor;
+
+    // Teleport token back to turn-start position (bypass wall collision)
+    await doc.update({ x: start.x, y: start.y }, {
+      teleport: true, animate: false, [MODULE_ID]: { rollback: true },
+    });
+
+    // Refund full turn movement (base speed — no Rush in Shadowdark)
+    if (actor) {
+      const fullSpeed = Math.round(_getBaseSpeed(actor, doc) / 5) * 5;
+      await doc.setFlag(MODULE_ID, "moveRemaining", fullSpeed);
+      CrawlStrip.queueRender();
+      ui.notifications.info(`${actor.name} rolled back to turn start — movement restored.`);
+    }
+  },
+
+  // ── Turn management ───────────────────────────────────────────────────────
+
+  async resetToken(tokenDoc) {
+    const actor = tokenDoc?.actor;
+    const speed = _getBaseSpeed(actor, tokenDoc);
+    await tokenDoc.setFlag(MODULE_ID, "moveRemaining", Math.round(speed / 5) * 5);
+  },
+
   /**
-   * Cumulative feet used since the last reset. Reads the flag directly —
-   * no anchor distance math.
+   * Reset moveRemaining + snapshot turn-start for every combatant.
+   * Triggered on combatStart and on combat round/turn changes.
    */
-  usedFor(tokenDoc, /* mode */) {
-    return tokenDoc?.flags?.[MODULE_ID]?.[FLAG_USED] ?? 0;
+  async resetAll() {
+    const combat = game.combat;
+    if (combat) {
+      for (const c of combat.turns) {
+        const tokenDoc = c.token;
+        if (!tokenDoc) continue;
+        await this.resetToken(tokenDoc);
+        this._turnStartPos[tokenDoc.id] = {
+          x: tokenDoc._source?.x ?? tokenDoc.x,
+          y: tokenDoc._source?.y ?? tokenDoc.y,
+        };
+      }
+    }
+    CrawlStrip.queueRender();
+  },
+
+  /**
+   * Reset moveRemaining + snapshot anchor for crawl members.
+   * Called from CrawlState.startCrawl / nextCrawlTurn.
+   */
+  async resetCrawl(tokenIds = null) {
+    const ids = tokenIds ?? CrawlState.members;
+    const scene = canvas.scene;
+    for (const id of ids) {
+      const tokenDoc = scene?.tokens.get(id);
+      if (!tokenDoc) continue;
+      await this.resetToken(tokenDoc);
+      this._turnStartPos[id] = {
+        x: tokenDoc._source?.x ?? tokenDoc.x,
+        y: tokenDoc._source?.y ?? tokenDoc.y,
+      };
+    }
+    CrawlStrip.queueRender();
+  },
+
+  // ── Strip read API ────────────────────────────────────────────────────────
+
+  /**
+   * Read the stored moveRemaining flag for a token, falling back to the full
+   * mode budget when no flag is set yet. The strip reads this directly.
+   */
+  remainingFor(tokenDoc, mode) {
+    const stored = tokenDoc?.getFlag?.(MODULE_ID, "moveRemaining");
+    if (typeof stored === "number") return stored;
+    return this.budgetFor(mode);
+  },
+
+  /**
+   * Back-compat shim — used = budget − remaining. Returns 0 when no token.
+   */
+  usedFor(tokenDoc, mode) {
+    if (!tokenDoc) return 0;
+    return Math.max(0, this.budgetFor(mode) - this.remainingFor(tokenDoc, mode));
   },
 
   budgetFor(mode) {
@@ -118,73 +466,35 @@ export const MovementTracker = {
       : game.settings.get(MODULE_ID, "oocMovementBudget");
   },
 
-  /**
-   * Move the token back to its captured turn-start coordinates (combat only).
-   * Resets usedMovement to 0 since the player is now at the start of their turn.
-   */
-  async rollbackToTurnStart(tokenDoc) {
-    const origin = tokenDoc?.flags?.[MODULE_ID]?.[FLAG_TURN_START];
-    if (!origin) {
-      ui.notifications.warn("Shadowdark Enhancer: no turn-start recorded for this token.");
-      return;
-    }
-    await tokenDoc.update({ x: origin.x, y: origin.y });
-    await this._setFlag(tokenDoc, FLAG_USED, 0);
-    ui.notifications.info(`${tokenDoc.actor?.name ?? "Token"} rolled back to turn start.`);
-  },
+  // ── Crawl-state integration shims ─────────────────────────────────────────
+  // CrawlState's startCrawl / nextCrawlTurn / addMembers still call these
+  // names from the previous tracker — keep them as aliases for resetCrawl so
+  // crawl-state.mjs doesn't need to change its API surface.
 
-  // Capture crawl baselines for ALL scene tokens; resets usedMovement.
   async captureCrawlAnchors() {
     if (!game.user.isGM) return;
-    const tokens = canvas.scene?.tokens?.contents ?? [];
-    for (const t of tokens) {
-      await this._setFlag(t, FLAG_CRAWL_ANCHOR, this._sourcePos(t));
-      await this._setFlag(t, FLAG_USED, 0);
-    }
+    await this.resetCrawl();
   },
 
-  // Capture for specific tokens (used by addMembers).
   async captureCrawlAnchorsFor(tokenIds) {
     if (!game.user.isGM) return;
     if (!Array.isArray(tokenIds) || tokenIds.length === 0) return;
-    const scene = canvas.scene;
-    for (const id of tokenIds) {
-      const t = scene?.tokens.get(id);
-      if (!t) continue;
-      await this._setFlag(t, FLAG_CRAWL_ANCHOR, this._sourcePos(t));
-      await this._setFlag(t, FLAG_USED, 0);
-    }
+    await this.resetCrawl(tokenIds);
   },
 
   async clearCrawlAnchors() {
     if (!game.user.isGM) return;
-    const tokens = canvas.scene?.tokens?.contents ?? [];
+    const scene = canvas.scene;
+    const tokens = scene?.tokens?.contents ?? [];
     for (const t of tokens) {
-      await this._clearFlag(t, FLAG_CRAWL_ANCHOR);
-      await this._clearFlag(t, FLAG_USED);
+      await t.unsetFlag(MODULE_ID, "moveRemaining").catch(() => {});
     }
+    this._turnStartPos = {};
   },
 
-  // ── Internal ───────────────────────────────────────────────────────────
-  async _setFlag(tokenDoc, key, value) {
-    await tokenDoc.setFlag(MODULE_ID, key, value);
-  },
-
-  async _clearFlag(tokenDoc, key) {
-    await tokenDoc.unsetFlag(MODULE_ID, key);
-  },
-
-  _gridDistance(a, b) {
-    const gridSize = canvas.scene?.grid?.size ?? 100;
-    const distFt = canvas.scene?.grid?.distance ?? 5;
-    const dx = Math.abs(a.x - b.x) / gridSize;
-    const dy = Math.abs(a.y - b.y) / gridSize;
-    const squares = Math.max(dx, dy);
-    return Math.round(squares * distFt);
-  },
-
-  _sourcePos(tokenDoc) {
-    const src = tokenDoc?._source ?? tokenDoc ?? {};
-    return { x: src.x ?? 0, y: src.y ?? 0 };
+  /** Rollback helper consumed by the strip's combat-mode rollback action. */
+  async rollbackToTurnStart(tokenDoc) {
+    if (!tokenDoc) return;
+    await this.rollback(tokenDoc.id);
   },
 };

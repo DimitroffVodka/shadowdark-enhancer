@@ -438,10 +438,10 @@ export const CrawlStrip = {
       : (typeof luckObj.available === "number" ? luckObj.available : 0);
 
     // Movement — module setting drives the budget. No per-actor speed in Shadowdark.
+    // Reads the per-token moveRemaining flag directly (Vagabond pattern).
     const mode        = inCombat ? "combat" : "crawl";
     const activeSpeed = MovementTracker.budgetFor(mode);
-    const used        = tokenDoc ? MovementTracker.usedFor(tokenDoc, mode) : 0;
-    const moveRemaining = Math.max(0, activeSpeed - used);
+    const moveRemaining = MovementTracker.remainingFor(tokenDoc, mode);
 
     return {
       hp:           hp.value ?? 0,
