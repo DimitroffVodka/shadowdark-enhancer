@@ -6,7 +6,7 @@
 - **Init result badge on cards** — once a combatant has an initiative value (combat or out-of-combat), the dice button position is replaced by a small gold-bordered badge showing the rolled number. So you can see at a glance who's rolled and what they got.
 
 ### Fixed
-- **OoC initiative chat card rendering.** The dice card produced by `Roll#toMessage` showed a "1d20" formula button in v14 themes but the rolled total wasn't immediately visible (the `dice-total` `<h4>` is part of the DOM but visually de-emphasized). The result is now embedded directly in the flavor line — `"Avorn rolls Initiative (out of combat) 14"` — as a gold-bordered badge that's always visible. Advantage / disadvantage tags appear when applicable.
+- **OoC initiative chat card now uses the Shadowdark system's native roll-card style** — same look as the system's Attack Roll / Damage Roll cards, including the reroll-icon affordance and prominent total. The InitiativeManager dispatches through `shadowdark.dice.rollFromConfig` (which is what `actor.system.rollAttack` / `castSpell` use internally) instead of the generic `Roll#toMessage`. Falls back to the generic path if the system API isn't available.
 - **Out-of-combat initiative wasn't cleared between crawl sessions.** `startCrawl` and `endCrawl` now wipe `oocInitiative` so a fresh crawl always starts clean — previously a roll from an earlier session lingered and hid the dice button on the card.
 
 ## [0.1.22] — 2026-05-15

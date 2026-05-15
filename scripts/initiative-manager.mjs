@@ -4,51 +4,55 @@ import { CrawlState } from "./crawl-state.mjs";
 /**
  * Out-of-combat initiative for crawl rounds.
  *
- * Rolls 1d20 + actor.system.roll.initiative.bonus with the actor's advantage
- * applied via shadowdark.dice.applyAdvantage. Posts the roll through
- * Roll#toMessage so it appears as a normal chat card and Dice So Nice
- * picks up the 3D roll — same pipeline as a combat initiative roll.
+ * Rolls 1d20 + actor.system.roll.initiative.bonus with advantage applied via
+ * shadowdark.dice.applyAdvantage, then dispatches through the system's
+ * own roll pipeline (`shadowdark.dice.rollFromConfig`) so the chat card uses
+ * the Shadowdark style — same look as the system's attack / save / check
+ * cards. Dice So Nice picks up the 3D roll automatically.
  *
- * Result is stored on CrawlState.oocInitiative keyed by tokenId. The strip's
+ * Result is stored on CrawlState.oocInitiative keyed by tokenId; the strip's
  * card sort honors it; cleared by CrawlState.clearOocInitiative() (Reset Init
- * button on the bar).
+ * button on the bar) or on startCrawl / endCrawl.
  */
 export const InitiativeManager = {
 
-  /**
-   * Roll for one token. Caller is responsible for permission checks if needed;
-   * non-GM callers must be the actor owner.
-   */
   async rollOocForToken(tokenId) {
     const token = canvas.scene?.tokens.get(tokenId);
     const actor = token?.actor;
     if (!actor) return null;
     if (!game.user.isGM && !actor.testUserPermission(game.user, "OWNER")) return null;
 
-    const { roll, advantage } = await this._rollFor(actor);
-    // Render the dice-roll HTML explicitly (formula + tooltip + total card)
-    // AND surface the rolled total directly in the flavor line — the v14
-    // collapsed dice card hides the result by default in some themes, so
-    // putting the number in the flavor guarantees it's always visible.
-    const content = await roll.render();
-    const advLabel = advantage > 0 ? ' <span class="sde-chat-adv">(adv)</span>'
-                  : advantage < 0 ? ' <span class="sde-chat-dis">(dis)</span>'
-                  : "";
-    const flavor = `${actor.name} rolls Initiative <em>(out of combat)</em>${advLabel}
-      <strong class="sde-chat-init-total">${roll.total}</strong>`;
-    await roll.toMessage({
-      speaker: ChatMessage.getSpeaker({ actor }),
-      flavor,
-      content,
+    const dice = globalThis.shadowdark?.dice;
+    if (!dice?.rollFromConfig || !dice?.initializeD20Check) {
+      // Defensive fallback if the system API isn't available.
+      return this._fallbackRoll(actor, tokenId);
+    }
+
+    const bonus = Number(actor.system?.roll?.initiative?.bonus ?? 0);
+    const advantage = Number(actor.system?.roll?.initiative?.advantage ?? 0);
+    const baseFormula = "1d20";
+    const advFormula = (advantage !== 0 && typeof dice.applyAdvantage === "function")
+      ? dice.applyAdvantage(baseFormula, advantage)
+      : baseFormula;
+    const formula = bonus !== 0 ? `${advFormula} + ${bonus}` : advFormula;
+
+    const config = dice.initializeD20Check({
+      actorId: actor.id,
+      mainRoll: { formula },
+      type: "initiative",
+      heading: `${actor.name} — Initiative <em>(out of combat)</em>`,
     });
-    await CrawlState.setOocInitiative(tokenId, { roll: roll.total, advantage });
-    return roll.total;
+
+    const mainRoll = await dice.rollFromConfig(config);
+    if (!mainRoll) return null;
+
+    const total = mainRoll?.roll?.total ?? mainRoll?.total;
+    if (typeof total === "number") {
+      await CrawlState.setOocInitiative(tokenId, { roll: total, advantage });
+    }
+    return total ?? null;
   },
 
-  /**
-   * Roll for every Player token on the active scene whose tokenId isn't
-   * already in CrawlState.oocInitiative. Non-GM rolls only for owned tokens.
-   */
   async rollOocForAll() {
     const tokens = canvas.scene?.tokens?.contents ?? [];
     const candidates = tokens.filter(t => {
@@ -69,21 +73,24 @@ export const InitiativeManager = {
 
   // ── Internal ──────────────────────────────────────────────────────────────
 
-  async _rollFor(actor) {
+  async _fallbackRoll(actor, tokenId) {
     const bonus = Number(actor.system?.roll?.initiative?.bonus ?? 0);
     const advantage = Number(actor.system?.roll?.initiative?.advantage ?? 0);
-
-    const baseFormula = "1d20";
     const advFn = globalThis.shadowdark?.dice?.applyAdvantage;
-    const formula = (advantage !== 0 && typeof advFn === "function")
-      ? advFn(baseFormula, advantage)
-      : baseFormula;
-    const full = bonus !== 0 ? `${formula} + ${bonus}` : formula;
+    const baseFormula = "1d20";
+    const advFormula = (advantage !== 0 && typeof advFn === "function")
+      ? advFn(baseFormula, advantage) : baseFormula;
+    const full = bonus !== 0 ? `${advFormula} + ${bonus}` : advFormula;
 
-    // Use evaluate() (roll() is deprecated in v13+) and have toMessage render
-    // the full dice template — without this, the chat content is just the
-    // bare total number with no dice formula or result breakdown.
     const roll = await new Roll(full).evaluate();
-    return { roll, advantage };
+    const content = await roll.render();
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker({ actor }),
+      flavor: `${actor.name} rolls Initiative <em>(out of combat)</em>
+        <strong class="sde-chat-init-total">${roll.total}</strong>`,
+      content,
+    });
+    await CrawlState.setOocInitiative(tokenId, { roll: roll.total, advantage });
+    return roll.total;
   },
 };
