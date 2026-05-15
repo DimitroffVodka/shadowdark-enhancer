@@ -2,7 +2,8 @@
  * Shadowdark Enhancer — entry point
  */
 
-export const MODULE_ID = "shadowdark-enhancer";
+export { MODULE_ID } from "./module-id.mjs";
+import { MODULE_ID } from "./module-id.mjs";
 
 import { registerSettings } from "./settings.mjs";
 import { CrawlState } from "./crawl-state.mjs";

@@ -1,4 +1,4 @@
-import { MODULE_ID } from "./shadowdark-enhancer.mjs";
+import { MODULE_ID } from "./module-id.mjs";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, "combatMovementDefault", {

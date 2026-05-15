@@ -1,4 +1,4 @@
-import { MODULE_ID } from "./shadowdark-enhancer.mjs";
+import { MODULE_ID } from "./module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";

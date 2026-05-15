@@ -1,4 +1,4 @@
-import { MODULE_ID } from "./shadowdark-enhancer.mjs";
+import { MODULE_ID } from "./module-id.mjs";
 
 /**
  * CrawlState — single source of truth for the strip's mode.
