@@ -92,14 +92,15 @@ export const CrawlState = {
   async startCrawl() {
     if (!game.user.isGM) return;
     if (this._state.mode === "combat") return;
-    await this._update({ mode: "crawl" });
+    // Fresh slate — clear any leftover OoC initiative from a prior session.
+    await this._update({ mode: "crawl", oocInitiative: {} });
     await MovementTracker.captureCrawlAnchors();
   },
 
   async endCrawl() {
     if (!game.user.isGM) return;
     if (this._state.mode === "combat") return;
-    await this._update({ mode: "off", crawlTurn: 0, members: [] });
+    await this._update({ mode: "off", crawlTurn: 0, members: [], oocInitiative: {} });
     await MovementTracker.clearCrawlAnchors();
   },
 

@@ -349,15 +349,28 @@ export const CrawlStrip = {
           </div>
           ${isCurrent ? `<div class="sde-strip-turn-badge">${ICONS.turnArrow}</div>` : ""}
           ${isDefeated ? `<div class="sde-strip-defeated-icon">${ICONS.skull}</div>` : ""}
-          ${
-            // Combat mode: dice when combatant has no initiative
-            inCombat && combatant && (combatant.initiative == null) && (actor?.isOwner || game.user.isGM)
-              ? `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="Roll Initiative">${ICONS.diceD20}</button>`
-            // Crawl mode: dice when this token has no oocInitiative entry yet
-            : (!inCombat && m.tokenId && !CrawlState.oocInitiative[m.tokenId] && m.type === "player" && (actor?.isOwner || game.user.isGM))
-              ? `<button class="sde-strip-rollinit-btn" data-token-id="${m.tokenId}" data-action="rollOocInit" title="Roll Initiative (out of combat)">${ICONS.diceD20}</button>`
-              : ""
-          }
+          ${(() => {
+            // Combat mode: dice when combatant has no initiative; otherwise show the rolled value as a badge.
+            if (inCombat && combatant) {
+              if (combatant.initiative == null && (actor?.isOwner || game.user.isGM)) {
+                return `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="Roll Initiative">${ICONS.diceD20}</button>`;
+              }
+              if (combatant.initiative != null) {
+                return `<div class="sde-strip-init-badge" title="Initiative">${combatant.initiative}</div>`;
+              }
+            }
+            // Crawl mode: dice when no oocInitiative; otherwise show the rolled value.
+            if (!inCombat && m.tokenId && m.type === "player") {
+              const oocEntry = CrawlState.oocInitiative[m.tokenId];
+              if (!oocEntry && (actor?.isOwner || game.user.isGM)) {
+                return `<button class="sde-strip-rollinit-btn" data-token-id="${m.tokenId}" data-action="rollOocInit" title="Roll Initiative (out of combat)">${ICONS.diceD20}</button>`;
+              }
+              if (oocEntry) {
+                return `<div class="sde-strip-init-badge" title="Initiative (out of combat)">${oocEntry.roll}</div>`;
+              }
+            }
+            return "";
+          })()}
           ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${isCurrent ? "End Turn" : "Activate Turn"}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
         </div>`;
 

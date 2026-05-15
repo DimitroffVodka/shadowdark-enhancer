@@ -2,8 +2,12 @@
 
 ## [Unreleased]
 
+### Added
+- **Init result badge on cards** — once a combatant has an initiative value (combat or out-of-combat), the dice button position is replaced by a small gold-bordered badge showing the rolled number. So you can see at a glance who's rolled and what they got.
+
 ### Fixed
 - **OoC initiative chat card was missing the dice formula and total.** `Roll#toMessage` sets content to `String(roll.total)` by default — that's why the chat panel was rendering just `"15"` (or worse, the dice card without the total). Now the manager explicitly renders the roll via `await roll.render()` and passes it as `content`, so the chat card shows the full `1d20` formula breakdown, the d20 result, and the final total like a normal initiative roll.
+- **Out-of-combat initiative wasn't cleared between crawl sessions.** `startCrawl` and `endCrawl` now wipe `oocInitiative` so a fresh crawl always starts clean — previously a roll from an earlier session lingered and hid the dice button on the card.
 
 ## [0.1.22] — 2026-05-15
 
