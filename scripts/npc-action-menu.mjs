@@ -53,13 +53,32 @@ function _npcAttackDmgLabel(item) {
   return `<span class="sde-strip-menu-dmg">${parts}</span>`;
 }
 
-function _weaponDmgLabel(item) {
+// Renders the right-side description for a PC weapon entry in the
+// stat-block format "(Range) +Bonus Damage". The bonus is computed by the
+// system via `getAttacks()` (so it includes ability mod, magic AE bonuses,
+// talents, etc.) and passed in here as a pre-formatted string ("+3", "-1").
+// For the thrown variant of a melee weapon, the system uses DEX (instead
+// of STR) and the Shadowdark rule that thrown range is "near"; we override
+// the displayed range to "near" so the entry reads correctly.
+function _weaponDmgLabel(item, { bonus = "", attackType = "" } = {}) {
   const oneH = item.system?.damage?.oneHanded ?? "";
   const twoH = item.system?.damage?.twoHanded ?? "";
   const dmg = oneH || twoH;
   if (!dmg) return "";
-  const range = item.system?.range ? ` ${item.system.range}` : "";
-  return `<span class="sde-strip-menu-dmg">${dmg}${range}</span>`;
+
+  const nativeType = item.system?.type === "ranged" ? "ranged" : "melee";
+  const isThrownVariant = attackType === "ranged" && nativeType === "melee" && item.system?.isThrown;
+  const rangeKey = isThrownVariant ? "near" : (item.system?.range || "");
+  const rangeLabel = rangeKey
+    ? game.i18n.localize(CONFIG.SHADOWDARK?.RANGES?.[rangeKey] ?? rangeKey)
+    : "";
+
+  const parts = [
+    rangeLabel ? `(${rangeLabel})` : "",
+    bonus,
+    dmg,
+  ].filter(Boolean).join(" ");
+  return `<span class="sde-strip-menu-dmg">${parts}</span>`;
 }
 
 function _spellDmgLabel(item) {
@@ -105,33 +124,32 @@ function _buildNpcAbilities(actor) {
     }));
 }
 
-// Build the PC weapons list mirroring the system's sheet structure:
-//   - each equipped weapon contributes one attack entry for its native type
-//     (melee or ranged)
-//   - if a weapon is "thrown" AND native type is melee, ALSO add a ranged
-//     entry so the player can throw it (matches the sheet's RANGED ATTACKS
-//     section listing thrown weapons too).
-function _buildPcWeapons(actor) {
-  const weapons = (actor.items?.contents ?? []).filter(i => i.system?.isWeapon && i.system?.equipped);
+// Build the PC weapons list using the system's own `getAttacks()` factory.
+// This gives us:
+//   - the actor's actual to-hit bonus (ability mod + magic AE bonuses +
+//     talents, all computed by the system — same value that lands on the
+//     attack roll)
+//   - thrown weapons split into melee + ranged variants automatically
+//     (no hand-rolled dual-entry logic needed)
+// Async because `getAttacks()` resolves item UUIDs internally.
+async function _buildPcWeapons(actor) {
+  const getAttacks = actor.system?.getAttacks;
+  if (typeof getAttacks !== "function") return [];
+  const attacks = await getAttacks.call(actor.system);
   const entries = [];
-  for (const w of weapons) {
-    const nativeType = w.system?.type === "ranged" ? "ranged" : "melee";
-    entries.push({
-      label: w.name || "Unnamed",
-      dmg: _weaponDmgLabel(w),
-      itemUuid: w.uuid,
-      itemId: w.id,
-      attackType: nativeType,
-      kind: "weapon",
-    });
-    // Thrown weapons that are natively melee also get a ranged entry.
-    if (w.system?.isThrown && nativeType === "melee") {
+  for (const attackType of ["melee", "ranged"]) {
+    for (const a of attacks?.[attackType] ?? []) {
+      const item = a.item;
+      if (!item) continue;
+      const nativeType = item.system?.type === "ranged" ? "ranged" : "melee";
+      const isThrownVariant = attackType === "ranged" && nativeType === "melee" && item.system?.isThrown;
+      const bonus = a.mainRoll?.bonus ?? "";
       entries.push({
-        label: `${w.name || "Unnamed"} (thrown)`,
-        dmg: _weaponDmgLabel(w),
-        itemUuid: w.uuid,
-        itemId: w.id,
-        attackType: "ranged",
+        label: isThrownVariant ? `${item.name || "Unnamed"} (thrown)` : (item.name || "Unnamed"),
+        dmg: _weaponDmgLabel(item, { bonus, attackType }),
+        itemUuid: item.uuid,
+        itemId: item.id,
+        attackType,
         kind: "weapon",
       });
     }
@@ -166,7 +184,9 @@ function _buildPcAbilities(actor) {
 
 // ─── Menu Data ────────────────────────────────────────────────────────────────
 
-function _buildMenuData(actor, isNPC) {
+// Async — PC weapons go through `actor.system.getAttacks()` (async) to pick
+// up the system-computed to-hit bonus.
+async function _buildMenuData(actor, isNPC) {
   if (isNPC) {
     return {
       tabA: "Actions",
@@ -179,9 +199,32 @@ function _buildMenuData(actor, isNPC) {
     tabA: "Weapons",
     tabB: "Spells",
     tabC: "Abilities",
-    itemsA: _buildPcWeapons(actor),
+    itemsA: await _buildPcWeapons(actor),
     itemsB: _buildPcSpells(actor),
     itemsC: _buildPcAbilities(actor),
+  };
+}
+
+// Sync existence check for the tab strip (just needs to know which tabs to
+// show — doesn't need the full item list, so we don't pay the `getAttacks`
+// cost on every card render).
+function _menuTabAvailability(actor, isNPC) {
+  const items = actor.items?.contents ?? [];
+  if (isNPC) {
+    return {
+      tabA: "Actions",
+      tabB: "Abilities",
+      hasA: items.some(i => i.type === "NPC Attack" || i.type === "NPC Special Attack"),
+      hasB: items.some(i => i.type === "NPC Feature"),
+    };
+  }
+  return {
+    tabA: "Weapons",
+    tabB: "Spells",
+    tabC: "Abilities",
+    hasA: items.some(i => i.system?.isWeapon && i.system?.equipped),
+    hasB: items.some(i => i.type === "Spell"),
+    hasC: items.some(i => i.type === "Class Ability"),
   };
 }
 
@@ -193,11 +236,7 @@ function _buildMenuData(actor, isNPC) {
  */
 export function buildTabStripHTML(actor, isNPC) {
   if (!actor) return "";
-  const menu = _buildMenuData(actor, isNPC);
-  const { tabA, tabB, tabC, itemsA, itemsB, itemsC } = menu;
-  const hasA = itemsA && itemsA.length > 0;
-  const hasB = itemsB && itemsB.length > 0;
-  const hasC = itemsC && itemsC.length > 0;
+  const { tabA, tabB, tabC, hasA, hasB, hasC } = _menuTabAvailability(actor, isNPC);
   if (!hasA && !hasB && !hasC) return "";
   const firstShown = hasA ? "a" : hasB ? "b" : "c";
   return `
@@ -223,10 +262,20 @@ function _scheduleHide() {
 }
 
 function _removePanel() {
+  // Bump the session so any in-flight `_showPanel` async build for the
+  // panel we just removed (or scheduled-to-show) will detect that it's
+  // been superseded and bail before mounting.
+  _showSession++;
   if (_activePanel) { _activePanel.remove(); _activePanel = null; }
 }
 
-function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
+// Session token — bumped on every _showPanel entry. If a different actor's
+// hover supersedes us while we're awaiting `_buildMenuData` (which fans out
+// to the system's async `getAttacks()` for PCs), the in-flight call aborts
+// before mounting so we don't render the wrong actor's panel.
+let _showSession = 0;
+
+async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
   _clearHideTimer();
 
   // Re-use existing panel for same actor
@@ -236,8 +285,12 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
   }
 
   _removePanel();
+  const session = ++_showSession;
 
-  const menu = _buildMenuData(actor, isNPC);
+  const menu = await _buildMenuData(actor, isNPC);
+  // If a different hover came in while we were awaiting, bail.
+  if (session !== _showSession) return;
+
   const { tabA, tabB, tabC, itemsA, itemsB, itemsC } = menu;
   const hasA = itemsA && itemsA.length > 0;
   const hasB = itemsB && itemsB.length > 0;
