@@ -77,12 +77,18 @@ export const CrawlState = {
     if (!game.user.isGM) return;
     if (!Array.isArray(tokenIds) || tokenIds.length === 0) return;
     const current = new Set(this._state.members ?? []);
-    let added = 0;
+    const newIds = [];
     for (const id of tokenIds) {
-      if (id && !current.has(id)) { current.add(id); added++; }
+      if (id && !current.has(id)) { current.add(id); newIds.push(id); }
     }
-    if (added === 0) return;
+    if (newIds.length === 0) return;
     await this._update({ members: [...current] });
+    // Capture an anchor for each new member so movement tracks from where
+    // they were when added (not from their position at startCrawl, which may
+    // have been before they were on the scene).
+    if (this._state.mode === "crawl") {
+      await MovementTracker.captureCrawlAnchorsFor(newIds);
+    }
   },
 
   // Remove a token ID from the crawl member list.

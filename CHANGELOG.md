@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.6] — 2026-05-15
+
+### Fixed
+- **Movement tracker no longer reports fluctuating/random distances.** Foundry v14's TokenDocument `.x/.y` properties interpolate during the canvas movement animation — reading them mid-flight returned an in-between coordinate. The strip's render hooks fire many times during a drag, so the displayed "used" number bounced around and snapped to weird values. Movement tracker now reads `tokenDoc._source.x/y` (the data-model coords) for both anchor capture AND distance computation. The displayed used/budget is now stable from the moment the move commits.
+- **Newly added crawl members had no anchor.** When the GM clicked "Add Tokens" mid-crawl to add a token that wasn't on the scene at `Start Crawl` time, the new token had no `crawlAnchor` flag → `usedFor` returned 0 → movement display stuck at full budget regardless of how far the token moved. `addMembers` now calls `MovementTracker.captureCrawlAnchorsFor(newIds)` so anchors are captured at the moment of joining.
+
 ## [0.1.5] — 2026-05-15
 
 ### Added

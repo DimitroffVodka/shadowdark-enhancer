@@ -12,7 +12,7 @@ export const MovementTracker = {
       for (const c of combat.turns) {
         const tokenDoc = c.token;
         if (!tokenDoc) continue;
-        await this._setFlag(tokenDoc, FLAG_TURN_START, { x: tokenDoc.x, y: tokenDoc.y });
+        await this._setFlag(tokenDoc, FLAG_TURN_START, this._sourcePos(tokenDoc));
       }
     });
 
@@ -22,7 +22,7 @@ export const MovementTracker = {
       const c = combat.combatant;
       const tokenDoc = c?.token;
       if (!tokenDoc) return;
-      await this._setFlag(tokenDoc, FLAG_TURN_START, { x: tokenDoc.x, y: tokenDoc.y });
+      await this._setFlag(tokenDoc, FLAG_TURN_START, this._sourcePos(tokenDoc));
     });
 
     // Clear all turn-start flags when combat ends.
@@ -49,9 +49,10 @@ export const MovementTracker = {
       const anchor = tokenDoc.flags?.[MODULE_ID]?.[FLAG_CRAWL_ANCHOR];
       if (!anchor) return;   // no anchor yet → no enforcement
 
+      const src = tokenDoc._source ?? tokenDoc;
       const proposed = {
-        x: changes.x ?? tokenDoc.x,
-        y: changes.y ?? tokenDoc.y,
+        x: changes.x ?? src.x ?? 0,
+        y: changes.y ?? src.y ?? 0,
       };
       const proposedDist = this._gridDistance(anchor, proposed);
       const budget = this.budgetFor("crawl");
@@ -68,6 +69,13 @@ export const MovementTracker = {
   /**
    * Grid-Chebyshev distance (in feet) from the configured origin to the
    * token's current position.
+   *
+   * Reads `tokenDoc._source.x/y` (the data-model coordinates) rather than
+   * `tokenDoc.x/y` because Foundry v14's measured-movement system makes the
+   * public getters interpolate during the canvas animation. Reading the
+   * animated value caused the strip's movement readout to fluctuate
+   * unpredictably during a drag-drop.
+   *
    * @param {TokenDocument} tokenDoc
    * @param {"combat"|"crawl"} mode
    * @returns {number}
@@ -76,7 +84,8 @@ export const MovementTracker = {
     const flagKey = mode === "combat" ? FLAG_TURN_START : FLAG_CRAWL_ANCHOR;
     const origin = tokenDoc?.flags?.[MODULE_ID]?.[flagKey];
     if (!origin) return 0;
-    return this._gridDistance(origin, { x: tokenDoc.x, y: tokenDoc.y });
+    const src = tokenDoc._source ?? tokenDoc;
+    return this._gridDistance(origin, { x: src.x, y: src.y });
   },
 
   budgetFor(mode) {
@@ -107,7 +116,20 @@ export const MovementTracker = {
     if (!game.user.isGM) return;
     const tokens = canvas.scene?.tokens?.contents ?? [];
     for (const t of tokens) {
-      await this._setFlag(t, FLAG_CRAWL_ANCHOR, { x: t.x, y: t.y });
+      await this._setFlag(t, FLAG_CRAWL_ANCHOR, this._sourcePos(t));
+    }
+  },
+
+  // Capture anchor for a specific set of token IDs (used when adding new members
+  // mid-crawl so they have a baseline position to measure against).
+  async captureCrawlAnchorsFor(tokenIds) {
+    if (!game.user.isGM) return;
+    if (!Array.isArray(tokenIds) || tokenIds.length === 0) return;
+    const scene = canvas.scene;
+    for (const id of tokenIds) {
+      const t = scene?.tokens.get(id);
+      if (!t) continue;
+      await this._setFlag(t, FLAG_CRAWL_ANCHOR, this._sourcePos(t));
     }
   },
 
@@ -136,5 +158,12 @@ export const MovementTracker = {
     const dy = Math.abs(a.y - b.y) / gridSize;
     const squares = Math.max(dx, dy);
     return Math.round(squares * distFt);
+  },
+
+  // Read the data-model x/y (avoiding the animated public getter on v14
+  // TokenDocument, which interpolates during canvas animations).
+  _sourcePos(tokenDoc) {
+    const src = tokenDoc?._source ?? tokenDoc ?? {};
+    return { x: src.x ?? 0, y: src.y ?? 0 };
   },
 };
