@@ -224,8 +224,16 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
           it.itemId       ? `data-item-id="${it.itemId}"`         : "",
           it.attackType   ? `data-attack-type="${it.attackType}"` : "",
         ].filter(Boolean).join(" ");
+        // Weapon entries get a small left-side icon so melee vs ranged
+        // is visible at a glance (especially helpful for thrown weapons
+        // that appear in both variants).
+        const typeIcon = it.kind === "weapon" && it.attackType
+          ? (it.attackType === "ranged"
+              ? `<i class="fas fa-crosshairs sde-strip-panel-type sde-strip-panel-type-ranged" title="Ranged"></i>`
+              : `<i class="fas fa-swords sde-strip-panel-type sde-strip-panel-type-melee" title="Melee"></i>`)
+          : "";
         return `<button type="button" class="sde-strip-panel-item" data-kind="${it.kind}" ${dataAttrs}>
-          <span class="sde-strip-panel-name">${it.label}</span>${it.dmg}
+          ${typeIcon}<span class="sde-strip-panel-name">${it.label}</span>${it.dmg}
         </button>`;
       }).join("")
     : `<div class="sde-strip-panel-empty">None</div>`;

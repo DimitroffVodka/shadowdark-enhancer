@@ -959,6 +959,19 @@ body.theme-light .sde-bar-phase-badge {
   text-overflow: ellipsis;
 }
 
+/* Weapon type indicator — sword for melee, crosshairs for ranged.
+   Small, color-coded so the player can see attack mode at a glance. */
+.sde-strip-panel-type {
+  font-size: 11px;
+  width: 14px;
+  text-align: center;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+.sde-strip-panel-type-melee  { color: #e07050; } /* warm red — close combat */
+.sde-strip-panel-type-ranged { color: #5aa9e6; } /* cool blue — at distance */
+.sde-strip-panel-item:hover .sde-strip-panel-type { opacity: 1; }
+
 .sde-strip-menu-dmg {
   color: var(--sde-bar-accent);
   font-size: 11px;
