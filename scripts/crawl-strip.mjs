@@ -286,14 +286,16 @@ export const CrawlStrip = {
         ? "sde-strip-pill-over"
         : (data?.moveExhausted ? "sde-strip-pill-empty" : "");
 
+      // AC sub-line — rendered right under the name to keep the pill row uncrowded.
+      const acLine = (data && data.ac != null)
+        ? `<div class="sde-strip-ac-line" title="Armor Class">AC ${data.ac}</div>`
+        : "";
+
       // Pills:
-      //   - PCs always show AC + luck + movement
-      //   - NPCs in combat show AC + movement (no luck — NPCs don't carry it)
+      //   - PCs:  luck + movement
+      //   - NPCs in combat: movement only (no luck — NPCs don't carry it)
       let pills = "";
       if (data) {
-        const acPill = (data.ac != null)
-          ? `<div class="sde-strip-pill sde-strip-pill-ac" title="Armor Class">AC ${data.ac}</div>`
-          : "";
         if (m.type === "player") {
           // Luck pill is clickable → spends a luck token via actor.system.useLuckToken().
           // Only attach the data-action when there's actually a token to spend.
@@ -301,14 +303,12 @@ export const CrawlStrip = {
           const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : "No Luck Tokens";
           pills = `
         <div class="sde-strip-pills">
-          ${acPill}
           <div class="sde-strip-pill ${luckClass}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
         </div>`;
         } else if (m.type === "npc" && inCombat) {
           pills = `
         <div class="sde-strip-pills">
-          ${acPill}
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
         </div>`;
         }
@@ -337,6 +337,7 @@ export const CrawlStrip = {
           <img class="sde-strip-portrait" src="${m.img}" alt="${m.name}" />
           <div class="sde-strip-overlay">
             ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
+            ${acLine}
             ${effectsRow}
             <div class="sde-strip-bottom">
               <div class="sde-strip-hp-bar-wrap">

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.13] — 2026-05-15
+
+### Changed
+- **AC moved out of the pill row, now displays as a small badge directly beneath the actor's name.** Frees up horizontal space on the bottom pill row, which was getting crowded with Luck + Movement on PC cards.
+
 ## [0.1.12] — 2026-05-15
 
 ### Fixed
