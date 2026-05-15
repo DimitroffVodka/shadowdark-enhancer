@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.20] — 2026-05-15
+
+### Fixed
+- **Crawl-strip initiative dice click now triggers chat cards and Dice So Nice.** Previous version called `Combatant#rollInitiative()` directly which bypasses Foundry's message pipeline (no chat, no 3D dice). Now routes through `Combat#rollInitiative([id])` which is the same path Foundry's sidebar combat tracker uses — generates the "Avorn rolls for Initiative!" chat message and Dice So Nice picks up the 3D roll automatically.
+
 ## [0.1.19] — 2026-05-15
 
 ### Fixed

@@ -501,13 +501,14 @@ export const CrawlStrip = {
         if (ev.target.closest(".sde-strip-rollinit-btn")) {
           ev.stopPropagation();
           const combatantId = ev.target.closest(".sde-strip-rollinit-btn").dataset.combatantId;
-          const combatant = combatantId ? game.combat?.combatants.get(combatantId) : null;
+          const combat = game.combat;
+          const combatant = (combatantId && combat) ? combat.combatants.get(combatantId) : null;
           if (combatant && combatant.initiative == null) {
-            await combatant.rollInitiative();
-            // Defensive re-render: the updateCombatant hook should already
-            // queue a render, but if anything in the user's setup delays it
-            // (custom modules, dialogs, etc.) this guarantees the dice icon
-            // refresh once the roll has committed.
+            // Use Combat#rollInitiative (not Combatant#rollInitiative) so the
+            // roll goes through Foundry's normal message-creation pipeline —
+            // chat card + Dice So Nice + any other roll-message integrations.
+            await combat.rollInitiative([combatant.id]);
+            // Defensive re-render in case a custom flow delays updateCombatant.
             this.queueRender();
           }
           return;
