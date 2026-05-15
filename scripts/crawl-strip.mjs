@@ -13,6 +13,11 @@ import { MODULE_ID }        from "./module-id.mjs";
 import { CrawlState }       from "./crawl-state.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "./icons.mjs";
+import {
+  buildTabStripHTML,
+  bindActionMenuEvents,
+  closeActionMenu,
+} from "./npc-action-menu.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
 
@@ -29,7 +34,7 @@ export const CrawlStrip = {
     this._hookIds.push(Hooks.on(CrawlState.HOOK_CHANGED, queue));
     this._hookIds.push(Hooks.on("combatStart",   queue));
     this._hookIds.push(Hooks.on("combatRound",   queue));
-    this._hookIds.push(Hooks.on("combatTurn",    queue));
+    this._hookIds.push(Hooks.on("combatTurn",    () => { closeActionMenu(); queue(); }));
     this._hookIds.push(Hooks.on("updateCombat",  queue));
     this._hookIds.push(Hooks.on("updateCombatant", queue));
     this._hookIds.push(Hooks.on("createCombatant", queue));
@@ -298,7 +303,17 @@ export const CrawlStrip = {
           ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${isCurrent ? "End Turn" : "Activate Turn"}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
         </div>`;
 
-      return `<div class="sde-strip-card-wrap">${cardHTML}</div>`;
+      // Action menu tab strip — only during combat, only for owned actors, only below the card
+      const isNPCType = actor && actor.type !== "Player";
+      const showMenu  = inCombat && actor?.isOwner;
+      const tabStrip  = showMenu ? buildTabStripHTML(actor, isNPCType) : "";
+      const hasMenu   = showMenu && !!tabStrip;
+
+      return `<div class="sde-strip-card-wrap"
+                   ${hasMenu ? `data-has-menu data-actor-id="${actor.id}" data-is-npc="${isNPCType ? 1 : 0}"` : ""}>
+        ${cardHTML}
+        ${tabStrip}
+      </div>`;
     };
 
     const heroCards = heroes.map(makeCard).join("");
@@ -335,6 +350,7 @@ export const CrawlStrip = {
 
     this._bindEvents();
     this._sizeCards();
+    bindActionMenuEvents(this._el);
     requestAnimationFrame(() => {
       if (!this._el) return;
       const h = this._el.getBoundingClientRect().height ?? 0;

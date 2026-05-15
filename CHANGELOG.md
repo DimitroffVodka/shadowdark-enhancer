@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.1.3] — 2026-05-15
+
+### Added
+
+- **Action menu HUD dropdown** (ported from Vagabond Crawler's `npc-action-menu.mjs` UI shell). During combat, each owned combatant card shows a hover-revealed tab strip BELOW the card:
+  - **NPCs** → `[Actions] [Abilities]` — Actions tab lists `NPC Attack` + `NPC Special Attack` items (with damage label, e.g. "Claws  1d4 piercing"); Abilities tab lists `NPC Feature` items.
+  - **Players** → `[Weapons] [Spells]` — Weapons tab lists equipped `Weapon` items (with `system.damage.oneHanded`/`twoHanded` + `system.range`); Spells tab lists known `Spell` items (not lost) with `T{tier} {damageType}` label.
+- **Click-to-act dispatch** routes through Shadowdark actor methods:
+  - PC weapon → `actor.system.rollAttack(itemId)`
+  - PC spell → `actor.system.castSpell(itemId)`
+  - NPC attack → `actor.rollAttack(itemId)` / `actor.system.rollAttack(itemId)` / item-sheet fallback
+  - NPC feature → opens item sheet (passive description)
+- **Floating panel** is appended to `#shadowdark-enhancer-strip` (not the card) so it escapes parent `overflow:hidden` clipping. Hover behavior preserves Vagabond's grace-timeout pattern (200ms) so moving from the card to the panel doesn't dismiss it.
+- **Auto-close** on combat turn change.
+- **CSS hooks** for the menu — `.sde-strip-action-tabs`, `.sde-strip-atab`, `.sde-strip-action-panel`, `.sde-strip-ptab`, `.sde-strip-panel-{item,name,body,empty}`, `.sde-strip-menu-dmg` — all using existing `--sde-bar-*` palette variables.
+
+### Notes
+
+- The full ~500-line `CrawlerSpellDialog` from Vagabond was intentionally dropped — Shadowdark has no mana system, no spell delivery types, no template placement workflow, and no Vagabond Character Enhancer integration (alchemy/beast-form/Step Up/Virtuoso/Summon/Gold Sink/Talents). Casting a Shadowdark spell defers entirely to `actor.system.castSpell(itemId)` which the system already provides.
+- NPC type detection uses `actor.type !== "Player"` (Shadowdark uses `Player` and `NPC` actor types).
+
 ## [0.1.2] — 2026-05-15
 
 ### Changed

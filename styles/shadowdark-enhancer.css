@@ -738,14 +738,128 @@ body.theme-light .sde-bar-phase-badge {
 .sde-strip-remove:hover,
 .sde-strip-remove:focus-visible:hover { color: #ff6060 !important; }
 
-/* ─── Action Menu: Card Wrap + Tab Strip ──────────────────── */
+/* ─── Action Menu: Card Wrap + Tab Strip + Floating Panel ────────────────── */
 
+/* Wrap holds the card + the tab strip below it as a flex column */
 .sde-strip-card-wrap {
   display: inline-flex;
   flex-direction: column;
   align-items: stretch;
   flex-shrink: 0;
   position: relative;
+}
+
+/* Tab strip absolutely positioned below card — doesn't affect strip height */
+.sde-strip-action-tabs {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+  background: linear-gradient(135deg, var(--sde-bar-bg-alt) 0%, var(--sde-bar-input-bg) 100%);
+  border: 1px solid var(--sde-bar-border);
+  border-top: none;
+  border-radius: 0 0 var(--sde-bar-radius) var(--sde-bar-radius);
+}
+.sde-strip-card-wrap[data-has-menu]:hover .sde-strip-action-tabs {
+  display: flex;
+}
+
+.sde-strip-atab {
+  flex: 1;
+  padding: 3px 0;
+  background: transparent;
+  border: none;
+  color: var(--sde-bar-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color 0.1s, background 0.1s;
+}
+.sde-strip-atab:hover:not(:disabled) { color: var(--sde-bar-accent); background: var(--sde-bar-bg-hover); }
+.sde-strip-atab.sde-strip-atab-active { color: var(--sde-bar-accent); }
+.sde-strip-atab:disabled { opacity: 0.25; cursor: default; }
+.sde-strip-atab + .sde-strip-atab { border-left: 1px solid var(--sde-bar-border); }
+
+/* Floating panel — appended to the strip root, absolutely positioned */
+.sde-strip-action-panel {
+  position: absolute;
+  width: 190px;
+  background: linear-gradient(135deg, var(--sde-bar-bg) 0%, var(--sde-bar-bg-alt) 100%);
+  border: 1px solid var(--sde-bar-accent-dim);
+  border-radius: var(--sde-bar-radius);
+  box-shadow: 0 6px 18px var(--sde-bar-shadow);
+  z-index: 200;
+  font-size: 12px;
+}
+
+.sde-strip-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+.sde-strip-ptab {
+  flex: 1;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  color: var(--sde-bar-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color 0.1s;
+}
+.sde-strip-ptab:hover:not(:disabled) { color: var(--sde-bar-text); }
+.sde-strip-ptab.sde-strip-ptab-active { color: var(--sde-bar-accent); border-bottom: 2px solid var(--sde-bar-accent); }
+.sde-strip-ptab:disabled { opacity: 0.25; cursor: default; }
+
+.sde-strip-panel-body {
+  max-height: 170px;
+  overflow-y: auto;
+  padding: 2px 0;
+}
+
+.sde-strip-panel-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 5px 10px;
+  color: var(--sde-bar-text);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  /* Button reset — panel items are <button> for keyboard a11y */
+  background: none;
+  border: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+}
+.sde-strip-panel-item:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-text-bright); }
+
+.sde-strip-panel-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sde-strip-menu-dmg {
+  color: var(--sde-bar-accent);
+  font-size: 11px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sde-strip-panel-empty {
+  padding: 6px 10px;
+  color: var(--sde-bar-text-muted);
+  font-style: italic;
+  font-size: 11px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
