@@ -1,91 +1,115 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 
-const FLAG_TURN_START = "turnStart";
+/**
+ * MovementTracker — cumulative path-based movement counter.
+ *
+ * Each token carries a `usedMovement` flag (feet used since the last reset).
+ * Every position change increments it by the grid-Chebyshev distance between
+ * old and new position (so moving forward 3 + back 2 = 5 ft used, not 1).
+ *
+ * Resets:
+ *   - crawl mode: startCrawl, nextCrawlTurn, endCrawl (cleared)
+ *   - combat mode: combatStart (all combatants); combatTurn (new active only);
+ *                  deleteCombat (cleared)
+ *
+ * Anchors:
+ *   - `turnStart` (combat-only) stays as a position record for the
+ *     "Rollback to Turn Start" action — distinct from used-movement tracking.
+ *   - `crawlAnchor` is retained as a positional record so the strip can still
+ *     anchor for visual purposes, but distance computation no longer uses it.
+ */
+
+const FLAG_USED         = "usedMovement";
+const FLAG_TURN_START   = "turnStart";
 const FLAG_CRAWL_ANCHOR = "crawlAnchor";
 
 export const MovementTracker = {
   init() {
-    // Capture turn-start positions for every combatant when combat begins.
+    // Combat start — record turn-start positions AND reset usedMovement for all.
     Hooks.on("combatStart", async (combat) => {
       if (!game.user.isGM) return;
       for (const c of combat.turns) {
         const tokenDoc = c.token;
         if (!tokenDoc) continue;
         await this._setFlag(tokenDoc, FLAG_TURN_START, this._sourcePos(tokenDoc));
+        await this._setFlag(tokenDoc, FLAG_USED, 0);
       }
     });
 
-    // Refresh active combatant's turn-start on each turn change.
+    // Turn change — refresh active combatant's turn-start AND reset their used.
     Hooks.on("combatTurn", async (combat) => {
       if (!game.user.isGM) return;
       const c = combat.combatant;
       const tokenDoc = c?.token;
       if (!tokenDoc) return;
       await this._setFlag(tokenDoc, FLAG_TURN_START, this._sourcePos(tokenDoc));
+      await this._setFlag(tokenDoc, FLAG_USED, 0);
     });
 
-    // Clear all turn-start flags when combat ends.
+    // Combat end — clear turn-start and used for all combatants.
     Hooks.on("deleteCombat", async (combat) => {
       if (!game.user.isGM) return;
       for (const c of combat.turns) {
         const tokenDoc = c.token;
         if (!tokenDoc) continue;
         await this._clearFlag(tokenDoc, FLAG_TURN_START);
+        await this._clearFlag(tokenDoc, FLAG_USED);
       }
     });
 
-    // OoC enforcement: refuse moves that would push a PC token past its crawl budget.
+    // Position-change tracking + crawl-mode enforcement.
+    // preUpdateToken fires BEFORE the commit, so tokenDoc._source still has
+    // the old coordinates and `changes` carries the new ones. We compute the
+    // delta, decide whether to enforce a budget, and if the move proceeds,
+    // schedule the flag increment to land after the current update commits.
     Hooks.on("preUpdateToken", (tokenDoc, changes) => {
-      // Only act on position changes.
+      if (!game.user.isGM) return;
       if (!("x" in changes) && !("y" in changes)) return;
-      // Only in crawl mode.
-      if (CrawlState.mode !== "crawl") return;
-      // Only if enforcement is enabled.
-      if (!game.settings.get(MODULE_ID, "oocEnforceBudget")) return;
-      // Only PC tokens.
-      if (tokenDoc.actor?.type !== "Player") return;
 
-      const anchor = tokenDoc.flags?.[MODULE_ID]?.[FLAG_CRAWL_ANCHOR];
-      if (!anchor) return;   // no anchor yet → no enforcement
+      const inCombat = CrawlState.mode === "combat" && !!game.combat;
+      const inCrawl  = CrawlState.mode === "crawl";
+      if (!inCombat && !inCrawl) return;
 
-      const src = tokenDoc._source ?? tokenDoc;
-      const proposed = {
-        x: changes.x ?? src.x ?? 0,
-        y: changes.y ?? src.y ?? 0,
+      // In combat we only track PCs + NPCs that are combatants; in crawl only PCs.
+      if (inCrawl && tokenDoc.actor?.type !== "Player") return;
+
+      const oldPos = this._sourcePos(tokenDoc);
+      const newPos = {
+        x: changes.x ?? oldPos.x,
+        y: changes.y ?? oldPos.y,
       };
-      const proposedDist = this._gridDistance(anchor, proposed);
-      const budget = this.budgetFor("crawl");
+      const delta = this._gridDistance(oldPos, newPos);
+      if (delta === 0) return;
 
-      if (proposedDist > budget) {
-        ui.notifications.warn(
-          `${tokenDoc.actor?.name ?? "Token"}: crawl movement budget exceeded (${proposedDist}/${budget} ft).`
-        );
-        return false;   // cancel the update
+      const currentUsed = tokenDoc.flags?.[MODULE_ID]?.[FLAG_USED] ?? 0;
+      const proposedUsed = currentUsed + delta;
+
+      // Crawl mode enforcement — refuse if the cumulative would exceed budget.
+      if (inCrawl && game.settings.get(MODULE_ID, "oocEnforceBudget")) {
+        const budget = this.budgetFor("crawl");
+        if (proposedUsed > budget) {
+          ui.notifications.warn(
+            `${tokenDoc.actor?.name ?? "Token"}: crawl movement budget exceeded (${proposedUsed}/${budget} ft).`
+          );
+          return false;   // cancel the update
+        }
       }
+
+      // Schedule the increment to land after this update commits.
+      // setFlag inside the same preUpdate would re-enter the hook chain.
+      Promise.resolve().then(async () => {
+        await this._setFlag(tokenDoc, FLAG_USED, proposedUsed);
+      });
     });
   },
 
   /**
-   * Grid-Chebyshev distance (in feet) from the configured origin to the
-   * token's current position.
-   *
-   * Reads `tokenDoc._source.x/y` (the data-model coordinates) rather than
-   * `tokenDoc.x/y` because Foundry v14's measured-movement system makes the
-   * public getters interpolate during the canvas animation. Reading the
-   * animated value caused the strip's movement readout to fluctuate
-   * unpredictably during a drag-drop.
-   *
-   * @param {TokenDocument} tokenDoc
-   * @param {"combat"|"crawl"} mode
-   * @returns {number}
+   * Cumulative feet used since the last reset. Reads the flag directly —
+   * no anchor distance math.
    */
-  usedFor(tokenDoc, mode) {
-    const flagKey = mode === "combat" ? FLAG_TURN_START : FLAG_CRAWL_ANCHOR;
-    const origin = tokenDoc?.flags?.[MODULE_ID]?.[flagKey];
-    if (!origin) return 0;
-    const src = tokenDoc._source ?? tokenDoc;
-    return this._gridDistance(origin, { x: src.x, y: src.y });
+  usedFor(tokenDoc, /* mode */) {
+    return tokenDoc?.flags?.[MODULE_ID]?.[FLAG_USED] ?? 0;
   },
 
   budgetFor(mode) {
@@ -95,8 +119,8 @@ export const MovementTracker = {
   },
 
   /**
-   * Move the token back to its captured turn-start coordinates.
-   * No-op + warning notification if no flag set.
+   * Move the token back to its captured turn-start coordinates (combat only).
+   * Resets usedMovement to 0 since the player is now at the start of their turn.
    */
   async rollbackToTurnStart(tokenDoc) {
     const origin = tokenDoc?.flags?.[MODULE_ID]?.[FLAG_TURN_START];
@@ -105,23 +129,21 @@ export const MovementTracker = {
       return;
     }
     await tokenDoc.update({ x: origin.x, y: origin.y });
+    await this._setFlag(tokenDoc, FLAG_USED, 0);
     ui.notifications.info(`${tokenDoc.actor?.name ?? "Token"} rolled back to turn start.`);
   },
 
-  /**
-   * Task 10 will call these. Stubs included so crawl-state.mjs and other
-   * callers don't have to import-guard.
-   */
+  // Capture crawl baselines for ALL scene tokens; resets usedMovement.
   async captureCrawlAnchors() {
     if (!game.user.isGM) return;
     const tokens = canvas.scene?.tokens?.contents ?? [];
     for (const t of tokens) {
       await this._setFlag(t, FLAG_CRAWL_ANCHOR, this._sourcePos(t));
+      await this._setFlag(t, FLAG_USED, 0);
     }
   },
 
-  // Capture anchor for a specific set of token IDs (used when adding new members
-  // mid-crawl so they have a baseline position to measure against).
+  // Capture for specific tokens (used by addMembers).
   async captureCrawlAnchorsFor(tokenIds) {
     if (!game.user.isGM) return;
     if (!Array.isArray(tokenIds) || tokenIds.length === 0) return;
@@ -130,6 +152,7 @@ export const MovementTracker = {
       const t = scene?.tokens.get(id);
       if (!t) continue;
       await this._setFlag(t, FLAG_CRAWL_ANCHOR, this._sourcePos(t));
+      await this._setFlag(t, FLAG_USED, 0);
     }
   },
 
@@ -138,6 +161,7 @@ export const MovementTracker = {
     const tokens = canvas.scene?.tokens?.contents ?? [];
     for (const t of tokens) {
       await this._clearFlag(t, FLAG_CRAWL_ANCHOR);
+      await this._clearFlag(t, FLAG_USED);
     }
   },
 
@@ -151,7 +175,6 @@ export const MovementTracker = {
   },
 
   _gridDistance(a, b) {
-    // Chebyshev distance in grid squares × scene grid distance (ft per square).
     const gridSize = canvas.scene?.grid?.size ?? 100;
     const distFt = canvas.scene?.grid?.distance ?? 5;
     const dx = Math.abs(a.x - b.x) / gridSize;
@@ -160,8 +183,6 @@ export const MovementTracker = {
     return Math.round(squares * distFt);
   },
 
-  // Read the data-model x/y (avoiding the animated public getter on v14
-  // TokenDocument, which interpolates during canvas animations).
   _sourcePos(tokenDoc) {
     const src = tokenDoc?._source ?? tokenDoc ?? {};
     return { x: src.x ?? 0, y: src.y ?? 0 };

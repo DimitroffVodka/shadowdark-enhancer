@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.7] — 2026-05-15
+
+### Fixed
+- **Movement tracker now counts cumulative path, not displacement from origin.** Previous versions measured straight-line Chebyshev distance from a fixed anchor to the token's current position — so moving forward 3 squares then back 2 displayed `1 square used` even though the player actually moved 5 squares. The tracker now accumulates the delta of every position change into a `usedMovement` flag per token, matching how TTRPG movement actually works:
+  - Forward 3 → +15 ft
+  - Back 2 → +10 ft (total 25 ft used, not 5 ft)
+  - Back 1 more (returned to origin) → 30 ft used
+- **Resets**:
+  - Crawl: `Start Crawl`, `Next Crawl Turn`, and adding new members all reset `usedMovement` to 0 for the affected tokens.
+  - Combat: `combatStart` resets all combatants; `combatTurn` resets only the new active combatant.
+  - `Rollback to Turn Start` also resets `usedMovement` to 0 (you're back at the start of your turn).
+- **Enforcement now uses cumulative.** With `oocEnforceBudget` on, a proposed move is refused if `currentUsed + delta > budget` — so the 90 ft crawl budget applies to total movement across the whole turn, not just current displacement.
+
 ## [0.1.6] — 2026-05-15
 
 ### Fixed
