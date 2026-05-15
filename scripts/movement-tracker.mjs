@@ -1,4 +1,5 @@
 import { MODULE_ID } from "./module-id.mjs";
+import { CrawlState } from "./crawl-state.mjs";
 
 const FLAG_TURN_START = "turnStart";
 const FLAG_CRAWL_ANCHOR = "crawlAnchor";
@@ -31,6 +32,35 @@ export const MovementTracker = {
         const tokenDoc = c.token;
         if (!tokenDoc) continue;
         await this._clearFlag(tokenDoc, FLAG_TURN_START);
+      }
+    });
+
+    // OoC enforcement: refuse moves that would push a PC token past its crawl budget.
+    Hooks.on("preUpdateToken", (tokenDoc, changes) => {
+      // Only act on position changes.
+      if (!("x" in changes) && !("y" in changes)) return;
+      // Only in crawl mode.
+      if (CrawlState.mode !== "crawl") return;
+      // Only if enforcement is enabled.
+      if (!game.settings.get(MODULE_ID, "oocEnforceBudget")) return;
+      // Only PC tokens.
+      if (tokenDoc.actor?.type !== "Player") return;
+
+      const anchor = tokenDoc.flags?.[MODULE_ID]?.[FLAG_CRAWL_ANCHOR];
+      if (!anchor) return;   // no anchor yet → no enforcement
+
+      const proposed = {
+        x: changes.x ?? tokenDoc.x,
+        y: changes.y ?? tokenDoc.y,
+      };
+      const proposedDist = this._gridDistance(anchor, proposed);
+      const budget = this.budgetFor("crawl");
+
+      if (proposedDist > budget) {
+        ui.notifications.warn(
+          `${tokenDoc.actor?.name ?? "Token"}: crawl movement budget exceeded (${proposedDist}/${budget} ft).`
+        );
+        return false;   // cancel the update
       }
     });
   },

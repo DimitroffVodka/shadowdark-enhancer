@@ -1,4 +1,5 @@
 import { MODULE_ID } from "./module-id.mjs";
+import { MovementTracker } from "./movement-tracker.mjs";
 
 /**
  * CrawlState — single source of truth for the strip's mode.
@@ -60,18 +61,21 @@ export const CrawlState = {
     if (!game.user.isGM) return;
     if (this._state.mode === "combat") return;
     await this._update({ mode: "crawl" });
+    await MovementTracker.captureCrawlAnchors();
   },
 
   async endCrawl() {
     if (!game.user.isGM) return;
     if (this._state.mode === "combat") return;
     await this._update({ mode: "off", crawlTurn: 0 });
+    await MovementTracker.clearCrawlAnchors();
   },
 
   async nextCrawlTurn() {
     if (!game.user.isGM) return;
     if (this._state.mode !== "crawl") return;
     await this._update({ crawlTurn: this._state.crawlTurn + 1 });
+    await MovementTracker.captureCrawlAnchors();
   },
 
   async setOocInitiative(tokenId, entry) {
