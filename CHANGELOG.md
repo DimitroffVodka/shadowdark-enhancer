@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.4] — 2026-05-15
+
+### Fixed
+- **PC weapon click did nothing.** `actor.system.rollAttack(weaponUuid)` takes a UUID, not an item ID — the menu was passing the ID so `fromUuid()` returned null silently. Now passes `item.uuid`.
+- **PC spell click threw an error.** Same root cause for `actor.system.castSpell(spellUuid)`. Now passes `item.uuid`.
+- **Strip render starved when canvas idle.** Reverted from `requestAnimationFrame` to microtask debounce (`Promise.resolve().then`) for the render queue. Foundry's canvas can pause rAF callbacks when the scene is idle, which prevented state-mutation re-renders (e.g. members added via Add Tokens) from landing without a manual refresh. Same fix as v0.1.0; regressed in v0.1.2's Vagabond port and now back.
+
+### Changed
+- **Strip combat order now mirrors initiative order, not heroes/NPCs split.** Combatants render as a single flat list in `game.combat.turns` order (respects the system's Clockwise Initiative setting). The `HEROES` and `NPCS` section labels are dropped in combat mode. Crawl mode still shows a `HEROES` group for clarity since it's PCs-only.
+- **Crawl-mode strip is now opt-in via Add Tokens.** Previously the strip auto-included every Player token on the scene. Now `CrawlState.members` holds the explicit roster, populated by the bar's "Add Tokens" button when in crawl mode (mode-aware: combat mode still adds to the combat tracker). Starting a Crawl initializes with an empty roster; Ending a Crawl clears it.
+
+### Added
+- `CrawlState.members` (array of token IDs) + `addMembers(ids)` / `removeMember(id)` / `clearMembers()` mutators.
+
 ## [0.1.3] — 2026-05-15
 
 ### Added

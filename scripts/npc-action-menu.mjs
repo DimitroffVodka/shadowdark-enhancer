@@ -259,14 +259,16 @@ async function _onItemClick(actor, kind, itemId) {
         return item.sheet.render(true);
 
       case "weapon":
+        // PC rollAttack takes a UUID (uses fromUuid internally), not an ID.
         if (typeof actor.system?.rollAttack === "function") {
-          return await actor.system.rollAttack(itemId);
+          return await actor.system.rollAttack(item.uuid);
         }
         return item.sheet.render(true);
 
       case "spell":
+        // PC castSpell takes a UUID (uses fromUuid internally), not an ID.
         if (typeof actor.system?.castSpell === "function") {
-          return await actor.system.castSpell(itemId);
+          return await actor.system.castSpell(item.uuid);
         }
         return item.sheet.render(true);
 

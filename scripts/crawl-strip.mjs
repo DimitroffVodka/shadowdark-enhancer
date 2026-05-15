@@ -52,9 +52,14 @@ export const CrawlStrip = {
   },
 
   queueRender() {
+    // Microtask debounce: coalesces synchronous hook bursts (e.g. state change
+    // + combat hook firing in the same tick) into a single render. Avoiding
+    // requestAnimationFrame here because Foundry's canvas pauses rAF callbacks
+    // when the scene is idle, which can starve renders triggered by non-canvas
+    // events (state changes, settings tweaks, member additions).
     if (this._renderQueued) return;
     this._renderQueued = true;
-    requestAnimationFrame(() => {
+    Promise.resolve().then(() => {
       this._renderQueued = false;
       this.render();
     });
@@ -119,8 +124,12 @@ export const CrawlStrip = {
   },
 
   // Resolve the strip's member set from current world state.
-  //   - crawl mode:  all Player tokens on the scene (sorted by OoC init when present)
-  //   - combat mode: PCs (heroes) + non-PC combatants (npcs)
+  //   - crawl mode:  Player tokens explicitly added via Add Tokens
+  //                  (CrawlState.members), sorted by OoC init when present
+  //   - combat mode: ALL combatants in game.combat.turns order (initiative
+  //                  order, including the system's Clockwise Initiative setting).
+  //                  No heroes/NPC split — Shadowdark uses individual initiative
+  //                  so the strip mirrors the combat tracker's flat list.
   _gatherMembers() {
     const mode = CrawlState.mode;
     if (mode === "off") return { heroes: [], npcs: [], inCombat: false };
@@ -128,10 +137,13 @@ export const CrawlStrip = {
     const inCombat = mode === "combat" && !!game.combat;
 
     if (!inCombat) {
-      const tokens = canvas.scene?.tokens?.contents ?? [];
+      // Crawl mode — opt-in member list (Add Tokens drives this).
+      const memberIds = CrawlState.members ?? [];
+      const scene = canvas.scene;
       const ooc = CrawlState.oocInitiative;
-      const players = tokens
-        .filter(t => t.actor?.type === "Player")
+      const tokens = memberIds
+        .map(id => scene?.tokens.get(id))
+        .filter(t => t && t.actor?.type === "Player")
         .sort((a, b) => {
           const ai = ooc[a.id]?.roll;
           const bi = ooc[b.id]?.roll;
@@ -140,20 +152,19 @@ export const CrawlStrip = {
           if (bi != null) return 1;
           return (a.actor?.name ?? "").localeCompare(b.actor?.name ?? "");
         });
-      const heroes = players.map(t => this._memberFromToken(t, "player"));
+      const heroes = tokens.map(t => this._memberFromToken(t, "player"));
       return { heroes, npcs: [], inCombat: false };
     }
 
-    // Combat — split by combatant.actor.type
+    // Combat — single flat list in initiative order. No heroes/NPC split.
     const turns = game.combat.turns ?? [];
     const heroes = [];
-    const npcs   = [];
     for (const c of turns) {
       const actor = c.actor;
       if (!actor) continue;
       const tokenDoc = c.token;
       const isPlayer = actor.type === "Player";
-      const member = {
+      heroes.push({
         id:        `combatant-${c.id}`,
         name:      tokenDoc?.name ?? actor.name,
         img:       tokenDoc?.texture?.src ?? actor.img,
@@ -161,11 +172,9 @@ export const CrawlStrip = {
         actorId:   actor.id,
         tokenId:   tokenDoc?.id ?? c.tokenId,
         combatantId: c.id,
-      };
-      if (isPlayer) heroes.push(member);
-      else          npcs.push(member);
+      });
     }
-    return { heroes, npcs, inCombat: true };
+    return { heroes, npcs: [], inCombat: true };
   },
 
   _memberFromToken(tokenDoc, type) {
@@ -329,17 +338,19 @@ export const CrawlStrip = {
         <button class="sde-strip-cbtn" data-combat="nextRound" title="Next Round">${ICONS.nextRound}</button>
       </div>` : `<div class="sde-strip-turn-num">${state.crawlTurn}</div>`;
 
-    // Group rendering — heroes always on left in Shadowdark (no all-heroes-acted swap).
-    const heroesBlock = (inCombat ? heroCards : heroCards) ? `
-        <div class="sde-strip-group sde-strip-group-heroes">
-          <div class="sde-strip-group-label sde-strip-label-heroes">HEROES</div>
-          <div class="sde-strip-members">${heroCards || '<span class="sde-strip-empty">—</span>'}</div>
-        </div>` : "";
-    const npcsBlock = inCombat && npcCards ? `
-        <div class="sde-strip-group sde-strip-group-npcs">
-          <div class="sde-strip-group-label sde-strip-label-npcs">NPCS</div>
-          <div class="sde-strip-members">${npcCards}</div>
-        </div>` : "";
+    // Combat: single flat init-ordered list, no HEROES/NPCS label.
+    // Crawl:  Players-only list with HEROES label.
+    const heroesBlock = heroCards
+      ? (inCombat
+          ? `<div class="sde-strip-group sde-strip-group-combat">
+               <div class="sde-strip-members">${heroCards}</div>
+             </div>`
+          : `<div class="sde-strip-group sde-strip-group-heroes">
+               <div class="sde-strip-group-label sde-strip-label-heroes">HEROES</div>
+               <div class="sde-strip-members">${heroCards}</div>
+             </div>`)
+      : "";
+    const npcsBlock = ""; // no longer used — kept identifier for diff readability
 
     this._el.innerHTML = `
       <div class="sde-strip-inner ${inCombat ? "sde-strip-paused" : ""}">

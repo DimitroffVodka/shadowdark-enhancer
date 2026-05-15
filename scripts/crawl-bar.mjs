@@ -229,20 +229,45 @@ export const CrawlBar = {
       ui.notifications.warn("Select tokens first.");
       return;
     }
-    if (!game.combat) {
-      ui.notifications.warn("No active combat. Click Combat to start one first.");
+
+    // In combat mode: add to the combat tracker (Vagabond behavior).
+    if (CrawlState.mode === "combat" && game.combat) {
+      const existing = new Set(game.combat.combatants.map(c => c.tokenId));
+      const docs = selected.map(t => t.document).filter(td => !existing.has(td.id));
+      if (!docs.length) {
+        ui.notifications.info("Selected tokens already in combat.");
+        return;
+      }
+      await TokenDocument.implementation.createCombatants(docs);
+      ui.notifications.info(`Added ${docs.length} token(s) to combat.`);
+      this.render();
+      CrawlStrip.render();
       return;
     }
-    const existing = new Set(game.combat.combatants.map(c => c.tokenId));
-    const docs = selected.map(t => t.document).filter(td => !existing.has(td.id));
-    if (!docs.length) {
-      ui.notifications.info("Selected tokens already in combat.");
+
+    // In crawl mode: add to CrawlState.members (opt-in roster, not auto).
+    if (CrawlState.mode === "crawl") {
+      const pcTokenIds = selected
+        .filter(t => t.actor?.type === "Player")
+        .map(t => t.document.id);
+      const skipped = selected.length - pcTokenIds.length;
+      if (!pcTokenIds.length) {
+        ui.notifications.warn("Select Player tokens to add to the crawl.");
+        return;
+      }
+      const before = new Set(CrawlState.members);
+      await CrawlState.addMembers(pcTokenIds);
+      const added = pcTokenIds.filter(id => !before.has(id)).length;
+      const dup = pcTokenIds.length - added;
+      const parts = [];
+      if (added) parts.push(`Added ${added}`);
+      if (dup) parts.push(`${dup} already in roster`);
+      if (skipped) parts.push(`${skipped} non-PC skipped`);
+      ui.notifications.info(parts.join(" • ") || "No changes.");
       return;
     }
-    await TokenDocument.implementation.createCombatants(docs);
-    ui.notifications.info(`Added ${docs.length} token(s) to combat.`);
-    this.render();
-    CrawlStrip.render();
+
+    ui.notifications.warn("Start a Crawl or Combat first.");
   },
 
   async _startCombat() {

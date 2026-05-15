@@ -15,7 +15,7 @@ const HOOK_CHANGED = "sde.stateChanged";
 const SOCKET = `module.${MODULE_ID}`;
 
 function defaultState() {
-  return { mode: "off", crawlTurn: 0, oocInitiative: {} };
+  return { mode: "off", crawlTurn: 0, oocInitiative: {}, members: [] };
 }
 
 export const CrawlState = {
@@ -26,6 +26,7 @@ export const CrawlState = {
   get mode()           { return this._state.mode; },
   get crawlTurn()      { return this._state.crawlTurn; },
   get oocInitiative()  { return this._state.oocInitiative ?? {}; },
+  get members()        { return this._state.members ?? []; },   // token IDs added to the crawl
   get isActive()       { return this._state.mode !== "off"; },
 
   // ── Bootstrap ──────────────────────────────────────────────────────────
@@ -67,8 +68,33 @@ export const CrawlState = {
   async endCrawl() {
     if (!game.user.isGM) return;
     if (this._state.mode === "combat") return;
-    await this._update({ mode: "off", crawlTurn: 0 });
+    await this._update({ mode: "off", crawlTurn: 0, members: [] });
     await MovementTracker.clearCrawlAnchors();
+  },
+
+  // Add token IDs to the crawl member list (idempotent — no duplicates).
+  async addMembers(tokenIds) {
+    if (!game.user.isGM) return;
+    if (!Array.isArray(tokenIds) || tokenIds.length === 0) return;
+    const current = new Set(this._state.members ?? []);
+    let added = 0;
+    for (const id of tokenIds) {
+      if (id && !current.has(id)) { current.add(id); added++; }
+    }
+    if (added === 0) return;
+    await this._update({ members: [...current] });
+  },
+
+  // Remove a token ID from the crawl member list.
+  async removeMember(tokenId) {
+    if (!game.user.isGM) return;
+    const next = (this._state.members ?? []).filter(id => id !== tokenId);
+    await this._update({ members: next });
+  },
+
+  async clearMembers() {
+    if (!game.user.isGM) return;
+    await this._update({ members: [] });
   },
 
   async nextCrawlTurn() {
