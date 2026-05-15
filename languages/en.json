@@ -8,5 +8,6 @@
   "SDE.settings.hideHiddenNpcCards.name": "Hide hidden NPCs from the strip",
   "SDE.settings.hideHiddenNpcCards.hint": "If on, combatants with token.hidden or combatant.hidden are suppressed from the strip.",
   "SDE.settings.warnIfCrawlHelperEnabled.name": "Warn when shadowdark-crawl-helper is enabled",
-  "SDE.settings.warnIfCrawlHelperEnabled.hint": "Shows a notification at world load if shadowdark-crawl-helper is active. Disable to suppress."
+  "SDE.settings.warnIfCrawlHelperEnabled.hint": "Shows a notification at world load if shadowdark-crawl-helper is active. Disable to suppress.",
+  "SDE.notifications.crawlHelperConflict": "Shadowdark Enhancer detected that shadowdark-crawl-helper is also enabled. For best results, disable Crawl Helper. (You can suppress this warning in Module Settings.)"
 }

@@ -22,4 +22,12 @@ Hooks.once("ready", () => {
   registerHiddenSync();
   MovementTracker.init();
   CrawlStrip.init();
+  checkCoexistence();
 });
+
+function checkCoexistence() {
+  if (!game.settings.get(MODULE_ID, "warnIfCrawlHelperEnabled")) return;
+  if (game.modules.get("shadowdark-crawl-helper")?.active) {
+    ui.notifications.warn(game.i18n.localize("SDE.notifications.crawlHelperConflict"));
+  }
+}
