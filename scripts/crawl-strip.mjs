@@ -443,7 +443,7 @@ export const CrawlStrip = {
     // Movement — module setting drives the budget. No per-actor speed in Shadowdark.
     // Reads the per-token moveRemaining flag directly (Vagabond pattern).
     const mode        = inCombat ? "combat" : "crawl";
-    const activeSpeed = MovementTracker.budgetFor(mode);
+    const activeSpeed = MovementTracker.budgetFor(mode, tokenDoc);
     const moveRemaining = MovementTracker.remainingFor(tokenDoc, mode);
 
     return {

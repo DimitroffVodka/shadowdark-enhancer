@@ -37,17 +37,61 @@ import { ICONS }      from "./icons.mjs";
 // ── Shared speed helpers ────────────────────────────────────────────────────
 
 /**
+ * Maps the Shadowdark NPC move enum (`actor.system.move`) to feet per turn.
+ * Values from `shadowdark.config.NPC_MOVES`: none / close / near / doubleNear /
+ * tripleNear / far / special.
+ *
+ *   close       → 5 ft  (Shadowdark "Close")
+ *   near        → 30 ft (one move)
+ *   doubleNear  → 60 ft
+ *   tripleNear  → 90 ft
+ *   far         → 60 ft (Far speed treated as roughly "two moves")
+ *   special     → null  (no fixed feet; caller falls back to combat default)
+ *   none        → 0 ft  (immobile)
+ *
+ * Returns null when the value isn't recognized so callers can fall back.
+ */
+function _npcMoveToFt(moveValue) {
+  if (typeof moveValue !== "string") return null;
+  switch (moveValue) {
+    case "none":       return 0;
+    case "close":      return 5;
+    case "near":       return 30;
+    case "doubleNear": return 60;
+    case "tripleNear": return 90;
+    case "far":        return 60;
+    case "special":    return null;
+  }
+  return null;
+}
+
+/**
  * Visual movement budget for a token.
- * Combat: combatMovementDefault setting (default 30).
- * Crawl:  oocMovementBudget setting (default 90).
- * Shadowdark has no per-actor speed field — module settings drive the budget.
+ *
+ * Combat:
+ *   - PC tokens (actor.type === "Player"): `combatMovementDefault` setting (30 ft)
+ *   - NPC tokens: parse `actor.system.move` enum to feet; fall back to the
+ *     combat default for `special` / unknown / missing values.
+ * Crawl:
+ *   - All tokens: `oocMovementBudget` setting (90 ft). Crawl pace is
+ *     overland; NPCs in the crawl roster (rare) keep pace with the party.
  */
 function _getBaseSpeed(actor, tokenDoc = null) {
   if (!actor) return 0;
   const inCombat = CrawlState.mode === "combat";
-  return inCombat
-    ? game.settings.get(MODULE_ID, "combatMovementDefault")
-    : game.settings.get(MODULE_ID, "oocMovementBudget");
+
+  if (!inCombat) {
+    return game.settings.get(MODULE_ID, "oocMovementBudget");
+  }
+
+  // Combat — NPCs use their per-statblock move
+  if (actor.type === "NPC") {
+    const ft = _npcMoveToFt(actor.system?.move);
+    if (typeof ft === "number") return ft;
+    // Special / unknown / missing → combat default
+  }
+
+  return game.settings.get(MODULE_ID, "combatMovementDefault");
 }
 
 // Terrain difficulty support deferred — always 1× until Shadowdark gets a
@@ -444,13 +488,14 @@ export const MovementTracker = {
   // ── Strip read API ────────────────────────────────────────────────────────
 
   /**
-   * Read the stored moveRemaining flag for a token, falling back to the full
-   * mode budget when no flag is set yet. The strip reads this directly.
+   * Read the stored moveRemaining flag for a token, falling back to the
+   * token's effective base speed (which is actor-aware — NPCs use their
+   * statblock `system.move`) when no flag is set yet.
    */
   remainingFor(tokenDoc, mode) {
     const stored = tokenDoc?.getFlag?.(MODULE_ID, "moveRemaining");
     if (typeof stored === "number") return stored;
-    return this.budgetFor(mode);
+    return this.budgetFor(mode, tokenDoc);
   },
 
   /**
@@ -458,10 +503,20 @@ export const MovementTracker = {
    */
   usedFor(tokenDoc, mode) {
     if (!tokenDoc) return 0;
-    return Math.max(0, this.budgetFor(mode) - this.remainingFor(tokenDoc, mode));
+    return Math.max(0, this.budgetFor(mode, tokenDoc) - this.remainingFor(tokenDoc, mode));
   },
 
-  budgetFor(mode) {
+  /**
+   * Movement budget. Actor-aware when a tokenDoc is passed:
+   *   - NPCs in combat → parsed from `actor.system.move` (close/near/double/triple/far/etc.)
+   *   - PCs / no token → module setting for the mode
+   */
+  budgetFor(mode, tokenDoc = null) {
+    if (tokenDoc?.actor) {
+      // _getBaseSpeed reads CrawlState.mode internally; we pass actor+token and trust it
+      const ft = _getBaseSpeed(tokenDoc.actor, tokenDoc);
+      if (typeof ft === "number") return ft;
+    }
     return mode === "combat"
       ? game.settings.get(MODULE_ID, "combatMovementDefault")
       : game.settings.get(MODULE_ID, "oocMovementBudget");

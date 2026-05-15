@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.1.10] — 2026-05-15
+
+### Added
+- **Per-NPC combat speed from `actor.system.move`.** NPCs in combat now use their statblock movement enum to compute the budget instead of the flat `combatMovementDefault` (30 ft) that PCs use. Mapping (from `shadowdark.config.NPC_MOVES`):
+
+  | `system.move` | ft |
+  |---|---|
+  | `none` | 0 |
+  | `close` | 5 |
+  | `near` | 30 |
+  | `doubleNear` | 60 |
+  | `tripleNear` | 90 |
+  | `far` | 60 |
+  | `special` / missing | falls back to `combatMovementDefault` |
+
+  Player Characters always use the module setting (Shadowdark has no per-PC speed). Crawl mode keeps the flat budget for everyone (overland pace, NPCs travel with the party).
+
+### Changed
+- **`MovementTracker.budgetFor(mode, tokenDoc?)` is now actor-aware.** When a `tokenDoc` is passed, the budget is computed from `_getBaseSpeed(actor, tokenDoc)` which reads the per-NPC enum; otherwise falls back to the mode setting. Strip's `_extractData` now passes the tokenDoc so an Acolyte's `60/60ft` reflects its `doubleNear` and a Snow Ape's `90/90ft` reflects its `tripleNear`. PCs still show `30/30ft`.
+- **`remainingFor` fallback** now uses the same actor-aware budget when no `moveRemaining` flag is stored — so newly placed NPC tokens display their correct budget immediately, without needing to be added to a roster or move once.
+
 ## [0.1.9] — 2026-05-15
 
 ### Changed
