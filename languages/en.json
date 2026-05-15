@@ -1,1 +1,12 @@
-{}
+{
+  "SDE.settings.combatMovementDefault.name": "Combat movement default (ft)",
+  "SDE.settings.combatMovementDefault.hint": "Default movement budget per combatant turn. Token's ruler colors red when the move exceeds this from the turn-start position.",
+  "SDE.settings.oocMovementBudget.name": "Out-of-combat movement budget (ft)",
+  "SDE.settings.oocMovementBudget.hint": "Default movement budget per crawl turn. Reset on Next Crawl Turn.",
+  "SDE.settings.oocEnforceBudget.name": "Enforce out-of-combat movement budget",
+  "SDE.settings.oocEnforceBudget.hint": "If on, refuse moves that exceed the crawl budget. Off: still colors red but lets the move commit.",
+  "SDE.settings.hideHiddenNpcCards.name": "Hide hidden NPCs from the strip",
+  "SDE.settings.hideHiddenNpcCards.hint": "If on, combatants with token.hidden or combatant.hidden are suppressed from the strip.",
+  "SDE.settings.warnIfCrawlHelperEnabled.name": "Warn when shadowdark-crawl-helper is enabled",
+  "SDE.settings.warnIfCrawlHelperEnabled.hint": "Shows a notification at world load if shadowdark-crawl-helper is active. Disable to suppress."
+}
