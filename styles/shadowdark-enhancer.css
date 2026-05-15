@@ -13,20 +13,41 @@
   --sde-combat:      #6b1f1f;
 }
 
-.sde-strip {
+/* Both strips share base positioning rules */
+.sde-top-strip,
+.sde-bottom-strip {
   position: absolute;
-  bottom: 8px;
   left: 0;
   right: 0;
   z-index: 50;
   pointer-events: auto;
   font-family: var(--font-primary, "Signika", sans-serif);
-  color: #ddd;
+  color: var(--sde-text);
   display: flex;
-  flex-direction: column-reverse;  /* cards above header so header sits at the bottom edge */
 }
 
-.sde-strip-header {
+/* Top strip — cards live here */
+.sde-top-strip {
+  top: 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--sde-bg-strip);
+  border: 1px solid var(--sde-border);
+  border-radius: 6px;
+  backdrop-filter: blur(2px);
+}
+
+/* Bottom strip — mode pill + action buttons */
+.sde-bottom-strip {
+  bottom: 8px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.sde-bottom-row {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -35,7 +56,6 @@
   border: 1px solid var(--sde-border);
   border-radius: 6px;
   backdrop-filter: blur(2px);
-  color: var(--sde-text);
 }
 
 .sde-strip-badge {
@@ -66,6 +86,43 @@
   opacity: 0.9;
 }
 
+.sde-round-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--sde-accent);
+  background: rgba(0,0,0,0.4);
+  font-weight: 700;
+  font-size: 1.1em;
+  color: var(--sde-accent);
+}
+
+.sde-section {
+  display: flex;
+  align-items: center;
+  border-left: 3px solid var(--sde-text-dim);
+  padding-left: 8px;
+}
+.sde-section-heroes { border-left-color: #6fb86f; }
+.sde-section-npcs   { border-left-color: var(--sde-danger); }
+.sde-section-label {
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  font-size: 0.8em;
+  color: var(--sde-text-dim);
+}
+.sde-section-heroes .sde-section-label { color: #9fdc9f; }
+.sde-section-npcs   .sde-section-label { color: #f3a8a0; }
+
+.sde-cards-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .sde-btn {
   background: #2b261f;
   border: 1px solid var(--sde-border);
@@ -78,13 +135,6 @@
 .sde-btn:hover { background: #3c3528; border-color: var(--sde-accent); }
 .sde-btn-quiet { background: transparent; border-color: var(--sde-border); opacity: 0.75; }
 
-.sde-strip-cards {
-  display: flex;
-  flex-wrap: wrap;       /* allow second row when many combatants */
-  gap: 6px;
-  margin-top: 6px;
-}
-
 /* Cards & cells */
 .sde-card {
   display: flex;
@@ -96,6 +146,7 @@
   border-radius: 5px;
   min-width: 110px;
   color: var(--sde-text);
+  position: relative;
 }
 
 .sde-card-name {
@@ -135,6 +186,40 @@
 .sde-hp-low, .sde-mv-over { color: var(--sde-danger); font-weight: 700; }
 .sde-luck-na  { opacity: 0.5; }
 
+/* HP progress bar (Vagabond-style) */
+.sde-hp-bar {
+  position: relative;
+  width: 96px;
+  height: 12px;
+  background: rgba(0,0,0,0.5);
+  border: 1px solid var(--sde-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.sde-hp-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(180deg, #5fce5f 0%, #2c8a2c 100%);
+}
+.sde-hp-bar-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7em;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  color: #fff;
+}
+.sde-hp-low .sde-hp-bar-fill { background: linear-gradient(180deg, #ce5f5f 0%, #8a2c2c 100%); }
+
+/* Movement icon */
+.sde-mv-icon {
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
 .sde-pip {
   display: inline-block;
   width: 8px;
@@ -149,7 +234,7 @@
 
 .sde-spacer { flex: 1; }
 
-/* Combat HUD dropdown — opens ABOVE the card because the strip sits at viewport bottom */
+/* Combat HUD dropdown — opens BELOW the card because cards now sit at the viewport top */
 .sde-hud-trigger {
   margin-top: 4px;
   font-size: 0.7em;
@@ -158,9 +243,9 @@
 
 .sde-hud-dropdown {
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   left: 0;
-  margin-bottom: 4px;
+  margin-top: 4px;
   background: rgba(20, 20, 24, 0.96);
   border: 1px solid #555;
   border-radius: 5px;
@@ -168,8 +253,6 @@
   min-width: 240px;
   z-index: 60;
 }
-
-.sde-card { position: relative; }
 
 .sde-hud-tabs {
   display: flex;

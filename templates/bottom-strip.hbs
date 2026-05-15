@@ -1,4 +1,4 @@
-<div class="sde-strip-header">
+<div class="sde-bottom-row">
   <span class="sde-strip-badge">SDE</span>
 
   {{#if (eq mode "off")}}
@@ -23,8 +23,6 @@
 
   {{#if (eq mode "combat")}}
     <span class="sde-strip-mode sde-mode-combat">COMBAT</span>
-    <span class="sde-strip-round">Round {{round}} • Turn {{turn}}/{{turns}}</span>
+    <span class="sde-strip-round">Turn {{turn}}/{{turns}}</span>
   {{/if}}
 </div>
-
-<div class="sde-strip-cards"></div>

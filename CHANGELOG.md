@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.1] — 2026-05-14
+
+### Changed
+- **Layout split**: PC/combatant cards now live in a TOP bar; mode pill + action buttons live in a BOTTOM bar. Matches Vagabond Crawler's two-bar pattern.
+- **HP visualization**: replaced text `HP n/max` with a green progress bar + value overlay (red gradient when value <= 0).
+- **Movement visualization**: inline walking-person SVG icon + `used/budget ft`.
+- **Section grouping**: top bar now shows `HEROES` (green) and `NPCs` (red) section labels with colored borders separating the two card groups in combat mode.
+- **Round badge**: standalone circular badge on the far left of the top bar in combat mode; bottom bar's Turn counter shows just `Turn N/M` (round moved out).
+- **HUD dropdown direction**: combat HUD now opens BELOW the active combatant's card (cards live at viewport top); trigger label flipped to "▼ HUD ▼".
+
 ## [0.1.0] — 2026-05-14
 
 First milestone: bottom-anchored Crawl Strip for Shadowdark RPG.

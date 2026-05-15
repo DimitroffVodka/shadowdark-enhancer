@@ -8,11 +8,13 @@ import { MovementTracker } from "./movement-tracker.mjs";
 import { NpcActionMenu } from "./npc-action-menu.mjs";
 import { esc } from "./util/esc.mjs";
 
-const STRIP_ID = "shadowdark-enhancer-strip";
-const TEMPLATE = `modules/${MODULE_ID}/templates/crawl-strip.hbs`;
+const TOP_STRIP_ID    = "shadowdark-enhancer-top-strip";
+const BOTTOM_STRIP_ID = "shadowdark-enhancer-bottom-strip";
+const BOTTOM_TEMPLATE = `modules/${MODULE_ID}/templates/bottom-strip.hbs`;
 
 export const CrawlStrip = {
-  _el: null,
+  _top: null,
+  _bottom: null,
   _renderQueued: false,
   _hookIds: [],
   _resizeListener: null,
@@ -51,22 +53,39 @@ export const CrawlStrip = {
     this._hookIds = [];
     if (this._resizeListener) window.removeEventListener("resize", this._resizeListener);
     this._resizeListener = null;
-    this._el?.remove();
-    this._el = null;
+    this._top?.remove();
+    this._bottom?.remove();
+    this._top = null;
+    this._bottom = null;
   },
 
   mount() {
-    if (document.getElementById(STRIP_ID)) return;
-    const strip = document.createElement("div");
-    strip.id = STRIP_ID;
-    strip.classList.add("sde-strip");
+    const iface = document.getElementById("interface") ?? document.getElementById("ui-top");
+    if (!iface) return;
 
-    const iface = document.getElementById("interface");
-    if (iface) iface.prepend(strip);
-    else document.getElementById("ui-top")?.prepend(strip);
+    // Top strip first so it precedes the bottom strip in DOM tab order.
+    if (!document.getElementById(TOP_STRIP_ID)) {
+      const top = document.createElement("div");
+      top.id = TOP_STRIP_ID;
+      top.classList.add("sde-top-strip");
+      iface.prepend(top);
+      this._top = top;
+    } else {
+      this._top = document.getElementById(TOP_STRIP_ID);
+    }
 
-    this._el = strip;
-    this._attachDelegatedEvents();
+    if (!document.getElementById(BOTTOM_STRIP_ID)) {
+      const bottom = document.createElement("div");
+      bottom.id = BOTTOM_STRIP_ID;
+      bottom.classList.add("sde-bottom-strip");
+      iface.append(bottom);
+      this._bottom = bottom;
+    } else {
+      this._bottom = document.getElementById(BOTTOM_STRIP_ID);
+    }
+
+    this._attachDelegatedEvents(this._top);
+    this._attachDelegatedEvents(this._bottom);
     this.queueRender();
     this._updateBounds();
   },
@@ -86,16 +105,18 @@ export const CrawlStrip = {
   },
 
   async render() {
-    if (!this._el) return;
+    if (!this._top || !this._bottom) return;
 
     const mode = CrawlState.mode;
     const isGM = game.user.isGM;
 
+    // Bottom strip is always shown for GMs (so they can Start Crawl in off mode).
+    // For non-GMs in off mode, hide the bottom strip entirely.
     if (mode === "off" && !isGM) {
-      this._el.style.display = "none";
-      return;
+      this._bottom.style.display = "none";
+    } else {
+      this._bottom.style.display = "";
     }
-    this._el.style.display = "";
 
     const ctx = {
       mode,
@@ -109,15 +130,50 @@ export const CrawlStrip = {
     const r = (typeof renderTemplate === "function")
       ? renderTemplate
       : foundry.applications.handlebars.renderTemplate;
-    const html = await r(TEMPLATE, ctx);
-    this._el.innerHTML = html;
+    const bottomHTML = await r(BOTTOM_TEMPLATE, ctx);
+    this._bottom.innerHTML = bottomHTML;
 
-    const cardsRow = this._el.querySelector(".sde-strip-cards");
-    if (cardsRow) {
-      if (mode === "crawl")        cardsRow.innerHTML = this._buildCrawlCards();
-      else if (mode === "combat")  cardsRow.innerHTML = this._buildCombatCards();
-      else                          cardsRow.innerHTML = "";
+    // Top strip: built imperatively. Hidden in off mode or when there is nothing to show.
+    const topHTML = this._buildTopStripHTML();
+    if (topHTML == null) {
+      this._top.style.display = "none";
+      this._top.innerHTML = "";
+    } else {
+      this._top.style.display = "";
+      this._top.innerHTML = topHTML;
     }
+  },
+
+  _buildTopStripHTML() {
+    const mode = CrawlState.mode;
+    if (mode === "off") return null;
+
+    if (mode === "crawl") {
+      const heroes = this._buildCrawlCards();
+      if (!heroes) return null;
+      return `
+        <div class="sde-section sde-section-heroes"><span class="sde-section-label">HEROES</span></div>
+        <div class="sde-cards-row">${heroes}</div>
+      `;
+    }
+
+    if (mode === "combat") {
+      const { heroesHTML, npcsHTML } = this._buildCombatCardsGrouped();
+      if (!heroesHTML && !npcsHTML) return null;
+      const round = game.combat?.round ?? 0;
+      const badge = game.combat ? `<div class="sde-round-badge">${round}</div>` : "";
+      const heroesBlock = heroesHTML
+        ? `<div class="sde-section sde-section-heroes"><span class="sde-section-label">HEROES</span></div>
+           <div class="sde-cards-row">${heroesHTML}</div>`
+        : "";
+      const npcsBlock = npcsHTML
+        ? `<div class="sde-section sde-section-npcs"><span class="sde-section-label">NPCs</span></div>
+           <div class="sde-cards-row">${npcsHTML}</div>`
+        : "";
+      return `${badge}${heroesBlock}${npcsBlock}`;
+    }
+
+    return null;
   },
 
   _buildCrawlCards() {
@@ -157,9 +213,9 @@ export const CrawlStrip = {
     }).join("");
   },
 
-  _buildCombatCards() {
+  _buildCombatCardsGrouped() {
     const combat = game.combat;
-    if (!combat) return "";
+    if (!combat) return { heroesHTML: "", npcsHTML: "" };
 
     const hideHidden = game.settings.get(MODULE_ID, "hideHiddenNpcCards");
     const combatMv = MovementTracker.budgetFor("combat");
@@ -173,7 +229,7 @@ export const CrawlStrip = {
       return true;
     });
 
-    return visible.map(c => {
+    const renderCard = (c) => {
       const actor = c.actor;
       if (!actor) return "";
       const tokenDoc = c.token;
@@ -190,14 +246,18 @@ export const CrawlStrip = {
           ${movementPanel.render(actor, { mode: "combat", used: MovementTracker.usedFor(tokenDoc, "combat"), budget: combatMv })}
           ${luckPanel.render(actor)}
           <span class="sde-cell sde-init">Init ${init}</span>
-          ${isActive ? `<button class="sde-btn sde-hud-trigger" data-action="hudOpen">▲ HUD ▲</button>` : ""}
+          ${isActive ? `<button class="sde-btn sde-hud-trigger" data-action="hudOpen">▼ HUD ▼</button>` : ""}
         </div>
       `;
-    }).join("");
+    };
+
+    const heroesHTML = visible.filter(c => c.actor?.type === "Player").map(renderCard).join("");
+    const npcsHTML   = visible.filter(c => c.actor?.type !== "Player").map(renderCard).join("");
+    return { heroesHTML, npcsHTML };
   },
 
-  _attachDelegatedEvents() {
-    this._el.addEventListener("click", async (ev) => {
+  _attachDelegatedEvents(host) {
+    host.addEventListener("click", async (ev) => {
       const btn = ev.target.closest("[data-action]");
       if (!btn) return;
       const action = btn.dataset.action;
@@ -256,13 +316,23 @@ export const CrawlStrip = {
   },
 
   _updateBounds() {
-    if (!this._el) return;
-    // Strip is anchored to the BOTTOM of the interface, so we only need to
-    // dodge the right sidebar. Scene navigation lives at the top and doesn't
-    // intersect the strip's row.
     const sidebar = document.getElementById("sidebar");
     const sidebarWidth = sidebar?.getBoundingClientRect()?.width ?? 0;
-    this._el.style.left = `8px`;
-    this._el.style.right = `${Math.max(0, sidebarWidth + 8)}px`;
+    const rightOffset = `${Math.max(0, sidebarWidth + 8)}px`;
+
+    // Top strip must dodge the scene-navigation pills as well.
+    if (this._top) {
+      const sceneNav = document.getElementById("scene-navigation") ?? document.getElementById("navigation");
+      const navRect = sceneNav?.getBoundingClientRect();
+      const navBottom = navRect ? (navRect.bottom + 6) : 8;
+      this._top.style.left = `8px`;
+      this._top.style.right = rightOffset;
+      this._top.style.top = `${navBottom}px`;
+    }
+
+    if (this._bottom) {
+      this._bottom.style.left = `8px`;
+      this._bottom.style.right = rightOffset;
+    }
   },
 };
