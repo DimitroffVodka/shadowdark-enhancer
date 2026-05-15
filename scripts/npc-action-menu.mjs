@@ -30,10 +30,26 @@ import { MODULE_ID } from "./module-id.mjs";
 // ─── Damage Label Helpers (Shadowdark adapters) ───────────────────────────────
 
 function _npcAttackDmgLabel(item) {
+  // Renders the right-side description for an NPC Attack entry in the
+  // format "(Range) +Bonus Damage [+ special]" — matches the Shadowdark
+  // stat-block convention so a GM can read the action menu the same way
+  // they read the monster manual entry (e.g. "(Close) +4 1d6").
+  const rangeKeys = item.system?.ranges ?? [];
+  const ranges = rangeKeys
+    .map(r => game.i18n.localize(CONFIG.SHADOWDARK?.RANGES?.[r] ?? r))
+    .join("/");
+  const atk = Number(item.system?.bonuses?.attackBonus ?? 0);
+  const atkLabel = atk >= 0 ? `+${atk}` : `${atk}`;
   const dmg = item.system?.damage?.value ?? "";
   const special = item.system?.damage?.special ?? "";
-  if (!dmg && !special) return "";
-  const parts = [dmg, special].filter(Boolean).join(" ");
+
+  const parts = [
+    ranges ? `(${ranges})` : "",
+    atkLabel,
+    dmg,
+    special ? `+ ${special}` : "",
+  ].filter(Boolean).join(" ");
+  if (!parts) return "";
   return `<span class="sde-strip-menu-dmg">${parts}</span>`;
 }
 
