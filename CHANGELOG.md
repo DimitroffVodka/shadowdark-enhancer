@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.18] — 2026-05-15
+
+### Added
+- **Per-card Roll Initiative dice button.** In combat, every combatant card whose `initiative` is null and whose actor the user owns (or the GM) now shows a glowing blue d20 in the top-right corner. Clicking it calls `combatant.rollInitiative()` and the button disappears once an initiative is set. Pulses gently to invite the click.
+
 ## [0.1.17] — 2026-05-15
 
 ### Fixed

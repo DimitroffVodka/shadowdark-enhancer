@@ -349,6 +349,9 @@ export const CrawlStrip = {
           </div>
           ${isCurrent ? `<div class="sde-strip-turn-badge">${ICONS.turnArrow}</div>` : ""}
           ${isDefeated ? `<div class="sde-strip-defeated-icon">${ICONS.skull}</div>` : ""}
+          ${inCombat && combatant && (combatant.initiative == null) && (actor?.isOwner || game.user.isGM)
+            ? `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="Roll Initiative">${ICONS.diceD20}</button>`
+            : ""}
           ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${isCurrent ? "End Turn" : "Activate Turn"}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
         </div>`;
 
@@ -487,6 +490,7 @@ export const CrawlStrip = {
     this._el.querySelectorAll(".sde-strip-member").forEach(card => {
       card.addEventListener("dblclick", async (ev) => {
         if (ev.target.closest(".sde-strip-activate-btn")) return;
+        if (ev.target.closest(".sde-strip-rollinit-btn")) return;
         const tokenId = card.dataset.tokenId;
         const token = tokenId ? canvas.tokens?.get(tokenId) : null;
         const actor = token?.actor ?? (card.dataset.actorId ? game.actors.get(card.dataset.actorId) : null);
@@ -494,6 +498,15 @@ export const CrawlStrip = {
       });
       card.addEventListener("click", async (ev) => {
         if (ev.target.closest(".sde-strip-activate-btn")) return;
+        if (ev.target.closest(".sde-strip-rollinit-btn")) {
+          ev.stopPropagation();
+          const combatantId = ev.target.closest(".sde-strip-rollinit-btn").dataset.combatantId;
+          const combatant = combatantId ? game.combat?.combatants.get(combatantId) : null;
+          if (combatant && combatant.initiative == null) {
+            await combatant.rollInitiative();
+          }
+          return;
+        }
 
         // Luck pill click → spend a luck token via the actor's system method.
         const luckBtn = ev.target.closest('[data-action="spendLuck"]');
