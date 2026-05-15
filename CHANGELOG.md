@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.21] — 2026-05-15
+
+### Changed
+- **Action menu (Weapons / Spells / Abilities) now available in crawl mode too.** Previously the hover-tab dropdown was combat-only. Players need to cast utility spells, browse weapons, or trigger class abilities during exploration too — the gate has been dropped, so any card the user owns shows its action menu in any mode.
+
 ## [0.1.20] — 2026-05-15
 
 ### Fixed

@@ -355,9 +355,10 @@ export const CrawlStrip = {
           ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${isCurrent ? "End Turn" : "Activate Turn"}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
         </div>`;
 
-      // Action menu tab strip — only during combat, only for owned actors, only below the card
+      // Action menu tab strip — owned cards in any mode. Players need to cast
+      // utility spells, browse weapons, etc. out of combat too.
       const isNPCType = actor && actor.type !== "Player";
-      const showMenu  = inCombat && actor?.isOwner;
+      const showMenu  = actor?.isOwner;
       const tabStrip  = showMenu ? buildTabStripHTML(actor, isNPCType) : "";
       const hasMenu   = showMenu && !!tabStrip;
 
