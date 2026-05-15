@@ -26,9 +26,14 @@ export const InitiativeManager = {
     if (!game.user.isGM && !actor.testUserPermission(game.user, "OWNER")) return null;
 
     const { roll, advantage } = await this._rollFor(actor);
+    // Render the dice-roll HTML explicitly. toMessage's default content is
+    // String(roll.total) which renders as bare "15" in the chat — passing the
+    // rendered roll HTML gets the proper formula + breakdown + total card.
+    const content = await roll.render();
     await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
       flavor: `${actor.name} rolls Initiative <em>(out of combat)</em>`,
+      content,
     });
     await CrawlState.setOocInitiative(tokenId, { roll: roll.total, advantage });
     return roll.total;
@@ -69,7 +74,10 @@ export const InitiativeManager = {
       : baseFormula;
     const full = bonus !== 0 ? `${formula} + ${bonus}` : formula;
 
-    const roll = await new Roll(full).roll();
+    // Use evaluate() (roll() is deprecated in v13+) and have toMessage render
+    // the full dice template — without this, the chat content is just the
+    // bare total number with no dice formula or result breakdown.
+    const roll = await new Roll(full).evaluate();
     return { roll, advantage };
   },
 };

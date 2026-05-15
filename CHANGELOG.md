@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **OoC initiative chat card was missing the dice formula and total.** `Roll#toMessage` sets content to `String(roll.total)` by default — that's why the chat panel was rendering just `"15"` (or worse, the dice card without the total). Now the manager explicitly renders the roll via `await roll.render()` and passes it as `content`, so the chat card shows the full `1d20` formula breakdown, the d20 result, and the final total like a normal initiative roll.
+
 ## [0.1.22] — 2026-05-15
 
 ### Added
