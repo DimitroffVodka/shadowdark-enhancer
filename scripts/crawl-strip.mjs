@@ -109,11 +109,9 @@ export const CrawlStrip = {
 
     const cardsRow = this._el.querySelector(".sde-strip-cards");
     if (cardsRow) {
-      if (mode === "crawl") {
-        cardsRow.innerHTML = this._buildCrawlCards();
-      } else {
-        cardsRow.innerHTML = "";
-      }
+      if (mode === "crawl")        cardsRow.innerHTML = this._buildCrawlCards();
+      else if (mode === "combat")  cardsRow.innerHTML = this._buildCombatCards();
+      else                          cardsRow.innerHTML = "";
     }
   },
 
@@ -149,6 +147,44 @@ export const CrawlStrip = {
           ${movementPanel.render(actor, { mode: "crawl", used: 0, budget })}
           ${luckPanel.render(actor)}
           <span class="sde-cell sde-init">Init ${initStr}</span>
+        </div>
+      `;
+    }).join("");
+  },
+
+  _buildCombatCards() {
+    const combat = game.combat;
+    if (!combat) return "";
+
+    const hideHidden = game.settings.get(MODULE_ID, "hideHiddenNpcCards");
+    const combatMv = game.settings.get(MODULE_ID, "combatMovementDefault");
+    const turns = combat.turns ?? [];
+    const activeId = combat.combatant?.id;
+
+    const visible = turns.filter(c => {
+      if (!hideHidden) return true;
+      if (c.hidden) return false;
+      if (c.token?.hidden) return false;
+      return true;
+    });
+
+    return visible.map(c => {
+      const actor = c.actor;
+      if (!actor) return "";
+      const tokenDoc = c.token;
+      const tokenId = tokenDoc?.id ?? c.tokenId;
+      const isActive = c.id === activeId ? "sde-card-active" : "";
+      const init = (c.initiative != null) ? c.initiative : "—";
+      return `
+        <div class="sde-card ${isActive}" data-combatant-id="${c.id}" data-token-id="${tokenId}" data-actor-id="${actor.id}">
+          <div class="sde-card-name">
+            <img class="sde-portrait" src="${actor.img}" alt="" />
+            <span>${actor.name}</span>
+          </div>
+          ${hpPanel.render(actor)}
+          ${movementPanel.render(actor, { mode: "combat", used: 0, budget: combatMv })}
+          ${luckPanel.render(actor)}
+          <span class="sde-cell sde-init">Init ${init}</span>
         </div>
       `;
     }).join("");
