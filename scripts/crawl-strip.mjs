@@ -446,12 +446,18 @@ export const CrawlStrip = {
     const ac = s.attributes?.ac?.value ?? null;   // Shadowdark stores derived AC at system.attributes.ac.value
 
     // Luck count for the shamrock pill.
-    //   - `remaining > 0`  → count of spendable tokens (e.g. luck die rolled 3)
-    //   - else `available` → 1 (the base single-use Luck token)
-    //   - else            → 0
+    //   - Pulp Mode (`shadowdark.usePulpMode` setting): luck is numeric; show
+    //     `remaining` directly (which can be 0). `available` is leftover from
+    //     non-pulp use and must be ignored.
+    //   - Classic mode: a fresh PC has `{available: true, remaining: 0}` (one
+    //     base token). After spending, `available` flips to false. Show
+    //     `remaining` if > 0, else 1 if `available`, else 0.
     const luckObj = s.luck ?? {};
+    const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
     let luck = 0;
-    if (typeof luckObj.remaining === "number" && luckObj.remaining > 0) {
+    if (pulp) {
+      luck = typeof luckObj.remaining === "number" ? luckObj.remaining : 0;
+    } else if (typeof luckObj.remaining === "number" && luckObj.remaining > 0) {
       luck = luckObj.remaining;
     } else if (luckObj.available === true) {
       luck = 1;

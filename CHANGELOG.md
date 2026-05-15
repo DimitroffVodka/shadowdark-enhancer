@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.17] — 2026-05-15
+
+### Fixed
+- **Luck pill showed `1` instead of `0` in Pulp Mode when the count was actually zero.** Shadowdark's Pulp Mode (`shadowdark.usePulpMode` setting) makes Luck numeric and ignores the classic-mode `available` boolean. The strip was reading `available: true` (leftover from before pulp mode was enabled) and showing 1 even when `remaining === 0`. Now the display gates on the setting: pulp mode shows `remaining` directly; classic mode keeps the existing `remaining > 0 ? remaining : available ? 1 : 0` logic.
+
 ## [0.1.16] — 2026-05-15
 
 ### Fixed
