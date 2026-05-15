@@ -57,9 +57,14 @@ export const CrawlStrip = {
   },
 
   queueRender() {
+    // Microtask-based debounce: coalesces synchronous bursts (e.g. combatStart
+    // + stateChanged firing in the same tick) into a single render. We avoid
+    // requestAnimationFrame here because Foundry's canvas pauses rAF callbacks
+    // when the scene is idle, which can leave the strip stuck on an empty
+    // first render at world load.
     if (this._renderQueued) return;
     this._renderQueued = true;
-    requestAnimationFrame(() => {
+    Promise.resolve().then(() => {
       this._renderQueued = false;
       this.render();
     });
