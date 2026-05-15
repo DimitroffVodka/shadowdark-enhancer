@@ -59,6 +59,33 @@ export const CrawlState = {
       if (this._state.mode !== "combat") return;
       this._update({ mode: this._priorMode ?? "off" });
     });
+
+    // If the user started combat BEFORE rolling initiative (common mis-step),
+    // the active-turn pointer sticks on whoever was first by default order.
+    // Once initiative gets rolled, Foundry re-sorts combat.turns but preserves
+    // the previously-active combatant's index — so the highlight stays on the
+    // wrong token even though the cards visually reorder.
+    //
+    // Fix: debounce after init-change bursts (rollAll fires many per-combatant
+    // updates in quick succession). After the dust settles, if we're in round
+    // 1 and every combatant has an initiative, jump turn to 0 — which is now
+    // the top of initiative after Foundry's resort.
+    let _resetTimer = null;
+    Hooks.on("updateCombatant", (combatant, changes) => {
+      if (!game.user.isGM) return;
+      if (!("initiative" in changes)) return;
+      const combat = combatant.parent;
+      if (!combat || combat.round !== 1) return;
+      if (_resetTimer) clearTimeout(_resetTimer);
+      _resetTimer = setTimeout(async () => {
+        _resetTimer = null;
+        const c = combatant.parent;
+        if (!c || c.round !== 1) return;
+        if (c.turn === 0) return;
+        if (!c.turns.every(t => t.initiative != null)) return;
+        await c.update({ turn: 0 });
+      }, 150);
+    });
   },
 
   // ── Public mutators (GM only) ──────────────────────────────────────────

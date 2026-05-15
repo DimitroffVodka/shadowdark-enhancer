@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.16] — 2026-05-15
+
+### Fixed
+- **Active-turn highlight stuck on the wrong token after rolling initiative mid-combat.** When the GM starts combat BEFORE rolling initiative (a common mis-step), the active-turn pointer sticks on whoever was first by default order. Once initiative gets rolled, Foundry re-sorts `combat.turns` but preserves the previously-active combatant's index — so the highlight stayed on the wrong token even though the cards visually reordered. Now: on any initiative change in round 1, once every combatant has an initiative, the active turn snaps to position 0 (the actual top of the order). Debounced so a `rollAll()` burst lands once.
+
 ## [0.1.15] — 2026-05-15
 
 ### Fixed
