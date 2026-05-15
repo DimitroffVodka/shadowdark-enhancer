@@ -349,9 +349,15 @@ export const CrawlStrip = {
           </div>
           ${isCurrent ? `<div class="sde-strip-turn-badge">${ICONS.turnArrow}</div>` : ""}
           ${isDefeated ? `<div class="sde-strip-defeated-icon">${ICONS.skull}</div>` : ""}
-          ${inCombat && combatant && (combatant.initiative == null) && (actor?.isOwner || game.user.isGM)
-            ? `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="Roll Initiative">${ICONS.diceD20}</button>`
-            : ""}
+          ${
+            // Combat mode: dice when combatant has no initiative
+            inCombat && combatant && (combatant.initiative == null) && (actor?.isOwner || game.user.isGM)
+              ? `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="Roll Initiative">${ICONS.diceD20}</button>`
+            // Crawl mode: dice when this token has no oocInitiative entry yet
+            : (!inCombat && m.tokenId && !CrawlState.oocInitiative[m.tokenId] && m.type === "player" && (actor?.isOwner || game.user.isGM))
+              ? `<button class="sde-strip-rollinit-btn" data-token-id="${m.tokenId}" data-action="rollOocInit" title="Roll Initiative (out of combat)">${ICONS.diceD20}</button>`
+              : ""
+          }
           ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${isCurrent ? "End Turn" : "Activate Turn"}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
         </div>`;
 
@@ -501,15 +507,27 @@ export const CrawlStrip = {
         if (ev.target.closest(".sde-strip-activate-btn")) return;
         if (ev.target.closest(".sde-strip-rollinit-btn")) {
           ev.stopPropagation();
-          const combatantId = ev.target.closest(".sde-strip-rollinit-btn").dataset.combatantId;
+          const btn = ev.target.closest(".sde-strip-rollinit-btn");
+          const action = btn.dataset.action;
+
+          if (action === "rollOocInit") {
+            // Crawl-mode out-of-combat initiative — uses InitiativeManager so
+            // the roll goes through Roll#toMessage (chat card + DsN).
+            const tokenId = btn.dataset.tokenId;
+            if (tokenId && !CrawlState.oocInitiative[tokenId]) {
+              const { InitiativeManager } = await import("./initiative-manager.mjs");
+              await InitiativeManager.rollOocForToken(tokenId);
+              this.queueRender();
+            }
+            return;
+          }
+
+          // Combat-mode initiative — combat exists, combatant has no init yet
+          const combatantId = btn.dataset.combatantId;
           const combat = game.combat;
           const combatant = (combatantId && combat) ? combat.combatants.get(combatantId) : null;
           if (combatant && combatant.initiative == null) {
-            // Use Combat#rollInitiative (not Combatant#rollInitiative) so the
-            // roll goes through Foundry's normal message-creation pipeline —
-            // chat card + Dice So Nice + any other roll-message integrations.
             await combat.rollInitiative([combatant.id]);
-            // Defensive re-render in case a custom flow delays updateCombatant.
             this.queueRender();
           }
           return;

@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.1.22] — 2026-05-15
+
+### Added
+- **Out-of-combat initiative during crawl rounds.** Each PC card in crawl mode now shows the same per-card blue d20 dice button — click rolls `1d20 + system.roll.initiative.bonus` (advantage applied via the system helper) through `Roll#toMessage`, so the chat card and Dice So Nice both fire just like a combat initiative roll. Result stored in `CrawlState.oocInitiative` and the strip cards reorder by initiative descending. Useful for surprise/reaction order, marching order checks, anything that needs initiative without firing up the combat tracker.
+- **"Reset Init" button on the crawl bar** (visible only when at least one OoC initiative roll is stored). Clears `oocInitiative` so the dice buttons return on each card for a fresh round.
+
 ## [0.1.21] — 2026-05-15
 
 ### Changed

@@ -116,6 +116,11 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn">
           ${ICONS.nextTurn} Next Turn
         </button>
+        ${Object.keys(state.oocInitiative ?? {}).length > 0
+          ? `<button class="sde-bar-btn sde-bar-quiet-btn" data-action="resetOocInit" title="Clear all out-of-combat initiative rolls">
+              ${ICONS.diceD20} Reset Init
+            </button>`
+          : ""}
 
         <div class="sde-bar-divider"></div>
 
@@ -181,6 +186,12 @@ export const CrawlBar = {
 
       case "nextCrawlTurn":
         await CrawlState.nextCrawlTurn();
+        this.render();
+        CrawlStrip.render();
+        break;
+
+      case "resetOocInit":
+        await CrawlState.clearOocInitiative();
         this.render();
         CrawlStrip.render();
         break;
