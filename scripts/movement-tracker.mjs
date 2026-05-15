@@ -45,7 +45,7 @@ import { ICONS }      from "./icons.mjs";
  *   near        → 30 ft (one move)
  *   doubleNear  → 60 ft
  *   tripleNear  → 90 ft
- *   far         → 60 ft (Far speed treated as roughly "two moves")
+ *   far         → 120 ft ("very long distance per turn")
  *   special     → null  (no fixed feet; caller falls back to combat default)
  *   none        → 0 ft  (immobile)
  *
@@ -59,7 +59,7 @@ function _npcMoveToFt(moveValue) {
     case "near":       return 30;
     case "doubleNear": return 60;
     case "tripleNear": return 90;
-    case "far":        return 60;
+    case "far":        return 120;
     case "special":    return null;
   }
   return null;

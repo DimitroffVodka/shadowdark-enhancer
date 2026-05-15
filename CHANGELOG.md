@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.11] — 2026-05-15
+
+### Changed
+- **`far` mapping updated to 120 ft** (was 60 ft in v0.1.10). Far is "very long distance per turn" — distinct from `doubleNear` (60 ft). `special` and missing values still fall back to `combatMovementDefault` (30 ft).
+
 ## [0.1.10] — 2026-05-15
 
 ### Added
