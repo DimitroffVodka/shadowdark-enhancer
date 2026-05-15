@@ -10,10 +10,31 @@ import { CrawlState } from "./crawl-state.mjs";
  * the Shadowdark style — same look as the system's attack / save / check
  * cards. Dice So Nice picks up the 3D roll automatically.
  *
+ * Reroll handling: we stamp the rollConfig with `sdeOocTokenId` and listen
+ * for `createChatMessage`. The system's `rerollFromMessage` reuses the
+ * original config to create a NEW message — our hook catches the new total
+ * and updates CrawlState.oocInitiative.
+ *
  * Result is stored on CrawlState.oocInitiative keyed by tokenId; the strip's
  * card sort honors it; cleared by CrawlState.clearOocInitiative() (Reset Init
  * button on the bar) or on startCrawl / endCrawl.
  */
+
+const CONFIG_TAG = "sdeOocTokenId";
+
+// Watch every new chat message — if its rollConfig carries our token tag,
+// the roll is an OoC init roll (or a reroll of one). Sync the total into
+// CrawlState so the strip's badge updates.
+Hooks.on("createChatMessage", async (msg) => {
+  if (!game.user.isGM) return;     // only the GM writes the world setting
+  const cfg = msg?.flags?.shadowdark?.rollConfig;
+  const tokenId = cfg?.[CONFIG_TAG];
+  if (!tokenId) return;
+  const total = msg.rolls?.[0]?.total;
+  if (typeof total !== "number") return;
+  await CrawlState.setOocInitiative(tokenId, { roll: total, advantage: cfg.advantage ?? 0 });
+});
+
 export const InitiativeManager = {
 
   async rollOocForToken(tokenId) {
@@ -41,16 +62,18 @@ export const InitiativeManager = {
       mainRoll: { formula },
       type: "initiative",
       heading: `${actor.name} — Initiative <em>(out of combat)</em>`,
+      // Tag the config so the createChatMessage hook can identify this roll
+      // (and any later reroll via the system's reroll-icon) as an OoC init
+      // roll for this specific token, and update CrawlState accordingly.
+      [CONFIG_TAG]: tokenId,
+      advantage,
     });
 
     const mainRoll = await dice.rollFromConfig(config);
     if (!mainRoll) return null;
-
-    const total = mainRoll?.roll?.total ?? mainRoll?.total;
-    if (typeof total === "number") {
-      await CrawlState.setOocInitiative(tokenId, { roll: total, advantage });
-    }
-    return total ?? null;
+    // CrawlState is updated by the createChatMessage hook above — single
+    // source of truth for both initial rolls and rerolls.
+    return mainRoll?.roll?.total ?? mainRoll?.total ?? null;
   },
 
   async rollOocForAll() {

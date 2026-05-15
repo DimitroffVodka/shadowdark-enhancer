@@ -7,6 +7,7 @@
 
 ### Fixed
 - **OoC initiative chat card now uses the Shadowdark system's native roll-card style** — same look as the system's Attack Roll / Damage Roll cards, including the reroll-icon affordance and prominent total. The InitiativeManager dispatches through `shadowdark.dice.rollFromConfig` (which is what `actor.system.rollAttack` / `castSpell` use internally) instead of the generic `Roll#toMessage`. Falls back to the generic path if the system API isn't available.
+- **Reroll button now syncs the new total back to the strip.** The system's reroll-icon creates a fresh chat message via `rollFromConfig` rather than updating the original, so previously the strip's badge kept the old number. The rollConfig now carries a `sdeOocTokenId` tag; a `createChatMessage` hook reads the new total from any message bearing that tag and updates `CrawlState.oocInitiative` so the badge re-renders to match.
 - **Out-of-combat initiative wasn't cleared between crawl sessions.** `startCrawl` and `endCrawl` now wipe `oocInitiative` so a fresh crawl always starts clean — previously a roll from an earlier session lingered and hid the dice button on the card.
 
 ## [0.1.22] — 2026-05-15
