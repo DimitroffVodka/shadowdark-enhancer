@@ -8,6 +8,7 @@ import { MODULE_ID } from "./module-id.mjs";
 import { registerSettings } from "./settings.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
+import { registerHiddenSync } from "./hidden-sync.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -17,5 +18,6 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
   CrawlState.init();
+  registerHiddenSync();
   CrawlStrip.init();
 });
