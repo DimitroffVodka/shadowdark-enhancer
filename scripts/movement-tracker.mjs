@@ -214,9 +214,10 @@ export const MovementTracker = {
             if (distanceFt > 0) {
               const stored = doc.getFlag(MODULE_ID, "moveRemaining");
               const moveRemaining = (typeof stored === "number") ? stored : _getBaseSpeed(actor, doc);
-              // Shadowdark: no Rush, always floor at 0.
-              const raw = Math.round((moveRemaining - distanceFt) / 5) * 5;
-              const newRemaining = Math.max(0, raw);
+              // No floor at 0 — when the user disables enforcement (combat is
+              // off by default), we WANT to record overflow as a negative so
+              // the GM can see how far past the soft cap a token moved.
+              const newRemaining = Math.round((moveRemaining - distanceFt) / 5) * 5;
               doc.setFlag(MODULE_ID, "moveRemaining", newRemaining)
                 .then(() => CrawlStrip.queueRender());
             }

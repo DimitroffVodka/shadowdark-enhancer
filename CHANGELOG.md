@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.9] — 2026-05-15
+
+### Changed
+- **Movement readout now shows over-cap overflow as a negative.** Previous versions floored `moveRemaining` at 0 once a token exceeded its budget — losing the information about how far over they went. When enforcement is off (the default for combat), the strip now displays the overflow as a negative number: e.g. moved 50 ft with a 30 ft budget renders as `-20/30ft` in red. Crawl enforcement (on by default) still blocks moves that would exceed budget, so crawl mode rarely goes negative unless the GM turns enforcement off.
+
+### Added
+- `.sde-strip-pill-over` CSS class — applied to the Mv pill when `moveRemaining < 0`. Red text, soft red background, bold weight, red walking icon. Stands out at a glance vs. the normal green pill.
+
 ## [0.1.8] — 2026-05-15
 
 ### Changed

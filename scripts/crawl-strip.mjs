@@ -281,7 +281,10 @@ export const CrawlStrip = {
         : data.hp <= data.hpMax * 0.75          ? "sde-strip-hp-mid"
         : "sde-strip-hp-ok";
       const luckClass = data?.luck === 0 ? "sde-strip-pill-empty" : "";
-      const moveClass = data?.moveExhausted ? "sde-strip-pill-empty" : "";
+      // Negative = past the soft cap → red. Exactly 0 → empty/dim. Positive → normal.
+      const moveClass = (data && data.moveRemaining < 0)
+        ? "sde-strip-pill-over"
+        : (data?.moveExhausted ? "sde-strip-pill-empty" : "");
 
       // Pills:
       //   - PCs always show luck + movement
