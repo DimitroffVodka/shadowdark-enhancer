@@ -6,6 +6,7 @@ import { luckPanel }     from "./stat-panels/luck-panel.mjs";
 import { InitiativeManager } from "./initiative-manager.mjs";
 import { MovementTracker } from "./movement-tracker.mjs";
 import { NpcActionMenu } from "./npc-action-menu.mjs";
+import { esc } from "./util/esc.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
 const TEMPLATE = `modules/${MODULE_ID}/templates/crawl-strip.hbs`;
@@ -144,8 +145,8 @@ export const CrawlStrip = {
       return `
         <div class="sde-card" data-token-id="${token.id}" data-actor-id="${actor.id}">
           <div class="sde-card-name">
-            <img class="sde-portrait" src="${actor.img}" alt="" />
-            <span>${actor.name}</span>
+            <img class="sde-portrait" src="${esc(actor.img)}" alt="" />
+            <span>${esc(actor.name)}</span>
           </div>
           ${hpPanel.render(actor)}
           ${movementPanel.render(actor, { mode: "crawl", used: MovementTracker.usedFor(token, "crawl"), budget })}
@@ -182,8 +183,8 @@ export const CrawlStrip = {
       return `
         <div class="sde-card ${isActive}" data-combatant-id="${c.id}" data-token-id="${tokenId}" data-actor-id="${actor.id}">
           <div class="sde-card-name">
-            <img class="sde-portrait" src="${actor.img}" alt="" />
-            <span>${actor.name}</span>
+            <img class="sde-portrait" src="${esc(actor.img)}" alt="" />
+            <span>${esc(actor.name)}</span>
           </div>
           ${hpPanel.render(actor)}
           ${movementPanel.render(actor, { mode: "combat", used: MovementTracker.usedFor(tokenDoc, "combat"), budget: combatMv })}

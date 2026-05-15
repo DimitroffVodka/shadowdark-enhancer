@@ -1,5 +1,18 @@
 /* Shadowdark Enhancer styles */
 
+:root {
+  --sde-bg-strip:    rgba(18, 16, 14, 0.92);
+  --sde-bg-card:     rgba(28, 24, 20, 0.92);
+  --sde-border:      #5a4a3a;
+  --sde-accent:      #c8965a;   /* warm torchlight */
+  --sde-accent-glow: rgba(200, 150, 90, 0.55);
+  --sde-text:        #e6dccc;
+  --sde-text-dim:    #a89e8e;
+  --sde-danger:      #c44a3a;   /* HP low / over budget */
+  --sde-crawl:       #4a6a3a;
+  --sde-combat:      #6b1f1f;
+}
+
 .sde-strip {
   position: absolute;
   bottom: 8px;
@@ -18,20 +31,22 @@
   align-items: center;
   gap: 12px;
   padding: 6px 10px;
-  background: rgba(20, 20, 24, 0.85);
-  border: 1px solid #444;
+  background: var(--sde-bg-strip);
+  border: 1px solid var(--sde-border);
   border-radius: 6px;
   backdrop-filter: blur(2px);
+  color: var(--sde-text);
 }
 
 .sde-strip-badge {
   font-weight: 700;
   letter-spacing: 0.12em;
   padding: 2px 8px;
-  background: #222;
-  border: 1px solid #555;
+  background: #2b261f;
+  border: 1px solid var(--sde-border);
   border-radius: 3px;
   font-size: 0.85em;
+  color: var(--sde-text);
 }
 
 .sde-strip-mode {
@@ -42,8 +57,8 @@
   font-size: 0.85em;
 }
 
-.sde-mode-crawl  { background: #2c3e2c; color: #cfe6cf; }
-.sde-mode-combat { background: #6b1f1f; color: #f3cfcf; }
+.sde-mode-crawl  { background: var(--sde-crawl);  color: #cfe6cf; }
+.sde-mode-combat { background: var(--sde-combat); color: #f3cfcf; }
 
 .sde-strip-turn,
 .sde-strip-round {
@@ -52,22 +67,22 @@
 }
 
 .sde-btn {
-  background: #333;
-  border: 1px solid #555;
-  color: #ddd;
+  background: #2b261f;
+  border: 1px solid var(--sde-border);
+  color: var(--sde-text);
   padding: 3px 10px;
   border-radius: 3px;
   cursor: pointer;
   font-size: 0.85em;
 }
-.sde-btn:hover { background: #444; }
-.sde-btn-quiet { background: transparent; border-color: #444; opacity: 0.7; }
+.sde-btn:hover { background: #3c3528; border-color: var(--sde-accent); }
+.sde-btn-quiet { background: transparent; border-color: var(--sde-border); opacity: 0.75; }
 
 .sde-strip-cards {
   display: flex;
+  flex-wrap: wrap;       /* allow second row when many combatants */
   gap: 6px;
   margin-top: 6px;
-  /* populated in later tasks */
 }
 
 /* Cards & cells */
@@ -76,10 +91,11 @@
   flex-direction: column;
   gap: 2px;
   padding: 4px 8px;
-  background: rgba(30, 30, 36, 0.85);
-  border: 1px solid #444;
+  background: var(--sde-bg-card);
+  border: 1px solid var(--sde-border);
   border-radius: 5px;
   min-width: 110px;
+  color: var(--sde-text);
 }
 
 .sde-card-name {
@@ -103,8 +119,8 @@
 }
 
 .sde-card-active {
-  border-color: #b08838;
-  box-shadow: 0 0 6px rgba(176, 136, 56, 0.6);
+  border-color: var(--sde-accent);
+  box-shadow: 0 0 8px var(--sde-accent-glow);
 }
 
 .sde-cell {
@@ -116,8 +132,7 @@
 
 .sde-init { opacity: 0.85; }
 
-.sde-hp-low   { color: #ff7070; font-weight: 700; }
-.sde-mv-over  { color: #ff7070; font-weight: 700; }
+.sde-hp-low, .sde-mv-over { color: var(--sde-danger); font-weight: 700; }
 .sde-luck-na  { opacity: 0.5; }
 
 .sde-pip {
@@ -128,7 +143,7 @@
   margin-left: 2px;
   border: 1px solid #888;
 }
-.sde-pip-filled { background: #d4a548; border-color: #d4a548; cursor: pointer; }
+.sde-pip-filled { background: var(--sde-accent); border-color: var(--sde-accent); cursor: pointer; }
 .sde-pip-empty  { background: transparent; }
 .sde-luck-interactive .sde-pip-filled:hover { box-shadow: 0 0 4px #f0c87a; }
 
