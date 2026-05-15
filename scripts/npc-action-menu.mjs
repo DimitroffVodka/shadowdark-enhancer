@@ -60,12 +60,22 @@ function _spellDmgLabel(item) {
 function _buildNpcActions(actor) {
   return (actor.items?.contents ?? [])
     .filter(i => i.type === "NPC Attack" || i.type === "NPC Special Attack")
-    .map(item => ({
-      label: item.name || "Unnamed",
-      dmg: _npcAttackDmgLabel(item),
-      itemId: item.id,
-      kind: "npc-attack",
-    }));
+    .map(item => {
+      // Shadowdark NPC attacks may strike multiple times per round
+      // (e.g. "2 fist", "4 tendril"). The system encodes this on
+      // `system.attack.num`. We prefix the entry with "×N" so the GM
+      // sees the per-round count at a glance, and the click handler
+      // rolls N attacks back-to-back.
+      const num = Number(item.system?.attack?.num ?? 1);
+      const prefix = num > 1 ? `×${num} ` : "";
+      return {
+        label: `${prefix}${item.name || "Unnamed"}`,
+        dmg: _npcAttackDmgLabel(item),
+        itemId: item.id,
+        attackNum: num,
+        kind: "npc-attack",
+      };
+    });
 }
 
 function _buildNpcAbilities(actor) {
@@ -223,6 +233,7 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
         const dataAttrs = [
           it.itemId       ? `data-item-id="${it.itemId}"`         : "",
           it.attackType   ? `data-attack-type="${it.attackType}"` : "",
+          it.attackNum    ? `data-attack-num="${it.attackNum}"`   : "",
         ].filter(Boolean).join(" ");
         // Weapon entries get a small left-side icon so melee vs ranged
         // is visible at a glance (especially helpful for thrown weapons
@@ -275,6 +286,7 @@ function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
       }
       await _onItemClick(resolvedActor, item.dataset.kind, item.dataset.itemId, {
         attackType: item.dataset.attackType,
+        attackNum: Number(item.dataset.attackNum ?? 1),
       });
       _removePanel();
     });
@@ -308,15 +320,25 @@ async function _onItemClick(actor, kind, itemId, opts = {}) {
   if (!item) return;
   try {
     switch (kind) {
-      case "npc-attack":
-        // Shadowdark NPC attacks: prefer actor.rollAttack, fall back to system.rollAttack, else open the item sheet
-        if (typeof actor.rollAttack === "function") {
-          return await actor.rollAttack(itemId);
-        }
-        if (typeof actor.system?.rollAttack === "function") {
-          return await actor.system.rollAttack(itemId);
-        }
-        return item.sheet.render(true);
+      case "npc-attack": {
+        // Shadowdark NPC attacks: prefer actor.rollAttack, fall back to
+        // system.rollAttack, else open the item sheet. Multi-attack entries
+        // (e.g. "2 fist") fire `attackNum` rolls back-to-back so the GM
+        // gets one card per swing.
+        const rollOnce = async () => {
+          if (typeof actor.rollAttack === "function") {
+            return actor.rollAttack(itemId);
+          }
+          if (typeof actor.system?.rollAttack === "function") {
+            return actor.system.rollAttack(itemId);
+          }
+          return item.sheet.render(true);
+        };
+        const num = Math.max(1, Number(opts?.attackNum ?? 1));
+        let last = null;
+        for (let i = 0; i < num; i++) last = await rollOnce();
+        return last;
+      }
 
       case "weapon": {
         // PC rollAttack takes a UUID. For thrown weapons we may pass an
