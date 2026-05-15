@@ -189,7 +189,7 @@ export const CrawlStrip = {
           ${movementPanel.render(actor, { mode: "combat", used: MovementTracker.usedFor(tokenDoc, "combat"), budget: combatMv })}
           ${luckPanel.render(actor)}
           <span class="sde-cell sde-init">Init ${init}</span>
-          ${isActive ? `<button class="sde-btn sde-hud-trigger" data-action="hudOpen">▼ HUD ▼</button>` : ""}
+          ${isActive ? `<button class="sde-btn sde-hud-trigger" data-action="hudOpen">▲ HUD ▲</button>` : ""}
         </div>
       `;
     }).join("");

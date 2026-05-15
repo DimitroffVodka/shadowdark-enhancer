@@ -1,0 +1,37 @@
+<div class="sde-hud-dropdown" data-actor-id="{{actorId}}" data-token-id="{{tokenId}}">
+  <div class="sde-hud-tabs">
+    <button class="sde-hud-tab {{#if (eq tab "status")}}sde-hud-tab-active{{/if}}" data-action="hudTab" data-tab="status">Status</button>
+    <button class="sde-hud-tab {{#if (eq tab "actions")}}sde-hud-tab-active{{/if}}" data-action="hudTab" data-tab="actions">Actions</button>
+    <button class="sde-hud-tab {{#if (eq tab "movement")}}sde-hud-tab-active{{/if}}" data-action="hudTab" data-tab="movement">Movement</button>
+    <button class="sde-hud-close" data-action="hudClose">×</button>
+  </div>
+
+  <div class="sde-hud-body">
+    {{#if (eq tab "status")}}
+      <div class="sde-hud-row">
+        <span>HP {{hp.value}}/{{hp.max}}</span>
+        <button class="sde-btn" data-action="hpDelta" data-delta="-5">−5</button>
+        <button class="sde-btn" data-action="hpDelta" data-delta="-1">−1</button>
+        <button class="sde-btn" data-action="hpDelta" data-delta="1">+1</button>
+        <button class="sde-btn" data-action="hpDelta" data-delta="5">+5</button>
+      </div>
+      {{#if hasLuck}}
+        <div class="sde-hud-row">
+          <button class="sde-btn" data-action="spendLuck">Spend Luck</button>
+        </div>
+      {{/if}}
+    {{/if}}
+
+    {{#if (eq tab "actions")}}
+      <div class="sde-hud-row">
+        <button class="sde-btn" data-action="openSheet">Open Sheet</button>
+      </div>
+    {{/if}}
+
+    {{#if (eq tab "movement")}}
+      <div class="sde-hud-row">
+        <button class="sde-btn" data-action="rollbackTurn">Rollback to Turn Start</button>
+      </div>
+    {{/if}}
+  </div>
+</div>
