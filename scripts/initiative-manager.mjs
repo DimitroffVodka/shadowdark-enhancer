@@ -49,7 +49,12 @@ export const InitiativeManager = {
       return this._fallbackRoll(actor, tokenId);
     }
 
-    const bonus = Number(actor.system?.roll?.initiative?.bonus ?? 0);
+    // Shadowdark initiative = 1d20 + DEX mod + any extra `roll.initiative.bonus`.
+    // Mirrors the system's _ActorBaseSD._modifyRollData formula so OoC rolls match
+    // what `combatant.rollInitiative()` produces in the combat tracker.
+    const dexMod = Number(actor.system?.abilities?.dex?.mod ?? 0);
+    const extraBonus = Number(actor.system?.roll?.initiative?.bonus ?? 0);
+    const bonus = dexMod + extraBonus;
     const advantage = Number(actor.system?.roll?.initiative?.advantage ?? 0);
     const baseFormula = "1d20";
     const advFormula = (advantage !== 0 && typeof dice.applyAdvantage === "function")
@@ -97,7 +102,9 @@ export const InitiativeManager = {
   // ── Internal ──────────────────────────────────────────────────────────────
 
   async _fallbackRoll(actor, tokenId) {
-    const bonus = Number(actor.system?.roll?.initiative?.bonus ?? 0);
+    const dexMod = Number(actor.system?.abilities?.dex?.mod ?? 0);
+    const extraBonus = Number(actor.system?.roll?.initiative?.bonus ?? 0);
+    const bonus = dexMod + extraBonus;
     const advantage = Number(actor.system?.roll?.initiative?.advantage ?? 0);
     const advFn = globalThis.shadowdark?.dice?.applyAdvantage;
     const baseFormula = "1d20";
