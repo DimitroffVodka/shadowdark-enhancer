@@ -337,12 +337,24 @@ body.theme-light .sde-bar-phase-badge {
    TOP STRIP
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/*
+ * Click-transparency: the outer #shadowdark-enhancer-strip is a full-width
+ * positioning wrapper, but only `.sde-strip-inner` is actually visible
+ * (gradient, border, cards). The wrapper MUST stay `pointer-events: none`
+ * in both hidden and visible states so empty regions of the top banner
+ * don't eat clicks meant for other modules' UIs (shadowdark-extras' tray
+ * handle, sidebar buttons, etc.). The visible inner picks up clicks via
+ * its own `pointer-events: auto` below.
+ *
+ * z-index 50 keeps us above the canvas but below Foundry's sidebar/hotbar
+ * and most module overlays — appropriate for a top banner.
+ */
 #shadowdark-enhancer-strip {
   display: none;
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 65;
+  z-index: 50;
   font-family: var(--sde-bar-font);
   pointer-events: none;
   overflow: visible;
@@ -351,7 +363,7 @@ body.theme-light .sde-bar-phase-badge {
 #shadowdark-enhancer-strip.sde-strip-visible {
   display: flex;
   justify-content: center;
-  pointer-events: auto;
+  /* No pointer-events override — wrapper stays click-transparent. */
 }
 
 /* ── Strip inner ──────────────────────────────────────────────────────────── */
@@ -364,6 +376,9 @@ body.theme-light .sde-bar-phase-badge {
   box-shadow: 0 2px 8px var(--sde-bar-shadow-md);
   border-bottom: 2px solid var(--sde-bar-accent-dim);
   border-radius: 0 0 var(--sde-bar-radius) var(--sde-bar-radius);
+  /* The wrapper is pointer-events:none for click-transparency over empty
+     regions; the visible inner re-enables clicks for its actual content. */
+  pointer-events: auto;
 }
 
 /* ── Hero / NPC groups ────────────────────────────────────────────────────── */
