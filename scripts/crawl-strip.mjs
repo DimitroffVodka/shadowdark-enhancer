@@ -504,6 +504,11 @@ export const CrawlStrip = {
           const combatant = combatantId ? game.combat?.combatants.get(combatantId) : null;
           if (combatant && combatant.initiative == null) {
             await combatant.rollInitiative();
+            // Defensive re-render: the updateCombatant hook should already
+            // queue a render, but if anything in the user's setup delays it
+            // (custom modules, dialogs, etc.) this guarantees the dice icon
+            // refresh once the roll has committed.
+            this.queueRender();
           }
           return;
         }

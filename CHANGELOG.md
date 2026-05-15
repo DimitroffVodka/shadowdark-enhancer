@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.19] — 2026-05-15
+
+### Fixed
+- **Roll Initiative dice button could stay visible after rolling** in some edge cases (slow hooks, custom dialog flows, etc.). Added a defensive explicit `queueRender()` after the dice click — the existing `updateCombatant` hook already covers the normal path, but this guarantees the dice icon refreshes once the roll commits, even if a third-party module delays the hook.
+
 ## [0.1.18] — 2026-05-15
 
 ### Added
