@@ -45,7 +45,9 @@ export const CrawlState = {
     // Mode-transition driver hooks.
     Hooks.on("combatStart", () => {
       if (!game.user.isGM) return;
-      this._priorMode = this._state.mode === "combat" ? "off" : this._state.mode;
+      // If combatStart double-fires (or another combat begins mid-restoration),
+      // keep the original pre-combat mode rather than overwriting with "off".
+      this._priorMode = this._state.mode === "combat" ? this._priorMode : this._state.mode;
       this._update({ mode: "combat" });
     });
 
