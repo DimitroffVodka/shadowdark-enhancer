@@ -4,6 +4,7 @@ import { hpPanel }       from "./stat-panels/hp-panel.mjs";
 import { movementPanel } from "./stat-panels/movement-panel.mjs";
 import { luckPanel }     from "./stat-panels/luck-panel.mjs";
 import { InitiativeManager } from "./initiative-manager.mjs";
+import { MovementTracker } from "./movement-tracker.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
 const TEMPLATE = `modules/${MODULE_ID}/templates/crawl-strip.hbs`;
@@ -132,7 +133,7 @@ export const CrawlStrip = {
       return (a.actor.name ?? "").localeCompare(b.actor.name ?? "");
     });
 
-    const budget = game.settings.get(MODULE_ID, "oocMovementBudget");
+    const budget = MovementTracker.budgetFor("crawl");
 
     return sorted.map(({ token, actor }) => {
       const init = ooc[token.id]?.roll;
@@ -144,7 +145,7 @@ export const CrawlStrip = {
             <span>${actor.name}</span>
           </div>
           ${hpPanel.render(actor)}
-          ${movementPanel.render(actor, { mode: "crawl", used: 0, budget })}
+          ${movementPanel.render(actor, { mode: "crawl", used: MovementTracker.usedFor(token, "crawl"), budget })}
           ${luckPanel.render(actor)}
           <span class="sde-cell sde-init">Init ${initStr}</span>
         </div>
@@ -157,7 +158,7 @@ export const CrawlStrip = {
     if (!combat) return "";
 
     const hideHidden = game.settings.get(MODULE_ID, "hideHiddenNpcCards");
-    const combatMv = game.settings.get(MODULE_ID, "combatMovementDefault");
+    const combatMv = MovementTracker.budgetFor("combat");
     const turns = combat.turns ?? [];
     const activeId = combat.combatant?.id;
 
@@ -182,7 +183,7 @@ export const CrawlStrip = {
             <span>${actor.name}</span>
           </div>
           ${hpPanel.render(actor)}
-          ${movementPanel.render(actor, { mode: "combat", used: 0, budget: combatMv })}
+          ${movementPanel.render(actor, { mode: "combat", used: MovementTracker.usedFor(tokenDoc, "combat"), budget: combatMv })}
           ${luckPanel.render(actor)}
           <span class="sde-cell sde-init">Init ${init}</span>
         </div>
