@@ -1,277 +1,772 @@
-/* Shadowdark Enhancer styles */
+/* ═══════════════════════════════════════════════════════════════════════════
+   Shadowdark Enhancer — Styles  (faithful port of Vagabond Crawler v0.4)
+   Dark / Light theme support
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  --sde-bg-strip:    rgba(18, 16, 14, 0.92);
-  --sde-bg-card:     rgba(28, 24, 20, 0.92);
-  --sde-border:      #5a4a3a;
-  --sde-accent:      #c8965a;   /* warm torchlight */
-  --sde-accent-glow: rgba(200, 150, 90, 0.55);
-  --sde-text:        #e6dccc;
-  --sde-text-dim:    #a89e8e;
-  --sde-danger:      #c44a3a;   /* HP low / over budget */
-  --sde-crawl:       #4a6a3a;
-  --sde-combat:      #6b1f1f;
+  /* ── Surface / backgrounds ─────────────────────────────────────────────── */
+  --sde-bar-bg:          #17191d;
+  --sde-bar-bg-alt:      #1f2226;
+  --sde-bar-bg-hover:    #2a2d32;
+  --sde-bar-surface-1:   #1b1b1b;
+  --sde-bar-surface-2:   #17191d;
+  --sde-bar-btn-1:       #252830;
+  --sde-bar-btn-2:       #1b1e24;
+  --sde-bar-btn-hover-1: #2e3138;
+  --sde-bar-btn-hover-2: #232730;
+  --sde-bar-input-bg:    #111418;
+  --sde-bar-drag-over:   #22241a;
+
+  /* ── Borders / lines ───────────────────────────────────────────────────── */
+  --sde-bar-border:      #3a3d44;
+
+  /* ── Accent (gold tabletop palette) ────────────────────────────────────── */
+  --sde-bar-accent:      #c9a54a;
+  --sde-bar-accent-dim:  #94913c;
+  --sde-bar-accent-dark: #7a7030;
+
+  /* ── Text ──────────────────────────────────────────────────────────────── */
+  --sde-bar-text:        #BDC1C6;
+  --sde-bar-text-dim:    #f8eded;
+  --sde-bar-text-muted:  #767676;
+  --sde-bar-text-bright: #e8eaed;
+
+  /* ── Shadows ───────────────────────────────────────────────────────────── */
+  --sde-bar-shadow:       rgba(0,0,0,0.7);
+  --sde-bar-shadow-md:    rgba(0,0,0,0.5);
+  --sde-bar-shadow-sm:    rgba(0,0,0,0.4);
+  --sde-bar-text-shadow:  rgba(0,0,0,0.6);
+  --sde-bar-inset-glow:   rgba(222,214,86,0.08);
+
+  /* ── Heroes / GM / Combat phase colours ────────────────────────────────── */
+  --sde-bar-heroes:        #278e17;
+  --sde-bar-heroes-text:   #80e070;
+  --sde-bar-heroes-light:  #c0f0b0;
+  --sde-bar-heroes-border: #3a8a30;
+  --sde-bar-heroes-bg-1:   #1e5a14;
+  --sde-bar-heroes-bg-2:   #164010;
+
+  --sde-bar-gm:            #2c3e50;
+  --sde-bar-gm-text:       #90b8e0;
+  --sde-bar-gm-border:     #4a6a8a;
+  --sde-bar-gm-light:      #a0c0e0;
+  --sde-bar-gm-icon:       #d0b0ff;
+
+  --sde-bar-combat:        #9d0000;
+  --sde-bar-combat-text:   #f09090;
+  --sde-bar-combat-border: #7a2020;
+  --sde-bar-danger:        #9d0000;
+  --sde-bar-danger-border: #5a2020;
+  --sde-bar-danger-text:   #e09090;
+  --sde-bar-danger-hover-text: #ffcccc;
+  --sde-bar-danger-light:  #c04040;
+  --sde-bar-npcs-text:     #e08080;
+
+  /* ── Status colours ────────────────────────────────────────────────────── */
+  --sde-bar-hit:         #e05050;
+  --sde-bar-miss:        #60b050;
+
+  /* ── HP bars ───────────────────────────────────────────────────────────── */
+  --sde-bar-hp-ok:       #3aaa3a;
+  --sde-bar-hp-mid:      #b8a020;
+  --sde-bar-hp-low:      #c86040;
+  --sde-bar-hp-critical: #8a1010;
+  --sde-bar-hp-dead:     #333;
+
+  /* ── Overlay (on portraits — stays dark in both themes) ────────────────── */
+  --sde-bar-overlay:        rgba(0,0,0,0.55);
+  --sde-bar-overlay-dark:   rgba(0,0,0,0.75);
+  --sde-bar-overlay-text:   #fff;
+  --sde-bar-overlay-border: rgba(255,255,255,0.2);
+  --sde-bar-overlay-dim:    rgba(255,255,255,0.6);
+
+  /* ── Misc ──────────────────────────────────────────────────────────────── */
+  --sde-bar-radius:      4px;
+  --sde-bar-font:        "Eskapade", "Signika", "Palatino Linotype", serif;
 }
 
-/* Both strips share base positioning rules */
-.sde-top-strip,
-.sde-bottom-strip {
-  position: absolute;
-  left: 0;
-  right: 0;
-  z-index: 50;
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT THEME
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.theme-light {
+  --sde-bar-bg:          #f0ede6;
+  --sde-bar-bg-alt:      #e4e0d8;
+  --sde-bar-bg-hover:    #d8d4cc;
+  --sde-bar-surface-1:   #f4f1ec;
+  --sde-bar-surface-2:   #ece8e0;
+  --sde-bar-btn-1:       #e8e4dc;
+  --sde-bar-btn-2:       #ddd8d0;
+  --sde-bar-btn-hover-1: #d0ccc0;
+  --sde-bar-btn-hover-2: #c8c4b8;
+  --sde-bar-input-bg:    #ffffff;
+  --sde-bar-drag-over:   #e8e4c0;
+
+  --sde-bar-border:      #c0b8a8;
+
+  --sde-bar-accent:      #8a7020;
+  --sde-bar-accent-dim:  #b09840;
+  --sde-bar-accent-dark: #a08830;
+
+  --sde-bar-text:        #2c2820;
+  --sde-bar-text-dim:    #000000;
+  --sde-bar-text-muted:  #555;
+  --sde-bar-text-bright: #1a1810;
+
+  --sde-bar-shadow:       rgba(0,0,0,0.12);
+  --sde-bar-shadow-md:    rgba(0,0,0,0.10);
+  --sde-bar-shadow-sm:    rgba(0,0,0,0.06);
+  --sde-bar-text-shadow:  rgba(0,0,0,0.08);
+  --sde-bar-inset-glow:   rgba(140,120,30,0.12);
+
+  --sde-bar-heroes:        #2a7a18;
+  --sde-bar-heroes-text:   #1a6a10;
+  --sde-bar-heroes-light:  #1a5a10;
+  --sde-bar-heroes-border: #4a9a40;
+  --sde-bar-heroes-bg-1:   #d4eed0;
+  --sde-bar-heroes-bg-2:   #bce0b0;
+
+  --sde-bar-gm:            #3a4a70;
+  --sde-bar-gm-text:       #2a3a58;
+  --sde-bar-gm-border:     #7070a8;
+  --sde-bar-gm-light:      #3a4a68;
+  --sde-bar-gm-icon:       #6040a0;
+
+  --sde-bar-combat:        #a02020;
+  --sde-bar-combat-text:   #8a2020;
+  --sde-bar-combat-border: #cc5050;
+  --sde-bar-danger:        #b02020;
+  --sde-bar-danger-border: #cc8080;
+  --sde-bar-danger-text:   #8a2020;
+  --sde-bar-danger-hover-text: #600000;
+  --sde-bar-danger-light:  #c04040;
+  --sde-bar-npcs-text:     #8a2020;
+
+  --sde-bar-hit:         #c02020;
+  --sde-bar-miss:        #1a7a10;
+
+  --sde-bar-hp-dead:     #ccc;
+
+  /* HP gradient light-mode overrides */
+  --sde-bar-hp-ok:       #2a8a2a;
+  --sde-bar-hp-mid:      #9a8010;
+  --sde-bar-hp-low:      #a83820;
+  --sde-bar-hp-critical: #6a0a0a;
+}
+
+/* ── Light-mode element overrides (hardcoded rgba backgrounds) ───────────── */
+
+body.theme-light .sde-strip-group-label {
+  background: #e8e4dc;
+  text-shadow: none;
+}
+body.theme-light .sde-strip-label-heroes {
+  color: #2a6a1a;
+}
+body.theme-light .sde-strip-label-npcs {
+  color: #8a2020;
+}
+body.theme-light .sde-bar-phase-badge {
+  text-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BOTTOM BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#shadowdark-enhancer-bar {
+  align-self: center;
+  width: max-content;
+  max-width: 100%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--sde-bar-surface-1) 0%, var(--sde-bar-surface-2) 100%);
+  border: 1px solid var(--sde-bar-border);
+  border-top: 2px solid var(--sde-bar-accent);
+  border-bottom: none;
+  border-radius: var(--sde-bar-radius) var(--sde-bar-radius) 0 0;
+  box-shadow: 0 -2px 12px var(--sde-bar-shadow), inset 0 1px 0 var(--sde-bar-inset-glow);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  color: var(--sde-bar-text);
+  user-select: none;
+  box-sizing: border-box;
   pointer-events: auto;
-  font-family: var(--font-primary, "Signika", sans-serif);
-  color: var(--sde-text);
+  text-shadow: 1px 1px 2px var(--sde-bar-text-shadow);
+}
+
+.sde-bar-inner {
   display: flex;
-}
-
-/* Top strip — cards live here */
-.sde-top-strip {
-  top: 8px;
-  flex-direction: row;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 6px;
-  padding: 6px 8px;
-  background: var(--sde-bg-strip);
-  border: 1px solid var(--sde-border);
-  border-radius: 6px;
-  backdrop-filter: blur(2px);
-}
-
-/* Bottom strip — mode pill + action buttons */
-.sde-bottom-strip {
-  bottom: 8px;
-  flex-direction: column;
-  align-items: stretch;
-}
-
-.sde-bottom-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 6px 10px;
-  background: var(--sde-bg-strip);
-  border: 1px solid var(--sde-border);
-  border-radius: 6px;
-  backdrop-filter: blur(2px);
-}
-
-.sde-strip-badge {
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  padding: 2px 8px;
-  background: #2b261f;
-  border: 1px solid var(--sde-border);
-  border-radius: 3px;
-  font-size: 0.85em;
-  color: var(--sde-text);
-}
-
-.sde-strip-mode {
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 0.85em;
-}
-
-.sde-mode-crawl  { background: var(--sde-crawl);  color: #cfe6cf; }
-.sde-mode-combat { background: var(--sde-combat); color: #f3cfcf; }
-
-.sde-strip-turn,
-.sde-strip-round {
-  font-size: 0.9em;
-  opacity: 0.9;
-}
-
-.sde-round-badge {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
-  min-height: 32px;
-  border-radius: 50%;
-  border: 2px solid var(--sde-accent);
-  background: rgba(0,0,0,0.4);
-  font-weight: 700;
-  font-size: 1.1em;
-  color: var(--sde-accent);
+  flex-wrap: nowrap;
+  gap: 5px;
+  padding: 5px 10px;
+  min-height: 42px;
 }
 
-.sde-section {
-  display: flex;
-  align-items: center;
-  border-left: 3px solid var(--sde-text-dim);
-  padding-left: 8px;
-}
-.sde-section-heroes { border-left-color: #6fb86f; }
-.sde-section-npcs   { border-left-color: var(--sde-danger); }
-.sde-section-label {
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  font-size: 0.8em;
-  color: var(--sde-text-dim);
-}
-.sde-section-heroes .sde-section-label { color: #9fdc9f; }
-.sde-section-npcs   .sde-section-label { color: #f3a8a0; }
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
 
-.sde-cards-row {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.sde-btn {
-  background: #2b261f;
-  border: 1px solid var(--sde-border);
-  color: var(--sde-text);
-  padding: 3px 10px;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.85em;
-}
-.sde-btn:hover { background: #3c3528; border-color: var(--sde-accent); }
-.sde-btn-quiet { background: transparent; border-color: var(--sde-border); opacity: 0.75; }
-
-/* Cards & cells */
-.sde-card {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 4px 8px;
-  background: var(--sde-bg-card);
-  border: 1px solid var(--sde-border);
-  border-radius: 5px;
-  min-width: 110px;
-  color: var(--sde-text);
-  position: relative;
-}
-
-.sde-card-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-  font-size: 0.85em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 140px;
-}
-
-.sde-portrait {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid #555;
-}
-
-.sde-card-active {
-  border-color: var(--sde-accent);
-  box-shadow: 0 0 8px var(--sde-accent-glow);
-}
-
-.sde-cell {
-  font-size: 0.75em;
+.sde-bar-btn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+  padding: 5px 11px;
+  background: linear-gradient(135deg, var(--sde-bar-btn-1) 0%, var(--sde-bar-btn-2) 100%);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  color: var(--sde-bar-text);
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  line-height: 1.3;
+  box-shadow: 1px 1px 2px var(--sde-bar-shadow-md);
+  text-shadow: 1px 1px 2px var(--sde-bar-text-shadow);
+}
+.sde-bar-btn:hover {
+  background: linear-gradient(135deg, var(--sde-bar-btn-hover-1) 0%, var(--sde-bar-btn-hover-2) 100%);
+  border-color: var(--sde-bar-accent-dim);
+  color: var(--sde-bar-accent);
+  box-shadow: 0 0 6px rgba(222,214,86,0.15);
 }
 
-.sde-init { opacity: 0.85; }
-
-.sde-hp-low, .sde-mv-over { color: var(--sde-danger); font-weight: 700; }
-.sde-luck-na  { opacity: 0.5; }
-
-/* HP progress bar (Vagabond-style) */
-.sde-hp-bar {
-  position: relative;
-  width: 96px;
-  height: 12px;
-  background: rgba(0,0,0,0.5);
-  border: 1px solid var(--sde-border);
-  border-radius: 3px;
-  overflow: hidden;
+.sde-bar-start-btn {
+  font-size: 15px;
+  padding: 7px 18px;
+  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
+  border-color: var(--sde-bar-accent);
+  color: #f5eccc;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 1px 1px 3px var(--sde-bar-shadow-md), inset 0 1px 0 rgba(255,255,255,0.1);
 }
-.sde-hp-bar-fill {
+.sde-bar-start-btn:hover {
+  background: linear-gradient(135deg, var(--sde-bar-accent) 0%, var(--sde-bar-accent-dim) 100%);
+  color: var(--sde-bar-surface-1);
+  box-shadow: 0 0 8px rgba(222,214,86,0.6);
+}
+
+.sde-bar-next-btn {
+  background: linear-gradient(135deg, var(--sde-bar-heroes-bg-1) 0%, var(--sde-bar-heroes-bg-2) 100%);
+  border-color: var(--sde-bar-heroes-border);
+  color: var(--sde-bar-heroes-light);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.sde-bar-next-btn:hover { filter: brightness(1.25); box-shadow: 0 0 8px rgba(40,140,20,0.3); }
+
+.sde-bar-resume-btn {
+  border-color: var(--sde-bar-heroes-border);
+  color: var(--sde-bar-heroes-text);
+}
+.sde-bar-resume-btn:hover { background: linear-gradient(135deg, #1e3a1a 0%, #162a14 100%); }
+
+.sde-bar-danger-btn { border-color: var(--sde-bar-danger-border); }
+.sde-bar-danger-btn:hover {
+  background: linear-gradient(135deg, #5a1010 0%, #3a0808 100%);
+  border-color: var(--sde-bar-danger-light); color: var(--sde-bar-danger-hover-text);
+}
+
+.sde-bar-combat-btn { border-color: var(--sde-bar-danger-border); color: var(--sde-bar-danger-text); }
+.sde-bar-combat-btn:hover { background: linear-gradient(135deg, #3a1414 0%, #2a0c0c 100%); }
+
+/* ── Disabled (placeholder M2 buttons) ─────────────────────────────────────
+ * Dims the button without hiding it — preserves the visual rhythm of the bar
+ * while making it clear the feature isn't wired up yet. */
+.sde-bar-disabled {
+  opacity: 0.45;
+  filter: grayscale(50%);
+  cursor: not-allowed;
+}
+.sde-bar-disabled:hover {
+  background: linear-gradient(135deg, var(--sde-bar-btn-1) 0%, var(--sde-bar-btn-2) 100%);
+  border-color: var(--sde-bar-border);
+  color: var(--sde-bar-text);
+  box-shadow: 1px 1px 2px var(--sde-bar-shadow-md);
+}
+
+/* ── Phase badge ──────────────────────────────────────────────────────────── */
+
+.sde-bar-phase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--sde-bar-radius);
+  font-weight: 700;
+  font-size: 13px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow: inset 0 1px 3px var(--sde-bar-shadow-sm);
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+.sde-bar-phase-crawl {
+  background: linear-gradient(135deg, var(--sde-bar-heroes-bg-1) 0%, var(--sde-bar-heroes-bg-2) 100%);
+  border: 1px solid var(--sde-bar-heroes); color: var(--sde-bar-heroes-text);
+}
+.sde-bar-phase-combat {
+  background: linear-gradient(135deg, #2a0c0c 0%, #1a0606 100%);
+  border: 1px solid var(--sde-bar-combat-border); color: var(--sde-bar-combat-text);
+}
+
+/* ── Turn info ────────────────────────────────────────────────────────────── */
+
+.sde-bar-turn-info {
+  font-size: 13px;
+  color: var(--sde-bar-text-dim);
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+/* ── Divider ──────────────────────────────────────────────────────────────── */
+
+.sde-bar-divider {
+  width: 1px;
+  height: 28px;
+  background: var(--sde-bar-border);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TOP STRIP
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#shadowdark-enhancer-strip {
+  display: none;
   position: absolute;
-  inset: 0 auto 0 0;
-  background: linear-gradient(180deg, #5fce5f 0%, #2c8a2c 100%);
+  top: 0;
+  left: 0;
+  z-index: 65;
+  font-family: var(--sde-bar-font);
+  pointer-events: none;
+  overflow: visible;
+  box-sizing: border-box;
 }
-.sde-hp-bar-text {
+#shadowdark-enhancer-strip.sde-strip-visible {
+  display: flex;
+  justify-content: center;
+  pointer-events: auto;
+}
+
+/* ── Strip inner ──────────────────────────────────────────────────────────── */
+
+.sde-strip-inner {
+  display: flex;
+  align-items: stretch;
+  background: linear-gradient(180deg, var(--sde-bar-surface-2) 0%, var(--sde-bar-surface-1) 100%);
+  width: max-content;
+  box-shadow: 0 2px 8px var(--sde-bar-shadow-md);
+  border-bottom: 2px solid var(--sde-bar-accent-dim);
+  border-radius: 0 0 var(--sde-bar-radius) var(--sde-bar-radius);
+}
+
+/* ── Hero / NPC groups ────────────────────────────────────────────────────── */
+
+.sde-strip-group {
+  display: flex;
+  align-items: stretch;
+}
+.sde-strip-group-label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  font-size: 1.3em;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 8px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  user-select: none;
+  font-family: "Eskapade", serif;
+  background: #000;
+  border-right: 2px solid;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
+}
+.sde-strip-label-heroes {
+  color: var(--sde-bar-heroes-text);
+  border-right-color: var(--sde-bar-heroes);
+}
+.sde-strip-label-npcs {
+  color: var(--sde-bar-npcs-text);
+  border-right-color: var(--sde-bar-combat);
+}
+
+/* ── Turn number — floating badge to the left of the strip ───────────────── */
+
+.sde-strip-turn-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  min-width: 36px;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--sde-bar-overlay-text);
+  background: var(--sde-bar-overlay);
+  border-right: 2px solid var(--sde-bar-overlay-border);
+  pointer-events: none;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+}
+
+/* ── Combat controls panel (replaces turn num during combat) ──────────────── */
+
+.sde-strip-combat-controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  min-width: 36px;
+  background: var(--sde-bar-overlay);
+  border-right: 2px solid var(--sde-bar-overlay-border);
+  padding: 2px 0;
+  gap: 1px;
+}
+
+.sde-strip-round-num {
+  font-size: 12px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.9);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  line-height: 1;
+  padding: 1px 0;
+}
+
+.sde-strip-cbtn {
+  background: none;
+  border: none;
+  color: var(--sde-bar-overlay-dim);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 1px 4px;
+  line-height: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+.sde-strip-cbtn:hover { color: var(--sde-bar-overlay-text); }
+
+/* ── Activate / End Turn button on card ───────────────────────────────────── */
+
+.sde-strip-activate-btn {
+  display: none;
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(30,120,50,0.85);
+  border: 1px solid rgba(100,220,100,0.5);
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background 0.15s;
+}
+.sde-strip-activate-btn.sde-strip-activate-active {
+  background: rgba(160,30,30,0.85);
+  border-color: rgba(220,80,80,0.5);
+}
+.sde-strip-activate-btn:hover { filter: brightness(1.3); }
+.sde-strip-card-wrap:hover .sde-strip-activate-btn,
+.sde-strip-card-wrap:focus-within .sde-strip-activate-btn { display: flex; }
+
+/* ── Members strip ────────────────────────────────────────────────────────── */
+
+.sde-strip-members {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
+  padding: 4px 4px;
+  overflow: visible;
+}
+.sde-strip-empty {
+  padding: 0 12px;
+  color: var(--sde-bar-text-dim);
+  font-size: 18px;
+  align-self: center;
+  opacity: 0.3;
+}
+
+/* ── Member card — wall-to-wall portrait ──────────────────────────────────── */
+
+.sde-strip-member {
+  position: relative;
+  width: 130px;
+  height: 160px;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background: var(--sde-bar-bg);
+  transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
+  box-shadow: 1px 1px 4px var(--sde-bar-shadow-md);
+}
+.sde-strip-member.sde-strip-dim { opacity: 0.4; filter: saturate(0.4); }
+
+.sde-strip-member.sde-strip-active.sde-strip-type-player,
+.sde-strip-member.sde-strip-active.sde-strip-type-gm {
+  border-color: var(--sde-bar-heroes);
+  box-shadow: 0 0 10px rgba(39,142,23,0.5);
+}
+.sde-strip-member.sde-strip-active.sde-strip-type-npc {
+  border-color: #aa3030;
+  box-shadow: 0 0 10px rgba(157,0,0,0.5);
+}
+
+/* Defeated */
+.sde-strip-member.sde-strip-defeated { opacity: 0.4; }
+.sde-strip-member.sde-strip-defeated .sde-strip-portrait { filter: grayscale(80%); }
+
+.sde-strip-defeated-icon {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7em;
-  font-weight: 700;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-  color: #fff;
+  pointer-events: none;
 }
-.sde-hp-low .sde-hp-bar-fill { background: linear-gradient(180deg, #ce5f5f 0%, #8a2c2c 100%); }
-
-/* Movement icon */
-.sde-mv-icon {
-  margin-right: 2px;
-  vertical-align: middle;
+.sde-strip-defeated-icon i {
+  font-size: 48px;
+  color: rgba(200,50,50,0.85);
+  filter: drop-shadow(0 0 6px rgba(0,0,0,0.9));
 }
 
-.sde-pip {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-left: 2px;
-  border: 1px solid #888;
-}
-.sde-pip-filled { background: var(--sde-accent); border-color: var(--sde-accent); cursor: pointer; }
-.sde-pip-empty  { background: transparent; }
-.sde-luck-interactive .sde-pip-filled:hover { box-shadow: 0 0 4px #f0c87a; }
+/* ── Portrait fills entire card ───────────────────────────────────────────── */
 
-.sde-spacer { flex: 1; }
-
-/* Combat HUD dropdown — opens BELOW the card because cards now sit at the viewport top */
-.sde-hud-trigger {
-  margin-top: 4px;
-  font-size: 0.7em;
-  letter-spacing: 0.1em;
+.sde-strip-portrait {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
 }
 
-.sde-hud-dropdown {
+/* ── Overlay — sits on top of portrait ───────────────────────────────────── */
+
+.sde-strip-overlay {
   position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 4px;
-  background: rgba(20, 20, 24, 0.96);
-  border: 1px solid #555;
-  border-radius: 5px;
-  padding: 6px;
-  min-width: 240px;
-  z-index: 60;
-}
-
-.sde-hud-tabs {
+  inset: 0;
   display: flex;
-  gap: 4px;
-  border-bottom: 1px solid #444;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
 }
-.sde-hud-tab {
-  background: transparent;
-  border: 1px solid transparent;
-  color: #aaa;
-  padding: 2px 8px;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 0.8em;
-}
-.sde-hud-tab-active { color: #ddd; border-color: #666; background: #333; }
-.sde-hud-close { margin-left: auto; background: transparent; border: 0; color: #888; cursor: pointer; font-size: 1.1em; }
 
-.sde-hud-body { display: flex; flex-direction: column; gap: 4px; }
-.sde-hud-row { display: flex; gap: 4px; align-items: center; font-size: 0.85em; }
+/* ── Name — top of card ───────────────────────────────────────────────────── */
+
+.sde-strip-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sde-bar-overlay-text);
+  text-align: center;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 4px 2px;
+  background: linear-gradient(to bottom, var(--sde-bar-overlay-dark) 0%, transparent 100%);
+  line-height: 1.3;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  flex-shrink: 0;
+}
+
+/* ── Active effects row — above HP bar ────────────────────────────────────── */
+
+.sde-strip-effects-row {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  padding: 1px 4px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.sde-strip-effect-icon {
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  cursor: help;
+}
+
+/* ── HP bar + pills — bottom of card ─────────────────────────────────────── */
+
+.sde-strip-bottom {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
+.sde-strip-hp-bar-wrap {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  background: rgba(0,0,0,0.5);
+}
+.sde-strip-hp-bar {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+.sde-strip-hp-bar.sde-strip-hp-ok       { background: var(--sde-bar-hp-ok); }
+.sde-strip-hp-bar.sde-strip-hp-mid      { background: var(--sde-bar-hp-mid); }
+.sde-strip-hp-bar.sde-strip-hp-low      { background: var(--sde-bar-hp-low); }
+.sde-strip-hp-bar.sde-strip-hp-critical { background: var(--sde-bar-hp-critical); }
+.sde-strip-hp-bar.sde-strip-hp-dead     { background: var(--sde-bar-hp-dead); width: 0 !important; }
+
+.sde-strip-hp-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+}
+
+/* ── Pills — luck + movement ──────────────────────────────────────────────── */
+
+.sde-strip-pills {
+  display: flex;
+  gap: 0;
+  width: 100%;
+  background: var(--sde-bar-overlay);
+}
+.sde-strip-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 3px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sde-bar-overlay-text);
+  flex: 1;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  white-space: nowrap;
+}
+.sde-strip-pill + .sde-strip-pill {
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+.sde-strip-pill i { font-size: 11px; }
+.sde-bar-icon-shamrock            { width: 14px; height: 14px; vertical-align: middle; margin-right: 2px; }
+.sde-strip-pill i.fa-person-walking { color: #60d060; }
+.sde-strip-pill.sde-strip-pill-empty { opacity: 0.35; }
+
+/* ── GM crown + remove ────────────────────────────────────────────────────── */
+
+.sde-strip-gm-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 11px;
+  color: var(--sde-bar-gm-icon);
+  text-shadow: 0 0 6px rgba(0,0,0,0.9);
+}
+
+/* ── Active turn state ────────────────────────────────────────────────────── */
+
+.sde-strip-member.sde-strip-is-turn {
+  border-color: var(--sde-bar-accent) !important;
+  box-shadow: 0 0 14px rgba(222,214,86,0.7) !important;
+  opacity: 1 !important;
+  animation: sde-turn-pulse 1.8s ease-in-out infinite;
+}
+.sde-strip-member.sde-strip-is-turn .sde-strip-portrait { filter: none !important; }
+
+@keyframes sde-turn-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(222,214,86,0.5); }
+  50%       { box-shadow: 0 0 22px rgba(222,214,86,0.9); }
+}
+
+.sde-strip-turn-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 20px;
+  height: 20px;
+  background: rgba(222,214,86,0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  box-shadow: 0 0 4px rgba(222,214,86,0.5);
+}
+.sde-strip-turn-badge i { font-size: 10px; color: #1b1b1b; }
+
+.sde-strip-remove {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.18);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.12s;
+  z-index: 3;
+  pointer-events: auto;
+}
+.sde-strip-member:hover .sde-strip-remove,
+.sde-strip-remove:focus-visible { color: var(--sde-bar-overlay-dim); }
+.sde-strip-remove:hover,
+.sde-strip-remove:focus-visible:hover { color: #ff6060 !important; }
+
+/* ─── Action Menu: Card Wrap + Tab Strip ──────────────────── */
+
+.sde-strip-card-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CUSTOM ICONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sde-bar-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  object-fit: contain;
+}
+.sde-bar-btn .sde-bar-icon { width: 16px; height: 16px; }
+
+.sde-bar-icon-dragon {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  vertical-align: middle;
+  object-fit: contain;
+  border-radius: 2px;
+}
+.sde-bar-btn .sde-bar-icon-dragon { width: 16px; height: 16px; }

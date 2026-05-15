@@ -8,6 +8,7 @@ import { MODULE_ID } from "./module-id.mjs";
 import { registerSettings } from "./settings.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
+import { CrawlBar } from "./crawl-bar.mjs";
 import { registerHiddenSync } from "./hidden-sync.mjs";
 import { MovementTracker } from "./movement-tracker.mjs";
 
@@ -22,6 +23,7 @@ Hooks.once("ready", () => {
   registerHiddenSync();
   MovementTracker.init();
   CrawlStrip.init();
+  CrawlBar.init();
   checkCoexistence();
 });
 

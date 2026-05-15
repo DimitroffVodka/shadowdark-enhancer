@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1.2] — 2026-05-15
+
+### Changed
+
+- **Faithful Vagabond Crawler port** of the top strip + bottom crawl bar. The previous Shadowdark-Enhancer-original strip/bar styling has been replaced with a verbatim duplicate of Vagabond Crawler's visual contract: gold tabletop accent palette, dark/light theme variables, wall-to-wall portrait cards (130x160), HP gradient bar with overlay label, luck/movement pills with shamrock + walking-person icons, vertical HEROES/NPCS group labels, dimmed inactive cards with `is-turn` pulse animation, and the same bottom-bar button gradients (start, next, combat, danger).
+- **CSS namespace migration**: `vc-` → `sde-`, `vcb-` → `sde-bar-`, `vcs-` → `sde-strip-`, `--vc-*` → `--sde-*`, `--vcb-*` → `--sde-bar-*`. `vagabond-crawler-*` IDs → `shadowdark-enhancer-*`.
+- **Bottom bar** mounts into `#ui-middle` (natural block flow, no `position:fixed`). Shows Start Crawl in off mode; phase badge + Next Turn + Add Tokens + Combat + M2 placeholders + End in crawl mode; Begin/End Encounter + Add Tokens + Delete Encounter in combat mode.
+- **Top strip** mounts into `#interface` with dynamic left/right edge calculation against scene-nav + sidebar (faithful to Vagabond).
+- **Single crawl turn counter** displayed in the strip's left badge in crawl mode (replaces Vagabond's heroes/gm phase model — Shadowdark uses one counter).
+- **Icon registry**: ported `scripts/icons.mjs` from Vagabond verbatim, paths fixed to `modules/shadowdark-enhancer/icons/`. Added `icons/dragon-head.svg`, `icons/light-sabers.svg`, `icons/shamrock.svg`.
+
+### Added
+
+- **M2 placeholder buttons** (Encounter, Lights, Rest, Forge & Loot) rendered in the crawl bar with the `.sde-bar-disabled` class — dimmed but visible to preserve the bar's visual rhythm. Clicking shows a "coming in a later milestone" notification.
+- **Combat-mode strip controls** in the left badge: prev/next round + prev/next turn buttons stacked around the round number.
+- **Activate / End Turn buttons** on combatant cards (GM only), revealed on hover.
+
+### Removed
+
+- `templates/bottom-strip.hbs`, `templates/npc-action-menu.hbs` — Vagabond builds DOM imperatively in JS, so these handlebars templates are no longer needed.
+- `scripts/stat-panels/{hp-panel,movement-panel,luck-panel}.mjs` — Vagabond inlines stat HTML into the card's overlay; the panel modules are obsolete.
+- `scripts/npc-action-menu.mjs` — the per-card HUD dropdown is replaced by Vagabond's hover-revealed action tabs (currently rendered as just `.sde-strip-card-wrap`; full dropdown content deferred).
+
+### Notes
+
+- The strip's data extraction reads `actor.system.luck.{remaining,available}` (with fallback) instead of Vagabond's `actor.system.currentLuck`. Shadowdark schema parity.
+- Movement display always uses the module setting (`combatMovementDefault` / `oocMovementBudget`) since Shadowdark PCs have no per-actor speed field, and NPC `system.move` is a string we don't parse yet.
+
 ## [0.1.1] — 2026-05-14
 
 ### Changed
