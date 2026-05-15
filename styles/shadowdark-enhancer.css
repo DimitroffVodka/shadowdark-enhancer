@@ -129,3 +129,5 @@
 .sde-pip-filled { background: #d4a548; border-color: #d4a548; cursor: pointer; }
 .sde-pip-empty  { background: transparent; }
 .sde-luck-interactive .sde-pip-filled:hover { box-shadow: 0 0 4px #f0c87a; }
+
+.sde-spacer { flex: 1; }

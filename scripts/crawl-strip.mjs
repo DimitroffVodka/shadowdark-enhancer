@@ -1,5 +1,8 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
+import { hpPanel }       from "./stat-panels/hp-panel.mjs";
+import { movementPanel } from "./stat-panels/movement-panel.mjs";
+import { luckPanel }     from "./stat-panels/luck-panel.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
 const TEMPLATE = `modules/${MODULE_ID}/templates/crawl-strip.hbs`;
@@ -26,6 +29,12 @@ export const CrawlStrip = {
     this._hookIds.push(Hooks.on("deleteCombat", queue));
     this._hookIds.push(Hooks.on("renderSceneNavigation", () => this._updateBounds()));
     this._hookIds.push(Hooks.on("collapseSidebar", () => this._updateBounds()));
+
+    this._hookIds.push(Hooks.on("updateActor",  () => this.queueRender()));
+    this._hookIds.push(Hooks.on("updateToken",  () => this.queueRender()));
+    this._hookIds.push(Hooks.on("createToken",  () => this.queueRender()));
+    this._hookIds.push(Hooks.on("deleteToken",  () => this.queueRender()));
+    this._hookIds.push(Hooks.on("canvasReady",  () => this.queueRender()));
 
     this._resizeListener = () => this._updateBounds();
     window.addEventListener("resize", this._resizeListener);
@@ -96,6 +105,52 @@ export const CrawlStrip = {
       : foundry.applications.handlebars.renderTemplate;
     const html = await r(TEMPLATE, ctx);
     this._el.innerHTML = html;
+
+    const cardsRow = this._el.querySelector(".sde-strip-cards");
+    if (cardsRow) {
+      if (mode === "crawl") {
+        cardsRow.innerHTML = this._buildCrawlCards();
+      } else {
+        cardsRow.innerHTML = "";
+      }
+    }
+  },
+
+  _buildCrawlCards() {
+    const tokens = canvas.scene?.tokens?.contents ?? [];
+    const playerEntries = tokens
+      .map(t => ({ token: t, actor: t.actor }))
+      .filter(({ actor }) => actor?.type === "Player");
+
+    const ooc = CrawlState.oocInitiative;
+
+    const sorted = playerEntries.sort((a, b) => {
+      const ai = ooc[a.token.id]?.roll;
+      const bi = ooc[b.token.id]?.roll;
+      if (ai != null && bi != null) return bi - ai;   // both rolled → desc
+      if (ai != null)              return -1;
+      if (bi != null)              return 1;
+      return (a.actor.name ?? "").localeCompare(b.actor.name ?? "");
+    });
+
+    const budget = game.settings.get(MODULE_ID, "oocMovementBudget");
+
+    return sorted.map(({ token, actor }) => {
+      const init = ooc[token.id]?.roll;
+      const initStr = (init == null) ? "—" : init;
+      return `
+        <div class="sde-card" data-token-id="${token.id}" data-actor-id="${actor.id}">
+          <div class="sde-card-name">
+            <img class="sde-portrait" src="${actor.img}" alt="" />
+            <span>${actor.name}</span>
+          </div>
+          ${hpPanel.render(actor)}
+          ${movementPanel.render(actor, { mode: "crawl", used: 0, budget })}
+          ${luckPanel.render(actor)}
+          <span class="sde-cell sde-init">Init ${initStr}</span>
+        </div>
+      `;
+    }).join("");
   },
 
   _attachDelegatedEvents() {
