@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.5] — 2026-05-15
+
+### Added
+- **Game Master card in crawl mode** — out-of-combat strip now always renders a synthetic GM card at the end of the heroes row (cowled figure + crown badge). Represents the GM's turn in the crawl loop (encounter rolls, light ticks, etc.). Hidden in combat mode where Foundry's tracker drives turn order.
+
 ## [0.1.4] — 2026-05-15
 
 ### Fixed

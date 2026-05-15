@@ -153,6 +153,17 @@ export const CrawlStrip = {
           return (a.actor?.name ?? "").localeCompare(b.actor?.name ?? "");
         });
       const heroes = tokens.map(t => this._memberFromToken(t, "player"));
+      // Append the synthetic GM card — out of combat always shows it so the
+      // GM has a visible "their turn" marker for things like encounter rolls,
+      // light tracker ticks, etc. (Vagabond pattern.)
+      heroes.push({
+        id:      "sde-gm",
+        name:    "Game Master",
+        img:     "icons/svg/cowled.svg",
+        type:    "gm",
+        actorId: null,
+        tokenId: null,
+      });
       return { heroes, npcs: [], inCombat: false };
     }
 
@@ -214,6 +225,22 @@ export const CrawlStrip = {
     const { heroes, npcs } = this._gatherMembers();
 
     const makeCard = (m) => {
+      // Special-case the synthetic GM card — no actor lookup, no stats, just
+      // a visible marker for the GM's turn in the crawl loop.
+      if (m.type === "gm") {
+        return `
+        <div class="sde-strip-card-wrap">
+          <div class="sde-strip-member sde-strip-active sde-strip-type-gm"
+               data-member-id="${m.id}">
+            <img class="sde-strip-portrait" src="${m.img}" alt="${m.name}" />
+            <div class="sde-strip-overlay">
+              <div class="sde-strip-name">${m.name}</div>
+            </div>
+            <div class="sde-strip-gm-crown">${ICONS.gmCrown}</div>
+          </div>
+        </div>`;
+      }
+
       // Resolve actor + token
       let actor = null;
       let tokenDoc = null;
