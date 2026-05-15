@@ -42,13 +42,17 @@ export const CrawlState = {
     });
 
     // Mode-transition driver hooks.
-    Hooks.on("combatStart", () => {
+    // Both createCombat AND combatStart flip mode to "combat" so the bar can
+    // render the intermediate "Begin Encounter" state once a combat exists
+    // but hasn't been started yet (Vagabond pattern).
+    const enterCombatMode = () => {
       if (!game.user.isGM) return;
-      // If combatStart double-fires (or another combat begins mid-restoration),
-      // keep the original pre-combat mode rather than overwriting with "off".
-      this._priorMode = this._state.mode === "combat" ? this._priorMode : this._state.mode;
+      if (this._state.mode === "combat") return;  // already there
+      this._priorMode = this._state.mode;
       this._update({ mode: "combat" });
-    });
+    };
+    Hooks.on("createCombat", enterCombatMode);
+    Hooks.on("combatStart",   enterCombatMode);
 
     Hooks.on("deleteCombat", () => {
       if (!game.user.isGM) return;

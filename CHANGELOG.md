@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.1.15] — 2026-05-15
+
+### Fixed
+- **Bar didn't show the "Begin Encounter" intermediate state when you pressed Combat.** The bar's render logic already had the right branches, but `CrawlState` only listened for `combatStart` (fires after `startCombat()`), so after the Combat button created+activated the encounter the mode stayed `crawl`/`off` and the bar rendered the crawl branch. CrawlState now also listens for `createCombat` — pressing Combat flips mode to `combat` immediately, the bar renders `Begin Encounter | Add Tokens | Delete Encounter`, and clicking Begin Encounter calls `combat.startCombat()` which swaps the button to `End Encounter`.
+
 ## [0.1.14] — 2026-05-15
 
 ### Changed
