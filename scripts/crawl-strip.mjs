@@ -5,6 +5,7 @@ import { movementPanel } from "./stat-panels/movement-panel.mjs";
 import { luckPanel }     from "./stat-panels/luck-panel.mjs";
 import { InitiativeManager } from "./initiative-manager.mjs";
 import { MovementTracker } from "./movement-tracker.mjs";
+import { NpcActionMenu } from "./npc-action-menu.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
 const TEMPLATE = `modules/${MODULE_ID}/templates/crawl-strip.hbs`;
@@ -37,6 +38,8 @@ export const CrawlStrip = {
     this._hookIds.push(Hooks.on("createToken",  () => this.queueRender()));
     this._hookIds.push(Hooks.on("deleteToken",  () => this.queueRender()));
     this._hookIds.push(Hooks.on("canvasReady",  () => this.queueRender()));
+
+    this._hookIds.push(Hooks.on("combatTurn", () => NpcActionMenu.close()));
 
     this._resizeListener = () => this._updateBounds();
     window.addEventListener("resize", this._resizeListener);
@@ -186,6 +189,7 @@ export const CrawlStrip = {
           ${movementPanel.render(actor, { mode: "combat", used: MovementTracker.usedFor(tokenDoc, "combat"), budget: combatMv })}
           ${luckPanel.render(actor)}
           <span class="sde-cell sde-init">Init ${init}</span>
+          ${isActive ? `<button class="sde-btn sde-hud-trigger" data-action="hudOpen">▼ HUD ▼</button>` : ""}
         </div>
       `;
     }).join("");
@@ -202,17 +206,62 @@ export const CrawlStrip = {
         case "nextCrawlTurn": return CrawlState.nextCrawlTurn();
         case "rollOocInit":   return InitiativeManager.rollOocForAll();
         case "resetOocInit":  return CrawlState.clearOocInitiative();
+        case "spendLuck": {
+          const actorId = btn.dataset.actorId ?? btn.closest("[data-actor-id]")?.dataset.actorId;
+          const actor = game.actors.get(actorId);
+          if (actor?.system?.useLuckToken) await actor.system.useLuckToken();
+          return;
+        }
+        case "hudOpen": {
+          const cardEl = btn.closest(".sde-card");
+          const actorId = cardEl?.dataset.actorId;
+          const tokenId = cardEl?.dataset.tokenId;
+          const actor = game.actors.get(actorId);
+          const tokenDoc = canvas.scene?.tokens.get(tokenId);
+          if (actor && tokenDoc && cardEl) await NpcActionMenu.open(cardEl, actor, tokenDoc);
+          return;
+        }
+        case "hudClose": return NpcActionMenu.close();
+        case "hudTab": {
+          const tab = btn.dataset.tab;
+          if (tab) await NpcActionMenu.setTab(tab);
+          return;
+        }
+        case "openSheet": {
+          const cardEl = btn.closest(".sde-card");
+          const actor = game.actors.get(cardEl?.dataset.actorId);
+          actor?.sheet?.render(true);
+          return;
+        }
+        case "hpDelta": {
+          const cardEl = btn.closest(".sde-card");
+          const actor = game.actors.get(cardEl?.dataset.actorId);
+          const delta = Number(btn.dataset.delta ?? 0);
+          if (!actor) return;
+          const hp = actor.system?.attributes?.hp ?? { value: 0, max: 0 };
+          const next = Math.max(0, Math.min((hp.max ?? 0), (hp.value ?? 0) + delta));
+          await actor.update({ "system.attributes.hp.value": next });
+          return;
+        }
+        case "rollbackTurn": {
+          const cardEl = btn.closest(".sde-card");
+          const tokenDoc = canvas.scene?.tokens.get(cardEl?.dataset.tokenId);
+          if (tokenDoc) await MovementTracker.rollbackToTurnStart(tokenDoc);
+          NpcActionMenu.close();
+          return;
+        }
       }
     });
   },
 
   _updateBounds() {
     if (!this._el) return;
-    const sceneNav = document.getElementById("scene-navigation");
+    // Strip is anchored to the BOTTOM of the interface, so we only need to
+    // dodge the right sidebar. Scene navigation lives at the top and doesn't
+    // intersect the strip's row.
     const sidebar = document.getElementById("sidebar");
-    const navWidth = sceneNav?.getBoundingClientRect()?.width ?? 0;
     const sidebarWidth = sidebar?.getBoundingClientRect()?.width ?? 0;
-    this._el.style.left = `${Math.max(0, navWidth + 8)}px`;
+    this._el.style.left = `8px`;
     this._el.style.right = `${Math.max(0, sidebarWidth + 8)}px`;
   },
 };

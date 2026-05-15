@@ -2,13 +2,15 @@
 
 .sde-strip {
   position: absolute;
-  top: 8px;
+  bottom: 8px;
   left: 0;
   right: 0;
   z-index: 50;
   pointer-events: auto;
   font-family: var(--font-primary, "Signika", sans-serif);
   color: #ddd;
+  display: flex;
+  flex-direction: column-reverse;  /* cards above header so header sits at the bottom edge */
 }
 
 .sde-strip-header {
