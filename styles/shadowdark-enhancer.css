@@ -920,6 +920,11 @@ body.theme-light .sde-bar-phase-badge {
   box-shadow: 0 6px 18px var(--sde-bar-shadow);
   z-index: 200;
   font-size: 12px;
+  /* The parent #shadowdark-enhancer-strip is pointer-events:none for
+     click-transparency over empty regions. The dropdown panel is mounted
+     as a sibling of .sde-strip-inner and needs to explicitly re-enable
+     clicks so the tabs and item buttons inside it are selectable. */
+  pointer-events: auto;
 }
 
 .sde-strip-panel-tabs {
