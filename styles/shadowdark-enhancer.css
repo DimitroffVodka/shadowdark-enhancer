@@ -1188,6 +1188,10 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-preview-entry {
   color: var(--sde-bar-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .sde-preview-appearing {
   color: var(--sde-bar-accent);
@@ -1195,13 +1199,16 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 11px;
 }
 
-/* Flavor rows — italicized, allow text wrapping for long flavor strings
-   (e.g. "A dry gust of wind extinguishes all torches and lamps."). */
+/* Flavor rows — italicized + 📜 prefix, truncated to one line so the
+   preview row height matches monster rows. The full text is shown in
+   the result card when the entry is actually rolled. */
 .sde-preview-flavor .sde-preview-entry {
   font-style: italic;
   color: var(--sde-bar-text-muted);
-  white-space: normal;
-  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;     /* lets the ellipsis kick in inside the grid cell */
 }
 .sde-preview-flavor .sde-preview-entry::before {
   content: "📜 ";
