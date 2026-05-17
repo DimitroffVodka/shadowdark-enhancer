@@ -1040,6 +1040,24 @@ body.theme-light .sde-bar-phase-badge {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  /* Cap the whole roller body's height so a long table preview + a
+     filled result card don't stretch the window taller than the
+     viewport. When the total content exceeds this, scroll the whole
+     content area together — preview and result move as one. */
+  max-height: 75vh;
+  overflow-y: auto;
+  /* Slim themed scrollbar matching the rest of the module. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--sde-bar-border) transparent;
+}
+.sde-encounter-roller::-webkit-scrollbar { width: 10px; }
+.sde-encounter-roller::-webkit-scrollbar-track { background: transparent; }
+.sde-encounter-roller::-webkit-scrollbar-thumb {
+  background: var(--sde-bar-border);
+  border-radius: 4px;
+}
+.sde-encounter-roller::-webkit-scrollbar-thumb:hover {
+  background: var(--sde-bar-accent-dim);
 }
 
 .sde-encounter-roller .sde-tabs {
@@ -1149,20 +1167,6 @@ body.theme-light .sde-bar-phase-badge {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  max-height: 220px;
-  overflow-y: auto;
-  /* Slim themed scrollbar so long tables don't overflow the panel. */
-  scrollbar-width: thin;
-  scrollbar-color: var(--sde-bar-border) transparent;
-}
-.sde-preview-rows::-webkit-scrollbar { width: 8px; }
-.sde-preview-rows::-webkit-scrollbar-track { background: transparent; }
-.sde-preview-rows::-webkit-scrollbar-thumb {
-  background: var(--sde-bar-border);
-  border-radius: 4px;
-}
-.sde-preview-rows::-webkit-scrollbar-thumb:hover {
-  background: var(--sde-bar-accent-dim);
 }
 
 .sde-preview-row {
