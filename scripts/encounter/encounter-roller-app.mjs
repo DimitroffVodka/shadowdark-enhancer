@@ -141,11 +141,71 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       }
     }
 
+    // Build a preview of the selected table's contents so the GM can
+    // see what monsters might appear before committing to a roll.
+    const tablePreview = await this._buildTablePreview(this._selectedTableId);
+
     return {
       activeTab: this._activeTab,
       selectedTableId: this._selectedTableId,
       tableGroups,
+      tablePreview,
       lastResult: this._lastResult,
+    };
+  }
+
+  /**
+   * Build a row-by-row preview of a RollTable's contents.
+   * Each row shows: roll range, resolved monster (or raw text), and the
+   * appearing formula if one is set on the result.
+   *
+   * @param {string} tableId
+   * @returns {Promise<{name: string, formula: string, rows: Array} | null>}
+   * @private
+   */
+  async _buildTablePreview(tableId) {
+    if (!tableId) return null;
+    const table = game.tables.get(tableId);
+    if (!table) return null;
+
+    const rows = [];
+    for (const r of table.results) {
+      // Range label: "1", "2-3", "4-6"
+      const [min, max] = r.range ?? [0, 0];
+      const range = (min === max) ? `${min}` : `${min}-${max}`;
+
+      // Try to resolve a friendly name. Use the same priority order as
+      // _parseMonsterFromResult so previews match what would actually roll.
+      let name = r.text || "(empty)";
+      try {
+        if (r.documentCollection === "Actor" || r.type === CONST.TABLE_RESULT_TYPES.DOCUMENT) {
+          const actor = game.actors.get(r.documentId) ?? await fromUuid(r.uuid);
+          if (actor?.name) name = actor.name;
+        } else {
+          const uuidMatch = (r.text ?? "").match(/@UUID\[([^\]]+)\]/);
+          if (uuidMatch) {
+            const doc = await fromUuid(uuidMatch[1]);
+            if (doc?.name) name = doc.name;
+          }
+        }
+      } catch (_) {
+        // Resolution failures fall back to r.text — non-fatal.
+      }
+
+      // Appearing formula: flag wins, then inline [[/r N]], else blank.
+      const flagAppearing = r.getFlag(MODULE_ID, "appearing");
+      const inlineMatch = (r.text ?? "").match(/\[\[\/r\s+([^\]]+)\]\]/);
+      const appearing = flagAppearing ? String(flagAppearing)
+                      : inlineMatch ? inlineMatch[1]
+                      : "";
+
+      rows.push({ range, name, appearing });
+    }
+
+    return {
+      name: table.name,
+      formula: table.formula || "",
+      rows,
     };
   }
 

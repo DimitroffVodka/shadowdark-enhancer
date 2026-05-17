@@ -46,6 +46,26 @@
         </button>
       </div>
 
+      {{!-- Preview of what's actually in the selected table — visible
+           always when a table is selected, so the GM isn't rolling blind. --}}
+      {{#if tablePreview}}
+        <div class="sde-table-preview">
+          <header class="sde-preview-header">
+            <span class="sde-preview-name">{{tablePreview.name}}</span>
+            {{#if tablePreview.formula}}<span class="sde-preview-formula">({{tablePreview.formula}})</span>{{/if}}
+          </header>
+          <div class="sde-preview-rows">
+            {{#each tablePreview.rows}}
+              <div class="sde-preview-row">
+                <span class="sde-preview-range">{{this.range}}</span>
+                <span class="sde-preview-entry">{{this.name}}</span>
+                {{#if this.appearing}}<span class="sde-preview-appearing">{{this.appearing}}</span>{{/if}}
+              </div>
+            {{/each}}
+          </div>
+        </div>
+      {{/if}}
+
       <div class="sde-result-panel">
         {{#if lastResult}}
           {{#if lastResult.empty}}

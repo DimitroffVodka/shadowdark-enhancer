@@ -1116,6 +1116,66 @@ body.theme-light .sde-bar-phase-badge {
   filter: brightness(1.2);
 }
 
+/* ── Table Preview ──────────────────────────────────────────────────────── */
+
+.sde-table-preview {
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  margin-bottom: 12px;
+  padding: 8px 10px;
+}
+
+.sde-preview-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+.sde-preview-name {
+  font-weight: 700;
+  color: var(--sde-bar-accent);
+  font-size: 12px;
+}
+.sde-preview-formula {
+  color: var(--sde-bar-text-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
+.sde-preview-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sde-preview-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 10px;
+  align-items: baseline;
+  padding: 2px 4px;
+  font-size: 12px;
+  border-radius: 2px;
+}
+.sde-preview-row:hover {
+  background: var(--sde-bar-bg-hover);
+}
+.sde-preview-range {
+  color: var(--sde-bar-text-muted);
+  font-family: monospace;
+  text-align: right;
+}
+.sde-preview-entry {
+  color: var(--sde-bar-text);
+}
+.sde-preview-appearing {
+  color: var(--sde-bar-accent);
+  font-family: monospace;
+  font-size: 11px;
+}
+
 /* ── Result Card ────────────────────────────────────────────────────────── */
 
 .sde-result-panel {
