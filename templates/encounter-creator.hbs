@@ -196,6 +196,52 @@
     </div>
   </details>
 
+  {{!-- ═══ Features Section (1e-iv) ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.features}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="features">
+      <i class="fas fa-sparkles"></i> Features
+    </summary>
+    <div class="sde-creator-section-body">
+
+      {{!-- Quick Picks --}}
+      <div class="sde-creator-quick-picks">
+        <label>Quick Add:</label>
+        <div class="sde-creator-quick-grid">
+          {{#each FEATURE_QUICK_PICKS}}
+            <button type="button" class="sde-creator-quick-btn"
+                    data-action="creatorAddFeatureQuickPick" data-index="{{@index}}"
+                    title="{{name}}: {{description}}">
+              <i class="fas {{icon}}"></i>
+            </button>
+          {{/each}}
+        </div>
+      </div>
+
+      {{!-- Feature List --}}
+      <div class="sde-creator-action-list">
+        {{#each draft.features}}
+          <div class="sde-creator-action-card" data-id="{{id}}">
+            <div class="sde-creator-action-header">
+              <input type="text" data-draft-field="features.{{@index}}.name" value="{{name}}" placeholder="Feature Name">
+              <button type="button" class="sde-creator-remove-btn" data-action="creatorRemoveFeature" data-id="{{id}}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+            <textarea data-draft-field="features.{{@index}}.description" rows="2"
+                      placeholder="Description of the feature effect.">{{description}}</textarea>
+          </div>
+        {{else}}
+          <div class="sde-creator-empty">No features added yet.</div>
+        {{/each}}
+      </div>
+
+      <div class="sde-creator-action-buttons">
+        <button type="button" data-action="creatorAddFeature"><i class="fas fa-plus"></i> Custom Feature</button>
+      </div>
+
+    </div>
+  </details>
+
   {{!-- ═══ Spellcasting Section ═══ --}}
   <details class="sde-creator-section" {{#if sectionOpen.spellcasting}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="spellcasting">

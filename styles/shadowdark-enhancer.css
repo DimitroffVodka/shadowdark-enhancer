@@ -2265,6 +2265,7 @@ body.theme-light .sde-bar-phase-badge {
   width: 28px;
   height: 28px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   background: var(--sde-bar-surface-1);
@@ -2273,11 +2274,21 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text-muted);
   cursor: pointer;
   transition: all 0.1s;
+  overflow: hidden;
 }
 .sde-creator-quick-btn:hover {
   border-color: var(--sde-bar-accent);
   color: var(--sde-bar-accent);
   background: var(--sde-bar-bg-hover);
+}
+.sde-creator-quick-name {
+  font-size: 8px;
+  line-height: 1;
+  margin-top: 1px;
+  text-transform: uppercase;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .sde-creator-action-list {

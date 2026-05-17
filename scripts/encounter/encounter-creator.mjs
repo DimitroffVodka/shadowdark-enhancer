@@ -16,6 +16,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { _bestArtForActor, _isPlaceholderArt } from "./art-utils.mjs";
 import { ACTION_QUICK_PICKS } from "./action-templates.mjs";
+import { FEATURE_QUICK_PICKS } from "./feature-templates.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const { renderTemplate } = foundry.applications.handlebars;
@@ -54,7 +55,7 @@ function _defaultDraft() {
     },
     // Items — Sub-slice 1e-iii / 1e-iv
     actions:  [],            // each: {id, name, type, num, bonus, damage, ranges, description}
-    // features: [],  // each: {name, description}
+    features: [],            // each: {id, name, description}
   };
 }
 
@@ -72,6 +73,9 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       creatorAddSpecial: MonsterCreatorApp.prototype._onAddSpecial,
       creatorRemoveAction: MonsterCreatorApp.prototype._onRemoveAction,
       creatorAddQuickPick: MonsterCreatorApp.prototype._onAddQuickPick,
+      creatorAddFeature: MonsterCreatorApp.prototype._onAddFeature,
+      creatorRemoveFeature: MonsterCreatorApp.prototype._onRemoveFeature,
+      creatorAddFeatureQuickPick: MonsterCreatorApp.prototype._onAddFeatureQuickPick,
       save:             MonsterCreatorApp.prototype._onSave,
     },
   };
@@ -89,9 +93,9 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       stats:        false,
       movement:     false,
       actions:      false,
+      features:     false,
       spellcasting: false,
       description:  false,
-      // features — added in later sub-slices
     };
     // Text-input focus stashes for cursor preservation across renders.
     this._focused = {};  // { fieldName: {selectionStart} }
@@ -171,6 +175,8 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       ranges: Object.keys(CONFIG.SHADOWDARK?.RANGES ?? {
         close: "", near: "", far: "", nearLine: "",
       }),
+      // 1e-iv
+      FEATURE_QUICK_PICKS,
     };
   }
 
@@ -329,6 +335,35 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.render();
   }
 
+  _onAddFeature() {
+    this._draft.features.push({
+      id: foundry.utils.randomID(),
+      name: "New Feature",
+      description: "Description of the feature.",
+    });
+    this._sectionOpen.features = true;
+    this.render();
+  }
+
+  _onRemoveFeature(event, target) {
+    const id = target.dataset.id;
+    this._draft.features = this._draft.features.filter(f => f.id !== id);
+    this.render();
+  }
+
+  _onAddFeatureQuickPick(event, target) {
+    const idx = Number(target.dataset.index);
+    const template = FEATURE_QUICK_PICKS[idx];
+    if (!template) return;
+
+    this._draft.features.push({
+      ...foundry.utils.deepClone(template),
+      id: foundry.utils.randomID(),
+    });
+    this._sectionOpen.features = true;
+    this.render();
+  }
+
   async _onPickImg() {
     const fp = new foundry.applications.apps.FilePicker.implementation({
       type: "image",
@@ -443,6 +478,18 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       });
       if (itemData.length) {
         await actor.createEmbeddedDocuments("Item", itemData);
+      }
+
+      // ─── Create Feature Items (1e-iv) ──────────────────────────────
+      const featureData = d.features.map(f => ({
+        name: f.name.trim() || "New Feature",
+        type: "NPC Feature",
+        system: {
+          description: f.description || "",
+        },
+      }));
+      if (featureData.length) {
+        await actor.createEmbeddedDocuments("Item", featureData);
       }
 
       ui.notifications.info(`Created NPC: ${actor.name}`);
