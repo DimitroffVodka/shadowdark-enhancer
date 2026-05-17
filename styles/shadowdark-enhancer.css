@@ -1163,16 +1163,23 @@ body.theme-light .sde-bar-phase-badge {
   font-style: italic;
 }
 
+/* Parent grid defines column widths shared across all rows. Range column
+   hugs the widest range in the table — `1` for a d8 table, `10-19` for
+   a d100 table — no dead space between range and entry. */
 .sde-preview-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  row-gap: 3px;
+  column-gap: 12px;
 }
 
+/* Each row uses subgrid to inherit the parent's column tracks, so range
+   numbers align cleanly across all rows. Keeping the row as a visible
+   box (rather than display:contents) preserves hover styling. */
 .sde-preview-row {
   display: grid;
-  grid-template-columns: 48px 1fr auto;
-  gap: 10px;
+  grid-template-columns: subgrid;
+  grid-column: 1 / -1;
   align-items: baseline;
   padding: 4px 6px;
   font-size: 13px;
