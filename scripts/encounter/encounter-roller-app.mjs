@@ -10,6 +10,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { DISTANCE, ACTIVITY, reactionBand } from "./encounter-result.mjs";
 import { EncounterBrowse } from "./encounter-browse.mjs";
+import { EncounterBuild } from "./encounter-build.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -50,6 +51,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       browseToggleSource: EncounterRollerApp.prototype._onBrowseToggleSource,
       browseSort:         EncounterRollerApp.prototype._onBrowseSort,
       browseToggleAlign:  EncounterRollerApp.prototype._onBrowseToggleAlign,
+      // Build Table tab — Slice 1c
+      buildAddSlot:       EncounterRollerApp.prototype._onBuildAddSlot,
+      buildRemoveSlot:    EncounterRollerApp.prototype._onBuildRemoveSlot,
+      buildClearSlot:     EncounterRollerApp.prototype._onBuildClearSlot,
+      buildPostSlot:      EncounterRollerApp.prototype._onBuildPostSlot,
+      buildPlaceSlot:     EncounterRollerApp.prototype._onBuildPlaceSlot,
+      buildSave:          EncounterRollerApp.prototype._onBuildSave,
     }
   };
 
@@ -88,6 +96,17 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // to the end every keystroke after the first.
     this._browseSearchFocused = false;
     this._browseSearchCursor  = 0;
+
+    // Build Table tab state — Slice 1c.
+    // Slots model: each slot is {min, max, name, uuid, appearing, flavor}.
+    // Default: one empty slot per face of a d6.
+    this._buildDieKey    = EncounterBuild.DEFAULT_DIE_KEY;
+    this._buildTableName = "";
+    this._buildSlots     = EncounterBuild.defaultSlots(this._buildDieKey);
+    // Focus stash for the table-name input — same pattern as the
+    // browse search input to keep the cursor stable across renders.
+    this._buildNameFocused = false;
+    this._buildNameCursor  = 0;
   }
 
   // ─── Singleton ───
@@ -196,6 +215,31 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       };
     }
 
+    // Build Table tab — assemble slot + die data. Only computed when
+    // the Build tab is active, mirroring the Browse pattern.
+    let buildData = null;
+    if (this._activeTab === "build") {
+      const die = EncounterBuild.getDie(this._buildDieKey);
+      const validation = EncounterBuild.validateSlots(this._buildSlots, this._buildDieKey);
+      buildData = {
+        dice:      EncounterBuild.DICE,
+        dieKey:    this._buildDieKey,
+        die,
+        tableName: this._buildTableName,
+        slots:     this._buildSlots.map((s, idx) => ({
+          ...s,
+          idx,
+          rangeLabel: (s.min === s.max) ? `${s.min}` : `${s.min}-${s.max}`,
+          isEmpty:    !s.name,
+          isMonster:  !!s.uuid && !s.flavor,
+          isFlavor:   !!s.flavor,
+        })),
+        warnings: validation.filter(v => v.severity === "warning").map(v => v.message),
+        errors:   validation.filter(v => v.severity === "error").map(v => v.message),
+        canSave:  validation.every(v => v.severity !== "error") && this._buildSlots.some(s => s.name),
+      };
+    }
+
     return {
       activeTab: this._activeTab,
       selectedTableId: this._selectedTableId,
@@ -203,6 +247,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       tablePreview,
       lastResult: this._lastResult,
       browseData,
+      buildData,
     };
   }
 
@@ -353,6 +398,118 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           uuid,
         }));
         ev.dataTransfer.effectAllowed = "copy";
+      });
+    });
+
+    // ═══ Build Table tab wiring ═══════════════════════════════════════
+
+    // Die-type select: changes die AND resets slots to that die's
+    // natural per-face defaults. (User can edit ranges afterward.)
+    const dieSelect = this.element.querySelector("select[name='buildDie']");
+    if (dieSelect) {
+      dieSelect.addEventListener("change", ev => {
+        this._buildDieKey = ev.target.value;
+        this._buildSlots  = EncounterBuild.defaultSlots(this._buildDieKey);
+        this.render();
+      });
+    }
+
+    // Table-name input with cursor preservation (same pattern as
+    // browse search — avoids the cursor jumping to the end on render).
+    const nameInput = this.element.querySelector("input[name='buildTableName']");
+    if (nameInput) {
+      if (this._buildNameFocused) {
+        nameInput.focus();
+        const pos = this._buildNameCursor ?? nameInput.value.length;
+        try { nameInput.setSelectionRange(pos, pos); } catch (_) {}
+      }
+      let nameTimeout = null;
+      nameInput.addEventListener("input", ev => {
+        this._buildNameFocused = true;
+        this._buildNameCursor  = ev.target.selectionStart;
+        clearTimeout(nameTimeout);
+        nameTimeout = setTimeout(() => {
+          this._buildTableName = ev.target.value;
+          this.render();
+        }, 200);
+      });
+      nameInput.addEventListener("blur", () => {
+        this._buildNameFocused = false;
+      });
+    }
+
+    // Per-slot min / max range inputs — change-event only, so the GM
+    // can type freely without triggering re-renders mid-input.
+    this.element.querySelectorAll(".sde-build-slot input[data-slot-field='min'], .sde-build-slot input[data-slot-field='max']").forEach(input => {
+      input.addEventListener("change", ev => {
+        const idx = Number(ev.target.closest("[data-slot-idx]")?.dataset.slotIdx);
+        const field = ev.target.dataset.slotField;
+        const val = Number(ev.target.value);
+        if (Number.isFinite(idx) && this._buildSlots[idx] && Number.isFinite(val)) {
+          this._buildSlots[idx][field] = val;
+          this.render();
+        }
+      });
+    });
+
+    // Appearing-formula input per slot — change-event, so typing
+    // "1d4+1" doesn't trigger a render until the user commits.
+    this.element.querySelectorAll(".sde-build-slot input[data-slot-field='appearing']").forEach(input => {
+      input.addEventListener("change", ev => {
+        const idx = Number(ev.target.closest("[data-slot-idx]")?.dataset.slotIdx);
+        if (Number.isFinite(idx) && this._buildSlots[idx]) {
+          this._buildSlots[idx].appearing = ev.target.value.trim();
+          this.render();
+        }
+      });
+    });
+
+    // Free-text entry on empty slots — Enter commits as flavor entry,
+    // Esc cancels. Click on the placeholder swaps to the input.
+    this.element.querySelectorAll(".sde-build-slot-text").forEach(input => {
+      input.addEventListener("keydown", ev => {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          const idx = Number(ev.target.closest("[data-slot-idx]")?.dataset.slotIdx);
+          const text = ev.target.value.trim();
+          if (Number.isFinite(idx) && this._buildSlots[idx] && text) {
+            EncounterBuild.fillSlotFromText(this._buildSlots[idx], text);
+            this.render();
+          }
+        } else if (ev.key === "Escape") {
+          ev.target.value = "";
+          ev.target.blur();
+        }
+      });
+    });
+
+    // Drag-and-drop: each slot is an Actor drop target. Accepts the
+    // standard Foundry drag payload (same one emitted by the Browse
+    // tab rows and Foundry's sidebar).
+    this.element.querySelectorAll(".sde-build-slot[data-slot-idx]").forEach(slot => {
+      slot.addEventListener("dragover", ev => {
+        ev.preventDefault();
+        ev.dataTransfer.dropEffect = "copy";
+        slot.classList.add("sde-build-slot-dragover");
+      });
+      slot.addEventListener("dragleave", () => {
+        slot.classList.remove("sde-build-slot-dragover");
+      });
+      slot.addEventListener("drop", async ev => {
+        ev.preventDefault();
+        slot.classList.remove("sde-build-slot-dragover");
+        const idx = Number(slot.dataset.slotIdx);
+        if (!Number.isFinite(idx) || !this._buildSlots[idx]) return;
+        let data;
+        try { data = JSON.parse(ev.dataTransfer.getData("text/plain")); } catch (_) { return; }
+        if (data?.type !== "Actor" || !data?.uuid) return;
+        const actor = await fromUuid(data.uuid);
+        if (!actor || actor.type !== "NPC") {
+          ui.notifications.warn("Only NPC actors can be dropped into encounter slots.");
+          return;
+        }
+        EncounterBuild.fillSlotFromActor(this._buildSlots[idx], actor);
+        this.render();
       });
     });
   }
@@ -655,6 +812,123 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (set.has(a)) set.delete(a);
     else set.add(a);
     this._browseAlignment = [...set];
+    this.render();
+  }
+
+  // ═══ Build Table tab handlers — Slice 1c ════════════════════════════
+
+  _onBuildAddSlot() {
+    const nextFace = EncounterBuild.nextFreeFace(this._buildSlots, this._buildDieKey);
+    const die = EncounterBuild.getDie(this._buildDieKey);
+    // If every face is already covered, extend the last slot instead
+    // of erroring — appends a new slot at the die's max.
+    const face = nextFace ?? die.max;
+    this._buildSlots.push(EncounterBuild.emptySlot(face, face));
+    this.render();
+  }
+
+  _onBuildRemoveSlot(event, target) {
+    const idx = Number(target.closest("[data-slot-idx]")?.dataset.slotIdx);
+    if (!Number.isFinite(idx)) return;
+    this._buildSlots.splice(idx, 1);
+    this.render();
+  }
+
+  _onBuildClearSlot(event, target) {
+    const idx = Number(target.closest("[data-slot-idx]")?.dataset.slotIdx);
+    if (!Number.isFinite(idx) || !this._buildSlots[idx]) return;
+    EncounterBuild.clearSlot(this._buildSlots[idx]);
+    this.render();
+  }
+
+  async _onBuildPostSlot(event, target) {
+    const slot = this._slotFromEvent(target);
+    if (!slot) return;
+    await this._buildResultFromSlot(slot);
+    await this._onPostToChat();
+  }
+
+  async _onBuildPlaceSlot(event, target) {
+    const slot = this._slotFromEvent(target);
+    if (!slot) return;
+    await this._buildResultFromSlot(slot);
+    if (this._lastResult.kind !== "monster") {
+      ui.notifications.warn("This slot has no monster to place.");
+      return;
+    }
+    await this._onPlaceTokens();
+  }
+
+  async _onBuildSave() {
+    if (!this._buildSlots.some(s => s.name)) {
+      ui.notifications.warn("Add at least one entry before saving.");
+      return;
+    }
+    const errors = EncounterBuild.validateSlots(this._buildSlots, this._buildDieKey)
+      .filter(v => v.severity === "error");
+    if (errors.length) {
+      ui.notifications.error(`Cannot save — ${errors[0].message}`);
+      return;
+    }
+    try {
+      const table = await EncounterBuild.saveAsRollTable({
+        name:    this._buildTableName,
+        dieKey:  this._buildDieKey,
+        slots:   this._buildSlots,
+      });
+      ui.notifications.info(`Created Roll Table: ${table.name}`);
+      // Per design: don't auto-set as active. Hop to the Roll Tables
+      // tab and select the new table so the GM can preview it.
+      this._selectedTableId = table.id;
+      this._activeTab       = "tables";
+      this.render();
+    } catch (err) {
+      console.error(MODULE_ID, "Build save failed:", err);
+      ui.notifications.error(`Failed to save Roll Table: ${err.message}`);
+    }
+  }
+
+  _slotFromEvent(target) {
+    const idx = Number(target.closest("[data-slot-idx]")?.dataset.slotIdx);
+    if (!Number.isFinite(idx)) return null;
+    return this._buildSlots[idx] ?? null;
+  }
+
+  /**
+   * Build _lastResult from a Build-tab slot, mirroring how
+   * _buildResultFrom handles a TableResult. Lets Post / Place reuse the
+   * existing card-rendering and token-placement flows without saving
+   * the table first.
+   */
+  async _buildResultFromSlot(slot) {
+    if (slot.uuid) {
+      const actor = await fromUuid(slot.uuid).catch(() => null);
+      if (actor) {
+        const count = slot.appearing
+          ? (await new Roll(slot.appearing).evaluate()).total
+          : 1;
+        this._lastResult = {
+          kind: "monster",
+          uuid: slot.uuid,
+          name: actor.name,
+          img:  actor.img || "icons/svg/mystery-man.svg",
+          count,
+          distanceRoll: await this._roll("1d6"),
+          activityRoll: await this._roll("2d6"),
+          reactionRoll: await this._roll("2d6"),
+          chaMod: 0,
+        };
+        this._updateResultStrings();
+        this.render();
+        return;
+      }
+    }
+    if (slot.flavor && slot.name) {
+      this._lastResult = { kind: "flavor", text: slot.name };
+      this.render();
+      return;
+    }
+    this._lastResult = { kind: "empty" };
     this.render();
   }
 }

@@ -1710,6 +1710,259 @@ body.theme-light .sde-bar-phase-badge {
   white-space: nowrap;
 }
 
+/* ── Build Table tab — Slice 1c ───────────────────────────────────────────
+   Hand-built encounter tables: drag NPCs onto slots, set per-slot
+   appearing formulas, save as a world RollTable. Visual language
+   mirrors the Browse tab so the two tabs feel like siblings. */
+
+.sde-build-header {
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.sde-build-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.sde-build-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sde-bar-text-muted);
+}
+.sde-build-die-select {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 2px;
+}
+.sde-build-name-input {
+  flex: 1;
+  min-width: 200px;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 2px;
+}
+.sde-build-add-btn {
+  background: linear-gradient(135deg, var(--sde-bar-btn-1) 0%, var(--sde-bar-btn-2) 100%);
+  border: 1px solid var(--sde-bar-border);
+  color: var(--sde-bar-text);
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: var(--sde-bar-radius);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sde-build-add-btn:hover {
+  background: var(--sde-bar-bg-hover);
+  border-color: var(--sde-bar-accent-dim);
+  color: var(--sde-bar-text-bright);
+}
+
+.sde-build-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.sde-build-slot {
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--sde-bar-surface-2);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  transition: background 0.12s, border-color 0.12s;
+}
+.sde-build-slot:hover {
+  background: var(--sde-bar-bg-hover);
+}
+/* Drag-over highlight — the GM is about to drop an NPC into this slot. */
+.sde-build-slot-dragover {
+  background: var(--sde-bar-drag-over) !important;
+  border-color: var(--sde-bar-accent) !important;
+}
+.sde-build-slot-empty {
+  background: transparent;
+  border-style: dashed;
+}
+.sde-build-slot-flavor {
+  background: var(--sde-bar-surface-1);
+}
+
+/* Range column — two small number inputs side-by-side */
+.sde-build-slot-range {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.sde-build-slot-range input {
+  width: 36px;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 4px;
+  text-align: center;
+  border-radius: 2px;
+}
+.sde-build-slot-range-sep {
+  color: var(--sde-bar-text-muted);
+  font-size: 12px;
+}
+
+/* Entry body — flex with name + appearing input OR text-entry input */
+.sde-build-slot-body {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0; /* lets ellipsis kick in inside the grid cell */
+}
+.sde-build-slot-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sde-bar-text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sde-build-slot-flavor .sde-build-slot-name {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--sde-bar-text);
+}
+.sde-build-slot-flavor-icon {
+  opacity: 0.7;
+}
+.sde-build-slot-appearing {
+  width: 110px;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-accent);
+  border: 1px solid var(--sde-bar-border);
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 3px 6px;
+  text-align: center;
+  border-radius: 2px;
+}
+.sde-build-slot-appearing::placeholder {
+  color: var(--sde-bar-text-muted);
+  font-weight: 400;
+  font-style: italic;
+}
+.sde-build-slot-text {
+  flex: 1;
+  background: transparent;
+  color: var(--sde-bar-text-muted);
+  border: none;
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  font-style: italic;
+  padding: 4px 6px;
+  outline: none;
+}
+.sde-build-slot-text:focus {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  font-style: normal;
+  border: 1px solid var(--sde-bar-accent-dim);
+  border-radius: 2px;
+}
+
+/* Per-slot action buttons — small bordered icons, matches the preview
+   row pattern in Roll Tables tab. */
+.sde-build-slot-actions {
+  display: flex;
+  gap: 4px;
+}
+.sde-build-slot-actions button {
+  background: transparent;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  color: var(--sde-bar-text-muted);
+  cursor: pointer;
+  padding: 3px 7px;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.sde-build-slot-actions button:hover {
+  background: var(--sde-bar-bg-hover);
+  color: var(--sde-bar-accent);
+  border-color: var(--sde-bar-accent-dim);
+}
+
+/* Validation messages — warnings are tolerable (gap/overlap), errors block save. */
+.sde-build-warnings,
+.sde-build-errors {
+  list-style: none;
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-radius: var(--sde-bar-radius);
+  font-size: 12px;
+}
+.sde-build-warnings {
+  background: rgba(216, 160, 60, 0.08);
+  border: 1px solid rgba(216, 160, 60, 0.3);
+  color: #d8a03c;
+}
+.sde-build-errors {
+  background: rgba(224, 80, 80, 0.10);
+  border: 1px solid rgba(224, 80, 80, 0.4);
+  color: var(--sde-bar-hit);
+}
+.sde-build-warnings li,
+.sde-build-errors li {
+  padding: 1px 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.sde-build-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 6px;
+}
+.sde-build-save-btn {
+  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
+  color: #f5eccc;
+  border: 1px solid var(--sde-bar-accent);
+  border-radius: var(--sde-bar-radius);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.sde-build-save-btn:hover:not(:disabled) {
+  filter: brightness(1.2);
+}
+.sde-build-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ── Context Menu (Right-click Crawl Bar) ────────────────────────────────── */
 
 .sde-bar-context-menu {

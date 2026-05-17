@@ -8,7 +8,7 @@
     <button type="button" class="item {{#if (eq activeTab 'tables')}}active{{/if}}" data-tab="tables">
       <i class="fas fa-table-list"></i> Roll Tables
     </button>
-    <button type="button" class="item disabled" data-tab="build" title="Coming in a later slice">
+    <button type="button" class="item {{#if (eq activeTab 'build')}}active{{/if}}" data-tab="build">
       <i class="fas fa-hammer"></i> Build Table
     </button>
     <button type="button" class="item {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse">
@@ -154,7 +154,108 @@
     </div>
 
     {{!-- Disabled Tabs --}}
-    <div class="tab {{#if (eq activeTab 'build')}}active{{/if}}" data-tab="build">Coming in a later slice</div>
+    {{!-- Build Table Tab — Slice 1c --}}
+    <div class="tab {{#if (eq activeTab 'build')}}active{{/if}}" data-tab="build">
+      {{#if buildData}}
+
+        <div class="sde-build-header">
+          <div class="sde-build-header-row">
+            <label class="sde-build-label">Die:</label>
+            <select name="buildDie" class="sde-build-die-select">
+              {{#each buildData.dice}}
+                <option value="{{this.key}}" {{#if (eq this.key ../buildData.dieKey)}}selected{{/if}}>{{this.label}}</option>
+              {{/each}}
+            </select>
+
+            <label class="sde-build-label">Name:</label>
+            <input type="text"
+                   name="buildTableName"
+                   class="sde-build-name-input"
+                   placeholder="e.g. Forest Encounters"
+                   value="{{buildData.tableName}}">
+
+            <button type="button" class="sde-build-add-btn" data-action="buildAddSlot" title="Append a new slot">
+              <i class="fas fa-plus"></i> Slot
+            </button>
+          </div>
+        </div>
+
+        <div class="sde-build-slots">
+          {{#each buildData.slots}}
+            <div class="sde-build-slot {{#if this.isEmpty}}sde-build-slot-empty{{/if}} {{#if this.isFlavor}}sde-build-slot-flavor{{/if}}" data-slot-idx="{{this.idx}}">
+
+              {{!-- Range inputs (min / max) --}}
+              <div class="sde-build-slot-range">
+                <input type="number" data-slot-field="min" value="{{this.min}}" min="{{../buildData.die.min}}" max="{{../buildData.die.max}}" title="Lower bound" />
+                <span class="sde-build-slot-range-sep">–</span>
+                <input type="number" data-slot-field="max" value="{{this.max}}" min="{{../buildData.die.min}}" max="{{../buildData.die.max}}" title="Upper bound" />
+              </div>
+
+              {{!-- Entry body — switches on slot state --}}
+              <div class="sde-build-slot-body">
+                {{#if this.isEmpty}}
+                  <input type="text"
+                         class="sde-build-slot-text"
+                         placeholder="Drop NPC here, or type entry text + Enter…">
+                {{else if this.isFlavor}}
+                  <span class="sde-build-slot-flavor-icon">📜</span>
+                  <span class="sde-build-slot-name">{{this.name}}</span>
+                {{else}}
+                  <span class="sde-build-slot-name">{{this.name}}</span>
+                  <input type="text"
+                         data-slot-field="appearing"
+                         class="sde-build-slot-appearing"
+                         placeholder="appearing (e.g. 1d4)"
+                         value="{{this.appearing}}"
+                         title="Roll formula for how many appear (e.g. 1d4)">
+                {{/if}}
+              </div>
+
+              {{!-- Per-slot actions --}}
+              <div class="sde-build-slot-actions">
+                {{#if this.isMonster}}
+                  <button type="button" data-action="buildPostSlot" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button>
+                  <button type="button" data-action="buildPlaceSlot" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button>
+                {{else if this.isFlavor}}
+                  <button type="button" data-action="buildPostSlot" title="Post this flavor entry to chat"><i class="fas fa-clipboard-list"></i></button>
+                {{/if}}
+                {{#unless this.isEmpty}}
+                  <button type="button" data-action="buildClearSlot" title="Clear this slot's content"><i class="fas fa-eraser"></i></button>
+                {{/unless}}
+                <button type="button" data-action="buildRemoveSlot" title="Remove this slot entirely"><i class="fas fa-times"></i></button>
+              </div>
+
+            </div>
+          {{/each}}
+
+          {{#if (eq buildData.slots.length 0)}}
+            <div class="sde-empty-state">No slots — click "+ Slot" or drag an NPC onto an empty slot row to start.</div>
+          {{/if}}
+        </div>
+
+        {{#if buildData.warnings}}
+          <ul class="sde-build-warnings">
+            {{#each buildData.warnings}}
+              <li><i class="fas fa-triangle-exclamation"></i> {{this}}</li>
+            {{/each}}
+          </ul>
+        {{/if}}
+        {{#if buildData.errors}}
+          <ul class="sde-build-errors">
+            {{#each buildData.errors}}
+              <li><i class="fas fa-circle-xmark"></i> {{this}}</li>
+            {{/each}}
+          </ul>
+        {{/if}}
+
+        <div class="sde-build-footer">
+          <button type="button" class="sde-build-save-btn" data-action="buildSave" {{#unless buildData.canSave}}disabled{{/unless}}>
+            <i class="fas fa-floppy-disk"></i> Save as Roll Table
+          </button>
+        </div>
+
+      {{/if}}
+    </div>
 
     {{!-- Browse NPCs Tab --}}
     <div class="tab {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse">
