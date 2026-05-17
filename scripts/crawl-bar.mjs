@@ -133,7 +133,7 @@ export const CrawlBar = {
 
         <div class="sde-bar-divider"></div>
 
-        <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Encounter" title="Coming in a later milestone">
+        <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu">
           ${ICONS.encounter} Encounter
         </button>
         <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Lights" title="Coming in a later milestone">
@@ -162,11 +162,43 @@ export const CrawlBar = {
         ev.stopPropagation();
         this._onAction(el.dataset.action, el, ev);
       });
+
+      // Right-click for Encounter
+      if (el.dataset.action === "encounter") {
+        el.addEventListener("contextmenu", ev => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          this._onEncounterContextMenu(el, ev);
+        });
+
+        // Drag-drop for RollTable
+        el.addEventListener("dragover", ev => {
+          ev.preventDefault();
+          el.classList.add("sde-drag-over");
+        });
+        el.addEventListener("dragleave", () => el.classList.remove("sde-drag-over"));
+        el.addEventListener("drop", async ev => {
+          ev.preventDefault();
+          el.classList.remove("sde-drag-over");
+          const data = JSON.parse(ev.dataTransfer.getData("text/plain"));
+          if (data.type === "RollTable") {
+            const table = await fromUuid(data.uuid);
+            if (table) {
+              await game.shadowdarkEnhancer.encounter.setActiveTable(table.uuid);
+              ui.notifications.info(`Active encounter table set to: ${table.name}`);
+            }
+          }
+        });
+      }
     });
   },
 
   async _onAction(action, el, ev) {
     switch (action) {
+
+      case "encounter":
+        game.shadowdarkEnhancer.encounter.openRoller("tables");
+        break;
 
       case "startCrawl":
         await CrawlState.startCrawl();
@@ -232,6 +264,70 @@ export const CrawlBar = {
         ui.notifications.info(`${el.dataset.feature ?? "Feature"}: coming in a later milestone.`);
         break;
     }
+  },
+
+  _onEncounterContextMenu(el, ev) {
+    if (!game.user.isGM) return;
+
+    const threshold = game.shadowdarkEnhancer.encounter.getThreshold();
+    const tableUuid = game.settings.get(MODULE_ID, "encounterTableUuid");
+    const tableName = tableUuid ? (fromUuidSync(tableUuid)?.name ?? "(deleted table)") : "(none)";
+
+    const menu = document.createElement("div");
+    menu.id = "sde-encounter-context-menu";
+    menu.className = "sde-bar-context-menu";
+    menu.innerHTML = `
+      <div class="sde-menu-item sde-menu-btn" data-action="check">
+        <i class="fas fa-dice-d6"></i> Encounter Check
+      </div>
+      <div class="sde-menu-divider"></div>
+      <div class="sde-menu-header">Threshold (current: ${threshold} in 6)</div>
+      ${[1, 2, 3, 4, 5].map(n => `
+        <div class="sde-menu-item sde-menu-radio" data-action="setThreshold" data-value="${n}">
+          <i class="far ${threshold === n ? "fa-dot-circle" : "fa-circle"}"></i> ${n} in 6 ${n === 1 ? "(RAW default)" : ""}
+        </div>
+      `).join("")}
+      <div class="sde-menu-divider"></div>
+      <div class="sde-menu-item sde-menu-table">
+        Active Table: <span class="sde-table-name">${tableName}</span>
+        ${tableUuid ? `<i class="fas fa-times sde-clear-table" data-action="clearTable" title="Clear active table"></i>` : ""}
+      </div>
+    `;
+
+    // Position menu above button
+    const rect = el.getBoundingClientRect();
+    menu.style.left = `${rect.left}px`;
+    menu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
+
+    document.body.appendChild(menu);
+
+    // Event listeners for menu
+    menu.addEventListener("click", async e => {
+      e.stopPropagation();
+      const target = e.target.closest("[data-action]");
+      if (!target) return;
+
+      const action = target.dataset.action;
+      if (action === "check") {
+        await game.shadowdarkEnhancer.encounter.check();
+        menu.remove();
+      } else if (action === "setThreshold") {
+        const val = parseInt(target.dataset.value);
+        await game.shadowdarkEnhancer.encounter.setThreshold(val);
+        menu.remove();
+      } else if (action === "clearTable") {
+        await game.shadowdarkEnhancer.encounter.setActiveTable(null);
+        ui.notifications.info("Active encounter table cleared.");
+        menu.remove();
+      }
+    });
+
+    // Close on click outside
+    const close = () => {
+      menu.remove();
+      document.removeEventListener("click", close);
+    };
+    setTimeout(() => document.addEventListener("click", close), 10);
   },
 
   async _addSelectedTokens() {

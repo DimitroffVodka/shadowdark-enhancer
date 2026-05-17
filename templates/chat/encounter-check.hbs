@@ -1,0 +1,10 @@
+<div class="sde-encounter-check-card {{#if hit}}sde-hit{{else}}sde-miss{{/if}}">
+  <div class="sde-card-flavor">{{flavor}}</div>
+  <div class="sde-card-roll">
+    {{#if hit}}
+      <span class="sde-roll-total hit">{{roll.total}}</span>
+    {{else}}
+      <span class="sde-roll-total miss">{{roll.total}}</span>
+    {{/if}}
+  </div>
+</div>

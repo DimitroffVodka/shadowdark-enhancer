@@ -1,0 +1,120 @@
+<div class="sde-encounter-roller">
+
+  {{!-- Tab Bar. Note: we deliberately do NOT use Foundry's `.tabs` class
+       here — we handle tab switching ourselves in `_onRender`, and the
+       `.tabs` class would risk Foundry's built-in Tabs handler attaching
+       a duplicate click binding. --}}
+  <nav class="sde-tabs" data-group="primary">
+    <button type="button" class="item {{#if (eq activeTab 'tables')}}active{{/if}}" data-tab="tables">
+      <i class="fas fa-table-list"></i> Roll Tables
+    </button>
+    <button type="button" class="item disabled" data-tab="build" title="Coming in a later slice">
+      <i class="fas fa-hammer"></i> Build Table
+    </button>
+    <button type="button" class="item disabled" data-tab="browse" title="Coming in a later slice">
+      <i class="fas fa-user-group"></i> Browse NPCs
+    </button>
+    <button type="button" class="item disabled" data-tab="creator" title="Coming in a later slice">
+      <i class="fas fa-wand-magic-sparkles"></i> Monster Creator
+    </button>
+  </nav>
+
+  <hr>
+
+  <section class="sde-content">
+
+    {{!-- Roll Tables Tab --}}
+    <div class="tab {{#if (eq activeTab 'tables')}}active{{/if}}" data-tab="tables">
+      <div class="sde-control-row">
+        <select name="selectedTable">
+          {{#select selectedTableId}}
+            <option value="">-- Select Table --</option>
+            {{#each tableGroups}}
+              <optgroup label="{{this.name}}">
+                {{#each this.tables}}
+                  <option value="{{this.id}}">{{#if this.isActive}}★ {{/if}}{{this.name}}</option>
+                {{/each}}
+              </optgroup>
+            {{/each}}
+          {{/select}}
+        </select>
+        <button type="button" data-action="setAsActive" {{#unless selectedTableId}}disabled{{/unless}}>
+          Set as Active
+        </button>
+        <button type="button" class="sde-roll-btn" data-action="rollTable" {{#unless selectedTableId}}disabled{{/unless}}>
+          <i class="fas fa-dice-d20"></i> Roll
+        </button>
+      </div>
+
+      <div class="sde-result-panel">
+        {{#if lastResult}}
+          {{#if lastResult.empty}}
+            <div class="sde-empty-state">Table draw produced no monster — check the table contents</div>
+          {{else}}
+            {{!-- Result Card --}}
+            <div class="sde-result-card">
+              <header class="sde-card-header">
+                <h3>Encounter Result</h3>
+                <div class="sde-header-actions">
+                  <button type="button" data-action="postToChat" title="Post to Chat"><i class="fas fa-clipboard-list"></i> Post</button>
+                  <button type="button" data-action="placeTokens" title="Place Tokens"><i class="fas fa-bullseye"></i> Place</button>
+                </div>
+              </header>
+
+              <div class="sde-monster-row">
+                <img src="{{lastResult.img}}" width="48" height="48" />
+                <div class="sde-monster-info">
+                  <span class="sde-monster-count">{{lastResult.count}} ×</span>
+                  <span class="sde-monster-name">{{lastResult.name}}</span>
+                </div>
+              </div>
+
+              <div class="sde-facets">
+                <div class="sde-facet-row">
+                  <span class="sde-facet-label">📏 Distance</span>
+                  <span class="sde-facet-roll">1d6 = {{lastResult.distanceRoll}}</span>
+                  <span class="sde-facet-arrow">→</span>
+                  <span class="sde-facet-result">{{lastResult.distanceText}}</span>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="distance"><i class="fas fa-sync"></i></button>
+                </div>
+
+                <div class="sde-facet-row">
+                  <span class="sde-facet-label">🎭 Activity</span>
+                  <span class="sde-facet-roll">2d6 = {{lastResult.activityRoll}}</span>
+                  <span class="sde-facet-arrow">→</span>
+                  <span class="sde-facet-result">{{lastResult.activityText}}</span>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="activity"><i class="fas fa-sync"></i></button>
+                </div>
+
+                <div class="sde-facet-row">
+                  <span class="sde-facet-label">💬 Reaction</span>
+                  <span class="sde-facet-roll">2d6+CHA = {{lastResult.reactionRoll}} + ({{lastResult.chaMod}})</span>
+                  <span class="sde-facet-arrow">→</span>
+                  <span class="sde-facet-result {{lastResult.reactionBand}}">{{lastResult.reactionBand}}</span>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="reaction"><i class="fas fa-sync"></i></button>
+                </div>
+              </div>
+
+              <div class="sde-stepper-row">
+                <label>Apply CHA mod:</label>
+                <div class="sde-stepper">
+                  <button type="button" data-action="chaDec"><i class="fas fa-caret-down"></i></button>
+                  <input type="number" name="chaMod" value="{{lastResult.chaMod}}" readonly />
+                  <button type="button" data-action="chaInc"><i class="fas fa-caret-up"></i></button>
+                </div>
+              </div>
+            </div>
+          {{/if}}
+        {{else}}
+          <div class="sde-empty-state">Roll a table to see the result.</div>
+        {{/if}}
+      </div>
+    </div>
+
+    {{!-- Disabled Tabs --}}
+    <div class="tab" data-tab="build">Coming in a later slice</div>
+    <div class="tab" data-tab="browse">Coming in a later slice</div>
+    <div class="tab" data-tab="creator">Coming in a later slice</div>
+
+  </section>
+</div>

@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Added
+- **Random Encounter system — Phase 1 Slices 1a + 1b.** New `Encounter` button on the Crawl Bar (replaces the disabled placeholder); the old `shadowdark-crawl-helper` module is no longer needed.
+  - **Left-click** opens the Encounter Roller window (4-tab ApplicationV2 — Roll Tables tab functional in 1b; Build Table / Browse NPCs / Monster Creator render as labeled stubs so the UI shape is locked from day one).
+  - **Right-click** opens a custom context menu with the Encounter Check, an adjustable d6 threshold (1–5 in 6), and the current active-table label with a clear button.
+  - **Dragging a `RollTable`** onto the button sets it as the active encounter table.
+  - The check itself rolls a real `Roll("1d6")` and posts a HIT/MISS chat card via `Roll#toMessage` so Dice So Nice fires and the roll is persisted. On HIT, the game pauses (configurable), the roller auto-opens, and the active table auto-rolls.
+  - Result card shows monster + count, plus three per-Shadowdark-RAW facets: **Distance** (1d6 → Close/Near/Far), **Activity** (2d6 → Hunting/Eating/Building·nesting/Socializing·playing/Guarding/Sleeping), and **Reaction** (2d6 + CHA → Hostile/Suspicious/Neutral/Curious/Friendly). Each facet has its own re-roll button. A CHA-modifier stepper (clamped ±5) recalculates the Reaction band without re-rolling.
+  - **Post** posts the full card to chat; **Place** drops N tokens of the rolled monster on canvas (snapped to grid, offset in a row to avoid stacking, ESC cancels).
+  - Window position persists per-user across sessions.
+  - 5 new world settings: `encounterThreshold`, `encounterTableUuid`, `encounterRollGMOnly`, `pauseOnEncounter`, `autoRollActiveTable`.
 - **Init result badge on cards** — once a combatant has an initiative value (combat or out-of-combat), the dice button position is replaced by a small gold-bordered badge showing the rolled number. So you can see at a glance who's rolled and what they got.
 - **Thrown weapons appear as dual entries in the action menu.** Weapons with the `thrown` property (Spear, Dagger, etc.) now show up twice in the Weapons tab — once as their native melee variant and once as a `(thrown)` ranged variant. Clicking the thrown variant passes `attack: { type: "ranged" }` to `actor.system.rollAttack`, so the system's roll generator uses the ranged ability mod (DEX) and the weapon's thrown range. Mirrors the character sheet's RANGED ATTACKS section, which already lists thrown weapons alongside true ranged weapons.
 - **Melee vs ranged at-a-glance icons on weapon entries.** Each weapon row in the action menu now shows a small color-coded prefix icon — warm-red crossed swords (`fa-swords`) for melee, cool-blue crosshairs (`fa-crosshairs`) for ranged — so you can tell attack mode without reading the damage label or the `(thrown)` suffix. Applies to both PC weapons and any other weapon-kind entries.

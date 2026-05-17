@@ -11,5 +11,11 @@
   "SDE.settings.hideHiddenNpcCards.hint": "If on, combatants with token.hidden or combatant.hidden are suppressed from the strip.",
   "SDE.settings.warnIfCrawlHelperEnabled.name": "Warn when shadowdark-crawl-helper is enabled",
   "SDE.settings.warnIfCrawlHelperEnabled.hint": "Shows a notification at world load if shadowdark-crawl-helper is active. Disable to suppress.",
-  "SDE.notifications.crawlHelperConflict": "Shadowdark Enhancer detected that shadowdark-crawl-helper is also enabled. For best results, disable Crawl Helper. (You can suppress this warning in Module Settings.)"
+  "SDE.notifications.crawlHelperConflict": "Shadowdark Enhancer detected that shadowdark-crawl-helper is also enabled. For best results, disable Crawl Helper. (You can suppress this warning in Module Settings.)",
+  "SDE.settings.encounterRollGMOnly.name": "Roll Encounters as GM-only",
+  "SDE.settings.encounterRollGMOnly.hint": "If on, encounter check results and roller cards are whispered to the GM only.",
+  "SDE.settings.pauseOnEncounter.name": "Pause game on encounter",
+  "SDE.settings.pauseOnEncounter.hint": "Automatically pause the game when an encounter check results in a hit.",
+  "SDE.settings.autoRollActiveTable.name": "Auto-roll active table on hit",
+  "SDE.settings.autoRollActiveTable.hint": "If on, an encounter hit will automatically draw from the active roll table."
 }

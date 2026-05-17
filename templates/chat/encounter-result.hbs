@@ -1,0 +1,33 @@
+<div class="sde-encounter-result-card">
+  <header class="sde-card-header">
+    <h3>Encounter Result</h3>
+  </header>
+
+  <div class="sde-monster-row">
+    <img src="{{img}}" width="36" height="36" />
+    <div class="sde-monster-info">
+      <span class="sde-monster-count">{{count}} ×</span>
+      <span class="sde-monster-name">{{name}}</span>
+    </div>
+  </div>
+
+  <div class="sde-facets">
+    <div class="sde-facet-row">
+      <span class="sde-facet-label">📏 Distance:</span>
+      <span class="sde-facet-result">{{distanceText}}</span>
+      <span class="sde-facet-roll">({{distanceRoll}})</span>
+    </div>
+
+    <div class="sde-facet-row">
+      <span class="sde-facet-label">🎭 Activity:</span>
+      <span class="sde-facet-result">{{activityText}}</span>
+      <span class="sde-facet-roll">({{activityRoll}})</span>
+    </div>
+
+    <div class="sde-facet-row">
+      <span class="sde-facet-label">💬 Reaction:</span>
+      <span class="sde-facet-result {{reactionBand}}">{{reactionBand}}</span>
+      <span class="sde-facet-roll">({{reactionRoll}} + {{chaMod}})</span>
+    </div>
+  </div>
+</div>

@@ -62,4 +62,45 @@ export function registerSettings() {
     type: Object,
     default: { mode: "off", crawlTurn: 0, oocInitiative: {} },
   });
+
+  game.settings.register(MODULE_ID, "encounterThreshold", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 1,
+  });
+
+  game.settings.register(MODULE_ID, "encounterTableUuid", {
+    scope: "world",
+    config: false,
+    type: String,
+    default: "",
+  });
+
+  game.settings.register(MODULE_ID, "encounterRollGMOnly", {
+    name: "SDE.settings.encounterRollGMOnly.name",
+    hint: "SDE.settings.encounterRollGMOnly.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
+  game.settings.register(MODULE_ID, "pauseOnEncounter", {
+    name: "SDE.settings.pauseOnEncounter.name",
+    hint: "SDE.settings.pauseOnEncounter.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
+  game.settings.register(MODULE_ID, "autoRollActiveTable", {
+    name: "SDE.settings.autoRollActiveTable.name",
+    hint: "SDE.settings.autoRollActiveTable.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
 }
