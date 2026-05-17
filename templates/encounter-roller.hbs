@@ -56,10 +56,16 @@
           </header>
           <div class="sde-preview-rows">
             {{#each tablePreview.rows}}
-              <div class="sde-preview-row {{#if this.flavor}}sde-preview-flavor{{/if}}">
+              <div class="sde-preview-row {{#if this.flavor}}sde-preview-flavor{{/if}}" data-result-id="{{this.id}}">
                 <span class="sde-preview-range">{{this.range}}</span>
                 <span class="sde-preview-entry">{{this.name}}</span>
-                {{#if this.appearing}}<span class="sde-preview-appearing">{{this.appearing}}</span>{{/if}}
+                <span class="sde-preview-appearing">{{#if this.appearing}}{{this.appearing}}{{/if}}</span>
+                <span class="sde-preview-actions">
+                  <button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button>
+                  {{#unless this.flavor}}
+                    <button type="button" data-action="previewPlace" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button>
+                  {{/unless}}
+                </span>
               </div>
             {{/each}}
           </div>

@@ -1165,10 +1165,11 @@ body.theme-light .sde-bar-phase-badge {
 
 /* Parent grid defines column widths shared across all rows. Range column
    hugs the widest range in the table — `1` for a d8 table, `10-19` for
-   a d100 table — no dead space between range and entry. */
+   a d100 table — no dead space between range and entry. Fourth column
+   reserved for per-row actions (Post / Place icon buttons). */
 .sde-preview-rows {
   display: grid;
-  grid-template-columns: max-content 1fr max-content;
+  grid-template-columns: max-content 1fr max-content max-content;
   row-gap: 3px;
   column-gap: 12px;
 }
@@ -1205,6 +1206,32 @@ body.theme-light .sde-bar-phase-badge {
   font-family: monospace;
   font-size: 15px;
   font-weight: 700;
+  min-width: 3ch; /* reserves column space even when empty, so the
+                     actions column stays aligned for flavor rows */
+  text-align: right;
+}
+
+/* Per-row actions: small icon buttons (Post / Place) for picking an
+   entry directly without rolling. Visible always per design. */
+.sde-preview-actions {
+  display: flex;
+  gap: 4px;
+}
+.sde-preview-actions button {
+  background: transparent;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  color: var(--sde-bar-text-muted);
+  cursor: pointer;
+  padding: 2px 7px;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.sde-preview-actions button:hover {
+  background: var(--sde-bar-bg-hover);
+  color: var(--sde-bar-accent);
+  border-color: var(--sde-bar-accent-dim);
 }
 
 /* Flavor rows — italicized + 📜 prefix, truncated to one line so the

@@ -37,13 +37,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       height: "auto",
     },
     actions: {
-      setAsActive: EncounterRollerApp.prototype._onSetAsActive,
-      rollTable: EncounterRollerApp.prototype._onRollTable,
-      reroll: EncounterRollerApp.prototype._onReroll,
-      chaDec: EncounterRollerApp.prototype._onChaDec,
-      chaInc: EncounterRollerApp.prototype._onChaInc,
-      postToChat: EncounterRollerApp.prototype._onPostToChat,
-      placeTokens: EncounterRollerApp.prototype._onPlaceTokens,
+      setAsActive:  EncounterRollerApp.prototype._onSetAsActive,
+      rollTable:    EncounterRollerApp.prototype._onRollTable,
+      reroll:       EncounterRollerApp.prototype._onReroll,
+      chaDec:       EncounterRollerApp.prototype._onChaDec,
+      chaInc:       EncounterRollerApp.prototype._onChaInc,
+      postToChat:   EncounterRollerApp.prototype._onPostToChat,
+      placeTokens:  EncounterRollerApp.prototype._onPlaceTokens,
+      previewPost:  EncounterRollerApp.prototype._onPreviewPost,
+      previewPlace: EncounterRollerApp.prototype._onPreviewPlace,
     }
   };
 
@@ -208,7 +210,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
                       : inlineMatch ? inlineMatch[1]
                       : "";
 
-      rows.push({ range, name, appearing, flavor });
+      rows.push({ id: r.id, range, name, appearing, flavor });
     }
 
     return {
@@ -270,15 +272,26 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const result = draw.results[0];
 
     if (!result) {
-      this._lastResult = { empty: true };
+      this._lastResult = { kind: "empty" };
       this.render();
       return;
     }
 
-    // Parse monster from result. Three result shapes:
-    //   - monster:  resolved an Actor → full encounter card with facets
-    //   - flavor:   no monster but result has text → flavor-only card
-    //   - empty:    no monster, no text → error state
+    await this._buildResultFrom(result);
+  }
+
+  /**
+   * Build `_lastResult` from a specific TableResult and re-render. Used
+   * by both the random-roll path (rollActiveTable) and the manual-pick
+   * path (preview row Post / Place buttons). Three result shapes:
+   *   - monster:  resolved an Actor → full encounter card with facets
+   *   - flavor:   no monster but result has text → flavor-only card
+   *   - empty:    no monster, no text → error state
+   *
+   * @param {TableResult} result
+   * @private
+   */
+  async _buildResultFrom(result) {
     const monster = await this._parseMonsterFromResult(result);
     if (monster) {
       this._lastResult = {
@@ -294,8 +307,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       };
       this._updateResultStrings();
     } else if (result.text?.trim()) {
-      // Pure flavor entry — e.g. "A dry gust of wind extinguishes all
-      // torches and lamps." No creatures, no facets, just the text.
       this._lastResult = {
         kind: "flavor",
         text: result.text.trim(),
@@ -304,6 +315,41 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       this._lastResult = { kind: "empty" };
     }
     this.render();
+  }
+
+  /**
+   * Resolve the TableResult associated with a preview-row button click.
+   * The row carries `data-result-id`; we look it up on the currently
+   * selected table.
+   *
+   * @param {HTMLElement} target  the clicked action button
+   * @returns {TableResult | null}
+   * @private
+   */
+  _getPreviewResult(target) {
+    const id = target.closest("[data-result-id]")?.dataset.resultId;
+    if (!id || !this._selectedTableId) return null;
+    const table = game.tables.get(this._selectedTableId);
+    return table?.results?.get(id) ?? null;
+  }
+
+  async _onPreviewPost(event, target) {
+    const result = this._getPreviewResult(target);
+    if (!result) return;
+    await this._buildResultFrom(result);
+    await this._onPostToChat();
+  }
+
+  async _onPreviewPlace(event, target) {
+    const result = this._getPreviewResult(target);
+    if (!result) return;
+    await this._buildResultFrom(result);
+    // Flavor entries can't be placed (no monster).
+    if (this._lastResult.kind !== "monster") {
+      ui.notifications.warn("This entry has no monster to place.");
+      return;
+    }
+    await this._onPlaceTokens();
   }
 
   async _parseMonsterFromResult(result) {
