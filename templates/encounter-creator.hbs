@@ -1,5 +1,33 @@
 <div class="sde-creator">
 
+  {{!-- Bestiary Loader (1e-v) --}}
+  <div class="sde-creator-loader-wrapper">
+    <button type="button" class="sde-creator-loader-btn" data-action="creatorToggleLoader">
+      <i class="fas fa-book"></i> Load From Bestiary&hellip;
+    </button>
+
+    {{#if _loaderOpen}}
+      <div class="sde-creator-loader-popover">
+        <div class="sde-creator-loader-header">
+          <i class="fas fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search NPCs..."
+                 data-draft-field="_loaderSearch" value="{{_loaderSearch}}">
+        </div>
+        <div class="sde-creator-loader-list sde-scrollbar">
+          {{#each _loaderRows}}
+            {{#if (or (not ../_loaderSearch) (includes (lower name) (lower ../_loaderSearch)))}}
+              <div class="sde-creator-loader-row" data-action="creatorLoaderPick" data-uuid="{{uuid}}">
+                <img src="{{img}}" width="24" height="24" alt="" />
+                <span class="sde-creator-loader-name">{{name}}</span>
+                <span class="sde-creator-loader-lvl">{{alignment}} {{level}}</span>
+              </div>
+            {{/if}}
+          {{/each}}
+        </div>
+      </div>
+    {{/if}}
+  </div>
+
   {{!-- ═══ Identity Section ═══ --}}
   <details class="sde-creator-section" {{#if sectionOpen.identity}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="identity">

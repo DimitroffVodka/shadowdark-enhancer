@@ -2089,6 +2089,93 @@ body.theme-light .sde-bar-phase-badge {
   flex-direction: column;
   gap: 6px;
   padding: 4px 0;
+  position: relative; /* for popover anchoring */
+}
+
+.sde-creator-loader-wrapper {
+  margin-bottom: 4px;
+  position: relative;
+}
+.sde-creator-loader-btn {
+  width: 100%;
+  background: var(--sde-bar-surface-2);
+  border: 1px dashed var(--sde-bar-border);
+  color: var(--sde-bar-accent);
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px;
+  border-radius: var(--sde-bar-radius);
+  cursor: pointer;
+  text-align: left;
+}
+.sde-creator-loader-btn:hover {
+  background: var(--sde-bar-bg-hover);
+  border-color: var(--sde-bar-accent-dim);
+}
+
+.sde-creator-loader-popover {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: var(--foundry-bg-darker);
+  border: 1px solid var(--sde-bar-accent-dark);
+  border-radius: 4px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  max-height: 350px;
+}
+
+.sde-creator-loader-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--sde-bar-border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--sde-bar-bg-alt);
+}
+.sde-creator-loader-header i { color: var(--sde-bar-text-muted); }
+.sde-creator-loader-header input {
+  background: transparent !important;
+  border: none !important;
+  color: var(--sde-bar-text-bright);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  padding: 0 !important;
+}
+
+.sde-creator-loader-list {
+  overflow-y: auto;
+  flex: 1;
+}
+.sde-creator-loader-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+}
+.sde-creator-loader-row:hover { background: var(--sde-bar-bg-hover); }
+.sde-creator-loader-row img {
+  border-radius: 2px;
+  border: 1px solid var(--sde-bar-border);
+}
+.sde-creator-loader-name {
+  flex: 1;
+  font-family: "Eskapade", serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sde-bar-text-bright);
+}
+.sde-creator-loader-lvl {
+  font-family: monospace;
+  font-size: 11px;
+  color: var(--sde-bar-text-muted);
 }
 
 .sde-creator-section {

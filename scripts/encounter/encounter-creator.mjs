@@ -76,6 +76,8 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       creatorAddFeature: MonsterCreatorApp.prototype._onAddFeature,
       creatorRemoveFeature: MonsterCreatorApp.prototype._onRemoveFeature,
       creatorAddFeatureQuickPick: MonsterCreatorApp.prototype._onAddFeatureQuickPick,
+      creatorToggleLoader: MonsterCreatorApp.prototype._onToggleLoader,
+      creatorLoaderPick:   MonsterCreatorApp.prototype._onLoaderPick,
       save:             MonsterCreatorApp.prototype._onSave,
     },
   };
@@ -100,6 +102,11 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     // Text-input focus stashes for cursor preservation across renders.
     this._focused = {};  // { fieldName: {selectionStart} }
     this._lastFocusedField = null;
+
+    // Bestiary Loader state (1e-v)
+    this._loaderOpen   = false;
+    this._loaderSearch = "";
+    this._loaderRows   = [];   // Array of {name, level, alignment, uuid, img}
   }
 
   // ─── Singleton + mount/unmount ────────────────────────────────────
@@ -380,6 +387,94 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       callback: (path) => { this._draft.tokenSrc = path; this.render(); },
     });
     fp.render(true);
+  }
+
+  async _onToggleLoader() {
+    this._loaderOpen = !this._loaderOpen;
+    if (this._loaderOpen) {
+      // Lazy load NPCs on open
+      const { EncounterBrowse } = await import("./encounter-browse.mjs");
+      const sources = game.settings.get(MODULE_ID, "encounterSources");
+      this._loaderRows = await EncounterBrowse.loadNPCs(sources);
+    }
+    this.render();
+  }
+
+  async _onLoaderPick(event, target) {
+    const uuid = target.dataset.uuid;
+    const actor = await fromUuid(uuid);
+    if (actor) {
+      await this._draftFromActor(actor);
+      this._loaderOpen = false;
+      this.render();
+    }
+  }
+
+  async _draftFromActor(actor) {
+    const s = actor.system;
+    const { img, tokenSrc } = await _bestArtForActor(actor);
+
+    const draft = {
+      name:        actor.name,
+      alignment:   s.alignment || "N",
+      level:       s.level || 1,
+      img:         img || "icons/svg/mystery-man.svg",
+      tokenSrc:    tokenSrc || "",
+      description: s.notes || "",
+      hp: {
+        value: s.attributes?.hp?.value ?? 1,
+        max:   s.attributes?.hp?.max   ?? 1,
+      },
+      ac: s.attributes?.ac?.value ?? 10,
+      darkAdapted: !!s.darkAdapted,
+      abilities: {
+        str: s.abilities?.str?.mod ?? 0,
+        dex: s.abilities?.dex?.mod ?? 0,
+        con: s.abilities?.con?.mod ?? 0,
+        int: s.abilities?.int?.mod ?? 0,
+        wis: s.abilities?.wis?.mod ?? 0,
+        cha: s.abilities?.cha?.mod ?? 0,
+      },
+      move:     s.move || "near",
+      moveNote: s.moveNote || "",
+      spellcasting: {
+        ability: s.spellcasting?.ability || "",
+        bonus:   s.spellcasting?.bonus   || 0,
+        attacks: s.spellcasting?.attacks || 0,
+      },
+      actions:  [],
+      features: [],
+    };
+
+    // Split items into Actions and Features
+    for (const item of actor.items) {
+      if (item.type === "NPC Attack" || item.type === "NPC Special Attack") {
+        draft.actions.push({
+          id:     foundry.utils.randomID(),
+          name:   item.name,
+          type:   item.type,
+          num:    item.system.attack?.num ?? 1,
+          bonus:  item.system.bonuses?.attackBonus ?? 0,
+          damage: item.system.damage?.value || "",
+          ranges: item.system.ranges || [],
+          description: item.system.description || item.system.damage?.special || "",
+        });
+      } else if (item.type === "NPC Feature") {
+        draft.features.push({
+          id:     foundry.utils.randomID(),
+          name:   item.name,
+          description: item.system.description || "",
+        });
+      }
+    }
+
+    this._draft = draft;
+    // Open sections that have content
+    this._sectionOpen.stats = true;
+    this._sectionOpen.actions = draft.actions.length > 0;
+    this._sectionOpen.features = draft.features.length > 0;
+    this._sectionOpen.spellcasting = !!draft.spellcasting.ability;
+    this._sectionOpen.description = !!draft.description;
   }
 
   async _onSave() {
