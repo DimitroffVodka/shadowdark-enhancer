@@ -1196,7 +1196,8 @@ body.theme-light .sde-bar-phase-badge {
 .sde-preview-appearing {
   color: var(--sde-bar-accent);
   font-family: monospace;
-  font-size: 11px;
+  font-size: 14px;
+  font-weight: 700;
 }
 
 /* Flavor rows — italicized + 📜 prefix, truncated to one line so the
@@ -1326,9 +1327,9 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text-dim);
 }
 .sde-facet-roll {
-  width: 95px;
+  width: 110px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--sde-bar-text-muted);
 }
 .sde-facet-arrow {
