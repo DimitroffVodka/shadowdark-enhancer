@@ -1311,9 +1311,19 @@ async function _bestArtForActor(actor) {
     return { img, tokenSrc };
   }
 
-  // Try the actor's compendium source (set by Foundry on
-  // imported-from-compendium world actors in v12+).
-  const sourceUuid = actor?._stats?.compendiumSource ?? actor?.flags?.core?.sourceId ?? null;
+  // Source lookup priority:
+  //   1. actor._stats.compendiumSource (Foundry v12+ on imported-from-
+  //      compendium actors)
+  //   2. actor.flags.core.sourceId (v11 fallback)
+  //   3. Name match against any installed Actor compendium pack —
+  //      handles user-created world actors that mirror a bestiary
+  //      entry by name without a formal import link.
+  let sourceUuid = actor?._stats?.compendiumSource
+                ?? actor?.flags?.core?.sourceId
+                ?? null;
+  if (!sourceUuid && actor?.name) {
+    sourceUuid = await _findCompendiumActorByName(actor.name);
+  }
   if (!sourceUuid) return { img, tokenSrc };
 
   const compendiumActor = await fromUuid(sourceUuid).catch(() => null);
@@ -1333,4 +1343,39 @@ async function _bestArtForActor(actor) {
   }
 
   return { img, tokenSrc };
+}
+
+/**
+ * Cache for name → compendium UUID lookups. Cleared on session reload
+ * since game.packs membership can change at runtime (modules
+ * enabled/disabled, packs added). `null` cached for misses so we
+ * don't re-scan every time the same lookup fails.
+ */
+const _nameToCompendiumUuid = new Map();
+
+async function _findCompendiumActorByName(name) {
+  if (!name) return null;
+  if (_nameToCompendiumUuid.has(name)) return _nameToCompendiumUuid.get(name);
+
+  for (const pack of game.packs) {
+    if (pack.documentName !== "Actor") continue;
+    try {
+      const index = await pack.getIndex({ fields: ["type"] });
+      // Match same name AND NPC type when type is in the index.
+      // Some pack indices don't include `type` — fall back to any
+      // actor with the matching name.
+      const entry = index.find(e =>
+        e.name === name && (e.type === "NPC" || !e.type)
+      );
+      if (entry) {
+        const uuid = `Compendium.${pack.collection}.Actor.${entry._id}`;
+        _nameToCompendiumUuid.set(name, uuid);
+        return uuid;
+      }
+    } catch (_) {
+      // Skip this pack if its index fails to load.
+    }
+  }
+  _nameToCompendiumUuid.set(name, null);
+  return null;
 }
