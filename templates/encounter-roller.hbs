@@ -257,102 +257,183 @@
       {{/if}}
     </div>
 
-    {{!-- Browse NPCs Tab --}}
+    {{!-- Browse NPCs Tab (v2 — sidebar layout) --}}
     <div class="tab {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse">
       {{#if browseData}}
 
-        <div class="sde-browse-sources">
-          {{#each browseData.availableSources}}
-            <button type="button"
-                    class="sde-browse-source-pill {{#if (includes ../browseData.selectedSources this.id)}}is-active{{/if}}"
-                    data-action="browseToggleSource"
-                    data-source-id="{{this.id}}"
-                    title="{{this.label}}">
-              {{this.label}}
-            </button>
-          {{/each}}
-        </div>
+        <div class="sde-browse-v2">
 
-        <div class="sde-browse-controls">
-          <input type="text"
-                 name="browseSearch"
-                 class="sde-browse-search"
-                 placeholder="{{localize 'SDE.encounter.browse.search.placeholder'}}"
-                 value="{{browseData.search}}">
+          {{!-- ═══ Left Sidebar: Filters ═══ --}}
+          <aside class="sde-browse-sidebar">
+            <h3 class="sde-browse-sidebar-title">Filters</h3>
 
-          <div class="sde-browse-align-group">
-            <span class="sde-browse-control-label">Alignment:</span>
-            {{#each (array "L" "N" "C")}}
-              <button type="button"
-                      class="sde-browse-align-pill {{#if (includes ../browseData.alignment this)}}is-active{{/if}}"
-                      data-action="browseToggleAlign"
-                      data-alignment="{{this}}">{{this}}</button>
-            {{/each}}
-          </div>
-
-          <div class="sde-browse-level-group">
-            <span class="sde-browse-control-label">Level:</span>
-            {{!-- Use a ne-null guard rather than {{#if}} so a 0 value
-                 actually renders (filter "min=0" should be visible). --}}
-            <input type="number" name="browseLevelMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq browseData.levelMin null)}}{{browseData.levelMin}}{{/unless}}">
-            <span class="sde-browse-level-sep">–</span>
-            <input type="number" name="browseLevelMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq browseData.levelMax null)}}{{browseData.levelMax}}{{/unless}}">
-          </div>
-        </div>
-
-        <div class="sde-browse-count">
-          {{browseData.filteredCount}} of {{browseData.totalCount}}
-        </div>
-
-        {{#if (eq browseData.selectedSources.length 0)}}
-          <div class="sde-empty-state">{{localize 'SDE.encounter.browse.sources.empty'}}</div>
-        {{else if (eq browseData.filteredCount 0)}}
-          <div class="sde-empty-state">{{localize 'SDE.encounter.browse.empty'}}</div>
-        {{else}}
-          <table class="sde-browse-table">
-            <thead>
-              <tr>
-                <th></th>
-                {{#each (array
-                  (hash key="name"        label="Name")
-                  (hash key="level"       label="LV")
-                  (hash key="alignment"   label="Al")
-                  (hash key="hp"          label="HP")
-                  (hash key="ac"          label="AC")
-                  (hash key="move"        label="Move")
-                  (hash key="sourceLabel" label="Source")
-                )}}
-                  <th>
-                    <button type="button" data-action="browseSort" data-column="{{this.key}}">
-                      {{this.label}}
-                      {{#if (eq ../browseData.sortCol this.key)}}
-                        {{#if ../browseData.sortAsc}}▲{{else}}▼{{/if}}
-                      {{/if}}
-                    </button>
-                  </th>
+            {{!-- Sources (checkbox list) --}}
+            <div class="sde-browse-filter">
+              <label class="sde-browse-filter-label">Sources</label>
+              <div class="sde-browse-filter-checks">
+                {{#each browseData.availableSources}}
+                  <label class="sde-browse-check">
+                    <input type="checkbox"
+                           {{#if (includes ../browseData.selectedSources this.id)}}checked{{/if}}
+                           data-action="browseToggleSource"
+                           data-source-id="{{this.id}}">
+                    <span>{{this.label}}</span>
+                  </label>
                 {{/each}}
-              </tr>
-            </thead>
-            <tbody>
-              {{#each browseData.rows}}
-                <tr class="sde-browse-row" draggable="true" data-uuid="{{this.uuid}}">
-                  <td><img src="{{this.img}}" width="24" height="24" alt="" /></td>
-                  <td class="sde-browse-name" title="{{this.name}}">{{this.name}}</td>
-                  {{!-- Render "—" for missing/unknown level instead of "NaN" --}}
-                  <td>{{#if (isFinite this.level)}}{{this.level}}{{else}}—{{/if}}</td>
-                  <td>{{#if this.alignment}}{{this.alignment}}{{else}}—{{/if}}</td>
-                  <td>{{this.hp}}</td>
-                  <td>{{this.ac}}</td>
-                  <td>{{this.move}}</td>
-                  <td class="sde-browse-source-cell" title="{{this.sourceLabel}}">{{this.sourceLabel}}</td>
-                </tr>
-              {{/each}}
-            </tbody>
-          </table>
-        {{/if}}
+              </div>
+            </div>
 
-      {{else}}
-        {{!-- Tab not active — render nothing. --}}
+            {{!-- Search --}}
+            <div class="sde-browse-filter">
+              <label class="sde-browse-filter-label">Search</label>
+              <input type="text"
+                     name="browseSearch"
+                     class="sde-browse-search"
+                     placeholder="{{localize 'SDE.encounter.browse.search.placeholder'}}"
+                     value="{{browseData.search}}">
+            </div>
+
+            {{!-- Alignment --}}
+            <div class="sde-browse-filter">
+              <label class="sde-browse-filter-label">Alignment</label>
+              <div class="sde-browse-align-group">
+                {{#each (array "L" "N" "C")}}
+                  <button type="button"
+                          class="sde-browse-align-pill {{#if (includes ../browseData.alignment this)}}is-active{{/if}}"
+                          data-action="browseToggleAlign"
+                          data-alignment="{{this}}">{{this}}</button>
+                {{/each}}
+              </div>
+            </div>
+
+            {{!-- Level range --}}
+            <div class="sde-browse-filter">
+              <label class="sde-browse-filter-label">Level</label>
+              <div class="sde-browse-level-group">
+                <input type="number" name="browseLevelMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq browseData.levelMin null)}}{{browseData.levelMin}}{{/unless}}">
+                <span class="sde-browse-level-sep">–</span>
+                <input type="number" name="browseLevelMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq browseData.levelMax null)}}{{browseData.levelMax}}{{/unless}}">
+              </div>
+            </div>
+
+            {{!-- Move filter --}}
+            <div class="sde-browse-filter">
+              <label class="sde-browse-filter-label">Movement</label>
+              <div class="sde-browse-filter-checks">
+                {{#each browseData.moveOptions}}
+                  <label class="sde-browse-check">
+                    <input type="checkbox"
+                           {{#if (includes ../browseData.moves this)}}checked{{/if}}
+                           data-action="browseToggleMove"
+                           data-move="{{this}}">
+                    <span>{{this}}</span>
+                  </label>
+                {{/each}}
+              </div>
+            </div>
+
+            {{!-- Boolean toggles --}}
+            <div class="sde-browse-filter">
+              <label class="sde-browse-check">
+                <input type="checkbox"
+                       {{#if browseData.darkAdapted}}checked{{/if}}
+                       data-action="browseToggleDark">
+                <span>Dark-Adapted</span>
+              </label>
+              <label class="sde-browse-check">
+                <input type="checkbox"
+                       {{#if browseData.hasSpellcasting}}checked{{/if}}
+                       data-action="browseToggleSpellcaster">
+                <span>Spellcaster</span>
+              </label>
+            </div>
+
+            {{!-- Abilities (text-search NPC Feature names) --}}
+            <div class="sde-browse-filter">
+              <label class="sde-browse-filter-label">Abilities</label>
+              <input type="text"
+                     name="browseAbilitySearch"
+                     class="sde-browse-search"
+                     placeholder="e.g. petrify, magic resistance"
+                     value="{{browseData.abilitySearch}}">
+            </div>
+          </aside>
+
+          {{!-- ═══ Right pane: Results table ═══ --}}
+          <div class="sde-browse-results">
+            <div class="sde-browse-count">
+              {{browseData.filteredCount}} of {{browseData.totalCount}}
+            </div>
+
+            {{#if (eq browseData.selectedSources.length 0)}}
+              <div class="sde-empty-state">{{localize 'SDE.encounter.browse.sources.empty'}}</div>
+            {{else if (eq browseData.filteredCount 0)}}
+              <div class="sde-empty-state">{{localize 'SDE.encounter.browse.empty'}}</div>
+            {{else}}
+              <table class="sde-browse-table">
+                <thead>
+                  <tr>
+                    <th></th>
+                    {{#each (array
+                      (hash key="name"        label="Name")
+                      (hash key="level"       label="LV")
+                      (hash key="alignment"   label="Al")
+                      (hash key="hp"          label="HP")
+                      (hash key="ac"          label="AC")
+                      (hash key="move"        label="Move")
+                      (hash key="attackCount" label="Atk")
+                    )}}
+                      <th>
+                        <button type="button" data-action="browseSort" data-column="{{this.key}}">
+                          {{this.label}}
+                          {{#if (eq ../browseData.sortCol this.key)}}
+                            {{#if ../browseData.sortAsc}}▲{{else}}▼{{/if}}
+                          {{/if}}
+                        </button>
+                      </th>
+                    {{/each}}
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {{#each browseData.rows}}
+                    <tr class="sde-browse-row" draggable="true" data-uuid="{{this.uuid}}">
+                      <td><img src="{{this.img}}" width="24" height="24" alt="" /></td>
+                      <td class="sde-browse-name" title="{{this.name}}">{{this.name}}</td>
+                      <td>{{#if (isFinite this.level)}}{{this.level}}{{else}}—{{/if}}</td>
+                      <td>{{#if this.alignment}}{{this.alignment}}{{else}}—{{/if}}</td>
+                      <td>{{this.hp}}</td>
+                      <td>{{this.ac}}</td>
+                      <td>{{this.move}}</td>
+                      <td class="sde-browse-atk-cell">
+                        {{#if this.attackCount}}
+                          <span class="sde-browse-atk-count">×{{this.attackCount}}</span>
+                          {{#if this.attackKinds.melee}}<i class="fas fa-swords sde-browse-atk-melee" title="Melee"></i>{{/if}}
+                          {{#if this.attackKinds.ranged}}<i class="fas fa-crosshairs sde-browse-atk-ranged" title="Ranged"></i>{{/if}}
+                        {{else}}
+                          <span class="sde-browse-atk-none">—</span>
+                        {{/if}}
+                        {{#if this.hasSpellcasting}}
+                          <i class="fas fa-wand-sparkles sde-browse-atk-spell" title="Spellcaster (+{{this.spellcastingBonus}})"></i>
+                        {{/if}}
+                        {{#if this.darkAdapted}}
+                          <i class="fas fa-moon sde-browse-atk-dark" title="Dark-Adapted"></i>
+                        {{/if}}
+                      </td>
+                      <td class="sde-browse-action-cell">
+                        <button type="button" class="sde-browse-add-btn" data-action="browseAddToBuild" title="Add to next empty Build Table slot">
+                          <i class="fas fa-plus"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  {{/each}}
+                </tbody>
+              </table>
+            {{/if}}
+          </div>
+
+        </div>
+
       {{/if}}
     </div>
 

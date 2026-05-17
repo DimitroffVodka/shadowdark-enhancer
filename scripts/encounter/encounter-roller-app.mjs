@@ -35,7 +35,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       resizable: true,
     },
     position: {
-      width: 720,
+      // Bumped from 720 → 920 to accommodate the Browse NPCs sidebar
+      // (220px) without crushing the results table. The other tabs
+      // (Roll Tables, Build Table) fit comfortably at this width too.
+      width: 920,
       height: "auto",
     },
     actions: {
@@ -48,9 +51,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       placeTokens:  EncounterRollerApp.prototype._onPlaceTokens,
       previewPost:  EncounterRollerApp.prototype._onPreviewPost,
       previewPlace: EncounterRollerApp.prototype._onPreviewPlace,
-      browseToggleSource: EncounterRollerApp.prototype._onBrowseToggleSource,
-      browseSort:         EncounterRollerApp.prototype._onBrowseSort,
-      browseToggleAlign:  EncounterRollerApp.prototype._onBrowseToggleAlign,
+      browseToggleSource:      EncounterRollerApp.prototype._onBrowseToggleSource,
+      browseSort:              EncounterRollerApp.prototype._onBrowseSort,
+      browseToggleAlign:       EncounterRollerApp.prototype._onBrowseToggleAlign,
+      browseToggleMove:        EncounterRollerApp.prototype._onBrowseToggleMove,
+      browseToggleDark:        EncounterRollerApp.prototype._onBrowseToggleDark,
+      browseToggleSpellcaster: EncounterRollerApp.prototype._onBrowseToggleSpellcaster,
+      browseAddToBuild:        EncounterRollerApp.prototype._onBrowseAddToBuild,
       // Build Table tab — Slice 1c
       buildAddSlot:       EncounterRollerApp.prototype._onBuildAddSlot,
       buildRemoveSlot:    EncounterRollerApp.prototype._onBuildRemoveSlot,
@@ -91,11 +98,18 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     this._browseLevelMax   = null;
     this._browseSortCol    = "name";
     this._browseSortAsc    = true;
+    this._browseMoves          = [];
+    this._browseDarkAdapted    = false;
+    this._browseHasSpellcasting = false;
+    this._browseAbilitySearch  = "";
     // Cursor-preservation state for the search input — set on input
     // events, consumed on the next render. Avoids the cursor jumping
     // to the end every keystroke after the first.
     this._browseSearchFocused = false;
     this._browseSearchCursor  = 0;
+    // Same trick for the new abilities-search input.
+    this._browseAbilityFocused = false;
+    this._browseAbilityCursor  = 0;
 
     // Build Table tab state — Slice 1c.
     // Slots model: each slot is {min, max, name, uuid, appearing, flavor}.
@@ -191,10 +205,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (this._activeTab === "browse") {
       const all = await EncounterBrowse.loadNPCs(this._browseSources);
       const filtered = EncounterBrowse.applyFilters(all, {
-        search:    this._browseSearch,
-        alignment: this._browseAlignment,
-        levelMin:  this._browseLevelMin,
-        levelMax:  this._browseLevelMax,
+        search:          this._browseSearch,
+        alignment:       this._browseAlignment,
+        levelMin:        this._browseLevelMin,
+        levelMax:        this._browseLevelMax,
+        moves:           this._browseMoves,
+        darkAdapted:     this._browseDarkAdapted,
+        hasSpellcasting: this._browseHasSpellcasting,
+        abilitySearch:   this._browseAbilitySearch,
       });
       EncounterBrowse.applySort(filtered, {
         column:    this._browseSortCol,
@@ -210,8 +228,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         alignment:        this._browseAlignment,
         levelMin:         this._browseLevelMin,
         levelMax:         this._browseLevelMax,
+        moves:            this._browseMoves,
+        darkAdapted:      this._browseDarkAdapted,
+        hasSpellcasting:  this._browseHasSpellcasting,
+        abilitySearch:    this._browseAbilitySearch,
         sortCol:          this._browseSortCol,
         sortAsc:          this._browseSortAsc,
+        moveOptions:      Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? {
+          close: "", near: "", doubleNear: "", tripleNear: "", far: "", special: "", none: "",
+        }),
       };
     }
 
@@ -384,6 +409,30 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         const v = ev.target.value;
         this._browseLevelMax = v === "" ? null : Number(v);
         this.render();
+      });
+    }
+
+    // Abilities search — text-search NPC Feature names (e.g. "petrify").
+    // Cursor preservation pattern matches the main search input.
+    const abilityInput = this.element.querySelector("input[name='browseAbilitySearch']");
+    if (abilityInput) {
+      if (this._browseAbilityFocused) {
+        abilityInput.focus();
+        const pos = this._browseAbilityCursor ?? abilityInput.value.length;
+        try { abilityInput.setSelectionRange(pos, pos); } catch (_) {}
+      }
+      let abilityTimeout = null;
+      abilityInput.addEventListener("input", ev => {
+        this._browseAbilityFocused = true;
+        this._browseAbilityCursor  = ev.target.selectionStart;
+        clearTimeout(abilityTimeout);
+        abilityTimeout = setTimeout(() => {
+          this._browseAbilitySearch = ev.target.value;
+          this.render();
+        }, 200);
+      });
+      abilityInput.addEventListener("blur", () => {
+        this._browseAbilityFocused = false;
       });
     }
 
@@ -812,6 +861,51 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (set.has(a)) set.delete(a);
     else set.add(a);
     this._browseAlignment = [...set];
+    this.render();
+  }
+
+  _onBrowseToggleMove(event, target) {
+    const m = target.dataset.move;
+    if (!m) return;
+    const set = new Set(this._browseMoves);
+    if (set.has(m)) set.delete(m);
+    else set.add(m);
+    this._browseMoves = [...set];
+    this.render();
+  }
+
+  _onBrowseToggleDark() {
+    this._browseDarkAdapted = !this._browseDarkAdapted;
+    this.render();
+  }
+
+  _onBrowseToggleSpellcaster() {
+    this._browseHasSpellcasting = !this._browseHasSpellcasting;
+    this.render();
+  }
+
+  /**
+   * "+ Build" button on a Browse row. Adds the NPC to the next empty
+   * slot in the Build Table tab and switches to that tab so the GM
+   * sees the addition immediately.
+   */
+  async _onBrowseAddToBuild(event, target) {
+    const row = target.closest("[data-uuid]");
+    const uuid = row?.dataset.uuid;
+    if (!uuid) return;
+    const actor = await fromUuid(uuid).catch(() => null);
+    if (!actor) {
+      ui.notifications.error("Couldn't resolve NPC.");
+      return;
+    }
+    // Find first empty slot (no name set).
+    const idx = this._buildSlots.findIndex(s => !s.name);
+    if (idx === -1) {
+      ui.notifications.warn("No empty Build Table slots — click + Slot to add one.");
+      return;
+    }
+    EncounterBuild.fillSlotFromActor(this._buildSlots[idx], actor);
+    this._activeTab = "build";
     this.render();
   }
 

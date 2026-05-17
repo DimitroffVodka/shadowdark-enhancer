@@ -75,24 +75,46 @@ export const EncounterBrowse = {
   },
 
   /**
-   * Filter rows by search text, alignment whitelist, and level range.
-   * All filters are AND-combined. Empty/falsy filter values are skipped.
+   * Filter rows by all supported dimensions. All filters AND-combined.
+   * Empty/falsy filter values are skipped.
    *
    * @param {Array<object>} rows
    * @param {object} opts
-   * @param {string} [opts.search]       — case-insensitive substring on name
-   * @param {Array<string>} [opts.alignment] — e.g. ["L", "N"] (empty = all)
+   * @param {string} [opts.search]            — case-insensitive substring on name
+   * @param {Array<string>} [opts.alignment]  — e.g. ["L", "N"] (empty = all)
    * @param {number} [opts.levelMin]
    * @param {number} [opts.levelMax]
+   * @param {Array<string>} [opts.moves]      — e.g. ["close", "near"] (empty = all)
+   * @param {boolean} [opts.darkAdapted]      — true to require dark-adapted
+   * @param {boolean} [opts.hasSpellcasting]  — true to require spellcaster
+   * @param {string} [opts.abilitySearch]     — text-match against featureNames
    * @returns {Array<object>}
    */
-  applyFilters(rows, { search = "", alignment = [], levelMin = null, levelMax = null } = {}) {
+  applyFilters(rows, {
+    search = "",
+    alignment = [],
+    levelMin = null,
+    levelMax = null,
+    moves = [],
+    darkAdapted = false,
+    hasSpellcasting = false,
+    abilitySearch = "",
+  } = {}) {
     const needle = search.trim().toLowerCase();
+    const abilityNeedle = abilitySearch.trim().toLowerCase();
     return rows.filter(r => {
       if (needle && !r.name.toLowerCase().includes(needle)) return false;
       if (alignment.length && !alignment.includes(r.alignment)) return false;
       if (levelMin != null && Number.isFinite(r.level) && r.level < levelMin) return false;
       if (levelMax != null && Number.isFinite(r.level) && r.level > levelMax) return false;
+      if (moves.length && !moves.includes(r.move)) return false;
+      if (darkAdapted && !r.darkAdapted) return false;
+      if (hasSpellcasting && !r.hasSpellcasting) return false;
+      if (abilityNeedle) {
+        const names = r.featureNames ?? [];
+        const hit = names.some(n => n.toLowerCase().includes(abilityNeedle));
+        if (!hit) return false;
+      }
       return true;
     });
   },
@@ -172,62 +194,46 @@ export const EncounterBrowse = {
   async _loadFromPack(packId) {
     const pack = game.packs.get(packId);
     if (!pack) return [];
-    // Pack-level type filter handles 95% of cases; the documentName is
-    // "Actor" for actor packs and "Item" for item packs.
     if (pack.documentName !== "Actor") return [];
 
     const label = pack.metadata.label;
-    // getIndex with fields keeps memory down — we read the full doc
-    // only when needed (which for the table view is never).
-    const index = await pack.getIndex({
-      fields: [
-        "img",
-        "type",                            // for the NPC-vs-Player filter below
-        "system.level",
-        "system.alignment",
-        "system.attributes.hp.value",
-        "system.attributes.hp.max",
-        "system.attributes.ac.value",
-        "system.move",
-      ],
-    });
+    // Deep load: getDocuments fetches all actors with their embedded
+    // items, so we can compute featureNames + attack counts +
+    // spellcasting state per row. Slow on first call (a 250-NPC
+    // bestiary takes ~2-5 seconds) but session-cached so it only
+    // happens once per source.
+    const docs = await pack.getDocuments();
     const rows = [];
-    for (const entry of index) {
-      // Shadowdark actor types: "Player" and "NPC". Filter to NPCs.
-      // Some packs may not populate `type` in the index — fall back to
-      // a shape check (NPCs have system.attributes.hp).
-      const isNPC = entry.type === "NPC"
-        || (!entry.type && entry.system?.attributes?.hp);
-      if (!isNPC) continue;
-
-      rows.push(this._packEntryToRow(entry, packId, label));
+    for (const actor of docs) {
+      if (actor.type !== "NPC") continue;
+      rows.push(this._actorToRow(actor, packId, label));
     }
     return rows;
   },
 
-  _packEntryToRow(entry, packId, label) {
-    const sys = entry.system ?? {};
-    // Use the entry image if set and not the system's generic mystery-man.
-    const img = entry.img && entry.img !== CONST.DEFAULT_TOKEN
-      ? entry.img
-      : "icons/svg/mystery-man.svg";
-    return {
-      uuid: `Compendium.${packId}.Actor.${entry._id}`,
-      id: entry._id,
-      name: entry.name ?? "Unknown",
-      img,
-      level: _coerceLevel(sys.level),
-      alignment: sys.alignment ?? "",
-      hp: _coerceHP(sys.attributes?.hp),
-      ac: Number(sys.attributes?.ac?.value ?? 10),
-      move: sys.move ?? "near",
-      sourceId: packId,
-      sourceLabel: label,
-    };
-  },
-
   _actorToRow(actor, sourceId, sourceLabel) {
     const sys = actor.system ?? {};
+    const items = actor.items ?? [];
+
+    // Index features and attacks for filtering / display. Shadowdark's
+    // NPC schema doesn't encode immunities/weaknesses/senses as
+    // structured fields — those live in NPC Feature item names +
+    // descriptions, so feature-name search is the closest analogue to
+    // Vagabond's structured filters.
+    const featureNames = [];
+    let attackCount = 0;
+    const attackKinds = { melee: false, ranged: false };
+    for (const it of items) {
+      if (it.type === "NPC Feature") {
+        if (it.name) featureNames.push(it.name);
+      } else if (it.type === "NPC Attack" || it.type === "NPC Special Attack") {
+        attackCount += Number(it.system?.attack?.num ?? 1);
+        const ranges = it.system?.ranges ?? [];
+        if (ranges.includes("close")) attackKinds.melee = true;
+        if (ranges.includes("near") || ranges.includes("far")) attackKinds.ranged = true;
+      }
+    }
+
     return {
       uuid: actor.uuid,
       id: actor.id,
@@ -238,6 +244,12 @@ export const EncounterBrowse = {
       hp: _coerceHP(sys.attributes?.hp),
       ac: Number(sys.attributes?.ac?.value ?? 10),
       move: sys.move ?? "near",
+      darkAdapted: !!sys.darkAdapted,
+      hasSpellcasting: Number(sys.spellcasting?.attacks ?? 0) > 0,
+      spellcastingBonus: Number(sys.spellcasting?.bonus ?? 0),
+      featureNames,
+      attackCount,
+      attackKinds,
       sourceId,
       sourceLabel,
     };

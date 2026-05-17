@@ -1527,8 +1527,124 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-stepper button:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-text); }
 
-/* ── Browse NPCs tab ─────────────────────────────────────────────────────── */
+/* ── Browse NPCs tab v2 — sidebar layout ─────────────────────────────────
+   Two-column flex: left sidebar holds filters, right pane holds the
+   results table. Matches Vagabond's Browse NPCs layout density. */
 
+.sde-browse-v2 {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  min-height: 400px;
+}
+
+.sde-browse-sidebar {
+  flex: 0 0 220px;
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.sde-browse-sidebar-title {
+  margin: 0;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--sde-bar-accent-dark);
+  font-family: "Eskapade", serif;
+  color: var(--sde-bar-accent);
+  font-size: 16px;
+}
+
+.sde-browse-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sde-browse-filter-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sde-bar-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.sde-browse-filter-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sde-browse-check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--sde-bar-text);
+  cursor: pointer;
+  padding: 1px 0;
+}
+.sde-browse-check input[type="checkbox"] {
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.sde-browse-check:hover {
+  color: var(--sde-bar-text-bright);
+}
+
+.sde-browse-results {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Action cell (+ button) per row */
+.sde-browse-action-cell {
+  width: 32px;
+  text-align: center;
+}
+.sde-browse-add-btn {
+  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
+  border: 1px solid var(--sde-bar-accent);
+  color: #f5eccc;
+  cursor: pointer;
+  width: 26px;
+  height: 26px;
+  border-radius: 3px;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.12s;
+}
+.sde-browse-add-btn:hover {
+  filter: brightness(1.25);
+}
+
+/* Attack column — count + kind icons + spellcaster + dark-adapted */
+.sde-browse-atk-cell {
+  white-space: nowrap;
+  font-size: 12px;
+}
+.sde-browse-atk-count {
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--sde-bar-text-bright);
+  margin-right: 4px;
+}
+.sde-browse-atk-melee  { color: #e07050; margin-left: 2px; }
+.sde-browse-atk-ranged { color: #5aa9e6; margin-left: 2px; }
+.sde-browse-atk-spell  { color: #d0b0ff; margin-left: 4px; }
+.sde-browse-atk-dark   { color: #a89060; margin-left: 4px; }
+.sde-browse-atk-none {
+  color: var(--sde-bar-text-muted);
+  font-style: italic;
+}
+
+/* Legacy classes still in use below — kept for the table styles. */
 .sde-browse-sources {
   display: flex;
   flex-wrap: wrap;
