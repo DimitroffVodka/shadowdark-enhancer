@@ -1148,15 +1148,30 @@ body.theme-light .sde-bar-phase-badge {
 .sde-preview-rows {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  max-height: 220px;
+  overflow-y: auto;
+  /* Slim themed scrollbar so long tables don't overflow the panel. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--sde-bar-border) transparent;
 }
+.sde-preview-rows::-webkit-scrollbar { width: 8px; }
+.sde-preview-rows::-webkit-scrollbar-track { background: transparent; }
+.sde-preview-rows::-webkit-scrollbar-thumb {
+  background: var(--sde-bar-border);
+  border-radius: 4px;
+}
+.sde-preview-rows::-webkit-scrollbar-thumb:hover {
+  background: var(--sde-bar-accent-dim);
+}
+
 .sde-preview-row {
   display: grid;
   grid-template-columns: 48px 1fr auto;
   gap: 10px;
   align-items: baseline;
-  padding: 2px 4px;
-  font-size: 12px;
+  padding: 4px 6px;
+  font-size: 13px;
   border-radius: 2px;
 }
 .sde-preview-row:hover {
@@ -1246,8 +1261,8 @@ body.theme-light .sde-bar-phase-badge {
   gap: 6px;
 }
 .sde-header-actions button {
-  font-size: 11px;
-  padding: 2px 8px;
+  font-size: 13px;
+  padding: 4px 12px;
 }
 
 .sde-monster-row {
@@ -1287,31 +1302,33 @@ body.theme-light .sde-bar-phase-badge {
 .sde-facet-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 10px;
+  gap: 12px;
+  padding: 10px 12px;
   background: var(--sde-bar-surface-2);
   border-radius: 4px;
   border: 1px solid transparent;
 }
 .sde-facet-label {
-  width: 90px;
+  width: 110px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--sde-bar-text-dim);
 }
 .sde-facet-roll {
-  width: 80px;
+  width: 95px;
   font-family: monospace;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--sde-bar-text-muted);
 }
 .sde-facet-arrow {
   color: var(--sde-bar-accent-dim);
   opacity: 0.5;
+  font-size: 16px;
 }
 .sde-facet-result {
   flex: 1;
   font-weight: 700;
-  font-size: 15px;
+  font-size: 17px;
 }
 
 /* Reaction band colors */
@@ -1326,7 +1343,8 @@ body.theme-light .sde-bar-phase-badge {
   border: none;
   color: var(--sde-bar-text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 6px;
+  font-size: 14px;
   transition: color 0.15s;
 }
 .sde-reroll-btn:hover { color: var(--sde-bar-accent); }
@@ -1336,7 +1354,8 @@ body.theme-light .sde-bar-phase-badge {
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  font-size: 13px;
+  font-size: 14px;
+  padding: 4px 0;
 }
 .sde-stepper {
   display: flex;
