@@ -1527,6 +1527,189 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-stepper button:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-text); }
 
+/* ── Browse NPCs tab ─────────────────────────────────────────────────────── */
+
+.sde-browse-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.sde-browse-source-pill {
+  /* Use the brighter btn-1 gradient so inactive pills aren't lost
+     against the panel background — was hard to spot at btn-2. */
+  background: linear-gradient(135deg, var(--sde-bar-btn-1) 0%, var(--sde-bar-btn-2) 100%);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  color: var(--sde-bar-text);
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.sde-browse-source-pill:hover {
+  background: var(--sde-bar-bg-hover);
+  color: var(--sde-bar-text-bright);
+  border-color: var(--sde-bar-accent-dim);
+}
+.sde-browse-source-pill.is-active {
+  background: var(--sde-bar-accent-dark);
+  color: #f5eccc;
+  border-color: var(--sde-bar-accent);
+  font-weight: 700;
+}
+
+.sde-browse-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 6px;
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+}
+.sde-browse-search {
+  flex: 1;
+  min-width: 180px;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 2px;
+}
+.sde-browse-control-label {
+  font-size: 13px;
+  color: var(--sde-bar-text-muted);
+  font-weight: 700;
+}
+.sde-browse-align-group,
+.sde-browse-level-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sde-browse-align-pill {
+  background: linear-gradient(135deg, var(--sde-bar-btn-1) 0%, var(--sde-bar-btn-2) 100%);
+  border: 1px solid var(--sde-bar-border);
+  color: var(--sde-bar-text);
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.12s;
+}
+.sde-browse-align-pill:hover {
+  background: var(--sde-bar-bg-hover);
+  color: var(--sde-bar-text-bright);
+  border-color: var(--sde-bar-accent-dim);
+}
+.sde-browse-align-pill.is-active {
+  background: var(--sde-bar-accent-dark);
+  color: #f5eccc;
+  border-color: var(--sde-bar-accent);
+}
+.sde-browse-level-input {
+  width: 56px;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-size: 13px;
+  padding: 4px 6px;
+  text-align: center;
+  border-radius: 2px;
+}
+.sde-browse-level-sep {
+  color: var(--sde-bar-text-muted);
+}
+
+.sde-browse-count {
+  font-size: 12px;
+  color: var(--sde-bar-text-muted);
+  text-align: right;
+  margin-bottom: 4px;
+}
+
+.sde-browse-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  /* table-layout: fixed lets `text-overflow: ellipsis` work on the
+     name cell when a column would otherwise grow to fit content. */
+  table-layout: auto;
+}
+.sde-browse-table th {
+  text-align: left;
+  padding: 0;
+  border-bottom: 1px solid var(--sde-bar-accent-dark);
+}
+.sde-browse-table th button {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--sde-bar-text-dim);
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.sde-browse-table th button:hover {
+  color: var(--sde-bar-accent);
+}
+.sde-browse-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--sde-bar-border);
+  vertical-align: middle;
+}
+.sde-browse-row {
+  cursor: grab;
+  transition: background 0.1s;
+}
+/* More visible alternating row tint — the previous 0.02 was nearly
+   imperceptible against the dark panel background. */
+.sde-browse-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.04);
+}
+.sde-browse-row:hover {
+  background: var(--sde-bar-bg-hover);
+}
+.sde-browse-row:active {
+  cursor: grabbing;
+}
+.sde-browse-row img {
+  border: 1px solid var(--sde-bar-accent-dark);
+  border-radius: 2px;
+}
+.sde-browse-name {
+  font-weight: 700;
+  color: var(--sde-bar-text-bright);
+  /* Truncate long monster names with ellipsis so a "Spectral Knight of
+     the Eternal Tomb" doesn't stretch the table. Tooltip ({{title}}
+     in the template) shows the full name on hover. */
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sde-browse-source-cell {
+  color: var(--sde-bar-text-muted);
+  font-size: 12px;
+  font-style: italic;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Context Menu (Right-click Crawl Bar) ────────────────────────────────── */
 
 .sde-bar-context-menu {

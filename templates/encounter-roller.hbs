@@ -11,7 +11,7 @@
     <button type="button" class="item disabled" data-tab="build" title="Coming in a later slice">
       <i class="fas fa-hammer"></i> Build Table
     </button>
-    <button type="button" class="item disabled" data-tab="browse" title="Coming in a later slice">
+    <button type="button" class="item {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse">
       <i class="fas fa-user-group"></i> Browse NPCs
     </button>
     <button type="button" class="item disabled" data-tab="creator" title="Coming in a later slice">
@@ -154,9 +154,108 @@
     </div>
 
     {{!-- Disabled Tabs --}}
-    <div class="tab" data-tab="build">Coming in a later slice</div>
-    <div class="tab" data-tab="browse">Coming in a later slice</div>
-    <div class="tab" data-tab="creator">Coming in a later slice</div>
+    <div class="tab {{#if (eq activeTab 'build')}}active{{/if}}" data-tab="build">Coming in a later slice</div>
+
+    {{!-- Browse NPCs Tab --}}
+    <div class="tab {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse">
+      {{#if browseData}}
+
+        <div class="sde-browse-sources">
+          {{#each browseData.availableSources}}
+            <button type="button"
+                    class="sde-browse-source-pill {{#if (includes ../browseData.selectedSources this.id)}}is-active{{/if}}"
+                    data-action="browseToggleSource"
+                    data-source-id="{{this.id}}"
+                    title="{{this.label}}">
+              {{this.label}}
+            </button>
+          {{/each}}
+        </div>
+
+        <div class="sde-browse-controls">
+          <input type="text"
+                 name="browseSearch"
+                 class="sde-browse-search"
+                 placeholder="{{localize 'SDE.encounter.browse.search.placeholder'}}"
+                 value="{{browseData.search}}">
+
+          <div class="sde-browse-align-group">
+            <span class="sde-browse-control-label">Alignment:</span>
+            {{#each (array "L" "N" "C")}}
+              <button type="button"
+                      class="sde-browse-align-pill {{#if (includes ../browseData.alignment this)}}is-active{{/if}}"
+                      data-action="browseToggleAlign"
+                      data-alignment="{{this}}">{{this}}</button>
+            {{/each}}
+          </div>
+
+          <div class="sde-browse-level-group">
+            <span class="sde-browse-control-label">Level:</span>
+            {{!-- Use a ne-null guard rather than {{#if}} so a 0 value
+                 actually renders (filter "min=0" should be visible). --}}
+            <input type="number" name="browseLevelMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq browseData.levelMin null)}}{{browseData.levelMin}}{{/unless}}">
+            <span class="sde-browse-level-sep">–</span>
+            <input type="number" name="browseLevelMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq browseData.levelMax null)}}{{browseData.levelMax}}{{/unless}}">
+          </div>
+        </div>
+
+        <div class="sde-browse-count">
+          {{browseData.filteredCount}} of {{browseData.totalCount}}
+        </div>
+
+        {{#if (eq browseData.selectedSources.length 0)}}
+          <div class="sde-empty-state">{{localize 'SDE.encounter.browse.sources.empty'}}</div>
+        {{else if (eq browseData.filteredCount 0)}}
+          <div class="sde-empty-state">{{localize 'SDE.encounter.browse.empty'}}</div>
+        {{else}}
+          <table class="sde-browse-table">
+            <thead>
+              <tr>
+                <th></th>
+                {{#each (array
+                  (hash key="name"        label="Name")
+                  (hash key="level"       label="LV")
+                  (hash key="alignment"   label="Al")
+                  (hash key="hp"          label="HP")
+                  (hash key="ac"          label="AC")
+                  (hash key="move"        label="Move")
+                  (hash key="sourceLabel" label="Source")
+                )}}
+                  <th>
+                    <button type="button" data-action="browseSort" data-column="{{this.key}}">
+                      {{this.label}}
+                      {{#if (eq ../browseData.sortCol this.key)}}
+                        {{#if ../browseData.sortAsc}}▲{{else}}▼{{/if}}
+                      {{/if}}
+                    </button>
+                  </th>
+                {{/each}}
+              </tr>
+            </thead>
+            <tbody>
+              {{#each browseData.rows}}
+                <tr class="sde-browse-row" draggable="true" data-uuid="{{this.uuid}}">
+                  <td><img src="{{this.img}}" width="24" height="24" alt="" /></td>
+                  <td class="sde-browse-name" title="{{this.name}}">{{this.name}}</td>
+                  {{!-- Render "—" for missing/unknown level instead of "NaN" --}}
+                  <td>{{#if (isFinite this.level)}}{{this.level}}{{else}}—{{/if}}</td>
+                  <td>{{#if this.alignment}}{{this.alignment}}{{else}}—{{/if}}</td>
+                  <td>{{this.hp}}</td>
+                  <td>{{this.ac}}</td>
+                  <td>{{this.move}}</td>
+                  <td class="sde-browse-source-cell" title="{{this.sourceLabel}}">{{this.sourceLabel}}</td>
+                </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        {{/if}}
+
+      {{else}}
+        {{!-- Tab not active — render nothing. --}}
+      {{/if}}
+    </div>
+
+    <div class="tab {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator">Coming in a later slice</div>
 
   </section>
 </div>

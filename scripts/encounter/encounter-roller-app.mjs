@@ -9,6 +9,7 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { DISTANCE, ACTIVITY, reactionBand } from "./encounter-result.mjs";
+import { EncounterBrowse } from "./encounter-browse.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -46,6 +47,9 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       placeTokens:  EncounterRollerApp.prototype._onPlaceTokens,
       previewPost:  EncounterRollerApp.prototype._onPreviewPost,
       previewPlace: EncounterRollerApp.prototype._onPreviewPlace,
+      browseToggleSource: EncounterRollerApp.prototype._onBrowseToggleSource,
+      browseSort:         EncounterRollerApp.prototype._onBrowseSort,
+      browseToggleAlign:  EncounterRollerApp.prototype._onBrowseToggleAlign,
     }
   };
 
@@ -69,6 +73,21 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // close / escape / app reopen — prevents stale handlers from firing
     // a stray token-drop after the GM moved on.
     this._placeAbort = null;
+
+    // Browse NPCs tab state. Loaded lazily — only when the user actually
+    // opens the Browse tab do we read from compendium packs.
+    this._browseSources    = game.settings.get(MODULE_ID, "encounterSources") ?? ["world", "shadowdark.bestiary"];
+    this._browseSearch     = "";
+    this._browseAlignment  = []; // empty array = all alignments pass
+    this._browseLevelMin   = null;
+    this._browseLevelMax   = null;
+    this._browseSortCol    = "name";
+    this._browseSortAsc    = true;
+    // Cursor-preservation state for the search input — set on input
+    // events, consumed on the next render. Avoids the cursor jumping
+    // to the end every keystroke after the first.
+    this._browseSearchFocused = false;
+    this._browseSearchCursor  = 0;
   }
 
   // ─── Singleton ───
@@ -147,12 +166,43 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // see what monsters might appear before committing to a roll.
     const tablePreview = await this._buildTablePreview(this._selectedTableId);
 
+    // Browse NPCs tab — load + filter + sort, but only when the tab is
+    // active so other tabs don't pay the cost.
+    let browseData = null;
+    if (this._activeTab === "browse") {
+      const all = await EncounterBrowse.loadNPCs(this._browseSources);
+      const filtered = EncounterBrowse.applyFilters(all, {
+        search:    this._browseSearch,
+        alignment: this._browseAlignment,
+        levelMin:  this._browseLevelMin,
+        levelMax:  this._browseLevelMax,
+      });
+      EncounterBrowse.applySort(filtered, {
+        column:    this._browseSortCol,
+        ascending: this._browseSortAsc,
+      });
+      browseData = {
+        availableSources: EncounterBrowse.listAvailableSources(),
+        selectedSources:  this._browseSources,
+        rows:             filtered,
+        totalCount:       all.length,
+        filteredCount:    filtered.length,
+        search:           this._browseSearch,
+        alignment:        this._browseAlignment,
+        levelMin:         this._browseLevelMin,
+        levelMax:         this._browseLevelMax,
+        sortCol:          this._browseSortCol,
+        sortAsc:          this._browseSortAsc,
+      };
+    }
+
     return {
       activeTab: this._activeTab,
       selectedTableId: this._selectedTableId,
       tableGroups,
       tablePreview,
       lastResult: this._lastResult,
+      browseData,
     };
   }
 
@@ -242,6 +292,69 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         this.render();
       });
     }
+
+    // Browse tab: search input, level min/max
+    const searchInput = this.element.querySelector("input[name='browseSearch']");
+    if (searchInput) {
+      // If the user was typing in this input before the last render,
+      // restore their cursor position. ApplicationV2 rebuilds the DOM
+      // on render, so a fresh input replaces the old one and resets
+      // the cursor to the end of the value — visible as a jumpy
+      // experience on every keystroke past the first.
+      if (this._browseSearchFocused) {
+        searchInput.focus();
+        const pos = this._browseSearchCursor ?? searchInput.value.length;
+        try { searchInput.setSelectionRange(pos, pos); } catch (_) {}
+      }
+
+      // Debounce so we don't render on every keystroke.
+      let timeout = null;
+      searchInput.addEventListener("input", ev => {
+        // Stash focus + cursor BEFORE the next render so we can restore.
+        this._browseSearchFocused = true;
+        this._browseSearchCursor  = ev.target.selectionStart;
+
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          this._browseSearch = ev.target.value;
+          this.render();
+        }, 200);
+      });
+      // Clear the restore flag if the user moves focus away.
+      searchInput.addEventListener("blur", () => {
+        this._browseSearchFocused = false;
+      });
+    }
+    const minInput = this.element.querySelector("input[name='browseLevelMin']");
+    if (minInput) {
+      minInput.addEventListener("change", ev => {
+        const v = ev.target.value;
+        this._browseLevelMin = v === "" ? null : Number(v);
+        this.render();
+      });
+    }
+    const maxInput = this.element.querySelector("input[name='browseLevelMax']");
+    if (maxInput) {
+      maxInput.addEventListener("change", ev => {
+        const v = ev.target.value;
+        this._browseLevelMax = v === "" ? null : Number(v);
+        this.render();
+      });
+    }
+
+    // Drag-to-canvas (and to anything else that accepts Foundry's Actor
+    // drag payload — sidebar, other modules, future Build Table tab).
+    this.element.querySelectorAll(".sde-browse-row[draggable='true']").forEach(row => {
+      row.addEventListener("dragstart", ev => {
+        const uuid = row.dataset.uuid;
+        if (!uuid) return;
+        ev.dataTransfer.setData("text/plain", JSON.stringify({
+          type: "Actor",
+          uuid,
+        }));
+        ev.dataTransfer.effectAllowed = "copy";
+      });
+    });
   }
 
   async _onSetAsActive(event, target) {
@@ -509,5 +622,39 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       this._placeAbort.abort();
       this._placeAbort = null;
     }
+  }
+
+  async _onBrowseToggleSource(event, target) {
+    const id = target.dataset.sourceId;
+    if (!id) return;
+    const set = new Set(this._browseSources);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    this._browseSources = [...set];
+    EncounterBrowse.invalidateCache();    // selected sources changed
+    await game.settings.set(MODULE_ID, "encounterSources", this._browseSources);
+    this.render();
+  }
+
+  _onBrowseSort(event, target) {
+    const col = target.dataset.column;
+    if (!col) return;
+    if (col === this._browseSortCol) {
+      this._browseSortAsc = !this._browseSortAsc;
+    } else {
+      this._browseSortCol = col;
+      this._browseSortAsc = true;
+    }
+    this.render();
+  }
+
+  _onBrowseToggleAlign(event, target) {
+    const a = target.dataset.alignment;
+    if (!a) return;
+    const set = new Set(this._browseAlignment);
+    if (set.has(a)) set.delete(a);
+    else set.add(a);
+    this._browseAlignment = [...set];
+    this.render();
   }
 }

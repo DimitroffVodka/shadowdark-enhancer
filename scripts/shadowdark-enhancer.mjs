@@ -18,6 +18,21 @@ Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
   registerSettings();
 
+  // Handlebars helpers
+  Handlebars.registerHelper("includes", (arr, val) => {
+    if (!Array.isArray(arr)) return false;
+    return arr.includes(val);
+  });
+
+  Handlebars.registerHelper("array", (...args) => {
+    // Handlebars passes the "options" object as the last argument
+    return args.slice(0, -1);
+  });
+
+  // Number.isFinite as a Handlebars predicate — used to render "—"
+  // instead of "NaN" for NPCs without a level value set.
+  Handlebars.registerHelper("isFinite", (v) => Number.isFinite(v));
+
   // Expose API
   game.shadowdarkEnhancer = {
     encounter: {

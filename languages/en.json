@@ -17,5 +17,10 @@
   "SDE.settings.pauseOnEncounter.name": "Pause game on encounter",
   "SDE.settings.pauseOnEncounter.hint": "Automatically pause the game when an encounter check results in a hit.",
   "SDE.settings.autoRollActiveTable.name": "Auto-roll active table on hit",
-  "SDE.settings.autoRollActiveTable.hint": "If on, an encounter hit will automatically draw from the active roll table."
+  "SDE.settings.autoRollActiveTable.hint": "If on, an encounter hit will automatically draw from the active roll table.",
+  "SDE.encounter.browse.source.world": "World Actors",
+  "SDE.encounter.browse.source.scene": "Current Scene",
+  "SDE.encounter.browse.search.placeholder": "Search by name…",
+  "SDE.encounter.browse.empty": "No matching NPCs.",
+  "SDE.encounter.browse.sources.empty": "No sources selected. Configure at the top of this tab."
 }

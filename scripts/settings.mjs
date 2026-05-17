@@ -63,6 +63,13 @@ export function registerSettings() {
     default: { mode: "off", crawlTurn: 0, oocInitiative: {} },
   });
 
+  game.settings.register(MODULE_ID, "encounterSources", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: ["world", "shadowdark.bestiary"],
+  });
+
   game.settings.register(MODULE_ID, "encounterThreshold", {
     scope: "world",
     config: false,
