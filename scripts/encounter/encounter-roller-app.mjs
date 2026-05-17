@@ -633,11 +633,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   async _buildResultFrom(result) {
     const monster = await this._parseMonsterFromResult(result);
     if (monster) {
+      // Resolve best art: if the actor is a world copy of a compendium
+      // entry whose img is a placeholder, fall through to the
+      // compendium source's mapped art.
+      const art = await _bestArtForActor(monster);
       this._lastResult = {
         kind: "monster",
         uuid: monster.uuid,
         name: monster.name,
-        img: monster.img || "icons/svg/mystery-man.svg",
+        img: art.img || "icons/svg/mystery-man.svg",
         count: await this._rollCount(result),
         distanceRoll: await this._roll("1d6"),
         activityRoll: await this._roll("2d6"),
@@ -848,13 +852,19 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // currently placeholders — user customizations to real images
     // are left alone.
     if (reusedExisting) {
+      // _bestArtForActor walks the world copy's compendiumSource
+      // chain to find better art — covers users with pre-existing
+      // world NPCs that were imported with placeholder art.
+      const fromSource = await _bestArtForActor(actor);
       const bestImg = _firstNonPlaceholder([
         compendiumArt?.actor,
         compendiumActor.img,
+        fromSource.img,
       ]);
       const bestTokenSrc = _firstNonPlaceholder([
         compendiumArt?.token?.texture?.src,
         compendiumActor.prototypeToken?.texture?.src,
+        fromSource.tokenSrc,
       ]);
       const updates = {};
       if (bestImg && _isPlaceholderArt(actor.img)) {
@@ -881,12 +891,19 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     //   6. World actor.img
     // Skips any candidate that's a placeholder under icons/svg/.
     const tokenSource = (await actor.getTokenDocument()).toObject();
+    // _bestArtForActor walks the world actor's compendiumSource chain
+    // — covers the case where the result resolved to a pre-existing
+    // world copy with placeholder art (e.g. user's Skeleton / Beastman
+    // imported before community-tokens mappings loaded).
+    const worldBest = await _bestArtForActor(actor);
     const pick = _firstNonPlaceholder([
       compendiumArt?.token?.texture?.src,
       compendiumActor.prototypeToken?.texture?.src,
+      worldBest.tokenSrc,
       tokenSource.texture?.src,
       compendiumArt?.actor,
       compendiumActor.img,
+      worldBest.img,
       actor.img,
     ]);
     if (pick && pick !== tokenSource.texture?.src) {
@@ -1159,11 +1176,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         const count = slot.appearing
           ? (await new Roll(slot.appearing).evaluate()).total
           : 1;
+        // Resolve best art (handles world copies whose img is a
+        // placeholder by falling through to compendium-source art).
+        const art = await _bestArtForActor(actor);
         this._lastResult = {
           kind: "monster",
           uuid: slot.uuid,
           name: actor.name,
-          img:  actor.img || "icons/svg/mystery-man.svg",
+          img:  art.img || "icons/svg/mystery-man.svg",
           count,
           distanceRoll: await this._roll("1d6"),
           activityRoll: await this._roll("2d6"),
@@ -1264,4 +1284,53 @@ function _getCompendiumArtFor(actor) {
   // game.compendiumArt is a v12+ Map keyed by document UUID.
   const art = game.compendiumArt?.get?.(actor.uuid);
   return art ?? null;
+}
+
+/**
+ * Resolve the best available portrait + token-texture art for an
+ * actor, regardless of whether it lives in the world or a compendium.
+ *
+ * For world actors that were imported from a compendium (Foundry
+ * tracks this via `actor._stats.compendiumSource`), if the world
+ * copy's `img` or `prototypeToken.texture.src` is a placeholder, we
+ * fall through to the compendium source — including any
+ * compendiumArtMappings (e.g. shadowdark-community-tokens). This
+ * fixes the case where a pre-existing world copy was imported with
+ * placeholder art (before the mapping module loaded) and the user
+ * never repaired it manually.
+ *
+ * @param {Actor} actor
+ * @returns {Promise<{img: string|null, tokenSrc: string|null}>}
+ */
+async function _bestArtForActor(actor) {
+  let img      = actor?.img ?? null;
+  let tokenSrc = actor?.prototypeToken?.texture?.src ?? null;
+
+  // Already non-placeholder? Nothing to look up.
+  if (!_isPlaceholderArt(img) && !_isPlaceholderArt(tokenSrc)) {
+    return { img, tokenSrc };
+  }
+
+  // Try the actor's compendium source (set by Foundry on
+  // imported-from-compendium world actors in v12+).
+  const sourceUuid = actor?._stats?.compendiumSource ?? actor?.flags?.core?.sourceId ?? null;
+  if (!sourceUuid) return { img, tokenSrc };
+
+  const compendiumActor = await fromUuid(sourceUuid).catch(() => null);
+  const compendiumArt   = compendiumActor ? _getCompendiumArtFor(compendiumActor) : null;
+
+  if (_isPlaceholderArt(img)) {
+    img = _firstNonPlaceholder([
+      compendiumArt?.actor,
+      compendiumActor?.img,
+    ]) ?? img;
+  }
+  if (_isPlaceholderArt(tokenSrc)) {
+    tokenSrc = _firstNonPlaceholder([
+      compendiumArt?.token?.texture?.src,
+      compendiumActor?.prototypeToken?.texture?.src,
+    ]) ?? tokenSrc;
+  }
+
+  return { img, tokenSrc };
 }
