@@ -810,15 +810,17 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       return;
     }
 
-    // Keep a reference to the original compendium actor (if any) — it
-    // has the community-tokens compendiumArtMappings applied at runtime,
-    // which the world copy may not have if the world copy was imported
-    // before the mapping module's data finished loading.
+    // Keep a reference to the original compendium actor (if any). We
+    // also fetch any compendiumArtMappings registered for it — those
+    // come from modules like shadowdark-community-tokens. The mapping
+    // is applied at render time but NOT to `actor.img` reads, so we
+    // need to look it up explicitly.
     const compendiumActor = await fromUuid(this._lastResult.uuid);
     if (!compendiumActor) {
       ui.notifications.error("Monster actor not found.");
       return;
     }
+    const compendiumArt = _getCompendiumArtFor(compendiumActor);
 
     // Compendium → world. Foundry doesn't track tokens against
     // compendium actors directly; we need a world actor for the
@@ -840,20 +842,27 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // One-shot art repair on REUSED world copies. If our prior import
     // ran before the community-tokens compendiumArtMappings finished
     // applying, the world copy was created with the unmapped
-    // placeholder portrait + token texture. The compendium fetch we
-    // just did always returns the mapped values, so use them to
-    // refresh the world copy's stale fields. Only updates fields that
-    // are currently placeholders — user customizations to real
-    // images are left alone.
+    // placeholder portrait + token texture. Use the mapping (or the
+    // compendium actor's stored data, whichever is non-placeholder)
+    // to refresh the world copy. Only updates fields that are
+    // currently placeholders — user customizations to real images
+    // are left alone.
     if (reusedExisting) {
+      const bestImg = _firstNonPlaceholder([
+        compendiumArt?.actor,
+        compendiumActor.img,
+      ]);
+      const bestTokenSrc = _firstNonPlaceholder([
+        compendiumArt?.token?.texture?.src,
+        compendiumActor.prototypeToken?.texture?.src,
+      ]);
       const updates = {};
-      if (_isPlaceholderArt(actor.img) && !_isPlaceholderArt(compendiumActor.img)) {
-        updates.img = compendiumActor.img;
+      if (bestImg && _isPlaceholderArt(actor.img)) {
+        updates.img = bestImg;
       }
       const worldProtoSrc = actor.prototypeToken?.texture?.src;
-      const compProtoSrc  = compendiumActor.prototypeToken?.texture?.src;
-      if (_isPlaceholderArt(worldProtoSrc) && !_isPlaceholderArt(compProtoSrc)) {
-        updates["prototypeToken.texture.src"] = compProtoSrc;
+      if (bestTokenSrc && _isPlaceholderArt(worldProtoSrc)) {
+        updates["prototypeToken.texture.src"] = bestTokenSrc;
       }
       if (Object.keys(updates).length > 0) {
         await actor.update(updates);
@@ -861,22 +870,25 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     }
 
     // Build the template token source, picking the best available
-    // texture across world + compendium sources. Order of preference:
-    //   1. Compendium prototypeToken.texture.src — community-tokens
-    //      module's mapped art via compendiumArtMappings (the gold standard).
-    //   2. World prototypeToken.texture.src — what we have on the
-    //      reusable world copy. May be stale from an earlier import.
-    //   3. Compendium actor.img — fallback portrait.
-    //   4. World actor.img.
+    // texture across all known sources. Order of preference (first
+    // non-placeholder wins):
+    //   1. compendiumArt.token.texture.src — community-tokens mapping
+    //      (the gold standard, often the only place real art lives)
+    //   2. Compendium actor's prototypeToken.texture.src
+    //   3. World copy's prototypeToken.texture.src
+    //   4. compendiumArt.actor — mapped portrait fallback
+    //   5. Compendium actor.img — stored portrait fallback
+    //   6. World actor.img
     // Skips any candidate that's a placeholder under icons/svg/.
     const tokenSource = (await actor.getTokenDocument()).toObject();
-    const candidates = [
+    const pick = _firstNonPlaceholder([
+      compendiumArt?.token?.texture?.src,
       compendiumActor.prototypeToken?.texture?.src,
       tokenSource.texture?.src,
+      compendiumArt?.actor,
       compendiumActor.img,
       actor.img,
-    ];
-    const pick = candidates.find(src => !_isPlaceholderArt(src));
+    ]);
     if (pick && pick !== tokenSource.texture?.src) {
       tokenSource.texture = { ...(tokenSource.texture ?? {}), src: pick };
     }
@@ -1220,4 +1232,36 @@ function _isPlaceholderArt(src) {
   if (src === CONST.DEFAULT_TOKEN) return true;
   if (src.startsWith("icons/svg/")) return true;
   return false;
+}
+
+/**
+ * Return the first non-placeholder src from the candidates list, or
+ * null if every candidate is a placeholder.
+ *
+ * @param {Array<string|undefined|null>} candidates
+ * @returns {string|null}
+ */
+function _firstNonPlaceholder(candidates) {
+  for (const c of candidates) {
+    if (!_isPlaceholderArt(c)) return c;
+  }
+  return null;
+}
+
+/**
+ * Look up the compendiumArt mapping for a given actor, if any module
+ * provides one (e.g. shadowdark-community-tokens). Mappings are
+ * applied at RENDER time by Foundry, NOT to direct property reads —
+ * so `actor.img` on a mapped compendium actor still returns the raw
+ * stored placeholder. This lookup gives us the mapped values
+ * explicitly so we can use them for our own token-placement art.
+ *
+ * @param {Actor} actor — must be a compendium actor (with .pack set)
+ * @returns {{actor: string, token: object} | null}
+ */
+function _getCompendiumArtFor(actor) {
+  if (!actor?.uuid) return null;
+  // game.compendiumArt is a v12+ Map keyed by document UUID.
+  const art = game.compendiumArt?.get?.(actor.uuid);
+  return art ?? null;
 }
