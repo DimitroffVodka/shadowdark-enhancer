@@ -116,6 +116,82 @@
     </div>
   </details>
 
+  {{!-- ═══ Actions Section (1e-iii) ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.actions}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="actions">
+      <i class="fas fa-swords"></i> Actions
+    </summary>
+    <div class="sde-creator-section-body">
+
+      {{!-- Quick Picks --}}
+      <div class="sde-creator-quick-picks">
+        <label>Quick Add:</label>
+        <div class="sde-creator-quick-grid">
+          {{#each (array 0 1 2 3 4 5 6 7 8 9 10 11)}}
+            {{#with (lookup @root.ACTION_QUICK_PICKS this)}}
+              <button type="button" class="sde-creator-quick-btn"
+                      data-action="creatorAddQuickPick" data-index="{{../this}}"
+                      title="{{name}}: {{#if (eq type 'NPC Attack')}}{{num}}×{{bonus}} {{damage}} ({{ranges}}){{else}}{{description}}{{/if}}">
+                <i class="fas {{icon}}"></i>
+              </button>
+            {{/with}}
+          {{/each}}
+        </div>
+      </div>
+
+      {{!-- Action List --}}
+      <div class="sde-creator-action-list">
+        {{#each draft.actions}}
+          <div class="sde-creator-action-card" data-id="{{id}}">
+            <div class="sde-creator-action-header">
+              <input type="text" data-draft-field="actions.{{@index}}.name" value="{{name}}" placeholder="Action Name">
+              <button type="button" class="sde-creator-remove-btn" data-action="creatorRemoveAction" data-id="{{id}}">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+
+            {{#if (eq type "NPC Attack")}}
+              <div class="sde-creator-action-grid">
+                <div class="sde-creator-row-mini">
+                  <label>Count</label>
+                  <input type="number" data-draft-field="actions.{{@index}}.num" value="{{num}}" min="1">
+                </div>
+                <div class="sde-creator-row-mini">
+                  <label>Atk</label>
+                  <input type="number" data-draft-field="actions.{{@index}}.bonus" value="{{bonus}}">
+                </div>
+                <div class="sde-creator-row-mini">
+                  <label>Damage</label>
+                  <input type="text" data-draft-field="actions.{{@index}}.damage" value="{{damage}}" placeholder="1d6">
+                </div>
+              </div>
+              <div class="sde-creator-ranges">
+                {{#each @root.moveOptions}}
+                  <label class="sde-creator-range-pill {{#if (includes ../ranges this)}}active{{/if}}">
+                    <input type="checkbox" data-draft-field="actions.{{../@index}}.ranges"
+                           value="{{this}}" {{#if (includes ../ranges this)}}checked{{/if}} class="hidden">
+                    {{this}}
+                  </label>
+                {{/each}}
+              </div>
+            {{/if}}
+
+            <textarea data-draft-field="actions.{{@index}}.description" rows="2"
+                      placeholder="Special effects, status conditions, or flavor text.">{{description}}</textarea>
+          </div>
+        {{else}}
+          <div class="sde-creator-empty">No actions added yet.</div>
+        {{/each}}
+      </div>
+
+      <div class="sde-creator-action-buttons">
+        <button type="button" data-action="creatorAddAction"><i class="fas fa-plus"></i> Attack</button>
+        <button type="button" data-action="creatorAddSpecial"><i class="fas fa-plus"></i> Special</button>
+      </div>
+
+    </div>
+  </details>
+
   {{!-- ═══ Spellcasting Section ═══ --}}
   <details class="sde-creator-section" {{#if sectionOpen.spellcasting}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="spellcasting">

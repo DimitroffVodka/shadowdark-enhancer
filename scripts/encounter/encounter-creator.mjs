@@ -15,6 +15,7 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { _bestArtForActor, _isPlaceholderArt } from "./art-utils.mjs";
+import { ACTION_QUICK_PICKS } from "./action-templates.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const { renderTemplate } = foundry.applications.handlebars;
@@ -52,7 +53,7 @@ function _defaultDraft() {
                              //   for "is a spellcaster"
     },
     // Items — Sub-slice 1e-iii / 1e-iv
-    // attacks: [],   // each: {name, type, num, attackBonus, damage, ranges, special}
+    actions:  [],            // each: {id, name, type, num, bonus, damage, ranges, description}
     // features: [],  // each: {name, description}
   };
 }
@@ -67,6 +68,10 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       sectionToggle:    MonsterCreatorApp.prototype._onSectionToggle,
       pickImg:          MonsterCreatorApp.prototype._onPickImg,
       pickTokenSrc:     MonsterCreatorApp.prototype._onPickTokenSrc,
+      creatorAddAction: MonsterCreatorApp.prototype._onAddAction,
+      creatorAddSpecial: MonsterCreatorApp.prototype._onAddSpecial,
+      creatorRemoveAction: MonsterCreatorApp.prototype._onRemoveAction,
+      creatorAddQuickPick: MonsterCreatorApp.prototype._onAddQuickPick,
       save:             MonsterCreatorApp.prototype._onSave,
     },
   };
@@ -83,9 +88,10 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       identity:     true,
       stats:        false,
       movement:     false,
+      actions:      false,
       spellcasting: false,
       description:  false,
-      // actions, features — added in later sub-slices
+      // features — added in later sub-slices
     };
     // Text-input focus stashes for cursor preservation across renders.
     this._focused = {};  // { fieldName: {selectionStart} }
@@ -160,6 +166,11 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       // Spellcasting ability dropdown stores these directly into
       // system.spellcasting.ability, which expects lowercase.
       spellAbilities: ["int", "wis", "cha"],
+      // 1e-iii
+      ACTION_QUICK_PICKS,
+      ranges: Object.keys(CONFIG.SHADOWDARK?.RANGES ?? {
+        close: "", near: "", far: "", nearLine: "",
+      }),
     };
   }
 
@@ -245,6 +256,51 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.render();
   }
 
+  _onAddAction() {
+    this._draft.actions.push({
+      id: foundry.utils.randomID(),
+      name: "New Attack",
+      type: "NPC Attack",
+      num: 1,
+      bonus: 0,
+      damage: "1d6",
+      ranges: ["close"],
+      description: "",
+    });
+    this._sectionOpen.actions = true;
+    this.render();
+  }
+
+  _onAddSpecial() {
+    this._draft.actions.push({
+      id: foundry.utils.randomID(),
+      name: "New Special",
+      type: "NPC Special Attack",
+      description: "Description of the special effect.",
+    });
+    this._sectionOpen.actions = true;
+    this.render();
+  }
+
+  _onRemoveAction(event, target) {
+    const id = target.dataset.id;
+    this._draft.actions = this._draft.actions.filter(a => a.id !== id);
+    this.render();
+  }
+
+  _onAddQuickPick(event, target) {
+    const idx = Number(target.dataset.index);
+    const template = ACTION_QUICK_PICKS[idx];
+    if (!template) return;
+
+    this._draft.actions.push({
+      ...foundry.utils.deepClone(template),
+      id: foundry.utils.randomID(),
+    });
+    this._sectionOpen.actions = true;
+    this.render();
+  }
+
   async _onPickImg() {
     const fp = new foundry.applications.apps.FilePicker.implementation({
       type: "image",
@@ -319,6 +375,30 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
 
     try {
       const actor = await Actor.implementation.create(actorData);
+
+      // ─── Create Action Items (1e-iii) ─────────────────────────────
+      const itemData = d.actions.map(a => {
+        const base = {
+          name: a.name.trim() || "New Action",
+          type: a.type,
+          system: {
+            description: a.description || "",
+          },
+        };
+        if (a.type === "NPC Attack") {
+          base.system.attack = {
+            num:   Number(a.num ?? 1),
+            bonus: Number(a.bonus ?? 0),
+          };
+          base.system.damage = { value: a.damage || "1d6" };
+          base.system.ranges = a.ranges || ["close"];
+        }
+        return base;
+      });
+      if (itemData.length) {
+        await actor.createEmbeddedDocuments("Item", itemData);
+      }
+
       ui.notifications.info(`Created NPC: ${actor.name}`);
       // Reset the draft so the form is ready for the next monster.
       this._draft = _defaultDraft();
