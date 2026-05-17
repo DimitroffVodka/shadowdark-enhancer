@@ -1250,7 +1250,13 @@ function _resultBody(r) {
 function _isPlaceholderArt(src) {
   if (!src) return true;
   if (src === CONST.DEFAULT_TOKEN) return true;
+  // Core Foundry placeholder line-icons.
   if (src.startsWith("icons/svg/")) return true;
+  // Shadowdark system's "cowled hooded figure" placeholder set — used
+  // as the default portrait/token for NPCs without authored art. Three
+  // color variants exist (default, _red for compendium, _green for
+  // players), all conveying "no real image set yet".
+  if (src.startsWith("systems/shadowdark/assets/tokens/cowled_token")) return true;
   return false;
 }
 
