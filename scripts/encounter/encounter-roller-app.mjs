@@ -810,8 +810,12 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       return;
     }
 
-    let actor = await fromUuid(this._lastResult.uuid);
-    if (!actor) {
+    // Keep a reference to the original compendium actor (if any) — it
+    // has the community-tokens compendiumArtMappings applied at runtime,
+    // which the world copy may not have if the world copy was imported
+    // before the mapping module's data finished loading.
+    const compendiumActor = await fromUuid(this._lastResult.uuid);
+    if (!compendiumActor) {
       ui.notifications.error("Monster actor not found.");
       return;
     }
@@ -819,6 +823,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // Compendium → world. Foundry doesn't track tokens against
     // compendium actors directly; we need a world actor for the
     // token's actorId. Reuse one by name+type if it already exists.
+    let actor = compendiumActor;
     if (actor.pack) {
       const existing = game.actors.find(a =>
         a.type === "NPC" && a.name === actor.name
@@ -826,14 +831,25 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       actor = existing ?? await Actor.implementation.create(actor.toObject());
     }
 
-    // Build the template token source, with image fallback.
+    // Build the template token source, picking the best available
+    // texture across world + compendium sources. Order of preference:
+    //   1. Compendium prototypeToken.texture.src — community-tokens
+    //      module's mapped art via compendiumArtMappings (the gold standard).
+    //   2. World prototypeToken.texture.src — what we have on the
+    //      reusable world copy. May be stale from an earlier import.
+    //   3. Compendium actor.img — fallback portrait.
+    //   4. World actor.img.
+    // Skips any candidate that's a placeholder under icons/svg/.
     const tokenSource = (await actor.getTokenDocument()).toObject();
-    const protoSrc = tokenSource.texture?.src;
-    const isDefaultArt = !protoSrc
-      || protoSrc === "icons/svg/mystery-man.svg"
-      || protoSrc === CONST.DEFAULT_TOKEN;
-    if (isDefaultArt && actor.img && actor.img !== "icons/svg/mystery-man.svg") {
-      tokenSource.texture = { ...(tokenSource.texture ?? {}), src: actor.img };
+    const candidates = [
+      compendiumActor.prototypeToken?.texture?.src,
+      tokenSource.texture?.src,
+      compendiumActor.img,
+      actor.img,
+    ];
+    const pick = candidates.find(src => !_isPlaceholderArt(src));
+    if (pick && pick !== tokenSource.texture?.src) {
+      tokenSource.texture = { ...(tokenSource.texture ?? {}), src: pick };
     }
 
     // Cancellable click-to-place loop. Each click drops one token at
@@ -1154,4 +1170,25 @@ function _resultBody(r) {
   // the deprecation warning on v13 but only if the first two are
   // empty, which is the case for old tables we haven't migrated.
   return r?.description || r?.name || r?.text || "";
+}
+
+/**
+ * Heuristic: is this image path one of Foundry's built-in placeholder
+ * icons (mystery-man, cowled-figure, etc.)? Used by token placement to
+ * skip past placeholders when picking the best available texture from
+ * compendium-actor / world-actor / portrait sources.
+ *
+ * Everything under `icons/svg/` in core Foundry is a monochrome line
+ * icon meant as a fallback, so we treat that whole tree as
+ * "placeholder" art for token-rendering purposes. CONST.DEFAULT_TOKEN
+ * covers any future renamed default.
+ *
+ * @param {string|undefined|null} src
+ * @returns {boolean}
+ */
+function _isPlaceholderArt(src) {
+  if (!src) return true;
+  if (src === CONST.DEFAULT_TOKEN) return true;
+  if (src.startsWith("icons/svg/")) return true;
+  return false;
 }
