@@ -1,23 +1,29 @@
 /**
  * Shadowdark Enhancer — Feature Templates
  * Quick-pick catalog of common NPC features for the Monster Creator.
+ *
+ * Icons MUST be FA6 Free SOLID glyphs (the template renders them with
+ * `class="fas"`). Pro-tier glyphs (fa-shield-magic, fa-heart-circle-bolt,
+ * fa-flask-poison, etc.) and Brand glyphs (fa-wolf-pack-battalion —
+ * needs `fab`, not `fas`) render as empty squares in Foundry, which
+ * ships the Free + Solid set only.
  */
 
 export const FEATURE_QUICK_PICKS = [
   {
     name: "Magic Resistance",
     description: "Advantage on saves against spells.",
-    icon: "fa-shield-magic",
+    icon: "fa-shield-halved",   // fa-shield-magic is Pro
   },
   {
     name: "Mob",
     description: "Advantage on attacks if at least two other mooks are near the target.",
-    icon: "fa-users-group",
+    icon: "fa-users",
   },
   {
     name: "Pack Tactics",
     description: "Advantage on attacks if an ally is within 5' of the target.",
-    icon: "fa-wolf-pack-battalion", // FA6 Free brands
+    icon: "fa-paw",             // fa-wolf-pack-battalion is a Brand icon (needs fab)
   },
   {
     name: "Petrify",
@@ -27,7 +33,7 @@ export const FEATURE_QUICK_PICKS = [
   {
     name: "Regenerate",
     description: "Regains 5 HP at the start of its turn if it has at least 1 HP.",
-    icon: "fa-heart-circle-bolt",
+    icon: "fa-heart-pulse",     // fa-heart-circle-bolt is Pro
   },
   {
     name: "Brutal",
@@ -67,7 +73,7 @@ export const FEATURE_QUICK_PICKS = [
   {
     name: "Poison",
     description: "DC 12 CON or 1d6 damage and poisoned for 1 hour.",
-    icon: "fa-flask-poison",
+    icon: "fa-skull-crossbones", // fa-flask-poison is Pro; reuse the slug from 1e-iii
   },
   {
     name: "Undead",
