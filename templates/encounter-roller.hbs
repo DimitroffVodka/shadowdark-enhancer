@@ -14,7 +14,7 @@
     <button type="button" class="item {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse">
       <i class="fas fa-user-group"></i> Browse NPCs
     </button>
-    <button type="button" class="item disabled" data-tab="creator" title="Coming in a later slice">
+    <button type="button" class="item {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator">
       <i class="fas fa-wand-magic-sparkles"></i> Monster Creator
     </button>
   </nav>
@@ -437,7 +437,10 @@
       {{/if}}
     </div>
 
-    <div class="tab {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator">Coming in a later slice</div>
+    {{!-- Monster Creator Tab — mounted inline by EncounterRollerApp --}}
+    <div class="tab {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator">
+      <div id="sde-monster-creator-host"></div>
+    </div>
 
   </section>
 </div>

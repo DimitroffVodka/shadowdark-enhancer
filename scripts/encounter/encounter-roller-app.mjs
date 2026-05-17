@@ -16,6 +16,7 @@ import {
   _getCompendiumArtFor, _bestArtForActor,
   _findCompendiumActorByName,
 } from "./art-utils.mjs";
+import { MonsterCreator } from "./encounter-creator.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -167,6 +168,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       });
     }
     this._cancelPlaceTokens();
+    MonsterCreator.unmountPanel();
     EncounterRollerApp._instance = null;
     return super.close(options);
   }
@@ -581,6 +583,16 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         this.render();
       });
     });
+
+    // Mount the Monster Creator into the creator tab's host div when
+    // the creator tab is active. Unmount when not. State is preserved
+    // on the singleton so switching back restores in-progress edits.
+    const creatorHost = this.element.querySelector("#sde-monster-creator-host");
+    if (creatorHost && this._activeTab === "creator") {
+      MonsterCreator.mountPanel(creatorHost);
+    } else {
+      MonsterCreator.unmountPanel();
+    }
   }
 
   async _onSetAsActive(event, target) {

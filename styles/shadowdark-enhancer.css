@@ -2079,6 +2079,142 @@ body.theme-light .sde-bar-phase-badge {
   cursor: not-allowed;
 }
 
+/* ── Monster Creator tab — Slice 1e ────────────────────────────────────
+   Multi-section authoring panel mounted inline in the creator tab. Each
+   section is a <details> collapsible; visual language mirrors the Build
+   Table tab. */
+
+.sde-creator {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.sde-creator-section {
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+}
+.sde-creator-section > summary {
+  padding: 6px 12px;
+  font-family: "Eskapade", serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sde-bar-accent);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+.sde-creator-section > summary::-webkit-details-marker { display: none; }
+.sde-creator-section > summary:hover { color: var(--sde-bar-text-bright); }
+.sde-creator-section-body {
+  padding: 10px 14px;
+  border-top: 1px solid var(--sde-bar-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sde-creator-row {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 10px;
+  align-items: center;
+}
+.sde-creator-row > label {
+  font-size: 13px;
+  color: var(--sde-bar-text-muted);
+  font-weight: 700;
+}
+.sde-creator-row > input[type="text"],
+.sde-creator-row > input[type="number"] {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 2px;
+}
+.sde-creator-row > input[type="number"] { width: 80px; }
+
+.sde-creator-align-group {
+  display: flex;
+  gap: 12px;
+}
+.sde-creator-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-family: monospace;
+  font-size: 14px;
+}
+
+.sde-creator-img-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sde-creator-img-picker img {
+  border: 1px solid var(--sde-bar-accent-dark);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.sde-creator-img-path {
+  flex: 1;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: monospace;
+  font-size: 12px;
+  padding: 4px 6px;
+  border-radius: 2px;
+}
+.sde-creator-img-picker button {
+  background: var(--sde-bar-btn-2);
+  border: 1px solid var(--sde-bar-border);
+  color: var(--sde-bar-text);
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.sde-creator-img-picker button:hover { background: var(--sde-bar-bg-hover); }
+
+.sde-creator-section-body textarea {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 2px;
+  resize: vertical;
+}
+
+.sde-creator-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px solid var(--sde-bar-border);
+  margin-top: 6px;
+}
+.sde-creator-save-btn {
+  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
+  color: #f5eccc;
+  border: 1px solid var(--sde-bar-accent);
+  border-radius: var(--sde-bar-radius);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: filter 0.12s;
+}
+.sde-creator-save-btn:hover:not(:disabled) { filter: brightness(1.2); }
+.sde-creator-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ── Context Menu (Right-click Crawl Bar) ────────────────────────────────── */
 
 .sde-bar-context-menu {

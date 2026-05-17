@@ -1,0 +1,73 @@
+<div class="sde-creator">
+
+  {{!-- ═══ Identity Section ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.identity}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="identity">
+      <i class="fas fa-id-card"></i> Identity
+    </summary>
+    <div class="sde-creator-section-body">
+
+      <div class="sde-creator-row">
+        <label>Name</label>
+        <input type="text" data-draft-field="name" value="{{draft.name}}" placeholder="e.g. Frost Goblin">
+      </div>
+
+      <div class="sde-creator-row">
+        <label>Alignment</label>
+        <div class="sde-creator-align-group">
+          {{#each alignments}}
+            <label class="sde-creator-radio-label">
+              <input type="radio" name="alignment" value="{{this}}"
+                     {{#if (eq this ../draft.alignment)}}checked{{/if}}
+                     data-draft-field="alignment">
+              {{this}}
+            </label>
+          {{/each}}
+        </div>
+      </div>
+
+      <div class="sde-creator-row">
+        <label>Level</label>
+        <input type="number" data-draft-field="level" value="{{draft.level}}" min="0" max="30">
+      </div>
+
+      <div class="sde-creator-row">
+        <label>Portrait</label>
+        <div class="sde-creator-img-picker">
+          <img src="{{draft.img}}" width="48" height="48" alt="" />
+          <input type="text" data-draft-field="img" value="{{draft.img}}" class="sde-creator-img-path">
+          <button type="button" data-action="pickImg" title="Browse"><i class="fas fa-folder-open"></i></button>
+        </div>
+      </div>
+
+      <div class="sde-creator-row">
+        <label>Token image</label>
+        <div class="sde-creator-img-picker">
+          <img src="{{#if draft.tokenSrc}}{{draft.tokenSrc}}{{else}}{{draft.img}}{{/if}}" width="48" height="48" alt="" />
+          <input type="text" data-draft-field="tokenSrc" value="{{draft.tokenSrc}}" placeholder="(inherits from portrait)" class="sde-creator-img-path">
+          <button type="button" data-action="pickTokenSrc" title="Browse"><i class="fas fa-folder-open"></i></button>
+        </div>
+      </div>
+
+    </div>
+  </details>
+
+  {{!-- ═══ Description Section ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.description}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="description">
+      <i class="fas fa-book-open"></i> Description
+    </summary>
+    <div class="sde-creator-section-body">
+      <textarea data-draft-field="description" rows="6"
+                placeholder="A short description and any flavor/special-ability text. Goes into the NPC's notes field on the actor sheet.">{{draft.description}}</textarea>
+    </div>
+  </details>
+
+  {{!-- ═══ Save bar (sticky at bottom of panel) ═══ --}}
+  <div class="sde-creator-footer">
+    <button type="button" class="sde-creator-save-btn" data-action="save">
+      <i class="fas fa-floppy-disk"></i> Create World Actor
+    </button>
+  </div>
+
+</div>

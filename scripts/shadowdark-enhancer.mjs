@@ -13,6 +13,7 @@ import { registerHiddenSync } from "./hidden-sync.mjs";
 import { MovementTracker } from "./movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { EncounterRollerApp } from "./encounter/encounter-roller-app.mjs";
+import { MonsterCreator } from "./encounter/encounter-creator.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -41,6 +42,9 @@ Hooks.once("init", () => {
       setActiveTable: (uuid) => game.settings.set(MODULE_ID, "encounterTableUuid", uuid || ""),
       getThreshold: () => game.settings.get(MODULE_ID, "encounterThreshold"),
       setThreshold: (n) => game.settings.set(MODULE_ID, "encounterThreshold", n),
+    },
+    monsterCreator: {
+      open: () => MonsterCreator.open(),
     }
   };
 });
