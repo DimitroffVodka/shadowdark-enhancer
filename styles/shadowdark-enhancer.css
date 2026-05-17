@@ -1176,6 +1176,32 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 11px;
 }
 
+/* Flavor rows — italicized, allow text wrapping for long flavor strings
+   (e.g. "A dry gust of wind extinguishes all torches and lamps."). */
+.sde-preview-flavor .sde-preview-entry {
+  font-style: italic;
+  color: var(--sde-bar-text-muted);
+  white-space: normal;
+  line-height: 1.4;
+}
+.sde-preview-flavor .sde-preview-entry::before {
+  content: "📜 ";
+  opacity: 0.7;
+}
+
+/* Flavor result card (chat + window) — large readable text, no facets. */
+.sde-result-flavor .sde-flavor-text,
+.sde-encounter-flavor-card .sde-flavor-text {
+  padding: 12px 16px;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--sde-bar-text-bright);
+  background: var(--sde-bar-bg);
+  border-left: 3px solid var(--sde-bar-accent-dim);
+  border-radius: 0 var(--sde-bar-radius) var(--sde-bar-radius) 0;
+}
+
 /* ── Result Card ────────────────────────────────────────────────────────── */
 
 .sde-result-panel {

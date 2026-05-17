@@ -174,18 +174,26 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       const [min, max] = r.range ?? [0, 0];
       const range = (min === max) ? `${min}` : `${min}-${max}`;
 
-      // Try to resolve a friendly name. Use the same priority order as
-      // _parseMonsterFromResult so previews match what would actually roll.
+      // Try to resolve a friendly monster name. Use the same priority order
+      // as _parseMonsterFromResult so previews match what would actually roll.
+      // If nothing resolves, this row is a flavor entry — show the raw text.
       let name = r.text || "(empty)";
+      let flavor = true;
       try {
         if (r.documentCollection === "Actor" || r.type === CONST.TABLE_RESULT_TYPES.DOCUMENT) {
           const actor = game.actors.get(r.documentId) ?? await fromUuid(r.uuid);
-          if (actor?.name) name = actor.name;
+          if (actor?.name) {
+            name = actor.name;
+            flavor = false;
+          }
         } else {
           const uuidMatch = (r.text ?? "").match(/@UUID\[([^\]]+)\]/);
           if (uuidMatch) {
             const doc = await fromUuid(uuidMatch[1]);
-            if (doc?.name) name = doc.name;
+            if (doc?.name) {
+              name = doc.name;
+              flavor = false;
+            }
           }
         }
       } catch (_) {
@@ -193,13 +201,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       }
 
       // Appearing formula: flag wins, then inline [[/r N]], else blank.
-      const flagAppearing = r.getFlag(MODULE_ID, "appearing");
-      const inlineMatch = (r.text ?? "").match(/\[\[\/r\s+([^\]]+)\]\]/);
+      // Flavor entries never get an appearing formula.
+      const flagAppearing = flavor ? null : r.getFlag(MODULE_ID, "appearing");
+      const inlineMatch = flavor ? null : (r.text ?? "").match(/\[\[\/r\s+([^\]]+)\]\]/);
       const appearing = flagAppearing ? String(flagAppearing)
                       : inlineMatch ? inlineMatch[1]
                       : "";
 
-      rows.push({ range, name, appearing });
+      rows.push({ range, name, appearing, flavor });
     }
 
     return {
@@ -266,13 +275,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       return;
     }
 
-    // Parse monster from result
+    // Parse monster from result. Three result shapes:
+    //   - monster:  resolved an Actor → full encounter card with facets
+    //   - flavor:   no monster but result has text → flavor-only card
+    //   - empty:    no monster, no text → error state
     const monster = await this._parseMonsterFromResult(result);
-    if (!monster) {
-      this._lastResult = { empty: true };
-    } else {
+    if (monster) {
       this._lastResult = {
-        empty: false,
+        kind: "monster",
         uuid: monster.uuid,
         name: monster.name,
         img: monster.img || "icons/svg/mystery-man.svg",
@@ -283,6 +293,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         chaMod: 0
       };
       this._updateResultStrings();
+    } else if (result.text?.trim()) {
+      // Pure flavor entry — e.g. "A dry gust of wind extinguishes all
+      // torches and lamps." No creatures, no facets, just the text.
+      this._lastResult = {
+        kind: "flavor",
+        text: result.text.trim(),
+      };
+    } else {
+      this._lastResult = { kind: "empty" };
     }
     this.render();
   }
@@ -356,12 +375,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   async _onPostToChat() {
-    if (!this._lastResult) return;
+    if (!this._lastResult || this._lastResult.kind === "empty") return;
 
-    const content = await renderTemplate(
-      "modules/shadowdark-enhancer/templates/chat/encounter-result.hbs",
-      this._lastResult,
-    );
+    // Pick the chat template based on result shape. Flavor entries get
+    // a simple text card; monster encounters get the full facet recap.
+    const template = this._lastResult.kind === "flavor"
+      ? "modules/shadowdark-enhancer/templates/chat/encounter-flavor.hbs"
+      : "modules/shadowdark-enhancer/templates/chat/encounter-result.hbs";
+
+    const content = await renderTemplate(template, this._lastResult);
     const gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly");
 
     await ChatMessage.create({

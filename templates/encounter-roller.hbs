@@ -56,7 +56,7 @@
           </header>
           <div class="sde-preview-rows">
             {{#each tablePreview.rows}}
-              <div class="sde-preview-row">
+              <div class="sde-preview-row {{#if this.flavor}}sde-preview-flavor{{/if}}">
                 <span class="sde-preview-range">{{this.range}}</span>
                 <span class="sde-preview-entry">{{this.name}}</span>
                 {{#if this.appearing}}<span class="sde-preview-appearing">{{this.appearing}}</span>{{/if}}
@@ -68,10 +68,25 @@
 
       <div class="sde-result-panel">
         {{#if lastResult}}
-          {{#if lastResult.empty}}
-            <div class="sde-empty-state">Table draw produced no monster — check the table contents</div>
+
+          {{#if (eq lastResult.kind 'empty')}}
+            <div class="sde-empty-state">Table draw produced no usable result — check the table contents</div>
+
+          {{else if (eq lastResult.kind 'flavor')}}
+            {{!-- Flavor card: pure text (e.g. environmental events). No
+                 monster, no count, no facets — just the text + Post. --}}
+            <div class="sde-result-card sde-result-flavor">
+              <header class="sde-card-header">
+                <h3>Environmental Result</h3>
+                <div class="sde-header-actions">
+                  <button type="button" data-action="postToChat" title="Post to Chat"><i class="fas fa-clipboard-list"></i> Post</button>
+                </div>
+              </header>
+              <div class="sde-flavor-text">{{lastResult.text}}</div>
+            </div>
+
           {{else}}
-            {{!-- Result Card --}}
+            {{!-- Monster card: full facets + Place button. --}}
             <div class="sde-result-card">
               <header class="sde-card-header">
                 <h3>Encounter Result</h3>
@@ -125,6 +140,7 @@
               </div>
             </div>
           {{/if}}
+
         {{else}}
           <div class="sde-empty-state">Roll a table to see the result.</div>
         {{/if}}
