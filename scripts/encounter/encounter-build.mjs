@@ -235,8 +235,13 @@ export const EncounterBuild = {
       if (!s.name) continue; // skip empty slots entirely
       const flagAppearing = s.appearing?.trim() || null;
 
+      // Foundry v13 split TableResult.text into name + description.
+      // We put the entry label in `name` (the display title) since our
+      // entries are short single-line labels (monster name or flavor
+      // line). Reads use the same field via _resultBody's fallback
+      // chain, so this round-trips cleanly.
       const baseResult = {
-        text: s.name,
+        name: s.name,
         range: [s.min, s.max],
         weight: (s.max - s.min + 1),
       };

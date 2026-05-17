@@ -309,17 +309,22 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       // Try to resolve a friendly monster name. Use the same priority order
       // as _parseMonsterFromResult so previews match what would actually roll.
       // If nothing resolves, this row is a flavor entry — show the raw text.
-      let name = r.text || "(empty)";
+      const body = _resultBody(r);
+      let name = r.name || body || "(empty)";
       let flavor = true;
       try {
-        if (r.documentCollection === "Actor" || r.type === CONST.TABLE_RESULT_TYPES.DOCUMENT) {
-          const actor = game.actors.get(r.documentId) ?? await fromUuid(r.uuid);
-          if (actor?.name) {
-            name = actor.name;
+        // v13 canonical: TableResult.uuid is the linked document reference.
+        // Resolve it; if it's an Actor, this is a monster row.
+        if (r.uuid) {
+          const doc = await fromUuid(r.uuid).catch(() => null);
+          if (doc instanceof Actor) {
+            name = doc.name;
             flavor = false;
           }
-        } else {
-          const uuidMatch = (r.text ?? "").match(/@UUID\[([^\]]+)\]/);
+        }
+        // Fallback: scan body for embedded @UUID[…] references.
+        if (flavor) {
+          const uuidMatch = body.match(/@UUID\[([^\]]+)\]/);
           if (uuidMatch) {
             const doc = await fromUuid(uuidMatch[1]);
             if (doc?.name) {
@@ -329,13 +334,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           }
         }
       } catch (_) {
-        // Resolution failures fall back to r.text — non-fatal.
+        // Resolution failures fall back to body text — non-fatal.
       }
 
       // Appearing formula: flag wins, then inline [[/r N]], else blank.
       // Flavor entries never get an appearing formula.
       const flagAppearing = flavor ? null : r.getFlag(MODULE_ID, "appearing");
-      const inlineMatch = flavor ? null : (r.text ?? "").match(/\[\[\/r\s+([^\]]+)\]\]/);
+      const inlineMatch = flavor ? null : body.match(/\[\[\/r\s+([^\]]+)\]\]/);
       const appearing = flagAppearing ? String(flagAppearing)
                       : inlineMatch ? inlineMatch[1]
                       : "";
@@ -640,13 +645,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         chaMod: 0
       };
       this._updateResultStrings();
-    } else if (result.text?.trim()) {
-      this._lastResult = {
-        kind: "flavor",
-        text: result.text.trim(),
-      };
     } else {
-      this._lastResult = { kind: "empty" };
+      const body = _resultBody(result).trim();
+      if (body) {
+        this._lastResult = { kind: "flavor", text: body };
+      } else {
+        this._lastResult = { kind: "empty" };
+      }
     }
     this.render();
   }
@@ -687,16 +692,18 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   async _parseMonsterFromResult(result) {
-    // Priority: result.documentCollection + result.documentId
-    if (result.documentCollection === "Actor" || result.type === CONST.TABLE_RESULT_TYPES.DOCUMENT) {
-      const actor = game.actors.get(result.documentId) || await fromUuid(result.uuid);
-      if (actor && actor.type === "NPC") return actor;
+    // v13 canonical: TableResult.uuid is the linked document reference.
+    // If it resolves to an NPC Actor, this is a monster row.
+    if (result.uuid) {
+      const doc = await fromUuid(result.uuid).catch(() => null);
+      if (doc instanceof Actor && doc.type === "NPC") return doc;
     }
 
-    // Try to find UUID in description
-    const uuidMatch = result.text.match(/@UUID\[([^\]]+)\]/);
+    // Fallback: scan body text for embedded @UUID[…] references.
+    const body = _resultBody(result);
+    const uuidMatch = body.match(/@UUID\[([^\]]+)\]/);
     if (uuidMatch) {
-      const doc = await fromUuid(uuidMatch[1]);
+      const doc = await fromUuid(uuidMatch[1]).catch(() => null);
       if (doc instanceof Actor) return doc;
     }
 
@@ -704,12 +711,12 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   async _rollCount(result) {
-    // Priority 1: SDE flag (later slice)
+    // Priority 1: SDE flag (set by Build Table save)
     const flagCount = result.getFlag(MODULE_ID, "appearing");
     if (flagCount) return (await new Roll(flagCount.toString()).evaluate()).total;
 
-    // Priority 2: Inline formula [[/r N]]
-    const formulaMatch = result.text.match(/\[\[\/r\s+([^\]]+)\]\]/);
+    // Priority 2: Inline formula [[/r N]] anywhere in the body text.
+    const formulaMatch = _resultBody(result).match(/\[\[\/r\s+([^\]]+)\]\]/);
     if (formulaMatch) return (await new Roll(formulaMatch[1]).evaluate()).total;
 
     // Default
@@ -1037,4 +1044,32 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     this._lastResult = { kind: "empty" };
     this.render();
   }
+}
+
+// ───── Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Extract the body text of a TableResult across Foundry v12 → v13.
+ *
+ * Foundry v13 deprecated `TableResult.text` and split it into:
+ *   - `name`        — human-readable title (typically auto-set from a
+ *                     referenced document, or the user-entered title
+ *                     for text-only results)
+ *   - `description` — longer body text (rich text, may contain inline
+ *                     rolls and document references)
+ *
+ * We read body text in `description → name → text` order so:
+ *   - v13 tables with proper description fields work first
+ *   - v13 text-only entries that put everything in `name` still resolve
+ *   - v12 tables still using `text` keep working (until v15 removes it)
+ *
+ * @param {TableResult} r
+ * @returns {string}
+ */
+function _resultBody(r) {
+  // Read each field directly; `??` skips empty strings (use `||` to
+  // fall through "" → next field). The `text` access still triggers
+  // the deprecation warning on v13 but only if the first two are
+  // empty, which is the case for old tables we haven't migrated.
+  return r?.description || r?.name || r?.text || "";
 }
