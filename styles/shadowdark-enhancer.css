@@ -2182,6 +2182,65 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-creator-img-picker button:hover { background: var(--sde-bar-bg-hover); }
 
+/* Stats — HP/AC layout */
+.sde-creator-hp-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sde-creator-hp-group label {
+  font-size: 13px;
+  color: var(--sde-bar-text-muted);
+  font-weight: 700;
+  margin-left: 10px;
+}
+.sde-creator-hp-group input { width: 60px !important; }
+
+/* Ability grid — 3 columns */
+.sde-creator-ability-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.sde-creator-ability {
+  background: var(--sde-bar-surface-2);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sde-creator-ability-label {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--sde-bar-text-muted);
+}
+.sde-creator-ability input {
+  width: 40px;
+  background: transparent;
+  color: var(--sde-bar-text);
+  border: none;
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+  padding: 0;
+}
+.sde-creator-ability input:focus { outline: none; }
+
+.sde-creator-section-body select {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  padding: 4px 6px;
+  border-radius: 2px;
+}
+
 .sde-creator-section-body textarea {
   background: var(--sde-bar-input-bg);
   color: var(--sde-bar-text);

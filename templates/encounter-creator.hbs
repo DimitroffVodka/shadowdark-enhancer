@@ -52,6 +52,91 @@
     </div>
   </details>
 
+  {{!-- ═══ Stats Section ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.stats}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="stats">
+      <i class="fas fa-heart-pulse"></i> Stats
+    </summary>
+    <div class="sde-creator-section-body">
+
+      <div class="sde-creator-row">
+        <label>HP (Max)</label>
+        <div class="sde-creator-hp-group">
+          <input type="number" data-draft-field="hp.max" value="{{draft.hp.max}}" min="0">
+          <label>AC</label>
+          <input type="number" data-draft-field="ac" value="{{draft.ac}}" min="0">
+        </div>
+      </div>
+
+      <div class="sde-creator-row">
+        <label>Abilities</label>
+        <div class="sde-creator-ability-grid">
+          {{#each (array "str" "dex" "con" "int" "wis" "cha")}}
+            <div class="sde-creator-ability">
+              <span class="sde-creator-ability-label">{{this}}</span>
+              <input type="number" data-draft-field="abilities.{{this}}"
+                     value="{{lookup ../draft.abilities this}}"
+                     placeholder="0">
+            </div>
+          {{/each}}
+        </div>
+      </div>
+
+      <div class="sde-creator-row">
+        <label>Dark-Adapted</label>
+        <input type="checkbox" data-draft-field="darkAdapted" {{#if draft.darkAdapted}}checked{{/if}}>
+      </div>
+
+    </div>
+  </details>
+
+  {{!-- ═══ Movement Section ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.movement}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="movement">
+      <i class="fas fa-boot"></i> Movement
+    </summary>
+    <div class="sde-creator-section-body">
+      <div class="sde-creator-row">
+        <label>Type</label>
+        <select data-draft-field="move">
+          {{#select draft.move}}
+            <option value="close">Close</option>
+            <option value="near">Near</option>
+            <option value="far">Far</option>
+          {{/select}}
+        </select>
+      </div>
+      <div class="sde-creator-row">
+        <label>Note</label>
+        <input type="text" data-draft-field="moveNote" value="{{draft.moveNote}}" placeholder="e.g. climb, fly 60'">
+      </div>
+    </div>
+  </details>
+
+  {{!-- ═══ Spellcasting Section ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.spellcasting}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="spellcasting">
+      <i class="fas fa-wand-sparkles"></i> Spellcasting
+    </summary>
+    <div class="sde-creator-section-body">
+      <div class="sde-creator-row">
+        <label>Ability</label>
+        <select data-draft-field="spellcasting.ability">
+          {{#select draft.spellcasting.ability}}
+            <option value="">(None)</option>
+            <option value="INT">Intelligence</option>
+            <option value="WIS">Wisdom</option>
+            <option value="CHA">Charisma</option>
+          {{/select}}
+        </select>
+      </div>
+      <div class="sde-creator-row">
+        <label>Atk Bonus</label>
+        <input type="number" data-draft-field="spellcasting.bonus" value="{{draft.spellcasting.bonus}}">
+      </div>
+    </div>
+  </details>
+
   {{!-- ═══ Description Section ═══ --}}
   <details class="sde-creator-section" {{#if sectionOpen.description}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="description">

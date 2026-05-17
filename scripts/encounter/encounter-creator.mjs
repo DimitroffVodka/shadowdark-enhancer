@@ -33,10 +33,22 @@ function _defaultDraft() {
     tokenSrc:    "",         // empty = inherit from img on save
     description: "",
     // Stats — Sub-slice 1e-ii
-    // hp: { value: 1, max: 1 }, ac: 10, darkAdapted: false,
-    // abilities: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 },
-    // move: "near", moveNote: "",
-    // spellcasting: { ability: "", bonus: 0, attacks: 0 },
+    hp: { value: 1, max: 1 },
+    ac: 10,
+    darkAdapted: false,
+    abilities: {
+      str: 0, dex: 0, con: 0,
+      int: 0, wis: 0, cha: 0
+    },
+    // Movement
+    move:     "near",        // close/near/far
+    moveNote: "",            // e.g. "climb", "swim"
+    // Spellcasting
+    spellcasting: {
+      ability: "",           // int/wis/cha
+      bonus:   0,
+      attacks: 0
+    },
     // Items — Sub-slice 1e-iii / 1e-iv
     // attacks: [],   // each: {name, type, num, attackBonus, damage, ranges, special}
     // features: [],  // each: {name, description}
@@ -66,12 +78,16 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     this._draft = _defaultDraft();
     // Section open/closed state — survives renders. Default: Identity open.
     this._sectionOpen = {
-      identity:    true,
-      description: false,
-      // stats, movement, spellcasting, actions, features — added in later sub-slices
+      identity:     true,
+      stats:        false,
+      movement:     false,
+      spellcasting: false,
+      description:  false,
+      // actions, features — added in later sub-slices
     };
     // Text-input focus stashes for cursor preservation across renders.
     this._focused = {};  // { fieldName: {selectionStart} }
+    this._lastFocusedField = null;
   }
 
   // ─── Singleton + mount/unmount ────────────────────────────────────
@@ -150,17 +166,29 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.element.querySelectorAll("[data-draft-field]").forEach(input => {
       input.addEventListener("change", ev => {
         const path = ev.target.dataset.draftField;
-        const raw  = ev.target.type === "number" ? Number(ev.target.value) : ev.target.value;
-        this._setDraft(path, raw);
+        let value;
+        if (ev.target.type === "checkbox") {
+          value = ev.target.checked;
+        } else if (ev.target.type === "number") {
+          value = Number(ev.target.value);
+        } else {
+          value = ev.target.value;
+        }
+        this._setDraft(path, value);
       });
       // For text/textarea inputs, also stash cursor on input so we can
       // restore after re-render. Renders are change-event-driven though,
       // so this is only a safety net for re-renders triggered by other paths.
       if (input.type === "text" || input.tagName === "TEXTAREA") {
         input.addEventListener("input", ev => {
-          this._focused[ev.target.dataset.draftField] = {
+          const path = ev.target.dataset.draftField;
+          this._focused[path] = {
             selectionStart: ev.target.selectionStart,
           };
+          this._lastFocusedField = path;
+        });
+        input.addEventListener("focus", ev => {
+          this._lastFocusedField = ev.target.dataset.draftField;
         });
       }
     });
@@ -170,12 +198,12 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     // Re-focus the most recently focused field after re-render, putting
     // the cursor back where the user left it. Avoids the cursor-jumps-
     // to-end issue ApplicationV2 has on full re-renders.
-    const lastField = Object.keys(this._focused).pop();
+    const lastField = this._lastFocusedField;
     if (!lastField) return;
     const input = this.element?.querySelector(`[data-draft-field="${CSS.escape(lastField)}"]`);
     if (input) {
       input.focus();
-      const pos = this._focused[lastField].selectionStart ?? input.value.length;
+      const pos = this._focused[lastField]?.selectionStart ?? input.value.length;
       try { input.setSelectionRange(pos, pos); } catch (_) {}
     }
   }
@@ -228,8 +256,6 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       return;
     }
 
-    // Sub-slice 1e-i: minimal NPC. Later sub-slices extend this with
-    // stats, items, etc. via _draftToActorData(d).
     const actorData = {
       name: d.name.trim(),
       type: "NPC",
@@ -237,7 +263,31 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       system: {
         alignment: d.alignment ?? "N",
         level:     Number(d.level ?? 1),
-        notes:     d.description ?? "",   // Shadowdark NPCs use system.notes for description
+        notes:     d.description ?? "",
+        // Stats — 1e-ii
+        attributes: {
+          hp: {
+            value: Number(d.hp.value ?? 1),
+            max:   Number(d.hp.max ?? 1),
+            base:  Number(d.hp.max ?? 1),
+          },
+          ac: { value: Number(d.ac ?? 10) },
+        },
+        abilities: {
+          str: { mod: Number(d.abilities.str ?? 0) },
+          dex: { mod: Number(d.abilities.dex ?? 0) },
+          con: { mod: Number(d.abilities.con ?? 0) },
+          int: { mod: Number(d.abilities.int ?? 0) },
+          wis: { mod: Number(d.abilities.wis ?? 0) },
+          cha: { mod: Number(d.abilities.cha ?? 0) },
+        },
+        darkAdapted: !!d.darkAdapted,
+        // Movement — 1e-ii
+        move: d.move || "near",
+        moveNote: d.moveNote || "",
+        // Spellcasting — 1e-ii
+        spellcastingAbility: d.spellcasting.ability || "",
+        spellAttackBonus:    Number(d.spellcasting.bonus ?? 0),
       },
       prototypeToken: {
         name: d.name.trim(),
