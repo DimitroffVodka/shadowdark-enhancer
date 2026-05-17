@@ -60,12 +60,17 @@
     <div class="sde-creator-section-body">
 
       <div class="sde-creator-row">
-        <label>HP (Max)</label>
-        <div class="sde-creator-hp-group">
-          <input type="number" data-draft-field="hp.max" value="{{draft.hp.max}}" min="0">
-          <label>AC</label>
-          <input type="number" data-draft-field="ac" value="{{draft.ac}}" min="0">
+        <label>HP</label>
+        <div class="sde-creator-hp-pair">
+          <input type="number" data-draft-field="hp.value" value="{{draft.hp.value}}" min="0" title="Current HP">
+          <span>/</span>
+          <input type="number" data-draft-field="hp.max" value="{{draft.hp.max}}" min="1" title="Maximum HP">
         </div>
+      </div>
+
+      <div class="sde-creator-row">
+        <label>AC</label>
+        <input type="number" data-draft-field="ac" value="{{draft.ac}}" min="0">
       </div>
 
       <div class="sde-creator-row">
@@ -93,17 +98,15 @@
   {{!-- ═══ Movement Section ═══ --}}
   <details class="sde-creator-section" {{#if sectionOpen.movement}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="movement">
-      <i class="fas fa-boot"></i> Movement
+      <i class="fas fa-shoe-prints"></i> Movement
     </summary>
     <div class="sde-creator-section-body">
       <div class="sde-creator-row">
         <label>Type</label>
         <select data-draft-field="move">
-          {{#select draft.move}}
-            <option value="close">Close</option>
-            <option value="near">Near</option>
-            <option value="far">Far</option>
-          {{/select}}
+          {{#each moveOptions}}
+            <option value="{{this}}" {{#if (eq this ../draft.move)}}selected{{/if}}>{{this}}</option>
+          {{/each}}
         </select>
       </div>
       <div class="sde-creator-row">
@@ -122,17 +125,19 @@
       <div class="sde-creator-row">
         <label>Ability</label>
         <select data-draft-field="spellcasting.ability">
-          {{#select draft.spellcasting.ability}}
-            <option value="">(None)</option>
-            <option value="INT">Intelligence</option>
-            <option value="WIS">Wisdom</option>
-            <option value="CHA">Charisma</option>
-          {{/select}}
+          <option value="" {{#unless draft.spellcasting.ability}}selected{{/unless}}>— None —</option>
+          {{#each spellAbilities}}
+            <option value="{{this}}" {{#if (eq this ../draft.spellcasting.ability)}}selected{{/if}}>{{this}}</option>
+          {{/each}}
         </select>
       </div>
       <div class="sde-creator-row">
         <label>Atk Bonus</label>
-        <input type="number" data-draft-field="spellcasting.bonus" value="{{draft.spellcasting.bonus}}">
+        <input type="number" data-draft-field="spellcasting.bonus" value="{{draft.spellcasting.bonus}}" {{#unless draft.spellcasting.ability}}disabled{{/unless}}>
+      </div>
+      <div class="sde-creator-row">
+        <label>Attacks/round</label>
+        <input type="number" data-draft-field="spellcasting.attacks" value="{{draft.spellcasting.attacks}}" min="0" {{#unless draft.spellcasting.ability}}disabled{{/unless}}>
       </div>
     </div>
   </details>

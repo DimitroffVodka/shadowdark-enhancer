@@ -45,9 +45,11 @@ function _defaultDraft() {
     moveNote: "",            // e.g. "climb", "swim"
     // Spellcasting
     spellcasting: {
-      ability: "",           // int/wis/cha
+      ability: "",           // "" (none) / int / wis / cha — lowercase to match
+                             //   abilities object keys and Shadowdark schema
       bonus:   0,
-      attacks: 0
+      attacks: 0,            // spells-per-round; Browse NPCs filter requires >0
+                             //   for "is a spellcaster"
     },
     // Items — Sub-slice 1e-iii / 1e-iv
     // attacks: [],   // each: {name, type, num, attackBonus, damage, ranges, special}
@@ -146,6 +148,18 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       draft:       this._draft,
       sectionOpen: this._sectionOpen,
       alignments:  ["L", "N", "C"],
+      // Movement options come from the system's NPC_MOVES enum — the
+      // full set (close/near/doubleNear/tripleNear/far/special/none),
+      // not just close/near/far. Read at render-time so we follow any
+      // future system additions automatically.
+      moveOptions: Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? {
+        close: "", near: "", doubleNear: "", tripleNear: "",
+        far: "", special: "", none: "",
+      }),
+      // Lowercase ability keys to match the system schema. The
+      // Spellcasting ability dropdown stores these directly into
+      // system.spellcasting.ability, which expects lowercase.
+      spellAbilities: ["int", "wis", "cha"],
     };
   }
 
@@ -269,9 +283,8 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
           hp: {
             value: Number(d.hp.value ?? 1),
             max:   Number(d.hp.max ?? 1),
-            base:  Number(d.hp.max ?? 1),
           },
-          ac: { value: Number(d.ac ?? 10) },
+          ac: { value: Number(d.ac ?? 10), attribute: "" },
         },
         abilities: {
           str: { mod: Number(d.abilities.str ?? 0) },
@@ -283,11 +296,18 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
         },
         darkAdapted: !!d.darkAdapted,
         // Movement — 1e-ii
-        move: d.move || "near",
+        move:     d.move || "near",
         moveNote: d.moveNote || "",
         // Spellcasting — 1e-ii
-        spellcastingAbility: d.spellcasting.ability || "",
-        spellAttackBonus:    Number(d.spellcasting.bonus ?? 0),
+        // Schema is `system.spellcasting.{ability, bonus, attacks}`.
+        // Writing the legacy `spellcastingAbility` / `spellAttackBonus`
+        // fields would round-trip through NpcSD.migrateData() — clean
+        // creates should use the new shape directly.
+        spellcasting: {
+          ability: d.spellcasting.ability || "",
+          bonus:   Number(d.spellcasting.bonus ?? 0),
+          attacks: Number(d.spellcasting.attacks ?? 0),
+        },
       },
       prototypeToken: {
         name: d.name.trim(),

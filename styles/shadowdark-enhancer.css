@@ -2182,19 +2182,17 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-creator-img-picker button:hover { background: var(--sde-bar-bg-hover); }
 
-/* Stats — HP/AC layout */
-.sde-creator-hp-group {
+/* Stats — HP value/max pair (current "/" max) */
+.sde-creator-hp-pair {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
-.sde-creator-hp-group label {
-  font-size: 13px;
+.sde-creator-hp-pair input { width: 60px; }
+.sde-creator-hp-pair span {
   color: var(--sde-bar-text-muted);
   font-weight: 700;
-  margin-left: 10px;
 }
-.sde-creator-hp-group input { width: 60px !important; }
 
 /* Ability grid — 3 columns */
 .sde-creator-ability-grid {
