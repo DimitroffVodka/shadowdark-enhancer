@@ -842,7 +842,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const total = this._lastResult.count;
     let remaining = total;
 
-    const canvasEl = canvas.app.view;
     let active = true;
 
     const updateNotif = () => {
@@ -854,13 +853,16 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const cleanup = () => {
       if (!active) return;
       active = false;
-      canvasEl.removeEventListener("pointerdown", onClick, true);
+      document.removeEventListener("pointerdown", onClick, true);
       document.removeEventListener("keydown", onKey);
       if (this._placeAbort === ctrl) this._placeAbort = null;
     };
 
     const onClick = async (ev) => {
       if (!active || ev.button !== 0) return;
+      // Skip clicks outside the canvas area (UI sidebar, chat, our own
+      // popovers, etc.). Foundry wraps the canvas in #board.
+      if (!ev.target?.closest?.("#board, #board-canvas, canvas")) return;
       // Capture-phase + stopPropagation prevents Foundry's TokenLayer
       // from acting on this click (no drag-select, no deselect).
       ev.preventDefault();
@@ -898,14 +900,23 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       );
     };
 
-    // Track this as the in-flight placement so close() can cancel it.
     const ctrl = { abort: cleanup };
-    this._placeAbort = ctrl;
 
-    this.close();
+    // IMPORTANT ordering: close the window FIRST without `_placeAbort`
+    // set, so close()'s _cancelPlaceTokens is a no-op for the start-of-
+    // placement close. THEN register the listeners and the abort ref.
+    // (Previously: set _placeAbort, call close(), which triggered
+    // cleanup before any click handler was even registered. Result:
+    // active=false and clicks no-op'd forever.)
+    await this.close();
+    this._placeAbort = ctrl;
     updateNotif();
-    // Capture-phase = true so we run before the canvas layers do.
-    canvasEl.addEventListener("pointerdown", onClick, true);
+    // Listen on document with capture-phase: more reliable than
+    // canvas.app.view in v13/PIXI v7 where the canvas DOM element's
+    // pointer-events behavior depends on PIXI's event-manager config.
+    // Capture-phase + the #board check inside onClick keeps us in
+    // front of TokenLayer + filters non-canvas UI clicks out.
+    document.addEventListener("pointerdown", onClick, true);
     document.addEventListener("keydown", onKey);
   }
 
