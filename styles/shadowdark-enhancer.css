@@ -1155,11 +1155,11 @@ body.theme-light .sde-bar-phase-badge {
 .sde-preview-name {
   font-weight: 700;
   color: var(--sde-bar-accent);
-  font-size: 12px;
+  font-size: 14px;
 }
 .sde-preview-formula {
   color: var(--sde-bar-text-muted);
-  font-size: 11px;
+  font-size: 13px;
   font-style: italic;
 }
 
@@ -1181,8 +1181,8 @@ body.theme-light .sde-bar-phase-badge {
   grid-template-columns: subgrid;
   grid-column: 1 / -1;
   align-items: baseline;
-  padding: 4px 6px;
-  font-size: 13px;
+  padding: 6px 8px;
+  font-size: 15px;
   border-radius: 2px;
 }
 .sde-preview-row:hover {
@@ -1203,7 +1203,7 @@ body.theme-light .sde-bar-phase-badge {
 .sde-preview-appearing {
   color: var(--sde-bar-accent);
   font-family: monospace;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
 }
 
