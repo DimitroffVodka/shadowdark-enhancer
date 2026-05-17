@@ -1250,6 +1250,104 @@ body.theme-light .sde-bar-phase-badge {
   opacity: 0.7;
 }
 
+/* ── Chat result card — narrow-pane compact layout ──────────────────────── */
+/* Distinct from the roller window's `.sde-result-card` (which is tuned for
+   the wider 720px panel with fixed 110px label columns). The chat pane is
+   ~280px so labels and results have to flex, never use fixed widths. */
+
+.sde-encounter-chat-card {
+  padding: 4px 2px;
+}
+.sde-chat-header {
+  border-bottom: 1px solid var(--sde-bar-accent-dark);
+  margin-bottom: 6px;
+  padding-bottom: 3px;
+}
+.sde-chat-header h3 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--sde-bar-accent);
+  font-family: "Eskapade", serif;
+  border: none;
+}
+
+.sde-chat-monster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--sde-bar-surface-1);
+  padding: 4px 6px;
+  margin-bottom: 6px;
+  border-radius: 3px;
+  border: 1px solid var(--sde-bar-border);
+}
+.sde-chat-monster img {
+  flex-shrink: 0;
+  border: 1px solid var(--sde-bar-accent-dark);
+  border-radius: 3px;
+}
+.sde-chat-monster-info {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+}
+.sde-chat-monster-count {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--sde-bar-accent);
+  flex-shrink: 0;
+}
+.sde-chat-monster-name {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: "Eskapade", serif;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sde-chat-facets {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sde-chat-facet {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 3px 4px;
+  font-size: 13px;
+  background: var(--sde-bar-surface-2);
+  border-radius: 3px;
+}
+.sde-chat-facet-label {
+  font-weight: 700;
+  color: var(--sde-bar-text-dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sde-chat-facet-result {
+  font-weight: 700;
+  font-size: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.sde-chat-facet-roll {
+  color: var(--sde-bar-text-muted);
+  font-family: monospace;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+/* Reaction band colors — scoped to chat to avoid collision with the
+   window's `.sde-facet-result.Hostile` etc. */
+.sde-reaction-Hostile    { color: var(--sde-bar-hit); }
+.sde-reaction-Friendly   { color: var(--sde-bar-miss); }
+.sde-reaction-Neutral    { color: var(--sde-bar-text-dim); }
+.sde-reaction-Curious    { color: var(--sde-bar-accent); }
+.sde-reaction-Suspicious { color: #d08030; }
+
 /* Flavor result card (chat + window) — large readable text, no facets. */
 .sde-result-flavor .sde-flavor-text,
 .sde-encounter-flavor-card .sde-flavor-text {

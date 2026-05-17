@@ -1,33 +1,31 @@
-<div class="sde-encounter-result-card">
-  <header class="sde-card-header">
-    <h3>Encounter Result</h3>
+<div class="sde-encounter-chat-card">
+  <header class="sde-chat-header">
+    <h3>⚔ Encounter</h3>
   </header>
 
-  <div class="sde-monster-row">
-    <img src="{{img}}" width="36" height="36" />
-    <div class="sde-monster-info">
-      <span class="sde-monster-count">{{count}} ×</span>
-      <span class="sde-monster-name">{{name}}</span>
+  <div class="sde-chat-monster">
+    <img src="{{img}}" width="40" height="40" alt="" />
+    <div class="sde-chat-monster-info">
+      <span class="sde-chat-monster-count">{{count}} ×</span>
+      <span class="sde-chat-monster-name">{{name}}</span>
     </div>
   </div>
 
-  <div class="sde-facets">
-    <div class="sde-facet-row">
-      <span class="sde-facet-label">📏 Distance:</span>
-      <span class="sde-facet-result">{{distanceText}}</span>
-      <span class="sde-facet-roll">({{distanceRoll}})</span>
+  <div class="sde-chat-facets">
+    <div class="sde-chat-facet">
+      <span class="sde-chat-facet-label">📏 Distance</span>
+      <span class="sde-chat-facet-result">{{distanceText}}</span>
+      <span class="sde-chat-facet-roll">({{distanceRoll}})</span>
     </div>
-
-    <div class="sde-facet-row">
-      <span class="sde-facet-label">🎭 Activity:</span>
-      <span class="sde-facet-result">{{activityText}}</span>
-      <span class="sde-facet-roll">({{activityRoll}})</span>
+    <div class="sde-chat-facet">
+      <span class="sde-chat-facet-label">🎭 Activity</span>
+      <span class="sde-chat-facet-result">{{activityText}}</span>
+      <span class="sde-chat-facet-roll">({{activityRoll}})</span>
     </div>
-
-    <div class="sde-facet-row">
-      <span class="sde-facet-label">💬 Reaction:</span>
-      <span class="sde-facet-result {{reactionBand}}">{{reactionBand}}</span>
-      <span class="sde-facet-roll">({{reactionRoll}} + {{chaMod}})</span>
+    <div class="sde-chat-facet">
+      <span class="sde-chat-facet-label">💬 Reaction</span>
+      <span class="sde-chat-facet-result sde-reaction-{{reactionBand}}">{{reactionBand}}</span>
+      <span class="sde-chat-facet-roll">({{reactionRoll}} + {{chaMod}})</span>
     </div>
   </div>
 </div>
