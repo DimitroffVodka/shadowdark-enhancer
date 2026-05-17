@@ -123,18 +123,18 @@
     </summary>
     <div class="sde-creator-section-body">
 
-      {{!-- Quick Picks --}}
+      {{!-- Quick Picks — iterate the catalog directly so additions /
+           removals to ACTION_QUICK_PICKS don't require a template edit. --}}
       <div class="sde-creator-quick-picks">
         <label>Quick Add:</label>
         <div class="sde-creator-quick-grid">
-          {{#each (array 0 1 2 3 4 5 6 7 8 9 10 11)}}
-            {{#with (lookup @root.ACTION_QUICK_PICKS this)}}
-              <button type="button" class="sde-creator-quick-btn"
-                      data-action="creatorAddQuickPick" data-index="{{../this}}"
-                      title="{{name}}: {{#if (eq type 'NPC Attack')}}{{num}}×{{bonus}} {{damage}} ({{ranges}}){{else}}{{description}}{{/if}}">
-                <i class="fas {{icon}}"></i>
-              </button>
-            {{/with}}
+          {{#each ACTION_QUICK_PICKS}}
+            <button type="button" class="sde-creator-quick-btn"
+                    data-action="creatorAddQuickPick" data-index="{{@index}}"
+                    title="{{name}}{{#if (eq type 'NPC Attack')}} — {{num}}× +{{bonus}} {{damage}}{{/if}}{{#if description}} — {{description}}{{/if}}">
+              <i class="fas {{icon}}"></i>
+              <span class="sde-creator-quick-name">{{name}}</span>
+            </button>
           {{/each}}
         </div>
       </div>
@@ -165,8 +165,12 @@
                   <input type="text" data-draft-field="actions.{{@index}}.damage" value="{{damage}}" placeholder="1d6">
                 </div>
               </div>
+              {{!-- Range pills — iterate `ranges` (close/near/far/nearLine
+                   from CONFIG.SHADOWDARK.RANGES), NOT the movement enum.
+                   The array-checkbox handler in _wireFieldInputs toggles
+                   the string value in/out of the slot's ranges array. --}}
               <div class="sde-creator-ranges">
-                {{#each @root.moveOptions}}
+                {{#each @root.ranges}}
                   <label class="sde-creator-range-pill {{#if (includes ../ranges this)}}active{{/if}}">
                     <input type="checkbox" data-draft-field="actions.{{../@index}}.ranges"
                            value="{{this}}" {{#if (includes ../ranges this)}}checked{{/if}} class="hidden">

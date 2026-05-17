@@ -2,6 +2,11 @@
  * Shadowdark Enhancer — Action Templates
  * Quick-pick catalog of common NPC attacks and special actions
  * for the Monster Creator.
+ *
+ * Icons must be FontAwesome 6 FREE glyphs — Foundry doesn't ship the
+ * Pro set, so Pro-only icons (e.g. fa-bow-arrow, fa-axe, fa-dagger,
+ * fa-fire-breathing, fa-flask-poison) render as empty squares. Stuck
+ * to free-tier glyphs throughout. fa-swords IS free in FA6.
  */
 
 export const ACTION_QUICK_PICKS = [
@@ -34,7 +39,7 @@ export const ACTION_QUICK_PICKS = [
     damage: "1d4",
     ranges: ["close"],
     description: "",
-    icon: "fa-hand-back-fist",
+    icon: "fa-hand-fist",     // fa-hand-back-fist is Pro; reuse free fa-hand-fist
   },
   {
     name: "Longsword",
@@ -44,7 +49,7 @@ export const ACTION_QUICK_PICKS = [
     damage: "1d8",
     ranges: ["close"],
     description: "",
-    icon: "fa-sword",
+    icon: "fa-swords",        // free in FA6; we already use this elsewhere
   },
   {
     name: "Greataxe",
@@ -54,7 +59,7 @@ export const ACTION_QUICK_PICKS = [
     damage: "1d10",
     ranges: ["close"],
     description: "",
-    icon: "fa-axe",
+    icon: "fa-khanda",        // free; closest "heavy weapon" glyph
   },
 
   // ─── Basic Ranged ─────────────────────────────────────────────────
@@ -66,7 +71,7 @@ export const ACTION_QUICK_PICKS = [
     damage: "1d6",
     ranges: ["near", "far"],
     description: "",
-    icon: "fa-bow-arrow",
+    icon: "fa-crosshairs",    // free; we already use this for ranged in action menu
   },
   {
     name: "Sling",
@@ -76,7 +81,7 @@ export const ACTION_QUICK_PICKS = [
     damage: "1d4",
     ranges: ["near"],
     description: "",
-    icon: "fa-staff-snake", // closest icon for sling
+    icon: "fa-circle",        // free; small projectile / stone
   },
   {
     name: "Throwing Knife",
@@ -86,7 +91,7 @@ export const ACTION_QUICK_PICKS = [
     damage: "1d4",
     ranges: ["near"],
     description: "",
-    icon: "fa-dagger",
+    icon: "fa-location-arrow", // free; thrown / pointed shape
   },
 
   // ─── Special / Status ─────────────────────────────────────────────
@@ -100,13 +105,13 @@ export const ACTION_QUICK_PICKS = [
     name: "Breath Weapon",
     type: "NPC Special Attack",
     description: "Near. 3d6 fire (DC 12 DEX half).",
-    icon: "fa-fire-breathing",
+    icon: "fa-fire",          // free; was fa-fire-breathing (Pro)
   },
   {
     name: "Poison",
     type: "NPC Special Attack",
     description: "DC 12 CON or die in 1d4 rounds.",
-    icon: "fa-flask-poison",
+    icon: "fa-skull-crossbones", // free; was fa-flask-poison (Pro)
   },
   {
     name: "Sting",

@@ -191,6 +191,21 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     this.element.querySelectorAll("[data-draft-field]").forEach(input => {
       input.addEventListener("change", ev => {
         const path = ev.target.dataset.draftField;
+        // Array-valued checkbox groups (e.g. actions.N.ranges) — the
+        // checkbox has a `value` attribute holding the string we want
+        // to add/remove from the existing array. Toggling replaces the
+        // array with [oldValues ± value] instead of clobbering it
+        // with the checkbox's boolean `checked` state.
+        if (ev.target.type === "checkbox" && ev.target.hasAttribute("value")) {
+          const tag = ev.target.value;
+          const cur = this._getDraft(path);
+          const arr = Array.isArray(cur) ? [...cur] : [];
+          const at  = arr.indexOf(tag);
+          if (ev.target.checked && at === -1) arr.push(tag);
+          else if (!ev.target.checked && at !== -1) arr.splice(at, 1);
+          this._setDraft(path, arr);
+          return;
+        }
         let value;
         if (ev.target.type === "checkbox") {
           value = ev.target.checked;
@@ -245,6 +260,19 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     }
     obj[parts[0]] = value;
     this.render();
+  }
+
+  /** Dot-path reader, mirror of _setDraft. Returns undefined if any
+   *  segment is missing. Used by the array-checkbox toggle path so we
+   *  can read the existing array, mutate, and write back. */
+  _getDraft(path) {
+    const parts = path.split(".");
+    let obj = this._draft;
+    for (const key of parts) {
+      if (obj == null) return undefined;
+      obj = obj[key];
+    }
+    return obj;
   }
 
   // ─── Action handlers ──────────────────────────────────────────────
@@ -377,6 +405,15 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       const actor = await Actor.implementation.create(actorData);
 
       // ─── Create Action Items (1e-iii) ─────────────────────────────
+      // Schema (NpcAttackSD.mjs):
+      //   system.attack:   { num }                                — count only
+      //   system.bonuses:  { attackBonus, damageBonus, critical } — sibling, NOT under attack
+      //   system.damage:   { numDice, special, value }            — `special` is the rider text
+      //   system.ranges:   array of CONFIG.SHADOWDARK.RANGES keys
+      // We mirror `description` into `damage.special` for NPC Attack so the
+      // action menu's stat-block renderer (which reads damage.special for
+      // the "+ rider" inline display, slice 1a) shows it correctly. The
+      // long-form copy stays in `system.description` for the item sheet.
       const itemData = d.actions.map(a => {
         const base = {
           name: a.name.trim() || "New Action",
@@ -386,12 +423,21 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
           },
         };
         if (a.type === "NPC Attack") {
-          base.system.attack = {
-            num:   Number(a.num ?? 1),
-            bonus: Number(a.bonus ?? 0),
+          base.system.attack  = { num: Number(a.num ?? 1) };
+          base.system.bonuses = { attackBonus: Number(a.bonus ?? 0) };
+          base.system.damage  = {
+            value:   a.damage || "1d6",
+            special: a.description || "",
           };
-          base.system.damage = { value: a.damage || "1d6" };
-          base.system.ranges = a.ranges || ["close"];
+          base.system.ranges  = Array.isArray(a.ranges) && a.ranges.length
+            ? a.ranges
+            : ["close"];
+        } else if (a.type === "NPC Special Attack") {
+          // NPC Special Attack shares the same schema shape; set
+          // sensible defaults so the system's roll pipeline doesn't
+          // hit missing fields if the user later edits the item.
+          base.system.attack  = { num: Number(a.num ?? 1) };
+          base.system.bonuses = { attackBonus: Number(a.bonus ?? 0) };
         }
         return base;
       });
