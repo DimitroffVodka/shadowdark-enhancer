@@ -781,20 +781,27 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   /**
-   * Place N tokens of the rolled monster on the active scene.
+   * Place N tokens of the rolled monster on the active scene,
+   * one per click. The GM clicks anywhere on the canvas to drop a
+   * token at that position; this repeats until all N are placed or
+   * the GM presses Escape to cancel the remainder.
    *
-   * Strategy: drop at the **camera viewport center** (Vagabond's
-   * pattern) rather than waiting for a canvas click. The previous
-   * click-based approach was broken on Foundry v13 — PIXI v7 changed
-   * the federated event API and `ev.data.getLocalPosition()` (PIXI
-   * v6) throws silently inside the PIXI event chain. Viewport-center
-   * placement is also a more reliable UX: the GM scrolls to where
-   * they want, then clicks Place, and tokens land where the camera
-   * is pointing. No click-timing fragility.
+   * Why DOM events instead of canvas.stage PIXI events: Foundry v13
+   * ships PIXI v7+ which changed the federated-event API. The old
+   * `event.data.getLocalPosition()` pattern is gone, and the new
+   * `event.getLocalPosition()` interacts with layered Canvas children
+   * unreliably (TokenLayer can capture clicks first). DOM-level
+   * pointerdown with capture:true gets us first dibs and uses
+   * Foundry's already-tracked `canvas.mousePosition` for world coords.
    *
    * Compendium actors are imported as world actors first (or an
    * existing same-named world actor is reused) so the placed tokens
-   * have a valid actorId reference.
+   * have a valid `actorId` reference.
+   *
+   * Token texture fallback: some compendium NPCs have
+   * `prototypeToken.texture.src` set to the default mystery-man while
+   * `actor.img` holds the actual illustration. Detect that case and
+   * use `actor.img` instead so placed tokens display the right art.
    */
   async _onPlaceTokens() {
     if (!this._lastResult) return;
@@ -819,34 +826,95 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       actor = existing ?? await Actor.implementation.create(actor.toObject());
     }
 
-    const count    = this._lastResult.count;
-    const gridSize = canvas.scene.grid.size;
-    // Camera viewport center, snapped to the grid.
-    const cx = Math.round(canvas.stage.pivot.x / gridSize) * gridSize;
-    const cy = Math.round(canvas.stage.pivot.y / gridSize) * gridSize;
-
+    // Build the template token source, with image fallback.
     const tokenSource = (await actor.getTokenDocument()).toObject();
-    const step = Math.round(gridSize * 1.5);
-    const tokensToCreate = [];
-    for (let i = 0; i < count; i++) {
-      const col = i % 5;
-      const row = Math.floor(i / 5);
-      const td = { ...tokenSource, x: cx + col * step, y: cy + row * step, actorId: actor.id };
-      delete td._id; // Foundry assigns a fresh ID per token
-      tokensToCreate.push(td);
+    const protoSrc = tokenSource.texture?.src;
+    const isDefaultArt = !protoSrc
+      || protoSrc === "icons/svg/mystery-man.svg"
+      || protoSrc === CONST.DEFAULT_TOKEN;
+    if (isDefaultArt && actor.img && actor.img !== "icons/svg/mystery-man.svg") {
+      tokenSource.texture = { ...(tokenSource.texture ?? {}), src: actor.img };
     }
 
-    await canvas.scene.createEmbeddedDocuments("Token", tokensToCreate);
-    ui.notifications.info(`Placed ${count} × ${actor.name} at camera center.`);
+    // Cancellable click-to-place loop. Each click drops one token at
+    // the cursor's snapped grid position. Window closes so the canvas
+    // is fully visible; ESC cancels remaining placements.
+    const total = this._lastResult.count;
+    let remaining = total;
+
+    const canvasEl = canvas.app.view;
+    let active = true;
+
+    const updateNotif = () => {
+      ui.notifications.info(
+        `Click canvas to place token ${total - remaining + 1} of ${total} — ${actor.name} (Esc to cancel).`
+      );
+    };
+
+    const cleanup = () => {
+      if (!active) return;
+      active = false;
+      canvasEl.removeEventListener("pointerdown", onClick, true);
+      document.removeEventListener("keydown", onKey);
+      if (this._placeAbort === ctrl) this._placeAbort = null;
+    };
+
+    const onClick = async (ev) => {
+      if (!active || ev.button !== 0) return;
+      // Capture-phase + stopPropagation prevents Foundry's TokenLayer
+      // from acting on this click (no drag-select, no deselect).
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+
+      // Use Foundry's continuously-tracked mouse position (world coords).
+      const pos = canvas.mousePosition;
+      const snap = canvas.grid.getSnappedPoint(
+        { x: pos.x, y: pos.y },
+        { mode: CONST.GRID_SNAPPING_MODES.TOP_LEFT_VERTEX }
+      );
+
+      const td = { ...tokenSource, x: snap.x, y: snap.y, actorId: actor.id };
+      delete td._id; // Foundry assigns a fresh ID per token
+      await canvas.scene.createEmbeddedDocuments("Token", [td]);
+
+      remaining--;
+      if (remaining > 0) {
+        updateNotif();
+      } else {
+        cleanup();
+        ui.notifications.info(`Placed all ${total} × ${actor.name}.`);
+      }
+    };
+
+    const onKey = (ev) => {
+      if (ev.key !== "Escape") return;
+      cleanup();
+      const placed = total - remaining;
+      ui.notifications.info(
+        placed > 0
+          ? `Cancelled — placed ${placed} of ${total} × ${actor.name}.`
+          : `Cancelled — no tokens placed.`
+      );
+    };
+
+    // Track this as the in-flight placement so close() can cancel it.
+    const ctrl = { abort: cleanup };
+    this._placeAbort = ctrl;
+
+    this.close();
+    updateNotif();
+    // Capture-phase = true so we run before the canvas layers do.
+    canvasEl.addEventListener("pointerdown", onClick, true);
+    document.addEventListener("keydown", onKey);
   }
 
-  /** Kept for the `close()` lifecycle hook; viewport-center placement
-   *  doesn't leave anything to clean up, so this is a no-op now. */
+  /** Aborts any in-flight click-to-place loop (called from close()). */
   _cancelPlaceTokens() {
-    // Previously aborted an in-flight click-to-place listener.
-    // Viewport-center placement is synchronous + immediate — nothing
-    // to cancel. Left as a no-op so the existing close() call site
-    // keeps working without conditionals.
+    if (this._placeAbort?.abort) {
+      this._placeAbort.abort();
+      this._placeAbort = null;
+    }
   }
 
   async _onBrowseToggleSource(event, target) {
