@@ -824,11 +824,40 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // compendium actors directly; we need a world actor for the
     // token's actorId. Reuse one by name+type if it already exists.
     let actor = compendiumActor;
+    let reusedExisting = false;
     if (actor.pack) {
       const existing = game.actors.find(a =>
         a.type === "NPC" && a.name === actor.name
       );
-      actor = existing ?? await Actor.implementation.create(actor.toObject());
+      if (existing) {
+        actor = existing;
+        reusedExisting = true;
+      } else {
+        actor = await Actor.implementation.create(actor.toObject());
+      }
+    }
+
+    // One-shot art repair on REUSED world copies. If our prior import
+    // ran before the community-tokens compendiumArtMappings finished
+    // applying, the world copy was created with the unmapped
+    // placeholder portrait + token texture. The compendium fetch we
+    // just did always returns the mapped values, so use them to
+    // refresh the world copy's stale fields. Only updates fields that
+    // are currently placeholders — user customizations to real
+    // images are left alone.
+    if (reusedExisting) {
+      const updates = {};
+      if (_isPlaceholderArt(actor.img) && !_isPlaceholderArt(compendiumActor.img)) {
+        updates.img = compendiumActor.img;
+      }
+      const worldProtoSrc = actor.prototypeToken?.texture?.src;
+      const compProtoSrc  = compendiumActor.prototypeToken?.texture?.src;
+      if (_isPlaceholderArt(worldProtoSrc) && !_isPlaceholderArt(compProtoSrc)) {
+        updates["prototypeToken.texture.src"] = compProtoSrc;
+      }
+      if (Object.keys(updates).length > 0) {
+        await actor.update(updates);
+      }
     }
 
     // Build the template token source, picking the best available
