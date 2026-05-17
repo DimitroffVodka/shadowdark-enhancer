@@ -861,8 +861,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const onClick = async (ev) => {
       if (!active || ev.button !== 0) return;
       // Skip clicks outside the canvas area (UI sidebar, chat, our own
-      // popovers, etc.). Foundry wraps the canvas in #board.
-      if (!ev.target?.closest?.("#board, #board-canvas, canvas")) return;
+      // popovers, etc.). v13's DOM wraps the canvas in #board.
+      const insideCanvas = ev.target?.closest?.("#board, #board-canvas, canvas, .scene")
+                        || ev.target?.tagName === "CANVAS";
+      if (!insideCanvas) return;
       // Capture-phase + stopPropagation prevents Foundry's TokenLayer
       // from acting on this click (no drag-select, no deselect).
       ev.preventDefault();
@@ -871,6 +873,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
       // Use Foundry's continuously-tracked mouse position (world coords).
       const pos = canvas.mousePosition;
+      if (!pos) return;
       const snap = canvas.grid.getSnappedPoint(
         { x: pos.x, y: pos.y },
         { mode: CONST.GRID_SNAPPING_MODES.TOP_LEFT_VERTEX }
