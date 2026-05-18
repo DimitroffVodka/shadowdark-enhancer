@@ -18,8 +18,9 @@ import { _bestArtForActor, _isPlaceholderArt } from "./art-utils.mjs";
 import { ACTION_QUICK_PICKS } from "./action-templates.mjs";
 import { FEATURE_QUICK_PICKS } from "./feature-templates.mjs";
 
-const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 const { renderTemplate } = foundry.applications.handlebars;
+
+const TEMPLATE_PATH = "modules/shadowdark-enhancer/templates/encounter-creator.hbs";
 
 /**
  * Default shape for a fresh-from-scratch monster. Mirrors the
@@ -59,35 +60,44 @@ function _defaultDraft() {
   };
 }
 
-export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2) {
+/**
+ * Plain class — NOT extending ApplicationV2.
+ *
+ * We tried mounting an ApplicationV2 subclass into an external host
+ * div via overridden _replaceHTML, but the framework simultaneously
+ * creates its own `content` element that conflicts with our manual
+ * mount target — `this.element` ends up pointing to an empty,
+ * never-displayed div, so subsequent querySelectorAll(...) finds
+ * nothing and the visible host stays blank.
+ *
+ * For a panel that lives inside another app's DOM (mounted into the
+ * EncounterRollerApp's creator tab), the simpler pattern is to
+ * manage the DOM lifecycle ourselves: render template → set
+ * host.innerHTML → wire events. ~30 lines, no framework surprises.
+ */
+export class MonsterCreatorApp {
 
-  static DEFAULT_OPTIONS = {
-    id: "sde-monster-creator",
-    tag: "div",
-    window: { frame: false },   // mounted inline; no window chrome
-    actions: {
-      sectionToggle:    MonsterCreatorApp.prototype._onSectionToggle,
-      pickImg:          MonsterCreatorApp.prototype._onPickImg,
-      pickTokenSrc:     MonsterCreatorApp.prototype._onPickTokenSrc,
-      creatorAddAction: MonsterCreatorApp.prototype._onAddAction,
-      creatorAddSpecial: MonsterCreatorApp.prototype._onAddSpecial,
-      creatorRemoveAction: MonsterCreatorApp.prototype._onRemoveAction,
-      creatorAddQuickPick: MonsterCreatorApp.prototype._onAddQuickPick,
-      creatorAddFeature: MonsterCreatorApp.prototype._onAddFeature,
-      creatorRemoveFeature: MonsterCreatorApp.prototype._onRemoveFeature,
-      creatorAddFeatureQuickPick: MonsterCreatorApp.prototype._onAddFeatureQuickPick,
-      creatorToggleLoader: MonsterCreatorApp.prototype._onToggleLoader,
-      creatorLoaderPick:   MonsterCreatorApp.prototype._onLoaderPick,
-      save:             MonsterCreatorApp.prototype._onSave,
-    },
+  /** Click-action handler map. Each entry's value is called as
+   *  `handler.call(this, event, target)` from _wireActions when a
+   *  `[data-action]` element is clicked. Same shape ApplicationV2
+   *  uses for its actions map, just dispatched manually. */
+  static ACTIONS = {
+    sectionToggle:              MonsterCreatorApp.prototype._onSectionToggle,
+    pickImg:                    MonsterCreatorApp.prototype._onPickImg,
+    pickTokenSrc:               MonsterCreatorApp.prototype._onPickTokenSrc,
+    creatorAddAction:           MonsterCreatorApp.prototype._onAddAction,
+    creatorAddSpecial:          MonsterCreatorApp.prototype._onAddSpecial,
+    creatorRemoveAction:        MonsterCreatorApp.prototype._onRemoveAction,
+    creatorAddQuickPick:        MonsterCreatorApp.prototype._onAddQuickPick,
+    creatorAddFeature:          MonsterCreatorApp.prototype._onAddFeature,
+    creatorRemoveFeature:       MonsterCreatorApp.prototype._onRemoveFeature,
+    creatorAddFeatureQuickPick: MonsterCreatorApp.prototype._onAddFeatureQuickPick,
+    creatorToggleLoader:        MonsterCreatorApp.prototype._onToggleLoader,
+    creatorLoaderPick:          MonsterCreatorApp.prototype._onLoaderPick,
+    save:                       MonsterCreatorApp.prototype._onSave,
   };
 
-  static PARTS = {
-    main: { template: "modules/shadowdark-enhancer/templates/encounter-creator.hbs" },
-  };
-
-  constructor(options = {}) {
-    super(options);
+  constructor() {
     this._draft = _defaultDraft();
     // Section open/closed state — survives renders. Default: Identity open.
     this._sectionOpen = {
@@ -119,19 +129,20 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   /** Mounts the creator panel inside the given host element. Called by
-   *  EncounterRollerApp when the creator tab is opened. */
+   *  EncounterRollerApp when the creator tab is opened. Idempotent —
+   *  re-calling with the same host just re-renders. */
   static async mountPanel(host) {
     const inst = this.instance;
     inst._mountHost = host;
-    await inst.render(true);
+    await inst.render();
   }
 
   /** Unmounts the panel without destroying its state. Called when the
    *  user switches to another tab. State is preserved on the singleton
    *  so reopening the creator tab restores in-progress edits. */
   static unmountPanel() {
-    if (this._instance?.rendered) {
-      this._instance.element?.remove?.();
+    if (this._instance?._mountHost) {
+      this._instance._mountHost.innerHTML = "";
       this._instance._mountHost = null;
     }
   }
@@ -142,25 +153,22 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     return mod.EncounterRollerApp.open("creator");
   }
 
-  // ─── ApplicationV2 lifecycle ──────────────────────────────────────
+  // ─── Render lifecycle ────────────────────────────────────────────
+  //
+  // No ApplicationV2 inheritance — we manage the DOM directly inside
+  // the host div EncounterRollerApp gives us. render() is the single
+  // entry point; everything else (input wiring, action dispatch, focus
+  // restoration) runs from _onRender after the HTML is in place.
 
-  async _renderHTML(context, options) {
-    return renderTemplate(this.constructor.PARTS.main.template, context);
+  async render() {
+    if (!this._mountHost) return;
+    const context = await this._prepareContext();
+    const html = await renderTemplate(TEMPLATE_PATH, context);
+    this._mountHost.innerHTML = html;
+    this._onRender(context);
   }
 
-  _replaceHTML(result, content, options) {
-    // Mount into the host div provided by EncounterRollerApp instead of
-    // letting ApplicationV2 manage its own DOM. Standard pattern for
-    // panel-mode mounting.
-    if (this._mountHost) {
-      this._mountHost.innerHTML = result;
-      this._element = this._mountHost.firstElementChild ?? this._mountHost;
-    } else {
-      content.innerHTML = result;
-    }
-  }
-
-  async _prepareContext(options) {
+  async _prepareContext() {
     // Bestiary loader (1e-v): pre-filter rows here so the template
     // doesn't need exotic Handlebars helpers like (lower) / (or) /
     // (not) — we only ship `includes`, `array`, `isFinite` from the
@@ -205,11 +213,27 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     };
   }
 
-  _onRender(context, options) {
-    super._onRender(context, options);
+  _onRender(context) {
     this._restoreFocus();
+    this._wireActions();
     this._wireFieldInputs();
     this._wireLoaderSearch();
+  }
+
+  /** Manually dispatch clicks on `[data-action="..."]` elements to the
+   *  matching handler in ACTIONS. Replaces ApplicationV2's framework
+   *  wiring since we no longer extend it. */
+  _wireActions() {
+    if (!this._mountHost) return;
+    this._mountHost.querySelectorAll("[data-action]").forEach(el => {
+      el.addEventListener("click", ev => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const action = ev.currentTarget.dataset.action;
+        const handler = MonsterCreatorApp.ACTIONS[action];
+        if (handler) handler.call(this, ev, ev.currentTarget);
+      });
+    });
   }
 
   /**
@@ -224,7 +248,7 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
    * (re-render rebuilds the popover and loses input focus).
    */
   _wireLoaderSearch() {
-    const input = this.element?.querySelector("input[data-loader-search]");
+    const input = this._mountHost?.querySelector("input[data-loader-search]");
     if (!input) return;
 
     let t = null;
@@ -246,12 +270,12 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
   // ─── Field wiring (text/number inputs use change-events to limit re-renders) ─
 
   _wireFieldInputs() {
-    if (!this.element) return;
+    if (!this._mountHost) return;
 
     // Generic field-binder: every input with [data-draft-field="path.to.field"]
     // updates this._draft on change. Uses dot-path so we can wire nested
     // fields later (system.attributes.hp.max etc.) the same way.
-    this.element.querySelectorAll("[data-draft-field]").forEach(input => {
+    this._mountHost.querySelectorAll("[data-draft-field]").forEach(input => {
       input.addEventListener("change", ev => {
         const path = ev.target.dataset.draftField;
         // Array-valued checkbox groups (e.g. actions.N.ranges) — the
@@ -308,7 +332,7 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     const selector = lastField === "__loaderSearch"
       ? "input[data-loader-search]"
       : `[data-draft-field="${CSS.escape(lastField)}"]`;
-    const input = this.element?.querySelector(selector);
+    const input = this._mountHost?.querySelector(selector);
     if (input) {
       input.focus();
       const pos = this._focused[lastField]?.selectionStart ?? input.value.length;
