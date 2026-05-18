@@ -207,7 +207,7 @@
               <div class="sde-creator-ranges">
                 {{#each @root.ranges}}
                   <label class="sde-creator-range-pill {{#if (includes ../ranges this)}}active{{/if}}">
-                    <input type="checkbox" data-draft-field="actions.{{../@index}}.ranges"
+                    <input type="checkbox" data-draft-field="actions.{{@../index}}.ranges"
                            value="{{this}}" {{#if (includes ../ranges this)}}checked{{/if}} class="hidden">
                     {{this}}
                   </label>

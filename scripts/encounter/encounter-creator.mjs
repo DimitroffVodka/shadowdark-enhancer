@@ -162,10 +162,18 @@ export class MonsterCreatorApp {
 
   async render() {
     if (!this._mountHost) return;
-    const context = await this._prepareContext();
-    const html = await renderTemplate(TEMPLATE_PATH, context);
-    this._mountHost.innerHTML = html;
-    this._onRender(context);
+    try {
+      const context = await this._prepareContext();
+      const html = await renderTemplate(TEMPLATE_PATH, context);
+      this._mountHost.innerHTML = html;
+      this._onRender(context);
+    } catch (err) {
+      // Surface template / context errors visibly in the panel
+      // instead of leaving the user with an empty tab.
+      console.error(`${MODULE_ID} | Monster Creator render failed:`, err);
+      this._mountHost.innerHTML =
+        `<div class="sde-creator-error">Monster Creator failed to render: ${err.message}<br><small>Check console for stack trace.</small></div>`;
+    }
   }
 
   async _prepareContext() {

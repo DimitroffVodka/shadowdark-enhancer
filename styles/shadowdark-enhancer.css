@@ -2184,6 +2184,15 @@ body.theme-light .sde-bar-phase-badge {
   font-style: italic;
   color: var(--sde-bar-text-muted);
 }
+.sde-creator-error {
+  padding: 16px;
+  margin: 8px;
+  background: rgba(224, 80, 80, 0.10);
+  border: 1px solid rgba(224, 80, 80, 0.4);
+  border-radius: var(--sde-bar-radius);
+  color: var(--sde-bar-hit);
+  font-size: 13px;
+}
 
 .sde-creator-section {
   background: var(--sde-bar-bg-alt);
