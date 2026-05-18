@@ -1,41 +1,54 @@
 <div class="sde-creator">
 
-  {{!-- Bestiary Loader (1e-v) --}}
-  <div class="sde-creator-loader-wrapper">
-    <button type="button" class="sde-creator-loader-btn" data-action="creatorToggleLoader">
-      <i class="fas fa-book"></i> Load From Bestiary&hellip;
-    </button>
+  {{#if _loaderOpen}}
 
-    {{#if _loaderOpen}}
-      <div class="sde-creator-loader-popover">
-        <div class="sde-creator-loader-header">
+    {{!-- ═══ Bestiary Loader Takeover (1e-v) ═══════════════════════════
+         When active, this view REPLACES the entire creator UI — closer
+         to Vagabond's loader UX than the cramped popover it replaced.
+         Pick a card to pre-fill the draft + return to the creator view. --}}
+    <div class="sde-creator-loader-takeover">
+
+      <header class="sde-creator-loader-bar">
+        <button type="button" class="sde-creator-loader-cancel" data-action="creatorToggleLoader" title="Back to Creator">
+          <i class="fas fa-arrow-left"></i> Back
+        </button>
+        <div class="sde-creator-loader-search-wrap">
           <i class="fas fa-magnifying-glass"></i>
           {{!-- Loader search uses data-loader-search (not data-draft-field)
                because it writes to this._loaderSearch, not this._draft. See
                _wireLoaderSearch + _prepareContext for the round-trip. --}}
-          <input type="text" placeholder="Search NPCs..."
+          <input type="text" placeholder="Search bestiary…"
                  data-loader-search value="{{_loaderSearch}}">
         </div>
-        <div class="sde-creator-loader-list sde-scrollbar">
-          {{!-- Rows are pre-filtered in _prepareContext (JS) so we don't
-               need exotic (lower)/(or)/(not) Handlebars helpers — we only
-               registered (includes), (array), (isFinite). --}}
-          {{#each _loaderRows}}
-            <div class="sde-creator-loader-row" data-action="creatorLoaderPick" data-uuid="{{uuid}}">
-              <img src="{{img}}" width="24" height="24" alt="" />
-              <span class="sde-creator-loader-name">{{name}}</span>
-              <span class="sde-creator-loader-lvl">{{displayLabel}}</span>
-            </div>
-          {{/each}}
-          {{#if _loaderEmpty}}
-            <div class="sde-creator-loader-empty">No matching NPCs.</div>
-          {{/if}}
-        </div>
-      </div>
-    {{/if}}
-  </div>
+        <span class="sde-creator-loader-count">{{_loaderRows.length}} NPCs</span>
+      </header>
 
-  {{!-- ═══ Identity Section ═══ --}}
+      <div class="sde-creator-loader-grid sde-scrollbar">
+        {{!-- Rows are pre-filtered + labelled in _prepareContext (JS).
+             Each card is a button so it's keyboard-accessible. --}}
+        {{#each _loaderRows}}
+          <button type="button" class="sde-creator-loader-card" data-action="creatorLoaderPick" data-uuid="{{uuid}}" title="{{name}}">
+            <img src="{{img}}" alt="" loading="lazy" />
+            <span class="sde-creator-loader-card-name">{{name}}</span>
+            <span class="sde-creator-loader-card-meta">{{displayLabel}}</span>
+          </button>
+        {{/each}}
+        {{#if _loaderEmpty}}
+          <div class="sde-creator-loader-empty">No matching NPCs in selected sources. Try widening the search or enabling more sources in the Browse NPCs tab.</div>
+        {{/if}}
+      </div>
+    </div>
+
+  {{else}}
+
+    {{!-- ═══ Bestiary Loader Trigger (only shown when NOT in loader) ═══ --}}
+    <div class="sde-creator-loader-wrapper">
+      <button type="button" class="sde-creator-loader-btn" data-action="creatorToggleLoader">
+        <i class="fas fa-book"></i> Load From Bestiary&hellip;
+      </button>
+    </div>
+
+    {{!-- ═══ Identity Section ═══ --}}
   <details class="sde-creator-section" {{#if sectionOpen.identity}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="identity">
       <i class="fas fa-id-card"></i> Identity
@@ -320,5 +333,7 @@
       <i class="fas fa-floppy-disk"></i> Create World Actor
     </button>
   </div>
+
+  {{/if}}{{!-- end of !_loaderOpen branch --}}
 
 </div>

@@ -2114,29 +2114,131 @@ body.theme-light .sde-bar-phase-badge {
   border-color: var(--sde-bar-accent-dim);
 }
 
-.sde-creator-loader-popover {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  /* Above the encounter roller's own content but below Foundry's
-     own UI overlays. Was previously z-index:100 which is fine
-     ordering-wise; the visual breakage was the background variable
-     below being undefined. */
-  z-index: 100;
-  /* The previous `var(--foundry-bg-darker)` is not defined in this
-     codebase, so the popover rendered with NO background and the
-     Identity / Stats sections beneath it bled through. Use our own
-     opaque surface token. */
-  background: var(--sde-bar-bg-alt);
-  border: 1px solid var(--sde-bar-accent-dark);
-  border-radius: 4px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  margin-top: 4px;
+/* ── Bestiary Loader Takeover (1e-v v2) ──────────────────────────────
+   Replaces the cramped popover with a full-panel card-grid picker
+   styled closer to Vagabond Crawler's loader. When _loaderOpen, the
+   entire creator UI swaps to this view; pick a card → returns to the
+   normal creator form pre-filled. */
+
+.sde-creator-loader-takeover {
   display: flex;
   flex-direction: column;
-  max-height: 350px;
+  gap: 10px;
+  min-height: 60vh;
+}
+
+.sde-creator-loader-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+}
+.sde-creator-loader-cancel {
+  background: var(--sde-bar-btn-2);
+  border: 1px solid var(--sde-bar-border);
+  color: var(--sde-bar-text);
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  padding: 5px 10px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+.sde-creator-loader-cancel:hover {
+  background: var(--sde-bar-bg-hover);
+  color: var(--sde-bar-text-bright);
+}
+.sde-creator-loader-search-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sde-bar-input-bg);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 2px;
+  padding: 4px 10px;
+}
+.sde-creator-loader-search-wrap i {
+  color: var(--sde-bar-text-muted);
+  font-size: 12px;
+}
+.sde-creator-loader-search-wrap input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--sde-bar-text);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  outline: none;
+}
+.sde-creator-loader-count {
+  font-size: 12px;
+  color: var(--sde-bar-text-muted);
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+/* Card grid — square cards with portrait + name + meta line. Wraps
+   responsively; 4–6 cards per row depending on panel width. */
+.sde-creator-loader-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  padding: 6px;
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.sde-creator-loader-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 6px;
+  background: var(--sde-bar-surface-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, border-color 0.12s, transform 0.08s;
+  font-family: var(--sde-bar-font);
+  color: var(--sde-bar-text);
+}
+.sde-creator-loader-card:hover {
+  background: var(--sde-bar-bg-hover);
+  border-color: var(--sde-bar-accent-dim);
+  transform: translateY(-1px);
+}
+.sde-creator-loader-card:active {
+  transform: translateY(0);
+  border-color: var(--sde-bar-accent);
+}
+.sde-creator-loader-card img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border: 1px solid var(--sde-bar-accent-dark);
+  border-radius: 4px;
+  background: var(--sde-bar-bg);
+}
+.sde-creator-loader-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sde-bar-text-bright);
+  /* Truncate long names so cards stay uniform height */
+  width: 100%;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sde-creator-loader-card-meta {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--sde-bar-text-muted);
 }
 
 .sde-creator-loader-header {
@@ -2187,11 +2289,15 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text-muted);
 }
 .sde-creator-loader-empty {
-  padding: 12px;
+  /* Span the full width of the grid (otherwise it sits in one column
+     and looks cramped). */
+  grid-column: 1 / -1;
+  padding: 24px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
   font-style: italic;
   color: var(--sde-bar-text-muted);
+  line-height: 1.5;
 }
 .sde-creator-error {
   padding: 16px;
