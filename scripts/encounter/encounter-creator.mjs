@@ -182,10 +182,18 @@ export class MonsterCreatorApp {
     // (not) — we only ship `includes`, `array`, `isFinite` from the
     // entry point, and trying to call missing helpers throws at
     // render time. JS filter + a flat array → trivial template.
+    //
+    // We also build each row's displayLabel here (instead of
+    // `{{alignment}} {{level}}` in the template) so we can:
+    //   - render "—" when level is NaN (missing) instead of literal "NaN"
+    //   - normalize alignment to a 1-letter code (L/N/C) regardless of
+    //     whether the source stores "lawful"/"neutral"/"chaotic" or the
+    //     short form — Shadowdark uses full words, our Creator uses short
     const needle = (this._loaderSearch ?? "").trim().toLowerCase();
-    const loaderRowsFiltered = needle
+    const loaderRowsFiltered = (needle
       ? this._loaderRows.filter(r => r.name?.toLowerCase().includes(needle))
-      : this._loaderRows;
+      : this._loaderRows
+    ).map(r => ({ ...r, displayLabel: _formatLoaderLabel(r) }));
 
     return {
       draft:       this._draft,
@@ -503,8 +511,16 @@ export class MonsterCreatorApp {
 
     const draft = {
       name:        actor.name,
-      alignment:   s.alignment || "N",
-      level:       s.level || 1,
+      // Normalize alignment to a 1-letter code. Shadowdark's canonical
+      // form is full words ("lawful"/"neutral"/"chaotic"); our Creator
+      // radio buttons store the short form (L/N/C). Without the
+      // first-char normalization, loading a bestiary actor leaves all
+      // three alignment radios unchecked because no value matches.
+      alignment:   (s.alignment || "N").charAt(0).toUpperCase(),
+      // system.level is a nested schema ({value, xp}) in Shadowdark,
+      // not a plain number. Read .value first; fall back to plain
+      // number for any unmigrated data.
+      level:       (typeof s.level === "object" ? s.level?.value : s.level) ?? 1,
       img:         img || "icons/svg/mystery-man.svg",
       tokenSrc:    tokenSrc || "",
       description: s.notes || "",
@@ -576,8 +592,15 @@ export class MonsterCreatorApp {
       type: "NPC",
       img: d.img || "icons/svg/mystery-man.svg",
       system: {
-        alignment: d.alignment ?? "N",
-        level:     Number(d.level ?? 1),
+        // Shadowdark schema enforces alignment ∈ {lawful, neutral, chaotic}
+        // (full words). Our Creator stores the 1-letter UI code; expand
+        // here on save so the schema validates and the actor sheet picks
+        // the right alignment value.
+        alignment: _ALIGNMENT_EXPANDED[d.alignment] ?? "neutral",
+        // system.level is a nested schema ({value, xp}) per actorFields
+        // .level(). Writing a plain number gets rejected by validation
+        // or silently coerced; build the object shape directly.
+        level:     { value: Number(d.level ?? 1), xp: 0 },
         notes:     d.description ?? "",
         // Stats — 1e-ii
         attributes: {
@@ -683,6 +706,39 @@ export class MonsterCreatorApp {
       ui.notifications.error(`Failed to save monster: ${err.message}`);
     }
   }
+}
+
+// ───── Helpers ─────────────────────────────────────────────────────
+
+/**
+ * Convert the Creator's 1-letter alignment UI code to the full word
+ * Shadowdark stores. The schema's `choices` are the keys of
+ * CONFIG.SHADOWDARK.ALIGNMENTS, which are lawful/neutral/chaotic.
+ */
+const _ALIGNMENT_EXPANDED = {
+  L: "lawful",
+  N: "neutral",
+  C: "chaotic",
+};
+
+/**
+ * Build the right-side "alignment + level" label for a bestiary
+ * loader row. Renders gracefully when:
+ *   - Level is missing (NaN/null/undefined) → show "—" instead of "NaN"
+ *   - Alignment is stored as a full word ("lawful"/"neutral"/"chaotic"
+ *     — Shadowdark's canonical form) → collapse to a 1-letter code
+ *     matching our Creator radio buttons (L/N/C)
+ *
+ * @param {object} row — loader row {alignment, level, ...}
+ * @returns {string}   — e.g. "C 3" or "N —" or "—"
+ */
+function _formatLoaderLabel(row) {
+  const a = row?.alignment ?? "";
+  const align = typeof a === "string" && a.length
+    ? a.charAt(0).toUpperCase()   // "lawful" → "L", "L" → "L"
+    : "—";
+  const level = Number.isFinite(row?.level) ? String(row.level) : "—";
+  return `${align} ${level}`;
 }
 
 // Convenience accessor — same shape as EncounterRollerApp's API

@@ -2119,8 +2119,16 @@ body.theme-light .sde-bar-phase-badge {
   top: 100%;
   left: 0;
   right: 0;
+  /* Above the encounter roller's own content but below Foundry's
+     own UI overlays. Was previously z-index:100 which is fine
+     ordering-wise; the visual breakage was the background variable
+     below being undefined. */
   z-index: 100;
-  background: var(--foundry-bg-darker);
+  /* The previous `var(--foundry-bg-darker)` is not defined in this
+     codebase, so the popover rendered with NO background and the
+     Identity / Stats sections beneath it bled through. Use our own
+     opaque surface token. */
+  background: var(--sde-bar-bg-alt);
   border: 1px solid var(--sde-bar-accent-dark);
   border-radius: 4px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
@@ -2128,6 +2136,7 @@ body.theme-light .sde-bar-phase-badge {
   display: flex;
   flex-direction: column;
   max-height: 350px;
+  overflow: hidden;
 }
 
 .sde-creator-loader-header {

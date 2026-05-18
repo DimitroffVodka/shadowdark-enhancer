@@ -265,9 +265,17 @@ export const EncounterBrowse = {
  * filter/sort code can recognize "unknown" cleanly.
  */
 function _coerceLevel(raw) {
-  if (raw === null || raw === undefined || raw === "" || raw === "--") return NaN;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : NaN;
+  // Shadowdark schema (actorFields.level) stores level as a NESTED
+  // SchemaField: { value: number, xp: number }. Plain `Number(obj)`
+  // gives NaN, which is why pack-index rows previously rendered
+  // "NaN" in the Level column even for normal NPCs. Unwrap the .value
+  // first; fall through to the legacy plain-number path so any
+  // unmigrated data still works.
+  let n = raw;
+  if (n && typeof n === "object" && "value" in n) n = n.value;
+  if (n === null || n === undefined || n === "" || n === "--") return NaN;
+  const num = Number(n);
+  return Number.isFinite(num) ? num : NaN;
 }
 
 /**
