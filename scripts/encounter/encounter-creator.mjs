@@ -161,6 +161,16 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
   }
 
   async _prepareContext(options) {
+    // Bestiary loader (1e-v): pre-filter rows here so the template
+    // doesn't need exotic Handlebars helpers like (lower) / (or) /
+    // (not) — we only ship `includes`, `array`, `isFinite` from the
+    // entry point, and trying to call missing helpers throws at
+    // render time. JS filter + a flat array → trivial template.
+    const needle = (this._loaderSearch ?? "").trim().toLowerCase();
+    const loaderRowsFiltered = needle
+      ? this._loaderRows.filter(r => r.name?.toLowerCase().includes(needle))
+      : this._loaderRows;
+
     return {
       draft:       this._draft,
       sectionOpen: this._sectionOpen,
@@ -184,6 +194,14 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
       }),
       // 1e-iv
       FEATURE_QUICK_PICKS,
+      // 1e-v — Bestiary Loader state. _loaderOpen / _loaderSearch /
+      // _loaderRowsFiltered MUST be exposed here for the template to
+      // see them; private instance fields like `this._loaderOpen` are
+      // invisible to Handlebars.
+      _loaderOpen:    this._loaderOpen,
+      _loaderSearch:  this._loaderSearch,
+      _loaderRows:    loaderRowsFiltered,
+      _loaderEmpty:   loaderRowsFiltered.length === 0,
     };
   }
 
@@ -191,6 +209,38 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     super._onRender(context, options);
     this._restoreFocus();
     this._wireFieldInputs();
+    this._wireLoaderSearch();
+  }
+
+  /**
+   * Wire the Bestiary-Loader search input.
+   *
+   * Why this isn't a `data-draft-field` — that handler writes via
+   * `_setDraft()`, which walks down from `this._draft`. A path of
+   * "_loaderSearch" would set `this._draft._loaderSearch`, which
+   * never reaches `_prepareContext`'s loader filtering. The search
+   * input has to write to `this._loaderSearch` directly, which we
+   * do here. Debounced so each keystroke doesn't trigger a re-render
+   * (re-render rebuilds the popover and loses input focus).
+   */
+  _wireLoaderSearch() {
+    const input = this.element?.querySelector("input[data-loader-search]");
+    if (!input) return;
+
+    let t = null;
+    input.addEventListener("input", ev => {
+      // Stash focus so _restoreFocus puts the cursor back after render.
+      this._focused["__loaderSearch"] = { selectionStart: ev.target.selectionStart };
+      this._lastFocusedField = "__loaderSearch";
+      clearTimeout(t);
+      t = setTimeout(() => {
+        this._loaderSearch = ev.target.value;
+        this.render();
+      }, 150);
+    });
+    input.addEventListener("blur", () => {
+      if (this._lastFocusedField === "__loaderSearch") this._lastFocusedField = null;
+    });
   }
 
   // ─── Field wiring (text/number inputs use change-events to limit re-renders) ─
@@ -253,7 +303,12 @@ export class MonsterCreatorApp extends HandlebarsApplicationMixin(ApplicationV2)
     // to-end issue ApplicationV2 has on full re-renders.
     const lastField = this._lastFocusedField;
     if (!lastField) return;
-    const input = this.element?.querySelector(`[data-draft-field="${CSS.escape(lastField)}"]`);
+    // Special case: loader search uses `data-loader-search` (not a
+    // draft field — see _wireLoaderSearch for why).
+    const selector = lastField === "__loaderSearch"
+      ? "input[data-loader-search]"
+      : `[data-draft-field="${CSS.escape(lastField)}"]`;
+    const input = this.element?.querySelector(selector);
     if (input) {
       input.focus();
       const pos = this._focused[lastField]?.selectionStart ?? input.value.length;

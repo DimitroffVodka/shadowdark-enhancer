@@ -10,19 +10,26 @@
       <div class="sde-creator-loader-popover">
         <div class="sde-creator-loader-header">
           <i class="fas fa-magnifying-glass"></i>
+          {{!-- Loader search uses data-loader-search (not data-draft-field)
+               because it writes to this._loaderSearch, not this._draft. See
+               _wireLoaderSearch + _prepareContext for the round-trip. --}}
           <input type="text" placeholder="Search NPCs..."
-                 data-draft-field="_loaderSearch" value="{{_loaderSearch}}">
+                 data-loader-search value="{{_loaderSearch}}">
         </div>
         <div class="sde-creator-loader-list sde-scrollbar">
+          {{!-- Rows are pre-filtered in _prepareContext (JS) so we don't
+               need exotic (lower)/(or)/(not) Handlebars helpers — we only
+               registered (includes), (array), (isFinite). --}}
           {{#each _loaderRows}}
-            {{#if (or (not ../_loaderSearch) (includes (lower name) (lower ../_loaderSearch)))}}
-              <div class="sde-creator-loader-row" data-action="creatorLoaderPick" data-uuid="{{uuid}}">
-                <img src="{{img}}" width="24" height="24" alt="" />
-                <span class="sde-creator-loader-name">{{name}}</span>
-                <span class="sde-creator-loader-lvl">{{alignment}} {{level}}</span>
-              </div>
-            {{/if}}
+            <div class="sde-creator-loader-row" data-action="creatorLoaderPick" data-uuid="{{uuid}}">
+              <img src="{{img}}" width="24" height="24" alt="" />
+              <span class="sde-creator-loader-name">{{name}}</span>
+              <span class="sde-creator-loader-lvl">{{alignment}} {{level}}</span>
+            </div>
           {{/each}}
+          {{#if _loaderEmpty}}
+            <div class="sde-creator-loader-empty">No matching NPCs.</div>
+          {{/if}}
         </div>
       </div>
     {{/if}}

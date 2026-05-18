@@ -2177,6 +2177,13 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 11px;
   color: var(--sde-bar-text-muted);
 }
+.sde-creator-loader-empty {
+  padding: 12px;
+  text-align: center;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--sde-bar-text-muted);
+}
 
 .sde-creator-section {
   background: var(--sde-bar-bg-alt);
