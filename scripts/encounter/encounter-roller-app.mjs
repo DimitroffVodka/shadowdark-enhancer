@@ -19,6 +19,7 @@ import {
 import { MonsterCreator } from "./encounter-creator.mjs";
 import { TableImporter } from "./table-importer.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
+import { LootLinker } from "./loot-linker.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -90,6 +91,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       importCreateAll:    EncounterRollerApp.prototype._onImportCreateAll,
       importAddRow:       EncounterRollerApp.prototype._onImportAddRow,
       importDeleteRow:    EncounterRollerApp.prototype._onImportDeleteRow,
+      importUnlinkRow:    EncounterRollerApp.prototype._onImportUnlinkRow,
     }
   };
 
@@ -1317,15 +1319,33 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   // ═══ Import Tables tab handlers ═════════════════════════════════════
 
-  _onImportParse() {
+  async _onImportParse() {
     // Pull straight from the DOM so an un-blurred paste still parses.
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
     this._importParsed = TableImporter.parse(this._importText);
+    await this._linkLootTables();
     if (!this._importParsed.length) {
       ui.notifications.warn("No tables found in the pasted text.");
     }
     this.render();
+  }
+
+  /**
+   * For every parsed Loot table, link each row's text to a compendium Item
+   * where a confident name match exists (sets `row.link`). Non-loot tables
+   * are left untouched. Re-categorizing a table to Loot after Parse does not
+   * retro-link — re-run Parse to link it.
+   */
+  async _linkLootTables() {
+    const lootTables = this._importParsed.filter(t => t.category === "loot");
+    if (!lootTables.length) return;
+    const items = await LootLinker.buildItemIndex();
+    for (const tbl of lootTables) {
+      for (const row of tbl.rows) {
+        row.link = LootLinker.findLink(row.text, items);
+      }
+    }
   }
 
   _onImportClear() {
@@ -1349,6 +1369,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const tbl = this._importParsed[tIdx];
     if (!tbl || !Number.isFinite(rIdx)) return;
     tbl.rows.splice(rIdx, 1);
+    this.render();
+  }
+
+  _onImportUnlinkRow(event, target) {
+    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
+    const rIdx = Number(target.closest("[data-row-idx]")?.dataset.rowIdx);
+    const tbl = this._importParsed[tIdx];
+    if (!tbl || !Number.isFinite(rIdx) || !tbl.rows[rIdx]) return;
+    tbl.rows[rIdx].link = null;
     this.render();
   }
 
