@@ -9,8 +9,26 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 
-// Foundry core treasure icon (verified to exist; the prior gems path did not).
-const GENERIC_TREASURE_ICON = "icons/commodities/treasure/box-jade-tassel.webp";
+// Foundry core icons (all verified to exist) for treasure categories.
+const ICONS = {
+  box:     "icons/commodities/treasure/box-jade-tassel.webp",
+  gem:     "icons/commodities/gems/gem-faceted-asscher-blue.webp",
+  jewelry: "icons/commodities/treasure/brooch-gold-ruby.webp",
+  scroll:  "icons/sundries/scrolls/scroll-bound-blue-tan.webp",
+  wand:    "icons/weapons/wands/wand-gem-blue.webp",
+  potion:  "icons/consumables/potions/bottle-bulb-corked-labeled-blue.webp",
+  armor:   "icons/equipment/chest/breastplate-banded-blue.webp",
+  shield:  "icons/equipment/shield/buckler-wooden-round-hole.webp",
+  sword:   "icons/weapons/swords/greatsword-blue.webp",
+  axe:     "icons/weapons/axes/axe-battle-black.webp",
+  hammer:  "icons/weapons/hammers/hammer-double-bronze.webp",
+  bow:     "icons/weapons/bows/bow-recurve-black.webp",
+  dagger:  "icons/weapons/daggers/dagger-blue.webp",
+  staff:   "icons/weapons/staves/staff-animal-bird.webp",
+  ring:    "icons/equipment/finger/ring-ball-gold-pink.webp",
+  vessel:  "icons/containers/kitchenware/bowl-clay-brown.webp",
+  book:    "icons/sundries/books/book-backed-blue-gold.webp",
+};
 const LOOT_PACK_LABEL = "Loot";
 
 /** Sum every `N gp/sp/cp` occurrence into a coin object. */
@@ -43,6 +61,34 @@ export function stripPrice(text) {
     .trim();
 }
 
+/**
+ * Best-guess icon for a treasure item by keyword in its name. Specific
+ * categories win before the generic gem/box fallback (e.g. a gem-set sword
+ * gets the sword icon, not a gem). All paths are verified Foundry-core icons.
+ */
+export function pickTreasureIcon(text) {
+  const s = String(text ?? "").toLowerCase();
+  const has = (...kw) => kw.some(k => s.includes(k));
+  if (has("scroll")) return ICONS.scroll;
+  if (has("wand")) return ICONS.wand;
+  if (has("potion")) return ICONS.potion;
+  if (has("idol", "statue", "statuette", "sculpture", "figurine")) return ICONS.box;
+  if (has("chainmail", "plate mail", "leather armor", "scale mail", "armor")) return ICONS.armor;
+  if (has("shield")) return ICONS.shield;
+  if (has("greataxe", "axe")) return ICONS.axe;
+  if (has("warhammer", "hammer", "mace")) return ICONS.hammer;
+  if (has("greatsword", "longsword", "bastard sword", "shortsword", "sword", "blade", "magic weapon")) return ICONS.sword;
+  if (/\bbow\b/.test(s) || has("longbow", "crossbow", "shortbow")) return ICONS.bow;
+  if (has("dagger")) return ICONS.dagger;
+  if (has("staff")) return ICONS.staff;
+  if (/\bring\b/.test(s)) return ICONS.ring;
+  if (has("necklace", "amulet", "pendant", "torc", "circlet", "brooch", "scarab", "locket", "tiara", "crown")) return ICONS.jewelry;
+  if (has("bowl", "cup", "goblet", "tankard", "flask", "vase", "mug", "chalice", "censer", "vial", "bottle", "flagon")) return ICONS.vessel;
+  if (has("book", "bestiary", "tome", "grimoire")) return ICONS.book;
+  if (has("gem", "emerald", "sapphire", "diamond", "ruby", "pearl", "opal", "amber", "jade", "crystal", "jewel", "topaz", "garnet")) return ICONS.gem;
+  return ICONS.box;
+}
+
 /** Build a Shadowdark "Basic" treasure Item from a name + parsed value. */
 export function fabricateTreasureItem({ name, value, needsRefinement = false }) {
   const sde = { fromTreasureTable: true };
@@ -50,7 +96,7 @@ export function fabricateTreasureItem({ name, value, needsRefinement = false }) 
   return {
     name,
     type: "Basic",
-    img: GENERIC_TREASURE_ICON,
+    img: pickTreasureIcon(name),
     system: {
       cost: { gp: value?.gp ?? 0, sp: value?.sp ?? 0, cp: value?.cp ?? 0 },
       slots: { free_carry: 0, per_slot: 1, slots_used: 1 },
