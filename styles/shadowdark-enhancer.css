@@ -3349,3 +3349,14 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text);
   border: 1px dashed var(--sde-bar-border);
 }
+.sde-import-cat,
+.sde-import-customcat {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text-bright);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.35rem;
+  font-family: var(--sde-bar-font);
+}
+.sde-import-cat { flex: 0 0 auto; }
+.sde-import-customcat { flex: 1 1 8rem; }
