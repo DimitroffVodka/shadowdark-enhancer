@@ -25,7 +25,7 @@
 // allowed. The (?=\s|$) lookahead means "2d6" does NOT match (after the
 // "2" comes "d", not whitespace) — so embedded dice in result text are
 // never mistaken for a row token.
-import { classify } from "./table-categories.mjs";
+import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
 
 const LEADING_RANGE = /^\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?(?=\s|$)/;
 
@@ -273,6 +273,21 @@ function _uniqueTableName(base) {
   return candidate;
 }
 
+/** Find-or-create a RollTable folder by name under an optional parent id. */
+async function _ensureFolder(name, parentId = null) {
+  const existing = game.folders.find(f =>
+    f.type === "RollTable" && f.name === name && (f.folder?.id ?? null) === parentId
+  );
+  if (existing) return existing;
+  return Folder.create({ name, type: "RollTable", folder: parentId });
+}
+
+/** Resolve a ParsedTable's category to its folder display label. */
+function _categoryLabel(pt) {
+  if (pt.category === CUSTOM_ID) return (pt.customLabel ?? "").trim() || "Other";
+  return labelFor(pt.category);
+}
+
 /**
  * Create a world RollTable from a reviewed ParsedTable.
  *
@@ -296,6 +311,15 @@ export async function createTable(pt, { onConflict } = {}) {
     if (choice === "replace") await existing.delete();
     else data.name = _uniqueTableName(data.name);
   }
+  // File into a nested folder: "Imported Tables" → <Type>, and tag the type.
+  const parent = await _ensureFolder("Imported Tables", null);
+  const childLabel = _categoryLabel(pt);
+  const child = await _ensureFolder(childLabel, parent.id);
+  data.folder = child.id;
+  data.flags = {
+    ...(data.flags ?? {}),
+    "shadowdark-enhancer": { tableType: pt.category === CUSTOM_ID ? childLabel : (pt.category ?? "other") },
+  };
   return RollTable.create(data);
 }
 
