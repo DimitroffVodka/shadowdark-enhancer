@@ -15,6 +15,7 @@ import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { EncounterRollerApp } from "./encounter/encounter-roller-app.mjs";
 import { MonsterCreator } from "./encounter/encounter-creator.mjs";
 import { createMutatedActor, MUTATIONS } from "./encounter/monster-mutator.mjs";
+import { LootCatalog } from "./encounter/loot-catalog.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -53,6 +54,11 @@ Hooks.once("init", () => {
       create: (baseUuid, mutationIds, customName = null) =>
         createMutatedActor(baseUuid, mutationIds, customName),
       catalog: () => MUTATIONS,
+    },
+    loot: {
+      // Build/refresh the "Loot" compendium from the Shadowdark Treasure
+      // tables. Idempotent, GM-only. See loot-catalog.mjs.
+      buildCatalog: () => LootCatalog.buildCatalog(),
     },
   };
 });
