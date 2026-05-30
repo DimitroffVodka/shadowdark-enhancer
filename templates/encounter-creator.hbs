@@ -47,8 +47,9 @@
           {{!-- Search — writes this._loaderSearch via data-loader-search
                (not data-draft-field); see _wireLoaderInputs. --}}
           <div class="sde-browse-filter">
-            <label class="sde-browse-filter-label">Search</label>
-            <input type="text"
+            <label class="sde-browse-filter-label" for="sde-ldr-search">Search</label>
+            <input id="sde-ldr-search"
+                   type="text"
                    data-loader-search
                    class="sde-browse-search"
                    placeholder="Search bestiary…"
@@ -63,6 +64,7 @@
                 <button type="button"
                         class="sde-browse-align-pill {{#if (includes ../loaderData.alignment this)}}is-active{{/if}}"
                         data-action="creatorLoaderToggleAlign"
+                        aria-pressed="{{#if (includes ../loaderData.alignment this)}}true{{else}}false{{/if}}"
                         data-alignment="{{this}}">{{this}}</button>
               {{/each}}
             </div>
@@ -72,9 +74,9 @@
           <div class="sde-browse-filter">
             <label class="sde-browse-filter-label">Level</label>
             <div class="sde-browse-level-group">
-              <input type="number" name="loaderLevelMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq loaderData.levelMin null)}}{{loaderData.levelMin}}{{/unless}}">
+              <input type="number" name="loaderLevelMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum level" value="{{#unless (eq loaderData.levelMin null)}}{{loaderData.levelMin}}{{/unless}}">
               <span class="sde-browse-level-sep">–</span>
-              <input type="number" name="loaderLevelMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq loaderData.levelMax null)}}{{loaderData.levelMax}}{{/unless}}">
+              <input type="number" name="loaderLevelMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum level" value="{{#unless (eq loaderData.levelMax null)}}{{loaderData.levelMax}}{{/unless}}">
             </div>
           </div>
 
@@ -82,25 +84,25 @@
             <div class="sde-browse-filter">
               <label class="sde-browse-filter-label">HP</label>
               <div class="sde-browse-level-group">
-                <input type="number" name="loaderHpMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq loaderData.hpMin null)}}{{loaderData.hpMin}}{{/unless}}">
+                <input type="number" name="loaderHpMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum HP" value="{{#unless (eq loaderData.hpMin null)}}{{loaderData.hpMin}}{{/unless}}">
                 <span class="sde-browse-level-sep">–</span>
-                <input type="number" name="loaderHpMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq loaderData.hpMax null)}}{{loaderData.hpMax}}{{/unless}}">
+                <input type="number" name="loaderHpMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum HP" value="{{#unless (eq loaderData.hpMax null)}}{{loaderData.hpMax}}{{/unless}}">
               </div>
             </div>
             <div class="sde-browse-filter">
               <label class="sde-browse-filter-label">AC</label>
               <div class="sde-browse-level-group">
-                <input type="number" name="loaderAcMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq loaderData.acMin null)}}{{loaderData.acMin}}{{/unless}}">
+                <input type="number" name="loaderAcMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum AC" value="{{#unless (eq loaderData.acMin null)}}{{loaderData.acMin}}{{/unless}}">
                 <span class="sde-browse-level-sep">–</span>
-                <input type="number" name="loaderAcMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq loaderData.acMax null)}}{{loaderData.acMax}}{{/unless}}">
+                <input type="number" name="loaderAcMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum AC" value="{{#unless (eq loaderData.acMax null)}}{{loaderData.acMax}}{{/unless}}">
               </div>
             </div>
           </div>
 
           {{!-- Movement --}}
           <div class="sde-browse-filter">
-            <label class="sde-browse-filter-label">Movement</label>
-            <select name="loaderMove" class="sde-browse-select">
+            <label class="sde-browse-filter-label" for="sde-ldr-move">Movement</label>
+            <select id="sde-ldr-move" name="loaderMove" class="sde-browse-select">
               <option value="" {{#unless loaderData.moves.length}}selected{{/unless}}>All movement</option>
               {{#each loaderData.moveOptions}}
                 <option value="{{this}}" {{#if (includes ../loaderData.moves this)}}selected{{/if}}>{{this}}</option>
@@ -126,8 +128,9 @@
 
           {{!-- Abilities (text-search NPC Feature names) --}}
           <div class="sde-browse-filter">
-            <label class="sde-browse-filter-label">Abilities</label>
-            <input type="text"
+            <label class="sde-browse-filter-label" for="sde-ldr-ability">Abilities</label>
+            <input id="sde-ldr-ability"
+                   type="text"
                    data-loader-ability
                    class="sde-browse-search"
                    placeholder="e.g. petrify, magic resistance"
@@ -146,19 +149,19 @@
               <thead>
                 <tr>
                   <th></th>
-                  <th><button type="button" data-action="creatorLoaderSort" data-column="name">Name {{#if (eq loaderData.sortCol "name")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                  <th><button type="button" data-action="creatorLoaderSort" data-column="level">LV {{#if (eq loaderData.sortCol "level")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                  <th><button type="button" data-action="creatorLoaderSort" data-column="alignment">Al {{#if (eq loaderData.sortCol "alignment")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                  <th><button type="button" data-action="creatorLoaderSort" data-column="hp">HP {{#if (eq loaderData.sortCol "hp")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                  <th><button type="button" data-action="creatorLoaderSort" data-column="ac">AC {{#if (eq loaderData.sortCol "ac")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                  <th><button type="button" data-action="creatorLoaderSort" data-column="dpr">DPR {{#if (eq loaderData.sortCol "dpr")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                  <th><button type="button" data-action="creatorLoaderSort" data-column="attackCount">Attack {{#if (eq loaderData.sortCol "attackCount")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                  <th aria-sort="{{#if (eq loaderData.sortCol "name")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="creatorLoaderSort" data-column="name">Name {{#if (eq loaderData.sortCol "name")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                  <th aria-sort="{{#if (eq loaderData.sortCol "level")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="creatorLoaderSort" data-column="level">LV {{#if (eq loaderData.sortCol "level")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                  <th aria-sort="{{#if (eq loaderData.sortCol "alignment")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="creatorLoaderSort" data-column="alignment">Al {{#if (eq loaderData.sortCol "alignment")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                  <th aria-sort="{{#if (eq loaderData.sortCol "hp")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="creatorLoaderSort" data-column="hp">HP {{#if (eq loaderData.sortCol "hp")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                  <th aria-sort="{{#if (eq loaderData.sortCol "ac")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="creatorLoaderSort" data-column="ac">AC {{#if (eq loaderData.sortCol "ac")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                  <th aria-sort="{{#if (eq loaderData.sortCol "dpr")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="creatorLoaderSort" data-column="dpr">DPR {{#if (eq loaderData.sortCol "dpr")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                  <th aria-sort="{{#if (eq loaderData.sortCol "attackCount")}}{{#if loaderData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="creatorLoaderSort" data-column="attackCount">Attack {{#if (eq loaderData.sortCol "attackCount")}}{{#if loaderData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
                 </tr>
               </thead>
               <tbody>
                 {{#each loaderData.rows}}
                   <tr class="sde-browse-row sde-creator-loader-row" data-action="creatorLoaderPick" data-uuid="{{this.uuid}}" title="Click to load {{this.name}}">
-                    <td><img src="{{this.img}}" width="24" height="24" alt="" loading="lazy" /></td>
+                    <td><img src="{{this.img}}" width="24" height="24" alt="" loading="lazy" decoding="async" /></td>
                     <td class="sde-browse-name" title="{{this.name}}">{{this.name}}</td>
                     <td>{{this.levelLabel}}</td>
                     <td title="{{this.alignmentLabel}}">{{#if this.alignment}}{{this.alignment}}{{else}}—{{/if}}</td>
@@ -204,8 +207,8 @@
     <div class="sde-creator-section-body">
 
       <div class="sde-creator-row">
-        <label>Name</label>
-        <input type="text" data-draft-field="name" value="{{draft.name}}" placeholder="e.g. Frost Goblin">
+        <label for="sde-cr-name">Name</label>
+        <input id="sde-cr-name" type="text" data-draft-field="name" value="{{draft.name}}" placeholder="e.g. Frost Goblin">
       </div>
 
       <div class="sde-creator-row">
@@ -223,24 +226,24 @@
       </div>
 
       <div class="sde-creator-row">
-        <label>Level</label>
-        <input type="number" data-draft-field="level" value="{{draft.level}}" min="0" max="30">
+        <label for="sde-cr-level">Level</label>
+        <input id="sde-cr-level" type="number" data-draft-field="level" value="{{draft.level}}" min="0" max="30">
       </div>
 
       <div class="sde-creator-row">
-        <label>Portrait</label>
+        <label for="sde-cr-img">Portrait</label>
         <div class="sde-creator-img-picker">
           <img src="{{draft.img}}" width="48" height="48" alt="" />
-          <input type="text" data-draft-field="img" value="{{draft.img}}" class="sde-creator-img-path">
+          <input id="sde-cr-img" type="text" data-draft-field="img" value="{{draft.img}}" class="sde-creator-img-path">
           <button type="button" data-action="pickImg" title="Browse"><i class="fas fa-folder-open"></i></button>
         </div>
       </div>
 
       <div class="sde-creator-row">
-        <label>Token image</label>
+        <label for="sde-cr-token">Token image</label>
         <div class="sde-creator-img-picker">
           <img src="{{#if draft.tokenSrc}}{{draft.tokenSrc}}{{else}}{{draft.img}}{{/if}}" width="48" height="48" alt="" />
-          <input type="text" data-draft-field="tokenSrc" value="{{draft.tokenSrc}}" placeholder="(inherits from portrait)" class="sde-creator-img-path">
+          <input id="sde-cr-token" type="text" data-draft-field="tokenSrc" value="{{draft.tokenSrc}}" placeholder="(inherits from portrait)" class="sde-creator-img-path">
           <button type="button" data-action="pickTokenSrc" title="Browse"><i class="fas fa-folder-open"></i></button>
         </div>
       </div>
@@ -256,17 +259,17 @@
     <div class="sde-creator-section-body">
 
       <div class="sde-creator-row">
-        <label>HP</label>
+        <label for="sde-cr-hp-value">HP</label>
         <div class="sde-creator-hp-pair">
-          <input type="number" data-draft-field="hp.value" value="{{draft.hp.value}}" min="0" title="Current HP">
+          <input id="sde-cr-hp-value" type="number" data-draft-field="hp.value" value="{{draft.hp.value}}" min="0" title="Current HP" aria-label="Current HP">
           <span>/</span>
-          <input type="number" data-draft-field="hp.max" value="{{draft.hp.max}}" min="1" title="Maximum HP">
+          <input type="number" data-draft-field="hp.max" value="{{draft.hp.max}}" min="1" title="Maximum HP" aria-label="Maximum HP">
         </div>
       </div>
 
       <div class="sde-creator-row">
-        <label>AC</label>
-        <input type="number" data-draft-field="ac" value="{{draft.ac}}" min="0">
+        <label for="sde-cr-ac">AC</label>
+        <input id="sde-cr-ac" type="number" data-draft-field="ac" value="{{draft.ac}}" min="0">
       </div>
 
       <div class="sde-creator-row">
@@ -274,9 +277,10 @@
         <div class="sde-creator-ability-grid">
           {{#each (array "str" "dex" "con" "int" "wis" "cha")}}
             <div class="sde-creator-ability">
-              <span class="sde-creator-ability-label">{{this}}</span>
+              <span class="sde-creator-ability-label" aria-hidden="true">{{this}}</span>
               <input type="number" data-draft-field="abilities.{{this}}"
                      value="{{lookup ../draft.abilities this}}"
+                     aria-label="{{this}} ability score"
                      placeholder="0">
             </div>
           {{/each}}
@@ -284,8 +288,8 @@
       </div>
 
       <div class="sde-creator-row">
-        <label>Dark-Adapted</label>
-        <input type="checkbox" data-draft-field="darkAdapted" {{#if draft.darkAdapted}}checked{{/if}}>
+        <label for="sde-cr-dark">Dark-Adapted</label>
+        <input id="sde-cr-dark" type="checkbox" data-draft-field="darkAdapted" {{#if draft.darkAdapted}}checked{{/if}}>
       </div>
 
     </div>
@@ -298,16 +302,16 @@
     </summary>
     <div class="sde-creator-section-body">
       <div class="sde-creator-row">
-        <label>Type</label>
-        <select data-draft-field="move">
+        <label for="sde-cr-move">Type</label>
+        <select id="sde-cr-move" data-draft-field="move">
           {{#each moveOptions}}
             <option value="{{this}}" {{#if (eq this ../draft.move)}}selected{{/if}}>{{this}}</option>
           {{/each}}
         </select>
       </div>
       <div class="sde-creator-row">
-        <label>Note</label>
-        <input type="text" data-draft-field="moveNote" value="{{draft.moveNote}}" placeholder="e.g. climb, fly 60'">
+        <label for="sde-cr-movenote">Note</label>
+        <input id="sde-cr-movenote" type="text" data-draft-field="moveNote" value="{{draft.moveNote}}" placeholder="e.g. climb, fly 60'">
       </div>
     </div>
   </details>
@@ -350,15 +354,15 @@
               <div class="sde-creator-action-grid">
                 <div class="sde-creator-row-mini">
                   <label>Count</label>
-                  <input type="number" data-draft-field="actions.{{@index}}.num" value="{{num}}" min="1">
+                  <input type="number" data-draft-field="actions.{{@index}}.num" value="{{num}}" min="1" aria-label="Attack count">
                 </div>
                 <div class="sde-creator-row-mini">
                   <label>Atk</label>
-                  <input type="number" data-draft-field="actions.{{@index}}.bonus" value="{{bonus}}">
+                  <input type="number" data-draft-field="actions.{{@index}}.bonus" value="{{bonus}}" aria-label="Attack bonus">
                 </div>
                 <div class="sde-creator-row-mini">
                   <label>Damage</label>
-                  <input type="text" data-draft-field="actions.{{@index}}.damage" value="{{damage}}" placeholder="1d6">
+                  <input type="text" data-draft-field="actions.{{@index}}.damage" value="{{damage}}" placeholder="1d6" aria-label="Damage">
                 </div>
               </div>
               {{!-- Range pills — iterate `ranges` (close/near/far/nearLine
@@ -455,7 +459,8 @@
       <div class="sde-mut-categories">
         {{#each mutations.categories}}
           <button type="button" class="sde-mut-cat-pill {{#if this.active}}is-active{{/if}}"
-                  data-action="creatorMutCategory" data-category="{{this.key}}">
+                  data-action="creatorMutCategory" data-category="{{this.key}}"
+                  aria-pressed="{{#if this.active}}true{{else}}false{{/if}}">
             <i class="fas {{this.icon}}"></i> {{this.label}}
           </button>
         {{/each}}
@@ -467,6 +472,7 @@
           <button type="button"
                   class="sde-mut-card sde-mut-{{this.type}}{{#if this.selected}} is-selected{{/if}}{{#if this.conflict}} is-conflict{{/if}}"
                   data-action="creatorMutToggle" data-mutation-id="{{this.id}}"
+                  aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}"
                   title="{{this.description}}">
             <span class="sde-mut-card-head">
               <span class="sde-mut-name">{{this.name}}</span>
@@ -515,8 +521,8 @@
     </summary>
     <div class="sde-creator-section-body">
       <div class="sde-creator-row">
-        <label>Ability</label>
-        <select data-draft-field="spellcasting.ability">
+        <label for="sde-cr-sc-ability">Ability</label>
+        <select id="sde-cr-sc-ability" data-draft-field="spellcasting.ability">
           <option value="" {{#unless draft.spellcasting.ability}}selected{{/unless}}>— None —</option>
           {{#each spellAbilities}}
             <option value="{{this}}" {{#if (eq this ../draft.spellcasting.ability)}}selected{{/if}}>{{this}}</option>
@@ -524,12 +530,74 @@
         </select>
       </div>
       <div class="sde-creator-row">
-        <label>Atk Bonus</label>
-        <input type="number" data-draft-field="spellcasting.bonus" value="{{draft.spellcasting.bonus}}" {{#unless draft.spellcasting.ability}}disabled{{/unless}}>
+        <label for="sde-cr-sc-bonus">Atk Bonus</label>
+        <input id="sde-cr-sc-bonus" type="number" data-draft-field="spellcasting.bonus" value="{{draft.spellcasting.bonus}}" {{#unless draft.spellcasting.ability}}disabled{{/unless}}>
       </div>
       <div class="sde-creator-row">
-        <label>Attacks/round</label>
-        <input type="number" data-draft-field="spellcasting.attacks" value="{{draft.spellcasting.attacks}}" min="0" {{#unless draft.spellcasting.ability}}disabled{{/unless}}>
+        <label for="sde-cr-sc-attacks">Attacks/round</label>
+        <input id="sde-cr-sc-attacks" type="number" data-draft-field="spellcasting.attacks" value="{{draft.spellcasting.attacks}}" min="0" {{#unless draft.spellcasting.ability}}disabled{{/unless}}>
+      </div>
+
+      {{!-- Spell picker — search the Spell compendiums and attach real,
+            rollable Spell items to the NPC. --}}
+      <div class="sde-spell-picker">
+        <div class="sde-spell-picker-head">
+          <span><i class="fas fa-book-sparkles"></i> Spells</span>
+          {{#if spellPicker.selectedCount}}
+            <span class="sde-spell-count" aria-label="{{spellPicker.selectedCount}} spells attached">{{spellPicker.selectedCount}}</span>
+          {{/if}}
+        </div>
+
+        {{#if spellPicker.selectedCount}}
+          <ul class="sde-spell-chips">
+            {{#each spellPicker.selected}}
+              <li class="sde-spell-chip">
+                <img class="sde-spell-chip-img" src="{{this.img}}" alt="" width="20" height="20" loading="lazy" decoding="async">
+                <span class="sde-spell-chip-name" title="{{this.name}}">{{this.name}}</span>
+                <span class="sde-spell-chip-tier">{{this.tierLabel}}</span>
+                <button type="button" class="sde-spell-chip-remove" data-action="creatorSpellRemove" data-uuid="{{this.uuid}}" aria-label="Remove {{this.name}}">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </li>
+            {{/each}}
+          </ul>
+        {{/if}}
+
+        <div class="sde-spell-search-row">
+          <input type="text" data-spell-search class="sde-spell-search" placeholder="Search spells…" value="{{spellPicker.search}}" aria-label="Search spells by name">
+          <select data-spell-tier class="sde-spell-tier" aria-label="Filter spells by tier">
+            <option value="" {{#unless spellPicker.tier}}selected{{/unless}}>All tiers</option>
+            {{#each spellPicker.tierOptions}}
+              <option value="{{this}}" {{#if (eq this ../spellPicker.tier)}}selected{{/if}}>Tier {{this}}</option>
+            {{/each}}
+          </select>
+        </div>
+
+        {{#if spellPicker.hasQuery}}
+          {{#if spellPicker.resultCount}}
+            <ul class="sde-spell-results">
+              {{#each spellPicker.results}}
+                <li class="sde-spell-result {{#if this.added}}is-added{{/if}}">
+                  <img class="sde-spell-result-img" src="{{this.img}}" alt="" width="24" height="24" loading="lazy" decoding="async">
+                  <span class="sde-spell-result-name" title="{{this.name}}">{{this.name}}</span>
+                  <span class="sde-spell-result-meta">{{this.tierLabel}}{{#if this.rangeLabel}} • {{this.rangeLabel}}{{/if}}</span>
+                  <span class="sde-spell-result-source" title="{{this.sourceLabel}}">{{this.sourceLabel}}</span>
+                  <button type="button" class="sde-spell-add" data-action="creatorSpellAdd" data-uuid="{{this.uuid}}"
+                          {{#if this.added}}disabled aria-label="{{this.name}} already attached"{{else}}aria-label="Attach {{this.name}}"{{/if}}>
+                    <i class="fas {{#if this.added}}fa-check{{else}}fa-plus{{/if}}"></i>
+                  </button>
+                </li>
+              {{/each}}
+            </ul>
+            {{#if spellPicker.capped}}
+              <p class="sde-spell-hint">Showing first 40 matches — refine your search to narrow it.</p>
+            {{/if}}
+          {{else}}
+            <p class="sde-spell-empty">No spells match.</p>
+          {{/if}}
+        {{else}}
+          <p class="sde-spell-hint">Type to search the Spell compendiums, then click <i class="fas fa-plus"></i> to attach a rollable spell.</p>
+        {{/if}}
       </div>
     </div>
   </details>

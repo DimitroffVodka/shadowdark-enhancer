@@ -62,6 +62,10 @@ function _defaultDraft() {
     // Items — Sub-slice 1e-iii / 1e-iv
     actions:  [],            // each: {id, name, type, num, bonus, damage, ranges, description}
     features: [],            // each: {id, name, description}
+    // Spells — compendium-picked Spell items attached to the NPC.
+    // Each: {uuid, name, img, tierLabel, source} where `source` is the
+    // full spell toObject() (minus _id) pushed verbatim on save.
+    spells:   [],
   };
 }
 
@@ -97,6 +101,8 @@ export class MonsterCreatorApp {
     creatorAddFeature:          MonsterCreatorApp.prototype._onAddFeature,
     creatorRemoveFeature:       MonsterCreatorApp.prototype._onRemoveFeature,
     creatorAddFeatureQuickPick: MonsterCreatorApp.prototype._onAddFeatureQuickPick,
+    creatorSpellAdd:            MonsterCreatorApp.prototype._onSpellAdd,
+    creatorSpellRemove:         MonsterCreatorApp.prototype._onSpellRemove,
     creatorToggleLoader:        MonsterCreatorApp.prototype._onToggleLoader,
     creatorLoaderPick:          MonsterCreatorApp.prototype._onLoaderPick,
     creatorLoaderToggleSource:  MonsterCreatorApp.prototype._onLoaderToggleSource,
@@ -129,6 +135,12 @@ export class MonsterCreatorApp {
     // chosen mutation ids; `_mutCategory` is the active catalog filter pill.
     this._mutSelected = [];
     this._mutCategory = "all";
+    // Spell picker state (survives renders). The picker only queries the
+    // Spell compendiums while there's a search term or tier filter set, so
+    // an empty section doesn't load hundreds of spells.
+    this._spellSearch = "";
+    this._spellTier   = null;   // null = all tiers
+
     // Text-input focus stashes for cursor preservation across renders.
     this._focused = {};  // { fieldName: {selectionStart} }
     this._lastFocusedField = null;
@@ -312,10 +324,51 @@ export class MonsterCreatorApp {
         )
       : "";
 
+    // Spell picker — only queries the compendiums while the Spellcasting
+    // section is open AND a search/tier filter is active. Results cap at
+    // 40 rows; already-attached spells are flagged so their + turns into
+    // a disabled check. Selected spells (draft.spells) render as chips
+    // regardless of query so the user always sees what's attached.
+    const draftSpells = this._draft.spells ?? [];
+    const selectedSpellUuids = new Set(draftSpells.map(s => s.uuid));
+    const spellQuery = this._spellSearch.trim();
+    const spellHasQuery = !!spellQuery || this._spellTier != null;
+    let spellResults = [];
+    if (this._sectionOpen.spellcasting && spellHasQuery) {
+      const { SpellIndex } = await import("./spell-index.mjs");
+      const all = await SpellIndex.loadAll();
+      const filtered = SpellIndex.filter(all, {
+        search: spellQuery,
+        tier:   this._spellTier,
+      });
+      SpellIndex.sort(filtered, { column: "tier", ascending: true });
+      spellResults = filtered.slice(0, 40).map(r => ({
+        ...r,
+        added: selectedSpellUuids.has(r.uuid),
+      }));
+    }
+    const spellPicker = {
+      search:        this._spellSearch,
+      tier:          this._spellTier,
+      tierOptions:   [1, 2, 3, 4, 5],
+      results:       spellResults,
+      resultCount:   spellResults.length,
+      capped:        spellResults.length >= 40,
+      hasQuery:      spellHasQuery,
+      selected:      draftSpells.map(s => ({
+        uuid:      s.uuid,
+        name:      s.name,
+        img:       s.img,
+        tierLabel: s.tierLabel,
+      })),
+      selectedCount: draftSpells.length,
+    };
+
     return {
       draft:       this._draft,
       draftPreview: _draftPreview(this._draft),
       sectionOpen: this._sectionOpen,
+      spellPicker,
       mutations: {
         categories:    mutCategories,
         list:          mutList,
@@ -356,6 +409,42 @@ export class MonsterCreatorApp {
     this._wireActions();
     this._wireFieldInputs();
     this._wireLoaderInputs();
+    this._wireSpellInputs();
+  }
+
+  /**
+   * Wire the spell-picker inputs: a debounced search box (focus-stashed
+   * like the loader text filters so the cursor survives the re-render)
+   * and a tier `<select>` that commits on change. Both write to the
+   * `_spell*` instance fields, not the draft.
+   */
+  _wireSpellInputs() {
+    if (!this._mountHost) return;
+
+    const search = this._mountHost.querySelector("input[data-spell-search]");
+    if (search) {
+      let t = null;
+      search.addEventListener("input", ev => {
+        this._focused.__spellSearch = { selectionStart: ev.target.selectionStart };
+        this._lastFocusedField = "__spellSearch";
+        clearTimeout(t);
+        t = setTimeout(() => {
+          this._spellSearch = ev.target.value;
+          this.render();
+        }, 200);
+      });
+      search.addEventListener("blur", () => {
+        if (this._lastFocusedField === "__spellSearch") this._lastFocusedField = null;
+      });
+    }
+
+    const tier = this._mountHost.querySelector("select[data-spell-tier]");
+    if (tier) {
+      tier.addEventListener("change", ev => {
+        this._spellTier = ev.target.value === "" ? null : Number(ev.target.value);
+        this.render();
+      });
+    }
   }
 
   /** Manually dispatch clicks on `[data-action="..."]` elements to the
@@ -504,6 +593,8 @@ export class MonsterCreatorApp {
       ? "input[data-loader-search]"
       : lastField === "__loaderAbility"
       ? "input[data-loader-ability]"
+      : lastField === "__spellSearch"
+      ? "input[data-spell-search]"
       : `[data-draft-field="${CSS.escape(lastField)}"]`;
     const input = this._mountHost?.querySelector(selector);
     if (input) {
@@ -620,6 +711,38 @@ export class MonsterCreatorApp {
       id: foundry.utils.randomID(),
     });
     this._sectionOpen.features = true;
+    this.render();
+  }
+
+  /** Attach a compendium/world Spell item to the draft. Resolves the full
+   *  source via fromUuid (async) and stores its toObject() so the save
+   *  path can push it verbatim without another lookup. No-op if already
+   *  attached or if the uuid doesn't resolve to a Spell. */
+  async _onSpellAdd(event, target) {
+    const uuid = target.dataset.uuid;
+    if (!uuid) return;
+    this._draft.spells ??= [];
+    if (this._draft.spells.some(s => s.uuid === uuid)) return;
+    const doc = await fromUuid(uuid);
+    if (!doc || doc.type !== "Spell") {
+      ui.notifications.warn("That spell could not be loaded.");
+      return;
+    }
+    const source = doc.toObject();
+    delete source._id;
+    this._draft.spells.push({
+      uuid,
+      name:      doc.name,
+      img:       doc.img,
+      tierLabel: `T${doc.system?.tier ?? 0}`,
+      source,
+    });
+    this.render();
+  }
+
+  _onSpellRemove(event, target) {
+    const uuid = target.dataset.uuid;
+    this._draft.spells = (this._draft.spells ?? []).filter(s => s.uuid !== uuid);
     this.render();
   }
 
@@ -787,7 +910,7 @@ export class MonsterCreatorApp {
     this._sectionOpen.stats = true;
     this._sectionOpen.actions = draft.actions.length > 0;
     this._sectionOpen.features = draft.features.length > 0;
-    this._sectionOpen.spellcasting = !!draft.spellcasting.ability;
+    this._sectionOpen.spellcasting = !!draft.spellcasting.ability || draft.spells.length > 0;
     this._sectionOpen.description = !!draft.description;
   }
 
@@ -868,9 +991,10 @@ export async function actorToDraft(actor) {
     },
     actions:  [],
     features: [],
+    spells:   [],
   };
 
-  // Split items into Actions and Features
+  // Split items into Actions, Features, and Spells
   for (const item of actor.items) {
     if (item.type === "NPC Attack" || item.type === "NPC Special Attack") {
       draft.actions.push({
@@ -888,6 +1012,16 @@ export async function actorToDraft(actor) {
         id:     foundry.utils.randomID(),
         name:   item.name,
         description: item.system.description || "",
+      });
+    } else if (item.type === "Spell") {
+      const source = item.toObject();
+      delete source._id;
+      draft.spells.push({
+        uuid:      item.uuid,
+        name:      item.name,
+        img:       item.img,
+        tierLabel: `T${item.system?.tier ?? 0}`,
+        source,
       });
     }
   }
@@ -995,6 +1129,17 @@ export function draftToActorData(d) {
       type: "NPC Feature",
       system: { description: f.description || "" },
     });
+  }
+
+  // ─── Spell Items ──────────────────────────────────────────────
+  // Each draft.spells entry already holds the full Spell source object
+  // (captured via toObject() at add-time). Push it verbatim minus any
+  // `_id`, so createEmbeddedDocuments mints a fresh embedded copy.
+  for (const sp of (d.spells ?? [])) {
+    if (!sp?.source) continue;
+    const src = foundry.utils.deepClone(sp.source);
+    delete src._id;
+    items.push(src);
   }
 
   return { actorData, items };
