@@ -17,6 +17,7 @@ import {
   _findCompendiumActorByName,
 } from "./art-utils.mjs";
 import { MonsterCreator } from "./encounter-creator.mjs";
+import { TableImporter } from "./table-importer.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -81,6 +82,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       buildPostSlot:      EncounterRollerApp.prototype._onBuildPostSlot,
       buildPlaceSlot:     EncounterRollerApp.prototype._onBuildPlaceSlot,
       buildSave:          EncounterRollerApp.prototype._onBuildSave,
+      // Import Tables tab
+      importParse:        EncounterRollerApp.prototype._onImportParse,
+      importClear:        EncounterRollerApp.prototype._onImportClear,
+      importCreate:       EncounterRollerApp.prototype._onImportCreate,
+      importCreateAll:    EncounterRollerApp.prototype._onImportCreateAll,
+      importAddRow:       EncounterRollerApp.prototype._onImportAddRow,
+      importDeleteRow:    EncounterRollerApp.prototype._onImportDeleteRow,
     }
   };
 
@@ -151,6 +159,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // browse search input to keep the cursor stable across renders.
     this._buildNameFocused = false;
     this._buildNameCursor  = 0;
+
+    // Import Tables tab state. `_importText` is the raw paste; `_importParsed`
+    // is the array of ParsedTable produced by the last Parse and mutated in
+    // place as the GM edits the preview grid.
+    this._importText   = "";
+    this._importParsed = [];
+    this._importTextFocused = false;
+    this._importTextCursor  = 0;
   }
 
   // ─── Singleton ───
@@ -313,6 +329,15 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       };
     }
 
+    // Import Tables tab — only assembled when active.
+    let importData = null;
+    if (this._activeTab === "import") {
+      importData = {
+        text:   this._importText,
+        parsed: this._importParsed,
+      };
+    }
+
     return {
       activeTab: this._activeTab,
       selectedTableId: this._selectedTableId,
@@ -321,6 +346,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       lastResult: this._lastResult,
       browseData,
       buildData,
+      importData,
     };
   }
 
@@ -637,6 +663,58 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           return;
         }
         EncounterBuild.fillSlotFromActor(this._buildSlots[idx], actor);
+        this.render();
+      });
+    });
+
+    // ═══ Import Tables tab wiring ═════════════════════════════════════
+
+    // Paste box: debounced stash + cursor preservation (same pattern as
+    // the build table-name input). Parsing is explicit (Parse button), so
+    // we only stash the text here — no re-render on keystroke.
+    const importText = this.element.querySelector("textarea[data-import-text]");
+    if (importText) {
+      if (this._importTextFocused) {
+        importText.focus();
+        const pos = this._importTextCursor ?? importText.value.length;
+        try { importText.setSelectionRange(pos, pos); } catch (_) {}
+      }
+      let importTimeout = null;
+      importText.addEventListener("input", ev => {
+        this._importTextFocused = true;
+        this._importTextCursor  = ev.target.selectionStart;
+        clearTimeout(importTimeout);
+        importTimeout = setTimeout(() => {
+          this._importText = ev.target.value;
+        }, 200);
+      });
+      importText.addEventListener("blur", () => {
+        this._importTextFocused = false;
+        this._importText = importText.value;
+      });
+    }
+
+    // Preview-grid field edits. Commit on `change` so typing doesn't
+    // re-render mid-edit. data-import-field identifies the field; the
+    // table/row index come from the enclosing [data-table-idx]/[data-row-idx].
+    this.element.querySelectorAll(".sde-import-table [data-import-field]").forEach(input => {
+      input.addEventListener("change", ev => {
+        const tIdx = Number(ev.target.closest("[data-table-idx]")?.dataset.tableIdx);
+        const tbl  = this._importParsed[tIdx];
+        if (!tbl) return;
+        const field = ev.target.dataset.importField;
+        const rowEl = ev.target.closest("[data-row-idx]");
+        if (rowEl) {
+          const rIdx = Number(rowEl.dataset.rowIdx);
+          const row = tbl.rows[rIdx];
+          if (!row) return;
+          if (field === "min" || field === "max") row[field] = Number(ev.target.value);
+          else if (field === "text") row.text = ev.target.value;
+        } else {
+          if (field === "name") tbl.name = ev.target.value;
+          else if (field === "formula") tbl.formula = ev.target.value;
+          else if (field === "replacement") tbl.replacement = ev.target.checked;
+        }
         this.render();
       });
     });
@@ -1229,6 +1307,97 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       console.error(MODULE_ID, "Build save failed:", err);
       ui.notifications.error(`Failed to save Roll Table: ${err.message}`);
     }
+  }
+
+  // ═══ Import Tables tab handlers ═════════════════════════════════════
+
+  _onImportParse() {
+    // Pull straight from the DOM so an un-blurred paste still parses.
+    const ta = this.element.querySelector("textarea[data-import-text]");
+    if (ta) this._importText = ta.value;
+    this._importParsed = TableImporter.parse(this._importText);
+    if (!this._importParsed.length) {
+      ui.notifications.warn("No tables found in the pasted text.");
+    }
+    this.render();
+  }
+
+  _onImportClear() {
+    this._importText = "";
+    this._importParsed = [];
+    this.render();
+  }
+
+  _onImportAddRow(event, target) {
+    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
+    const tbl = this._importParsed[tIdx];
+    if (!tbl) return;
+    const nextMin = tbl.rows.reduce((m, r) => Math.max(m, r.max), 0) + 1;
+    tbl.rows.push({ min: nextMin, max: nextMin, text: "" });
+    this.render();
+  }
+
+  _onImportDeleteRow(event, target) {
+    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
+    const rIdx = Number(target.closest("[data-row-idx]")?.dataset.rowIdx);
+    const tbl = this._importParsed[tIdx];
+    if (!tbl || !Number.isFinite(rIdx)) return;
+    tbl.rows.splice(rIdx, 1);
+    this.render();
+  }
+
+  async _onImportCreate(event, target) {
+    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
+    const tbl = this._importParsed[tIdx];
+    if (!tbl) return;
+    await this._createImportedTable(tbl);
+  }
+
+  async _onImportCreateAll() {
+    if (!this._importParsed.length) return;
+    const total = this._importParsed.length;
+    let created = 0;
+    // Iterate a copy — created tables are removed from _importParsed.
+    for (const tbl of [...this._importParsed]) {
+      const made = await this._createImportedTable(tbl, { silent: true });
+      if (made) created++;
+    }
+    ui.notifications.info(`Created ${created} of ${total} table(s).`);
+    this.render();
+  }
+
+  /**
+   * Create one parsed table as a world RollTable, resolving name clashes
+   * via a 3-button dialog. On success removes it from the preview list.
+   *
+   * @param {object} tbl   ParsedTable
+   * @param {object} [opts]
+   * @param {boolean} [opts.silent]  suppress the per-table success toast + render
+   * @returns {Promise<boolean>}     true if a table was created
+   */
+  async _createImportedTable(tbl, { silent = false } = {}) {
+    const onConflict = async (name) => {
+      const safe = foundry.utils.escapeHTML?.(name) ?? name;
+      const choice = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Table Already Exists" },
+        content: `<p>A table named <strong>${safe}</strong> already exists. What would you like to do?</p>`,
+        buttons: [
+          { action: "rename",  label: "Create as Copy", default: true },
+          { action: "replace", label: "Replace Existing" },
+          { action: "cancel",  label: "Cancel" },
+        ],
+        rejectClose: false,
+      }).catch(() => "cancel");
+      return choice ?? "cancel";
+    };
+
+    const table = await TableImporter.createTable(tbl, { onConflict });
+    if (!table) return false;
+
+    if (!silent) ui.notifications.info(`Created Roll Table: ${table.name}`);
+    this._importParsed = this._importParsed.filter(t => t !== tbl);
+    if (!silent) this.render();
+    return true;
   }
 
   _slotFromEvent(target) {
