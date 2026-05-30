@@ -244,7 +244,10 @@ export function buildTableData(pt) {
     weight: 1,
     range: [r.min, r.max],
   }));
-  return { name, formula, replacement: pt.replacement !== false, displayRoll: true, results };
+  // displayRoll:false keeps the roll formula out of the chat card, which is
+  // what Dice So Nice's "Enable 3D dice on Roll Tables" feature requires to
+  // animate the draw (it also needs core "Animate Roll Table Roll" off).
+  return { name, formula, replacement: pt.replacement !== false, displayRoll: false, results };
 }
 
 // Internal exports for tooling/tests that want the lower-level pieces.
