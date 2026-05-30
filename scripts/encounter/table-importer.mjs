@@ -25,6 +25,8 @@
 // allowed. The (?=\s|$) lookahead means "2d6" does NOT match (after the
 // "2" comes "d", not whitespace) — so embedded dice in result text are
 // never mistaken for a row token.
+import { classify } from "./table-categories.mjs";
+
 const LEADING_RANGE = /^\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?(?=\s|$)/;
 
 // A "dN ..." header line. Trailing words (if any) are candidate column
@@ -126,6 +128,8 @@ function parseSingleDieBlock(title, die, dataLines) {
     formula: die ? `1d${die.size}` : `1d${Math.max(1, maxRange)}`,
     replacement: true,
     bestEffort: false,
+    category: classify(name),
+    customLabel: "",
     rows,
     warnings: [],
   };
@@ -150,14 +154,19 @@ function splitCells(rest, n) {
 /** Build N best-effort ParsedTables from a multi-column block. */
 function parseMatrixBlock(title, die, dataLines) {
   const n = die.columns.length;
-  const tables = die.columns.map((label, ci) => ({
-    name: [title, label].filter(Boolean).join(" — ") || label || `Column ${ci + 1}`,
-    formula: `1d${die.size}`,
-    replacement: true,
-    bestEffort: true,
-    rows: [],
-    warnings: [],
-  }));
+  const tables = die.columns.map((label, ci) => {
+    const tname = [title, label].filter(Boolean).join(" — ") || label || `Column ${ci + 1}`;
+    return {
+      name: tname,
+      formula: `1d${die.size}`,
+      replacement: true,
+      bestEffort: true,
+      category: classify(tname),
+      customLabel: "",
+      rows: [],
+      warnings: [],
+    };
+  });
 
   for (const line of dataLines) {
     const r = parseLeadingRange(line);
