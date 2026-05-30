@@ -494,6 +494,15 @@
                 <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}>
                 Replacement
               </label>
+              <select data-import-field="category" class="sde-import-cat" aria-label="Table type" data-tooltip="Folder this table is filed under when created." data-tooltip-direction="UP">
+                {{#each @root.importData.categoryOptions as |opt|}}
+                <option value="{{opt.id}}" {{#if (eq opt.id tbl.category)}}selected{{/if}}>{{opt.label}}</option>
+                {{/each}}
+              </select>
+              {{#if (eq tbl.category "custom")}}
+              <input type="text" data-import-field="customLabel" value="{{tbl.customLabel}}"
+                     class="sde-import-customcat" aria-label="Custom folder name" placeholder="Folder name">
+              {{/if}}
               <button type="button" data-action="importCreate" class="sde-import-primary">
                 <i class="fas fa-plus"></i> Create
               </button>
