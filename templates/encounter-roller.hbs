@@ -524,6 +524,14 @@
                 <span class="sde-import-dash">–</span>
                 <input type="number" data-import-field="max" value="{{row.max}}" aria-label="Range max" class="sde-import-num">
                 <input type="text" data-import-field="text" value="{{row.text}}" aria-label="Result text" class="sde-import-rowtext">
+                {{#if row.link}}
+                <span class="sde-import-link" data-tooltip="Draws as a link to this compendium item">
+                  <i class="fas fa-link"></i> {{row.link.name}}
+                </span>
+                <button type="button" data-action="importUnlinkRow" aria-label="Unlink item" class="sde-import-unlink">
+                  <i class="fas fa-link-slash"></i>
+                </button>
+                {{/if}}
                 <button type="button" data-action="importDeleteRow" aria-label="Delete row" class="sde-import-del">
                   <i class="fas fa-xmark"></i>
                 </button>
