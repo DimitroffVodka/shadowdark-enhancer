@@ -18,6 +18,7 @@ import {
 } from "./art-utils.mjs";
 import { MonsterCreator } from "./encounter-creator.mjs";
 import { TableImporter } from "./table-importer.mjs";
+import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -335,6 +336,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const importData = {
       text:   this._importText,
       parsed: this._importParsed,
+      categoryOptions: [
+        ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
+        { id: CUSTOM_ID, label: "Custom…" },
+      ],
     };
 
     return {
@@ -713,6 +718,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           if (field === "name") tbl.name = ev.target.value;
           else if (field === "formula") tbl.formula = ev.target.value;
           else if (field === "replacement") tbl.replacement = ev.target.checked;
+          else if (field === "category") tbl.category = ev.target.value;
+          else if (field === "customLabel") tbl.customLabel = ev.target.value;
         }
         this.render();
       });
