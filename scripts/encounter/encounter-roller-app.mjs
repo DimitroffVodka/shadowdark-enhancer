@@ -329,14 +329,13 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       };
     }
 
-    // Import Tables tab — only assembled when active.
-    let importData = null;
-    if (this._activeTab === "import") {
-      importData = {
-        text:   this._importText,
-        parsed: this._importParsed,
-      };
-    }
+    // Import Tables tab. Cheap to assemble (no compendium reads), so it's
+    // populated unconditionally — the import-tab markup lives in the DOM on
+    // every tab, so a null context here would dereference `importData.*`.
+    const importData = {
+      text:   this._importText,
+      parsed: this._importParsed,
+    };
 
     return {
       activeTab: this._activeTab,
@@ -1377,7 +1376,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
    */
   async _createImportedTable(tbl, { silent = false } = {}) {
     const onConflict = async (name) => {
-      const safe = foundry.utils.escapeHTML?.(name) ?? name;
+      const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
         window: { title: "Table Already Exists" },
         content: `<p>A table named <strong>${safe}</strong> already exists. What would you like to do?</p>`,
