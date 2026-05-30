@@ -247,12 +247,21 @@ export function buildTableData(pt) {
   const name = (pt.name ?? "").trim() || "Imported Table";
   const maxRange = (pt.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0);
   const formula = (pt.formula ?? "").trim() || `1d${Math.max(1, maxRange)}`;
-  const results = (pt.rows ?? []).map(r => ({
-    type: TEXT,
-    name: r.text ?? "",
-    weight: 1,
-    range: [r.min, r.max],
-  }));
+  const results = (pt.rows ?? []).map(r => {
+    let resultText = r.text ?? "";
+    // Loot linking: embed a clickable @UUID on the matched noun. String
+    // replace touches only the first occurrence; if the GM edited the text
+    // so `matched` is gone, this is a graceful no-op.
+    if (r.link?.uuid && r.link.matched) {
+      resultText = resultText.replace(r.link.matched, `@UUID[${r.link.uuid}]{${r.link.matched}}`);
+    }
+    return {
+      type: TEXT,
+      name: resultText,
+      weight: 1,
+      range: [r.min, r.max],
+    };
+  });
   // displayRoll:false keeps the roll formula out of the chat card, which is
   // what Dice So Nice's "Enable 3D dice on Roll Tables" feature requires to
   // animate the draw (it also needs core "Animate Roll Table Roll" off).
