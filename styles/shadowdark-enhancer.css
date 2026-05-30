@@ -3360,3 +3360,21 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-import-cat { flex: 0 0 auto; }
 .sde-import-customcat { flex: 1 1 8rem; }
+.sde-import-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: var(--sde-bar-bg-hover);
+  color: var(--sde-bar-accent);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+.sde-import-unlink {
+  background: transparent;
+  color: var(--sde-bar-text-muted);
+  border: none;
+  cursor: pointer;
+}
+.sde-import-unlink:hover { color: var(--sde-bar-accent); }
