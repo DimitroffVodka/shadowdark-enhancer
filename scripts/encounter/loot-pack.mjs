@@ -9,7 +9,8 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 
-const GENERIC_TREASURE_ICON = "icons/sundries/gems/pearl-rough-white.webp";
+// Foundry core treasure icon (verified to exist; the prior gems path did not).
+const GENERIC_TREASURE_ICON = "icons/commodities/treasure/box-jade-tassel.webp";
 const LOOT_PACK_LABEL = "Loot";
 
 /** Sum every `N gp/sp/cp` occurrence into a coin object. */
