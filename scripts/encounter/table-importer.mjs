@@ -133,6 +133,45 @@ function parseSingleDieBlock(title, die, dataLines) {
   return pt;
 }
 
+/** Split a row's result text into exactly n cells (surplus → last cell). */
+function splitCells(rest, n) {
+  const tokens = String(rest).split(/\s+/).filter(Boolean);
+  if (tokens.length <= n) {
+    const cells = tokens.slice();
+    while (cells.length < n) cells.push("");
+    return cells;
+  }
+  const cells = [];
+  for (let i = 0; i < n - 1; i++) cells.push(tokens[i]);
+  cells.push(tokens.slice(n - 1).join(" "));
+  return cells;
+}
+
+/** Build N best-effort ParsedTables from a multi-column block. */
+function parseMatrixBlock(title, die, dataLines) {
+  const n = die.columns.length;
+  const tables = die.columns.map((label, ci) => ({
+    name: [title, label].filter(Boolean).join(" — ") || label || `Column ${ci + 1}`,
+    formula: `1d${die.size}`,
+    replacement: true,
+    bestEffort: true,
+    rows: [],
+    warnings: [],
+  }));
+
+  for (const line of dataLines) {
+    const r = parseLeadingRange(line);
+    if (!r) continue; // matrix rows must lead with a die value
+    const cells = splitCells(r.rest, n);
+    for (let ci = 0; ci < n; ci++) {
+      tables[ci].rows.push({ min: r.min, max: r.max, text: cells[ci] ?? "" });
+    }
+  }
+
+  for (const t of tables) t.warnings = computeWarnings(t);
+  return tables;
+}
+
 /** Parse one block → array of ParsedTable (length 1 here; matrix added later). */
 function parseBlock(blockLines) {
   const work = blockLines.filter(l => l.trim() !== "");
@@ -154,7 +193,9 @@ function parseBlock(blockLines) {
   }
 
   const dataLines = work.slice(idx);
-  // (Matrix dispatch is inserted here by a later task.)
+  if (die && die.columns.length >= 2) {
+    return parseMatrixBlock(title, die, dataLines);
+  }
   return [parseSingleDieBlock(title, die, dataLines)];
 }
 
