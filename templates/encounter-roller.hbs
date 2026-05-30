@@ -5,17 +5,20 @@
        `.tabs` class would risk Foundry's built-in Tabs handler attaching
        a duplicate click binding. --}}
   <nav class="sde-tabs" data-group="primary">
-    <button type="button" class="item {{#if (eq activeTab 'tables')}}active{{/if}}" data-tab="tables">
+    <button type="button" class="item {{#if (eq activeTab 'tables')}}active{{/if}}" data-tab="tables" aria-pressed="{{#if (eq activeTab 'tables')}}true{{else}}false{{/if}}">
       <i class="fas fa-table-list"></i> Roll Tables
     </button>
-    <button type="button" class="item {{#if (eq activeTab 'build')}}active{{/if}}" data-tab="build">
+    <button type="button" class="item {{#if (eq activeTab 'build')}}active{{/if}}" data-tab="build" aria-pressed="{{#if (eq activeTab 'build')}}true{{else}}false{{/if}}">
       <i class="fas fa-hammer"></i> Build Table
     </button>
-    <button type="button" class="item {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse">
+    <button type="button" class="item {{#if (eq activeTab 'browse')}}active{{/if}}" data-tab="browse" aria-pressed="{{#if (eq activeTab 'browse')}}true{{else}}false{{/if}}">
       <i class="fas fa-user-group"></i> Browse NPCs
     </button>
-    <button type="button" class="item {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator">
+    <button type="button" class="item {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator" aria-pressed="{{#if (eq activeTab 'creator')}}true{{else}}false{{/if}}">
       <i class="fas fa-wand-magic-sparkles"></i> Monster Creator
+    </button>
+    <button type="button" class="item {{#if (eq activeTab 'import')}}active{{/if}}" data-tab="import" aria-pressed="{{#if (eq activeTab 'import')}}true{{else}}false{{/if}}">
+      <i class="fas fa-file-import"></i> Import Tables
     </button>
   </nav>
 
@@ -103,7 +106,7 @@
               </header>
 
               <div class="sde-monster-row">
-                <img src="{{lastResult.img}}" width="48" height="48" />
+                <img src="{{lastResult.img}}" width="48" height="48" alt="{{lastResult.name}}" loading="lazy" decoding="async" />
                 <div class="sde-monster-info">
                   <span class="sde-monster-count">{{lastResult.count}} ×</span>
                   <span class="sde-monster-name">{{lastResult.name}}</span>
@@ -137,11 +140,11 @@
               </div>
 
               <div class="sde-stepper-row">
-                <label>Apply CHA mod:</label>
+                <label for="sde-cha-mod">Apply CHA mod:</label>
                 <div class="sde-stepper">
-                  <button type="button" data-action="chaDec"><i class="fas fa-caret-down"></i></button>
-                  <input type="number" name="chaMod" value="{{lastResult.chaMod}}" readonly />
-                  <button type="button" data-action="chaInc"><i class="fas fa-caret-up"></i></button>
+                  <button type="button" data-action="chaDec" aria-label="Decrease CHA mod"><i class="fas fa-caret-down"></i></button>
+                  <input id="sde-cha-mod" type="number" name="chaMod" value="{{lastResult.chaMod}}" readonly aria-label="CHA modifier" />
+                  <button type="button" data-action="chaInc" aria-label="Increase CHA mod"><i class="fas fa-caret-up"></i></button>
                 </div>
               </div>
             </div>
@@ -160,15 +163,16 @@
 
         <div class="sde-build-header">
           <div class="sde-build-header-row">
-            <label class="sde-build-label">Die:</label>
-            <select name="buildDie" class="sde-build-die-select">
+            <label class="sde-build-label" for="sde-build-die">Die:</label>
+            <select id="sde-build-die" name="buildDie" class="sde-build-die-select">
               {{#each buildData.dice}}
                 <option value="{{this.key}}" {{#if (eq this.key ../buildData.dieKey)}}selected{{/if}}>{{this.label}}</option>
               {{/each}}
             </select>
 
-            <label class="sde-build-label">Name:</label>
-            <input type="text"
+            <label class="sde-build-label" for="sde-build-name">Name:</label>
+            <input id="sde-build-name"
+                   type="text"
                    name="buildTableName"
                    class="sde-build-name-input"
                    placeholder="e.g. Forest Encounters"
@@ -288,8 +292,9 @@
 
             {{!-- Search --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label">Search</label>
-              <input type="text"
+              <label class="sde-browse-filter-label" for="sde-br-search">Search</label>
+              <input id="sde-br-search"
+                     type="text"
                      name="browseSearch"
                      class="sde-browse-search"
                      placeholder="{{localize 'SDE.encounter.browse.search.placeholder'}}"
@@ -304,6 +309,7 @@
                   <button type="button"
                           class="sde-browse-align-pill {{#if (includes ../browseData.alignment this)}}is-active{{/if}}"
                           data-action="browseToggleAlign"
+                          aria-pressed="{{#if (includes ../browseData.alignment this)}}true{{else}}false{{/if}}"
                           data-alignment="{{this}}">{{this}}</button>
                 {{/each}}
               </div>
@@ -313,9 +319,9 @@
             <div class="sde-browse-filter">
               <label class="sde-browse-filter-label">Level</label>
               <div class="sde-browse-level-group">
-                <input type="number" name="browseLevelMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq browseData.levelMin null)}}{{browseData.levelMin}}{{/unless}}">
+                <input type="number" name="browseLevelMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum level" value="{{#unless (eq browseData.levelMin null)}}{{browseData.levelMin}}{{/unless}}">
                 <span class="sde-browse-level-sep">–</span>
-                <input type="number" name="browseLevelMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq browseData.levelMax null)}}{{browseData.levelMax}}{{/unless}}">
+                <input type="number" name="browseLevelMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum level" value="{{#unless (eq browseData.levelMax null)}}{{browseData.levelMax}}{{/unless}}">
               </div>
             </div>
 
@@ -323,25 +329,25 @@
               <div class="sde-browse-filter">
                 <label class="sde-browse-filter-label">HP</label>
                 <div class="sde-browse-level-group">
-                  <input type="number" name="browseHpMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq browseData.hpMin null)}}{{browseData.hpMin}}{{/unless}}">
+                  <input type="number" name="browseHpMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum HP" value="{{#unless (eq browseData.hpMin null)}}{{browseData.hpMin}}{{/unless}}">
                   <span class="sde-browse-level-sep">–</span>
-                  <input type="number" name="browseHpMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq browseData.hpMax null)}}{{browseData.hpMax}}{{/unless}}">
+                  <input type="number" name="browseHpMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum HP" value="{{#unless (eq browseData.hpMax null)}}{{browseData.hpMax}}{{/unless}}">
                 </div>
               </div>
               <div class="sde-browse-filter">
                 <label class="sde-browse-filter-label">AC</label>
                 <div class="sde-browse-level-group">
-                  <input type="number" name="browseAcMin" class="sde-browse-level-input" placeholder="min" value="{{#unless (eq browseData.acMin null)}}{{browseData.acMin}}{{/unless}}">
+                  <input type="number" name="browseAcMin" class="sde-browse-level-input" placeholder="min" aria-label="Minimum AC" value="{{#unless (eq browseData.acMin null)}}{{browseData.acMin}}{{/unless}}">
                   <span class="sde-browse-level-sep">–</span>
-                  <input type="number" name="browseAcMax" class="sde-browse-level-input" placeholder="max" value="{{#unless (eq browseData.acMax null)}}{{browseData.acMax}}{{/unless}}">
+                  <input type="number" name="browseAcMax" class="sde-browse-level-input" placeholder="max" aria-label="Maximum AC" value="{{#unless (eq browseData.acMax null)}}{{browseData.acMax}}{{/unless}}">
                 </div>
               </div>
             </div>
 
             {{!-- Move filter --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label">Movement</label>
-              <select name="browseMove" class="sde-browse-select">
+              <label class="sde-browse-filter-label" for="sde-br-move">Movement</label>
+              <select id="sde-br-move" name="browseMove" class="sde-browse-select">
                 <option value="" {{#unless browseData.moves.length}}selected{{/unless}}>All movement</option>
                 {{#each browseData.moveOptions}}
                   <option value="{{this}}" {{#if (includes ../browseData.moves this)}}selected{{/if}}>{{this}}</option>
@@ -367,8 +373,9 @@
 
             {{!-- Abilities (text-search NPC Feature names) --}}
             <div class="sde-browse-filter">
-              <label class="sde-browse-filter-label">Abilities</label>
-              <input type="text"
+              <label class="sde-browse-filter-label" for="sde-br-ability">Abilities</label>
+              <input id="sde-br-ability"
+                     type="text"
                      name="browseAbilitySearch"
                      class="sde-browse-search"
                      placeholder="e.g. petrify, magic resistance"
@@ -392,13 +399,13 @@
                   <tr>
                     <th></th>
                     <th></th>
-                    <th><button type="button" data-action="browseSort" data-column="name">Name {{#if (eq browseData.sortCol "name")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th><button type="button" data-action="browseSort" data-column="level">LV {{#if (eq browseData.sortCol "level")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th><button type="button" data-action="browseSort" data-column="alignment">Al {{#if (eq browseData.sortCol "alignment")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th><button type="button" data-action="browseSort" data-column="hp">HP {{#if (eq browseData.sortCol "hp")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th><button type="button" data-action="browseSort" data-column="ac">AC {{#if (eq browseData.sortCol "ac")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th><button type="button" data-action="browseSort" data-column="dpr">DPR {{#if (eq browseData.sortCol "dpr")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
-                    <th><button type="button" data-action="browseSort" data-column="attackCount">Attack {{#if (eq browseData.sortCol "attackCount")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "name")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="name">Name {{#if (eq browseData.sortCol "name")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "level")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="level">LV {{#if (eq browseData.sortCol "level")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "alignment")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="alignment">Al {{#if (eq browseData.sortCol "alignment")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "hp")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="hp">HP {{#if (eq browseData.sortCol "hp")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "ac")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="ac">AC {{#if (eq browseData.sortCol "ac")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "dpr")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="dpr">DPR {{#if (eq browseData.sortCol "dpr")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
+                    <th aria-sort="{{#if (eq browseData.sortCol "attackCount")}}{{#if browseData.sortAsc}}ascending{{else}}descending{{/if}}{{else}}none{{/if}}"><button type="button" data-action="browseSort" data-column="attackCount">Attack {{#if (eq browseData.sortCol "attackCount")}}{{#if browseData.sortAsc}}▲{{else}}▼{{/if}}{{/if}}</button></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -409,7 +416,7 @@
                           <i class="fas fa-plus"></i>
                         </button>
                       </td>
-                      <td><img src="{{this.img}}" width="24" height="24" alt="" /></td>
+                      <td><img src="{{this.img}}" width="24" height="24" alt="" loading="lazy" decoding="async" /></td>
                       <td class="sde-browse-name" title="{{this.name}}">{{this.name}}</td>
                       <td>{{this.levelLabel}}</td>
                       <td title="{{this.alignmentLabel}}">{{#if this.alignment}}{{this.alignment}}{{else}}—{{/if}}</td>
@@ -447,6 +454,84 @@
     {{!-- Monster Creator Tab — mounted inline by EncounterRollerApp --}}
     <div class="tab {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator">
       <div id="sde-monster-creator-host"></div>
+    </div>
+
+    {{!-- Import Tables Tab --}}
+    <div class="tab {{#if (eq activeTab 'import')}}active{{/if}}" data-tab="import">
+      <div class="sde-import">
+        <label class="sde-import-label" for="sde-import-text">
+          Paste a table copied from a Shadowdark book or zine:
+        </label>
+        <textarea id="sde-import-text" data-import-text rows="8"
+                  class="sde-import-text"
+                  placeholder="d100 Details&#10;01 A frozen corpse...&#10;02-03 A pack of wolves...">{{importData.text}}</textarea>
+
+        <div class="sde-import-controls">
+          <button type="button" data-action="importParse">
+            <i class="fas fa-wand-magic"></i> Parse
+          </button>
+          <button type="button" data-action="importClear" class="sde-import-secondary">
+            <i class="fas fa-eraser"></i> Clear
+          </button>
+          {{#if importData.parsed.length}}
+          <button type="button" data-action="importCreateAll" class="sde-import-primary">
+            <i class="fas fa-table-list"></i> Create all ({{importData.parsed.length}})
+          </button>
+          {{/if}}
+        </div>
+
+        {{#if importData.parsed.length}}
+        <div class="sde-import-preview">
+          {{#each importData.parsed as |tbl|}}
+          <div class="sde-import-table" data-table-idx="{{@index}}">
+            <div class="sde-import-table-head">
+              <input type="text" data-import-field="name" value="{{tbl.name}}"
+                     aria-label="Table name" placeholder="Table name"
+                     class="sde-import-name">
+              <input type="text" data-import-field="formula" value="{{tbl.formula}}"
+                     aria-label="Formula" class="sde-import-formula">
+              <label class="sde-import-repl">
+                <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}>
+                Replacement
+              </label>
+              <button type="button" data-action="importCreate" class="sde-import-primary">
+                <i class="fas fa-plus"></i> Create
+              </button>
+            </div>
+
+            {{#if tbl.bestEffort}}
+            <p class="sde-import-flag"><i class="fas fa-triangle-exclamation"></i> Best-effort column split — check the cells.</p>
+            {{/if}}
+            {{#if tbl.warnings.length}}
+            <ul class="sde-import-warnings">
+              {{#each tbl.warnings as |w|}}<li>{{w}}</li>{{/each}}
+            </ul>
+            {{/if}}
+
+            <div class="sde-import-rows">
+              {{#each tbl.rows as |row|}}
+              <div class="sde-import-row" data-row-idx="{{@index}}">
+                <input type="number" data-import-field="min" value="{{row.min}}" aria-label="Range min" class="sde-import-num">
+                <span class="sde-import-dash">–</span>
+                <input type="number" data-import-field="max" value="{{row.max}}" aria-label="Range max" class="sde-import-num">
+                <input type="text" data-import-field="text" value="{{row.text}}" aria-label="Result text" class="sde-import-rowtext">
+                <button type="button" data-action="importDeleteRow" aria-label="Delete row" class="sde-import-del">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </div>
+              {{/each}}
+            </div>
+
+            <button type="button" data-action="importAddRow" class="sde-import-addrow">
+              <i class="fas fa-plus"></i> Add row
+            </button>
+          </div>
+          {{/each}}
+        </div>
+        {{else}}
+        <p class="sde-import-empty">Paste table text above and click <strong>Parse</strong> to preview it here before creating Roll Tables.</p>
+        {{/if}}
+      </div>
     </div>
 
   </section>
