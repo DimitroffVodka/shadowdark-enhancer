@@ -490,7 +490,7 @@
                      class="sde-import-name">
               <input type="text" data-import-field="formula" value="{{tbl.formula}}"
                      aria-label="Formula" class="sde-import-formula">
-              <label class="sde-import-repl">
+              <label class="sde-import-repl" data-tooltip="On: results can repeat on every draw. Off: each result is removed after it's drawn (no repeats) until the table is reset." data-tooltip-direction="UP">
                 <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}>
                 Replacement
               </label>
