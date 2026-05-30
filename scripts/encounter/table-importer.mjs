@@ -225,3 +225,46 @@ export function buildTableData(pt) {
 
 // Internal exports for tooling/tests that want the lower-level pieces.
 export const _internals = { parseLeadingRange, parseDieHeader, splitBlocks, computeWarnings };
+
+/** Make a table name unique against existing world tables by suffixing. */
+function _uniqueTableName(base) {
+  let n = 2;
+  let candidate = `${base} (${n})`;
+  while (game.tables.find(t => t.name === candidate)) {
+    n++;
+    candidate = `${base} (${n})`;
+  }
+  return candidate;
+}
+
+/**
+ * Create a world RollTable from a reviewed ParsedTable.
+ *
+ * @param {object} pt  ParsedTable (post-grid-edit)
+ * @param {object} [opts]
+ * @param {(name: string) => Promise<"replace"|"rename"|"cancel">} [opts.onConflict]
+ *   Resolver invoked when a same-named table already exists. Omitted →
+ *   non-destructive rename.
+ * @returns {Promise<RollTable|null>}
+ */
+export async function createTable(pt, { onConflict } = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can create roll tables.");
+    return null;
+  }
+  const data = buildTableData(pt);
+  const existing = game.tables.find(t => t.name === data.name);
+  if (existing) {
+    const choice = onConflict ? await onConflict(data.name) : "rename";
+    if (choice === "cancel") return null;
+    if (choice === "replace") await existing.delete();
+    else data.name = _uniqueTableName(data.name);
+  }
+  return RollTable.create(data);
+}
+
+export const TableImporter = {
+  parse: parseTables,
+  buildTableData,
+  createTable,
+};
