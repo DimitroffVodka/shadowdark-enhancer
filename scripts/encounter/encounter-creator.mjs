@@ -17,6 +17,11 @@ import { MODULE_ID } from "../module-id.mjs";
 import { _bestArtForActor, _isPlaceholderArt } from "./art-utils.mjs";
 import { ACTION_QUICK_PICKS } from "./action-templates.mjs";
 import { FEATURE_QUICK_PICKS } from "./feature-templates.mjs";
+import {
+  MUTATIONS, MUTATION_CATEGORIES,
+  getMutation, getConflict, applyMutations, generateMutatedName,
+} from "./mutation-data.mjs";
+import { createMutatedFromDraft } from "./monster-mutator.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 
@@ -94,6 +99,16 @@ export class MonsterCreatorApp {
     creatorAddFeatureQuickPick: MonsterCreatorApp.prototype._onAddFeatureQuickPick,
     creatorToggleLoader:        MonsterCreatorApp.prototype._onToggleLoader,
     creatorLoaderPick:          MonsterCreatorApp.prototype._onLoaderPick,
+    creatorLoaderToggleSource:  MonsterCreatorApp.prototype._onLoaderToggleSource,
+    creatorLoaderSort:          MonsterCreatorApp.prototype._onLoaderSort,
+    creatorLoaderToggleAlign:   MonsterCreatorApp.prototype._onLoaderToggleAlign,
+    creatorLoaderToggleDark:    MonsterCreatorApp.prototype._onLoaderToggleDark,
+    creatorLoaderToggleSpellcaster: MonsterCreatorApp.prototype._onLoaderToggleSpellcaster,
+    creatorMutCategory:         MonsterCreatorApp.prototype._onMutCategory,
+    creatorMutToggle:           MonsterCreatorApp.prototype._onMutToggle,
+    creatorMutApply:            MonsterCreatorApp.prototype._onMutApply,
+    creatorMutCreateCopy:       MonsterCreatorApp.prototype._onMutCreateCopy,
+    creatorMutClear:            MonsterCreatorApp.prototype._onMutClear,
     save:                       MonsterCreatorApp.prototype._onSave,
   };
 
@@ -107,16 +122,36 @@ export class MonsterCreatorApp {
       actions:      false,
       features:     false,
       spellcasting: false,
+      mutations:    false,
       description:  false,
     };
+    // Mutations section state (survives renders). `_mutSelected` holds the
+    // chosen mutation ids; `_mutCategory` is the active catalog filter pill.
+    this._mutSelected = [];
+    this._mutCategory = "all";
     // Text-input focus stashes for cursor preservation across renders.
     this._focused = {};  // { fieldName: {selectionStart} }
     this._lastFocusedField = null;
 
-    // Bestiary Loader state (1e-v)
+    // Bestiary Loader state (1e-v). Filters mirror the Browse NPCs tab
+    // and run through the same EncounterBrowse.applyFilters/applySort, so
+    // behavior stays in lockstep with Browse without duplicating logic.
     this._loaderOpen   = false;
-    this._loaderSearch = "";
-    this._loaderRows   = [];   // Array of {name, level, alignment, uuid, img}
+    this._loaderSources = null;   // lazily seeded from settings on first open
+    this._loaderSearch        = "";
+    this._loaderAlignment     = [];     // empty = all alignments pass
+    this._loaderLevelMin      = null;
+    this._loaderLevelMax      = null;
+    this._loaderHpMin         = null;
+    this._loaderHpMax         = null;
+    this._loaderAcMin         = null;
+    this._loaderAcMax         = null;
+    this._loaderMoves         = [];
+    this._loaderDarkAdapted   = false;
+    this._loaderHasSpellcasting = false;
+    this._loaderAbilitySearch = "";
+    this._loaderSortCol       = "name";
+    this._loaderSortAsc       = true;
   }
 
   // ─── Singleton + mount/unmount ────────────────────────────────────
@@ -177,27 +212,116 @@ export class MonsterCreatorApp {
   }
 
   async _prepareContext() {
-    // Bestiary loader (1e-v): pre-filter rows here so the template
-    // doesn't need exotic Handlebars helpers like (lower) / (or) /
-    // (not) — we only ship `includes`, `array`, `isFinite` from the
-    // entry point, and trying to call missing helpers throws at
-    // render time. JS filter + a flat array → trivial template.
-    //
-    // We also build each row's displayLabel here (instead of
-    // `{{alignment}} {{level}}` in the template) so we can:
-    //   - render "—" when level is NaN (missing) instead of literal "NaN"
-    //   - normalize alignment to a 1-letter code (L/N/C) regardless of
-    //     whether the source stores "lawful"/"neutral"/"chaotic" or the
-    //     short form — Shadowdark uses full words, our Creator uses short
-    const needle = (this._loaderSearch ?? "").trim().toLowerCase();
-    const loaderRowsFiltered = (needle
-      ? this._loaderRows.filter(r => r.name?.toLowerCase().includes(needle))
-      : this._loaderRows
-    ).map(r => ({ ...r, displayLabel: _formatLoaderLabel(r) }));
+    // Bestiary loader (1e-v): when open, load + filter + sort through the
+    // SAME EncounterBrowse pipeline the Browse NPCs tab uses, so the
+    // loader's filters behave identically. Only computed while open.
+    let loaderData = null;
+    if (this._loaderOpen) {
+      const { EncounterBrowse } = await import("./encounter-browse.mjs");
+      const availableSources = EncounterBrowse.listAvailableSources();
+      const availableIds = new Set(availableSources.map(s => s.id));
+      // Drop any selected source that no longer exists (pack uninstalled).
+      const selectedSources = (this._loaderSources ?? []).filter(id => availableIds.has(id));
+      this._loaderSources = selectedSources;
+
+      const all = await EncounterBrowse.loadNPCs(selectedSources);
+      const rows = EncounterBrowse.applyFilters(all, {
+        search:          this._loaderSearch,
+        alignment:       this._loaderAlignment,
+        levelMin:        this._loaderLevelMin,
+        levelMax:        this._loaderLevelMax,
+        hpMin:           this._loaderHpMin,
+        hpMax:           this._loaderHpMax,
+        acMin:           this._loaderAcMin,
+        acMax:           this._loaderAcMax,
+        moves:           this._loaderMoves,
+        darkAdapted:     this._loaderDarkAdapted,
+        hasSpellcasting: this._loaderHasSpellcasting,
+        abilitySearch:   this._loaderAbilitySearch,
+      });
+      EncounterBrowse.applySort(rows, {
+        column:    this._loaderSortCol,
+        ascending: this._loaderSortAsc,
+      });
+
+      loaderData = {
+        availableSources,
+        selectedSources,
+        sourcesLabel:    _loaderSourcesLabel(selectedSources, availableSources),
+        rows,
+        totalCount:      all.length,
+        filteredCount:   rows.length,
+        empty:           rows.length === 0,
+        noSources:       selectedSources.length === 0,
+        search:          this._loaderSearch,
+        alignment:       this._loaderAlignment,
+        levelMin:        this._loaderLevelMin,
+        levelMax:        this._loaderLevelMax,
+        hpMin:           this._loaderHpMin,
+        hpMax:           this._loaderHpMax,
+        acMin:           this._loaderAcMin,
+        acMax:           this._loaderAcMax,
+        moves:           this._loaderMoves,
+        darkAdapted:     this._loaderDarkAdapted,
+        hasSpellcasting: this._loaderHasSpellcasting,
+        abilitySearch:   this._loaderAbilitySearch,
+        sortCol:         this._loaderSortCol,
+        sortAsc:         this._loaderSortAsc,
+        moveOptions:     Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? {
+          close: "", near: "", doubleNear: "", tripleNear: "",
+          far: "", special: "", none: "",
+        }),
+      };
+    }
+
+    // Mutations section — category pills + the catalog filtered to the
+    // active category, each entry flagged with its current selection and
+    // any conflict against an already-selected same-group mutation. The
+    // name preview shows what "Create Mutated Copy" would title the actor.
+    const mutCategory = this._mutCategory || "all";
+    const selectedSet = new Set(this._mutSelected);
+    const mutCategories = [
+      { key: "all", label: "All", icon: "fa-shapes", active: mutCategory === "all" },
+      ...Object.entries(MUTATION_CATEGORIES).map(([key, c]) => ({
+        key, label: c.label, icon: c.icon, active: mutCategory === key,
+      })),
+    ];
+    const mutSource = mutCategory === "all"
+      ? MUTATIONS
+      : MUTATIONS.filter(m => m.category === mutCategory);
+    const mutList = mutSource.map(m => {
+      const selected = selectedSet.has(m.id);
+      return {
+        id:               m.id,
+        name:             m.name,
+        type:             m.type,
+        description:      m.description,
+        suggestedBaneName: m.suggestedBane ? (getMutation(m.suggestedBane)?.name ?? null) : null,
+        selected,
+        // Conflict only matters for an unselected card — it tells the user
+        // that picking it will replace the named same-group selection.
+        conflict:         selected ? null : getConflict(m.id, selectedSet),
+      };
+    });
+    const selectedMutations = this._mutSelected.map(getMutation).filter(Boolean);
+    const mutNamePreview = selectedMutations.length
+      ? generateMutatedName(
+          this._draft.name || "Creature",
+          selectedMutations.map(m => m.namePrefix).filter(Boolean),
+          selectedMutations.map(m => m.nameSuffix).filter(Boolean),
+        )
+      : "";
 
     return {
       draft:       this._draft,
+      draftPreview: _draftPreview(this._draft),
       sectionOpen: this._sectionOpen,
+      mutations: {
+        categories:    mutCategories,
+        list:          mutList,
+        selectedCount: this._mutSelected.length,
+        namePreview:   mutNamePreview,
+      },
       alignments:  ["L", "N", "C"],
       // Movement options come from the system's NPC_MOVES enum — the
       // full set (close/near/doubleNear/tripleNear/far/special/none),
@@ -218,14 +342,12 @@ export class MonsterCreatorApp {
       }),
       // 1e-iv
       FEATURE_QUICK_PICKS,
-      // 1e-v — Bestiary Loader state. _loaderOpen / _loaderSearch /
-      // _loaderRowsFiltered MUST be exposed here for the template to
-      // see them; private instance fields like `this._loaderOpen` are
-      // invisible to Handlebars.
-      _loaderOpen:    this._loaderOpen,
-      _loaderSearch:  this._loaderSearch,
-      _loaderRows:    loaderRowsFiltered,
-      _loaderEmpty:   loaderRowsFiltered.length === 0,
+      // 1e-v — Bestiary Loader. _loaderOpen gates the takeover view;
+      // loaderData (null unless open) carries the Browse-style sidebar +
+      // table context. Private instance fields are invisible to Handlebars,
+      // so everything the template reads has to be returned here.
+      _loaderOpen: this._loaderOpen,
+      loaderData,
     };
   }
 
@@ -233,7 +355,7 @@ export class MonsterCreatorApp {
     this._restoreFocus();
     this._wireActions();
     this._wireFieldInputs();
-    this._wireLoaderSearch();
+    this._wireLoaderInputs();
   }
 
   /** Manually dispatch clicks on `[data-action="..."]` elements to the
@@ -253,34 +375,67 @@ export class MonsterCreatorApp {
   }
 
   /**
-   * Wire the Bestiary-Loader search input.
+   * Wire the Bestiary-Loader filter inputs (Browse-style sidebar).
    *
-   * Why this isn't a `data-draft-field` — that handler writes via
-   * `_setDraft()`, which walks down from `this._draft`. A path of
-   * "_loaderSearch" would set `this._draft._loaderSearch`, which
-   * never reaches `_prepareContext`'s loader filtering. The search
-   * input has to write to `this._loaderSearch` directly, which we
-   * do here. Debounced so each keystroke doesn't trigger a re-render
-   * (re-render rebuilds the popover and loses input focus).
+   * These write to `this._loader*` fields directly — NOT to
+   * `this._draft` — so they can't use the generic `data-draft-field`
+   * binder (which walks down from `this._draft`). The two text inputs
+   * (search + abilities) are debounced and stash focus so
+   * `_restoreFocus` puts the cursor back after the re-render rebuilds
+   * the DOM. Numeric ranges and the move select fire on `change`, so
+   * they don't need focus restoration (commit happens on blur/enter).
    */
-  _wireLoaderSearch() {
-    const input = this._mountHost?.querySelector("input[data-loader-search]");
-    if (!input) return;
+  _wireLoaderInputs() {
+    if (!this._mountHost) return;
 
-    let t = null;
-    input.addEventListener("input", ev => {
-      // Stash focus so _restoreFocus puts the cursor back after render.
-      this._focused["__loaderSearch"] = { selectionStart: ev.target.selectionStart };
-      this._lastFocusedField = "__loaderSearch";
-      clearTimeout(t);
-      t = setTimeout(() => {
-        this._loaderSearch = ev.target.value;
+    // ── Debounced text inputs (search + abilities) ──
+    for (const [selector, prop, focusKey] of [
+      ["input[data-loader-search]",  "_loaderSearch",        "__loaderSearch"],
+      ["input[data-loader-ability]", "_loaderAbilitySearch", "__loaderAbility"],
+    ]) {
+      const input = this._mountHost.querySelector(selector);
+      if (!input) continue;
+      let t = null;
+      input.addEventListener("input", ev => {
+        this._focused[focusKey] = { selectionStart: ev.target.selectionStart };
+        this._lastFocusedField = focusKey;
+        clearTimeout(t);
+        t = setTimeout(() => {
+          this[prop] = ev.target.value;
+          this.render();
+        }, 200);
+      });
+      input.addEventListener("blur", () => {
+        if (this._lastFocusedField === focusKey) this._lastFocusedField = null;
+      });
+    }
+
+    // ── Numeric range inputs (level/hp/ac min/max) ──
+    for (const [name, prop] of [
+      ["loaderLevelMin", "_loaderLevelMin"],
+      ["loaderLevelMax", "_loaderLevelMax"],
+      ["loaderHpMin",    "_loaderHpMin"],
+      ["loaderHpMax",    "_loaderHpMax"],
+      ["loaderAcMin",    "_loaderAcMin"],
+      ["loaderAcMax",    "_loaderAcMax"],
+    ]) {
+      const input = this._mountHost.querySelector(`input[name='${name}']`);
+      if (!input) continue;
+      input.addEventListener("change", ev => {
+        const v = ev.target.value;
+        this[prop] = v === "" ? null : Number(v);
         this.render();
-      }, 150);
-    });
-    input.addEventListener("blur", () => {
-      if (this._lastFocusedField === "__loaderSearch") this._lastFocusedField = null;
-    });
+      });
+    }
+
+    // ── Movement select ──
+    const moveSelect = this._mountHost.querySelector("select[name='loaderMove']");
+    if (moveSelect) {
+      moveSelect.addEventListener("change", ev => {
+        this._loaderMoves = ev.target.value ? [ev.target.value] : [];
+        this.render();
+      });
+    }
   }
 
   // ─── Field wiring (text/number inputs use change-events to limit re-renders) ─
@@ -343,10 +498,12 @@ export class MonsterCreatorApp {
     // to-end issue ApplicationV2 has on full re-renders.
     const lastField = this._lastFocusedField;
     if (!lastField) return;
-    // Special case: loader search uses `data-loader-search` (not a
-    // draft field — see _wireLoaderSearch for why).
+    // Special case: loader text filters use data-attributes (not draft
+    // fields — see _wireLoaderInputs for why).
     const selector = lastField === "__loaderSearch"
       ? "input[data-loader-search]"
+      : lastField === "__loaderAbility"
+      ? "input[data-loader-ability]"
       : `[data-draft-field="${CSS.escape(lastField)}"]`;
     const input = this._mountHost?.querySelector(selector);
     if (input) {
@@ -484,15 +641,133 @@ export class MonsterCreatorApp {
     fp.render(true);
   }
 
-  async _onToggleLoader() {
+  _onToggleLoader() {
     this._loaderOpen = !this._loaderOpen;
-    if (this._loaderOpen) {
-      // Lazy load NPCs on open
-      const { EncounterBrowse } = await import("./encounter-browse.mjs");
-      const sources = game.settings.get(MODULE_ID, "encounterSources");
-      this._loaderRows = await EncounterBrowse.loadNPCs(sources);
+    // Seed the loader's source selection from the Browse tab's saved
+    // setting on first open. This is a loader-LOCAL copy: toggling
+    // sources inside the loader does NOT write back to the global
+    // `encounterSources` setting, so it never changes what the Browse
+    // tab shows. _prepareContext does the actual load/filter/sort.
+    if (this._loaderOpen && this._loaderSources === null) {
+      this._loaderSources = game.settings.get(MODULE_ID, "encounterSources")
+        ?? ["world", "shadowdark.bestiary"];
     }
     this.render();
+  }
+
+  _onLoaderToggleSource(event, target) {
+    const id = target.dataset.sourceId;
+    if (!id) return;
+    const set = new Set(this._loaderSources ?? []);
+    if (set.has(id)) set.delete(id);
+    else set.add(id);
+    this._loaderSources = [...set];
+    this.render();
+  }
+
+  _onLoaderSort(event, target) {
+    const col = target.dataset.column;
+    if (!col) return;
+    if (col === this._loaderSortCol) {
+      this._loaderSortAsc = !this._loaderSortAsc;
+    } else {
+      this._loaderSortCol = col;
+      this._loaderSortAsc = true;
+    }
+    this.render();
+  }
+
+  _onLoaderToggleAlign(event, target) {
+    const a = target.dataset.alignment;
+    if (!a) return;
+    const set = new Set(this._loaderAlignment);
+    if (set.has(a)) set.delete(a);
+    else set.add(a);
+    this._loaderAlignment = [...set];
+    this.render();
+  }
+
+  _onLoaderToggleDark() {
+    this._loaderDarkAdapted = !this._loaderDarkAdapted;
+    this.render();
+  }
+
+  _onLoaderToggleSpellcaster() {
+    this._loaderHasSpellcasting = !this._loaderHasSpellcasting;
+    this.render();
+  }
+
+  // ─── Mutation handlers ───────────────────────────────────────────
+
+  _onMutCategory(event, target) {
+    this._mutCategory = target.dataset.category || "all";
+    this.render();
+  }
+
+  /** Toggle a mutation in/out of the selection. Selecting a mutation that
+   *  shares a conflictGroup with an existing pick (e.g. two body-type HP
+   *  mutations) auto-removes the conflicting one, since they can't coexist. */
+  _onMutToggle(event, target) {
+    const id = target.dataset.mutationId;
+    if (!id) return;
+    const set = new Set(this._mutSelected);
+    if (set.has(id)) {
+      set.delete(id);
+    } else {
+      const mut = getMutation(id);
+      if (mut?.conflictGroup) {
+        for (const sid of [...set]) {
+          if (getMutation(sid)?.conflictGroup === mut.conflictGroup) set.delete(sid);
+        }
+      }
+      set.add(id);
+    }
+    this._mutSelected = [...set];
+    this.render();
+  }
+
+  _onMutClear() {
+    this._mutSelected = [];
+    this.render();
+  }
+
+  /** Apply selected mutations to the IN-PROGRESS draft, in place. Opens the
+   *  sections the mutations touched so the changes are visible, then clears
+   *  the selection. */
+  _onMutApply() {
+    if (!this._mutSelected.length) {
+      ui.notifications.warn("Select at least one mutation to apply.");
+      return;
+    }
+    const { applied } = applyMutations(this._draft, this._mutSelected);
+    this._sectionOpen.stats = true;
+    this._sectionOpen.actions = this._draft.actions.length > 0;
+    this._sectionOpen.features = this._draft.features.length > 0;
+    this._mutSelected = [];
+    ui.notifications.info(
+      `Applied ${applied.length} mutation${applied.length === 1 ? "" : "s"} to the draft.`,
+    );
+    this.render();
+  }
+
+  /** Create a NEW world actor from a mutated COPY of the current draft,
+   *  leaving the draft untouched. Mirrors the standalone mutator path. */
+  async _onMutCreateCopy() {
+    if (!this._mutSelected.length) {
+      ui.notifications.warn("Select at least one mutation to create a mutated copy.");
+      return;
+    }
+    if (!this._draft.name?.trim()) {
+      ui.notifications.warn("The draft needs a name before creating a mutated copy.");
+      return;
+    }
+    try {
+      const actor = await createMutatedFromDraft(this._draft, this._mutSelected);
+      ui.notifications.info(`Created mutated copy: ${actor.name}`);
+    } catch (err) {
+      console.error(MODULE_ID, "Create mutated copy failed:", err);
+      ui.notifications.error(`Failed to create mutated copy: ${err.message}`);
+    }
   }
 
   async _onLoaderPick(event, target) {
@@ -506,71 +781,7 @@ export class MonsterCreatorApp {
   }
 
   async _draftFromActor(actor) {
-    const s = actor.system;
-    const { img, tokenSrc } = await _bestArtForActor(actor);
-
-    const draft = {
-      name:        actor.name,
-      // Normalize alignment to a 1-letter code. Shadowdark's canonical
-      // form is full words ("lawful"/"neutral"/"chaotic"); our Creator
-      // radio buttons store the short form (L/N/C). Without the
-      // first-char normalization, loading a bestiary actor leaves all
-      // three alignment radios unchecked because no value matches.
-      alignment:   (s.alignment || "N").charAt(0).toUpperCase(),
-      // system.level is a nested schema ({value, xp}) in Shadowdark,
-      // not a plain number. Read .value first; fall back to plain
-      // number for any unmigrated data.
-      level:       (typeof s.level === "object" ? s.level?.value : s.level) ?? 1,
-      img:         img || "icons/svg/mystery-man.svg",
-      tokenSrc:    tokenSrc || "",
-      description: s.notes || "",
-      hp: {
-        value: s.attributes?.hp?.value ?? 1,
-        max:   s.attributes?.hp?.max   ?? 1,
-      },
-      ac: s.attributes?.ac?.value ?? 10,
-      darkAdapted: !!s.darkAdapted,
-      abilities: {
-        str: s.abilities?.str?.mod ?? 0,
-        dex: s.abilities?.dex?.mod ?? 0,
-        con: s.abilities?.con?.mod ?? 0,
-        int: s.abilities?.int?.mod ?? 0,
-        wis: s.abilities?.wis?.mod ?? 0,
-        cha: s.abilities?.cha?.mod ?? 0,
-      },
-      move:     s.move || "near",
-      moveNote: s.moveNote || "",
-      spellcasting: {
-        ability: s.spellcasting?.ability || "",
-        bonus:   s.spellcasting?.bonus   || 0,
-        attacks: s.spellcasting?.attacks || 0,
-      },
-      actions:  [],
-      features: [],
-    };
-
-    // Split items into Actions and Features
-    for (const item of actor.items) {
-      if (item.type === "NPC Attack" || item.type === "NPC Special Attack") {
-        draft.actions.push({
-          id:     foundry.utils.randomID(),
-          name:   item.name,
-          type:   item.type,
-          num:    item.system.attack?.num ?? 1,
-          bonus:  item.system.bonuses?.attackBonus ?? 0,
-          damage: item.system.damage?.value || "",
-          ranges: item.system.ranges || [],
-          description: item.system.description || item.system.damage?.special || "",
-        });
-      } else if (item.type === "NPC Feature") {
-        draft.features.push({
-          id:     foundry.utils.randomID(),
-          name:   item.name,
-          description: item.system.description || "",
-        });
-      }
-    }
-
+    const draft = await actorToDraft(actor);
     this._draft = draft;
     // Open sections that have content
     this._sectionOpen.stats = true;
@@ -587,114 +798,11 @@ export class MonsterCreatorApp {
       return;
     }
 
-    const actorData = {
-      name: d.name.trim(),
-      type: "NPC",
-      img: d.img || "icons/svg/mystery-man.svg",
-      system: {
-        // Shadowdark schema enforces alignment ∈ {lawful, neutral, chaotic}
-        // (full words). Our Creator stores the 1-letter UI code; expand
-        // here on save so the schema validates and the actor sheet picks
-        // the right alignment value.
-        alignment: _ALIGNMENT_EXPANDED[d.alignment] ?? "neutral",
-        // system.level is a nested schema ({value, xp}) per actorFields
-        // .level(). Writing a plain number gets rejected by validation
-        // or silently coerced; build the object shape directly.
-        level:     { value: Number(d.level ?? 1), xp: 0 },
-        notes:     d.description ?? "",
-        // Stats — 1e-ii
-        attributes: {
-          hp: {
-            value: Number(d.hp.value ?? 1),
-            max:   Number(d.hp.max ?? 1),
-          },
-          ac: { value: Number(d.ac ?? 10), attribute: "" },
-        },
-        abilities: {
-          str: { mod: Number(d.abilities.str ?? 0) },
-          dex: { mod: Number(d.abilities.dex ?? 0) },
-          con: { mod: Number(d.abilities.con ?? 0) },
-          int: { mod: Number(d.abilities.int ?? 0) },
-          wis: { mod: Number(d.abilities.wis ?? 0) },
-          cha: { mod: Number(d.abilities.cha ?? 0) },
-        },
-        darkAdapted: !!d.darkAdapted,
-        // Movement — 1e-ii
-        move:     d.move || "near",
-        moveNote: d.moveNote || "",
-        // Spellcasting — 1e-ii
-        // Schema is `system.spellcasting.{ability, bonus, attacks}`.
-        // Writing the legacy `spellcastingAbility` / `spellAttackBonus`
-        // fields would round-trip through NpcSD.migrateData() — clean
-        // creates should use the new shape directly.
-        spellcasting: {
-          ability: d.spellcasting.ability || "",
-          bonus:   Number(d.spellcasting.bonus ?? 0),
-          attacks: Number(d.spellcasting.attacks ?? 0),
-        },
-      },
-      prototypeToken: {
-        name: d.name.trim(),
-        texture: {
-          src: d.tokenSrc || d.img || "icons/svg/mystery-man.svg",
-        },
-      },
-    };
-
     try {
+      const { actorData, items } = draftToActorData(d);
       const actor = await Actor.implementation.create(actorData);
-
-      // ─── Create Action Items (1e-iii) ─────────────────────────────
-      // Schema (NpcAttackSD.mjs):
-      //   system.attack:   { num }                                — count only
-      //   system.bonuses:  { attackBonus, damageBonus, critical } — sibling, NOT under attack
-      //   system.damage:   { numDice, special, value }            — `special` is the rider text
-      //   system.ranges:   array of CONFIG.SHADOWDARK.RANGES keys
-      // We mirror `description` into `damage.special` for NPC Attack so the
-      // action menu's stat-block renderer (which reads damage.special for
-      // the "+ rider" inline display, slice 1a) shows it correctly. The
-      // long-form copy stays in `system.description` for the item sheet.
-      const itemData = d.actions.map(a => {
-        const base = {
-          name: a.name.trim() || "New Action",
-          type: a.type,
-          system: {
-            description: a.description || "",
-          },
-        };
-        if (a.type === "NPC Attack") {
-          base.system.attack  = { num: Number(a.num ?? 1) };
-          base.system.bonuses = { attackBonus: Number(a.bonus ?? 0) };
-          base.system.damage  = {
-            value:   a.damage || "1d6",
-            special: a.description || "",
-          };
-          base.system.ranges  = Array.isArray(a.ranges) && a.ranges.length
-            ? a.ranges
-            : ["close"];
-        } else if (a.type === "NPC Special Attack") {
-          // NPC Special Attack shares the same schema shape; set
-          // sensible defaults so the system's roll pipeline doesn't
-          // hit missing fields if the user later edits the item.
-          base.system.attack  = { num: Number(a.num ?? 1) };
-          base.system.bonuses = { attackBonus: Number(a.bonus ?? 0) };
-        }
-        return base;
-      });
-      if (itemData.length) {
-        await actor.createEmbeddedDocuments("Item", itemData);
-      }
-
-      // ─── Create Feature Items (1e-iv) ──────────────────────────────
-      const featureData = d.features.map(f => ({
-        name: f.name.trim() || "New Feature",
-        type: "NPC Feature",
-        system: {
-          description: f.description || "",
-        },
-      }));
-      if (featureData.length) {
-        await actor.createEmbeddedDocuments("Item", featureData);
+      if (items.length) {
+        await actor.createEmbeddedDocuments("Item", items);
       }
 
       ui.notifications.info(`Created NPC: ${actor.name}`);
@@ -711,6 +819,188 @@ export class MonsterCreatorApp {
 // ───── Helpers ─────────────────────────────────────────────────────
 
 /**
+ * Convert a Shadowdark NPC actor into the Monster Creator draft model.
+ * Pure (aside from async art resolution) so it can be reused by the
+ * standalone Monster Mutator without going through the app instance.
+ *
+ * @param {Actor} actor
+ * @returns {Promise<object>} a draft matching _defaultDraft()'s shape
+ */
+export async function actorToDraft(actor) {
+  const s = actor.system;
+  const { img, tokenSrc } = await _bestArtForActor(actor);
+
+  const draft = {
+    name:        actor.name,
+    // Normalize alignment to a 1-letter code. Shadowdark's canonical
+    // form is full words ("lawful"/"neutral"/"chaotic"); our Creator
+    // radio buttons store the short form (L/N/C). Without the
+    // first-char normalization, loading a bestiary actor leaves all
+    // three alignment radios unchecked because no value matches.
+    alignment:   (s.alignment || "N").charAt(0).toUpperCase(),
+    // system.level is a nested schema ({value, xp}) in Shadowdark,
+    // not a plain number. Read .value first; fall back to plain
+    // number for any unmigrated data.
+    level:       (typeof s.level === "object" ? s.level?.value : s.level) ?? 1,
+    img:         img || "icons/svg/mystery-man.svg",
+    tokenSrc:    tokenSrc || "",
+    description: s.notes || "",
+    hp: {
+      value: s.attributes?.hp?.value ?? 1,
+      max:   s.attributes?.hp?.max   ?? 1,
+    },
+    ac: s.attributes?.ac?.value ?? 10,
+    darkAdapted: !!s.darkAdapted,
+    abilities: {
+      str: s.abilities?.str?.mod ?? 0,
+      dex: s.abilities?.dex?.mod ?? 0,
+      con: s.abilities?.con?.mod ?? 0,
+      int: s.abilities?.int?.mod ?? 0,
+      wis: s.abilities?.wis?.mod ?? 0,
+      cha: s.abilities?.cha?.mod ?? 0,
+    },
+    move:     s.move || "near",
+    moveNote: s.moveNote || "",
+    spellcasting: {
+      ability: s.spellcasting?.ability || "",
+      bonus:   s.spellcasting?.bonus   || 0,
+      attacks: s.spellcasting?.attacks || 0,
+    },
+    actions:  [],
+    features: [],
+  };
+
+  // Split items into Actions and Features
+  for (const item of actor.items) {
+    if (item.type === "NPC Attack" || item.type === "NPC Special Attack") {
+      draft.actions.push({
+        id:     foundry.utils.randomID(),
+        name:   item.name,
+        type:   item.type,
+        num:    item.system.attack?.num ?? 1,
+        bonus:  item.system.bonuses?.attackBonus ?? 0,
+        damage: item.system.damage?.value || "",
+        ranges: item.system.ranges || [],
+        description: item.system.description || item.system.damage?.special || "",
+      });
+    } else if (item.type === "NPC Feature") {
+      draft.features.push({
+        id:     foundry.utils.randomID(),
+        name:   item.name,
+        description: item.system.description || "",
+      });
+    }
+  }
+
+  return draft;
+}
+
+/**
+ * Convert a draft model into Foundry actor-create data plus the embedded
+ * item documents to create afterward. Pure — no side effects — so both
+ * the Creator's Save and the standalone Mutator share one source of truth
+ * for the Shadowdark NPC data shape.
+ *
+ * @param {object} d — draft model (see _defaultDraft)
+ * @returns {{actorData: object, items: object[]}}
+ */
+export function draftToActorData(d) {
+  const name = (d.name || "").trim() || "New Monster";
+  const img = d.img || "icons/svg/mystery-man.svg";
+
+  const actorData = {
+    name,
+    type: "NPC",
+    img,
+    system: {
+      // Shadowdark schema enforces alignment ∈ {lawful, neutral, chaotic}
+      // (full words). Our Creator stores the 1-letter UI code; expand
+      // here on save so the schema validates and the actor sheet picks
+      // the right alignment value.
+      alignment: _ALIGNMENT_EXPANDED[d.alignment] ?? "neutral",
+      // system.level is a nested schema ({value, xp}) per actorFields
+      // .level(). Writing a plain number gets rejected by validation
+      // or silently coerced; build the object shape directly.
+      level:     { value: Number(d.level ?? 1), xp: 0 },
+      notes:     d.description ?? "",
+      attributes: {
+        hp: {
+          value: Number(d.hp.value ?? 1),
+          max:   Number(d.hp.max ?? 1),
+        },
+        ac: { value: Number(d.ac ?? 10), attribute: "" },
+      },
+      abilities: {
+        str: { mod: Number(d.abilities.str ?? 0) },
+        dex: { mod: Number(d.abilities.dex ?? 0) },
+        con: { mod: Number(d.abilities.con ?? 0) },
+        int: { mod: Number(d.abilities.int ?? 0) },
+        wis: { mod: Number(d.abilities.wis ?? 0) },
+        cha: { mod: Number(d.abilities.cha ?? 0) },
+      },
+      darkAdapted: !!d.darkAdapted,
+      move:     d.move || "near",
+      moveNote: d.moveNote || "",
+      // Schema is `system.spellcasting.{ability, bonus, attacks}`.
+      // Writing the legacy `spellcastingAbility` / `spellAttackBonus`
+      // fields would round-trip through NpcSD.migrateData() — clean
+      // creates should use the new shape directly.
+      spellcasting: {
+        ability: d.spellcasting.ability || "",
+        bonus:   Number(d.spellcasting.bonus ?? 0),
+        attacks: Number(d.spellcasting.attacks ?? 0),
+      },
+    },
+    prototypeToken: {
+      name,
+      texture: { src: d.tokenSrc || img },
+    },
+  };
+
+  // ─── Action Items ─────────────────────────────────────────────
+  // Schema (NpcAttackSD.mjs):
+  //   system.attack:   { num }                                — count only
+  //   system.bonuses:  { attackBonus, damageBonus, critical } — sibling
+  //   system.damage:   { numDice, special, value }            — `special` rider
+  //   system.ranges:   array of CONFIG.SHADOWDARK.RANGES keys
+  // `description` is mirrored into `damage.special` for NPC Attack so the
+  // action menu's stat-block renderer (slice 1a) shows the rider inline.
+  const items = (d.actions ?? []).map(a => {
+    const base = {
+      name: (a.name || "").trim() || "New Action",
+      type: a.type,
+      system: { description: a.description || "" },
+    };
+    if (a.type === "NPC Attack") {
+      base.system.attack  = { num: Number(a.num ?? 1) };
+      base.system.bonuses = { attackBonus: Number(a.bonus ?? 0) };
+      base.system.damage  = {
+        value:   a.damage || "1d6",
+        special: a.description || "",
+      };
+      base.system.ranges  = Array.isArray(a.ranges) && a.ranges.length
+        ? a.ranges
+        : ["close"];
+    } else if (a.type === "NPC Special Attack") {
+      base.system.attack  = { num: Number(a.num ?? 1) };
+      base.system.bonuses = { attackBonus: Number(a.bonus ?? 0) };
+    }
+    return base;
+  });
+
+  // ─── Feature Items ────────────────────────────────────────────
+  for (const f of (d.features ?? [])) {
+    items.push({
+      name: (f.name || "").trim() || "New Feature",
+      type: "NPC Feature",
+      system: { description: f.description || "" },
+    });
+  }
+
+  return { actorData, items };
+}
+
+/**
  * Convert the Creator's 1-letter alignment UI code to the full word
  * Shadowdark stores. The schema's `choices` are the keys of
  * CONFIG.SHADOWDARK.ALIGNMENTS, which are lawful/neutral/chaotic.
@@ -720,6 +1010,27 @@ const _ALIGNMENT_EXPANDED = {
   N: "neutral",
   C: "chaotic",
 };
+
+/**
+ * Summary label for the loader's Sources dropdown summary line —
+ * "No sources" / "All sources" / single source label / "N sources".
+ * Mirrors EncounterRollerApp's private `_multiFilterLabel` (the Browse
+ * tab uses the same pattern; it isn't exported, so we keep a local copy).
+ *
+ * @param {string[]} selectedIds
+ * @param {Array<{id:string,label:string}>} options
+ * @returns {string}
+ */
+function _loaderSourcesLabel(selectedIds, options) {
+  const optionIds = new Set(options.map(o => o.id));
+  const visible = (selectedIds ?? []).filter(id => optionIds.has(id));
+  if (!visible.length) return "No sources";
+  if (visible.length === options.length) return "All sources";
+  if (visible.length === 1) {
+    return options.find(o => o.id === visible[0])?.label ?? visible[0];
+  }
+  return `${visible.length} sources`;
+}
 
 /**
  * Build the right-side "alignment + level" label for a bestiary
@@ -732,13 +1043,32 @@ const _ALIGNMENT_EXPANDED = {
  * @param {object} row — loader row {alignment, level, ...}
  * @returns {string}   — e.g. "C 3" or "N —" or "—"
  */
-function _formatLoaderLabel(row) {
-  const a = row?.alignment ?? "";
-  const align = typeof a === "string" && a.length
-    ? a.charAt(0).toUpperCase()   // "lawful" → "L", "L" → "L"
-    : "—";
-  const level = Number.isFinite(row?.level) ? String(row.level) : "—";
-  return `${align} ${level}`;
+function _draftPreview(d) {
+  const level = Number.isFinite(Number(d.level)) ? Number(d.level) : "—";
+  const hpValue = Number(d.hp?.value ?? 0);
+  const hpMax = Number(d.hp?.max ?? hpValue);
+  const hp = hpMax > hpValue ? `${hpValue}/${hpMax}` : String(hpValue);
+  const ac = Number.isFinite(Number(d.ac)) ? Number(d.ac) : "—";
+  const attack = _draftAttackSummary(d.actions ?? []);
+  const traits = (d.features?.length ?? 0)
+    + (d.spellcasting?.ability ? 1 : 0)
+    + (d.darkAdapted ? 1 : 0);
+  return `LV ${level} · HP ${hp} · AC ${ac} · ${attack} · ${traits} trait${traits === 1 ? "" : "s"}`;
+}
+
+function _draftAttackSummary(actions) {
+  const firstAttack = actions.find(a => a.type === "NPC Attack");
+  const specialCount = actions.filter(a => a.type === "NPC Special Attack").length;
+  if (!firstAttack && specialCount === 0) return "no attacks";
+  const bits = [];
+  if (firstAttack) {
+    bits.push(`x${Number(firstAttack.num ?? 1)}`);
+    const bonus = Number(firstAttack.bonus ?? 0);
+    bits.push(`${bonus >= 0 ? "+" : ""}${bonus}`);
+    if (firstAttack.damage) bits.push(firstAttack.damage);
+  }
+  if (specialCount) bits.push("+ special");
+  return bits.join(" ");
 }
 
 // Convenience accessor — same shape as EncounterRollerApp's API

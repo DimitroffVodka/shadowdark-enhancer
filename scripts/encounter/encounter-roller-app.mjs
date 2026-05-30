@@ -30,6 +30,17 @@ const CHA_MOD_MAX = 5;
 // User flag where we persist this window's position between sessions.
 const POSITION_FLAG = "encounterRollerPosition";
 
+function _multiFilterLabel(selectedIds, options, noun) {
+  const optionIds = new Set(options.map(o => o.id));
+  const visibleSelected = (selectedIds ?? []).filter(id => optionIds.has(id));
+  if (!visibleSelected.length) return `No ${noun}s`;
+  if (visibleSelected.length === options.length) return `All ${noun}s`;
+  if (visibleSelected.length === 1) {
+    return options.find(o => o.id === visibleSelected[0])?.label ?? visibleSelected[0];
+  }
+  return `${visibleSelected.length} ${noun}s`;
+}
+
 export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static DEFAULT_OPTIONS = {
@@ -41,10 +52,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       resizable: true,
     },
     position: {
-      // Bumped from 720 → 920 to accommodate the Browse NPCs sidebar
-      // (220px) without crushing the results table. The other tabs
-      // (Roll Tables, Build Table) fit comfortably at this width too.
-      width: 920,
+      // Browse NPCs now has a filter sidebar plus portrait, stat, DPR,
+      // attack, and add columns. Default wide enough that the first
+      // open does not clip the portrait or add button.
+      width: 1280,
       height: "auto",
     },
     actions: {
@@ -60,7 +71,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       browseToggleSource:      EncounterRollerApp.prototype._onBrowseToggleSource,
       browseSort:              EncounterRollerApp.prototype._onBrowseSort,
       browseToggleAlign:       EncounterRollerApp.prototype._onBrowseToggleAlign,
-      browseToggleMove:        EncounterRollerApp.prototype._onBrowseToggleMove,
       browseToggleDark:        EncounterRollerApp.prototype._onBrowseToggleDark,
       browseToggleSpellcaster: EncounterRollerApp.prototype._onBrowseToggleSpellcaster,
       browseAddToBuild:        EncounterRollerApp.prototype._onBrowseAddToBuild,
@@ -112,6 +122,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     this._browseAlignment  = []; // empty array = all alignments pass
     this._browseLevelMin   = null;
     this._browseLevelMax   = null;
+    this._browseHpMin      = null;
+    this._browseHpMax      = null;
+    this._browseAcMin      = null;
+    this._browseAcMax      = null;
     this._browseSortCol    = "name";
     this._browseSortAsc    = true;
     this._browseMoves          = [];
@@ -220,12 +234,23 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // active so other tabs don't pay the cost.
     let browseData = null;
     if (this._activeTab === "browse") {
+      const availableSources = EncounterBrowse.listAvailableSources();
+      const availableSourceIds = new Set(availableSources.map(s => s.id));
+      const selectedSources = this._browseSources.filter(id => availableSourceIds.has(id));
+      if (selectedSources.length !== this._browseSources.length) {
+        this._browseSources = selectedSources;
+        await game.settings.set(MODULE_ID, "encounterSources", this._browseSources);
+      }
       const all = await EncounterBrowse.loadNPCs(this._browseSources);
       const filtered = EncounterBrowse.applyFilters(all, {
         search:          this._browseSearch,
         alignment:       this._browseAlignment,
         levelMin:        this._browseLevelMin,
         levelMax:        this._browseLevelMax,
+        hpMin:           this._browseHpMin,
+        hpMax:           this._browseHpMax,
+        acMin:           this._browseAcMin,
+        acMax:           this._browseAcMax,
         moves:           this._browseMoves,
         darkAdapted:     this._browseDarkAdapted,
         hasSpellcasting: this._browseHasSpellcasting,
@@ -236,7 +261,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         ascending: this._browseSortAsc,
       });
       browseData = {
-        availableSources: EncounterBrowse.listAvailableSources(),
+        availableSources,
         selectedSources:  this._browseSources,
         rows:             filtered,
         totalCount:       all.length,
@@ -245,6 +270,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         alignment:        this._browseAlignment,
         levelMin:         this._browseLevelMin,
         levelMax:         this._browseLevelMax,
+        hpMin:            this._browseHpMin,
+        hpMax:            this._browseHpMax,
+        acMin:            this._browseAcMin,
+        acMax:            this._browseAcMax,
         moves:            this._browseMoves,
         darkAdapted:      this._browseDarkAdapted,
         hasSpellcasting:  this._browseHasSpellcasting,
@@ -254,6 +283,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         moveOptions:      Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? {
           close: "", near: "", doubleNear: "", tripleNear: "", far: "", special: "", none: "",
         }),
+        sourcesLabel:     _multiFilterLabel(this._browseSources, availableSources, "source"),
+        moveLabel:        this._browseMoves[0] || "All movement",
       };
     }
 
@@ -385,7 +416,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       });
     }
 
-    // Browse tab: search input, level min/max
+    // Browse tab: search input and numeric range filters.
     const searchInput = this.element.querySelector("input[name='browseSearch']");
     if (searchInput) {
       // If the user was typing in this input before the last render,
@@ -433,6 +464,28 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         this.render();
       });
     }
+    for (const [name, prop] of [
+      ["browseHpMin", "_browseHpMin"],
+      ["browseHpMax", "_browseHpMax"],
+      ["browseAcMin", "_browseAcMin"],
+      ["browseAcMax", "_browseAcMax"],
+    ]) {
+      const input = this.element.querySelector(`input[name='${name}']`);
+      if (!input) continue;
+      input.addEventListener("change", ev => {
+        const v = ev.target.value;
+        this[prop] = v === "" ? null : Number(v);
+        this.render();
+      });
+    }
+
+    const moveSelect = this.element.querySelector("select[name='browseMove']");
+    if (moveSelect) {
+      moveSelect.addEventListener("change", ev => {
+        this._browseMoves = ev.target.value ? [ev.target.value] : [];
+        this.render();
+      });
+    }
 
     // Abilities search — text-search NPC Feature names (e.g. "petrify").
     // Cursor preservation pattern matches the main search input.
@@ -461,6 +514,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // Drag-to-canvas (and to anything else that accepts Foundry's Actor
     // drag payload — sidebar, other modules, future Build Table tab).
     this.element.querySelectorAll(".sde-browse-row[draggable='true']").forEach(row => {
+      row.addEventListener("dblclick", ev => {
+        ev.preventDefault();
+        this._openBrowseActor(row.dataset.uuid);
+      });
       row.addEventListener("dragstart", ev => {
         const uuid = row.dataset.uuid;
         if (!uuid) return;
@@ -1056,16 +1113,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     this.render();
   }
 
-  _onBrowseToggleMove(event, target) {
-    const m = target.dataset.move;
-    if (!m) return;
-    const set = new Set(this._browseMoves);
-    if (set.has(m)) set.delete(m);
-    else set.add(m);
-    this._browseMoves = [...set];
-    this.render();
-  }
-
   _onBrowseToggleDark() {
     this._browseDarkAdapted = !this._browseDarkAdapted;
     this.render();
@@ -1099,6 +1146,16 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     EncounterBuild.fillSlotFromActor(this._buildSlots[idx], actor);
     this._activeTab = "build";
     this.render();
+  }
+
+  async _openBrowseActor(uuid) {
+    if (!uuid) return;
+    const actor = await fromUuid(uuid).catch(() => null);
+    if (!actor) {
+      ui.notifications.error("Couldn't resolve NPC.");
+      return;
+    }
+    actor.sheet?.render(true);
   }
 
   // ═══ Build Table tab handlers — Slice 1c ════════════════════════════

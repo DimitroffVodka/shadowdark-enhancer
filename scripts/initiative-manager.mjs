@@ -63,7 +63,7 @@ export const InitiativeManager = {
     const formula = bonus !== 0 ? `${advFormula} + ${bonus}` : advFormula;
 
     const config = dice.initializeD20Check({
-      actorId: actor.id,
+      actorUuid: actor.uuid,
       mainRoll: { formula },
       type: "initiative",
       heading: `${actor.name} — Initiative <em>(out of combat)</em>`,

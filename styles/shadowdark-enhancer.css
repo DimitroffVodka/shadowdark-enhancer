@@ -1563,6 +1563,11 @@ body.theme-light .sde-bar-phase-badge {
   flex-direction: column;
   gap: 6px;
 }
+.sde-browse-filter-pair {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
 .sde-browse-filter-label {
   font-size: 12px;
   font-weight: 700;
@@ -1591,6 +1596,53 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-browse-check:hover {
   color: var(--sde-bar-text-bright);
+}
+.sde-browse-dropdown {
+  position: relative;
+}
+.sde-browse-dropdown > summary {
+  list-style: none;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 6px 28px 6px 10px;
+  position: relative;
+}
+.sde-browse-dropdown > summary::-webkit-details-marker { display: none; }
+.sde-browse-dropdown > summary::after {
+  content: "▾";
+  color: var(--sde-bar-text-muted);
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.sde-browse-dropdown[open] > summary::after { content: "▴"; }
+.sde-browse-dropdown-menu {
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 2px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px 8px;
+  position: absolute;
+  width: 100%;
+  z-index: 20;
+}
+.sde-browse-select {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 2px;
+  font-family: var(--sde-bar-font);
+  font-size: 13px;
+  padding: 6px 8px;
+  width: 100%;
 }
 
 .sde-browse-results {
@@ -1637,6 +1689,7 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-browse-atk-melee  { color: #e07050; margin-left: 2px; }
 .sde-browse-atk-ranged { color: #5aa9e6; margin-left: 2px; }
+.sde-browse-atk-special { color: #f2b35b; margin-left: 2px; }
 .sde-browse-atk-spell  { color: #d0b0ff; margin-left: 4px; }
 .sde-browse-atk-dark   { color: #a89060; margin-left: 4px; }
 .sde-browse-atk-none {
@@ -1761,6 +1814,34 @@ body.theme-light .sde-bar-phase-badge {
      name cell when a column would otherwise grow to fit content. */
   table-layout: auto;
 }
+  .sde-browse-table th:first-child,
+  .sde-browse-table td:first-child {
+    width: 36px;
+    min-width: 36px;
+  }
+  .sde-browse-table th:nth-child(2),
+  .sde-browse-table td:nth-child(2) {
+    width: 34px;
+    min-width: 34px;
+  }
+  .sde-browse-table th:nth-child(4),
+  .sde-browse-table th:nth-child(5),
+  .sde-browse-table th:nth-child(6),
+  .sde-browse-table th:nth-child(7),
+  .sde-browse-table th:nth-child(8),
+  .sde-browse-table td:nth-child(4),
+  .sde-browse-table td:nth-child(5),
+  .sde-browse-table td:nth-child(6),
+  .sde-browse-table td:nth-child(7),
+  .sde-browse-table td:nth-child(8) {
+    text-align: center;
+    width: 42px;
+    min-width: 34px;
+  }
+  .sde-browse-table th:nth-child(9),
+  .sde-browse-table td:nth-child(9) {
+    min-width: 170px;
+  }
 .sde-browse-table th {
   text-align: left;
   padding: 0;
@@ -1824,6 +1905,19 @@ body.theme-light .sde-bar-phase-badge {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.sde-browse-traits,
+.sde-browse-source {
+  color: var(--sde-bar-text-muted);
+  font-size: 12px;
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sde-browse-source {
+  max-width: 120px;
+  font-style: italic;
 }
 
 /* ── Build Table tab — Slice 1c ───────────────────────────────────────────
@@ -2150,29 +2244,16 @@ body.theme-light .sde-bar-phase-badge {
   background: var(--sde-bar-bg-hover);
   color: var(--sde-bar-text-bright);
 }
-.sde-creator-loader-search-wrap {
+.sde-creator-loader-title {
   flex: 1;
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--sde-bar-input-bg);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 2px;
-  padding: 4px 10px;
+  font-family: "Eskapade", serif;
+  font-size: 16px;
+  color: var(--sde-bar-accent);
 }
-.sde-creator-loader-search-wrap i {
-  color: var(--sde-bar-text-muted);
-  font-size: 12px;
-}
-.sde-creator-loader-search-wrap input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--sde-bar-text);
-  font-family: var(--sde-bar-font);
-  font-size: 14px;
-  outline: none;
-}
+.sde-creator-loader-title i { color: var(--sde-bar-text-muted); font-size: 14px; }
 .sde-creator-loader-count {
   font-size: 12px;
   color: var(--sde-bar-text-muted);
@@ -2180,125 +2261,48 @@ body.theme-light .sde-bar-phase-badge {
   white-space: nowrap;
 }
 
-/* Card grid — square cards with portrait + name + meta line. Wraps
-   responsively; 4–6 cards per row depending on panel width. */
-.sde-creator-loader-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 8px;
-  padding: 6px;
-  background: var(--sde-bar-bg-alt);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  max-height: 65vh;
+/* Loader uses the Browse NPCs two-pane layout (.sde-browse-v2 sidebar +
+   results) verbatim. This wrapper bounds the height so the sidebar
+   filters stay put while a long NPC list scrolls inside the results
+   pane, instead of the whole creator tab growing unboundedly. */
+.sde-creator-loader-browse {
+  flex: 1;
+  min-height: 0;
+}
+.sde-creator-loader-browse .sde-browse-results {
   overflow-y: auto;
-}
-.sde-creator-loader-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 8px 6px;
-  background: var(--sde-bar-surface-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  cursor: pointer;
-  text-align: center;
-  transition: background 0.12s, border-color 0.12s, transform 0.08s;
-  font-family: var(--sde-bar-font);
-  color: var(--sde-bar-text);
-}
-.sde-creator-loader-card:hover {
-  background: var(--sde-bar-bg-hover);
-  border-color: var(--sde-bar-accent-dim);
-  transform: translateY(-1px);
-}
-.sde-creator-loader-card:active {
-  transform: translateY(0);
-  border-color: var(--sde-bar-accent);
-}
-.sde-creator-loader-card img {
-  width: 72px;
-  height: 72px;
-  object-fit: cover;
-  border: 1px solid var(--sde-bar-accent-dark);
-  border-radius: 4px;
-  background: var(--sde-bar-bg);
-}
-.sde-creator-loader-card-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--sde-bar-text-bright);
-  /* Truncate long names so cards stay uniform height */
-  width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.sde-creator-loader-card-meta {
-  font-size: 11px;
-  font-family: monospace;
-  color: var(--sde-bar-text-muted);
+  max-height: 60vh;
 }
 
-.sde-creator-loader-header {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--sde-bar-border);
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* The loader table reuses .sde-browse-table but has 8 columns (no
+   add-button cell) vs Browse's 9, so re-scope the position-based column
+   widths: img · name · LV/Al/HP/AC/DPR · Attack. Equal specificity to
+   the Browse rules, declared later, so these win. */
+.sde-creator-loader-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   background: var(--sde-bar-bg-alt);
 }
-.sde-creator-loader-header i { color: var(--sde-bar-text-muted); }
-.sde-creator-loader-header input {
-  background: transparent !important;
-  border: none !important;
-  color: var(--sde-bar-text-bright);
-  font-family: var(--sde-bar-font);
-  font-size: 14px;
-  padding: 0 !important;
-}
-
-.sde-creator-loader-list {
-  overflow-y: auto;
-  flex: 1;
-}
-.sde-creator-loader-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  cursor: pointer;
-}
-.sde-creator-loader-row:hover { background: var(--sde-bar-bg-hover); }
-.sde-creator-loader-row img {
-  border-radius: 2px;
-  border: 1px solid var(--sde-bar-border);
-}
-.sde-creator-loader-name {
-  flex: 1;
-  font-family: "Eskapade", serif;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--sde-bar-text-bright);
-}
-.sde-creator-loader-lvl {
-  font-family: monospace;
-  font-size: 11px;
-  color: var(--sde-bar-text-muted);
-}
-.sde-creator-loader-empty {
-  /* Span the full width of the grid (otherwise it sits in one column
-     and looks cramped). */
-  grid-column: 1 / -1;
-  padding: 24px;
-  text-align: center;
-  font-size: 13px;
-  font-style: italic;
-  color: var(--sde-bar-text-muted);
-  line-height: 1.5;
-}
+.sde-creator-loader-table th:nth-child(1),
+.sde-creator-loader-table td:nth-child(1) { width: 34px; min-width: 34px; }
+.sde-creator-loader-table th:nth-child(2),
+.sde-creator-loader-table td:nth-child(2) { width: auto; min-width: 0; text-align: left; }
+.sde-creator-loader-table th:nth-child(3),
+.sde-creator-loader-table th:nth-child(4),
+.sde-creator-loader-table th:nth-child(5),
+.sde-creator-loader-table th:nth-child(6),
+.sde-creator-loader-table th:nth-child(7),
+.sde-creator-loader-table td:nth-child(3),
+.sde-creator-loader-table td:nth-child(4),
+.sde-creator-loader-table td:nth-child(5),
+.sde-creator-loader-table td:nth-child(6),
+.sde-creator-loader-table td:nth-child(7) { text-align: center; width: 42px; min-width: 34px; }
+.sde-creator-loader-table th:nth-child(8),
+.sde-creator-loader-table td:nth-child(8) { min-width: 170px; text-align: left; }
+/* Rows pick (click), not drag — override Browse's grab cursor. */
+.sde-creator-loader-row,
+.sde-creator-loader-row:active { cursor: pointer; }
 .sde-creator-error {
   padding: 16px;
   margin: 8px;
@@ -2642,10 +2646,21 @@ body.theme-light .sde-bar-phase-badge {
 
 .sde-creator-footer {
   display: flex;
+  align-items: center;
+  gap: 12px;
   justify-content: flex-end;
   padding-top: 8px;
   border-top: 1px solid var(--sde-bar-border);
   margin-top: 6px;
+}
+.sde-creator-preview-line {
+  flex: 1;
+  min-width: 0;
+  color: var(--sde-bar-text-muted);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .sde-creator-save-btn {
   background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
@@ -2661,6 +2676,169 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-creator-save-btn:hover:not(:disabled) { filter: brightness(1.2); }
 .sde-creator-save-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── Mutations Section (Monster Creator) ─────────────────────────────────── */
+
+.sde-mut-badge {
+  display: inline-block;
+  min-width: 18px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: var(--sde-bar-accent-dim);
+  color: #f5eccc;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.sde-mut-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.sde-mut-cat-pill {
+  background: var(--sde-bar-surface-2);
+  border: 1px solid var(--sde-bar-border);
+  color: var(--sde-bar-text-muted);
+  font-family: var(--sde-bar-font);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.sde-mut-cat-pill:hover {
+  background: var(--sde-bar-bg-hover);
+  color: var(--sde-bar-text-bright);
+}
+.sde-mut-cat-pill.is-active {
+  background: var(--sde-bar-accent-dim);
+  border-color: var(--sde-bar-accent);
+  color: #f5eccc;
+}
+.sde-mut-cat-pill i { margin-right: 3px; }
+
+.sde-mut-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.sde-mut-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  /* Foundry forces a fixed height + centered single-line layout on
+     <button>. These cards are multi-line, so without height:auto the
+     content overflows the button box and the grid rows collapse onto
+     each other. Reset the button-box constraints explicitly. */
+  height: auto;
+  min-height: 0;
+  line-height: 1.3;
+  white-space: normal;
+  background: var(--sde-bar-surface-2);
+  border: 1px solid var(--sde-bar-border);
+  border-left-width: 3px;
+  border-radius: var(--sde-bar-radius);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-family: var(--sde-bar-font);
+  transition: background 0.12s, border-color 0.12s, filter 0.12s;
+}
+.sde-mut-card:hover { filter: brightness(1.12); }
+/* Boon = green left edge, bane = red left edge. */
+.sde-mut-boon { border-left-color: #5f9c5f; }
+.sde-mut-bane { border-left-color: #b05656; }
+.sde-mut-card.is-selected {
+  background: var(--sde-bar-bg-hover);
+  border-color: var(--sde-bar-accent);
+  box-shadow: inset 0 0 0 1px var(--sde-bar-accent-dim);
+}
+.sde-mut-card.is-conflict { opacity: 0.85; }
+
+.sde-mut-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.sde-mut-name {
+  color: var(--sde-bar-text-bright);
+  font-size: 13px;
+  font-weight: 700;
+}
+.sde-mut-check { color: var(--sde-bar-accent); font-size: 12px; }
+.sde-mut-desc {
+  color: var(--sde-bar-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.sde-mut-suggest {
+  color: var(--sde-bar-text-muted);
+  font-size: 10px;
+  font-style: italic;
+  opacity: 0.8;
+}
+.sde-mut-conflict-note {
+  color: #d08a4a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.sde-mut-preview {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+  background: var(--sde-bar-surface-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+}
+.sde-mut-preview-label {
+  color: var(--sde-bar-text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sde-mut-preview-name {
+  color: var(--sde-bar-text-bright);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sde-mut-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+.sde-mut-actions .sde-mut-clear { flex: 0 0 auto; }
+
+/* ── Mutation chat card (Monster Mutator) ────────────────────────────────── */
+
+.sde-mutation-card {
+  border: 1px solid var(--color-border-dark, #7a7971);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.04);
+}
+.sde-mutation-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sde-mutation-card-header img {
+  border: none;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+.sde-mutation-card-header h3 { margin: 0; font-size: 15px; line-height: 1.2; }
+.sde-mutation-card-sub {
+  font-size: 11px;
+  font-style: italic;
+  opacity: 0.75;
+}
+.sde-mutation-card-list { margin: 8px 0 0; font-size: 12px; }
 
 /* ── Context Menu (Right-click Crawl Bar) ────────────────────────────────── */
 
@@ -2794,4 +2972,3 @@ body.theme-light .sde-bar-phase-badge {
   border-color: var(--sde-bar-accent) !important;
   box-shadow: 0 0 8px var(--sde-bar-accent) !important;
 }
-

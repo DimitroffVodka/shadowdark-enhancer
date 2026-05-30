@@ -14,6 +14,7 @@ import { MovementTracker } from "./movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { EncounterRollerApp } from "./encounter/encounter-roller-app.mjs";
 import { MonsterCreator } from "./encounter/encounter-creator.mjs";
+import { createMutatedActor, MUTATIONS } from "./encounter/monster-mutator.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -45,7 +46,14 @@ Hooks.once("init", () => {
     },
     monsterCreator: {
       open: () => MonsterCreator.open(),
-    }
+    },
+    mutator: {
+      // Clone a bestiary/world actor, apply mutation ids, create a NEW
+      // world actor (source untouched). See monster-mutator.mjs.
+      create: (baseUuid, mutationIds, customName = null) =>
+        createMutatedActor(baseUuid, mutationIds, customName),
+      catalog: () => MUTATIONS,
+    },
   };
 });
 
