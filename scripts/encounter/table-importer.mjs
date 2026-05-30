@@ -172,6 +172,30 @@ function parseMatrixBlock(title, die, dataLines) {
   return tables;
 }
 
+/**
+ * Decide whether a dN-headed block is a multi-column matrix rather than a
+ * single-die table with a multi-word title. A matrix is grid-like: a
+ * sufficient fraction of its data rows have a cell-token count equal to the
+ * column count. Titled prose tables (e.g. "d6 Probe Encounters" whose rows
+ * are sentences) have token counts that rarely match, so they fall through
+ * to the single-die path.
+ */
+function looksLikeMatrix(die, dataLines) {
+  if (!die || die.columns.length < 2) return false;
+  const n = die.columns.length;
+  let total = 0;
+  let exact = 0;
+  for (const line of dataLines) {
+    const r = parseLeadingRange(line);
+    if (!r) continue;
+    total++;
+    const tokenCount = r.rest.split(/\s+/).filter(Boolean).length;
+    if (tokenCount === n) exact++;
+  }
+  if (!total) return false;
+  return (exact / total) >= 0.5;
+}
+
 /** Parse one block → array of ParsedTable (length 1 here; matrix added later). */
 function parseBlock(blockLines) {
   const work = blockLines.filter(l => l.trim() !== "");
@@ -193,7 +217,7 @@ function parseBlock(blockLines) {
   }
 
   const dataLines = work.slice(idx);
-  if (die && die.columns.length >= 2) {
+  if (looksLikeMatrix(die, dataLines)) {
     return parseMatrixBlock(title, die, dataLines);
   }
   return [parseSingleDieBlock(title, die, dataLines)];
