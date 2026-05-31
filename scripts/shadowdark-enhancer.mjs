@@ -68,6 +68,12 @@ Hooks.once("init", () => {
         const batch = await LootGenerator.generate(level, { rolls });
         return LootDelivery.postCard(batch);
       },
+      // Rewrite loot RollTables so their rows are real, draggable compendium
+      // items (coins stay text). Pass a table, or omit to relink all loot
+      // tables. See loot-catalog.mjs.
+      linkTables: (table) => table
+        ? LootCatalog.linkTableItems(table)
+        : LootCatalog.linkLootTables(),
     },
   };
 });
