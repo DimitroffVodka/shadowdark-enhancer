@@ -3378,3 +3378,63 @@ body.theme-light .sde-bar-phase-badge {
   cursor: pointer;
 }
 .sde-import-unlink:hover { color: var(--sde-bar-accent); }
+
+/* ─── Loot delivery chat card ───────────────────────────────────────── */
+
+.sde-loot-card {
+  border: 1px solid var(--sde-bar-border, #555);
+  border-radius: 5px;
+  overflow: hidden;
+  font-size: 0.85rem;
+}
+.sde-loot-head {
+  background: var(--sde-bar-accent, #7a5b2e);
+  color: var(--sde-bar-on-accent, #1a1a1a);
+  font-weight: 600;
+  padding: 0.3rem 0.5rem;
+}
+.sde-loot-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sde-loot-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--sde-bar-border, #444);
+}
+.sde-loot-row img {
+  border: none;
+  flex: 0 0 auto;
+  border-radius: 3px;
+}
+.sde-loot-name { flex: 1 1 auto; }
+.sde-loot-claim,
+.sde-loot-assign-coins {
+  flex: 0 0 auto;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sde-loot-claimed {
+  flex: 0 0 auto;
+  color: var(--sde-bar-accent, #c9a227);
+  font-style: italic;
+  white-space: nowrap;
+}
+.sde-loot-coins {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  font-weight: 600;
+}
+.sde-loot-coinlabel { flex: 1 1 auto; }
+.sde-loot-coins-actor { max-width: 9rem; }
+.sde-loot-notes {
+  margin: 0;
+  padding: 0.25rem 0.5rem 0.4rem 1.4rem;
+  color: var(--sde-bar-text-muted, #999);
+  font-size: 0.78rem;
+}

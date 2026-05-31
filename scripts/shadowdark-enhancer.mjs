@@ -16,10 +16,13 @@ import { EncounterRollerApp } from "./encounter/encounter-roller-app.mjs";
 import { MonsterCreator } from "./encounter/encounter-creator.mjs";
 import { createMutatedActor, MUTATIONS } from "./encounter/monster-mutator.mjs";
 import { LootCatalog } from "./encounter/loot-catalog.mjs";
+import { LootGenerator } from "./encounter/loot-generator.mjs";
+import { LootDelivery } from "./encounter/loot-delivery.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
   registerSettings();
+  LootDelivery.init();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {
@@ -59,6 +62,12 @@ Hooks.once("init", () => {
       // Build/refresh the "Loot" compendium from the Shadowdark Treasure
       // tables. Idempotent, GM-only. See loot-catalog.mjs.
       buildCatalog: () => LootCatalog.buildCatalog(),
+      // Generate a treasure hoard for a level and post a claimable loot card.
+      // See loot-generator.mjs + loot-delivery.mjs.
+      generateHoard: async (level, rolls = 1) => {
+        const batch = await LootGenerator.generate(level, { rolls });
+        return LootDelivery.postCard(batch);
+      },
     },
   };
 });

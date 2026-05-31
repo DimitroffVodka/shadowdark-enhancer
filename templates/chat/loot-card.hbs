@@ -1,0 +1,43 @@
+<div class="sde-loot-card">
+  <header class="sde-loot-head"><i class="fas fa-coins"></i> Loot — Treasure {{tier}}</header>
+
+  {{#if items.length}}
+  <ul class="sde-loot-items">
+    {{#each items as |it|}}
+    <li class="sde-loot-row" data-item-index="{{it.idx}}">
+      <img src="{{it.img}}" width="28" height="28" alt="">
+      <span class="sde-loot-name">{{it.name}}{{it.qtyLabel}}</span>
+      {{#if it.claimedBy}}
+      <span class="sde-loot-claimed"><i class="fas fa-check"></i> {{it.claimedByName}}</span>
+      {{else}}
+      <button type="button" class="sde-loot-claim" data-item-index="{{it.idx}}">
+        <i class="fas fa-hand-holding"></i> Claim
+      </button>
+      {{/if}}
+    </li>
+    {{/each}}
+  </ul>
+  {{/if}}
+
+  {{#if hasCoins}}
+  <div class="sde-loot-coins">
+    <span class="sde-loot-coinlabel"><i class="fas fa-coins"></i> {{coinsLabel}}</span>
+    {{#if coinsAssigned}}
+    <span class="sde-loot-claimed"><i class="fas fa-arrow-right"></i> {{coinsAssigned.actorName}}</span>
+    {{else}}
+    <span class="sde-loot-gm">
+      <select class="sde-loot-coins-actor" aria-label="Assign coins to">
+        {{#each party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}
+      </select>
+      <button type="button" class="sde-loot-assign-coins">Assign</button>
+    </span>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  {{#if notes.length}}
+  <ul class="sde-loot-notes">
+    {{#each notes as |n|}}<li>{{n}}</li>{{/each}}
+  </ul>
+  {{/if}}
+</div>
