@@ -164,17 +164,20 @@ export const LootDelivery = {
     const players = game.actors.filter(a => a.type === "Player" && a.hasPlayerOwner);
     if (!players.length) { ui.notifications.warn("No player characters to give to."); return null; }
     const options = players.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
-    return new Promise(resolve => {
-      new foundry.applications.api.DialogV2({
-        window: { title: "Give Loot — Pick Recipient" },
-        content: `<div style="padding:8px;"><label>Give to: <select name="recipient">${options}</select></label></div>`,
-        buttons: [
-          { action: "ok", label: "Give", default: true, callback: (_e, _b, dlg) => dlg.element.querySelector('select[name="recipient"]').value },
-          { action: "cancel", label: "Cancel", callback: () => null },
-        ],
-        submit: r => resolve(r ?? null),
-      }).render({ force: true });
-    });
+    // Mirror the module's proven DialogV2.wait() pattern (see
+    // encounter-roller-app.mjs _createImportedTable). The "ok" button's
+    // callback return becomes the resolved value (the chosen actor id);
+    // "cancel" returns the action string; closing returns null.
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Give Loot — Pick Recipient" },
+      content: `<div style="padding:8px;"><label>Give to: <select name="recipient">${options}</select></label></div>`,
+      buttons: [
+        { action: "ok", label: "Give", default: true, callback: (_e, _b, dlg) => dlg.element.querySelector('select[name="recipient"]').value },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    return (choice && choice !== "cancel") ? choice : null;
   },
 
   /** GM gives an item to a chosen actor (no socket — GM-initiated). */
