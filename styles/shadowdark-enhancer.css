@@ -3411,6 +3411,7 @@ body.theme-light .sde-bar-phase-badge {
   border-radius: 3px;
 }
 .sde-loot-name { flex: 1 1 auto; }
+.sde-loot-give { margin-left: 4px; }
 .sde-loot-claim,
 .sde-loot-assign-coins {
   flex: 0 0 auto;

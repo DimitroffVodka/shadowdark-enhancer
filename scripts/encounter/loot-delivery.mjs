@@ -95,6 +95,16 @@ export const LootDelivery = {
       });
     });
 
+    if (game.user.isGM) {
+      html.querySelectorAll(".sde-loot-give").forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const idx = Number(btn.dataset.itemIndex);
+          const actorId = await this._pickRecipient();
+          if (actorId) await this._handleGiveItem({ messageId: message.id, itemIndex: idx, actorId });
+        });
+      });
+    }
+
     const assignBtn = html.querySelector(".sde-loot-assign-coins");
     if (assignBtn && game.user.isGM) {
       assignBtn.addEventListener("click", async () => {
@@ -145,6 +155,44 @@ export const LootDelivery = {
       "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
       "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
     });
+
+    await this._refresh(message);
+  },
+
+  /** GM recipient picker — resolves to a Player actor id or null. */
+  async _pickRecipient() {
+    const players = game.actors.filter(a => a.type === "Player" && a.hasPlayerOwner);
+    if (!players.length) { ui.notifications.warn("No player characters to give to."); return null; }
+    const options = players.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+    return new Promise(resolve => {
+      new foundry.applications.api.DialogV2({
+        window: { title: "Give Loot — Pick Recipient" },
+        content: `<div style="padding:8px;"><label>Give to: <select name="recipient">${options}</select></label></div>`,
+        buttons: [
+          { action: "ok", label: "Give", default: true, callback: (_e, _b, dlg) => dlg.element.querySelector('select[name="recipient"]').value },
+          { action: "cancel", label: "Cancel", callback: () => null },
+        ],
+        submit: r => resolve(r ?? null),
+      }).render({ force: true });
+    });
+  },
+
+  /** GM gives an item to a chosen actor (no socket — GM-initiated). */
+  async _handleGiveItem({ messageId, itemIndex, actorId }) {
+    const message = game.messages.get(messageId);
+    const flags = message?.flags?.[MODULE_ID];
+    if (!flags?.lootCard) return;
+    const item = flags.items[itemIndex];
+    if (!item || item.claimedBy) return;
+    const actor = game.actors.get(actorId);
+    if (!actor) return;
+
+    const items = foundry.utils.deepClone(flags.items);
+    items[itemIndex] = { ...item, claimedBy: `gm:${actorId}`, claimedByName: actor.name };
+    await message.update({ [`flags.${MODULE_ID}.items`]: items });
+
+    const doc = await fromUuid(item.uuid).catch(() => null);
+    if (doc) await actor.createEmbeddedDocuments("Item", [doc.toObject()]);
 
     await this._refresh(message);
   },
