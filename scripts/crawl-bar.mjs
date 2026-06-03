@@ -142,7 +142,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Rest" title="Coming in a later milestone">
           ${ICONS.rest} Rest
         </button>
-        <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Forge & Loot" title="Coming in a later milestone">
+        <button class="sde-bar-btn" data-action="loot" title="Open the Loot Generator">
           <i class="fas fa-hammer"></i> Forge &amp; Loot
         </button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
@@ -258,6 +258,10 @@ export const CrawlBar = {
 
       case "addSelectedTokens":
         await this._addSelectedTokens();
+        break;
+
+      case "loot":
+        game.shadowdarkEnhancer.loot.open();
         break;
 
       case "m2Placeholder":

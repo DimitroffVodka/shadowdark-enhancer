@@ -1,0 +1,26 @@
+<div class="sde-lootgen">
+  <section class="sde-lootgen-map">
+    <h3>Tier → Loot Table</h3>
+    <p class="notes">Map each treasure band to a RollTable you've loaded (from a PDF) or built via the Importer.</p>
+    {{#each bands as |b|}}
+    <div class="sde-lootgen-row">
+      <label>{{b.label}}</label>
+      <select data-tier="{{b.id}}" aria-label="Table for {{b.label}}">
+        <option value="" {{#if b.noneSelected}}selected{{/if}}>— none —</option>
+        {{#each b.tables as |x|}}
+        <option value="{{x.uuid}}" {{#if x.isSelected}}selected{{/if}}>{{x.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+    {{/each}}
+  </section>
+
+  <section class="sde-lootgen-gen">
+    <h3>Generate Hoard</h3>
+    <div class="sde-lootgen-row">
+      <label>Level <input type="number" name="level" value="1" min="0" max="20"></label>
+      <label>Rolls <input type="number" name="rolls" value="1" min="1" max="20"></label>
+      <button type="button" data-action="generate"><i class="fas fa-dice"></i> Generate</button>
+    </div>
+  </section>
+</div>

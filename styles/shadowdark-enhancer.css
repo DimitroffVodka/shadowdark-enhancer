@@ -3439,3 +3439,9 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text-muted, #999);
   font-size: 0.78rem;
 }
+
+/* ── Loot Generator window ── */
+.sde-lootgen { padding: 8px; }
+.sde-lootgen-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; }
+.sde-lootgen-row label { min-width: 180px; }
+.sde-lootgen-row select { flex: 1; }

@@ -18,6 +18,7 @@ import { createMutatedActor, MUTATIONS } from "./encounter/monster-mutator.mjs";
 import { LootCatalog } from "./encounter/loot-catalog.mjs";
 import { LootGenerator } from "./encounter/loot-generator.mjs";
 import { LootDelivery } from "./encounter/loot-delivery.mjs";
+import { LootGeneratorApp } from "./encounter/loot-generator-app.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -78,6 +79,7 @@ Hooks.once("init", () => {
       linkTables: (table) => table
         ? LootCatalog.linkTableItems(table)
         : LootCatalog.linkLootTables(),
+      open: () => LootGeneratorApp.open(),
     },
   };
 });
