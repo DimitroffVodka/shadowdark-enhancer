@@ -19,6 +19,7 @@ import { LootCatalog } from "./encounter/loot-catalog.mjs";
 import { LootGenerator } from "./encounter/loot-generator.mjs";
 import { LootDelivery } from "./encounter/loot-delivery.mjs";
 import { LootGeneratorApp } from "./encounter/loot-generator-app.mjs";
+import { LootDrops } from "./encounter/loot-drops.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -91,6 +92,7 @@ Hooks.once("ready", () => {
   MovementTracker.init();
   CrawlStrip.init();
   CrawlBar.init();
+  LootDrops.init();
   checkCoexistence();
 });
 

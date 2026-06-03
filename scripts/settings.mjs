@@ -95,6 +95,15 @@ export function registerSettings() {
     default: {},
   });
 
+  game.settings.register(MODULE_ID, "lootDropEnabled", {
+    name: "SDE.settings.lootDropEnabled.name",
+    hint: "SDE.settings.lootDropEnabled.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
   game.settings.register(MODULE_ID, "encounterRollGMOnly", {
     name: "SDE.settings.encounterRollGMOnly.name",
     hint: "SDE.settings.encounterRollGMOnly.hint",
