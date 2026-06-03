@@ -64,8 +64,12 @@ Hooks.once("init", () => {
       buildCatalog: () => LootCatalog.buildCatalog(),
       // Generate a treasure hoard for a level and post a claimable loot card.
       // See loot-generator.mjs + loot-delivery.mjs.
-      generateHoard: async (level, rolls = 1) => {
-        const batch = await LootGenerator.generate(level, { rolls });
+      generateHoard: async (level, rolls = 1, tableUuid = null) => {
+        const batch = await LootGenerator.generate(level, { rolls, tableUuid });
+        if (batch.error === "no-table") {
+          ui.notifications.warn("No loot table set for that tier — load one from a PDF or build via the Importer, then map it in the Loot Generator.");
+          return null;
+        }
         return LootDelivery.postCard(batch);
       },
       // Rewrite loot RollTables so their rows are real, draggable compendium
