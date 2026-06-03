@@ -84,6 +84,17 @@ export function registerSettings() {
     default: "",
   });
 
+  // Maps each treasure-band id (from treasure-data.mjs TREASURE_TABLES) to a
+  // GM-chosen RollTable uuid. Edited in the Loot Generator window. Tables are
+  // GM-supplied (loaded from PDFs / built via the Roll Table Importer); this
+  // module never seeds them.
+  game.settings.register(MODULE_ID, "lootTierTables", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
+
   game.settings.register(MODULE_ID, "encounterRollGMOnly", {
     name: "SDE.settings.encounterRollGMOnly.name",
     hint: "SDE.settings.encounterRollGMOnly.hint",

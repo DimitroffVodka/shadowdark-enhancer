@@ -15,6 +15,7 @@ import { TREASURE_TABLES } from "./treasure-data.mjs";
 import { parseTables } from "./table-importer.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { isCoinEntry, parseValue, stripPrice } from "./loot-pack.mjs";
+import { MODULE_ID } from "../module-id.mjs";
 
 const LOOT_PACK = "world.loot";
 
@@ -25,6 +26,16 @@ export const LootGenerator = {
     const lv = Number(level) || 0;
     return TREASURE_TABLES.find(t => lv >= t.min && lv <= t.max)
       ?? TREASURE_TABLES[TREASURE_TABLES.length - 1];
+  },
+
+  /**
+   * Resolve a character level to the GM-mapped RollTable uuid for its
+   * treasure band, or null when no table is mapped for that band.
+   */
+  tableForLevel(level) {
+    const tier = this.tierForLevel(level);
+    const map = game.settings.get(MODULE_ID, "lootTierTables") ?? {};
+    return map[tier.id] || null;
   },
 
   /**
