@@ -143,4 +143,64 @@ export const TableRegistry = {
     for (const e of this.build()) counts[e.group] = (counts[e.group] ?? 0) + 1;
     return GROUP_IDS.map(id => ({ id, label: GROUP_FOLDERS[id], count: counts[id] ?? 0 }));
   },
+
+  // Hoard tables the Loot Generator should see (auto-marked on organize).
+  LOOT_HOARD: ["treasure 0-3", "treasure 4-6", "treasure 7-9", "treasure 10+",
+               "diabolical treasure", "sea wolf plunder from distant lands"],
+  // Only these folders are "unorganized sources" we may move out of.
+  SOURCE_FOLDERS: ["Shadowdark Core PDF Tables", "Cursed Scroll PDF Tables", "Loot"],
+
+  async _ensureFolder(name) {
+    let f = game.folders.find(x => x.type === "RollTable" && x.name === name && !x.folder);
+    if (!f) f = await Folder.create({ name, type: "RollTable" });
+    return f;
+  },
+
+  /**
+   * File source-folder tables into numbered group folders + mark hoard loot.
+   * Idempotent. GM-only. dryRun returns the plan without writing.
+   */
+  async organize({ dryRun = false } = {}) {
+    if (!game.user.isGM) { ui.notifications?.warn("Only a GM can organize tables."); return null; }
+    const plan = [];
+    for (const e of this.build()) {
+      const t = game.tables.get(e.id);
+      const cur = t.folder?.name ?? null;
+      // Skip tables already foldered somewhere that isn't a source folder.
+      if (cur && !this.SOURCE_FOLDERS.includes(cur)) continue;
+      const targetFolder = GROUP_FOLDERS[e.group];
+      const needsMove = cur !== targetFolder;
+      const needsLoot = this.LOOT_HOARD.includes(e.displayName.toLowerCase())
+        && t.getFlag(MODULE_ID, "isLootTable") !== true;
+      if (needsMove || needsLoot) plan.push({ e, needsMove, needsLoot, targetFolder });
+    }
+
+    const summary = {
+      moved: plan.filter(p => p.needsMove).length,
+      marked: plan.filter(p => p.needsLoot).length,
+      perGroup: {}, viaSeed: 0, viaClassifier: 0,
+      misc: this.build().filter(e => e.group === "misc").map(e => e.name),
+    };
+    for (const e of this.build()) {
+      summary.perGroup[e.group] = (summary.perGroup[e.group] ?? 0) + 1;
+      e.fromSeed ? summary.viaSeed++ : summary.viaClassifier++;
+    }
+    if (dryRun) return summary;
+
+    // Ensure folders for groups that have moves.
+    const folderIds = {};
+    for (const p of plan) if (p.needsMove && !(p.e.group in folderIds)) {
+      folderIds[p.e.group] = (await this._ensureFolder(p.targetFolder)).id;
+    }
+    const updates = plan.map(p => {
+      const u = { _id: p.e.id };
+      if (p.needsMove) u.folder = folderIds[p.e.group];
+      if (p.needsLoot) u[`flags.${MODULE_ID}.isLootTable`] = true;
+      return u;
+    });
+    if (updates.length) await RollTable.updateDocuments(updates);
+    this.invalidate();
+    ui.notifications?.info(`Organized ${summary.moved} tables into ${Object.keys(folderIds).length} folders.`);
+    return summary;
+  },
 };

@@ -21,12 +21,14 @@ import { LootDelivery } from "./encounter/loot-delivery.mjs";
 import { LootGeneratorApp } from "./encounter/loot-generator-app.mjs";
 import { LootDrops } from "./encounter/loot-drops.mjs";
 import { LootTableTag } from "./encounter/loot-table-tag.mjs";
+import { TableRegistry } from "./encounter/table-registry.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
   registerSettings();
   LootDelivery.init();
   LootTableTag.init();
+  TableRegistry.init();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {
@@ -83,6 +85,14 @@ Hooks.once("init", () => {
         ? LootCatalog.linkTableItems(table)
         : LootCatalog.linkLootTables(),
       open: () => LootGeneratorApp.open(),
+    },
+    tables: {
+      all: () => TableRegistry.all(),
+      byGroup: (g) => TableRegistry.byGroup(g),
+      lootTables: () => TableRegistry.lootTables(),
+      encounterTables: () => TableRegistry.encounterTables(),
+      groups: () => TableRegistry.groups(),
+      organize: (opts) => TableRegistry.organize(opts),
     },
   };
 });
