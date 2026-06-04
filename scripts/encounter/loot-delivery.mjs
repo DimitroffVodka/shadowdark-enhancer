@@ -46,9 +46,12 @@ export const LootDelivery = {
       source: batch.source ?? null,
       coins: batch.coins ?? { gp: 0, sp: 0, cp: 0 },
       coinsAssigned: null,
+      totalGp: batch.totalGp ?? 0,
+      totalXp: batch.totalXp ?? 0,
       items: (batch.items ?? []).map(i => ({
         uuid: i.uuid, name: i.name, img: i.img ?? "icons/svg/item-bag.svg",
         qty: i.qty ?? 1, claimedBy: null, claimedByName: null,
+        value: i.value ?? 0, tier: i.tier ?? null, xp: i.xp ?? 0,
       })),
       notes: batch.notes ?? [],
     };
@@ -64,7 +67,12 @@ export const LootDelivery = {
         .map(([uid]) => uid);
       data.whisper = [...new Set([...owners, ...game.users.filter(u => u.isGM).map(u => u.id)])];
     }
-    return ChatMessage.create(data);
+    const msg = await ChatMessage.create(data);
+    Hooks.callAll("shadowdark-enhancer.lootScored", {
+      totalGp: flags.totalGp, totalXp: flags.totalXp,
+      items: flags.items, source: flags.source, messageId: msg?.id,
+    });
+    return msg;
   },
 
   /**
@@ -103,12 +111,16 @@ export const LootDelivery = {
       source: flags.source ?? null,
       items: (flags.items ?? []).map((it, idx) => ({
         ...it, idx, qtyLabel: it.qty > 1 ? ` ×${it.qty}` : "",
+        valueLabel: it.value > 0 ? ` · ${it.value} gp` : "",
       })),
       hasCoins: coinsParts.length > 0,
       coinsLabel: coinsParts.join(", "),
       coinsAssigned: flags.coinsAssigned,
       party,
       notes: flags.notes ?? [],
+      totalGp: flags.totalGp ?? 0,
+      totalXp: flags.totalXp ?? 0,
+      hasTotals: (flags.totalGp ?? 0) > 0 || (flags.totalXp ?? 0) > 0,
     });
   },
 
