@@ -6,6 +6,7 @@
  * NAMES -> group ids only (metadata); no table content.
  */
 import { MODULE_ID } from "../module-id.mjs";
+import { CORE_TABLE_GROUPS } from "./table-seed-map.mjs";
 
 // Codex's 12 groups -> numbered folder names (numbered for sidebar order).
 export const GROUP_FOLDERS = {
@@ -47,6 +48,13 @@ export function parseTableName(name, folderName) {
   return { source, page, displayName, subCategory: subM ? subM[1].trim() : null };
 }
 
+/** Seed-map-first, classifier-fallback. Returns one of GROUP_IDS. */
+export function categorize(parsed, folderName) {
+  const seed = CORE_TABLE_GROUPS[(parsed.displayName ?? "").toLowerCase()];
+  if (seed) return seed;
+  return classifyByKeyword(parsed, folderName);
+}
+
 /** Keyword fallback categorizer -> group id (pure). Ordered; first match wins. */
 export function classifyByKeyword({ displayName, subCategory }, folderName) {
   if (folderName === "The Lost Citadel") return "adventure";
@@ -70,7 +78,7 @@ export function classifyByKeyword({ displayName, subCategory }, folderName) {
   if (has("trap", "hazard", "enduring wounds", "remedy", "corruption", "poison")) return "hazards";
   if (has("treasure", "plunder", "void junk", "you find", "dead bandit", "lost book",
           "treasure map", "luxury", "mundane treasure", "magic item", "magic armor",
-          "magic weapon", "magic potion", "magic utility", "boons")) return "treasure";
+          "magic weapon", "magic potion", "magic utility", "boons", "loot", "hoard")) return "treasure";
   if (has("scrolls and wands", "spell table", "spells known", "wand", "mishap", "magic:"))
     return "magic";
   if (has("carousing", "stakes", "venue", "pit fight", "crowd", "benefit")) return "downtime";
