@@ -3434,6 +3434,8 @@ body.theme-light .sde-bar-phase-badge {
   background: transparent;
   color: var(--sde-bar-accent, #c9a227);
 }
+.sde-loot-card button.sde-loot-forge { background: transparent; color: var(--sde-bar-accent, #c9a227); margin-left: 4px; }
+.sde-lootgen-forge { margin-left: 4px; }
 .sde-loot-card button.sde-loot-claim:hover,
 .sde-loot-card button.sde-loot-give:hover,
 .sde-loot-card button.sde-loot-assign-coins:hover {

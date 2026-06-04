@@ -16,6 +16,11 @@
       <button type="button" class="sde-loot-give sde-loot-gm" data-item-index="{{it.idx}}">
         <i class="fas fa-gift"></i> Give
       </button>
+      {{#if it.forgeable}}
+      <button type="button" class="sde-loot-forge sde-loot-gm" data-item-index="{{it.idx}}">
+        <i class="fas fa-hammer"></i> Forge
+      </button>
+      {{/if}}
       {{/if}}
     </li>
     {{/each}}

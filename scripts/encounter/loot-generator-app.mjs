@@ -7,6 +7,8 @@
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
 import { LootTableTag } from "./loot-table-tag.mjs";
+import { MagicForgeApp } from "./magic-forge-app.mjs";
+import { inferSeedFromName } from "./magic-forge.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -17,11 +19,12 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     window: { title: "Loot Generator", icon: "fas fa-coins", resizable: true },
     position: { width: 560, height: "auto" },
     actions: {
-      rollLoot:     LootGeneratorApp.prototype._onRollLoot,
-      rollForToken: LootGeneratorApp.prototype._onRollForToken,
-      postEntry:    LootGeneratorApp.prototype._onPostEntry,
-      giveEntry:    LootGeneratorApp.prototype._onGiveEntry,
-      clearHistory: LootGeneratorApp.prototype._onClearHistory,
+      rollLoot:       LootGeneratorApp.prototype._onRollLoot,
+      rollForToken:   LootGeneratorApp.prototype._onRollForToken,
+      postEntry:      LootGeneratorApp.prototype._onPostEntry,
+      giveEntry:      LootGeneratorApp.prototype._onGiveEntry,
+      clearHistory:   LootGeneratorApp.prototype._onClearHistory,
+      forgeEntryItem: LootGeneratorApp.prototype._onForgeEntryItem,
     },
   };
 
@@ -83,7 +86,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const history = this._history.map(e => {
       const c = e.batch.coins ?? { gp: 0, sp: 0, cp: 0 };
       const coinsParts = ["gp", "sp", "cp"].filter(k => c[k] > 0).map(k => `${c[k]} ${k}`);
-      const items = (e.batch.items ?? []).map(i => ({ name: i.name, img: i.img ?? "icons/svg/item-bag.svg" }));
+      const items = (e.batch.items ?? []).map((i, idx) => ({ name: i.name, img: i.img ?? "icons/svg/item-bag.svg", idx, forgeable: i.forgeable ?? false }));
       const notes = e.batch.notes ?? [];
       return {
         id: e.id,
@@ -165,5 +168,16 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _onClearHistory() {
     this._history = [];
     this.render();
+  }
+
+  async _onForgeEntryItem(event, target) {
+    const entry = this._history.find(e => e.id === target.dataset.entryId);
+    if (!entry) return;
+    const it = entry.batch.items[Number(target.dataset.itemIndex)];
+    if (!it) return;
+    MagicForgeApp.open({
+      seed: inferSeedFromName(it.name),
+      onCreate: (forged) => { it.uuid = forged.uuid; it.name = forged.name; it.img = forged.img ?? it.img; it.forgeable = false; this.render(); },
+    });
   }
 }

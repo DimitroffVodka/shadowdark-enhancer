@@ -16,6 +16,8 @@
  */
 
 import { MODULE_ID } from "../module-id.mjs";
+import { MagicForgeApp } from "./magic-forge-app.mjs";
+import { inferSeedFromName } from "./magic-forge.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 const SOCKET = `module.${MODULE_ID}`;
@@ -52,7 +54,7 @@ export const LootDelivery = {
         uuid: i.uuid, name: i.name, img: i.img ?? "icons/svg/item-bag.svg",
         qty: i.qty ?? 1, claimedBy: null, claimedByName: null,
         value: i.value ?? 0, tier: i.tier ?? null, xp: i.xp ?? 0,
-        feature: i.feature ?? null,
+        feature: i.feature ?? null, forgeable: i.forgeable ?? false,
       })),
       notes: batch.notes ?? [],
     };
@@ -152,6 +154,18 @@ export const LootDelivery = {
           const idx = Number(btn.dataset.itemIndex);
           const actorId = await this._pickRecipient();
           if (actorId) await this._handleGiveItem({ messageId: message.id, itemIndex: idx, actorId });
+        });
+      });
+
+      html.querySelectorAll(".sde-loot-forge").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const idx = Number(btn.dataset.itemIndex);
+          const it = flags.items[idx];
+          if (!it) return;
+          MagicForgeApp.open({
+            seed: inferSeedFromName(it.name),
+            onCreate: (forged) => this._handleForgedReplace(message.id, idx, forged),
+          });
         });
       });
     }
@@ -259,6 +273,19 @@ export const LootDelivery = {
     const doc = await fromUuid(item.uuid).catch(() => null);
     if (doc) await actor.createEmbeddedDocuments("Item", [this._itemDataWithFeature(doc, item.feature)]);
 
+    await this._refresh(message);
+  },
+
+  /** Upgrade a forged-from-loot placeholder in place: point the card item at the real item. */
+  async _handleForgedReplace(messageId, itemIndex, forged) {
+    const message = game.messages.get(messageId);
+    const flags = message?.flags?.[MODULE_ID];
+    if (!flags?.lootCard || !forged) return;
+    const item = flags.items[itemIndex];
+    if (!item || item.claimedBy) return;
+    const items = foundry.utils.deepClone(flags.items);
+    items[itemIndex] = { ...item, uuid: forged.uuid, name: forged.name, img: forged.img ?? item.img, forgeable: false };
+    await message.update({ [`flags.${MODULE_ID}.items`]: items });
     await this._refresh(message);
   },
 

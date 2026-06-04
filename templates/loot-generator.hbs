@@ -23,7 +23,7 @@
       {{#if e.items.length}}
       <ul class="sde-lootgen-items">
         {{#each e.items as |it|}}
-        <li><img src="{{it.img}}" width="22" height="22" alt=""> <span>{{it.name}}</span></li>
+        <li><img src="{{it.img}}" width="22" height="22" alt=""> <span>{{it.name}}</span>{{#if it.forgeable}}<button type="button" class="sde-lootgen-forge" data-action="forgeEntryItem" data-entry-id="{{e.id}}" data-item-index="{{it.idx}}"><i class="fas fa-hammer"></i> Forge</button>{{/if}}</li>
         {{/each}}
       </ul>
       {{/if}}
