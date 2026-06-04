@@ -95,3 +95,52 @@ export function classifyByKeyword({ displayName, subCategory }, folderName) {
   }
   return "misc";
 }
+
+export const TableRegistry = {
+  _cache: null,
+
+  invalidate() { this._cache = null; },
+
+  /** Register cache-invalidation hooks. Call once at init. */
+  init() {
+    for (const h of ["createRollTable", "deleteRollTable", "updateRollTable"]) {
+      Hooks.on(h, () => this.invalidate());
+    }
+  },
+
+  build() {
+    if (this._cache) return this._cache;
+    const entries = game.tables.contents.map(t => {
+      const folderName = t.folder?.name ?? null;
+      const parsed = parseTableName(t.name, folderName);
+      const seedGroup = CORE_TABLE_GROUPS[parsed.displayName.toLowerCase()];
+      const group = seedGroup ?? classifyByKeyword(parsed, folderName);
+      return {
+        uuid: t.uuid, id: t.id, name: t.name,
+        displayName: parsed.displayName, source: parsed.source, page: parsed.page,
+        subCategory: parsed.subCategory, group, fromSeed: !!seedGroup,
+      };
+    });
+    this._cache = entries;
+    return entries;
+  },
+
+  all() { return this.build(); },
+  byGroup(id) { return this.build().filter(e => e.group === id); },
+  encounterTables() { return this.byGroup("encounters"); },
+
+  /** Loot picker source = tables flagged isLootTable OR Importer tableType:"loot". */
+  lootTables() {
+    return this.build().filter(e => {
+      const t = game.tables.get(e.id);
+      return t?.getFlag(MODULE_ID, "isLootTable") === true
+          || t?.getFlag(MODULE_ID, "tableType") === "loot";
+    });
+  },
+
+  groups() {
+    const counts = {};
+    for (const e of this.build()) counts[e.group] = (counts[e.group] ?? 0) + 1;
+    return GROUP_IDS.map(id => ({ id, label: GROUP_FOLDERS[id], count: counts[id] ?? 0 }));
+  },
+};
