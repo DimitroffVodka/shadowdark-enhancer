@@ -39,6 +39,7 @@ export const LootDelivery = {
       lootCard: true,
       tier: batch.tier,
       level: batch.level,
+      source: batch.source ?? null,
       coins: batch.coins ?? { gp: 0, sp: 0, cp: 0 },
       coinsAssigned: null,
       items: (batch.items ?? []).map(i => ({
@@ -64,6 +65,7 @@ export const LootDelivery = {
     const coinsParts = ["gp", "sp", "cp"].filter(k => c[k] > 0).map(k => `${c[k]} ${k}`);
     return renderTemplate(CARD_TEMPLATE, {
       tier: flags.tier,
+      source: flags.source ?? null,
       items: (flags.items ?? []).map((it, idx) => ({
         ...it, idx, qtyLabel: it.qty > 1 ? ` ×${it.qty}` : "",
       })),
