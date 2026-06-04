@@ -3411,12 +3411,34 @@ body.theme-light .sde-bar-phase-badge {
   border-radius: 3px;
 }
 .sde-loot-name { flex: 1 1 auto; }
-.sde-loot-give { margin-left: 4px; }
-.sde-loot-claim,
-.sde-loot-assign-coins {
+/* Scoped with element+class so these beat Foundry's default chat-button
+   styling, which otherwise renders the labels dark-on-dark + unreadable. */
+.sde-loot-card button.sde-loot-claim,
+.sde-loot-card button.sde-loot-give,
+.sde-loot-card button.sde-loot-assign-coins {
   flex: 0 0 auto;
   cursor: pointer;
   white-space: nowrap;
+  width: auto;
+  border-radius: 3px;
+  padding: 0.12rem 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background: var(--sde-bar-accent, #c9a227);
+  color: var(--sde-bar-on-accent, #1a1a1a);
+  border: 1px solid var(--sde-bar-border, #555);
+}
+/* GM "Give" — outlined secondary variant, distinct from the solid Claim. */
+.sde-loot-card button.sde-loot-give {
+  margin-left: 4px;
+  background: transparent;
+  color: var(--sde-bar-accent, #c9a227);
+}
+.sde-loot-card button.sde-loot-claim:hover,
+.sde-loot-card button.sde-loot-give:hover,
+.sde-loot-card button.sde-loot-assign-coins:hover {
+  filter: brightness(1.12);
+  box-shadow: 0 0 4px var(--sde-bar-accent, #c9a227);
 }
 .sde-loot-claimed {
   flex: 0 0 auto;
