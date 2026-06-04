@@ -6,7 +6,7 @@
     {{#each items as |it|}}
     <li class="sde-loot-row" data-item-index="{{it.idx}}">
       <img src="{{it.img}}" width="28" height="28" alt="">
-      <span class="sde-loot-name">{{it.name}}{{it.qtyLabel}}<span class="sde-loot-value">{{it.valueLabel}}</span></span>
+      <span class="sde-loot-name">{{it.name}}{{it.qtyLabel}}<span class="sde-loot-value">{{it.valueLabel}}</span><span class="sde-loot-feature">{{it.featureLabel}}</span></span>
       {{#if it.claimedBy}}
       <span class="sde-loot-claimed"><i class="fas fa-check"></i> {{it.claimedByName}}</span>
       {{else}}

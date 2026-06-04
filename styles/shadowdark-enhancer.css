@@ -3463,6 +3463,7 @@ body.theme-light .sde-bar-phase-badge {
 }
 
 .sde-loot-value { color: var(--sde-bar-accent, #c9a227); font-size: 0.78rem; }
+.sde-loot-feature { font-style: italic; color: var(--sde-bar-text-muted, #9a9a9a); font-size: 0.78rem; }
 .sde-loot-total { padding: 0.35rem 0.5rem; border-top: 1px solid var(--sde-bar-border, #444); font-weight: 600; }
 
 /* ── Loot Generator window (Vagabond-Crawler-style history) ── */

@@ -52,6 +52,7 @@ export const LootDelivery = {
         uuid: i.uuid, name: i.name, img: i.img ?? "icons/svg/item-bag.svg",
         qty: i.qty ?? 1, claimedBy: null, claimedByName: null,
         value: i.value ?? 0, tier: i.tier ?? null, xp: i.xp ?? 0,
+        feature: i.feature ?? null,
       })),
       notes: batch.notes ?? [],
     };
@@ -84,7 +85,7 @@ export const LootDelivery = {
     const docs = [];
     for (const it of batch.items ?? []) {
       const doc = await fromUuid(it.uuid).catch(() => null);
-      if (doc) docs.push(doc.toObject());
+      if (doc) docs.push(this._itemDataWithFeature(doc, it.feature));
     }
     if (docs.length) await actor.createEmbeddedDocuments("Item", docs);
 
@@ -112,6 +113,7 @@ export const LootDelivery = {
       items: (flags.items ?? []).map((it, idx) => ({
         ...it, idx, qtyLabel: it.qty > 1 ? ` ×${it.qty}` : "",
         valueLabel: it.value > 0 ? ` · ${it.value} gp` : "",
+        featureLabel: it.feature ? ` — ${it.feature}` : "",
       })),
       hasCoins: coinsParts.length > 0,
       coinsLabel: coinsParts.join(", "),
@@ -164,6 +166,17 @@ export const LootDelivery = {
     }
   },
 
+  /** Item data with the cosmetic Unique Feature appended to its description. */
+  _itemDataWithFeature(doc, feature) {
+    const obj = doc.toObject();
+    if (feature) {
+      obj.system = obj.system ?? {};
+      const cur = obj.system.description ?? "";
+      obj.system.description = `${cur}<p><em>Unique feature: ${feature}</em></p>`;
+    }
+    return obj;
+  },
+
   /** GM-authoritative item claim: lock the flag, then create the item. */
   async _handleClaimItem({ messageId, itemIndex, userId, actorId }) {
     const message = game.messages.get(messageId);
@@ -182,7 +195,7 @@ export const LootDelivery = {
     await message.update({ [`flags.${MODULE_ID}.items`]: items });
 
     const doc = await fromUuid(item.uuid).catch(() => null);
-    if (doc) await actor.createEmbeddedDocuments("Item", [doc.toObject()]);
+    if (doc) await actor.createEmbeddedDocuments("Item", [this._itemDataWithFeature(doc, item.feature)]);
 
     await this._refresh(message);
   },
@@ -244,7 +257,7 @@ export const LootDelivery = {
     await message.update({ [`flags.${MODULE_ID}.items`]: items });
 
     const doc = await fromUuid(item.uuid).catch(() => null);
-    if (doc) await actor.createEmbeddedDocuments("Item", [doc.toObject()]);
+    if (doc) await actor.createEmbeddedDocuments("Item", [this._itemDataWithFeature(doc, item.feature)]);
 
     await this._refresh(message);
   },
