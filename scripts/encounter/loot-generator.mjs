@@ -69,17 +69,31 @@ export const LootGenerator = {
 
     const { coins, items, notes } = base;
     for (let i = 0; i < Math.max(1, rolls); i++) {
-      const draw = await table.draw({ displayChat: false });
-      for (const r of draw.results) {
-        const res = classifyResult(r);
-        if (res.kind === "coin") {
-          coins.gp += res.coins.gp; coins.sp += res.coins.sp; coins.cp += res.coins.cp;
-        } else if (res.kind === "item") {
-          const doc = await fromUuid(res.uuid).catch(() => null);
-          items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg" });
-        } else if (res.text) {
-          notes.push(res.text);
+      // Re-draw past blank rows. PDF-imported tables often carry empty
+      // TEXT rows (no text, no document); a draw landing on one would
+      // otherwise yield a "(nothing)" result. Bounded so a mostly-empty
+      // table can't loop forever.
+      for (let attempt = 0; attempt < 12; attempt++) {
+        const draw = await table.draw({ displayChat: false });
+        let gotContent = false;
+        for (const r of draw.results) {
+          const res = classifyResult(r);
+          if (res.kind === "coin") {
+            const sum = (res.coins.gp || 0) + (res.coins.sp || 0) + (res.coins.cp || 0);
+            if (sum > 0) {
+              coins.gp += res.coins.gp; coins.sp += res.coins.sp; coins.cp += res.coins.cp;
+              gotContent = true;
+            }
+          } else if (res.kind === "item") {
+            const doc = await fromUuid(res.uuid).catch(() => null);
+            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg" });
+            gotContent = true;
+          } else if (res.text) {
+            notes.push(res.text);
+            gotContent = true;
+          }
         }
+        if (gotContent) break;
       }
     }
     return base;
