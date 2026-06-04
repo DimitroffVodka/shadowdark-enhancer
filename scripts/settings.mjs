@@ -114,6 +114,14 @@ export function registerSettings() {
     hint: "SDE.settings.xpThresholdFabulous.hint",
     scope: "world", config: true, type: Number, default: 150,
   });
+  game.settings.register(MODULE_ID, "uniqueFeatureChance", {
+    name: "SDE.settings.uniqueFeatureChance.name",
+    hint: "SDE.settings.uniqueFeatureChance.hint",
+    scope: "world", config: true, type: Number, default: 100,
+  });
+  game.settings.register(MODULE_ID, "uniqueFeatureTableUuid", {
+    scope: "world", config: false, type: String, default: "",
+  });
 
   game.settings.register(MODULE_ID, "encounterRollGMOnly", {
     name: "SDE.settings.encounterRollGMOnly.name",

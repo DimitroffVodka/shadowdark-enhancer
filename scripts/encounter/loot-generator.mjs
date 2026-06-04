@@ -52,6 +52,21 @@ export const LootGenerator = {
     return map[tier.id] || null;
   },
 
+  /** The Unique Feature table: the configured uuid, else a name match, else null. */
+  _uniqueFeatureTable() {
+    const uuid = game.settings.get(MODULE_ID, "uniqueFeatureTableUuid");
+    if (uuid) { const t = fromUuidSync(uuid); if (t?.documentName === "RollTable") return t; }
+    return game.tables.find(t => /unique feature/i.test(t.name)) ?? null;
+  },
+
+  /** Draw one cosmetic Unique Feature string from a table (or null). */
+  async _rollFeature(table) {
+    if (!table) return null;
+    const draw = await table.draw({ displayChat: false }).catch(() => null);
+    const text = draw?.results?.[0]?.text?.trim();
+    return text || null;
+  },
+
   /**
    * Generate a loot batch by drawing a RollTable `rolls` times.
    * @param {number} level
@@ -73,6 +88,9 @@ export const LootGenerator = {
       normal: Number(game.settings.get(MODULE_ID, "xpThresholdNormal")) || 10,
       fabulous: Number(game.settings.get(MODULE_ID, "xpThresholdFabulous")) || 150,
     };
+    const featureTable = this._uniqueFeatureTable();
+    const featureChance = Number(game.settings.get(MODULE_ID, "uniqueFeatureChance"));
+    const featurePct = Number.isFinite(featureChance) ? featureChance : 100;
     for (let i = 0; i < Math.max(1, rolls); i++) {
       // Re-draw past blank rows. PDF-imported tables often carry empty
       // TEXT rows (no text, no document); a draw landing on one would
@@ -99,7 +117,13 @@ export const LootGenerator = {
               magicPack: typeof res.uuid === "string" && /spell|magic/i.test(res.uuid),
             });
             const { tier, xp } = scoreItem({ gp, magic, bonus: bonusOf(res.name) }, thresholds);
-            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp });
+            let feature = null;
+            const valuable = typeof res.uuid === "string" && res.uuid.includes("world.loot") && !magic;
+            if (valuable && featureTable && featurePct > 0) {
+              const fRoll = (await new Roll("1d100").evaluate()).total;
+              if (fRoll <= featurePct) feature = await this._rollFeature(featureTable);
+            }
+            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp, feature });
             gotContent = true;
           } else if (res.text) {
             notes.push(res.text);
