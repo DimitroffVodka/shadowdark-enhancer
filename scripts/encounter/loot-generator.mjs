@@ -10,7 +10,8 @@
  */
 
 import { TREASURE_TABLES } from "./treasure-data.mjs";
-import { isCoinEntry, parseValue } from "./loot-pack.mjs";
+import { isCoinEntry, parseValue, isDeferredType, stripPrice, fabricateTreasureItem, pickTreasureIcon } from "./loot-pack.mjs";
+import { LootLinker } from "./loot-linker.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 import { itemValueGp, parseValueGp, bonusOf, isMagicItem, scoreItem } from "./loot-value.mjs";
 
@@ -101,6 +102,8 @@ export const LootGenerator = {
     const featureTable = this._uniqueFeatureTable();
     const featureChance = Number(game.settings.get(MODULE_ID, "uniqueFeatureChance"));
     const featurePct = Number.isFinite(featureChance) ? featureChance : 100;
+    // Index of real items, so TEXT rows that name existing gear/valuables link to them.
+    const itemIndex = await LootLinker.buildItemIndex();
     for (let i = 0; i < Math.max(1, rolls); i++) {
       // Re-draw past blank rows. PDF-imported tables often carry empty
       // TEXT rows (no text, no document); a draw landing on one would
@@ -136,8 +139,38 @@ export const LootGenerator = {
             }
             items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp, feature, forgeable });
             gotContent = true;
-          } else if (res.text) {
-            notes.push(res.text);
+          } else {
+            // TEXT row → link to a real item, fabricate a priced valuable, else keep as flavor.
+            const text = res.text;
+            if (!text) continue;
+            const link = LootLinker.findLink(text, itemIndex);
+            if (link) {
+              const doc = await fromUuid(link.uuid).catch(() => null);
+              const gp = itemValueGp(doc) || parseValueGp(text);
+              const magic = isMagicItem({ name: link.name, type: doc?.type, needsRefinement: doc?.getFlag?.(MODULE_ID, "needsRefinement"), magicPack: /spell|magic/i.test(link.uuid) });
+              const { tier, xp } = scoreItem({ gp, magic, bonus: bonusOf(text) }, thresholds);
+              items.push({ uuid: link.uuid, name: doc?.name ?? link.name, qty: 1, img: doc?.img ?? pickTreasureIcon(text), value: gp, tier, xp, feature: null, forgeable: magic && doc?.getFlag?.(MODULE_ID, "needsRefinement") === true });
+              gotContent = true;
+              continue;
+            }
+            const value = parseValue(text);
+            const gp = (value.gp || 0) + (value.sp || 0) / 10 + (value.cp || 0) / 100;
+            const deferred = isDeferredType(text);
+            if (gp > 0 || deferred) {
+              // Fabricate a real Basic treasure Item from the row text + price.
+              const name = stripPrice(text);
+              const itemData = fabricateTreasureItem({ name, value, needsRefinement: deferred });
+              const { tier, xp } = scoreItem({ gp, magic: deferred, bonus: bonusOf(text) }, thresholds);
+              let feature = null;
+              if (!deferred && featureTable && featurePct > 0) {
+                const fRoll = (await new Roll("1d100").evaluate()).total;
+                if (fRoll <= featurePct) feature = await this._rollFeature(featureTable);
+              }
+              items.push({ uuid: null, fabricate: itemData, name, qty: 1, img: itemData.img, value: gp, tier, xp, feature, forgeable: deferred });
+              gotContent = true;
+              continue;
+            }
+            notes.push(text);
             gotContent = true;
           }
         }

@@ -55,6 +55,7 @@ export const LootDelivery = {
         qty: i.qty ?? 1, claimedBy: null, claimedByName: null,
         value: i.value ?? 0, tier: i.tier ?? null, xp: i.xp ?? 0,
         feature: i.feature ?? null, forgeable: i.forgeable ?? false,
+        fabricate: i.fabricate ?? null,
       })),
       notes: batch.notes ?? [],
     };
@@ -86,8 +87,8 @@ export const LootDelivery = {
     if (!actor) return;
     const docs = [];
     for (const it of batch.items ?? []) {
-      const doc = await fromUuid(it.uuid).catch(() => null);
-      if (doc) docs.push(this._itemDataWithFeature(doc, it.feature));
+      const data = await this._resolveItemData(it);
+      if (data) docs.push(data);
     }
     if (docs.length) await actor.createEmbeddedDocuments("Item", docs);
 
@@ -191,6 +192,37 @@ export const LootDelivery = {
     return obj;
   },
 
+  /**
+   * Resolve a card/batch item to creatable Item data. Either a linked
+   * document (`uuid`) or a fabricated-from-text valuable (`fabricate`). The
+   * cosmetic Unique Feature is appended to the description either way.
+   */
+  async _resolveItemData(item) {
+    if (item.uuid) {
+      const doc = await fromUuid(item.uuid).catch(() => null);
+      if (!doc) return null;
+      const data = this._itemDataWithFeature(doc, item.feature);
+      // Stamp the rolled gp value onto the item when the linked doc has no
+      // cost (some catalog valuables were stored without a price) so the
+      // claimed item is always worth what the loot card showed.
+      if ((item.value ?? 0) > (data.system?.cost?.gp ?? 0)) {
+        data.system = data.system ?? {};
+        data.system.cost = { gp: Math.round(item.value), sp: 0, cp: 0 };
+      }
+      return data;
+    }
+    if (item.fabricate) {
+      const data = foundry.utils.deepClone(item.fabricate);
+      if (item.feature) {
+        data.system = data.system ?? {};
+        const cur = data.system.description ?? "";
+        data.system.description = `${cur}<p><em>Unique feature: ${item.feature}</em></p>`;
+      }
+      return data;
+    }
+    return null;
+  },
+
   /** GM-authoritative item claim: lock the flag, then create the item. */
   async _handleClaimItem({ messageId, itemIndex, userId, actorId }) {
     const message = game.messages.get(messageId);
@@ -208,8 +240,8 @@ export const LootDelivery = {
     items[itemIndex] = { ...item, claimedBy: userId, claimedByName: actor.name };
     await message.update({ [`flags.${MODULE_ID}.items`]: items });
 
-    const doc = await fromUuid(item.uuid).catch(() => null);
-    if (doc) await actor.createEmbeddedDocuments("Item", [this._itemDataWithFeature(doc, item.feature)]);
+    const data = await this._resolveItemData(item);
+    if (data) await actor.createEmbeddedDocuments("Item", [data]);
 
     await this._refresh(message);
   },
@@ -270,8 +302,8 @@ export const LootDelivery = {
     items[itemIndex] = { ...item, claimedBy: `gm:${actorId}`, claimedByName: actor.name };
     await message.update({ [`flags.${MODULE_ID}.items`]: items });
 
-    const doc = await fromUuid(item.uuid).catch(() => null);
-    if (doc) await actor.createEmbeddedDocuments("Item", [this._itemDataWithFeature(doc, item.feature)]);
+    const data = await this._resolveItemData(item);
+    if (data) await actor.createEmbeddedDocuments("Item", [data]);
 
     await this._refresh(message);
   },
