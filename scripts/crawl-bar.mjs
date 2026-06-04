@@ -142,7 +142,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Rest" title="Coming in a later milestone">
           ${ICONS.rest} Rest
         </button>
-        <button class="sde-bar-btn" data-action="loot" title="Left-click: Loot Generator · Right-click: menu">
+        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge">
           <i class="fas fa-hammer"></i> Forge &amp; Loot
         </button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
@@ -272,7 +272,8 @@ export const CrawlBar = {
         break;
 
       case "loot":
-        game.shadowdarkEnhancer.loot.open();
+        // Left-click opens the Forge & Loot menu (Loot Generator | Magic Item Forge).
+        this._onLootContextMenu(el, ev);
         break;
 
       case "m2Placeholder":
