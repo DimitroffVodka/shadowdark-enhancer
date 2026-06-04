@@ -123,6 +123,10 @@ export function registerSettings() {
     scope: "world", config: false, type: String, default: "",
   });
 
+  game.settings.register(MODULE_ID, "forgeTableOverrides", {
+    scope: "world", config: false, type: Object, default: {},
+  });
+
   game.settings.register(MODULE_ID, "encounterRollGMOnly", {
     name: "SDE.settings.encounterRollGMOnly.name",
     hint: "SDE.settings.encounterRollGMOnly.hint",
