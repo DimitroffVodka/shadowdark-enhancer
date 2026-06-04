@@ -22,6 +22,7 @@ import { LootGeneratorApp } from "./encounter/loot-generator-app.mjs";
 import { LootDrops } from "./encounter/loot-drops.mjs";
 import { LootTableTag } from "./encounter/loot-table-tag.mjs";
 import { TableRegistry } from "./encounter/table-registry.mjs";
+import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -85,6 +86,9 @@ Hooks.once("init", () => {
         ? LootCatalog.linkTableItems(table)
         : LootCatalog.linkLootTables(),
       open: () => LootGeneratorApp.open(),
+    },
+    forge: {
+      open: () => MagicForgeApp.open(),
     },
     tables: {
       all: () => TableRegistry.all(),

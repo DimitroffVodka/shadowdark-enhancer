@@ -1,0 +1,101 @@
+<div class="sde-forge">
+
+  <div class="sde-forge-row sde-forge-controls">
+    <button type="button" data-action="forgeRoll" class="sde-forge-roll">
+      <i class="fas fa-dice-d20"></i> Forge
+    </button>
+  </div>
+
+  {{#if hasDraft}}
+
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Type</label>
+      <select name="type" class="sde-forge-select">
+        {{#each types as |t|}}
+          <option value="{{t.id}}" {{#if t.selected}}selected{{/if}}>{{t.label}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Name</label>
+      <input type="text" name="name" value="{{draft.name}}" class="sde-forge-input">
+    </div>
+
+    {{#if draft.baseItem}}
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Base</label>
+      <input type="text" name="baseItem" value="{{draft.baseItem}}" class="sde-forge-input">
+      <button type="button" data-action="reroll" data-part="base" class="sde-forge-reroll" title="Reroll base">&#x1F3B2;</button>
+    </div>
+    {{/if}}
+
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Feature</label>
+      <input type="text" name="feature" value="{{draft.feature}}" class="sde-forge-input">
+      <button type="button" data-action="reroll" data-part="feature" class="sde-forge-reroll" title="Reroll feature">&#x1F3B2;</button>
+    </div>
+
+    {{#if hasBonus}}
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Bonus (+N)</label>
+      <input type="number" name="bonus" min="0" max="3" value="{{draft.bonus}}" class="sde-forge-input sde-forge-bonus">
+      <button type="button" data-action="reroll" data-part="bonus" class="sde-forge-reroll" title="Reroll bonus">&#x1F3B2;</button>
+    </div>
+    {{/if}}
+
+    <div class="sde-forge-section-label">Benefits</div>
+    <div class="sde-forge-list">
+      {{#each benefits as |b|}}
+      <div class="sde-forge-row sde-forge-benefit-row">
+        <input type="text" name="benefit-{{b.idx}}" value="{{b.text}}" class="sde-forge-input">
+        <button type="button" data-action="reroll" data-part="benefit:{{b.idx}}" class="sde-forge-reroll" title="Reroll benefit">&#x1F3B2;</button>
+        <button type="button" data-action="removeBenefit" data-idx="{{b.idx}}" class="sde-forge-remove" title="Remove benefit">&#x2715;</button>
+      </div>
+      {{/each}}
+      <button type="button" data-action="addBenefit" class="sde-forge-add">+ Add Benefit</button>
+    </div>
+
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">
+        <input type="checkbox" name="hasCurse" {{#if draft.curse}}checked{{/if}}>
+        Curse
+      </label>
+      <input type="text" name="curse" value="{{draft.curse}}" class="sde-forge-input">
+      <button type="button" data-action="reroll" data-part="curse" class="sde-forge-reroll" title="Reroll curse">&#x1F3B2;</button>
+    </div>
+
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">
+        <input type="checkbox" name="hasPersonality" {{#if draft.personality.present}}checked{{/if}}>
+        Personality
+      </label>
+    </div>
+
+    {{#if draft.personality.present}}
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Virtue</label>
+      <input type="text" name="virtue" value="{{draft.personality.virtue}}" class="sde-forge-input">
+      <button type="button" data-action="reroll" data-part="virtue" class="sde-forge-reroll" title="Reroll virtue">&#x1F3B2;</button>
+    </div>
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Flaw</label>
+      <input type="text" name="flaw" value="{{draft.personality.flaw}}" class="sde-forge-input">
+      <button type="button" data-action="reroll" data-part="flaw" class="sde-forge-reroll" title="Reroll flaw">&#x1F3B2;</button>
+    </div>
+    <div class="sde-forge-row">
+      <label class="sde-forge-label">Trait</label>
+      <input type="text" name="trait" value="{{draft.personality.trait}}" class="sde-forge-input">
+      <button type="button" data-action="reroll" data-part="trait" class="sde-forge-reroll" title="Reroll trait">&#x1F3B2;</button>
+    </div>
+    {{/if}}
+
+    <div class="sde-forge-row sde-forge-footer">
+      <button type="button" data-action="createItem" class="sde-forge-create">
+        <i class="fas fa-check"></i> Create Item
+      </button>
+    </div>
+
+  {{/if}}
+
+</div>

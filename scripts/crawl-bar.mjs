@@ -142,7 +142,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Rest" title="Coming in a later milestone">
           ${ICONS.rest} Rest
         </button>
-        <button class="sde-bar-btn" data-action="loot" title="Open the Loot Generator">
+        <button class="sde-bar-btn" data-action="loot" title="Left-click: Loot Generator · Right-click: menu">
           <i class="fas fa-hammer"></i> Forge &amp; Loot
         </button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
@@ -170,8 +170,10 @@ export const CrawlBar = {
           ev.stopPropagation();
           this._onEncounterContextMenu(el, ev);
         });
+      }
 
-        // Drag-drop for RollTable
+      // Drag-drop for RollTable (Encounter button)
+      if (el.dataset.action === "encounter") {
         el.addEventListener("dragover", ev => {
           ev.preventDefault();
           el.classList.add("sde-drag-over");
@@ -188,6 +190,15 @@ export const CrawlBar = {
               ui.notifications.info(`Active encounter table set to: ${table.name}`);
             }
           }
+        });
+      }
+
+      // Right-click for Forge & Loot
+      if (el.dataset.action === "loot") {
+        el.addEventListener("contextmenu", ev => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          this._onLootContextMenu(el, ev);
         });
       }
     });
@@ -327,6 +338,47 @@ export const CrawlBar = {
     });
 
     // Close on click outside
+    const close = () => {
+      menu.remove();
+      document.removeEventListener("click", close);
+    };
+    setTimeout(() => document.addEventListener("click", close), 10);
+  },
+
+  _onLootContextMenu(el, ev) {
+    if (!game.user.isGM) return;
+
+    const existing = document.getElementById("sde-loot-context-menu");
+    if (existing) { existing.remove(); return; }
+
+    const menu = document.createElement("div");
+    menu.id = "sde-loot-context-menu";
+    menu.className = "sde-bar-context-menu";
+    menu.innerHTML = `
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="lootGen">
+        <i class="fas fa-coins"></i> Loot Generator
+      </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="magicForge">
+        <i class="fas fa-hammer"></i> Magic Item Forge
+      </div>
+    `;
+
+    // Position menu above button
+    const rect = el.getBoundingClientRect();
+    menu.style.left = `${rect.left}px`;
+    menu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
+
+    document.body.appendChild(menu);
+
+    menu.addEventListener("click", e => {
+      e.stopPropagation();
+      const target = e.target.closest("[data-loot-action]");
+      if (!target) return;
+      if (target.dataset.lootAction === "lootGen") game.shadowdarkEnhancer.loot.open();
+      if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
+      menu.remove();
+    });
+
     const close = () => {
       menu.remove();
       document.removeEventListener("click", close);

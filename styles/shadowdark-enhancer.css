@@ -3520,3 +3520,50 @@ body.theme-light .sde-bar-phase-badge {
 .sde-lootgen-entry-actions button:hover { filter: brightness(1.12); }
 .sde-lootgen-footer { display: flex; justify-content: flex-end; }
 .sde-lootgen-clear { width: auto; cursor: pointer; padding: 0.2rem 0.6rem; }
+
+/* ── Magic Item Forge ──────────────────────────────────────────────────────── */
+.sde-forge { padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.sde-forge-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sde-forge-label { flex: 0 0 6rem; font-size: 0.82rem; color: var(--sde-bar-text-muted, #9a9a9a); white-space: nowrap; }
+.sde-forge-label input[type="checkbox"] { margin-right: 4px; }
+.sde-forge-input { flex: 1 1 10rem; min-width: 6rem; }
+.sde-forge-bonus { flex: 0 0 4rem; min-width: 3rem; }
+.sde-forge-select { flex: 1 1 10rem; min-width: 8rem; }
+.sde-forge-section-label { font-size: 0.78rem; font-weight: 600; color: var(--sde-bar-accent, #c9a227); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.sde-forge-list { display: flex; flex-direction: column; gap: 4px; padding-left: 0.5rem; }
+.sde-forge-benefit-row { flex-wrap: nowrap; }
+.sde-forge-controls { margin-bottom: 4px; }
+.sde-forge-footer { justify-content: flex-end; margin-top: 4px; }
+
+/* Buttons — gold accent, readable on dark */
+.sde-forge button {
+  width: auto;
+  flex: 0 0 auto;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--sde-bar-border, #555);
+  background: var(--sde-bar-btn-1, #252830);
+  color: var(--sde-bar-text, #BDC1C6);
+  font-size: 0.8rem;
+}
+.sde-forge button:hover { filter: brightness(1.15); box-shadow: 0 0 4px var(--sde-bar-accent, #c9a227); }
+.sde-forge-roll {
+  background: var(--sde-bar-accent, #c9a227);
+  color: var(--sde-bar-on-accent, #f5eccc);
+  font-weight: 600;
+  padding: 0.3rem 0.8rem;
+  border-radius: 4px;
+  border: 1px solid var(--sde-bar-accent-dark, #7a7030);
+}
+.sde-forge-create {
+  background: var(--sde-bar-accent, #c9a227);
+  color: var(--sde-bar-on-accent, #f5eccc);
+  font-weight: 600;
+  padding: 0.25rem 0.8rem;
+  border-color: var(--sde-bar-accent-dark, #7a7030);
+}
+.sde-forge-reroll { background: transparent; color: var(--sde-bar-accent, #c9a227); padding: 0.1rem 0.3rem; }
+.sde-forge-remove { background: transparent; color: var(--sde-bar-text-muted, #9a9a9a); padding: 0.1rem 0.3rem; }
+.sde-forge-add { background: transparent; color: var(--sde-bar-text, #BDC1C6); border-style: dashed; margin-top: 2px; }
