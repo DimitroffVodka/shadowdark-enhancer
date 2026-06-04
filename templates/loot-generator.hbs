@@ -1,26 +1,46 @@
 <div class="sde-lootgen">
-  <section class="sde-lootgen-map">
-    <h3>Tier → Loot Table</h3>
-    <p class="notes">Map each treasure band to a RollTable you've loaded (from a PDF) or built via the Importer.</p>
-    {{#each bands as |b|}}
-    <div class="sde-lootgen-row">
-      <label>{{b.label}}</label>
-      <select data-tier="{{b.id}}" aria-label="Table for {{b.label}}">
-        <option value="" {{#if b.noneSelected}}selected{{/if}}>— none —</option>
-        {{#each b.tables as |x|}}
-        <option value="{{x.uuid}}" {{#if x.isSelected}}selected{{/if}}>{{x.name}}</option>
-        {{/each}}
-      </select>
-    </div>
-    {{/each}}
-  </section>
+  {{#if hasTables}}
+  <div class="sde-lootgen-controls">
+    <select data-loot-table aria-label="Loot table">
+      {{#each tables as |t|}}
+      <option value="{{t.uuid}}" {{#if t.isSelected}}selected{{/if}}>{{t.name}}</option>
+      {{/each}}
+    </select>
+    <button type="button" class="sde-lootgen-roll" data-action="rollLoot"><i class="fas fa-dice-d20"></i> Roll Loot</button>
+    <button type="button" class="sde-lootgen-rolltoken" data-action="rollForToken"><i class="fas fa-crosshairs"></i> Roll for Selected Token</button>
+  </div>
+  <p class="notes">Roll Loot adds to the history below. Roll for Selected Token whispers a claimable card to that token's owner.</p>
+  {{else}}
+  <p class="notes">No RollTables in this world yet. Load a loot table from a PDF or build one via the Roll Table Importer, then reopen this window.</p>
+  {{/if}}
 
-  <section class="sde-lootgen-gen">
-    <h3>Generate Hoard</h3>
-    <div class="sde-lootgen-row">
-      <label>Level <input type="number" name="level" value="1" min="0" max="20"></label>
-      <label>Rolls <input type="number" name="rolls" value="1" min="1" max="20"></label>
-      <button type="button" data-action="generate"><i class="fas fa-dice"></i> Generate</button>
-    </div>
-  </section>
+  {{#if hasHistory}}
+  <ul class="sde-lootgen-history">
+    {{#each history as |e|}}
+    <li class="sde-lootgen-entry">
+      <div class="sde-lootgen-entry-head"><i class="fas fa-book-open"></i> {{e.tableName}}</div>
+      {{#if e.items.length}}
+      <ul class="sde-lootgen-items">
+        {{#each e.items as |it|}}
+        <li><img src="{{it.img}}" width="22" height="22" alt=""> <span>{{it.name}}</span></li>
+        {{/each}}
+      </ul>
+      {{/if}}
+      {{#if e.hasCoins}}<div class="sde-lootgen-coins"><i class="fas fa-coins"></i> {{e.coinsLabel}}</div>{{/if}}
+      {{#each e.notes as |n|}}<div class="sde-lootgen-note">{{n}}</div>{{/each}}
+      {{#if e.isEmpty}}<div class="sde-lootgen-note">(nothing)</div>{{/if}}
+      <div class="sde-lootgen-entry-actions">
+        <button type="button" class="sde-lootgen-post" data-action="postEntry" data-entry-id="{{e.id}}"><i class="fas fa-comment"></i> Post to Chat</button>
+        <select class="sde-lootgen-recipient" data-entry-id="{{e.id}}" aria-label="Give recipient">
+          {{#each e.party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}
+        </select>
+        <button type="button" class="sde-lootgen-give" data-action="giveEntry" data-entry-id="{{e.id}}"><i class="fas fa-gift"></i> Give</button>
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+  <div class="sde-lootgen-footer">
+    <button type="button" class="sde-lootgen-clear" data-action="clearHistory"><i class="fas fa-trash"></i> Clear History</button>
+  </div>
+  {{/if}}
 </div>

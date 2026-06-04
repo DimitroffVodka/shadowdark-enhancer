@@ -32,8 +32,12 @@ export const LootDelivery = {
     Hooks.on("renderChatMessageHTML", (message, html) => this._wireCard(message, html));
   },
 
-  /** Post a loot batch as a shared chat card (GM-only). */
-  async postCard(batch) {
+  /**
+   * Post a loot batch as a shared chat card (GM-only). Pass
+   * `whisperToActor` to whisper the card privately to that actor's
+   * owners + all GMs (used by "Roll for Selected Token").
+   */
+  async postCard(batch, { whisperToActor = null } = {}) {
     if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can post loot."); return null; }
     const flags = {
       lootCard: true,
@@ -49,11 +53,42 @@ export const LootDelivery = {
       notes: batch.notes ?? [],
     };
     const content = await this._renderCard(flags);
-    return ChatMessage.create({
+    const data = {
       content,
       speaker: { alias: "Loot" },
       flags: { [MODULE_ID]: flags },
-    });
+    };
+    if (whisperToActor) {
+      const owners = Object.entries(whisperToActor.ownership ?? {})
+        .filter(([uid, lvl]) => uid !== "default" && lvl >= CONST.DOCUMENT_OWNERSHIP_LEVELS.OWNER)
+        .map(([uid]) => uid);
+      data.whisper = [...new Set([...owners, ...game.users.filter(u => u.isGM).map(u => u.id)])];
+    }
+    return ChatMessage.create(data);
+  },
+
+  /**
+   * Directly deposit a loot batch onto an actor (GM "Give" from the
+   * generator window): create the items + add the coins. No card.
+   */
+  async depositToActor(actor, batch) {
+    if (!actor) return;
+    const docs = [];
+    for (const it of batch.items ?? []) {
+      const doc = await fromUuid(it.uuid).catch(() => null);
+      if (doc) docs.push(doc.toObject());
+    }
+    if (docs.length) await actor.createEmbeddedDocuments("Item", docs);
+
+    const c = batch.coins ?? { gp: 0, sp: 0, cp: 0 };
+    if ((c.gp || 0) + (c.sp || 0) + (c.cp || 0) > 0) {
+      const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
+      await actor.update({
+        "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
+        "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
+        "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
+      });
+    }
   },
 
   /** Render the card HTML from a flags object (same for all clients). */
