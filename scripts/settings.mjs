@@ -104,6 +104,17 @@ export function registerSettings() {
     default: true,
   });
 
+  game.settings.register(MODULE_ID, "xpThresholdNormal", {
+    name: "SDE.settings.xpThresholdNormal.name",
+    hint: "SDE.settings.xpThresholdNormal.hint",
+    scope: "world", config: true, type: Number, default: 10,
+  });
+  game.settings.register(MODULE_ID, "xpThresholdFabulous", {
+    name: "SDE.settings.xpThresholdFabulous.name",
+    hint: "SDE.settings.xpThresholdFabulous.hint",
+    scope: "world", config: true, type: Number, default: 150,
+  });
+
   game.settings.register(MODULE_ID, "encounterRollGMOnly", {
     name: "SDE.settings.encounterRollGMOnly.name",
     hint: "SDE.settings.encounterRollGMOnly.hint",

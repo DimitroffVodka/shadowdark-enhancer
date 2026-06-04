@@ -12,6 +12,7 @@
 import { TREASURE_TABLES } from "./treasure-data.mjs";
 import { isCoinEntry, parseValue } from "./loot-pack.mjs";
 import { MODULE_ID } from "../module-id.mjs";
+import { itemValueGp, parseValueGp, bonusOf, isMagicItem, scoreItem } from "./loot-value.mjs";
 
 /** Build the document uuid for a drawn TableResult (Item rows). */
 export function resultUuid(r) {
@@ -68,6 +69,10 @@ export const LootGenerator = {
     if (!table || table.documentName !== "RollTable") return { ...base, error: "no-table" };
 
     const { coins, items, notes } = base;
+    const thresholds = {
+      normal: Number(game.settings.get(MODULE_ID, "xpThresholdNormal")) || 10,
+      fabulous: Number(game.settings.get(MODULE_ID, "xpThresholdFabulous")) || 150,
+    };
     for (let i = 0; i < Math.max(1, rolls); i++) {
       // Re-draw past blank rows. PDF-imported tables often carry empty
       // TEXT rows (no text, no document); a draw landing on one would
@@ -86,7 +91,15 @@ export const LootGenerator = {
             }
           } else if (res.kind === "item") {
             const doc = await fromUuid(res.uuid).catch(() => null);
-            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg" });
+            const gp = itemValueGp(doc) || parseValueGp(res.name);
+            const magic = isMagicItem({
+              name: res.name,
+              type: doc?.type,
+              needsRefinement: doc?.getFlag?.(MODULE_ID, "needsRefinement"),
+              magicPack: typeof res.uuid === "string" && /spell|magic/i.test(res.uuid),
+            });
+            const { tier, xp } = scoreItem({ gp, magic, bonus: bonusOf(res.name) }, thresholds);
+            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp });
             gotContent = true;
           } else if (res.text) {
             notes.push(res.text);
@@ -96,6 +109,10 @@ export const LootGenerator = {
         if (gotContent) break;
       }
     }
+    const coinGp = Math.round((coins.gp || 0) + (coins.sp || 0) / 10 + (coins.cp || 0) / 100);
+    const coinXp = coinGp > 0 ? scoreItem({ gp: coinGp, magic: false }, thresholds).xp : 0;
+    base.totalGp = coinGp + items.reduce((s, i) => s + (i.value || 0), 0);
+    base.totalXp = coinXp + items.reduce((s, i) => s + (i.xp || 0), 0);
     return base;
   },
 };
