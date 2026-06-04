@@ -33,6 +33,20 @@ export function composeName({ type, baseItem, bonus }) {
   return bonus > 0 ? `+${bonus} ${base}` : base;
 }
 
+/** Infer a forge seed {type, bonus} from a placeholder item name (pure). */
+export function inferSeedFromName(name) {
+  const s = String(name || "").toLowerCase();
+  const m = s.match(/\+(\d)/);
+  const bonus = m ? Number(m[1]) : 0;
+  let type = "utility";
+  if (/armor|mail|plate|shield|chainmail|leather/.test(s)) type = "armor";
+  else if (/weapon|sword|axe|mace|bow|dagger|spear|blade|hammer|flail/.test(s)) type = "weapon";
+  else if (/scroll/.test(s)) type = "scroll";
+  else if (/wand/.test(s)) type = "wand";
+  else if (/potion/.test(s)) type = "potion";
+  return { type, bonus };
+}
+
 /** Draft -> Foundry Item creation data (pure; +N mechanic applied by the app). */
 export function assembleItemData(draft) {
   const sdType = ({ weapon: "Weapon", armor: "Armor" })[draft.type] ?? "Basic";
@@ -73,12 +87,12 @@ export const MagicForge = {
   TYPE_TABLES, PERSONALITY_TABLES,
   _table, _drawText,
 
-  async rollDraft({ type } = {}) {
+  async rollDraft({ type, bonus: seedBonus } = {}) {
     type = TYPE_IDS.includes(type) ? type : TYPE_IDS[(await d(6)) - 1];
     const tt = TYPE_TABLES[type];
     const baseItem = tt.base ? await _drawText(_table(tt.base)) : "";
     const feature = await _drawText(_table(tt.feature));
-    const bonus = tt.hasBonus ? bonusFromRoll(await d(12)) : 0;
+    const bonus = tt.hasBonus ? (typeof seedBonus === "number" ? seedBonus : bonusFromRoll(await d(12))) : 0;
     const benefitN = benefitCountFromRoll(await d(6));
     const benefits = [];
     for (let i = 0; i < benefitN; i++) benefits.push(await _drawText(_table(tt.benefit)));

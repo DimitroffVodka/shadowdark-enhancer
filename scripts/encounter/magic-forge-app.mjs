@@ -42,8 +42,10 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static _instance = null;
 
-  static open() {
+  static open({ seed = null, onCreate = null } = {}) {
     if (!this._instance) this._instance = new MagicForgeApp();
+    this._instance._pendingSeed = seed;
+    this._instance._onCreate = onCreate;
     if (!this._instance.rendered) this._instance.render(true);
     else { this._instance.bringToFront(); this._instance.render(); }
     return this._instance;
@@ -52,6 +54,8 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options = {}) {
     super(options);
     this._draft = null;
+    this._onCreate = null;
+    this._pendingSeed = null;
   }
 
   async close(options = {}) {
@@ -62,6 +66,10 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ─── Data ───
 
   async _prepareContext() {
+    if (this._pendingSeed && !this._draft) {
+      this._draft = await MagicForge.rollDraft(this._pendingSeed);
+      this._pendingSeed = null;
+    }
     return {
       types: TYPE_IDS.map(id => ({ id, label: TYPE_LABELS[id], selected: id === this._draft?.type })),
       draft: this._draft,
@@ -167,6 +175,8 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const folder = await this._ensureForgedFolder();
     data.folder = folder.id;
     const item = await Item.create(data);
+    await this._onCreate?.(item);
+    this._onCreate = null;
     ui.notifications.info(`Forged "${item.name}".`);
   }
 

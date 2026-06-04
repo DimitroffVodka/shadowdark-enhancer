@@ -117,13 +117,14 @@ export const LootGenerator = {
               magicPack: typeof res.uuid === "string" && /spell|magic/i.test(res.uuid),
             });
             const { tier, xp } = scoreItem({ gp, magic, bonus: bonusOf(res.name) }, thresholds);
+            const forgeable = magic && (doc?.getFlag?.(MODULE_ID, "needsRefinement") === true);
             let feature = null;
             const valuable = typeof res.uuid === "string" && res.uuid.includes("world.loot") && !magic;
             if (valuable && featureTable && featurePct > 0) {
               const fRoll = (await new Roll("1d100").evaluate()).total;
               if (fRoll <= featurePct) feature = await this._rollFeature(featureTable);
             }
-            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp, feature });
+            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp, feature, forgeable });
             gotContent = true;
           } else if (res.text) {
             notes.push(res.text);
