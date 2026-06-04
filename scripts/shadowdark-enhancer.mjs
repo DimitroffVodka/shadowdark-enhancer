@@ -20,11 +20,13 @@ import { LootGenerator } from "./encounter/loot-generator.mjs";
 import { LootDelivery } from "./encounter/loot-delivery.mjs";
 import { LootGeneratorApp } from "./encounter/loot-generator-app.mjs";
 import { LootDrops } from "./encounter/loot-drops.mjs";
+import { LootTableTag } from "./encounter/loot-table-tag.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
   registerSettings();
   LootDelivery.init();
+  LootTableTag.init();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {

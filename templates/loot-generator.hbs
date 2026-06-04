@@ -10,6 +10,7 @@
     <button type="button" class="sde-lootgen-rolltoken" data-action="rollForToken"><i class="fas fa-crosshairs"></i> Roll for Selected Token</button>
   </div>
   <p class="notes">Roll Loot adds to the history below. Roll for Selected Token whispers a claimable card to that token's owner.</p>
+  {{#if noneMarked}}<p class="notes"><i class="fa-solid fa-circle-info"></i> Showing all tables. Right-click a table in the sidebar → <strong>Mark as Loot Table</strong> to narrow this list.</p>{{/if}}
   {{else}}
   <p class="notes">No RollTables in this world yet. Load a loot table from a PDF or build one via the Roll Table Importer, then reopen this window.</p>
   {{/if}}

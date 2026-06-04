@@ -6,6 +6,7 @@
  */
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
+import { LootTableTag } from "./loot-table-tag.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -53,15 +54,26 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   // ─── Data Preparation ───
 
-  /** All world RollTables, name-sorted — the picker options. */
+  /**
+   * The picker options: tables marked as loot (or Importer-tagged "loot").
+   * Falls back to ALL tables when none are marked yet, so the window is never
+   * empty before the GM curates — `noneMarked` drives a hint in that case.
+   */
   _lootTables() {
-    return game.tables.contents
-      .map(t => ({ uuid: t.uuid, name: t.name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    const all = game.tables.contents;
+    const loot = all.filter(t => LootTableTag.isLootTable(t));
+    const noneMarked = loot.length === 0;
+    const use = noneMarked ? all : loot;
+    return {
+      noneMarked,
+      tables: use.map(t => ({ uuid: t.uuid, name: t.name })).sort((a, b) => a.name.localeCompare(b.name)),
+    };
   }
 
   async _prepareContext() {
-    const tables = this._lootTables();
+    const { tables, noneMarked } = this._lootTables();
+    // Reset the selection if it was filtered out (e.g. a now-unmarked table).
+    if (this._selectedTableUuid && !tables.some(t => t.uuid === this._selectedTableUuid)) this._selectedTableUuid = null;
     if (!this._selectedTableUuid && tables.length) this._selectedTableUuid = tables[0].uuid;
 
     const party = game.actors
@@ -88,6 +100,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     return {
       tables: tables.map(t => ({ ...t, isSelected: t.uuid === this._selectedTableUuid })),
       hasTables: tables.length > 0,
+      noneMarked,
       history,
       hasHistory: this._history.length > 0,
     };
