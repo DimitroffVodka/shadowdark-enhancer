@@ -79,7 +79,10 @@ function _table(name) {
 async function _drawText(table) {
   if (!table) return "";
   const draw = await table.draw({ displayChat: false }).catch(() => null);
-  return (draw?.results?.[0]?.text ?? "").trim();
+  // v13 split TableResult#text → name + description; the legacy getter returns
+  // the empty description. Read name first (where TEXT-row content lives).
+  const r = draw?.results?.[0];
+  return (r?.name || r?.description || "").trim();
 }
 const d = async (sides) => (await new Roll(`1d${sides}`).evaluate()).total;
 

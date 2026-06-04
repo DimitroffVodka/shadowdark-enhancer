@@ -22,14 +22,24 @@ export function resultUuid(r) {
   return coll.includes(".") ? `Compendium.${coll}.Item.${id}` : `${coll}.${id}`;
 }
 
+/**
+ * The displayed string for a drawn TableResult. Foundry v13 split
+ * `TableResult#text` into `name` + `description`; the legacy `.text` getter now
+ * returns the (usually empty) `description`, silently dropping text-row content.
+ * Read `name` first — that's where TEXT results and the importer store content.
+ */
+export function resultText(r) {
+  return (r?.name || r?.description || "").trim();
+}
+
 /** Classify one drawn TableResult into coin / item / note (pure). */
 export function classifyResult(r) {
   const isDoc = r.type === 1 || r.type === "document" || !!r.documentCollection;
   if (isDoc) {
     const uuid = resultUuid(r);
-    if (uuid) return { kind: "item", uuid, name: r.text };
+    if (uuid) return { kind: "item", uuid, name: resultText(r) };
   }
-  const text = (r.text ?? "").trim();
+  const text = resultText(r);
   if (isCoinEntry(text)) return { kind: "coin", coins: parseValue(text) };
   return { kind: "note", text };
 }
@@ -63,7 +73,7 @@ export const LootGenerator = {
   async _rollFeature(table) {
     if (!table) return null;
     const draw = await table.draw({ displayChat: false }).catch(() => null);
-    const text = draw?.results?.[0]?.text?.trim();
+    const text = resultText(draw?.results?.[0]);
     return text || null;
   },
 
