@@ -6,6 +6,7 @@
  * in the panel). Ships no table contents.
  */
 import { MODULE_ID } from "../module-id.mjs";
+import { esc } from "../util/esc.mjs";
 
 export const TYPE_LABELS = { armor: "Armor", weapon: "Weapon", potion: "Potion", scroll: "Scroll", wand: "Wand", utility: "Utility" };
 export const TYPE_IDS = Object.keys(TYPE_LABELS);
@@ -51,14 +52,14 @@ export function inferSeedFromName(name) {
 export function assembleItemData(draft) {
   const sdType = ({ weapon: "Weapon", armor: "Armor" })[draft.type] ?? "Basic";
   const parts = [];
-  if (draft.feature) parts.push(`<p><strong>Feature:</strong> ${draft.feature}</p>`);
-  for (const b of draft.benefits ?? []) if (b) parts.push(`<p><strong>Benefit:</strong> ${b}</p>`);
-  if (draft.curse) parts.push(`<p><strong>Curse:</strong> ${draft.curse}</p>`);
+  if (draft.feature) parts.push(`<p><strong>Feature:</strong> ${esc(draft.feature)}</p>`);
+  for (const b of draft.benefits ?? []) if (b) parts.push(`<p><strong>Benefit:</strong> ${esc(b)}</p>`);
+  if (draft.curse) parts.push(`<p><strong>Curse:</strong> ${esc(draft.curse)}</p>`);
   const p = draft.personality;
   if (p?.present) {
-    if (p.virtue) parts.push(`<p><strong>Virtue:</strong> ${p.virtue}</p>`);
-    if (p.flaw) parts.push(`<p><strong>Flaw:</strong> ${p.flaw}</p>`);
-    if (p.trait) parts.push(`<p><strong>Personality:</strong> ${p.trait}</p>`);
+    if (p.virtue) parts.push(`<p><strong>Virtue:</strong> ${esc(p.virtue)}</p>`);
+    if (p.flaw) parts.push(`<p><strong>Flaw:</strong> ${esc(p.flaw)}</p>`);
+    if (p.trait) parts.push(`<p><strong>Personality:</strong> ${esc(p.trait)}</p>`);
   }
   return {
     name: draft.name,

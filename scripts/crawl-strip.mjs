@@ -10,6 +10,7 @@
  */
 
 import { MODULE_ID }        from "./module-id.mjs";
+import { esc }              from "./util/esc.mjs";
 import { CrawlState }       from "./crawl-state.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "./icons.mjs";
@@ -232,9 +233,9 @@ export const CrawlStrip = {
         <div class="sde-strip-card-wrap">
           <div class="sde-strip-member sde-strip-active sde-strip-type-gm"
                data-member-id="${m.id}">
-            <img class="sde-strip-portrait" src="${m.img}" alt="${m.name}" />
+            <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
             <div class="sde-strip-overlay">
-              <div class="sde-strip-name">${m.name}</div>
+              <div class="sde-strip-name">${esc(m.name)}</div>
             </div>
             <div class="sde-strip-gm-crown">${ICONS.gmCrown}</div>
           </div>
@@ -334,7 +335,7 @@ export const CrawlStrip = {
       const cardHTML = `
         <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isCurrent ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} sde-strip-type-${m.type}"
              data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""}>
-          <img class="sde-strip-portrait" src="${m.img}" alt="${m.name}" />
+          <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
           <div class="sde-strip-overlay">
             ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
             ${acLine}

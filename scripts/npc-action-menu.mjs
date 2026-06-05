@@ -26,6 +26,7 @@
  */
 
 import { MODULE_ID } from "./module-id.mjs";
+import { esc } from "./util/esc.mjs";
 
 // ─── Damage Label Helpers (Shadowdark adapters) ───────────────────────────────
 
@@ -313,7 +314,7 @@ async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
               : `<i class="fas fa-swords sde-strip-panel-type sde-strip-panel-type-melee" title="Melee"></i>`)
           : "";
         return `<button type="button" class="sde-strip-panel-item" data-kind="${it.kind}" ${dataAttrs}>
-          ${typeIcon}<span class="sde-strip-panel-name">${it.label}</span>${it.dmg}
+          ${typeIcon}<span class="sde-strip-panel-name">${esc(it.label)}</span>${it.dmg}
         </button>`;
       }).join("")
     : `<div class="sde-strip-panel-empty">None</div>`;

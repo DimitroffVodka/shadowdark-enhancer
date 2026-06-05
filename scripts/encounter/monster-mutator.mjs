@@ -15,6 +15,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { actorToDraft, draftToActorData } from "./encounter-creator.mjs";
 import { applyMutations, generateMutatedName, getMutation } from "./mutation-data.mjs";
+import { esc } from "../util/esc.mjs";
 
 /**
  * Apply mutations to a draft and produce a new world actor.
@@ -104,9 +105,9 @@ async function _postMutationCard(actor, baseName, appliedMutations) {
     content: `
       <div class="sde-mutation-card">
         <header class="sde-mutation-card-header">
-          <img src="${actor.img}" width="40" height="40" alt="${actor.name}">
+          <img src="${esc(actor.img)}" width="40" height="40" alt="${esc(actor.name)}">
           <div>
-            <h3>${actor.name}</h3>
+            <h3>${esc(actor.name)}</h3>
             <span class="sde-mutation-card-sub">mutated from ${baseName}</span>
           </div>
         </header>

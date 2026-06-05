@@ -18,6 +18,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { MagicForgeApp } from "./magic-forge-app.mjs";
 import { inferSeedFromName } from "./magic-forge.mjs";
+import { esc } from "../util/esc.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 const SOCKET = `module.${MODULE_ID}`;
@@ -187,7 +188,7 @@ export const LootDelivery = {
     if (feature) {
       obj.system = obj.system ?? {};
       const cur = obj.system.description ?? "";
-      obj.system.description = `${cur}<p><em>Unique feature: ${feature}</em></p>`;
+      obj.system.description = `${cur}<p><em>Unique feature: ${esc(feature)}</em></p>`;
     }
     return obj;
   },
@@ -216,7 +217,7 @@ export const LootDelivery = {
       if (item.feature) {
         data.system = data.system ?? {};
         const cur = data.system.description ?? "";
-        data.system.description = `${cur}<p><em>Unique feature: ${item.feature}</em></p>`;
+        data.system.description = `${cur}<p><em>Unique feature: ${esc(item.feature)}</em></p>`;
       }
       return data;
     }
@@ -271,7 +272,7 @@ export const LootDelivery = {
   async _pickRecipient() {
     const players = game.actors.filter(a => a.type === "Player" && a.hasPlayerOwner);
     if (!players.length) { ui.notifications.warn("No player characters to give to."); return null; }
-    const options = players.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+    const options = players.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join("");
     // Mirror the module's proven DialogV2.wait() pattern (see
     // encounter-roller-app.mjs _createImportedTable). The "ok" button's
     // callback return becomes the resolved value (the chosen actor id);
