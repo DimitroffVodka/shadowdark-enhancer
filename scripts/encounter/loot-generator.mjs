@@ -63,6 +63,25 @@ export const LootGenerator = {
     return map[tier.id] || null;
   },
 
+  /**
+   * The tier id a directly-selected loot table maps to: its `lootTierTables`
+   * binding first, else inferred from the table name, else null. Lets the
+   * Loot Generator window roll/label a hand-picked table at its real tier
+   * instead of always level 0.
+   */
+  tierForTable(uuid) {
+    const map = game.settings.get(MODULE_ID, "lootTierTables") ?? {};
+    const bound = Object.entries(map).find(([, u]) => u === uuid)?.[0];
+    if (bound) return bound;
+    const name = fromUuidSync(uuid)?.name ?? "";
+    return TREASURE_TABLES.find(t => name.includes(t.id))?.id ?? null;
+  },
+
+  /** A representative character level for a tier id (the band's min) for scoring/labeling. */
+  levelForTier(tierId) {
+    return TREASURE_TABLES.find(t => t.id === tierId)?.min ?? 0;
+  },
+
   /** The Unique Feature table: the configured uuid, else a name match, else null. */
   _uniqueFeatureTable() {
     const uuid = game.settings.get(MODULE_ID, "uniqueFeatureTableUuid");

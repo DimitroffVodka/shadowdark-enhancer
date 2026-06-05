@@ -124,7 +124,8 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const uuid = this._selectedTableUuid;
     if (!uuid) { ui.notifications.warn("Select a loot table first."); return null; }
     const table = await fromUuid(uuid).catch(() => null);
-    const batch = await LootGenerator.generate(0, { rolls: 1, tableUuid: uuid });
+    const level = LootGenerator.levelForTier(LootGenerator.tierForTable(uuid));
+    const batch = await LootGenerator.generate(level, { rolls: 1, tableUuid: uuid });
     if (batch.error) { ui.notifications.warn("That table couldn't be rolled."); return null; }
     return { table, batch };
   }
