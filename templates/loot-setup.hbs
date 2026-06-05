@@ -26,7 +26,7 @@
         <button type="button" class="sde-loot-setup-import" data-action="importSlot" data-slot-id="{{s.id}}">
           <i class="fas fa-file-import"></i> Import &amp; bind
         </button>
-        {{#if hasTables}}
+        {{#if @root.hasTables}}
         <span class="sde-loot-setup-or">or</span>
         <select class="sde-loot-setup-existing" data-slot-id="{{s.id}}" aria-label="Use existing table for {{s.label}}">
           <option value="">Use an existing table…</option>
