@@ -18,7 +18,8 @@ import { itemValueGp, parseValueGp, bonusOf, isMagicItem, scoreItem } from "./lo
 /** Build the document uuid for a drawn TableResult (Item rows). */
 export function resultUuid(r) {
   if (r.documentUuid) return r.documentUuid;
-  const coll = r.documentCollection, id = r.documentId;
+  if (r.uuid) return r.uuid;
+  const coll = r._source?.documentCollection, id = r._source?.documentId;
   if (!coll || !id) return null;
   return coll.includes(".") ? `Compendium.${coll}.Item.${id}` : `${coll}.${id}`;
 }
@@ -35,7 +36,7 @@ export function resultText(r) {
 
 /** Classify one drawn TableResult into coin / item / note (pure). */
 export function classifyResult(r) {
-  const isDoc = r.type === 1 || r.type === "document" || !!r.documentCollection;
+  const isDoc = r.type === 1 || r.type === "document" || !!r.documentUuid || !!r.uuid || !!r._source?.documentCollection;
   if (isDoc) {
     const uuid = resultUuid(r);
     if (uuid) return { kind: "item", uuid, name: resultText(r) };
