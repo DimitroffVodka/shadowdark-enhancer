@@ -15,32 +15,35 @@ import { LootLinker } from "./loot-linker.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 import { itemValueGp, parseValueGp, bonusOf, isMagicItem, scoreItem } from "./loot-value.mjs";
 
-/** Build the document uuid for a drawn TableResult (Item rows). */
+/**
+ * The uuid of the LINKED item for a drawn TableResult, or null for a text row.
+ * Read from `_source` only: the `documentUuid`/`documentCollection` getters
+ * throw on broken links + emit v13 deprecations, and `r.uuid` is the RESULT's
+ * OWN id (a TableResult), never the linked item — using it makes every text row
+ * resolve to itself.
+ */
 export function resultUuid(r) {
-  if (r.documentUuid) return r.documentUuid;
-  if (r.uuid) return r.uuid;
-  const coll = r._source?.documentCollection, id = r._source?.documentId;
-  if (!coll || !id) return null;
-  return coll.includes(".") ? `Compendium.${coll}.Item.${id}` : `${coll}.${id}`;
+  // v13 migrates documentCollection/documentId into documentUuid; the legacy
+  // accessors are deprecation getters that THROW on text rows (even on
+  // `_source`), so read `documentUuid` and nothing else.
+  return r?._source?.documentUuid || null;
 }
 
 /**
  * The displayed string for a drawn TableResult. Foundry v13 split
- * `TableResult#text` into `name` + `description`; the legacy `.text` getter now
- * returns the (usually empty) `description`, silently dropping text-row content.
- * Read `name` first — that's where TEXT results and the importer store content.
+ * `TableResult#text` into `name` + `description`; the importer stores TEXT-row
+ * content in `name`. Read from `_source` so a broken document link can't throw.
  */
 export function resultText(r) {
-  return (r?.name || r?.description || "").trim();
+  const s = r?._source ?? {};
+  return (s.name || s.text || s.description || "").trim();
 }
 
 /** Classify one drawn TableResult into coin / item / note (pure). */
 export function classifyResult(r) {
-  const isDoc = r.type === 1 || r.type === "document" || !!r.documentUuid || !!r.uuid || !!r._source?.documentCollection;
-  if (isDoc) {
-    const uuid = resultUuid(r);
-    if (uuid) return { kind: "item", uuid, name: resultText(r) };
-  }
+  // A linked-document result has a documentUuid; everything else is a text row.
+  const uuid = resultUuid(r);
+  if (uuid) return { kind: "item", uuid, name: resultText(r) };
   const text = resultText(r);
   if (isCoinEntry(text)) return { kind: "coin", coins: parseValue(text) };
   return { kind: "note", text };
