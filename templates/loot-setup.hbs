@@ -1,0 +1,43 @@
+<div class="sde-loot-setup">
+  <p class="sde-loot-setup-intro">
+    These treasure tables are <strong>The Arcane Library's</strong> content, so the module can't include them.
+    Paste them from your own copy of the Shadowdark rules (or the free Quickstart Set), or bind tables you've
+    already imported. Each slot is auto-wired to the Loot Generator the moment it's filled.
+  </p>
+
+  <div class="sde-loot-setup-progress"><i class="fas fa-list-check"></i> {{done}} of {{total}} treasure tables ready</div>
+
+  <ul class="sde-loot-setup-slots">
+    {{#each slots as |s|}}
+    <li class="sde-loot-setup-slot {{#if s.bound}}is-bound{{/if}}">
+      <div class="sde-loot-setup-slot-head">
+        <span class="sde-loot-setup-slot-label">{{s.label}}</span>
+        {{#if s.bound}}
+        <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> {{s.boundName}}</span>
+        {{else}}
+        <span class="sde-loot-setup-badge no"><i class="fas fa-xmark"></i> Not set</span>
+        {{/if}}
+      </div>
+      <div class="sde-loot-setup-ref"><i class="fas fa-book"></i> {{s.pageRef}}</div>
+
+      <textarea class="sde-loot-setup-paste" data-slot-id="{{s.id}}" rows="3"
+        placeholder="{{s.formatHint}}" aria-label="Paste {{s.label}} table"></textarea>
+      <div class="sde-loot-setup-actions">
+        <button type="button" class="sde-loot-setup-import" data-action="importSlot" data-slot-id="{{s.id}}">
+          <i class="fas fa-file-import"></i> Import &amp; bind
+        </button>
+        {{#if hasTables}}
+        <span class="sde-loot-setup-or">or</span>
+        <select class="sde-loot-setup-existing" data-slot-id="{{s.id}}" aria-label="Use existing table for {{s.label}}">
+          <option value="">Use an existing table…</option>
+          {{#each s.tables as |t|}}<option value="{{t.uuid}}" {{#if t.selected}}selected{{/if}}>{{t.name}}</option>{{/each}}
+        </select>
+        <button type="button" class="sde-loot-setup-bind" data-action="useExisting" data-slot-id="{{s.id}}">
+          <i class="fas fa-link"></i> Bind
+        </button>
+        {{/if}}
+      </div>
+    </li>
+    {{/each}}
+  </ul>
+</div>

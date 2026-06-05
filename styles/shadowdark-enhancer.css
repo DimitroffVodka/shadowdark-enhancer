@@ -3569,3 +3569,20 @@ body.theme-light .sde-bar-phase-badge {
 .sde-forge-reroll { background: transparent; color: var(--sde-bar-accent, #c9a227); padding: 0.1rem 0.3rem; }
 .sde-forge-remove { background: transparent; color: var(--sde-bar-text-muted, #9a9a9a); padding: 0.1rem 0.3rem; }
 .sde-forge-add { background: transparent; color: var(--sde-bar-text, #BDC1C6); border-style: dashed; margin-top: 2px; }
+
+/* ── Loot Setup ───────────────────────────────────────────────────────────── */
+.sde-loot-setup { padding: 6px 4px; }
+.sde-loot-setup-intro { font-size: 12px; color: var(--sde-bar-text-muted, #9a9a9a); margin: 0 0 8px; }
+.sde-loot-setup-progress { font-weight: 600; margin-bottom: 8px; }
+.sde-loot-setup-slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.sde-loot-setup-slot { border: 1px solid rgba(0,0,0,.25); border-left: 3px solid #b89455; border-radius: 4px; padding: 8px; }
+.sde-loot-setup-slot.is-bound { border-left-color: #5a8f4e; }
+.sde-loot-setup-slot-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sde-loot-setup-slot-label { font-weight: 600; }
+.sde-loot-setup-badge.ok { color: #6fae62; }
+.sde-loot-setup-badge.no { color: #9a9a9a; }
+.sde-loot-setup-ref { font-size: 11px; color: var(--sde-bar-text-muted, #9a9a9a); margin: 2px 0 6px; }
+.sde-loot-setup-paste { width: 100%; resize: vertical; font-family: monospace; font-size: 11px; }
+.sde-loot-setup-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+.sde-loot-setup-or { color: var(--sde-bar-text-muted, #9a9a9a); font-size: 11px; }
+.sde-loot-setup-existing { flex: 1 1 160px; min-width: 120px; }
