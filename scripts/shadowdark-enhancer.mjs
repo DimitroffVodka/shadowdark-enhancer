@@ -66,9 +66,6 @@ Hooks.once("init", () => {
       catalog: () => MUTATIONS,
     },
     loot: {
-      // Build/refresh the "Loot" compendium from the Shadowdark Treasure
-      // tables. Idempotent, GM-only. See loot-catalog.mjs.
-      buildCatalog: () => LootCatalog.buildCatalog(),
       // Generate a treasure hoard for a level and post a claimable loot card.
       // See loot-generator.mjs + loot-delivery.mjs.
       generateHoard: async (level, rolls = 1, tableUuid = null) => {

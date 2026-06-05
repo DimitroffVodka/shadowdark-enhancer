@@ -1,16 +1,14 @@
 /**
- * Shadowdark Enhancer — Loot catalog builder.
+ * Shadowdark Enhancer — Loot table linker.
  *
- * Idempotently populates a world "Loot" compendium from the four bundled
- * Treasure tables: generic valuables → created treasure Items; existing
- * gear/potions/magic → linked (not duplicated); coins → skipped; rough
- * magic (scroll/wand/+N) → created placeholders flagged needsRefinement.
+ * Rewrites GM-supplied loot RollTables so each entry becomes a DOCUMENT
+ * result linked to its compendium item (existing gear/potions, or the world
+ * "Loot" catalog if present); coins stay as text. Operates only on tables
+ * already in the world — ships no bundled table content.
  */
 
-import { parseTables } from "./table-importer.mjs";
 import { LootLinker } from "./loot-linker.mjs";
-import { ensureLootPack, ensureItemInPack, classifyEntry, isCoinEntry, stripPrice } from "./loot-pack.mjs";
-import { TREASURE_TABLES } from "./treasure-data.mjs";
+import { isCoinEntry, stripPrice } from "./loot-pack.mjs";
 
 const LOOT_PACK = "world.loot";
 
@@ -33,40 +31,6 @@ async function _resolveUuid(text, items) {
 }
 
 export const LootCatalog = {
-  /**
-   * Build/refresh the Loot catalog. Idempotent (dedups by name).
-   * @returns {Promise<{created,matched,coins,needsRefinement,pack}|null>}
-   */
-  async buildCatalog() {
-    if (!game.user?.isGM) {
-      ui.notifications?.warn("Only a GM can build the loot catalog.");
-      return null;
-    }
-    const pack = await ensureLootPack();
-    const items = await LootLinker.buildItemIndex();
-    const summary = { created: 0, matched: 0, coins: 0, needsRefinement: 0, pack: pack.collection };
-
-    for (const table of TREASURE_TABLES) {
-      for (const pt of parseTables(table.text)) {
-        for (const row of pt.rows) {
-          const c = classifyEntry(row.text, items);
-          if (c.action === "coin") { summary.coins++; continue; }
-          if (c.action === "link") { summary.matched++; continue; }
-          const res = await ensureItemInPack(pack, c.itemData);
-          if (res.created) {
-            summary.created++;
-            if (c.itemData.flags?.["shadowdark-enhancer"]?.needsRefinement) summary.needsRefinement++;
-          }
-        }
-      }
-    }
-
-    ui.notifications?.info(
-      `Loot catalog: ${summary.created} created, ${summary.matched} linked, ${summary.coins} coins skipped (${summary.needsRefinement} need refinement).`
-    );
-    return summary;
-  },
-
   /**
    * Rewrite a loot RollTable's results so each non-coin entry becomes a
    * DOCUMENT result linked to its compendium item (catalog or existing gear);
