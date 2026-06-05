@@ -329,9 +329,15 @@ export const MovementTracker = {
     // Socket relay — players ask GM to perform rollback (turn-start positions
     // are tracked on the GM client).
     game.socket.on(`module.${MODULE_ID}`, (msg) => {
-      if (msg?.action === "rollbackMove" && game.user.isGM) {
-        this.rollback(msg.tokenId);
-      }
+      if (msg?.action !== "rollbackMove" || !game.user.isGM) return;
+      // Raw-socket sender id is advisory (not authenticated); gate on it anyway
+      // so a casual client can't roll back a token it has no claim to. The
+      // requester must be a GM or an owner of the token's actor.
+      const requester = game.users.get(msg.userId);
+      const actor = canvas.tokens?.get(msg.tokenId)?.actor;
+      if (!requester || !actor) return;
+      if (!requester.isGM && !actor.testUserPermission(requester, "OWNER")) return;
+      this.rollback(msg.tokenId);
     });
   },
 
@@ -412,7 +418,7 @@ export const MovementTracker = {
   async rollback(tokenId) {
     // Players relay to GM (turn-start positions are only tracked on the GM client)
     if (!game.user.isGM) {
-      game.socket.emit(`module.${MODULE_ID}`, { action: "rollbackMove", tokenId });
+      game.socket.emit(`module.${MODULE_ID}`, { action: "rollbackMove", tokenId, userId: game.user.id });
       return;
     }
     const start = this._turnStartPos[tokenId];

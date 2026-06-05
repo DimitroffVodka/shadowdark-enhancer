@@ -35,10 +35,14 @@ export const CrawlState = {
 
     // Listen for state pushes from other clients.
     game.socket.on(SOCKET, (msg) => {
-      if (msg?.type === "state") {
-        this._state = msg.payload;
-        Hooks.callAll(HOOK_CHANGED, this._state);
-      }
+      if (msg?.type !== "state") return;
+      // Crawl state is GM-authored (every mutation is GM-gated + persisted to a
+      // world setting). Only accept a push whose claimed sender is a GM, so a
+      // player can't spoof crawl state onto everyone's client. Advisory check —
+      // raw socket isn't authenticated; the world-setting sync is the real source.
+      if (!game.users.get(msg.userId)?.isGM) return;
+      this._state = msg.payload;
+      Hooks.callAll(HOOK_CHANGED, this._state);
     });
 
     // Mode-transition driver hooks.
@@ -157,7 +161,7 @@ export const CrawlState = {
   async _update(patch) {
     this._state = { ...this._state, ...patch };
     await game.settings.set(MODULE_ID, SETTING_KEY, this._state);
-    game.socket.emit(SOCKET, { type: "state", payload: this._state });
+    game.socket.emit(SOCKET, { type: "state", payload: this._state, userId: game.user.id });
     Hooks.callAll(HOOK_CHANGED, this._state);
   },
 
