@@ -3586,3 +3586,4 @@ body.theme-light .sde-bar-phase-badge {
 .sde-loot-setup-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .sde-loot-setup-or { color: var(--sde-bar-text-muted, #9a9a9a); font-size: 11px; }
 .sde-loot-setup-existing { flex: 1 1 160px; min-width: 120px; }
+.sde-lootgen-setup.needs-setup { box-shadow: 0 0 0 2px #b89455 inset; font-weight: 600; }

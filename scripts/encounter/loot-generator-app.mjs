@@ -4,6 +4,9 @@
  * Selected Token" → whisper a claimable card to its owner), and work a running
  * history where each result can be posted to chat or given to a player.
  */
+import { MODULE_ID } from "../module-id.mjs";
+import { LootSetupApp } from "./loot-setup-app.mjs";
+import { boundCount } from "./loot-setup-manifest.mjs";
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
 import { LootTableTag } from "./loot-table-tag.mjs";
@@ -25,6 +28,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       giveEntry:      LootGeneratorApp.prototype._onGiveEntry,
       clearHistory:   LootGeneratorApp.prototype._onClearHistory,
       forgeEntryItem: LootGeneratorApp.prototype._onForgeEntryItem,
+      openSetup: LootGeneratorApp.prototype._onOpenSetup,
     },
   };
 
@@ -106,6 +110,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       noneMarked,
       history,
       hasHistory: this._history.length > 0,
+      needsSetup: boundCount(game.settings.get(MODULE_ID, "lootTierTables") ?? {}) < 4,
     };
   }
 
@@ -170,6 +175,8 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._history = [];
     this.render();
   }
+
+  _onOpenSetup() { LootSetupApp.open(); }
 
   async _onForgeEntryItem(event, target) {
     const entry = this._history.find(e => e.id === target.dataset.entryId);

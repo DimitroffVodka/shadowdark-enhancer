@@ -8,6 +8,7 @@
     </select>
     <button type="button" class="sde-lootgen-roll" data-action="rollLoot"><i class="fas fa-dice-d20"></i> Roll Loot</button>
     <button type="button" class="sde-lootgen-rolltoken" data-action="rollForToken"><i class="fas fa-crosshairs"></i> Roll for Selected Token</button>
+    <button type="button" class="sde-lootgen-setup {{#if needsSetup}}needs-setup{{/if}}" data-action="openSetup"><i class="fas fa-gear"></i> Set up loot tables</button>
   </div>
   <p class="notes">Roll Loot adds to the history below. Roll for Selected Token whispers a claimable card to that token's owner.</p>
   {{#if noneMarked}}<p class="notes"><i class="fa-solid fa-circle-info"></i> Showing all tables. Right-click a table in the sidebar → <strong>Mark as Loot Table</strong> to narrow this list.</p>{{/if}}

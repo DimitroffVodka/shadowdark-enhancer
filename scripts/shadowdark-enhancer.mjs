@@ -23,6 +23,8 @@ import { LootDrops } from "./encounter/loot-drops.mjs";
 import { LootTableTag } from "./encounter/loot-table-tag.mjs";
 import { TableRegistry } from "./encounter/table-registry.mjs";
 import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
+import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
+import { boundCount } from "./encounter/loot-setup-manifest.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -83,6 +85,7 @@ Hooks.once("init", () => {
         ? LootCatalog.linkTableItems(table)
         : LootCatalog.linkLootTables(),
       open: () => LootGeneratorApp.open(),
+      openSetup: () => LootSetupApp.open(),
     },
     forge: {
       open: () => MagicForgeApp.open(),
@@ -107,6 +110,13 @@ Hooks.once("ready", () => {
   CrawlBar.init();
   LootDrops.init();
   checkCoexistence();
+  if (game.user.isGM && !game.settings.get(MODULE_ID, "lootSetupSeen")) {
+    const bound = boundCount(game.settings.get(MODULE_ID, "lootTierTables") ?? {});
+    if (bound < 4) {
+      ui.notifications.info("Shadowdark Enhancer: set up your loot tables so the Loot Generator produces real items — open the Loot Generator and click “Set up loot tables”.");
+    }
+    game.settings.set(MODULE_ID, "lootSetupSeen", true);
+  }
 });
 
 function checkCoexistence() {
