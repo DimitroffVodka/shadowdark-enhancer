@@ -3401,6 +3401,7 @@ body.theme-light .sde-bar-phase-badge {
 .sde-loot-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
   padding: 0.25rem 0.5rem;
   border-bottom: 1px solid var(--sde-bar-border, #444);
@@ -3410,7 +3411,7 @@ body.theme-light .sde-bar-phase-badge {
   flex: 0 0 auto;
   border-radius: 3px;
 }
-.sde-loot-name { flex: 1 1 auto; }
+.sde-loot-name { flex: 1 1 6rem; min-width: 6rem; overflow-wrap: anywhere; }
 /* Scoped with element+class so these beat Foundry's default chat-button
    styling, which otherwise renders the labels dark-on-dark + unreadable. */
 .sde-loot-card button.sde-loot-claim,
