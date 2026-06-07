@@ -17,9 +17,6 @@
     <button type="button" class="item {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator" aria-pressed="{{#if (eq activeTab 'creator')}}true{{else}}false{{/if}}">
       <i class="fas fa-wand-magic-sparkles"></i> Monster Creator
     </button>
-    <button type="button" class="item {{#if (eq activeTab 'import')}}active{{/if}}" data-tab="import" aria-pressed="{{#if (eq activeTab 'import')}}true{{else}}false{{/if}}">
-      <i class="fas fa-file-import"></i> Import Tables
-    </button>
   </nav>
 
   <hr>
@@ -454,110 +451,6 @@
     {{!-- Monster Creator Tab — mounted inline by EncounterRollerApp --}}
     <div class="tab {{#if (eq activeTab 'creator')}}active{{/if}}" data-tab="creator">
       <div id="sde-monster-creator-host"></div>
-    </div>
-
-    {{!-- Import Tables Tab --}}
-    <div class="tab {{#if (eq activeTab 'import')}}active{{/if}}" data-tab="import">
-      <div class="sde-import">
-        {{#if importData.seed}}
-        <div class="sde-import-seed">
-          <i class="fas fa-bullseye"></i>
-          Importing <strong>{{importData.seed.name}}</strong>
-          {{#if importData.seed.die}}<span class="sde-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
-          {{#if importData.seed.page}}<span class="sde-import-seed-tag">p{{importData.seed.page}}</span>{{/if}}
-          — paste its rows below and Parse. The name, formula, and folder are pre-set for you.
-        </div>
-        {{/if}}
-        <label class="sde-import-label" for="sde-import-text">
-          Paste a table copied from a Shadowdark book or zine:
-        </label>
-        <textarea id="sde-import-text" data-import-text rows="8"
-                  class="sde-import-text"
-                  placeholder="d100 Details&#10;01 A frozen corpse...&#10;02-03 A pack of wolves...">{{importData.text}}</textarea>
-
-        <div class="sde-import-controls">
-          <button type="button" data-action="importParse">
-            <i class="fas fa-wand-magic"></i> Parse
-          </button>
-          <button type="button" data-action="importClear" class="sde-import-secondary">
-            <i class="fas fa-eraser"></i> Clear
-          </button>
-          {{#if importData.parsed.length}}
-          <button type="button" data-action="importCreateAll" class="sde-import-primary">
-            <i class="fas fa-table-list"></i> Create all ({{importData.parsed.length}})
-          </button>
-          {{/if}}
-        </div>
-
-        {{#if importData.parsed.length}}
-        <div class="sde-import-preview">
-          {{#each importData.parsed as |tbl|}}
-          <div class="sde-import-table" data-table-idx="{{@index}}">
-            <div class="sde-import-table-head">
-              <input type="text" data-import-field="name" value="{{tbl.name}}"
-                     aria-label="Table name" placeholder="Table name"
-                     class="sde-import-name">
-              <input type="text" data-import-field="formula" value="{{tbl.formula}}"
-                     aria-label="Formula" class="sde-import-formula">
-              <label class="sde-import-repl" data-tooltip="On: results can repeat on every draw. Off: each result is removed after it's drawn (no repeats) until the table is reset." data-tooltip-direction="UP">
-                <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}>
-                Replacement
-              </label>
-              <select data-import-field="category" class="sde-import-cat" aria-label="Table type" data-tooltip="Folder this table is filed under when created." data-tooltip-direction="UP">
-                {{#each @root.importData.categoryOptions as |opt|}}
-                <option value="{{opt.id}}" {{#if (eq opt.id tbl.category)}}selected{{/if}}>{{opt.label}}</option>
-                {{/each}}
-              </select>
-              {{#if (eq tbl.category "custom")}}
-              <input type="text" data-import-field="customLabel" value="{{tbl.customLabel}}"
-                     class="sde-import-customcat" aria-label="Custom folder name" placeholder="Folder name">
-              {{/if}}
-              <button type="button" data-action="importCreate" class="sde-import-primary">
-                <i class="fas fa-plus"></i> Create
-              </button>
-            </div>
-
-            {{#if tbl.bestEffort}}
-            <p class="sde-import-flag"><i class="fas fa-triangle-exclamation"></i> Best-effort column split — check the cells.</p>
-            {{/if}}
-            {{#if tbl.warnings.length}}
-            <ul class="sde-import-warnings">
-              {{#each tbl.warnings as |w|}}<li>{{w}}</li>{{/each}}
-            </ul>
-            {{/if}}
-
-            <div class="sde-import-rows">
-              {{#each tbl.rows as |row|}}
-              <div class="sde-import-row" data-row-idx="{{@index}}">
-                <input type="number" data-import-field="min" value="{{row.min}}" aria-label="Range min" class="sde-import-num">
-                <span class="sde-import-dash">–</span>
-                <input type="number" data-import-field="max" value="{{row.max}}" aria-label="Range max" class="sde-import-num">
-                <input type="text" data-import-field="text" value="{{row.text}}" aria-label="Result text" class="sde-import-rowtext">
-                {{#if row.link}}
-                <span class="sde-import-link" data-tooltip="Draws as a link to this compendium item">
-                  <i class="fas fa-link"></i> {{row.link.name}}
-                </span>
-                <button type="button" data-action="importUnlinkRow" aria-label="Unlink item" class="sde-import-unlink">
-                  <i class="fas fa-link-slash"></i>
-                </button>
-                {{/if}}
-                <button type="button" data-action="importDeleteRow" aria-label="Delete row" class="sde-import-del">
-                  <i class="fas fa-xmark"></i>
-                </button>
-              </div>
-              {{/each}}
-            </div>
-
-            <button type="button" data-action="importAddRow" class="sde-import-addrow">
-              <i class="fas fa-plus"></i> Add row
-            </button>
-          </div>
-          {{/each}}
-        </div>
-        {{else}}
-        <p class="sde-import-empty">Paste table text above and click <strong>Parse</strong> to preview it here before creating Roll Tables.</p>
-        {{/if}}
-      </div>
     </div>
 
   </section>

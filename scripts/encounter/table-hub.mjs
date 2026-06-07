@@ -14,7 +14,7 @@
  * The pure pieces (`normalizeName`, `statusOf`) are Foundry-free and unit-tested.
  */
 import { MODULE_ID } from "../module-id.mjs";
-import { TABLE_MANIFEST, verify, isMatrix, columnManifestId, SOURCES } from "./table-manifest.mjs";
+import { TABLE_MANIFEST, verify, isMatrix, columnManifestId, SOURCES, sourceShort } from "./table-manifest.mjs";
 
 const SYSTEM_PACK = "shadowdark.rollable-tables";
 
@@ -191,6 +191,9 @@ export const TableHub = {
         : null;
       row.linkable = !!(row.isImported && row.uuid && row.linkKind);
       row.source = entry.source;
+      row.sourceShort = sourceShort(entry.source);
+      // Precomputed lowercase haystack for the hub's client-side search box.
+      row.searchKey = `${entry.category} ${row.sub || "Other"} ${row.name} ${row.sourceShort} ${row.source} p${row.page} ${row.die}`.toLowerCase();
 
       const sub = row.sub || "Other";
       if (!tree.has(entry.category)) tree.set(entry.category, new Map());

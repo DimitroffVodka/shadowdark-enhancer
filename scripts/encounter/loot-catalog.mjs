@@ -48,8 +48,18 @@ export const LootCatalog = {
     const newResults = [];
 
     for (const r of table.results) {
-      const text = _resultText(r);
       const base = { range: r.range, weight: r.weight ?? 1, drawn: false };
+      // Preserve rows already linked to a document verbatim — re-resolving by
+      // name could drop a good link the item index doesn't cover (e.g. the
+      // Shadowdark system's own Treasure 0-3 items). Keep the existing linkage.
+      if (r.type === DOC) {
+        const o = r.toObject();
+        delete o._id;
+        newResults.push(o);
+        summary.linked++;
+        continue;
+      }
+      const text = _resultText(r);
       if (isCoinEntry(text)) {
         newResults.push({ ...base, type: TEXT, name: text });
         summary.coins++;

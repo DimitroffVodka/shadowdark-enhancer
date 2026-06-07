@@ -17,10 +17,6 @@ import {
   _findCompendiumActorByName,
 } from "./art-utils.mjs";
 import { MonsterCreator } from "./encounter-creator.mjs";
-import { TableImporter } from "./table-importer.mjs";
-import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
-import { columnManifestId } from "./table-manifest.mjs";
-import { LootLinker } from "./loot-linker.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -85,14 +81,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       buildPostSlot:      EncounterRollerApp.prototype._onBuildPostSlot,
       buildPlaceSlot:     EncounterRollerApp.prototype._onBuildPlaceSlot,
       buildSave:          EncounterRollerApp.prototype._onBuildSave,
-      // Import Tables tab
-      importParse:        EncounterRollerApp.prototype._onImportParse,
-      importClear:        EncounterRollerApp.prototype._onImportClear,
-      importCreate:       EncounterRollerApp.prototype._onImportCreate,
-      importCreateAll:    EncounterRollerApp.prototype._onImportCreateAll,
-      importAddRow:       EncounterRollerApp.prototype._onImportAddRow,
-      importDeleteRow:    EncounterRollerApp.prototype._onImportDeleteRow,
-      importUnlinkRow:    EncounterRollerApp.prototype._onImportUnlinkRow,
     }
   };
 
@@ -163,18 +151,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     // browse search input to keep the cursor stable across renders.
     this._buildNameFocused = false;
     this._buildNameCursor  = 0;
-
-    // Import Tables tab state. `_importText` is the raw paste; `_importParsed`
-    // is the array of ParsedTable produced by the last Parse and mutated in
-    // place as the GM edits the preview grid.
-    this._importText   = "";
-    this._importParsed = [];
-    this._importTextFocused = false;
-    this._importTextCursor  = 0;
-    // Optional pre-fill when opened from the Roll Tables hub for a known
-    // missing table: { name, die, page, formula, folderLabel, manifestId }.
-    // Applied to the first parsed table so it lands with the right identity.
-    this._importSeed = null;
   }
 
   // ─── Singleton ───
@@ -186,9 +162,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       this._instance = new EncounterRollerApp();
     }
     this._instance._activeTab = tab;
-    // Set (or clear, when null) the import pre-fill seed on every open.
-    this._instance._importSeed = seed;
-    if (seed) this._instance._importParsed = [];
     if (!this._instance.rendered) {
       await this._instance.render(true);
     } else {
@@ -340,19 +313,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       };
     }
 
-    // Import Tables tab. Cheap to assemble (no compendium reads), so it's
-    // populated unconditionally — the import-tab markup lives in the DOM on
-    // every tab, so a null context here would dereference `importData.*`.
-    const importData = {
-      text:   this._importText,
-      parsed: this._importParsed,
-      seed:   this._importSeed,
-      categoryOptions: [
-        ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
-        { id: CUSTOM_ID, label: "Custom…" },
-      ],
-    };
-
     return {
       activeTab: this._activeTab,
       selectedTableId: this._selectedTableId,
@@ -361,7 +321,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       lastResult: this._lastResult,
       browseData,
       buildData,
-      importData,
     };
   }
 
@@ -678,60 +637,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           return;
         }
         EncounterBuild.fillSlotFromActor(this._buildSlots[idx], actor);
-        this.render();
-      });
-    });
-
-    // ═══ Import Tables tab wiring ═════════════════════════════════════
-
-    // Paste box: debounced stash + cursor preservation (same pattern as
-    // the build table-name input). Parsing is explicit (Parse button), so
-    // we only stash the text here — no re-render on keystroke.
-    const importText = this.element.querySelector("textarea[data-import-text]");
-    if (importText) {
-      if (this._importTextFocused) {
-        importText.focus();
-        const pos = this._importTextCursor ?? importText.value.length;
-        try { importText.setSelectionRange(pos, pos); } catch (_) {}
-      }
-      let importTimeout = null;
-      importText.addEventListener("input", ev => {
-        this._importTextFocused = true;
-        this._importTextCursor  = ev.target.selectionStart;
-        clearTimeout(importTimeout);
-        importTimeout = setTimeout(() => {
-          this._importText = ev.target.value;
-        }, 200);
-      });
-      importText.addEventListener("blur", () => {
-        this._importTextFocused = false;
-        this._importText = importText.value;
-      });
-    }
-
-    // Preview-grid field edits. Commit on `change` so typing doesn't
-    // re-render mid-edit. data-import-field identifies the field; the
-    // table/row index come from the enclosing [data-table-idx]/[data-row-idx].
-    this.element.querySelectorAll(".sde-import-table [data-import-field]").forEach(input => {
-      input.addEventListener("change", ev => {
-        const tIdx = Number(ev.target.closest("[data-table-idx]")?.dataset.tableIdx);
-        const tbl  = this._importParsed[tIdx];
-        if (!tbl) return;
-        const field = ev.target.dataset.importField;
-        const rowEl = ev.target.closest("[data-row-idx]");
-        if (rowEl) {
-          const rIdx = Number(rowEl.dataset.rowIdx);
-          const row = tbl.rows[rIdx];
-          if (!row) return;
-          if (field === "min" || field === "max") row[field] = Number(ev.target.value);
-          else if (field === "text") row.text = ev.target.value;
-        } else {
-          if (field === "name") tbl.name = ev.target.value;
-          else if (field === "formula") tbl.formula = ev.target.value;
-          else if (field === "replacement") tbl.replacement = ev.target.checked;
-          else if (field === "category") tbl.category = ev.target.value;
-          else if (field === "customLabel") tbl.customLabel = ev.target.value;
-        }
         this.render();
       });
     });
@@ -1324,190 +1229,6 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       console.error(MODULE_ID, "Build save failed:", err);
       ui.notifications.error(`Failed to save Roll Table: ${err.message}`);
     }
-  }
-
-  // ═══ Import Tables tab handlers ═════════════════════════════════════
-
-  async _onImportParse() {
-    // Pull straight from the DOM so an un-blurred paste still parses.
-    const ta = this.element.querySelector("textarea[data-import-text]");
-    if (ta) this._importText = ta.value;
-    this._importParsed = TableImporter.parse(this._importText);
-    this._applyImportSeed();
-    await this._linkLootTables();
-    if (!this._importParsed.length) {
-      ui.notifications.warn("No tables found in the pasted text.");
-    }
-    this.render();
-  }
-
-  /**
-   * When opened from the Roll Tables hub for a known missing table, force the
-   * first parsed table's identity to the manifest's — so it lands as e.g.
-   * "RARE LANGUAGES / 1d4 / Languages" instead of the parser's header guess,
-   * and carries the manifestId so the hub matches it exactly after Create.
-   */
-  _applyImportSeed() {
-    const seed = this._importSeed;
-    if (!seed || !this._importParsed?.length) return;
-    // File seeded imports into Category/Sub-category folders, mirroring the hub.
-    const folderPath = [seed.category, seed.folderLabel].filter(Boolean);
-
-    if (seed.grid && Array.isArray(seed.columns) && seed.columns.length) {
-      // A square grid (Occupation/Identifier d4x4): split the paste into its N
-      // columns (delimiter-aware), then flatten into ONE d16-style table.
-      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
-      // Flatten ROW-MAJOR (left-to-right, top-to-bottom) so the d16 reads like
-      // the page: entry 1 = top-left, 2 = next column, … matching a d4,d4 read.
-      const nRows = Math.max(0, ...split.map(c => c.rows.length));
-      const rows = [];
-      let n = 1;
-      for (let r = 0; r < nRows; r++) {
-        for (const c of split) {
-          const cell = c.rows[r];
-          if (cell) { rows.push({ min: n, max: n, text: cell.text }); n++; }
-        }
-      }
-      if (rows.length) {
-        const merged = {
-          name: seed.name, formula: `1d${rows.length}`, replacement: true,
-          bestEffort: true, warnings: split[0]?.warnings ?? [], rows, manifestId: seed.manifestId ?? null,
-        };
-        if (folderPath.length) merged.folderPath = folderPath;
-        else { merged.category = CUSTOM_ID; merged.customLabel = seed.folderLabel; }
-        this._importParsed = [merged];
-      }
-      return;
-    }
-
-    if (seed.matrix && Array.isArray(seed.columns) && seed.columns.length) {
-      // Re-split the raw paste using the manifest's KNOWN columns — ignores the
-      // (possibly multi-word) header and splits each data row into exactly N
-      // cells. Each column becomes its own table, prefixed + stamped so the hub
-      // tracks all N. Multi-word cells get a best-effort split + a warning.
-      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
-      split.forEach((t, i) => {
-        t.name = `${seed.name} - ${seed.columns[i]}`;
-        if (seed.folderLabel) { t.category = CUSTOM_ID; t.customLabel = seed.folderLabel; }
-        if (folderPath.length) t.folderPath = folderPath;
-        t.manifestId = columnManifestId(seed.manifestId, seed.columns[i]);
-      });
-      this._importParsed = split;
-      return;
-    }
-
-    const t0 = this._importParsed[0];
-    if (seed.name) t0.name = seed.name;
-    if (seed.formula) t0.formula = seed.formula;
-    if (seed.folderLabel) { t0.category = CUSTOM_ID; t0.customLabel = seed.folderLabel; }
-    if (folderPath.length) t0.folderPath = folderPath;
-    t0.manifestId = seed.manifestId ?? null;
-  }
-
-  /**
-   * For every parsed Loot table, link each row's text to a compendium Item
-   * where a confident name match exists (sets `row.link`). Non-loot tables
-   * are left untouched. Re-categorizing a table to Loot after Parse does not
-   * retro-link — re-run Parse to link it.
-   */
-  async _linkLootTables() {
-    const lootTables = this._importParsed.filter(t => t.category === "loot");
-    if (!lootTables.length) return;
-    const items = await LootLinker.buildItemIndex();
-    for (const tbl of lootTables) {
-      for (const row of tbl.rows) {
-        row.link = LootLinker.findLink(row.text, items);
-      }
-    }
-  }
-
-  _onImportClear() {
-    this._importText = "";
-    this._importParsed = [];
-    this._importSeed = null;
-    this.render();
-  }
-
-  _onImportAddRow(event, target) {
-    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
-    const tbl = this._importParsed[tIdx];
-    if (!tbl) return;
-    const nextMin = tbl.rows.reduce((m, r) => Math.max(m, r.max), 0) + 1;
-    tbl.rows.push({ min: nextMin, max: nextMin, text: "" });
-    this.render();
-  }
-
-  _onImportDeleteRow(event, target) {
-    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
-    const rIdx = Number(target.closest("[data-row-idx]")?.dataset.rowIdx);
-    const tbl = this._importParsed[tIdx];
-    if (!tbl || !Number.isFinite(rIdx)) return;
-    tbl.rows.splice(rIdx, 1);
-    this.render();
-  }
-
-  _onImportUnlinkRow(event, target) {
-    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
-    const rIdx = Number(target.closest("[data-row-idx]")?.dataset.rowIdx);
-    const tbl = this._importParsed[tIdx];
-    if (!tbl || !Number.isFinite(rIdx) || !tbl.rows[rIdx]) return;
-    tbl.rows[rIdx].link = null;
-    this.render();
-  }
-
-  async _onImportCreate(event, target) {
-    const tIdx = Number(target.closest("[data-table-idx]")?.dataset.tableIdx);
-    const tbl = this._importParsed[tIdx];
-    if (!tbl) return;
-    await this._createImportedTable(tbl);
-  }
-
-  async _onImportCreateAll() {
-    if (!this._importParsed.length) return;
-    const total = this._importParsed.length;
-    let created = 0;
-    // Iterate a copy — created tables are removed from _importParsed.
-    for (const tbl of [...this._importParsed]) {
-      const made = await this._createImportedTable(tbl, { silent: true });
-      if (made) created++;
-    }
-    ui.notifications.info(`Created ${created} of ${total} table(s).`);
-    this.render();
-  }
-
-  /**
-   * Create one parsed table as a world RollTable, resolving name clashes
-   * via a 3-button dialog. On success removes it from the preview list.
-   *
-   * @param {object} tbl   ParsedTable
-   * @param {object} [opts]
-   * @param {boolean} [opts.silent]  suppress the per-table success toast + render
-   * @returns {Promise<boolean>}     true if a table was created
-   */
-  async _createImportedTable(tbl, { silent = false } = {}) {
-    const onConflict = async (name) => {
-      const safe = foundry.utils.escapeHTML(name);
-      const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Table Already Exists" },
-        content: `<p>A table named <strong>${safe}</strong> already exists. What would you like to do?</p>`,
-        buttons: [
-          { action: "rename",  label: "Create as Copy", default: true },
-          { action: "replace", label: "Replace Existing" },
-          { action: "cancel",  label: "Cancel" },
-        ],
-        rejectClose: false,
-      }).catch(() => "cancel");
-      return choice ?? "cancel";
-    };
-
-    const table = await TableImporter.createTable(tbl, { onConflict });
-    if (!table) return false;
-
-    if (!silent) ui.notifications.info(`Created Roll Table: ${table.name}`);
-    this._importParsed = this._importParsed.filter(t => t !== tbl);
-    if (tbl.manifestId) this._importSeed = null; // seeded import fulfilled
-    if (!silent) this.render();
-    return true;
   }
 
   _slotFromEvent(target) {

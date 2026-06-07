@@ -31,6 +31,7 @@ export const LootDelivery = {
     game.socket.on(SOCKET, async (data) => {
       if (!game.user.isGM) return; // GM is the single authoritative writer
       if (data?.action === "lootClaimItem") await this._handleClaimItem(data);
+      else if (data?.action === "lootClaimCoins") await this._handleClaimCoins(data);
     });
     Hooks.on("renderChatMessageHTML", (message, html) => this._wireCard(message, html));
   },
@@ -172,6 +173,21 @@ export const LootDelivery = {
       });
     }
 
+    // Player-claimable coins (any client). First claim wins; shares the
+    // coinsAssigned lock with the GM-assign path so only one actor gets them.
+    const claimCoinsBtn = html.querySelector(".sde-loot-claim-coins");
+    if (claimCoinsBtn) {
+      claimCoinsBtn.addEventListener("click", async () => {
+        const actor = game.user.character
+          ?? game.actors.find(a => a.type === "Player" && a.isOwner);
+        if (!actor) { ui.notifications.warn("No character assigned to claim with."); return; }
+        claimCoinsBtn.disabled = true;
+        const payload = { action: "lootClaimCoins", messageId: message.id, userId: game.user.id, actorId: actor.id };
+        if (game.user.isGM) await this._handleClaimCoins(payload);
+        else game.socket.emit(SOCKET, payload);
+      });
+    }
+
     const assignBtn = html.querySelector(".sde-loot-assign-coins");
     if (assignBtn && game.user.isGM) {
       assignBtn.addEventListener("click", async () => {
@@ -254,6 +270,33 @@ export const LootDelivery = {
     if (!flags?.lootCard || flags.coinsAssigned) return;
     const actor = game.actors.get(actorId);
     if (!actor) return;
+
+    await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
+
+    const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
+    const c = flags.coins ?? { gp: 0, sp: 0, cp: 0 };
+    await actor.update({
+      "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
+      "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
+      "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
+    });
+
+    await this._refresh(message);
+  },
+
+  /**
+   * Player claims the coin pile onto their own character (GM-authoritative).
+   * First claim wins via the shared coinsAssigned lock; coins are added to the
+   * actor's system.coins. Validates the claimer owns the actor (or is GM).
+   */
+  async _handleClaimCoins({ messageId, userId, actorId }) {
+    const message = game.messages.get(messageId);
+    const flags = message?.flags?.[MODULE_ID];
+    if (!flags?.lootCard || flags.coinsAssigned) return; // already taken
+    const actor = game.actors.get(actorId);
+    const user = game.users.get(userId);
+    if (!actor || !user) return;
+    if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return;
 
     await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.1] — 2026-06-07
+
+### Added
+- **Roll Tables hub: Import moved in as a second tab.** The hub is now a two-tab window — **Dashboard** + **Import**. The paste-parse-preview-create importer (and its matrix/grid splitting, loot-row linking, and manifest seeding) moved out of the Encounter Roller into the hub; a Dashboard row's **Import** button opens the Import tab pre-seeded, in-window. The Encounter Roller drops back to four tabs and the old cross-window bridge is retired.
+- **Roll Tables hub: search box.** A search field filters the dashboard by name, source, category, sub-category, and page. It composes with the status and source chips and hides non-matching rows (and now-empty sub-categories/categories).
+- **Roll Tables hub: collapsible sub-categories.** Each sub-category is now its own `<details>` with a caret and a count, so it can be folded independently — matching the category sections.
+- **Roll Tables hub: source in the row meta line.** Each row now reads `p270 · d100 · Core` (a short per-source label: `core`→Core, `cs1`–`cs6`→CS1–CS6, the Western Reaches guides→PG WR / GM WR).
+- **Roll Tables hub: live auto-refresh.** The dashboard re-renders automatically whenever the world's roll tables change. Verified via MCP that adding/editing/deleting a row fires only the `*TableResult` hooks (not `updateRollTable`), so the hub subscribes to all six table/result hooks, coalesced through one debounced render — the `N/expected rows` verify chips now stay live.
+- **Automatic enrichment on import.** Importing an encounter or treasure table now links it to the compendium automatically (encounter → monster `@UUID` links + inline-roll counts; treasure → real items) — folded into `TableImporter.createTable`, so the hub importer, the plain importer, and Loot Setup all enrich without a manual step. The Treasure 0-3 tier table auto-links the moment it's bound.
+- **Loot card: player-claimable coins.** The coin pile gets a **Claim** button — the first player to click it has the gp/sp/cp added to their character. It shares the assignment lock with the GM **Assign** dropdown (which is kept), so coins still go to exactly one actor, first-come.
+- **Loot Setup: "Use Shadowdark's Treasure 0-3".** A one-click button on the 0-3 slot copies the Shadowdark system compendium's built-in `Treasure 0-3` into the world (filed under Imported Tables/Loot), enhances it, and binds it as the tier 0-3 loot table. Re-running reuses the existing import instead of duplicating.
+
+### Changed
+- **Roll Tables hub: manual Link buttons removed.** With enrichment now automatic on import, the per-row **Link** button and the bulk **Link encounters / Link treasure** buttons are gone.
+- **Roll Tables hub: "Refresh" relabeled "Re-check compendiums".** In-world table edits now update the dashboard automatically, so the manual button's remaining job is re-scanning the system compendium / forcing a full re-check; its label and tooltip say so.
+- **`LootCatalog.linkTableItems` is now non-destructive.** Rows already linked to a document are preserved verbatim instead of being re-resolved by name — confirmed via MCP that re-resolving would otherwise drop links the item index doesn't cover (e.g. the system Treasure 0-3's `shadowdark.magic-items` rows). This also makes the auto-enrich-on-import path idempotent.
+
+### Fixed
+- **Roll Tables hub search no longer scrambles typed text.** Typing "Treasure" could come out as "urereasT" — the window re-rendered on every keystroke, rebuilding the input and resetting the caret. Search is now a pure client-side row filter with no re-render, so the input keeps focus and the caret stays put.
+
 ## [0.2.0] — 2026-06-06
 
 ### Added

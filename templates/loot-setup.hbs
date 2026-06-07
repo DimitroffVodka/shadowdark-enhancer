@@ -36,6 +36,13 @@
           <i class="fas fa-link"></i> Bind
         </button>
         {{/if}}
+        {{#if s.canUseSystem}}
+        <span class="sde-loot-setup-or">or</span>
+        <button type="button" class="sde-loot-setup-system" data-action="useSystem" data-slot-id="{{s.id}}"
+                title="Copy the Shadowdark system's built-in Treasure 0-3, link its items, and bind it to this tier">
+          <i class="fas fa-wand-magic-sparkles"></i> Use Shadowdark's Treasure 0-3
+        </button>
+        {{/if}}
       </div>
     </li>
     {{/each}}

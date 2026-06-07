@@ -99,8 +99,8 @@ Hooks.once("init", () => {
       encounterTables: () => TableRegistry.encounterTables(),
       groups: () => TableRegistry.groups(),
       organize: (opts) => TableRegistry.organize(opts),
-      // Roll Tables hub — Core+Cursed Scroll status dashboard (manifest-driven).
-      openHub: () => RollTablesApp.open(),
+      // Roll Tables hub — status dashboard + in-window Import tab (manifest-driven).
+      openHub: (tab, seed) => RollTablesApp.open(tab, seed),
       // Enrich an imported table to the Ruins standard: encounter -> monster
       // @UUID links + [[/r]] counts; treasure -> real compendium items.
       enrich: (uuid, kind) => TableEnricher.enrich(uuid, kind),

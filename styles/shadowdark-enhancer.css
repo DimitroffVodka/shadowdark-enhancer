@@ -1068,6 +1068,48 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text);
   font-family: var(--sde-bar-font);
 }
+.sde-thub-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+.sde-thub-tabs .item {
+  font-weight: 700;
+  font-size: 13px;
+  font-family: inherit;
+  background: none;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 6px 14px;
+  cursor: pointer;
+  color: var(--sde-bar-text);
+  opacity: 0.7;
+}
+.sde-thub-tabs .item:hover { background: rgba(255, 255, 255, 0.07); opacity: 1; }
+.sde-thub-tabs .item.active {
+  opacity: 1;
+  border-color: var(--sde-bar-border);
+  background: var(--sde-bar-surface-1);
+}
+.sde-thub-searchbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  color: var(--sde-bar-text);
+}
+.sde-thub-searchbox i { opacity: 0.6; }
+.sde-thub-search {
+  flex: 1;
+  background: var(--sde-bar-surface-2, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--sde-bar-text);
+  font-family: inherit;
+  font-size: 13px;
+}
 .sde-thub-summary {
   display: flex;
   align-items: center;
@@ -1174,11 +1216,30 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-thub-sub { margin: 2px 0 8px; }
 .sde-thub-sub-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
   font-size: 11px;
   font-weight: 700;
   color: var(--sde-bar-text-bright);
   margin: 4px 0 3px 4px;
   opacity: 0.85;
+  user-select: none;
+}
+.sde-thub-sub-head::-webkit-details-marker { display: none; }
+.sde-thub-sub-head:hover { opacity: 1; }
+.sde-thub-sub[open] > .sde-thub-sub-head .sde-thub-caret { transform: rotate(90deg); }
+.sde-thub-sub-name { flex: 1 1 auto; }
+.sde-thub-sub-count {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sde-bar-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 0 7px;
 }
 .sde-thub-openable { cursor: pointer; }
 .sde-thub-openable:hover { outline: 1px solid var(--sde-bar-accent-dim); }
@@ -3482,6 +3543,14 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text);
   font-weight: 600;
 }
+.sde-import-note {
+  font-family: var(--sde-bar-font);
+  color: var(--sde-bar-text);
+  opacity: 0.75;
+  font-size: 0.82rem;
+  margin: 0;
+}
+.sde-import-note i { opacity: 0.7; margin-right: 0.25rem; }
 .sde-import-text {
   width: 100%;
   min-height: 8rem;
@@ -3657,6 +3726,7 @@ body.theme-light .sde-bar-phase-badge {
 /* Scoped with element+class so these beat Foundry's default chat-button
    styling, which otherwise renders the labels dark-on-dark + unreadable. */
 .sde-loot-card button.sde-loot-claim,
+.sde-loot-card button.sde-loot-claim-coins,
 .sde-loot-card button.sde-loot-give,
 .sde-loot-card button.sde-loot-assign-coins {
   flex: 0 0 auto;
@@ -3680,6 +3750,7 @@ body.theme-light .sde-bar-phase-badge {
 .sde-loot-card button.sde-loot-forge { background: transparent; color: var(--sde-bar-accent, #c9a227); margin-left: 4px; }
 .sde-lootgen-forge { margin-left: 4px; }
 .sde-loot-card button.sde-loot-claim:hover,
+.sde-loot-card button.sde-loot-claim-coins:hover,
 .sde-loot-card button.sde-loot-give:hover,
 .sde-loot-card button.sde-loot-assign-coins:hover {
   filter: brightness(1.12);

@@ -344,7 +344,39 @@ export async function createTable(pt, { onConflict } = {}) {
       ...(pt.manifestId ? { manifestId: pt.manifestId } : {}),
     },
   };
-  return RollTable.create(data);
+  const table = await RollTable.create(data);
+  await _autoEnrich(table, pt);
+  return table;
+}
+
+/**
+ * Auto-link a freshly imported table to the compendium so the GM never has to
+ * press a "Link" button: encounter tables get monster @UUID links + inline-roll
+ * counts; treasure/loot tables get real compendium items. Kind is inferred from
+ * the table's category, custom label, folder path, and name — so a hub-seeded
+ * "Random Encounter Tables" import, a plain Loot import, and the Loot Setup
+ * Treasure 0-3 binding (category "loot") all enrich without manual steps.
+ *
+ * Uses a dynamic import so this parser module stays free of a static Foundry
+ * dependency (keeps the pure parse path node-testable).
+ */
+async function _autoEnrich(table, pt) {
+  if (!table) return;
+  const hay = [
+    pt?.category, pt?.customLabel, ...(Array.isArray(pt?.folderPath) ? pt.folderPath : []),
+    table.name,
+  ].filter(Boolean).join(" ").toLowerCase();
+  let kind = null;
+  if (/treasure|hoard|\bloot\b/.test(hay)) kind = "treasure";
+  else if (/encounter/.test(hay)) kind = "encounter";
+  if (!kind) return;
+  try {
+    const { TableEnricher } = await import("./table-enrich.mjs");
+    if (kind === "treasure") await TableEnricher.enrichTreasure(table);
+    else await TableEnricher.enrichEncounters(table);
+  } catch (err) {
+    console.warn("shadowdark-enhancer | auto-enrich failed:", err);
+  }
 }
 
 /**

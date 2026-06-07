@@ -54,6 +54,22 @@ export const SOURCES = [
   { id: "wr",   label: "Western Reaches", match: ["pgwr", "gmgwr"] },
 ];
 
+/**
+ * Short per-entry-source label for the row meta line ("p270 · d100 · Core").
+ * Keyed by the entry's own `source` id (the two Western Reaches guides stay
+ * distinct here even though they share one filter chip).
+ */
+export const SOURCE_SHORT = {
+  core: "Core",
+  cs1: "CS1", cs2: "CS2", cs3: "CS3", cs4: "CS4", cs5: "CS5", cs6: "CS6",
+  pgwr: "PG WR", gmgwr: "GM WR",
+};
+
+/** Map an entry `source` id to its short display label (falls back to UPPER). */
+export function sourceShort(id) {
+  return SOURCE_SHORT[id] ?? (id ? String(id).toUpperCase() : "");
+}
+
 /** True when the Shadowdark system ships this table in a compendium. */
 export function inSystem(entry) {
   return !!entry?.systemUuid;

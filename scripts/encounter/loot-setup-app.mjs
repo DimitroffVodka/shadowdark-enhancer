@@ -8,6 +8,11 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { LOOT_SETUP_SLOTS, slotStatus, boundCount } from "./loot-setup-manifest.mjs";
 import { TableImporter } from "./table-importer.mjs";
+import { LootCatalog } from "./loot-catalog.mjs";
+
+// The Shadowdark system ships exactly one treasure table in its compendium.
+const SYSTEM_PACK = "shadowdark.rollable-tables";
+const SYSTEM_TREASURE_TIER = "0-3";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -20,6 +25,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       importSlot:  LootSetupApp.prototype._onImportSlot,
       useExisting: LootSetupApp.prototype._onUseExisting,
+      useSystem:   LootSetupApp.prototype._onUseSystem,
     },
   };
 
@@ -43,6 +49,9 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ...s,
       boundName: s.boundUuid ? (fromUuidSync(s.boundUuid)?.name ?? "(missing table)") : null,
       tables: allTables.map(t => ({ ...t, selected: t.uuid === s.boundUuid })),
+      // Only the 0-3 tier can be filled from the Shadowdark system compendium
+      // (it ships just the one treasure table).
+      canUseSystem: s.tier === SYSTEM_TREASURE_TIER,
     }));
     const done = boundCount(map);
     return { slots, done, total: LOOT_SETUP_SLOTS.length, hasTables: allTables.length > 0 };
@@ -77,6 +86,51 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this._bind(slot.tier, uuid);
     ui.notifications.info(`${slot.label}: bound to existing table.`);
     this.render();
+  }
+
+  /**
+   * Import the Shadowdark system's built-in Treasure 0-3 into the world,
+   * enhance it (link items / keep coins; existing document links preserved),
+   * and bind it to the 0-3 loot tier. Re-uses a prior import instead of
+   * duplicating. GM-only.
+   */
+  async _onUseSystem(event, target) {
+    if (!game.user.isGM) return;
+    const slot = LOOT_SETUP_SLOTS.find(s => s.id === target.dataset.slotId);
+    if (!slot) return;
+    const pack = game.packs.get(SYSTEM_PACK);
+    if (!pack) { ui.notifications.warn(`Compendium "${SYSTEM_PACK}" not found.`); return; }
+    const idx = await pack.getIndex();
+    const entry = idx.find(e => /^\s*treasure\s*0\s*-\s*3\s*$/i.test(e.name))
+      ?? idx.find(e => /treasure\s*0\s*-\s*3/i.test(e.name));
+    if (!entry) { ui.notifications.warn("Couldn't find a 'Treasure 0-3' table in the Shadowdark compendium."); return; }
+
+    const name = "Treasure 0-3 (Shadowdark)";
+    let table = game.tables.find(t => t.name === name);
+    if (!table) {
+      const src = await pack.getDocument(entry._id);
+      const data = src.toObject();
+      delete data._id;
+      data.name = name;
+      data.folder = (await this._ensureLootFolder())?.id ?? null;
+      data.flags = {
+        ...(data.flags ?? {}),
+        [MODULE_ID]: { ...((data.flags ?? {})[MODULE_ID] ?? {}), tableType: "loot", isLootTable: true },
+      };
+      table = await RollTable.create(data);
+    }
+    await LootCatalog.linkTableItems(table);
+    await this._bind(slot.tier, table.uuid);
+    ui.notifications.info(`${slot.label}: imported Shadowdark's Treasure 0-3 (${table.results.size} rows) and bound.`);
+    this.render();
+  }
+
+  /** Find-or-create the Imported Tables/Loot folder for RollTables. */
+  async _ensureLootFolder() {
+    const root = game.folders.find(f => f.type === "RollTable" && f.name === "Imported Tables" && !f.folder)
+      ?? await Folder.create({ name: "Imported Tables", type: "RollTable" });
+    return game.folders.find(f => f.type === "RollTable" && f.name === "Loot" && f.folder?.id === root.id)
+      ?? await Folder.create({ name: "Loot", type: "RollTable", folder: root.id });
   }
 
   /** Write one tier->table binding into the lootTierTables world setting. */
