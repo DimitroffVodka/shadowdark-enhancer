@@ -19,6 +19,7 @@ import {
 import { MonsterCreator } from "./encounter-creator.mjs";
 import { TableImporter } from "./table-importer.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
+import { columnManifestId } from "./table-manifest.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -170,17 +171,24 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     this._importParsed = [];
     this._importTextFocused = false;
     this._importTextCursor  = 0;
+    // Optional pre-fill when opened from the Roll Tables hub for a known
+    // missing table: { name, die, page, formula, folderLabel, manifestId }.
+    // Applied to the first parsed table so it lands with the right identity.
+    this._importSeed = null;
   }
 
   // ─── Singleton ───
 
   static _instance = null;
 
-  static async open(tab = "tables") {
+  static async open(tab = "tables", seed = null) {
     if (!this._instance) {
       this._instance = new EncounterRollerApp();
     }
     this._instance._activeTab = tab;
+    // Set (or clear, when null) the import pre-fill seed on every open.
+    this._instance._importSeed = seed;
+    if (seed) this._instance._importParsed = [];
     if (!this._instance.rendered) {
       await this._instance.render(true);
     } else {
@@ -338,6 +346,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const importData = {
       text:   this._importText,
       parsed: this._importParsed,
+      seed:   this._importSeed,
       categoryOptions: [
         ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
         { id: CUSTOM_ID, label: "Custom…" },
@@ -1324,11 +1333,75 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
     this._importParsed = TableImporter.parse(this._importText);
+    this._applyImportSeed();
     await this._linkLootTables();
     if (!this._importParsed.length) {
       ui.notifications.warn("No tables found in the pasted text.");
     }
     this.render();
+  }
+
+  /**
+   * When opened from the Roll Tables hub for a known missing table, force the
+   * first parsed table's identity to the manifest's — so it lands as e.g.
+   * "RARE LANGUAGES / 1d4 / Languages" instead of the parser's header guess,
+   * and carries the manifestId so the hub matches it exactly after Create.
+   */
+  _applyImportSeed() {
+    const seed = this._importSeed;
+    if (!seed || !this._importParsed?.length) return;
+    // File seeded imports into Category/Sub-category folders, mirroring the hub.
+    const folderPath = [seed.category, seed.folderLabel].filter(Boolean);
+
+    if (seed.grid && Array.isArray(seed.columns) && seed.columns.length) {
+      // A square grid (Occupation/Identifier d4x4): split the paste into its N
+      // columns (delimiter-aware), then flatten into ONE d16-style table.
+      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
+      // Flatten ROW-MAJOR (left-to-right, top-to-bottom) so the d16 reads like
+      // the page: entry 1 = top-left, 2 = next column, … matching a d4,d4 read.
+      const nRows = Math.max(0, ...split.map(c => c.rows.length));
+      const rows = [];
+      let n = 1;
+      for (let r = 0; r < nRows; r++) {
+        for (const c of split) {
+          const cell = c.rows[r];
+          if (cell) { rows.push({ min: n, max: n, text: cell.text }); n++; }
+        }
+      }
+      if (rows.length) {
+        const merged = {
+          name: seed.name, formula: `1d${rows.length}`, replacement: true,
+          bestEffort: true, warnings: split[0]?.warnings ?? [], rows, manifestId: seed.manifestId ?? null,
+        };
+        if (folderPath.length) merged.folderPath = folderPath;
+        else { merged.category = CUSTOM_ID; merged.customLabel = seed.folderLabel; }
+        this._importParsed = [merged];
+      }
+      return;
+    }
+
+    if (seed.matrix && Array.isArray(seed.columns) && seed.columns.length) {
+      // Re-split the raw paste using the manifest's KNOWN columns — ignores the
+      // (possibly multi-word) header and splits each data row into exactly N
+      // cells. Each column becomes its own table, prefixed + stamped so the hub
+      // tracks all N. Multi-word cells get a best-effort split + a warning.
+      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
+      split.forEach((t, i) => {
+        t.name = `${seed.name} - ${seed.columns[i]}`;
+        if (seed.folderLabel) { t.category = CUSTOM_ID; t.customLabel = seed.folderLabel; }
+        if (folderPath.length) t.folderPath = folderPath;
+        t.manifestId = columnManifestId(seed.manifestId, seed.columns[i]);
+      });
+      this._importParsed = split;
+      return;
+    }
+
+    const t0 = this._importParsed[0];
+    if (seed.name) t0.name = seed.name;
+    if (seed.formula) t0.formula = seed.formula;
+    if (seed.folderLabel) { t0.category = CUSTOM_ID; t0.customLabel = seed.folderLabel; }
+    if (folderPath.length) t0.folderPath = folderPath;
+    t0.manifestId = seed.manifestId ?? null;
   }
 
   /**
@@ -1351,6 +1424,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   _onImportClear() {
     this._importText = "";
     this._importParsed = [];
+    this._importSeed = null;
     this.render();
   }
 
@@ -1431,6 +1505,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     if (!silent) ui.notifications.info(`Created Roll Table: ${table.name}`);
     this._importParsed = this._importParsed.filter(t => t !== tbl);
+    if (tbl.manifestId) this._importSeed = null; // seeded import fulfilled
     if (!silent) this.render();
     return true;
   }

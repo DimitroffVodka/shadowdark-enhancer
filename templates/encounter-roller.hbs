@@ -459,6 +459,15 @@
     {{!-- Import Tables Tab --}}
     <div class="tab {{#if (eq activeTab 'import')}}active{{/if}}" data-tab="import">
       <div class="sde-import">
+        {{#if importData.seed}}
+        <div class="sde-import-seed">
+          <i class="fas fa-bullseye"></i>
+          Importing <strong>{{importData.seed.name}}</strong>
+          {{#if importData.seed.die}}<span class="sde-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
+          {{#if importData.seed.page}}<span class="sde-import-seed-tag">p{{importData.seed.page}}</span>{{/if}}
+          — paste its rows below and Parse. The name, formula, and folder are pre-set for you.
+        </div>
+        {{/if}}
         <label class="sde-import-label" for="sde-import-text">
           Paste a table copied from a Shadowdark book or zine:
         </label>

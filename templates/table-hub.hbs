@@ -1,0 +1,109 @@
+<div class="sde-thub">
+  <div class="sde-thub-summary">
+    <button type="button" class="sde-thub-stat {{#if fAll}}active{{/if}}" data-action="filter" data-state="all" title="Show all">
+      <i class="fas fa-table-list"></i> {{summary.total}} tables</button>
+    <button type="button" class="sde-thub-stat ok {{#if fSystem}}active{{/if}}" data-action="filter" data-state="system" title="Show only in-system">
+      <i class="fas fa-box-archive"></i> {{summary.system}} in system</button>
+    <button type="button" class="sde-thub-stat imp {{#if fImported}}active{{/if}}" data-action="filter" data-state="imported" title="Show only imported">
+      <i class="fas fa-file-import"></i> {{summary.imported}} imported</button>
+    {{#if summary.partial}}<button type="button" class="sde-thub-stat part {{#if fPartial}}active{{/if}}" data-action="filter" data-state="partial" title="Show only partial">
+      <i class="fas fa-circle-half-stroke"></i> {{summary.partial}} partial</button>{{/if}}
+    <button type="button" class="sde-thub-stat miss {{#if fMissing}}active{{/if}}" data-action="filter" data-state="missing" title="Show only missing">
+      <i class="fas fa-circle-exclamation"></i> {{summary.missing}} missing</button>
+    <button type="button" class="sde-thub-refresh" data-action="refresh" title="Re-check the world">
+      <i class="fas fa-rotate"></i> Refresh
+    </button>
+    <button type="button" class="sde-thub-refresh" data-action="enrichEncounters" title="Monster-link all imported encounter tables">
+      <i class="fas fa-dragon"></i> Link encounters
+    </button>
+    <button type="button" class="sde-thub-refresh" data-action="enrichTreasure" title="Item-link all imported treasure tables">
+      <i class="fas fa-gem"></i> Link treasure
+    </button>
+  </div>
+
+  <div class="sde-thub-sources">
+    <span class="sde-thub-srclabel">Source</span>
+    <button type="button" class="sde-thub-src{{#if sourceAll}} active{{/if}}" data-action="filterSource" data-source="all">All</button>
+    {{#each sources as |s|}}
+    <button type="button" class="sde-thub-src{{#if s.active}} active{{/if}}{{#unless s.count}} empty{{/unless}}"
+            data-action="filterSource" data-source="{{s.id}}" title="Filter to {{s.label}}">
+      {{s.label}} <span class="sde-thub-src-n">{{s.count}}</span>
+    </button>
+    {{/each}}
+  </div>
+
+  {{#each groups as |g|}}
+  <details class="sde-thub-cat" open>
+    <summary class="sde-thub-cat-head">
+      <i class="fas fa-caret-right sde-thub-caret"></i>
+      <span class="sde-thub-cat-name">{{g.category}}</span>
+      <span class="sde-thub-cat-count">{{g.count}}</span>
+    </summary>
+    {{#each g.subgroups as |sg|}}
+    <div class="sde-thub-sub">
+      <div class="sde-thub-sub-head">{{sg.sub}}</div>
+      <ul class="sde-thub-rows">
+        {{#each sg.rows as |r|}}
+        <li class="sde-thub-row state-{{r.state}}{{#if r.uuid}} sde-thub-openable{{/if}}"{{#if r.uuid}} data-uuid="{{r.uuid}}" title="Double-click to open this table"{{/if}}>
+          <span class="sde-thub-name">{{r.name}}</span>
+          <span class="sde-thub-meta">p{{r.page}} &middot; {{r.die}}</span>
+
+          {{#if r.isMatrix}}
+          <span class="sde-thub-matrix-tag" title="One d20 grid that splits into {{r.columnsTotal}} per-column tables">{{r.columnsTotal}}-table matrix</span>
+          {{#if r.isImported}}
+            <span class="sde-thub-badge ok"><i class="fas fa-check"></i> All {{r.columnsTotal}} imported</span>
+          {{/if}}
+          {{#if r.isPartial}}
+            <span class="sde-thub-badge warn"><i class="fas fa-circle-half-stroke"></i> {{r.columnsPresent}}/{{r.columnsTotal}} imported</span>
+            <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
+                    title="Re-paste the grid to fill the rest"><i class="fas fa-file-import"></i> Import</button>
+          {{/if}}
+          {{#if r.isMissing}}
+            <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Missing</span>
+            <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
+                    title="Paste the grid once — it splits into {{r.columnsTotal}} tables"><i class="fas fa-file-import"></i> Import all {{r.columnsTotal}}</button>
+          {{/if}}
+        {{else}}
+          {{#if r.isSystem}}
+            <span class="sde-thub-badge ok"><i class="fas fa-box-archive"></i> In system</span>
+          {{/if}}
+          {{#if r.isImported}}
+            <span class="sde-thub-badge imp"><i class="fas fa-check"></i> Imported</span>
+            {{#if r.worldName}}
+            <span class="sde-thub-world" title="Matched world table — confirm it's the right one">&rarr; {{r.worldName}}</span>
+            {{/if}}
+            {{#if r.rowsExpected}}
+            <span class="sde-thub-rows-chk {{#if r.verifyOk}}ok{{else}}warn{{/if}}"
+                  title="Imported table has {{r.rowsActual}} rows; expected {{r.rowsExpected}}">
+              {{r.rowsActual}}/{{r.rowsExpected}} rows
+            </span>
+            {{#unless r.verifyOk}}
+            <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
+                    title="Row count doesn't match the book — re-import from your copy">
+              <i class="fas fa-rotate"></i> Re-import
+            </button>
+            {{/unless}}
+            {{/if}}
+          {{/if}}
+          {{#if r.isMissing}}
+            <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Missing</span>
+            <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
+                    title="Open the Importer to paste this table from your book">
+              <i class="fas fa-file-import"></i> Import
+            </button>
+          {{/if}}
+        {{/if}}
+        {{#if r.linkable}}
+        <button type="button" class="sde-thub-link" data-action="enrichRow" data-uuid="{{r.uuid}}" data-kind="{{r.linkKind}}"
+                title="Link this table's entries to the compendium (monsters / items)">
+          <i class="fas fa-link"></i> Link
+        </button>
+        {{/if}}
+        </li>
+        {{/each}}
+      </ul>
+    </div>
+    {{/each}}
+  </details>
+  {{/each}}
+</div>

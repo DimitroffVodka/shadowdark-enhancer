@@ -145,6 +145,9 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge">
           <i class="fas fa-hammer"></i> Forge &amp; Loot
         </button>
+        <button class="sde-bar-btn" data-action="rollTables" title="Roll Tables — Core &amp; Cursed Scroll catalog + Import">
+          <i class="fas fa-table-list"></i> Roll Tables
+        </button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
           ${ICONS.close} End
         </button>
@@ -274,6 +277,10 @@ export const CrawlBar = {
       case "loot":
         // Left-click opens the Forge & Loot menu (Loot Generator | Magic Item Forge).
         this._onLootContextMenu(el, ev);
+        break;
+
+      case "rollTables":
+        game.shadowdarkEnhancer.tables.openHub();
         break;
 
       case "m2Placeholder":

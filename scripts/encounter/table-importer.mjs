@@ -320,20 +320,99 @@ export async function createTable(pt, { onConflict } = {}) {
     if (choice === "replace") await existing.delete();
     else data.name = _uniqueTableName(data.name);
   }
-  // File into a nested folder: "Imported Tables" → <Type>, and tag the type.
-  const parent = await _ensureFolder("Imported Tables", null);
-  const childLabel = _categoryLabel(pt);
-  const child = await _ensureFolder(childLabel, parent.id);
-  data.folder = child.id;
+  // File into nested folders under "Imported Tables". A manifest-seeded import
+  // supplies a Category/Sub-category path (mirroring the Roll Tables hub layout);
+  // a plain paste files under its single category label.
+  const root = await _ensureFolder("Imported Tables", null);
+  let folderId = root.id;
+  let leafLabel;
+  const path = Array.isArray(pt.folderPath) ? pt.folderPath.filter(Boolean) : null;
+  if (path && path.length) {
+    for (const seg of path) folderId = (await _ensureFolder(seg, folderId)).id;
+    leafLabel = path[path.length - 1];
+  } else {
+    leafLabel = _categoryLabel(pt);
+    folderId = (await _ensureFolder(leafLabel, folderId)).id;
+  }
+  data.folder = folderId;
   data.flags = {
     ...(data.flags ?? {}),
-    "shadowdark-enhancer": { tableType: pt.category === CUSTOM_ID ? childLabel : (pt.category ?? "other") },
+    "shadowdark-enhancer": {
+      tableType: path ? leafLabel : (pt.category === CUSTOM_ID ? leafLabel : (pt.category ?? "other")),
+      // When imported via the Roll Tables hub for a known manifest entry, stamp
+      // its id so the hub matches this table EXACTLY (not by fuzzy name).
+      ...(pt.manifestId ? { manifestId: pt.manifestId } : {}),
+    },
   };
   return RollTable.create(data);
 }
 
+/**
+ * Split a pasted matrix grid into N per-column tables using a KNOWN column list
+ * (from the manifest) instead of guessing the column count from the header.
+ *
+ * Each data line is "<index|range> <cell> <cell> …". The header line and any
+ * trailing title are skipped (they don't start with a die index). When a row
+ * has exactly N cell-tokens (single-word cells — names, syllables) the split is
+ * exact regardless of a multi-word header. When a row has MORE tokens than
+ * columns (multi-word cells) we fall back to first-(N-1)-single + rest-joined
+ * and record a warning so the GM can fix that cell in the preview.
+ *
+ * @param {string} text
+ * @param {string[]} columns  the matrix's column labels (length = N)
+ * @param {number[][]} [widths]  optional per-row cell word-counts (roll-indexed);
+ *   when a row's counts sum to its token count, the split is exact even from a
+ *   single-spaced paste (the "cheat" — we know each cell's word count from the rules).
+ * @returns {Array<ParsedTable>}  one ParsedTable per column
+ */
+export function parseMatrixByColumns(text, columns, widths) {
+  const N = columns.length;
+  const cols = columns.map(() => []);
+  const warnings = [];
+  let maxRange = 0;
+  for (const raw of String(text ?? "").split(/\r?\n/)) {
+    const line = raw.trim();
+    const m = /^(\d+)(?:\s*[-–]\s*(\d+))?\s+(.+)$/.exec(line);
+    if (!m) continue; // header / title / blank — skipped
+    const min = Number(m[1]);
+    const max = m[2] ? Number(m[2]) : min;
+    maxRange = Math.max(maxRange, max);
+    const rest = m[3];
+    // Prefer real column delimiters (tabs or 2+ spaces) — PDF tables usually
+    // copy with aligned whitespace between columns but single spaces inside a
+    // cell, so this cleanly separates multi-word cells when alignment survives.
+    const byDelim = rest.split(/\t+|\s{2,}/).map(s => s.trim()).filter(s => s.length);
+    const toks = rest.trim().split(/\s+/);
+    const w = Array.isArray(widths) ? widths[min - 1] : null;
+    let cells;
+    if (w && w.length === N && w.reduce((a, b) => a + b, 0) === toks.length) {
+      // Authoritative: split by the known per-cell word counts (handles
+      // single-spaced multi-word cells with no delimiter at all).
+      cells = []; let k = 0;
+      for (const ww of w) { cells.push(toks.slice(k, k + ww).join(" ")); k += ww; }
+    } else if (byDelim.length === N) {
+      cells = byDelim;                                  // delimited multi-word cells
+    } else if (toks.length === N) {
+      cells = toks;                                     // single-word cells
+    } else if (toks.length > N) {
+      cells = [...toks.slice(0, N - 1), toks.slice(N - 1).join(" ")];
+      warnings.push(`Roll ${min}${max !== min ? "-" + max : ""}: ${toks.length} words across ${N} columns — verify the last column.`);
+    } else {
+      cells = [...toks, ...Array(N - toks.length).fill("")];
+      warnings.push(`Roll ${min}: only ${toks.length} of ${N} columns had text.`);
+    }
+    for (let i = 0; i < N; i++) cols[i].push({ min, max, text: cells[i] ?? "" });
+  }
+  const formula = `1d${Math.max(1, maxRange)}`;
+  return columns.map((col, i) => ({
+    name: col, formula, replacement: true, bestEffort: true,
+    rows: cols[i], warnings: i === 0 ? warnings : [],
+  }));
+}
+
 export const TableImporter = {
   parse: parseTables,
+  parseMatrixByColumns,
   buildTableData,
   createTable,
 };

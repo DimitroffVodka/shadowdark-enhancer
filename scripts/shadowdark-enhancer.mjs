@@ -25,6 +25,8 @@ import { TableRegistry } from "./encounter/table-registry.mjs";
 import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
 import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
 import { boundCount } from "./encounter/loot-setup-manifest.mjs";
+import { RollTablesApp } from "./encounter/table-hub-app.mjs";
+import { TableEnricher } from "./encounter/table-enrich.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -52,7 +54,7 @@ Hooks.once("init", () => {
   game.shadowdarkEnhancer = {
     encounter: {
       check: () => EncounterCheck.check(),
-      openRoller: (tab) => EncounterRollerApp.open(tab),
+      openRoller: (tab, seed) => EncounterRollerApp.open(tab, seed),
       setActiveTable: (uuid) => game.settings.set(MODULE_ID, "encounterTableUuid", uuid || ""),
       getThreshold: () => game.settings.get(MODULE_ID, "encounterThreshold"),
       setThreshold: (n) => game.settings.set(MODULE_ID, "encounterThreshold", n),
@@ -97,6 +99,11 @@ Hooks.once("init", () => {
       encounterTables: () => TableRegistry.encounterTables(),
       groups: () => TableRegistry.groups(),
       organize: (opts) => TableRegistry.organize(opts),
+      // Roll Tables hub — Core+Cursed Scroll status dashboard (manifest-driven).
+      openHub: () => RollTablesApp.open(),
+      // Enrich an imported table to the Ruins standard: encounter -> monster
+      // @UUID links + [[/r]] counts; treasure -> real compendium items.
+      enrich: (uuid, kind) => TableEnricher.enrich(uuid, kind),
     },
   };
 });
