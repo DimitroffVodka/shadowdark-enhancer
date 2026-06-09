@@ -37,7 +37,7 @@ const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 /** Title-case a SHOUTING statblock name, e.g. "DIRE WOLF" → "Dire Wolf" (keeps ", Qualifier"). */
 export function titleCaseName(s) {
   return String(s ?? "").toLowerCase()
-    .replace(/(^|[\s,\-'’/(])([a-z])/g, (_, p, c) => p + c.toUpperCase());
+    .replace(/(^|[\s,\-'’/(&])([a-z])/g, (_, p, c) => p + c.toUpperCase());
 }
 
 /**
@@ -49,7 +49,7 @@ export function titleCaseName(s) {
  */
 function isNameLine(line) {
   const t = line.trim();
-  if (!/^[A-Z][A-Z ,.'’\-]*$/.test(t)) return false;             // uppercase letters + light punct, no digits/+/(
+  if (!/^[A-Z][A-Z &/,.'’\-]*$/.test(t)) return false;           // uppercase letters + light punct (incl & and /), no digits/+/(
   if ((t.match(/[A-Z]/g) || []).length < 2) return false;
   if (/\b(AC|HP|ATK|MV|AL|LV|DC|ADV|DISADV)\b/.test(t)) return false; // a stat-line fragment, not a name
   return true;
@@ -100,21 +100,29 @@ export function splitStatblocks(rawText) {
 
 /** Map a parsed move base + parenthetical → {move, moveNote, warning?}. */
 function parseMove(mvText, warnings) {
-  const m = /^(.*?)\s*(?:\(([^)]*)\))?\s*$/.exec(mvText.trim());
-  const base = collapse(m?.[1] ?? mvText).toLowerCase();
+  // Isolate the primary mode + its parenthetical, then anything after the first
+  // TOP-LEVEL comma is a secondary mode → moveNote. Splitting in the regex (not
+  // on indexOf(",")) keeps a single-mode note whose own text contains a comma
+  // inside parens intact — e.g. "near (climb, swim)" stays move "near" / note
+  // "climb, swim" — while a compound "near (climb), double near (fly)" keeps the
+  // primary "near" instead of collapsing the whole thing to "special".
+  const full = String(mvText).trim();
+  const m = /^([A-Za-z ]+?)\s*(?:\(([^)]*)\))?\s*(?:,\s*(.*))?$/.exec(full);
+  const base = collapse(m?.[1] ?? full).toLowerCase();
   const note = collapse(m?.[2] ?? "");
+  const extra = collapse(m?.[3] ?? "");
   const move = MOVE_KEYS[base];
   if (!move) {
-    warnings.push(`movement "${mvText.trim()}" not recognized — set to "special"`);
-    return { move: "special", moveNote: collapse(`${base} ${note}`) };
+    warnings.push(`movement "${full}" not recognized — set to "special"`);
+    return { move: "special", moveNote: collapse([`${base} ${note}`.trim(), extra].filter(Boolean).join("; ")) };
   }
-  return { move, moveNote: note };
+  return { move, moveNote: collapse([note, extra].filter(Boolean).join("; ")) };
 }
 
 /** Map a range string ("far", "close/near") → array of valid range keys. */
 function mapRanges(range, name, warnings) {
   if (!range) return ["close"];
-  const keys = range.split("/").map((r) => r.trim().toLowerCase()).filter(Boolean);
+  const keys = range.split(/[/,]/).map((r) => r.trim().toLowerCase()).filter(Boolean);
   const out = keys.filter((k) => RANGE_KEYS.has(k));
   if (!out.length) {
     warnings.push(`attack "${name}" range "${range}" not recognized — defaulted to close`);
@@ -131,7 +139,12 @@ function parseOneAttack(s, warnings) {
   if (numM) { num = Number(numM[1]); rest = numM[2].trim(); }
   else warnings.push(`attack "${str}" has no leading count — assumed 1`);
 
-  const bonusM = /([+-]\d+)/.exec(rest);
+  // Anchor the to-hit bonus to the signed number immediately before the "("
+  // damage group, falling back to a free scan only when there's no parenthetical
+  // (e.g. "spell +4"). Stops a signed number inside a rider from being read as
+  // the to-hit. The lookahead keeps the match text the bare bonus, so the
+  // index/slice math below is byte-identical on canonical inputs.
+  const bonusM = /([+-]\d+)(?=\s*\()/.exec(rest) || /([+-]\d+)/.exec(rest);
   if (!bonusM) {
     // No bonus/damage → a special attack ("hypnotize", "pounce") or bare "spell".
     const nameOnly = collapse(rest.replace(/\([^)]*\)/g, ""));
@@ -153,13 +166,25 @@ function parseOneAttack(s, warnings) {
 
   // damage clause after the bonus: "(1d10 + swallow)" / "(toxin)" / "(1 + burrow)"
   let damage = "", special = "";
-  const dmgM = /^\(([^)]*)\)/.exec(afterBonus);
+  // First "(" to LAST ")" (not the first) so a nested parenthetical inside the
+  // rider — e.g. "(1d8 + poison (DC 12))" — is preserved instead of truncated.
+  // Unanchored (no trailing $) so a clause with text after the damage group
+  // ("(1d6) plus poison") still captures the damage rather than losing it.
+  const dmgM = /^\((.*)\)/.exec(afterBonus);
   if (dmgM) {
     const inner = collapse(dmgM[1]);
     const parts = inner.split(/\s*\+\s*/);
-    if (/^\d*d\d+$/.test(parts[0]) || /^\d+$/.test(parts[0])) {
-      damage = parts[0];
-      special = parts.slice(1).join(" + ");
+    // Greedily absorb ALL leading dice/flat-numeric terms into the damage
+    // formula, so a flat modifier ("1d6 + 2", "2d6 + 1", "1d12 + 1d6") is kept as
+    // real damage instead of being stranded as a "special" rider. The first
+    // non-numeric token (e.g. "swallow") starts the rider.
+    const isTerm = (p) => /^(\d*d\d+|\d+)$/.test(p);
+    if (isTerm(parts[0])) {
+      let i = 0;
+      const dmg = [];
+      while (i < parts.length && isTerm(parts[i])) { dmg.push(parts[i]); i++; }
+      damage = dmg.join(" + ");
+      special = parts.slice(i).join(" + ");
     } else {
       special = inner;
       warnings.push(`attack "${name}" damage "${inner}" isn't dice — left blank for review`);
@@ -176,7 +201,15 @@ function parseOneAttack(s, warnings) {
 function parseAttacks(atkText, warnings) {
   const actions = [];
   let spellAttack = null;
-  const parts = atkText.split(/\s+(?:and|or)\s+/i).map((s) => s.trim()).filter(Boolean);
+  // Split on " and "/" or " ONLY when the next fragment begins a new clause — a
+  // count ("1 pounce") or the bare word "spell". This stops an " and "/" or "
+  // embedded in an attack NAME ("hit and run", "grab or throw") from tearing the
+  // real attack into a phantom special + a renamed attack. Canonical multi-clause
+  // statblocks always lead the next clause with a count or "spell", so they still
+  // split. (Graceful limitation: a count-less trailing special "… and pounce"
+  // merges into the prior name rather than splitting — far less destructive than
+  // the old mis-split, and rare in canonical content.)
+  const parts = atkText.split(/\s+(?:and|or)\s+(?=\d|spell\b)/i).map((s) => s.trim()).filter(Boolean);
   for (const p of parts) {
     const a = parseOneAttack(p, warnings);
     if (a?.spell) { spellAttack = a; continue; }
@@ -194,7 +227,16 @@ function parseFeatures(featureLines, warnings) {
     if (!line) continue;
     // A feature header: a Title-Case name (with an optional "(… Spell)" tag),
     // immediately followed by ". " then text.
-    const m = /^([A-Z][A-Za-z'’ ]*(?:\([^)]*\))?)\.\s+(.+)$/.exec(line);
+    // Strip a leading bullet/dash/asterisk (some PDFs render features as a list)
+    // before matching the header. Name class accepts hyphen, slash, en-dash,
+    // em-dash, and a trailing numeric suffix ("Acid Spit 2.") in addition to
+    // letters/apostrophes/spaces — the old class silently dropped all of those,
+    // turning a real feature into unnamed review text (and, when it followed
+    // another feature, merging it into the prior one with NO warning). The
+    // optional "(… Spell)" tag capture is preserved so spellcaster detection
+    // still sees it.
+    const stripped = line.replace(/^[•\-*–—]\s+/, "");
+    const m = /^([A-Z][A-Za-z'’/–—\- ]*\d*(?:\s*\([^)]*\))?)\.\s+(.+)$/.exec(stripped);
     const headerName = m ? collapse(m[1]) : null;
     const isFalsePositive = headerName &&
       FEATURE_FALSE_POSITIVES.has(headerName.toLowerCase());
@@ -270,12 +312,33 @@ export function parseStatblock(chunk) {
   if (hp) { draft.hp = { value: Number(hp[1]), max: Number(hp[1]) }; }
   else warnings.push("HP not found");
 
-  const ab = /\bS\s*([+-]\d+),\s*D\s*([+-]\d+),\s*C\s*([+-]\d+),\s*I\s*([+-]\d+),\s*W\s*([+-]\d+),\s*Ch\s*([+-]\d+)/i.exec(statLine);
-  if (ab) {
-    draft.abilities = { str: +ab[1], dex: +ab[2], con: +ab[3], int: +ab[4], wis: +ab[5], cha: +ab[6] };
-  } else warnings.push("ability mods (S/D/C/I/W/Ch) not fully parsed");
+  // Parse each ability mod INDEPENDENTLY so one missing/garbled token doesn't
+  // reset the whole block to zeros (the old single all-or-nothing alternation
+  // did). `\bC\s*[+-]` can't steal CHA's value because "Ch" has an "h" (not a
+  // sign) after the C, so the CON scan skips it. CHA also accepts "Cha"/"CHA".
+  // A real 0 mod ("C +0") yields Number 0 (kept); only a truly absent stat is
+  // null and gets flagged.
+  const grabMod = (key) => {
+    const m = new RegExp(`\\b${key}\\s*([+-]\\d+)`, "i").exec(statLine);
+    return m ? Number(m[1]) : null;
+  };
+  const abVals = {
+    str: grabMod("S"), dex: grabMod("D"), con: grabMod("C"),
+    int: grabMod("I"), wis: grabMod("W"),
+  };
+  const chaM = /\bCh(?:a)?\s*([+-]\d+)/i.exec(statLine);
+  abVals.cha = chaM ? Number(chaM[1]) : null;
+  const missingMods = Object.entries(abVals).filter(([, v]) => v === null).map(([k]) => k);
+  draft.abilities = {
+    str: abVals.str ?? 0, dex: abVals.dex ?? 0, con: abVals.con ?? 0,
+    int: abVals.int ?? 0, wis: abVals.wis ?? 0, cha: abVals.cha ?? 0,
+  };
+  if (missingMods.length) warnings.push(`ability mods not parsed: ${missingMods.join("/")}`);
 
-  const al = /\bAL\s+(L|N|C)\b/i.exec(statLine);
+  // Accept spelled-out alignment ("Lawful"/"Neutral"/"Chaotic") by capturing the
+  // leading initial and consuming the optional remainder — the old trailing \b
+  // after a single letter failed on "AL Lawful" and silently defaulted to N.
+  const al = /\bAL\s+([LNC])(?:awful|eutral|haotic)?\b/i.exec(statLine);
   if (al) draft.alignment = al[1].toUpperCase(); else warnings.push("alignment not found");
 
   const lv = /\bLV\s+(\d+)/i.exec(statLine);
