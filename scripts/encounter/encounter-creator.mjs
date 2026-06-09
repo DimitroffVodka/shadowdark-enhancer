@@ -949,6 +949,34 @@ export class MonsterCreatorApp {
 // ───── Helpers ─────────────────────────────────────────────────────
 
 /**
+ * Wrap a GM-authored description in HTML so the Shadowdark NPC sheet renders it.
+ * NpcSheetSD passes item descriptions through jQuery `$(...)`, which throws
+ * ("unrecognized expression") on bare text because jQuery reads a non-`<` string
+ * as a CSS selector. The system stores its own NPC descriptions as `<p>…</p>`.
+ * Idempotent: passes through anything already starting with a tag; "" for empty.
+ */
+function _descHtml(text) {
+  const s = String(text ?? "").trim();
+  if (!s) return "";
+  if (s.startsWith("<")) return s;
+  const esc = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return `<p>${esc}</p>`;
+}
+
+/**
+ * Inverse of _descHtml: flatten stored HTML back to plain text for the editable
+ * draft model (the parser + the importer's preview grid speak plain text).
+ * Browser-only (uses the DOM); this module is Foundry-bound and never node-imported.
+ */
+function _stripHtml(html) {
+  const s = String(html ?? "");
+  if (!s || !s.includes("<")) return s.trim();
+  const tmp = document.createElement("div");
+  tmp.innerHTML = s;
+  return (tmp.textContent || "").replace(/\s+/g, " ").trim();
+}
+
+/**
  * Convert a Shadowdark NPC actor into the Monster Creator draft model.
  * Pure (aside from async art resolution) so it can be reused by the
  * standalone Monster Mutator without going through the app instance.
@@ -974,7 +1002,7 @@ export async function actorToDraft(actor) {
     level:       (typeof s.level === "object" ? s.level?.value : s.level) ?? 1,
     img:         img || "icons/svg/mystery-man.svg",
     tokenSrc:    tokenSrc || "",
-    description: s.notes || "",
+    description: _stripHtml(s.notes),
     hp: {
       value: s.attributes?.hp?.value ?? 1,
       max:   s.attributes?.hp?.max   ?? 1,
@@ -1012,13 +1040,13 @@ export async function actorToDraft(actor) {
         bonus:  item.system.bonuses?.attackBonus ?? 0,
         damage: item.system.damage?.value || "",
         ranges: item.system.ranges || [],
-        description: item.system.description || item.system.damage?.special || "",
+        description: _stripHtml(item.system.description || item.system.damage?.special || ""),
       });
     } else if (item.type === "NPC Feature") {
       draft.features.push({
         id:     foundry.utils.randomID(),
         name:   item.name,
-        description: item.system.description || "",
+        description: _stripHtml(item.system.description || ""),
       });
     } else if (item.type === "Spell") {
       const source = item.toObject();
@@ -1110,7 +1138,11 @@ export function draftToActorData(d) {
     const base = {
       name: (a.name || "").trim() || "New Action",
       type: a.type,
-      system: { description: a.description || "" },
+      // NPC Attack keeps its rider as PLAIN text (it's mirrored into
+      // damage.special, which the action stat-block renderer reads as text).
+      // Feature / Special-Attack descriptions must be HTML or the SD NPC sheet's
+      // jQuery render throws "unrecognized expression" on the bare text.
+      system: { description: a.type === "NPC Attack" ? (a.description || "") : _descHtml(a.description) },
     };
     if (a.type === "NPC Attack") {
       base.system.attack  = { num: Number(a.num ?? 1) };
@@ -1134,7 +1166,7 @@ export function draftToActorData(d) {
     items.push({
       name: (f.name || "").trim() || "New Feature",
       type: "NPC Feature",
-      system: { description: f.description || "" },
+      system: { description: _descHtml(f.description) },
     });
   }
 

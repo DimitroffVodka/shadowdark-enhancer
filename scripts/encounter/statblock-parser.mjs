@@ -148,7 +148,7 @@ function parseOneAttack(s, warnings) {
   if (!bonusM) {
     // No bonus/damage → a special attack ("hypnotize", "pounce") or bare "spell".
     const nameOnly = collapse(rest.replace(/\([^)]*\)/g, ""));
-    if (/^spell\b/i.test(nameOnly)) return { spell: true, num, bonus: 0 };
+    if (/^spells?\b/i.test(nameOnly)) return { spell: true, num, bonus: 0 };
     return { name: titleCaseName(nameOnly) || "Special Attack", type: "NPC Special Attack",
       num, bonus: 0, damage: "", ranges: [], description: "" };
   }
@@ -162,7 +162,7 @@ function parseOneAttack(s, warnings) {
   const rangeM = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(beforeBonus);
   if (rangeM) { name = rangeM[1].trim(); range = rangeM[2].trim(); }
 
-  if (/^spell\b/i.test(name)) return { spell: true, num, bonus };
+  if (/^spells?\b/i.test(name)) return { spell: true, num, bonus };
 
   // damage clause after the bonus: "(1d10 + swallow)" / "(toxin)" / "(1 + burrow)"
   let damage = "", special = "";
