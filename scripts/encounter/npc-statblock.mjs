@@ -53,7 +53,8 @@ export function buildAtkText(draft) {
     if (a?.damage && a?.description) dmg = ` (${a.damage} + ${a.description})`;
     else if (a?.damage) dmg = ` (${a.damage})`;
     else if (a?.description) dmg = ` (${a.description})`;
-    clauses.push(`${num} ${a?.name ?? "attack"}${rangeStr} ${sign(a?.bonus)}${dmg}`.replace(/\s+/g, " ").trim());
+    // Stat line uses lowercase attack names ("1 dagger"); the item itself is Title Case.
+    clauses.push(`${num} ${String(a?.name ?? "attack").toLowerCase()}${rangeStr} ${sign(a?.bonus)}${dmg}`.replace(/\s+/g, " ").trim());
   }
   const sc = draft?.spellcasting;
   if (sc && Number(sc.attacks) > 0) {

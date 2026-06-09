@@ -50,6 +50,90 @@ function _uniqueName(index, base) {
   return cand;
 }
 
+const SPELL_TAG = /\((int|wis|cha)\s+spell\)/i;
+const SPELL_ICON = "icons/magic/symbols/runes-star-magenta.webp";
+
+/** Synthesize a minimal but functional Spell item when no compendium match exists. */
+function buildFallbackSpell(name, description) {
+  const text = String(description || "");
+  const body = text
+    .replace(/^\s*\((?:int|wis|cha)\s+spell\)[.,]?\s*/i, "")
+    .replace(/^\s*(?:int|wis|cha)\s+spell[.,]?\s*/i, "")
+    .replace(/^\s*DC\s+\d+[.,]?\s*/i, "")
+    .trim();
+  const range = /\b(?:within\s+|in\s+)?far\b/i.test(text) ? "far"
+    : /\bself\b/i.test(text) ? "self"
+    : /\bnear\b/i.test(text) ? "near" : "close";
+  const focus = /\bfocus\b/i.test(text);
+  return {
+    name, type: "Spell", img: SPELL_ICON,
+    system: {
+      class: [], tier: 1, range,
+      duration: focus ? { type: "focus", value: "-1" } : { type: "instant", value: "-1" },
+      lost: false, properties: [], source: { title: "" },
+      description: body.startsWith("<") ? body : `<p>${body || name}</p>`,
+      damageType: "none",
+    },
+  };
+}
+
+/**
+ * Convert a draft's "(XXX Spell)" features into functional Spell items: match the
+ * spell name against the installed spell compendia (real, full data) where it
+ * exists, else synthesize a basic Spell item from the parsed text. The feature is
+ * flagged `isSpell` so draftToActorData makes a Spell item (not an NPC Feature)
+ * while STILL listing it in the notes stat block. Idempotent; never throws.
+ */
+export async function resolveSpellFeatures(draft) {
+  const feats = draft.features ?? [];
+  if (!feats.some((f) => SPELL_TAG.test(f.name || "") && !f.isSpell)) return;
+  let byName = new Map();
+  try {
+    const { SpellIndex } = await import("./spell-index.mjs");
+    const rows = await SpellIndex.loadAll();
+    byName = new Map(rows.map((r) => [String(r.name).toLowerCase(), r]));
+  } catch (err) {
+    console.warn(`${MODULE_ID} | spell index load failed; using fallback spells:`, err);
+  }
+  draft.spells = draft.spells ?? [];
+  for (const f of feats) {
+    if (f.isSpell || !SPELL_TAG.test(f.name || "")) continue;
+    const spellName = String(f.name).replace(/\s*\((?:int|wis|cha)\s+spell\)\s*/i, "").trim();
+    const row = byName.get(spellName.toLowerCase());
+    let source = null;
+    if (row?.uuid) {
+      const doc = await fromUuid(row.uuid).catch(() => null);
+      if (doc?.type === "Spell") { source = doc.toObject(); delete source._id; }
+    }
+    if (!source) source = buildFallbackSpell(spellName, f.description);
+    draft.spells.push({ uuid: row?.uuid ?? null, name: spellName, img: source.img ?? SPELL_ICON, source, matched: !!row });
+    f.isSpell = true;
+  }
+}
+
+/**
+ * Auto-assign portrait + token art by name-matching the monster against any
+ * installed Actor compendium (picking up community-token art mappings). No-op if
+ * the draft already has real art or there's no match. Best-effort; never throws.
+ */
+export async function resolveDraftArt(draft) {
+  try {
+    const { _isPlaceholderArt, _findCompendiumActorByName, _getCompendiumArtFor } = await import("./art-utils.mjs");
+    if (!_isPlaceholderArt(draft.img) && draft.tokenSrc && !_isPlaceholderArt(draft.tokenSrc)) return;
+    const uuid = await _findCompendiumActorByName(draft.name);
+    if (!uuid) return;
+    const comp = await fromUuid(uuid).catch(() => null);
+    if (!comp) return;
+    const art = _getCompendiumArtFor(comp);
+    const img = art?.actor || (!_isPlaceholderArt(comp.img) ? comp.img : null);
+    const token = art?.token?.texture?.src || (!_isPlaceholderArt(comp.prototypeToken?.texture?.src) ? comp.prototypeToken?.texture?.src : null);
+    if (img && _isPlaceholderArt(draft.img)) draft.img = img;
+    if (token && (!draft.tokenSrc || _isPlaceholderArt(draft.tokenSrc))) draft.tokenSrc = token;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | art resolution failed:`, err);
+  }
+}
+
 /**
  * Create one draft into the pack. Conflicts are checked against the PACK INDEX
  * (not game.actors). `onConflict(name) → "skip" | "replace" | "rename"` (default
@@ -59,6 +143,11 @@ function _uniqueName(index, base) {
 export async function createMonster(draft, { pack, folder = null, source = "", onConflict } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import monsters."); return null; }
   if (!pack) pack = await ensureMonsterPack();
+
+  // Foundry-bound enrichment of the parsed draft before the (pure) data build:
+  // resolve "(XXX Spell)" features → functional Spell items, and auto-assign art.
+  await resolveSpellFeatures(draft);
+  await resolveDraftArt(draft);
 
   const { actorData, items } = draftToActorData(draft);
   const index = await pack.getIndex();

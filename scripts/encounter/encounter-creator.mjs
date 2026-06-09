@@ -23,6 +23,7 @@ import {
 } from "./mutation-data.mjs";
 import { createMutatedFromDraft } from "./monster-mutator.mjs";
 import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
+import { titleCaseName } from "./statblock-parser.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 
@@ -1139,8 +1140,11 @@ export function draftToActorData(d) {
   // action menu's stat-block renderer (slice 1a) shows the rider inline.
   const items = (d.actions ?? []).map(a => {
     const base = {
-      name: (a.name || "").trim() || "New Action",
+      // Title-case the item name to match the system bestiary ("Dagger",
+      // "Flaming Greatsword"); the stat line in the notes stays lowercase.
+      name: titleCaseName((a.name || "").trim()) || "New Action",
       type: a.type,
+      img: NPC_ITEM_ICONS[a.type],
       // NPC Attack keeps its rider as PLAIN text (it's mirrored into
       // damage.special, which the action stat-block renderer reads as text).
       // Feature / Special-Attack descriptions must be HTML or the SD NPC sheet's
@@ -1166,9 +1170,14 @@ export function draftToActorData(d) {
 
   // ─── Feature Items ────────────────────────────────────────────
   for (const f of (d.features ?? [])) {
+    // A spell-tagged feature is resolved to a functional Spell item (see
+    // resolveSpellFeatures in monster-importer.mjs) — skip the Feature item,
+    // but it's still listed in the notes stat block above.
+    if (f.isSpell) continue;
     items.push({
       name: (f.name || "").trim() || "New Feature",
       type: "NPC Feature",
+      img: NPC_ITEM_ICONS["NPC Feature"],
       system: { description: _descHtml(f.description) },
     });
   }
@@ -1196,6 +1205,13 @@ const _ALIGNMENT_EXPANDED = {
   L: "lawful",
   N: "neutral",
   C: "chaotic",
+};
+
+/** System-default item icons per NPC item type (match the bestiary's items). */
+const NPC_ITEM_ICONS = {
+  "NPC Attack": "icons/skills/melee/weapons-crossed-swords-yellow.webp",
+  "NPC Special Attack": "icons/magic/death/weapon-sword-skull-purple.webp",
+  "NPC Feature": "icons/creatures/abilities/dragon-breath-purple.webp",
 };
 
 /**
