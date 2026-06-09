@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.2] — 2026-06-08
+
+### Added
+- **Roll Tables hub: catalog extended through Cursed Scroll #1–#6.** The shipped table manifest grows from 162 (Core only) to **268** canonical tables — adding Cursed Scroll #1 (18), #2 (32), #3 (14), #4 (20), #5 (11), and #6 (11). The hub's source chips now populate `CS1`–`CS6` with their counts, and every CS table shows its status (in-system / imported / missing) and page · die · source like the Core entries.
+
+### Changed
+- **Every matrix table now carries real column names.** Multi-column tables (encounter zones, NPC names, pit-fight grids, district encounters, etc.) ship their actual column labels instead of placeholder `Roll 1..N` — including correctly-split multi-word columns such as `Wealthy District` / `Working District` / `Poor District` and `% Modifier`. So a one-paste import of a CS encounter matrix splits into the right per-column tables (e.g. `Encounter Zone → Sea / River / Mountain / Forest`).
+- **Table Registry classifier seed updated for Cursed Scroll #3–#6**, so `tables.organize()` files the new CS tables into the correct category folders.
+
 ## [0.2.1] — 2026-06-07
 
 ### Added
