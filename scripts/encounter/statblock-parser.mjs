@@ -273,7 +273,7 @@ export function parseStatblock(chunk) {
   const draft = {
     name: "", alignment: "N", level: 1,
     img: "icons/svg/mystery-man.svg", tokenSrc: "", description: "",
-    hp: { value: 1, max: 1 }, ac: 10, darkAdapted: false,
+    hp: { value: 1, max: 1 }, ac: 10, acNote: "", darkAdapted: false,
     abilities: { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 },
     move: "near", moveNote: "",
     spellcasting: { ability: "", bonus: 0, attacks: 0 },
@@ -305,8 +305,10 @@ export function parseStatblock(chunk) {
 
   // ── parse the stat line fields ──
   const ac = /\bAC\s+(\d+)(?:\s*\(([^)]*)\))?/i.exec(statLine);
-  if (ac) draft.ac = Number(ac[1]); else warnings.push("AC not found");
-  // An AC parenthetical (e.g. "AC 16 (shield)") is informational — the value is captured.
+  if (ac) { draft.ac = Number(ac[1]); if (ac[2]) draft.acNote = collapse(ac[2]); }
+  else warnings.push("AC not found");
+  // An AC parenthetical (e.g. "AC 16 (shield)") is kept as acNote for the
+  // stat-block description; the numeric value drives the AC field.
 
   const hp = /\bHP\s+(\d+)/i.exec(statLine);
   if (hp) { draft.hp = { value: Number(hp[1]), max: Number(hp[1]) }; }

@@ -22,6 +22,7 @@ import {
   getMutation, getConflict, applyMutations, generateMutatedName,
 } from "./mutation-data.mjs";
 import { createMutatedFromDraft } from "./monster-mutator.mjs";
+import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 
@@ -43,6 +44,7 @@ function _defaultDraft() {
     // Stats — Sub-slice 1e-ii
     hp: { value: 1, max: 1 },
     ac: 10,
+    acNote: "",              // AC parenthetical ("shield", "+3 plate mail") for the stat block
     darkAdapted: false,
     abilities: {
       str: 0, dex: 0, con: 0,
@@ -1002,12 +1004,13 @@ export async function actorToDraft(actor) {
     level:       (typeof s.level === "object" ? s.level?.value : s.level) ?? 1,
     img:         img || "icons/svg/mystery-man.svg",
     tokenSrc:    tokenSrc || "",
-    description: _stripHtml(s.notes),
+    description: extractFlavor(s.notes),
     hp: {
       value: s.attributes?.hp?.value ?? 1,
       max:   s.attributes?.hp?.max   ?? 1,
     },
     ac: s.attributes?.ac?.value ?? 10,
+    acNote: "",
     darkAdapted: !!s.darkAdapted,
     abilities: {
       str: s.abilities?.str?.mod ?? 0,
@@ -1091,7 +1094,7 @@ export function draftToActorData(d) {
       // .level(). Writing a plain number gets rejected by validation
       // or silently coerced; build the object shape directly.
       level:     { value: Number(d.level ?? 1), xp: 0 },
-      notes:     d.description ?? "",
+      notes:     buildNpcNotes(d),
       attributes: {
         hp: {
           value: Number(d.hp.value ?? 1),
