@@ -3690,6 +3690,145 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-import-unlink:hover { color: var(--sde-bar-accent); }
 
+/* ─── Monster Importer (bulk statblock → NPC actors) ─────────────────── */
+
+/* Shared input look for the mimport-specific controls the .sde-import-*
+   classes don't already cover (selects + odd-sized text inputs). */
+.sde-mimport-sel,
+.sde-mimport-movenote,
+.sde-mimport-aname,
+.sde-mimport-dmg,
+.sde-mimport-ranges,
+.sde-mimport-fname,
+.sde-mimport-source-input {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text-bright);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.35rem;
+  font-family: var(--sde-bar-font);
+}
+.sde-mimport-aname { flex: 1 1 8rem; }
+.sde-mimport-dmg { flex: 0 0 5rem; }
+.sde-mimport-ranges { flex: 0 0 8rem; }
+.sde-mimport-fname { flex: 0 0 10rem; }
+.sde-mimport-movenote { flex: 1 1 10rem; }
+
+/* Source row */
+.sde-mimport-source {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.sde-mimport-source > label {
+  font-weight: 600;
+  color: var(--sde-bar-text);
+}
+.sde-mimport-source-input { flex: 0 0 14rem; }
+.sde-mimport-source-hint {
+  color: var(--sde-bar-text-muted);
+  font-size: 0.76rem;
+  font-style: italic;
+}
+
+/* Per-field "parser wasn't sure" highlight + inline legend sample. */
+.sde-mimport-warn {
+  border-color: #e6a100 !important;
+  box-shadow: 0 0 0 1px rgba(230, 161, 0, 0.45);
+  background: rgba(230, 161, 0, 0.12);
+}
+.sde-mimport-warn-row {
+  border-left: 2px solid rgba(230, 161, 0, 0.6);
+  padding-left: 0.4rem;
+}
+.sde-mimport-warn-legend {
+  background: rgba(230, 161, 0, 0.18);
+  border-bottom: 1px solid rgba(230, 161, 0, 0.6);
+  padding: 0 2px;
+}
+
+/* Skipped non-monster blocks */
+.sde-mimport-skipped {
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 4px;
+  background: var(--sde-bar-bg-alt);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+.sde-mimport-skipped > summary { cursor: pointer; color: var(--sde-bar-text-muted); }
+.sde-mimport-skipped ul {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--sde-bar-text-muted);
+}
+
+/* Monster cards */
+.sde-mimport-card {
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 5px;
+  background: var(--sde-bar-bg-alt);
+  padding: 0.5rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.sde-mimport-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.sde-mimport-cardname {
+  flex: 1 1 auto;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.sde-mimport-warncount {
+  color: #e6a100;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+/* Stat / ability / spell rows */
+.sde-mimport-stats,
+.sde-mimport-abils,
+.sde-mimport-spell,
+.sde-mimport-sechead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.sde-mimport-abils { gap: 0.3rem; }
+.sde-mimport-stats label,
+.sde-mimport-abils label,
+.sde-mimport-spell label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--sde-bar-text-muted);
+  font-size: 0.78rem;
+}
+.sde-mimport-sublabel {
+  font-weight: 700;
+  color: var(--sde-bar-text);
+  font-size: 0.8rem;
+}
+
+/* Attack / feature rows */
+.sde-mimport-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.sde-mimport-attack,
+.sde-mimport-feature {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
 /* ─── Loot delivery chat card ───────────────────────────────────────── */
 
 .sde-loot-card {

@@ -104,6 +104,7 @@ export class MonsterCreatorApp {
     creatorSpellAdd:            MonsterCreatorApp.prototype._onSpellAdd,
     creatorSpellRemove:         MonsterCreatorApp.prototype._onSpellRemove,
     creatorToggleLoader:        MonsterCreatorApp.prototype._onToggleLoader,
+    creatorBulkImport:          MonsterCreatorApp.prototype._onBulkImport,
     creatorLoaderPick:          MonsterCreatorApp.prototype._onLoaderPick,
     creatorLoaderToggleSource:  MonsterCreatorApp.prototype._onLoaderToggleSource,
     creatorLoaderSort:          MonsterCreatorApp.prototype._onLoaderSort,
@@ -762,6 +763,12 @@ export class MonsterCreatorApp {
       callback: (path) => { this._draft.tokenSrc = path; this.render(); },
     });
     fp.render(true);
+  }
+
+  /** Open the standalone Bulk Monster Importer window (paste → preview → create). */
+  async _onBulkImport() {
+    const mod = await import("./monster-importer-app.mjs");
+    mod.MonsterImporterApp.open();
   }
 
   _onToggleLoader() {

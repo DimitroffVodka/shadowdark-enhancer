@@ -1,0 +1,146 @@
+<div class="sde-import sde-mimport">
+
+  <div class="sde-mimport-source">
+    <label for="sde-mimport-source"><i class="fas fa-folder-tree"></i> Source</label>
+    <input id="sde-mimport-source" type="text" data-mimport-source list="sde-mimport-sources"
+           value="{{source}}" placeholder="e.g. CS4 or Western Reaches"
+           class="sde-mimport-source-input" aria-label="Source label (compendium folder + per-actor tag)">
+    <datalist id="sde-mimport-sources">
+      {{#each sourceSuggestions as |s|}}<option value="{{s}}"></option>{{/each}}
+    </datalist>
+    <span class="sde-mimport-source-hint">files the imported monsters under this folder &amp; tags them</span>
+  </div>
+
+  <label class="sde-import-label" for="sde-mimport-text">
+    Paste monster statblocks copied from your Shadowdark book:
+  </label>
+  <textarea id="sde-mimport-text" data-mimport-text rows="8" class="sde-import-text"
+            placeholder="DIRE WOLF&#10;A large wolf with matted fur.&#10;AC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2&#10;Pack. Has advantage on attacks against a target within near of an ally.">{{text}}</textarea>
+
+  <div class="sde-import-controls">
+    <button type="button" data-action="mimportParse"><i class="fas fa-wand-magic"></i> Parse</button>
+    <button type="button" data-action="mimportClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> Clear</button>
+    {{#if hasParsed}}
+    <button type="button" data-action="mimportCreateAll" class="sde-import-primary">
+      <i class="fas fa-dragon"></i> Create all ({{total}})
+    </button>
+    {{/if}}
+  </div>
+
+  <p class="sde-import-note">
+    <i class="fas fa-circle-info"></i> Parsing is deterministic and offline — nothing is uploaded.
+    Fields the parser wasn't confident about are <span class="sde-mimport-warn-legend">highlighted</span> for you to check.
+    Created monsters go to a local world compendium; no book content is bundled or shared.
+  </p>
+
+  {{#if skippedCount}}
+  <details class="sde-mimport-skipped">
+    <summary><i class="fas fa-filter-circle-xmark"></i> Skipped {{skippedCount}} non-monster block(s) — section headers / lore / artifacts</summary>
+    <ul>
+      {{#each skipped as |s|}}<li><strong>{{s.name}}</strong> — {{s.reason}}</li>{{/each}}
+    </ul>
+  </details>
+  {{/if}}
+
+  {{#if hasParsed}}
+  <div class="sde-import-preview">
+    {{#each monsters as |m|}}
+    <div class="sde-mimport-card" data-monster-idx="{{m.idx}}">
+
+      <div class="sde-mimport-card-head">
+        <input type="text" data-mimport-field="name" value="{{m.draft.name}}"
+               class="sde-import-name sde-mimport-cardname" aria-label="Monster name" placeholder="Monster name">
+        {{#if m.hasWarnings}}
+        <span class="sde-mimport-warncount" title="Parser flagged {{m.warnCount}} field(s) for review">
+          <i class="fas fa-triangle-exclamation"></i> {{m.warnCount}}
+        </span>
+        {{/if}}
+        <button type="button" data-action="mimportRemoveMonster" class="sde-import-del"
+                aria-label="Remove this monster" title="Don't import this one"><i class="fas fa-xmark"></i></button>
+      </div>
+
+      {{#if m.hasWarnings}}
+      <ul class="sde-import-warnings">
+        {{#each m.warnings as |w|}}<li>{{w}}</li>{{/each}}
+      </ul>
+      {{/if}}
+
+      <div class="sde-mimport-stats">
+        <label>LV <input type="number" data-mimport-field="level" value="{{m.draft.level}}" class="sde-import-num{{#if m.warn.level}} sde-mimport-warn{{/if}}"></label>
+        <label>AC <input type="number" data-mimport-field="ac" value="{{m.draft.ac}}" class="sde-import-num{{#if m.warn.ac}} sde-mimport-warn{{/if}}"></label>
+        <label>HP <input type="number" data-mimport-field="hpValue" value="{{m.draft.hp.value}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}"></label>
+        <label class="sde-mimport-hpmax">/ <input type="number" data-mimport-field="hpMax" value="{{m.draft.hp.max}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}" aria-label="HP max"></label>
+        <label>AL
+          <select data-mimport-field="alignment" class="sde-mimport-sel{{#if m.warn.alignment}} sde-mimport-warn{{/if}}">
+            {{#each @root.alignments as |a|}}<option value="{{a}}" {{#if (eq a m.draft.alignment)}}selected{{/if}}>{{a}}</option>{{/each}}
+          </select>
+        </label>
+        <label>MV
+          <select data-mimport-field="move" class="sde-mimport-sel{{#if m.warn.move}} sde-mimport-warn{{/if}}">
+            {{#each @root.moveOptions as |mv|}}<option value="{{mv}}" {{#if (eq mv m.draft.move)}}selected{{/if}}>{{mv}}</option>{{/each}}
+          </select>
+        </label>
+        <input type="text" data-mimport-field="moveNote" value="{{m.draft.moveNote}}" class="sde-mimport-movenote" placeholder="move note (climb, swim…)" aria-label="Movement note">
+      </div>
+
+      <div class="sde-mimport-abils{{#if m.warn.abilities}} sde-mimport-warn-row{{/if}}">
+        {{#each @root.abilityKeys as |ab|}}
+        <label>{{ab.label}} <input type="number" data-mimport-field="{{ab.key}}" value="{{lookup m.draft.abilities ab.key}}" class="sde-import-num"></label>
+        {{/each}}
+      </div>
+
+      <div class="sde-mimport-spell{{#if m.warn.spellcasting}} sde-mimport-warn-row{{/if}}">
+        <span class="sde-mimport-sublabel">Spellcasting</span>
+        <label>ability
+          <select data-mimport-field="scAbility" class="sde-mimport-sel">
+            {{#each @root.spellAbilities as |sa|}}<option value="{{sa.value}}" {{#if (eq sa.value m.draft.spellcasting.ability)}}selected{{/if}}>{{sa.label}}</option>{{/each}}
+          </select>
+        </label>
+        <label>bonus <input type="number" data-mimport-field="scBonus" value="{{m.draft.spellcasting.bonus}}" class="sde-import-num"></label>
+        <label>spells/rd <input type="number" data-mimport-field="scAttacks" value="{{m.draft.spellcasting.attacks}}" class="sde-import-num"></label>
+      </div>
+
+      <div class="sde-mimport-section{{#if m.warn.attacks}} sde-mimport-warn-row{{/if}}">
+        <div class="sde-mimport-sechead">
+          <span class="sde-mimport-sublabel">Attacks</span>
+          <button type="button" data-action="mimportAddAttack" class="sde-import-addrow"><i class="fas fa-plus"></i> Attack</button>
+          <button type="button" data-action="mimportAddSpecial" class="sde-import-addrow"><i class="fas fa-plus"></i> Special</button>
+        </div>
+        {{#each m.draft.actions as |a|}}
+        <div class="sde-mimport-attack" data-attack-idx="{{@index}}">
+          <input type="number" data-mimport-field="aNum" value="{{a.num}}" class="sde-import-num" aria-label="Attacks per round" title="count">
+          <input type="text" data-mimport-field="aName" value="{{a.name}}" class="sde-mimport-aname" aria-label="Attack name" placeholder="name">
+          <select data-mimport-field="aType" class="sde-mimport-sel" aria-label="Attack type">
+            {{#each @root.attackTypes as |ty|}}<option value="{{ty}}" {{#if (eq ty a.type)}}selected{{/if}}>{{ty}}</option>{{/each}}
+          </select>
+          <input type="number" data-mimport-field="aBonus" value="{{a.bonus}}" class="sde-import-num" aria-label="To-hit bonus" title="+hit">
+          <input type="text" data-mimport-field="aDamage" value="{{a.damage}}" class="sde-mimport-dmg" aria-label="Damage" placeholder="1d6">
+          <input type="text" data-mimport-field="aRanges" value="{{join a.ranges}}" class="sde-mimport-ranges" aria-label="Ranges" placeholder="close, near">
+          <input type="text" data-mimport-field="aDesc" value="{{a.description}}" class="sde-import-rowtext" aria-label="Rider / effect" placeholder="rider (swallow…)">
+          <button type="button" data-action="mimportRemoveAttack" class="sde-import-del" aria-label="Remove attack"><i class="fas fa-xmark"></i></button>
+        </div>
+        {{/each}}
+      </div>
+
+      <div class="sde-mimport-section">
+        <div class="sde-mimport-sechead">
+          <span class="sde-mimport-sublabel">Features</span>
+          <button type="button" data-action="mimportAddFeature" class="sde-import-addrow"><i class="fas fa-plus"></i> Feature</button>
+        </div>
+        {{#each m.draft.features as |f|}}
+        <div class="sde-mimport-feature" data-feature-idx="{{@index}}">
+          <input type="text" data-mimport-field="fName" value="{{f.name}}" class="sde-mimport-fname" aria-label="Feature name" placeholder="name">
+          <input type="text" data-mimport-field="fDesc" value="{{f.description}}" class="sde-import-rowtext" aria-label="Feature text" placeholder="description">
+          <button type="button" data-action="mimportRemoveFeature" class="sde-import-del" aria-label="Remove feature"><i class="fas fa-xmark"></i></button>
+        </div>
+        {{/each}}
+      </div>
+
+    </div>
+    {{/each}}
+  </div>
+  {{else}}
+  <p class="sde-import-empty">Paste statblocks above and click <strong>Parse</strong> to preview them here before creating actors.</p>
+  {{/if}}
+
+</div>

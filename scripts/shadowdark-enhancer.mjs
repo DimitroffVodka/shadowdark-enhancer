@@ -27,6 +27,7 @@ import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
 import { boundCount } from "./encounter/loot-setup-manifest.mjs";
 import { RollTablesApp } from "./encounter/table-hub-app.mjs";
 import { TableEnricher } from "./encounter/table-enrich.mjs";
+import { MonsterImporterAPI } from "./encounter/monster-importer-app.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -50,6 +51,12 @@ Hooks.once("init", () => {
   // instead of "NaN" for NPCs without a level value set.
   Handlebars.registerHelper("isFinite", (v) => Number.isFinite(v));
 
+  // Join an array for display (Monster Importer renders attack ranges as
+  // "close, near"). Handlebars passes its options object as the last arg, so
+  // a non-string separator falls back to ", ".
+  Handlebars.registerHelper("join", (arr, sep) =>
+    Array.isArray(arr) ? arr.join(typeof sep === "string" ? sep : ", ") : "");
+
   // Expose API
   game.shadowdarkEnhancer = {
     encounter: {
@@ -62,6 +69,9 @@ Hooks.once("init", () => {
     monsterCreator: {
       open: () => MonsterCreator.open(),
     },
+    // Bulk monster importer: paste a raw PDF statblock dump → preview/edit grid →
+    // create NPC actors into the managed world compendium. See monster-importer-app.mjs.
+    monsters: MonsterImporterAPI,
     mutator: {
       // Clone a bestiary/world actor, apply mutation ids, create a NEW
       // world actor (source untouched). See monster-mutator.mjs.

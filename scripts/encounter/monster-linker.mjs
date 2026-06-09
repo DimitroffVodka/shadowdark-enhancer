@@ -13,6 +13,8 @@
  * `enrichEncounterText`) are Foundry-free and unit-tested.
  */
 
+import { findMonsterPack } from "./monster-pack.mjs";
+
 const MONSTER_PACK = "shadowdark.monsters";
 
 export function escapeRegex(s) {
@@ -73,20 +75,43 @@ export function enrichEncounterText(text, index) {
 export const MonsterLinker = {
   _index: null,
 
-  /** Build (and cache) the monster name->uuid index from shadowdark.monsters,
-   *  deduped by lowercased name, sorted longest-name-first. */
+  /**
+   * Build (and cache) the monster name->uuid index, deduped by lowercased name,
+   * sorted longest-name-first.
+   *
+   * Sources, IN PRIORITY ORDER:
+   *   1. `shadowdark.monsters` (Core) — indexed FIRST, so a Core monster always
+   *      wins a name clash.
+   *   2. The managed world imported-monsters pack (flag `monsterPack`, created by
+   *      the Monster Importer) — added only for names Core doesn't already have,
+   *      so imported CS/WR monsters FILL GAPS and never shadow a Core monster.
+   *
+   * The importer calls `invalidate()` after each batch, so freshly imported
+   * monsters become linkable without a reload.
+   */
   async buildIndex() {
     if (this._index) return this._index;
-    const pack = game.packs.get(MONSTER_PACK);
-    if (!pack) return (this._index = []);
-    const idx = await pack.getIndex();
     const byName = new Map();
+    await this._indexPack(game.packs.get(MONSTER_PACK), byName);             // Core first
+    await this._indexPack(this._importedMonsterPack(), byName);             // imports fill gaps
+    this._index = [...byName.values()].sort((a, b) => b.name.length - a.name.length);
+    return this._index;
+  },
+
+  /** The managed world imported-monsters compendium (label/flag-matched), or undefined. */
+  _importedMonsterPack() {
+    return findMonsterPack();
+  },
+
+  /** Add a pack's name->uuid entries to `byName`, first-writer-wins (priority). */
+  async _indexPack(pack, byName) {
+    if (!pack) return;
+    const idx = await pack.getIndex();
     for (const e of idx.contents) {
+      if (!e?.name) continue;
       const key = e.name.toLowerCase();
       if (!byName.has(key)) byName.set(key, { name: e.name, uuid: e.uuid });
     }
-    this._index = [...byName.values()].sort((a, b) => b.name.length - a.name.length);
-    return this._index;
   },
 
   invalidate() { this._index = null; },
