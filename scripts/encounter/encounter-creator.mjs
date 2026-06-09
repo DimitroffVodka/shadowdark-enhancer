@@ -1190,6 +1190,10 @@ export function draftToActorData(d) {
     if (!sp?.source) continue;
     const src = foundry.utils.deepClone(sp.source);
     delete src._id;
+    // The NPC sheet renders item descriptions through jQuery $(), which throws
+    // on bare text. Most spells ship HTML, but some 3rd-party spell packs store
+    // a plain-text description — wrap it like every other item description.
+    if (src.system) src.system.description = _descHtml(src.system.description);
     items.push(src);
   }
 
