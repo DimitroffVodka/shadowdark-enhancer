@@ -459,14 +459,26 @@ export const MovementTracker = {
   async resetAll() {
     const combat = game.combat;
     if (combat) {
+      // Batched: one updateEmbeddedDocuments per scene instead of one awaited
+      // setFlag round-trip per combatant — N combatants used to mean N
+      // document updates AND N strip re-renders on every turn/round change.
+      const byScene = new Map();
       for (const c of combat.turns) {
         const tokenDoc = c.token;
-        if (!tokenDoc) continue;
-        await this.resetToken(tokenDoc);
+        if (!tokenDoc?.parent) continue;
+        const speed = _getBaseSpeed(tokenDoc.actor, tokenDoc);
+        if (!byScene.has(tokenDoc.parent)) byScene.set(tokenDoc.parent, []);
+        byScene.get(tokenDoc.parent).push({
+          _id: tokenDoc.id,
+          [`flags.${MODULE_ID}.moveRemaining`]: Math.round(speed / 5) * 5,
+        });
         this._turnStartPos[tokenDoc.id] = {
           x: tokenDoc._source?.x ?? tokenDoc.x,
           y: tokenDoc._source?.y ?? tokenDoc.y,
         };
+      }
+      for (const [scene, updates] of byScene) {
+        await scene.updateEmbeddedDocuments("Token", updates);
       }
     }
     CrawlStrip.queueRender();

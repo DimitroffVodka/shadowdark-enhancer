@@ -9,8 +9,8 @@
   {{#if hasDraft}}
 
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Type</label>
-      <select name="type" class="sde-forge-select">
+      <label class="sde-forge-label" for="sde-forge-type">Type</label>
+      <select name="type" id="sde-forge-type" class="sde-forge-select">
         {{#each types as |t|}}
           <option value="{{t.id}}" {{#if t.selected}}selected{{/if}}>{{t.label}}</option>
         {{/each}}
@@ -18,28 +18,28 @@
     </div>
 
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Name</label>
-      <input type="text" name="name" value="{{draft.name}}" class="sde-forge-input">
+      <label class="sde-forge-label" for="sde-forge-name">Name</label>
+      <input type="text" name="name" id="sde-forge-name" value="{{draft.name}}" class="sde-forge-input">
     </div>
 
     {{#if draft.baseItem}}
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Base</label>
-      <input type="text" name="baseItem" value="{{draft.baseItem}}" class="sde-forge-input">
+      <label class="sde-forge-label" for="sde-forge-base">Base</label>
+      <input type="text" name="baseItem" id="sde-forge-base" value="{{draft.baseItem}}" class="sde-forge-input">
       <button type="button" data-action="reroll" data-part="base" class="sde-forge-reroll" title="Reroll base">&#x1F3B2;</button>
     </div>
     {{/if}}
 
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Feature</label>
-      <input type="text" name="feature" value="{{draft.feature}}" class="sde-forge-input">
+      <label class="sde-forge-label" for="sde-forge-feature">Feature</label>
+      <input type="text" name="feature" id="sde-forge-feature" value="{{draft.feature}}" class="sde-forge-input">
       <button type="button" data-action="reroll" data-part="feature" class="sde-forge-reroll" title="Reroll feature">&#x1F3B2;</button>
     </div>
 
     {{#if hasBonus}}
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Bonus (+N)</label>
-      <input type="number" name="bonus" min="0" max="3" value="{{draft.bonus}}" class="sde-forge-input sde-forge-bonus">
+      <label class="sde-forge-label" for="sde-forge-bonus">Bonus (+N)</label>
+      <input type="number" name="bonus" id="sde-forge-bonus" min="0" max="3" value="{{draft.bonus}}" class="sde-forge-input sde-forge-bonus">
       <button type="button" data-action="reroll" data-part="bonus" class="sde-forge-reroll" title="Reroll bonus">&#x1F3B2;</button>
     </div>
     {{/if}}
@@ -48,7 +48,7 @@
     <div class="sde-forge-list">
       {{#each benefits as |b|}}
       <div class="sde-forge-row sde-forge-benefit-row">
-        <input type="text" name="benefit-{{b.idx}}" value="{{b.text}}" class="sde-forge-input">
+        <input type="text" name="benefit-{{b.idx}}" value="{{b.text}}" class="sde-forge-input" aria-label="Benefit">
         <button type="button" data-action="reroll" data-part="benefit:{{b.idx}}" class="sde-forge-reroll" title="Reroll benefit">&#x1F3B2;</button>
         <button type="button" data-action="removeBenefit" data-idx="{{b.idx}}" class="sde-forge-remove" title="Remove benefit">&#x2715;</button>
       </div>
@@ -61,7 +61,7 @@
         <input type="checkbox" name="hasCurse" {{#if draft.curse}}checked{{/if}}>
         Curse
       </label>
-      <input type="text" name="curse" value="{{draft.curse}}" class="sde-forge-input">
+      <input type="text" name="curse" value="{{draft.curse}}" class="sde-forge-input" aria-label="Curse description">
       <button type="button" data-action="reroll" data-part="curse" class="sde-forge-reroll" title="Reroll curse">&#x1F3B2;</button>
     </div>
 
@@ -74,18 +74,18 @@
 
     {{#if draft.personality.present}}
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Virtue</label>
-      <input type="text" name="virtue" value="{{draft.personality.virtue}}" class="sde-forge-input">
+      <label class="sde-forge-label" for="sde-forge-virtue">Virtue</label>
+      <input type="text" name="virtue" id="sde-forge-virtue" value="{{draft.personality.virtue}}" class="sde-forge-input">
       <button type="button" data-action="reroll" data-part="virtue" class="sde-forge-reroll" title="Reroll virtue">&#x1F3B2;</button>
     </div>
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Flaw</label>
-      <input type="text" name="flaw" value="{{draft.personality.flaw}}" class="sde-forge-input">
+      <label class="sde-forge-label" for="sde-forge-flaw">Flaw</label>
+      <input type="text" name="flaw" id="sde-forge-flaw" value="{{draft.personality.flaw}}" class="sde-forge-input">
       <button type="button" data-action="reroll" data-part="flaw" class="sde-forge-reroll" title="Reroll flaw">&#x1F3B2;</button>
     </div>
     <div class="sde-forge-row">
-      <label class="sde-forge-label">Trait</label>
-      <input type="text" name="trait" value="{{draft.personality.trait}}" class="sde-forge-input">
+      <label class="sde-forge-label" for="sde-forge-trait">Trait</label>
+      <input type="text" name="trait" id="sde-forge-trait" value="{{draft.personality.trait}}" class="sde-forge-input">
       <button type="button" data-action="reroll" data-part="trait" class="sde-forge-reroll" title="Reroll trait">&#x1F3B2;</button>
     </div>
     {{/if}}

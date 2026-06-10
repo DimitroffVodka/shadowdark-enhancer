@@ -3,6 +3,23 @@
    Dark / Light theme support
    ═══════════════════════════════════════════════════════════════════════════ */
 
+/* Eskapade — the brand display serif. Loaded from the Vagabond system's
+   assets when that system is installed (same origin; the module does NOT
+   redistribute the font). Falls back to Palatino/serif when absent — the
+   stacks below were previously dead references with no @font-face at all. */
+@font-face {
+  font-family: "Eskapade";
+  src: url("/systems/vagabond/assets/fonts/eskapade-regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Eskapade";
+  src: url("/systems/vagabond/assets/fonts/eskapade-black.ttf") format("truetype");
+  font-weight: 700 900;
+  font-display: swap;
+}
+
 :root {
   /* ── Surface / backgrounds ─────────────────────────────────────────────── */
   --sde-bar-bg:          #17191d;
@@ -39,7 +56,7 @@
   --sde-bar-shadow-md:    rgba(0,0,0,0.5);
   --sde-bar-shadow-sm:    rgba(0,0,0,0.4);
   --sde-bar-text-shadow:  rgba(0,0,0,0.6);
-  --sde-bar-inset-glow:   rgba(222,214,86,0.08);
+  --sde-bar-inset-glow:   rgba(201,165,74,0.08);
 
   /* ── Heroes / GM / Combat phase colours ────────────────────────────────── */
   --sde-bar-heroes:        #278e17;
@@ -88,9 +105,18 @@
   --sde-bar-overlay-border: rgba(255,255,255,0.2);
   --sde-bar-overlay-dim:    rgba(255,255,255,0.6);
 
+  /* ── Warning (parser confidence, validation) ────────────────────────────── */
+  --sde-bar-warn:        #e6a100;
+
   /* ── Misc ──────────────────────────────────────────────────────────────── */
   --sde-bar-radius:      4px;
   --sde-bar-font:        "Eskapade", "Signika", "Palatino Linotype", serif;
+
+  /* ── Parchment texture (CSS-only grain + warm vignette) ────────────────── */
+  --sde-bar-texture:
+    radial-gradient(ellipse at 50% 0%, rgba(201,165,74,0.04) 0%, transparent 60%),
+    repeating-conic-gradient(rgba(0,0,0,0.03) 0% 25%, transparent 0% 50%);
+  --sde-bar-texture-size: 100% 100%, 3px 3px;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -126,7 +152,14 @@ body.theme-light {
   --sde-bar-shadow-md:    rgba(0,0,0,0.10);
   --sde-bar-shadow-sm:    rgba(0,0,0,0.06);
   --sde-bar-text-shadow:  rgba(0,0,0,0.08);
-  --sde-bar-inset-glow:   rgba(140,120,30,0.12);
+  --sde-bar-inset-glow:   rgba(138,112,32,0.10);
+
+  --sde-bar-warn:        #b37800;
+
+  --sde-bar-texture:
+    radial-gradient(ellipse at 50% 0%, rgba(138,112,32,0.05) 0%, transparent 60%),
+    repeating-conic-gradient(rgba(0,0,0,0.018) 0% 25%, transparent 0% 50%);
+  --sde-bar-texture-size: 100% 100%, 3px 3px;
 
   --sde-bar-heroes:        #2a7a18;
   --sde-bar-heroes-text:   #1a6a10;
@@ -181,6 +214,30 @@ body.theme-light .sde-strip-label-npcs {
 }
 body.theme-light .sde-bar-phase-badge {
   text-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PARCHMENT TEXTURE — subtle grain + warm vignette on GM windows / cards
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sde-encounter-roller,
+.sde-thub,
+.sde-mimport-body,
+.sde-lootgen-body,
+.sde-forge {
+  background-image: var(--sde-bar-texture);
+  background-size: var(--sde-bar-texture-size);
+}
+
+.sde-encounter-result-card,
+.sde-encounter-flavor-card {
+  background-image:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--sde-bar-accent) 6%, transparent) 0%, transparent 70%);
+}
+
+.sde-loot-card {
+  background-image:
+    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--sde-bar-accent) 5%, transparent) 0%, transparent 70%);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -241,13 +298,23 @@ body.theme-light .sde-bar-phase-badge {
   background: linear-gradient(135deg, var(--sde-bar-btn-hover-1) 0%, var(--sde-bar-btn-hover-2) 100%);
   border-color: var(--sde-bar-accent-dim);
   color: var(--sde-bar-accent);
-  box-shadow: 0 0 6px rgba(222,214,86,0.15);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--sde-bar-accent) 15%, transparent);
+}
+/* Light theme: accent gold as hover text is 2.7-3.0:1 on the hover ramp —
+   use body text (9.4:1) and the full accent for the border cue (4.1:1). */
+body.theme-light .sde-bar-btn:hover {
+  color: var(--sde-bar-text);
+  border-color: var(--sde-bar-accent);
 }
 
 .sde-bar-start-btn {
   font-size: 15px;
   padding: 7px 18px;
-  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
+  /* Darkened gold ramp — keeps the cream label ≥4.5:1 (WCAG AA) across the
+     whole gradient; the raw accent tones were 2.8:1 under #f5eccc. */
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--sde-bar-accent-dim) 70%, #000) 0%,
+    color-mix(in srgb, var(--sde-bar-accent-dark) 70%, #000) 100%);
   border-color: var(--sde-bar-accent);
   color: var(--sde-bar-on-accent);
   font-weight: 600;
@@ -258,7 +325,22 @@ body.theme-light .sde-bar-phase-badge {
 .sde-bar-start-btn:hover {
   background: linear-gradient(135deg, var(--sde-bar-accent) 0%, var(--sde-bar-accent-dim) 100%);
   color: var(--sde-bar-surface-1);
-  box-shadow: 0 0 8px rgba(222,214,86,0.6);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--sde-bar-accent) 60%, transparent);
+}
+/* Light theme: gold mid-tones can't carry light text — keep a light ramp
+   with the dark-gold label instead (AA-checked ≥4.6:1 at both stops). */
+body.theme-light .sde-bar-start-btn {
+  background: linear-gradient(135deg,
+    var(--sde-bar-accent-dim) 0%,
+    color-mix(in srgb, var(--sde-bar-accent-dim) 92%, #fff) 100%);
+  color: var(--sde-bar-on-accent);
+}
+body.theme-light .sde-bar-start-btn:hover {
+  background: linear-gradient(135deg,
+    var(--sde-bar-accent-dim) 0%,
+    color-mix(in srgb, var(--sde-bar-accent-dim) 85%, #fff) 100%);
+  color: var(--sde-bar-on-accent);
+  box-shadow: 0 0 8px var(--sde-bar-inset-glow);
 }
 
 .sde-bar-next-btn {
@@ -276,16 +358,22 @@ body.theme-light .sde-bar-phase-badge {
   border-color: var(--sde-bar-heroes-border);
   color: var(--sde-bar-heroes-text);
 }
-.sde-bar-resume-btn:hover { background: linear-gradient(135deg, #1e3a1a 0%, #162a14 100%); }
+.sde-bar-resume-btn:hover { background: linear-gradient(135deg, var(--sde-bar-heroes-bg-1) 0%, var(--sde-bar-heroes-bg-2) 100%); }
 
 .sde-bar-danger-btn { border-color: var(--sde-bar-danger-border); }
 .sde-bar-danger-btn:hover {
-  background: linear-gradient(135deg, #5a1010 0%, #3a0808 100%);
+  /* Token-derived red wash — the old raw hexes (#5a1010/#3a0808) stayed
+     near-black in light theme, flipping the button dark-on-light. */
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--sde-bar-danger-border) 38%, var(--sde-bar-bg)) 0%,
+    color-mix(in srgb, var(--sde-bar-danger-border) 22%, var(--sde-bar-bg)) 100%);
   border-color: var(--sde-bar-danger-light); color: var(--sde-bar-danger-hover-text);
 }
 
 .sde-bar-combat-btn { border-color: var(--sde-bar-danger-border); color: var(--sde-bar-danger-text); }
-.sde-bar-combat-btn:hover { background: linear-gradient(135deg, #3a1414 0%, #2a0c0c 100%); }
+.sde-bar-combat-btn:hover { background: linear-gradient(135deg,
+  color-mix(in srgb, var(--sde-bar-danger-border) 28%, var(--sde-bar-bg)) 0%,
+  color-mix(in srgb, var(--sde-bar-danger-border) 16%, var(--sde-bar-bg)) 100%); }
 
 /* ── Disabled (placeholder M2 buttons) ─────────────────────────────────────
  * Dims the button without hiding it — preserves the visual rhythm of the bar
@@ -414,7 +502,7 @@ body.theme-light .sde-bar-phase-badge {
   justify-content: center;
   flex-shrink: 0;
   user-select: none;
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   background: #000;
   border-right: 2px solid;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
@@ -486,6 +574,11 @@ body.theme-light .sde-bar-phase-badge {
   transition: color 0.15s;
 }
 .sde-strip-cbtn:hover { color: var(--sde-bar-overlay-text); }
+/* Expand the effective hit target to ~24px without changing layout — the
+   strip controls column is height-constrained, so the clickable area grows
+   via an invisible overlay instead of the button box. */
+.sde-strip-cbtn { position: relative; }
+.sde-strip-cbtn::after { content: ""; position: absolute; inset: -6px 0; }
 
 /* ── Activate / End Turn button on card ───────────────────────────────────── */
 
@@ -501,8 +594,8 @@ body.theme-light .sde-bar-phase-badge {
   color: #fff;
   cursor: pointer;
   font-size: 11px;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   z-index: 10;
@@ -525,8 +618,8 @@ body.theme-light .sde-bar-phase-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   background: rgba(70, 80, 160, 0.9);
   border: 1px solid rgba(140, 160, 255, 0.65);
   border-radius: 4px;
@@ -571,6 +664,12 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-chat-adv { color: #6fb86f; font-style: italic; font-size: 0.9em; }
 .sde-chat-dis { color: #c44a3a; font-style: italic; font-size: 0.9em; }
+/* Light theme: the chat badge kept its near-black ground while the accent
+   text token flipped dark — and the pale adv/dis greens/reds washed out. */
+body.theme-light .sde-chat-init-total { background: rgba(248, 245, 238, 0.92); }
+body.theme-light .sde-strip-init-badge { color: var(--sde-bar-accent-dim); }
+body.theme-light .sde-chat-adv { color: #2e6b2e; }
+body.theme-light .sde-chat-dis { color: #a33326; }
 
 /* Init result badge — replaces the dice button once an initiative is recorded. */
 .sde-strip-init-badge {
@@ -632,11 +731,11 @@ body.theme-light .sde-bar-phase-badge {
 .sde-strip-member.sde-strip-active.sde-strip-type-player,
 .sde-strip-member.sde-strip-active.sde-strip-type-gm {
   border-color: var(--sde-bar-heroes);
-  box-shadow: 0 0 10px rgba(39,142,23,0.5);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--sde-bar-heroes) 50%, transparent);
 }
 .sde-strip-member.sde-strip-active.sde-strip-type-npc {
-  border-color: #aa3030;
-  box-shadow: 0 0 10px rgba(157,0,0,0.5);
+  border-color: var(--sde-bar-danger-light);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--sde-bar-combat) 50%, transparent);
 }
 
 /* Defeated */
@@ -739,8 +838,9 @@ body.theme-light .sde-bar-phase-badge {
 .sde-strip-hp-bar-wrap {
   position: relative;
   width: 100%;
-  height: 10px;
-  background: rgba(0,0,0,0.5);
+  height: 14px;
+  background: rgba(0,0,0,0.65);
+  border-top: 1px solid rgba(0,0,0,0.3);
 }
 .sde-strip-hp-bar {
   height: 100%;
@@ -758,11 +858,13 @@ body.theme-light .sde-bar-phase-badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
-  color: rgba(255,255,255,0.9);
+  color: #fff;
   line-height: 1;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  text-shadow:
+    0 1px 2px rgba(0,0,0,0.95),
+    0 0 4px rgba(0,0,0,0.7);
 }
 
 /* ── Pills — luck + movement ──────────────────────────────────────────────── */
@@ -840,15 +942,15 @@ body.theme-light .sde-bar-phase-badge {
 
 .sde-strip-member.sde-strip-is-turn {
   border-color: var(--sde-bar-accent) !important;
-  box-shadow: 0 0 14px rgba(222,214,86,0.7) !important;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--sde-bar-accent) 70%, transparent) !important;
   opacity: 1 !important;
   animation: sde-turn-pulse 1.8s ease-in-out infinite;
 }
 .sde-strip-member.sde-strip-is-turn .sde-strip-portrait { filter: none !important; }
 
 @keyframes sde-turn-pulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(222,214,86,0.5); }
-  50%       { box-shadow: 0 0 22px rgba(222,214,86,0.9); }
+  0%, 100% { box-shadow: 0 0 10px color-mix(in srgb, var(--sde-bar-accent) 50%, transparent); }
+  50%       { box-shadow: 0 0 22px color-mix(in srgb, var(--sde-bar-accent) 90%, transparent); }
 }
 
 .sde-strip-turn-badge {
@@ -857,13 +959,13 @@ body.theme-light .sde-bar-phase-badge {
   left: 4px;
   width: 20px;
   height: 20px;
-  background: rgba(222,214,86,0.9);
+  background: color-mix(in srgb, var(--sde-bar-accent) 90%, transparent);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
-  box-shadow: 0 0 4px rgba(222,214,86,0.5);
+  box-shadow: 0 0 4px color-mix(in srgb, var(--sde-bar-accent) 50%, transparent);
 }
 .sde-strip-turn-badge i { font-size: 10px; color: #1b1b1b; }
 
@@ -911,7 +1013,8 @@ body.theme-light .sde-bar-phase-badge {
   border-top: none;
   border-radius: 0 0 var(--sde-bar-radius) var(--sde-bar-radius);
 }
-.sde-strip-card-wrap[data-has-menu]:hover .sde-strip-action-tabs {
+.sde-strip-card-wrap[data-has-menu]:hover .sde-strip-action-tabs,
+.sde-strip-card-wrap[data-has-menu]:focus-within .sde-strip-action-tabs {
   display: flex;
 }
 
@@ -1355,6 +1458,56 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text);
 }
 
+/* ── Light theme coverage — Table Hub / Importer / browse (audit P1-8) ──────
+   These components were authored in raw dark-palette literals with no
+   body.theme-light counterpart; pale status text went near-invisible on the
+   parchment surfaces and white hover washes vanished. All replacement text
+   colors are AA-checked (≥4.5:1) against the light surfaces. */
+body.theme-light .sde-thub-tabs .item:hover,
+body.theme-light .sde-thub-stat:hover { background: rgba(0, 0, 0, 0.06); }
+body.theme-light .sde-thub-stat.active { background: rgba(0, 0, 0, 0.08); }
+body.theme-light .sde-thub-stat.ok,
+body.theme-light .sde-thub-rows-chk.ok   { color: #2e6b2e; }
+body.theme-light .sde-thub-stat.imp  { color: #1d5e8f; }
+body.theme-light .sde-thub-stat.miss,
+body.theme-light .sde-thub-rows-chk.warn { color: #9c5210; }
+body.theme-light .sde-thub-stat.part { color: #8a6210; }
+body.theme-light .sde-thub-cat-count,
+body.theme-light .sde-thub-sub-count,
+body.theme-light .sde-thub-matrix-tag { background: rgba(0, 0, 0, 0.05); }
+body.theme-light .sde-thub-badge.ok   { color: #1e5c1e; background: rgba(60,120,60,0.14);  border-color: rgba(46,107,46,0.5); }
+body.theme-light .sde-thub-badge.imp  { color: #14507c; background: rgba(40,90,140,0.12);  border-color: rgba(29,94,143,0.5); }
+body.theme-light .sde-thub-badge.miss { color: #8a4a0e; background: rgba(150,90,30,0.12);  border-color: rgba(156,82,16,0.5); }
+body.theme-light .sde-thub-badge.warn { color: #8a5a00; background: rgba(190,120,30,0.14); border-color: rgba(170,110,20,0.55); }
+body.theme-light .sde-thub-link {
+  color: #14507c;
+  background: rgba(40, 90, 140, 0.12);
+  border-color: rgba(29, 94, 143, 0.55);
+}
+body.theme-light .sde-import-seed { background: rgba(40, 90, 140, 0.10); }
+body.theme-light .sde-import-seed i { color: #1d5e8f; }
+body.theme-light .sde-import-seed-tag { background: rgba(0, 0, 0, 0.08); }
+body.theme-light .sde-browse-atk-melee   { color: #b04020; }
+body.theme-light .sde-browse-atk-ranged  { color: #1d5e8f; }
+body.theme-light .sde-browse-atk-special { color: #9c6210; }
+body.theme-light .sde-browse-atk-spell   { color: #6a3fa0; }
+body.theme-light .sde-browse-atk-dark    { color: #6b5530; }
+body.theme-light .sde-mimport-warn {
+  border-color: #a87800 !important;
+  box-shadow: 0 0 0 1px rgba(168, 120, 0, 0.5);
+  background: rgba(230, 161, 0, 0.10);
+}
+body.theme-light .sde-mimport-warn-row { border-left-color: rgba(168, 120, 0, 0.6); }
+body.theme-light .sde-mimport-warncount { color: #7c5800; }
+
+/* ── Visible focus on every surface (design contract §5) ────────────────────
+   Brand-consistent keyboard focus ring for all module elements; replaces the
+   browser default. Only fires on :focus-visible, so mouse clicks stay clean. */
+[class*="sde-"]:focus-visible {
+  outline: 2px solid var(--sde-bar-accent);
+  outline-offset: 1px;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    RANDOM ENCOUNTER SYSTEM
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1403,7 +1556,7 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: color 0.15s, background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
 .sde-encounter-roller .sde-tabs .item:hover:not(.disabled) {
   background: var(--sde-bar-bg-hover);
@@ -1593,7 +1746,7 @@ body.theme-light .sde-bar-phase-badge {
   margin: 0;
   font-size: 14px;
   color: var(--sde-bar-accent);
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   border: none;
 }
 
@@ -1627,7 +1780,7 @@ body.theme-light .sde-bar-phase-badge {
 .sde-chat-monster-name {
   font-size: 14px;
   font-weight: 700;
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1721,7 +1874,7 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-card-header h3 {
   margin: 0;
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   color: var(--sde-bar-accent);
   font-size: 18px;
   border: none;
@@ -1761,7 +1914,7 @@ body.theme-light .sde-bar-phase-badge {
 .sde-monster-name {
   font-size: 18px;
   font-weight: 700;
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
 }
 
 .sde-facets {
@@ -1879,7 +2032,7 @@ body.theme-light .sde-bar-phase-badge {
   margin: 0;
   padding-bottom: 6px;
   border-bottom: 1px solid var(--sde-bar-accent-dark);
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   color: var(--sde-bar-accent);
   font-size: 16px;
 }
@@ -2061,7 +2214,7 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 13px;
   padding: 4px 12px;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 .sde-browse-source-pill:hover {
   background: var(--sde-bar-bg-hover);
@@ -2119,7 +2272,7 @@ body.theme-light .sde-bar-phase-badge {
   height: 28px;
   cursor: pointer;
   border-radius: 2px;
-  transition: all 0.12s;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 .sde-browse-align-pill:hover {
   background: var(--sde-bar-bg-hover);
@@ -2319,7 +2472,7 @@ body.theme-light .sde-bar-phase-badge {
   padding: 5px 14px;
   border-radius: var(--sde-bar-radius);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: color 0.12s, background 0.12s, border-color 0.12s, box-shadow 0.12s;
 }
 .sde-build-add-btn:hover {
   background: var(--sde-bar-bg-hover);
@@ -2599,7 +2752,7 @@ body.theme-light .sde-bar-phase-badge {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   font-size: 16px;
   color: var(--sde-bar-accent);
 }
@@ -2670,7 +2823,7 @@ body.theme-light .sde-bar-phase-badge {
 }
 .sde-creator-section > summary {
   padding: 6px 12px;
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   font-size: 14px;
   font-weight: 700;
   color: var(--sde-bar-accent);
@@ -2850,7 +3003,7 @@ body.theme-light .sde-bar-phase-badge {
   border-radius: 3px;
   color: var(--sde-bar-text-muted);
   cursor: pointer;
-  transition: all 0.1s;
+  transition: color 0.1s, background 0.1s, border-color 0.1s, box-shadow 0.1s;
   overflow: hidden;
 }
 .sde-creator-quick-btn:hover {
@@ -2892,7 +3045,7 @@ body.theme-light .sde-bar-phase-badge {
   background: transparent !important;
   border: none !important;
   border-bottom: 1px solid var(--sde-bar-border) !important;
-  font-family: "Eskapade", serif;
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
   font-size: 15px;
   font-weight: 700;
   color: var(--sde-bar-accent);
@@ -2909,6 +3062,7 @@ body.theme-light .sde-bar-phase-badge {
 
 .sde-creator-action-grid {
   display: flex;
+  flex-wrap: wrap; /* fixed-width inputs clip at narrow panes without this */
   gap: 12px;
 }
 .sde-creator-row-mini {
@@ -3502,7 +3656,7 @@ body.theme-light .sde-bar-phase-badge {
   border-bottom: none;
 }
 .sde-encounter-result-card .sde-card-header h3 {
-  color: #fff;
+  color: var(--sde-bar-on-accent);
   font-size: 14px;
 }
 .sde-encounter-result-card .sde-monster-row {
@@ -3734,17 +3888,17 @@ body.theme-light .sde-bar-phase-badge {
 
 /* Per-field "parser wasn't sure" highlight + inline legend sample. */
 .sde-mimport-warn {
-  border-color: #e6a100 !important;
-  box-shadow: 0 0 0 1px rgba(230, 161, 0, 0.45);
-  background: rgba(230, 161, 0, 0.12);
+  border-color: var(--sde-bar-warn) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--sde-bar-warn) 45%, transparent);
+  background: color-mix(in srgb, var(--sde-bar-warn) 12%, transparent);
 }
 .sde-mimport-warn-row {
-  border-left: 2px solid rgba(230, 161, 0, 0.6);
+  border-left: 2px solid color-mix(in srgb, var(--sde-bar-warn) 60%, transparent);
   padding-left: 0.4rem;
 }
 .sde-mimport-warn-legend {
-  background: rgba(230, 161, 0, 0.18);
-  border-bottom: 1px solid rgba(230, 161, 0, 0.6);
+  background: color-mix(in srgb, var(--sde-bar-warn) 18%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--sde-bar-warn) 60%, transparent);
   padding: 0 2px;
 }
 
@@ -3784,7 +3938,7 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 0.95rem;
 }
 .sde-mimport-warncount {
-  color: #e6a100;
+  color: var(--sde-bar-warn);
   font-size: 0.78rem;
   white-space: nowrap;
 }
@@ -3838,8 +3992,8 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 0.85rem;
 }
 .sde-loot-head {
-  background: var(--sde-bar-accent, #7a5b2e);
-  color: var(--sde-bar-on-accent, #1a1a1a);
+  background: var(--sde-bar-accent, #c9a54a);
+  color: var(--sde-bar-on-accent, #f5eccc);
   font-weight: 600;
   padding: 0.3rem 0.5rem;
 }
@@ -3876,28 +4030,28 @@ body.theme-light .sde-bar-phase-badge {
   padding: 0.12rem 0.5rem;
   font-size: 0.8rem;
   line-height: 1.4;
-  background: var(--sde-bar-accent, #c9a227);
-  color: var(--sde-bar-on-accent, #1a1a1a);
+  background: var(--sde-bar-accent, #c9a54a);
+  color: var(--sde-bar-on-accent, #f5eccc);
   border: 1px solid var(--sde-bar-border, #555);
 }
 /* GM "Give" — outlined secondary variant, distinct from the solid Claim. */
 .sde-loot-card button.sde-loot-give {
   margin-left: 4px;
   background: transparent;
-  color: var(--sde-bar-accent, #c9a227);
+  color: var(--sde-bar-accent, #c9a54a);
 }
-.sde-loot-card button.sde-loot-forge { background: transparent; color: var(--sde-bar-accent, #c9a227); margin-left: 4px; }
+.sde-loot-card button.sde-loot-forge { background: transparent; color: var(--sde-bar-accent, #c9a54a); margin-left: 4px; }
 .sde-lootgen-forge { margin-left: 4px; }
 .sde-loot-card button.sde-loot-claim:hover,
 .sde-loot-card button.sde-loot-claim-coins:hover,
 .sde-loot-card button.sde-loot-give:hover,
 .sde-loot-card button.sde-loot-assign-coins:hover {
   filter: brightness(1.12);
-  box-shadow: 0 0 4px var(--sde-bar-accent, #c9a227);
+  box-shadow: 0 0 4px var(--sde-bar-accent, #c9a54a);
 }
 .sde-loot-claimed {
   flex: 0 0 auto;
-  color: var(--sde-bar-accent, #c9a227);
+  color: var(--sde-bar-accent, #c9a54a);
   font-style: italic;
   white-space: nowrap;
 }
@@ -3917,7 +4071,7 @@ body.theme-light .sde-bar-phase-badge {
   font-size: 0.78rem;
 }
 
-.sde-loot-value { color: var(--sde-bar-accent, #c9a227); font-size: 0.78rem; }
+.sde-loot-value { color: var(--sde-bar-accent, #c9a54a); font-size: 0.78rem; }
 .sde-loot-feature { font-style: italic; color: var(--sde-bar-text-muted, #9a9a9a); font-size: 0.78rem; }
 .sde-loot-total { padding: 0.35rem 0.5rem; border-top: 1px solid var(--sde-bar-border, #444); font-weight: 600; }
 
@@ -3936,24 +4090,24 @@ body.theme-light .sde-bar-phase-badge {
   border: 1px solid var(--sde-bar-border, #555);
 }
 .sde-lootgen-roll {
-  background: var(--sde-bar-accent, #c9a227);
-  color: var(--sde-bar-on-accent, #1a1a1a);
+  background: var(--sde-bar-accent, #c9a54a);
+  color: var(--sde-bar-on-accent, #f5eccc);
   font-weight: 600;
 }
 .sde-lootgen-rolltoken {
   background: transparent;
-  color: var(--sde-bar-accent, #c9a227);
+  color: var(--sde-bar-accent, #c9a54a);
 }
-.sde-lootgen-controls button:hover { filter: brightness(1.12); box-shadow: 0 0 4px var(--sde-bar-accent, #c9a227); }
+.sde-lootgen-controls button:hover { filter: brightness(1.12); box-shadow: 0 0 4px var(--sde-bar-accent, #c9a54a); }
 
 .sde-lootgen-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .sde-lootgen-entry {
   border: 1px solid var(--sde-bar-border, #444);
-  border-left: 3px solid var(--sde-bar-accent, #c9a227);
+  border-left: 3px solid var(--sde-bar-accent, #c9a54a);
   border-radius: 4px;
   padding: 6px 8px;
 }
-.sde-lootgen-entry-head { font-weight: 600; color: var(--sde-bar-accent, #c9a227); font-size: 0.85rem; }
+.sde-lootgen-entry-head { font-weight: 600; color: var(--sde-bar-accent, #c9a54a); font-size: 0.85rem; }
 .sde-lootgen-items { list-style: none; margin: 4px 0; padding: 0; }
 .sde-lootgen-items li { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
 .sde-lootgen-items img { border: none; border-radius: 3px; flex: 0 0 auto; }
@@ -3971,7 +4125,7 @@ body.theme-light .sde-bar-phase-badge {
   border: 1px solid var(--sde-bar-border, #555);
 }
 .sde-lootgen-post { background: transparent; color: var(--sde-bar-text, #e8e8e8); }
-.sde-lootgen-give { background: var(--sde-bar-accent, #c9a227); color: var(--sde-bar-on-accent, #1a1a1a); font-weight: 600; }
+.sde-lootgen-give { background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc); font-weight: 600; }
 .sde-lootgen-entry-actions button:hover { filter: brightness(1.12); }
 .sde-lootgen-footer { display: flex; justify-content: flex-end; }
 .sde-lootgen-clear { width: auto; cursor: pointer; padding: 0.2rem 0.6rem; }
@@ -3984,7 +4138,7 @@ body.theme-light .sde-bar-phase-badge {
 .sde-forge-input { flex: 1 1 10rem; min-width: 6rem; }
 .sde-forge-bonus { flex: 0 0 4rem; min-width: 3rem; }
 .sde-forge-select { flex: 1 1 10rem; min-width: 8rem; }
-.sde-forge-section-label { font-size: 0.78rem; font-weight: 600; color: var(--sde-bar-accent, #c9a227); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+.sde-forge-section-label { font-size: 0.78rem; font-weight: 600; color: var(--sde-bar-accent, #c9a54a); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
 .sde-forge-list { display: flex; flex-direction: column; gap: 4px; padding-left: 0.5rem; }
 .sde-forge-benefit-row { flex-wrap: nowrap; }
 .sde-forge-controls { margin-bottom: 4px; }
@@ -4003,9 +4157,9 @@ body.theme-light .sde-bar-phase-badge {
   color: var(--sde-bar-text, #BDC1C6);
   font-size: 0.8rem;
 }
-.sde-forge button:hover { filter: brightness(1.15); box-shadow: 0 0 4px var(--sde-bar-accent, #c9a227); }
+.sde-forge button:hover { filter: brightness(1.15); box-shadow: 0 0 4px var(--sde-bar-accent, #c9a54a); }
 .sde-forge-roll {
-  background: var(--sde-bar-accent, #c9a227);
+  background: var(--sde-bar-accent, #c9a54a);
   color: var(--sde-bar-on-accent, #f5eccc);
   font-weight: 600;
   padding: 0.3rem 0.8rem;
@@ -4013,13 +4167,13 @@ body.theme-light .sde-bar-phase-badge {
   border: 1px solid var(--sde-bar-accent-dark, #7a7030);
 }
 .sde-forge-create {
-  background: var(--sde-bar-accent, #c9a227);
+  background: var(--sde-bar-accent, #c9a54a);
   color: var(--sde-bar-on-accent, #f5eccc);
   font-weight: 600;
   padding: 0.25rem 0.8rem;
   border-color: var(--sde-bar-accent-dark, #7a7030);
 }
-.sde-forge-reroll { background: transparent; color: var(--sde-bar-accent, #c9a227); padding: 0.1rem 0.3rem; }
+.sde-forge-reroll { background: transparent; color: var(--sde-bar-accent, #c9a54a); padding: 0.1rem 0.3rem; }
 .sde-forge-remove { background: transparent; color: var(--sde-bar-text-muted, #9a9a9a); padding: 0.1rem 0.3rem; }
 .sde-forge-add { background: transparent; color: var(--sde-bar-text, #BDC1C6); border-style: dashed; margin-top: 2px; }
 
@@ -4028,7 +4182,7 @@ body.theme-light .sde-bar-phase-badge {
 .sde-loot-setup-intro { font-size: 12px; color: var(--sde-bar-text-muted, #9a9a9a); margin: 0 0 8px; }
 .sde-loot-setup-progress { font-weight: 600; margin-bottom: 8px; }
 .sde-loot-setup-slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.sde-loot-setup-slot { border: 1px solid rgba(0,0,0,.25); border-left: 3px solid #b89455; border-radius: 4px; padding: 8px; }
+.sde-loot-setup-slot { border: 1px solid rgba(0,0,0,.25); border-left: 3px solid var(--sde-bar-accent-dim); border-radius: 4px; padding: 8px; }
 .sde-loot-setup-slot.is-bound { border-left-color: #5a8f4e; }
 .sde-loot-setup-slot-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .sde-loot-setup-slot-label { font-weight: 600; }
@@ -4039,4 +4193,4 @@ body.theme-light .sde-bar-phase-badge {
 .sde-loot-setup-actions { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
 .sde-loot-setup-or { color: var(--sde-bar-text-muted, #9a9a9a); font-size: 11px; }
 .sde-loot-setup-existing { flex: 1 1 160px; min-width: 120px; }
-.sde-lootgen-setup.needs-setup { box-shadow: 0 0 0 2px #b89455 inset; font-weight: 600; }
+.sde-lootgen-setup.needs-setup { box-shadow: 0 0 0 2px var(--sde-bar-accent-dim) inset; font-weight: 600; }

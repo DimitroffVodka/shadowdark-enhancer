@@ -231,11 +231,20 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Double-click a row to open its RollTable (to roll or review). Rows carry
     // data-uuid only when there's a table to open (system or imported).
     for (const li of this.element.querySelectorAll(".sde-thub-row[data-uuid]")) {
-      li.addEventListener("dblclick", async (ev) => {
-        if (ev.target.closest("button")) return; // let action buttons win
+      const openTable = async () => {
         const doc = await fromUuid(li.dataset.uuid).catch(() => null);
         if (doc?.sheet) doc.sheet.render(true);
         else ui.notifications?.warn("Couldn't open that table — it may have been deleted.");
+      };
+      li.addEventListener("dblclick", async (ev) => {
+        if (ev.target.closest("button")) return; // let action buttons win
+        await openTable();
+      });
+      // Keyboard parity: rows are focusable; Enter opens the table.
+      li.setAttribute("tabindex", "0");
+      li.addEventListener("keydown", async (ev) => {
+        if (ev.key !== "Enter" || ev.target.closest("button")) return;
+        await openTable();
       });
     }
 

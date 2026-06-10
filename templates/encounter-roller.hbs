@@ -112,27 +112,27 @@
 
               <div class="sde-facets">
                 <div class="sde-facet-row">
-                  <span class="sde-facet-label">📏 Distance</span>
+                  <span class="sde-facet-label"><i class="fas fa-ruler-horizontal"></i> Distance</span>
                   <span class="sde-facet-roll">1d6 = {{lastResult.distanceRoll}}</span>
                   <span class="sde-facet-arrow">→</span>
                   <span class="sde-facet-result">{{lastResult.distanceText}}</span>
-                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="distance"><i class="fas fa-sync"></i></button>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="distance" title="Reroll distance" aria-label="Reroll distance"><i class="fas fa-sync"></i></button>
                 </div>
 
                 <div class="sde-facet-row">
-                  <span class="sde-facet-label">🎭 Activity</span>
+                  <span class="sde-facet-label"><i class="fas fa-masks-theater"></i> Activity</span>
                   <span class="sde-facet-roll">2d6 = {{lastResult.activityRoll}}</span>
                   <span class="sde-facet-arrow">→</span>
                   <span class="sde-facet-result">{{lastResult.activityText}}</span>
-                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="activity"><i class="fas fa-sync"></i></button>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="activity" title="Reroll activity" aria-label="Reroll activity"><i class="fas fa-sync"></i></button>
                 </div>
 
                 <div class="sde-facet-row">
-                  <span class="sde-facet-label">💬 Reaction</span>
+                  <span class="sde-facet-label"><i class="fas fa-comment"></i> Reaction</span>
                   <span class="sde-facet-roll">2d6+CHA = {{lastResult.reactionRoll}} + ({{lastResult.chaMod}})</span>
                   <span class="sde-facet-arrow">→</span>
                   <span class="sde-facet-result {{lastResult.reactionBand}}">{{lastResult.reactionBand}}</span>
-                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="reaction"><i class="fas fa-sync"></i></button>
+                  <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="reaction" title="Reroll reaction" aria-label="Reroll reaction"><i class="fas fa-sync"></i></button>
                 </div>
               </div>
 
@@ -199,7 +199,7 @@
                          class="sde-build-slot-text"
                          placeholder="Drop NPC here, or type entry text + Enter…">
                 {{else if this.isFlavor}}
-                  <span class="sde-build-slot-flavor-icon">📜</span>
+                  <span class="sde-build-slot-flavor-icon"><i class="fas fa-scroll"></i></span>
                   <span class="sde-build-slot-name">{{this.name}}</span>
                 {{else}}
                   <span class="sde-build-slot-name">{{this.name}}</span>

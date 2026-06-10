@@ -27,11 +27,14 @@ export const CrawlBar = {
     if (!game.user.isGM) return;
     this.mount();
     const queue = () => this.render();
-    this._hookIds.push(Hooks.on(CrawlState.HOOK_CHANGED, queue));
-    this._hookIds.push(Hooks.on("combatStart",   queue));
-    this._hookIds.push(Hooks.on("createCombat",  queue));
-    this._hookIds.push(Hooks.on("deleteCombat",  queue));
-    this._hookIds.push(Hooks.on("updateCombat",  queue));
+    // [event, id] pairs — Hooks.off requires the event name (bare id is a
+    // silent no-op in v14), so destroy() can actually detach.
+    const on = (ev, fn) => this._hookIds.push([ev, Hooks.on(ev, fn)]);
+    on(CrawlState.HOOK_CHANGED, queue);
+    on("combatStart",   queue);
+    on("createCombat",  queue);
+    on("deleteCombat",  queue);
+    on("updateCombat",  queue);
   },
 
   mount() {
@@ -63,7 +66,7 @@ export const CrawlBar = {
   },
 
   destroy() {
-    for (const id of this._hookIds) Hooks.off(id);
+    for (const [ev, id] of this._hookIds) Hooks.off(ev, id);
     this._hookIds = [];
     this._el?.remove();
     this._el = null;
@@ -300,20 +303,20 @@ export const CrawlBar = {
     menu.id = "sde-encounter-context-menu";
     menu.className = "sde-bar-context-menu";
     menu.innerHTML = `
-      <div class="sde-menu-item sde-menu-btn" data-action="check">
+      <div class="sde-menu-item sde-menu-btn" data-action="check" role="menuitem" tabindex="0">
         <i class="fas fa-dice-d6"></i> Encounter Check
       </div>
       <div class="sde-menu-divider"></div>
       <div class="sde-menu-header">Threshold (current: ${threshold} in 6)</div>
       ${[1, 2, 3, 4, 5].map(n => `
-        <div class="sde-menu-item sde-menu-radio" data-action="setThreshold" data-value="${n}">
+        <div class="sde-menu-item sde-menu-radio" data-action="setThreshold" data-value="${n}" role="menuitemradio" aria-checked="${threshold === n}" tabindex="0">
           <i class="far ${threshold === n ? "fa-dot-circle" : "fa-circle"}"></i> ${n} in 6 ${n === 1 ? "(RAW default)" : ""}
         </div>
       `).join("")}
       <div class="sde-menu-divider"></div>
       <div class="sde-menu-item sde-menu-table">
         Active Table: <span class="sde-table-name">${tableName}</span>
-        ${tableUuid ? `<i class="fas fa-times sde-clear-table" data-action="clearTable" title="Clear active table"></i>` : ""}
+        ${tableUuid ? `<i class="fas fa-times sde-clear-table" data-action="clearTable" title="Clear active table" role="button" tabindex="0" aria-label="Clear active table"></i>` : ""}
       </div>
     `;
 
@@ -323,6 +326,17 @@ export const CrawlBar = {
     menu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
 
     document.body.appendChild(menu);
+    menu.setAttribute("role", "menu");
+
+    // Keyboard: Escape closes; Enter/Space activates the focused item.
+    menu.addEventListener("keydown", e => {
+      if (e.key === "Escape") { e.stopPropagation(); menu.remove(); return; }
+      if (e.key === "Enter" || e.key === " ") {
+        const t = e.target.closest("[data-action]");
+        if (t) { e.preventDefault(); t.click(); }
+      }
+    });
+    menu.querySelector("[data-action]")?.focus();
 
     // Event listeners for menu
     menu.addEventListener("click", async e => {
@@ -363,10 +377,10 @@ export const CrawlBar = {
     menu.id = "sde-loot-context-menu";
     menu.className = "sde-bar-context-menu";
     menu.innerHTML = `
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="lootGen">
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="lootGen" role="menuitem" tabindex="0">
         <i class="fas fa-coins"></i> Loot Generator
       </div>
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="magicForge">
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="magicForge" role="menuitem" tabindex="0">
         <i class="fas fa-hammer"></i> Magic Item Forge
       </div>
     `;
@@ -377,6 +391,17 @@ export const CrawlBar = {
     menu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
 
     document.body.appendChild(menu);
+    menu.setAttribute("role", "menu");
+
+    // Keyboard: Escape closes; Enter/Space activates the focused item.
+    menu.addEventListener("keydown", e => {
+      if (e.key === "Escape") { e.stopPropagation(); menu.remove(); return; }
+      if (e.key === "Enter" || e.key === " ") {
+        const t = e.target.closest("[data-loot-action]");
+        if (t) { e.preventDefault(); t.click(); }
+      }
+    });
+    menu.querySelector("[data-loot-action]")?.focus();
 
     menu.addEventListener("click", e => {
       e.stopPropagation();

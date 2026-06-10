@@ -362,9 +362,14 @@ async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
     });
   });
 
-  // Keep panel alive while hovering it
+  // Keep panel alive while hovering or focused inside it; Escape closes.
   panel.addEventListener("mouseenter", _clearHideTimer);
   panel.addEventListener("mouseleave", _scheduleHide);
+  panel.addEventListener("focusin", _clearHideTimer);
+  panel.addEventListener("focusout", _scheduleHide);
+  panel.addEventListener("keydown", ev => {
+    if (ev.key === "Escape") _removePanel();
+  });
 }
 
 function _switchTab(panel, tab) {
@@ -476,9 +481,21 @@ export function bindActionMenuEvents(stripEl) {
     wrap.addEventListener("mouseenter", showMenu);
     wrap.addEventListener("mouseleave", _scheduleHide);
 
-    // Tab clicks inside the tab strip also trigger correct tab
+    // Keyboard/touch path: focus entering the wrap keeps the panel alive
+    // (CSS :focus-within reveals the tab strip); Escape closes it.
+    wrap.addEventListener("focusin", _clearHideTimer);
+    wrap.addEventListener("focusout", _scheduleHide);
+    wrap.addEventListener("keydown", ev => {
+      if (ev.key === "Escape") _removePanel();
+    });
+
+    // Tab hover/click/focus inside the tab strip opens the matching panel —
+    // click covers touch, focus covers keyboard, mouseenter covers pointer.
     wrap.querySelectorAll(".sde-strip-atab").forEach(btn => {
-      btn.addEventListener("mouseenter", () => _showPanel(stripEl, wrap, actor, isNPC, btn.dataset.tab));
+      const open = () => _showPanel(stripEl, wrap, actor, isNPC, btn.dataset.tab);
+      btn.addEventListener("mouseenter", open);
+      btn.addEventListener("click", ev => { ev.stopPropagation(); open(); });
+      btn.addEventListener("focus", open);
     });
   });
 }

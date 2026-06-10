@@ -457,13 +457,27 @@ export class MonsterCreatorApp {
   _wireActions() {
     if (!this._mountHost) return;
     this._mountHost.querySelectorAll("[data-action]").forEach(el => {
-      el.addEventListener("click", ev => {
+      const fire = ev => {
         ev.preventDefault();
         ev.stopPropagation();
         const action = ev.currentTarget.dataset.action;
         const handler = MonsterCreatorApp.ACTIONS[action];
         if (handler) handler.call(this, ev, ev.currentTarget);
-      });
+      };
+      el.addEventListener("click", fire);
+      // Keyboard parity for non-native interactive elements (e.g. the
+      // bestiary loader-pick <tr>): focusable + Enter/Space activates.
+      const tag = el.tagName;
+      if (tag !== "BUTTON" && tag !== "A" && tag !== "INPUT" && tag !== "SELECT") {
+        if (!el.hasAttribute("tabindex")) el.setAttribute("tabindex", "0");
+        el.addEventListener("keydown", ev => {
+          if (ev.key !== "Enter" && ev.key !== " ") return;
+          // Don't double-fire when a nested native control (e.g. a sort
+          // button inside a data-action <th>) handles the key itself.
+          if (ev.target.closest("button, a, input, select, textarea")) return;
+          fire(ev);
+        });
+      }
     });
   }
 

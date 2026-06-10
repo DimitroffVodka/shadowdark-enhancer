@@ -32,24 +32,39 @@ export const CrawlStrip = {
   init() {
     this.mount();
     const queue = () => this.queueRender();
-    this._hookIds.push(Hooks.on(CrawlState.HOOK_CHANGED, queue));
-    this._hookIds.push(Hooks.on("combatStart",   queue));
-    this._hookIds.push(Hooks.on("combatRound",   queue));
-    this._hookIds.push(Hooks.on("combatTurn",    () => { closeActionMenu(); queue(); }));
-    this._hookIds.push(Hooks.on("updateCombat",  queue));
-    this._hookIds.push(Hooks.on("updateCombatant", queue));
-    this._hookIds.push(Hooks.on("createCombatant", queue));
-    this._hookIds.push(Hooks.on("deleteCombatant", queue));
-    this._hookIds.push(Hooks.on("deleteCombat",  queue));
-    this._hookIds.push(Hooks.on("updateActor",   queue));
-    this._hookIds.push(Hooks.on("updateToken",   queue));
-    this._hookIds.push(Hooks.on("createToken",   queue));
-    this._hookIds.push(Hooks.on("deleteToken",   queue));
-    this._hookIds.push(Hooks.on("canvasReady",   queue));
-    this._hookIds.push(Hooks.on("updateItem",    queue));
-    this._hookIds.push(Hooks.on("createActiveEffect", queue));
-    this._hookIds.push(Hooks.on("deleteActiveEffect", queue));
-    this._hookIds.push(Hooks.on("updateActiveEffect", queue));
+    // Store [event, id] pairs — Hooks.off REQUIRES the event name (a bare
+    // numeric id is a silent no-op in v14), so destroy() can actually detach.
+    const on = (ev, fn) => this._hookIds.push([ev, Hooks.on(ev, fn)]);
+    on(CrawlState.HOOK_CHANGED, queue);
+    on("combatStart",   queue);
+    on("combatRound",   queue);
+    on("combatTurn",    () => { closeActionMenu(); queue(); });
+    on("updateCombat",  queue);
+    on("updateCombatant", queue);
+    on("createCombatant", queue);
+    on("deleteCombatant", queue);
+    on("deleteCombat",  queue);
+    // Relevance filter: world-wide document churn (a player editing
+    // inventory on another scene, an actor nobody displays) must not rebuild
+    // the strip. Only re-render when the changed document belongs to a
+    // currently displayed member card. Membership changes themselves arrive
+    // via the CrawlState/combatant hooks above, which stay unfiltered.
+    const shown = (attr, id) => !!(id && this._el?.querySelector(`[data-${attr}="${id}"]`));
+    const actorOf = doc => doc?.documentName === "Actor" ? doc
+      : (doc?.parent?.documentName === "Actor" ? doc.parent : doc?.parent?.parent);
+    const queueIfShown = doc => {
+      const a = actorOf(doc);
+      if (shown("actor-id", a?.id) || shown("token-id", a?.token?.id)) queue();
+    };
+    on("updateActor",   queueIfShown);
+    on("updateToken",   td => { if (shown("token-id", td?.id) || shown("actor-id", td?.actorId)) queue(); });
+    on("createToken",   queue);
+    on("deleteToken",   queue);
+    on("canvasReady",   queue);
+    on("updateItem",    queueIfShown);
+    on("createActiveEffect", queueIfShown);
+    on("deleteActiveEffect", queueIfShown);
+    on("updateActiveEffect", queueIfShown);
   },
 
   queueRender() {
@@ -71,7 +86,7 @@ export const CrawlStrip = {
       window.removeEventListener("resize", this._resizeListener);
       this._resizeListener = null;
     }
-    for (const id of this._hookIds) Hooks.off(id);
+    for (const [ev, id] of this._hookIds) Hooks.off(ev, id);
     this._hookIds = [];
     this._el?.remove();
     this._el = null;
@@ -118,9 +133,9 @@ export const CrawlStrip = {
     };
     this._resizeListener = updateBounds;
     window.addEventListener("resize", updateBounds);
-    this._hookIds.push(Hooks.on("collapseSidebar", () => setTimeout(updateBounds, 350)));
-    this._hookIds.push(Hooks.on("renderSidebar",   () => setTimeout(updateBounds, 350)));
-    this._hookIds.push(Hooks.on("renderSceneNavigation", () => setTimeout(updateBounds, 50)));
+    this._hookIds.push(["collapseSidebar", Hooks.on("collapseSidebar", () => setTimeout(updateBounds, 350))]);
+    this._hookIds.push(["renderSidebar",   Hooks.on("renderSidebar",   () => setTimeout(updateBounds, 350))]);
+    this._hookIds.push(["renderSceneNavigation", Hooks.on("renderSceneNavigation", () => setTimeout(updateBounds, 50))]);
     updateBounds();
   },
 
@@ -300,7 +315,7 @@ export const CrawlStrip = {
         if (m.type === "player") {
           // Luck pill is clickable → spends a luck token via actor.system.useLuckToken().
           // Only attach the data-action when there's actually a token to spend.
-          const luckClickable = data.luck > 0 ? `data-action="spendLuck" data-actor-id="${m.actorId ?? ""}"` : "";
+          const luckClickable = data.luck > 0 ? `data-action="spendLuck" data-actor-id="${m.actorId ?? ""}" role="button" tabindex="0" aria-label="Spend a Luck Token"` : "";
           const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : "No Luck Tokens";
           pills = `
         <div class="sde-strip-pills">
@@ -334,7 +349,7 @@ export const CrawlStrip = {
 
       const cardHTML = `
         <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isCurrent ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} sde-strip-type-${m.type}"
-             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""}>
+             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} tabindex="0">
           <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
           <div class="sde-strip-overlay">
             ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
@@ -564,6 +579,18 @@ export const CrawlStrip = {
         token.control({ releaseOthers: !ev.shiftKey });
         await canvas.animatePan({ x: token.center.x, y: token.center.y,
           scale: Math.max(canvas.stage.scale.x, 0.5) });
+      });
+
+      // Keyboard parity: Enter/Space on the focused card = select + pan
+      // (same as click), or spend Luck when the pill is focused. Real
+      // <button>s inside the card handle their own keys.
+      card.addEventListener("keydown", ev => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.target.closest("button")) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const luck = ev.target.closest('[data-action="spendLuck"]');
+        if (luck) luck.click(); else card.click();
       });
     });
 
