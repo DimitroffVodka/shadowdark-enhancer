@@ -14,6 +14,7 @@
  */
 
 import { findMonsterPack } from "./monster-pack.mjs";
+import { findSuitePack } from "./compendium-suite.mjs";
 
 const MONSTER_PACK = "shadowdark.monsters";
 
@@ -98,9 +99,14 @@ export const MonsterLinker = {
     return this._index;
   },
 
-  /** The managed world imported-monsters compendium (label/flag-matched), or undefined. */
+  /**
+   * The managed world Actor compendium for indexing.
+   * Returns sde-actors (suite pack) first — canonical post-migration (D-03).
+   * Falls back to the legacy imported-monsters pack via findMonsterPack() so the
+   * linker keeps working for worlds that haven't migrated yet (D-06).
+   */
   _importedMonsterPack() {
-    return findMonsterPack();
+    return findSuitePack("sde-actors") ?? findMonsterPack();
   },
 
   /** Add a pack's name->uuid entries to `byName`, first-writer-wins (priority). */
