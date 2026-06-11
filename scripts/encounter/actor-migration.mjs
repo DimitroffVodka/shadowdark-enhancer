@@ -47,19 +47,60 @@ export function isAlreadyMigrated(actor) {
 }
 
 /**
- * Filter a mixed array of world actors down to un-migrated imported ones.
- * An actor is "imported" when flags["shadowdark-enhancer"].source exists as a
- * key (the source flag is stamped by createMonster regardless of value, so
- * even an empty string qualifies). Actors already carrying migratedToSuite=true
- * are excluded (idempotence).
+ * Infer a source id from a world actor-folder name. Pre-flag-era imports
+ * (everything before the importer stamped flags) live in folders named after
+ * their source book — that name is the only durable source signal they carry.
  *
- * @param {object[]} actors
+ * Only CLEARLY-sourced folder shapes infer; ambiguous folders (hand-made
+ * content like "NPCs", "Named Beastmen") return null and are never swept.
+ *
+ *   "Cursed Scroll 4 — River of Night"        → "cs4"
+ *   "Letters from the Dark Vol. VI: Scallywags" → "lftd-vi"
+ *
+ * @param {string|null|undefined} folderName
+ * @returns {string|null} source id, or null when not inferable
+ */
+export function inferSourceFromFolder(folderName) {
+  const name = String(folderName ?? "").trim();
+  if (!name) return null;
+  const cs = name.match(/^Cursed Scroll\s*(\d)/i);
+  if (cs) return `cs${cs[1]}`;
+  const lftd = name.match(/^Letters from the Dark\s+Vol\.?\s*([IVXLC]+)/i);
+  if (lftd) return `lftd-${lftd[1].toLowerCase()}`;
+  return null;
+}
+
+/**
+ * Resolve an actor's effective source id: the module source flag when stamped
+ * (even an empty string counts — createMonster stamps the key regardless of
+ * value), otherwise the source inferred from its folder name, otherwise null.
+ *
+ * @param {object} actor - Actor-like: { flags?, folder?: { name? } }
+ * @returns {string|null}
+ */
+export function effectiveSource(actor) {
+  const sde = actor?.flags?.[MODULE_ID];
+  if (sde && Object.prototype.hasOwnProperty.call(sde, "source")) {
+    return String(sde.source ?? "");
+  }
+  return inferSourceFromFolder(actor?.folder?.name);
+}
+
+/**
+ * Filter a mixed array of world actors down to un-migrated imported ones.
+ * An actor is "imported" when either:
+ *   (a) flags["shadowdark-enhancer"].source exists as a key (the importer
+ *       stamps the key regardless of value, so even "" qualifies), or
+ *   (b) its folder name infers a source (pre-flag-era imports — see
+ *       inferSourceFromFolder; ambiguous folders never match).
+ * Actors already carrying migratedToSuite=true are excluded (idempotence).
+ *
+ * @param {object[]} actors - Actor-likes: { flags?, folder?: { name? } }
  * @returns {object[]}
  */
 export function selectWorldImportedActors(actors) {
   return (actors ?? []).filter((a) => {
-    const sde = a?.flags?.[MODULE_ID];
-    if (!sde || !Object.prototype.hasOwnProperty.call(sde, "source")) return false;
+    if (effectiveSource(a) === null) return false;
     return !isAlreadyMigrated(a);
   });
 }
@@ -74,8 +115,8 @@ export function selectWorldImportedActors(actors) {
 export function sourceTally(actors) {
   const tally = { total: 0 };
   for (const a of (actors ?? [])) {
-    const src = a?.flags?.[MODULE_ID]?.source;
-    const key = src !== undefined ? String(src) : "undefined";
+    const src = effectiveSource(a);
+    const key = src !== null ? String(src) : "undefined";
     tally[key] = (tally[key] ?? 0) + 1;
     tally.total++;
   }
@@ -233,14 +274,19 @@ export async function migrateActors({ dryRun = false } = {}) {
       await backfillActor(actor, { dryRun: false });
 
       // 2. Build pack payload — fresh toObject() post-backfill, strip _id.
-      const sourceId = actor.flags?.[MODULE_ID]?.source ?? "";
+      const sourceId = effectiveSource(actor) ?? "";
       const folderId = await ensureSourceFolder(actorsPack, sourceId);
       const payload = actor.toObject();
       delete payload._id;
       payload.folder = folderId ?? null;
-      // Stamp migratedToSuite on the pack copy.
+      // Stamp migratedToSuite + the (possibly folder-inferred) source on the
+      // pack copy, so pre-flag-era imports come out properly flagged.
       payload.flags = payload.flags ?? {};
-      payload.flags[MODULE_ID] = { ...(payload.flags[MODULE_ID] ?? {}), migratedToSuite: true };
+      payload.flags[MODULE_ID] = {
+        ...(payload.flags[MODULE_ID] ?? {}),
+        source: sourceId,
+        migratedToSuite: true,
+      };
 
       // 3. Create pack copy.
       const packCopy = await Actor.create(payload, { pack: actorsPack.collection });
