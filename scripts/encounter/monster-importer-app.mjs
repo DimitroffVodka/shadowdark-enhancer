@@ -50,16 +50,17 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     window: { title: "Monster Importer", icon: "fas fa-dragon", resizable: true },
     position: { width: 860, height: 780 },
     actions: {
-      mimportParse:         MonsterImporterApp.prototype._onParse,
-      mimportClear:         MonsterImporterApp.prototype._onClear,
-      mimportCreateAll:     MonsterImporterApp.prototype._onCreateAll,
-      mimportBackfill:      MonsterImporterApp.prototype._onBackfill,
-      mimportRemoveMonster: MonsterImporterApp.prototype._onRemoveMonster,
-      mimportAddAttack:     MonsterImporterApp.prototype._onAddAttack,
-      mimportAddSpecial:    MonsterImporterApp.prototype._onAddSpecial,
-      mimportRemoveAttack:  MonsterImporterApp.prototype._onRemoveAttack,
-      mimportAddFeature:    MonsterImporterApp.prototype._onAddFeature,
-      mimportRemoveFeature: MonsterImporterApp.prototype._onRemoveFeature,
+      mimportParse:          MonsterImporterApp.prototype._onParse,
+      mimportClear:          MonsterImporterApp.prototype._onClear,
+      mimportCreateAll:      MonsterImporterApp.prototype._onCreateAll,
+      mimportBackfill:       MonsterImporterApp.prototype._onBackfill,
+      mimportMigrateSuite:   MonsterImporterApp.prototype._onMigrateSuite,
+      mimportRemoveMonster:  MonsterImporterApp.prototype._onRemoveMonster,
+      mimportAddAttack:      MonsterImporterApp.prototype._onAddAttack,
+      mimportAddSpecial:     MonsterImporterApp.prototype._onAddSpecial,
+      mimportRemoveAttack:   MonsterImporterApp.prototype._onRemoveAttack,
+      mimportAddFeature:     MonsterImporterApp.prototype._onAddFeature,
+      mimportRemoveFeature:  MonsterImporterApp.prototype._onRemoveFeature,
     },
   };
 
@@ -388,6 +389,76 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     );
   }
 
+  /**
+   * Migrate world-side imported monster actors (and legacy pack docs) into the
+   * managed sde-actors compendium suite pack. Mirrors _onBackfill's dry-run →
+   * DialogV2 confirm → commit pattern (D-04 human-in-the-loop).
+   */
+  async _onMigrateSuite() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can run the suite migration."); return; }
+    const { migrateActors } = await import("./actor-migration.mjs");
+
+    // ── Preview (dry run) ───────────────────────────────────────────────────
+    ui.notifications.info("Scanning imported monsters for suite migration…");
+    const preview = await migrateActors({ dryRun: true });
+    if (!preview) return;
+
+    if (preview.total === 0) {
+      ui.notifications.info("No imported-monsters actors found to migrate (all already migrated or none present).");
+      return;
+    }
+
+    // Build a readable per-source breakdown.
+    const sourceLines = Object.entries(preview.bySource)
+      .map(([src, count]) => {
+        const label = src === "" ? "Custom / (no source)" : src === "undefined" ? "(unknown)" : src;
+        return `<li><strong>${foundry.utils.escapeHTML(label)}</strong>: ${count}</li>`;
+      })
+      .join("");
+
+    const content = `
+      <p>This will migrate <strong>${preview.total}</strong> imported monster actor(s) into the
+      <em>Shadowdark Enhancer — Actors</em> compendium suite pack:</p>
+      <ul style="margin:.4em 0">
+        <li>World actors to copy: <strong>${preview.worldCount}</strong></li>
+        <li>Legacy pack docs to fold in: <strong>${preview.legacyPackCount}</strong></li>
+      </ul>
+      ${sourceLines ? `<p>By source:</p><ul style="max-height:120px;overflow-y:auto;margin:.4em 0">${sourceLines}</ul>` : ""}
+      <p>Each actor is backfilled to current fidelity first, then copied into
+      <em>sde-actors</em> under its per-source folder. World originals are
+      <strong>moved</strong> (not deleted) into a <em>_Backup (pre-suite)</em>
+      folder. The legacy "Imported Monsters" pack (if any) is retired in place —
+      never deleted. This operation is idempotent; re-running skips
+      already-migrated actors.</p>
+      <p>Proceed?</p>`;
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Migrate to Compendium Suite" },
+      content,
+      buttons: [
+        { action: "confirm", label: "Migrate", default: true },
+        { action: "cancel",  label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+
+    if (choice !== "confirm") return;
+
+    // ── Commit ───────────────────────────────────────────────────────────────
+    const result = await migrateActors({ dryRun: false });
+    if (!result) return;
+
+    const parts = [];
+    if (result.copied)         parts.push(`${result.copied} copied to sde-actors`);
+    if (result.backedUp)       parts.push(`${result.backedUp} moved to _Backup`);
+    if (result.legacyMigrated) parts.push(`${result.legacyMigrated} legacy pack docs folded in`);
+    if (result.failures)       parts.push(`${result.failures} failed (see console)`);
+    ui.notifications.info(
+      `Suite migration complete: ${parts.join("; ") || "nothing to do"}.`
+    );
+    this.render();
+  }
+
   async _onCreateAll() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import monsters."); return; }
     if (!this._parsed.length) return;
@@ -433,4 +504,14 @@ export const MonsterImporterAPI = {
    * @returns {Promise<object|null>} the backfillTargets result, or null if blocked.
    */
   backfill: (opts = {}) => import("./monster-backfill.mjs").then((m) => m.backfillTargets(opts)),
+  /**
+   * Headless suite migration: backfill + copy world imported actors into sde-actors;
+   * move originals to _Backup (pre-suite); retire legacy pack in place.
+   * GM-only (enforced in migrateActors). Accepts { dryRun: boolean }.
+   * Example:
+   *   await game.shadowdarkEnhancer.monsters.migrateSuite({ dryRun: true })
+   *   await game.shadowdarkEnhancer.monsters.migrateSuite({ dryRun: false })
+   * @returns {Promise<object|null>} the migrateActors result, or null if blocked.
+   */
+  migrateSuite: (opts = {}) => import("./actor-migration.mjs").then((m) => m.migrateActors(opts)),
 };
