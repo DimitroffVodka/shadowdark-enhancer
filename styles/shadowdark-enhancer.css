@@ -1790,6 +1790,284 @@ body.theme-light .sde-hub-tab-btn.active {
   outline-offset: 1px;
 }
 
+/* ── Monsters tab ────────────────────────────────────────────────────────── */
+.sde-hub-monsters {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow-y: auto;
+}
+
+.sde-hub-monsters-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sde-bar-accent);
+  margin: 0 0 6px;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+
+/* Census table */
+.sde-hub-monsters-census {
+  padding: 0 0 4px;
+}
+
+.sde-hub-monsters-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.sde-hub-monsters-table th {
+  text-align: left;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sde-bar-text-muted);
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+
+.sde-hub-monsters-th-have,
+.sde-hub-monsters-th-gap {
+  text-align: center;
+  width: 3.5rem;
+}
+
+.sde-hub-monsters-th-expand {
+  width: 2rem;
+}
+
+.sde-hub-monsters-row td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--sde-bar-border);
+  color: var(--sde-bar-text);
+}
+
+.sde-hub-monsters-have,
+.sde-hub-monsters-gap {
+  text-align: center;
+}
+
+.sde-hub-monsters-gap.has-gap {
+  color: var(--sde-bar-accent);
+  font-weight: 600;
+}
+
+.sde-hub-monsters-expand-cell {
+  text-align: center;
+}
+
+.sde-hub-monsters-expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--sde-bar-accent);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  width: auto;
+}
+.sde-hub-monsters-expand-btn:hover {
+  background: var(--sde-bar-bg-hover);
+}
+.sde-hub-monsters-expand-btn:focus-visible {
+  outline: 2px solid var(--sde-bar-accent);
+  outline-offset: 1px;
+}
+
+/* Expandable missing-names list */
+.sde-hub-monsters-gap-td {
+  padding: 4px 8px 8px 24px;
+  background: var(--sde-bar-bg-alt);
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+
+.sde-hub-monsters-missing-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sde-hub-monsters-missing-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sde-hub-monsters-missing-name {
+  flex: 1 1 auto;
+  color: var(--sde-bar-text);
+  font-size: 0.82rem;
+}
+
+.sde-hub-monsters-seed-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  color: var(--sde-bar-accent);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 1px 6px;
+  width: auto;
+  white-space: nowrap;
+}
+.sde-hub-monsters-seed-btn:hover {
+  background: var(--sde-bar-bg-hover);
+}
+.sde-hub-monsters-seed-btn:focus-visible {
+  outline: 2px solid var(--sde-bar-accent);
+  outline-offset: 1px;
+}
+
+.sde-hub-monsters-allgood {
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  color: var(--sde-bar-text-muted);
+}
+
+.sde-hub-monsters-empty {
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: var(--sde-bar-text-muted);
+}
+
+.sde-hub-monsters-gap-none {
+  font-size: 0.8rem;
+  color: var(--sde-bar-text-muted);
+  margin: 0;
+}
+
+/* Duplicates section */
+.sde-hub-monsters-dups {
+  border-top: 1px solid var(--sde-bar-border);
+  padding-bottom: 4px;
+}
+
+.sde-hub-monsters-dup-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px 8px;
+}
+
+.sde-hub-monsters-dup-card {
+  border: 1px solid var(--sde-bar-border);
+  border-left: 3px solid var(--sde-bar-accent-dim);
+  border-radius: 4px;
+  padding: 8px;
+  background: var(--sde-bar-bg-alt);
+}
+
+.sde-hub-monsters-dup-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--sde-bar-accent);
+  margin: 0 0 6px;
+  text-transform: capitalize;
+}
+
+.sde-hub-monsters-dup-members {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sde-hub-monsters-dup-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--sde-bar-text);
+}
+
+.sde-hub-monsters-dup-member-name {
+  flex: 1 1 auto;
+}
+
+.sde-hub-monsters-dup-member-meta {
+  display: flex;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--sde-bar-text-muted);
+}
+
+.sde-hub-monsters-cull-btn {
+  background: var(--sde-bar-btn-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  color: var(--sde-bar-text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 3px 10px;
+  width: auto;
+}
+.sde-hub-monsters-cull-btn:hover {
+  border-color: var(--sde-bar-accent);
+  color: var(--sde-bar-accent);
+  background: var(--sde-bar-bg-hover);
+}
+.sde-hub-monsters-cull-btn:focus-visible {
+  outline: 2px solid var(--sde-bar-accent);
+  outline-offset: 1px;
+}
+
+/* Maintenance row (D-03) */
+.sde-hub-monsters-maintenance {
+  border-top: 1px solid var(--sde-bar-border);
+  padding-bottom: 8px;
+}
+
+.sde-hub-monsters-maintenance-row {
+  display: flex;
+  gap: 8px;
+  padding: 6px 12px 0;
+  flex-wrap: wrap;
+}
+
+.sde-hub-monsters-maint-btn {
+  background: var(--sde-bar-btn-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  color: var(--sde-bar-text);
+  font-size: 0.82rem;
+  cursor: pointer;
+  padding: 4px 12px;
+  width: auto;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.sde-hub-monsters-maint-btn:hover {
+  border-color: var(--sde-bar-accent);
+  color: var(--sde-bar-accent);
+  background: var(--sde-bar-bg-hover);
+}
+.sde-hub-monsters-maint-btn:focus-visible {
+  outline: 2px solid var(--sde-bar-accent);
+  outline-offset: 1px;
+}
+
+/* Light theme overrides */
+body.theme-light .sde-hub-monsters-dup-card {
+  background: var(--sde-bar-surface-1);
+  border-color: var(--sde-bar-border);
+}
+body.theme-light .sde-hub-monsters-gap-td {
+  background: var(--sde-bar-surface-1);
+}
+body.theme-light .sde-hub-monsters-row td {
+  color: var(--sde-bar-text);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    RANDOM ENCOUNTER SYSTEM
    ═══════════════════════════════════════════════════════════════════════════ */

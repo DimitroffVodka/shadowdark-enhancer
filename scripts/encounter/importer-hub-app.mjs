@@ -25,6 +25,7 @@ import { findById, formulaFromDie, isMatrix, columnManifestId } from "./table-ma
 import { segmentDump } from "./dump-segmenter.mjs";
 import { parseStatblock } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
+import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -86,6 +87,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitMonsters:      ImporterHubApp.prototype._onHubCommitMonsters,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
+      // Monsters-tab census/gap/duplicate actions
+      monsterGapExpand:       ImporterHubApp.prototype._onMonsterGapExpand,
+      monsterSeedPaste:       ImporterHubApp.prototype._onMonsterSeedPaste,
+      monsterCullGroup:       ImporterHubApp.prototype._onMonsterCullGroup,
+      // Monsters-tab maintenance actions (D-03, ported from MonsterImporterApp)
+      mimportBackfill:        ImporterHubApp.prototype._onBackfill,
+      mimportMigrateSuite:    ImporterHubApp.prototype._onMigrateSuite,
     },
   };
 
@@ -130,6 +138,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Paste-box focus/cursor preservation. */
   _importTextFocused = false;
   _importTextCursor = 0;
+
+  // ── Monsters-tab census cache ─────────────────────────────────────────────
+  /**
+   * Cached monsters-tab data (invalidated after cull/import/commit).
+   * Shape: { censusRows, duplicateGroups, duplicateCount } or null.
+   * @type {object|null}
+   */
+  _monstersCache = null;
+  /** Pending cache refresh (debounce). */
+  _monstersCacheTimer = null;
+  /** Which gap rows are expanded: Set of source ids. */
+  _expandedGapRows = new Set();
 
   // ── Hook / timer plumbing ─────────────────────────────────────────────────
   _hookIds = [];
@@ -266,6 +286,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ],
     };
 
+    // ── Monsters-tab data ────────────────────────────────────────────────────
+    let monstersData = null;
+    if (this._activeTab === "monsters") {
+      monstersData = await this._prepareMonstersContext();
+    }
+
     return {
       // Tab flags
       activeTab:    this._activeTab,
@@ -288,7 +314,64 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sourceAll: !sf,
       // Import-tab context
       importData,
+      // Monsters-tab context (null when not on Monsters tab)
+      monstersData,
     };
+  }
+
+  /**
+   * Prepare Monsters-tab context: census rows merged with gap counts, duplicate
+   * groups, and expanded-gap-row tracking. Results are cached within a render
+   * cycle; cache is invalidated on cull/import/tab-switch.
+   *
+   * @returns {Promise<object>}
+   */
+  async _prepareMonstersContext() {
+    if (!this._monstersCache) {
+      // Fetch in parallel: census (includes gaps) + duplicates
+      const [censusRowsMerged, dupGroups] = await Promise.all([
+        gatherCensus().catch((err) => {
+          console.error("shadowdark-enhancer | gatherCensus failed:", err);
+          return [];
+        }),
+        gatherDuplicates().catch((err) => {
+          console.error("shadowdark-enhancer | gatherDuplicates failed:", err);
+          return [];
+        }),
+      ]);
+
+      this._monstersCache = {
+        censusRows:     censusRowsMerged,
+        duplicateGroups: dupGroups,
+        duplicateCount:  dupGroups.length,
+      };
+    }
+
+    const { censusRows: rows, duplicateGroups: dupGroups, duplicateCount } = this._monstersCache;
+
+    // Enrich census rows with expansion state
+    const censusRowsCtx = rows.map((r) => ({
+      ...r,
+      expanded: this._expandedGapRows.has(r.source),
+    }));
+
+    const hasGaps = rows.some((r) => r.gap > 0);
+    const hasDuplicates = dupGroups.length > 0;
+
+    return {
+      censusRows:      censusRowsCtx,
+      duplicateGroups: dupGroups,
+      duplicateCount,
+      hasGaps,
+      hasDuplicates,
+      noCensus:        rows.length === 0,
+    };
+  }
+
+  /** Invalidate the monsters-tab cache and optionally schedule a re-render. */
+  _invalidateMonstersCache() {
+    this._monstersCache = null;
+    clearTimeout(this._monstersCacheTimer);
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -921,10 +1004,238 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications?.info(`Migration complete: ${summary}.`);
     this.render();
   }
+
+  // ── Monsters-tab action handlers ───────────────────────────────────────────
+
+  /**
+   * Toggle a gap row's missing-names list open/closed.
+   * Re-uses the _expandedGapRows Set to track state without a cache invalidation.
+   */
+  _onMonsterGapExpand(event, target) {
+    const source = target.dataset.source ?? "";
+    if (this._expandedGapRows.has(source)) {
+      this._expandedGapRows.delete(source);
+    } else {
+      this._expandedGapRows.add(source);
+    }
+    this.render();
+  }
+
+  /**
+   * "Seed the paste box" shortcut: pre-sets _importText to a seed hint for a
+   * single missing monster name, switches to the Import tab, re-renders.
+   * Reuses the 10-03 seed-hint pattern (sets _importSeed so the hint bar shows).
+   */
+  _onMonsterSeedPaste(event, target) {
+    const name = target.dataset.name ?? "";
+    if (!name) return;
+    this._importText = name;
+    this._importSeed = { name, _monsterSeed: true };
+    this._activeTab = "import";
+    this.render();
+  }
+
+  /**
+   * Guided cull: read the chosen keeper uuid from the form, compute dropUuids,
+   * show a DialogV2 confirm listing exactly which pack copies will be deleted,
+   * call cullDuplicates on confirm, invalidate cache, re-render. (D-06)
+   */
+  async _onMonsterCullGroup(event, target) {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can cull duplicates."); return; }
+
+    const groupKey = target.dataset.groupKey ?? "";
+    if (!groupKey) return;
+
+    // Find the group in the cache
+    const groups = this._monstersCache?.duplicateGroups ?? [];
+    const group = groups.find((g) => g.key === groupKey);
+    if (!group) { ui.notifications.warn("Duplicate group not found — refresh the Monsters tab."); return; }
+
+    // Read the keeper from the checked radio inside this group's card
+    const card = target.closest("[data-group-key]");
+    const checkedRadio = card?.querySelector("input[type='radio']:checked");
+    const keepUuid = checkedRadio?.value ?? "";
+    if (!keepUuid) { ui.notifications.warn("Select a keeper before culling."); return; }
+
+    const dropMembers = group.members.filter((m) => m.uuid !== keepUuid);
+    if (!dropMembers.length) { ui.notifications.info("Nothing to cull — only one member selected as keeper."); return; }
+
+    // Build confirmation dialog listing exactly what will be deleted
+    const keepMember = group.members.find((m) => m.uuid === keepUuid);
+    const keepLabel  = foundry.utils.escapeHTML(keepMember?.name ?? keepUuid);
+    const dropList   = dropMembers.map((m) => `<li>${foundry.utils.escapeHTML(m.name)} <em>(${m.source || "unknown source"})</em></li>`).join("");
+
+    const content = `
+      <p>Keep: <strong>${keepLabel}</strong></p>
+      <p>Delete these pack copies:</p>
+      <ul style="margin:.3em 0">${dropList}</ul>
+      <p style="color:var(--sde-bar-text-muted,#9a9a9a);font-size:.85em">
+        Only pack copies in sde-actors are deleted. World actors and _Backup docs are never touched.
+      </p>`;
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Cull Duplicate Monsters" },
+      content,
+      buttons: [
+        { action: "cull",   label: "Delete copies", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+
+    if (choice !== "cull") return;
+
+    const dropUuids = dropMembers.map((m) => m.uuid);
+    const tally = await cullDuplicates(keepUuid, dropUuids);
+
+    const parts = [];
+    if (tally.deleted)  parts.push(`${tally.deleted} deleted`);
+    if (tally.skipped)  parts.push(`${tally.skipped} skipped`);
+    if (tally.failed)   parts.push(`${tally.failed} failed (see console)`);
+    ui.notifications.info(`Cull complete: ${parts.join(", ") || "nothing done"}.`);
+
+    this._invalidateMonstersCache();
+    this.render();
+  }
+
+  /**
+   * Backfill existing imported NPCs to fresh-import fidelity.
+   * Ported verbatim from MonsterImporterApp._onBackfill (D-03).
+   */
+  async _onBackfill() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can run the monster backfill."); return; }
+    const { backfillTargets } = await import("./monster-backfill.mjs");
+
+    ui.notifications.info("Scanning imported monsters for upgrades…");
+    const preview = await backfillTargets({ scope: "pack", dryRun: true });
+    if (!preview) return;
+
+    if (preview.total === 0) {
+      ui.notifications.info("No imported-monsters compendium found or it contains no NPC actors.");
+      return;
+    }
+
+    if (preview.changed.length === 0) {
+      ui.notifications.info(`All ${preview.total} actor(s) already at full fidelity — nothing to backfill.`);
+      return;
+    }
+
+    const t = preview.totals;
+    const lines = [];
+    if (t.descriptionsWrapped) lines.push(`${t.descriptionsWrapped} item description(s) will be HTML-wrapped`);
+    if (t.namesCased)          lines.push(`${t.namesCased} attack name(s) will be Title-Cased`);
+    if (t.iconsSet)            lines.push(`${t.iconsSet} item icon(s) will be set`);
+    if (t.spellsConverted)     lines.push(`${t.spellsConverted} spell feature(s) will become real Spell items`);
+    if (t.artAssigned)         lines.push(`${t.artAssigned} portrait/token image(s) will be resolved`);
+
+    const actorList = preview.changed.map((r) => `<li>${foundry.utils.escapeHTML(r.actor)}</li>`).join("");
+    const content = `
+      <p><strong>${preview.changed.length} of ${preview.total}</strong> actor(s) need upgrading:</p>
+      <ul style="max-height:160px;overflow-y:auto;margin:.4em 0">${actorList}</ul>
+      <p>${lines.join("; ")}.</p>
+      <p>This is non-destructive and idempotent. Proceed?</p>`;
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Backfill Imported Monsters" },
+      content,
+      buttons: [
+        { action: "confirm", label: "Backfill", default: true },
+        { action: "cancel",  label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+
+    if (choice !== "confirm") return;
+
+    const result = await backfillTargets({ scope: "pack", dryRun: false });
+    if (!result) return;
+
+    const rt = result.totals;
+    const parts = [];
+    if (rt.descriptionsWrapped) parts.push(`${rt.descriptionsWrapped} desc wrapped`);
+    if (rt.namesCased)          parts.push(`${rt.namesCased} names cased`);
+    if (rt.iconsSet)            parts.push(`${rt.iconsSet} icons set`);
+    if (rt.spellsConverted)     parts.push(`${rt.spellsConverted} spells converted`);
+    if (rt.artAssigned)         parts.push(`${rt.artAssigned} art assigned`);
+    ui.notifications.info(
+      `Backfill complete: ${result.changed.length} actor(s) upgraded (${parts.join(", ") || "minor updates"}). ` +
+      `${result.unchanged.length} already up to date.`
+    );
+  }
+
+  /**
+   * Migrate world-side imported monster actors into sde-actors compendium suite pack.
+   * Ported verbatim from MonsterImporterApp._onMigrateSuite (D-03).
+   */
+  async _onMigrateSuite() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can run the suite migration."); return; }
+    const { migrateActors } = await import("./actor-migration.mjs");
+
+    ui.notifications.info("Scanning imported monsters for suite migration…");
+    const preview = await migrateActors({ dryRun: true });
+    if (!preview) return;
+
+    if (preview.total === 0) {
+      ui.notifications.info("No imported-monsters actors found to migrate (all already migrated or none present).");
+      return;
+    }
+
+    const sourceLines = Object.entries(preview.bySource)
+      .map(([src, count]) => {
+        const label = src === "" ? "Custom / (no source)" : src === "undefined" ? "(unknown)" : src;
+        return `<li><strong>${foundry.utils.escapeHTML(label)}</strong>: ${count}</li>`;
+      })
+      .join("");
+
+    const content = `
+      <p>This will migrate <strong>${preview.total}</strong> imported monster actor(s) into the
+      <em>Shadowdark Enhancer — Actors</em> compendium suite pack:</p>
+      <ul style="margin:.4em 0">
+        <li>World actors to copy: <strong>${preview.worldCount}</strong></li>
+        <li>Legacy pack docs to fold in: <strong>${preview.legacyPackCount}</strong></li>
+      </ul>
+      ${sourceLines ? `<p>By source:</p><ul style="max-height:120px;overflow-y:auto;margin:.4em 0">${sourceLines}</ul>` : ""}
+      <p>Each actor is backfilled to current fidelity first, then copied into
+      <em>sde-actors</em> under its per-source folder. World originals are
+      <strong>moved</strong> (not deleted) into a <em>_Backup (pre-suite)</em>
+      folder. The legacy "Imported Monsters" pack (if any) is retired in place —
+      never deleted. This operation is idempotent; re-running skips
+      already-migrated actors.</p>
+      <p>Proceed?</p>`;
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Migrate to Compendium Suite" },
+      content,
+      buttons: [
+        { action: "confirm", label: "Migrate", default: true },
+        { action: "cancel",  label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+
+    if (choice !== "confirm") return;
+
+    const result = await migrateActors({ dryRun: false });
+    if (!result) return;
+
+    const parts = [];
+    if (result.copied)         parts.push(`${result.copied} copied to sde-actors`);
+    if (result.backedUp)       parts.push(`${result.backedUp} moved to _Backup`);
+    if (result.legacyMigrated) parts.push(`${result.legacyMigrated} legacy pack docs folded in`);
+    if (result.failures)       parts.push(`${result.failures} failed (see console)`);
+    ui.notifications.info(
+      `Suite migration complete: ${parts.join("; ") || "nothing to do"}.`
+    );
+
+    // Invalidate monsters cache so census reflects migrated actors
+    this._invalidateMonstersCache();
+    this.render();
+  }
 }
 
 /**
  * Back-compat entry-point API for Task 2 / shadowdark-enhancer.mjs wiring.
+ * tables.openHub(tab, seed) and monsters.openImporter() both route through here.
  * tables.openHub(tab, seed) and monsters.openImporter() both route through here.
  */
 export const ImporterHubAPI = {

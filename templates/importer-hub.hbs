@@ -399,13 +399,147 @@
 
   {{!-- ═══ Monsters tab ═══ --}}
   <div class="sde-hub-tab-body sde-hub-monsters"{{#unless tabMonsters}} hidden{{/unless}} id="sde-hub-monsters">
+
+    {{#if monstersData}}
+
+      {{!-- ── Census table ──────────────────────────────────────────────────── --}}
+      <section class="sde-hub-monsters-census">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-chart-bar"></i> Monster Census
+        </h3>
+
+        {{#if monstersData.noCensus}}
+        <p class="sde-hub-monsters-empty">
+          No monsters found in sde-actors. Import some monsters on the Import tab first.
+        </p>
+        {{else}}
+        <table class="sde-hub-monsters-table">
+          <thead>
+            <tr>
+              <th class="sde-hub-monsters-th-source">Source</th>
+              <th class="sde-hub-monsters-th-have" title="Monsters in sde-actors from this source">Have</th>
+              <th class="sde-hub-monsters-th-gap" title="Monster names referenced in your imported pack tables that don't resolve">Gap</th>
+              <th class="sde-hub-monsters-th-expand"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each monstersData.censusRows as |row|}}
+            <tr class="sde-hub-monsters-row{{#if row.expanded}} expanded{{/if}}">
+              <td class="sde-hub-monsters-source">{{row.label}}</td>
+              <td class="sde-hub-monsters-have">{{row.have}}</td>
+              <td class="sde-hub-monsters-gap{{#if row.gap}} has-gap{{/if}}">{{row.gap}}</td>
+              <td class="sde-hub-monsters-expand-cell">
+                {{#if row.gap}}
+                <button type="button" class="sde-hub-monsters-expand-btn"
+                        data-action="monsterGapExpand" data-source="{{row.source}}"
+                        title="{{#if row.expanded}}Collapse{{else}}Expand{{/if}} missing names"
+                        aria-expanded="{{#if row.expanded}}true{{else}}false{{/if}}">
+                  <i class="fas fa-caret-{{#if row.expanded}}down{{else}}right{{/if}}"></i>
+                </button>
+                {{/if}}
+              </td>
+            </tr>
+            {{#if row.expanded}}
+            <tr class="sde-hub-monsters-gap-detail">
+              <td colspan="4" class="sde-hub-monsters-gap-td">
+                {{#if row.missingNames.length}}
+                <ul class="sde-hub-monsters-missing-list">
+                  {{#each row.missingNames as |name|}}
+                  <li class="sde-hub-monsters-missing-item">
+                    <span class="sde-hub-monsters-missing-name">{{name}}</span>
+                    <button type="button" class="sde-hub-monsters-seed-btn"
+                            data-action="monsterSeedPaste" data-name="{{name}}"
+                            title="Jump to Import tab with '{{name}}' pre-seeded">
+                      <i class="fas fa-bullseye"></i> Seed paste box
+                    </button>
+                  </li>
+                  {{/each}}
+                </ul>
+                {{else}}
+                <p class="sde-hub-monsters-gap-none">No missing names — every referenced monster resolves.</p>
+                {{/if}}
+              </td>
+            </tr>
+            {{/if}}
+            {{/each}}
+          </tbody>
+        </table>
+
+        {{#unless monstersData.hasGaps}}
+        <p class="sde-hub-monsters-allgood">
+          <i class="fas fa-circle-check"></i> No gaps — every referenced monster resolves.
+        </p>
+        {{/unless}}
+        {{/if}}
+      </section>
+
+      {{!-- ── Duplicates section ──────────────────────────────────────────── --}}
+      <section class="sde-hub-monsters-dups">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-copy"></i> Duplicates ({{monstersData.duplicateCount}})
+        </h3>
+
+        {{#if monstersData.hasDuplicates}}
+        <div class="sde-hub-monsters-dup-cards">
+          {{#each monstersData.duplicateGroups as |group|}}
+          <div class="sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
+            <p class="sde-hub-monsters-dup-name">{{group.key}}</p>
+            <ul class="sde-hub-monsters-dup-members">
+              {{#each group.members as |m|}}
+              <li class="sde-hub-monsters-dup-member">
+                <label class="sde-hub-monsters-dup-label">
+                  <input type="radio" name="keep-{{@../index}}" value="{{m.uuid}}"
+                         data-keeper-uuid="{{m.uuid}}"
+                         {{#if @first}}checked{{/if}}>
+                  <span class="sde-hub-monsters-dup-member-name">{{m.name}}</span>
+                  <span class="sde-hub-monsters-dup-member-meta">
+                    {{#if m.source}}<span class="sde-hub-monsters-dup-source">{{m.source}}</span>{{/if}}
+                    {{#if m.date}}<span class="sde-hub-monsters-dup-date" title="Last modified">{{m.date}}</span>{{/if}}
+                  </span>
+                </label>
+              </li>
+              {{/each}}
+            </ul>
+            <button type="button" class="sde-hub-monsters-cull-btn"
+                    data-action="monsterCullGroup" data-group-key="{{group.key}}">
+              <i class="fas fa-trash-can"></i> Cull others
+            </button>
+          </div>
+          {{/each}}
+        </div>
+        {{else}}
+        <p class="sde-hub-monsters-empty">
+          <i class="fas fa-circle-check"></i> No duplicates found in sde-actors.
+        </p>
+        {{/if}}
+      </section>
+
+      {{!-- ── Maintenance row (D-03) ─────────────────────────────────────── --}}
+      <section class="sde-hub-monsters-maintenance">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-wrench"></i> Maintenance
+        </h3>
+        <div class="sde-hub-monsters-maintenance-row">
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportBackfill"
+                  title="Upgrade existing imported NPCs to fresh-import fidelity (descriptions, icons, art, spells).">
+            <i class="fas fa-arrow-up-from-bracket"></i> Backfill
+          </button>
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportMigrateSuite"
+                  title="Move world-side imported monster actors into the sde-actors compendium pack.">
+            <i class="fas fa-box-archive"></i> Migrate to suite
+          </button>
+        </div>
+      </section>
+
+    {{else}}
+    {{!-- Shown while not on the Monsters tab (monstersData is null) --}}
     <div class="sde-hub-placeholder">
       <i class="fas fa-dragon sde-hub-placeholder-icon"></i>
       <p class="sde-hub-placeholder-title">Monsters Dashboard</p>
-      <p class="sde-hub-placeholder-note">
-        Census by source, gap analysis, and duplicate management. Coming in the next wave.
-      </p>
+      <p class="sde-hub-placeholder-note">Switch to this tab to load the census.</p>
     </div>
+    {{/if}}
+
   </div>
 
 </div>
