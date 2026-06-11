@@ -34,9 +34,14 @@ export const SUITE_FOLDER_LABEL = "Shadowdark Enhancer";
 
 // ─── Pure helpers (Foundry-free, node:test importable) ───────────────────────
 
-/** Ownership level constants — numeric, not CONST references, so tests don't need Foundry. */
-const OBSERVER = 2;
-const NONE     = 0;
+/**
+ * Ownership level constants. v14 compendium ownership config maps user ROLE
+ * names to ownership level NAMES (strings) — numeric levels are silently
+ * rejected by pack.configure, leaving the world-pack default
+ * (PLAYER: OBSERVER) on every pack. Verified live 2026-06-10.
+ */
+const OBSERVER = "OBSERVER";
+const NONE     = "NONE";
 
 /**
  * Map a source id to its display label for pack sub-folders.

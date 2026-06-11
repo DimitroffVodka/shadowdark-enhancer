@@ -29,8 +29,6 @@ import { MODULE_ID } from "../module-id.mjs";
 /** The actor folder name that world originals are MOVED into after migration (D-02). */
 export const BACKUP_FOLDER_NAME = "_Backup (pre-suite)";
 
-/** Label appended to the legacy pack when retired (D-06). */
-const LEGACY_PACK_RETIRED_LABEL = "Shadowdark Enhancer — Imported Monsters (migrated)";
 
 // ─── Pure helpers (Foundry-free, node:test importable) ───────────────────────
 
@@ -343,12 +341,14 @@ export async function migrateActors({ dryRun = false } = {}) {
   }
 
   // ── Retire the legacy pack in place (D-06 — never deleteCompendium) ───────
+  // v14: pack.configure has no `label` key (labels are metadata-only) and
+  // CompendiumCollection has no setFlag — retirement = LOCK the pack. The
+  // padlock signals "no longer written to"; the docs stay readable forever.
   if (legacyPack && legacyPackCandidates.length > 0) {
     try {
-      await legacyPack.configure({ label: LEGACY_PACK_RETIRED_LABEL });
-      try { await legacyPack.setFlag(MODULE_ID, "retiredBySuite", true); } catch (_) {}
+      await legacyPack.configure({ locked: true });
     } catch (err) {
-      console.warn(`${MODULE_ID} | actor-migration: could not retire legacy pack label:`, err);
+      console.warn(`${MODULE_ID} | actor-migration: could not lock legacy pack:`, err);
     }
   }
 
