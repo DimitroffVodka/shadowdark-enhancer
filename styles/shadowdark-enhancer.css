@@ -1583,6 +1583,181 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
   line-height: 1.5;
 }
 
+/* ── Import-tab layout ───────────────────────────────────────────────────── */
+
+/* The tab body uses flex column — constrain the paste box */
+.sde-hub-import {
+  padding: 8px 12px 12px;
+  gap: 6px;
+}
+
+/* Seed hint bar */
+.sde-hub-import-seed {
+  background: var(--sde-bar-surface-1);
+  border: 1px solid var(--sde-bar-border);
+  border-left: 3px solid var(--sde-bar-accent);
+  border-radius: var(--sde-bar-radius);
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--sde-bar-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sde-hub-import-seed-tag {
+  background: var(--sde-bar-btn-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: var(--sde-bar-font);
+  color: var(--sde-bar-text);
+}
+
+/* Paste-box label */
+.sde-hub-import-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sde-bar-text-muted);
+  font-family: var(--sde-bar-font);
+}
+
+/* Paste textarea */
+.sde-hub-import-text {
+  width: 100%;
+  min-height: 100px;
+  background: var(--sde-bar-surface-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  color: var(--sde-bar-text);
+  font-family: monospace;
+  font-size: 12px;
+  padding: 6px 8px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.sde-hub-import-text:focus-visible {
+  outline: 2px solid var(--sde-bar-accent);
+  outline-offset: 1px;
+}
+
+/* Source bar */
+.sde-hub-import-sourcebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted);
+  font-family: var(--sde-bar-font);
+}
+.sde-hub-import-source-input {
+  flex: 1 1 auto;
+  max-width: 200px;
+  background: var(--sde-bar-surface-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  color: var(--sde-bar-text);
+  font-size: 12px;
+  padding: 3px 6px;
+}
+
+/* Controls row */
+.sde-hub-import-controls {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Sectioned preview sections */
+.sde-hub-import-section {
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  background: var(--sde-bar-surface-1);
+  margin-top: 4px;
+  overflow: hidden;
+}
+
+.sde-hub-import-sechead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px;
+  background: var(--sde-bar-btn-1);
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+
+.sde-hub-import-sectitle {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--sde-bar-font);
+  color: var(--sde-bar-text);
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sde-hub-import-sectitle-skipped {
+  color: var(--sde-bar-text-muted);
+  font-weight: 600;
+}
+
+.sde-hub-import-secbtn {
+  flex: 0 0 auto;
+}
+
+/* Source note inside Monsters section */
+.sde-hub-import-srcnote {
+  font-size: 11px;
+  color: var(--sde-bar-text-muted);
+  margin: 4px 10px 2px;
+  font-family: var(--sde-bar-font);
+}
+
+/* Skipped section */
+.sde-hub-import-skipped-section {
+  border-color: var(--sde-bar-border);
+  opacity: 0.85;
+}
+
+.sde-hub-import-skipped-list {
+  margin: 0;
+  padding: 6px 12px 8px 24px;
+  font-size: 12px;
+  color: var(--sde-bar-text);
+  list-style: disc;
+}
+.sde-hub-import-skipped-list li {
+  padding: 1px 0;
+}
+
+.sde-hub-import-skipped-empty {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* Light-theme parity */
+body.theme-light .sde-hub-import-seed {
+  background: var(--sde-bar-surface-1);
+  color: var(--sde-bar-text);
+}
+body.theme-light .sde-hub-import-text {
+  background: var(--sde-bar-surface-1);
+  color: var(--sde-bar-text);
+}
+body.theme-light .sde-hub-import-section {
+  background: var(--sde-bar-surface-1);
+}
+body.theme-light .sde-hub-import-sechead {
+  background: var(--sde-bar-btn-1);
+}
+
 /* Migrate button — same style as .sde-thub-refresh */
 .sde-thub-migrate {
   flex: 0 0 auto;
