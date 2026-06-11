@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.3] — 2026-06-10
+
+### Added
+- **Bulk Monster Importer.** Paste a raw statblock dump (even a full-PDF Ctrl+A copy) into the new importer: a deterministic local parser turns it into per-monster editable drafts (low-confidence fields flagged), a preview/edit grid lets the GM correct anything, and a visible "skipped blocks" list shows everything the parser left out — nothing is silently dropped. Creating files the NPCs into a managed world compendium with per-name conflict handling.
+- **Imported monsters auto-link in encounter tables.** `MonsterLinker` now indexes the imported world pack alongside the system bestiary (Core wins on name clash), so Cursed Scroll / Western Reaches encounter tables resolve `@UUID` links to your imported monsters automatically.
+- **In-place backfill for previously imported monsters.** A new "Backfill existing…" action on the importer (plus a headless `game.shadowdarkEnhancer.monsters.backfill()` API) upgrades already-imported NPC actors to full fidelity — Title-Cased attack names, system-default icons, real functional Spell items, auto-resolved art, and the complete stat-block Description — without re-importing and without touching user edits. Dry-run preview first, idempotent on re-run, never deletes a pack.
+
+### Changed
+- **Imported/created NPCs now match base-system fidelity.** Attack item names are Title-Cased, items get the system-default icons, spellcasters get working Spell items, art auto-resolves where available, and the full stat block lands in the actor Description.
+- **UI polish batch (audit P1+P2).** Accessibility (focus visibility, form labels, icon-button names), WCAG contrast fixes, gold-palette unification, more legible HP bars, parchment texture on GM windows/cards, light-theme coverage, and emoji→Font Awesome icon migration in chat templates.
+
+### Fixed
+- **NPC sheet crash on plain-text item descriptions.** Every renderable NPC item description (Feature, Special Attack, Spell — including spells matched from third-party packs) is now stored as HTML, fixing the `unrecognized expression` crash when opening affected sheets.
+- **Statblock parser hardening** for real-world PDF dumps: wrapped stat lines, page numbers, lore blocks, and section headers no longer corrupt adjacent monsters.
+
 ## [0.2.2] — 2026-06-08
 
 ### Added
