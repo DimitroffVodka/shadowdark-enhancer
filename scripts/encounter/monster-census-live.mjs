@@ -116,9 +116,20 @@ async function _gatherGapsInternal() {
 }
 
 /**
- * Read the sde-tables pack and extract monster-candidate names from result texts.
- * A candidate is a display name extracted from @UUID{label} links already in the
- * result, or a capitalized phrase that isn't punctuation / dice notation.
+ * Read the sde-tables pack and extract monster-candidate names from result
+ * texts of ENCOUNTER tables only.
+ *
+ * Two live-caught rules (10-04 checkpoint):
+ *   1. @UUID-linked names are resolved BY DEFINITION — enrichment matched
+ *      them against the live index when the link was written. Re-checking
+ *      them by display label made every linked monster a false gap (plural
+ *      labels like "griffons" never match the singular actor name). Links
+ *      are STRIPPED, then the remaining plain text is scanned — so a
+ *      partially-enriched row still surfaces its un-linked candidates.
+ *   2. Only encounter-ish tables are scanned (REQ-32: "monsters my imported
+ *      tables mention that I don't have"). Carousing/city/treasure/event
+ *      tables reference people, places, and items — scanning them flooded
+ *      the census with 147 false gaps from CORE tables.
  *
  * D1-safe: only reads the GM's own pack tables — no shipped roster involved.
  *
@@ -133,33 +144,28 @@ async function _referencedNamesFromPackTables() {
   const tables = await pack.getDocuments();
   const names = [];
 
-  // Regex to find already-enriched @UUID[...]{label} display names
-  const uuidLabelRe = /@UUID\[[^\]]*\]\{([^}]+)\}/g;
-  // Regex to find un-enriched capitalized noun phrases (2+ words, Title Case)
-  // e.g. "Gordock Breeg", "Giant Rat", "Dark Creeper"
-  // Excludes pure dice ("d6", "2d4"), numbers, and single words
+  // Un-enriched capitalized noun phrases (2+ words, Title Case)
+  // e.g. "Gordock Breeg", "Giant Rat", "Dark Creeper".
+  // Excludes pure dice ("d6", "2d4"), numbers, and single words.
   const nounPhraseRe = /\b([A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+)+)\b/g;
 
   for (const table of tables) {
-    const label = sourceFolderName(table.flags?.[MODULE_ID]?.source ?? "");
+    const sde = table.flags?.[MODULE_ID] ?? {};
+    // Encounter gate — mirror the enrichment heuristic, encounter side only.
+    const hay = [sde.tableType, sde.category, sde.customLabel, table.name]
+      .filter(Boolean).join(" ");
+    if (!/encounter/i.test(hay)) continue;
+
+    const label = sourceFolderName(sde.source ?? "");
     const results = table.results?.contents ?? [];
     for (const result of results) {
       const text = String(result.description ?? result.text ?? "");
-
-      // Extract already-linked UUID display names
+      // Strip resolved links, scan what remains.
+      const plain = text.replace(/@UUID\[[^\]]*\]\{[^}]*\}/g, " ");
       let m;
-      uuidLabelRe.lastIndex = 0;
-      while ((m = uuidLabelRe.exec(text)) !== null) {
+      nounPhraseRe.lastIndex = 0;
+      while ((m = nounPhraseRe.exec(plain)) !== null) {
         names.push({ name: m[1], label });
-      }
-
-      // Extract un-enriched Title Case noun phrases (potential monster names)
-      // Only when the text has no @UUID links (avoids double-counting)
-      if (!text.includes("@UUID")) {
-        nounPhraseRe.lastIndex = 0;
-        while ((m = nounPhraseRe.exec(text)) !== null) {
-          names.push({ name: m[1], label });
-        }
       }
     }
   }
