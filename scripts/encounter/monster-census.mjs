@@ -62,18 +62,21 @@ function sourceOrder(sourceId) {
 export function censusRows(records) {
   if (!records || records.length === 0) return [];
 
-  /** @type {Map<string, number>} source → count */
-  const counts = new Map();
+  // Group by the DISPLAY label (sourceFolderName) so case/era variants of the
+  // same source merge into one row — e.g. folder-inferred "cs1" and
+  // legacy-flag "CS1" both land in the single "CS1" row (caught live at the
+  // 10-04 checkpoint: raw-source grouping split every CS row in two).
+  /** @type {Map<string, { source: string, label: string, have: number }>} label → row */
+  const byLabel = new Map();
   for (const rec of records) {
     const src = rec.source == null ? "" : String(rec.source);
-    counts.set(src, (counts.get(src) ?? 0) + 1);
+    const label = sourceFolderName(src);
+    const row = byLabel.get(label) ?? { source: src, label, have: 0 };
+    row.have++;
+    byLabel.set(label, row);
   }
 
-  const rows = [];
-  for (const [source, have] of counts) {
-    rows.push({ source, label: sourceFolderName(source), have });
-  }
-
+  const rows = [...byLabel.values()];
   rows.sort((a, b) => sourceOrder(a.source) - sourceOrder(b.source));
   return rows;
 }

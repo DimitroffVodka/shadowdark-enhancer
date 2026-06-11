@@ -25,7 +25,7 @@ import {
   gapNames,
   normalizeMonsterName,
 } from "./monster-census.mjs";
-import { findSuitePack } from "./compendium-suite.mjs";
+import { findSuitePack, sourceFolderName } from "./compendium-suite.mjs";
 import { effectiveSource, BACKUP_FOLDER_NAME } from "./actor-migration.mjs";
 import { MonsterLinker } from "./monster-linker.mjs";
 
@@ -57,29 +57,34 @@ async function _liveActorRecords() {
  * @returns {Promise<Array<{source:string, label:string, have:number, gap:number, missingNames:string[]}>>}
  */
 export async function gatherCensus() {
-  const [records, { missList }] = await Promise.all([
+  const [records, { missByLabel }] = await Promise.all([
     _liveActorRecords(),
     _gatherGapsInternal(),
   ]);
 
   const rows = censusRows(records);
 
-  // Each row gets gap=0 / missingNames=[] by default (gaps aren't bucketed by
-  // source in v1 — the miss-list is global, so every row shows the same full gap
-  // count; future work can bucket by table-source attribution).
-  const totalGap = missList.length;
+  // Per-source gap bucketing (D-05): each missing name is attributed to the
+  // source label of the pack TABLE that referenced it. Sources that have gap
+  // names but no owned actors yet still deserve a row — add them with have=0.
+  const seen = new Set(rows.map((r) => r.label));
+  for (const label of missByLabel.keys()) {
+    if (!seen.has(label)) rows.push({ source: label, label, have: 0 });
+  }
+
   return rows.map((r) => ({
     ...r,
-    gap:          totalGap,
-    missingNames: missList,
+    gap:          missByLabel.get(r.label)?.length ?? 0,
+    missingNames: missByLabel.get(r.label) ?? [],
   }));
 }
 
 // ─── gatherGaps ──────────────────────────────────────────────────────────────
 
 /**
- * Internal gap gather — returns the miss-list and the resolved set.
- * @returns {Promise<{missList:string[], resolvedSet:Set<string>}>}
+ * Internal gap gather — returns the global miss-list, a per-source-label
+ * bucketing of it (D-05), and the resolved set.
+ * @returns {Promise<{missList:string[], missByLabel:Map<string,string[]>, resolvedSet:Set<string>}>}
  */
 async function _gatherGapsInternal() {
   // Build the resolver: Core + sde-actors names (D1-safe — GM's own index only)
@@ -87,11 +92,27 @@ async function _gatherGapsInternal() {
   const index = await MonsterLinker.buildIndex();
   const resolvedSet = new Set(index.map((e) => normalizeMonsterName(e.name)));
 
-  // Collect referenced monster names from the GM's own imported pack tables.
-  const referencedNames = await _referencedNamesFromPackTables();
+  // Collect referenced monster names from the GM's own imported pack tables,
+  // tagged with the source label of the table each came from.
+  const referenced = await _referencedNamesFromPackTables();
 
-  const missList = gapNames(referencedNames, resolvedSet);
-  return { missList, resolvedSet };
+  // Bucket per label, resolve each bucket independently.
+  /** @type {Map<string, string[]>} label → referenced names */
+  const refByLabel = new Map();
+  for (const { name, label } of referenced) {
+    if (!refByLabel.has(label)) refByLabel.set(label, []);
+    refByLabel.get(label).push(name);
+  }
+  /** @type {Map<string, string[]>} label → missing names */
+  const missByLabel = new Map();
+  for (const [label, names] of refByLabel) {
+    const miss = gapNames(names, resolvedSet);
+    if (miss.length) missByLabel.set(label, miss);
+  }
+
+  // Global list (deduped, for gatherGaps back-compat).
+  const missList = gapNames(referenced.map((r) => r.name), resolvedSet);
+  return { missList, missByLabel, resolvedSet };
 }
 
 /**
@@ -101,7 +122,9 @@ async function _gatherGapsInternal() {
  *
  * D1-safe: only reads the GM's own pack tables — no shipped roster involved.
  *
- * @returns {Promise<string[]>}
+ * @returns {Promise<Array<{ name: string, label: string }>>} referenced names
+ *   tagged with the source LABEL of the table they came from (per-source gap
+ *   bucketing, D-05). Sourceless tables tag as "Custom".
  */
 async function _referencedNamesFromPackTables() {
   const pack = findSuitePack("sde-tables");
@@ -118,15 +141,16 @@ async function _referencedNamesFromPackTables() {
   const nounPhraseRe = /\b([A-Z][a-zA-Z'-]+(?:\s+[A-Z][a-zA-Z'-]+)+)\b/g;
 
   for (const table of tables) {
+    const label = sourceFolderName(table.flags?.[MODULE_ID]?.source ?? "");
     const results = table.results?.contents ?? [];
     for (const result of results) {
-      const text = String(result.text ?? "");
+      const text = String(result.description ?? result.text ?? "");
 
       // Extract already-linked UUID display names
       let m;
       uuidLabelRe.lastIndex = 0;
       while ((m = uuidLabelRe.exec(text)) !== null) {
-        names.push(m[1]);
+        names.push({ name: m[1], label });
       }
 
       // Extract un-enriched Title Case noun phrases (potential monster names)
@@ -134,7 +158,7 @@ async function _referencedNamesFromPackTables() {
       if (!text.includes("@UUID")) {
         nounPhraseRe.lastIndex = 0;
         while ((m = nounPhraseRe.exec(text)) !== null) {
-          names.push(m[1]);
+          names.push({ name: m[1], label });
         }
       }
     }
