@@ -3,7 +3,8 @@
  *
  * Routes a raw mixed PDF dump through a recognizer registry:
  *   1. monster recognizer  — delegates to splitStatblocks (AC…LV anchor)
- *   2. table recognizer    — delegates to parseTables (dice-table rows)
+ *   2. item recognizer     — delegates to parseItem (rider keywords / cost pattern)
+ *   3. table recognizer    — delegates to parseTables (dice-table rows)
  *   Anything not claimed by any recognizer → skipped (reviewable, never dropped).
  *
  * Classification order (Claude's Discretion per 10-CONTEXT.md):
@@ -13,8 +14,8 @@
  *   text that splitStatblocks did NOT claim), so the same lines are never
  *   double-counted.  Blocks claimed by neither recognizer land in skipped.
  *
- * Extensibility: RECOGNIZERS is an ordered array. A Phase 11 items recognizer
- * (or any future recognizer) plugs in via RECOGNIZERS.push({ id, claim, parse })
+ * Extensibility: RECOGNIZERS is an ordered array.  Additional recognizers
+ * (e.g. hexcrawl entries) plug in via RECOGNIZERS.push({ id, claim, parse })
  * without touching segmentDump's loop.  The loop iterates the registry
  * in order, never branching on a hardcoded id.
  *
@@ -24,6 +25,7 @@
 
 import { splitStatblocks } from "./statblock-parser.mjs";
 import { parseTables } from "./table-importer.mjs";
+import { itemRecognizer } from "./item-parser.mjs";
 
 // ─── Block-boundary helper ────────────────────────────────────────────────────
 
@@ -96,6 +98,17 @@ function blockHasStatLine(block) {
   return STAT_AC.test(joined) && STAT_LV.test(joined);
 }
 
+// Item-anchor patterns (mirrors item-parser.mjs) — used to break monster
+// continuation-block collection so item blocks aren't absorbed into a
+// preceding statblock unit.
+const ITEM_RIDER_RE = /\b(Benefit|Bonus|Curse|Personality)\./;
+const ITEM_COST_RE  = /(\d+)\s*(gp|sp|cp)\b/i;
+
+/** True if a raw block looks like an item entry (has a rider keyword or cost pattern). */
+function blockIsItemCandidate(block) {
+  return ITEM_RIDER_RE.test(block) || ITEM_COST_RE.test(block);
+}
+
 /**
  * Monster recognizer — works at raw-block granularity to avoid consuming table
  * blocks that follow a statblock, then delegates to splitStatblocks for the
@@ -104,7 +117,7 @@ function blockHasStatLine(block) {
  * Algorithm:
  *   1. Split input into raw blank-line blocks.
  *   2. Walk blocks: when a block starts with an ALL-CAPS name line, collect it
- *      and any following non-name, non-table continuation blocks as a "unit".
+ *      and any following non-name, non-table, non-item continuation blocks as a "unit".
  *   3. Pass each unit's combined text through splitStatblocks to validate the
  *      AC…LV anchor and extract the monster chunk.  Units with no stat line →
  *      skipped (section headers / lore).
@@ -125,13 +138,16 @@ const monsterRecognizer = {
       const firstLine = block.split("\n")[0];
 
       if (isNameLine(firstLine)) {
-        // Collect this name-block plus following non-name, non-table blocks.
+        // Collect this name-block plus following non-name, non-table,
+        // non-item continuation blocks.  Stopping at item candidates ensures
+        // that an item block immediately after a statblock reaches the item
+        // recognizer rather than being absorbed into the monster unit.
         const unitBlocks = [block];
         let j = i + 1;
         while (j < allBlocks.length) {
           const next = allBlocks[j];
           const nextFirst = next.split("\n")[0];
-          if (isNameLine(nextFirst) || blockIsDiceTable(next)) break;
+          if (isNameLine(nextFirst) || blockIsDiceTable(next) || blockIsItemCandidate(next)) break;
           unitBlocks.push(next);
           j++;
         }
@@ -234,13 +250,15 @@ const tableRecognizer = {
  *
  * - `parse(claimedBlocks)` → items array (recognizer-specific type)
  *
- * Phase 11 plug-in pattern:
- *   import { RECOGNIZERS } from "./dump-segmenter.mjs";
- *   RECOGNIZERS.splice(1, 0, itemsRecognizer); // insert before table recognizer
+ * Registration order (Phase 11):
+ *   [monsterRecognizer, itemRecognizer, tableRecognizer]
+ *   Items recognizer runs after monsters (statblock continuations already
+ *   claimed) and before tables (item blocks don't fall into the table
+ *   recognizer's no-dice remainder path).
  *
  * @type {Array<{ id: string, claim: Function, parse: Function }>}
  */
-export const RECOGNIZERS = [monsterRecognizer, tableRecognizer];
+export const RECOGNIZERS = [monsterRecognizer, itemRecognizer, tableRecognizer];
 
 // ─── Core segmenter ───────────────────────────────────────────────────────────
 
@@ -253,7 +271,7 @@ export const RECOGNIZERS = [monsterRecognizer, tableRecognizer];
  * buckets keyed by recognizer id and merges skipped lists.
  *
  * @param {string|null|undefined} rawText
- * @returns {{ monsters: string[], tables: import("./table-importer.mjs").ParsedTable[], skipped: {name:string,reason:string}[], [id:string]: any[] }}
+ * @returns {{ monsters: string[], items: {draft:object,warnings:string[]}[], tables: import("./table-importer.mjs").ParsedTable[], skipped: {name:string,reason:string}[], [id:string]: any[] }}
  */
 export function segmentDump(rawText) {
   const text = String(rawText ?? "");
@@ -279,6 +297,8 @@ export function segmentDump(rawText) {
   // Guarantee the canonical output keys exist.
   result.monsters = result.monster ?? [];
   delete result.monster;
+  result.items    = result.item    ?? [];
+  delete result.item;
   result.tables   = result.table   ?? [];
   delete result.table;
 
