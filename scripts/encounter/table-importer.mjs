@@ -271,24 +271,22 @@ export function buildTableData(pt) {
 // Internal exports for tooling/tests that want the lower-level pieces.
 export const _internals = { parseLeadingRange, parseDieHeader, splitBlocks, computeWarnings };
 
-/** Make a table name unique against existing world tables by suffixing. */
-function _uniqueTableName(base) {
+/**
+ * Make a table name unique against a pack index array (or any array with .name).
+ * Pure — no Foundry globals — node:testable.
+ * @param {string} base
+ * @param {Array<{name: string}>} index
+ * @returns {string}
+ */
+export function _uniqueNameAgainstIndex(base, index) {
+  const taken = new Set((index ?? []).map(e => (e.name ?? "").toLowerCase()));
   let n = 2;
   let candidate = `${base} (${n})`;
-  while (game.tables.find(t => t.name === candidate)) {
+  while (taken.has(candidate.toLowerCase())) {
     n++;
     candidate = `${base} (${n})`;
   }
   return candidate;
-}
-
-/** Find-or-create a RollTable folder by name under an optional parent id. */
-async function _ensureFolder(name, parentId = null) {
-  const existing = game.folders.find(f =>
-    f.type === "RollTable" && f.name === name && (f.folder?.id ?? null) === parentId
-  );
-  if (existing) return existing;
-  return Folder.create({ name, type: "RollTable", folder: parentId });
 }
 
 /** Resolve a ParsedTable's category to its folder display label. */
@@ -298,12 +296,14 @@ function _categoryLabel(pt) {
 }
 
 /**
- * Create a world RollTable from a reviewed ParsedTable.
+ * Create a RollTable from a reviewed ParsedTable and file it into the sde-tables
+ * managed pack (pack-native, REQ-30 / D-08). Conflict-checks against the pack
+ * index; creates per-source folders INSIDE the pack via ensureSourceFolder.
  *
  * @param {object} pt  ParsedTable (post-grid-edit)
  * @param {object} [opts]
  * @param {(name: string) => Promise<"replace"|"rename"|"cancel">} [opts.onConflict]
- *   Resolver invoked when a same-named table already exists. Omitted →
+ *   Resolver invoked when a same-named table already exists in the pack. Omitted →
  *   non-destructive rename.
  * @returns {Promise<RollTable|null>}
  */
@@ -312,39 +312,58 @@ export async function createTable(pt, { onConflict } = {}) {
     ui.notifications?.warn("Only a GM can create roll tables.");
     return null;
   }
+
+  // Resolve the sde-tables pack (find-or-create via ensureSuite).
+  const { ensureSuite, ensureSourceFolder: _ensureSourceFolder } =
+    await import("./compendium-suite.mjs");
+  const suite = await ensureSuite();
+  if (!suite?.tables) {
+    ui.notifications?.error("Could not access the sde-tables compendium.");
+    return null;
+  }
+  const pack = suite.tables;
+
   const data = buildTableData(pt);
-  const existing = game.tables.find(t => t.name === data.name);
+
+  // Conflict check against the PACK index (not world game.tables).
+  const packIndex = await pack.getIndex();
+  const existing = packIndex.find(e => e.name === data.name);
   if (existing) {
     const choice = onConflict ? await onConflict(data.name) : "rename";
     if (choice === "cancel") return null;
-    if (choice === "replace") await existing.delete();
-    else data.name = _uniqueTableName(data.name);
+    if (choice === "replace") {
+      // Delete ONLY the matching document — never the compendium (T-09-08).
+      const doc = await pack.getDocument(existing._id);
+      if (doc) await doc.delete();
+    } else {
+      data.name = _uniqueNameAgainstIndex(data.name, [...packIndex]);
+    }
   }
-  // File into nested folders under "Imported Tables". A manifest-seeded import
-  // supplies a Category/Sub-category path (mirroring the Roll Tables hub layout);
-  // a plain paste files under its single category label.
-  const root = await _ensureFolder("Imported Tables", null);
-  let folderId = root.id;
-  let leafLabel;
-  const path = Array.isArray(pt.folderPath) ? pt.folderPath.filter(Boolean) : null;
-  if (path && path.length) {
-    for (const seg of path) folderId = (await _ensureFolder(seg, folderId)).id;
-    leafLabel = path[path.length - 1];
-  } else {
-    leafLabel = _categoryLabel(pt);
-    folderId = (await _ensureFolder(leafLabel, folderId)).id;
-  }
-  data.folder = folderId;
+
+  // Determine source id for the per-source folder inside the pack.
+  // pt.source (stamped by hub seed) > pt.folderPath[0] heuristic > null → "Custom".
+  const sourceId = pt.source ?? (Array.isArray(pt.folderPath) && pt.folderPath[0]) ?? null;
+  const folderId = await _ensureSourceFolder(pack, sourceId);
+
+  data.folder = folderId ?? null;
   data.flags = {
     ...(data.flags ?? {}),
     "shadowdark-enhancer": {
-      tableType: path ? leafLabel : (pt.category === CUSTOM_ID ? leafLabel : (pt.category ?? "other")),
+      tableType: (() => {
+        const path = Array.isArray(pt.folderPath) ? pt.folderPath.filter(Boolean) : null;
+        const leafLabel = path?.length ? path[path.length - 1] : null;
+        return leafLabel ?? (pt.category === CUSTOM_ID ? (_categoryLabel(pt)) : (pt.category ?? "other"));
+      })(),
       // When imported via the Roll Tables hub for a known manifest entry, stamp
       // its id so the hub matches this table EXACTLY (not by fuzzy name).
       ...(pt.manifestId ? { manifestId: pt.manifestId } : {}),
+      // Stamp source so the hub/migration can group by source.
+      ...(sourceId ? { source: sourceId } : {}),
     },
   };
-  const table = await RollTable.create(data);
+
+  // File into sde-tables pack (pack-native — D-08 / REQ-30).
+  const table = await RollTable.create(data, { pack: pack.collection });
   await _autoEnrich(table, pt);
   return table;
 }
