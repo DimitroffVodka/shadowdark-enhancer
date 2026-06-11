@@ -74,15 +74,22 @@ export function isUnderImportedTablesRoot(table, rootName = "Imported Tables") {
  * @param {object[]|null|undefined} tables - Table-likes: { flags? }
  * @returns {object[]}
  */
-export function selectModuleImportedTables(tables) {
+export function selectModuleImportedTables(tables, attributedIds = null) {
   return (tables ?? []).filter((t) => {
     const sde = t?.flags?.[MODULE_ID];
-    // Flag markers (tableType / manifestId / source) identify post-flag-era
-    // imports; the "Imported Tables" folder tree identifies pre-flag-era ones.
+    // Three import signals, any one suffices:
+    //   1. flag markers (tableType / manifestId / source) — post-flag-era,
+    //   2. manifest attribution (the hub's own name-match, passed in live as
+    //      a Set of table ids) — pre-flag-era imports renamed/reorganized by
+    //      tables.organize(), identified by their "Core PDF pN:" /
+    //      "Cursed Scroll N pN:" name prefixes via normalizeName,
+    //   3. residence under an "Imported Tables" folder tree — pre-organize()
+    //      worlds.
     const hasMarker = !!sde && (sde.tableType !== undefined
       || sde.manifestId !== undefined
       || sde.source !== undefined);
-    if (!hasMarker && !isUnderImportedTablesRoot(t)) return false;
+    const attributed = !!attributedIds?.has?.(t?.id);
+    if (!hasMarker && !attributed && !isUnderImportedTablesRoot(t)) return false;
     return !isTableMigrated(t);
   });
 }
@@ -129,8 +136,11 @@ export async function planTableMigration() {
   const { ensureSuite } = await import("./compendium-suite.mjs");
   await ensureSuite();
 
-  const candidates = selectModuleImportedTables([...(game.tables?.contents ?? [])]);
   const attribution = await _attributeCandidates();
+  const candidates = selectModuleImportedTables(
+    [...(game.tables?.contents ?? [])],
+    new Set(attribution.keys())
+  );
 
   return {
     total: candidates.length,
@@ -179,10 +189,13 @@ export async function migrateTables({ dryRun = false } = {}) {
   if (!suite) return null;
   const tablesPack = suite.tables;
 
-  // Gather candidates + manifest attribution (source/manifestId for
-  // pre-flag-era imports, via the hub's own matching logic).
-  const candidates = selectModuleImportedTables([...(game.tables?.contents ?? [])]);
+  // Gather manifest attribution first (source/manifestId for pre-flag-era
+  // imports, via the hub's own matching logic) — it also drives selection.
   const attribution = await _attributeCandidates();
+  const candidates = selectModuleImportedTables(
+    [...(game.tables?.contents ?? [])],
+    new Set(attribution.keys())
+  );
 
   const report = {
     dryRun,
