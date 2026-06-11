@@ -5,6 +5,11 @@
  * existing compendium Item when a confident name match exists. `findLink`
  * is pure (node-testable); `buildItemIndex` loads compendium indices
  * (Foundry) and is session-cached like SpellIndex.
+ *
+ * System-first ordering (D3, A-06): `buildItemIndex` visits system Item packs
+ * before world/module packs (including sde-items). Because `byName` deduplication
+ * keeps the FIRST occurrence, a system item beats an sde-items import of the same
+ * name — imports fill gaps, system wins on clash.
  */
 
 const LOOT_TYPES = new Set(["Weapon", "Armor", "Potion", "Basic"]);
@@ -12,6 +17,30 @@ const MIN_NAME_LEN = 4;
 
 // Session cache for the prepared item list (longest-name-first).
 let _itemCache = null;
+
+/**
+ * Partition an iterable of pack-like objects so system packs come first,
+ * preserving relative order within each partition. Pure, Foundry-free.
+ *
+ * A pack is "system" when its `packageType === "system"`. Everything else
+ * (world, module, etc.) follows in second position.
+ *
+ * This implements the D3 system-first contract for `buildItemIndex`: because
+ * the dedup map honours first-seen, a system item beats an sde-items import of
+ * the same name — imports fill gaps.
+ *
+ * @param {Iterable<{packageType:string, collection:string}>} packsLike
+ * @returns {Array<{packageType:string, collection:string}>}
+ */
+export function orderPacksSystemFirst(packsLike) {
+  const system = [];
+  const rest   = [];
+  for (const p of packsLike) {
+    if (p.packageType === "system") system.push(p);
+    else rest.push(p);
+  }
+  return [...system, ...rest];
+}
 
 /** Escape a string for safe use inside a RegExp. */
 export function escapeRegExp(s) {
@@ -42,15 +71,22 @@ export function findLink(text, items) {
 
 /**
  * Load + prepare the candidate item list from every installed Item pack,
- * filtered to loot types and min length, deduped by name, longest-first.
+ * filtered to loot types and min length, deduped by name (system packs first,
+ * then world/module packs including sde-items), longest-first.
  * Session-cached.
+ *
+ * System-first ordering (D3 / A-06): `orderPacksSystemFirst` puts packs with
+ * `packageType === "system"` before world/module packs. Because `byName.has()`
+ * skips later duplicates, a system item wins over a same-named sde-items import.
+ *
  * @returns {Promise<Array<{uuid,name,nameLower}>>}
  */
 export async function buildItemIndex() {
   if (_itemCache) return _itemCache;
   const byName = new Map(); // nameLower -> {uuid,name,nameLower}
-  for (const pack of game.packs) {
-    if (pack.documentName !== "Item") continue;
+  // System packs first (D3 / A-06 system-first dedup)
+  const itemPacks = [...game.packs].filter((p) => p.documentName === "Item");
+  for (const pack of orderPacksSystemFirst(itemPacks)) {
     let index;
     try {
       index = await pack.getIndex({ fields: ["type"] });
@@ -62,7 +98,7 @@ export async function buildItemIndex() {
       const name = entry.name ?? "";
       if (name.length < MIN_NAME_LEN) continue;
       const nameLower = name.toLowerCase();
-      if (byName.has(nameLower)) continue; // first pack wins
+      if (byName.has(nameLower)) continue; // first pack wins (system beats sde-items)
       const uuid = entry.uuid ?? `Compendium.${pack.collection}.Item.${entry._id}`;
       byName.set(nameLower, { uuid, name, nameLower });
     }
@@ -76,4 +112,4 @@ export function invalidate() {
   _itemCache = null;
 }
 
-export const LootLinker = { buildItemIndex, findLink, invalidate };
+export const LootLinker = { buildItemIndex, findLink, invalidate, orderPacksSystemFirst };
