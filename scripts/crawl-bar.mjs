@@ -283,7 +283,10 @@ export const CrawlBar = {
         break;
 
       case "rollTables":
-        game.shadowdarkEnhancer.tables.openHub();
+        // The Importer button is the hub's front door — land on the Import
+        // tab (D-01). Bare openHub() keeps its legacy dashboard mapping for
+        // old callers.
+        game.shadowdarkEnhancer.tables.openHub("import");
         break;
 
       case "m2Placeholder":
