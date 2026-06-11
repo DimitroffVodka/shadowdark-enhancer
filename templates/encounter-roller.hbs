@@ -32,7 +32,7 @@
             {{#each tableGroups}}
               <optgroup label="{{this.name}}">
                 {{#each this.tables}}
-                  <option value="{{this.id}}">{{#if this.isActive}}★ {{/if}}{{this.name}}</option>
+                  <option value="{{this.uuid}}">{{#if this.isActive}}★ {{/if}}{{this.name}}</option>
                 {{/each}}
               </optgroup>
             {{/each}}

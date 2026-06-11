@@ -17,6 +17,7 @@ import {
   _findCompendiumActorByName,
 } from "./art-utils.mjs";
 import { MonsterCreator } from "./encounter-creator.mjs";
+import { findSuitePack } from "./compendium-suite.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).
@@ -99,16 +100,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     super(options);
     this._activeTab = "tables";
     // The setting stores the active table's full UUID (e.g.
-    // "RollTable.abc123") so the encounter-check flow can resolve it
-    // without depending on the roller being open. The picker dropdown
-    // however uses table IDs as <option value>s, so we resolve the
-    // UUID -> ID at construction time. Without this resolution the
-    // dropdown would fall back to "-- Select Table --" every time the
-    // window reopened, even though the active table was still set.
+    // "RollTable.abc123" for world tables or
+    // "Compendium.world.sde-tables.RollTable.<id>" for pack tables).
+    // The picker dropdown uses the full UUID as <option value> so both world
+    // and pack tables are selectable without ambiguity — _selectedTableId now
+    // stores the UUID directly (not the raw id). fromUuid/fromUuidSync
+    // resolve both world and pack UUIDs.
     const activeTableUuid = game.settings.get(MODULE_ID, "encounterTableUuid");
-    this._selectedTableId = activeTableUuid
-      ? (fromUuidSync(activeTableUuid)?.id ?? null)
-      : null;
+    this._selectedTableId = activeTableUuid || null;
     this._lastResult = null;
     // Track the in-flight Place-Tokens listener so we can cancel it on
     // close / escape / app reopen — prevents stale handlers from firing
@@ -205,6 +204,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         name: "No Folder",
         tables: rootTables.map(t => ({
           id: t.id,
+          uuid: t.uuid,
           name: t.name,
           isActive: t.uuid === activeTableUuid
         }))
@@ -219,10 +219,46 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           name: folder.name,
           tables: tables.map(t => ({
             id: t.id,
+            uuid: t.uuid,
             name: t.name,
             isActive: t.uuid === activeTableUuid
           }))
         });
+      }
+    }
+
+    // sde-tables pack — list pack RollTables alongside world tables (D-08 / REQ-30).
+    // Pack documents carry full UUIDs; the roller resolves them via fromUuid so
+    // table.draw() works directly on the pack doc without materializing a world copy.
+    const tablesPack = findSuitePack("sde-tables");
+    if (tablesPack) {
+      try {
+        const packIndex = await tablesPack.getIndex();
+        if (packIndex.size) {
+          // Group by pack sub-folder. packIndex entries carry `folder` (folder id or null).
+          const folderMap = new Map(); // folderId → folderName
+          for (const f of (tablesPack.folders ?? [])) folderMap.set(f.id, f.name);
+
+          const byFolder = new Map(); // folderName → entries[]
+          for (const entry of packIndex) {
+            const folderName = entry.folder ? (folderMap.get(entry.folder) ?? "Compendium Tables") : "Compendium Tables";
+            if (!byFolder.has(folderName)) byFolder.set(folderName, []);
+            const packUuid = `Compendium.${tablesPack.collection}.RollTable.${entry._id}`;
+            byFolder.get(folderName).push({
+              id: entry._id,
+              uuid: packUuid,
+              name: entry.name,
+              isActive: packUuid === activeTableUuid,
+            });
+          }
+          for (const [groupName, entries] of byFolder) {
+            if (entries.length) {
+              tableGroups.push({ name: `[Pack] ${groupName}`, tables: entries });
+            }
+          }
+        }
+      } catch (_) {
+        // Pack not yet indexed — silently skip; tables show on next render.
       }
     }
 
@@ -315,7 +351,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     return {
       activeTab: this._activeTab,
-      selectedTableId: this._selectedTableId,
+      selectedTableId: this._selectedTableId,   // now a full UUID
       tableGroups,
       tablePreview,
       lastResult: this._lastResult,
@@ -329,13 +365,21 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
    * Each row shows: roll range, resolved monster (or raw text), and the
    * appearing formula if one is set on the result.
    *
-   * @param {string} tableId
+   * Accepts a full UUID (world "RollTable.<id>" or pack
+   * "Compendium.<collection>.RollTable.<id>") so pack tables are resolved
+   * without materializing a world copy (REQ-30 / D-08).
+   *
+   * @param {string} tableUuid  full UUID of the table (or bare id for legacy callers)
    * @returns {Promise<{name: string, formula: string, rows: Array} | null>}
    * @private
    */
-  async _buildTablePreview(tableId) {
-    if (!tableId) return null;
-    const table = game.tables.get(tableId);
+  async _buildTablePreview(tableUuid) {
+    if (!tableUuid) return null;
+    // Resolve via fromUuid — handles both world docs ("RollTable.<id>") and
+    // pack docs ("Compendium.<collection>.RollTable.<id>"). Fall back to
+    // game.tables.get for bare ids passed from legacy callers.
+    let table = await fromUuid(tableUuid).catch(() => null);
+    if (!table) table = game.tables.get(tableUuid);
     if (!table) return null;
 
     const rows = [];
@@ -654,9 +698,12 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   async _onSetAsActive(event, target) {
     if (!this._selectedTableId) return;
-    const table = game.tables.get(this._selectedTableId);
+    // _selectedTableId is now a full UUID — resolve via fromUuid so pack tables work.
+    const table = await fromUuid(this._selectedTableId).catch(() => null)
+      ?? game.tables.get(this._selectedTableId);
     if (!table) return;
 
+    // table.uuid is authoritative for both world and pack docs.
     await game.settings.set(MODULE_ID, "encounterTableUuid", table.uuid);
     ui.notifications.info(`Active encounter table set to: ${table.name}`);
     this.render();
@@ -666,19 +713,18 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     await this.rollActiveTable(this._selectedTableId);
   }
 
-  async rollActiveTable(tableId = null) {
-    // Resolve the active-table setting (stores UUID) → table ID for
-    // `game.tables.get`. fromUuidSync is the canonical sync lookup for
-    // world documents in v13+; the previous `game.tables.getByUUID`
-    // isn't a standard Foundry Collection method and was relying on
-    // undefined behavior.
-    const id = tableId || fromUuidSync(game.settings.get(MODULE_ID, "encounterTableUuid") ?? "")?.id;
-    if (!id) {
+  async rollActiveTable(tableUuid = null) {
+    // Resolve the active-table setting (stores full UUID — world or pack).
+    // fromUuid handles both: "RollTable.<id>" (world) and
+    // "Compendium.<collection>.RollTable.<id>" (pack). game.tables.get is
+    // the fallback for bare ids passed from legacy callers.
+    const uuid = tableUuid || game.settings.get(MODULE_ID, "encounterTableUuid") || "";
+    if (!uuid) {
       ui.notifications.warn("No active table selected.");
       return;
     }
 
-    const table = game.tables.get(id);
+    const table = await fromUuid(uuid).catch(() => null) ?? game.tables.get(uuid);
     if (!table) return;
 
     const draw = await table.draw({ displayChat: false });
@@ -737,28 +783,30 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
   /**
    * Resolve the TableResult associated with a preview-row button click.
    * The row carries `data-result-id`; we look it up on the currently
-   * selected table.
+   * selected table (world or pack — resolved via fromUuid).
    *
    * @param {HTMLElement} target  the clicked action button
-   * @returns {TableResult | null}
+   * @returns {Promise<TableResult | null>}
    * @private
    */
-  _getPreviewResult(target) {
+  async _getPreviewResult(target) {
     const id = target.closest("[data-result-id]")?.dataset.resultId;
     if (!id || !this._selectedTableId) return null;
-    const table = game.tables.get(this._selectedTableId);
+    // _selectedTableId is now a full UUID — resolve via fromUuid so pack tables work.
+    const table = await fromUuid(this._selectedTableId).catch(() => null)
+      ?? game.tables.get(this._selectedTableId);
     return table?.results?.get(id) ?? null;
   }
 
   async _onPreviewPost(event, target) {
-    const result = this._getPreviewResult(target);
+    const result = await this._getPreviewResult(target);
     if (!result) return;
     await this._buildResultFrom(result);
     await this._onPostToChat();
   }
 
   async _onPreviewPlace(event, target) {
-    const result = this._getPreviewResult(target);
+    const result = await this._getPreviewResult(target);
     if (!result) return;
     await this._buildResultFrom(result);
     // Flavor entries can't be placed (no monster).

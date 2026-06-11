@@ -15,6 +15,7 @@
  */
 import { MODULE_ID } from "../module-id.mjs";
 import { TABLE_MANIFEST, verify, isMatrix, columnManifestId, SOURCES, sourceShort } from "./table-manifest.mjs";
+import { findSuitePack } from "./compendium-suite.mjs";
 
 const SYSTEM_PACK = "shadowdark.rollable-tables";
 
@@ -81,17 +82,67 @@ export const TableHub = {
     return new Set(idx.map(e => e._id));
   },
 
-  /** Build lookup maps over world RollTables: by manifestId flag and by name. */
+  /**
+   * Build lookup maps over world RollTables: by manifestId flag and by name.
+   * Extends the world scan with sde-tables pack documents so that a table
+   * filed into the pack (pack-native import, D-08 / REQ-30) counts as
+   * "imported" in the hub status — not "missing" (D-08 stale-reference repair).
+   */
   _worldIndex() {
     const byFlag = new Map();
     const byNorm = new Map();
-    for (const t of game.tables.contents) {
-      const mid = t.getFlag(MODULE_ID, "manifestId");
+
+    // Helper: register one table-like entry in the lookup maps.
+    // `entry` must have: getFlag / flags, name, uuid.
+    const register = (t) => {
+      const mid = typeof t.getFlag === "function"
+        ? t.getFlag(MODULE_ID, "manifestId")
+        : t.flags?.[MODULE_ID]?.manifestId;
       if (mid) byFlag.set(mid, t);
       const n = normalizeName(t.name);
-      if (!n) continue;
+      if (!n) return;
       if (!byNorm.has(n)) byNorm.set(n, []);
-      byNorm.get(n).push(t); // keep ALL same-name candidates for source filtering
+      byNorm.get(n).push(t);
+    };
+
+    // World tables.
+    for (const t of game.tables.contents) register(t);
+
+    return { byFlag, byNorm };
+  },
+
+  /**
+   * Read the sde-tables pack index and add any pack docs that carry a
+   * `manifestId` flag into the lookup maps. Called from buildRows after
+   * the world index is built so pack docs supplement (not replace) world matches.
+   *
+   * Pack documents loaded via getDocuments() expose full flag access;
+   * the pack index alone does not carry flags — we load only docs whose
+   * index entry signals a shadowdark-enhancer flag (flagged in the index
+   * under flags.shadowdark-enhancer.manifestId when v14 includes flags in
+   * the pack index, which it does). Falls back to getDocuments() for the
+   * full flag read if the index entry lacks flags.
+   *
+   * @returns {Promise<{byFlag: Map, byNorm: Map}>}
+   */
+  async _packIndex() {
+    const byFlag = new Map();
+    const byNorm = new Map();
+    const pack = findSuitePack("sde-tables");
+    if (!pack) return { byFlag, byNorm };
+    try {
+      // getDocuments() loads full documents — needed to read flags reliably.
+      const docs = await pack.getDocuments();
+      for (const t of docs) {
+        const mid = t.getFlag(MODULE_ID, "manifestId");
+        if (mid) byFlag.set(mid, t);
+        const n = normalizeName(t.name);
+        if (!n) continue;
+        if (!byNorm.has(n)) byNorm.set(n, []);
+        byNorm.get(n).push(t);
+      }
+    } catch (_) {
+      // Pack not accessible — silently skip; status reverts to missing.
     }
     return { byFlag, byNorm };
   },
@@ -124,10 +175,25 @@ export const TableHub = {
   /**
    * Reconcile the whole manifest. Returns category-grouped rows (each carrying
    * display fields + state flags for the template) plus a summary tally.
+   *
+   * Merges world + sde-tables pack indexes so pack-native imported tables
+   * (D-08 / REQ-30) count as "imported" rather than "missing".
    */
   async buildRows() {
     const sysIds = await this._systemPresentIds();
     const world = this._worldIndex();
+
+    // Merge pack docs into the lookup maps — pack docs with matching manifestId
+    // flags register as "imported" regardless of whether they're in game.tables.
+    const pack = await this._packIndex();
+    for (const [mid, t] of pack.byFlag) {
+      if (!world.byFlag.has(mid)) world.byFlag.set(mid, t);
+    }
+    for (const [norm, entries] of pack.byNorm) {
+      if (!world.byNorm.has(norm)) world.byNorm.set(norm, entries);
+      else world.byNorm.get(norm).push(...entries);
+    }
+
     const summary = { total: 0, system: 0, imported: 0, partial: 0, missing: 0 };
     const presentFlagIds = new Set(world.byFlag.keys());
     const tree = new Map(); // category -> Map(sub -> rows[])

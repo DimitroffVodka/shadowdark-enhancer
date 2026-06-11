@@ -9,6 +9,7 @@ import { MODULE_ID } from "../module-id.mjs";
 import { LOOT_SETUP_SLOTS, slotStatus, boundCount } from "./loot-setup-manifest.mjs";
 import { TableImporter } from "./table-importer.mjs";
 import { LootCatalog } from "./loot-catalog.mjs";
+import { findSuitePack } from "./compendium-suite.mjs";
 
 // The Shadowdark system ships exactly one treasure table in its compendium.
 const SYSTEM_PACK = "shadowdark.rollable-tables";
@@ -42,9 +43,28 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _prepareContext() {
     const map = game.settings.get(MODULE_ID, "lootTierTables") ?? {};
+
+    // Build the full table list from world tables + sde-tables pack (D-08 / REQ-30).
+    // The loot generator already resolves via fromUuid(uuid).draw(), which is
+    // pack-capable — so we only need to make pack tables selectable here.
     const allTables = game.tables.contents
-      .map(t => ({ uuid: t.uuid, name: t.name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .map(t => ({ uuid: t.uuid, name: t.name }));
+
+    const tablesPack = findSuitePack("sde-tables");
+    if (tablesPack) {
+      try {
+        const packIndex = await tablesPack.getIndex();
+        for (const entry of packIndex) {
+          const packUuid = `Compendium.${tablesPack.collection}.RollTable.${entry._id}`;
+          allTables.push({ uuid: packUuid, name: `[Pack] ${entry.name}` });
+        }
+      } catch (_) {
+        // Pack not yet indexed — silently skip; pack tables appear on next render.
+      }
+    }
+
+    allTables.sort((a, b) => a.name.localeCompare(b.name));
+
     const slots = slotStatus(map).map(s => ({
       ...s,
       boundName: s.boundUuid ? (fromUuidSync(s.boundUuid)?.name ?? "(missing table)") : null,
