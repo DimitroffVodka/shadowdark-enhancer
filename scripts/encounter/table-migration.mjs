@@ -42,6 +42,25 @@ export function isTableMigrated(table) {
 }
 
 /**
+ * True when the table sits anywhere under the module's "Imported Tables"
+ * world folder tree. Pre-flag-era hub imports carry NO module flags — their
+ * only durable import signal is living in that tree (nothing else creates it).
+ * Depth-capped folder-chain walk; tolerates folder-likes in tests.
+ *
+ * @param {object} table - Table-like: { folder?: { name?, folder? } }
+ * @param {string} [rootName="Imported Tables"]
+ * @returns {boolean}
+ */
+export function isUnderImportedTablesRoot(table, rootName = "Imported Tables") {
+  let f = table?.folder;
+  for (let depth = 0; f && depth < 20; depth++) {
+    if (f.name === rootName) return true;
+    f = f.folder;
+  }
+  return false;
+}
+
+/**
  * Filter a mixed array of world RollTables down to un-migrated module-imported ones.
  * A table is "module-imported" when it carries at least one of these in
  * flags["shadowdark-enhancer"]:
@@ -58,12 +77,12 @@ export function isTableMigrated(table) {
 export function selectModuleImportedTables(tables) {
   return (tables ?? []).filter((t) => {
     const sde = t?.flags?.[MODULE_ID];
-    if (!sde) return false;
-    // Must carry at least one of the three import markers.
-    const hasMarker = sde.tableType !== undefined
+    // Flag markers (tableType / manifestId / source) identify post-flag-era
+    // imports; the "Imported Tables" folder tree identifies pre-flag-era ones.
+    const hasMarker = !!sde && (sde.tableType !== undefined
       || sde.manifestId !== undefined
-      || sde.source !== undefined;
-    if (!hasMarker) return false;
+      || sde.source !== undefined);
+    if (!hasMarker && !isUnderImportedTablesRoot(t)) return false;
     return !isTableMigrated(t);
   });
 }
@@ -111,10 +130,11 @@ export async function planTableMigration() {
   await ensureSuite();
 
   const candidates = selectModuleImportedTables([...(game.tables?.contents ?? [])]);
+  const attribution = await _attributeCandidates();
 
   return {
     total: candidates.length,
-    bySource: _tallyByKey(candidates, (t) => t.flags?.[MODULE_ID]?.source ?? ""),
+    bySource: _tallyByKey(candidates, (t) => _resolvedSource(t, attribution)),
     byCategory: _tallyByKey(candidates, (t) => t.flags?.[MODULE_ID]?.tableType ?? ""),
   };
 }
@@ -159,13 +179,15 @@ export async function migrateTables({ dryRun = false } = {}) {
   if (!suite) return null;
   const tablesPack = suite.tables;
 
-  // Gather candidates.
+  // Gather candidates + manifest attribution (source/manifestId for
+  // pre-flag-era imports, via the hub's own matching logic).
   const candidates = selectModuleImportedTables([...(game.tables?.contents ?? [])]);
+  const attribution = await _attributeCandidates();
 
   const report = {
     dryRun,
     total: candidates.length,
-    bySource: _tallyByKey(candidates, (t) => t.flags?.[MODULE_ID]?.source ?? ""),
+    bySource: _tallyByKey(candidates, (t) => _resolvedSource(t, attribution)),
     byCategory: _tallyByKey(candidates, (t) => t.flags?.[MODULE_ID]?.tableType ?? ""),
     copied: 0,
     backedUp: 0,
@@ -183,7 +205,7 @@ export async function migrateTables({ dryRun = false } = {}) {
 
   for (const table of candidates) {
     try {
-      const sourceId = table.flags?.[MODULE_ID]?.source ?? "";
+      const sourceId = _resolvedSource(table, attribution);
       const folderId = await ensureSourceFolder(tablesPack, sourceId);
 
       // Build pack payload from the world document — strip _id, set folder.
@@ -191,9 +213,16 @@ export async function migrateTables({ dryRun = false } = {}) {
       delete payload._id;
       payload.folder = folderId ?? null;
       payload.flags = payload.flags ?? {};
+      const attributed = attribution.get(table.id);
       payload.flags[MODULE_ID] = {
         ...(payload.flags[MODULE_ID] ?? {}),
         source: sourceId,
+        // Stamp the matched manifestId on pre-flag-era copies so the hub's
+        // pack index counts them as imported (D-08); never overwrite an
+        // existing flag.
+        ...(attributed?.manifestId && !payload.flags[MODULE_ID]?.manifestId
+          ? { manifestId: attributed.manifestId }
+          : {}),
         migratedToSuite: true,
       };
 
@@ -257,6 +286,48 @@ async function _ensureTableBackupFolder() {
     console.warn(`${MODULE_ID} | table-migration: could not create backup folder:`, err);
     return null;
   }
+}
+
+/**
+ * Build a { tableId → { source, manifestId } } attribution map by running the
+ * Table Hub's own manifest→world matching forward over the full manifest.
+ * Reuses _matchWorld exactly (manifestId flag first, then sub+name /
+ * normalized-name keys with source-conflict rejection) so migration
+ * attribution can never disagree with the hub's status chips.
+ *
+ * @returns {Promise<Map<string, {source: string, manifestId: string}>>}
+ */
+async function _attributeCandidates() {
+  const attribution = new Map();
+  try {
+    const { TableHub } = await import("./table-hub.mjs");
+    const { TABLE_MANIFEST } = await import("./table-manifest-data.mjs");
+    const world = TableHub._worldIndex();
+    for (const entry of TABLE_MANIFEST) {
+      const t = TableHub._matchWorld(entry, world);
+      if (t?.id && !attribution.has(t.id)) {
+        attribution.set(t.id, { source: entry.source, manifestId: entry.id });
+      }
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | table-migration: manifest attribution failed:`, err);
+  }
+  return attribution;
+}
+
+/**
+ * Resolve a candidate's source id: stamped flag wins; else the manifest
+ * attribution; else "" (filed under Custom).
+ * @param {object} table
+ * @param {Map<string, {source: string}>} attribution
+ * @returns {string}
+ */
+function _resolvedSource(table, attribution) {
+  const sde = table?.flags?.[MODULE_ID];
+  if (sde && Object.prototype.hasOwnProperty.call(sde, "source") && sde.source) {
+    return String(sde.source);
+  }
+  return attribution.get(table?.id)?.source ?? (sde?.source ?? "");
 }
 
 /**
