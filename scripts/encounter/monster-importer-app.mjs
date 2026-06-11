@@ -53,6 +53,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
       mimportParse:         MonsterImporterApp.prototype._onParse,
       mimportClear:         MonsterImporterApp.prototype._onClear,
       mimportCreateAll:     MonsterImporterApp.prototype._onCreateAll,
+      mimportBackfill:      MonsterImporterApp.prototype._onBackfill,
       mimportRemoveMonster: MonsterImporterApp.prototype._onRemoveMonster,
       mimportAddAttack:     MonsterImporterApp.prototype._onAddAttack,
       mimportAddSpecial:    MonsterImporterApp.prototype._onAddSpecial,
@@ -316,6 +317,77 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     };
   }
 
+  /**
+   * Backfill existing imported NPCs to fresh-import fidelity.
+   * Runs a dry-run preview first, shows the GM a confirm dialog with the per-actor
+   * change summary, then commits on confirmation (dry-run-first, D2 human-in-the-loop).
+   */
+  async _onBackfill() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can run the monster backfill."); return; }
+    const { backfillTargets } = await import("./monster-backfill.mjs");
+
+    // ── Preview (dry run) ───────────────────────────────────────────────────
+    ui.notifications.info("Scanning imported monsters for upgrades…");
+    const preview = await backfillTargets({ scope: "pack", dryRun: true });
+    if (!preview) return;
+
+    if (preview.total === 0) {
+      ui.notifications.info("No imported-monsters compendium found or it contains no NPC actors.");
+      return;
+    }
+
+    if (preview.changed.length === 0) {
+      ui.notifications.info(`All ${preview.total} actor(s) already at full fidelity — nothing to backfill.`);
+      return;
+    }
+
+    // Build a human-readable summary of what would change.
+    const t = preview.totals;
+    const lines = [];
+    if (t.descriptionsWrapped) lines.push(`${t.descriptionsWrapped} item description(s) will be HTML-wrapped`);
+    if (t.namesCased)          lines.push(`${t.namesCased} attack name(s) will be Title-Cased`);
+    if (t.iconsSet)            lines.push(`${t.iconsSet} item icon(s) will be set`);
+    if (t.spellsConverted)     lines.push(`${t.spellsConverted} spell feature(s) will become real Spell items`);
+    if (t.artAssigned)         lines.push(`${t.artAssigned} portrait/token image(s) will be resolved`);
+
+    const actorList = preview.changed
+      .map((r) => `<li>${foundry.utils.escapeHTML(r.actor)}</li>`)
+      .join("");
+    const content = `
+      <p><strong>${preview.changed.length} of ${preview.total}</strong> actor(s) need upgrading:</p>
+      <ul style="max-height:160px;overflow-y:auto;margin:.4em 0">${actorList}</ul>
+      <p>${lines.join("; ")}.</p>
+      <p>This is non-destructive and idempotent. Proceed?</p>`;
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Backfill Imported Monsters" },
+      content,
+      buttons: [
+        { action: "confirm", label: "Backfill", default: true },
+        { action: "cancel",  label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+
+    if (choice !== "confirm") return;
+
+    // ── Commit ───────────────────────────────────────────────────────────────
+    const result = await backfillTargets({ scope: "pack", dryRun: false });
+    if (!result) return;
+
+    const rt = result.totals;
+    const parts = [];
+    if (rt.descriptionsWrapped) parts.push(`${rt.descriptionsWrapped} desc wrapped`);
+    if (rt.namesCased)          parts.push(`${rt.namesCased} names cased`);
+    if (rt.iconsSet)            parts.push(`${rt.iconsSet} icons set`);
+    if (rt.spellsConverted)     parts.push(`${rt.spellsConverted} spells converted`);
+    if (rt.artAssigned)         parts.push(`${rt.artAssigned} art assigned`);
+    ui.notifications.info(
+      `Backfill complete: ${result.changed.length} actor(s) upgraded (${parts.join(", ") || "minor updates"}). ` +
+      `${result.unchanged.length} already up to date.`
+    );
+  }
+
   async _onCreateAll() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import monsters."); return; }
     if (!this._parsed.length) return;
@@ -352,4 +424,13 @@ export const MonsterImporterAPI = {
     const { drafts } = parseStatblocks(text);
     return MonsterImporter.createMonsters(drafts.map((d) => d.draft), { source });
   },
+  /**
+   * Headless backfill: upgrade existing imported NPC actors to fresh-import
+   * fidelity. Accepts the same options as backfillTargets (scope, dryRun, etc.).
+   * GM-only (enforced in backfillTargets). Example:
+   *   await game.shadowdarkEnhancer.monsters.backfill({ scope: "pack" })
+   *   await game.shadowdarkEnhancer.monsters.backfill({ scope: "selection", actorUuids: [...], dryRun: true })
+   * @returns {Promise<object|null>} the backfillTargets result, or null if blocked.
+   */
+  backfill: (opts = {}) => import("./monster-backfill.mjs").then((m) => m.backfillTargets(opts)),
 };
