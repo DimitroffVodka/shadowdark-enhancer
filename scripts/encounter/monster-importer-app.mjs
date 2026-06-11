@@ -14,6 +14,7 @@
  */
 import { parseStatblocks } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
+import { ImporterHubApp } from "./importer-hub-app.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -484,8 +485,13 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
 
 /** Public API surface (wired onto game.shadowdarkEnhancer.monsters). */
 export const MonsterImporterAPI = {
-  /** Open the Monster Importer window. */
-  openImporter: () => MonsterImporterApp.open(),
+  /**
+   * Open the hub on the Monsters tab (D-02 back-compat deep-link).
+   * The standalone MonsterImporterApp window is retired; callers land on the
+   * Monsters census/management dashboard instead — least-surprise for existing
+   * "manage imported monsters" usage.
+   */
+  openImporter: () => ImporterHubApp.open("monsters"),
   /**
    * Headless import: parse a raw dump and create the monsters directly (no UI).
    * For power users / other modules. GM-only (enforced in createMonsters).

@@ -25,7 +25,7 @@ import { TableRegistry } from "./encounter/table-registry.mjs";
 import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
 import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
 import { boundCount } from "./encounter/loot-setup-manifest.mjs";
-import { RollTablesApp } from "./encounter/table-hub-app.mjs";
+import { ImporterHubApp } from "./encounter/importer-hub-app.mjs";
 import { TableEnricher } from "./encounter/table-enrich.mjs";
 import { MonsterImporterAPI } from "./encounter/monster-importer-app.mjs";
 
@@ -109,8 +109,12 @@ Hooks.once("init", () => {
       encounterTables: () => TableRegistry.encounterTables(),
       groups: () => TableRegistry.groups(),
       organize: (opts) => TableRegistry.organize(opts),
-      // Roll Tables hub — status dashboard + in-window Import tab (manifest-driven).
-      openHub: (tab, seed) => RollTablesApp.open(tab, seed),
+      // Importer hub — 3-tab shell (Import / Tables / Monsters).
+      // Back-compat: legacy tab="dashboard" maps to "tables"; seed forces Import tab.
+      openHub: (tab, seed) => ImporterHubApp.open(
+        (!tab || tab === "dashboard") ? "tables" : tab,
+        seed,
+      ),
       // Enrich an imported table to the Ruins standard: encounter -> monster
       // @UUID links + [[/r]] counts; treasure -> real compendium items.
       enrich: (uuid, kind) => TableEnricher.enrich(uuid, kind),
