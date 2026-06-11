@@ -342,7 +342,11 @@ export async function createTable(pt, { onConflict } = {}) {
 
   // Determine source id for the per-source folder inside the pack.
   // pt.source (stamped by hub seed) > pt.folderPath[0] heuristic > null → "Custom".
-  const sourceId = pt.source ?? (Array.isArray(pt.folderPath) && pt.folderPath[0]) ?? null;
+  // NOTE: `??` only catches null/undefined — `Array.isArray(x) && x[0]` yields
+  // boolean `false` when folderPath is absent, which leaked through as a
+  // folder literally named "FALSE" (caught live, 10-03 checkpoint).
+  const sourceId = pt.source
+    ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
   const folderId = await _ensureSourceFolder(pack, sourceId);
 
   data.folder = folderId ?? null;
