@@ -79,6 +79,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       mimportAddFeature:      ImporterHubApp.prototype._onMimportAddFeature,
       mimportRemoveFeature:   ImporterHubApp.prototype._onMimportRemoveFeature,
       mimportRemoveMonster:   ImporterHubApp.prototype._onMimportRemoveMonster,
+      // Import tab — item section structural actions
+      iimportRemoveItem:      ImporterHubApp.prototype._onIimportRemoveItem,
       // Import tab — table section structural actions
       importAddRow:           ImporterHubApp.prototype._onImportAddRow,
       importDeleteRow:        ImporterHubApp.prototype._onImportDeleteRow,
@@ -129,6 +131,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importText = "";
   /** Monster parse results: [{ draft, warnings }] */
   _importMonsters = [];
+  /** Item parse results: [{ draft, warnings }] from seg.items */
+  _importItems = [];
   /** Table parse results: ParsedTable[] */
   _importTables = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
@@ -257,19 +261,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { id: CUSTOM_ID, label: "Custom…" },
     ];
 
+    const hasMonsters = importMonsterCards.length > 0;
+    const hasItems    = this._importItems.length > 0;
+    const hasTables   = this._importTables.length > 0;
+    const showImportAll = [hasMonsters, hasItems, hasTables].filter(Boolean).length > 1;
+
     const importData = {
       text: this._importText,
       source: this._importSource,
       sourceSuggestions: SOURCE_SUGGESTIONS,
       seed: this._importSeed,
       monsters: importMonsterCards,
+      items: this._importItems,
       tables: this._importTables,
       skipped: this._importSkipped,
-      hasMonsters: importMonsterCards.length > 0,
-      hasTables: this._importTables.length > 0,
+      hasMonsters,
+      hasItems,
+      hasTables,
+      showImportAll,
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
+      itemsCount: this._importItems.length,
       tablesCount: this._importTables.length,
+      itemTypeOptions: ["Basic", "Weapon", "Armor", "Potion", "Scroll", "Wand"],
       categoryOptions,
       alignments: ["L", "N", "C"],
       moveOptions,
@@ -392,6 +406,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._wireHubPaste();
       this._wireHubSource();
       this._wireHubMonsterFieldEdits();
+      this._wireHubItemFieldEdits();
       this._wireHubTableFieldEdits();
     }
 
@@ -595,6 +610,38 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  /**
+   * Item grid field edits. Commit in place WITHOUT re-render so focus is
+   * preserved. Mirrors _wireHubMonsterFieldEdits commit-in-place pattern.
+   */
+  _wireHubItemFieldEdits() {
+    this.element.querySelectorAll("[data-iimport-field]").forEach((el) => {
+      el.addEventListener("change", (ev) => {
+        const rowEl = ev.target.closest("[data-item-idx]");
+        if (!rowEl) return;
+        const card = this._importItems[Number(rowEl.dataset.itemIdx)];
+        if (!card) return;
+        const draft = card.draft;
+        const field = ev.target.dataset.iimportField;
+        const v = ev.target.value;
+        switch (field) {
+          case "name":        draft.name = v; break;
+          case "type":        draft.type = v; break;
+          case "costGp":      draft.cost.gp = Number(v); break;
+          case "costSp":      draft.cost.sp = Number(v); break;
+          case "costCp":      draft.cost.cp = Number(v); break;
+          case "slots":       draft.slots.slots_used = Number(v); break;
+          case "description": {
+            // Re-wrap as HTML if the user typed plain text (D4 discipline)
+            const trimmed = v.trim();
+            draft.description = trimmed.startsWith("<") ? trimmed : (trimmed ? `<p>${trimmed}</p>` : "<p></p>");
+            break;
+          }
+        }
+      });
+    });
+  }
+
   _setDraftScalarField(draft, field, el) {
     const v = el.value;
     switch (field) {
@@ -643,6 +690,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Map raw monster chunks → [{ draft, warnings }]
     this._importMonsters = seg.monsters.map((chunk) => parseStatblock(chunk));
 
+    // Items are already [{ draft, warnings }] from the item recognizer
+    this._importItems = seg.items ?? [];
+
     // Tables are already ParsedTable[] from the segmenter
     this._importTables = seg.tables;
 
@@ -655,8 +705,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Link loot rows to compendium items
     await this._linkLootTables();
 
-    if (!this._importMonsters.length && !this._importTables.length) {
-      ui.notifications.warn("No monsters or tables found — review the Skipped section.");
+    if (!this._importMonsters.length && !this._importItems.length && !this._importTables.length) {
+      ui.notifications.warn("No monsters, items, or tables found — review the Skipped section.");
     }
 
     this.render();
@@ -665,6 +715,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onHubClear() {
     this._importText = "";
     this._importMonsters = [];
+    this._importItems = [];
     this._importTables = [];
     this._importSkipped = [];
     this._importSeed = null;
@@ -785,6 +836,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _hubMonsterDraft(target) {
     const idx = Number(target.closest("[data-monster-idx]")?.dataset.monsterIdx);
     return this._importMonsters[idx]?.draft ?? null;
+  }
+
+  // ── Import-tab item structural actions ───────────────────────────────────
+
+  _onIimportRemoveItem(event, target) {
+    const idx = Number(target.closest("[data-item-idx]")?.dataset.itemIdx);
+    if (!Number.isFinite(idx)) return;
+    this._importItems.splice(idx, 1);
+    this.render();
   }
 
   // ── Import-tab table structural actions ──────────────────────────────────

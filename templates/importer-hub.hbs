@@ -49,11 +49,11 @@
     <div class="sde-hub-import-controls">
       <button type="button" data-action="hubParse"><i class="fas fa-wand-magic"></i> Parse</button>
       <button type="button" data-action="hubClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> Clear</button>
-      {{#if importData.hasMonsters}}{{#if importData.hasTables}}
+      {{#if importData.showImportAll}}
       <button type="button" data-action="hubCommitAll" class="sde-import-primary">
         <i class="fas fa-file-import"></i> Import all
       </button>
-      {{/if}}{{/if}}
+      {{/if}}
     </div>
 
     <p class="sde-import-note">
@@ -179,6 +179,79 @@
       <p class="sde-import-empty">
         {{#if importData.seed}}Paste the statblock above and click <strong>Parse</strong>.{{else}}No monsters parsed yet.{{/if}}
       </p>
+      {{/if}}
+    </section>
+
+    {{!-- ── Items section ──────────────────────────────────────────────── --}}
+    <section class="sde-hub-import-section">
+      <div class="sde-hub-import-sechead">
+        <span class="sde-hub-import-sectitle">
+          <i class="fas fa-gem"></i> Items ({{importData.itemsCount}})
+        </span>
+        {{#if importData.hasItems}}
+        <button type="button" data-action="hubCommitItems" class="sde-import-primary sde-hub-import-secbtn">
+          <i class="fas fa-gem"></i> Create items
+        </button>
+        {{/if}}
+      </div>
+
+      {{#if importData.hasItems}}
+      <div class="sde-import-preview">
+        {{#each importData.items as |it|}}
+        <div class="sde-hub-import-item-card" data-item-idx="{{@index}}">
+          <div class="sde-hub-import-item-head">
+            <input type="text" data-iimport-field="name" value="{{it.draft.name}}"
+                   class="sde-import-name sde-hub-import-item-name"
+                   aria-label="Item name" placeholder="Item name">
+            <select data-iimport-field="type" class="sde-hub-import-item-type sde-mimport-sel"
+                    aria-label="Item type">
+              {{#each @root.importData.itemTypeOptions as |opt|}}
+              <option value="{{opt}}" {{#if (eq opt it.draft.type)}}selected{{/if}}>{{opt}}</option>
+              {{/each}}
+            </select>
+            <button type="button" data-action="iimportRemoveItem" class="sde-import-del"
+                    aria-label="Remove this item" title="Don't import this one">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+          <div class="sde-hub-import-item-fields">
+            <label class="sde-hub-import-item-field">
+              <span class="sde-hub-import-item-label">gp</span>
+              <input type="number" data-iimport-field="costGp" value="{{it.draft.cost.gp}}"
+                     class="sde-import-num" aria-label="Cost in gold pieces">
+            </label>
+            <label class="sde-hub-import-item-field">
+              <span class="sde-hub-import-item-label">sp</span>
+              <input type="number" data-iimport-field="costSp" value="{{it.draft.cost.sp}}"
+                     class="sde-import-num" aria-label="Cost in silver pieces">
+            </label>
+            <label class="sde-hub-import-item-field">
+              <span class="sde-hub-import-item-label">cp</span>
+              <input type="number" data-iimport-field="costCp" value="{{it.draft.cost.cp}}"
+                     class="sde-import-num" aria-label="Cost in copper pieces">
+            </label>
+            <label class="sde-hub-import-item-field">
+              <span class="sde-hub-import-item-label">slots</span>
+              <input type="number" data-iimport-field="slots" value="{{it.draft.slots.slots_used}}"
+                     class="sde-import-num" aria-label="Slots used">
+            </label>
+          </div>
+          <div class="sde-hub-import-item-desc">
+            <input type="text" data-iimport-field="description"
+                   value="{{it.draft.description}}"
+                   class="sde-hub-import-item-desc-input"
+                   aria-label="Item description" placeholder="Description">
+          </div>
+          {{#if it.warnings.length}}
+          <ul class="sde-import-warnings">
+            {{#each it.warnings as |w|}}<li>{{w}}</li>{{/each}}
+          </ul>
+          {{/if}}
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="sde-import-empty">No items parsed yet.</p>
       {{/if}}
     </section>
 
