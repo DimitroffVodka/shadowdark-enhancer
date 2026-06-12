@@ -377,9 +377,19 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasGaps = rows.some((r) => r.gap > 0);
     const hasDuplicates = dupGroups.length > 0;
 
+    // Render-friendly member dates — the raw _stats.modifiedTime epoch was
+    // showing verbatim ("1781264550026"; live-caught by the GM).
+    const dupGroupsCtx = dupGroups.map((g) => ({
+      ...g,
+      members: g.members.map((m) => ({
+        ...m,
+        date: m.date ? new Date(m.date).toLocaleDateString() : null,
+      })),
+    }));
+
     return {
       censusRows:      censusRowsCtx,
-      duplicateGroups: dupGroups,
+      duplicateGroups: dupGroupsCtx,
       duplicateCount,
       hasGaps,
       hasDuplicates,

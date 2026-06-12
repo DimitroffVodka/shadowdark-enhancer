@@ -155,6 +155,10 @@ async function _referencedNamesFromPackTables() {
     const hay = [sde.tableType, sde.category, sde.customLabel, table.name]
       .filter(Boolean).join(" ");
     if (!/encounter/i.test(hay)) continue;
+    // Zone pickers ("Encounter Zone") pass the keyword gate but their cells
+    // are CATEGORY words, not monster names — they produced junk gap rows
+    // like "Demon Demon Demon Demon" (live-caught by the GM).
+    if (/encounter\s+zone|zone.*encounters?/i.test(hay)) continue;
 
     const label = sourceFolderName(sde.source ?? "");
     const results = table.results?.contents ?? [];
