@@ -9,7 +9,9 @@
 
 import { LootLinker } from "./loot-linker.mjs";
 import { isCoinEntry, stripPrice } from "./loot-pack.mjs";
+import { findSuitePack } from "./compendium-suite.mjs";
 
+// Pre-migration fallback only — catalog lookups prefer the sde-items suite pack (A-07).
 const LOOT_PACK = "world.loot";
 
 /** The current display text of a TableResult (v13 name/description/text). */
@@ -21,7 +23,7 @@ function _resultText(r) {
 async function _resolveUuid(text, items) {
   const link = LootLinker.findLink(text, items);
   if (link?.uuid) return link.uuid;
-  const pack = game.packs.get(LOOT_PACK);
+  const pack = findSuitePack("sde-items") ?? game.packs.get(LOOT_PACK);
   if (pack) {
     const want = stripPrice(text).toLowerCase();
     const e = [...await pack.getIndex()].find(x => (x.name ?? "").toLowerCase() === want);

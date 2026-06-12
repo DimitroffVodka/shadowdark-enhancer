@@ -8,6 +8,7 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { LootLinker } from "./loot-linker.mjs";
+import { findSuitePack, ensureSuite, ensureSourceFolder } from "./compendium-suite.mjs";
 
 // Foundry core icons (all verified to exist) for treasure categories.
 const ICONS = {
@@ -123,22 +124,19 @@ export function classifyEntry(text, items) {
 
 // ───── Foundry pack ops (live-verified in the catalog build task) ─────
 
-/** Find-or-create our world "Loot" Item compendium; unlock if locked. */
+/**
+ * Persistence target for fabricated/catalog loot: the managed sde-items suite
+ * pack (A-07 / D8 — nothing materializes into the legacy world "Loot" pack).
+ * Name kept for callers; the legacy pack is folded in by item-migration.mjs.
+ */
 export async function ensureLootPack() {
-  let pack = game.packs.find(p =>
-    p.documentName === "Item" &&
-    p.metadata.packageType === "world" &&
-    (p.getFlag?.(MODULE_ID, "lootPack") === true || p.metadata.label === LOOT_PACK_LABEL)
-  );
-  if (!pack) {
-    pack = await CompendiumCollection.createCompendium({ label: LOOT_PACK_LABEL, type: "Item", packageType: "world" });
-    try { await pack.setFlag(MODULE_ID, "lootPack", true); } catch (_) {}
-  }
-  if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
+  let pack = findSuitePack("sde-items");
+  if (!pack) pack = (await ensureSuite())?.items;
+  if (pack?.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
   return pack;
 }
 
-/** Dedup-by-name create into the pack. Returns {uuid,name,created}. */
+/** Dedup-by-name create into the pack, filed under the "Custom" source folder. Returns {uuid,name,created}. */
 export async function ensureItemInPack(pack, itemData) {
   const index = await pack.getIndex();
   const existing = [...index].find(e => (e.name ?? "").toLowerCase() === itemData.name.toLowerCase());
@@ -146,6 +144,15 @@ export async function ensureItemInPack(pack, itemData) {
     const uuid = existing.uuid ?? `Compendium.${pack.collection}.Item.${existing._id}`;
     return { uuid, name: existing.name, created: false };
   }
-  const doc = await Item.create(itemData, { pack: pack.collection });
+  const data = { ...itemData };
+  if (!data.folder) {
+    const folderId = await ensureSourceFolder(pack, "");
+    if (folderId) data.folder = folderId;
+  }
+  data.flags = {
+    ...(data.flags ?? {}),
+    [MODULE_ID]: { ...(data.flags?.[MODULE_ID] ?? {}), source: "", imported: true },
+  };
+  const doc = await Item.create(data, { pack: pack.collection });
   return { uuid: doc.uuid, name: doc.name, created: true };
 }

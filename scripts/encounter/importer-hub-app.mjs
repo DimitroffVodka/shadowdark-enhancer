@@ -69,6 +69,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       filterSource:           ImporterHubApp.prototype._onFilterSource,
       importMissing:          ImporterHubApp.prototype._onImportMissing,
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
+      hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
       // Import tab — parse/clear
       hubParse:               ImporterHubApp.prototype._onHubParse,
       hubClear:               ImporterHubApp.prototype._onHubClear,
@@ -1112,6 +1113,69 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ].filter(Boolean).join(" · ");
 
     ui.notifications?.info(`Migration complete: ${summary}.`);
+    this.render();
+  }
+
+  /**
+   * Fold the legacy world "Loot" pack into sde-items (A-08).
+   * Dry-run preview → DialogV2 confirm → migrateItems → LootLinker.invalidate().
+   * Non-destructive: originals stay, the legacy pack is locked as backup (D6).
+   */
+  async _onFoldLegacyLoot() {
+    if (!game.user?.isGM) return;
+
+    const { ItemMigration } = await import("./item-migration.mjs");
+    const { LootLinker } = await import("./loot-linker.mjs");
+
+    const preview = await ItemMigration.planItemMigration();
+    if (!preview) return;
+
+    const bySourceLines = Object.entries(preview.bySource)
+      .filter(([, n]) => n > 0)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([src, n]) => `<li>${foundry.utils.escapeHTML(src)}: ${n}</li>`)
+      .join("");
+
+    if (preview.total === 0) {
+      await foundry.applications.api.DialogV2.alert({
+        window: { title: "Fold Legacy Loot Pack" },
+        content: `<p>No un-migrated items found in the legacy "Loot" pack. Either it is absent or every item already carries the migrated stamp.</p>`,
+      }).catch(() => {});
+      return;
+    }
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Fold Legacy Loot Pack into Items" },
+      content: `<p>Found <strong>${preview.total}</strong> item(s) in the legacy "Loot" pack to copy into <em>sde-items</em>.</p>
+        <p>Originals are never deleted — the legacy pack is locked afterward as a backup.</p>
+        ${bySourceLines ? `<p><strong>By source:</strong></p><ul>${bySourceLines}</ul>` : ""}`,
+      buttons: [
+        { action: "fold",   label: "Fold in", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+
+    if (!choice || choice === "cancel") return;
+
+    let report;
+    try {
+      report = await ItemMigration.migrateItems({ dryRun: false });
+    } catch (err) {
+      console.error("shadowdark-enhancer | item-migration: unexpected error:", err);
+      ui.notifications?.error("Legacy Loot fold-in failed — see the console for details.");
+      return;
+    }
+    if (!report) return;
+
+    LootLinker.invalidate();
+
+    const summary = [
+      `${report.legacyMigrated} item(s) folded into sde-items`,
+      `legacy pack locked as backup`,
+      report.failures ? `${report.failures} failure(s) — see console` : "",
+    ].filter(Boolean).join(" · ");
+    ui.notifications?.info(`Fold-in complete: ${summary}.`);
     this.render();
   }
 
