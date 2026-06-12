@@ -14,10 +14,13 @@
  *   text that splitStatblocks did NOT claim), so the same lines are never
  *   double-counted.  Blocks claimed by neither recognizer land in skipped.
  *
- * Extensibility: RECOGNIZERS is an ordered array.  Additional recognizers
- * (e.g. hexcrawl entries) plug in via RECOGNIZERS.push({ id, claim, parse })
- * without touching segmentDump's loop.  The loop iterates the registry
- * in order, never branching on a hardcoded id.
+ * Extensibility: RECOGNIZERS is an ordered array; the loop iterates it in
+ * order, never branching on a hardcoded id. ORDER IS SENSITIVE — a new
+ * recognizer must be placed deliberately, not pushed at the end: the
+ * hexcrawl recognizer runs FIRST because hex bodies legally contain
+ * ALL-CAPS headings, statblock lines, and dice text that the later
+ * recognizers would otherwise claim (its >=3-unit cluster threshold is
+ * what makes first position safe — see hex-parser.mjs, Phase 16 A-01).
  *
  * Pure / Foundry-free — no `game`, `ui`, `CONFIG`, `foundry`, or `Hooks`
  * references.  All helpers are importable by node:test directly.
@@ -26,6 +29,7 @@
 import { splitStatblocks } from "./statblock-parser.mjs";
 import { parseTables } from "./table-importer.mjs";
 import { itemRecognizer } from "./item-parser.mjs";
+import { hexcrawlRecognizer } from "./hex-parser.mjs";
 
 // ─── Block-boundary helper ────────────────────────────────────────────────────
 
@@ -259,15 +263,18 @@ const tableRecognizer = {
  *
  * - `parse(claimedBlocks)` → items array (recognizer-specific type)
  *
- * Registration order (Phase 11):
- *   [monsterRecognizer, itemRecognizer, tableRecognizer]
- *   Items recognizer runs after monsters (statblock continuations already
- *   claimed) and before tables (item blocks don't fall into the table
- *   recognizer's no-dice remainder path).
+ * Registration order (Phase 16 — ORDER IS SENSITIVE):
+ *   [hexcrawlRecognizer, monsterRecognizer, itemRecognizer, tableRecognizer]
+ *   Hexcrawl runs FIRST: hex bodies legally contain ALL-CAPS headings,
+ *   statblock lines, and dice text the later recognizers would steal; its
+ *   >=3-consecutive-anchored-units cluster threshold (A-01) means statblock
+ *   or table dumps can never be claimed by it. Items run after monsters
+ *   (statblock continuations already claimed) and before tables (item
+ *   blocks don't fall into the table recognizer's no-dice remainder path).
  *
  * @type {Array<{ id: string, claim: Function, parse: Function }>}
  */
-export const RECOGNIZERS = [monsterRecognizer, itemRecognizer, tableRecognizer];
+export const RECOGNIZERS = [hexcrawlRecognizer, monsterRecognizer, itemRecognizer, tableRecognizer];
 
 // ─── Core segmenter ───────────────────────────────────────────────────────────
 
@@ -310,6 +317,8 @@ export function segmentDump(rawText) {
   delete result.item;
   result.tables   = result.table   ?? [];
   delete result.table;
+  result.hexes    = result.hexcrawl ?? [];
+  delete result.hexcrawl;
 
   return result;
 }
