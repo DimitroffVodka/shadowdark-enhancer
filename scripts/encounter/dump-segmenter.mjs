@@ -159,7 +159,16 @@ const monsterRecognizer = {
         const combined = unitBlocks.join("\n\n");
         const { monsters: parsed, skipped: parsedSkipped } = splitStatblocks(combined);
         monsters.push(...parsed);
-        skipped.push(...parsedSkipped);
+        if (parsed.length === 0 && (blockIsItemCandidate(combined) || blockIsDiceTable(combined))) {
+          // A zero-monster unit with an item/table anchor is NOT lore — an
+          // ALL-CAPS magic-item block (name + Benefit./Curse. riders) was
+          // being consumed here and skipped as "no stat line" before the
+          // item recognizer ever saw it (live-caught, 11-03 checkpoint).
+          // Hand the unit to later recognizers instead.
+          remainderBlocks.push(...unitBlocks);
+        } else {
+          skipped.push(...parsedSkipped);
+        }
       } else {
         // Not a name block → pass to later recognizers.
         remainderBlocks.push(block);

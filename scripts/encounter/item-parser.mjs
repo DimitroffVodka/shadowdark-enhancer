@@ -132,9 +132,13 @@ export function parseItem(blockText) {
 
   if (!rawLines.length) return null;
 
-  // Name is the first line — title-case it.
+  // Name is the first line — strip inline cost/slot tokens first
+  // ("Probe Rope, 5 gp, 1 slot" → "Probe Rope"); gear-line names were
+  // retaining their cost text (live-caught, 11-03 checkpoint).
   const nameLine = rawLines[0];
-  const name = titleCaseName(nameLine.trim());
+  const name = titleCaseName(
+    nameLine.replace(/,?\s*\d+\s*(gp|sp|cp)\b.*$/i, "").trim()
+  );
 
   // Body = everything after the name line (joined)
   const bodyLines = rawLines.slice(1);
