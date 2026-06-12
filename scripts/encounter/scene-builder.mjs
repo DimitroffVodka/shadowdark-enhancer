@@ -6,6 +6,10 @@
  * and must not touch Foundry globals at module evaluation time.
  */
 import { MODULE_ID } from "../module-id.mjs";
+import {
+  locationNoteData,
+  updateLocationProgress,
+} from "./location-keyer.mjs";
 
 export const DEFAULT_CALIBRATION = Object.freeze({
   x0: 110.8,
@@ -15,6 +19,54 @@ export const DEFAULT_CALIBRATION = Object.freeze({
   dy: 146.5,
   rowOffset: 0,
 });
+
+/**
+ * Build a square-grid scene profile from an image's pixel dimensions and its
+ * known row/column count. Foundry stores square grid size as an integer, so
+ * the scene is expanded by a few pixels when necessary and the Level texture
+ * is stretched to the resulting scene rectangle.
+ */
+export function squareGridProfile({
+  imageWidth,
+  imageHeight,
+  columns,
+  rows,
+  distance = 5,
+  units = "ft",
+} = {}) {
+  const values = [imageWidth, imageHeight, columns, rows].map(Number);
+  if (values.some((value) => !Number.isFinite(value) || value <= 0)) {
+    throw new TypeError("Image dimensions, columns, and rows must be positive numbers");
+  }
+  const [width, height, columnCount, rowCount] = values;
+  const size = Math.max(1, Math.round(((width / columnCount) + (height / rowCount)) / 2));
+  return {
+    width: Math.round(columnCount * size),
+    height: Math.round(rowCount * size),
+    grid: {
+      type: 1,
+      size,
+      distance: Number(distance) > 0 ? Number(distance) : 5,
+      units: String(units ?? "ft"),
+    },
+    textureFit: "fill",
+  };
+}
+
+/** Convert a canvas-local point to integer Scene coordinates within bounds. */
+export function clampScenePoint(point, width, height) {
+  const x = Number(point?.x);
+  const y = Number(point?.y);
+  const maxX = Number(width);
+  const maxY = Number(height);
+  if (![x, y, maxX, maxY].every(Number.isFinite) || maxX < 0 || maxY < 0) {
+    throw new TypeError("A finite point and non-negative scene dimensions are required");
+  }
+  return {
+    x: Math.min(maxX, Math.max(0, Math.round(x))),
+    y: Math.min(maxY, Math.max(0, Math.round(y))),
+  };
+}
 
 function parseHexKey(key) {
   const match = /^(\d+),(\d+)$/.exec(String(key ?? "").trim());
@@ -182,7 +234,9 @@ export async function deployCrawlJournal(packEntry) {
 }
 
 async function imageDimensions(imagePath) {
-  const textureLoader = globalThis.loadTexture;
+  const textureLoader =
+    globalThis.foundry?.canvas?.loadTexture ??
+    globalThis.loadTexture;
   if (typeof textureLoader !== "function") throw new Error("loadTexture is unavailable");
   const texture = await textureLoader(imagePath);
   const width = Number(texture?.baseTexture?.realWidth ?? texture?.width);
@@ -203,7 +257,24 @@ function uniqueWorldSceneName(base) {
   return `${base} (${Date.now()})`;
 }
 
-async function backupScene(scene, source) {
+function embeddedSyncPlan(existingDocs, sourceDocs) {
+  const existingIds = new Set(existingDocs.map((doc) => doc.id));
+  return {
+    updates: sourceDocs
+      .filter((doc) => existingIds.has(doc.id))
+      .map((doc) => doc.toObject()),
+    creates: sourceDocs
+      .filter((doc) => !existingIds.has(doc.id))
+      .map((doc) => doc.toObject()),
+  };
+}
+
+/**
+ * Create or refresh the exact-ID sde-scenes backup for a managed world Scene.
+ * Notes and Levels are upserted; backup-only embedded documents are not
+ * deleted.
+ */
+export async function backupScene(scene, source) {
   const { findSuitePack, ensureSuite, ensureSourceFolder } = await import("./compendium-suite.mjs");
   let pack = findSuitePack("sde-scenes");
   if (!pack) pack = (await ensureSuite())?.scenes;
@@ -211,9 +282,6 @@ async function backupScene(scene, source) {
   if (pack.locked) {
     try { await pack.configure({ locked: false }); } catch (_) {}
   }
-
-  const existing = pack.index.get(scene.id);
-  if (existing) return pack.getDocument(scene.id);
 
   const folder = await ensureSourceFolder(pack, source);
   const data = scene.toObject();
@@ -223,7 +291,34 @@ async function backupScene(scene, source) {
     ...(data.flags[MODULE_ID] ?? {}),
     backup: true,
   };
-  return Scene.create(data, { pack: pack.collection, keepId: true });
+
+  const existing = pack.index.get(scene.id) ? await pack.getDocument(scene.id) : null;
+  if (!existing) return Scene.create(data, { pack: pack.collection, keepId: true });
+  if (existing.flags?.[MODULE_ID]?.backup !== true) {
+    throw new Error(`sde-scenes id ${scene.id} belongs to another document`);
+  }
+
+  await existing.update({
+    name: data.name,
+    width: data.width,
+    height: data.height,
+    padding: data.padding,
+    backgroundColor: data.backgroundColor,
+    grid: data.grid,
+    flags: data.flags,
+  });
+
+  for (const documentName of ["Level", "Note"]) {
+    const collectionName = Scene.metadata.embedded[documentName];
+    const sourceDocs = scene[collectionName]?.contents ?? [];
+    const existingDocs = existing[collectionName]?.contents ?? [];
+    const { updates, creates } = embeddedSyncPlan(existingDocs, sourceDocs);
+    if (updates.length) await existing.updateEmbeddedDocuments(documentName, updates);
+    if (creates.length) {
+      await existing.createEmbeddedDocuments(documentName, creates, { keepId: true });
+    }
+  }
+  return existing;
 }
 
 async function createSceneForPages({
@@ -293,6 +388,22 @@ async function findCrawlEntry({ crawlId, crawlName, source }) {
     String(entry.name ?? "").toLowerCase() === String(crawlName ?? "").trim().toLowerCase() &&
     String(entry.flags?.[MODULE_ID]?.source ?? "") === String(source ?? ""));
   return match ? pack.getDocument(match._id) : null;
+}
+
+async function updateLevelBackground(scene, imagePath, textureFit = "fill") {
+  const level = scene.levels.get("defaultLevel0000") ?? scene.levels.contents[0];
+  if (!level) throw new Error(`Scene "${scene.name}" has no Level document`);
+  await level.update({
+    "background.src": imagePath,
+    "textures.fit": textureFit,
+  });
+  return level;
+}
+
+function refreshCanvasTicker() {
+  if (!globalThis.canvas?.app?.ticker?.update) return false;
+  globalThis.canvas.app.ticker.update(globalThis.performance?.now?.() ?? Date.now());
+  return true;
 }
 
 /**
@@ -374,13 +485,159 @@ export async function buildCrawlScene({
   };
 }
 
+/**
+ * Deploy a numbered-location journal and create its empty map Scene. Notes are
+ * added interactively by placeLocationNote().
+ */
+export async function createLocationScene({
+  crawlId,
+  crawlName,
+  source = "",
+  imagePath,
+  gridMode = "gridless",
+  columns = null,
+  rows = null,
+  distance = 5,
+  units = "ft",
+} = {}) {
+  if (!game.user?.isGM) {
+    ui.notifications?.warn("Only a GM can deploy a location scene.");
+    return null;
+  }
+  if (!imagePath) throw new Error("A map image is required");
+  if (gridMode !== "gridless" && gridMode !== "square") {
+    throw new TypeError(`Unsupported location grid mode "${gridMode}"`);
+  }
+
+  const packEntry = await findCrawlEntry({ crawlId, crawlName, source });
+  if (!packEntry) throw new Error(`Journal "${crawlName}" was not found in sde-journal`);
+  if (String(packEntry.flags?.[MODULE_ID]?.keyMode ?? "hex") !== "location") {
+    throw new Error(`Journal "${packEntry.name}" is not a numbered-location journal`);
+  }
+  const keyedPages = packEntry.pages.contents.filter((page) =>
+    String(page.flags?.[MODULE_ID]?.key ?? "").startsWith("loc:"));
+  if (!keyedPages.length) throw new Error(`Journal "${packEntry.name}" has no location pages`);
+
+  const finalSource = String(packEntry.flags?.[MODULE_ID]?.source ?? source ?? "");
+  const worldJournal = await deployCrawlJournal(packEntry);
+  const image = await imageDimensions(imagePath);
+  const profile = gridMode === "square"
+    ? squareGridProfile({
+        imageWidth: image.width,
+        imageHeight: image.height,
+        columns,
+        rows,
+        distance,
+        units,
+      })
+    : {
+        width: image.width,
+        height: image.height,
+        grid: { type: 0 },
+        textureFit: "fill",
+      };
+
+  const scene = await Scene.create({
+    name: uniqueWorldSceneName(packEntry.name),
+    width: profile.width,
+    height: profile.height,
+    grid: profile.grid,
+    flags: {
+      [MODULE_ID]: {
+        crawl: packEntry.name,
+        source: finalSource,
+        imported: true,
+        deployed: true,
+        keyMode: "location",
+        gridMode,
+        journalId: worldJournal.id,
+        locationProgress: { placed: [], skipped: [] },
+      },
+    },
+  });
+  await updateLevelBackground(scene, imagePath, profile.textureFit);
+  const backup = await backupScene(scene, finalSource);
+  refreshCanvasTicker();
+  return {
+    scene,
+    backup,
+    journal: worldJournal,
+    pages: keyedPages.length,
+    gridMode,
+  };
+}
+
+function assertLocationScene(scene) {
+  if (!scene?.id || scene.flags?.[MODULE_ID]?.keyMode !== "location") {
+    throw new TypeError("A managed numbered-location Scene is required");
+  }
+}
+
+/** Place or move one keyed Note and persist resumable progress + backup. */
+export async function placeLocationNote({ scene, page, key, point } = {}) {
+  assertLocationScene(scene);
+  if (!String(key ?? "").startsWith("loc:")) {
+    throw new TypeError(`Invalid location key "${key}"`);
+  }
+  const noteData = {
+    ...locationNoteData(page, clampScenePoint(point, scene.width, scene.height)),
+    flags: {
+      [MODULE_ID]: {
+        key,
+        crawl: scene.flags[MODULE_ID].crawl,
+        source: scene.flags[MODULE_ID].source ?? "",
+      },
+    },
+  };
+  const existing = scene.notes.contents.find((note) =>
+    note.flags?.[MODULE_ID]?.key === key);
+  let note;
+  if (existing) {
+    [note] = await scene.updateEmbeddedDocuments("Note", [{ _id: existing.id, ...noteData }]);
+  } else {
+    [note] = await scene.createEmbeddedDocuments("Note", [noteData]);
+  }
+
+  const progress = updateLocationProgress(
+    scene.flags?.[MODULE_ID]?.locationProgress,
+    key,
+    "placed",
+  );
+  await scene.update({ [`flags.${MODULE_ID}.locationProgress`]: progress });
+  const backup = await backupScene(scene, scene.flags?.[MODULE_ID]?.source ?? "");
+  refreshCanvasTicker();
+  return { note, progress, backup };
+}
+
+/** Mark one location skipped and persist resumable progress + backup. */
+export async function skipLocation({ scene, key } = {}) {
+  assertLocationScene(scene);
+  if (!String(key ?? "").startsWith("loc:")) {
+    throw new TypeError(`Invalid location key "${key}"`);
+  }
+  const progress = updateLocationProgress(
+    scene.flags?.[MODULE_ID]?.locationProgress,
+    key,
+    "skipped",
+  );
+  await scene.update({ [`flags.${MODULE_ID}.locationProgress`]: progress });
+  const backup = await backupScene(scene, scene.flags?.[MODULE_ID]?.source ?? "");
+  return { progress, backup };
+}
+
 export const SceneBuilder = {
   DEFAULT_CALIBRATION,
+  squareGridProfile,
+  clampScenePoint,
   hexCenter,
   splitNorthSouth,
   solveCalibration,
   buildNoteData,
   rewriteCrawlLinksForWorld,
   deployCrawlJournal,
+  backupScene,
   buildCrawlScene,
+  createLocationScene,
+  placeLocationNote,
+  skipLocation,
 };

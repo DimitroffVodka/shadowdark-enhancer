@@ -24,6 +24,7 @@ import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
 import { findById, formulaFromDie, isMatrix, columnManifestId } from "./table-manifest.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
 import { detectCrawlTitle, hexIdKey } from "./hex-parser.mjs";
+import { parseNumberedLocationsDetailed } from "./location-keyer.mjs";
 import { parseStatblock } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
@@ -73,6 +74,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
       hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
       hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
+      hubRelinkJournals:      ImporterHubApp.prototype._onRelinkJournals,
       hubExportBundle:        ImporterHubApp.prototype._onExportBundle,
       hubImportBundle:        ImporterHubApp.prototype._onImportBundle,
       // Import tab — parse/clear
@@ -96,6 +98,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitItems:         ImporterHubApp.prototype._onHubCommitItems,
       hubCommitJournal:       ImporterHubApp.prototype._onHubCommitJournal,
       hubBuildScene:          ImporterHubApp.prototype._onHubBuildScene,
+      himportRemoveKey:       ImporterHubApp.prototype._onHimportRemoveKey,
       himportRemoveHex:       ImporterHubApp.prototype._onHimportRemoveHex,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
@@ -145,6 +148,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importItems = [];
   _importHexes = [];
   _importCrawlName = "";
+  /** @type {"hex"|"location"} */
+  _importKeyMode = "hex";
+  /** Numbered locations are opt-in because ordinary tables use numbered rows. */
+  _importLocationMode = false;
   /** Table parse results: ParsedTable[] */
   _importTables = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
@@ -164,6 +171,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _monstersCache = null;
   /** Pending cache refresh (debounce). */
   _monstersCacheTimer = null;
+  /** Cancels a temporary canvas click capture when the hub closes. */
+  _pendingCanvasCapture = null;
   /** Which gap rows are expanded: Set of source ids. */
   _expandedGapRows = new Set();
 
@@ -216,6 +225,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async close(options = {}) {
     clearTimeout(this._refreshTimer);
+    this._pendingCanvasCapture?.();
+    this._pendingCanvasCapture = null;
     for (const [ev, id] of this._hookIds) Hooks.off(ev, id);
     this._hookIds = [];
     ImporterHubApp._instance = null;
@@ -276,8 +287,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasMonsters = importMonsterCards.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasTables   = this._importTables.length > 0;
-    const hasHexes    = this._importHexes.length > 0;
-    const showImportAll = [hasMonsters, hasItems, hasTables, hasHexes].filter(Boolean).length > 1;
+    const hasKeyed    = this._importHexes.length > 0;
+    const isLocationMode = this._importKeyMode === "location";
+    const keyLabel = isLocationMode ? "Location" : "Hex";
+    const showImportAll = [hasMonsters, hasItems, hasTables, hasKeyed].filter(Boolean).length > 1;
 
     const importData = {
       text: this._importText,
@@ -291,9 +304,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasMonsters,
       hasItems,
       hasTables,
-      hasHexes,
-      hexes: this._importHexes.map((d, i) => ({ idx: i, hexId: d.hexId, name: d.name, body: d.body, warnings: d.warnings })),
-      hexesCount: this._importHexes.length,
+      hasKeyed,
+      keyed: this._importHexes.map((d, i) => ({
+        idx: i,
+        keyId: isLocationMode ? d.locationId : d.hexId,
+        name: d.name,
+        body: d.body ?? (d.bodyLines ?? []).join("\n"),
+        warnings: d.warnings ?? [],
+      })),
+      keyedCount: this._importHexes.length,
+      keyLabel,
+      isLocationMode,
+      locationMode: this._importLocationMode,
       crawlName: this._importCrawlName,
       showImportAll,
       skippedCount: this._importSkipped.length,
@@ -431,10 +453,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // ── Import-tab wiring (only when Import tab is active) ────────────────────
     if (this._activeTab === "import") {
       this._wireHubPaste();
+      this._wireHubLocationMode();
       this._wireHubSource();
       this._wireHubMonsterFieldEdits();
       this._wireHubItemFieldEdits();
-      this._wireHubHexFieldEdits();
+      this._wireHubKeyedFieldEdits();
       this._wireHubTableFieldEdits();
     }
 
@@ -566,6 +589,22 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       t = setTimeout(() => { this._importText = ev.target.value; }, 200);
     });
     ta.addEventListener("blur", () => { this._importTextFocused = false; this._importText = ta.value; });
+  }
+
+  /** Explicit numbered-location mode toggle; changing it clears stale previews. */
+  _wireHubLocationMode() {
+    const input = this.element.querySelector("input[data-import-location-mode]");
+    if (!input) return;
+    input.addEventListener("change", (ev) => {
+      this._importLocationMode = !!ev.target.checked;
+      this._importKeyMode = this._importLocationMode ? "location" : "hex";
+      this._importMonsters = [];
+      this._importItems = [];
+      this._importTables = [];
+      this._importHexes = [];
+      this._importSkipped = [];
+      this.render();
+    });
   }
 
   /** Source label input: free-text, commit on input. */
@@ -713,25 +752,40 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
 
-    const seg = segmentDump(this._importText);
+    this._importKeyMode = this._importLocationMode ? "location" : "hex";
+    if (this._importLocationMode) {
+      this._importMonsters = [];
+      this._importItems = [];
+      this._importTables = [];
+      const parsed = parseNumberedLocationsDetailed(this._importText);
+      this._importHexes = parsed.drafts;
+      this._importSkipped = this._importHexes.length || !this._importText.trim()
+        ? parsed.skipped
+        : [{
+            name: "Numbered locations",
+            reason: "No ascending run of 3+ punctuated headings was found (for example, \"1. Entry Hall\").",
+          }];
+    } else {
+      const seg = segmentDump(this._importText);
 
-    // Map raw monster chunks → [{ draft, warnings }]
-    this._importMonsters = seg.monsters.map((chunk) => parseStatblock(chunk));
+      // Map raw monster chunks → [{ draft, warnings }]
+      this._importMonsters = seg.monsters.map((chunk) => parseStatblock(chunk));
 
-    // Items are already [{ draft, warnings }] from the item recognizer
-    this._importItems = seg.items ?? [];
+      // Items are already [{ draft, warnings }] from the item recognizer
+      this._importItems = seg.items ?? [];
 
-    // Tables are already ParsedTable[] from the segmenter
-    this._importTables = seg.tables;
+      // Tables are already ParsedTable[] from the segmenter
+      this._importTables = seg.tables;
 
-    // Hex drafts from the hexcrawl recognizer (Phase 16)
-    this._importHexes = seg.hexes ?? [];
-    this._importCrawlName = this._importHexes.length
-      ? (detectCrawlTitle(this._importText) || this._importCrawlName || "")
-      : "";
+      // Hex drafts from the hexcrawl recognizer (Phase 16)
+      this._importHexes = seg.hexes ?? [];
+      this._importCrawlName = this._importHexes.length
+        ? (detectCrawlTitle(this._importText) || this._importCrawlName || "")
+        : "";
 
-    // Skipped: union of segmenter skipped + any extra from parsers
-    this._importSkipped = [...(seg.skipped ?? [])];
+      // Skipped: union of segmenter skipped + any extra from parsers
+      this._importSkipped = [...(seg.skipped ?? [])];
+    }
 
     // Apply seed (D-07 bridge: per-row Import from Tables tab)
     this._applyImportSeed();
@@ -740,7 +794,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this._linkLootTables();
 
     if (!this._importMonsters.length && !this._importItems.length && !this._importTables.length && !this._importHexes.length) {
-      ui.notifications.warn("No monsters, items, tables, or hex keys found — review the Skipped section.");
+      ui.notifications.warn("No monsters, items, tables, or keyed locations found — review the Skipped section.");
     }
 
     this.render();
@@ -751,7 +805,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importMonsters = [];
     this._importItems = [];
     this._importHexes = [];
-    this._importCrawlName = "";
     this._importTables = [];
     this._importSkipped = [];
     this._importSeed = null;
@@ -1031,8 +1084,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasMonsters = this._importMonsters.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasTables   = this._importTables.length > 0;
-    const hasHexes    = this._importHexes.length > 0;
-    if (!hasMonsters && !hasItems && !hasTables && !hasHexes) { ui.notifications.warn("Nothing to import."); return; }
+    const hasKeyed    = this._importHexes.length > 0;
+    if (!hasMonsters && !hasItems && !hasTables && !hasKeyed) { ui.notifications.warn("Nothing to import."); return; }
 
     const parts = [];
     const source = this._importSource.trim();
@@ -1075,14 +1128,17 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Hexcrawl journal fourth (Phase 16) — a missing crawl name skips the
     // stage with a visible note instead of blocking the other sections.
-    if (hasHexes) {
+    if (hasKeyed) {
       const crawlName = (this._importCrawlName ?? "").trim();
       if (!crawlName) {
-        parts.push("journal: skipped (no crawl name)");
+        parts.push("journal: skipped (no name)");
       } else {
         const { JournalImporter } = await import("./journal-importer.mjs");
-        const result = await JournalImporter.createOrUpdateCrawl(this._importHexes, {
-          crawlName, source, onConflict: this._crawlConflictDialog(),
+        const result = await JournalImporter.createOrUpdateKeyedJournal(this._importHexes, {
+          crawlName,
+          source,
+          keyMode: this._importKeyMode,
+          onConflict: this._crawlConflictDialog(this._importKeyMode),
         });
         if (result && result.status !== "skipped") {
           parts.push(`journal: "${result.name}" ${result.status} (${result.pages.created} created, ${result.pages.updated} updated)`);
@@ -1323,25 +1379,70 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications?.info(`Re-link complete: ${summary}.`);
   }
 
-  /**
-   * Hex grid field edits — commit in place WITHOUT re-render so focus is
-   * preserved (mirrors _wireHubItemFieldEdits). hexId edits re-derive the key.
-   */
-  _wireHubHexFieldEdits() {
+  /** Re-link managed keyed journal pages and refresh deployed world copies. */
+  async _onRelinkJournals() {
+    if (!game.user?.isGM) return;
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    const pack = findSuitePack("sde-journal");
+    if (!pack) {
+      ui.notifications?.warn("No sde-journal compendium pack found.");
+      return;
+    }
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Re-link Journal Pages" },
+      content: `<p>Re-link all managed pages in <strong>${pack.index.size}</strong> journal entry or entries to available monsters and items.</p>
+        <p>Only changed pages are updated. Existing deployed world copies are synchronized; no new world journal is created.</p>`,
+      buttons: [
+        { action: "relink", label: "Re-link", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+    if (!choice || choice === "cancel") return;
+
+    try {
+      const { JournalEnricher } = await import("./journal-enrich.mjs");
+      const tally = await JournalEnricher.sweepPack();
+      if (!tally) return;
+      const summary = [
+        `${tally.updated} of ${tally.pages} page(s) updated`,
+        `${tally.addedLinks} link(s) added`,
+        `${tally.worldSynced} world journal(s) synchronized`,
+        tally.failures ? `${tally.failures} failure(s) - see console` : "",
+      ].filter(Boolean).join(" · ");
+      ui.notifications?.info(`Journal re-link complete: ${summary}.`);
+    } catch (err) {
+      console.error(`${MODULE_ID} | journal sweep: unexpected error:`, err);
+      ui.notifications?.error("Journal re-link failed - see the console for details.");
+    }
+  }
+
+  /** Keyed journal field edits; commit in place so typing does not lose focus. */
+  _wireHubKeyedFieldEdits() {
     const nameEl = this.element.querySelector("input[data-import-crawlname]");
     nameEl?.addEventListener("input", (ev) => { this._importCrawlName = ev.target.value; });
     this.element.querySelectorAll("[data-himport-field]").forEach((el) => {
       el.addEventListener("change", (ev) => {
-        const rowEl = ev.target.closest("[data-hex-idx]");
+        const rowEl = ev.target.closest("[data-keyed-idx]");
         if (!rowEl) return;
-        const draft = this._importHexes[Number(rowEl.dataset.hexIdx)];
+        const draft = this._importHexes[Number(rowEl.dataset.keyedIdx)];
         if (!draft) return;
         const field = ev.target.dataset.himportField;
         const v = ev.target.value;
         switch (field) {
-          case "hexId": {
-            draft.hexId = v.trim();
-            draft.key = hexIdKey(draft.hexId) ?? draft.key;
+          case "keyId": {
+            if (this._importKeyMode === "location") {
+              const nextId = Number(v.trim());
+              if (Number.isInteger(nextId) && nextId > 0) {
+                draft.locationId = String(nextId);
+                draft.key = `loc:${draft.locationId}`;
+              } else {
+                ev.target.value = draft.locationId;
+              }
+            } else {
+              draft.hexId = v.trim();
+              draft.key = hexIdKey(draft.hexId) ?? draft.key;
+            }
             break;
           }
           case "name": draft.name = v; break;
@@ -1355,22 +1456,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  _onHimportRemoveHex(event, target) {
-    const idx = Number(target.closest("[data-hex-idx]")?.dataset.hexIdx);
+  _onHimportRemoveKey(event, target) {
+    const idx = Number(target.closest("[data-keyed-idx]")?.dataset.keyedIdx);
     if (Number.isInteger(idx)) {
       this._importHexes.splice(idx, 1);
       this.render();
     }
   }
 
+  /** Back-compatible action alias for Phase 16 templates. */
+  _onHimportRemoveHex(event, target) {
+    return this._onHimportRemoveKey(event, target);
+  }
+
   /** A-04 conflict dialog: update-in-place (default) / separate copy / skip. */
-  _crawlConflictDialog() {
+  _crawlConflictDialog(keyMode = "hex") {
     return async (name) => {
       const safe = foundry.utils.escapeHTML(name);
+      const kind = keyMode === "location" ? "numbered-location journal" : "crawl";
+      const unit = keyMode === "location" ? "locations" : "hexes";
       const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Crawl Already Exists" },
-        content: `<p>A crawl named <strong>${safe}</strong> (same source) already exists in the journal compendium.</p>
-          <p>Updating in place keeps every page's id — map pins stay valid. Pages for hexes not in this paste are left untouched. (Renaming the crawl instead creates a separate entry.)</p>`,
+        window: { title: "Journal Already Exists" },
+        content: `<p>A ${kind} named <strong>${safe}</strong> (same source) already exists in the journal compendium.</p>
+          <p>Updating in place keeps every page's id — map pins stay valid. Pages for ${unit} not in this paste are left untouched. (Renaming it instead creates a separate entry.)</p>`,
         buttons: [
           { action: "update", label: "Update in place", default: true },
           { action: "copy",   label: "Create separate copy" },
@@ -1382,20 +1490,21 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  /** Commit the parsed hex drafts as a crawl journal (Phase 16, REQ-36). */
+  /** Commit parsed hex or numbered-location drafts as one keyed journal. */
   async _onHubCommitJournal() {
     if (!game.user?.isGM) return;
     if (!this._importHexes.length) return;
     const crawlName = (this._importCrawlName ?? "").trim();
     if (!crawlName) {
-      ui.notifications.warn("Give the crawl a name before creating its journal.");
+      ui.notifications.warn("Give the journal a name before creating it.");
       return;
     }
     const { JournalImporter } = await import("./journal-importer.mjs");
-    const result = await JournalImporter.createOrUpdateCrawl(this._importHexes, {
+    const result = await JournalImporter.createOrUpdateKeyedJournal(this._importHexes, {
       crawlName,
       source: this._importSource.trim(),
-      onConflict: this._crawlConflictDialog(),
+      keyMode: this._importKeyMode,
+      onConflict: this._crawlConflictDialog(this._importKeyMode),
     });
     if (!result || result.status === "skipped") return;
     ui.notifications.info(
@@ -1499,6 +1608,239 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  async _chooseLocationGridProfile() {
+    const selection = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Location Map Grid" },
+      content: `<p>Choose how Foundry should configure this adventure map.</p>
+        <div class="form-group">
+          <label>Grid mode</label>
+          <select name="grid-mode">
+            <option value="gridless">Gridless</option>
+            <option value="square">Square grid</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Columns</label><input type="number" name="columns" min="1" value="68"></div>
+        <div class="form-group"><label>Rows</label><input type="number" name="rows" min="1" value="44"></div>
+        <div class="form-group"><label>Distance per square</label><input type="number" name="distance" min="1" value="5"></div>
+        <div class="form-group"><label>Units</label><input type="text" name="units" value="ft"></div>
+        <p class="hint">Columns and rows are used only for square-grid maps. Foundry requires an integer grid size, so the scene may be a few pixels larger than the source image.</p>`,
+      buttons: [
+        {
+          action: "select",
+          label: "Continue",
+          default: true,
+          callback: (ev, button, dialog) => {
+            const root = dialog.element ?? dialog;
+            return {
+              gridMode: root?.querySelector?.("[name='grid-mode']")?.value ?? "gridless",
+              columns: Number(root?.querySelector?.("[name='columns']")?.value),
+              rows: Number(root?.querySelector?.("[name='rows']")?.value),
+              distance: Number(root?.querySelector?.("[name='distance']")?.value),
+              units: root?.querySelector?.("[name='units']")?.value?.trim() || "ft",
+            };
+          },
+        },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!selection || selection === "cancel") return null;
+    if (selection.gridMode === "square" &&
+        (![selection.columns, selection.rows, selection.distance].every((value) =>
+          Number.isFinite(value) && value > 0))) {
+      ui.notifications.warn("Square-grid columns, rows, and distance must be positive numbers.");
+      return null;
+    }
+    return selection;
+  }
+
+  /**
+   * Capture one pointer click in Scene coordinates. Escape cancels and every
+   * exit path removes the temporary PIXI + keyboard listeners.
+   */
+  _captureCanvasPoint(scene) {
+    return new Promise((resolve) => {
+      if (!canvas?.ready || canvas.scene?.id !== scene?.id || !canvas.stage?.toLocal) {
+        resolve(null);
+        return;
+      }
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        canvas.stage.off("pointerdown", onPointerDown);
+        window.removeEventListener("keydown", onKeyDown);
+        if (this._pendingCanvasCapture === cancelCapture) {
+          this._pendingCanvasCapture = null;
+        }
+        resolve(value);
+      };
+      const onPointerDown = (event) => {
+        try {
+          const local = canvas.stage.toLocal(event.global);
+          finish({ x: local.x, y: local.y });
+        } catch (err) {
+          console.error(`${MODULE_ID} | canvas point conversion failed:`, err);
+          finish(null);
+        }
+      };
+      const onKeyDown = (event) => {
+        if (event.key === "Escape") finish(null);
+      };
+      const cancelCapture = () => finish(null);
+      this._pendingCanvasCapture = cancelCapture;
+      canvas.stage.on("pointerdown", onPointerDown);
+      window.addEventListener("keydown", onKeyDown);
+      ui.notifications.info("Click the location on the map. Press Escape to stop keying.");
+    });
+  }
+
+  async _activateLocationScene(scene) {
+    if (canvas?.ready && canvas.scene?.id === scene.id) return true;
+    const canvasReady = new Promise((resolve) => {
+      let timer;
+      const hookId = Hooks.once("canvasReady", () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+      timer = setTimeout(() => {
+        Hooks.off("canvasReady", hookId);
+        resolve(false);
+      }, 15000);
+    });
+    await scene.activate();
+    return canvasReady;
+  }
+
+  async _keyLocationScene({ crawl, scene, worldJournal, SceneBuilder }) {
+    const pages = crawl.pages.contents
+      .filter((page) => String(page.flags?.[MODULE_ID]?.key ?? "").startsWith("loc:"))
+      .sort((a, b) =>
+        Number(a.flags[MODULE_ID].locationId) - Number(b.flags[MODULE_ID].locationId));
+    let placed = 0;
+    let skipped = 0;
+
+    for (const packPage of pages) {
+      const key = packPage.flags[MODULE_ID].key;
+      const progress = scene.flags?.[MODULE_ID]?.locationProgress ?? {};
+      if (progress.placed?.includes(key) || progress.skipped?.includes(key)) continue;
+      const safeName = foundry.utils.escapeHTML(packPage.name);
+      const choice = await foundry.applications.api.DialogV2.wait({
+        window: { title: `Key ${packPage.name}` },
+        content: `<p><strong>${safeName}</strong></p>
+          <p>Place this journal pin on the active map, skip it, or stop and resume later.</p>`,
+        buttons: [
+          { action: "place", label: "Click map", default: true },
+          { action: "skip", label: "Skip" },
+          { action: "stop", label: "Stop" },
+        ],
+        rejectClose: false,
+      }).catch(() => "stop");
+      if (!choice || choice === "stop") break;
+      if (choice === "skip") {
+        await SceneBuilder.skipLocation({ scene, key });
+        skipped++;
+        continue;
+      }
+
+      const point = await this._captureCanvasPoint(scene);
+      if (!point) break;
+      const worldPage = worldJournal.pages.get(packPage.id);
+      if (!worldPage) throw new Error(`World journal page ${packPage.id} is missing`);
+      await SceneBuilder.placeLocationNote({ scene, page: worldPage, key, point });
+      placed++;
+    }
+    return { placed, skipped };
+  }
+
+  async _buildLocationScene(crawl, SceneBuilder) {
+    const existingScenes = game.scenes.contents
+      .filter((scene) =>
+        scene.flags?.[MODULE_ID]?.keyMode === "location" &&
+        scene.flags?.[MODULE_ID]?.journalId === crawl.id)
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    if (existingScenes.length) {
+      const options = existingScenes
+        .map((scene) => `<option value="${scene.id}">${foundry.utils.escapeHTML(scene.name)}</option>`)
+        .join("");
+      const resume = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Resume Location Keying" },
+        content: `<p>A deployed map already exists for <strong>${foundry.utils.escapeHTML(crawl.name)}</strong>.</p>
+          <select name="scene-id" style="width:100%">${options}</select>
+          <p class="hint">Resume continues with the first location that is neither placed nor skipped.</p>`,
+        buttons: [
+          {
+            action: "resume",
+            label: "Resume",
+            default: true,
+            callback: (ev, button, dialog) => ({
+              action: "resume",
+              sceneId: (dialog.element ?? dialog)?.querySelector?.("[name='scene-id']")?.value,
+            }),
+          },
+          { action: "new", label: "Create another map", callback: () => ({ action: "new" }) },
+          { action: "cancel", label: "Cancel", callback: () => ({ action: "cancel" }) },
+        ],
+        rejectClose: false,
+      }).catch(() => null);
+      if (!resume || resume.action === "cancel") return;
+      if (resume.action === "resume") {
+        const scene = game.scenes.get(resume.sceneId);
+        if (!scene) throw new Error("The selected location Scene no longer exists");
+        const worldJournal = await SceneBuilder.deployCrawlJournal(crawl);
+        await this._activateLocationScene(scene);
+        const keyed = await this._keyLocationScene({
+          crawl,
+          scene,
+          worldJournal,
+          SceneBuilder,
+        });
+        ui.notifications.info(
+          `Location map "${crawl.name}" resumed: ${keyed.placed} placed, ${keyed.skipped} skipped this run.`);
+        return;
+      }
+    }
+
+    const imagePath = await this._pickSceneImage();
+    if (!imagePath) return;
+    const profile = await this._chooseLocationGridProfile();
+    if (!profile) return;
+    const pageCount = crawl.pages.contents.filter((page) =>
+      String(page.flags?.[MODULE_ID]?.key ?? "").startsWith("loc:")).length;
+    const safeName = foundry.utils.escapeHTML(crawl.name);
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Deploy Location Map" },
+      content: `<p>Deploy <strong>${safeName}</strong> into the world and create a
+        ${profile.gridMode === "square" ? `${profile.columns} × ${profile.rows} square-grid` : "gridless"} scene.</p>
+        <p>After the scene opens, you will place or skip ${pageCount} location pin(s). Progress and the sde-scenes backup are updated after every choice.</p>`,
+      buttons: [
+        { action: "deploy", label: "Deploy", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+    if (choice !== "deploy") return;
+
+    const result = await SceneBuilder.createLocationScene({
+      crawlId: crawl.id,
+      crawlName: crawl.name,
+      source: crawl.flags?.[MODULE_ID]?.source ?? "",
+      imagePath,
+      ...profile,
+    });
+    if (!result) return;
+
+    await this._activateLocationScene(result.scene);
+    const keyed = await this._keyLocationScene({
+      crawl,
+      scene: result.scene,
+      worldJournal: result.journal,
+      SceneBuilder,
+    });
+    ui.notifications.info(
+      `Location map "${crawl.name}" ready: ${keyed.placed} placed, ${keyed.skipped} skipped this run.`);
+  }
+
   /** Deploy a managed crawl journal into the world and build its pinned scene. */
   async _onHubBuildScene() {
     if (!game.user?.isGM) return;
@@ -1515,23 +1857,26 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       .filter((entry) => entry.flags?.[MODULE_ID]?.crawl === true)
       .sort((a, b) => String(a.name).localeCompare(String(b.name)));
     if (!crawls.length) {
-      ui.notifications.warn("Create a hexcrawl journal before building its scene.");
+      ui.notifications.warn("Create a keyed journal before building its scene.");
       return;
     }
 
     const options = crawls.map((entry) => {
       const source = entry.flags?.[MODULE_ID]?.source;
+      const kind = String(entry.flags?.[MODULE_ID]?.keyMode ?? "hex") === "location"
+        ? "locations"
+        : "hexes";
       const label = `${entry.name}${source ? ` (${source})` : ""}`;
-      return `<option value="${foundry.utils.escapeHTML(entry._id)}">${foundry.utils.escapeHTML(label)}</option>`;
+      return `<option value="${foundry.utils.escapeHTML(entry._id)}">${foundry.utils.escapeHTML(label)} — ${kind}</option>`;
     }).join("");
     const selection = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Build Crawl Scene" },
-      content: `<p>Select a crawl journal to deploy into the world.</p>
+      window: { title: "Build Map Scene" },
+      content: `<p>Select a keyed journal to deploy into the world.</p>
         <select name="crawl-id" style="width:100%">${options}</select>
         <label style="display:flex;gap:.5rem;align-items:center;margin-top:.75rem">
-          <input type="checkbox" name="calibrate"> Calibrate with two reference clicks
+          <input type="checkbox" name="calibrate"> Calibrate hex map with two reference clicks
         </label>
-        <p class="hint">Otherwise the standard 2250 x 1674 template is used. Rows 12-22 automatically request a second South map.</p>`,
+        <p class="hint">Hex journals use the standard template unless calibrated. Numbered-location journals ask for gridless or square-grid settings next.</p>`,
       buttons: [
         {
           action: "select",
@@ -1554,6 +1899,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const crawl = await pack.getDocument(selection.crawlId);
     if (!crawl) {
       ui.notifications.error("That crawl journal could not be opened.");
+      return;
+    }
+    if (String(crawl.flags?.[MODULE_ID]?.keyMode ?? "hex") === "location") {
+      try {
+        await this._buildLocationScene(crawl, SceneBuilder);
+      } catch (err) {
+        console.error(`${MODULE_ID} | location scene-builder: deploy failed:`, err);
+        ui.notifications.error("Location scene deployment failed - see the console for details.");
+      }
       return;
     }
     const keys = crawl.pages.contents

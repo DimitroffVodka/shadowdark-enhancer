@@ -36,6 +36,11 @@
     </label>
     <textarea id="sde-hub-import-text" data-import-text rows="6" class="sde-hub-import-text"
               placeholder="DIRE WOLF&#10;AC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2&#10;&#10;d6 Random Encounter&#10;1 Giant Rats&#10;2 Goblin scouts">{{importData.text}}</textarea>
+    <label class="sde-hub-import-sourcebar">
+      <input type="checkbox" data-import-location-mode {{#if importData.locationMode}}checked{{/if}}>
+      <span><i class="fas fa-location-dot"></i> Parse as numbered locations</span>
+      <span class="hint">Use for adventures keyed as “1. Entry Hall”; ordinary table parsing is disabled while selected.</span>
+    </label>
 
     {{!-- Source label (for monster folder) --}}
     <div class="sde-hub-import-sourcebar">
@@ -352,45 +357,51 @@
     </section>
 
     {{!-- ── Skipped (K) — always visible (D-04 / D9: nothing silently dropped) --}}
-    {{!-- ── Hexcrawl section (Phase 16, REQ-35/36) ─────────────────────── --}}
+    {{!-- ── Keyed journal section (hexes or explicit numbered locations) ── --}}
     <section class="sde-hub-import-section">
       <div class="sde-hub-import-sechead">
         <span class="sde-hub-import-sectitle">
-          <i class="fas fa-map"></i> Hexcrawl ({{importData.hexesCount}})
+          <i class="fas fa-map"></i> Crawl / Locations ({{importData.keyedCount}})
         </span>
         <button type="button" data-action="hubBuildScene" class="sde-import-secondary sde-hub-import-secbtn"
-                title="Deploy an existing sde-journal crawl into the world and build its gridless pinned scene.">
+                title="Deploy an existing keyed journal into the world and build its map scene.">
           <i class="fas fa-map-location-dot"></i> Build scene
         </button>
-        {{#if importData.hasHexes}}
+        {{#if importData.hasKeyed}}
         <button type="button" data-action="hubCommitJournal" class="sde-import-primary sde-hub-import-secbtn">
           <i class="fas fa-book"></i> Create journal
         </button>
         {{/if}}
       </div>
-      {{#if importData.hasHexes}}
+      {{#if importData.hasKeyed}}
       <div class="sde-hub-import-sourcebar">
-        <label for="sde-hub-import-crawlname"><i class="fas fa-signature"></i> Crawl name</label>
+        <label for="sde-hub-import-crawlname"><i class="fas fa-signature"></i> Journal name</label>
         <input id="sde-hub-import-crawlname" type="text" data-import-crawlname
                value="{{importData.crawlName}}" class="sde-hub-import-source-input"
                placeholder="e.g. the region or adventure name"
-               aria-label="Crawl name (journal entry title)">
+               aria-label="Journal entry title">
       </div>
-      {{#each importData.hexes as |h|}}
-      <div class="sde-hub-import-item-card" data-hex-idx="{{h.idx}}">
+      {{#each importData.keyed as |h|}}
+      <div class="sde-hub-import-item-card" data-keyed-idx="{{h.idx}}">
         <div class="sde-hub-import-item-row">
-          <label>Hex <input type="text" data-himport-field="hexId" value="{{h.hexId}}" style="width: 64px" aria-label="Hex ID"></label>
-          <label>Name <input type="text" data-himport-field="name" value="{{h.name}}" aria-label="Hex name"></label>
-          <button type="button" data-action="himportRemoveHex" class="sde-import-del" title="Remove this hex" aria-label="Remove hex {{h.hexId}}">
+          <label>{{../importData.keyLabel}} <input type="text" data-himport-field="keyId" value="{{h.keyId}}" style="width: 64px" aria-label="{{../importData.keyLabel}} ID"></label>
+          <label>Name <input type="text" data-himport-field="name" value="{{h.name}}" aria-label="{{../importData.keyLabel}} name"></label>
+          <button type="button" data-action="himportRemoveKey" class="sde-import-del" title="Remove this keyed page" aria-label="Remove {{../importData.keyLabel}} {{h.keyId}}">
             <i class="fas fa-trash"></i>
           </button>
         </div>
         {{#each h.warnings as |w|}}<p class="sde-mimport-warn-legend">{{w}}</p>{{/each}}
-        <textarea data-himport-field="body" rows="3" class="sde-hub-import-text" aria-label="Hex body text">{{h.body}}</textarea>
+        <textarea data-himport-field="body" rows="3" class="sde-hub-import-text" aria-label="{{../importData.keyLabel}} body text">{{h.body}}</textarea>
       </div>
       {{/each}}
       {{else}}
-      <p class="sde-hub-import-empty">No hex keys parsed yet (needs a run of 3+ numbered hex entries, e.g. "0101 OLD MILL").</p>
+      <p class="sde-hub-import-empty">
+        {{#if importData.isLocationMode}}
+        No numbered locations parsed yet (needs a run of 3+ punctuated headings, e.g. “1. Entry Hall”).
+        {{else}}
+        No hex keys parsed yet (needs a run of 3+ numbered hex entries, e.g. “0101 OLD MILL”).
+        {{/if}}
+      </p>
       {{/if}}
     </section>
 
@@ -442,6 +453,10 @@
       <button type="button" class="sde-thub-migrate" data-action="hubRelinkTables"
               title="Re-link every compendium table to your imported monsters and items. Safe to re-run — existing links are preserved.">
         <i class="fas fa-link"></i> Re-link pack tables
+      </button>
+      <button type="button" class="sde-thub-migrate" data-action="hubRelinkJournals"
+              title="Re-link keyed journal pages to imported monsters and items, then synchronize any deployed world copies.">
+        <i class="fas fa-book-open"></i> Re-link journal pages
       </button>
     </div>
 

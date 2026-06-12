@@ -28,6 +28,10 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { buildHexPageHtml, rewriteHexPlaceholders } from "./hex-parser.mjs";
+import {
+  buildLocationPageHtml,
+  rewriteLocationPlaceholders,
+} from "./location-keyer.mjs";
 
 // ─── Pure builders (Foundry-free, node:test importable) ───────────────────────
 
@@ -51,18 +55,49 @@ export function buildPageData(draft, { source = "", hexKeySet } = {}) {
 }
 
 /**
+ * Build one numbered-location page payload.
+ * @param {{locationId:string,key:string,name:string,bodyLines:string[]}} draft
+ * @param {{source?:string,keySet:Set<string>}} opts
+ * @returns {object}
+ */
+export function buildLocationPageData(draft, { source = "", keySet } = {}) {
+  const name = draft.name
+    ? `${draft.locationId} — ${draft.name}`
+    : `Location ${draft.locationId}`;
+  return {
+    name,
+    type: "text",
+    text: { content: buildLocationPageHtml(draft, keySet), format: 1 },
+    flags: {
+      [MODULE_ID]: {
+        locationId: draft.locationId,
+        key: draft.key,
+        keyMode: "location",
+        source,
+      },
+    },
+  };
+}
+
+/**
  * Build the JournalEntry payload.
  * @param {string} crawlName
  * @param {object[]} pages - buildPageData outputs
- * @param {{source?: string, folder?: string|null}} opts
+ * @param {{source?: string, folder?: string|null, keyMode?:string}} opts
  * @returns {object}
  */
-export function buildEntryData(crawlName, pages, { source = "", folder = null } = {}) {
+export function buildEntryData(crawlName, pages, {
+  source = "",
+  folder = null,
+  keyMode = null,
+} = {}) {
+  const crawlFlags = { crawl: true, crawlName, source, imported: true };
+  if (keyMode) crawlFlags.keyMode = keyMode;
   return {
     name: crawlName,
     pages,
     folder: folder ?? null,
-    flags: { [MODULE_ID]: { crawl: true, crawlName, source, imported: true } },
+    flags: { [MODULE_ID]: crawlFlags },
   };
 }
 
@@ -105,18 +140,27 @@ function _uniqueName(pack, base) {
 }
 
 /**
- * Create or update one crawl's JournalEntry in sde-journal.
+ * Create or update one keyed JournalEntry in sde-journal.
  *
- * @param {Array<object>} drafts - hex drafts from the recognizer
+ * @param {Array<object>} drafts - hex or numbered-location drafts
  * @param {{crawlName: string, source?: string,
+ *          keyMode?: "hex"|"location",
  *          onConflict?: (name: string) => Promise<"update"|"copy"|"skip">}} opts
  * @returns {Promise<{uuid:string, name:string, status:string,
  *   pages:{created:number, updated:number}}|{status:"skipped"}|null>}
  */
-export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onConflict } = {}) {
+export async function createOrUpdateKeyedJournal(drafts, {
+  crawlName,
+  source = "",
+  keyMode = "hex",
+  onConflict,
+} = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can import a hexcrawl journal.");
+    ui.notifications?.warn("Only a GM can import a keyed journal.");
     return null;
+  }
+  if (keyMode !== "hex" && keyMode !== "location") {
+    throw new TypeError(`Unsupported keyed journal mode "${keyMode}"`);
   }
   const name = String(crawlName ?? "").trim();
   if (!name || !drafts?.length) return null;
@@ -130,7 +174,14 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
   }
   if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
   const folder = await ensureSourceFolder(pack, source);
-  const hexKeySet = new Set(drafts.map((d) => d.key).filter(Boolean));
+  const keySet = new Set(drafts.map((d) => d.key).filter(Boolean));
+  const buildPage = (draft) => keyMode === "location"
+    ? buildLocationPageData(draft, { source, keySet })
+    : buildPageData(draft, { source, hexKeySet: keySet });
+  const rewritePlaceholders = keyMode === "location"
+    ? rewriteLocationPlaceholders
+    : rewriteHexPlaceholders;
+  const placeholderPattern = keyMode === "location" ? /@@KEY\[/ : /@@HEX\[/;
 
   // ── Locate an existing crawl (name + source + crawl flag) ──────────────────
   let existingId = null;
@@ -139,6 +190,7 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
     const hit = [...index].find((e) =>
       (e.name ?? "").toLowerCase() === name.toLowerCase() &&
       e.flags?.[MODULE_ID]?.crawl === true &&
+      String(e.flags?.[MODULE_ID]?.keyMode ?? "hex") === keyMode &&
       String(e.flags?.[MODULE_ID]?.source ?? "") === String(source ?? ""));
     existingId = hit?._id ?? null;
   } catch (_) {
@@ -147,6 +199,7 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
     if (hit) {
       const doc = await pack.getDocument(hit._id);
       if (doc?.flags?.[MODULE_ID]?.crawl === true &&
+          String(doc.flags?.[MODULE_ID]?.keyMode ?? "hex") === keyMode &&
           String(doc.flags?.[MODULE_ID]?.source ?? "") === String(source ?? "")) {
         existingId = doc.id;
       }
@@ -164,6 +217,9 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
     if (mode === "update") {
       // ── UPDATE-IN-PLACE (A-04): page _ids preserved ───────────────────────
       const entry = await pack.getDocument(existingId);
+      if (entry.flags?.[MODULE_ID]?.keyMode !== keyMode) {
+        await entry.update({ [`flags.${MODULE_ID}.keyMode`]: keyMode });
+      }
       const existingPages = entry.pages.contents.map((p) => ({
         _id: p.id, key: p.flags?.[MODULE_ID]?.key,
       }));
@@ -171,7 +227,7 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
 
       if (updates.length) {
         await entry.updateEmbeddedDocuments("JournalEntryPage", updates.map(({ _id, draft }) => {
-          const pd = buildPageData(draft, { source, hexKeySet });
+          const pd = buildPage(draft);
           return { _id, name: pd.name, "text.content": pd.text.content,
                    [`flags.${MODULE_ID}`]: pd.flags[MODULE_ID] };
         }));
@@ -179,7 +235,7 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
       let created = [];
       if (creates.length) {
         created = await entry.createEmbeddedDocuments("JournalEntryPage",
-          creates.map(({ draft }) => buildPageData(draft, { source, hexKeySet })));
+          creates.map(({ draft }) => buildPage(draft)));
       }
 
       // Pass 2 over the pages touched THIS run; uuid map spans ALL pages so
@@ -191,8 +247,8 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
       }
       const touchedIds = new Set([...updates.map((u) => u._id), ...created.map((p) => p.id)]);
       const pass2 = entry.pages.contents
-        .filter((p) => touchedIds.has(p.id) && /@@HEX\[/.test(p.text?.content ?? ""))
-        .map((p) => ({ _id: p.id, "text.content": rewriteHexPlaceholders(p.text.content, uuidByKey) }));
+        .filter((p) => touchedIds.has(p.id) && placeholderPattern.test(p.text?.content ?? ""))
+        .map((p) => ({ _id: p.id, "text.content": rewritePlaceholders(p.text.content, uuidByKey) }));
       if (pass2.length) await entry.updateEmbeddedDocuments("JournalEntryPage", pass2);
 
       return { uuid: entry.uuid, name: entry.name, status: "updated",
@@ -201,9 +257,9 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
 
     // ── CREATE / COPY (two-pass, A-02) ────────────────────────────────────────
     const finalName = mode === "copy" ? _uniqueName(pack, name) : name;
-    const pages = drafts.map((d) => buildPageData(d, { source, hexKeySet }));
+    const pages = drafts.map((d) => buildPage(d));
     const entry = await JournalEntry.create(
-      buildEntryData(finalName, pages, { source, folder }),
+      buildEntryData(finalName, pages, { source, folder, keyMode }),
       { pack: pack.collection });
 
     const uuidByKey = new Map();
@@ -212,21 +268,33 @@ export async function createOrUpdateCrawl(drafts, { crawlName, source = "", onCo
       if (k && !uuidByKey.has(k)) uuidByKey.set(k, p.uuid);
     }
     const pass2 = entry.pages.contents
-      .filter((p) => /@@HEX\[/.test(p.text?.content ?? ""))
-      .map((p) => ({ _id: p.id, "text.content": rewriteHexPlaceholders(p.text.content, uuidByKey) }));
+      .filter((p) => placeholderPattern.test(p.text?.content ?? ""))
+      .map((p) => ({ _id: p.id, "text.content": rewritePlaceholders(p.text.content, uuidByKey) }));
     if (pass2.length) await entry.updateEmbeddedDocuments("JournalEntryPage", pass2);
 
     return { uuid: entry.uuid, name: entry.name, status: "created",
              pages: { created: entry.pages.size, updated: 0 } };
   } catch (err) {
-    // A pass-2 failure leaves visible @@HEX[…] tokens — harmless and healed
+    // A pass-2 failure leaves visible placeholders — harmless and healed
     // by re-import; a pass-1 failure surfaces here.
     console.error(`${MODULE_ID} | journal-importer: commit failed for "${name}":`, err);
-    ui.notifications?.error("Hexcrawl journal import failed — see the console for details.");
+    ui.notifications?.error("Keyed journal import failed — see the console for details.");
     return null;
   }
 }
 
+/** Back-compatible Phase 16 hex-crawl entry point. */
+export function createOrUpdateCrawl(drafts, opts = {}) {
+  return createOrUpdateKeyedJournal(drafts, { ...opts, keyMode: "hex" });
+}
+
 // ─── Namespace export ─────────────────────────────────────────────────────────
 
-export const JournalImporter = { buildPageData, buildEntryData, planCrawlMerge, createOrUpdateCrawl };
+export const JournalImporter = {
+  buildPageData,
+  buildLocationPageData,
+  buildEntryData,
+  planCrawlMerge,
+  createOrUpdateKeyedJournal,
+  createOrUpdateCrawl,
+};
