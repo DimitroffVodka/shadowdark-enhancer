@@ -161,6 +161,11 @@ async function _referencedNamesFromPackTables() {
     if (/encounter\s+zone|zone.*encounters?/i.test(hay)) continue;
 
     const label = sourceFolderName(sde.source ?? "");
+    // Core is not an import source — the system compendium ships every Core
+    // monster, and the real ones in these tables already resolved to @UUID
+    // links. What's left is flavor proper-nouns ("Old Rolf", "Thieves'
+    // Guild", "The PCs") — unactionable noise, not gaps (GM-reported).
+    if (String(sde.source ?? "").toLowerCase() === "core") continue;
     const results = table.results?.contents ?? [];
 
     // Category MATRICES (cs1/2/3 "Encounters": d8 x zone -> which sub-table)
