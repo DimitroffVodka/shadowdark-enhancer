@@ -162,6 +162,17 @@ async function _referencedNamesFromPackTables() {
 
     const label = sourceFolderName(sde.source ?? "");
     const results = table.results?.contents ?? [];
+
+    // Category MATRICES (cs1/2/3 "Encounters": d8 x zone -> which sub-table)
+    // also pass the keyword gate, but every row is bare capitalized category
+    // words ("Flier Flier Flier Flier") - no prose, no dice, no links. Skip
+    // the whole table when ALL rows look like that (live-caught, round 2).
+    const rowTexts = results
+      .map((r) => String(r.description ?? r.text ?? "").trim())
+      .filter(Boolean);
+    const isCategoryRow = (t) => /^(?:[A-Z][a-zA-Z'-]*\s+){1,5}[A-Z][a-zA-Z'-]*$/.test(t);
+    if (rowTexts.length && rowTexts.every(isCategoryRow)) continue;
+
     for (const result of results) {
       const text = String(result.description ?? result.text ?? "");
       // Strip resolved links, scan what remains.
