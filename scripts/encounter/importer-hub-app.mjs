@@ -23,6 +23,7 @@ import { LootLinker } from "./loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
 import { findById, formulaFromDie, isMatrix, columnManifestId } from "./table-manifest.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
+import { detectCrawlTitle, hexIdKey } from "./hex-parser.mjs";
 import { parseStatblock } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
@@ -92,6 +93,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Import tab — commit actions
       hubCommitMonsters:      ImporterHubApp.prototype._onHubCommitMonsters,
       hubCommitItems:         ImporterHubApp.prototype._onHubCommitItems,
+      hubCommitJournal:       ImporterHubApp.prototype._onHubCommitJournal,
+      himportRemoveHex:       ImporterHubApp.prototype._onHimportRemoveHex,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
       // Monsters-tab census/gap/duplicate actions
@@ -138,6 +141,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importMonsters = [];
   /** Item parse results: [{ draft, warnings }] from seg.items */
   _importItems = [];
+  _importHexes = [];
+  _importCrawlName = "";
   /** Table parse results: ParsedTable[] */
   _importTables = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
@@ -269,7 +274,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasMonsters = importMonsterCards.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasTables   = this._importTables.length > 0;
-    const showImportAll = [hasMonsters, hasItems, hasTables].filter(Boolean).length > 1;
+    const hasHexes    = this._importHexes.length > 0;
+    const showImportAll = [hasMonsters, hasItems, hasTables, hasHexes].filter(Boolean).length > 1;
 
     const importData = {
       text: this._importText,
@@ -283,6 +289,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasMonsters,
       hasItems,
       hasTables,
+      hasHexes,
+      hexes: this._importHexes.map((d, i) => ({ idx: i, hexId: d.hexId, name: d.name, body: d.body, warnings: d.warnings })),
+      hexesCount: this._importHexes.length,
+      crawlName: this._importCrawlName,
       showImportAll,
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
@@ -422,6 +432,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._wireHubSource();
       this._wireHubMonsterFieldEdits();
       this._wireHubItemFieldEdits();
+      this._wireHubHexFieldEdits();
       this._wireHubTableFieldEdits();
     }
 
@@ -711,6 +722,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Tables are already ParsedTable[] from the segmenter
     this._importTables = seg.tables;
 
+    // Hex drafts from the hexcrawl recognizer (Phase 16)
+    this._importHexes = seg.hexes ?? [];
+    this._importCrawlName = this._importHexes.length
+      ? (detectCrawlTitle(this._importText) || this._importCrawlName || "")
+      : "";
+
     // Skipped: union of segmenter skipped + any extra from parsers
     this._importSkipped = [...(seg.skipped ?? [])];
 
@@ -720,8 +737,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Link loot rows to compendium items
     await this._linkLootTables();
 
-    if (!this._importMonsters.length && !this._importItems.length && !this._importTables.length) {
-      ui.notifications.warn("No monsters, items, or tables found — review the Skipped section.");
+    if (!this._importMonsters.length && !this._importItems.length && !this._importTables.length && !this._importHexes.length) {
+      ui.notifications.warn("No monsters, items, tables, or hex keys found — review the Skipped section.");
     }
 
     this.render();
@@ -731,6 +748,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importText = "";
     this._importMonsters = [];
     this._importItems = [];
+    this._importHexes = [];
+    this._importCrawlName = "";
     this._importTables = [];
     this._importSkipped = [];
     this._importSeed = null;
@@ -1010,7 +1029,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasMonsters = this._importMonsters.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasTables   = this._importTables.length > 0;
-    if (!hasMonsters && !hasItems && !hasTables) { ui.notifications.warn("Nothing to import."); return; }
+    const hasHexes    = this._importHexes.length > 0;
+    if (!hasMonsters && !hasItems && !hasTables && !hasHexes) { ui.notifications.warn("Nothing to import."); return; }
 
     const parts = [];
     const source = this._importSource.trim();
@@ -1049,6 +1069,27 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       }
       parts.push(`tables: ${created} created`);
+    }
+
+    // Hexcrawl journal fourth (Phase 16) — a missing crawl name skips the
+    // stage with a visible note instead of blocking the other sections.
+    if (hasHexes) {
+      const crawlName = (this._importCrawlName ?? "").trim();
+      if (!crawlName) {
+        parts.push("journal: skipped (no crawl name)");
+      } else {
+        const { JournalImporter } = await import("./journal-importer.mjs");
+        const result = await JournalImporter.createOrUpdateCrawl(this._importHexes, {
+          crawlName, source, onConflict: this._crawlConflictDialog(),
+        });
+        if (result && result.status !== "skipped") {
+          parts.push(`journal: "${result.name}" ${result.status} (${result.pages.created} created, ${result.pages.updated} updated)`);
+          this._importHexes = [];
+          this._importCrawlName = "";
+        } else {
+          parts.push("journal: skipped");
+        }
+      }
     }
 
     ui.notifications.info(`Import complete — ${parts.join("; ")}.`);
@@ -1278,6 +1319,88 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tally.failures ? `${tally.failures} failure(s) — see console` : "",
     ].filter(Boolean).join(" · ");
     ui.notifications?.info(`Re-link complete: ${summary}.`);
+  }
+
+  /**
+   * Hex grid field edits — commit in place WITHOUT re-render so focus is
+   * preserved (mirrors _wireHubItemFieldEdits). hexId edits re-derive the key.
+   */
+  _wireHubHexFieldEdits() {
+    const nameEl = this.element.querySelector("input[data-import-crawlname]");
+    nameEl?.addEventListener("input", (ev) => { this._importCrawlName = ev.target.value; });
+    this.element.querySelectorAll("[data-himport-field]").forEach((el) => {
+      el.addEventListener("change", (ev) => {
+        const rowEl = ev.target.closest("[data-hex-idx]");
+        if (!rowEl) return;
+        const draft = this._importHexes[Number(rowEl.dataset.hexIdx)];
+        if (!draft) return;
+        const field = ev.target.dataset.himportField;
+        const v = ev.target.value;
+        switch (field) {
+          case "hexId": {
+            draft.hexId = v.trim();
+            draft.key = hexIdKey(draft.hexId) ?? draft.key;
+            break;
+          }
+          case "name": draft.name = v; break;
+          case "body": {
+            draft.body = v;
+            draft.bodyLines = v.split("\n").map((l) => l.trim()).filter(Boolean);
+            break;
+          }
+        }
+      });
+    });
+  }
+
+  _onHimportRemoveHex(event, target) {
+    const idx = Number(target.closest("[data-hex-idx]")?.dataset.hexIdx);
+    if (Number.isInteger(idx)) {
+      this._importHexes.splice(idx, 1);
+      this.render();
+    }
+  }
+
+  /** A-04 conflict dialog: update-in-place (default) / separate copy / skip. */
+  _crawlConflictDialog() {
+    return async (name) => {
+      const safe = foundry.utils.escapeHTML(name);
+      const choice = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Crawl Already Exists" },
+        content: `<p>A crawl named <strong>${safe}</strong> (same source) already exists in the journal compendium.</p>
+          <p>Updating in place keeps every page's id — map pins stay valid. Pages for hexes not in this paste are left untouched. (Renaming the crawl instead creates a separate entry.)</p>`,
+        buttons: [
+          { action: "update", label: "Update in place", default: true },
+          { action: "copy",   label: "Create separate copy" },
+          { action: "skip",   label: "Skip" },
+        ],
+        rejectClose: false,
+      }).catch(() => "skip");
+      return choice ?? "skip";
+    };
+  }
+
+  /** Commit the parsed hex drafts as a crawl journal (Phase 16, REQ-36). */
+  async _onHubCommitJournal() {
+    if (!game.user?.isGM) return;
+    if (!this._importHexes.length) return;
+    const crawlName = (this._importCrawlName ?? "").trim();
+    if (!crawlName) {
+      ui.notifications.warn("Give the crawl a name before creating its journal.");
+      return;
+    }
+    const { JournalImporter } = await import("./journal-importer.mjs");
+    const result = await JournalImporter.createOrUpdateCrawl(this._importHexes, {
+      crawlName,
+      source: this._importSource.trim(),
+      onConflict: this._crawlConflictDialog(),
+    });
+    if (!result || result.status === "skipped") return;
+    ui.notifications.info(
+      `"${result.name}" ${result.status}: ${result.pages.created} page(s) created, ${result.pages.updated} updated → sde-journal.`);
+    this._importHexes = [];
+    this._importCrawlName = "";
+    this.render();
   }
 
   /**

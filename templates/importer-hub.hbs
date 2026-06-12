@@ -352,6 +352,44 @@
     </section>
 
     {{!-- ── Skipped (K) — always visible (D-04 / D9: nothing silently dropped) --}}
+    {{!-- ── Hexcrawl section (Phase 16, REQ-35/36) ─────────────────────── --}}
+    <section class="sde-hub-import-section">
+      <div class="sde-hub-import-sechead">
+        <span class="sde-hub-import-sectitle">
+          <i class="fas fa-map"></i> Hexcrawl ({{importData.hexesCount}})
+        </span>
+        {{#if importData.hasHexes}}
+        <button type="button" data-action="hubCommitJournal" class="sde-import-primary sde-hub-import-secbtn">
+          <i class="fas fa-book"></i> Create journal
+        </button>
+        {{/if}}
+      </div>
+      {{#if importData.hasHexes}}
+      <div class="sde-hub-import-sourcebar">
+        <label for="sde-hub-import-crawlname"><i class="fas fa-signature"></i> Crawl name</label>
+        <input id="sde-hub-import-crawlname" type="text" data-import-crawlname
+               value="{{importData.crawlName}}" class="sde-hub-import-source-input"
+               placeholder="e.g. the region or adventure name"
+               aria-label="Crawl name (journal entry title)">
+      </div>
+      {{#each importData.hexes as |h|}}
+      <div class="sde-hub-import-item-card" data-hex-idx="{{h.idx}}">
+        <div class="sde-hub-import-item-row">
+          <label>Hex <input type="text" data-himport-field="hexId" value="{{h.hexId}}" style="width: 64px" aria-label="Hex ID"></label>
+          <label>Name <input type="text" data-himport-field="name" value="{{h.name}}" aria-label="Hex name"></label>
+          <button type="button" data-action="himportRemoveHex" class="sde-import-del" title="Remove this hex" aria-label="Remove hex {{h.hexId}}">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+        {{#each h.warnings as |w|}}<p class="sde-mimport-warn-legend">{{w}}</p>{{/each}}
+        <textarea data-himport-field="body" rows="3" class="sde-hub-import-text" aria-label="Hex body text">{{h.body}}</textarea>
+      </div>
+      {{/each}}
+      {{else}}
+      <p class="sde-hub-import-empty">No hex keys parsed yet (needs a run of 3+ numbered hex entries, e.g. "0101 OLD MILL").</p>
+      {{/if}}
+    </section>
+
     <section class="sde-hub-import-section sde-hub-import-skipped-section">
       <div class="sde-hub-import-sechead">
         <span class="sde-hub-import-sectitle sde-hub-import-sectitle-skipped">
