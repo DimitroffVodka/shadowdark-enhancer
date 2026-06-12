@@ -153,6 +153,12 @@ export async function migrateItems({ dryRun = false } = {}) {
   if (itemsPack.locked) {
     try { await itemsPack.configure({ locked: false }); } catch (_) {}
   }
+  // The legacy pack may already be locked (live-caught: it arrives locked in
+  // this world) — doc.update on a locked pack throws, which would copy without
+  // stamping and break idempotence. Unlock for the stamp pass; re-locked below.
+  if (legacyPack?.locked && candidates.length > 0) {
+    try { await legacyPack.configure({ locked: false }); } catch (_) {}
+  }
 
   for (const doc of candidates) {
     try {
