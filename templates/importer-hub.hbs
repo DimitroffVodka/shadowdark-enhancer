@@ -62,6 +62,18 @@
       Tables and monsters go to their respective compendium packs.
     </p>
 
+    {{!-- ── Bundle row (REQ-25): suite-wide export / import ─────────────── --}}
+    <div class="sde-hub-import-controls sde-hub-bundle-row">
+      <button type="button" data-action="hubExportBundle" class="sde-import-secondary"
+              title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle for backup or sharing.">
+        <i class="fas fa-file-export"></i> Export bundle
+      </button>
+      <button type="button" data-action="hubImportBundle" class="sde-import-secondary"
+              title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
+        <i class="fas fa-file-arrow-up"></i> Import bundle
+      </button>
+    </div>
+
     {{!-- ── Monsters section ────────────────────────────────────────────── --}}
     <section class="sde-hub-import-section">
       <div class="sde-hub-import-sechead">

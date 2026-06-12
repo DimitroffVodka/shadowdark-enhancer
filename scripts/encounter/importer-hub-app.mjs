@@ -71,6 +71,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
       hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
       hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
+      hubExportBundle:        ImporterHubApp.prototype._onExportBundle,
+      hubImportBundle:        ImporterHubApp.prototype._onImportBundle,
       // Import tab — parse/clear
       hubParse:               ImporterHubApp.prototype._onHubParse,
       hubClear:               ImporterHubApp.prototype._onHubClear,
@@ -1114,6 +1116,110 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ].filter(Boolean).join(" · ");
 
     ui.notifications?.info(`Migration complete: ${summary}.`);
+    this.render();
+  }
+
+  /**
+   * Export the entire suite as one JSON bundle download (REQ-25, A-04).
+   */
+  async _onExportBundle() {
+    if (!game.user?.isGM) return;
+    const { exportBundle } = await import("./bundle-io.mjs");
+    let bundle;
+    try {
+      bundle = await exportBundle();
+    } catch (err) {
+      console.error("shadowdark-enhancer | bundle export: unexpected error:", err);
+      ui.notifications?.error("Bundle export failed — see the console for details.");
+      return;
+    }
+    if (!bundle) return;
+    const s = bundle.stats;
+    const parts = Object.entries(s)
+      .filter(([k, v]) => v && typeof v === "object" && v.docs)
+      .map(([k, v]) => `${k} ${v.docs}`);
+    const warn = bundle.warnings.length ? ` · ${bundle.warnings.length} unresolved ref(s) — see console` : "";
+    if (bundle.warnings.length) console.warn("shadowdark-enhancer | bundle warnings:", bundle.warnings);
+    ui.notifications?.info(`Bundle exported: ${parts.join(" · ")}${warn}.`);
+  }
+
+  /**
+   * Import a bundle file: pick file → validate → per-pack summary confirm →
+   * applyBundle (keepId, skip-existing, never overwrites) → report (REQ-25).
+   */
+  async _onImportBundle() {
+    if (!game.user?.isGM) return;
+    const { validateBundle, applyBundle } = await import("./bundle-io.mjs");
+
+    // File picker dialog.
+    const picked = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Import Bundle" },
+      content: `<p>Select a Shadowdark Enhancer bundle (.json):</p>
+        <input type="file" name="bundle-file" accept=".json,application/json">`,
+      buttons: [
+        {
+          action: "load", label: "Load", default: true,
+          callback: (ev, button, dialog) => {
+            const el = (dialog.element ?? dialog)?.querySelector?.("input[name='bundle-file']");
+            return el?.files?.[0] ?? null;
+          },
+        },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked || picked === "cancel") return;
+
+    let bundle;
+    try {
+      bundle = JSON.parse(await picked.text());
+    } catch (err) {
+      ui.notifications?.error("That file is not valid JSON.");
+      return;
+    }
+    const check = validateBundle(bundle);
+    if (!check.ok) {
+      ui.notifications?.error(`Not a valid bundle: ${check.errors.join("; ")}.`);
+      return;
+    }
+
+    // Per-pack summary confirm before touching anything.
+    const rows = Object.entries(bundle.packs)
+      .map(([k, p]) => `<li>${foundry.utils.escapeHTML(k)}: ${p.docs.length} doc(s), ${p.folders.length} folder(s)</li>`)
+      .join("");
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Import Bundle" },
+      content: `<p>Bundle from world <strong>${foundry.utils.escapeHTML(bundle.world ?? "?")}</strong>
+        (module v${foundry.utils.escapeHTML(bundle.moduleVersion ?? "?")}, exported ${foundry.utils.escapeHTML((bundle.exported ?? "").slice(0, 10))}):</p>
+        <ul>${rows}</ul>
+        <p>Documents already in your packs (same id) are skipped — nothing is overwritten or deleted.</p>`,
+      buttons: [
+        { action: "import", label: "Import", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+    if (!choice || choice === "cancel") return;
+
+    let report;
+    try {
+      report = await applyBundle(bundle);
+    } catch (err) {
+      console.error("shadowdark-enhancer | bundle import: unexpected error:", err);
+      ui.notifications?.error("Bundle import failed — see the console for details.");
+      return;
+    }
+    if (!report) return;
+    if (!report.ok) {
+      ui.notifications?.error(`Bundle rejected: ${report.errors.join("; ")}.`);
+      return;
+    }
+    const summary = [
+      `${report.created} created`,
+      `${report.skippedExisting} already present (skipped)`,
+      report.failures ? `${report.failures} failure(s) — see console` : "",
+    ].filter(Boolean).join(" · ");
+    ui.notifications?.info(`Bundle import complete: ${summary}.`);
     this.render();
   }
 
