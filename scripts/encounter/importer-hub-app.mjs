@@ -1379,8 +1379,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const group = groups.find((g) => g.key === groupKey);
     if (!group) { ui.notifications.warn("Duplicate group not found — refresh the Monsters tab."); return; }
 
-    // Read the keeper from the checked radio inside this group's card
-    const card = target.closest("[data-group-key]");
+    // Read the keeper from the checked radio inside this group's CARD. The
+    // button itself also carries data-group-key, and closest() matches from
+    // the element itself — so [data-group-key] resolved to the BUTTON and the
+    // radio lookup always came up empty ("Select a keeper" even with one
+    // checked; live-caught, Phase 15 follow-up).
+    const card = target.closest(".sde-hub-monsters-dup-card");
     const checkedRadio = card?.querySelector("input[type='radio']:checked");
     const keepUuid = checkedRadio?.value ?? "";
     if (!keepUuid) { ui.notifications.warn("Select a keeper before culling."); return; }
