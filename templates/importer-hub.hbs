@@ -2,13 +2,16 @@
 
   {{!-- ═══ Hub tab nav ═══ --}}
   <nav class="sde-hub-tabs">
-    <button type="button" class="sde-hub-tab-btn{{#if tabImport}} active{{/if}}" data-hubtab="import">
+    <button type="button" class="sde-hub-tab-btn{{#if tabImport}} active{{/if}}" data-hubtab="import"
+            aria-pressed="{{#if tabImport}}true{{else}}false{{/if}}">
       <i class="fas fa-file-import"></i> Import
     </button>
-    <button type="button" class="sde-hub-tab-btn{{#if tabTables}} active{{/if}}" data-hubtab="tables">
+    <button type="button" class="sde-hub-tab-btn{{#if tabTables}} active{{/if}}" data-hubtab="tables"
+            aria-pressed="{{#if tabTables}}true{{else}}false{{/if}}">
       <i class="fas fa-table-list"></i> Tables
     </button>
-    <button type="button" class="sde-hub-tab-btn{{#if tabMonsters}} active{{/if}}" data-hubtab="monsters">
+    <button type="button" class="sde-hub-tab-btn{{#if tabMonsters}} active{{/if}}" data-hubtab="monsters"
+            aria-pressed="{{#if tabMonsters}}true{{else}}false{{/if}}">
       <i class="fas fa-dragon"></i> Monsters
     </button>
   </nav>

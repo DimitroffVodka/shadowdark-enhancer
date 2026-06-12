@@ -414,7 +414,7 @@
           {{#each FEATURE_QUICK_PICKS}}
             <button type="button" class="sde-creator-quick-btn"
                     data-action="creatorAddFeatureQuickPick" data-index="{{@index}}"
-                    title="{{name}}: {{description}}">
+                    title="{{name}}: {{description}}" aria-label="{{name}}">
               <i class="fas {{icon}}"></i>
             </button>
           {{/each}}

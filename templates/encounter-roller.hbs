@@ -383,7 +383,7 @@
           {{!-- ═══ Right pane: Results table ═══ --}}
           <div class="sde-browse-results">
             <div class="sde-browse-count">
-              {{browseData.filteredCount}} of {{browseData.totalCount}}
+              {{browseData.filteredCount}} of {{browseData.totalCount}}{{#if browseData.rowsCapped}} — showing the first 150, refine your search{{/if}}
             </div>
 
             {{#if (eq browseData.selectedSources.length 0)}}

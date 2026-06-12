@@ -71,6 +71,10 @@
   --sde-bar-gm-border:     #4a6a8a;
   --sde-bar-gm-light:      #a0c0e0;
   --sde-bar-gm-icon:       #d0b0ff;
+  /* Attack-mode hues (P2-16): tokenized so light theme can remap them. */
+  --sde-ranged:            #5aa9e6;
+  --sde-spell:             #d0b0ff;
+  --sde-init:              rgba(70, 80, 160, 0.9);
 
   --sde-bar-combat:        #9d0000;
   --sde-bar-combat-text:   #f09090;
@@ -144,7 +148,10 @@ body.theme-light {
   --sde-bar-on-accent:   #3a2e0a;
 
   --sde-bar-text:        #2c2820;
-  --sde-bar-text-dim:    #000000;
+  --sde-bar-text-dim:    #4a4438; /* dim ≠ max-contrast; warm gray, AA on parchment */
+  --sde-ranged:          #2268a8;
+  --sde-spell:           #7a4fc0;
+  --sde-init:            rgba(70, 80, 160, 0.9);
   --sde-bar-text-muted:  #555;
   --sde-bar-text-bright: #1a1810;
 
@@ -268,7 +275,8 @@ body.theme-light .sde-bar-phase-badge {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
+  row-gap: 4px;
   gap: 5px;
   padding: 5px 10px;
   min-height: 42px;
@@ -620,7 +628,7 @@ body.theme-light .sde-bar-start-btn:hover {
   justify-content: center;
   width: 24px;
   height: 24px;
-  background: rgba(70, 80, 160, 0.9);
+  background: var(--sde-init);
   border: 1px solid rgba(140, 160, 255, 0.65);
   border-radius: 4px;
   color: #fff;
@@ -628,23 +636,33 @@ body.theme-light .sde-bar-start-btn:hover {
   font-size: 12px;
   box-shadow: 0 0 6px rgba(120, 140, 255, 0.45);
   z-index: 3;
+}
+.sde-strip-rollinit-btn:hover { filter: brightness(1.3); }
+.sde-strip-rollinit-btn:hover::after { animation: none; opacity: 0.9; }
+/* Pulse via ::after opacity (compositor-only) — animating box-shadow forced
+   continuous repaints over the PIXI canvas (audit P2-7). */
+.sde-strip-rollinit-btn { position: relative; }
+.sde-strip-rollinit-btn::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 10px rgba(150, 170, 255, 0.65);
+  opacity: 0.35;
+  pointer-events: none;
   animation: sde-rollinit-pulse 1.8s ease-in-out infinite;
 }
-.sde-strip-rollinit-btn:hover {
-  filter: brightness(1.3);
-  animation: none;
-}
 @keyframes sde-rollinit-pulse {
-  0%, 100% { box-shadow: 0 0 4px rgba(120, 140, 255, 0.35); }
-  50%      { box-shadow: 0 0 10px rgba(180, 200, 255, 0.7); }
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
 }
 
 /* Honor reduced-motion: kill the looping pulse animations (rollinit + active
    turn). The static color/border/box-shadow states remain, so the affordance
    and active-turn highlight are still visible — just not animated. */
 @media (prefers-reduced-motion: reduce) {
-  .sde-strip-rollinit-btn,
-  .sde-strip-member.sde-strip-is-turn {
+  .sde-strip-rollinit-btn::after,
+  .sde-strip-member.sde-strip-is-turn::after {
     animation: none !important;
   }
 }
@@ -944,13 +962,23 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   border-color: var(--sde-bar-accent) !important;
   box-shadow: 0 0 14px color-mix(in srgb, var(--sde-bar-accent) 70%, transparent) !important;
   opacity: 1 !important;
-  animation: sde-turn-pulse 1.8s ease-in-out infinite;
+  position: relative;
 }
 .sde-strip-member.sde-strip-is-turn .sde-strip-portrait { filter: none !important; }
 
+.sde-strip-member.sde-strip-is-turn::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--sde-bar-accent) 80%, transparent);
+  opacity: 0.4;
+  pointer-events: none;
+  animation: sde-turn-pulse 1.8s ease-in-out infinite;
+}
 @keyframes sde-turn-pulse {
-  0%, 100% { box-shadow: 0 0 10px color-mix(in srgb, var(--sde-bar-accent) 50%, transparent); }
-  50%       { box-shadow: 0 0 22px color-mix(in srgb, var(--sde-bar-accent) 90%, transparent); }
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 1; }
 }
 
 .sde-strip-turn-badge {
@@ -975,7 +1003,7 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   right: 3px;
   background: none;
   border: none;
-  color: rgba(255,255,255,0.18);
+  color: color-mix(in srgb, var(--sde-bar-text) 40%, transparent);
   font-size: 16px;
   cursor: pointer;
   padding: 0 2px;
@@ -1115,7 +1143,7 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   opacity: 0.85;
 }
 .sde-strip-panel-type-melee  { color: #e07050; } /* warm red — close combat */
-.sde-strip-panel-type-ranged { color: #5aa9e6; } /* cool blue — at distance */
+.sde-strip-panel-type-ranged { color: var(--sde-ranged); } /* cool blue — at distance */
 .sde-strip-panel-item:hover .sde-strip-panel-type { opacity: 1; }
 
 .sde-strip-menu-dmg {
@@ -1164,7 +1192,7 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 78vh;
+  max-height: 100%;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--sde-bar-border) transparent;
@@ -1276,7 +1304,7 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 .sde-thub-src-n { font-size: 10px; color: var(--sde-bar-text-muted); }
 .sde-thub-src.active .sde-thub-src-n { color: inherit; }
 .sde-thub-stat.ok   { color: #6fb86f; }
-.sde-thub-stat.imp  { color: #5aa9e6; }
+.sde-thub-stat.imp  { color: var(--sde-ranged); }
 .sde-thub-stat.miss { color: #d98a3a; }
 .sde-thub-refresh {
   margin-left: auto;
@@ -1447,7 +1475,7 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   color: var(--sde-bar-text-bright);
   font-size: 12px;
 }
-.sde-import-seed i { color: #5aa9e6; }
+.sde-import-seed i { color: var(--sde-ranged); }
 .sde-import-seed strong { color: var(--sde-bar-accent); }
 .sde-import-seed-tag {
   font-family: monospace;
@@ -2162,7 +2190,7 @@ body.theme-light .sde-hub-monsters-row td {
      filled result card don't stretch the window taller than the
      viewport. When the total content exceeds this, scroll the whole
      content area together — preview and result move as one. */
-  max-height: 75vh;
+  max-height: 100%;
   overflow-y: auto;
   /* Slim themed scrollbar matching the rest of the module. */
   scrollbar-width: thin;
@@ -2826,9 +2854,9 @@ body.theme-light .sde-hub-monsters-row td {
   margin-right: 4px;
 }
 .sde-browse-atk-melee  { color: #e07050; margin-left: 2px; }
-.sde-browse-atk-ranged { color: #5aa9e6; margin-left: 2px; }
+.sde-browse-atk-ranged { color: var(--sde-ranged); margin-left: 2px; }
 .sde-browse-atk-special { color: #f2b35b; margin-left: 2px; }
-.sde-browse-atk-spell  { color: #d0b0ff; margin-left: 4px; }
+.sde-browse-atk-spell  { color: var(--sde-spell); margin-left: 4px; }
 .sde-browse-atk-dark   { color: #a89060; margin-left: 4px; }
 .sde-browse-atk-none {
   color: var(--sde-bar-text-muted);
@@ -3651,7 +3679,7 @@ body.theme-light .sde-hub-monsters-row td {
   background: var(--sde-bar-bg-hover);
 }
 .sde-creator-quick-name {
-  font-size: 8px;
+  font-size: 10px;
   line-height: 1;
   margin-top: 1px;
   text-transform: uppercase;
@@ -4167,7 +4195,7 @@ body.theme-light .sde-hub-monsters-row td {
 /* ── Mutation chat card (Monster Mutator) ────────────────────────────────── */
 
 .sde-mutation-card {
-  border: 1px solid var(--color-border-dark, #7a7971);
+  border: 1px solid var(--sde-bar-accent-dark, #7a7971);
   border-radius: 6px;
   padding: 8px 10px;
   background: rgba(0, 0, 0, 0.04);
@@ -4833,3 +4861,13 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-loot-setup-or { color: var(--sde-bar-text-muted, #9a9a9a); font-size: 11px; }
 .sde-loot-setup-existing { flex: 1 1 160px; min-width: 120px; }
 .sde-lootgen-setup.needs-setup { box-shadow: 0 0 0 2px var(--sde-bar-accent-dim) inset; font-weight: 600; }
+
+/* ─── Audit P2-3: shared minimum hit size for GM-window icon buttons ─────── */
+.sde-import-del,
+.sde-stepper button,
+.sde-spell-chip-remove,
+.sde-forge-add, .sde-forge-remove,
+.sde-reroll-btn {
+  min-width: 24px;
+  min-height: 24px;
+}

@@ -350,7 +350,6 @@ export const MovementTracker = {
       try { token.ruler?.destroy(); } catch(e) {}
       token.ruler = new SDETokenRuler(token);
       token.ruler.draw().catch(() => {});
-      console.log(`${MODULE_ID} | Installed SDETokenRuler on ${token.name}`);
     }
   },
 

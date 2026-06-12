@@ -299,7 +299,11 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       browseData = {
         availableSources,
         selectedSources:  this._browseSources,
-        rows:             filtered,
+        // Cap rendered rows (audit P2-6): the full ~240-row list re-rendered
+        // (with imgs) on every search/filter step. Filtering still runs over
+        // everything; only the DOM is capped — the count line shows the rest.
+        rows:             filtered.slice(0, 150),
+        rowsCapped:       filtered.length > 150,
         totalCount:       all.length,
         filteredCount:    filtered.length,
         search:           this._browseSearch,
