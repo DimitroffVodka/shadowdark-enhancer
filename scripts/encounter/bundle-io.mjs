@@ -75,6 +75,36 @@ export function remapLegacyRefs(json, { suiteSlugs, legacyIdToName, nameToSuiteR
 }
 
 /**
+ * Null out provenance fields (`_stats.compendiumSource`, `flags.core.sourceId`)
+ * that point at NON-suite world packs. These are creation metadata, never
+ * resolved for gameplay; carrying them cross-world just produces dangling
+ * refs (live-caught: 09-02 migration stamped the legacy imported-monsters
+ * pack as compendiumSource on 4 actors). Mutates docObj; returns scrub count.
+ *
+ * @param {object} docObj - a document toObject()
+ * @param {Set<string>|string[]} suiteSlugs
+ * @returns {number}
+ */
+export function scrubNonSuiteProvenance(docObj, suiteSlugs) {
+  const slugs = suiteSlugs instanceof Set ? suiteSlugs : new Set(suiteSlugs ?? []);
+  let scrubbed = 0;
+  const isNonSuiteWorldRef = (v) => {
+    const m = /^Compendium\.world\.([a-zA-Z0-9_-]+)\./.exec(String(v ?? ""));
+    return m ? !slugs.has(m[1]) : false;
+  };
+  const scrubDoc = (o) => {
+    if (!o || typeof o !== "object") return;
+    if (o._stats && isNonSuiteWorldRef(o._stats.compendiumSource)) { o._stats.compendiumSource = null; scrubbed++; }
+    if (o.flags?.core && isNonSuiteWorldRef(o.flags.core.sourceId)) { o.flags.core.sourceId = null; scrubbed++; }
+    for (const embedded of [o.items, o.effects, o.results, o.pages]) {
+      if (Array.isArray(embedded)) embedded.forEach(scrubDoc);
+    }
+  };
+  scrubDoc(docObj);
+  return scrubbed;
+}
+
+/**
  * Validate a parsed bundle object. Returns { ok, errors } — never throws.
  * @param {object} obj
  * @returns {{ ok: boolean, errors: string[] }}
@@ -138,6 +168,13 @@ export async function buildBundle() {
     }
   }
 
+  // Scrub cross-world-meaningless provenance now that the FULL slug set is known.
+  const slugSetForScrub = new Set(suiteSlugs);
+  let scrubbedProvenance = 0;
+  for (const key of Object.keys(packs)) {
+    for (const d of packs[key].docs ?? []) scrubbedProvenance += scrubNonSuiteProvenance(d, slugSetForScrub);
+  }
+
   // Legacy id → name map from every non-suite WORLD pack (e.g. world.loot).
   const legacyIdToName = new Map();
   const slugSet = new Set(suiteSlugs);
@@ -168,6 +205,7 @@ export async function buildBundle() {
   });
   const out = JSON.parse(json);
   out.stats.remappedRefs = remapped;
+  out.stats.scrubbedProvenance = scrubbedProvenance;
   out.warnings = [...new Set(unresolved)].map((u) => `unresolved legacy ref: ${u}`);
   return out;
 }
