@@ -1535,7 +1535,13 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* Hub tab nav — mirrors .sde-thub-tabs styling */
+.sde-importer-hub {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .sde-hub-tabs {
+  flex: 0 0 auto;
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--sde-bar-border);
@@ -1572,7 +1578,9 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
 /* Tab body — each tab panel */
 .sde-hub-tab-body {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   display: flex;
   flex-direction: column;
 }
@@ -1617,6 +1625,11 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
 .sde-hub-import {
   padding: 8px 12px 12px;
   gap: 6px;
+}
+
+/* Keep tab content at its natural height so the tab body owns scrolling. */
+.sde-hub-tab-body > * {
+  flex-shrink: 0;
 }
 
 /* Seed hint bar */
