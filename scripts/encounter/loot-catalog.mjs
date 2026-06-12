@@ -82,6 +82,17 @@ export const LootCatalog = {
       }
     }
 
+    // Skip the rebuild when nothing would change. The unconditional
+    // delete+recreate reshuffled row order every run, so each re-link
+    // dirtied content-identical tables (live-caught, 12-01 checkpoint).
+    const keyOf = (o) => [
+      String(o.range), o.weight ?? 1, o.type,
+      o.type === DOC ? `${o.documentCollection ?? ""}.${o.documentId ?? ""}` : (o.name ?? o.description ?? ""),
+    ].join("|");
+    const current = table.results.map(r => keyOf(r.toObject())).sort().join("\n");
+    const desired = newResults.map(keyOf).sort().join("\n");
+    if (current === desired) return { ...summary, unchanged: true };
+
     await table.deleteEmbeddedDocuments("TableResult", table.results.map(r => r.id));
     await table.createEmbeddedDocuments("TableResult", newResults);
     ui.notifications?.info(`${table.name}: ${summary.linked} items linked, ${summary.coins} coins kept as text, ${summary.unresolved} unresolved.`);
