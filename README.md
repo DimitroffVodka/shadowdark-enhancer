@@ -93,6 +93,13 @@ styles/shadowdark-enhancer.css
 languages/en.json
 ```
 
+## API for module developers
+
+A versioned public API (`game.shadowdarkEnhancer`, mirrored at
+`game.modules.get("shadowdark-enhancer")?.api`) exposes the importer,
+linker, encounter, loot, table, and bundle features for other modules and
+macros. See [docs/API.md](docs/API.md).
+
 ## License
 
 MIT — see `LICENSE`.

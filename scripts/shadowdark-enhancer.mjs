@@ -28,6 +28,12 @@ import { boundCount } from "./encounter/loot-setup-manifest.mjs";
 import { ImporterHubApp } from "./encounter/importer-hub-app.mjs";
 import { TableEnricher } from "./encounter/table-enrich.mjs";
 import { MonsterImporterAPI } from "./encounter/monster-importer-app.mjs";
+import { segmentDump } from "./encounter/dump-segmenter.mjs";
+import { parseItem } from "./encounter/item-parser.mjs";
+import { ItemImporter } from "./encounter/item-importer.mjs";
+import { MonsterLinker } from "./encounter/monster-linker.mjs";
+import { LootLinker } from "./encounter/loot-linker.mjs";
+import { buildBundle, exportBundle, applyBundle } from "./encounter/bundle-io.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -57,8 +63,48 @@ Hooks.once("init", () => {
   Handlebars.registerHelper("join", (arr, sep) =>
     Array.isArray(arr) ? arr.join(typeof sep === "string" ? sep : ", ") : "");
 
-  // Expose API
+  // Expose API. Public, versioned surface (REQ-26) — additive changes bump
+  // the minor version, breaking changes the major. Mirrored at
+  // game.modules.get(MODULE_ID).api on ready; consumers should listen for
+  // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
+    apiVersion: "1.0.0",
+    // Universal dump segmentation (D9): one paste → typed buckets.
+    import: {
+      // Pure, synchronous. Returns { monsters, items, tables, skipped }.
+      segment: (text) => segmentDump(text),
+    },
+    // Bulk items importer (Phase 11). parse is pure; create is GM-only and
+    // files into the sde-items suite pack with conflict handling.
+    items: {
+      parse: (blockText) => parseItem(blockText),
+      create: (drafts, opts) => ItemImporter.createItems(drafts, opts),
+    },
+    // Name → compendium resolution, Core/system-first (D3).
+    linker: {
+      resolveMonster: async (name) => {
+        const want = String(name ?? "").trim().toLowerCase();
+        if (!want) return null;
+        const index = await MonsterLinker.buildIndex();
+        const hit = index.find((e) => (e.nameLower ?? e.name.toLowerCase()) === want);
+        return hit ? { uuid: hit.uuid, name: hit.name } : null;
+      },
+      resolveItem: async (name) => {
+        const want = String(name ?? "").trim().toLowerCase();
+        if (!want) return null;
+        const index = await LootLinker.buildItemIndex();
+        const hit = index.find((e) => e.nameLower === want);
+        return hit ? { uuid: hit.uuid, name: hit.name } : null;
+      },
+      invalidate: () => { MonsterLinker.invalidate(); LootLinker.invalidate(); },
+    },
+    // Suite export/import bundle (Phase 13). All GM-only; apply never
+    // overwrites or deletes existing documents (D6).
+    bundle: {
+      build: () => buildBundle(),
+      export: () => exportBundle(),
+      apply: (b) => applyBundle(b),
+    },
     encounter: {
       check: () => EncounterCheck.check(),
       openRoller: (tab, seed) => EncounterRollerApp.open(tab, seed),
@@ -118,12 +164,19 @@ Hooks.once("init", () => {
       // Enrich an imported table to the Ruins standard: encounter -> monster
       // @UUID links + [[/r]] counts; treasure -> real compendium items.
       enrich: (uuid, kind) => TableEnricher.enrich(uuid, kind),
+      // Re-link EVERY sde-tables doc to imported monsters/items (REQ-24
+      // sweep). GM-only, idempotent, link-preserving.
+      relinkAll: () => TableEnricher.sweepPack(),
     },
   };
 });
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
+  // Foundry-conventional API discovery point + interop ready signal (REQ-26).
+  const mod = game.modules.get(MODULE_ID);
+  if (mod) mod.api = game.shadowdarkEnhancer;
+  Hooks.callAll("shadowdarkEnhancer.ready", game.shadowdarkEnhancer);
   CrawlState.init();
   registerHiddenSync();
   MovementTracker.init();
