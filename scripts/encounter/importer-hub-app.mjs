@@ -87,6 +87,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       importUnlinkRow:        ImporterHubApp.prototype._onImportUnlinkRow,
       // Import tab — commit actions
       hubCommitMonsters:      ImporterHubApp.prototype._onHubCommitMonsters,
+      hubCommitItems:         ImporterHubApp.prototype._onHubCommitItems,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
       // Monsters-tab census/gap/duplicate actions
@@ -914,6 +915,43 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  /** Conflict dialog for item name collisions (rename/replace/skip). */
+  _itemConflictDialog() {
+    return async (name) => {
+      const safe = foundry.utils.escapeHTML(name);
+      const choice = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Item Already Exists" },
+        content: `<p>An item named <strong>${safe}</strong> is already in the imported-items compendium. What would you like to do?</p>`,
+        buttons: [
+          { action: "rename",  label: "Keep both", default: true },
+          { action: "replace", label: "Replace Existing" },
+          { action: "skip",    label: "Skip" },
+        ],
+        rejectClose: false,
+      }).catch(() => "skip");
+      return choice ?? "skip";
+    };
+  }
+
+  /** Commit: create all pending items into sde-items. GM-gated. */
+  async _onHubCommitItems() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import items."); return; }
+    if (!this._importItems.length) { ui.notifications.warn("No items to import."); return; }
+
+    const source = this._importSource.trim();
+    const drafts = this._importItems.map((p) => p.draft);
+    const { ItemImporter } = await import("./item-importer.mjs");
+    const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
+    if (!result) return;
+
+    const parts = [`${result.created.length} created`];
+    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
+    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
+    ui.notifications.info(`Items: ${parts.join(", ")} → sde-items${source ? ` / ${source}` : ""}.`);
+    this._importItems = [];
+    this.render();
+  }
+
   /** Commit: create all pending monsters into sde-actors. GM-gated. */
   async _onHubCommitMonsters() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import monsters."); return; }
@@ -951,19 +989,20 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /** Commit: create all monsters then all tables in one action. GM-gated. */
+  /** Commit: create all monsters, items, then tables in one action. GM-gated. */
   async _onHubCommitAll() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import."); return; }
 
     const hasMonsters = this._importMonsters.length > 0;
-    const hasTables = this._importTables.length > 0;
-    if (!hasMonsters && !hasTables) { ui.notifications.warn("Nothing to import."); return; }
+    const hasItems    = this._importItems.length > 0;
+    const hasTables   = this._importTables.length > 0;
+    if (!hasMonsters && !hasItems && !hasTables) { ui.notifications.warn("Nothing to import."); return; }
 
     const parts = [];
+    const source = this._importSource.trim();
 
     // Monsters first
     if (hasMonsters) {
-      const source = this._importSource.trim();
       const drafts = this._importMonsters.map((p) => p.draft);
       const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
       if (result) {
@@ -972,7 +1011,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    // Tables second
+    // Items second
+    if (hasItems) {
+      const { ItemImporter } = await import("./item-importer.mjs");
+      const drafts = this._importItems.map((p) => p.draft);
+      const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
+      if (result) {
+        parts.push(`items: ${result.created.length} created${result.replaced.length ? `, ${result.replaced.length} replaced` : ""}${result.skipped.length ? `, ${result.skipped.length} skipped` : ""}`);
+        this._importItems = [];
+      }
+    }
+
+    // Tables third
     if (hasTables) {
       const onConflict = this._tableConflictDialog();
       let created = 0;
