@@ -27,6 +27,7 @@ import { detectCrawlTitle, hexIdKey } from "./hex-parser.mjs";
 import { parseStatblock } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
+import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -94,6 +95,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitMonsters:      ImporterHubApp.prototype._onHubCommitMonsters,
       hubCommitItems:         ImporterHubApp.prototype._onHubCommitItems,
       hubCommitJournal:       ImporterHubApp.prototype._onHubCommitJournal,
+      hubBuildScene:          ImporterHubApp.prototype._onHubBuildScene,
       himportRemoveHex:       ImporterHubApp.prototype._onHimportRemoveHex,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
@@ -1401,6 +1403,212 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importHexes = [];
     this._importCrawlName = "";
     this.render();
+  }
+
+  _pickSceneImage(current = "") {
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        resolve(value || null);
+      };
+      const picker = new foundry.applications.apps.FilePicker.implementation({
+        type: "image",
+        current,
+        callback: (path) => finish(path),
+      });
+      const close = picker.close.bind(picker);
+      picker.close = async (...args) => {
+        const result = await close(...args);
+        finish(null);
+        return result;
+      };
+      picker.render(true);
+    });
+  }
+
+  _captureSceneCalibration(imagePath) {
+    return new Promise((resolve) => {
+      const points = [];
+      const overlay = document.createElement("div");
+      overlay.className = "sde-scene-calibration-overlay";
+
+      const panel = document.createElement("div");
+      panel.className = "sde-scene-calibration-panel";
+      overlay.append(panel);
+
+      const title = document.createElement("h2");
+      title.textContent = "Calibrate Hex Map";
+      const status = document.createElement("p");
+      status.textContent = "Click the center of hex 0101.";
+      panel.append(title, status);
+
+      const frame = document.createElement("div");
+      frame.className = "sde-scene-calibration-frame";
+      const image = document.createElement("img");
+      image.alt = "Map calibration preview";
+      image.src = imagePath;
+      frame.append(image);
+      panel.append(frame);
+
+      const cancel = document.createElement("button");
+      cancel.type = "button";
+      cancel.textContent = "Cancel";
+      panel.append(cancel);
+
+      const cleanup = () => {
+        document.removeEventListener("keydown", onKey);
+        overlay.remove();
+      };
+      const finish = (value) => {
+        cleanup();
+        resolve(value);
+      };
+      const onKey = (event) => {
+        if (event.key === "Escape") finish(null);
+      };
+      document.addEventListener("keydown", onKey);
+      cancel.addEventListener("click", () => finish(null));
+      image.addEventListener("error", () => {
+        ui.notifications.error("The selected map image could not be loaded.");
+        finish(null);
+      });
+      image.addEventListener("click", (event) => {
+        const rect = image.getBoundingClientRect();
+        const point = {
+          x: (event.clientX - rect.left) * (image.naturalWidth / rect.width),
+          y: (event.clientY - rect.top) * (image.naturalHeight / rect.height),
+        };
+        points.push(point);
+
+        const marker = document.createElement("span");
+        marker.className = "sde-scene-calibration-marker";
+        marker.style.left = `${event.clientX - rect.left}px`;
+        marker.style.top = `${event.clientY - rect.top}px`;
+        marker.textContent = String(points.length);
+        frame.append(marker);
+
+        if (points.length === 1) {
+          status.textContent = "Now click the center of hex 1611.";
+        } else {
+          finish({ p1: points[0], p2: points[1], ref1: "1,1", ref2: "16,11" });
+        }
+      });
+      document.body.append(overlay);
+    });
+  }
+
+  /** Deploy a managed crawl journal into the world and build its pinned scene. */
+  async _onHubBuildScene() {
+    if (!game.user?.isGM) return;
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    const { splitNorthSouth, SceneBuilder } = await import("./scene-builder.mjs");
+    const pack = findSuitePack("sde-journal");
+    if (!pack) {
+      ui.notifications.warn("No sde-journal compendium found.");
+      return;
+    }
+
+    const index = await pack.getIndex({ fields: ["flags"] });
+    const crawls = [...index]
+      .filter((entry) => entry.flags?.[MODULE_ID]?.crawl === true)
+      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    if (!crawls.length) {
+      ui.notifications.warn("Create a hexcrawl journal before building its scene.");
+      return;
+    }
+
+    const options = crawls.map((entry) => {
+      const source = entry.flags?.[MODULE_ID]?.source;
+      const label = `${entry.name}${source ? ` (${source})` : ""}`;
+      return `<option value="${foundry.utils.escapeHTML(entry._id)}">${foundry.utils.escapeHTML(label)}</option>`;
+    }).join("");
+    const selection = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Build Crawl Scene" },
+      content: `<p>Select a crawl journal to deploy into the world.</p>
+        <select name="crawl-id" style="width:100%">${options}</select>
+        <label style="display:flex;gap:.5rem;align-items:center;margin-top:.75rem">
+          <input type="checkbox" name="calibrate"> Calibrate with two reference clicks
+        </label>
+        <p class="hint">Otherwise the standard 2250 x 1674 template is used. Rows 12-22 automatically request a second South map.</p>`,
+      buttons: [
+        {
+          action: "select",
+          label: "Select",
+          default: true,
+          callback: (ev, button, dialog) => {
+            const root = dialog.element ?? dialog;
+            return {
+              crawlId: root?.querySelector?.("select[name='crawl-id']")?.value ?? null,
+              calibrate: !!root?.querySelector?.("input[name='calibrate']")?.checked,
+            };
+          },
+        },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!selection || selection === "cancel" || !selection.crawlId) return;
+
+    const crawl = await pack.getDocument(selection.crawlId);
+    if (!crawl) {
+      ui.notifications.error("That crawl journal could not be opened.");
+      return;
+    }
+    const keys = crawl.pages.contents
+      .map((page) => page.flags?.[MODULE_ID]?.key)
+      .filter(Boolean);
+    const parts = splitNorthSouth(keys);
+
+    const northImage = await this._pickSceneImage();
+    if (!northImage) return;
+    const southImage = parts.south.length ? await this._pickSceneImage() : null;
+    if (parts.south.length && !southImage) return;
+    let calib;
+    if (selection.calibrate) {
+      const clicks = await this._captureSceneCalibration(northImage);
+      if (!clicks) return;
+      calib = SceneBuilder.solveCalibration(clicks.p1, clicks.p2, clicks.ref1, clicks.ref2);
+    }
+
+    const safeName = foundry.utils.escapeHTML(crawl.name);
+    const imageRows = [
+      `<li>North / map image: ${foundry.utils.escapeHTML(northImage)}</li>`,
+      southImage ? `<li>South map image: ${foundry.utils.escapeHTML(southImage)}</li>` : "",
+    ].filter(Boolean).join("");
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Deploy Crawl" },
+      content: `<p>Deploy <strong>${safeName}</strong> into the world and create
+        ${parts.south.length ? "two gridless scenes" : "one gridless scene"} with ${keys.length} Note pin(s).</p>
+        <ul>${imageRows}</ul>
+        <p>Calibration: ${selection.calibrate ? "two-click custom alignment" : "standard template constants"}.</p>
+        <p>The world journal keeps the compendium entry/page IDs; finished scenes are also backed up to sde-scenes.</p>`,
+      buttons: [
+        { action: "deploy", label: "Deploy", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+    if (choice !== "deploy") return;
+
+    try {
+      const result = await SceneBuilder.buildCrawlScene({
+        crawlId: crawl.id,
+        crawlName: crawl.name,
+        source: crawl.flags?.[MODULE_ID]?.source ?? "",
+        imagePath: northImage,
+        southImagePath: southImage,
+        calib,
+      });
+      if (!result) return;
+      const names = result.scenes.map((entry) => entry.scene.name).join(", ");
+      ui.notifications.info(
+        `Deployed "${crawl.name}": ${result.scenes.length} scene(s), ${result.notes} pin(s) - ${names}.`);
+    } catch (err) {
+      console.error(`${MODULE_ID} | scene-builder: deploy failed:`, err);
+      ui.notifications.error("Crawl scene deployment failed - see the console for details.");
+    }
   }
 
   /**

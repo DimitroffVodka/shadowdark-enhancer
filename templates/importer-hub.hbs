@@ -358,6 +358,10 @@
         <span class="sde-hub-import-sectitle">
           <i class="fas fa-map"></i> Hexcrawl ({{importData.hexesCount}})
         </span>
+        <button type="button" data-action="hubBuildScene" class="sde-import-secondary sde-hub-import-secbtn"
+                title="Deploy an existing sde-journal crawl into the world and build its gridless pinned scene.">
+          <i class="fas fa-map-location-dot"></i> Build scene
+        </button>
         {{#if importData.hasHexes}}
         <button type="button" data-action="hubCommitJournal" class="sde-import-primary sde-hub-import-secbtn">
           <i class="fas fa-book"></i> Create journal
