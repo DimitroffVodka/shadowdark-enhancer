@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0] — 2026-06-11
+
+### Added
+- **Managed compendium suite.** The module now owns one world compendium per imported document type (Actors / Items / Roll Tables / Journals / Scenes) under a "Shadowdark Enhancer" sidebar folder, organized by source (CS1–CS6, Custom). ALL imported content lives in the suite and is rolled/read directly from the packs — nothing materializes into the world, keeping player load times lean. One-click migrations move pre-existing imported actors and tables into the suite (originals preserved in `_Backup (pre-suite)` folders — never deleted).
+- **Importer hub.** The crawl-bar "Roll Tables" button is now **Importer**: a three-tab hub (Import / Tables / Monsters). The Import tab is a universal paste box — Ctrl+A an entire PDF, paste once, and a deterministic segmenter routes statblocks to a Monsters grid, dice tables to a Tables preview, and item entries to an Items grid, with an always-visible Skipped list (nothing silently dropped). Per-section commits or one Import-all.
+- **Bulk items importer.** Magic items (recognized by Benefit/Bonus/Curse/Personality riders) and gear lines (recognized by cost patterns) parse into editable drafts and commit to the items compendium with conflict handling. Imported items resolve in loot/treasure linking the same way imported monsters resolve in encounters (system compendium wins on name clash).
+- **Monsters dashboard.** Per-source census of imported monsters vs. what your imported tables reference, gap lists with one-click "seed the paste box" shortcuts, and a guided duplicate-cull workflow (confirm-gated, pack copies only).
+- **Tables dashboard absorbed into the hub** with source filter chips (Core / CS1–CS6 / Western Reaches) and per-row import seeding.
+- **"Re-link pack tables" maintenance action.** Re-links every compendium table to your imported monsters and items — tables imported before newer content pick up the new links. Idempotent and link-preserving.
+- **"Fold legacy Loot pack into Items" maintenance action.** Copies the legacy Loot pack's items into the managed items compendium (originals stay; the legacy pack is locked as a backup).
+
+### Changed
+- **Loot fabrication and the loot catalog now persist to the managed items compendium** instead of the legacy world "Loot" pack.
+- **Uniform encounter-table categorization.** All monster-encounter tables across CS1–CS6 are now categorized as Random Encounter Tables; rumors, zone pickers, weather, and keyed-adventure tables stay under Hexcrawl/Adventure.
+
+### Fixed
+- Treasure-table re-linking no longer rewrites content-identical tables (row-order churn eliminated; re-runs are exact no-ops).
+- Compendium ownership is applied correctly on v14 (players can observe imported monsters; GM-only packs stay GM-only).
+- ALL-CAPS magic-item blocks pasted alongside statblocks are no longer mistaken for monster lore and skipped.
+- Gear names imported from cost lines no longer retain their price text ("Probe Rope, 5 gp, 1 slot" imports as "Probe Rope").
+
 ## [0.2.3] — 2026-06-10
 
 ### Added
