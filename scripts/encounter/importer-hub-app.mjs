@@ -70,6 +70,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       importMissing:          ImporterHubApp.prototype._onImportMissing,
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
       hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
+      hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
       // Import tab — parse/clear
       hubParse:               ImporterHubApp.prototype._onHubParse,
       hubClear:               ImporterHubApp.prototype._onHubClear,
@@ -1114,6 +1115,53 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     ui.notifications?.info(`Migration complete: ${summary}.`);
     this.render();
+  }
+
+  /**
+   * Re-link every sde-tables doc to imported monsters/items (REQ-24 sweep).
+   * Idempotent + link-preserving; DialogV2 confirm with the pack doc count.
+   */
+  async _onRelinkTables() {
+    if (!game.user?.isGM) return;
+
+    const { TableEnricher } = await import("./table-enrich.mjs");
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    const pack = findSuitePack("sde-tables");
+    if (!pack) {
+      ui.notifications?.warn("No sde-tables compendium pack found.");
+      return;
+    }
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Re-link Pack Tables" },
+      content: `<p>Re-link all <strong>${pack.index.size}</strong> table(s) in <em>sde-tables</em> to your imported monsters and items.</p>
+        <p>Safe to re-run — existing links and document rows are preserved; only missing links are added.</p>`,
+      buttons: [
+        { action: "relink", label: "Re-link", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+    if (!choice || choice === "cancel") return;
+
+    let tally;
+    try {
+      tally = await TableEnricher.sweepPack();
+    } catch (err) {
+      console.error("shadowdark-enhancer | table sweep: unexpected error:", err);
+      ui.notifications?.error("Re-link failed — see the console for details.");
+      return;
+    }
+    if (!tally) return;
+
+    const summary = [
+      `${tally.encounters} encounter table(s)`,
+      `${tally.treasures} treasure table(s)`,
+      tally.linked ? `${tally.linked} monster link(s)` : "",
+      tally.skipped ? `${tally.skipped} skipped (not enrichable)` : "",
+      tally.failures ? `${tally.failures} failure(s) — see console` : "",
+    ].filter(Boolean).join(" · ");
+    ui.notifications?.info(`Re-link complete: ${summary}.`);
   }
 
   /**

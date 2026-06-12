@@ -385,16 +385,13 @@ export async function createTable(pt, { onConflict } = {}) {
  */
 async function _autoEnrich(table, pt) {
   if (!table) return;
-  const hay = [
-    pt?.category, pt?.customLabel, ...(Array.isArray(pt?.folderPath) ? pt.folderPath : []),
-    table.name,
-  ].filter(Boolean).join(" ").toLowerCase();
-  let kind = null;
-  if (/treasure|hoard|\bloot\b/.test(hay)) kind = "treasure";
-  else if (/encounter/.test(hay)) kind = "encounter";
-  if (!kind) return;
   try {
-    const { TableEnricher } = await import("./table-enrich.mjs");
+    const { TableEnricher, inferEnrichKind } = await import("./table-enrich.mjs");
+    const kind = inferEnrichKind([
+      pt?.category, pt?.customLabel, ...(Array.isArray(pt?.folderPath) ? pt.folderPath : []),
+      table.name,
+    ]);
+    if (!kind) return;
     if (kind === "treasure") await TableEnricher.enrichTreasure(table);
     else await TableEnricher.enrichEncounters(table);
   } catch (err) {
