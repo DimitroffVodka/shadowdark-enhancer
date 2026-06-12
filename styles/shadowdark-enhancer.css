@@ -1801,6 +1801,7 @@ body.theme-light .sde-hub-import-sechead {
 
 /* Items section grid — token-only (no raw hex) */
 .sde-hub-import-item-card {
+  container-type: inline-size;
   background: var(--sde-bar-surface-2, var(--sde-bar-surface-1));
   border: 1px solid var(--sde-bar-border);
   border-radius: var(--sde-bar-radius);
@@ -1809,6 +1810,52 @@ body.theme-light .sde-hub-import-sechead {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.sde-hub-import-item-row {
+  display: grid;
+  grid-template-columns: max-content minmax(12rem, 1fr) 32px;
+  align-items: center;
+  gap: 8px;
+}
+
+.sde-hub-import-item-row > label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.sde-hub-keyed-id input {
+  flex: 0 0 64px;
+  width: 64px;
+}
+
+.sde-hub-keyed-name input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.sde-hub-keyed-remove {
+  justify-self: end;
+}
+
+@container (max-width: 520px) {
+  .sde-hub-import-item-row {
+    grid-template-columns: minmax(0, 1fr) 32px;
+  }
+
+  .sde-hub-keyed-name {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .sde-hub-keyed-remove {
+    grid-column: 2;
+    grid-row: 1;
+  }
 }
 
 .sde-hub-import-item-head {

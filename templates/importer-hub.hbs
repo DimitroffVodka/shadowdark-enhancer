@@ -384,9 +384,9 @@
       {{#each importData.keyed as |h|}}
       <div class="sde-hub-import-item-card" data-keyed-idx="{{h.idx}}">
         <div class="sde-hub-import-item-row">
-          <label>{{../importData.keyLabel}} <input type="text" data-himport-field="keyId" value="{{h.keyId}}" style="width: 64px" aria-label="{{../importData.keyLabel}} ID"></label>
-          <label>Name <input type="text" data-himport-field="name" value="{{h.name}}" aria-label="{{../importData.keyLabel}} name"></label>
-          <button type="button" data-action="himportRemoveKey" class="sde-import-del" title="Remove this keyed page" aria-label="Remove {{../importData.keyLabel}} {{h.keyId}}">
+          <label class="sde-hub-keyed-id">{{../importData.keyLabel}} <input type="text" data-himport-field="keyId" value="{{h.keyId}}" aria-label="{{../importData.keyLabel}} ID"></label>
+          <label class="sde-hub-keyed-name">Name <input type="text" data-himport-field="name" value="{{h.name}}" aria-label="{{../importData.keyLabel}} name"></label>
+          <button type="button" data-action="himportRemoveKey" class="sde-import-del sde-hub-keyed-remove" title="Remove this keyed page" aria-label="Remove {{../importData.keyLabel}} {{h.keyId}}">
             <i class="fas fa-trash"></i>
           </button>
         </div>
