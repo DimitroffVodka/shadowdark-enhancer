@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.4.0] — 2026-06-17
+
+### Added
+- **Cursed Scroll adventure import.** Paste a hexcrawl key and the importer recognizes per-hex entries (clustered statblock/lore anchors), builds editable drafts, and commits them as a "Hexcrawl" journal entry in the managed suite — with real page-UUID `@UUID` cross-links between hexes (out-of-set references stay plain text).
+- **Scene builder & map pins.** A GM uploads an adventure map and the module deploys a calibrated gridless Scene (Level-document background) with Note pins bound to the imported journal pages, using a two-click calibration against the map's own hex lattice. Multi-row maps split into linked North/South scenes.
+- **Numbered location maps & cross-linking.** City and keyed-location maps support numbered location pins with a journal-page cross-link sweep that mirrors the table re-link pass (idempotent, link-preserving), plus a bundle round-trip proof for the new content.
+
+### Fixed
+- Keyed location cards render with the correct layout in the importer dashboard.
+- Dashboard previews are scrollable.
+
+### Chores
+- Enforce LF line endings via `.gitattributes` to prevent CRLF working-tree churn from non-Unix editors/sync tools.
+
 ## [0.3.0] — 2026-06-11
 
 ### Added
