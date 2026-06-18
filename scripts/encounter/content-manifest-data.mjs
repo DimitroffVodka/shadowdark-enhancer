@@ -20,32 +20,25 @@ const kebab = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace
 const mk = (source, category, page, name) =>
   ({ id: `${source}-${kebab(name)}`, name, source, sourceLabel: L[source], category, page, draft: true });
 
-// ── Monsters: statblock creatures + named NPCs ───────────────────────────────
+// ── Monsters: statblock creatures only ───────────────────────────────────────
+// Refined to the actual statblock roster per scroll (CS books describe many
+// named NPCs in prose with no statblock — those are not catalogued here, since
+// there is nothing to import). Names match the imported docs via loose
+// (order/punctuation-insensitive) matching, e.g. "Greater Drake" ↔ "Drake, Greater".
 export const MONSTER_MANIFEST = [
-  // CS1 — Diablerie (monster ch. pg 45–49)
+  // CS1 — Diablerie (monster ch. pg 45)
   ...["Bittermold","Gordock Breeg","Bogthorn","Dralech","Hexling","Howler","Ichor Ooze",
-      "Marrow Fiend","Skrell","Tar Bat","The Willowman","Knight of St. Ydris"].map(n => mk("cs1","Monster",45,n)),
-  ...["Drusilla","Barbarog","Victoria","Greaves Redthorne","Unduluk","Haldrin","Ixidian",
-      "Titania","Torak Bain","Taigolar","Inquisitor Justinia Morvin","St. Ydris"].map(n => mk("cs1","NPC",null,n)),
-  // CS2 — Red Sands (monster ch. pg 39–43)
+      "Marrow Fiend","Skrell","Tar Bat","The Willowman"].map(n => mk("cs1","Monster",45,n)),
+  // CS2 — Red Sands (monster ch. pg 39)
   ...["The Scourge","Dunefiend","Dust Devil","Canyon Ape","Mirage","Ras-Godai","Siruul"].map(n => mk("cs2","Monster",39,n)),
-  ...["Nuariel Siruul","The Wolf of Yarin","Tajora","Kadim","Murjana","Delila","Rameer the Lion",
-      "Shar Yasmila","Gori-Mannu","Manazusa","Wadim the Crooked","Malchor"].map(n => mk("cs2","NPC",null,n)),
-  // CS3 — Midnight Sun (monster ch. ~pg 43–48)
+  // CS3 — Midnight Sun (monster ch. pg 43)
   ...["Greater Drake","Lesser Drake","Sea Serpent","Orca","Giant Bat","Draugr","Dverg","Nord",
       "Oracle","Sea Nymph","Valkyrie","Deep Troll"].map(n => mk("cs3","Monster",43,n)),
-  ...["Signe","Egrid","Snorgin Thrain","Mithrandraak","Brugatha","Rogden","Olaf",
-      "Torbald the Bloodless","Karsgald","The Norn"].map(n => mk("cs3","NPC",null,n)),
-  // CS4 — River of Night (monster ch. pg 59–66; 18/18 already imported)
-  ...["Skandrill","Stone Warrior","Stone Shaman","Viperian","Couatl","Skirrim","Basilisk",
-      "Giant Ant","Giant Ant Queen"].map(n => mk("cs4","Monster",59,n)),
-  ...["Tecuhan","Bretuli","Mictza","Tezoticali","Laurencio","Marigold","Grenne Reskin","Cuzol",
-      "Uzaru","Ulesk","Okahara","Rasamiru","Lord Hedron","Istril"].map(n => mk("cs4","NPC",null,n)),
-  // CS5 — Dwellers in the Deep (monster ch. pg 33–36)
+  // CS4 — River of Night (monster ch. pg 59)
+  ...["Skandrill","Stone Warrior","Stone Shaman","Viperian","Couatl","Basilisk","Giant Ant"].map(n => mk("cs4","Monster",59,n)),
+  // CS5 — Dwellers in the Deep (monster ch. pg 33)
   ...["Bezelak","Wendel","Morzo Moth","Nuln","Dremir","Librarian of Leng","Aboleth",
-      "Rime Walker","Grick","Deep One","Insane Cyclops"].map(n => mk("cs5","Monster",33,n)),
-  // CS6 — City of Masks (no monster chapter; faction leaders + d40 NPCs)
-  ...["The Shroud","The Duke","Thieves' Guild Leader"].map(n => mk("cs6","NPC",42,n)),
+      "Rime Walker","Grick","Deep One"].map(n => mk("cs5","Monster",33,n)),
 ];
 
 // ── Items: named uniques + dedicated gear/spell/poison sets ───────────────────
@@ -86,9 +79,9 @@ export const JOURNAL_MANIFEST = [
   ...["Army Ants","Basilisk Cult","Black Ziggurat","Chanichu","Eclipse Dial","Flooded Ruins",
       "Star Map Temple","The Black Seed","Tsibalba"].map(n => mk("cs4","Dungeon",40,`${n} Key`)),
   mk("cs5","Hexcrawl",27,"Morzomotha Hex Key"),
-  mk("cs5","Dungeon",37,"Ghoulish Library of Leng — Level 1"),
-  mk("cs5","Dungeon",52,"Ghoulish Library of Leng — Level 2"),
-  mk("cs6","City",null,"City of Masks — 50-Location Index"),
+  mk("cs5","Dungeon",37,"Library of Leng — Level 1 Areas"),
+  mk("cs5","Dungeon",52,"Library of Leng — Level 2 Areas"),
+  mk("cs6","City",54,"City of Masks — Locations"),
 ];
 
 // ── Scenes: maps shipped with each scroll (dims where known) ──────────────────

@@ -28,12 +28,17 @@ const LOOSE_STOP = new Set([
   "-", "—", "–", "cs1", "cs2", "cs3", "cs4", "cs5", "cs6",
 ]);
 
-/** Looser key: drop parentheticals, filler words, and source tags. */
+/** Looser key: drop parentheticals, filler words, and source tags, then sort
+ *  the remaining words so word order doesn't matter ("Greater Drake" ↔
+ *  "Drake, Greater", "Giant Ant" ↔ "Ant, Giant"). Exact key is tried first in
+ *  statusOf, so this only widens the fallback. */
 export function looseKey(name) {
   return manifestKey(name)
     .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-z0-9\s]/g, " ")   // strip punctuation (commas/dashes) so "Drake, Greater" tokenizes cleanly
     .split(/\s+/)
     .filter((w) => w && !LOOSE_STOP.has(w))
+    .sort()
     .join(" ")
     .trim();
 }
