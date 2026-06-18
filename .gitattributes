@@ -1,0 +1,12 @@
+# Enforce LF in the repo regardless of platform, so editors/sync tools on
+# Windows can't reintroduce the CRLF churn that polluted the working tree.
+* text=auto eol=lf
+
+# Binary assets — never normalize.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.webp binary
+*.gif  binary
+*.zip  binary
+*.db   binary
