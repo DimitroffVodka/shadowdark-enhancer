@@ -15,16 +15,56 @@ const WHOLE_PROTECTED_TOKEN_RE =
   /^(?:<[^>]*>|@UUID\[[^\]]*\]\{[^}]*\}|\[\[[^\]]*\]\])$/;
 
 /**
+ * Common English words whose creature/item homographs cause false links in
+ * prose — e.g. "the stone bears an ancient mark" must not link the Bear
+ * creature. Matched against the WHOLE index-entry name, so "Bear Trap" or
+ * "Pole Arm" still link. Journal-only: table enrichment (bare name cells) is
+ * unaffected because it never routes through here.
+ */
+const PROSE_STOPLIST = new Set([
+  "bear", "bears", "pole", "poles", "arm", "arms", "vigilant",
+]);
+
+/**
+ * Journal prose links only the GM's own content: the system bestiary/gear and
+ * the Shadowdark Enhancer suite packs (sde-*). A name that exists solely in an
+ * unrelated third-party module (community content, other supplements) is not
+ * linked, so prose can't pick up a stray homograph from an unrelated pack
+ * (this is what mis-linked "bears" to an `unnatural-selection` gear item).
+ */
+const PROSE_PACK_RE =
+  /^Compendium\.(shadowdark|world\.shadowdark-enhancer--[a-z-]+)\./;
+
+/** Drop prose homographs (whole-name stoplist match) from an index. */
+function dropStopwords(index) {
+  return (index ?? []).filter(
+    (e) => e?.name && !PROSE_STOPLIST.has(String(e.name).trim().toLowerCase()),
+  );
+}
+
+/**
+ * Scope an index to system + suite packs and drop prose homographs. The live
+ * pack sweep applies this so journal prose never links a name that lives only
+ * in an unrelated third-party compendium. Pure + node-testable.
+ */
+export function scopeIndexForProse(index) {
+  return dropStopwords(index).filter((e) => PROSE_PACK_RE.test(e?.uuid ?? ""));
+}
+
+/**
  * Enrich only visible text segments, preserving tags, existing UUID links,
- * and inline rolls byte-for-byte.
+ * and inline rolls byte-for-byte. Prose homographs are dropped here too, so a
+ * direct call is safe even with an un-scoped index.
  */
 export function enrichJournalHtml(html, monsterIndex = [], itemIndex = []) {
+  const mi = dropStopwords(monsterIndex);
+  const ii = dropStopwords(itemIndex);
   return String(html ?? "")
     .split(PROTECTED_TOKEN_RE)
     .map((segment) => {
       if (!segment || WHOLE_PROTECTED_TOKEN_RE.test(segment)) return segment;
-      const withMonsters = embedLinks(convertDice(segment), monsterIndex);
-      return embedLinks(withMonsters, itemIndex);
+      const withMonsters = embedLinks(convertDice(segment), mi);
+      return embedLinks(withMonsters, ii);
     })
     .join("");
 }
@@ -49,10 +89,13 @@ export const JournalEnricher = {
 
     MonsterLinker.invalidate();
     LootLinker.invalidate();
-    const [monsterIndex, itemIndex] = await Promise.all([
+    const [rawMonsters, rawItems] = await Promise.all([
       MonsterLinker.buildIndex(),
       LootLinker.buildItemIndex(),
     ]);
+    // Scope to system + suite packs and drop prose homographs before linking.
+    const monsterIndex = scopeIndexForProse(rawMonsters);
+    const itemIndex = scopeIndexForProse(rawItems);
     const tally = {
       entries: 0,
       pages: 0,
