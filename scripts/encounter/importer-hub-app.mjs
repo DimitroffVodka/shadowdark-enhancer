@@ -30,6 +30,7 @@ import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
 import { gatherJournalCrawls, deployJournalCrawl } from "./journal-dashboard-live.mjs";
+import { gatherSceneMaps, backupSceneById } from "./scene-dashboard-live.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -115,6 +116,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Journal-tab actions
       journalDeploy:          ImporterHubApp.prototype._onJournalDeploy,
       journalOpen:            ImporterHubApp.prototype._onJournalOpen,
+      // Scenes-tab actions
+      sceneView:              ImporterHubApp.prototype._onSceneView,
+      sceneBackup:            ImporterHubApp.prototype._onSceneBackup,
+      sceneOpen:              ImporterHubApp.prototype._onSceneOpen,
       // Monsters-tab maintenance actions (D-03, ported from MonsterImporterApp)
       mimportBackfill:        ImporterHubApp.prototype._onBackfill,
       mimportMigrateSuite:    ImporterHubApp.prototype._onMigrateSuite,
@@ -126,7 +131,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   // ── Active tab ─────────────────────────────────────────────────────────────
-  /** @type {"import"|"tables"|"monsters"|"items"|"journal"} */
+  /** @type {"import"|"tables"|"monsters"|"items"|"journal"|"scenes"} */
   _activeTab = "import";
 
   // ── Tables-tab dashboard state (absorbed from RollTablesApp) ──────────────
@@ -194,6 +199,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Journal-tab cache ─────────────────────────────────────────────────────
   /** Cached journal-tab crawl rows (invalidated after deploy/relink/commit). @type {object|null} */
   _journalCache = null;
+
+  // ── Scenes-tab cache ──────────────────────────────────────────────────────
+  /** Cached scenes-tab map rows (invalidated after backup/build-scene). @type {object|null} */
+  _scenesCache = null;
 
   // ── Hook / timer plumbing ─────────────────────────────────────────────────
   _hookIds = [];
@@ -376,6 +385,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       journalData = await this._prepareJournalContext();
     }
 
+    // ── Scenes-tab data ──────────────────────────────────────────────────────
+    let scenesData = null;
+    if (this._activeTab === "scenes") {
+      scenesData = await this._prepareScenesContext();
+    }
+
     return {
       // Tab flags
       activeTab:    this._activeTab,
@@ -384,6 +399,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tabMonsters:  this._activeTab === "monsters",
       tabItems:     this._activeTab === "items",
       tabJournal:   this._activeTab === "journal",
+      tabScenes:    this._activeTab === "scenes",
       // Tables-tab context
       search:   this._search,
       groups:   shown,
@@ -406,6 +422,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemsData,
       // Journal-tab context (null when not on Journal tab)
       journalData,
+      // Scenes-tab context (null when not on Scenes tab)
+      scenesData,
     };
   }
 
@@ -561,6 +579,33 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Invalidate the journal-tab cache. */
   _invalidateJournalCache() {
     this._journalCache = null;
+  }
+
+  /**
+   * Prepare Scenes-tab context: one row per keyed map scene (grid, pins,
+   * pin-resolution %, backup state).
+   * @returns {Promise<object>}
+   */
+  async _prepareScenesContext() {
+    if (!this._scenesCache) {
+      const rows = await gatherSceneMaps().catch((err) => {
+        console.error("shadowdark-enhancer | gatherSceneMaps failed:", err);
+        return [];
+      });
+      this._scenesCache = { rows };
+    }
+    const { rows } = this._scenesCache;
+    return {
+      scenes:      rows,
+      sceneCount:  rows.length,
+      noScenes:    rows.length === 0,
+      backedUp:    rows.filter((r) => r.backedUp).length,
+    };
+  }
+
+  /** Invalidate the scenes-tab cache. */
+  _invalidateScenesCache() {
+    this._scenesCache = null;
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -2035,7 +2080,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       try {
         await this._buildLocationScene(crawl, SceneBuilder);
         this._invalidateJournalCache();
-        if (this._activeTab === "journal") this.render();
+        this._invalidateScenesCache();
+        if (this._activeTab === "journal" || this._activeTab === "scenes") this.render();
       } catch (err) {
         console.error(`${MODULE_ID} | location scene-builder: deploy failed:`, err);
         ui.notifications.error("Location scene deployment failed - see the console for details.");
@@ -2092,7 +2138,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.info(
         `Deployed "${crawl.name}": ${result.scenes.length} scene(s), ${result.notes} pin(s) - ${names}.`);
       this._invalidateJournalCache();
-      if (this._activeTab === "journal") this.render();
+      this._invalidateScenesCache();
+      if (this._activeTab === "journal" || this._activeTab === "scenes") this.render();
     } catch (err) {
       console.error(`${MODULE_ID} | scene-builder: deploy failed:`, err);
       ui.notifications.error("Crawl scene deployment failed - see the console for details.");
@@ -2353,6 +2400,35 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const uuid = target.dataset.uuid ?? "";
     const entry = await fromUuid(uuid).catch(() => null);
     if (entry) entry.sheet?.render(true);
+  }
+
+  // ── Scenes-tab dashboard actions ───────────────────────────────────────────
+
+  /** View a map scene on the canvas. */
+  async _onSceneView(event, target) {
+    const uuid = target.dataset.uuid ?? "";
+    const scene = await fromUuid(uuid).catch(() => null);
+    if (scene) scene.view();
+  }
+
+  /** Create/refresh an sde-scenes backup of a world scene. GM-gated. */
+  async _onSceneBackup(event, target) {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can back up scenes."); return; }
+    const uuid = target.dataset.uuid ?? "";
+    if (!uuid) return;
+    const backup = await backupSceneById(uuid);
+    if (backup) {
+      ui.notifications.info(`Backed up "${backup.name}" to sde-scenes.`);
+      this._invalidateScenesCache();
+      this.render();
+    }
+  }
+
+  /** Open a scene's config sheet. */
+  async _onSceneOpen(event, target) {
+    const uuid = target.dataset.uuid ?? "";
+    const scene = await fromUuid(uuid).catch(() => null);
+    if (scene) scene.sheet?.render(true);
   }
 
   /**
