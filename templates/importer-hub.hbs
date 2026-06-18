@@ -18,6 +18,10 @@
             aria-pressed="{{#if tabItems}}true{{else}}false{{/if}}">
       <i class="fas fa-gem"></i> Items
     </button>
+    <button type="button" class="sde-hub-tab-btn{{#if tabJournal}} active{{/if}}" data-hubtab="journal"
+            aria-pressed="{{#if tabJournal}}true{{else}}false{{/if}}">
+      <i class="fas fa-book"></i> Journal
+    </button>
   </nav>
 
   {{!-- ═══ Import tab ═══ --}}
@@ -458,10 +462,6 @@
               title="Re-link every compendium table to your imported monsters and items. Safe to re-run — existing links are preserved.">
         <i class="fas fa-link"></i> Re-link pack tables
       </button>
-      <button type="button" class="sde-thub-migrate" data-action="hubRelinkJournals"
-              title="Re-link keyed journal pages to imported monsters and items, then synchronize any deployed world copies.">
-        <i class="fas fa-book-open"></i> Re-link journal pages
-      </button>
     </div>
 
     <div class="sde-thub-sources">
@@ -833,6 +833,94 @@
       <i class="fas fa-gem sde-hub-placeholder-icon"></i>
       <p class="sde-hub-placeholder-title">Items Dashboard</p>
       <p class="sde-hub-placeholder-note">Switch to this tab to load the census.</p>
+    </div>
+    {{/if}}
+
+  </div>
+
+  {{!-- ═══ Journal tab ═══ --}}
+  <div class="sde-hub-tab-body sde-hub-monsters sde-hub-journal"{{#unless tabJournal}} hidden{{/unless}} id="sde-hub-journal">
+
+    {{#if journalData}}
+
+      <section class="sde-hub-monsters-census">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-book"></i> Keyed Journals ({{journalData.crawlCount}})
+        </h3>
+
+        {{#if journalData.noCrawls}}
+        <p class="sde-hub-monsters-empty">
+          No keyed journals in sde-journal yet. Paste a hex key or numbered-location
+          adventure on the Import tab and click <strong>Create journal</strong>.
+        </p>
+        {{else}}
+        <table class="sde-hub-monsters-table">
+          <thead>
+            <tr>
+              <th class="sde-hub-monsters-th-source">Crawl</th>
+              <th title="Hex key or numbered locations">Mode</th>
+              <th class="sde-hub-monsters-th-have" title="Keyed pages">Pages</th>
+              <th class="sde-hub-monsters-th-have" title="@UUID links across pages">Links</th>
+              <th title="Deployed into the world as a live journal">World</th>
+              <th title="Scenes with pins bound to this crawl">Scenes</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each journalData.crawls as |c|}}
+            <tr class="sde-hub-monsters-row">
+              <td class="sde-hub-monsters-source">
+                {{c.name}}{{#if c.source}} <span class="sde-thub-src-n">{{c.source}}</span>{{/if}}
+              </td>
+              <td>{{c.keyMode}}</td>
+              <td class="sde-hub-monsters-have">{{c.pageCount}}</td>
+              <td class="sde-hub-monsters-have">{{c.linkCount}}</td>
+              <td>
+                {{#if c.deployed}}
+                <span class="sde-thub-badge ok"><i class="fas fa-check"></i> Deployed</span>
+                {{else}}
+                <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Not deployed</span>
+                {{/if}}
+              </td>
+              <td>{{#if c.sceneCount}}{{c.sceneCount}} ({{c.pinCount}} pins){{else}}—{{/if}}</td>
+              <td class="sde-hub-journal-actions">
+                {{#unless c.deployed}}
+                <button type="button" class="sde-hub-monsters-maint-btn" data-action="journalDeploy" data-uuid="{{c.uuid}}"
+                        title="Create a live world journal from this crawl (pins open its pages).">
+                  <i class="fas fa-cloud-arrow-up"></i> Deploy
+                </button>
+                {{/unless}}
+                <button type="button" class="sde-hub-monsters-maint-btn" data-action="journalOpen" data-uuid="{{c.uuid}}"
+                        title="Open this journal entry.">
+                  <i class="fas fa-up-right-from-square"></i> Open
+                </button>
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+        {{/if}}
+      </section>
+
+      <section class="sde-hub-monsters-maintenance">
+        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-wrench"></i> Maintenance</h3>
+        <div class="sde-hub-monsters-maintenance-row">
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkJournals"
+                  title="Re-link keyed journal pages to imported monsters and items, then synchronize any deployed world copies.">
+            <i class="fas fa-book-open"></i> Re-link journal pages
+          </button>
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubBuildScene"
+                  title="Deploy a keyed journal into the world and build its calibrated map scene with pins.">
+            <i class="fas fa-map-location-dot"></i> Build scene
+          </button>
+        </div>
+      </section>
+
+    {{else}}
+    <div class="sde-hub-placeholder">
+      <i class="fas fa-book sde-hub-placeholder-icon"></i>
+      <p class="sde-hub-placeholder-title">Journal Dashboard</p>
+      <p class="sde-hub-placeholder-note">Switch to this tab to load your keyed journals.</p>
     </div>
     {{/if}}
 

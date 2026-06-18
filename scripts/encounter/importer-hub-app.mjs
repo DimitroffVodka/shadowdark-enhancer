@@ -29,6 +29,7 @@ import { parseStatblock } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
+import { gatherJournalCrawls, deployJournalCrawl } from "./journal-dashboard-live.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -111,6 +112,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemGapExpand:          ImporterHubApp.prototype._onItemGapExpand,
       itemSeedPaste:          ImporterHubApp.prototype._onItemSeedPaste,
       itemCullGroup:          ImporterHubApp.prototype._onItemCullGroup,
+      // Journal-tab actions
+      journalDeploy:          ImporterHubApp.prototype._onJournalDeploy,
+      journalOpen:            ImporterHubApp.prototype._onJournalOpen,
       // Monsters-tab maintenance actions (D-03, ported from MonsterImporterApp)
       mimportBackfill:        ImporterHubApp.prototype._onBackfill,
       mimportMigrateSuite:    ImporterHubApp.prototype._onMigrateSuite,
@@ -122,7 +126,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   // ── Active tab ─────────────────────────────────────────────────────────────
-  /** @type {"import"|"tables"|"monsters"|"items"} */
+  /** @type {"import"|"tables"|"monsters"|"items"|"journal"} */
   _activeTab = "import";
 
   // ── Tables-tab dashboard state (absorbed from RollTablesApp) ──────────────
@@ -186,6 +190,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _itemsCache = null;
   /** Which item gap rows are expanded: Set of source ids. */
   _expandedItemGapRows = new Set();
+
+  // ── Journal-tab cache ─────────────────────────────────────────────────────
+  /** Cached journal-tab crawl rows (invalidated after deploy/relink/commit). @type {object|null} */
+  _journalCache = null;
 
   // ── Hook / timer plumbing ─────────────────────────────────────────────────
   _hookIds = [];
@@ -362,6 +370,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemsData = await this._prepareItemsContext();
     }
 
+    // ── Journal-tab data ─────────────────────────────────────────────────────
+    let journalData = null;
+    if (this._activeTab === "journal") {
+      journalData = await this._prepareJournalContext();
+    }
+
     return {
       // Tab flags
       activeTab:    this._activeTab,
@@ -369,6 +383,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tabTables:    this._activeTab === "tables",
       tabMonsters:  this._activeTab === "monsters",
       tabItems:     this._activeTab === "items",
+      tabJournal:   this._activeTab === "journal",
       // Tables-tab context
       search:   this._search,
       groups:   shown,
@@ -389,6 +404,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       monstersData,
       // Items-tab context (null when not on Items tab)
       itemsData,
+      // Journal-tab context (null when not on Journal tab)
+      journalData,
     };
   }
 
@@ -518,6 +535,32 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Invalidate the items-tab cache. */
   _invalidateItemsCache() {
     this._itemsCache = null;
+  }
+
+  /**
+   * Prepare Journal-tab context: one status row per sde-journal crawl (pages,
+   * @UUID links, world-deploy state, scene/pin coverage).
+   * @returns {Promise<object>}
+   */
+  async _prepareJournalContext() {
+    if (!this._journalCache) {
+      const rows = await gatherJournalCrawls().catch((err) => {
+        console.error("shadowdark-enhancer | gatherJournalCrawls failed:", err);
+        return [];
+      });
+      this._journalCache = { rows };
+    }
+    const { rows } = this._journalCache;
+    return {
+      crawls:    rows,
+      crawlCount: rows.length,
+      noCrawls:  rows.length === 0,
+    };
+  }
+
+  /** Invalidate the journal-tab cache. */
+  _invalidateJournalCache() {
+    this._journalCache = null;
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -1495,6 +1538,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         tally.failures ? `${tally.failures} failure(s) - see console` : "",
       ].filter(Boolean).join(" · ");
       ui.notifications?.info(`Journal re-link complete: ${summary}.`);
+      this._invalidateJournalCache();
+      if (this._activeTab === "journal") this.render();
     } catch (err) {
       console.error(`${MODULE_ID} | journal sweep: unexpected error:`, err);
       ui.notifications?.error("Journal re-link failed - see the console for details.");
@@ -1595,6 +1640,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       `"${result.name}" ${result.status}: ${result.pages.created} page(s) created, ${result.pages.updated} updated → sde-journal.`);
     this._importHexes = [];
     this._importCrawlName = "";
+    this._invalidateJournalCache();
     this.render();
   }
 
@@ -1988,6 +2034,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (String(crawl.flags?.[MODULE_ID]?.keyMode ?? "hex") === "location") {
       try {
         await this._buildLocationScene(crawl, SceneBuilder);
+        this._invalidateJournalCache();
+        if (this._activeTab === "journal") this.render();
       } catch (err) {
         console.error(`${MODULE_ID} | location scene-builder: deploy failed:`, err);
         ui.notifications.error("Location scene deployment failed - see the console for details.");
@@ -2043,6 +2091,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const names = result.scenes.map((entry) => entry.scene.name).join(", ");
       ui.notifications.info(
         `Deployed "${crawl.name}": ${result.scenes.length} scene(s), ${result.notes} pin(s) - ${names}.`);
+      this._invalidateJournalCache();
+      if (this._activeTab === "journal") this.render();
     } catch (err) {
       console.error(`${MODULE_ID} | scene-builder: deploy failed:`, err);
       ui.notifications.error("Crawl scene deployment failed - see the console for details.");
@@ -2281,6 +2331,28 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     this._invalidateItemsCache();
     this.render();
+  }
+
+  // ── Journal-tab dashboard actions ──────────────────────────────────────────
+
+  /** Deploy a crawl from sde-journal into the world (keepId). GM-gated. */
+  async _onJournalDeploy(event, target) {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can deploy a crawl."); return; }
+    const uuid = target.dataset.uuid ?? "";
+    if (!uuid) return;
+    const world = await deployJournalCrawl(uuid);
+    if (world) {
+      ui.notifications.info(`Deployed "${world.name}" to the world (${world.pages.size} pages).`);
+      this._invalidateJournalCache();
+      this.render();
+    }
+  }
+
+  /** Open a crawl's journal sheet. */
+  async _onJournalOpen(event, target) {
+    const uuid = target.dataset.uuid ?? "";
+    const entry = await fromUuid(uuid).catch(() => null);
+    if (entry) entry.sheet?.render(true);
   }
 
   /**
