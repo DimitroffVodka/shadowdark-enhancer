@@ -52,15 +52,26 @@ export const MONSTER_MANIFEST = [
 export const ITEM_MANIFEST = [
   ...["Rot-Ruin","Green Mithral Plate","Ynnith","Emerald Blade","Wand of Moonbeam","Mithral Chainmail"].map(n => mk("cs1","Magic Item",null,n)),
   ...["Skinlasher","Flying Carpet","Sunscorch","Ring of Fireballs","Genie Lamp","Staff of Ord"].map(n => mk("cs2","Magic Item",null,n)),
-  mk("cs2","Item Set",27,"Desert Poisons (d8)"),
+  // CS2 Desert Poisons (d8 table, pg 27) — expanded to individual entries
+  ...["Aminiita Root","Bluewort Paste","Drowsy Dust","Ether of Idos","Kingslayer Oil",
+      "Nuzule Oil","Truth-Speak Oil","Vapor of Leng"].map(n => mk("cs2","Poison",27,n)),
   ...["Jotunblad","Jelly Orb"].map(n => mk("cs3","Magic Item",null,n)),
   ...["Rothak","Amulet of Vitality","Circlet of the Catfish","Orb of All-Eyes","Fangs of Oatali",
       "Bag of Badgers","Staff of Healing"].map(n => mk("cs4","Magic Item",null,n)),
-  mk("cs4","Item Set",15,"New Weapons"),
-  mk("cs4","Item Set",16,"Druid Spells"),
-  mk("cs5","Item Set",22,"New Gear"),
-  mk("cs5","Item Set",15,"Sorcerer Spells"),
-  mk("cs6","Item Set",19,"Mage Spells"),
+  // CS4 New Weapons (pg 15) — Boomerang & Spear-Thrower ship in the system; obsidian set is new
+  ...["Boomerang","Spear-Thrower","Obsidian Club","Obsidian Dagger","Obsidian Spear"].map(n => mk("cs4","Weapon",15,n)),
+  // CS4 Druid Spells (pg 16) — wizard (N) spell list
+  ...["Breath","Instill","Oxidize","Whisperwind","Barkskin","Befriend","Magnetize","Truespeech",
+      "Alchemy","Anima","Locusts","Treeshape","Mycelium","Summon Storm","Earthquake","Naming"].map(n => mk("cs4","Spell",16,n)),
+  // CS5 New Gear (pg 22)
+  ...["Ball Bearing","Candle","Charcoal","Flash Seed","Glow Paste","Holy Water","Lantern Hook",
+      "Miner's Putty","Net","Morzo Silk Rope","Tallow","Traveler's Lamp"].map(n => mk("cs5","Gear",22,n)),
+  // CS5 Sorcerer Spells (pg 15) — wizard (C) spell list
+  ...["Blight","Eyebite","Mischief","Protection From Good","Envenom","Phantoms","Wither","Wrack",
+      "Betrayal","Defile","Mazzim's Mesmerism","Unlife","Dismember","Dominate","Feeblemind","Subjugate"].map(n => mk("cs5","Spell",15,n)),
+  // CS6 Mage Spells (pg 19) — wizard (L) spell list
+  ...["Cleanse","Flare","Reveal","Ward","Absorb","Meld","Pacify","Push/Pull","Banish","Forbid",
+      "Identify","Speak With Object","Glyph","Stasis","Abjure","Permanence"].map(n => mk("cs6","Spell",19,n)),
 ];
 
 // ── Journals: hex/city keys + dungeon keys + rules/class chapters ─────────────

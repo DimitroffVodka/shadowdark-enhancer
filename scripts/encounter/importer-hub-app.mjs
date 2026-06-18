@@ -742,21 +742,23 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     this._applySearchFilter();
 
-    // Double-click / Enter to open a RollTable.
+    // Double-click / Enter to open the document behind a row. Shared by the
+    // Tables tab and the manifest catalogs (Monsters/Items/Journal/Scenes) —
+    // any .sde-thub-row carrying a data-uuid opens its sheet.
     for (const li of this.element.querySelectorAll(".sde-thub-row[data-uuid]")) {
-      const openTable = async () => {
+      const openDoc = async () => {
         const doc = await fromUuid(li.dataset.uuid).catch(() => null);
         if (doc?.sheet) doc.sheet.render(true);
-        else ui.notifications?.warn("Couldn't open that table — it may have been deleted.");
+        else ui.notifications?.warn("Couldn't open that entry — it may have been deleted.");
       };
       li.addEventListener("dblclick", async (ev) => {
         if (ev.target.closest("button")) return;
-        await openTable();
+        await openDoc();
       });
       li.setAttribute("tabindex", "0");
       li.addEventListener("keydown", async (ev) => {
         if (ev.key !== "Enter" || ev.target.closest("button")) return;
-        await openTable();
+        await openDoc();
       });
     }
   }

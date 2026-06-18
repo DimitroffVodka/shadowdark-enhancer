@@ -110,3 +110,42 @@ export function keySet(names) {
   }
   return s;
 }
+
+/**
+ * Build a key→value index (exact + loose forms) from {name, value} records.
+ * The generated keys exactly match `keySet` over the same names, so an index
+ * and a Set built from one record list stay in lockstep — every row that
+ * `statusOf` classifies non-missing resolves here. Exact keys win over loose;
+ * first record wins on collision (caller orders records by preference).
+ * @param {Array<{name:string, value:*}>} records
+ * @returns {Map<string,*>}
+ */
+export function keyIndex(records) {
+  const map = new Map();
+  for (const r of records ?? []) {        // exact keys first (more specific)
+    const k = manifestKey(r?.name);
+    if (k && !map.has(k)) map.set(k, r.value);
+  }
+  for (const r of records ?? []) {        // loose keys fill remaining gaps
+    const lk = looseKey(r?.name);
+    if (lk && !map.has(lk)) map.set(lk, r.value);
+  }
+  return map;
+}
+
+/**
+ * Resolve a reconciled row to its value via the index for its state (exact key
+ * first, then loose). Returns null for "missing" rows or a missing index.
+ * Mirrors statusOf's lookup, so a system/imported row resolves whenever its
+ * index was built from the same names that classified it.
+ * @param {object} row  reconciled row ({ name, state })
+ * @param {{systemIndex?:Map, haveIndex?:Map}} indices
+ * @returns {*}
+ */
+export function resolveRowValue(row, { systemIndex, haveIndex } = {}) {
+  const idx = row?.state === "system" ? systemIndex
+            : row?.state === "imported" ? haveIndex
+            : null;
+  if (!idx) return null;
+  return idx.get(manifestKey(row.name)) ?? idx.get(looseKey(row.name)) ?? null;
+}

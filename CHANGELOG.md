@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.0] — 2026-06-18
+
+Bundles the previously-unreleased v0.5 (importer hub completion) and v0.6 (catalog-driven dashboards) work.
+
+### Added
+- **Six-tab importer hub.** The hub now carries a management dashboard for every document type — **Import / Tables / Monsters / Items / Journal / Scenes** — replacing the earlier Import + Tables + Monsters layout. Journal and Scenes tabs show per-crawl deploy/backup and pin-resolution status above their catalogs.
+- **Catalog-driven dashboards (Monsters / Items / Journal / Scenes).** Each tab now works like the Tables tab: a content-free DRAFT manifest of what each Cursed Scroll contains is reconciled against your world (system compendia + the managed suite) into **in-system / imported / missing**, shown as collapsible source→category groups with status-filter chips. Missing rows carry an **Import** button that seeds the Import-tab paste box. Loose name matching lets a DRAFT name still resolve to a differently-dressed world document.
+- **Global source filter.** A source-facet filter below the tabs scopes every dashboard at once (Core / CS1–CS6 / Western Reaches).
+- **Double-click a catalog row to open its document.** On the Monsters / Items / Journal / Scenes tabs, double-clicking (or pressing Enter on) any in-system or imported row opens that actor / item / journal / scene sheet — the same affordance the Tables tab already had.
+- **Per-item Items catalog.** The Items catalog now enumerates the individual contents of each Cursed Scroll's item sets — poisons (CS2), new weapons (CS4), new gear (CS5), and the druid/sorcerer/mage spell lists (CS4–CS6) — as individual rows instead of single aggregate "Item Set" entries, so each shows its own in-system / imported / missing status.
+
+### Fixed
+- **Journal prose enrichment over-linking.** The "Re-link journal pages" sweep now scopes prose auto-linking to the system + managed-suite packs with a homograph stoplist, so it no longer links incidental words (e.g. "bears") to unrelated compendium items.
+
+### Notes
+- Catalog manifests ship **metadata only** (names + approximate pages) — no statblocks, item text, or map images, the same copyright stance as the table manifest. They remain a DRAFT and are flagged as such in the UI.
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+
 ## [0.4.0] — 2026-06-17
 
 ### Added

@@ -40,7 +40,7 @@
     </summary>
     <ul class="sde-thub-rows">
       {{#each sg.rows as |r|}}
-      <li class="sde-thub-row state-{{r.state}}">
+      <li class="sde-thub-row state-{{r.state}}"{{#if r.uuid}} data-uuid="{{r.uuid}}" title="Double-click to open"{{/if}}>
         <span class="sde-thub-name">{{r.name}}{{#if r.dims}} <span class="sde-thub-src-n">{{r.dims}}</span>{{/if}}</span>
         <span class="sde-thub-meta">{{#if r.page}}p{{r.page}} &middot; {{/if}}{{r.category}}</span>
         {{#if (eq r.state "system")}}

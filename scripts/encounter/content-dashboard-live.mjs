@@ -11,62 +11,79 @@
 import {
   MONSTER_MANIFEST, ITEM_MANIFEST, JOURNAL_MANIFEST, SCENE_MANIFEST,
 } from "./content-manifest-data.mjs";
-import { reconcile, summarize, groupRows, keySet } from "./content-manifest.mjs";
+import { reconcile, summarize, groupRows, keyIndex, resolveRowValue } from "./content-manifest.mjs";
 import { findSuitePack } from "./compendium-suite.mjs";
 
-async function packKeys(packId) {
+/** {name, value:uuid} records from a system compendium pack index. */
+async function packRecords(packId) {
   const pack = game.packs.get(packId);
-  if (!pack) return new Set();
+  if (!pack) return [];
   const idx = await pack.getIndex();
-  return keySet([...idx].map((e) => e.name));
+  return [...idx].map((e) => ({ name: e.name, value: e.uuid }));
 }
 
-async function suiteKeys(suiteId) {
+/** {name, value:uuid} records from a suite pack (resolved by suite key). */
+async function suiteRecords(suiteId) {
   const pack = findSuitePack(suiteId);
-  if (!pack) return new Set();
+  if (!pack) return [];
   const idx = await pack.getIndex();
-  return keySet([...idx].map((e) => e.name));
+  return [...idx].map((e) => ({ name: e.name, value: e.uuid }));
 }
 
-function bundle(manifest, sets) {
-  const rows = reconcile(manifest, sets);
+/**
+ * Reconcile a manifest, then stamp each system/imported row with the uuid of
+ * the live doc it resolved against (so the catalog UI can open it on
+ * double-click, like the Tables tab). Reconcile keys are derived from the same
+ * indices used to resolve uuids, keeping classification and resolution in
+ * lockstep — every non-missing row gets a uuid.
+ */
+function bundle(manifest, { systemIndex, haveIndex } = {}) {
+  const rows = reconcile(manifest, {
+    systemKeys: systemIndex ? new Set(systemIndex.keys()) : undefined,
+    haveKeys:   haveIndex ? new Set(haveIndex.keys()) : undefined,
+  });
+  for (const r of rows) {
+    const uuid = resolveRowValue(r, { systemIndex, haveIndex });
+    if (uuid) r.uuid = uuid;
+  }
   return { rows, summary: summarize(rows), groups: groupRows(rows) };
 }
 
 /** Monsters: system bestiary wins, sde-actors fills gaps. */
 export async function gatherMonsterCatalog() {
-  const [systemKeys, haveKeys] = await Promise.all([
-    packKeys("shadowdark.monsters"),
-    suiteKeys("sde-actors"),
+  const [system, have] = await Promise.all([
+    packRecords("shadowdark.monsters"),
+    suiteRecords("sde-actors"),
   ]);
-  return bundle(MONSTER_MANIFEST, { systemKeys, haveKeys });
+  return bundle(MONSTER_MANIFEST, { systemIndex: keyIndex(system), haveIndex: keyIndex(have) });
 }
 
 /** Items: system gear + magic items win, sde-items fills gaps. */
 export async function gatherItemCatalog() {
-  const [gear, magic, haveKeys] = await Promise.all([
-    packKeys("shadowdark.gear"),
-    packKeys("shadowdark.magic-items"),
-    suiteKeys("sde-items"),
+  const [gear, magic, have] = await Promise.all([
+    packRecords("shadowdark.gear"),
+    packRecords("shadowdark.magic-items"),
+    suiteRecords("sde-items"),
   ]);
-  const systemKeys = new Set([...gear, ...magic]);
-  return bundle(ITEM_MANIFEST, { systemKeys, haveKeys });
+  return bundle(ITEM_MANIFEST, { systemIndex: keyIndex([...gear, ...magic]), haveIndex: keyIndex(have) });
 }
 
-/** Journals: a deployed/world or sde-journal crawl whose name matches → imported. */
+/** Journals: a deployed/world or sde-journal crawl whose name matches → imported.
+ *  World entries first so double-click opens the live crawl, not the backup. */
 export async function gatherJournalCatalog() {
-  const haveNames = [];
+  const have = [];
+  for (const j of game.journal) have.push({ name: j.name, value: j.uuid });
   const pack = findSuitePack("sde-journal");
-  if (pack) for (const e of await pack.getIndex()) haveNames.push(e.name);
-  for (const j of game.journal) haveNames.push(j.name);
-  return bundle(JOURNAL_MANIFEST, { haveKeys: keySet(haveNames) });
+  if (pack) for (const e of await pack.getIndex()) have.push({ name: e.name, value: e.uuid });
+  return bundle(JOURNAL_MANIFEST, { haveIndex: keyIndex(have) });
 }
 
-/** Scenes: a built world scene (or sde-scenes backup) whose name matches → built. */
+/** Scenes: a built world scene (or sde-scenes backup) whose name matches → built.
+ *  World scenes first so double-click opens the live scene, not the backup. */
 export async function gatherSceneCatalog() {
-  const haveNames = [];
-  for (const s of game.scenes) haveNames.push(s.name);
+  const have = [];
+  for (const s of game.scenes) have.push({ name: s.name, value: s.uuid });
   const pack = findSuitePack("sde-scenes");
-  if (pack) for (const e of await pack.getIndex()) haveNames.push(e.name);
-  return bundle(SCENE_MANIFEST, { haveKeys: keySet(haveNames) });
+  if (pack) for (const e of await pack.getIndex()) have.push({ name: e.name, value: e.uuid });
+  return bundle(SCENE_MANIFEST, { haveIndex: keyIndex(have) });
 }
