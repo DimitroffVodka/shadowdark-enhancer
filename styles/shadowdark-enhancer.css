@@ -4432,6 +4432,15 @@ body.theme-light .sde-hub-monsters-row td {
   margin: 0;
 }
 .sde-import-note i { opacity: 0.7; margin-right: 0.25rem; }
+.sde-thub-missing-note {
+  opacity: 0.9;
+  border-left: 3px solid var(--sde-init, #c8a13a);
+  padding: 0.35rem 0.6rem;
+  margin: 0.4rem 0;
+  background: rgba(200, 161, 58, 0.08);
+  border-radius: 0 4px 4px 0;
+  line-height: 1.4;
+}
 .sde-import-text {
   width: 100%;
   min-height: 8rem;

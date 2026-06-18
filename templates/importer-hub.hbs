@@ -468,6 +468,16 @@
       </button>
     </div>
 
+    {{#if summary.missing}}
+    <p class="sde-import-note sde-thub-missing-note">
+      <i class="fas fa-circle-info"></i>
+      <strong>“{{summary.missing}} missing” is your to-do list, not an error.</strong>
+      The module can’t legally ship the books’ table contents, so it tracks which tables you
+      haven’t imported yet. Paste each from your own Cursed Scroll / Western Reaches copy —
+      click <i class="fas fa-file-import"></i> Import on a row — and it moves to “imported”.
+    </p>
+    {{/if}}
+
     <div class="sde-thub-sources">
       <span class="sde-thub-srclabel">Source</span>
       <button type="button" class="sde-thub-src{{#if sourceAll}} active{{/if}}" data-action="filterSource" data-source="all">All</button>
@@ -562,7 +572,7 @@
       {{!-- ── Census table ──────────────────────────────────────────────────── --}}
       <section class="sde-hub-monsters-census">
         <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-chart-bar"></i> Monster Census
+          <i class="fas fa-chart-bar"></i> Monster Census ({{monstersData.total}})
         </h3>
 
         {{#if monstersData.noCensus}}

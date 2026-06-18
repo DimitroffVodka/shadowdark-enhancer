@@ -477,6 +477,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
 
     return {
+      total:           rows.reduce((n, r) => n + (r.have ?? 0), 0),
       censusRows:      censusRowsCtx,
       duplicateGroups: dupGroupsCtx,
       duplicateCount,
