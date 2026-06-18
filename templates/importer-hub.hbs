@@ -14,6 +14,10 @@
             aria-pressed="{{#if tabMonsters}}true{{else}}false{{/if}}">
       <i class="fas fa-dragon"></i> Monsters
     </button>
+    <button type="button" class="sde-hub-tab-btn{{#if tabItems}} active{{/if}}" data-hubtab="items"
+            aria-pressed="{{#if tabItems}}true{{else}}false{{/if}}">
+      <i class="fas fa-gem"></i> Items
+    </button>
   </nav>
 
   {{!-- ═══ Import tab ═══ --}}
@@ -677,10 +681,6 @@
                   title="Move world-side imported monster actors into the sde-actors compendium pack.">
             <i class="fas fa-box-archive"></i> Migrate to suite
           </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubFoldLegacyLoot"
-                  title="Copy the legacy world &quot;Loot&quot; pack's items into the sde-items compendium pack (originals stay, pack is locked as backup).">
-            <i class="fas fa-boxes-packing"></i> Fold legacy Loot pack into Items
-          </button>
         </div>
       </section>
 
@@ -689,6 +689,149 @@
     <div class="sde-hub-placeholder">
       <i class="fas fa-dragon sde-hub-placeholder-icon"></i>
       <p class="sde-hub-placeholder-title">Monsters Dashboard</p>
+      <p class="sde-hub-placeholder-note">Switch to this tab to load the census.</p>
+    </div>
+    {{/if}}
+
+  </div>
+
+  {{!-- ═══ Items tab ═══ --}}
+  <div class="sde-hub-tab-body sde-hub-monsters sde-hub-items"{{#unless tabItems}} hidden{{/unless}} id="sde-hub-items">
+
+    {{#if itemsData}}
+
+      {{!-- ── Census ─────────────────────────────────────────────────────── --}}
+      <section class="sde-hub-monsters-census">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-gem"></i> Item Census ({{itemsData.total}})
+        </h3>
+
+        {{#if itemsData.noCensus}}
+        <p class="sde-hub-monsters-empty">
+          No items in sde-items. Import items on the Import tab, or fold the legacy Loot pack below.
+        </p>
+        {{else}}
+        <div class="sde-thub-sources">
+          <span class="sde-thub-srclabel">Types</span>
+          {{#each itemsData.typeRows as |t|}}
+          <span class="sde-thub-src">{{t.type}} <span class="sde-thub-src-n">{{t.count}}</span></span>
+          {{/each}}
+        </div>
+        <table class="sde-hub-monsters-table">
+          <thead>
+            <tr>
+              <th class="sde-hub-monsters-th-source">Source</th>
+              <th class="sde-hub-monsters-th-have" title="Items in sde-items from this source">Have</th>
+              <th class="sde-hub-monsters-th-gap" title="Item names referenced in your loot/treasure pack tables that don't resolve">Gap</th>
+              <th class="sde-hub-monsters-th-expand"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{#each itemsData.censusRows as |row|}}
+            <tr class="sde-hub-monsters-row{{#if row.expanded}} expanded{{/if}}">
+              <td class="sde-hub-monsters-source">{{row.label}}</td>
+              <td class="sde-hub-monsters-have">{{row.have}}</td>
+              <td class="sde-hub-monsters-gap{{#if row.gap}} has-gap{{/if}}">{{row.gap}}</td>
+              <td class="sde-hub-monsters-expand-cell">
+                {{#if row.gap}}
+                <button type="button" class="sde-hub-monsters-expand-btn"
+                        data-action="itemGapExpand" data-source="{{row.source}}"
+                        aria-expanded="{{#if row.expanded}}true{{else}}false{{/if}}">
+                  <i class="fas fa-caret-{{#if row.expanded}}down{{else}}right{{/if}}"></i>
+                </button>
+                {{/if}}
+              </td>
+            </tr>
+            {{#if row.expanded}}
+            <tr class="sde-hub-monsters-gap-detail">
+              <td colspan="4" class="sde-hub-monsters-gap-td">
+                {{#if row.missingNames.length}}
+                <ul class="sde-hub-monsters-missing-list">
+                  {{#each row.missingNames as |name|}}
+                  <li class="sde-hub-monsters-missing-item">
+                    <span class="sde-hub-monsters-missing-name">{{name}}</span>
+                    <button type="button" class="sde-hub-monsters-seed-btn"
+                            data-action="itemSeedPaste" data-name="{{name}}"
+                            title="Jump to Import tab with '{{name}}' pre-seeded">
+                      <i class="fas fa-bullseye"></i> Seed paste box
+                    </button>
+                  </li>
+                  {{/each}}
+                </ul>
+                {{else}}
+                <p class="sde-hub-monsters-gap-none">No missing names.</p>
+                {{/if}}
+              </td>
+            </tr>
+            {{/if}}
+            {{/each}}
+          </tbody>
+        </table>
+        {{#unless itemsData.hasGaps}}
+        <p class="sde-hub-monsters-allgood">
+          <i class="fas fa-circle-check"></i> No gaps — every referenced item resolves.
+        </p>
+        {{/unless}}
+        {{/if}}
+      </section>
+
+      {{!-- ── Duplicates ─────────────────────────────────────────────────── --}}
+      <section class="sde-hub-monsters-dups">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-copy"></i> Duplicates ({{itemsData.duplicateCount}})
+        </h3>
+        {{#if itemsData.hasDuplicates}}
+        <div class="sde-hub-monsters-dup-cards">
+          {{#each itemsData.duplicateGroups as |group|}}
+          <div class="sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
+            <p class="sde-hub-monsters-dup-name">{{group.key}}</p>
+            <ul class="sde-hub-monsters-dup-members">
+              {{#each group.members as |m|}}
+              <li class="sde-hub-monsters-dup-member">
+                <label class="sde-hub-monsters-dup-label">
+                  <input type="radio" name="keep-item-{{@../index}}" value="{{m.uuid}}" {{#if @first}}checked{{/if}}>
+                  <span class="sde-hub-monsters-dup-member-name">{{m.name}}</span>
+                  <span class="sde-hub-monsters-dup-member-meta">
+                    {{#if m.source}}<span class="sde-hub-monsters-dup-source">{{m.source}}</span>{{/if}}
+                    {{#if m.date}}<span class="sde-hub-monsters-dup-date" title="Last modified">{{m.date}}</span>{{/if}}
+                  </span>
+                </label>
+              </li>
+              {{/each}}
+            </ul>
+            <button type="button" class="sde-hub-monsters-cull-btn"
+                    data-action="itemCullGroup" data-group-key="{{group.key}}">
+              <i class="fas fa-trash-can"></i> Cull others
+            </button>
+          </div>
+          {{/each}}
+        </div>
+        {{else}}
+        <p class="sde-hub-monsters-empty">
+          <i class="fas fa-circle-check"></i> No duplicates found in sde-items.
+        </p>
+        {{/if}}
+      </section>
+
+      {{!-- ── Maintenance ────────────────────────────────────────────────── --}}
+      <section class="sde-hub-monsters-maintenance">
+        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-wrench"></i> Maintenance</h3>
+        <div class="sde-hub-monsters-maintenance-row">
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubFoldLegacyLoot"
+                  title="Copy the legacy world &quot;Loot&quot; pack's items into sde-items (originals stay; pack locked as backup).">
+            <i class="fas fa-boxes-packing"></i> Fold legacy Loot pack into Items
+          </button>
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkTables"
+                  title="Re-link loot/treasure pack tables to your imported items and monsters. Safe to re-run.">
+            <i class="fas fa-link"></i> Re-link pack tables
+          </button>
+        </div>
+      </section>
+
+    {{else}}
+    <div class="sde-hub-placeholder">
+      <i class="fas fa-gem sde-hub-placeholder-icon"></i>
+      <p class="sde-hub-placeholder-title">Items Dashboard</p>
       <p class="sde-hub-placeholder-note">Switch to this tab to load the census.</p>
     </div>
     {{/if}}

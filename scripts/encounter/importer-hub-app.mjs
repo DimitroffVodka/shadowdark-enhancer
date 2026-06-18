@@ -28,6 +28,7 @@ import { parseNumberedLocationsDetailed } from "./location-keyer.mjs";
 import { parseStatblock } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
+import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -106,6 +107,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       monsterGapExpand:       ImporterHubApp.prototype._onMonsterGapExpand,
       monsterSeedPaste:       ImporterHubApp.prototype._onMonsterSeedPaste,
       monsterCullGroup:       ImporterHubApp.prototype._onMonsterCullGroup,
+      // Items-tab census/gap/duplicate actions
+      itemGapExpand:          ImporterHubApp.prototype._onItemGapExpand,
+      itemSeedPaste:          ImporterHubApp.prototype._onItemSeedPaste,
+      itemCullGroup:          ImporterHubApp.prototype._onItemCullGroup,
       // Monsters-tab maintenance actions (D-03, ported from MonsterImporterApp)
       mimportBackfill:        ImporterHubApp.prototype._onBackfill,
       mimportMigrateSuite:    ImporterHubApp.prototype._onMigrateSuite,
@@ -117,7 +122,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   // ── Active tab ─────────────────────────────────────────────────────────────
-  /** @type {"import"|"tables"|"monsters"} */
+  /** @type {"import"|"tables"|"monsters"|"items"} */
   _activeTab = "import";
 
   // ── Tables-tab dashboard state (absorbed from RollTablesApp) ──────────────
@@ -173,8 +178,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _monstersCacheTimer = null;
   /** Cancels a temporary canvas click capture when the hub closes. */
   _pendingCanvasCapture = null;
-  /** Which gap rows are expanded: Set of source ids. */
+  /** Which monster gap rows are expanded: Set of source ids. */
   _expandedGapRows = new Set();
+
+  // ── Items-tab census cache ────────────────────────────────────────────────
+  /** Cached items-tab data (invalidated after cull/fold/commit). @type {object|null} */
+  _itemsCache = null;
+  /** Which item gap rows are expanded: Set of source ids. */
+  _expandedItemGapRows = new Set();
 
   // ── Hook / timer plumbing ─────────────────────────────────────────────────
   _hookIds = [];
@@ -345,12 +356,19 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       monstersData = await this._prepareMonstersContext();
     }
 
+    // ── Items-tab data ───────────────────────────────────────────────────────
+    let itemsData = null;
+    if (this._activeTab === "items") {
+      itemsData = await this._prepareItemsContext();
+    }
+
     return {
       // Tab flags
       activeTab:    this._activeTab,
       tabImport:    this._activeTab === "import",
       tabTables:    this._activeTab === "tables",
       tabMonsters:  this._activeTab === "monsters",
+      tabItems:     this._activeTab === "items",
       // Tables-tab context
       search:   this._search,
       groups:   shown,
@@ -369,6 +387,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       importData,
       // Monsters-tab context (null when not on Monsters tab)
       monstersData,
+      // Items-tab context (null when not on Items tab)
+      itemsData,
     };
   }
 
@@ -435,6 +455,69 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _invalidateMonstersCache() {
     this._monstersCache = null;
     clearTimeout(this._monstersCacheTimer);
+  }
+
+  /**
+   * Prepare Items-tab context: per-source census rows merged with gap counts
+   * (item names referenced in loot/treasure pack tables that don't resolve),
+   * a type tally, and duplicate groups. Parallels _prepareMonstersContext.
+   *
+   * @returns {Promise<object>}
+   */
+  async _prepareItemsContext() {
+    if (!this._itemsCache) {
+      const [census, dupGroups] = await Promise.all([
+        gatherItemCensus().catch((err) => {
+          console.error("shadowdark-enhancer | gatherItemCensus failed:", err);
+          return { total: 0, typeCounts: {}, rows: [] };
+        }),
+        gatherItemDuplicates().catch((err) => {
+          console.error("shadowdark-enhancer | gatherItemDuplicates failed:", err);
+          return [];
+        }),
+      ]);
+      this._itemsCache = {
+        total:           census.total,
+        typeCounts:      census.typeCounts,
+        censusRows:      census.rows,
+        duplicateGroups: dupGroups,
+        duplicateCount:  dupGroups.length,
+      };
+    }
+
+    const { censusRows: rows, duplicateGroups: dupGroups, duplicateCount, total, typeCounts } = this._itemsCache;
+
+    const censusRowsCtx = rows.map((r) => ({
+      ...r,
+      expanded: this._expandedItemGapRows.has(r.source),
+    }));
+    const typeRows = Object.entries(typeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([type, count]) => ({ type, count }));
+
+    const dupGroupsCtx = dupGroups.map((g) => ({
+      ...g,
+      members: g.members.map((m) => ({
+        ...m,
+        date: m.date ? new Date(m.date).toLocaleDateString() : null,
+      })),
+    }));
+
+    return {
+      total,
+      typeRows,
+      censusRows:      censusRowsCtx,
+      duplicateGroups: dupGroupsCtx,
+      duplicateCount,
+      hasGaps:         rows.some((r) => r.gap > 0),
+      hasDuplicates:   dupGroups.length > 0,
+      noCensus:        rows.length === 0,
+    };
+  }
+
+  /** Invalidate the items-tab cache. */
+  _invalidateItemsCache() {
+    this._itemsCache = null;
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -1037,6 +1120,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
     ui.notifications.info(`Items: ${parts.join(", ")} → sde-items${source ? ` / ${source}` : ""}.`);
     this._importItems = [];
+    this._invalidateItemsCache();
     this.render();
   }
 
@@ -2018,6 +2102,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!report) return;
 
     LootLinker.invalidate();
+    this._invalidateItemsCache();
 
     const summary = [
       `${report.legacyMigrated} item(s) folded into sde-items`,
@@ -2122,6 +2207,79 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications.info(`Cull complete: ${parts.join(", ") || "nothing done"}.`);
 
     this._invalidateMonstersCache();
+    this.render();
+  }
+
+  // ── Items-tab dashboard actions (parallel to Monsters) ─────────────────────
+
+  _onItemGapExpand(event, target) {
+    const source = target.dataset.source ?? "";
+    if (this._expandedItemGapRows.has(source)) this._expandedItemGapRows.delete(source);
+    else this._expandedItemGapRows.add(source);
+    this.render();
+  }
+
+  /** Seed the paste box with a missing item name and switch to the Import tab. */
+  _onItemSeedPaste(event, target) {
+    const name = target.dataset.name ?? "";
+    if (!name) return;
+    this._importText = name;
+    this._importSeed = { name, _itemSeed: true };
+    this._activeTab = "import";
+    this.render();
+  }
+
+  /**
+   * Guided cull for duplicate sde-items: read the chosen keeper, confirm via
+   * DialogV2, delete the other pack copies (D-06). Mirrors _onMonsterCullGroup.
+   */
+  async _onItemCullGroup(event, target) {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can cull duplicates."); return; }
+
+    const groupKey = target.dataset.groupKey ?? "";
+    if (!groupKey) return;
+    const groups = this._itemsCache?.duplicateGroups ?? [];
+    const group = groups.find((g) => g.key === groupKey);
+    if (!group) { ui.notifications.warn("Duplicate group not found — refresh the Items tab."); return; }
+
+    const card = target.closest(".sde-hub-monsters-dup-card");
+    const checkedRadio = card?.querySelector("input[type='radio']:checked");
+    const keepUuid = checkedRadio?.value ?? "";
+    if (!keepUuid) { ui.notifications.warn("Select a keeper before culling."); return; }
+
+    const dropMembers = group.members.filter((m) => m.uuid !== keepUuid);
+    if (!dropMembers.length) { ui.notifications.info("Nothing to cull — only one member selected as keeper."); return; }
+
+    const keepMember = group.members.find((m) => m.uuid === keepUuid);
+    const keepLabel  = foundry.utils.escapeHTML(keepMember?.name ?? keepUuid);
+    const dropList   = dropMembers.map((m) => `<li>${foundry.utils.escapeHTML(m.name)} <em>(${m.source || "unknown source"})</em></li>`).join("");
+    const content = `
+      <p>Keep: <strong>${keepLabel}</strong></p>
+      <p>Delete these pack copies:</p>
+      <ul style="margin:.3em 0">${dropList}</ul>
+      <p style="color:var(--sde-bar-text-muted,#9a9a9a);font-size:.85em">
+        Only pack copies in sde-items are deleted. World items and _Backup docs are never touched.
+      </p>`;
+
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Cull Duplicate Items" },
+      content,
+      buttons: [
+        { action: "cull",   label: "Delete copies", default: true },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+    if (choice !== "cull") return;
+
+    const tally = await cullItemDuplicates(keepUuid, dropMembers.map((m) => m.uuid));
+    const parts = [];
+    if (tally.deleted) parts.push(`${tally.deleted} deleted`);
+    if (tally.skipped) parts.push(`${tally.skipped} skipped`);
+    if (tally.failed)  parts.push(`${tally.failed} failed (see console)`);
+    ui.notifications.info(`Cull complete: ${parts.join(", ") || "nothing done"}.`);
+
+    this._invalidateItemsCache();
     this.render();
   }
 
