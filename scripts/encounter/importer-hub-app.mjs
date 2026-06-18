@@ -31,6 +31,7 @@ import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
 import { gatherJournalCrawls, deployJournalCrawl } from "./journal-dashboard-live.mjs";
 import { gatherSceneMaps, backupSceneById } from "./scene-dashboard-live.mjs";
+import { sourceFolderName } from "./compendium-suite.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -271,6 +272,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const matches = sf ? (sourceFacets.find(f => f.id === sf)?.match ?? [sf]) : null;
     const inSrc = (r) => !matches || matches.includes(r.source);
 
+    // Global source filter (below the tabs): the selected facet's display label
+    // scopes the census/journal/scene dashboards too. Stored on `this` so the
+    // per-tab prep methods can read it.
+    this._activeFacetLabel = sf ? (sourceFacets.find(f => f.id === sf)?.label ?? null) : null;
+
     let summary = globalSummary;
     if (matches) {
       summary = { total: 0, system: 0, imported: 0, partial: 0, missing: 0 };
@@ -391,6 +397,17 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       scenesData = await this._prepareScenesContext();
     }
 
+    // Source-chip counts reflect the ACTIVE tab so the global bar is meaningful
+    // everywhere (table counts on Tables, monster counts on Monsters, etc.).
+    const activeFacetCounts = {
+      monsters: monstersData?.facetCounts,
+      items:    itemsData?.facetCounts,
+      journal:  journalData?.facetCounts,
+      scenes:   scenesData?.facetCounts,
+    }[this._activeTab] ?? null;
+    const facetCount = (f) =>
+      this._activeTab === "tables" ? f.count : (activeFacetCounts?.[f.label] ?? 0);
+
     return {
       // Tab flags
       activeTab:    this._activeTab,
@@ -411,9 +428,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       fPartial:  stf === "partial",
       fMissing:  stf === "missing",
       sources: sourceFacets.map(f => ({
-        id: f.id, label: f.label, count: f.count, active: sf === f.id,
+        id: f.id, label: f.label, count: facetCount(f), active: sf === f.id,
       })),
       sourceAll: !sf,
+      // The global source bar shows on every dashboard tab, not the paste box.
+      showSources: this._activeTab !== "import",
       // Import-tab context
       importData,
       // Monsters-tab context (null when not on Monsters tab)
@@ -457,13 +476,20 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const { censusRows: rows, duplicateGroups: dupGroups, duplicateCount } = this._monstersCache;
 
+    // Per-source counts for the global source bar (full data, pre-filter).
+    const facetCounts = Object.fromEntries(rows.map((r) => [r.label, r.have]));
+
+    // Apply the global source filter to the displayed census rows.
+    const label = this._activeFacetLabel;
+    const visibleRows = label ? rows.filter((r) => r.label === label) : rows;
+
     // Enrich census rows with expansion state
-    const censusRowsCtx = rows.map((r) => ({
+    const censusRowsCtx = visibleRows.map((r) => ({
       ...r,
       expanded: this._expandedGapRows.has(r.source),
     }));
 
-    const hasGaps = rows.some((r) => r.gap > 0);
+    const hasGaps = visibleRows.some((r) => r.gap > 0);
     const hasDuplicates = dupGroups.length > 0;
 
     // Render-friendly member dates — the raw _stats.modifiedTime epoch was
@@ -478,12 +504,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     return {
       total:           rows.reduce((n, r) => n + (r.have ?? 0), 0),
+      facetCounts,
       censusRows:      censusRowsCtx,
       duplicateGroups: dupGroupsCtx,
       duplicateCount,
       hasGaps,
       hasDuplicates,
       noCensus:        rows.length === 0,
+      filteredEmpty:   rows.length > 0 && visibleRows.length === 0,
     };
   }
 
@@ -523,7 +551,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const { censusRows: rows, duplicateGroups: dupGroups, duplicateCount, total, typeCounts } = this._itemsCache;
 
-    const censusRowsCtx = rows.map((r) => ({
+    const facetCounts = Object.fromEntries(rows.map((r) => [r.label, r.have]));
+    const label = this._activeFacetLabel;
+    const visibleRows = label ? rows.filter((r) => r.label === label) : rows;
+
+    const censusRowsCtx = visibleRows.map((r) => ({
       ...r,
       expanded: this._expandedItemGapRows.has(r.source),
     }));
@@ -541,13 +573,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     return {
       total,
+      facetCounts,
       typeRows,
       censusRows:      censusRowsCtx,
       duplicateGroups: dupGroupsCtx,
       duplicateCount,
-      hasGaps:         rows.some((r) => r.gap > 0),
+      hasGaps:         visibleRows.some((r) => r.gap > 0),
       hasDuplicates:   dupGroups.length > 0,
       noCensus:        rows.length === 0,
+      filteredEmpty:   rows.length > 0 && visibleRows.length === 0,
     };
   }
 
@@ -570,10 +604,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._journalCache = { rows };
     }
     const { rows } = this._journalCache;
+    const facetCounts = this._countByFacetLabel(rows.map((r) => r.source));
+    const label = this._activeFacetLabel;
+    const visible = label ? rows.filter((r) => this._facetLabelForSource(r.source) === label) : rows;
     return {
-      crawls:    rows,
-      crawlCount: rows.length,
-      noCrawls:  rows.length === 0,
+      crawls:     visible,
+      crawlCount: visible.length,
+      noCrawls:   rows.length === 0,
+      filteredEmpty: rows.length > 0 && visible.length === 0,
+      facetCounts,
     };
   }
 
@@ -596,12 +635,44 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._scenesCache = { rows };
     }
     const { rows } = this._scenesCache;
+    const facetCounts = this._countByFacetLabel(rows.map((r) => r.source));
+    const label = this._activeFacetLabel;
+    const visible = label ? rows.filter((r) => this._facetLabelForSource(r.source) === label) : rows;
     return {
-      scenes:      rows,
-      sceneCount:  rows.length,
+      scenes:      visible,
+      sceneCount:  visible.length,
       noScenes:    rows.length === 0,
-      backedUp:    rows.filter((r) => r.backedUp).length,
+      filteredEmpty: rows.length > 0 && visible.length === 0,
+      backedUp:    visible.filter((r) => r.backedUp).length,
+      facetCounts,
     };
+  }
+
+  /** Tally a list of source ids by their facet label (for source-chip counts). */
+  _countByFacetLabel(sources) {
+    const m = {};
+    for (const src of sources) {
+      const lbl = this._facetLabelForSource(src);
+      m[lbl] = (m[lbl] ?? 0) + 1;
+    }
+    return m;
+  }
+
+  /**
+   * Map a source string to a source-filter facet label. Handles the census
+   * short codes (cs1…cs6, wr) via sourceFolderName AND the descriptive source
+   * strings that journal/scene flags carry ("Cursed Scroll 5 — …", "Western
+   * Reaches …"), so the global filter scopes those tabs too.
+   */
+  _facetLabelForSource(source) {
+    const raw = String(source ?? "").trim();
+    if (!raw) return "Custom";
+    const m = raw.toLowerCase();
+    const cs = m.match(/(?:^cs|cursed\s*scroll)\s*([1-6])\b/);
+    if (cs) return `CS${cs[1]}`;
+    if (m === "wr" || m === "pgwr" || m === "gmgwr" || /western\s*reaches/.test(m)) return "Western Reaches";
+    if (m === "core") return "Core";
+    return sourceFolderName(raw);
   }
 
   /** Invalidate the scenes-tab cache. */

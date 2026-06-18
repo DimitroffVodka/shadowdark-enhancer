@@ -1241,6 +1241,15 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   font-family: inherit;
   font-size: 13px;
 }
+/* Global source filter bar — sits directly under the hub tab nav and scopes
+   every dashboard. */
+.sde-hub-sources-global {
+  padding: 6px 8px;
+  margin: 0 0 6px 0;
+  background: var(--sde-bar-surface-1);
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+
 .sde-thub-summary {
   display: flex;
   align-items: center;

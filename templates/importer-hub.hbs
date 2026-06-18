@@ -28,6 +28,20 @@
     </button>
   </nav>
 
+  {{!-- ═══ Global source filter — scopes every dashboard tab ═══ --}}
+  {{#if showSources}}
+  <div class="sde-thub-sources sde-hub-sources-global">
+    <span class="sde-thub-srclabel">Source</span>
+    <button type="button" class="sde-thub-src{{#if sourceAll}} active{{/if}}" data-action="filterSource" data-source="all">All</button>
+    {{#each sources as |s|}}
+    <button type="button" class="sde-thub-src{{#if s.active}} active{{/if}}{{#unless s.count}} empty{{/unless}}"
+            data-action="filterSource" data-source="{{s.id}}" title="Filter to {{s.label}}">
+      {{s.label}} <span class="sde-thub-src-n">{{s.count}}</span>
+    </button>
+    {{/each}}
+  </div>
+  {{/if}}
+
   {{!-- ═══ Import tab ═══ --}}
   <div class="sde-hub-tab-body sde-hub-import"{{#unless tabImport}} hidden{{/unless}} id="sde-hub-import">
 
@@ -477,17 +491,6 @@
       click <i class="fas fa-file-import"></i> Import on a row — and it moves to “imported”.
     </p>
     {{/if}}
-
-    <div class="sde-thub-sources">
-      <span class="sde-thub-srclabel">Source</span>
-      <button type="button" class="sde-thub-src{{#if sourceAll}} active{{/if}}" data-action="filterSource" data-source="all">All</button>
-      {{#each sources as |s|}}
-      <button type="button" class="sde-thub-src{{#if s.active}} active{{/if}}{{#unless s.count}} empty{{/unless}}"
-              data-action="filterSource" data-source="{{s.id}}" title="Filter to {{s.label}}">
-        {{s.label}} <span class="sde-thub-src-n">{{s.count}}</span>
-      </button>
-      {{/each}}
-    </div>
 
     {{#each groups as |g|}}
     <details class="sde-thub-cat" open>
