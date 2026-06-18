@@ -726,7 +726,14 @@
 
       <section class="sde-hub-monsters-census">
         <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-book"></i> Keyed Journals ({{journalData.crawlCount}})
+          <i class="fas fa-book-atlas"></i> Adventure Catalog
+        </h3>
+        {{> sdeCatalog data=journalData.catalog icon="fa-book" noun="journal"}}
+      </section>
+
+      <section class="sde-hub-monsters-census">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-book"></i> Your Built Crawls ({{journalData.crawlCount}})
         </h3>
 
         {{#if journalData.noCrawls}}
@@ -814,7 +821,14 @@
 
       <section class="sde-hub-monsters-census">
         <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-map"></i> Map Scenes ({{scenesData.sceneCount}})
+          <i class="fas fa-map-location-dot"></i> Map Catalog
+        </h3>
+        {{> sdeCatalog data=scenesData.catalog icon="fa-map" noun="map"}}
+      </section>
+
+      <section class="sde-hub-monsters-census">
+        <h3 class="sde-hub-monsters-section-title">
+          <i class="fas fa-map"></i> Your Built Scenes ({{scenesData.sceneCount}})
           <span class="sde-thub-src-n" title="Scenes with an sde-scenes backup">{{scenesData.backedUp}} backed up</span>
         </h3>
 

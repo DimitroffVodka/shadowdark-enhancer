@@ -19,16 +19,38 @@ export function manifestKey(name) {
   return normalizeMonsterName(name);
 }
 
+// Filler words / source tags stripped for loose matching, so a DRAFT manifest
+// name ("The Gloaming Hex Map") still matches a built doc with a different
+// dressing ("The Gloaming (CS1)", "CS5 - Library of Leng - Level 1").
+const LOOSE_STOP = new Set([
+  "the", "a", "an", "of", "and", "in",
+  "hex", "map", "key", "scene", "level", "district", "north", "south",
+  "-", "—", "–", "cs1", "cs2", "cs3", "cs4", "cs5", "cs6",
+]);
+
+/** Looser key: drop parentheticals, filler words, and source tags. */
+export function looseKey(name) {
+  return manifestKey(name)
+    .replace(/\([^)]*\)/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !LOOSE_STOP.has(w))
+    .join(" ")
+    .trim();
+}
+
 /**
- * Decide a single entry's state.
+ * Decide a single entry's state. Matches a manifest entry to the world by exact
+ * normalized name OR loose key (the adapter seeds both forms into the sets).
  * @param {object} entry
  * @param {{systemKeys?:Set<string>, haveKeys?:Set<string>}} sets
  * @returns {"system"|"imported"|"missing"}
  */
 export function statusOf(entry, { systemKeys, haveKeys } = {}) {
   const key = manifestKey(entry?.name);
-  if (systemKeys?.has(key)) return "system";
-  if (haveKeys?.has(key)) return "imported";
+  const lkey = looseKey(entry?.name);
+  const hit = (set) => !!set && (set.has(key) || (!!lkey && set.has(lkey)));
+  if (hit(systemKeys)) return "system";
+  if (hit(haveKeys)) return "imported";
   return "missing";
 }
 
@@ -77,12 +99,14 @@ export function groupRows(rows) {
   return out;
 }
 
-/** Build a normalized-name key Set from an iterable of names. */
+/** Build a name key Set (exact + loose forms) from an iterable of names. */
 export function keySet(names) {
   const s = new Set();
   for (const n of names ?? []) {
     const k = manifestKey(n);
     if (k) s.add(k);
+    const lk = looseKey(n);
+    if (lk) s.add(lk);
   }
   return s;
 }

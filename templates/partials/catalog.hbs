@@ -19,7 +19,8 @@
   <i class="fas fa-flask"></i>
   <strong>Draft catalog.</strong> Bootstrapped from the content inventory (names + pages, approximate).
   “Missing” means it isn’t in your suite or the system yet{{#if data.seedAction}} — click
-  <i class="fas fa-file-import"></i> Import to paste it from your book{{/if}}. Fix names/pages as you go.
+  <i class="fas fa-file-import"></i> Import to paste it from your book{{/if}}.{{#if data.hint}} {{data.hint}}{{/if}}
+  Fix names/pages as you go.
 </p>
 {{/if}}
 

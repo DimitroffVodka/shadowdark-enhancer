@@ -495,7 +495,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * reconciled groups, recount the summary for the source filter, and surface
    * per-source facet counts. Used by Monsters / Items / Journal / Scenes.
    */
-  _catalogContext(catalog, { seedAction = null, builtLabel = "Imported" } = {}) {
+  _catalogContext(catalog, { seedAction = null, builtLabel = "Imported", hint = null } = {}) {
     const facetCounts = this._countByFacetLabel(catalog.rows.map((r) => r.source));
     const srcLabel = this._activeFacetLabel;
     const stf = this._filter;
@@ -531,6 +531,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return {
       groups,
       summary,
+      seedAction,
+      hint,
       fAll: !stf, fSystem: stf === "system", fImported: stf === "imported", fMissing: stf === "missing",
       facetCounts,
       noCatalog: catalog.rows.length === 0,
@@ -595,22 +597,31 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _prepareJournalContext() {
     if (!this._journalCache) {
-      const rows = await gatherJournalCrawls().catch((err) => {
-        console.error("shadowdark-enhancer | gatherJournalCrawls failed:", err);
-        return [];
-      });
-      this._journalCache = { rows };
+      const [catalog, rows] = await Promise.all([
+        gatherJournalCatalog().catch((err) => {
+          console.error("shadowdark-enhancer | gatherJournalCatalog failed:", err);
+          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
+        }),
+        gatherJournalCrawls().catch((err) => {
+          console.error("shadowdark-enhancer | gatherJournalCrawls failed:", err);
+          return [];
+        }),
+      ]);
+      this._journalCache = { catalog, rows };
     }
-    const { rows } = this._journalCache;
-    const facetCounts = this._countByFacetLabel(rows.map((r) => r.source));
+    const { catalog, rows } = this._journalCache;
+    const cat = this._catalogContext(catalog, {
+      builtLabel: "Built",
+      hint: "To add a missing one, paste its hex or numbered-location key on the Import tab.",
+    });
     const label = this._activeFacetLabel;
     const visible = label ? rows.filter((r) => this._facetLabelForSource(r.source) === label) : rows;
     return {
+      catalog:    cat,
+      facetCounts: cat.facetCounts,
       crawls:     visible,
       crawlCount: visible.length,
       noCrawls:   rows.length === 0,
-      filteredEmpty: rows.length > 0 && visible.length === 0,
-      facetCounts,
     };
   }
 
@@ -626,23 +637,32 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _prepareScenesContext() {
     if (!this._scenesCache) {
-      const rows = await gatherSceneMaps().catch((err) => {
-        console.error("shadowdark-enhancer | gatherSceneMaps failed:", err);
-        return [];
-      });
-      this._scenesCache = { rows };
+      const [catalog, rows] = await Promise.all([
+        gatherSceneCatalog().catch((err) => {
+          console.error("shadowdark-enhancer | gatherSceneCatalog failed:", err);
+          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
+        }),
+        gatherSceneMaps().catch((err) => {
+          console.error("shadowdark-enhancer | gatherSceneMaps failed:", err);
+          return [];
+        }),
+      ]);
+      this._scenesCache = { catalog, rows };
     }
-    const { rows } = this._scenesCache;
-    const facetCounts = this._countByFacetLabel(rows.map((r) => r.source));
+    const { catalog, rows } = this._scenesCache;
+    const cat = this._catalogContext(catalog, {
+      builtLabel: "Built",
+      hint: "Maps can't be auto-imported — build each from your own image via “Build scene” on the Journal tab.",
+    });
     const label = this._activeFacetLabel;
     const visible = label ? rows.filter((r) => this._facetLabelForSource(r.source) === label) : rows;
     return {
+      catalog:     cat,
+      facetCounts: cat.facetCounts,
       scenes:      visible,
       sceneCount:  visible.length,
       noScenes:    rows.length === 0,
-      filteredEmpty: rows.length > 0 && visible.length === 0,
       backedUp:    visible.filter((r) => r.backedUp).length,
-      facetCounts,
     };
   }
 
