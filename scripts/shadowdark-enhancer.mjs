@@ -63,6 +63,13 @@ Hooks.once("init", () => {
   Handlebars.registerHelper("join", (arr, sep) =>
     Array.isArray(arr) ? arr.join(typeof sep === "string" ? sep : ", ") : "");
 
+  // Catalog accordion partial — shared by the Monsters/Items/Journal/Scenes
+  // manifest dashboards (Tables-style have/missing list).
+  foundry.applications.handlebars
+    .getTemplate(`modules/${MODULE_ID}/templates/partials/catalog.hbs`)
+    .then((tpl) => Handlebars.registerPartial("sdeCatalog", tpl))
+    .catch((err) => console.error(`${MODULE_ID} | failed to register sdeCatalog partial:`, err));
+
   // Expose API. Public, versioned surface (REQ-26) — additive changes bump
   // the minor version, breaking changes the major. Mirrored at
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for

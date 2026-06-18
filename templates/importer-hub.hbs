@@ -574,73 +574,7 @@
 
       {{!-- ── Census table ──────────────────────────────────────────────────── --}}
       <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-chart-bar"></i> Monster Census ({{monstersData.total}})
-        </h3>
-
-        {{#if monstersData.noCensus}}
-        <p class="sde-hub-monsters-empty">
-          No monsters found in sde-actors. Import some monsters on the Import tab first.
-        </p>
-        {{else}}
-        <table class="sde-hub-monsters-table">
-          <thead>
-            <tr>
-              <th class="sde-hub-monsters-th-source">Source</th>
-              <th class="sde-hub-monsters-th-have" title="Monsters in sde-actors from this source">Have</th>
-              <th class="sde-hub-monsters-th-gap" title="Monster names referenced in your imported pack tables that don't resolve">Gap</th>
-              <th class="sde-hub-monsters-th-expand"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each monstersData.censusRows as |row|}}
-            <tr class="sde-hub-monsters-row{{#if row.expanded}} expanded{{/if}}">
-              <td class="sde-hub-monsters-source">{{row.label}}</td>
-              <td class="sde-hub-monsters-have">{{row.have}}</td>
-              <td class="sde-hub-monsters-gap{{#if row.gap}} has-gap{{/if}}">{{row.gap}}</td>
-              <td class="sde-hub-monsters-expand-cell">
-                {{#if row.gap}}
-                <button type="button" class="sde-hub-monsters-expand-btn"
-                        data-action="monsterGapExpand" data-source="{{row.source}}"
-                        title="{{#if row.expanded}}Collapse{{else}}Expand{{/if}} missing names"
-                        aria-expanded="{{#if row.expanded}}true{{else}}false{{/if}}">
-                  <i class="fas fa-caret-{{#if row.expanded}}down{{else}}right{{/if}}"></i>
-                </button>
-                {{/if}}
-              </td>
-            </tr>
-            {{#if row.expanded}}
-            <tr class="sde-hub-monsters-gap-detail">
-              <td colspan="4" class="sde-hub-monsters-gap-td">
-                {{#if row.missingNames.length}}
-                <ul class="sde-hub-monsters-missing-list">
-                  {{#each row.missingNames as |name|}}
-                  <li class="sde-hub-monsters-missing-item">
-                    <span class="sde-hub-monsters-missing-name">{{name}}</span>
-                    <button type="button" class="sde-hub-monsters-seed-btn"
-                            data-action="monsterSeedPaste" data-name="{{name}}"
-                            title="Jump to Import tab with '{{name}}' pre-seeded">
-                      <i class="fas fa-bullseye"></i> Seed paste box
-                    </button>
-                  </li>
-                  {{/each}}
-                </ul>
-                {{else}}
-                <p class="sde-hub-monsters-gap-none">No missing names — every referenced monster resolves.</p>
-                {{/if}}
-              </td>
-            </tr>
-            {{/if}}
-            {{/each}}
-          </tbody>
-        </table>
-
-        {{#unless monstersData.hasGaps}}
-        <p class="sde-hub-monsters-allgood">
-          <i class="fas fa-circle-check"></i> No gaps — every referenced monster resolves.
-        </p>
-        {{/unless}}
-        {{/if}}
+        {{> sdeCatalog data=monstersData icon="fa-dragon" noun="monster"}}
       </section>
 
       {{!-- ── Duplicates section ──────────────────────────────────────────── --}}
@@ -719,77 +653,7 @@
 
       {{!-- ── Census ─────────────────────────────────────────────────────── --}}
       <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-gem"></i> Item Census ({{itemsData.total}})
-        </h3>
-
-        {{#if itemsData.noCensus}}
-        <p class="sde-hub-monsters-empty">
-          No items in sde-items. Import items on the Import tab, or fold the legacy Loot pack below.
-        </p>
-        {{else}}
-        <div class="sde-thub-sources">
-          <span class="sde-thub-srclabel">Types</span>
-          {{#each itemsData.typeRows as |t|}}
-          <span class="sde-thub-src">{{t.type}} <span class="sde-thub-src-n">{{t.count}}</span></span>
-          {{/each}}
-        </div>
-        <table class="sde-hub-monsters-table">
-          <thead>
-            <tr>
-              <th class="sde-hub-monsters-th-source">Source</th>
-              <th class="sde-hub-monsters-th-have" title="Items in sde-items from this source">Have</th>
-              <th class="sde-hub-monsters-th-gap" title="Item names referenced in your loot/treasure pack tables that don't resolve">Gap</th>
-              <th class="sde-hub-monsters-th-expand"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each itemsData.censusRows as |row|}}
-            <tr class="sde-hub-monsters-row{{#if row.expanded}} expanded{{/if}}">
-              <td class="sde-hub-monsters-source">{{row.label}}</td>
-              <td class="sde-hub-monsters-have">{{row.have}}</td>
-              <td class="sde-hub-monsters-gap{{#if row.gap}} has-gap{{/if}}">{{row.gap}}</td>
-              <td class="sde-hub-monsters-expand-cell">
-                {{#if row.gap}}
-                <button type="button" class="sde-hub-monsters-expand-btn"
-                        data-action="itemGapExpand" data-source="{{row.source}}"
-                        aria-expanded="{{#if row.expanded}}true{{else}}false{{/if}}">
-                  <i class="fas fa-caret-{{#if row.expanded}}down{{else}}right{{/if}}"></i>
-                </button>
-                {{/if}}
-              </td>
-            </tr>
-            {{#if row.expanded}}
-            <tr class="sde-hub-monsters-gap-detail">
-              <td colspan="4" class="sde-hub-monsters-gap-td">
-                {{#if row.missingNames.length}}
-                <ul class="sde-hub-monsters-missing-list">
-                  {{#each row.missingNames as |name|}}
-                  <li class="sde-hub-monsters-missing-item">
-                    <span class="sde-hub-monsters-missing-name">{{name}}</span>
-                    <button type="button" class="sde-hub-monsters-seed-btn"
-                            data-action="itemSeedPaste" data-name="{{name}}"
-                            title="Jump to Import tab with '{{name}}' pre-seeded">
-                      <i class="fas fa-bullseye"></i> Seed paste box
-                    </button>
-                  </li>
-                  {{/each}}
-                </ul>
-                {{else}}
-                <p class="sde-hub-monsters-gap-none">No missing names.</p>
-                {{/if}}
-              </td>
-            </tr>
-            {{/if}}
-            {{/each}}
-          </tbody>
-        </table>
-        {{#unless itemsData.hasGaps}}
-        <p class="sde-hub-monsters-allgood">
-          <i class="fas fa-circle-check"></i> No gaps — every referenced item resolves.
-        </p>
-        {{/unless}}
-        {{/if}}
+        {{> sdeCatalog data=itemsData icon="fa-gem" noun="item"}}
       </section>
 
       {{!-- ── Duplicates ─────────────────────────────────────────────────── --}}

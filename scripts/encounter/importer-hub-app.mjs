@@ -32,6 +32,9 @@ import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./it
 import { gatherJournalCrawls, deployJournalCrawl } from "./journal-dashboard-live.mjs";
 import { gatherSceneMaps, backupSceneById } from "./scene-dashboard-live.mjs";
 import { sourceFolderName } from "./compendium-suite.mjs";
+import {
+  gatherMonsterCatalog, gatherItemCatalog, gatherJournalCatalog, gatherSceneCatalog,
+} from "./content-dashboard-live.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -455,45 +458,20 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _prepareMonstersContext() {
     if (!this._monstersCache) {
-      // Fetch in parallel: census (includes gaps) + duplicates
-      const [censusRowsMerged, dupGroups] = await Promise.all([
-        gatherCensus().catch((err) => {
-          console.error("shadowdark-enhancer | gatherCensus failed:", err);
-          return [];
+      const [catalog, dupGroups] = await Promise.all([
+        gatherMonsterCatalog().catch((err) => {
+          console.error("shadowdark-enhancer | gatherMonsterCatalog failed:", err);
+          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
         }),
         gatherDuplicates().catch((err) => {
           console.error("shadowdark-enhancer | gatherDuplicates failed:", err);
           return [];
         }),
       ]);
-
-      this._monstersCache = {
-        censusRows:     censusRowsMerged,
-        duplicateGroups: dupGroups,
-        duplicateCount:  dupGroups.length,
-      };
+      this._monstersCache = { catalog, duplicateGroups: dupGroups, duplicateCount: dupGroups.length };
     }
 
-    const { censusRows: rows, duplicateGroups: dupGroups, duplicateCount } = this._monstersCache;
-
-    // Per-source counts for the global source bar (full data, pre-filter).
-    const facetCounts = Object.fromEntries(rows.map((r) => [r.label, r.have]));
-
-    // Apply the global source filter to the displayed census rows.
-    const label = this._activeFacetLabel;
-    const visibleRows = label ? rows.filter((r) => r.label === label) : rows;
-
-    // Enrich census rows with expansion state
-    const censusRowsCtx = visibleRows.map((r) => ({
-      ...r,
-      expanded: this._expandedGapRows.has(r.source),
-    }));
-
-    const hasGaps = visibleRows.some((r) => r.gap > 0);
-    const hasDuplicates = dupGroups.length > 0;
-
-    // Render-friendly member dates — the raw _stats.modifiedTime epoch was
-    // showing verbatim ("1781264550026"; live-caught by the GM).
+    const { catalog, duplicateGroups: dupGroups, duplicateCount } = this._monstersCache;
     const dupGroupsCtx = dupGroups.map((g) => ({
       ...g,
       members: g.members.map((m) => ({
@@ -503,15 +481,59 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
 
     return {
-      total:           rows.reduce((n, r) => n + (r.have ?? 0), 0),
-      facetCounts,
-      censusRows:      censusRowsCtx,
+      ...this._catalogContext(catalog, { seedAction: "monsterSeedPaste" }),
+      seedAction:      "monsterSeedPaste",
       duplicateGroups: dupGroupsCtx,
       duplicateCount,
-      hasGaps,
-      hasDuplicates,
-      noCensus:        rows.length === 0,
-      filteredEmpty:   rows.length > 0 && visibleRows.length === 0,
+      hasDuplicates:   dupGroups.length > 0,
+    };
+  }
+
+  /**
+   * Shared shaping for a manifest catalog dashboard: apply the global source
+   * filter (chips below the tabs) and the status filter (summary chips) to the
+   * reconciled groups, recount the summary for the source filter, and surface
+   * per-source facet counts. Used by Monsters / Items / Journal / Scenes.
+   */
+  _catalogContext(catalog, { seedAction = null, builtLabel = "Imported" } = {}) {
+    const facetCounts = this._countByFacetLabel(catalog.rows.map((r) => r.source));
+    const srcLabel = this._activeFacetLabel;
+    const stf = this._filter;
+
+    // Stamp per-row affordances — block params keep `r` in scope at any depth in
+    // the partial, whereas the partial-level `data` falls out of scope inside
+    // nested {{#each}}.
+    const stamp = (r) => ({
+      ...r,
+      importAction: r.state === "missing" ? seedAction : null,
+      presentLabel: builtLabel,
+    });
+
+    const groups = catalog.groups
+      .filter((g) => !srcLabel || this._facetLabelForSource(g.source) === srcLabel)
+      .map((g) => ({
+        ...g,
+        subgroups: g.subgroups
+          .map((s) => ({ ...s, rows: s.rows.filter((r) => !stf || r.state === stf).map(stamp) }))
+          .filter((s) => s.rows.length),
+      }))
+      .filter((g) => g.subgroups.length);
+
+    let summary = catalog.summary;
+    if (srcLabel) {
+      summary = { total: 0, system: 0, imported: 0, missing: 0, draft: 0 };
+      for (const r of catalog.rows) {
+        if (this._facetLabelForSource(r.source) !== srcLabel) continue;
+        summary.total++; summary[r.state]++; if (r.draft) summary.draft++;
+      }
+    }
+
+    return {
+      groups,
+      summary,
+      fAll: !stf, fSystem: stf === "system", fImported: stf === "imported", fMissing: stf === "missing",
+      facetCounts,
+      noCatalog: catalog.rows.length === 0,
     };
   }
 
@@ -530,39 +552,20 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _prepareItemsContext() {
     if (!this._itemsCache) {
-      const [census, dupGroups] = await Promise.all([
-        gatherItemCensus().catch((err) => {
-          console.error("shadowdark-enhancer | gatherItemCensus failed:", err);
-          return { total: 0, typeCounts: {}, rows: [] };
+      const [catalog, dupGroups] = await Promise.all([
+        gatherItemCatalog().catch((err) => {
+          console.error("shadowdark-enhancer | gatherItemCatalog failed:", err);
+          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
         }),
         gatherItemDuplicates().catch((err) => {
           console.error("shadowdark-enhancer | gatherItemDuplicates failed:", err);
           return [];
         }),
       ]);
-      this._itemsCache = {
-        total:           census.total,
-        typeCounts:      census.typeCounts,
-        censusRows:      census.rows,
-        duplicateGroups: dupGroups,
-        duplicateCount:  dupGroups.length,
-      };
+      this._itemsCache = { catalog, duplicateGroups: dupGroups, duplicateCount: dupGroups.length };
     }
 
-    const { censusRows: rows, duplicateGroups: dupGroups, duplicateCount, total, typeCounts } = this._itemsCache;
-
-    const facetCounts = Object.fromEntries(rows.map((r) => [r.label, r.have]));
-    const label = this._activeFacetLabel;
-    const visibleRows = label ? rows.filter((r) => r.label === label) : rows;
-
-    const censusRowsCtx = visibleRows.map((r) => ({
-      ...r,
-      expanded: this._expandedItemGapRows.has(r.source),
-    }));
-    const typeRows = Object.entries(typeCounts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([type, count]) => ({ type, count }));
-
+    const { catalog, duplicateGroups: dupGroups, duplicateCount } = this._itemsCache;
     const dupGroupsCtx = dupGroups.map((g) => ({
       ...g,
       members: g.members.map((m) => ({
@@ -572,16 +575,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }));
 
     return {
-      total,
-      facetCounts,
-      typeRows,
-      censusRows:      censusRowsCtx,
+      ...this._catalogContext(catalog, { seedAction: "itemSeedPaste" }),
+      seedAction:      "itemSeedPaste",
       duplicateGroups: dupGroupsCtx,
       duplicateCount,
-      hasGaps:         visibleRows.some((r) => r.gap > 0),
       hasDuplicates:   dupGroups.length > 0,
-      noCensus:        rows.length === 0,
-      filteredEmpty:   rows.length > 0 && visibleRows.length === 0,
     };
   }
 
