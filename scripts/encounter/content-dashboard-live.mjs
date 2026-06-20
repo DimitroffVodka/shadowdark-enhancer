@@ -72,7 +72,14 @@ export async function gatherItemCatalog() {
  *  World entries first so double-click opens the live crawl, not the backup. */
 export async function gatherJournalCatalog() {
   const have = [];
-  for (const j of game.journal) have.push({ name: j.name, value: j.uuid });
+  for (const j of game.journal) {
+    have.push({ name: j.name, value: j.uuid });
+    // Page-level match: lore/gazetteer content (e.g. the Western Reaches gods,
+    // patrons, gameplay procedures) ships as PAGES inside a few grouped entries,
+    // so index page names too. Entry uuid is kept first so double-click opens the
+    // crawl; the page name still resolves the manifest row to "imported".
+    for (const p of j.pages) have.push({ name: p.name, value: p.uuid });
+  }
   const pack = findSuitePack("sde-journal");
   if (pack) for (const e of await pack.getIndex()) have.push({ name: e.name, value: e.uuid });
   return bundle(JOURNAL_MANIFEST, { haveIndex: keyIndex(have) });
