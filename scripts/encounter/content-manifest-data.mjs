@@ -16,7 +16,7 @@
 
 const L = { cs1: "Cursed Scroll 1", cs2: "Cursed Scroll 2", cs3: "Cursed Scroll 3",
             cs4: "Cursed Scroll 4", cs5: "Cursed Scroll 5", cs6: "Cursed Scroll 6",
-            wr: "Western Reaches" };
+            pgwr: "Western Reaches" };
 const kebab = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const mk = (source, category, page, name) =>
   ({ id: `${source}-${kebab(name)}`, name, source, sourceLabel: L[source], category, page, draft: true });
@@ -46,12 +46,12 @@ export const MONSTER_MANIFEST = [
       "Camel","Silver Camel","Donkey","Elephant",
       "Griffon","Hippogriff","Horse","Prized Horse",
       "War Horse","Moose","Pegasus","Pony",
-      "Scrag","War Scrag","Worg"].map(n => mk("wr","Monster",114,n)),
+      "Scrag","War Scrag","Worg"].map(n => mk("pgwr","Monster",114,n)),
   ...[
       "Light Melee Warband","Heavy Melee Warband","Light Mounted Warband","Heavy Mounted Warband",
-      "Light Ranged Warband","Heavy Ranged Warband","Berserker Warband","Rabble Warband"].map(n => mk("wr","Monster",248,n)),
+      "Light Ranged Warband","Heavy Ranged Warband","Berserker Warband","Rabble Warband"].map(n => mk("pgwr","Monster",248,n)),
   ...[
-      "Anima","Treant"].map(n => mk("wr","Monster",166,n)),
+      "Anima","Treant"].map(n => mk("pgwr","Monster",166,n)),
 ];
 
 // ── Items: named uniques + dedicated gear/spell/poison sets ───────────────────
@@ -90,7 +90,7 @@ export const ITEM_MANIFEST = [
       "Lantern","Lantern hook","Miner's putty, jar","Mirror",
       "Net","Oil, flask","Pole","Rations (3)",
       "Rope, 60'","Morzo silk rope","Saddle","Spear-thrower",
-      "Tallow, jar","Torch","Traveler's lamp","Wagon"].map(n => mk("wr","Gear",106,n)),
+      "Tallow, jar","Torch","Traveler's lamp","Wagon"].map(n => mk("pgwr","Gear",106,n)),
   ...[
       "Bastard sword","Blowgun","Boomerang","Chakram",
       "Club","Crossbow","Dagger","Falchion",
@@ -99,19 +99,19 @@ export const ITEM_MANIFEST = [
       "Morningstar","Pike","Rapier","Razor chain",
       "Sai","Scimitar","Shortbow","Shortsword",
       "Shuriken","Sling","Spear","Staff",
-      "Stave","Warhammer","Whip"].map(n => mk("wr","Weapon",110,n)),
+      "Stave","Warhammer","Whip"].map(n => mk("pgwr","Weapon",110,n)),
   ...[
       "Leather armor","Chainmail","Mithral chainmail","Plate mail",
       "Mithral plate mail","Round shield","Mithral round shield","Shield",
-      "Mithral shield"].map(n => mk("wr","Armor",112,n)),
+      "Mithral shield"].map(n => mk("pgwr","Armor",112,n)),
   ...[
       "Aminiita root","Bluewort paste","Drowsy dust","Ether of Idos",
-      "Kingslayer oil","Nuzule oil","Truth-speak oil","Vapor of Leng"].map(n => mk("wr","Poison",113,n)),
+      "Kingslayer oil","Nuzule oil","Truth-speak oil","Vapor of Leng"].map(n => mk("pgwr","Poison",113,n)),
   ...[
       "Canoe","Galleon","Junk","Longboat",
-      "Raft","Rowboat","Sailboat","Sloop"].map(n => mk("wr","Boat",118,n)),
+      "Raft","Rowboat","Sailboat","Sloop"].map(n => mk("pgwr","Boat",118,n)),
   ...[
-      "Ballista","Catapult","Heavy crossbow","Trebuchet"].map(n => mk("wr","Siege Weapon",119,n)),
+      "Ballista","Catapult","Heavy crossbow","Trebuchet"].map(n => mk("pgwr","Siege Weapon",119,n)),
   // Spells — class lists (pg 122/132/144/150/166). Necromancer/Seer/Witch are largely new;
   // the Wizard set = Druid/Mage/Sorcerer (overlaps CS4/CS5/CS6). Cross-class duplicate names
   // kept once (Speak With Dead→Necromancer, Protection From Good→Priest, Eyebite→Witch).
@@ -123,7 +123,7 @@ export const ITEM_MANIFEST = [
       "Speak With Dead","Third Gate","Ashes To Ashes","Excoriate",
       "Fourth Gate","Necronomicon","Revenant","Vision",
       "Anchor","Create Undead","Dust To Dust","Fifth Gate",
-      "Riverwalk","Summon Soul"].map(n => mk("wr","Spell",122,n)),
+      "Riverwalk","Summon Soul"].map(n => mk("pgwr","Spell",122,n)),
   ...[
       "Fortify","Prayer","Consecrate","Peace",
       "Covenant","Revitalize","Halo","Wheel of Flames",
@@ -132,13 +132,13 @@ export const ITEM_MANIFEST = [
       "Bear Shape","Siphon","Balance","Root",
       "Darkness","Protection From Good","Extract","Inflict Wounds",
       "Blood Rite","Rend","Contagion","Unhinge",
-      "Damnation","Harm"].map(n => mk("wr","Spell",132,n)),
+      "Damnation","Harm"].map(n => mk("pgwr","Spell",132,n)),
   ...[
       "Chant","Evoke Rage","Potion","Trance",
       "Fate","Read The Runes","Sacrifice","Soulbind",
       "Cast Out","Hallucinate","Raven","Wolfshape",
       "Freya's Omen","Loki's Trickery","Odin's Wisdom","Thor's Thunder",
-      "Ragnarok","Valkyrie","World Serpent","World Tree"].map(n => mk("wr","Spell",144,n)),
+      "Ragnarok","Valkyrie","World Serpent","World Tree"].map(n => mk("pgwr","Spell",144,n)),
   ...[
       "Cauldron","Charm Person","Eyebite","Fog",
       "Hypnotize","Oak, Ash, Thorn","Puppet","Shadowdance",
@@ -151,7 +151,7 @@ export const ITEM_MANIFEST = [
       "Dimension Door","Glassbones","Moonbeam","Nightmare",
       "Polymorph","Anathema","Dreamwalk","Enfeeble",
       "Finger of Death","Mother of Night","Scrying","Shapechange",
-      "Soul Jar"].map(n => mk("wr","Spell",150,n)),
+      "Soul Jar"].map(n => mk("pgwr","Spell",150,n)),
   ...[
       "Breath","Instill","Oxidize","Whisperwind",
       "Barkskin","Befriend","Magnetize","Truespeech",
@@ -164,7 +164,7 @@ export const ITEM_MANIFEST = [
       "Blight","Mischief","Envenom","Phantoms",
       "Wither","Wrack","Betrayal","Defile",
       "Mazzim's Mesmerism","Unlife","Dismember","Dominate",
-      "Feeblemind","Subjugate"].map(n => mk("wr","Spell",166,n)),
+      "Feeblemind","Subjugate"].map(n => mk("pgwr","Spell",166,n)),
 ];
 
 // ── Journals: hex/city keys + dungeon keys + rules/class chapters ─────────────
@@ -184,52 +184,52 @@ export const JOURNAL_MANIFEST = [
   mk("cs6","City",54,"City of Masks — Locations"),
   // ── WR — Player's Guide to the Western Reaches (scraped from the PDF, DRAFT) ──
   // Lore/gazetteer, the 8 deities, 17 patrons, 11 gameplay procedures, 6 factions.
-  mk("wr","Lore",12,"What Everyone Knows"),
-  mk("wr","Lore",14,"Life in the Reaches: Points of Light"),
-  mk("wr","Lore",15,"Life in the Reaches: Social Structure"),
-  mk("wr","Lore",15,"Civilizations of the Reaches"),
-  mk("wr","Deity",190,"Madeera the Covenant"),
-  mk("wr","Deity",192,"Saint Terragnis"),
-  mk("wr","Deity",194,"Gede"),
-  mk("wr","Deity",196,"Ord"),
-  mk("wr","Deity",198,"Memnon"),
-  mk("wr","Deity",200,"Shune the Vile"),
-  mk("wr","Deity",202,"Ramlaat"),
-  mk("wr","Deity",204,"The Lost"),
-  mk("wr","Patron",206,"Patrons: Overview"),
-  mk("wr","Patron",207,"Almazzat"),
-  mk("wr","Patron",208,"Freya"),
-  mk("wr","Patron",209,"Krraktanamak"),
-  mk("wr","Patron",210,"Kytheros"),
-  mk("wr","Patron",211,"Loki"),
-  mk("wr","Patron",212,"Molek"),
-  mk("wr","Patron",213,"Mugdulblub"),
-  mk("wr","Patron",214,"Oatali"),
-  mk("wr","Patron",215,"Obe-Ixx of Azarumme"),
-  mk("wr","Patron",216,"Odin"),
-  mk("wr","Patron",217,"Oros"),
-  mk("wr","Patron",218,"Rathgamnon"),
-  mk("wr","Patron",219,"Saint Ydris"),
-  mk("wr","Patron",220,"Shune the Vile (Patron)"),
-  mk("wr","Patron",221,"Titania"),
-  mk("wr","Patron",222,"The Willowman"),
-  mk("wr","Patron",223,"Yag-Kesh"),
-  mk("wr","Gameplay",226,"Hex Crawling"),
-  mk("wr","Gameplay",228,"Climate"),
-  mk("wr","Gameplay",230,"Camping"),
-  mk("wr","Gameplay",231,"Fast Travel"),
-  mk("wr","Gameplay",232,"Travel Procedure"),
-  mk("wr","Gameplay",233,"Renown"),
-  mk("wr","Gameplay",234,"Downtime"),
-  mk("wr","Gameplay",236,"Carousing"),
-  mk("wr","Gameplay",246,"Bastions"),
-  mk("wr","Gameplay",248,"Warbands"),
-  mk("wr","Faction",92,"The Bards"),
-  mk("wr","Faction",94,"The Jeweled Eye"),
-  mk("wr","Faction",96,"The Scarlet Bones"),
-  mk("wr","Faction",98,"The Society"),
-  mk("wr","Faction",100,"The Torchbearers"),
-  mk("wr","Faction",102,"The Wolves of Lydonia"),
+  mk("pgwr","Lore",12,"What Everyone Knows"),
+  mk("pgwr","Lore",14,"Life in the Reaches: Points of Light"),
+  mk("pgwr","Lore",15,"Life in the Reaches: Social Structure"),
+  mk("pgwr","Lore",15,"Civilizations of the Reaches"),
+  mk("pgwr","Deity",190,"Madeera the Covenant"),
+  mk("pgwr","Deity",192,"Saint Terragnis"),
+  mk("pgwr","Deity",194,"Gede"),
+  mk("pgwr","Deity",196,"Ord"),
+  mk("pgwr","Deity",198,"Memnon"),
+  mk("pgwr","Deity",200,"Shune the Vile"),
+  mk("pgwr","Deity",202,"Ramlaat"),
+  mk("pgwr","Deity",204,"The Lost"),
+  mk("pgwr","Patron",206,"Patrons: Overview"),
+  mk("pgwr","Patron",207,"Almazzat"),
+  mk("pgwr","Patron",208,"Freya"),
+  mk("pgwr","Patron",209,"Krraktanamak"),
+  mk("pgwr","Patron",210,"Kytheros"),
+  mk("pgwr","Patron",211,"Loki"),
+  mk("pgwr","Patron",212,"Molek"),
+  mk("pgwr","Patron",213,"Mugdulblub"),
+  mk("pgwr","Patron",214,"Oatali"),
+  mk("pgwr","Patron",215,"Obe-Ixx of Azarumme"),
+  mk("pgwr","Patron",216,"Odin"),
+  mk("pgwr","Patron",217,"Oros"),
+  mk("pgwr","Patron",218,"Rathgamnon"),
+  mk("pgwr","Patron",219,"Saint Ydris"),
+  mk("pgwr","Patron",220,"Shune the Vile (Patron)"),
+  mk("pgwr","Patron",221,"Titania"),
+  mk("pgwr","Patron",222,"The Willowman"),
+  mk("pgwr","Patron",223,"Yag-Kesh"),
+  mk("pgwr","Gameplay",226,"Hex Crawling"),
+  mk("pgwr","Gameplay",228,"Climate"),
+  mk("pgwr","Gameplay",230,"Camping"),
+  mk("pgwr","Gameplay",231,"Fast Travel"),
+  mk("pgwr","Gameplay",232,"Travel Procedure"),
+  mk("pgwr","Gameplay",233,"Renown"),
+  mk("pgwr","Gameplay",234,"Downtime"),
+  mk("pgwr","Gameplay",236,"Carousing"),
+  mk("pgwr","Gameplay",246,"Bastions"),
+  mk("pgwr","Gameplay",248,"Warbands"),
+  mk("pgwr","Faction",92,"The Bards"),
+  mk("pgwr","Faction",94,"The Jeweled Eye"),
+  mk("pgwr","Faction",96,"The Scarlet Bones"),
+  mk("pgwr","Faction",98,"The Society"),
+  mk("pgwr","Faction",100,"The Torchbearers"),
+  mk("pgwr","Faction",102,"The Wolves of Lydonia"),
 ];
 
 // ── Scenes: maps shipped with each scroll (dims where known) ──────────────────
@@ -263,5 +263,5 @@ export const SCENE_MANIFEST = [
   // ── WR — Player's Guide to the Western Reaches ──────────────────────────────
   // The book ships one overview map (front endpaper); region/hex maps live in the
   // Cursed Scrolls. Map image not extracted (D1 — maps stay outside the repo).
-  scene("wr","Player's Map of the Western Reaches",null),
+  scene("pgwr","Player's Map of the Western Reaches",null),
 ];
