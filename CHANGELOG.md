@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.7.0] — 2026-06-20
+
+Adds **Western Reaches (Player's Guide)** coverage to the importer catalog, plus reconcile fixes.
+
+### Added
+- **Western Reaches (Player's Guide) catalog.** All six importer tabs now cover the *Player's Guide to the Western Reaches*: its spells, gear / weapons / armor / poisons / boats / siege, mounts & warband units, lore / deity / patron / gameplay journal sections, the 9 new classes + Half-Elf ancestry, and its random tables (ancestry names & trinkets, backgrounds, secrets, faction generator, spell mishaps, carousing, and the per-class talent tables). Each row reconciles against your world into **in-system / imported / missing** like the rest of the catalog. New `pgwr` source id with its own "Western Reaches" source-filter chip.
+
+### Fixed
+- **Western Reaches tables now appear in the Tables tab.** Catalog rows use the reserved `pgwr` source id, so the "Western Reaches" filter chip resolves them (it previously counted 0 because the rows were tagged with an unrecognized source).
+- **Items tab spell reconcile.** The Items reconcile now also indexes the system spells compendium, so spell entries (the Western Reaches and Cursed Scroll spell lists) that ship in the base system no longer read "missing".
+- **Journal catalog matches page names.** Grouped lore entries (e.g. a single "Gods" entry with a page per deity) now reconcile their per-page manifest rows, not just the entry name.
+- **Class talent-table names** aligned to the system's `Class Talents: X` convention so they resolve in the class sheet's talent-table picker and reconcile in the Tables catalog.
+
+### Notes
+- Catalog manifests ship **metadata only** — names + approximate pages, no statblocks, spell/item text, table rows, or map images (same copyright stance as the existing catalog). The actual Western Reaches documents are built into your own world from your copy of the book; they are **not** distributed with the module.
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+
 ## [0.6.0] — 2026-06-18
 
 Bundles the previously-unreleased v0.5 (importer hub completion) and v0.6 (catalog-driven dashboards) work.
