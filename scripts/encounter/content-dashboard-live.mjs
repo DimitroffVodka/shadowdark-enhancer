@@ -58,14 +58,19 @@ export async function gatherMonsterCatalog() {
   return bundle(MONSTER_MANIFEST, { systemIndex: keyIndex(system), haveIndex: keyIndex(have) });
 }
 
-/** Items: system gear + magic items win, sde-items fills gaps. */
+/** Items: system gear + magic items + spells win, sde-items fills gaps.
+ *  Spells are catalogued as items (category "Spell"), so the system SPELLS pack
+ *  must be in the system index too — otherwise reprinted/core spells (e.g. the
+ *  Western Reaches or CS spell lists) read "missing" when they actually ship in
+ *  shadowdark.spells. */
 export async function gatherItemCatalog() {
-  const [gear, magic, have] = await Promise.all([
+  const [gear, magic, spells, have] = await Promise.all([
     packRecords("shadowdark.gear"),
     packRecords("shadowdark.magic-items"),
+    packRecords("shadowdark.spells"),
     suiteRecords("sde-items"),
   ]);
-  return bundle(ITEM_MANIFEST, { systemIndex: keyIndex([...gear, ...magic]), haveIndex: keyIndex(have) });
+  return bundle(ITEM_MANIFEST, { systemIndex: keyIndex([...gear, ...magic, ...spells]), haveIndex: keyIndex(have) });
 }
 
 /** Journals: a deployed/world or sde-journal crawl whose name matches → imported.
