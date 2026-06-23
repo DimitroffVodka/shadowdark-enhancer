@@ -34,10 +34,12 @@ import { ItemImporter } from "./encounter/item-importer.mjs";
 import { MonsterLinker } from "./encounter/monster-linker.mjs";
 import { LootLinker } from "./encounter/loot-linker.mjs";
 import { buildBundle, exportBundle, applyBundle } from "./encounter/bundle-io.mjs";
+import { MerchantShop } from "./merchant-shop.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
   registerSettings();
+  MerchantShop.registerSettings();
   LootDelivery.init();
   LootTableTag.init();
   TableRegistry.init();
@@ -175,6 +177,15 @@ Hooks.once("init", () => {
       // sweep). GM-only, idempotent, link-preserving.
       relinkAll: () => TableEnricher.sweepPack(),
     },
+    // Merchant Shop (ported from Vagabond Crawler). GM opens the shop for all
+    // players; buy/sell against actor coins, transaction log, optional gamble.
+    merchant: {
+      open: (opts) => MerchantShop.open(opts),
+      close: () => MerchantShop.close(),
+      openLocally: () => MerchantShop.openLocally(),
+      getLog: () => MerchantShop.getLog(),
+      clearLog: () => MerchantShop.clearLog(),
+    },
   };
 });
 
@@ -190,6 +201,7 @@ Hooks.once("ready", () => {
   CrawlStrip.init();
   CrawlBar.init();
   LootDrops.init();
+  MerchantShop.init();
   checkCoexistence();
   if (game.user.isGM && !game.settings.get(MODULE_ID, "lootSetupSeen")) {
     const bound = boundCount(game.settings.get(MODULE_ID, "lootTierTables") ?? {});

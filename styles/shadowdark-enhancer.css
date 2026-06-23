@@ -5008,3 +5008,729 @@ body.theme-light .sde-hub-monsters-row td {
   border-radius: 50%;
   transform: translate(-50%, -50%);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Merchant Shop (sdems-) — ported from Vagabond Crawler
+   Theme variables scoped to the shop window so it renders self-contained.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.shadowdark-enhancer-merchant-shop {
+  --vcb-bg:          #17191d;
+  --vcb-bg-alt:      #1f2226;
+  --vcb-bg-hover:    #2a2d32;
+  --vcb-border:      #3a3d44;
+  --vcb-text:        #BDC1C6;
+  --vcb-text-bright: #e8eaed;
+  --vcb-text-muted:  #767676;
+  --vcb-text-shadow: rgba(0,0,0,0.6);
+  --vcb-accent-dim:  #94913c;
+  --vcb-action-buy:      #4caf50;
+  --vcb-action-buy-dim:  #2e7d32;
+  --vcb-action-sell:     #e74c3c;
+  --vcb-btn-1:       #252830;
+  --vcb-btn-2:       #1b1e24;
+  --vcb-btn-hover-1: #2e3138;
+  --vcb-btn-hover-2: #232730;
+  --vcb-drag-over:   #22241a;
+  --vcb-ext-discord: #5865f2;
+  --vcb-input-bg:    #111418;
+  --vcb-price-gold:    #daa520;
+  --vcb-price-gold-hi: #f4c542;
+  --vcb-radius:      4px;
+  --vcb-shadow-md:   rgba(0,0,0,0.5);
+}
+
+.sdems-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 6px;
+  padding: 8px;
+  color: var(--vcb-text, #BDC1C6);
+}
+
+/* ── Header ────────────────────────────────────────────────────────────── */
+
+.sdems-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, var(--vcb-bg-alt, #1f2226), var(--vcb-bg, #17191d));
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 6px;
+}
+.sdems-header-icon { font-size: 1.3em; color: var(--vcb-accent-dim, #94913c); }
+.sdems-title { margin: 0; font-size: 1.1em; color: var(--vcb-text-bright, #e8eaed); flex: 1; }
+.sdems-wallet {
+  font-size: 1em;
+  color: var(--vcb-price-gold);
+  background: rgba(218, 165, 32, 0.1);
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(218, 165, 32, 0.25);
+}
+.sdems-wallet.sdems-no-actor { color: var(--vcb-text-muted); background: rgba(0,0,0,0.15); border-color: rgba(255,255,255,0.1); }
+
+/* ── Tabs ──────────────────────────────────────────────────────────────── */
+
+.sdems-tab-bar {
+  display: flex;
+  gap: 2px;
+  background: var(--vcb-bg, #17191d);
+  border-radius: 6px;
+  padding: 2px;
+}
+.sdems-tab-btn {
+  flex: 1;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vcb-text-muted, #666);
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 1em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.sdems-tab-btn:hover { color: var(--vcb-text, #BDC1C6); background: var(--vcb-bg-hover, #2a2d32); }
+.sdems-tab-btn.active {
+  color: var(--vcb-accent-dim, #94913c);
+  background: var(--vcb-bg-alt, #1f2226);
+  border: 1px solid var(--vcb-border, #3a3d44);
+}
+.sdems-tab-btn i { margin-right: 4px; }
+
+/* ── Body ──────────────────────────────────────────────────────────────── */
+
+.sdems-body { flex: 1; overflow-y: auto; min-height: 0; }
+.sdems-tab-content { display: flex; flex-direction: column; gap: 6px; height: 100%; }
+
+/* ── Filters (Buy tab) ─────────────────────────────────────────────────── */
+
+.sdems-filters { display: flex; gap: 6px; }
+.sdems-search-input, .sdems-category-select {
+  padding: 5px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+.sdems-search-input { flex: 1; }
+.sdems-category-select { min-width: 140px; }
+
+/* ── Item rows (shared Buy + Sell) ─────────────────────────────────────── */
+
+.sdems-item-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 3px; }
+.sdems-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  font-size: 1em;
+  transition: background 0.1s;
+}
+.sdems-item-row:hover { background: var(--vcb-bg-hover, #2a2d32); }
+.sdems-item-row.sdems-out-of-stock { opacity: 0.4; }
+.sdems-item-row.sdems-cant-afford:not(.sdems-out-of-stock) .sdems-buy-btn { opacity: 0.4; }
+
+.sdems-item-icon { border-radius: 3px; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.08); }
+.sdems-item-info { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.sdems-item-name { color: var(--vcb-text-bright, #e8eaed); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sdems-item-cat { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
+
+.sdems-item-price { color: var(--vcb-price-gold); font-weight: 600; min-width: 55px; text-align: right; }
+.sdems-sell-price { color: var(--vcb-action-buy); }
+
+.sdems-item-stock { color: var(--vcb-text-muted, #666); min-width: 30px; text-align: center; }
+
+.sdems-item-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.sdems-qty-input {
+  width: 40px;
+  padding: 2px 4px;
+  text-align: center;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 3px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+/* Primary-action buttons — solid fill matching .forge-btn energy (audit P1).
+ * Buy spends money (go-ahead affordance), Sell gains gold (semantic pairing
+ * with gold price color). Both read as confident CTAs, not tags. */
+.sdems-buy-btn, .sdems-sell-btn {
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--vcb-bg);
+  text-shadow: 0 1px 0 rgba(0,0,0,0.25);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.08s;
+}
+.sdems-buy-btn {
+  background: linear-gradient(135deg, var(--vcb-action-buy-dim), var(--vcb-action-buy));
+  border: 2px solid var(--vcb-action-buy);
+}
+.sdems-buy-btn:hover:not([disabled]) {
+  background: linear-gradient(135deg, var(--vcb-action-buy), var(--vcb-action-buy));
+  box-shadow: 0 0 10px rgba(76,175,80,0.45);
+}
+.sdems-buy-btn:active:not([disabled]) { transform: translateY(1px); }
+.sdems-buy-btn[disabled] { cursor: not-allowed; opacity: 0.45; filter: grayscale(0.3); }
+
+.sdems-sell-btn {
+  background: linear-gradient(135deg, var(--vcb-price-gold), var(--vcb-price-gold));
+  border: 2px solid var(--vcb-price-gold-hi);
+}
+.sdems-sell-btn:hover {
+  background: linear-gradient(135deg, var(--vcb-price-gold), var(--vcb-price-gold-hi));
+  box-shadow: 0 0 10px rgba(218,165,32,0.45);
+}
+.sdems-sell-btn:active { transform: translateY(1px); }
+
+/* ── Sell tab header ───────────────────────────────────────────────────── */
+
+.sdems-sell-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  font-size: 1em;
+  color: var(--vcb-text-muted, #666);
+}
+.sdems-sell-ratio strong { color: var(--vcb-text, #BDC1C6); }
+.sdems-sell-all-junk {
+  padding: 4px 10px;
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  border-radius: 4px;
+  background: rgba(231, 76, 60, 0.12);
+  color: var(--vcb-action-sell);
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.sdems-sell-all-junk:hover { background: rgba(231, 76, 60, 0.25); }
+.sdems-junk-item { border-left: 3px solid var(--vcb-action-sell); opacity: 0.7; }
+.sdems-junk-item:hover { opacity: 1; }
+
+/* ── Log tab ───────────────────────────────────────────────────────────── */
+
+.sdems-log-toolbar { display: flex; gap: 6px; justify-content: flex-end; }
+.sdems-copy-discord, .sdems-clear-log {
+  padding: 4px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 1em;
+  border: 1px solid;
+}
+.sdems-copy-discord {
+  background: rgba(88, 101, 242, 0.2);
+  border-color: rgba(88, 101, 242, 0.5);
+  color: var(--vcb-ext-discord);
+}
+.sdems-copy-discord:hover { background: rgba(88, 101, 242, 0.35); }
+.sdems-copy-session {
+  background: rgba(76, 175, 80, 0.2);
+  border-color: rgba(76, 175, 80, 0.5);
+  color: var(--vcb-action-buy);
+}
+.sdems-copy-session:hover { background: rgba(76, 175, 80, 0.35); }
+.sdems-clear-log {
+  background: rgba(192, 57, 43, 0.15);
+  border-color: rgba(192, 57, 43, 0.35);
+  color: var(--vcb-action-sell);
+}
+.sdems-clear-log:hover { background: rgba(192, 57, 43, 0.3); }
+
+.sdems-log-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.sdems-log-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  font-size: 1em;
+}
+.sdems-log-time { color: var(--vcb-text-muted); font-size: 0.9em; width: 50px; flex-shrink: 0; }
+.sdems-log-icon { width: 18px; text-align: center; flex-shrink: 0; }
+.sdems-log-buy i { color: var(--vcb-action-buy); }
+.sdems-log-sell i { color: var(--vcb-price-gold); }
+.sdems-log-player { color: var(--vcb-price-gold-hi); font-weight: bold; min-width: 80px; }
+.sdems-log-action { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
+.sdems-log-detail { flex: 1; color: var(--vcb-text, #BDC1C6); }
+.sdems-log-price { color: var(--vcb-price-gold); font-weight: 600; }
+
+/* ── Manage tab ────────────────────────────────────────────────────────── */
+
+.sdems-manage-tab { gap: 8px; overflow-y: auto; }
+.sdems-manage-section {
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+.sdems-manage-section h3 {
+  margin: 0 0 6px 0;
+  font-size: 1.05em;
+  color: var(--vcb-accent-dim, #94913c);
+}
+
+.sdems-manage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.sdems-manage-row label { min-width: 100px; font-size: 1em; color: var(--vcb-text-muted, #666); }
+.sdems-manage-row input[type="text"],
+.sdems-manage-row input[type="number"] {
+  flex: 1;
+  padding: 4px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+
+.sdems-mode-selector {
+  display: flex;
+  gap: 16px;
+  margin: 6px 0;
+  font-size: 1em;
+}
+.sdems-mode-selector label { display: flex; align-items: center; gap: 4px; cursor: pointer; min-width: auto; }
+.sdems-actor-select {
+  width: 100%;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+
+.sdems-broadcast-controls { display: flex; gap: 8px; }
+
+.sdems-saved-configs-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.sdems-load-config-select {
+  flex: 1;
+  padding: 4px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+
+.sdems-save-config-name {
+  flex: 1;
+  padding: 4px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+
+/* All Manage-tab action buttons share the neutral .vcb-btn aesthetic —
+ * icons + labels carry semantic meaning; colors stay muted for visual
+ * coherence with the rest of the module. Addresses the rainbow-UI
+ * anti-pattern from /audit. Delete keeps a subtle red-tint hover
+ * as the only color callout (destructive-action convention). */
+.sdems-open-for-all,
+.sdems-close-for-all,
+.sdems-save-merchant-btn,
+.sdems-save-config-btn,
+.sdems-load-merchant-btn,
+.sdems-load-config-btn,
+.sdems-delete-merchant-btn {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, var(--vcb-btn-1) 0%, var(--vcb-btn-2) 100%);
+  border: 1px solid var(--vcb-border);
+  border-radius: var(--vcb-radius);
+  color: var(--vcb-text);
+  cursor: pointer;
+  font-size: 1em;
+  line-height: 1.3;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+  box-shadow: 1px 1px 2px var(--vcb-shadow-md);
+  text-shadow: 1px 1px 2px var(--vcb-text-shadow);
+}
+
+/* Broadcast row buttons stretch to fill — Open / Close / Save */
+.sdems-open-for-all,
+.sdems-close-for-all,
+.sdems-save-merchant-btn,
+.sdems-save-config-btn {
+  flex: 1;
+  padding: 8px 14px;
+}
+
+.sdems-open-for-all:hover,
+.sdems-close-for-all:hover,
+.sdems-save-merchant-btn:hover,
+.sdems-save-config-btn:hover,
+.sdems-load-merchant-btn:hover,
+.sdems-load-config-btn:hover {
+  background: linear-gradient(135deg, var(--vcb-btn-hover-1) 0%, var(--vcb-btn-hover-2) 100%);
+  border-color: var(--vcb-accent-dim);
+  color: var(--vcb-text-bright);
+}
+
+/* Delete is destructive — subtle red border + text tint on hover only */
+.sdems-delete-merchant-btn:hover {
+  background: linear-gradient(135deg, var(--vcb-btn-hover-1) 0%, var(--vcb-btn-hover-2) 100%);
+  border-color: var(--vcb-action-sell);
+  color: var(--vcb-action-sell);
+}
+
+/* ── Drop zone ─────────────────────────────────────────────────────────── */
+
+.sdems-drop-zone {
+  padding: 14px;
+  text-align: center;
+  border: 2px dashed var(--vcb-border, #3a3d44);
+  border-radius: 6px;
+  color: var(--vcb-text-muted, #666);
+  font-size: 1em;
+  margin-bottom: 8px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.sdems-drop-zone:hover, .sdems-drop-zone.dragover {
+  border-color: var(--vcb-accent-dim, #94913c);
+  color: var(--vcb-accent-dim, #94913c);
+  background: var(--vcb-drag-over, #22241a);
+}
+.sdems-drop-zone i { margin-right: 6px; }
+
+/* ── Manage inventory rows ─────────────────────────────────────────────── */
+
+.sdems-manage-inventory { display: flex; flex-direction: column; gap: 3px; margin-bottom: 10px; }
+.sdems-manage-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  font-size: 1em;
+}
+.sdems-manage-item-row img { border-radius: 2px; flex-shrink: 0; }
+.sdems-manage-item-name { flex: 1; color: var(--vcb-text-bright, #e8eaed); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sdems-manage-price { display: flex; align-items: center; gap: 2px; }
+.sdems-manage-price input {
+  width: 32px;
+  padding: 2px 3px;
+  text-align: center;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 3px;
+  color: var(--vcb-price-gold);
+  font-size: 1em;
+}
+.sdems-manage-price span { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
+
+.sdems-manage-stock { display: flex; align-items: center; gap: 3px; }
+.sdems-stock-input {
+  width: 40px;
+  padding: 2px 3px;
+  text-align: center;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 3px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+.sdems-stock-hint { color: var(--vcb-text-muted, #666); font-size: 0.9em; }
+
+.sdems-remove-item-btn {
+  padding: 3px 6px;
+  background: rgba(192, 57, 43, 0.12);
+  border: 1px solid rgba(192, 57, 43, 0.3);
+  border-radius: 3px;
+  color: var(--vcb-action-sell);
+  cursor: pointer;
+  font-size: 1em;
+}
+.sdems-remove-item-btn:hover { background: rgba(192, 57, 43, 0.3); }
+
+/* ── Compendium browser ────────────────────────────────────────────────── */
+
+.sdems-comp-browser { margin-top: 4px; }
+.sdems-comp-controls { display: flex; gap: 6px; margin-bottom: 6px; }
+.sdems-pack-select, .sdems-comp-search {
+  padding: 4px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+.sdems-pack-select { min-width: 140px; }
+.sdems-comp-search { flex: 1; }
+
+.sdems-comp-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; }
+.sdems-comp-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+  font-size: 1em;
+}
+.sdems-comp-item img { border-radius: 2px; flex-shrink: 0; }
+.sdems-comp-item span { flex: 1; color: var(--vcb-text, #BDC1C6); }
+.sdems-add-item-btn {
+  padding: 2px 6px;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 3px;
+  color: var(--vcb-action-buy);
+  cursor: pointer;
+  font-size: 1em;
+}
+.sdems-add-item-btn:hover { background: rgba(76, 175, 80, 0.3); }
+
+/* ── Empty state ───────────────────────────────────────────────────────── */
+
+.sdems-empty {
+  text-align: center;
+  color: var(--vcb-text-muted, #666);
+  padding: 40px;
+}
+.sdems-empty i { font-size: 2em; display: block; margin-bottom: 8px; }
+.sdems-empty p { margin: 0; }
+
+/* ── Catalog tab ───────────────────────────────────────────────────────── */
+
+.sdems-catalog-filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sdems-catalog-filters select,
+.sdems-catalog-filters input {
+  padding: 5px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+.sdems-catalog-search { flex: 1; min-width: 120px; }
+.sdems-catalog-pack { min-width: 120px; }
+.sdems-catalog-folder { min-width: 120px; }
+.sdems-catalog-sort { min-width: 80px; }
+
+.sdems-catalog-tag {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.85em;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--vcb-text-muted, #666);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.sdems-folder-tag {
+  background: rgba(148, 145, 60, 0.12);
+  color: var(--vcb-accent-dim, #94913c);
+  border-color: rgba(148, 145, 60, 0.2);
+}
+
+.sdems-catalog-buy-btn {
+  padding: 4px 10px;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  background: rgba(76, 175, 80, 0.15);
+  color: var(--vcb-action-buy);
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.sdems-catalog-buy-btn:hover:not([disabled]) { background: rgba(76, 175, 80, 0.3); }
+.sdems-catalog-buy-btn[disabled] { cursor: not-allowed; opacity: 0.4; }
+
+/* ── Item description expand ───────────────────────────────────────────── */
+
+.sdems-item-row { cursor: pointer; flex-wrap: wrap; }
+.sdems-item-desc {
+  width: 100%;
+  padding: 6px 10px;
+  margin-top: 4px;
+  font-size: 1em;
+  line-height: 1.5;
+  color: var(--vcb-text, #BDC1C6);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.sdems-item-desc p { margin: 0 0 4px 0; }
+.sdems-item-desc p:last-child { margin-bottom: 0; }
+.sdems-item-desc em { color: var(--vcb-text-muted, #666); }
+
+/* ── Gamble tab ─────────────────────────────────────────────────────────── */
+
+.sdems-gamble-header {
+  padding: 8px 10px;
+  font-size: 1em;
+  color: var(--vcb-text, #BDC1C6);
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  border-left: 3px solid var(--vcb-accent-dim, #94913c);
+}
+.sdems-gamble-header i { margin-right: 6px; color: var(--vcb-accent-dim, #94913c); }
+
+.sdems-gamble-btn {
+  padding: 4px 12px;
+  border: 1px solid rgba(148, 145, 60, 0.4);
+  border-radius: 4px;
+  background: rgba(148, 145, 60, 0.15);
+  color: var(--vcb-accent-dim, #94913c);
+  cursor: pointer;
+  font-size: 1em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.sdems-gamble-btn:hover:not([disabled]) { background: rgba(148, 145, 60, 0.3); }
+
+.sdems-gamble-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+}
+.sdems-gamble-add-row input,
+.sdems-gamble-add-row select {
+  padding: 4px 8px;
+  background: var(--vcb-input-bg, #111418);
+  border: 1px solid var(--vcb-border, #3a3d44);
+  border-radius: 4px;
+  color: var(--vcb-text, #BDC1C6);
+  font-size: 1em;
+}
+.sdems-gamble-new-name { flex: 1; }
+.sdems-gamble-new-source { min-width: 140px; }
+.sdems-gamble-new-gold { width: 60px; }
+.sdems-gamble-add-btn {
+  padding: 4px 10px;
+  background: rgba(76, 175, 80, 0.12);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 4px;
+  color: var(--vcb-action-buy);
+  cursor: pointer;
+  font-size: 1em;
+}
+.sdems-gamble-add-btn:hover { background: rgba(76, 175, 80, 0.3); }
+.sdems-gamble-btn[disabled] { cursor: not-allowed; opacity: 0.4; }
+
+.sdems-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 1em;
+  color: var(--vcb-text, #BDC1C6);
+  min-width: auto !important;
+}
+
+
+/* ── Crawl Strip merchant button (opens the Merchant Shop) ───────────────── */
+.sde-strip-merchant-btn {
+  display: flex; align-items: center; justify-content: center;
+  align-self: center;
+  width: 32px; min-width: 32px; height: 32px;
+  margin-left: 4px;
+  background: #252830;
+  color: #daa520;
+  border: 1px solid #3a3d44;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 15px;
+}
+.sde-strip-merchant-btn:hover { background: #2e3138; color: #f4c542; }
+
+/* ── Merchant Shop — reconcile with Shadowdark system form styling ──────────
+   The Shadowdark system forces form controls to width:100% and flattens some
+   flex rows inside .window-content. The ported Vagabond rules are single-class
+   and lose to it, so re-assert the shop's intended layout scoped (2-class) to
+   the shop window, where it wins on specificity. */
+.shadowdark-enhancer-merchant-shop .sdems-filters,
+.shadowdark-enhancer-merchant-shop .sdems-catalog-filters,
+.shadowdark-enhancer-merchant-shop .sdems-comp-controls,
+.shadowdark-enhancer-merchant-shop .sdems-manage-price,
+.shadowdark-enhancer-merchant-shop .sdems-manage-stock,
+.shadowdark-enhancer-merchant-shop .sdems-gamble-add-row { display: flex; }
+.shadowdark-enhancer-merchant-shop .sdems-filters,
+.shadowdark-enhancer-merchant-shop .sdems-catalog-filters,
+.shadowdark-enhancer-merchant-shop .sdems-gamble-add-row { flex-wrap: wrap; gap: 6px; align-items: center; }
+/* Neutralize the system's width:100% on form controls inside the shop.
+   The system rule outspecifies a plain 2-class selector and is applied late,
+   so use !important on the children of each control row to guarantee the
+   shop's layout wins regardless of cascade order. */
+.shadowdark-enhancer-merchant-shop .sdems-filters > *,
+.shadowdark-enhancer-merchant-shop .sdems-catalog-filters > *,
+.shadowdark-enhancer-merchant-shop .sdems-comp-controls > *,
+.shadowdark-enhancer-merchant-shop .sdems-gamble-add-row > * { width: auto !important; }
+/* Restore the Vagabond design's intended control sizing. */
+.shadowdark-enhancer-merchant-shop .sdems-search-input,
+.shadowdark-enhancer-merchant-shop .sdems-catalog-search,
+.shadowdark-enhancer-merchant-shop .sdems-comp-search { flex: 1 1 160px; min-width: 140px; }
+.shadowdark-enhancer-merchant-shop .sdems-category-select { min-width: 140px; }
+.shadowdark-enhancer-merchant-shop .sdems-catalog-pack,
+.shadowdark-enhancer-merchant-shop .sdems-catalog-folder { min-width: 120px; }
+.shadowdark-enhancer-merchant-shop .sdems-catalog-sort { min-width: 90px; }
+.shadowdark-enhancer-merchant-shop .sdems-qty-input,
+.shadowdark-enhancer-merchant-shop .sdems-stock-input { width: 40px !important; }
+.shadowdark-enhancer-merchant-shop .sdems-manage-price input { width: 32px !important; }
+.shadowdark-enhancer-merchant-shop .sdems-gamble-new-name { flex: 1 1 auto; min-width: 120px; }
+.shadowdark-enhancer-merchant-shop .sdems-gamble-new-source { min-width: 140px; }
+.shadowdark-enhancer-merchant-shop .sdems-gamble-new-gold,
+.shadowdark-enhancer-merchant-shop .sdems-gamble-cost-gold,
+.shadowdark-enhancer-merchant-shop .sdems-gamble-cost-silver { width: 60px !important; }
+.shadowdark-enhancer-merchant-shop .sdems-markup-input,
+.shadowdark-enhancer-merchant-shop .sdems-ratio-input { width: 80px !important; }
+
+/* ── Merchant Shop chat cards (availability + buy/sell announcements) ────────
+   These render in the chat log, OUTSIDE the shop window, so they can't use the
+   shop-scoped --vcb-* vars. Give the card its own dark theme + light text so it
+   stays readable regardless of the user's chat-log theme. */
+.sdems-chat-card-v2 {
+  background: #1f2226;
+  border: 1px solid #3a3d44;
+  border-radius: 6px;
+  color: #BDC1C6;
+  padding: 8px;
+  margin: 2px 0;
+}
+.sdems-chat-card-v2 .card-header { display: flex; align-items: center; gap: 8px; }
+.sdems-chat-card-v2 .header-icon { flex: 0 0 auto; color: #daa520; }
+.sdems-chat-card-v2 .header-icon img { width: 36px; height: 36px; border: none; border-radius: 4px; }
+.sdems-chat-card-v2 .header-title { margin: 0; border: none; color: #e8eaed; font-size: 1.05em; font-weight: 600; line-height: 1.2; }
+.sdems-chat-card-v2 .metadata-tags-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.sdems-chat-card-v2 .meta-tag { color: #BDC1C6; font-size: 0.85em; opacity: 0.9; }
+.sdems-chat-card-v2 .content-body { margin-top: 4px; }
+.sdems-chat-card-v2 .card-description,
+.sdems-chat-card-v2 .card-description p { color: #BDC1C6; margin: 2px 0; }
+.sdems-chat-card-v2 .card-description strong { color: #e8eaed; }
+.sdems-chat-card-v2 .sdems-shop-card-open-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: #2e7d32; color: #ffffff;
+  border: 1px solid #3a3d44; border-radius: 4px;
+  cursor: pointer; font-size: 1em; font-weight: 600;
+}
+.sdems-chat-card-v2 .sdems-shop-card-open-btn:hover { background: #4caf50; }
+.sdems-chat-card-v2 .sdems-shop-card-open-btn[disabled] { opacity: 0.5; cursor: not-allowed; }

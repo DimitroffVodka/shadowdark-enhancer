@@ -431,11 +431,21 @@ export const CrawlStrip = {
       : "";
     const npcsBlock = ""; // no longer used — kept identifier for diff readability
 
+    // Merchant Shop launcher — visible to the GM always, and to players only
+    // while the shop is open for them. Re-renders pick up availability changes
+    // because MerchantShop calls CrawlStrip.queueRender() when it toggles.
+    const shopAvailable = game.user.isGM
+      || game.settings.get(MODULE_ID, "shopAvailableToPlayers");
+    const shopButton = shopAvailable
+      ? `<button class="sde-strip-merchant-btn" data-action="openMerchant" title="Open Merchant Shop"><i class="fas fa-store"></i></button>`
+      : "";
+
     this._el.innerHTML = `
       <div class="sde-strip-inner ${inCombat ? "sde-strip-paused" : ""}">
         ${leftBadge}
         ${heroesBlock}
         ${npcsBlock}
+        ${shopButton}
       </div>`;
 
     this._bindEvents();
@@ -593,6 +603,17 @@ export const CrawlStrip = {
         if (luck) luck.click(); else card.click();
       });
     });
+
+    // Merchant Shop button — available to the GM always, to players when the
+    // shop is open. openLocally() renders the manage view (GM) or buy/sell
+    // (player). Bound before the GM-only guard below so players can open it.
+    const merchantBtn = this._el.querySelector('[data-action="openMerchant"]');
+    if (merchantBtn) {
+      merchantBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        game.shadowdarkEnhancer?.merchant?.openLocally();
+      });
+    }
 
     if (!game.user.isGM) return;
 

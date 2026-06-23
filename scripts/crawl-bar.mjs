@@ -145,7 +145,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Rest" title="Coming in a later milestone">
           ${ICONS.rest} Rest
         </button>
-        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge">
+        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop">
           <i class="fas fa-hammer"></i> Forge &amp; Loot
         </button>
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
@@ -386,6 +386,9 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="magicForge" role="menuitem" tabindex="0">
         <i class="fas fa-hammer"></i> Magic Item Forge
       </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="merchant" role="menuitem" tabindex="0">
+        <i class="fas fa-store"></i> Merchant Shop
+      </div>
     `;
 
     // Position menu above button
@@ -412,6 +415,7 @@ export const CrawlBar = {
       if (!target) return;
       if (target.dataset.lootAction === "lootGen") game.shadowdarkEnhancer.loot.open();
       if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
+      if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
       menu.remove();
     });
 
