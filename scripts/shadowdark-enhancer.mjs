@@ -35,6 +35,7 @@ import { MonsterLinker } from "./encounter/monster-linker.mjs";
 import { LootLinker } from "./encounter/loot-linker.mjs";
 import { buildBundle, exportBundle, applyBundle } from "./encounter/bundle-io.mjs";
 import { MerchantShop } from "./merchant-shop.mjs";
+import { PartyXP } from "./encounter/party-xp.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -156,6 +157,18 @@ Hooks.once("init", () => {
     },
     forge: {
       open: () => MagicForgeApp.open(),
+    },
+    // Party XP (standalone GM tool). Tag an item with an XP value (or type a
+    // flat amount) and award it in full to every selected party member —
+    // Shadowdark RAW treasure/quest XP. See party-xp.mjs.
+    partyXp: {
+      open: (opts) => PartyXP.open(opts),
+      // Award `amount` XP to each actor in actorIds (default: the whole party).
+      award: (amount, opts) => PartyXP.award(amount, opts),
+      // Tag a party-XP value onto an item so the tool reads it back later.
+      assignToItem: (item, xp) => PartyXP.assignToItem(item, xp),
+      // Resolve an item's XP: tagged value wins, else loot-quality score.
+      xpOfItem: (item) => PartyXP.xpOfItem(item),
     },
     tables: {
       all: () => TableRegistry.all(),

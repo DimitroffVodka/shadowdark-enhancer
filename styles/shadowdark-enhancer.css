@@ -5734,3 +5734,103 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sdems-chat-card-v2 .sdems-shop-card-open-btn:hover { background: #4caf50; }
 .sdems-chat-card-v2 .sdems-shop-card-open-btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* ───────────────────────────────────────────────────────────────────────
+   Party XP — standalone GM tool (PartyXpApp) + chat summary card.
+   Award treasure/quest XP in full to every selected party member (RAW).
+   Form-control widths are asserted explicitly: the Shadowdark system forces
+   inputs/selects to width:100%, which we don't want here.
+   ─────────────────────────────────────────────────────────────────────── */
+.sde-party-xp { padding: 8px; display: flex; flex-direction: column; gap: 10px; }
+.sde-party-xp .notes { margin: 0; font-size: 0.8rem; color: var(--sde-bar-text-muted, #9a9a9a); }
+.sde-party-xp input[type="checkbox"] { width: auto; flex: 0 0 auto; margin: 0; }
+
+/* Item source: drop zone / loaded-item chip */
+.sde-pxp-drop {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px; border: 2px dashed var(--sde-bar-border, #555); border-radius: 5px;
+  color: var(--sde-bar-text-muted, #9a9a9a); font-size: 0.85rem; text-align: center;
+  background: var(--sde-bar-input-bg, #111418); transition: background .12s, border-color .12s, box-shadow .12s;
+}
+.sde-pxp-drop.sde-drag-over {
+  background: var(--sde-bar-drag-over, #22241a);
+  border-color: var(--sde-bar-accent, #c9a54a);
+  box-shadow: 0 0 8px var(--sde-bar-accent, #c9a54a);
+  color: var(--sde-bar-text-bright, #e8eaed);
+}
+.sde-pxp-item {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px; cursor: pointer;
+  border: 1px solid var(--sde-bar-border, #555); border-radius: 5px;
+  background: var(--sde-bar-bg-alt, #1f2226);
+}
+.sde-pxp-item:hover { border-color: var(--sde-bar-accent, #c9a54a); }
+.sde-pxp-item img { border: none; border-radius: 3px; flex: 0 0 auto; }
+.sde-pxp-item-name { font-weight: 600; color: var(--sde-bar-text-bright, #e8eaed); flex: 1 1 auto; }
+.sde-pxp-item-xp { color: var(--sde-bar-accent, #c9a54a); font-size: 0.82rem; white-space: nowrap; }
+.sde-pxp-item-xp em { color: var(--sde-bar-text-muted, #9a9a9a); font-style: normal; }
+.sde-pxp-item-clear { color: var(--sde-bar-text-muted, #9a9a9a); flex: 0 0 auto; }
+.sde-pxp-save { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--sde-bar-text, #BDC1C6); }
+
+/* Amount + label fields */
+.sde-pxp-fields { display: flex; gap: 10px; flex-wrap: wrap; }
+.sde-pxp-fields label { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: var(--sde-bar-text, #BDC1C6); }
+.sde-pxp-amount-field { flex: 0 0 6rem; }
+.sde-pxp-amount-field input { width: 6rem; }
+.sde-pxp-label-field { flex: 1 1 12rem; }
+.sde-pxp-label-field input { width: 100%; }
+.sde-pxp-hint { color: var(--sde-bar-text-muted, #9a9a9a); font-weight: 400; }
+
+/* Party member selection */
+.sde-pxp-party { display: flex; flex-direction: column; gap: 4px; }
+.sde-pxp-party-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 0.78rem; text-transform: uppercase; letter-spacing: .03em;
+  color: var(--sde-bar-text-muted, #9a9a9a);
+}
+.sde-pxp-party-tools { display: flex; gap: 4px; }
+.sde-pxp-mini {
+  width: auto; flex: 0 0 auto; cursor: pointer; font-size: 0.72rem; line-height: 1.4;
+  padding: 1px 7px; border-radius: 3px;
+  border: 1px solid var(--sde-bar-border, #555); background: var(--sde-bar-btn-1, #252830);
+  color: var(--sde-bar-text, #BDC1C6);
+}
+.sde-pxp-mini:hover { filter: brightness(1.15); }
+.sde-pxp-members { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sde-pxp-member {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 4px 6px; border-radius: 4px; background: var(--sde-bar-bg-alt, #1f2226);
+}
+.sde-pxp-member label { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1 1 auto; margin: 0; }
+.sde-pxp-member-name { color: var(--sde-bar-text-bright, #e8eaed); }
+.sde-pxp-member-xp { color: var(--sde-bar-text-muted, #9a9a9a); font-size: 0.8rem; white-space: nowrap; }
+.sde-pxp-lvl {
+  display: inline-block; padding: 0 5px; border-radius: 3px; font-size: 0.72rem; font-weight: 700;
+  background: var(--sde-bar-accent-dark, #7a7030); color: var(--sde-bar-on-accent, #f5eccc);
+}
+
+/* Footer / award button */
+.sde-pxp-footer { display: flex; justify-content: flex-end; }
+.sde-pxp-award {
+  width: auto; flex: 0 0 auto; cursor: pointer; white-space: nowrap; font-weight: 600;
+  padding: 0.3rem 0.9rem; border-radius: 3px;
+  border: 1px solid var(--sde-bar-accent-dim, #94913c);
+  background: var(--sde-bar-accent-dark, #7a7030); color: var(--sde-bar-on-accent, #f5eccc);
+}
+.sde-pxp-award:hover { filter: brightness(1.12); box-shadow: 0 0 4px var(--sde-bar-accent, #c9a54a); }
+.sde-pxp-award[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* Chat summary card */
+.sde-party-xp-card {
+  border: 1px solid var(--sde-bar-border, #555); border-radius: 5px; overflow: hidden; font-size: 0.85rem;
+}
+.sde-party-xp-card .sde-pxp-head {
+  padding: 5px 8px; font-weight: 700;
+  background: var(--sde-bar-bg-alt, #1f2226); color: var(--sde-bar-accent, #c9a54a);
+  border-bottom: 1px solid var(--sde-bar-border, #555);
+}
+.sde-party-xp-card .sde-pxp-amount { margin: 6px 8px; font-weight: 600; color: var(--sde-bar-text-bright, #e8eaed); }
+.sde-party-xp-card .sde-pxp-list { list-style: none; margin: 0 0 6px; padding: 0 8px; display: flex; flex-direction: column; gap: 3px; }
+.sde-party-xp-card .sde-pxp-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sde-party-xp-card .sde-pxp-who { flex: 1 1 auto; }
+.sde-party-xp-card .sde-pxp-delta { color: var(--sde-bar-text-muted, #9a9a9a); white-space: nowrap; }
+.sde-party-xp-card .sde-pxp-ready { color: var(--sde-bar-accent, #c9a54a); font-size: 0.78rem; white-space: nowrap; }

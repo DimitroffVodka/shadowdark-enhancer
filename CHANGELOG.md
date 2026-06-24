@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Party XP award tool.** A standalone GM window (crawl bar → **Forge & Loot → Party XP**, or `game.shadowdarkEnhancer.partyXp.open()`) that awards XP to the whole party at once. Drag any item onto it to use its XP value — a value you've tagged on the item wins, otherwise it falls back to the loot-quality score (Poor 0 / Normal 1 / Fabulous 3 / Legendary 10) — or just type an amount. Tick **Save this XP value onto the item** to remember it on the item for next time. The full amount is granted to **each** selected character (Shadowdark RAW — treasure XP isn't split); a chat card summarizes old→new XP and flags anyone who's reached the 10-XP level-up threshold. Writes only `system.level.xp` (never auto-levels). Fires a `shadowdark-enhancer.partyXpAwarded` hook.
+
 ## [0.7.0] — 2026-06-20
 
 Adds **Western Reaches (Player's Guide)** coverage to the importer catalog, plus reconcile fixes.

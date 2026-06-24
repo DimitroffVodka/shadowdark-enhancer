@@ -389,6 +389,10 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="merchant" role="menuitem" tabindex="0">
         <i class="fas fa-store"></i> Merchant Shop
       </div>
+      <div class="sde-menu-divider"></div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="partyXp" role="menuitem" tabindex="0">
+        <i class="fas fa-star"></i> Party XP
+      </div>
     `;
 
     // Position menu above button
@@ -416,6 +420,7 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "lootGen") game.shadowdarkEnhancer.loot.open();
       if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
       if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
+      if (target.dataset.lootAction === "partyXp") game.shadowdarkEnhancer.partyXp.open();
       menu.remove();
     });
 
