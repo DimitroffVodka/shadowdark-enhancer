@@ -30,7 +30,13 @@ export const LootDelivery = {
   /** Register the socket handler + chat-card wiring. Call once at init. */
   init() {
     game.socket.on(SOCKET, async (data) => {
-      if (!game.user.isGM) return; // GM is the single authoritative writer
+      // Only the PRIMARY (active) GM processes player-emitted claims. Every
+      // connected GM receives the socket, so in a multi-GM world (e.g. a human
+      // GM + the always-on "Bridge" client) an unguarded handler would create
+      // the claimed item / add the coins twice. Mirrors the merchant-shop and
+      // session-recap activeGM guard. GM-direct paths in _wireCard run on a
+      // single client already and are intentionally not gated here.
+      if (!(game.user.isGM && game.users.activeGM?.id === game.user.id)) return;
       if (data?.action === "lootClaimItem") await this._handleClaimItem(data);
       else if (data?.action === "lootClaimCoins") await this._handleClaimCoins(data);
     });
