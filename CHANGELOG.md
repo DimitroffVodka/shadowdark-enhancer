@@ -1,13 +1,19 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.0] — 2026-06-24
+
+Adds three player-facing systems — a **Merchant Shop**, a **Party XP** award tool, and a per-session **Session Recap** — plus multi-GM correctness fixes.
 
 ### Added
+- **Merchant Shop.** A GM-run shop (crawl bar → **Forge & Loot → Merchant Shop**, or the crawl strip's **Merchant** button) that opens for every player at once. Two inventory modes — a compendium-backed catalog (gear + magic items) or an NPC actor's own inventory. Players **buy** (coins deducted, item created) and **sell** (item removed, coins added at a configurable sell ratio) against their character's `system.coins`, with a per-transaction log exportable to Discord. Ported from Vagabond Crawler and re-adapted to Shadowdark currency (1gp = 10sp = 100cp).
 - **Party XP award tool.** A standalone GM window (crawl bar → **Forge & Loot → Party XP**, or `game.shadowdarkEnhancer.partyXp.open()`) that awards XP to the whole party at once. Drag any item onto it to use its XP value — a value you've tagged on the item wins, otherwise it falls back to the loot-quality score (Poor 0 / Normal 1 / Fabulous 3 / Legendary 10) — or just type an amount. Tick **Save this XP value onto the item** to remember it on the item for next time. The full amount is granted to **each** selected character (Shadowdark RAW — treasure XP isn't split); a chat card summarizes old→new XP and flags anyone who's reached the 10-XP level-up threshold. Writes only `system.level.xp` (never auto-levels). Fires a `shadowdark-enhancer.partyXpAwarded` hook.
 - **Session Recap.** A per-session tracker (crawl bar → **Recap**, or `game.shadowdarkEnhancer.recap.open()`) with a tabbed window — Overview / Combat / Loot / XP / History — and a **Copy for Discord** markdown export. Tracking is tied to the crawl: starting a crawl offers to begin/continue a session, ending it offers to save/pause/discard (saved sessions go to History). It captures, with no extra clicks: **loot** claims per player, **XP** awards (from the Party XP tool), **combat** encounters (rounds, enemy rosters, defeated, participants), **per-PC roll stats** (hit-rate, nat 20/1, avg d20, check pass-rate — read from Shadowdark's structured roll data), **damage & kills** (via the Damage Log module), **merchant** sales/purchases, and random-**encounter checks**. In multi-GM worlds only the active GM records (no double-counting).
 
 ### Fixed
 - **Loot claims no longer double-process in multi-GM worlds.** A player claiming an item or coins from a loot card is now handled only by the active GM. Previously every connected GM ran the claim, so a world with two GMs (e.g. a human GM plus an always-on bridge/relay client) created the claimed item — and added the coins — twice on the character.
+
+### Notes
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**.
 
 ## [0.7.0] — 2026-06-20
 
