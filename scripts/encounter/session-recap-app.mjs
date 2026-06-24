@@ -9,6 +9,7 @@
 
 import { SessionRecap } from "./session-recap.mjs";
 import { toCopper, formatCurrency } from "./session-recap-core.mjs";
+import { esc } from "../util/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -108,7 +109,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
         : `${entry.detail ?? ""}${(entry.qty ?? 1) > 1 ? ` ×${entry.qty}` : ""}`;
       const iconHtml = entry.type === "currency"
         ? '<i class="fas fa-coins" style="color:var(--sde-bar-accent,#c9a54a);"></i>'
-        : entry.img ? `<img src="${entry.img}" width="20" height="20" style="border-radius:2px;">`
+        : entry.img ? `<img src="${esc(entry.img)}" width="20" height="20" style="border-radius:2px;">`
           : '<i class="fas fa-box" style="color:#aaa;"></i>';
       return { ...entry, detail, iconHtml, unclaimed: entry.claimed === false };
     });
