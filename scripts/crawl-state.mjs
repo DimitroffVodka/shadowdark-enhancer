@@ -99,11 +99,16 @@ export const CrawlState = {
     // Fresh slate — clear any leftover OoC initiative from a prior session.
     await this._update({ mode: "crawl", oocInitiative: {} });
     await MovementTracker.captureCrawlAnchors();
+    // Session-boundary hook (Session Recap listens to prompt session tracking).
+    Hooks.callAll(`${MODULE_ID}.crawlStart`, this._state);
   },
 
   async endCrawl() {
     if (!game.user.isGM) return;
     if (this._state.mode === "combat") return;
+    // Fire the end-boundary BEFORE the state reset so listeners can still read
+    // the final crawlTurn if they need it.
+    Hooks.callAll(`${MODULE_ID}.crawlEnd`, this._state);
     await this._update({ mode: "off", crawlTurn: 0, members: [], oocInitiative: {} });
     await MovementTracker.clearCrawlAnchors();
   },

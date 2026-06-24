@@ -36,11 +36,13 @@ import { LootLinker } from "./encounter/loot-linker.mjs";
 import { buildBundle, exportBundle, applyBundle } from "./encounter/bundle-io.mjs";
 import { MerchantShop } from "./merchant-shop.mjs";
 import { PartyXP } from "./encounter/party-xp.mjs";
+import { SessionRecap } from "./encounter/session-recap.mjs";
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
   registerSettings();
   MerchantShop.registerSettings();
+  SessionRecap.registerSettings();
   LootDelivery.init();
   LootTableTag.init();
   TableRegistry.init();
@@ -199,6 +201,15 @@ Hooks.once("init", () => {
       getLog: () => MerchantShop.getLog(),
       clearLog: () => MerchantShop.clearLog(),
     },
+    // Session Recap — per-session loot/XP/combat/merchant/encounter tracker
+    // tied to the crawl lifecycle, with a Discord-markdown export. See
+    // session-recap.mjs.
+    recap: {
+      open: () => SessionRecap.open(),
+      getData: () => SessionRecap.getData(),
+      formatForDiscord: () => SessionRecap.formatForDiscord(),
+      isActive: () => SessionRecap.isActive(),
+    },
   };
 });
 
@@ -215,6 +226,7 @@ Hooks.once("ready", () => {
   CrawlBar.init();
   LootDrops.init();
   MerchantShop.init();
+  SessionRecap.init();
   checkCoexistence();
   if (game.user.isGM && !game.settings.get(MODULE_ID, "lootSetupSeen")) {
     const bound = boundCount(game.settings.get(MODULE_ID, "lootTierTables") ?? {});

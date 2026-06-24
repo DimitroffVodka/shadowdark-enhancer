@@ -10,6 +10,7 @@
 
 import { MODULE_ID } from "./module-id.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
+import { SessionRecap } from "./encounter/session-recap.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -544,6 +545,8 @@ export const MerchantShop = {
       quantity,
       price: totalCost,
     });
+    // Mirror into the session recap (self-guards on an active session).
+    SessionRecap.logPurchase({ player: buyer.name, item: entry.name, qty: quantity, price: totalCost });
 
     // Chat message
     const qtyStr = quantity > 1 ? ` ×${quantity}` : "";
@@ -650,6 +653,8 @@ export const MerchantShop = {
       quantity,
       price: totalSellPrice,
     });
+    // Mirror into the session recap (self-guards on an active session).
+    SessionRecap.logSale({ player: seller.name, item: item.name, qty: quantity, price: totalSellPrice, ratio: sellRatio });
 
     // Chat message
     const qtyStr = quantity > 1 ? ` ×${quantity}` : "";

@@ -19,6 +19,7 @@ import { MODULE_ID } from "../module-id.mjs";
 import { MagicForgeApp } from "./magic-forge-app.mjs";
 import { inferSeedFromName } from "./magic-forge.mjs";
 import { esc } from "../util/esc.mjs";
+import { SessionRecap } from "./session-recap.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 const SOCKET = `module.${MODULE_ID}`;
@@ -260,6 +261,7 @@ export const LootDelivery = {
     const data = await this._resolveItemData(item);
     if (data) await actor.createEmbeddedDocuments("Item", [data]);
 
+    SessionRecap.logLoot({ type: "item", player: actor.name, detail: item.name, source: flags.source ?? null, img: item.img, qty: item.qty ?? 1 });
     await this._refresh(message);
   },
 
@@ -281,6 +283,7 @@ export const LootDelivery = {
       "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
     });
 
+    if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });
     await this._refresh(message);
   },
 
@@ -308,6 +311,7 @@ export const LootDelivery = {
       "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
     });
 
+    if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });
     await this._refresh(message);
   },
 
@@ -349,6 +353,7 @@ export const LootDelivery = {
     const data = await this._resolveItemData(item);
     if (data) await actor.createEmbeddedDocuments("Item", [data]);
 
+    SessionRecap.logLoot({ type: "item", player: actor.name, detail: item.name, source: flags.source ?? null, img: item.img, qty: item.qty ?? 1 });
     await this._refresh(message);
   },
 

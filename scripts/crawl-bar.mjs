@@ -151,6 +151,9 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
           <i class="fas fa-file-import"></i> Importer
         </button>
+        <button class="sde-bar-btn" data-action="recap" title="Session Recap — loot, XP, combat, merchant &amp; encounter checks">
+          <i class="fas fa-scroll"></i> Recap
+        </button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
           ${ICONS.close} End
         </button>
@@ -287,6 +290,10 @@ export const CrawlBar = {
         // tab (D-01). Bare openHub() keeps its legacy dashboard mapping for
         // old callers.
         game.shadowdarkEnhancer.tables.openHub("import");
+        break;
+
+      case "recap":
+        game.shadowdarkEnhancer.recap.open();
         break;
 
       case "m2Placeholder":

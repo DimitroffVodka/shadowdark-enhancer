@@ -4,6 +4,8 @@
  */
 
 import { MODULE_ID } from "../module-id.mjs";
+import { CrawlState } from "../crawl-state.mjs";
+import { SessionRecap } from "./session-recap.mjs";
 
 // v13/v14 namespaced renderTemplate (the global `renderTemplate` still
 // works but emits deprecation warnings).
@@ -21,6 +23,10 @@ export const EncounterCheck = {
     const hit = roll.total <= threshold;
 
     await this._postToChat(roll, threshold, hit);
+
+    // Record the check in the session recap (self-guards on an active session).
+    const clockLabel = CrawlState.mode === "crawl" ? `Turn ${CrawlState.crawlTurn}` : null;
+    SessionRecap.logEncounterCheck({ roll: roll.total, threshold, hit, clockLabel });
 
     if (hit) {
       if (game.settings.get(MODULE_ID, "pauseOnEncounter")) {

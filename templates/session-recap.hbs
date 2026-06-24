@@ -1,0 +1,185 @@
+<div class="sr-wrapper">
+
+  <nav class="sr-tabs">
+    <button type="button" class="sr-tab {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview"><i class="fas fa-chart-pie"></i> Overview</button>
+    <button type="button" class="sr-tab {{#if tab.combat}}active{{/if}}" data-action="changeTab" data-tab="combat"><i class="fas fa-khanda"></i> Combat</button>
+    <button type="button" class="sr-tab {{#if tab.loot}}active{{/if}}" data-action="changeTab" data-tab="loot"><i class="fas fa-coins"></i> Loot</button>
+    <button type="button" class="sr-tab {{#if tab.xp}}active{{/if}}" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> XP</button>
+    <button type="button" class="sr-tab {{#if tab.history}}active{{/if}}" data-action="changeTab" data-tab="history"><i class="fas fa-book"></i> History</button>
+  </nav>
+
+  <div class="sr-tab-content">
+    {{#if isViewingHistory}}
+    <div class="sr-viewing-banner">
+      <i class="fas fa-eye"></i> Viewing: <strong>{{viewingSession.name}}</strong>
+      <button type="button" class="sr-back-btn" data-action="backToCurrent"><i class="fas fa-arrow-left"></i> Back to Current</button>
+    </div>
+    {{/if}}
+
+    {{#if tab.overview}}
+    <section class="sr-section">
+      <header class="sr-chapter-header">
+        <div class="sr-chapter-kicker">{{sessionStatusLabel}}</div>
+        <h1 class="sr-chapter-title">{{sessionDisplayName}}</h1>
+        <div class="sr-chapter-stats">
+          {{#each sessionStats}}{{#unless @first}}<span class="sr-chapter-sep" aria-hidden="true">·</span>{{/unless}}<span>{{label}}</span>{{/each}}
+        </div>
+        <hr class="sr-chapter-rule" />
+      </header>
+
+      {{#if hasEncounterChecks}}<p class="sr-encounter-summary"><i class="fas fa-dice-d6"></i> {{encounterSummary}}</p>{{/if}}
+
+      {{#if hasPlayerSummaries}}
+      <h4 class="sr-section-title">The Party</h4>
+      <div class="sr-party-grid">
+        {{#each playerSummaries}}
+        <article class="sr-party-card">
+          <h4 class="sr-party-name">{{name}}</h4>
+          <dl class="sr-party-stats">
+            <div class="sr-party-stat"><dt>Kills</dt><dd>{{kills}}</dd></div>
+            <div class="sr-party-stat"><dt>Dealt</dt><dd>{{damageDealt}}</dd></div>
+            <div class="sr-party-stat"><dt>Taken</dt><dd>{{damageTaken}}</dd></div>
+            <div class="sr-party-stat"><dt>XP</dt><dd>{{totalXp}}</dd></div>
+          </dl>
+        </article>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="sr-empty">No activity recorded yet.</p>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{#if tab.combat}}
+    <section class="sr-section">
+      {{#unless hasDamageLog}}
+      <div class="sr-notice"><i class="fas fa-info-circle"></i> Install the <strong>Damage Log</strong> module for damage and kill tracking.</div>
+      {{/unless}}
+
+      {{#if hasCombats}}
+      {{#each combats}}
+      <div class="sr-encounter">
+        <div class="sr-encounter-header" data-action="toggleEncounter" data-index="{{index}}">
+          <i class="fas {{#if expanded}}fa-chevron-down{{else}}fa-chevron-right{{/if}}"></i>
+          <strong>{{label}}</strong> — {{rounds}} rounds{{#if duration}} ({{duration}}){{/if}}
+          <span class="sr-encounter-badge">{{totalDefeated}}/{{totalEnemies}} defeated</span>
+        </div>
+        {{#if expanded}}
+        <div class="sr-encounter-body">
+          <div class="sr-enemy-list">
+            {{#each enemies}}
+            <span class="sr-enemy {{#if defeated}}defeated{{/if}}">{{name}}{{#if defeated}} <i class="fas fa-skull"></i>{{#if killedBy}} <em>({{killedBy}})</em>{{/if}}{{/if}}</span>
+            {{/each}}
+          </div>
+        </div>
+        {{/if}}
+      </div>
+      {{/each}}
+      {{else}}
+      <p class="sr-empty">No combats recorded.</p>
+      {{/if}}
+
+      {{#if hasPlayerStats}}
+      <h4 class="sr-section-title">Roll &amp; Damage Stats</h4>
+      <table class="sr-stats-table">
+        <thead><tr><th>Player</th><th>Hit Rate</th><th>Nat 20</th><th>Nat 1</th><th>Avg d20</th><th>Checks</th><th>Dealt</th><th>Taken</th><th>Kills</th></tr></thead>
+        <tbody>
+          {{#each playerStatsTable}}
+          <tr><td class="sr-cell-name">{{name}}</td><td>{{hitRate}}</td><td>{{nat20s}}</td><td>{{nat1s}}</td><td>{{avgD20}}</td><td>{{saveRate}}</td><td>{{damageDealt}}</td><td>{{damageTaken}}</td><td>{{kills}}</td></tr>
+          {{/each}}
+        </tbody>
+      </table>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{#if tab.loot}}
+    <section class="sr-section">
+      {{#if hasLoot}}
+      <div class="sr-loot-list">
+        {{#each lootEntries}}
+        <div class="sr-loot-entry {{#if unclaimed}}unclaimed{{/if}}">
+          <span class="sr-loot-time">{{time}}</span>
+          <span class="sr-loot-icon">{{{iconHtml}}}</span>
+          <span class="sr-loot-player">{{player}}</span>
+          <span class="sr-loot-detail">{{detail}}</span>
+          {{#if source}}<span class="sr-loot-source">{{source}}</span>{{/if}}
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="sr-empty">No loot recorded.</p>
+      {{/if}}
+
+      {{#if hasMerchant}}
+      <h4 class="sr-section-title">Merchant</h4>
+      {{#if purchases.length}}
+      <div class="sr-merchant-block">
+        <div class="sr-merchant-head"><i class="fas fa-shopping-bag"></i> Purchases</div>
+        {{#each purchases}}
+        <div class="sr-merchant-player"><span class="sr-merchant-name">{{player}}</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
+        {{#each items}}<div class="sr-merchant-item">{{item}}{{qtyLabel}} — {{price}}</div>{{/each}}
+        {{/each}}
+      </div>
+      {{/if}}
+      {{#if sales.length}}
+      <div class="sr-merchant-block">
+        <div class="sr-merchant-head"><i class="fas fa-hand-holding-usd"></i> Sales</div>
+        {{#each sales}}
+        <div class="sr-merchant-player"><span class="sr-merchant-name">{{player}}</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
+        {{#each items}}<div class="sr-merchant-item">{{item}}{{qtyLabel}} — {{price}}{{#if ratio}} ({{ratio}}){{/if}}</div>{{/each}}
+        {{/each}}
+      </div>
+      {{/if}}
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{#if tab.xp}}
+    <section class="sr-section">
+      {{#if hasXp}}
+      {{#each xpPlayers}}
+      <div class="sr-xp-player">
+        <h4>{{player}}</h4>
+        {{#each awards}}
+        <div class="sr-xp-award">
+          <span class="sr-xp-time">{{time}}</span>
+          <span class="sr-xp-label">{{label}}</span>
+          <span class="sr-xp-total">+{{totalXp}} XP</span>
+        </div>
+        {{/each}}
+        <div class="sr-xp-player-total">Total: {{total}} XP</div>
+      </div>
+      {{/each}}
+      {{else}}
+      <p class="sr-empty">No XP awarded yet.</p>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{#if tab.history}}
+    <section class="sr-section">
+      {{#if hasHistory}}
+      <div class="sr-history-list">
+        {{#each historyEntries}}
+        <div class="sr-history-entry">
+          <div class="sr-history-info" data-action="viewSession" data-session-id="{{id}}">
+            <span class="sr-history-name">{{name}}</span>
+            <span class="sr-history-meta">{{duration}} — {{combatCount}} combats, {{enemiesDefeated}} defeated, {{lootCount}} loot</span>
+          </div>
+          {{#if ../isGM}}<button type="button" class="sr-history-delete" data-action="deleteSession" data-session-id="{{id}}"><i class="fas fa-trash"></i></button>{{/if}}
+        </div>
+        {{/each}}
+      </div>
+      {{else}}
+      <p class="sr-empty">No saved sessions yet.</p>
+      {{/if}}
+    </section>
+    {{/if}}
+  </div>
+
+  <footer class="sr-footer">
+    <button type="button" class="sr-copy-btn" data-action="copyDiscord"><i class="fab fa-discord"></i> Copy for Discord</button>
+    {{#if isGM}}{{#unless isViewingHistory}}<button type="button" class="sr-clear-btn" data-action="clearSession"><i class="fas fa-trash"></i> Clear Session</button>{{/unless}}{{/if}}
+  </footer>
+</div>
