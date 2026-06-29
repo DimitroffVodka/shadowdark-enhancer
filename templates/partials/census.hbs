@@ -1,0 +1,64 @@
+{{!-- Live per-source census for the Monsters/Items dashboards.
+      Invoked as: {{> sdeCensus data=<tabData> noun="monster"}}
+      data: { censusRows:[{label,have,gap,hasGap,expanded,missingNames}],
+              totalHave, totalGap, noCensus, seedAction, expandAction }
+      Reuses the pre-manifest census styling (.sde-hub-monsters-*). All #each
+      blocks use `as |x|` so `data` stays reachable at any depth. --}}
+
+<div class="sde-thub-summary">
+  <span class="sde-thub-stat ok">
+    <i class="fas fa-box-archive"></i> {{data.totalHave}} in suite + system</span>
+  {{#if data.totalGap}}
+  <span class="sde-thub-stat miss">
+    <i class="fas fa-circle-exclamation"></i> {{data.totalGap}} referenced but missing</span>
+  {{/if}}
+</div>
+
+{{#if data.noCensus}}
+<p class="sde-hub-monsters-empty"><i class="fas fa-circle-info"></i> Nothing catalogued yet.</p>
+{{else}}
+<table class="sde-hub-monsters-table">
+  <thead>
+    <tr>
+      <th class="sde-hub-monsters-th-source">Source</th>
+      <th class="sde-hub-monsters-th-have" title="{{data.noun}} records owned (suite + system)">Have</th>
+      <th class="sde-hub-monsters-th-have" title="Referenced in pack tables but not resolvable">Gap</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each data.censusRows as |r|}}
+    <tr class="sde-hub-monsters-row">
+      <td class="sde-hub-monsters-source">{{r.label}}</td>
+      <td class="sde-hub-monsters-have">{{r.have}}</td>
+      <td class="sde-hub-monsters-gap{{#if r.hasGap}} has-gap{{/if}} sde-hub-monsters-expand-cell">
+        {{#if r.hasGap}}
+        <button type="button" class="sde-hub-monsters-expand-btn"
+                data-action="{{r.expandAction}}" data-source="{{r.label}}"
+                title="Show the {{r.gap}} referenced names that aren't resolvable">
+          {{r.gap}} {{#if r.expanded}}<i class="fas fa-caret-down"></i>{{else}}<i class="fas fa-caret-right"></i>{{/if}}
+        </button>
+        {{else}}0{{/if}}
+      </td>
+    </tr>
+    {{#if r.expanded}}
+    <tr>
+      <td class="sde-hub-monsters-gap-td" colspan="3">
+        <ul class="sde-hub-monsters-missing-list">
+          {{#each r.missingNames as |mn|}}
+          <li class="sde-hub-monsters-missing-item">
+            <span class="sde-hub-monsters-missing-name">{{mn.name}}</span>
+            <button type="button" class="sde-hub-monsters-seed-btn"
+                    data-action="{{mn.seedAction}}" data-name="{{mn.name}}"
+                    title="Seed the Import paste box with “{{mn.name}}”">
+              <i class="fas fa-file-import"></i> Seed
+            </button>
+          </li>
+          {{/each}}
+        </ul>
+      </td>
+    </tr>
+    {{/if}}
+    {{/each}}
+  </tbody>
+</table>
+{{/if}}

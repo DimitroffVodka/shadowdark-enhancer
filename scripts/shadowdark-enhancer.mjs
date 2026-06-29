@@ -68,12 +68,12 @@ Hooks.once("init", () => {
   Handlebars.registerHelper("join", (arr, sep) =>
     Array.isArray(arr) ? arr.join(typeof sep === "string" ? sep : ", ") : "");
 
-  // Catalog accordion partial — shared by the Monsters/Items/Journal/Scenes
-  // manifest dashboards (Tables-style have/missing list).
+  // Live census partial — shared by the Monsters/Items dashboards (per-source
+  // have/gap list with seed-the-paste-box shortcuts).
   foundry.applications.handlebars
-    .getTemplate(`modules/${MODULE_ID}/templates/partials/catalog.hbs`)
-    .then((tpl) => Handlebars.registerPartial("sdeCatalog", tpl))
-    .catch((err) => console.error(`${MODULE_ID} | failed to register sdeCatalog partial:`, err));
+    .getTemplate(`modules/${MODULE_ID}/templates/partials/census.hbs`)
+    .then((tpl) => Handlebars.registerPartial("sdeCensus", tpl))
+    .catch((err) => console.error(`${MODULE_ID} | failed to register sdeCensus partial:`, err));
 
   // Expose API. Public, versioned surface (REQ-26) — additive changes bump
   // the minor version, breaking changes the major. Mirrored at
@@ -179,8 +179,9 @@ Hooks.once("init", () => {
       encounterTables: () => TableRegistry.encounterTables(),
       groups: () => TableRegistry.groups(),
       organize: (opts) => TableRegistry.organize(opts),
-      // Importer hub — 3-tab shell (Import / Tables / Monsters).
-      // Back-compat: legacy tab="dashboard" maps to "tables"; seed forces Import tab.
+      // Importer hub — 4-tab shell (Import / Tables / Monsters / Items).
+      // Back-compat: legacy tab="dashboard" maps to "tables"; retired
+      // "journal"/"scenes" tabs coerce to Import; seed forces Import tab.
       openHub: (tab, seed) => ImporterHubApp.open(
         (!tab || tab === "dashboard") ? "tables" : tab,
         seed,

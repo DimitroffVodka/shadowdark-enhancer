@@ -1,17 +1,21 @@
 /**
  * Shadowdark Enhancer — Importer Hub (ApplicationV2).
  *
- * A single three-tab window that is the front door for all import/management
- * work: Import (universal paste), Tables (the Phase-5 manifest dashboard),
- * and Monsters (census/gap/duplicates — populated in 10-03/10-04).
+ * A single four-tab window that is the front door for import/management work:
+ * Import (universal paste), Tables (RollTable status + relink/migrate),
+ * Monsters and Items (live census/gap/duplicates). The Cursed Scroll
+ * adventure pipeline (Journal + Scenes tabs, hex/location keying → journal
+ * deploy → scene building) and the CS1–6/WR content-manifest reconcile were
+ * split out to the `preserve/scene-journal-adventure` branch.
  *
- * Absorbs RollTablesApp's full Tables-tab behavior:
- *   - Status chips, source chips, free-text search, collapsible rows.
- *   - Per-row "Import" button now seeds the hub's Import tab (_importSeed
- *     field) and switches to it — the actual Import-tab rendering is wired
- *     in plan 10-03, which consumes _importSeed.
- *   - Migrate-to-compendium button (D-03: lives on Tables tab, unchanged).
+ * Tables-tab behavior (absorbed from RollTablesApp):
+ *   - Status chips, free-text search, collapsible rows.
+ *   - Per-row "Import" button seeds the hub's Import tab (_importSeed field)
+ *     and switches to it.
+ *   - Migrate-to-compendium button (D-03: lives on Tables tab).
  *   - Six auto-refresh hooks (create/update/delete × RollTable/TableResult).
+ *   - The reconcile is cached (_tablesCache) and built only when the Tables
+ *     tab is active, so tab switches don't re-scan the world.
  *
  * Export:
  *   ImporterHubApp  — the ApplicationV2 class
@@ -23,18 +27,10 @@ import { LootLinker } from "./loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
 import { findById, formulaFromDie, isMatrix, columnManifestId } from "./table-manifest.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
-import { detectCrawlTitle, hexIdKey } from "./hex-parser.mjs";
-import { parseNumberedLocationsDetailed } from "./location-keyer.mjs";
 import { parseStatblock } from "./statblock-parser.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
-import { gatherJournalCrawls, deployJournalCrawl } from "./journal-dashboard-live.mjs";
-import { gatherSceneMaps, backupSceneById } from "./scene-dashboard-live.mjs";
-import { sourceFolderName } from "./compendium-suite.mjs";
-import {
-  gatherMonsterCatalog, gatherItemCatalog, gatherJournalCatalog, gatherSceneCatalog,
-} from "./content-dashboard-live.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -76,12 +72,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Tables-tab dashboard
       refresh:                ImporterHubApp.prototype._onRefresh,
       filter:                 ImporterHubApp.prototype._onFilter,
-      filterSource:           ImporterHubApp.prototype._onFilterSource,
       importMissing:          ImporterHubApp.prototype._onImportMissing,
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
       hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
       hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
-      hubRelinkJournals:      ImporterHubApp.prototype._onRelinkJournals,
       hubExportBundle:        ImporterHubApp.prototype._onExportBundle,
       hubImportBundle:        ImporterHubApp.prototype._onImportBundle,
       // Import tab — parse/clear
@@ -103,10 +97,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Import tab — commit actions
       hubCommitMonsters:      ImporterHubApp.prototype._onHubCommitMonsters,
       hubCommitItems:         ImporterHubApp.prototype._onHubCommitItems,
-      hubCommitJournal:       ImporterHubApp.prototype._onHubCommitJournal,
-      hubBuildScene:          ImporterHubApp.prototype._onHubBuildScene,
-      himportRemoveKey:       ImporterHubApp.prototype._onHimportRemoveKey,
-      himportRemoveHex:       ImporterHubApp.prototype._onHimportRemoveHex,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
       // Monsters-tab census/gap/duplicate actions
@@ -117,13 +107,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemGapExpand:          ImporterHubApp.prototype._onItemGapExpand,
       itemSeedPaste:          ImporterHubApp.prototype._onItemSeedPaste,
       itemCullGroup:          ImporterHubApp.prototype._onItemCullGroup,
-      // Journal-tab actions
-      journalDeploy:          ImporterHubApp.prototype._onJournalDeploy,
-      journalOpen:            ImporterHubApp.prototype._onJournalOpen,
-      // Scenes-tab actions
-      sceneView:              ImporterHubApp.prototype._onSceneView,
-      sceneBackup:            ImporterHubApp.prototype._onSceneBackup,
-      sceneOpen:              ImporterHubApp.prototype._onSceneOpen,
       // Monsters-tab maintenance actions (D-03, ported from MonsterImporterApp)
       mimportBackfill:        ImporterHubApp.prototype._onBackfill,
       mimportMigrateSuite:    ImporterHubApp.prototype._onMigrateSuite,
@@ -135,14 +118,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   // ── Active tab ─────────────────────────────────────────────────────────────
-  /** @type {"import"|"tables"|"monsters"|"items"|"journal"|"scenes"} */
+  /** @type {"import"|"tables"|"monsters"|"items"} */
   _activeTab = "import";
 
   // ── Tables-tab dashboard state (absorbed from RollTablesApp) ──────────────
   /** @type {string|null} */
   _filter = null;       // status filter: null | "system" | "imported" | "partial" | "missing"
-  /** @type {string|null} */
-  _sourceFilter = null; // source facet id filter
   _search = "";
   _searchFocused = false;
   _searchCursor = 0;
@@ -164,12 +145,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importMonsters = [];
   /** Item parse results: [{ draft, warnings }] from seg.items */
   _importItems = [];
-  _importHexes = [];
-  _importCrawlName = "";
-  /** @type {"hex"|"location"} */
-  _importKeyMode = "hex";
-  /** Numbered locations are opt-in because ordinary tables use numbered rows. */
-  _importLocationMode = false;
   /** Table parse results: ParsedTable[] */
   _importTables = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
@@ -183,14 +158,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Monsters-tab census cache ─────────────────────────────────────────────
   /**
    * Cached monsters-tab data (invalidated after cull/import/commit).
-   * Shape: { censusRows, duplicateGroups, duplicateCount } or null.
+   * Shape: { rows, duplicateGroups, duplicateCount } or null.
    * @type {object|null}
    */
   _monstersCache = null;
   /** Pending cache refresh (debounce). */
   _monstersCacheTimer = null;
-  /** Cancels a temporary canvas click capture when the hub closes. */
-  _pendingCanvasCapture = null;
   /** Which monster gap rows are expanded: Set of source ids. */
   _expandedGapRows = new Set();
 
@@ -200,13 +173,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Which item gap rows are expanded: Set of source ids. */
   _expandedItemGapRows = new Set();
 
-  // ── Journal-tab cache ─────────────────────────────────────────────────────
-  /** Cached journal-tab crawl rows (invalidated after deploy/relink/commit). @type {object|null} */
-  _journalCache = null;
-
-  // ── Scenes-tab cache ──────────────────────────────────────────────────────
-  /** Cached scenes-tab map rows (invalidated after backup/build-scene). @type {object|null} */
-  _scenesCache = null;
+  // ── Tables-tab cache ──────────────────────────────────────────────────────
+  /**
+   * Cached Tables-tab reconcile ({ groups, summary }), built only when the
+   * Tables tab is active and invalidated by the RollTable/TableResult hooks.
+   * Keeps tab switches off the expensive sde-tables world scan. @type {object|null}
+   */
+  _tablesCache = null;
 
   // ── Hook / timer plumbing ─────────────────────────────────────────────────
   _hookIds = [];
@@ -227,6 +200,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Coalesce rapid table/result changes into a single re-render. */
   _scheduleRefresh() {
     if (!this.rendered) return;
+    // A RollTable/TableResult changed — drop the cached Tables reconcile so the
+    // next render rebuilds it; other tabs don't depend on it.
+    this._tablesCache = null;
     clearTimeout(this._refreshTimer);
     this._refreshTimer = setTimeout(() => { if (this.rendered) this.render(); }, 120);
   }
@@ -235,9 +211,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   static _instance = null;
 
+  /** Tabs the hub still renders; any other request falls back to Import. */
+  static TABS = ["import", "tables", "monsters", "items"];
+
   /**
    * Open (or bring forward) the hub.
-   * @param {"import"|"tables"|"monsters"} [tab="import"]
+   * @param {"import"|"tables"|"monsters"|"items"} [tab="import"]
    * @param {object|null} [seed=null] - When provided, forces Import tab and
    *   stores the seed so 10-03's Import tab can pre-fill the paste box.
    */
@@ -248,7 +227,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       inst._importSeed = seed;
       inst._activeTab = "import";
     } else {
-      inst._activeTab = tab || "import";
+      // Legacy callers may still pass "journal"/"scenes" — coerce to Import.
+      inst._activeTab = ImporterHubApp.TABS.includes(tab) ? tab : "import";
     }
     if (!inst.rendered) inst.render(true);
     else { inst.bringToFront(); inst.render(); }
@@ -257,8 +237,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async close(options = {}) {
     clearTimeout(this._refreshTimer);
-    this._pendingCanvasCapture?.();
-    this._pendingCanvasCapture = null;
     for (const [ev, id] of this._hookIds) Hooks.off(ev, id);
     this._hookIds = [];
     ImporterHubApp._instance = null;
@@ -268,34 +246,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Context preparation ────────────────────────────────────────────────────
 
   async _prepareContext() {
-    // ── Tables-tab data (absorbed from RollTablesApp._prepareContext) ────────
-    const { groups, summary: globalSummary, sourceFacets } = await TableHub.buildRows();
+    // ── Tables-tab data ──────────────────────────────────────────────────────
+    // Reconcile the sde-tables pack only when the Tables tab is actually shown,
+    // and cache it. This keeps tab switches (and renders triggered by other
+    // tabs) off the expensive world scan. The cache is dropped by the
+    // RollTable/TableResult hooks (_scheduleRefresh) and by table commit/relink.
     const stf = this._filter;
-    const sf  = this._sourceFilter;
-    const matches = sf ? (sourceFacets.find(f => f.id === sf)?.match ?? [sf]) : null;
-    const inSrc = (r) => !matches || matches.includes(r.source);
-
-    // Global source filter (below the tabs): the selected facet's display label
-    // scopes the census/journal/scene dashboards too. Stored on `this` so the
-    // per-tab prep methods can read it.
-    this._activeFacetLabel = sf ? (sourceFacets.find(f => f.id === sf)?.label ?? null) : null;
-
-    let summary = globalSummary;
-    if (matches) {
-      summary = { total: 0, system: 0, imported: 0, partial: 0, missing: 0 };
-      for (const g of groups) for (const s of g.subgroups) for (const r of s.rows) {
-        if (inSrc(r)) { summary.total++; summary[r.state]++; }
+    let summary = { total: 0, system: 0, imported: 0, partial: 0, missing: 0 };
+    let shown = [];
+    if (this._activeTab === "tables") {
+      if (!this._tablesCache) {
+        const { groups, summary: built } = await TableHub.buildRows();
+        this._tablesCache = { groups, summary: built };
       }
+      summary = this._tablesCache.summary;
+      shown = this._tablesCache.groups
+        .map(g => ({
+          ...g,
+          subgroups: g.subgroups
+            .map(s => ({ ...s, rows: s.rows.filter(r => !stf || r.state === stf) }))
+            .filter(s => s.rows.length),
+        }))
+        .filter(g => g.subgroups.length);
     }
-
-    const shown = groups
-      .map(g => ({
-        ...g,
-        subgroups: g.subgroups
-          .map(s => ({ ...s, rows: s.rows.filter(r => inSrc(r) && (!stf || r.state === stf)) }))
-          .filter(s => s.rows.length),
-      }))
-      .filter(g => g.subgroups.length);
 
     // ── Import-tab data ──────────────────────────────────────────────────────
     const moveOptions = Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? FALLBACK_MOVES);
@@ -324,10 +297,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasMonsters = importMonsterCards.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasTables   = this._importTables.length > 0;
-    const hasKeyed    = this._importHexes.length > 0;
-    const isLocationMode = this._importKeyMode === "location";
-    const keyLabel = isLocationMode ? "Location" : "Hex";
-    const showImportAll = [hasMonsters, hasItems, hasTables, hasKeyed].filter(Boolean).length > 1;
+    const showImportAll = [hasMonsters, hasItems, hasTables].filter(Boolean).length > 1;
 
     const importData = {
       text: this._importText,
@@ -341,19 +311,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasMonsters,
       hasItems,
       hasTables,
-      hasKeyed,
-      keyed: this._importHexes.map((d, i) => ({
-        idx: i,
-        keyId: isLocationMode ? d.locationId : d.hexId,
-        name: d.name,
-        body: d.body ?? (d.bodyLines ?? []).join("\n"),
-        warnings: d.warnings ?? [],
-      })),
-      keyedCount: this._importHexes.length,
-      keyLabel,
-      isLocationMode,
-      locationMode: this._importLocationMode,
-      crawlName: this._importCrawlName,
       showImportAll,
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
@@ -376,40 +333,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ],
     };
 
-    // ── Monsters-tab data ────────────────────────────────────────────────────
+    // ── Per-tab dashboards (computed + cached only for the active tab) ────────
     let monstersData = null;
     if (this._activeTab === "monsters") {
       monstersData = await this._prepareMonstersContext();
     }
 
-    // ── Items-tab data ───────────────────────────────────────────────────────
     let itemsData = null;
     if (this._activeTab === "items") {
       itemsData = await this._prepareItemsContext();
     }
-
-    // ── Journal-tab data ─────────────────────────────────────────────────────
-    let journalData = null;
-    if (this._activeTab === "journal") {
-      journalData = await this._prepareJournalContext();
-    }
-
-    // ── Scenes-tab data ──────────────────────────────────────────────────────
-    let scenesData = null;
-    if (this._activeTab === "scenes") {
-      scenesData = await this._prepareScenesContext();
-    }
-
-    // Source-chip counts reflect the ACTIVE tab so the global bar is meaningful
-    // everywhere (table counts on Tables, monster counts on Monsters, etc.).
-    const activeFacetCounts = {
-      monsters: monstersData?.facetCounts,
-      items:    itemsData?.facetCounts,
-      journal:  journalData?.facetCounts,
-      scenes:   scenesData?.facetCounts,
-    }[this._activeTab] ?? null;
-    const facetCount = (f) =>
-      this._activeTab === "tables" ? f.count : (activeFacetCounts?.[f.label] ?? 0);
 
     return {
       // Tab flags
@@ -418,8 +351,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tabTables:    this._activeTab === "tables",
       tabMonsters:  this._activeTab === "monsters",
       tabItems:     this._activeTab === "items",
-      tabJournal:   this._activeTab === "journal",
-      tabScenes:    this._activeTab === "scenes",
       // Tables-tab context
       search:   this._search,
       groups:   shown,
@@ -430,48 +361,60 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       fImported: stf === "imported",
       fPartial:  stf === "partial",
       fMissing:  stf === "missing",
-      sources: sourceFacets.map(f => ({
-        id: f.id, label: f.label, count: facetCount(f), active: sf === f.id,
-      })),
-      sourceAll: !sf,
-      // The global source bar shows on every dashboard tab, not the paste box.
-      showSources: this._activeTab !== "import",
       // Import-tab context
       importData,
       // Monsters-tab context (null when not on Monsters tab)
       monstersData,
       // Items-tab context (null when not on Items tab)
       itemsData,
-      // Journal-tab context (null when not on Journal tab)
-      journalData,
-      // Scenes-tab context (null when not on Scenes tab)
-      scenesData,
     };
   }
 
   /**
-   * Prepare Monsters-tab context: census rows merged with gap counts, duplicate
-   * groups, and expanded-gap-row tracking. Results are cached within a render
-   * cycle; cache is invalidated on cull/import/tab-switch.
+   * Prepare Monsters-tab context: per-source live census rows merged with gap
+   * counts (monster names referenced in pack tables that don't resolve to an
+   * owned/system actor), plus duplicate groups. Cached per render cycle;
+   * invalidated on cull/import/commit.
    *
    * @returns {Promise<object>}
    */
   async _prepareMonstersContext() {
     if (!this._monstersCache) {
-      const [catalog, dupGroups] = await Promise.all([
-        gatherMonsterCatalog().catch((err) => {
-          console.error("shadowdark-enhancer | gatherMonsterCatalog failed:", err);
-          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
+      const [rows, dupGroups] = await Promise.all([
+        gatherCensus().catch((err) => {
+          console.error("shadowdark-enhancer | gatherCensus failed:", err);
+          return [];
         }),
         gatherDuplicates().catch((err) => {
           console.error("shadowdark-enhancer | gatherDuplicates failed:", err);
           return [];
         }),
       ]);
-      this._monstersCache = { catalog, duplicateGroups: dupGroups, duplicateCount: dupGroups.length };
+      this._monstersCache = { rows, duplicateGroups: dupGroups, duplicateCount: dupGroups.length };
     }
+    return this._censusContext(this._monstersCache, this._expandedGapRows, "monsterSeedPaste");
+  }
 
-    const { catalog, duplicateGroups: dupGroups, duplicateCount } = this._monstersCache;
+  /**
+   * Shape a cached census ({ rows, duplicateGroups, duplicateCount }) for the
+   * Monsters/Items dashboard template: per-source rows with expand state and a
+   * gap-name list, plus the duplicate cards. Replaces the former manifest
+   * `_catalogContext` — there is no source/manifest reconcile anymore.
+   */
+  _censusContext(cache, expandedSet, seedAction) {
+    const { rows, duplicateGroups: dupGroups, duplicateCount } = cache;
+    const expandAction = seedAction === "monsterSeedPaste" ? "monsterGapExpand" : "itemGapExpand";
+    // Stamp the per-row/per-name action strings so the template only ever reads
+    // block params (no parent/`../` lookups across {{#each}} depths).
+    const censusRows = rows.map((r) => ({
+      label:        r.label,
+      have:         r.have ?? 0,
+      gap:          r.gap ?? 0,
+      hasGap:       (r.gap ?? 0) > 0,
+      expanded:     expandedSet.has(r.label),
+      expandAction,
+      missingNames: (r.missingNames ?? []).map((name) => ({ name, seedAction })),
+    }));
     const dupGroupsCtx = dupGroups.map((g) => ({
       ...g,
       members: g.members.map((m) => ({
@@ -479,110 +422,51 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         date: m.date ? new Date(m.date).toLocaleDateString() : null,
       })),
     }));
-
     return {
-      ...this._catalogContext(catalog, { seedAction: "monsterSeedPaste" }),
-      seedAction:      "monsterSeedPaste",
+      censusRows,
+      totalHave:       censusRows.reduce((a, r) => a + r.have, 0),
+      totalGap:        censusRows.reduce((a, r) => a + r.gap, 0),
+      noCensus:        censusRows.length === 0,
       duplicateGroups: dupGroupsCtx,
       duplicateCount,
       hasDuplicates:   dupGroups.length > 0,
     };
   }
 
-  /**
-   * Shared shaping for a manifest catalog dashboard: apply the global source
-   * filter (chips below the tabs) and the status filter (summary chips) to the
-   * reconciled groups, recount the summary for the source filter, and surface
-   * per-source facet counts. Used by Monsters / Items / Journal / Scenes.
-   */
-  _catalogContext(catalog, { seedAction = null, builtLabel = "Imported", hint = null } = {}) {
-    const facetCounts = this._countByFacetLabel(catalog.rows.map((r) => r.source));
-    const srcLabel = this._activeFacetLabel;
-    const stf = this._filter;
-
-    // Stamp per-row affordances — block params keep `r` in scope at any depth in
-    // the partial, whereas the partial-level `data` falls out of scope inside
-    // nested {{#each}}.
-    const stamp = (r) => ({
-      ...r,
-      importAction: r.state === "missing" ? seedAction : null,
-      presentLabel: builtLabel,
-    });
-
-    const groups = catalog.groups
-      .filter((g) => !srcLabel || this._facetLabelForSource(g.source) === srcLabel)
-      .map((g) => ({
-        ...g,
-        subgroups: g.subgroups
-          .map((s) => ({ ...s, rows: s.rows.filter((r) => !stf || r.state === stf).map(stamp) }))
-          .filter((s) => s.rows.length),
-      }))
-      .filter((g) => g.subgroups.length);
-
-    let summary = catalog.summary;
-    if (srcLabel) {
-      summary = { total: 0, system: 0, imported: 0, missing: 0, draft: 0 };
-      for (const r of catalog.rows) {
-        if (this._facetLabelForSource(r.source) !== srcLabel) continue;
-        summary.total++; summary[r.state]++; if (r.draft) summary.draft++;
-      }
-    }
-
-    return {
-      groups,
-      summary,
-      seedAction,
-      hint,
-      fAll: !stf, fSystem: stf === "system", fImported: stf === "imported", fMissing: stf === "missing",
-      facetCounts,
-      noCatalog: catalog.rows.length === 0,
-    };
-  }
-
-  /** Invalidate the monsters-tab cache and optionally schedule a re-render. */
+  /** Invalidate the monsters-tab cache. */
   _invalidateMonstersCache() {
     this._monstersCache = null;
     clearTimeout(this._monstersCacheTimer);
   }
 
   /**
-   * Prepare Items-tab context: per-source census rows merged with gap counts
-   * (item names referenced in loot/treasure pack tables that don't resolve),
-   * a type tally, and duplicate groups. Parallels _prepareMonstersContext.
+   * Prepare Items-tab context: per-source live census rows merged with gap
+   * counts (item names referenced in loot/treasure pack tables that don't
+   * resolve), plus duplicate groups. Parallels _prepareMonstersContext.
    *
    * @returns {Promise<object>}
    */
   async _prepareItemsContext() {
     if (!this._itemsCache) {
-      const [catalog, dupGroups] = await Promise.all([
-        gatherItemCatalog().catch((err) => {
-          console.error("shadowdark-enhancer | gatherItemCatalog failed:", err);
-          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
+      // gatherItemCensus returns { total, typeCounts, rows } — unwrap rows
+      // (unlike gatherCensus, which returns the row array directly).
+      const [census, dupGroups] = await Promise.all([
+        gatherItemCensus().catch((err) => {
+          console.error("shadowdark-enhancer | gatherItemCensus failed:", err);
+          return { rows: [] };
         }),
         gatherItemDuplicates().catch((err) => {
           console.error("shadowdark-enhancer | gatherItemDuplicates failed:", err);
           return [];
         }),
       ]);
-      this._itemsCache = { catalog, duplicateGroups: dupGroups, duplicateCount: dupGroups.length };
+      this._itemsCache = {
+        rows: census.rows ?? [],
+        duplicateGroups: dupGroups,
+        duplicateCount: dupGroups.length,
+      };
     }
-
-    const { catalog, duplicateGroups: dupGroups, duplicateCount } = this._itemsCache;
-    const dupGroupsCtx = dupGroups.map((g) => ({
-      ...g,
-      members: g.members.map((m) => ({
-        ...m,
-        date: m.date ? new Date(m.date).toLocaleDateString() : null,
-      })),
-    }));
-
-    return {
-      ...this._catalogContext(catalog, { seedAction: "itemSeedPaste" }),
-      seedAction:      "itemSeedPaste",
-      duplicateGroups: dupGroupsCtx,
-      duplicateCount,
-      hasDuplicates:   dupGroups.length > 0,
-    };
+    return this._censusContext(this._itemsCache, this._expandedItemGapRows, "itemSeedPaste");
   }
 
   /** Invalidate the items-tab cache. */
@@ -590,120 +474,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._itemsCache = null;
   }
 
-  /**
-   * Prepare Journal-tab context: one status row per sde-journal crawl (pages,
-   * @UUID links, world-deploy state, scene/pin coverage).
-   * @returns {Promise<object>}
-   */
-  async _prepareJournalContext() {
-    if (!this._journalCache) {
-      const [catalog, rows] = await Promise.all([
-        gatherJournalCatalog().catch((err) => {
-          console.error("shadowdark-enhancer | gatherJournalCatalog failed:", err);
-          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
-        }),
-        gatherJournalCrawls().catch((err) => {
-          console.error("shadowdark-enhancer | gatherJournalCrawls failed:", err);
-          return [];
-        }),
-      ]);
-      this._journalCache = { catalog, rows };
-    }
-    const { catalog, rows } = this._journalCache;
-    const cat = this._catalogContext(catalog, {
-      builtLabel: "Built",
-      hint: "To add a missing one, paste its hex or numbered-location key on the Import tab.",
-    });
-    const label = this._activeFacetLabel;
-    const visible = label ? rows.filter((r) => this._facetLabelForSource(r.source) === label) : rows;
-    return {
-      catalog:    cat,
-      facetCounts: cat.facetCounts,
-      crawls:     visible,
-      crawlCount: visible.length,
-      noCrawls:   rows.length === 0,
-    };
-  }
-
-  /** Invalidate the journal-tab cache. */
-  _invalidateJournalCache() {
-    this._journalCache = null;
-  }
-
-  /**
-   * Prepare Scenes-tab context: one row per keyed map scene (grid, pins,
-   * pin-resolution %, backup state).
-   * @returns {Promise<object>}
-   */
-  async _prepareScenesContext() {
-    if (!this._scenesCache) {
-      const [catalog, rows] = await Promise.all([
-        gatherSceneCatalog().catch((err) => {
-          console.error("shadowdark-enhancer | gatherSceneCatalog failed:", err);
-          return { rows: [], summary: { total: 0, system: 0, imported: 0, missing: 0, draft: 0 }, groups: [] };
-        }),
-        gatherSceneMaps().catch((err) => {
-          console.error("shadowdark-enhancer | gatherSceneMaps failed:", err);
-          return [];
-        }),
-      ]);
-      this._scenesCache = { catalog, rows };
-    }
-    const { catalog, rows } = this._scenesCache;
-    const cat = this._catalogContext(catalog, {
-      builtLabel: "Built",
-      hint: "Maps can't be auto-imported — build each from your own image via “Build scene” on the Journal tab.",
-    });
-    const label = this._activeFacetLabel;
-    const visible = label ? rows.filter((r) => this._facetLabelForSource(r.source) === label) : rows;
-    return {
-      catalog:     cat,
-      facetCounts: cat.facetCounts,
-      scenes:      visible,
-      sceneCount:  visible.length,
-      noScenes:    rows.length === 0,
-      backedUp:    visible.filter((r) => r.backedUp).length,
-    };
-  }
-
-  /** Tally a list of source ids by their facet label (for source-chip counts). */
-  _countByFacetLabel(sources) {
-    const m = {};
-    for (const src of sources) {
-      const lbl = this._facetLabelForSource(src);
-      m[lbl] = (m[lbl] ?? 0) + 1;
-    }
-    return m;
-  }
-
-  /**
-   * Map a source string to a source-filter facet label. Handles the census
-   * short codes (cs1…cs6, wr) via sourceFolderName AND the descriptive source
-   * strings that journal/scene flags carry ("Cursed Scroll 5 — …", "Western
-   * Reaches …"), so the global filter scopes those tabs too.
-   */
-  _facetLabelForSource(source) {
-    const raw = String(source ?? "").trim();
-    if (!raw) return "Custom";
-    const m = raw.toLowerCase();
-    const cs = m.match(/(?:^cs|cursed\s*scroll)\s*([1-6])\b/);
-    if (cs) return `CS${cs[1]}`;
-    if (m === "wr" || m === "pgwr" || m === "gmgwr" || /western\s*reaches/.test(m)) return "Western Reaches";
-    if (m === "core") return "Core";
-    return sourceFolderName(raw);
-  }
-
-  /** Invalidate the scenes-tab cache. */
-  _invalidateScenesCache() {
-    this._scenesCache = null;
-  }
-
   // ── Render wiring ─────────────────────────────────────────────────────────
 
   _onRender(context, options) {
     super._onRender?.(context, options);
 
-    // Tab nav: clicking a hub-tab button sets _activeTab and re-renders.
+    // Tab nav: clicking a hub-tab button sets _activeTab and re-renders. The
+    // per-tab dashboards are cached (Tables/Monsters/Items), so a switch only
+    // pays a world scan on the FIRST visit to each tab — never again.
     for (const btn of this.element.querySelectorAll("[data-hubtab]")) {
       btn.addEventListener("click", (ev) => {
         this._activeTab = ev.currentTarget.dataset.hubtab;
@@ -714,11 +492,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // ── Import-tab wiring (only when Import tab is active) ────────────────────
     if (this._activeTab === "import") {
       this._wireHubPaste();
-      this._wireHubLocationMode();
       this._wireHubSource();
       this._wireHubMonsterFieldEdits();
       this._wireHubItemFieldEdits();
-      this._wireHubKeyedFieldEdits();
       this._wireHubTableFieldEdits();
     }
 
@@ -799,12 +575,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  async _onFilterSource(event, target) {
-    const s = target.dataset.source || null;
-    this._sourceFilter = (s === "all" || this._sourceFilter === s) ? null : s;
-    this.render();
-  }
-
   /**
    * Per-row "Import" button on the Tables tab.
    * Seeds _importSeed from the manifest entry (same payload as RollTablesApp),
@@ -852,22 +622,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       t = setTimeout(() => { this._importText = ev.target.value; }, 200);
     });
     ta.addEventListener("blur", () => { this._importTextFocused = false; this._importText = ta.value; });
-  }
-
-  /** Explicit numbered-location mode toggle; changing it clears stale previews. */
-  _wireHubLocationMode() {
-    const input = this.element.querySelector("input[data-import-location-mode]");
-    if (!input) return;
-    input.addEventListener("change", (ev) => {
-      this._importLocationMode = !!ev.target.checked;
-      this._importKeyMode = this._importLocationMode ? "location" : "hex";
-      this._importMonsters = [];
-      this._importItems = [];
-      this._importTables = [];
-      this._importHexes = [];
-      this._importSkipped = [];
-      this.render();
-    });
   }
 
   /** Source label input: free-text, commit on input. */
@@ -1015,40 +769,19 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
 
-    this._importKeyMode = this._importLocationMode ? "location" : "hex";
-    if (this._importLocationMode) {
-      this._importMonsters = [];
-      this._importItems = [];
-      this._importTables = [];
-      const parsed = parseNumberedLocationsDetailed(this._importText);
-      this._importHexes = parsed.drafts;
-      this._importSkipped = this._importHexes.length || !this._importText.trim()
-        ? parsed.skipped
-        : [{
-            name: "Numbered locations",
-            reason: "No ascending run of 3+ punctuated headings was found (for example, \"1. Entry Hall\").",
-          }];
-    } else {
-      const seg = segmentDump(this._importText);
+    const seg = segmentDump(this._importText);
 
-      // Map raw monster chunks → [{ draft, warnings }]
-      this._importMonsters = seg.monsters.map((chunk) => parseStatblock(chunk));
+    // Map raw monster chunks → [{ draft, warnings }]
+    this._importMonsters = seg.monsters.map((chunk) => parseStatblock(chunk));
 
-      // Items are already [{ draft, warnings }] from the item recognizer
-      this._importItems = seg.items ?? [];
+    // Items are already [{ draft, warnings }] from the item recognizer
+    this._importItems = seg.items ?? [];
 
-      // Tables are already ParsedTable[] from the segmenter
-      this._importTables = seg.tables;
+    // Tables are already ParsedTable[] from the segmenter
+    this._importTables = seg.tables;
 
-      // Hex drafts from the hexcrawl recognizer (Phase 16)
-      this._importHexes = seg.hexes ?? [];
-      this._importCrawlName = this._importHexes.length
-        ? (detectCrawlTitle(this._importText) || this._importCrawlName || "")
-        : "";
-
-      // Skipped: union of segmenter skipped + any extra from parsers
-      this._importSkipped = [...(seg.skipped ?? [])];
-    }
+    // Skipped: union of segmenter skipped + any extra from parsers
+    this._importSkipped = [...(seg.skipped ?? [])];
 
     // Apply seed (D-07 bridge: per-row Import from Tables tab)
     this._applyImportSeed();
@@ -1056,8 +789,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Link loot rows to compendium items
     await this._linkLootTables();
 
-    if (!this._importMonsters.length && !this._importItems.length && !this._importTables.length && !this._importHexes.length) {
-      ui.notifications.warn("No monsters, items, tables, or keyed locations found — review the Skipped section.");
+    if (!this._importMonsters.length && !this._importItems.length && !this._importTables.length) {
+      ui.notifications.warn("No monsters, items, or tables found — review the Skipped section.");
     }
 
     this.render();
@@ -1067,7 +800,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importText = "";
     this._importMonsters = [];
     this._importItems = [];
-    this._importHexes = [];
     this._importTables = [];
     this._importSkipped = [];
     this._importSeed = null;
@@ -1348,8 +1080,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasMonsters = this._importMonsters.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasTables   = this._importTables.length > 0;
-    const hasKeyed    = this._importHexes.length > 0;
-    if (!hasMonsters && !hasItems && !hasTables && !hasKeyed) { ui.notifications.warn("Nothing to import."); return; }
+    if (!hasMonsters && !hasItems && !hasTables) { ui.notifications.warn("Nothing to import."); return; }
 
     const parts = [];
     const source = this._importSource.trim();
@@ -1388,30 +1119,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       }
       parts.push(`tables: ${created} created`);
-    }
-
-    // Hexcrawl journal fourth (Phase 16) — a missing crawl name skips the
-    // stage with a visible note instead of blocking the other sections.
-    if (hasKeyed) {
-      const crawlName = (this._importCrawlName ?? "").trim();
-      if (!crawlName) {
-        parts.push("journal: skipped (no name)");
-      } else {
-        const { JournalImporter } = await import("./journal-importer.mjs");
-        const result = await JournalImporter.createOrUpdateKeyedJournal(this._importHexes, {
-          crawlName,
-          source,
-          keyMode: this._importKeyMode,
-          onConflict: this._crawlConflictDialog(this._importKeyMode),
-        });
-        if (result && result.status !== "skipped") {
-          parts.push(`journal: "${result.name}" ${result.status} (${result.pages.created} created, ${result.pages.updated} updated)`);
-          this._importHexes = [];
-          this._importCrawlName = "";
-        } else {
-          parts.push("journal: skipped");
-        }
-      }
     }
 
     ui.notifications.info(`Import complete — ${parts.join("; ")}.`);
@@ -1641,601 +1348,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tally.failures ? `${tally.failures} failure(s) — see console` : "",
     ].filter(Boolean).join(" · ");
     ui.notifications?.info(`Re-link complete: ${summary}.`);
-  }
-
-  /** Re-link managed keyed journal pages and refresh deployed world copies. */
-  async _onRelinkJournals() {
-    if (!game.user?.isGM) return;
-    const { findSuitePack } = await import("./compendium-suite.mjs");
-    const pack = findSuitePack("sde-journal");
-    if (!pack) {
-      ui.notifications?.warn("No sde-journal compendium pack found.");
-      return;
-    }
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Re-link Journal Pages" },
-      content: `<p>Re-link all managed pages in <strong>${pack.index.size}</strong> journal entry or entries to available monsters and items.</p>
-        <p>Only changed pages are updated. Existing deployed world copies are synchronized; no new world journal is created.</p>`,
-      buttons: [
-        { action: "relink", label: "Re-link", default: true },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-    if (!choice || choice === "cancel") return;
-
-    try {
-      const { JournalEnricher } = await import("./journal-enrich.mjs");
-      const tally = await JournalEnricher.sweepPack();
-      if (!tally) return;
-      const summary = [
-        `${tally.updated} of ${tally.pages} page(s) updated`,
-        `${tally.addedLinks} link(s) added`,
-        `${tally.worldSynced} world journal(s) synchronized`,
-        tally.failures ? `${tally.failures} failure(s) - see console` : "",
-      ].filter(Boolean).join(" · ");
-      ui.notifications?.info(`Journal re-link complete: ${summary}.`);
-      this._invalidateJournalCache();
-      if (this._activeTab === "journal") this.render();
-    } catch (err) {
-      console.error(`${MODULE_ID} | journal sweep: unexpected error:`, err);
-      ui.notifications?.error("Journal re-link failed - see the console for details.");
-    }
-  }
-
-  /** Keyed journal field edits; commit in place so typing does not lose focus. */
-  _wireHubKeyedFieldEdits() {
-    const nameEl = this.element.querySelector("input[data-import-crawlname]");
-    nameEl?.addEventListener("input", (ev) => { this._importCrawlName = ev.target.value; });
-    this.element.querySelectorAll("[data-himport-field]").forEach((el) => {
-      el.addEventListener("change", (ev) => {
-        const rowEl = ev.target.closest("[data-keyed-idx]");
-        if (!rowEl) return;
-        const draft = this._importHexes[Number(rowEl.dataset.keyedIdx)];
-        if (!draft) return;
-        const field = ev.target.dataset.himportField;
-        const v = ev.target.value;
-        switch (field) {
-          case "keyId": {
-            if (this._importKeyMode === "location") {
-              const nextId = Number(v.trim());
-              if (Number.isInteger(nextId) && nextId > 0) {
-                draft.locationId = String(nextId);
-                draft.key = `loc:${draft.locationId}`;
-              } else {
-                ev.target.value = draft.locationId;
-              }
-            } else {
-              draft.hexId = v.trim();
-              draft.key = hexIdKey(draft.hexId) ?? draft.key;
-            }
-            break;
-          }
-          case "name": draft.name = v; break;
-          case "body": {
-            draft.body = v;
-            draft.bodyLines = v.split("\n").map((l) => l.trim()).filter(Boolean);
-            break;
-          }
-        }
-      });
-    });
-  }
-
-  _onHimportRemoveKey(event, target) {
-    const idx = Number(target.closest("[data-keyed-idx]")?.dataset.keyedIdx);
-    if (Number.isInteger(idx)) {
-      this._importHexes.splice(idx, 1);
-      this.render();
-    }
-  }
-
-  /** Back-compatible action alias for Phase 16 templates. */
-  _onHimportRemoveHex(event, target) {
-    return this._onHimportRemoveKey(event, target);
-  }
-
-  /** A-04 conflict dialog: update-in-place (default) / separate copy / skip. */
-  _crawlConflictDialog(keyMode = "hex") {
-    return async (name) => {
-      const safe = foundry.utils.escapeHTML(name);
-      const kind = keyMode === "location" ? "numbered-location journal" : "crawl";
-      const unit = keyMode === "location" ? "locations" : "hexes";
-      const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Journal Already Exists" },
-        content: `<p>A ${kind} named <strong>${safe}</strong> (same source) already exists in the journal compendium.</p>
-          <p>Updating in place keeps every page's id — map pins stay valid. Pages for ${unit} not in this paste are left untouched. (Renaming it instead creates a separate entry.)</p>`,
-        buttons: [
-          { action: "update", label: "Update in place", default: true },
-          { action: "copy",   label: "Create separate copy" },
-          { action: "skip",   label: "Skip" },
-        ],
-        rejectClose: false,
-      }).catch(() => "skip");
-      return choice ?? "skip";
-    };
-  }
-
-  /** Commit parsed hex or numbered-location drafts as one keyed journal. */
-  async _onHubCommitJournal() {
-    if (!game.user?.isGM) return;
-    if (!this._importHexes.length) return;
-    const crawlName = (this._importCrawlName ?? "").trim();
-    if (!crawlName) {
-      ui.notifications.warn("Give the journal a name before creating it.");
-      return;
-    }
-    const { JournalImporter } = await import("./journal-importer.mjs");
-    const result = await JournalImporter.createOrUpdateKeyedJournal(this._importHexes, {
-      crawlName,
-      source: this._importSource.trim(),
-      keyMode: this._importKeyMode,
-      onConflict: this._crawlConflictDialog(this._importKeyMode),
-    });
-    if (!result || result.status === "skipped") return;
-    ui.notifications.info(
-      `"${result.name}" ${result.status}: ${result.pages.created} page(s) created, ${result.pages.updated} updated → sde-journal.`);
-    this._importHexes = [];
-    this._importCrawlName = "";
-    this._invalidateJournalCache();
-    this.render();
-  }
-
-  _pickSceneImage(current = "") {
-    return new Promise((resolve) => {
-      let settled = false;
-      const finish = (value) => {
-        if (settled) return;
-        settled = true;
-        resolve(value || null);
-      };
-      const picker = new foundry.applications.apps.FilePicker.implementation({
-        type: "image",
-        current,
-        callback: (path) => finish(path),
-      });
-      const close = picker.close.bind(picker);
-      picker.close = async (...args) => {
-        const result = await close(...args);
-        finish(null);
-        return result;
-      };
-      picker.render(true);
-    });
-  }
-
-  _captureSceneCalibration(imagePath) {
-    return new Promise((resolve) => {
-      const points = [];
-      const overlay = document.createElement("div");
-      overlay.className = "sde-scene-calibration-overlay";
-
-      const panel = document.createElement("div");
-      panel.className = "sde-scene-calibration-panel";
-      overlay.append(panel);
-
-      const title = document.createElement("h2");
-      title.textContent = "Calibrate Hex Map";
-      const status = document.createElement("p");
-      status.textContent = "Click the center of hex 0101.";
-      panel.append(title, status);
-
-      const frame = document.createElement("div");
-      frame.className = "sde-scene-calibration-frame";
-      const image = document.createElement("img");
-      image.alt = "Map calibration preview";
-      image.src = imagePath;
-      frame.append(image);
-      panel.append(frame);
-
-      const cancel = document.createElement("button");
-      cancel.type = "button";
-      cancel.textContent = "Cancel";
-      panel.append(cancel);
-
-      const cleanup = () => {
-        document.removeEventListener("keydown", onKey);
-        overlay.remove();
-      };
-      const finish = (value) => {
-        cleanup();
-        resolve(value);
-      };
-      const onKey = (event) => {
-        if (event.key === "Escape") finish(null);
-      };
-      document.addEventListener("keydown", onKey);
-      cancel.addEventListener("click", () => finish(null));
-      image.addEventListener("error", () => {
-        ui.notifications.error("The selected map image could not be loaded.");
-        finish(null);
-      });
-      image.addEventListener("click", (event) => {
-        const rect = image.getBoundingClientRect();
-        const point = {
-          x: (event.clientX - rect.left) * (image.naturalWidth / rect.width),
-          y: (event.clientY - rect.top) * (image.naturalHeight / rect.height),
-        };
-        points.push(point);
-
-        const marker = document.createElement("span");
-        marker.className = "sde-scene-calibration-marker";
-        marker.style.left = `${event.clientX - rect.left}px`;
-        marker.style.top = `${event.clientY - rect.top}px`;
-        marker.textContent = String(points.length);
-        frame.append(marker);
-
-        if (points.length === 1) {
-          status.textContent = "Now click the center of hex 1611.";
-        } else {
-          finish({ p1: points[0], p2: points[1], ref1: "1,1", ref2: "16,11" });
-        }
-      });
-      document.body.append(overlay);
-    });
-  }
-
-  async _chooseLocationGridProfile() {
-    const selection = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Location Map Grid" },
-      content: `<p>Choose how Foundry should configure this adventure map.</p>
-        <div class="form-group">
-          <label>Grid mode</label>
-          <select name="grid-mode">
-            <option value="gridless">Gridless</option>
-            <option value="square">Square grid</option>
-          </select>
-        </div>
-        <div class="form-group"><label>Columns</label><input type="number" name="columns" min="1" value="68"></div>
-        <div class="form-group"><label>Rows</label><input type="number" name="rows" min="1" value="44"></div>
-        <div class="form-group"><label>Distance per square</label><input type="number" name="distance" min="1" value="5"></div>
-        <div class="form-group"><label>Units</label><input type="text" name="units" value="ft"></div>
-        <p class="hint">Columns and rows are used only for square-grid maps. Foundry requires an integer grid size, so the scene may be a few pixels larger than the source image.</p>`,
-      buttons: [
-        {
-          action: "select",
-          label: "Continue",
-          default: true,
-          callback: (ev, button, dialog) => {
-            const root = dialog.element ?? dialog;
-            return {
-              gridMode: root?.querySelector?.("[name='grid-mode']")?.value ?? "gridless",
-              columns: Number(root?.querySelector?.("[name='columns']")?.value),
-              rows: Number(root?.querySelector?.("[name='rows']")?.value),
-              distance: Number(root?.querySelector?.("[name='distance']")?.value),
-              units: root?.querySelector?.("[name='units']")?.value?.trim() || "ft",
-            };
-          },
-        },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => null);
-    if (!selection || selection === "cancel") return null;
-    if (selection.gridMode === "square" &&
-        (![selection.columns, selection.rows, selection.distance].every((value) =>
-          Number.isFinite(value) && value > 0))) {
-      ui.notifications.warn("Square-grid columns, rows, and distance must be positive numbers.");
-      return null;
-    }
-    return selection;
-  }
-
-  /**
-   * Capture one pointer click in Scene coordinates. Escape cancels and every
-   * exit path removes the temporary PIXI + keyboard listeners.
-   */
-  _captureCanvasPoint(scene) {
-    return new Promise((resolve) => {
-      if (!canvas?.ready || canvas.scene?.id !== scene?.id || !canvas.stage?.toLocal) {
-        resolve(null);
-        return;
-      }
-      let settled = false;
-      const finish = (value) => {
-        if (settled) return;
-        settled = true;
-        canvas.stage.off("pointerdown", onPointerDown);
-        window.removeEventListener("keydown", onKeyDown);
-        if (this._pendingCanvasCapture === cancelCapture) {
-          this._pendingCanvasCapture = null;
-        }
-        resolve(value);
-      };
-      const onPointerDown = (event) => {
-        try {
-          const local = canvas.stage.toLocal(event.global);
-          finish({ x: local.x, y: local.y });
-        } catch (err) {
-          console.error(`${MODULE_ID} | canvas point conversion failed:`, err);
-          finish(null);
-        }
-      };
-      const onKeyDown = (event) => {
-        if (event.key === "Escape") finish(null);
-      };
-      const cancelCapture = () => finish(null);
-      this._pendingCanvasCapture = cancelCapture;
-      canvas.stage.on("pointerdown", onPointerDown);
-      window.addEventListener("keydown", onKeyDown);
-      ui.notifications.info("Click the location on the map. Press Escape to stop keying.");
-    });
-  }
-
-  async _activateLocationScene(scene) {
-    if (canvas?.ready && canvas.scene?.id === scene.id) return true;
-    const canvasReady = new Promise((resolve) => {
-      let timer;
-      const hookId = Hooks.once("canvasReady", () => {
-        clearTimeout(timer);
-        resolve(true);
-      });
-      timer = setTimeout(() => {
-        Hooks.off("canvasReady", hookId);
-        resolve(false);
-      }, 15000);
-    });
-    await scene.activate();
-    return canvasReady;
-  }
-
-  async _keyLocationScene({ crawl, scene, worldJournal, SceneBuilder }) {
-    const pages = crawl.pages.contents
-      .filter((page) => String(page.flags?.[MODULE_ID]?.key ?? "").startsWith("loc:"))
-      .sort((a, b) =>
-        Number(a.flags[MODULE_ID].locationId) - Number(b.flags[MODULE_ID].locationId));
-    let placed = 0;
-    let skipped = 0;
-
-    for (const packPage of pages) {
-      const key = packPage.flags[MODULE_ID].key;
-      const progress = scene.flags?.[MODULE_ID]?.locationProgress ?? {};
-      if (progress.placed?.includes(key) || progress.skipped?.includes(key)) continue;
-      const safeName = foundry.utils.escapeHTML(packPage.name);
-      const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: `Key ${packPage.name}` },
-        content: `<p><strong>${safeName}</strong></p>
-          <p>Place this journal pin on the active map, skip it, or stop and resume later.</p>`,
-        buttons: [
-          { action: "place", label: "Click map", default: true },
-          { action: "skip", label: "Skip" },
-          { action: "stop", label: "Stop" },
-        ],
-        rejectClose: false,
-      }).catch(() => "stop");
-      if (!choice || choice === "stop") break;
-      if (choice === "skip") {
-        await SceneBuilder.skipLocation({ scene, key });
-        skipped++;
-        continue;
-      }
-
-      const point = await this._captureCanvasPoint(scene);
-      if (!point) break;
-      const worldPage = worldJournal.pages.get(packPage.id);
-      if (!worldPage) throw new Error(`World journal page ${packPage.id} is missing`);
-      await SceneBuilder.placeLocationNote({ scene, page: worldPage, key, point });
-      placed++;
-    }
-    return { placed, skipped };
-  }
-
-  async _buildLocationScene(crawl, SceneBuilder) {
-    const existingScenes = game.scenes.contents
-      .filter((scene) =>
-        scene.flags?.[MODULE_ID]?.keyMode === "location" &&
-        scene.flags?.[MODULE_ID]?.journalId === crawl.id)
-      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    if (existingScenes.length) {
-      const options = existingScenes
-        .map((scene) => `<option value="${scene.id}">${foundry.utils.escapeHTML(scene.name)}</option>`)
-        .join("");
-      const resume = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Resume Location Keying" },
-        content: `<p>A deployed map already exists for <strong>${foundry.utils.escapeHTML(crawl.name)}</strong>.</p>
-          <select name="scene-id" style="width:100%">${options}</select>
-          <p class="hint">Resume continues with the first location that is neither placed nor skipped.</p>`,
-        buttons: [
-          {
-            action: "resume",
-            label: "Resume",
-            default: true,
-            callback: (ev, button, dialog) => ({
-              action: "resume",
-              sceneId: (dialog.element ?? dialog)?.querySelector?.("[name='scene-id']")?.value,
-            }),
-          },
-          { action: "new", label: "Create another map", callback: () => ({ action: "new" }) },
-          { action: "cancel", label: "Cancel", callback: () => ({ action: "cancel" }) },
-        ],
-        rejectClose: false,
-      }).catch(() => null);
-      if (!resume || resume.action === "cancel") return;
-      if (resume.action === "resume") {
-        const scene = game.scenes.get(resume.sceneId);
-        if (!scene) throw new Error("The selected location Scene no longer exists");
-        const worldJournal = await SceneBuilder.deployCrawlJournal(crawl);
-        await this._activateLocationScene(scene);
-        const keyed = await this._keyLocationScene({
-          crawl,
-          scene,
-          worldJournal,
-          SceneBuilder,
-        });
-        ui.notifications.info(
-          `Location map "${crawl.name}" resumed: ${keyed.placed} placed, ${keyed.skipped} skipped this run.`);
-        return;
-      }
-    }
-
-    const imagePath = await this._pickSceneImage();
-    if (!imagePath) return;
-    const profile = await this._chooseLocationGridProfile();
-    if (!profile) return;
-    const pageCount = crawl.pages.contents.filter((page) =>
-      String(page.flags?.[MODULE_ID]?.key ?? "").startsWith("loc:")).length;
-    const safeName = foundry.utils.escapeHTML(crawl.name);
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Deploy Location Map" },
-      content: `<p>Deploy <strong>${safeName}</strong> into the world and create a
-        ${profile.gridMode === "square" ? `${profile.columns} × ${profile.rows} square-grid` : "gridless"} scene.</p>
-        <p>After the scene opens, you will place or skip ${pageCount} location pin(s). Progress and the sde-scenes backup are updated after every choice.</p>`,
-      buttons: [
-        { action: "deploy", label: "Deploy", default: true },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-    if (choice !== "deploy") return;
-
-    const result = await SceneBuilder.createLocationScene({
-      crawlId: crawl.id,
-      crawlName: crawl.name,
-      source: crawl.flags?.[MODULE_ID]?.source ?? "",
-      imagePath,
-      ...profile,
-    });
-    if (!result) return;
-
-    await this._activateLocationScene(result.scene);
-    const keyed = await this._keyLocationScene({
-      crawl,
-      scene: result.scene,
-      worldJournal: result.journal,
-      SceneBuilder,
-    });
-    ui.notifications.info(
-      `Location map "${crawl.name}" ready: ${keyed.placed} placed, ${keyed.skipped} skipped this run.`);
-  }
-
-  /** Deploy a managed crawl journal into the world and build its pinned scene. */
-  async _onHubBuildScene() {
-    if (!game.user?.isGM) return;
-    const { findSuitePack } = await import("./compendium-suite.mjs");
-    const { splitNorthSouth, SceneBuilder } = await import("./scene-builder.mjs");
-    const pack = findSuitePack("sde-journal");
-    if (!pack) {
-      ui.notifications.warn("No sde-journal compendium found.");
-      return;
-    }
-
-    const index = await pack.getIndex({ fields: ["flags"] });
-    const crawls = [...index]
-      .filter((entry) => entry.flags?.[MODULE_ID]?.crawl === true)
-      .sort((a, b) => String(a.name).localeCompare(String(b.name)));
-    if (!crawls.length) {
-      ui.notifications.warn("Create a keyed journal before building its scene.");
-      return;
-    }
-
-    const options = crawls.map((entry) => {
-      const source = entry.flags?.[MODULE_ID]?.source;
-      const kind = String(entry.flags?.[MODULE_ID]?.keyMode ?? "hex") === "location"
-        ? "locations"
-        : "hexes";
-      const label = `${entry.name}${source ? ` (${source})` : ""}`;
-      return `<option value="${foundry.utils.escapeHTML(entry._id)}">${foundry.utils.escapeHTML(label)} — ${kind}</option>`;
-    }).join("");
-    const selection = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Build Map Scene" },
-      content: `<p>Select a keyed journal to deploy into the world.</p>
-        <select name="crawl-id" style="width:100%">${options}</select>
-        <label style="display:flex;gap:.5rem;align-items:center;margin-top:.75rem">
-          <input type="checkbox" name="calibrate"> Calibrate hex map with two reference clicks
-        </label>
-        <p class="hint">Hex journals use the standard template unless calibrated. Numbered-location journals ask for gridless or square-grid settings next.</p>`,
-      buttons: [
-        {
-          action: "select",
-          label: "Select",
-          default: true,
-          callback: (ev, button, dialog) => {
-            const root = dialog.element ?? dialog;
-            return {
-              crawlId: root?.querySelector?.("select[name='crawl-id']")?.value ?? null,
-              calibrate: !!root?.querySelector?.("input[name='calibrate']")?.checked,
-            };
-          },
-        },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => null);
-    if (!selection || selection === "cancel" || !selection.crawlId) return;
-
-    const crawl = await pack.getDocument(selection.crawlId);
-    if (!crawl) {
-      ui.notifications.error("That crawl journal could not be opened.");
-      return;
-    }
-    if (String(crawl.flags?.[MODULE_ID]?.keyMode ?? "hex") === "location") {
-      try {
-        await this._buildLocationScene(crawl, SceneBuilder);
-        this._invalidateJournalCache();
-        this._invalidateScenesCache();
-        if (this._activeTab === "journal" || this._activeTab === "scenes") this.render();
-      } catch (err) {
-        console.error(`${MODULE_ID} | location scene-builder: deploy failed:`, err);
-        ui.notifications.error("Location scene deployment failed - see the console for details.");
-      }
-      return;
-    }
-    const keys = crawl.pages.contents
-      .map((page) => page.flags?.[MODULE_ID]?.key)
-      .filter(Boolean);
-    const parts = splitNorthSouth(keys);
-
-    const northImage = await this._pickSceneImage();
-    if (!northImage) return;
-    const southImage = parts.south.length ? await this._pickSceneImage() : null;
-    if (parts.south.length && !southImage) return;
-    let calib;
-    if (selection.calibrate) {
-      const clicks = await this._captureSceneCalibration(northImage);
-      if (!clicks) return;
-      calib = SceneBuilder.solveCalibration(clicks.p1, clicks.p2, clicks.ref1, clicks.ref2);
-    }
-
-    const safeName = foundry.utils.escapeHTML(crawl.name);
-    const imageRows = [
-      `<li>North / map image: ${foundry.utils.escapeHTML(northImage)}</li>`,
-      southImage ? `<li>South map image: ${foundry.utils.escapeHTML(southImage)}</li>` : "",
-    ].filter(Boolean).join("");
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Deploy Crawl" },
-      content: `<p>Deploy <strong>${safeName}</strong> into the world and create
-        ${parts.south.length ? "two gridless scenes" : "one gridless scene"} with ${keys.length} Note pin(s).</p>
-        <ul>${imageRows}</ul>
-        <p>Calibration: ${selection.calibrate ? "two-click custom alignment" : "standard template constants"}.</p>
-        <p>The world journal keeps the compendium entry/page IDs; finished scenes are also backed up to sde-scenes.</p>`,
-      buttons: [
-        { action: "deploy", label: "Deploy", default: true },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-    if (choice !== "deploy") return;
-
-    try {
-      const result = await SceneBuilder.buildCrawlScene({
-        crawlId: crawl.id,
-        crawlName: crawl.name,
-        source: crawl.flags?.[MODULE_ID]?.source ?? "",
-        imagePath: northImage,
-        southImagePath: southImage,
-        calib,
-      });
-      if (!result) return;
-      const names = result.scenes.map((entry) => entry.scene.name).join(", ");
-      ui.notifications.info(
-        `Deployed "${crawl.name}": ${result.scenes.length} scene(s), ${result.notes} pin(s) - ${names}.`);
-      this._invalidateJournalCache();
-      this._invalidateScenesCache();
-      if (this._activeTab === "journal" || this._activeTab === "scenes") this.render();
-    } catch (err) {
-      console.error(`${MODULE_ID} | scene-builder: deploy failed:`, err);
-      ui.notifications.error("Crawl scene deployment failed - see the console for details.");
-    }
   }
 
   /**
@@ -2470,57 +1582,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     this._invalidateItemsCache();
     this.render();
-  }
-
-  // ── Journal-tab dashboard actions ──────────────────────────────────────────
-
-  /** Deploy a crawl from sde-journal into the world (keepId). GM-gated. */
-  async _onJournalDeploy(event, target) {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can deploy a crawl."); return; }
-    const uuid = target.dataset.uuid ?? "";
-    if (!uuid) return;
-    const world = await deployJournalCrawl(uuid);
-    if (world) {
-      ui.notifications.info(`Deployed "${world.name}" to the world (${world.pages.size} pages).`);
-      this._invalidateJournalCache();
-      this.render();
-    }
-  }
-
-  /** Open a crawl's journal sheet. */
-  async _onJournalOpen(event, target) {
-    const uuid = target.dataset.uuid ?? "";
-    const entry = await fromUuid(uuid).catch(() => null);
-    if (entry) entry.sheet?.render(true);
-  }
-
-  // ── Scenes-tab dashboard actions ───────────────────────────────────────────
-
-  /** View a map scene on the canvas. */
-  async _onSceneView(event, target) {
-    const uuid = target.dataset.uuid ?? "";
-    const scene = await fromUuid(uuid).catch(() => null);
-    if (scene) scene.view();
-  }
-
-  /** Create/refresh an sde-scenes backup of a world scene. GM-gated. */
-  async _onSceneBackup(event, target) {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can back up scenes."); return; }
-    const uuid = target.dataset.uuid ?? "";
-    if (!uuid) return;
-    const backup = await backupSceneById(uuid);
-    if (backup) {
-      ui.notifications.info(`Backed up "${backup.name}" to sde-scenes.`);
-      this._invalidateScenesCache();
-      this.render();
-    }
-  }
-
-  /** Open a scene's config sheet. */
-  async _onSceneOpen(event, target) {
-    const uuid = target.dataset.uuid ?? "";
-    const scene = await fromUuid(uuid).catch(() => null);
-    if (scene) scene.sheet?.render(true);
   }
 
   /**

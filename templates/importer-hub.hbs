@@ -18,29 +18,7 @@
             aria-pressed="{{#if tabItems}}true{{else}}false{{/if}}">
       <i class="fas fa-gem"></i> Items
     </button>
-    <button type="button" class="sde-hub-tab-btn{{#if tabJournal}} active{{/if}}" data-hubtab="journal"
-            aria-pressed="{{#if tabJournal}}true{{else}}false{{/if}}">
-      <i class="fas fa-book"></i> Journal
-    </button>
-    <button type="button" class="sde-hub-tab-btn{{#if tabScenes}} active{{/if}}" data-hubtab="scenes"
-            aria-pressed="{{#if tabScenes}}true{{else}}false{{/if}}">
-      <i class="fas fa-map"></i> Scenes
-    </button>
   </nav>
-
-  {{!-- ═══ Global source filter — scopes every dashboard tab ═══ --}}
-  {{#if showSources}}
-  <div class="sde-thub-sources sde-hub-sources-global">
-    <span class="sde-thub-srclabel">Source</span>
-    <button type="button" class="sde-thub-src{{#if sourceAll}} active{{/if}}" data-action="filterSource" data-source="all">All</button>
-    {{#each sources as |s|}}
-    <button type="button" class="sde-thub-src{{#if s.active}} active{{/if}}{{#unless s.count}} empty{{/unless}}"
-            data-action="filterSource" data-source="{{s.id}}" title="Filter to {{s.label}}">
-      {{s.label}} <span class="sde-thub-src-n">{{s.count}}</span>
-    </button>
-    {{/each}}
-  </div>
-  {{/if}}
 
   {{!-- ═══ Import tab ═══ --}}
   <div class="sde-hub-tab-body sde-hub-import"{{#unless tabImport}} hidden{{/unless}} id="sde-hub-import">
@@ -62,11 +40,6 @@
     </label>
     <textarea id="sde-hub-import-text" data-import-text rows="6" class="sde-hub-import-text"
               placeholder="DIRE WOLF&#10;AC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2&#10;&#10;d6 Random Encounter&#10;1 Giant Rats&#10;2 Goblin scouts">{{importData.text}}</textarea>
-    <label class="sde-hub-import-sourcebar">
-      <input type="checkbox" data-import-location-mode {{#if importData.locationMode}}checked{{/if}}>
-      <span><i class="fas fa-location-dot"></i> Parse as numbered locations</span>
-      <span class="hint">Use for adventures keyed as “1. Entry Hall”; ordinary table parsing is disabled while selected.</span>
-    </label>
 
     {{!-- Source label (for monster folder) --}}
     <div class="sde-hub-import-sourcebar">
@@ -383,54 +356,6 @@
     </section>
 
     {{!-- ── Skipped (K) — always visible (D-04 / D9: nothing silently dropped) --}}
-    {{!-- ── Keyed journal section (hexes or explicit numbered locations) ── --}}
-    <section class="sde-hub-import-section">
-      <div class="sde-hub-import-sechead">
-        <span class="sde-hub-import-sectitle">
-          <i class="fas fa-map"></i> Crawl / Locations ({{importData.keyedCount}})
-        </span>
-        <button type="button" data-action="hubBuildScene" class="sde-import-secondary sde-hub-import-secbtn"
-                title="Deploy an existing keyed journal into the world and build its map scene.">
-          <i class="fas fa-map-location-dot"></i> Build scene
-        </button>
-        {{#if importData.hasKeyed}}
-        <button type="button" data-action="hubCommitJournal" class="sde-import-primary sde-hub-import-secbtn">
-          <i class="fas fa-book"></i> Create journal
-        </button>
-        {{/if}}
-      </div>
-      {{#if importData.hasKeyed}}
-      <div class="sde-hub-import-sourcebar">
-        <label for="sde-hub-import-crawlname"><i class="fas fa-signature"></i> Journal name</label>
-        <input id="sde-hub-import-crawlname" type="text" data-import-crawlname
-               value="{{importData.crawlName}}" class="sde-hub-import-source-input"
-               placeholder="e.g. the region or adventure name"
-               aria-label="Journal entry title">
-      </div>
-      {{#each importData.keyed as |h|}}
-      <div class="sde-hub-import-item-card" data-keyed-idx="{{h.idx}}">
-        <div class="sde-hub-import-item-row">
-          <label class="sde-hub-keyed-id">{{../importData.keyLabel}} <input type="text" data-himport-field="keyId" value="{{h.keyId}}" aria-label="{{../importData.keyLabel}} ID"></label>
-          <label class="sde-hub-keyed-name">Name <input type="text" data-himport-field="name" value="{{h.name}}" aria-label="{{../importData.keyLabel}} name"></label>
-          <button type="button" data-action="himportRemoveKey" class="sde-import-del sde-hub-keyed-remove" title="Remove this keyed page" aria-label="Remove {{../importData.keyLabel}} {{h.keyId}}">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-        {{#each h.warnings as |w|}}<p class="sde-mimport-warn-legend">{{w}}</p>{{/each}}
-        <textarea data-himport-field="body" rows="3" class="sde-hub-import-text" aria-label="{{../importData.keyLabel}} body text">{{h.body}}</textarea>
-      </div>
-      {{/each}}
-      {{else}}
-      <p class="sde-hub-import-empty">
-        {{#if importData.isLocationMode}}
-        No numbered locations parsed yet (needs a run of 3+ punctuated headings, e.g. “1. Entry Hall”).
-        {{else}}
-        No hex keys parsed yet (needs a run of 3+ numbered hex entries, e.g. “0101 OLD MILL”).
-        {{/if}}
-      </p>
-      {{/if}}
-    </section>
-
     <section class="sde-hub-import-section sde-hub-import-skipped-section">
       <div class="sde-hub-import-sechead">
         <span class="sde-hub-import-sectitle sde-hub-import-sectitle-skipped">
@@ -574,7 +499,7 @@
 
       {{!-- ── Census table ──────────────────────────────────────────────────── --}}
       <section class="sde-hub-monsters-census">
-        {{> sdeCatalog data=monstersData icon="fa-dragon" noun="monster"}}
+        {{> sdeCensus data=monstersData noun="monster"}}
       </section>
 
       {{!-- ── Duplicates section ──────────────────────────────────────────── --}}
@@ -653,7 +578,7 @@
 
       {{!-- ── Census ─────────────────────────────────────────────────────── --}}
       <section class="sde-hub-monsters-census">
-        {{> sdeCatalog data=itemsData icon="fa-gem" noun="item"}}
+        {{> sdeCensus data=itemsData noun="item"}}
       </section>
 
       {{!-- ── Duplicates ─────────────────────────────────────────────────── --}}
@@ -714,185 +639,6 @@
       <i class="fas fa-gem sde-hub-placeholder-icon"></i>
       <p class="sde-hub-placeholder-title">Items Dashboard</p>
       <p class="sde-hub-placeholder-note">Switch to this tab to load the census.</p>
-    </div>
-    {{/if}}
-
-  </div>
-
-  {{!-- ═══ Journal tab ═══ --}}
-  <div class="sde-hub-tab-body sde-hub-monsters sde-hub-journal"{{#unless tabJournal}} hidden{{/unless}} id="sde-hub-journal">
-
-    {{#if journalData}}
-
-      <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-book-atlas"></i> Adventure Catalog
-        </h3>
-        {{> sdeCatalog data=journalData.catalog icon="fa-book" noun="journal"}}
-      </section>
-
-      <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-book"></i> Your Built Crawls ({{journalData.crawlCount}})
-        </h3>
-
-        {{#if journalData.noCrawls}}
-        <p class="sde-hub-monsters-empty">
-          No keyed journals in sde-journal yet. Paste a hex key or numbered-location
-          adventure on the Import tab and click <strong>Create journal</strong>.
-        </p>
-        {{else}}
-        <table class="sde-hub-monsters-table">
-          <thead>
-            <tr>
-              <th class="sde-hub-monsters-th-source">Crawl</th>
-              <th title="Hex key or numbered locations">Mode</th>
-              <th class="sde-hub-monsters-th-have" title="Keyed pages">Pages</th>
-              <th class="sde-hub-monsters-th-have" title="@UUID links across pages">Links</th>
-              <th title="Deployed into the world as a live journal">World</th>
-              <th title="Scenes with pins bound to this crawl">Scenes</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each journalData.crawls as |c|}}
-            <tr class="sde-hub-monsters-row">
-              <td class="sde-hub-monsters-source">
-                {{c.name}}{{#if c.source}} <span class="sde-thub-src-n">{{c.source}}</span>{{/if}}
-              </td>
-              <td>{{c.keyMode}}</td>
-              <td class="sde-hub-monsters-have">{{c.pageCount}}</td>
-              <td class="sde-hub-monsters-have">{{c.linkCount}}</td>
-              <td>
-                {{#if c.deployed}}
-                <span class="sde-thub-badge ok"><i class="fas fa-check"></i> Deployed</span>
-                {{else}}
-                <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Not deployed</span>
-                {{/if}}
-              </td>
-              <td>{{#if c.sceneCount}}{{c.sceneCount}} ({{c.pinCount}} pins){{else}}—{{/if}}</td>
-              <td class="sde-hub-journal-actions">
-                {{#unless c.deployed}}
-                <button type="button" class="sde-hub-monsters-maint-btn" data-action="journalDeploy" data-uuid="{{c.uuid}}"
-                        title="Create a live world journal from this crawl (pins open its pages).">
-                  <i class="fas fa-cloud-arrow-up"></i> Deploy
-                </button>
-                {{/unless}}
-                <button type="button" class="sde-hub-monsters-maint-btn" data-action="journalOpen" data-uuid="{{c.uuid}}"
-                        title="Open this journal entry.">
-                  <i class="fas fa-up-right-from-square"></i> Open
-                </button>
-              </td>
-            </tr>
-            {{/each}}
-          </tbody>
-        </table>
-        {{/if}}
-      </section>
-
-      <section class="sde-hub-monsters-maintenance">
-        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-wrench"></i> Maintenance</h3>
-        <div class="sde-hub-monsters-maintenance-row">
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkJournals"
-                  title="Re-link keyed journal pages to imported monsters and items, then synchronize any deployed world copies.">
-            <i class="fas fa-book-open"></i> Re-link journal pages
-          </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubBuildScene"
-                  title="Deploy a keyed journal into the world and build its calibrated map scene with pins.">
-            <i class="fas fa-map-location-dot"></i> Build scene
-          </button>
-        </div>
-      </section>
-
-    {{else}}
-    <div class="sde-hub-placeholder">
-      <i class="fas fa-book sde-hub-placeholder-icon"></i>
-      <p class="sde-hub-placeholder-title">Journal Dashboard</p>
-      <p class="sde-hub-placeholder-note">Switch to this tab to load your keyed journals.</p>
-    </div>
-    {{/if}}
-
-  </div>
-
-  {{!-- ═══ Scenes tab ═══ --}}
-  <div class="sde-hub-tab-body sde-hub-monsters sde-hub-scenes"{{#unless tabScenes}} hidden{{/unless}} id="sde-hub-scenes">
-
-    {{#if scenesData}}
-
-      <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-map-location-dot"></i> Map Catalog
-        </h3>
-        {{> sdeCatalog data=scenesData.catalog icon="fa-map" noun="map"}}
-      </section>
-
-      <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-map"></i> Your Built Scenes ({{scenesData.sceneCount}})
-          <span class="sde-thub-src-n" title="Scenes with an sde-scenes backup">{{scenesData.backedUp}} backed up</span>
-        </h3>
-
-        {{#if scenesData.noScenes}}
-        <p class="sde-hub-monsters-empty">
-          No keyed map scenes in this world. Use <strong>Build scene</strong> on the
-          Journal tab to deploy a keyed journal as a pinned map.
-        </p>
-        {{else}}
-        <table class="sde-hub-monsters-table">
-          <thead>
-            <tr>
-              <th class="sde-hub-monsters-th-source">Scene</th>
-              <th title="Grid type">Grid</th>
-              <th class="sde-hub-monsters-th-have" title="Note pins on this scene">Pins</th>
-              <th title="Pins whose bound journal page resolves">Resolved</th>
-              <th title="An exact-id backup exists in sde-scenes">Backup</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each scenesData.scenes as |s|}}
-            <tr class="sde-hub-monsters-row">
-              <td class="sde-hub-monsters-source">
-                {{s.name}}{{#if s.active}} <span class="sde-thub-badge ok" title="Active scene"><i class="fas fa-eye"></i></span>{{/if}}{{#if s.source}} <span class="sde-thub-src-n">{{s.source}}</span>{{/if}}
-              </td>
-              <td>{{s.grid}}</td>
-              <td class="sde-hub-monsters-have">{{s.pins}}</td>
-              <td class="sde-hub-monsters-gap{{#unless s.allResolved}} has-gap{{/unless}}">
-                {{#if s.resolvedPct}}{{s.resolved}}/{{s.bound}} ({{s.resolvedPct}}%){{else}}—{{/if}}
-              </td>
-              <td>
-                {{#if s.backedUp}}
-                <span class="sde-thub-badge ok"><i class="fas fa-check"></i> Yes</span>
-                {{else}}
-                <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> None</span>
-                {{/if}}
-              </td>
-              <td class="sde-hub-journal-actions">
-                <button type="button" class="sde-hub-monsters-maint-btn" data-action="sceneView" data-uuid="{{s.uuid}}"
-                        title="View this scene on the canvas.">
-                  <i class="fas fa-eye"></i> View
-                </button>
-                <button type="button" class="sde-hub-monsters-maint-btn" data-action="sceneBackup" data-uuid="{{s.uuid}}"
-                        title="Create or refresh an exact-id backup of this scene in sde-scenes.">
-                  <i class="fas fa-box-archive"></i> {{#if s.backedUp}}Re-backup{{else}}Backup{{/if}}
-                </button>
-                <button type="button" class="sde-hub-monsters-maint-btn" data-action="sceneOpen" data-uuid="{{s.uuid}}"
-                        title="Open this scene's configuration.">
-                  <i class="fas fa-up-right-from-square"></i> Open
-                </button>
-              </td>
-            </tr>
-            {{/each}}
-          </tbody>
-        </table>
-        {{/if}}
-      </section>
-
-    {{else}}
-    <div class="sde-hub-placeholder">
-      <i class="fas fa-map sde-hub-placeholder-icon"></i>
-      <p class="sde-hub-placeholder-title">Scenes Dashboard</p>
-      <p class="sde-hub-placeholder-note">Switch to this tab to load your map scenes.</p>
     </div>
     {{/if}}
 
