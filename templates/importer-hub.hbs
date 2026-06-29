@@ -1,525 +1,370 @@
-<div class="sde-thub sde-importer-hub">
+<div class="sde-thub sde-importer-hub sde-hub-import" id="sde-hub-import">
 
-  {{!-- ═══ Hub tab nav ═══ --}}
-  <nav class="sde-hub-tabs">
-    <button type="button" class="sde-hub-tab-btn{{#if tabImport}} active{{/if}}" data-hubtab="import"
-            aria-pressed="{{#if tabImport}}true{{else}}false{{/if}}">
-      <i class="fas fa-file-import"></i> Import
-    </button>
-    <button type="button" class="sde-hub-tab-btn{{#if tabTables}} active{{/if}}" data-hubtab="tables"
-            aria-pressed="{{#if tabTables}}true{{else}}false{{/if}}">
-      <i class="fas fa-table-list"></i> Tables
-    </button>
-    <button type="button" class="sde-hub-tab-btn{{#if tabMonsters}} active{{/if}}" data-hubtab="monsters"
-            aria-pressed="{{#if tabMonsters}}true{{else}}false{{/if}}">
-      <i class="fas fa-dragon"></i> Monsters
-    </button>
-    <button type="button" class="sde-hub-tab-btn{{#if tabItems}} active{{/if}}" data-hubtab="items"
-            aria-pressed="{{#if tabItems}}true{{else}}false{{/if}}">
-      <i class="fas fa-gem"></i> Items
-    </button>
-  </nav>
-
-  {{!-- ═══ Import tab ═══ --}}
-  <div class="sde-hub-tab-body sde-hub-import"{{#unless tabImport}} hidden{{/unless}} id="sde-hub-import">
-
-    {{!-- Seed hint: shown when a Tables-tab per-row Import seeded this box --}}
-    {{#if importData.seed}}
-    <div class="sde-hub-import-seed">
-      <i class="fas fa-bullseye"></i>
-      Pasting rows for: <strong>{{importData.seed.name}}</strong>
-      {{#if importData.seed.die}}<span class="sde-hub-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
-      {{#if importData.seed.page}}<span class="sde-hub-import-seed-tag">p{{importData.seed.page}}</span>{{/if}}
-      — name, formula and folder are pre-set. Paste the rows and click Parse.
-    </div>
+  {{!-- ═══ Type selector ═══ --}}
+  <div class="sde-hub-import-typebar">
+    <label for="sde-hub-import-type"><i class="fas fa-filter"></i> Importing</label>
+    <select id="sde-hub-import-type" data-import-type class="sde-hub-import-type-sel" aria-label="What are you importing">
+      {{#each importData.typeOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+    </select>
+    {{#if importData.showItemSubtype}}
+    <label for="sde-hub-import-subtype" class="sde-hub-import-subtype-label">item type</label>
+    <select id="sde-hub-import-subtype" data-import-subtype class="sde-hub-import-type-sel" aria-label="Force item type">
+      {{#each importData.itemSubtypeOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+    </select>
     {{/if}}
+  </div>
 
-    {{!-- Paste box --}}
-    <label class="sde-hub-import-label" for="sde-hub-import-text">
-      Paste a raw dump (monsters, tables, or both) from your Shadowdark book:
-    </label>
-    <textarea id="sde-hub-import-text" data-import-text rows="6" class="sde-hub-import-text"
-              placeholder="DIRE WOLF&#10;AC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2&#10;&#10;d6 Random Encounter&#10;1 Giant Rats&#10;2 Goblin scouts">{{importData.text}}</textarea>
+  {{!-- Seed hint: shown when a Manage-strip "Seed" click pre-filled this box --}}
+  {{#if importData.seed}}
+  <div class="sde-hub-import-seed">
+    <i class="fas fa-bullseye"></i>
+    Pasting for: <strong>{{importData.seed.name}}</strong>
+    {{#if importData.seed.die}}<span class="sde-hub-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
+    {{#if importData.seed.page}}<span class="sde-hub-import-seed-tag">p{{importData.seed.page}}</span>{{/if}}
+    — paste the block and click Parse.
+  </div>
+  {{/if}}
 
-    {{!-- Source label (for monster folder) --}}
-    <div class="sde-hub-import-sourcebar">
-      <label for="sde-hub-import-source"><i class="fas fa-folder-tree"></i> Source</label>
-      <input id="sde-hub-import-source" type="text" data-import-source list="sde-hub-import-sources"
-             value="{{importData.source}}" placeholder="e.g. CS4 or Western Reaches"
-             class="sde-hub-import-source-input" aria-label="Source label (monster folder + per-actor tag)">
-      <datalist id="sde-hub-import-sources">
-        {{#each importData.sourceSuggestions as |s|}}<option value="{{s}}"></option>{{/each}}
-      </datalist>
-    </div>
+  {{!-- Paste box --}}
+  <label class="sde-hub-import-label" for="sde-hub-import-text">
+    Paste a raw dump from your Shadowdark book — monsters, items, spells, tables, or a mix:
+  </label>
+  <textarea id="sde-hub-import-text" data-import-text rows="6" class="sde-hub-import-text"
+            placeholder="DIRE WOLF&#10;AC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2&#10;&#10;DETECT MAGIC&#10;Tier 1, Wizard&#10;Duration: 5 rounds&#10;Range: Near&#10;You sense the presence of magic nearby.">{{importData.text}}</textarea>
 
-    {{!-- Controls: Parse / Clear / Import all --}}
-    <div class="sde-hub-import-controls">
-      <button type="button" data-action="hubParse"><i class="fas fa-wand-magic"></i> Parse</button>
-      <button type="button" data-action="hubClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> Clear</button>
-      {{#if importData.showImportAll}}
-      <button type="button" data-action="hubCommitAll" class="sde-import-primary">
-        <i class="fas fa-file-import"></i> Import all
+  {{!-- Source label --}}
+  <div class="sde-hub-import-sourcebar">
+    <label for="sde-hub-import-source"><i class="fas fa-folder-tree"></i> Source</label>
+    <input id="sde-hub-import-source" type="text" data-import-source list="sde-hub-import-sources"
+           value="{{importData.source}}" placeholder="e.g. CS4 or Western Reaches"
+           class="sde-hub-import-source-input" aria-label="Source label (folder + per-doc tag)">
+    <datalist id="sde-hub-import-sources">
+      {{#each importData.sourceSuggestions as |s|}}<option value="{{s}}"></option>{{/each}}
+    </datalist>
+  </div>
+
+  {{!-- Controls: Parse / Clear / Import all --}}
+  <div class="sde-hub-import-controls">
+    <button type="button" data-action="hubParse"><i class="fas fa-wand-magic"></i> Parse</button>
+    <button type="button" data-action="hubClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> Clear</button>
+    {{#if importData.showImportAll}}
+    <button type="button" data-action="hubCommitAll" class="sde-import-primary">
+      <i class="fas fa-file-import"></i> Import all
+    </button>
+    {{/if}}
+  </div>
+
+  <p class="sde-import-note">
+    <i class="fas fa-circle-info"></i> Parsing is offline — nothing is uploaded.
+    Auto-detect sorts a mixed dump; pick a specific type to force it. Fields the parser
+    wasn't sure about are <span class="sde-mimport-warn-legend">highlighted</span>.
+  </p>
+
+  {{!-- Bundle row: suite-wide export / import --}}
+  <div class="sde-hub-import-controls sde-hub-bundle-row">
+    <button type="button" data-action="hubExportBundle" class="sde-import-secondary"
+            title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle.">
+      <i class="fas fa-file-export"></i> Export bundle
+    </button>
+    <button type="button" data-action="hubImportBundle" class="sde-import-secondary"
+            title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
+      <i class="fas fa-file-arrow-up"></i> Import bundle
+    </button>
+  </div>
+
+  {{!-- ── Monsters preview ─────────────────────────────────────────────── --}}
+  {{#if importData.hasMonsters}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-dragon"></i> Monsters ({{importData.monstersCount}})</span>
+      <button type="button" data-action="hubCommitMonsters" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-dragon"></i> Create monsters
       </button>
-      {{/if}}
     </div>
-
-    <p class="sde-import-note">
-      <i class="fas fa-circle-info"></i> Parsing is offline — nothing is uploaded.
-      Monster fields the parser wasn't confident about are <span class="sde-mimport-warn-legend">highlighted</span>.
-      Tables and monsters go to their respective compendium packs.
+    <p class="sde-hub-import-srcnote">
+      <i class="fas fa-folder-tree"></i> Filing as: <strong>{{#if importData.source}}{{importData.source}}{{else}}(no source){{/if}}</strong>
     </p>
-
-    {{!-- ── Bundle row (REQ-25): suite-wide export / import ─────────────── --}}
-    <div class="sde-hub-import-controls sde-hub-bundle-row">
-      <button type="button" data-action="hubExportBundle" class="sde-import-secondary"
-              title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle for backup or sharing.">
-        <i class="fas fa-file-export"></i> Export bundle
-      </button>
-      <button type="button" data-action="hubImportBundle" class="sde-import-secondary"
-              title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
-        <i class="fas fa-file-arrow-up"></i> Import bundle
-      </button>
-    </div>
-
-    {{!-- ── Monsters section ────────────────────────────────────────────── --}}
-    <section class="sde-hub-import-section">
-      <div class="sde-hub-import-sechead">
-        <span class="sde-hub-import-sectitle">
-          <i class="fas fa-dragon"></i> Monsters ({{importData.monstersCount}})
-        </span>
-        {{#if importData.hasMonsters}}
-        <button type="button" data-action="hubCommitMonsters" class="sde-import-primary sde-hub-import-secbtn">
-          <i class="fas fa-dragon"></i> Create monsters
-        </button>
-        {{/if}}
-      </div>
-
-      {{#if importData.hasMonsters}}
-      {{!-- Source note for monster section --}}
-      <p class="sde-hub-import-srcnote">
-        <i class="fas fa-folder-tree"></i> Filing as: <strong>{{#if importData.source}}{{importData.source}}{{else}}(no source){{/if}}</strong>
-      </p>
-      <div class="sde-import-preview">
-        {{#each importData.monsters as |m|}}
-        <div class="sde-mimport-card" data-monster-idx="{{m.idx}}">
-          <div class="sde-mimport-card-head">
-            <input type="text" data-mimport-field="name" value="{{m.draft.name}}"
-                   class="sde-import-name sde-mimport-cardname" aria-label="Monster name" placeholder="Monster name">
-            {{#if m.hasWarnings}}
-            <span class="sde-mimport-warncount" title="Parser flagged {{m.warnCount}} field(s) for review">
-              <i class="fas fa-triangle-exclamation"></i> {{m.warnCount}}
-            </span>
-            {{/if}}
-            <button type="button" data-action="mimportRemoveMonster" class="sde-import-del"
-                    aria-label="Remove this monster" title="Don't import this one"><i class="fas fa-xmark"></i></button>
-          </div>
-
+    <div class="sde-import-preview">
+      {{#each importData.monsters as |m|}}
+      <div class="sde-mimport-card" data-monster-idx="{{m.idx}}">
+        <div class="sde-mimport-card-head">
+          <input type="text" data-mimport-field="name" value="{{m.draft.name}}"
+                 class="sde-import-name sde-mimport-cardname" aria-label="Monster name" placeholder="Monster name">
           {{#if m.hasWarnings}}
-          <ul class="sde-import-warnings">
-            {{#each m.warnings as |w|}}<li>{{w}}</li>{{/each}}
-          </ul>
+          <span class="sde-mimport-warncount" title="Parser flagged {{m.warnCount}} field(s) for review">
+            <i class="fas fa-triangle-exclamation"></i> {{m.warnCount}}
+          </span>
           {{/if}}
-
-          <div class="sde-mimport-stats">
-            <label>LV <input type="number" data-mimport-field="level" value="{{m.draft.level}}" class="sde-import-num{{#if m.warn.level}} sde-mimport-warn{{/if}}"></label>
-            <label>AC <input type="number" data-mimport-field="ac" value="{{m.draft.ac}}" class="sde-import-num{{#if m.warn.ac}} sde-mimport-warn{{/if}}"></label>
-            <label>HP <input type="number" data-mimport-field="hpValue" value="{{m.draft.hp.value}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}"></label>
-            <label class="sde-mimport-hpmax">/ <input type="number" data-mimport-field="hpMax" value="{{m.draft.hp.max}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}" aria-label="HP max"></label>
-            <label>AL
-              <select data-mimport-field="alignment" class="sde-mimport-sel{{#if m.warn.alignment}} sde-mimport-warn{{/if}}">
-                {{#each @root.importData.alignments as |a|}}<option value="{{a}}" {{#if (eq a m.draft.alignment)}}selected{{/if}}>{{a}}</option>{{/each}}
-              </select>
-            </label>
-            <label>MV
-              <select data-mimport-field="move" class="sde-mimport-sel{{#if m.warn.move}} sde-mimport-warn{{/if}}">
-                {{#each @root.importData.moveOptions as |mv|}}<option value="{{mv}}" {{#if (eq mv m.draft.move)}}selected{{/if}}>{{mv}}</option>{{/each}}
-              </select>
-            </label>
-            <input type="text" data-mimport-field="moveNote" value="{{m.draft.moveNote}}" class="sde-mimport-movenote" placeholder="move note (climb, swim…)" aria-label="Movement note">
-          </div>
-
-          <div class="sde-mimport-abils{{#if m.warn.abilities}} sde-mimport-warn-row{{/if}}">
-            {{#each @root.importData.abilityKeys as |ab|}}
-            <label>{{ab.label}} <input type="number" data-mimport-field="{{ab.key}}" value="{{lookup m.draft.abilities ab.key}}" class="sde-import-num"></label>
-            {{/each}}
-          </div>
-
-          <div class="sde-mimport-spell{{#if m.warn.spellcasting}} sde-mimport-warn-row{{/if}}">
-            <span class="sde-mimport-sublabel">Spellcasting</span>
-            <label>ability
-              <select data-mimport-field="scAbility" class="sde-mimport-sel">
-                {{#each @root.importData.spellAbilities as |sa|}}<option value="{{sa.value}}" {{#if (eq sa.value m.draft.spellcasting.ability)}}selected{{/if}}>{{sa.label}}</option>{{/each}}
-              </select>
-            </label>
-            <label>bonus <input type="number" data-mimport-field="scBonus" value="{{m.draft.spellcasting.bonus}}" class="sde-import-num"></label>
-            <label>spells/rd <input type="number" data-mimport-field="scAttacks" value="{{m.draft.spellcasting.attacks}}" class="sde-import-num"></label>
-          </div>
-
-          <div class="sde-mimport-section{{#if m.warn.attacks}} sde-mimport-warn-row{{/if}}">
-            <div class="sde-mimport-sechead">
-              <span class="sde-mimport-sublabel">Attacks</span>
-              <button type="button" data-action="mimportAddAttack" class="sde-import-addrow"><i class="fas fa-plus"></i> Attack</button>
-              <button type="button" data-action="mimportAddSpecial" class="sde-import-addrow"><i class="fas fa-plus"></i> Special</button>
-            </div>
-            {{#each m.draft.actions as |a|}}
-            <div class="sde-mimport-attack" data-attack-idx="{{@index}}">
-              <input type="number" data-mimport-field="aNum" value="{{a.num}}" class="sde-import-num" aria-label="Attacks per round" title="count">
-              <input type="text" data-mimport-field="aName" value="{{a.name}}" class="sde-mimport-aname" aria-label="Attack name" placeholder="name">
-              <select data-mimport-field="aType" class="sde-mimport-sel" aria-label="Attack type">
-                {{#each @root.importData.attackTypes as |ty|}}<option value="{{ty}}" {{#if (eq ty a.type)}}selected{{/if}}>{{ty}}</option>{{/each}}
-              </select>
-              <input type="number" data-mimport-field="aBonus" value="{{a.bonus}}" class="sde-import-num" aria-label="To-hit bonus" title="+hit">
-              <input type="text" data-mimport-field="aDamage" value="{{a.damage}}" class="sde-mimport-dmg" aria-label="Damage" placeholder="1d6">
-              <input type="text" data-mimport-field="aRanges" value="{{join a.ranges}}" class="sde-mimport-ranges" aria-label="Ranges" placeholder="close, near">
-              <input type="text" data-mimport-field="aDesc" value="{{a.description}}" class="sde-import-rowtext" aria-label="Rider / effect" placeholder="rider (swallow…)">
-              <button type="button" data-action="mimportRemoveAttack" class="sde-import-del" aria-label="Remove attack"><i class="fas fa-xmark"></i></button>
-            </div>
-            {{/each}}
-          </div>
-
-          <div class="sde-mimport-section">
-            <div class="sde-mimport-sechead">
-              <span class="sde-mimport-sublabel">Features</span>
-              <button type="button" data-action="mimportAddFeature" class="sde-import-addrow"><i class="fas fa-plus"></i> Feature</button>
-            </div>
-            {{#each m.draft.features as |f|}}
-            <div class="sde-mimport-feature" data-feature-idx="{{@index}}">
-              <input type="text" data-mimport-field="fName" value="{{f.name}}" class="sde-mimport-fname" aria-label="Feature name" placeholder="name">
-              <input type="text" data-mimport-field="fDesc" value="{{f.description}}" class="sde-import-rowtext" aria-label="Feature text" placeholder="description">
-              <button type="button" data-action="mimportRemoveFeature" class="sde-import-del" aria-label="Remove feature"><i class="fas fa-xmark"></i></button>
-            </div>
-            {{/each}}
-          </div>
-
+          <button type="button" data-action="mimportRemoveMonster" class="sde-import-del"
+                  aria-label="Remove this monster" title="Don't import this one"><i class="fas fa-xmark"></i></button>
         </div>
-        {{/each}}
-      </div>
-      {{else}}
-      <p class="sde-import-empty">
-        {{#if importData.seed}}Paste the statblock above and click <strong>Parse</strong>.{{else}}No monsters parsed yet.{{/if}}
-      </p>
-      {{/if}}
-    </section>
-
-    {{!-- ── Items section ──────────────────────────────────────────────── --}}
-    <section class="sde-hub-import-section">
-      <div class="sde-hub-import-sechead">
-        <span class="sde-hub-import-sectitle">
-          <i class="fas fa-gem"></i> Items ({{importData.itemsCount}})
-        </span>
-        {{#if importData.hasItems}}
-        <button type="button" data-action="hubCommitItems" class="sde-import-primary sde-hub-import-secbtn">
-          <i class="fas fa-gem"></i> Create items
-        </button>
+        {{#if m.hasWarnings}}
+        <ul class="sde-import-warnings">{{#each m.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
         {{/if}}
-      </div>
-
-      {{#if importData.hasItems}}
-      <div class="sde-import-preview">
-        {{#each importData.items as |it|}}
-        <div class="sde-hub-import-item-card" data-item-idx="{{@index}}">
-          <div class="sde-hub-import-item-head">
-            <input type="text" data-iimport-field="name" value="{{it.draft.name}}"
-                   class="sde-import-name sde-hub-import-item-name"
-                   aria-label="Item name" placeholder="Item name">
-            <select data-iimport-field="type" class="sde-hub-import-item-type sde-mimport-sel"
-                    aria-label="Item type">
-              {{#each @root.importData.itemTypeOptions as |opt|}}
-              <option value="{{opt}}" {{#if (eq opt it.draft.type)}}selected{{/if}}>{{opt}}</option>
-              {{/each}}
+        <div class="sde-mimport-stats">
+          <label>LV <input type="number" data-mimport-field="level" value="{{m.draft.level}}" class="sde-import-num{{#if m.warn.level}} sde-mimport-warn{{/if}}"></label>
+          <label>AC <input type="number" data-mimport-field="ac" value="{{m.draft.ac}}" class="sde-import-num{{#if m.warn.ac}} sde-mimport-warn{{/if}}"></label>
+          <label>HP <input type="number" data-mimport-field="hpValue" value="{{m.draft.hp.value}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}"></label>
+          <label class="sde-mimport-hpmax">/ <input type="number" data-mimport-field="hpMax" value="{{m.draft.hp.max}}" class="sde-import-num{{#if m.warn.hp}} sde-mimport-warn{{/if}}" aria-label="HP max"></label>
+          <label>AL
+            <select data-mimport-field="alignment" class="sde-mimport-sel{{#if m.warn.alignment}} sde-mimport-warn{{/if}}">
+              {{#each @root.importData.alignments as |a|}}<option value="{{a}}" {{#if (eq a m.draft.alignment)}}selected{{/if}}>{{a}}</option>{{/each}}
             </select>
-            <button type="button" data-action="iimportRemoveItem" class="sde-import-del"
-                    aria-label="Remove this item" title="Don't import this one">
-              <i class="fas fa-xmark"></i>
-            </button>
-          </div>
-          <div class="sde-hub-import-item-fields">
-            <label class="sde-hub-import-item-field">
-              <span class="sde-hub-import-item-label">gp</span>
-              <input type="number" data-iimport-field="costGp" value="{{it.draft.cost.gp}}"
-                     class="sde-import-num" aria-label="Cost in gold pieces">
-            </label>
-            <label class="sde-hub-import-item-field">
-              <span class="sde-hub-import-item-label">sp</span>
-              <input type="number" data-iimport-field="costSp" value="{{it.draft.cost.sp}}"
-                     class="sde-import-num" aria-label="Cost in silver pieces">
-            </label>
-            <label class="sde-hub-import-item-field">
-              <span class="sde-hub-import-item-label">cp</span>
-              <input type="number" data-iimport-field="costCp" value="{{it.draft.cost.cp}}"
-                     class="sde-import-num" aria-label="Cost in copper pieces">
-            </label>
-            <label class="sde-hub-import-item-field">
-              <span class="sde-hub-import-item-label">slots</span>
-              <input type="number" data-iimport-field="slots" value="{{it.draft.slots.slots_used}}"
-                     class="sde-import-num" aria-label="Slots used">
-            </label>
-          </div>
-          <div class="sde-hub-import-item-desc">
-            <input type="text" data-iimport-field="description"
-                   value="{{it.draft.description}}"
-                   class="sde-hub-import-item-desc-input"
-                   aria-label="Item description" placeholder="Description">
-          </div>
-          {{#if it.warnings.length}}
-          <ul class="sde-import-warnings">
-            {{#each it.warnings as |w|}}<li>{{w}}</li>{{/each}}
-          </ul>
-          {{/if}}
-        </div>
-        {{/each}}
-      </div>
-      {{else}}
-      <p class="sde-import-empty">No items parsed yet.</p>
-      {{/if}}
-    </section>
-
-    {{!-- ── Tables section ─────────────────────────────────────────────── --}}
-    <section class="sde-hub-import-section">
-      <div class="sde-hub-import-sechead">
-        <span class="sde-hub-import-sectitle">
-          <i class="fas fa-table-list"></i> Tables ({{importData.tablesCount}})
-        </span>
-        {{#if importData.hasTables}}
-        <button type="button" data-action="hubCommitTables" class="sde-import-primary sde-hub-import-secbtn">
-          <i class="fas fa-table-list"></i> Create tables
-        </button>
-        {{/if}}
-      </div>
-
-      {{#if importData.hasTables}}
-      <div class="sde-import-preview">
-        {{#each importData.tables as |tbl|}}
-        <div class="sde-import-table" data-table-idx="{{@index}}">
-          <div class="sde-import-table-head">
-            <input type="text" data-import-field="name" value="{{tbl.name}}"
-                   aria-label="Table name" placeholder="Table name" class="sde-import-name">
-            <input type="text" data-import-field="formula" value="{{tbl.formula}}"
-                   aria-label="Formula" class="sde-import-formula">
-            <label class="sde-import-repl" data-tooltip="On: results can repeat. Off: each result is removed after drawn." data-tooltip-direction="UP">
-              <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}>
-              Replacement
-            </label>
-            <select data-import-field="category" class="sde-import-cat" aria-label="Table type" data-tooltip="Folder this table is filed under." data-tooltip-direction="UP">
-              {{#each @root.importData.categoryOptions as |opt|}}
-              <option value="{{opt.id}}" {{#if (eq opt.id tbl.category)}}selected{{/if}}>{{opt.label}}</option>
-              {{/each}}
+          </label>
+          <label>MV
+            <select data-mimport-field="move" class="sde-mimport-sel{{#if m.warn.move}} sde-mimport-warn{{/if}}">
+              {{#each @root.importData.moveOptions as |mv|}}<option value="{{mv}}" {{#if (eq mv m.draft.move)}}selected{{/if}}>{{mv}}</option>{{/each}}
             </select>
-            {{#if (eq tbl.category "custom")}}
-            <input type="text" data-import-field="customLabel" value="{{tbl.customLabel}}"
-                   class="sde-import-customcat" aria-label="Custom folder name" placeholder="Folder name">
-            {{/if}}
-            <button type="button" data-action="hubCommitTables" class="sde-import-primary">
-              <i class="fas fa-plus"></i> Create
-            </button>
-          </div>
-          {{#if tbl.bestEffort}}
-          <p class="sde-import-flag"><i class="fas fa-triangle-exclamation"></i> Best-effort column split — check the cells.</p>
-          {{/if}}
-          {{#if tbl.warnings.length}}
-          <ul class="sde-import-warnings">
-            {{#each tbl.warnings as |w|}}<li>{{w}}</li>{{/each}}
-          </ul>
-          {{/if}}
-          <div class="sde-import-rows">
-            {{#each tbl.rows as |row|}}
-            <div class="sde-import-row" data-row-idx="{{@index}}">
-              <input type="number" data-import-field="min" value="{{row.min}}" aria-label="Range min" class="sde-import-num">
-              <span class="sde-import-dash">–</span>
-              <input type="number" data-import-field="max" value="{{row.max}}" aria-label="Range max" class="sde-import-num">
-              <input type="text" data-import-field="text" value="{{row.text}}" aria-label="Result text" class="sde-import-rowtext">
-              {{#if row.link}}
-              <span class="sde-import-link" data-tooltip="Draws as a link to this compendium item">
-                <i class="fas fa-link"></i> {{row.link.name}}
-              </span>
-              <button type="button" data-action="importUnlinkRow" aria-label="Unlink item" class="sde-import-unlink">
-                <i class="fas fa-link-slash"></i>
-              </button>
-              {{/if}}
-              <button type="button" data-action="importDeleteRow" aria-label="Delete row" class="sde-import-del">
-                <i class="fas fa-xmark"></i>
-              </button>
-            </div>
-            {{/each}}
-          </div>
-          <button type="button" data-action="importAddRow" class="sde-import-addrow">
-            <i class="fas fa-plus"></i> Add row
-          </button>
+          </label>
+          <input type="text" data-mimport-field="moveNote" value="{{m.draft.moveNote}}" class="sde-mimport-movenote" placeholder="move note (climb, swim…)" aria-label="Movement note">
         </div>
-        {{/each}}
-      </div>
-      {{else}}
-      <p class="sde-import-empty">
-        {{#if importData.seed}}Paste the table rows above and click <strong>Parse</strong>.{{else}}No tables parsed yet.{{/if}}
-      </p>
-      {{/if}}
-    </section>
-
-    {{!-- ── Skipped (K) — always visible (D-04 / D9: nothing silently dropped) --}}
-    <section class="sde-hub-import-section sde-hub-import-skipped-section">
-      <div class="sde-hub-import-sechead">
-        <span class="sde-hub-import-sectitle sde-hub-import-sectitle-skipped">
-          <i class="fas fa-filter-circle-xmark"></i> Skipped ({{importData.skippedCount}})
-        </span>
-      </div>
-      {{#if importData.skippedCount}}
-      <ul class="sde-hub-import-skipped-list">
-        {{#each importData.skipped as |s|}}<li><strong>{{s.name}}</strong> — {{s.reason}}</li>{{/each}}
-      </ul>
-      {{else}}
-      <p class="sde-hub-import-skipped-empty">0 skipped — everything was recognized.</p>
-      {{/if}}
-    </section>
-
-  </div>
-
-  {{!-- ═══ Tables tab (absorbed from RollTablesApp dashboard) ═══ --}}
-  <div class="sde-hub-tab-body"{{#unless tabTables}} hidden{{/unless}}>
-
-    <div class="sde-thub-searchbox">
-      <i class="fas fa-magnifying-glass"></i>
-      <input type="text" name="thubSearch" class="sde-thub-search"
-             placeholder="Search by name, source, category, page…" value="{{search}}">
-    </div>
-
-    <div class="sde-thub-summary">
-      <button type="button" class="sde-thub-stat {{#if fAll}}active{{/if}}" data-action="filter" data-state="all" title="Show all">
-        <i class="fas fa-table-list"></i> {{summary.total}} tables</button>
-      <button type="button" class="sde-thub-stat ok {{#if fSystem}}active{{/if}}" data-action="filter" data-state="system" title="Show only in-system">
-        <i class="fas fa-box-archive"></i> {{summary.system}} in system</button>
-      <button type="button" class="sde-thub-stat imp {{#if fImported}}active{{/if}}" data-action="filter" data-state="imported" title="Show only imported">
-        <i class="fas fa-file-import"></i> {{summary.imported}} imported</button>
-      {{#if summary.partial}}<button type="button" class="sde-thub-stat part {{#if fPartial}}active{{/if}}" data-action="filter" data-state="partial" title="Show only partial">
-        <i class="fas fa-circle-half-stroke"></i> {{summary.partial}} partial</button>{{/if}}
-      <button type="button" class="sde-thub-stat miss {{#if fMissing}}active{{/if}}" data-action="filter" data-state="missing" title="Show only missing">
-        <i class="fas fa-circle-exclamation"></i> {{summary.missing}} missing</button>
-      <button type="button" class="sde-thub-refresh" data-action="refresh"
-              title="Re-scan the system compendium and force a full re-check. In-world table edits (import, rename, rows) update the dashboard automatically.">
-        <i class="fas fa-rotate"></i> Re-check compendiums
-      </button>
-      <button type="button" class="sde-thub-migrate" data-action="migrateCompendium"
-              title="Copy module-imported world tables into the sde-tables compendium pack and move originals to _Backup (pre-suite).">
-        <i class="fas fa-box-archive"></i> Migrate to compendium
-      </button>
-      <button type="button" class="sde-thub-migrate" data-action="hubRelinkTables"
-              title="Re-link every compendium table to your imported monsters and items. Safe to re-run — existing links are preserved.">
-        <i class="fas fa-link"></i> Re-link pack tables
-      </button>
-    </div>
-
-    {{#if summary.missing}}
-    <p class="sde-import-note sde-thub-missing-note">
-      <i class="fas fa-circle-info"></i>
-      <strong>“{{summary.missing}} missing” is your to-do list, not an error.</strong>
-      The module can’t legally ship the books’ table contents, so it tracks which tables you
-      haven’t imported yet. Paste each from your own Cursed Scroll / Western Reaches copy —
-      click <i class="fas fa-file-import"></i> Import on a row — and it moves to “imported”.
-    </p>
-    {{/if}}
-
-    {{#each groups as |g|}}
-    <details class="sde-thub-cat" open>
-      <summary class="sde-thub-cat-head">
-        <i class="fas fa-caret-right sde-thub-caret"></i>
-        <span class="sde-thub-cat-name">{{g.category}}</span>
-        <span class="sde-thub-cat-count">{{g.count}}</span>
-      </summary>
-      {{#each g.subgroups as |sg|}}
-      <details class="sde-thub-sub" open>
-        <summary class="sde-thub-sub-head">
-          <i class="fas fa-caret-right sde-thub-caret"></i>
-          <span class="sde-thub-sub-name">{{sg.sub}}</span>
-          <span class="sde-thub-sub-count">{{sg.rows.length}}</span>
-        </summary>
-        <ul class="sde-thub-rows">
-          {{#each sg.rows as |r|}}
-          <li class="sde-thub-row state-{{r.state}}{{#if r.uuid}} sde-thub-openable{{/if}}" data-search="{{r.searchKey}}"{{#if r.uuid}} data-uuid="{{r.uuid}}" title="Double-click to open this table"{{/if}}>
-            <span class="sde-thub-name">{{r.name}}</span>
-            <span class="sde-thub-meta">p{{r.page}} &middot; {{r.die}}{{#if r.sourceShort}} &middot; {{r.sourceShort}}{{/if}}</span>
-
-            {{#if r.isMatrix}}
-            <span class="sde-thub-matrix-tag" title="One d20 grid that splits into {{r.columnsTotal}} per-column tables">{{r.columnsTotal}}-table matrix</span>
-            {{#if r.isImported}}
-              <span class="sde-thub-badge ok"><i class="fas fa-check"></i> All {{r.columnsTotal}} imported</span>
-            {{/if}}
-            {{#if r.isPartial}}
-              <span class="sde-thub-badge warn"><i class="fas fa-circle-half-stroke"></i> {{r.columnsPresent}}/{{r.columnsTotal}} imported</span>
-              <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Re-paste the grid to fill the rest"><i class="fas fa-file-import"></i> Import</button>
-            {{/if}}
-            {{#if r.isMissing}}
-              <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Missing</span>
-              <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Paste the grid once — it splits into {{r.columnsTotal}} tables"><i class="fas fa-file-import"></i> Import all {{r.columnsTotal}}</button>
-            {{/if}}
-          {{else}}
-            {{#if r.isSystem}}
-              <span class="sde-thub-badge ok"><i class="fas fa-box-archive"></i> In system</span>
-            {{/if}}
-            {{#if r.isImported}}
-              <span class="sde-thub-badge imp"><i class="fas fa-check"></i> Imported</span>
-              {{#if r.worldName}}
-              <span class="sde-thub-world" title="Matched world table — confirm it's the right one">&rarr; {{r.worldName}}</span>
-              {{/if}}
-              {{#if r.rowsExpected}}
-              <span class="sde-thub-rows-chk {{#if r.verifyOk}}ok{{else}}warn{{/if}}"
-                    title="Imported table has {{r.rowsActual}} rows; expected {{r.rowsExpected}}">
-                {{r.rowsActual}}/{{r.rowsExpected}} rows
-              </span>
-              {{#unless r.verifyOk}}
-              <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Row count doesn't match the book — re-import from your copy">
-                <i class="fas fa-rotate"></i> Re-import
-              </button>
-              {{/unless}}
-              {{/if}}
-            {{/if}}
-            {{#if r.isMissing}}
-              <span class="sde-thub-badge miss"><i class="fas fa-circle-exclamation"></i> Missing</span>
-              <button type="button" class="sde-thub-import" data-action="importMissing" data-id="{{r.id}}"
-                      title="Open the Importer to paste this table from your book">
-                <i class="fas fa-file-import"></i> Import
-              </button>
-            {{/if}}
-          {{/if}}
-          </li>
+        <div class="sde-mimport-abils{{#if m.warn.abilities}} sde-mimport-warn-row{{/if}}">
+          {{#each @root.importData.abilityKeys as |ab|}}
+          <label>{{ab.label}} <input type="number" data-mimport-field="{{ab.key}}" value="{{lookup m.draft.abilities ab.key}}" class="sde-import-num"></label>
           {{/each}}
-        </ul>
-      </details>
+        </div>
+        <div class="sde-mimport-spell{{#if m.warn.spellcasting}} sde-mimport-warn-row{{/if}}">
+          <span class="sde-mimport-sublabel">Spellcasting</span>
+          <label>ability
+            <select data-mimport-field="scAbility" class="sde-mimport-sel">
+              {{#each @root.importData.spellAbilities as |sa|}}<option value="{{sa.value}}" {{#if (eq sa.value m.draft.spellcasting.ability)}}selected{{/if}}>{{sa.label}}</option>{{/each}}
+            </select>
+          </label>
+          <label>bonus <input type="number" data-mimport-field="scBonus" value="{{m.draft.spellcasting.bonus}}" class="sde-import-num"></label>
+          <label>spells/rd <input type="number" data-mimport-field="scAttacks" value="{{m.draft.spellcasting.attacks}}" class="sde-import-num"></label>
+        </div>
+        <div class="sde-mimport-section{{#if m.warn.attacks}} sde-mimport-warn-row{{/if}}">
+          <div class="sde-mimport-sechead">
+            <span class="sde-mimport-sublabel">Attacks</span>
+            <button type="button" data-action="mimportAddAttack" class="sde-import-addrow"><i class="fas fa-plus"></i> Attack</button>
+            <button type="button" data-action="mimportAddSpecial" class="sde-import-addrow"><i class="fas fa-plus"></i> Special</button>
+          </div>
+          {{#each m.draft.actions as |a|}}
+          <div class="sde-mimport-attack" data-attack-idx="{{@index}}">
+            <input type="number" data-mimport-field="aNum" value="{{a.num}}" class="sde-import-num" aria-label="Attacks per round" title="count">
+            <input type="text" data-mimport-field="aName" value="{{a.name}}" class="sde-mimport-aname" aria-label="Attack name" placeholder="name">
+            <select data-mimport-field="aType" class="sde-mimport-sel" aria-label="Attack type">
+              {{#each @root.importData.attackTypes as |ty|}}<option value="{{ty}}" {{#if (eq ty a.type)}}selected{{/if}}>{{ty}}</option>{{/each}}
+            </select>
+            <input type="number" data-mimport-field="aBonus" value="{{a.bonus}}" class="sde-import-num" aria-label="To-hit bonus" title="+hit">
+            <input type="text" data-mimport-field="aDamage" value="{{a.damage}}" class="sde-mimport-dmg" aria-label="Damage" placeholder="1d6">
+            <input type="text" data-mimport-field="aRanges" value="{{join a.ranges}}" class="sde-mimport-ranges" aria-label="Ranges" placeholder="close, near">
+            <input type="text" data-mimport-field="aDesc" value="{{a.description}}" class="sde-import-rowtext" aria-label="Rider / effect" placeholder="rider (swallow…)">
+            <button type="button" data-action="mimportRemoveAttack" class="sde-import-del" aria-label="Remove attack"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        <div class="sde-mimport-section">
+          <div class="sde-mimport-sechead">
+            <span class="sde-mimport-sublabel">Features</span>
+            <button type="button" data-action="mimportAddFeature" class="sde-import-addrow"><i class="fas fa-plus"></i> Feature</button>
+          </div>
+          {{#each m.draft.features as |f|}}
+          <div class="sde-mimport-feature" data-feature-idx="{{@index}}">
+            <input type="text" data-mimport-field="fName" value="{{f.name}}" class="sde-mimport-fname" aria-label="Feature name" placeholder="name">
+            <input type="text" data-mimport-field="fDesc" value="{{f.description}}" class="sde-import-rowtext" aria-label="Feature text" placeholder="description">
+            <button type="button" data-action="mimportRemoveFeature" class="sde-import-del" aria-label="Remove feature"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+      </div>
       {{/each}}
-    </details>
-    {{/each}}
+    </div>
+  </section>
+  {{/if}}
 
-  </div>
+  {{!-- ── Items preview ────────────────────────────────────────────────── --}}
+  {{#if importData.hasItems}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-gem"></i> Items ({{importData.itemsCount}})</span>
+      <button type="button" data-action="hubCommitItems" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-gem"></i> Create items
+      </button>
+    </div>
+    <div class="sde-import-preview">
+      {{#each importData.items as |it|}}
+      <div class="sde-hub-import-item-card" data-item-idx="{{@index}}">
+        <div class="sde-hub-import-item-head">
+          <input type="text" data-iimport-field="name" value="{{it.draft.name}}"
+                 class="sde-import-name sde-hub-import-item-name" aria-label="Item name" placeholder="Item name">
+          <select data-iimport-field="type" class="sde-hub-import-item-type sde-mimport-sel" aria-label="Item type">
+            {{#each @root.importData.itemTypeOptions as |opt|}}
+            <option value="{{opt}}" {{#if (eq opt it.draft.type)}}selected{{/if}}>{{opt}}</option>
+            {{/each}}
+          </select>
+          <button type="button" data-action="iimportRemoveItem" class="sde-import-del"
+                  aria-label="Remove this item" title="Don't import this one"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="sde-hub-import-item-fields">
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">gp</span>
+            <input type="number" data-iimport-field="costGp" value="{{it.draft.cost.gp}}" class="sde-import-num" aria-label="Cost gp"></label>
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">sp</span>
+            <input type="number" data-iimport-field="costSp" value="{{it.draft.cost.sp}}" class="sde-import-num" aria-label="Cost sp"></label>
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">cp</span>
+            <input type="number" data-iimport-field="costCp" value="{{it.draft.cost.cp}}" class="sde-import-num" aria-label="Cost cp"></label>
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">slots</span>
+            <input type="number" data-iimport-field="slots" value="{{it.draft.slots.slots_used}}" class="sde-import-num" aria-label="Slots used"></label>
+        </div>
+        <div class="sde-hub-import-item-desc">
+          <input type="text" data-iimport-field="description" value="{{it.draft.description}}"
+                 class="sde-hub-import-item-desc-input" aria-label="Item description" placeholder="Description">
+        </div>
+        {{#if it.warnings.length}}
+        <ul class="sde-import-warnings">{{#each it.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
+        {{/if}}
+      </div>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
 
-  {{!-- ═══ Monsters tab ═══ --}}
-  <div class="sde-hub-tab-body sde-hub-monsters"{{#unless tabMonsters}} hidden{{/unless}} id="sde-hub-monsters">
+  {{!-- ── Spells preview ───────────────────────────────────────────────── --}}
+  {{#if importData.hasSpells}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-wand-sparkles"></i> Spells ({{importData.spellsCount}})</span>
+      <button type="button" data-action="hubCommitSpells" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-wand-sparkles"></i> Create spells
+      </button>
+    </div>
+    <div class="sde-import-preview">
+      {{#each importData.spells as |sp|}}
+      <div class="sde-hub-import-item-card" data-spell-idx="{{sp.idx}}">
+        <div class="sde-hub-import-item-head">
+          <input type="text" data-simport-field="name" value="{{sp.draft.name}}"
+                 class="sde-import-name sde-hub-import-item-name" aria-label="Spell name" placeholder="Spell name">
+          {{#if sp.hasWarnings}}
+          <span class="sde-mimport-warncount" title="Parser flagged {{sp.warnCount}} field(s)"><i class="fas fa-triangle-exclamation"></i> {{sp.warnCount}}</span>
+          {{/if}}
+          <button type="button" data-action="simportRemoveSpell" class="sde-import-del"
+                  aria-label="Remove this spell" title="Don't import this one"><i class="fas fa-xmark"></i></button>
+        </div>
+        <div class="sde-hub-import-item-fields">
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">Tier</span>
+            <input type="number" min="1" max="5" data-simport-field="tier" value="{{sp.draft.tier}}" class="sde-import-num" aria-label="Spell tier"></label>
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">Class</span>
+            <input type="text" data-simport-field="className" value="{{sp.draft.className}}" class="sde-mimport-aname" aria-label="Class name" placeholder="Wizard"></label>
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">Range</span>
+            <select data-simport-field="range" class="sde-mimport-sel" aria-label="Range">
+              {{#each @root.importData.spellRanges as |rg|}}<option value="{{rg}}" {{#if (eq rg sp.draft.range)}}selected{{/if}}>{{rg}}</option>{{/each}}
+            </select></label>
+          <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">Duration</span>
+            <select data-simport-field="durationType" class="sde-mimport-sel" aria-label="Duration type">
+              {{#each @root.importData.spellDurationTypes as |dt|}}<option value="{{dt}}" {{#if (eq dt sp.draft.duration.type)}}selected{{/if}}>{{dt}}</option>{{/each}}
+            </select>
+            <input type="text" data-simport-field="durationValue" value="{{sp.draft.duration.value}}" class="sde-import-num" aria-label="Duration value" title="rounds/days; -1 = n/a"></label>
+        </div>
+        <div class="sde-hub-import-item-desc">
+          <input type="text" data-simport-field="description" value="{{sp.draft.description}}"
+                 class="sde-hub-import-item-desc-input" aria-label="Spell description" placeholder="Description">
+        </div>
+        {{#if sp.warnings.length}}
+        <ul class="sde-import-warnings">{{#each sp.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
+        {{/if}}
+      </div>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
 
-    {{#if monstersData}}
+  {{!-- ── Tables preview ───────────────────────────────────────────────── --}}
+  {{#if importData.hasTables}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-table-list"></i> Tables ({{importData.tablesCount}})</span>
+      <button type="button" data-action="hubCommitTables" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-table-list"></i> Create tables
+      </button>
+    </div>
+    <div class="sde-import-preview">
+      {{#each importData.tables as |tbl|}}
+      <div class="sde-import-table" data-table-idx="{{@index}}">
+        <div class="sde-import-table-head">
+          <input type="text" data-import-field="name" value="{{tbl.name}}" aria-label="Table name" placeholder="Table name" class="sde-import-name">
+          <input type="text" data-import-field="formula" value="{{tbl.formula}}" aria-label="Formula" class="sde-import-formula">
+          <label class="sde-import-repl" data-tooltip="On: results can repeat. Off: each result is removed after drawn." data-tooltip-direction="UP">
+            <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}> Replacement
+          </label>
+          <select data-import-field="category" class="sde-import-cat" aria-label="Table type" data-tooltip="Folder this table is filed under." data-tooltip-direction="UP">
+            {{#each @root.importData.categoryOptions as |opt|}}
+            <option value="{{opt.id}}" {{#if (eq opt.id tbl.category)}}selected{{/if}}>{{opt.label}}</option>
+            {{/each}}
+          </select>
+          {{#if (eq tbl.category "custom")}}
+          <input type="text" data-import-field="customLabel" value="{{tbl.customLabel}}" class="sde-import-customcat" aria-label="Custom folder name" placeholder="Folder name">
+          {{/if}}
+          <button type="button" data-action="hubCommitTables" class="sde-import-primary"><i class="fas fa-plus"></i> Create</button>
+        </div>
+        {{#if tbl.bestEffort}}
+        <p class="sde-import-flag"><i class="fas fa-triangle-exclamation"></i> Best-effort column split — check the cells.</p>
+        {{/if}}
+        {{#if tbl.warnings.length}}
+        <ul class="sde-import-warnings">{{#each tbl.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
+        {{/if}}
+        <div class="sde-import-rows">
+          {{#each tbl.rows as |row|}}
+          <div class="sde-import-row" data-row-idx="{{@index}}">
+            <input type="number" data-import-field="min" value="{{row.min}}" aria-label="Range min" class="sde-import-num">
+            <span class="sde-import-dash">–</span>
+            <input type="number" data-import-field="max" value="{{row.max}}" aria-label="Range max" class="sde-import-num">
+            <input type="text" data-import-field="text" value="{{row.text}}" aria-label="Result text" class="sde-import-rowtext">
+            {{#if row.link}}
+            <span class="sde-import-link" data-tooltip="Draws as a link to this compendium item"><i class="fas fa-link"></i> {{row.link.name}}</span>
+            <button type="button" data-action="importUnlinkRow" aria-label="Unlink item" class="sde-import-unlink"><i class="fas fa-link-slash"></i></button>
+            {{/if}}
+            <button type="button" data-action="importDeleteRow" aria-label="Delete row" class="sde-import-del"><i class="fas fa-xmark"></i></button>
+          </div>
+          {{/each}}
+        </div>
+        <button type="button" data-action="importAddRow" class="sde-import-addrow"><i class="fas fa-plus"></i> Add row</button>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
 
-      {{!-- ── Census table ──────────────────────────────────────────────────── --}}
+  {{!-- ── Skipped (always visible — nothing silently dropped) ──────────── --}}
+  {{#if importData.skippedCount}}
+  <section class="sde-hub-import-section sde-hub-import-skipped-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle sde-hub-import-sectitle-skipped">
+        <i class="fas fa-filter-circle-xmark"></i> Skipped ({{importData.skippedCount}})
+      </span>
+    </div>
+    <ul class="sde-hub-import-skipped-list">
+      {{#each importData.skipped as |s|}}<li><strong>{{s.name}}</strong> — {{s.reason}}</li>{{/each}}
+    </ul>
+  </section>
+  {{/if}}
+
+  {{!-- ═══ Manage / cleanup (collapsible, lazy) ═══ --}}
+  <details class="sde-hub-manage" data-manage{{#if manageExpanded}} open{{/if}}>
+    <summary class="sde-hub-manage-summary">
+      <i class="fas fa-screwdriver-wrench"></i> Manage &amp; cleanup
+      <span class="sde-hub-manage-hint">census · duplicates · relink · migrate</span>
+    </summary>
+
+    {{#if manage}}
+    <div class="sde-hub-manage-body">
+
+      {{!-- Monsters census + duplicates --}}
       <section class="sde-hub-monsters-census">
-        {{> sdeCensus data=monstersData noun="monster"}}
+        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-dragon"></i> Monsters</h3>
+        {{> sdeCensus data=manage.monstersData noun="monster"}}
       </section>
-
-      {{!-- ── Duplicates section ──────────────────────────────────────────── --}}
       <section class="sde-hub-monsters-dups">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-copy"></i> Duplicates ({{monstersData.duplicateCount}})
-        </h3>
-
-        {{#if monstersData.hasDuplicates}}
+        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-copy"></i> Monster duplicates ({{manage.monstersData.duplicateCount}})</h3>
+        {{#if manage.monstersData.hasDuplicates}}
         <div class="sde-hub-monsters-dup-cards">
-          {{#each monstersData.duplicateGroups as |group|}}
+          {{#each manage.monstersData.duplicateGroups as |group|}}
           <div class="sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
             <p class="sde-hub-monsters-dup-name">{{group.key}}</p>
             <ul class="sde-hub-monsters-dup-members">
               {{#each group.members as |m|}}
               <li class="sde-hub-monsters-dup-member">
                 <label class="sde-hub-monsters-dup-label">
-                  <input type="radio" name="keep-{{@../index}}" value="{{m.uuid}}"
-                         data-keeper-uuid="{{m.uuid}}"
-                         {{#if @first}}checked{{/if}}>
+                  <input type="radio" name="keep-{{@../index}}" value="{{m.uuid}}" {{#if @first}}checked{{/if}}>
                   <span class="sde-hub-monsters-dup-member-name">{{m.name}}</span>
                   <span class="sde-hub-monsters-dup-member-meta">
                     {{#if m.source}}<span class="sde-hub-monsters-dup-source">{{m.source}}</span>{{/if}}
@@ -529,66 +374,27 @@
               </li>
               {{/each}}
             </ul>
-            <button type="button" class="sde-hub-monsters-cull-btn"
-                    data-action="monsterCullGroup" data-group-key="{{group.key}}">
+            <button type="button" class="sde-hub-monsters-cull-btn" data-action="monsterCullGroup" data-group-key="{{group.key}}">
               <i class="fas fa-trash-can"></i> Cull others
             </button>
           </div>
           {{/each}}
         </div>
         {{else}}
-        <p class="sde-hub-monsters-empty">
-          <i class="fas fa-circle-check"></i> No duplicates found in sde-actors.
-        </p>
+        <p class="sde-hub-monsters-empty"><i class="fas fa-circle-check"></i> No duplicates in sde-actors.</p>
         {{/if}}
       </section>
 
-      {{!-- ── Maintenance row (D-03) ─────────────────────────────────────── --}}
-      <section class="sde-hub-monsters-maintenance">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-wrench"></i> Maintenance
-        </h3>
-        <div class="sde-hub-monsters-maintenance-row">
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportBackfill"
-                  title="Upgrade existing imported NPCs to fresh-import fidelity (descriptions, icons, art, spells).">
-            <i class="fas fa-arrow-up-from-bracket"></i> Backfill
-          </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportMigrateSuite"
-                  title="Move world-side imported monster actors into the sde-actors compendium pack.">
-            <i class="fas fa-box-archive"></i> Migrate to suite
-          </button>
-        </div>
-      </section>
-
-    {{else}}
-    {{!-- Shown while not on the Monsters tab (monstersData is null) --}}
-    <div class="sde-hub-placeholder">
-      <i class="fas fa-dragon sde-hub-placeholder-icon"></i>
-      <p class="sde-hub-placeholder-title">Monsters Dashboard</p>
-      <p class="sde-hub-placeholder-note">Switch to this tab to load the census.</p>
-    </div>
-    {{/if}}
-
-  </div>
-
-  {{!-- ═══ Items tab ═══ --}}
-  <div class="sde-hub-tab-body sde-hub-monsters sde-hub-items"{{#unless tabItems}} hidden{{/unless}} id="sde-hub-items">
-
-    {{#if itemsData}}
-
-      {{!-- ── Census ─────────────────────────────────────────────────────── --}}
+      {{!-- Items census + duplicates --}}
       <section class="sde-hub-monsters-census">
-        {{> sdeCensus data=itemsData noun="item"}}
+        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-gem"></i> Items</h3>
+        {{> sdeCensus data=manage.itemsData noun="item"}}
       </section>
-
-      {{!-- ── Duplicates ─────────────────────────────────────────────────── --}}
       <section class="sde-hub-monsters-dups">
-        <h3 class="sde-hub-monsters-section-title">
-          <i class="fas fa-copy"></i> Duplicates ({{itemsData.duplicateCount}})
-        </h3>
-        {{#if itemsData.hasDuplicates}}
+        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-copy"></i> Item duplicates ({{manage.itemsData.duplicateCount}})</h3>
+        {{#if manage.itemsData.hasDuplicates}}
         <div class="sde-hub-monsters-dup-cards">
-          {{#each itemsData.duplicateGroups as |group|}}
+          {{#each manage.itemsData.duplicateGroups as |group|}}
           <div class="sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
             <p class="sde-hub-monsters-dup-name">{{group.key}}</p>
             <ul class="sde-hub-monsters-dup-members">
@@ -605,43 +411,48 @@
               </li>
               {{/each}}
             </ul>
-            <button type="button" class="sde-hub-monsters-cull-btn"
-                    data-action="itemCullGroup" data-group-key="{{group.key}}">
+            <button type="button" class="sde-hub-monsters-cull-btn" data-action="itemCullGroup" data-group-key="{{group.key}}">
               <i class="fas fa-trash-can"></i> Cull others
             </button>
           </div>
           {{/each}}
         </div>
         {{else}}
-        <p class="sde-hub-monsters-empty">
-          <i class="fas fa-circle-check"></i> No duplicates found in sde-items.
-        </p>
+        <p class="sde-hub-monsters-empty"><i class="fas fa-circle-check"></i> No duplicates in sde-items.</p>
         {{/if}}
       </section>
 
-      {{!-- ── Maintenance ────────────────────────────────────────────────── --}}
+      {{!-- Maintenance actions --}}
       <section class="sde-hub-monsters-maintenance">
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-wrench"></i> Maintenance</h3>
         <div class="sde-hub-monsters-maintenance-row">
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkTables"
+                  title="Re-link every compendium table to your imported monsters and items. Safe to re-run.">
+            <i class="fas fa-link"></i> Re-link pack tables
+          </button>
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="migrateCompendium"
+                  title="Copy module-imported world tables into the sde-tables compendium pack (originals → _Backup).">
+            <i class="fas fa-box-archive"></i> Migrate tables to compendium
+          </button>
           <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubFoldLegacyLoot"
                   title="Copy the legacy world &quot;Loot&quot; pack's items into sde-items (originals stay; pack locked as backup).">
-            <i class="fas fa-boxes-packing"></i> Fold legacy Loot pack into Items
+            <i class="fas fa-boxes-packing"></i> Fold legacy Loot into Items
           </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkTables"
-                  title="Re-link loot/treasure pack tables to your imported items and monsters. Safe to re-run.">
-            <i class="fas fa-link"></i> Re-link pack tables
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportBackfill"
+                  title="Upgrade existing imported NPCs to fresh-import fidelity (descriptions, icons, art, spells).">
+            <i class="fas fa-arrow-up-from-bracket"></i> Backfill monsters
+          </button>
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportMigrateSuite"
+                  title="Move world-side imported monster actors into the sde-actors compendium pack.">
+            <i class="fas fa-box-archive"></i> Migrate monsters to suite
           </button>
         </div>
       </section>
 
-    {{else}}
-    <div class="sde-hub-placeholder">
-      <i class="fas fa-gem sde-hub-placeholder-icon"></i>
-      <p class="sde-hub-placeholder-title">Items Dashboard</p>
-      <p class="sde-hub-placeholder-note">Switch to this tab to load the census.</p>
     </div>
+    {{else}}
+    <p class="sde-hub-manage-loading"><i class="fas fa-circle-info"></i> Expand to load the census &amp; cleanup tools…</p>
     {{/if}}
-
-  </div>
+  </details>
 
 </div>

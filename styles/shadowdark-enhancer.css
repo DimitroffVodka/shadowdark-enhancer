@@ -1712,12 +1712,82 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
   padding: 3px 6px;
 }
 
+/* Type selector bar */
+.sde-hub-import-typebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted);
+  font-family: var(--sde-bar-font);
+}
+.sde-hub-import-typebar > label { font-weight: 600; }
+.sde-hub-import-subtype-label { opacity: 0.8; }
+.sde-hub-import-type-sel {
+  background: var(--sde-bar-surface-1);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  color: var(--sde-bar-text);
+  font-size: 12px;
+  padding: 3px 6px;
+  width: auto;
+  min-width: 120px;
+}
+
 /* Controls row */
 .sde-hub-import-controls {
   display: flex;
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+/* Manage / cleanup strip (collapsible, lazy) */
+.sde-hub-manage {
+  margin-top: 14px;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  background: var(--sde-bar-surface-1);
+}
+.sde-hub-manage-summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sde-bar-text);
+  font-family: var(--sde-bar-font);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sde-hub-manage-summary::-webkit-details-marker { display: none; }
+.sde-hub-manage-summary::before {
+  content: "\f0da"; /* caret-right */
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro";
+  font-weight: 900;
+  color: var(--sde-bar-accent);
+  transition: transform 0.15s ease;
+}
+.sde-hub-manage[open] > .sde-hub-manage-summary::before { transform: rotate(90deg); }
+.sde-hub-manage-summary:hover { background: var(--sde-bar-bg-hover); }
+.sde-hub-manage-hint {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--sde-bar-text-muted);
+}
+.sde-hub-manage-body {
+  padding: 4px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sde-hub-manage-loading {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted);
 }
 
 /* Sectioned preview sections */

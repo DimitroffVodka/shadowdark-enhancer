@@ -1,33 +1,30 @@
 /**
  * Shadowdark Enhancer — Importer Hub (ApplicationV2).
  *
- * A single four-tab window that is the front door for import/management work:
- * Import (universal paste), Tables (RollTable status + relink/migrate),
- * Monsters and Items (live census/gap/duplicates). The Cursed Scroll
- * adventure pipeline (Journal + Scenes tabs, hex/location keying → journal
- * deploy → scene building) and the CS1–6/WR content-manifest reconcile were
- * split out to the `preserve/scene-journal-adventure` branch.
+ * A single-view universal importer: paste a raw dump, pick what you're
+ * importing (Auto-detect / Monsters / Items / Spells / Tables), preview &
+ * edit, then commit to the suite compendia. Auto-detect sorts mixed dumps via
+ * dump-segmenter; choosing a specific type runs only that recognizer. A
+ * collapsible "Manage" strip (lazy) carries the maintenance tools — monster &
+ * item census/duplicate-cull, relink/migrate tables, fold legacy loot,
+ * backfill, migrate-suite.
  *
- * Tables-tab behavior (absorbed from RollTablesApp):
- *   - Status chips, free-text search, collapsible rows.
- *   - Per-row "Import" button seeds the hub's Import tab (_importSeed field)
- *     and switches to it.
- *   - Migrate-to-compendium button (D-03: lives on Tables tab).
- *   - Six auto-refresh hooks (create/update/delete × RollTable/TableResult).
- *   - The reconcile is cached (_tablesCache) and built only when the Tables
- *     tab is active, so tab switches don't re-scan the world.
+ * The Cursed Scroll adventure pipeline (Journal + Scenes) and the CS1–6/WR
+ * content-manifest reconcile live on `preserve/scene-journal-adventure`.
  *
  * Export:
  *   ImporterHubApp  — the ApplicationV2 class
- *   ImporterHubAPI  — { open(tab, seed) } for entry-point wiring (Task 2)
+ *   ImporterHubAPI  — { open(tab, seed) } for entry-point wiring
  */
-import { TableHub } from "./table-hub.mjs";
-import { TableImporter } from "./table-importer.mjs";
+import { TableImporter, parseTables } from "./table-importer.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
-import { findById, formulaFromDie, isMatrix, columnManifestId } from "./table-manifest.mjs";
+import { columnManifestId } from "./table-manifest.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
-import { parseStatblock } from "./statblock-parser.mjs";
+import { parseStatblock, splitStatblocks } from "./statblock-parser.mjs";
+import { itemRecognizer } from "./item-parser.mjs";
+import { spellRecognizer } from "./spell-parser.mjs";
+import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
@@ -67,47 +64,43 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     window: { title: "Importer", icon: "fas fa-file-import", resizable: true },
     position: { width: 860, height: 780 },
     actions: {
-      // Tab nav
-      switchTab:              ImporterHubApp.prototype._onSwitchTab,
-      // Tables-tab dashboard
-      refresh:                ImporterHubApp.prototype._onRefresh,
-      filter:                 ImporterHubApp.prototype._onFilter,
-      importMissing:          ImporterHubApp.prototype._onImportMissing,
-      migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
-      hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
-      hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
-      hubExportBundle:        ImporterHubApp.prototype._onExportBundle,
-      hubImportBundle:        ImporterHubApp.prototype._onImportBundle,
-      // Import tab — parse/clear
+      // Parse / clear
       hubParse:               ImporterHubApp.prototype._onHubParse,
       hubClear:               ImporterHubApp.prototype._onHubClear,
-      // Import tab — monster section structural actions
+      // Monster section structural actions
       mimportAddAttack:       ImporterHubApp.prototype._onMimportAddAttack,
       mimportAddSpecial:      ImporterHubApp.prototype._onMimportAddSpecial,
       mimportRemoveAttack:    ImporterHubApp.prototype._onMimportRemoveAttack,
       mimportAddFeature:      ImporterHubApp.prototype._onMimportAddFeature,
       mimportRemoveFeature:   ImporterHubApp.prototype._onMimportRemoveFeature,
       mimportRemoveMonster:   ImporterHubApp.prototype._onMimportRemoveMonster,
-      // Import tab — item section structural actions
+      // Item section structural actions
       iimportRemoveItem:      ImporterHubApp.prototype._onIimportRemoveItem,
-      // Import tab — table section structural actions
+      // Spell section structural actions
+      simportRemoveSpell:     ImporterHubApp.prototype._onSimportRemoveSpell,
+      // Table section structural actions
       importAddRow:           ImporterHubApp.prototype._onImportAddRow,
       importDeleteRow:        ImporterHubApp.prototype._onImportDeleteRow,
       importUnlinkRow:        ImporterHubApp.prototype._onImportUnlinkRow,
-      // Import tab — commit actions
+      // Commit actions
       hubCommitMonsters:      ImporterHubApp.prototype._onHubCommitMonsters,
       hubCommitItems:         ImporterHubApp.prototype._onHubCommitItems,
+      hubCommitSpells:        ImporterHubApp.prototype._onHubCommitSpells,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
-      // Monsters-tab census/gap/duplicate actions
+      // Bundle export/import
+      hubExportBundle:        ImporterHubApp.prototype._onExportBundle,
+      hubImportBundle:        ImporterHubApp.prototype._onImportBundle,
+      // Manage strip — census/gap/duplicate + maintenance
       monsterGapExpand:       ImporterHubApp.prototype._onMonsterGapExpand,
       monsterSeedPaste:       ImporterHubApp.prototype._onMonsterSeedPaste,
       monsterCullGroup:       ImporterHubApp.prototype._onMonsterCullGroup,
-      // Items-tab census/gap/duplicate actions
       itemGapExpand:          ImporterHubApp.prototype._onItemGapExpand,
       itemSeedPaste:          ImporterHubApp.prototype._onItemSeedPaste,
       itemCullGroup:          ImporterHubApp.prototype._onItemCullGroup,
-      // Monsters-tab maintenance actions (D-03, ported from MonsterImporterApp)
+      hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
+      migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
+      hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
       mimportBackfill:        ImporterHubApp.prototype._onBackfill,
       mimportMigrateSuite:    ImporterHubApp.prototype._onMigrateSuite,
     },
@@ -117,43 +110,38 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     body: { template: "modules/shadowdark-enhancer/templates/importer-hub.hbs" },
   };
 
-  // ── Active tab ─────────────────────────────────────────────────────────────
-  /** @type {"import"|"tables"|"monsters"|"items"} */
-  _activeTab = "import";
+  // ── Import type selector ───────────────────────────────────────────────────
+  /** @type {"auto"|"monsters"|"items"|"spells"|"tables"} What the paste is. */
+  _importType = "auto";
+  /** Forced item subtype when importing items ("auto" = name inference). */
+  _importItemSubtype = "auto";
 
-  // ── Tables-tab dashboard state (absorbed from RollTablesApp) ──────────────
-  /** @type {string|null} */
-  _filter = null;       // status filter: null | "system" | "imported" | "partial" | "missing"
-  _search = "";
-  _searchFocused = false;
-  _searchCursor = 0;
-
-  // ── Import-tab seed (set by Tables-tab per-row Import, applied on parse) ────
-  /**
-   * Seed object set by _onImportMissing (Tables tab per-row Import button).
-   * Carries { name, die, page, formula, category, folderLabel, manifestId,
-   *           matrix, columns, widths, grid }.
-   * Applied to _importTables[0] during _onHubParse via _applyImportSeed.
-   * @type {object|null}
-   */
+  // ── Import seed (set by a Manage-strip census gap "Seed" click) ────────────
+  /** @type {object|null} Carries a per-row Import seed; applied on parse. */
   _importSeed = null;
 
-  // ── Import-tab content state ───────────────────────────────────────────────
+  // ── Import content state ───────────────────────────────────────────────────
   /** Raw paste text (stashed on input, committed on blur/parse). */
   _importText = "";
   /** Monster parse results: [{ draft, warnings }] */
   _importMonsters = [];
-  /** Item parse results: [{ draft, warnings }] from seg.items */
+  /** Item parse results: [{ draft, warnings }] */
   _importItems = [];
+  /** Spell parse results: [{ draft, warnings }] */
+  _importSpells = [];
   /** Table parse results: ParsedTable[] */
   _importTables = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
   _importSkipped = [];
-  /** Monster section source label (free-text, feeds createMonsters folder). */
+  /** Source label (free-text, feeds the import folder). */
   _importSource = "";
   /** Paste-box focus/cursor preservation. */
   _importTextFocused = false;
   _importTextCursor = 0;
+
+  // ── Manage strip (collapsible, lazy) ───────────────────────────────────────
+  /** Whether the Manage strip is expanded (its census is computed only then). */
+  _manageExpanded = false;
 
   // ── Monsters-tab census cache ─────────────────────────────────────────────
   /**
@@ -173,72 +161,25 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Which item gap rows are expanded: Set of source ids. */
   _expandedItemGapRows = new Set();
 
-  // ── Tables-tab cache ──────────────────────────────────────────────────────
-  /**
-   * Cached Tables-tab reconcile ({ groups, summary }), built only when the
-   * Tables tab is active and invalidated by the RollTable/TableResult hooks.
-   * Keeps tab switches off the expensive sde-tables world scan. @type {object|null}
-   */
-  _tablesCache = null;
-
-  // ── Hook / timer plumbing ─────────────────────────────────────────────────
-  _hookIds = [];
-  _refreshTimer = null;
-
-  constructor(options = {}) {
-    super(options);
-    // Mirror RollTablesApp: auto-refresh on any RollTable or TableResult change.
-    const events = [
-      "createRollTable", "updateRollTable", "deleteRollTable",
-      "createTableResult", "updateTableResult", "deleteTableResult",
-    ];
-    for (const ev of events) {
-      this._hookIds.push([ev, Hooks.on(ev, () => this._scheduleRefresh())]);
-    }
-  }
-
-  /** Coalesce rapid table/result changes into a single re-render. */
-  _scheduleRefresh() {
-    if (!this.rendered) return;
-    // A RollTable/TableResult changed — drop the cached Tables reconcile so the
-    // next render rebuilds it; other tabs don't depend on it.
-    this._tablesCache = null;
-    clearTimeout(this._refreshTimer);
-    this._refreshTimer = setTimeout(() => { if (this.rendered) this.render(); }, 120);
-  }
-
   // ── Singleton lifecycle ────────────────────────────────────────────────────
 
   static _instance = null;
 
-  /** Tabs the hub still renders; any other request falls back to Import. */
-  static TABS = ["import", "tables", "monsters", "items"];
-
   /**
-   * Open (or bring forward) the hub.
-   * @param {"import"|"tables"|"monsters"|"items"} [tab="import"]
-   * @param {object|null} [seed=null] - When provided, forces Import tab and
-   *   stores the seed so 10-03's Import tab can pre-fill the paste box.
+   * Open (or bring forward) the single-view importer.
+   * @param {*} [_tab] - Ignored (legacy tab arg; the hub is one view now).
+   * @param {object|null} [seed=null] - Optional per-row Import seed for the paste box.
    */
-  static open(tab = "import", seed = null) {
+  static open(_tab = null, seed = null) {
     if (!this._instance) this._instance = new ImporterHubApp();
     const inst = this._instance;
-    if (seed) {
-      inst._importSeed = seed;
-      inst._activeTab = "import";
-    } else {
-      // Legacy callers may still pass "journal"/"scenes" — coerce to Import.
-      inst._activeTab = ImporterHubApp.TABS.includes(tab) ? tab : "import";
-    }
+    if (seed) inst._importSeed = seed;
     if (!inst.rendered) inst.render(true);
     else { inst.bringToFront(); inst.render(); }
     return inst;
   }
 
   async close(options = {}) {
-    clearTimeout(this._refreshTimer);
-    for (const [ev, id] of this._hookIds) Hooks.off(ev, id);
-    this._hookIds = [];
     ImporterHubApp._instance = null;
     return super.close(options);
   }
@@ -246,31 +187,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Context preparation ────────────────────────────────────────────────────
 
   async _prepareContext() {
-    // ── Tables-tab data ──────────────────────────────────────────────────────
-    // Reconcile the sde-tables pack only when the Tables tab is actually shown,
-    // and cache it. This keeps tab switches (and renders triggered by other
-    // tabs) off the expensive world scan. The cache is dropped by the
-    // RollTable/TableResult hooks (_scheduleRefresh) and by table commit/relink.
-    const stf = this._filter;
-    let summary = { total: 0, system: 0, imported: 0, partial: 0, missing: 0 };
-    let shown = [];
-    if (this._activeTab === "tables") {
-      if (!this._tablesCache) {
-        const { groups, summary: built } = await TableHub.buildRows();
-        this._tablesCache = { groups, summary: built };
-      }
-      summary = this._tablesCache.summary;
-      shown = this._tablesCache.groups
-        .map(g => ({
-          ...g,
-          subgroups: g.subgroups
-            .map(s => ({ ...s, rows: s.rows.filter(r => !stf || r.state === stf) }))
-            .filter(s => s.rows.length),
-        }))
-        .filter(g => g.subgroups.length);
-    }
-
-    // ── Import-tab data ──────────────────────────────────────────────────────
     const moveOptions = Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? FALLBACK_MOVES);
 
     const importMonsterCards = this._importMonsters.map((p, i) => {
@@ -289,6 +205,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     });
 
+    const importSpellCards = this._importSpells.map((p, i) => ({
+      idx: i,
+      draft: p.draft,
+      warnings: p.warnings ?? [],
+      hasWarnings: (p.warnings?.length ?? 0) > 0,
+      warnCount: p.warnings?.length ?? 0,
+    }));
+
     const categoryOptions = [
       ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
       { id: CUSTOM_ID, label: "Custom…" },
@@ -296,27 +220,47 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const hasMonsters = importMonsterCards.length > 0;
     const hasItems    = this._importItems.length > 0;
+    const hasSpells   = importSpellCards.length > 0;
     const hasTables   = this._importTables.length > 0;
-    const showImportAll = [hasMonsters, hasItems, hasTables].filter(Boolean).length > 1;
+    const showImportAll = [hasMonsters, hasItems, hasSpells, hasTables].filter(Boolean).length > 1;
 
+    const t = this._importType;
     const importData = {
       text: this._importText,
       source: this._importSource,
       sourceSuggestions: SOURCE_SUGGESTIONS,
       seed: this._importSeed,
+      // Type selector
+      importType: t,
+      typeOptions: [
+        { value: "auto",     label: "Auto-detect" },
+        { value: "monsters", label: "Monsters" },
+        { value: "items",    label: "Items" },
+        { value: "spells",   label: "Spells" },
+        { value: "tables",   label: "Tables" },
+      ].map(o => ({ ...o, selected: o.value === t })),
+      showItemSubtype: t === "items" || t === "auto",
+      itemSubtype: this._importItemSubtype,
+      itemSubtypeOptions: [
+        { value: "auto", label: "Auto (by name)" },
+        ...["Basic", "Weapon", "Armor", "Potion", "Scroll", "Wand"].map(v => ({ value: v, label: v })),
+      ].map(o => ({ ...o, selected: o.value === this._importItemSubtype })),
+      // Previews
       monsters: importMonsterCards,
       items: this._importItems,
+      spells: importSpellCards,
       tables: this._importTables,
       skipped: this._importSkipped,
-      hasMonsters,
-      hasItems,
-      hasTables,
-      showImportAll,
+      hasMonsters, hasItems, hasSpells, hasTables, showImportAll,
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
       itemsCount: this._importItems.length,
+      spellsCount: importSpellCards.length,
       tablesCount: this._importTables.length,
+      // Option lists
       itemTypeOptions: ["Basic", "Weapon", "Armor", "Potion", "Scroll", "Wand"],
+      spellRanges: ["self", "touch", "close", "near", "doubleNear", "far"],
+      spellDurationTypes: ["instant", "focus", "permanent", "rounds", "days", "turns"],
       categoryOptions,
       alignments: ["L", "N", "C"],
       moveOptions,
@@ -333,41 +277,17 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ],
     };
 
-    // ── Per-tab dashboards (computed + cached only for the active tab) ────────
-    let monstersData = null;
-    if (this._activeTab === "monsters") {
-      monstersData = await this._prepareMonstersContext();
+    // ── Manage strip — lazy: census/duplicate scans run only when expanded ────
+    let manage = null;
+    if (this._manageExpanded) {
+      const [monstersData, itemsData] = await Promise.all([
+        this._prepareMonstersContext(),
+        this._prepareItemsContext(),
+      ]);
+      manage = { monstersData, itemsData };
     }
 
-    let itemsData = null;
-    if (this._activeTab === "items") {
-      itemsData = await this._prepareItemsContext();
-    }
-
-    return {
-      // Tab flags
-      activeTab:    this._activeTab,
-      tabImport:    this._activeTab === "import",
-      tabTables:    this._activeTab === "tables",
-      tabMonsters:  this._activeTab === "monsters",
-      tabItems:     this._activeTab === "items",
-      // Tables-tab context
-      search:   this._search,
-      groups:   shown,
-      summary,
-      filter:   stf,
-      fAll:     !stf,
-      fSystem:  stf === "system",
-      fImported: stf === "imported",
-      fPartial:  stf === "partial",
-      fMissing:  stf === "missing",
-      // Import-tab context
-      importData,
-      // Monsters-tab context (null when not on Monsters tab)
-      monstersData,
-      // Items-tab context (null when not on Items tab)
-      itemsData,
-    };
+    return { importData, manageExpanded: this._manageExpanded, manage };
   }
 
   /**
@@ -479,131 +399,42 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onRender(context, options) {
     super._onRender?.(context, options);
 
-    // Tab nav: clicking a hub-tab button sets _activeTab and re-renders. The
-    // per-tab dashboards are cached (Tables/Monsters/Items), so a switch only
-    // pays a world scan on the FIRST visit to each tab — never again.
-    for (const btn of this.element.querySelectorAll("[data-hubtab]")) {
-      btn.addEventListener("click", (ev) => {
-        this._activeTab = ev.currentTarget.dataset.hubtab;
-        this.render();
+    // Single-view wiring (always).
+    this._wireHubType();
+    this._wireHubPaste();
+    this._wireHubSource();
+    this._wireHubMonsterFieldEdits();
+    this._wireHubItemFieldEdits();
+    this._wireHubSpellFieldEdits();
+    this._wireHubTableFieldEdits();
+
+    // Manage strip: prepare its census lazily the first time it's expanded, so
+    // opening the importer never triggers a world scan.
+    const manage = this.element.querySelector("details[data-manage]");
+    if (manage) {
+      manage.addEventListener("toggle", () => {
+        if (manage.open && !this._manageExpanded) { this._manageExpanded = true; this.render(); }
       });
     }
-
-    // ── Import-tab wiring (only when Import tab is active) ────────────────────
-    if (this._activeTab === "import") {
-      this._wireHubPaste();
-      this._wireHubSource();
-      this._wireHubMonsterFieldEdits();
-      this._wireHubItemFieldEdits();
-      this._wireHubTableFieldEdits();
-    }
-
-    // ── Tables-tab dashboard wiring (absorbed from RollTablesApp._onRender) ─
-
-    // Free-text search: client-side filter, no re-render on typing.
-    const searchInput = this.element.querySelector("input[name='thubSearch']");
-    if (searchInput) {
-      if (this._searchFocused) {
-        searchInput.focus();
-        const pos = this._searchCursor ?? searchInput.value.length;
-        try { searchInput.setSelectionRange(pos, pos); } catch (_) {}
-      }
-      searchInput.addEventListener("input", (ev) => {
-        this._search = ev.target.value;
-        this._searchFocused = true;
-        this._searchCursor = ev.target.selectionStart;
-        this._applySearchFilter();
-      });
-      searchInput.addEventListener("blur", () => { this._searchFocused = false; });
-    }
-    this._applySearchFilter();
-
-    // Double-click / Enter to open the document behind a row. Shared by the
-    // Tables tab and the manifest catalogs (Monsters/Items/Journal/Scenes) —
-    // any .sde-thub-row carrying a data-uuid opens its sheet.
-    for (const li of this.element.querySelectorAll(".sde-thub-row[data-uuid]")) {
-      const openDoc = async () => {
-        const doc = await fromUuid(li.dataset.uuid).catch(() => null);
-        if (doc?.sheet) doc.sheet.render(true);
-        else ui.notifications?.warn("Couldn't open that entry — it may have been deleted.");
-      };
-      li.addEventListener("dblclick", async (ev) => {
-        if (ev.target.closest("button")) return;
-        await openDoc();
-      });
-      li.setAttribute("tabindex", "0");
-      li.addEventListener("keydown", async (ev) => {
-        if (ev.key !== "Enter" || ev.target.closest("button")) return;
-        await openDoc();
-      });
-    }
-  }
-
-  /**
-   * Show/hide rows (and empty sub-category/category sections) to match the
-   * search box. Pure DOM — no re-render — so the input keeps focus and caret.
-   */
-  _applySearchFilter() {
-    const root = this.element;
-    if (!root) return;
-    const q = (this._search || "").trim().toLowerCase();
-    for (const row of root.querySelectorAll(".sde-thub-row")) {
-      row.hidden = !!q && !(row.dataset.search || "").includes(q);
-    }
-    for (const sub of root.querySelectorAll(".sde-thub-sub")) {
-      const rows = sub.querySelectorAll(".sde-thub-row");
-      sub.hidden = rows.length > 0 && ![...rows].some(r => !r.hidden);
-    }
-    for (const cat of root.querySelectorAll(".sde-thub-cat")) {
-      const subs = cat.querySelectorAll(".sde-thub-sub");
-      cat.hidden = subs.length > 0 && ![...subs].some(s => !s.hidden);
-    }
-  }
-
-  // ── Tables-tab action handlers ─────────────────────────────────────────────
-
-  async _onSwitchTab(event, target) {
-    this._activeTab = target.dataset.hubtab;
-    this.render();
-  }
-
-  async _onRefresh() { this.render(); }
-
-  async _onFilter(event, target) {
-    const s = target.dataset.state || null;
-    this._filter = (s === "all" || this._filter === s) ? null : s;
-    this.render();
-  }
-
-  /**
-   * Per-row "Import" button on the Tables tab.
-   * Seeds _importSeed from the manifest entry (same payload as RollTablesApp),
-   * then switches to the hub's Import tab so plan 10-03's paste UI picks it up.
-   * The actual pre-fill rendering is wired in 10-03 — this wave just stores the
-   * seed and switches tabs.
-   */
-  async _onImportMissing(event, target) {
-    if (!game.user.isGM) return;
-    const entry = findById(target?.dataset?.id);
-    if (!entry) return;
-    this._importSeed = {
-      name: entry.name,
-      die: entry.die,
-      page: entry.page,
-      formula: formulaFromDie(entry.die),
-      category: entry.category || null,
-      folderLabel: entry.sub || entry.category || null,
-      manifestId: entry.id,
-      matrix: isMatrix(entry),
-      columns: entry.columns ?? null,
-      widths: entry.widths ?? null,
-      grid: !!entry.grid,
-    };
-    this._activeTab = "import";
-    this.render();
   }
 
   // ── Import-tab wiring helpers ─────────────────────────────────────────────
+
+  /** Import-type selector + item-subtype override. */
+  _wireHubType() {
+    const typeSel = this.element.querySelector("select[data-import-type]");
+    if (typeSel) typeSel.addEventListener("change", (ev) => { this._importType = ev.target.value; this.render(); });
+
+    const subSel = this.element.querySelector("select[data-import-subtype]");
+    if (subSel) subSel.addEventListener("change", (ev) => {
+      this._importItemSubtype = ev.target.value;
+      // Re-type any already-parsed items immediately.
+      if (this._importItemSubtype !== "auto") {
+        for (const it of this._importItems) it.draft.type = this._importItemSubtype;
+      }
+      this.render();
+    });
+  }
 
   /** Paste box: debounced stash + cursor preservation. */
   _wireHubPaste() {
@@ -726,6 +557,34 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
+  /** Spell preview field edits — commit in place, no re-render (keeps focus). */
+  _wireHubSpellFieldEdits() {
+    this.element.querySelectorAll("[data-simport-field]").forEach((el) => {
+      el.addEventListener("change", (ev) => {
+        const rowEl = ev.target.closest("[data-spell-idx]");
+        if (!rowEl) return;
+        const card = this._importSpells[Number(rowEl.dataset.spellIdx)];
+        if (!card) return;
+        const draft = card.draft;
+        const field = ev.target.dataset.simportField;
+        const v = ev.target.value;
+        switch (field) {
+          case "name":          draft.name = v; break;
+          case "tier":          draft.tier = Number(v); break;
+          case "className":     draft.className = v; break;
+          case "range":         draft.range = v; break;
+          case "durationType":  draft.duration = { ...draft.duration, type: v }; break;
+          case "durationValue": draft.duration = { ...draft.duration, value: String(v) }; break;
+          case "description": {
+            const trimmed = v.trim();
+            draft.description = trimmed.startsWith("<") ? trimmed : (trimmed ? `<p>${trimmed}</p>` : "<p></p>");
+            break;
+          }
+        }
+      });
+    });
+  }
+
   _setDraftScalarField(draft, field, el) {
     const v = el.value;
     switch (field) {
@@ -768,38 +627,70 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onHubParse() {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
+    const text = this._importText;
+    const type = this._importType;
 
-    const seg = segmentDump(this._importText);
+    let monsters = [], items = [], spells = [], tables = [], skipped = [];
 
-    // Map raw monster chunks → [{ draft, warnings }]
-    this._importMonsters = seg.monsters.map((chunk) => parseStatblock(chunk));
-
-    // Items are already [{ draft, warnings }] from the item recognizer
-    this._importItems = seg.items ?? [];
-
-    // Tables are already ParsedTable[] from the segmenter
-    this._importTables = seg.tables;
-
-    // Skipped: union of segmenter skipped + any extra from parsers
-    this._importSkipped = [...(seg.skipped ?? [])];
-
-    // Apply seed (D-07 bridge: per-row Import from Tables tab)
-    this._applyImportSeed();
-
-    // Link loot rows to compendium items
-    await this._linkLootTables();
-
-    if (!this._importMonsters.length && !this._importItems.length && !this._importTables.length) {
-      ui.notifications.warn("No monsters, items, or tables found — review the Skipped section.");
+    if (type === "auto") {
+      // Sort a mixed dump across every recognizer.
+      const seg = segmentDump(text);
+      monsters = seg.monsters.map((chunk) => parseStatblock(chunk));
+      items    = seg.items ?? [];
+      spells   = seg.spells ?? [];
+      tables   = seg.tables ?? [];
+      skipped  = [...(seg.skipped ?? [])];
+    } else if (type === "monsters") {
+      const { monsters: chunks, skipped: sk } = splitStatblocks(text);
+      monsters = chunks.map((chunk) => parseStatblock(chunk));
+      skipped  = sk ?? [];
+    } else if (type === "items") {
+      const { claimed, remainder } = itemRecognizer.claim(text);
+      items   = itemRecognizer.parse(claimed);
+      skipped = this._leftoverSkipped(remainder);
+    } else if (type === "spells") {
+      const { claimed, remainder } = spellRecognizer.claim(text);
+      spells  = spellRecognizer.parse(claimed);
+      skipped = this._leftoverSkipped(remainder);
+    } else if (type === "tables") {
+      tables = parseTables(text);
     }
 
+    // Item subtype override (forces all parsed items to the chosen type).
+    if (this._importItemSubtype !== "auto") {
+      for (const it of items) it.draft.type = this._importItemSubtype;
+    }
+
+    this._importMonsters = monsters;
+    this._importItems    = items;
+    this._importSpells   = spells;
+    this._importTables   = tables;
+    this._importSkipped  = skipped;
+
+    this._applyImportSeed();
+    await this._linkLootTables();
+
+    if (!monsters.length && !items.length && !spells.length && !tables.length) {
+      ui.notifications.warn("Nothing recognized — try a different import type or review the Skipped section.");
+    }
     this.render();
+  }
+
+  /** Turn leftover (unclaimed) text into skipped entries for the review list. */
+  _leftoverSkipped(remainder) {
+    const out = [];
+    for (const block of String(remainder ?? "").split(/\n\s*\n/)) {
+      const first = block.split("\n")[0]?.trim();
+      if (first) out.push({ name: first, reason: "not recognized as the selected type" });
+    }
+    return out;
   }
 
   _onHubClear() {
     this._importText = "";
     this._importMonsters = [];
     this._importItems = [];
+    this._importSpells = [];
     this._importTables = [];
     this._importSkipped = [];
     this._importSeed = null;
@@ -931,6 +822,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  _onSimportRemoveSpell(event, target) {
+    const idx = Number(target.closest("[data-spell-idx]")?.dataset.spellIdx);
+    if (!Number.isFinite(idx)) return;
+    this._importSpells.splice(idx, 1);
+    this.render();
+  }
+
   // ── Import-tab table structural actions ──────────────────────────────────
 
   _onImportAddRow(event, target) {
@@ -1036,6 +934,44 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /**
+   * Resolve each spell draft's class name → UUID, then create all pending
+   * spells into sde-items. Returns the createItems result (or null).
+   */
+  async _commitSpells(source) {
+    if (!this._importSpells.length) return null;
+    const drafts = this._importSpells.map((p) => p.draft);
+    const unresolved = [];
+    for (const d of drafts) {
+      const w = await resolveSpellClass(d);
+      if (w) unresolved.push(d.name);
+    }
+    const { ItemImporter } = await import("./item-importer.mjs");
+    const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
+    if (unresolved.length) {
+      ui.notifications.warn(`Spells: ${unresolved.length} imported without a class link (${unresolved.slice(0, 3).join(", ")}${unresolved.length > 3 ? "…" : ""}).`);
+    }
+    return result;
+  }
+
+  /** Commit: create all pending spells into sde-items. GM-gated. */
+  async _onHubCommitSpells() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import spells."); return; }
+    if (!this._importSpells.length) { ui.notifications.warn("No spells to import."); return; }
+
+    const source = this._importSource.trim();
+    const result = await this._commitSpells(source);
+    if (!result) return;
+
+    const parts = [`${result.created.length} created`];
+    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
+    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
+    ui.notifications.info(`Spells: ${parts.join(", ")} → sde-items${source ? ` / ${source}` : ""}.`);
+    this._importSpells = [];
+    this._invalidateItemsCache();
+    this.render();
+  }
+
   /** Commit: create all pending monsters into sde-actors. GM-gated. */
   async _onHubCommitMonsters() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import monsters."); return; }
@@ -1079,8 +1015,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const hasMonsters = this._importMonsters.length > 0;
     const hasItems    = this._importItems.length > 0;
+    const hasSpells   = this._importSpells.length > 0;
     const hasTables   = this._importTables.length > 0;
-    if (!hasMonsters && !hasItems && !hasTables) { ui.notifications.warn("Nothing to import."); return; }
+    if (!hasMonsters && !hasItems && !hasSpells && !hasTables) { ui.notifications.warn("Nothing to import."); return; }
 
     const parts = [];
     const source = this._importSource.trim();
@@ -1106,7 +1043,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    // Tables third
+    // Spells third
+    if (hasSpells) {
+      const result = await this._commitSpells(source);
+      if (result) {
+        parts.push(`spells: ${result.created.length} created${result.replaced.length ? `, ${result.replaced.length} replaced` : ""}${result.skipped.length ? `, ${result.skipped.length} skipped` : ""}`);
+        this._importSpells = [];
+      }
+    }
+
+    // Tables last
     if (hasTables) {
       const onConflict = this._tableConflictDialog();
       let created = 0;
@@ -1440,7 +1386,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!name) return;
     this._importText = name;
     this._importSeed = { name, _monsterSeed: true };
-    this._activeTab = "import";
+    this._importType = "monsters";
     this.render();
   }
 
@@ -1520,13 +1466,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /** Seed the paste box with a missing item name and switch to the Import tab. */
+  /** Seed the paste box with a missing item name. */
   _onItemSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     if (!name) return;
     this._importText = name;
     this._importSeed = { name, _itemSeed: true };
-    this._activeTab = "import";
+    this._importType = "items";
     this.render();
   }
 
