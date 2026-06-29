@@ -43,8 +43,39 @@ import { LootLinker } from "./loot-linker.mjs";
  * @param {object} draft  from item-parser.mjs (parseItem output)
  * @returns {object}  Foundry Item creation payload
  */
+/** Default art for imported Spells (matches monster-importer's fallback spells). */
+const SPELL_ICON = "icons/magic/symbols/runes-star-magenta.webp";
+
 export function buildItemData(draft) {
   const name = draft.name ?? "Unnamed Item";
+
+  // ── Spell path — explicit type:"Spell" from the spell parser. Mirrors the
+  // schema in monster-importer.buildFallbackSpell. `class` is expected to be an
+  // already-resolved UUID array (see class-index.resolveSpellClass); the parser
+  // leaves it empty + carries the class name on draft.className for reference. ──
+  if (draft.type === "Spell") {
+    const desc = String(draft.description ?? "").trim() || name;
+    const tier = Number(draft.tier);
+    return {
+      name,
+      type: "Spell",
+      img: draft.img || SPELL_ICON,
+      system: {
+        class: Array.isArray(draft.class) ? draft.class : [],
+        tier: Number.isFinite(tier) ? tier : 1,
+        range: draft.range || "close",
+        duration: draft.duration ?? { type: "instant", value: "-1" },
+        lost: false,
+        properties: [],
+        source: { title: draft.source?.title ?? "" },
+        description: desc.startsWith("<") ? desc : `<p>${desc}</p>`,
+        damageType: draft.damageType || "none",
+        ...(draft.formula ? { formula: draft.formula } : {}),
+      },
+      flags: { [MODULE_ID]: { imported: true } },
+    };
+  }
+
   const img = draft.img || pickTreasureIcon(name);
 
   // Determine if this is a magic item by checking riders

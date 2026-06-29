@@ -29,6 +29,7 @@
 import { splitStatblocks } from "./statblock-parser.mjs";
 import { parseTables } from "./table-importer.mjs";
 import { itemRecognizer } from "./item-parser.mjs";
+import { spellRecognizer } from "./spell-parser.mjs";
 import { hexcrawlRecognizer } from "./hex-parser.mjs";
 
 // ─── Block-boundary helper ────────────────────────────────────────────────────
@@ -263,18 +264,21 @@ const tableRecognizer = {
  *
  * - `parse(claimedBlocks)` → items array (recognizer-specific type)
  *
- * Registration order (Phase 16 — ORDER IS SENSITIVE):
- *   [hexcrawlRecognizer, monsterRecognizer, itemRecognizer, tableRecognizer]
+ * Registration order (ORDER IS SENSITIVE):
+ *   [hexcrawl, spell, monster, item, table]
  *   Hexcrawl runs FIRST: hex bodies legally contain ALL-CAPS headings,
  *   statblock lines, and dice text the later recognizers would steal; its
  *   >=3-consecutive-anchored-units cluster threshold (A-01) means statblock
- *   or table dumps can never be claimed by it. Items run after monsters
- *   (statblock continuations already claimed) and before tables (item
- *   blocks don't fall into the table recognizer's no-dice remainder path).
+ *   or table dumps can never be claimed by it. Spell runs BEFORE monster: a
+ *   spell block starts with an ALL-CAPS name and its text legally contains
+ *   "LV N", so the monster name-walk would otherwise absorb and skip it; the
+ *   Tier + Duration/Range anchor can't match a monster/item/table. Items run
+ *   after monsters (statblock continuations already claimed) and before tables
+ *   (item blocks don't fall into the table recognizer's no-dice remainder).
  *
  * @type {Array<{ id: string, claim: Function, parse: Function }>}
  */
-export const RECOGNIZERS = [hexcrawlRecognizer, monsterRecognizer, itemRecognizer, tableRecognizer];
+export const RECOGNIZERS = [hexcrawlRecognizer, spellRecognizer, monsterRecognizer, itemRecognizer, tableRecognizer];
 
 // ─── Core segmenter ───────────────────────────────────────────────────────────
 
@@ -317,6 +321,8 @@ export function segmentDump(rawText) {
   delete result.item;
   result.tables   = result.table   ?? [];
   delete result.table;
+  result.spells   = result.spell   ?? [];
+  delete result.spell;
   result.hexes    = result.hexcrawl ?? [];
   delete result.hexcrawl;
 
