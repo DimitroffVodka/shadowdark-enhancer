@@ -6,8 +6,8 @@
  * simpler Shadowdark CrawlState (no heroes/gm phase split — single crawl
  * turn counter).
  *
- * M2-roadmap buttons (Encounter, Lights, Rest, Forge & Loot) are rendered
- * but dimmed via the `.sde-bar-disabled` class — clicking shows a notification.
+ * Roadmap buttons such as Rest are rendered but dimmed via the
+ * `.sde-bar-disabled` class — clicking shows a notification.
  */
 
 import { MODULE_ID }       from "./module-id.mjs";
@@ -119,15 +119,9 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn">
           ${ICONS.nextTurn} Next Turn
         </button>
-        ${Object.keys(state.oocInitiative ?? {}).length > 0
-          ? `<button class="sde-bar-btn sde-bar-quiet-btn" data-action="resetOocInit" title="Clear all out-of-combat initiative rolls">
-              ${ICONS.diceD20} Reset Init
-            </button>`
-          : ""}
-
         <div class="sde-bar-divider"></div>
 
-        <button class="sde-bar-btn" data-action="addSelectedTokens" title="Add selected tokens to the combat tracker">
+        <button class="sde-bar-btn" data-action="addSelectedTokens" title="Left-click: add selected tokens to the crawl · Right-click: reset out-of-combat initiative">
           ${ICONS.addTokens} Add Tokens
         </button>
         <button class="sde-bar-btn sde-bar-combat-btn" data-action="startCombat">
@@ -139,9 +133,6 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu">
           ${ICONS.encounter} Encounter
         </button>
-        <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Lights" title="Coming in a later milestone">
-          ${ICONS.lights} Lights
-        </button>
         <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Rest" title="Coming in a later milestone">
           ${ICONS.rest} Rest
         </button>
@@ -150,9 +141,6 @@ export const CrawlBar = {
         </button>
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
           <i class="fas fa-file-import"></i> Importer
-        </button>
-        <button class="sde-bar-btn" data-action="recap" title="Session Recap — loot, XP, combat, merchant &amp; encounter checks">
-          <i class="fas fa-scroll"></i> Recap
         </button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
           ${ICONS.close} End
@@ -178,6 +166,16 @@ export const CrawlBar = {
           ev.preventDefault();
           ev.stopPropagation();
           this._onEncounterContextMenu(el, ev);
+        });
+      }
+
+      // Right-click for Add Tokens (crawl utility menu)
+      if (el.dataset.action === "addSelectedTokens") {
+        el.addEventListener("contextmenu", ev => {
+          if (CrawlState.mode !== "crawl") return;
+          ev.preventDefault();
+          ev.stopPropagation();
+          this._onAddTokensContextMenu(el, ev);
         });
       }
 
@@ -302,6 +300,61 @@ export const CrawlBar = {
     }
   },
 
+  _onAddTokensContextMenu(el, ev) {
+    if (!game.user.isGM || CrawlState.mode !== "crawl") return;
+
+    const existing = document.getElementById("sde-add-tokens-context-menu");
+    if (existing) { existing.remove(); return; }
+
+    const hasInit = Object.keys(CrawlState.oocInitiative ?? {}).length > 0;
+    const menu = document.createElement("div");
+    menu.id = "sde-add-tokens-context-menu";
+    menu.className = "sde-bar-context-menu";
+    menu.innerHTML = `
+      <div class="sde-menu-header">Add Tokens</div>
+      <div class="sde-menu-item sde-menu-btn ${hasInit ? "" : "sde-menu-disabled"}"
+           data-addtokens-action="resetOocInit" role="menuitem" tabindex="0"
+           aria-disabled="${hasInit ? "false" : "true"}"
+           title="${hasInit ? "Clear all out-of-combat initiative rolls" : "No out-of-combat initiative rolls to clear"}">
+        ${ICONS.diceD20} Reset Initiative
+      </div>
+    `;
+
+    const rect = el.getBoundingClientRect();
+    menu.style.left = `${rect.left}px`;
+    menu.style.bottom = `${window.innerHeight - rect.top + 5}px`;
+
+    document.body.appendChild(menu);
+    menu.setAttribute("role", "menu");
+
+    menu.addEventListener("keydown", e => {
+      if (e.key === "Escape") { e.stopPropagation(); menu.remove(); return; }
+      if (e.key === "Enter" || e.key === " ") {
+        const t = e.target.closest("[data-addtokens-action]");
+        if (t) { e.preventDefault(); t.click(); }
+      }
+    });
+    menu.querySelector("[data-addtokens-action]")?.focus();
+
+    menu.addEventListener("click", async e => {
+      e.stopPropagation();
+      const target = e.target.closest("[data-addtokens-action]");
+      if (!target || target.classList.contains("sde-menu-disabled")) return;
+      if (target.dataset.addtokensAction === "resetOocInit") {
+        await CrawlState.clearOocInitiative();
+        this.render();
+        CrawlStrip.render();
+      }
+      menu.remove();
+    });
+
+    const close = () => {
+      menu.remove();
+      document.removeEventListener("click", close);
+    };
+    setTimeout(() => document.addEventListener("click", close), 10);
+  },
+
   _onEncounterContextMenu(el, ev) {
     if (!game.user.isGM) return;
 
@@ -400,6 +453,9 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="partyXp" role="menuitem" tabindex="0">
         <i class="fas fa-star"></i> Party XP
       </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="recap" role="menuitem" tabindex="0">
+        <i class="fas fa-scroll"></i> Session Recap
+      </div>
     `;
 
     // Position menu above button
@@ -428,6 +484,7 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
       if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
       if (target.dataset.lootAction === "partyXp") game.shadowdarkEnhancer.partyXp.open();
+      if (target.dataset.lootAction === "recap") game.shadowdarkEnhancer.recap.open();
       menu.remove();
     });
 

@@ -3,10 +3,9 @@
    Dark / Light theme support
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Eskapade — the brand display serif. Loaded from the Vagabond system's
-   assets when that system is installed (same origin; the module does NOT
-   redistribute the font). Falls back to Palatino/serif when absent — the
-   stacks below were previously dead references with no @font-face at all. */
+/* Legacy Vagabond font definitions are kept only for backwards compatibility
+   with older saved markup. The live UI below now uses Shadowdark's own
+   Montserrat / Old Newspaper fonts and Shadowdark Extras' black-gold palette. */
 @font-face {
   font-family: "Eskapade";
   src: url("/systems/vagabond/assets/fonts/eskapade-regular.ttf") format("truetype");
@@ -22,66 +21,66 @@
 
 :root {
   /* ── Surface / backgrounds ─────────────────────────────────────────────── */
-  --sde-bar-bg:          #17191d;
-  --sde-bar-bg-alt:      #1f2226;
-  --sde-bar-bg-hover:    #2a2d32;
-  --sde-bar-surface-1:   #1b1b1b;
-  --sde-bar-surface-2:   #17191d;
-  --sde-bar-btn-1:       #252830;
-  --sde-bar-btn-2:       #1b1e24;
-  --sde-bar-btn-hover-1: #2e3138;
-  --sde-bar-btn-hover-2: #232730;
-  --sde-bar-input-bg:    #111418;
-  --sde-bar-drag-over:   #22241a;
+  --sde-bar-bg:          #000000;
+  --sde-bar-bg-alt:      #111111;
+  --sde-bar-bg-hover:    rgba(201, 170, 88, 0.18);
+  --sde-bar-surface-1:   #000000;
+  --sde-bar-surface-2:   #1a1a1a;
+  --sde-bar-btn-1:       #111111;
+  --sde-bar-btn-2:       #111111;
+  --sde-bar-btn-hover-1: rgba(201, 170, 88, 0.22);
+  --sde-bar-btn-hover-2: rgba(201, 170, 88, 0.12);
+  --sde-bar-input-bg:    #0b0b0b;
+  --sde-bar-drag-over:   rgba(201, 170, 88, 0.16);
 
   /* ── Borders / lines ───────────────────────────────────────────────────── */
-  --sde-bar-border:      #3a3d44;
+  --sde-bar-border:      #362f37;
 
   /* ── Accent (gold tabletop palette) ────────────────────────────────────── */
-  --sde-bar-accent:      #c9a54a;
-  --sde-bar-accent-dim:  #94913c;
-  --sde-bar-accent-dark: #7a7030;
+  --sde-bar-accent:      #c9aa58;
+  --sde-bar-accent-dim:  #9f9275;
+  --sde-bar-accent-dark: #6f6244;
   /* Label color that sits ON the gold-gradient buttons (cream in dark,
      dark-brown in light so it stays legible against the lighter gold). */
   --sde-bar-on-accent:   #f5eccc;
 
   /* ── Text ──────────────────────────────────────────────────────────────── */
-  --sde-bar-text:        #BDC1C6;
-  --sde-bar-text-dim:    #f8eded;
-  --sde-bar-text-muted:  #9a9a9a;
-  --sde-bar-text-bright: #e8eaed;
+  --sde-bar-text:        #f0f0f0;
+  --sde-bar-text-dim:    #d7d7d7;
+  --sde-bar-text-muted:  #9f9275;
+  --sde-bar-text-bright: #ffffff;
 
   /* ── Shadows ───────────────────────────────────────────────────────────── */
-  --sde-bar-shadow:       rgba(0,0,0,0.7);
-  --sde-bar-shadow-md:    rgba(0,0,0,0.5);
-  --sde-bar-shadow-sm:    rgba(0,0,0,0.4);
-  --sde-bar-text-shadow:  rgba(0,0,0,0.6);
-  --sde-bar-inset-glow:   rgba(201,165,74,0.08);
+  --sde-bar-shadow:       rgba(0,0,0,0.75);
+  --sde-bar-shadow-md:    rgba(0,0,0,0.45);
+  --sde-bar-shadow-sm:    rgba(0,0,0,0.35);
+  --sde-bar-text-shadow:  transparent;
+  --sde-bar-inset-glow:   rgba(201,170,88,0.16);
 
   /* ── Heroes / GM / Combat phase colours ────────────────────────────────── */
-  --sde-bar-heroes:        #278e17;
-  --sde-bar-heroes-text:   #80e070;
-  --sde-bar-heroes-light:  #c0f0b0;
-  --sde-bar-heroes-border: #3a8a30;
-  --sde-bar-heroes-bg-1:   #1e5a14;
-  --sde-bar-heroes-bg-2:   #164010;
+  --sde-bar-heroes:        #c9aa58;
+  --sde-bar-heroes-text:   #c9aa58;
+  --sde-bar-heroes-light:  #ffffff;
+  --sde-bar-heroes-border: rgba(201,170,88,0.45);
+  --sde-bar-heroes-bg-1:   #111111;
+  --sde-bar-heroes-bg-2:   #000000;
 
-  --sde-bar-gm:            #2c3e50;
-  --sde-bar-gm-text:       #90b8e0;
-  --sde-bar-gm-border:     #4a6a8a;
-  --sde-bar-gm-light:      #a0c0e0;
-  --sde-bar-gm-icon:       #d0b0ff;
+  --sde-bar-gm:            #111111;
+  --sde-bar-gm-text:       #c9aa58;
+  --sde-bar-gm-border:     rgba(201,170,88,0.35);
+  --sde-bar-gm-light:      #f0f0f0;
+  --sde-bar-gm-icon:       #c9aa58;
   /* Attack-mode hues (P2-16): tokenized so light theme can remap them. */
-  --sde-ranged:            #5aa9e6;
-  --sde-spell:             #d0b0ff;
-  --sde-init:              rgba(70, 80, 160, 0.9);
+  --sde-ranged:            #9f9275;
+  --sde-spell:             var(--clickable, #a546b6);
+  --sde-init:              var(--secondary, #78557e);
 
-  --sde-bar-combat:        #9d0000;
-  --sde-bar-combat-text:   #f09090;
-  --sde-bar-combat-border: #7a2020;
-  --sde-bar-danger:        #9d0000;
-  --sde-bar-danger-border: #5a2020;
-  --sde-bar-danger-text:   #e09090;
+  --sde-bar-combat:        #5a2727;
+  --sde-bar-combat-text:   #f0f0f0;
+  --sde-bar-combat-border: #5a2727;
+  --sde-bar-danger:        #5a2727;
+  --sde-bar-danger-border: #5a2727;
+  --sde-bar-danger-text:   #f0f0f0;
   --sde-bar-danger-hover-text: #ffcccc;
   --sde-bar-danger-light:  #c04040;
   --sde-bar-npcs-text:     #e08080;
@@ -114,7 +113,8 @@
 
   /* ── Misc ──────────────────────────────────────────────────────────────── */
   --sde-bar-radius:      4px;
-  --sde-bar-font:        "Eskapade", "Signika", "Palatino Linotype", serif;
+  --sde-bar-font:        "Montserrat-Medium", var(--font-sans, sans-serif);
+  --sde-bar-display-font: "Old Newspaper Font", var(--font-header, serif);
 
   /* ── Parchment texture (CSS-only grain + warm vignette) ────────────────── */
   --sde-bar-texture:
@@ -641,7 +641,6 @@ body.theme-light .sde-bar-start-btn:hover {
 .sde-strip-rollinit-btn:hover::after { animation: none; opacity: 0.9; }
 /* Pulse via ::after opacity (compositor-only) — animating box-shadow forced
    continuous repaints over the PIXI canvas (audit P2-7). */
-.sde-strip-rollinit-btn { position: relative; }
 .sde-strip-rollinit-btn::after {
   content: "";
   position: absolute;
@@ -4315,6 +4314,13 @@ body.theme-light .sde-hub-monsters-row td {
   background: var(--sde-bar-bg-hover);
   color: var(--sde-bar-accent);
 }
+.sde-menu-item.sde-menu-disabled,
+.sde-menu-item.sde-menu-disabled:hover {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: none;
+  color: var(--sde-bar-text-muted);
+}
 
 .sde-menu-divider {
   height: 1px;
@@ -5939,3 +5945,221 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-session-recap .sr-copy-btn:hover { filter: brightness(1.12); box-shadow: 0 0 4px var(--sde-bar-accent, #c9a54a); }
 .sde-session-recap .sr-clear-btn { background: var(--sde-bar-btn-1, #252830); color: var(--sde-bar-text, #BDC1C6); }
 .sde-session-recap .sr-clear-btn:hover { color: #d9534f; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Shadowdark / Shadowdark Extras visual alignment
+
+   Keep crawl chrome close to Shadowdark/SDX: black surfaces, charcoal borders,
+   gold accents, Old Newspaper labels, and minimal glow.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --sde-bar-bg: #000000;
+  --sde-bar-bg-alt: #1a1a1a;
+  --sde-bar-bg-hover: rgba(201, 170, 88, 0.18);
+  --sde-bar-surface-1: #000000;
+  --sde-bar-surface-2: #1a1a1a;
+  --sde-bar-btn-1: #111111;
+  --sde-bar-btn-2: #111111;
+  --sde-bar-border: #362f37;
+  --sde-bar-accent: #c9aa58;
+  --sde-bar-accent-dim: #9f9275;
+  --sde-bar-text: #f0f0f0;
+  --sde-bar-text-dim: #d7d7d7;
+  --sde-bar-text-muted: #9f9275;
+  --sde-bar-text-bright: #ffffff;
+  --sde-bar-heroes: #c9aa58;
+  --sde-bar-heroes-text: #c9aa58;
+  --sde-bar-heroes-border: rgba(201, 170, 88, 0.55);
+  --sde-bar-heroes-bg-1: #1a1a1a;
+  --sde-bar-heroes-bg-2: #000000;
+  --sde-init: #c9aa58;
+  --sde-ranged: #9f9275;
+  --sde-bar-radius: 0;
+}
+
+body.theme-light {
+  --sde-bar-bg: #f0ede6;
+  --sde-bar-bg-alt: #e8e4dc;
+  --sde-bar-surface-1: #f4f1ec;
+  --sde-bar-surface-2: #e8e4dc;
+  --sde-bar-btn-1: #f4f1ec;
+  --sde-bar-btn-2: #f4f1ec;
+  --sde-bar-border: #b8ad98;
+  --sde-bar-accent: #8a7020;
+  --sde-bar-accent-dim: #6f6244;
+  --sde-bar-text: #2c2820;
+  --sde-bar-text-dim: #4a4438;
+  --sde-bar-text-muted: #6f6244;
+  --sde-bar-text-bright: #000000;
+  --sde-bar-heroes: #8a7020;
+  --sde-bar-heroes-text: #6f4f12;
+  --sde-bar-heroes-border: rgba(138, 112, 32, 0.55);
+  --sde-init: #8a7020;
+}
+
+#shadowdark-enhancer-bar,
+.sde-strip-inner,
+.sde-bar-context-menu,
+.sde-strip-action-panel {
+  background: var(--sde-bar-bg) !important;
+  border: 1px solid var(--sde-bar-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  color: var(--sde-bar-text);
+  font-family: "Montserrat-Medium", sans-serif;
+  text-shadow: none !important;
+}
+
+#shadowdark-enhancer-bar { border-bottom: none !important; }
+.sde-strip-inner { border-top: none !important; }
+.sde-bar-inner { gap: 4px; padding: 4px 8px; min-height: 38px; }
+
+.sde-bar-btn,
+.sde-strip-cbtn,
+.sde-strip-atab,
+.sde-strip-ptab {
+  background: #111111 !important;
+  border: 1px solid var(--sde-bar-border) !important;
+  border-radius: 0 !important;
+  color: var(--sde-bar-text) !important;
+  font-family: "Old Newspaper Font", serif !important;
+  font-weight: normal !important;
+  letter-spacing: 0.02em;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+body.theme-light .sde-bar-btn,
+body.theme-light .sde-strip-cbtn,
+body.theme-light .sde-strip-atab,
+body.theme-light .sde-strip-ptab { background: #f4f1ec !important; }
+
+.sde-bar-btn:hover,
+.sde-strip-cbtn:hover,
+.sde-strip-atab:hover:not(:disabled),
+.sde-strip-ptab:hover:not(:disabled),
+.sde-menu-item:hover {
+  background: var(--sde-bar-bg-hover) !important;
+  border-color: var(--sde-bar-accent) !important;
+  color: var(--sde-bar-accent) !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+
+.sde-bar-next-btn,
+.sde-bar-phase-badge,
+.sde-strip-group-label,
+.sde-strip-turn-num,
+.sde-strip-round-num,
+.sde-strip-init-badge {
+  font-family: "Old Newspaper Font", serif !important;
+  color: var(--sde-bar-accent) !important;
+  text-shadow: none !important;
+}
+
+.sde-bar-phase-badge {
+  background: var(--sde-bar-bg-alt) !important;
+  border: 1px solid var(--sde-bar-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-weight: normal !important;
+}
+
+.sde-bar-phase-crawl,
+.sde-bar-phase-combat,
+.sde-bar-next-btn,
+.sde-bar-combat-btn,
+.sde-bar-danger-btn { background: #111111 !important; }
+
+body.theme-light .sde-bar-phase-crawl,
+body.theme-light .sde-bar-phase-combat,
+body.theme-light .sde-bar-next-btn,
+body.theme-light .sde-bar-combat-btn,
+body.theme-light .sde-bar-danger-btn { background: #f4f1ec !important; }
+
+.sde-bar-combat-btn,
+.sde-bar-danger-btn { border-color: #5a2727 !important; }
+
+.sde-bar-danger-btn:hover,
+.sde-bar-combat-btn:hover {
+  background: rgba(90, 39, 39, 0.35) !important;
+  border-color: #7a3737 !important;
+  color: #f0f0f0 !important;
+}
+
+.sde-bar-disabled,
+.sde-menu-item.sde-menu-disabled {
+  opacity: 0.45 !important;
+  filter: grayscale(40%) !important;
+}
+
+.sde-strip-group-label,
+.sde-strip-turn-num,
+.sde-strip-combat-controls {
+  background: #000000 !important;
+  border-color: var(--sde-bar-border) !important;
+  color: var(--sde-bar-accent) !important;
+}
+
+body.theme-light .sde-strip-group-label,
+body.theme-light .sde-strip-turn-num,
+body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
+
+.sde-strip-member {
+  background: #000000 !important;
+  border: 1px solid var(--sde-bar-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.sde-strip-member.sde-strip-active.sde-strip-type-player,
+.sde-strip-member.sde-strip-active.sde-strip-type-gm,
+.sde-strip-member.sde-strip-is-turn {
+  border-color: var(--sde-bar-accent) !important;
+  box-shadow: none !important;
+}
+
+.sde-strip-member.sde-strip-active.sde-strip-type-npc {
+  border-color: #7a3737 !important;
+  box-shadow: none !important;
+}
+
+.sde-strip-member.sde-strip-is-turn::after,
+.sde-strip-rollinit-btn::after { display: none !important; }
+
+.sde-strip-name,
+.sde-strip-ac-line {
+  background: rgba(0, 0, 0, 0.72) !important;
+  color: #f0f0f0 !important;
+  text-shadow: none !important;
+}
+
+.sde-strip-pill,
+.sde-strip-init-badge,
+.sde-strip-rollinit-btn,
+.sde-strip-turn-badge,
+.sde-strip-action-tabs,
+.sde-strip-panel-tabs {
+  background: #111111 !important;
+  border: 1px solid var(--sde-bar-border) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.sde-strip-init-badge,
+.sde-strip-rollinit-btn,
+.sde-strip-atab.sde-strip-atab-active,
+.sde-strip-ptab.sde-strip-ptab-active {
+  color: var(--sde-bar-accent) !important;
+  border-color: var(--sde-bar-accent) !important;
+}
+
+.sde-menu-header {
+  font-family: "Old Newspaper Font", serif;
+  color: var(--sde-bar-accent);
+  font-weight: normal;
+}
+
+.sde-menu-item { color: var(--sde-bar-text); border-radius: 0; }
+.sde-menu-btn { color: var(--sde-bar-accent); }

@@ -417,15 +417,15 @@ export const CrawlStrip = {
         <button class="sde-strip-cbtn" data-combat="nextRound" title="Next Round">${ICONS.nextRound}</button>
       </div>` : `<div class="sde-strip-turn-num">${state.crawlTurn}</div>`;
 
-    // Combat: single flat init-ordered list, no HEROES/NPCS label.
-    // Crawl:  Players-only list with HEROES label.
+    // Combat: single flat init-ordered list, no PARTY/NPCS label.
+    // Crawl:  Players-only list with PARTY label.
     const heroesBlock = heroCards
       ? (inCombat
           ? `<div class="sde-strip-group sde-strip-group-combat">
                <div class="sde-strip-members">${heroCards}</div>
              </div>`
           : `<div class="sde-strip-group sde-strip-group-heroes">
-               <div class="sde-strip-group-label sde-strip-label-heroes">HEROES</div>
+               <div class="sde-strip-group-label sde-strip-label-heroes">PARTY</div>
                <div class="sde-strip-members">${heroCards}</div>
              </div>`)
       : "";
