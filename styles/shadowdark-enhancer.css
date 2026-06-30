@@ -4996,7 +4996,35 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-forge-row-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sde-forge-row-meta { flex: 0 0 auto; font-size: 0.72rem; color: var(--sde-bar-text-muted, #9a9a9a); }
 .sde-forge-row.selected .sde-forge-row-meta { color: var(--sde-bar-text-dim, #d7d7d7); }
-.sde-forge-row-check { flex: 0 0 auto; color: var(--sde-bar-accent, #c9a54a); }
+.sde-forge-row-check { flex: 0 0 auto; color: var(--sde-bar-accent, #c9a54a); display: none; }
+.sde-forge-row.selected .sde-forge-row-check { display: inline; }
+
+/* Spell selector — per-class folders */
+.sde-forge-spell-classes {
+  max-height: 300px; overflow-y: auto;
+  border: 1px solid var(--sde-bar-border, #555); border-radius: 4px;
+  background: var(--sde-bar-input-bg, #0b0b0b);
+  display: flex; flex-direction: column;
+}
+.sde-forge-spell-group { border-bottom: 1px solid var(--sde-bar-border, #555); }
+.sde-forge-spell-group:last-child { border-bottom: none; }
+.sde-forge-spell-group[hidden] { display: none; }
+.sde-forge-spell-group-head {
+  display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 5px 7px;
+  font-size: 0.8rem; font-weight: 600; color: var(--sde-bar-accent, #c9a54a);
+  background: var(--sde-bar-bg-alt, #111); list-style: none; user-select: none;
+}
+.sde-forge-spell-group-head::-webkit-details-marker { display: none; }
+.sde-forge-spell-group-head:hover { filter: brightness(1.15); }
+.sde-forge-group-caret { flex: 0 0 auto; font-size: 0.7rem; transition: transform 0.12s ease; color: var(--sde-bar-text-muted, #9a9a9a); }
+.sde-forge-spell-group[open] .sde-forge-group-caret { transform: rotate(90deg); }
+.sde-forge-group-name { flex: 1 1 auto; }
+.sde-forge-group-count {
+  flex: 0 0 auto; font-weight: 400; font-size: 0.72rem; color: var(--sde-bar-text-muted, #9a9a9a);
+  background: var(--sde-bar-input-bg, #0b0b0b); border-radius: 8px; padding: 0 6px;
+}
+/* Spell rows live inside their folder — drop the standalone list's frame/scroll. */
+.sde-forge-spell-list { max-height: none; overflow: visible; border: none; border-radius: 0; background: transparent; padding: 2px 3px 4px; }
 
 /* Selected base chip */
 .sde-forge-base-selected {

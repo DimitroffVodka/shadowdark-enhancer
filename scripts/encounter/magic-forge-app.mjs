@@ -68,6 +68,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // search queries (DOM-filtered, no re-render)
     this._baseQuery = "";
     this._spellQuery = "";
+    this._openClasses = new Set(); // expanded class folders in the spell selector
     // caches
     this._baseLists = null;   // { weapon: [...], armor: [...] }
     this._spellList = null;   // [{ uuid, name, tier, img }]
@@ -101,12 +102,50 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     }
     if (!this._spellList) {
+      // class uuid → name, so spells can be grouped by class in the selector.
+      // Spellcasting classes first; fall back to the full class list for any
+      // uuid not in that set (e.g. third-party classes).
+      const nameByUuid = new Map();
+      for (const helper of ["spellcastingClasses", "classes"]) {
+        try {
+          const coll = await shadowdark.compendiums[helper]?.();
+          if (coll) for (const c of coll.contents) if (!nameByUuid.has(c.uuid)) nameByUuid.set(c.uuid, c.name);
+        } catch (_) { /* helper absent — ignore */ }
+      }
       const spells = [...(await shadowdark.compendiums.spells()).contents];
       this._spellList = spells
-        .map(s => ({ uuid: s.uuid, name: s.name, tier: s.system?.tier ?? 1, img: s.img }))
+        .map(s => ({
+          uuid: s.uuid, name: s.name, tier: s.system?.tier ?? 1, img: s.img,
+          classes: (s.system?.class ?? []).map(u => nameByUuid.get(u)).filter(Boolean),
+        }))
         .sort((a, b) => a.tier - b.tier || a.name.localeCompare(b.name));
       this._spellByUuid = new Map(this._spellList.map(s => [s.uuid, s]));
     }
+  }
+
+  /**
+   * Group the spell list into per-class folders for the selector. A multi-class
+   * spell appears under each of its classes; class-less spells fall into "Other".
+   * Within a group, spells keep the cache's tier→name order.
+   */
+  _buildSpellGroups() {
+    const OTHER = "Other";
+    const groups = new Map();
+    for (const s of this._spellList) {
+      const row = {
+        uuid: s.uuid, name: s.name, img: s.img, tier: s.tier, dc: s.tier + 10,
+        nameLower: s.name.toLowerCase(), selected: this._spellUuids.includes(s.uuid),
+      };
+      for (const cn of (s.classes.length ? s.classes : [OTHER])) {
+        if (!groups.has(cn)) groups.set(cn, []);
+        groups.get(cn).push(row);
+      }
+    }
+    return [...groups.entries()]
+      .sort((a, b) => (a[0] === OTHER) - (b[0] === OTHER) || a[0].localeCompare(b[0]))
+      .map(([className, spells]) => ({
+        className, count: spells.length, open: this._openClasses.has(className), spells,
+      }));
   }
 
   async _prepareContext() {
@@ -121,9 +160,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const baseList = isGear ? (this._baseLists[this._type] ?? []) : [];
     const bases = baseList.map(b => ({ ...b, nameLower: b.name.toLowerCase(), selected: b.uuid === this._baseUuid }));
 
-    const spells = isSpellItem
-      ? this._spellList.map(s => ({ ...s, nameLower: s.name.toLowerCase(), dc: s.tier + 10, selected: this._spellUuids.includes(s.uuid) }))
-      : [];
+    const spellGroups = isSpellItem ? this._buildSpellGroups() : [];
 
     return {
       types,
@@ -136,7 +173,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       identified: this._identified,
       baseSelected: this._baseData ? { name: this._baseData.name, img: this._baseData.img } : null,
       bases,
-      spells,
+      spellGroups,
       preview: this._preview(),
       canForge: this._canForge(),
     };
@@ -186,7 +223,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Name override — commit without re-render (preserve focus); patch preview.
     const nameInput = el.querySelector("input[name='name']");
-    nameInput?.addEventListener("input", () => { this._name = nameInput.value; this._patchPreview(); }, { signal });
+    nameInput?.addEventListener("input", () => { this._name = nameInput.value; this._refreshPreviewDOM(); }, { signal });
 
     // Identified toggle.
     const ident = el.querySelector("input[name='identified']");
@@ -199,16 +236,26 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._filterList(el, ".sde-forge-base-row", this._baseQuery);
     }, { signal });
 
-    // Spell search — DOM filter.
+    // Spell search — group-aware DOM filter (auto-expands classes with matches).
     const spellSearch = el.querySelector(".sde-forge-spell-search");
     spellSearch?.addEventListener("input", () => {
       this._spellQuery = spellSearch.value.toLowerCase();
-      this._filterList(el, ".sde-forge-spell-row", this._spellQuery);
+      this._filterSpells(el);
     }, { signal });
+
+    // Persist class-folder open/closed state across renders (ignore search-driven
+    // auto-open so collapsing a folder by hand sticks once the search clears).
+    for (const group of el.querySelectorAll(".sde-forge-spell-group")) {
+      group.addEventListener("toggle", () => {
+        if (this._spellQuery) return;
+        if (group.open) this._openClasses.add(group.dataset.class);
+        else this._openClasses.delete(group.dataset.class);
+      }, { signal });
+    }
 
     // Re-apply standing queries after a render.
     if (this._baseQuery) this._filterList(el, ".sde-forge-base-row", this._baseQuery);
-    if (this._spellQuery) this._filterList(el, ".sde-forge-spell-row", this._spellQuery);
+    if (this._spellQuery) this._filterSpells(el);
   }
 
   /** Toggle row visibility by a substring of its data-name. No re-render. */
@@ -219,10 +266,38 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  /** Patch just the preview name node without a full render. */
-  _patchPreview() {
-    const node = this.element?.querySelector(".sde-forge-preview-name");
-    if (node) node.textContent = this._deriveName();
+  /** Filter spell rows by name and hide/auto-expand class folders. No re-render. */
+  _filterSpells(el) {
+    const q = this._spellQuery;
+    for (const group of el.querySelectorAll(".sde-forge-spell-group")) {
+      let anyVisible = false;
+      for (const row of group.querySelectorAll(".sde-forge-spell-row")) {
+        const match = !q || (row.dataset.name ?? "").includes(q);
+        row.toggleAttribute("hidden", !match);
+        if (match) anyVisible = true;
+      }
+      group.toggleAttribute("hidden", !anyVisible);
+      group.open = q ? anyVisible : this._openClasses.has(group.dataset.class);
+    }
+  }
+
+  /** Re-sync spell-row selection + preview after an in-place pick (no render). */
+  _syncSpellRows() {
+    const el = this.element; if (!el) return;
+    for (const row of el.querySelectorAll(".sde-forge-spell-row"))
+      row.classList.toggle("selected", this._spellUuids.includes(row.dataset.uuid));
+  }
+
+  /** Patch the live-preview pane (name, lines, Forge-button enabled) in place. */
+  _refreshPreviewDOM() {
+    const el = this.element; if (!el) return;
+    const pv = this._preview();
+    const nameNode = el.querySelector(".sde-forge-preview-name");
+    if (nameNode) nameNode.textContent = pv.name;
+    const linesNode = el.querySelector(".sde-forge-preview-lines");
+    if (linesNode) linesNode.innerHTML = pv.lines.map(l => `<li>${esc(l)}</li>`).join("");
+    const createBtn = el.querySelector(".sde-forge-create");
+    if (createBtn) createBtn.disabled = !this._canForge();
   }
 
   // ─── Actions ───
@@ -265,7 +340,9 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (i >= 0) this._spellUuids.splice(i, 1);
       else this._spellUuids.push(uuid);
     }
-    this.render();
+    // Update in place so open class folders / scroll position aren't lost.
+    this._syncSpellRows();
+    this._refreshPreviewDOM();
   }
 
   async _onCreateItem() {

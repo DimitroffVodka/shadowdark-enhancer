@@ -58,15 +58,26 @@
             <span class="sde-forge-hint">{{#if isWand}}pick one or more{{else}}pick one{{/if}}</span>
           </label>
           <input type="text" class="sde-forge-spell-search" placeholder="Search spells…">
-          <div class="sde-forge-list sde-forge-spell-list">
-            {{#each spells as |s|}}
-              <div class="sde-forge-row sde-forge-spell-row {{#if s.selected}}selected{{/if}}"
-                data-action="toggleSpell" data-uuid="{{s.uuid}}" data-name="{{s.nameLower}}">
-                <img src="{{s.img}}" alt="" width="22" height="22">
-                <span class="sde-forge-row-name">{{s.name}}</span>
-                <span class="sde-forge-row-meta">T{{s.tier}} · DC {{s.dc}}</span>
-                {{#if s.selected}}<i class="fas fa-check sde-forge-row-check"></i>{{/if}}
-              </div>
+          <div class="sde-forge-spell-classes">
+            {{#each spellGroups as |g|}}
+              <details class="sde-forge-spell-group" data-class="{{g.className}}" {{#if g.open}}open{{/if}}>
+                <summary class="sde-forge-spell-group-head">
+                  <i class="fas fa-chevron-right sde-forge-group-caret"></i>
+                  <span class="sde-forge-group-name">{{g.className}}</span>
+                  <span class="sde-forge-group-count">{{g.count}}</span>
+                </summary>
+                <div class="sde-forge-list sde-forge-spell-list">
+                  {{#each g.spells as |s|}}
+                    <div class="sde-forge-row sde-forge-spell-row {{#if s.selected}}selected{{/if}}"
+                      data-action="toggleSpell" data-uuid="{{s.uuid}}" data-name="{{s.nameLower}}">
+                      <img src="{{s.img}}" alt="" width="22" height="22">
+                      <span class="sde-forge-row-name">{{s.name}}</span>
+                      <span class="sde-forge-row-meta">T{{s.tier}} · DC {{s.dc}}</span>
+                      <i class="fas fa-check sde-forge-row-check"></i>
+                    </div>
+                  {{/each}}
+                </div>
+              </details>
             {{/each}}
           </div>
         </div>
