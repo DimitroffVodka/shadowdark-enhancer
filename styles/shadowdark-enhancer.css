@@ -5026,14 +5026,16 @@ body.theme-light .sde-hub-monsters-row td {
 /* Spell rows live inside their folder — drop the standalone list's frame/scroll. */
 .sde-forge-spell-list { max-height: none; overflow: visible; border: none; border-radius: 0; background: transparent; padding: 2px 3px 4px; }
 
-/* Tier (level) filter chips */
-.sde-forge-tier-row { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+/* Tier (level) filter chips — `.sde-forge` prefix raises specificity so the
+   row stays a flex row even against Foundry's generic form/button styling
+   (which can otherwise turn each chip into a block and stack them). */
+.sde-forge .sde-forge-tier-row { display: flex; flex-flow: row wrap; align-items: center; gap: 5px; }
 .sde-forge-tier-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--sde-bar-text-muted, #9a9a9a); margin-right: 2px; }
-.sde-forge-tier {
-  flex: 0 0 auto; min-width: 2.1rem; cursor: pointer; padding: 0.12rem 0.4rem; border-radius: 4px; font-size: 0.78rem;
+.sde-forge .sde-forge-tier {
+  flex: 0 0 auto; width: auto; min-width: 2.1rem; cursor: pointer; padding: 0.12rem 0.4rem; border-radius: 4px; font-size: 0.78rem;
   border: 1px solid var(--sde-bar-border, #555); background: var(--sde-bar-btn-1, #252830); color: var(--sde-bar-text, #BDC1C6);
 }
-.sde-forge-tier.active { background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc); border-color: var(--sde-bar-accent-dark, #7a7030); font-weight: 600; }
+.sde-forge .sde-forge-tier.active { background: var(--sde-bar-accent, #c9a54a); color: var(--sde-bar-on-accent, #f5eccc); border-color: var(--sde-bar-accent-dark, #7a7030); font-weight: 600; }
 
 /* Pop-out spell-review button (revealed on row hover / when selected) */
 .sde-forge-spell-peek {
