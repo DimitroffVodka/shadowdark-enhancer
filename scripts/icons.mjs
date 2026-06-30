@@ -27,7 +27,6 @@ export const ICONS = {
   tableScroll: `<i class="fas fa-scroll"></i>`,
   lights:      `<i class="fas fa-fire"></i>`,
   combat:      `<i class="fas fa-swords"></i>`,
-  rest:        `<i class="fas fa-bed"></i>`,
   close:       `<i class="fas fa-times"></i>`,
   play:        `<i class="fas fa-play"></i>`,
   clock:       `<i class="fas fa-clock" style="font-size:20px;color:var(--sde-bar-accent)"></i>`,

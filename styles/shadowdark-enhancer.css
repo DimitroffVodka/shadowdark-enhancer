@@ -383,21 +383,6 @@ body.theme-light .sde-bar-start-btn:hover {
   color-mix(in srgb, var(--sde-bar-danger-border) 28%, var(--sde-bar-bg)) 0%,
   color-mix(in srgb, var(--sde-bar-danger-border) 16%, var(--sde-bar-bg)) 100%); }
 
-/* ── Disabled (placeholder M2 buttons) ─────────────────────────────────────
- * Dims the button without hiding it — preserves the visual rhythm of the bar
- * while making it clear the feature isn't wired up yet. */
-.sde-bar-disabled {
-  opacity: 0.45;
-  filter: grayscale(50%);
-  cursor: not-allowed;
-}
-.sde-bar-disabled:hover {
-  background: linear-gradient(135deg, var(--sde-bar-btn-1) 0%, var(--sde-bar-btn-2) 100%);
-  border-color: var(--sde-bar-border);
-  color: var(--sde-bar-text);
-  box-shadow: 1px 1px 2px var(--sde-bar-shadow-md);
-}
-
 /* ── Phase badge ──────────────────────────────────────────────────────────── */
 
 .sde-bar-phase-badge {
@@ -6158,7 +6143,6 @@ body.theme-light .sde-bar-danger-btn { background: #f4f1ec !important; }
   color: #f0f0f0 !important;
 }
 
-.sde-bar-disabled,
 .sde-menu-item.sde-menu-disabled {
   opacity: 0.45 !important;
   filter: grayscale(40%) !important;

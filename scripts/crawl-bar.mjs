@@ -5,9 +5,6 @@
  * Faithful port of vagabond-crawler/scripts/crawl-bar.mjs, adapted to the
  * simpler Shadowdark CrawlState (no heroes/gm phase split — single crawl
  * turn counter).
- *
- * Roadmap buttons such as Rest are rendered but dimmed via the
- * `.sde-bar-disabled` class — clicking shows a notification.
  */
 
 import { MODULE_ID }       from "./module-id.mjs";
@@ -132,9 +129,6 @@ export const CrawlBar = {
 
         <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu">
           ${ICONS.encounter} Encounter
-        </button>
-        <button class="sde-bar-btn sde-bar-disabled" data-action="m2Placeholder" data-feature="Rest" title="Coming in a later milestone">
-          ${ICONS.rest} Rest
         </button>
         <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop">
           <i class="fas fa-hammer"></i> Forge &amp; Loot
@@ -292,10 +286,6 @@ export const CrawlBar = {
 
       case "recap":
         game.shadowdarkEnhancer.recap.open();
-        break;
-
-      case "m2Placeholder":
-        ui.notifications.info(`${el.dataset.feature ?? "Feature"}: coming in a later milestone.`);
         break;
     }
   },
