@@ -12,6 +12,7 @@ import { LootDelivery } from "./loot-delivery.mjs";
 import { LootTableTag } from "./loot-table-tag.mjs";
 import { MagicForgeApp } from "./magic-forge-app.mjs";
 import { inferSeedFromName } from "./magic-forge.mjs";
+import { ItemDrops } from "./item-drops.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -26,6 +27,8 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       rollForToken:   LootGeneratorApp.prototype._onRollForToken,
       postEntry:      LootGeneratorApp.prototype._onPostEntry,
       giveEntry:      LootGeneratorApp.prototype._onGiveEntry,
+      dropEntryCoins: LootGeneratorApp.prototype._onDropEntryCoins,
+      dropCoinsPrompt: LootGeneratorApp.prototype._onDropCoinsPrompt,
       clearHistory:   LootGeneratorApp.prototype._onClearHistory,
       forgeEntryItem: LootGeneratorApp.prototype._onForgeEntryItem,
       openSetup: LootGeneratorApp.prototype._onOpenSetup,
@@ -169,6 +172,43 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!actor) { ui.notifications.warn("Pick a recipient first."); return; }
     await LootDelivery.depositToActor(actor, entry.batch);
     ui.notifications.info(`Gave ${entry.tableName} loot to ${actor.name}.`);
+  }
+
+  /** Prompt for an arbitrary coin amount and drop it on the canvas (GM). */
+  async _onDropCoinsPrompt() {
+    const result = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Drop Coins on Canvas", icon: "fas fa-coins" },
+      content: `<div style="padding:8px;display:flex;gap:12px;align-items:flex-end;">
+        <label style="display:flex;flex-direction:column;gap:2px;">GP<input type="number" name="gp" value="0" min="0" step="1" style="width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;">SP<input type="number" name="sp" value="0" min="0" step="1" style="width:5em;"></label>
+        <label style="display:flex;flex-direction:column;gap:2px;">CP<input type="number" name="cp" value="0" min="0" step="1" style="width:5em;"></label>
+      </div>
+      <p class="notes" style="padding:0 8px;">Drops a pickup-able coin pile at your view centre (or on a selected token). Players grab it from the token's HUD.</p>`,
+      buttons: [
+        { action: "ok", label: "Drop", default: true, icon: "fas fa-coins", callback: (_e, _b, dlg) => {
+          const q = (n) => Number(dlg.element.querySelector(`input[name="${n}"]`).value) || 0;
+          return { gp: q("gp"), sp: q("sp"), cp: q("cp") };
+        } },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!result || result === "cancel") return;
+    const actor = await ItemDrops.dropCoins(result);
+    if (actor) ui.notifications.info(`Dropped ${actor.name} on the canvas — players can pick it up from the token.`);
+  }
+
+  /** Drop this entry's coins onto the canvas as a pickup-able pile (GM). */
+  async _onDropEntryCoins(event, target) {
+    const entry = this._history.find(e => e.id === target.dataset.entryId);
+    if (!entry) return;
+    const coins = entry.batch.coins ?? { gp: 0, sp: 0, cp: 0 };
+    if ((coins.gp || 0) + (coins.sp || 0) + (coins.cp || 0) <= 0) {
+      ui.notifications.warn("This result has no coins to drop.");
+      return;
+    }
+    const actor = await ItemDrops.dropCoins(coins, { source: entry.tableName });
+    if (actor) ui.notifications.info(`Dropped ${entry.tableName} coins on the canvas — players can pick them up from the token.`);
   }
 
   _onClearHistory() {

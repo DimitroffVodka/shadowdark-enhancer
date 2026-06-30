@@ -20,6 +20,7 @@ import { LootGenerator } from "./encounter/loot-generator.mjs";
 import { LootDelivery } from "./encounter/loot-delivery.mjs";
 import { LootGeneratorApp } from "./encounter/loot-generator-app.mjs";
 import { LootDrops } from "./encounter/loot-drops.mjs";
+import { ItemDrops } from "./encounter/item-drops.mjs";
 import { LootTableTag } from "./encounter/loot-table-tag.mjs";
 import { TableRegistry } from "./encounter/table-registry.mjs";
 import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
@@ -43,6 +44,7 @@ Hooks.once("init", () => {
   registerSettings();
   MerchantShop.registerSettings();
   SessionRecap.registerSettings();
+  ItemDrops.registerSettings();
   LootDelivery.init();
   LootTableTag.init();
   TableRegistry.init();
@@ -226,6 +228,7 @@ Hooks.once("ready", () => {
   CrawlStrip.init();
   CrawlBar.init();
   LootDrops.init();
+  ItemDrops.init();
   MerchantShop.init();
   SessionRecap.init();
   checkCoexistence();
