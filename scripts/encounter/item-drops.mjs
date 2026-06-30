@@ -414,20 +414,43 @@ export const ItemDrops = {
         coins: { gp: coinData.gp ?? 0, sp: coinData.sp ?? 0, cp: coinData.cp ?? 0 },
       };
     } else {
-      // Auto-stack onto a matching item the recipient already carries (same
-      // name + type), bumping its quantity; otherwise create a fresh stack.
+      // Auto-stack onto matching items the recipient already carries (same
+      // name + type), but RESPECT Max per Slot (system.slots.per_slot): a
+      // single stack never exceeds per_slot (mirrors the SD sheet's +/-
+      // stepper, which won't increment past per_slot). Top off existing
+      // partial stacks first, then spill the overflow into new stacks — so
+      // a drop of 5 rations (per_slot 3) becomes 3/3 + 2/3, never 5/3.
       const dropQty = Math.max(1, Math.floor(Number(itemData.system?.quantity ?? 1)) || 1);
-      const existing = recipient.items.find(i =>
+      const perSlot = Math.max(1, Math.floor(Number(itemData.system?.slots?.per_slot ?? 1)) || 1);
+      let remaining = dropQty;
+
+      // 1) Fill existing matching stacks that still have room.
+      const partials = recipient.items.filter(i =>
         i.type === itemData.type &&
         i.name === itemData.name &&
-        Number.isFinite(Number(i.system?.quantity)),
+        Number.isFinite(Number(i.system?.quantity)) &&
+        (Math.floor(Number(i.system?.quantity ?? 0)) || 0) < perSlot,
       );
-      if (existing) {
-        const cur = Math.max(0, Math.floor(Number(existing.system?.quantity ?? 0)) || 0);
-        await existing.update({ "system.quantity": cur + dropQty });
-      } else {
-        await Item.create(itemData, { parent: recipient });
+      for (const stack of partials) {
+        if (remaining <= 0) break;
+        const cur = Math.max(0, Math.floor(Number(stack.system?.quantity ?? 0)) || 0);
+        const add = Math.min(perSlot - cur, remaining);
+        if (add <= 0) continue;
+        await stack.update({ "system.quantity": cur + add });
+        remaining -= add;
       }
+
+      // 2) Spill any overflow into fresh stacks, each capped at per_slot.
+      while (remaining > 0) {
+        const chunk = Math.min(perSlot, remaining);
+        const data = foundry.utils.deepClone(itemData);
+        data.system = data.system ?? {};
+        data.system.quantity = chunk;
+        delete data._id;
+        await Item.create(data, { parent: recipient });
+        remaining -= chunk;
+      }
+
       const qtyLabel = dropQty > 1 ? `${dropQty} × ` : "";
       cardLabel = `${qtyLabel}${itemData.name}`;
       cardImg = itemData.img || "icons/svg/item-bag.svg";
