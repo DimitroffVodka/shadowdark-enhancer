@@ -33,6 +33,8 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       pickBase:    MagicForgeApp.prototype._onPickBase,
       clearBase:   MagicForgeApp.prototype._onClearBase,
       toggleSpell: MagicForgeApp.prototype._onToggleSpell,
+      setTier:     MagicForgeApp.prototype._onSetTier,
+      openSpell:   MagicForgeApp.prototype._onOpenSpell,
       createItem:  MagicForgeApp.prototype._onCreateItem,
     },
   };
@@ -69,6 +71,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._baseQuery = "";
     this._spellQuery = "";
     this._openClasses = new Set(); // expanded class folders in the spell selector
+    this._tierFilter = null;       // null = all tiers, else a tier number
     // caches
     this._baseLists = null;   // { weapon: [...], armor: [...] }
     this._spellList = null;   // [{ uuid, name, tier, img }]
@@ -161,6 +164,11 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const bases = baseList.map(b => ({ ...b, nameLower: b.name.toLowerCase(), selected: b.uuid === this._baseUuid }));
 
     const spellGroups = isSpellItem ? this._buildSpellGroups() : [];
+    const tiers = isSpellItem ? [...new Set(this._spellList.map(s => s.tier))].sort((a, b) => a - b) : [];
+    const tierChips = isSpellItem
+      ? [{ label: "All", tier: "all", active: this._tierFilter == null },
+         ...tiers.map(t => ({ label: `T${t}`, tier: t, active: this._tierFilter === t }))]
+      : [];
 
     return {
       types,
@@ -174,6 +182,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       baseSelected: this._baseData ? { name: this._baseData.name, img: this._baseData.img } : null,
       bases,
       spellGroups,
+      tierChips,
       preview: this._preview(),
       canForge: this._canForge(),
     };
@@ -253,9 +262,9 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }, { signal });
     }
 
-    // Re-apply standing queries after a render.
+    // Re-apply standing queries/filters after a render.
     if (this._baseQuery) this._filterList(el, ".sde-forge-base-row", this._baseQuery);
-    if (this._spellQuery) this._filterSpells(el);
+    if (el.querySelector(".sde-forge-spell-group")) this._filterSpells(el);
   }
 
   /** Toggle row visibility by a substring of its data-name. No re-render. */
@@ -266,18 +275,26 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  /** Filter spell rows by name and hide/auto-expand class folders. No re-render. */
+  /**
+   * Filter spell rows by name AND tier, then hide/auto-expand class folders.
+   * No re-render. A filter is "active" when a text query or a tier is set —
+   * matching folders auto-expand; otherwise they follow the saved open state.
+   */
   _filterSpells(el) {
     const q = this._spellQuery;
+    const tier = this._tierFilter;
+    const filtering = !!q || tier != null;
     for (const group of el.querySelectorAll(".sde-forge-spell-group")) {
       let anyVisible = false;
       for (const row of group.querySelectorAll(".sde-forge-spell-row")) {
-        const match = !q || (row.dataset.name ?? "").includes(q);
+        const matchName = !q || (row.dataset.name ?? "").includes(q);
+        const matchTier = tier == null || row.dataset.tier === String(tier);
+        const match = matchName && matchTier;
         row.toggleAttribute("hidden", !match);
         if (match) anyVisible = true;
       }
       group.toggleAttribute("hidden", !anyVisible);
-      group.open = q ? anyVisible : this._openClasses.has(group.dataset.class);
+      group.open = filtering ? anyVisible : this._openClasses.has(group.dataset.class);
     }
   }
 
@@ -308,7 +325,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._type = t;
     // selections are type-specific — reset on switch
     this._baseUuid = null; this._baseData = null; this._spellUuids = [];
-    this._baseQuery = ""; this._spellQuery = "";
+    this._baseQuery = ""; this._spellQuery = ""; this._tierFilter = null;
     this.render();
   }
 
@@ -343,6 +360,23 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Update in place so open class folders / scroll position aren't lost.
     this._syncSpellRows();
     this._refreshPreviewDOM();
+  }
+
+  /** Tier (level) filter chip — applied in place, no re-render. */
+  _onSetTier(event, target) {
+    const raw = target.dataset.tier;
+    this._tierFilter = raw === "all" ? null : Number(raw);
+    const el = this.element;
+    for (const chip of el.querySelectorAll(".sde-forge-tier"))
+      chip.classList.toggle("active", chip.dataset.tier === raw);
+    this._filterSpells(el);
+  }
+
+  /** Pop out a spell's sheet so the GM can read it before picking. */
+  async _onOpenSpell(event, target) {
+    const item = await fromUuid(target.dataset.uuid);
+    if (item?.sheet) item.sheet.render(true);
+    else ui.notifications.warn("Could not open that spell.");
   }
 
   async _onCreateItem() {

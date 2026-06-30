@@ -58,6 +58,13 @@
             <span class="sde-forge-hint">{{#if isWand}}pick one or more{{else}}pick one{{/if}}</span>
           </label>
           <input type="text" class="sde-forge-spell-search" placeholder="Search spells…">
+          <div class="sde-forge-tier-row">
+            <span class="sde-forge-tier-label">Tier</span>
+            {{#each tierChips as |tc|}}
+              <button type="button" class="sde-forge-tier {{#if tc.active}}active{{/if}}"
+                data-action="setTier" data-tier="{{tc.tier}}">{{tc.label}}</button>
+            {{/each}}
+          </div>
           <div class="sde-forge-spell-classes">
             {{#each spellGroups as |g|}}
               <details class="sde-forge-spell-group" data-class="{{g.className}}" {{#if g.open}}open{{/if}}>
@@ -69,10 +76,14 @@
                 <div class="sde-forge-list sde-forge-spell-list">
                   {{#each g.spells as |s|}}
                     <div class="sde-forge-row sde-forge-spell-row {{#if s.selected}}selected{{/if}}"
-                      data-action="toggleSpell" data-uuid="{{s.uuid}}" data-name="{{s.nameLower}}">
+                      data-action="toggleSpell" data-uuid="{{s.uuid}}" data-name="{{s.nameLower}}" data-tier="{{s.tier}}">
                       <img src="{{s.img}}" alt="" width="22" height="22">
                       <span class="sde-forge-row-name">{{s.name}}</span>
                       <span class="sde-forge-row-meta">T{{s.tier}} · DC {{s.dc}}</span>
+                      <button type="button" class="sde-forge-spell-peek" data-action="openSpell"
+                        data-uuid="{{s.uuid}}" title="Open spell to review">
+                        <i class="fas fa-up-right-from-square"></i>
+                      </button>
                       <i class="fas fa-check sde-forge-row-check"></i>
                     </div>
                   {{/each}}
