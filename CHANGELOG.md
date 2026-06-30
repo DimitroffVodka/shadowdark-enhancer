@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.8.1] — 2026-06-29
+
+Rebuilds the Importer as a single-view tool, adds spell import, and trims the crawl bar.
+
+### Added
+- **Import spells from pasted text.** Paste a Shadowdark spell block (name, `Tier N, Class`, `Duration:`, `Range:`, and its description) and it becomes a real **Spell** item in your `sde-items` compendium — tier, range, and duration mapped to the system's fields, the class name resolved to your installed class (system packs first; left unlinked with a notice if it isn't found), and a damage roll picked up when the text says e.g. "deals 1d6 damage". Spells parse alongside monsters / items / tables in a mixed paste, or on their own. Edit any field in the preview before committing.
+
+### Changed
+- **The Importer is now a single view instead of tabs.** One paste box with an **"Importing:"** selector — **Auto-detect** sorts a mixed dump, or pick **Monsters / Items / Spells / Tables** to force the type (with an optional item-type override). Each preview section appears only when it has parsed content. The maintenance tools — census, duplicate-cull, relink/migrate tables, fold legacy loot, backfill, migrate-to-suite — moved into a collapsible **Manage & cleanup** strip that loads on demand.
+- **Crawl bar tidied.** The out-of-combat **Reset Initiative** action moved into a right-click menu on the **Add Tokens** button; the dimmed **Lights** placeholder and the **Recap** button were removed from the bar (Session Recap itself is unchanged and still opens via `game.shadowdarkEnhancer.recap.open()`).
+
+### Fixed
+- **Importer view switching is no longer laggy.** The Tables reconcile (a full compendium scan) used to run on every tab change; it — and the per-section census — now run once on demand and are cached, so the window stays responsive.
+
+### Removed
+- **The Cursed Scroll / Western Reaches adventure-import pipeline left the importer.** The Journal and Scenes tabs (hex / numbered-location keying → journal deploy → map-scene building) and the CS1–6 / WR content-manifest dashboards were set aside to keep the importer focused on Monsters / Items / Spells / Tables. The code is preserved on a branch for a future revisit, and your already-built world content (journals, scenes, actors, items) is untouched.
+
+### Notes
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+
 ## [0.8.0] — 2026-06-24
 
 Adds three player-facing systems — a **Merchant Shop**, a **Party XP** award tool, and a per-session **Session Recap** — plus multi-GM correctness fixes.
