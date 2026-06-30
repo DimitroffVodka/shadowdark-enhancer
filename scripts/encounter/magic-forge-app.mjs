@@ -276,14 +276,15 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Filter spell rows by name AND tier, then hide/auto-expand class folders.
-   * No re-render. A filter is "active" when a text query or a tier is set —
-   * matching folders auto-expand; otherwise they follow the saved open state.
+   * Filter spell rows by name AND tier, then hide empty class folders.
+   * No re-render. Only a TEXT query auto-expands matching folders (you typed
+   * a name, you want to see it); the tier filter narrows the rows in place and
+   * leaves each folder's open/closed state alone, so picking a tier doesn't
+   * fling every class open.
    */
   _filterSpells(el) {
     const q = this._spellQuery;
     const tier = this._tierFilter;
-    const filtering = !!q || tier != null;
     for (const group of el.querySelectorAll(".sde-forge-spell-group")) {
       let anyVisible = false;
       for (const row of group.querySelectorAll(".sde-forge-spell-row")) {
@@ -294,7 +295,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (match) anyVisible = true;
       }
       group.toggleAttribute("hidden", !anyVisible);
-      group.open = filtering ? anyVisible : this._openClasses.has(group.dataset.class);
+      group.open = q ? anyVisible : this._openClasses.has(group.dataset.class);
     }
   }
 
