@@ -1,0 +1,54 @@
+<div class="sde-cb-3col">
+  {{> sde-cb-list step.list}}
+
+  <div class="sde-cb-col-detail">
+    {{#if step.hasSelection}}
+    <div class="sde-cb-banner">
+      <img class="sde-cb-banner-img" src="{{step.detail.img}}" alt="">
+      <h2 class="sde-cb-banner-name">{{step.detail.name}}</h2>
+    </div>
+
+    <div class="sde-cb-gear-meta">
+      <span>{{localize "SDE.charBuilder.gear.type"}}: <b>{{step.detail.type}}</b></span>
+      <span>{{localize "SDE.charBuilder.gear.cost"}}: <b>{{step.detail.cost}}</b></span>
+      <span>{{localize "SDE.charBuilder.gear.slots"}}: <b>{{step.detail.slots}}</b></span>
+      {{#if step.detail.magic}}<span class="sde-cb-magic-tag">{{localize "SDE.charBuilder.gear.magic"}}</span>{{/if}}
+    </div>
+
+    <button type="button" class="sde-cb-btn primary" data-cb-add-gear>
+      <i class="fa-solid fa-plus"></i> {{localize "SDE.charBuilder.gear.add"}}{{#if step.detail.inCart}} ({{step.detail.inCart}}){{/if}}
+    </button>
+
+    <div class="sde-cb-desc">{{{step.detail.description}}}</div>
+    {{else}}
+    <div class="sde-cb-empty">{{localize "SDE.charBuilder.gear.browse"}}</div>
+    {{/if}}
+  </div>
+
+  <aside class="sde-cb-col-aside">
+    <div class="sde-cb-panel-title">{{localize "SDE.charBuilder.gear.pack"}}</div>
+    <div class="sde-cb-gear-budget">
+      <div class="sde-cb-budget-row{{#if step.overBudget}} over{{/if}}">
+        <span>{{localize "SDE.charBuilder.gear.remaining"}}</span><b>{{step.remaining}}</b>
+      </div>
+      <div class="sde-cb-budget-row{{#if step.overSlots}} over{{/if}}">
+        <span>{{localize "SDE.charBuilder.gear.carry"}}</span><b>{{step.slotsUsed}} / {{step.slotLimit}}</b>
+      </div>
+    </div>
+
+    {{#if step.cartEmpty}}
+    <p class="sde-cb-hint">{{localize "SDE.charBuilder.gear.empty"}}</p>
+    {{else}}
+    <ul class="sde-cb-cart">
+      {{#each step.cart}}
+      <li class="sde-cb-cart-row">
+        <span class="qty">{{qty}}×</span>
+        <span class="name">{{name}}{{#if magic}} <i class="fa-solid fa-wand-sparkles" title="magic"></i>{{/if}}</span>
+        <button type="button" class="sde-cb-cart-btn" data-cb-add-one="{{uuid}}" title="add">+</button>
+        <button type="button" class="sde-cb-cart-btn" data-cb-remove-gear="{{uuid}}" title="remove">−</button>
+      </li>
+      {{/each}}
+    </ul>
+    {{/if}}
+  </aside>
+</div>

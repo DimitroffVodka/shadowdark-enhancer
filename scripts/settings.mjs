@@ -55,6 +55,58 @@ export function registerSettings() {
     default: true,
   });
 
+  // The ability-generation method for the Character Builder. GM-dictated —
+  // players roll with whatever method is set here; they cannot change it.
+  game.settings.register(MODULE_ID, "charBuilderStatMethod", {
+    name: "SDE.settings.charBuilderStatMethod.name",
+    hint: "SDE.settings.charBuilderStatMethod.hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      "3d6-down": "SDE.charBuilder.stats.method.3d6Down",
+      "3d6-reroll": "SDE.charBuilder.stats.method.3d6Reroll",
+      "3d6-assign": "SDE.charBuilder.stats.method.3d6Assign",
+      "4d6h3-down": "SDE.charBuilder.stats.method.4d6Down",
+      "4d6h3-assign": "SDE.charBuilder.stats.method.4d6Assign",
+    },
+    default: "3d6-reroll",
+  });
+
+  // Animate the builder's dice (Dice So Nice) for ability / HP / gold rolls.
+  // Off by default — the audit chat card still posts, just without the 3D dice.
+  game.settings.register(MODULE_ID, "charBuilderDiceSoNice", {
+    name: "SDE.settings.charBuilderDiceSoNice.name",
+    hint: "SDE.settings.charBuilderDiceSoNice.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
+  // Auto-max Level-1 hit points instead of rolling the class hit die.
+  game.settings.register(MODULE_ID, "charBuilderMaxLevel1HP", {
+    name: "SDE.settings.charBuilderMaxLevel1HP.name",
+    hint: "SDE.settings.charBuilderMaxLevel1HP.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
+  // Fixed starting gold (gp). 0 = roll the standard 2d6×5 gp in the builder.
+  game.settings.register(MODULE_ID, "charBuilderStartingGold", {
+    name: "SDE.settings.charBuilderStartingGold.name",
+    hint: "SDE.settings.charBuilderStartingGold.hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    default: 0,
+  });
+
+  // Trinkets are ancestry-dependent — the Ancestry step resolves the matching
+  // "<Ancestry> Trinket" table by name, so no global trinket-table setting.
+
   // Internal world setting — not displayed in config UI. Holds the CrawlState singleton.
   game.settings.register(MODULE_ID, "crawlState", {
     scope: "world",

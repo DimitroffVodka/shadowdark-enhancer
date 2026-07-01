@@ -1,0 +1,25 @@
+<div class="sde-cb-roll-step">
+  {{#if step.hasClass}}
+  <p class="sde-cb-method-label">
+    {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}} + CON ({{step.conModLabel}})</b>
+    {{#if step.maxSetting}} · <span class="gm">{{localize "SDE.charBuilder.hp.maxOn"}}</span>{{/if}}
+  </p>
+
+  <div class="sde-cb-stats-btns">
+    <button type="button" class="sde-cb-btn dice" data-action="cb-roll-hp">
+      <i class="fa-solid fa-dice"></i> {{#if step.hp}}{{localize "SDE.charBuilder.hp.rollAgain"}}{{else}}{{localize "SDE.charBuilder.hp.roll"}}{{/if}}
+    </button>
+    <button type="button" class="sde-cb-btn" data-action="cb-max-hp">
+      <i class="fa-solid fa-heart"></i> {{localize "SDE.charBuilder.hp.max"}}
+    </button>
+  </div>
+
+  <div class="sde-cb-big-number">
+    <span class="val">{{#if step.hp}}{{step.hp}}{{else}}–{{/if}}</span>
+    <span class="unit">{{localize "SDE.charBuilder.hp.unit"}}</span>
+  </div>
+
+  {{else}}
+  <div class="sde-cb-empty">{{localize "SDE.charBuilder.hp.needClass"}}</div>
+  {{/if}}
+</div>

@@ -1,0 +1,27 @@
+<div class="sde-cb-3col">
+  {{> sde-cb-list step.list}}
+
+  <div class="sde-cb-col-detail">
+    {{#if step.hasSelection}}
+    <div class="sde-cb-banner">
+      <img class="sde-cb-banner-img" src="{{step.detail.img}}" alt="">
+      <h2 class="sde-cb-banner-name">{{step.detail.name}}</h2>
+    </div>
+    <div class="sde-cb-desc">{{{step.detail.description}}}</div>
+    {{else}}
+    <div class="sde-cb-empty">{{localize "SDE.charBuilder.deity.optional"}}</div>
+    {{/if}}
+  </div>
+
+  <aside class="sde-cb-col-aside">
+    {{#if step.hasSelection}}
+    <div class="sde-cb-panel-title">{{localize "SDE.charBuilder.deity.details"}}</div>
+    <div class="sde-cb-aside-meta">
+      <span>{{localize "SDE.charBuilder.step.alignment"}}: <b>{{step.aside.alignment}}</b></span>
+    </div>
+    {{#unless step.aside.matchesChar}}
+    <p class="sde-cb-hint warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.deity.mismatch"}}</p>
+    {{/unless}}
+    {{/if}}
+  </aside>
+</div>

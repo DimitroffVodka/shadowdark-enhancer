@@ -1,0 +1,49 @@
+<div class="sde-cb">
+
+  {{!-- Tab bar --}}
+  <nav class="sde-cb-tabs">
+    {{#each steps}}
+    <button type="button"
+      class="sde-cb-tab{{#if active}} active{{/if}}{{#if complete}} complete{{/if}}"
+      data-action="cb-goto" data-index="{{index}}" data-step="{{id}}">
+      <span class="sde-cb-tab-num">{{num}}</span><span class="sde-cb-tab-label">{{label}}</span>
+    </button>
+    {{/each}}
+  </nav>
+
+  {{!-- Active step body --}}
+  <div class="sde-cb-body" data-step="{{stepId}}">
+    {{> (lookup . 'stepPartial') }}
+  </div>
+
+  {{!-- Footer --}}
+  <footer class="sde-cb-footer">
+    <div class="sde-cb-footer-left">
+      <button type="button" class="sde-cb-btn ghost" data-action="cb-dismiss">
+        <i class="fa-solid fa-circle-xmark"></i> {{localize "SDE.charBuilder.nav.dismiss"}}
+      </button>
+      {{#if nav.showFullRandom}}
+      <button type="button" class="sde-cb-btn danger" data-action="cb-full-random">
+        <i class="fa-solid fa-bolt"></i> {{localize "SDE.charBuilder.nav.fullRandom"}}
+      </button>
+      {{/if}}
+      {{#if nav.supportsRandom}}
+      <button type="button" class="sde-cb-btn dice" data-action="cb-random">
+        <i class="fa-solid fa-dice"></i> {{localize "SDE.charBuilder.nav.random"}}
+      </button>
+      {{/if}}
+    </div>
+    <div class="sde-cb-footer-right">
+      <button type="button" class="sde-cb-btn nav" data-action="cb-prev" {{#unless nav.canPrev}}disabled{{/unless}}>
+        <i class="fa-solid fa-caret-left"></i> {{localize "SDE.charBuilder.nav.prev"}}
+      </button>
+      <button type="button" class="sde-cb-btn nav" data-action="cb-next" {{#if nav.isLast}}disabled{{/if}}>
+        {{localize "SDE.charBuilder.nav.next"}} <i class="fa-solid fa-caret-right"></i>
+      </button>
+      <button type="button" class="sde-cb-btn nav finish{{#if nav.allComplete}} ready{{/if}}" data-action="cb-finish">
+        <i class="fa-solid fa-check"></i> {{localize "SDE.charBuilder.nav.finish"}}
+      </button>
+    </div>
+  </footer>
+
+</div>

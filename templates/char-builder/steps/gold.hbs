@@ -1,0 +1,24 @@
+<div class="sde-cb-roll-step">
+  {{#if step.fixed}}
+  <p class="sde-cb-method-label">
+    <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.gold.fixed"}}: <b>{{step.fixed}} gp</b>
+    <span class="gm">({{localize "SDE.charBuilder.stats.methodGm"}})</span>
+  </p>
+  {{else}}
+  <p class="sde-cb-method-label">{{localize "SDE.charBuilder.gold.formula"}}: <b>2d6 × 5 gp</b></p>
+  <div class="sde-cb-stats-btns">
+    <button type="button" class="sde-cb-btn dice" data-action="cb-roll-gold">
+      <i class="fa-solid fa-dice"></i> {{#if step.rolled}}{{localize "SDE.charBuilder.gold.rollAgain"}}{{else}}{{localize "SDE.charBuilder.gold.roll"}}{{/if}}
+    </button>
+    <label class="sde-cb-field" style="flex-direction: row; align-items: center; gap: 8px;">
+      <span>{{localize "SDE.charBuilder.gold.manual"}}</span>
+      <input type="number" min="0" step="1" data-cb-gold-input value="{{step.gp}}" style="width: 90px;">
+    </label>
+  </div>
+  {{/if}}
+
+  <div class="sde-cb-big-number">
+    <span class="val">{{step.gp}}</span>
+    <span class="unit">{{localize "SDE.charBuilder.gold.unit"}}</span>
+  </div>
+</div>

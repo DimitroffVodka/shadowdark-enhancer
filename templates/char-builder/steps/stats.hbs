@@ -1,0 +1,80 @@
+<div class="sde-cb-stats">
+
+  <div class="sde-cb-page-title sd-band">
+    <h1>{{localize "SDE.charBuilder.step.stats"}}</h1>
+  </div>
+
+  <div class="sde-cb-stats-main">
+
+    <div class="sde-cb-method-label sd-band sd-band--tight">
+      {{localize "SDE.charBuilder.stats.method.label"}}: <b>{{step.methodLabel}}</b>
+      <span class="gm">({{localize "SDE.charBuilder.stats.methodGm"}})</span>
+    </div>
+
+    <p class="sde-cb-stats-desc">{{localize "SDE.charBuilder.stats.desc"}}</p>
+
+    <div class="sde-cb-stats-bar">
+      <button type="button" class="sde-cb-btn dice" data-action="cb-roll-stats">
+        <i class="fa-solid fa-dice"></i>
+        {{#if step.rolled}}{{localize "SDE.charBuilder.stats.rollAgain"}}{{else}}{{localize "SDE.charBuilder.stats.roll"}}{{/if}}
+      </button>
+      {{#if step.showReroll}}
+      <button type="button" class="sde-cb-btn warn" data-action="cb-reroll-stats" {{#unless step.canReroll}}disabled{{/unless}}>
+        <i class="fa-solid fa-rotate"></i> {{localize "SDE.charBuilder.stats.reroll"}}
+      </button>
+      {{/if}}
+      {{#if step.rolled}}
+      <button type="button" class="sde-cb-btn ghost" data-action="cb-reset-stats" title="{{localize 'SDE.charBuilder.stats.reset'}}">
+        <i class="fa-solid fa-arrow-rotate-left"></i>
+      </button>
+      {{/if}}
+    </div>
+
+    {{#if step.canReroll}}
+    <p class="sde-cb-hint warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.stats.rerollEligible"}}</p>
+    {{/if}}
+
+    {{#if step.isAssign}}{{#if step.rolled}}
+    <div class="sde-cb-pool sd-band sd-band--tight" data-cb-pool-drop>
+      <span class="sde-cb-pool-label">{{localize "SDE.charBuilder.stats.rolledDice"}}</span>
+      {{#each step.poolChips}}
+      <span class="sde-cb-pool-chip{{#if used}} used{{/if}}{{#if picked}} picked{{/if}}" data-cb-pool="{{idx}}">{{value}}</span>
+      {{/each}}
+      <span class="sde-cb-pool-total">{{localize "SDE.charBuilder.stats.total"}}: <b>{{step.total}}</b></span>
+    </div>
+    <p class="sde-cb-hint"><i class="fa-solid fa-hand-pointer"></i> {{localize "SDE.charBuilder.stats.assignHint"}}</p>
+    {{/if}}{{/if}}
+
+  </div>
+
+  <div class="sde-cb-abil-grid">
+    {{#each step.abilities}}
+    <div class="sde-cb-abil-col">
+      <div class="sde-cb-abil-tile{{#unless empty}} filled{{/unless}}{{#if empty}} empty{{/if}}{{#if isAssign}} assignable{{/if}}"
+        {{#if isAssign}}data-cb-tile="{{key}}"{{/if}}>
+        <div class="tile-val">{{#if value}}{{value}}{{else}}<span class="ph">–</span>{{/if}}</div>
+        <div class="tile-name">{{label}}</div>
+        <div class="tile-mod">{{mod}}</div>
+      </div>
+      <div class="sde-cb-abil-info-card">
+        <div class="ai-name">{{info.label}}</div>
+        <div class="ai-represents">{{info.represents}}</div>
+        <div class="ai-row"><span class="ai-k">{{localize "SDE.charBuilder.stats.infoChecks"}}</span> {{info.checks}}</div>
+        <div class="ai-row"><span class="ai-k">{{localize "SDE.charBuilder.stats.infoMechanics"}}</span> {{info.mechanics}}</div>
+        <div class="ai-row"><span class="ai-k">{{localize "SDE.charBuilder.stats.infoKeyClasses"}}</span> {{info.keyClasses}}</div>
+      </div>
+    </div>
+    {{/each}}
+  </div>
+
+  <div class="sde-cb-stats-foot">
+    {{#if step.rolled}}{{#unless step.isAssign}}
+    <p class="sde-cb-stats-total">{{localize "SDE.charBuilder.stats.total"}}: <b>{{step.total}}</b></p>
+    {{/unless}}{{/if}}
+
+    {{#if step.complete}}
+    <p class="sde-cb-hint ok"><i class="fa-solid fa-check"></i> {{localize "SDE.charBuilder.stats.complete"}}</p>
+    {{/if}}
+  </div>
+
+</div>

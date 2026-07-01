@@ -39,6 +39,7 @@ import { MerchantShop } from "./merchant-shop.mjs";
 import { PartyXP } from "./encounter/party-xp.mjs";
 import { SessionRecap } from "./encounter/session-recap.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
+import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
 
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
 // the Shadowdark system's NpcSD model + NpcSheetSD sheet, which the system
@@ -95,12 +96,54 @@ Hooks.once("init", () => {
     .then((tpl) => Handlebars.registerPartial("sdeVehicleBody", tpl))
     .catch((err) => console.error(`${MODULE_ID} | failed to register sdeVehicleBody partial:`, err));
 
+  // Character-builder step body partials (dynamic partial lookup by step).
+  const cbPartials = {
+    "sde-cb-list": `modules/${MODULE_ID}/templates/char-builder/partials/list.hbs`,
+    "sde-cb-stats": `modules/${MODULE_ID}/templates/char-builder/steps/stats.hbs`,
+    "sde-cb-ancestry": `modules/${MODULE_ID}/templates/char-builder/steps/ancestry.hbs`,
+    "sde-cb-class": `modules/${MODULE_ID}/templates/char-builder/steps/class.hbs`,
+    "sde-cb-languages": `modules/${MODULE_ID}/templates/char-builder/steps/languages.hbs`,
+    "sde-cb-background": `modules/${MODULE_ID}/templates/char-builder/steps/background.hbs`,
+    "sde-cb-alignment": `modules/${MODULE_ID}/templates/char-builder/steps/alignment.hbs`,
+    "sde-cb-deity": `modules/${MODULE_ID}/templates/char-builder/steps/deity.hbs`,
+    "sde-cb-hp": `modules/${MODULE_ID}/templates/char-builder/steps/hp.hbs`,
+    "sde-cb-gold": `modules/${MODULE_ID}/templates/char-builder/steps/gold.hbs`,
+    "sde-cb-gear": `modules/${MODULE_ID}/templates/char-builder/steps/gear.hbs`,
+    "sde-cb-placeholder": `modules/${MODULE_ID}/templates/char-builder/steps/placeholder.hbs`,
+  };
+  for (const [name, path] of Object.entries(cbPartials)) {
+    foundry.applications.handlebars
+      .getTemplate(path)
+      .then((tpl) => Handlebars.registerPartial(name, tpl))
+      .catch((err) => console.error(`${MODULE_ID} | failed to register ${name} partial:`, err));
+  }
+
+  // "Character Builder" launch button on the (v1) Player actor sheet header —
+  // GM or the actor's owner. Opens the guided builder.
+  Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
+    const actor = sheet?.actor ?? sheet?.document;
+    if (!actor || actor.type !== "Player") return;
+    if (!game.user.isGM && !actor.isOwner) return;
+    buttons.unshift({
+      label: game.i18n.localize("SDE.charBuilder.title"),
+      class: "sde-char-builder-launch",
+      icon: "fa-solid fa-user-plus",
+      onclick: () => ShadowdarkCharBuilder.open(),
+    });
+  });
+
   // Expose API. Public, versioned surface (REQ-26) — additive changes bump
   // the minor version, breaking changes the major. Mirrored at
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
     apiVersion: "1.0.0",
+    // Guided, ordered Character Builder — a replacement for the system's
+    // random generator. `open({ level0?, actor? })` renders the wizard.
+    charBuilder: {
+      open: (opts = {}) => ShadowdarkCharBuilder.open(opts),
+      app: ShadowdarkCharBuilder,
+    },
     // Universal dump segmentation (D9): one paste → typed buckets.
     import: {
       // Pure, synchronous. Returns { monsters, items, tables, skipped }.

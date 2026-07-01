@@ -1,0 +1,28 @@
+<div class="sde-cb-languages">
+  {{#if step.fixed.length}}
+  <div class="sde-cb-lang-block">
+    <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.languages.known"}}</span>
+    <div class="sde-cb-chip-row">
+      {{#each step.fixed}}<span class="sde-cb-chip fixed">{{name}}</span>{{/each}}
+    </div>
+  </div>
+  {{/if}}
+
+  {{#each step.categories}}
+  <div class="sde-cb-lang-block">
+    <div class="sde-cb-spell-tier-head">
+      {{localize labelKey}} — {{localize "SDE.charBuilder.class.choose"}} {{need}}
+      <span class="sde-cb-count{{#if full}} full{{/if}}">{{chosenCount}}/{{need}}</span>
+    </div>
+    <div class="sde-cb-chip-row">
+      {{#each options}}
+      <span class="sde-cb-chip{{#if selected}} selected{{/if}}{{#if disabled}} disabled{{/if}}" data-cb-lang="{{uuid}}" data-cb-lang-cat="{{../key}}">{{name}}</span>
+      {{/each}}
+    </div>
+  </div>
+  {{/each}}
+
+  {{#if step.noChoices}}
+  <p class="sde-cb-hint">{{localize "SDE.charBuilder.languages.noChoices"}}</p>
+  {{/if}}
+</div>

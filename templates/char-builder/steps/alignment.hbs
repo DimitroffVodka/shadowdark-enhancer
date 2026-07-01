@@ -1,0 +1,25 @@
+<div class="sde-cb-alignment">
+  {{#if step.suggestedLabel}}
+  <p class="sde-cb-method-label">
+    <i class="fa-solid fa-lightbulb"></i> {{localize "SDE.charBuilder.alignment.suggested"}}: <b>{{step.suggestedLabel}}</b>
+  </p>
+  {{/if}}
+
+  {{#if step.currentTitle}}
+  <p class="sde-cb-title-banner">
+    <i class="fa-solid fa-crown"></i> {{localize "SDE.charBuilder.alignment.title"}}: <b>{{step.currentTitle}}</b>
+    <span class="cls">({{step.className}}, {{localize "SDE.charBuilder.alignment.level1"}})</span>
+  </p>
+  {{/if}}
+
+  <div class="sde-cb-align-cards">
+    {{#each step.options}}
+    <div class="sde-cb-align-card{{#if selected}} selected{{/if}}{{#if suggested}} suggested{{/if}}" data-cb-align="{{key}}">
+      {{#if suggested}}<div class="sde-cb-align-tag">{{localize "SDE.charBuilder.alignment.suggestedTag"}}</div>{{/if}}
+      <div class="sde-cb-align-name">{{label}}</div>
+      {{#if title}}<div class="sde-cb-align-title"><i class="fa-solid fa-crown"></i> {{title}}</div>{{/if}}
+      <div class="sde-cb-align-desc">{{desc}}</div>
+    </div>
+    {{/each}}
+  </div>
+</div>

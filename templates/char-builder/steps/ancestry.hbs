@@ -1,0 +1,67 @@
+<div class="sde-cb-3col">
+
+  {{> sde-cb-list step.list}}
+
+  <div class="sde-cb-col-detail">
+    {{#if step.hasSelection}}
+    <div class="sde-cb-banner">
+      <img class="sde-cb-banner-img" src="{{step.detail.img}}" alt="">
+      <h2 class="sde-cb-banner-name">{{step.detail.name}}</h2>
+    </div>
+
+    <div class="sde-cb-desc">{{{step.detail.description}}}</div>
+
+    <div class="sde-cb-subfields">
+      <label class="sde-cb-field wide">
+        <span>{{localize "SDE.charBuilder.ancestry.name"}}</span>
+        <div class="sde-cb-choicerow">
+          <select data-cb-name-choice {{#unless step.canRollName}}disabled{{/unless}}>
+            <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
+            {{#each step.nameOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+          <input type="text" data-cb-name value="{{step.charName}}" placeholder="{{localize 'SDE.charBuilder.ancestry.namePlaceholder'}}">
+          <button type="button" class="sde-cb-btn dice sm" data-cb-roll-name {{#unless step.canRollName}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollName'}}">
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </div>
+      </label>
+      <label class="sde-cb-field wide">
+        <span>{{localize "SDE.charBuilder.ancestry.trinket"}}</span>
+        <div class="sde-cb-choicerow">
+          <select data-cb-trinket-choice {{#unless step.canRollTrinket}}disabled{{/unless}}>
+            <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
+            {{#each step.trinketOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+          <input type="text" data-cb-trinket value="{{step.trinket}}" placeholder="{{localize 'SDE.charBuilder.ancestry.trinketPlaceholder'}}">
+          <button type="button" class="sde-cb-btn dice sm" data-cb-roll-trinket {{#unless step.canRollTrinket}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollTrinket'}}">
+            <i class="fa-solid fa-dice"></i>
+          </button>
+        </div>
+      </label>
+    </div>
+    {{else}}
+    <div class="sde-cb-empty">{{localize "SDE.charBuilder.selectPrompt"}}</div>
+    {{/if}}
+  </div>
+
+  <aside class="sde-cb-col-aside">
+    {{#if step.hasSelection}}
+    <div class="sde-cb-panel-title">{{localize "SDE.charBuilder.ancestry.traits"}}</div>
+    {{#if step.aside.needsTalentChoice}}
+    <p class="sde-cb-hint warn">{{localize "SDE.charBuilder.ancestry.chooseTraits"}} {{step.aside.talentChoiceCount}}</p>
+    {{/if}}
+    {{#each step.aside.traits}}
+    <div class="sde-cb-trait{{#if ../step.aside.needsTalentChoice}} choosable{{#if selected}} selected{{/if}}{{/if}}"
+      {{#if ../step.aside.needsTalentChoice}}data-cb-anc-talent="{{uuid}}"{{/if}}>
+      <b class="sde-cb-trait-name">{{#if ../step.aside.needsTalentChoice}}{{#if selected}}<i class="fa-solid fa-check"></i> {{else}}<i class="fa-regular fa-circle"></i> {{/if}}{{/if}}{{name}}</b>
+      <div class="sde-cb-trait-desc">{{{desc}}}</div>
+    </div>
+    {{/each}}
+    <div class="sde-cb-aside-meta">
+      <span>{{localize "SDE.charBuilder.ancestry.talentChoices"}}: <b>{{step.aside.talentChoiceCount}}</b></span>
+      <span>{{localize "SDE.charBuilder.ancestry.languages"}}: <b>{{step.aside.languages}}</b></span>
+    </div>
+    {{/if}}
+  </aside>
+
+</div>
