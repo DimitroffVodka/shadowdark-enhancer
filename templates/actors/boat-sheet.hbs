@@ -1,0 +1,98 @@
+<form class="sde-vehicle-sheet-body flexcol">
+
+  {{!-- Header --}}
+  <header class="sde-veh-header">
+    <img class="sde-veh-portrait" src="{{document.img}}" data-edit="img" />
+    <div class="sde-veh-headmain">
+      <input class="sde-veh-namefield" type="text" name="name" value="{{document.name}}" placeholder="Vessel name" />
+      <div class="sde-veh-chips">
+        <span class="sde-veh-chip"><i class="fa-solid fa-heart"></i> {{system.hp.value}}/{{system.hp.max}}</span>
+        <span class="sde-veh-chip"><i class="fa-solid fa-gauge-high"></i> {{system.speed}} hx</span>
+        <span class="sde-veh-chip"><i class="fa-solid fa-users"></i> {{occupantCount}}/{{derived.capacity}}</span>
+      </div>
+    </div>
+  </header>
+
+  {{!-- Tab nav --}}
+  <nav class="sde-veh-nav">
+    <button type="button" class="sde-veh-navbtn {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview"><i class="fa-solid fa-sailboat"></i> Overview</button>
+    <button type="button" class="sde-veh-navbtn {{#if tab.occupants}}active{{/if}}" data-action="changeTab" data-tab="occupants"><i class="fa-solid fa-users"></i> {{occupantLabel}}</button>
+    <button type="button" class="sde-veh-navbtn {{#if tab.inventory}}active{{/if}}" data-action="changeTab" data-tab="inventory"><i class="fa-solid fa-box"></i> Cargo</button>
+    <button type="button" class="sde-veh-navbtn {{#if tab.description}}active{{/if}}" data-action="changeTab" data-tab="description"><i class="fa-solid fa-book"></i> Description</button>
+  </nav>
+
+  {{!-- Overview tab --}}
+  <section class="sde-veh-tab-content {{#if tab.overview}}active{{/if}}" data-tab-content="overview">
+
+    <div class="sde-veh-row sde-veh-identity">
+      <div class="sde-veh-field grow">
+        <label>Vessel</label>
+        <select name="system.boatType">{{#each choices.boatTypes}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>
+      </div>
+    </div>
+
+    <fieldset class="sde-veh-grid">
+      <legend>Hull &amp; movement</legend>
+      <div class="sde-veh-field"><label>HP</label><input type="number" name="system.hp.value" value="{{system.hp.value}}" /></div>
+      <div class="sde-veh-field"><label>Max HP</label><input type="number" name="system.hp.max" value="{{system.hp.max}}" /></div>
+      <div class="sde-veh-field"><label>AC</label><input type="number" name="system.ac" value="{{system.ac}}" /></div>
+      <div class="sde-veh-field"><label>Speed (hexes/day)</label><input type="number" name="system.speed" value="{{system.speed}}" /></div>
+      <div class="sde-veh-field"><label>Combat speed</label><input type="text" value="{{derived.combatSpeedFeet}} ft" disabled title="speed × 10" /></div>
+      <div class="sde-veh-field"><label>Capacity</label><input type="text" value="{{derived.capacity}}" disabled title="passengers = max HP" /></div>
+    </fieldset>
+    <p class="sde-veh-hint">Carries passengers equal to HP (they don't use cargo slots). Repairs: 1 week, 1 gp per HP. Begins to sink at 0 HP or capsize.</p>
+
+    <fieldset class="sde-veh-grid">
+      <legend>Crew &amp; cargo</legend>
+      <div class="sde-veh-field"><label>Cargo slots</label><input type="number" name="system.gearSlots.max" value="{{system.gearSlots.max}}" /></div>
+      <div class="sde-veh-field"><label>Crew req.</label><input type="number" name="system.crew.required" value="{{system.crew.required}}" /></div>
+      <div class="sde-veh-field"><label>Crew aboard</label><input type="number" name="system.crew.current" value="{{system.crew.current}}" /></div>
+      <div class="sde-veh-field"><label>Repair cost</label><input type="text" value="{{derived.repairCost}} gp" disabled /></div>
+    </fieldset>
+    {{#if derived.crewShort}}<p class="sde-veh-warn">Not enough crew aboard to move this vessel.</p>{{/if}}
+
+    <fieldset class="sde-veh-grid sde-veh-props">
+      <legend>Properties</legend>
+      <label class="sde-veh-prop"><input type="checkbox" name="system.properties.crew" {{#if system.properties.crew}}checked{{/if}} /> Crew (4+ trained)</label>
+      <label class="sde-veh-prop"><input type="checkbox" name="system.properties.fast" {{#if system.properties.fast}}checked{{/if}} /> Fast (2× near)</label>
+      <label class="sde-veh-prop"><input type="checkbox" name="system.properties.oars" {{#if system.properties.oars}}checked{{/if}} /> Oars / Row Galley</label>
+      <label class="sde-veh-prop"><input type="checkbox" name="system.properties.portage" {{#if system.properties.portage}}checked{{/if}} /> Portage</label>
+      <label class="sde-veh-prop"><input type="checkbox" name="system.properties.unseaworthy" {{#if system.properties.unseaworthy}}checked{{/if}} /> Unseaworthy (1:6)</label>
+      <label class="sde-veh-prop"><input type="checkbox" name="system.properties.weapons" {{#if system.properties.weapons}}checked{{/if}} /> Weapons</label>
+      <div class="sde-veh-field grow"><label>Other</label><input type="text" name="system.propertiesNote" value="{{system.propertiesNote}}" /></div>
+    </fieldset>
+
+    {{#if system.properties.weapons}}
+    <fieldset class="sde-veh-grid">
+      <legend>Siege weapons (max 2)</legend>
+      <div class="sde-veh-field grow"><label>Mounted (comma-separated)</label><input type="text" data-siege value="{{siegeText}}" placeholder="Ballista, Catapult" /></div>
+    </fieldset>
+    {{/if}}
+
+    <fieldset class="sde-veh-grid">
+      <legend>Sinking</legend>
+      {{#if system.sinking.active}}
+        <div class="sde-veh-field"><label>Rounds left</label><input type="text" value="{{system.sinking.roundsRemaining}}" disabled /></div>
+        <button type="button" class="sde-veh-btn" data-action="advanceSinking"><i class="fa-solid fa-forward-step"></i> Next round</button>
+        <button type="button" class="sde-veh-btn" data-action="stopSinking"><i class="fa-solid fa-life-ring"></i> Stop sinking</button>
+      {{else}}
+        <button type="button" class="sde-veh-btn" data-action="beginSinking"><i class="fa-solid fa-water"></i> Begin sinking (1d4)</button>
+      {{/if}}
+      <button type="button" class="sde-veh-btn" data-action="sinkChance"><i class="fa-solid fa-dice-one"></i> Sink chance (1:6)</button>
+    </fieldset>
+
+    <details class="sde-veh-details">
+      <summary>Weather &amp; wind (reference)</summary>
+      <ul class="sde-veh-reflist">
+        <li><strong>Driving:</strong> halve speed, navigation harder.</li>
+        <li><strong>Gusty:</strong> +1 hex of travel.</li>
+        <li><strong>No wind:</strong> arduous terrain (1 hex/day) unless oars.</li>
+        <li><strong>Tempest:</strong> 1d4 days; blown 1d4 hexes random/day; 1:6 daily sink.</li>
+      </ul>
+    </details>
+  </section>
+
+  {{!-- Shared Occupants / Cargo / Description tabs --}}
+  {{> sdeVehicleBody}}
+
+</form>

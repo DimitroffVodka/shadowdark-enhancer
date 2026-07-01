@@ -1,4 +1,8 @@
 {
+  "TYPES.Actor.shadowdark-enhancer.mount": "Mount",
+  "TYPES.Actor.shadowdark-enhancer.boat": "Boat",
+  "SDE.sheet.mount": "Mount Sheet",
+  "SDE.sheet.boat": "Boat Sheet",
   "SDE.settings.combatMovementDefault.name": "Combat movement default (ft)",
   "SDE.settings.combatMovementDefault.hint": "Default movement budget per combatant turn. Token's ruler colors red when the move exceeds this from the turn-start position.",
   "SDE.settings.oocMovementBudget.name": "Out-of-combat movement budget (ft)",

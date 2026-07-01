@@ -1,0 +1,63 @@
+{{!-- Shared Occupants / Inventory / Description tabs for the Mount & Boat sheets. --}}
+
+<section class="sde-veh-tab-content {{#if tab.occupants}}active{{/if}}" data-tab-content="occupants">
+  <div class="sde-veh-occ-actions">
+    <button type="button" class="sde-veh-btn" data-action="placeTokens"><i class="fa-solid fa-map-pin"></i> Place Tokens</button>
+    <span class="sde-veh-occ-count">{{occupantCount}} {{occupantLabel}}</span>
+  </div>
+  <div class="sde-veh-droplist" data-drop="occupant">
+    {{#if occupantCount}}
+      {{#each occupants}}
+        <div class="sde-veh-member" data-uuid="{{uuid}}">
+          {{#if broken}}
+            <div class="sde-veh-member-broken"><i class="fa-solid fa-triangle-exclamation"></i> {{name}}</div>
+            <button type="button" class="sde-veh-member-remove" data-action="removeOccupant" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+          {{else}}
+            <img class="sde-veh-member-img" src="{{img}}" data-action="openOccupant" title="Open sheet" />
+            <div class="sde-veh-member-main">
+              <div class="sde-veh-member-name">{{name}} <span class="sde-veh-member-sub">{{subtitle}}</span></div>
+              <div class="sde-veh-member-stats">
+                <span>HP {{hp.value}}/{{hp.max}}</span>
+                <span>AC {{ac}}</span>
+                {{#if level}}<span>LVL {{level}}</span>{{/if}}
+              </div>
+              <div class="sde-veh-member-abils">
+                <span>STR {{abilities.str}}</span><span>DEX {{abilities.dex}}</span><span>CON {{abilities.con}}</span>
+                <span>INT {{abilities.int}}</span><span>WIS {{abilities.wis}}</span><span>CHA {{abilities.cha}}</span>
+              </div>
+            </div>
+            <button type="button" class="sde-veh-member-remove" data-action="removeOccupant" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+          {{/if}}
+        </div>
+      {{/each}}
+    {{else}}
+      <p class="sde-veh-empty">Drag Player or NPC actors here to add them.</p>
+    {{/if}}
+  </div>
+</section>
+
+<section class="sde-veh-tab-content {{#if tab.inventory}}active{{/if}}" data-tab-content="inventory">
+  <div class="sde-veh-slottally">
+    <i class="fa-solid fa-box"></i> Slots: {{slotInfo.used}}{{#if slotInfo.max}} / {{slotInfo.max}}{{/if}}
+    {{#if slotInfo.note}}<span class="sde-veh-slotnote">({{slotInfo.note}})</span>{{/if}}
+  </div>
+  <div class="sde-veh-droplist" data-drop="inventory">
+    {{#if items.length}}
+      {{#each items}}
+        <div class="sde-veh-item" data-item-id="{{id}}">
+          <img class="sde-veh-item-img" src="{{img}}" data-action="openItem" />
+          <span class="sde-veh-item-name" data-action="openItem">{{name}}</span>
+          <span class="sde-veh-item-qty">×{{quantity}}</span>
+          <span class="sde-veh-item-slots">{{slots}} sl</span>
+          <button type="button" class="sde-veh-item-del" data-action="deleteItem" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      {{/each}}
+    {{else}}
+      <p class="sde-veh-empty">Drag items here to load gear / cargo.</p>
+    {{/if}}
+  </div>
+</section>
+
+<section class="sde-veh-tab-content {{#if tab.description}}active{{/if}}" data-tab-content="description">
+  <textarea name="system.notes" rows="10">{{system.notes}}</textarea>
+</section>

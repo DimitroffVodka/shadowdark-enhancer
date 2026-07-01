@@ -1,0 +1,158 @@
+<form class="{{cssClass}} flexcol sde-mount-npc-form" autocomplete="off">
+	<header class="SD-header flex0">
+		<img class="portrait" src="{{ actor.img }}" data-edit="img" data-tooltip="{{ actor.name }}" height="110" width="110" />
+		<div class="shadowdark-logo"><span>ShadowDark</span></div>
+		<div class="SD-title">
+			<input name="name" type="text" value="{{ actor.name }}" placeholder="{{localize 'SHADOWDARK.sheet.actor.placeholder.name'}}" />
+		</div>
+	</header>
+
+	<nav class="SD-nav flex0" data-group="primary">
+		<a class="navigation-tab active" data-tab="tab-abilities">{{localize "SHADOWDARK.sheet.npc.tab.abilities"}}</a>
+		<a class="navigation-tab" data-tab="tab-riders">Riders</a>
+		<a class="navigation-tab" data-tab="tab-inventory">Inventory</a>
+		<a class="navigation-tab" data-tab="tab-mount">Mount</a>
+		<a class="navigation-tab" data-tab="tab-spells">{{localize "SHADOWDARK.sheet.npc.tab.spells"}}</a>
+		<a class="navigation-tab" data-tab="tab-description">{{localize "SHADOWDARK.sheet.npc.tab.description"}}</a>
+		<a class="navigation-tab" data-tab="tab-effects">{{localize "SHADOWDARK.sheet.item.tab.effects"}}</a>
+	</nav>
+
+	<section class="SD-content-body flex1">
+
+		{{!-- Native NPC abilities tab (system partial) --}}
+		{{> actors/npc/abilities }}
+
+		{{!-- Riders --}}
+		<section class="tab" data-group="primary" data-tab="tab-riders">
+			{{#> ui/sd-box header-label="Riders" header-span=occupantCount}}
+				<div class="sde-veh-occ-actions">
+					<button type="button" class="sde-veh-btn" data-sde-action="place-tokens"><i class="fa-solid fa-map-pin"></i> Place Tokens</button>
+				</div>
+				<div class="sde-veh-droplist" data-drop="occupant">
+					{{#if occupantCount}}
+						{{#each occupants}}
+							<div class="sde-veh-member" data-uuid="{{uuid}}">
+								{{#if broken}}
+									<div class="sde-veh-member-broken"><i class="fa-solid fa-triangle-exclamation"></i> {{name}}</div>
+									<button type="button" class="sde-veh-member-remove" data-sde-action="remove-occupant" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+								{{else}}
+									<img class="sde-veh-member-img" src="{{img}}" data-sde-action="open-occupant" title="Open sheet" />
+									<div class="sde-veh-member-main">
+										<div class="sde-veh-member-name">{{name}} <span class="sde-veh-member-sub">{{subtitle}}</span></div>
+										<div class="sde-veh-member-stats"><span>HP {{hp.value}}/{{hp.max}}</span><span>AC {{ac}}</span>{{#if level}}<span>LVL {{level}}</span>{{/if}}</div>
+										<div class="sde-veh-member-abils"><span>STR {{abilities.str}}</span><span>DEX {{abilities.dex}}</span><span>CON {{abilities.con}}</span><span>INT {{abilities.int}}</span><span>WIS {{abilities.wis}}</span><span>CHA {{abilities.cha}}</span></div>
+									</div>
+									<button type="button" class="sde-veh-member-remove" data-sde-action="remove-occupant" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+								{{/if}}
+							</div>
+						{{/each}}
+					{{else}}
+						<p class="sde-veh-empty">Drag Player or NPC actors anywhere on this sheet to add them as riders.</p>
+					{{/if}}
+				</div>
+			{{/ui/sd-box}}
+		</section>
+
+		{{!-- Inventory --}}
+		<section class="tab" data-group="primary" data-tab="tab-inventory">
+			{{#> ui/sd-box header-label="Inventory" header-span=derived.slotsTotal}}
+				<div class="sde-veh-slottally"><i class="fa-solid fa-box"></i> Slots: {{derived.slotsUsed}}{{#if derived.gearSlotsMax}} / {{derived.gearSlotsMax}}{{/if}}{{#if derived.riderSlots}} <span class="sde-veh-slotnote">(+{{derived.riderSlots}} riders = {{derived.slotsTotal}})</span>{{/if}}</div>
+				<div class="sde-veh-droplist">
+					{{#if inventory.length}}
+						{{#each inventory}}
+							<div class="sde-veh-item" data-item-id="{{id}}">
+								<img class="sde-veh-item-img" src="{{img}}" data-sde-action="open-item" />
+								<span class="sde-veh-item-name" data-sde-action="open-item">{{name}}</span>
+								<span class="sde-veh-item-qty">×{{quantity}}</span>
+								<span class="sde-veh-item-slots">{{slots}} sl</span>
+								<button type="button" class="sde-veh-item-del" data-sde-action="delete-item" title="Delete"><i class="fa-solid fa-trash"></i></button>
+							</div>
+						{{/each}}
+					{{else}}
+						<p class="sde-veh-empty">Drag items anywhere on this sheet to load gear.</p>
+					{{/if}}
+				</div>
+			{{/ui/sd-box}}
+		</section>
+
+		{{!-- Mount rules --}}
+		<section class="tab" data-group="primary" data-tab="tab-mount">
+			{{#> ui/sd-box header-label="Base creature"}}
+				<div class="sde-veh-basebox" data-drop="base-npc">
+					<div class="sde-veh-grid">
+						<div class="sde-veh-field grow">
+							<label>Copy stats from an NPC</label>
+							<select data-sde-base-select>
+								<option value="">— choose an NPC —</option>
+								{{#each npcChoices}}<option value="{{uuid}}">{{name}}</option>{{/each}}
+							</select>
+						</div>
+						<button type="button" class="sde-veh-btn" data-sde-action="apply-base"><i class="fa-solid fa-clone"></i> Apply</button>
+					</div>
+					<div class="sde-veh-droplist sde-veh-basedrop">
+						<p class="sde-veh-empty">…or drag an NPC statblock (world or compendium) anywhere in this box to copy its stats.</p>
+					</div>
+				</div>
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label="Rarity & training"}}
+				<div class="sde-veh-grid">
+					<div class="sde-veh-field"><label>Rarity</label><select name="flags.shadowdark-enhancer.mount.rarity">{{#each choices.rarities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+					<label class="sde-veh-prop"><input type="checkbox" name="flags.shadowdark-enhancer.mount.trained" {{#if mount.trained}}checked{{/if}} /> Trained</label>
+					<div class="sde-veh-field"><label>Attack bonus</label><input type="text" value="+{{derived.attackBonus}}" disabled title="even levels; mounts attack at level 7+" /></div>
+				</div>
+				{{#if derived.needsTraining}}<p class="sde-veh-hint">Rare &amp; legendary mounts require special training to ride.</p>{{/if}}
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label="Personality"}}
+				<div class="sde-veh-grid">
+					<div class="sde-veh-field"><label>Disposition</label><select name="flags.shadowdark-enhancer.mount.personality">{{#each choices.personalities}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+					<div class="sde-veh-field grow"><label>Note</label><input type="text" name="flags.shadowdark-enhancer.mount.personalityNote" value="{{mount.personalityNote}}" /></div>
+					<button type="button" class="sde-veh-btn" data-sde-action="personality"><i class="fa-solid fa-dice-d20"></i> Roll</button>
+				</div>
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label="Properties"}}
+				<div class="sde-veh-grid sde-veh-props">
+					<label class="sde-veh-prop"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.armor" {{#if mount.properties.armor}}checked{{/if}} /> Armor</label>
+					<label class="sde-veh-prop"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.flying" {{#if mount.properties.flying}}checked{{/if}} /> Flying</label>
+					<label class="sde-veh-prop"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.goodTempered" {{#if mount.properties.goodTempered}}checked{{/if}} /> Good-Tempered (+2)</label>
+					<label class="sde-veh-prop"><input type="checkbox" name="flags.shadowdark-enhancer.mount.properties.sturdy" {{#if mount.properties.sturdy}}checked{{/if}} /> Sturdy (+5 slots)</label>
+					<div class="sde-veh-field grow"><label>Other</label><input type="text" name="flags.shadowdark-enhancer.mount.propertiesNote" value="{{mount.propertiesNote}}" /></div>
+				</div>
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label="Tack & gear slots"}}
+				<div class="sde-veh-grid">
+					<label class="sde-veh-prop"><input type="checkbox" name="flags.shadowdark-enhancer.mount.tack.saddle" {{#if mount.tack.saddle}}checked{{/if}} /> Saddle (30gp)</label>
+					<label class="sde-veh-prop"><input type="checkbox" name="flags.shadowdark-enhancer.mount.tack.wagon" {{#if mount.tack.wagon}}checked{{/if}} /> Wagon (120gp, +15 slots)</label>
+					<div class="sde-veh-field"><label>Gear max</label><input type="text" value="{{derived.gearSlotsMax}}" disabled title="5 × STR mod (+5 Sturdy, +15 Wagon)" /></div>
+				</div>
+			{{/ui/sd-box}}
+
+			{{#> ui/sd-box header-label="Care, feeding & pushing"}}
+				<div class="sde-veh-grid">
+					<div class="sde-veh-field"><label>Metabolism</label><select name="flags.shadowdark-enhancer.mount.bloodType">{{#each choices.bloodTypes}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select></div>
+					<div class="sde-veh-field"><label>Days since food</label><input type="number" name="flags.shadowdark-enhancer.mount.feeding.daysSinceFood" value="{{mount.feeding.daysSinceFood}}" /></div>
+					<div class="sde-veh-field"><label>Days since water</label><input type="number" name="flags.shadowdark-enhancer.mount.feeding.daysSinceWater" value="{{mount.feeding.daysSinceWater}}" /></div>
+					<div class="sde-veh-field"><label>Push days</label><input type="number" name="flags.shadowdark-enhancer.mount.pushing.consecutiveDays" value="{{mount.pushing.consecutiveDays}}" /></div>
+					<div class="sde-veh-field"><label>Push hexes/day</label><input type="text" value="{{derived.pushHexesPerDay}}" disabled title="= CON mod" /></div>
+				</div>
+				{{#if derived.thirstDanger}}<p class="sde-veh-warn">No water for 3+ days — taking 1d8/day, unhealable until fully watered.</p>{{/if}}
+				{{#if derived.starveDanger}}<p class="sde-veh-warn">No food for 3+ weeks — taking 1d8/day, unhealable until fully fed.</p>{{/if}}
+			{{/ui/sd-box}}
+
+			<div class="sde-veh-actions">
+				<button type="button" class="sde-veh-btn" data-sde-action="levelup"><i class="fa-solid fa-arrow-up"></i> Level Up (+1d8 HP)</button>
+				<button type="button" class="sde-veh-btn" data-sde-action="push"><i class="fa-solid fa-person-walking-arrow-right"></i> Push Check</button>
+				<button type="button" class="sde-veh-btn" data-sde-action="morale"><i class="fa-solid fa-heart-pulse"></i> Morale Check</button>
+			</div>
+		</section>
+
+		{{!-- Native NPC tabs (system partials) --}}
+		{{> actors/npc/spells }}
+		{{> actors/_partials/effects-tab }}
+		{{> actors/npc/description }}
+
+	</section>
+</form>

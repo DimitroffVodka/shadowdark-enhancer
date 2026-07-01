@@ -19,6 +19,12 @@
       }
     ]
   },
+  "documentTypes": {
+    "Actor": {
+      "mount": { "htmlFields": ["notes"] },
+      "boat": { "htmlFields": ["notes"] }
+    }
+  },
   "esmodules": ["scripts/shadowdark-enhancer.mjs"],
   "styles": [{ "src": "styles/shadowdark-enhancer.css" }],
   "languages": [

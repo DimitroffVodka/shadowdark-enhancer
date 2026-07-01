@@ -38,6 +38,18 @@ import { buildBundle, exportBundle, applyBundle } from "./encounter/bundle-io.mj
 import { MerchantShop } from "./merchant-shop.mjs";
 import { PartyXP } from "./encounter/party-xp.mjs";
 import { SessionRecap } from "./encounter/session-recap.mjs";
+import { registerActorTypes } from "./actors/register-actors.mjs";
+
+// Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
+// the Shadowdark system's NpcSD model + NpcSheetSD sheet, which the system
+// registers in its own `init` hook — and module init hooks can run BEFORE the
+// system's. `i18nInit` fires after ALL init hooks (so the SD classes exist via
+// game.system.models/sheets) but BEFORE world documents are instantiated (so
+// the data model applies to every mount actor, including saved ones). `setup`
+// is too late — it fires after the documents are built.
+Hooks.once("i18nInit", () => {
+  registerActorTypes();
+});
 
 Hooks.once("init", () => {
   console.log(`${MODULE_ID} | init`);
@@ -76,6 +88,12 @@ Hooks.once("init", () => {
     .getTemplate(`modules/${MODULE_ID}/templates/partials/census.hbs`)
     .then((tpl) => Handlebars.registerPartial("sdeCensus", tpl))
     .catch((err) => console.error(`${MODULE_ID} | failed to register sdeCensus partial:`, err));
+
+  // Shared Occupants/Inventory/Description tabs for the Mount & Boat sheets.
+  foundry.applications.handlebars
+    .getTemplate(`modules/${MODULE_ID}/templates/partials/vehicle-tabs.hbs`)
+    .then((tpl) => Handlebars.registerPartial("sdeVehicleBody", tpl))
+    .catch((err) => console.error(`${MODULE_ID} | failed to register sdeVehicleBody partial:`, err));
 
   // Expose API. Public, versioned surface (REQ-26) — additive changes bump
   // the minor version, breaking changes the major. Mirrored at
