@@ -1,109 +1,155 @@
 # Shadowdark Enhancer
 
-Bottom-anchored Crawl Strip for **Shadowdark RPG** on Foundry VTT — out-of-combat marching order, in-combat initiative, HP/Movement/Luck readouts, movement-budget enforcement with turn-start rollback, and a per-combatant action HUD.
+A GM companion suite for **[Shadowdark RPG](https://www.thearcanelibrary.com/pages/shadowdark)** on Foundry VTT.
 
-This module is the first milestone in a larger Shadowdark companion suite. The bottom-bar feature set (encounters, lights, rest, loot, party inventory, session tracker) is planned for subsequent milestones.
+It started as a top-anchored **Crawl Strip** — marching order, initiative, and at-a-glance HP / Movement / Luck for the whole party — and has grown into a full toolkit for running a crawl: random encounters, a paste-a-PDF content importer, treasure & magic-item generation, a merchant shop, party XP, a session recap, and mount/boat vehicle sheets. Everything is driven from a single **Crawl Bar** that lives at the top of the canvas.
+
+> Replaces `shadowdark-crawl-helper`. If you have Crawl Helper enabled you'll get a one-time warning at world load — disable it for best results (the warning can be suppressed in settings).
 
 ## Requirements
 
-- Foundry VTT v13+ (verified v14.361)
-- Shadowdark RPG system v3.6.2+ (verified v4.0.4)
-
-## Features (v0.1.0)
-
-### Crawl mode
-
-- GM-toggleable crawl loop with a manual turn counter.
-- Players roll initiative for marching order; the roll persists until reset.
-- Movement budget (default **90 ft per crawl turn**) optionally enforced — over-budget moves are refused before they commit. Anchors captured on `Next Crawl Turn`.
-
-### Combat mode
-
-- One card per combatant in initiative order. Hidden NPCs are filtered (and Token ↔ Combatant hidden flags stay bidirectionally in sync).
-- Round and turn counter pulled live from Foundry's Combat tracker.
-- Per-combatant movement red-line at **30 ft** (default) from the combatant's turn-start position. Strip's Movement cell turns red when over budget.
-- "Clockwise Initiative" system setting is respected automatically because the strip reads `game.combat.turns` directly.
-
-### Per-card stat cells
-
-| Stat | Source |
-|---|---|
-| HP | `actor.system.attributes.hp.{value,max}`. Cell turns red at `value <= 0`. |
-| Movement | Live used vs budget (combat or crawl). Cell turns red when over. |
-| Luck | `actor.system.luck.{available, remaining}` + `actor.system.hasLuckToken`. PCs only. Click a filled pip to spend via `actor.system.useLuckToken()`. NPCs show `—`. |
-
-### Combat HUD dropdown
-
-Click the **▲ HUD ▲** trigger on the active combatant's card to open a per-combatant dropdown with three tabs:
-
-- **Status**: HP ±1 / ±5 buttons; "Spend Luck" button (PCs with available luck only).
-- **Actions**: "Open Sheet" passthrough.
-- **Movement**: "Rollback to Turn Start" — moves the token back to where it was at the start of its turn.
-
-The dropdown closes on outside-click and on combat turn change.
-
-## Settings
-
-| Setting | Default | Notes |
+| | Minimum | Verified |
 |---|---|---|
-| Combat movement default (ft) | 30 | Per-combatant turn budget. |
-| Out-of-combat movement budget (ft) | 90 | Per-crawl-turn budget. |
-| Enforce out-of-combat movement budget | on | When on, moves past the budget are refused. |
-| Hide hidden NPCs from the strip | on | Suppresses combatants where `token.hidden` or `combatant.hidden` is true. |
-| Warn when shadowdark-crawl-helper is enabled | on | Non-blocking notification at world load. |
-
-## Coexistence
-
-- **`shadowdark-crawl-helper`**: this module is intended to replace it. With Crawl Helper enabled you'll see a warning notification at world load; disable Crawl Helper for best results. You can suppress the warning in Module Settings.
-
-## Known limitations (v0.1.0)
-
-- **NPC movement strings.** Shadowdark NPCs have `system.move` as a string (e.g. `"near"`, `"double near"`, `"near (fly)"`) in the base system, but this MVP treats all combatants as 30 ft. A follow-up milestone will parse the string for per-NPC combat budgets.
-- **In-canvas ruler color.** Foundry's TokenRuler subclass API in v14 is volatile, so v0.1.0 does NOT color the on-canvas drag ruler red when you exceed budget. The strip's Movement cell turning red is the over-budget signal. Will revisit when the v14 ruler API stabilizes.
+| Foundry VTT | v13 | **v14.364** |
+| Shadowdark RPG system | v3.6.2 | **v4.0.6** |
 
 ## Installation
 
-Paste the following manifest URL into Foundry's module installer:
+Paste this manifest URL into Foundry's **Install Module** dialog:
 
 ```
 https://github.com/DimitroffVodka/shadowdark-enhancer/releases/latest/download/module.json
 ```
 
-(The GitHub URL in `module.json` is a placeholder pending repo creation by the author.)
+Then enable **Shadowdark Enhancer** in your world's module settings.
 
-## Architecture (quick map)
+---
 
-```
-scripts/
-├── shadowdark-enhancer.mjs   # entry: init/ready hooks
-├── module-id.mjs             # MODULE_ID constant (avoids circular import)
-├── settings.mjs              # all module settings
-├── crawl-state.mjs           # singleton {mode, crawlTurn, oocInitiative} + socket sync
-├── crawl-strip.mjs           # DOM mount + render + bounds tracking
-├── initiative-manager.mjs    # OoC marching-order rolling
-├── movement-tracker.mjs      # turn-start / crawl-anchor flags + enforcement hook
-├── hidden-sync.mjs           # token.hidden ↔ combatant.hidden sync
-├── npc-action-menu.mjs       # combat HUD dropdown
-├── stat-panels/{hp,movement,luck}-panel.mjs
-└── util/esc.mjs              # HTML escape helper
-templates/
-├── crawl-strip.hbs
-└── npc-action-menu.hbs
-styles/shadowdark-enhancer.css
-languages/en.json
-```
+## Features
+
+### 🧭 Crawl Strip & Crawl Bar
+
+A slim strip pinned to the top of the canvas, with a control **Crawl Bar** for the GM.
+
+- **Out of combat (crawl mode):** players roll for marching order; a turn counter tracks crawl turns. Each card shows the character's live HP, movement used vs. budget, and Luck.
+- **In combat:** one card per combatant in initiative order, round/turn pulled live from Foundry's tracker. Respects the system's *Clockwise Initiative* setting automatically.
+- **Per-card cells:**
+  - **HP** — `attributes.hp.value/max`; turns red at 0 or below.
+  - **Movement** — live used-vs-budget; turns red when over. Default **30 ft** per combatant per turn in combat, **90 ft** per crawl turn out of combat.
+  - **Luck** — clickable pips for PCs; click a filled pip to spend a Luck token. NPCs show `—`.
+  - **AC** and **active-effect icons** render inline.
+- **Movement budget enforcement:** out-of-combat over-budget moves are refused before they commit (toggleable); combat enforcement is opt-in. Turn-start positions are captured so a token can be **rolled back to its turn-start position** from the per-combatant HUD.
+- **Combat HUD dropdown** on the active card: HP ±1/±5, Spend Luck, Open Sheet, and Rollback-to-turn-start.
+
+The Crawl Bar changes with mode: **Start Crawl** → *Next Turn*, *Begin Encounter / Start Combat*, add selected tokens, plus the tool launchers below. Right-click actions expose extras (e.g. reset out-of-combat initiative; the encounter check menu).
+
+### ⚔️ Random Encounters
+
+- **Encounter check** — rolls `1d6` against an adjustable threshold and posts a HIT/MISS chat card (Dice So Nice fires). On a hit the game can auto-pause, open the roller, and auto-roll the active table.
+- **Encounter Roller** — a multi-tab window to roll the active table, browse and filter NPC sources, build your own encounter tables (drag NPCs onto numbered die slots), and author NPCs in the **Monster Creator** (below).
+- **Result cards** roll appearing count, distance, activity, and a 2d6+CHA **reaction**, then let you **Post** to chat or **Place** tokens on the canvas (grid-snapped, ESC to cancel). Flavor-only table rows are handled cleanly.
+
+### 👹 Monster Creator
+
+The Encounter Roller's fourth tab is a full NPC authoring panel — build a Shadowdark creature from scratch, remix an existing one, and save it as a real world Actor. Drafts persist when you switch tabs.
+
+- **Every stat-block section is editable:** Identity (name, L/N/C alignment, level), Stats (HP, AC with note, dark-adapted, six ability modifiers), Movement (system move type + free-text note), Spellcasting (ability, spell bonus, spells/round), Actions, Features, and Description.
+- **Attacks & specials** are added as removable rows, with a **12-entry quick-pick catalog** (Fist, Bite, Longsword, Breath Weapon, Poison, …) that deep-clones a preset on click — custom entries welcome too.
+- **Features** work the same way, with a **14-entry quick-pick catalog** (Magic Resistance, Pack Tactics, Regenerate, Undead, …).
+- **Spells** attach via a debounced compendium search + tier filter, shown as removable chips.
+- **Portrait & token art** are set through Foundry's FilePicker; leaving token art empty inherits the portrait.
+- **Bestiary loader** searches and loads any world or compendium NPC into the draft — the fast path for making variants of an existing creature (with smart art resolution for community token mappings).
+- **Mutations** — filter and toggle a mutation catalog, then apply it to the draft or spawn a new mutated actor.
+- **Bulk import** shortcut opens the paste-to-create monster importer.
+- **Save** validates the name, creates a `type: "NPC"` world Actor, and embeds the Attack / Special / Feature / Spell items. Open it headlessly with `game.shadowdarkEnhancer.monsterCreator.open()`.
+
+### 📥 Importer Hub
+
+A single ApplicationV2 front door for getting Shadowdark content into your world — paste a PDF dump and it segments it into typed buckets (monsters, items, tables, journals, locations), previews them editably, and commits with rename/replace/skip conflict handling. Nothing is ever silently overwritten or deleted.
+
+Six tabs — **Import / Tables / Monsters / Items / Journal / Scenes** — each a catalog-driven dashboard that reconciles a manifest of what each *Cursed Scroll* (CS1–CS6), the Core rules, and the *Player's Guide to the Western Reaches* contain against your world, marking every entry **in-system / imported / missing**. Missing rows carry an **Import** button that seeds the paste box; a global source filter scopes all tabs at once. Imported tables are auto-enriched with `@UUID` monster/item links and inline-roll counts.
+
+### 💰 Loot & Magic Items
+
+- **Loot Generator** — generate a treasure hoard for a party level and post a **claimable** chat card; the first player to click **Claim** takes coins/items (coins are added to their character; the assignment is locked so loot goes to exactly one actor).
+- **Loot drops on kill** — optional automatic loot when a monster dies, plus a drop-a-coin-pile pickup that players grab from the token HUD.
+- **Magic Item Forge** — roll or hand-build a magic item (bonuses, benefits, curses, personality, name composition) and create it as a real Foundry item.
+- **Merchant Shop** — a GM-run shop that opens for every player at once, backed by either a compendium catalog or an NPC's own inventory. Players buy and sell against `system.coins` at a configurable sell ratio, with a transaction log exportable to Discord.
+- **Loot Setup** — one-click binding of the system's built-in *Treasure 0–3* table (imported, enhanced, and linked) plus per-tier loot table configuration.
+
+### 🎖️ Party XP & Session Recap
+
+- **Party XP award tool** — award XP to the whole party at once. Drag an item to use its XP value (a tagged value wins, else the loot-quality score) or type an amount. The full amount goes to **each** selected character (Shadowdark RAW — treasure XP isn't split); a chat card summarizes old→new XP and flags anyone at the level-up threshold. Writes only `system.level.xp` — never auto-levels.
+- **Session Recap** — a per-session tracker (Overview / Combat / Loot / XP / History) with a **Copy for Discord** markdown export. Tied to the crawl: starting a crawl begins/continues a session, ending it saves/pauses/discards. Captures loot claims, XP awards, combats, per-PC roll stats, damage & kills, merchant activity, and encounter checks — with no extra clicks. In multi-GM worlds only the active GM records, so nothing is double-counted.
+
+### 🐴 Mounts & Boats
+
+Two Actor sub-types (**Mount**, **Boat**) with dedicated sheets and shared Occupants / Inventory / Description tabs, for the *Western Reaches* mounts, warband units, boats, and siege vehicles. The Mount type reuses the Shadowdark system's own NPC data model and sheet.
+
+---
+
+## Settings
+
+Configured under **Configure Settings → Shadowdark Enhancer** (world scope). Highlights:
+
+| Setting | Default | Notes |
+|---|---|---|
+| Combat movement default (ft) | 30 | Per-combatant turn budget. |
+| Out-of-combat movement budget (ft) | 90 | Per-crawl-turn budget. |
+| Enforce out-of-combat movement budget | on | Over-budget moves are refused. |
+| Enforce combat movement budget | off | Opt-in refusal in combat. |
+| Hide hidden NPCs from the strip | on | Suppresses `token.hidden` / `combatant.hidden` cards. |
+| Warn when shadowdark-crawl-helper is enabled | on | Non-blocking load-time notice. |
+| Encounter threshold (1d6) | 1 | Hit on ≤ threshold. |
+| Encounter sources | world + bestiary | Which packs feed encounters. |
+| GM-only encounter rolls | on | Players can't trigger checks. |
+| Pause on encounter | on | Auto-pause the game on a hit. |
+| Auto-roll active table | on | Roll the bound table on a hit. |
+| Loot drop on kill | on | Auto-loot when a monster dies. |
+| XP level-up thresholds / loot XP tiers | 10 / 150 | Used by Party XP and loot valuation. |
+
+---
 
 ## API for module developers
 
-A versioned public API (`game.shadowdarkEnhancer`, mirrored at
-`game.modules.get("shadowdark-enhancer")?.api`) exposes the importer,
-linker, encounter, loot, table, and bundle features for other modules and
-macros. See [docs/API.md](docs/API.md).
+A versioned, public API is exposed at `game.shadowdarkEnhancer` and mirrored at
+`game.modules.get("shadowdark-enhancer")?.api`. Wait for the ready signal:
+
+```js
+Hooks.once("shadowdarkEnhancer.ready", (api) => {
+  console.log("SDE API", api.apiVersion); // "1.0.0"
+});
+```
+
+Namespaces: `import` (universal dump segmentation), `items`, `monsters`,
+`linker` (name → compendium resolution), `encounter`, `loot`, `tables`,
+`bundle` (suite export/import), `mutator`, `monsterCreator`, and `forge`.
+Document-creating entry points are GM-only and follow a never-overwrite,
+never-delete contract. Full reference: **[docs/API.md](docs/API.md)**.
+
+---
+
+## Project layout
+
+```
+scripts/
+├── shadowdark-enhancer.mjs      # entry: hooks, API surface, partial/actor registration
+├── crawl-bar.mjs / crawl-strip.mjs / crawl-state.mjs   # top strip + control bar
+├── movement-tracker.mjs / hidden-sync.mjs / initiative-manager.mjs
+├── npc-action-menu.mjs          # combat HUD dropdown
+├── merchant-shop.mjs
+├── settings.mjs / icons.mjs / module-id.mjs
+├── actors/                      # Mount & Boat sub-types, sheets, vehicle rolls
+└── encounter/                   # importer hub, roller, loot, forge, tables,
+                                 # census dashboards, party XP, session recap
+templates/                       # Handlebars for every window + chat cards + partials
+styles/shadowdark-enhancer.css
+languages/en.json
+docs/API.md
+```
+
+See **[CHANGELOG.md](CHANGELOG.md)** for the full release history.
 
 ## License
 
-MIT — see `LICENSE`.
-
-## Acknowledgements
-
-Forked patterns and lessons-learned from [Vagabond Crawler](https://github.com/DimitroffVodka/vagabond-crawler), the author's earlier crawl-helper module for the Vagabond system.
+MIT — see [LICENSE](LICENSE).
