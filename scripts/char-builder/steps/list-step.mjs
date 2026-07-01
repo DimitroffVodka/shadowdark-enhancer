@@ -55,15 +55,19 @@ export class ListStep extends BaseStep {
     if (pick) await this.select(pick.uuid);
   }
 
+  /** Optional local portrait URL for an item, overriding its system icon. Override. */
+  portrait(_item) { return null; }
+
   /** Shared list / detail context; aside + extras come from subclasses. */
   async prepareContext() {
     const items = await this.items();
     const selUuid = this.selected?.uuid ?? null;
-    const entries = items.map((i) => ({ id: i.uuid, name: i.name, img: i.img, selected: i.uuid === selUuid }));
+    const entries = items.map((i) => ({ id: i.uuid, name: i.name, img: this.portrait(i) ?? i.img, selected: i.uuid === selUuid }));
     const selItem = items.find((i) => i.uuid === selUuid) ?? null;
 
+    const portrait = selItem ? this.portrait(selItem) : null;
     const detail = selItem
-      ? { name: selItem.name, img: selItem.img, description: await enrich(selItem.system?.description) }
+      ? { name: selItem.name, img: portrait ?? selItem.img, description: await enrich(selItem.system?.description), hasPortrait: !!portrait }
       : null;
 
     return {

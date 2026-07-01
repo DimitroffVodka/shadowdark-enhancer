@@ -3,7 +3,7 @@
 
   <div class="sde-cb-col-detail">
     {{#if step.hasSelection}}
-    <div class="sde-cb-banner">
+    <div class="sde-cb-banner{{#if step.detail.hasPortrait}} has-portrait{{/if}}">
       <img class="sde-cb-banner-img" src="{{step.detail.img}}" alt="">
       <h2 class="sde-cb-banner-name">{{step.detail.name}}</h2>
     </div>

@@ -6558,21 +6558,41 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-char-builder .window-content { padding: 0; }
 
 .sde-cb {
-  --cb-bg: #14130f;
-  --cb-panel: #1e1c16;
-  --cb-panel-2: #272319;
-  --cb-border: #3a3428;
-  --cb-accent: #c9a54a;         /* Shadowdark gold */
-  --cb-accent-2: #8a6d2f;       /* darker bronze-gold */
-  --cb-text: #ece7db;
-  --cb-muted: #a89f88;
-  --cb-ink: #0c0b08;
+  /* Printed-rulebook book palette (black on white, engraved-silver frames).
+     These --sd-* tokens + the .sd-band mixin below are shared by ALL tabs. */
+  --sd-page:#000; --sd-panel:#0d0d0d; --sd-quote-inner:#1a1a1a;
+  --sd-text:#fff; --sd-text-body:#f0f0f0; --sd-text-2:#e0e0e0; --sd-text-muted:#999;
+  --sd-hairline:#443c3c; --sd-frame:#c9c9c9; --sd-gold:#c9aa58;
+  --sd-radius:4px; --sd-shadow:0 2px 8px rgba(0,0,0,.3);
+  --sd-s2:2px; --sd-s4:4px; --sd-s8:8px; --sd-s12:12px; --sd-s20:20px; --sd-s32:32px;
+
+  /* font voices — shadowdark SYSTEM families (no extras dependency) */
+  --sd-font-title:"JSL Blackletter", var(--font-header, serif);
+  --sd-font-head:"Montserrat-SemiBold", var(--font-sans, "Signika"), sans-serif;
+  --sd-font-body:"Montserrat-Medium", var(--font-sans, "Signika"), sans-serif;
+  --sd-font-flavor:"Old Newspaper Font", serif;
+  --sd-font-mono:"Montserrat-Medium", ui-monospace, "Courier New", monospace;
+
+  /* legacy --cb-* names remapped to the book palette — every tab inherits this,
+     turning the old gold-forward theme monochrome. Gold survives only where a
+     rule explicitly opts into var(--sd-gold). */
+  --cb-bg:var(--sd-page);
+  --cb-panel:var(--sd-panel);
+  --cb-panel-2:var(--sd-panel);
+  --cb-border:var(--sd-hairline);
+  --cb-accent:var(--sd-text);
+  --cb-accent-2:var(--sd-frame);
+  --cb-text:var(--sd-text);
+  --cb-muted:var(--sd-text-muted);
+  --cb-ink:var(--sd-page);
+
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--cb-bg);
-  color: var(--cb-text);
+  background: var(--sd-page);
+  color: var(--sd-text-body);
+  font-family: var(--sd-font-body);
 }
 
 /* --- Tab bar -------------------------------------------------------------- */
@@ -6699,6 +6719,14 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 .sde-cb-banner-img { width: 72px; height: 72px; object-fit: cover; border-radius: 5px; border: 1px solid var(--cb-border); }
 .sde-cb-banner-name { margin: 0; font-family: var(--font-header, "JSL Blackletter"), serif; font-size: 30px; color: var(--cb-accent); border: none; }
+
+/* medium header portrait (ancestry / class, when a bundled portrait exists) */
+.sde-cb-banner.has-portrait { flex-direction: column; align-items: stretch; gap: 0; padding: 0; overflow: hidden; }
+.sde-cb-banner.has-portrait .sde-cb-banner-img {
+  width: 100%; height: 210px; object-fit: cover; object-position: center 20%;
+  border: none; border-radius: 0; border-bottom: 1px solid var(--cb-border);
+}
+.sde-cb-banner.has-portrait .sde-cb-banner-name { padding: 8px 14px 10px; }
 .sde-cb-desc { line-height: 1.5; color: #d8d2c4; }
 .sde-cb-desc p { margin: 0 0 0.6em; }
 .sde-cb-desc a.content-link, .sde-cb-desc a.inline-roll { color: var(--cb-accent); }
@@ -6715,6 +6743,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* select + free-text + dice, in a row (Name / Trinket) */
 .sde-cb-choicerow { display: flex; gap: 6px; align-items: center; }
 .sde-cb-choicerow select { flex: 0 0 auto; min-width: 150px; max-width: 190px; }
+.sde-cb-choicerow .sde-cb-src-select { min-width: 92px; max-width: 128px; color: var(--sd-text-muted); }
 .sde-cb-choicerow input[type="text"] { flex: 1; }
 
 /* --- Class sub-panels (talent / spells / patron) ------------------------- */
@@ -6733,15 +6762,28 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   transition: border-color 0.1s, background 0.1s;
 }
 .sde-cb-chip:hover { border-color: var(--cb-accent); }
-.sde-cb-chip.selected { border-color: var(--cb-accent); background: #33290f; color: var(--cb-accent); }
-/* class talent table (2d6 reference) */
-.sde-cb-talent-table { width: 100%; border-collapse: collapse; margin: 8px 0 10px; font-size: 12px; }
-.sde-cb-talent-table th {
-  text-align: left; color: var(--cb-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--cb-border); padding: 3px 6px;
+.sde-cb-chip.selected { border-color: var(--sd-gold); background: rgba(201,170,88,0.12); color: var(--sd-gold); }
+/* class talent table (2d6 reference) — kill Foundry core table tint/zebra bleed */
+.sde-cb-talent-table {
+  width: 100%; border-collapse: collapse; margin: 8px 0 10px; font-size: 12px;
+  background: transparent !important;
+  --table-background-color: transparent;
+  --table-header-bg-color: transparent;
+  --table-row-color-even: transparent;
+  --table-row-color-odd: transparent;
 }
-.sde-cb-talent-table td { padding: 3px 6px; border-bottom: 1px solid var(--cb-border); color: #cdc7ba; vertical-align: top; }
-.sde-cb-talent-table td.rng { color: var(--cb-accent); font-weight: 700; width: 44px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sde-cb-talent-table thead, .sde-cb-talent-table tfoot {
+  background: transparent !important; border: none !important; border-radius: 0 !important;
+}
+.sde-cb-talent-table th {
+  text-align: left; color: var(--sd-text-muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--sd-frame); padding: 3px 6px; background: transparent !important;
+}
+.sde-cb-talent-table tbody tr:nth-child(even),
+.sde-cb-talent-table tbody tr:nth-child(odd) { background: transparent !important; }
+.sde-cb-talent-table td { padding: 3px 6px; border-bottom: 1px solid var(--cb-border); color: var(--sd-text-body); vertical-align: top; background: transparent !important; }
+.sde-cb-talent-table tr:last-child td { border-bottom: none; }
+.sde-cb-talent-table td.rng { color: var(--sd-gold); font-weight: 700; width: 44px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* aside concrete lists (weapons / armor permitted) */
 .sde-cb-aside-list { margin-top: 10px; }
@@ -6778,6 +6820,57 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 
 .sde-cb-empty { color: var(--cb-muted); font-style: italic; padding: 40px 12px; text-align: center; }
 
+/* --- Ancestry step: title band, narrow list, combined wide detail -------- */
+.sde-cb-anc {
+  height: 100%; display: flex; flex-direction: column; min-height: 0;
+  container-type: inline-size; container-name: cbanc;
+  padding: var(--sd-s20) var(--sd-s12) var(--sd-s12);
+  background: var(--sd-page); color: var(--sd-text-body);
+}
+.sde-cb-anc .sde-cb-page-title { flex: 0 0 auto; max-width: 860px; margin: 0 auto var(--sd-s8); text-align: center; }
+.sde-cb-anc .sde-cb-page-title h1 {
+  font-family: var(--sd-font-title); font-weight: 400; font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.05; color: var(--sd-text); margin: 0; border: none; background: none;
+}
+.sde-cb-anc-subhead { flex: 0 0 auto; max-width: 360px; margin: 0 auto var(--sd-s20); text-align: center; }
+.sde-cb-anc-subhead h2 {
+  font-family: var(--sd-font-title); font-weight: 400; font-size: 24px; line-height: 1.1;
+  color: var(--sd-text); margin: 0; border: none;
+}
+
+.sde-cb-anc-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 188px 1fr; gap: var(--sd-s20); }
+.sde-cb-anc-main { min-width: 0; min-height: 0; overflow-y: auto; padding-right: var(--sd-s4); }
+
+.sde-cb-anc-detail.with-portrait { display: grid; grid-template-columns: 1fr minmax(240px, 340px); gap: var(--sd-s20); align-items: start; }
+.sde-cb-anc-text { min-width: 0; }
+.sde-cb-anc-portrait img {
+  width: 100%; height: auto; display: block;
+  border: 1px solid var(--sd-frame); border-radius: var(--sd-radius); box-shadow: var(--sd-shadow);
+}
+
+/* rulebook-style body: description, languages sentence, bold-inline traits */
+.sde-cb-anc-text .sde-cb-desc,
+.sde-cb-anc-langs,
+.sde-cb-anc-trait {
+  font-family: var(--sd-font-body); font-size: 13.5px; line-height: 1.55;
+  color: var(--sd-text-body); margin: 0 0 var(--sd-s12);
+}
+.sde-cb-anc-text .sde-cb-desc p { margin: 0 0 var(--sd-s8); }
+.sde-cb-anc-traits { margin: 0 0 var(--sd-s20); }
+.sde-cb-anc-trait .tn { font-weight: 700; color: var(--sd-text); }
+.sde-cb-anc-trait p { display: inline; margin: 0; }   /* keep any residual desc paragraph inline */
+.sde-cb-anc-trait.choosable {
+  cursor: pointer; padding: 8px 10px; border: 1px solid var(--sd-hairline); border-radius: var(--sd-radius);
+}
+.sde-cb-anc-trait.choosable:hover { border-color: var(--sd-frame); }
+.sde-cb-anc-trait.choosable.selected { border-color: var(--sd-frame); background: var(--sd-panel); }
+.sde-cb-anc-trait .tsel { color: var(--sd-gold); margin-right: var(--sd-s2); }
+
+@container cbanc (max-width: 760px) {
+  .sde-cb-anc-body { grid-template-columns: 148px 1fr; }
+  .sde-cb-anc-detail.with-portrait { grid-template-columns: 1fr; }
+}
+
 /* --- Gear shop ------------------------------------------------------------ */
 .sde-cb-gear-meta { display: flex; flex-wrap: wrap; gap: 14px; margin: 4px 0 12px; font-size: 12.5px; color: var(--cb-muted); }
 .sde-cb-gear-meta b { color: var(--cb-text); }
@@ -6806,33 +6899,12 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-stats {
   height: 100%; overflow-y: auto;
   container-type: inline-size; container-name: cbstats;  /* ability grid tracks window width */
-
-  /* book palette */
-  --sd-page:#000; --sd-panel:#0d0d0d; --sd-quote-inner:#1a1a1a;
-  --sd-text:#fff; --sd-text-body:#f0f0f0; --sd-text-2:#e0e0e0; --sd-text-muted:#999;
-  --sd-hairline:#443c3c; --sd-frame:#c9c9c9; --sd-gold:#c9aa58;
-  --sd-radius:4px; --sd-shadow:0 2px 8px rgba(0,0,0,.3);
-  --sd-s2:2px; --sd-s4:4px; --sd-s8:8px; --sd-s12:12px; --sd-s20:20px; --sd-s32:32px;
-
-  /* font voices — SYSTEM-provided families only */
-  --sd-font-title:"JSL Blackletter", var(--font-header, serif);
-  --sd-font-head:"Montserrat-SemiBold", var(--font-sans, "Signika"), sans-serif;
-  --sd-font-body:"Montserrat-Medium", var(--font-sans, "Signika"), sans-serif;
-  --sd-font-flavor:"Old Newspaper Font", serif;
-  --sd-font-mono:"Montserrat-Medium", ui-monospace, "Courier New", monospace;
-
-  /* repaint inherited builder tokens monochrome IN THIS SUBTREE ONLY */
-  --cb-text:var(--sd-text); --cb-muted:var(--sd-text-muted);
-  --cb-accent:var(--sd-text); --cb-accent-2:var(--sd-frame);
-  --cb-border:var(--sd-hairline); --cb-panel:var(--sd-panel); --cb-panel-2:var(--sd-panel);
-
   background:var(--sd-page); color:var(--sd-text-body);
-  font-family:var(--sd-font-body);
   padding:var(--sd-s20) var(--sd-s12) var(--sd-s32);
 }
 
 /* --- portable engraved-plate frame (PNG-free double hairline) ------------- */
-.sde-cb-stats .sd-band{
+.sde-cb .sd-band{
   position:relative;
   background:var(--sd-page); color:var(--sd-text);
   border:2px solid var(--sd-frame);
@@ -6841,11 +6913,11 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   box-shadow:var(--sd-shadow);
   padding:var(--sd-s12) var(--sd-s20);
 }
-.sde-cb-stats .sd-band::after{
+.sde-cb .sd-band::after{
   content:""; position:absolute; inset:4px;
   border:1px solid rgba(201,201,201,.18); border-radius:2px; pointer-events:none;
 }
-.sde-cb-stats .sd-band--tight{ padding:var(--sd-s4) var(--sd-s12); }
+.sde-cb .sd-band--tight{ padding:var(--sd-s4) var(--sd-s12); }
 
 /* --- page title ----------------------------------------------------------- */
 .sde-cb-stats .sde-cb-page-title{ max-width:760px; margin:0 auto var(--sd-s32); text-align:center; }
@@ -7002,7 +7074,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 
 .sde-cb-hint { font-size: 12.5px; margin: 10px 0; }
-.sde-cb-hint.warn { color: #e0b24a; }
+.sde-cb-hint.warn { color: var(--sd-text-2); }
 .sde-cb-hint.ok { color: #7bbf5f; }
 
 /* --- Roll steps (HP / Gold) ---------------------------------------------- */
@@ -7021,7 +7093,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* --- Placeholder ---------------------------------------------------------- */
 .sde-cb-coming-soon {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px; padding: 70px 20px; color: #635c48; text-align: center;
+  gap: 12px; padding: 70px 20px; color: var(--sd-text-muted); text-align: center;
 }
 .sde-cb-coming-soon i { font-size: 38px; opacity: 0.5; }
 .sde-cb-placeholder .sde-cb-step-title,
@@ -7038,13 +7110,13 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .sde-cb-btn.sm { padding: 6px 9px; }
 .sde-cb-btn.dice { border-color: var(--cb-accent-2); }
-.sde-cb-btn.dice:hover:not(:disabled) { background: #33290f; }
-.sde-cb-btn.warn { border-color: #8a6a2a; }
+.sde-cb-btn.dice:hover:not(:disabled) { background: var(--sd-panel); }
+.sde-cb-btn.warn { border-color: var(--sd-frame); }
 .sde-cb-btn.ghost { background: transparent; color: var(--cb-muted); }
 .sde-cb-btn.danger { background: var(--cb-accent); border-color: var(--cb-accent); color: var(--cb-ink); font-weight: 700; }
 .sde-cb-btn.danger:hover:not(:disabled) { filter: brightness(1.1); }
 .sde-cb-btn.nav { background: var(--cb-panel-2); }
-.sde-cb-btn.nav:hover:not(:disabled) { background: #322c1c; }
+.sde-cb-btn.nav:hover:not(:disabled) { background: var(--sd-panel); }
 .sde-cb-btn.finish { background: var(--cb-panel-2); color: var(--cb-muted); }
 .sde-cb-btn.finish.ready { background: var(--cb-accent); border-color: var(--cb-accent); color: var(--cb-ink); font-weight: 700; }
 

@@ -15,6 +15,8 @@ export class CharBuilderState {
 
     this.name = "";
     this.trinket = "";
+    this.nameSource = null;      // selected Name table source id (Ancestry step)
+    this.trinketSource = null;   // selected Trinket table source id
     this.alignment = "neutral";
 
     // --- Abilities ----------------------------------------------------------

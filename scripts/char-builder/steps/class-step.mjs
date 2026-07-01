@@ -1,4 +1,5 @@
 import { ListStep } from "./list-step.mjs";
+import { classArt } from "../art.mjs";
 
 /**
  * Step — Class.
@@ -24,6 +25,9 @@ export class ClassStep extends ListStep {
   get icon() { return "fa-solid fa-hat-wizard"; }
   get partial() { return "sde-cb-class"; }
   get stateKey() { return "class"; }
+
+  /** Use a bundled class portrait when one exists, else the system icon. */
+  portrait(item) { return classArt(item?.name); }
 
   async loadItems() {
     return Array.from(await shadowdark.compendiums.classes())

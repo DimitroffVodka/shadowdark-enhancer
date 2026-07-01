@@ -104,6 +104,24 @@ export function registerSettings() {
     default: 0,
   });
 
+  // Which Name/Trinket table sources the Ancestry step may draw from. Enable
+  // one or more; when several are on the builder shows a per-row source picker.
+  game.settings.register(MODULE_ID, "charBuilderTableSrcCore", {
+    name: "SDE.settings.charBuilderTableSrcCore.name",
+    hint: "SDE.settings.charBuilderTableSrcCore.hint",
+    scope: "world", config: true, type: Boolean, default: true,
+  });
+  game.settings.register(MODULE_ID, "charBuilderTableSrcWesternReaches", {
+    name: "SDE.settings.charBuilderTableSrcWesternReaches.name",
+    hint: "SDE.settings.charBuilderTableSrcWesternReaches.hint",
+    scope: "world", config: true, type: Boolean, default: false,
+  });
+  game.settings.register(MODULE_ID, "charBuilderTableSrcNord", {
+    name: "SDE.settings.charBuilderTableSrcNord.name",
+    hint: "SDE.settings.charBuilderTableSrcNord.hint",
+    scope: "world", config: true, type: Boolean, default: false,
+  });
+
   // Trinkets are ancestry-dependent — the Ancestry step resolves the matching
   // "<Ancestry> Trinket" table by name, so no global trinket-table setting.
 
