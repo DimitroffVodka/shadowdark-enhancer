@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.8.2] — 2026-06-30
+
+Rebuilds the Magic Item Forge so forged items actually apply their bonuses, adds item & coin drops with canvas pickup, and introduces Mount & Boat actor sheets.
+
+### Added
+- **Item & coin drops with canvas pickup.** Drag an inventory item onto the canvas to spawn a pickup-able token; another character grabs it from a **Token HUD** button. Stackable drops prompt for a quantity and auto-stack onto a matching item on pickup (by name + type) instead of creating a duplicate. The GM can also drop items straight from the world or a compendium (no owning actor, no inventory decrement). Coins get a GM **"Drop Coins…"** button on the Loot Generator (plus a per-result button when a rolled result contains coins) — pickup **adds** to the recipient's `system.coins`. Ported from Vagabond Crawler and re-adapted to Shadowdark (physical-item whitelist, light sources excluded, drops logged to Session Recap).
+- **Mount & Boat actor sub-types.** Two new Actor types — `mount` and `boat` — with dedicated sheets and shared Occupants / Inventory / Description tabs, for the *Western Reaches* mounts, warband units, boats, and siege vehicles. The Mount type reuses the Shadowdark system's own NPC data model and sheet.
+- **Magic Item Forge — per-class spell folders, tier filter, and spell pop-out.** The scroll/wand spell selector now groups its spells into collapsible **per-class folders** (with count badges and persisted open/closed state), adds a **tier (level) filter** chip row that composes with the text search, and gives each spell row a **pop-out** button that opens the spell's sheet so you can read it before picking.
+
+### Fixed
+- **Forged magic items now actually work.** The old forge wrote weapon `+N` as Active Effects the Shadowdark 4.0.6 rules engine rejects, so forged weapons silently applied no bonus. The forge was rebuilt around mechanically-correct types: weapon/armor `+N` forged onto a real base item using the system's current effect keys, and scrolls/wands as proper spell references (the system owns casting, DC, expend, and break). Live-verified a `+2` weapon resolving to `+2` attack and `+2` damage through the system's own roll pipeline, and `+1` armor raising AC.
+- **Pickup stacking respects Max per Slot.** Auto-stacking now tops off partial stacks up to `system.slots.per_slot` and spills overflow into new stacks (e.g. `3/3 + 2/3`) instead of producing oversized single stacks.
+- **Forge tier filter no longer force-expands every class folder.** Selecting a tier narrows the rows in place and leaves each folder's open/closed state untouched; only the text search auto-expands.
+- **Forge tier-chip row renders on a single row** regardless of Foundry's generic button styling.
+
+### Removed
+- **The non-functional Rest placeholder button** was removed from the crawl bar (it was a dimmed "coming later" stub that did nothing).
+
+### Docs
+- **README rewritten** for the current feature set — crawl strip/bar, random encounters, Monster Creator, importer hub, loot / forge / merchant, party XP, session recap, and mounts & boats — with corrected compatibility, a full settings table, and the public API surface. Dropped the stale v0.1.0 content.
+
+### Notes
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+
 ## [0.8.1] — 2026-06-29
 
 Rebuilds the Importer as a single-view tool, adds spell import, and trims the crawl bar.
