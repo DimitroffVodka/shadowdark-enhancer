@@ -117,6 +117,12 @@
       </div>
       {{/if}}
 
+      {{!-- Languages (ancestry + class pools; choices tracked by the retained LanguagesStep) --}}
+      <div class="sde-cb-subpanel" data-cb-class-langs>
+        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.step.languages"}}</span>
+        {{> sde-cb-languages step=step.languages}}
+      </div>
+
       {{else}}
       <div class="sde-cb-empty">{{localize "SDE.charBuilder.selectPrompt"}}</div>
       {{/if}}

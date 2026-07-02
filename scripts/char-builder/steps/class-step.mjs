@@ -1,4 +1,5 @@
 import { ListStep } from "./list-step.mjs";
+import { LanguagesStep } from "./languages-step.mjs";
 import { classArt } from "../art.mjs";
 import { resultText } from "../data.mjs";
 import { builderDiceAnimation } from "../constants.mjs";
@@ -20,6 +21,10 @@ export class ClassStep extends ListStep {
     this._spellCache = {};
     this._patrons = null;
     this._classInfoCache = {};
+    // Language choice lives on this tab (ancestry + class both contribute once
+    // a class is picked) — delegate to the retained LanguagesStep, which keeps
+    // its combo-keyed cache, need-counts and state._sync logic.
+    this.langStep = new LanguagesStep(app);
   }
 
   get id() { return "class"; }
@@ -48,9 +53,12 @@ export class ClassStep extends ListStep {
     this.state.hp = { max: 0, rolled: null };
     this.state.languages = [];
     this.state.languageChoices = { common: [], rare: [], select: [] };
+    // Warm the language cache for the new combo so isComplete() (sync) can
+    // read slot counts immediately.
+    await this.langStep._data();
   }
 
-  /** A class is only complete once its patron / spells-known requirements are met. */
+  /** Complete once patron / spells-known / language-choice requirements are met. */
   isComplete() {
     const item = this.selected?.item;
     if (!this.selected?.uuid || !item) return false;
@@ -60,7 +68,13 @@ export class ClassStep extends ListStep {
       const need = Object.values(known).reduce((a, b) => a + (Number(b) || 0), 0);
       if ((this.state.spells?.length || 0) < need) return false;
     }
-    return true;
+    return this._languagesComplete();
+  }
+
+  /** Language slots filled — cold or stale (ancestry/class changed) cache counts as incomplete. */
+  _languagesComplete() {
+    const ls = this.langStep;
+    return !!ls._cache && ls._comboKey === ls._combo() && ls.isComplete();
   }
 
   _isCaster(item) {
@@ -149,6 +163,8 @@ export class ClassStep extends ListStep {
       talent: await this._talentContext(item),
       spells: await this._spellContext(item),
       patron: await this._patronContext(item),
+      // Also warms the combo cache _languagesComplete() reads.
+      languages: await this.langStep.prepareContext(),
     };
   }
 
@@ -329,9 +345,12 @@ export class ClassStep extends ListStep {
       const p = patrons[Math.floor(Math.random() * patrons.length)];
       if (p) this.state.patron = { uuid: p.uuid, name: p.name, item: p };
     }
+    await this.langStep.randomize();
   }
 
   _onRenderExtra(root) {
+    const langRoot = root.querySelector("[data-cb-class-langs]");
+    if (langRoot) this.langStep.onRender(langRoot);
     root.querySelector("[data-cb-roll-talent]")?.addEventListener("click", async () => { await this.rollTalent(); });
     root.querySelectorAll("[data-cb-talent-opt]").forEach((el) => el.addEventListener("click", async () => {
       const opt = (this.state.classTalentRoll?.options || []).find((o) => o.uuid === el.dataset.cbTalentOpt);
