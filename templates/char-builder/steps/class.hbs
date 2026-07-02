@@ -1,5 +1,12 @@
 <div class="sde-cb-anc is-class">
 
+  {{!-- Class art occupies the empty header space left of the title band --}}
+  {{#if step.detail.hasPortrait}}
+  <div class="sde-cb-class-portrait">
+    <img src="{{step.detail.img}}" alt="{{step.detail.name}}">
+  </div>
+  {{/if}}
+
   <div class="sde-cb-page-title sd-band">
     <h1>{{localize "SDE.charBuilder.step.class"}}</h1>
   </div>
@@ -17,7 +24,7 @@
     <div class="sde-cb-anc-main">
       {{#if step.hasSelection}}
 
-      <div class="sde-cb-anc-detail{{#if step.detail.hasPortrait}} with-portrait{{/if}}">
+      <div class="sde-cb-anc-detail">
         <div class="sde-cb-anc-text">
 
           <div class="sde-cb-desc">{{{step.detail.description}}}</div>

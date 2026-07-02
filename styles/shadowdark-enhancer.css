@@ -6891,6 +6891,22 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-tsrc-showall { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .sde-cb-tsrc-footer { flex: 0 0 auto; display: flex; justify-content: flex-end; }
 
+/* ---- Class tab: portrait in the header space left of the title band ---- */
+.sde-cb-anc.is-class { position: relative; }
+.sde-cb-class-portrait {
+  position: absolute; top: var(--sd-s8); left: var(--sd-s20);
+  /* fits the header zone (title band + subhead ≈ 155px) with clearance */
+  height: 128px; z-index: 1;
+}
+.sde-cb-class-portrait img {
+  height: 100%; width: auto; display: block;
+  border: 1px solid var(--sd-frame); border-radius: var(--sd-radius); box-shadow: var(--sd-shadow);
+}
+/* keep the floating portrait clear of the tab body on narrow windows */
+@container cbanc (max-width: 820px) {
+  .sde-cb-class-portrait { display: none; }
+}
+
 /* ---- Class tab: spell rows with inline preview ---- */
 .sde-cb-spell-list { display: flex; flex-direction: column; gap: 4px; }
 .sde-cb-spell-row-head { display: flex; align-items: center; gap: 6px; }
