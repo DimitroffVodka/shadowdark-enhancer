@@ -1,9 +1,12 @@
 import { ListStep } from "./list-step.mjs";
 import {
   loadAncestries, enrich, tableOptions, rollTableDoc,
-  TABLE_SOURCES, enabledSourceIds,
+  configuredTables, tableMatchesAncestry, coreNameTable, findTableByName,
 } from "../data.mjs";
 import { ancestryArt } from "../art.mjs";
+
+/** Source id for the built-in resolution used when the GM configured nothing. */
+const DEFAULT_SOURCE = "__default";
 
 /**
  * Step — Ancestry.
@@ -35,31 +38,46 @@ export class AncestryStep extends ListStep {
   /** Use a bundled ancestry portrait when one exists, else the system icon. */
   portrait(item) { return ancestryArt(item?.name); }
 
-  /** Resolve (and cache) one source's name/trinket table for an ancestry.
-   *  Empty tables (present but with no results — e.g. an uninstalled WR pack)
-   *  resolve to null so that source drops out of the available list. */
+  /** Resolve (and cache) a source's table. A source id is a table UUID from
+   *  the GM's Table Sources menu, or DEFAULT_SOURCE for the built-in
+   *  resolution (ancestry `system.nameTable` → name-convention lookup).
+   *  Empty tables resolve to null so the source drops out. */
   async _tableFor(item, sourceId, kind) {
     if (!item?.uuid || !sourceId) return null;
     const key = `${item.uuid}:${sourceId}:${kind}`;
     if (key in this._tableCache) return this._tableCache[key];
-    const src = TABLE_SOURCES.find((s) => s.id === sourceId);
-    let doc = src ? await src[kind](item) : null;
+    let doc;
+    if (sourceId === DEFAULT_SOURCE) {
+      doc = kind === "name"
+        ? await coreNameTable(item)
+        : await findTableByName([`${item.name} Trinket`], ["shadowdark-enhancer"]);
+    } else {
+      doc = await fromUuid(sourceId).catch(() => null);
+    }
     if (doc && !(doc.results?.size > 0)) doc = null;   // ignore present-but-empty tables
     this._tableCache[key] = doc;
     return doc;
   }
 
-  /** Enabled sources (localized) that actually have a `kind` table for this ancestry. */
+  /** GM-configured tables offered for this ancestry (per-ancestry filtered);
+   *  falls back to the built-in resolution when nothing is configured. */
   async _availableSources(item, kind) {
-    const avail = [];
-    for (const id of enabledSourceIds()) {
-      // eslint-disable-next-line no-await-in-loop
-      if (await this._tableFor(item, id, kind)) {
-        const src = TABLE_SOURCES.find((s) => s.id === id);
-        avail.push({ id, label: game.i18n.localize(src.label) });
-      }
+    if (!item) return [];
+    const configured = await configuredTables(kind);
+    const allNames = (await this.items()).map((a) => a.name);
+    let avail = configured
+      .filter((t) => tableMatchesAncestry(t.name, item.name, allNames))
+      .map((t) => ({ id: t.uuid, label: t.name, origin: t.origin }));
+    // Same-named tables from different packs (e.g. core vs WR "Elf Trinket")
+    // get their origin appended so the picker isn't ambiguous.
+    const counts = {};
+    for (const s of avail) counts[s.label] = (counts[s.label] || 0) + 1;
+    avail = avail.map((s) => counts[s.label] > 1 ? { ...s, label: `${s.label} (${s.origin})` } : s);
+    if (avail.length) return avail;
+    if (await this._tableFor(item, DEFAULT_SOURCE, kind)) {
+      return [{ id: DEFAULT_SOURCE, label: game.i18n.localize("SDE.charBuilder.ancestry.source.default") }];
     }
-    return avail;
+    return [];
   }
 
   /** Initialise the ancestry talent choice on selection: all when granted, else the first N. */

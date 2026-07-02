@@ -115,7 +115,7 @@ export async function findTableByName(names, hints = [], { requireHints = false 
  * generator resolves names — also the only hook homebrew ancestries have),
  * falling back to the naming conventions of the enhancer / system packs.
  */
-async function coreNameTable(item) {
+export async function coreNameTable(item) {
   const uuid = item?.system?.nameTable;
   if (uuid) {
     const t = await fromUuid(uuid).catch(() => null);
@@ -125,47 +125,96 @@ async function coreNameTable(item) {
   return findTableByName([`${a} Names`, `Character Names: ${a}`], ["shadowdark-enhancer", "shadowdark.rollable"]);
 }
 
-/**
- * Selectable Name / Trinket table sources for the Ancestry step. Each source
- * resolves an ancestry ITEM's name + trinket table by the convention its pack
- * uses. The GM enables one or more via world settings; when several are
- * enabled the builder shows a source picker. Resolvers return null when that
- * source has no matching table installed, so a source with missing tables
- * simply drops out of the available list.
- */
-export const TABLE_SOURCES = [
-  {
-    id: "core",
-    label: "SDE.charBuilder.ancestry.source.core",
-    setting: "charBuilderTableSrcCore",
-    name: (item) => coreNameTable(item),
-    trinket: (item) => findTableByName([`${item.name} Trinket`], ["shadowdark-enhancer"]),
-  },
-  {
-    id: "western-reaches",
-    label: "SDE.charBuilder.ancestry.source.wr",
-    setting: "charBuilderTableSrcWesternReaches",
-    name: (item) => findTableByName([`WR Character Names: ${item.name}`, `WR: Character Names: ${item.name}`], ["western-reaches", "wr-"]),
-    // WR trinket tables share the core "<Ancestry> Trinket" name, so a match
-    // must come from a WR pack — without it, this source would silently serve
-    // the core table when Western Reaches isn't installed.
-    trinket: (item) => findTableByName([`${item.name} Trinket`], ["western-reaches", "wr-"], { requireHints: true }),
-  },
-  {
-    id: "nord",
-    label: "SDE.charBuilder.ancestry.source.nord",
-    setting: "charBuilderTableSrcNord",
-    name: (_item) => findTableByName(["Nord Names", "Cursed Scroll 3 p16: Nord Names"]),
-    trinket: (_item) => Promise.resolve(null),
-  },
-];
+// --- GM-selected Name/Trinket table sources ---------------------------------
 
-/** Ids of the enabled Name/Trinket sources (world settings); always ≥ ["core"]. */
-export function enabledSourceIds() {
+const KIND_SETTINGS = { name: "charBuilderNameTables", trinket: "charBuilderTrinketTables" };
+const _configuredDocCache = new Map();   // uuid → RollTable doc (session-lived)
+
+/**
+ * The RollTables the GM checked in the Table Sources settings menu for a kind
+ * ("name" | "trinket"), resolved to docs. Unresolvable or empty tables drop out.
+ */
+export async function configuredTables(kind) {
+  let uuids = [];
+  try { uuids = game.settings.get(MODULE_ID, KIND_SETTINGS[kind]) || []; }
+  catch (_e) { /* not registered yet */ }
   const out = [];
-  for (const s of TABLE_SOURCES) {
-    try { if (game.settings.get(MODULE_ID, s.setting)) out.push(s.id); }
-    catch (_e) { /* not registered yet */ }
+  for (const u of uuids) {
+    let doc = _configuredDocCache.get(u);
+    // eslint-disable-next-line no-await-in-loop
+    if (doc === undefined) { doc = await fromUuid(u).catch(() => null); _configuredDocCache.set(u, doc); }
+    if (doc?.results?.size > 0) {
+      const origin = doc.pack
+        ? (game.packs.get(doc.pack)?.title ?? doc.pack)
+        : game.i18n.localize("SDE.charBuilder.tableSources.world");
+      out.push({ uuid: u, name: doc.name, origin, doc });
+    }
   }
-  return out.length ? out : ["core"];
+  return out;
+}
+
+/**
+ * Per-ancestry filter for a configured table: hide it when its name mentions a
+ * DIFFERENT installed ancestry; show it when it mentions this one or none at
+ * all (a generic table). Longest-match rule so "Half-Elf Names" counts as
+ * mentioning Half-Elf, not Elf. `allAncestryNames` comes from the installed
+ * ancestry list — nothing hardcoded.
+ */
+export function tableMatchesAncestry(tableName, ancestryName, allAncestryNames) {
+  const t = String(tableName).toLowerCase();
+  const matched = allAncestryNames.filter((n) => t.includes(n.toLowerCase()));
+  const maximal = matched.filter((n) =>
+    !matched.some((m) => m !== n && m.toLowerCase().includes(n.toLowerCase())));
+  return maximal.length === 0 || maximal.some((n) => n.toLowerCase() === String(ancestryName).toLowerCase());
+}
+
+/**
+ * One-shot seed of the table-source arrays from the pre-menu boolean settings
+ * (charBuilderTableSrcCore/WesternReaches/Nord) — resolves the tables each
+ * enabled source would have matched and stores their UUIDs. GM-only, on ready.
+ */
+export async function migrateTableSources() {
+  if (!game.user.isGM) return;
+  try {
+    if (game.settings.get(MODULE_ID, "charBuilderTableSrcMigrated")) return;
+    const existing = [
+      ...game.settings.get(MODULE_ID, "charBuilderNameTables"),
+      ...game.settings.get(MODULE_ID, "charBuilderTrinketTables"),
+    ];
+    if (existing.length) {
+      await game.settings.set(MODULE_ID, "charBuilderTableSrcMigrated", true);
+      return;
+    }
+    const core = game.settings.get(MODULE_ID, "charBuilderTableSrcCore");
+    const wr = game.settings.get(MODULE_ID, "charBuilderTableSrcWesternReaches");
+    const nord = game.settings.get(MODULE_ID, "charBuilderTableSrcNord");
+
+    const names = new Set();
+    const trinkets = new Set();
+    for (const a of await loadAncestries()) {
+      if (core) {
+        const nt = await coreNameTable(a);
+        if (nt) names.add(nt.uuid);
+        const tt = await findTableByName([`${a.name} Trinket`], ["shadowdark-enhancer"]);
+        if (tt) trinkets.add(tt.uuid);
+      }
+      if (wr) {
+        const nt = await findTableByName(
+          [`WR Character Names: ${a.name}`, `WR: Character Names: ${a.name}`], ["western-reaches", "wr-"]);
+        if (nt) names.add(nt.uuid);
+        const tt = await findTableByName([`${a.name} Trinket`], ["western-reaches", "wr-"], { requireHints: true });
+        if (tt) trinkets.add(tt.uuid);
+      }
+    }
+    if (nord) {
+      const nt = await findTableByName(["Nord Names", "Cursed Scroll 3 p16: Nord Names"]);
+      if (nt) names.add(nt.uuid);
+    }
+    await game.settings.set(MODULE_ID, "charBuilderNameTables", [...names]);
+    await game.settings.set(MODULE_ID, "charBuilderTrinketTables", [...trinkets]);
+    await game.settings.set(MODULE_ID, "charBuilderTableSrcMigrated", true);
+    console.log(`${MODULE_ID} | seeded char-builder table sources: ${names.size} name, ${trinkets.size} trinket`);
+  } catch (e) {
+    console.error(`${MODULE_ID} | table-source migration failed:`, e);
+  }
 }

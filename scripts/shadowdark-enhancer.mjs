@@ -40,6 +40,7 @@ import { PartyXP } from "./encounter/party-xp.mjs";
 import { SessionRecap } from "./encounter/session-recap.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
+import { migrateTableSources } from "./char-builder/data.mjs";
 
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
 // the Shadowdark system's NpcSD model + NpcSheetSD sheet, which the system
@@ -283,6 +284,9 @@ Hooks.once("ready", () => {
   Hooks.callAll("shadowdarkEnhancer.ready", game.shadowdarkEnhancer);
   CrawlState.init();
   registerHiddenSync();
+  // Seed the char-builder Name/Trinket table sources from the legacy boolean
+  // settings (one-shot, GM-only). Fire-and-forget — errors log inside.
+  migrateTableSources();
   MovementTracker.init();
   CrawlStrip.init();
   CrawlBar.init();
