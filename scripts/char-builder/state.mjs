@@ -37,6 +37,8 @@ export class CharBuilderState {
     this.ancestryTalents = [];  // chosen ancestry talent UUIDs (multi-talent ancestries offer a choice)
     this.classTalents = [];     // rolled/chosen class talents [{ uuid, name }]
     this.classTalentRoll = null;// { total, resultText, options:[{uuid,name,isTable}] }
+    this.bonusRolls = [];       // extra creation rolls (Ambitious, Black Lotus, patron boons…)
+                                // [{ key, label, tableUuid, total, options, chosenUuid, chosenName, textResult }]
     this.spells = [];           // [{ uuid, name, tier }]
     this.languages = [];        // all known language UUIDs (fixed + chosen)
     this.languageChoices = { common: [], rare: [], select: [] }; // chosen UUIDs per pool

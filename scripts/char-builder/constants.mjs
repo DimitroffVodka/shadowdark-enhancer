@@ -126,3 +126,12 @@ export function builderDiceAnimation() {
   try { return !!game.settings.get(MODULE_ID, "charBuilderDiceSoNice"); }
   catch (_e) { return false; }
 }
+
+/**
+ * Ancestry talents that grant one EXTRA class-talent-table roll at level 1
+ * (keyed by system-pack UUID — stable across worlds). Currently the Human
+ * "Ambitious" talent; homebrew equivalents can be added here.
+ */
+export const EXTRA_CLASS_TALENT_ROLL_UUIDS = new Set([
+  "Compendium.shadowdark.talents.Item.DYWFJu5XeazJYc0P",   // Ambitious (Human)
+]);

@@ -6947,6 +6947,23 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   .sde-cb-class-portrait { display: none; }
 }
 
+/* ---- Class tab: bonus creation rolls + choice badge ---- */
+.sde-cb-bonus-roll { margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--sd-hairline, #444); }
+.sde-cb-bonus-roll:last-child { border-bottom: none; margin-bottom: 0; }
+.sde-cb-bonus-label small { color: var(--cb-muted); }
+.sde-cb-choice-badge {
+  display: inline-block; margin-left: 4px; padding: 1px 6px; font-size: 10.5px;
+  color: var(--cb-muted); border: 1px dashed var(--cb-border); border-radius: 8px; white-space: nowrap;
+}
+
+/* languages subpanel: align the inner block titles with the panel title */
+.sde-cb-languages { padding: 0; }
+.sde-cb-languages .sde-cb-lang-block { margin: 6px 0 0; }
+.sde-cb-languages .sde-cb-panel-title {
+  display: block; font-size: 12px; color: var(--cb-muted);
+  border-bottom: none; padding: 0; margin: 0 0 4px;
+}
+
 /* ---- Class tab: spell rows with inline preview ---- */
 .sde-cb-spell-list { display: flex; flex-direction: column; gap: 4px; }
 .sde-cb-spell-row-head { display: flex; align-items: center; gap: 6px; }

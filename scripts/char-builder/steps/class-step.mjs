@@ -1,14 +1,14 @@
 import { ListStep } from "./list-step.mjs";
 import { LanguagesStep } from "./languages-step.mjs";
 import { classArt } from "../art.mjs";
-import { enrich, resultText } from "../data.mjs";
+import { enrich, resultText, findTableByName } from "../data.mjs";
+import { builderDiceAnimation, EXTRA_CLASS_TALENT_ROLL_UUIDS } from "../constants.mjs";
 
 /** Rulebook-style inline description: enrich, then strip the wrapper <p> so
  *  the bold name and text flow on one line (same treatment as ancestry traits). */
 async function inlineDesc(html) {
   return (await enrich(html)).replace(/^\s*<p>/i, "").replace(/<\/p>\s*$/i, "").trim();
 }
-import { builderDiceAnimation } from "../constants.mjs";
 
 /**
  * Step — Class.
@@ -57,6 +57,8 @@ export class ClassStep extends ListStep {
     // Class-dependent choices reset when the class changes.
     this.state.classTalents = [];
     this.state.classTalentRoll = null;
+    this.state.bonusRolls = [];
+    this._bonusCache = null;
     this.state.spells = [];
     this.state.patron = null;
     // HP was rolled from the old class's hit die; languages may include the
@@ -69,7 +71,7 @@ export class ClassStep extends ListStep {
     await this.langStep._data();
   }
 
-  /** Complete once patron / spells-known / language-choice requirements are met. */
+  /** Complete once patron / spells-known / bonus-roll / language requirements are met. */
   isComplete() {
     const item = this.selected?.item;
     if (!this.selected?.uuid || !item) return false;
@@ -79,6 +81,9 @@ export class ClassStep extends ListStep {
       const need = Object.values(known).reduce((a, b) => a + (Number(b) || 0), 0);
       if ((this.state.spells?.length || 0) < need) return false;
     }
+    // Bonus rolls: sync check against the last computed sources (extraContext
+    // recomputes them every render; cold cache counts as complete-so-far).
+    if (this._bonusCache?.sources?.length && !this._bonusComplete(this._bonusCache.sources)) return false;
     return this._languagesComplete();
   }
 
@@ -173,11 +178,31 @@ export class ClassStep extends ListStep {
       infoLines: await this._infoLines(item),
       traits: await this._traits(item),
       talent: await this._talentContext(item),
+      bonusRolls: await this._bonusContext(item),
       spells: await this._spellContext(item),
       patron: await this._patronContext(item),
       // Also warms the combo cache _languagesComplete() reads.
       languages: await this.langStep.prepareContext(),
     };
+  }
+
+  /** Template context for the extra creation rolls. */
+  async _bonusContext(item) {
+    const sources = await this._bonusSources(item);
+    return sources.map((s) => {
+      const e = this._bonusEntry(s.key);
+      return {
+        key: s.key,
+        label: s.label,
+        tableName: s.tableName,
+        rolled: !!e,
+        total: e?.total ?? null,
+        needsChoice: (e?.options?.length ?? 0) > 1,
+        options: (e?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === e?.chosenUuid })),
+        chosenName: e?.chosenName ?? null,
+        textResult: e?.textResult ?? null,
+      };
+    });
   }
 
   /** The class's level-1 features — fixed talents + class abilities — shown
@@ -190,8 +215,12 @@ export class ClassStep extends ListStep {
       // eslint-disable-next-line no-await-in-loop
       const doc = await fromUuid(uuid).catch(() => null);
       if (!doc || doc.documentName !== "Item") continue;
+      // Talents with REPLACEME effect keys (e.g. Weapon Mastery) prompt for
+      // their choice via the system dialog when the character is created.
+      const asksOnCreate = [...(doc.effects ?? [])].some((e) =>
+        e.changes?.some((c) => String(c.key).includes("REPLACEME")));
       // eslint-disable-next-line no-await-in-loop
-      traits.push({ name: doc.name, descInline: await inlineDesc(doc.system?.description) });
+      traits.push({ name: doc.name, descInline: await inlineDesc(doc.system?.description), asksOnCreate });
     }
     this._traitsCache[key] = traits;
     return traits;
@@ -233,6 +262,10 @@ export class ClassStep extends ListStep {
     if (!this._isCaster(item)) return { caster: false };
     const sc = item.system.spellcasting;
     const known = sc.spellsknown?.[1] || {};
+    // Casters with NO spells due at level 1 (Green Knight, Knight of St.
+    // Ydris — spells arrive on level-up) get no picker at all.
+    const due = Object.values(known).reduce((a, b) => a + (Number(b) || 0), 0);
+    if (!due) return { caster: false };
     const classUuid = this._spellClassUuid(item);
     const all = await this._loadSpells(classUuid);
     const tiers = [];
@@ -283,13 +316,11 @@ export class ClassStep extends ListStep {
   }
 
   // ---- Talent roll ---------------------------------------------------------
-  async rollTalent() {
-    const item = this.selected?.item;
-    const tableUuid = item?.system?.classTalentTable;
-    if (!tableUuid) return;
-    const table = await fromUuid(tableUuid);
-    if (!table?.roll) return;
 
+  /** Roll a table and structurally extract the outcome: linked Item rows in
+   *  the rolled range are the options (several = a choice); text rows beside
+   *  them are headers; text-only ranges surface as textResult. */
+  async _rollOnTable(table) {
     const res = await table.roll();
     const roll = res.roll;
     const total = roll.total;
@@ -309,11 +340,18 @@ export class ClassStep extends ListStep {
         if (txt) texts.push(txt);
       }
     }
-    // Some classes (often homebrew) use text-only talent tables with no linked
-    // items — surface the rolled text so the player can apply it manually.
-    // When linked items exist, text rows in the range are "choose one of…"
-    // headers and the options themselves carry the outcome.
     const textResult = options.length === 0 ? (texts.join("; ") || null) : null;
+    return { roll, total, options, textResult };
+  }
+
+  async rollTalent() {
+    const item = this.selected?.item;
+    const tableUuid = item?.system?.classTalentTable;
+    if (!tableUuid) return;
+    const table = await fromUuid(tableUuid);
+    if (!table?.roll) return;
+
+    const { roll, total, options, textResult } = await this._rollOnTable(table);
     this.state.classTalentRoll = { total, options, textResult };
     this.state.classTalents = options.length === 1 ? [{ uuid: options[0].uuid, name: options[0].name }] : [];
     await this._talentCard(roll, options, textResult);
@@ -355,6 +393,108 @@ export class ClassStep extends ListStep {
   choosePatron(uuid) {
     const p = (this._patrons || []).find((x) => x.uuid === uuid);
     if (p) this.state.patron = { uuid, name: p.name, item: p };
+    // Boons come from the patron's own table — a new patron means new rolls.
+    this.state.bonusRolls = this.state.bonusRolls.filter((b) => !b.key.startsWith("boon-"));
+  }
+
+  // ---- Bonus creation rolls --------------------------------------------------
+  // Extra table rolls due at level 1 beyond the standard class-talent roll:
+  //  • fixed class talents that point at a RollTable ("Black Lotus",
+  //    "Corruption" via the "<Class> <Talent>" naming convention),
+  //  • an ancestry talent granting an extra class-talent roll (Human
+  //    "Ambitious", keyed by UUID in constants),
+  //  • the patron's starting boons.
+
+  /** The bonus-roll sources for the current class/ancestry/patron combo. */
+  async _bonusSources(item) {
+    const comboKey = [
+      item.uuid,
+      (this.state.ancestryTalents || []).join(","),
+      this.state.patron?.uuid ?? "",
+    ].join("|");
+    if (this._bonusCache?.key === comboKey) return this._bonusCache.sources;
+
+    const sources = [];
+
+    // Fixed class talents that reference a roll table.
+    for (const uuid of (item.system.talents || [])) {
+      // eslint-disable-next-line no-await-in-loop
+      const doc = await fromUuid(uuid).catch(() => null);
+      if (!doc) continue;
+      const link = String(doc.system?.description || "")
+        .match(/@UUID\[((?:[^\]]*?)RollTable(?:[^\]]*?))\]/)?.[1] ?? null;
+      let table = link ? await fromUuid(link).catch(() => null) : null;
+      // No link → try the "<Class> <Talent>" / "<Talent>" table-name convention.
+      if (!table) table = await findTableByName([`${item.name} ${doc.name}`, `${doc.name} Table`], []);
+      if (table?.roll) sources.push({ key: `talent-${doc.uuid}`, label: doc.name, tableUuid: table.uuid, tableName: table.name });
+    }
+
+    // Ancestry-granted extra class-talent roll (e.g. Human "Ambitious").
+    const extra = (this.state.ancestryTalents || []).find((u) => EXTRA_CLASS_TALENT_ROLL_UUIDS.has(u));
+    if (extra && item.system.classTalentTable) {
+      const doc = await fromUuid(extra).catch(() => null);
+      sources.push({
+        key: "extra-talent",
+        label: `${game.i18n.localize("SDE.charBuilder.class.talent")}${doc ? ` (${doc.name})` : ""}`,
+        tableUuid: item.system.classTalentTable,
+        tableName: null,
+      });
+    }
+
+    // Patron starting boons.
+    const boons = item.system.patron?.required ? (item.system.patron.startingBoons || 0) : 0;
+    const boonTable = this.state.patron?.item?.system?.boonTable;
+    if (boons > 0 && boonTable) {
+      for (let i = 0; i < boons; i++) {
+        sources.push({
+          key: `boon-${i}`,
+          label: game.i18n.localize("SDE.charBuilder.class.patronBoon"),
+          tableUuid: boonTable,
+          tableName: this.state.patron.name,
+        });
+      }
+    }
+
+    this._bonusCache = { key: comboKey, sources };
+    // Reconcile stored rolls: drop entries whose source vanished (ancestry/
+    // patron changed) so stale results never reach commit.
+    const valid = new Set(sources.map((s) => s.key));
+    this.state.bonusRolls = this.state.bonusRolls.filter((b) => valid.has(b.key));
+    return sources;
+  }
+
+  _bonusEntry(key) { return this.state.bonusRolls.find((b) => b.key === key) ?? null; }
+
+  async rollBonus(key) {
+    const item = this.selected?.item;
+    if (!item) return;
+    const src = (await this._bonusSources(item)).find((s) => s.key === key);
+    if (!src) return;
+    const table = await fromUuid(src.tableUuid).catch(() => null);
+    if (!table?.roll) return;
+    const { roll, total, options, textResult } = await this._rollOnTable(table);
+    const entry = {
+      key, label: src.label, tableUuid: src.tableUuid, total, options, textResult,
+      chosenUuid: options.length === 1 ? options[0].uuid : null,
+      chosenName: options.length === 1 ? options[0].name : null,
+    };
+    this.state.bonusRolls = [...this.state.bonusRolls.filter((b) => b.key !== key), entry];
+    await this._talentCard(roll, options, textResult);
+    await this.app.render();
+  }
+
+  chooseBonus(key, uuid) {
+    const entry = this._bonusEntry(key);
+    const opt = entry?.options.find((o) => o.uuid === uuid);
+    if (opt) { entry.chosenUuid = opt.uuid; entry.chosenName = opt.name; }
+  }
+
+  /** A bonus roll is settled once rolled and, if it offered a choice, chosen. */
+  _bonusComplete(sources) {
+    return sources.every((s) => {
+      const e = this._bonusEntry(s.key);
+      return e && (e.chosenUuid || e.textResult || e.options.length === 0);
+    });
   }
 
   // ---- Spell preview ---------------------------------------------------------
@@ -406,6 +546,17 @@ export class ClassStep extends ListStep {
       const p = patrons[Math.floor(Math.random() * patrons.length)];
       if (p) this.state.patron = { uuid: p.uuid, name: p.name, item: p };
     }
+    // Bonus creation rolls (Ambitious extra talent, Black Lotus, boons…),
+    // auto-picking when a roll offers a choice.
+    this._bonusCache = null;
+    for (const src of await this._bonusSources(item)) {
+      await this.rollBonus(src.key);
+      const e = this._bonusEntry(src.key);
+      if (e && !e.chosenUuid && e.options.length > 1) {
+        const pick = e.options[Math.floor(Math.random() * e.options.length)];
+        e.chosenUuid = pick.uuid; e.chosenName = pick.name;
+      }
+    }
     await this.langStep.randomize();
   }
 
@@ -427,6 +578,13 @@ export class ClassStep extends ListStep {
     }));
     root.querySelectorAll("[data-cb-patron]").forEach((el) => el.addEventListener("click", async () => {
       this.choosePatron(el.dataset.cbPatron); await this.app.render();
+    }));
+    root.querySelectorAll("[data-cb-roll-bonus]").forEach((el) => el.addEventListener("click", async () => {
+      await this.rollBonus(el.dataset.cbRollBonus);
+    }));
+    root.querySelectorAll("[data-cb-bonus-opt]").forEach((el) => el.addEventListener("click", async () => {
+      this.chooseBonus(el.dataset.cbBonusKey, el.dataset.cbBonusOpt);
+      await this.app.render();
     }));
   }
 }

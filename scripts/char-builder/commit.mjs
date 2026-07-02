@@ -128,6 +128,10 @@ async function gatherItems(state, classSys) {
   for (const uuid of (state.ancestryTalents || [])) await addTalent(uuid);
   for (const uuid of (classSys?.talents || [])) await addTalent(uuid);
   for (const t of (state.classTalents || [])) await addTalent(t.uuid);
+  // Bonus creation rolls (Ambitious extra talent, Black Lotus, patron boons…) —
+  // text-only results have no embeddable item; the fixed talent's own text
+  // stays on the sheet for those.
+  for (const b of (state.bonusRolls || [])) if (b.chosenUuid) await addTalent(b.chosenUuid);
   for (const uuid of (classSys?.classAbilities || [])) await addSource(uuid);
   for (const sp of (state.spells || [])) await addSource(sp.uuid);
 

@@ -38,7 +38,7 @@
           {{#if step.traits.length}}
           <div class="sde-cb-anc-traits">
             {{#each step.traits}}
-            <div class="sde-cb-anc-trait"><b class="tn">{{name}}.</b> {{{descInline}}}</div>
+            <div class="sde-cb-anc-trait"><b class="tn">{{name}}.</b> {{{descInline}}}{{#if asksOnCreate}} <span class="sde-cb-choice-badge" title="{{localize 'SDE.charBuilder.class.asksOnCreateHint'}}"><i class="fa-solid fa-circle-question"></i> {{localize "SDE.charBuilder.class.asksOnCreate"}}</span>{{/if}}</div>
             {{/each}}
           </div>
           {{/if}}
@@ -91,6 +91,42 @@
         {{else}}
         <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.rollPrompt"}}</p>
         {{/if}}
+      </div>
+      {{/if}}
+
+      {{!-- Bonus creation rolls: Ambitious extra talent, Black Lotus, Corruption, patron boons… --}}
+      {{#if step.bonusRolls.length}}
+      <div class="sde-cb-subpanel">
+        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.bonusRolls"}}</span>
+        {{#each step.bonusRolls}}
+        <div class="sde-cb-bonus-roll">
+          <div class="sde-cb-subpanel-head">
+            <span class="sde-cb-bonus-label"><b>{{label}}</b>{{#if tableName}} <small>({{tableName}})</small>{{/if}}</span>
+            <button type="button" class="sde-cb-btn dice sm" data-cb-roll-bonus="{{key}}">
+              <i class="fa-solid fa-dice"></i> {{#if rolled}}{{localize "SDE.charBuilder.class.rerollTalent"}}{{else}}{{localize "SDE.charBuilder.class.rollTalent"}}{{/if}}
+            </button>
+          </div>
+          {{#if rolled}}
+            {{#if needsChoice}}
+            <p class="sde-cb-hint warn">{{localize "SDE.charBuilder.class.chooseOne"}}</p>
+            <div class="sde-cb-chip-row">
+              {{#each options}}
+              <span class="sde-cb-chip{{#if selected}} selected{{/if}}" data-cb-bonus-opt="{{uuid}}" data-cb-bonus-key="{{../key}}">{{name}}</span>
+              {{/each}}
+            </div>
+            {{else}}
+              {{#if chosenName}}
+              <p class="sde-cb-talent-result"><i class="fa-solid fa-star"></i> <b>{{chosenName}}</b></p>
+              {{else}}{{#if textResult}}
+              <p class="sde-cb-talent-result"><i class="fa-solid fa-star"></i> <b>{{textResult}}</b></p>
+              <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.talentManual"}}</p>
+              {{/if}}{{/if}}
+            {{/if}}
+          {{else}}
+          <p class="sde-cb-hint">{{localize "SDE.charBuilder.class.rollPrompt"}}</p>
+          {{/if}}
+        </div>
+        {{/each}}
       </div>
       {{/if}}
 
