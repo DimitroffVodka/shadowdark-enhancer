@@ -12,18 +12,16 @@
       <div class="sde-cb-tsrc-group-head">{{label}}</div>
       <div class="sde-cb-tsrc-cols">
         <span></span>
-        <span>{{localize "SDE.charBuilder.tableSources.nameCol"}}</span>
-        <span>{{localize "SDE.charBuilder.tableSources.trinketCol"}}</span>
+        {{#each ../columns}}<span>{{this}}</span>{{/each}}
       </div>
       {{#each rows}}
       <div class="sde-cb-tsrc-row">
         <span class="tname">{{name}}</span>
+        {{#each kinds}}
         <span class="tcheck">
-          {{#if showNameCheck}}<input type="checkbox" data-kind="name" data-uuid="{{uuid}}" {{#if checkedName}}checked{{/if}}>{{/if}}
+          {{#if show}}<input type="checkbox" data-kind="{{key}}" data-uuid="{{../uuid}}" {{#if checked}}checked{{/if}}>{{/if}}
         </span>
-        <span class="tcheck">
-          {{#if showTrinketCheck}}<input type="checkbox" data-kind="trinket" data-uuid="{{uuid}}" {{#if checkedTrinket}}checked{{/if}}>{{/if}}
-        </span>
+        {{/each}}
       </div>
       {{/each}}
     </div>

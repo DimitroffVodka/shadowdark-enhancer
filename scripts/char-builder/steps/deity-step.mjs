@@ -1,8 +1,10 @@
 import { ListStep } from "./list-step.mjs";
+import { rollItemFromTables } from "../data.mjs";
 
 /**
- * Step — Deity. List/detail/aside pick, optional. The aside shows the deity's
+ * Step — Deity. List/detail pick, optional. The detail shows the deity's
  * alignment and flags a mismatch with the character's chosen alignment. Random
+ * draws from the GM-configured deity roll tables when any are set, else
  * prefers a deity matching the character's alignment.
  */
 export class DeityStep extends ListStep {
@@ -38,6 +40,8 @@ export class DeityStep extends ListStep {
 
   async randomize() {
     const items = await this.items();
+    const rolled = await rollItemFromTables("deity", items);
+    if (rolled) return this.select(rolled.uuid);
     const matching = items.filter((i) => !this.state.alignment || i.system.alignment === this.state.alignment);
     const pool = matching.length ? matching : items;
     const pick = pool[Math.floor(Math.random() * pool.length)];

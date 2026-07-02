@@ -2,13 +2,22 @@ import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
+/** The table kinds the builder draws from, with their storage setting and the
+ *  name pattern that shows the kind's checkbox by default. */
+const KINDS = [
+  { key: "name", setting: "charBuilderNameTables", re: /name/i, colKey: "SDE.charBuilder.tableSources.nameCol" },
+  { key: "trinket", setting: "charBuilderTrinketTables", re: /trinket/i, colKey: "SDE.charBuilder.tableSources.trinketCol" },
+  { key: "background", setting: "charBuilderBackgroundTables", re: /background/i, colKey: "SDE.charBuilder.tableSources.backgroundCol" },
+  { key: "deity", setting: "charBuilderDeityTables", re: /deit/i, colKey: "SDE.charBuilder.tableSources.deityCol" },
+];
+
 /**
- * Settings menu — pick which installed RollTables the Character Builder offers
- * as Name and Trinket sources on the Ancestry step. Rows are grouped by pack
- * (plus the world directory); by default only tables whose name mentions
- * "name" / "trinket" show the matching checkbox column, with a "show all
- * tables" escape hatch. Selections persist as two UUID arrays
- * (charBuilderNameTables / charBuilderTrinketTables).
+ * Settings menu — pick which installed RollTables the Character Builder draws
+ * from: Names and Trinkets (Ancestry step) and Backgrounds and Deities
+ * (Origins step's Random). Rows are grouped by pack (plus the world
+ * directory); by default a kind's checkbox only shows on tables whose name
+ * matches that kind, with a "show all tables" escape hatch. The builder never
+ * shows a table picker — these settings are the only place sources are chosen.
  */
 export class CharBuilderTableSourcesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -16,7 +25,7 @@ export class CharBuilderTableSourcesApp extends HandlebarsApplicationMixin(Appli
     tag: "form",
     classes: ["shadowdark", "sde-cb-table-sources"],
     window: { title: "SDE.charBuilder.tableSources.title", icon: "fa-solid fa-table-list", resizable: true },
-    position: { width: 560, height: 640 },
+    position: { width: 660, height: 660 },
     actions: {
       save: CharBuilderTableSourcesApp.prototype._onSave,
     },
@@ -29,29 +38,28 @@ export class CharBuilderTableSourcesApp extends HandlebarsApplicationMixin(Appli
   constructor(options = {}) {
     super(options);
     this._showAll = false;
-    this._pending = null;   // { name: Set, trinket: Set } once the user has touched checkboxes
+    this._pending = null;   // { [kind]: Set } once the user has touched checkboxes
   }
 
   /** Current selections — DOM state if the user has interacted, else settings. */
   _selections() {
     if (this._pending) return this._pending;
-    return {
-      name: new Set(game.settings.get(MODULE_ID, "charBuilderNameTables") || []),
-      trinket: new Set(game.settings.get(MODULE_ID, "charBuilderTrinketTables") || []),
-    };
+    const sel = {};
+    for (const k of KINDS) sel[k.key] = new Set(game.settings.get(MODULE_ID, k.setting) || []);
+    return sel;
   }
 
   /** Read the live checkbox state into _pending (survives re-renders). */
   _captureChecks() {
-    const sel = { name: new Set(), trinket: new Set() };
-    this.element.querySelectorAll("input[data-kind]").forEach((cb) => {
-      if (cb.checked) sel[cb.dataset.kind].add(cb.dataset.uuid);
-    });
+    const sel = {};
+    for (const k of KINDS) sel[k.key] = new Set();
+    const boxes = [...this.element.querySelectorAll("input[data-kind]")];
+    for (const cb of boxes) if (cb.checked) sel[cb.dataset.kind].add(cb.dataset.uuid);
     // Off-screen rows (filtered out) keep their prior selection.
     const prev = this._selections();
-    const visible = new Set([...this.element.querySelectorAll("input[data-kind]")].map((cb) => cb.dataset.uuid));
-    for (const kind of ["name", "trinket"]) {
-      for (const u of prev[kind]) if (!visible.has(u)) sel[kind].add(u);
+    const visible = new Set(boxes.map((cb) => cb.dataset.uuid));
+    for (const k of KINDS) {
+      for (const u of prev[k.key]) if (!visible.has(u)) sel[k.key].add(u);
     }
     this._pending = sel;
   }
@@ -60,22 +68,19 @@ export class CharBuilderTableSourcesApp extends HandlebarsApplicationMixin(Appli
     const sel = this._selections();
     const groups = [];
 
-    const push = (groupLabel, rows) => {
-      const filtered = this._showAll ? rows : rows.filter((r) => r.isName || r.isTrinket);
-      if (filtered.length) groups.push({ label: groupLabel, rows: filtered });
+    const row = (uuid, name) => {
+      const kinds = KINDS.map((k) => ({
+        key: k.key,
+        // In show-all mode every table offers every column (escape hatch).
+        show: k.re.test(name) || this._showAll,
+        checked: sel[k.key].has(uuid),
+      }));
+      return { uuid, name, kinds };
     };
 
-    const row = (uuid, name) => {
-      const isName = /name/i.test(name);
-      const isTrinket = /trinket/i.test(name);
-      return {
-        uuid, name, isName, isTrinket,
-        // In show-all mode every table offers both columns (escape hatch).
-        showNameCheck: isName || this._showAll,
-        showTrinketCheck: isTrinket || this._showAll,
-        checkedName: sel.name.has(uuid),
-        checkedTrinket: sel.trinket.has(uuid),
-      };
+    const push = (groupLabel, rows) => {
+      const filtered = this._showAll ? rows : rows.filter((r) => r.kinds.some((c) => c.show));
+      if (filtered.length) groups.push({ label: groupLabel, rows: filtered });
     };
 
     push(
@@ -96,7 +101,11 @@ export class CharBuilderTableSourcesApp extends HandlebarsApplicationMixin(Appli
       );
     }
 
-    return { groups, showAll: this._showAll };
+    return {
+      groups,
+      showAll: this._showAll,
+      columns: KINDS.map((k) => game.i18n.localize(k.colKey)),
+    };
   }
 
   _onRender() {
@@ -109,8 +118,9 @@ export class CharBuilderTableSourcesApp extends HandlebarsApplicationMixin(Appli
 
   async _onSave() {
     this._captureChecks();
-    await game.settings.set(MODULE_ID, "charBuilderNameTables", [...this._pending.name]);
-    await game.settings.set(MODULE_ID, "charBuilderTrinketTables", [...this._pending.trinket]);
+    for (const k of KINDS) {
+      await game.settings.set(MODULE_ID, k.setting, [...this._pending[k.key]]);
+    }
     ui.notifications.info(game.i18n.localize("SDE.charBuilder.tableSources.saved"));
     await this.close();
   }

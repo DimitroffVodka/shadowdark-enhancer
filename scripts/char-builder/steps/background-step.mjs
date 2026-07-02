@@ -1,8 +1,10 @@
 import { ListStep } from "./list-step.mjs";
+import { rollItemFromTables } from "../data.mjs";
 
 /**
  * Step — Background. A simple list/detail pick (Shadowdark backgrounds are
- * flavour: name + description). Choose from the list or roll Random.
+ * flavour: name + description). Choose from the list or roll Random — Random
+ * draws from the GM-configured background roll tables when any are set.
  */
 export class BackgroundStep extends ListStep {
   get id() { return "background"; }
@@ -16,5 +18,11 @@ export class BackgroundStep extends ListStep {
 
   async loadItems() {
     return Array.from(await shadowdark.compendiums.backgrounds()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async randomize() {
+    const pick = await rollItemFromTables("background", await this.items());
+    if (pick) return this.select(pick.uuid);
+    await super.randomize();
   }
 }

@@ -15,8 +15,6 @@ export class CharBuilderState {
 
     this.name = "";
     this.trinket = "";
-    this.nameSource = null;      // selected Name table (UUID from the GM's Table Sources menu, or "__default")
-    this.trinketSource = null;   // selected Trinket table (same semantics)
     this.alignment = "neutral";
 
     // --- Abilities ----------------------------------------------------------

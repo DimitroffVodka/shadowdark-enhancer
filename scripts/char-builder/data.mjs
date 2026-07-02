@@ -127,7 +127,12 @@ export async function coreNameTable(item) {
 
 // --- GM-selected Name/Trinket table sources ---------------------------------
 
-const KIND_SETTINGS = { name: "charBuilderNameTables", trinket: "charBuilderTrinketTables" };
+const KIND_SETTINGS = {
+  name: "charBuilderNameTables",
+  trinket: "charBuilderTrinketTables",
+  background: "charBuilderBackgroundTables",
+  deity: "charBuilderDeityTables",
+};
 const _configuredDocCache = new Map();   // uuid → RollTable doc (session-lived)
 
 /**
@@ -151,6 +156,40 @@ export async function configuredTables(kind) {
     }
   }
   return out;
+}
+
+/**
+ * Roll one of the GM-configured tables for `kind` and map the result back to
+ * one of `items` (compendium docs) — via the linked document when the table
+ * rows link Items, else by (loose) name match on the result text. Returns the
+ * matched item, or null when nothing is configured / the roll doesn't map —
+ * callers fall back to their plain random pick.
+ */
+export async function rollItemFromTables(kind, items) {
+  const tables = await configuredTables(kind);
+  if (!tables.length) return null;
+  const table = tables[Math.floor(Math.random() * tables.length)].doc;
+  try {
+    const res = await table.roll();
+    const r = res?.results?.[0] ?? res?.results?.contents?.[0];
+    if (!r) return null;
+    if (r.documentUuid) {
+      const byUuid = items.find((i) => i.uuid === r.documentUuid);
+      if (byUuid) return byUuid;
+      const doc = await fromUuid(r.documentUuid).catch(() => null);
+      if (doc) {
+        const byName = items.find((i) => i.name.toLowerCase() === doc.name.toLowerCase());
+        if (byName) return byName;
+      }
+    }
+    const txt = resultText(r).toLowerCase();
+    if (!txt) return null;
+    return items.find((i) => i.name.toLowerCase() === txt)
+      ?? items.find((i) => txt.includes(i.name.toLowerCase()))
+      ?? null;
+  } catch (_e) {
+    return null;
+  }
 }
 
 /**

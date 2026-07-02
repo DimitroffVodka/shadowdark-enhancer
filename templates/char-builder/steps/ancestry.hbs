@@ -43,11 +43,6 @@
             <label class="sde-cb-field wide">
               <span>{{localize "SDE.charBuilder.ancestry.name"}}</span>
               <div class="sde-cb-choicerow">
-                {{#if step.multiNameSource}}
-                <select class="sde-cb-src-select" data-cb-name-source title="{{localize 'SDE.charBuilder.ancestry.sourceTitle'}}">
-                  {{#each step.nameSources}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
-                </select>
-                {{/if}}
                 <select data-cb-name-choice {{#unless step.canRollName}}disabled{{/unless}}>
                   <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
                   {{#each step.nameOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
@@ -61,11 +56,6 @@
             <label class="sde-cb-field wide">
               <span>{{localize "SDE.charBuilder.ancestry.trinket"}}</span>
               <div class="sde-cb-choicerow">
-                {{#if step.multiTrinketSource}}
-                <select class="sde-cb-src-select" data-cb-trinket-source title="{{localize 'SDE.charBuilder.ancestry.sourceTitle'}}">
-                  {{#each step.trinketSources}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
-                </select>
-                {{/if}}
                 <select data-cb-trinket-choice {{#unless step.canRollTrinket}}disabled{{/unless}}>
                   <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
                   {{#each step.trinketOptions}}<option value="{{value}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}

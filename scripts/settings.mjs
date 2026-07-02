@@ -122,6 +122,14 @@ export function registerSettings() {
   game.settings.register(MODULE_ID, "charBuilderTrinketTables", {
     scope: "world", config: false, type: Array, default: [],
   });
+  // Background / Deity roll tables — drive the builder's Random picks for those
+  // sections (empty = plain random pick from the compendium list).
+  game.settings.register(MODULE_ID, "charBuilderBackgroundTables", {
+    scope: "world", config: false, type: Array, default: [],
+  });
+  game.settings.register(MODULE_ID, "charBuilderDeityTables", {
+    scope: "world", config: false, type: Array, default: [],
+  });
   // One-shot latch for seeding the arrays from the pre-menu boolean sources.
   game.settings.register(MODULE_ID, "charBuilderTableSrcMigrated", {
     scope: "world", config: false, type: Boolean, default: false,

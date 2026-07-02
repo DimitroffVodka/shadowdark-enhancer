@@ -5,9 +5,6 @@ import {
 } from "../data.mjs";
 import { ancestryArt } from "../art.mjs";
 
-/** Source id for the built-in resolution used when the GM configured nothing. */
-const DEFAULT_SOURCE = "__default";
-
 /**
  * Step — Ancestry.
  *
@@ -38,46 +35,40 @@ export class AncestryStep extends ListStep {
   /** Use a bundled ancestry portrait when one exists, else the system icon. */
   portrait(item) { return ancestryArt(item?.name); }
 
-  /** Resolve (and cache) a source's table. A source id is a table UUID from
-   *  the GM's Table Sources menu, or DEFAULT_SOURCE for the built-in
-   *  resolution (ancestry `system.nameTable` → name-convention lookup).
-   *  Empty tables resolve to null so the source drops out. */
-  async _tableFor(item, sourceId, kind) {
-    if (!item?.uuid || !sourceId) return null;
-    const key = `${item.uuid}:${sourceId}:${kind}`;
-    if (key in this._tableCache) return this._tableCache[key];
-    let doc;
-    if (sourceId === DEFAULT_SOURCE) {
-      doc = kind === "name"
-        ? await coreNameTable(item)
-        : await findTableByName([`${item.name} Trinket`], ["shadowdark-enhancer"]);
-    } else {
-      doc = await fromUuid(sourceId).catch(() => null);
-    }
-    if (doc && !(doc.results?.size > 0)) doc = null;   // ignore present-but-empty tables
-    this._tableCache[key] = doc;
-    return doc;
-  }
-
-  /** GM-configured tables offered for this ancestry (per-ancestry filtered);
-   *  falls back to the built-in resolution when nothing is configured. */
-  async _availableSources(item, kind) {
-    if (!item) return [];
+  /** All tables this ancestry may draw a `kind` roll from: the GM-configured
+   *  tables (per-ancestry filtered), or the built-in resolution (ancestry
+   *  `system.nameTable` → name-convention lookup) when nothing is configured.
+   *  The player never picks a table — the dice button rolls a random one and
+   *  the choose-dropdown merges every table's options. */
+  async _tablesFor(item, kind) {
+    if (!item?.uuid) return [];
+    const key = `${item.uuid}:${kind}`;
+    if (this._tableCache[key]) return this._tableCache[key];
     const configured = await configuredTables(kind);
     const allNames = (await this.items()).map((a) => a.name);
-    let avail = configured
+    let docs = configured
       .filter((t) => tableMatchesAncestry(t.name, item.name, allNames))
-      .map((t) => ({ id: t.uuid, label: t.name, origin: t.origin }));
-    // Same-named tables from different packs (e.g. core vs WR "Elf Trinket")
-    // get their origin appended so the picker isn't ambiguous.
-    const counts = {};
-    for (const s of avail) counts[s.label] = (counts[s.label] || 0) + 1;
-    avail = avail.map((s) => counts[s.label] > 1 ? { ...s, label: `${s.label} (${s.origin})` } : s);
-    if (avail.length) return avail;
-    if (await this._tableFor(item, DEFAULT_SOURCE, kind)) {
-      return [{ id: DEFAULT_SOURCE, label: game.i18n.localize("SDE.charBuilder.ancestry.source.default") }];
+      .map((t) => t.doc);
+    if (!docs.length) {
+      const fb = kind === "name"
+        ? await coreNameTable(item)
+        : await findTableByName([`${item.name} Trinket`], ["shadowdark-enhancer"]);
+      if (fb?.results?.size > 0) docs = [fb];
     }
-    return [];
+    this._tableCache[key] = docs;
+    return docs;
+  }
+
+  /** Choose-dropdown options merged (deduped) across every available table. */
+  async _mergedOptions(item, kind) {
+    const opts = [];
+    const seen = new Set();
+    for (const t of await this._tablesFor(item, kind)) {
+      for (const o of tableOptions(t)) {
+        if (!seen.has(o.value)) { seen.add(o.value); opts.push(o); }
+      }
+    }
+    return opts;
   }
 
   /** Initialise the ancestry talent choice on selection: all when granted, else the first N. */
@@ -148,26 +139,16 @@ export class AncestryStep extends ListStep {
 
   async extraContext(item) {
     if (!item) return { charName: this.state.name || "", trinket: this.state.trinket || "" };
-    const nameSources = await this._availableSources(item, "name");
-    const trinketSources = await this._availableSources(item, "trinket");
-    // Keep the player's source choice if still available, else default to the first.
-    if (!nameSources.find((s) => s.id === this.state.nameSource)) this.state.nameSource = nameSources[0]?.id ?? null;
-    if (!trinketSources.find((s) => s.id === this.state.trinketSource)) this.state.trinketSource = trinketSources[0]?.id ?? null;
-    const nameTable = await this._tableFor(item, this.state.nameSource, "name");
-    const trinketTable = await this._tableFor(item, this.state.trinketSource, "trinket");
+    const nameTables = await this._tablesFor(item, "name");
+    const trinketTables = await this._tablesFor(item, "trinket");
     const mark = (opts, cur) => opts.map((o) => ({ ...o, selected: o.value === cur }));
-    const markSrc = (list, cur) => list.map((s) => ({ ...s, selected: s.id === cur }));
     return {
       charName: this.state.name || "",
       trinket: this.state.trinket || "",
-      nameSources: markSrc(nameSources, this.state.nameSource),
-      trinketSources: markSrc(trinketSources, this.state.trinketSource),
-      multiNameSource: nameSources.length > 1,
-      multiTrinketSource: trinketSources.length > 1,
-      canRollName: !!nameTable,
-      canRollTrinket: !!trinketTable,
-      nameOptions: mark(nameTable ? tableOptions(nameTable) : [], this.state.name),
-      trinketOptions: mark(trinketTable ? tableOptions(trinketTable) : [], this.state.trinket),
+      canRollName: nameTables.length > 0,
+      canRollTrinket: trinketTables.length > 0,
+      nameOptions: mark(await this._mergedOptions(item, "name"), this.state.name),
+      trinketOptions: mark(await this._mergedOptions(item, "trinket"), this.state.trinket),
     };
   }
 
@@ -182,17 +163,20 @@ export class AncestryStep extends ListStep {
     await this.rollTrinket();
   }
 
+  /** Roll a random one of the available tables for the kind. */
+  async _rollKind(kind) {
+    const tables = await this._tablesFor(this.selected?.item, kind);
+    if (!tables.length) return null;
+    return rollTableDoc(tables[Math.floor(Math.random() * tables.length)]);
+  }
+
   async rollName() {
-    const item = this.selected?.item;
-    if (!this.state.nameSource) this.state.nameSource = (await this._availableSources(item, "name"))[0]?.id ?? null;
-    const v = await rollTableDoc(await this._tableFor(item, this.state.nameSource, "name"));
+    const v = await this._rollKind("name");
     if (v) this.state.name = v;
   }
 
   async rollTrinket() {
-    const item = this.selected?.item;
-    if (!this.state.trinketSource) this.state.trinketSource = (await this._availableSources(item, "trinket"))[0]?.id ?? null;
-    const v = await rollTableDoc(await this._tableFor(item, this.state.trinketSource, "trinket"));
+    const v = await this._rollKind("trinket");
     if (v) this.state.trinket = v;
   }
 
@@ -201,14 +185,6 @@ export class AncestryStep extends ListStep {
       this.toggleTalent(el.dataset.cbAncTalent);
       await this.app.render();
     }));
-    root.querySelector("[data-cb-name-source]")?.addEventListener("change", async (ev) => {
-      this.state.nameSource = ev.target.value;
-      await this.app.render();
-    });
-    root.querySelector("[data-cb-trinket-source]")?.addEventListener("change", async (ev) => {
-      this.state.trinketSource = ev.target.value;
-      await this.app.render();
-    });
     root.querySelector("[data-cb-name-choice]")?.addEventListener("change", async (ev) => {
       if (ev.target.value) { this.state.name = ev.target.value; await this.app.render(); }
     });

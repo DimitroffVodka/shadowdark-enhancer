@@ -6876,7 +6876,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-tsrc-scroll { flex: 1; min-height: 0; overflow-y: auto; border: 1px solid var(--sd-hairline, #555); border-radius: 4px; padding: 4px 8px; }
 .sde-cb-tsrc-group { margin: 0 0 10px; }
 .sde-cb-tsrc-group-head { font-weight: 700; margin: 6px 0 2px; }
-.sde-cb-tsrc-cols, .sde-cb-tsrc-row { display: grid; grid-template-columns: 1fr 70px 70px; gap: 6px; align-items: center; }
+.sde-cb-tsrc-cols, .sde-cb-tsrc-row { display: grid; grid-template-columns: 1fr 64px 64px 84px 64px; gap: 6px; align-items: center; }
 .sde-cb-tsrc-cols { font-size: 11px; opacity: 0.75; }
 .sde-cb-tsrc-cols span:not(:first-child), .sde-cb-tsrc-row .tcheck { text-align: center; }
 .sde-cb-tsrc-row { padding: 1px 0; }
@@ -6903,7 +6903,10 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 
 /* ---- Origins tab (Alignment strip + Background | Deity columns) ---- */
 .sde-cb-origins-main {
-  flex: 1; min-height: 0; overflow-y: auto; padding: 0 var(--sd-s4);
+  /* Generous top padding — the sd-band section heads render ~5px proud of
+     their section and carry a 1px outline at 2px offset; anything less and
+     this scroll container clips the first band's outline. */
+  flex: 1; min-height: 0; overflow-y: auto; padding: var(--sd-s12) var(--sd-s4) var(--sd-s4);
   max-width: 920px; width: 100%; margin: 0 auto;
 }
 .sde-cb-origin { margin: 0 0 var(--sd-s20); }
