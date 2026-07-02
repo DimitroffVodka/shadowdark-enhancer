@@ -36,7 +36,15 @@ export async function commitCharacter(state) {
       deity: state.deity?.uuid || "",
       patron: state.patron?.uuid || "",
       coins: coinsAfterGear(state),
-      attributes: { hp: { value: state.hp.max || 1, max: state.hp.max || 1 } },
+      // Talent-granted HP bonuses (Dwarf Stout +2) re-apply on the actor via
+      // the embedded talent's ActiveEffect — base max excludes them so they
+      // aren't counted twice; value is the full total (clamps to derived max).
+      attributes: {
+        hp: {
+          value: state.hp.max || 1,
+          max: Math.max(1, (state.hp.max || 1) - (state.hp.bonus || 0)),
+        },
+      },
       languages,
       // Match the system generator: a fresh character has no luck token available.
       luck: { remaining: 0, available: false },

@@ -1,7 +1,8 @@
 <div class="sde-cb-roll-step">
   {{#if step.hasClass}}
   <p class="sde-cb-method-label">
-    {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}} + CON ({{step.conModLabel}})</b>
+    {{localize "SDE.charBuilder.hp.formula"}}: <b>{{step.hitDie}} + CON ({{step.conModLabel}}){{#if step.hpBonus}} + {{step.hpBonus}}{{/if}}</b>
+    {{#if step.advantage}} · <span class="gm">{{localize "SDE.charBuilder.hp.advTag"}}</span>{{/if}}
     {{#if step.maxSetting}} · <span class="gm">{{localize "SDE.charBuilder.hp.maxOn"}}</span>{{/if}}
   </p>
 

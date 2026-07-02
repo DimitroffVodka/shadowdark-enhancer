@@ -195,6 +195,7 @@
   "SDE.charBuilder.hp.max": "Take Max",
   "SDE.charBuilder.hp.maxOn": "max HP enforced",
   "SDE.charBuilder.hp.maxTag": "max",
+  "SDE.charBuilder.hp.advTag": "with advantage",
   "SDE.charBuilder.hp.unit": "HP",
   "SDE.charBuilder.hp.card": "Hit Points",
   "SDE.charBuilder.hp.needClass": "Choose a class first — hit points come from its hit die.",

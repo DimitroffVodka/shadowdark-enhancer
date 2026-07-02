@@ -25,16 +25,40 @@ export class HpStep extends BaseStep {
     return m ? Math.max(1, Number(m[1]) || 1) * Number(m[2]) : 0;
   }
   get conMod() { return abilityMod(this.state.stats.values.con) ?? 0; }
+
+  /** HP modifiers granted by the chosen ancestry talents, read structurally
+   *  from their ActiveEffects (Dwarf "Stout": +2 max HP and advantage on HP
+   *  rolls via system.roll.hp.advantage). Cached per talent set. */
+  async _hpModifiers() {
+    const key = (this.state.ancestryTalents || []).join(",");
+    if (this._modsCache?.key === key) return this._modsCache.mods;
+    const mods = { bonus: 0, advantage: false };
+    for (const uuid of (this.state.ancestryTalents || [])) {
+      // eslint-disable-next-line no-await-in-loop
+      const doc = await fromUuid(uuid).catch(() => null);
+      for (const effect of (doc?.effects ?? [])) {
+        for (const c of (effect.changes ?? [])) {
+          if (c.key === "system.attributes.hp.max") mods.bonus += Number(c.value) || 0;
+          if (c.key === "system.roll.hp.advantage") mods.advantage = true;
+        }
+      }
+    }
+    this._modsCache = { key, mods };
+    return mods;
+  }
   get maxSetting() {
     try { return !!game.settings.get(MODULE_ID, "charBuilderMaxLevel1HP"); } catch (_e) { return false; }
   }
 
   async prepareContext() {
     const cm = this.conMod;
+    const mods = await this._hpModifiers();
     return {
       hasClass: !!this.hitDie,
       hitDie: this.hitDie,
       conModLabel: cm >= 0 ? `+${cm}` : `${cm}`,
+      hpBonus: mods.bonus || null,
+      advantage: mods.advantage,
       maxSetting: this.maxSetting,
       hp: this.state.hp.max || null,
       rolled: this.state.hp.rolled,
@@ -56,22 +80,31 @@ export class HpStep extends BaseStep {
   async _roll() {
     if (!this.hitDie) return;
     if (this.maxSetting) return this._max();
-    const roll = await new Roll(this.dieFormula).evaluate();
-    const total = Math.max(1, roll.total + this.conMod);
-    this.state.hp = { max: total, rolled: roll.total };
-    await this._card(roll, total, "roll");
+    const mods = await this._hpModifiers();
+    // Advantage (Dwarf Stout): roll the hit die twice, keep the highest.
+    const m = String(this.hitDie).match(/^(\d*)\s*d\s*(\d+)/i);
+    const faces = m ? Number(m[2]) : 0;
+    const formula = mods.advantage && faces ? `2d${faces}kh1` : this.dieFormula;
+    const roll = await new Roll(formula).evaluate();
+    const total = Math.max(1, roll.total + this.conMod) + mods.bonus;
+    // `bonus` is granted by a talent effect that re-applies on the actor — the
+    // commit writes base HP without it to avoid double-counting.
+    this.state.hp = { max: total, rolled: roll.total, bonus: mods.bonus };
+    await this._card(roll, total, mods.advantage ? "adv" : "roll");
   }
 
   async _max() {
     if (!this.hitDie) return;
-    const total = Math.max(1, this.dieMax + this.conMod);
-    this.state.hp = { max: total, rolled: this.dieMax };
+    const mods = await this._hpModifiers();
+    const total = Math.max(1, this.dieMax + this.conMod) + mods.bonus;
+    this.state.hp = { max: total, rolled: this.dieMax, bonus: mods.bonus };
     await this._card(null, total, "max");
   }
 
   async _card(roll, total, kind) {
     const cm = this.conMod;
-    const tag = kind === "max" ? ` (${game.i18n.localize("SDE.charBuilder.hp.maxTag")})` : "";
+    const tag = kind === "max" ? ` (${game.i18n.localize("SDE.charBuilder.hp.maxTag")})`
+      : kind === "adv" ? ` (${game.i18n.localize("SDE.charBuilder.hp.advTag")})` : "";
     const content = `<div class="sde-cb-rollcard"><h4>${game.i18n.localize("SDE.charBuilder.hp.card")}</h4>`
       + `<div class="method">${this.hitDie} + CON ${cm >= 0 ? `+${cm}` : cm} → <b>${total} HP</b>${tag}</div></div>`;
     const animate = builderDiceAnimation();

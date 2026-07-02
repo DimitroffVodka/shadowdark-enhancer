@@ -79,6 +79,9 @@ export class AncestryStep extends ListStep {
     // Languages may include the old ancestry's fixed/chosen picks — redo them.
     this.state.languages = [];
     this.state.languageChoices = { common: [], rare: [], select: [] };
+    // HP may have been rolled with the old ancestry's talent modifiers
+    // (Dwarf Stout advantage/+2) — it must be rerolled.
+    this.state.hp = { max: 0, rolled: null };
   }
 
   _needsTalentChoice(item) {
