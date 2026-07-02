@@ -65,11 +65,19 @@ export class ListStep extends BaseStep {
   /** Optional local portrait URL for an item, overriding its system icon. Override. */
   portrait(_item) { return null; }
 
+  /** Whether list thumbnails use the portrait too (vs only the detail view). */
+  get showPortraitInList() { return true; }
+
   /** Shared list / detail context; aside + extras come from subclasses. */
   async prepareContext() {
     const items = await this.items();
     const selUuid = this.selected?.uuid ?? null;
-    const entries = items.map((i) => ({ id: i.uuid, name: i.name, img: this.portrait(i) ?? i.img, selected: i.uuid === selUuid }));
+    const entries = items.map((i) => ({
+      id: i.uuid,
+      name: i.name,
+      img: (this.showPortraitInList ? this.portrait(i) : null) ?? i.img,
+      selected: i.uuid === selUuid,
+    }));
     const selItem = items.find((i) => i.uuid === selUuid) ?? null;
 
     const portrait = selItem ? this.portrait(selItem) : null;

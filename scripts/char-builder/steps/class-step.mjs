@@ -44,6 +44,8 @@ export class ClassStep extends ListStep {
 
   /** Use a bundled class portrait when one exists, else the system icon. */
   portrait(item) { return classArt(item?.name); }
+  /** The art shows only as the header-corner portrait — list rows keep their icons. */
+  get showPortraitInList() { return false; }
 
   async loadItems() {
     return Array.from(await shadowdark.compendiums.classes())
