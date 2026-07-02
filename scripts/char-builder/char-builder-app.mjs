@@ -4,11 +4,8 @@ import { DEFAULT_STAT_METHOD } from "./constants.mjs";
 import { commitCharacter } from "./commit.mjs";
 import { StatsStep } from "./steps/stats-step.mjs";
 import { AncestryStep } from "./steps/ancestry-step.mjs";
+import { OriginsStep } from "./steps/origins-step.mjs";
 import { ClassStep } from "./steps/class-step.mjs";
-import { LanguagesStep } from "./steps/languages-step.mjs";
-import { BackgroundStep } from "./steps/background-step.mjs";
-import { AlignmentStep } from "./steps/alignment-step.mjs";
-import { DeityStep } from "./steps/deity-step.mjs";
 import { HpStep } from "./steps/hp-step.mjs";
 import { GoldStep } from "./steps/gold-step.mjs";
 import { GearStep } from "./steps/gear-step.mjs";
@@ -38,11 +35,8 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     this.steps = [
       new StatsStep(this),
       new AncestryStep(this),
+      new OriginsStep(this),
       new ClassStep(this),
-      new LanguagesStep(this),
-      new BackgroundStep(this),
-      new AlignmentStep(this),
-      new DeityStep(this),
       new HpStep(this),
       new GoldStep(this),
       new GearStep(this),

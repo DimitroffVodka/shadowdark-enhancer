@@ -6871,6 +6871,26 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   .sde-cb-anc-detail.with-portrait { grid-template-columns: 1fr; }
 }
 
+/* ---- Origins tab (Background + Alignment + Deity on one page) ---- */
+.sde-cb-origins-main { flex: 1; min-height: 0; overflow-y: auto; padding-right: var(--sd-s4); }
+.sde-cb-origin { margin: 0 0 var(--sd-s32); }
+.sde-cb-origin-head { max-width: 360px; margin: 0 auto var(--sd-s12); text-align: center; }
+.sde-cb-origin-head,
+.sde-cb-origin-name {
+  font-family: var(--sd-font-title); font-weight: 400; font-size: 24px; line-height: 1.1;
+  color: var(--sd-text); border: none;
+}
+.sde-cb-origin-name { margin: 0 0 var(--sd-s8); }
+.sde-cb-origin-grid { display: grid; grid-template-columns: 188px 1fr; gap: var(--sd-s20); align-items: start; }
+/* height-capped scrollable lists so three sections fit one page */
+.sde-cb-origin-grid .sde-cb-col-list { max-height: 300px; min-height: 0; }
+.sde-cb-origin-detail { min-width: 0; }
+.sde-cb-origin-detail .sde-cb-desc,
+.sde-cb-origin-detail .sde-cb-anc-langs {
+  font-family: var(--sd-font-body); font-size: 13.5px; line-height: 1.55;
+  color: var(--sd-text-body); margin: 0 0 var(--sd-s12);
+}
+
 /* --- Gear shop ------------------------------------------------------------ */
 .sde-cb-gear-meta { display: flex; flex-wrap: wrap; gap: 14px; margin: 4px 0 12px; font-size: 12.5px; color: var(--cb-muted); }
 .sde-cb-gear-meta b { color: var(--cb-text); }
