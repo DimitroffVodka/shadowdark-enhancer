@@ -141,6 +141,8 @@
   "SDE.charBuilder.class.patronBoon": "Patron Boon",
   "SDE.charBuilder.class.asksOnCreate": "choice at creation",
   "SDE.charBuilder.class.asksOnCreateHint": "This talent asks for its choice (weapon, stat, …) when the character is created.",
+  "SDE.charBuilder.class.talentChoices": "Talent Choices",
+  "SDE.charBuilder.class.choiceNeeded": "Pick an option to complete this step",
   "SDE.charBuilder.class.spellRange": "Range",
   "SDE.charBuilder.class.spellDuration": "Duration",
   "SDE.charBuilder.class.choose": "choose",

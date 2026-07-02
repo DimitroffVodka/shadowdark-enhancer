@@ -6947,6 +6947,13 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   .sde-cb-class-portrait { display: none; }
 }
 
+/* ---- Class tab: inline talent choices (Weapon Mastery weapon…) ---- */
+.sde-cb-talent-choice { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.sde-cb-talent-choice b { min-width: 140px; }
+.sde-cb-talent-choice select { max-width: 240px; }
+.sde-cb-talent-choice .warn { color: var(--cb-accent, #c94); }
+.sde-cb-talent-choice.pending select { border-color: var(--cb-accent, #c94); }
+
 /* ---- Class tab: bonus creation rolls + choice badge ---- */
 .sde-cb-bonus-roll { margin: 0 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--sd-hairline, #444); }
 .sde-cb-bonus-roll:last-child { border-bottom: none; margin-bottom: 0; }

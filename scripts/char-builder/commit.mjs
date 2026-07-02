@@ -119,11 +119,22 @@ async function gatherItems(state, classSys) {
     const doc = await fromUuid(uuid).catch(() => null);
     if (doc) items.push(doc.toObject());
   };
-  const addTalent = async (uuid) => {
+  const addTalent = async (uuid, choice = null) => {
     const doc = await fromUuid(uuid).catch(() => null);
     // Skip non-Item docs (e.g. a nested "Distribute to Stats" RollTable) — they
     // aren't embeddable and would throw in createItemWithEffect / be dropped.
     if (!doc || doc.documentName !== "Item") return;
+    // A choice made in the builder pre-fills the REPLACEME effect keys exactly
+    // like the system's modifyEffectChangesWithInput would — no dialog.
+    if (choice?.slug) {
+      const obj = doc.toObject();
+      obj.name += ` (${choice.label})`;
+      for (const eff of (obj.effects ?? [])) {
+        for (const c of (eff.changes ?? [])) c.key = c.key.replace("REPLACEME", choice.slug);
+      }
+      items.push(obj);
+      return;
+    }
     try {
       items.push(await shadowdark.effects.createItemWithEffect(doc));
     } catch (_e) {
@@ -133,13 +144,16 @@ async function gatherItems(state, classSys) {
 
   // Ancestry talents: only the chosen subset (multi-talent ancestries like Elf
   // grant a choice, tracked in state.ancestryTalents).
+  const choice = (key) => state.talentChoices?.[key] ?? null;
   for (const uuid of (state.ancestryTalents || [])) await addTalent(uuid);
-  for (const uuid of (classSys?.talents || [])) await addTalent(uuid);
-  for (const t of (state.classTalents || [])) await addTalent(t.uuid);
+  for (const uuid of (classSys?.talents || [])) await addTalent(uuid, choice(`fixed:${uuid}`));
+  for (const t of (state.classTalents || [])) await addTalent(t.uuid, choice(`rolled:${t.uuid}`));
   // Bonus creation rolls (Ambitious extra talent, Black Lotus, patron boons…) —
   // text-only results have no embeddable item; the fixed talent's own text
   // stays on the sheet for those.
-  for (const b of (state.bonusRolls || [])) if (b.chosenUuid) await addTalent(b.chosenUuid);
+  for (const b of (state.bonusRolls || [])) {
+    if (b.chosenUuid) await addTalent(b.chosenUuid, choice(`bonus:${b.key}`));
+  }
   for (const uuid of (classSys?.classAbilities || [])) await addSource(uuid);
   for (const sp of (state.spells || [])) await addSource(sp.uuid);
 

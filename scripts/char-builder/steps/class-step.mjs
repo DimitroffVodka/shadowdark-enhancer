@@ -10,6 +10,38 @@ async function inlineDesc(html) {
   return (await enrich(html)).replace(/^\s*<p>/i, "").replace(/<\/p>\s*$/i, "").trim();
 }
 
+/** Option sources for REPLACEME-effect choices, mirroring the system's
+ *  handlePredefinedEffect switch (matched on the EFFECT's name). Effects with
+ *  no spec here fall back to the system's dialog at actor creation. */
+const CHOICE_SPECS = [
+  { names: ["Weapon Mastery", "Increased Weapon Damage Die"], loader: () => shadowdark.compendiums.baseWeapons() },
+  { names: ["Armor Mastery"], loader: () => shadowdark.compendiums.baseArmor() },
+  { names: ["Spellcasting Advantage on Spell"], loader: () => shadowdark.compendiums.spells() },
+];
+const _choiceOptionCache = new Map();   // spec → [{ slug, label }]
+
+function choiceSpecFor(effectName) {
+  return CHOICE_SPECS.find((s) => s.names.includes(effectName)) ?? null;
+}
+
+async function choiceOptions(spec) {
+  if (_choiceOptionCache.has(spec)) return _choiceOptionCache.get(spec);
+  const map = await shadowdark.utils.getSlugifiedItemList(await spec.loader());
+  const opts = Object.entries(map).map(([slug, label]) => ({ slug, label }));
+  _choiceOptionCache.set(spec, opts);
+  return opts;
+}
+
+/** The first REPLACEME effect on a talent doc that has a known option source. */
+function choosableEffect(doc) {
+  for (const effect of (doc?.effects ?? [])) {
+    if (!effect.changes?.some((c) => String(c.key).includes("REPLACEME"))) continue;
+    const spec = choiceSpecFor(effect.name);
+    return { effect, spec };   // spec null = REPLACEME but unsupported (system dialog)
+  }
+  return null;
+}
+
 /**
  * Step — Class.
  *
@@ -58,7 +90,9 @@ export class ClassStep extends ListStep {
     this.state.classTalents = [];
     this.state.classTalentRoll = null;
     this.state.bonusRolls = [];
+    this.state.talentChoices = {};
     this._bonusCache = null;
+    this._pendingChoiceKeys = null;
     this.state.spells = [];
     this.state.patron = null;
     // HP was rolled from the old class's hit die; languages may include the
@@ -84,6 +118,7 @@ export class ClassStep extends ListStep {
     // Bonus rolls: sync check against the last computed sources (extraContext
     // recomputes them every render; cold cache counts as complete-so-far).
     if (this._bonusCache?.sources?.length && !this._bonusComplete(this._bonusCache.sources)) return false;
+    if (!this._choicesComplete()) return false;
     return this._languagesComplete();
   }
 
@@ -174,10 +209,17 @@ export class ClassStep extends ListStep {
   // ---- Extra: info lines + talent + spells + patron -------------------------
   async extraContext(item) {
     if (!item) return {};
+    const pending = await this._pendingChoices(item);
     return {
       infoLines: await this._infoLines(item),
       traits: await this._traits(item),
       talent: await this._talentContext(item),
+      choices: pending.map((p) => ({
+        key: p.key,
+        talentName: p.talentName,
+        options: p.options.map((o) => ({ ...o, selected: this.state.talentChoices[p.key]?.slug === o.slug })),
+        chosen: !!this.state.talentChoices[p.key],
+      })),
       bonusRolls: await this._bonusContext(item),
       spells: await this._spellContext(item),
       patron: await this._patronContext(item),
@@ -215,10 +257,11 @@ export class ClassStep extends ListStep {
       // eslint-disable-next-line no-await-in-loop
       const doc = await fromUuid(uuid).catch(() => null);
       if (!doc || doc.documentName !== "Item") continue;
-      // Talents with REPLACEME effect keys (e.g. Weapon Mastery) prompt for
-      // their choice via the system dialog when the character is created.
-      const asksOnCreate = [...(doc.effects ?? [])].some((e) =>
-        e.changes?.some((c) => String(c.key).includes("REPLACEME")));
+      // Talents needing a choice: supported ones (Weapon Mastery…) get an
+      // inline picker on this tab; only UNSUPPORTED REPLACEME effects still
+      // fall back to the system dialog at actor creation.
+      const found = choosableEffect(doc);
+      const asksOnCreate = !!found && !found.spec;
       // eslint-disable-next-line no-await-in-loop
       traits.push({ name: doc.name, descInline: await inlineDesc(doc.system?.description), asksOnCreate });
     }
@@ -497,6 +540,48 @@ export class ClassStep extends ListStep {
     });
   }
 
+  // ---- Talent choices (REPLACEME effects) ------------------------------------
+  // Talents like Weapon Mastery carry an effect whose change keys contain
+  // REPLACEME — the system would prompt a dialog when the actor is created.
+  // The builder surfaces those choices inline instead; commit pre-fills the
+  // keys the same way the dialog would, so no modal ever appears.
+
+  /** Every talent INSTANCE headed to the actor that needs a supported choice:
+   *  fixed class talents, the rolled class talent, and bonus-roll picks. */
+  async _pendingChoices(item) {
+    const instances = [
+      ...(item.system.talents || []).map((u) => ({ key: `fixed:${u}`, uuid: u })),
+      ...this.state.classTalents.map((t) => ({ key: `rolled:${t.uuid}`, uuid: t.uuid })),
+      ...this.state.bonusRolls.filter((b) => b.chosenUuid).map((b) => ({ key: `bonus:${b.key}`, uuid: b.chosenUuid })),
+    ];
+    const pending = [];
+    for (const inst of instances) {
+      // eslint-disable-next-line no-await-in-loop
+      const doc = await fromUuid(inst.uuid).catch(() => null);
+      const found = doc ? choosableEffect(doc) : null;
+      if (!found?.spec) continue;   // no choice, or unsupported → system dialog
+      // eslint-disable-next-line no-await-in-loop
+      const options = await choiceOptions(found.spec);
+      pending.push({ key: inst.key, talentName: doc.name, options });
+    }
+    // Prune picks whose instance vanished (talent rerolled, class changed).
+    const valid = new Set(pending.map((p) => p.key));
+    for (const k of Object.keys(this.state.talentChoices)) {
+      if (!valid.has(k)) delete this.state.talentChoices[k];
+    }
+    this._pendingChoiceKeys = pending.map((p) => p.key);
+    return pending;
+  }
+
+  chooseTalentOption(key, slug, label) {
+    if (!slug) delete this.state.talentChoices[key];
+    else this.state.talentChoices[key] = { slug, label };
+  }
+
+  _choicesComplete() {
+    return (this._pendingChoiceKeys ?? []).every((k) => this.state.talentChoices[k]);
+  }
+
   // ---- Spell preview ---------------------------------------------------------
   /** Toggle a spell's inline preview; enrich its description once, then cache. */
   async toggleSpellPreview(uuid) {
@@ -557,10 +642,22 @@ export class ClassStep extends ListStep {
         e.chosenUuid = pick.uuid; e.chosenName = pick.name;
       }
     }
+    // Auto-pick any REPLACEME talent choices (Weapon Mastery weapon…).
+    for (const p of await this._pendingChoices(item)) {
+      if (!this.state.talentChoices[p.key] && p.options.length) {
+        const o = p.options[Math.floor(Math.random() * p.options.length)];
+        this.state.talentChoices[p.key] = { slug: o.slug, label: o.label };
+      }
+    }
     await this.langStep.randomize();
   }
 
   _onRenderExtra(root) {
+    root.querySelectorAll("[data-cb-talent-choice]").forEach((el) => el.addEventListener("change", async (ev) => {
+      const opt = ev.target.selectedOptions[0];
+      this.chooseTalentOption(el.dataset.cbTalentChoice, ev.target.value, opt?.textContent ?? "");
+      await this.app.render();
+    }));
     const langRoot = root.querySelector("[data-cb-class-langs]");
     if (langRoot) this.langStep.onRender(langRoot);
     root.querySelector("[data-cb-roll-talent]")?.addEventListener("click", async () => { await this.rollTalent(); });

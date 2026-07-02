@@ -46,6 +46,23 @@
         </div>
       </div>
 
+      {{!-- Talent choices (Weapon Mastery weapon, Armor Mastery armor…) --}}
+      {{#if step.choices.length}}
+      <div class="sde-cb-subpanel">
+        <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.talentChoices"}}</span>
+        {{#each step.choices}}
+        <div class="sde-cb-talent-choice{{#unless chosen}} pending{{/unless}}">
+          <b>{{talentName}}</b>
+          <select data-cb-talent-choice="{{key}}">
+            <option value="">{{localize "SDE.charBuilder.chooseOption"}}</option>
+            {{#each options}}<option value="{{slug}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}
+          </select>
+          {{#unless chosen}}<i class="fa-solid fa-triangle-exclamation warn" title="{{localize 'SDE.charBuilder.class.choiceNeeded'}}"></i>{{/unless}}
+        </div>
+        {{/each}}
+      </div>
+      {{/if}}
+
       {{!-- Talent (rolled) --}}
       {{#if step.talent.hasTable}}
       <div class="sde-cb-subpanel">
