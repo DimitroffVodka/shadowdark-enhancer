@@ -1,0 +1,67 @@
+<div class="sde-cb-anc is-preview">
+
+  <div class="sde-cb-page-title sd-band">
+    <h1>{{localize "SDE.charBuilder.step.preview"}}</h1>
+  </div>
+
+  <div class="sde-cb-anc-subhead sd-band sd-band--tight">
+    <h2>{{step.name}}</h2>
+  </div>
+
+  <div class="sde-cb-preview-main">
+
+    {{#unless step.ready}}
+    <p class="sde-cb-hint warn">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      {{localize "SDE.charBuilder.preview.incomplete"}} {{#each step.missing}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}
+    </p>
+    {{/unless}}
+
+    <div class="sde-cb-preview-cols">
+
+      <section class="sde-cb-preview-block">
+        <h3>{{localize "SDE.charBuilder.preview.identity"}}</h3>
+        <p><b>{{localize "SDE.charBuilder.step.ancestry"}}:</b> {{#if step.ancestry}}{{step.ancestry}}{{else}}—{{/if}}</p>
+        <p><b>{{localize "SDE.charBuilder.step.class"}}:</b> {{#if step.class}}{{step.class}}{{else}}—{{/if}}</p>
+        <p><b>{{localize "SDE.charBuilder.step.background"}}:</b> {{#if step.background}}{{step.background}}{{else}}—{{/if}}</p>
+        <p><b>{{localize "SDE.charBuilder.step.alignment"}}:</b> {{step.alignment}}</p>
+        <p><b>{{localize "SDE.charBuilder.step.deity"}}:</b> {{#if step.deity}}{{step.deity}}{{else}}—{{/if}}</p>
+        {{#if step.patron}}<p><b>{{localize "SDE.charBuilder.class.patron"}}:</b> {{step.patron}}</p>{{/if}}
+        {{#if step.trinket}}<p><b>{{localize "SDE.charBuilder.ancestry.trinket"}}:</b> {{step.trinket}}</p>{{/if}}
+      </section>
+
+      <section class="sde-cb-preview-block">
+        <h3>{{localize "SDE.charBuilder.step.stats"}}</h3>
+        <div class="sde-cb-preview-abilities">
+          {{#each step.abilities}}
+          <div class="ab"><span class="k">{{key}}</span><span class="v">{{value}}</span><span class="m">{{mod}}</span></div>
+          {{/each}}
+        </div>
+        <p><b>{{localize "SDE.charBuilder.step.hp"}}:</b> {{#if step.hp}}{{step.hp}}{{else}}—{{/if}}</p>
+        <p><b>{{localize "SDE.charBuilder.step.gold"}}:</b> {{#if step.goldRolled}}{{step.goldRolled}}{{else}}—{{/if}}
+          {{#if step.gear.length}}<span class="after">→ {{step.coinsAfter}} {{localize "SDE.charBuilder.preview.afterGear"}}</span>{{/if}}</p>
+        <p><b>{{localize "SDE.charBuilder.step.languages"}}:</b>
+          {{#if step.languages.length}}{{#each step.languages}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}{{else}}—{{/if}}</p>
+      </section>
+
+      <section class="sde-cb-preview-block">
+        <h3>{{localize "SDE.charBuilder.preview.features"}}</h3>
+        {{#if step.talents.length}}
+        {{#each step.talents}}<p>{{this}}</p>{{/each}}
+        {{else}}<p>—</p>{{/if}}
+        {{#if step.spells.length}}
+        <h3>{{localize "SDE.charBuilder.class.spells"}}</h3>
+        {{#each step.spells}}<p>{{name}} <span class="tier">({{localize "SDE.charBuilder.class.tier"}} {{tier}})</span></p>{{/each}}
+        {{/if}}
+      </section>
+
+      <section class="sde-cb-preview-block">
+        <h3>{{localize "SDE.charBuilder.step.gear"}}</h3>
+        {{#if step.gear.length}}
+        {{#each step.gear}}<p>{{qty}}× {{name}}</p>{{/each}}
+        {{else}}<p>—</p>{{/if}}
+      </section>
+
+    </div>
+  </div>
+</div>

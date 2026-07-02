@@ -6,9 +6,9 @@ import { StatsStep } from "./steps/stats-step.mjs";
 import { AncestryStep } from "./steps/ancestry-step.mjs";
 import { OriginsStep } from "./steps/origins-step.mjs";
 import { ClassStep } from "./steps/class-step.mjs";
-import { HpStep } from "./steps/hp-step.mjs";
-import { GoldStep } from "./steps/gold-step.mjs";
+import { HpGoldStep } from "./steps/hp-gold-step.mjs";
 import { GearStep } from "./steps/gear-step.mjs";
+import { PreviewStep } from "./steps/preview-step.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -37,9 +37,9 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       new AncestryStep(this),
       new OriginsStep(this),
       new ClassStep(this),
-      new HpStep(this),
-      new GoldStep(this),
+      new HpGoldStep(this),
       new GearStep(this),
+      new PreviewStep(this),
     ];
   }
 
@@ -77,6 +77,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       scrollable: [
         ".sde-cb-anc-main",       // ancestry/class main column
         ".sde-cb-origins-main",   // origins main column
+        ".sde-cb-preview-main",   // preview summary
         ".sde-cb-col-detail",     // 2/3-col detail (gear)
         ".sde-cb-list",           // option lists
       ],

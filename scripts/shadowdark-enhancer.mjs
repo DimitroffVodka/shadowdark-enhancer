@@ -107,7 +107,9 @@ Hooks.once("init", () => {
     "sde-cb-origins": `modules/${MODULE_ID}/templates/char-builder/steps/origins.hbs`,
     "sde-cb-hp": `modules/${MODULE_ID}/templates/char-builder/steps/hp.hbs`,
     "sde-cb-gold": `modules/${MODULE_ID}/templates/char-builder/steps/gold.hbs`,
+    "sde-cb-hp-gold": `modules/${MODULE_ID}/templates/char-builder/steps/hp-gold.hbs`,
     "sde-cb-gear": `modules/${MODULE_ID}/templates/char-builder/steps/gear.hbs`,
+    "sde-cb-preview": `modules/${MODULE_ID}/templates/char-builder/steps/preview.hbs`,
     "sde-cb-placeholder": `modules/${MODULE_ID}/templates/char-builder/steps/placeholder.hbs`,
   };
   for (const [name, path] of Object.entries(cbPartials)) {

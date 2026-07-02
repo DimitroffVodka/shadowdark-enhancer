@@ -1,5 +1,12 @@
 <div class="sde-cb-3col">
-  {{> sde-cb-list step.list}}
+  <div class="sde-cb-gear-left">
+    <div class="sde-cb-gear-cats">
+      {{#each step.categories}}
+      <button type="button" class="sde-cb-gear-cat{{#if active}} active{{/if}}" data-cb-gear-cat="{{key}}">{{label}}</button>
+      {{/each}}
+    </div>
+    {{> sde-cb-list step.list}}
+  </div>
 
   <div class="sde-cb-col-detail">
     {{#if step.hasSelection}}

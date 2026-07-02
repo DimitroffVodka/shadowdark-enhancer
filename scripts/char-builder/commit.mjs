@@ -66,7 +66,7 @@ export async function commitCharacter(state) {
 }
 
 /** Starting coins minus the gear-cart cost (clamped at zero). */
-function coinsAfterGear(state) {
+export function coinsAfterGear(state) {
   const c = state.coins;
   let cp = (c.gp || 0) * 100 + (c.sp || 0) * 10 + (c.cp || 0);
   for (const g of (state.gear || [])) cp -= (g.costCp || 0) * (g.qty || 1);

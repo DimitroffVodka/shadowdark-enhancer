@@ -6891,6 +6891,46 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-tsrc-showall { display: flex; align-items: center; gap: 6px; font-size: 12px; }
 .sde-cb-tsrc-footer { flex: 0 0 auto; display: flex; justify-content: flex-end; }
 
+/* ---- HP & Gold tab: two roll sections side by side ---- */
+.sde-cb-hp-gold {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--sd-s32);
+  max-width: 860px; width: 100%; margin: 0 auto; padding: var(--sd-s12) var(--sd-s8);
+}
+.sde-cb-hp-gold section { min-width: 0; }
+@container cbanc (max-width: 700px) {
+  .sde-cb-hp-gold { grid-template-columns: 1fr; }
+}
+
+/* ---- Gear tab: category buttons above the shop list ---- */
+.sde-cb-gear-left { display: flex; flex-direction: column; min-height: 0; }
+.sde-cb-gear-left .sde-cb-col-list { flex: 1; min-height: 0; }
+.sde-cb-gear-cats { display: flex; gap: 4px; margin: 0 0 6px; }
+.sde-cb-gear-cat {
+  flex: 1; padding: 5px 4px; font-size: 12px; cursor: pointer;
+  background: var(--cb-panel); color: var(--cb-muted);
+  border: 1px solid var(--cb-border); border-radius: 4px;
+}
+.sde-cb-gear-cat:hover { border-color: var(--cb-accent); color: var(--cb-text); }
+.sde-cb-gear-cat.active { border-color: var(--cb-accent); color: var(--cb-text); background: var(--cb-panel-2); }
+
+/* ---- Preview tab ---- */
+.sde-cb-preview-main { flex: 1; min-height: 0; overflow-y: auto; padding: var(--sd-s4) var(--sd-s8); max-width: 960px; width: 100%; margin: 0 auto; }
+.sde-cb-preview-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sd-s20); align-items: start; }
+.sde-cb-preview-block h3 {
+  font-family: var(--sd-font-title); font-weight: 400; font-size: 18px; color: var(--sd-text);
+  border: none; border-bottom: 1px solid var(--sd-hairline, #555); padding-bottom: 3px; margin: 0 0 var(--sd-s8);
+}
+.sde-cb-preview-block p {
+  font-family: var(--sd-font-body); font-size: 13px; line-height: 1.5;
+  color: var(--sd-text-body); margin: 0 0 var(--sd-s4);
+}
+.sde-cb-preview-block .tier, .sde-cb-preview-block .after { color: var(--cb-muted); font-size: 12px; }
+.sde-cb-preview-abilities { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; margin: 0 0 var(--sd-s8); }
+.sde-cb-preview-abilities .ab { display: flex; gap: 6px; align-items: baseline; font-size: 13px; }
+.sde-cb-preview-abilities .k { font-weight: 700; color: var(--sd-text); }
+.sde-cb-preview-abilities .m { color: var(--cb-muted); font-size: 12px; }
+
 /* ---- Class tab: portrait in the header space left of the title band ---- */
 .sde-cb-anc.is-class { position: relative; }
 .sde-cb-class-portrait {

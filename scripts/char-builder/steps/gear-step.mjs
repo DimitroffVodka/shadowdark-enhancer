@@ -9,10 +9,15 @@ import { enrich } from "../data.mjs";
  * Note: Shadowdark classes carry no starting-gear data, so class-granted magic
  * gear (e.g. a Paladin's) is not auto-added — the player buys/adds it here.
  */
+const CATEGORIES = ["Armor", "Weapon", "Basic"];
+const slug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
 export class GearStep extends ListStep {
   constructor(app) {
     super(app);
     this._viewUuid = null;
+    this._category = "Armor";        // active shop category tab
+    this._permitCache = {};          // class uuid → { wUuids, wSlugs, aUuids, aSlugs }
   }
 
   get id() { return "gear"; }
@@ -81,6 +86,53 @@ export class GearStep extends ListStep {
     return { costCp, slots, remainingCp: this.goldCp - costCp };
   }
 
+  /** The chosen class's permitted weapon/armor identities (uuids + name slugs),
+   *  resolved once per class. Null when no class is picked (no restriction). */
+  async _permitted() {
+    const cls = this.state.class?.item;
+    if (!cls) return null;
+    const key = cls.uuid;
+    if (this._permitCache[key]) return this._permitCache[key];
+    const resolve = async (uuids) => {
+      const slugs = new Set();
+      for (const u of (uuids || [])) {
+        // eslint-disable-next-line no-await-in-loop
+        const d = await fromUuid(u).catch(() => null);
+        if (d) slugs.add(slug(d.name));
+      }
+      return slugs;
+    };
+    const p = {
+      wUuids: new Set(cls.system.weapons || []),
+      wSlugs: await resolve(cls.system.weapons),
+      aUuids: new Set(cls.system.armor || []),
+      aSlugs: await resolve(cls.system.armor),
+    };
+    this._permitCache[key] = p;
+    return p;
+  }
+
+  /** Whether the chosen class may use this shop item. Basic gear always passes;
+   *  weapons/armor match the class lists by uuid, name slug, or the magic
+   *  item's baseWeapon/baseArmor slug. No class picked = everything shows. */
+  _classPermits(item, p) {
+    if (!p) return true;
+    const s = this.state.class.item.system;
+    if (item.type === "Weapon") {
+      if (s.allWeapons) return true;
+      if (s.allMeleeWeapons && item.system.type === "melee") return true;
+      if (s.allRangedWeapons && item.system.type === "ranged") return true;
+      return p.wUuids.has(item.uuid) || p.wSlugs.has(slug(item.name))
+        || (item.system.baseWeapon && p.wSlugs.has(item.system.baseWeapon));
+    }
+    if (item.type === "Armor") {
+      if (s.allArmor) return true;
+      return p.aUuids.has(item.uuid) || p.aSlugs.has(slug(item.name))
+        || (item.system.baseArmor && p.aSlugs.has(item.system.baseArmor));
+    }
+    return true;
+  }
+
   addToCart(uuid) {
     const item = (this._items || []).find((i) => i.uuid === uuid);
     if (!item) return;
@@ -107,11 +159,19 @@ export class GearStep extends ListStep {
 
   async prepareContext() {
     const items = await this.items();
-    const entries = items.map((i) => ({ id: i.uuid, name: i.name, img: i.img, selected: i.uuid === this._viewUuid }));
+    const permitted = await this._permitted();
+    const shown = items.filter((i) => i.type === this._category && this._classPermits(i, permitted));
+    const entries = shown.map((i) => ({ id: i.uuid, name: i.name, img: i.img, selected: i.uuid === this._viewUuid }));
+    // The viewed item may belong to another category — keep showing its detail.
     const view = items.find((i) => i.uuid === this._viewUuid) || null;
     const totals = this.cartTotals();
 
     return {
+      categories: CATEGORIES.map((c) => ({
+        key: c,
+        label: game.i18n.localize(`SDE.charBuilder.gear.cat${c}`),
+        active: c === this._category,
+      })),
       list: { entries, search: this._search, placeholder: this.searchPlaceholder },
       detail: view ? {
         name: view.name, img: view.img, description: await enrich(view.system?.description),
@@ -132,6 +192,10 @@ export class GearStep extends ListStep {
   }
 
   _onRenderExtra(root) {
+    root.querySelectorAll("[data-cb-gear-cat]").forEach((el) => el.addEventListener("click", async () => {
+      this._category = el.dataset.cbGearCat;
+      await this.app.render();
+    }));
     root.querySelector("[data-cb-add-gear]")?.addEventListener("click", async () => {
       if (this._viewUuid) { this.addToCart(this._viewUuid); await this.app.render(); }
     });
