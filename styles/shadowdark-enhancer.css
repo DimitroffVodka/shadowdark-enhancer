@@ -6942,6 +6942,9 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 
 /* slim alignment strip — one compact row instead of tall cards */
 .sde-cb-align-cards.slim { gap: 10px; margin-top: var(--sd-s8); }
+/* hint lines under the band need their own clearance from the band frame */
+.sde-cb-origin .sde-cb-method-label,
+.sde-cb-origin .sde-cb-title-banner { margin-top: var(--sd-s8); }
 .sde-cb-align-cards.slim .sde-cb-align-card { max-width: none; padding: 9px 14px; }
 .sde-cb-align-cards.slim .sde-cb-align-name { font-size: 17px; margin-bottom: 2px; }
 .sde-cb-align-cards.slim .sde-cb-align-desc { font-size: 12px; line-height: 1.35; }

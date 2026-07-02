@@ -3,9 +3,11 @@ import { BaseStep } from "./base-step.mjs";
 const ORDER = ["lawful", "neutral", "chaotic"];
 
 /**
- * Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). If a class
- * is chosen, its alignment is surfaced as a suggestion. Random picks one of the
- * three. Always "complete" (state defaults to neutral).
+ * Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). If a
+ * deity is chosen, its alignment is surfaced as a suggestion — deities carry
+ * real alignment data, while every class item ships the data-model default
+ * ("neutral"), which made a class-based suggestion meaningless noise.
+ * Random picks one of the three. Always "complete" (state defaults to neutral).
  */
 export class AlignmentStep extends BaseStep {
   get id() { return "alignment"; }
@@ -15,9 +17,9 @@ export class AlignmentStep extends BaseStep {
 
   isComplete() { return !!this.state.alignment; }
 
-  /** Suggested alignment from the chosen class, if any. */
+  /** Suggested alignment from the chosen deity, if any. */
   get suggested() {
-    const a = this.state.class?.item?.system?.alignment;
+    const a = this.state.deity?.item?.system?.alignment;
     return ORDER.includes(a) ? a : null;
   }
 

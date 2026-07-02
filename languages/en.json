@@ -164,7 +164,7 @@
   "SDE.charBuilder.languages.select": "Additional languages",
   "SDE.charBuilder.languages.noChoices": "Your ancestry and class grant no additional language choices.",
 
-  "SDE.charBuilder.alignment.suggested": "Suggested by your class",
+  "SDE.charBuilder.alignment.suggested": "Suggested by your deity",
   "SDE.charBuilder.alignment.suggestedTag": "Suggested",
   "SDE.charBuilder.alignment.title": "Title",
   "SDE.charBuilder.alignment.level1": "Level 1",
