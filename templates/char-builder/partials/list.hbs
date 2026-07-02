@@ -1,14 +1,17 @@
 {{!-- Shared left column: search box + scrollable option list.
-      Include with the list object as context: {{> sde-cb-list step.list}} --}}
+      Include with the list object as context: {{> sde-cb-list step.list}}
+      Flags: noSearch hides the search box; noThumbs hides per-row images. --}}
 <div class="sde-cb-col-list">
+  {{#unless noSearch}}
   <div class="sde-cb-search">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="text" data-cb-search value="{{search}}" placeholder="{{placeholder}}">
   </div>
-  <ul class="sde-cb-list">
+  {{/unless}}
+  <ul class="sde-cb-list{{#if noThumbs}} no-thumbs{{/if}}">
     {{#each entries}}
     <li class="sde-cb-list-item{{#if selected}} selected{{/if}}" data-cb-select="{{id}}" data-name="{{name}}">
-      <img class="sde-cb-list-img" src="{{img}}" alt="">
+      {{#unless ../noThumbs}}<img class="sde-cb-list-img" src="{{img}}" alt="">{{/unless}}
       <span class="sde-cb-list-name">{{name}}</span>
     </li>
     {{/each}}

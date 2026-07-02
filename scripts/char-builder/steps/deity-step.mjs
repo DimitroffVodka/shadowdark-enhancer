@@ -11,6 +11,9 @@ export class DeityStep extends ListStep {
   get icon() { return "fa-solid fa-place-of-worship"; }
   get partial() { return "sde-cb-deity"; }
   get stateKey() { return "deity"; }
+  // Rendered inside the Origins tab: short list, generic shared icon.
+  get showListImages() { return false; }
+  get showListSearch() { return false; }
 
   /** Deity is optional — never blocks Finish. */
   isComplete() { return true; }

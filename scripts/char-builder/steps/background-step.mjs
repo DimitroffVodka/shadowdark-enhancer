@@ -10,6 +10,9 @@ export class BackgroundStep extends ListStep {
   get icon() { return "fa-solid fa-scroll"; }
   get partial() { return "sde-cb-background"; }
   get stateKey() { return "background"; }
+  // Rendered inside the Origins tab: short list, generic shared icon.
+  get showListImages() { return false; }
+  get showListSearch() { return false; }
 
   async loadItems() {
     return Array.from(await shadowdark.compendiums.backgrounds()).sort((a, b) => a.name.localeCompare(b.name));

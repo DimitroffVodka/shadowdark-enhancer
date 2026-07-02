@@ -29,6 +29,13 @@ export class ListStep extends BaseStep {
 
   get searchPlaceholder() { return game.i18n.localize("SDE.charBuilder.searchPlaceholder"); }
 
+  /** Show per-row thumbnails in the list. Override false when every row shares
+   *  one generic icon (e.g. Backgrounds, Deities) — they only add noise. */
+  get showListImages() { return true; }
+
+  /** Show the search box above the list. Override false for short lists. */
+  get showListSearch() { return true; }
+
   async items() {
     if (!this._items) this._items = await this.loadItems();
     return this._items;
@@ -71,7 +78,13 @@ export class ListStep extends BaseStep {
       : null;
 
     return {
-      list: { entries, search: this._search, placeholder: this.searchPlaceholder },
+      list: {
+        entries,
+        search: this._search,
+        placeholder: this.searchPlaceholder,
+        noThumbs: !this.showListImages,
+        noSearch: !this.showListSearch,
+      },
       detail,
       aside: selItem ? await this.asideContext(selItem) : null,
       hasSelection: !!selItem,
