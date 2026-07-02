@@ -2,6 +2,12 @@ import { ListStep } from "./list-step.mjs";
 import { LanguagesStep } from "./languages-step.mjs";
 import { classArt } from "../art.mjs";
 import { enrich, resultText } from "../data.mjs";
+
+/** Rulebook-style inline description: enrich, then strip the wrapper <p> so
+ *  the bold name and text flow on one line (same treatment as ancestry traits). */
+async function inlineDesc(html) {
+  return (await enrich(html)).replace(/^\s*<p>/i, "").replace(/<\/p>\s*$/i, "").trim();
+}
 import { builderDiceAnimation } from "../constants.mjs";
 
 /**
@@ -21,6 +27,7 @@ export class ClassStep extends ListStep {
     this._spellCache = {};
     this._patrons = null;
     this._classInfoCache = {};
+    this._traitsCache = {};             // class uuid → [{ name, descInline }]
     this._expandedSpells = new Set();   // uuids with the preview open
     this._spellDetail = new Map();      // uuid → { description, tier, range, duration } (enriched once)
     // Language choice lives on this tab (ancestry + class both contribute once
@@ -162,12 +169,30 @@ export class ClassStep extends ListStep {
     if (!item) return {};
     return {
       infoLines: await this._infoLines(item),
+      traits: await this._traits(item),
       talent: await this._talentContext(item),
       spells: await this._spellContext(item),
       patron: await this._patronContext(item),
       // Also warms the combo cache _languagesComplete() reads.
       languages: await this.langStep.prepareContext(),
     };
+  }
+
+  /** The class's level-1 features — fixed talents + class abilities — shown
+   *  like the ancestry tab's traits (bold name, inline description). */
+  async _traits(item) {
+    const key = item.uuid;
+    if (this._traitsCache[key]) return this._traitsCache[key];
+    const traits = [];
+    for (const uuid of [...(item.system.talents || []), ...(item.system.classAbilities || [])]) {
+      // eslint-disable-next-line no-await-in-loop
+      const doc = await fromUuid(uuid).catch(() => null);
+      if (!doc || doc.documentName !== "Item") continue;
+      // eslint-disable-next-line no-await-in-loop
+      traits.push({ name: doc.name, descInline: await inlineDesc(doc.system?.description) });
+    }
+    this._traitsCache[key] = traits;
+    return traits;
   }
 
   /** Rulebook-style stat lines shown under the description (no aside column). */

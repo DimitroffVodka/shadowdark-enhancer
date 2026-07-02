@@ -6910,10 +6910,10 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 
 /* ---- Origins tab (Alignment strip + Background | Deity columns) ---- */
 .sde-cb-origins-main {
-  /* Generous top padding — the sd-band section heads render ~5px proud of
-     their section and carry a 1px outline at 2px offset; anything less and
-     this scroll container clips the first band's outline. */
-  flex: 1; min-height: 0; overflow-y: auto; padding: var(--sd-s12) var(--sd-s4) var(--sd-s4);
+  /* Generous padding — the sd-band section heads render ~5px proud of their
+     section and carry a 1px outline at 2px offset; anything less and this
+     scroll container clips the first band's outline (top AND left). */
+  flex: 1; min-height: 0; overflow-y: auto; padding: var(--sd-s12) var(--sd-s8) var(--sd-s8);
   max-width: 920px; width: 100%; margin: 0 auto;
 }
 .sde-cb-origin { margin: 0 0 var(--sd-s20); }
@@ -6921,6 +6921,8 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   max-width: 220px; margin: 0 auto var(--sd-s12); text-align: center;
   font-family: var(--sd-font-title); font-weight: 400; font-size: 20px; line-height: 1.1;
   color: var(--sd-text); border: none;
+  /* paint above the section content so cards never overlap the band's frame */
+  position: relative; z-index: 1;
 }
 .sde-cb-origins-cols { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sd-s32); align-items: start; }
 /* full-column, height-capped lists; text-only rows */
@@ -6939,7 +6941,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-origin-detail .sde-cb-desc p { margin: 0 0 var(--sd-s4); }
 
 /* slim alignment strip — one compact row instead of tall cards */
-.sde-cb-align-cards.slim { gap: 10px; margin-top: 0; }
+.sde-cb-align-cards.slim { gap: 10px; margin-top: var(--sd-s8); }
 .sde-cb-align-cards.slim .sde-cb-align-card { max-width: none; padding: 9px 14px; }
 .sde-cb-align-cards.slim .sde-cb-align-name { font-size: 17px; margin-bottom: 2px; }
 .sde-cb-align-cards.slim .sde-cb-align-desc { font-size: 12px; line-height: 1.35; }

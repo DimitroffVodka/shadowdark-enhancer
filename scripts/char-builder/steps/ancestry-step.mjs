@@ -85,15 +85,17 @@ export class AncestryStep extends ListStep {
     return (item.system.talents || []).length > (item.system.talentChoiceCount || 0);
   }
 
-  /** Toggle an ancestry talent choice, respecting talentChoiceCount. */
+  /** Toggle an ancestry talent choice. At capacity, picking a new option
+   *  replaces the oldest pick — no need to deselect first. */
   toggleTalent(uuid) {
     const item = this.selected?.item;
     if (!item) return;
     const count = item.system.talentChoiceCount || 0;
     const chosen = this.state.ancestryTalents;
     const idx = chosen.indexOf(uuid);
-    if (idx >= 0) chosen.splice(idx, 1);
-    else if (chosen.length < count) chosen.push(uuid);
+    if (idx >= 0) { chosen.splice(idx, 1); return; }
+    if (chosen.length >= count) chosen.splice(0, chosen.length - count + 1);
+    chosen.push(uuid);
   }
 
   async asideContext(item) {

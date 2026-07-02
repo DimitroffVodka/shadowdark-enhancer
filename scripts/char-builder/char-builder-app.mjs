@@ -70,7 +70,17 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
   };
 
   static PARTS = {
-    body: { template: `modules/${MODULE_ID}/templates/char-builder/char-builder.hbs` },
+    body: {
+      template: `modules/${MODULE_ID}/templates/char-builder/char-builder.hbs`,
+      // Preserve scroll across the frequent re-renders (chip toggles, spell
+      // expands, cart changes) — without this every click snaps to the top.
+      scrollable: [
+        ".sde-cb-anc-main",       // ancestry/class main column
+        ".sde-cb-origins-main",   // origins main column
+        ".sde-cb-col-detail",     // 2/3-col detail (gear)
+        ".sde-cb-list",           // option lists
+      ],
+    },
   };
 
   get activeStep() { return this.steps[this.stepIndex]; }

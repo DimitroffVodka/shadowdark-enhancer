@@ -27,6 +27,15 @@
           <p class="sde-cb-anc-langs"><b>{{label}}:</b> {{value}}</p>
           {{/each}}
 
+          {{!-- Level-1 features: fixed talents + class abilities --}}
+          {{#if step.traits.length}}
+          <div class="sde-cb-anc-traits">
+            {{#each step.traits}}
+            <div class="sde-cb-anc-trait"><b class="tn">{{name}}.</b> {{{descInline}}}</div>
+            {{/each}}
+          </div>
+          {{/if}}
+
         </div>
 
         {{#if step.detail.hasPortrait}}
