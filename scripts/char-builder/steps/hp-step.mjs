@@ -16,9 +16,14 @@ export class HpStep extends BaseStep {
 
   isComplete() { return this.state.hp.max > 0; }
 
-  /** Class hit die string, e.g. "d8". */
+  /** Class hit die string — system classes use "d8", third-party ones "1d8". */
   get hitDie() { return this.state.class?.item?.system?.hitPoints || null; }
-  get dieMax() { return this.hitDie ? (Number(this.hitDie.replace(/^d/i, "")) || 0) : 0; }
+  /** "1dN" roll formula for the hit die, whichever form the class data uses. */
+  get dieFormula() { return this.hitDie ? (/^\d/.test(this.hitDie) ? this.hitDie : `1${this.hitDie}`) : null; }
+  get dieMax() {
+    const m = String(this.hitDie || "").match(/^(\d*)\s*d\s*(\d+)/i);
+    return m ? Math.max(1, Number(m[1]) || 1) * Number(m[2]) : 0;
+  }
   get conMod() { return abilityMod(this.state.stats.values.con) ?? 0; }
   get maxSetting() {
     try { return !!game.settings.get(MODULE_ID, "charBuilderMaxLevel1HP"); } catch (_e) { return false; }
@@ -51,7 +56,7 @@ export class HpStep extends BaseStep {
   async _roll() {
     if (!this.hitDie) return;
     if (this.maxSetting) return this._max();
-    const roll = await new Roll(`1${this.hitDie}`).evaluate();
+    const roll = await new Roll(this.dieFormula).evaluate();
     const total = Math.max(1, roll.total + this.conMod);
     this.state.hp = { max: total, rolled: roll.total };
     await this._card(roll, total, "roll");

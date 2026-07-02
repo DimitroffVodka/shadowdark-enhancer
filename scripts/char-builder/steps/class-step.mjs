@@ -1,5 +1,7 @@
 import { ListStep } from "./list-step.mjs";
 import { classArt } from "../art.mjs";
+import { resultText } from "../data.mjs";
+import { builderDiceAnimation } from "../constants.mjs";
 
 /**
  * Step — Class.
@@ -117,21 +119,26 @@ export class ClassStep extends ListStep {
     const groups = {};
     for (const r of t.results.contents) {
       const rk = r.range[0] === r.range[1] ? `${r.range[0]}` : `${r.range[0]}–${r.range[1]}`;
-      if (!groups[rk]) groups[rk] = { range: rk, min: r.range[0], outcomes: [], choice: false };
-      let disp = String(r.text ?? r.description ?? r.name ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+      if (!groups[rk]) groups[rk] = { range: rk, min: r.range[0], docs: [], texts: [] };
       if (r.documentUuid) {
         // eslint-disable-next-line no-await-in-loop
         const d = await fromUuid(r.documentUuid).catch(() => null);
-        if (d) disp = d.name;
+        if (d) { groups[rk].docs.push(d.name); continue; }
       }
-      if (/^choose\b/i.test(disp)) groups[rk].choice = true;
-      else if (disp) groups[rk].outcomes.push(disp);
+      const txt = resultText(r);
+      if (txt) groups[rk].texts.push(txt);
     }
     const choose = game.i18n.localize("SDE.charBuilder.class.tableChoose");
-    return Object.values(groups).sort((a, b) => a.min - b.min).map((g) => ({
-      range: g.range,
-      outcome: (g.choice && g.outcomes.length > 1) ? `${choose} ${g.outcomes.join(", ")}` : g.outcomes.join(", "),
-    }));
+    return Object.values(groups).sort((a, b) => a.min - b.min).map((g) => {
+      // Linked-document rows are the real outcomes; a text row sharing their
+      // range is a "choose one of…" header. Several outcomes in one range is
+      // structurally a choice — the same signal rollTalent uses to offer picks.
+      const outcomes = g.docs.length ? g.docs : g.texts;
+      return {
+        range: g.range,
+        outcome: outcomes.length > 1 ? `${choose} ${outcomes.join(", ")}` : outcomes.join(", "),
+      };
+    });
   }
 
   // ---- Aside: class summary ------------------------------------------------
@@ -242,15 +249,15 @@ export class ClassStep extends ListStep {
         // Stats" RollTables etc.).
         if (doc && doc.documentName === "Item") options.push({ uuid, name: doc.name });
       } else {
-        const txt = String(r.text ?? r.description ?? r.name ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+        const txt = resultText(r);
         if (txt) texts.push(txt);
       }
     }
     // Some classes (often homebrew) use text-only talent tables with no linked
     // items — surface the rolled text so the player can apply it manually.
-    const textResult = options.length === 0
-      ? (texts.filter((t) => !/^choose\b/i.test(t)).join("; ") || null)
-      : null;
+    // When linked items exist, text rows in the range are "choose one of…"
+    // headers and the options themselves carry the outcome.
+    const textResult = options.length === 0 ? (texts.join("; ") || null) : null;
     this.state.classTalentRoll = { total, options, textResult };
     this.state.classTalents = options.length === 1 ? [{ uuid: options[0].uuid, name: options[0].name }] : [];
     await this._talentCard(roll, options, textResult);
@@ -261,11 +268,14 @@ export class ClassStep extends ListStep {
     const names = options.map((o) => o.name).join(" / ") || textResult || game.i18n.localize("SDE.charBuilder.class.noTalent");
     const content = `<div class="sde-cb-rollcard"><h4>${game.i18n.localize("SDE.charBuilder.class.talentCard")}</h4>`
       + `<div class="method">${this.selected?.name} — 2d6 = ${roll.total}: <b>${names}</b></div></div>`;
+    const animate = builderDiceAnimation();
     try {
       await ChatMessage.create({
         speaker: ChatMessage.getSpeaker(),
         flavor: game.i18n.localize("SDE.charBuilder.title"),
-        content, rolls: [roll], sound: CONFIG.sounds.dice,
+        content,
+        rolls: animate ? [roll] : [],
+        sound: animate ? CONFIG.sounds.dice : undefined,
       });
     } catch (e) {
       console.error("shadowdark-enhancer | char-builder talent card failed:", e);

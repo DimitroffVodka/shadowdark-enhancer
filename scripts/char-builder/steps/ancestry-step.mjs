@@ -43,7 +43,7 @@ export class AncestryStep extends ListStep {
     const key = `${item.uuid}:${sourceId}:${kind}`;
     if (key in this._tableCache) return this._tableCache[key];
     const src = TABLE_SOURCES.find((s) => s.id === sourceId);
-    let doc = src ? await src[kind](item.name) : null;
+    let doc = src ? await src[kind](item) : null;
     if (doc && !(doc.results?.size > 0)) doc = null;   // ignore present-but-empty tables
     this._tableCache[key] = doc;
     return doc;

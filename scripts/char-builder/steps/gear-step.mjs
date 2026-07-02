@@ -1,12 +1,10 @@
 import { ListStep } from "./list-step.mjs";
 import { enrich } from "../data.mjs";
 
-const GEAR_PACK = "shadowdark.gear";
-
 /**
- * Step — Gear. A shop: browse the gear compendium (left), view an item (center),
- * add it to a cart tracked against starting gold and carry slots (right).
- * Multi-select, so it overrides ListStep's single-select behaviour.
+ * Step — Gear. A shop: browse purchasable equipment (left), view an item
+ * (center), add it to a cart tracked against starting gold and carry slots
+ * (right). Multi-select, so it overrides ListStep's single-select behaviour.
  *
  * Note: Shadowdark classes carry no starting-gear data, so class-granted magic
  * gear (e.g. a Paladin's) is not auto-added — the player buys/adds it here.
@@ -26,14 +24,21 @@ export class GearStep extends ListStep {
   supportsRandom() { return false; }   // random shopping isn't meaningful
 
   async loadItems() {
-    const pack = game.packs.get(GEAR_PACK);
-    const idx = await pack.getIndex();
-    const docs = [];
-    for (const e of idx) {
-      // eslint-disable-next-line no-await-in-loop
-      docs.push(await pack.getDocument(e._id));
+    // The system's loaders span every installed pack (core + third-party), so
+    // the shop reflects the live content just like the other steps.
+    const c = shadowdark.compendiums;
+    const groups = await Promise.all([c.basicItems(), c.weapons(), c.armor(), c.ammunition()]);
+    // Same-named items can ship from several packs — keep one per type+name,
+    // preferring the system's own copy.
+    const byKey = new Map();
+    for (const d of groups.flatMap((g) => Array.from(g))) {
+      const key = `${d.type}:${d.name.toLowerCase()}`;
+      const prev = byKey.get(key);
+      if (!prev || (!prev.uuid.startsWith("Compendium.shadowdark.") && d.uuid.startsWith("Compendium.shadowdark."))) {
+        byKey.set(key, d);
+      }
     }
-    return docs.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+    return [...byKey.values()].sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
   }
 
   /** Clicking a list item VIEWS it (does not add to cart). */
