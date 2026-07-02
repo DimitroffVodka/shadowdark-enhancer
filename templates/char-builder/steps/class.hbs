@@ -4,11 +4,11 @@
     <h1>{{localize "SDE.charBuilder.step.class"}}</h1>
   </div>
 
-  {{#if step.hasSelection}}
-  <div class="sde-cb-anc-subhead sd-band sd-band--tight">
-    <h2>{{step.detail.name}}</h2>
+  {{!-- Always rendered — pre-selection it is invisible but keeps its height,
+        so picking an option doesn't shove the whole body down. --}}
+  <div class="sde-cb-anc-subhead sd-band sd-band--tight{{#unless step.hasSelection}} is-empty{{/unless}}">
+    <h2>{{#if step.hasSelection}}{{step.detail.name}}{{else}}&nbsp;{{/if}}</h2>
   </div>
-  {{/if}}
 
   <div class="sde-cb-anc-body">
 

@@ -6819,6 +6819,11 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-aside-meta b { color: var(--cb-text); }
 
 .sde-cb-empty { color: var(--cb-muted); font-style: italic; padding: 40px 12px; text-align: center; }
+/* ancestry-family tabs: center the pre-selection prompt in the main column */
+.sde-cb-anc-main > .sde-cb-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; padding: 0 12px;
+}
 
 /* --- Ancestry step: title band, narrow list, combined wide detail -------- */
 .sde-cb-anc {
@@ -6833,6 +6838,8 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   line-height: 1.05; color: var(--sd-text); margin: 0; border: none; background: none;
 }
 .sde-cb-anc-subhead { flex: 0 0 auto; max-width: 360px; margin: 0 auto var(--sd-s20); text-align: center; }
+/* pre-selection placeholder: invisible, but holds the band's exact height */
+.sde-cb-anc-subhead.is-empty { visibility: hidden; }
 .sde-cb-anc-subhead h2 {
   font-family: var(--sd-font-title); font-weight: 400; font-size: 24px; line-height: 1.1;
   color: var(--sd-text); margin: 0; border: none;
