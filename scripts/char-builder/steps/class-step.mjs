@@ -141,26 +141,32 @@ export class ClassStep extends ListStep {
     });
   }
 
-  // ---- Aside: class summary ------------------------------------------------
-  async asideContext(item) {
-    const info = await this._classInfo(item);
-    return {
-      hitDie: item.system.hitPoints,
-      caster: this._isCaster(item),
-      spellAbility: this._isCaster(item) ? (item.system.spellcasting.ability || "").toUpperCase() : null,
-      weapons: info.weapons,
-      armor: info.armor,
-    };
-  }
-
-  // ---- Extra: titles + talent + spells + patron ----------------------------
+  // ---- Extra: info lines + talent + spells + patron -------------------------
   async extraContext(item) {
     if (!item) return {};
     return {
+      infoLines: await this._infoLines(item),
       talent: await this._talentContext(item),
       spells: await this._spellContext(item),
       patron: await this._patronContext(item),
     };
+  }
+
+  /** Rulebook-style stat lines shown under the description (no aside column). */
+  async _infoLines(item) {
+    const info = await this._classInfo(item);
+    const L = (k) => game.i18n.localize(k);
+    return [
+      { label: L("SDE.charBuilder.class.weaponsPermitted"), value: info.weapons },
+      { label: L("SDE.charBuilder.class.armorPermitted"), value: info.armor },
+      { label: L("SDE.charBuilder.class.hitDie"), value: item.system.hitPoints || "—" },
+      {
+        label: L("SDE.charBuilder.class.spellcaster"),
+        value: this._isCaster(item)
+          ? (item.system.spellcasting.ability || "").toUpperCase()
+          : L("SDE.charBuilder.class.no"),
+      },
+    ];
   }
 
   async _talentContext(item) {
