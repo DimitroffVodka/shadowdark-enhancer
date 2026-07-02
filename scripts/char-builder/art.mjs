@@ -31,7 +31,9 @@ export const ANCESTRY_ART = {
 };
 
 /** Class name-slug → file in assets/classes/. Filled as B&W class art is added. */
-export const CLASS_ART = {};
+export const CLASS_ART = {
+  fighter: "fighter.webp",   // PLACEHOLDER — copy of the dwarf ancestry art, for layout preview
+};
 
 function artUrl(dir, map, name) {
   const file = map[slug(name)];
