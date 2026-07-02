@@ -1,7 +1,7 @@
 import { ListStep } from "./list-step.mjs";
 import { LanguagesStep } from "./languages-step.mjs";
 import { classArt } from "../art.mjs";
-import { resultText } from "../data.mjs";
+import { enrich, resultText } from "../data.mjs";
 import { builderDiceAnimation } from "../constants.mjs";
 
 /**
@@ -21,6 +21,8 @@ export class ClassStep extends ListStep {
     this._spellCache = {};
     this._patrons = null;
     this._classInfoCache = {};
+    this._expandedSpells = new Set();   // uuids with the preview open
+    this._spellDetail = new Map();      // uuid → { description, tier, range, duration } (enriched once)
     // Language choice lives on this tab (ancestry + class both contribute once
     // a class is picked) — delegate to the retained LanguagesStep, which keeps
     // its combo-keyed cache, need-counts and state._sync logic.
@@ -214,7 +216,12 @@ export class ClassStep extends ListStep {
       tiers.push({
         tier, count, chosen, full: chosen >= count,
         options: all.filter((s) => s.system.tier === tier)
-          .map((s) => ({ uuid: s.uuid, name: s.name, selected: this.state.spells.some((x) => x.uuid === s.uuid) })),
+          .map((s) => ({
+            uuid: s.uuid, name: s.name,
+            selected: this.state.spells.some((x) => x.uuid === s.uuid),
+            expanded: this._expandedSpells.has(s.uuid),
+            detail: this._spellDetail.get(s.uuid) ?? null,
+          })),
       });
     }
     return { caster: true, ability: (sc.ability || "").toUpperCase(), tiers };
@@ -323,6 +330,33 @@ export class ClassStep extends ListStep {
     if (p) this.state.patron = { uuid, name: p.name, item: p };
   }
 
+  // ---- Spell preview ---------------------------------------------------------
+  /** Toggle a spell's inline preview; enrich its description once, then cache. */
+  async toggleSpellPreview(uuid) {
+    if (this._expandedSpells.has(uuid)) { this._expandedSpells.delete(uuid); return; }
+    if (!this._spellDetail.has(uuid)) {
+      const doc = await fromUuid(uuid).catch(() => null);
+      if (doc) {
+        const sys = doc.system || {};
+        this._spellDetail.set(uuid, {
+          description: await enrich(sys.description),
+          tier: sys.tier,
+          range: game.i18n.localize(CONFIG.SHADOWDARK?.RANGES?.[sys.range] ?? sys.range ?? ""),
+          duration: this._durationLabel(sys.duration),
+        });
+      }
+    }
+    this._expandedSpells.add(uuid);
+  }
+
+  /** "Instant" / "Focus" / "5 Rounds" from a spell's {type, value} duration. */
+  _durationLabel(d) {
+    if (!d?.type) return "";
+    const label = game.i18n.localize(CONFIG.SHADOWDARK?.SPELL_DURATIONS?.[d.type] ?? d.type);
+    const n = Number(d.value);
+    return (["instant", "focus", "permanent"].includes(d.type) || !n || n < 0) ? label : `${d.value} ${label}`;
+  }
+
   // ---- Random --------------------------------------------------------------
   async randomize() {
     await super.randomize();
@@ -358,6 +392,11 @@ export class ClassStep extends ListStep {
     }));
     root.querySelectorAll("[data-cb-spell]").forEach((el) => el.addEventListener("click", async () => {
       this.toggleSpell(el.dataset.cbSpell); await this.app.render();
+    }));
+    root.querySelectorAll("[data-cb-spell-expand]").forEach((el) => el.addEventListener("click", async (ev) => {
+      ev.stopPropagation();
+      await this.toggleSpellPreview(el.dataset.cbSpellExpand);
+      await this.app.render();
     }));
     root.querySelectorAll("[data-cb-patron]").forEach((el) => el.addEventListener("click", async () => {
       this.choosePatron(el.dataset.cbPatron); await this.app.render();

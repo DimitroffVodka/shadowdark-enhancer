@@ -6871,6 +6871,23 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   .sde-cb-anc-detail.with-portrait { grid-template-columns: 1fr; }
 }
 
+/* ---- Class tab: spell rows with inline preview ---- */
+.sde-cb-spell-list { display: flex; flex-direction: column; gap: 4px; }
+.sde-cb-spell-row-head { display: flex; align-items: center; gap: 6px; }
+.sde-cb-spell-expand {
+  flex: 0 0 auto; width: 22px; height: 22px; padding: 0;
+  background: none; border: 1px solid var(--sd-hairline); border-radius: var(--sd-radius);
+  color: var(--sd-text-body); font-size: 10px; line-height: 1; cursor: pointer;
+}
+.sde-cb-spell-expand:hover { border-color: var(--sd-frame); color: var(--sd-text); }
+.sde-cb-spell-detail {
+  margin: 4px 0 6px 8px; padding: 8px 10px;
+  border-left: 2px solid var(--sd-frame);
+  font-family: var(--sd-font-body); font-size: 13px; line-height: 1.5; color: var(--sd-text-body);
+}
+.sde-cb-spell-detail .sde-cb-desc p { margin: 0 0 var(--sd-s8); }
+.sde-cb-spell-meta { margin: 0 0 var(--sd-s8); font-size: 12px; color: var(--sd-text-muted, #8a8474); }
+
 /* ---- Origins tab (Background + Alignment + Deity on one page) ---- */
 .sde-cb-origins-main { flex: 1; min-height: 0; overflow-y: auto; padding-right: var(--sd-s4); }
 .sde-cb-origin { margin: 0 0 var(--sd-s32); }

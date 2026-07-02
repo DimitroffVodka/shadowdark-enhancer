@@ -94,9 +94,27 @@
             {{localize "SDE.charBuilder.class.tier"}} {{tier}} — {{localize "SDE.charBuilder.class.choose"}} {{count}}
             <span class="sde-cb-count{{#if full}} full{{/if}}">{{chosen}}/{{count}}</span>
           </div>
-          <div class="sde-cb-chip-row">
+          <div class="sde-cb-spell-list">
             {{#each options}}
-            <span class="sde-cb-chip{{#if selected}} selected{{/if}}" data-cb-spell="{{uuid}}">{{name}}</span>
+            <div class="sde-cb-spell-row{{#if expanded}} expanded{{/if}}">
+              <div class="sde-cb-spell-row-head">
+                <span class="sde-cb-chip{{#if selected}} selected{{/if}}" data-cb-spell="{{uuid}}">{{name}}</span>
+                <button type="button" class="sde-cb-spell-expand" data-cb-spell-expand="{{uuid}}"
+                  title="{{localize 'SDE.charBuilder.class.spellPreview'}}">
+                  <i class="fa-solid fa-chevron-{{#if expanded}}up{{else}}down{{/if}}"></i>
+                </button>
+              </div>
+              {{#if expanded}}{{#if detail}}
+              <div class="sde-cb-spell-detail">
+                <p class="sde-cb-spell-meta">
+                  {{localize "SDE.charBuilder.class.tier"}} {{detail.tier}}
+                  · {{localize "SDE.charBuilder.class.spellRange"}}: {{detail.range}}
+                  · {{localize "SDE.charBuilder.class.spellDuration"}}: {{detail.duration}}
+                </p>
+                <div class="sde-cb-desc">{{{detail.description}}}</div>
+              </div>
+              {{/if}}{{/if}}
+            </div>
             {{/each}}
           </div>
         </div>
