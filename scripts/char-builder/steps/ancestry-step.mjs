@@ -67,6 +67,9 @@ export class AncestryStep extends ListStep {
     const talents = item.system.talents || [];
     const count = item.system.talentChoiceCount || 0;
     this.state.ancestryTalents = talents.length <= count ? [...talents] : talents.slice(0, count);
+    // Languages may include the old ancestry's fixed/chosen picks — redo them.
+    this.state.languages = [];
+    this.state.languageChoices = { common: [], rare: [], select: [] };
   }
 
   _needsTalentChoice(item) {

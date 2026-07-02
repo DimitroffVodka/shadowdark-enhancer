@@ -21,7 +21,8 @@ export class AlignmentStep extends BaseStep {
     return ORDER.includes(a) ? a : null;
   }
 
-  _label(k) { return CONFIG.SHADOWDARK?.ALIGNMENTS?.[k] ?? k; }
+  // CONFIG.SHADOWDARK.ALIGNMENTS holds raw i18n keys — localize before display.
+  _label(k) { return game.i18n.localize(CONFIG.SHADOWDARK?.ALIGNMENTS?.[k] ?? k); }
 
   /** Level-1 title for the chosen class at the given alignment, if any. */
   _titleFor(alignment) {

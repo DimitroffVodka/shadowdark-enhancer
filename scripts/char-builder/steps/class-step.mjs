@@ -41,6 +41,24 @@ export class ClassStep extends ListStep {
     this.state.classTalentRoll = null;
     this.state.spells = [];
     this.state.patron = null;
+    // HP was rolled from the old class's hit die; languages may include the
+    // old class's fixed/chosen picks — both must be redone for the new class.
+    this.state.hp = { max: 0, rolled: null };
+    this.state.languages = [];
+    this.state.languageChoices = { common: [], rare: [], select: [] };
+  }
+
+  /** A class is only complete once its patron / spells-known requirements are met. */
+  isComplete() {
+    const item = this.selected?.item;
+    if (!this.selected?.uuid || !item) return false;
+    if (item.system.patron?.required && !this.state.patron?.uuid) return false;
+    if (this._isCaster(item)) {
+      const known = item.system.spellcasting.spellsknown?.[1] || {};
+      const need = Object.values(known).reduce((a, b) => a + (Number(b) || 0), 0);
+      if ((this.state.spells?.length || 0) < need) return false;
+    }
+    return true;
   }
 
   _isCaster(item) {

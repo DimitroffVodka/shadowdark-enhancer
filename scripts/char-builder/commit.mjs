@@ -11,6 +11,9 @@ import { ABILITY_ORDER } from "./constants.mjs";
  *
  * Unlike the generator we build a COMPLETE level-1 character (HP + rolled talent
  * already chosen), so we do NOT set the `showLevelUp` flag — no re-prompt.
+ *
+ * @returns the created Actor, `true` when handed off to the GM socket, or
+ *          `null` when creation failed.
  */
 export async function commitCharacter(state) {
   const classSys = state.class?.item?.system;
@@ -32,11 +35,7 @@ export async function commitCharacter(state) {
       background: state.background?.uuid || "",
       deity: state.deity?.uuid || "",
       patron: state.patron?.uuid || "",
-      coins: {
-        gp: state.coins.gp || 0,
-        sp: state.coins.sp || 0,
-        cp: state.coins.cp || 0,
-      },
+      coins: coinsAfterGear(state),
       attributes: { hp: { value: state.hp.max || 1, max: state.hp.max || 1 } },
       languages,
       // Match the system generator: a fresh character has no luck token available.
@@ -50,10 +49,12 @@ export async function commitCharacter(state) {
   if (!(shadowdark.utils?.canCreateCharacter?.() ?? game.user.can("ACTOR_CREATE"))) {
     game.socket.emit("system.shadowdark", {
       type: "createCharacter",
-      payload: { characterData: actorData, characterItems: allItems, userId: game.userId, level0: false },
+      // level0: true — the system only uses this flag to set `showLevelUp`,
+      // which would re-prompt for the HP roll + talent the builder already applied.
+      payload: { characterData: actorData, characterItems: allItems, userId: game.userId, level0: true },
     });
     ui.notifications.info(game.i18n.localize("SDE.charBuilder.commit.sentToGm"));
-    return null;
+    return true;
   }
 
   const actor = await Actor.create(actorData);
@@ -64,23 +65,41 @@ export async function commitCharacter(state) {
   return actor;
 }
 
-/** Languages known — the Languages step's result if present, else a fixed+Common fallback. */
+/** Starting coins minus the gear-cart cost (clamped at zero). */
+function coinsAfterGear(state) {
+  const c = state.coins;
+  let cp = (c.gp || 0) * 100 + (c.sp || 0) * 10 + (c.cp || 0);
+  for (const g of (state.gear || [])) cp -= (g.costCp || 0) * (g.qty || 1);
+  cp = Math.max(0, cp);
+  return { gp: Math.floor(cp / 100), sp: Math.floor((cp % 100) / 10), cp: cp % 10 };
+}
+
+/**
+ * Languages known — the Languages step's result if present. If the tab was
+ * never visited, fall back to the fixed lists and fill the choice slots
+ * (`common`/`rare`/`select` are choose-N counts) randomly, like the system
+ * generator does.
+ */
 async function gatherLanguages(state) {
   if (Array.isArray(state.languages) && state.languages.length) {
     return [...new Set(state.languages)];
   }
-  const langs = new Set();
-  const addFixed = (sys) => { for (const u of (sys?.languages?.fixed || [])) langs.add(u); };
-  addFixed(state.ancestry?.item?.system);
-  addFixed(state.class?.item?.system);
-  try {
-    const wantsCommon = (state.ancestry?.item?.system?.languages?.common || 0) > 0;
-    if (wantsCommon) {
-      const all = Array.from(await shadowdark.compendiums.languages());
-      const common = all.find((l) => l.name === "Common");
-      if (common) langs.add(common.uuid);
+  const ancL = state.ancestry?.item?.system?.languages || {};
+  const clsL = state.class?.item?.system?.languages || {};
+  const langs = new Set([...(ancL.fixed || []), ...(clsL.fixed || [])]);
+  const fill = (pool, count) => {
+    const avail = pool.filter((u) => !langs.has(u));
+    for (let i = 0; i < count && avail.length; i++) {
+      langs.add(avail.splice(Math.floor(Math.random() * avail.length), 1)[0]);
     }
-  } catch (_e) { /* no language pack — skip Common */ }
+  };
+  try {
+    const uuids = (docs) => Array.from(docs).map((d) => d.uuid);
+    fill(uuids(await shadowdark.compendiums.commonLanguages()), (ancL.common || 0) + (clsL.common || 0));
+    fill(uuids(await shadowdark.compendiums.rareLanguages()), (ancL.rare || 0) + (clsL.rare || 0));
+    fill([...new Set([...(ancL.selectOptions || []), ...(clsL.selectOptions || [])])],
+      (ancL.select || 0) + (clsL.select || 0));
+  } catch (_e) { /* language packs unavailable — fixed languages only */ }
   return [...langs];
 }
 
@@ -118,6 +137,15 @@ async function gatherItems(state, classSys) {
     const obj = doc.toObject();
     if (g.qty > 1) obj.system.quantity = g.qty;
     items.push(obj);
+  }
+
+  // Rolled/typed trinket → a weightless Basic item.
+  if (state.trinket) {
+    items.push({
+      name: state.trinket,
+      type: "Basic",
+      system: { slots: { slots_used: 0, free_carry: 0, per_slot: 1 } },
+    });
   }
 
   return items;

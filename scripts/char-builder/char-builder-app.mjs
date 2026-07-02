@@ -152,7 +152,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   static async _onFinish() {
     // Require the essentials before committing.
-    const requiredIds = ["stats", "ancestry", "class"];
+    const requiredIds = ["stats", "ancestry", "class", "hp"];
     const missing = this.steps.filter((s) => requiredIds.includes(s.id) && !s.isComplete());
     if (missing.length) {
       ui.notifications.warn(game.i18n.format("SDE.charBuilder.commit.incomplete", {
@@ -163,12 +163,13 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
     const st = this.builderState;
     const L = (k) => game.i18n.localize(k);
-    const row = (labelKey, val) => `<li><span>${L(labelKey)}</span><b>${val}</b></li>`;
-    const summary = `<div class="sde-cb-confirm"><p class="name">${st.name || L("SDE.charBuilder.defaultName")}</p><ul>`
+    const esc = (s) => foundry.utils.escapeHTML(String(s));
+    const row = (labelKey, val) => `<li><span>${L(labelKey)}</span><b>${esc(val)}</b></li>`;
+    const summary = `<div class="sde-cb-confirm"><p class="name">${esc(st.name || L("SDE.charBuilder.defaultName"))}</p><ul>`
       + row("SDE.charBuilder.step.ancestry", st.ancestry?.name || "—")
       + row("SDE.charBuilder.step.class", st.class?.name || "—")
       + row("SDE.charBuilder.step.background", st.background?.name || "—")
-      + row("SDE.charBuilder.step.alignment", CONFIG.SHADOWDARK?.ALIGNMENTS?.[st.alignment] ?? st.alignment)
+      + row("SDE.charBuilder.step.alignment", L(CONFIG.SHADOWDARK?.ALIGNMENTS?.[st.alignment] ?? st.alignment))
       + row("SDE.charBuilder.step.deity", st.deity?.name || "—")
       + row("SDE.charBuilder.step.hp", st.hp.max || "—")
       + row("SDE.charBuilder.step.gold", `${st.coins.gp} gp`)
@@ -184,8 +185,10 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     if (!ok) return;
 
     try {
-      const actor = await commitCharacter(st);
-      if (actor !== undefined) await this.close();
+      // Actor on direct create, `true` on GM handoff, `null` on failure.
+      const result = await commitCharacter(st);
+      if (result) await this.close();
+      else ui.notifications.error(L("SDE.charBuilder.commit.failed"));
     } catch (e) {
       console.error("shadowdark-enhancer | char-builder commit failed:", e);
       ui.notifications.error(L("SDE.charBuilder.commit.failed"));

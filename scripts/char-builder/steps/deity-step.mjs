@@ -19,7 +19,8 @@ export class DeityStep extends ListStep {
     return Array.from(await shadowdark.compendiums.deities()).sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  _alignLabel(a) { return CONFIG.SHADOWDARK?.ALIGNMENTS?.[a] ?? a ?? "—"; }
+  // CONFIG.SHADOWDARK.ALIGNMENTS holds raw i18n keys — localize before display.
+  _alignLabel(a) { return a ? game.i18n.localize(CONFIG.SHADOWDARK?.ALIGNMENTS?.[a] ?? a) : "—"; }
 
   async asideContext(item) {
     return {
