@@ -65,6 +65,19 @@ export const MerchantShop = {
   _app: null,
   _isOpenForPlayers: false,
 
+  // Serializes all transactions on the processing (active-GM) client. Buy/sell
+  // check stock/funds, then mutate after an await — without serialization two
+  // near-simultaneous requests both pass the check and double-spend / oversell.
+  // A single promise chain is simpler than per-actor locks and more than fast
+  // enough for tabletop throughput.
+  _txQueue: Promise.resolve(),
+
+  _enqueueTx(fn) {
+    const run = this._txQueue.then(fn, fn);
+    this._txQueue = run.catch(() => {});
+    return run;
+  },
+
   // ── Settings ──────────────────────────────────────────────────────────────
 
   registerSettings() {
@@ -118,10 +131,10 @@ export const MerchantShop = {
       // (e.g. an always-on bridge/relay client, or a second logged-in GM)
       // processes the same socket and creates duplicate chat cards + items.
       if (game.user.isGM && game.users.activeGM?.id === game.user.id) {
-        if (data.action === "shop:buy")        await this._handleBuy(data);
-        if (data.action === "shop:sell")       await this._handleSell(data);
-        if (data.action === "shop:catalogBuy") await this._handleCatalogBuy(data);
-        if (data.action === "shop:gamble")     await this._handleGamble(data);
+        if (data.action === "shop:buy")        await this._enqueueTx(() => this._handleBuy(data));
+        if (data.action === "shop:sell")       await this._enqueueTx(() => this._handleSell(data));
+        if (data.action === "shop:catalogBuy") await this._enqueueTx(() => this._handleCatalogBuy(data));
+        if (data.action === "shop:gamble")     await this._enqueueTx(() => this._handleGamble(data));
       }
 
       // All clients: handle broadcasts from GM
@@ -2185,13 +2198,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleBuy({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleBuy({
         buyerActorId: actor.id,
         shopItemId,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:buy",
@@ -2212,12 +2225,12 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleSell({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleSell({
         sellerActorId: actor.id,
         itemId,
         quantity,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:sell",
@@ -2265,11 +2278,11 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleGamble({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleGamble({
         buyerActorId: actor.id,
         gambleId,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:gamble",
@@ -2299,13 +2312,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleCatalogBuy({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleCatalogBuy({
         buyerActorId: actor.id,
         itemUuid,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:catalogBuy",

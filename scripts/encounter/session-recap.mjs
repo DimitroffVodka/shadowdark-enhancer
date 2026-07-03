@@ -85,6 +85,24 @@ export const SessionRecap = {
     if (this._app?.rendered) this._app.render();
   },
 
+  // Serializes read-modify-write cycles against the recap setting. Every
+  // writer does getData() → mutate → _save(); rapid combat events (a
+  // damage-log message triggers several updatePlayerStat calls) would
+  // otherwise interleave on the same snapshot and silently drop increments
+  // (last-write-wins). Routing all mutations through one promise chain makes
+  // each mutator observe the previous write.
+  _writeQueue: Promise.resolve(),
+
+  _mutate(mutator) {
+    const run = this._writeQueue.then(async () => {
+      const data = this.getData();
+      if (mutator(data) === false) return; // mutator opted out
+      await this._save(data);
+    });
+    this._writeQueue = run.catch(() => {});
+    return run;
+  },
+
   async _saveHistory(history) {
     await game.settings.set(MODULE_ID, HISTORY_KEY, history);
     if (this._app?.rendered) this._app.render();
@@ -110,35 +128,35 @@ export const SessionRecap = {
    */
   async logLoot(entry) {
     if (!this.isActive()) return;
-    const data = this.getData();
-    this._ensureStart(data);
-    data.loot.push({ claimed: true, ...entry, ...this._stamp() });
-    await this._save(data);
+    return this._mutate(data => {
+      this._ensureStart(data);
+      data.loot.push({ claimed: true, ...entry, ...this._stamp() });
+    });
   },
 
   // ── Sale / Purchase Logging ────────────────────────────────
 
   async logSale({ player, item, qty, price, ratio }) {
     if (!this.isActive()) return;
-    const data = this.getData();
-    this._ensureStart(data);
-    data.sales.push({
-      player, item, qty: qty ?? 1,
-      price: price ?? { gp: 0, sp: 0, cp: 0 },
-      ratio: ratio ?? 100, ...this._stamp(),
+    return this._mutate(data => {
+      this._ensureStart(data);
+      data.sales.push({
+        player, item, qty: qty ?? 1,
+        price: price ?? { gp: 0, sp: 0, cp: 0 },
+        ratio: ratio ?? 100, ...this._stamp(),
+      });
     });
-    await this._save(data);
   },
 
   async logPurchase({ player, item, qty, price }) {
     if (!this.isActive()) return;
-    const data = this.getData();
-    this._ensureStart(data);
-    data.purchases.push({
-      player, item, qty: qty ?? 1,
-      price: price ?? { gp: 0, sp: 0, cp: 0 }, ...this._stamp(),
+    return this._mutate(data => {
+      this._ensureStart(data);
+      data.purchases.push({
+        player, item, qty: qty ?? 1,
+        price: price ?? { gp: 0, sp: 0, cp: 0 }, ...this._stamp(),
+      });
     });
-    await this._save(data);
   },
 
   // ── XP Logging ─────────────────────────────────────────────
@@ -146,31 +164,31 @@ export const SessionRecap = {
   /** Log one XP award to one PC. `{ player, actorId, totalXp, label }`. */
   async logXp({ player, actorId, totalXp, label }) {
     if (!this.isActive()) return;
-    const data = this.getData();
-    this._ensureStart(data);
-    data.xp.push({ player, actorId, totalXp: Number(totalXp) || 0, label: label ?? "", ...this._stamp() });
-    await this._save(data);
+    return this._mutate(data => {
+      this._ensureStart(data);
+      data.xp.push({ player, actorId, totalXp: Number(totalXp) || 0, label: label ?? "", ...this._stamp() });
+    });
   },
 
   // ── Encounter Check Logging ────────────────────────────────
 
   async logEncounterCheck({ roll, threshold, hit, clockLabel = null }) {
     if (!this.isActive()) return;
-    const data = this.getData();
-    this._ensureStart(data);
-    data.encounterChecks.push({
-      roll: Number(roll), threshold: Number(threshold), hit: !!hit, clockLabel, ...this._stamp(),
+    return this._mutate(data => {
+      this._ensureStart(data);
+      data.encounterChecks.push({
+        roll: Number(roll), threshold: Number(threshold), hit: !!hit, clockLabel, ...this._stamp(),
+      });
     });
-    await this._save(data);
   },
 
   // ── Combat Logging ─────────────────────────────────────────
 
   async logCombat(combatEntry) {
-    const data = this.getData();
-    this._ensureStart(data);
-    data.combats.push(combatEntry);
-    await this._save(data);
+    return this._mutate(data => {
+      this._ensureStart(data);
+      data.combats.push(combatEntry);
+    });
   },
 
   async _flushActiveCombats() {
@@ -195,14 +213,14 @@ export const SessionRecap = {
   // ── Player Stat Updates ────────────────────────────────────
 
   async updatePlayerStat(actorId, name, path, delta) {
-    const data = this.getData();
-    this._ensureStart(data);
-    if (!data.playerStats[actorId]) data.playerStats[actorId] = emptyPlayerStat(name);
-    const parts = path.split(".");
-    let obj = data.playerStats[actorId];
-    for (let i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
-    obj[parts[parts.length - 1]] += delta;
-    await this._save(data);
+    return this._mutate(data => {
+      this._ensureStart(data);
+      if (!data.playerStats[actorId]) data.playerStats[actorId] = emptyPlayerStat(name);
+      const parts = path.split(".");
+      let obj = data.playerStats[actorId];
+      for (let i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
+      obj[parts[parts.length - 1]] += delta;
+    });
   },
 
   // ── Clear ──────────────────────────────────────────────────

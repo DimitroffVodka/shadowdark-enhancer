@@ -241,11 +241,15 @@ export const MovementTracker = {
       return this._onPreUpdate(doc, changes, userId, this._pendingDeduct[doc.id]);
     });
 
-    Hooks.on("updateToken", (doc, changes, opts) => {
+    Hooks.on("updateToken", (doc, changes, opts, userId) => {
       if (opts?.[MODULE_ID]?.rollback) return;
       if (changes.x !== undefined || changes.y !== undefined) {
-        // Deduct movement after the move has successfully committed
-        if (CrawlState.isActive) {
+        // Deduct movement after the move has successfully committed. This hook
+        // fires on EVERY connected client, but the flag write must happen on
+        // exactly one — the user who moved the token (they hold update
+        // permission on it). Letting other clients write both risks a
+        // permission-denied rejection and double deduction.
+        if (CrawlState.isActive && userId === game.userId) {
           const actor    = doc.actor;
           const isMember = CrawlState.members.includes(doc.id);
           const inCombat = CrawlState.mode === "combat";
@@ -263,7 +267,8 @@ export const MovementTracker = {
               // the GM can see how far past the soft cap a token moved.
               const newRemaining = Math.round((moveRemaining - distanceFt) / 5) * 5;
               doc.setFlag(MODULE_ID, "moveRemaining", newRemaining)
-                .then(() => CrawlStrip.queueRender());
+                .then(() => CrawlStrip.queueRender())
+                .catch(err => console.warn(`${MODULE_ID} | movement deduction failed`, err));
             }
           }
         }
