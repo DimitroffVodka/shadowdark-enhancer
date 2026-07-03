@@ -6091,6 +6091,13 @@ body.theme-light .sde-hub-monsters-row td {
 
    Keep crawl chrome close to Shadowdark/SDX: black surfaces, charcoal borders,
    gold accents, Old Newspaper labels, and minimal glow.
+
+   NOTE: this :root (and the body.theme-light below it) is an intentional
+   late-override LAYER — it deliberately supersedes a subset of the token
+   values defined in the first :root / body.theme-light near the top of this
+   file (e.g. --sde-bar-bg-alt, --sde-init, --sde-bar-radius). Because it
+   comes last in source order at equal specificity, the values here win. Edit
+   palette tokens HERE, not at the top, or the change won't take effect.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {

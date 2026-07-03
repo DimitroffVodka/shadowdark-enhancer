@@ -34,8 +34,6 @@
   "SDE.settings.charBuilderDiceSoNice.hint": "Play the 3D Dice So Nice animation for the builder's ability, HP, and gold rolls. Off by default — the roll's audit chat card still posts, just without the 3D dice.",
 
   "SDE.charBuilder.title": "Character Builder",
-  "SDE.charBuilder.wip": "The Character Builder is a work in progress — the remaining steps and final creation are coming soon.",
-  "SDE.charBuilder.comingSoon": "This step is coming soon.",
   "SDE.charBuilder.nav.prev": "Back",
   "SDE.charBuilder.nav.next": "Next",
   "SDE.charBuilder.nav.finish": "Create Character",

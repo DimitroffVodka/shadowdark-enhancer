@@ -13,6 +13,7 @@
  * `game.shadowdarkEnhancer.monsters.openImporter()`.
  */
 import { parseStatblocks } from "./statblock-parser.mjs";
+import { npcMoveKeys } from "./npc-moves.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
 
@@ -20,9 +21,6 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** Common source labels offered as datalist suggestions (free-text — GM may type any). */
 const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
-
-/** Fallback move keys if the system enum isn't present (mirrors the Monster Creator). */
-const FALLBACK_MOVES = { close: "", near: "", doubleNear: "", tripleNear: "", far: "", special: "", none: "" };
 
 /**
  * Map a free-text parser warning to the draft field(s) it concerns, so the
@@ -88,7 +86,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   async _prepareContext() {
-    const moveOptions = Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? FALLBACK_MOVES);
+    const moveOptions = npcMoveKeys();
 
     const monsters = this._parsed.map((p, i) => {
       const wf = warnFields(p.warnings ?? []);

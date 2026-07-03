@@ -10,6 +10,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { DISTANCE, ACTIVITY, reactionBand } from "./encounter-result.mjs";
 import { EncounterBrowse } from "./encounter-browse.mjs";
+import { npcMoveKeys } from "./npc-moves.mjs";
 import { EncounterBuild } from "./encounter-build.mjs";
 import {
   _isPlaceholderArt, _firstNonPlaceholder,
@@ -320,9 +321,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         abilitySearch:    this._browseAbilitySearch,
         sortCol:          this._browseSortCol,
         sortAsc:          this._browseSortAsc,
-        moveOptions:      Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? {
-          close: "", near: "", doubleNear: "", tripleNear: "", far: "", special: "", none: "",
-        }),
+        moveOptions:      npcMoveKeys(),
         sourcesLabel:     _multiFilterLabel(this._browseSources, availableSources, "source"),
         moveLabel:        this._browseMoves[0] || "All movement",
       };

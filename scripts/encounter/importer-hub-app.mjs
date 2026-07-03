@@ -17,6 +17,7 @@
  *   ImporterHubAPI  — { open(tab, seed) } for entry-point wiring
  */
 import { TableImporter, parseTables } from "./table-importer.mjs";
+import { npcMoveKeys } from "./npc-moves.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
 import { columnManifestId } from "./table-manifest.mjs";
@@ -35,8 +36,6 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** Common source labels offered as datalist suggestions. */
 const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
 
-/** Fallback move keys if the system enum isn't present. */
-const FALLBACK_MOVES = { close: "", near: "", doubleNear: "", tripleNear: "", far: "", special: "", none: "" };
 
 /**
  * Map parser warnings to draft field names for highlight flags.
@@ -187,7 +186,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Context preparation ────────────────────────────────────────────────────
 
   async _prepareContext() {
-    const moveOptions = Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? FALLBACK_MOVES);
+    const moveOptions = npcMoveKeys();
 
     const importMonsterCards = this._importMonsters.map((p, i) => {
       const wf = warnFields(p.warnings ?? []);

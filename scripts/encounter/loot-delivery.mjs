@@ -19,6 +19,7 @@ import { MODULE_ID } from "../module-id.mjs";
 import { MagicForgeApp } from "./magic-forge-app.mjs";
 import { inferSeedFromName } from "./magic-forge.mjs";
 import { esc } from "../util/esc.mjs";
+import { addToPurse } from "../util/coins.mjs";
 import { SessionRecap } from "./session-recap.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
@@ -110,11 +111,11 @@ export const LootDelivery = {
 
     const c = batch.coins ?? { gp: 0, sp: 0, cp: 0 };
     if ((c.gp || 0) + (c.sp || 0) + (c.cp || 0) > 0) {
-      const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
+      const next = addToPurse(actor.system.coins, c);
       await actor.update({
-        "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
-        "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
-        "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
+        "system.coins.gp": next.gp,
+        "system.coins.sp": next.sp,
+        "system.coins.cp": next.cp,
       });
     }
   },
@@ -297,12 +298,12 @@ export const LootDelivery = {
 
     await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
 
-    const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
     const c = flags.coins ?? { gp: 0, sp: 0, cp: 0 };
+    const next = addToPurse(actor.system.coins, c);
     await actor.update({
-      "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
-      "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
-      "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
+      "system.coins.gp": next.gp,
+      "system.coins.sp": next.sp,
+      "system.coins.cp": next.cp,
     });
 
     if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });
@@ -331,12 +332,12 @@ export const LootDelivery = {
     try {
       await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
 
-      const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
       const c = flags.coins ?? { gp: 0, sp: 0, cp: 0 };
+      const next = addToPurse(actor.system.coins, c);
       await actor.update({
-        "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
-        "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
-        "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
+        "system.coins.gp": next.gp,
+        "system.coins.sp": next.sp,
+        "system.coins.cp": next.cp,
       });
 
       if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });

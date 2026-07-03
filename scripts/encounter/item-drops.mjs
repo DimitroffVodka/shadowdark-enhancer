@@ -26,6 +26,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { SessionRecap } from "./session-recap.mjs";
 import { esc } from "../util/esc.mjs";
+import { addToPurse } from "../util/coins.mjs";
 
 /* -------------------------------------------- */
 /*  Droppable Item Types                        */
@@ -455,11 +456,11 @@ export const ItemDrops = {
         ui.notifications.warn(`${recipient.name} can't carry coins.`);
         return;
       }
-      const cur = recipient.system.coins ?? { gp: 0, sp: 0, cp: 0 };
+      const next = addToPurse(recipient.system.coins, coinData);
       await recipient.update({
-        "system.coins.gp": (cur.gp ?? 0) + (coinData.gp ?? 0),
-        "system.coins.sp": (cur.sp ?? 0) + (coinData.sp ?? 0),
-        "system.coins.cp": (cur.cp ?? 0) + (coinData.cp ?? 0),
+        "system.coins.gp": next.gp,
+        "system.coins.sp": next.sp,
+        "system.coins.cp": next.cp,
       });
       cardLabel = _coinLabel(coinData);
       cardImg = dropActor.img || COIN_IMG;
