@@ -55,6 +55,12 @@ export async function commitCharacter(state) {
 
   // Player without create permission → hand off to the GM via the system socket.
   if (!(shadowdark.utils?.canCreateCharacter?.() ?? game.user.can("ACTOR_CREATE"))) {
+    // Fire-and-forget over a socket only a GM answers — if none is online the
+    // character is silently lost. Guard so the UI doesn't falsely report success.
+    if (!game.users.activeGM) {
+      ui.notifications.error(game.i18n.localize("SDE.charBuilder.commit.noGm"));
+      return null;
+    }
     game.socket.emit("system.shadowdark", {
       type: "createCharacter",
       // level0: true — the system only uses this flag to set `showLevelUp`,
@@ -67,7 +73,18 @@ export async function commitCharacter(state) {
 
   const actor = await Actor.create(actorData);
   if (!actor) return null;
-  if (allItems.length) await actor.createEmbeddedDocuments("Item", allItems);
+  // Embed items in a second step, but roll the actor back if it fails — a
+  // character with no talents/gear is broken, and leaving it behind makes the
+  // player retry and accumulate orphaned half-actors.
+  if (allItems.length) {
+    try {
+      await actor.createEmbeddedDocuments("Item", allItems);
+    } catch (err) {
+      console.error(`${game.i18n.localize("SDE.charBuilder.title")} | item embedding failed, rolling back actor`, err);
+      await actor.delete().catch(() => {});
+      return null;
+    }
+  }
   actor.sheet?.render(true);
   ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.created", { name: actor.name }));
   return actor;

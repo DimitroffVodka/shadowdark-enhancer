@@ -1274,7 +1274,10 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       ui.notifications.info(`Created Roll Table: ${table.name}`);
       // Per design: don't auto-set as active. Hop to the Roll Tables
       // tab and select the new table so the GM can preview it.
-      this._selectedTableId = table.id;
+      // _selectedTableId is a full UUID everywhere else (the picker options
+      // and _onSetAsActive resolve via fromUuid) — a bare id leaves the
+      // dropdown showing nothing selected.
+      this._selectedTableId = table.uuid;
       this._activeTab       = "tables";
       this.render();
     } catch (err) {

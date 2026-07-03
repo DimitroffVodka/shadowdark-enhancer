@@ -170,6 +170,7 @@
   "SDE.charBuilder.commit.spells": "spells",
   "SDE.charBuilder.commit.created": "Created {name}.",
   "SDE.charBuilder.commit.sentToGm": "Character request sent to the GM.",
+  "SDE.charBuilder.commit.noGm": "No GM is online to create your character. Ask your GM to log in and try again.",
   "SDE.charBuilder.commit.incomplete": "Finish these first: {steps}.",
   "SDE.charBuilder.commit.failed": "Character creation failed — see the console for details.",
 

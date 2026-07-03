@@ -39,6 +39,12 @@ import { MerchantShop } from "./merchant-shop.mjs";
 import { PartyXP } from "./encounter/party-xp.mjs";
 import { SessionRecap } from "./encounter/session-recap.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
+// Imported for its top-level createChatMessage hook: the out-of-combat
+// initiative sync must be live on the GM from load, not only after the GM
+// personally triggers the lazy import in crawl-strip. Otherwise a player who
+// rolls OoC initiative first reaches a GM whose hook isn't registered yet and
+// the roll never lands in CrawlState.
+import "./initiative-manager.mjs";
 import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
 import { migrateTableSources } from "./char-builder/data.mjs";
 

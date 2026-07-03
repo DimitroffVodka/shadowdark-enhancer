@@ -58,6 +58,73 @@ function _applySellRatio(cost, ratio) {
   return _fromCopper(total);
 }
 
+/**
+ * Add a { gp, sp, cp } amount to a purse WITHOUT renormalizing. Adding
+ * field-by-field keeps the player's existing denominations intact (unlike
+ * `_fromCopper(_toCopper(purse) + …)`, which would collapse e.g. 150 sp into
+ * 15 gp on the next transaction).
+ */
+function _addToPurse(purse, add) {
+  return {
+    gp: Math.max(0, Math.floor(purse?.gp ?? 0)) + Math.max(0, Math.floor(add?.gp ?? 0)),
+    sp: Math.max(0, Math.floor(purse?.sp ?? 0)) + Math.max(0, Math.floor(add?.sp ?? 0)),
+    cp: Math.max(0, Math.floor(purse?.cp ?? 0)) + Math.max(0, Math.floor(add?.cp ?? 0)),
+  };
+}
+
+/**
+ * Subtract a copper cost from a purse, preserving denominations as much as
+ * possible: pay from cp, then sp, then gp, breaking a single higher coin into
+ * change only when the lower denominations run short. Total value removed is
+ * always exactly `costCopper` (assumes the purse can afford it — check with
+ * `_canAfford` first). Avoids the old behaviour where paying reorganized the
+ * whole purse into canonical gp/sp/cp.
+ */
+function _spendFromPurse(purse, costCopper) {
+  let gp = Math.max(0, Math.floor(purse?.gp ?? 0));
+  let sp = Math.max(0, Math.floor(purse?.sp ?? 0));
+  let cp = Math.max(0, Math.floor(purse?.cp ?? 0));
+  let need = Math.max(0, Math.round(costCopper));
+
+  // Copper first.
+  const fromCp = Math.min(cp, need);
+  cp -= fromCp; need -= fromCp;
+
+  // Silver (10 cp each); break one more sp into cp for any remainder.
+  if (need > 0) {
+    const useSp = Math.min(sp, Math.floor(need / 10));
+    sp -= useSp; need -= useSp * 10;
+    if (need > 0 && sp > 0) { sp -= 1; cp += 10 - need; need = 0; }
+  }
+
+  // Gold (100 cp each); break one more gp into sp + cp for any remainder.
+  if (need > 0) {
+    const useGp = Math.min(gp, Math.floor(need / 100));
+    gp -= useGp; need -= useGp * 100;
+    if (need > 0 && gp > 0) {
+      gp -= 1;
+      const change = 100 - need; // 1..99
+      need = 0;
+      sp += Math.floor(change / 10);
+      cp += change % 10;
+    }
+  }
+
+  return { gp, sp, cp };
+}
+
+/** Extract coin amounts from free-text roll-table results ("50 gp", "3 Silver"). */
+function _parseCoinsFromText(text) {
+  const coins = { gp: 0, sp: 0, cp: 0 };
+  if (!text) return coins;
+  const t = String(text);
+  const grab = (re) => { const m = t.match(re); return m ? (parseInt(m[1], 10) || 0) : 0; };
+  coins.gp = grab(/(\d+)\s*(?:gp|gold)\b/i);
+  coins.sp = grab(/(\d+)\s*(?:sp|silver)\b/i);
+  coins.cp = grab(/(\d+)\s*(?:cp|copper)\b/i);
+  return coins;
+}
+
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
 export const MerchantShop = {
@@ -587,8 +654,8 @@ export const MerchantShop = {
       return this._broadcastError("Insufficient funds.", userId);
     }
 
-    // Execute: deduct currency
-    const remaining = _fromCopper(_toCopper(buyer.system.coins) - totalCopper);
+    // Execute: deduct currency (preserving the player's coin denominations)
+    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
     await buyer.update({
       "system.coins.gp": remaining.gp,
       "system.coins.sp": remaining.sp,
@@ -703,8 +770,8 @@ export const MerchantShop = {
       await item.update({ "system.quantity": currentQty - quantity });
     }
 
-    // Add currency to seller
-    const newTotal = _fromCopper(_toCopper(seller.system.coins) + totalCopper);
+    // Add currency to seller (field-wise so their denominations are preserved)
+    const newTotal = _addToPurse(seller.system.coins, totalSellPrice);
     await seller.update({
       "system.coins.gp": newTotal.gp,
       "system.coins.sp": newTotal.sp,
@@ -819,8 +886,8 @@ export const MerchantShop = {
       return this._broadcastError("Insufficient funds.", userId);
     }
 
-    // Deduct currency
-    const remaining = _fromCopper(_toCopper(buyer.system.coins) - totalCopper);
+    // Deduct currency (preserving the player's coin denominations)
+    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
     await buyer.update({
       "system.coins.gp": remaining.gp,
       "system.coins.sp": remaining.sp,
@@ -919,8 +986,8 @@ export const MerchantShop = {
       return this._broadcastError("Insufficient funds.", userId);
     }
 
-    // Deduct cost
-    const remaining = _fromCopper(_toCopper(buyer.system.coins) - costCopper);
+    // Deduct cost (preserving the player's coin denominations)
+    const remaining = _spendFromPurse(buyer.system.coins, costCopper);
     await buyer.update({
       "system.coins.gp": remaining.gp,
       "system.coins.sp": remaining.sp,
@@ -929,6 +996,9 @@ export const MerchantShop = {
 
     // Roll loot from the configured source
     const result = { currency: { gp: 0, sp: 0, cp: 0 }, items: [] };
+    const addCurrency = (c) => {
+      result.currency.gp += c.gp; result.currency.sp += c.sp; result.currency.cp += c.cp;
+    };
 
     // World RollTable (loot-level sources are rejected above, so only
     // roll-table sources reach here).
@@ -947,21 +1017,24 @@ export const MerchantShop = {
                 if (sr.documentUuid) {
                   const sdoc = await fromUuid(sr.documentUuid);
                   if (sdoc && !(sdoc instanceof RollTable)) result.items.push(sdoc.toObject());
+                } else {
+                  addCurrency(_parseCoinsFromText(sr.text ?? sr.description ?? sr.name));
                 }
               }
             } else {
               result.items.push(doc.toObject());
             }
           }
+        } else {
+          // Text/flavor result — pull any coin reward out of it.
+          addCurrency(_parseCoinsFromText(r.text ?? r.description ?? r.name));
         }
       }
     }
 
-    // Add currency to buyer
+    // Add currency to buyer (field-wise so their denominations are preserved)
     if (result.currency.gp || result.currency.sp || result.currency.cp) {
-      const newTotal = _fromCopper(
-        _toCopper(buyer.system.coins) + _toCopper(result.currency),
-      );
+      const newTotal = _addToPurse(buyer.system.coins, result.currency);
       await buyer.update({
         "system.coins.gp": newTotal.gp,
         "system.coins.sp": newTotal.sp,
