@@ -1,7 +1,8 @@
 # Shadowdark Enhancer — Module API
 
 A versioned, public API for other modules and macros to drive Shadowdark
-Enhancer's importer, linker, encounter, loot, table, and bundle features.
+Enhancer's importer, linker, encounter, loot, table, bundle, and
+character-builder features.
 
 **API version:** `1.0.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
@@ -126,6 +127,18 @@ await api.mutator.create(baseActorUuid, ["giant"]);    // mutated copy (new acto
 api.monsterCreator.open();   // Monster Creator window
 api.forge.open();            // Magic Item Forge window
 ```
+
+## `charBuilder` — guided character creation
+
+```js
+api.charBuilder.open();      // Character Builder window (singleton — an already-
+                             // open builder is brought to front, not replaced)
+api.charBuilder.app;         // the ShadowdarkCharBuilder Application class
+```
+
+The builder is player-usable: it commits through the Shadowdark system's own
+creation path, and a player without actor-create permission is handed off to
+the GM via the system socket (the GM must be connected).
 
 ---
 

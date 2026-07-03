@@ -2,7 +2,7 @@
 
 A GM companion suite for **[Shadowdark RPG](https://www.thearcanelibrary.com/pages/shadowdark)** on Foundry VTT.
 
-It started as a top-anchored **Crawl Strip** — marching order, initiative, and at-a-glance HP / Movement / Luck for the whole party — and has grown into a full toolkit for running a crawl: random encounters, a paste-a-PDF content importer, treasure & magic-item generation, a merchant shop, party XP, a session recap, and mount/boat vehicle sheets. Everything is driven from a single **Crawl Bar** that lives at the top of the canvas.
+It started as a top-anchored **Crawl Strip** — marching order, initiative, and at-a-glance HP / Movement / Luck for the whole party — and has grown into a full toolkit for running a crawl: random encounters, a paste-a-PDF content importer, treasure & magic-item generation, a merchant shop, party XP, a session recap, a guided character builder, and mount/boat vehicle sheets. Everything is driven from a single **Crawl Bar** that lives at the top of the canvas.
 
 > Replaces `shadowdark-crawl-helper`. If you have Crawl Helper enabled you'll get a one-time warning at world load — disable it for best results (the warning can be suppressed in settings).
 
@@ -82,6 +82,22 @@ Six tabs — **Import / Tables / Monsters / Items / Journal / Scenes** — each 
 - **Party XP award tool** — award XP to the whole party at once. Drag an item to use its XP value (a tagged value wins, else the loot-quality score) or type an amount. The full amount goes to **each** selected character (Shadowdark RAW — treasure XP isn't split); a chat card summarizes old→new XP and flags anyone at the level-up threshold. Writes only `system.level.xp` — never auto-levels.
 - **Session Recap** — a per-session tracker (Overview / Combat / Loot / XP / History) with a **Copy for Discord** markdown export. Tied to the crawl: starting a crawl begins/continues a session, ending it saves/pauses/discards. Captures loot claims, XP awards, combats, per-PC roll stats, damage & kills, merchant activity, and encounter checks — with no extra clicks. In multi-GM worlds only the active GM records, so nothing is double-counted.
 
+### 🧙 Character Builder
+
+A guided, ordered character-creation wizard — a step-by-step replacement for the system's all-random `CharacterGeneratorSD`. Open it from the **Character Builder** button in a Player actor sheet's header (visible to the GM and the actor's owner), or headlessly via `game.shadowdarkEnhancer.charBuilder.open()`. It builds a **complete level-1 character** — hit points rolled and class talent chosen up front — so the sheet never re-prompts with the system's level-up dialog.
+
+Seven tabs, freely navigable, each with a completion check mark. Every tab that can be randomized has a per-section **Random** button, and the first tab offers **full random** for a one-click character.
+
+- **Abilities** — the generation method is **GM-dictated** (world setting, shown read-only to players): `3d6` down the line, `3d6` with the core-rules full-array reroll when nothing reaches 14 (the default), `3d6` assign-to-taste, or `4d6` keep-highest-3 down-the-line / assign. Assign methods roll a visible dice pool you place by clicking a die, then a stat. **Every roll posts a chat card** as an audit trail (with optional Dice So Nice animation), and the tab carries a plain-language reference for what each ability does in Shadowdark.
+- **Ancestry** — list/detail browse with bundled portrait art, sourced live from every installed compendium. Multi-talent ancestries (e.g. Elf) present their talent choice right on the tab. **Name** and **Trinket** each offer three inputs: pick from the ancestry's roll table, roll it, or type your own.
+- **Origins** — Background, Alignment, and Deity on one tab. Deity's random pick is weighted toward your chosen alignment; Background and Deity randoms can be driven by GM-configured roll tables.
+- **Class** — shows the class's level-1 features, then handles everything creation owes you: the **2d6 class-talent-table roll** (posted to chat), talent effect choices (Weapon Mastery weapon, Armor Mastery, spell advantage, …) made inline instead of via the system's pop-up dialog, **bonus creation rolls** (Human *Ambitious* extra talent, *Black Lotus*, patron boons), patron selection where the class wants one, a per-tier **spell picker** that enforces the class's spells-known counts, and language choices (fixed languages plus choose-N picks from the common/rare/select pools).
+- **HP & Gold** — roll the class hit die (Constitution applied; talent HP bonuses like Dwarf *Stout* are handled without double-counting), or let the GM setting auto-max level-1 HP. Gold rolls the standard `2d6 × 5 gp`, or uses a GM-fixed starting amount.
+- **Gear** — a shop: browse Armor / Weapons / Basic gear from all installed packs, with items your class can't use flagged, and a cart tracked against your starting gold and carry slots. Cart costs are deducted from starting coins on creation.
+- **Preview** — a read-only summary of every choice. **Finish** confirms and commits through the system's own creation path: ancestry/class/background/deity stored as references, talents/abilities/spells/gear embedded as real items. Players without actor-create permission are handed off to the GM over the system socket automatically.
+
+The GM controls which roll tables feed the builder via **Settings → Character Builder: table sources** — checkable lists of installed Name, Trinket, Background, and Deity tables (so Western Reaches or homebrew tables slot straight in).
+
 ### 🐴 Mounts & Boats
 
 Two Actor sub-types (**Mount**, **Boat**) with dedicated sheets and shared Occupants / Inventory / Description tabs, for the *Western Reaches* mounts, warband units, boats, and siege vehicles. The Mount type reuses the Shadowdark system's own NPC data model and sheet.
@@ -107,6 +123,11 @@ Configured under **Configure Settings → Shadowdark Enhancer** (world scope). H
 | Auto-roll active table | on | Roll the bound table on a hit. |
 | Loot drop on kill | on | Auto-loot when a monster dies. |
 | XP level-up thresholds / loot XP tiers | 10 / 150 | Used by Party XP and loot valuation. |
+| Character Builder: ability method | 3d6, reroll under 14 | GM-dictated; players can't change it in the builder. |
+| Character Builder: dice animation | off | Roll chat cards always post; this adds the 3D dice. |
+| Character Builder: max level-1 HP | off | Auto-max instead of rolling the class hit die. |
+| Character Builder: starting gold (gp) | 0 | 0 = roll the standard 2d6×5 gp. |
+| Character Builder: table sources | *(menu)* | Pick which RollTables feed Name / Trinket / Background / Deity rolls. |
 
 ---
 
@@ -123,7 +144,8 @@ Hooks.once("shadowdarkEnhancer.ready", (api) => {
 
 Namespaces: `import` (universal dump segmentation), `items`, `monsters`,
 `linker` (name → compendium resolution), `encounter`, `loot`, `tables`,
-`bundle` (suite export/import), `mutator`, `monsterCreator`, and `forge`.
+`bundle` (suite export/import), `mutator`, `monsterCreator`, `forge`, and
+`charBuilder` (guided character creation).
 Document-creating entry points are GM-only and follow a never-overwrite,
 never-delete contract. Full reference: **[docs/API.md](docs/API.md)**.
 
@@ -140,6 +162,7 @@ scripts/
 ├── merchant-shop.mjs
 ├── settings.mjs / icons.mjs / module-id.mjs
 ├── actors/                      # Mount & Boat sub-types, sheets, vehicle rolls
+├── char-builder/                # guided character-creation wizard + step managers
 └── encounter/                   # importer hub, roller, loot, forge, tables,
                                  # census dashboards, party XP, session recap
 templates/                       # Handlebars for every window + chat cards + partials
