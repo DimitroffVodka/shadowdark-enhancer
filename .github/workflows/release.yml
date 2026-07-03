@@ -1,0 +1,49 @@
+name: Release
+
+# Tag a commit `vX.Y.Z` and push it to publish a release with module.json +
+# module.zip attached, matching the install/download URLs in module.json
+# (releases/latest/download/…).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version into module.json
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          node - <<'EOF'
+          const fs = require("fs");
+          const m = JSON.parse(fs.readFileSync("module.json", "utf8"));
+          m.version = process.env.VERSION;
+          fs.writeFileSync("module.json", JSON.stringify(m, null, 2) + "\n");
+          EOF
+
+      - name: Build module.zip
+        run: |
+          zip -r module.zip \
+            module.json \
+            README.md LICENSE CHANGELOG.md CREDITS.md \
+            assets icons languages scripts styles templates docs \
+            -x "scripts/**/*.test.mjs"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.version.outputs.version }}
+          files: |
+            module.json
+            module.zip
