@@ -288,7 +288,7 @@ export const CrawlStrip = {
       //   - in crawl:  all heroes are "active" (no phase split)
       const isActivePhase = inCombat ? isCurrent : true;
 
-      const displayName = m.name;
+      const displayName = esc(m.name);
 
       const hpPct   = data && data.hpMax > 0 ? Math.max(0, Math.min(100, Math.round((data.hp / data.hpMax) * 100))) : 0;
       const hpClass = !data || data.hp <= 0     ? "sde-strip-hp-dead"
@@ -336,8 +336,8 @@ export const CrawlStrip = {
         const activeEffects = actor.effects.filter(e => !e.disabled && e.statuses?.size > 0);
         if (activeEffects.length) {
           const icons = activeEffects.map(e => {
-            const icon = e.img || "icons/svg/aura.svg";
-            const label = e.name || "Effect";
+            const icon = esc(e.img || "icons/svg/aura.svg");
+            const label = esc(e.name || "Effect");
             const durationInfo = e.duration?.rounds
               ? ` (${e.duration.rounds}R)`
               : "";

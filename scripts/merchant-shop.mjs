@@ -11,6 +11,7 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { SessionRecap } from "./encounter/session-recap.mjs";
+import { esc } from "./util/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -481,18 +482,80 @@ export const MerchantShop = {
     if (this._app?.rendered) this._app.render();
   },
 
+  // ── Transaction security helpers ──────────────────────────────────────────
+
+  /**
+   * Resolve the actor for a transaction only if the requesting user is
+   * allowed to act on it. The socket payload is attacker-controlled, so we
+   * never trust `actorId`/`userId` blindly: a non-GM user must actually OWN
+   * the actor. Mirrors loot-delivery's `testUserPermission(user, "OWNER")`
+   * gate. Returns the actor, or null (caller broadcasts an error).
+   */
+  _resolveOwnedActor(actorId, userId) {
+    const actor = game.actors.get(actorId);
+    if (!actor) return null;
+    const user = game.users.get(userId);
+    if (!user) return null;
+    if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return null;
+    return actor;
+  },
+
+  /**
+   * Authoritative transaction context (mode, prices, toggles). NEVER derived
+   * from the socket payload — a crafted message could otherwise set
+   * `buyMultiplier: 0` (everything free) or force a different inventory. For
+   * the GM's own window we trust the live `_app`; for a player-initiated
+   * request we use the snapshot published when the shop was opened.
+   */
+  _txContext(userId) {
+    if (userId === game.userId && this._app) {
+      return {
+        mode:           this._app._mode ?? "compendium",
+        actorId:        this._app._actorId ?? null,
+        sellRatio:      this._app._sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50,
+        buyMultiplier:  this._app._buyMultiplier ?? 100,
+        catalogEnabled: this._app._catalogEnabled ?? true,
+        gambleEnabled:  this._app._gambleEnabled ?? false,
+      };
+    }
+    const snap = game.settings.get(MODULE_ID, "shopAvailabilityData");
+    if (snap) {
+      return {
+        mode:           snap.mode ?? "compendium",
+        actorId:        snap.actorId ?? null,
+        sellRatio:      snap.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50,
+        buyMultiplier:  snap.buyMultiplier ?? 100,
+        catalogEnabled: snap.catalogEnabled ?? true,
+        gambleEnabled:  snap.gambleEnabled ?? false,
+      };
+    }
+    return null;
+  },
+
+  /** Clamp a client-supplied quantity to a positive integer. */
+  _sanitizeQty(qty) {
+    return Math.max(1, Math.floor(Number(qty) || 1));
+  },
+
+  /** True when `uuid` belongs to one of the purchasable catalog packs. */
+  _isCatalogUuid(uuid) {
+    if (typeof uuid !== "string") return false;
+    return CATALOG_PACKS.some(pack => uuid.startsWith(`Compendium.${pack}.`));
+  },
+
   // ── Buy handler (GM-side) ─────────────────────────────────────────────────
 
   async _handleBuy(data) {
-    const { buyerActorId, shopItemId, quantity, buyMultiplier, userId } = data;
-    const buyer = game.actors.get(buyerActorId);
+    const { buyerActorId, shopItemId, userId } = data;
+    const quantity = this._sanitizeQty(data.quantity);
+    const buyer = this._resolveOwnedActor(buyerActorId, userId);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
 
-    // Find item in inventory
-    const inv = this._buildInventory(
-      this._app?._mode ?? "compendium",
-      this._app?._actorId ?? null,
-    );
+    const ctx = this._txContext(userId);
+    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
+
+    // Find item in the authoritative inventory (never the payload's).
+    const inv = this._buildInventory(ctx.mode, ctx.actorId);
     const entry = inv.find(e => e.id === shopItemId);
     if (!entry) return this._broadcastError("Item not found in shop.", userId);
 
@@ -501,8 +564,8 @@ export const MerchantShop = {
       return this._broadcastError("Not enough stock.", userId);
     }
 
-    // Calculate total cost (with buy multiplier)
-    const mult = (buyMultiplier ?? this._app?._buyMultiplier ?? 100) / 100;
+    // Calculate total cost with the GM-side (never client-supplied) multiplier.
+    const mult = ctx.buyMultiplier / 100;
     const totalCopper = Math.round(_toCopper(entry.cost) * mult * quantity);
     const totalCost = _fromCopper(totalCopper);
 
@@ -534,7 +597,7 @@ export const MerchantShop = {
     let newStock = entry.stock;
     if (entry.stock !== -1) {
       newStock = entry.stock - quantity;
-      await this._updateStock(entry.id, newStock);
+      await this._updateStock(entry.id, newStock, ctx);
     }
 
     // Log
@@ -556,18 +619,18 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${entry.img || "icons/svg/item-bag.svg"}" alt="${entry.name}">
+              <img src="${esc(entry.img || "icons/svg/item-bag.svg")}" alt="${esc(entry.name)}">
             </div>
             <div class="header-info">
               <h3 class="header-title">Item Purchased</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${buyer.name}</span></div>
+                <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
               </div>
             </div>
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${buyer.name}</strong> bought <strong>${entry.name}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
+              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(entry.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
             </div>
           </section>
         </div>
@@ -598,14 +661,16 @@ export const MerchantShop = {
   // ── Sell handler (GM-side) ────────────────────────────────────────────────
 
   async _handleSell(data) {
-    const { sellerActorId, itemId, quantity, userId } = data;
-    const seller = game.actors.get(sellerActorId);
+    const { sellerActorId, itemId, userId } = data;
+    const quantity = this._sanitizeQty(data.quantity);
+    const seller = this._resolveOwnedActor(sellerActorId, userId);
     if (!seller) return this._broadcastError("Actor not found.", userId);
 
     const item = seller.items.get(itemId);
     if (!item) return this._broadcastError("Item not found in inventory.", userId);
 
-    const sellRatio = this._app?._sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
+    const ctx = this._txContext(userId);
+    const sellRatio = ctx?.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const unitSellPrice = _applySellRatio(cost, sellRatio);
     const totalCopper = _toCopper(unitSellPrice) * quantity;
@@ -664,18 +729,18 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${item.img || "icons/svg/item-bag.svg"}" alt="${item.name}">
+              <img src="${esc(item.img || "icons/svg/item-bag.svg")}" alt="${esc(item.name)}">
             </div>
             <div class="header-info">
               <h3 class="header-title">Item Sold</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${seller.name}</span></div>
+                <div class="meta-tag"><span>${esc(seller.name)}</span></div>
               </div>
             </div>
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${seller.name}</strong> sold <strong>${item.name}${qtyStr}</strong> for ${_formatPrice(totalSellPrice)} (${sellRatio}%).</p>
+              <p><strong>${esc(seller.name)}</strong> sold <strong>${esc(item.name)}${qtyStr}</strong> for ${_formatPrice(totalSellPrice)} (${sellRatio}%).</p>
             </div>
           </section>
         </div>
@@ -712,16 +777,27 @@ export const MerchantShop = {
   // ── Catalog buy handler (GM-side) ──────────────────────────────────────────
 
   async _handleCatalogBuy(data) {
-    const { buyerActorId, itemUuid, quantity, buyMultiplier, userId } = data;
-    const buyer = game.actors.get(buyerActorId);
+    const { buyerActorId, itemUuid, userId } = data;
+    const quantity = this._sanitizeQty(data.quantity);
+    const buyer = this._resolveOwnedActor(buyerActorId, userId);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
+
+    const ctx = this._txContext(userId);
+    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
+    if (!ctx.catalogEnabled) return this._broadcastError("The catalog isn't available.", userId);
+
+    // Only items from the published catalog packs may be bought this way —
+    // never an arbitrary world/compendium UUID from the socket payload.
+    if (!this._isCatalogUuid(itemUuid)) {
+      return this._broadcastError("That item isn't available in the catalog.", userId);
+    }
 
     // Load the item from compendium
     const doc = await fromUuid(itemUuid);
     if (!doc) return this._broadcastError("Item not found in compendium.", userId);
 
     const cost = doc.system.cost ?? { gp: 0, sp: 0, cp: 0 };
-    const catMult = (buyMultiplier ?? this._app?._buyMultiplier ?? 100) / 100;
+    const catMult = ctx.buyMultiplier / 100;
     const totalCopper = Math.round(_toCopper(cost) * catMult * quantity);
     const totalCost = _fromCopper(totalCopper);
 
@@ -760,18 +836,18 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${doc.img || "icons/svg/item-bag.svg"}" alt="${doc.name}">
+              <img src="${esc(doc.img || "icons/svg/item-bag.svg")}" alt="${esc(doc.name)}">
             </div>
             <div class="header-info">
               <h3 class="header-title">Item Purchased</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${buyer.name}</span></div>
+                <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
               </div>
             </div>
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${buyer.name}</strong> bought <strong>${doc.name}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
+              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(doc.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
             </div>
           </section>
         </div>
@@ -804,8 +880,11 @@ export const MerchantShop = {
 
   async _handleGamble(data) {
     const { buyerActorId, gambleId, userId } = data;
-    const buyer = game.actors.get(buyerActorId);
+    const buyer = this._resolveOwnedActor(buyerActorId, userId);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
+
+    const ctx = this._txContext(userId);
+    if (!ctx?.gambleEnabled) return this._broadcastError("Gamble isn't available right now.", userId);
 
     // Find the gamble option
     const options = game.settings.get(MODULE_ID, "gambleOptions") || [];
@@ -908,7 +987,7 @@ export const MerchantShop = {
       if (bc?.gp) vp.push(`${bc.gp}g`);
       if (bc?.sp) vp.push(`${bc.sp}s`);
       const valStr = vp.length ? ` (${vp.join(" ")})` : "";
-      return `<strong>${it.name}</strong>${valStr}`;
+      return `<strong>${esc(it.name)}</strong>${valStr}`;
     }).join("<br>");
 
     const currLine = (result.currency.gp || result.currency.sp || result.currency.cp)
@@ -921,12 +1000,12 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${itemIcon}" alt="Gamble">
+              <img src="${esc(itemIcon)}" alt="Gamble">
             </div>
             <div class="header-info">
-              <h3 class="header-title">Gamble — ${option.name}</h3>
+              <h3 class="header-title">Gamble — ${esc(option.name)}</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${buyer.name}</span></div>
+                <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
                 <div class="meta-tag"><span>Cost: ${costDisplay}</span></div>
               </div>
             </div>
@@ -958,9 +1037,11 @@ export const MerchantShop = {
 
   // ── Stock management ──────────────────────────────────────────────────────
 
-  async _updateStock(shopItemId, newStock) {
-    if (this._app?._mode === "actor" && this._app?._actorId) {
-      const actor = game.actors.get(this._app._actorId);
+  async _updateStock(shopItemId, newStock, ctx = null) {
+    const mode = ctx?.mode ?? this._app?._mode;
+    const actorId = ctx?.actorId ?? this._app?._actorId;
+    if (mode === "actor" && actorId) {
+      const actor = game.actors.get(actorId);
       const item = actor?.items.get(shopItemId);
       if (item && !item.getFlag(MODULE_ID, "unlimitedStock")) {
         if (newStock <= 0) await item.delete();
