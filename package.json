@@ -5,7 +5,7 @@
   "description": "A GM companion suite for Shadowdark RPG on Foundry VTT.",
   "type": "module",
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\"",
+    "test": "node --test test/*.test.mjs",
     "lint": "eslint scripts test",
     "lint:fix": "eslint scripts test --fix"
   },
