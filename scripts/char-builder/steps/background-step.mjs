@@ -12,6 +12,7 @@ export class BackgroundStep extends ListStep {
   get icon() { return "fa-solid fa-scroll"; }
   get partial() { return "sde-cb-background"; }
   get stateKey() { return "background"; }
+  get lockedTypes() { return ["Background"]; }
   // Rendered inside the Origins tab: short list, generic shared icon.
   get showListImages() { return false; }
   get showListSearch() { return false; }

@@ -62,6 +62,55 @@ export class ListStep extends BaseStep {
     if (pick) await this.select(pick.uuid);
   }
 
+  /** Manifest item types whose locked (not-yet-imported) entries show in this
+   *  list for the GM — e.g. ["Class"]. Null = no locked rows. Override. */
+  get lockedTypes() { return null; }
+
+  /** GM-only: manifest entries of the given types missing from this world. */
+  async _lockedEntries(types) {
+    if (!game.user?.isGM || !types?.length) return [];
+    if (!this.app._lockedCensus) {
+      const { gatherCharContentCensus } = await import("../../encounter/char-content-manifest.mjs");
+      this.app._lockedCensus = await gatherCharContentCensus().catch((err) => {
+        console.error("shadowdark-enhancer | locked census failed:", err);
+        return [];
+      });
+    }
+    const out = [];
+    for (const row of this.app._lockedCensus) {
+      for (const m of row.missingNames) {
+        if (types.includes(m.type)) out.push({ name: m.name, type: m.type, src: row.source, book: row.book });
+      }
+    }
+    return out;
+  }
+
+  /** Locked entries shaped as list rows (🔒 name; click routes to the importer). */
+  async _lockedListEntries(types) {
+    const locked = await this._lockedEntries(types);
+    return locked.map((l) => ({
+      id: `locked::${l.src}::${l.type}::${l.name}`,
+      name: `🔒 ${l.name}`,
+      img: "icons/svg/padlock.svg",
+      selected: false,
+    }));
+  }
+
+  /** A locked row was clicked: open the Importer seeded for this entry. */
+  async _unlockViaImporter(id) {
+    if (!game.user?.isGM) return;
+    const [, src, type, ...rest] = id.split("::");
+    const name = rest.join("::");
+    const { ImporterHubApp } = await import("../../encounter/importer-hub-app.mjs");
+    const inst = ImporterHubApp.open();
+    inst._onCharSeedPaste(null, { dataset: { name, type, src } });
+    const { CHAR_SOURCES } = await import("../../encounter/char-content-manifest.mjs");
+    ui.notifications.info(`Unlock "${name}": paste its section from ${CHAR_SOURCES[src]?.book ?? src} into the Importer and Parse.`);
+    // Force fresh lists once the import lands and the builder re-renders.
+    this._items = null;
+    this.app._lockedCensus = null;
+  }
+
   /** Optional local portrait URL for an item, overriding its system icon. Override. */
   portrait(_item) { return null; }
 
@@ -78,6 +127,7 @@ export class ListStep extends BaseStep {
       img: (this.showPortraitInList ? this.portrait(i) : null) ?? i.img,
       selected: i.uuid === selUuid,
     }));
+    if (this.lockedTypes) entries.push(...await this._lockedListEntries(this.lockedTypes));
     const selItem = items.find((i) => i.uuid === selUuid) ?? null;
 
     const portrait = selItem ? this.portrait(selItem) : null;
@@ -110,7 +160,9 @@ export class ListStep extends BaseStep {
     // Selection
     root.querySelectorAll("[data-cb-select]").forEach((el) => {
       el.addEventListener("click", async (ev) => {
-        await this.select(ev.currentTarget.dataset.cbSelect);
+        const id = ev.currentTarget.dataset.cbSelect;
+        if (id?.startsWith("locked::")) { await this._unlockViaImporter(id); return; }
+        await this.select(id);
         await this.app.render();
       });
     });

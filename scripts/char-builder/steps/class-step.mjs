@@ -72,6 +72,7 @@ export class ClassStep extends ListStep {
   get label() { return "SDE.charBuilder.step.class"; }
   get icon() { return "fa-solid fa-hat-wizard"; }
   get partial() { return "sde-cb-class"; }
+  get lockedTypes() { return ["Class"]; }
   get stateKey() { return "class"; }
 
   /** Use a bundled class portrait when one exists, else the system icon. */

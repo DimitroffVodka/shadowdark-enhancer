@@ -239,6 +239,14 @@ export class GearStep extends ListStep {
     const permitted = await this._permitted();
     const shown = items.filter((i) => i.type === this._category && this._classPermits(i, permitted));
     const entries = shown.map((i) => ({ id: i.uuid, name: i.name, img: i.img, selected: i.uuid === this._viewUuid }));
+    // GM-only: shop-stock entries missing from this world list as 🔒 rows that
+    // route to the Importer (clicks intercepted in ListStep.onRender).
+    const locked = (await this._lockedEntries([this._category]))
+      .filter((l) => SHOP_STOCK.has(slug(l.name)));
+    entries.push(...locked.map((l) => ({
+      id: `locked::${l.src}::${l.type}::${l.name}`,
+      name: `🔒 ${l.name}`, img: "icons/svg/padlock.svg", selected: false,
+    })));
     // The viewed item may belong to another category — keep showing its detail.
     const view = items.find((i) => i.uuid === this._viewUuid) || null;
     const totals = this.cartTotals();

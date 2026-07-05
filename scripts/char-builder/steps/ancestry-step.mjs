@@ -27,6 +27,7 @@ export class AncestryStep extends ListStep {
   get label() { return "SDE.charBuilder.step.ancestry"; }
   get icon() { return "fa-solid fa-people-group"; }
   get partial() { return "sde-cb-ancestry"; }
+  get lockedTypes() { return ["Ancestry"]; }
   get stateKey() { return "ancestry"; }
   get weightPath() { return "system.randomWeight"; }
 
