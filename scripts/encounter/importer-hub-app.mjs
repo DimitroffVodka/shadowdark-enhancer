@@ -29,6 +29,7 @@ import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
+import { gatherCharContentCensus, parseCharContent, CHAR_SOURCES } from "./char-content-manifest.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -97,6 +98,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemGapExpand:          ImporterHubApp.prototype._onItemGapExpand,
       itemSeedPaste:          ImporterHubApp.prototype._onItemSeedPaste,
       itemCullGroup:          ImporterHubApp.prototype._onItemCullGroup,
+      charGapExpand:          ImporterHubApp.prototype._onCharGapExpand,
+      charSeedPaste:          ImporterHubApp.prototype._onCharSeedPaste,
+      hubCommitChar:          ImporterHubApp.prototype._onHubCommitChar,
       hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
       hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
@@ -110,7 +114,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   // ── Import type selector ───────────────────────────────────────────────────
-  /** @type {"auto"|"monsters"|"items"|"spells"|"tables"} What the paste is. */
+  /** @type {"auto"|"monsters"|"items"|"spells"|"tables"|"backgrounds"|"talents"|"classes"} */
   _importType = "auto";
   /** Forced item subtype when importing items ("auto" = name inference). */
   _importItemSubtype = "auto";
@@ -118,6 +122,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Import seed (set by a Manage-strip census gap "Seed" click) ────────────
   /** @type {object|null} Carries a per-row Import seed; applied on parse. */
   _importSeed = null;
+
+  // ── Character content (Backgrounds/Talents/Classes unlock flow) ────────────
+  /** @type {Array<{draft: object}>} Parsed char-content drafts awaiting commit. */
+  _importChar = [];
+  /** Char-content dashboard cache + per-source expand state. */
+  _charCache = null;
+  _expandedCharGapRows = new Set();
 
   // ── Import content state ───────────────────────────────────────────────────
   /** Raw paste text (stashed on input, committed on blur/parse). */
@@ -237,6 +248,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         { value: "items",    label: "Items" },
         { value: "spells",   label: "Spells" },
         { value: "tables",   label: "Tables" },
+        { value: "backgrounds", label: "Backgrounds" },
+        { value: "talents",  label: "Talents" },
+        { value: "classes",  label: "Class" },
       ].map(o => ({ ...o, selected: o.value === t })),
       showItemSubtype: t === "items" || t === "auto",
       itemSubtype: this._importItemSubtype,
@@ -251,6 +265,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tables: this._importTables,
       skipped: this._importSkipped,
       hasMonsters, hasItems, hasSpells, hasTables, showImportAll,
+      chars: this._importChar.map((p) => ({
+        name: p.draft.name,
+        type: p.draft.type,
+        preview: String(p.draft.description ?? "").replace(/<[^>]+>/g, " ").trim().slice(0, 140),
+      })),
+      hasChar: this._importChar.length > 0,
+      charsCount: this._importChar.length,
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
       itemsCount: this._importItems.length,
@@ -279,11 +300,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // ── Manage strip — lazy: census/duplicate scans run only when expanded ────
     let manage = null;
     if (this._manageExpanded) {
-      const [monstersData, itemsData] = await Promise.all([
+      const [monstersData, itemsData, charData] = await Promise.all([
         this._prepareMonstersContext(),
         this._prepareItemsContext(),
+        this._prepareCharContentContext(),
       ]);
-      manage = { monstersData, itemsData };
+      manage = { monstersData, itemsData, charData };
     }
 
     return { importData, manageExpanded: this._manageExpanded, manage };
@@ -391,6 +413,40 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Invalidate the items-tab cache. */
   _invalidateItemsCache() {
     this._itemsCache = null;
+  }
+
+  /**
+   * Prepare the character-content dashboard: manifest entries (CS4–6 / WR
+   * classes, talents, spells, backgrounds, gear) checked against every Item
+   * pack. Missing entries carry an Unlock button that seeds the paste box.
+   */
+  async _prepareCharContentContext() {
+    if (!this._charCache) {
+      this._charCache = await gatherCharContentCensus().catch((err) => {
+        console.error("shadowdark-enhancer | gatherCharContentCensus failed:", err);
+        return [];
+      });
+    }
+    const rows = this._charCache.map((r) => ({
+      label: r.label,
+      book: r.book,
+      source: r.source,
+      have: r.have,
+      gap: r.gap,
+      hasGap: r.gap > 0,
+      expanded: this._expandedCharGapRows.has(r.source),
+      missingNames: r.missingNames.map((m) => ({ ...m, src: r.source })),
+    }));
+    return {
+      rows,
+      totalHave: rows.reduce((a, r) => a + r.have, 0),
+      totalGap: rows.reduce((a, r) => a + r.gap, 0),
+    };
+  }
+
+  /** Invalidate the character-content dashboard cache. */
+  _invalidateCharCache() {
+    this._charCache = null;
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -655,6 +711,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tables = parseTables(text);
     }
 
+    // Character-content types (Backgrounds / Talents / Class) parse into their
+    // own draft list; everything else clears it.
+    this._importChar = ["backgrounds", "talents", "classes"].includes(type)
+      ? parseCharContent(text, type)
+      : [];
+
     // Item subtype override (forces all parsed items to the chosen type).
     if (this._importItemSubtype !== "auto") {
       for (const it of items) it.draft.type = this._importItemSubtype;
@@ -669,7 +731,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._applyImportSeed();
     await this._linkLootTables();
 
-    if (!monsters.length && !items.length && !spells.length && !tables.length) {
+    if (!monsters.length && !items.length && !spells.length && !tables.length && !this._importChar.length) {
       ui.notifications.warn("Nothing recognized — try a different import type or review the Skipped section.");
     }
     this.render();
@@ -691,6 +753,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importItems = [];
     this._importSpells = [];
     this._importTables = [];
+    this._importChar = [];
     this._importSkipped = [];
     this._importSeed = null;
     this.render();
@@ -1472,6 +1535,70 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importText = name;
     this._importSeed = { name, _itemSeed: true };
     this._importType = "items";
+    this.render();
+  }
+
+  // ── Character-content dashboard actions ────────────────────────────────────
+
+  _onCharGapExpand(event, target) {
+    const source = target.dataset.source ?? "";
+    if (this._expandedCharGapRows.has(source)) this._expandedCharGapRows.delete(source);
+    else this._expandedCharGapRows.add(source);
+    this.render();
+  }
+
+  /**
+   * Unlock a missing character-content entry: pre-select the matching import
+   * type, stamp the source label, and seed the paste box with the entry name
+   * so the GM only has to paste the section from the cited book.
+   */
+  _onCharSeedPaste(event, target) {
+    const name = target.dataset.name ?? "";
+    const type = target.dataset.type ?? "";
+    const src = target.dataset.src ?? "";
+    if (!name) return;
+    const importType = ({
+      Spell: "spells",
+      Basic: "items", Weapon: "items", Armor: "items",
+      Background: "backgrounds",
+      Talent: "talents",
+      Class: "classes", Ancestry: "classes",
+    })[type] ?? "auto";
+    this._importText = name;
+    this._importSeed = { name, _charSeed: true };
+    this._importType = importType;
+    if (src && CHAR_SOURCES[src]) this._importSource = CHAR_SOURCES[src].label;
+    this.render();
+  }
+
+  /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
+  async _onHubCommitChar() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import content."); return; }
+    if (!this._importChar.length) { ui.notifications.warn("No character content to import."); return; }
+
+    const source = this._importSource.trim();
+    // The char-builder gates visibility on system.source.title — stamp it from
+    // the source label so unlocked content is attributed like hand-imports.
+    const sourceTitle = ({
+      "cursed scroll 4": "cursed-scroll-4",
+      "cursed scroll 5": "cursed-scroll-5",
+      "cursed scroll 6": "cursed-scroll-6",
+      "cs4": "cursed-scroll-4", "cs5": "cursed-scroll-5", "cs6": "cursed-scroll-6",
+      "western reaches": "western-reaches",
+    })[source.toLowerCase()] ?? source.toLowerCase().replace(/\s+/g, "-");
+
+    const drafts = this._importChar.map((p) => ({ ...p.draft, sourceTitle }));
+    const { ItemImporter } = await import("./item-importer.mjs");
+    const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
+    if (!result) return;
+
+    const parts = [`${result.created.length} created`];
+    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
+    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
+    ui.notifications.info(`Character content: ${parts.join(", ")} → sde-items${source ? ` / ${source}` : ""}.`);
+    this._importChar = [];
+    this._invalidateItemsCache();
+    this._invalidateCharCache();
     this.render();
   }
 

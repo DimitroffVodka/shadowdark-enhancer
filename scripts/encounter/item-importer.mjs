@@ -76,6 +76,48 @@ export function buildItemData(draft) {
     };
   }
 
+  // ── Character-content paths (unlock flow) — Background/Talent/Class drafts
+  // from char-content-manifest.parseCharContent. Minimal system shapes match
+  // live shadowdark.* pack documents (FVTT 14 / SD 4.x). ──
+  if (draft.type === "Background") {
+    return {
+      name, type: "Background", img: draft.img || "icons/environment/people/commoner.webp",
+      system: {
+        description: draft.description ?? "<p></p>",
+        source: { title: draft.sourceTitle ?? "" },
+      },
+      flags: { [MODULE_ID]: { imported: true } },
+    };
+  }
+  if (draft.type === "Talent") {
+    return {
+      name, type: "Talent", img: draft.img || "icons/sundries/documents/document-torn-diagram-tan.webp",
+      system: {
+        description: draft.description ?? "<p></p>",
+        level: 1,
+        talentClass: "level",
+        source: { title: draft.sourceTitle ?? "" },
+      },
+      flags: { [MODULE_ID]: { imported: true } },
+    };
+  }
+  if (draft.type === "Class") {
+    return {
+      name, type: "Class", img: draft.img || "icons/skills/trades/academics-book-study-runes.webp",
+      system: {
+        description: draft.description ?? "<p></p>",
+        hitPoints: draft.hitPoints || "d6",
+        allWeapons: !!draft.allWeapons,
+        allMeleeWeapons: !!draft.allMeleeWeapons,
+        allRangedWeapons: !!draft.allRangedWeapons,
+        allArmor: !!draft.allArmor,
+        weapons: [], armor: [],
+        source: { title: draft.sourceTitle ?? "" },
+      },
+      flags: { [MODULE_ID]: { imported: true } },
+    };
+  }
+
   const img = draft.img || pickTreasureIcon(name);
 
   // Determine if this is a magic item by checking riders
