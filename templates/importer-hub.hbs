@@ -434,9 +434,9 @@
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-dragon"></i> Monsters</h3>
         {{> sdeCensus data=manage.monstersData noun="monster"}}
       </section>
+      {{#if manage.monstersData.hasDuplicates}}
       <section class="sde-hub-monsters-dups">
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-copy"></i> Monster duplicates ({{manage.monstersData.duplicateCount}})</h3>
-        {{#if manage.monstersData.hasDuplicates}}
         <div class="sde-hub-monsters-dup-cards">
           {{#each manage.monstersData.duplicateGroups as |group|}}
           <div class="sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
@@ -461,19 +461,17 @@
           </div>
           {{/each}}
         </div>
-        {{else}}
-        <p class="sde-hub-monsters-empty"><i class="fas fa-circle-check"></i> No duplicates in sde-actors.</p>
-        {{/if}}
       </section>
+      {{/if}}
 
       {{!-- Items census + duplicates --}}
       <section class="sde-hub-monsters-census">
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-gem"></i> Items</h3>
         {{> sdeCensus data=manage.itemsData noun="item"}}
       </section>
+      {{#if manage.itemsData.hasDuplicates}}
       <section class="sde-hub-monsters-dups">
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-copy"></i> Item duplicates ({{manage.itemsData.duplicateCount}})</h3>
-        {{#if manage.itemsData.hasDuplicates}}
         <div class="sde-hub-monsters-dup-cards">
           {{#each manage.itemsData.duplicateGroups as |group|}}
           <div class="sde-hub-monsters-dup-card" data-group-key="{{group.key}}">
@@ -498,10 +496,8 @@
           </div>
           {{/each}}
         </div>
-        {{else}}
-        <p class="sde-hub-monsters-empty"><i class="fas fa-circle-check"></i> No duplicates in sde-items.</p>
-        {{/if}}
       </section>
+      {{/if}}
 
       {{!-- Maintenance actions --}}
       <section class="sde-hub-monsters-maintenance">
