@@ -1,5 +1,35 @@
 # Changelog
 
+## [0.9.0] — 2026-07-05
+
+Introduces the guided Character Builder, hardens the player-facing socket paths (shop, loot, drops) against crafted payloads and duplicate processing, and moves releases to a tag-driven GitHub workflow.
+
+### Added
+- **Character Builder.** A guided, rulebook-styled character creator: Abilities → Ancestry → Origins (Background / Alignment / Deity) → Class → HP & Gold → Gear → Preview. Highlights: ancestry pages with book-style trait text and one-click trait picks; inline spell previews; a categorized, class-restricted gear shop with a coin budget; **talent choices made inside the builder** (Weapon Mastery, Armor Mastery, etc. — no system dialog at create); bonus creation rolls (Human Ambitious, patron boons, talent-linked tables); ancestry effects honored structurally (e.g. Dwarf Stout rolls HP with advantage and gets +2 max HP without double-counting); GM-configurable Name / Trinket / Background / Deity roll-table sources via a settings menu; and a GM hand-off when the player lacks actor-create permission — now with a clear error when no GM is online.
+- **Development tooling.** `package.json`, ESLint (flat config with Foundry globals), a node test suite for the pure helpers (coins, statblock parser, session recap, party XP, forge), and GitHub Actions **CI** (lint + test on every push).
+- **Tag-driven releases.** Pushing a `vX.Y.Z` tag stamps the version into `module.json`, builds `module.zip`, and publishes the GitHub release the manifest URLs point at.
+
+### Security
+- **Player socket requests are validated GM-side.** Item drops re-read the item from the source actor instead of trusting the payload (no fabricated items or inflated quantities); pickups, buys, sells, and gambles verify the requesting user owns the actor; shop prices, multipliers, and toggles come from the GM's authoritative state, never the client payload; catalog purchases are restricted to the published catalog packs; actor/effect/item names are HTML-escaped in chat cards and the crawl strip.
+- **Only the active GM processes socket requests.** A second logged-in GM or an always-on relay client no longer double-creates drop tokens, purchases, or chat cards.
+
+### Fixed
+- **Money and loot races.** Shop transactions are serialized through a single queue; loot claims and canvas pickups take an in-flight lock; Session Recap writes go through a write queue — two near-simultaneous clicks can no longer double-spend, double-claim a pile, or silently drop recap increments.
+- **Coin denominations are preserved.** Paying or receiving coins now does purse-aware math (spend cp → sp → gp, breaking coins only as needed) instead of collapsing the whole purse to canonical gp/sp/cp on every transaction.
+- **Out-of-combat initiative sync is live from load** — a player rolling initiative before the GM ever opens the crawl strip no longer loses the roll.
+- **Movement deduction fires once** (on the moving user's client) instead of on every connected client.
+- **Encounter Browse cache invalidates** when NPC actors are created, updated, or deleted — no more stale bestiary list until reload.
+- **Crawl bar renders once per burst** of combat updates (party-wide initiative no longer rebuilds it per combatant).
+- **Roll-table select after "Create Roll Table"** in the encounter roller now shows the new table selected.
+- **Character commit is atomic** — if embedding talents/gear fails, the half-created actor is rolled back instead of left behind.
+- **Western Reaches table manifests** reconciled to the live table shape (status chips no longer misreport imported tables).
+
+### Docs
+- **README and API reference** document the Character Builder.
+
+### Notes
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**. Socket hardening is best-effort within Foundry's module-socket model (sender identity is payload-supplied); a future release may migrate the player→GM relays to the authenticated Queries API.
+
 ## [0.8.2] — 2026-06-30
 
 Rebuilds the Magic Item Forge so forged items actually apply their bonuses, adds item & coin drops with canvas pickup, and introduces Mount & Boat actor sheets.
