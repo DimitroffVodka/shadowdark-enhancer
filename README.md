@@ -86,6 +86,18 @@ Six tabs — **Import / Tables / Monsters / Items / Journal / Scenes** — each 
 
 Two Actor sub-types (**Mount**, **Boat**) with dedicated sheets and shared Occupants / Inventory / Description tabs, for the *Western Reaches* mounts, warband units, boats, and siege vehicles. The Mount type reuses the Shadowdark system's own NPC data model and sheet.
 
+### 🧙 Character Builder
+
+A guided, step-by-step creator that produces a complete level-1 Shadowdark **PlayerSD** actor — the same data shape the system generator makes, so the character works everywhere.
+
+- **Stepped flow** — Abilities → Ancestry → Class → Languages → Origins → Alignment → Deity → HP & Gold → Gear → Preview, with a live preview panel and a "still missing" checklist before creation.
+- **GM-dictated ability method** — the GM sets the roll method (3d6 down the line, 4d6 drop lowest, assign-as-you-like, …) in settings; players roll with whatever is configured and can't change it. Every ability, HP, and gold roll posts an **audit chat card** so nothing is quietly re-rolled (Dice So Nice optional).
+- **Choices made in the builder** — talent effect choices (Weapon Mastery weapon, +2 stat, …), ancestry talent picks, level-1 spell selection, and bonus creation rolls are resolved inline with no follow-up dialogs. Dwarf **Stout** rolls HP with advantage and adds +2 max HP.
+- **Categorized, class-restricted gear shop** with a running coin total; a rolled/typed trinket becomes a weightless item.
+- **Creation** builds the actor atomically (rolled back if item embedding fails) and opens the sheet. Players without create permission hand off to the GM over the system socket — the builder checks a GM is online first.
+
+Launch it from the Crawl Bar, or headlessly with `game.shadowdarkEnhancer.charBuilder.open()`.
+
 ---
 
 ## Settings

@@ -19,6 +19,7 @@ import { MODULE_ID } from "../module-id.mjs";
 import { MagicForgeApp } from "./magic-forge-app.mjs";
 import { inferSeedFromName } from "./magic-forge.mjs";
 import { esc } from "../util/esc.mjs";
+import { addToPurse } from "../util/coins.mjs";
 import { SessionRecap } from "./session-recap.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
@@ -26,6 +27,13 @@ const SOCKET = `module.${MODULE_ID}`;
 const CARD_TEMPLATE = "modules/shadowdark-enhancer/templates/chat/loot-card.hbs";
 
 export const LootDelivery = {
+
+  // Claims in progress on this (active-GM) processing client. The flag write
+  // that "locks" a claim is preceded by an await, so two concurrent claims of
+  // the same item/coins can both read the stale unclaimed flags and both
+  // proceed. A synchronous in-memory guard closes that window (single-threaded
+  // JS; only the active GM processes, so one Set is authoritative).
+  _claimsInFlight: new Set(),
 
   /** Register the socket handler + chat-card wiring. Call once at init. */
   init() {
@@ -103,11 +111,11 @@ export const LootDelivery = {
 
     const c = batch.coins ?? { gp: 0, sp: 0, cp: 0 };
     if ((c.gp || 0) + (c.sp || 0) + (c.cp || 0) > 0) {
-      const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
+      const next = addToPurse(actor.system.coins, c);
       await actor.update({
-        "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
-        "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
-        "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
+        "system.coins.gp": next.gp,
+        "system.coins.sp": next.sp,
+        "system.coins.cp": next.cp,
       });
     }
   },
@@ -259,16 +267,25 @@ export const LootDelivery = {
     if (!actor || !user) return;
     if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return;
 
-    // Optimistic lock: mark claimed FIRST (atomic update wins the race).
-    const items = foundry.utils.deepClone(flags.items);
-    items[itemIndex] = { ...item, claimedBy: userId, claimedByName: actor.name };
-    await message.update({ [`flags.${MODULE_ID}.items`]: items });
+    // Claim the in-memory lock synchronously before any await so a concurrent
+    // claim of the same item bails here rather than double-creating it.
+    const lockKey = `${messageId}:item:${itemIndex}`;
+    if (this._claimsInFlight.has(lockKey)) return;
+    this._claimsInFlight.add(lockKey);
+    try {
+      // Optimistic lock: mark claimed FIRST (persisted flag survives reload).
+      const items = foundry.utils.deepClone(flags.items);
+      items[itemIndex] = { ...item, claimedBy: userId, claimedByName: actor.name };
+      await message.update({ [`flags.${MODULE_ID}.items`]: items });
 
-    const data = await this._resolveItemData(item);
-    if (data) await actor.createEmbeddedDocuments("Item", [data]);
+      const data = await this._resolveItemData(item);
+      if (data) await actor.createEmbeddedDocuments("Item", [data]);
 
-    SessionRecap.logLoot({ type: "item", player: actor.name, detail: item.name, source: flags.source ?? null, img: item.img, qty: item.qty ?? 1 });
-    await this._refresh(message);
+      SessionRecap.logLoot({ type: "item", player: actor.name, detail: item.name, source: flags.source ?? null, img: item.img, qty: item.qty ?? 1 });
+      await this._refresh(message);
+    } finally {
+      this._claimsInFlight.delete(lockKey);
+    }
   },
 
   /** GM assigns the coin pile to a chosen character. */
@@ -281,12 +298,12 @@ export const LootDelivery = {
 
     await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
 
-    const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
     const c = flags.coins ?? { gp: 0, sp: 0, cp: 0 };
+    const next = addToPurse(actor.system.coins, c);
     await actor.update({
-      "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
-      "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
-      "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
+      "system.coins.gp": next.gp,
+      "system.coins.sp": next.sp,
+      "system.coins.cp": next.cp,
     });
 
     if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });
@@ -307,18 +324,27 @@ export const LootDelivery = {
     if (!actor || !user) return;
     if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return;
 
-    await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
+    // Synchronous in-memory lock (see _handleClaimItem) so two concurrent coin
+    // claims can't both credit before either persists the coinsAssigned flag.
+    const lockKey = `${messageId}:coins`;
+    if (this._claimsInFlight.has(lockKey)) return;
+    this._claimsInFlight.add(lockKey);
+    try {
+      await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
 
-    const cur = actor.system.coins ?? { gp: 0, sp: 0, cp: 0 };
-    const c = flags.coins ?? { gp: 0, sp: 0, cp: 0 };
-    await actor.update({
-      "system.coins.gp": (cur.gp ?? 0) + (c.gp ?? 0),
-      "system.coins.sp": (cur.sp ?? 0) + (c.sp ?? 0),
-      "system.coins.cp": (cur.cp ?? 0) + (c.cp ?? 0),
-    });
+      const c = flags.coins ?? { gp: 0, sp: 0, cp: 0 };
+      const next = addToPurse(actor.system.coins, c);
+      await actor.update({
+        "system.coins.gp": next.gp,
+        "system.coins.sp": next.sp,
+        "system.coins.cp": next.cp,
+      });
 
-    if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });
-    await this._refresh(message);
+      if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });
+      await this._refresh(message);
+    } finally {
+      this._claimsInFlight.delete(lockKey);
+    }
   },
 
   /** GM recipient picker — resolves to a Player actor id or null. */

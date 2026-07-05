@@ -11,6 +11,11 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { SessionRecap } from "./encounter/session-recap.mjs";
+import { esc } from "./util/esc.mjs";
+import {
+  toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
+  addToPurse, spendFromPurse, parseCoinsFromText,
+} from "./util/coins.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -21,41 +26,17 @@ const GAMBLE_COSTS = {
 };
 
 // ── Currency helpers ──────────────────────────────────────────────────────────
+// Thin aliases over the shared, testable util/coins.mjs so existing call sites
+// read unchanged. `_canAfford` keeps its actor-taking signature.
 
-/** Convert a { gp, sp, cp } object to a single copper value.
- *  Shadowdark currency: 10 cp = 1 sp, 10 sp = 1 gp → 1 gp = 100 cp. */
-function _toCopper(c) {
-  return (c?.gp ?? 0) * 100 + (c?.sp ?? 0) * 10 + (c?.cp ?? 0);
-}
-
-/** Convert a copper total back to { gp, sp, cp }. */
-function _fromCopper(total) {
-  total = Math.max(0, Math.round(total));
-  const gp = Math.floor(total / 100);
-  const sp = Math.floor((total % 100) / 10);
-  const cp = total % 10;
-  return { gp, sp, cp };
-}
-
-/** Format a cost object as a short string like "2 gp 5 sp" or "10 cp". */
-function _formatPrice(c) {
-  const parts = [];
-  if (c.gp) parts.push(`${c.gp} gp`);
-  if (c.sp) parts.push(`${c.sp} sp`);
-  if (c.cp) parts.push(`${c.cp} cp`);
-  return parts.length ? parts.join(" ") : "Free";
-}
-
-/** Check if an actor can afford a cost. */
-function _canAfford(actor, cost) {
-  return _toCopper(actor.system.coins) >= _toCopper(cost);
-}
-
-/** Apply the sell ratio to a cost, returning the adjusted price. */
-function _applySellRatio(cost, ratio) {
-  const total = Math.floor(_toCopper(cost) * ratio / 100);
-  return _fromCopper(total);
-}
+const _toCopper = toCopper;
+const _fromCopper = fromCopper;
+const _formatPrice = formatPrice;
+const _applySellRatio = applySellRatio;
+const _addToPurse = addToPurse;
+const _spendFromPurse = spendFromPurse;
+const _parseCoinsFromText = parseCoinsFromText;
+const _canAfford = (actor, cost) => canAfford(actor.system.coins, cost);
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
@@ -63,6 +44,19 @@ export const MerchantShop = {
 
   _app: null,
   _isOpenForPlayers: false,
+
+  // Serializes all transactions on the processing (active-GM) client. Buy/sell
+  // check stock/funds, then mutate after an await — without serialization two
+  // near-simultaneous requests both pass the check and double-spend / oversell.
+  // A single promise chain is simpler than per-actor locks and more than fast
+  // enough for tabletop throughput.
+  _txQueue: Promise.resolve(),
+
+  _enqueueTx(fn) {
+    const run = this._txQueue.then(fn, fn);
+    this._txQueue = run.catch(() => {});
+    return run;
+  },
 
   // ── Settings ──────────────────────────────────────────────────────────────
 
@@ -117,10 +111,10 @@ export const MerchantShop = {
       // (e.g. an always-on bridge/relay client, or a second logged-in GM)
       // processes the same socket and creates duplicate chat cards + items.
       if (game.user.isGM && game.users.activeGM?.id === game.user.id) {
-        if (data.action === "shop:buy")        await this._handleBuy(data);
-        if (data.action === "shop:sell")       await this._handleSell(data);
-        if (data.action === "shop:catalogBuy") await this._handleCatalogBuy(data);
-        if (data.action === "shop:gamble")     await this._handleGamble(data);
+        if (data.action === "shop:buy")        await this._enqueueTx(() => this._handleBuy(data));
+        if (data.action === "shop:sell")       await this._enqueueTx(() => this._handleSell(data));
+        if (data.action === "shop:catalogBuy") await this._enqueueTx(() => this._handleCatalogBuy(data));
+        if (data.action === "shop:gamble")     await this._enqueueTx(() => this._handleGamble(data));
       }
 
       // All clients: handle broadcasts from GM
@@ -481,18 +475,80 @@ export const MerchantShop = {
     if (this._app?.rendered) this._app.render();
   },
 
+  // ── Transaction security helpers ──────────────────────────────────────────
+
+  /**
+   * Resolve the actor for a transaction only if the requesting user is
+   * allowed to act on it. The socket payload is attacker-controlled, so we
+   * never trust `actorId`/`userId` blindly: a non-GM user must actually OWN
+   * the actor. Mirrors loot-delivery's `testUserPermission(user, "OWNER")`
+   * gate. Returns the actor, or null (caller broadcasts an error).
+   */
+  _resolveOwnedActor(actorId, userId) {
+    const actor = game.actors.get(actorId);
+    if (!actor) return null;
+    const user = game.users.get(userId);
+    if (!user) return null;
+    if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return null;
+    return actor;
+  },
+
+  /**
+   * Authoritative transaction context (mode, prices, toggles). NEVER derived
+   * from the socket payload — a crafted message could otherwise set
+   * `buyMultiplier: 0` (everything free) or force a different inventory. For
+   * the GM's own window we trust the live `_app`; for a player-initiated
+   * request we use the snapshot published when the shop was opened.
+   */
+  _txContext(userId) {
+    if (userId === game.userId && this._app) {
+      return {
+        mode:           this._app._mode ?? "compendium",
+        actorId:        this._app._actorId ?? null,
+        sellRatio:      this._app._sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50,
+        buyMultiplier:  this._app._buyMultiplier ?? 100,
+        catalogEnabled: this._app._catalogEnabled ?? true,
+        gambleEnabled:  this._app._gambleEnabled ?? false,
+      };
+    }
+    const snap = game.settings.get(MODULE_ID, "shopAvailabilityData");
+    if (snap) {
+      return {
+        mode:           snap.mode ?? "compendium",
+        actorId:        snap.actorId ?? null,
+        sellRatio:      snap.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50,
+        buyMultiplier:  snap.buyMultiplier ?? 100,
+        catalogEnabled: snap.catalogEnabled ?? true,
+        gambleEnabled:  snap.gambleEnabled ?? false,
+      };
+    }
+    return null;
+  },
+
+  /** Clamp a client-supplied quantity to a positive integer. */
+  _sanitizeQty(qty) {
+    return Math.max(1, Math.floor(Number(qty) || 1));
+  },
+
+  /** True when `uuid` belongs to one of the purchasable catalog packs. */
+  _isCatalogUuid(uuid) {
+    if (typeof uuid !== "string") return false;
+    return CATALOG_PACKS.some(pack => uuid.startsWith(`Compendium.${pack}.`));
+  },
+
   // ── Buy handler (GM-side) ─────────────────────────────────────────────────
 
   async _handleBuy(data) {
-    const { buyerActorId, shopItemId, quantity, buyMultiplier, userId } = data;
-    const buyer = game.actors.get(buyerActorId);
+    const { buyerActorId, shopItemId, userId } = data;
+    const quantity = this._sanitizeQty(data.quantity);
+    const buyer = this._resolveOwnedActor(buyerActorId, userId);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
 
-    // Find item in inventory
-    const inv = this._buildInventory(
-      this._app?._mode ?? "compendium",
-      this._app?._actorId ?? null,
-    );
+    const ctx = this._txContext(userId);
+    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
+
+    // Find item in the authoritative inventory (never the payload's).
+    const inv = this._buildInventory(ctx.mode, ctx.actorId);
     const entry = inv.find(e => e.id === shopItemId);
     if (!entry) return this._broadcastError("Item not found in shop.", userId);
 
@@ -501,8 +557,8 @@ export const MerchantShop = {
       return this._broadcastError("Not enough stock.", userId);
     }
 
-    // Calculate total cost (with buy multiplier)
-    const mult = (buyMultiplier ?? this._app?._buyMultiplier ?? 100) / 100;
+    // Calculate total cost with the GM-side (never client-supplied) multiplier.
+    const mult = ctx.buyMultiplier / 100;
     const totalCopper = Math.round(_toCopper(entry.cost) * mult * quantity);
     const totalCost = _fromCopper(totalCopper);
 
@@ -511,8 +567,8 @@ export const MerchantShop = {
       return this._broadcastError("Insufficient funds.", userId);
     }
 
-    // Execute: deduct currency
-    const remaining = _fromCopper(_toCopper(buyer.system.coins) - totalCopper);
+    // Execute: deduct currency (preserving the player's coin denominations)
+    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
     await buyer.update({
       "system.coins.gp": remaining.gp,
       "system.coins.sp": remaining.sp,
@@ -534,7 +590,7 @@ export const MerchantShop = {
     let newStock = entry.stock;
     if (entry.stock !== -1) {
       newStock = entry.stock - quantity;
-      await this._updateStock(entry.id, newStock);
+      await this._updateStock(entry.id, newStock, ctx);
     }
 
     // Log
@@ -556,18 +612,18 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${entry.img || "icons/svg/item-bag.svg"}" alt="${entry.name}">
+              <img src="${esc(entry.img || "icons/svg/item-bag.svg")}" alt="${esc(entry.name)}">
             </div>
             <div class="header-info">
               <h3 class="header-title">Item Purchased</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${buyer.name}</span></div>
+                <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
               </div>
             </div>
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${buyer.name}</strong> bought <strong>${entry.name}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
+              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(entry.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
             </div>
           </section>
         </div>
@@ -598,14 +654,16 @@ export const MerchantShop = {
   // ── Sell handler (GM-side) ────────────────────────────────────────────────
 
   async _handleSell(data) {
-    const { sellerActorId, itemId, quantity, userId } = data;
-    const seller = game.actors.get(sellerActorId);
+    const { sellerActorId, itemId, userId } = data;
+    const quantity = this._sanitizeQty(data.quantity);
+    const seller = this._resolveOwnedActor(sellerActorId, userId);
     if (!seller) return this._broadcastError("Actor not found.", userId);
 
     const item = seller.items.get(itemId);
     if (!item) return this._broadcastError("Item not found in inventory.", userId);
 
-    const sellRatio = this._app?._sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
+    const ctx = this._txContext(userId);
+    const sellRatio = ctx?.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const unitSellPrice = _applySellRatio(cost, sellRatio);
     const totalCopper = _toCopper(unitSellPrice) * quantity;
@@ -625,8 +683,8 @@ export const MerchantShop = {
       await item.update({ "system.quantity": currentQty - quantity });
     }
 
-    // Add currency to seller
-    const newTotal = _fromCopper(_toCopper(seller.system.coins) + totalCopper);
+    // Add currency to seller (field-wise so their denominations are preserved)
+    const newTotal = _addToPurse(seller.system.coins, totalSellPrice);
     await seller.update({
       "system.coins.gp": newTotal.gp,
       "system.coins.sp": newTotal.sp,
@@ -664,18 +722,18 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${item.img || "icons/svg/item-bag.svg"}" alt="${item.name}">
+              <img src="${esc(item.img || "icons/svg/item-bag.svg")}" alt="${esc(item.name)}">
             </div>
             <div class="header-info">
               <h3 class="header-title">Item Sold</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${seller.name}</span></div>
+                <div class="meta-tag"><span>${esc(seller.name)}</span></div>
               </div>
             </div>
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${seller.name}</strong> sold <strong>${item.name}${qtyStr}</strong> for ${_formatPrice(totalSellPrice)} (${sellRatio}%).</p>
+              <p><strong>${esc(seller.name)}</strong> sold <strong>${esc(item.name)}${qtyStr}</strong> for ${_formatPrice(totalSellPrice)} (${sellRatio}%).</p>
             </div>
           </section>
         </div>
@@ -712,16 +770,27 @@ export const MerchantShop = {
   // ── Catalog buy handler (GM-side) ──────────────────────────────────────────
 
   async _handleCatalogBuy(data) {
-    const { buyerActorId, itemUuid, quantity, buyMultiplier, userId } = data;
-    const buyer = game.actors.get(buyerActorId);
+    const { buyerActorId, itemUuid, userId } = data;
+    const quantity = this._sanitizeQty(data.quantity);
+    const buyer = this._resolveOwnedActor(buyerActorId, userId);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
+
+    const ctx = this._txContext(userId);
+    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
+    if (!ctx.catalogEnabled) return this._broadcastError("The catalog isn't available.", userId);
+
+    // Only items from the published catalog packs may be bought this way —
+    // never an arbitrary world/compendium UUID from the socket payload.
+    if (!this._isCatalogUuid(itemUuid)) {
+      return this._broadcastError("That item isn't available in the catalog.", userId);
+    }
 
     // Load the item from compendium
     const doc = await fromUuid(itemUuid);
     if (!doc) return this._broadcastError("Item not found in compendium.", userId);
 
     const cost = doc.system.cost ?? { gp: 0, sp: 0, cp: 0 };
-    const catMult = (buyMultiplier ?? this._app?._buyMultiplier ?? 100) / 100;
+    const catMult = ctx.buyMultiplier / 100;
     const totalCopper = Math.round(_toCopper(cost) * catMult * quantity);
     const totalCost = _fromCopper(totalCopper);
 
@@ -730,8 +799,8 @@ export const MerchantShop = {
       return this._broadcastError("Insufficient funds.", userId);
     }
 
-    // Deduct currency
-    const remaining = _fromCopper(_toCopper(buyer.system.coins) - totalCopper);
+    // Deduct currency (preserving the player's coin denominations)
+    const remaining = _spendFromPurse(buyer.system.coins, totalCopper);
     await buyer.update({
       "system.coins.gp": remaining.gp,
       "system.coins.sp": remaining.sp,
@@ -760,18 +829,18 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${doc.img || "icons/svg/item-bag.svg"}" alt="${doc.name}">
+              <img src="${esc(doc.img || "icons/svg/item-bag.svg")}" alt="${esc(doc.name)}">
             </div>
             <div class="header-info">
               <h3 class="header-title">Item Purchased</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${buyer.name}</span></div>
+                <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
               </div>
             </div>
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${buyer.name}</strong> bought <strong>${doc.name}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
+              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(doc.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
             </div>
           </section>
         </div>
@@ -804,8 +873,11 @@ export const MerchantShop = {
 
   async _handleGamble(data) {
     const { buyerActorId, gambleId, userId } = data;
-    const buyer = game.actors.get(buyerActorId);
+    const buyer = this._resolveOwnedActor(buyerActorId, userId);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
+
+    const ctx = this._txContext(userId);
+    if (!ctx?.gambleEnabled) return this._broadcastError("Gamble isn't available right now.", userId);
 
     // Find the gamble option
     const options = game.settings.get(MODULE_ID, "gambleOptions") || [];
@@ -827,8 +899,8 @@ export const MerchantShop = {
       return this._broadcastError("Insufficient funds.", userId);
     }
 
-    // Deduct cost
-    const remaining = _fromCopper(_toCopper(buyer.system.coins) - costCopper);
+    // Deduct cost (preserving the player's coin denominations)
+    const remaining = _spendFromPurse(buyer.system.coins, costCopper);
     await buyer.update({
       "system.coins.gp": remaining.gp,
       "system.coins.sp": remaining.sp,
@@ -837,6 +909,9 @@ export const MerchantShop = {
 
     // Roll loot from the configured source
     const result = { currency: { gp: 0, sp: 0, cp: 0 }, items: [] };
+    const addCurrency = (c) => {
+      result.currency.gp += c.gp; result.currency.sp += c.sp; result.currency.cp += c.cp;
+    };
 
     // World RollTable (loot-level sources are rejected above, so only
     // roll-table sources reach here).
@@ -855,21 +930,24 @@ export const MerchantShop = {
                 if (sr.documentUuid) {
                   const sdoc = await fromUuid(sr.documentUuid);
                   if (sdoc && !(sdoc instanceof RollTable)) result.items.push(sdoc.toObject());
+                } else {
+                  addCurrency(_parseCoinsFromText(sr.text ?? sr.description ?? sr.name));
                 }
               }
             } else {
               result.items.push(doc.toObject());
             }
           }
+        } else {
+          // Text/flavor result — pull any coin reward out of it.
+          addCurrency(_parseCoinsFromText(r.text ?? r.description ?? r.name));
         }
       }
     }
 
-    // Add currency to buyer
+    // Add currency to buyer (field-wise so their denominations are preserved)
     if (result.currency.gp || result.currency.sp || result.currency.cp) {
-      const newTotal = _fromCopper(
-        _toCopper(buyer.system.coins) + _toCopper(result.currency),
-      );
+      const newTotal = _addToPurse(buyer.system.coins, result.currency);
       await buyer.update({
         "system.coins.gp": newTotal.gp,
         "system.coins.sp": newTotal.sp,
@@ -908,7 +986,7 @@ export const MerchantShop = {
       if (bc?.gp) vp.push(`${bc.gp}g`);
       if (bc?.sp) vp.push(`${bc.sp}s`);
       const valStr = vp.length ? ` (${vp.join(" ")})` : "";
-      return `<strong>${it.name}</strong>${valStr}`;
+      return `<strong>${esc(it.name)}</strong>${valStr}`;
     }).join("<br>");
 
     const currLine = (result.currency.gp || result.currency.sp || result.currency.cp)
@@ -921,12 +999,12 @@ export const MerchantShop = {
         <div class="card-body">
           <header class="card-header">
             <div class="header-icon">
-              <img src="${itemIcon}" alt="Gamble">
+              <img src="${esc(itemIcon)}" alt="Gamble">
             </div>
             <div class="header-info">
-              <h3 class="header-title">Gamble — ${option.name}</h3>
+              <h3 class="header-title">Gamble — ${esc(option.name)}</h3>
               <div class="metadata-tags-row">
-                <div class="meta-tag"><span>${buyer.name}</span></div>
+                <div class="meta-tag"><span>${esc(buyer.name)}</span></div>
                 <div class="meta-tag"><span>Cost: ${costDisplay}</span></div>
               </div>
             </div>
@@ -958,9 +1036,11 @@ export const MerchantShop = {
 
   // ── Stock management ──────────────────────────────────────────────────────
 
-  async _updateStock(shopItemId, newStock) {
-    if (this._app?._mode === "actor" && this._app?._actorId) {
-      const actor = game.actors.get(this._app._actorId);
+  async _updateStock(shopItemId, newStock, ctx = null) {
+    const mode = ctx?.mode ?? this._app?._mode;
+    const actorId = ctx?.actorId ?? this._app?._actorId;
+    if (mode === "actor" && actorId) {
+      const actor = game.actors.get(actorId);
       const item = actor?.items.get(shopItemId);
       if (item && !item.getFlag(MODULE_ID, "unlimitedStock")) {
         if (newStock <= 0) await item.delete();
@@ -2104,13 +2184,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleBuy({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleBuy({
         buyerActorId: actor.id,
         shopItemId,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:buy",
@@ -2131,12 +2211,12 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleSell({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleSell({
         sellerActorId: actor.id,
         itemId,
         quantity,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:sell",
@@ -2184,11 +2264,11 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleGamble({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleGamble({
         buyerActorId: actor.id,
         gambleId,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:gamble",
@@ -2218,13 +2298,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (game.user.isGM) {
-      await MerchantShop._handleCatalogBuy({
+      await MerchantShop._enqueueTx(() => MerchantShop._handleCatalogBuy({
         buyerActorId: actor.id,
         itemUuid,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }));
     } else {
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "shop:catalogBuy",

@@ -34,8 +34,6 @@
   "SDE.settings.charBuilderDiceSoNice.hint": "Play the 3D Dice So Nice animation for the builder's ability, HP, and gold rolls. Off by default — the roll's audit chat card still posts, just without the 3D dice.",
 
   "SDE.charBuilder.title": "Character Builder",
-  "SDE.charBuilder.wip": "The Character Builder is a work in progress — the remaining steps and final creation are coming soon.",
-  "SDE.charBuilder.comingSoon": "This step is coming soon.",
   "SDE.charBuilder.nav.prev": "Back",
   "SDE.charBuilder.nav.next": "Next",
   "SDE.charBuilder.nav.finish": "Create Character",
@@ -170,6 +168,7 @@
   "SDE.charBuilder.commit.spells": "spells",
   "SDE.charBuilder.commit.created": "Created {name}.",
   "SDE.charBuilder.commit.sentToGm": "Character request sent to the GM.",
+  "SDE.charBuilder.commit.noGm": "No GM is online to create your character. Ask your GM to log in and try again.",
   "SDE.charBuilder.commit.incomplete": "Finish these first: {steps}.",
   "SDE.charBuilder.commit.failed": "Character creation failed — see the console for details.",
 

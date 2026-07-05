@@ -25,6 +25,8 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { SessionRecap } from "./session-recap.mjs";
+import { esc } from "../util/esc.mjs";
+import { addToPurse } from "../util/coins.mjs";
 
 /* -------------------------------------------- */
 /*  Droppable Item Types                        */
@@ -80,9 +82,13 @@ export const ItemDrops = {
     // Hook: add pickup button to TokenHUD for dropped items
     Hooks.on("renderTokenHUD", (hud, html, tokenData) => this._onRenderTokenHUD(hud, html, tokenData));
 
-    // Socket: handle player requests (they can't create actors/tokens)
+    // Socket: handle player requests (they can't create actors/tokens).
+    // Only the PRIMARY (active) GM processes them — otherwise every connected
+    // GM (e.g. a second GM or an always-on relay client) would create a
+    // duplicate token / double-credit a pickup. Mirrors the loot-delivery
+    // and merchant-shop activeGM guard.
     game.socket.on(`module.${MODULE_ID}`, async (data) => {
-      if (!game.user.isGM) return;
+      if (!(game.user.isGM && game.users.activeGM?.id === game.user.id)) return;
       if (data?.action === "itemDrop:create") {
         await this._createDroppedItemToken(data);
       }
@@ -144,9 +150,12 @@ export const ItemDrops = {
     if (game.user.isGM) {
       await this._createDroppedItemToken(dropData);
     } else {
-      // Player: relay to GM via socket
+      // Player: relay to GM via socket. The GM re-reads the item server-side
+      // and verifies ownership using userId, so a crafted payload can't
+      // fabricate items or drop from an actor the sender doesn't own.
       game.socket.emit(`module.${MODULE_ID}`, {
         action: "itemDrop:create",
+        userId: game.userId,
         ...dropData,
       });
     }
@@ -183,8 +192,28 @@ export const ItemDrops = {
    * GM-only execution (players relay via socket).
    */
   async _createDroppedItemToken(data) {
-    const { itemData, sourceActorId, sourceItemId, dropQty = 1, x, y, sceneId } = data;
-    const qtyToDrop = Math.max(1, Math.floor(Number(dropQty)) || 1);
+    const { sourceActorId, sourceItemId, x, y, sceneId, userId } = data;
+    let itemData = data.itemData;
+    let qtyToDrop = Math.max(1, Math.floor(Number(data.dropQty)) || 1);
+
+    // A relayed player request (userId present and not our own GM action) is
+    // untrusted. The player may only drop an item they actually OWN, and we
+    // re-read the item from the source actor server-side rather than trusting
+    // the payload's `itemData` — otherwise a crafted socket message could
+    // fabricate arbitrary item data or an inflated quantity to dupe on pickup.
+    if (userId && userId !== game.userId) {
+      const user = game.users.get(userId);
+      const sourceActor = game.actors.get(sourceActorId);
+      if (!user || !sourceActor) return;
+      if (!sourceActor.testUserPermission(user, "OWNER")) return;
+      const sourceItem = sourceActor.items.get(sourceItemId);
+      if (!sourceItem) return;
+      if (!DROPPABLE_TYPES.includes(sourceItem.type) || _isLightSource(sourceItem)) return;
+      itemData = sourceItem.toObject();
+      const available = Math.max(1, Math.floor(Number(sourceItem.system?.quantity ?? 1)) || 1);
+      qtyToDrop = Math.min(qtyToDrop, available);
+    }
+    if (!itemData) return;
 
     // Remove item from source actor (or decrement quantity). World/compendium
     // drops carry no source actor, so there is nothing to take from.
@@ -357,6 +386,7 @@ export const ItemDrops = {
           actorId: actor.id,
           recipientId: recipient.id,
           sceneId: canvas.scene.id,
+          userId: game.userId,
         });
       } else {
         game.socket.emit(`module.${MODULE_ID}`, {
@@ -365,6 +395,7 @@ export const ItemDrops = {
           actorId: actor.id,
           recipientId: recipient.id,
           sceneId: canvas.scene.id,
+          userId: game.userId,
         });
       }
 
@@ -380,7 +411,7 @@ export const ItemDrops = {
    * GM-only execution. Branches on the temp actor's flags.
    */
   async _handlePickup(data) {
-    const { tokenId, actorId, recipientId, sceneId } = data;
+    const { tokenId, actorId, recipientId, sceneId, userId } = data;
 
     const dropActor = game.actors.get(actorId);
     if (!dropActor) return;
@@ -388,6 +419,31 @@ export const ItemDrops = {
     const recipient = game.actors.get(recipientId);
     if (!recipient) return;
 
+    // The recipient is attacker-controlled over the socket: a player may only
+    // pick up onto an actor they OWN (GM-initiated pickups skip the check).
+    if (userId && userId !== game.userId) {
+      const user = game.users.get(userId);
+      if (!user || !recipient.testUserPermission(user, "OWNER")) return;
+    }
+
+    // Concurrency guard: two players clicking pickup emit two sockets, both
+    // processed on this one active-GM client. Without a lock both would read
+    // the pile before either deletes it and double-credit. An in-memory
+    // in-flight set on the single processing client is sufficient mutual
+    // exclusion (JS is single-threaded; the set is claimed synchronously
+    // before any await).
+    this._pickupInFlight ??= new Set();
+    if (this._pickupInFlight.has(actorId)) return;
+    this._pickupInFlight.add(actorId);
+    try {
+      await this._doPickup(dropActor, recipient, tokenId, sceneId);
+    } finally {
+      this._pickupInFlight.delete(actorId);
+    }
+  },
+
+  /** Inner pickup body, run under the in-flight lock in `_handlePickup`. */
+  async _doPickup(dropActor, recipient, tokenId, sceneId) {
     const coinData = dropActor.getFlag(MODULE_ID, "droppedCoinData");
     const itemData = dropActor.getFlag(MODULE_ID, "droppedItemData");
     if (!coinData && !itemData) return;
@@ -400,11 +456,11 @@ export const ItemDrops = {
         ui.notifications.warn(`${recipient.name} can't carry coins.`);
         return;
       }
-      const cur = recipient.system.coins ?? { gp: 0, sp: 0, cp: 0 };
+      const next = addToPurse(recipient.system.coins, coinData);
       await recipient.update({
-        "system.coins.gp": (cur.gp ?? 0) + (coinData.gp ?? 0),
-        "system.coins.sp": (cur.sp ?? 0) + (coinData.sp ?? 0),
-        "system.coins.cp": (cur.cp ?? 0) + (coinData.cp ?? 0),
+        "system.coins.gp": next.gp,
+        "system.coins.sp": next.sp,
+        "system.coins.cp": next.cp,
       });
       cardLabel = _coinLabel(coinData);
       cardImg = dropActor.img || COIN_IMG;
@@ -471,10 +527,10 @@ export const ItemDrops = {
     await ChatMessage.create({
       speaker: ChatMessage.getSpeaker({ actor: recipient }),
       content: `<div class="shadowdark-enhancer item-pickup-card" style="display:flex;align-items:center;gap:8px;padding:6px 4px;">
-        <img src="${cardImg}" alt="" width="36" height="36" style="border:none;flex:0 0 auto;">
+        <img src="${esc(cardImg)}" alt="" width="36" height="36" style="border:none;flex:0 0 auto;">
         <div style="line-height:1.2;">
-          <strong>${recipient.name}</strong> picked up<br>
-          <span>${cardLabel}</span>
+          <strong>${esc(recipient.name)}</strong> picked up<br>
+          <span>${esc(cardLabel)}</span>
         </div>
       </div>`,
     });

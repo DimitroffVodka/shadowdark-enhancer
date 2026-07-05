@@ -12,6 +12,19 @@ import { createNpcIndexRow, filterNpcIndexRows, sortNpcIndexRows } from "./npc-i
 // In-memory cache: sourceId → array<row>. Cleared on browser refresh.
 const _cache = new Map();
 
+// Keep the world/scene caches live: when NPC actors are created (e.g. the
+// Monster Creator saves, or a bulk import commits), updated, or deleted, drop
+// those caches so the Browse tab and Bestiary Loader don't show a stale list
+// until a page reload. Compendium packs don't change during play and stay
+// session-cached. Registered once at module load (ES modules are singletons).
+for (const hook of ["createActor", "updateActor", "deleteActor"]) {
+  Hooks.on(hook, (doc) => {
+    if (doc?.type !== "NPC") return;
+    _cache.delete("world");
+    _cache.delete("scene");
+  });
+}
+
 export const EncounterBrowse = {
 
   /**

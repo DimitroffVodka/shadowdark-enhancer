@@ -19,11 +19,12 @@ export const CrawlBar = {
 
   _el: null,
   _hookIds: [],
+  _renderQueued: false,
 
   init() {
     if (!game.user.isGM) return;
     this.mount();
-    const queue = () => this.render();
+    const queue = () => this.queueRender();
     // [event, id] pairs — Hooks.off requires the event name (bare id is a
     // silent no-op in v14), so destroy() can actually detach.
     const on = (ev, fn) => this._hookIds.push([ev, Hooks.on(ev, fn)]);
@@ -32,6 +33,21 @@ export const CrawlBar = {
     on("createCombat",  queue);
     on("deleteCombat",  queue);
     on("updateCombat",  queue);
+  },
+
+  /**
+   * Microtask-debounced render: combat hooks (updateCombat/updateCombatant)
+   * fire in bursts — e.g. rolling initiative for a whole party — and each one
+   * rebuilds the bar's innerHTML. Coalescing a synchronous burst into one
+   * render mirrors CrawlStrip.queueRender.
+   */
+  queueRender() {
+    if (this._renderQueued) return;
+    this._renderQueued = true;
+    Promise.resolve().then(() => {
+      this._renderQueued = false;
+      this.render();
+    });
   },
 
   mount() {

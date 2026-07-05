@@ -15,6 +15,7 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { _bestArtForActor, _isPlaceholderArt } from "./art-utils.mjs";
+import { npcMoveKeys } from "./npc-moves.mjs";
 import { ACTION_QUICK_PICKS } from "./action-templates.mjs";
 import { FEATURE_QUICK_PICKS } from "./feature-templates.mjs";
 import {
@@ -283,10 +284,7 @@ export class MonsterCreatorApp {
         abilitySearch:   this._loaderAbilitySearch,
         sortCol:         this._loaderSortCol,
         sortAsc:         this._loaderSortAsc,
-        moveOptions:     Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? {
-          close: "", near: "", doubleNear: "", tripleNear: "",
-          far: "", special: "", none: "",
-        }),
+        moveOptions:     npcMoveKeys(),
       };
     }
 
@@ -384,10 +382,7 @@ export class MonsterCreatorApp {
       // full set (close/near/doubleNear/tripleNear/far/special/none),
       // not just close/near/far. Read at render-time so we follow any
       // future system additions automatically.
-      moveOptions: Object.keys(CONFIG.SHADOWDARK?.NPC_MOVES ?? {
-        close: "", near: "", doubleNear: "", tripleNear: "",
-        far: "", special: "", none: "",
-      }),
+      moveOptions: npcMoveKeys(),
       // Lowercase ability keys to match the system schema. The
       // Spellcasting ability dropdown stores these directly into
       // system.spellcasting.ability, which expects lowercase.
