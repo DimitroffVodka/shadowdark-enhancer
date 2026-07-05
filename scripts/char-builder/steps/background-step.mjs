@@ -17,7 +17,18 @@ export class BackgroundStep extends ListStep {
   get showListSearch() { return false; }
 
   async loadItems() {
-    return Array.from(await shadowdark.compendiums.backgrounds()).sort((a, b) => a.name.localeCompare(b.name));
+    // Same-named backgrounds ship from several packs (e.g. the Western
+    // Reaches "Skald" vs the Cursed Scroll one) — keep one per name,
+    // preferring the system's copy, like the gear shop does.
+    const byName = new Map();
+    for (const d of Array.from(await shadowdark.compendiums.backgrounds())) {
+      const key = d.name.toLowerCase();
+      const prev = byName.get(key);
+      if (!prev || (!prev.uuid.startsWith("Compendium.shadowdark.") && d.uuid.startsWith("Compendium.shadowdark."))) {
+        byName.set(key, d);
+      }
+    }
+    return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async randomize() {
