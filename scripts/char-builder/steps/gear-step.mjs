@@ -12,12 +12,38 @@ import { enrich } from "../data.mjs";
 const CATEGORIES = ["Armor", "Weapon", "Basic"];
 const slug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
+/** The fixed shop stock (user-approved starting-gear list), as name slugs of
+ *  the compendium documents. Anything the loaders return outside this list —
+ *  magic items, treasure, siege engines — never reaches the shop. Bolas and
+ *  Spear-thrower ship as Weapon-type documents, so they list under Weapons. */
+const SHOP_STOCK = new Set([
+  // Basic gear
+  "arrows", "backpack", "ball-bearing", "caltrops", "candle", "charcoal-jar",
+  "crossbow-bolts", "crowbar", "flash-seed", "flask-or-bottle", "flint-and-steel",
+  "glow-paste-jar", "grappling-hook", "holy-water-flask", "iron-spikes",
+  "lantern", "lantern-hook", "miner-s-putty-jar", "mirror", "net", "oil-flask",
+  "pole", "rations", "rope-60", "morzo-silk-rope", "saddle", "tallow-jar",
+  "torch", "traveler-s-lamp", "wagon",
+  // Weapons
+  "bastard-sword", "blowgun", "bolas", "boomerang", "chakram", "club",
+  "crossbow", "dagger", "falchion", "greataxe", "greatsword", "handaxe",
+  "javelin", "lance", "longbow", "longsword", "mace", "morningstar", "pike",
+  "rapier", "razor-chain", "sai", "scimitar", "shortbow", "shortsword",
+  "shuriken", "sling", "spear", "spear-thrower", "staff", "stave", "strikes",
+  "warhammer", "whip",
+  // Armor
+  "leather-armor", "chainmail", "mithral-chainmail", "plate-mail",
+  "mithral-plate-mail", "round-shield", "mithral-round-shield", "shield",
+  "mithral-shield",
+]);
+
 export class GearStep extends ListStep {
   constructor(app) {
     super(app);
     this._viewUuid = null;
     this._category = "Armor";        // active shop category tab
     this._permitCache = {};          // class uuid → { wUuids, wSlugs, aUuids, aSlugs }
+    this._propNameCache = {};        // property uuid → name (or null if unresolvable)
   }
 
   get id() { return "gear"; }
@@ -43,7 +69,9 @@ export class GearStep extends ListStep {
         byKey.set(key, d);
       }
     }
-    return [...byKey.values()].sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+    return [...byKey.values()]
+      .filter((d) => SHOP_STOCK.has(slug(d.name)))
+      .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
   }
 
   /** Clicking a list item VIEWS it (does not add to cart). */
@@ -78,6 +106,55 @@ export class GearStep extends ListStep {
     if (sp) parts.push(`${sp} sp`);
     if (c) parts.push(`${c} cp`);
     return (neg ? "-" : "") + (parts.join(" ") || "0 gp");
+  }
+
+  /** Resolve a weapon/armor property list (UUIDs in system data) to names. */
+  async _propNames(item) {
+    const out = [];
+    for (const p of item.system.properties || []) {
+      if (!p.includes(".")) { out.push(p); continue; }   // already a plain name
+      if (!(p in this._propNameCache)) {
+        // eslint-disable-next-line no-await-in-loop
+        const d = await fromUuid(p).catch(() => null);
+        this._propNameCache[p] = d?.name || null;
+      }
+      if (this._propNameCache[p]) out.push(this._propNameCache[p]);
+    }
+    return out;
+  }
+
+  /** Extra label/value rows for the detail pane: range + damage for weapons,
+   *  AC formula for armor, resolved properties for both. */
+  async _statLines(item) {
+    const L = (k) => game.i18n.localize(k);
+    const lines = [];
+    if (item.type === "Weapon") {
+      const s = item.system;
+      if (s.range) lines.push({ label: L("SDE.charBuilder.gear.range"), value: L(`SHADOWDARK.range.${s.range}`) });
+      const die = (d) => (d ? (d.startsWith("d") ? `1${d}` : d) : null);
+      const dmg = [die(s.damage?.oneHanded), die(s.damage?.twoHanded)].filter(Boolean).join("/");
+      if (dmg) lines.push({ label: L("SDE.charBuilder.gear.damage"), value: dmg });
+    }
+    if (item.type === "Armor") {
+      const ac = item.system.ac || {};
+      const parts = [];
+      if (ac.base) parts.push(`${ac.base}`);
+      if (ac.attribute) parts.push(`${ac.attribute.toUpperCase()} mod`);
+      let formula = parts.join(" + ");
+      if (ac.modifier) formula = formula ? `${formula} + ${ac.modifier}` : `+${ac.modifier}`;
+      if (formula) lines.push({ label: L("SDE.charBuilder.gear.ac"), value: formula });
+    }
+    const props = await this._propNames(item);
+    if (props.length) lines.push({ label: L("SDE.charBuilder.gear.properties"), value: props.join(", ") });
+    return lines;
+  }
+
+  /** "Melee Weapon" / "Ranged Weapon" beats a bare "Weapon" in the detail pane. */
+  _typeLabel(item) {
+    if (item.type === "Weapon" && item.system.type) {
+      return `${game.i18n.localize(`SHADOWDARK.weapon.type.${item.system.type}`)} ${item.type}`;
+    }
+    return item.type;
   }
 
   cartTotals() {
@@ -175,7 +252,8 @@ export class GearStep extends ListStep {
       list: { entries, search: this._search, placeholder: this.searchPlaceholder },
       detail: view ? {
         name: view.name, img: view.img, description: await enrich(view.system?.description),
-        type: view.type, cost: this._fmtCoins(this._costCp(view)),
+        type: this._typeLabel(view), cost: this._fmtCoins(this._costCp(view)),
+        stats: await this._statLines(view),
         slots: view.system.slots?.slots_used ?? 0, magic: !!view.system.magicItem,
         inCart: this.state.gear.find((g) => g.uuid === view.uuid)?.qty || 0,
       } : null,

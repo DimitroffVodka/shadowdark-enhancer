@@ -19,6 +19,9 @@
       <span>{{localize "SDE.charBuilder.gear.type"}}: <b>{{step.detail.type}}</b></span>
       <span>{{localize "SDE.charBuilder.gear.cost"}}: <b>{{step.detail.cost}}</b></span>
       <span>{{localize "SDE.charBuilder.gear.slots"}}: <b>{{step.detail.slots}}</b></span>
+      {{#each step.detail.stats}}
+      <span>{{label}}: <b>{{value}}</b></span>
+      {{/each}}
       {{#if step.detail.magic}}<span class="sde-cb-magic-tag">{{localize "SDE.charBuilder.gear.magic"}}</span>{{/if}}
     </div>
 
