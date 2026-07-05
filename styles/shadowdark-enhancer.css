@@ -1527,11 +1527,23 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
    existing .sde-thub-* rules above — nothing repeated here.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Hub tab nav — mirrors .sde-thub-tabs styling */
+/* Hub root — scrolls as one column with an always-visible scrollbar
+   (overflow:hidden here used to clip the Manage strip with no way to
+   tell there was more content below). */
 .sde-importer-hub {
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  scrollbar-width: auto;
+  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
+  scrollbar-gutter: stable;
 }
+.sde-importer-hub::-webkit-scrollbar { width: 10px; }
+.sde-importer-hub::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
+.sde-importer-hub::-webkit-scrollbar-thumb {
+  background: var(--sde-bar-border, #6b6b6b);
+  border-radius: 5px;
+}
+.sde-importer-hub::-webkit-scrollbar-thumb:hover { background: var(--sde-bar-accent, #d4a017); }
 
 .sde-hub-tabs {
   flex: 0 0 auto;
