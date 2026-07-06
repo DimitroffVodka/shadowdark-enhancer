@@ -21,7 +21,9 @@ export const CHAR_SOURCES = {
 };
 
 // src → Foundry item type → expected names (from the source books' character
-// chapters; census-verified against a fully imported world 2026-07-05).
+// chapters). WR lists regenerated from the built suite after the compendium
+// reorg (talents/weapons/gear renamed, boats + siege weapons dropped as
+// non-char-builder content); census-verified 2026-07-06. CS4–6 unchanged.
 const MANIFEST = {
   CS4: {
     Weapon: ["Obsidian Club", "Obsidian Dagger", "Obsidian Spear"],
@@ -52,21 +54,23 @@ const MANIFEST = {
     ],
     Ancestry: ["Half-Elf"],
     Talent: [
-      "+1 to Melee Attacks and Damage", "+1 to Melee or Ranged Attacks and Damage",
-      "+1 to Ranged Attacks and Damage", "Adaptable", "Adaptable Fighter",
-      "Blessed Blade", "Cheat Death", "Chivalric Oath", "Corruption",
-      "Corruption Table (d10)", "Cutting Remark", "Dabbler", "Dark Empowerment",
-      "Deadly Aim", "Death Sense", "Deep Pockets", "Deity", "Dueling Finesse",
-      "Embrace Corruption", "Extra Grit", "Eye Of Yag-Kesh",
-      "Fist Of The Moon God", "Focused Casting", "Hawk Eye", "Hideous Biology",
-      "Inspiring Presence", "Jack of All Trades", "Keen Hawk Eye", "Knowaguy",
-      "Kyzian Quiver", "Languages", "Lucksmith", "Master Scavenger", "Mount",
-      "Named Blade", "Parry", "Pseudopod", "Pseudopod Mastery", "Radiant Focus",
-      "Rallying Presence", "Riposte", "River of Death", "Rooted", "Scavenger",
-      "Spellcasting", "Spreading Corruption", "Still The Heart",
-      "Sun On The Water", "Surprising Guts", "Sworn Blade", "Tale Spinner",
-      "Taunt", "Trailblazer", "Treestride", "Trusty Gear", "Well-Rounded",
-      "Wind Step",
+      "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",
+      "+1 to Named Blade Attacks and Damage", "+1 to Pseudopod Attacks and Damage",
+      "Abominable Hunger", "Adaptable", "Additional Hawk Eye Use",
+      "Additional Sun on the Water Use", "All Attacks Miss (1/Day)", "Chivalric Oath",
+      "Corruption", "Creepy Stillness", "Cutting Remark", "Death Sense", "Deep Pockets",
+      "Dorsal Hump", "Double Movement Speed", "Evolution", "Extra Hit Points Die",
+      "Eye of Yag-Kesh", "Fish Eyes", "Fish Gills", "Fist of the Moon God",
+      "Gain a Corruption Talent", "Gain a New Weapon or Armor Proficiency",
+      "Gain Two Corruption Talents", "Hawk Eye", "Hideous Biology",
+      "Improved Inspiring Presence", "Inspiring Presence", "Knowaguy", "Kyzian Quiver",
+      "Learn Any Spell", "Lucksmith", "Mad Certainty", "Master Scavenger", "Mount",
+      "Named Blade", "Named Blade Magic Benefit", "Parry", "Pseudopod",
+      "Return to Life", "River of Death", "Rooted", "Scavenger", "Segmented Pseudopod",
+      "Spellcasting (Green Knight)", "Spellcasting (Necromancer)", "Still the Heart",
+      "Sun on the Water", "Surprising Guts", "Tale Spinner", "Taunt", "Thickened Skin",
+      "Trailblazer", "Treewalk", "Trusty Gear", "Vicious Pseudopod",
+      "Weapon Damage Die (d10)",
     ],
     Spell: [
       "Anchor", "Ashes To Ashes", "Balance", "Bane", "Bear Shape", "Blood Rite",
@@ -76,7 +80,7 @@ const MANIFEST = {
       "Fourth Gate", "Ghoul Touch", "Halo", "Harm", "Inflict Wounds",
       "Lamentation", "Necronomicon", "Peace", "Prayer", "Rapture",
       "Reap The Soul", "Regrowth", "Rend", "Revenant", "Revitalize",
-      "Riverwalk", "Root", "Seal Soul", "Second Gate", "Serpent", "Shapechange",
+      "Riverwalk", "Root", "Seal Soul", "Second Gate", "Serpent",
       "Siphon", "Summon Soul", "Third Gate", "Thorn", "Undeath", "Unhinge",
       "Vision", "Wheel of Flames", "Withermark",
     ],
@@ -100,17 +104,13 @@ const MANIFEST = {
       "Warrior", "Witchborn", "Witness",
     ],
     Basic: [
-      "Ball Bearing", "Candle", "Canoe", "Charcoal, jar", "Flash Seed",
-      "Flask or bottle", "Galleon", "Glow paste, jar", "Holy water, flask",
-      "Junk", "Lantern Hook", "Longboat", "Miner's putty, jar",
-      "Morzo Silk Rope", "Net", "Raft", "Rowboat", "Saddle", "Sailboat",
-      "Sloop", "Tallow, jar", "Traveler's Lamp", "Wagon",
+      "Ball Bearing", "Bolas", "Candle", "Charcoal, jar", "Flash Seed",
+      "Flask or bottle", "Gem", "Glow paste, jar", "Holy water, flask",
+      "Lantern Hook", "Miner's putty, jar", "Morzo Silk Rope", "Net", "Saddle",
+      "Spear-thrower", "Tallow, jar", "Traveler's Lamp", "Wagon",
     ],
-    Weapon: [
-      "Ballista", "Catapult", "Chakram", "Falchion", "Heavy crossbow", "Lance",
-      "Rapier", "Sai", "Trebuchet",
-    ],
-    Armor: ["Mithral round shield", "Mithral shield"],
+    Weapon: ["Chakram", "Falchion", "Lance", "Rapier", "Sai", "Stave"],
+    Armor: ["Mithral Round Shield", "Mithral Shield"],
   },
 };
 
