@@ -26,7 +26,6 @@ export const CHAR_SOURCES = {
 // non-char-builder content); census-verified 2026-07-06. CS4–6 unchanged.
 const MANIFEST = {
   CS4: {
-    Weapon: ["Obsidian Club", "Obsidian Dagger", "Obsidian Spear"],
     Spell: [
       "Alchemy", "Anima", "Barkskin", "Befriend", "Breath", "Earthquake",
       "Instill", "Locusts", "Magnetize", "Mycelium", "Naming", "Oxidize",
