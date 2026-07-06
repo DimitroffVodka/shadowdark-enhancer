@@ -29,7 +29,8 @@ import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
-import { gatherCharContentCensus, parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { buildManageTree } from "./manage-tree.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -98,7 +99,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemGapExpand:          ImporterHubApp.prototype._onItemGapExpand,
       itemSeedPaste:          ImporterHubApp.prototype._onItemSeedPaste,
       itemCullGroup:          ImporterHubApp.prototype._onItemCullGroup,
-      charGapExpand:          ImporterHubApp.prototype._onCharGapExpand,
+      manageNodeExpand:       ImporterHubApp.prototype._onManageNodeExpand,
+      manageExpandAll:        ImporterHubApp.prototype._onManageExpandAll,
+      manageCollapseAll:      ImporterHubApp.prototype._onManageCollapseAll,
       charSeedPaste:          ImporterHubApp.prototype._onCharSeedPaste,
       hubCommitChar:          ImporterHubApp.prototype._onHubCommitChar,
       hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
@@ -126,9 +129,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Character content (Backgrounds/Talents/Classes unlock flow) ────────────
   /** @type {Array<{draft: object}>} Parsed char-content drafts awaiting commit. */
   _importChar = [];
-  /** Char-content dashboard cache + per-source expand state. */
-  _charCache = null;
-  _expandedCharGapRows = new Set();
 
   // ── Import content state ───────────────────────────────────────────────────
   /** Raw paste text (stashed on input, committed on blur/parse). */
@@ -152,6 +152,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Manage strip (collapsible, lazy) ───────────────────────────────────────
   /** Whether the Manage strip is expanded (its census is computed only then). */
   _manageExpanded = false;
+  /** Built Manage tree (top-level nodes), invalidated on cull/commit/migrate. @type {Array|null} */
+  _manageTreeCache = null;
+  /** Node ids currently expanded in the Manage tree (starts fully collapsed). */
+  _manageExpandedNodes = new Set();
 
   // ── Monsters-tab census cache ─────────────────────────────────────────────
   /**
@@ -321,12 +325,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // ── Manage strip — lazy: census/duplicate scans run only when expanded ────
     let manage = null;
     if (this._manageExpanded) {
-      const [monstersData, itemsData, charData] = await Promise.all([
+      const [monstersData, itemsData, tree] = await Promise.all([
         this._prepareMonstersContext(),
         this._prepareItemsContext(),
-        this._prepareCharContentContext(),
+        this._prepareManageTree(),
       ]);
-      manage = { monstersData, itemsData, charData };
+      manage = { monstersData, itemsData, tree };
     }
 
     return { importData, manageExpanded: this._manageExpanded, manage };
@@ -399,6 +403,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _invalidateMonstersCache() {
     this._monstersCache = null;
     clearTimeout(this._monstersCacheTimer);
+    this._invalidateManageTree();
   }
 
   /**
@@ -434,40 +439,39 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Invalidate the items-tab cache. */
   _invalidateItemsCache() {
     this._itemsCache = null;
+    this._invalidateManageTree();
   }
 
   /**
-   * Prepare the character-content dashboard: manifest entries (CS4–6 / WR
-   * classes, talents, spells, backgrounds, gear) checked against every Item
-   * pack. Missing entries carry an Unlock button that seeds the paste box.
+   * Prepare the Manage tree: compose the character-content / monsters / items
+   * censuses into the nested folder tree (buildManageTree, cached), then stamp
+   * each node with its expand state and depth for the recursive template.
    */
-  async _prepareCharContentContext() {
-    if (!this._charCache) {
-      this._charCache = await gatherCharContentCensus().catch((err) => {
-        console.error("shadowdark-enhancer | gatherCharContentCensus failed:", err);
+  async _prepareManageTree() {
+    if (!this._manageTreeCache) {
+      this._manageTreeCache = await buildManageTree().catch((err) => {
+        console.error("shadowdark-enhancer | buildManageTree failed:", err);
         return [];
       });
     }
-    const rows = this._charCache.map((r) => ({
-      label: r.label,
-      book: r.book,
-      source: r.source,
-      have: r.have,
-      gap: r.gap,
-      hasGap: r.gap > 0,
-      expanded: this._expandedCharGapRows.has(r.source),
-      missingNames: r.missingNames.map((m) => ({ ...m, src: r.source })),
-    }));
-    return {
-      rows,
-      totalHave: rows.reduce((a, r) => a + r.have, 0),
-      totalGap: rows.reduce((a, r) => a + r.gap, 0),
+    const applyState = (node, depth) => {
+      node.depth = depth;
+      node.expandable = node.children.length > 0 || node.entries.length > 0;
+      node.expanded = this._manageExpandedNodes.has(node.id);
+      node.children.forEach((c) => applyState(c, depth + 1));
+      return node;
     };
+    return this._manageTreeCache.map((n) => applyState(n, 0));
   }
 
-  /** Invalidate the character-content dashboard cache. */
+  /** Invalidate the built Manage tree (content changed). */
+  _invalidateManageTree() {
+    this._manageTreeCache = null;
+  }
+
+  /** Invalidate the character-content caches (kept as the commit-flow entry point). */
   _invalidateCharCache() {
-    this._charCache = null;
+    this._invalidateManageTree();
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -812,7 +816,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           // Names pages all carry the same generic "NAMES" caption. If only
           // one ancestry's names table is still missing, it must be that one;
           // otherwise the GM has to say which ancestry this is.
-          const rows = this._charCache ?? await gatherCharContentCensus().catch(() => []);
+          const rows = await gatherCharContentCensus().catch(() => []);
           const missing = (rows.find((r) => r.source === "WR")?.missingNames ?? [])
             .filter((m) => m.type === "Table" && /\bnames$/i.test(m.name));
           if (missing.length === 1) {
@@ -1234,25 +1238,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Imported Names/Trinkets tables must show up in the character builder
-   * immediately: append their uuid to the GM's Table Sources setting
-   * (charBuilderNameTables / charBuilderTrinketTables) — the builder rolls
-   * ONLY from that list, so an unregistered import is invisible to it.
+   * The character builder now auto-discovers installed Names/Trinkets tables
+   * (char-builder/data.mjs configuredTables) — there is no source setting to
+   * update, so an imported table is available immediately. Kept as a no-op for
+   * existing callers.
    */
-  async _registerCharBuilderTable(table) {
-    const settingKey = /\bnames$/i.test(table.name) ? "charBuilderNameTables"
-      : /\btrinkets$/i.test(table.name) ? "charBuilderTrinketTables" : null;
-    if (!settingKey) return;
-    try {
-      const uuids = game.settings.get(MODULE_ID, settingKey) || [];
-      if (!uuids.includes(table.uuid)) {
-        await game.settings.set(MODULE_ID, settingKey, [...uuids, table.uuid]);
-        ui.notifications.info(`"${table.name}" added to the character builder's ${settingKey === "charBuilderNameTables" ? "name" : "trinket"} tables.`);
-      }
-    } catch (err) {
-      console.error(`${MODULE_ID} | failed to register ${table.name} for the char builder:`, err);
-    }
-  }
+  async _registerCharBuilderTable(_table) { /* auto-discovered — nothing to register */ }
 
   /** Commit: create all monsters, items, then tables in one action. GM-gated. */
   async _onHubCommitAll() {
@@ -1721,12 +1712,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  // ── Character-content dashboard actions ────────────────────────────────────
+  // ── Manage-tree actions ────────────────────────────────────────────────────
 
-  _onCharGapExpand(event, target) {
-    const source = target.dataset.source ?? "";
-    if (this._expandedCharGapRows.has(source)) this._expandedCharGapRows.delete(source);
-    else this._expandedCharGapRows.add(source);
+  /** Toggle a Manage-tree node open/closed (keyed by its stable node id). */
+  _onManageNodeExpand(event, target) {
+    const id = target.dataset.nodeId ?? "";
+    if (!id) return;
+    if (this._manageExpandedNodes.has(id)) this._manageExpandedNodes.delete(id);
+    else this._manageExpandedNodes.add(id);
+    this.render();
+  }
+
+  /** Expand every node in the Manage tree. */
+  _onManageExpandAll() {
+    const ids = [];
+    const walk = (nodes) => { for (const n of nodes) { ids.push(n.id); walk(n.children); } };
+    if (this._manageTreeCache) walk(this._manageTreeCache);
+    this._manageExpandedNodes = new Set(ids);
+    this.render();
+  }
+
+  /** Collapse the whole Manage tree. */
+  _onManageCollapseAll() {
+    this._manageExpandedNodes = new Set();
     this.render();
   }
 

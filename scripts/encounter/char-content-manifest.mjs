@@ -179,55 +179,138 @@ const TYPE_PAGES = {
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const _key = (type, name) => `${type}:${_norm(name)}`;
 
+/** All classes the manifest knows about (union across sources). */
+export const MANIFEST_CLASSES = Array.from(new Set(
+  Object.values(MANIFEST).flatMap((byType) => byType.Class ?? []),
+));
+
 /**
- * Compare the manifest against every Item compendium plus the world Items
- * directory. Returns one row per source:
- *   { source, label, book, have, gap, missingNames: [{ name, type }] }
+ * Talent → owning class(es), for the Manage tree's Classes subtree. A talent
+ * mapped to exactly one class files under that class; a talent mapped to two or
+ * more files under the "Multi" node. This map is intentionally partial — the WR
+ * talent list isn't class-attributed in the source data, so entries are added
+ * here (or auto-derived from a trailing "(Class Name)") as they're confirmed;
+ * everything unmapped renders under Multi until assigned. Keyed by normalized name.
  */
-export async function gatherCharContentCensus() {
-  const present = new Set();
+export const TALENT_CLASSES = {
+  "spellcasting (green knight)": ["Green Knight"],
+  "spellcasting (necromancer)": ["Necromancer"],
+};
+
+/**
+ * Resolve the class(es) a talent belongs to. Order: explicit TALENT_CLASSES →
+ * trailing "(Class Name)" that matches a known class → [] (→ Multi node).
+ * @returns {string[]}
+ */
+export function classesForTalent(name) {
+  const key = _norm(name);
+  if (TALENT_CLASSES[key]) return TALENT_CLASSES[key];
+  const m = String(name).match(/\(([^)]+)\)\s*$/);
+  if (m) {
+    const hit = MANIFEST_CLASSES.find((c) => _norm(c) === _norm(m[1]));
+    if (hit) return [hit];
+  }
+  return [];
+}
+
+/**
+ * Feature labels that are structural class SECTIONS, not importable ability
+ * items (e.g. every SD class lists "Languages", but a class's languages live on
+ * the class item's system.languages — there's no item named "Languages"). These
+ * are excluded from the Class Abilities census so they don't show as false gaps.
+ */
+const NON_ABILITY_FEATURES = new Set(["languages", "hit points", "weapons", "armor", "titles"]);
+
+/**
+ * Per-class ability (feature) name lists for the Manage tree's "Class Abilities"
+ * leaf, seeded from the CLASS_SPECS.features (structural sections filtered out).
+ * Classes absent here render an empty placeholder — fill in per class as sections
+ * are confirmed.
+ */
+export const CLASS_ABILITIES = Object.fromEntries(
+  Object.entries(CLASS_SPECS).map(([cls, spec]) =>
+    [cls, (spec.features ?? []).filter((f) => !NON_ABILITY_FEATURES.has(_norm(f)))]),
+);
+
+/** "Source - Table Name" suffix match (imports prefix the table with its source). */
+function _tableHave(tablesPresent, want) {
+  const w = _norm(want);
+  for (const n of tablesPresent) if (n === w || n.endsWith(`- ${w}`)) return true;
+  return false;
+}
+
+/**
+ * Scan every Item compendium + the world Items directory + every RollTable once.
+ * Shared by the flat-entry census and (via it) the per-source rollup so a single
+ * pass serves both.
+ * @returns {Promise<{present:Set<string>, presentNames:Set<string>, tablesPresent:Set<string>}>}
+ */
+export async function gatherPresence() {
+  const present = new Set();        // "type:name"
+  const presentNames = new Set();   // normalized name, any type (ability lookups)
   for (const pack of game.packs.filter((p) => p.documentName === "Item")) {
     const idx = await pack.getIndex({ fields: ["type"] });
-    for (const e of idx) present.add(_key(e.type, e.name));
+    for (const e of idx) { present.add(_key(e.type, e.name)); presentNames.add(_norm(e.name)); }
   }
-  for (const i of game.items) present.add(_key(i.type, i.name));
+  for (const i of game.items) { present.add(_key(i.type, i.name)); presentNames.add(_norm(i.name)); }
 
-  // RollTables count too (ancestry Names/Trinkets): world tables + table packs.
   const tablesPresent = new Set(game.tables.map((t) => _norm(t.name)));
   for (const pack of game.packs.filter((p) => p.documentName === "RollTable")) {
     for (const e of await pack.getIndex()) tablesPresent.add(_norm(e.name));
   }
+  return { present, presentNames, tablesPresent };
+}
 
-  const rows = [];
+/**
+ * Flat per-entry census across every source: one record per manifest entry
+ * (plus the WR ancestry tables), tagged with source, Foundry item type, page
+ * cite, and whether it's present in this world. The Manage tree buckets these
+ * by category; gatherCharContentCensus() rolls them up per source.
+ * @param {object} [presence] precomputed gatherPresence() result (avoids a rescan)
+ * @returns {Promise<Array<{src:string, type:string, name:string, present:boolean, pages:string}>>}
+ */
+export async function gatherCharContentEntries(presence) {
+  const { present, tablesPresent } = presence ?? await gatherPresence();
+  const out = [];
   for (const [src, byType] of Object.entries(MANIFEST)) {
-    let have = 0;
-    const missingNames = [];
     for (const [type, names] of Object.entries(byType)) {
       for (const name of names) {
-        if (present.has(_key(type, name))) have += 1;
-        else missingNames.push({ name, type, pages: ITEM_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? "" });
+        out.push({
+          src, type, name,
+          present: present.has(_key(type, name)),
+          pages: ITEM_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? "",
+        });
       }
     }
     if (src === "WR") {
-      // Imports are named "Source - Table Name" — a suffix match counts.
-      const tableHave = (want) => {
-        const w = _norm(want);
-        for (const n of tablesPresent) if (n === w || n.endsWith(`- ${w}`)) return true;
-        return false;
-      };
       for (const t of ANCESTRY_TABLES) {
-        if (tableHave(t.name)) have += 1;
-        else missingNames.push({ name: t.name, type: "Table", pages: t.pages });
+        out.push({ src, type: "Table", name: t.name, present: _tableHave(tablesPresent, t.name), pages: t.pages });
       }
     }
-    rows.push({
-      source: src,
-      label: CHAR_SOURCES[src].label,
-      book: CHAR_SOURCES[src].book,
-      have,
-      gap: missingNames.length,
-      missingNames,
-    });
+  }
+  return out;
+}
+
+/**
+ * Per-source rollup of the flat census. Returns one row per source:
+ *   { source, label, book, have, gap, missingNames: [{ name, type, pages }] }
+ */
+export async function gatherCharContentCensus() {
+  const entries = await gatherCharContentEntries();
+  const rows = Object.keys(MANIFEST).map((src) => ({
+    source: src,
+    label: CHAR_SOURCES[src].label,
+    book: CHAR_SOURCES[src].book,
+    have: 0,
+    gap: 0,
+    missingNames: [],
+  }));
+  const bySrc = new Map(rows.map((r) => [r.source, r]));
+  for (const e of entries) {
+    const row = bySrc.get(e.src);
+    if (!row) continue;
+    if (e.present) row.have += 1;
+    else { row.missingNames.push({ name: e.name, type: e.type, pages: e.pages }); row.gap += 1; }
   }
   return rows;
 }

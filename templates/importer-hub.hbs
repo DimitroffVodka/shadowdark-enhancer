@@ -374,77 +374,35 @@
   {{!-- ═══ Manage / cleanup (collapsible, lazy) ═══ --}}
   <details class="sde-hub-manage" data-manage{{#if manageExpanded}} open{{/if}}>
     <summary class="sde-hub-manage-summary">
-      <i class="fas fa-screwdriver-wrench"></i> Manage &amp; cleanup
-      <span class="sde-hub-manage-hint">census · duplicates · relink · migrate</span>
+      <i class="fas fa-screwdriver-wrench"></i> Manage
+      <span class="sde-hub-manage-hint">unlocked · locked · duplicates · maintenance</span>
     </summary>
 
     {{#if manage}}
     <div class="sde-hub-manage-body">
 
-      {{!-- Character content: manifest of CS4-6 / WR builder content --}}
-      <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-user-plus"></i> Character content</h3>
-        <div class="sde-thub-summary">
-          <span class="sde-thub-stat ok"><i class="fas fa-box-archive"></i> {{manage.charData.totalHave}} unlocked</span>
-          {{#if manage.charData.totalGap}}
-          <span class="sde-thub-stat miss"><i class="fas fa-lock"></i> {{manage.charData.totalGap}} locked (not yet imported)</span>
-          {{/if}}
+      {{!-- Unlock/lock review tree: Character Content · Spells · Monsters · Items --}}
+      <section class="sde-mtree">
+        <div class="sde-mtree-topbar">
+          <p class="sde-hub-manage-hint sde-mtree-legend">
+            <i class="fas fa-lock-open"></i> unlocked = present ·
+            <i class="fas fa-lock"></i> locked = importable. <strong>Unlock</strong> seeds the paste box.
+          </p>
+          <div class="sde-mtree-tools">
+            <button type="button" class="sde-mtree-toolbtn" data-action="manageExpandAll" title="Expand every folder">
+              <i class="fas fa-angles-down"></i> Expand all
+            </button>
+            <button type="button" class="sde-mtree-toolbtn" data-action="manageCollapseAll" title="Collapse everything">
+              <i class="fas fa-angles-up"></i> Collapse all
+            </button>
+          </div>
         </div>
-        <table class="sde-hub-monsters-table">
-          <thead>
-            <tr>
-              <th class="sde-hub-monsters-th-source">Source</th>
-              <th class="sde-hub-monsters-th-have" title="Classes, talents, spells, backgrounds and gear present in this world">Unlocked</th>
-              <th class="sde-hub-monsters-th-have" title="Known content not yet imported">Locked</th>
-            </tr>
-          </thead>
-          <tbody>
-            {{#each manage.charData.rows as |r|}}
-            <tr class="sde-hub-monsters-row">
-              <td class="sde-hub-monsters-source" title="{{r.book}}">{{r.label}}</td>
-              <td class="sde-hub-monsters-have">{{r.have}}</td>
-              <td class="sde-hub-monsters-gap{{#if r.hasGap}} has-gap{{/if}} sde-hub-monsters-expand-cell">
-                {{#if r.hasGap}}
-                <button type="button" class="sde-hub-monsters-expand-btn"
-                        data-action="charGapExpand" data-source="{{r.source}}"
-                        title="Show the {{r.gap}} locked entries from {{r.book}}">
-                  {{r.gap}} {{#if r.expanded}}<i class="fas fa-caret-down"></i>{{else}}<i class="fas fa-caret-right"></i>{{/if}}
-                </button>
-                {{else}}0{{/if}}
-              </td>
-            </tr>
-            {{#if r.expanded}}
-            <tr>
-              <td class="sde-hub-monsters-gap-td" colspan="3">
-                <p class="sde-hub-manage-hint">Import from <strong>{{r.book}}</strong> — Unlock pre-fills the paste box; paste the section text and Parse.</p>
-                <ul class="sde-hub-monsters-missing-list">
-                  {{#each r.missingNames as |mn|}}
-                  <li class="sde-hub-monsters-missing-item">
-                    <span class="sde-hub-monsters-missing-name">{{mn.name}}</span>
-                    <span class="sde-hub-monsters-dup-source">{{mn.type}}</span>
-                    {{#if mn.pages}}<span class="sde-hub-monsters-dup-date" title="Page in the source book">pg {{mn.pages}}</span>{{/if}}
-                    <button type="button" class="sde-hub-monsters-seed-btn"
-                            data-action="charSeedPaste" data-name="{{mn.name}}" data-type="{{mn.type}}" data-src="{{mn.src}}" data-pages="{{mn.pages}}"
-                            title="Unlock “{{mn.name}}” — seeds the Import box for {{mn.type}} paste">
-                      <i class="fas fa-unlock"></i> Unlock
-                    </button>
-                  </li>
-                  {{/each}}
-                </ul>
-              </td>
-            </tr>
-            {{/if}}
-            {{/each}}
-          </tbody>
-        </table>
+        {{#each manage.tree as |node|}}
+          {{> sdeTreeNode node=node}}
+        {{/each}}
       </section>
 
-
-      {{!-- Monsters census + duplicates --}}
-      <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-dragon"></i> Monsters</h3>
-        {{> sdeCensus data=manage.monstersData noun="monster"}}
-      </section>
+      {{!-- Monster duplicates (dedup is separate from the census tree) --}}
       {{#if manage.monstersData.hasDuplicates}}
       <section class="sde-hub-monsters-dups">
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-copy"></i> Monster duplicates ({{manage.monstersData.duplicateCount}})</h3>
@@ -475,11 +433,7 @@
       </section>
       {{/if}}
 
-      {{!-- Items census + duplicates --}}
-      <section class="sde-hub-monsters-census">
-        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-gem"></i> Items</h3>
-        {{> sdeCensus data=manage.itemsData noun="item"}}
-      </section>
+      {{!-- Item duplicates (dedup is separate from the census tree) --}}
       {{#if manage.itemsData.hasDuplicates}}
       <section class="sde-hub-monsters-dups">
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-copy"></i> Item duplicates ({{manage.itemsData.duplicateCount}})</h3>

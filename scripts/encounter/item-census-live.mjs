@@ -56,6 +56,12 @@ async function _liveItemRecords() {
   }));
 }
 
+/** Public: live sde-items records ({name, source, type, uuid, date}) — used by
+ *  the Manage tree to enumerate already-imported items per type. */
+export async function liveItemRecords() {
+  return _liveItemRecords();
+}
+
 // ─── gatherItemCensus ─────────────────────────────────────────────────────────
 
 /**

@@ -48,6 +48,12 @@ async function _liveActorRecords() {
   }));
 }
 
+/** Public: live sde-actors records ({name, source, uuid, date}) — used by the
+ *  Manage tree to enumerate already-imported monsters per source. */
+export async function liveActorRecords() {
+  return _liveActorRecords();
+}
+
 // ─── gatherCensus ────────────────────────────────────────────────────────────
 
 /**
