@@ -7092,7 +7092,10 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-anc-text .sde-cb-desc p { margin: 0 0 var(--sd-s8); }
 .sde-cb-anc-traits { margin: 0 0 var(--sd-s20); }
 .sde-cb-anc-trait .tn { font-weight: 700; color: var(--sd-text); }
-.sde-cb-anc-trait p { display: inline; margin: 0; }   /* keep any residual desc paragraph inline */
+/* inlineDesc unwraps the first paragraph so it flows after the bold name; any
+   further paragraphs (multi-paragraph features like Spellcasting) break with
+   spacing instead of clumping onto one line. */
+.sde-cb-anc-trait p { margin: var(--sd-s8) 0 0; }
 .sde-cb-anc-trait.choosable {
   cursor: pointer; padding: 8px 10px; border: 1px solid var(--sd-hairline); border-radius: var(--sd-radius);
 }
