@@ -4,10 +4,14 @@ import { classArt } from "../art.mjs";
 import { enrich, resultText, findTableByName } from "../data.mjs";
 import { builderDiceAnimation, EXTRA_CLASS_TALENT_ROLL_UUIDS } from "../constants.mjs";
 
-/** Rulebook-style inline description: enrich, then strip the wrapper <p> so
- *  the bold name and text flow on one line (same treatment as ancestry traits). */
+/** Rulebook-style description: enrich, then unwrap ONLY the first paragraph so
+ *  its text flows after the bold name, leaving any further paragraphs as real
+ *  <p> blocks. (Stripping just the outer <p>…</p> left a stray </p> that the
+ *  HTML parser turns into an empty paragraph — an extra gap between para 1 and
+ *  para 2 on multi-paragraph features like Spellcasting.) */
 async function inlineDesc(html) {
-  return (await enrich(html)).replace(/^\s*<p>/i, "").replace(/<\/p>\s*$/i, "").trim();
+  const enriched = (await enrich(html)).trim();
+  return enriched.replace(/^\s*<p>([\s\S]*?)<\/p>\s*/i, "$1");
 }
 
 /** Option sources for REPLACEME-effect choices, mirroring the system's
