@@ -319,6 +319,12 @@ export async function applyBundle(bundle) {
     const { LootLinker } = await import("./loot-linker.mjs");
     LootLinker.invalidate();
   } catch (_) {}
+  // The Western Reaches default merchant references the just-imported item pack —
+  // top it up now that its items resolve.
+  try {
+    const { MerchantShop } = await import("../merchant-shop.mjs");
+    await MerchantShop.seedDefaultMerchants();
+  } catch (_) {}
 
   return report;
 }

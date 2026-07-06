@@ -303,6 +303,9 @@ Hooks.once("ready", () => {
   LootDrops.init();
   ItemDrops.init();
   MerchantShop.init();
+  // Seed the two shipped default merchants (Base / Western Reaches). GM-only,
+  // idempotent; fills in the WR merchant once its item pack is present.
+  if (game.user.isGM) MerchantShop.seedDefaultMerchants();
   SessionRecap.init();
   checkCoexistence();
   if (game.user.isGM && !game.settings.get(MODULE_ID, "lootSetupSeen")) {

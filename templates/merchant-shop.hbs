@@ -38,28 +38,40 @@
         </select>
       </div>
 
-      {{!-- Item list --}}
+      {{!-- Item list, grouped into collapsible category sections --}}
       <div class="sdems-item-list">
-        {{#if inventory.length}}
-        {{#each inventory}}
-        <div
-          class="sdems-item-row {{#if outOfStock}}sdems-out-of-stock{{/if}} {{#unless canAfford}}sdems-cant-afford{{/unless}}"
-          data-shop-item-id="{{id}}">
-          <img class="sdems-item-icon" src="{{img}}" alt="{{name}}" width="32" height="32">
-          <div class="sdems-item-info">
-            <span class="sdems-item-name">{{name}}</span>
-            <span class="sdems-item-cat">{{category}}</span>
+        {{#if inventoryCount}}
+        {{#each inventorySections}}
+        <div class="sdems-shop-section {{#if collapsed}}sdems-section-collapsed{{/if}}" data-section="{{key}}">
+          <div class="sdems-section-header" data-section-toggle="{{key}}" role="button" tabindex="0"
+               aria-expanded="{{#if collapsed}}false{{else}}true{{/if}}">
+            <i class="fas fa-chevron-down sdems-section-caret"></i>
+            <span class="sdems-section-title">{{label}}</span>
+            <span class="sdems-section-count">{{count}}</span>
           </div>
-          <span class="sdems-item-price">{{priceDisplay}}</span>
-          <span class="sdems-item-stock" title="{{#if outOfStock}}Out of stock{{else}}{{#if (eq stockDisplay "
-            ∞")}}Unlimited{{else}}{{stockDisplay}} remaining{{/if}}{{/if}}">
-            {{stockDisplay}}
-          </span>
-          <div class="sdems-item-actions">
-            <input type="number" class="sdems-qty-input" value="1" min="1" max="99">
-            <button class="sdems-buy-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
-              <i class="fas fa-cart-plus"></i> Buy
-            </button>
+          <div class="sdems-section-body">
+            {{#each items}}
+            <div
+              class="sdems-item-row {{#if outOfStock}}sdems-out-of-stock{{/if}} {{#unless canAfford}}sdems-cant-afford{{/unless}}"
+              data-shop-item-id="{{id}}">
+              <img class="sdems-item-icon" src="{{img}}" alt="{{name}}" width="32" height="32">
+              <div class="sdems-item-info">
+                <span class="sdems-item-name">{{name}}</span>
+                <span class="sdems-item-cat">{{category}}</span>
+              </div>
+              <span class="sdems-item-price">{{priceDisplay}}</span>
+              <span class="sdems-item-stock" title="{{#if outOfStock}}Out of stock{{else}}{{#if (eq stockDisplay "
+                ∞")}}Unlimited{{else}}{{stockDisplay}} remaining{{/if}}{{/if}}">
+                {{stockDisplay}}
+              </span>
+              <div class="sdems-item-actions">
+                <input type="number" class="sdems-qty-input" value="1" min="1" max="99">
+                <button class="sdems-buy-btn" type="button" {{#unless canAfford}}disabled{{/unless}}>
+                  <i class="fas fa-cart-plus"></i> Buy
+                </button>
+              </div>
+            </div>
+            {{/each}}
           </div>
         </div>
         {{/each}}

@@ -222,6 +222,38 @@ export const MerchantShop = {
     return foundry.utils.deepClone(inv);
   },
 
+  /**
+   * Seed the two shipped default merchants (Base / Western Reaches) into
+   * savedShopConfigs. GM-only, idempotent. Creates a default if absent, and
+   * refreshes one still carrying the DEFAULT_MARKER when its resolvable
+   * inventory has changed (e.g. after the Western Reaches items are imported).
+   * Never touches a merchant a GM has saved over — the save path rebuilds the
+   * config without the marker, making an edited default user-owned.
+   */
+  async seedDefaultMerchants() {
+    if (!game.user?.isGM) return;
+    const { buildDefaultMerchantConfigs, DEFAULT_MARKER } = await import("./merchant-defaults.mjs");
+    let built;
+    try { built = await buildDefaultMerchantConfigs(); }
+    catch (err) { console.error(`${MODULE_ID} | seedDefaultMerchants failed:`, err); return; }
+
+    const configs = foundry.utils.deepClone(game.settings.get(MODULE_ID, "savedShopConfigs") || {});
+    let changed = false;
+    const uuidSig = (cfg) => (cfg.inventory || []).map((e) => e.uuid).sort().join("|");
+    for (const [key, cfg] of Object.entries(built)) {
+      const existing = configs[key];
+      if (!existing) {
+        configs[key] = cfg;                                   // fresh world — create it
+        changed = true;
+      } else if (existing[DEFAULT_MARKER] && uuidSig(existing) !== uuidSig(cfg)) {
+        configs[key] = cfg;                                   // managed default — top up as content lands
+        changed = true;
+      }
+      // else: user saved over it (marker gone) → leave untouched
+    }
+    if (changed) await game.settings.set(MODULE_ID, "savedShopConfigs", configs);
+  },
+
   _buildActorInventory(actorId) {
     const actor = game.actors.get(actorId);
     if (!actor) return [];
@@ -1354,6 +1386,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._tab = "buy";
     this._searchFilter = "";
     this._categoryFilter = "all";
+    this._collapsedSections = new Set();  // buy-tab category sections the GM/player collapsed
     this._compendiumCache = null;
     this._compendiumFilter = "";
     this._compendiumPack = ITEM_PACKS[0];
@@ -1411,6 +1444,40 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Categories for dropdown
     const categories = [...new Set(inventory.map(e => e.category))].sort();
+
+    // Group the (filtered) inventory into ordered, collapsible sections by item
+    // category. Poisons/venoms are split out of Basic/Potion by name; anything
+    // that matches no known category falls into a trailing "Other" section.
+    const SHOP_SECTIONS = [
+      { key: "Basic",  label: "Basic Gear" },
+      { key: "Weapon", label: "Weapons" },
+      { key: "Armor",  label: "Armor" },
+      { key: "Scroll", label: "Scrolls" },
+      { key: "Wand",   label: "Wands" },
+      { key: "Potion", label: "Potions" },
+      { key: "Poison", label: "Poisons" },
+    ];
+    const sectionKeyOf = (e) =>
+      /\b(poison|venom)\b/i.test(e.name || "") ? "Poison" : (e.category || "Other");
+    const buckets = new Map(SHOP_SECTIONS.map(s => [s.key, []]));
+    const otherItems = [];
+    for (const e of filteredInventory) {
+      const k = sectionKeyOf(e);
+      (buckets.has(k) ? buckets.get(k) : otherItems).push(e);
+    }
+    const inventorySections = SHOP_SECTIONS
+      .filter(s => buckets.get(s.key).length)
+      .map(s => ({
+        key: s.key, label: s.label,
+        items: buckets.get(s.key), count: buckets.get(s.key).length,
+        collapsed: this._collapsedSections.has(s.key),
+      }));
+    if (otherItems.length) {
+      inventorySections.push({
+        key: "Other", label: "Other", items: otherItems, count: otherItems.length,
+        collapsed: this._collapsedSections.has("Other"),
+      });
+    }
 
     // Player inventory for Sell tab
     let sellItems = [];
@@ -1533,6 +1600,8 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasActor: !!playerActor,
       actorName: playerActor?.name ?? "No Character",
       inventory: filteredInventory,
+      inventorySections,
+      inventoryCount: filteredInventory.length,
       categories,
       categoryFilter: this._categoryFilter,
       searchFilter: this._searchFilter,
@@ -1762,6 +1831,23 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._categoryFilter = ev.currentTarget.value;
       this.render();
     }, { signal });
+
+    // Collapsible category sections: toggle the class in place (no re-render, so
+    // it stays smooth) and remember the state so a later render — buy, restock,
+    // price change — preserves what the user collapsed.
+    const toggleSection = (header) => {
+      const key = header.dataset.sectionToggle;
+      const section = header.closest(".sdems-shop-section");
+      if (!key || !section) return;
+      const collapsed = section.classList.toggle("sdems-section-collapsed");
+      if (collapsed) this._collapsedSections.add(key);
+      else this._collapsedSections.delete(key);
+      header.setAttribute("aria-expanded", collapsed ? "false" : "true");
+    };
+    on(".sdems-section-header", "click", (ev) => toggleSection(ev.currentTarget));
+    on(".sdems-section-header", "keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); toggleSection(ev.currentTarget); }
+    });
 
     // Buy buttons
     on(".sdems-buy-btn", "click", async (ev) => {
