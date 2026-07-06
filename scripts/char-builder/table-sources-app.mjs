@@ -68,11 +68,22 @@ export class CharBuilderTableSourcesApp extends HandlebarsApplicationMixin(Appli
     const sel = this._selections();
     const groups = [];
 
+    // A character name table names a known ancestry AND says "name(s)". This
+    // matches both conventions — "Dwarf Names", "Character Names: Dwarf",
+    // "Western Reaches - Elf Names" — while keeping Dungeon / Adventure Site /
+    // Magic Item name tables out of the name-table column.
+    const { ANCESTRY_TABLES } = await import("../encounter/char-content-manifest.mjs");
+    const ancestries = [...new Set(
+      ANCESTRY_TABLES.map((t) => t.name.toLowerCase().replace(/\s*(names?|trinkets?)\s*$/i, "").trim()),
+    )].filter(Boolean);
+    const ancRe = new RegExp(`\\b(${ancestries.map((a) => a.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")).join("|")})\\b`, "i");
+    const isAncestryName = (name) => /\bnames?\b/i.test(name) && ancRe.test(name);
+
     const row = (uuid, name) => {
       const kinds = KINDS.map((k) => ({
         key: k.key,
         // In show-all mode every table offers every column (escape hatch).
-        show: k.re.test(name) || this._showAll,
+        show: (k.key === "name" ? isAncestryName(name) : k.re.test(name)) || this._showAll,
         checked: sel[k.key].has(uuid),
       }));
       return { uuid, name, kinds };
