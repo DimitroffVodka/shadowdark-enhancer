@@ -27,6 +27,21 @@ export const SUITE_PACKS = [
   { key: "tables",  id: "sde-tables",  type: "RollTable",    label: "Shadowdark Enhancer — Roll Tables" },
   { key: "journal", id: "sde-journal", type: "JournalEntry", label: "Shadowdark Enhancer — Journals"    },
   { key: "scenes",  id: "sde-scenes",  type: "Scene",        label: "Shadowdark Enhancer — Scenes"      },
+  // Character-Options packs. These are world compendiums whose LABELS slugify to
+  // their collection ids (Classes→world.classes, "Class Abilties"→
+  // world.class-abilties, …), so a fresh world recreates the identical
+  // `world.<slug>` collection on import — keeping every cross-pack `@UUID`
+  // reference (class→talent, spell→class, table→doc, ancestry→talent) valid.
+  // Empty structural packs (Languages, Patrons and Deities) are carried so the
+  // imported suite mirrors the source exactly.
+  { key: "classes",        id: "classes",             type: "Item", label: "Classes"             },
+  { key: "talents",        id: "talents",             type: "Item", label: "Talents"             },
+  { key: "classAbilities", id: "class-abilties",      type: "Item", label: "Class Abilties"      },
+  { key: "spells",         id: "spells",              type: "Item", label: "Spells"              },
+  { key: "backgrounds",    id: "background",          type: "Item", label: "Background"          },
+  { key: "ancestries",     id: "ancestries",          type: "Item", label: "Ancestries"          },
+  { key: "languages",      id: "languages",           type: "Item", label: "Languages"           },
+  { key: "patronsDeities", id: "patrons-and-deities", type: "Item", label: "Patrons and Deities" },
 ];
 
 /** Sidebar compendium folder label for the entire suite. */
@@ -157,13 +172,9 @@ export async function ensureSuite() {
     packs[desc.key] = pack;
   }
 
-  return {
-    actors:  packs.actors,
-    items:   packs.items,
-    tables:  packs.tables,
-    journal: packs.journal,
-    scenes:  packs.scenes,
-  };
+  // Keyed by descriptor key — includes the original actors/items/tables/journal/
+  // scenes accessors plus the Character-Options packs (classes, talents, …).
+  return packs;
 }
 
 /**
