@@ -26,13 +26,22 @@ export const ANCESTRY_ART = {
   "half-elf": "elf.webp",      // reuse the elf portrait until dedicated art exists
   goblin: "goblin.webp",
   "half-orc": "half-orc.webp",
-  kobold: "kobold.webp",
-  // human, halfling — awaiting matching-style B&W art
+  halfling: "halfling.png",
+  kobold: "kobold.jpg",
+  // human — awaiting matching-style art
 };
 
-/** Class name-slug → file in assets/classes/. Filled as B&W class art is added. */
+/** Class name-slug → file in assets/classes/. Filenames are case-sensitive. */
 export const CLASS_ART = {
-  fighter: "fighter.webp",   // PLACEHOLDER — copy of the dwarf ancestry art, for layout preview
+  bard: "bard.JPG",
+  fighter: "fighter.JPG",
+  necromancer: "necromancer.jpg",
+  "pit-fighter": "pit_fighter.JPG",
+  ranger: "ranger.JPG",
+  "ras-godai": "Ras-Godai.png",
+  roustabout: "roustabout.JPG",
+  "sea-wolf": "sea_wolf.png",
+  thief: "Thief.JPG",
 };
 
 function artUrl(dir, map, name) {
