@@ -257,3 +257,48 @@ export async function migrateTableSources() {
     console.error(`${MODULE_ID} | table-source migration failed:`, e);
   }
 }
+
+/**
+ * Idempotently wire any installed ancestry Names / Trinkets tables into the
+ * builder's Name / Trinket source settings. Matches the manifest's
+ * "<Ancestry> Names" / "<Ancestry> Trinkets" convention against each table's
+ * exact name OR a "<Source> - <name>" suffix (so imported "Western Reaches -
+ * Dwarf Names" is picked up). Unlike migrateTableSources this is NOT one-shot —
+ * it runs on ready and after a bundle/sealed import so tables auto-wire whenever
+ * they arrive, without the GM having to open the settings menu. GM-only; only
+ * writes when it actually adds something. Returns { names, trinkets } added.
+ */
+export async function wireAncestryTables() {
+  if (!game.user?.isGM) return { names: 0, trinkets: 0 };
+  try {
+    const { ANCESTRY_TABLES } = await import("../encounter/char-content-manifest.mjs");
+    const norm = (s) => String(s).toLowerCase().trim();
+    // Every RollTable available (world dir + every RollTable pack), as {name, uuid}.
+    const all = [];
+    for (const t of (game.tables ?? [])) all.push({ name: norm(t.name), uuid: t.uuid });
+    for (const p of game.packs.filter((pk) => pk.documentName === "RollTable")) {
+      // eslint-disable-next-line no-await-in-loop
+      for (const e of await p.getIndex()) all.push({ name: norm(e.name), uuid: `Compendium.${p.collection}.RollTable.${e._id}` });
+    }
+    const find = (want) => {
+      const w = norm(want);
+      return all.find((t) => t.name === w || t.name.endsWith(`- ${w}`))?.uuid ?? null;
+    };
+    const nameSet = new Set(game.settings.get(MODULE_ID, "charBuilderNameTables") || []);
+    const trinketSet = new Set(game.settings.get(MODULE_ID, "charBuilderTrinketTables") || []);
+    let addedN = 0, addedT = 0;
+    for (const at of ANCESTRY_TABLES) {
+      const uuid = find(at.name);
+      if (!uuid) continue;
+      if (/trinket/i.test(at.name)) { if (!trinketSet.has(uuid)) { trinketSet.add(uuid); addedT++; } }
+      else if (/names?$/i.test(at.name)) { if (!nameSet.has(uuid)) { nameSet.add(uuid); addedN++; } }
+    }
+    if (addedN) await game.settings.set(MODULE_ID, "charBuilderNameTables", [...nameSet]);
+    if (addedT) await game.settings.set(MODULE_ID, "charBuilderTrinketTables", [...trinketSet]);
+    if (addedN || addedT) console.log(`${MODULE_ID} | wired ancestry tables: +${addedN} name, +${addedT} trinket`);
+    return { names: addedN, trinkets: addedT };
+  } catch (e) {
+    console.error(`${MODULE_ID} | wireAncestryTables failed:`, e);
+    return { names: 0, trinkets: 0 };
+  }
+}
