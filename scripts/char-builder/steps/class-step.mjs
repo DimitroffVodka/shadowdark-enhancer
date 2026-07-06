@@ -257,10 +257,18 @@ export class ClassStep extends ListStep {
     const key = item.uuid;
     if (this._traitsCache[key]) return this._traitsCache[key];
     const traits = [];
+    // A feature that is both a Talent and its activatable Class Ability (e.g.
+    // Pit Fighter's Relentless/Flourish, WR's Parry) appears in both arrays —
+    // show it once. Talents come first, so the feature text wins over the
+    // ability's shorter usage line. Display-only; the actor still gets both.
+    const seenNames = new Set();
     for (const uuid of [...(item.system.talents || []), ...(item.system.classAbilities || [])]) {
       // eslint-disable-next-line no-await-in-loop
       const doc = await fromUuid(uuid).catch(() => null);
       if (!doc || doc.documentName !== "Item") continue;
+      const nameKey = doc.name.toLowerCase().trim();
+      if (seenNames.has(nameKey)) continue;
+      seenNames.add(nameKey);
       // Talents needing a choice: supported ones (Weapon Mastery…) get an
       // inline picker on this tab; only UNSUPPORTED REPLACEME effects still
       // fall back to the system dialog at actor creation.
