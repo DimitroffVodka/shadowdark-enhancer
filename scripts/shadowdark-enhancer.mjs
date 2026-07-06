@@ -46,7 +46,6 @@ import { registerActorTypes } from "./actors/register-actors.mjs";
 // the roll never lands in CrawlState.
 import "./initiative-manager.mjs";
 import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
-import { migrateTableSources, wireAncestryTables } from "./char-builder/data.mjs";
 import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
 
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
@@ -301,10 +300,6 @@ Hooks.once("ready", () => {
   registerHiddenSync();
   // Seed the char-builder Name/Trinket table sources from the legacy boolean
   // settings (one-shot, GM-only). Fire-and-forget — errors log inside.
-  migrateTableSources();
-  // Auto-wire any installed ancestry Names/Trinkets tables into the builder
-  // (idempotent; covers imports that arrived without touching the settings menu).
-  if (game.user.isGM) wireAncestryTables();
   ClassAbilityUses.init();
   MovementTracker.init();
   CrawlStrip.init();

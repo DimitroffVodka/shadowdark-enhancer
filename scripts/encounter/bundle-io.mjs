@@ -325,11 +325,6 @@ export async function applyBundle(bundle) {
     const { MerchantShop } = await import("../merchant-shop.mjs");
     await MerchantShop.seedDefaultMerchants();
   } catch (_) {}
-  // Wire any imported ancestry Names/Trinkets tables into the character builder.
-  try {
-    const { wireAncestryTables } = await import("../char-builder/data.mjs");
-    await wireAncestryTables();
-  } catch (_) {}
 
   return report;
 }

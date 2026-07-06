@@ -1,5 +1,4 @@
 import { MODULE_ID } from "./module-id.mjs";
-import { CharBuilderTableSourcesApp } from "./char-builder/table-sources-app.mjs";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, "combatMovementDefault", {
@@ -105,47 +104,9 @@ export function registerSettings() {
     default: 0,
   });
 
-  // Name/Trinket tables the Ancestry step may draw from — the GM checks
-  // specific RollTables in the menu below; the builder's source dropdowns show
-  // exactly those, filtered to the selected ancestry.
-  game.settings.registerMenu(MODULE_ID, "charBuilderTableSources", {
-    name: "SDE.settings.charBuilderTableSources.name",
-    label: "SDE.settings.charBuilderTableSources.label",
-    hint: "SDE.settings.charBuilderTableSources.hint",
-    icon: "fa-solid fa-table-list",
-    type: CharBuilderTableSourcesApp,
-    restricted: true,
-  });
-  game.settings.register(MODULE_ID, "charBuilderNameTables", {
-    scope: "world", config: false, type: Array, default: [],
-  });
-  game.settings.register(MODULE_ID, "charBuilderTrinketTables", {
-    scope: "world", config: false, type: Array, default: [],
-  });
-  // Background / Deity roll tables — drive the builder's Random picks for those
-  // sections (empty = plain random pick from the compendium list).
-  game.settings.register(MODULE_ID, "charBuilderBackgroundTables", {
-    scope: "world", config: false, type: Array, default: [],
-  });
-  game.settings.register(MODULE_ID, "charBuilderDeityTables", {
-    scope: "world", config: false, type: Array, default: [],
-  });
-  // One-shot latch for seeding the arrays from the pre-menu boolean sources.
-  game.settings.register(MODULE_ID, "charBuilderTableSrcMigrated", {
-    scope: "world", config: false, type: Boolean, default: false,
-  });
-
-  // Legacy boolean sources — hidden, kept registered one release so the
-  // migration can read prior values. Remove after v0.9.
-  game.settings.register(MODULE_ID, "charBuilderTableSrcCore", {
-    scope: "world", config: false, type: Boolean, default: true,
-  });
-  game.settings.register(MODULE_ID, "charBuilderTableSrcWesternReaches", {
-    scope: "world", config: false, type: Boolean, default: false,
-  });
-  game.settings.register(MODULE_ID, "charBuilderTableSrcNord", {
-    scope: "world", config: false, type: Boolean, default: false,
-  });
+  // Ancestry Names/Trinkets and Background/Deity tables are auto-discovered from
+  // installed content by the builder (char-builder/data.mjs configuredTables) —
+  // no setting to configure; imported tables just work.
 
   // Internal world setting — not displayed in config UI. Holds the CrawlState singleton.
   game.settings.register(MODULE_ID, "crawlState", {

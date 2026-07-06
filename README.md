@@ -96,7 +96,7 @@ Seven tabs, freely navigable, each with a completion check mark. Every tab that 
 - **Gear** — a shop: browse Armor / Weapons / Basic gear from all installed packs, with items your class can't use flagged, and a cart tracked against your starting gold and carry slots. Cart costs are deducted from starting coins on creation.
 - **Preview** — a read-only summary of every choice. **Finish** confirms and commits through the system's own creation path: ancestry/class/background/deity stored as references, talents/abilities/spells/gear embedded as real items. Players without actor-create permission are handed off to the GM over the system socket automatically.
 
-The GM controls which roll tables feed the builder via **Settings → Character Builder: table sources** — checkable lists of installed Name, Trinket, Background, and Deity tables (so Western Reaches or homebrew tables slot straight in).
+Name, Trinket, Background, and Deity rolls draw from installed roll tables **automatically** — the builder discovers any table named for a known ancestry (Names/Trinkets) or a Background/Deity table, so imported Western Reaches or homebrew tables just work with no configuration.
 
 ### 🐴 Mounts & Boats
 
@@ -127,7 +127,6 @@ Configured under **Configure Settings → Shadowdark Enhancer** (world scope). H
 | Character Builder: dice animation | off | Roll chat cards always post; this adds the 3D dice. |
 | Character Builder: max level-1 HP | off | Auto-max instead of rolling the class hit die. |
 | Character Builder: starting gold (gp) | 0 | 0 = roll the standard 2d6×5 gp. |
-| Character Builder: table sources | *(menu)* | Pick which RollTables feed Name / Trinket / Background / Deity rolls. |
 
 ---
 
