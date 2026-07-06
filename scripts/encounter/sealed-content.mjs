@@ -250,6 +250,84 @@ export async function sealUnit(payload, anchorPhrases) {
   return { encBase64: _b64(out), anchorsMeta };
 }
 
+/** Compendium folder path ("Class/Roustabout") for a live doc, or null. */
+function _sealFolderPath(doc) {
+  const pack = doc.compendium ?? game.packs.get(doc.pack);
+  let fid = doc.folder?.id ?? doc.folder ?? null;
+  const parts = [];
+  while (fid && pack) {
+    const f = pack.folders.get(fid);
+    if (!f) break;
+    parts.unshift(f.name);
+    fid = f.folder?.id ?? f.folder ?? null;
+  }
+  return parts.length ? parts.join("/") : null;
+}
+
+const _WORLD_REF = /Compendium\.world\.[\w-]+\.[A-Za-z]+\.[A-Za-z0-9]{16}/g;
+
+/**
+ * DEV: capture a unit's CURRENT live docs into a seal payload. Starts from
+ * `roots` (uuids — usually a class), follows every world-pack reference to a
+ * transitive closure, then topologically sorts so a referenced doc always
+ * precedes its referencer (import creates in order, remapping @@LOCAL tokens as
+ * uuids become known). Intra-unit refs → @@LOCAL:n@@; system/other refs stay
+ * literal. Folder paths are captured from the live structure. Pass
+ * `bundleSpellsForClass` (a class uuid) to also pull in every world.spells doc
+ * that lists that class — spells reference the class, not vice-versa, so they
+ * aren't reachable by traversal (Necromancer's own list; Green Knight's druid
+ * list). Returns { docs } for sealUnit — never leaves prose in the caller.
+ */
+export async function captureUnitPayload({ roots = [], bundleSpellsForClass = null } = {}) {
+  const isWorld = (u) => typeof u === "string" && /^Compendium\.world\./.test(u);
+  const docs = new Map();       // uuid -> live doc
+  const refs = new Map();       // uuid -> Set(world refs inside it)
+  const queue = [...roots];
+  if (bundleSpellsForClass) {
+    const pack = game.packs.get("world.spells");
+    for (const s of (pack ? await pack.getDocuments() : [])) {
+      let c = s.system.class; c = Array.isArray(c) ? c : (c ? [c] : []);
+      if (c.includes(bundleSpellsForClass)) queue.push(s.uuid);
+    }
+  }
+  while (queue.length) {
+    const u = queue.shift();
+    if (!isWorld(u) || docs.has(u)) continue;
+    // eslint-disable-next-line no-await-in-loop
+    const d = await fromUuid(u).catch(() => null);
+    if (!d) continue;
+    docs.set(u, d);
+    const found = new Set();
+    for (const m of JSON.stringify(d.toObject()).matchAll(_WORLD_REF)) { found.add(m[0]); queue.push(m[0]); }
+    refs.set(u, found);
+  }
+
+  // Topological order (refs first). A cycle just stops recursing — import's
+  // token remap tolerates a not-yet-created target by leaving it empty.
+  const inSet = new Set(docs.keys());
+  const order = [];
+  const state = new Map();
+  const visit = (u) => {
+    if (state.get(u)) return;                 // visiting(1) or done(2)
+    state.set(u, 1);
+    for (const r of (refs.get(u) || [])) if (inSet.has(r) && r !== u) visit(r);
+    state.set(u, 2); order.push(u);
+  };
+  for (const u of docs.keys()) visit(u);
+
+  const idx = new Map(order.map((u, i) => [u, i]));
+  const out = [];
+  for (const u of order) {
+    const d = docs.get(u);
+    const data = d.toObject();
+    for (const k of ["_id", "_stats", "ownership", "sort", "folder"]) delete data[k];
+    let json = JSON.stringify(data);
+    for (const [refU, refI] of idx) if (refU !== u) json = json.split(refU).join(`@@LOCAL:${refI}@@`);
+    out.push({ kind: d.documentName === "RollTable" ? "RollTable" : "Item", data: JSON.parse(json), folder: _sealFolderPath(d) });
+  }
+  return { docs: out };
+}
+
 /** Rewrite "@@LOCAL:n@@" tokens using the created-uuid map. */
 function _remap(value, uuids) {
   if (typeof value === "string") return value.replace(/@@LOCAL:(\d+)@@/g, (_, n) => uuids[Number(n)] ?? "");
@@ -268,11 +346,27 @@ function _remap(value, uuids) {
  * become known. Items → sde-items pack, RollTables → sde-tables pack (with
  * folder). Returns created doc uuids.
  */
+/**
+ * Item document type → suite pack descriptor id. Character-builder content is
+ * routed to its own pack (mirroring the reorg'd world); gear (Basic/Weapon/
+ * Armor/…) falls back to sde-items.
+ */
+const SEALED_ITEM_PACK = {
+  Class: "classes",
+  Talent: "talents",
+  "Class Ability": "class-abilties",
+  Spell: "spells",
+  Background: "background",
+  Ancestry: "ancestries",
+};
+
 export async function importSealedPayload(payload) {
   const { ensureSuite, findSuitePack } = await import("./compendium-suite.mjs");
   await ensureSuite();
   const itemPack = findSuitePack("sde-items") ?? game.packs.get("world.shadowdark-enhancer--items");
   const tablePack = findSuitePack("sde-tables") ?? game.packs.get("world.shadowdark-enhancer--roll-tables");
+  // Route an Item to its type-specific pack (falls back to sde-items for gear).
+  const packForItem = (type) => (SEALED_ITEM_PACK[type] && findSuitePack(SEALED_ITEM_PACK[type])) || itemPack;
   const uuids = [];
   const created = [];
   // Folder paths ("Talents/Class") recreate the user's compendium taxonomy —
@@ -293,11 +387,12 @@ export async function importSealedPayload(payload) {
     // never duplicate.
     let doc;
     if (entry.kind === "Item") {
-      const idx = await itemPack.getIndex({ fields: ["type"] });
+      const pack = packForItem(data.type);
+      const idx = await pack.getIndex({ fields: ["type"] });
       const e = idx.find((x) => x.name === data.name && x.type === data.type);
-      if (e) { uuids.push(`Compendium.${itemPack.collection}.Item.${e._id}`); created.push({ kind: entry.kind, name: data.name, uuid: uuids.at(-1), reused: true }); continue; }
-      if (entry.folder) data.folder = (await ensureFolder(itemPack, entry.folder, "Item")).id;
-      [doc] = await Item.createDocuments([data], { pack: itemPack.collection });
+      if (e) { uuids.push(`Compendium.${pack.collection}.Item.${e._id}`); created.push({ kind: entry.kind, name: data.name, uuid: uuids.at(-1), reused: true }); continue; }
+      if (entry.folder) data.folder = (await ensureFolder(pack, entry.folder, "Item")).id;
+      [doc] = await Item.createDocuments([data], { pack: pack.collection });
     } else if (entry.kind === "RollTable") {
       const idx = await tablePack.getIndex();
       const e = idx.find((x) => x.name === data.name);
