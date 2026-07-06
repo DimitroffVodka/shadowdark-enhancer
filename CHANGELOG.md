@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.4] — 2026-07-06
+
+Character-builder polish — table sources now "just work" with no setting, and class feature text reads cleanly — plus a rebuilt importer Manage strip.
+
+### Changed
+- **Ancestry Names/Trinkets and Background/Deity tables are auto-discovered** — the Character Builder finds every installed table that fits (ancestry Names/Trinkets that name a known ancestry; Background/Deity tables) from the world directory and all compendium packs. The **Table Sources settings menu is gone** — imported Western Reaches or homebrew tables work with zero configuration.
+- **Importer Hub — Manage strip rebuilt** as an unlock/lock review tree.
+
+### Fixed
+- **Duplicate class features.** A feature that is both a Talent and its activatable Class Ability (Pit Fighter's Relentless/Flourish, Ras-Godai's Smoke Step, the Western Reaches pairs) is now listed once in the class detail instead of twice. Display-only — the built character still gets both.
+- **Class feature paragraphs.** Multi-paragraph features (Spellcasting, Omen, and similar) no longer clump onto one line — paragraphs break with proper spacing, matching the book's layout.
+
+### Notes
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**. Removing the Table Sources setting leaves prior stored values orphaned in existing worlds (harmless; ignored).
+
 ## [0.9.3] — 2026-07-06
 
 ### Fixed
