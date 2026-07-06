@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.9.2] — 2026-07-06
+
+Rounds out the *Western Reaches* character-builder content, makes the whole suite portable (a full compendium export/import **and** refreshed unlock bundles), and adds merchant-shop quality-of-life on top of key character-builder fixes.
+
+### Added
+- **Western Reaches content, as unlockable units.** The nine WR classes (Delver, Duelist, Green Knight, Kyzian Archer, Monk of Yag-Kesh, Necromancer, Paladin, Roustabout, Wyrdling) with their talents, activatable **Class Abilities**, spell lists and title tables; the Half-Elf ancestry; the full background set; WR gear (weapons, mithral shields); and the Necromancer / Diabolical spell-mishap tables. Shipped **encrypted** — book owners unlock by pasting the matching book text; no readable rules text ships in the module.
+- **Character-content unlock dashboard.** The Importer Hub reconciles a metadata manifest of the CS4–6 / *Western Reaches* character content against your world and offers a one-click **Unlock** for missing entries.
+- **Portable suite bundle.** Export/import now covers every Character-Options pack (classes, talents, class abilities, spells, backgrounds, ancestries) alongside items and tables, so an entire suite moves to another world with all cross-references intact.
+- **Merchant shop — collapsible category sections.** The Buy tab groups stock into Basic Gear / Weapons / Armor / Scrolls / Wands / Potions / Poisons sections that collapse in place; the open/closed state survives buys and restocks.
+- **Two shipped default merchants.** *The Merchant - Base* (core Shadowdark gear) and *The Merchant - Western Reaches* (base gear + the enhancer item pack) seed automatically and self-heal as content is imported.
+- **Dynamic Class Ability uses.** Abilities whose daily uses scale with level (Still the Heart) or are boosted by talents (Hawk Eye, Parry, Sun on the Water) recompute their `uses.max` automatically.
+
+### Fixed
+- **Spellcaster character creation.** The class spell picker's alignment gate now reads each spell's alignment (it was reading an unindexed field and never filtered), and selecting a spell registers again (a cache-key mismatch had made it a silent no-op) — casters can be built once more.
+- **Half-Elf grants its ancestry talent** (Adaptable) — a stale cross-pack reference plus a mis-set talent-choice count had dropped it.
+
+### Changed
+- **Sealed content re-sealed** from the current suite and updated to file unlocked documents into their type-specific packs; each unit keeps its existing anchors, so the same unlock text still works. Units remain ciphertext-only.
+- **Character-content dashboard** reconciled to the built suite — no more false "missing" rows.
+
+### Notes
+- Verified against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+
 ## [0.9.0] — 2026-07-05
 
 Introduces the guided Character Builder, hardens the player-facing socket paths (shop, loot, drops) against crafted payloads and duplicate processing, and moves releases to a tag-driven GitHub workflow.

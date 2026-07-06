@@ -74,7 +74,7 @@ Six tabs — **Import / Tables / Monsters / Items / Journal / Scenes** — each 
 - **Loot Generator** — generate a treasure hoard for a party level and post a **claimable** chat card; the first player to click **Claim** takes coins/items (coins are added to their character; the assignment is locked so loot goes to exactly one actor).
 - **Loot drops on kill** — optional automatic loot when a monster dies, plus a drop-a-coin-pile pickup that players grab from the token HUD.
 - **Magic Item Forge** — roll or hand-build a magic item (bonuses, benefits, curses, personality, name composition) and create it as a real Foundry item.
-- **Merchant Shop** — a GM-run shop that opens for every player at once, backed by either a compendium catalog or an NPC's own inventory. Players buy and sell against `system.coins` at a configurable sell ratio, with a transaction log exportable to Discord.
+- **Merchant Shop** — a GM-run shop that opens for every player at once, backed by either a compendium catalog or an NPC's own inventory. The buy list is grouped into **collapsible category sections** (Basic Gear / Weapons / Armor / Scrolls / Wands / Potions / Poisons). Players buy and sell against `system.coins` at a configurable sell ratio, with a transaction log exportable to Discord. Ships two **default saved merchants** — *Base* (core system gear) and *Western Reaches* (base + enhancer items) — seeded automatically.
 - **Loot Setup** — one-click binding of the system's built-in *Treasure 0–3* table (imported, enhanced, and linked) plus per-tier loot table configuration.
 
 ### 🎖️ Party XP & Session Recap
@@ -101,18 +101,6 @@ The GM controls which roll tables feed the builder via **Settings → Character 
 ### 🐴 Mounts & Boats
 
 Two Actor sub-types (**Mount**, **Boat**) with dedicated sheets and shared Occupants / Inventory / Description tabs, for the *Western Reaches* mounts, warband units, boats, and siege vehicles. The Mount type reuses the Shadowdark system's own NPC data model and sheet.
-
-### 🧙 Character Builder
-
-A guided, step-by-step creator that produces a complete level-1 Shadowdark **PlayerSD** actor — the same data shape the system generator makes, so the character works everywhere.
-
-- **Stepped flow** — Abilities → Ancestry → Class → Languages → Origins → Alignment → Deity → HP & Gold → Gear → Preview, with a live preview panel and a "still missing" checklist before creation.
-- **GM-dictated ability method** — the GM sets the roll method (3d6 down the line, 4d6 drop lowest, assign-as-you-like, …) in settings; players roll with whatever is configured and can't change it. Every ability, HP, and gold roll posts an **audit chat card** so nothing is quietly re-rolled (Dice So Nice optional).
-- **Choices made in the builder** — talent effect choices (Weapon Mastery weapon, +2 stat, …), ancestry talent picks, level-1 spell selection, and bonus creation rolls are resolved inline with no follow-up dialogs. Dwarf **Stout** rolls HP with advantage and adds +2 max HP.
-- **Categorized, class-restricted gear shop** with a running coin total; a rolled/typed trinket becomes a weightless item.
-- **Creation** builds the actor atomically (rolled back if item embedding fails) and opens the sheet. Players without create permission hand off to the GM over the system socket — the builder checks a GM is online first.
-
-Launch it from the Crawl Bar, or headlessly with `game.shadowdarkEnhancer.charBuilder.open()`.
 
 ---
 
