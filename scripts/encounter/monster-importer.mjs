@@ -18,9 +18,12 @@ const PACK_LABEL = MONSTER_PACK_LABEL;
 
 /** Find-or-create the managed world Actor compendium; unlock if locked. (Mirrors ensureLootPack.) */
 export async function ensureMonsterPack() {
+  // v13 namespaced the global under foundry.documents.collections (module min is v13).
+  const CompendiumCollectionCls =
+    foundry.documents?.collections?.CompendiumCollection ?? CompendiumCollection;
   let pack = findMonsterPack();
   if (!pack) {
-    pack = await CompendiumCollection.createCompendium({ label: PACK_LABEL, type: "Actor", packageType: "world" });
+    pack = await CompendiumCollectionCls.createCompendium({ label: PACK_LABEL, type: "Actor", packageType: "world" });
     try { await pack.setFlag(MODULE_ID, "monsterPack", true); } catch (_) {}
   }
   if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }

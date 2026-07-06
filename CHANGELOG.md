@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.3] — 2026-07-06
+
+### Fixed
+- **v13 deprecation warning on compendium creation.** `ensurePack` / `ensureMonsterPack` accessed the global `CompendiumCollection` (deprecated since v13, removed in v15). They now use `foundry.documents.collections.CompendiumCollection` with a legacy fallback — no more warning when the suite/monster packs are first created (e.g. during a bundle import on a fresh world).
+
 ## [0.9.2] — 2026-07-06
 
 Rounds out the *Western Reaches* character-builder content, makes the whole suite portable (a full compendium export/import **and** refreshed unlock bundles), and adds merchant-shop quality-of-life on top of key character-builder fixes.

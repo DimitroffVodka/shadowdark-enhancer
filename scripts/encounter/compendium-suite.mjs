@@ -117,9 +117,13 @@ export function findSuitePack(idOrKey) {
  * @returns {Promise<CompendiumCollection>}
  */
 export async function ensurePack(descriptor) {
+  // v13 namespaced the global under foundry.documents.collections; fall back to
+  // the legacy global for older cores (module minimum is v13).
+  const CompendiumCollectionCls =
+    foundry.documents?.collections?.CompendiumCollection ?? CompendiumCollection;
   let pack = findSuitePack(descriptor.id);
   if (!pack) {
-    pack = await CompendiumCollection.createCompendium({
+    pack = await CompendiumCollectionCls.createCompendium({
       label: descriptor.label,
       type: descriptor.type,
       packageType: "world",
