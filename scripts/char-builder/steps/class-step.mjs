@@ -342,13 +342,21 @@ export class ClassStep extends ListStep {
     const cacheKey = `${classUuid}|${align}`;
     if (this._spellCache[cacheKey]) return this._spellCache[cacheKey];
     const all = Array.from(await shadowdark.compendiums.spells());
-    const list = all.filter((s) => {
+    // The class filter is cheap (system.class is in the compendium index), but
+    // the shadowdark-extras alignment flag is NOT indexed — the aggregator
+    // returns plain index objects with no `flags`. Resolve the class-matched
+    // subset to full documents so the alignment gate can actually read it.
+    const candidates = all.filter((s) => {
       const c = s.system.class;
       const arr = Array.isArray(c) ? c : (c ? [c] : []);
-      if (!arr.includes(classUuid)) return false;
+      return arr.includes(classUuid);
+    });
+    const docs = await Promise.all(candidates.map((s) => fromUuid(s.uuid).catch(() => null)));
+    const list = docs.filter((d) => {
+      if (!d) return false;
       // Only offer an alignment-tagged spell to a matching-alignment character;
       // untagged spells are universal (standard class list).
-      const spellAlign = s.flags?.["shadowdark-extras"]?.alignment || "";
+      const spellAlign = d.flags?.["shadowdark-extras"]?.alignment || "";
       return !spellAlign || spellAlign === align;
     }).sort((a, b) => (a.system.tier - b.system.tier) || a.name.localeCompare(b.name));
     this._spellCache[cacheKey] = list;
@@ -438,7 +446,10 @@ export class ClassStep extends ListStep {
     const existing = this.state.spells.find((s) => s.uuid === uuid);
     if (existing) { this.state.spells = this.state.spells.filter((s) => s.uuid !== uuid); return; }
     const classUuid = this._spellClassUuid(item);
-    const spell = (this._spellCache[classUuid] || []).find((s) => s.uuid === uuid);
+    // Cache is keyed classUuid|align (see _loadSpells) — match that here or the
+    // lookup misses and no spell is ever added.
+    const align = this.state.alignment || "";
+    const spell = (this._spellCache[`${classUuid}|${align}`] || []).find((s) => s.uuid === uuid);
     if (!spell) return;
     const tier = spell.system.tier;
     const count = item.system.spellcasting.spellsknown?.[1]?.[tier] || 0;
