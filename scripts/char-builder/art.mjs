@@ -34,6 +34,7 @@ export const ANCESTRY_ART = {
 /** Class name-slug → file in assets/classes/. Filenames are case-sensitive. */
 export const CLASS_ART = {
   bard: "bard.JPG",
+  "bard-legacy": "bard.JPG",   // the system ships the bard as "Bard (Legacy)"
   fighter: "fighter.JPG",
   necromancer: "necromancer.jpg",
   "pit-fighter": "pit_fighter.JPG",
