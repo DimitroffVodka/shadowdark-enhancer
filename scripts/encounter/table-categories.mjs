@@ -31,6 +31,7 @@ export const CATEGORIES = [
     "university district", "district",
   ] },
   { id: "character-names", label: "Character Names", keywords: ["name"] },
+  { id: "trinkets", label: "Trinkets", keywords: ["trinket"] },
   { id: "npcs", label: "NPCs", keywords: ["npc", "rival crawler"] },
   { id: "monsters", label: "Monsters", keywords: ["monster", "make it weird", "mutation", "beast"] },
   { id: "traps", label: "Traps", keywords: ["trap"] },

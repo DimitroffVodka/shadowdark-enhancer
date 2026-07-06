@@ -1,0 +1,320 @@
+/**
+ * Shadowdark Enhancer — Sealed Content
+ *
+ * Ships finished, verified content documents inside the module WITHOUT
+ * shipping readable rules text: each unit (a class + its talents + tables)
+ * is AES-GCM encrypted with a key derived from anchor phrases of the book
+ * section it came from. Pasting that section proves ownership: the anchors
+ * are located in the normalized paste (the module stores only their hashes
+ * and token lengths), the key is derived from the paste's own words, and the
+ * pre-authored documents decrypt and import with links remapped.
+ *
+ * See .planning/CHAR-CONTENT-UNLOCK-SPEC.md ("sealed content" pivot).
+ *
+ * Payload doc conventions:
+ *   - intra-unit links are "@@LOCAL:<index>@@" tokens (index into payload.docs)
+ *   - system-compendium links (shadowdark.*) are kept literal — those uuids
+ *     are identical in every world.
+ */
+
+import { MODULE_ID } from "../module-id.mjs";
+
+/** Registry of sealed units shipped under data/locked/. Metadata only. */
+export const SEALED_UNITS = [
+  {
+    id: "wr-delver",
+    name: "Delver",
+    type: "Class",
+    source: "WR",
+    pages: "38",
+    file: `modules/${MODULE_ID}/data/locked/wr-delver.json`,
+    // anchor token-lengths + SHA-256 of each normalized anchor (order matters)
+    anchors: [
+      { len: 11, hash: "a99a161644209c94688a2bc968ce6450e74413afc27567ebc635c25f9bc27d63" },
+      { len: 12, hash: "b0aacdd776112ed7b16aeb69eace790dde0346a2b99f0cb1e3eccc8fd22762b5" },
+      { len: 7, hash: "d46408f4dd1c0960517626e1fafbef61ed882bd608bf4c7b09f8952d843d3b39" },
+      { len: 6, hash: "21e31306b130f26170c8da2e44f10ff1d7c72722bb148a84cac25c86859983fe" },
+      { len: 9, hash: "b9fdf3afe3044e08bbc0fb3f40b0fe699ddbcb530b4e8b65b5d8b7d4b4fdd6e6" },
+    ],
+  },
+  {
+    id: "wr-duelist",
+    name: "Duelist",
+    type: "Class",
+    source: "WR",
+    pages: "42",
+    file: `modules/${MODULE_ID}/data/locked/wr-duelist.json`,
+    anchors: [
+      { len: 12, hash: "d208c9722e48fddc4e5dbe709f40e6e8ac565497b8033f0e07cdeb06077ecfcd" },
+      { len: 11, hash: "3ce37ffc717f139667049874524a7b3a7a41cf6c3acda2163c17bad22262feab" },
+      { len: 12, hash: "451eb03c5d82075f03ac2e4ee017511dc883b6a9ba48f643256383abaf50d0c1" },
+      { len: 9, hash: "8aa2b4560f59c20c932a31e86a14d5e2ac38423af6f84b344bcc0a62859cdd9a" },
+      { len: 10, hash: "c9254b5b8305cf081884afef847480fe961e20840d211398b68b1c79a86caeb6" },
+    ],
+  },
+  {
+    id: "wr-green-knight",
+    name: "Green Knight",
+    type: "Class",
+    source: "WR",
+    pages: "44",
+    file: `modules/${MODULE_ID}/data/locked/wr-green-knight.json`,
+    anchors: [
+      { len: 7, hash: "30a7b58e7705e27d088c077e7bcf71b8f95ccdb0b9081cf94ad2c12209870609" },
+      { len: 5, hash: "b8e815d50b3da2ed0c7a3aecb1a45f86eaa443c880563b5a26619783ebacc565" },
+      { len: 10, hash: "a8fdfdcf1e7a409108349afa956076b83d118c9fb644f48b89bd7e83b21e55ba" },
+      { len: 7, hash: "5a9fdbb7c8c6bb5ac4a874d4789e07392f92d4980a15e9aaa71eec69b94c9b53" },
+      { len: 8, hash: "b50949c34d7925102a736e201d1d26c65a7ddb43bc450ec3e6a11ee60e753fdf" },
+    ],
+  },
+  {
+    id: "wr-kyzian-archer",
+    name: "Kyzian Archer",
+    type: "Class",
+    source: "WR",
+    pages: "49",
+    file: `modules/${MODULE_ID}/data/locked/wr-kyzian-archer.json`,
+    anchors: [
+      { len: 11, hash: "0aad93075cf732a56d10da8284df97a5e72ebad39e5794c98f4fde4254a0a4c3" },
+      { len: 7, hash: "5f5c14a02c978fbf2fa46606669e6d1ffe79369cc125a60c45e48539024696e7" },
+      { len: 11, hash: "7d1ce44ad407ec3dd3fa92819357ab36cb575324a1057c39f542c2d72ce3535d" },
+      { len: 8, hash: "f1caa604d3c38633b167bf123f53627dd688596befdc0c05bb284521ef99f977" },
+      { len: 11, hash: "a01600dfaaa7c7407802be0f8119260901af814f8856d90b24bad587e1ea3c19" },
+    ],
+  },
+  {
+    id: "wr-monk-of-yag-kesh",
+    name: "Monk of Yag-Kesh",
+    type: "Class",
+    source: "WR",
+    pages: "50",
+    file: `modules/${MODULE_ID}/data/locked/wr-monk-of-yag-kesh.json`,
+    anchors: [
+      { len: 7, hash: "792aed03547d561004b4bbda41b3e49aae14da0c1e7e9924c29c6772efdbbd29" },
+      { len: 8, hash: "243a6bcad6447f380cbcfc987e30781d05a29517af2d712f8ad04d2a757fa7d0" },
+      { len: 11, hash: "f495da375611655ae23d57e486a876a4f4a60754f744eb64163f22e46527298a" },
+      { len: 11, hash: "b34ad28094a742a91ae9018200905f72a06b7a372a19b09bd2f6ccab2dcb90ff" },
+      { len: 13, hash: "4d2b82a2a1f20274db1d64f18cff9a534ed855b66b83a5c962fc913c1caac546" },
+    ],
+  },
+  {
+    id: "wr-paladin",
+    name: "Paladin",
+    type: "Class",
+    source: "WR",
+    pages: "54",
+    file: `modules/${MODULE_ID}/data/locked/wr-paladin.json`,
+    anchors: [
+      { len: 10, hash: "46b132bcbf5124b083d48010a2e5c53659f965bfa225baebe5fcedf81b9da91a" },
+      { len: 9, hash: "94b6afba371a5b75dffef8e9a4aadcecf6a192ec47b0ef5aa48d8eb8c5f90c82" },
+      { len: 14, hash: "4f06d60e363f50308fe50c30b45bbcfe63db0c1d696c3972497367ba928f93e5" },
+      { len: 10, hash: "d7a5ef3315fc146a4f83eb3c97f6eb8341e251bcad903eb359e4dd617e6d3578" },
+      { len: 10, hash: "bf9ec58c033f4ab9c23ec3aad1161c33dc143739cb64ae92521bd8fd2954419d" },
+    ],
+  },
+  {
+    id: "wr-roustabout",
+    name: "Roustabout",
+    type: "Class",
+    source: "WR",
+    pages: "63",
+    file: `modules/${MODULE_ID}/data/locked/wr-roustabout.json`,
+    anchors: [
+      { len: 6, hash: "63be1ffc7c3709ce796fd8cc0c0781dc9bfabdb235beb36c0c2d43a52469c8ad" },
+      { len: 13, hash: "629005fb3b71afa31b1d1885309a2e3a95a533b26c2c4b133e78c42d89a76551" },
+      { len: 13, hash: "2020a09ddf6bdc377719ff088f0cab6471084e2aaf88fcab84d26317e475eb4d" },
+      { len: 14, hash: "3fbf75911bed462211c1afe16aa5703f323c682bc5b0096a3af0153944954b84" },
+      { len: 17, hash: "099c3c348baac1f4220395fc0323b8b9d905136e78c602e7d002bfc2ba82085c" },
+    ],
+  },
+  {
+    id: "wr-wyrdling",
+    name: "Wyrdling",
+    type: "Class",
+    source: "WR",
+    pages: "72",
+    file: `modules/${MODULE_ID}/data/locked/wr-wyrdling.json`,
+    anchors: [
+      { len: 9, hash: "8a36464d56bc23b6a8333aedc747e9fa00e504a73ff65f728dc96cd48e9e927e" },
+      { len: 8, hash: "319c39db7d81c385d41469b2b84c09b7c098f4e04433d9657c2c5e1a34baecc2" },
+      { len: 12, hash: "34c7890b06908c66ddc055ea25cab63dc54a0bf5707f65d465f936bdf3ab1856" },
+      { len: 10, hash: "9baa39946b5a2daa3f8f25fe9ec0acfd61e67c5b708f210776ef16f9432d0c87" },
+      { len: 5, hash: "65135647e1c0173491c0c9e739ebb88fa8a874709ed6758db656dc460b4341e4" },
+    ],
+  },
+  {
+    id: "wr-necromancer",
+    name: "Necromancer",
+    type: "Class",
+    source: "WR",
+    pages: "52",
+    file: `modules/${MODULE_ID}/data/locked/wr-necromancer.json`,
+    anchors: [
+      { len: 11, hash: "b1f8d610985b36527710710dfd291b9a5e31bee40a17ef5680ee1b49358e1ca4" },
+      { len: 10, hash: "fe85f193b73b198b07a402ec2de7cdf5dd60723f3db2bfa234b9b2e067b6c54b" },
+      { len: 13, hash: "5c7dc31a32988153fbbbf50ba71cadfab27c7179f9a9026ac053cbf0e430c50a" },
+      { len: 16, hash: "68270a65181ba455cac6d5676fa858f6f100dbcdc046229d47503b2fefdf8f3f" },
+      { len: 7, hash: "7cccbeb7627b388fcda0cd4b3283e13383e4fa95bf5dcb2b8432577bba459812" },
+    ],
+  },
+  {
+    id: "wr-backgrounds",
+    name: "Backgrounds",
+    type: "Background",
+    coversType: "Background",   // any locked Background entry unlocks the whole set
+    source: "WR",
+    pages: "74",
+    file: `modules/${MODULE_ID}/data/locked/wr-backgrounds.json`,
+    anchors: [
+      { len: 10, hash: "f232a295cb82f417f8da7de2fd89d5b62870d63e64e445e7d358d97cf7c69925" },
+      { len: 9, hash: "ab2bac79ca6fe2ee9e9d7f674a02a20b30242e4e1f76a02a38a05ef9a9ba198d" },
+      { len: 10, hash: "58eaf31d452d2108f30803c2a9c2f131789afbeda80305fd3fc9be5557256dad" },
+      { len: 10, hash: "aa791fd181a872c02c92a17c7714a82a6c9d570f52f79057bcde17424a25e21e" },
+      { len: 7, hash: "cbd3d57706de5a16368eceed905bd88a118da375d1f5a55ea39c35cff5826dc4" },
+    ],
+  },
+];
+
+/** Lowercase, strip everything but letters/digits, collapse spaces. */
+export function normalizeKeyText(text) {
+  return String(text).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+async function _sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function _aesKey(material, usage) {
+  const bits = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(material));
+  return crypto.subtle.importKey("raw", bits, { name: "AES-GCM" }, false, [usage]);
+}
+
+const _b64 = (u8) => btoa(String.fromCharCode(...u8));
+const _unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+
+/**
+ * Locate the unit's anchors inside a paste. The module knows only each
+ * anchor's token length + hash; we slide a token window over the normalized
+ * paste and hash candidates. Returns { found, total, material } — material
+ * (the recovered plaintext anchors, joined) only when all are found.
+ */
+export async function findAnchors(unit, pasteText) {
+  const tokens = normalizeKeyText(pasteText).split(" ");
+  const recovered = [];
+  let found = 0;
+  for (const a of unit.anchors) {
+    let hit = null;
+    for (let i = 0; i + a.len <= tokens.length; i++) {
+      const cand = tokens.slice(i, i + a.len).join(" ");
+      // eslint-disable-next-line no-await-in-loop
+      if (await _sha256Hex(cand) === a.hash) { hit = cand; break; }
+    }
+    if (hit) { found++; recovered.push(hit); } else recovered.push(null);
+  }
+  return { found, total: unit.anchors.length, material: found === unit.anchors.length ? recovered.join("|") : null };
+}
+
+/** Try to decrypt a unit with a paste. → { ok, payload?, found, total } */
+export async function tryUnseal(unit, pasteText) {
+  const { found, total, material } = await findAnchors(unit, pasteText);
+  if (!material) return { ok: false, found, total };
+  try {
+    // .enc files are base64 text (repo-friendly); iv is the first 12 bytes.
+    const u8 = _unb64((await (await fetch(unit.file)).text()).trim());
+    const iv = u8.slice(0, 12);
+    const key = await _aesKey(material, "decrypt");
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, u8.slice(12));
+    return { ok: true, payload: JSON.parse(new TextDecoder().decode(plain)), found, total };
+  } catch (err) {
+    console.error(`${MODULE_ID} | unseal ${unit.id} failed:`, err);
+    return { ok: false, found, total, error: "decrypt" };
+  }
+}
+
+/**
+ * DEV: seal a payload. anchors = plaintext phrases (normalized internally).
+ * Returns { encBase64, anchorsMeta } — write the file + registry entry by hand.
+ */
+export async function sealUnit(payload, anchorPhrases) {
+  const norm = anchorPhrases.map(normalizeKeyText);
+  const anchorsMeta = [];
+  for (const a of norm) anchorsMeta.push({ len: a.split(" ").length, hash: await _sha256Hex(a) });
+  const material = norm.join("|");
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await _aesKey(material, "encrypt");
+  const enc = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key,
+    new TextEncoder().encode(JSON.stringify(payload))));
+  const out = new Uint8Array(iv.length + enc.length);
+  out.set(iv); out.set(enc, iv.length);
+  return { encBase64: _b64(out), anchorsMeta };
+}
+
+/** Rewrite "@@LOCAL:n@@" tokens using the created-uuid map. */
+function _remap(value, uuids) {
+  if (typeof value === "string") return value.replace(/@@LOCAL:(\d+)@@/g, (_, n) => uuids[Number(n)] ?? "");
+  if (Array.isArray(value)) return value.map((v) => _remap(v, uuids));
+  if (value && typeof value === "object") {
+    const o = {};
+    for (const [k, v] of Object.entries(value)) o[k] = _remap(v, uuids);
+    return o;
+  }
+  return value;
+}
+
+/**
+ * Import an unsealed payload: create docs in dependency order (payload.docs
+ * are topologically ordered at seal time), remapping local links as uuids
+ * become known. Items → sde-items pack, RollTables → sde-tables pack (with
+ * folder). Returns created doc uuids.
+ */
+export async function importSealedPayload(payload) {
+  const { ensureSuite, findSuitePack } = await import("./compendium-suite.mjs");
+  await ensureSuite();
+  const itemPack = findSuitePack("sde-items") ?? game.packs.get("world.shadowdark-enhancer--items");
+  const tablePack = findSuitePack("sde-tables") ?? game.packs.get("world.shadowdark-enhancer--roll-tables");
+  const uuids = [];
+  const created = [];
+  // Folder paths ("Talents/Class") recreate the user's compendium taxonomy —
+  // documents are NEVER left at pack root (standing user directive).
+  const ensureFolder = async (pack, path, type) => {
+    let parent = null;
+    for (const part of String(path).split("/")) {
+      let fo = pack.folders.find((x) => x.name === part && (x.folder?.id ?? null) === (parent?.id ?? null));
+      if (!fo) fo = await Folder.create({ name: part, type, folder: parent?.id ?? null }, { pack: pack.collection });
+      parent = fo;
+    }
+    return parent;
+  };
+  for (const entry of payload.docs) {
+    const data = _remap(entry.data, uuids);
+    // Idempotent: a doc of the same name/type already in the pack is reused,
+    // so re-unlocks and units sharing docs (e.g. two classes, one weapon)
+    // never duplicate.
+    let doc;
+    if (entry.kind === "Item") {
+      const idx = await itemPack.getIndex({ fields: ["type"] });
+      const e = idx.find((x) => x.name === data.name && x.type === data.type);
+      if (e) { uuids.push(`Compendium.${itemPack.collection}.Item.${e._id}`); created.push({ kind: entry.kind, name: data.name, uuid: uuids.at(-1), reused: true }); continue; }
+      if (entry.folder) data.folder = (await ensureFolder(itemPack, entry.folder, "Item")).id;
+      [doc] = await Item.createDocuments([data], { pack: itemPack.collection });
+    } else if (entry.kind === "RollTable") {
+      const idx = await tablePack.getIndex();
+      const e = idx.find((x) => x.name === data.name);
+      if (e) { uuids.push(`Compendium.${tablePack.collection}.RollTable.${e._id}`); created.push({ kind: entry.kind, name: data.name, uuid: uuids.at(-1), reused: true }); continue; }
+      const folderId = entry.folder ? (await ensureFolder(tablePack, entry.folder, "RollTable")).id : null;
+      [doc] = await RollTable.createDocuments([{ ...data, folder: folderId }], { pack: tablePack.collection });
+    }
+    uuids.push(doc?.uuid ?? "");
+    created.push({ kind: entry.kind, name: doc?.name, uuid: doc?.uuid });
+  }
+  return created;
+}
+
+/** Sealed unit matching a manifest/census entry: by name, or by a set-level
+ *  unit covering the entry's document type (e.g. any Background → the full
+ *  backgrounds set). */
+export function sealedUnitFor(name, type = null) {
+  return SEALED_UNITS.find((u) => u.anchors.length && u.name.toLowerCase() === String(name).toLowerCase())
+    ?? (type ? SEALED_UNITS.find((u) => u.anchors.length && u.coversType === type) ?? null : null);
+}

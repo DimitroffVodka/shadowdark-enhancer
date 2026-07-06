@@ -19,9 +19,18 @@
   <div class="sde-hub-import-seed">
     <i class="fas fa-bullseye"></i>
     Pasting for: <strong>{{importData.seed.name}}</strong>
+    {{#if importData.seed.book}}<span class="sde-hub-import-seed-tag"><i class="fas fa-book"></i> {{importData.seed.book}}{{#if importData.seed.page}}, page {{importData.seed.page}}{{/if}}</span>{{/if}}
     {{#if importData.seed.die}}<span class="sde-hub-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
-    {{#if importData.seed.page}}<span class="sde-hub-import-seed-tag">p{{importData.seed.page}}</span>{{/if}}
-    — paste the block and click Parse.
+    {{#unless importData.seedResult}}— paste that section and click Parse.{{/unless}}
+    {{#if importData.seedResult}}
+    {{#if importData.seedResult.ok}}
+    <span class="sde-thub-stat ok"><i class="fas fa-circle-check"></i>
+      Parsed "{{importData.seedResult.name}}": {{importData.seedResult.rows}} rows on {{importData.seedResult.formula}} — correct. Review below, then Create tables.</span>
+    {{else}}
+    <span class="sde-thub-stat miss"><i class="fas fa-triangle-exclamation"></i>
+      Parsed {{importData.seedResult.rows}} rows on {{importData.seedResult.formula}}, but "{{importData.seedResult.name}}" should be {{importData.seedResult.expected}} — check the paste for missing lines.</span>
+    {{/if}}
+    {{/if}}
   </div>
   {{/if}}
 
@@ -309,7 +318,8 @@
           <label class="sde-import-repl" data-tooltip="On: results can repeat. Off: each result is removed after drawn." data-tooltip-direction="UP">
             <input type="checkbox" data-import-field="replacement" {{#if tbl.replacement}}checked{{/if}}> Replacement
           </label>
-          <select data-import-field="category" class="sde-import-cat" aria-label="Table type" data-tooltip="Folder this table is filed under." data-tooltip-direction="UP">
+          <label class="sde-import-repl" data-tooltip="Folder this table is filed under." data-tooltip-direction="UP"><i class="fas fa-folder"></i> Folder</label>
+          <select data-import-field="category" class="sde-import-cat" aria-label="Folder this table is filed under" data-tooltip="Folder this table is filed under." data-tooltip-direction="UP">
             {{#each @root.importData.categoryOptions as |opt|}}
             <option value="{{opt.id}}" {{#if (eq opt.id tbl.category)}}selected{{/if}}>{{opt.label}}</option>
             {{/each}}
@@ -412,8 +422,9 @@
                   <li class="sde-hub-monsters-missing-item">
                     <span class="sde-hub-monsters-missing-name">{{mn.name}}</span>
                     <span class="sde-hub-monsters-dup-source">{{mn.type}}</span>
+                    {{#if mn.pages}}<span class="sde-hub-monsters-dup-date" title="Page in the source book">pg {{mn.pages}}</span>{{/if}}
                     <button type="button" class="sde-hub-monsters-seed-btn"
-                            data-action="charSeedPaste" data-name="{{mn.name}}" data-type="{{mn.type}}" data-src="{{mn.src}}"
+                            data-action="charSeedPaste" data-name="{{mn.name}}" data-type="{{mn.type}}" data-src="{{mn.src}}" data-pages="{{mn.pages}}"
                             title="Unlock “{{mn.name}}” — seeds the Import box for {{mn.type}} paste">
                       <i class="fas fa-unlock"></i> Unlock
                     </button>

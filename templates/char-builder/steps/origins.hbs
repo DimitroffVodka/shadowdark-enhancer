@@ -55,9 +55,13 @@
             <span class="sde-cb-origin-align">{{localize "SDE.charBuilder.step.alignment"}}: <b>{{step.deity.aside.alignment}}</b></span>
           </p>
           <div class="sde-cb-desc">{{{step.deity.detail.description}}}</div>
+          {{#if step.deity.fixedDeity}}
+          <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.deity.fixedByClass"}}</p>
+          {{else}}
           {{#unless step.deity.aside.matchesChar}}
           <p class="sde-cb-hint warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.deity.mismatch"}}</p>
           {{/unless}}
+          {{/if}}
           {{else}}
           <p class="sde-cb-hint">{{localize "SDE.charBuilder.deity.optional"}}</p>
           {{/if}}

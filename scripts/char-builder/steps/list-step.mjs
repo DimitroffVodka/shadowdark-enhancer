@@ -79,7 +79,7 @@ export class ListStep extends BaseStep {
     const out = [];
     for (const row of this.app._lockedCensus) {
       for (const m of row.missingNames) {
-        if (types.includes(m.type)) out.push({ name: m.name, type: m.type, src: row.source, book: row.book });
+        if (types.includes(m.type)) out.push({ name: m.name, type: m.type, src: row.source, book: row.book, pages: m.pages ?? "" });
       }
     }
     return out;
@@ -101,9 +101,11 @@ export class ListStep extends BaseStep {
     if (!game.user?.isGM) return;
     const [, src, type, ...rest] = id.split("::");
     const name = rest.join("::");
+    const pages = (this.app._lockedCensus ?? [])
+      .find((r) => r.source === src)?.missingNames.find((m) => m.name === name)?.pages ?? "";
     const { ImporterHubApp } = await import("../../encounter/importer-hub-app.mjs");
     const inst = ImporterHubApp.open();
-    inst._onCharSeedPaste(null, { dataset: { name, type, src } });
+    inst._onCharSeedPaste(null, { dataset: { name, type, src, pages } });
     const { CHAR_SOURCES } = await import("../../encounter/char-content-manifest.mjs");
     ui.notifications.info(`Unlock "${name}": paste its section from ${CHAR_SOURCES[src]?.book ?? src} into the Importer and Parse.`);
     // Force fresh lists once the import lands and the builder re-renders.
@@ -164,6 +166,14 @@ export class ListStep extends BaseStep {
         if (id?.startsWith("locked::")) { await this._unlockViaImporter(id); return; }
         await this.select(id);
         await this.app.render();
+      });
+    });
+
+    // Inline unlock buttons (e.g. ancestry Names/Trinkets chips).
+    root.querySelectorAll("[data-cb-unlock]").forEach((el) => {
+      el.addEventListener("click", async (ev) => {
+        ev.stopPropagation();
+        await this._unlockViaImporter(ev.currentTarget.dataset.cbUnlock);
       });
     });
 

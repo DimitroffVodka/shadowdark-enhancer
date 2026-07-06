@@ -29,7 +29,7 @@ import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
-import { gatherCharContentCensus, parseCharContent, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { gatherCharContentCensus, parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES } from "./char-content-manifest.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -240,6 +240,21 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       source: this._importSource,
       sourceSuggestions: SOURCE_SUGGESTIONS,
       seed: this._importSeed,
+      // Post-parse feedback for a seeded import: what landed, so the GM can
+      // tell at a glance whether the paste worked.
+      seedResult: (() => {
+        if (!this._importSeed || !this._importTables.length) return null;
+        const t = this._importTables[0];
+        const rows = t.rows?.length ?? 0;
+        // Structural problems = gap/overlap warnings from the parser
+        // (auto-fix notes don't count against correctness).
+        const structural = (t.warnings ?? []).filter((w) => !/^Auto-fixed/.test(w));
+        // Names tables additionally have a known-correct shape: 100 on 1d100.
+        const isNames = /\bnames$/i.test(this._importSeed.name ?? "");
+        const ok = structural.length === 0 && (!isNames || (rows === 100 && t.formula === "1d100"));
+        return { name: t.name, formula: t.formula, rows, ok,
+          expected: isNames ? "100 rows on 1d100" : "full die coverage — see the warnings on the card" };
+      })(),
       // Type selector
       importType: t,
       typeOptions: [
@@ -265,13 +280,19 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tables: this._importTables,
       skipped: this._importSkipped,
       hasMonsters, hasItems, hasSpells, hasTables, showImportAll,
-      chars: this._importChar.map((p) => ({
-        name: p.draft.name,
-        type: p.draft.type,
-        preview: String(p.draft.description ?? "").replace(/<[^>]+>/g, " ").trim().slice(0, 140),
-      })),
-      hasChar: this._importChar.length > 0,
-      charsCount: this._importChar.length,
+      chars: this._importSealed
+        ? this._importSealed.payload.docs.map((d) => ({
+            name: d.data.name,
+            type: d.kind === "RollTable" ? "Table" : d.data.type,
+            preview: "🔓 sealed content — verified, imports exactly as authored",
+          }))
+        : this._importChar.map((p) => ({
+            name: p.draft.name,
+            type: p.draft.type,
+            preview: String(p.draft.description ?? "").replace(/<[^>]+>/g, " ").trim().slice(0, 140),
+          })),
+      hasChar: this._importChar.length > 0 || !!this._importSealed,
+      charsCount: this._importSealed?.payload.docs.length ?? this._importChar.length,
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
       itemsCount: this._importItems.length,
@@ -685,11 +706,45 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const text = this._importText;
     const type = this._importType;
 
+    // Sealed units first: if the paste contains the section's key phrases,
+    // decrypt the pre-authored, verified documents instead of parsing.
+    this._importSealed = null;
+    if (this._importSeed?._charSeed) {
+      const { sealedUnitFor, tryUnseal } = await import("./sealed-content.mjs");
+      const unit = sealedUnitFor(this._importSeed.name, this._importSeed.type);
+      if (unit) {
+        const res = await tryUnseal(unit, text);
+        if (res.ok) {
+          this._importSealed = { unit, payload: res.payload };
+          this._importMonsters = []; this._importItems = []; this._importSpells = [];
+          this._importTables = []; this._importChar = []; this._importSkipped = [];
+          ui.notifications.info(`Unlocked "${unit.name}": ${res.payload.docs.length} verified documents ready — review below, then Create.`);
+          this.render();
+          return;
+        }
+        if (res.found) ui.notifications.warn(`"${unit.name}": found ${res.found}/${res.total} key phrases — paste the full section to unlock the verified version. Falling back to the text parser.`);
+      }
+    }
+
     let monsters = [], items = [], spells = [], tables = [], skipped = [];
+
+    // 2d10 name-part tables (ancestry Names) expand to d100 before anything
+    // else sees the text, in both auto and tables modes.
+    let nameTables = [];
+    let effectiveText = text;
+    let rangeNotes = [];
+    if (type === "auto" || type === "tables") {
+      const expanded = expandNamePartTables(text);
+      nameTables = expanded.tables;
+      // Two-column d100 spreads (trinkets etc.) fold into one column here.
+      const normalized = normalizeTwoColumnRanges(expanded.remainder);
+      effectiveText = normalized.text;
+      rangeNotes = normalized.notes;
+    }
 
     if (type === "auto") {
       // Sort a mixed dump across every recognizer.
-      const seg = segmentDump(text);
+      const seg = segmentDump(effectiveText);
       monsters = seg.monsters.map((chunk) => parseStatblock(chunk));
       items    = seg.items ?? [];
       spells   = seg.spells ?? [];
@@ -708,7 +763,78 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       spells  = spellRecognizer.parse(claimed);
       skipped = this._leftoverSkipped(remainder);
     } else if (type === "tables") {
-      tables = parseTables(text);
+      tables = parseTables(effectiveText);
+    }
+
+    // Seeded unlock (one expected table): keep the best-matching table only,
+    // stamp the expected name on it, and shunt everything else — OCR junk
+    // fragments included — to the Skipped list instead of the preview.
+    if (this._importSeed?._charSeed && (type === "tables" || type === "auto") && (nameTables.length || tables.length)) {
+      const want = this._importSeed.name;
+      let keep;
+      if (nameTables.length) {
+        keep = nameTables[0];
+      } else {
+        keep = tables.find((t) => t.name && t.name.toLowerCase() === want.toLowerCase())
+          ?? tables.reduce((a, b) => ((b.rows?.length ?? 0) > (a.rows?.length ?? 0) ? b : a));
+      }
+      for (const t of [...nameTables, ...tables]) {
+        if (t !== keep) skipped.push({ name: t.name || `(untitled ${t.formula ?? ""} table)`, reason: `dropped — this unlock expects only "${want}"` });
+      }
+      // Convention: imported tables are named "Source - Table Name"
+      // (e.g. "Western Reaches - Dwarf Names").
+      const srcLabel = CHAR_SOURCES[this._importSeed.src]?.label;
+      keep.name = srcLabel ? `${srcLabel} - ${want}` : want;
+      // Category drives the system-mirroring compendium folder.
+      if (/\bnames$/i.test(want)) keep.category = "character-names";
+      else if (/\btrinkets$/i.test(want)) keep.category = "trinkets";
+      nameTables = [];
+      tables = [keep];
+    }
+    tables = [...nameTables, ...tables];
+    if (rangeNotes.length && tables.length) (tables[0].warnings ??= []).push(...rangeNotes);
+
+    // Nameless table + a recognizable page caption ("DWARF TRINKET") →
+    // adopt the manifest identity. All ancestry tables are WR content.
+    if (!this._importSeed?._charSeed) {
+      const { identifyAncestryTable, gatherCharContentCensus } = await import("./char-content-manifest.mjs");
+      for (const t of tables) {
+        const generic = !t.name || t.name === "Names";   // expander fallback
+        if (!generic) continue;
+        const id = identifyAncestryTable(text);
+        if (id) {
+          t.name = `${CHAR_SOURCES.WR.label} - ${id.name}`;
+          t.category = id.category;
+          (t.warnings ??= []).push(`Identified from the page caption as "${id.name}" (WR pg ${id.pages}).`);
+          continue;
+        }
+        if (t.category === "character-names") {
+          // Names pages all carry the same generic "NAMES" caption. If only
+          // one ancestry's names table is still missing, it must be that one;
+          // otherwise the GM has to say which ancestry this is.
+          const rows = this._charCache ?? await gatherCharContentCensus().catch(() => []);
+          const missing = (rows.find((r) => r.source === "WR")?.missingNames ?? [])
+            .filter((m) => m.type === "Table" && /\bnames$/i.test(m.name));
+          if (missing.length === 1) {
+            t.name = `${CHAR_SOURCES.WR.label} - ${missing[0].name}`;
+            (t.warnings ??= []).push(`Assumed "${missing[0].name}" — the only names table still missing.`);
+          } else {
+            (t.warnings ??= []).push(
+              `Which ancestry? The page caption just says NAMES — edit the table name above (e.g. "Elf Names") before creating. Still missing: ${missing.map((m) => m.name).join(", ")}.`);
+          }
+        }
+      }
+    }
+
+    // The "Source - Table Name" convention applies to unseeded character
+    // tables too, using whatever the GM typed in the Source box.
+    const srcPrefix = this._importSource.trim();
+    if (!this._importSeed?._charSeed && srcPrefix) {
+      for (const t of tables) {
+        if (/\b(names|trinkets)$/i.test(t.name ?? "") && !t.name.toLowerCase().startsWith(srcPrefix.toLowerCase())) {
+          t.name = `${srcPrefix} - ${t.name}`;
+        }
+      }
     }
 
     // Character-content types (Backgrounds / Talents / Class) parse into their
@@ -754,6 +880,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importSpells = [];
     this._importTables = [];
     this._importChar = [];
+    this._importSealed = null;
     this._importSkipped = [];
     this._importSeed = null;
     this.render();
@@ -767,6 +894,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _applyImportSeed() {
     const seed = this._importSeed;
     if (!seed || !this._importTables?.length) return;
+    // Character-content seeds set their own identity in _onHubParse
+    // ("Source - Name" convention + category) — don't clobber it here.
+    if (seed._charSeed) return;
     const folderPath = [seed.category, seed.folderLabel].filter(Boolean);
 
     if (seed.grid && Array.isArray(seed.columns) && seed.columns.length) {
@@ -1060,15 +1190,68 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const onConflict = this._tableConflictDialog();
     let created = 0;
     for (const tbl of [...this._importTables]) {
+      // Convention at commit time too, so hand-typing "Elf Names" on the card
+      // is enough — bare generic names ("Names") are left for the GM to fix.
+      if (/\b(names|trinkets)$/i.test(tbl.name ?? "") && tbl.name.trim().split(/\s+/).length >= 2 && !/ - /.test(tbl.name)) {
+        tbl.name = `${this._importSource.trim() || "Western Reaches"} - ${tbl.name.trim()}`;
+      }
       const table = await TableImporter.createTable(tbl, { onConflict });
       if (table) {
         created++;
         this._importTables = this._importTables.filter(t => t !== tbl);
         if (tbl.manifestId) this._importSeed = null;
+        await this._fileCharTable(table, tbl);
+        await this._registerCharBuilderTable(table);
       }
     }
     ui.notifications.info(`Tables: ${created} created → sde-tables.`);
+    if (this._importSeed?._charSeed && !this._importTables.length) this._importSeed = null;
+    this._invalidateCharCache();
     this.render();
+  }
+
+  /**
+   * Character-content tables mirror the system compendium's folder taxonomy
+   * (Names, Trinkets, Class Talents, Character Background) instead of the
+   * encounter suite's per-source folders.
+   */
+  async _fileCharTable(table, tbl) {
+    const folderName = ({
+      "character-names": "Names",
+      "trinkets": "Trinkets",
+      "talents": "Class Talents",
+      "background": "Character Background",
+    })[tbl.category];
+    if (!folderName || !table.pack) return;
+    try {
+      const pack = game.packs.get(table.pack);
+      let folder = pack.folders.find((f) => f.name === folderName);
+      if (!folder) folder = await Folder.create({ name: folderName, type: "RollTable" }, { pack: pack.collection });
+      if (table.folder?.id !== folder.id) await table.update({ folder: folder.id });
+    } catch (err) {
+      console.error(`${MODULE_ID} | failed to file ${table.name} under ${folderName}:`, err);
+    }
+  }
+
+  /**
+   * Imported Names/Trinkets tables must show up in the character builder
+   * immediately: append their uuid to the GM's Table Sources setting
+   * (charBuilderNameTables / charBuilderTrinketTables) — the builder rolls
+   * ONLY from that list, so an unregistered import is invisible to it.
+   */
+  async _registerCharBuilderTable(table) {
+    const settingKey = /\bnames$/i.test(table.name) ? "charBuilderNameTables"
+      : /\btrinkets$/i.test(table.name) ? "charBuilderTrinketTables" : null;
+    if (!settingKey) return;
+    try {
+      const uuids = game.settings.get(MODULE_ID, settingKey) || [];
+      if (!uuids.includes(table.uuid)) {
+        await game.settings.set(MODULE_ID, settingKey, [...uuids, table.uuid]);
+        ui.notifications.info(`"${table.name}" added to the character builder's ${settingKey === "charBuilderNameTables" ? "name" : "trinket"} tables.`);
+      }
+    } catch (err) {
+      console.error(`${MODULE_ID} | failed to register ${table.name} for the char builder:`, err);
+    }
   }
 
   /** Commit: create all monsters, items, then tables in one action. GM-gated. */
@@ -1563,9 +1746,17 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       Background: "backgrounds",
       Talent: "talents",
       Class: "classes", Ancestry: "classes",
+      Table: "tables",
     })[type] ?? "auto";
     this._importText = name;
-    this._importSeed = { name, _charSeed: true };
+    this._importSeed = {
+      name,
+      src,
+      type,
+      page: target.dataset.pages || undefined,
+      book: CHAR_SOURCES[src]?.book || src || undefined,
+      _charSeed: true,
+    };
     this._importType = importType;
     if (src && CHAR_SOURCES[src]) this._importSource = CHAR_SOURCES[src].label;
     this.render();
@@ -1574,6 +1765,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
   async _onHubCommitChar() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import content."); return; }
+    // Sealed unlock: create the pre-authored documents with links remapped.
+    if (this._importSealed) {
+      const { importSealedPayload } = await import("./sealed-content.mjs");
+      const created = await importSealedPayload(this._importSealed.payload);
+      ui.notifications.info(`"${this._importSealed.unit.name}" unlocked: ${created.length} documents created.`);
+      this._importSealed = null;
+      this._importSeed = null;
+      this._invalidateItemsCache();
+      this._invalidateCharCache();
+      this.render();
+      return;
+    }
     if (!this._importChar.length) { ui.notifications.warn("No character content to import."); return; }
 
     const source = this._importSource.trim();

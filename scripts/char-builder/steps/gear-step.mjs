@@ -18,7 +18,7 @@ const slug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "
  *  Spear-thrower ship as Weapon-type documents, so they list under Weapons. */
 const SHOP_STOCK = new Set([
   // Basic gear
-  "arrows", "backpack", "ball-bearing", "caltrops", "candle", "charcoal-jar",
+  "arrows", "backpack", "ball-bearing", "caltrops", "candle", "charcoal-jar", "crawling-kit",
   "crossbow-bolts", "crowbar", "flash-seed", "flask-or-bottle", "flint-and-steel",
   "glow-paste-jar", "grappling-hook", "holy-water-flask", "iron-spikes",
   "lantern", "lantern-hook", "miner-s-putty-jar", "mirror", "net", "oil-flask",

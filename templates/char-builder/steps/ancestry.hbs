@@ -51,6 +51,11 @@
                 <button type="button" class="sde-cb-btn dice sm" data-cb-roll-name {{#unless step.canRollName}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollName'}}">
                   <i class="fa-solid fa-dice"></i>
                 </button>
+                {{#if step.lockedName}}
+                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedName.id}}" title="Locked — import the name table from Western Reaches pg {{step.lockedName.pages}}">
+                  <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}
+                </button>
+                {{/if}}
               </div>
             </label>
             <label class="sde-cb-field wide">
@@ -64,6 +69,11 @@
                 <button type="button" class="sde-cb-btn dice sm" data-cb-roll-trinket {{#unless step.canRollTrinket}}disabled{{/unless}} title="{{localize 'SDE.charBuilder.ancestry.rollTrinket'}}">
                   <i class="fa-solid fa-dice"></i>
                 </button>
+                {{#if step.lockedTrinket}}
+                <button type="button" class="sde-cb-btn sm" data-cb-unlock="{{step.lockedTrinket.id}}" title="Locked — import the trinket table from Western Reaches pg {{step.lockedTrinket.pages}}">
+                  <i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.unlock"}}
+                </button>
+                {{/if}}
               </div>
             </label>
           </div>

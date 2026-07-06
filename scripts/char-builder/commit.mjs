@@ -174,7 +174,22 @@ async function gatherItems(state, classSys) {
   for (const uuid of (classSys?.classAbilities || [])) await addSource(uuid);
   for (const sp of (state.spells || [])) await addSource(sp.uuid);
 
+  // A Crawling Kit is a bundle, not an item — the sheet gets its contents
+  // (core rules pg 36), once per kit purchased.
+  const CRAWLING_KIT = [["Backpack", 1], ["Flint and Steel", 1], ["Torch", 2], ["Rations", 3], ["Iron Spikes", 10], ["Grappling Hook", 1], ["Rope, 60'", 1]];
+  const addGearByName = async (name, qty) => {
+    const found = Array.from(await shadowdark.compendiums.basicItems()).find((i) => i.name.toLowerCase() === name.toLowerCase());
+    const doc = found ? await fromUuid(found.uuid).catch(() => null) : null;
+    if (!doc) return;
+    const obj = doc.toObject();
+    if (qty > 1) obj.system.quantity = qty;
+    items.push(obj);
+  };
   for (const g of (state.gear || [])) {
+    if (g.name === "Crawling Kit") {
+      for (let k = 0; k < g.qty; k++) for (const [n, q] of CRAWLING_KIT) await addGearByName(n, q);
+      continue;
+    }
     const doc = await fromUuid(g.uuid).catch(() => null);
     if (!doc) continue;
     const obj = doc.toObject();

@@ -153,9 +153,20 @@ export class AncestryStep extends ListStep {
       trinket: this.state.trinket || "",
       canRollName: nameTables.length > 0,
       canRollTrinket: trinketTables.length > 0,
+      lockedName: await this._lockedTableFor(item, "Names"),
+      lockedTrinket: await this._lockedTableFor(item, "Trinkets"),
       nameOptions: mark(await this._mergedOptions(item, "name"), this.state.name),
       trinketOptions: mark(await this._mergedOptions(item, "trinket"), this.state.trinket),
     };
+  }
+
+  /** GM-only: the "<Ancestry> Names/Trinkets" table if it's locked (manifest
+   *  entry missing from this world) — { id, pages } for an Unlock button. */
+  async _lockedTableFor(item, kind) {
+    const want = `${item.name} ${kind}`.toLowerCase();
+    const locked = await this._lockedEntries(["Table"]);
+    const hit = locked.find((l) => l.name.toLowerCase() === want);
+    return hit ? { id: `locked::${hit.src}::Table::${hit.name}`, pages: hit.pages ?? "" } : null;
   }
 
   async randomize() {

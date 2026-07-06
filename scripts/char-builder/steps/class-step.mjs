@@ -14,7 +14,7 @@ async function inlineDesc(html) {
  *  handlePredefinedEffect switch (matched on the EFFECT's name). Effects with
  *  no spec here fall back to the system's dialog at actor creation. */
 const CHOICE_SPECS = [
-  { names: ["Weapon Mastery", "Increased Weapon Damage Die"], loader: () => shadowdark.compendiums.baseWeapons() },
+  { names: ["Weapon Mastery", "Increased Weapon Damage Die", "Trusty Gear"], loader: () => shadowdark.compendiums.baseWeapons() },
   { names: ["Armor Mastery"], loader: () => shadowdark.compendiums.baseArmor() },
   { names: ["Spellcasting Advantage on Spell"], loader: () => shadowdark.compendiums.spells() },
 ];
@@ -120,6 +120,9 @@ export class ClassStep extends ListStep {
     // recomputes them every render; cold cache counts as complete-so-far).
     if (this._bonusCache?.sources?.length && !this._bonusComplete(this._bonusCache.sources)) return false;
     if (!this._choicesComplete()) return false;
+    // A class with a talent table must have rolled its level-1 talent —
+    // committing without one produced sheet-incomplete characters (Orgarrin).
+    if (this.selected?.item?.system?.classTalentTable && !this.state.classTalentRoll) return false;
     return this._languagesComplete();
   }
 
@@ -332,14 +335,23 @@ export class ClassStep extends ListStep {
   }
 
   async _loadSpells(classUuid) {
-    if (this._spellCache[classUuid]) return this._spellCache[classUuid];
+    // Alignment-restricted spells (WR priest/wizard lists) carry a
+    // shadowdark-extras alignment flag; the pool depends on the PC's alignment,
+    // so it's part of the cache key.
+    const align = this.state.alignment || "";
+    const cacheKey = `${classUuid}|${align}`;
+    if (this._spellCache[cacheKey]) return this._spellCache[cacheKey];
     const all = Array.from(await shadowdark.compendiums.spells());
     const list = all.filter((s) => {
       const c = s.system.class;
       const arr = Array.isArray(c) ? c : (c ? [c] : []);
-      return arr.includes(classUuid);
+      if (!arr.includes(classUuid)) return false;
+      // Only offer an alignment-tagged spell to a matching-alignment character;
+      // untagged spells are universal (standard class list).
+      const spellAlign = s.flags?.["shadowdark-extras"]?.alignment || "";
+      return !spellAlign || spellAlign === align;
     }).sort((a, b) => (a.system.tier - b.system.tier) || a.name.localeCompare(b.name));
-    this._spellCache[classUuid] = list;
+    this._spellCache[cacheKey] = list;
     return list;
   }
 
@@ -562,7 +574,19 @@ export class ClassStep extends ListStep {
       const found = doc ? choosableEffect(doc) : null;
       if (!found?.spec) continue;   // no choice, or unsupported → system dialog
       // eslint-disable-next-line no-await-in-loop
-      const options = await choiceOptions(found.spec);
+      let options = await choiceOptions(found.spec);
+      // Weapon picks are limited to what the CLASS can wield (book: "you can
+      // wield") — unless it has blanket weapon training like the Fighter.
+      const s = item.system;
+      if (found.spec.loader === CHOICE_SPECS[0].loader && !s.allWeapons && !s.allMeleeWeapons && !s.allRangedWeapons) {
+        const permitted = new Set();
+        for (const wu of (s.weapons || [])) {
+          // eslint-disable-next-line no-await-in-loop
+          const w = await fromUuid(wu).catch(() => null);
+          if (w) permitted.add(shadowdark.utils.slugify?.(w.name) ?? w.name.slugify?.() ?? w.name.toLowerCase());
+        }
+        if (permitted.size) options = options.filter((o) => permitted.has(o.slug));
+      }
       pending.push({ key: inst.key, talentName: doc.name, options });
     }
     // Prune picks whose instance vanished (talent rerolled, class changed).

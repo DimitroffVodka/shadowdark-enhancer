@@ -93,6 +93,7 @@
   "SDE.charBuilder.nav.random": "Random",
   "SDE.charBuilder.nav.fullRandom": "Full Random Character",
   "SDE.charBuilder.searchPlaceholder": "Search…",
+  "SDE.charBuilder.unlock": "Unlock",
   "SDE.charBuilder.selectPrompt": "Choose an option from the list.",
 
   "SDE.charBuilder.ancestry.name": "Name",
@@ -193,6 +194,7 @@
   "SDE.charBuilder.deity.optional": "Choose a deity (optional), or roll Random. Priests should pick one that fits.",
   "SDE.charBuilder.deity.details": "Deity",
   "SDE.charBuilder.deity.mismatch": "This deity's alignment differs from your character's.",
+  "SDE.charBuilder.deity.fixedByClass": "Your class worships this deity — it's fixed.",
 
   "SDE.charBuilder.hp.formula": "Hit points",
   "SDE.charBuilder.hp.roll": "Roll HP",

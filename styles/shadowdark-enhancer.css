@@ -1545,6 +1545,29 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
 }
 .sde-importer-hub::-webkit-scrollbar-thumb:hover { background: var(--sde-bar-accent, #d4a017); }
 
+/* Each parsed-preview block scrolls internally with a visible bar, so a
+   100-row d100 table never swallows the window. Sized against the importer
+   WINDOW (container units), not the browser viewport — resizing the app
+   resizes the preview. */
+#sde-importer-hub .window-content { container-type: size; }
+/* The hub root is a flex column: never let it crush the preview sections to
+   "fit" — keep their full height and let the root scrollbar take the rest. */
+.sde-importer-hub > * { flex-shrink: 0; }
+.sde-hub-import-section .sde-import-preview {
+  max-height: 42vh;        /* fallback if container sizing is unavailable */
+  max-height: 55cqh;
+  overflow-y: auto;
+  scrollbar-width: auto;
+  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
+  scrollbar-gutter: stable;
+}
+.sde-hub-import-section .sde-import-preview::-webkit-scrollbar { width: 10px; }
+.sde-hub-import-section .sde-import-preview::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
+.sde-hub-import-section .sde-import-preview::-webkit-scrollbar-thumb {
+  background: var(--sde-bar-border, #6b6b6b);
+  border-radius: 5px;
+}
+
 .sde-hub-tabs {
   flex: 0 0 auto;
   display: flex;
