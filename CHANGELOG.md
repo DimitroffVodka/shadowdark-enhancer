@@ -2,9 +2,10 @@
 
 ## [0.9.5] — 2026-07-08
 
-Character portraits and tokens, chosen right in the builder — with paths that work even for players who hold no file permissions.
+Two art features: a **Monster Token Art Manager** that skins the Shadowdark monster compendium with token art you already own, and **character portrait + token art** in the builder — with paths that work even for players who hold no file permissions.
 
 ### Added
+- **Monster Token Art Manager.** A GM-only **Monster Art** button on the Actors sidebar opens a manager that re-skins the `shadowdark.monsters` compendium through Foundry's core compendium-art system — it **references locally-installed art by path and never copies or bundles any artwork**. Art sources are auto-discovered from whatever you have installed: **Monster Manual** (with its dynamic ring + per-token scale), **Pathfinder/Paizo** (`pf2e-tokens`), **Forgotten Adventures** (`dnd5e`), and **Community Tokens**. Drag to order **source priority**, or pick art per-monster; the blend applies at runtime with no world relaunch (Apply / Re-skin placed tokens / Turn off). **Semantic aliases** map Shadowdark's reflavoured monsters to the right art (Brain Eater → Mind Flayer, Stingbat → Stirge, Grimlow → Grimlock, and more), and Shadowdark-original monsters are pinned to Community art. Scriptable via `game.shadowdarkEnhancer.tokenArt`.
 - **Portrait + token artwork on the Preview step.** Every build gets an **Artwork** card before *Create Character*, with four ways to set it, in ascending permission cost:
   - **Use Suggested Art** — one click applies the bundled class/ancestry portrait. No permissions, no setup.
   - **From URL…** — paste a link to any image (or a path in your world). Works for every player with **no file permission and no GM online**, because a portrait is just a stored path.
@@ -17,6 +18,7 @@ Character portraits and tokens, chosen right in the builder — with paths that 
 
 ### Notes
 - Verified live against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+- The Monster Token Art Manager only lists sources whose art modules are installed (Monster Manual, `pf2e-tokens`, `dnd5e`, Community Tokens); it references that art by path and ships none of it, so nothing appears for a source you don't own.
 - Remote (URL) portraits stay on their host site — if it goes offline, the image won't load. The gallery needs a GM online for players who lack the *Use File Browser* permission.
 - The new gallery-folder default applies to fresh worlds; existing worlds keep whatever value they saved.
 
