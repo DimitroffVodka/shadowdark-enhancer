@@ -4806,6 +4806,104 @@ body.theme-light .sde-hub-monsters-row td {
   color: var(--sde-bar-text);
   border: 1px dashed var(--sde-bar-border);
 }
+
+.sde-hub-import-genspec-input { width: 5rem; text-align: center; }
+
+/* ── Compound generator preview (roll-all grid) ───────────────────────────── */
+.sde-import-gen {
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 5px;
+  background: var(--sde-bar-bg-alt);
+  padding: 0.5rem 0.6rem;
+}
+.sde-import-gen-head {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+.sde-import-gen-sep {
+  width: 3rem;
+  text-align: center;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text-bright);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.35rem;
+  font-family: var(--sde-bar-font);
+}
+.sde-import-gen-gridwrap { overflow-x: auto; }
+.sde-import-gen-grid {
+  border-collapse: collapse;
+  width: 100%;
+}
+.sde-import-gen-grid th,
+.sde-import-gen-grid td {
+  border: 1px solid var(--sde-bar-border);
+  padding: 0.15rem 0.25rem;
+  vertical-align: middle;
+}
+.sde-import-gen-grid thead th {
+  background: var(--sde-bar-bg-hover);
+  white-space: nowrap;
+}
+.sde-import-gen-face,
+.sde-import-gen-facehead {
+  text-align: center;
+  color: var(--sde-bar-text-muted);
+  width: 2rem;
+}
+.sde-import-gen-label {
+  min-width: 6rem;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text-bright);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  padding: 0.15rem 0.3rem;
+  font-family: var(--sde-bar-font);
+}
+.sde-import-gen-cell {
+  width: 100%;
+  min-width: 8rem;
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text-bright);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  padding: 0.2rem 0.35rem;
+  font-family: var(--sde-bar-font);
+}
+.sde-import-gen-addcolcell,
+.sde-import-gen-rowdel { text-align: center; width: 2rem; }
+
+/* ── Compound generator chat card ─────────────────────────────────────────── */
+.sde-compound-card { line-height: 1.35; }
+.sde-cg-head {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+.sde-cg-combined {
+  font-size: 1.05em;
+  padding: 0.35rem 0.45rem;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+}
+.sde-cg-detail { margin-top: 0.35rem; font-size: 0.85em; }
+.sde-cg-part {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.1rem 0;
+}
+.sde-cg-die {
+  flex: 0 0 auto;
+  min-width: 1.3rem;
+  text-align: center;
+  font-weight: bold;
+  opacity: 0.8;
+}
+.sde-cg-label { flex: 0 0 auto; opacity: 0.7; font-style: italic; }
+.sde-cg-text { flex: 1 1 auto; }
 .sde-import-cat,
 .sde-import-customcat {
   background: var(--sde-bar-input-bg);
@@ -7540,3 +7638,43 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-rollcard td.t { text-align: right; font-weight: 700; width: 34px; }
 .sde-cb-rollcard td.d { font-size: 11px; opacity: 0.7; }
 .sde-cb-rollcard .dropped { text-decoration: line-through; opacity: 0.5; }
+
+/* ---- Token Art Manager (monster-art) ---------------------------------- */
+.sde-token-art-manager .window-content { padding: 0; }
+.sde-tam { display: flex; flex-direction: column; height: 100%; gap: 0; }
+.sde-tam-head { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
+.sde-tam-blurb { font-size: 12px; line-height: 1.35; flex: 1; opacity: 0.9; }
+.sde-tam-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.sde-tam-actions button { white-space: nowrap; }
+.sde-tam-apply { font-weight: 600; }
+.sde-tam-dim { opacity: 0.6; font-weight: 400; font-size: 11px; }
+
+.sde-tam-sources { padding: 8px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
+.sde-tam-sources-title { font-weight: 600; margin-bottom: 6px; }
+.sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.sde-tam-rank { display: flex; flex-direction: column; }
+.sde-tam-rank button { width: 22px; height: 15px; line-height: 1; padding: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; }
+.sde-tam-rank button:hover:not(:disabled) { opacity: 1; color: var(--sde-gold, #c9aa58); }
+.sde-tam-rank button:disabled { opacity: 0.2; cursor: default; }
+.sde-tam-source-name { flex: 1; font-weight: 600; }
+.sde-tam-source-used { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; color: var(--sde-gold, #c9aa58); font-weight: 700; }
+
+.sde-tam-toolbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
+.sde-tam-toolbar input[name="filter"] { flex: 1; }
+.sde-tam-toggle { display: flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 12px; }
+.sde-tam-toggle input { flex: 0 0 auto; }
+.sde-tam-count { font-variant-numeric: tabular-nums; opacity: 0.7; font-size: 12px; }
+
+.sde-tam-list { flex: 1; overflow-y: auto; padding: 4px 12px 12px; }
+.sde-tam-row { display: flex; align-items: center; gap: 10px; padding: 4px 6px; border-radius: 4px; }
+.sde-tam-row:nth-child(odd) { background: rgba(0,0,0,0.04); }
+.sde-tam-row.is-override { background: rgba(201, 170, 88, 0.12); }
+.sde-tam-name { flex: 1; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.sde-tam-name .fa-thumbtack { font-size: 11px; color: var(--sde-gold, #c9aa58); cursor: pointer; }
+.sde-tam-opts { display: flex; gap: 6px; }
+.sde-tam-opt { position: relative; width: 46px; height: 46px; padding: 0; border: 2px solid transparent; border-radius: 6px; background: rgba(0,0,0,0.12); cursor: pointer; overflow: hidden; flex: 0 0 auto; }
+.sde-tam-opt img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.sde-tam-opt:hover { border-color: var(--color-border-highlight, #ff9); }
+.sde-tam-opt.is-chosen { border-color: var(--sde-gold, #c9aa58); box-shadow: 0 0 0 1px var(--sde-gold, #c9aa58) inset; }
+.sde-tam-check { position: absolute; right: 2px; bottom: 2px; font-size: 10px; color: #fff; background: var(--sde-gold, #c9aa58); border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; }
+.sde-tam-empty { text-align: center; opacity: 0.6; padding: 24px; }

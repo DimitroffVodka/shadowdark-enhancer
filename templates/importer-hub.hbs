@@ -12,6 +12,12 @@
       {{#each importData.itemSubtypeOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
     </select>
     {{/if}}
+    {{#if importData.showGenSpec}}
+    <label for="sde-hub-import-genspec" class="sde-hub-import-subtype-label"
+           data-tooltip="How many dice and their size, e.g. 3d6 = 3 columns each rolled on a d6 (6 rows). Fixes the grid shape even for a messy or header-less paste. Leave blank to auto-detect." data-tooltip-direction="UP">dice</label>
+    <input id="sde-hub-import-genspec" type="text" data-gen-spec value="{{importData.genSpec}}"
+           placeholder="e.g. 3d6" class="sde-hub-import-type-sel sde-hub-import-genspec-input" aria-label="Generator dice spec (e.g. 3d6)">
+    {{/if}}
   </div>
 
   {{!-- Seed hint: shown when a Manage-strip "Seed" click pre-filled this box --}}
@@ -55,6 +61,10 @@
   {{!-- Controls: Parse / Clear / Import all --}}
   <div class="sde-hub-import-controls">
     <button type="button" data-action="hubParse"><i class="fas fa-wand-magic"></i> Parse</button>
+    <button type="button" data-action="hubParseCompound" class="sde-import-secondary"
+            title="Parse the paste as a roll-all compound generator (roll every column, combine in order). Asks for the dice, e.g. 3d6.">
+      <i class="fas fa-dice-d6"></i> Compound
+    </button>
     <button type="button" data-action="hubClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> Clear</button>
     {{#if importData.showImportAll}}
     <button type="button" data-action="hubCommitAll" class="sde-import-primary">
@@ -351,6 +361,76 @@
           {{/each}}
         </div>
         <button type="button" data-action="importAddRow" class="sde-import-addrow"><i class="fas fa-plus"></i> Add row</button>
+      </div>
+      {{/each}}
+    </div>
+  </section>
+  {{/if}}
+
+  {{!-- ── Generators preview (roll-all compound tables) ────────────────── --}}
+  {{#if importData.hasGenerators}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-dice-d6"></i> Generators ({{importData.generatorsCount}})</span>
+      <button type="button" data-action="hubCommitGenerators" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-dice-d6"></i> Create generators
+      </button>
+    </div>
+    <p class="sde-import-note">
+      <i class="fas fa-circle-info"></i> A generator rolls <strong>every column once</strong> and joins the
+      cells in order. Each grid row is a die face; each column is rolled independently. Fix any flagged
+      cells below, then Create — roll it from the table sheet or Roll Tables directory.
+    </p>
+    <div class="sde-import-preview">
+      {{#each importData.generators as |gen|}}
+      <div class="sde-import-gen" data-gen-idx="{{gen.idx}}">
+        <div class="sde-import-gen-head">
+          <input type="text" data-gen-field="name" value="{{gen.name}}" aria-label="Generator name" placeholder="Generator name" class="sde-import-name">
+          <label class="sde-import-repl" data-tooltip="Die each column is rolled on." data-tooltip-direction="UP">
+            <i class="fas fa-dice"></i> <input type="text" data-gen-field="formula" value="{{gen.formula}}" aria-label="Formula" class="sde-import-formula">
+          </label>
+          <label class="sde-import-repl" data-tooltip="Text placed between column results when combined." data-tooltip-direction="UP">
+            join <input type="text" data-gen-field="separator" value="{{gen.separator}}" aria-label="Separator" class="sde-import-gen-sep">
+          </label>
+          <button type="button" data-action="hubCommitGenerators" class="sde-import-primary"><i class="fas fa-plus"></i> Create</button>
+        </div>
+        {{#if gen.hasWarnings}}
+        <ul class="sde-import-warnings">{{#each gen.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
+        {{/if}}
+        <div class="sde-import-gen-gridwrap">
+          <table class="sde-import-gen-grid">
+            <thead>
+              <tr>
+                <th class="sde-import-gen-facehead">d</th>
+                {{#each gen.columns as |col|}}
+                <th data-col-idx="{{col.idx}}">
+                  <input type="text" data-gen-field="label" data-col-idx="{{col.idx}}" value="{{col.label}}" aria-label="Column label" placeholder="Column {{col.idx}}" class="sde-import-gen-label">
+                  <button type="button" data-action="genRemoveColumn" class="sde-import-del" aria-label="Remove column" title="Remove this column"><i class="fas fa-xmark"></i></button>
+                </th>
+                {{/each}}
+                <th class="sde-import-gen-addcolcell">
+                  <button type="button" data-action="genAddColumn" class="sde-import-addrow" aria-label="Add column" title="Add a column"><i class="fas fa-plus"></i></button>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {{#each gen.faces as |frow|}}
+              <tr data-face-row="{{frow.face}}">
+                <td class="sde-import-gen-face">{{frow.face}}</td>
+                {{#each frow.cells as |cell|}}
+                <td>
+                  <input type="text" data-gen-field="cell" data-col-idx="{{cell.colIdx}}" data-face="{{frow.face}}" value="{{cell.text}}" aria-label="Cell" class="sde-import-gen-cell">
+                </td>
+                {{/each}}
+                <td class="sde-import-gen-rowdel">
+                  <button type="button" data-action="genDeleteRow" class="sde-import-del" aria-label="Delete row" title="Delete this die face"><i class="fas fa-xmark"></i></button>
+                </td>
+              </tr>
+              {{/each}}
+            </tbody>
+          </table>
+        </div>
+        <button type="button" data-action="genAddRow" class="sde-import-addrow"><i class="fas fa-plus"></i> Add die face</button>
       </div>
       {{/each}}
     </div>

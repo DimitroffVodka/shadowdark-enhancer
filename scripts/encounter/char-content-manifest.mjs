@@ -33,6 +33,11 @@ const MANIFEST = {
     ],
   },
   CS5: {
+    // Eyebite is a multi-source reprint: the system ships it as a CS1 Witch
+    // spell (source cursed-scroll-1); CS5 reprints it as a Chaotic Wizard
+    // spell. Census is source-blind (matches by type:name), so the CS1 copy
+    // already satisfies this entry — the CS5 Wizard copy lives in world.spells
+    // tagged cursed-scroll-5.
     Spell: [
       "Betrayal", "Blight", "Defile", "Dismember", "Dominate", "Envenom",
       "Eyebite", "Feeblemind", "Mazzim's Mesmerism", "Mischief", "Phantoms",

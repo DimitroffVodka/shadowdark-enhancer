@@ -12,10 +12,18 @@ import { ABILITY_ORDER } from "./constants.mjs";
  * Unlike the generator we build a COMPLETE level-1 character (HP + rolled talent
  * already chosen), so we do NOT set the `showLevelUp` flag — no re-prompt.
  *
- * @returns the created Actor, `true` when handed off to the GM socket, or
- *          `null` when creation failed.
+ * When `actor` is supplied (the builder was launched from an existing Player
+ * sheet), the character is written back onto THAT actor — system data updated,
+ * its items replaced with the freshly built set — instead of creating a new
+ * one. This is the common path: a blank actor is made, the builder fills it in,
+ * and no orphan duplicate is left behind.
+ *
+ * @param {CharBuilderState} state
+ * @param {Actor|null} [actor]  Existing actor to edit in place; null = create.
+ * @returns the created/updated Actor, `true` when handed off to the GM socket,
+ *          or `null` when the operation failed.
  */
-export async function commitCharacter(state) {
+export async function commitCharacter(state, actor = null) {
   const classSys = state.class?.item?.system;
 
   const abilities = {};
@@ -53,6 +61,9 @@ export async function commitCharacter(state) {
 
   const allItems = await gatherItems(state, classSys);
 
+  // Editing an existing actor in place — the launch-from-sheet path.
+  if (actor) return updateExistingActor(actor, actorData, allItems, state);
+
   // Player without create permission → hand off to the GM via the system socket.
   if (!(shadowdark.utils?.canCreateCharacter?.() ?? game.user.can("ACTOR_CREATE"))) {
     // Fire-and-forget over a socket only a GM answers — if none is online the
@@ -71,22 +82,53 @@ export async function commitCharacter(state) {
     return true;
   }
 
-  const actor = await Actor.create(actorData);
-  if (!actor) return null;
+  const created = await Actor.create(actorData);
+  if (!created) return null;
   // Embed items in a second step, but roll the actor back if it fails — a
   // character with no talents/gear is broken, and leaving it behind makes the
   // player retry and accumulate orphaned half-actors.
   if (allItems.length) {
     try {
-      await actor.createEmbeddedDocuments("Item", allItems);
+      await created.createEmbeddedDocuments("Item", allItems);
     } catch (err) {
       console.error(`${game.i18n.localize("SDE.charBuilder.title")} | item embedding failed, rolling back actor`, err);
-      await actor.delete().catch(() => {});
+      await created.delete().catch(() => {});
       return null;
     }
   }
+  created.sheet?.render(true);
+  ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.created", { name: created.name }));
+  return created;
+}
+
+/**
+ * Write the built character back onto an existing actor: update system data,
+ * clear its current items, embed the freshly built set. Rolls nothing back on
+ * partial failure the way create does — the actor already existed, so a failed
+ * item pass leaves the actor updated but item-light rather than orphaned; we
+ * surface the error instead of deleting the user's actor.
+ */
+async function updateExistingActor(actor, actorData, allItems, state) {
+  if (!actor.isOwner) {
+    ui.notifications.error(game.i18n.localize("SDE.charBuilder.commit.notOwner"));
+    return null;
+  }
+  // Only overwrite the name when the builder was given an explicit one —
+  // otherwise keep whatever the player already named the actor.
+  const update = { system: actorData.system };
+  if (state.name) update.name = actorData.name;
+
+  try {
+    await actor.update(update);
+    const existingIds = actor.items.map((i) => i.id);
+    if (existingIds.length) await actor.deleteEmbeddedDocuments("Item", existingIds);
+    if (allItems.length) await actor.createEmbeddedDocuments("Item", allItems);
+  } catch (err) {
+    console.error(`${game.i18n.localize("SDE.charBuilder.title")} | actor update failed`, err);
+    return null;
+  }
   actor.sheet?.render(true);
-  ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.created", { name: actor.name }));
+  ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.updated", { name: actor.name }));
   return actor;
 }
 

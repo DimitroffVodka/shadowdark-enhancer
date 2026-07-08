@@ -27,6 +27,7 @@ import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
 import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
 import { boundCount } from "./encounter/loot-setup-manifest.mjs";
 import { ImporterHubApp } from "./encounter/importer-hub-app.mjs";
+import { installCompoundRollTable } from "./encounter/compound-table.mjs";
 import { TableEnricher } from "./encounter/table-enrich.mjs";
 import { MonsterImporterAPI } from "./encounter/monster-importer-app.mjs";
 import { segmentDump } from "./encounter/dump-segmenter.mjs";
@@ -47,6 +48,9 @@ import { registerActorTypes } from "./actors/register-actors.mjs";
 import "./initiative-manager.mjs";
 import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
 import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
+import { MonsterTokenArt } from "./monster-art/monster-token-art.mjs";
+import { TokenArtCatalog } from "./monster-art/token-art-catalog.mjs";
+import { TokenArtManagerApp } from "./monster-art/token-art-manager-app.mjs";
 
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
 // the Shadowdark system's NpcSD model + NpcSheetSD sheet, which the system
@@ -65,9 +69,13 @@ Hooks.once("init", () => {
   MerchantShop.registerSettings();
   SessionRecap.registerSettings();
   ItemDrops.registerSettings();
+  MonsterTokenArt.register();
   LootDelivery.init();
   LootTableTag.init();
   TableRegistry.init();
+  // Compound generators: wrap RollTable.draw so flagged tables roll every
+  // column and post one combined card (sidebar sheet Roll + our hub button).
+  installCompoundRollTable();
 
   // Handlebars helpers
   Handlebars.registerHelper("includes", (arr, val) => {
@@ -141,8 +149,54 @@ Hooks.once("init", () => {
       label: game.i18n.localize("SDE.charBuilder.title"),
       class: "sde-char-builder-launch",
       icon: "fa-solid fa-user-plus",
-      onclick: () => ShadowdarkCharBuilder.open(),
+      // Pass the launching actor so the builder edits it in place instead of
+      // spawning a second actor and leaving the original behind.
+      onclick: () => ShadowdarkCharBuilder.open({ actor }),
     });
+  });
+
+  // "Character Builder" launch button in the Actors sidebar header — a second
+  // entry point that opens the builder with no actor (it creates a fresh one on
+  // finish), so players don't need an existing sheet to start. Shown to every
+  // user regardless of the ACTOR_CREATE permission (deliberate: players may not
+  // hold that perm in every world but should still be able to launch the
+  // builder). Sits alongside the core Create Actor / Create Folder buttons.
+  Hooks.on("renderActorDirectory", (_app, html) => {
+    const root = html instanceof HTMLElement ? html : html?.[0];
+    const header = root?.querySelector(".directory-header");
+    if (!header) return;
+    if (header.querySelector(".sde-char-builder-launch")) return;
+    // The core action-buttons row is only rendered when the user may create an
+    // actor/folder; for permission-less players it can be absent. Reuse it when
+    // present, otherwise build our own row so the button still shows.
+    let actions = header.querySelector(".header-actions.action-buttons");
+    if (!actions) {
+      actions = document.createElement("div");
+      actions.className = "header-actions action-buttons flexrow";
+      header.prepend(actions);
+    }
+    // Mirror the Shadowdark system's own character-generator-button markup so
+    // the button inherits the system's header styling; our own class is kept
+    // for the click handler + dedup guard.
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "character-generator-button sde-char-builder-launch";
+    btn.innerHTML =
+      `<i class="fas fa-user-plus" inert></i>` +
+      `<b class="button-text">${game.i18n.localize("SDE.charBuilder.title")}</b>`;
+    btn.addEventListener("click", () => ShadowdarkCharBuilder.open());
+    actions.appendChild(btn);
+
+    // GM-only: re-skin NPC tokens/portraits with art from a locally-installed
+    // art module (default: the licensed Monster Manual). Reference-only.
+    if (game.user.isGM && !actions.querySelector(".sde-monster-art-launch")) {
+      const artBtn = document.createElement("button");
+      artBtn.type = "button";
+      artBtn.className = "sde-monster-art-launch";
+      artBtn.innerHTML = `<i class="fa-solid fa-dragon" inert></i><span>${game.i18n.localize("SDE.tokenArt.button")}</span>`;
+      artBtn.addEventListener("click", () => TokenArtManagerApp.open());
+      actions.appendChild(artBtn);
+    }
   });
 
   // Expose API. Public, versioned surface (REQ-26) — additive changes bump
@@ -202,6 +256,29 @@ Hooks.once("init", () => {
     },
     monsterCreator: {
       open: () => MonsterCreator.open(),
+    },
+    // Monster token/portrait art — re-skin Shadowdark NPCs with art referenced
+    // (never copied) from a locally-installed art module, default the licensed
+    // dnd-monster-manual. See monster-art/monster-token-art.mjs.
+    tokenArt: {
+      // Full multi-source per-monster manager (Actors sidebar → "Monster Art").
+      openManager: () => TokenArtManagerApp.open(),
+      // Legacy single-source dialog (compendium overlay / re-skin / turn off).
+      open: () => MonsterTokenArt.openDialog(),
+      // Compendium-art overlay: skin EVERY future monster drag (GM). Generates
+      // the shadowdark.monsters → art mapping and injects it (no relaunch).
+      applyToCompendium: () => MonsterTokenArt.generateCompendiumMapping(),
+      // Turn the compendium overlay back off (restore default art).
+      restoreCompendium: () => MonsterTokenArt.disableCompendiumMapping(),
+      // Re-skin already-placed monsters; pass { scene, actors, portraits, dryRun, minScore }.
+      apply: (opts) => MonsterTokenArt.apply(opts),
+      // Pure match: name → { token, portrait, score } | null (needs a file set).
+      resolve: (name, sets, source, minScore) => MonsterTokenArt.resolveArt(name, sets, source, minScore),
+      buildFileSets: (source) => MonsterTokenArt.buildFileSets(source),
+      // Multi-source manager: catalog of all art sources + per-monster resolve.
+      catalog: () => TokenArtCatalog.build(),
+      resolveCatalog: (cat) => TokenArtCatalog.resolve(cat),
+      applyResolved: (table) => MonsterTokenArt.applyResolvedMapping(table),
     },
     // Bulk monster importer: paste a raw PDF statblock dump → preview/edit grid →
     // create NPC actors into the managed world compendium. See monster-importer-app.mjs.
@@ -304,6 +381,9 @@ Hooks.once("ready", () => {
   MovementTracker.init();
   CrawlStrip.init();
   CrawlBar.init();
+  // If the GM enabled the monster compendium-art overlay, inject it now so every
+  // monster drag carries the referenced art (all clients; GM-only settings write).
+  MonsterTokenArt.initCompendiumArt();
   LootDrops.init();
   ItemDrops.init();
   MerchantShop.init();

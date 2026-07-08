@@ -239,12 +239,293 @@ export function parseTables(text) {
   return out.filter(pt => pt.rows.length);
 }
 
+// ── Compound generators ─────────────────────────────────────────────────────
+// A "compound generator" is one table rolled N times — once per column — whose
+// cells are concatenated in order (a mad-libs / sentence generator, e.g. a
+// "PRAYER GENERATOR"). Unlike a matrix (N independent pick-one tables), every
+// column is drawn together on a single roll. Stored self-contained: the parsed
+// ParsedTable carries `isCompound` + `compound.columns`; buildTableData emits a
+// `flags.shadowdark-enhancer.compound` blob and the roll wrap (compound-table.mjs)
+// reads it. Column labels look like "Detail 1" / "Col 2" / a capitalised phrase
+// ending in a number; cells are prose, so the matrix recognizer never claims them.
+
+const GEN_LABEL = /^(?:detail|col(?:umn)?|part|entry|table|roll|result)\s*\d+$/i;
+const BARE_NUM = /^(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?$/;
+
+/** A label-ish line: "Detail 1", "Col 2", or a short Capitalised phrase + number. */
+function looksLikeColumnLabel(line) {
+  const t = String(line).trim();
+  if (GEN_LABEL.test(t)) return true;
+  // "Something Something 3" — up to 3 words then a trailing index.
+  return /^[A-Z][A-Za-z]*(?:\s+[A-Za-z]+){0,2}\s+\d+$/.test(t) && !BARE_NUM.test(t);
+}
+
+/** A bare die marker on its own line, e.g. "3" or "4-5". */
+function isBareNumber(line) { return BARE_NUM.test(String(line).trim()); }
+
+/** A numbered data row, e.g. "3 gains a level" (index + non-empty text). */
+function isNumberedRow(line) {
+  const r = parseLeadingRange(line);
+  return !!(r && r.rest !== "");
+}
+
+/** Assign a row's fragments to N columns: first N-1 one each, remainder joined. */
+function fragmentsToCells(frags, n) {
+  const f = frags.filter(s => s !== "");
+  if (f.length <= n) {
+    const cells = f.slice();
+    while (cells.length < n) cells.push("");
+    return { cells, over: false, under: f.length < n && f.length > 0 };
+  }
+  const cells = f.slice(0, n - 1);
+  cells.push(f.slice(n - 1).join(" "));
+  return { cells, over: true, under: false };
+}
+
+/**
+ * Parse a dice spec like "3d6" / "2d10" → { columns, die }. The leading count
+ * is how many columns/rolls; the die is the per-column size (= row count). A
+ * bare "d6" (no leading count) returns null — a generator needs ≥2 columns.
+ */
+export function parseDiceSpec(str) {
+  const m = /(\d+)\s*d\s*(\d+)/i.exec(String(str ?? "").trim());
+  if (!m) return null;
+  const columns = Number(m[1]);
+  const die = Number(m[2]);
+  if (!(columns >= 1) || !(die >= 1)) return null;
+  return { columns, die };
+}
+
+/**
+ * Best-effort parse of one pasted block into a compound generator. Handles the
+ * two shapes a GM realistically produces:
+ *   (clean) one row per line: "1<TAB or 2+ spaces>cell<TAB>cell<TAB>cell"
+ *   (messy) column-interleaved PDF copy where bare "N" markers and prose cells
+ *           land on separate lines in a scrambled order — grouped by preceding
+ *           marker, then split into N cells with warnings for the GM to fix.
+ *
+ * A dice spec (e.g. 3d6) pins the grid shape with certainty: N columns each on a
+ * dX (X rows). It overrides the detected column count/die and, for headerless
+ * pastes with no labels, supplies default "Result N" labels — the reliable path
+ * the GM opts into when auto-detection can't fully recover a scrambled copy.
+ *
+ * Returns a ParsedTable{isCompound} or null when the block isn't a generator.
+ * @param {string[]} rawLines
+ * @param {{columns:number, die:number}|null} [spec]
+ */
+function parseGeneratorBlock(rawLines, spec) {
+  const work = rawLines.map(l => String(l).replace(/\s+$/, "")).filter(l => l.trim() !== "");
+  if (!work.length) return null;
+
+  // Locate the dN header (if any) and title.
+  const dieIdx = work.findIndex(l => parseDieHeader(l));
+  const die = dieIdx >= 0 ? parseDieHeader(work[dieIdx]) : null;
+
+  const genIdx = work.findIndex(l => /generator/i.test(l));
+  let title = "";
+  if (genIdx >= 0) title = work[genIdx].trim();
+  else if (dieIdx > 0 && !BARE_NUM.test(work[0].trim())) title = work[0].trim();
+
+  // Column labels + where the data region begins.
+  //   1) header remainder wins:  "d6 A B C"  → labels [A,B,C], data after dN
+  //   2) else: leading non-data lines after the header are label candidates.
+  //      A strict "Detail N" prefix is trusted even when prose cells follow it
+  //      (the scrambled-PDF case); otherwise ALL leading lines are treated as
+  //      labels (the clean case, where no cell precedes the first numbered row).
+  const headerLabels = (die && die.columns.length >= 2) ? die.columns.slice() : [];
+  const labelStart = dieIdx >= 0 ? dieIdx + 1 : (genIdx >= 0 ? genIdx + 1 : 0);
+  let labels, dataStart, labelsAreReal;
+  if (headerLabels.length >= 2) {
+    labels = headerLabels; dataStart = dieIdx + 1; labelsAreReal = true;
+  } else {
+    const leading = [];
+    let i = labelStart;
+    while (i < work.length && !isBareNumber(work[i]) && !isNumberedRow(work[i])) { leading.push(work[i]); i++; }
+    const strict = [];
+    for (const l of leading) { if (looksLikeColumnLabel(l)) strict.push(l.trim()); else break; }
+    if (strict.length >= 2) { labels = strict; dataStart = labelStart + strict.length; labelsAreReal = true; }
+    else { labels = leading.map(s => s.trim()); dataStart = labelStart + leading.length; labelsAreReal = false; }
+  }
+
+  // Dice spec overrides the column count + die. When the paste had no real
+  // labels, its "leading" lines were actually cells — don't consume them, and
+  // fall back to default labels.
+  let n;
+  if (spec?.columns >= 2) {
+    n = spec.columns;
+    if (labelsAreReal) {
+      labels = labels.slice(0, n);
+      while (labels.length < n) labels.push(`Result ${labels.length + 1}`);
+    } else {
+      labels = Array.from({ length: n }, (_, i) => `Result ${i + 1}`);
+      dataStart = labelStart;
+    }
+  } else {
+    if (!labels || labels.length < 2) return null; // not enough columns → not a generator
+    n = labels.length;
+  }
+
+  const dataLines = work.slice(dataStart);
+
+  // Clean vs messy: numbered rows ("1 alpha beta gamma") mean each line is one
+  // row; bare markers ("1" on its own) mean column-interleaved PDF scramble.
+  const numberedRows = dataLines.filter(isNumberedRow);
+  const bareMarkers = dataLines.filter(isBareNumber);
+  const clean = numberedRows.length >= 2 && numberedRows.length >= bareMarkers.length;
+
+  const cols = labels.map(() => []);
+  const warnings = [];
+  let size = spec?.die || (die ? die.size : 0);
+
+  if (clean) {
+    for (const line of dataLines) {
+      const r = parseLeadingRange(line);
+      if (!r || r.rest === "") continue;
+      size = Math.max(size, r.max);
+      // Prefer real column delimiters (tab / 2+ spaces); fall back to one word
+      // per column; else best-effort split with a warning.
+      const byDelim = r.rest.split(/\t+|\s{2,}/).map(s => s.trim()).filter(Boolean);
+      const toks = r.rest.trim().split(/\s+/);
+      let cells;
+      if (byDelim.length === n) cells = byDelim;
+      else if (toks.length === n) cells = toks;
+      else {
+        const fc = fragmentsToCells(toks, n);
+        cells = fc.cells;
+        if (fc.over) warnings.push(`Roll ${r.min}: more words than ${n} columns — check the last cell.`);
+        else if (fc.under) warnings.push(`Roll ${r.min}: fewer than ${n} columns — some cells are empty.`);
+      }
+      for (let ci = 0; ci < n; ci++) cols[ci].push({ min: r.min, max: r.max, text: cells[ci] ?? "" });
+    }
+  } else {
+    // Messy: group prose fragments with their preceding "N" marker; fragments
+    // before the first marker seed row 1. Then split each group into N cells.
+    const groups = new Map();
+    let curMin = null;
+    const preFirst = [];
+    for (const line of dataLines) {
+      const t = line.trim();
+      const mm = BARE_NUM.exec(t);
+      if (mm) {
+        curMin = Number(mm[1]);
+        const curMax = mm[2] != null ? Number(mm[2]) : curMin;
+        size = Math.max(size, curMax);
+        if (!groups.has(curMin)) groups.set(curMin, { min: curMin, max: curMax, frags: [] });
+        continue;
+      }
+      if (curMin == null) preFirst.push(t);
+      else groups.get(curMin).frags.push(t);
+    }
+    if (preFirst.length) {
+      if (!groups.has(1)) groups.set(1, { min: 1, max: 1, frags: [] });
+      groups.get(1).frags.unshift(...preFirst);
+    }
+    if (!size) size = groups.size || n;
+    for (let face = 1; face <= size; face++) {
+      const g = groups.get(face);
+      const { cells, over, under } = g
+        ? fragmentsToCells(g.frags, n)
+        : { cells: Array(n).fill(""), over: false, under: false };
+      if (over) warnings.push(`Roll ${face}: more fragments than ${n} columns — check the last cell.`);
+      else if (under) warnings.push(`Roll ${face}: fewer fragments than ${n} columns — some cells are empty.`);
+      else if (!g) warnings.push(`Roll ${face}: no cells found — fill this row in.`);
+      for (let ci = 0; ci < n; ci++) cols[ci].push({ min: face, max: face, text: cells[ci] ?? "" });
+    }
+  }
+
+  if (!size) size = Math.max(1, ...cols.map(c => c.reduce((m, r) => Math.max(m, r.max), 0)));
+
+  // Normalize: every column gets exactly one row per face 1..size (ranges are
+  // expanded to per-face, gaps filled empty) so the grid is always complete.
+  for (const c of cols) {
+    const byFace = new Map();
+    for (const r of c) for (let f = r.min; f <= r.max; f++) if (!byFace.has(f)) byFace.set(f, r.text);
+    c.length = 0;
+    for (let f = 1; f <= size; f++) c.push({ min: f, max: f, text: byFace.get(f) ?? "" });
+  }
+
+  // Cell-count sanity vs the spec — tells the GM how much grid fixup remains.
+  if (spec) {
+    const filled = cols.reduce((a, c) => a + c.filter(r => r.text.trim()).length, 0);
+    const expected = n * size;
+    if (filled !== expected) {
+      warnings.unshift(`${spec.columns}d${spec.die} → a ${n}×${size} grid (${expected} cells); ${filled} came through filled — complete the rest in the grid.`);
+    }
+  }
+
+  const colFormula = `1d${size}`;
+  const columns = labels.map((label, ci) => ({ label, formula: colFormula, rows: cols[ci] }));
+  const name = (title || "Compound Generator").replace(/\s+/g, " ").trim();
+  return {
+    name,
+    formula: colFormula,
+    replacement: true,
+    isCompound: true,
+    category: classify(name),
+    customLabel: "",
+    separator: " ",
+    compound: { separator: " ", columns },
+    columns, // convenience mirror for the preview layer
+    rows: [], // compound tables carry no flat rows
+    warnings,
+  };
+}
+
+/**
+ * Public (pure): parse pasted text into compound-generator ParsedTables.
+ * @param {string} text
+ * @param {string|{columns:number,die:number}|null} [spec]  dice spec ("3d6") or
+ *   a pre-parsed { columns, die }. Fixes the grid shape; see parseGeneratorBlock.
+ */
+export function parseGenerators(text, spec) {
+  const parsedSpec = typeof spec === "string" ? parseDiceSpec(spec) : (spec || null);
+  const out = [];
+  for (const block of splitBlocks(text)) {
+    const g = parseGeneratorBlock(block, parsedSpec);
+    if (g) out.push(g);
+  }
+  // Blank-line-free PDF paste = one block; splitBlocks already yields that.
+  return out;
+}
+
 /** Public (pure): build a RollTable.create payload from a ParsedTable. */
 export function buildTableData(pt) {
   const TEXT = (typeof CONST !== "undefined" && CONST?.TABLE_RESULT_TYPES?.TEXT != null)
     ? CONST.TABLE_RESULT_TYPES.TEXT
     : 0;
   const name = (pt.name ?? "").trim() || "Imported Table";
+
+  // Compound generators store all columns in a flag and roll every column at
+  // once (see compound-table.mjs). The visible results array holds a single
+  // hint row so the sheet isn't empty and core draw() never throws no-results.
+  if (pt.isCompound) {
+    const src = pt.compound?.columns ?? pt.columns ?? [];
+    const maxFace = src.reduce((m, c) =>
+      Math.max(m, (c.rows ?? []).reduce((mm, r) => Math.max(mm, r.max), 0)), 0);
+    const colFormula = src[0]?.formula || (pt.formula ?? "").trim() || `1d${Math.max(1, maxFace)}`;
+    const columns = src.map(c => ({
+      label: (c.label ?? "").trim(),
+      formula: (c.formula ?? "").trim() || colFormula,
+      rows: (c.rows ?? []).map(r => ({ min: r.min, max: r.max, text: r.text ?? "" })),
+    }));
+    const separator = typeof pt.compound?.separator === "string"
+      ? pt.compound.separator : (typeof pt.separator === "string" ? pt.separator : " ");
+    return {
+      name,
+      formula: colFormula,
+      replacement: true,
+      displayRoll: false,
+      results: [{
+        type: TEXT,
+        name: `🎲 Compound generator — rolls ${columns.length} columns and combines. Use “Roll” to draw.`,
+        weight: 1,
+        range: [1, 1],
+      }],
+      flags: {
+        "shadowdark-enhancer": { compound: { separator, columns } },
+      },
+    };
+  }
   const maxRange = (pt.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0);
   const formula = (pt.formula ?? "").trim() || `1d${Math.max(1, maxRange)}`;
   const results = (pt.rows ?? []).map(r => {
@@ -353,6 +634,9 @@ export async function createTable(pt, { onConflict } = {}) {
   data.flags = {
     ...(data.flags ?? {}),
     "shadowdark-enhancer": {
+      // Preserve flags already stamped by buildTableData (e.g. the compound
+      // generator blob) — this key would otherwise be clobbered wholesale.
+      ...(data.flags?.["shadowdark-enhancer"] ?? {}),
       tableType: (() => {
         const path = Array.isArray(pt.folderPath) ? pt.folderPath.filter(Boolean) : null;
         const leafLabel = path?.length ? path[path.length - 1] : null;
@@ -368,7 +652,9 @@ export async function createTable(pt, { onConflict } = {}) {
 
   // File into sde-tables pack (pack-native — D-08 / REQ-30).
   const table = await RollTable.create(data, { pack: pack.collection });
-  await _autoEnrich(table, pt);
+  // Compound generators have a single hint result — nothing to enrich, and
+  // enriching would rewrite that hint with @UUID links.
+  if (!pt.isCompound) await _autoEnrich(table, pt);
   return table;
 }
 
@@ -464,6 +750,8 @@ export function parseMatrixByColumns(text, columns, widths) {
 
 export const TableImporter = {
   parse: parseTables,
+  parseGenerators,
+  parseDiceSpec,
   parseMatrixByColumns,
   buildTableData,
   createTable,

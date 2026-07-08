@@ -16,7 +16,7 @@
  *   ImporterHubApp  — the ApplicationV2 class
  *   ImporterHubAPI  — { open(tab, seed) } for entry-point wiring
  */
-import { TableImporter, parseTables } from "./table-importer.mjs";
+import { TableImporter, parseTables, parseGenerators } from "./table-importer.mjs";
 import { npcMoveKeys } from "./npc-moves.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
@@ -67,6 +67,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     actions: {
       // Parse / clear
       hubParse:               ImporterHubApp.prototype._onHubParse,
+      hubParseCompound:       ImporterHubApp.prototype._onHubParseCompound,
       hubClear:               ImporterHubApp.prototype._onHubClear,
       // Monster section structural actions
       mimportAddAttack:       ImporterHubApp.prototype._onMimportAddAttack,
@@ -83,11 +84,17 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       importAddRow:           ImporterHubApp.prototype._onImportAddRow,
       importDeleteRow:        ImporterHubApp.prototype._onImportDeleteRow,
       importUnlinkRow:        ImporterHubApp.prototype._onImportUnlinkRow,
+      // Compound-generator structural actions
+      genAddColumn:           ImporterHubApp.prototype._onGenAddColumn,
+      genRemoveColumn:        ImporterHubApp.prototype._onGenRemoveColumn,
+      genAddRow:              ImporterHubApp.prototype._onGenAddRow,
+      genDeleteRow:           ImporterHubApp.prototype._onGenDeleteRow,
       // Commit actions
       hubCommitMonsters:      ImporterHubApp.prototype._onHubCommitMonsters,
       hubCommitItems:         ImporterHubApp.prototype._onHubCommitItems,
       hubCommitSpells:        ImporterHubApp.prototype._onHubCommitSpells,
       hubCommitTables:        ImporterHubApp.prototype._onHubCommitTables,
+      hubCommitGenerators:    ImporterHubApp.prototype._onHubCommitGenerators,
       hubCommitAll:           ImporterHubApp.prototype._onHubCommitAll,
       // Bundle export/import
       hubExportBundle:        ImporterHubApp.prototype._onExportBundle,
@@ -121,6 +128,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importType = "auto";
   /** Forced item subtype when importing items ("auto" = name inference). */
   _importItemSubtype = "auto";
+  /** Dice spec for compound generators ("3d6"/"2d10"; "" = auto-detect). */
+  _importGenSpec = "";
 
   // ── Import seed (set by a Manage-strip census gap "Seed" click) ────────────
   /** @type {object|null} Carries a per-row Import seed; applied on parse. */
@@ -141,6 +150,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importSpells = [];
   /** Table parse results: ParsedTable[] */
   _importTables = [];
+  /** Compound-generator parse results: ParsedTable[] with isCompound + compound.columns */
+  _importGenerators = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
   _importSkipped = [];
   /** Source label (free-text, feeds the import folder). */
@@ -232,10 +243,39 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       { id: CUSTOM_ID, label: "Custom…" },
     ];
 
+    // Compound generators → row-major grid for the editable preview.
+    const importGenerators = this._importGenerators.map((g, i) => {
+      const cols = g.compound?.columns ?? g.columns ?? [];
+      const size = Math.max(1, cols.reduce((m, c) =>
+        Math.max(m, (c.rows ?? []).reduce((mm, r) => Math.max(mm, r.max), 0)), 0));
+      const faces = [];
+      for (let f = 1; f <= size; f++) {
+        faces.push({
+          face: f,
+          cells: cols.map((c, ci) => {
+            const row = (c.rows ?? []).find(r => f >= r.min && f <= r.max);
+            return { colIdx: ci, text: row?.text ?? "" };
+          }),
+        });
+      }
+      return {
+        idx: i,
+        name: g.name,
+        formula: g.formula,
+        separator: g.compound?.separator ?? g.separator ?? " ",
+        columns: cols.map((c, ci) => ({ idx: ci, label: c.label })),
+        colCount: cols.length,
+        faces,
+        warnings: g.warnings ?? [],
+        hasWarnings: (g.warnings?.length ?? 0) > 0,
+      };
+    });
+
     const hasMonsters = importMonsterCards.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasSpells   = importSpellCards.length > 0;
     const hasTables   = this._importTables.length > 0;
+    const hasGenerators = importGenerators.length > 0;
     const showImportAll = [hasMonsters, hasItems, hasSpells, hasTables].filter(Boolean).length > 1;
 
     const t = this._importType;
@@ -267,11 +307,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         { value: "items",    label: "Items" },
         { value: "spells",   label: "Spells" },
         { value: "tables",   label: "Tables" },
+        { value: "generators", label: "Generators (roll-all)" },
         { value: "backgrounds", label: "Backgrounds" },
         { value: "talents",  label: "Talents" },
         { value: "classes",  label: "Class" },
       ].map(o => ({ ...o, selected: o.value === t })),
       showItemSubtype: t === "items" || t === "auto",
+      showGenSpec: t === "generators",
+      genSpec: this._importGenSpec,
       itemSubtype: this._importItemSubtype,
       itemSubtypeOptions: [
         { value: "auto", label: "Auto (by name)" },
@@ -282,8 +325,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       items: this._importItems,
       spells: importSpellCards,
       tables: this._importTables,
+      generators: importGenerators,
       skipped: this._importSkipped,
-      hasMonsters, hasItems, hasSpells, hasTables, showImportAll,
+      hasMonsters, hasItems, hasSpells, hasTables, hasGenerators, showImportAll,
       chars: this._importSealed
         ? this._importSealed.payload.docs.map((d) => ({
             name: d.data.name,
@@ -302,6 +346,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemsCount: this._importItems.length,
       spellsCount: importSpellCards.length,
       tablesCount: this._importTables.length,
+      generatorsCount: importGenerators.length,
       // Option lists
       itemTypeOptions: ["Basic", "Weapon", "Armor", "Potion", "Scroll", "Wand"],
       spellRanges: ["self", "touch", "close", "near", "doubleNear", "far"],
@@ -487,6 +532,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubItemFieldEdits();
     this._wireHubSpellFieldEdits();
     this._wireHubTableFieldEdits();
+    this._wireHubGeneratorFieldEdits();
 
     // Manage strip: prepare its census lazily the first time it's expanded, so
     // opening the importer never triggers a world scan.
@@ -514,6 +560,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
       this.render();
     });
+
+    // Dice spec for generators — stash on input; consumed at Parse (no re-render).
+    const specInput = this.element.querySelector("input[data-gen-spec]");
+    if (specInput) specInput.addEventListener("input", (ev) => { this._importGenSpec = ev.target.value; });
   }
 
   /** Paste box: debounced stash + cursor preservation. */
@@ -600,6 +650,46 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           else if (field === "replacement") tbl.replacement = ev.target.checked;
           else if (field === "category") { tbl.category = ev.target.value; this.render(); }
           else if (field === "customLabel") tbl.customLabel = ev.target.value;
+        }
+      });
+    });
+  }
+
+  /**
+   * Compound-generator preview edits. Cell/label/name/separator edits commit in
+   * place with NO re-render (focus stays put); only a formula change re-renders,
+   * since it changes how many face-rows the grid shows.
+   */
+  _wireHubGeneratorFieldEdits() {
+    this.element.querySelectorAll(".sde-import-gen [data-gen-field]").forEach((input) => {
+      input.addEventListener("change", (ev) => {
+        const g = this._importGenerators[Number(ev.target.closest("[data-gen-idx]")?.dataset.genIdx)];
+        if (!g) return;
+        const cols = g.compound?.columns ?? g.columns ?? [];
+        const field = ev.target.dataset.genField;
+        if (field === "name") { g.name = ev.target.value; }
+        else if (field === "formula") {
+          g.formula = ev.target.value;
+          for (const c of cols) c.formula = ev.target.value;
+          this.render(); // face count may change
+        }
+        else if (field === "separator") {
+          const v = ev.target.value;
+          g.separator = v;
+          if (g.compound) g.compound.separator = v;
+        }
+        else if (field === "label") {
+          const ci = Number(ev.target.dataset.colIdx);
+          if (cols[ci]) cols[ci].label = ev.target.value;
+        }
+        else if (field === "cell") {
+          const ci = Number(ev.target.dataset.colIdx);
+          const face = Number(ev.target.dataset.face);
+          const col = cols[ci];
+          if (!col) return;
+          let row = (col.rows ?? []).find(r => face >= r.min && face <= r.max);
+          if (!row) { row = { min: face, max: face, text: "" }; (col.rows ??= []).push(row); col.rows.sort((a, b) => a.min - b.min); }
+          row.text = ev.target.value;
         }
       });
     });
@@ -700,6 +790,40 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Import-tab parse/clear actions ────────────────────────────────────────
 
   /**
+   * "Compound" shortcut: parse the current paste as a roll-all generator without
+   * changing the type dropdown first. Prompts for the dice spec (e.g. 3d6 = 3
+   * columns each on a d6), then forces the generators type + spec and parses.
+   */
+  async _onHubParseCompound() {
+    const ta = this.element.querySelector("textarea[data-import-text]");
+    if (ta) this._importText = ta.value;
+    if (!this._importText.trim()) { ui.notifications.warn("Paste a table first, then click Compound."); return; }
+
+    const spec = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Compound Generator", icon: "fas fa-dice-d6" },
+      content: `
+        <p>Roll <strong>every column once</strong> and combine the results in order
+        (result 1 + result 2 + … = final).</p>
+        <p style="display:flex;align-items:center;gap:0.5rem;">
+          <label for="sde-compound-spec"><strong>Dice</strong></label>
+          <input id="sde-compound-spec" name="spec" type="text" value="3d6" placeholder="e.g. 3d6 or 2d10" style="flex:1;">
+        </p>
+        <p class="notes"><code>3d6</code> = 3 columns, each rolled on a d6 (6 rows). Leave blank to auto-detect from the paste.</p>`,
+      buttons: [
+        { action: "parse", label: "Parse as compound", icon: "fas fa-dice-d6", default: true,
+          callback: (event, button) => button.form.elements.spec.value },
+        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (spec == null || spec === "cancel") return;
+
+    this._importType = "generators";
+    this._importGenSpec = String(spec).trim();
+    await this._onHubParse();
+  }
+
+  /**
    * Parse action: reads the paste box, runs segmentDump, maps monster chunks
    * via parseStatblock, applies the seed to the first table (if any), links
    * loot tables. Then re-renders.
@@ -728,6 +852,20 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
         if (res.found) ui.notifications.warn(`"${unit.name}": found ${res.found}/${res.total} key phrases — paste the full section to unlock the verified version. Falling back to the text parser.`);
       }
+    }
+
+    // Compound generators are an explicit type only (never in a mixed dump):
+    // one table rolled once per column, cells combined in order. Parse and
+    // return early — the table/char pipeline below doesn't apply.
+    if (type === "generators") {
+      this._importGenerators = parseGenerators(text, this._importGenSpec);
+      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importTables = []; this._importChar = []; this._importSkipped = [];
+      if (!this._importGenerators.length) {
+        ui.notifications.warn("No compound generator recognized — need a die header (e.g. d6) and 2+ column labels (e.g. Detail 1, Detail 2…).");
+      }
+      this.render();
+      return;
     }
 
     let monsters = [], items = [], spells = [], tables = [], skipped = [];
@@ -856,6 +994,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importItems    = items;
     this._importSpells   = spells;
     this._importTables   = tables;
+    this._importGenerators = [];
     this._importSkipped  = skipped;
 
     this._applyImportSeed();
@@ -883,6 +1022,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importItems = [];
     this._importSpells = [];
     this._importTables = [];
+    this._importGenerators = [];
     this._importChar = [];
     this._importSealed = null;
     this._importSkipped = [];
@@ -1054,6 +1194,69 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  // ── Compound-generator structural actions ─────────────────────────────────
+
+  /** Columns of a generator draft (handles the compound.columns / columns mirror). */
+  _genColumns(g) { return g?.compound?.columns ?? g?.columns ?? []; }
+
+  /** Current face count = highest max across all columns (min 1). */
+  _genSize(g) {
+    return Math.max(1, this._genColumns(g).reduce((m, c) =>
+      Math.max(m, (c.rows ?? []).reduce((mm, r) => Math.max(mm, r.max), 0)), 0));
+  }
+
+  _onGenAddColumn(event, target) {
+    const g = this._importGenerators[Number(target.closest("[data-gen-idx]")?.dataset.genIdx)];
+    if (!g) return;
+    const cols = this._genColumns(g);
+    const size = this._genSize(g);
+    const formula = cols[0]?.formula || g.formula || `1d${size}`;
+    const rows = [];
+    for (let f = 1; f <= size; f++) rows.push({ min: f, max: f, text: "" });
+    cols.push({ label: `Detail ${cols.length + 1}`, formula, rows });
+    this.render();
+  }
+
+  _onGenRemoveColumn(event, target) {
+    const g = this._importGenerators[Number(target.closest("[data-gen-idx]")?.dataset.genIdx)];
+    const ci = Number(target.closest("[data-col-idx]")?.dataset.colIdx);
+    if (!g || !Number.isFinite(ci)) return;
+    const cols = this._genColumns(g);
+    if (cols.length <= 1) { ui.notifications.warn("A generator needs at least one column."); return; }
+    cols.splice(ci, 1);
+    this.render();
+  }
+
+  _onGenAddRow(event, target) {
+    const g = this._importGenerators[Number(target.closest("[data-gen-idx]")?.dataset.genIdx)];
+    if (!g) return;
+    const cols = this._genColumns(g);
+    const face = this._genSize(g) + 1;
+    for (const c of cols) (c.rows ??= []).push({ min: face, max: face, text: "" });
+    const formula = `1d${face}`;
+    g.formula = formula;
+    for (const c of cols) c.formula = formula;
+    this.render();
+  }
+
+  _onGenDeleteRow(event, target) {
+    const g = this._importGenerators[Number(target.closest("[data-gen-idx]")?.dataset.genIdx)];
+    const face = Number(target.closest("[data-face-row]")?.dataset.faceRow);
+    if (!g || !Number.isFinite(face)) return;
+    const cols = this._genColumns(g);
+    // Drop the face from each column, then renumber remaining rows to stay 1..N.
+    for (const c of cols) {
+      c.rows = (c.rows ?? []).filter(r => !(r.min === face && r.max === face));
+      c.rows.sort((a, b) => a.min - b.min);
+      c.rows.forEach((r, i) => { r.min = r.max = i + 1; });
+    }
+    const size = this._genSize(g);
+    const formula = `1d${size}`;
+    g.formula = formula;
+    for (const c of cols) c.formula = formula;
+    this.render();
+  }
+
   // ── Import-tab commit actions ─────────────────────────────────────────────
 
   /** Conflict dialog for monster name collisions (rename/replace/skip). */
@@ -1211,6 +1414,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications.info(`Tables: ${created} created → sde-tables.`);
     if (this._importSeed?._charSeed && !this._importTables.length) this._importSeed = null;
     this._invalidateCharCache();
+    this.render();
+  }
+
+  /**
+   * Commit compound generators → sde-tables (one self-contained RollTable each,
+   * carrying the compound flag). Same conflict dialog as regular tables.
+   */
+  async _onHubCommitGenerators() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import tables."); return; }
+    if (!this._importGenerators.length) { ui.notifications.warn("No generators to import."); return; }
+
+    const onConflict = this._tableConflictDialog();
+    let created = 0;
+    for (const g of [...this._importGenerators]) {
+      const src = this._importSource.trim();
+      if (src) g.source = src;
+      const table = await TableImporter.createTable(g, { onConflict });
+      if (table) {
+        created++;
+        this._importGenerators = this._importGenerators.filter(x => x !== g);
+      }
+    }
+    ui.notifications.info(`Generators: ${created} created → sde-tables. Roll from the table sheet to combine columns.`);
     this.render();
   }
 

@@ -167,10 +167,18 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     }
 
     const st = this.builderState;
+    const actor = this.actor ?? null;
     const L = (k) => game.i18n.localize(k);
     const esc = (s) => foundry.utils.escapeHTML(String(s));
     const row = (labelKey, val) => `<li><span>${L(labelKey)}</span><b>${esc(val)}</b></li>`;
-    const summary = `<div class="sde-cb-confirm"><p class="name">${esc(st.name || L("SDE.charBuilder.defaultName"))}</p><ul>`
+    // Editing the launching actor in place — warn if it already carries items
+    // that this rebuild will replace (a fresh blank actor has none).
+    const replacingItems = !!actor && actor.items.size > 0;
+    const notice = actor
+      ? `<p class="notice">${esc(game.i18n.format("SDE.charBuilder.commit.updateNotice", { name: actor.name }))}</p>`
+        + (replacingItems ? `<p class="warn">${esc(game.i18n.format("SDE.charBuilder.commit.replaceItems", { count: actor.items.size }))}</p>` : "")
+      : "";
+    const summary = `<div class="sde-cb-confirm"><p class="name">${esc(st.name || actor?.name || L("SDE.charBuilder.defaultName"))}</p>${notice}<ul>`
       + row("SDE.charBuilder.step.ancestry", st.ancestry?.name || "—")
       + row("SDE.charBuilder.step.class", st.class?.name || "—")
       + row("SDE.charBuilder.step.background", st.background?.name || "—")
@@ -184,14 +192,14 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     const ok = await foundry.applications.api.DialogV2.confirm({
       window: { title: L("SDE.charBuilder.commit.title"), icon: "fa-solid fa-user-plus" },
       content: summary,
-      yes: { label: L("SDE.charBuilder.commit.create"), icon: "fa-solid fa-check" },
+      yes: { label: L(actor ? "SDE.charBuilder.commit.update" : "SDE.charBuilder.commit.create"), icon: "fa-solid fa-check" },
       no: { label: L("SDE.charBuilder.commit.back") },
     });
     if (!ok) return;
 
     try {
-      // Actor on direct create, `true` on GM handoff, `null` on failure.
-      const result = await commitCharacter(st);
+      // Actor on direct create/update, `true` on GM handoff, `null` on failure.
+      const result = await commitCharacter(st, actor);
       if (result) await this.close();
       else ui.notifications.error(L("SDE.charBuilder.commit.failed"));
     } catch (e) {
