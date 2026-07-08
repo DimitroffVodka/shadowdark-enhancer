@@ -73,6 +73,18 @@ export class MonsterTokenArt {
     "smilodon": ["saber toothed tiger", "sabertooth"],
     "viperian": ["yuan ti", "serpentfolk"],
     "deep one": ["kuo toa"],
+    // Role-based humanoid NPCs (D&D stats ancestries as roles, not monsters).
+    "peasant": ["commoner"],
+    "soldier": ["warrior veteran", "veteran"],
+    "elf": ["elf ranger"],
+    // Angel hierarchy → D&D celestial tiers.
+    "angel principi": ["deva"],
+    "angel domini": ["planetar"],
+    "archangel": ["solar"],
+    // Snakes / swarms named differently across packs.
+    "snake cobra": ["venomous snake", "poisonous snake", "viper"],
+    "snake swarm": ["swarm venomous snakes", "swarm poisonous snakes"],
+    "scarab swarm": ["swarm beetles", "swarm insects", "beetle swarm"],
   };
 
   /** Relative path (under Data) of the generated compendium-art mapping. */

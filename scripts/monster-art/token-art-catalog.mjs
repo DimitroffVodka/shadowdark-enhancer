@@ -29,6 +29,22 @@ export class TokenArtCatalog {
     },
   ];
 
+  /**
+   * Extra folder coverage for "mapping" sources: after the curated shadowdark
+   * map, name-match the source's FULL token folder to fill monsters the map
+   * doesn't cover (e.g. Paizo ships elf/soldier art it never maps to Shadowdark).
+   * Presentation (ring/scale/subject) comes from the source's own token maps.
+   */
+  static MAPPING_FOLDERS = {
+    "pf2e-tokens-monster-core": {
+      tokenDir: "modules/pf2e-tokens-monster-core/assets/tokens",
+      presentMaps: [
+        "modules/pf2e-tokens-monster-core/image-mapping.json",
+        "modules/pf2e-tokens-monster-core/assets/shadowdark-map.json",
+      ],
+    },
+  };
+
   /** Default source priority when the user hasn't set one (ringed art first,
    *  Community last as the full-coverage fallback). Unknown/other sources sort
    *  after these in discovery order. */
@@ -40,19 +56,37 @@ export class TokenArtCatalog {
   ];
 
   /**
-   * A "filemap" source: another system/module's compendium-art map that is NOT
-   * keyed to shadowdark (so it can't be read by id), but whose entries carry a
-   * token path + per-token scale + portrait we can name-match by filename.
-   * Chiefly dnd5e's bundled Forgotten Adventures set — its `tokens/` art is
-   * transparent creature art that needs the mapping's scale to fill, so we take
-   * only files the mapping covers (flat, scaled, no ring).
+   * Shadowdark-original monsters that other packs only "match" via a loose,
+   * wrong choice in their own curated maps (e.g. Paizo maps Rime Walker →
+   * aeon-pleroma, Cave Brute → landslide). Default these to Community art, which
+   * is the purpose-made Shadowdark art. An explicit per-monster override still
+   * wins. Keyed by monster name.
+   */
+  static COMMUNITY_PINS = new Set([
+    "Rime Walker",
+    "Cave Brute",
+    "Void Spawn",
+    "Thug",
+  ]);
+  static COMMUNITY_SOURCE = "shadowdark-community-tokens";
+
+  /**
+   * A "filemap" source: an art folder tree with no shadowdark map (chiefly
+   * dnd5e's bundled Forgotten Adventures set under systems/dnd5e/tokens/<type>/).
+   * Files are browsed from disk and name-matched. The art is transparent
+   * creature art that needs a scale to fill: use the module's own token map
+   * (`scaleMap`) where a file is listed, else `defaultScale`. Shown flat (round
+   * pre-bordered look; no dynamic ring).
    */
   static FILEMAP_SOURCES = [
     {
       id: "dnd5e-fa",
       label: "Forgotten Adventures (dnd5e)",
-      mapping: "systems/dnd5e/json/fa-token-mapping.json",
-      probe: "systems/dnd5e/json/fa-token-mapping.json",
+      tokenRoot: "systems/dnd5e/tokens",
+      thumbDir: "thumbs",
+      scaleMap: "systems/dnd5e/json/fa-token-mapping.json",
+      probe: "systems/dnd5e/tokens",
+      defaultScale: 1.5,
       credit: "<em>Token artwork by Forgotten Adventures.</em>",
     },
   ];
@@ -72,41 +106,65 @@ export class TokenArtCatalog {
       const ok = await FilePicker.browse("data", fs.tokenDir).then((b) => b.files.length > 0).catch(() => false);
       if (ok) sources.push({ ...fs, kind: "folder" });
     }
-    // File-map sources (non-shadowdark maps, matched by filename).
+    // File-map sources (disk folder tree, no shadowdark map, matched by filename).
     for (const fs of this.FILEMAP_SOURCES) {
-      const ok = await foundry.utils.fetchJsonWithTimeout(fs.probe).then(() => true).catch(() => false);
+      const ok = await FilePicker.browse("data", fs.probe).then((b) => (b.dirs?.length || b.files?.length)).catch(() => false);
       if (ok) sources.push({ ...fs, kind: "filemap" });
     }
     return sources;
   }
 
-  /**
-   * File-map source → monsterId → art. Reads the map, keeps each token's path +
-   * scale + portrait, and name-matches the filenames (CamelCase-aware) to
-   * monster names. Flat presentation with the map's scale (no ring), so the
-   * transparent creature art fills its footprint.
-   */
-  static async _filemapArt(source, monsters) {
-    const art = {};
+  /** Browse a folder tree → Map(basename → full data path). Skips `skipDir`. */
+  static async _browseTree(root, skipDir) {
+    const found = new Map();
+    const walk = async (dir) => {
+      let res;
+      try { res = await FilePicker.browse("data", dir); } catch (e) { return; }
+      for (const f of res.files ?? []) {
+        if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
+        const base = f.split("/").pop();
+        if (!found.has(base)) found.set(base, f);
+      }
+      for (const d of res.dirs ?? []) {
+        if (skipDir && d.split("/").pop() === skipDir) continue;
+        await walk(d);
+      }
+    };
+    await walk(root);
+    return found;
+  }
+
+  /** Load a token-map's per-file scale → Map(basename → scaleX). */
+  static async _loadScaleMap(path) {
+    const scales = new Map();
+    if (!path) return scales;
     let json;
-    try { json = await foundry.utils.fetchJsonWithTimeout(source.mapping); }
-    catch (e) { return art; }
-    const files = new Map(); // filename → { token, portrait, scaleX, scaleY }
+    try { json = await foundry.utils.fetchJsonWithTimeout(path); }
+    catch (e) { return scales; }
     for (const docs of Object.values(json)) {
       for (const v of Object.values(docs)) {
         const src = v?.token?.texture?.src;
         if (!src) continue;
         const file = src.split("/").pop();
-        if (files.has(file)) continue;
-        files.set(file, {
-          token: src,
-          portrait: v.actor ?? src,
-          scaleX: v.token.texture.scaleX ?? 1,
-          scaleY: v.token.texture.scaleY ?? 1,
-        });
+        const s = v.token.texture.scaleX;
+        if (s && !scales.has(file)) scales.set(file, s);
       }
     }
+    return scales;
+  }
+
+  /**
+   * File-map source → monsterId → art. Browses the whole token tree from disk
+   * and name-matches (CamelCase-aware). The art is transparent creature art, so
+   * it's shown flat with a fill scale: the source's own token map where a file
+   * is listed, else `defaultScale`. Portrait falls back to the token image.
+   */
+  static async _filemapArt(source, monsters) {
+    const art = {};
+    const files = await this._browseTree(source.tokenRoot, source.thumbDir);
     if (!files.size) return art;
+    const scales = await this._loadScaleMap(source.scaleMap);
+    const def = source.defaultScale ?? 1;
 
     const M = MonsterTokenArt;
     const byNorm = new Map();
@@ -119,15 +177,66 @@ export class TokenArtCatalog {
     for (const m of monsters) {
       const a = M.resolveArt(m.name, sets, { tokenDir: "", portraitDir: "" });
       if (!a) continue;
-      const e = files.get(a.file);
-      if (!e) continue;
+      const path = files.get(a.file);
+      if (!path) continue;
+      const scale = scales.get(a.file) ?? def;
       art[m.id] = {
-        token: e.token,
-        portrait: e.portrait,
-        tokenObj: { texture: { src: e.token, scaleX: e.scaleX, scaleY: e.scaleY } },
+        token: path,
+        portrait: path,
+        tokenObj: { texture: { src: path, scaleX: scale, scaleY: scale } },
       };
     }
     return art;
+  }
+
+  /** Load one or more of a source's token maps → filename → {tokenObj, portrait}.
+   *  Keeps only texture + ring (drops width/height so a monster's footprint is
+   *  never resized). Earlier maps win on duplicate filenames. */
+  static async _loadPresentMaps(paths) {
+    const out = new Map();
+    for (const p of paths ?? []) {
+      let json;
+      try { json = await foundry.utils.fetchJsonWithTimeout(p); }
+      catch (e) { continue; }
+      for (const docs of Object.values(json)) {
+        for (const v of Object.values(docs)) {
+          const src = v?.token?.texture?.src;
+          if (!src) continue;
+          const file = src.split("/").pop();
+          if (out.has(file)) continue;
+          const tokenObj = { texture: v.token.texture };
+          if (v.token.ring) tokenObj.ring = v.token.ring;
+          out.set(file, { tokenObj, portrait: v.actor ?? src });
+        }
+      }
+    }
+    return out;
+  }
+
+  /** Name-match a mapping source's full token folder to fill monsters its
+   *  shadowdark map didn't cover. Mutates `art` (curated entries win). */
+  static async _folderGapFill(fcfg, monsters, art) {
+    const files = await this._browseTree(fcfg.tokenDir);
+    if (!files.size) return;
+    const present = await this._loadPresentMaps(fcfg.presentMaps);
+    const M = MonsterTokenArt;
+    const byNorm = new Map();
+    for (const f of files.keys()) {
+      const k = M._norm(M._deNum(M._slugOf(f)));
+      if (!byNorm.has(k)) byNorm.set(k, []);
+      byNorm.get(k).push(f);
+    }
+    const sets = { tokenFiles: new Set(files.keys()), portraitFiles: new Set(files.keys()), byNorm, subjectFiles: new Set(), present: {} };
+    for (const m of monsters) {
+      if (art[m.id]) continue;                       // curated shadowdark map wins
+      const a = M.resolveArt(m.name, sets, { tokenDir: "", portraitDir: "" });
+      if (!a) continue;
+      const p = present.get(a.file);
+      const path = files.get(a.file);
+      const tokenObj = p?.tokenObj ?? { texture: { src: path, scaleX: 1, scaleY: 1 } };
+      const src = tokenObj.texture?.src ?? path;
+      art[m.id] = { token: src, portrait: p?.portrait ?? src, tokenObj };
+    }
   }
 
   /** Build monsterId → { token, portrait, tokenObj } for one source. */
@@ -143,6 +252,9 @@ export class TokenArtCatalog {
         if (!src) continue;
         art[id] = { token: src, portrait: v.actor ?? src, tokenObj: v.token };
       }
+      // Fill gaps by name-matching the source's full token folder (if configured).
+      const fcfg = this.MAPPING_FOLDERS[source.id];
+      if (fcfg) await this._folderGapFill(fcfg, monsters, art);
     } else if (source.kind === "filemap") {
       return this._filemapArt(source, monsters);
     } else {
@@ -213,7 +325,9 @@ export class TokenArtCatalog {
     const perSource = {};
     for (const m of catalog.byMonster) {
       if (!m.options.length) continue;
-      const wantSrc = overrides[m.id];
+      // explicit override wins; else a Community pin (loose foreign match); else priority.
+      const wantSrc = overrides[m.id]
+        || (this.COMMUNITY_PINS.has(m.name) ? this.COMMUNITY_SOURCE : null);
       const pick = (wantSrc && m.options.find((o) => o.source === wantSrc)) || m.options[0];
       table[m.id] = { actor: pick.portrait, token: pick.tokenObj };
       chosen[m.id] = pick.source;

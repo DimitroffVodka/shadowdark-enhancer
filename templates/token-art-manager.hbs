@@ -47,14 +47,14 @@
   <div class="sde-tam-toolbar">
     <input type="text" name="filter" placeholder="Filter monsters…" value="{{filter}}" autocomplete="off">
     <label class="sde-tam-toggle">
-      <input type="checkbox" {{#if conflictsOnly}}checked{{/if}} data-action="toggleConflicts"> Only monsters with a choice
+      <input type="checkbox" name="conflicts" {{#if conflictsOnly}}checked{{/if}}> Only monsters with a choice
     </label>
     <span class="sde-tam-count">{{shown}} / {{total}}</span>
   </div>
 
   <div class="sde-tam-list">
     {{#each rows}}
-    <div class="sde-tam-row {{#if isOverride}}is-override{{/if}}">
+    <div class="sde-tam-row {{#if isOverride}}is-override{{/if}}" data-name="{{name}}" data-multi="{{#if multi}}1{{/if}}">
       <div class="sde-tam-name">
         {{name}}
         {{#if isOverride}}<i class="fa-solid fa-thumbtack" title="Overridden — click to clear" data-action="clearRow" data-monster="{{id}}"></i>{{/if}}

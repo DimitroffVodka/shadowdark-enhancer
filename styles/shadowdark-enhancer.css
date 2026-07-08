@@ -7649,11 +7649,11 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-apply { font-weight: 600; }
 .sde-tam-dim { opacity: 0.6; font-weight: 400; font-size: 11px; }
 
-.sde-tam-sources { padding: 8px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-sources-title { font-weight: 600; margin-bottom: 6px; }
-.sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-.sde-tam-rank { display: flex; flex-direction: column; }
-.sde-tam-rank button { width: 22px; height: 15px; line-height: 1; padding: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; }
+.sde-tam-sources { padding: 6px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
+.sde-tam-sources-title { font-weight: 600; margin-bottom: 4px; }
+.sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+.sde-tam-rank { display: flex; flex-direction: column; gap: 1px; }
+.sde-tam-rank button { width: 20px; height: 13px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 11px; }
 .sde-tam-rank button:hover:not(:disabled) { opacity: 1; color: var(--sde-gold, #c9aa58); }
 .sde-tam-rank button:disabled { opacity: 0.2; cursor: default; }
 .sde-tam-source-name { flex: 1; font-weight: 600; }

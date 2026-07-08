@@ -373,6 +373,16 @@ Hooks.once("ready", () => {
   const mod = game.modules.get(MODULE_ID);
   if (mod) mod.api = game.shadowdarkEnhancer;
   Hooks.callAll("shadowdarkEnhancer.ready", game.shadowdarkEnhancer);
+  // Surface our enhanced spells in SDX's Medkit so already-learned copies can be
+  // updated to the automated versions. SDX sets its api during its own `ready`
+  // hook, which may fire after ours, so poll briefly. No-op if SDX isn't present.
+  (function registerMedkitPack(tries = 0) {
+    const api = game.modules.get("shadowdark-extras")?.api;
+    if (api?.registerMedkitPack) { api.registerMedkitPack("world.spells"); return; }
+    if (game.modules.get("shadowdark-extras")?.active && tries < 20) {
+      setTimeout(() => registerMedkitPack(tries + 1), 250);
+    }
+  })();
   CrawlState.init();
   registerHiddenSync();
   // Seed the char-builder Name/Trinket table sources from the legacy boolean

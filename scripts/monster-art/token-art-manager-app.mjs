@@ -27,7 +27,6 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       apply: TokenArtManagerApp._onApply,
       resetAll: TokenArtManagerApp._onResetAll,
       refresh: TokenArtManagerApp._onRefresh,
-      toggleConflicts: TokenArtManagerApp._onToggleConflicts,
       reskinPlaced: TokenArtManagerApp._onReskinPlaced,
       turnOff: TokenArtManagerApp._onTurnOff,
     },
@@ -69,12 +68,11 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const res = TokenArtCatalog.resolve(cat);
     const enabled = game.settings.get(MODULE_ID, "tokenArtCompendium");
 
-    const q = this._filter.trim().toLowerCase();
+    // Render every monster row; the search box + conflicts toggle filter the
+    // DOM client-side (no re-render) so typing in the box never loses focus.
     const rows = [];
     for (const m of cat.byMonster) {
       if (!m.options.length) continue;
-      if (q && !m.name.toLowerCase().includes(q)) continue;
-      if (this._conflictsOnly && m.options.length < 2) continue;
       const chosen = res.chosen[m.id];
       const isOverride = !!overrides[m.id];
       rows.push({
@@ -104,9 +102,27 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       enabled,
       filter: this._filter,
       conflictsOnly: this._conflictsOnly,
-      shown: rows.length,
-      total: cat.byMonster.length,
+      total: rows.length,
     };
+  }
+
+  /** Show/hide rows by the search text + conflicts toggle, purely in the DOM —
+   *  no re-render, so the search box keeps focus/caret while typing. */
+  _applyFilter() {
+    const root = this.element;
+    if (!root) return;
+    const q = (this._filter ?? "").trim().toLowerCase();
+    const rows = root.querySelectorAll(".sde-tam-row");
+    let shown = 0;
+    for (const r of rows) {
+      const nameOk = !q || (r.dataset.name ?? "").toLowerCase().includes(q);
+      const conflictOk = !this._conflictsOnly || r.dataset.multi === "1";
+      const visible = nameOk && conflictOk;
+      r.style.display = visible ? "" : "none";
+      if (visible) shown++;
+    }
+    const count = root.querySelector(".sde-tam-count");
+    if (count) count.textContent = `${shown} / ${rows.length}`;
   }
 
   _onRender(_ctx, _opts) {
@@ -114,14 +130,15 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const search = root.querySelector('input[name="filter"]');
     if (search && !search._sdeWired) {
       search._sdeWired = true;
-      search.addEventListener("input", foundry.utils.debounce((ev) => {
-        this._filter = ev.target.value ?? "";
-        this.render({ parts: ["body"] });
-        // keep focus + caret at end after re-render
-        const s = this.element.querySelector('input[name="filter"]');
-        if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); }
-      }, 200));
+      search.addEventListener("input", () => { this._filter = search.value ?? ""; this._applyFilter(); });
     }
+    const conflicts = root.querySelector('input[name="conflicts"]');
+    if (conflicts && !conflicts._sdeWired) {
+      conflicts._sdeWired = true;
+      conflicts.addEventListener("change", () => { this._conflictsOnly = conflicts.checked; this._applyFilter(); });
+    }
+    // Re-apply the active filter after any re-render (priority/override/apply).
+    this._applyFilter();
   }
 
   // ---- actions --------------------------------------------------------------
@@ -155,11 +172,6 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   static async _onResetAll() {
     await this._saveState({ overrides: {} });
-    this.render({ parts: ["body"] });
-  }
-
-  static async _onToggleConflicts() {
-    this._conflictsOnly = !this._conflictsOnly;
     this.render({ parts: ["body"] });
   }
 
