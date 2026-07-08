@@ -63,6 +63,15 @@ The Encounter Roller's fourth tab is a full NPC authoring panel — build a Shad
 - **Bulk import** shortcut opens the paste-to-create monster importer.
 - **Save** validates the name, creates a `type: "NPC"` world Actor, and embeds the Attack / Special / Feature / Spell items. Open it headlessly with `game.shadowdarkEnhancer.monsterCreator.open()`.
 
+### 🖼️ Monster Token Art
+
+A GM-only **Monster Art** button on the Actors sidebar opens a manager that re-skins the `shadowdark.monsters` compendium through Foundry's core compendium-art system. It **references token art you already have installed — by path — and never copies or bundles any artwork**, so nothing here is redistributed.
+
+- **Sources auto-discovered** from whatever's installed: **Monster Manual** (with its dynamic ring and per-token scale), **Pathfinder/Paizo** (`pf2e-tokens`), **Forgotten Adventures** (`dnd5e`), and **Community Tokens**. A source you don't own simply doesn't appear.
+- **Drag to order source priority**, or override the art **per monster**; the chosen blend is written and injected at runtime — no world relaunch. Apply, re-skin already-placed tokens, or turn it off.
+- **Correct per-source presentation** — dynamic ring and fill scale are inherited so large art fills its footprint and flat art sits right.
+- **Semantic aliases** map Shadowdark's reflavoured monsters to the right art (Brain Eater → Mind Flayer, Stingbat → Stirge, Grimlow → Grimlock, …); Shadowdark-original creatures are pinned to Community art. Scriptable via `game.shadowdarkEnhancer.tokenArt`.
+
 ### 📥 Importer Hub
 
 A single ApplicationV2 front door for getting Shadowdark content into your world — paste a PDF dump and it segments it into typed buckets (monsters, items, tables, journals, locations), previews them editably, and commits with rename/replace/skip conflict handling. Nothing is ever silently overwritten or deleted.
@@ -143,8 +152,9 @@ Hooks.once("shadowdarkEnhancer.ready", (api) => {
 
 Namespaces: `import` (universal dump segmentation), `items`, `monsters`,
 `linker` (name → compendium resolution), `encounter`, `loot`, `tables`,
-`bundle` (suite export/import), `mutator`, `monsterCreator`, `forge`, and
-`charBuilder` (guided character creation).
+`bundle` (suite export/import), `mutator`, `monsterCreator`, `tokenArt`
+(monster compendium art skinning), `forge`, and `charBuilder` (guided
+character creation).
 Document-creating entry points are GM-only and follow a never-overwrite,
 never-delete contract. Full reference: **[docs/API.md](docs/API.md)**.
 
@@ -162,6 +172,7 @@ scripts/
 ├── settings.mjs / icons.mjs / module-id.mjs
 ├── actors/                      # Mount & Boat sub-types, sheets, vehicle rolls
 ├── char-builder/                # guided character-creation wizard + step managers
+├── monster-art/                 # Monster Token Art manager + source catalog
 └── encounter/                   # importer hub, roller, loot, forge, tables,
                                  # census dashboards, party XP, session recap
 templates/                       # Handlebars for every window + chat cards + partials
