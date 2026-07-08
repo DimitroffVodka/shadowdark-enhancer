@@ -15,6 +15,7 @@ Two art features: a **Monster Token Art Manager** that skins the Shadowdark mons
 
 ### Changed
 - **The Character Builder opens from the Actors sidebar**, a single entry point shown to every user. The redundant launch button on each Player sheet's header is removed (build-in-place is still reachable via `game.shadowdarkEnhancer.charBuilder.open({ actor })`).
+- **shadowdark-extras integration — spells surfaced in the Medkit.** When *shadowdark-extras* is present, the enhancer registers its `world.spells` pack with SDX's Medkit on ready, so a spell already learned from a plain copy can be updated to the enhancer's automated version. Registration polls briefly for the SDX API (it initializes on its own `ready`, which may fire after ours) and is a silent no-op when SDX isn't installed.
 
 ### Notes
 - Verified live against Foundry VTT **14.364** and Shadowdark **4.0.6**.
