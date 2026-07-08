@@ -1,6 +1,15 @@
 import { ABILITY_ORDER, DEFAULT_STAT_METHOD } from "./constants.mjs";
 
 /**
+ * Empty art slot — the shape `CharBuilderState.art` always carries. Two plain
+ * image paths (or URLs); a null slot means "leave the system default alone".
+ */
+export const emptyArt = () => ({
+  portrait: null,   // server path / URL for `actor.img`
+  token: null,      // server path / URL for `prototypeToken.texture.src`
+});
+
+/**
  * Mutable in-progress character state for the builder.
  *
  * Deliberately a plain data bag (no history/validation engine) — step managers
@@ -16,6 +25,13 @@ export class CharBuilderState {
     this.name = "";
     this.trinket = "";
     this.alignment = "neutral";
+
+    /**
+     * Portrait + token art chosen on the Preview step (gallery, FilePicker, a
+     * pasted URL, or the bundled suggestion). Every slot null = "leave the system
+     * defaults alone" — commit only writes the fields that were actually set.
+     */
+    this.art = emptyArt();
 
     // --- Abilities ----------------------------------------------------------
     this.stats = {

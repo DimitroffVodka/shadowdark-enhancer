@@ -7259,6 +7259,60 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-preview-abilities .k { font-weight: 700; color: var(--sd-text); }
 .sde-cb-preview-abilities .m { color: var(--cb-muted); font-size: 12px; }
 
+/* ---- Preview tab: portrait + token art ---- */
+.sde-cb-art { margin: 0 0 var(--sd-s20); }
+.sde-cb-art-row { display: flex; align-items: center; gap: var(--sd-s12); flex-wrap: wrap; }
+/* Foundry core (foundry2.css) sets `figure { width: 100% }`, and its `body.game .app figure
+   { width: unset }` reset only covers AppV1 windows — an ApplicationV2 figure keeps the 100%,
+   spans the flex row, and wraps every thumb onto its own line. Pin the width to stop that. */
+.sde-cb-art-thumb {
+  flex: 0 0 auto; width: 96px; margin: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.sde-cb-art-thumb img {
+  width: 96px; height: 96px; object-fit: cover; display: block;
+  border: 1px solid var(--cb-border); border-radius: 4px; background: var(--cb-panel-2);
+  box-shadow: none;   /* core's `figure img` adds a hard black glow */
+}
+/* Nothing chosen yet — the thumb is a hint, not a selection. */
+.sde-cb-art-thumb.is-unset img { opacity: 0.45; filter: grayscale(1); }
+.sde-cb-art-thumb figcaption {
+  font-family: var(--sd-font-body); font-size: 12px; color: var(--cb-muted);
+  display: flex; align-items: baseline; gap: 4px; white-space: nowrap;
+}
+.sde-cb-art-thumb .tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7; }
+.sde-cb-art-actions {
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  margin-left: var(--sd-s8); max-width: 420px;
+}
+.sde-cb-art-actions .sde-cb-btn { flex: 0 0 auto; }
+.sde-cb-art-hint {
+  flex: 1 1 100%;
+  font-family: var(--sd-font-body); font-size: 11px; line-height: 1.4;
+  color: var(--cb-muted); margin: 2px 0 0;
+}
+
+/* ---- Preview tab: GM-curated art gallery dialog ---- */
+.sde-cb-gallery {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: var(--sd-s8); max-height: 400px; overflow-y: auto; padding: 2px;
+}
+.sde-cb-gallery-item {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 4px; width: auto; height: auto; line-height: normal;
+  background: none; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
+}
+.sde-cb-gallery-item:hover { border-color: var(--cb-accent, #b8a06a); background: var(--cb-panel-2); }
+.sde-cb-gallery-item.active { border-color: var(--cb-accent, #b8a06a); background: var(--cb-panel-2); }
+.sde-cb-gallery-item img {
+  width: 92px; height: 92px; object-fit: cover; display: block;
+  border: 1px solid var(--cb-border); border-radius: 3px; box-shadow: none;
+}
+.sde-cb-gallery-item span {
+  font-family: var(--sd-font-body); font-size: 10px; color: var(--cb-muted);
+  max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* ---- Class tab: portrait in the header space left of the title band ---- */
 .sde-cb-anc.is-class { position: relative; }
 .sde-cb-class-portrait {

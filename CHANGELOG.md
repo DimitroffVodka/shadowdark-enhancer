@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.5] — 2026-07-08
+
+Character portraits and tokens, chosen right in the builder — with paths that work even for players who hold no file permissions.
+
+### Added
+- **Portrait + token artwork on the Preview step.** Every build gets an **Artwork** card before *Create Character*, with four ways to set it, in ascending permission cost:
+  - **Use Suggested Art** — one click applies the bundled class/ancestry portrait. No permissions, no setup.
+  - **From URL…** — paste a link to any image (or a path in your world). Works for every player with **no file permission and no GM online**, because a portrait is just a stored path.
+  - **Curated gallery** — pick from a GM-nominated folder. The browse runs on the GM's client, so permission-less players choose art without the file browser and without seeing the rest of your data directory. Defaults to the module's **own bundled portraits** (`assets/portraits`, plus the class/ancestry art), so it works out of the box with no other module.
+  - **File browser** — the normal FilePicker, for anyone with the *Use File Browser* permission.
+- **Gallery folder setting** (*Character Builder — portrait/token art folders*): a comma-separated folder list. Add your own folders (including a Tokenizer save directory) to offer more art; leave blank to hide the gallery.
+
+### Changed
+- **The Character Builder opens from the Actors sidebar**, a single entry point shown to every user. The redundant launch button on each Player sheet's header is removed (build-in-place is still reachable via `game.shadowdarkEnhancer.charBuilder.open({ actor })`).
+
+### Notes
+- Verified live against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+- Remote (URL) portraits stay on their host site — if it goes offline, the image won't load. The gallery needs a GM online for players who lack the *Use File Browser* permission.
+- The new gallery-folder default applies to fresh worlds; existing worlds keep whatever value they saved.
+
 ## [0.9.4] — 2026-07-06
 
 Character-builder polish — table sources now "just work" with no setting, and class feature text reads cleanly — plus a rebuilt importer Manage strip.

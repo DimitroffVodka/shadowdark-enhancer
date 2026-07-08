@@ -17,6 +17,53 @@
     </p>
     {{/unless}}
 
+    <section class="sde-cb-preview-block sde-cb-art">
+      <h3>{{localize "SDE.charBuilder.preview.artwork"}}</h3>
+      <div class="sde-cb-art-row">
+
+        <figure class="sde-cb-art-thumb{{#unless step.art.portrait}} is-unset{{/unless}}">
+          <img src="{{step.art.portraitSrc}}" alt="">
+          <figcaption>
+            {{localize "SDE.charBuilder.art.portrait"}}
+            {{#if step.art.portraitIsSuggested}}<span class="tag">{{localize "SDE.charBuilder.art.suggested"}}</span>{{/if}}
+          </figcaption>
+        </figure>
+
+        <figure class="sde-cb-art-thumb{{#unless step.art.token}} is-unset{{/unless}}">
+          <img src="{{step.art.tokenSrc}}" alt="">
+          <figcaption>{{localize "SDE.charBuilder.art.token"}}</figcaption>
+        </figure>
+
+        <div class="sde-cb-art-actions">
+          {{#if step.art.canSuggest}}
+          <button type="button" class="sde-cb-btn" data-action="cb-art-suggest">
+            <i class="fa-solid fa-wand-sparkles"></i> {{localize "SDE.charBuilder.art.useSuggested"}}
+          </button>
+          {{/if}}
+          {{#if step.art.canPickFiles}}
+          <button type="button" class="sde-cb-btn" data-action="cb-art-portrait">
+            <i class="fa-solid fa-image"></i> {{localize "SDE.charBuilder.art.pickPortrait"}}
+          </button>
+          <button type="button" class="sde-cb-btn" data-action="cb-art-token">
+            <i class="fa-solid fa-chess-pawn"></i> {{localize "SDE.charBuilder.art.pickToken"}}
+          </button>
+          {{/if}}
+          <button type="button" class="sde-cb-btn" data-action="cb-art-url">
+            <i class="fa-solid fa-link"></i> {{localize "SDE.charBuilder.art.fromUrl"}}
+          </button>
+          {{#if step.art.any}}
+          <button type="button" class="sde-cb-btn ghost" data-action="cb-art-clear">
+            <i class="fa-solid fa-rotate-left"></i> {{localize "SDE.charBuilder.art.clear"}}
+          </button>
+          {{/if}}
+          {{#if step.art.lightOnly}}
+          <p class="sde-cb-art-hint">{{localize "SDE.charBuilder.art.lightHint"}}</p>
+          {{/if}}
+        </div>
+
+      </div>
+    </section>
+
     <div class="sde-cb-preview-cols">
 
       <section class="sde-cb-preview-block">

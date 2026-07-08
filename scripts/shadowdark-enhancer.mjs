@@ -47,6 +47,7 @@ import { registerActorTypes } from "./actors/register-actors.mjs";
 // the roll never lands in CrawlState.
 import "./initiative-manager.mjs";
 import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
+import { registerArtGalleryQuery } from "./char-builder/art-gallery.mjs";
 import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
 import { MonsterTokenArt } from "./monster-art/monster-token-art.mjs";
 import { TokenArtCatalog } from "./monster-art/token-art-catalog.mjs";
@@ -70,6 +71,9 @@ Hooks.once("init", () => {
   SessionRecap.registerSettings();
   ItemDrops.registerSettings();
   MonsterTokenArt.register();
+  // Char-builder art gallery: registered on every client, but only ever executed on
+  // the GM's, so permission-less players can browse the curated folder by proxy.
+  registerArtGalleryQuery();
   LootDelivery.init();
   LootTableTag.init();
   TableRegistry.init();
@@ -139,28 +143,17 @@ Hooks.once("init", () => {
       .catch((err) => console.error(`${MODULE_ID} | failed to register ${name} partial:`, err));
   }
 
-  // "Character Builder" launch button on the (v1) Player actor sheet header —
-  // GM or the actor's owner. Opens the guided builder.
-  Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
-    const actor = sheet?.actor ?? sheet?.document;
-    if (!actor || actor.type !== "Player") return;
-    if (!game.user.isGM && !actor.isOwner) return;
-    buttons.unshift({
-      label: game.i18n.localize("SDE.charBuilder.title"),
-      class: "sde-char-builder-launch",
-      icon: "fa-solid fa-user-plus",
-      // Pass the launching actor so the builder edits it in place instead of
-      // spawning a second actor and leaving the original behind.
-      onclick: () => ShadowdarkCharBuilder.open({ actor }),
-    });
-  });
-
-  // "Character Builder" launch button in the Actors sidebar header — a second
-  // entry point that opens the builder with no actor (it creates a fresh one on
+  // "Character Builder" launch button in the Actors sidebar header — the single
+  // entry point. It opens the builder with no actor (it creates a fresh one on
   // finish), so players don't need an existing sheet to start. Shown to every
   // user regardless of the ACTOR_CREATE permission (deliberate: players may not
   // hold that perm in every world but should still be able to launch the
   // builder). Sits alongside the core Create Actor / Create Folder buttons.
+  //
+  // The actor-sheet header button was removed in favour of this one. The
+  // edit-in-place path it fed (builder writes back onto the launching actor
+  // rather than spawning a duplicate) is still supported by commit.mjs and
+  // reachable via `game.shadowdarkEnhancer.charBuilder.open({ actor })`.
   Hooks.on("renderActorDirectory", (_app, html) => {
     const root = html instanceof HTMLElement ? html : html?.[0];
     const header = root?.querySelector(".directory-header");

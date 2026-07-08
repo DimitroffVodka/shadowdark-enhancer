@@ -73,6 +73,24 @@ export function registerSettings() {
     default: "3d6-reroll",
   });
 
+  // Folders of portrait/token art the character builder offers players in a gallery,
+  // comma-separated. Empty = feature off. The browse runs on the GM's client, so
+  // players need neither FILES_BROWSE nor FILES_UPLOAD, and only these folders are
+  // ever exposed to them. Defaults to Tokenizer 2's own PC save locations, so art the
+  // GM tokenizes is offered to players automatically; missing folders are skipped.
+  game.settings.register(MODULE_ID, "charBuilderArtFolder", {
+    name: "SDE.settings.charBuilderArtFolder.name",
+    hint: "SDE.settings.charBuilderArtFolder.hint",
+    scope: "world",
+    config: true,
+    type: String,
+    // Ship self-contained: the module's own bundled art (a dedicated portraits
+    // folder plus the class/ancestry portraits) so the gallery is populated out
+    // of the box with no dependency on Tokenizer or any other module. A GM can
+    // append their own folders — incl. Tokenizer's save locations — via settings.
+    default: `modules/${MODULE_ID}/assets/portraits, modules/${MODULE_ID}/assets/classes, modules/${MODULE_ID}/assets/ancestries`,
+  });
+
   // Animate the builder's dice (Dice So Nice) for ability / HP / gold rolls.
   // Off by default — the audit chat card still posts, just without the 3D dice.
   game.settings.register(MODULE_ID, "charBuilderDiceSoNice", {

@@ -59,6 +59,8 @@ export async function commitCharacter(state, actor = null) {
     },
   };
 
+  applyArt(actorData, state);
+
   const allItems = await gatherItems(state, classSys);
 
   // Editing an existing actor in place — the launch-from-sheet path.
@@ -117,6 +119,11 @@ async function updateExistingActor(actor, actorData, allItems, state) {
   // otherwise keep whatever the player already named the actor.
   const update = { system: actorData.system };
   if (state.name) update.name = actorData.name;
+  // Art fields only exist on actorData when the Preview step set them, so an
+  // art-less build leaves the actor's current portrait/token alone.
+  if (actorData.img) update.img = actorData.img;
+  if (actorData.prototypeToken) update.prototypeToken = actorData.prototypeToken;
+  if (actorData.flags) update.flags = actorData.flags;
 
   try {
     await actor.update(update);
@@ -130,6 +137,21 @@ async function updateExistingActor(actor, actorData, allItems, state) {
   actor.sheet?.render(true);
   ui.notifications.info(game.i18n.format("SDE.charBuilder.commit.updated", { name: actor.name }));
   return actor;
+}
+
+/**
+ * Fold the Preview step's art choices into the actor data.
+ *
+ * Both fields are optional: an untouched slot writes nothing, so a build with no
+ * art keeps the system defaults (and, on the edit-in-place path, whatever art the
+ * actor already had).
+ */
+function applyArt(actorData, state) {
+  const art = state.art;
+  if (!art) return;
+
+  if (art.portrait) actorData.img = art.portrait;
+  if (art.token) foundry.utils.setProperty(actorData, "prototypeToken.texture.src", art.token);
 }
 
 /** Starting coins minus the gear-cart cost (clamped at zero). */

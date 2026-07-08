@@ -31,6 +31,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     // builder's own state lives on `builderState`.
     this.builderState = new CharBuilderState({ level0: !!options.level0, statMethod });
     this.actor = options.actor ?? null;
+    this._seedArtFromActor(this.actor);
     this.stepIndex = 0;
     this.steps = [
       new StatsStep(this),
@@ -66,6 +67,11 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       "cb-roll-hp": ShadowdarkCharBuilder._onStepAction,
       "cb-max-hp": ShadowdarkCharBuilder._onStepAction,
       "cb-roll-gold": ShadowdarkCharBuilder._onStepAction,
+      "cb-art-portrait": ShadowdarkCharBuilder._onStepAction,
+      "cb-art-token": ShadowdarkCharBuilder._onStepAction,
+      "cb-art-suggest": ShadowdarkCharBuilder._onStepAction,
+      "cb-art-url": ShadowdarkCharBuilder._onStepAction,
+      "cb-art-clear": ShadowdarkCharBuilder._onStepAction,
     },
   };
 
@@ -83,6 +89,31 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       ],
     },
   };
+
+  /**
+   * Launched from an existing sheet: show that actor's current art on the Preview
+   * step so it reads as "keep this" rather than "none". Re-seeding the same paths
+   * is a no-op on commit.
+   *
+   * Art nobody actually chose is skipped, so the bundled class art can suggest
+   * itself instead. That means Foundry's mystery-man AND the Shadowdark system's
+   * generic cowled-token defaults (`ACTOR_IMAGES`), which a blank Player actor is
+   * stamped with on creation — a fresh actor's `img` is never a deliberate pick.
+   */
+  _seedArtFromActor(actor) {
+    if (!actor) return;
+    const defaults = new Set([
+      Actor.implementation.DEFAULT_ICON,
+      CONST.DEFAULT_TOKEN,
+      ...Object.values(CONFIG.SHADOWDARK?.DEFAULTS?.ACTOR_IMAGES ?? {}),
+    ]);
+    const chosen = (src) => !!src && !defaults.has(src);
+
+    const art = this.builderState.art;
+    if (chosen(actor.img)) art.portrait = actor.img;
+    const tokenSrc = actor.prototypeToken?.texture?.src;
+    if (chosen(tokenSrc)) art.token = tokenSrc;
+  }
 
   get activeStep() { return this.steps[this.stepIndex]; }
 
