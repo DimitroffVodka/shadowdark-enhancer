@@ -33,6 +33,7 @@ export default [
         RollTable: "readonly",
         Roll: "readonly",
         Dialog: "readonly",
+        FilePicker: "readonly",
         Handlebars: "readonly",
         Folder: "readonly",
         Scene: "readonly",
