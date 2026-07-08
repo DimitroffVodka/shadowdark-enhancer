@@ -32,6 +32,22 @@ jobs:
           fs.writeFileSync("module.json", JSON.stringify(m, null, 2) + "\n");
           EOF
 
+      - name: Extract release notes from CHANGELOG.md
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Pull the `## [VERSION]` section up to (not including) the next `## [`.
+          awk -v v="## [$VERSION]" '
+            index($0, v)==1 {f=1; next}
+            /^## \[/ {f=0}
+            f {print}
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          # Fail loudly rather than shipping an empty-body release.
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "::error::No CHANGELOG.md section found for $VERSION"
+            exit 1
+          fi
+
       - name: Build module.zip
         run: |
           zip -r module.zip \
@@ -44,6 +60,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: v${{ steps.version.outputs.version }}
+          body_path: RELEASE_NOTES.md
           files: |
             module.json
             module.zip
