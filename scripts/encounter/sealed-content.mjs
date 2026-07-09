@@ -285,6 +285,22 @@ export const SEALED_UNITS = [
       { len: 8, hash: "76a8e11551874d968d0d339cc9ac5a84ce421489c9b2e12e2856502a3f1636a9" },
     ],
   },
+  {
+    id: "wr-spells",
+    name: "Western Reaches Necromancer Spells",
+    type: "Spell",
+    coversType: "Spell",
+    source: "WR",
+    pages: "52-58",
+    file: `modules/${MODULE_ID}/data/locked/wr-spells.json`,
+    anchors: [
+      { len: 7, hash: "dbcc07878087f208bf0754a8338f3bc56a6041b7644d34a9e1cde809d8338a74" },
+      { len: 7, hash: "edc3860170f216e4b0fee7140dbe22c2c2cf8f72e62a3928c882a93063480691" },
+      { len: 7, hash: "170012c7ea14b4d515f352a090e72cd676d8fb42cbc2449f7619369cd3747616" },
+      { len: 7, hash: "68bd090eed14d968b9bfd30981babce559241b2723460cc7c85a8c362323fca1" },
+      { len: 7, hash: "dc3772f55586cab911b5e70fd1bbbb34aaefbd20b4167e0cf51e5930ee3194a1" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */
