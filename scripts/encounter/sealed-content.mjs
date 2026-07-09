@@ -284,8 +284,12 @@ export async function captureUnitPayload({ roots = [], bundleSpellsForClass = nu
   const refs = new Map();       // uuid -> Set(world refs inside it)
   const queue = [...roots];
   if (bundleSpellsForClass) {
-    const pack = game.packs.get("world.spells");
+    // Spells live in the sde-items suite pack (type:"Spell"), not a dedicated
+    // "world.spells" collection — the old hardcoded pack no longer exists.
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    const pack = findSuitePack("sde-items") ?? game.packs.get("world.spells");
     for (const s of (pack ? await pack.getDocuments() : [])) {
+      if (s.type !== "Spell") continue;
       let c = s.system.class; c = Array.isArray(c) ? c : (c ? [c] : []);
       if (c.includes(bundleSpellsForClass)) queue.push(s.uuid);
     }
