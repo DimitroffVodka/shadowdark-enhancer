@@ -51,8 +51,13 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 | cs6-tables | RollTable | CS6 | 25 (Carousing, encounters, identifiers, rumors, NPCs…) | **committed** | ✅ |
 | cs6-bard | Class | CS6 | — | NOT NEEDED — "Bard (Legacy)" in system pack IS the CS6 Bard (same opening/hit die/titles/abilities: Fascinate, Magical Dabbler, Bardic Arts); ships with Shadowdark | n/a |
 | wr-spells | Spell | WR | 25 Necromancer spells (WR-original) | **committed** | ✅ |
-| wr-cs-spells (dual-source) | Spell | WR | 48 CS4/5/6 spells, WR-anchored | todo — so WR owners unlock the CS spell reprints | ❌ |
-| cs5-delver / cs5-wyrdling / cs6-duelist (dual-source) | Class | CS5/CS6 | class twins so CS books unlock them (WR already does) | todo | ❌ |
+| wr-priest-spells | Spell | WR | 29 Priest Lawful/Neutral/Chaotic (WR-original) | **committed** | ✅ |
+| wr-gear | Basic/Weapon/Armor | WR | 27 (Mithral shields, boats, siege, weapons) | **committed** | ✅ |
+| wr-half-elf | Ancestry | WR | Half-Elf (+Adaptable) | **committed** | ✅ |
+| wr-ancestry-tables | Table | WR | 16 Name/Trinket tables | **committed** | ✅ |
+| wr-spell-mishaps | Table | WR | 4 mishap + Faction Generator (Warbands) | **committed** | ✅ |
+| wr-cs-spells (dual-source) | Spell | WR | 48 CS4/5/6 spells, WR-anchored | **committed** | ✅ |
+| cs5-delver / cs5-wyrdling / cs6-duelist (dual-source) | Class | CS5/CS6 | class twins — CS books unlock them | **committed** | ✅ |
 | wr-gear | Basic/Weapon/Armor | WR | 26 items | todo | ❌ |
 | wr-half-elf | Ancestry | WR | 1 ancestry | todo | ❌ |
 | wr-talents-orphan | Talent | WR | audit result | todo | ❌ |
