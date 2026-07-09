@@ -78,6 +78,10 @@ A single ApplicationV2 front door for getting Shadowdark content into your world
 
 Six tabs — **Import / Tables / Monsters / Items / Journal / Scenes** — each a catalog-driven dashboard that reconciles a manifest of what each *Cursed Scroll* (CS1–CS6), the Core rules, and the *Player's Guide to the Western Reaches* contain against your world, marking every entry **in-system / imported / missing**. Missing rows carry an **Import** button that seeds the paste box; a global source filter scopes all tabs at once. Imported tables are auto-enriched with `@UUID` monster/item links and inline-roll counts.
 
+#### 🔒 Sealed sourcebook content (unlock with your own books)
+
+The module ships a growing library of **pre-authored, verified** content for the *Cursed Scrolls* and *Western Reaches* — classes, ancestries, backgrounds, spells, gear, monsters, and roll tables — so you don't have to hand-fix messy PDF pastes. **No readable rules text is bundled**: each unit is AES-GCM **encrypted**, and the key is derived from anchor phrases in the sourcebook itself. To unlock a unit, click **Unlock** on a missing entry and **paste that book's section** — proving you own the book. The pre-authored, link-remapped documents then import exactly as intended (idempotent — nothing is duplicated). Content that appears in more than one book (e.g. the Delver/Wyrdling classes, or the *Cursed Scroll* spells reprinted in *Western Reaches*) unlocks from **either** source. Content the Shadowdark **system already ships** (core spells, the base bestiary, the legacy Bard) is never sealed — you already have it.
+
 ### 💰 Loot & Magic Items
 
 - **Loot Generator** — generate a treasure hoard for a party level and post a **claimable** chat card; the first player to click **Claim** takes coins/items (coins are added to their character; the assignment is locked so loot goes to exactly one actor).
