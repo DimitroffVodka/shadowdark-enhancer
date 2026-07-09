@@ -48,8 +48,8 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 | cs5-gear | Basic | CS5 | 12 gear | **committed** | ✅ |
 | cs5-monsters | Actor | CS5 | 5 monsters | **committed** | ✅ |
 | cs6-spells | Spell | CS6 | 16 spells (Lawful Wizard/Mage) | **committed** | ✅ |
-| cs6-tables | RollTable | CS6 | ~25 (Carousing, encounters…) | todo — needs table-unlock wiring | ❌ |
-| cs6-bard | Class | CS6 | — | blocked: no Bard class item in world | ❌ |
+| cs6-tables | RollTable | CS6 | 25 (Carousing, encounters, identifiers, rumors, NPCs…) | **committed** | ✅ |
+| cs6-bard | Class | CS6 | — | NOT NEEDED — "Bard (Legacy)" in system pack IS the CS6 Bard (same opening/hit die/titles/abilities: Fascinate, Magical Dabbler, Bardic Arts); ships with Shadowdark | n/a |
 | wr-spells | Spell | WR | ~51 spells | todo | ❌ |
 | wr-gear | Basic/Weapon/Armor | WR | 26 items | todo | ❌ |
 | wr-half-elf | Ancestry | WR | 1 ancestry | todo | ❌ |

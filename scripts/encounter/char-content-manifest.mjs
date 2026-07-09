@@ -50,6 +50,11 @@ const MANIFEST = {
       "Identify", "Meld", "Pacify", "Permanence", "Push/Pull", "Reveal",
       "Speak With Object", "Stasis", "Ward",
     ],
+    // Carousing (+ the rest of the CS6 tables) ship sealed as one unit
+    // (cs6-tables, coversType:"Table"); unlocking any entry unseals all 25.
+    Table: [
+      "Carousing Outcome", "Carousing Outcome - Benefit", "Carousing Outcome - Mishap",
+    ],
   },
   WR: {
     Class: [
@@ -282,7 +287,9 @@ export async function gatherCharContentEntries(presence) {
       for (const name of names) {
         out.push({
           src, type, name,
-          present: present.has(_key(type, name)),
+          // Tables live in the RollTable pack, not the Item packs — check them
+          // via the table-presence set (suffix match), like the WR ancestry tables.
+          present: type === "Table" ? _tableHave(tablesPresent, name) : present.has(_key(type, name)),
           pages: ITEM_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? "",
         });
       }
@@ -326,6 +333,40 @@ export async function gatherCharContentCensus() {
 // item-importer.buildItemData knows how to turn into system-shaped items.
 
 const _para = (text) => text.split(/\n\s*\n/).map((p) => `<p>${p.replace(/\s*\n\s*/g, " ").trim()}</p>`).join("");
+
+/**
+ * Build an ancestry description from a raw paste. Unlike `_para` (blank-line
+ * paragraphs only), this also handles the common PDF-paste shape where every
+ * source line is single-newline-separated with no blank lines: it drops the
+ * leading name/header line (the item already carries the name) and breaks each
+ * ALL-CAPS section header (POPULATION, ORIGINS, …) onto its own bold,
+ * title-cased paragraph instead of running them all into one blob.
+ */
+const _isAncestryHeader = (l) => /^[A-Z][A-Z'’\- ]{2,20}:?$/.test(l) && !/[a-z]/.test(l);
+
+function _ancestryDescription(src) {
+  const lines = String(src).split("\n").map((l) => l.trim());
+  let i = 0;
+  while (i < lines.length && !lines[i]) i++;   // skip leading blanks…
+  i++;                                          // …then the name/header line itself
+  const paras = [];                             // { header: string|null, text: string[] }
+  let cur = null;
+  for (; i < lines.length; i++) {
+    const l = lines[i];
+    if (!l) { cur = null; continue; }           // blank line → break the paragraph
+    if (_isAncestryHeader(l)) { cur = { header: l.replace(/:$/, ""), text: [] }; paras.push(cur); continue; }
+    if (!cur) { cur = { header: null, text: [] }; paras.push(cur); }
+    cur.text.push(l);
+  }
+  return paras.map((p) => {
+    const body = p.text.join(" ").replace(/\s+/g, " ").trim();
+    if (p.header) {
+      const label = p.header[0] + p.header.slice(1).toLowerCase();
+      return body ? `<p><strong>${label}.</strong> ${body}</p>` : `<p><strong>${label}.</strong></p>`;
+    }
+    return body ? `<p>${body}</p>` : "";
+  }).filter(Boolean).join("");
+}
 
 /** "Name. Flavor sentence" per line (leading d100 roll numbers tolerated). */
 function _parseBackgrounds(text) {
@@ -386,44 +427,233 @@ function _parseClasses(text) {
   }];
 }
 
+/** Word/number → count, for "one additional common language". */
+const _WORD_NUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5 };
+
+/**
+ * Parse an ancestry's language grant into the AncestrySD `languages` shape:
+ *   { common, rare, select, selectOptions, fixed }
+ * "You know the Common and Elvish languages, plus one additional common
+ * language." → fixed ["Common","Elvish"], common 1. Best-effort: an
+ * unrecognized phrasing just yields empty language fields (edit in the sheet).
+ */
+function _parseAncestryLanguages(text) {
+  const lang = { common: 0, rare: 0, select: 0, selectOptions: [], fixed: [] };
+  const flat = String(text).replace(/\s+/g, " ");
+  // Fixed known languages: "know the Common and Elvish languages".
+  const known = flat.match(/know(?:s)?\s+(?:the\s+)?([A-Z][\w'-]+(?:\s*(?:,|and)\s*[A-Z][\w'-]+)*)\s+languages?/i);
+  if (known) {
+    for (const w of known[1].split(/\s*(?:,|and)\s*/)) {
+      const name = w.trim();
+      if (name && /^[A-Z]/.test(name)) lang.fixed.push(name);
+    }
+  }
+  // Additional to-choose: "plus one additional common language".
+  const addRe = /(?:plus|and|know)\s+(\w+)\s+(?:additional\s+)?(common|rare)\s+languages?/ig;
+  let m;
+  while ((m = addRe.exec(flat))) {
+    const n = _WORD_NUM[m[1].toLowerCase()] ?? Number(m[1]);
+    if (!Number.isFinite(n) || n <= 0) continue;
+    if (m[2].toLowerCase() === "common") lang.common += n; else lang.rare += n;
+  }
+  return lang;
+}
+
+/** One ancestry per paste. Name + flavor become the item; the language grant is
+ *  lifted into system.languages so the char-builder can apply it. Talents stay
+ *  in the description (no reliable UUID to link) — the GM sets them on the sheet. */
+/** Section captions that are NOT the ancestry name. */
+const _ANC_SECTION = /^(POPULATION|ORIGINS|NAMES|DETAILS|PART\s*\d+)$/i;
+
+function _parseAncestries(text) {
+  const lines = String(text).split("\n").map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return [];
+
+  // Name: prefer a "<Name> Ancestry" header, then the ALL-CAPS name caption
+  // ("HALF-ELF"), then the first lettered line. A bare page number ("24") on
+  // the first line must never become the name.
+  let name = "";
+  const hdr = lines.map((l) => l.match(/^(.+?)\s+Ancestry$/i)).find((m) => m && /[a-z]/i.test(m[1]) && m[1].length <= 40);
+  if (hdr) name = hdr[1].trim();
+  const capsIdx = lines.findIndex((l) => _isAncestryHeader(l) && !_ANC_SECTION.test(l));
+  if (!name && capsIdx !== -1) name = lines[capsIdx];
+  if (!name) name = lines.find((l) => /[a-zA-Z]/.test(l) && !/^\d+$/.test(l)) ?? "";
+  if (!name || name.length > 50) return [];
+  if (!/[a-z]/.test(name)) name = name.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+
+  // Description source: start at the ALL-CAPS name caption (so _ancestryDescription
+  // skips it as the title), stop before any trailing name-part table, and drop
+  // bare page-number lines. Keeps the POPULATION/ORIGINS sub-headers.
+  const start = capsIdx !== -1 ? capsIdx : 0;
+  const cut = lines.findIndex((l, i) => i > start &&
+    (/^d10\b/i.test(l) || /^NAMES$/i.test(l) || /part\s*1\s+part\s*2/i.test(l)));
+  const descSrc = (cut === -1 ? lines.slice(start) : lines.slice(start, cut))
+    .filter((l) => !/^\d+$/.test(l))
+    .join("\n");
+
+  return [{
+    draft: {
+      name,
+      type: "Ancestry",
+      description: _ancestryDescription(descSrc),
+      languages: _parseAncestryLanguages(descSrc),
+    },
+  }];
+}
+
+/** Cartesian d100 expansion of two 10-item name-part columns:
+ *  entry n = part1[⌈n/10⌉] + part2[((n−1) mod 10)+1] → "Den-" + "-dor" = "Dendor". */
+function _expandNameParts(name, p1, p2) {
+  const join = (a, b) => a.replace(/-+$/, "") + b.replace(/^-+/, "");
+  const rows = [];
+  for (let i = 0; i < 10; i++) {
+    for (let j = 0; j < 10; j++) {
+      const n = i * 10 + j + 1;
+      rows.push({ min: n, max: n, text: join(p1[i], p2[j]) });
+    }
+  }
+  // category id from table-categories.mjs — files under "Character Names".
+  return { name: name || "Names", formula: "1d100", rows, warnings: [], category: "character-names" };
+}
+
+/** The trimmed sub-block starting at the next table header/caption after index
+ *  `from` (a dN line or an ALL-CAPS caption), or "" — used to hand a trailing
+ *  sibling table (e.g. a Trinket table pasted right after the Names) back to
+ *  the parser instead of swallowing it into the name-part block. */
+function _blockTail(lines, from) {
+  for (let i = from + 1; i < lines.length; i++) {
+    if (/^d\d{1,3}\b/i.test(lines[i]) || /^[A-Z][A-Z' -]{2,}$/.test(lines[i])) return lines.slice(i).join("\n");
+  }
+  return "";
+}
+
+/** The source-prefixed table name for a name-part table whose ancestry was
+ *  borrowed from a sibling "<Ancestry> Names/Trinket(s)" caption in the block
+ *  (e.g. "HALFLING TRINKET" → "Western Reaches - Halfling Names"). Ancestry
+ *  Names/Trinkets tables are always WR content, so it mirrors the WR prefix the
+ *  hub's identify path stamps on the sibling Trinket table. "" when no caption. */
+function _nameFromBlock(block) {
+  const id = identifyAncestryTable(block);
+  if (!id) return "";
+  const ancestry = id.name.replace(/\s+(Names|Trinkets)$/i, "").trim();
+  return `${CHAR_SOURCES.WR.label} - ${ancestry} Names`;
+}
+
 /**
  * Expand "d10 Part 1 Part 2" two-column name tables into d100 ParsedTable
- * drafts the existing tables commit path understands. Entry n combines
- * part1[⌈n/10⌉] + part2[((n−1) mod 10)+1]: "Sk-" + "-ix" → "Skix".
- * Returns { tables, remainder } — matched blocks are removed from the text so
- * the normal table parser doesn't double-parse them.
+ * drafts the existing tables commit path understands. Two paste shapes:
+ *   A (inline):  a "d10 Part 1 Part 2" header, then "n p1 p2" rows.
+ *   B (stacked): a lone "d10", then "Part 1"/"Part 2" labels each followed by
+ *                their 10 cells stacked whole — the column-major PDF copy.
+ * Consumes only the name-part region; a trailing sibling table (Trinkets) is
+ * returned in `remainder` so the normal parser still gets it.
  */
 export function expandNamePartTables(text) {
   const tables = [];
   const keptBlocks = [];
   for (const block of String(text).split(/\n\s*\n/)) {
     const lines = block.split("\n").map((l) => l.trim()).filter((l) => l && !/^NAMES$/i.test(l));
+
+    // ── Format A: inline header + "n p1 p2" rows ──
     const hi = lines.findIndex((l) => /^d10\s+part\s*1\s+part\s*2$/i.test(l));
-    if (hi === -1) { keptBlocks.push(block); continue; }
-    // Title: only the line directly above the header, and only if it looks
-    // like one — OCR junk ahead of the table must not poison the name.
-    const cand = (hi >= 1 ? lines[hi - 1] : "").replace(/\s+/g, " ").trim();
-    const name = /^[A-Z][A-Za-z' -]{2,40}$/.test(cand) ? cand : "";
-    const p1 = [], p2 = [];
-    for (const l of lines.slice(hi + 1)) {
-      const m = l.match(/^(\d{1,2})\s+(\S+)\s+(\S+)$/);
-      if (m) { const i = Number(m[1]) - 1; p1[i] = m[2]; p2[i] = m[3]; }
-    }
-    if (p1.filter(Boolean).length !== 10 || p2.filter(Boolean).length !== 10) {
+    if (hi !== -1) {
+      // Title: only the line directly above the header, and only if it looks
+      // like one — OCR junk ahead of the table must not poison the name.
+      const cand = (hi >= 1 ? lines[hi - 1] : "").replace(/\s+/g, " ").trim();
+      const name = /^[A-Z][A-Za-z' -]{2,40}$/.test(cand) ? cand : "";
+      const p1 = [], p2 = [];
+      let lastIdx = hi;
+      for (let i = hi + 1; i < lines.length; i++) {
+        const m = lines[i].match(/^(\d{1,2})\s+(\S+)\s+(\S+)$/);
+        if (m) { const idx = Number(m[1]) - 1; p1[idx] = m[2]; p2[idx] = m[3]; lastIdx = i; }
+      }
+      if (p1.filter(Boolean).length === 10 && p2.filter(Boolean).length === 10) {
+        tables.push(_expandNameParts(name || _nameFromBlock(block), p1, p2));
+        const rest = _blockTail(lines, lastIdx);
+        if (rest.trim()) keptBlocks.push(rest);
+        continue;
+      }
       keptBlocks.push(block); continue;
     }
-    const join = (a, b) => a.replace(/-+$/, "") + b.replace(/^-+/, "");
-    const rows = [];
-    for (let i = 0; i < 10; i++) {
-      for (let j = 0; j < 10; j++) {
-        const n = i * 10 + j + 1;
-        rows.push({ min: n, max: n, text: join(p1[i], p2[j]) });
+
+    // ── Format B: stacked OR interleaved copy. Both "Part N" labels appear
+    // (adjacent or separated) plus a lone "d10"; the fragments follow, either
+    // column-stacked (Part 1's ten, then Part 2's ten) or interleaved (prefix,
+    // suffix, prefix, suffix…). Classify by the prefix-/-suffix hyphen
+    // convention first (order-independent — handles both); fall back to a
+    // positional split for the rare hyphen-less stacked paste. ──
+    const p1i = lines.findIndex((l) => /^part\s*1$/i.test(l));
+    const p2i = lines.findIndex((l) => /^part\s*2$/i.test(l));
+    if (lines.some((l) => /^d10\b/i.test(l)) && p1i !== -1 && p2i !== -1) {
+      // Drop the die faces (bare numbers), the d10 header, and the "Part N"
+      // labels. Collect the first 10 prefixes + 10 suffixes IN ORDER (prose
+      // interleaved between them is skipped), tracking where they end so a
+      // trailing sibling table stays in the remainder.
+      const isCell = (l) => l && !/^\d{1,3}$/.test(l) && !/^d10\b/i.test(l) && !/^part\s*\d+$/i.test(l);
+      const start = Math.min(p1i, p2i) + 1;
+      const pre = [], suf = [];
+      let lastIdx = start - 1;
+      for (let i = start; i < lines.length && (pre.length < 10 || suf.length < 10); i++) {
+        const l = lines[i];
+        if (!isCell(l)) continue;
+        if (/-\s*$/.test(l) && !/^\s*-/.test(l)) { if (pre.length < 10) { pre.push(l); lastIdx = i; } }      // "Ima-"
+        else if (/^\s*-/.test(l) && !/-\s*$/.test(l)) { if (suf.length < 10) { suf.push(l); lastIdx = i; } } // "-rien"
+      }
+      const nm = _nameFromBlock(block);
+      if (pre.length === 10 && suf.length === 10) {
+        tables.push(_expandNameParts(nm, pre, suf));
+        const rest = _blockTail(lines, lastIdx);
+        if (rest.trim()) keptBlocks.push(rest);
+        continue;
+      }
+      // No hyphen convention → positional split (Part 1's ten, then Part 2's).
+      if (p2i > p1i + 1) {
+        const p1 = lines.slice(p1i + 1, p2i).filter(isCell).slice(0, 10);
+        const p2 = lines.slice(p2i + 1).filter(isCell).slice(0, 10);
+        if (p1.length === 10 && p2.length === 10) {
+          tables.push(_expandNameParts(nm, p1, p2));
+          continue;
+        }
       }
     }
-    // category id from table-categories.mjs — files under "Character Names"
-    tables.push({ name: name || "Names", formula: "1d100", rows, warnings: [], category: "character-names" });
+
+    keptBlocks.push(block);
   }
   return { tables, remainder: keptBlocks.join("\n\n") };
+}
+
+/**
+ * The worst-case PDF copy of a two-column range table: the ranges are lifted
+ * into a block of their own (often mashed together with no gap, e.g.
+ * "25-2627-2829-3031-32") and the descriptions follow as a separate block. The
+ * ranges are unrecoverable in place, but a d100 trinket table is always a
+ * sequence of even pairs, so we rebuild them from the ORDERED descriptions:
+ * text i → [i·w+1 … i·w+w]. Returns rebuilt "range text" lines + a note, or
+ * null when the paste isn't this shape (no run of ≥3 range-only lines).
+ */
+function _rebuildTransposedRanges(raw) {
+  const stripTail = (l) => l
+    .replace(/\s*[A-Z][A-Z' ]+$/, "")     // trailing ALL-CAPS caption ("ELF TRINKET")
+    .replace(/\s*[Dd]etails?$/, "")       // trailing "Details" run-on
+    .trim();
+  const isRangeJunk = (l) => { const s = stripTail(l); return /\d/.test(s) && /^[\d\s\-–—]+$/.test(s); };
+  const texts = [];
+  let run = 0, sawBlock = false;
+  for (const line of String(raw).split("\n").map((l) => l.trim()).filter(Boolean)) {
+    if (isRangeJunk(line)) { run += 1; if (run >= 3) sawBlock = true; continue; }
+    run = 0;
+    if (/^d\d+$/i.test(line)) continue;                          // die header
+    if (/^(details?|results?|effects?)$/i.test(line)) continue;  // column header
+    if (/^[A-Z][A-Z' -]{2,}$/.test(line)) continue;              // all-caps caption
+    texts.push(line);
+  }
+  if (!sawBlock || texts.length < 4) return null;
+  const w = 100 % texts.length === 0 ? 100 / texts.length : 2;
+  const rows = texts.map((t, i) => `${i * w + 1}-${i * w + w} ${t}`);
+  return {
+    text: rows.join("\n"),
+    notes: [`Rebuilt ${texts.length} sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book.`],
+  };
 }
 
 /**
@@ -431,18 +661,47 @@ export function expandNamePartTables(text) {
  * line holds two entries: "1-2 Granite figurine   51-52 Nice cooking pot").
  * Splits every such line into two, folds "…-00" to 100, drops header/caption
  * lines, sorts by range, and auto-repairs overlapping starts caused by print
- * typos (21-24 after 21-22 → 23-24). Returns { text, notes } — text unchanged
- * when no two-column lines were found.
+ * typos (21-24 after 21-22 → 23-24). Also rebuilds the worst-case copy where
+ * the ranges were lifted into a separate block (see _rebuildTransposedRanges).
+ * Returns { text, notes } — text unchanged when no range layout was found.
  */
 export function normalizeTwoColumnRanges(text) {
+  const transposed = _rebuildTransposedRanges(text);
+  if (transposed) return transposed;
+
   const pair = String.raw`(\d{1,3})\s*[-–]\s*(\d{1,3}|00)\s+`;
   const twoCol = new RegExp(`^${pair}(.*?)\\s+${pair}(.*)$`);
   const oneCol = new RegExp(`^${pair}(.*)$`);
+  const lone = /^(\d{1,3})\s*[-–]\s*(\d{1,3}|00)$/;   // a range alone on its line
+  const toN = (v) => (v === "00" ? 100 : Number(v));
+
+  // Coalesce a split PDF copy where a range and its text landed on separate
+  // lines ("1-2\n Granite figurine") into one "range text" line the matchers
+  // understand. Only a BARE range followed by a non-range/non-header text line
+  // is joined, so normal single-line tables are left untouched.
+  const raws = String(text).split("\n");
+  const lines = [];
+  let sawSplit = false;
+  for (let i = 0; i < raws.length; i++) {
+    const cur = raws[i].trim();
+    if (lone.test(cur)) {
+      let j = i + 1;
+      while (j < raws.length && raws[j].trim() === "") j++;
+      const next = j < raws.length ? raws[j].trim() : "";
+      if (next && !lone.test(next) && !/^d\d+\b/i.test(next) && !new RegExp(`^${pair}`).test(next)) {
+        lines.push(`${cur} ${next}`);
+        sawSplit = true;
+        i = j;
+        continue;
+      }
+    }
+    lines.push(raws[i]);
+  }
+
   const rows = [];
   let sawTwoCol = false;
   let title = "";
-  const toN = (v) => (v === "00" ? 100 : Number(v));
-  for (const raw of String(text).split("\n")) {
+  for (const raw of lines) {
     const line = raw.trim();
     let m = line.match(twoCol);
     if (m) {
@@ -454,10 +713,13 @@ export function normalizeTwoColumnRanges(text) {
     m = line.match(oneCol);
     if (m) { rows.push({ min: toN(m[1]), max: toN(m[2]), text: m[3].trim() }); continue; }
     // Keep the first title-looking line (mixed case, no dice header) so the
-    // rebuilt block stays named — all-caps page captions don't qualify.
-    if (!title && /[a-z]/.test(line) && /^[A-Z][A-Za-z' -]{2,40}$/.test(line) && !/^d\d+/i.test(line)) title = line;
+    // rebuilt block stays named — all-caps page captions and generic column
+    // headers ("Details", "Result", …) don't qualify.
+    if (!title && /[a-z]/.test(line) && /^[A-Z][A-Za-z' -]{2,40}$/.test(line)
+        && !/^d\d+/i.test(line)
+        && !/^(details?|results?|effects?|items?|features?|trinkets?|names?)$/i.test(line)) title = line;
   }
-  if (!sawTwoCol || rows.length < 4) return { text, notes: [] };
+  if ((!sawTwoCol && !sawSplit) || rows.length < 4) return { text, notes: [] };
 
   rows.sort((a, b) => a.min - b.min || a.max - b.max);
   const notes = [];
@@ -479,13 +741,17 @@ export function normalizeTwoColumnRanges(text) {
  * Returns { name, pages, category } or null.
  */
 export function identifyAncestryTable(text) {
+  // Normalize identically on both sides — drop non-letters so a hyphenated
+  // caption ("HALF-ELF TRINKET" → "half elf trinket") still matches the
+  // manifest name ("Half-Elf Trinkets" → "half elf trinkets").
+  const norm = (s) => s.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
   for (const raw of String(text).split("\n")) {
     const line = raw.trim();
     if (!/^[A-Z][A-Z' -]{2,40}$/.test(line)) continue;   // all-caps captions only
-    const norm = line.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+    const cap = norm(line);
     for (const t of ANCESTRY_TABLES) {
-      const want = t.name.toLowerCase();
-      if (norm === want || `${norm}s` === want || norm === `${want}s`) {
+      const want = norm(t.name);
+      if (cap === want || `${cap}s` === want || cap === `${want}s`) {
         return { name: t.name, pages: t.pages,
           category: /\bnames$/i.test(t.name) ? "character-names" : "trinkets" };
       }
@@ -494,10 +760,11 @@ export function identifyAncestryTable(text) {
   return null;
 }
 
-/** @param {"backgrounds"|"talents"|"classes"} kind */
+/** @param {"backgrounds"|"talents"|"classes"|"ancestries"} kind */
 export function parseCharContent(text, kind) {
   if (kind === "backgrounds") return _parseBackgrounds(text);
   if (kind === "talents") return _parseTalents(text);
   if (kind === "classes") return _parseClasses(text);
+  if (kind === "ancestries") return _parseAncestries(text);
   return [];
 }

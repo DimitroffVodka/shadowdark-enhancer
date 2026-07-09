@@ -269,6 +269,22 @@ export const SEALED_UNITS = [
       { len: 6, hash: "6468bf9972689dfe80a34c0ac749b272600a5a7fd800ff9fe221b0f3d448f2f9" },
     ],
   },
+  {
+    id: "cs6-tables",
+    name: "Cursed Scroll 6 Tables",
+    type: "Table",
+    coversType: "Table",   // any locked CS6 Table (src CS6) unlocks the whole set
+    source: "CS6",
+    pages: "28-34",
+    file: `modules/${MODULE_ID}/data/locked/cs6-tables.json`,
+    anchors: [
+      { len: 8, hash: "4bb541e84dbf89ca2139b75d1734e4b8e5d210bf7b85baa41b5e7cd9a81032fc" },
+      { len: 8, hash: "72f3cccb7bcdc7f28589d5224132f218fd4636b37e3ddd50d3f9ca1fce7a405b" },
+      { len: 7, hash: "b39d4bcbe5edffa33e1a20540c692a797616d6a727793ae34106429e31d9f8aa" },
+      { len: 6, hash: "731fae349b908b2b6e978336625c9f5478be407442506a8c78d661a9e93c5856" },
+      { len: 8, hash: "76a8e11551874d968d0d339cc9ac5a84ce421489c9b2e12e2856502a3f1636a9" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */
