@@ -189,6 +189,22 @@ export const SEALED_UNITS = [
       { len: 7, hash: "355aeb783456399c0af530783f943aadf69be50c660b7e0e225945db13435216" },
     ],
   },
+  {
+    id: "cs4-monsters",
+    name: "Cursed Scroll 4 Monsters",
+    type: "Actor",
+    coversType: "Actor",   // any locked CS4 monster (src CS4) unlocks the set
+    source: "CS4",
+    pages: "55-66",
+    file: `modules/${MODULE_ID}/data/locked/cs4-monsters.json`,
+    anchors: [
+      { len: 6, hash: "61571c81871a28a228884bf4d19dabe540001d581c67261b26aa721dc0903714" },
+      { len: 5, hash: "68d41c325e3eedab17d731a277226b61b9b6af4f02b992e0f6c61bea12f786a2" },
+      { len: 3, hash: "9aab0ff6eb1f4eb3ca980d1137af12de9c88fb330236840bac723b02d039a0b3" },
+      { len: 4, hash: "d3fc9f46d0000276c6a47d493638021716836101c1bc1287b4114f35092106a5" },
+      { len: 6, hash: "37e543421290c6f4b862f2f4f370ee92bbf72981a6f9cc5dc2cf5ca3289dfe27" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */
@@ -346,7 +362,9 @@ export async function captureUnitPayload({ roots = [], bundleSpellsForClass = nu
     for (const k of ["_id", "_stats", "ownership", "sort", "folder"]) delete data[k];
     let json = JSON.stringify(data);
     for (const [refU, refI] of idx) if (refU !== u) json = json.split(refU).join(`@@LOCAL:${refI}@@`);
-    out.push({ kind: d.documentName === "RollTable" ? "RollTable" : "Item", data: JSON.parse(json), folder: _sealFolderPath(d) });
+    const kind = d.documentName === "RollTable" ? "RollTable"
+      : d.documentName === "Actor" ? "Actor" : "Item";
+    out.push({ kind, data: JSON.parse(json), folder: _sealFolderPath(d) });
   }
   return { docs: out };
 }
@@ -388,6 +406,7 @@ export async function importSealedPayload(payload) {
   await ensureSuite();
   const itemPack = findSuitePack("sde-items") ?? game.packs.get("world.shadowdark-enhancer--items");
   const tablePack = findSuitePack("sde-tables") ?? game.packs.get("world.shadowdark-enhancer--roll-tables");
+  const actorPack = findSuitePack("sde-actors") ?? game.packs.get("world.shadowdark-enhancer--actors");
   // Route an Item to its type-specific pack (falls back to sde-items for gear).
   const packForItem = (type) => (SEALED_ITEM_PACK[type] && findSuitePack(SEALED_ITEM_PACK[type])) || itemPack;
   const uuids = [];
@@ -422,6 +441,12 @@ export async function importSealedPayload(payload) {
       if (e) { uuids.push(`Compendium.${tablePack.collection}.RollTable.${e._id}`); created.push({ kind: entry.kind, name: data.name, uuid: uuids.at(-1), reused: true }); continue; }
       const folderId = entry.folder ? (await ensureFolder(tablePack, entry.folder, "RollTable")).id : null;
       [doc] = await RollTable.createDocuments([{ ...data, folder: folderId }], { pack: tablePack.collection });
+    } else if (entry.kind === "Actor") {
+      const idx = await actorPack.getIndex();
+      const e = idx.find((x) => x.name === data.name);
+      if (e) { uuids.push(`Compendium.${actorPack.collection}.Actor.${e._id}`); created.push({ kind: entry.kind, name: data.name, uuid: uuids.at(-1), reused: true }); continue; }
+      const folderId = entry.folder ? (await ensureFolder(actorPack, entry.folder, "Actor")).id : null;
+      [doc] = await Actor.createDocuments([{ ...data, folder: folderId }], { pack: actorPack.collection });
     }
     uuids.push(doc?.uuid ?? "");
     created.push({ kind: entry.kind, name: doc?.name, uuid: doc?.uuid });

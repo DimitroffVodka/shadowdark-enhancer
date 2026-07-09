@@ -839,11 +839,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Sealed units first: if the paste contains the section's key phrases,
     // decrypt the pre-authored, verified documents instead of parsing.
     this._importSealed = null;
-    if (this._importSeed?._charSeed) {
+    const seed = this._importSeed;
+    if (seed?._charSeed || seed?._monsterSeed) {
       const { sealedUnitsFor, tryUnseal } = await import("./sealed-content.mjs");
-      const candidates = sealedUnitsFor({
-        name: this._importSeed.name, type: this._importSeed.type, source: this._importSeed.src,
-      });
+      // A monster-census seed carries no doc type; it always covers Actor units.
+      const seedType = seed._monsterSeed ? "Actor" : seed.type;
+      const candidates = sealedUnitsFor({ name: seed.name, type: seedType, source: seed.src });
       let best = { found: 0, total: 0, unit: null };
       for (const unit of candidates) {
         // eslint-disable-next-line no-await-in-loop
