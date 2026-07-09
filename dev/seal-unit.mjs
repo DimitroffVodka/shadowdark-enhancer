@@ -44,7 +44,11 @@ function _folderIdsUnder(pack, path) {
   return [...ids];
 }
 
-/** Resolve explicit roots + folder selectors → a deduped uuid list. */
+/**
+ * Resolve explicit roots + folder selectors → a deduped uuid list. A folder
+ * spec is { pack, path, type? } — `type` (e.g. "Spell") restricts to that doc
+ * type so a mixed source folder yields only the wanted docs.
+ */
 export async function collectRoots({ roots = [], folders = [] } = {}) {
   const out = [...roots];
   for (const spec of folders) {
@@ -53,7 +57,10 @@ export async function collectRoots({ roots = [], folders = [] } = {}) {
     const ids = new Set(_folderIdsUnder(pack, spec.path));
     if (!ids.size) { console.warn(`seal-unit: folder ${spec.path.join("/")} not in ${spec.pack}`); continue; }
     const docs = await pack.getDocuments();
-    for (const d of docs) { const fid = d.folder?.id; if (fid && ids.has(fid)) out.push(d.uuid); }
+    for (const d of docs) {
+      const fid = d.folder?.id;
+      if (fid && ids.has(fid) && (!spec.type || d.type === spec.type)) out.push(d.uuid);
+    }
   }
   return [...new Set(out)];
 }
@@ -64,14 +71,15 @@ export async function collectRoots({ roots = [], folders = [] } = {}) {
  */
 export async function buildSealedUnit({
   id, name, type, source, pages = "", coversType = null,
-  roots = [], folders = [], bundleSpellsForClass = null, anchorPhrases = [],
+  roots = [], folders = [], bundleSpellsForClass = null, rootsOnly = false,
+  anchorPhrases = [], writeToDisk = false,
 } = {}) {
   if (!id || !name || !type) throw new Error("buildSealedUnit: id, name, type required");
   if (!Array.isArray(anchorPhrases) || anchorPhrases.length < 3) {
     throw new Error("buildSealedUnit: provide ≥3 anchorPhrases (verbatim from the book section)");
   }
   const allRoots = await collectRoots({ roots, folders });
-  const payload = await captureUnitPayload({ roots: allRoots, bundleSpellsForClass });
+  const payload = await captureUnitPayload({ roots: allRoots, bundleSpellsForClass, rootsOnly });
   if (!payload.docs.length) throw new Error("buildSealedUnit: captured 0 docs — check roots/folders");
 
   const { encBase64, anchorsMeta } = await sealUnit(payload, anchorPhrases);
@@ -97,5 +105,16 @@ export async function buildSealedUnit({
     verified = JSON.parse(new TextDecoder().decode(plain)).docs.length === payload.docs.length;
   } catch (_e) { verified = false; }
 
-  return { id, filePath: `data/locked/${id}.json`, encBase64, docCount: payload.docs.length, kinds, registryEntry, verified };
+  // Write the blob straight to disk (byte-exact) — the module dir lives under
+  // Foundry's Data path, so this lands in the repo. ALWAYS prefer this over
+  // hand-copying encBase64 (28KB pastes corrupt silently — same length, wrong
+  // bytes, decrypt fails).
+  let written = null;
+  if (writeToDisk) {
+    const file = new File([encBase64], `${id}.json`, { type: "text/plain" });
+    const up = await FilePicker.upload("data", `modules/${MODULE_ID}/data/locked`, file, {}, { notify: false });
+    written = up?.path ?? null;
+  }
+
+  return { id, filePath: `data/locked/${id}.json`, encBase64, docCount: payload.docs.length, kinds, registryEntry, verified, written };
 }

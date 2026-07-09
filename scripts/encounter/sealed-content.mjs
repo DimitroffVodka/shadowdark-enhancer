@@ -173,6 +173,22 @@ export const SEALED_UNITS = [
       { len: 7, hash: "cbd3d57706de5a16368eceed905bd88a118da375d1f5a55ea39c35cff5826dc4" },
     ],
   },
+  {
+    id: "cs4-spells",
+    name: "Cursed Scroll 4 Spells",
+    type: "Spell",
+    coversType: "Spell",   // any locked CS4 Spell (src CS4) unlocks the set
+    source: "CS4",
+    pages: "14-16",
+    file: `modules/${MODULE_ID}/data/locked/cs4-spells.json`,
+    anchors: [
+      { len: 7, hash: "6032dc8108c9729a98f8e32bd676b5d3da1998aa882421c6e341ba29d69e3017" },
+      { len: 7, hash: "f0fa9c50001ff77f58bdd10ddad6cce81ee2b074d5c8c4e84d266878a4333f30" },
+      { len: 7, hash: "cd0e0f87c84f4dce7f14a410ee92d68e443cd4b3d6217c75163e7a3e45b5a965" },
+      { len: 7, hash: "11af0c0d1f5f22f87d76334edf78ea65b7d4afe508df1a7174852c758f18428a" },
+      { len: 7, hash: "355aeb783456399c0af530783f943aadf69be50c660b7e0e225945db13435216" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */
@@ -278,7 +294,7 @@ const _WORLD_REF = /Compendium\.world\.[\w-]+\.[A-Za-z]+\.[A-Za-z0-9]{16}/g;
  * aren't reachable by traversal (Necromancer's own list; Green Knight's druid
  * list). Returns { docs } for sealUnit — never leaves prose in the caller.
  */
-export async function captureUnitPayload({ roots = [], bundleSpellsForClass = null } = {}) {
+export async function captureUnitPayload({ roots = [], bundleSpellsForClass = null, rootsOnly = false } = {}) {
   const isWorld = (u) => typeof u === "string" && /^Compendium\.world\./.test(u);
   const docs = new Map();       // uuid -> live doc
   const refs = new Map();       // uuid -> Set(world refs inside it)
@@ -302,7 +318,10 @@ export async function captureUnitPayload({ roots = [], bundleSpellsForClass = nu
     if (!d) continue;
     docs.set(u, d);
     const found = new Set();
-    for (const m of JSON.stringify(d.toObject()).matchAll(_WORLD_REF)) { found.add(m[0]); queue.push(m[0]); }
+    // rootsOnly: capture just the given docs, don't follow world refs. Needed
+    // for spell units — a spell references its class(es), and traversal would
+    // otherwise pull the whole (separately-sealed) class into the spell unit.
+    if (!rootsOnly) for (const m of JSON.stringify(d.toObject()).matchAll(_WORLD_REF)) { found.add(m[0]); queue.push(m[0]); }
     refs.set(u, found);
   }
 
@@ -416,4 +435,25 @@ export async function importSealedPayload(payload) {
 export function sealedUnitFor(name, type = null) {
   return SEALED_UNITS.find((u) => u.anchors.length && u.name.toLowerCase() === String(name).toLowerCase())
     ?? (type ? SEALED_UNITS.find((u) => u.anchors.length && u.coversType === type) ?? null : null);
+}
+
+/**
+ * Ordered candidate units for a census/manifest entry — a paste is tried
+ * against each until one unseals. Handles MULTIPLE set-level units of the same
+ * type (e.g. per-book Spell units CS4/CS5/CS6/WR) that `sealedUnitFor` can't
+ * disambiguate: exact name (classes) → same coversType AND same source (the
+ * right book) → same coversType any source (single-set types / src fallback).
+ * The anchors guarantee correctness — only the matching book's paste satisfies
+ * a unit's phrases — so trying extra candidates is safe.
+ */
+export function sealedUnitsFor({ name = "", type = null, source = null } = {}) {
+  const live = SEALED_UNITS.filter((u) => u.anchors.length);
+  const out = [];
+  const push = (u) => { if (u && !out.includes(u)) out.push(u); };
+  push(live.find((u) => u.name.toLowerCase() === String(name).toLowerCase()));
+  if (type) {
+    if (source) for (const u of live) if (u.coversType === type && u.source === source) push(u);
+    for (const u of live) if (u.coversType === type) push(u);
+  }
+  return out;
 }

@@ -124,7 +124,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   // ── Import type selector ───────────────────────────────────────────────────
-  /** @type {"auto"|"monsters"|"items"|"spells"|"tables"|"backgrounds"|"talents"|"classes"} */
+  /** @type {"auto"|"monsters"|"items"|"spells"|"tables"|"backgrounds"|"talents"|"classes"|"ancestries"} */
   _importType = "auto";
   /** Forced item subtype when importing items ("auto" = name inference). */
   _importItemSubtype = "auto";
@@ -290,9 +290,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!this._importSeed || !this._importTables.length) return null;
         const t = this._importTables[0];
         const rows = t.rows?.length ?? 0;
-        // Structural problems = gap/overlap warnings from the parser
-        // (auto-fix notes don't count against correctness).
-        const structural = (t.warnings ?? []).filter((w) => !/^Auto-fixed/.test(w));
+        // Structural problems = gap/overlap warnings from the parser. Auto-fix
+        // and range-rebuild notes are informational (the table is complete) and
+        // don't count against correctness.
+        const structural = (t.warnings ?? []).filter((w) => !/^(Auto-fixed|Rebuilt)\b/.test(w));
         // Names tables additionally have a known-correct shape: 100 on 1d100.
         const isNames = /\bnames$/i.test(this._importSeed.name ?? "");
         const ok = structural.length === 0 && (!isNames || (rows === 100 && t.formula === "1d100"));
@@ -311,6 +312,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         { value: "backgrounds", label: "Backgrounds" },
         { value: "talents",  label: "Talents" },
         { value: "classes",  label: "Class" },
+        { value: "ancestries", label: "Ancestry" },
       ].map(o => ({ ...o, selected: o.value === t })),
       showItemSubtype: t === "items" || t === "auto",
       showGenSpec: t === "generators",
@@ -838,9 +840,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // decrypt the pre-authored, verified documents instead of parsing.
     this._importSealed = null;
     if (this._importSeed?._charSeed) {
-      const { sealedUnitFor, tryUnseal } = await import("./sealed-content.mjs");
-      const unit = sealedUnitFor(this._importSeed.name, this._importSeed.type);
-      if (unit) {
+      const { sealedUnitsFor, tryUnseal } = await import("./sealed-content.mjs");
+      const candidates = sealedUnitsFor({
+        name: this._importSeed.name, type: this._importSeed.type, source: this._importSeed.src,
+      });
+      let best = { found: 0, total: 0, unit: null };
+      for (const unit of candidates) {
+        // eslint-disable-next-line no-await-in-loop
         const res = await tryUnseal(unit, text);
         if (res.ok) {
           this._importSealed = { unit, payload: res.payload };
@@ -850,8 +856,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           this.render();
           return;
         }
-        if (res.found) ui.notifications.warn(`"${unit.name}": found ${res.found}/${res.total} key phrases — paste the full section to unlock the verified version. Falling back to the text parser.`);
+        if (res.found > best.found) best = { found: res.found, total: res.total, unit };
       }
+      if (best.unit && best.found) ui.notifications.warn(`"${best.unit.name}": found ${best.found}/${best.total} key phrases — paste the full section to unlock the verified version. Falling back to the text parser.`);
     }
 
     // Compound generators are an explicit type only (never in a mixed dump):
@@ -981,7 +988,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Character-content types (Backgrounds / Talents / Class) parse into their
     // own draft list; everything else clears it.
-    this._importChar = ["backgrounds", "talents", "classes"].includes(type)
+    this._importChar = ["backgrounds", "talents", "classes", "ancestries"].includes(type)
       ? parseCharContent(text, type)
       : [];
 
@@ -1414,6 +1421,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications.info(`Tables: ${created} created → sde-tables.`);
     if (this._importSeed?._charSeed && !this._importTables.length) this._importSeed = null;
     this._invalidateCharCache();
+    if (created) this._announceContentUnlocked();
     this.render();
   }
 
@@ -1470,6 +1478,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * existing callers.
    */
   async _registerCharBuilderTable(_table) { /* auto-discovered — nothing to register */ }
+
+  /** Signal an open Character Builder to drop caches and re-render, so unlocked
+   *  content (ancestries, tables, backgrounds, classes…) appears immediately. */
+  _announceContentUnlocked() { Hooks.callAll(`${MODULE_ID}.contentUnlocked`); }
 
   /** Commit: create all monsters, items, then tables in one action. GM-gated. */
   async _onHubCommitAll() {
@@ -1530,6 +1542,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     ui.notifications.info(`Import complete — ${parts.join("; ")}.`);
+    if (parts.length) this._announceContentUnlocked();
     this.render();
   }
 
@@ -1979,7 +1992,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       Basic: "items", Weapon: "items", Armor: "items",
       Background: "backgrounds",
       Talent: "talents",
-      Class: "classes", Ancestry: "classes",
+      Class: "classes", Ancestry: "ancestries",
       Table: "tables",
     })[type] ?? "auto";
     this._importText = name;
@@ -2008,6 +2021,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._importSeed = null;
       this._invalidateItemsCache();
       this._invalidateCharCache();
+      this._announceContentUnlocked();
       this.render();
       return;
     }
@@ -2036,6 +2050,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importChar = [];
     this._invalidateItemsCache();
     this._invalidateCharCache();
+    this._announceContentUnlocked();
     this.render();
   }
 

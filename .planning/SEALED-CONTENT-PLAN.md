@@ -42,7 +42,7 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 |---|---|---|---|---|---|
 | wr-delver … wr-wyrdling (9) | Class | WR | class + talents + tables | committed | ✅ |
 | wr-backgrounds | Background | WR | ~99 backgrounds | committed | ✅ |
-| cs4-spells | Spell | CS4 | 16 spells | todo | ❌ |
+| cs4-spells | Spell | CS4 | 16 spells | **committed** | ✅ |
 | cs5-spells | Spell | CS5 | 16 spells | todo | ❌ |
 | cs6-spells | Spell | CS6 | 16 spells | todo | ❌ |
 | wr-spells | Spell | WR | ~51 spells | todo | ❌ |

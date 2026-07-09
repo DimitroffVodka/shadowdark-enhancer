@@ -14,24 +14,30 @@ Per unit, every time:
    section (the owner pastes them). Normalization is lowercase-alphanumeric, so
    punctuation/case don't matter; pick phrases unlikely to collide.
 
-3. **Build** (MCP `evaluate` in the dev world):
+3. **Build + write the blob** (MCP `evaluate` in the dev world). Pass
+   `writeToDisk:true` so the tool writes the blob byte-exact via
+   `FilePicker.upload` (the module dir is under Foundry's Data path → the repo).
+   **Never hand-copy `encBase64`** — a 28KB paste corrupts silently (same
+   length, wrong bytes, decrypt fails; learned on cs4-spells 2026-07-09).
    ```js
    const { buildSealedUnit } = await import(
      '/modules/shadowdark-enhancer/dev/seal-unit.mjs?v='+Date.now());
    const r = await buildSealedUnit({
      id, name, type, source, pages, coversType,      // coversType:"Spell" etc.
-     folders: [{ pack: "sde-items", path: ["Spells", "Wizard"] }],
+     folders: [{ pack: "sde-items", path: ["CURSED SCROLL 4"], type: "Spell" }],
+     rootsOnly: true,          // spells: capture just the spells, not their classes
      anchorPhrases: [ /* the ≥5 phrases */ ],
+     writeToDisk: true,
    });
-   return { docCount:r.docCount, kinds:r.kinds, verified:r.verified,
-            anchors:r.registryEntry.anchors, b64:r.encBase64 };
+   return { docCount:r.docCount, verified:r.verified, written:r.written,
+            anchors:r.registryEntry.anchors };
    ```
-   Require `verified === true` (round-trip decrypt passed) before shipping.
+   Require `verified === true` and a non-null `written` path before shipping.
 
-4. **Write repo artifacts** (Claude, native tools):
-   - Write `data/locked/<id>.json` = `r.encBase64` (raw base64, no JSON wrap).
+4. **Write the remaining repo artifacts** (Claude, native tools):
    - Add `r.registryEntry` to `SEALED_UNITS` in `scripts/encounter/sealed-content.mjs`
-     (match existing formatting).
+     (match existing formatting — anchors are deterministic, so this is stable
+     even if you re-seal).
    - Update the ledger row in `.planning/SEALED-CONTENT-PLAN.md` → `committed`.
    - `node --check scripts/encounter/sealed-content.mjs`.
 
