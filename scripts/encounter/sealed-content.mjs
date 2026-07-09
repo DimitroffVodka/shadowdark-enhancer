@@ -423,6 +423,26 @@ export const SEALED_UNITS = [
       { len: 7, hash: "c2846953de138584bd43c0837529f7c42f994d8d3ba98434db2744d497307fd9" },
     ],
   },
+  {
+    id: "wr-carousing", name: "Western Reaches Carousing", type: "Table", coversType: "Table", source: "WR", pages: "235-247",
+    file: `modules/${MODULE_ID}/data/locked/wr-carousing.json`,
+    anchors: [
+      { len: 11, hash: "02f127e807a2e534a742b2bb14e94ec01d99f8c963e9b931bcc6b5eda7b41798" },
+      { len: 8, hash: "4bb541e84dbf89ca2139b75d1734e4b8e5d210bf7b85baa41b5e7cd9a81032fc" },
+      { len: 11, hash: "6c3bbf5ccccd02c844ee350130dd76a01f390dd570d73ca398163e6bbbf45b6f" },
+    ],
+  },
+  {
+    id: "wr-backgrounds-table", name: "Western Reaches Backgrounds Table", type: "Table", coversType: "Table", source: "WR", pages: "74-91",
+    file: `modules/${MODULE_ID}/data/locked/wr-backgrounds-table.json`,
+    anchors: [
+      { len: 10, hash: "f232a295cb82f417f8da7de2fd89d5b62870d63e64e445e7d358d97cf7c69925" },
+      { len: 9, hash: "611f9e4fc023a3c3bf75be69081dfc10eafa79958a76fd3b374a8e442e809066" },
+      { len: 9, hash: "bed9b46291261414ab3af39ccd533268dc4b50d48cada82b9472100ae39a5d08" },
+      { len: 11, hash: "361962b1b7c2191ea3884f93212dcfbb3929bd782a5e87c697dda1274869ff41" },
+      { len: 8, hash: "cc6abb007854228a3074a52213d54a77cc285257235952fb0f4829364483a51d" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */
