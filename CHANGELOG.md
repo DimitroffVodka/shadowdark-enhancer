@@ -2,16 +2,19 @@
 
 ## [Unreleased]
 
-Follow-ups to the **Monster Token Art Manager**: it now covers your imported monsters, adds a full visual image browser for hand-picking art from every source, and fixes two override bugs.
+Follow-ups to the **Monster Token Art Manager**: it now covers your imported monsters, adds a full visual image browser for hand-picking art from every source, tunes token scale per source, and fixes override, priority, and placed-token bugs.
 
 ### Added
 - **Imported monsters get token art too.** The compendium-art overlay now skins the enhancer's own imported-monsters pack (the suite `sde-actors` pack, or the legacy `world.shadowdark-enhancer--actors` pack) alongside `shadowdark.monsters`, discovered live — so monsters you import (Cursed Scrolls, Western Reaches, …) can carry token art like the base bestiary. Imported rows are tagged in the manager, and the overlay writes one mapping entry per pack.
 - **Visual image browser.** A **Browse** button on every monster opens a searchable grid of *every* token across all installed sources (Monster Manual, Paizo Monster Core, Forgotten Adventures, Community Tokens — 2,000+ files), so a monster with no automatic name-match can still be skinned by hand. A hand-picked image wins over source priority and overrides. The browser **groups by source** (collapsible sections with sticky headers), **zooms** (slider, `Ctrl`+scroll, `Ctrl +` / `Ctrl −`, `Ctrl 0` to reset), filters as you type with a **clear (×)** button, and shows the hovered token's **source · filename**.
 - **Pathfinder iconics + auto-detected token modules.** The pf2e game system's 59 **iconic** PC/companion portraits (Amiri, Ezren, Droogami…) are browsable (browser-only — the pf2e *system* ships no monster tokens), and any installed **`pf2e-tokens-*`** module is auto-added to the browser.
+- **Per-source token scale.** Each art source is scaled so its tokens fill the grid the way the art intends. Dynamic-ring sources (**Monster Manual**, **Paizo**) are tuned independently on the token Scale-Ratio and the ring-subject fit; flat sources (**Forgotten Adventures**) by a single factor; **Community** art is left at its native scale. Every creature keeps its relative framing — a large monster stays proportionally larger than a small one.
 
 ### Fixed
 - **Clearing a per-monster override (and "Reset picks") did nothing.** Removing one override, or resetting all of them, silently no-op'd because saved state was recursively merged instead of replaced (`mergeObject` keeps keys absent from the patch). Both now clear as expected — including hand-picked images.
 - **Reordering source priority didn't take effect until the manager was reopened.** The resolved art, "chosen" highlight, and per-source tallies now refresh immediately on reorder.
+- **"Re-skin placed" now honors your multi-source picks.** The button re-skins already-placed tokens with the manager's resolved blend (Monster Manual / Paizo / Forgotten Adventures / Community, per monster) instead of the old single-source matcher — with a fuzzy fallback so renamed or homebrew actors still match.
+- **Switching a placed token to flat art (Forgotten Adventures / Community) no longer shrinks it.** A leftover dynamic ring from the previous art was squeezing the new flat art into its ring subject; re-skin now turns the ring off for flat sources so the art fills the tile.
 
 ### Notes
 - Verified live against Foundry VTT **14.364** and Shadowdark **4.0.6**.

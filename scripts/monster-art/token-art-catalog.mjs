@@ -306,26 +306,35 @@ export class TokenArtCatalog {
 
   /**
    * Per-source scale multiplier, applied to each token's own built-in scale so a
-   * standard creature (Animated Armor) lands on the desired Scale while every
-   * monster keeps its relative framing. Factor = target ÷ that source's base:
-   * Paizo 2.5/2, Monster Manual 1.25/1, Forgotten Adventures 1.25/1.5. Community
-   * is left alone (×1). A source not listed keeps its built-in scale untouched.
+   * standard creature (Animated Armor) lands on the desired look while every
+   * monster keeps its relative framing. Value is either a single factor (applied
+   * to both the texture Scale-Ratio and the ring subject) or `{ tex, subject }`
+   * for dynamic-ring sources that need the two tuned apart. Factor = target ÷ the
+   * source's base scale. Targets (from a hand-tuned Animated Armor):
+   *   Paizo  → Scale-Ratio 3 (base 2 → ×1.5), ring subject 2.5 (base 2 → ×1.25)
+   *   Monster Manual → Scale-Ratio 1.45, ring subject 1.26 (base 1/1)
+   *   Forgotten Adventures (flat) → 1.25 (base 1.5 → ×0.833)
+   * Community is left alone. A source not listed keeps its built-in scale.
    */
   static SOURCE_SCALE = {
-    "pf2e-tokens-monster-core": 2.5 / 2,
-    "dnd-monster-manual": 1.25 / 1,
+    "pf2e-tokens-monster-core": { tex: 3 / 2, subject: 2.5 / 2 },
+    "dnd-monster-manual": { tex: 1.45 / 1, subject: 1.26 / 1 },
     "dnd5e-fa": 1.25 / 1.5,
   };
 
-  /** Return a copy of `tokenObj` with its texture + ring-subject scale multiplied
-   *  by `factor`, rounded to 3 decimals to avoid float noise. Non-mutating, so
-   *  shared token-map objects stay intact. */
+  /** Return a copy of `tokenObj` with its texture Scale-Ratio and ring-subject
+   *  scale multiplied — `factor` is a single number (both) or `{ tex, subject }`.
+   *  Rounded to 3 decimals to avoid float noise; non-mutating, so shared token-map
+   *  objects stay intact. */
   static _scaleTokenObj(tokenObj, factor) {
-    if (!tokenObj || !factor || factor === 1) return tokenObj;
-    const r = (n) => Math.round((n ?? 1) * factor * 1000) / 1000;
+    if (!tokenObj || !factor) return tokenObj;
+    const texF = typeof factor === "object" ? (factor.tex ?? 1) : factor;
+    const subF = typeof factor === "object" ? (factor.subject ?? texF) : factor;
+    if (texF === 1 && subF === 1) return tokenObj;
+    const r = (n, f) => Math.round((n ?? 1) * f * 1000) / 1000;
     const out = { ...tokenObj };
-    if (tokenObj.texture) out.texture = { ...tokenObj.texture, scaleX: r(tokenObj.texture.scaleX), scaleY: r(tokenObj.texture.scaleY) };
-    if (tokenObj.ring?.subject) out.ring = { ...tokenObj.ring, subject: { ...tokenObj.ring.subject, scale: r(tokenObj.ring.subject.scale) } };
+    if (tokenObj.texture) out.texture = { ...tokenObj.texture, scaleX: r(tokenObj.texture.scaleX, texF), scaleY: r(tokenObj.texture.scaleY, texF) };
+    if (tokenObj.ring?.subject) out.ring = { ...tokenObj.ring, subject: { ...tokenObj.ring.subject, scale: r(tokenObj.ring.subject.scale, subF) } };
     return out;
   }
 

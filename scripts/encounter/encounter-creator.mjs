@@ -223,8 +223,15 @@ export class MonsterCreatorApp {
       // Surface template / context errors visibly in the panel
       // instead of leaving the user with an empty tab.
       console.error(`${MODULE_ID} | Monster Creator render failed:`, err);
-      this._mountHost.innerHTML =
-        `<div class="sde-creator-error">Monster Creator failed to render: ${err.message}<br><small>Check console for stack trace.</small></div>`;
+      // Build with textContent so an error message that happens to carry
+      // user-supplied data can't inject markup into the panel.
+      const box = document.createElement("div");
+      box.className = "sde-creator-error";
+      box.append(`Monster Creator failed to render: ${err?.message ?? err}`, document.createElement("br"));
+      const small = document.createElement("small");
+      small.textContent = "Check console for stack trace.";
+      box.append(small);
+      this._mountHost.replaceChildren(box);
     }
   }
 
