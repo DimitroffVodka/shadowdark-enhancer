@@ -301,6 +301,38 @@ export const SEALED_UNITS = [
       { len: 7, hash: "dc3772f55586cab911b5e70fd1bbbb34aaefbd20b4167e0cf51e5930ee3194a1" },
     ],
   },
+  {
+    id: "wr-priest-spells",
+    name: "Western Reaches Priest Spells",
+    type: "Spell",
+    coversType: "Spell",
+    source: "WR",
+    pages: "132-140",
+    file: `modules/${MODULE_ID}/data/locked/wr-priest-spells.json`,
+    anchors: [
+      { len: 5, hash: "b78ccb2078ef2e72d7bbb8f557ddf8fb34985b53266ba6a5807e53cd32c6f2b9" },
+      { len: 7, hash: "56fb62d90338e4cdbceb026b7062aa7103a143d5463aa59e44d74df10fca326b" },
+      { len: 7, hash: "f957233016fd6a5d72132c58a7a464aed604fc300b2b6ec0efd9e868b64e6410" },
+      { len: 10, hash: "74a68e17caa4fc18f2c71c9d0a9a8f2868513483acab832b14fa9ef764ad2185" },
+      { len: 10, hash: "1c1e9d89337c5a9c76044b2e4dc30d1cfcec12f7bdfa69c6fbc4f56ec3bfa89b" },
+    ],
+  },
+  {
+    id: "wr-gear",
+    name: "Western Reaches Gear",
+    type: "Basic",
+    coversType: ["Basic", "Weapon", "Armor"],   // Mithral shields, boats, siege, WR weapons
+    source: "WR",
+    pages: "116-120",
+    file: `modules/${MODULE_ID}/data/locked/wr-gear.json`,
+    anchors: [
+      { len: 10, hash: "1880d69d4422e47c82a04f99c1d195f16f8687a5871e9ed4f9e0ea5d45f1d75d" },
+      { len: 10, hash: "63bd70815707757e6110d49a26dfc10528216a050700b1623ea6202669a679d4" },
+      { len: 8, hash: "cffb4613b2276782dffcce8e2fa0cb1a2195572fbb178398d0d0259d17b1639c" },
+      { len: 9, hash: "e96d6bdb5caa912a30f16c99bbe2a67630d5b10ea0e07ea39f36aa8e20a15344" },
+      { len: 7, hash: "09e87f6038fe2622f81fefdf6ad9b90d6567282284e97016a0de061a6f36aab0" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */
@@ -571,10 +603,12 @@ export function sealedUnitsFor({ name = "", type = null, source = null } = {}) {
   const live = SEALED_UNITS.filter((u) => u.anchors.length);
   const out = [];
   const push = (u) => { if (u && !out.includes(u)) out.push(u); };
+  // coversType may be a single type or an array (e.g. wr-gear covers Basic/Weapon/Armor).
+  const covers = (u, t) => Array.isArray(u.coversType) ? u.coversType.includes(t) : u.coversType === t;
   push(live.find((u) => u.name.toLowerCase() === String(name).toLowerCase()));
   if (type) {
-    if (source) for (const u of live) if (u.coversType === type && u.source === source) push(u);
-    for (const u of live) if (u.coversType === type) push(u);
+    if (source) for (const u of live) if (covers(u, type) && u.source === source) push(u);
+    for (const u of live) if (covers(u, type)) push(u);
   }
   return out;
 }
