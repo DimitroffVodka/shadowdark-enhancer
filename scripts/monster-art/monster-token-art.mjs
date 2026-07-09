@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../module-id.mjs";
+import { findMonsterPack } from "../encounter/monster-pack.mjs";
 
 /**
  * Monster Token Art — re-skin Shadowdark NPC tokens/portraits with art from a
@@ -92,6 +93,26 @@ export class MonsterTokenArt {
   static get MAPPING_FILE() { return "monster-art-mapping.json"; }
   static get MAPPING_PATH() { return `${this.MAPPING_DIR}/${this.MAPPING_FILE}`; }
 
+  /**
+   * Actor compendia the art overlay covers: the base system bestiary plus the
+   * importer's managed pack — the suite `sde-actors` pack, or (before migration)
+   * the legacy "Imported Monsters" world pack, collection
+   * `world.shadowdark-enhancer--actors`. Discovered live via findMonsterPack()
+   * so a hardcoded id can't drift as monsters (Cursed Scrolls, Western Reaches,
+   * …) are imported. CompendiumArt keys art by pack collection + document id, so
+   * every covered pack needs its own mapping entry and cache clear.
+   */
+  static coveredPackIds() {
+    const ids = ["shadowdark.monsters"];
+    let imported = null;
+    try { imported = findMonsterPack(); } catch (_) { /* pack resolver unavailable */ }
+    if (imported?.collection && !ids.includes(imported.collection)) ids.push(imported.collection);
+    return ids;
+  }
+
+  /** The covered packs that actually exist in this world. */
+  static presentPacks() { return this.coveredPackIds().filter((id) => game.packs.get(id)); }
+
   static register() {
     game.settings.register(MODULE_ID, "tokenArtSource", {
       name: "SDE.settings.tokenArtSource.name",
@@ -109,29 +130,38 @@ export class MonsterTokenArt {
       type: Boolean,
       default: false,
     });
-    // Token Art Manager state: source priority order + per-monster overrides
-    // ({ priority: [sourceId], overrides: { monsterId: sourceId } }). Managed by
-    // the manager app, not the settings UI.
+    // Token Art Manager state: source priority order + per-monster overrides +
+    // hand-picked images ({ priority: [sourceId], overrides: { monsterId: sourceId },
+    // picks: { monsterId: { source, file, token, portrait, tokenObj } } }). Managed
+    // by the manager app, not the settings UI.
     game.settings.register(MODULE_ID, "tokenArtManager", {
       scope: "world",
       config: false,
       type: Object,
-      default: { priority: [], overrides: {} },
+      default: { priority: [], overrides: {}, picks: {} },
     });
   }
 
   /**
-   * Write an already-resolved art table and inject it as the compendium overlay.
-   * @param {object} table  { <monsterId>: { actor:<portraitPath>, token:<tokenObj> } }
+   * Write an already-resolved art mapping and inject it as the compendium overlay.
+   * Accepts either shape:
+   *  - per-pack:  { "<packId>": { <docId>: { actor, token } }, ... }  (preferred)
+   *  - flat:      { <docId>: { actor, token } }  (legacy — treated as shadowdark.monsters)
+   * @param {object} mapping
    */
-  static async applyResolvedMapping(table) {
+  static async applyResolvedMapping(mapping) {
     if (!game.user.isGM) { ui.notifications.warn("Only the GM can do that."); return null; }
-    const mapping = { "shadowdark.monsters": table };
-    const file = new File([JSON.stringify(mapping, null, 2)], this.MAPPING_FILE, { type: "application/json" });
+    // A per-pack mapping's top-level keys are pack collection ids (present in
+    // game.packs); a legacy flat table's keys are document ids. Wrap the latter.
+    const keys = Object.keys(mapping ?? {});
+    const perPack = keys.length > 0 && keys.every((k) => game.packs.get(k));
+    const packMapping = perPack ? mapping : { "shadowdark.monsters": mapping ?? {} };
+    const file = new File([JSON.stringify(packMapping, null, 2)], this.MAPPING_FILE, { type: "application/json" });
     await FilePicker.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
     await game.settings.set(MODULE_ID, "tokenArtCompendium", true);
     await this._injectMapping();
-    return { count: Object.keys(table).length };
+    const count = Object.values(packMapping).reduce((n, t) => n + Object.keys(t).length, 0);
+    return { count };
   }
 
   /**
@@ -163,7 +193,9 @@ export class MonsterTokenArt {
     });
     await this._ensurePriority();
     await ca._registerArt();
-    game.packs.get("shadowdark.monsters")?.clear?.();
+    // Drop every covered pack's cache so already-loaded docs re-init with the
+    // new art (base bestiary + the importer's sde-actors pack).
+    for (const id of this.presentPacks()) game.packs.get(id)?.clear?.();
     return true;
   }
 
@@ -186,9 +218,10 @@ export class MonsterTokenArt {
   }
 
   /**
-   * GM: build the name→art mapping for every monster in `shadowdark.monsters`,
-   * write it to the module data dir, enable + inject it. Every future monster
-   * drag then carries the matched art. Returns { mapped, total, missing }.
+   * GM: build the name→art mapping for every monster across the covered packs
+   * (`shadowdark.monsters` + the importer's `sde-actors`), write it to the module
+   * data dir, enable + inject it. Every future monster drag then carries the
+   * matched art. Returns { mapped, total, missing }.
    */
   static async generateCompendiumMapping() {
     if (!game.user.isGM) { ui.notifications.warn("Only the GM can do that."); return null; }
@@ -198,30 +231,35 @@ export class MonsterTokenArt {
       ui.notifications.error(`Token art source "${source.id}" not found under Data/modules/${source.id}.`);
       return { mapped: 0, total: 0, missing: true };
     }
-    const pack = game.packs.get("shadowdark.monsters");
-    if (!pack) { ui.notifications.error("shadowdark.monsters compendium not found."); return null; }
-    const index = await pack.getIndex();
+    const packIds = this.presentPacks();
+    if (!packIds.length) { ui.notifications.error("shadowdark.monsters compendium not found."); return null; }
 
-    const table = {};
-    let mapped = 0;
-    for (const e of index) {
-      const art = this.resolveArt(e.name, sets, source);
-      if (!art) continue;
-      table[e._id] = {
-        __MONSTER_NAME__: e.name,
-        actor: art.portrait,
-        token: this._tokenArt(art.file, sets, source),   // src + scale + dynamic ring/subject
-      };
-      mapped++;
+    const mapping = {};
+    let mapped = 0, total = 0;
+    for (const packId of packIds) {
+      const index = await game.packs.get(packId).getIndex();
+      const table = {};
+      for (const e of index) {
+        if (e.type && e.type !== "NPC") continue;
+        total++;
+        const art = this.resolveArt(e.name, sets, source);
+        if (!art) continue;
+        table[e._id] = {
+          __MONSTER_NAME__: e.name,
+          actor: art.portrait,
+          token: this._tokenArt(art.file, sets, source),   // src + scale + dynamic ring/subject
+        };
+        mapped++;
+      }
+      if (Object.keys(table).length) mapping[packId] = table;
     }
-    const mapping = { "shadowdark.monsters": table };
 
     const file = new File([JSON.stringify(mapping, null, 2)], this.MAPPING_FILE, { type: "application/json" });
     await FilePicker.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
     await game.settings.set(MODULE_ID, "tokenArtCompendium", true);
     await this._injectMapping();
 
-    return { mapped, total: index.size, missing: index.size - mapped };
+    return { mapped, total, missing: total - mapped };
   }
 
   /** GM: turn the compendium mapping back off — remove our flag, rebuild, and
@@ -233,7 +271,7 @@ export class MonsterTokenArt {
     const mod = game.modules.get(MODULE_ID);
     if (mod?.flags?.[ca.FLAG]) delete mod.flags[ca.FLAG];
     await ca._registerArt?.();
-    game.packs.get("shadowdark.monsters")?.clear?.();
+    for (const id of this.presentPacks()) game.packs.get(id)?.clear?.();
   }
 
   // ---- normalization + matching helpers -----------------------------------
@@ -429,36 +467,102 @@ export class MonsterTokenArt {
       return { tokens: 0, portraits: 0, kept: 0, skipped: [], missing: true };
     }
 
+    // Single-source match: name → { tokenObj, portrait } from THIS source only.
+    const resolveFn = (name) => {
+      const art = this.resolveArt(name, sets, source, minScore);
+      if (!art) return null;
+      // Full presentation (src + scale + dynamic ring/subject) so large art
+      // fills its footprint instead of sitting tiny in the middle.
+      return { tokenObj: this._tokenArt(art.file, sets, source), portrait: art.portrait };
+    };
+    const report = await this._skinPlaced({ scene, actors, portraits, dryRun }, resolveFn, (src) => this._isReplaceable(src));
+
+    if (report.skipped.length) {
+      console.log(`${MODULE_ID} | Monster Art: no confident match (${report.skipped.length}) — set by hand:\n` + report.skipped.sort().join(", "));
+    }
+    return report;
+  }
+
+  /**
+   * Re-skin already-placed NPC tokens/actors with the Token Art Manager's
+   * resolved multi-source picks (a name → { tokenObj, portrait } map), instead
+   * of the single legacy SOURCE matcher `apply()` uses. Same report shape.
+   * @param {Map<string,{tokenObj:object, portrait:string}>} byName
+   * @param {object} [opts]
+   * @param {string[]} [opts.extraPrefixes]  additional art-source path prefixes to
+   *   treat as replaceable, so a placed token can switch between managed sources.
+   * @param {boolean} [opts.fuzzyFallback=true]  for a placed actor whose (renamed/
+   *   homebrew) name isn't in the catalog, fall back to the single-source fuzzy
+   *   matcher `apply()` uses — so re-skin is a SUPERSET of the legacy path, never
+   *   a regression (e.g. a "Skeleton Warrior" world actor still gets skeleton art).
+   */
+  static async applyResolvedToPlaced(byName, { scene = true, actors = true, portraits = true, dryRun = false, extraPrefixes = [], fuzzyFallback = true } = {}) {
+    if (!game.user.isGM) { ui.notifications.warn("Only the GM can apply monster token art."); return null; }
+    if (!byName || !byName.size) return { tokens: 0, portraits: 0, kept: 0, skipped: [], missing: true };
+
+    // Name lookup with a normalized fallback for whitespace/case-renamed actors.
+    const norm = new Map();
+    for (const [name, art] of byName) norm.set(this._norm(name), art);
+
+    // Lazy single-source fuzzy fill: only built (browsing disk) on the first name
+    // the catalog can't resolve; a browse failure just disables it. `undefined`
+    // = not yet tried, `null` = unavailable.
+    let fbSets;
+    const fallback = async (name) => {
+      if (!fuzzyFallback) return null;
+      if (fbSets === undefined) { try { fbSets = await this.buildFileSets(this.SOURCE); } catch { fbSets = null; } }
+      if (!fbSets) return null;
+      const art = this.resolveArt(name, fbSets, this.SOURCE, 0.5);
+      return art ? { tokenObj: this._tokenArt(art.file, fbSets, this.SOURCE), portrait: art.portrait } : null;
+    };
+
+    const resolveFn = async (name) => byName.get(name) ?? norm.get(this._norm(name)) ?? fallback(name);
+    const replaceable = (src) => this._isReplaceable(src) || extraPrefixes.some((p) => src?.startsWith(p));
+    return this._skinPlaced({ scene, actors, portraits, dryRun }, resolveFn, replaceable);
+  }
+
+  /**
+   * Shared re-skin loop for already-placed NPCs. `resolveFn(name)` returns the
+   * chosen art `{ tokenObj, portrait }` (or null to skip); `replaceable(src)`
+   * decides whether a current image may be overwritten. Returns the usual
+   * { tokens, portraits, kept, skipped:[], missing:false } report.
+   */
+  static async _skinPlaced({ scene = true, actors = true, portraits = true, dryRun = false } = {}, resolveFn, replaceable) {
     let tok = 0, por = 0, kept = 0;
     const skipped = [];
     const seen = new Set();
 
     const skin = async (actor, tokenDoc) => {
-      const art = this.resolveArt(actor.name, sets, source, minScore);
+      const art = await resolveFn(actor.name);
       if (!art) { if (!seen.has(actor.name)) skipped.push(actor.name); seen.add(actor.name); return; }
       seen.add(actor.name);
-      // Full presentation (src + scale + dynamic ring/subject) so large art
-      // fills its footprint instead of sitting tiny in the middle.
-      const p = this._tokenArt(art.file, sets, source);
-      // Already fully skinned to our art (src + ring + subject)? then leave it.
+      const p = art.tokenObj;
+      const src = p?.texture?.src;
+      const wantRing = !!p?.ring?.enabled;
+      // A flat source (no dynamic ring) must EXPLICITLY turn off any ring the
+      // placed token already carries. token.update() merges, so a bare texture
+      // swap leaves the previous art's ring enabled and crams the new flat art
+      // into its subject — rendering it tiny (the "re-skin just shrank the
+      // token" bug when switching to Forgotten Adventures / Community art).
+      const applied = wantRing ? p : { ...p, ring: { enabled: false, subject: { texture: null } } };
+      // Already fully skinned to this art (src + ring + subject)? then leave it.
       const isDone = (d) =>
-        d.texture.src === art.token &&
-        (d.ring?.enabled ?? false) === !!p.ring?.enabled &&
-        (d.ring?.subject?.texture ?? null) === (p.ring?.subject?.texture ?? null);
-      // Skin when it's auto-applied art we own (replaceable) OR already our
-      // texture but missing the ring/scale (e.g. texture synced flat by a hook).
-      const shouldSkin = (d) =>
-        !isDone(d) && (this._isReplaceable(d.texture.src) || d.texture.src === art.token);
+        d.texture.src === src &&
+        (d.ring?.enabled ?? false) === wantRing &&
+        (d.ring?.subject?.texture ?? null) === (applied.ring?.subject?.texture ?? null);
+      // Skin when the current art is replaceable OR already our texture but
+      // missing the ring/scale (e.g. texture synced flat by a hook).
+      const shouldSkin = (d) => !isDone(d) && (replaceable(d.texture.src) || d.texture.src === src);
 
       if (tokenDoc) {
-        if (shouldSkin(tokenDoc)) { if (!dryRun) await tokenDoc.update(p); tok++; }
+        if (shouldSkin(tokenDoc)) { if (!dryRun) await tokenDoc.update(applied); tok++; }
         else kept++;
         return;
       }
       const upd = {};
-      if (shouldSkin(actor.prototypeToken)) { upd["prototypeToken"] = p; tok++; }
+      if (shouldSkin(actor.prototypeToken)) { upd["prototypeToken"] = applied; tok++; }
       else kept++;
-      if (portraits && this._isReplaceable(actor.img) && actor.img !== art.portrait) {
+      if (portraits && art.portrait && replaceable(actor.img) && actor.img !== art.portrait) {
         upd["img"] = art.portrait; por++;
       }
       if (!dryRun && Object.keys(upd).length) await actor.update(upd);
@@ -476,10 +580,6 @@ export class MonsterTokenArt {
         if (a.type !== "NPC") continue;
         await skin(a, null);
       }
-    }
-
-    if (skipped.length) {
-      console.log(`${MODULE_ID} | Monster Art: no confident match (${skipped.length}) — set by hand:\n` + skipped.sort().join(", "));
     }
     return { tokens: tok, portraits: por, kept, skipped, missing: false };
   }

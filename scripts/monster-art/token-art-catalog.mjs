@@ -91,6 +91,56 @@ export class TokenArtCatalog {
     },
   ];
 
+  /**
+   * Browse roots + presentation for the manual image browser (buildLibrary).
+   * Keyed by source id. Any installed `pf2e-tokens-*` module is ALSO auto-added
+   * (buildLibrary probes common token roots), so these need only cover sources
+   * with a bespoke layout. Each entry:
+   *   label       display name shown as the browser group header
+   *   root        folder to walk recursively for token images
+   *   skipDir     subfolder name to skip (e.g. FA thumbnails)
+   *   present     token-map JSON(s) → per-file ring/scale/subject presentation
+   *   scaleMap    token-map JSON → per-file fill scale (FA transparent art)
+   *   defaultScale fallback scale when no map lists the file
+   *   iconics     pf2e naming convention: browse only `Name.webp` tokens (skip
+   *               `…Full`/`…Subject` variants), pair the portrait to `…Full`
+   */
+  static LIBRARY_DIRS = {
+    "dnd-monster-manual": {
+      label: "Monster Manual",
+      root: "modules/dnd-monster-manual/assets/tokens",
+      present: ["modules/dnd-monster-manual/token-mapping.json"],
+    },
+    "pf2e-tokens-monster-core": {
+      label: "Pathfinder: Monster Core",
+      root: "modules/pf2e-tokens-monster-core/assets/tokens",
+      present: [
+        "modules/pf2e-tokens-monster-core/image-mapping.json",
+        "modules/pf2e-tokens-monster-core/assets/shadowdark-map.json",
+      ],
+    },
+    "dnd5e-fa": {
+      label: "Forgotten Adventures",
+      root: "systems/dnd5e/tokens",
+      skipDir: "thumbs",
+      scaleMap: "systems/dnd5e/json/fa-token-mapping.json",
+      defaultScale: 1.5,
+    },
+    "shadowdark-community-tokens": {
+      label: "Shadowdark Community Tokens",
+      root: "modules/shadowdark-community-tokens",
+    },
+    // pf2e game SYSTEM: ships no monster tokens — only the 59 iconic PC /
+    // companion portraits (Amiri, Ezren, Droogami…). Browser-only (never a
+    // name-match source); useful for humanoid NPCs.
+    "pf2e-iconics": {
+      label: "Pathfinder Iconics (pf2e system)",
+      root: "systems/pf2e/icons/iconics",
+      flat: true,          // root holds 512² tokens; skip portraits/subjects/tokens subdirs
+      iconics: true,
+    },
+  };
+
   /** Discover installed sources → [{ id, label, kind, mapping?, dirs..., credit }]. */
   static async discoverSources() {
     const sources = [];
@@ -112,6 +162,21 @@ export class TokenArtCatalog {
       if (ok) sources.push({ ...fs, kind: "filemap" });
     }
     return sources;
+  }
+
+  /** Browse a single folder level (no recursion) → Map(basename → full data
+   *  path). Use for sources whose root holds the tokens but also has sibling
+   *  subfolders (portraits/subjects/…) we must not pull in. */
+  static async _browseFlatDir(dir) {
+    const found = new Map();
+    let res;
+    try { res = await FilePicker.browse("data", dir); } catch (e) { return found; }
+    for (const f of res.files ?? []) {
+      if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
+      const base = f.split("/").pop();
+      if (!found.has(base)) found.set(base, f);
+    }
+    return found;
   }
 
   /** Browse a folder tree → Map(basename → full data path). Skips `skipDir`. */
@@ -239,9 +304,35 @@ export class TokenArtCatalog {
     }
   }
 
-  /** Build monsterId → { token, portrait, tokenObj } for one source. */
+  /**
+   * Per-source scale multiplier, applied to each token's own built-in scale so a
+   * standard creature (Animated Armor) lands on the desired Scale while every
+   * monster keeps its relative framing. Factor = target ÷ that source's base:
+   * Paizo 2.5/2, Monster Manual 1.25/1, Forgotten Adventures 1.25/1.5. Community
+   * is left alone (×1). A source not listed keeps its built-in scale untouched.
+   */
+  static SOURCE_SCALE = {
+    "pf2e-tokens-monster-core": 2.5 / 2,
+    "dnd-monster-manual": 1.25 / 1,
+    "dnd5e-fa": 1.25 / 1.5,
+  };
+
+  /** Return a copy of `tokenObj` with its texture + ring-subject scale multiplied
+   *  by `factor`, rounded to 3 decimals to avoid float noise. Non-mutating, so
+   *  shared token-map objects stay intact. */
+  static _scaleTokenObj(tokenObj, factor) {
+    if (!tokenObj || !factor || factor === 1) return tokenObj;
+    const r = (n) => Math.round((n ?? 1) * factor * 1000) / 1000;
+    const out = { ...tokenObj };
+    if (tokenObj.texture) out.texture = { ...tokenObj.texture, scaleX: r(tokenObj.texture.scaleX), scaleY: r(tokenObj.texture.scaleY) };
+    if (tokenObj.ring?.subject) out.ring = { ...tokenObj.ring, subject: { ...tokenObj.ring.subject, scale: r(tokenObj.ring.subject.scale) } };
+    return out;
+  }
+
+  /** Build monsterId → { token, portrait, tokenObj } for one source. Scale comes
+   *  from the source's own token maps, then SOURCE_SCALE proportionally adjusts it. */
   static async _sourceArt(source, monsters) {
-    const art = {};
+    let art = {};
     if (source.kind === "mapping") {
       let json;
       try { json = await foundry.utils.fetchJsonWithTimeout(source.mapping); }
@@ -256,7 +347,7 @@ export class TokenArtCatalog {
       const fcfg = this.MAPPING_FOLDERS[source.id];
       if (fcfg) await this._folderGapFill(fcfg, monsters, art);
     } else if (source.kind === "filemap") {
-      return this._filemapArt(source, monsters);
+      art = await this._filemapArt(source, monsters);
     } else {
       const sets = await MonsterTokenArt.buildFileSets(source);
       if (!sets) return art;
@@ -266,6 +357,9 @@ export class TokenArtCatalog {
         art[m.id] = { token: a.token, portrait: a.portrait, tokenObj: MonsterTokenArt._tokenArt(a.file, sets, source) };
       }
     }
+    // Proportionally scale this source's tokens (preserves per-creature framing).
+    const factor = this.SOURCE_SCALE[source.id];
+    if (factor && factor !== 1) for (const a of Object.values(art)) a.tokenObj = this._scaleTokenObj(a.tokenObj, factor);
     return art;
   }
 
@@ -275,10 +369,19 @@ export class TokenArtCatalog {
    * `options` order follows the source-priority order.
    */
   static async build() {
-    const pack = game.packs.get("shadowdark.monsters");
-    if (!pack) return { sources: [], byMonster: [] };
-    const index = await pack.getIndex();
-    const monsters = [...index].map((e) => ({ id: e._id, name: e.name }));
+    // Every covered pack: the base bestiary + the importer's managed pack (once
+    // it exists). Each monster carries its pack so resolve() can key art per pack.
+    const packIds = MonsterTokenArt.presentPacks();
+    if (!packIds.length) return { sources: [], byMonster: [] };
+    const monsters = [];
+    for (const packId of packIds) {
+      const index = await game.packs.get(packId).getIndex();
+      for (const e of index) {
+        if (e.type && e.type !== "NPC") continue;   // skip non-monster docs in mixed packs
+        monsters.push({ id: e._id, name: e.name, pack: packId });
+      }
+    }
+    if (!monsters.length) return { sources: [], byMonster: [] };
 
     const discovered = await this.discoverSources();
     const priority = this.resolvePriority(discovered.map((s) => s.id));
@@ -289,6 +392,7 @@ export class TokenArtCatalog {
       .map((m) => ({
         id: m.id,
         name: m.name,
+        pack: m.pack,
         options: discovered.filter((s) => s._art[m.id]).map((s) => ({ source: s.id, ...s._art[m.id] })),
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -298,6 +402,90 @@ export class TokenArtCatalog {
       count: Object.keys(s._art).length,
     }));
     return { sources, byMonster };
+  }
+
+  /**
+   * Every installed `pf2e-tokens-*` module → a browser source, probing common
+   * token roots. Lets any Paizo bestiary token pack the user installs appear in
+   * the browser automatically, without a hardcoded LIBRARY_DIRS entry per module.
+   * Returns [{ id, label, root }].
+   */
+  static async _discoverPf2eTokenModules() {
+    const out = [];
+    for (const mod of game.modules ?? []) {
+      if (!/^pf2e-tokens-/.test(mod.id) || this.LIBRARY_DIRS[mod.id]) continue;   // configured ones handled already
+      for (const root of [`modules/${mod.id}/assets/tokens`, `modules/${mod.id}/tokens`, `modules/${mod.id}`]) {
+        const ok = await FilePicker.browse("data", root).then((b) => (b.files?.length || b.dirs?.length)).catch(() => false);
+        if (ok) { out.push({ id: mod.id, label: mod.title ?? mod.id, root }); break; }
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Full token library across installed sources — EVERY token file, not just the
+   * handful that name-match a monster. Powers the manual image browser so a
+   * monster with no automatic match (imported CS/WR monsters) can still be
+   * skinned by hand. Sources = LIBRARY_DIRS + any installed pf2e-tokens-* module.
+   * Each file's presentation (ring/scale/subject) is inherited from that source's
+   * own token map where listed, else a flat/default-scale fallback. Priority-
+   * ordered by source, then A→Z by filename. Returns
+   *   [{ source, label, file, token, portrait, tokenObj }]
+   */
+  static async buildLibrary() {
+    const configured = Object.entries(this.LIBRARY_DIRS).map(([id, cfg]) => ({ id, ...cfg }));
+    const autos = await this._discoverPf2eTokenModules();
+    const sources = [...configured, ...autos];
+    // Known-priority sources first; browser-only extras (iconics, extra token
+    // modules) append in discovery order.
+    const priority = this.resolvePriority(sources.map((s) => s.id));
+    sources.sort((a, b) => priority.indexOf(a.id) - priority.indexOf(b.id));
+
+    const out = [];
+    for (const s of sources) {
+      const files = s.flat ? await this._browseFlatDir(s.root) : await this._browseTree(s.root, s.skipDir);
+      if (!files.size) continue;
+      const present = s.present ? await this._loadPresentMaps(s.present) : new Map();
+      const scales = s.scaleMap ? await this._loadScaleMap(s.scaleMap) : new Map();
+      const def = s.defaultScale ?? 1;
+      for (const base of [...files.keys()].sort((a, b) => a.localeCompare(b))) {
+        // pf2e iconics: browse only the `Name.webp` token; hide portrait/subject
+        // variants and pair the portrait to `…Full` when it exists.
+        if (s.iconics && /(full|subject)\.(webp|png|jpg|jpeg)$/i.test(base)) continue;
+        const path = files.get(base);
+        const p = present.get(base);
+        let tokenObj;
+        if (p?.tokenObj) tokenObj = foundry.utils.deepClone(p.tokenObj);
+        else if (scales.has(base)) { const sc = scales.get(base); tokenObj = { texture: { src: path, scaleX: sc, scaleY: sc } }; }
+        else tokenObj = { texture: { src: path, scaleX: def, scaleY: def } };
+        if (!tokenObj.texture) tokenObj.texture = {};
+        if (!tokenObj.texture.src) tokenObj.texture.src = path;   // present maps already carry src
+        let portrait = p?.portrait ?? path;
+        if (s.iconics) {
+          const full = base.replace(/\.(webp|png|jpg|jpeg)$/i, "Full.$1");
+          if (files.has(full)) portrait = files.get(full);
+        }
+        out.push({
+          source: s.id,
+          label: s.label ?? s.id,
+          file: base,
+          token: tokenObj.texture.src ?? path,
+          portrait,
+          tokenObj,
+        });
+      }
+    }
+    return out;
+  }
+
+  /** Re-order every monster's `options` to match a priority list, so the
+   *  manager's thumbnail row shows sources in priority order after a live
+   *  change without a rebuild (which re-browses disk). `resolve()` ranks by the
+   *  current priority itself, so it no longer depends on this ordering — this is
+   *  purely for display. */
+  static reorder(catalog, priority) {
+    const rank = (src) => { const i = priority.indexOf(src); return i < 0 ? Infinity : i; };
+    for (const m of catalog.byMonster) m.options.sort((a, b) => rank(a.source) - rank(b.source));
   }
 
   /** Merge the saved priority with any newly-discovered source ids (defaults
@@ -312,27 +500,79 @@ export class TokenArtCatalog {
   }
 
   /**
-   * Resolve the chosen art per monster into a compendium-art table:
-   *   { <monsterId>: { actor, token } }
-   * Choice = per-monster override, else the first source (by priority) that has
-   * art. Returns { table, chosen: {id:source}, stats }.
+   * Resolve the chosen art per monster into a per-pack compendium-art mapping:
+   *   { <packId>: { <monsterId>: { actor, token } } }
+   * Precedence: a hand-picked image (from the image browser) wins outright — even
+   * when nothing name-matched — then a per-monster source override, then a
+   * Community pin, then the highest-priority source that has art.
+   * Returns { tables, chosen: {id:source|"__manual__"}, stats }.
    */
   static resolve(catalog) {
     const state = game.settings.get(MODULE_ID, "tokenArtManager") ?? {};
     const overrides = state.overrides ?? {};
-    const table = {};
+    const picks = state.picks ?? {};
+    // Rank options by the CURRENT priority rather than trusting the catalog's
+    // build-time option order — so a live priority change picks the new default
+    // without a rebuild, and API callers (resolveCatalog) stay correct too.
+    const priority = this.resolvePriority((catalog.sources ?? []).map((s) => s.id));
+    const rank = (src) => { const i = priority.indexOf(src); return i < 0 ? Infinity : i; };
+    const tables = {};
     const chosen = {};
     const perSource = {};
     for (const m of catalog.byMonster) {
+      const pack = m.pack ?? "shadowdark.monsters";
+      // 1) Hand-picked image — a specific file, not a source name-match. Works
+      //    for monsters with zero options (imported CS/WR monsters).
+      const manual = picks[m.id];
+      if (manual?.tokenObj) {
+        (tables[pack] ??= {})[m.id] = { actor: manual.portrait ?? manual.token, token: manual.tokenObj };
+        chosen[m.id] = "__manual__";                 // sentinel: highlight none of the source options
+        const sk = manual.source ?? "custom";
+        perSource[sk] = (perSource[sk] ?? 0) + 1;
+        continue;
+      }
       if (!m.options.length) continue;
-      // explicit override wins; else a Community pin (loose foreign match); else priority.
+      // 2) explicit override; else a Community pin (loose foreign match); else priority.
       const wantSrc = overrides[m.id]
         || (this.COMMUNITY_PINS.has(m.name) ? this.COMMUNITY_SOURCE : null);
-      const pick = (wantSrc && m.options.find((o) => o.source === wantSrc)) || m.options[0];
-      table[m.id] = { actor: pick.portrait, token: pick.tokenObj };
+      const best = m.options.reduce((a, b) => (rank(b.source) < rank(a.source) ? b : a));
+      const pick = (wantSrc && m.options.find((o) => o.source === wantSrc)) || best;
+      (tables[pack] ??= {})[m.id] = { actor: pick.portrait, token: pick.tokenObj };
       chosen[m.id] = pick.source;
       perSource[pick.source] = (perSource[pick.source] ?? 0) + 1;
     }
-    return { table, chosen, stats: { total: catalog.byMonster.length, mapped: Object.keys(table).length, perSource } };
+    const mapped = Object.values(tables).reduce((n, t) => n + Object.keys(t).length, 0);
+    return { tables, chosen, stats: { total: catalog.byMonster.length, mapped, perSource } };
+  }
+
+  /**
+   * Resolve the manager's picks into a name → chosen art map, for re-skinning
+   * already-placed NPC tokens/actors (which we match by name, not compendium
+   * id). Same choice logic as resolve(); returns Map(name → { portrait, tokenObj }).
+   */
+  static resolveByName(catalog) {
+    const { tables } = this.resolve(catalog);
+    const byId = {};
+    for (const t of Object.values(tables)) Object.assign(byId, t);
+    const byName = new Map();
+    for (const m of catalog.byMonster) {
+      const art = byId[m.id];
+      if (art) byName.set(m.name, { portrait: art.actor, tokenObj: art.token });
+    }
+    return byName;
+  }
+
+  /**
+   * Path prefixes for every art source this catalog can apply. Used when
+   * re-skinning already-placed tokens to decide which current art is "managed"
+   * (safe to overwrite with the manager's pick) vs the user's own custom art —
+   * so switching a placed token from one art source to another actually takes.
+   */
+  static managedArtPrefixes() {
+    const prefixes = new Set();
+    for (const s of this.FOLDER_SOURCES) if (s.tokenDir) prefixes.add(`modules/${s.id}/`);
+    for (const s of this.FILEMAP_SOURCES) if (s.tokenRoot) prefixes.add(s.tokenRoot);
+    for (const [id, cfg] of Object.entries(this.MAPPING_FOLDERS)) if (cfg.tokenDir) prefixes.add(`modules/${id}/`);
+    return [...prefixes];
   }
 }

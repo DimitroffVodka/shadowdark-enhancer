@@ -270,6 +270,8 @@ Hooks.once("init", () => {
       buildFileSets: (source) => MonsterTokenArt.buildFileSets(source),
       // Multi-source manager: catalog of all art sources + per-monster resolve.
       catalog: () => TokenArtCatalog.build(),
+      // Full cross-source token library (every file) for the manual image browser.
+      library: () => TokenArtCatalog.buildLibrary(),
       resolveCatalog: (cat) => TokenArtCatalog.resolve(cat),
       applyResolved: (table) => MonsterTokenArt.applyResolvedMapping(table),
     },

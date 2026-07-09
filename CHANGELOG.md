@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+Follow-ups to the **Monster Token Art Manager**: it now covers your imported monsters, adds a full visual image browser for hand-picking art from every source, and fixes two override bugs.
+
+### Added
+- **Imported monsters get token art too.** The compendium-art overlay now skins the enhancer's own imported-monsters pack (the suite `sde-actors` pack, or the legacy `world.shadowdark-enhancer--actors` pack) alongside `shadowdark.monsters`, discovered live — so monsters you import (Cursed Scrolls, Western Reaches, …) can carry token art like the base bestiary. Imported rows are tagged in the manager, and the overlay writes one mapping entry per pack.
+- **Visual image browser.** A **Browse** button on every monster opens a searchable grid of *every* token across all installed sources (Monster Manual, Paizo Monster Core, Forgotten Adventures, Community Tokens — 2,000+ files), so a monster with no automatic name-match can still be skinned by hand. A hand-picked image wins over source priority and overrides. The browser **groups by source** (collapsible sections with sticky headers), **zooms** (slider, `Ctrl`+scroll, `Ctrl +` / `Ctrl −`, `Ctrl 0` to reset), filters as you type with a **clear (×)** button, and shows the hovered token's **source · filename**.
+- **Pathfinder iconics + auto-detected token modules.** The pf2e game system's 59 **iconic** PC/companion portraits (Amiri, Ezren, Droogami…) are browsable (browser-only — the pf2e *system* ships no monster tokens), and any installed **`pf2e-tokens-*`** module is auto-added to the browser.
+
+### Fixed
+- **Clearing a per-monster override (and "Reset picks") did nothing.** Removing one override, or resetting all of them, silently no-op'd because saved state was recursively merged instead of replaced (`mergeObject` keeps keys absent from the patch). Both now clear as expected — including hand-picked images.
+- **Reordering source priority didn't take effect until the manager was reopened.** The resolved art, "chosen" highlight, and per-source tallies now refresh immediately on reorder.
+
+### Notes
+- Verified live against Foundry VTT **14.364** and Shadowdark **4.0.6**.
+- All art is still referenced from disk by path — nothing is copied or bundled. Imported-monster art draws from name-matched sources (curated id-keyed maps such as Community Tokens cover the base bestiary only).
+
 ## [0.9.5] — 2026-07-08
 
 Two art features: a **Monster Token Art Manager** that skins the Shadowdark monster compendium with token art you already own, and **character portrait + token art** in the builder — with paths that work even for players who hold no file permissions.

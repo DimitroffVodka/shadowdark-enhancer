@@ -3,8 +3,10 @@
   <header class="sde-tam-head">
     <div class="sde-tam-blurb">
       Choose which installed art source skins each monster. The order below sets the
-      default; click a thumbnail to override a single monster. <strong>Apply</strong> makes
-      every future monster drag use your picks (nothing is copied — art is referenced from disk).
+      default; click a thumbnail to override a single monster, or <strong>Browse</strong> to
+      hand-pick any token from every source (needed for monsters with no automatic match).
+      <strong>Apply</strong> makes every future monster drag use your picks (nothing is copied —
+      art is referenced from disk).
     </div>
     <div class="sde-tam-actions">
       <button type="button" data-action="apply" class="sde-tam-apply">
@@ -13,7 +15,7 @@
       <button type="button" data-action="reskinPlaced" title="Fix monsters already placed on scenes / in the Actors tab">
         <i class="fa-solid fa-street-view"></i> Re-skin placed
       </button>
-      <button type="button" data-action="resetAll" title="Clear all per-monster overrides">
+      <button type="button" data-action="resetAll" title="Clear all per-monster overrides and hand-picked images">
         <i class="fa-solid fa-rotate-left"></i> Reset picks
       </button>
       {{#if enabled}}
@@ -57,19 +59,49 @@
     <div class="sde-tam-row {{#if isOverride}}is-override{{/if}}" data-name="{{name}}" data-multi="{{#if multi}}1{{/if}}">
       <div class="sde-tam-name">
         {{name}}
+        {{#if imported}}<span class="sde-tam-imported" title="Imported monster (managed pack)">imported</span>{{/if}}
         {{#if isOverride}}<i class="fa-solid fa-thumbtack" title="Overridden — click to clear" data-action="clearRow" data-monster="{{id}}"></i>{{/if}}
       </div>
       <div class="sde-tam-opts">
+        {{#if pick}}
+        <div class="sde-tam-opt sde-tam-pick is-chosen" title="Hand-picked: {{pick.label}} · {{pick.file}}">
+          <img src="/{{pick.thumb}}" loading="lazy" alt="">
+          <i class="fa-solid fa-hand-pointer sde-tam-check"></i>
+        </div>
+        {{/if}}
         {{#each options}}
         <button type="button" class="sde-tam-opt {{#if chosen}}is-chosen{{/if}}" data-action="choose" data-monster="{{../id}}" data-source="{{source}}" title="{{label}}{{#if ring}} · ring{{/if}}">
           <img src="/{{thumb}}" loading="lazy" alt="{{label}}">
           {{#if chosen}}<i class="fa-solid fa-check sde-tam-check"></i>{{/if}}
         </button>
         {{/each}}
+        {{#unless hasOptions}}{{#unless pick}}<span class="sde-tam-nomatch">no automatic match</span>{{/unless}}{{/unless}}
+        <button type="button" class="sde-tam-browse" data-action="browse" data-monster="{{id}}" data-name="{{name}}" title="Browse every source's tokens and pick one by hand">
+          <i class="fa-solid fa-images"></i> Browse
+        </button>
       </div>
     </div>
     {{/each}}
     {{#unless rows.length}}<div class="sde-tam-empty">No monsters match.</div>{{/unless}}
+  </div>
+
+  <div class="sde-tam-browser" hidden data-monster="">
+    <div class="sde-tam-browser-head">
+      <span class="sde-tam-browser-title">Choose art</span>
+      <div class="sde-tam-browser-searchwrap">
+        <input type="search" class="sde-tam-browser-search" placeholder="Filter tokens…" autocomplete="off">
+        <button type="button" class="sde-tam-browser-clear" title="Clear search" hidden><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <label class="sde-tam-browser-zoomwrap" title="Thumbnail size (Ctrl + scroll, or Ctrl + / Ctrl −)">
+        <i class="fa-solid fa-magnifying-glass-minus sde-tam-dim"></i>
+        <input type="range" class="sde-tam-browser-zoom" min="40" max="320" step="8" value="56">
+        <i class="fa-solid fa-magnifying-glass-plus sde-tam-dim"></i>
+      </label>
+      <span class="sde-tam-browser-count sde-tam-dim"></span>
+      <button type="button" class="sde-tam-browser-close" data-action="browserClose"><i class="fa-solid fa-xmark"></i> Close</button>
+    </div>
+    <div class="sde-tam-browser-grid"></div>
+    <div class="sde-tam-browser-status"><span class="sde-tam-dim">Hover a token to see its source &amp; filename</span></div>
   </div>
 
 </section>

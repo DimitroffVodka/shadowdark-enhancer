@@ -7725,6 +7725,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-row.is-override { background: rgba(201, 170, 88, 0.12); }
 .sde-tam-name { flex: 1; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .sde-tam-name .fa-thumbtack { font-size: 11px; color: var(--sde-gold, #c9aa58); cursor: pointer; }
+.sde-tam-imported { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--sde-gold, #c9aa58); border: 1px solid rgba(201, 170, 88, 0.5); border-radius: 3px; padding: 0 4px; opacity: .85; }
 .sde-tam-opts { display: flex; gap: 6px; }
 .sde-tam-opt { position: relative; width: 46px; height: 46px; padding: 0; border: 2px solid transparent; border-radius: 6px; background: rgba(0,0,0,0.12); cursor: pointer; overflow: hidden; flex: 0 0 auto; }
 .sde-tam-opt img { width: 100%; height: 100%; object-fit: contain; display: block; }
@@ -7732,3 +7733,44 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-opt.is-chosen { border-color: var(--sde-gold, #c9aa58); box-shadow: 0 0 0 1px var(--sde-gold, #c9aa58) inset; }
 .sde-tam-check { position: absolute; right: 2px; bottom: 2px; font-size: 10px; color: #fff; background: var(--sde-gold, #c9aa58); border-radius: 50%; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; }
 .sde-tam-empty { text-align: center; opacity: 0.6; padding: 24px; }
+
+/* Hand-picked image tile + per-row Browse button */
+.sde-tam-pick { cursor: default; background: rgba(201, 170, 88, 0.12); }
+.sde-tam-nomatch { font-size: 11px; opacity: 0.55; font-style: italic; align-self: center; }
+.sde-tam-browse { align-self: center; margin-left: auto; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; border: 1px solid var(--color-border-light-2, #666); border-radius: 4px; background: rgba(0,0,0,0.12); cursor: pointer; }
+.sde-tam-browse:hover { border-color: var(--sde-gold, #c9aa58); color: var(--sde-gold, #c9aa58); }
+
+/* Full-source image browser — an overlay panel over the monster list */
+.sde-tam { position: relative; }
+.sde-tam-browser { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; background: var(--color-bg, #1b1b23); border: 1px solid var(--sde-gold, #c9aa58); border-radius: 6px; box-shadow: 0 8px 28px rgba(0,0,0,0.5); }
+.sde-tam-browser[hidden] { display: none; }
+.sde-tam-browser-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--color-border-light-2, #666); flex: 0 0 auto; }
+.sde-tam-browser-title { font-weight: 600; white-space: nowrap; }
+.sde-tam-browser-searchwrap { flex: 1; min-width: 0; position: relative; display: flex; align-items: center; }
+.sde-tam-browser-search { flex: 1; min-width: 0; padding-right: 24px; }
+.sde-tam-browser-search::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.sde-tam-browser-clear { position: absolute; right: 3px; top: 50%; transform: translateY(-50%); background: none; border: none; box-shadow: none; cursor: pointer; padding: 2px 5px; line-height: 1; opacity: .7; }
+.sde-tam-browser-clear:hover { opacity: 1; color: var(--sde-gold, #c9aa58); }
+.sde-tam-browser-close { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; cursor: pointer; }
+.sde-tam-browser-zoomwrap { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; }
+.sde-tam-browser-zoom { width: 90px; accent-color: var(--sde-gold, #c9aa58); }
+.sde-tam-browser-grid { flex: 1 1 auto; overflow-y: scroll; padding: 2px 10px 10px; --tam-thumb: 56px; scrollbar-width: auto; scrollbar-color: #2fbfd4 rgba(0,0,0,0.4); }
+.sde-tam-bgroup + .sde-tam-bgroup { margin-top: 6px; }
+.sde-tam-bgroup-head { position: sticky; top: 0; z-index: 2; background: var(--color-bg, #1b1b23); padding: 6px 2px 4px; margin-bottom: 4px; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; color: var(--sde-gold, #c9aa58); border-bottom: 1px solid rgba(201,170,88,0.35); cursor: pointer; user-select: none; }
+.sde-tam-bgroup-head:hover { color: #e0c26e; }
+.sde-tam-bgroup-caret { display: inline-block; width: 10px; transition: transform .1s ease; }
+.sde-tam-bgroup.is-collapsed .sde-tam-bgroup-caret { transform: rotate(-90deg); }
+.sde-tam-bgroup.is-collapsed .sde-tam-bgroup-items { display: none; }
+.sde-tam-bgroup-items { display: grid; grid-template-columns: repeat(auto-fill, var(--tam-thumb, 56px)); grid-auto-rows: var(--tam-thumb, 56px); gap: 6px; align-content: start; }
+.sde-tam-browse-opt { width: var(--tam-thumb, 56px); height: var(--tam-thumb, 56px); padding: 0; border: 2px solid transparent; border-radius: 6px; background: rgba(0,0,0,0.18); cursor: pointer; overflow: hidden; transition: transform .08s ease, border-color .08s ease; }
+.sde-tam-browse-opt img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.sde-tam-browse-opt:hover { border-color: var(--sde-gold, #c9aa58); transform: scale(1.06); z-index: 1; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+/* Thick, high-contrast teal scrollbar for the token grid (Chromium/Electron) */
+.sde-tam-browser-grid::-webkit-scrollbar { width: 18px; }
+.sde-tam-browser-grid::-webkit-scrollbar-track { background: rgba(0,0,0,0.4); border-radius: 9px; }
+.sde-tam-browser-grid::-webkit-scrollbar-thumb { background: #2fbfd4; border: 3px solid var(--color-bg, #1b1b23); border-radius: 9px; min-height: 48px; }
+.sde-tam-browser-grid::-webkit-scrollbar-thumb:hover { background: #56d6ea; }
+/* Hover status bar — shows the hovered token's source · filename */
+.sde-tam-browser-status { flex: 0 0 auto; padding: 5px 10px; border-top: 1px solid var(--color-border-light-2, #666); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 1.6em; }
+.sde-tam-browser-status .sde-tam-status-src { color: var(--sde-gold, #c9aa58); font-weight: 600; }
+.sde-tam-browser-status .sde-tam-status-file { opacity: .85; }
