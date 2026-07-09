@@ -253,6 +253,22 @@ export const SEALED_UNITS = [
       { len: 5, hash: "e658ac152b6b3230292b01a14c71d35ee292f92fb44777ec608e4738f15be8ad" },
     ],
   },
+  {
+    id: "cs6-spells",
+    name: "Cursed Scroll 6 Spells",
+    type: "Spell",
+    coversType: "Spell",
+    source: "CS6",
+    pages: "18-21",
+    file: `modules/${MODULE_ID}/data/locked/cs6-spells.json`,
+    anchors: [
+      { len: 6, hash: "c5ce5805a2b1e75fecc3d772e9101a8f26f1b19e8593cffb6a6e4daaf161390b" },
+      { len: 6, hash: "3bf4033b5d5633b7e8769193ed5ecb9627e0d58a5e9254a51f55ad2a5c3aa96d" },
+      { len: 6, hash: "256201341cea73775b701e72b46f8c7f1ac6d3d5370fc8bdcc958997cbccf609" },
+      { len: 6, hash: "825ac2ed2ed67432044d7495961723febc6f4f7b9402e8cbd44445343fdb3811" },
+      { len: 6, hash: "6468bf9972689dfe80a34c0ac749b272600a5a7fd800ff9fe221b0f3d448f2f9" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */

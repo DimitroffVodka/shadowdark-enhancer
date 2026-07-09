@@ -47,7 +47,9 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 | cs5-spells | Spell | CS5 | 16 spells (Chaotic Wizard/Sorcerer) | **committed** | ✅ |
 | cs5-gear | Basic | CS5 | 12 gear | **committed** | ✅ |
 | cs5-monsters | Actor | CS5 | 5 monsters | **committed** | ✅ |
-| cs6-spells | Spell | CS6 | 16 spells | todo | ❌ |
+| cs6-spells | Spell | CS6 | 16 spells (Lawful Wizard/Mage) | **committed** | ✅ |
+| cs6-tables | RollTable | CS6 | ~25 (Carousing, encounters…) | todo — needs table-unlock wiring | ❌ |
+| cs6-bard | Class | CS6 | — | blocked: no Bard class item in world | ❌ |
 | wr-spells | Spell | WR | ~51 spells | todo | ❌ |
 | wr-gear | Basic/Weapon/Armor | WR | 26 items | todo | ❌ |
 | wr-half-elf | Ancestry | WR | 1 ancestry | todo | ❌ |
