@@ -43,6 +43,8 @@ const MANIFEST = {
       "Eyebite", "Feeblemind", "Mazzim's Mesmerism", "Mischief", "Phantoms",
       "Protection From Good", "Subjugate", "Unlife", "Wither", "Wrack",
     ],
+    // CS5 introduced these classes (also collected in WR) — dual-source unlock.
+    Class: ["Delver", "Wyrdling"],
   },
   CS6: {
     Spell: [
@@ -55,6 +57,9 @@ const MANIFEST = {
     Table: [
       "Carousing Outcome", "Carousing Outcome - Benefit", "Carousing Outcome - Mishap",
     ],
+    // CS6 introduced the Duelist (also in WR) — dual-source unlock. (Bard is the
+    // system's "Bard (Legacy)", so it isn't sealed here.)
+    Class: ["Duelist"],
   },
   WR: {
     Class: [

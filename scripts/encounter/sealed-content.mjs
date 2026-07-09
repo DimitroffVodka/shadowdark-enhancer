@@ -381,6 +381,48 @@ export const SEALED_UNITS = [
       { len: 8, hash: "2bd4b5fdf7c02f27ba0fc7b4e6f7647e74cb7b48cb7e3a02e0ade359d1c6c4a1" },
     ],
   },
+  // ── Dual-source: WR unlocks the CS spells; CS books unlock the shared classes.
+  {
+    id: "wr-cs-spells",
+    name: "Western Reaches Wizard Spells (CS4-6)",
+    type: "Spell", coversType: "Spell", source: "WR", pages: "124-148",
+    file: `modules/${MODULE_ID}/data/locked/wr-cs-spells.json`,
+    anchors: [
+      { len: 7, hash: "6032dc8108c9729a98f8e32bd676b5d3da1998aa882421c6e341ba29d69e3017" },
+      { len: 7, hash: "cd0e0f87c84f4dce7f14a410ee92d68e443cd4b3d6217c75163e7a3e45b5a965" },
+      { len: 6, hash: "cadf810517d04c663b0ab2c5eea748a2221e8ed4254db7f9d8b207f12af97250" },
+      { len: 7, hash: "94960812a8c800085094ea9fce697e3b3c5011ddf9efe1a18241751e3a225b02" },
+      { len: 6, hash: "c5ce5805a2b1e75fecc3d772e9101a8f26f1b19e8593cffb6a6e4daaf161390b" },
+    ],
+  },
+  {
+    id: "cs5-delver", name: "Delver", type: "Class", coversType: "Class", source: "CS5", pages: "?",
+    file: `modules/${MODULE_ID}/data/locked/cs5-delver.json`,
+    anchors: [
+      { len: 7, hash: "964b19e435d1da8d0187fddc66656f2a55696f644595948c12a19d72a5a9dde2" },
+      { len: 7, hash: "cc0581f244e37341dd790e78203e38b9390d1b60996870cdf01f1b1ad1a7edc9" },
+      { len: 7, hash: "71d73fd7a5251a9e1c9fa8a8ba939c62d8f89ff184f3c984cf1fc373b9a58b10" },
+      { len: 7, hash: "f2dc72df551f283813c240ae3c77460f55ececdeeb98e29a60b453f5a90bc99c" },
+    ],
+  },
+  {
+    id: "cs5-wyrdling", name: "Wyrdling", type: "Class", coversType: "Class", source: "CS5", pages: "?",
+    file: `modules/${MODULE_ID}/data/locked/cs5-wyrdling.json`,
+    anchors: [
+      { len: 7, hash: "0bdc888246de1f8c5de2db5b8570ab28164aa88434053038ce876a531e874855" },
+      { len: 7, hash: "552657080fbe2ff80bd34069af99d939ba14bad77692d3b3aab6d180c0609777" },
+      { len: 7, hash: "a931c8386b12b7bcaaf44e5d5c3f8efd61e00b9886d3ffa5c357b0b97685e46c" },
+    ],
+  },
+  {
+    id: "cs6-duelist", name: "Duelist", type: "Class", coversType: "Class", source: "CS6", pages: "?",
+    file: `modules/${MODULE_ID}/data/locked/cs6-duelist.json`,
+    anchors: [
+      { len: 7, hash: "3948c9c949eaa8d1e0f863021bf02960ebe30a760d68636ded50f1abff7d3d39" },
+      { len: 7, hash: "c4f02bc6bb316f1fa4bf49a02c50189e912583fe3d0e3db19b05f941396a249b" },
+      { len: 7, hash: "c2846953de138584bd43c0837529f7c42f994d8d3ba98434db2744d497307fd9" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */
