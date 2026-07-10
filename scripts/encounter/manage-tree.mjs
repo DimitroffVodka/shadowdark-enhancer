@@ -153,7 +153,21 @@ function buildCharContent(charEntries, abilityPresent) {
     }));
     const abilities = leaf(`char/classes/${cls}/abilities`, "Class Abilities", "fa-star", abilityRecords, "charSeedPaste");
     const talents = leaf(`char/classes/${cls}/talents`, "Talents", "fa-certificate", perClass.get(cls) ?? [], "charSeedPaste");
-    return branch(`char/classes/${cls}`, cls, "fa-user-shield", [abilities, talents]);
+    const node = branch(`char/classes/${cls}`, cls, "fa-user-shield", [abilities, talents]);
+    // The CLASS itself is the sealed unit — unlocking it brings every talent,
+    // talent table, and spell bundled with it. Without this row the abilities/
+    // talents below are dead ends (no unit covers type "Talent"): their Unlock
+    // buttons route to zero sealed candidates (user-reported via Delver).
+    const classRec = ofType("Class").find((e) => e.name === cls);
+    if (classRec) {
+      node.entries = [{
+        name: cls, present: !!classRec.present, seedAction: "charSeedPaste",
+        type: "Class", src: classRec.src ?? src, pages: classRec.pages ?? "",
+      }];
+      node.have += classRec.present ? 1 : 0;
+      node.locked += classRec.present ? 0 : 1;
+    }
+    return node;
   });
   const multi = leaf("char/classes/Multi", "Multi", "fa-users", multiTalents, "charSeedPaste");
   const classes = branch("char/classes", "Classes", "fa-users-rectangle", [...classNodes, multi]);
