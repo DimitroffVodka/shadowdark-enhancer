@@ -16,6 +16,8 @@
 export const CHAR_SOURCES = {
   WR:  { label: "Western Reaches", book: "Shadowdark RPG: Western Reaches" },
   CS1: { label: "Cursed Scroll 1", book: "Cursed Scroll 1 — Diablerie!" },
+  CS2: { label: "Cursed Scroll 2", book: "Cursed Scroll 2 — Red Sands" },
+  CS3: { label: "Cursed Scroll 3", book: "Cursed Scroll 3 — Midnight Sun" },
   CS4: { label: "Cursed Scroll 4", book: "Cursed Scroll 4 — River of Night" },
   CS5: { label: "Cursed Scroll 5", book: "Cursed Scroll 5 — Dwellers in the Deep" },
   CS6: { label: "Cursed Scroll 6", book: "Cursed Scroll 6 — City of Masks" },
@@ -34,6 +36,24 @@ const MANIFEST = {
     Table: [
       "Diabolical Mishap 1-3", "Diabolical Mishap 4-5",
       "Cursed Scroll 1 p68: Diabolical Treasure",
+    ],
+  },
+  CS2: {
+    // Red Sands: Enduring Wounds (pg 26) + the back-cover Dead Bandit's Hand
+    // ship sealed; 14 monsters unlock via the live monster census.
+    Table: [
+      "Cursed Scroll 2 p26: Enduring Wounds",
+      "Cursed Scroll 2 p68: In A Dead Bandit'S Hand, You Find...",
+    ],
+  },
+  CS3: {
+    // Midnight Sun: Nord Names is a 4d20 compound (parent + Male/Female/
+    // Surname/Title, all unsealed together); Arctic Sea Encounters + the
+    // back-cover Sea Wolf Plunder. 12 monsters unlock via the monster census.
+    Table: [
+      "Cursed Scroll 3 p16: Nord Names",
+      "Cursed Scroll 3 p26: Arctic Sea Encounters",
+      "Sea Wolf Plunder From Distant Lands",
     ],
   },
   CS4: {

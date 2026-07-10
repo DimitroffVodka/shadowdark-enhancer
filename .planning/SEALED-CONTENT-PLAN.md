@@ -45,6 +45,13 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 | cs1-mishaps | Table | CS1 | 2 Diabolical Mishap tables (Tier 1-3, 4-5) | **committed** | ✅ |
 | cs1-treasure | Table | CS1 | Diabolical Treasure d20 (back cover) | **committed** | ✅ |
 | cs1-monsters | Actor | CS1 | 14 monsters (Diablerie bestiary) | **committed** | ✅ |
+| cs2-enduring-wounds | Table | CS2 | Enduring Wounds d20 (pg 26) | **committed** | ✅ |
+| cs2-dead-bandit | Table | CS2 | In a Dead Bandit's Hand d20 (back cover) | **committed** | ✅ |
+| cs2-monsters | Actor | CS2 | 14 monsters (Red Sands bestiary) | **committed** | ✅ |
+| cs3-nord-names | Table | CS3 | Nord Names 4d20 compound (5 tables) | **committed** | ✅ |
+| cs3-arctic-encounters | Table | CS3 | Arctic Sea Encounters d100 (pg 26) | **committed** | ✅ |
+| cs3-sea-wolf-plunder | Table | CS3 | Sea Wolf Plunder d20 (back cover) | **committed** | ✅ |
+| cs3-monsters | Actor | CS3 | 12 monsters (Midnight Sun bestiary) | **committed** | ✅ |
 | cs4-spells | Spell | CS4 | 16 spells | **committed** | ✅ |
 | cs4-monsters | Actor | CS4 | 19 monsters | **committed** | ✅ |
 | cs5-spells | Spell | CS5 | 16 spells (Chaotic Wizard/Sorcerer) | **committed** | ✅ |
