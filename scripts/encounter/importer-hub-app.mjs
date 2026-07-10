@@ -121,7 +121,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    body: { template: "modules/shadowdark-enhancer/templates/importer-hub.hbs" },
+    body: {
+      template: "modules/shadowdark-enhancer/templates/importer-hub.hbs",
+      // Preserve the scroll position across re-renders — every tree
+      // expand/collapse re-renders the app, and without this the view
+      // snaps back to the top of the hub. "" = the part's root element
+      // (.sde-importer-hub is the template root, so a selector can't match it).
+      scrollable: [""],
+    },
   };
 
   // ── Import type selector ───────────────────────────────────────────────────
