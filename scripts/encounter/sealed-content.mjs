@@ -840,13 +840,30 @@ export const SEALED_UNITS = [
       { len: 7, hash: "c2846953de138584bd43c0837529f7c42f994d8d3ba98434db2744d497307fd9" },
     ],
   },
+  // Carousing ships as twin units over the SAME 3-table payload (Outcome d25 +
+  // Mishap/Benefit d100): one anchored to the Mishap table, one to the Benefit
+  // table, so pasting either d100 page unlocks the whole set. The Outcome page
+  // itself is numeric-only — no viable anchors (user-tested 2026-07-10).
   {
-    id: "wr-carousing", name: "Western Reaches Carousing", type: "Table", coversType: "Table", source: "WR", pages: "235-247",
+    id: "wr-carousing", name: "Western Reaches Carousing", type: "Table", coversType: "Table", source: "WR", pages: "242-246",
     file: `modules/${MODULE_ID}/data/locked/wr-carousing.json`,
     anchors: [
-      { len: 11, hash: "02f127e807a2e534a742b2bb14e94ec01d99f8c963e9b931bcc6b5eda7b41798" },
-      { len: 8, hash: "4bb541e84dbf89ca2139b75d1734e4b8e5d210bf7b85baa41b5e7cd9a81032fc" },
-      { len: 11, hash: "6c3bbf5ccccd02c844ee350130dd76a01f390dd570d73ca398163e6bbbf45b6f" },
+      { len: 10, hash: "a94301c91e7beef0b4aecee70e8c2a92c49431fab60f3c1cd9161111251ad4ab" },
+      { len: 10, hash: "917d7c7e875fe0a80bb024f33f3b5a11372557e966136713ab447215a9c2683a" },
+      { len: 12, hash: "ca20ef48fae967922905a6da366554abdb61770e65d5bc55df0bb2feb7738e6e" },
+      { len: 12, hash: "daa76694fe16ce87213e06bf5b51d2aaab2ff1dff51390b68aa341aa8a9809a1" },
+      { len: 10, hash: "5579d4f8e883845ea73e7a328eb52c53ef239536d705659aabc6cc377471ad3c" },
+    ],
+  },
+  {
+    id: "wr-carousing-benefit", name: "Western Reaches Carousing (Benefit)", type: "Table", coversType: "Table", source: "WR", pages: "238-241",
+    file: `modules/${MODULE_ID}/data/locked/wr-carousing-benefit.json`,
+    anchors: [
+      { len: 11, hash: "523810e9655c36d0e7c31140b03f25035f82f0edeb1eb5418dab38aea78d3a93" },
+      { len: 10, hash: "fe661c19428c98b62b7e8fb50c6ea05809688dffd78583fa326887f45ead70db" },
+      { len: 11, hash: "3259acadf5c8093c66381120a55a256d7476b759d77f9267fb666e735f7ac789" },
+      { len: 13, hash: "7f944c951cef85d46b8d2d9941eeba13a4fb56dfb0691cb118b17e1901650eaf" },
+      { len: 10, hash: "10b0f3ea045725fd2a32a268dea19ec341505266f3ef1ce83873d7d6a46cba37" },
     ],
   },
   {
