@@ -52,6 +52,17 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 | cs3-arctic-encounters | Table | CS3 | Arctic Sea Encounters d100 (pg 26) | **committed** | ✅ |
 | cs3-sea-wolf-plunder | Table | CS3 | Sea Wolf Plunder d20 (back cover) | **committed** | ✅ |
 | cs3-monsters | Actor | CS3 | 12 monsters (Midnight Sun bestiary) | **committed** | ✅ |
+| core-encounters | Table | CORE | 22 random-encounter d100 tables (incl. Ruins) | **committed** | ✅ |
+| core-treasure | Table | CORE | 4 Treasure + Unique/Luxury + 119 bundled loot items | **committed** | ✅ |
+| core-carousing | Table | CORE | Carousing Outcome + event cost + 4 stakes | **committed** | ✅ |
+| core-traps-hazards | Table | CORE | Traps + Hazards (3-col each) | **committed** | ✅ |
+| core-something-happens | Table | CORE | Something Happens! d100 | **committed** | ✅ |
+| core-rumors | Table | CORE | Rumors d100 | **committed** | ✅ |
+| core-adventure-generator | Table | CORE | Adventure Generator (7 tables) | **committed** | ✅ |
+| core-tavern | Table | CORE | Tavern Generator + Food + Drinks (8) | **committed** | ✅ |
+| core-shop | Table | CORE | Shops + Shop Generator + Interesting Customer (8) | **committed** | ✅ |
+| core-boons | Table | CORE | Oaths + Blessings + Secrets (5) | **committed** | ✅ |
+| core-magic-attributes | Table | CORE | 40 magic-item attribute tables (system-linked) | **committed** | ✅ |
 | cs4-spells | Spell | CS4 | 16 spells | **committed** | ✅ |
 | cs4-monsters | Actor | CS4 | 19 monsters | **committed** | ✅ |
 | cs5-spells | Spell | CS5 | 16 spells (Chaotic Wizard/Sorcerer) | **committed** | ✅ |

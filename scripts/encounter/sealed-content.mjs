@@ -448,6 +448,185 @@ export const SEALED_UNITS = [
       { len: 13, hash: "afa8062f9861e13d94060303dc601ec8de9ef36544ef1838fc161dda9291c447" },
     ],
   },
+  // ── Core Rulebook — GM tables, encounters, treasure, boons, magic-item
+  //    attributes. Grouped by section; unlock a group by pasting its anchor
+  //    section (dashboard names the representative table). ─────────────────
+  {
+    id: "core-encounters",
+    name: "Core Random Encounter Tables",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "146-188",
+    file: `modules/${MODULE_ID}/data/locked/core-encounters.json`,
+    anchors: [
+      { len: 10, hash: "993d4e5d1211641b29ef4a0a4676b154f10dfa3194e8acc8273f2ea8e725e5f0" },
+      { len: 11, hash: "6f85ba9eb82b132b0757acb7709c1aa2ca2107031a6c6a914a8a999f28e0ac1f" },
+      { len: 10, hash: "77ad6539c39ed105e6ac649ed523894f1b2d110923cba00074194e0943e29452" },
+      { len: 13, hash: "bc9a28449f80e12dd21f6cee526168b57fbe6e2eb69413b2865824f217790ffb" },
+      { len: 10, hash: "aa2b44512311bf5a3a3f41e609556db0793cda305df017695db5961ea464f5df" },
+    ],
+  },
+  {
+    id: "core-treasure",
+    name: "Core Treasure Tables",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "274-283",
+    file: `modules/${MODULE_ID}/data/locked/core-treasure.json`,
+    anchors: [
+      { len: 7, hash: "fa0f1910b1b04594b7cfe62556f9844bedf7c1b530497760b22f63efbfaff568" },
+      { len: 8, hash: "74b6b1dc077104fcd875f2235d1e9a23f9b7242db60cc948437173c418177d3a" },
+      { len: 7, hash: "16ca25e35f949f6a87167367c6a01aaf713b8045070cba855603ee66cab9d0ef" },
+      { len: 10, hash: "45cf7c03a5ef941ee6d9df9e12565d6520b7940a8fdfce7ec6a1e54c331ac2be" },
+      { len: 7, hash: "0005502b13f9e515d58c10db95c08d0c1a82a4153d47965e85e7862dfcc9ad9e" },
+    ],
+  },
+  {
+    id: "core-carousing",
+    name: "Core Carousing Tables",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "96-99",
+    file: `modules/${MODULE_ID}/data/locked/core-carousing.json`,
+    anchors: [
+      { len: 16, hash: "576a883139dd4fe078f3d3ec879e84d350568b3a7fd15e269778a9c1538ac5fa" },
+      { len: 11, hash: "7779855f315ef1077b35d760bdd17507d227348d94ed4369631038be69b6dae7" },
+      { len: 14, hash: "e7430998626d57cbde16a61bfa9d41cdee32fdf2873e2209ba5d8ce5c7a615a1" },
+      { len: 10, hash: "f2e937b9420626ca58a9cac29fe98d45fc61d834ea23a27ca167a52dff108b3a" },
+      { len: 13, hash: "7c4ce1d4dbb903ac334373e9f8a3f6c81c7dcfcf1435c59d6860b9b1aa32b32e" },
+    ],
+  },
+  {
+    id: "core-traps-hazards",
+    name: "Core Traps & Hazards",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "118-119",
+    file: `modules/${MODULE_ID}/data/locked/core-traps-hazards.json`,
+    anchors: [
+      { len: 7, hash: "9456aa6d44332dd6b8b7a5b7a5ba615e6884fe8d4fba815b7ef49ee9114c8426" },
+      { len: 7, hash: "0a18adc3b6a782ef9097615c1989df273a58bf2ef765c4175d2780e840dc0eb1" },
+      { len: 8, hash: "d19fbb616ead39ed8c725749d0aca77dfb36002305f1aa8c7ea5a4618fff2891" },
+      { len: 6, hash: "c146d0f12a7ebce746cb2fe89bfc9d66060ee66e74eefe0ce9dc5add732d9930" },
+      { len: 9, hash: "dd194a7931d898f2ba792e078358c47f7bc69b4c37e78972ce5867885966fa3a" },
+    ],
+  },
+  {
+    id: "core-something-happens",
+    name: "Core Something Happens!",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "122",
+    file: `modules/${MODULE_ID}/data/locked/core-something-happens.json`,
+    anchors: [
+      { len: 12, hash: "52d3c54102afb5706d3acdf5dbe0db3c37206d13c236840a3290a3ce97cc26b1" },
+      { len: 12, hash: "c174b7971ede92c4f61871ab33a661792d621387115a8d9b05fc39144dda6bf7" },
+      { len: 11, hash: "60d0f09fb0d174b26d267f0d896f6e588ecddb57d4dede814053a7578efbe954" },
+      { len: 8, hash: "114bbaf35f6f13c58eacb02152deacb91550f8161b513ad5adc990eb03db616d" },
+      { len: 11, hash: "c214257b348ada0996b9971a81d2e58c01dbc72065ceb2005919d8597a52a108" },
+    ],
+  },
+  {
+    id: "core-rumors",
+    name: "Core Rumors",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "124",
+    file: `modules/${MODULE_ID}/data/locked/core-rumors.json`,
+    anchors: [
+      { len: 11, hash: "14bb314b906717f0f4881a95ec05295e9a87f28c1828311ee006773f3418eb2f" },
+      { len: 11, hash: "ab0856d3721cdb455e50c7e24e9c1db9115572423600c7cee653d72effa137e6" },
+      { len: 12, hash: "15afd1cc0641ed3d6b87facd8b1fe39c492cde8d2941135c122c4a8eebb538f7" },
+      { len: 10, hash: "fda0cf0387225e56639af434a5c5960d98148164264b5565473cd0c0a3ebb38d" },
+      { len: 10, hash: "bcc4775807b23ad54b291fcf4e2d4a2ff22c212d5ecb31758fac8aae5262c53f" },
+    ],
+  },
+  {
+    id: "core-adventure-generator",
+    name: "Core Adventure Generator",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "122-126",
+    file: `modules/${MODULE_ID}/data/locked/core-adventure-generator.json`,
+    anchors: [
+      { len: 7, hash: "0eb136ca597f993d39cb63eae13a67a8250071f1f8ff738f5a707a8c1564544b" },
+      { len: 9, hash: "f605869caa2249d58e64f423c326f6e03814cd119163373fa50241aeaffc6320" },
+      { len: 7, hash: "c89e634106175c6ef13deccb3ec18c2a7065c3615604b7fae5ec5fd4fad303e0" },
+      { len: 7, hash: "3b54398b56e53d6e2cf951ea5c0ad994aec2e78883eaa64bf9581124bf950cc0" },
+      { len: 9, hash: "05efed63739125fa81ed1c5cc34f348d2f3caaf8ed52dabe77e3d6aa172e02f9" },
+    ],
+  },
+  {
+    id: "core-tavern",
+    name: "Core Tavern, Food & Drinks",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "136-140",
+    file: `modules/${MODULE_ID}/data/locked/core-tavern.json`,
+    anchors: [
+      { len: 12, hash: "10b6e355127142f8c0ce0aec883a65280a06309e4f0f444177971f8a91081a1f" },
+      { len: 12, hash: "11b5cbff2168f0505917a794720b2919141e4f46a9000449ce7e4737ec63d587" },
+      { len: 12, hash: "f87d0a95bfb60a44ebcb8104b57801997f22b956da3bb4baad23a7649b1ef91a" },
+      { len: 13, hash: "d91f86cc6603a638bd2f2bdd41a0ec1164cbf45f9bf6c359a2cfa7e81efebe49" },
+      { len: 12, hash: "d8b96b7ba464da6553eef18c1cec988044e7decebf71686d272c6361b979ef4d" },
+    ],
+  },
+  {
+    id: "core-shop",
+    name: "Core Shops",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "138-143",
+    file: `modules/${MODULE_ID}/data/locked/core-shop.json`,
+    anchors: [
+      { len: 5, hash: "ff03a9a73d11adb70934f288ee3581f48bf9ff4033a59df07a9eb185a4987bed" },
+      { len: 6, hash: "35bff9e6a1fd17e41f303b36efcfc11c7e5371cbcb2acc00453531215218a241" },
+      { len: 7, hash: "1143523b4bb1fccf59585c497c070424ccc607e3bcc0a71738861576de97169c" },
+      { len: 8, hash: "74d7ab85c330c0d6040a1be1ccae592077bc527a4df63dfb8dfc6d336604dddd" },
+      { len: 6, hash: "726675c99ef2900128c818c3f1cf1ca2e642d76b3d64b2ff32f0aad6811a95b3" },
+    ],
+  },
+  {
+    id: "core-boons",
+    name: "Core Boons",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "280-281",
+    file: `modules/${MODULE_ID}/data/locked/core-boons.json`,
+    anchors: [
+      { len: 10, hash: "dc0aec8620dd9bf7834c9b158d82e50d0e589524abcee05680a9dd12481406f0" },
+      { len: 9, hash: "e253f08c0e7bd00efd5c54c5a1d57ceb656245f8c66a4c3cfb460ac818232f23" },
+      { len: 8, hash: "536b584c5cec5e3d4052477b66ef50c86f0a7255efadcb6b7b24a8e7438cde50" },
+      { len: 14, hash: "dc964c11a506f3e7b9d20d159f25c5374f7284f2382415eab4230c25ff4c6c8e" },
+      { len: 12, hash: "0c2076a7138cbb7334304a1ebf57d9fa68b1672d15622368384fafe5ce6741d7" },
+    ],
+  },
+  {
+    id: "core-magic-attributes",
+    name: "Core Magic Item Attribute Tables",
+    type: "Table",
+    coversType: "Table",
+    source: "CORE",
+    pages: "282-295",
+    file: `modules/${MODULE_ID}/data/locked/core-magic-attributes.json`,
+    anchors: [
+      { len: 8, hash: "db6e5b02aa345dbb6e8ba52c8773fc1545a5eef3c6579e9b54c2ce9c1add39cd" },
+      { len: 8, hash: "3d168236784a914b99ca302624d9eebca0c3430bb90f72b11544d3b9318d442b" },
+      { len: 6, hash: "77a6c6474c43a99c72d2049b53ca7da0a43f807a42249bf307f4bf4145b92764" },
+      { len: 9, hash: "05415840ff66f566a471b8792977215d000865bd3fa44091c0c6c6011bc9640c" },
+      { len: 8, hash: "f3b7554e29745fcd2ae01df16c8023a0dee8e14b3cda683c41c808096a20b871" },
+    ],
+  },
   {
     id: "wr-spells",
     name: "Western Reaches Necromancer Spells",
@@ -623,7 +802,14 @@ async function _aesKey(material, usage) {
   return crypto.subtle.importKey("raw", bits, { name: "AES-GCM" }, false, [usage]);
 }
 
-const _b64 = (u8) => btoa(String.fromCharCode(...u8));
+const _b64 = (u8) => {
+  // Chunked to avoid a call-stack overflow from spreading a large payload into
+  // String.fromCharCode (big units — e.g. the 22-table core encounter set — blow
+  // the stack otherwise). 0x8000-byte windows keep each apply() call safe.
+  let s = "";
+  for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+};
 const _unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
 /**
@@ -712,7 +898,12 @@ const _WORLD_REF = /Compendium\.world\.[\w-]+\.[A-Za-z]+\.[A-Za-z0-9]{16}/g;
  * list). Returns { docs } for sealUnit — never leaves prose in the caller.
  */
 export async function captureUnitPayload({ roots = [], bundleSpellsForClass = null, rootsOnly = false } = {}) {
-  const isWorld = (u) => typeof u === "string" && /^Compendium\.world\./.test(u);
+  // Accept suite-pack refs (Compendium.world.*) AND bare world-directory roots
+  // (e.g. "RollTable.<16id>" from game.tables — some curated core tables live
+  // there, not in a pack). Never matches system packs (Compendium.shadowdark.*),
+  // so traversal/roots stay scoped to the user's own content.
+  const isWorld = (u) => typeof u === "string" &&
+    (/^Compendium\.world\./.test(u) || /^[A-Z][A-Za-z]+\.[A-Za-z0-9]{16}$/.test(u));
   const docs = new Map();       // uuid -> live doc
   const refs = new Map();       // uuid -> Set(world refs inside it)
   const queue = [...roots];

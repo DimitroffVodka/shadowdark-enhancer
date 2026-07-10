@@ -14,6 +14,7 @@
  */
 
 export const CHAR_SOURCES = {
+  CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
   WR:  { label: "Western Reaches", book: "Shadowdark RPG: Western Reaches" },
   CS1: { label: "Cursed Scroll 1", book: "Cursed Scroll 1 — Diablerie!" },
   CS2: { label: "Cursed Scroll 2", book: "Cursed Scroll 2 — Red Sands" },
@@ -28,6 +29,27 @@ export const CHAR_SOURCES = {
 // reorg (talents/weapons/gear renamed, boats + siege weapons dropped as
 // non-char-builder content); census-verified 2026-07-06. CS4–6 unchanged.
 const MANIFEST = {
+  CORE: {
+    // Core Rulebook GM/play tables ship sealed as ~11 section groups. Each
+    // entry below is the group's representative table — unlocking it (paste that
+    // section from the core rulebook) unseals the whole group (e.g. Arctic
+    // Encounters unseals all 22 encounter tables; Item Virtue unseals all 40
+    // magic-item attribute tables; Treasure 0-3 unseals the 4 treasure tables +
+    // their linked loot items). See SEALED_UNITS core-* for the full sets.
+    Table: [
+      "Core PDF p146: Arctic Encounters",
+      "Core PDF p274: Treasure 0-3",
+      "Core PDF p97: Carousing Outcome",
+      "Core PDF p118: Traps",
+      "Core PDF p122: Something Happens!",
+      "Core PDF p124: Rumors",
+      "Core PDF p126: Adventure Generator",
+      "Core PDF p137: Drinks",
+      "Core PDF p143: Shop Generator",
+      "Core PDF p284: Boons: Oaths",
+      "Core PDF p294: Item Virtue",
+    ],
+  },
   CS1: {
     // CS1 (Diablerie!) ships its Diabolical tables sealed (cs1-mishaps holds
     // both mishap tables; cs1-treasure the back-cover d20). Names are the exact
