@@ -958,8 +958,10 @@ export const SEALED_UNITS = [
     ],
   },
   {
-    // Re-sealed 2026-07-10: prayers rebuilt as 3d6 COMPOUND generators
-    // (flags.shadowdark-enhancer.compound, 3 cols × d6 — see compound-table.mjs).
+    // Re-sealed 2026-07-10: prayers are NATIVE 1d216 tables — the book's 3d6
+    // grid (d6 per column) pre-expanded to all 216 combinations, one text
+    // result per face. No compound flag / module wrap needed; rolls work in
+    // core Foundry even with the module disabled (user-requested).
     id: "wr-god-prayers", name: "Western Reaches God Prayers", type: "Table", coversType: "Table", source: "WR", pages: "190-205",
     file: `modules/${MODULE_ID}/data/locked/wr-god-prayers.json`,
     anchors: [
