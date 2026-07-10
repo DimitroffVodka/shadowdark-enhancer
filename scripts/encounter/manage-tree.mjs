@@ -32,6 +32,15 @@ const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 /** Fixed monster-source skeleton so empty sources still render (0 locked). */
 const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
 
+/**
+ * Sealed monster bestiaries (source label → monster count). The monster census
+ * is reference-driven (gaps come from pack tables that name a monster), so in a
+ * fresh world nothing surfaces even though these bestiaries ship sealed. We add
+ * one direct "Unlock N monsters" row per source so they're discoverable without
+ * first importing a referencing table. Counts match the cs*-monsters units.
+ */
+const SEALED_BESTIARIES = { CS1: 14, CS2: 14, CS3: 12, CS4: 19, CS5: 5 };
+
 /** Sort a leaf's entries: importable (locked) first, then imported, alpha within. */
 function sortEntries(entries) {
   return entries.slice().sort((a, b) =>
@@ -143,7 +152,17 @@ function buildMonsters(monsterRows, actorRecords) {
   const makeLeaf = (label) => {
     const present = [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true }));
     const missing = (rowByLabel.get(label)?.missingNames ?? []).map((name) => ({ name, present: false }));
-    return leaf(`monsters/${label}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
+    const node = leaf(`monsters/${label}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
+    // Sealed bestiary that isn't fully imported here → one direct Unlock row.
+    const sealed = SEALED_BESTIARIES[label];
+    if (sealed && node.have < sealed) {
+      node.entries.unshift({
+        name: `Unlock the ${label} bestiary — ${sealed} monsters (paste the book's bestiary)`,
+        present: false, seedAction: "monsterSeedPaste", type: "Actor", src: label, pages: "",
+      });
+      node.locked = sealed - node.have;
+    }
+    return node;
   };
 
   const children = [];
