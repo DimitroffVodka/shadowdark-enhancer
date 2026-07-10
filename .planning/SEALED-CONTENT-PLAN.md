@@ -42,6 +42,9 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 |---|---|---|---|---|---|
 | wr-delver … wr-wyrdling (9) | Class | WR | class + talents + tables | committed | ✅ |
 | wr-backgrounds | Background | WR | ~99 backgrounds | committed | ✅ |
+| cs1-mishaps | Table | CS1 | 2 Diabolical Mishap tables (Tier 1-3, 4-5) | **committed** | ✅ |
+| cs1-treasure | Table | CS1 | Diabolical Treasure d20 (back cover) | **committed** | ✅ |
+| cs1-monsters | Actor | CS1 | 14 monsters (Diablerie bestiary) | **committed** | ✅ |
 | cs4-spells | Spell | CS4 | 16 spells | **committed** | ✅ |
 | cs4-monsters | Actor | CS4 | 19 monsters | **committed** | ✅ |
 | cs5-spells | Spell | CS5 | 16 spells (Chaotic Wizard/Sorcerer) | **committed** | ✅ |

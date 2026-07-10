@@ -285,6 +285,55 @@ export const SEALED_UNITS = [
       { len: 8, hash: "76a8e11551874d968d0d339cc9ac5a84ce421489c9b2e12e2856502a3f1636a9" },
     ],
   },
+  // ── Cursed Scroll 1 (Diablerie!) — Diabolical tables + bestiary. ─────────
+  {
+    id: "cs1-mishaps",
+    name: "Cursed Scroll 1 Mishaps",
+    type: "Table",
+    coversType: "Table",   // both Diabolical Mishap tables (Tier 1-3 + 4-5)
+    source: "CS1",
+    pages: "22-23",
+    file: `modules/${MODULE_ID}/data/locked/cs1-mishaps.json`,
+    anchors: [
+      { len: 9, hash: "e0ad5277338b50b0464712434403b449e03f40ceee6e2caaefba5d2767fe5e9f" },
+      { len: 8, hash: "585d17767e14a4708688637aad5f3ff294983c075432d57fc1226081add07641" },
+      { len: 11, hash: "0fae6e8afaf75b34b056adc05e56f2283c6c85d9e37a4054802dc3d3d7258f3d" },
+      { len: 8, hash: "2bd4b5fdf7c02f27ba0fc7b4e6f7647e74cb7b48cb7e3a02e0ade359d1c6c4a1" },
+      { len: 14, hash: "a27e6a01f93a9a0ccefa2bf1016cd294b806ed50346cf1f22fcc00932f08fa06" },
+    ],
+  },
+  {
+    id: "cs1-treasure",
+    name: "Cursed Scroll 1 Diabolical Treasure",
+    type: "Table",
+    coversType: "Table",   // back-cover d20 Diabolical Treasure table
+    source: "CS1",
+    pages: "68",
+    file: `modules/${MODULE_ID}/data/locked/cs1-treasure.json`,
+    anchors: [
+      { len: 10, hash: "336cc2065f5dc8d3ba71e81fb2d6ea201f2503d84f0f5a49fa3651cae37902ea" },
+      { len: 8, hash: "d486ba8df625c83f546c9fcddc4a25fbba2a7996d10978b4ef9d65686568ca03" },
+      { len: 11, hash: "b8da34690f4e93193cd2792d70e7063a6cb4528e9be7cff963cc0efbf6551683" },
+      { len: 11, hash: "fef3162869dea30ed5fafa5188b2ed79c2d5e17ddebc9a5803df724780b0670c" },
+      { len: 10, hash: "35d6b1ee853b9b15e686a46488976bc2975f10c38b933ccd56ccf98d1cfac34a" },
+    ],
+  },
+  {
+    id: "cs1-monsters",
+    name: "Cursed Scroll 1 Monsters",
+    type: "Actor",
+    coversType: "Actor",   // any locked CS1 monster (src CS1) unlocks the set
+    source: "CS1",
+    pages: "45-48",
+    file: `modules/${MODULE_ID}/data/locked/cs1-monsters.json`,
+    anchors: [
+      { len: 12, hash: "aee136c67a9f63bc45c32bc7a33b9a857eb1f2bbc3070aeb23652d7a20fe95ab" },
+      { len: 14, hash: "165ac7a1da0f81343131dfd2b282c54f9af60a5d3df297bbbd7ee49c38b923d0" },
+      { len: 11, hash: "b529c57ff979e36c958ffaa1deedad31f987fa1277fed06b3e9f01f342ab82db" },
+      { len: 9, hash: "8323b391c4a6df5db19137e071a60cde69093b462be0e1fee7cb419187773070" },
+      { len: 10, hash: "c79ace0bbf054b90824167f14893ad53d52d9fc414aa8cf0a23b8d7a1cdfb5c5" },
+    ],
+  },
   {
     id: "wr-spells",
     name: "Western Reaches Necromancer Spells",

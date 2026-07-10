@@ -15,6 +15,7 @@
 
 export const CHAR_SOURCES = {
   WR:  { label: "Western Reaches", book: "Shadowdark RPG: Western Reaches" },
+  CS1: { label: "Cursed Scroll 1", book: "Cursed Scroll 1 — Diablerie!" },
   CS4: { label: "Cursed Scroll 4", book: "Cursed Scroll 4 — River of Night" },
   CS5: { label: "Cursed Scroll 5", book: "Cursed Scroll 5 — Dwellers in the Deep" },
   CS6: { label: "Cursed Scroll 6", book: "Cursed Scroll 6 — City of Masks" },
@@ -25,6 +26,16 @@ export const CHAR_SOURCES = {
 // reorg (talents/weapons/gear renamed, boats + siege weapons dropped as
 // non-char-builder content); census-verified 2026-07-06. CS4–6 unchanged.
 const MANIFEST = {
+  CS1: {
+    // CS1 (Diablerie!) ships its Diabolical tables sealed (cs1-mishaps holds
+    // both mishap tables; cs1-treasure the back-cover d20). Names are the exact
+    // world-table names so _tableHave matches. The 14 CS1 monsters unlock via
+    // the live monster census, not this manifest.
+    Table: [
+      "Diabolical Mishap 1-3", "Diabolical Mishap 4-5",
+      "Cursed Scroll 1 p68: Diabolical Treasure",
+    ],
+  },
   CS4: {
     Spell: [
       "Alchemy", "Anima", "Barkskin", "Befriend", "Breath", "Earthquake",
