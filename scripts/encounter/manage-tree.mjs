@@ -16,12 +16,14 @@
  * Tree structure:
  *   Character Content → Ancestries · Backgrounds · Classes(→per-class→{Class Abilities, Talents}, Multi) · Patrons & Deities
  *   Spells            → per source (CS4 / CS5 / CS6 / Western Reaches)
+ *   Roll Tables       → per source (CORE / CS1…CS6 / Western Reaches) — all manifest
+ *                       Table entries except the WR ancestry Names/Trinkets
  *   Monsters          → CS1…CS6 · Western Reaches (fixed skeleton) + any other present source
  *   Items             → Basic Gear · Armor · Weapons · Magic Items (Potion+Scroll+Wand)
  */
 import {
   gatherPresence, gatherCharContentEntries, classesForTalent,
-  CLASS_ABILITIES, MANIFEST_CLASSES, CHAR_SOURCES,
+  CLASS_ABILITIES, MANIFEST_CLASSES, CHAR_SOURCES, ANCESTRY_TABLES,
 } from "./char-content-manifest.mjs";
 import { gatherCensus, liveActorRecords } from "./monster-census-live.mjs";
 import { liveItemRecords } from "./item-census-live.mjs";
@@ -84,8 +86,12 @@ function buildCharContent(charEntries, abilityPresent) {
   const ofType = (t) => charEntries.filter((e) => e.type === t);
   const srcOfClass = new Map(ofType("Class").map((e) => [e.name, e.src]));
 
-  // Ancestries: Ancestry items + the WR ancestry Names/Trinkets tables.
-  const ancestryRecords = charEntries.filter((e) => e.type === "Ancestry" || e.type === "Table");
+  // Ancestries: Ancestry items + the WR ancestry Names/Trinkets tables only —
+  // every other Table entry (carousing, encounters, boons, prayers…) lives in
+  // the top-level Roll Tables branch, not here.
+  const ancestryTableNames = new Set(ANCESTRY_TABLES.map((t) => _norm(t.name)));
+  const ancestryRecords = charEntries.filter((e) =>
+    e.type === "Ancestry" || (e.type === "Table" && ancestryTableNames.has(_norm(e.name))));
   const ancestries = leaf("char/ancestries", "Ancestries", "fa-people-group", ancestryRecords, "charSeedPaste");
 
   const backgrounds = leaf("char/backgrounds", "Backgrounds", "fa-scroll", ofType("Background"), "charSeedPaste");
@@ -132,6 +138,24 @@ function buildSpells(charEntries) {
     leaf(`spells/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-wand-sparkles",
       spellRecs.filter((r) => r.src === src), "charSeedPaste"));
   return branch("spells", "Spells", "fa-book-sparkles", children);
+}
+
+/**
+ * Roll Tables top-level branch, sub-grouped by source. Carries every manifest
+ * Table entry EXCEPT the WR ancestry Names/Trinkets (those stay under
+ * Character Content → Ancestries). Unlock rows seed the same charSeedPaste
+ * flow — each entry is a sealed-group representative (e.g. Carousing Outcome
+ * unlocks all 25 CS6 tables).
+ */
+function buildRollTables(charEntries) {
+  const ancestryTableNames = new Set(ANCESTRY_TABLES.map((t) => _norm(t.name)));
+  const tableRecs = charEntries.filter((e) =>
+    e.type === "Table" && !ancestryTableNames.has(_norm(e.name)));
+  const sources = [...new Set(tableRecs.map((r) => r.src))];
+  const children = sources.map((src) =>
+    leaf(`tables/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-dice",
+      tableRecs.filter((r) => r.src === src), "charSeedPaste"));
+  return branch("tables", "Roll Tables", "fa-table-list", children);
 }
 
 /**
@@ -223,6 +247,7 @@ export async function buildManageTree() {
   return [
     buildCharContent(charEntries, abilityPresent),
     buildSpells(charEntries),
+    buildRollTables(charEntries),
     buildMonsters(monsterRows, actorRecords),
     buildItems(charEntries, itemRecords),
   ];
