@@ -79,8 +79,8 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 | wr-spell-mishaps | Table | WR | 4 mishap + Faction Generator (Warbands) | **committed** | ✅ |
 | wr-carousing-benefit | Table | WR | twin of wr-carousing anchored to the Benefit d100 page (Outcome page is numeric-only — not anchorable) | **committed** | ✅ |
 | wr-anc-<slug>-names (8) | Table | WR | twins of the per-ancestry units anchored to each Names page — a Names-only paste unlocks both tables (was silently falling back to the text parser) | **committed** | ✅ |
-| wr-god-prayers | Table | WR | 8 god prayer generators (authored, 1 combined table/god) | **committed** | ✅ |
-| wr-patron-boons | Table | WR | 17 patron boons (11 WR-authored + 6 CS1) | **committed** | ✅ |
+| wr-god-prayers | Table | WR | 8 god prayer generators — re-sealed 2026-07-10 as 3d6 COMPOUNDS (flags.shadowdark-enhancer.compound) | **committed** | ✅ |
+| wr-patron-boons | Table | WR | WR patron boons — re-sealed 2026-07-10 in system format: 16 doc-linked tables + 45 boon Talents + 16 Patron items (77 docs; Kytheros = system link, unrevised) | **committed** | ✅ |
 | wr-cs-spells (dual-source) | Spell | WR | 48 CS4/5/6 spells, WR-anchored | **committed** | ✅ |
 | cs5-delver / cs5-wyrdling / cs6-duelist (dual-source) | Class | CS5/CS6 | class twins — CS books unlock them | **committed** | ✅ |
 | wr-gear | Basic/Weapon/Armor | WR | 26 items | todo | ❌ |

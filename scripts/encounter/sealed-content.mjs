@@ -958,25 +958,30 @@ export const SEALED_UNITS = [
     ],
   },
   {
+    // Re-sealed 2026-07-10: prayers rebuilt as 3d6 COMPOUND generators
+    // (flags.shadowdark-enhancer.compound, 3 cols × d6 — see compound-table.mjs).
     id: "wr-god-prayers", name: "Western Reaches God Prayers", type: "Table", coversType: "Table", source: "WR", pages: "190-205",
     file: `modules/${MODULE_ID}/data/locked/wr-god-prayers.json`,
     anchors: [
-      { len: 9, hash: "7ea41defa48ad6b01ec995d27948b78e3a5b8f7308921ba7d1a4c147f1c36968" },
-      { len: 8, hash: "5ea4f0a97b84f3a34c70f0d56859fab299c49b5b9bd509147ed4a34bb12a5840" },
-      { len: 11, hash: "20b64121355a78bf0b6ea97516b1266f5b63fcdf761edc6bbb956ce482006400" },
-      { len: 10, hash: "7ed032ee0397326c03a695e92109781444005e2b069b112c462ca31048cb71f1" },
-      { len: 9, hash: "853342d9fb970ecf9e35a7c4215526ee6759759e96522fceba5ea31c50af8344" },
+      { len: 5, hash: "c4923a8668b8a5c51c7fd5347a5f9a524104d0e7141ad42c00a2be2ab935a746" },
+      { len: 7, hash: "be87560f84067fc80c2d9845f4301f4ebdbdc1c29191d2802f3a514eceb72629" },
+      { len: 4, hash: "4363186dce20a11a1d66645dbca9ff7c256ceeea79226eac1a21448eb6342d19" },
+      { len: 7, hash: "ff56b652ba3fbcf614362e3e2c8319dc39dd0d2816447da201eb046c0e25fd06" },
+      { len: 5, hash: "22dcec8feeb198f917e6502c621d53e2476cb794c784e40c198f1764cb3288fa" },
     ],
   },
   {
+    // Re-sealed 2026-07-10: WR-version boon tables in the SYSTEM's format —
+    // 77 docs: 16 tables (doc-linked results) + 45 boon Talents + 16 Patron
+    // items (system.boonTable). Kytheros stays a system link (unrevised in WR).
     id: "wr-patron-boons", name: "Western Reaches Patron Boons", type: "Table", coversType: "Table", source: "WR", pages: "206-223",
     file: `modules/${MODULE_ID}/data/locked/wr-patron-boons.json`,
     anchors: [
-      { len: 8, hash: "11dadb896b5e72380aba8acb28d4cf42678dc61bf6d524a7966cb967eb79469c" },
-      { len: 12, hash: "b65d33e2b0806a2ef2bc8920f8a461d74a21767e017bbe40e9c027a259908253" },
-      { len: 10, hash: "d3e3fd3a3bbf6dac4a68eedb440bc0bc5734857c42aa4e999df9eaddbd603cc1" },
-      { len: 12, hash: "41f61da984ba0b9192e1f6b8b61d96ca9fc10e2f8352ab63e9d3d061058119a2" },
-      { len: 12, hash: "5cfd20f54633d58e2dbed06ee9d0a0b27044415cb621f59971edac4c574ee045" },
+      { len: 5, hash: "ccc6cddd815dfe2d4a583b854383a7fccf209f7469b6a0521d01c457ca31c1ef" },
+      { len: 7, hash: "3fbc63094217680f8e945dac65a478013b8e9821d7e75364c116ddd7e30359c8" },
+      { len: 7, hash: "5c3999f2701a13a99f634e2b26943a6d1b27564768acf25f9fc04d1a6565a79c" },
+      { len: 6, hash: "8d9d287c4ab057e19b715edf727584289bc1b714e4fa0adf53621325e6e530ef" },
+      { len: 10, hash: "5555f572f010c29acd590020d35179c2655a43ef3693a138a79a29e43f5606fe" },
     ],
   },
 ];
@@ -1185,6 +1190,8 @@ const SEALED_ITEM_PACK = {
   Spell: "spells",
   Background: "background",
   Ancestry: "ancestries",
+  Patron: "patrons-and-deities",
+  Deity: "patrons-and-deities",
 };
 
 export async function importSealedPayload(payload) {
