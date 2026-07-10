@@ -24,6 +24,41 @@ export const CHAR_SOURCES = {
   CS6: { label: "Cursed Scroll 6", book: "Cursed Scroll 6 — City of Masks" },
 };
 
+/**
+ * Source key → the user's own uploaded PDF of that book (a world asset path).
+ * NEVER bundled by this module — same copyright contract as the rest of the
+ * manifest: the user supplies their local copy. Used only to deep-link the
+ * paste box to the page a section lives on so the GM can copy it fast. Extend
+ * as more books are uploaded; a source with no mapping simply gets no link.
+ */
+export const SOURCE_PDFS = {
+  WR: "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf",
+};
+
+/** First page number in a "72" / "72-73" / "p146" cite, or null. */
+function _firstPage(pages) {
+  const m = String(pages ?? "").match(/\d+/);
+  return m ? Number(m[0]) : null;
+}
+
+/**
+ * Deep-link into Foundry's core PDF.js viewer for a source's uploaded PDF,
+ * opened at the cited page: `viewer.html?file=<route>#page=N`. PDF.js honors
+ * the `#page=` fragment natively (verified against v14's
+ * JournalEntryPagePDFSheet). Returns null when the source has no mapped PDF or
+ * the entry carries no page cite.
+ * @param {string} src   CHAR_SOURCES key (e.g. "WR")
+ * @param {string} pages page cite from the census entry ("72", "72-73", …)
+ * @returns {string|null}
+ */
+export function sourcePdfHref(src, pages) {
+  const file = SOURCE_PDFS[src];
+  const page = _firstPage(pages);
+  if (!file || !page) return null;
+  const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
+  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${page}`;
+}
+
 // src → Foundry item type → expected names (from the source books' character
 // chapters). WR lists regenerated from the built suite after the compendium
 // reorg (talents/weapons/gear renamed, boats + siege weapons dropped as
@@ -123,9 +158,16 @@ const MANIFEST = {
     // Gods & Patrons: per-god 3d6 prayer generators (sealed as wr-god-prayers)
     // and per-patron 2d6 boon tables (wr-patron-boons — 11 WR-new + the 6 CS1
     // patrons). Unlocking a representative unseals the whole group.
+    // Carousing (wr-carousing: Outcome d25 + Mishap/Benefit d100, pg 235-247) —
+    // reps are the two uniquely-named tables ("Carousing Outcome" would collide
+    // with CS6's same-named entry in the name-matched census). Backgrounds table
+    // (wr-backgrounds-table) rep is the uniquely-named d100 copy.
     Table: [
       "Madeera the Covenant Prayers",
       "Freya Boons",
+      "Carousing Mishap",
+      "Carousing Benefit",
+      "Western Reach Backgrounds",
     ],
     Talent: [
       "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",

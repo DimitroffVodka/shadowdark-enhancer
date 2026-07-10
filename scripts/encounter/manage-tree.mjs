@@ -23,8 +23,9 @@
  *   Monsters          → CS1…CS6 · Western Reaches (fixed skeleton) + any other present source
  *   Items             → Basic Gear · Armor · Weapons · Magic Items (Potion+Scroll+Wand)
  *
- * Table routing: ANCESTRY_TABLES → Ancestries; PATRON_TABLES → Patrons & Deities;
- * GAMEPLAY_TABLES → Gameplay; everything else → Roll Tables.
+ * Table routing: ANCESTRY_TABLES → Ancestries; BACKGROUND_TABLES → Backgrounds;
+ * PATRON_TABLES → Patrons & Deities; GAMEPLAY_TABLES → Gameplay; everything
+ * else → Roll Tables.
  */
 import {
   gatherPresence, gatherCharContentEntries, classesForTalent,
@@ -50,6 +51,13 @@ const GAMEPLAY_TABLES = new Set([
   "Carousing Outcome",
   "Carousing Outcome - Benefit",
   "Carousing Outcome - Mishap",
+  "Carousing Mishap",
+  "Carousing Benefit",
+].map((n) => _norm(n)));
+
+/** Manifest table names that belong under Character Content → Backgrounds. */
+const BACKGROUND_TABLES = new Set([
+  "Western Reach Backgrounds",
 ].map((n) => _norm(n)));
 
 /** Manifest table names that belong under Character Content → Patrons & Deities. */
@@ -118,7 +126,12 @@ function buildCharContent(charEntries, abilityPresent) {
     e.type === "Ancestry" || (e.type === "Table" && ancestryTableNames.has(_norm(e.name))));
   const ancestries = leaf("char/ancestries", "Ancestries", "fa-people-group", ancestryRecords, "charSeedPaste");
 
-  const backgrounds = leaf("char/backgrounds", "Backgrounds", "fa-scroll", ofType("Background"), "charSeedPaste");
+  // Backgrounds: Background items + the WR backgrounds d100 roll table.
+  const backgroundRecords = [
+    ...ofType("Background"),
+    ...charEntries.filter((e) => e.type === "Table" && BACKGROUND_TABLES.has(_norm(e.name))),
+  ];
+  const backgrounds = leaf("char/backgrounds", "Backgrounds", "fa-scroll", backgroundRecords, "charSeedPaste");
 
   // Route each talent to its class (1 class) or Multi (0 = unmapped, or 2+ shared).
   const perClass = new Map();
@@ -174,7 +187,8 @@ function buildRollTables(charEntries) {
   const ancestryTableNames = new Set(ANCESTRY_TABLES.map((t) => _norm(t.name)));
   const tableRecs = charEntries.filter((e) =>
     e.type === "Table" && !ancestryTableNames.has(_norm(e.name))
-    && !GAMEPLAY_TABLES.has(_norm(e.name)) && !PATRON_TABLES.has(_norm(e.name)));
+    && !GAMEPLAY_TABLES.has(_norm(e.name)) && !PATRON_TABLES.has(_norm(e.name))
+    && !BACKGROUND_TABLES.has(_norm(e.name)));
   const sources = [...new Set(tableRecs.map((r) => r.src))];
   const children = sources.map((src) =>
     leaf(`tables/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-dice",
