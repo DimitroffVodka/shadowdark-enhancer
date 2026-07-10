@@ -38,7 +38,7 @@ const MANIFEST = {
     // their linked loot items). See SEALED_UNITS core-* for the full sets.
     Table: [
       "Core PDF p146: Arctic Encounters",
-      "Core PDF p274: Treasure 0-3",
+      "TREASURE 0-3",
       "Core PDF p97: Carousing Outcome",
       "Core PDF p118: Traps",
       "Core PDF p122: Something Happens!",
