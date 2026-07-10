@@ -16,10 +16,15 @@
  * Tree structure:
  *   Character Content → Ancestries · Backgrounds · Classes(→per-class→{Class Abilities, Talents}, Multi) · Patrons & Deities
  *   Spells            → per source (CS4 / CS5 / CS6 / Western Reaches)
- *   Roll Tables       → per source (CORE / CS1…CS6 / Western Reaches) — all manifest
- *                       Table entries except the WR ancestry Names/Trinkets
+ *   Gameplay          → per source — mechanics tables (carousing, enduring wounds,
+ *                       traps & hazards, boons, casting mishaps)
+ *   Roll Tables       → per source — the remaining manifest Table entries
+ *                       (generators, encounters, treasure, names)
  *   Monsters          → CS1…CS6 · Western Reaches (fixed skeleton) + any other present source
  *   Items             → Basic Gear · Armor · Weapons · Magic Items (Potion+Scroll+Wand)
+ *
+ * Table routing: ANCESTRY_TABLES → Ancestries; PATRON_TABLES → Patrons & Deities;
+ * GAMEPLAY_TABLES → Gameplay; everything else → Roll Tables.
  */
 import {
   gatherPresence, gatherCharContentEntries, classesForTalent,
@@ -33,6 +38,25 @@ const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
 /** Fixed monster-source skeleton so empty sources still render (0 locked). */
 const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
+
+/** Manifest table names that are GAMEPLAY mechanics (books' Gameplay chapters). */
+const GAMEPLAY_TABLES = new Set([
+  "Core PDF p97: Carousing Outcome",
+  "Core PDF p118: Traps",
+  "Core PDF p284: Boons: Oaths",
+  "Diabolical Mishap 1-3",
+  "Diabolical Mishap 4-5",
+  "Cursed Scroll 2 p26: Enduring Wounds",
+  "Carousing Outcome",
+  "Carousing Outcome - Benefit",
+  "Carousing Outcome - Mishap",
+].map((n) => _norm(n)));
+
+/** Manifest table names that belong under Character Content → Patrons & Deities. */
+const PATRON_TABLES = new Set([
+  "Madeera the Covenant Prayers",
+  "Freya Boons",
+].map((n) => _norm(n)));
 
 /**
  * Sealed monster bestiaries (source label → monster count). The monster census
@@ -121,11 +145,10 @@ function buildCharContent(charEntries, abilityPresent) {
   const multi = leaf("char/classes/Multi", "Multi", "fa-users", multiTalents, "charSeedPaste");
   const classes = branch("char/classes", "Classes", "fa-users-rectangle", [...classNodes, multi]);
 
-  const patrons = {
-    id: "char/patrons", label: "Patrons & Deities", icon: "fa-hands-praying",
-    have: 0, locked: 0, entries: [], children: [],
-    placeholder: true, note: "No content catalogued yet — this folder will fill as patrons & deities are added.",
-  };
+  // Patrons & Deities: the WR god-prayer / patron-boon group representatives.
+  const patronRecords = charEntries.filter((e) =>
+    e.type === "Table" && PATRON_TABLES.has(_norm(e.name)));
+  const patrons = leaf("char/patrons", "Patrons & Deities", "fa-hands-praying", patronRecords, "charSeedPaste");
 
   return branch("char", "Character Content", "fa-user-plus", [ancestries, backgrounds, classes, patrons]);
 }
@@ -150,12 +173,28 @@ function buildSpells(charEntries) {
 function buildRollTables(charEntries) {
   const ancestryTableNames = new Set(ANCESTRY_TABLES.map((t) => _norm(t.name)));
   const tableRecs = charEntries.filter((e) =>
-    e.type === "Table" && !ancestryTableNames.has(_norm(e.name)));
+    e.type === "Table" && !ancestryTableNames.has(_norm(e.name))
+    && !GAMEPLAY_TABLES.has(_norm(e.name)) && !PATRON_TABLES.has(_norm(e.name)));
   const sources = [...new Set(tableRecs.map((r) => r.src))];
   const children = sources.map((src) =>
     leaf(`tables/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-dice",
       tableRecs.filter((r) => r.src === src), "charSeedPaste"));
   return branch("tables", "Roll Tables", "fa-table-list", children);
+}
+
+/**
+ * Gameplay top-level branch, sub-grouped by source — the books' Gameplay-chapter
+ * mechanics tables (carousing, enduring wounds, traps & hazards, boons, casting
+ * mishaps). Same entry shape/flow as Roll Tables; membership = GAMEPLAY_TABLES.
+ */
+function buildGameplay(charEntries) {
+  const recs = charEntries.filter((e) =>
+    e.type === "Table" && GAMEPLAY_TABLES.has(_norm(e.name)));
+  const sources = [...new Set(recs.map((r) => r.src))];
+  const children = sources.map((src) =>
+    leaf(`gameplay/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-chess-knight",
+      recs.filter((r) => r.src === src), "charSeedPaste"));
+  return branch("gameplay", "Gameplay", "fa-dice-d20", children);
 }
 
 /**
@@ -247,6 +286,7 @@ export async function buildManageTree() {
   return [
     buildCharContent(charEntries, abilityPresent),
     buildSpells(charEntries),
+    buildGameplay(charEntries),
     buildRollTables(charEntries),
     buildMonsters(monsterRows, actorRecords),
     buildItems(charEntries, itemRecords),
