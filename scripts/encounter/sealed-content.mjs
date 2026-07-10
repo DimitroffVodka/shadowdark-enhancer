@@ -692,19 +692,94 @@ export const SEALED_UNITS = [
     ],
   },
   {
-    id: "wr-ancestry-tables",
-    name: "Western Reaches Ancestry Tables",
-    type: "Table",
-    coversType: "Table",
-    source: "WR",
-    pages: "20-31",
+    id: "wr-ancestry-tables", name: "Western Reaches Ancestry Tables", type: "Table", coversType: "Table", source: "WR", pages: "20-31",
     file: `modules/${MODULE_ID}/data/locked/wr-ancestry-tables.json`,
+    anchors: [
+      { len: 3, hash: "446c10e6ac465dc3211f6f982d0521fe017124b38ec6f237fce418e0fc641055" },
+      { len: 3, hash: "4e6f13b7bcdf9a1ade70a12343f38a58e209986a6c8d07726731a3b07c3a7877" },
+      { len: 4, hash: "46be81ab31edb6cecfca851cfbf896d9f60c928b13a3c40149ff897c80030dea" },
+      { len: 3, hash: "90cd247ea5d17f6f5746a29e77ad4704acc1efbbf34c6cb57dc044796c781c84" },
+      { len: 4, hash: "abd08c1840a3d787d2859b8aff60a504d5a5bd6c97ae47f956b46729ca36b04d" },
+    ],
+  },
+  {
+    id: "wr-anc-dwarf", name: "Western Reaches Dwarf Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "20",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-dwarf.json`,
     anchors: [
       { len: 3, hash: "446c10e6ac465dc3211f6f982d0521fe017124b38ec6f237fce418e0fc641055" },
       { len: 3, hash: "d6ac06091919f0398c5e5ee078ad15d7575efcdc27cbce2af747e2551643c766" },
       { len: 2, hash: "9c4091232302ebaf34515834e7aa01d9d09e1767e5e88b6eb42f729921b0f668" },
+      { len: 3, hash: "c7aa8c23f40bcd425cad44b8ff490a649fbfbcb2d04d70264d2240ced41530ae" },
+    ],
+  },
+  {
+    id: "wr-anc-elf", name: "Western Reaches Elf Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "22",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-elf.json`,
+    anchors: [
+      { len: 3, hash: "4e6f13b7bcdf9a1ade70a12343f38a58e209986a6c8d07726731a3b07c3a7877" },
+      { len: 3, hash: "0d10a9c48f37a79d92cac0bf90913a7e050ba5f1108d04ea1575dc301501df21" },
+      { len: 3, hash: "e9ea4b1fcd5ed29710fe74bf9202abdfd2d3e8dbc07d95adee46517c260df6d2" },
+      { len: 3, hash: "a5a55e3136c64eb27820e346087c8987a510f8bae5bd494a0787e86078ab6159" },
+    ],
+  },
+  {
+    id: "wr-anc-goblin", name: "Western Reaches Goblin Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "24",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-goblin.json`,
+    anchors: [
+      { len: 4, hash: "46be81ab31edb6cecfca851cfbf896d9f60c928b13a3c40149ff897c80030dea" },
+      { len: 3, hash: "1abd5750452b8dbf47bfeee37c73dd71d22be0d28a3f9ab4f408ea8aa6c7f269" },
+      { len: 4, hash: "1bfa96a9da40a471600a4e12e4b590acc3517a828cd675eaec61490776c20853" },
+      { len: 4, hash: "60578660c82f6c468044c287020e29e83155e5c9e936aa6f9846f5d6b7d7a84d" },
+    ],
+  },
+  {
+    id: "wr-anc-half-elf", name: "Western Reaches Half-Elf Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "25",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-half-elf.json`,
+    anchors: [
       { len: 3, hash: "90cd247ea5d17f6f5746a29e77ad4704acc1efbbf34c6cb57dc044796c781c84" },
-      { len: 4, hash: "236899a23c1ab8f1a9403b721a90c3924084d5ef4bc85c7820bdaa3c10d72b67" },
+      { len: 3, hash: "d8c727cbe229e565bfa411acafa0276402a587d86eb6594cf0495f213accec71" },
+      { len: 3, hash: "00a8ea7c2c24763435a5e9e8f39f503baf22b2d0a6910e9fdf7c9a7fd9267f68" },
+      { len: 4, hash: "ec5b7b5f7fb50dcaa7c70066b7a2e9258b178d24d23e9a4ba960530af8510392" },
+    ],
+  },
+  {
+    id: "wr-anc-half-orc", name: "Western Reaches Half-Orc Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "26",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-half-orc.json`,
+    anchors: [
+      { len: 3, hash: "b2d908bd1975267fd73b128ef736618a27abab959b074034727ee7051e11b70a" },
+      { len: 3, hash: "8b09c949370d10e7f1990e8736fe275e32aaa835fb0bbb65fe1f3ad7a3592c95" },
+      { len: 3, hash: "f6b748a333a71303cfd01d08fbc683af191b8e05064d1d75f0eb0f002e8eac8e" },
+      { len: 5, hash: "4e1cc4e6e404d7a6b08ea14ce88fa8843f37e4fe6be166778398129aeb7f7e30" },
+    ],
+  },
+  {
+    id: "wr-anc-halfling", name: "Western Reaches Halfling Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "28",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-halfling.json`,
+    anchors: [
+      { len: 4, hash: "abd08c1840a3d787d2859b8aff60a504d5a5bd6c97ae47f956b46729ca36b04d" },
+      { len: 4, hash: "3b48d3b3a50eb3023f58df9f402f7e09d8668537ebabadc8c7b7ba79f3fb2331" },
+      { len: 3, hash: "98a790dacf98110dbe7ed7799c801ec5a0dd48af7552fd3e005319cc3c4ffa26" },
+      { len: 5, hash: "36bd46b15c971eb46c572ad6f5040cfee3c70087b3c4d31585090e00bcaa3778" },
+    ],
+  },
+  {
+    id: "wr-anc-human", name: "Western Reaches Human Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "30",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-human.json`,
+    anchors: [
+      { len: 4, hash: "be0bafdc1f5156d7e72c6aa7966f5d9973477189e178cf962c575e4b83e21c28" },
+      { len: 4, hash: "b2375a711de4865b32d6dfec36ccfaa39a4c586645a53c2a52881bef83d706db" },
+      { len: 4, hash: "84ea09366bbf59a3abbdcecb549f3d8b1b4383082fba646b094bea0a8ae6d95c" },
+      { len: 4, hash: "cd86e7f8753285480a0af48f2045eff5e631af6ce9ced42490220896b45a75f1" },
+    ],
+  },
+  {
+    id: "wr-anc-kobold", name: "Western Reaches Kobold Name/Trinket", type: "Table", coversType: "Table", source: "WR", pages: "31",
+    file: `modules/${MODULE_ID}/data/locked/wr-anc-kobold.json`,
+    anchors: [
+      { len: 3, hash: "1fa3f67e71f83edafedc852e8d7d0250a5232d950ed95df91d141cde7f588ac2" },
+      { len: 3, hash: "ee4c94f035dafa53b9c86d0825db192ce735bfbf59560aa6661f55711a3739a9" },
+      { len: 4, hash: "65ca05fd983d86dab77babe813090b8fecca0d4f8ec31f67a3643c0c60777f00" },
+      { len: 3, hash: "965336ff6bfc253e9078b617e7304c6241d141038d8c6887918d1955012792dc" },
     ],
   },
   {
