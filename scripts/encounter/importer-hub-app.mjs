@@ -29,7 +29,8 @@ import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
-import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, sourcePdfHref } from "./char-content-manifest.mjs";
+import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { sourcePdfHref } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
@@ -99,6 +100,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Bundle export/import
       hubExportBundle:        ImporterHubApp.prototype._onExportBundle,
       hubImportBundle:        ImporterHubApp.prototype._onImportBundle,
+      // Source PDF library
+      hubManageSourcePdfs:    ImporterHubApp.prototype._onManageSourcePdfs,
       // Manage strip — census/gap/duplicate + maintenance
       monsterGapExpand:       ImporterHubApp.prototype._onMonsterGapExpand,
       monsterSeedPaste:       ImporterHubApp.prototype._onMonsterSeedPaste,
@@ -286,6 +289,24 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasGenerators = importGenerators.length > 0;
     const showImportAll = [hasMonsters, hasItems, hasSpells, hasTables].filter(Boolean).length > 1;
 
+    // Which sealed docs already exist at their destination? The import is
+    // idempotent (reuses by name), so tell the user up front which entries
+    // will be reused instead of implying everything is new.
+    const sealedPresent = new Set();
+    if (this._importSealed) {
+      const { findSuitePack } = await import("./compendium-suite.mjs");
+      const packOf = {
+        RollTable: findSuitePack("sde-tables") ?? game.packs.get("world.shadowdark-enhancer--roll-tables"),
+        Actor: findSuitePack("sde-actors") ?? game.packs.get("world.shadowdark-enhancer--actors"),
+        Item: findSuitePack("sde-items") ?? game.packs.get("world.shadowdark-enhancer--items"),
+      };
+      for (const d of this._importSealed.payload.docs) {
+        const kind = d.kind === "RollTable" ? "RollTable" : d.kind === "Actor" ? "Actor" : "Item";
+        const idx = packOf[kind]?.index;
+        if (idx?.find((x) => x.name === d.data.name)) sealedPresent.add(d.data.name);
+      }
+    }
+
     const t = this._importType;
     const importData = {
       text: this._importText,
@@ -348,7 +369,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ? this._importSealed.payload.docs.map((d) => ({
             name: d.data.name,
             type: d.kind === "RollTable" ? "Table" : d.data.type,
-            preview: "🔓 sealed content — verified, imports exactly as authored",
+            preview: sealedPresent.has(d.data.name)
+              ? "✓ already in your library — will be reused, not duplicated"
+              : "🔓 sealed content — verified, imports exactly as authored",
           }))
         : this._importChar.map((p) => ({
             name: p.draft.name,
@@ -1751,6 +1774,72 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * Manage the source-PDF library: show which books are linked, and upload +
+   * link a PDF for a source. Uploads land in worlds/<id>/source-pdfs and are
+   * recorded as flagged pdf pages in the "Shadowdark Source PDFs" journal, so
+   * the importer's Open-PDF deep-links resolve to them. Reopens after each
+   * upload so the GM can link several books in a row. GM-gated.
+   */
+  async _onManageSourcePdfs() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can manage source PDFs."); return; }
+    const { listSourcePdfs, uploadSourcePdf } = await import("./source-pdf-registry.mjs");
+
+    const rows = listSourcePdfs();
+    const statusList = rows.map((r) => {
+      const file = r.file ? foundry.utils.escapeHTML(r.file.split("/").pop()) : "—";
+      const icon = r.linked ? "fa-file-pdf" : "fa-file-circle-xmark";
+      return `<li class="sde-srcpdf-row ${r.linked ? "linked" : "missing"}"><i class="fas ${icon}"></i>
+        <strong>${foundry.utils.escapeHTML(r.label)}</strong>
+        <span class="sde-srcpdf-file">${file}</span></li>`;
+    }).join("");
+    const options = rows.map((r) =>
+      `<option value="${r.src}">${foundry.utils.escapeHTML(r.label)}${r.linked ? " (replace)" : ""}</option>`).join("");
+
+    const picked = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Source PDFs", icon: "fas fa-file-pdf" },
+      content: `
+        <p>Upload your own PDFs of the Shadowdark books. Each is linked to a source so the
+        importer's <em>Open PDF</em> buttons jump straight to the cited page. Files stay in your
+        world (<code>worlds/${foundry.utils.escapeHTML(game.world.id)}/source-pdfs</code>) — nothing
+        leaves your machine.</p>
+        <ul class="sde-srcpdf-list">${statusList}</ul>
+        <div class="sde-srcpdf-upload">
+          <label>Book <select name="src">${options}</select></label>
+          <input type="file" name="pdf" accept="application/pdf,.pdf">
+        </div>`,
+      buttons: [
+        {
+          action: "upload", label: "Upload & link", default: true,
+          callback: (ev, button, dialog) => {
+            const root = dialog.element ?? dialog;
+            const src = root.querySelector("select[name='src']")?.value;
+            const file = root.querySelector("input[name='pdf']")?.files?.[0] ?? null;
+            return file ? { src, file } : null;
+          },
+        },
+        { action: "close", label: "Done" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+
+    if (!picked || picked === "close" || !picked.file) return;
+    if (picked.file.type && picked.file.type !== "application/pdf") {
+      ui.notifications.warn("That doesn't look like a PDF file.");
+      return this._onManageSourcePdfs();
+    }
+    try {
+      const path = await uploadSourcePdf(picked.src, picked.file);
+      ui.notifications.info(`Linked ${CHAR_SOURCES[picked.src]?.label ?? picked.src} → ${path.split("/").pop()}.`);
+    } catch (err) {
+      console.error("[SDE] source PDF upload failed", err);
+      ui.notifications.error("Upload failed — see console.");
+      return;
+    }
+    this.render();
+    return this._onManageSourcePdfs();   // reopen with refreshed status for the next book
+  }
+
+  /**
    * Re-link every sde-tables doc to imported monsters/items (REQ-24 sweep).
    * Idempotent + link-preserving; DialogV2 confirm with the pack doc count.
    */
@@ -2059,7 +2148,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._importSealed) {
       const { importSealedPayload } = await import("./sealed-content.mjs");
       const created = await importSealedPayload(this._importSealed.payload);
-      ui.notifications.info(`"${this._importSealed.unit.name}" unlocked: ${created.length} documents created.`);
+      const reused = created.filter((c) => c.reused).length;
+      const madeNew = created.length - reused;
+      ui.notifications.info(`"${this._importSealed.unit.name}" unlocked: ${madeNew} created${reused ? `, ${reused} already in library (reused)` : ""}.`);
       this._importSealed = null;
       this._importSeed = null;
       this._invalidateItemsCache();

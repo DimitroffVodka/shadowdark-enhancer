@@ -25,39 +25,15 @@ export const CHAR_SOURCES = {
 };
 
 /**
- * Source key → the user's own uploaded PDF of that book (a world asset path).
- * NEVER bundled by this module — same copyright contract as the rest of the
- * manifest: the user supplies their local copy. Used only to deep-link the
- * paste box to the page a section lives on so the GM can copy it fast. Extend
- * as more books are uploaded; a source with no mapping simply gets no link.
+ * Static fallback map: source key → a pre-seeded PDF path for that book (a
+ * world asset path). The live source of truth is the "Shadowdark Source PDFs"
+ * library journal (see source-pdf-registry.mjs) — this covers sources the user
+ * hasn't uploaded through the manager yet. NEVER bundled: the user supplies
+ * their own local copy; this only records where a default one lives.
  */
 export const SOURCE_PDFS = {
   WR: "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf",
 };
-
-/** First page number in a "72" / "72-73" / "p146" cite, or null. */
-function _firstPage(pages) {
-  const m = String(pages ?? "").match(/\d+/);
-  return m ? Number(m[0]) : null;
-}
-
-/**
- * Deep-link into Foundry's core PDF.js viewer for a source's uploaded PDF,
- * opened at the cited page: `viewer.html?file=<route>#page=N`. PDF.js honors
- * the `#page=` fragment natively (verified against v14's
- * JournalEntryPagePDFSheet). Returns null when the source has no mapped PDF or
- * the entry carries no page cite.
- * @param {string} src   CHAR_SOURCES key (e.g. "WR")
- * @param {string} pages page cite from the census entry ("72", "72-73", …)
- * @returns {string|null}
- */
-export function sourcePdfHref(src, pages) {
-  const file = SOURCE_PDFS[src];
-  const page = _firstPage(pages);
-  if (!file || !page) return null;
-  const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
-  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${page}`;
-}
 
 // src → Foundry item type → expected names (from the source books' character
 // chapters). WR lists regenerated from the built suite after the compendium
@@ -267,14 +243,18 @@ export const CLASS_SPECS = {
  * Pages user-supplied 2026-07-05.
  */
 export const ANCESTRY_TABLES = [
-  { name: "Dwarf Names", pages: "18" },    { name: "Dwarf Trinkets", pages: "19" },
-  { name: "Elf Names", pages: "20" },      { name: "Elf Trinkets", pages: "21" },
-  { name: "Goblin Names", pages: "22" },   { name: "Goblin Trinkets", pages: "23" },
-  { name: "Half-Elf Names", pages: "24" }, { name: "Half-Elf Trinkets", pages: "25" },
-  { name: "Half-Orc Names", pages: "26" }, { name: "Half-Orc Trinkets", pages: "27" },
-  { name: "Halfling Names", pages: "28" }, { name: "Halfling Trinkets", pages: "29" },
-  { name: "Human Names", pages: "30" },    { name: "Human Trinkets", pages: "31" },
-  { name: "Kobold Names", pages: "32" },   { name: "Kobold Trinkets", pages: "33" },
+  // Trinket is SINGULAR — the canonical table name everywhere (authored tables,
+  // sealed wr-anc-* units, table-manifest-data, char-builder auto-discovery).
+  // The census presence check is exact-name, so a plural here reads as
+  // never-imported (user-reported: Dwarf Trinket stayed locked after unlock).
+  { name: "Dwarf Names", pages: "18" },    { name: "Dwarf Trinket", pages: "19" },
+  { name: "Elf Names", pages: "20" },      { name: "Elf Trinket", pages: "21" },
+  { name: "Goblin Names", pages: "22" },   { name: "Goblin Trinket", pages: "23" },
+  { name: "Half-Elf Names", pages: "24" }, { name: "Half-Elf Trinket", pages: "25" },
+  { name: "Half-Orc Names", pages: "26" }, { name: "Half-Orc Trinket", pages: "27" },
+  { name: "Halfling Names", pages: "28" }, { name: "Halfling Trinket", pages: "29" },
+  { name: "Human Names", pages: "30" },    { name: "Human Trinket", pages: "31" },
+  { name: "Kobold Names", pages: "32" },   { name: "Kobold Trinket", pages: "33" },
 ];
 
 /** User-supplied page cites for Item-type manifest entries: src → name → pages. */
