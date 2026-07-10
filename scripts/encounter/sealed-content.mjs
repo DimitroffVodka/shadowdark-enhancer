@@ -785,6 +785,28 @@ export const SEALED_UNITS = [
       { len: 8, hash: "cc6abb007854228a3074a52213d54a77cc285257235952fb0f4829364483a51d" },
     ],
   },
+  {
+    id: "wr-god-prayers", name: "Western Reaches God Prayers", type: "Table", coversType: "Table", source: "WR", pages: "190-205",
+    file: `modules/${MODULE_ID}/data/locked/wr-god-prayers.json`,
+    anchors: [
+      { len: 9, hash: "7ea41defa48ad6b01ec995d27948b78e3a5b8f7308921ba7d1a4c147f1c36968" },
+      { len: 8, hash: "5ea4f0a97b84f3a34c70f0d56859fab299c49b5b9bd509147ed4a34bb12a5840" },
+      { len: 11, hash: "20b64121355a78bf0b6ea97516b1266f5b63fcdf761edc6bbb956ce482006400" },
+      { len: 10, hash: "7ed032ee0397326c03a695e92109781444005e2b069b112c462ca31048cb71f1" },
+      { len: 9, hash: "853342d9fb970ecf9e35a7c4215526ee6759759e96522fceba5ea31c50af8344" },
+    ],
+  },
+  {
+    id: "wr-patron-boons", name: "Western Reaches Patron Boons", type: "Table", coversType: "Table", source: "WR", pages: "206-223",
+    file: `modules/${MODULE_ID}/data/locked/wr-patron-boons.json`,
+    anchors: [
+      { len: 8, hash: "11dadb896b5e72380aba8acb28d4cf42678dc61bf6d524a7966cb967eb79469c" },
+      { len: 12, hash: "b65d33e2b0806a2ef2bc8920f8a461d74a21767e017bbe40e9c027a259908253" },
+      { len: 10, hash: "d3e3fd3a3bbf6dac4a68eedb440bc0bc5734857c42aa4e999df9eaddbd603cc1" },
+      { len: 12, hash: "41f61da984ba0b9192e1f6b8b61d96ca9fc10e2f8352ab63e9d3d061058119a2" },
+      { len: 12, hash: "5cfd20f54633d58e2dbed06ee9d0a0b27044415cb621f59971edac4c574ee045" },
+    ],
+  },
 ];
 
 /** Lowercase, strip everything but letters/digits, collapse spaces. */

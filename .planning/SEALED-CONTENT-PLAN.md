@@ -77,6 +77,8 @@ Status: `todo` → `captured` → `sealed` → `committed`.
 | wr-half-elf | Ancestry | WR | Half-Elf (+Adaptable) | **committed** | ✅ |
 | wr-ancestry-tables | Table | WR | 16 Name/Trinket tables | **committed** | ✅ |
 | wr-spell-mishaps | Table | WR | 4 mishap + Faction Generator (Warbands) | **committed** | ✅ |
+| wr-god-prayers | Table | WR | 8 god prayer generators (authored, 1 combined table/god) | **committed** | ✅ |
+| wr-patron-boons | Table | WR | 17 patron boons (11 WR-authored + 6 CS1) | **committed** | ✅ |
 | wr-cs-spells (dual-source) | Spell | WR | 48 CS4/5/6 spells, WR-anchored | **committed** | ✅ |
 | cs5-delver / cs5-wyrdling / cs6-duelist (dual-source) | Class | CS5/CS6 | class twins — CS books unlock them | **committed** | ✅ |
 | wr-gear | Basic/Weapon/Armor | WR | 26 items | todo | ❌ |

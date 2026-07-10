@@ -120,6 +120,13 @@ const MANIFEST = {
       "Necromancer", "Paladin", "Roustabout", "Wyrdling",
     ],
     Ancestry: ["Half-Elf"],
+    // Gods & Patrons: per-god 3d6 prayer generators (sealed as wr-god-prayers)
+    // and per-patron 2d6 boon tables (wr-patron-boons — 11 WR-new + the 6 CS1
+    // patrons). Unlocking a representative unseals the whole group.
+    Table: [
+      "Madeera the Covenant Prayers",
+      "Freya Boons",
+    ],
     Talent: [
       "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",
       "+1 to Named Blade Attacks and Damage", "+1 to Pseudopod Attacks and Damage",
