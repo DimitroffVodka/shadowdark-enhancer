@@ -27,6 +27,7 @@
     Pasting for: <strong>{{importData.seed.name}}</strong>
     {{#if importData.seed.book}}<span class="sde-hub-import-seed-tag"><i class="fas fa-book"></i> {{importData.seed.book}}{{#if importData.seed.page}}, page {{importData.seed.page}}{{/if}}</span>{{/if}}
     {{#if importData.seed.die}}<span class="sde-hub-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
+    {{#if importData.seedPdfHref}}<button type="button" data-action="openSourcePdf" data-href="{{importData.seedPdfHref}}" class="sde-hub-import-pdfbtn" title="Open the source PDF at the cited page to copy from"><i class="fas fa-file-pdf"></i> Open PDF{{#if importData.seed.page}} p.{{importData.seed.page}}{{/if}}</button>{{/if}}
     {{#unless importData.seedResult}}— paste that section and click Parse.{{/unless}}
     {{#if importData.seedResult}}
     {{#if importData.seedResult.ok}}
@@ -287,13 +288,15 @@
   </section>
   {{/if}}
 
-  {{!-- ── Character content preview (Backgrounds / Talents / Classes) ──── --}}
+  {{!-- ── Character content / sealed-unlock preview ─────────────────────── --}}
+  {{!-- Title + button label come from context: sealed payloads may be roll
+        tables or monsters, which commit to their own compendia, not Items. --}}
   {{#if importData.hasChar}}
   <section class="sde-hub-import-section">
     <div class="sde-hub-import-sechead">
-      <span class="sde-hub-import-sectitle"><i class="fas fa-user-plus"></i> Character content ({{importData.charsCount}})</span>
+      <span class="sde-hub-import-sectitle"><i class="fas fa-user-plus"></i> {{importData.charsTitle}} ({{importData.charsCount}})</span>
       <button type="button" data-action="hubCommitChar" class="sde-import-primary sde-hub-import-secbtn">
-        <i class="fas fa-unlock"></i> Create in Items
+        <i class="fas fa-unlock"></i> {{importData.charsCommitLabel}}
       </button>
     </div>
     <div class="sde-import-preview">

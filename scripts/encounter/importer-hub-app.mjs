@@ -29,7 +29,7 @@ import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
-import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, sourcePdfHref } from "./char-content-manifest.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
@@ -110,6 +110,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       manageExpandAll:        ImporterHubApp.prototype._onManageExpandAll,
       manageCollapseAll:      ImporterHubApp.prototype._onManageCollapseAll,
       charSeedPaste:          ImporterHubApp.prototype._onCharSeedPaste,
+      openSourcePdf:          ImporterHubApp.prototype._onOpenSourcePdf,
       hubCommitChar:          ImporterHubApp.prototype._onHubCommitChar,
       hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
@@ -284,6 +285,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       source: this._importSource,
       sourceSuggestions: SOURCE_SUGGESTIONS,
       seed: this._importSeed,
+      // Deep-link into the user's uploaded source PDF at the cited page, so the
+      // GM can jump straight to the section to copy. Only for char-content
+      // seeds whose source has a mapped PDF + a page cite (else null → no link).
+      seedPdfHref: this._importSeed?._charSeed
+        ? sourcePdfHref(this._importSeed.src, this._importSeed.page)
+        : null,
       // Post-parse feedback for a seeded import: what landed, so the GM can
       // tell at a glance whether the paste worked.
       seedResult: (() => {
@@ -343,6 +350,17 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           })),
       hasChar: this._importChar.length > 0 || !!this._importSealed,
       charsCount: this._importSealed?.payload.docs.length ?? this._importChar.length,
+      // Section title + commit label name the ACTUAL destination:
+      // importSealedPayload routes RollTables → sde-tables and Actors →
+      // sde-actors, so "Create in Items" is wrong for those payloads.
+      ...(() => {
+        if (!this._importSealed) return { charsTitle: "Character content", charsCommitLabel: "Create in Items" };
+        const kinds = new Set(this._importSealed.payload.docs.map((d) => d.kind === "RollTable" ? "RollTable" : d.kind === "Actor" ? "Actor" : "Item"));
+        if (kinds.size === 1 && kinds.has("RollTable")) return { charsTitle: "Sealed roll tables", charsCommitLabel: "Create in Roll Tables" };
+        if (kinds.size === 1 && kinds.has("Actor")) return { charsTitle: "Sealed monsters", charsCommitLabel: "Create in Actors" };
+        if (kinds.size === 1) return { charsTitle: "Sealed content", charsCommitLabel: "Create in Items" };
+        return { charsTitle: "Sealed content", charsCommitLabel: "Create in library" };
+      })(),
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
       itemsCount: this._importItems.length,
@@ -2008,6 +2026,23 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importType = importType;
     if (src && CHAR_SOURCES[src]) this._importSource = CHAR_SOURCES[src].label;
     this.render();
+  }
+
+  /**
+   * Open the user's uploaded source PDF at the seed's cited page in Foundry's
+   * core PDF.js viewer (own local copy — nothing is bundled), embedded in a
+   * Foundry window rather than an external browser tab. Reuses one viewer
+   * window so repeated clicks re-jump the page in place.
+   */
+  async _onOpenSourcePdf(event, target) {
+    const href = target?.dataset?.href;
+    if (!href) return;
+    const { SourcePdfViewer } = await import("./source-pdf-viewer.mjs");
+    const seed = this._importSeed;
+    const title = seed?.name
+      ? `${seed.name}${seed.page ? ` — p.${seed.page}` : ""}`
+      : "Source PDF";
+    SourcePdfViewer.show(href, title);
   }
 
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
