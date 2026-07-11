@@ -29,7 +29,7 @@ import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
-import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, BACKGROUND_TABLES } from "./char-content-manifest.mjs";
 import { sourcePdfHref } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { MODULE_ID } from "../module-id.mjs";
@@ -115,6 +115,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       charSeedPaste:          ImporterHubApp.prototype._onCharSeedPaste,
       openSourcePdf:          ImporterHubApp.prototype._onOpenSourcePdf,
       hubCommitChar:          ImporterHubApp.prototype._onHubCommitChar,
+      cuOptAdd:               ImporterHubApp.prototype._onCuOptAdd,
+      cuOptDel:               ImporterHubApp.prototype._onCuOptDel,
+      cuRowSplit:             ImporterHubApp.prototype._onCuRowSplit,
+      cuRowMerge:             ImporterHubApp.prototype._onCuRowMerge,
+      cuRowDel:               ImporterHubApp.prototype._onCuRowDel,
+      cuRowAdd:               ImporterHubApp.prototype._onCuRowAdd,
+      cuFeatAdd:              ImporterHubApp.prototype._onCuFeatAdd,
+      cuFeatDel:              ImporterHubApp.prototype._onCuFeatDel,
+      cuTitleAdd:             ImporterHubApp.prototype._onCuTitleAdd,
+      cuTitleDel:             ImporterHubApp.prototype._onCuTitleDel,
       hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
       migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
       hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
@@ -224,6 +234,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _prepareContext() {
     const moveOptions = npcMoveKeys();
+    // Borrowable spell lists for caster class-units (Knight of St. Ydris →
+    // Witch pattern); only fetched when a caster is actually in preview.
+    const casterChoices = this._importChar.some((p) => p.draft.classUnit?.spellcasting)
+      ? await this._casterClassChoices()
+      : [];
 
     const importMonsterCards = this._importMonsters.map((p, i) => {
       const wf = warnFields(p.warnings ?? []);
@@ -373,11 +388,67 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
               ? "✓ already in your library — will be reused, not duplicated"
               : "🔓 sealed content — verified, imports exactly as authored",
           }))
-        : this._importChar.map((p) => ({
-            name: p.draft.name,
-            type: p.draft.type,
-            preview: String(p.draft.description ?? "").replace(/<[^>]+>/g, " ").trim().slice(0, 140),
-          })),
+        : this._importChar.map((p) => {
+            const strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+            const u = p.draft.classUnit;
+            // Auto-match the parsed "casts wizard spells" hint to a real class
+            // once, so the Spell-list select comes pre-picked and commit uses it.
+            if (u?.spellcasting && !u.spellcasting.spellClass && u.spellcasting.spellList) {
+              u.spellcasting.spellClass =
+                casterChoices.find((c) => c.name.toLowerCase() === u.spellcasting.spellList) ?? null;
+            }
+            // Class units get a full structured preview (description, features,
+            // talent table, spellcasting, review notes) instead of a one-liner.
+            const unit = u ? {
+              hp: u.hitPoints,
+              weaponsText: u.weaponNames.join(", "),
+              armorText: u.armorNames.join(", "),
+              allWeapons: u.allWeapons, allMeleeWeapons: u.allMeleeWeapons,
+              allRangedWeapons: u.allRangedWeapons, allArmor: u.allArmor,
+              langFixed: u.languages.fixed.join(", "),
+              langCommon: u.languages.common, langRare: u.languages.rare,
+              flavor: strip(u.flavor),
+              features: u.features.map((f) => ({ name: f.name, text: strip(f.description) })),
+              table: u.talentTable ? {
+                formula: u.talentTable.formula,
+                rows: u.talentTable.rows.map((r) => ({
+                  range: r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`,
+                  text: r.text,
+                  options: r.options ?? [],
+                  isChoice: r.kind === "choice",
+                  grand: r.kind === "grand",
+                })),
+              } : null,
+              isCaster: !!u.spellcasting,
+              scText: u.spellcasting ? strip(u.spellcasting.text) : "",
+              spellListOptions: [
+                { value: "", label: `Own list (${p.draft.name})`, selected: !u.spellcasting?.spellClass },
+                ...casterChoices.map((c) => ({
+                  value: c.uuid, label: c.name, selected: u.spellcasting?.spellClass?.uuid === c.uuid,
+                })),
+              ],
+              spellsKnown: (u.spellsKnown ?? []).map((r) => ({
+                level: r.level,
+                cells: r.tiers.map((n) => n || "—").join(" · "),
+              })),
+              scOptions: ["", "int", "wis", "cha"].map((v) => ({
+                value: v,
+                label: v ? v.toUpperCase() : "— not a caster",
+                selected: (u.spellcasting?.ability ?? "") === v && (v !== "" || !u.spellcasting),
+              })),
+              titles: u.titles.map((t) => ({
+                range: t.from === t.to ? String(t.from) : `${t.from}-${t.to}`,
+                lawful: t.lawful, chaotic: t.chaotic, neutral: t.neutral,
+              })),
+              warnings: u.warnings,
+            } : null;
+            return {
+              name: p.draft.name,
+              type: p.draft.type,
+              unit,
+              preview: unit ? "" : strip(p.draft.description).slice(0, 140),
+            };
+          }),
       hasChar: this._importChar.length > 0 || !!this._importSealed,
       charsCount: this._importSealed?.payload.docs.length ?? this._importChar.length,
       // Section title + commit label name the ACTUAL destination:
@@ -583,6 +654,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubSpellFieldEdits();
     this._wireHubTableFieldEdits();
     this._wireHubGeneratorFieldEdits();
+    this._wireHubClassRowEdits();
 
     // Manage strip: prepare its census lazily the first time it's expanded, so
     // opening the importer never triggers a world scan.
@@ -673,6 +745,251 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         ev.target.classList.remove("sde-mimport-warn");
       });
     });
+  }
+
+  /**
+   * Class-unit talent-row edits. Range/effect/option text commit on `change`
+   * with NO re-render (focus stays put); structural changes (add/remove
+   * option or row, split/merge) are data-action buttons that re-render.
+   * Edits mutate draft.classUnit directly — the commit path reads it as-is.
+   */
+  _wireHubClassRowEdits() {
+    const splitNames = (s) => s.split(/\s*(?:,|\band\b)\s*/i).map((w) => w.trim()).filter(Boolean);
+    const parseRange = (v) => {
+      const m = v.trim().match(/^(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?$/);
+      if (!m) return null;
+      let lo = Number(m[1]), hi = Number(m[2] ?? m[1]);
+      if (hi < lo) [lo, hi] = [hi, lo];
+      return { lo, hi };
+    };
+    this.element.querySelectorAll(".sde-class-preview [data-cu-field]").forEach((input) => {
+      input.addEventListener("change", (ev) => {
+        const unit = this._importChar[Number(ev.target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit;
+        if (!unit) return;
+        const field = ev.target.dataset.cuField;
+        const v = ev.target.value;
+
+        // ── Talent-table row scope ──
+        const rowEl = ev.target.closest("[data-cu-row]");
+        if (rowEl) {
+          const row = unit.talentTable?.rows[Number(rowEl.dataset.cuRow)];
+          if (!row) return;
+          if (field === "range") {
+            const r = parseRange(v);
+            if (!r) { ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`; return; }
+            row.lo = r.lo; row.hi = r.hi;
+            ev.target.value = r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`;
+          } else if (field === "text") {
+            row.text = v.trim();
+          } else if (field === "option") {
+            const oIdx = Number(ev.target.closest("[data-cu-opt]")?.dataset.cuOpt);
+            if (Array.isArray(row.options) && row.options[oIdx] !== undefined) row.options[oIdx] = v.trim();
+          }
+          return;
+        }
+
+        // ── Titles row scope ──
+        const titleEl = ev.target.closest("[data-cu-title]");
+        if (titleEl) {
+          const band = unit.titles[Number(titleEl.dataset.cuTitle)];
+          if (!band) return;
+          if (field === "titleRange") {
+            const r = parseRange(v);
+            if (!r) { ev.target.value = band.from === band.to ? String(band.from) : `${band.from}-${band.to}`; return; }
+            band.from = r.lo; band.to = r.hi;
+            ev.target.value = r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`;
+          }
+          else if (field === "titleLawful") band.lawful = v.trim();
+          else if (field === "titleChaotic") band.chaotic = v.trim();
+          else if (field === "titleNeutral") band.neutral = v.trim();
+          return;
+        }
+
+        // ── Feature row scope ──
+        const featEl = ev.target.closest("[data-cu-feat]");
+        if (featEl) {
+          const f = unit.features[Number(featEl.dataset.cuFeat)];
+          if (!f) return;
+          if (field === "featName") f.name = v.trim();
+          else if (field === "featText") f.description = v.trim() ? `<p>${v.trim()}</p>` : "";
+          return;
+        }
+
+        // ── Unit-level fields ──
+        if (field === "hp") {
+          const m = v.trim().match(/^(?:1)?(d\d+)$/i);
+          if (!m) { ev.target.value = unit.hitPoints; return; }
+          unit.hitPoints = m[1].toLowerCase();
+          ev.target.value = unit.hitPoints;
+        } else if (field === "flavor") {
+          unit.flavor = v.trim() ? `<p>${v.trim()}</p>` : "";
+        } else if (field === "weapons") {
+          unit.weaponsText = v.trim();
+          unit.weaponNames = splitNames(v);
+        } else if (field === "armor") {
+          unit.armorText = v.trim();
+          unit.armorNames = splitNames(v);
+        } else if (["allWeapons", "allMeleeWeapons", "allRangedWeapons", "allArmor"].includes(field)) {
+          // Flags and named lists COEXIST ("All melee weapons, crossbow") —
+          // toggling a flag never touches the names.
+          unit[field] = ev.target.checked;
+        } else if (field === "tblFormula") {
+          const m = v.trim().match(/^\d*d\d+$/i);
+          if (!m || !unit.talentTable) { ev.target.value = unit.talentTable?.formula ?? "2d6"; return; }
+          unit.talentTable.formula = v.trim().toLowerCase();
+        } else if (field === "langFixed") {
+          unit.languages.fixed = splitNames(v);
+        } else if (field === "langCommon") {
+          unit.languages.common = Math.max(0, Number(v) || 0);
+        } else if (field === "langRare") {
+          unit.languages.rare = Math.max(0, Number(v) || 0);
+        } else if (field === "scAbility") {
+          unit.spellcasting = v
+            ? { ability: v, text: unit.spellcasting?.text ?? "",
+                spellList: unit.spellcasting?.spellList ?? null,
+                spellClass: unit.spellcasting?.spellClass ?? null }
+            : null;
+          this.render();   // caster chip style + Spellcasting block visibility
+        } else if (field === "spellList") {
+          if (unit.spellcasting)
+            unit.spellcasting.spellClass = (this._casterChoices ?? []).find((c) => c.uuid === v) ?? null;
+        } else if (field === "scText") {
+          if (unit.spellcasting) unit.spellcasting.text = v.trim() ? `<p>${v.trim()}</p>` : "";
+        }
+      });
+    });
+  }
+
+  /**
+   * Caster classes a new class can borrow a spell list from (Knight of
+   * St. Ydris → Witch pattern). System classes + suite-pack classes with a
+   * casting ability. Cached per hub instance; parse drops the cache.
+   */
+  async _casterClassChoices() {
+    if (this._casterChoices) return this._casterChoices;
+    const out = [];
+    const scan = async (pack) => {
+      if (!pack) return;
+      try {
+        const idx = await pack.getIndex({ fields: ["type", "system.spellcasting.ability"] });
+        for (const e of idx) {
+          if (e.type !== "Class" || !e.system?.spellcasting?.ability) continue;
+          out.push({ uuid: `Compendium.${pack.collection}.Item.${e._id}`, name: e.name, slug: e.name.slugify() });
+        }
+      } catch (err) { console.warn(`${MODULE_ID} | caster-class scan failed for ${pack?.collection}:`, err); }
+    };
+    await scan(game.packs.get("shadowdark.classes"));
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    await scan(findSuitePack("sde-items"));
+    this._casterChoices = out;
+    return out;
+  }
+
+  /** Resolve the classUnit talent row a click/change happened in. */
+  _cuRowFor(target) {
+    const unit = this._importChar[Number(target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit;
+    const rows = unit?.talentTable?.rows ?? null;
+    const rowEl = target.closest("[data-cu-row]");
+    const row = rows?.[Number(rowEl?.dataset.cuRow)] ?? null;
+    return { unit, rows, row, rowIdx: rowEl ? Number(rowEl.dataset.cuRow) : -1 };
+  }
+
+  /** Add a blank option to a choice row (structural → re-render). */
+  _onCuOptAdd(event, target) {
+    const { row } = this._cuRowFor(target);
+    if (!row) return;
+    row.kind = "choice";
+    (row.options ??= []).push("");
+    this.render();
+  }
+
+  /** Remove one option; below 2 options the row folds back to single. */
+  _onCuOptDel(event, target) {
+    const { row } = this._cuRowFor(target);
+    const oIdx = Number(target.closest("[data-cu-opt]")?.dataset.cuOpt);
+    if (!row || !Array.isArray(row.options)) return;
+    row.options.splice(oIdx, 1);
+    if (row.options.length < 2) { row.kind = "single"; delete row.options; }
+    this.render();
+  }
+
+  /** Single → choice: seed options by splitting the text on " or ". */
+  _onCuRowSplit(event, target) {
+    const { row } = this._cuRowFor(target);
+    if (!row) return;
+    const parts = row.text.split(/\s+or\s+/i).map((p) => p.trim().replace(/[.]$/, "")).filter(Boolean);
+    row.kind = "choice";
+    row.options = parts.length >= 2 ? parts : [row.text, ""];
+    this.render();
+  }
+
+  /** Choice → single: the row commits as one talent named by its text. */
+  _onCuRowMerge(event, target) {
+    const { row } = this._cuRowFor(target);
+    if (!row) return;
+    row.kind = "single";
+    delete row.options;
+    this.render();
+  }
+
+  /** Delete a talent row. */
+  _onCuRowDel(event, target) {
+    const { rows, rowIdx } = this._cuRowFor(target);
+    if (!rows || rowIdx < 0) return;
+    rows.splice(rowIdx, 1);
+    this.render();
+  }
+
+  /** Append a blank single row — bootstraps a 2d6 table when none parsed. */
+  _onCuRowAdd(event, target) {
+    const unit = this._importChar[Number(target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit;
+    if (!unit) return;
+    unit.talentTable ??= { formula: "2d6", rows: [] };
+    const rows = unit.talentTable.rows;
+    const next = rows.length ? Math.max(...rows.map((r) => r.hi)) + 1 : 2;
+    rows.push({ lo: next, hi: next, text: "", kind: "single" });
+    this.render();
+  }
+
+  /** Resolve the classUnit a structural button belongs to. */
+  _cuUnitFor(target) {
+    return this._importChar[Number(target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit ?? null;
+  }
+
+  /** Add a blank class feature. */
+  _onCuFeatAdd(event, target) {
+    const unit = this._cuUnitFor(target);
+    if (!unit) return;
+    unit.features.push({ name: "", description: "" });
+    this.render();
+  }
+
+  /** Remove a class feature. */
+  _onCuFeatDel(event, target) {
+    const unit = this._cuUnitFor(target);
+    const idx = Number(target.closest("[data-cu-feat]")?.dataset.cuFeat);
+    if (!unit || !(idx >= 0)) return;
+    unit.features.splice(idx, 1);
+    this.render();
+  }
+
+  /** Add a title band after the current last level range. */
+  _onCuTitleAdd(event, target) {
+    const unit = this._cuUnitFor(target);
+    if (!unit) return;
+    const last = unit.titles[unit.titles.length - 1];
+    const from = last ? last.to + 1 : 1;
+    unit.titles.push({ from, to: from + 1, lawful: "", chaotic: "", neutral: "" });
+    this.render();
+  }
+
+  /** Remove a title band. */
+  _onCuTitleDel(event, target) {
+    const unit = this._cuUnitFor(target);
+    const idx = Number(target.closest("[data-cu-title]")?.dataset.cuTitle);
+    if (!unit || !(idx >= 0)) return;
+    unit.titles.splice(idx, 1);
+    this.render();
   }
 
   /**
@@ -980,9 +1297,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (t !== keep) skipped.push({ name: t.name || `(untitled ${t.formula ?? ""} table)`, reason: `dropped — this unlock expects only "${want}"` });
       }
       // Convention: imported tables are named "Source - Table Name"
-      // (e.g. "Western Reaches - Dwarf Names").
+      // (e.g. "Western Reaches - Dwarf Names"). Background-bundle tables already
+      // carry a complete, unique name (e.g. "Western Reach Backgrounds") — don't
+      // prefix them or it doubles the source and forks a duplicate table.
       const srcLabel = CHAR_SOURCES[this._importSeed.src]?.label;
-      keep.name = srcLabel ? `${srcLabel} - ${want}` : want;
+      keep.name = (srcLabel && !this._importSeed._bgBundle) ? `${srcLabel} - ${want}` : want;
       // Category drives the system-mirroring compendium folder.
       if (/\bnames$/i.test(want)) keep.category = "character-names";
       else if (/\btrinkets$/i.test(want)) keep.category = "trinkets";
@@ -1036,10 +1355,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     // Character-content types (Backgrounds / Talents / Class) parse into their
-    // own draft list; everything else clears it.
+    // own draft list; everything else clears it. A background-table bundle seed
+    // additionally parses the individual Background items from the same paste
+    // (the table above; the items here) so one commit unlocks both.
     this._importChar = ["backgrounds", "talents", "classes", "ancestries"].includes(type)
       ? parseCharContent(text, type)
-      : [];
+      : (this._importSeed?._bgBundle ? parseCharContent(text, "backgrounds") : []);
 
     // Item subtype override (forces all parsed items to the chosen type).
     if (this._importItemSubtype !== "auto") {
@@ -2110,6 +2431,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       Class: "classes", Ancestry: "ancestries",
       Table: "tables",
     })[type] ?? "auto";
+    // Background roll tables bundle-unlock: one paste creates both the d100
+    // table AND the individual Background items (the char-builder lists those
+    // for picking). Flagged so _onHubParse also runs the backgrounds parser.
+    const bgBundle = type === "Table"
+      && BACKGROUND_TABLES.has(name.toLowerCase().replace(/\s+/g, " ").trim());
     this._importText = name;
     this._importSeed = {
       name,
@@ -2118,10 +2444,22 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       page: target.dataset.pages || undefined,
       book: CHAR_SOURCES[src]?.book || src || undefined,
       _charSeed: true,
+      _bgBundle: bgBundle,
     };
     this._importType = importType;
     if (src && CHAR_SOURCES[src]) this._importSource = CHAR_SOURCES[src].label;
     this.render();
+    // One-click flow: if this source's PDF is uploaded and the entry has a page
+    // cite, open the viewer straight to it — no separate Open-PDF click needed.
+    const href = sourcePdfHref(src, this._importSeed.page);
+    if (href) this._showSourcePdf(href, `${name}${this._importSeed.page ? ` — p.${this._importSeed.page}` : ""}`);
+  }
+
+  /** Open (or re-point) the in-Foundry PDF viewer at `href`, titled `title`. */
+  async _showSourcePdf(href, title) {
+    if (!href) return;
+    const { SourcePdfViewer } = await import("./source-pdf-viewer.mjs");
+    SourcePdfViewer.show(href, title);
   }
 
   /**
@@ -2133,12 +2471,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onOpenSourcePdf(event, target) {
     const href = target?.dataset?.href;
     if (!href) return;
-    const { SourcePdfViewer } = await import("./source-pdf-viewer.mjs");
     const seed = this._importSeed;
     const title = seed?.name
       ? `${seed.name}${seed.page ? ` — p.${seed.page}` : ""}`
       : "Source PDF";
-    SourcePdfViewer.show(href, title);
+    this._showSourcePdf(href, title);
   }
 
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
@@ -2160,6 +2497,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
     if (!this._importChar.length) { ui.notifications.warn("No character content to import."); return; }
+    const bgBundle = this._importSeed?._bgBundle;
 
     const source = this._importSource.trim();
     // The char-builder gates visibility on system.source.title — stamp it from
@@ -2172,19 +2510,49 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       "western reaches": "western-reaches",
     })[source.toLowerCase()] ?? source.toLowerCase().replace(/\s+/g, "-");
 
-    const drafts = this._importChar.map((p) => ({ ...p.draft, sourceTitle }));
-    const { ItemImporter } = await import("./item-importer.mjs");
-    const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
-    if (!result) return;
+    // Full class units (parse-and-author path) go through the class-unit
+    // importer: talents + 2d6 table + wired Class, in dependency order.
+    const unitDrafts  = this._importChar.filter((p) => p.draft.classUnit);
+    const plainDrafts = this._importChar.filter((p) => !p.draft.classUnit);
 
-    const parts = [`${result.created.length} created`];
-    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
-    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
-    ui.notifications.info(`Character content: ${parts.join(", ")} → sde-items${source ? ` / ${source}` : ""}.`);
+    const parts = [];
+    if (unitDrafts.length) {
+      const { createClassUnit } = await import("./class-unit-importer.mjs");
+      const { overlayFor } = await import("./class-overlays.mjs");
+      for (const p of unitDrafts) {
+        // SDE wiring overlay (effects, invented outcome names) — the paste
+        // supplies the text, the overlay supplies the plumbing.
+        const overlay = overlayFor(p.draft.name);
+        const rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay });
+        if (!rep) continue;
+        parts.push(`class "${p.draft.name}": ${rep.created.length} created, ${rep.reused.length} reused, ${rep.systemReuse.length} system talents linked`);
+        if (rep.warnings.length) {
+          console.warn(`${MODULE_ID} | class import "${p.draft.name}" — review notes:\n- ${rep.warnings.join("\n- ")}`);
+          ui.notifications.warn(`"${p.draft.name}" imported with ${rep.warnings.length} review note(s) — see the console (F12).`);
+        }
+      }
+    }
+
+    if (plainDrafts.length) {
+      const drafts = plainDrafts.map((p) => ({ ...p.draft, sourceTitle }));
+      const { ItemImporter } = await import("./item-importer.mjs");
+      const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
+      if (!result) return;
+      parts.push(`${result.created.length} created`);
+      if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
+      if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
+    }
+    ui.notifications.info(`Character content: ${parts.join("; ")} → suite packs${source ? ` / ${source}` : ""}.`);
     this._importChar = [];
     this._invalidateItemsCache();
     this._invalidateCharCache();
     this._announceContentUnlocked();
+    // Background bundle: the same paste also yielded the d100 roll table — commit
+    // it now so one click unlocks both the items and the table.
+    if (bgBundle && this._importTables.length) {
+      await this._onHubCommitTables();
+      return;   // _onHubCommitTables renders
+    }
     this.render();
   }
 

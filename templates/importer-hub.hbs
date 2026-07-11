@@ -90,6 +90,10 @@
             title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
       <i class="fas fa-file-arrow-up"></i> Import bundle
     </button>
+    <button type="button" data-action="hubManageSourcePdfs" class="sde-import-secondary"
+            title="Upload your own PDFs of the Shadowdark books. Each is linked to a source so the Open-PDF buttons jump to the cited page. Files stay in your world.">
+      <i class="fas fa-file-pdf"></i> Source PDFs
+    </button>
   </div>
 
   {{!-- ── Monsters preview ─────────────────────────────────────────────── --}}
@@ -306,7 +310,177 @@
           <span class="sde-hub-import-item-name">{{c.name}}</span>
           <span class="sde-hub-monsters-dup-source">{{c.type}}</span>
         </div>
+        {{#if c.unit}}
+        {{!-- Full class-unit preview: everything the commit will author. --}}
+        <div class="sde-class-preview" data-char-idx="{{@index}}">
+          <div class="sde-cusheet-head">{{c.name}}</div>
+          <div class="sde-cusheet-details">
+            <label class="sde-cusheet-field">
+              <span class="sde-cusheet-fieldname">HP Die Roll</span>
+              <input type="text" data-cu-field="hp" value="{{c.unit.hp}}" aria-label="Hit die">
+            </label>
+            <label class="sde-cusheet-field">
+              <span class="sde-cusheet-fieldname">Spellcasting Ability</span>
+              <select data-cu-field="scAbility" aria-label="Spellcasting ability">
+                {{#each c.unit.scOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}
+              </select>
+            </label>
+            {{#if c.unit.isCaster}}
+            <label class="sde-cusheet-field" title="Which spell list this class casts from — pick an existing caster (Knight of St. Ydris uses Witch) or keep its own new list">
+              <span class="sde-cusheet-fieldname">Spell List</span>
+              <select data-cu-field="spellList" aria-label="Spell list">
+                {{#each c.unit.spellListOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}
+              </select>
+            </label>
+            {{/if}}
+          </div>
+
+          <details class="sde-class-preview-block" open>
+            <summary>Description</summary>
+            <textarea data-cu-field="flavor" rows="2" class="sde-cu-area" aria-label="Class description / flavor">{{c.unit.flavor}}</textarea>
+          </details>
+
+          <details class="sde-class-preview-block" open>
+            <summary>Equipment</summary>
+            <div class="sde-cusheet-cols">
+              <div class="sde-cusheet-box">
+                <h5>Weapons</h5>
+                <input type="text" data-cu-field="weapons" value="{{c.unit.weaponsText}}" class="sde-cu-text" placeholder="Type here…" title="Named weapons; combine with the All checkboxes for grants like “All melee weapons, crossbow”">
+              </div>
+              <div class="sde-cusheet-box">
+                <h5>Armor</h5>
+                <input type="text" data-cu-field="armor" value="{{c.unit.armorText}}" class="sde-cu-text" placeholder="Type here…" title="Named armor; combines with the All armor checkbox">
+              </div>
+              <div class="sde-cusheet-box">
+                <h5>Options</h5>
+                <label class="sde-cusheet-check">All Weapons <input type="checkbox" data-cu-field="allWeapons" {{#if c.unit.allWeapons}}checked{{/if}}></label>
+                <label class="sde-cusheet-check">All Melee Weapons <input type="checkbox" data-cu-field="allMeleeWeapons" {{#if c.unit.allMeleeWeapons}}checked{{/if}}></label>
+                <label class="sde-cusheet-check">All Ranged Weapons <input type="checkbox" data-cu-field="allRangedWeapons" {{#if c.unit.allRangedWeapons}}checked{{/if}}></label>
+                <label class="sde-cusheet-check">All Armor <input type="checkbox" data-cu-field="allArmor" {{#if c.unit.allArmor}}checked{{/if}}></label>
+              </div>
+            </div>
+          </details>
+
+          <details class="sde-class-preview-block" open>
+            <summary>Languages</summary>
+            <div class="sde-cusheet-cols">
+              <div class="sde-cusheet-box">
+                <h5>Fixed</h5>
+                <input type="text" data-cu-field="langFixed" value="{{c.unit.langFixed}}" class="sde-cu-text" placeholder="Type here…">
+              </div>
+              <div class="sde-cusheet-box">
+                <h5>Options</h5>
+                <label class="sde-cusheet-check">Additional Common <input type="number" min="0" data-cu-field="langCommon" value="{{c.unit.langCommon}}" class="sde-cu-num" aria-label="Additional common languages"></label>
+                <label class="sde-cusheet-check">Additional Rare <input type="number" min="0" data-cu-field="langRare" value="{{c.unit.langRare}}" class="sde-cu-num" aria-label="Additional rare languages"></label>
+              </div>
+            </div>
+          </details>
+
+          <details class="sde-class-preview-block" open>
+            <summary>Class Features ({{c.unit.features.length}})</summary>
+            <div class="sde-cu-features">
+              {{#each c.unit.features as |f|}}
+              <div class="sde-cu-featrow" data-cu-feat="{{@index}}">
+                <input type="text" data-cu-field="featName" value="{{f.name}}" class="sde-cu-featname" aria-label="Feature name">
+                <input type="text" data-cu-field="featText" value="{{f.text}}" class="sde-cu-text" aria-label="Feature rules text">
+                <button type="button" data-action="cuFeatDel" class="sde-cu-btn sde-cu-btn-del" title="Remove this feature"><i class="fas fa-trash"></i></button>
+              </div>
+              {{/each}}
+              <button type="button" data-action="cuFeatAdd" class="sde-cu-btn" title="Add a feature"><i class="fas fa-plus"></i> feature</button>
+            </div>
+          </details>
+
+          <details class="sde-class-preview-block" open>
+            <summary>Talent table{{#if c.unit.table}} ({{c.unit.table.formula}}){{else}} — none found{{/if}}</summary>
+            {{#unless c.unit.table}}
+            <p class="sde-class-preview-flavor">No table parsed from the paste — add rows below to build one (2d6 by default).</p>
+            {{/unless}}
+            {{#if c.unit.table}}
+            <table class="sde-class-preview-table">
+              {{#each c.unit.table.rows as |r|}}
+              <tr data-cu-row="{{@index}}">
+                <td class="sde-class-preview-range">
+                  <input type="text" data-cu-field="range" value="{{r.range}}" class="sde-cu-range" aria-label="Roll range" title='e.g. "2" or "3-6"'>
+                </td>
+                <td>
+                  <input type="text" data-cu-field="text" value="{{r.text}}" class="sde-cu-text" aria-label="Effect text">
+                  {{#if r.isChoice}}
+                  <div class="sde-class-preview-opts">
+                    {{#each r.options as |o|}}
+                    <span class="sde-cu-optwrap" data-cu-opt="{{@index}}">
+                      <input type="text" data-cu-field="option" value="{{o}}" class="sde-cu-opt" aria-label="Choice option">
+                      <button type="button" data-action="cuOptDel" class="sde-cu-btn sde-cu-btn-del" title="Remove this option"><i class="fas fa-xmark"></i></button>
+                    </span>
+                    {{/each}}
+                    <button type="button" data-action="cuOptAdd" class="sde-cu-btn" title="Add an option"><i class="fas fa-plus"></i> option</button>
+                    <button type="button" data-action="cuRowMerge" class="sde-cu-btn" title="Drop the options — this row becomes one talent named by its effect text">merge to single</button>
+                  </div>
+                  {{else if r.grand}}
+                  <div class="sde-class-preview-opts"><span class="sde-class-opt sde-class-opt-grand">links every option above + Distribute to Stats</span></div>
+                  {{else}}
+                  <div class="sde-class-preview-opts">
+                    <button type="button" data-action="cuRowSplit" class="sde-cu-btn" title="This row is a pick — split the text into options">split into options</button>
+                  </div>
+                  {{/if}}
+                </td>
+                <td class="sde-cu-rowdel">
+                  <button type="button" data-action="cuRowDel" class="sde-cu-btn sde-cu-btn-del" title="Delete this row"><i class="fas fa-trash"></i></button>
+                </td>
+              </tr>
+              {{/each}}
+            </table>
+            {{/if}}
+            <div class="sde-class-preview-opts sde-cu-addrow">
+              <button type="button" data-action="cuRowAdd" class="sde-cu-btn" title="Add a row"><i class="fas fa-plus"></i> row</button>
+              {{#if c.unit.table}}
+              <label class="sde-cu-formula">formula <input type="text" data-cu-field="tblFormula" value="{{c.unit.table.formula}}" class="sde-cu-num" aria-label="Table roll formula"></label>
+              {{/if}}
+            </div>
+          </details>
+
+          {{#if c.unit.isCaster}}
+          <details class="sde-class-preview-block" open>
+            <summary>Spellcasting</summary>
+            <textarea data-cu-field="scText" rows="2" class="sde-cu-area" aria-label="Spellcasting rules text">{{c.unit.scText}}</textarea>
+            {{#if c.unit.spellsKnown.length}}
+            <div class="sde-cu-spellsknown" title="Spells known per level (tier 1 · 2 · 3 · …) — parsed from the SPELLS KNOWN table; commits to the class sheet's grid">
+              {{#each c.unit.spellsKnown as |r|}}<span class="sde-class-opt">Lv {{r.level}}: {{r.cells}}</span>{{/each}}
+            </div>
+            {{/if}}
+          </details>
+          {{/if}}
+
+          <details class="sde-class-preview-block" open>
+            <summary>Titles ({{c.unit.titles.length}})</summary>
+            <table class="sde-class-preview-table sde-cu-titles">
+              {{#if c.unit.titles.length}}
+              <tr class="sde-cu-titlehead"><th>Levels</th><th>Lawful</th><th>Chaotic</th><th>Neutral</th><th></th></tr>
+              {{/if}}
+              {{#each c.unit.titles as |t|}}
+              <tr data-cu-title="{{@index}}">
+                <td class="sde-class-preview-range"><input type="text" data-cu-field="titleRange" value="{{t.range}}" class="sde-cu-range" aria-label="Level range"></td>
+                <td><input type="text" data-cu-field="titleLawful" value="{{t.lawful}}" class="sde-cu-text" aria-label="Lawful title"></td>
+                <td><input type="text" data-cu-field="titleChaotic" value="{{t.chaotic}}" class="sde-cu-text" aria-label="Chaotic title"></td>
+                <td><input type="text" data-cu-field="titleNeutral" value="{{t.neutral}}" class="sde-cu-text" aria-label="Neutral title"></td>
+                <td class="sde-cu-rowdel"><button type="button" data-action="cuTitleDel" class="sde-cu-btn sde-cu-btn-del" title="Delete this band"><i class="fas fa-trash"></i></button></td>
+              </tr>
+              {{/each}}
+            </table>
+            <button type="button" data-action="cuTitleAdd" class="sde-cu-btn sde-cu-addrow" title="Add a title band"><i class="fas fa-plus"></i> band</button>
+          </details>
+
+          {{#if c.unit.warnings.length}}
+          <details class="sde-class-preview-block sde-class-preview-notes" open>
+            <summary>Review notes ({{c.unit.warnings.length}})</summary>
+            <ul class="sde-import-warnings">
+              {{#each c.unit.warnings as |w|}}<li>{{w}}</li>{{/each}}
+            </ul>
+          </details>
+          {{/if}}
+        </div>
+        {{else}}
         <div class="sde-hub-import-item-desc">{{c.preview}}</div>
+        {{/if}}
       </div>
       {{/each}}
     </div>

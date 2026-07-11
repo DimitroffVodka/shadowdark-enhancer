@@ -1,7 +1,7 @@
 import { ListStep } from "./list-step.mjs";
 import { LanguagesStep } from "./languages-step.mjs";
 import { classArt } from "../art.mjs";
-import { enrich, resultText, findTableByName } from "../data.mjs";
+import { enrich, resultText, findTableByName, talentDescription } from "../data.mjs";
 import { builderDiceAnimation, EXTRA_CLASS_TALENT_ROLL_UUIDS } from "../constants.mjs";
 
 /** Rulebook-style description: enrich, then unwrap ONLY the first paragraph so
@@ -36,6 +36,14 @@ async function choiceOptions(spec) {
   return opts;
 }
 
+/** How many rolls a "roll on X table" talent grants (e.g. the Wyrdling's
+ *  "Gain Two Corruption Talents" → 2). Only the "two" wording bumps it above 1;
+ *  everything else is a single roll. */
+function talentRollCount(doc) {
+  const text = `${doc.name} ${String(doc.system?.description || "")}`.toLowerCase();
+  return /\btwo\b|\b2\b/.test(text) ? 2 : 1;
+}
+
 /** The first REPLACEME effect on a talent doc that has a known option source. */
 function choosableEffect(doc) {
   for (const effect of (doc?.effects ?? [])) {
@@ -66,6 +74,7 @@ export class ClassStep extends ListStep {
     this._traitsCache = {};             // class uuid → [{ name, descInline }]
     this._expandedSpells = new Set();   // uuids with the preview open
     this._spellDetail = new Map();      // uuid → { description, tier, range, duration } (enriched once)
+    this._talentDescCache = new Map();  // uuid → enriched description HTML (bonus-roll results)
     // Language choice lives on this tab (ancestry + class both contribute once
     // a class is picked) — delegate to the retained LanguagesStep, which keeps
     // its combo-keyed cache, need-counts and state._sync logic.
@@ -90,7 +99,12 @@ export class ClassStep extends ListStep {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  async _onSelect() {
+  async _onSelect(item) {
+    // shadowdark.compendiums.classes() yields INDEX entries (system fields but
+    // NO flags) — swap in the real document so flag-driven behavior sees it
+    // (the DeityStep fixedDeity pin reads state.class.item.flags).
+    const doc = await fromUuid(item.uuid).catch(() => null);
+    if (doc) this.state.class.item = doc;
     // Class-dependent choices reset when the class changes.
     this.state.classTalents = [];
     this.state.classTalentRoll = null;
@@ -108,6 +122,17 @@ export class ClassStep extends ListStep {
     // Warm the language cache for the new combo so isComplete() (sync) can
     // read slot counts immediately.
     await this.langStep._data();
+
+    // Auto-roll guaranteed level-1 class-feature table rolls — the Wyrdling's
+    // free Corruption talent is granted the moment you pick the class, not a
+    // manual step the player might miss (these are the `dedupe` fixed-talent
+    // sources, keyed `talent-…`; follow-ups from the talent table stay manual).
+    for (const s of await this._bonusSources(item)) {
+      if (s.dedupe && s.key.startsWith("talent-")) {
+        // eslint-disable-next-line no-await-in-loop
+        await this.rollBonus(s.key, { silent: true });
+      }
+    }
   }
 
   /** Complete once patron / spells-known / bonus-roll / language requirements are met. */
@@ -236,23 +261,53 @@ export class ClassStep extends ListStep {
     };
   }
 
+  /** A bonus-roll result talent's enriched description HTML (cached per uuid). */
+  async _talentDesc(uuid) {
+    if (!uuid) return null;
+    if (this._talentDescCache.has(uuid)) return this._talentDescCache.get(uuid);
+    const doc = await fromUuid(uuid).catch(() => null);
+    const html = doc ? await enrich(talentDescription(doc)) : null;
+    this._talentDescCache.set(uuid, html);
+    return html;
+  }
+
   /** Template context for the extra creation rolls. */
   async _bonusContext(item) {
     const sources = await this._bonusSources(item);
-    return sources.map((s) => {
+    // Dedupe rolls that share a table (all Corruption rolls: the level-1 feature
+    // + any "Gain a/Two Corruption Talents" follow-ups) may only be rerolled
+    // when the result is a DUPLICATE of another such roll. Tally results per
+    // table so each entry can tell whether it collides.
+    const perTable = new Map(); // tableUuid → [chosenUuid, …]
+    for (const s of sources) {
+      if (!s.dedupe) continue;
+      const uuid = this._bonusEntry(s.key)?.chosenUuid;
+      if (uuid) perTable.set(s.tableUuid, [...(perTable.get(s.tableUuid) || []), uuid]);
+    }
+    return Promise.all(sources.map(async (s) => {
       const e = this._bonusEntry(s.key);
+      const chosenUuid = e?.chosenUuid ?? null;
+      const duplicate = !!(s.dedupe && chosenUuid
+        && (perTable.get(s.tableUuid) || []).filter((u) => u === chosenUuid).length > 1);
       return {
         key: s.key,
         label: s.label,
         tableName: s.tableName,
         rolled: !!e,
+        duplicate,
+        // Free reroll for ordinary bonus rolls; dedupe rolls (Corruption) lock in
+        // and only reroll a duplicate.
+        canReroll: !s.dedupe || duplicate,
         total: e?.total ?? null,
         needsChoice: (e?.options?.length ?? 0) > 1,
         options: (e?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === e?.chosenUuid })),
         chosenName: e?.chosenName ?? null,
+        // The rolled result's description so e.g. a Corruption talent explains
+        // what it grants instead of showing a bare name.
+        chosenDesc: chosenUuid ? await this._talentDesc(chosenUuid) : null,
         textResult: e?.textResult ?? null,
       };
-    });
+    }));
   }
 
   /** The class's level-1 features — fixed talents + class abilities — shown
@@ -484,12 +539,27 @@ export class ClassStep extends ListStep {
   //    "Ambitious", keyed by UUID in constants),
   //  • the patron's starting boons.
 
-  /** The bonus-roll sources for the current class/ancestry/patron combo. */
+  /** The rollable table a talent points at: an explicit `@UUID[…RollTable…]`
+   *  link in its description, or the "<Class> <Talent>" / "<Talent> Table"
+   *  name convention. Null when it references no rollable table. */
+  async _talentRollTable(item, doc) {
+    const link = String(doc.system?.description || "")
+      .match(/@UUID\[((?:[^\]]*?)RollTable(?:[^\]]*?))\]/)?.[1] ?? null;
+    let table = link ? await fromUuid(link).catch(() => null) : null;
+    // No link → try the "<Class> <Talent>" / "<Talent>" table-name convention.
+    if (!table) table = await findTableByName([`${item.name} ${doc.name}`, `${doc.name} Table`], []);
+    return table?.roll ? table : null;
+  }
+
+  /** The bonus-roll sources for the current class/ancestry/patron/talent combo. */
   async _bonusSources(item) {
     const comboKey = [
       item.uuid,
       (this.state.ancestryTalents || []).join(","),
       this.state.patron?.uuid ?? "",
+      // Rolled class talent(s) can themselves grant a follow-up table roll, so
+      // the sources must recompute when the rolled talent changes.
+      (this.state.classTalents || []).map((t) => t.uuid).join(","),
     ].join("|");
     if (this._bonusCache?.key === comboKey) return this._bonusCache.sources;
 
@@ -500,12 +570,30 @@ export class ClassStep extends ListStep {
       // eslint-disable-next-line no-await-in-loop
       const doc = await fromUuid(uuid).catch(() => null);
       if (!doc) continue;
-      const link = String(doc.system?.description || "")
-        .match(/@UUID\[((?:[^\]]*?)RollTable(?:[^\]]*?))\]/)?.[1] ?? null;
-      let table = link ? await fromUuid(link).catch(() => null) : null;
-      // No link → try the "<Class> <Talent>" / "<Talent>" table-name convention.
-      if (!table) table = await findTableByName([`${item.name} ${doc.name}`, `${doc.name} Table`], []);
-      if (table?.roll) sources.push({ key: `talent-${doc.uuid}`, label: doc.name, tableUuid: table.uuid, tableName: table.name });
+      // eslint-disable-next-line no-await-in-loop
+      const table = await this._talentRollTable(item, doc);
+      if (table) sources.push({ key: `talent-${doc.uuid}`, label: doc.name, tableUuid: table.uuid, tableName: table.name, dedupe: true });
+    }
+
+    // Rolled class-talent results that themselves grant a table roll — e.g. the
+    // Wyrdling's "Gain a/Two Corruption Talents" → roll on the Corruption Table.
+    for (const t of (this.state.classTalents || [])) {
+      // eslint-disable-next-line no-await-in-loop
+      const doc = await fromUuid(t.uuid).catch(() => null);
+      if (!doc) continue;
+      // eslint-disable-next-line no-await-in-loop
+      const table = await this._talentRollTable(item, doc);
+      if (!table) continue;
+      const count = talentRollCount(doc);
+      for (let i = 0; i < count; i++) {
+        sources.push({
+          key: `followup-${doc.uuid}-${i}`,
+          label: count > 1 ? `${doc.name} (${i + 1}/${count})` : doc.name,
+          tableUuid: table.uuid,
+          tableName: table.name,
+          dedupe: true,
+        });
+      }
     }
 
     // Ancestry-granted extra class-talent roll (e.g. Human "Ambitious").
@@ -544,7 +632,7 @@ export class ClassStep extends ListStep {
 
   _bonusEntry(key) { return this.state.bonusRolls.find((b) => b.key === key) ?? null; }
 
-  async rollBonus(key) {
+  async rollBonus(key, { silent = false } = {}) {
     const item = this.selected?.item;
     if (!item) return;
     const src = (await this._bonusSources(item)).find((s) => s.key === key);
@@ -558,8 +646,12 @@ export class ClassStep extends ListStep {
       chosenName: options.length === 1 ? options[0].name : null,
     };
     this.state.bonusRolls = [...this.state.bonusRolls.filter((b) => b.key !== key), entry];
-    await this._talentCard(roll, options, textResult);
-    await this.app.render();
+    // Silent rolls (auto-granted level-1 features) skip the chat card + render;
+    // the caller's render surfaces them.
+    if (!silent) {
+      await this._talentCard(roll, options, textResult);
+      await this.app.render();
+    }
   }
 
   chooseBonus(key, uuid) {

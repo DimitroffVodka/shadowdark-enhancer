@@ -31,16 +31,16 @@
       <li class="sde-mtree-entry {{#if e.present}}is-present{{else}}is-locked{{/if}}">
         <i class="fas {{#if e.present}}fa-circle-check{{else}}fa-lock{{/if}} sde-mtree-entry-mark"></i>
         <span class="sde-mtree-entry-name">{{e.name}}</span>
-        {{#if e.pages}}<span class="sde-mtree-entry-pg" title="Page in the source book">pg {{e.pages}}</span>{{/if}}
+        {{#if e.pages}}<span class="sde-mtree-entry-pg" title="Page in the source book">{{#if e.src}}{{e.src}} {{/if}}pg {{e.pages}}{{#if e.pagesAlt}} or {{e.pagesAlt}}{{/if}}</span>{{/if}}
         {{#if e.present}}
         <span class="sde-mtree-entry-tag">imported</span>
         {{else}}
-        <button type="button" class="sde-mtree-unlock"
-                data-action="{{e.seedAction}}" data-name="{{e.name}}"
-                data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}"
-                title="Unlock “{{e.name}}” — seeds the Import paste box">
-          <i class="fas fa-unlock"></i> Unlock
-        </button>
+          <button type="button" class="sde-mtree-unlock"
+                  data-action="{{e.seedAction}}" data-name="{{e.name}}"
+                  data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}"
+                  title="Unlock “{{e.name}}” — seeds the Import paste box">
+            <i class="fas fa-unlock"></i> Unlock
+          </button>
         {{/if}}
       </li>
       {{/each}}

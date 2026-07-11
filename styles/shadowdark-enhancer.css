@@ -1685,6 +1685,39 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
   color: var(--sde-bar-text);
 }
 
+/* Source-PDF manager dialog list. */
+.sde-srcpdf-list { list-style: none; margin: 8px 0; padding: 0; }
+.sde-srcpdf-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-bottom: 1px solid var(--sde-bar-border, rgba(0,0,0,.1));
+}
+.sde-srcpdf-row.linked i { color: #3a8f3a; }
+.sde-srcpdf-row.missing { opacity: .7; }
+.sde-srcpdf-row.missing i { color: #b04a4a; }
+.sde-srcpdf-file { margin-left: auto; font-size: 11px; opacity: .8; }
+.sde-srcpdf-upload { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+/* Deep-link to the user's uploaded source PDF at the cited page. */
+.sde-hub-import-pdfbtn {
+  background: var(--sde-bar-btn-1);
+  border: 1px solid var(--sde-bar-accent);
+  border-radius: var(--sde-bar-radius);
+  padding: 1px 8px;
+  width: auto;
+  line-height: 1.6;
+  font-size: 11px;
+  font-family: var(--sde-bar-font);
+  color: var(--sde-bar-accent);
+  cursor: pointer;
+}
+.sde-hub-import-pdfbtn:hover {
+  background: var(--sde-bar-accent);
+  color: var(--sde-bar-surface-1);
+}
+
 /* Paste-box label */
 .sde-hub-import-label {
   font-size: 12px;
@@ -1940,8 +1973,16 @@ body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-icon { colo
   color: #6fb86f;
   opacity: 0.75;
 }
+.sde-mtree-entry-bundle {
+  color: var(--sde-bar-text-muted);
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+  opacity: 0.6;
+}
 body.theme-light .sde-mtree-entry.is-present .sde-mtree-entry-mark,
 body.theme-light .sde-mtree-entry-tag { color: #2e6b2e; }
+body.theme-light .sde-mtree-entry-bundle { color: #6b6b6b; }
 body.theme-light .sde-mtree-entry.is-locked .sde-mtree-entry-mark { color: #9c5210; }
 .sde-mtree-unlock {
   flex: 0 0 auto;
@@ -2173,6 +2214,217 @@ body.theme-light .sde-hub-import-item-desc-input {
   background: var(--sde-bar-surface-1);
   color: var(--sde-bar-text);
 }
+
+/* ── Class-unit preview (Importer hub) — styled after the SD class item sheet:
+   parchment page, black section banners, 2px-ruled boxed panels. Palette is
+   hard-coded to the sheet look on purpose (independent of hub theme). ── */
+.sde-class-preview {
+  --cus-paper: #f3eedd;
+  --cus-paper-2: #e9e3cd;
+  --cus-ink: #17140e;
+  --cus-rule: #b7ad92;
+  --cus-dim: #4a4438;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  background: var(--cus-paper);
+  color: var(--cus-ink);
+  padding: 10px 12px 12px;
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}
+.sde-cusheet-head {
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
+  font-size: 22px;
+  text-align: center;
+  background: #131313;
+  color: var(--cus-paper);
+  padding: 3px 8px 5px;
+  letter-spacing: 0.02em;
+}
+.sde-cusheet-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 8px 14px;
+}
+.sde-cusheet-field { display: flex; flex-direction: column; gap: 2px; }
+.sde-cusheet-fieldname { font-weight: 700; font-size: 12px; color: var(--cus-ink); }
+.sde-class-preview-flavor {
+  margin: 0;
+  font-style: italic;
+  color: var(--cus-dim);
+}
+/* Section banners — the sheet's black EQUIPMENT/LANGUAGES/TALENTS bands */
+.sde-class-preview-block > summary {
+  cursor: pointer;
+  list-style: none;
+  background: #131313;
+  color: var(--cus-paper);
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  text-align: center;
+  padding: 2px 8px 3px;
+}
+.sde-class-preview-block > summary::-webkit-details-marker { display: none; }
+.sde-class-preview-block[open] > summary { margin-bottom: 6px; }
+/* Boxed sub-panels (WEAPONS / ARMOR / OPTIONS …) */
+.sde-cusheet-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 10px;
+}
+.sde-cusheet-box {
+  border: 2px solid var(--cus-ink);
+  padding: 5px 8px 7px;
+}
+.sde-cusheet-box h5 {
+  font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
+  margin: 0 0 5px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  color: var(--cus-ink);
+}
+.sde-cusheet-check {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  margin: 3px 0;
+}
+.sde-class-preview-features {
+  margin: 0.2rem 0 0;
+  padding-left: 1.1rem;
+}
+.sde-class-preview-features li { margin-bottom: 0.25rem; }
+.sde-class-preview-table {
+  margin: 0.2rem 0 0;
+  border-collapse: collapse;
+  background: transparent;
+  border: none;
+  width: 100%;
+}
+.sde-class-preview-table td {
+  border: none;
+  border-top: 1px solid var(--cus-rule);
+  padding: 3px 6px;
+  vertical-align: top;
+}
+.sde-class-preview-range {
+  white-space: nowrap;
+  font-weight: 700;
+  width: 3rem;
+  text-align: center;
+}
+.sde-class-preview-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+  align-items: center;
+}
+.sde-class-opt {
+  background: var(--cus-paper-2);
+  border: 1px solid var(--cus-rule);
+  border-radius: 8px;
+  padding: 0 6px;
+  font-size: 11px;
+  color: var(--cus-ink);
+}
+.sde-class-opt-grand { font-style: italic; color: var(--cus-dim); border-style: dashed; }
+.sde-class-preview-notes > summary { background: #4a3a08; color: #f0e0a0; }
+
+/* Editable fields inside the class sheet — flat parchment inputs */
+.sde-class-preview input[type="text"],
+.sde-class-preview input[type="number"],
+.sde-class-preview select,
+.sde-class-preview textarea {
+  background: var(--cus-paper-2);
+  border: 1px solid var(--cus-rule);
+  border-radius: 2px;
+  color: var(--cus-ink);
+  font-size: 12px;
+  padding: 2px 5px;
+  box-sizing: border-box;
+  height: auto;
+}
+.sde-class-preview input:focus-visible,
+.sde-class-preview select:focus-visible,
+.sde-class-preview textarea:focus-visible {
+  outline: 2px solid #8a7020;
+  outline-offset: 1px;
+}
+.sde-class-preview input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--cus-ink);
+  flex: 0 0 auto;
+}
+.sde-cu-range { width: 3.4rem; text-align: center; }
+.sde-cu-text { width: 100%; }
+.sde-cu-opt { width: 14rem; max-width: 100%; }
+.sde-cu-hp { width: 4rem; }
+.sde-cu-num { width: 3.2rem; text-align: center; }
+.sde-cu-area { width: 100%; resize: vertical; }
+.sde-cu-optwrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.sde-cu-btn {
+  background: transparent;
+  border: 1px dashed var(--cus-dim);
+  border-radius: 8px;
+  color: var(--cus-dim);
+  font-size: 11px;
+  padding: 0 6px;
+  line-height: 1.5;
+  cursor: pointer;
+  width: auto;
+}
+.sde-cu-btn:hover { color: var(--cus-ink); border-color: #8a7020; box-shadow: none; }
+.sde-cu-btn-del { border-style: solid; }
+.sde-cu-rowdel { width: 1.8rem; text-align: center; }
+.sde-cu-addrow { margin-top: 4px; }
+.sde-cu-formula { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--cus-dim); }
+.sde-cu-features {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 0.2rem;
+}
+.sde-cu-featrow {
+  display: grid;
+  grid-template-columns: 10rem 1fr max-content;
+  gap: 4px;
+  align-items: center;
+}
+.sde-cu-featname { width: 100%; font-weight: 700; }
+.sde-cu-titles input { width: 100%; min-width: 4rem; }
+.sde-cu-spellsknown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+.sde-cu-titlehead th {
+  border: none;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cus-dim);
+  text-align: left;
+  padding: 2px 6px;
+  background: transparent;
+}
+/* Review-note list text on parchment */
+.sde-class-preview .sde-import-warnings { color: var(--cus-dim); }
 
 /* Migrate button — same style as .sde-thub-refresh */
 .sde-thub-migrate {
@@ -7079,6 +7331,9 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-subpanel .sde-cb-panel-title { margin-bottom: 8px; }
 .sde-cb-talent-result { font-size: 15px; color: var(--cb-text); margin: 6px 0 0; }
 .sde-cb-talent-result i { color: var(--cb-accent); }
+.sde-cb-talent-desc { color: #cdc7ba; font-size: 12.5px; line-height: 1.4; margin: 3px 0 0; }
+.sde-cb-talent-desc p { margin: 0 0 4px; }
+.sde-cb-talent-desc a.content-link, .sde-cb-talent-desc a.inline-roll { color: var(--cb-accent); }
 .sde-cb-chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .sde-cb-chip {
   display: inline-flex; align-items: center; gap: 5px;
@@ -7316,9 +7571,9 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* ---- Class tab: portrait in the header space left of the title band ---- */
 .sde-cb-anc.is-class { position: relative; }
 .sde-cb-class-portrait {
-  position: absolute; top: var(--sd-s8); left: var(--sd-s20);
-  /* fits the header zone (title band + subhead ≈ 155px) with clearance */
-  height: 128px; z-index: 1;
+  position: absolute; top: var(--sd-s2); left: var(--sd-s20);
+  /* fills the header gutter: flush to the top, bottom meeting the search bar (~160px) */
+  height: 158px; z-index: 1;
 }
 .sde-cb-class-portrait img {
   height: 100%; width: auto; display: block;

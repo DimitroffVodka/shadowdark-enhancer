@@ -1,0 +1,135 @@
+/**
+ * Shadowdark Enhancer — Source PDF Registry.
+ *
+ * Maps each content source (Western Reaches, Cursed Scroll 1–6, Core) to the
+ * user's own uploaded PDF of that book, so the Importer Hub can deep-link the
+ * paste box straight to the page a section lives on.
+ *
+ * The mapping is backed by a JournalEntry ("Shadowdark Source PDFs"): one
+ * native `pdf`-type page per book, tagged with a `sourceKey` flag. That gives
+ * the user a visible, double-clickable library AND a durable record we resolve
+ * links from. `SOURCE_PDFS` in char-content-manifest.mjs remains a static
+ * fallback (pre-seeded defaults) for anything the journal doesn't cover.
+ *
+ * COPYRIGHT: the PDFs are the user's own local uploads — this module bundles no
+ * book content and ships no files. It only records where the user put them.
+ *
+ * Exports:
+ *   sourcePdfHref(src, pages)   — viewer.html?file=…#page=N, or null
+ *   resolveSourcePdf(src)       — the file path for a source, or null
+ *   listSourcePdfs()            — one row per known source (+ link status)
+ *   uploadSourcePdf(src, file)  — upload a File and register it for a source
+ *   registerSourcePdf(src, path)— link an already-uploaded path to a source
+ *   ensureLibraryJournal()      — find/create the library JournalEntry
+ */
+import { MODULE_ID } from "../module-id.mjs";
+import { CHAR_SOURCES, SOURCE_PDFS } from "./char-content-manifest.mjs";
+
+const JOURNAL_NAME = "Shadowdark Source PDFs";
+const LIB_FLAG = "sourcePdfLibrary";   // marks the library JournalEntry
+const KEY_FLAG = "sourceKey";          // marks a page as belonging to a source
+
+/** Per-world upload target — packaged module dirs are read-only. */
+function uploadDir() {
+  return `worlds/${game.world.id}/source-pdfs`;
+}
+
+/** The active v13+ FilePicker implementation (falls back to the classic global). */
+function filePicker() {
+  return foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
+}
+
+/** First page number in a "72" / "72-73" / "p146" cite, or null. */
+function firstPage(pages) {
+  const m = String(pages ?? "").match(/\d+/);
+  return m ? Number(m[0]) : null;
+}
+
+/** The library JournalEntry, or null if it doesn't exist yet. */
+export function findLibraryJournal() {
+  return game.journal?.find((j) => j.getFlag(MODULE_ID, LIB_FLAG))
+    ?? game.journal?.getName(JOURNAL_NAME)
+    ?? null;
+}
+
+/** The library JournalEntry, creating it (flagged) if absent. */
+export async function ensureLibraryJournal() {
+  const existing = findLibraryJournal();
+  if (existing) return existing;
+  return JournalEntry.create({
+    name: JOURNAL_NAME,
+    flags: { [MODULE_ID]: { [LIB_FLAG]: true } },
+  });
+}
+
+/**
+ * The uploaded PDF path for a source: the journal's flagged pdf page first,
+ * then the static SOURCE_PDFS default. Null when neither exists.
+ * @param {string} src CHAR_SOURCES key (e.g. "WR")
+ * @returns {string|null}
+ */
+export function resolveSourcePdf(src) {
+  const j = findLibraryJournal();
+  if (j) {
+    for (const p of j.pages) {
+      if (p.type === "pdf" && p.src && p.getFlag(MODULE_ID, KEY_FLAG) === src) return p.src;
+    }
+  }
+  return SOURCE_PDFS[src] ?? null;
+}
+
+/**
+ * Deep-link into Foundry's core PDF.js viewer for a source's uploaded PDF,
+ * opened at the cited page: `viewer.html?file=<route>#page=N`. Returns null
+ * when the source has no resolvable PDF or the entry carries no page cite.
+ */
+export function sourcePdfHref(src, pages) {
+  const file = resolveSourcePdf(src);
+  const page = firstPage(pages);
+  if (!file || !page) return null;
+  const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
+  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${page}`;
+}
+
+/** One row per known source, with its current link status — for the manager UI. */
+export function listSourcePdfs() {
+  return Object.entries(CHAR_SOURCES).map(([src, meta]) => {
+    const file = resolveSourcePdf(src);
+    return { src, label: meta.label, book: meta.book, file, linked: !!file };
+  });
+}
+
+/** Create/update the library's pdf page for a source, pointing at `filePath`. */
+export async function registerSourcePdf(src, filePath) {
+  const journal = await ensureLibraryJournal();
+  const label = CHAR_SOURCES[src]?.label ?? src;
+  const existing = journal.pages.find((p) => p.getFlag(MODULE_ID, KEY_FLAG) === src);
+  if (existing) {
+    await existing.update({ src: filePath, name: label });
+    return existing;
+  }
+  const [page] = await journal.createEmbeddedDocuments("JournalEntryPage", [{
+    name: label,
+    type: "pdf",
+    src: filePath,
+    flags: { [MODULE_ID]: { [KEY_FLAG]: src } },
+  }]);
+  return page;
+}
+
+/**
+ * Upload a user-picked PDF File to the per-world source-pdfs folder and link it
+ * to `src` in the library journal. Returns the stored path.
+ * @param {string} src  CHAR_SOURCES key
+ * @param {File} file   the picked PDF
+ * @returns {Promise<string>} stored path
+ */
+export async function uploadSourcePdf(src, file) {
+  const dir = uploadDir();
+  const FP = filePicker();
+  try { await FP.createDirectory("data", dir); } catch (_e) { /* already exists */ }
+  const result = await FP.upload("data", dir, file, {}, { notify: false });
+  const path = result?.path ?? `${dir}/${file.name}`;
+  await registerSourcePdf(src, path);
+  return path;
+}

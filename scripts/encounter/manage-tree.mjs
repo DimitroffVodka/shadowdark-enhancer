@@ -28,9 +28,10 @@
  * else → Roll Tables.
  */
 import {
-  gatherPresence, gatherCharContentEntries, classesForTalent,
-  CLASS_ABILITIES, MANIFEST_CLASSES, CHAR_SOURCES, ANCESTRY_TABLES,
+  gatherPresence, gatherCharContentEntries, hasTable,
+  MANIFEST_CLASSES, CHAR_SOURCES, ANCESTRY_TABLES, BACKGROUND_TABLES,
 } from "./char-content-manifest.mjs";
+import { coreGroupsFor } from "./core-table-groups.mjs";
 import { gatherCensus, liveActorRecords } from "./monster-census-live.mjs";
 import { liveItemRecords } from "./item-census-live.mjs";
 import { sourceFolderName } from "./compendium-suite.mjs";
@@ -55,15 +56,24 @@ const GAMEPLAY_TABLES = new Set([
   "Carousing Benefit",
 ].map((n) => _norm(n)));
 
-/** Manifest table names that belong under Character Content → Backgrounds. */
-const BACKGROUND_TABLES = new Set([
-  "Western Reach Backgrounds",
-].map((n) => _norm(n)));
-
-/** Manifest table names that belong under Character Content → Patrons & Deities. */
+/** Manifest table names that belong under Character Content → Patrons & Deities:
+ *  the 8 god prayer generators (3d6 compounds) + the 17 patron boon tables
+ *  (16 WR-version "<Name> Boons" in the SDE pack + Kytheros, whose system
+ *  "Patron Boons: Kytheros" already matches WR and stays a system link). Kept
+ *  in sync with the WR Gods & Patrons block in char-content-manifest.mjs. */
 const PATRON_TABLES = new Set([
-  "Madeera the Covenant Prayers",
-  "Freya Boons",
+  // Gods — prayer generators
+  "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
+  "Ord Prayers", "Memnon Prayers", "Shune the Vile Prayers",
+  "Ramlaat Prayers", "The Lost Prayers",
+  // Patrons — WR boon tables (incl. the 5 WR-revised CS1 patrons)
+  "Almazzat Boons", "Freya Boons", "Krraktanamak Boons", "Loki Boons",
+  "Molek Boons", "Mugdulblub Boons", "Oatali Boons", "Obe-Ixx Boons",
+  "Odin Boons", "Oros Boons", "Rathgamnon Boons", "Saint Ydris Boons",
+  "Shune the Vile Boons", "Titania Boons", "The Willowman Boons",
+  "Yag-Kesh Boons",
+  // Kytheros — unrevised; system table linked, not duplicated
+  "Patron Boons: Kytheros",
 ].map((n) => _norm(n)));
 
 /**
@@ -76,9 +86,11 @@ const PATRON_TABLES = new Set([
 const SEALED_BESTIARIES = { CS1: 14, CS2: 14, CS3: 12, CS4: 19, CS5: 5 };
 
 /** Sort a leaf's entries: importable (locked) first, then imported, alpha within. */
-function sortEntries(entries) {
+function sortEntries(entries, alpha = false) {
   return entries.slice().sort((a, b) =>
-    (Number(a.present) - Number(b.present)) || a.name.localeCompare(b.name));
+    alpha
+      ? a.name.localeCompare(b.name)
+      : (Number(a.present) - Number(b.present)) || a.name.localeCompare(b.name));
 }
 
 /**
@@ -87,7 +99,7 @@ function sortEntries(entries) {
  * "in library", not-present entries carry an Unlock button (`seedAction`).
  * `have` = imported count; `locked` = importable count.
  */
-function leaf(id, label, icon, records, seedAction) {
+function leaf(id, label, icon, records, seedAction, alpha = false) {
   const entries = sortEntries(records.map((r) => ({
     name: r.name,
     present: !!r.present,
@@ -95,7 +107,7 @@ function leaf(id, label, icon, records, seedAction) {
     type: r.type ?? "",
     src: r.src ?? "",
     pages: r.pages ?? "",
-  })));
+  })), alpha);
   const have = entries.filter((e) => e.present).length;
   return { id, label, icon, have, locked: entries.length - have, entries, children: [] };
 }
@@ -114,9 +126,8 @@ function branch(id, label, icon, children, extra = {}) {
 }
 
 /** Character Content branch (Ancestries / Backgrounds / Classes / Patrons). */
-function buildCharContent(charEntries, abilityPresent) {
+function buildCharContent(charEntries) {
   const ofType = (t) => charEntries.filter((e) => e.type === t);
-  const srcOfClass = new Map(ofType("Class").map((e) => [e.name, e.src]));
 
   // Ancestries: Ancestry items + the WR ancestry Names/Trinkets tables only —
   // every other Table entry (carousing, encounters, boons, prayers…) lives in
@@ -126,53 +137,40 @@ function buildCharContent(charEntries, abilityPresent) {
     e.type === "Ancestry" || (e.type === "Table" && ancestryTableNames.has(_norm(e.name))));
   const ancestries = leaf("char/ancestries", "Ancestries", "fa-people-group", ancestryRecords, "charSeedPaste");
 
-  // Backgrounds: Background items + the WR backgrounds d100 roll table.
-  const backgroundRecords = [
-    ...ofType("Background"),
-    ...charEntries.filter((e) => e.type === "Table" && BACKGROUND_TABLES.has(_norm(e.name))),
-  ];
+  // Backgrounds: the per-book d100 background roll tables only (one row each).
+  // The individual Background items still exist (the char-builder lists them for
+  // picking) and are imported by the table's bundle-unlock — they're just not
+  // enumerated here, keeping this to one entry per roll table.
+  const backgroundRecords = charEntries.filter((e) =>
+    e.type === "Table" && BACKGROUND_TABLES.has(_norm(e.name)));
   const backgrounds = leaf("char/backgrounds", "Backgrounds", "fa-scroll", backgroundRecords, "charSeedPaste");
 
-  // Route each talent to its class (1 class) or Multi (0 = unmapped, or 2+ shared).
-  const perClass = new Map();
-  const multiTalents = [];
-  for (const rec of ofType("Talent")) {
-    const cls = classesForTalent(rec.name);
-    if (cls.length === 1) {
-      if (!perClass.has(cls[0])) perClass.set(cls[0], []);
-      perClass.get(cls[0]).push(rec);
-    } else {
-      multiTalents.push(rec);
-    }
-  }
-
-  const classNodes = MANIFEST_CLASSES.map((cls) => {
-    const src = srcOfClass.get(cls) ?? "";
-    const abilityRecords = (CLASS_ABILITIES[cls] ?? []).map((name) => ({
-      name, present: abilityPresent(name), type: "Talent", src, pages: "",
-    }));
-    const abilities = leaf(`char/classes/${cls}/abilities`, "Class Abilities", "fa-star", abilityRecords, "charSeedPaste");
-    const talents = leaf(`char/classes/${cls}/talents`, "Talents", "fa-certificate", perClass.get(cls) ?? [], "charSeedPaste");
-    const node = branch(`char/classes/${cls}`, cls, "fa-user-shield", [abilities, talents]);
-    // The CLASS itself is the sealed unit — unlocking it brings every talent,
-    // talent table, and spell bundled with it. Without this row the abilities/
-    // talents below are dead ends (no unit covers type "Talent"): their Unlock
-    // buttons route to zero sealed candidates (user-reported via Delver).
-    const classRec = ofType("Class").find((e) => e.name === cls);
-    if (classRec) {
-      node.entries = [{
-        name: cls, present: !!classRec.present, seedAction: "charSeedPaste",
-        type: "Class", src: classRec.src ?? src, pages: classRec.pages ?? "",
-      }];
-      node.have += classRec.present ? 1 : 0;
-      node.locked += classRec.present ? 0 : 1;
-    }
-    return node;
+  // Classes: one Unlock row per class, alphabetical. Unlocking a class is a
+  // BUNDLE — it brings that class's talents, talent table, abilities and spells
+  // together, so individual talents/abilities aren't separately unlockable and
+  // aren't enumerated here. A class printed in two books (Delver, Duelist,
+  // Wyrdling) prefers the Western Reaches entry (WR is the char-builder's
+  // canonical source; the deep-link opens the WR PDF) and shows the
+  // Cursed-Scroll page as an "or …" alternate.
+  const classEntries = [...MANIFEST_CLASSES].sort((a, b) => a.localeCompare(b)).map((cls) => {
+    const recs = ofType("Class").filter((e) => e.name === cls);
+    const primary = recs.find((e) => e.src === "WR") ?? recs.find((e) => e.pages) ?? recs[0];
+    const alt = recs.find((e) => e !== primary && e.pages);
+    return {
+      name: cls, present: !!primary?.present, seedAction: "charSeedPaste",
+      type: "Class", src: primary?.src ?? "", pages: primary?.pages ?? "",
+      pagesAlt: alt ? `${alt.src} pg ${alt.pages}` : "",
+    };
   });
-  const multi = leaf("char/classes/Multi", "Multi", "fa-users", multiTalents, "charSeedPaste");
-  const classes = branch("char/classes", "Classes", "fa-users-rectangle", [...classNodes, multi]);
+  const classes = {
+    id: "char/classes", label: "Classes", icon: "fa-users-rectangle",
+    entries: classEntries, children: [],
+    have: classEntries.filter((e) => e.present).length,
+    locked: classEntries.filter((e) => !e.present).length,
+  };
 
-  // Patrons & Deities: the WR god-prayer / patron-boon group representatives.
+  // Patrons & Deities: every god prayer generator + patron boon table (see
+  // PATRON_TABLES). Core-system reprints resolve present via their system copy.
   const patronRecords = charEntries.filter((e) =>
     e.type === "Table" && PATRON_TABLES.has(_norm(e.name)));
   const patrons = leaf("char/patrons", "Patrons & Deities", "fa-hands-praying", patronRecords, "charSeedPaste");
@@ -183,21 +181,57 @@ function buildCharContent(charEntries, abilityPresent) {
 /** Spells top-level branch, sub-grouped by source. */
 function buildSpells(charEntries) {
   const spellRecs = charEntries.filter((e) => e.type === "Spell");
-  const sources = [...new Set(spellRecs.map((r) => r.src))];
+  const sources = [...new Set(spellRecs.map((r) => r.src))]
+    .sort((a, b) => (CHAR_SOURCES[a]?.label ?? a).localeCompare(CHAR_SOURCES[b]?.label ?? b));
   const children = sources.map((src) =>
     leaf(`spells/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-wand-sparkles",
-      spellRecs.filter((r) => r.src === src), "charSeedPaste"));
+      spellRecs.filter((r) => r.src === src), "charSeedPaste", true));
   return branch("spells", "Spells", "fa-book-sparkles", children);
+}
+
+/**
+ * A single Core Rulebook table BUNDLE as a leaf: its member tables enumerated
+ * from CORE_TABLE_GROUPS, grouped under the section header. De-sealed: each
+ * sub-table is INDIVIDUALLY unlockable and INDIVIDUALLY present-checked by its
+ * own name (a paste imports one named table; there is no atomic bundle). A
+ * table imported as "Source - Name" satisfies the bare "Name" probe via
+ * hasTable's suffix match, so a sub-table flips to "imported" the moment its
+ * own table exists — no rep-probe indirection, no "in bundle" rows.
+ */
+function coreGroupLeaf(g, tablesPresent) {
+  const entries = g.tables.map((t) => {
+    const present = hasTable(tablesPresent, t.name);
+    return {
+      name: t.name, present, seedAction: "charSeedPaste",
+      type: "Table", src: "CORE", pages: String(t.page),
+    };
+  });
+  const have = entries.filter((e) => e.present).length;
+  return {
+    id: `core/${g.section}/${g.key}`, label: g.header, icon: g.icon,
+    entries, children: [],
+    have, locked: entries.length - have,
+  };
+}
+
+/**
+ * The "Core Rulebook" node for a Manage section ('rolltables' | 'gameplay'):
+ * a branch of per-group leaves; each leaf lists its sub-tables, each of which
+ * is unlocked and present-checked independently (see coreGroupLeaf).
+ */
+function buildCoreRulebook(section, tablesPresent) {
+  const children = coreGroupsFor(section).map((g) => coreGroupLeaf(g, tablesPresent));
+  return branch(`${section}/CORE`, CHAR_SOURCES.CORE.label, "fa-book", children);
 }
 
 /**
  * Roll Tables top-level branch, sub-grouped by source. Carries every manifest
  * Table entry EXCEPT the WR ancestry Names/Trinkets (those stay under
- * Character Content → Ancestries). Unlock rows seed the same charSeedPaste
- * flow — each entry is a sealed-group representative (e.g. Carousing Outcome
- * unlocks all 25 CS6 tables).
+ * Character Content → Ancestries). Non-Core sources render a flat leaf; the
+ * Core Rulebook renders per-bundle sub-branches enumerating every table (see
+ * buildCoreRulebook). Unlock rows seed the same charSeedPaste flow.
  */
-function buildRollTables(charEntries) {
+function buildRollTables(charEntries, tablesPresent) {
   const ancestryTableNames = new Set(ANCESTRY_TABLES.map((t) => _norm(t.name)));
   const tableRecs = charEntries.filter((e) =>
     e.type === "Table" && !ancestryTableNames.has(_norm(e.name))
@@ -205,8 +239,10 @@ function buildRollTables(charEntries) {
     && !BACKGROUND_TABLES.has(_norm(e.name)));
   const sources = [...new Set(tableRecs.map((r) => r.src))];
   const children = sources.map((src) =>
-    leaf(`tables/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-dice",
-      tableRecs.filter((r) => r.src === src), "charSeedPaste"));
+    src === "CORE"
+      ? buildCoreRulebook("rolltables", tablesPresent)
+      : leaf(`tables/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-dice",
+          tableRecs.filter((r) => r.src === src), "charSeedPaste"));
   return branch("tables", "Roll Tables", "fa-table-list", children);
 }
 
@@ -215,13 +251,15 @@ function buildRollTables(charEntries) {
  * mechanics tables (carousing, enduring wounds, traps & hazards, boons, casting
  * mishaps). Same entry shape/flow as Roll Tables; membership = GAMEPLAY_TABLES.
  */
-function buildGameplay(charEntries) {
+function buildGameplay(charEntries, tablesPresent) {
   const recs = charEntries.filter((e) =>
     e.type === "Table" && GAMEPLAY_TABLES.has(_norm(e.name)));
   const sources = [...new Set(recs.map((r) => r.src))];
   const children = sources.map((src) =>
-    leaf(`gameplay/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-chess-knight",
-      recs.filter((r) => r.src === src), "charSeedPaste"));
+    src === "CORE"
+      ? buildCoreRulebook("gameplay", tablesPresent)
+      : leaf(`gameplay/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-chess-knight",
+          recs.filter((r) => r.src === src), "charSeedPaste"));
   return branch("gameplay", "Gameplay", "fa-dice-d20", children);
 }
 
@@ -309,13 +347,11 @@ export async function buildManageTree() {
     liveActorRecords().catch((err) => { console.error("shadowdark-enhancer | actor records failed:", err); return []; }),
     liveItemRecords().catch((err) => { console.error("shadowdark-enhancer | item records failed:", err); return []; }),
   ]);
-  const abilityPresent = (name) => presence.presentNames.has(_norm(name));
-
   return [
-    buildCharContent(charEntries, abilityPresent),
+    buildCharContent(charEntries),
     buildSpells(charEntries),
-    buildGameplay(charEntries),
-    buildRollTables(charEntries),
+    buildGameplay(charEntries, presence.tablesPresent),
+    buildRollTables(charEntries, presence.tablesPresent),
     buildMonsters(monsterRows, actorRecords),
     buildItems(charEntries, itemRecords),
   ];

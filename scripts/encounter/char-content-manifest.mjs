@@ -10,8 +10,11 @@
  *   CHAR_SOURCES               — source key → { label, book }
  *   gatherCharContentCensus()  — per-source have/gap rows vs the live world
  *   parseCharContent(text, kind) — paste parsers for backgrounds/talents/classes
- *     (spells and gear reuse the existing spell/item recognizers)
+ *     (spells and gear reuse the existing spell/item recognizers; classes
+ *     delegate to class-parser.mjs for the full parse-and-author unit)
  */
+
+import { parseClassSection } from "./class-parser.mjs";
 
 export const CHAR_SOURCES = {
   CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
@@ -87,6 +90,7 @@ const MANIFEST = {
       "Cursed Scroll 3 p16: Nord Names",
       "Cursed Scroll 3 p26: Arctic Sea Encounters",
       "Sea Wolf Plunder From Distant Lands",
+      "Nord Backgrounds",
     ],
   },
   CS4: {
@@ -131,19 +135,38 @@ const MANIFEST = {
       "Necromancer", "Paladin", "Roustabout", "Wyrdling",
     ],
     Ancestry: ["Half-Elf"],
-    // Gods & Patrons: per-god 3d6 prayer generators (sealed as wr-god-prayers)
-    // and per-patron 2d6 boon tables (wr-patron-boons — 11 WR-new + the 6 CS1
-    // patrons). Unlocking a representative unseals the whole group.
+    // Gods & Patrons — each god's prayer generator and each patron's boon table
+    // is listed individually (metadata only) so the Patrons & Deities dashboard
+    // node enumerates all 8 gods + 17 patrons with live present/gap status.
+    // Prayer generators are 3d6 COMPOUNDS (flags.shadowdark-enhancer.compound,
+    // see compound-table.mjs); boon tables are 2d6 in the SYSTEM's format —
+    // document-linked Talent items (world.talents "Patron Boons" folder +
+    // reused shadowdark.talents), "Choose 1" text rows on multi-option bands,
+    // band 12 = options + the system's Distribute to Stats table. Each patron
+    // also has a Patron item (system.boonTable) in world.patrons-and-deities.
+    // WR revised 5 of the 6 CS1-reprint patrons, so those have WR-version
+    // "X Boons" tables here; KYTHEROS is unrevised — the system's
+    // "Patron Boons: Kytheros" already matches WR band-for-band, so it stays a
+    // system link (link-prefer-system-packs) and keeps its system name below.
     // Carousing (wr-carousing: Outcome d25 + Mishap/Benefit d100, pg 235-247) —
     // reps are the two uniquely-named tables ("Carousing Outcome" would collide
     // with CS6's same-named entry in the name-matched census). Backgrounds table
     // (wr-backgrounds-table) rep is the uniquely-named d100 copy.
     Table: [
-      "Madeera the Covenant Prayers",
-      "Freya Boons",
-      "Carousing Mishap",
-      "Carousing Benefit",
-      "Western Reach Backgrounds",
+      // Gods — prayer generators (WR pp.191-205)
+      "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
+      "Ord Prayers", "Memnon Prayers", "Shune the Vile Prayers",
+      "Ramlaat Prayers", "The Lost Prayers",
+      // Patrons — WR boon tables (WR pp.207-223; incl. the 5 WR-revised CS1 patrons)
+      "Almazzat Boons", "Freya Boons", "Krraktanamak Boons", "Loki Boons",
+      "Molek Boons", "Mugdulblub Boons", "Oatali Boons", "Obe-Ixx Boons",
+      "Odin Boons", "Oros Boons", "Rathgamnon Boons", "Saint Ydris Boons",
+      "Shune the Vile Boons", "Titania Boons", "The Willowman Boons",
+      "Yag-Kesh Boons",
+      // Kytheros — system table already matches WR; linked, not duplicated
+      "Patron Boons: Kytheros",
+      // Carousing + backgrounds (sealed-group reps, see note above)
+      "Carousing Mishap", "Carousing Benefit", "Western Reach Backgrounds",
     ],
     Talent: [
       "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",
@@ -265,6 +288,9 @@ const ITEM_PAGES = {
     "Monk of Yag-Kesh": "50", "Necromancer": "52", "Paladin": "54",
     "Roustabout": "63", "Wyrdling": "72",
   },
+  // Cursed-Scroll reprints of the dual-source classes (alternate page cites).
+  CS5: { "Delver": "10", "Wyrdling": "12" },
+  CS6: { "Duelist": "15" },
 };
 
 /** Section-level page cites by document type (user-supplied 2026-07-06):
@@ -273,8 +299,41 @@ const TYPE_PAGES = {
   WR: { Basic: "106", Weapon: "110", Armor: "112", Background: "74" },
 };
 
+/** Page cites for named Table entries (whose page isn't embedded in the name). */
+const TABLE_PAGES = {
+  WR: {
+    "Western Reach Backgrounds": "74",
+    // Gods — prayer generators
+    "Madeera the Covenant Prayers": "191", "Saint Terragnis Prayers": "193",
+    "Gede Prayers": "195", "Ord Prayers": "197", "Memnon Prayers": "199",
+    "Shune the Vile Prayers": "201", "Ramlaat Prayers": "203", "The Lost Prayers": "205",
+    // Patrons — boon tables (Kytheros keeps its system name; see MANIFEST note)
+    "Almazzat Boons": "207", "Freya Boons": "208", "Krraktanamak Boons": "209",
+    "Patron Boons: Kytheros": "210", "Loki Boons": "211", "Molek Boons": "212",
+    "Mugdulblub Boons": "213", "Oatali Boons": "214", "Obe-Ixx Boons": "215",
+    "Odin Boons": "216", "Oros Boons": "217", "Rathgamnon Boons": "218",
+    "Saint Ydris Boons": "219", "Shune the Vile Boons": "220",
+    "Titania Boons": "221", "The Willowman Boons": "222",
+    "Yag-Kesh Boons": "223",
+  },
+  CS3: { "Nord Backgrounds": "15" },
+};
+
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const _key = (type, name) => `${type}:${_norm(name)}`;
+
+/** Page number embedded in a table name ("… p146: …", "… p26: …"), or "". */
+const _pageFromName = (name) => String(name).match(/\bp\.?\s?(\d{1,3})\b/i)?.[1] ?? "";
+
+/**
+ * Manifest Table names that belong under Character Content → Backgrounds (each
+ * is a d100 background roll table). Normalized so callers can match by
+ * `BACKGROUND_TABLES.has(_norm(name))`. Shared by the manage tree (routing) and
+ * the importer hub (bundle-unlock detection).
+ */
+export const BACKGROUND_TABLES = new Set(
+  ["Western Reach Backgrounds", "Nord Backgrounds"].map(_norm),
+);
 
 /** All classes the manifest knows about (union across sources). */
 export const MANIFEST_CLASSES = Array.from(new Set(
@@ -329,6 +388,14 @@ export const CLASS_ABILITIES = Object.fromEntries(
     [cls, (spec.features ?? []).filter((f) => !NON_ABILITY_FEATURES.has(_norm(f)))]),
 );
 
+/**
+ * Public: is a live table present under this display/manifest name? Suffix-aware
+ * so a table imported as "Source - Name" satisfies a bare "Name" probe (the
+ * de-sealed unlock stamps the source prefix; the Manage tree checks the bare
+ * sub-table name). Used by the per-sub-table core-table presence check.
+ */
+export function hasTable(tablesPresent, name) { return _tableHave(tablesPresent, name); }
+
 /** "Source - Table Name" suffix match (imports prefix the table with its source). */
 function _tableHave(tablesPresent, want) {
   const w = _norm(want);
@@ -377,7 +444,9 @@ export async function gatherCharContentEntries(presence) {
           // Tables live in the RollTable pack, not the Item packs — check them
           // via the table-presence set (suffix match), like the WR ancestry tables.
           present: type === "Table" ? _tableHave(tablesPresent, name) : present.has(_key(type, name)),
-          pages: ITEM_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? "",
+          // Explicit cite first (item/table/type maps), else lift a "…pNNN…"
+          // page embedded in the name (CORE/CS1-3 table entries carry it there).
+          pages: ITEM_PAGES[src]?.[name] ?? TABLE_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? _pageFromName(name),
         });
       }
     }
@@ -487,15 +556,34 @@ function _parseTalents(text) {
   return out;
 }
 
-/** One class per paste. Header lines (Hit Points / Weapons / Armor) are lifted
- *  into system fields; the full paste becomes the description, so abilities
- *  and level tables stay readable even when they don't parse. */
+/** One class per paste, via the full class-section grammar (class-parser.mjs).
+ *  The draft carries the whole parsed unit as `classUnit` — the hub's commit
+ *  routes those through createClassUnit (talents + 2d6 table + wired class)
+ *  instead of a bare Class item. When the paste lacks the class anchors
+ *  (no Hit Points line), fall back to the old shallow single-item draft. */
 function _parseClasses(text) {
   const src = String(text).trim();
   if (!src) return [];
+
+  const unit = parseClassSection(src);
+  if (unit) {
+    return [{
+      draft: {
+        name: unit.name,
+        type: "Class",
+        description: unit.flavor + unit.features.map((f) => `<p><strong>${f.name}.</strong></p>${f.description}`).join(""),
+        hitPoints: unit.hitPoints,
+        allWeapons: unit.allWeapons,
+        allMeleeWeapons: unit.allMeleeWeapons,
+        allRangedWeapons: unit.allRangedWeapons,
+        allArmor: unit.allArmor,
+        classUnit: unit,
+      },
+    }];
+  }
+
   const name = src.split("\n")[0].trim();
   if (!name || name.length > 50) return [];
-
   const hp = src.match(/hit\s*points?\s*[:.]?\s*(?:1)?(d\d+)/i)?.[1] ?? "";
   const weapons = src.match(/^weapons?\s*[:.]?\s*(.+)$/im)?.[1] ?? "";
   const armor = src.match(/^armou?r\s*[:.]?\s*(.+)$/im)?.[1] ?? "";
