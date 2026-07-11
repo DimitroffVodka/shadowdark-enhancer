@@ -17,6 +17,11 @@ import { findMonsterPack } from "../encounter/monster-pack.mjs";
  * already sourced from the art module — safe to re-run after placing monsters.
  */
 export class MonsterTokenArt {
+  /** Namespaced FilePicker (the bare global is removed in Foundry v15). */
+  static get FilePickerCls() {
+    return foundry.applications?.apps?.FilePicker?.implementation ?? FilePicker;
+  }
+
   /** Default art source (a locally-installed module id) + its asset layout. */
   static get SOURCE() {
     const id = game.settings.get(MODULE_ID, "tokenArtSource") || "dnd-monster-manual";
@@ -157,7 +162,7 @@ export class MonsterTokenArt {
     const perPack = keys.length > 0 && keys.every((k) => game.packs.get(k));
     const packMapping = perPack ? mapping : { "shadowdark.monsters": mapping ?? {} };
     const file = new File([JSON.stringify(packMapping, null, 2)], this.MAPPING_FILE, { type: "application/json" });
-    await FilePicker.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
+    await this.FilePickerCls.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
     await game.settings.set(MODULE_ID, "tokenArtCompendium", true);
     await this._injectMapping();
     const count = Object.values(packMapping).reduce((n, t) => n + Object.keys(t).length, 0);
@@ -172,7 +177,7 @@ export class MonsterTokenArt {
   static async initCompendiumArt() {
     try {
       if (!game.settings.get(MODULE_ID, "tokenArtCompendium")) return;
-      const dir = await FilePicker.browse("data", this.MAPPING_DIR).catch(() => null);
+      const dir = await this.FilePickerCls.browse("data", this.MAPPING_DIR).catch(() => null);
       const has = dir?.files?.some((f) => f.endsWith(this.MAPPING_FILE));
       if (!has) return;                 // enabled but file gone (e.g. module update) — stay inert
       await this._injectMapping();
@@ -255,7 +260,7 @@ export class MonsterTokenArt {
     }
 
     const file = new File([JSON.stringify(mapping, null, 2)], this.MAPPING_FILE, { type: "application/json" });
-    await FilePicker.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
+    await this.FilePickerCls.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
     await game.settings.set(MODULE_ID, "tokenArtCompendium", true);
     await this._injectMapping();
 
@@ -317,7 +322,7 @@ export class MonsterTokenArt {
   static async buildFileSets(source = this.SOURCE) {
     const browse = async (dir) => {
       try {
-        const b = await FilePicker.browse("data", dir);
+        const b = await this.FilePickerCls.browse("data", dir);
         return new Set(b.files.map((f) => f.split("/").pop()));
       } catch (e) { return null; }
     };
