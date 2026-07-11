@@ -14,6 +14,7 @@ import { draftToActorData } from "./encounter-creator.mjs";
 import { MonsterLinker } from "./monster-linker.mjs";
 import { MONSTER_PACK_LABEL, findMonsterPack } from "./monster-pack.mjs";
 import { replaceDocument, cleanImportHtml } from "./compendium-suite.mjs";
+import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 
 const PACK_LABEL = MONSTER_PACK_LABEL;
 
@@ -55,7 +56,6 @@ function _uniqueName(index, base) {
 }
 
 const SPELL_TAG = /\((int|wis|cha)\s+spell\)/i;
-const SPELL_ICON = "icons/magic/symbols/runes-star-magenta.webp";
 
 /** Synthesize a minimal but functional Spell item when no compendium match exists. */
 function buildFallbackSpell(name, description) {
@@ -70,7 +70,7 @@ function buildFallbackSpell(name, description) {
     : /\bnear\b/i.test(text) ? "near" : "close";
   const focus = /\bfocus\b/i.test(text);
   return {
-    name, type: "Spell", img: SPELL_ICON,
+    name, type: "Spell", img: pickShikashiSpellIcon(name),
     system: {
       class: [], tier: 1, range,
       duration: focus ? { type: "focus", value: "-1" } : { type: "instant", value: "-1" },
@@ -110,7 +110,7 @@ export async function resolveSpellFeatures(draft) {
       if (doc?.type === "Spell") { source = doc.toObject(); delete source._id; }
     }
     if (!source) source = buildFallbackSpell(spellName, f.description);
-    draft.spells.push({ uuid: row?.uuid ?? null, name: spellName, img: source.img ?? SPELL_ICON, source, matched: !!row });
+    draft.spells.push({ uuid: row?.uuid ?? null, name: spellName, img: source.img ?? pickShikashiSpellIcon(spellName), source, matched: !!row });
     f.isSpell = true;
   }
 }

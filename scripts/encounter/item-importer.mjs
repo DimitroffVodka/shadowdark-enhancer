@@ -17,6 +17,7 @@
  */
 import { MODULE_ID } from "../module-id.mjs";
 import { pickTreasureIcon } from "./loot-pack.mjs";
+import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 import { findSuitePack, ensureSuite, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml } from "./compendium-suite.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 
@@ -43,9 +44,6 @@ import { LootLinker } from "./loot-linker.mjs";
  * @param {object} draft  from item-parser.mjs (parseItem output)
  * @returns {object}  Foundry Item creation payload
  */
-/** Default art for imported Spells (matches monster-importer's fallback spells). */
-const SPELL_ICON = "icons/magic/symbols/runes-star-magenta.webp";
-
 export function buildItemData(draft) {
   const name = draft.name ?? "Unnamed Item";
 
@@ -59,7 +57,7 @@ export function buildItemData(draft) {
     return {
       name,
       type: "Spell",
-      img: draft.img || SPELL_ICON,
+      img: draft.img || pickShikashiSpellIcon(name),
       system: {
         class: Array.isArray(draft.class) ? draft.class : [],
         tier: Number.isFinite(tier) ? tier : 1,

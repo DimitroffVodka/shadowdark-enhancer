@@ -173,3 +173,63 @@ export function pickShikashiIcon(text) {
   for (const [re, slug] of RULES) if (re.test(s)) return shikashiIcon(slug);
   return null;
 }
+
+// Spell-effect vocabulary → the pack's status/effect/magic icons. Matched
+// against spell NAMES, so the wording is looser than the item rules
+// (fragments like "restor", "paralyz" catch the common variants).
+const SPELL_RULES = [
+  [/fire|flame|burn|inferno|immolat/, "ring-of-fire"],
+  [/lightning|thunder|shock|storm|\bbolt\b/, "lightning-attack"],
+  [/regenerat/, "heal-injury"],
+  [/heal|cure|restor|\bmend\b|vitality/, "healing"],
+  [/resurrect|revive|raise dead/, "sunrise"],
+  [/\bice\b|\bicy\b|frost|freez|frozen|snow|\bcold\b|winter|blizzard/, "snowflake"],
+  [/sleep|slumber|drowse/, "sleeping"],
+  [/charm|beguile|enthrall|seduc/, "charmed"],
+  [/poison|venom|acid|toxi/, "poison"],
+  [/silence|mute|quiet/, "silenced"],
+  [/curse|\bhex\b|\bbane\b|doom/, "cursed"],
+  [/paralyz|paralys|\bhold\b|immobil/, "paralysis"],
+  [/confus|stun|daze|dizz/, "dizzy"],
+  [/death|\bslay\b|wither|decay|\bdie\b|necro/, "skull-and-bones"],
+  [/fear|terror|horror|dread|fright/, "skull-and-bones"],
+  [/protect|shield|\bward\b|barrier|armor|armour|sanctuary/, "guard"],
+  [/wind|gust|\bair\b|breeze|zephyr/, "gust-of-air"],
+  [/quake|tremor|earth|stone|rock/, "tremor"],
+  [/mind|psychic|telepath|thought|dominat|suggest/, "psychic-waves"],
+  [/disintegrat|annihilat|destruct/, "disintegrate"],
+  [/invisib|vanish|unseen|hidden/, "sleeping-eye"],
+  [/detect|locate|\bfind\b|scry|reveal|divin|augur/, "magnifying-glass"],
+  [/illusion|phantasm|mirror|mirage|disguise/, "mirror"],
+  [/\bfly\b|flight|float|levitat|feather/, "feathers"],
+  [/entangle|\broot\b|vine|grasp|tangle/, "root-tip"],
+  [/plant|grow|bloom|thorn/, "pot-growing"],
+  [/beast|animal|creature|wild/, "monster-claw"],
+  [/speak|tongue|message|command|\bvoice\b|babble/, "speech-bubble-round"],
+  [/rune|glyph|symbol|sigil|seal/, "runestone"],
+  [/strength|might|\bbull\b|titan/, "strong-arm"],
+  [/haste|speed|swift|quicken/, "buff-arrow-1"],
+  [/\bslow\b|lethargy|fatigue/, "debuff-arrow-1"],
+  [/dark|shadow|night|gloom|moon|eclipse/, "moon"],
+  [/\blight\b|radian|dawn|\bsun\b|glow|illuminat|holy|bless|divine/, "sunrays"],
+  [/missile|\barrow\b|volley|barrage|dart/, "raining-arrows"],
+  [/water|\brain\b|\bwave\b|tide|drown|deluge/, "sweat-drop"],
+  [/blood|wound|rend|gash/, "dripping-blade"],
+  [/alarm|\bhorn\b|\bcall\b/, "war-horn"],
+  [/knock|unlock|open\b/, "brass-key"],
+  [/\bbind\b|shackle|chain|imprison/, "shackles"],
+  [/\borb\b|sphere|globe/, "orb-1"],
+  [/candle|torch/, "candle"],
+  [/\bbook\b|\bpage\b|lore/, "spellbook"],
+];
+const SPELL_DEFAULT = "hand-casting";
+
+/**
+ * Icon for a Spell by name. Always returns a path — unmatched names get the
+ * hand-casting default (callers need no fallback of their own).
+ */
+export function pickShikashiSpellIcon(text) {
+  const s = String(text ?? "").toLowerCase();
+  for (const [re, slug] of SPELL_RULES) if (re.test(s)) return shikashiIcon(slug);
+  return shikashiIcon(SPELL_DEFAULT);
+}
