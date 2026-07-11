@@ -1,5 +1,7 @@
 ---
-date: 2026-07-05
+date: 2026-07-09
+updated: 2026-07-09
+created: 2026-07-05
 tags: [shadowdark-enhancer, foundry-vtt, promo-video, dev-log]
 source: Claude Code session
 ---
@@ -51,32 +53,40 @@ Session summary from working on the `shadowdark-enhancer` repo (v0.8.2, Foundry 
 17. Apply a **mutation** → instant variant.
 18. Save → open the real world Actor sheet.
 
-### Scene 5 — Importer
-19. Paste PDF text → auto-detect segments into monsters / items / spells / tables with editable previews.
-20. Commit → content lands in the managed compendium suite.
-21. Imported table with auto-enriched @UUID monster links — click through to the actor.
+### Scene 5 — Monster Token Art
+19. GM-only **Monster Art** button on the Actors sidebar → manager opens; auto-discovered sources listed (**Monster Manual**, **Pathfinder/Paizo**, **Forgotten Adventures**, **Community Tokens** — only what's installed shows).
+20. **Drag to reorder source priority**; the blend re-skins the `shadowdark.monsters` compendium through Foundry's core compendium-art system — art is *referenced by path*, never bundled.
+21. **Visual image browser**: scrub candidate art per monster and pin a per-monster override; semantic aliases in action (Brain Eater → Mind Flayer, Stingbat → Stirge, Grimlow → Grimlock).
+22. **Per-source scale tuning** — dial a source's fill so large art fills its footprint and flat art sits right; dynamic ring inherited automatically.
+23. **Apply** → already-placed tokens re-skin live on the canvas, no world relaunch (before/after on the same scene). Toggle it off to snap back.
+24. **Imported-monster coverage**: your imported / homebrew monsters pick up art too, not just the compendium bestiary.
 
-### Scene 6 — Loot, Forge & Merchant (player screen!)
-22. Loot Generator hoard → claimable chat card → player clicks **Claim**, coins land, card locks.
-23. Loot drop on kill.
-24. Drag item onto canvas → other character picks up via Token HUD; stackables auto-stack; drop a coin pile.
-25. Magic Item Forge: roll a random item (bonuses, curse, personality, name), forge a **+2 weapon**, attack and show +2 applying in the system roll — the "it really works" moment.
-26. Merchant Shop: opens on every player's screen at once; buy/sell, coins move, transaction log → Discord export.
+### Scene 6 — Importer
+25. Paste PDF text → auto-detect segments into monsters / items / spells / tables with editable previews.
+26. Commit → content lands in the managed compendium suite.
+27. Imported table with auto-enriched @UUID monster links — click through to the actor.
 
-### Scene 7 — Party XP & Session Recap
-27. Party XP: drag a treasure item, XP auto-fills, award to party → old→new chat card, level-up flag.
-28. Session Recap at the end: it silently captured combat, loot, XP, per-PC roll stats, merchant activity, encounter checks → **Copy for Discord**. Save as the video's payoff.
+### Scene 7 — Loot, Forge & Merchant (player screen!)
+28. Loot Generator hoard → claimable chat card → player clicks **Claim**, coins land, card locks.
+29. Loot drop on kill.
+30. Drag item onto canvas → other character picks up via Token HUD; stackables auto-stack; drop a coin pile.
+31. Magic Item Forge: roll a random item (bonuses, curse, personality, name), forge a **+2 weapon**, attack and show +2 applying in the system roll — the "it really works" moment.
+32. Merchant Shop: opens on every player's screen at once; buy/sell, coins move, transaction log → Discord export.
 
-### Scene 8 — Character Builder (was undocumented!)
-29. Launch from the **Player sheet header button** (not the sidebar) and walk the wizard: Abilities → Ancestry → Origins → Class → HP & Gold → Gear → Preview → create. Time-lapse "full character in under a minute".
+### Scene 8 — Party XP & Session Recap
+33. Party XP: drag a treasure item, XP auto-fills, award to party → old→new chat card, level-up flag.
+34. Session Recap at the end: it silently captured combat, loot, XP, per-PC roll stats, merchant activity, encounter checks → **Copy for Discord**. Save as the video's payoff.
 
-### Scene 9 — Mounts & Boats (outro)
-30. Boat actor sheet (Occupants / Inventory / Description); Mount on the system NPC sheet.
+### Scene 9 — Character Builder (was undocumented!)
+35. Launch from the **Player sheet header button** (not the sidebar) and walk the wizard: Abilities → Ancestry → Origins → Class → HP & Gold → Gear → Preview → create. Time-lapse "full character in under a minute".
+
+### Scene 10 — Mounts & Boats (outro)
+36. Boat actor sheet (Occupants / Inventory / Description); Mount on the system NPC sheet.
 
 ### Stingers
 - Settings panel scroll-through; `game.shadowdarkEnhancer` console flash.
 
-**Short-cut edit (6 unmissable shots):** strip appearing on Start Crawl · movement refusal · rollback-to-turn-start · encounter auto-roll → Place tokens · player claiming loot on their own screen · Discord recap paste.
+**Short-cut edit (7 unmissable shots):** strip appearing on Start Crawl · movement refusal · rollback-to-turn-start · encounter auto-roll → Place tokens · placed tokens re-skinning live when Monster Art is applied · player claiming loot on their own screen · Discord recap paste.
 
 ## Character Builder — key facts (as documented)
 

@@ -207,3 +207,33 @@ export async function ensureSourceFolder(pack, sourceId) {
     return null;
   }
 }
+
+/**
+ * Find-or-create a nested folder path inside a pack (e.g. Spells → Wizard →
+ * Tier 1). Blank/nullish segments are skipped. Each level is matched by name
+ * under its parent, so sibling folders with the same name in different branches
+ * don't collide. Returns the leaf folder id (or null on failure / empty path).
+ *
+ * @param {CompendiumCollection} pack
+ * @param {Array<string|null|undefined>} names
+ * @returns {Promise<string|null>}
+ */
+export async function ensureFolderPath(pack, names) {
+  const segments = (names || []).map((n) => String(n ?? "").trim()).filter(Boolean);
+  let parentId = null;
+  try {
+    for (const name of segments) {
+      let folder = pack.folders?.find?.((f) => f.name === name && (f.folder?.id ?? null) === parentId);
+      if (!folder) {
+        folder = await Folder.create(
+          { name, type: pack.documentName, folder: parentId },
+          { pack: pack.collection }
+        );
+      }
+      parentId = folder?.id ?? parentId;
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | ensureFolderPath failed (${segments.join(" / ")}):`, err);
+  }
+  return parentId;
+}

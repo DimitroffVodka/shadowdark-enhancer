@@ -41,6 +41,9 @@ export class ListStep extends BaseStep {
     return this._items;
   }
 
+  /** @override — drop the cached list so a re-render re-queries the compendium. */
+  invalidateContentCache() { this._items = null; }
+
   get selected() { return this.state[this.stateKey]; }
   isComplete() { return !!this.selected?.uuid; }
   supportsRandom() { return true; }

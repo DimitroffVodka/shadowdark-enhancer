@@ -23,6 +23,30 @@ export async function loadAncestries() {
 }
 
 /**
+ * Talent descriptions the installed content ships wrong, corrected here so the
+ * builder AND the committed actor read right without mutating shared
+ * system-compendium data (survives system updates; version-controlled).
+ *
+ * Shadowdark 4.0.6 models the Elf "Farsight" talent as two pick-one variants
+ * (Ranged / Spell) but gives BOTH the full "…ranged weapons or …spellcasting
+ * checks" text — so the choose-one shows two identical options. Each variant
+ * should describe only the half it grants. Text-only: the ActiveEffects are
+ * already correct and distinct (ranged-attack vs spellcasting bonus).
+ * Keyed by talent UUID.
+ */
+export const TALENT_DESCRIPTION_FIXES = {
+  "Compendium.shadowdark.talents.Item.dTEZW21LUNoYL3JU":
+    "<p>You get a +1 bonus to attack rolls with ranged weapons.</p>",
+  "Compendium.shadowdark.talents.Item.E3EcGGdGYuEWWj47":
+    "<p>You get a +1 bonus to spellcasting checks.</p>",
+};
+
+/** A talent doc's description HTML, with any known-bad text corrected. */
+export function talentDescription(doc) {
+  return (doc?.uuid && TALENT_DESCRIPTION_FIXES[doc.uuid]) || doc?.system?.description || "";
+}
+
+/**
  * Pick a random element. If `weightPath` is given, weight each item by the
  * integer at that property path (default weight 1).
  */
@@ -133,6 +157,10 @@ export async function coreNameTable(item) {
 
 const _configuredDocCache = new Map();   // uuid → RollTable doc (session-lived)
 const _reEsc = (s) => s.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&");
+
+/** Drop the session doc cache so freshly-unlocked/replaced tables are re-read
+ *  on the next configuredTables() call (see char-builder live refresh). */
+export function invalidateConfiguredTables() { _configuredDocCache.clear(); }
 
 /** A name-predicate for the kind, or null for an unknown kind. */
 async function _kindMatcher(kind) {

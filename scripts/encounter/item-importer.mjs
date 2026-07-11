@@ -17,7 +17,7 @@
  */
 import { MODULE_ID } from "../module-id.mjs";
 import { pickTreasureIcon } from "./loot-pack.mjs";
-import { findSuitePack, ensureSuite, ensureSourceFolder } from "./compendium-suite.mjs";
+import { findSuitePack, ensureSuite, ensureSourceFolder, ensureFolderPath } from "./compendium-suite.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
@@ -96,6 +96,28 @@ export function buildItemData(draft) {
         description: draft.description ?? "<p></p>",
         level: 1,
         talentClass: "level",
+        source: { title: draft.sourceTitle ?? "" },
+      },
+      flags: { [MODULE_ID]: { imported: true } },
+    };
+  }
+  if (draft.type === "Ancestry") {
+    const lang = draft.languages ?? {};
+    return {
+      name, type: "Ancestry", img: draft.img || "icons/environment/people/group.webp",
+      system: {
+        description: draft.description ?? "<p></p>",
+        languages: {
+          common:        Number(lang.common) || 0,
+          rare:          Number(lang.rare) || 0,
+          select:        Number(lang.select) || 0,
+          selectOptions: Array.isArray(lang.selectOptions) ? lang.selectOptions : [],
+          fixed:         Array.isArray(lang.fixed) ? lang.fixed : [],
+        },
+        talents: [],
+        talentChoiceCount: Number(draft.talentChoiceCount) || 0,
+        nameTable: "",
+        randomWeight: 1,
         source: { title: draft.sourceTitle ?? "" },
       },
       flags: { [MODULE_ID]: { imported: true } },
@@ -230,9 +252,38 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
 }
 
 /**
+ * The folder path a spell files under, mirroring the system spells pack:
+ * Spells → <Class> → Tier N. Blank class/tier segments drop out (an unclassed
+ * spell → Spells → Tier N; a tierless one → Spells → <Class>).
+ *
+ * @param {string} className  resolved/parsed class name (e.g. "Wizard")
+ * @param {number|string} tier
+ * @returns {string[]}
+ */
+export function spellFolderNames(className, tier) {
+  const tierNum = Number(tier);
+  const tierLabel = Number.isFinite(tierNum) && tierNum > 0 ? `Tier ${tierNum}` : null;
+  const cls = String(className ?? "").trim();
+  const clsTitle = cls ? cls.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : null;
+  return ["Spells", clsTitle, tierLabel].filter(Boolean);
+}
+
+/** The sde-items folder id a spell draft belongs in (Spells → Class → Tier). */
+async function spellFolderId(pack, draft) {
+  let className = draft.className ?? "";
+  // Prefer the resolved class's canonical name over the raw parsed string.
+  if (Array.isArray(draft.class) && draft.class[0]) {
+    const c = await fromUuid(draft.class[0]).catch(() => null);
+    if (c?.name) className = c.name;
+  }
+  return ensureFolderPath(pack, spellFolderNames(className, draft.tier));
+}
+
+/**
  * Batch-import drafts under one source. Ensures the sde-items pack + source
  * folder, creates each, then invalidates the LootLinker cache so the new items
- * are findable immediately (A-06). GM-only.
+ * are findable immediately (A-06). Spells are filed under Spells → Class → Tier
+ * (mirroring the system pack) instead of the flat source folder. GM-only.
  *
  * @param {object[]} drafts
  * @param {{ source?, onConflict? }} opts
@@ -247,10 +298,13 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
     try { await pack.configure({ locked: false }); } catch (_) {}
   }
 
-  const folder = await ensureSourceFolder(pack, source);
+  // Source folder only used for non-spell items; spells fold by class/tier.
+  const hasNonSpell = drafts.some((d) => d.type !== "Spell");
+  const sourceFolder = hasNonSpell ? await ensureSourceFolder(pack, source) : null;
   const out = { pack: pack.collection, created: [], replaced: [], skipped: [], total: drafts.length };
 
   for (const draft of drafts) {
+    const folder = draft.type === "Spell" ? await spellFolderId(pack, draft) : sourceFolder;
     const r = await createItem(draft, { pack, folder, source, onConflict });
     if (!r) continue;
     if (r.status === "skipped") out.skipped.push(r.name);
@@ -262,4 +316,4 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
   return out;
 }
 
-export const ItemImporter = { buildItemData, createItem, createItems };
+export const ItemImporter = { buildItemData, createItem, createItems, spellFolderNames };

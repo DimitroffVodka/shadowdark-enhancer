@@ -28,21 +28,23 @@ export const ANCESTRY_ART = {
   "half-orc": "half-orc.webp",
   halfling: "halfling.png",
   kobold: "kobold.jpg",
-  // human — awaiting matching-style art
+  human: "human.png",
 };
 
 /** Class name-slug → file in assets/classes/. Filenames are case-sensitive. */
 export const CLASS_ART = {
   bard: "bard.JPG",
   "bard-legacy": "bard.JPG",   // the system ships the bard as "Bard (Legacy)"
-  fighter: "fighter.JPG",
+  fighter: "fighter.webp",
   necromancer: "necromancer.jpg",
   "pit-fighter": "pit_fighter.JPG",
+  priest: "priest.png",
   ranger: "ranger.JPG",
   "ras-godai": "Ras-Godai.png",
   roustabout: "roustabout.JPG",
   "sea-wolf": "sea_wolf.png",
   thief: "Thief.JPG",
+  wizard: "wizard.png",
 };
 
 function artUrl(dir, map, name) {

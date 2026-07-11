@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../module-id.mjs";
+import { invalidateConfiguredTables } from "./data.mjs";
 import { CharBuilderState } from "./state.mjs";
 import { DEFAULT_STAT_METHOD } from "./constants.mjs";
 import { commitCharacter } from "./commit.mjs";
@@ -42,6 +43,21 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       new GearStep(this),
       new PreviewStep(this),
     ];
+
+    // Live refresh: when the importer unlocks content (ancestries, tables,
+    // backgrounds, classes…), re-read and re-render so the new content shows
+    // up without a close/reopen. Listener is torn down in close().
+    this._contentHookId = Hooks.on(`${MODULE_ID}.contentUnlocked`, () => this._onContentUnlocked());
+  }
+
+  /** Handle a content-unlock: drop stale caches (module-level table docs, the
+   *  GM locked-content census, and every step's compendium-derived lists), then
+   *  re-render if still open so the new content appears without a reopen. */
+  async _onContentUnlocked() {
+    invalidateConfiguredTables();
+    this._lockedCensus = null;
+    for (const step of this.steps) step.invalidateContentCache();
+    if (this.rendered) await this.render();
   }
 
   static DEFAULT_OPTIONS = {
@@ -241,6 +257,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   /** @override — the app uses a fixed element id, so it is a singleton. */
   async close(options) {
+    if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
     if (ShadowdarkCharBuilder._instance === this) ShadowdarkCharBuilder._instance = null;
     return super.close(options);
   }

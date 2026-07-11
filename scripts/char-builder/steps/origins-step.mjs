@@ -27,6 +27,9 @@ export class OriginsStep extends BaseStep {
   get icon() { return "fa-solid fa-scroll"; }
   get partial() { return "sde-cb-origins"; }
 
+  /** @override — cascade to the Background/Alignment/Deity sub-steps. */
+  invalidateContentCache() { for (const s of Object.values(this.sub)) s.invalidateContentCache(); }
+
   /** Background required; alignment defaults to neutral; deity is optional. */
   isComplete() { return !!this.state.background?.uuid; }
 

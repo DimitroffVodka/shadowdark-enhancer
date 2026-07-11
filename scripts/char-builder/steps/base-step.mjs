@@ -15,6 +15,10 @@ export class BaseStep {
   /** Shared builder state. */
   get state() { return this.app.builderState; }
 
+  /** Drop any cached compendium-derived content so a re-render re-reads it
+   *  (called when the importer unlocks new content). Override to clear caches. */
+  invalidateContentCache() {}
+
   /** Unique step id, also used as a tab key. Override. */
   get id() { return "base"; }
 

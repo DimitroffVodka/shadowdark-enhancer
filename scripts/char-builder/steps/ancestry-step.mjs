@@ -2,6 +2,7 @@ import { ListStep } from "./list-step.mjs";
 import {
   loadAncestries, enrich, tableOptions, rollTableDoc,
   configuredTables, tableMatchesAncestry, coreNameTable, findTableByName,
+  talentDescription,
 } from "../data.mjs";
 import { ancestryArt } from "../art.mjs";
 
@@ -22,6 +23,9 @@ export class AncestryStep extends ListStep {
     super(app);
     this._tableCache = {};
   }
+
+  /** @override — also drop the per-ancestry Name/Trinket table lists. */
+  invalidateContentCache() { this._tableCache = {}; super.invalidateContentCache(); }
 
   get id() { return "ancestry"; }
   get label() { return "SDE.charBuilder.step.ancestry"; }
@@ -110,7 +114,7 @@ export class AncestryStep extends ListStep {
       if (!t) continue;
       // Inline-format like the rulebook: **Stout.** description… — strip the
       // enrich() wrapper <p> so the bold name and text sit on one flowing line.
-      const descInline = (await enrich(t.system?.description))
+      const descInline = (await enrich(talentDescription(t)))
         .replace(/^\s*<p>/i, "").replace(/<\/p>\s*$/i, "").trim();
       traits.push({ uuid, name: t.name, descInline, selected: chosen.includes(uuid) });
     }

@@ -1,4 +1,5 @@
 import { ABILITY_ORDER } from "./constants.mjs";
+import { TALENT_DESCRIPTION_FIXES } from "./data.mjs";
 
 /**
  * Turn a completed builder state into a Shadowdark PlayerSD actor.
@@ -205,6 +206,11 @@ async function gatherItems(state, classSys) {
     // Skip non-Item docs (e.g. a nested "Distribute to Stats" RollTable) — they
     // aren't embeddable and would throw in createItemWithEffect / be dropped.
     if (!doc || doc.documentName !== "Item") return;
+    // Correct known-bad talent text on the embedded copy too (Elf Farsight ships
+    // both variants with the merged "…or…" description). Keyed by source UUID,
+    // since toObject() doesn't carry it. Text-only; effects are untouched.
+    const fix = TALENT_DESCRIPTION_FIXES[uuid];
+    const applyFix = (obj) => { if (fix && obj?.system) obj.system.description = fix; return obj; };
     // A choice made in the builder pre-fills the REPLACEME effect keys exactly
     // like the system's modifyEffectChangesWithInput would — no dialog.
     if (choice?.slug) {
@@ -213,13 +219,13 @@ async function gatherItems(state, classSys) {
       for (const eff of (obj.effects ?? [])) {
         for (const c of (eff.changes ?? [])) c.key = c.key.replace("REPLACEME", choice.slug);
       }
-      items.push(obj);
+      items.push(applyFix(obj));
       return;
     }
     try {
-      items.push(await shadowdark.effects.createItemWithEffect(doc));
+      items.push(applyFix(await shadowdark.effects.createItemWithEffect(doc)));
     } catch (_e) {
-      items.push(doc.toObject());
+      items.push(applyFix(doc.toObject()));
     }
   };
 

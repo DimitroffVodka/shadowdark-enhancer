@@ -300,11 +300,11 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       browseData = {
         availableSources,
         selectedSources:  this._browseSources,
-        // Cap rendered rows (audit P2-6): the full ~240-row list re-rendered
-        // (with imgs) on every search/filter step. Filtering still runs over
-        // everything; only the DOM is capped — the count line shows the rest.
-        rows:             filtered.slice(0, 150),
-        rowsCapped:       filtered.length > 150,
+        // Render the full filtered list (imgs are lazy-loaded, matching the
+        // Monster Creator's Bestiary Loader, which never capped). An earlier
+        // 150-row cap (audit P2-6) silently truncated the sorted list mid-
+        // alphabet — e.g. stopping at "Overseer" — so it's gone.
+        rows:             filtered,
         totalCount:       all.length,
         filteredCount:    filtered.length,
         search:           this._browseSearch,

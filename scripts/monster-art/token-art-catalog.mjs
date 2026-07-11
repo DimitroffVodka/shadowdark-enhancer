@@ -27,6 +27,18 @@ export class TokenArtCatalog {
       subjectDir: "modules/dnd-monster-manual/assets/subjects",
       tokenMapping: "modules/dnd-monster-manual/token-mapping.json",
     },
+    {
+      // Same DnD-Beyond art pipeline as the Monster Manual (tokens/portraits/
+      // subjects, ring-authored). Ships no token-mapping.json, so presentation
+      // falls back to ring-on + scale 1. Mostly PC/class + a few beasts; useful
+      // for the humanoid NPCs the Monster Manual doesn't cover.
+      id: "dnd-players-handbook",
+      label: "Player's Handbook",
+      tokenDir: "modules/dnd-players-handbook/assets/tokens",
+      portraitDir: "modules/dnd-players-handbook/assets/portraits",
+      subjectDir: "modules/dnd-players-handbook/assets/subjects",
+      tokenMapping: "modules/dnd-players-handbook/token-mapping.json",
+    },
   ];
 
   /**
@@ -50,6 +62,7 @@ export class TokenArtCatalog {
    *  after these in discovery order. */
   static DEFAULT_PRIORITY = [
     "dnd-monster-manual",
+    "dnd-players-handbook",
     "pf2e-tokens-monster-core",
     "dnd5e-fa",
     "shadowdark-community-tokens",
@@ -101,6 +114,9 @@ export class TokenArtCatalog {
    *   skipDir     subfolder name to skip (e.g. FA thumbnails)
    *   present     token-map JSON(s) → per-file ring/scale/subject presentation
    *   scaleMap    token-map JSON → per-file fill scale (FA transparent art)
+   *   subjectDir  ring-subject art folder for a map-less DnD-Beyond source: any
+   *               token with a same-named subject gets the dynamic ring + subject
+   *   subjectScale ring-subject scale paired with subjectDir (else 1)
    *   defaultScale fallback scale when no map lists the file
    *   iconics     pf2e naming convention: browse only `Name.webp` tokens (skip
    *               `…Full`/`…Subject` variants), pair the portrait to `…Full`
@@ -110,6 +126,15 @@ export class TokenArtCatalog {
       label: "Monster Manual",
       root: "modules/dnd-monster-manual/assets/tokens",
       present: ["modules/dnd-monster-manual/token-mapping.json"],
+    },
+    "dnd-players-handbook": {
+      // No token-mapping.json: enable the ring from the sibling subjects/ folder
+      // and fill with the same DnD-Beyond scale target as the Monster Manual.
+      label: "Player's Handbook",
+      root: "modules/dnd-players-handbook/assets/tokens",
+      subjectDir: "modules/dnd-players-handbook/assets/subjects",
+      defaultScale: 1.45,
+      subjectScale: 1.26,
     },
     "pf2e-tokens-monster-core": {
       label: "Pathfinder: Monster Core",
@@ -319,6 +344,7 @@ export class TokenArtCatalog {
   static SOURCE_SCALE = {
     "pf2e-tokens-monster-core": { tex: 3 / 2, subject: 2.5 / 2 },
     "dnd-monster-manual": { tex: 1.45 / 1, subject: 1.26 / 1 },
+    "dnd-players-handbook": { tex: 1.45 / 1, subject: 1.26 / 1 },  // same DnD-Beyond pipeline as MM
     "dnd5e-fa": 1.25 / 1.5,
   };
 
@@ -456,6 +482,7 @@ export class TokenArtCatalog {
       if (!files.size) continue;
       const present = s.present ? await this._loadPresentMaps(s.present) : new Map();
       const scales = s.scaleMap ? await this._loadScaleMap(s.scaleMap) : new Map();
+      const subjects = s.subjectDir ? await this._browseFlatDir(s.subjectDir) : null;
       const def = s.defaultScale ?? 1;
       for (const base of [...files.keys()].sort((a, b) => a.localeCompare(b))) {
         // pf2e iconics: browse only the `Name.webp` token; hide portrait/subject
@@ -466,7 +493,14 @@ export class TokenArtCatalog {
         let tokenObj;
         if (p?.tokenObj) tokenObj = foundry.utils.deepClone(p.tokenObj);
         else if (scales.has(base)) { const sc = scales.get(base); tokenObj = { texture: { src: path, scaleX: sc, scaleY: sc } }; }
-        else tokenObj = { texture: { src: path, scaleX: def, scaleY: def } };
+        else {
+          tokenObj = { texture: { src: path, scaleX: def, scaleY: def } };
+          // Map-less DnD-Beyond source: enable the dynamic ring + subject art
+          // for any token that has a matching subject image.
+          if (subjects?.has(base)) {
+            tokenObj.ring = { enabled: true, subject: { scale: s.subjectScale ?? 1, texture: subjects.get(base) } };
+          }
+        }
         if (!tokenObj.texture) tokenObj.texture = {};
         if (!tokenObj.texture.src) tokenObj.texture.src = path;   // present maps already carry src
         let portrait = p?.portrait ?? path;
