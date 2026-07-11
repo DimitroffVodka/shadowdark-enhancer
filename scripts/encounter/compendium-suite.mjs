@@ -260,7 +260,7 @@ export async function ensureFolderPath(pack, names) {
  * @throws when neither path produced a replacement (original preserved).
  */
 export async function replaceDocument(oldDoc, payload, pack) {
-  const EMBEDDED = { Actor: ["items", "Item"], RollTable: ["results", "TableResult"] };
+  const EMBEDDED = { Actor: ["items", "Item"], RollTable: ["results", "TableResult"], Item: ["effects", "ActiveEffect"] };
   const [field, embeddedName] = EMBEDDED[oldDoc.documentName] ?? [null, null];
   const docData = { ...payload };
   delete docData._id;

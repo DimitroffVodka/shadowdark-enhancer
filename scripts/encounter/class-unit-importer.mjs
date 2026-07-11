@@ -16,8 +16,10 @@
  * classTalentTable re-read (the field silently vanished once on Delver) and
  * v14 TableResult text living in `name`.
  *
- * Idempotent: same-named docs already in the suite packs are reused, never
- * duplicated (mirrors importSealedPayload).
+ * Idempotent: same-named docs already in the suite packs are never
+ * duplicated. Identical content is reused as-is; content that DIFFERS from
+ * the corrected import is updated in place (UUID-preserving, review #12) and
+ * reported under report.updated with the changed field labels.
  */
 
 import { MODULE_ID } from "../module-id.mjs";
@@ -54,17 +56,96 @@ function _systemIndex(documentName, preferred = null) {
   return out;
 }
 
-/** Find-or-create one Item in the suite pack, foldered. → {uuid, name, reused} */
+/** Order-insensitive-keys deep equality for plain import data. */
+function _deepEq(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (Array.isArray(a)) return Array.isArray(b) && a.length === b.length && a.every((v, i) => _deepEq(v, b[i]));
+  if (a && b && typeof a === "object") {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...keys].every((k) => _deepEq(a[k], b[k]));
+  }
+  return false;
+}
+
+/** Comparable shape for embedded ActiveEffects (core `changes` or SD `system.changes`). */
+function _effectShape(list) {
+  return (list ?? []).map((e) => ({
+    name: e.name ?? "",
+    img: e.img ?? null,
+    transfer: e.transfer !== false,
+    changes: [...(e.changes ?? []), ...(e.system?.changes ?? [])].map((c) => ({
+      key: c.key ?? "", mode: Number(c.mode ?? 2), value: String(c.value ?? ""),
+    })),
+  }));
+}
+
+/**
+ * One-sided recursive equality: does the stored value satisfy every key the
+ * IMPORT defines, at every depth? Extra stored keys (schema defaults like
+ * spellcasting.spellsknown on a non-caster) never count as differences —
+ * the import only owns what it specifies. Arrays compare fully in order.
+ */
+function _subsetEq(dataVal, docVal) {
+  if (dataVal === docVal) return true;
+  if (Array.isArray(dataVal)) {
+    return Array.isArray(docVal) && dataVal.length === docVal.length
+      && dataVal.every((v, i) => _subsetEq(v, docVal[i]));
+  }
+  if (dataVal && docVal && typeof dataVal === "object" && typeof docVal === "object") {
+    return Object.keys(dataVal).every((k) => _subsetEq(dataVal[k], docVal[k]));
+  }
+  return false;
+}
+
+/**
+ * Which import-owned fields differ between an existing doc and the corrected
+ * payload (review #12). Only keys the import DEFINES are compared (recursively
+ * — see _subsetEq); schema defaults and fields the import doesn't own never
+ * count as stale. Folder is deliberately ignored (the user may have refiled
+ * the doc).
+ * @param {object} docObj  doc.toObject()
+ * @param {object} data    create-shaped import payload
+ * @returns {string[]} dotted field labels, empty = identical
+ */
+function _staleFields(docObj, data) {
+  const fields = [];
+  if (data.img != null && data.img !== docObj.img) fields.push("img");
+  const docSys = docObj.system ?? {};
+  for (const [k, v] of Object.entries(data.system ?? {})) {
+    if (!_subsetEq(v, docSys[k])) fields.push(`system.${k}`);
+  }
+  if (!_deepEq(_effectShape(data.effects), _effectShape(docObj.effects))) fields.push("effects");
+  const df = data.flags?.[MODULE_ID] ?? {};
+  const of = docObj.flags?.[MODULE_ID] ?? {};
+  if (!_subsetEq(df, of)) fields.push("flags");
+  return fields;
+}
+
+/**
+ * Find-or-create one Item in the suite pack, foldered.
+ * Same-name/type docs are diffed against the corrected payload: identical →
+ * reused; different → updated IN PLACE (UUID + inbound links survive) so a
+ * corrected re-import never silently retains stale content (review #12).
+ * → {uuid, name, reused, updated?}
+ */
 async function _ensureItem(pack, data, folderPath, report) {
-  const { ensureFolderPath, cleanImportHtml } = await import("./compendium-suite.mjs");
+  const { ensureFolderPath, cleanImportHtml, replaceDocument } = await import("./compendium-suite.mjs");
   // Commit choke point: sanitize persisted HTML (review #1).
   if (data.system?.description) data.system.description = cleanImportHtml(data.system.description);
   const idx = await pack.getIndex({ fields: ["type"] });
   const existing = idx.find((e) => e.name === data.name && e.type === data.type);
   if (existing) {
-    const uuid = `Compendium.${pack.collection}.Item.${existing._id}`;
-    report.reused.push({ name: data.name, type: data.type, uuid });
-    return { uuid, name: data.name, reused: true };
+    const doc = await pack.getDocument(existing._id);
+    const fields = _staleFields(doc.toObject(), data);
+    if (!fields.length) {
+      report.reused.push({ name: data.name, type: data.type, uuid: doc.uuid });
+      return { uuid: doc.uuid, name: data.name, reused: true };
+    }
+    const payload = { ...data, folder: doc.toObject().folder ?? null };
+    const { doc: updated } = await replaceDocument(doc, payload, pack);
+    (report.updated ??= []).push({ name: data.name, type: data.type, uuid: updated.uuid, fields });
+    return { uuid: updated.uuid, name: data.name, reused: true, updated: true };
   }
   const folder = await ensureFolderPath(pack, folderPath);
   const doc = await Item.create({ ...data, folder }, { pack: pack.collection });
@@ -121,7 +202,9 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
  * Create/reuse every document for one parsed class unit.
  * @param {object} parsed  parseClassSection() output
  * @param {object} opts    { source: "Western Reaches", sourceTitle: "western-reaches" }
- * @returns {Promise<object>} report { created, reused, systemReuse, warnings, classUuid, tableUuid }
+ * @returns {Promise<object>} report { created, reused, updated, systemReuse, warnings, classUuid, tableUuid }
+ *   `updated` = same-name docs whose content differed from the corrected
+ *   import and were updated in place ({name, type, uuid, fields}).
  */
 export async function createClassUnit(parsed, { source = "", sourceTitle = "", overlay = null } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
@@ -130,7 +213,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   if (!suite?.items || !suite?.tables) { ui.notifications?.error("Suite packs unavailable."); return null; }
   const itemsPack = suite.items, tablesPack = suite.tables;
 
-  const report = { created: [], reused: [], systemReuse: [], warnings: [...(parsed.warnings ?? [])] };
+  const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(parsed.warnings ?? [])] };
   const sysTalents = _systemIndex("Item", "shadowdark.talents");
 
   // ── 0. WR-only gear the class references (overlay-shipped stat lines,
@@ -226,36 +309,60 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     // .classTalentTables) and displays them with the "Class Talents: " prefix
     // stripped — so this exact format is required, no source prefix.
     const tblName = `Class Talents: ${parsed.name}`;
+    // Build the DESIRED results first, so an existing table is diffed against
+    // the corrected import instead of reused with stale rows (review #12).
+    // "Distribute to Stats"-style system table for the row-12 grand choice.
+    const sysTables = _systemIndex("RollTable");
+    const distribute = sysTables.find((e) => /distribute/i.test(e.name)) ?? null;
+    const results = [];
+    const uuidName = new Map([...report.created, ...report.reused, ...report.updated].map((c) => [c.uuid, c.name]));
+    const nameFor = async (uuid) => uuidName.get(uuid) ?? (await fromUuid(uuid))?.name ?? "Talent";
+    for (const rr of rowResults) {
+      const range = rr.range;
+      if (rr.grand) {
+        results.push({ type: "text", name: "Choose 1", range });
+        for (const u of allOptionUuids) results.push({ type: "document", name: await nameFor(u), documentUuid: u, range });
+        if (distribute) results.push({ type: "document", name: distribute.name, documentUuid: distribute.uuid, range });
+        else report.warnings.push(`Row ${range[0]}${range[1] !== range[0] ? `-${range[1]}` : ""}: no system "Distribute to Stats" table found — that option stays text-only ("${rr.text}").`);
+        continue;
+      }
+      if (rr.choose) results.push({ type: "text", name: "Choose 1", range });
+      for (const u of rr.uuids) results.push({ type: "document", name: await nameFor(u), documentUuid: u, range });
+    }
+    const tblDescription = "Rolled on level up. A roll that matches multiple results is a pick — see the class rules for special duplicates.";
+    const tblFlags = { [MODULE_ID]: { imported: true, ...(source ? { source } : {}) } };
+
     const tIdx = await tablesPack.getIndex();
     const tExisting = tIdx.find((e) => e.name === tblName);
     if (tExisting) {
-      tableUuid = `Compendium.${tablesPack.collection}.RollTable.${tExisting._id}`;
-      report.reused.push({ name: tblName, type: "RollTable", uuid: tableUuid });
-    } else {
-      // "Distribute to Stats"-style system table for the row-12 grand choice.
-      const sysTables = _systemIndex("RollTable");
-      const distribute = sysTables.find((e) => /distribute/i.test(e.name)) ?? null;
-      const results = [];
-      const uuidName = new Map([...report.created, ...report.reused].map((c) => [c.uuid, c.name]));
-      const nameFor = async (uuid) => uuidName.get(uuid) ?? (await fromUuid(uuid))?.name ?? "Talent";
-      for (const rr of rowResults) {
-        const range = rr.range;
-        if (rr.grand) {
-          results.push({ type: "text", name: "Choose 1", range });
-          for (const u of allOptionUuids) results.push({ type: "document", name: await nameFor(u), documentUuid: u, range });
-          if (distribute) results.push({ type: "document", name: distribute.name, documentUuid: distribute.uuid, range });
-          else report.warnings.push(`Row ${range[0]}${range[1] !== range[0] ? `-${range[1]}` : ""}: no system "Distribute to Stats" table found — that option stays text-only ("${rr.text}").`);
-          continue;
-        }
-        if (rr.choose) results.push({ type: "text", name: "Choose 1", range });
-        for (const u of rr.uuids) results.push({ type: "document", name: await nameFor(u), documentUuid: u, range });
+      const doc = await tablesPack.getDocument(tExisting._id);
+      tableUuid = doc.uuid;
+      // Comparable row shape; sorted so embedded-creation order can't alias
+      // a real content change.
+      const shape = (rs) => rs
+        .map((r) => ({ type: r.type, name: r.name ?? "", documentUuid: r.documentUuid ?? null,
+          range: [Number(r.range?.[0] ?? 0), Number(r.range?.[1] ?? 0)] }))
+        .sort((a, b) => a.range[0] - b.range[0] || a.name.localeCompare(b.name));
+      const same = doc.formula === parsed.talentTable.formula
+        && _deepEq(shape(doc.toObject().results), shape(results));
+      if (same) {
+        report.reused.push({ name: tblName, type: "RollTable", uuid: tableUuid });
+      } else {
+        const { replaceDocument } = await import("./compendium-suite.mjs");
+        await replaceDocument(doc, {
+          name: tblName, formula: parsed.talentTable.formula,
+          folder: doc.toObject().folder ?? null,
+          description: tblDescription, results, flags: tblFlags,
+        }, tablesPack);
+        report.updated.push({ name: tblName, type: "RollTable", uuid: tableUuid, fields: ["results"] });
       }
+    } else {
       const folder = await ensureFolderPath(tablesPack, ["Class Talents"]);
       const table = await RollTable.create({
         name: tblName, formula: parsed.talentTable.formula, folder,
-        description: "Rolled on level up. A roll that matches multiple results is a pick — see the class rules for special duplicates.",
+        description: tblDescription,
         results,
-        flags: { [MODULE_ID]: { imported: true, ...(source ? { source } : {}) } },
+        flags: tblFlags,
       }, { pack: tablesPack.collection });
       tableUuid = table.uuid;
       report.created.push({ name: table.name, type: "RollTable", uuid: table.uuid });
@@ -319,8 +426,10 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   const madeClass = await _ensureItem(itemsPack, classData, ["Classes"], report);
 
   // TRAP (playbook §1): classTalentTable silently vanished once — re-read the
-  // pack copy and repair if the field didn't persist.
-  if (tableUuid && !madeClass.reused) {
+  // pack copy and repair if the field didn't persist. Runs on EVERY path
+  // (created / reused / updated): a reused class with a newly created table
+  // was previously never rewired (review #12).
+  if (tableUuid) {
     const id = madeClass.uuid.split(".").pop();
     let fresh = await itemsPack.getDocument(id);
     if (fresh && fresh.system.classTalentTable !== tableUuid) {
@@ -335,3 +444,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   report.tableUuid = tableUuid;
   return report;
 }
+
+// ─── Internal exports for tests (pure helpers only) ──────────────────────────
+
+export const _internals = { _deepEq, _subsetEq, _staleFields, _effectShape };

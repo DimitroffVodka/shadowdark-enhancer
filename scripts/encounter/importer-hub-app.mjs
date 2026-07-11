@@ -2525,7 +2525,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const overlay = overlayFor(p.draft.name);
         const rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay });
         if (!rep) continue;
-        parts.push(`class "${p.draft.name}": ${rep.created.length} created, ${rep.reused.length} reused, ${rep.systemReuse.length} system talents linked`);
+        const updated = rep.updated ?? [];
+        parts.push(`class "${p.draft.name}": ${rep.created.length} created, ${updated.length} updated, ${rep.reused.length} reused, ${rep.systemReuse.length} system talents linked`);
+        if (updated.length) {
+          // Corrected re-import summary (review #12): say WHAT changed, per doc.
+          console.info(`${MODULE_ID} | class import "${p.draft.name}" — updated in place:\n- ${
+            updated.map((u) => `${u.type} "${u.name}": ${u.fields.join(", ")}`).join("\n- ")}`);
+        }
         if (rep.warnings.length) {
           console.warn(`${MODULE_ID} | class import "${p.draft.name}" — review notes:\n- ${rep.warnings.join("\n- ")}`);
           ui.notifications.warn(`"${p.draft.name}" imported with ${rep.warnings.length} review note(s) — see the console (F12).`);
