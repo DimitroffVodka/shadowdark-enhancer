@@ -33,12 +33,14 @@ const LEADING_RANGE = /^\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?(?=\s|$)/;
 // labels — used by the Tier-2 matrix path (later task).
 const DIE_HEADER = /^d(\d{1,3})\b\s*(.*)$/i;
 
-/** Parse a leading die token. Returns {min,max,rest} or null. */
+/** Parse a leading die token. Returns {min,max,rest} or null. "00" is the d100
+ *  convention for 100 (e.g. "99-00" = 99–100), so it maps to 100, not 0. */
 function parseLeadingRange(line) {
   const m = LEADING_RANGE.exec(line);
   if (!m) return null;
-  const min = Number(m[1]);
-  const max = m[2] != null ? Number(m[2]) : min;
+  const toN = (v) => (v === "00" ? 100 : Number(v));
+  const min = toN(m[1]);
+  const max = m[2] != null ? toN(m[2]) : min;
   const rest = line.slice(m[0].length).trim();
   return { min, max, rest };
 }
@@ -205,6 +207,124 @@ function looksLikeMatrix(die, dataLines) {
   return (exact / total) >= 0.5;
 }
 
+// ── Stacked / transposed columns ─────────────────────────────────────────────
+// A PDF copy of a grid table sometimes arrives column-major: the die faces come
+// first as a run of bare numbers (1, 2, 3, … each on its own line), then every
+// data column is stacked whole — optionally preceded by a short label or an
+// ALL-CAPS title crumb. Row-oriented parsing collapses this (every cell after
+// the faces reads as a continuation of the last face). We detect the faces run,
+// walk the trailing lines column-major, pull label/title crumbs out as we go,
+// and recombine each face's cells into one row ("cellA — cellB"). Output is a
+// plain single-die ParsedTable, so preview/commit need no changes.
+
+const LABEL_WORDS = new Set([
+  "item", "items", "object", "objects", "thing", "things", "feature", "features",
+  "effect", "effects", "detail", "details", "result", "results", "name", "names",
+  "quirk", "quirks", "trait", "traits", "title", "titles", "property", "properties",
+  "boon", "boons", "curse", "curses", "benefit", "benefits", "type", "kind",
+]);
+
+/** Split a mashed/camel header like "DIABOLICALItem" → ["DIABOLICAL","Item"]. */
+function headerWords(line) {
+  return String(line).match(/[A-Z]+(?![a-z])|[A-Z][a-z]+|[a-z]+|\d+/g) ?? [];
+}
+
+/**
+ * A short label/title crumb sitting between stacked columns: an ALL-CAPS run
+ * (DIABOLICAL, TREASURE, or the mash DIABOLICALItem), a stray dN header, or a
+ * line whose words are all known column-label nouns (Item, Feature, …). Long
+ * prose lines (a real cell) never qualify.
+ */
+function isHeaderish(line) {
+  const t = String(line).trim();
+  if (!t) return false;
+  if (/^d\d{1,3}\b/i.test(t)) return true;               // stray "d20"
+  if (t.split(/\s+/).length > 3) return false;           // prose cell, not a label
+  if (/[A-Z]{3,}/.test(t)) return true;                  // ALL-CAPS run / mash
+  return headerWords(t).every(w => LABEL_WORDS.has(w.toLowerCase()));
+}
+
+/** Pull leftover title words from a group of header crumbs (label word dropped). */
+function titleFromCrumbs(crumbs) {
+  const out = [];
+  let sawLabel = false;
+  for (const crumb of crumbs) {
+    for (const w of headerWords(crumb)) {
+      if (!sawLabel && LABEL_WORDS.has(w.toLowerCase())) { sawLabel = true; continue; }
+      if (!/^\d+$/.test(w) && !/^d\d+$/i.test(w)) out.push(w);
+    }
+  }
+  return out;
+}
+
+/**
+ * Detect + parse a column-major ("transposed") paste into a single combined
+ * table: N faces down the first stack, then C data columns of N cells each,
+ * each row joining its columns' cells ("cellA — cellB"). Returns a ParsedTable,
+ * or null when the block isn't stacked (callers then fall through).
+ */
+function parseStackedBlock(title, die, dataLines) {
+  // 1) Leading run of bare, strictly-sequential faces (1, 2, 3, …).
+  let n = 0;
+  while (n < dataLines.length) {
+    const r = parseLeadingRange(dataLines[n]);
+    if (!r || r.rest !== "" || r.min !== n + 1 || r.max !== r.min) break;
+    n++;
+  }
+  if (n < 3) return null;                                 // too short to be a stack
+  const tail = dataLines.slice(n);
+  if (tail.length < n) return null;                       // need ≥ one full column
+  // Stacked columns are prose/labels; a numbered tail line means it's row-form.
+  if (tail.some(l => parseLeadingRange(l))) return null;
+  // Name-part tables ("Part 1"/"Part 2") are a cartesian d100 expansion owned by
+  // expandNamePartTables — never row-combine them here.
+  if (tail.some(l => /^part\s*\d+$/i.test(l.trim()))) return null;
+
+  // 2) Walk the tail column-major: gather header crumbs, fill n-cell columns.
+  const columns = [];   // string[][] — each inner array is one column's cells
+  const titleWords = [];
+  let buf = [];
+  let crumbs = [];
+  for (const line of tail) {
+    const t = line.trim();
+    if (!buf.length && isHeaderish(t)) { crumbs.push(t); continue; }
+    if (!buf.length && crumbs.length) { titleWords.push(...titleFromCrumbs(crumbs)); crumbs = []; }
+    buf.push(t);
+    if (buf.length === n) { columns.push(buf); buf = []; }
+  }
+  if (!columns.length) return null;                       // nothing lined up
+
+  const warnings = [];
+  if (buf.length) warnings.push(`Last column has ${buf.length} of ${n} cells — trailing lines were dropped; check the grid.`);
+  if (crumbs.length) warnings.push(`Ignored trailing text after the last column (“${crumbs.join(" ")}”).`);
+
+  // 3) Recombine each face's cells into one row.
+  const rows = [];
+  for (let f = 0; f < n; f++) {
+    const cells = columns.map(c => (c[f] ?? "").trim()).filter(Boolean);
+    rows.push({ min: f + 1, max: f + 1, text: cells.join(" — ") });
+  }
+
+  // Prefer an explicit title line, then a dN-header remainder, then the title
+  // crumbs recovered from between the columns (e.g. DIABOLICAL + TREASURE).
+  const recovered = titleWords
+    .map(w => w[0].toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ").replace(/\s+/g, " ").trim();
+  const name = title || (die && die.remainder) || recovered || "";
+  const pt = {
+    name,
+    formula: die ? `1d${die.size}` : `1d${n}`,
+    replacement: true,
+    bestEffort: true,
+    category: classify(name),
+    customLabel: "",
+    rows,
+    warnings: [],
+  };
+  pt.warnings = warnings.concat(computeWarnings(pt));
+  return pt;
+}
+
 /** Parse one block → array of ParsedTable (length 1 here; matrix added later). */
 function parseBlock(blockLines) {
   const work = blockLines.filter(l => l.trim() !== "");
@@ -226,6 +346,8 @@ function parseBlock(blockLines) {
   }
 
   const dataLines = work.slice(idx);
+  const stacked = parseStackedBlock(title, die, dataLines);
+  if (stacked) return [stacked];
   if (looksLikeMatrix(die, dataLines)) {
     return parseMatrixBlock(title, die, dataLines);
   }
@@ -550,7 +672,7 @@ export function buildTableData(pt) {
 }
 
 // Internal exports for tooling/tests that want the lower-level pieces.
-export const _internals = { parseLeadingRange, parseDieHeader, splitBlocks, computeWarnings };
+export const _internals = { parseLeadingRange, parseDieHeader, splitBlocks, computeWarnings, parseStackedBlock, isHeaderish };
 
 /**
  * Make a table name unique against a pack index array (or any array with .name).
@@ -655,7 +777,68 @@ export async function createTable(pt, { onConflict } = {}) {
   // Compound generators have a single hint result — nothing to enrich, and
   // enriching would rewrite that hint with @UUID links.
   if (!pt.isCompound) await _autoEnrich(table, pt);
+  await applyTableStructureSeed(table);
   return table;
+}
+
+/**
+ * Restore gold-master wiring on a freshly imported table: when a structure
+ * seed matches by name (exact, or the "Source - Name" suffix convention),
+ * merge the seed's SDE flags and convert text results whose range matches a
+ * seed link into document results (suite refs resolved by name, shadowdark.*
+ * uuids literal). The row text stays the user's — only the LINK changes.
+ * Part of the de-seal architecture: seeds ship structure, pastes ship words.
+ */
+export async function applyTableStructureSeed(table) {
+  try {
+    const { TABLE_STRUCTURE_SEEDS } = await import("./table-structure-seeds.mjs");
+    const norm = (s) => String(s).toLowerCase().trim();
+    const seed = TABLE_STRUCTURE_SEEDS[table.name]
+      ?? Object.entries(TABLE_STRUCTURE_SEEDS).find(([k]) =>
+        norm(k) === norm(table.name) || norm(table.name).endsWith(`- ${norm(k)}`) || norm(k).endsWith(`- ${norm(table.name)}`))?.[1];
+    if (!seed) return;
+    const { findSuitePack, ensureFolderPath } = await import("./compendium-suite.mjs");
+    const packOf = { tables: findSuitePack("sde-tables"), actors: findSuitePack("sde-actors"), items: findSuitePack("sde-items") };
+    if (seed.flags && Object.keys(seed.flags).length)
+      await table.update({ "flags.shadowdark-enhancer": { ...(table.flags["shadowdark-enhancer"] ?? {}), ...seed.flags } });
+    // Restore the gold-master folder (single top-level folder, e.g. "Gods &
+    // Patrons"): createTable files by source, but the seed is authoritative for
+    // where the imported table belongs. Only moves when it differs.
+    if (seed.folder && packOf.tables) {
+      const folderId = await ensureFolderPath(packOf.tables, [seed.folder]);
+      if (folderId && (table.folder?.id ?? null) !== folderId) await table.update({ folder: folderId });
+    }
+    if (!seed.links?.length) return;
+    // Group by range: the first link converts that range's text row; further
+    // links at the same range ADD results (Choose-1 style multi-result rows).
+    const groups = new Map();
+    for (const link of seed.links) {
+      let uuid = link.uuid ?? null;
+      if (!uuid && link.ref) {
+        const p = packOf[link.ref.pack];
+        const idx = p ? await p.getIndex() : null;
+        const hit = idx?.find((e) => e.name === link.ref.name);
+        if (hit) uuid = `Compendium.${p.collection}.${p.documentName}.${hit._id}`;
+      }
+      if (!uuid) continue;   // target not imported yet — the Relink pass can finish later
+      const key = `${link.range[0]}-${link.range[1]}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ uuid, range: link.range });
+    }
+    const updates = [], creates = [];
+    for (const ls of groups.values()) {
+      const rows = table.results.filter((r) =>
+        r.range[0] === ls[0].range[0] && r.range[1] === ls[0].range[1] && r.type !== "document");
+      ls.forEach((l, i) => {
+        if (rows[i]) updates.push({ _id: rows[i].id, type: "document", documentUuid: l.uuid });
+        else creates.push({ type: "document", documentUuid: l.uuid, range: l.range, weight: 1 });
+      });
+    }
+    if (updates.length) await table.updateEmbeddedDocuments("TableResult", updates);
+    if (creates.length) await table.createEmbeddedDocuments("TableResult", creates);
+  } catch (err) {
+    console.warn(`shadowdark-enhancer | applyTableStructureSeed(${table?.name}):`, err);
+  }
 }
 
 /**
