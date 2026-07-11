@@ -178,12 +178,12 @@ export class TokenArtCatalog {
     }
     // Folder sources present on disk.
     for (const fs of this.FOLDER_SOURCES) {
-      const ok = await FilePicker.browse("data", fs.tokenDir).then((b) => b.files.length > 0).catch(() => false);
+      const ok = await MonsterTokenArt.FilePickerCls.browse("data", fs.tokenDir).then((b) => b.files.length > 0).catch(() => false);
       if (ok) sources.push({ ...fs, kind: "folder" });
     }
     // File-map sources (disk folder tree, no shadowdark map, matched by filename).
     for (const fs of this.FILEMAP_SOURCES) {
-      const ok = await FilePicker.browse("data", fs.probe).then((b) => (b.dirs?.length || b.files?.length)).catch(() => false);
+      const ok = await MonsterTokenArt.FilePickerCls.browse("data", fs.probe).then((b) => (b.dirs?.length || b.files?.length)).catch(() => false);
       if (ok) sources.push({ ...fs, kind: "filemap" });
     }
     return sources;
@@ -195,7 +195,7 @@ export class TokenArtCatalog {
   static async _browseFlatDir(dir) {
     const found = new Map();
     let res;
-    try { res = await FilePicker.browse("data", dir); } catch (e) { return found; }
+    try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (e) { return found; }
     for (const f of res.files ?? []) {
       if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
       const base = f.split("/").pop();
@@ -209,7 +209,7 @@ export class TokenArtCatalog {
     const found = new Map();
     const walk = async (dir) => {
       let res;
-      try { res = await FilePicker.browse("data", dir); } catch (e) { return; }
+      try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (e) { return; }
       for (const f of res.files ?? []) {
         if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
         const base = f.split("/").pop();
@@ -450,7 +450,7 @@ export class TokenArtCatalog {
     for (const mod of game.modules ?? []) {
       if (!/^pf2e-tokens-/.test(mod.id) || this.LIBRARY_DIRS[mod.id]) continue;   // configured ones handled already
       for (const root of [`modules/${mod.id}/assets/tokens`, `modules/${mod.id}/tokens`, `modules/${mod.id}`]) {
-        const ok = await FilePicker.browse("data", root).then((b) => (b.files?.length || b.dirs?.length)).catch(() => false);
+        const ok = await MonsterTokenArt.FilePickerCls.browse("data", root).then((b) => (b.files?.length || b.dirs?.length)).catch(() => false);
         if (ok) { out.push({ id: mod.id, label: mod.title ?? mod.id, root }); break; }
       }
     }
