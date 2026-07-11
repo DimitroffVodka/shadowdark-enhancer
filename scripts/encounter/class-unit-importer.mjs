@@ -21,6 +21,7 @@
  */
 
 import { MODULE_ID } from "../module-id.mjs";
+import { escapeHtml } from "./pdf-text-utils.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -55,7 +56,9 @@ function _systemIndex(documentName, preferred = null) {
 
 /** Find-or-create one Item in the suite pack, foldered. → {uuid, name, reused} */
 async function _ensureItem(pack, data, folderPath, report) {
-  const { ensureFolderPath } = await import("./compendium-suite.mjs");
+  const { ensureFolderPath, cleanImportHtml } = await import("./compendium-suite.mjs");
+  // Commit choke point: sanitize persisted HTML (review #1).
+  if (data.system?.description) data.system.description = cleanImportHtml(data.system.description);
   const idx = await pack.getIndex({ fields: ["type"] });
   const existing = idx.find((e) => e.name === data.name && e.type === data.type);
   if (existing) {
@@ -276,7 +279,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   const classData = {
     name: parsed.name, type: "Class", img: "icons/skills/trades/academics-book-study-runes.webp",
     system: {
-      description: (parsed.flavor ?? "") + parsed.features.map((f) => `<p><strong>${f.name}.</strong></p>${f.description}`).join(""),
+      description: (parsed.flavor ?? "") + parsed.features.map((f) => `<p><strong>${escapeHtml(f.name)}.</strong></p>${f.description}`).join(""),
       hitPoints: parsed.hitPoints,
       allWeapons: parsed.allWeapons, allMeleeWeapons: parsed.allMeleeWeapons,
       allRangedWeapons: parsed.allRangedWeapons, allArmor: parsed.allArmor,

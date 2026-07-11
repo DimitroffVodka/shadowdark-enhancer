@@ -21,6 +21,7 @@
 
 import { titleCaseName } from "./statblock-parser.mjs";
 import { parseValue, pickTreasureIcon } from "./loot-pack.mjs";
+import { escapeHtml, textToHtml } from "./pdf-text-utils.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
@@ -59,14 +60,13 @@ function inferItemType(name) {
 const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
 /**
- * Wrap body text in `<p>…</p>` unless it already starts with `<` (D4 discipline).
+ * Wrap body text in `<p>…</p>`, HTML-escaped. Pasted PDF text is plain text —
+ * a leading `<` is content to escape, never markup to trust (review #1).
  * @param {string} body
  * @returns {string}
  */
 function toHtml(body) {
-  const s = collapse(body);
-  if (!s) return "<p></p>";
-  return s.startsWith("<") ? s : `<p>${s}</p>`;
+  return textToHtml(body);
 }
 
 /**
@@ -132,16 +132,24 @@ export function parseItem(blockText) {
 
   if (!rawLines.length) return null;
 
+  let nameLine = rawLines[0];
+  const bodyLines = rawLines.slice(1);
+
+  // Same-line rider split ("Flame Ring Benefit. You resist fire.") — the
+  // rider text moves to the body so extractRiders sees it; it must never be
+  // title-cased into the name (review #6).
+  const inlineRider = /^(.*?)\s*\b(Benefit|Bonus|Curse|Personality)\.\s*(.*)$/.exec(nameLine);
+  if (inlineRider && inlineRider[1].trim()) {
+    nameLine = inlineRider[1].trim().replace(/[,;:]\s*$/, "");
+    bodyLines.unshift(`${inlineRider[2]}. ${inlineRider[3]}`.trim());
+  }
+
   // Name is the first line — strip inline cost/slot tokens first
   // ("Probe Rope, 5 gp, 1 slot" → "Probe Rope"); gear-line names were
   // retaining their cost text (live-caught, 11-03 checkpoint).
-  const nameLine = rawLines[0];
-  const name = titleCaseName(
-    nameLine.replace(/,?\s*\d+\s*(gp|sp|cp)\b.*$/i, "").trim()
-  );
+  const nameRaw = nameLine.replace(/,?\s*\d+\s*(gp|sp|cp)\b.*$/i, "").trim();
+  const name = titleCaseName(nameRaw);
 
-  // Body = everything after the name line (joined)
-  const bodyLines = rawLines.slice(1);
   const bodyText = bodyLines.join("\n");
 
   // ── Determine anchor type ──
@@ -184,22 +192,16 @@ export function parseItem(blockText) {
       draft.slots.slots_used = Number(slotsM[1]);
     }
 
-    // Description: assemble from remaining body lines + rider summary
+    // Description: assemble from remaining body lines + rider summary.
+    // Every pasted fragment is escaped before entering module markup.
     const descParts = [];
-    if (remainingLines.length) descParts.push(remainingLines.join(" ").trim());
-    for (const b of benefit) descParts.push(`<p><strong>Benefit.</strong> ${b}</p>`);
-    if (bonus) descParts.push(`<p><strong>Bonus.</strong> ${bonus}</p>`);
-    if (curse) descParts.push(`<p><strong>Curse.</strong> ${curse}</p>`);
-    if (personality) descParts.push(`<p><strong>Personality.</strong> ${personality}</p>`);
+    if (remainingLines.length) descParts.push(textToHtml(remainingLines.join(" ")));
+    for (const b of benefit) descParts.push(`<p><strong>Benefit.</strong> ${escapeHtml(b)}</p>`);
+    if (bonus) descParts.push(`<p><strong>Bonus.</strong> ${escapeHtml(bonus)}</p>`);
+    if (curse) descParts.push(`<p><strong>Curse.</strong> ${escapeHtml(curse)}</p>`);
+    if (personality) descParts.push(`<p><strong>Personality.</strong> ${escapeHtml(personality)}</p>`);
 
-    if (descParts.length) {
-      // The first part may be plain text — wrap it; rider lines are already <p>
-      const first = descParts[0];
-      const wrappedFirst = first.startsWith("<") ? first : `<p>${first}</p>`;
-      draft.description = [wrappedFirst, ...descParts.slice(1)].join("\n");
-    } else {
-      draft.description = "<p></p>";
-    }
+    draft.description = descParts.length ? descParts.join("\n") : "<p></p>";
 
   } else {
     // ── Gear path ──
@@ -218,22 +220,25 @@ export function parseItem(blockText) {
     }
     // Else default slots_used = 1 (already set)
 
-    // Description: body lines minus the cost/slots portion
-    const descLines = bodyLines.filter(l => !COST_RE.test(l) && !SLOTS_RE.test(l));
-    // Also strip cost/slots from nameLine if inline
-    const nameBodyStripped = collapse(
-      nameLine
-        .replace(COST_RE, "")
-        .replace(SLOTS_RE, "")
-        .replace(/,\s*$/, "")
-        .trim()
-    );
-    // Only use nameBodyStripped if it differs from name (i.e. there was inline content after name)
-    const extraFromName = nameBodyStripped !== name.trim() && nameBodyStripped.length > name.trim().length
-      ? "" // No extra — the name was just the name
-      : "";
+    // Description: keep every body line, removing only the recognized
+    // cost/slot tokens — a line like "50 feet long, 5 gp, 1 slot" keeps
+    // "50 feet long" instead of being dropped wholesale (review #5).
+    const stripTokens = (l) => collapse(
+      String(l ?? "")
+        .replace(new RegExp(COST_RE.source, "gi"), "")
+        .replace(new RegExp(SLOTS_RE.source, "gi"), "")
+    ).replace(/\s*,\s*(?=,|$)/g, "").replace(/^[,\s]+/, "").trim();
+    const descLines = bodyLines.map(stripTokens).filter(Boolean);
 
-    const descBody = descLines.join(" ").trim();
+    // Inline name-line remainder ("Rope, 5 gp, 1 slot, 50 feet of hemp" →
+    // "50 feet of hemp") joins the description instead of being discarded.
+    const strippedNameLine = stripTokens(nameLine);
+    let nameLineExtra = "";
+    if (nameRaw && strippedNameLine.toLowerCase().startsWith(nameRaw.toLowerCase())) {
+      nameLineExtra = strippedNameLine.slice(nameRaw.length).replace(/^[,\s]+/, "").trim();
+    }
+
+    const descBody = [nameLineExtra, ...descLines].filter(Boolean).join(" ").trim();
     draft.description = toHtml(descBody || "");
   }
 

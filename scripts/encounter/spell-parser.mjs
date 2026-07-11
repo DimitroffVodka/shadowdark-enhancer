@@ -28,6 +28,7 @@
  */
 
 import { titleCaseName } from "./statblock-parser.mjs";
+import { textToHtml } from "./pdf-text-utils.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
@@ -37,11 +38,12 @@ const RANGE_RE    = /^\s*Range\s*[:\-]\s*(.+)$/i;
 
 const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
-/** Wrap body text in <p>…</p> unless it already starts with `<`. */
+/**
+ * Wrap body text in `<p>…</p>`, HTML-escaped — pasted PDF text is never
+ * trusted as markup (review #1).
+ */
 function toHtml(body) {
-  const s = collapse(body);
-  if (!s) return "<p></p>";
-  return s.startsWith("<") ? s : `<p>${s}</p>`;
+  return textToHtml(body);
 }
 
 /** True if a line is an ALL-CAPS spell-name line (mirrors statblock isNameLine). */
@@ -108,44 +110,55 @@ export function parseSpell(blockText) {
     .map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
   if (!rawLines.length) return null;
 
-  // Locate the meta lines (order-tolerant); track the last meta index so the
-  // description is everything after it.
+  // Locate the meta lines (order-tolerant), tracking each line's index so the
+  // description can be "every non-meta line" rather than "everything after
+  // the last meta line" (which silently dropped interleaved prose, review #8).
   let tier = null, className = "", durationRaw = null, rangeRaw = null;
-  let tierIdx = -1, lastMetaIdx = -1;
+  let tierIdx = -1, durIdx = -1, rangeIdx = -1;
   rawLines.forEach((line, idx) => {
     let m;
     if (tierIdx === -1 && (m = TIER_RE.exec(line))) {
       tierIdx = idx;
       tier = Number(m[1]);
       className = collapse(m[2]).replace(/^[,\s]+/, "").replace(/[.,;:]+$/, "");
-      lastMetaIdx = Math.max(lastMetaIdx, idx);
-    } else if (durationRaw === null && (m = DURATION_RE.exec(line))) {
-      durationRaw = m[1]; lastMetaIdx = Math.max(lastMetaIdx, idx);
-    } else if (rangeRaw === null && (m = RANGE_RE.exec(line))) {
-      rangeRaw = m[1]; lastMetaIdx = Math.max(lastMetaIdx, idx);
+    } else if (durIdx === -1 && (m = DURATION_RE.exec(line))) {
+      durIdx = idx; durationRaw = m[1];
+    } else if (rangeIdx === -1 && (m = RANGE_RE.exec(line))) {
+      rangeIdx = idx; rangeRaw = m[1];
     }
   });
 
   // Anchor check.
   if (tierIdx === -1 || (durationRaw === null && rangeRaw === null)) return null;
 
-  // Name: the first line above the Tier line (ALL-CAPS → Title Case). If the
-  // Tier line is first (no name), warn.
+  // Name: the NEAREST line above the Tier anchor (review #7) — a section
+  // heading pasted above the real name ("SPELLS") must not become the name.
+  // Lines above the name line are surfaced in a warning, never silently eaten.
   let name = "";
-  if (tierIdx > 0) name = titleCaseName(rawLines[0].trim());
+  const nameIdx = tierIdx - 1;
+  if (nameIdx >= 0) name = titleCaseName(rawLines[nameIdx].trim());
   if (!name) { name = "Unnamed Spell"; warnings.push("name: no name line above the Tier line"); }
+  if (nameIdx > 0) {
+    const lead = rawLines.slice(0, nameIdx).map((l) => collapse(l)).filter(Boolean);
+    warnings.push(`ignored ${lead.length} line(s) above the spell name: "${lead.join(" / ")}"`);
+  }
 
-  // Description: hard-wrapped lines after the last meta line, joined into one
-  // paragraph (the GM can re-paragraph in the preview).
-  const description = toHtml(rawLines.slice(lastMetaIdx + 1).join(" "));
+  // Description: every non-meta line after the Tier anchor, in source order.
+  const metaIdxSet = new Set([tierIdx, durIdx, rangeIdx]);
+  const descLines = rawLines.filter((_, idx) => idx > tierIdx && !metaIdxSet.has(idx));
+  const description = toHtml(descLines.join(" "));
 
   const range = mapRange(rangeRaw, warnings);
   const duration = mapDuration(durationRaw, warnings);
+  // A missing meta line silently changes spell mechanics — surface the
+  // default explicitly (review #9).
+  if (durationRaw === null) warnings.push("duration: line missing — defaulted to instant; verify");
+  if (rangeRaw === null) warnings.push("range: line missing — defaulted to close; verify");
   if (!className) warnings.push("class: none found on the Tier line — spell will import unlinked");
 
   // Damage formula: only an NdN that is explicitly a DAMAGE roll (so "1d4
   // rounds" / "1d4 turns" are never mistaken for damage).
-  const descText = rawLines.slice(lastMetaIdx + 1).join(" ");
+  const descText = descLines.join(" ");
   const dmgM = /(\d+d\d+)(?=\s+(?:\w+\s+){0,2}damage)/i.exec(descText) || /(\d+d\d+)\s+damage/i.exec(descText);
   const formula = dmgM ? dmgM[1] : null;
 

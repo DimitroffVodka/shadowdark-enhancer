@@ -17,7 +17,7 @@
  */
 import { MODULE_ID } from "../module-id.mjs";
 import { pickTreasureIcon } from "./loot-pack.mjs";
-import { findSuitePack, ensureSuite, ensureSourceFolder, ensureFolderPath } from "./compendium-suite.mjs";
+import { findSuitePack, ensureSuite, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml } from "./compendium-suite.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
@@ -222,33 +222,43 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
   if (!pack) { console.error(`${MODULE_ID} | createItem: sde-items pack not found`); return null; }
 
   const itemData = buildItemData(draft);
+  // Commit choke point: sanitize persisted HTML (review #1) — covers both
+  // parser output and preview-edited descriptions.
+  if (itemData.system?.description) {
+    itemData.system.description = cleanImportHtml(itemData.system.description);
+  }
   const index = await pack.getIndex();
   const existing = [...index].find((e) => (e.name ?? "").toLowerCase() === itemData.name.toLowerCase());
 
-  let status = "created";
-  if (existing) {
-    const choice = onConflict ? await onConflict(itemData.name) : "rename";
-    if (choice === "skip") return { name: itemData.name, status: "skipped" };
-    if (choice === "replace") {
-      const old = await pack.getDocument(existing._id).catch(() => null);
-      if (old) await old.delete();
-      status = "replaced";
-    } else {
-      itemData.name = _uniqueName(index, itemData.name);
-    }
-  }
-
-  const payload = {
+  const buildPayload = () => ({
     ...itemData,
     folder: folder ?? null,
     flags: {
       ...(itemData.flags ?? {}),
       [MODULE_ID]: { ...(itemData.flags?.[MODULE_ID] ?? {}), source, imported: true },
     },
-  };
+  });
 
-  const item = await Item.create(payload, { pack: pack.collection });
-  return { uuid: item.uuid, name: item.name, status };
+  if (existing) {
+    const choice = onConflict ? await onConflict(itemData.name) : "rename";
+    if (choice === "skip") return { name: itemData.name, status: "skipped" };
+    if (choice === "replace") {
+      const old = await pack.getDocument(existing._id).catch(() => null);
+      if (old) {
+        // Non-destructive replace: in-place update (UUID + inbound links
+        // survive) with create-then-delete fallback — the original is never
+        // deleted before the replacement exists.
+        const { doc, mode } = await replaceDocument(old, buildPayload(), pack);
+        return { uuid: doc.uuid, name: doc.name, status: "replaced", mode };
+      }
+      // Index entry without a resolvable document — fall through to create.
+    } else {
+      itemData.name = _uniqueName(index, itemData.name);
+    }
+  }
+
+  const item = await Item.create(buildPayload(), { pack: pack.collection });
+  return { uuid: item.uuid, name: item.name, status: "created" };
 }
 
 /**

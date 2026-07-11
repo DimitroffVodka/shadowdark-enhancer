@@ -237,3 +237,74 @@ export async function ensureFolderPath(pack, names) {
   }
   return parentId;
 }
+
+/**
+ * Non-destructive "replace" for importer conflict resolution (PDF-parser
+ * review 2026-07-11 #2). The old delete-then-create pattern lost BOTH copies
+ * when the new payload failed validation, and always churned the UUID
+ * (breaking journal/table @UUID links — the reason relink-tables exists).
+ *
+ * Strategy ladder:
+ *  1. Same-type existing doc → update IN PLACE (`recursive: false`, so the
+ *     provided top-level objects replace wholesale and the result matches a
+ *     fresh create), then swap embedded rows (Actor items / RollTable
+ *     results). UUID and inbound links survive.
+ *  2. Type mismatch or in-place failure → CREATE the replacement first
+ *     (packs allow duplicate names), delete the original only after the
+ *     create succeeded. Any create failure leaves the original untouched.
+ *
+ * @param {Document} oldDoc   Existing compendium document being replaced.
+ * @param {object} payload    Create-shaped data (may include `items`/`results`).
+ * @param {CompendiumCollection} pack
+ * @returns {Promise<{doc: Document, mode: "updated"|"recreated"}>}
+ * @throws when neither path produced a replacement (original preserved).
+ */
+export async function replaceDocument(oldDoc, payload, pack) {
+  const EMBEDDED = { Actor: ["items", "Item"], RollTable: ["results", "TableResult"] };
+  const [field, embeddedName] = EMBEDDED[oldDoc.documentName] ?? [null, null];
+  const docData = { ...payload };
+  delete docData._id;
+  const rows = field ? (docData[field] ?? []) : [];
+  if (field) delete docData[field];
+
+  if (!docData.type || docData.type === oldDoc.type) {
+    try {
+      await oldDoc.update(docData, { recursive: false });
+      if (field) {
+        const oldIds = oldDoc.getEmbeddedCollection(embeddedName).map((r) => r.id);
+        if (oldIds.length) await oldDoc.deleteEmbeddedDocuments(embeddedName, oldIds);
+        if (rows.length) await oldDoc.createEmbeddedDocuments(embeddedName, rows);
+      }
+      return { doc: oldDoc, mode: "updated" };
+    } catch (err) {
+      console.warn(`${MODULE_ID} | replaceDocument: in-place update of "${oldDoc.name}" failed (${err.message}) — falling back to create-then-delete`);
+    }
+  }
+
+  const cls = oldDoc.constructor;
+  const created = await cls.create(payload, { pack: pack.collection });
+  if (!created) throw new Error(`replacement create for "${payload?.name}" returned nothing — original kept`);
+  await oldDoc.delete();
+  return { doc: created, mode: "recreated" };
+}
+
+/**
+ * Commit-time HTML sanitizer (PDF-parser review 2026-07-11 #1). Parsers
+ * escape pasted text at construction; this second pass at the Foundry-bound
+ * commit choke points also covers preview-EDITED HTML (the hub lets a GM
+ * type markup into description fields). Uses Foundry's supported sanitizer;
+ * plain text and safe markup pass through unchanged.
+ * @param {string} html
+ * @returns {string}
+ */
+export function cleanImportHtml(html) {
+  const s = String(html ?? "");
+  if (!s) return s;
+  try {
+    const clean = globalThis.foundry?.utils?.cleanHTML;
+    return typeof clean === "function" ? clean(s) : s;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | cleanImportHtml: sanitize failed — storing escaped text`, err);
+    return s.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+}

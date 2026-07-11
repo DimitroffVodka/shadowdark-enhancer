@@ -101,6 +101,7 @@ function computeWarnings(pt) {
 /** Build a single-die ParsedTable from a block's data lines. */
 function parseSingleDieBlock(title, die, dataLines) {
   const rows = [];
+  const preRow = [];
   const anyToken = dataLines.some(l => parseLeadingRange(l));
 
   if (anyToken) {
@@ -111,8 +112,12 @@ function parseSingleDieBlock(title, die, dataLines) {
       } else if (rows.length) {
         const prev = rows[rows.length - 1];
         prev.text = `${prev.text} ${line.trim()}`.trim();
+      } else {
+        // Text before the first row is usually a usage instruction ("Roll
+        // once each morning") — keep it as the table description instead of
+        // silently discarding it (review #10).
+        preRow.push(line.trim());
       }
-      // a continuation with no prior row is dropped (stray header crumb)
     }
   } else {
     dataLines.forEach((line, i) => {
@@ -132,10 +137,14 @@ function parseSingleDieBlock(title, die, dataLines) {
     bestEffort: false,
     category: classify(name),
     customLabel: "",
+    ...(preRow.length ? { description: preRow.join(" ") } : {}),
     rows,
     warnings: [],
   };
   pt.warnings = computeWarnings(pt);
+  if (preRow.length) {
+    pt.warnings.push(`Pre-row text kept as table description: "${preRow.join(" ")}"`);
+  }
   return pt;
 }
 
@@ -668,7 +677,10 @@ export function buildTableData(pt) {
   // displayRoll:false keeps the roll formula out of the chat card, which is
   // what Dice So Nice's "Enable 3D dice on Roll Tables" feature requires to
   // animate the draw (it also needs core "Animate Roll Table Roll" off).
-  return { name, formula, replacement: pt.replacement !== false, displayRoll: false, results };
+  return {
+    name, formula, replacement: pt.replacement !== false, displayRoll: false, results,
+    ...(pt.description ? { description: pt.description } : {}),
+  };
 }
 
 // Internal exports for tooling/tests that want the lower-level pieces.
@@ -727,17 +739,24 @@ export async function createTable(pt, { onConflict } = {}) {
   const pack = suite.tables;
 
   const data = buildTableData(pt);
+  // Commit choke point: sanitize persisted HTML (review #1).
+  if (data.description) {
+    const { cleanImportHtml } = await import("./compendium-suite.mjs");
+    data.description = cleanImportHtml(data.description);
+  }
 
   // Conflict check against the PACK index (not world game.tables).
   const packIndex = await pack.getIndex();
   const existing = packIndex.find(e => e.name === data.name);
+  let replaceTarget = null;
   if (existing) {
     const choice = onConflict ? await onConflict(data.name) : "rename";
     if (choice === "cancel") return null;
     if (choice === "replace") {
-      // Delete ONLY the matching document — never the compendium (T-09-08).
-      const doc = await pack.getDocument(existing._id);
-      if (doc) await doc.delete();
+      // Replace ONLY the matching document — never the compendium (T-09-08).
+      // Deferred to the create site below so the original survives until the
+      // replacement data is fully built (non-destructive, review #2).
+      replaceTarget = await pack.getDocument(existing._id);
     } else {
       data.name = _uniqueNameAgainstIndex(data.name, [...packIndex]);
     }
@@ -772,8 +791,17 @@ export async function createTable(pt, { onConflict } = {}) {
     },
   };
 
-  // File into sde-tables pack (pack-native — D-08 / REQ-30).
-  const table = await RollTable.create(data, { pack: pack.collection });
+  // File into sde-tables pack (pack-native — D-08 / REQ-30). On replace,
+  // update the existing table in place (UUID + inbound @UUID links survive;
+  // results swapped) — the original is never deleted before its replacement
+  // exists (review #2).
+  let table;
+  if (replaceTarget) {
+    const { replaceDocument } = await import("./compendium-suite.mjs");
+    ({ doc: table } = await replaceDocument(replaceTarget, data, pack));
+  } else {
+    table = await RollTable.create(data, { pack: pack.collection });
+  }
   // Compound generators have a single hint result — nothing to enrich, and
   // enriching would rewrite that hint with @UUID links.
   if (!pt.isCompound) await _autoEnrich(table, pt);

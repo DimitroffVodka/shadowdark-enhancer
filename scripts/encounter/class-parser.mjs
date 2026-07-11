@@ -26,6 +26,8 @@
  * See .planning/CLASS-AUTHORING-PLAYBOOK.md for the target document shapes.
  */
 
+import { escapeHtml } from "./pdf-text-utils.mjs";
+
 // ─── Line classifiers ────────────────────────────────────────────────────────
 
 const HEADER_KEY  = /^(Weapons?|Armou?r|Hit\s*Points?)\s*[:.]\s*(.*)$/i;
@@ -371,12 +373,13 @@ export function parseClassSection(text) {
   if (cur) features.push(cur);
   if (!hitDie) warnings.push("No hit die found on the Hit Points line — defaulting to d6; check the sheet.");
 
-  // Render each feature's lines to HTML, preserving bullet lists.
+  // Render each feature's lines to HTML, preserving bullet lists. Pasted
+  // lines are escaped before entering the markup (review #1).
   const toHtml = (ls) => {
     const out = []; let list = null;
-    const flush = () => { if (list) { out.push(`<ul>${list.map((b) => `<li>${b}</li>`).join("")}</ul>`); list = null; } };
+    const flush = () => { if (list) { out.push(`<ul>${list.map((b) => `<li>${escapeHtml(b)}</li>`).join("")}</ul>`); list = null; } };
     let para = [];
-    const flushPara = () => { if (para.length) { out.push(`<p>${para.join(" ")}</p>`); para = []; } };
+    const flushPara = () => { if (para.length) { out.push(`<p>${escapeHtml(para.join(" "))}</p>`); para = []; } };
     for (const l of ls) {
       if (BULLET.test(l)) { flushPara(); (list ??= []).push(l.replace(BULLET, "").trim()); }
       else { flush(); para.push(l); }
@@ -434,12 +437,15 @@ export function parseClassSection(text) {
   const allMelee   = /all\s+melee/i.test(weaponsText);
   const allRanged  = /all\s+ranged/i.test(weaponsText);
   const allArmor   = /all\s+armou?r/i.test(armorText);
-  const weaponExtras = weaponsText.replace(/all\s+(?:melee\s+|ranged\s+)?weapons?/ig, "");
+  // "none" is a grant of nothing, not a gear name — strip it from BOTH lists
+  // (it was only stripped from armor, so "Weapons: none" produced a literal
+  // weapon lookup for "none" downstream; review #11).
+  const weaponExtras = weaponsText.replace(/all\s+(?:melee\s+|ranged\s+)?weapons?/ig, "").replace(/\bnone\b/i, "");
   const armorExtras  = armorText.replace(/all\s+armou?r(?:\s+and\s+shields?)?/ig, "").replace(/\bnone\b/i, "");
 
   return {
     name,
-    flavor: flavorLines.length ? `<p>${flavorLines.join(" ")}</p>` : "",
+    flavor: flavorLines.length ? `<p>${escapeHtml(flavorLines.join(" "))}</p>` : "",
     hitPoints: hitDie || "d6",
     weaponsText, armorText,
     allWeapons, allMeleeWeapons: allMelee, allRangedWeapons: allRanged, allArmor,

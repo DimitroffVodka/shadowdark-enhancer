@@ -9,8 +9,11 @@
  *   "122") is anchor-shaped — but a single anchored block NEVER claims.
  *   Claiming requires a RUN of ≥3 anchored units (MIN_RUN_UNITS); inside a
  *   claimed run, non-anchored blocks (ALL-CAPS headings, statblock-ish text,
- *   dice lines) attach to the preceding hex as continuations. Trailing
- *   continuations after the run's last anchor are capped at K = the largest
+ *   dice lines) attach to the preceding hex as continuations — but anchors
+ *   more than MAX_ANCHOR_GAP blocks apart never chain, and a run claims only
+ *   when ≥ half its anchors carry evidence beyond the bare ID (title or body
+ *   in the anchor block) — bare-number page/section ids claim nothing.
+ *   Trailing continuations after the run's last anchor are capped at K = the largest
  *   continuation gap observed BETWEEN anchored units in the run (corpus-
  *   adaptive; K = 0 when every block is anchored) — anything past the cap
  *   stays in the remainder for later recognizers / the Skipped list.
@@ -31,6 +34,7 @@
  */
 
 import { titleCaseName } from "./statblock-parser.mjs";
+import { escapeHtml } from "./pdf-text-utils.mjs";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -39,6 +43,14 @@ const HEX_ANCHOR_RE = /^\s*(\d{3,4})\b[.:]?\s*(.*)$/;
 
 /** A-01 cluster threshold — runs with fewer anchored units claim NOTHING. */
 export const MIN_RUN_UNITS = 3;
+
+/**
+ * A-01 gap bound — a run TERMINATES when the next anchor sits more than this
+ * many non-anchored blocks past the previous one. Without a bound, three
+ * stray page numbers anywhere in a dump could bridge arbitrary prose into
+ * one "run" and steal statblocks/tables from later recognizers.
+ */
+export const MAX_ANCHOR_GAP = 2;
 
 /** Pass-1 placeholder written into page HTML; pass-2 rewrites to @UUID. */
 const HEX_PLACEHOLDER_RE = /@@HEX\[([0-9]+,[0-9]+)\]\{([^}]*)\}@@/g;
@@ -81,7 +93,31 @@ export function matchHexAnchor(block) {
 }
 
 /**
+ * Anchor-evidence predicate: a bare 3–4 digit block ("101" alone — a page
+ * number, a section id) is anchor-SHAPED but carries no hexcrawl evidence.
+ * Evidence = a same-line title after the ID, or body lines inside the SAME
+ * block. Runs where fewer than half the anchors carry evidence claim NOTHING.
+ * @param {string} block
+ * @returns {boolean}
+ */
+export function anchorHasEvidence(block) {
+  const anchor = matchHexAnchor(block);
+  if (!anchor) return false;
+  if (anchor.sameLineTitle) return true;
+  const lines = String(block ?? "").split("\n").map((l) => l.trim()).filter(Boolean);
+  return lines.length >= 2;
+}
+
+/**
  * Cluster blank-line blocks into hex RUNS per A-01.
+ *
+ * Bounds (both required for a claim):
+ *  - gap: consecutive anchors more than MAX_ANCHOR_GAP non-anchored blocks
+ *    apart belong to DIFFERENT candidate runs (page numbers spread through a
+ *    document never chain into one run);
+ *  - evidence: ≥ half the run's anchors must carry evidence beyond the bare
+ *    ID (see anchorHasEvidence) — three naked numbers are page numbers, not
+ *    a hexcrawl.
  * @param {string[]} blocks
  * @returns {{runs: Array<{units: string[][]}>, claimedIdxSet: Set<number>}}
  *   Each unit is the array of block strings belonging to one hex.
@@ -97,8 +133,15 @@ export function clusterHexRuns(blocks) {
     const gaps = [];        // continuation count between consecutive anchors
     let pending = [];       // non-anchored blocks after the last anchor
     let j = i;
+    let next = null;        // where the scan resumes (a gap-breaking anchor)
     while (j < blocks.length) {
       if (matchHexAnchor(blocks[j])) {
+        if (units.length && pending.length > MAX_ANCHOR_GAP) {
+          // Too far from the previous anchor — this anchor starts a NEW
+          // candidate run; the current one ends at its last anchor.
+          next = j;
+          break;
+        }
         if (units.length) {
           units[units.length - 1].idxs.push(...pending.splice(0));
           gaps.push(units[units.length - 1].idxs.length - 1);
@@ -115,14 +158,15 @@ export function clusterHexRuns(blocks) {
     const tail = pending.splice(0, Math.min(pending.length, K));
     if (units.length) units[units.length - 1].idxs.push(...tail);
 
-    if (units.length >= MIN_RUN_UNITS) {
+    const evidenced = units.filter((u) => anchorHasEvidence(blocks[u.idxs[0]])).length;
+    if (units.length >= MIN_RUN_UNITS && evidenced >= Math.ceil(units.length / 2)) {
       const run = { units: units.map((u) => u.idxs.map((k) => blocks[k])) };
       runs.push(run);
       for (const u of units) for (const k of u.idxs) claimedIdxSet.add(k);
     }
-    // Whether claimed or not, we've consumed the scan up to j minus the
-    // un-attached pending tail — resume after the last block we examined.
-    i = j;
+    // Resume at the gap-breaking anchor when one ended this run, else after
+    // the last block examined.
+    i = next ?? j;
   }
   return { runs, claimedIdxSet };
 }
@@ -235,7 +279,9 @@ export function linkifyHexText(text, hexKeySet) {
 export function buildHexPageHtml(draft, hexKeySet) {
   const lines = draft?.bodyLines ?? [];
   if (!lines.length) return "<p></p>";
-  return lines.map((l) => `<p>${linkifyHexText(l, hexKeySet)}</p>`).join("\n");
+  // Escape BEFORE linkify: pasted text is never markup (review #1); the hex
+  // placeholders inserted afterwards contain no HTML metacharacters.
+  return lines.map((l) => `<p>${linkifyHexText(escapeHtml(l), hexKeySet)}</p>`).join("\n");
 }
 
 /**
@@ -309,4 +355,4 @@ export const hexcrawlRecognizer = {
 
 // ─── Internal exports for tests ───────────────────────────────────────────────
 
-export const _internals = { clusterHexRuns, matchHexAnchor, splitRawBlocks, MIN_RUN_UNITS };
+export const _internals = { clusterHexRuns, matchHexAnchor, anchorHasEvidence, splitRawBlocks, MIN_RUN_UNITS, MAX_ANCHOR_GAP };

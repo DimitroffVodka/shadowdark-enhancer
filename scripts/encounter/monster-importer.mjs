@@ -13,6 +13,7 @@ import { MODULE_ID } from "../module-id.mjs";
 import { draftToActorData } from "./encounter-creator.mjs";
 import { MonsterLinker } from "./monster-linker.mjs";
 import { MONSTER_PACK_LABEL, findMonsterPack } from "./monster-pack.mjs";
+import { replaceDocument, cleanImportHtml } from "./compendium-suite.mjs";
 
 const PACK_LABEL = MONSTER_PACK_LABEL;
 
@@ -153,32 +154,43 @@ export async function createMonster(draft, { pack, folder = null, source = "", o
   await resolveDraftArt(draft);
 
   const { actorData, items } = draftToActorData(draft);
+  // Commit choke point: sanitize persisted HTML (review #1) — encounter-
+  // creator's _descHtml passes through strings that start with "<".
+  if (actorData.system?.notes) actorData.system.notes = cleanImportHtml(actorData.system.notes);
+  for (const it of items) {
+    if (it.system?.description) it.system.description = cleanImportHtml(it.system.description);
+  }
   const index = await pack.getIndex();
   const existing = [...index].find((e) => (e.name ?? "").toLowerCase() === actorData.name.toLowerCase());
 
-  let status = "created";
+  // Fold the embedded items into the create payload (the compendium-create path,
+  // not a post-create createEmbeddedDocuments call); stamp the source flag.
+  const buildPayload = () => ({
+    ...actorData,
+    items,
+    folder: folder ?? null,
+    flags: { ...(actorData.flags ?? {}), [MODULE_ID]: { ...(actorData.flags?.[MODULE_ID] ?? {}), source } },
+  });
+
   if (existing) {
     const choice = onConflict ? await onConflict(actorData.name) : "rename";
     if (choice === "skip") return { name: actorData.name, status: "skipped" };
     if (choice === "replace") {
       const old = await pack.getDocument(existing._id).catch(() => null);
-      if (old) await old.delete();
-      status = "replaced";
+      if (old) {
+        // Non-destructive replace: in-place update (UUID + inbound links
+        // survive; embedded items swapped) with create-then-delete fallback.
+        const { doc, mode } = await replaceDocument(old, buildPayload(), pack);
+        return { uuid: doc.uuid, name: doc.name, status: "replaced", mode };
+      }
+      // Index entry without a resolvable document — fall through to create.
     } else {
       actorData.name = _uniqueName(index, actorData.name);
     }
   }
 
-  // Fold the embedded items into the create payload (the compendium-create path,
-  // not a post-create createEmbeddedDocuments call); stamp the source flag.
-  const payload = {
-    ...actorData,
-    items,
-    folder: folder ?? null,
-    flags: { ...(actorData.flags ?? {}), [MODULE_ID]: { ...(actorData.flags?.[MODULE_ID] ?? {}), source } },
-  };
-  const actor = await Actor.create(payload, { pack: pack.collection });
-  return { uuid: actor.uuid, name: actor.name, status };
+  const actor = await Actor.create(buildPayload(), { pack: pack.collection });
+  return { uuid: actor.uuid, name: actor.name, status: "created" };
 }
 
 /**

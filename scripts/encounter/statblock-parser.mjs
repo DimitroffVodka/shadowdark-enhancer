@@ -86,13 +86,39 @@ export function splitStatblocks(rawText) {
 
   const monsters = [];
   const skipped = [];
+
+  // A no-stat block that directly follows a monster is usually that monster's
+  // ALL-CAPS feature caption ("AMPHIBIOUS" + prose), not a new unit — detach
+  // it and the feature is silently lost (review #4). Reattach it, UNLESS it
+  // carries another recognizer's anchor (item cost/rider, spell tier, table
+  // rows) — those must stay unclaimed for the later recognizers.
+  const baitsOtherRecognizer = (text) =>
+    /\b\d+\s*(gp|sp|cp)\b/i.test(text) ||
+    /\b(Benefit|Bonus|Curse|Personality)\./.test(text) ||
+    /\bTier\s+\d/i.test(text) ||
+    /^\s*\d+\s*[-–]\s*\d+\s+\S/m.test(text);
+
+  let prevWasMonster = false;
   for (const b of blocks) {
     const hasStat = b.lines.some((l) => STAT_AC.test(l)) &&
                     [b.name, ...b.lines].join(" ").match(STAT_LV);
     if (hasStat) {
       monsters.push([b.name, ...b.lines].join("\n"));
+      prevWasMonster = true;
+      continue;
+    }
+    const blockText = [b.name, ...b.lines].join("\n");
+    const captionWords = b.name.trim().split(/\s+/).length;
+    const looksLikeFeatureCaption = prevWasMonster &&
+      captionWords <= 4 && !/\d/.test(b.name) &&
+      b.lines.filter((l) => l.trim()).length <= 6 &&
+      !baitsOtherRecognizer(blockText);
+    if (looksLikeFeatureCaption) {
+      monsters[monsters.length - 1] += `\n${blockText}`;
+      // prevWasMonster stays true — a monster may have several caption blocks.
     } else {
       skipped.push({ name: b.name, reason: "no stat line — section header or lore block" });
+      prevWasMonster = false;
     }
   }
   return { monsters, skipped };
@@ -236,6 +262,18 @@ function parseFeatures(featureLines, warnings) {
     // optional "(… Spell)" tag capture is preserved so spellcaster detection
     // still sees it.
     const stripped = line.replace(/^[•\-*–—]\s+/, "");
+    // Standalone ALL-CAPS caption line ("AMPHIBIOUS") — some PDFs render the
+    // feature name on its own line with the prose below (review #4). Start a
+    // named feature and flag it for review (the reattach in splitStatblocks
+    // is heuristic — the caption could be an unrelated section header).
+    const capsCaption = /^[A-Z][A-Z'’/–—\- ]+$/.test(stripped) && stripped.length <= 40
+      ? titleCaseName(stripped) : null;
+    if (capsCaption && !FEATURE_FALSE_POSITIVES.has(capsCaption.toLowerCase())) {
+      if (cur) features.push(cur);
+      cur = { name: capsCaption, description: "" };
+      warnings.push(`feature "${capsCaption}" captured from a standalone caps caption — verify it belongs to this monster`);
+      continue;
+    }
     const m = /^([A-Z][A-Za-z'’/–—\- ]*\d*(?:\s*\([^)]*\))?)\.\s+(.+)$/.exec(stripped);
     const headerName = m ? collapse(m[1]) : null;
     const isFalsePositive = headerName &&
