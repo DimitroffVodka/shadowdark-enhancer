@@ -4,6 +4,7 @@
 
 export { MODULE_ID } from "./module-id.mjs";
 import { MODULE_ID } from "./module-id.mjs";
+import { ICONS } from "./icons.mjs";
 
 import { registerSettings } from "./settings.mjs";
 import { CrawlState } from "./crawl-state.mjs";
@@ -175,7 +176,7 @@ Hooks.once("init", () => {
     btn.type = "button";
     btn.className = "character-generator-button sde-char-builder-launch";
     btn.innerHTML =
-      `<i class="fas fa-user-plus" inert></i>` +
+      ICONS.charBuilder +
       `<b class="button-text">${game.i18n.localize("SDE.charBuilder.title")}</b>`;
     btn.addEventListener("click", () => ShadowdarkCharBuilder.open());
     actions.appendChild(btn);
@@ -186,7 +187,7 @@ Hooks.once("init", () => {
       const artBtn = document.createElement("button");
       artBtn.type = "button";
       artBtn.className = "sde-monster-art-launch";
-      artBtn.innerHTML = `<i class="fa-solid fa-dragon" inert></i><span>${game.i18n.localize("SDE.tokenArt.button")}</span>`;
+      artBtn.innerHTML = `${ICONS.monsterArt}<span>${game.i18n.localize("SDE.tokenArt.button")}</span>`;
       artBtn.addEventListener("click", () => TokenArtManagerApp.open());
       actions.appendChild(artBtn);
     }

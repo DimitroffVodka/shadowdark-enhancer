@@ -22,3 +22,21 @@ module.
 
 Other class portraits (Bard, Fighter, Necromancer, Pit Fighter, Ranger,
 Ras-Godai, Roustabout, Sea Wolf, Thief) — per-file credit added as sourced.
+
+## UI button glyphs (`assets/fonts/fantasy-rpg-dings.otf`)
+
+This product uses the Fantasy RPG Dings Font with icons from game-icons.net
+by Delapouite, Kier Heyl, Lorc, sbed, and Inkwell Ideas.
+
+Typeface © Inkwell Ideas Inc. 2021. **The font file may NOT be redistributed**
+(no posting for download); it is used locally and is excluded from
+distribution via `.gitignore`. Glyph reference sheet: `dev/dings-sheet.png`.
+
+## Item icons (`assets/icons/shikashi/`)
+
+284 item icons from **Shikashi's Fantasy Icons Pack v2** by **Shikashi**
+(v2, 19 April 2020). The pack's readme permits use and remix in commercial
+games and projects. Many of the pack's designs are based on **game-icons.net**
+icons, which are **CC BY 3.0**. Individual 32×32 icons were sliced from the
+pack's transparent spritesheet, upscaled 4× (nearest neighbor), and encoded
+as lossless WebP for the module.

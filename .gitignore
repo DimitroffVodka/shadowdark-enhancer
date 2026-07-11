@@ -25,3 +25,6 @@ data/monster-art-mapping.json
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# Fantasy RPG Dings font — licensed, no redistribution (CREDITS.md)
+assets/fonts/fantasy-rpg-dings.otf

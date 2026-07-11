@@ -9,6 +9,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { findSuitePack, ensureSuite, ensureSourceFolder } from "./compendium-suite.mjs";
+import { pickShikashiIcon, shikashiIcon } from "./shikashi-icons.mjs";
 
 // Foundry core icons (all verified to exist) for treasure categories.
 const ICONS = {
@@ -63,11 +64,14 @@ export function stripPrice(text) {
 }
 
 /**
- * Best-guess icon for a treasure item by keyword in its name. Specific
- * categories win before the generic gem/box fallback (e.g. a gem-set sword
- * gets the sword icon, not a gem). All paths are verified Foundry-core icons.
+ * Best-guess icon for a treasure item by keyword in its name. The bundled
+ * Shikashi set (shikashi-icons.mjs) is tried first; the Foundry-core
+ * category chain below remains as the safety net for names it misses,
+ * with a Shikashi generic fallback at the end.
  */
 export function pickTreasureIcon(text) {
+  const shikashi = pickShikashiIcon(text);
+  if (shikashi) return shikashi;
   const s = String(text ?? "").toLowerCase();
   const has = (...kw) => kw.some(k => s.includes(k));
   if (has("scroll")) return ICONS.scroll;
@@ -87,7 +91,7 @@ export function pickTreasureIcon(text) {
   if (has("bowl", "cup", "goblet", "tankard", "flask", "vase", "mug", "chalice", "censer", "vial", "bottle", "flagon")) return ICONS.vessel;
   if (has("book", "bestiary", "tome", "grimoire")) return ICONS.book;
   if (has("gem", "emerald", "sapphire", "diamond", "ruby", "pearl", "opal", "amber", "jade", "crystal", "jewel", "topaz", "garnet")) return ICONS.gem;
-  return ICONS.box;
+  return shikashiIcon("treasure-chest");
 }
 
 /** Build a Shadowdark "Basic" treasure Item from a name + parsed value. */

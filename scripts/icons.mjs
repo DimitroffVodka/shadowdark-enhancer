@@ -13,20 +13,32 @@
  */
 
 const P = "modules/shadowdark-enhancer/icons";
+// Shikashi's Fantasy Icons Pack v2 (assets/icons/shikashi/, see CREDITS.md).
+// .sde-px-icon renders them pixel-crisp at button size.
+const S = "modules/shadowdark-enhancer/assets/icons/shikashi";
+const px = (slug) => `<img class="sde-bar-icon sde-px-icon" src="${S}/${slug}.webp" alt="" />`;
+// Fantasy RPG Dings glyph font (assets/fonts/, see CREDITS.md — do NOT
+// redistribute the font file). Each keyboard character is an icon; the
+// glyph sheet lives at dev/dings-sheet.png. Monochrome — inherits color.
+const ding = (ch) => `<span class="sde-ding" aria-hidden="true">${ch}</span>`;
 
 export const ICONS = {
 
   // ── Crawl Bar ────────────────────────────────────────────────────────────
-  startCrawl:  `<i class="fas fa-dungeon"></i>`,
+  startCrawl:  ding("0"),   // flame
   heroes:      `<i class="fas fa-users"></i>`,
   gm:          `<i class="fas fa-crown"></i>`,
   nextTurn:    `<i class="fas fa-chevron-right"></i>`,
   addTokens:   `<i class="fas fa-user-plus"></i>`,
-  encCheck:    `<i class="fas fa-dice-d6"></i>`,
-  encounter:   `<img class="sde-bar-icon" src="${P}/light-sabers.svg" alt="" />`,
+  encCheck:    ding("W"),   // d6 die
+  encounter:   ding("P"),   // skull & crossbones
   tableScroll: `<i class="fas fa-scroll"></i>`,
   lights:      `<i class="fas fa-fire"></i>`,
-  combat:      `<i class="fas fa-swords"></i>`,
+  combat:      ding("!"),   // crossed swords
+  forge:       ding("z"),   // treasure hoard
+  importer:    ding("+"),   // open book
+  charBuilder: ding("r"),   // knight helm
+  monsterArt:  ding("q"),   // dragon head
   close:       `<i class="fas fa-times"></i>`,
   play:        `<i class="fas fa-play"></i>`,
   clock:       `<i class="fas fa-clock" style="font-size:20px;color:var(--sde-bar-accent)"></i>`,
@@ -67,5 +79,5 @@ export const ICONS = {
   rollbackMove: `<i class="fas fa-rotate-left"></i>`,
 
   // ── Chat Messages ────────────────────────────────────────────────────────
-  encounterChat: `<img class="sde-bar-icon-dragon" src="${P}/light-sabers.svg" alt="" />`,
+  encounterChat: ding("P"),   // skull & crossbones, matches ICONS.encounter
 };

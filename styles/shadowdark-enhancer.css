@@ -1167,6 +1167,41 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 .sde-bar-btn .sde-bar-icon-dragon { width: 16px; height: 16px; }
 
+/* Fantasy RPG Dings glyph font (assets/fonts/, license: no redistribution —
+   see CREDITS.md). Keyboard characters render as fantasy icons; monochrome,
+   so they inherit the button text color like Font Awesome glyphs do. */
+@font-face {
+  font-family: "Fantasy RPG Dings";
+  src: url("../assets/fonts/fantasy-rpg-dings.otf") format("opentype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+.sde-ding {
+  font-family: "Fantasy RPG Dings";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  display: inline-block;
+  font-size: 1.25em;
+  vertical-align: -0.15em;
+}
+.sde-bar-inner .sde-ding { font-size: 19px; vertical-align: middle; margin-top: -2px; }
+
+/* Shikashi pixel-art icons (assets/icons/shikashi/) used as button glyphs.
+   The art is 32px-native: sizes below ~22px lose the readable detail, so
+   render larger than FA glyphs and pull margins in to keep row height. */
+.sde-px-icon {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  margin: -4px 2px -4px 0;
+  vertical-align: middle;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+.sde-bar-inner .sde-px-icon { width: 24px; height: 24px; margin: -6px 2px -6px 0; }
+
 /* ═══════════════════════════════════════════════════════════════════════════
    ROLL TABLES HUB  (Core + Cursed Scroll status dashboard)
    ═══════════════════════════════════════════════════════════════════════════ */

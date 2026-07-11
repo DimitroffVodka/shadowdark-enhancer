@@ -147,10 +147,10 @@ export const CrawlBar = {
           ${ICONS.encounter} Encounter
         </button>
         <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop">
-          <i class="fas fa-hammer"></i> Forge &amp; Loot
+          ${ICONS.forge} Forge &amp; Loot
         </button>
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
-          <i class="fas fa-file-import"></i> Importer
+          ${ICONS.importer} Importer
         </button>
         <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
           ${ICONS.close} End
