@@ -231,8 +231,9 @@
             <input type="number" data-iimport-field="slots" value="{{it.draft.slots.slots_used}}" class="sde-import-num" aria-label="Slots used"></label>
         </div>
         <div class="sde-hub-import-item-desc">
-          <input type="text" data-iimport-field="description" value="{{it.draft.description}}"
-                 class="sde-hub-import-item-desc-input" aria-label="Item description" placeholder="Description">
+          <textarea data-iimport-field="description" rows="2"
+                    class="sde-hub-import-item-desc-input" aria-label="Item description"
+                    placeholder="Description">{{it.draft.description}}</textarea>
         </div>
         {{#if it.warnings.length}}
         <ul class="sde-import-warnings">{{#each it.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
@@ -280,8 +281,9 @@
             <input type="text" data-simport-field="durationValue" value="{{sp.draft.duration.value}}" class="sde-import-num" aria-label="Duration value" title="rounds/days; -1 = n/a"></label>
         </div>
         <div class="sde-hub-import-item-desc">
-          <input type="text" data-simport-field="description" value="{{sp.draft.description}}"
-                 class="sde-hub-import-item-desc-input" aria-label="Spell description" placeholder="Description">
+          <textarea data-simport-field="description" rows="3"
+                    class="sde-hub-import-item-desc-input" aria-label="Spell description"
+                    placeholder="Description">{{sp.draft.description}}</textarea>
         </div>
         {{#if sp.warnings.length}}
         <ul class="sde-import-warnings">{{#each sp.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>

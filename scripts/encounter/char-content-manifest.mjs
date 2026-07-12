@@ -157,14 +157,16 @@ const MANIFEST = {
       "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
       "Ord Prayers", "Memnon Prayers", "Shune the Vile Prayers",
       "Ramlaat Prayers", "The Lost Prayers",
-      // Patrons — WR boon tables (WR pp.207-223; incl. the 5 WR-revised CS1 patrons)
-      "Almazzat Boons", "Freya Boons", "Krraktanamak Boons", "Loki Boons",
-      "Molek Boons", "Mugdulblub Boons", "Oatali Boons", "Obe-Ixx Boons",
+      // Patrons — WR boon tables (WR pp.207-223)
+      "Freya Boons", "Krraktanamak Boons", "Loki Boons",
+      "Molek Boons", "Oatali Boons", "Obe-Ixx Boons",
       "Odin Boons", "Oros Boons", "Rathgamnon Boons", "Saint Ydris Boons",
-      "Shune the Vile Boons", "Titania Boons", "The Willowman Boons",
       "Yag-Kesh Boons",
-      // Kytheros — system table already matches WR; linked, not duplicated
-      "Patron Boons: Kytheros",
+      // Six patrons already ship as SYSTEM tables (shadowdark.rollable-tables)
+      // — census-matched by the system name, linked, never duplicated
+      // (user req 2026-07-11).
+      "Patron Boons: Almazzat", "Patron Boons: Kytheros", "Patron Boons: Mugdulblub",
+      "Patron Boons: Shune the Vile", "Patron Boons: The Willowman", "Patron Boons: Titania",
       // Carousing + backgrounds (sealed-group reps, see note above)
       "Carousing Mishap", "Carousing Benefit", "Western Reach Backgrounds",
     ],
@@ -307,13 +309,14 @@ const TABLE_PAGES = {
     "Madeera the Covenant Prayers": "191", "Saint Terragnis Prayers": "193",
     "Gede Prayers": "195", "Ord Prayers": "197", "Memnon Prayers": "199",
     "Shune the Vile Prayers": "201", "Ramlaat Prayers": "203", "The Lost Prayers": "205",
-    // Patrons — boon tables (Kytheros keeps its system name; see MANIFEST note)
-    "Almazzat Boons": "207", "Freya Boons": "208", "Krraktanamak Boons": "209",
+    // Patrons — boon tables (six system-shipped patrons keep their system
+    // "Patron Boons: X" names; see MANIFEST note)
+    "Patron Boons: Almazzat": "207", "Freya Boons": "208", "Krraktanamak Boons": "209",
     "Patron Boons: Kytheros": "210", "Loki Boons": "211", "Molek Boons": "212",
-    "Mugdulblub Boons": "213", "Oatali Boons": "214", "Obe-Ixx Boons": "215",
+    "Patron Boons: Mugdulblub": "213", "Oatali Boons": "214", "Obe-Ixx Boons": "215",
     "Odin Boons": "216", "Oros Boons": "217", "Rathgamnon Boons": "218",
-    "Saint Ydris Boons": "219", "Shune the Vile Boons": "220",
-    "Titania Boons": "221", "The Willowman Boons": "222",
+    "Saint Ydris Boons": "219", "Patron Boons: Shune the Vile": "220",
+    "Patron Boons: Titania": "221", "Patron Boons: The Willowman": "222",
     "Yag-Kesh Boons": "223",
   },
   CS3: { "Nord Backgrounds": "15" },

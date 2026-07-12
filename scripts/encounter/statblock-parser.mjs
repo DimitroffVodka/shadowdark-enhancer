@@ -58,8 +58,11 @@ function isNameLine(line) {
 /** A standalone page-number line (PDF artifact). */
 const isPageNumber = (line) => /^\s*\d{1,4}\s*$/.test(line);
 
-const STAT_AC = /\bAC\s+\d+/i;
-const STAT_LV = /\bLV\s+\d+/i;
+// The monster anchor pair — exported so the dump-segmenter (and any other
+// recognizer-order logic) reuses the OWNING parser's definition instead of
+// keeping a drifting copy (review 2026-07-11 maintainability).
+export const STAT_AC = /\bAC\s+\d+/i;
+export const STAT_LV = /\bLV\s+\d+/i;
 
 /**
  * Group a raw dump into blocks and classify each as a monster (has an AC…LV

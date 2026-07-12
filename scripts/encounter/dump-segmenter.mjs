@@ -1,18 +1,21 @@
 /**
  * Shadowdark Enhancer — Universal Dump Segmenter
  *
- * Routes a raw mixed PDF dump through a recognizer registry:
- *   1. monster recognizer  — delegates to splitStatblocks (AC…LV anchor)
- *   2. item recognizer     — delegates to parseItem (rider keywords / cost pattern)
- *   3. table recognizer    — delegates to parseTables (dice-table rows)
+ * Routes a raw mixed PDF dump through a recognizer registry (actual order —
+ * see RECOGNIZERS at the bottom of this file):
+ *   1. hexcrawl recognizer — clustered 3-4 digit hex anchors (hex-parser.mjs)
+ *   2. spell recognizer    — Tier line + Duration/Range anchor (spell-parser.mjs)
+ *   3. monster recognizer  — delegates to splitStatblocks (AC…LV anchor)
+ *   4. item recognizer     — delegates to parseItem (rider keywords / cost pattern)
+ *   5. table recognizer    — delegates to parseTables (dice-table rows)
  *   Anything not claimed by any recognizer → skipped (reviewable, never dropped).
  *
  * Classification order (Claude's Discretion per 10-CONTEXT.md):
- *   Monster recognizer runs first over the full raw text because statblock
- *   blocks are name-delimited by ALL-CAPS lines — a pattern that never appears
- *   in dice tables.  The table recognizer then runs over the remainder (the
- *   text that splitStatblocks did NOT claim), so the same lines are never
- *   double-counted.  Blocks claimed by neither recognizer land in skipped.
+ *   Each recognizer claims from the previous one's remainder, so the same
+ *   lines are never double-counted; blocks claimed by nothing land in
+ *   skipped. Monsters must run before items/tables because statblock blocks
+ *   are name-delimited by ALL-CAPS lines; spells run before monsters because
+ *   spell text legally contains "LV N"; hexes run first of all (see below).
  *
  * Extensibility: RECOGNIZERS is an ordered array; the loop iterates it in
  * order, never branching on a hardcoded id. ORDER IS SENSITIVE — a new
@@ -28,34 +31,10 @@
 
 import { splitStatblocks } from "./statblock-parser.mjs";
 import { parseTables } from "./table-importer.mjs";
-import { itemRecognizer } from "./item-parser.mjs";
+import { itemRecognizer, RIDER_KW as ITEM_RIDER_RE, COST_RE as ITEM_COST_RE } from "./item-parser.mjs";
 import { spellRecognizer } from "./spell-parser.mjs";
 import { hexcrawlRecognizer } from "./hex-parser.mjs";
-
-// ─── Block-boundary helper ────────────────────────────────────────────────────
-
-/**
- * Split raw text into blank-line-separated blocks.
- * Each returned element is the raw text of one block (lines joined by "\n"),
- * with leading/trailing blank lines stripped.
- *
- * @param {string} rawText
- * @returns {string[]}
- */
-function splitRawBlocks(rawText) {
-  const lines = String(rawText ?? "").replace(/\r\n?/g, "\n").split("\n");
-  const blocks = [];
-  let cur = [];
-  for (const line of lines) {
-    if (line.trim() === "") {
-      if (cur.length) { blocks.push(cur.join("\n")); cur = []; }
-    } else {
-      cur.push(line);
-    }
-  }
-  if (cur.length) blocks.push(cur.join("\n"));
-  return blocks;
-}
+import { splitRawBlocks } from "./pdf-text-utils.mjs";
 
 // ─── Recognizer: monsters ─────────────────────────────────────────────────────
 
@@ -72,12 +51,12 @@ function splitRawBlocks(rawText) {
  *
  * parse(claimedBlocks) → the same string array (monster chunks are the items).
  */
-// Patterns for monster and table detection at the raw-block level.
-const STAT_AC = /\bAC\s+\d+/i;
-const STAT_LV = /\bLV\s+\d+/i;
+// Patterns for table detection at the raw-block level. (Monster and item
+// anchors are imported from their owning parsers; these table regexes are
+// deliberately LOOSER than table-importer's row parser — block-level sniffing
+// vs row-exact parsing — so they stay local.)
 const DIE_HEADER_RE = /^d\d{1,3}\b/i;
 const LEADING_RANGE_RE = /^\s*\d{1,3}(?:\s*[-–—]\s*\d{1,3})?(?=\s|$)/;
-const ALL_CAPS_NAME_RE = /^[A-Z][A-Z &/,.''\-]*$/;
 const STAT_KW_RE = /\b(AC|HP|ATK|MV|AL|LV|DC|ADV|DISADV)\b/;
 
 /** True if a raw block looks like a dice table (has a dN header or leading-range rows). */
@@ -91,23 +70,15 @@ function blockIsDiceTable(block) {
 /** True if a line is an ALL-CAPS monster name line (mirrors statblock-parser logic). */
 function isNameLine(line) {
   const t = line.trim();
-  if (!/^[A-Z][A-Z &/,.''\-]*$/.test(t)) return false;
+  if (!/^[A-Z][A-Z &/,.''-]*$/.test(t)) return false;
   if ((t.match(/[A-Z]/g) || []).length < 2) return false;
   if (STAT_KW_RE.test(t)) return false;
   return true;
 }
 
-/** True if a raw block has an AC…LV stat line (the monster anchor). */
-function blockHasStatLine(block) {
-  const joined = block;
-  return STAT_AC.test(joined) && STAT_LV.test(joined);
-}
-
-// Item-anchor patterns (mirrors item-parser.mjs) — used to break monster
-// continuation-block collection so item blocks aren't absorbed into a
-// preceding statblock unit.
-const ITEM_RIDER_RE = /\b(Benefit|Bonus|Curse|Personality)\./;
-const ITEM_COST_RE  = /(\d+)\s*(gp|sp|cp)\b/i;
+// Item anchors ITEM_RIDER_RE / ITEM_COST_RE are imported from item-parser
+// (the owning module) — used to break monster continuation-block collection
+// so item blocks aren't absorbed into a preceding statblock unit.
 
 /** True if a raw block looks like an item entry (has a rider keyword or cost pattern). */
 function blockIsItemCandidate(block) {

@@ -32,6 +32,7 @@ import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./it
 import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, BACKGROUND_TABLES } from "./char-content-manifest.mjs";
 import { sourcePdfHref } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
+import { findSuitePack } from "./compendium-suite.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -264,8 +265,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       warnCount: p.warnings?.length ?? 0,
     }));
 
+    // Custom top-level folders the GM already created in the sde-tables pack
+    // surface as reusable options ("If a custom folder is made it should show
+    // up in the drop down in the future" — user QA 2026-07-11). Selecting one
+    // resolves to category=custom + that label (see _wireHubTableFieldEdits).
+    const CANON_TOPS = new Set(["Character Content", "Gameplay", "Roll Tables", "Custom"]);
+    const customFolders = (findSuitePack("sde-tables")?.folders ?? [])
+      .filter((f) => !f.folder && !CANON_TOPS.has(f.name))
+      .map((f) => ({ id: `custom:${f.name}`, label: `📁 ${f.name}` }))
+      .sort((a, b) => a.label.localeCompare(b.label));
     const categoryOptions = [
       ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
+      ...customFolders,
       { id: CUSTOM_ID, label: "Custom…" },
     ];
 
@@ -1015,7 +1026,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           if (field === "name") tbl.name = ev.target.value;
           else if (field === "formula") tbl.formula = ev.target.value;
           else if (field === "replacement") tbl.replacement = ev.target.checked;
-          else if (field === "category") { tbl.category = ev.target.value; this.render(); }
+          else if (field === "category") {
+            // "custom:<Folder>" options = reuse an existing custom pack folder.
+            const v = ev.target.value;
+            if (v.startsWith("custom:")) { tbl.category = CUSTOM_ID; tbl.customLabel = v.slice(7); }
+            else tbl.category = v;
+            this.render();
+          }
           else if (field === "customLabel") tbl.customLabel = ev.target.value;
         }
       });
@@ -1083,12 +1100,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           case "costSp":      draft.cost.sp = Number(v); break;
           case "costCp":      draft.cost.cp = Number(v); break;
           case "slots":       draft.slots.slots_used = Number(v); break;
-          case "description": {
-            // Re-wrap as HTML if the user typed plain text (D4 discipline)
-            const trimmed = v.trim();
-            draft.description = trimmed.startsWith("<") ? trimmed : (trimmed ? `<p>${trimmed}</p>` : "<p></p>");
-            break;
-          }
+          case "description": draft.description = ImporterHubApp._wrapEditedHtml(v); break;
         }
       });
     });
@@ -1690,6 +1702,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  /**
+   * Shared commit-report line: "N created[, N updated][, N replaced][, N
+   * skipped]" — the single formatter for every per-type commit notification
+   * (was copy-pasted per handler; review 2026-07-11 maintainability).
+   */
+  static _commitSummary(result) {
+    const parts = [`${result.created.length} created`];
+    if (result.updated?.length) parts.push(`${result.updated.length} updated`);
+    if (result.replaced?.length) parts.push(`${result.replaced.length} replaced`);
+    if (result.skipped?.length) parts.push(`${result.skipped.length} skipped`);
+    return parts.join(", ");
+  }
+
+  /**
+   * Preview description edits: keep deliberately-typed HTML (sanitized again
+   * at the commit choke point, review #1), wrap plain text as one paragraph
+   * (D4). Shared by the item and spell field-edit wiring.
+   */
+  static _wrapEditedHtml(v) {
+    const trimmed = String(v ?? "").trim();
+    return trimmed.startsWith("<") ? trimmed : (trimmed ? `<p>${trimmed}</p>` : "<p></p>");
+  }
+
   /** Commit: create all pending items into sde-items. GM-gated. */
   async _onHubCommitItems() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import items."); return; }
@@ -1701,10 +1736,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
     if (!result) return;
 
-    const parts = [`${result.created.length} created`];
-    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
-    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
-    ui.notifications.info(`Items: ${parts.join(", ")} → sde-items${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(`Items: ${ImporterHubApp._commitSummary(result)} → sde-items${source ? ` / ${source}` : ""}.`);
     this._importItems = [];
     this._invalidateItemsCache();
     this.render();
@@ -1739,10 +1771,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await this._commitSpells(source);
     if (!result) return;
 
-    const parts = [`${result.created.length} created`];
-    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
-    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
-    ui.notifications.info(`Spells: ${parts.join(", ")} → sde-items${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(`Spells: ${ImporterHubApp._commitSummary(result)} → sde-items${source ? ` / ${source}` : ""}.`);
     this._importSpells = [];
     this._invalidateItemsCache();
     this.render();
@@ -1758,10 +1787,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
     if (!result) return;
 
-    const parts = [`${result.created.length} created`];
-    if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
-    if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
-    ui.notifications.info(`Monsters: ${parts.join(", ")} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(`Monsters: ${ImporterHubApp._commitSummary(result)} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
     this._importMonsters = [];
     this.render();
   }
@@ -1784,7 +1810,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         created++;
         this._importTables = this._importTables.filter(t => t !== tbl);
         if (tbl.manifestId) this._importSeed = null;
-        await this._fileCharTable(table, tbl);
         await this._registerCharBuilderTable(table);
       }
     }
@@ -1818,28 +1843,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /**
-   * Character-content tables mirror the system compendium's folder taxonomy
-   * (Names, Trinkets, Class Talents, Character Background) instead of the
-   * encounter suite's per-source folders.
-   */
-  async _fileCharTable(table, tbl) {
-    const folderName = ({
-      "character-names": "Names",
-      "trinkets": "Trinkets",
-      "talents": "Class Talents",
-      "background": "Character Background",
-    })[tbl.category];
-    if (!folderName || !table.pack) return;
-    try {
-      const pack = game.packs.get(table.pack);
-      let folder = pack.folders.find((f) => f.name === folderName);
-      if (!folder) folder = await Folder.create({ name: folderName, type: "RollTable" }, { pack: pack.collection });
-      if (table.folder?.id !== folder.id) await table.update({ folder: folder.id });
-    } catch (err) {
-      console.error(`${MODULE_ID} | failed to file ${table.name} under ${folderName}:`, err);
-    }
-  }
+  // (_fileCharTable removed — createTable now files every table via the
+  // category-first resolver in table-folders.mjs, incl. char-content paths
+  // like Character Content → Ancestries → Names.)
 
   /**
    * The character builder now auto-discovers installed Names/Trinkets tables
@@ -1871,7 +1877,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const drafts = this._importMonsters.map((p) => p.draft);
       const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
       if (result) {
-        parts.push(`monsters: ${result.created.length} created${result.replaced.length ? `, ${result.replaced.length} replaced` : ""}${result.skipped.length ? `, ${result.skipped.length} skipped` : ""}`);
+        parts.push(`monsters: ${ImporterHubApp._commitSummary(result)}`);
         this._importMonsters = [];
       }
     }
@@ -1882,7 +1888,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const drafts = this._importItems.map((p) => p.draft);
       const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
       if (result) {
-        parts.push(`items: ${result.created.length} created${result.replaced.length ? `, ${result.replaced.length} replaced` : ""}${result.skipped.length ? `, ${result.skipped.length} skipped` : ""}`);
+        parts.push(`items: ${ImporterHubApp._commitSummary(result)}`);
         this._importItems = [];
       }
     }
@@ -1891,7 +1897,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (hasSpells) {
       const result = await this._commitSpells(source);
       if (result) {
-        parts.push(`spells: ${result.created.length} created${result.replaced.length ? `, ${result.replaced.length} replaced` : ""}${result.skipped.length ? `, ${result.skipped.length} skipped` : ""}`);
+        parts.push(`spells: ${ImporterHubApp._commitSummary(result)}`);
         this._importSpells = [];
       }
     }
@@ -1915,360 +1921,40 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (parts.length) this._announceContentUnlocked();
     this.render();
   }
-
-  /**
-   * Migrate world RollTables into the sde-tables compendium pack.
-   * Dry-run preview → DialogV2 confirm → commit. (D-03: lives on Tables tab.)
-   * Dynamic import keeps table-migration.mjs Foundry-free from the hub itself.
-   */
+  /** Migrate world RollTables into sde-tables — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onMigrateCompendium() {
-    if (!game.user?.isGM) return;
-
-    const { migrateTables } = await import("./table-migration.mjs");
-
-    const plan = await migrateTables({ dryRun: true });
-    if (!plan) return;
-
-    const bySourceLines = Object.entries(plan.bySource)
-      .filter(([, n]) => n > 0)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([src, n]) => `<li>${foundry.utils.escapeHTML(src || "(no source)")}: ${n}</li>`)
-      .join("");
-    const byCategoryLines = Object.entries(plan.byCategory)
-      .filter(([, n]) => n > 0)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([cat, n]) => `<li>${foundry.utils.escapeHTML(cat || "(no category)")}: ${n}</li>`)
-      .join("");
-
-    const previewHtml = plan.total === 0
-      ? `<p>No module-imported world tables found to migrate. All tables are either already in the compendium pack or are hand-made world tables.</p>`
-      : `<p>Found <strong>${plan.total}</strong> module-imported world table(s) to migrate into <em>sde-tables</em>.</p>
-         <p>Originals will be moved to <em>_Backup (pre-suite)</em> (never deleted).<br>
-         Loot Setup bindings will be repointed to the new pack UUIDs.</p>
-         ${bySourceLines ? `<p><strong>By source:</strong></p><ul>${bySourceLines}</ul>` : ""}
-         ${byCategoryLines ? `<p><strong>By category:</strong></p><ul>${byCategoryLines}</ul>` : ""}`;
-
-    if (plan.total === 0) {
-      await foundry.applications.api.DialogV2.alert({
-        window: { title: "Migrate to Compendium" },
-        content: previewHtml,
-      }).catch(() => {});
-      return;
-    }
-
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Migrate Tables to Compendium" },
-      content: previewHtml,
-      buttons: [
-        { action: "migrate", label: "Migrate", default: true },
-        { action: "cancel",  label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-
-    if (!choice || choice === "cancel") return;
-
-    let result;
-    try {
-      result = await migrateTables({ dryRun: false });
-    } catch (err) {
-      console.error("shadowdark-enhancer | table-migration: unexpected error:", err);
-      ui.notifications?.error("Table migration failed — see the console for details.");
-      return;
-    }
-
-    if (!result) return;
-
-    const summary = [
-      `${result.copied} table(s) copied to compendium`,
-      `${result.backedUp} original(s) moved to _Backup`,
-      result.bindingsRepointed ? `${result.bindingsRepointed} Loot Setup binding(s) repointed` : "",
-      result.failures ? `${result.failures} failure(s) — see console` : "",
-    ].filter(Boolean).join(" · ");
-
-    ui.notifications?.info(`Migration complete: ${summary}.`);
-    this.render();
+    const { migrateCompendiumTables } = await import("./importer-hub-maintenance.mjs");
+    return migrateCompendiumTables(this);
   }
 
-  /**
-   * Export the entire suite as one JSON bundle download (REQ-25, A-04).
-   */
+  /** Export the suite as one JSON bundle (REQ-25) — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onExportBundle() {
-    if (!game.user?.isGM) return;
-    const { exportBundle } = await import("./bundle-io.mjs");
-    let bundle;
-    try {
-      bundle = await exportBundle();
-    } catch (err) {
-      console.error("shadowdark-enhancer | bundle export: unexpected error:", err);
-      ui.notifications?.error("Bundle export failed — see the console for details.");
-      return;
-    }
-    if (!bundle) return;
-    const s = bundle.stats;
-    const parts = Object.entries(s)
-      .filter(([k, v]) => v && typeof v === "object" && v.docs)
-      .map(([k, v]) => `${k} ${v.docs}`);
-    const warn = bundle.warnings.length ? ` · ${bundle.warnings.length} unresolved ref(s) — see console` : "";
-    if (bundle.warnings.length) console.warn("shadowdark-enhancer | bundle warnings:", bundle.warnings);
-    ui.notifications?.info(`Bundle exported: ${parts.join(" · ")}${warn}.`);
+    const { exportSuiteBundle } = await import("./importer-hub-maintenance.mjs");
+    return exportSuiteBundle(this);
   }
 
-  /**
-   * Import a bundle file: pick file → validate → per-pack summary confirm →
-   * applyBundle (keepId, skip-existing, never overwrites) → report (REQ-25).
-   */
+  /** Import a suite bundle JSON (REQ-25) — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onImportBundle() {
-    if (!game.user?.isGM) return;
-    const { validateBundle, applyBundle } = await import("./bundle-io.mjs");
-
-    // File picker dialog.
-    const picked = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Import Bundle" },
-      content: `<p>Select a Shadowdark Enhancer bundle (.json):</p>
-        <input type="file" name="bundle-file" accept=".json,application/json">`,
-      buttons: [
-        {
-          action: "load", label: "Load", default: true,
-          callback: (ev, button, dialog) => {
-            const el = (dialog.element ?? dialog)?.querySelector?.("input[name='bundle-file']");
-            return el?.files?.[0] ?? null;
-          },
-        },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => null);
-    if (!picked || picked === "cancel") return;
-
-    let bundle;
-    try {
-      bundle = JSON.parse(await picked.text());
-    } catch (err) {
-      ui.notifications?.error("That file is not valid JSON.");
-      return;
-    }
-    const check = validateBundle(bundle);
-    if (!check.ok) {
-      ui.notifications?.error(`Not a valid bundle: ${check.errors.join("; ")}.`);
-      return;
-    }
-
-    // Per-pack summary confirm before touching anything.
-    const rows = Object.entries(bundle.packs)
-      .map(([k, p]) => `<li>${foundry.utils.escapeHTML(k)}: ${p.docs.length} doc(s), ${p.folders.length} folder(s)</li>`)
-      .join("");
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Import Bundle" },
-      content: `<p>Bundle from world <strong>${foundry.utils.escapeHTML(bundle.world ?? "?")}</strong>
-        (module v${foundry.utils.escapeHTML(bundle.moduleVersion ?? "?")}, exported ${foundry.utils.escapeHTML((bundle.exported ?? "").slice(0, 10))}):</p>
-        <ul>${rows}</ul>
-        <p>Documents already in your packs (same id) are skipped — nothing is overwritten or deleted.</p>`,
-      buttons: [
-        { action: "import", label: "Import", default: true },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-    if (!choice || choice === "cancel") return;
-
-    let report;
-    try {
-      report = await applyBundle(bundle);
-    } catch (err) {
-      console.error("shadowdark-enhancer | bundle import: unexpected error:", err);
-      ui.notifications?.error("Bundle import failed — see the console for details.");
-      return;
-    }
-    if (!report) return;
-    if (!report.ok) {
-      ui.notifications?.error(`Bundle rejected: ${report.errors.join("; ")}.`);
-      return;
-    }
-    const summary = [
-      `${report.created} created`,
-      `${report.skippedExisting} already present (skipped)`,
-      report.failures ? `${report.failures} failure(s) — see console` : "",
-    ].filter(Boolean).join(" · ");
-    ui.notifications?.info(`Bundle import complete: ${summary}.`);
-    this.render();
+    const { importSuiteBundle } = await import("./importer-hub-maintenance.mjs");
+    return importSuiteBundle(this);
   }
 
-  /**
-   * Manage the source-PDF library: show which books are linked, and upload +
-   * link a PDF for a source. Uploads land in worlds/<id>/source-pdfs and are
-   * recorded as flagged pdf pages in the "Shadowdark Source PDFs" journal, so
-   * the importer's Open-PDF deep-links resolve to them. Reopens after each
-   * upload so the GM can link several books in a row. GM-gated.
-   */
+  /** Manage the source-PDF library — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onManageSourcePdfs() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can manage source PDFs."); return; }
-    const { listSourcePdfs, uploadSourcePdf } = await import("./source-pdf-registry.mjs");
-
-    const rows = listSourcePdfs();
-    const statusList = rows.map((r) => {
-      const file = r.file ? foundry.utils.escapeHTML(r.file.split("/").pop()) : "—";
-      const icon = r.linked ? "fa-file-pdf" : "fa-file-circle-xmark";
-      return `<li class="sde-srcpdf-row ${r.linked ? "linked" : "missing"}"><i class="fas ${icon}"></i>
-        <strong>${foundry.utils.escapeHTML(r.label)}</strong>
-        <span class="sde-srcpdf-file">${file}</span></li>`;
-    }).join("");
-    const options = rows.map((r) =>
-      `<option value="${r.src}">${foundry.utils.escapeHTML(r.label)}${r.linked ? " (replace)" : ""}</option>`).join("");
-
-    const picked = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Source PDFs", icon: "fas fa-file-pdf" },
-      content: `
-        <p>Upload your own PDFs of the Shadowdark books. Each is linked to a source so the
-        importer's <em>Open PDF</em> buttons jump straight to the cited page. Files stay in your
-        world (<code>worlds/${foundry.utils.escapeHTML(game.world.id)}/source-pdfs</code>) — nothing
-        leaves your machine.</p>
-        <ul class="sde-srcpdf-list">${statusList}</ul>
-        <div class="sde-srcpdf-upload">
-          <label>Book <select name="src">${options}</select></label>
-          <input type="file" name="pdf" accept="application/pdf,.pdf">
-        </div>`,
-      buttons: [
-        {
-          action: "upload", label: "Upload & link", default: true,
-          callback: (ev, button, dialog) => {
-            const root = dialog.element ?? dialog;
-            const src = root.querySelector("select[name='src']")?.value;
-            const file = root.querySelector("input[name='pdf']")?.files?.[0] ?? null;
-            return file ? { src, file } : null;
-          },
-        },
-        { action: "close", label: "Done" },
-      ],
-      rejectClose: false,
-    }).catch(() => null);
-
-    if (!picked || picked === "close" || !picked.file) return;
-    if (picked.file.type && picked.file.type !== "application/pdf") {
-      ui.notifications.warn("That doesn't look like a PDF file.");
-      return this._onManageSourcePdfs();
-    }
-    try {
-      const path = await uploadSourcePdf(picked.src, picked.file);
-      ui.notifications.info(`Linked ${CHAR_SOURCES[picked.src]?.label ?? picked.src} → ${path.split("/").pop()}.`);
-    } catch (err) {
-      console.error("[SDE] source PDF upload failed", err);
-      ui.notifications.error("Upload failed — see console.");
-      return;
-    }
-    this.render();
-    return this._onManageSourcePdfs();   // reopen with refreshed status for the next book
+    const { manageSourcePdfs } = await import("./importer-hub-maintenance.mjs");
+    return manageSourcePdfs(this);
   }
 
-  /**
-   * Re-link every sde-tables doc to imported monsters/items (REQ-24 sweep).
-   * Idempotent + link-preserving; DialogV2 confirm with the pack doc count.
-   */
+  /** Re-link sde-tables to imported monsters/items (REQ-24) — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onRelinkTables() {
-    if (!game.user?.isGM) return;
-
-    const { TableEnricher } = await import("./table-enrich.mjs");
-    const { findSuitePack } = await import("./compendium-suite.mjs");
-    const pack = findSuitePack("sde-tables");
-    if (!pack) {
-      ui.notifications?.warn("No sde-tables compendium pack found.");
-      return;
-    }
-
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Re-link Pack Tables" },
-      content: `<p>Re-link all <strong>${pack.index.size}</strong> table(s) in <em>sde-tables</em> to your imported monsters and items.</p>
-        <p>Safe to re-run — existing links and document rows are preserved; only missing links are added.</p>`,
-      buttons: [
-        { action: "relink", label: "Re-link", default: true },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-    if (!choice || choice === "cancel") return;
-
-    let tally;
-    try {
-      tally = await TableEnricher.sweepPack();
-    } catch (err) {
-      console.error("shadowdark-enhancer | table sweep: unexpected error:", err);
-      ui.notifications?.error("Re-link failed — see the console for details.");
-      return;
-    }
-    if (!tally) return;
-
-    const summary = [
-      `${tally.encounters} encounter table(s)`,
-      `${tally.treasures} treasure table(s)`,
-      tally.linked ? `${tally.linked} monster link(s)` : "",
-      tally.skipped ? `${tally.skipped} skipped (not enrichable)` : "",
-      tally.failures ? `${tally.failures} failure(s) — see console` : "",
-    ].filter(Boolean).join(" · ");
-    ui.notifications?.info(`Re-link complete: ${summary}.`);
+    const { relinkPackTables } = await import("./importer-hub-maintenance.mjs");
+    return relinkPackTables(this);
   }
 
-  /**
-   * Fold the legacy world "Loot" pack into sde-items (A-08).
-   * Dry-run preview → DialogV2 confirm → migrateItems → LootLinker.invalidate().
-   * Non-destructive: originals stay, the legacy pack is locked as backup (D6).
-   */
+  /** Fold the legacy Loot pack into sde-items — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onFoldLegacyLoot() {
-    if (!game.user?.isGM) return;
-
-    const { ItemMigration } = await import("./item-migration.mjs");
-    const { LootLinker } = await import("./loot-linker.mjs");
-
-    const preview = await ItemMigration.planItemMigration();
-    if (!preview) return;
-
-    const bySourceLines = Object.entries(preview.bySource)
-      .filter(([, n]) => n > 0)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([src, n]) => `<li>${foundry.utils.escapeHTML(src)}: ${n}</li>`)
-      .join("");
-
-    if (preview.total === 0) {
-      await foundry.applications.api.DialogV2.alert({
-        window: { title: "Fold Legacy Loot Pack" },
-        content: `<p>No un-migrated items found in the legacy "Loot" pack. Either it is absent or every item already carries the migrated stamp.</p>`,
-      }).catch(() => {});
-      return;
-    }
-
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Fold Legacy Loot Pack into Items" },
-      content: `<p>Found <strong>${preview.total}</strong> item(s) in the legacy "Loot" pack to copy into <em>sde-items</em>.</p>
-        <p>Originals are never deleted — the legacy pack is locked afterward as a backup.</p>
-        ${bySourceLines ? `<p><strong>By source:</strong></p><ul>${bySourceLines}</ul>` : ""}`,
-      buttons: [
-        { action: "fold",   label: "Fold in", default: true },
-        { action: "cancel", label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-
-    if (!choice || choice === "cancel") return;
-
-    let report;
-    try {
-      report = await ItemMigration.migrateItems({ dryRun: false });
-    } catch (err) {
-      console.error("shadowdark-enhancer | item-migration: unexpected error:", err);
-      ui.notifications?.error("Legacy Loot fold-in failed — see the console for details.");
-      return;
-    }
-    if (!report) return;
-
-    LootLinker.invalidate();
-    this._invalidateItemsCache();
-
-    const summary = [
-      `${report.legacyMigrated} item(s) folded into sde-items`,
-      `legacy pack locked as backup`,
-      report.failures ? `${report.failures} failure(s) — see console` : "",
-    ].filter(Boolean).join(" · ");
-    ui.notifications?.info(`Fold-in complete: ${summary}.`);
-    this.render();
+    const { foldLegacyLoot } = await import("./importer-hub-maintenance.mjs");
+    return foldLegacyLoot(this);
   }
 
   // ── Monsters-tab action handlers ───────────────────────────────────────────
@@ -2295,7 +1981,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onMonsterSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     if (!name) return;
-    this._importText = name;
+    // Trailing newline so the seeded name reads as a title line and the GM's
+    // pasted section lands on the line AFTER it (review: unlock line break).
+    this._importText = `${name}\n`;
     this._importSeed = { name, _monsterSeed: true };
     this._importType = "monsters";
     this.render();
@@ -2381,7 +2069,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onItemSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     if (!name) return;
-    this._importText = name;
+    // Trailing newline so the seeded name reads as a title line and the GM's
+    // pasted section lands on the line AFTER it (review: unlock line break).
+    this._importText = `${name}\n`;
     this._importSeed = { name, _itemSeed: true };
     this._importType = "items";
     this.render();
@@ -2436,7 +2126,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // for picking). Flagged so _onHubParse also runs the backgrounds parser.
     const bgBundle = type === "Table"
       && BACKGROUND_TABLES.has(name.toLowerCase().replace(/\s+/g, " ").trim());
-    this._importText = name;
+    // Trailing newline so the seeded name reads as a title line and the GM's
+    // pasted section lands on the line AFTER it (review: unlock line break).
+    this._importText = `${name}\n`;
     this._importSeed = {
       name,
       src,
@@ -2616,138 +2308,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /**
-   * Backfill existing imported NPCs to fresh-import fidelity.
-   * Ported verbatim from MonsterImporterApp._onBackfill (D-03).
-   */
+  /** Backfill imported NPCs to fresh-import fidelity — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onBackfill() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can run the monster backfill."); return; }
-    const { backfillTargets } = await import("./monster-backfill.mjs");
-
-    ui.notifications.info("Scanning imported monsters for upgrades…");
-    const preview = await backfillTargets({ scope: "pack", dryRun: true });
-    if (!preview) return;
-
-    if (preview.total === 0) {
-      ui.notifications.info("No imported-monsters compendium found or it contains no NPC actors.");
-      return;
-    }
-
-    if (preview.changed.length === 0) {
-      ui.notifications.info(`All ${preview.total} actor(s) already at full fidelity — nothing to backfill.`);
-      return;
-    }
-
-    const t = preview.totals;
-    const lines = [];
-    if (t.descriptionsWrapped) lines.push(`${t.descriptionsWrapped} item description(s) will be HTML-wrapped`);
-    if (t.namesCased)          lines.push(`${t.namesCased} attack name(s) will be Title-Cased`);
-    if (t.iconsSet)            lines.push(`${t.iconsSet} item icon(s) will be set`);
-    if (t.spellsConverted)     lines.push(`${t.spellsConverted} spell feature(s) will become real Spell items`);
-    if (t.artAssigned)         lines.push(`${t.artAssigned} portrait/token image(s) will be resolved`);
-
-    const actorList = preview.changed.map((r) => `<li>${foundry.utils.escapeHTML(r.actor)}</li>`).join("");
-    const content = `
-      <p><strong>${preview.changed.length} of ${preview.total}</strong> actor(s) need upgrading:</p>
-      <ul style="max-height:160px;overflow-y:auto;margin:.4em 0">${actorList}</ul>
-      <p>${lines.join("; ")}.</p>
-      <p>This is non-destructive and idempotent. Proceed?</p>`;
-
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Backfill Imported Monsters" },
-      content,
-      buttons: [
-        { action: "confirm", label: "Backfill", default: true },
-        { action: "cancel",  label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-
-    if (choice !== "confirm") return;
-
-    const result = await backfillTargets({ scope: "pack", dryRun: false });
-    if (!result) return;
-
-    const rt = result.totals;
-    const parts = [];
-    if (rt.descriptionsWrapped) parts.push(`${rt.descriptionsWrapped} desc wrapped`);
-    if (rt.namesCased)          parts.push(`${rt.namesCased} names cased`);
-    if (rt.iconsSet)            parts.push(`${rt.iconsSet} icons set`);
-    if (rt.spellsConverted)     parts.push(`${rt.spellsConverted} spells converted`);
-    if (rt.artAssigned)         parts.push(`${rt.artAssigned} art assigned`);
-    ui.notifications.info(
-      `Backfill complete: ${result.changed.length} actor(s) upgraded (${parts.join(", ") || "minor updates"}). ` +
-      `${result.unchanged.length} already up to date.`
-    );
+    const { backfillMonsters } = await import("./importer-hub-maintenance.mjs");
+    return backfillMonsters(this);
   }
 
-  /**
-   * Migrate world-side imported monster actors into sde-actors compendium suite pack.
-   * Ported verbatim from MonsterImporterApp._onMigrateSuite (D-03).
-   */
+  /** Migrate world imported actors into sde-actors — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onMigrateSuite() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can run the suite migration."); return; }
-    const { migrateActors } = await import("./actor-migration.mjs");
-
-    ui.notifications.info("Scanning imported monsters for suite migration…");
-    const preview = await migrateActors({ dryRun: true });
-    if (!preview) return;
-
-    if (preview.total === 0) {
-      ui.notifications.info("No imported-monsters actors found to migrate (all already migrated or none present).");
-      return;
-    }
-
-    const sourceLines = Object.entries(preview.bySource)
-      .map(([src, count]) => {
-        const label = src === "" ? "Custom / (no source)" : src === "undefined" ? "(unknown)" : src;
-        return `<li><strong>${foundry.utils.escapeHTML(label)}</strong>: ${count}</li>`;
-      })
-      .join("");
-
-    const content = `
-      <p>This will migrate <strong>${preview.total}</strong> imported monster actor(s) into the
-      <em>Shadowdark Enhancer — Actors</em> compendium suite pack:</p>
-      <ul style="margin:.4em 0">
-        <li>World actors to copy: <strong>${preview.worldCount}</strong></li>
-        <li>Legacy pack docs to fold in: <strong>${preview.legacyPackCount}</strong></li>
-      </ul>
-      ${sourceLines ? `<p>By source:</p><ul style="max-height:120px;overflow-y:auto;margin:.4em 0">${sourceLines}</ul>` : ""}
-      <p>Each actor is backfilled to current fidelity first, then copied into
-      <em>sde-actors</em> under its per-source folder. World originals are
-      <strong>moved</strong> (not deleted) into a <em>_Backup (pre-suite)</em>
-      folder. The legacy "Imported Monsters" pack (if any) is retired in place —
-      never deleted. This operation is idempotent; re-running skips
-      already-migrated actors.</p>
-      <p>Proceed?</p>`;
-
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Migrate to Compendium Suite" },
-      content,
-      buttons: [
-        { action: "confirm", label: "Migrate", default: true },
-        { action: "cancel",  label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-
-    if (choice !== "confirm") return;
-
-    const result = await migrateActors({ dryRun: false });
-    if (!result) return;
-
-    const parts = [];
-    if (result.copied)         parts.push(`${result.copied} copied to sde-actors`);
-    if (result.backedUp)       parts.push(`${result.backedUp} moved to _Backup`);
-    if (result.legacyMigrated) parts.push(`${result.legacyMigrated} legacy pack docs folded in`);
-    if (result.failures)       parts.push(`${result.failures} failed (see console)`);
-    ui.notifications.info(
-      `Suite migration complete: ${parts.join("; ") || "nothing to do"}.`
-    );
-
-    // Invalidate monsters cache so census reflects migrated actors
-    this._invalidateMonstersCache();
-    this.render();
+    const { migrateSuiteActors } = await import("./importer-hub-maintenance.mjs");
+    return migrateSuiteActors(this);
   }
 }
 

@@ -32,6 +32,7 @@ import {
   MANIFEST_CLASSES, CHAR_SOURCES, ANCESTRY_TABLES, BACKGROUND_TABLES,
 } from "./char-content-manifest.mjs";
 import { coreGroupsFor } from "./core-table-groups.mjs";
+import { GAMEPLAY_TABLES, PATRON_TABLES } from "./table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monster-census-live.mjs";
 import { liveItemRecords } from "./item-census-live.mjs";
 import { sourceFolderName } from "./compendium-suite.mjs";
@@ -41,40 +42,8 @@ const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 /** Fixed monster-source skeleton so empty sources still render (0 locked). */
 const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
 
-/** Manifest table names that are GAMEPLAY mechanics (books' Gameplay chapters). */
-const GAMEPLAY_TABLES = new Set([
-  "Core PDF p97: Carousing Outcome",
-  "Core PDF p118: Traps",
-  "Core PDF p284: Boons: Oaths",
-  "Diabolical Mishap 1-3",
-  "Diabolical Mishap 4-5",
-  "Cursed Scroll 2 p26: Enduring Wounds",
-  "Carousing Outcome",
-  "Carousing Outcome - Benefit",
-  "Carousing Outcome - Mishap",
-  "Carousing Mishap",
-  "Carousing Benefit",
-].map((n) => _norm(n)));
-
-/** Manifest table names that belong under Character Content → Patrons & Deities:
- *  the 8 god prayer generators (3d6 compounds) + the 17 patron boon tables
- *  (16 WR-version "<Name> Boons" in the SDE pack + Kytheros, whose system
- *  "Patron Boons: Kytheros" already matches WR and stays a system link). Kept
- *  in sync with the WR Gods & Patrons block in char-content-manifest.mjs. */
-const PATRON_TABLES = new Set([
-  // Gods — prayer generators
-  "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
-  "Ord Prayers", "Memnon Prayers", "Shune the Vile Prayers",
-  "Ramlaat Prayers", "The Lost Prayers",
-  // Patrons — WR boon tables (incl. the 5 WR-revised CS1 patrons)
-  "Almazzat Boons", "Freya Boons", "Krraktanamak Boons", "Loki Boons",
-  "Molek Boons", "Mugdulblub Boons", "Oatali Boons", "Obe-Ixx Boons",
-  "Odin Boons", "Oros Boons", "Rathgamnon Boons", "Saint Ydris Boons",
-  "Shune the Vile Boons", "Titania Boons", "The Willowman Boons",
-  "Yag-Kesh Boons",
-  // Kytheros — unrevised; system table linked, not duplicated
-  "Patron Boons: Kytheros",
-].map((n) => _norm(n)));
+// GAMEPLAY_TABLES / PATRON_TABLES routing sets now live in table-folders.mjs
+// (single source of truth shared with the pack-folder resolver) — imported above.
 
 /**
  * Sealed monster bestiaries (source label → monster count). The monster census

@@ -28,7 +28,7 @@
  */
 
 import { titleCaseName } from "./statblock-parser.mjs";
-import { textToHtml } from "./pdf-text-utils.mjs";
+import { textToHtml, splitRawBlocks } from "./pdf-text-utils.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
@@ -179,19 +179,6 @@ export function parseSpell(blockText) {
 }
 
 // ─── Block splitting ──────────────────────────────────────────────────────────
-
-/** Split raw text into blank-line-separated blocks (mirrors the segmenter helper). */
-function splitRawBlocks(rawText) {
-  const lines = String(rawText ?? "").replace(/\r\n?/g, "\n").split("\n");
-  const blocks = [];
-  let cur = [];
-  for (const line of lines) {
-    if (line.trim() === "") { if (cur.length) { blocks.push(cur.join("\n")); cur = []; } }
-    else cur.push(line);
-  }
-  if (cur.length) blocks.push(cur.join("\n"));
-  return blocks;
-}
 
 /**
  * Split ONE block into spell units. A unit starts at an ALL-CAPS name line whose

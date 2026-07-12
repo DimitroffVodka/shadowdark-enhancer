@@ -26,12 +26,16 @@
 // "2" comes "d", not whitespace) — so embedded dice in result text are
 // never mistaken for a row token.
 import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
+import { splitRawBlocks } from "./pdf-text-utils.mjs";
 
 const LEADING_RANGE = /^\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?(?=\s|$)/;
 
-// A "dN ..." header line. Trailing words (if any) are candidate column
-// labels — used by the Tier-2 matrix path (later task).
-const DIE_HEADER = /^d(\d{1,3})\b\s*(.*)$/i;
+// A "dN ..." / "NdM ..." header line. An optional leading count (2d6, 3d12)
+// is captured so a bell-curve or generator die spec headers a table with its
+// real formula instead of the parser guessing "1d<max-row>" — which used to
+// swallow a stray page number ("Freya Boons 208" → 1d208). Trailing words (if
+// any) are candidate column labels — used by the Tier-2 matrix path.
+const DIE_HEADER = /^(\d{0,2})d(\d{1,3})\b\s*(.*)$/i;
 
 /** Parse a leading die token. Returns {min,max,rest} or null. "00" is the d100
  *  convention for 100 (e.g. "99-00" = 99–100), so it maps to 100, not 0. */
@@ -45,42 +49,33 @@ function parseLeadingRange(line) {
   return { min, max, rest };
 }
 
-/** Parse a "dN Col Col Col" header. Returns {size,columns,remainder} or null. */
+/** Parse a "dN Col Col Col" / "NdM Col…" header.
+ *  Returns {count,size,columns,remainder} or null. `count` defaults to 1. */
 function parseDieHeader(line) {
   const m = DIE_HEADER.exec(String(line).trim());
   if (!m) return null;
-  const size = Number(m[1]);
-  const remainder = (m[2] ?? "").trim();
+  const count = m[1] ? Number(m[1]) : 1;
+  const size = Number(m[2]);
+  const remainder = (m[3] ?? "").trim();
   const columns = remainder ? remainder.split(/\s+/).filter(Boolean) : [];
-  return { size, columns, remainder };
+  return { count, size, columns, remainder };
 }
 
-/** Split raw paste text into blocks on blank lines. */
+/** Split raw paste text into blocks on blank lines (line-array shape —
+ * delegates to the shared splitter in pdf-text-utils). */
 function splitBlocks(text) {
-  const lines = String(text ?? "").replace(/\r\n?/g, "\n").split("\n");
-  const blocks = [];
-  let cur = [];
-  for (const line of lines) {
-    if (line.trim() === "") {
-      if (cur.length) { blocks.push(cur); cur = []; }
-    } else {
-      cur.push(line);
-    }
-  }
-  if (cur.length) blocks.push(cur);
-  return blocks;
+  return splitRawBlocks(text).map((b) => b.split("\n"));
 }
 
 /** Non-blocking warnings: gaps, overlaps, formula/max-range mismatch. */
 function computeWarnings(pt) {
   const warnings = [];
-  const sizeMatch = /^\s*\d*d(\d{1,3})/i.exec(pt.formula ?? "");
-  const size = sizeMatch ? Number(sizeMatch[1]) : null;
+  const sizeMatch = /^\s*(\d*)d(\d{1,3})/i.exec(pt.formula ?? "");
+  const count = sizeMatch && sizeMatch[1] ? Number(sizeMatch[1]) : 1;
+  const size = sizeMatch ? Number(sizeMatch[2]) : null;
   const maxRange = (pt.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0);
 
-  if (size != null && maxRange > size) {
-    warnings.push(`Rows reach ${maxRange} but formula is ${pt.formula}.`);
-  }
+  // Overlap is always meaningful.
   for (let i = 0; i < pt.rows.length; i++) {
     for (let j = i + 1; j < pt.rows.length; j++) {
       const a = pt.rows[i], b = pt.rows[j];
@@ -89,10 +84,18 @@ function computeWarnings(pt) {
       }
     }
   }
-  const top = size ?? maxRange;
-  for (let face = 1; face <= top; face++) {
-    if (!pt.rows.some(r => face >= r.min && face <= r.max)) {
-      warnings.push(`Value ${face} has no row.`);
+  // Flat-die range/gap checks only apply to a uniform 1dN table. An NdM spec
+  // (2d6, 3d12) is a bell curve whose rows run min..count*size and aren't one
+  // row per face, so those checks would fire spuriously — skip them.
+  if (count <= 1) {
+    if (size != null && maxRange > size) {
+      warnings.push(`Rows reach ${maxRange} but formula is ${pt.formula}.`);
+    }
+    const top = size ?? maxRange;
+    for (let face = 1; face <= top; face++) {
+      if (!pt.rows.some(r => face >= r.min && face <= r.max)) {
+        warnings.push(`Value ${face} has no row.`);
+      }
     }
   }
   return warnings;
@@ -125,19 +128,46 @@ function parseSingleDieBlock(title, die, dataLines) {
     });
   }
 
+  // Multi-column prose table (e.g. Carousing Outcome's "d14 Outcome Benefit"):
+  // the header carries ≥2 column labels but the block isn't a single-word-cell
+  // matrix. Keep ONE table and delimit each row's cells with " | " (user pref —
+  // no per-column split). A typed "|" always wins; otherwise the capital-letter
+  // boundary split applies. Majority rule: only rewrite when ≥60% of rows split
+  // cleanly into the column count, so prose rows under a multi-word TITLE
+  // ("d6 Probe Encounters") are never mangled.
+  let joinedColumns = false;
+  if (die && die.columns.length >= 2 && rows.length) {
+    const n = die.columns.length;
+    const cellsFor = (text) => {
+      if (String(text).includes("|")) {
+        const c = String(text).split("|").map(s => s.trim()).filter(Boolean);
+        return c.length >= 2 ? c : null;
+      }
+      return splitByCapitals(text, n);
+    };
+    const split = rows.map(r => cellsFor(r.text));
+    const clean = split.filter(Boolean).length;
+    if (clean / rows.length >= 0.6) {
+      rows.forEach((r, i) => { if (split[i]) r.text = split[i].join(" | "); });
+      joinedColumns = true;
+    }
+  }
+
   const maxRange = rows.reduce((m, r) => Math.max(m, r.max), 0);
   // With no separate title line, a dN header's trailing text is the table
   // name (e.g. "d100 Details" → "Details"). Matrix column-label use of the
   // remainder is handled on the Tier-2 path (later task), not here.
-  const name = title || (die ? die.remainder : "");
+  const name = title || (die && !joinedColumns ? die.remainder : "");
   const pt = {
     name: name || "",
-    formula: die ? `1d${die.size}` : `1d${Math.max(1, maxRange)}`,
+    formula: die ? `${die.count > 1 ? die.count : 1}d${die.size}` : `1d${Math.max(1, maxRange)}`,
     replacement: true,
     bestEffort: false,
     category: classify(name),
     customLabel: "",
-    ...(preRow.length ? { description: preRow.join(" ") } : {}),
+    ...(preRow.length
+      ? { description: preRow.join(" ") }
+      : (joinedColumns ? { description: `Columns: ${die.columns.join(" | ")}` } : {})),
     rows,
     warnings: [],
   };
@@ -148,14 +178,46 @@ function parseSingleDieBlock(title, die, dataLines) {
   return pt;
 }
 
-/** Split a row's result text into exactly n cells (surplus → last cell). */
-function splitCells(rest, n) {
-  const tokens = String(rest).split(/\s+/).filter(Boolean);
-  if (tokens.length <= n) {
-    const cells = tokens.slice();
-    while (cells.length < n) cells.push("");
-    return cells;
+/**
+ * Split "cell cell cell" on a capital-word boundary: a new cell begins at
+ * token 0 and at every later token that starts with an uppercase letter
+ * ("Loose debris Icy water Exhausting runes" → 3 cells). Conservative — only
+ * returns cells when the boundary count is EXACTLY n, so a stray internal
+ * capital (proper noun) falls back to the caller's other heuristics instead of
+ * mis-splitting. Null when it can't line up. (User obs.: new columns capitalise.)
+ */
+function splitByCapitals(rest, n) {
+  const toks = String(rest).trim().split(/\s+/).filter(Boolean);
+  if (toks.length < n) return null;
+  const starts = [0];
+  for (let i = 1; i < toks.length; i++) if (/^[A-Z]/.test(toks[i])) starts.push(i);
+  if (starts.length !== n) return null;
+  const cells = [];
+  for (let s = 0; s < starts.length; s++) {
+    cells.push(toks.slice(starts[s], starts[s + 1] ?? toks.length).join(" "));
   }
+  return cells;
+}
+
+/**
+ * Split a row's result text into exactly n cells. Column detection, in order:
+ *   1. an explicit "|" delimiter (user pref for multi-column tables),
+ *   2. tab / 2+ spaces (aligned PDF columns),
+ *   3. one word per column (single-token cells),
+ *   4. a capital-letter boundary (multi-word cells; see splitByCapitals),
+ *   5. else surplus tokens fold into the last cell.
+ */
+function splitCells(rest, n) {
+  const s = String(rest);
+  const pad = (cells) => { const c = cells.slice(0, n); while (c.length < n) c.push(""); return c; };
+  if (s.includes("|")) return pad(s.split("|").map((x) => x.trim()));
+  const byDelim = s.split(/\t+|\s{2,}/).map((x) => x.trim()).filter(Boolean);
+  if (byDelim.length === n) return byDelim;
+  const tokens = s.split(/\s+/).filter(Boolean);
+  if (tokens.length === n) return tokens;
+  const byCaps = splitByCapitals(s, n);
+  if (byCaps) return byCaps;
+  if (tokens.length < n) return pad(tokens);
   const cells = [];
   for (let i = 0; i < n - 1; i++) cells.push(tokens[i]);
   cells.push(tokens.slice(n - 1).join(" "));
@@ -201,7 +263,10 @@ function parseMatrixBlock(title, die, dataLines) {
  * to the single-die path.
  */
 function looksLikeMatrix(die, dataLines) {
-  if (!die || die.columns.length < 2) return false;
+  // A matrix is a single-die "dN Col Col …" grid. An NdM header (2d6, 3d12) is
+  // a bell-curve/generator spec whose trailing words are the title, not column
+  // labels — never a per-column pick-one matrix.
+  if (!die || (die.count ?? 1) > 1 || die.columns.length < 2) return false;
   const n = die.columns.length;
   let total = 0;
   let exact = 0;
@@ -513,18 +578,27 @@ function parseGeneratorBlock(rawLines, spec) {
       const r = parseLeadingRange(line);
       if (!r || r.rest === "") continue;
       size = Math.max(size, r.max);
-      // Prefer real column delimiters (tab / 2+ spaces); fall back to one word
-      // per column; else best-effort split with a warning.
-      const byDelim = r.rest.split(/\t+|\s{2,}/).map(s => s.trim()).filter(Boolean);
+      // Column detection: an explicit "|" delimiter wins, then tab / 2+ spaces,
+      // then one word per column, then a capital-letter boundary; else a
+      // best-effort split with a warning.
       const toks = r.rest.trim().split(/\s+/);
       let cells;
-      if (byDelim.length === n) cells = byDelim;
-      else if (toks.length === n) cells = toks;
-      else {
-        const fc = fragmentsToCells(toks, n);
-        cells = fc.cells;
-        if (fc.over) warnings.push(`Roll ${r.min}: more words than ${n} columns — check the last cell.`);
-        else if (fc.under) warnings.push(`Roll ${r.min}: fewer than ${n} columns — some cells are empty.`);
+      if (r.rest.includes("|")) {
+        cells = r.rest.split("|").map(s => s.trim());
+        while (cells.length < n) cells.push("");
+        cells = cells.slice(0, n);
+      } else {
+        const byDelim = r.rest.split(/\t+|\s{2,}/).map(s => s.trim()).filter(Boolean);
+        const byCaps = splitByCapitals(r.rest, n);
+        if (byDelim.length === n) cells = byDelim;
+        else if (toks.length === n) cells = toks;
+        else if (byCaps) cells = byCaps;
+        else {
+          const fc = fragmentsToCells(toks, n);
+          cells = fc.cells;
+          if (fc.over) warnings.push(`Roll ${r.min}: more words than ${n} columns — check the last cell.`);
+          else if (fc.under) warnings.push(`Roll ${r.min}: fewer than ${n} columns — some cells are empty.`);
+        }
       }
       for (let ci = 0; ci < n; ci++) cols[ci].push({ min: r.min, max: r.max, text: cells[ci] ?? "" });
     }
@@ -626,20 +700,54 @@ export function buildTableData(pt) {
     : 0;
   const name = (pt.name ?? "").trim() || "Imported Table";
 
-  // Compound generators store all columns in a flag and roll every column at
-  // once (see compound-table.mjs). The visible results array holds a single
-  // hint row so the sheet isn't empty and core draw() never throws no-results.
+  // Compound generators expand to the FULL cartesian product as one flat,
+  // fully-visible RollTable — no hidden per-column roll logic (user pref). A
+  // single 1d<product> roll reproduces the roll-each-column distribution
+  // exactly: every ordered tuple of column cells is equally likely, so a 3d6
+  // generator becomes a plain 216-row table. Giant products (e.g. a 4d20 name
+  // grid = 160k rows) exceed EXPAND_CAP and fall back to the roll-each-column
+  // generator so Foundry isn't asked to create an unusable table.
   if (pt.isCompound) {
     const src = pt.compound?.columns ?? pt.columns ?? [];
-    const maxFace = src.reduce((m, c) =>
-      Math.max(m, (c.rows ?? []).reduce((mm, r) => Math.max(mm, r.max), 0)), 0);
-    const colFormula = src[0]?.formula || (pt.formula ?? "").trim() || `1d${Math.max(1, maxFace)}`;
-    const columns = src.map(c => ({
+    // Each column → its ordered cell list (one entry per die face; ranges are
+    // expanded, gaps kept as "" so face alignment survives GM edits).
+    const colCells = src.map((c) => {
+      const rows = c.rows ?? [];
+      const size = rows.reduce((m, r) => Math.max(m, r.max), 0);
+      const byFace = new Map();
+      for (const r of rows) for (let f = r.min; f <= r.max; f++) if (!byFace.has(f)) byFace.set(f, r.text ?? "");
+      const cells = [];
+      for (let f = 1; f <= size; f++) cells.push((byFace.get(f) ?? "").trim());
+      return cells;
+    }).filter((a) => a.length);
+    const separator = " | ";
+    const EXPAND_CAP = 10000;
+    const product = colCells.length ? colCells.reduce((a, c) => a * c.length, 1) : 0;
+    if (product >= 1 && product <= EXPAND_CAP) {
+      let combos = [[]];
+      for (const cells of colCells) {
+        const next = [];
+        for (const combo of combos) for (const cell of cells) next.push([...combo, cell]);
+        combos = next;
+      }
+      const results = combos.map((cells, i) => ({
+        type: TEXT,
+        name: cells.filter((s) => s !== "").join(separator),
+        weight: 1,
+        range: [i + 1, i + 1],
+      }));
+      return { name, formula: `1d${product}`, replacement: true, displayRoll: false, results };
+    }
+    // Fallback: keep the compound flag + a single hint row so the sheet isn't
+    // empty and core draw() never throws no-results.
+    const colFormula = src[0]?.formula || (pt.formula ?? "").trim()
+      || `1d${Math.max(1, ...(colCells.length ? colCells.map((c) => c.length) : [1]))}`;
+    const columns = src.map((c) => ({
       label: (c.label ?? "").trim(),
       formula: (c.formula ?? "").trim() || colFormula,
-      rows: (c.rows ?? []).map(r => ({ min: r.min, max: r.max, text: r.text ?? "" })),
+      rows: (c.rows ?? []).map((r) => ({ min: r.min, max: r.max, text: r.text ?? "" })),
     }));
-    const separator = typeof pt.compound?.separator === "string"
+    const sep = typeof pt.compound?.separator === "string"
       ? pt.compound.separator : (typeof pt.separator === "string" ? pt.separator : " ");
     return {
       name,
@@ -653,7 +761,7 @@ export function buildTableData(pt) {
         range: [1, 1],
       }],
       flags: {
-        "shadowdark-enhancer": { compound: { separator, columns } },
+        "shadowdark-enhancer": { compound: { separator: sep, columns } },
       },
     };
   }
@@ -729,7 +837,7 @@ export async function createTable(pt, { onConflict } = {}) {
   }
 
   // Resolve the sde-tables pack (find-or-create via ensureSuite).
-  const { ensureSuite, ensureSourceFolder: _ensureSourceFolder } =
+  const { ensureSuite, ensureFolderPath: _ensureFolderPath } =
     await import("./compendium-suite.mjs");
   const suite = await ensureSuite();
   if (!suite?.tables) {
@@ -762,14 +870,14 @@ export async function createTable(pt, { onConflict } = {}) {
     }
   }
 
-  // Determine source id for the per-source folder inside the pack.
-  // pt.source (stamped by hub seed) > pt.folderPath[0] heuristic > null → "Custom".
-  // NOTE: `??` only catches null/undefined — `Array.isArray(x) && x[0]` yields
-  // boolean `false` when folderPath is absent, which leaked through as a
-  // folder literally named "FALSE" (caught live, 10-03 checkpoint).
+  // File into the category-first folder tree that mirrors the Manage strip
+  // (table-folders.mjs is the single source of truth; user req 2026-07-11 —
+  // replaces the old flat per-source ensureSourceFolder filing).
+  const { resolveTableFolderPath } = await import("./table-folders.mjs");
+  const folderId = await _ensureFolderPath(pack, resolveTableFolderPath({ ...pt, name: data.name }));
+  // Source id still stamps the source FLAG below (hub/migration grouping).
   const sourceId = pt.source
     ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
-  const folderId = await _ensureSourceFolder(pack, sourceId);
 
   data.folder = folderId ?? null;
   data.flags = {
@@ -825,16 +933,18 @@ export async function applyTableStructureSeed(table) {
       ?? Object.entries(TABLE_STRUCTURE_SEEDS).find(([k]) =>
         norm(k) === norm(table.name) || norm(table.name).endsWith(`- ${norm(k)}`) || norm(k).endsWith(`- ${norm(table.name)}`))?.[1];
     if (!seed) return;
-    const { findSuitePack, ensureFolderPath } = await import("./compendium-suite.mjs");
+    const { findSuitePack } = await import("./compendium-suite.mjs");
     const packOf = { tables: findSuitePack("sde-tables"), actors: findSuitePack("sde-actors"), items: findSuitePack("sde-items") };
     if (seed.flags && Object.keys(seed.flags).length)
       await table.update({ "flags.shadowdark-enhancer": { ...(table.flags["shadowdark-enhancer"] ?? {}), ...seed.flags } });
-    // Restore the gold-master folder (single top-level folder, e.g. "Gods &
-    // Patrons"): createTable files by source, but the seed is authoritative for
-    // where the imported table belongs. Only moves when it differs.
-    if (seed.folder && packOf.tables) {
-      const folderId = await ensureFolderPath(packOf.tables, [seed.folder]);
-      if (folderId && (table.folder?.id ?? null) !== folderId) await table.update({ folder: folderId });
+    // NOTE: seed.folder is no longer applied — createTable now files every
+    // table via the category-first resolver (table-folders.mjs), which
+    // supersedes the seeds' legacy single-name source folders.
+    // The seed is authoritative for the die formula (e.g. Carousing Outcome is
+    // 1d14, Freya Boons is 2d6) — a paste can mis-guess it from a stray page
+    // number ("… 208" → 1d208). Only updates when it differs.
+    if (seed.formula && table.formula !== seed.formula) {
+      await table.update({ formula: seed.formula });
     }
     if (!seed.links?.length) return;
     // Group by range: the first link converts that range's text row; further
@@ -934,7 +1044,12 @@ export function parseMatrixByColumns(text, columns, widths) {
     const toks = rest.trim().split(/\s+/);
     const w = Array.isArray(widths) ? widths[min - 1] : null;
     let cells;
-    if (w && w.length === N && w.reduce((a, b) => a + b, 0) === toks.length) {
+    if (rest.includes("|")) {
+      // Explicit pipe delimiter wins outright (user pref for multi-column tables).
+      cells = rest.split("|").map(s => s.trim());
+      while (cells.length < N) cells.push("");
+      cells = cells.slice(0, N);
+    } else if (w && w.length === N && w.reduce((a, b) => a + b, 0) === toks.length) {
       // Authoritative: split by the known per-cell word counts (handles
       // single-spaced multi-word cells with no delimiter at all).
       cells = []; let k = 0;
@@ -943,6 +1058,8 @@ export function parseMatrixByColumns(text, columns, widths) {
       cells = byDelim;                                  // delimited multi-word cells
     } else if (toks.length === N) {
       cells = toks;                                     // single-word cells
+    } else if (splitByCapitals(rest, N)) {
+      cells = splitByCapitals(rest, N);                 // capital-led column boundaries
     } else if (toks.length > N) {
       cells = [...toks.slice(0, N - 1), toks.slice(N - 1).join(" ")];
       warnings.push(`Roll ${min}${max !== min ? "-" + max : ""}: ${toks.length} words across ${N} columns — verify the last column.`);

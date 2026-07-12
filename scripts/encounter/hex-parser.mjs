@@ -34,7 +34,7 @@
  */
 
 import { titleCaseName } from "./statblock-parser.mjs";
-import { escapeHtml } from "./pdf-text-utils.mjs";
+import { escapeHtml, splitRawBlocks } from "./pdf-text-utils.mjs";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -296,24 +296,6 @@ export function rewriteHexPlaceholders(content, uuidByKey) {
     const uuid = uuidByKey?.get?.(key);
     return uuid ? `@UUID[${uuid}]{${label}}` : label;
   });
-}
-
-// ─── Block splitting (duplicated from item-parser pattern — circular import) ──
-
-/** Split raw text into blank-line-separated blocks. */
-function splitRawBlocks(rawText) {
-  const lines = String(rawText ?? "").replace(/\r\n?/g, "\n").split("\n");
-  const blocks = [];
-  let cur = [];
-  for (const line of lines) {
-    if (line.trim() === "") {
-      if (cur.length) { blocks.push(cur.join("\n")); cur = []; }
-    } else {
-      cur.push(line);
-    }
-  }
-  if (cur.length) blocks.push(cur.join("\n"));
-  return blocks;
 }
 
 // ─── Recognizer ───────────────────────────────────────────────────────────────

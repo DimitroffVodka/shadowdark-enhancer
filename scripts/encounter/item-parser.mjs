@@ -21,15 +21,17 @@
 
 import { titleCaseName } from "./statblock-parser.mjs";
 import { parseValue, pickTreasureIcon } from "./loot-pack.mjs";
-import { escapeHtml, textToHtml } from "./pdf-text-utils.mjs";
+import { escapeHtml, textToHtml, splitRawBlocks } from "./pdf-text-utils.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
-/** Rider keywords that anchor a magic-item block. */
-const RIDER_KW = /\b(Benefit|Bonus|Curse|Personality)\./;
+/** Rider keywords that anchor a magic-item block. Exported: the segmenter
+ * reuses the owning parser's anchors (review 2026-07-11 maintainability). */
+export const RIDER_KW = /\b(Benefit|Bonus|Curse|Personality)\./;
 
-/** Cost pattern — at least one `N gp/sp/cp` occurrence. */
-const COST_RE = /(\d+)\s*(gp|sp|cp)\b/i;
+/** Cost pattern — at least one `N gp/sp/cp` occurrence. Exported for the
+ * segmenter (same reuse rule as RIDER_KW). */
+export const COST_RE = /(\d+)\s*(gp|sp|cp)\b/i;
 
 /** Slots pattern — `N slots` or `N slot`. */
 const SLOTS_RE = /(\d+)\s*slots?\b/i;
@@ -248,26 +250,6 @@ export function parseItem(blockText) {
 // ─── Recognizer ───────────────────────────────────────────────────────────────
 
 /**
- * Split raw text into blank-line-separated blocks (mirrors segmenter helper).
- * @param {string} rawText
- * @returns {string[]}
- */
-function splitRawBlocks(rawText) {
-  const lines = String(rawText ?? "").replace(/\r\n?/g, "\n").split("\n");
-  const blocks = [];
-  let cur = [];
-  for (const line of lines) {
-    if (line.trim() === "") {
-      if (cur.length) { blocks.push(cur.join("\n")); cur = []; }
-    } else {
-      cur.push(line);
-    }
-  }
-  if (cur.length) blocks.push(cur.join("\n"));
-  return blocks;
-}
-
-/**
  * Items recognizer — plugs into the dump-segmenter RECOGNIZERS registry.
  *
  * id: "item"
@@ -277,8 +259,8 @@ function splitRawBlocks(rawText) {
  * parse(claimedBlocks): returns { draft, warnings }[] — NOT raw strings.
  *   Items return draft objects immediately (no second parse pass needed).
  *
- * Registration order (see dump-segmenter.mjs):
- *   [monsterRecognizer, itemRecognizer, tableRecognizer]
+ * Registration order (see dump-segmenter.mjs RECOGNIZERS):
+ *   [hexcrawl, spell, monster, item, table]
  *   Must run AFTER monsters (so statblock continuations are already claimed)
  *   and BEFORE tables (so item blocks don't fall through to the table
  *   recognizer's no-dice remainder path).

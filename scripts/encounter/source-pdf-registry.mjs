@@ -29,6 +29,14 @@ const JOURNAL_NAME = "Shadowdark Source PDFs";
 const LIB_FLAG = "sourcePdfLibrary";   // marks the library JournalEntry
 const KEY_FLAG = "sourceKey";          // marks a page as belonging to a source
 
+/**
+ * Book-page → PDF-page offset per source. A cite records the PRINTED page a
+ * section lives on, but the PDF's front matter (covers, credits, ToC) shifts
+ * the file's page count ahead of the printed numbers. The Core Rulebook PDF
+ * runs +4 (printed page 92 is PDF page 96). Sources not listed are 1:1.
+ */
+const PAGE_OFFSETS = { CORE: 4 };
+
 /** Per-world upload target — packaged module dirs are read-only. */
 function uploadDir() {
   return `worlds/${game.world.id}/source-pdfs`;
@@ -87,8 +95,10 @@ export function sourcePdfHref(src, pages) {
   const file = resolveSourcePdf(src);
   const page = firstPage(pages);
   if (!file || !page) return null;
+  // Shift the printed cite to the PDF's own page numbering (see PAGE_OFFSETS).
+  const pdfPage = page + (PAGE_OFFSETS[src] ?? 0);
   const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
-  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${page}`;
+  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${pdfPage}`;
 }
 
 /** One row per known source, with its current link status — for the manager UI. */
