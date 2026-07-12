@@ -26,6 +26,8 @@ const PRAYER = (size = 6) => ({
   labels: ["Detail 1", "Detail 2", "Detail 3"],
 });
 
+const GRID3 = (size, labels) => ({ kind: "compound", split: "grid", cols: 3, size, labels });
+
 export const TABLE_SHAPES = {
   // WR god prayer generators (Western Reaches pp.191-205) — 3d6 compounds.
   "Madeera the Covenant Prayers": PRAYER(6),
@@ -44,6 +46,13 @@ export const TABLE_SHAPES = {
   "Traps": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"] },
   "Hazards": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] },
   "Boons: Secrets": { kind: "compound", split: "grid", cols: 2, size: 12 },
+  // Core Rulebook d20 × 3-column name/idea generators (roll each column,
+  // combine). Cartesian = 20^3 = 8,000 rows — the visible "really long table".
+  "Tavern Generator": GRID3(20, ["Name 1", "Name 2", "Known For"]),
+  "Shop Generator": GRID3(20, ["Name 1", "Name 2", "Known For"]),
+  "Adventure Generator": GRID3(20, ["Detail 1", "Detail 2", "Detail 3"]),
+  "Adventuring Site Name": GRID3(20, ["Name 1", "Name 2", "Name 3"]),
+  "Magic Item Idea Generator": GRID3(20, ["Name 1", "Name 2", "Name 3"]),
 };
 
 /** Resolve a table name (suffix-tolerant) to its shape descriptor, or null. */

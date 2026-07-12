@@ -55,10 +55,10 @@ export const CORE_TABLE_GROUPS = [
     rep: "Core PDF p126: Adventure Generator", startPage: 118,
     pasteHint: "Adventure Generator section (Core pg 118–122)",
     tables: [
+      // Adventure Generator is one d20 × 3-col compound (Detail 1/2/3) — the
+      // old per-column "- Detail N" rows were columns, not tables (removed; the
+      // table-shapes grid shape parses it as one table, user QA 2026-07-11).
       { name: "Adventure Generator", page: 122 },
-      { name: "Adventure Generator - Detail 1", page: 118 },
-      { name: "Adventure Generator - Detail 2", page: 118 },
-      { name: "Adventure Generator - Detail 3", page: 118 },
       { name: "NPC Qualities - Appearance", page: 121 },
       { name: "NPC Qualities - Does", page: 121 },
       { name: "NPC Qualities - Secret", page: 121 },
@@ -73,10 +73,9 @@ export const CORE_TABLE_GROUPS = [
     rep: "Core PDF p137: Drinks", startPage: 132,
     pasteHint: "Tavern / Food / Drinks section (Core pg 132–136)",
     tables: [
+      // One d20 × 3-col compound (Name 1 / Name 2 / Known For) — columns, not
+      // separate tables; parsed as one table by the grid shape.
       { name: "Tavern Generator", page: 136 },
-      { name: "Tavern Generator - Known For", page: 132 },
-      { name: "Tavern Generator - Name 1", page: 132 },
-      { name: "Tavern Generator - Name 2", page: 132 },
       { name: "Drinks", page: 133 },
       { name: "Food - Poor", page: 133 },
       { name: "Food - Standard", page: 133 },
@@ -93,10 +92,8 @@ export const CORE_TABLE_GROUPS = [
       { name: "Standard Shop", page: 134 },
       { name: "Wealthy Shop", page: 134 },
       { name: "Interesting Customer", page: 135 },
+      // One d20 × 3-col compound (Name 1 / Name 2 / Known For) — grid shape.
       { name: "Shop Generator", page: 139 },
-      { name: "Shop Generator - Known For", page: 139 },
-      { name: "Shop Generator - Name 1", page: 139 },
-      { name: "Shop Generator - Name 2", page: 139 },
     ],
   },
   {
@@ -148,10 +145,8 @@ export const CORE_TABLE_GROUPS = [
     rep: "Core PDF p294: Item Virtue", startPage: 278,
     pasteHint: "Magic Item Attribute tables (Core pg 278–291)",
     tables: [
+      // One d20 × 3-col compound (Name 1 / Name 2 / Name 3) — grid shape.
       { name: "Magic Item Idea Generator", page: 283 },
-      { name: "Magic Item Idea Generator - Name 1", page: 279 },
-      { name: "Magic Item Idea Generator - Name 2", page: 279 },
-      { name: "Magic Item Idea Generator - Name 3", page: 279 },
       { name: "Personality", page: 278 },
       { name: "Qualities", page: 278 },
       { name: "Type", page: 278 },
