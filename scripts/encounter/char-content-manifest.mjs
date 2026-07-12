@@ -34,8 +34,19 @@ export const CHAR_SOURCES = {
  * hasn't uploaded through the manager yet. NEVER bundled: the user supplies
  * their own local copy; this only records where a default one lives.
  */
+// Static default PDF path per source — the shared, world-agnostic assets/ copy.
+// resolveSourcePdf() prefers a world's uploaded (library-journal) PDF and falls
+// back to these, so every world auto-links the deep-link viewer without a
+// per-world upload. Keep these filenames in sync with the files in Data/assets/.
 export const SOURCE_PDFS = {
-  WR: "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf",
+  CORE: "assets/[Shadowdark RPG] - Core Rulebook - Shadowdark RPG (V4-9).pdf",
+  WR:   "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf",
+  CS1:  "assets/Cursed Scroll 1 - Diablerie V4-3.pdf",
+  CS2:  "assets/Cursed Scroll 2 - Red Sands V2-2.pdf",
+  CS3:  "assets/Cursed Scroll 3 - Midnight Sun V3-5.pdf",
+  CS4:  "assets/Cursed Scroll 4 - River of Night V1-4.pdf",
+  CS5:  "assets/Cursed Scroll 5 - Dwellers in the Deep V1.pdf",
+  CS6:  "assets/Cursed Scroll 6 - City of Masks V1.pdf",
 };
 
 // src → Foundry item type → expected names (from the source books' character
