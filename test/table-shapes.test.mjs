@@ -167,6 +167,26 @@ test("lookup shape: a manually-typed | wins over the col2Starts keyword", () => 
   assert.equal(t.rows[1].text, "Plain outcome | Gain 2 XP");
 });
 
+test("lookup shape: cost-indexed | paste — a number in col 1 is NOT a die face (Carousing Event)", () => {
+  // Real-paste regression: Carousing Event has no die column (keyed by Cost).
+  // The old parser read "30" as die 30 (Cost became "gp") and dropped comma
+  // costs like "1,200 gp". A cost-indexed | paste must number rows in order.
+  const text = [
+    "Carousing Event",
+    "Cost Event Bonus",                                  // header — skipped
+    "30 gp| A worthy night of festivity |+0",
+    "100 gp| A full day and night |+1",
+    "1,200 gp| A spirited fete with a comma cost |+5",   // comma must not drop the row
+  ].join("\n");
+  const t = parseByShape(text, { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"], dieIndexed: false }, { name: "Carousing Event" }).tables[0];
+  assert.deepEqual(t.rows.map((r) => r.min), [1, 2, 3]);   // sequential, NOT 30/100/1200
+  assert.deepEqual(t.rows.map((r) => r.text), [
+    "30 gp | A worthy night of festivity | +0",
+    "100 gp | A full day and night | +1",
+    "1,200 gp | A spirited fete with a comma cost | +5",
+  ]);
+});
+
 test("lookup shape: a typed | wins even on the column-aligned (geometry) path", () => {
   // A 2+-space header routes to the x-band/geometry path; a "|" in a row must
   // still win over the geometry slice (and over the col2Starts keyword).

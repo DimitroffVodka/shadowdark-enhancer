@@ -966,20 +966,35 @@ function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
  *  (`col2Starts`, e.g. Carousing Outcome's Benefit always begins "Gain"), a
  *  2-column row is split there — reliable where delimiter/geometry can't see a
  *  boundary in single-spaced prose. Otherwise falls back to splitCells. */
-function _lookupSimple(text, { cols, col2Starts }) {
+function _lookupSimple(text, { cols, col2Starts, dieIndexed = true }) {
   const col2Re = col2Starts && cols === 2
     ? new RegExp(`\\b${col2Starts.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`) : null;
   const rows = [];
+  let seq = 0;
   for (const l of String(text).split(/\r?\n/)) {
-    const r = parseLeadingRange(l.trim());
-    if (!r || r.rest === "") continue;
-    let cells;
-    // A manually-typed "|" always wins (splitCells honours it); only reach for
-    // the keyword split when the user did NOT delimit the row themselves.
-    const m = r.rest.includes("|") ? null : col2Re?.exec(r.rest);
-    if (m && m.index > 0) cells = [r.rest.slice(0, m.index).trim(), r.rest.slice(m.index).trim()];
-    else cells = splitCells(r.rest, cols);
-    rows.push({ min: r.min, max: r.max, text: cells.join(" | ") });
+    const line = l.trim();
+    if (!line) continue;
+    if (dieIndexed) {
+      // Each row starts with its die number — that's the row id.
+      const r = parseLeadingRange(line);
+      if (!r || r.rest === "") continue;
+      // A manually-typed "|" always wins (splitCells honours it); only reach for
+      // the keyword split when the user did NOT delimit the row themselves.
+      const m = r.rest.includes("|") ? null : col2Re?.exec(r.rest);
+      const cells = (m && m.index > 0)
+        ? [r.rest.slice(0, m.index).trim(), r.rest.slice(m.index).trim()]
+        : splitCells(r.rest, cols);
+      rows.push({ min: r.min, max: r.max, text: cells.join(" | ") });
+    } else {
+      // No die column (Carousing Event, keyed by Cost). Do NOT run
+      // parseLeadingRange — the first column's own number ("30 gp", "1,200 gp")
+      // is NOT a die face. A data row is one the user delimited with "|", or one
+      // that splits into exactly `cols` on 2+ spaces; header/title lines do
+      // neither and are skipped. Rows are numbered in order.
+      const byDelim = line.split(/\t+|\s{2,}/).map((s) => s.trim()).filter(Boolean);
+      if (!line.includes("|") && byDelim.length !== cols) continue;
+      rows.push({ min: ++seq, max: seq, text: splitCells(line, cols).join(" | ") });
+    }
   }
   return rows;
 }
@@ -1022,7 +1037,7 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
       }
     }
   }
-  if (!rows) rows = _lookupSimple(text, { cols, col2Starts });
+  if (!rows) rows = _lookupSimple(text, { cols, col2Starts, dieIndexed });
   if (!rows.length) return null;
 
   const maxRange = rows.reduce((m, r) => Math.max(m, r.max), 0);
