@@ -815,8 +815,14 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
     { label: lab[2], formula: `1d${size}`, rows: mkRows(c3) },
   ];
   const nm = (name || "Prayer Generator").trim();
+  // A prayer rolls one d6 per column (3d6), then cartesian-expands to a flat
+  // 6³ = 216-row table at commit. The top-level formula is the human roll
+  // (`3d6`), not the per-column `1d6` — the preview shows this verbatim, and
+  // `expand:"cartesian"` marks the intent explicitly (buildTableData already
+  // auto-expands 216 ≤ cap, so the committed 1d216 table is unchanged).
   return {
-    name: nm, formula: `1d${size}`, replacement: true, isCompound: true,
+    name: nm, formula: `${columns.length}d${size}`, replacement: true, isCompound: true,
+    expand: "cartesian",
     category: classify(nm), customLabel: "",
     separator: " ", compound: { separator: " ", columns }, columns,
     rows: [], warnings,
