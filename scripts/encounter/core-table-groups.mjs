@@ -197,10 +197,20 @@ export const CORE_TABLE_GROUPS = [
       // d14) is on the facing p93 (user-corrected 2026-07-12).
       { name: "Carousing Event", page: 92 },
       { name: "Carousing Outcome", page: 93 },
-      { name: "Wizards and Thieves: Epic Stakes", page: 95 },
-      { name: "Wizards and Thieves: High Stakes", page: 95 },
-      { name: "Wizards and Thieves: Mid Stakes", page: 95 },
+    ],
+  },
+  {
+    // The four "Played For…" d4 stakes tables get their own folder under Core
+    // Rulebook rather than sitting under Carousing (user req 2026-07-12).
+    unit: "core-wizards-thieves", section: "gameplay", key: "wizards-thieves",
+    header: "Wizards and Thieves", icon: "fa-dice",
+    rep: "Wizards and Thieves: Low Stakes", startPage: 95,
+    pasteHint: "Wizards and Thieves stakes tables (Core pg 95)",
+    tables: [
       { name: "Wizards and Thieves: Low Stakes", page: 95 },
+      { name: "Wizards and Thieves: Mid Stakes", page: 95 },
+      { name: "Wizards and Thieves: High Stakes", page: 95 },
+      { name: "Wizards and Thieves: Epic Stakes", page: 95 },
     ],
   },
   {
