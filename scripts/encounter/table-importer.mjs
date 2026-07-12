@@ -59,7 +59,16 @@ function parseDieHeader(line) {
   const count = m[1] ? Number(m[1]) : 1;
   const size = Number(m[2]);
   const remainder = (m[3] ?? "").trim();
-  const columns = remainder ? remainder.split(/\s+/).filter(Boolean) : [];
+  // A remainder ending in "…" / "..." is a SINGLE truncated column label
+  // ("Played For…", "Rolled…") — not multiple columns. Real multi-column
+  // headers list distinct short labels (Outcome Benefit, Cost Event Bonus).
+  // Splitting it on spaces made a 1-column d4 like Wizards & Thieves' stakes
+  // ("d4 Played For…") look like a 2-col matrix and truncated every row.
+  const columns = !remainder
+    ? []
+    : /(\.\.\.|…)$/.test(remainder)
+      ? [remainder]
+      : remainder.split(/\s+/).filter(Boolean);
   return { count, size, columns, remainder };
 }
 

@@ -5,7 +5,7 @@
 // user's own uploaded PDFs, not in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseByShape, buildTableData } from "../scripts/encounter/table-importer.mjs";
+import { parseByShape, buildTableData, parseTables } from "../scripts/encounter/table-importer.mjs";
 import { shapeForName, TABLE_SHAPES } from "../scripts/encounter/table-shapes.mjs";
 import { resolveTableFolderPath } from "../scripts/encounter/table-folders.mjs";
 
@@ -248,6 +248,15 @@ test("expansion cap: <=2000 expands to a flat table, larger stays compound", () 
   assert.ok(!traps.flags?.["shadowdark-enhancer"]?.compound);
   const gen = buildTableData(mk(3, 20));                   // 8,000
   assert.ok(gen.flags?.["shadowdark-enhancer"]?.compound); // stays compound
+});
+
+test("single-column table with an ellipsis header is not split into a fake matrix", () => {
+  // "Played For…" is one truncated label, not two columns. The rows happen to be
+  // two words each ("Single drinks"), which used to satisfy the matrix heuristic
+  // and truncate them to the first word (Wizards & Thieves stakes bug).
+  const t = parseTables("LOW STAKES\nd4 Played For...\n1 Copper\n2 Single drinks\n3 Bragging rights\n4 Minor baubles")[0];
+  assert.equal(t.formula, "1d4");
+  assert.deepEqual(t.rows.map((r) => r.text), ["Copper", "Single drinks", "Bragging rights", "Minor baubles"]);
 });
 
 // ── Registry + folder resolution ──────────────────────────────────────────────
