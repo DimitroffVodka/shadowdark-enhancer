@@ -308,12 +308,15 @@ export const ANCESTRY_TABLES = [
  * @param {string} baseName     e.g. "Dwarf Names", "Dwarf Trinket"
  */
 export function sourcedTableName(sourceLabel, baseName) {
-  const ancestry = /\bnames$/i.test(baseName)
+  const raw = /\bnames$/i.test(baseName)
     ? String(baseName).replace(/\s*names\s*$/i, "").trim()
     : "";
-  return ancestry
-    ? `Character Names: ${sourceLabel} ${ancestry}`.replace(/\s+/g, " ").trim()
-    : `${sourceLabel} - ${baseName}`;
+  if (!raw) return `${sourceLabel} - ${baseName}`;
+  // Normalize ancestry casing so an all-caps page caption ("DWARF", "HALF-ELF")
+  // doesn't leak into the table name: lower, then re-capitalize each word start
+  // (hyphen-aware, so "half-elf" → "Half-Elf"). Idempotent for mixed-case input.
+  const ancestry = raw.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  return `Character Names: ${sourceLabel} ${ancestry}`.replace(/\s+/g, " ").trim();
 }
 
 /** User-supplied page cites for Item-type manifest entries: src → name → pages. */
@@ -810,11 +813,11 @@ function _blockTail(lines, from) {
   return "";
 }
 
-/** The source-prefixed table name for a name-part table whose ancestry was
- *  borrowed from a sibling "<Ancestry> Names/Trinket(s)" caption in the block
- *  (e.g. "HALFLING TRINKET" → "Western Reaches - Halfling Names"). Ancestry
- *  Names/Trinkets tables are always WR content, so it mirrors the WR prefix the
- *  hub's identify path stamps on the sibling Trinket table. "" when no caption. */
+/** The canonical table name for a name-part table whose ancestry was borrowed
+ *  from a sibling "<Ancestry> Names/Trinket(s)" caption in the block (e.g.
+ *  "HALFLING TRINKET" → "Character Names: Western Reaches Halfling", via
+ *  sourcedTableName). Ancestry Names tables are always WR content, so it mirrors
+ *  the WR naming the hub's identify path stamps. "" when no caption. */
 function _nameFromBlock(block) {
   const id = identifyAncestryTable(block);
   if (!id) return "";

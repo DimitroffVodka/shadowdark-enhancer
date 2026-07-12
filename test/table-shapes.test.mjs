@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { parseByShape, buildTableData, parseTables } from "../scripts/encounter/table-importer.mjs";
 import { shapeForName, TABLE_SHAPES } from "../scripts/encounter/table-shapes.mjs";
 import { resolveTableFolderPath } from "../scripts/encounter/table-folders.mjs";
-import { hasTable } from "../scripts/encounter/char-content-manifest.mjs";
+import { hasTable, sourcedTableName } from "../scripts/encounter/char-content-manifest.mjs";
 
 // ── Prayer ──────────────────────────────────────────────────────────────────
 const PRAYER = { kind: "compound", split: "prayer", cols: 3, size: 4, labels: ["Detail 1", "Detail 2", "Detail 3"] };
@@ -319,6 +319,24 @@ test("census presence resolves a legacy 'Core PDF pNNN:' rep against the real ta
   assert.equal(hasTable(new Set(["hazards"]), "Core PDF p118: Traps"), false);               // wrong table
   assert.equal(hasTable(new Set(["treasure 0-3"]), "TREASURE 0-3"), true);                    // no prefix → unchanged
   assert.equal(hasTable(new Set([]), "Core PDF p118: Traps"), false);                          // absent stays locked
+});
+
+test("ancestry NAME tables import as 'Character Names: Source Ancestry' (dropdown-visible)", () => {
+  // The Shadowdark ancestry sheet's Random Name Table dropdown only lists
+  // RollTables matching /Character Names/i (CompendiumsSD.ancestryNameTables),
+  // so imported name tables must carry that prefix; Trinkets keep "Source - X".
+  assert.equal(sourcedTableName("Western Reaches", "Dwarf Names"), "Character Names: Western Reaches Dwarf");
+  assert.equal(sourcedTableName("Western Reaches", "Half-Elf Names"), "Character Names: Western Reaches Half-Elf");
+  assert.equal(sourcedTableName("Western Reaches", "Dwarf Trinket"), "Western Reaches - Dwarf Trinket");
+  // Ancestry casing is normalized so an all-caps page caption doesn't leak through.
+  assert.equal(sourcedTableName("Western Reaches", "DWARF NAMES"), "Character Names: Western Reaches Dwarf");
+  assert.equal(sourcedTableName("Western Reaches", "HALF-ELF names"), "Character Names: Western Reaches Half-Elf");
+  // Census present-check accepts the new form, requires the source qualifier, and
+  // still honors the legacy "Source - X Names" prefix (already-imported tables).
+  assert.equal(hasTable(new Set(["character names: western reaches dwarf"]), "Dwarf Names"), true);
+  assert.equal(hasTable(new Set(["character names: western reaches half-elf"]), "Elf Names"), false);   // half-elf ≠ elf
+  assert.equal(hasTable(new Set(["character names: dwarf"]), "Dwarf Names"), false);                    // core (no source) ≠ WR gap
+  assert.equal(hasTable(new Set(["western reaches - dwarf names"]), "Dwarf Names"), true);              // legacy prefix
 });
 
 test("folder resolver mirrors the Manage tree (category-first)", () => {

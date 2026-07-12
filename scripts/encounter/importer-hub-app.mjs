@@ -1421,12 +1421,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       for (const t of [...nameTables, ...tables]) {
         if (t !== keep) skipped.push({ name: t.name || `(untitled ${t.formula ?? ""} table)`, reason: `dropped — this unlock expects only "${want}"` });
       }
-      // Convention: imported tables are named "Source - Table Name"
-      // (e.g. "Western Reaches - Dwarf Names"). Background-bundle tables already
-      // carry a complete, unique name (e.g. "Western Reach Backgrounds") — don't
-      // prefix them or it doubles the source and forks a duplicate table.
+      // Convention: imported tables are named "Source - Table Name" (e.g.
+      // "Western Reaches - Dwarf Trinket"); ancestry NAME tables instead become
+      // "Character Names: Source Ancestry" so the ancestry sheet's Random Name
+      // Table dropdown lists them (sourcedTableName). Background-bundle tables
+      // already carry a complete, unique name (e.g. "Western Reach Backgrounds")
+      // — don't prefix them or it doubles the source and forks a duplicate.
       const srcLabel = CHAR_SOURCES[this._importSeed.src]?.label;
-      keep.name = (srcLabel && !this._importSeed._bgBundle) ? `${srcLabel} - ${want}` : want;
+      keep.name = (srcLabel && !this._importSeed._bgBundle) ? sourcedTableName(srcLabel, want) : want;
       // Category drives the system-mirroring compendium folder.
       if (/\bnames$/i.test(want)) keep.category = "character-names";
       else if (/\btrinkets$/i.test(want)) keep.category = "trinkets";
@@ -1445,7 +1447,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!generic) continue;
         const id = identifyAncestryTable(text);
         if (id) {
-          t.name = `${CHAR_SOURCES.WR.label} - ${id.name}`;
+          t.name = sourcedTableName(CHAR_SOURCES.WR.label, id.name);
           t.category = id.category;
           (t.warnings ??= []).push(`Identified from the page caption as "${id.name}" (WR pg ${id.pages}).`);
           continue;
@@ -1458,7 +1460,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const missing = (rows.find((r) => r.source === "WR")?.missingNames ?? [])
             .filter((m) => m.type === "Table" && /\bnames$/i.test(m.name));
           if (missing.length === 1) {
-            t.name = `${CHAR_SOURCES.WR.label} - ${missing[0].name}`;
+            t.name = sourcedTableName(CHAR_SOURCES.WR.label, missing[0].name);
             (t.warnings ??= []).push(`Assumed "${missing[0].name}" — the only names table still missing.`);
           } else {
             (t.warnings ??= []).push(
@@ -1468,13 +1470,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    // The "Source - Table Name" convention applies to unseeded character
-    // tables too, using whatever the GM typed in the Source box.
+    // The source-naming convention applies to unseeded character tables too,
+    // using whatever the GM typed in the Source box: NAME tables become
+    // "Character Names: Source Ancestry" (dropdown-visible), Trinkets keep the
+    // "Source - Name" suffix. Already-named-table entries are left alone.
     const srcPrefix = this._importSource.trim();
     if (!this._importSeed?._charSeed && srcPrefix) {
       for (const t of tables) {
-        if (/\b(names|trinkets)$/i.test(t.name ?? "") && !t.name.toLowerCase().startsWith(srcPrefix.toLowerCase())) {
-          t.name = `${srcPrefix} - ${t.name}`;
+        const nm = t.name ?? "";
+        if (/^character names:/i.test(nm)) continue;
+        if (/\bnames$/i.test(nm)) t.name = sourcedTableName(srcPrefix, nm);
+        else if (/\btrinkets$/i.test(nm) && !nm.toLowerCase().startsWith(srcPrefix.toLowerCase())) {
+          t.name = `${srcPrefix} - ${nm}`;
         }
       }
     }
