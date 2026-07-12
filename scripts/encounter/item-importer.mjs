@@ -278,6 +278,25 @@ export function spellFolderNames(className, tier) {
   return ["Spells", clsTitle, tierLabel].filter(Boolean);
 }
 
+/**
+ * The talents pack folder a talent files under, mirroring the system Talents
+ * pack's top-level grouping by `talentClass`: Ancestry / Class / Level /
+ * Patron Boon. Unknown/blank talentClass → "Level" (the schema initial).
+ * @param {string} talentClass  system.talentClass value (ancestry|class|level|patronBoon)
+ * @returns {string[]}
+ */
+export function talentFolderNames(talentClass) {
+  const map = { ancestry: "Ancestry", class: "Class", level: "Level", patronBoon: "Patron Boon" };
+  return [map[String(talentClass ?? "").trim()] ?? "Level"];
+}
+
+/** The talents pack folder id a talent draft belongs in (by talentClass). */
+async function talentFolderId(pack, draft) {
+  // Mirror buildItemData's default so a talentClass-less draft folders where it
+  // will actually be created ("level").
+  return ensureFolderPath(pack, talentFolderNames(draft.talentClass ?? "level"));
+}
+
 /** The sde-items folder id a spell draft belongs in (Spells → Class → Tier). */
 async function spellFolderId(pack, draft) {
   let className = draft.className ?? "";
@@ -310,9 +329,17 @@ const TYPE_TO_PACK_ID = {
 /** Find-or-create the suite pack a draft type routes to (default sde-items). */
 async function _packForType(type) {
   const id = TYPE_TO_PACK_ID[type] ?? "sde-items";
+  const desc = SUITE_PACKS.find((d) => d.id === id);
+  // Char-option packs (Talents, Classes, Spells, …) must land in the nested
+  // "Character Options" sidebar folder. ensureSuite is the single place that
+  // positions packs, so route through it (idempotent find-or-create) — a bare
+  // ensurePack/findSuitePack would leave an existing pack in its old folder.
+  if (desc?.charOption) {
+    const suite = await ensureSuite();
+    return suite?.[desc.key] ?? findSuitePack(id) ?? ensurePack(desc);
+  }
   const existing = findSuitePack(id);
   if (existing) return existing;
-  const desc = SUITE_PACKS.find((d) => d.id === id);
   if (id === "sde-items" || !desc) return (await ensureSuite())?.items;
   return ensurePack(desc);
 }
@@ -344,12 +371,16 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
     if (!pack) { console.error(`${MODULE_ID} | createItems: pack for "${packId}" not found`); continue; }
     if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
 
-    // Source folder only used for non-spell items; spells fold by class/tier.
-    const hasNonSpell = group.some((d) => d.type !== "Spell");
-    const sourceFolder = hasNonSpell ? await ensureSourceFolder(pack, source) : null;
+    // Source folder used only for items that fold neither by class/tier (spells)
+    // nor by talentClass (talents) — i.e. gear, classes, backgrounds, ancestries.
+    const needsSourceFolder = group.some((d) => d.type !== "Spell" && d.type !== "Talent");
+    const sourceFolder = needsSourceFolder ? await ensureSourceFolder(pack, source) : null;
 
     for (const draft of group) {
-      const folder = draft.type === "Spell" ? await spellFolderId(pack, draft) : sourceFolder;
+      let folder;
+      if (draft.type === "Spell") folder = await spellFolderId(pack, draft);
+      else if (draft.type === "Talent") folder = await talentFolderId(pack, draft);
+      else folder = sourceFolder;
       const r = await createItem(draft, { pack, folder, source, onConflict });
       if (!r) continue;
       if (r.status === "skipped") out.skipped.push(r.name);
@@ -362,4 +393,4 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
   return out;
 }
 
-export const ItemImporter = { buildItemData, createItem, createItems, spellFolderNames };
+export const ItemImporter = { buildItemData, createItem, createItems, spellFolderNames, talentFolderNames };

@@ -34,18 +34,26 @@ export const SUITE_PACKS = [
   // reference (class→talent, spell→class, table→doc, ancestry→talent) valid.
   // Empty structural packs (Languages, Patrons and Deities) are carried so the
   // imported suite mirrors the source exactly.
-  { key: "classes",        id: "classes",             type: "Item", label: "Classes"             },
-  { key: "talents",        id: "talents",             type: "Item", label: "Talents"             },
-  { key: "classAbilities", id: "class-abilties",      type: "Item", label: "Class Abilties"      },
-  { key: "spells",         id: "spells",              type: "Item", label: "Spells"              },
-  { key: "backgrounds",    id: "background",          type: "Item", label: "Background"          },
-  { key: "ancestries",     id: "ancestries",          type: "Item", label: "Ancestries"          },
-  { key: "languages",      id: "languages",           type: "Item", label: "Languages"           },
-  { key: "patronsDeities", id: "patrons-and-deities", type: "Item", label: "Patrons and Deities" },
+  { key: "classes",        id: "classes",             type: "Item", label: "Classes",             charOption: true },
+  { key: "talents",        id: "talents",             type: "Item", label: "Talents",             charOption: true },
+  { key: "classAbilities", id: "class-abilties",      type: "Item", label: "Class Abilties",      charOption: true },
+  { key: "spells",         id: "spells",              type: "Item", label: "Spells",              charOption: true },
+  { key: "backgrounds",    id: "background",          type: "Item", label: "Background",          charOption: true },
+  { key: "ancestries",     id: "ancestries",          type: "Item", label: "Ancestries",          charOption: true },
+  { key: "languages",      id: "languages",           type: "Item", label: "Languages",           charOption: true },
+  { key: "patronsDeities", id: "patrons-and-deities", type: "Item", label: "Patrons and Deities", charOption: true },
 ];
 
 /** Sidebar compendium folder label for the entire suite. */
 export const SUITE_FOLDER_LABEL = "Shadowdark Enhancer";
+
+/**
+ * Sidebar compendium sub-folder for the Character-Options packs (Classes,
+ * Talents, Spells, Ancestries, …). Nested under SUITE_FOLDER_LABEL so the whole
+ * managed suite stays under one top-level folder while mirroring the system's
+ * "Character Options" grouping. Descriptors carry `charOption: true`.
+ */
+export const CHAR_OPTIONS_FOLDER_LABEL = "Character Options";
 
 // ─── Pure helpers (Foundry-free, node:test importable) ───────────────────────
 
@@ -155,7 +163,7 @@ export async function ensureSuite() {
     return;
   }
 
-  // Find-or-create the sidebar "Compendium" folder.
+  // Find-or-create the top-level sidebar "Compendium" folder.
   let suiteFolder = game.folders?.find(
     (f) => f.type === "Compendium" && f.name === SUITE_FOLDER_LABEL
   );
@@ -163,14 +171,30 @@ export async function ensureSuite() {
     suiteFolder = await Folder.create({ name: SUITE_FOLDER_LABEL, type: "Compendium" });
   }
 
-  // Ensure all five packs.
+  // Find-or-create the "Character Options" sub-folder nested under the suite
+  // folder — the home for the char-option packs (Talents, Classes, Spells, …).
+  let charFolder = game.folders?.find(
+    (f) => f.type === "Compendium" && f.name === CHAR_OPTIONS_FOLDER_LABEL &&
+      (f.folder?.id ?? null) === suiteFolder.id
+  );
+  if (!charFolder) {
+    try {
+      charFolder = await Folder.create({
+        name: CHAR_OPTIONS_FOLDER_LABEL, type: "Compendium", folder: suiteFolder.id,
+      });
+    } catch (_) {}
+  }
+
+  // Ensure all packs; char-option packs go under "Character Options", the rest
+  // directly under the suite folder.
   const packs = {};
   for (const desc of SUITE_PACKS) {
     const pack = await ensurePack(desc);
-    // Assign pack into the sidebar folder if not already there.
-    if (suiteFolder && pack.folder !== suiteFolder.id) {
+    const targetFolder = desc.charOption ? (charFolder ?? suiteFolder) : suiteFolder;
+    // Assign pack into its sidebar folder if not already there.
+    if (targetFolder && pack.folder !== targetFolder.id) {
       try {
-        await pack.configure({ folder: suiteFolder.id });
+        await pack.configure({ folder: targetFolder.id });
       } catch (_) {}
     }
     packs[desc.key] = pack;
