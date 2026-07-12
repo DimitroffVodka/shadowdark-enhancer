@@ -167,6 +167,21 @@ test("lookup shape: a manually-typed | wins over the col2Starts keyword", () => 
   assert.equal(t.rows[1].text, "Plain outcome | Gain 2 XP");
 });
 
+test("lookup shape: a typed | wins even on the column-aligned (geometry) path", () => {
+  // A 2+-space header routes to the x-band/geometry path; a "|" in a row must
+  // still win over the geometry slice (and over the col2Starts keyword).
+  const text = [
+    "Carousing Outcome",
+    "d2".padEnd(6) + "Outcome".padEnd(30) + "Benefit",             // aligned header
+    "1".padEnd(6) + "You Gain courage | Actually Gain 1 XP",       // typed |, "Gain" also in outcome
+    "2".padEnd(6) + "Plain outcome".padEnd(24) + "Gain 2 XP",      // no |, geometry/keyword
+  ].join("\n");
+  const t = parseByShape(text, { kind: "lookup", cols: 2, size: 2, labels: ["Outcome", "Benefit"], col2Starts: "Gain" }, { name: "Carousing Outcome" }).tables[0];
+  assert.equal(t.rows.length, 2);
+  assert.equal(t.rows[0].text, "You Gain courage | Actually Gain 1 XP");   // | wins, not the first "Gain"
+  assert.equal(t.rows[1].text, "Plain outcome | Gain 2 XP");
+});
+
 test("cartesian expand flag raises the cap; without it a big compound stays compound", () => {
   const mk = (cols, size, expand) => ({ isCompound: true, name: "G", ...(expand ? { expand } : {}),
     compound: { separator: " | ", columns: Array.from({ length: cols }, (_, c) => ({

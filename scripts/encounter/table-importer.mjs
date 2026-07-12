@@ -878,13 +878,24 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
     if (!l.trim()) { if (anchors.length) break; else continue; }
     const bare = /^\s*(\d{1,4})\s*$/.exec(l);
     if (bare && Number(bare[1]) > (size || 300)) continue;   // stray page number
-    const cells = _sliceCols(l, colX);
-    if (col2Re && cells[0]) {
-      const m = col2Re.exec(cells[0]);
-      if (m && m.index > 0) {                                // keyword bled into col 1
-        const moved = cells[0].slice(m.index).trim();
-        cells[0] = cells[0].slice(0, m.index).trim();
-        cells[1] = moved + (cells[1] ? ` ${cells[1]}` : "");
+    let cells;
+    if (l.includes("|")) {
+      // A manually-typed "|" is authoritative — split on it, not on geometry.
+      // Strip a leading die number (dieIndexed) so it isn't captured as a column.
+      let content = l;
+      if (dieIndexed) { const dm = /^\s*\d+\s*\+?\s*/.exec(l); if (dm) content = l.slice(dm[0].length); }
+      cells = content.split("|").map((s) => s.trim());
+      while (cells.length < cols) cells.push("");
+      cells = cells.slice(0, cols);
+    } else {
+      cells = _sliceCols(l, colX);
+      if (col2Re && cells[0]) {
+        const m = col2Re.exec(cells[0]);
+        if (m && m.index > 0) {                              // keyword bled into col 1
+          const moved = cells[0].slice(m.index).trim();
+          cells[0] = cells[0].slice(0, m.index).trim();
+          cells[1] = moved + (cells[1] ? ` ${cells[1]}` : "");
+        }
       }
     }
     frags.push({ line: i, cells });
