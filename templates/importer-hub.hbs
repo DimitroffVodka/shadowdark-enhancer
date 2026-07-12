@@ -66,6 +66,10 @@
             title="Parse the paste as a roll-all compound generator (roll every column, combine in order). Asks for the dice, e.g. 3d6.">
       <i class="fas fa-dice-d6"></i> Compound
     </button>
+    <button type="button" data-action="hubParseCartesian" class="sde-import-secondary"
+            title="Spell out every combination of the columns into one long, fully-visible table (no hidden roll-each-column logic). Insert | between columns to set the splits. Asks for the dice, e.g. 3d6. Over 25,000 rows is blocked — use Compound for those.">
+      <i class="fas fa-table-cells"></i> Cartesian
+    </button>
     <button type="button" data-action="hubClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> Clear</button>
     {{#if importData.showImportAll}}
     <button type="button" data-action="hubCommitAll" class="sde-import-primary">

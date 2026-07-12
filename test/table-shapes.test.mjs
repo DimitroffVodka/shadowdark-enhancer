@@ -155,6 +155,31 @@ test("lookup shape: REFLOWED paste (one row per line, single-spaced) splits at c
   assert.equal(t.warnings.length, 0);
 });
 
+test("lookup shape: a manually-typed | wins over the col2Starts keyword", () => {
+  const text = [
+    "Carousing Outcome",
+    "d2 Outcome Benefit",
+    "1 You Gain a lot of nerve | Gain 1 XP",   // "Gain" is in the outcome; the | is the real split
+    "2 Plain outcome Gain 2 XP",               // no |, falls back to the keyword split
+  ].join("\n");
+  const t = parseByShape(text, { kind: "lookup", cols: 2, size: 2, labels: ["Outcome", "Benefit"], col2Starts: "Gain" }, { name: "Carousing Outcome" }).tables[0];
+  assert.equal(t.rows[0].text, "You Gain a lot of nerve | Gain 1 XP");
+  assert.equal(t.rows[1].text, "Plain outcome | Gain 2 XP");
+});
+
+test("cartesian expand flag raises the cap; without it a big compound stays compound", () => {
+  const mk = (cols, size, expand) => ({ isCompound: true, name: "G", ...(expand ? { expand } : {}),
+    compound: { separator: " | ", columns: Array.from({ length: cols }, (_, c) => ({
+      label: `C${c}`, formula: `1d${size}`,
+      rows: Array.from({ length: size }, (_, i) => ({ min: i + 1, max: i + 1, text: `c${c}r${i}` })),
+    })) } });
+  const big = buildTableData(mk(3, 20, "cartesian"));   // 8,000 — over the 2000 auto-cap
+  assert.equal(big.formula, "1d8000");
+  assert.ok(!big.flags?.["shadowdark-enhancer"]?.compound);
+  const auto = buildTableData(mk(3, 20));               // same table, no flag → stays compound
+  assert.ok(auto.flags?.["shadowdark-enhancer"]?.compound);
+});
+
 // ── Expansion cap ─────────────────────────────────────────────────────────────
 test("expansion cap: <=2000 expands to a flat table, larger stays compound", () => {
   const mk = (cols, size) => ({ isCompound: true, name: "G",

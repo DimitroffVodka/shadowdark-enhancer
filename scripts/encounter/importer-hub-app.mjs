@@ -70,6 +70,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Parse / clear
       hubParse:               ImporterHubApp.prototype._onHubParse,
       hubParseCompound:       ImporterHubApp.prototype._onHubParseCompound,
+      hubParseCartesian:      ImporterHubApp.prototype._onHubParseCartesian,
       hubClear:               ImporterHubApp.prototype._onHubClear,
       // Monster section structural actions
       mimportAddAttack:       ImporterHubApp.prototype._onMimportAddAttack,
@@ -377,13 +378,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         { value: "spells",   label: "Spells" },
         { value: "tables",   label: "Tables" },
         { value: "generators", label: "Generators (roll-all)" },
+        { value: "cartesian", label: "Cartesian (expand)" },
         { value: "backgrounds", label: "Backgrounds" },
         { value: "talents",  label: "Talents" },
         { value: "classes",  label: "Class" },
         { value: "ancestries", label: "Ancestry" },
       ].map(o => ({ ...o, selected: o.value === t })),
       showItemSubtype: t === "items" || t === "auto",
-      showGenSpec: t === "generators",
+      showGenSpec: t === "generators" || t === "cartesian",
       genSpec: this._importGenSpec,
       itemSubtype: this._importItemSubtype,
       itemSubtypeOptions: [
@@ -1210,6 +1212,41 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * Cartesian button: parse the paste as a multi-column generator (same as
+   * Compound — roll-each-column, "|" respected), but spell it out into ONE long
+   * flat table with every combination instead of the hidden roll-each-column
+   * form. Blocks a request over 25000 rows (user pref) with a warning.
+   */
+  async _onHubParseCartesian() {
+    const ta = this.element.querySelector("textarea[data-import-text]");
+    if (ta) this._importText = ta.value;
+    if (!this._importText.trim()) { ui.notifications.warn("Paste a table first, then click Cartesian."); return; }
+
+    const spec = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Cartesian Table", icon: "fas fa-table-cells" },
+      content: `
+        <p>Spell out <strong>every combination</strong> of the columns into one long,
+        fully-visible table (no hidden roll-each-column logic).</p>
+        <p style="display:flex;align-items:center;gap:0.5rem;">
+          <label for="sde-cartesian-spec"><strong>Dice</strong></label>
+          <input id="sde-cartesian-spec" name="spec" type="text" value="3d6" placeholder="e.g. 3d6 or 2d10" style="flex:1;">
+        </p>
+        <p class="notes"><code>3d6</code> = 3 columns each with 6 rows → a 216-row table. Insert <code>|</code> between columns in your paste to set the splits yourself. Over 25,000 rows is blocked — use Compound for those.</p>`,
+      buttons: [
+        { action: "parse", label: "Expand to Cartesian", icon: "fas fa-table-cells", default: true,
+          callback: (event, button) => button.form.elements.spec.value },
+        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (spec == null || spec === "cancel") return;
+
+    this._importType = "cartesian";
+    this._importGenSpec = String(spec).trim();
+    await this._onHubParse();
+  }
+
+  /**
    * Parse action: reads the paste box, runs segmentDump, maps monster chunks
    * via parseStatblock, applies the seed to the first table (if any), links
    * loot tables. Then re-renders.
@@ -1280,6 +1317,33 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!this._importGenerators.length) {
         ui.notifications.warn("No compound generator recognized — need a die header (e.g. d6) and 2+ column labels (e.g. Detail 1, Detail 2…).");
+      }
+      this.render();
+      return;
+    }
+
+    // Cartesian: same multi-column parse as Compound, but each table is stamped
+    // to expand into a flat table at commit. Blocks anything over 25000 rows
+    // (user pref) with a warning — those should stay Compound.
+    if (type === "cartesian") {
+      const CARTESIAN_CAP = 25000;
+      const kept = [];
+      for (const g of parseGenerators(text, this._importGenSpec)) {
+        const cols = g.compound?.columns ?? g.columns ?? [];
+        const product = cols.reduce((a, c) =>
+          a * Math.max(1, (c.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0)), cols.length ? 1 : 0);
+        if (product > CARTESIAN_CAP) {
+          ui.notifications.warn(`"${g.name || "table"}" would be ${product.toLocaleString()} rows (over ${CARTESIAN_CAP.toLocaleString()}) — use the Compound button for that one.`);
+          continue;
+        }
+        g.expand = "cartesian";
+        kept.push(g);
+      }
+      this._importGenerators = kept;
+      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importTables = []; this._importChar = []; this._importSkipped = [];
+      if (!kept.length) {
+        ui.notifications.warn("Nothing to expand — need a die header (e.g. d6) and 2+ columns (insert | between them), and ≤ 25,000 total rows.");
       }
       this.render();
       return;

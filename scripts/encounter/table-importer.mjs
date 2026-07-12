@@ -963,7 +963,9 @@ function _lookupSimple(text, { cols, col2Starts }) {
     const r = parseLeadingRange(l.trim());
     if (!r || r.rest === "") continue;
     let cells;
-    const m = col2Re?.exec(r.rest);
+    // A manually-typed "|" always wins (splitCells honours it); only reach for
+    // the keyword split when the user did NOT delimit the row themselves.
+    const m = r.rest.includes("|") ? null : col2Re?.exec(r.rest);
     if (m && m.index > 0) cells = [r.rest.slice(0, m.index).trim(), r.rest.slice(m.index).trim()];
     else cells = splitCells(r.rest, cols);
     rows.push({ min: r.min, max: r.max, text: cells.join(" | ") });
@@ -1088,7 +1090,12 @@ export function buildTableData(pt) {
       return cells;
     }).filter((a) => a.length);
     const separator = " | ";
-    const EXPAND_CAP = 2000;
+    // An explicit "Cartesian" import (the user pressed the Cartesian button)
+    // expands far higher — they've chosen the long flat table. The automatic
+    // path stays at 2000 so a huge auto-compound (e.g. a d20×3 name generator)
+    // stays roll-each-column instead of exploding. The hub blocks a Cartesian
+    // request above 25000 before commit, so this only ever expands within range.
+    const EXPAND_CAP = pt.expand === "cartesian" ? 25000 : 2000;
     const product = colCells.length ? colCells.reduce((a, c) => a * c.length, 1) : 0;
     if (product >= 1 && product <= EXPAND_CAP) {
       let combos = [[]];
