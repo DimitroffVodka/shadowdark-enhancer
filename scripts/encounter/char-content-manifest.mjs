@@ -101,7 +101,6 @@ const MANIFEST = {
       "Cursed Scroll 3 p16: Nord Names",
       "Cursed Scroll 3 p26: Arctic Sea Encounters",
       "Sea Wolf Plunder From Distant Lands",
-      "Nord Backgrounds",
     ],
   },
   CS4: {
@@ -356,7 +355,6 @@ const TABLE_PAGES = {
     "Patron Boons: Titania": "221", "Patron Boons: The Willowman": "222",
     "Yag-Kesh Boons": "223",
   },
-  CS3: { "Nord Backgrounds": "15" },
 };
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
@@ -372,7 +370,7 @@ const _pageFromName = (name) => String(name).match(/\bp\.?\s?(\d{1,3})\b/i)?.[1]
  * the importer hub (bundle-unlock detection).
  */
 export const BACKGROUND_TABLES = new Set(
-  ["Western Reach Backgrounds", "Nord Backgrounds"].map(_norm),
+  ["Western Reach Backgrounds"].map(_norm),
 );
 
 /** All classes the manifest knows about (union across sources). */
