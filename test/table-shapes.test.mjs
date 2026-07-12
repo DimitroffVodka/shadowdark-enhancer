@@ -106,6 +106,31 @@ test("lookup shape: cost-indexed (no die), right-aligned first column, wrapped m
   ]);
 });
 
+test("lookup shape: benefit keyword bled into col 1 rejoins its column (col2Starts)", () => {
+  const H = "d2".padEnd(5) + "Outcome".padEnd(25) + "Benefit";        // Outcome@5 Benefit@30
+  const text = [
+    H,
+    "1".padEnd(5) + "Short".padEnd(25) + "Gain 1 XP",
+    "2".padEnd(5) + "A long outcome here Gain 2 XP",                  // single space; Gain sits left of x30
+  ].join("\n");
+  const t = parseByShape(text, { kind: "lookup", cols: 2, size: 2, labels: ["Outcome", "Benefit"], col2Starts: "Gain" }, { name: "Carousing Outcome" }).tables[0];
+  assert.deepEqual(t.rows.map((r) => r.text), ["Short | Gain 1 XP", "A long outcome here | Gain 2 XP"]);
+});
+
+test("lookup shape: a wrapped benefit fragment starting with a big number is not a new row", () => {
+  const H = "d2".padEnd(5) + "Outcome".padEnd(15) + "Benefit";        // Outcome@5 Benefit@20
+  const text = [
+    H,
+    "1".padEnd(5) + "Win".padEnd(15) + "Gain 1 XP",
+    "2".padEnd(5) + "Lose".padEnd(15) + "Gain 2 XP and an 80-",
+    "100 item bonus",                                                // wraps to line start — must NOT become row 100
+  ].join("\n");
+  const t = parseByShape(text, { kind: "lookup", cols: 2, size: 2, labels: ["Outcome", "Benefit"] }, { name: "Carousing Outcome" }).tables[0];
+  assert.equal(t.rows.length, 2);
+  assert.deepEqual(t.rows.map((r) => r.min), [1, 2]);
+  assert.ok(!t.warnings.some((w) => /reach 100|Value \d+ has no row/.test(w)), "phantom row 100 tripped a coverage warning");
+});
+
 // ── Expansion cap ─────────────────────────────────────────────────────────────
 test("expansion cap: <=2000 expands to a flat table, larger stays compound", () => {
   const mk = (cols, size) => ({ isCompound: true, name: "G",

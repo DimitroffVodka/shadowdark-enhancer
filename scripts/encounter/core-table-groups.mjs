@@ -190,14 +190,13 @@ export const CORE_TABLE_GROUPS = [
   {
     unit: "core-carousing", section: "gameplay", key: "carousing",
     header: "Carousing", icon: "fa-wine-glass",
-    rep: "Core PDF p97: Carousing Outcome", startPage: 92,
+    rep: "Carousing", startPage: 92,
     pasteHint: "Carousing section (Core pg 92–95)",
     tables: [
-      // Outcome is a d14 with Outcome + Benefit columns; Event is the d7
-      // Cost / Event / Bonus table on the facing page (was missing — user QA
-      // 2026-07-11).
-      { name: "Carousing Outcome", page: 92 },
-      { name: "Carousing Event", page: 93 },
+      // Event (Cost/Event/Bonus, d7) is on book p92; Outcome (Outcome/Benefit,
+      // d14) is on the facing p93 (user-corrected 2026-07-12).
+      { name: "Carousing Event", page: 92 },
+      { name: "Carousing Outcome", page: 93 },
       { name: "Wizards and Thieves: Epic Stakes", page: 95 },
       { name: "Wizards and Thieves: High Stakes", page: 95 },
       { name: "Wizards and Thieves: Mid Stakes", page: 95 },

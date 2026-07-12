@@ -812,18 +812,25 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
   };
 }
 
-/** Slice a line at column x-positions, snapping each cut to the nearest space
- *  so a cell that bleeds past its column isn't cut mid-word. Handles the
- *  single-space column gaps that defeat delimiter splitting. */
+/** Slice a line into columns at the header x-positions. For each boundary,
+ *  prefer the end of a real 2+-space gap NEAR that x (the actual column edge on
+ *  a wrapped line where a cell shifted from its header position); only when no
+ *  gap is nearby does it snap x off any word it lands inside (single-space
+ *  column gaps). This keeps wrapped continuation lines from cutting a word into
+ *  the neighbouring column. */
 function _sliceCols(line, colX) {
-  const snap = (x) => {
+  const gapEnds = [...line.matchAll(/\S(\s{2,})/g)].map((m) => m.index + m[0].length);
+  const cutAt = (x) => {
+    let best = null, bd = 13;                              // window: a gap within 12 cols of x
+    for (const end of gapEnds) { const d = Math.abs(end - x); if (d < bd) { bd = d; best = end; } }
+    if (best != null) return best;
     if (x <= 0 || x >= line.length || line[x] === " " || line[x - 1] === " ") return x;
     let l = x; while (l > 0 && line[l - 1] !== " ") l--;
     let r = x; while (r < line.length && line[r] !== " ") r++;
     return (x - l <= r - x) ? l : r;
   };
   const cells = []; let prev = colX[0];
-  for (const cut of colX.slice(1).map(snap)) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
+  for (const cut of colX.slice(1).map(cutAt)) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
   cells.push(line.slice(prev).trim());
   return cells;
 }
@@ -853,8 +860,15 @@ function _sliceCols(line, colX) {
  * → tie down (default).
  * @returns {{ rows: Array<{ id:number, cells:string[] }> }}
  */
-function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = false } = {}) {
+function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = false, col2Starts } = {}) {
   const cols = colX.length;
+  // Semantic boundary for a 2-column lookup: the LAST column always starts with
+  // this keyword (e.g. Carousing Outcome's Benefit always starts "Gain"). When a
+  // long first-column cell collapses the gap to a single space and shoves the
+  // keyword left of its header x, the geometry slice cuts mid-cell — so if the
+  // keyword lands inside an earlier cell, move it (and everything after) into
+  // the last column where it belongs.
+  const col2Re = col2Starts && cols === 2 ? new RegExp(`\\b${col2Starts.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`) : null;
   const frags = [];    // { line, cells }
   const anchors = [];  // { line, id }
   for (let i = hi + 1; i < raw.length; i++) {
@@ -863,10 +877,22 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
     const bare = /^\s*(\d{1,4})\s*$/.exec(l);
     if (bare && Number(bare[1]) > (size || 300)) continue;   // stray page number
     const cells = _sliceCols(l, colX);
+    if (col2Re && cells[0]) {
+      const m = col2Re.exec(cells[0]);
+      if (m && m.index > 0) {                                // keyword bled into col 1
+        const moved = cells[0].slice(m.index).trim();
+        cells[0] = cells[0].slice(0, m.index).trim();
+        cells[1] = moved + (cells[1] ? ` ${cells[1]}` : "");
+      }
+    }
     frags.push({ line: i, cells });
     if (dieIndexed) {
       const dm = /^\s*(\d+)\s*\+?/.exec(l);
-      if (dm && dm.index < colX[0]) anchors.push({ line: i, id: Number(dm[1]) });
+      // A leading number is a die face only within the die range — a wrapped
+      // benefit fragment like "100 item from your" must NOT become row 100.
+      if (dm && dm.index < colX[0] && (!size || Number(dm[1]) <= size)) {
+        anchors.push({ line: i, id: Number(dm[1]) });
+      }
     } else if (cells[0]?.trim()) {
       anchors.push({ line: i, id: anchors.length + 1 });
     }
@@ -944,7 +970,7 @@ function _lookupSimple(text, { name, cols, size, labels }) {
  * a leading die number (Carousing Event, keyed by Cost). Column labels land in
  * the description. Returns a single ParsedTable or null.
  */
-function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true } = {}) {
+function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true, col2Starts } = {}) {
   const raw = String(text).split(/\r?\n/);
   // Header: a "dN Label…" line (die-indexed) or the labels line (no die).
   let hi = raw.findIndex((l) =>
@@ -962,7 +988,7 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
     // column (e.g. Carousing Event's Cost "1,200 gp") isn't clipped at its header x.
     const colX = dieIndexed ? pcs.slice(1, cols + 1) : [0, ...pcs.slice(1, cols)];
     if (colX.length === cols) {
-      const { rows: grouped } = _groupLayoutRows(raw, hi, colX, { dieIndexed, size });
+      const { rows: grouped } = _groupLayoutRows(raw, hi, colX, { dieIndexed, size, col2Starts });
       if (grouped.length) {
         rows = grouped.map((r) => ({ min: r.id, max: r.id, text: r.cells.join(" | ") }));
         if (size && rows.length !== size) {
@@ -1014,7 +1040,7 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     return { generators: [g] };
   }
   if (shape.kind === "lookup") {
-    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed });
+    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts });
     return pt ? { tables: [pt] } : null;
   }
   return null;
