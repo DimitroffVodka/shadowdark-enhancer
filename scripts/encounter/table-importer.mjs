@@ -812,6 +812,69 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
   };
 }
 
+/** Slice a line at column x-positions, snapping each cut to the nearest space
+ *  so a cell that bleeds past its column isn't cut mid-word. Handles the
+ *  single-space column gaps that defeat delimiter splitting. */
+function _sliceCols(line, colX) {
+  const snap = (x) => {
+    if (x <= 0 || x >= line.length || line[x] === " " || line[x - 1] === " ") return x;
+    let l = x; while (l > 0 && line[l - 1] !== " ") l--;
+    let r = x; while (r < line.length && line[r] !== " ") r++;
+    return (x - l <= r - x) ? l : r;
+  };
+  const cells = []; let prev = colX[0];
+  for (const cut of colX.slice(1).map(snap)) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
+  cells.push(line.slice(prev).trim());
+  return cells;
+}
+
+/**
+ * Deterministic parse of a "grid" mix-and-match table (Traps/Hazards 3d12,
+ * Boons: Secrets 2d12): a dN header with `cols` column labels, then one row per
+ * die face. Columns are sliced at the header's x-positions (not by delimiter),
+ * so single-space column gaps that defeat 2+-space splitting still separate
+ * cleanly. Returns an isCompound ParsedTable (cartesian-expanded at commit) or
+ * null when the header layout can't be read (caller falls back to the spec
+ * generator parser).
+ */
+function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
+  const raw = String(text).split(/\r?\n/);
+  const hi = raw.findIndex((l) =>
+    /(^|\s)d\d{1,3}(\s|$)/.test(l) && _layoutPieces(l).length >= cols + 1);
+  if (hi < 0) return null;
+  const cx = _layoutPieces(raw[hi]).map((p) => p.x);
+  if (cx.length < cols + 1) return null;
+  const colX = cx.slice(1, cols + 1);                      // the cols column x-starts
+  const columns = Array.from({ length: cols }, (_, c) =>
+    ({ label: labels?.[c] ?? `Column ${c + 1}`, formula: "", rows: [] }));
+  const warnings = [];
+  let maxFace = 0;
+  for (let i = hi + 1; i < raw.length; i++) {
+    const l = raw[i];
+    if (!l.trim()) { if (maxFace) break; else continue; }
+    const dm = /^\s*(\d{1,3})(?:\s|$)/.exec(l);
+    if (!dm || dm.index >= colX[0]) continue;              // not a leading die-face row
+    const face = Number(dm[1]);
+    if (size && face > size) continue;
+    maxFace = Math.max(maxFace, face);
+    const cells = _sliceCols(l, colX);
+    if (cells.filter(Boolean).length < cols) {
+      warnings.push(`Roll ${face}: ${cells.filter(Boolean).length}/${cols} columns filled — check the row.`);
+    }
+    for (let c = 0; c < cols; c++) columns[c].rows.push({ min: face, max: face, text: cells[c] ?? "" });
+  }
+  if (!columns[0].rows.length) return null;
+  const N = size || maxFace;
+  columns.forEach((c) => { c.formula = `1d${N}`; });
+  const nm = (name || "").trim();
+  return {
+    name: nm, formula: `1d${N}`, replacement: true, isCompound: true,
+    category: classify(nm), customLabel: "",
+    separator: " | ", compound: { separator: " | ", columns }, columns,
+    rows: [], warnings,
+  };
+}
+
 /**
  * Deterministic parse of a "lookup" table: one roll → one row read across
  * `cols` columns, cells joined by " | " (e.g. Carousing Outcome d14
@@ -848,6 +911,22 @@ export function parseByShape(text, shape, { name = "" } = {}) {
   if (shape.kind === "compound" && shape.split === "prayer") {
     const pt = parsePrayerGenerator(text, { name, size: shape.size, labels: shape.labels });
     return pt ? { generators: [pt] } : null;
+  }
+  if (shape.kind === "compound" && shape.split === "grid") {
+    // Mix-and-match grid (Traps/Hazards 3d12, Boons: Secrets 2d12): slice at the
+    // header's column x-positions (handles single-space gaps that defeat
+    // delimiter splitting). Fall back to the spec generator parser when the
+    // header layout can't be read.
+    const pt = parseGridShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels });
+    if (pt) return { generators: [pt] };
+    const [g] = parseGenerators(text, { columns: shape.cols, die: shape.size });
+    if (!g) return null;
+    if (shape.labels?.length) {
+      g.columns.forEach((c, i) => { if (shape.labels[i]) c.label = shape.labels[i]; });
+      if (g.compound) g.compound.columns = g.columns;
+    }
+    if (name) g.name = name;
+    return { generators: [g] };
   }
   if (shape.kind === "lookup") {
     const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels });

@@ -39,6 +39,11 @@ export const TABLE_SHAPES = {
   // Core Rulebook carousing lookups (book pp.92-93).
   "Carousing Outcome": { kind: "lookup", cols: 2, size: 14, labels: ["Outcome", "Benefit"] },
   "Carousing Event": { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"] },
+  // Core Rulebook mix-and-match generators (roll each column, combine) — grid
+  // splits deterministically to `cols` columns; cartesian-expanded at commit.
+  "Traps": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"] },
+  "Hazards": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] },
+  "Boons: Secrets": { kind: "compound", split: "grid", cols: 2, size: 12 },
 };
 
 /** Resolve a table name (suffix-tolerant) to its shape descriptor, or null. */
