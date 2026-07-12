@@ -2336,6 +2336,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (type === "Spell") {
       import("./spell-importer-app.mjs").then(({ SpellImporterApp }) => {
         const app = SpellImporterApp.open();
+        app._reset();   // fresh unlock — never import a stale parsed batch (review #2)
         if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
         if (name) app._pasteText = `${name}\n`;   // start the paste with the unlocked spell's name
         app.render();
@@ -2347,6 +2348,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (type === "Class") {
       import("./class-importer-app.mjs").then(async ({ ClassImporterApp }) => {
         const app = ClassImporterApp.open();
+        app._reset();   // fresh unlock — clear any prior class's state (review #2)
         if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
         // Seed the class name so the workspace knows which class it's unlocking.
         if (name) app._seedClassName = name;

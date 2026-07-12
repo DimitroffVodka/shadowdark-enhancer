@@ -326,7 +326,12 @@ export function cleanImportHtml(html) {
   if (!s) return s;
   try {
     const clean = globalThis.foundry?.utils?.cleanHTML;
-    return typeof clean === "function" ? clean(s) : s;
+    if (typeof clean === "function") return clean(s);
+    // Sanitizer unavailable (API rename / unsupported Foundry): fail CLOSED —
+    // escape rather than persist raw markup, matching the catch branch below.
+    // (review 2026-07-12 #6)
+    console.warn(`${MODULE_ID} | cleanImportHtml: foundry.utils.cleanHTML unavailable — storing escaped text`);
+    return s.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   } catch (err) {
     console.warn(`${MODULE_ID} | cleanImportHtml: sanitize failed — storing escaped text`, err);
     return s.replace(/</g, "&lt;").replace(/>/g, "&gt;");

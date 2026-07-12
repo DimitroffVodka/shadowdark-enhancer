@@ -11,6 +11,7 @@ import { parseItem } from "../scripts/encounter/item-parser.mjs";
 import { parseSpell } from "../scripts/encounter/spell-parser.mjs";
 import { parseClassSection } from "../scripts/encounter/class-parser.mjs";
 import { hexcrawlRecognizer, buildHexPageHtml } from "../scripts/encounter/hex-parser.mjs";
+import { cleanImportHtml } from "../scripts/encounter/compendium-suite.mjs";
 
 const XSS = "<img src=x onerror=alert(1)>";
 const noRawTag = (html) => {
@@ -65,4 +66,30 @@ test("hex parser: page HTML escapes body lines before linkify", () => {
   const html = buildHexPageHtml(drafts[0], keys);
   noRawTag(html);
   assert.match(html, /@@HEX\[1,2\]\{0102\}@@/, "cross-reference still linkifies after escaping");
+});
+
+// ── Commit-time sanitizer (2026-07-12 review #6) ─────────────────────────────
+// cleanImportHtml() is the commit choke point for preview-EDITED HTML. When
+// Foundry's foundry.utils.cleanHTML is unavailable (API rename / unsupported
+// version) it must fail CLOSED (escape) rather than persist raw markup.
+test("cleanImportHtml fails CLOSED when foundry.utils.cleanHTML is unavailable", () => {
+  const saved = globalThis.foundry;
+  try {
+    delete globalThis.foundry;   // simulate the sanitizer being absent
+    const out = cleanImportHtml(XSS);
+    assert.equal(out, "&lt;img src=x onerror=alert(1)&gt;");
+    noRawTag(out);
+  } finally {
+    if (saved === undefined) delete globalThis.foundry; else globalThis.foundry = saved;
+  }
+});
+
+test("cleanImportHtml delegates to foundry.utils.cleanHTML when present", () => {
+  const saved = globalThis.foundry;
+  try {
+    globalThis.foundry = { utils: { cleanHTML: (s) => s.replace(/\son\w+=[^\s>]+/gi, "") } };
+    assert.equal(cleanImportHtml(XSS), "<img src=x>");
+  } finally {
+    if (saved === undefined) delete globalThis.foundry; else globalThis.foundry = saved;
+  }
 });

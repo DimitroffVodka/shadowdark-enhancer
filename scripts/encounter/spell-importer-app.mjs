@@ -210,8 +210,14 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.render();
   }
 
-  _onStartOver() {
+  /** Clear the parsed batch + summary (no render). Shared by "Start over" and the
+   *  hub's per-unlock seed path, so a second Unlock never imports a stale batch
+   *  under the newly selected source. (review 2026-07-12 #2) */
+  _reset() {
     this._pasteText = ""; this._spells = []; this._imported = null;
+  }
+  _onStartOver() {
+    this._reset();
     this.render();
   }
 }

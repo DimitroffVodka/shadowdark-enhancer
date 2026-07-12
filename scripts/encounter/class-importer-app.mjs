@@ -385,12 +385,18 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     SourcePdfViewer.show(href, target.dataset.title || "Source PDF");
   }
 
-  _onStartOver() {
+  /** Clear the whole workspace (no render). Shared by "Start over" and the hub's
+   *  per-unlock seed path, so unlocking a second class never attaches its tables
+   *  to the previously-imported class. (review 2026-07-12 #2) */
+  _reset() {
     this._seedClassName = ""; this._bodyName = "";
     this._bodyText = ""; this._bodyParsed = null; this._editingBody = false;
     this._classUuid = null; this._className = ""; this._isCaster = false;
     this._talentTable = null; this._titles = []; this._spellsKnown = []; this._extraTables = [];
     this._lastReport = null; this._imported = null;
+  }
+  _onStartOver() {
+    this._reset();
     this.render();
   }
 }

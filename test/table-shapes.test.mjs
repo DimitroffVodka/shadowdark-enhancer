@@ -31,6 +31,31 @@ test("prayer shape reconstructs 3 columns incl. merges + a wrapped row", () => {
   assert.equal(g.warnings.length, 0);
 });
 
+test("prayer cartesian rows read as a sentence — honor the space separator, not ' | '", () => {
+  // Regression: the cartesian-expand path hardcoded " | " even though prayers
+  // configure a single-space separator, so expanded rows came out as
+  // "Alpha, | beta will | gamma!" instead of a readable sentence. (review 2026-07-12 #3)
+  const g = parseByShape(PRAYER_TEXT, PRAYER, { name: "T" }).generators[0];
+  assert.equal(g.compound.separator, " ");
+  const data = buildTableData(g);
+  assert.equal(data.formula, "1d64");                // 4^3, cartesian-expanded
+  assert.equal(data.results.length, 64);
+  assert.equal(data.results[0].name, "Alpha uno, beta shall gamma delta!");
+  assert.ok(!data.results[0].name.includes(" | "));
+});
+
+test("cartesian expansion honors the compound separator (space vs ' | ')", () => {
+  // Same columns, different configured separators → different joined text.
+  const mk = (separator) => ({
+    isCompound: true, name: "G", compound: { separator, columns: [
+      { label: "A", formula: "1d2", rows: [{ min: 1, max: 1, text: "Alpha," }, { min: 2, max: 2, text: "Beta," }] },
+      { label: "B", formula: "1d2", rows: [{ min: 1, max: 1, text: "one!" }, { min: 2, max: 2, text: "two!" }] },
+    ] },
+  });
+  assert.equal(buildTableData(mk(" ")).results[0].name, "Alpha, one!");        // prayer style
+  assert.equal(buildTableData(mk(" | ")).results[0].name, "Alpha, | one!");    // grid style
+});
+
 // ── Grid ────────────────────────────────────────────────────────────────────
 const gridRow = (die, a, b, c, merge) =>
   die.padStart(2).padEnd(5) + a.padEnd(13) + (merge ? `${b} ${c}` : b.padEnd(16) + c);

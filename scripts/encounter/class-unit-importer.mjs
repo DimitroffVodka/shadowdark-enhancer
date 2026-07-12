@@ -548,6 +548,26 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     // classFlags: SDE-original class metadata (e.g. fixedDeity → DeityStep pin)
     flags: { [MODULE_ID]: { imported: true, ...(overlay?.classFlags ?? {}) } },
   };
+  // Body-only re-import must NOT clobber supplement-owned fields. Stage 1 builds
+  // classTalentTable/titles/spellsknown EMPTY (they arrive in Stage 2), and
+  // _ensureItem replaces the whole doc — so re-pasting just the writeup would
+  // erase an already-attached talent table + titles. Carry the existing class's
+  // Stage-2 values forward. (review 2026-07-12 #1)
+  if (bodyOnly) {
+    const prior = (await classesPack.getIndex({ fields: ["type"] }))
+      .find((e) => e.name === classData.name && e.type === "Class");
+    const existing = prior ? (await classesPack.getDocument(prior._id))?.toObject() : null;
+    if (existing) {
+      if (existing.system?.classTalentTable) classData.system.classTalentTable = existing.system.classTalentTable;
+      if (existing.system?.titles?.length) classData.system.titles = existing.system.titles;
+      const priorKnown = existing.system?.spellcasting?.spellsknown;
+      // Only when the body still describes a caster — don't strand a spells-known
+      // table on a class the re-paste turned non-caster.
+      if (parsed.spellcasting && priorKnown && Object.keys(priorKnown).length)
+        classData.system.spellcasting.spellsknown = priorKnown;
+    }
+  }
+
   // Class item → world.classes, foldered by source (Western Reaches / Custom),
   // matching the rest of the char-option suite.
   const madeClass = await _ensureItem(classesPack, classData, [sourceFolderName(source)], report);
