@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { parseByShape, buildTableData, parseTables } from "../scripts/encounter/table-importer.mjs";
 import { shapeForName, TABLE_SHAPES } from "../scripts/encounter/table-shapes.mjs";
 import { resolveTableFolderPath } from "../scripts/encounter/table-folders.mjs";
+import { hasTable } from "../scripts/encounter/char-content-manifest.mjs";
 
 // ── Prayer ──────────────────────────────────────────────────────────────────
 const PRAYER = { kind: "compound", split: "prayer", cols: 3, size: 4, labels: ["Detail 1", "Detail 2", "Detail 3"] };
@@ -66,6 +67,43 @@ test("grid shape: wrapped cell continuation is NOT dropped (data-loss regression
   // Every source word survives — nothing truncated.
   const all = g.columns.flatMap((c) => c.rows.map((r) => r.text)).join(" ");
   for (const w of ["pit", "plate"]) assert.ok(all.includes(w), `lost "${w}"`);
+});
+
+test("grid shape: REFLOWED paste (single-spaced) splits via reflow cap+dice boundaries", () => {
+  // A PDF-viewer copy reflows to one row per line, single-spaced — the aligned
+  // header parser can't read column x-positions, so a `reflow` recipe splits
+  // each row: col1→col2 at the next Capitalized word, col2→col3 at the first
+  // dice expression. Synthetic content (no book text).
+  const shape = { kind: "compound", split: "grid", cols: 3, size: 3,
+    labels: ["Alpha", "Bravo", "Charlie"], reflow: ["cap", "dice"] };
+  const text = [
+    "Widgets",                                 // title (no leading die → skipped)
+    "d3 Alpha Bravo Charlie",                  // single-spaced header → skipped
+    "1 Zeta Yankee 1d6",                       // one-word cols
+    "2 Foxtrot golf hotel India juliet 2d8/sleep",  // multi-word col1 + col2
+    "3 Kilo lima Mike november 3d10/blind",
+  ].join("\n");
+  const g = parseByShape(text, shape, { name: "Widgets" }).generators[0];
+  assert.deepEqual(g.columns[0].rows.map((r) => r.text), ["Zeta", "Foxtrot golf hotel", "Kilo lima"]);
+  assert.deepEqual(g.columns[1].rows.map((r) => r.text), ["Yankee", "India juliet", "Mike november"]);
+  assert.deepEqual(g.columns[2].rows.map((r) => r.text), ["1d6", "2d8/sleep", "3d10/blind"]);
+  assert.deepEqual(g.warnings ?? [], []);       // all 3 rows fully filled, none missing
+});
+
+test("grid shape: a manual | on a reflowed paste still wins (reflow deferred)", () => {
+  // With a "|" present, the reflow parser defers to the proven parseGenerators
+  // delimiter path so the manual boundary is authoritative.
+  const shape = { kind: "compound", split: "grid", cols: 3, size: 2,
+    labels: ["Alpha", "Bravo", "Charlie"], reflow: ["cap", "dice"] };
+  const text = [
+    "d2 Alpha Bravo Charlie",
+    "1 Zeta one| Yankee two| 1d6",
+    "2 Foxtrot three| India four| 2d8",
+  ].join("\n");
+  const g = parseByShape(text, shape, { name: "Widgets" }).generators[0];
+  assert.deepEqual(g.columns[0].rows.map((r) => r.text), ["Zeta one", "Foxtrot three"]);
+  assert.deepEqual(g.columns[1].rows.map((r) => r.text), ["Yankee two", "India four"]);
+  assert.deepEqual(g.columns[2].rows.map((r) => r.text), ["1d6", "2d8"]);
 });
 
 // ── Lookup (wrapped) ──────────────────────────────────────────────────────────
@@ -270,6 +308,17 @@ test("shapeForName resolves exact + suffix-prefixed import names", () => {
   }
   assert.equal(shapeForName("Totally Unknown Table"), null);
   assert.ok(Object.keys(TABLE_SHAPES).length >= 18);
+});
+
+test("census presence resolves a legacy 'Core PDF pNNN:' rep against the real table name", () => {
+  // Regression: a de-sealed import lands under the real name ("Traps"), but the
+  // manifest still probes the legacy sealed-group rep ("Core PDF p118: Traps").
+  // hasTable strips the rep prefix so the imported table clears the Unlock button.
+  assert.equal(hasTable(new Set(["traps"]), "Core PDF p118: Traps"), true);
+  assert.equal(hasTable(new Set(["core rulebook - traps"]), "Core PDF p118: Traps"), true);  // source-prefixed
+  assert.equal(hasTable(new Set(["hazards"]), "Core PDF p118: Traps"), false);               // wrong table
+  assert.equal(hasTable(new Set(["treasure 0-3"]), "TREASURE 0-3"), true);                    // no prefix → unchanged
+  assert.equal(hasTable(new Set([]), "Core PDF p118: Traps"), false);                          // absent stays locked
 });
 
 test("folder resolver mirrors the Manage tree (category-first)", () => {

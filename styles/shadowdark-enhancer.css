@@ -2225,6 +2225,26 @@ body.theme-light .sde-hub-import-sechead {
   display: flex;
 }
 
+/* Ancestry import confirmation: parsed languages + ancestry talent, so the
+   user can verify the import without opening the item. */
+.sde-hub-import-item-meta {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--sde-bar-border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85em;
+}
+.sde-hub-import-metarow {
+  color: var(--sde-bar-text-2, inherit);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sde-hub-import-metarow i { opacity: 0.7; margin-right: 3px; }
+.sde-hub-import-metarow strong { color: var(--sde-bar-accent, inherit); }
+
 .sde-hub-import-item-desc-input {
   flex: 1 1 auto;
   background: var(--sde-bar-surface-1);

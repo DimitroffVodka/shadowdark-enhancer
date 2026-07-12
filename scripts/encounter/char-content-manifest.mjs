@@ -293,6 +293,29 @@ export const ANCESTRY_TABLES = [
   { name: "Kobold Names", pages: "32" },   { name: "Kobold Trinket", pages: "33" },
 ];
 
+/**
+ * Display name for an imported ancestry-support table, applying the two naming
+ * conventions the Shadowdark UI depends on:
+ *   • NAME tables →  "Character Names: <Source> <Ancestry>"  (e.g.
+ *     "Character Names: Western Reaches Dwarf"). The ancestry sheet's "Random
+ *     Name Table" dropdown only lists RollTables whose name matches
+ *     /Character\s+Names/i, and shows them with that prefix stripped — so a WR
+ *     Dwarf names table reads as "Western Reaches Dwarf" alongside the core
+ *     "Dwarf" (CompendiumsSD.ancestryNameTables + ItemSheetSD).
+ *   • everything else (Trinkets, …) → "<Source> - <BaseName>" — the suffix
+ *     convention the table censuses reconcile against (see _tableHave).
+ * @param {string} sourceLabel  e.g. "Western Reaches"
+ * @param {string} baseName     e.g. "Dwarf Names", "Dwarf Trinket"
+ */
+export function sourcedTableName(sourceLabel, baseName) {
+  const ancestry = /\bnames$/i.test(baseName)
+    ? String(baseName).replace(/\s*names\s*$/i, "").trim()
+    : "";
+  return ancestry
+    ? `Character Names: ${sourceLabel} ${ancestry}`.replace(/\s+/g, " ").trim()
+    : `${sourceLabel} - ${baseName}`;
+}
+
 /** User-supplied page cites for Item-type manifest entries: src → name → pages. */
 const ITEM_PAGES = {
   WR: {
@@ -410,10 +433,33 @@ export const CLASS_ABILITIES = Object.fromEntries(
  */
 export function hasTable(tablesPresent, name) { return _tableHave(tablesPresent, name); }
 
-/** "Source - Table Name" suffix match (imports prefix the table with its source). */
+/**
+ * Strip a legacy sealed-group rep prefix ("Core PDF p118: Traps" → "Traps") so
+ * a de-sealed import — which lands under the REAL table name ("Traps", or
+ * "Source - Traps") — satisfies the census presence probe. The display name and
+ * page cite keep the prefixed form (page is lifted from the "pNNN" in it); only
+ * the presence match uses the bare name. No-op for reps already stored as their
+ * real name (e.g. "TREASURE 0-3").
+ */
+const _tableProbeName = (name) => String(name).replace(/^Core PDF p\d+:\s*/i, "");
+
+/** "Source - Table Name" suffix match (imports prefix the table with its source).
+ *  Ancestry NAME tables import as "Character Names: <Source> <Ancestry>" instead
+ *  (so the ancestry sheet's name-table dropdown lists them — see
+ *  sourcedTableName), so a "<Ancestry> Names" want also counts as present when a
+ *  source-qualified "Character Names: … <Ancestry>" table exists. The source
+ *  qualifier is required — a bare "Character Names: <Ancestry>" (the core
+ *  system table) must NOT satisfy a WR ancestry gap. */
 function _tableHave(tablesPresent, want) {
-  const w = _norm(want);
-  for (const n of tablesPresent) if (n === w || n.endsWith(`- ${w}`)) return true;
+  const w = _norm(_tableProbeName(want));
+  const anc = w.match(/^(.+?)\s+names$/)?.[1] ?? null;   // "dwarf names" → "dwarf"
+  for (const n of tablesPresent) {
+    if (n === w || n.endsWith(`- ${w}`)) return true;
+    if (anc) {
+      const rest = n.match(/^character names:\s*(.+)$/)?.[1]?.trim();
+      if (rest && rest !== anc && rest.endsWith(` ${anc}`)) return true;
+    }
+  }
   return false;
 }
 
@@ -648,9 +694,38 @@ function _parseAncestryLanguages(text) {
   return lang;
 }
 
+/**
+ * Split a SIMPLE ancestry paste (flavor → language grant → talent, no
+ * POPULATION/ORIGINS sub-sections) into { flavor, talent }. Sentence-based:
+ *   • talent = a trailing 1–2 word capitalized LABEL sentence ("Adaptable.")
+ *     plus everything after it as its rules text.
+ *   • the language-grant sentence ("You know … languages …") is dropped from
+ *     the flavor (it's lifted into system.languages separately).
+ *   • flavor = the remaining leading sentences.
+ * Returns talent:null when no label sentence is present.
+ */
+function _simpleAncestryParts(src) {
+  const lines = String(src).split("\n").map((l) => l.trim()).filter(Boolean);
+  const body = lines.slice(1).join(" ").replace(/\s+/g, " ").trim();   // drop the name line
+  const sentences = body.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+  const LABEL = /^[A-Z][A-Za-z'’-]+(?:\s+[A-Z][a-z'’-]+)?\.$/;          // "Adaptable." / "Keen Senses."
+  let talent = null, endFlavor = sentences.length;
+  const li = sentences.findIndex((s) => LABEL.test(s));
+  if (li !== -1) {
+    const text = sentences.slice(li + 1).join(" ").trim();
+    if (text) { talent = { name: sentences[li].replace(/\.$/, ""), text }; endFlavor = li; }
+  }
+  const flavor = sentences.slice(0, endFlavor)
+    .filter((s) => !/\blanguages?\b/i.test(s))
+    .join(" ").trim();
+  return { flavor: flavor ? `<p>${flavor}</p>` : "<p></p>", talent };
+}
+
 /** One ancestry per paste. Name + flavor become the item; the language grant is
- *  lifted into system.languages so the char-builder can apply it. Talents stay
- *  in the description (no reliable UUID to link) — the GM sets them on the sheet. */
+ *  lifted into system.languages and the ancestry talent (if any) is carried on
+ *  the draft as `talent:{name,text}` — the char-content commit creates it as a
+ *  linked Talent item so the builder grants it. Rich POPULATION/ORIGINS pastes
+ *  keep their full multi-section description and no talent extraction. */
 /** Section captions that are NOT the ancestry name. */
 const _ANC_SECTION = /^(POPULATION|ORIGINS|NAMES|DETAILS|PART\s*\d+)$/i;
 
@@ -680,14 +755,33 @@ function _parseAncestries(text) {
     .filter((l) => !/^\d+$/.test(l))
     .join("\n");
 
-  return [{
-    draft: {
-      name,
-      type: "Ancestry",
-      description: _ancestryDescription(descSrc),
-      languages: _parseAncestryLanguages(descSrc),
-    },
-  }];
+  // Every ancestry paste has an INTRO block (flavor → language grant → talent)
+  // before any ALL-CAPS lore section (POPULATION/ORIGINS/…). Split the intro
+  // from the sections so BOTH shapes get the same treatment: the intro yields a
+  // flavor-only paragraph + the extracted talent + the language grant (dropped
+  // from flavor); the sections (if any) render as bold paragraphs AFTER it.
+  // Line 0 is the name caption — skip it when scanning for the first section
+  // (an all-caps name must not read as a section; _ANC_SECTION captions DO).
+  const descLines = descSrc.split("\n");
+  const secStart = descLines.findIndex((l, i) => i > 0 && _isAncestryHeader(l.trim()));
+  const introSrc = (secStart === -1 ? descLines : descLines.slice(0, secStart)).join("\n");
+  const { flavor, talent } = _simpleAncestryParts(introSrc);
+
+  const paras = [];
+  if (flavor && flavor !== "<p></p>") paras.push(flavor);
+  if (secStart !== -1) {
+    // Re-prepend the name line so _ancestryDescription skips it (as the title)
+    // and renders only the POPULATION/ORIGINS sections.
+    paras.push(_ancestryDescription([descLines[0], ...descLines.slice(secStart)].join("\n")));
+  }
+  const draft = {
+    name,
+    type: "Ancestry",
+    description: paras.join("") || "<p></p>",
+    languages: _parseAncestryLanguages(descSrc),
+  };
+  if (talent) { draft.talent = talent; draft.talentChoiceCount = 1; }
+  return [{ draft }];
 }
 
 /** Cartesian d100 expansion of two 10-item name-part columns:
@@ -725,7 +819,7 @@ function _nameFromBlock(block) {
   const id = identifyAncestryTable(block);
   if (!id) return "";
   const ancestry = id.name.replace(/\s+(Names|Trinkets)$/i, "").trim();
-  return `${CHAR_SOURCES.WR.label} - ${ancestry} Names`;
+  return sourcedTableName(CHAR_SOURCES.WR.label, `${ancestry} Names`);
 }
 
 /**

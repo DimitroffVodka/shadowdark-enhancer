@@ -158,7 +158,10 @@ export class AncestryStep extends ListStep {
       canRollName: nameTables.length > 0,
       canRollTrinket: trinketTables.length > 0,
       lockedName: await this._lockedTableFor(item, "Names"),
-      lockedTrinket: await this._lockedTableFor(item, "Trinkets"),
+      // Trinket is SINGULAR everywhere (ANCESTRY_TABLES canonical name, e.g.
+      // "Elf Trinket") — a plural "Trinkets" probe never matched, so the Unlock
+      // button never rendered for locked trinket tables.
+      lockedTrinket: await this._lockedTableFor(item, "Trinket"),
       nameOptions: mark(await this._mergedOptions(item, "name"), this.state.name),
       trinketOptions: mark(await this._mergedOptions(item, "trinket"), this.state.trinket),
     };

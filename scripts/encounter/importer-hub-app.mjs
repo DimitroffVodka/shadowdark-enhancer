@@ -29,7 +29,7 @@ import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
-import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, BACKGROUND_TABLES } from "./char-content-manifest.mjs";
+import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, BACKGROUND_TABLES, sourcedTableName } from "./char-content-manifest.mjs";
 import { sourcePdfHref } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { findSuitePack } from "./compendium-suite.mjs";
@@ -462,10 +462,27 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
               })),
               warnings: u.warnings,
             } : null;
+            // Ancestry/background/talent drafts: surface the parsed language
+            // grant + ancestry talent so the user can confirm they imported
+            // without opening the tiny preview (user request).
+            let meta = null;
+            if (!unit && p.draft.type === "Ancestry") {
+              const L = p.draft.languages ?? {};
+              const langBits = [...(L.fixed ?? [])];
+              if (L.common) langBits.push(`+${L.common} common`);
+              if (L.rare) langBits.push(`+${L.rare} rare`);
+              if (L.select) langBits.push(`+${L.select} choice`);
+              meta = {
+                languages: langBits.join(", ") || "—",
+                talent: p.draft.talent?.name ?? "—",
+                talentText: p.draft.talent ? strip(`<p>${p.draft.talent.text}</p>`) : "",
+              };
+            }
             return {
               name: p.draft.name,
               type: p.draft.type,
               unit,
+              meta,
               preview: unit ? "" : strip(p.draft.description).slice(0, 140),
             };
           }),
@@ -1936,6 +1953,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
     ui.notifications.info(`Generators: ${created} created → sde-tables. Roll from the table sheet to combine columns.`);
+    // Compound grids (Traps/Hazards, name generators) land as sde-tables just
+    // like plain tables — drop the char + Manage-tree caches so the census
+    // re-scans and their Unlock buttons clear (parity with _onHubCommitTables).
+    this._invalidateCharCache();
+    if (created) this._announceContentUnlocked();
     this.render();
   }
 
@@ -2328,6 +2350,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (plainDrafts.length) {
+      // Ancestry drafts: resolve fixed-language NAMES → language-item UUIDs and
+      // create+link the inline ancestry talent, because the system (and the
+      // char-builder) store both as item UUIDs. Runs before the ancestry is
+      // created so the talent UUID exists to reference.
+      for (const p of plainDrafts) {
+        if (p.draft.type === "Ancestry") await this._resolveAncestryDraft(p.draft, sourceTitle, source);
+      }
       const drafts = plainDrafts.map((p) => ({ ...p.draft, sourceTitle }));
       const { ItemImporter } = await import("./item-importer.mjs");
       const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
@@ -2348,6 +2377,52 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;   // _onHubCommitTables renders
     }
     this.render();
+  }
+
+  /**
+   * Ancestry commit pre-pass: make a parsed ancestry char-builder-ready.
+   *   • languages.fixed: map recognised NAMES ("Common","Elvish") → the system's
+   *     language-item UUIDs (the builder pools fixed languages by UUID). Unknown
+   *     names are left as-is for the GM to fix on the sheet.
+   *   • talent {name,text}: create it as an "ancestry" Talent item in sde-items
+   *     and link its UUID into system.talents (with talentChoiceCount 1), so the
+   *     builder grants it — instead of losing it in the description.
+   * Idempotent: a re-import reuses/finds the existing talent by name.
+   */
+  async _resolveAncestryDraft(draft, sourceTitle, source) {
+    // Languages: names → UUIDs.
+    const fixed = Array.isArray(draft.languages?.fixed) ? draft.languages.fixed : [];
+    if (fixed.some((f) => !/^Compendium\./.test(f))) {
+      const byName = {};
+      for (const getter of ["commonLanguages", "rareLanguages"]) {
+        try { for (const d of await shadowdark.compendiums[getter]()) byName[d.name.toLowerCase()] = d.uuid; }
+        catch (_e) { /* language pack unavailable — keep names */ }
+      }
+      draft.languages.fixed = fixed.map((f) => /^Compendium\./.test(f) ? f : (byName[String(f).toLowerCase()] ?? f));
+    }
+    // Talent: reuse an existing same-named ancestry talent (idempotent
+    // re-import), else create it. Check FIRST so a re-import never duplicates.
+    // Talents route to world.talents (createItems type-routing), so probe there.
+    if (draft.talent?.name && draft.talent?.text) {
+      const { findSuitePack } = await import("./compendium-suite.mjs");
+      const pack = findSuitePack("talents");
+      let uuid = null;
+      if (pack) {
+        const idx = await pack.getIndex({ fields: ["type"] });
+        const hit = [...idx].find((e) => e.type === "Talent" && e.name === draft.talent.name);
+        if (hit) uuid = `Compendium.${pack.collection}.Item.${hit._id}`;
+      }
+      if (!uuid) {
+        const { ItemImporter } = await import("./item-importer.mjs");
+        const res = await ItemImporter.createItems([{
+          name: draft.talent.name, type: "Talent", talentClass: "ancestry",
+          description: `<p>${draft.talent.text}</p>`, sourceTitle,
+        }], { source, onConflict: this._itemConflictDialog() });
+        uuid = res?.created?.[0]?.uuid ?? res?.replaced?.[0]?.uuid ?? null;
+      }
+      if (uuid) { draft.talents = [uuid]; draft.talentChoiceCount = 1; }
+      delete draft.talent;
+    }
   }
 
   /**

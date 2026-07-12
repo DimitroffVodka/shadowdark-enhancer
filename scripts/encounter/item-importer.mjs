@@ -18,7 +18,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { pickTreasureIcon } from "./loot-pack.mjs";
 import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
-import { findSuitePack, ensureSuite, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml } from "./compendium-suite.mjs";
+import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml, SUITE_PACKS } from "./compendium-suite.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
@@ -93,7 +93,9 @@ export function buildItemData(draft) {
       system: {
         description: draft.description ?? "<p></p>",
         level: 1,
-        talentClass: "level",
+        // Ancestry-granted talents (Half-Elf "Adaptable") are talentClass
+        // "ancestry"; free-standing talents default to "level".
+        talentClass: draft.talentClass ?? "level",
         source: { title: draft.sourceTitle ?? "" },
       },
       flags: { [MODULE_ID]: { imported: true } },
@@ -112,7 +114,7 @@ export function buildItemData(draft) {
           selectOptions: Array.isArray(lang.selectOptions) ? lang.selectOptions : [],
           fixed:         Array.isArray(lang.fixed) ? lang.fixed : [],
         },
-        talents: [],
+        talents: Array.isArray(draft.talents) ? draft.talents : [],
         talentChoiceCount: Number(draft.talentChoiceCount) || 0,
         nameTable: "",
         randomWeight: 1,
@@ -288,36 +290,72 @@ async function spellFolderId(pack, draft) {
 }
 
 /**
- * Batch-import drafts under one source. Ensures the sde-items pack + source
- * folder, creates each, then invalidates the LootLinker cache so the new items
- * are findable immediately (A-06). Spells are filed under Spells → Class → Tier
- * (mirroring the system pack) instead of the flat source folder. GM-only.
+ * Foundry item TYPE → the Character-Options suite pack it belongs in, so
+ * char-builder content mirrors the system's per-type packs (and keeps
+ * cross-pack @UUID links valid) instead of piling into sde-items. Anything not
+ * listed (Weapon/Armor/Basic/Potion/Scroll/Wand/Gem/magic items…) stays in
+ * sde-items — that's the loot/gear library. Ids match SUITE_PACKS.
+ */
+const TYPE_TO_PACK_ID = {
+  Ancestry:   "ancestries",
+  Talent:     "talents",
+  Background: "background",
+  Class:      "classes",
+  Spell:      "spells",
+  Deity:      "patrons-and-deities",
+  Patron:     "patrons-and-deities",
+  Language:   "languages",
+};
+
+/** Find-or-create the suite pack a draft type routes to (default sde-items). */
+async function _packForType(type) {
+  const id = TYPE_TO_PACK_ID[type] ?? "sde-items";
+  const existing = findSuitePack(id);
+  if (existing) return existing;
+  const desc = SUITE_PACKS.find((d) => d.id === id);
+  if (id === "sde-items" || !desc) return (await ensureSuite())?.items;
+  return ensurePack(desc);
+}
+
+/**
+ * Batch-import drafts, routing each to its type's suite pack (Ancestry →
+ * world.ancestries, Talent → world.talents, Spell → world.spells, … ; loot/gear
+ * stays in sde-items). Ensures each target pack + a per-source folder (spells
+ * fold Spells → Class → Tier instead), creates each, then invalidates the
+ * LootLinker cache so new items are findable immediately (A-06). GM-only.
  *
  * @param {object[]} drafts
  * @param {{ source?, onConflict? }} opts
- * @returns {Promise<{pack:string, created:object[], replaced:object[], skipped:string[], total:number}|null>}
+ * @returns {Promise<{created:object[], replaced:object[], skipped:string[], total:number}|null>}
  */
 export async function createItems(drafts, { source = "", onConflict } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import items."); return null; }
-  const pack = findSuitePack("sde-items") ?? (await ensureSuite())?.items;
-  if (!pack) { console.error(`${MODULE_ID} | createItems: sde-items pack not found`); return null; }
 
-  if (pack.locked) {
-    try { await pack.configure({ locked: false }); } catch (_) {}
+  // Group by target pack so each pack's source folder + index are set up once.
+  const byPack = new Map();   // packId → drafts[]
+  for (const d of drafts) {
+    const id = TYPE_TO_PACK_ID[d.type] ?? "sde-items";
+    (byPack.get(id) ?? byPack.set(id, []).get(id)).push(d);
   }
 
-  // Source folder only used for non-spell items; spells fold by class/tier.
-  const hasNonSpell = drafts.some((d) => d.type !== "Spell");
-  const sourceFolder = hasNonSpell ? await ensureSourceFolder(pack, source) : null;
-  const out = { pack: pack.collection, created: [], replaced: [], skipped: [], total: drafts.length };
+  const out = { created: [], replaced: [], skipped: [], total: drafts.length };
+  for (const [packId, group] of byPack) {
+    const pack = await _packForType(group[0].type);
+    if (!pack) { console.error(`${MODULE_ID} | createItems: pack for "${packId}" not found`); continue; }
+    if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
 
-  for (const draft of drafts) {
-    const folder = draft.type === "Spell" ? await spellFolderId(pack, draft) : sourceFolder;
-    const r = await createItem(draft, { pack, folder, source, onConflict });
-    if (!r) continue;
-    if (r.status === "skipped") out.skipped.push(r.name);
-    else if (r.status === "replaced") out.replaced.push({ name: r.name, uuid: r.uuid });
-    else out.created.push({ name: r.name, uuid: r.uuid });
+    // Source folder only used for non-spell items; spells fold by class/tier.
+    const hasNonSpell = group.some((d) => d.type !== "Spell");
+    const sourceFolder = hasNonSpell ? await ensureSourceFolder(pack, source) : null;
+
+    for (const draft of group) {
+      const folder = draft.type === "Spell" ? await spellFolderId(pack, draft) : sourceFolder;
+      const r = await createItem(draft, { pack, folder, source, onConflict });
+      if (!r) continue;
+      if (r.status === "skipped") out.skipped.push(r.name);
+      else if (r.status === "replaced") out.replaced.push({ name: r.name, uuid: r.uuid });
+      else out.created.push({ name: r.name, uuid: r.uuid });
+    }
   }
 
   LootLinker.invalidate();

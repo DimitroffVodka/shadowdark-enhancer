@@ -486,6 +486,12 @@
         </div>
         {{else}}
         <div class="sde-hub-import-item-desc">{{c.preview}}</div>
+        {{#if c.meta}}
+        <div class="sde-hub-import-item-meta">
+          <div class="sde-hub-import-metarow"><i class="fas fa-language"></i> <strong>Languages:</strong> {{c.meta.languages}}</div>
+          <div class="sde-hub-import-metarow" title="{{c.meta.talentText}}"><i class="fas fa-star"></i> <strong>Ancestry talent:</strong> {{c.meta.talent}}{{#if c.meta.talentText}} — {{c.meta.talentText}}{{/if}}</div>
+        </div>
+        {{/if}}
         {{/if}}
       </div>
       {{/each}}

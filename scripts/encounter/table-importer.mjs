@@ -934,17 +934,8 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
   return { rows: anchors.map((a, idx) => ({ id: a.id, cells: buckets[idx].map((p) => p.join(" ")) })) };
 }
 
-function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
-  const raw = String(text).split(/\r?\n/);
-  const hi = raw.findIndex((l) =>
-    /(^|\s)d\d{1,3}(\s|$)/.test(l) && _layoutPieces(l).length >= cols + 1);
-  if (hi < 0) return null;
-  const cx = _layoutPieces(raw[hi]).map((p) => p.x);
-  if (cx.length < cols + 1) return null;
-  const colX = cx.slice(1, cols + 1);                      // the cols column x-starts
-  // Grid cells wrap below their die (die at the row top) → tieUp.
-  const { rows: grouped } = _groupLayoutRows(raw, hi, colX, { dieIndexed: true, size, tieUp: true });
-  if (!grouped.length) return null;
+/** Shared: assemble grouped {id, cells} rows into a compound grid ParsedTable. */
+function _buildGridTable(grouped, { name = "", cols, size, labels }) {
   const N = size || Math.max(0, ...grouped.map((r) => r.id));
   const columns = Array.from({ length: cols }, (_, c) => ({
     label: labels?.[c] ?? `Column ${c + 1}`, formula: `1d${N}`,
@@ -967,6 +958,72 @@ function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
     separator: " | ", compound: { separator: " | ", columns }, columns,
     rows: [], warnings,
   };
+}
+
+function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
+  const raw = String(text).split(/\r?\n/);
+  const hi = raw.findIndex((l) =>
+    /(^|\s)d\d{1,3}(\s|$)/.test(l) && _layoutPieces(l).length >= cols + 1);
+  if (hi < 0) return null;
+  const cx = _layoutPieces(raw[hi]).map((p) => p.x);
+  if (cx.length < cols + 1) return null;
+  const colX = cx.slice(1, cols + 1);                      // the cols column x-starts
+  // Grid cells wrap below their die (die at the row top) → tieUp.
+  const { rows: grouped } = _groupLayoutRows(raw, hi, colX, { dieIndexed: true, size, tieUp: true });
+  if (!grouped.length) return null;
+  return _buildGridTable(grouped, { name, cols, size, labels });
+}
+
+/**
+ * Boundary finder for reflowed-grid splitting. Given the remaining text of a
+ * row, returns the index where the NEXT column begins per `spec`, or -1:
+ *   "cap"  → the next word that starts with a capital letter (the first word,
+ *            i.e. the current column's start, is skipped since it has no
+ *            preceding space). Used where a column boundary is marked only by
+ *            capitalization (Traps: Trap → Trigger).
+ *   "dice" → the first dice expression (e.g. 1d6, 2d8/sleep, 3d10). Used where
+ *            the final column always opens with a die (Traps: → Damage).
+ *   other  → treated as a literal regex; boundary at its match start.
+ */
+function _reflowBoundary(rest, spec) {
+  if (spec === "cap") { const m = /\s[A-Z]/.exec(rest); return m ? m.index + 1 : -1; }
+  if (spec === "dice") { const m = /\d{1,3}d\d{1,3}/.exec(rest); return m ? m.index : -1; }
+  const m = new RegExp(spec).exec(rest);
+  return m ? m.index + (/^\s/.test(m[0]) ? 1 : 0) : -1;
+}
+
+/**
+ * Parse a REFLOWED grid paste (copied from a PDF viewer — one row per line,
+ * single-spaced, no column alignment) where the aligned `parseGridShape` can't
+ * read the header. Each data line begins with its die face (the row id); the
+ * remainder is split into `cols` columns at the boundaries named in
+ * `reflow` (one spec per boundary, i.e. cols-1 entries — see _reflowBoundary).
+ * Skips a manually-delimited paste (a "|" means the proven parseGenerators path
+ * should handle it). Returns a compound grid ParsedTable or null.
+ */
+function parseGridReflow(text, { name = "", cols = 2, size, labels, reflow } = {}) {
+  if (!reflow?.length || String(text).includes("|")) return null;
+  const grouped = [];
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    const dm = /^(\d{1,3})\s+(.*)$/.exec(line);
+    if (!dm) continue;                                     // title/header/blank
+    const id = Number(dm[1]);
+    if (size && (id < 1 || id > size)) continue;           // stray page number
+    let rest = dm[2].trim();
+    const cells = [];
+    for (let c = 1; c < cols; c++) {
+      const at = _reflowBoundary(rest, reflow[c - 1]);
+      if (at <= 0) { cells.push(rest); rest = ""; break; }  // boundary not found
+      cells.push(rest.slice(0, at).trim());
+      rest = rest.slice(at).trim();
+    }
+    cells.push(rest.trim());
+    while (cells.length < cols) cells.push("");
+    grouped.push({ id, cells: cells.slice(0, cols) });
+  }
+  if (!grouped.length) return null;
+  return _buildGridTable(grouped, { name, cols, size, labels });
 }
 
 /** Simple per-line lookup parse: one row per line. This is the path for a
@@ -1119,7 +1176,8 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     // header's column x-positions (handles single-space gaps that defeat
     // delimiter splitting). Fall back to the spec generator parser when the
     // header layout can't be read.
-    const pt = parseGridShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels });
+    const pt = parseGridShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels })
+      || parseGridReflow(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, reflow: shape.reflow });
     if (pt) return { generators: [pt] };
     const [g] = parseGenerators(text, { columns: shape.cols, die: shape.size });
     if (!g) return null;

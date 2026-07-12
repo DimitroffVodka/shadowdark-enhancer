@@ -50,7 +50,12 @@ export const TABLE_SHAPES = {
     rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+" },
   // Core Rulebook mix-and-match generators (roll each column, combine) — grid
   // splits deterministically to `cols` columns; cartesian-expanded at commit.
-  "Traps": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"] },
+  // `reflow` splits a REFLOWED (single-spaced, PDF-copy) paste the aligned
+  // header parser can't read: Trap → Trigger at the next Capitalized word,
+  // Trigger → Damage at the first dice expression (1d6/2d8/3d10). One spec per
+  // boundary (cols-1). A manual "|" still wins (parseGenerators handles it).
+  "Traps": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"],
+    reflow: ["cap", "dice"] },
   "Hazards": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] },
   "Boons: Secrets": { kind: "compound", split: "grid", cols: 2, size: 12, labels: ["Detail 1", "Detail 2"] },
   // Core Rulebook d20 × 3-column name/idea generators (roll each column,
