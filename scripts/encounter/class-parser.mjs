@@ -41,6 +41,17 @@ const CAPS_CAP    = /^[A-Z' -]{4,}$/;                       // any all-caps capt
 const FEATURE_RE  = /^([A-Z][A-Za-z'’ -]{0,39})\.\s+(\S.*)$/;
 const BULLET      = /^[•\-]\s+/;
 
+/**
+ * Choice-at-creation feature names the char-builder ALREADY wires — mirror of
+ * CHOICE_SPECS in scripts/char-builder/steps/class-step.mjs (keep in sync). A
+ * feature whose name is here gets no "register in CHOICE_SPECS" warning: the
+ * builder surfaces its weapon/armor pick and applies the effect. Delver's
+ * "Trusty Gear" (level-scaling weapon bonus) is wired via the class overlay.
+ */
+const WIRED_CHOICE_FEATURES = new Set([
+  "weapon mastery", "increased weapon damage die", "trusty gear", "armor mastery",
+]);
+
 /** "Weapon Mastery." / "Eye of Yag-Kesh." — Title-Case-ish, ≤5 words, no commas. */
 const _SMALL_WORDS = new Set(["of", "the", "and", "a", "an", "to", "in", "on", "for", "with"]);
 function _isFeatureName(s) {
@@ -117,6 +128,23 @@ function _classifyRow(text) {
   return { kind: "single" };
 }
 
+/**
+ * Classify a raw talent table (from _findTalentTable) in place: normalize each
+ * row's text and set its kind/options via _classifyRow, pushing review
+ * warnings. Returns { formula, rows } or null. Shared by the full-class parse
+ * and the supplement parse.
+ */
+function _classifyTalentTable(tbl, warnings) {
+  if (!tbl) return null;
+  for (const r of tbl.rows) {
+    r.text = r.text.replace(/\s+/g, " ").trim();
+    Object.assign(r, _classifyRow(r.text));
+    if (r.kind === "single" && / or /i.test(r.text))
+      warnings.push(`Talent row ${r.lo}${r.hi !== r.lo ? `-${r.hi}` : ""} contains "or" but wasn't split into options — review before commit.`);
+  }
+  return { formula: tbl.formula, rows: tbl.rows };
+}
+
 // ─── Talent-table extraction (both layouts) ──────────────────────────────────
 
 /**
@@ -178,7 +206,30 @@ function _findTalentTable(lines) {
     i = j === -1 ? i : j;
   }
 
-  if (capIdx === -1) return null;
+  if (capIdx === -1) {
+    // No "TALENTS" caption — many cleaned pastes head the class talent table
+    // with only its die line ("2d6 Effect"). Anchor on a DIE_HEADER line that
+    // isn't itself a row, then read row-major rows after it. Guard like runEnd:
+    // ≥3 rows with at least one dash-range, so a stray "2d6 damage" (or the
+    // Hit Points die) can't fake a table.
+    for (let h = 0; h < lines.length; h++) {
+      if (!DIE_HEADER.test(lines[h]) || ROW_START.test(lines[h])) continue;
+      const skip = new Set([h]);
+      const formula = lines[h].match(DIE_HEADER)[1].toLowerCase();
+      const rows = [];
+      for (let k = h + 1; k < lines.length; k++) {
+        if (TALENTS_CAP.test(lines[k]) || TITLES_CAP.test(lines[k]) || CAPS_CAP.test(lines[k])) break;
+        if (/^effects?$/i.test(lines[k])) { skip.add(k); continue; }   // "Effect" header stray
+        const rm = lines[k].match(ROW_START);
+        if (rm) { rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] }); skip.add(k); }
+        else if (rows.length) { rows[rows.length - 1].text += " " + lines[k]; skip.add(k); }   // wrapped row
+        else break;   // die header not followed by rows — not a talent table
+      }
+      if (rows.length >= 3 && rows.some((r) => r.hi !== r.lo))
+        return { skip, formula, rows, warnings: [] };
+    }
+    return null;
+  }
   const skip = new Set([capIdx]);
   let j = capIdx + 1;
   let formula = "2d6";
@@ -229,14 +280,21 @@ function _findTalentTable(lines) {
  */
 function _findTitles(lines) {
   const capIdx = lines.findIndex((l) => TITLES_CAP.test(l));
-  if (capIdx === -1) return null;
-  const skip = new Set([capIdx]);
+  // The column header ("Levels Lawful Chaotic Neutral") is the real anchor — it
+  // lets a copied titles table parse even with no "TITLES" caption above it.
+  const isHeader = (l) => /levels?/i.test(l) && /lawful/i.test(l) && /chaotic/i.test(l) && /neutral/i.test(l);
+  const headIdx = lines.findIndex(isHeader);
+  if (capIdx === -1 && headIdx === -1) return null;
+  const skip = new Set();
+  if (capIdx !== -1) skip.add(capIdx);
   const warnings = [];
   let order = ["lawful", "chaotic", "neutral"];
   const bands = [];
-  for (let k = capIdx + 1; k < lines.length; k++) {
+  // Walk from just after the caption, or from the header line when caption-less.
+  const start = capIdx !== -1 ? capIdx + 1 : headIdx;
+  for (let k = start; k < lines.length; k++) {
     const l = lines[k];
-    if (/levels?/i.test(l) && /lawful|chaotic|neutral/i.test(l)) {
+    if (isHeader(l)) {
       const cols = [...l.matchAll(/lawful|chaotic|neutral/gi)].map((m) => m[0].toLowerCase());
       if (cols.length === 3) order = cols;
       skip.add(k);
@@ -274,15 +332,23 @@ function _findTitles(lines) {
  * Returns null or { skip: Set<lineIdx>, known: [{level, tiers: number[]}] }.
  */
 function _findSpellsKnown(lines) {
-  const capIdx = lines.findIndex((l) => /^[A-Z' -]*SPELLS\s+KNOWN$/.test(l));
-  if (capIdx === -1) return null;
-  const skip = new Set([capIdx]);
+  // Anchor on a "SPELLS KNOWN" caption, a "Spells Known by …" subtitle, OR the
+  // "Level 1 2 3 …" tier header — so a copied grid parses without an all-caps
+  // caption above it.
+  const isCaption = (l) => /^[A-Z' -]*SPELLS\s+KNOWN$/.test(l) || /^spells\s+known\s+by/i.test(l);
+  const isTierHeader = (l) => /^levels?\b/i.test(l) && /\b1\b/.test(l) && /\b2\b/.test(l);
+  const start = lines.findIndex((l) => isCaption(l) || isTierHeader(l));
+  if (start === -1) return null;
+  const skip = new Set();
   const tokens = [];
-  for (let k = capIdx + 1; k < lines.length; k++) {
+  for (let k = start; k < lines.length; k++) {
     const l = lines[k];
-    if (/^spells\s+known\s+by/i.test(l)) { skip.add(k); continue; }   // subtitle
+    if (isCaption(l) && !isTierHeader(l)) { skip.add(k); continue; }   // caption / subtitle
     const parts = l.split(/\s+/);
-    if (!parts.every((p) => /^(?:levels?|\d{1,2}|[-–—+])$/i.test(p))) break;   // zone ends
+    if (!parts.every((p) => /^(?:levels?|\d{1,2}|[-–—+])$/i.test(p))) {
+      if (tokens.length) break;   // the numeric grid ended
+      continue;                    // stray line before the grid
+    }
     skip.add(k);
     tokens.push(...parts);
   }
@@ -302,6 +368,54 @@ function _findSpellsKnown(lines) {
     });
   }
   return known.length ? { skip, known } : null;
+}
+
+// ─── Extra named tables (CORRUPTION, etc.) ───────────────────────────────────
+
+/**
+ * Lift NAMED dice tables that sit after the class body — the Wyrdling
+ * CORRUPTION table, and any block shaped `<CAPS NAME>` / `dN Effect` / numbered
+ * rows. Distinct from the class TALENTS table (found separately). Returns
+ * `{ skip, tables: [{ name, formula, rows: [{lo,hi,text}] }] }` so the feature
+ * walk never absorbs them (the Pseudopod-feature-ate-the-tables bug).
+ *
+ * @param {string[]} lines
+ * @param {Set<number>} consumed  line indices already claimed (talent/titles/spells)
+ */
+function _findExtraTables(lines, consumed) {
+  const skip = new Set();
+  const tables = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (consumed.has(i) || skip.has(i)) continue;
+    // An all-caps caption that isn't the class TALENTS/TITLES header…
+    if (!CAPS_CAP.test(lines[i]) || TALENTS_CAP.test(lines[i]) || TITLES_CAP.test(lines[i])) continue;
+    // …immediately followed by a die-header line ("d10 Effect", "2d6 Effect")
+    // that is not itself a row.
+    const j = i + 1;
+    const dh = j < lines.length ? lines[j].match(DIE_HEADER) : null;
+    if (!dh || ROW_START.test(lines[j])) continue;
+    const formula = dh[1].toLowerCase().replace(/^d/, "1d");
+    const rows = [];
+    let k = j + 1;
+    for (; k < lines.length; k++) {
+      if (consumed.has(k)) break;
+      if (CAPS_CAP.test(lines[k]) || TALENTS_CAP.test(lines[k]) || TITLES_CAP.test(lines[k])) break;
+      const rm = lines[k].match(ROW_START);
+      if (rm) rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] });
+      else if (rows.length) rows[rows.length - 1].text += " " + lines[k];   // wrapped row
+      else break;   // caption + die header but no rows — not a table
+    }
+    if (rows.length >= 3) {
+      skip.add(i); skip.add(j);
+      for (let x = j + 1; x < k; x++) skip.add(x);
+      tables.push({
+        name: _displayCase(lines[i]),
+        formula,
+        rows: rows.map((r) => ({ lo: r.lo, hi: r.hi, text: r.text.replace(/\s+/g, " ").trim() })),
+      });
+    }
+  }
+  return { skip, tables };
 }
 
 // ─── Main parse ──────────────────────────────────────────────────────────────
@@ -333,6 +447,11 @@ export function parseClassSection(text) {
   const ttl = _findTitles(lines);
   if (ttl) warnings.push(...ttl.warnings);
   const sk = _findSpellsKnown(lines);
+  // Named extra tables (CORRUPTION, …) — after the talent/titles/spells passes
+  // so their lines aren't re-claimed. Their lines join the walk's skip set so
+  // trailing tables never glue onto the last feature.
+  const consumed = new Set([...(tbl?.skip ?? []), ...(ttl?.skip ?? []), ...(sk?.skip ?? [])]);
+  const ex = _findExtraTables(lines, consumed);
 
   // ── Unified walk: headers, features, flavor — headers recognized anywhere
   // (two-column PDF copies interleave them with features). ──
@@ -340,8 +459,9 @@ export function parseClassSection(text) {
   const flavorLines = [];
   const features = [];
   let cur = null;
+  let trailing = false;   // past the features, in aux blocks (weapon stat table…)
   for (let i = 1; i < lines.length; i++) {
-    if (tbl?.skip.has(i) || ttl?.skip.has(i) || sk?.skip.has(i)) continue;
+    if (tbl?.skip.has(i) || ttl?.skip.has(i) || sk?.skip.has(i) || ex.skip.has(i)) continue;
     const line = lines[i];
     if (/^\d{1,3}$/.test(line)) continue;                       // stray page number
     if (DIE_ONLY.test(line) || /^effects?$/i.test(line)) continue;   // sheared table-header strays
@@ -349,6 +469,7 @@ export function parseClassSection(text) {
     if (TITLES_CAP.test(line)) break;                           // unparsed titles follow
     const m = line.match(HEADER_KEY);
     if (m) {
+      trailing = false;
       // Value may wrap — absorb following lowercase-start lines.
       let val = m[2];
       while (i + 1 < lines.length && !tbl?.skip.has(i + 1)
@@ -363,12 +484,18 @@ export function parseClassSection(text) {
     }
     const fm = line.match(FEATURE_RE);
     if (fm && _isFeatureName(fm[1])) {
+      trailing = false;
       if (cur) features.push(cur);
       cur = { name: fm[1].trim(), lines: [fm[2]] };
       continue;
     }
+    // Any other all-caps caption (a weapon stat block like "PSEUDOPOD", an
+    // unrecognized table…) ends the feature list — trailing aux blocks must
+    // never glue onto the last feature. Recognized extra tables are already in
+    // ex.skip; whatever remains here is dropped, not appended.
+    if (CAPS_CAP.test(line)) { if (cur) { features.push(cur); cur = null; } trailing = true; continue; }
     if (cur) cur.lines.push(line);
-    else flavorLines.push(line);
+    else if (!trailing) flavorLines.push(line);
   }
   if (cur) features.push(cur);
   if (!hitDie) warnings.push("No hit die found on the Hit Points line — defaulting to d6; check the sheet.");
@@ -409,24 +536,16 @@ export function parseClassSection(text) {
       if (!sk) warnings.push("No SPELLS KNOWN table in the paste — paste it with the class or fill the level×tier grid on the sheet.");
       continue;
     }
-    if (/choose one type of (?:gear or )?weapon.*(?:wield|attack)/i.test(body) || /choose one type of gear/i.test(body))
+    if ((/choose one type of (?:gear or )?weapon.*(?:wield|attack)/i.test(body) || /choose one type of gear/i.test(body))
+        && !WIRED_CHOICE_FEATURES.has(f.name.trim().toLowerCase()))
       warnings.push(`"${f.name}" is a choice-at-creation feature — register it in CHOICE_SPECS (class-step.mjs) and wire its effect.`);
     keptFeatures.push({ name: f.name, description: toHtml(f.lines) });
   }
 
   // ── Talent-table row classification ──
-  let talentTable = null;
-  if (tbl) {
-    for (const r of tbl.rows) {
-      r.text = r.text.replace(/\s+/g, " ").trim();
-      Object.assign(r, _classifyRow(r.text));
-      if (r.kind === "single" && / or /i.test(r.text))
-        warnings.push(`Talent row ${r.lo}${r.hi !== r.lo ? `-${r.hi}` : ""} contains "or" but wasn't split into options — review before commit.`);
-    }
-    talentTable = { formula: tbl.formula, rows: tbl.rows };
-  }
+  const talentTable = _classifyTalentTable(tbl, warnings);
   if (!talentTable) warnings.push("No TALENTS table found in the paste — the class will have no talent table until one is added.");
-  if (!ttl) warnings.push("No TITLES table in the paste (often a separate book section) — paste it into the class text, add bands in the preview, or set system.titles later.");
+  if (!ttl) warnings.push("No TITLES table in the paste (often a separate book section) — paste it into the class text, add bands in the preview, or import a TITLES block separately and attach it to this class.");
 
   // ── Wield lists ──
   // "All …" phrases set the booleans; whatever survives stripping them is a
@@ -457,6 +576,40 @@ export function parseClassSection(text) {
     talentTable,
     titles: ttl?.bands ?? [],
     spellsKnown: sk?.known ?? [],
+    extraTables: ex.tables,
+    warnings,
+  };
+}
+
+/**
+ * Parse a class SUPPLEMENT — a fragment pasted after the class body (a TITLES
+ * block, a bare talent table, or a SPELLS KNOWN grid) — WITHOUT the Hit-Points
+ * anchor parseClassSection requires. The caller picks the target class to merge
+ * onto (the fragment carries no class name).
+ *
+ * @param {string} text
+ * @returns {{titles: object[], talentTable: object|null, spellsKnown: object[],
+ *   warnings: string[]}|null}  null when the paste has none of the three.
+ */
+export function parseClassSupplement(text) {
+  const lines = String(text).replace(/\r\n?/g, "\n").split("\n")
+    .map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return null;
+  const warnings = [];
+  const tbl = _findTalentTable(lines);
+  const ttl = _findTitles(lines);
+  const sk = _findSpellsKnown(lines);
+  if (tbl) warnings.push(...tbl.warnings);
+  if (ttl) warnings.push(...ttl.warnings);
+  const talentTable = _classifyTalentTable(tbl, warnings);
+  const consumed = new Set([...(tbl?.skip ?? []), ...(ttl?.skip ?? []), ...(sk?.skip ?? [])]);
+  const ex = _findExtraTables(lines, consumed);
+  if (!talentTable && !ttl && !(sk?.known?.length) && !ex.tables.length) return null;
+  return {
+    titles: ttl?.bands ?? [],
+    talentTable,
+    spellsKnown: sk?.known ?? [],
+    extraTables: ex.tables,
     warnings,
   };
 }

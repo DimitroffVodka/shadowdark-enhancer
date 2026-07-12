@@ -37,6 +37,31 @@ const KEY_FLAG = "sourceKey";          // marks a page as belonging to a source
  */
 const PAGE_OFFSETS = { CORE: 4 };
 
+/**
+ * Western Reaches class-TITLES page per class. Titles live in a separate
+ * appendix (book pg 82-89), NOT on the class writeup page — so the Class
+ * Importer's "Open PDF · titles" button jumps straight to the right table.
+ * Extracted from the WR PDF's "<CLASS> TITLES" headings (WR is 1:1 book↔PDF).
+ */
+export const WR_TITLE_PAGES = {
+  "Bard": 82, "Basilisk Warrior": 82, "Delver": 82,
+  "Desert Rider": 83, "Duelist": 83, "Green Knight": 83,
+  "Knight of St. Ydris": 84, "Kyzian Archer": 84, "Monk of Yag-Kesh": 84,
+  "Necromancer": 85, "Paladin": 85,
+  "Pit Fighter": 86,
+  "Ranger": 87, "Ras-Godai": 87, "Roustabout": 87,
+  "Sea Wolf": 88, "Seer": 88, "Warlock": 88,
+  "Witch": 89, "Wyrdling": 89,
+};
+
+/** The WR titles-appendix page for a class name (case/space-insensitive), or null. */
+export function titlePageFor(className) {
+  const want = String(className ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  for (const [name, page] of Object.entries(WR_TITLE_PAGES))
+    if (name.toLowerCase() === want) return page;
+  return null;
+}
+
 /** Per-world upload target — packaged module dirs are read-only. */
 function uploadDir() {
   return `worlds/${game.world.id}/source-pdfs`;

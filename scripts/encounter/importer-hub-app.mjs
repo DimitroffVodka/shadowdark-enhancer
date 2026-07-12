@@ -115,6 +115,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       manageExpandAll:        ImporterHubApp.prototype._onManageExpandAll,
       manageCollapseAll:      ImporterHubApp.prototype._onManageCollapseAll,
       charSeedPaste:          ImporterHubApp.prototype._onCharSeedPaste,
+      openClassImporter:      ImporterHubApp.prototype._onOpenClassImporter,
+      openSpellImporter:      ImporterHubApp.prototype._onOpenSpellImporter,
       openSourcePdf:          ImporterHubApp.prototype._onOpenSourcePdf,
       hubCommitChar:          ImporterHubApp.prototype._onHubCommitChar,
       cuOptAdd:               ImporterHubApp.prototype._onCuOptAdd,
@@ -240,6 +242,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Witch pattern); only fetched when a caster is actually in preview.
     const casterChoices = this._importChar.some((p) => p.draft.classUnit?.spellcasting)
       ? await this._casterClassChoices()
+      : [];
+    // Stage-2 supplement drafts need a target class to attach their tables to.
+    const attachChoices = this._importChar.some((p) => p.draft.classSupplement)
+      ? await this._attachClassChoices()
       : [];
 
     const importMonsterCards = this._importMonsters.map((p, i) => {
@@ -381,7 +387,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         { value: "cartesian", label: "Cartesian (expand)" },
         { value: "backgrounds", label: "Backgrounds" },
         { value: "talents",  label: "Talents" },
-        { value: "classes",  label: "Class" },
         { value: "ancestries", label: "Ancestry" },
       ].map(o => ({ ...o, selected: o.value === t })),
       showItemSubtype: t === "items" || t === "auto",
@@ -460,6 +465,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
                 range: t.from === t.to ? String(t.from) : `${t.from}-${t.to}`,
                 lawful: t.lawful, chaotic: t.chaotic, neutral: t.neutral,
               })),
+              // Stage 1 (Class · Description + Features): the class BODY only —
+              // roll tables (talent table / titles / spells known) are hidden here
+              // and imported in Stage 2. A classUnit draft only ever comes from
+              // the stage-1 "classes" type.
+              stage1: true,
               warnings: u.warnings,
             } : null;
             // Ancestry/background/talent drafts: surface the parsed language
@@ -478,12 +488,35 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
                 talentText: p.draft.talent ? strip(`<p>${p.draft.talent.text}</p>`) : "",
               };
             }
+            // Stage-2 supplement draft (bare titles / talent table / spells
+            // known) — a compact preview + an "attach to class" picker.
+            const sup = p.draft.classSupplement;
+            const supplement = sup ? {
+              hasTable: !!sup.talentTable,
+              tableRows: sup.talentTable ? sup.talentTable.rows.length : 0,
+              titles: sup.titles.map((t) => ({
+                range: t.from === t.to ? String(t.from) : `${t.from}-${t.to}`,
+                lawful: t.lawful, chaotic: t.chaotic, neutral: t.neutral,
+              })),
+              spellsKnown: sup.spellsKnown.map((r) => ({
+                level: r.level, cells: r.tiers.map((n) => n || "—").join(" · "),
+              })),
+              extraTables: (sup.extraTables ?? []).map((t) => ({ name: t.name, rows: t.rows.length })),
+              warnings: sup.warnings ?? [],
+              attachOptions: [
+                { value: "", label: "— choose a class —", selected: !p.draft.attachTo },
+                ...attachChoices.map((c) => ({
+                  value: c.uuid, label: c.name, selected: p.draft.attachTo === c.uuid,
+                })),
+              ],
+            } : null;
             return {
               name: p.draft.name,
               type: p.draft.type,
               unit,
+              supplement,
               meta,
-              preview: unit ? "" : strip(p.draft.description).slice(0, 140),
+              preview: (unit || supplement) ? "" : strip(p.draft.description).slice(0, 140),
             };
           }),
       hasChar: this._importChar.length > 0 || !!this._importSealed,
@@ -801,10 +834,30 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
     this.element.querySelectorAll(".sde-class-preview [data-cu-field]").forEach((input) => {
       input.addEventListener("change", (ev) => {
-        const unit = this._importChar[Number(ev.target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit;
-        if (!unit) return;
         const field = ev.target.dataset.cuField;
         const v = ev.target.value;
+
+        // ── Titles row scope — works for a classUnit (stage 1) AND a
+        // classSupplement (stage 2), so titles are editable in the tables stage. ──
+        const titleEl = ev.target.closest("[data-cu-title]");
+        if (titleEl) {
+          const titles = this._cuTitlesFor(ev.target);
+          const band = titles?.[Number(titleEl.dataset.cuTitle)];
+          if (!band) return;
+          if (field === "titleRange") {
+            const r = parseRange(v);
+            if (!r) { ev.target.value = band.from === band.to ? String(band.from) : `${band.from}-${band.to}`; return; }
+            band.from = r.lo; band.to = r.hi;
+            ev.target.value = r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`;
+          }
+          else if (field === "titleLawful") band.lawful = v.trim();
+          else if (field === "titleChaotic") band.chaotic = v.trim();
+          else if (field === "titleNeutral") band.neutral = v.trim();
+          return;
+        }
+
+        const unit = this._importChar[Number(ev.target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit;
+        if (!unit) return;
 
         // ── Talent-table row scope ──
         const rowEl = ev.target.closest("[data-cu-row]");
@@ -822,23 +875,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
             const oIdx = Number(ev.target.closest("[data-cu-opt]")?.dataset.cuOpt);
             if (Array.isArray(row.options) && row.options[oIdx] !== undefined) row.options[oIdx] = v.trim();
           }
-          return;
-        }
-
-        // ── Titles row scope ──
-        const titleEl = ev.target.closest("[data-cu-title]");
-        if (titleEl) {
-          const band = unit.titles[Number(titleEl.dataset.cuTitle)];
-          if (!band) return;
-          if (field === "titleRange") {
-            const r = parseRange(v);
-            if (!r) { ev.target.value = band.from === band.to ? String(band.from) : `${band.from}-${band.to}`; return; }
-            band.from = r.lo; band.to = r.hi;
-            ev.target.value = r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`;
-          }
-          else if (field === "titleLawful") band.lawful = v.trim();
-          else if (field === "titleChaotic") band.chaotic = v.trim();
-          else if (field === "titleNeutral") band.neutral = v.trim();
           return;
         }
 
@@ -895,6 +931,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }
       });
     });
+
+    // Stage-2 supplement: the "attach to class" picker stores the target on
+    // the draft; the commit routes it through mergeClassSupplement.
+    this.element.querySelectorAll("[data-supplement-attach]").forEach((sel) => {
+      sel.addEventListener("change", (ev) => {
+        const p = this._importChar[Number(ev.target.closest("[data-char-idx]")?.dataset.charIdx)];
+        if (p?.draft?.classSupplement) p.draft.attachTo = ev.target.value || null;
+      });
+    });
   }
 
   /**
@@ -919,6 +964,31 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { findSuitePack } = await import("./compendium-suite.mjs");
     await scan(findSuitePack("sde-items"));
     this._casterChoices = out;
+    return out;
+  }
+
+  /**
+   * Editable SDE Class items a stage-2 supplement (titles / talent table /
+   * spells-known) can attach to: world.classes + legacy sde-items copies.
+   * System classes are excluded (locked, not editable). Cached per hub;
+   * dropped after a char commit so a class imported this session appears.
+   */
+  async _attachClassChoices() {
+    if (this._attachChoices) return this._attachChoices;
+    const out = [];
+    const scan = async (pack) => {
+      if (!pack) return;
+      try {
+        const idx = await pack.getIndex({ fields: ["type"] });
+        for (const e of idx)
+          if (e.type === "Class") out.push({ uuid: `Compendium.${pack.collection}.Item.${e._id}`, name: e.name });
+      } catch (err) { console.warn(`${MODULE_ID} | attach-class scan failed for ${pack?.collection}:`, err); }
+    };
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    await scan(findSuitePack("classes"));
+    await scan(findSuitePack("sde-items"));
+    out.sort((a, b) => a.name.localeCompare(b.name));
+    this._attachChoices = out;
     return out;
   }
 
@@ -993,6 +1063,17 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return this._importChar[Number(target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit ?? null;
   }
 
+  /** The titles array a title editor belongs to — a classUnit (stage 1) or a
+   *  classSupplement (stage 2). Creates the array so "add band" works on a
+   *  supplement that parsed no titles (manual entry). */
+  _cuTitlesFor(target) {
+    const draft = this._importChar[Number(target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft;
+    if (!draft) return null;
+    if (draft.classUnit) return (draft.classUnit.titles ??= []);
+    if (draft.classSupplement) return (draft.classSupplement.titles ??= []);
+    return null;
+  }
+
   /** Add a blank class feature. */
   _onCuFeatAdd(event, target) {
     const unit = this._cuUnitFor(target);
@@ -1012,20 +1093,20 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Add a title band after the current last level range. */
   _onCuTitleAdd(event, target) {
-    const unit = this._cuUnitFor(target);
-    if (!unit) return;
-    const last = unit.titles[unit.titles.length - 1];
+    const titles = this._cuTitlesFor(target);
+    if (!titles) return;
+    const last = titles[titles.length - 1];
     const from = last ? last.to + 1 : 1;
-    unit.titles.push({ from, to: from + 1, lawful: "", chaotic: "", neutral: "" });
+    titles.push({ from, to: from + 1, lawful: "", chaotic: "", neutral: "" });
     this.render();
   }
 
   /** Remove a title band. */
   _onCuTitleDel(event, target) {
-    const unit = this._cuUnitFor(target);
+    const titles = this._cuTitlesFor(target);
     const idx = Number(target.closest("[data-cu-title]")?.dataset.cuTitle);
-    if (!unit || !(idx >= 0)) return;
-    unit.titles.splice(idx, 1);
+    if (!titles || !(idx >= 0)) return;
+    titles.splice(idx, 1);
     this.render();
   }
 
@@ -1490,7 +1571,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // own draft list; everything else clears it. A background-table bundle seed
     // additionally parses the individual Background items from the same paste
     // (the table above; the items here) so one commit unlocks both.
-    this._importChar = ["backgrounds", "talents", "classes", "ancestries"].includes(type)
+    this._importChar = ["backgrounds", "talents", "classes", "classtables", "ancestries"].includes(type)
       ? parseCharContent(text, type)
       : (this._importSeed?._bgBundle ? parseCharContent(text, "backgrounds") : []);
 
@@ -2233,11 +2314,52 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * type, stamp the source label, and seed the paste box with the entry name
    * so the GM only has to paste the section from the cited book.
    */
+  /** Open the dedicated Class Importer workspace (classes have their own
+   *  guided body → roll-tables → titles flow, not the generic paste box). */
+  async _onOpenClassImporter() {
+    const { ClassImporterApp } = await import("./class-importer-app.mjs");
+    ClassImporterApp.open();
+  }
+
+  /** Open the dedicated Spell Importer workspace (Class → Tier → Alignment). */
+  async _onOpenSpellImporter() {
+    const { SpellImporterApp } = await import("./spell-importer-app.mjs");
+    SpellImporterApp.open();
+  }
+
   _onCharSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     const type = target.dataset.type ?? "";
     const src = target.dataset.src ?? "";
     if (!name) return;
+    // Spells go to their own Class → Tier → Alignment workspace.
+    if (type === "Spell") {
+      import("./spell-importer-app.mjs").then(({ SpellImporterApp }) => {
+        const app = SpellImporterApp.open();
+        if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
+        if (name) app._pasteText = `${name}\n`;   // start the paste with the unlocked spell's name
+        app.render();
+      });
+      return;
+    }
+
+    // Classes go to their own workspace, not the generic paste box.
+    if (type === "Class") {
+      import("./class-importer-app.mjs").then(async ({ ClassImporterApp }) => {
+        const app = ClassImporterApp.open();
+        if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
+        // Seed the class name so the workspace knows which class it's unlocking.
+        if (name) app._seedClassName = name;
+        app.render();
+        // One-click flow (matches every other unlock): open the writeup PDF
+        // straight to the class's page — no separate Open-PDF click.
+        const { overlayFor } = await import("./class-overlays.mjs");
+        const page = target.dataset.pages || overlayFor(name)?.pages;
+        const href = sourcePdfHref(src, page);
+        if (href) this._showSourcePdf(href, `${name} writeup${page ? ` — p.${page}` : ""}`);
+      });
+      return;
+    }
     const importType = ({
       Spell: "spells",
       Basic: "items", Weapon: "items", Armor: "items",
@@ -2330,7 +2452,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Full class units (parse-and-author path) go through the class-unit
     // importer: talents + 2d6 table + wired Class, in dependency order.
     const unitDrafts  = this._importChar.filter((p) => p.draft.classUnit);
-    const plainDrafts = this._importChar.filter((p) => !p.draft.classUnit);
+    const suppDrafts  = this._importChar.filter((p) => p.draft.classSupplement);
+    const plainDrafts = this._importChar.filter((p) => !p.draft.classUnit && !p.draft.classSupplement);
 
     const parts = [];
     if (unitDrafts.length) {
@@ -2340,7 +2463,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // SDE wiring overlay (effects, invented outcome names) — the paste
         // supplies the text, the overlay supplies the plumbing.
         const overlay = overlayFor(p.draft.name);
-        const rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay });
+        // Stage 1: the class BODY only (description + features). Roll tables are
+        // imported in Stage 2 ("Class · Roll Tables") and attached.
+        const rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay, bodyOnly: true });
         if (!rep) continue;
         const updated = rep.updated ?? [];
         parts.push(`class "${p.draft.name}": ${rep.created.length} created, ${updated.length} updated, ${rep.reused.length} reused, ${rep.systemReuse.length} system talents linked`);
@@ -2352,6 +2477,27 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (rep.warnings.length) {
           console.warn(`${MODULE_ID} | class import "${p.draft.name}" — review notes:\n- ${rep.warnings.join("\n- ")}`);
           ui.notifications.warn(`"${p.draft.name}" imported with ${rep.warnings.length} review note(s) — see the console (F12).`);
+        }
+      }
+    }
+
+    // Stage-2 supplements: merge parsed tables/titles/spells-known onto the
+    // chosen already-imported class (mergeClassSupplement). Drafts with no
+    // target picked are kept below so the user can attach and re-commit.
+    if (suppDrafts.length) {
+      const { mergeClassSupplement } = await import("./class-unit-importer.mjs");
+      for (const p of suppDrafts) {
+        if (!p.draft.attachTo) {
+          ui.notifications.warn(`"${p.draft.name}" — pick a class to attach these tables to first.`);
+          continue;
+        }
+        const rep = await mergeClassSupplement(p.draft.attachTo, p.draft.classSupplement, { source, sourceTitle });
+        if (!rep) continue;
+        const target = await fromUuid(p.draft.attachTo).catch(() => null);
+        parts.push(`tables → "${target?.name ?? "class"}": ${rep.created.length} created, ${rep.updated.length} updated, ${rep.reused.length} reused`);
+        if (rep.warnings.length) {
+          console.warn(`${MODULE_ID} | class supplement → "${target?.name ?? p.draft.attachTo}" — review notes:\n- ${rep.warnings.join("\n- ")}`);
+          ui.notifications.warn(`Class tables merged with ${rep.warnings.length} review note(s) — see the console (F12).`);
         }
       }
     }
@@ -2373,7 +2519,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
     }
     ui.notifications.info(`Character content: ${parts.join("; ")} → suite packs${source ? ` / ${source}` : ""}.`);
-    this._importChar = [];
+    // Keep supplement drafts the user never assigned a target — everything
+    // committed (units, plain items, attached supplements) is cleared.
+    this._importChar = this._importChar.filter((p) => p.draft.classSupplement && !p.draft.attachTo);
+    this._attachChoices = null;   // a class imported this run should now be attachable
     this._invalidateItemsCache();
     this._invalidateCharCache();
     this._announceContentUnlocked();
