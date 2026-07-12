@@ -131,6 +131,30 @@ test("lookup shape: a wrapped benefit fragment starting with a big number is not
   assert.ok(!t.warnings.some((w) => /reach 100|Value \d+ has no row/.test(w)), "phantom row 100 tripped a coverage warning");
 });
 
+test("lookup shape: REFLOWED paste (one row per line, single-spaced) splits at col2Starts + handles N+", () => {
+  // This is what you get copying from a PDF viewer: no column alignment, one row
+  // per line. The x-band path can't see columns, so it falls to _lookupSimple,
+  // which must split at the benefit keyword ("Gain") and accept a trailing "+".
+  const text = [
+    "Carousing Outcome",
+    "d4 Outcome Benefit",                                             // single-spaced header
+    "1 You wake up in your bed Gain 1 XP",
+    "2 The Thieves' Guild bilked you Gain 2 XP and a debt",          // extra capitals — used to fold to "The | ..."
+    "3 You reflected it off your cup Gain 3 XP and a luck token",    // trailing word stays in the benefit
+    "4+ You wake up in the stronghold Gain 4 XP, if you escape",     // "+" must not drop the row
+  ].join("\n");
+  const t = parseByShape(text, { kind: "lookup", cols: 2, size: 4, labels: ["Outcome", "Benefit"], col2Starts: "Gain" }, { name: "Carousing Outcome" }).tables[0];
+  assert.equal(t.formula, "1d4");
+  assert.deepEqual(t.rows.map((r) => r.min), [1, 2, 3, 4]);          // 4+ → 4, nothing dropped
+  assert.deepEqual(t.rows.map((r) => r.text), [
+    "You wake up in your bed | Gain 1 XP",
+    "The Thieves' Guild bilked you | Gain 2 XP and a debt",
+    "You reflected it off your cup | Gain 3 XP and a luck token",
+    "You wake up in the stronghold | Gain 4 XP, if you escape",
+  ]);
+  assert.equal(t.warnings.length, 0);
+});
+
 // ── Expansion cap ─────────────────────────────────────────────────────────────
 test("expansion cap: <=2000 expands to a flat table, larger stays compound", () => {
   const mk = (cols, size) => ({ isCompound: true, name: "G",

@@ -28,7 +28,9 @@
 import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
 import { splitRawBlocks } from "./pdf-text-utils.mjs";
 
-const LEADING_RANGE = /^\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?(?=\s|$)/;
+// Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
+// treated as the plain number — the shape's size caps the die, so "14+" is row 14.
+const LEADING_RANGE = /^\s*(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?\+?(?=\s|$)/;
 
 // A "dN ..." / "NdM ..." header line. An optional leading count (2d6, 3d12)
 // is captured so a bell-curve or generator die spec headers a table with its
@@ -947,14 +949,24 @@ function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
   };
 }
 
-/** Simple per-line lookup parse: one delimited row per line. Fallback when a
- *  column-position header can't be found. */
-function _lookupSimple(text, { name, cols, size, labels }) {
+/** Simple per-line lookup parse: one row per line. This is the path for a
+ *  REFLOWED paste (copied from a PDF viewer — one row per line, single-spaced,
+ *  no column alignment). When the shape names the last column's start keyword
+ *  (`col2Starts`, e.g. Carousing Outcome's Benefit always begins "Gain"), a
+ *  2-column row is split there — reliable where delimiter/geometry can't see a
+ *  boundary in single-spaced prose. Otherwise falls back to splitCells. */
+function _lookupSimple(text, { cols, col2Starts }) {
+  const col2Re = col2Starts && cols === 2
+    ? new RegExp(`\\b${col2Starts.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`) : null;
   const rows = [];
   for (const l of String(text).split(/\r?\n/)) {
     const r = parseLeadingRange(l.trim());
     if (!r || r.rest === "") continue;
-    rows.push({ min: r.min, max: r.max, text: splitCells(r.rest, cols).join(" | ") });
+    let cells;
+    const m = col2Re?.exec(r.rest);
+    if (m && m.index > 0) cells = [r.rest.slice(0, m.index).trim(), r.rest.slice(m.index).trim()];
+    else cells = splitCells(r.rest, cols);
+    rows.push({ min: r.min, max: r.max, text: cells.join(" | ") });
   }
   return rows;
 }
@@ -997,7 +1009,7 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
       }
     }
   }
-  if (!rows) rows = _lookupSimple(text, { name, cols, size, labels });
+  if (!rows) rows = _lookupSimple(text, { cols, col2Starts });
   if (!rows.length) return null;
 
   const maxRange = rows.reduce((m, r) => Math.max(m, r.max), 0);
