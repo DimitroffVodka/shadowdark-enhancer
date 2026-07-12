@@ -875,29 +875,94 @@ function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
   };
 }
 
-/**
- * Deterministic parse of a "lookup" table: one roll → one row read across
- * `cols` columns, cells joined by " | " (e.g. Carousing Outcome d14
- * Outcome|Benefit). Column labels land in the description. Returns a single
- * ParsedTable or null.
- */
-function parseLookupShape(text, { name = "", cols = 2, size, labels } = {}) {
+/** Simple per-line lookup parse: one delimited row per line. Fallback when a
+ *  column-position header can't be found. */
+function _lookupSimple(text, { name, cols, size, labels }) {
   const rows = [];
   for (const l of String(text).split(/\r?\n/)) {
     const r = parseLeadingRange(l.trim());
     if (!r || r.rest === "") continue;
     rows.push({ min: r.min, max: r.max, text: splitCells(r.rest, cols).join(" | ") });
   }
+  return rows;
+}
+
+/**
+ * Deterministic parse of a "lookup" table: one roll → one row read across
+ * `cols` columns, cells joined by " | " (e.g. Carousing Outcome d14
+ * Outcome|Benefit). Handles the Core carousing layout where cells wrap across
+ * several lines and the row's die/cost is vertically CENTERED in the block: it
+ * slices every line at the header's column x-positions, then groups lines to
+ * the nearest row anchor (ties break downward), so wrapped fragments rejoin
+ * their row. `dieIndexed:false` anchors on the first content column instead of
+ * a leading die number (Carousing Event, keyed by Cost). Column labels land in
+ * the description. Returns a single ParsedTable or null.
+ */
+function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true } = {}) {
+  const raw = String(text).split(/\r?\n/);
+  // Header: a "dN Label…" line (die-indexed) or the labels line (no die).
+  let hi = raw.findIndex((l) =>
+    /(^|\s)d\d{1,3}(\s|$)/.test(l) && _layoutPieces(l).length >= cols + 1);
+  if (hi < 0 && labels?.length) {
+    hi = raw.findIndex((l) => labels.every((lb) => l.includes(lb)) && _layoutPieces(l).length >= cols);
+  }
+
+  let rows;
+  const warnings = [];
+  if (hi >= 0) {
+    const pcs = _layoutPieces(raw[hi]).map((p) => p.x);
+    // Die-indexed: skip the die column (pieces[0]); the content columns follow.
+    // No-die: the first column starts at the line begin so a right-aligned first
+    // column (e.g. Carousing Event's Cost "1,200 gp") isn't clipped at its header x.
+    const colX = dieIndexed ? pcs.slice(1, cols + 1) : [0, ...pcs.slice(1, cols)];
+    if (colX.length === cols) {
+      // Collect fragments + row anchors.
+      const frags = [];      // { line, cells:string[] }
+      const anchors = [];    // { line, id }
+      for (let i = hi + 1; i < raw.length; i++) {
+        const l = raw[i];
+        if (!l.trim()) { if (anchors.length) break; else continue; }
+        const cells = _sliceCols(l, colX);
+        frags.push({ line: i, cells });
+        if (dieIndexed) {
+          const dm = /^\s*(\d+)\s*\+?/.exec(l);
+          if (dm && dm.index < colX[0]) anchors.push({ line: i, id: Number(dm[1]) });
+        } else if (cells[0]?.trim()) {
+          anchors.push({ line: i, id: anchors.length + 1 });
+        }
+      }
+      if (anchors.length) {
+        const buckets = anchors.map(() => Array.from({ length: cols }, () => []));
+        for (const f of frags) {
+          let best = 0, bd = Infinity;
+          anchors.forEach((a, idx) => {
+            const d = Math.abs(f.line - a.line);
+            if (d < bd || (d === bd && a.line > anchors[best].line)) { bd = d; best = idx; }
+          });
+          for (let c = 0; c < cols; c++) if (f.cells[c]?.trim()) buckets[best][c].push(f.cells[c].trim());
+        }
+        rows = anchors.map((a, idx) => ({
+          min: a.id, max: a.id,
+          text: buckets[idx].map((parts) => parts.join(" ")).join(" | "),
+        }));
+        if (size && rows.length !== size) {
+          warnings.push(`Lookup parse: ${rows.length} rows found, expected ${size} — check the paste for missing/merged rows.`);
+        }
+      }
+    }
+  }
+  if (!rows) rows = _lookupSimple(text, { name, cols, size, labels });
   if (!rows.length) return null;
+
   const maxRange = rows.reduce((m, r) => Math.max(m, r.max), 0);
   const nm = (name || "").trim();
   const pt = {
     name: nm, formula: `1d${size || Math.max(1, maxRange)}`,
     replacement: true, bestEffort: false, category: classify(nm), customLabel: "",
     ...(labels ? { description: `Columns: ${labels.join(" | ")}` } : {}),
-    rows, warnings: [],
+    rows, warnings,
   };
-  pt.warnings = computeWarnings(pt);
+  pt.warnings = warnings.concat(computeWarnings(pt));
   return pt;
 }
 
@@ -929,7 +994,7 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     return { generators: [g] };
   }
   if (shape.kind === "lookup") {
-    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels });
+    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed });
     return pt ? { tables: [pt] } : null;
   }
   return null;

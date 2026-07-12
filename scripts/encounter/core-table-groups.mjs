@@ -55,16 +55,17 @@ export const CORE_TABLE_GROUPS = [
     rep: "Core PDF p126: Adventure Generator", startPage: 118,
     pasteHint: "Adventure Generator section (Core pg 118–122)",
     tables: [
-      // Adventure Generator is one d20 × 3-col compound (Detail 1/2/3) — the
-      // old per-column "- Detail N" rows were columns, not tables (removed; the
-      // table-shapes grid shape parses it as one table, user QA 2026-07-11).
+      // The GM-chapter d20 × 3-col generators are each one compound (their
+      // per-column "- Detail N" / "- Appearance/Does/Secret" rows were columns,
+      // not tables — the table-shapes grid shape parses each as one table).
+      // Renown/Secret/Wealth are small single-column party tables (no shape).
       { name: "Adventure Generator", page: 122 },
-      { name: "NPC Qualities - Appearance", page: 121 },
-      { name: "NPC Qualities - Does", page: 121 },
-      { name: "NPC Qualities - Secret", page: 121 },
-      { name: "Renown", page: 122 },
-      { name: "Secret", page: 122 },
-      { name: "Wealth", page: 122 },
+      { name: "Adventuring Site Name", page: 122 },
+      { name: "NPC Qualities", page: 124 },
+      { name: "Party Name", page: 126 },
+      { name: "Renown", page: 126 },
+      { name: "Secret", page: 126 },
+      { name: "Wealth", page: 126 },
     ],
   },
   {

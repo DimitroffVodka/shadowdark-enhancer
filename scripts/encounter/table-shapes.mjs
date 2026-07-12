@@ -39,21 +39,26 @@ export const TABLE_SHAPES = {
   "Ramlaat Prayers": PRAYER(6),
   "The Lost Prayers": PRAYER(6),
   // Core Rulebook carousing lookups (book pp.92-93).
+  // Both wrap heavily with the die/cost vertically centered — the lookup parser
+  // groups wrapped lines to their nearest row anchor. Event has no die column
+  // (keyed by Cost), so dieIndexed:false.
   "Carousing Outcome": { kind: "lookup", cols: 2, size: 14, labels: ["Outcome", "Benefit"] },
-  "Carousing Event": { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"] },
+  "Carousing Event": { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"], dieIndexed: false },
   // Core Rulebook mix-and-match generators (roll each column, combine) — grid
   // splits deterministically to `cols` columns; cartesian-expanded at commit.
   "Traps": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"] },
   "Hazards": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] },
-  "Boons: Secrets": { kind: "compound", split: "grid", cols: 2, size: 12 },
+  "Boons: Secrets": { kind: "compound", split: "grid", cols: 2, size: 12, labels: ["Detail 1", "Detail 2"] },
   // Core Rulebook d20 × 3-column name/idea generators (roll each column,
   // combine). Cartesian = 20^3 = 8,000 rows exceeds the expansion cap (2,000),
   // so these stay roll-each-column compounds rather than an 8k-row table.
   "Tavern Generator": GRID3(20, ["Name 1", "Name 2", "Known For"]),
   "Shop Generator": GRID3(20, ["Name 1", "Name 2", "Known For"]),
+  "Party Name": GRID3(20, ["Name 1", "Name 2", "Known For"]),
   "Adventure Generator": GRID3(20, ["Detail 1", "Detail 2", "Detail 3"]),
   "Adventuring Site Name": GRID3(20, ["Name 1", "Name 2", "Name 3"]),
   "Magic Item Idea Generator": GRID3(20, ["Name 1", "Name 2", "Name 3"]),
+  "NPC Qualities": GRID3(20, ["Appearance", "Does", "Secret"]),
 };
 
 /** Resolve a table name (suffix-tolerant) to its shape descriptor, or null. */
