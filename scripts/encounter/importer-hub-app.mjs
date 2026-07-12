@@ -270,15 +270,22 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // up in the drop down in the future" — user QA 2026-07-11). Selecting one
     // resolves to category=custom + that label (see _wireHubTableFieldEdits).
     const CANON_TOPS = new Set(["Character Content", "Gameplay", "Roll Tables", "Custom"]);
-    const customFolders = (findSuitePack("sde-tables")?.folders ?? [])
-      .filter((f) => !f.folder && !CANON_TOPS.has(f.name))
-      .map((f) => ({ id: `custom:${f.name}`, label: `📁 ${f.name}` }))
+    const topFolders = (findSuitePack("sde-tables")?.folders ?? [])
+      .filter((f) => !f.folder).map((f) => f.name);
+    const customFolders = topFolders
+      .filter((n) => !CANON_TOPS.has(n))
+      .map((n) => ({ id: `custom:${n}`, label: `📁 ${n}` }))
       .sort((a, b) => a.label.localeCompare(b.label));
     const categoryOptions = [
       ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
       ...customFolders,
       { id: CUSTOM_ID, label: "Custom…" },
     ];
+    // The Source field's datalist also lists existing top-level folders (the
+    // canonical buckets + any the GM created) so a custom folder reappears
+    // there for reuse — T5 "should show up in the drop down in the future".
+    const sourceSuggestions = [...new Set([...SOURCE_SUGGESTIONS, ...topFolders])]
+      .sort((a, b) => a.localeCompare(b));
 
     // Compound generators → row-major grid for the editable preview.
     const importGenerators = this._importGenerators.map((g, i) => {
@@ -337,7 +344,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const importData = {
       text: this._importText,
       source: this._importSource,
-      sourceSuggestions: SOURCE_SUGGESTIONS,
+      sourceSuggestions,
       seed: this._importSeed,
       // Deep-link into the user's uploaded source PDF at the cited page, so the
       // GM can jump straight to the section to copy. Only for char-content

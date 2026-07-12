@@ -837,6 +837,55 @@ function _sliceCols(line, colX) {
  * null when the header layout can't be read (caller falls back to the spec
  * generator parser).
  */
+/**
+ * Group a column-layout table's lines into rows — shared by the grid + lookup
+ * shapes. Slices each non-blank line into cells at the header column x-positions
+ * (`colX`), then assigns EVERY line to its nearest row anchor (ties break
+ * downward) so a wrapped cell's continuation lines rejoin their row instead of
+ * being dropped (no silent data loss). A bare page-number line (a lone number
+ * above `size`) is skipped.
+ *   dieIndexed:true  → anchor = a leading die number before colX[0]; that
+ *                      number is the row id.
+ *   dieIndexed:false → anchor = the first content column being non-empty; ids
+ *                      are sequential (Carousing Event, keyed by Cost).
+ * `tieUp` decides which row an equidistant line joins: grid cells wrap BELOW
+ * their die (die at the row top) → tieUp; Carousing wraps are centered/above
+ * → tie down (default).
+ * @returns {{ rows: Array<{ id:number, cells:string[] }> }}
+ */
+function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = false } = {}) {
+  const cols = colX.length;
+  const frags = [];    // { line, cells }
+  const anchors = [];  // { line, id }
+  for (let i = hi + 1; i < raw.length; i++) {
+    const l = raw[i];
+    if (!l.trim()) { if (anchors.length) break; else continue; }
+    const bare = /^\s*(\d{1,4})\s*$/.exec(l);
+    if (bare && Number(bare[1]) > (size || 300)) continue;   // stray page number
+    const cells = _sliceCols(l, colX);
+    frags.push({ line: i, cells });
+    if (dieIndexed) {
+      const dm = /^\s*(\d+)\s*\+?/.exec(l);
+      if (dm && dm.index < colX[0]) anchors.push({ line: i, id: Number(dm[1]) });
+    } else if (cells[0]?.trim()) {
+      anchors.push({ line: i, id: anchors.length + 1 });
+    }
+  }
+  if (!anchors.length) return { rows: [] };
+  const buckets = anchors.map(() => Array.from({ length: cols }, () => []));
+  for (const f of frags) {
+    let best = 0, bd = Infinity;
+    anchors.forEach((a, idx) => {
+      const d = Math.abs(f.line - a.line);
+      if (d < bd) { bd = d; best = idx; }               // strictly nearer wins
+      else if (d === bd && !tieUp && a.line > anchors[best].line) best = idx; // tie → lower row
+      // tieUp: keep the earlier (upper) anchor on a tie.
+    });
+    for (let c = 0; c < cols; c++) if (f.cells[c]?.trim()) buckets[best][c].push(f.cells[c].trim());
+  }
+  return { rows: anchors.map((a, idx) => ({ id: a.id, cells: buckets[idx].map((p) => p.join(" ")) })) };
+}
+
 function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
   const raw = String(text).split(/\r?\n/);
   const hi = raw.findIndex((l) =>
@@ -845,27 +894,24 @@ function parseGridShape(text, { name = "", cols = 2, size, labels } = {}) {
   const cx = _layoutPieces(raw[hi]).map((p) => p.x);
   if (cx.length < cols + 1) return null;
   const colX = cx.slice(1, cols + 1);                      // the cols column x-starts
-  const columns = Array.from({ length: cols }, (_, c) =>
-    ({ label: labels?.[c] ?? `Column ${c + 1}`, formula: "", rows: [] }));
+  // Grid cells wrap below their die (die at the row top) → tieUp.
+  const { rows: grouped } = _groupLayoutRows(raw, hi, colX, { dieIndexed: true, size, tieUp: true });
+  if (!grouped.length) return null;
+  const N = size || Math.max(0, ...grouped.map((r) => r.id));
+  const columns = Array.from({ length: cols }, (_, c) => ({
+    label: labels?.[c] ?? `Column ${c + 1}`, formula: `1d${N}`,
+    rows: Array.from({ length: N }, (_, i) => ({ min: i + 1, max: i + 1, text: "" })),
+  }));
   const warnings = [];
-  let maxFace = 0;
-  for (let i = hi + 1; i < raw.length; i++) {
-    const l = raw[i];
-    if (!l.trim()) { if (maxFace) break; else continue; }
-    const dm = /^\s*(\d{1,3})(?:\s|$)/.exec(l);
-    if (!dm || dm.index >= colX[0]) continue;              // not a leading die-face row
-    const face = Number(dm[1]);
-    if (size && face > size) continue;
-    maxFace = Math.max(maxFace, face);
-    const cells = _sliceCols(l, colX);
-    if (cells.filter(Boolean).length < cols) {
-      warnings.push(`Roll ${face}: ${cells.filter(Boolean).length}/${cols} columns filled — check the row.`);
-    }
-    for (let c = 0; c < cols; c++) columns[c].rows.push({ min: face, max: face, text: cells[c] ?? "" });
+  const seen = new Set();
+  for (const r of grouped) {
+    if (r.id < 1 || r.id > N) { warnings.push(`Roll ${r.id} is outside 1–${N} — check the die size.`); continue; }
+    seen.add(r.id);
+    for (let c = 0; c < cols; c++) columns[c].rows[r.id - 1].text = (r.cells[c] ?? "").trim();
+    const filled = r.cells.filter((x) => x.trim()).length;
+    if (filled < cols) warnings.push(`Roll ${r.id}: ${filled}/${cols} columns filled — check the row.`);
   }
-  if (!columns[0].rows.length) return null;
-  const N = size || maxFace;
-  columns.forEach((c) => { c.formula = `1d${N}`; });
+  for (let f = 1; f <= N; f++) if (!seen.has(f)) warnings.push(`Roll ${f}: no row found.`);
   const nm = (name || "").trim();
   return {
     name: nm, formula: `1d${N}`, replacement: true, isCompound: true,
@@ -916,35 +962,9 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
     // column (e.g. Carousing Event's Cost "1,200 gp") isn't clipped at its header x.
     const colX = dieIndexed ? pcs.slice(1, cols + 1) : [0, ...pcs.slice(1, cols)];
     if (colX.length === cols) {
-      // Collect fragments + row anchors.
-      const frags = [];      // { line, cells:string[] }
-      const anchors = [];    // { line, id }
-      for (let i = hi + 1; i < raw.length; i++) {
-        const l = raw[i];
-        if (!l.trim()) { if (anchors.length) break; else continue; }
-        const cells = _sliceCols(l, colX);
-        frags.push({ line: i, cells });
-        if (dieIndexed) {
-          const dm = /^\s*(\d+)\s*\+?/.exec(l);
-          if (dm && dm.index < colX[0]) anchors.push({ line: i, id: Number(dm[1]) });
-        } else if (cells[0]?.trim()) {
-          anchors.push({ line: i, id: anchors.length + 1 });
-        }
-      }
-      if (anchors.length) {
-        const buckets = anchors.map(() => Array.from({ length: cols }, () => []));
-        for (const f of frags) {
-          let best = 0, bd = Infinity;
-          anchors.forEach((a, idx) => {
-            const d = Math.abs(f.line - a.line);
-            if (d < bd || (d === bd && a.line > anchors[best].line)) { bd = d; best = idx; }
-          });
-          for (let c = 0; c < cols; c++) if (f.cells[c]?.trim()) buckets[best][c].push(f.cells[c].trim());
-        }
-        rows = anchors.map((a, idx) => ({
-          min: a.id, max: a.id,
-          text: buckets[idx].map((parts) => parts.join(" ")).join(" | "),
-        }));
+      const { rows: grouped } = _groupLayoutRows(raw, hi, colX, { dieIndexed, size });
+      if (grouped.length) {
+        rows = grouped.map((r) => ({ min: r.id, max: r.id, text: r.cells.join(" | ") }));
         if (size && rows.length !== size) {
           warnings.push(`Lookup parse: ${rows.length} rows found, expected ${size} — check the paste for missing/merged rows.`);
         }
