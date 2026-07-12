@@ -43,7 +43,11 @@ export const TABLE_SHAPES = {
   // groups wrapped lines to their nearest row anchor. Event has no die column
   // (keyed by Cost), so dieIndexed:false.
   "Carousing Outcome": { kind: "lookup", cols: 2, size: 14, labels: ["Outcome", "Benefit"], col2Starts: "Gain" },
-  "Carousing Event": { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"], dieIndexed: false },
+  // Cost/Event/Bonus, no die. rowStart/colLast let the RAW (un-delimited,
+  // wrapped) copy parse: Cost = leading "N gp", Bonus = trailing "+N", Event =
+  // the wrapped middle. A manual "|" still wins when present.
+  "Carousing Event": { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"], dieIndexed: false,
+    rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+" },
   // Core Rulebook mix-and-match generators (roll each column, combine) — grid
   // splits deterministically to `cols` columns; cartesian-expanded at commit.
   "Traps": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"] },

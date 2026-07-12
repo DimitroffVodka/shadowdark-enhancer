@@ -187,6 +187,27 @@ test("lookup shape: cost-indexed | paste — a number in col 1 is NOT a die face
   ]);
 });
 
+test("lookup shape: raw wrapped copy parses via rowStart/colLast anchoring (Carousing Event)", () => {
+  // No |, no alignment: the first column (Cost "N gp") anchors each row, the last
+  // (Bonus "+N") ends it, and the Event wraps across lines in between.
+  const text = [
+    "Cost Event Bonus",                    // header — dropped (not a cost line)
+    "30 gp A worthy night +0",             // all on one line
+    "100 gp A full day and night,",        // event wraps…
+    "and recounting exploits +1",          // …bonus at the end
+    "1,200 gp",                            // cost alone (comma), event + bonus wrap below
+    "A spirited fete over a city",
+    "+5",
+  ].join("\n");
+  const t = parseByShape(text, { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"], dieIndexed: false, rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+" }, { name: "Carousing Event" }).tables[0];
+  assert.deepEqual(t.rows.map((r) => r.min), [1, 2, 3]);
+  assert.deepEqual(t.rows.map((r) => r.text), [
+    "30 gp | A worthy night | +0",
+    "100 gp | A full day and night, and recounting exploits | +1",
+    "1,200 gp | A spirited fete over a city | +5",
+  ]);
+});
+
 test("lookup shape: a typed | wins even on the column-aligned (geometry) path", () => {
   // A 2+-space header routes to the x-band/geometry path; a "|" in a row must
   // still win over the geometry slice (and over the col2Starts keyword).

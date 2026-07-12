@@ -1000,6 +1000,41 @@ function _lookupSimple(text, { cols, col2Starts, dieIndexed = true }) {
 }
 
 /**
+ * Pattern-anchored lookup parse for a WRAPPED, un-delimited copy where the first
+ * and last columns have recognisable shapes (Carousing Event: Cost "N gp" at the
+ * start, Bonus "+N" at the end, Event = the wrapped middle). Each line matching
+ * `rowStart` at its start begins a new row; following lines are stitched on until
+ * the next such line, so a cost/event/bonus that wraps across several physical
+ * lines rejoins. `colLast` (optional) peels the trailing last column; whatever
+ * remains between is the middle column. Rows are numbered in order. Returns []
+ * when it can't anchor a row (caller falls back to _lookupSimple).
+ */
+function parsePatternLookup(text, { cols, rowStart, colLast }) {
+  const startRe = new RegExp(`^\\s*(${rowStart})`, "i");
+  const lastRe = colLast ? new RegExp(`(${colLast})\\s*$`, "i") : null;
+  const blobs = [];
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (startRe.test(line)) blobs.push(line);              // a new row begins
+    else if (blobs.length) blobs[blobs.length - 1] += ` ${line}`;   // wrap of the current row
+    // lines before the first match (title / header) are dropped
+  }
+  const rows = [];
+  blobs.forEach((blob, i) => {
+    const sm = startRe.exec(blob);
+    const first = sm ? sm[1].trim() : "";
+    let mid = blob.slice(sm ? sm[0].length : 0).trim();
+    let last = "";
+    if (lastRe) { const lm = lastRe.exec(mid); if (lm) { last = lm[1].trim(); mid = mid.slice(0, lm.index).trim(); } }
+    const cells = lastRe ? [first, mid, last] : [first, mid];
+    while (cells.length < cols) cells.splice(cells.length - 1, 0, "");
+    rows.push({ min: i + 1, max: i + 1, text: cells.slice(0, cols).join(" | ") });
+  });
+  return rows;
+}
+
+/**
  * Deterministic parse of a "lookup" table: one roll → one row read across
  * `cols` columns, cells joined by " | " (e.g. Carousing Outcome d14
  * Outcome|Benefit). Handles the Core carousing layout where cells wrap across
@@ -1010,7 +1045,7 @@ function _lookupSimple(text, { cols, col2Starts, dieIndexed = true }) {
  * a leading die number (Carousing Event, keyed by Cost). Column labels land in
  * the description. Returns a single ParsedTable or null.
  */
-function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true, col2Starts } = {}) {
+function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true, col2Starts, rowStart, colLast } = {}) {
   const raw = String(text).split(/\r?\n/);
   // Header: a "dN Label…" line (die-indexed) or the labels line (no die).
   let hi = raw.findIndex((l) =>
@@ -1036,6 +1071,13 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
         }
       }
     }
+  }
+  // Un-delimited wrapped copy with recognisable first/last columns (Carousing
+  // Event's raw copy) → pattern-anchored. A manual "|" or an aligned header
+  // takes precedence, so this only runs when neither applied.
+  if (!rows && rowStart && !text.includes("|")) {
+    const pr = parsePatternLookup(text, { cols, rowStart, colLast });
+    if (pr.length) rows = pr;
   }
   if (!rows) rows = _lookupSimple(text, { cols, col2Starts, dieIndexed });
   if (!rows.length) return null;
@@ -1080,7 +1122,7 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     return { generators: [g] };
   }
   if (shape.kind === "lookup") {
-    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts });
+    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts, rowStart: shape.rowStart, colLast: shape.colLast });
     return pt ? { tables: [pt] } : null;
   }
   return null;
