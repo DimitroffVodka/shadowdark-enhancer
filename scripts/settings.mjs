@@ -46,6 +46,22 @@ export function registerSettings() {
     default: true,
   });
 
+  // Portrait shown on the synthetic "Game Master" card in the crawl strip.
+  // Empty = the default cowled/mystery icon. The GM can also set this by
+  // clicking the GM card's portrait in the strip (opens a FilePicker).
+  game.settings.register(MODULE_ID, "gmAvatarImage", {
+    name: "SDE.settings.gmAvatarImage.name",
+    hint: "SDE.settings.gmAvatarImage.hint",
+    scope: "world",
+    config: true,
+    type: String,
+    filePicker: "imagevideo",
+    default: "",
+    onChange: () => {
+      import("./crawl-strip.mjs").then(({ CrawlStrip }) => CrawlStrip.queueRender());
+    },
+  });
+
   game.settings.register(MODULE_ID, "warnIfCrawlHelperEnabled", {
     name: "SDE.settings.warnIfCrawlHelperEnabled.name",
     hint: "SDE.settings.warnIfCrawlHelperEnabled.hint",

@@ -756,6 +756,24 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 .sde-strip-member.sde-strip-type-gm .sde-strip-bottom { display: none; }
 
+/* GM card is click-to-change for the GM: hint it with a pointer + hover camera. */
+.sde-strip-member.sde-strip-gm-editable { cursor: pointer; }
+.sde-strip-member.sde-strip-gm-editable::after {
+  content: "\f030"; /* fa camera */
+  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
+  font-weight: 900;
+  position: absolute;
+  left: 3px;
+  bottom: 3px;
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  pointer-events: none;
+}
+.sde-strip-member.sde-strip-gm-editable:hover::after { opacity: 0.9; }
+
 .sde-strip-defeated-icon {
   position: absolute;
   inset: 0;

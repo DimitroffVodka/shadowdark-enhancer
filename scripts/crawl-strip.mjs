@@ -175,7 +175,7 @@ export const CrawlStrip = {
       heroes.push({
         id:      "sde-gm",
         name:    "Game Master",
-        img:     "icons/svg/cowled.svg",
+        img:     game.settings.get(MODULE_ID, "gmAvatarImage") || "icons/svg/cowled.svg",
         type:    "gm",
         actorId: null,
         tokenId: null,
@@ -244,10 +244,13 @@ export const CrawlStrip = {
       // Special-case the synthetic GM card — no actor lookup, no stats, just
       // a visible marker for the GM's turn in the crawl loop.
       if (m.type === "gm") {
+        const gmTitle = game.user.isGM
+          ? game.i18n.localize("SDE.crawlStrip.gmAvatarPick")
+          : esc(m.name);
         return `
         <div class="sde-strip-card-wrap">
-          <div class="sde-strip-member sde-strip-active sde-strip-type-gm"
-               data-member-id="${m.id}">
+          <div class="sde-strip-member sde-strip-active sde-strip-type-gm${game.user.isGM ? " sde-strip-gm-editable" : ""}"
+               data-member-id="${m.id}" title="${gmTitle}">
             <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
             <div class="sde-strip-overlay">
               <div class="sde-strip-name">${esc(m.name)}</div>
@@ -543,6 +546,23 @@ export const CrawlStrip = {
         if (actor) actor.sheet.render(true);
       });
       card.addEventListener("click", async (ev) => {
+        // GM avatar card → click to pick a portrait (GM only). The synthetic
+        // GM card has no token/actor, so it owns its own click behaviour.
+        if (card.classList.contains("sde-strip-type-gm")) {
+          if (!game.user.isGM) return;
+          ev.stopPropagation();
+          const FilePickerImpl = foundry.applications?.apps?.FilePicker?.implementation ?? FilePicker;
+          const fp = new FilePickerImpl({
+            type: "imagevideo",
+            current: game.settings.get(MODULE_ID, "gmAvatarImage") || "",
+            callback: async (path) => {
+              await game.settings.set(MODULE_ID, "gmAvatarImage", path);
+              this.queueRender();
+            },
+          });
+          fp.render(true);
+          return;
+        }
         if (ev.target.closest(".sde-strip-activate-btn")) return;
         if (ev.target.closest(".sde-strip-rollinit-btn")) {
           ev.stopPropagation();
