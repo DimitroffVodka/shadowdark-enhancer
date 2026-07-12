@@ -693,6 +693,169 @@ export function parseGenerators(text, spec) {
   return out;
 }
 
+// ── Shape-directed parse — per-unlock precise structure (table-shapes.mjs) ────
+// The "smaller + more detailed" successor to the old sealed AES blobs and to
+// formula-only seeds: an unlockable table ships its exact column recipe, so the
+// paste is reconstructed DETERMINISTICALLY instead of guessed. No book text —
+// only the structure (column count + split rule). See table-shapes.mjs.
+
+const _CLAUSE = /[,;:]/;
+const _CLAUSE_END = /[,;:]\s*$/;
+const _BANG_END = /!\s*$/;
+const _MODAL = /\b(shall|will|may|must|can|would|should)\b/gi;
+
+/** Split a layout line into {x,text} pieces at runs of 2+ spaces (x = column). */
+function _layoutPieces(line) {
+  const out = []; let x = 0;
+  for (const p of String(line).split(/(\s{2,})/)) {
+    if (p && !/^\s+$/.test(p)) out.push({ x, text: p.trim() });
+    x += p.length;
+  }
+  return out;
+}
+
+/** Accumulate {line,text} fragments into entries, closing each when the joined
+ *  text matches `endRe` (a column's terminal punctuation). */
+function _joinUntil(frags, endRe) {
+  const out = []; let buf = "", endLine = -1;
+  for (const f of frags) {
+    buf = buf ? `${buf} ${f.text}` : f.text; endLine = f.line;
+    if (endRe.test(buf)) { out.push({ text: buf.trim(), endLine }); buf = ""; }
+  }
+  if (buf.trim()) out.push({ text: buf.trim(), endLine });
+  return out;
+}
+
+/** Bin {line,text} fragments into faces bounded by ascending faceEndLines. */
+function _binByFaces(frags, faceEndLines) {
+  const faces = faceEndLines.map(() => []);
+  for (const f of frags) {
+    let fi = faceEndLines.findIndex((e) => f.line <= e);
+    if (fi < 0) fi = faceEndLines.length - 1;
+    faces[fi]?.push(f.text);
+  }
+  return faces.map((p) => p.join(" ").trim());
+}
+
+/**
+ * Deterministic parse of a 3-column "PRAYER GENERATOR" compound (WR gods,
+ * pp.191-205): Detail 1 always ends in a clause separator (, ; :), Detail 3
+ * always ends in "!", Detail 2 is the middle (verified 48/48 rows across all 8
+ * generators). Column x-bands come from the header; wrapped fragments re-join
+ * by those punctuation terminators, and single-space column merges are peeled
+ * apart (Detail1|Detail2 at the first clause sep, Detail2|Detail3 at the last
+ * modal). Returns an isCompound ParsedTable (buildTableData cartesian-expands
+ * it) or null when the layout doesn't match the shape.
+ */
+function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
+  const raw = String(text).split(/\r?\n/);
+  const hi = raw.findIndex((l) =>
+    /(^|\s)d\d{1,3}(\s|$)/.test(l) && (/detail/i.test(l) || _layoutPieces(l).length >= 4));
+  if (hi < 0) return null;
+  const starts = _layoutPieces(raw[hi]).map((p) => p.x);
+  if (starts.length < 4) return null;
+  const [, x1, x2, x3] = starts;
+  const refs = [x1, x2, x3];
+  const frag = [[], [], []];
+  for (let i = hi + 1; i < raw.length; i++) {
+    const l = raw[i];
+    if (!l.trim()) { if (frag[0].length || frag[2].length) break; else continue; }
+    for (const p of _layoutPieces(l)) {
+      if (p.x < x1 - 3) continue;                        // die-number column
+      if (/^\d{1,4}$/.test(p.text)) continue;            // stray page number
+      let best = 0, bd = Infinity;
+      refs.forEach((rx, c) => { const d = Math.abs(p.x - rx); if (d < bd) { bd = d; best = c; } });
+      if (best === 0) {                                  // Detail1|Detail2 merge
+        const m = _CLAUSE.exec(p.text);
+        if (m && m.index < p.text.length - 1) {
+          frag[0].push({ line: i, text: p.text.slice(0, m.index + 1) });
+          const tail = p.text.slice(m.index + 1).trim();
+          if (tail) frag[1].push({ line: i, text: tail });
+          continue;
+        }
+      }
+      if (best === 1 && _BANG_END.test(p.text)) {        // Detail2|Detail3 merge
+        let m2, last = null; _MODAL.lastIndex = 0;
+        while ((m2 = _MODAL.exec(p.text))) last = m2;
+        if (last) {
+          const cut = last.index + last[0].length;
+          frag[1].push({ line: i, text: p.text.slice(0, cut).trim() });
+          frag[2].push({ line: i, text: p.text.slice(cut).trim() });
+          continue;
+        }
+      }
+      frag[best].push({ line: i, text: p.text });
+    }
+  }
+  const c1 = _joinUntil(frag[0], _CLAUSE_END);
+  const c3 = _joinUntil(frag[2], _BANG_END);
+  const faceEnds = (c1.length ? c1 : c3).map((e) => e.endLine);
+  const c2 = _binByFaces(frag[1], faceEnds);
+  const warnings = [];
+  if (c1.length !== size) warnings.push(`Prayer parse: ${c1.length} Detail-1 entries, expected ${size}.`);
+  if (c3.length !== size) warnings.push(`Prayer parse: ${c3.length} Detail-3 entries, expected ${size}.`);
+  const lab = labels && labels.length === 3 ? labels : ["Detail 1", "Detail 2", "Detail 3"];
+  const mkRows = (arr) => Array.from({ length: size }, (_, i) => ({
+    min: i + 1, max: i + 1, text: (arr[i]?.text ?? arr[i] ?? "").trim(),
+  }));
+  const columns = [
+    { label: lab[0], formula: `1d${size}`, rows: mkRows(c1) },
+    { label: lab[1], formula: `1d${size}`, rows: mkRows(c2) },
+    { label: lab[2], formula: `1d${size}`, rows: mkRows(c3) },
+  ];
+  const nm = (name || "Prayer Generator").trim();
+  return {
+    name: nm, formula: `1d${size}`, replacement: true, isCompound: true,
+    category: classify(nm), customLabel: "",
+    separator: " ", compound: { separator: " ", columns }, columns,
+    rows: [], warnings,
+  };
+}
+
+/**
+ * Deterministic parse of a "lookup" table: one roll → one row read across
+ * `cols` columns, cells joined by " | " (e.g. Carousing Outcome d14
+ * Outcome|Benefit). Column labels land in the description. Returns a single
+ * ParsedTable or null.
+ */
+function parseLookupShape(text, { name = "", cols = 2, size, labels } = {}) {
+  const rows = [];
+  for (const l of String(text).split(/\r?\n/)) {
+    const r = parseLeadingRange(l.trim());
+    if (!r || r.rest === "") continue;
+    rows.push({ min: r.min, max: r.max, text: splitCells(r.rest, cols).join(" | ") });
+  }
+  if (!rows.length) return null;
+  const maxRange = rows.reduce((m, r) => Math.max(m, r.max), 0);
+  const nm = (name || "").trim();
+  const pt = {
+    name: nm, formula: `1d${size || Math.max(1, maxRange)}`,
+    replacement: true, bestEffort: false, category: classify(nm), customLabel: "",
+    ...(labels ? { description: `Columns: ${labels.join(" | ")}` } : {}),
+    rows, warnings: [],
+  };
+  pt.warnings = computeWarnings(pt);
+  return pt;
+}
+
+/**
+ * Parse `text` per a table SHAPE descriptor (table-shapes.mjs). Returns a
+ * `{ generators?, tables? }` bucket the hub routes into its preview lists, or
+ * null when the shape can't parse the paste (caller falls back to heuristics).
+ */
+export function parseByShape(text, shape, { name = "" } = {}) {
+  if (!shape) return null;
+  if (shape.kind === "compound" && shape.split === "prayer") {
+    const pt = parsePrayerGenerator(text, { name, size: shape.size, labels: shape.labels });
+    return pt ? { generators: [pt] } : null;
+  }
+  if (shape.kind === "lookup") {
+    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels });
+    return pt ? { tables: [pt] } : null;
+  }
+  return null;
+}
+
 /** Public (pure): build a RollTable.create payload from a ParsedTable. */
 export function buildTableData(pt) {
   const TEXT = (typeof CONST !== "undefined" && CONST?.TABLE_RESULT_TYPES?.TEXT != null)
@@ -1079,6 +1242,7 @@ export function parseMatrixByColumns(text, columns, widths) {
 export const TableImporter = {
   parse: parseTables,
   parseGenerators,
+  parseByShape,
   parseDiceSpec,
   parseMatrixByColumns,
   buildTableData,
