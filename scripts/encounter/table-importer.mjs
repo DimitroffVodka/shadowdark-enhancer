@@ -946,9 +946,11 @@ export function buildTableData(pt) {
   // fully-visible RollTable — no hidden per-column roll logic (user pref). A
   // single 1d<product> roll reproduces the roll-each-column distribution
   // exactly: every ordered tuple of column cells is equally likely, so a 3d6
-  // generator becomes a plain 216-row table. Giant products (e.g. a 4d20 name
-  // grid = 160k rows) exceed EXPAND_CAP and fall back to the roll-each-column
-  // generator so Foundry isn't asked to create an unusable table.
+  // generator becomes a plain 216-row table. Products over EXPAND_CAP fall back
+  // to the roll-each-column generator so browsing/creating stays sane. The cap
+  // sits just above Traps/Hazards (3d12 = 1,728, which expand) and below the
+  // Core d20×3 name generators (20³ = 8,000, which stay compound) — user pref
+  // 2026-07-11.
   if (pt.isCompound) {
     const src = pt.compound?.columns ?? pt.columns ?? [];
     // Each column → its ordered cell list (one entry per die face; ranges are
@@ -963,7 +965,7 @@ export function buildTableData(pt) {
       return cells;
     }).filter((a) => a.length);
     const separator = " | ";
-    const EXPAND_CAP = 10000;
+    const EXPAND_CAP = 2000;
     const product = colCells.length ? colCells.reduce((a, c) => a * c.length, 1) : 0;
     if (product >= 1 && product <= EXPAND_CAP) {
       let combos = [[]];

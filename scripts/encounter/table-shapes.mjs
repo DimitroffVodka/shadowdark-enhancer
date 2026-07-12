@@ -47,7 +47,8 @@ export const TABLE_SHAPES = {
   "Hazards": { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] },
   "Boons: Secrets": { kind: "compound", split: "grid", cols: 2, size: 12 },
   // Core Rulebook d20 × 3-column name/idea generators (roll each column,
-  // combine). Cartesian = 20^3 = 8,000 rows — the visible "really long table".
+  // combine). Cartesian = 20^3 = 8,000 rows exceeds the expansion cap (2,000),
+  // so these stay roll-each-column compounds rather than an 8k-row table.
   "Tavern Generator": GRID3(20, ["Name 1", "Name 2", "Known For"]),
   "Shop Generator": GRID3(20, ["Name 1", "Name 2", "Known For"]),
   "Adventure Generator": GRID3(20, ["Detail 1", "Detail 2", "Detail 3"]),
