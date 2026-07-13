@@ -308,15 +308,15 @@
   </section>
   {{/if}}
 
-  {{!-- ── Character content / sealed-unlock preview ─────────────────────── --}}
-  {{!-- Title + button label come from context: sealed payloads may be roll
+  {{!-- ── Character content import preview ───────────────────────────────── --}}
+  {{!-- Title + button label come from context: parsed drafts may be roll
         tables or monsters, which commit to their own compendia, not Items. --}}
   {{#if importData.hasChar}}
   <section class="sde-hub-import-section">
     <div class="sde-hub-import-sechead">
       <span class="sde-hub-import-sectitle"><i class="fas fa-user-plus"></i> {{importData.charsTitle}} ({{importData.charsCount}})</span>
       <button type="button" data-action="hubCommitChar" class="sde-import-primary sde-hub-import-secbtn">
-        <i class="fas fa-unlock"></i> {{importData.charsCommitLabel}}
+        <i class="fas fa-file-import"></i> {{importData.charsCommitLabel}}
       </button>
     </div>
     <div class="sde-import-preview">
@@ -717,18 +717,18 @@
   <details class="sde-hub-manage" data-manage{{#if manageExpanded}} open{{/if}}>
     <summary class="sde-hub-manage-summary">
       <i class="fas fa-screwdriver-wrench"></i> Manage
-      <span class="sde-hub-manage-hint">unlocked · locked · duplicates · maintenance</span>
+      <span class="sde-hub-manage-hint">present · missing · duplicates · maintenance</span>
     </summary>
 
     {{#if manage}}
     <div class="sde-hub-manage-body">
 
-      {{!-- Unlock/lock review tree: Character Content · Spells · Monsters · Items --}}
+      {{!-- Import review tree: Character Content · Spells · Monsters · Items --}}
       <section class="sde-mtree">
         <div class="sde-mtree-topbar">
           <p class="sde-hub-manage-hint sde-mtree-legend">
-            <i class="fas fa-lock-open"></i> unlocked = present ·
-            <i class="fas fa-lock"></i> locked = importable. <strong>Unlock</strong> seeds the paste box.
+            <i class="fas fa-circle-check"></i> present ·
+            <i class="fas fa-file-import"></i> missing = importable. <strong>Import</strong> seeds the paste box (paste from your own book).
           </p>
           <div class="sde-mtree-tools">
             <button type="button" class="sde-mtree-toolbtn" data-action="manageExpandAll" title="Expand every folder">

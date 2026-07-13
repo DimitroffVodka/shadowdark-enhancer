@@ -1,17 +1,19 @@
 /**
- * Shadowdark Enhancer — Sealed Content
+ * Shadowdark Enhancer — Sealed Content (RETIRED ARCHITECTURE — dev-only)
  *
- * Ships finished, verified content documents inside the module WITHOUT
- * shipping readable rules text: each unit (a class + its talents + tables)
- * is AES-GCM encrypted with a key derived from anchor phrases of the book
- * section it came from. Pasting that section proves ownership: the anchors
- * are located in the normalized paste (the module stores only their hashes
- * and token lengths), the key is derived from the paste's own words, and the
- * pre-authored documents decrypt and import with links remapped.
+ * DEAD AT RUNTIME. The module no longer ships any sealed, encrypted, or
+ * pre-authored content: the registry below is empty, there is no data/locked/
+ * directory, and nothing readable from any sourcebook is bundled. All content
+ * import now runs through the source-guided parse-and-author path — the user
+ * pastes their own PDF text and the module supplies only names, source/page
+ * citations, formulas, and parsing structure. See the DE-SEALED note below.
  *
- * See .planning/CHAR-CONTENT-UNLOCK-SPEC.md ("sealed content" pivot).
+ * The AES-GCM seal/unseal helpers in this file are kept ONLY for dev use
+ * against the archived blobs under .planning/sealed-archive/ (gitignored, not
+ * shipped). They are not wired into any active runtime path and are slated for
+ * removal in a later cleanup. Do NOT read this file as active functionality.
  *
- * Payload doc conventions:
+ * (Historical) payload doc conventions, for the archived blobs only:
  *   - intra-unit links are "@@LOCAL:<index>@@" tokens (index into payload.docs)
  *   - system-compendium links (shadowdark.*) are kept literal — those uuids
  *     are identical in every world.
@@ -19,7 +21,7 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 
-/** Registry of sealed units shipped under data/locked/. Metadata only. */
+/** RETIRED: registry of sealed units. Intentionally empty — nothing ships. */
 export const SEALED_UNITS = [];
 // DE-SEALED 2026-07-10: all 69 units converted to parse-and-author.
 // Classes → class-overlays.mjs; tables → table-structure-seeds.mjs +
