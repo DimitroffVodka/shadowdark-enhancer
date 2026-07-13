@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 47,
-   "REVIEW": 94,
+   "clean": 58,
+   "REVIEW": 83,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -2005,18 +2005,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "284",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "2d6",
+   "rows": 4,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Armor Feature::284",
@@ -2024,18 +2019,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "284",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 20,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Armor Type::284",
@@ -2043,18 +2033,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "284",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "2d6",
+   "rows": 5,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Armor Benefit::285",
@@ -2093,10 +2078,10 @@
    "shape": null,
    "route": "table:generic",
    "formula": "1d8",
-   "rows": 22,
+   "rows": 21,
    "warns": [
     "Rows 1 and 9 overlap.",
-    "Rows 1 and 22 overlap.",
+    "Rows 1 and 21 overlap.",
     "Rows 2 and 10 overlap.",
     "Rows 3 and 11 overlap."
    ],
@@ -2112,10 +2097,10 @@
    "shape": null,
    "route": "table:generic",
    "formula": "1d8",
-   "rows": 22,
+   "rows": 21,
    "warns": [
     "Rows 1 and 9 overlap.",
-    "Rows 1 and 22 overlap.",
+    "Rows 1 and 21 overlap.",
     "Rows 2 and 10 overlap.",
     "Rows 3 and 11 overlap."
    ],
@@ -2131,10 +2116,10 @@
    "shape": null,
    "route": "table:generic",
    "formula": "1d8",
-   "rows": 22,
+   "rows": 21,
    "warns": [
     "Rows 1 and 9 overlap.",
-    "Rows 1 and 22 overlap.",
+    "Rows 1 and 21 overlap.",
     "Rows 2 and 10 overlap.",
     "Rows 3 and 11 overlap."
    ],
@@ -2150,10 +2135,10 @@
    "shape": null,
    "route": "table:generic",
    "formula": "1d8",
-   "rows": 22,
+   "rows": 21,
    "warns": [
     "Rows 1 and 9 overlap.",
-    "Rows 1 and 22 overlap.",
+    "Rows 1 and 21 overlap.",
     "Rows 2 and 10 overlap.",
     "Rows 3 and 11 overlap."
    ],
@@ -2169,10 +2154,10 @@
    "shape": null,
    "route": "table:generic",
    "formula": "1d8",
-   "rows": 22,
+   "rows": 21,
    "warns": [
     "Rows 1 and 9 overlap.",
-    "Rows 1 and 22 overlap.",
+    "Rows 1 and 21 overlap.",
     "Rows 2 and 10 overlap.",
     "Rows 3 and 11 overlap."
    ],
@@ -2213,15 +2198,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "288",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d84",
-   "rows": 42,
-   "warns": [
-    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d8",
+   "rows": 8,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Wand Feature::288",
@@ -2229,15 +2212,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "288",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d84",
-   "rows": 42,
-   "warns": [
-    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d8",
+   "rows": 8,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Spell Tier::288",
@@ -2293,18 +2274,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "289",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d12",
-   "rows": 46,
-   "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 1 and 24 overlap.",
-    "Rows 1 and 36 overlap.",
-    "Rows 2 and 14 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Tier 3::289",
@@ -2312,17 +2288,14 @@
    "type": "Table",
    "src": "CORE",
    "pages": "289",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d12",
-   "rows": 46,
+   "rows": 11,
    "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 1 and 24 overlap.",
-    "Rows 1 and 36 overlap.",
-    "Rows 2 and 14 overlap."
+    "Value 10 has no row."
    ],
-   "shapeOk": null,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -2331,18 +2304,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "289",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d12",
-   "rows": 46,
-   "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 1 and 24 overlap.",
-    "Rows 1 and 36 overlap.",
-    "Rows 2 and 14 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Tier 5::289",
@@ -2350,17 +2318,14 @@
    "type": "Table",
    "src": "CORE",
    "pages": "289",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d12",
-   "rows": 46,
+   "rows": 11,
    "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 1 and 24 overlap.",
-    "Rows 1 and 36 overlap.",
-    "Rows 2 and 14 overlap."
+    "Value 10 has no row."
    ],
-   "shapeOk": null,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -2369,18 +2334,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "290",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d20",
-   "rows": 40,
-   "warns": [
-    "Rows 1 and 21 overlap.",
-    "Rows 2 and 22 overlap.",
-    "Rows 3 and 23 overlap.",
-    "Rows 4 and 24 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 20,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Utility Feature::290",
@@ -2388,18 +2348,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "290",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d20",
-   "rows": 40,
-   "warns": [
-    "Rows 1 and 21 overlap.",
-    "Rows 2 and 22 overlap.",
-    "Rows 3 and 23 overlap.",
-    "Rows 4 and 24 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 20,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Utility Benefit::291",
@@ -2435,15 +2390,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "292",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d92",
-   "rows": 46,
-   "warns": [
-    "Rebuilt 46 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d20",
+   "rows": 16,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Weapon Feature::292",
@@ -2451,15 +2404,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "292",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d92",
-   "rows": 46,
-   "warns": [
-    "Rebuilt 46 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d20",
+   "rows": 20,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Weapon Bonus::292",

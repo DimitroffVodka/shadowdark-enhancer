@@ -173,6 +173,18 @@ test("stray page number guard: a headerless d100 reaching 100 is not mistaken fo
   assert.ok(!pt.warnings.some((w) => /page-number/.test(w)), "100 is a standard die face, never a stray");
 });
 
+test("stray page number: a page footer is dropped even under an explicit dN header", () => {
+  // A section-sliced "d20 Type" table can sweep in its page footer (e.g. 290).
+  // With a die header the formula is already 1d20, but the footer still adds a
+  // phantom face-290 row + a false overlap — the drop must run here too.
+  const rows = Array.from({ length: 20 }, (_, i) => `${i + 1} item${i + 1}`).join("\n");
+  const [pt] = parseTables(`d20 Kind\n${rows}\n290 Utility`);
+  assert.equal(pt.formula, "1d20");
+  assert.equal(pt.rows.length, 20, "the 290 footer row is dropped");
+  assert.ok(!pt.rows.some((r) => r.max === 290), "no phantom face at the page number");
+  assert.ok(pt.warnings.some((w) => /page-number row 290/.test(w)), "the drop is announced");
+});
+
 test("stray page number guard: a legitimate wide RANGE row is never dropped (Codex #2)", () => {
   // A high top row that is a SPAN (81-200), not a lone value, is real table data
   // — a page cite is always a single number. It must survive untouched.

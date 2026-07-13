@@ -165,6 +165,12 @@ test("section registry: the stacked magic-item attribute tables are shaped with 
   for (const n of ["Renown", "Secret", "Wealth"]) {
     assert.equal(shapeForName(n).cols, "auto", `${n} needs the 2-column page mode`);
   }
+  // The side-by-side two-column-caption tables also use the 2-column mode.
+  for (const n of ["Armor Type", "Armor Feature", "Scroll Feature", "Weapon Type", "Utility Feature", "Tier 2", "Tier 5"]) {
+    const s = shapeForName(n);
+    assert.equal(s?.kind, "section", `${n} is a section shape`);
+    assert.equal(s.cols, "auto", `${n} extracts two-column`);
+  }
 });
 
 test("section shape: caption defaults to the name and a decoy caption is not matched", () => {

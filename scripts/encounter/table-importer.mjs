@@ -212,11 +212,12 @@ function parseSingleDieBlock(title, die, dataLines) {
     if (!String(rows[i].text ?? "").trim()) rows.splice(i, 1);
   }
 
-  // Drop a stray page-number row before the die/formula is inferred from the
-  // max range — otherwise a leftover page cite (e.g. "284") headlines the table
-  // as 1d284 and floods the coverage check. Only fires on an isolated
-  // above-die-range outlier; the note is added to warnings below.
-  const strayNotes = die ? [] : dropStrayPageNumber(rows);
+  // Drop a stray page-number row. Without a dN header it otherwise headlines the
+  // table as 1d<page> (e.g. 1d284) and floods the coverage check; WITH a header
+  // (e.g. a section-sliced "d20 Type" table that swept in its page footer) it
+  // adds a phantom face-290 row and a false overlap. The drop's own guards
+  // (>100, singleton, isolated outlier) make it safe to run in both cases.
+  const strayNotes = dropStrayPageNumber(rows);
 
   // Multi-column prose table (e.g. Carousing Outcome's "d14 Outcome Benefit"):
   // the header carries ≥2 column labels but the block isn't a single-word-cell

@@ -134,6 +134,24 @@ export const CONTENT_ENTRIES = [
   _entry("core/item-virtue", "CORE", "Item Virtue", SECTION()),
   _entry("core/boons-oaths", "CORE", "Boons: Oaths", SECTION("OATHS")),
   _entry("core/boons-blessings", "CORE", "Boons: Blessings", SECTION("BLESSINGS")),
+  // Side-by-side two-column-caption pages (Armor/Weapon/Utility Type+Feature on
+  // p284/290/292, Scroll/Wand Feature on p288, spell Tier 2-5 on p289). The
+  // captions merge in 1-col, so these use the 2-column extraction and section-
+  // slice each column. Tier 3/5 land 11/12 (a spell cell wraps/drops in the
+  // source PDF) — the parser flags the missing face for the review preview.
+  _entry("core/armor-type", "CORE", "Armor Type", SECTION("ARMOR TYPE", "auto")),
+  _entry("core/armor-feature", "CORE", "Armor Feature", SECTION("ARMOR FEATURE", "auto")),
+  _entry("core/armor-bonus", "CORE", "Armor Bonus", SECTION("ARMOR BONUS", "auto")),
+  _entry("core/scroll-feature", "CORE", "Scroll Feature", SECTION("SCROLL FEATURE", "auto")),
+  _entry("core/wand-feature", "CORE", "Wand Feature", SECTION("WAND FEATURE", "auto")),
+  _entry("core/utility-type", "CORE", "Utility Type", SECTION("UTILITY TYPE", "auto")),
+  _entry("core/utility-feature", "CORE", "Utility Feature", SECTION("UTILITY FEATURE", "auto")),
+  _entry("core/weapon-type", "CORE", "Weapon Type", SECTION("WEAPON TYPE", "auto")),
+  _entry("core/weapon-feature", "CORE", "Weapon Feature", SECTION("WEAPON FEATURE", "auto")),
+  _entry("core/tier-2", "CORE", "Tier 2", SECTION("TIER 2", "auto")),
+  _entry("core/tier-3", "CORE", "Tier 3", SECTION("TIER 3", "auto")),
+  _entry("core/tier-4", "CORE", "Tier 4", SECTION("TIER 4", "auto")),
+  _entry("core/tier-5", "CORE", "Tier 5", SECTION("TIER 5", "auto")),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));
