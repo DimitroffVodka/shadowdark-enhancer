@@ -175,7 +175,7 @@ export const CLASS_OVERLAYS = {
   },
 
   wyrdling: {
-    source: "WR", pages: "72",
+    source: "WR", pages: "72-73",   // writeup p72 + Corruption d10 table p73
     rowTalents: {
       "2": [{ name: "Gain Two Corruption Talents" }],
       "7-9": [{ name: "Gain a Corruption Talent" }],

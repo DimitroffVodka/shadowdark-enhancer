@@ -101,12 +101,26 @@
   <div class="sde-ci-parts">
 
     {{!-- Talent table --}}
-    <div class="sde-ci-part">
+    <div class="sde-ci-part sde-ci-part-talents">
       <div class="sde-ci-partrow">
-        <span class="sde-ci-partname"><i class="fa-solid fa-dice-d6"></i> Talent table</span>
-        {{#if talent}}<span class="sde-ci-status sde-ci-status-on"><i class="fas fa-check"></i> captured — {{talent.rows}} rows ({{talent.formula}}) <button type="button" data-action="ciClearPart" data-ci-part="talent" class="sde-cu-btn sde-cu-btn-del" title="Clear"><i class="fas fa-trash"></i></button></span>{{else}}<span class="sde-ci-status">pending</span>{{/if}}
+        <span class="sde-ci-partname"><i class="fa-solid fa-dice-d6"></i> Talent table{{#if talent}} ({{talent.rows}} · {{talent.formula}}){{/if}}</span>
+        {{#if talent}}<button type="button" data-action="ciClearPart" data-ci-part="talent" class="sde-cu-btn sde-cu-btn-del" title="Clear the talent table"><i class="fas fa-trash"></i></button>{{else}}<span class="sde-ci-status">pending</span>{{/if}}
       </div>
-      {{#unless talent}}<textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the 2d6 Effect talent table…"></textarea>{{/unless}}
+      {{#if talent}}
+      <table class="sde-class-preview-table sde-cu-talents">
+        <tr class="sde-cu-titlehead"><th>Roll</th><th>Effect</th><th></th></tr>
+        {{#each talent.entries as |r|}}
+        <tr data-ci-talent="{{r.idx}}">
+          <td class="sde-class-preview-range"><input type="text" data-ci-trfield="range" value="{{r.range}}" class="sde-cu-range" aria-label="Talent roll"></td>
+          <td><input type="text" data-ci-trfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="Talent effect"></td>
+          <td class="sde-cu-rowdel"><button type="button" data-action="ciTalentDel" class="sde-cu-btn sde-cu-btn-del" title="Delete row"><i class="fas fa-trash"></i></button></td>
+        </tr>
+        {{/each}}
+      </table>
+      <button type="button" data-action="ciTalentAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add row</button>
+      {{else}}
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the 2d6 Effect talent table…"></textarea>
+      {{/if}}
     </div>
 
     {{!-- Titles --}}
@@ -120,45 +134,82 @@
         {{/if}}
       </div>
       <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste a TITLES block (Levels  Lawful  Chaotic  Neutral)…"></textarea>
+      {{#if titleWarnings.length}}
+      <ul class="sde-import-warnings sde-ci-titlewarn">{{#each titleWarnings as |w|}}<li><i class="fas fa-triangle-exclamation"></i> {{w}}</li>{{/each}}</ul>
+      {{/if}}
       <table class="sde-class-preview-table sde-cu-titles">
         {{#if titlesCount}}
         <tr class="sde-cu-titlehead"><th>Levels</th><th>Lawful</th><th>Chaotic</th><th>Neutral</th><th></th></tr>
         {{/if}}
         {{#each titles as |t|}}
-        <tr data-ci-title="{{t.idx}}">
+        <tr data-ci-title="{{t.idx}}"{{#if t.flagged}} class="sde-cu-row-flagged"{{/if}}>
           <td class="sde-class-preview-range"><input type="text" data-ci-tfield="range" value="{{t.range}}" class="sde-cu-range" aria-label="Level range"></td>
           <td><input type="text" data-ci-tfield="lawful" value="{{t.lawful}}" class="sde-cu-text" aria-label="Lawful title"></td>
           <td><input type="text" data-ci-tfield="chaotic" value="{{t.chaotic}}" class="sde-cu-text" aria-label="Chaotic title"></td>
           <td><input type="text" data-ci-tfield="neutral" value="{{t.neutral}}" class="sde-cu-text" aria-label="Neutral title"></td>
-          <td class="sde-cu-rowdel"><button type="button" data-action="ciTitleDel" class="sde-cu-btn sde-cu-btn-del" title="Delete band"><i class="fas fa-trash"></i></button></td>
+          <td class="sde-cu-rowdel">
+            {{#if t.flagged}}<span class="sde-mimport-flagtag" title="{{t.flagReason}}"><i class="fas fa-triangle-exclamation"></i></span>{{/if}}
+            <button type="button" data-action="ciTitleDel" class="sde-cu-btn sde-cu-btn-del" title="Delete band"><i class="fas fa-trash"></i></button>
+          </td>
         </tr>
         {{/each}}
       </table>
       <button type="button" data-action="ciTitleAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add band</button>
     </div>
 
-    {{!-- Spells known --}}
-    <div class="sde-ci-part">
+    {{!-- Spells known (casters) — reviewable/editable level × tier grid --}}
+    <div class="sde-ci-part sde-ci-part-spells">
       <div class="sde-ci-partrow">
-        <span class="sde-ci-partname"><i class="fa-solid fa-wand-sparkles"></i> Spells known</span>
-        {{#if spells}}<span class="sde-ci-status sde-ci-status-on"><i class="fas fa-check"></i> captured — {{spells.rows}} levels <button type="button" data-action="ciClearPart" data-ci-part="spells" class="sde-cu-btn sde-cu-btn-del" title="Clear"><i class="fas fa-trash"></i></button></span>{{else}}<span class="sde-ci-status">casters only — paste the level×tier grid</span>{{/if}}
+        <span class="sde-ci-partname"><i class="fa-solid fa-wand-sparkles"></i> Spells known{{#if spells}} ({{spells.rows}} levels){{/if}}</span>
+        {{#if spells}}<button type="button" data-action="ciClearPart" data-ci-part="spells" class="sde-cu-btn sde-cu-btn-del" title="Clear spells known"><i class="fas fa-trash"></i></button>{{else}}<span class="sde-ci-status">casters only — paste the level×tier grid</span>{{/if}}
       </div>
-      {{#unless spells}}<textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the SPELLS KNOWN grid (Level 1 2 3 …)…"></textarea>{{/unless}}
+      {{#if spells}}
+      <table class="sde-class-preview-table sde-cu-talents">
+        <tr class="sde-cu-titlehead"><th>Lvl</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th></th></tr>
+        {{#each spells.entries as |r|}}
+        <tr data-ci-sk="{{r.idx}}">
+          <td><input type="text" data-ci-skfield="level" value="{{r.level}}" class="sde-cu-range" aria-label="Level"></td>
+          <td><input type="text" data-ci-skfield="1" value="{{r.t1}}" class="sde-cu-range" aria-label="Tier 1"></td>
+          <td><input type="text" data-ci-skfield="2" value="{{r.t2}}" class="sde-cu-range" aria-label="Tier 2"></td>
+          <td><input type="text" data-ci-skfield="3" value="{{r.t3}}" class="sde-cu-range" aria-label="Tier 3"></td>
+          <td><input type="text" data-ci-skfield="4" value="{{r.t4}}" class="sde-cu-range" aria-label="Tier 4"></td>
+          <td><input type="text" data-ci-skfield="5" value="{{r.t5}}" class="sde-cu-range" aria-label="Tier 5"></td>
+          <td class="sde-cu-rowdel"><button type="button" data-action="ciSpellsRowDel" class="sde-cu-btn sde-cu-btn-del" title="Delete level"><i class="fas fa-trash"></i></button></td>
+        </tr>
+        {{/each}}
+      </table>
+      <button type="button" data-action="ciSpellsRowAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add level</button>
+      {{else}}
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the SPELLS KNOWN grid (Level 1 2 3 …)…"></textarea>
+      {{/if}}
     </div>
 
-    {{!-- Extra tables --}}
-    <div class="sde-ci-part">
+    {{!-- Extra tables (Corruption, …) — reviewable/editable, hand-buildable --}}
+    <div class="sde-ci-part sde-ci-part-extras">
       <div class="sde-ci-partrow">
         <span class="sde-ci-partname"><i class="fa-solid fa-table-list"></i> Extra tables</span>
-        <span class="sde-ci-status">e.g. Corruption — paste if the class has one</span>
+        <button type="button" data-action="ciExtraAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add table</button>
       </div>
-      {{#if extras.length}}
-      <div class="sde-ci-extras">
-        {{#each extras as |t|}}
-        <span class="sde-class-opt"><i class="fas fa-check"></i> {{t.name}} ({{t.rows}} rows, {{t.formula}}) <button type="button" data-action="ciClearPart" data-ci-part="extra" data-ci-index="{{@index}}" class="sde-cu-btn sde-cu-btn-del" title="Remove"><i class="fas fa-xmark"></i></button></span>
-        {{/each}}
+      {{#each extras as |t|}}
+      <div class="sde-ci-extratable" data-ci-extra="{{t.idx}}">
+        <div class="sde-ci-partrow">
+          <input type="text" data-ci-ename value="{{t.name}}" class="sde-cu-text sde-ci-extraname" aria-label="Table name" placeholder="Table name">
+          <span class="sde-ci-status">{{t.formula}}</span>
+          <button type="button" data-action="ciExtraDelTable" class="sde-cu-btn sde-cu-btn-del" title="Remove this table"><i class="fas fa-xmark"></i></button>
+        </div>
+        <table class="sde-class-preview-table sde-cu-talents">
+          <tr class="sde-cu-titlehead"><th>Roll</th><th>Effect</th><th></th></tr>
+          {{#each t.entries as |r|}}
+          <tr data-ci-erow="{{r.idx}}">
+            <td class="sde-class-preview-range"><input type="text" data-ci-erfield="range" value="{{r.range}}" class="sde-cu-range" aria-label="Roll"></td>
+            <td><input type="text" data-ci-erfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="Effect"></td>
+            <td class="sde-cu-rowdel"><button type="button" data-action="ciExtraRowDel" class="sde-cu-btn sde-cu-btn-del" title="Delete row"><i class="fas fa-trash"></i></button></td>
+          </tr>
+          {{/each}}
+        </table>
+        <button type="button" data-action="ciExtraRowAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add row</button>
       </div>
-      {{/if}}
+      {{/each}}
       <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste a named table (CORRUPTION / d10 Effect / rows)…"></textarea>
     </div>
 

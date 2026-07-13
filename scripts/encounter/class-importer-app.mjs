@@ -18,7 +18,7 @@
  * Foundry-bound importer (createClassUnit / mergeClassSupplement) — this app is
  * only the workspace UI + state.
  */
-import { parseClassSection, parseClassSupplement } from "./class-parser.mjs";
+import { parseClassSection, parseClassSupplement, sliceSpellsKnown } from "./class-parser.mjs";
 import { overlayFor } from "./class-overlays.mjs";
 import { sourcePdfHref, titlePageFor } from "./source-pdf-registry.mjs";
 import { CHAR_SOURCES } from "./char-content-manifest.mjs";
@@ -42,6 +42,14 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ciEditBody:    ClassImporterApp.prototype._onEditBody,
       ciTitleAdd:    ClassImporterApp.prototype._onTitleAdd,
       ciTitleDel:    ClassImporterApp.prototype._onTitleDel,
+      ciTalentAdd:   ClassImporterApp.prototype._onTalentAdd,
+      ciTalentDel:   ClassImporterApp.prototype._onTalentDel,
+      ciExtraAdd:      ClassImporterApp.prototype._onExtraAdd,
+      ciExtraDelTable: ClassImporterApp.prototype._onExtraDelTable,
+      ciExtraRowAdd:   ClassImporterApp.prototype._onExtraRowAdd,
+      ciExtraRowDel:   ClassImporterApp.prototype._onExtraRowDel,
+      ciSpellsRowAdd:  ClassImporterApp.prototype._onSpellsRowAdd,
+      ciSpellsRowDel:  ClassImporterApp.prototype._onSpellsRowDel,
       ciClearPart:   ClassImporterApp.prototype._onClearPart,
       ciAttach:      ClassImporterApp.prototype._onAttach,
       ciOpenPdf:     ClassImporterApp.prototype._onOpenPdf,
@@ -73,6 +81,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   // Stage 2
   _talentTable = null;
   _titles = [];                // editable bands {from,to,lawful,chaotic,neutral}
+  _titleWarnings = [];         // per-band parse warnings (e.g. couldn't-split), for review flags
   _spellsKnown = [];
   _extraTables = [];           // [{name, formula, rows}]
   _lastReport = null;          // last create/attach report for the summary
@@ -111,10 +120,17 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       warnings: (p.warnings ?? []).filter((w) => !/No TALENTS table|No TITLES table|No SPELLS KNOWN|Roll tables|import them in/i.test(w)),
     } : null;
 
+    // Match each per-band parse warning ("Titles row 7-8: …") to its band by the
+    // leading level, so the flagged band is highlighted for review in place.
+    const flagFor = (band) => this._titleWarnings.find((w) => {
+      const m = String(w).match(/row\s+(\d+)/i);
+      return m && Number(m[1]) === band.from;
+    }) ?? null;
     const titles = this._titles.map((t, i) => ({
       idx: i,
       range: t.from === t.to ? String(t.from) : `${t.from}-${t.to}`,
       lawful: t.lawful, chaotic: t.chaotic, neutral: t.neutral,
+      flagged: !!flagFor(t), flagReason: flagFor(t) ?? "",
     }));
 
     // Source-PDF deep links: the class writeup page (from its overlay) and the
@@ -143,11 +159,34 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       // Caster state — from the created class, or the parsed preview before create.
       isCaster: this._isCaster || !!p?.spellcasting,
       // Stage-2 part statuses
-      talent: this._talentTable ? { rows: this._talentTable.rows.length, formula: this._talentTable.formula } : null,
+      talent: this._talentTable ? {
+        rows: this._talentTable.rows.length,
+        formula: this._talentTable.formula,
+        // Editable/reviewable rows — parity with the titles table.
+        entries: this._talentTable.rows.map((r, i) => ({
+          idx: i,
+          range: r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`,
+          text: _strip(r.text ?? ""),
+        })),
+      } : null,
       titles,
       titlesCount: titles.length,
-      spells: this._spellsKnown.length ? { rows: this._spellsKnown.length } : null,
-      extras: this._extraTables.map((t) => ({ name: t.name, rows: t.rows.length, formula: t.formula })),
+      titleWarnings: this._titleWarnings,
+      spells: this._spellsKnown.length ? {
+        rows: this._spellsKnown.length,
+        entries: this._spellsKnown.map((r, i) => ({
+          idx: i, level: r.level,
+          t1: r.tiers?.[0] ?? "", t2: r.tiers?.[1] ?? "", t3: r.tiers?.[2] ?? "",
+          t4: r.tiers?.[3] ?? "", t5: r.tiers?.[4] ?? "",
+        })),
+      } : null,
+      extras: this._extraTables.map((t, ti) => ({
+        idx: ti, name: t.name, formula: t.formula,
+        entries: (t.rows ?? []).map((r, i) => {
+          const lo = r.lo ?? r.min, hi = r.hi ?? r.max;
+          return { idx: i, range: lo === hi ? String(lo) : `${lo}-${hi}`, text: _strip(r.text ?? "") };
+        }),
+      })),
       // Source-PDF deep links
       seedClassName: this._seedClassName || null,
       pdfName: name || null,
@@ -236,6 +275,59 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
         else if (f === "neutral") band.neutral = v.trim();
       });
     });
+
+    // Editable talent-table rows (roll range + effect) — parity with titles.
+    el.querySelectorAll("[data-ci-talent] [data-ci-trfield]").forEach((input) => {
+      input.addEventListener("change", (ev) => {
+        const row = this._talentTable?.rows[Number(ev.target.closest("[data-ci-talent]")?.dataset.ciTalent)];
+        if (!row) return;
+        const f = ev.target.dataset.ciTrfield;
+        const v = ev.target.value;
+        if (f === "range") {
+          const m = v.trim().match(/^(\d{1,2})(?:\s*[-–—]\s*(\d{1,2}))?$/);
+          if (!m) { ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`; return; }
+          row.lo = Number(m[1]); row.hi = Number(m[2] ?? m[1]);
+          ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`;
+        } else if (f === "text") {
+          row.text = v;
+          delete row.options;   // an edited effect replaces any auto-split choice options
+          row.kind = "single";
+        }
+      });
+    });
+
+    // Editable extra-table name + rows (Corruption, etc.)
+    el.querySelectorAll("[data-ci-extra] [data-ci-ename]").forEach((input) => {
+      input.addEventListener("change", (ev) => {
+        const t = this._extraTables[Number(ev.target.closest("[data-ci-extra]")?.dataset.ciExtra)];
+        if (t) t.name = ev.target.value.trim() || "Table";
+      });
+    });
+    el.querySelectorAll("[data-ci-extra] [data-ci-erow] [data-ci-erfield]").forEach((input) => {
+      input.addEventListener("change", (ev) => {
+        const t = this._extraTables[Number(ev.target.closest("[data-ci-extra]")?.dataset.ciExtra)];
+        const row = t?.rows[Number(ev.target.closest("[data-ci-erow]")?.dataset.ciErow)];
+        if (!row) return;
+        const f = ev.target.dataset.ciErfield, v = ev.target.value;
+        if (f === "range") {
+          const m = v.trim().match(/^(\d{1,3})(?:\s*[-–—]\s*(\d{1,3}))?$/);
+          if (!m) { ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`; return; }
+          row.lo = Number(m[1]); row.hi = Number(m[2] ?? m[1]);
+          ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`;
+        } else if (f === "text") row.text = v;
+      });
+    });
+
+    // Editable spells-known grid (level + counts per tier)
+    el.querySelectorAll("[data-ci-sk] [data-ci-skfield]").forEach((input) => {
+      input.addEventListener("change", (ev) => {
+        const row = this._spellsKnown[Number(ev.target.closest("[data-ci-sk]")?.dataset.ciSk)];
+        if (!row) return;
+        const f = ev.target.dataset.ciSkfield, raw = ev.target.value.trim();
+        if (f === "level") { const n = Number(raw); if (n >= 1) row.level = n; }
+        else { const ti = Number(f) - 1; const n = raw === "" ? null : Number(raw); if (!row.tiers) row.tiers = [null,null,null,null,null]; row.tiers[ti] = Number.isFinite(n) ? n : null; }
+      });
+    });
   }
 
   /** Route a pasted tables block into the captured parts (forgiving). */
@@ -245,7 +337,11 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!sup) { ui.notifications?.info("No talent table, titles, spells known, or extra table found in that paste."); return; }
     const got = [];
     if (sup.talentTable) { this._talentTable = sup.talentTable; got.push("talent table"); }
-    if (sup.titles?.length) { this._titles.push(...sup.titles); got.push(`${sup.titles.length} title band(s)`); }
+    if (sup.titles?.length) {
+      this._titles.push(...sup.titles);
+      got.push(`${sup.titles.length} title band(s)`);
+      this._titleWarnings.push(...(sup.warnings ?? []).filter((w) => /couldn'?t split|titles?\s+row/i.test(w)));
+    }
     if (sup.spellsKnown?.length) { this._spellsKnown = sup.spellsKnown; got.push("spells known"); }
     if (sup.extraTables?.length) {
       for (const t of sup.extraTables) {
@@ -278,6 +374,21 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const parsed = parseClassSection(body);
     if (!parsed) { ui.notifications?.warn("Couldn't read a class from that paste — it needs a Hit Points line."); return; }
     this._bodyParsed = parsed;
+    // Roll tables embedded in the body — talent table, titles, spells known,
+    // extra tables (e.g. pulled in by Grab-text) — flow into stage 2 so Create
+    // imports them WITH the class. createClassUnit runs bodyOnly, then attaches
+    // these stage-2 fields; without seeding them here the body creates alone and
+    // the embedded tables are dropped. Only overwrite per-table when the body
+    // actually carries it, so a separately-attached table survives.
+    if (parsed.talentTable) this._talentTable = parsed.talentTable;
+    if (parsed.titles?.length) {
+      this._titles = parsed.titles;
+      // Per-band title parse warnings (e.g. a multi-word title that couldn't be
+      // split into Lawful/Chaotic/Neutral) — surfaced as review flags on the band.
+      this._titleWarnings = (parsed.warnings ?? []).filter((w) => /couldn'?t split|titles?\s+row/i.test(w));
+    }
+    if (parsed.spellsKnown?.length) this._spellsKnown = parsed.spellsKnown;
+    if (parsed.extraTables?.length) this._extraTables = parsed.extraTables;
     this._bodyName = parsed.name;   // reflect the resolved name back into the field
     this._editingBody = false;
     this.render();
@@ -323,6 +434,49 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _onTitleDel(event, target) {
     const idx = Number(target.closest("[data-ci-title]")?.dataset.ciTitle);
     if (idx >= 0) { this._titles.splice(idx, 1); this.render(); }
+  }
+  _onTalentAdd() {
+    if (!this._talentTable) this._talentTable = { formula: "2d6", rows: [], replacement: true };
+    const last = this._talentTable.rows[this._talentTable.rows.length - 1];
+    const lo = last ? last.hi + 1 : 1;
+    this._talentTable.rows.push({ lo, hi: lo, text: "", kind: "single" });
+    this.render();
+  }
+  _onTalentDel(event, target) {
+    const idx = Number(target.closest("[data-ci-talent]")?.dataset.ciTalent);
+    if (this._talentTable && idx >= 0) { this._talentTable.rows.splice(idx, 1); this.render(); }
+  }
+  // ── Extra tables (e.g. Corruption) — reviewable/editable, hand-buildable ──────
+  _onExtraAdd() {
+    this._extraTables.push({ name: "New Table", formula: "d10", rows: [{ lo: 1, hi: 1, text: "" }] });
+    this.render();
+  }
+  _onExtraDelTable(event, target) {
+    const ti = Number(target.closest("[data-ci-extra]")?.dataset.ciExtra);
+    if (ti >= 0) { this._extraTables.splice(ti, 1); this.render(); }
+  }
+  _onExtraRowAdd(event, target) {
+    const t = this._extraTables[Number(target.closest("[data-ci-extra]")?.dataset.ciExtra)];
+    if (!t) return;
+    const last = t.rows[t.rows.length - 1];
+    const lo = last ? last.hi + 1 : 1;
+    t.rows.push({ lo, hi: lo, text: "" });
+    this.render();
+  }
+  _onExtraRowDel(event, target) {
+    const t = this._extraTables[Number(target.closest("[data-ci-extra]")?.dataset.ciExtra)];
+    const ri = Number(target.closest("[data-ci-erow]")?.dataset.ciErow);
+    if (t && ri >= 0) { t.rows.splice(ri, 1); this.render(); }
+  }
+  // ── Spells known — level × tier grid, reviewable/editable ─────────────────────
+  _onSpellsRowAdd() {
+    const last = this._spellsKnown[this._spellsKnown.length - 1];
+    this._spellsKnown.push({ level: last ? last.level + 1 : 1, tiers: [null, null, null, null, null] });
+    this.render();
+  }
+  _onSpellsRowDel(event, target) {
+    const ri = Number(target.closest("[data-ci-sk]")?.dataset.ciSk);
+    if (ri >= 0) { this._spellsKnown.splice(ri, 1); this.render(); }
   }
 
   _onClearPart(event, target) {
@@ -407,21 +561,63 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ui.notifications?.warn("No source PDF / writeup page for this class — set the source above, or add the PDF in the hub's Source PDFs manager.");
       return;
     }
-    let res;
+    const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+    // Grab the FULL overlay page range, not just the first — many writeups spill
+    // an extra table onto the next page (e.g. the Wyrdling Corruption d10 table on
+    // p73). Apply the same printed→PDF offset the first page got.
+    const printed = parsePageRange(page, 0);
+    const offset = target.page - (printed[0] ?? target.page);
+    const pdfPages = (printed.length ? printed : [Number(page)]).map((n) => n + offset);
+    let writeupText;
     try {
-      const { extractPdfText } = await import("./pdf-text-extract.mjs");
-      res = await extractPdfText(target.file, { pages: [target.page], columns: "auto" });
+      writeupText = (await extractPdfText(target.file, { pages: pdfPages, columns: "auto" })).text;
     } catch (err) {
       console.error("Shadowdark Enhancer | class PDF grab failed", err);
       ui.notifications?.error("Couldn't read text from that PDF page — see the console.");
       return;
     }
-    if (!res.text) { ui.notifications?.warn(`Page ${target.page} has no selectable text.`); return; }
+    if (!writeupText) { ui.notifications?.warn(`Page ${target.page} has no selectable text.`); return; }
+
+    // Also pull the TITLES appendix — a separate page holding several classes'
+    // title tables. Forced single-column: the 4-column Level/Lawful/Chaotic/
+    // Neutral layout is wide and auto/two-column detection mangles it. Sliced to
+    // this class and appended, so one Preview parses the writeup, the talent
+    // table, AND the titles together.
+    let titlesText = "";
+    const titlesTarget = srcKey ? sourcePdfTarget(srcKey, titlePageFor(name)) : null;
+    if (titlesTarget) {
+      try {
+        const raw = (await extractPdfText(titlesTarget.file, { pages: [titlesTarget.page], columns: "1" })).text;
+        titlesText = sliceClassTitles(raw, name) ?? "";
+      } catch (err) {
+        console.warn("Shadowdark Enhancer | titles grab failed", err);
+      }
+    }
+
+    // A caster class's SPELLS KNOWN grid sits on the page after the writeup,
+    // where auto (two-column) extraction shears the tier numbers off their
+    // levels. Grab the writeup range plus the next page single-column and slice
+    // out just the grid block, so _findSpellsKnown reads it on parse.
+    let spellsText = "";
+    try {
+      const skPages = [...pdfPages, pdfPages[pdfPages.length - 1] + 1];
+      const raw = (await extractPdfText(target.file, { pages: skPages, columns: "1" })).text;
+      spellsText = sliceSpellsKnown(raw) ?? "";
+    } catch (err) {
+      console.warn("Shadowdark Enhancer | spells-known grab failed", err);
+    }
+
+    const grabbed = [writeupText, titlesText, spellsText].filter(Boolean).join("\n");
     const base = (this._bodyText || "").replace(/\s*$/, "");
-    this._bodyText = base ? `${base}\n${res.text}\n` : `${res.text}\n`;
+    this._bodyText = base ? `${base}\n${grabbed}\n` : `${grabbed}\n`;
     this._editingBody = true;
-    this.render();
-    ui.notifications?.info(`Pulled the writeup (p.${target.page}) into the box — review, then Preview.`);
+    this.render();   // show the grabbed text even if the parse below can't read it
+    // Parse right away so the body preview, talent table, AND titles all fill on
+    // Import — no separate Preview click. _onParseBody reads _bodyText, populates
+    // the stage-2 tables, and re-renders (or warns and leaves the box shown).
+    this._onParseBody();
+    const titleNote = titlesText ? " + titles" : "";
+    ui.notifications?.info(`Pulled and parsed the writeup${titleNote} (p.${target.page}) — review the class, talent table${titlesText ? ", and titles" : ""} below.`);
   }
 
   /** Clear the whole workspace (no render). Shared by "Start over" and the hub's
@@ -431,13 +627,31 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._seedClassName = ""; this._bodyName = "";
     this._bodyText = ""; this._bodyParsed = null; this._editingBody = false;
     this._classUuid = null; this._className = ""; this._isCaster = false;
-    this._talentTable = null; this._titles = []; this._spellsKnown = []; this._extraTables = [];
+    this._talentTable = null; this._titles = []; this._titleWarnings = []; this._spellsKnown = []; this._extraTables = [];
     this._lastReport = null; this._imported = null;
   }
   _onStartOver() {
     this._reset();
     this.render();
   }
+}
+
+/**
+ * Slice one class's "<NAME> TITLES" block out of a titles-appendix page that
+ * holds several classes' title tables. Runs from the class's heading to the next
+ * "… TITLES" heading (or end). Returns null when the class heading isn't found.
+ */
+function sliceClassTitles(text, className) {
+  const lines = String(text ?? "").split("\n");
+  const norm = (s) => s.toUpperCase().replace(/\s+/g, " ").trim();
+  const want = `${norm(className)} TITLES`;
+  const start = lines.findIndex((l) => norm(l) === want);
+  if (start === -1) return null;
+  let end = lines.length;
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/\bTITLES$/i.test(lines[i].trim()) && norm(lines[i]) !== want) { end = i; break; }
+  }
+  return lines.slice(start, end).join("\n");
 }
 
 /** Map a free-text source label to its char-builder source slug (mirrors the hub). */
