@@ -1407,21 +1407,29 @@ function parseMatrix(text, { name = "", caption, size = 4 } = {}) {
  * (keeping the first caption/header) then single-die-parses the whole range.
  */
 function parseLongTable(text, { name = "", caption, size = 100 } = {}) {
-  const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
-  let capSeen = 0, hdrSeen = 0;
-  const cleaned = String(text).split("\n").map((l) => l.trim()).filter((l) => {
-    if (!l) return false;
-    if (/^\d+$/.test(l) && Number(l) > size) return false;                  // page footer / stray > die
-    // Keep only the FIRST real (all-caps) caption; a title-case seed line isn't
-    // one, and the repeated caption on the continuation page is dropped.
-    if (isSectionCaption(l) && l.toUpperCase().replace(/\s+/g, " ") === want) { capSeen++; return capSeen === 1; }
-    if (/^d\d{1,3}\b/i.test(l) && /details?|results?|effects?/i.test(l)) { hdrSeen++; return hdrSeen === 1; }
-    if (/^[A-Z][a-z]+$/.test(l) && l.length < 12) return false;             // running-header crumb ("Arctic")
-    return true;
-  }).join("\n");
-  const s = _sliceSection(cleaned, { name, caption });
-  if (!s) return null;
-  const pt = parseSingleDieBlock(name || s.die.remainder, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, s.body);
+  const want = caption ? String(caption).toUpperCase().replace(/\s+/g, " ").trim() : null;
+  const isHdr = (l) => /^\d{0,2}d\d{1,3}\b/i.test(l) && /details?|results?|effects?/i.test(l);
+  // Strip the page-repeated noise: footers, the caption (any occurrence — some
+  // pages omit it, some have a "TREASURE 10+" the caption regex can't match),
+  // every "dN Details" header past the first, and the running-header crumb.
+  let hdrSeen = 0;
+  const kept = [];
+  for (const raw of String(text).split("\n")) {
+    const l = raw.trim();
+    if (!l) continue;
+    if (/^\d+$/.test(l) && Number(l) > size) continue;                       // page footer / stray > die
+    if (want && l.toUpperCase().replace(/\s+/g, " ") === want) continue;     // caption / seed line
+    if (isHdr(l)) { hdrSeen++; if (hdrSeen > 1) continue; kept.push(l); continue; }
+    if (/^[A-Z][a-z]+$/.test(l) && l.length < 12) continue;                  // running-header crumb ("Arctic")
+    kept.push(l);
+  }
+  // Anchor on the first "dN Details" header (caption may be absent/graphical);
+  // everything after it is the table body across both pages.
+  const hi = kept.findIndex(isHdr);
+  const die = hi >= 0 ? parseDieHeader(kept[hi]) : null;
+  const body = hi >= 0 ? kept.slice(hi + 1) : kept.filter((l) => parseLeadingRange(l));
+  if (!body.length) return null;
+  const pt = parseSingleDieBlock(name, { count: die?.count ?? 1, size: die?.size ?? size, columns: [], remainder: "" }, body);
   if (name) pt.name = name;
   return pt.rows.length ? pt : null;
 }

@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 86,
-   "REVIEW": 55,
+   "clean": 91,
+   "REVIEW": 50,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -1198,36 +1198,32 @@
    "status": "skip-no-page"
   },
   {
-   "id": "Table::CORE::Something Happens!::118",
+   "id": "Table::CORE::Something Happens!::118-119",
    "name": "Something Happens!",
    "type": "Table",
    "src": "CORE",
-   "pages": "118",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "118-119",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Rumors::120",
+   "id": "Table::CORE::Rumors::120-121",
    "name": "Rumors",
    "type": "Table",
    "src": "CORE",
-   "pages": "120",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "120-121",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Adventure Generator::122",
@@ -1769,66 +1765,60 @@
    "status": "clean"
   },
   {
-   "id": "Table::CORE::TREASURE 0-3::270",
+   "id": "Table::CORE::TREASURE 0-3::270-271",
    "name": "TREASURE 0-3",
    "type": "Table",
    "src": "CORE",
-   "pages": "270",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d45",
-   "rows": 23,
+   "pages": "270-271",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
    "warns": [],
-   "shapeOk": null,
+   "shapeOk": true,
    "status": "clean"
   },
   {
-   "id": "Table::CORE::TREASURE 4-6::272",
+   "id": "Table::CORE::TREASURE 4-6::272-273",
    "name": "TREASURE 4-6",
    "type": "Table",
    "src": "CORE",
-   "pages": "272",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "272-273",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::TREASURE 7-9::274",
+   "id": "Table::CORE::TREASURE 7-9::274-275",
    "name": "TREASURE 7-9",
    "type": "Table",
    "src": "CORE",
-   "pages": "274",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "274-275",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::TREASURE 10+::276",
+   "id": "Table::CORE::TREASURE 10+::276-277",
    "name": "TREASURE 10+",
    "type": "Table",
    "src": "CORE",
-   "pages": "276",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "276-277",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Unique Feature::274",

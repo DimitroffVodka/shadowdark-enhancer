@@ -203,6 +203,15 @@ export const CONTENT_ENTRIES = [
   _entry("core/temple-district-encounters", "CORE", "Temple District Encounters", LONGTABLE("TEMPLE DISTRICT ENCOUNTERS")),
   _entry("core/tomb-encounters", "CORE", "Tomb Encounters", LONGTABLE("TOMB ENCOUNTERS")),
   _entry("core/university-district-encounters", "CORE", "University District Encounters", LONGTABLE("UNIVERSITY DISTRICT ENCOUNTERS")),
+  // Other two-page d100 tables. Something Happens! and TREASURE 10+ have no text
+  // caption on the page (graphical/omitted), so their longtable anchors on the
+  // "d100 Details" header instead — LONGTABLE() with no caption.
+  _entry("core/something-happens", "CORE", "Something Happens!", LONGTABLE()),
+  _entry("core/rumors", "CORE", "Rumors", LONGTABLE("RUMORS")),
+  _entry("core/treasure-0-3", "CORE", "TREASURE 0-3", LONGTABLE("TREASURE 0-3")),
+  _entry("core/treasure-4-6", "CORE", "TREASURE 4-6", LONGTABLE("TREASURE 4-6")),
+  _entry("core/treasure-7-9", "CORE", "TREASURE 7-9", LONGTABLE("TREASURE 7-9")),
+  _entry("core/treasure-10", "CORE", "TREASURE 10+", LONGTABLE()),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

@@ -249,6 +249,28 @@ test("longtable shape: strips repeated caption/header + footers across two pages
   assert.ok(!t.warnings.some((w) => /has no row|reach/i.test(w)), "no coverage/formula warning");
 });
 
+test("longtable shape: anchors on the dN header when there is no caption (Something Happens!/TREASURE 10+)", () => {
+  // Some pages carry a graphical/absent caption, so the parser anchors on the
+  // repeated "d100 Details" header instead. Fixture has NO caption line.
+  const noCap = [
+    "Something Happens",   // the import's seed line
+    "Region",              // running-header crumb
+    "d100 Details",
+    "01 Alpha",
+    "02-50 Beta",
+    "118",                 // page footer
+    "Region",              // page-2 crumb
+    "d100 Details",        // repeated header
+    "51-99 Gamma",
+    "100 Delta",
+    "119",                 // page footer
+  ].join("\n");
+  const b = parseByShape(noCap, { kind: "longtable", size: 100 }, { name: "Something Happens" });
+  const t = b?.tables?.[0];
+  assert.equal(t?.formula, "1d100");
+  assert.deepEqual(t.rows.map((r) => r.text), ["Alpha", "Beta", "Gamma", "Delta"]);
+});
+
 test("matrix registry: the d4×d4 tables are matrix shapes needing layout extraction", () => {
   for (const n of ["Interesting Customer", "Personality Trait"]) {
     const s = shapeForName(n);
