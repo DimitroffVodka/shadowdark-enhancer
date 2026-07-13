@@ -24,6 +24,7 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { escapeHtml } from "./pdf-text-utils.mjs";
+import { SPELL_LIST_CLASS_ALIASES } from "./char-content-manifest.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -460,8 +461,12 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   // preview's pick, or fall back to the parsed "casts wizard spells" name.
   let spellClass = parsed.spellcasting?.spellClass ?? null;
   if (parsed.spellcasting && !spellClass && parsed.spellcasting.spellList) {
+    // A variant list ("casts druid spells") isn't a class name — map it to its
+    // base caster (druid/mage/sorcerer → Wizard) so the class actually links.
+    const listName = parsed.spellcasting.spellList.toLowerCase();
+    const wantName = (SPELL_LIST_CLASS_ALIASES[listName] ?? parsed.spellcasting.spellList).toLowerCase();
     const hit = _systemIndex("Item", "shadowdark.classes")
-      .find((e) => e.name.toLowerCase() === parsed.spellcasting.spellList);
+      .find((e) => e.name.toLowerCase() === wantName);
     if (hit) spellClass = { uuid: hit.uuid, name: hit.name, slug: hit.name.slugify?.() ?? _norm(hit.name).replace(/ /g, "-") };
     else report.warnings.push(`Spell list "${parsed.spellcasting.spellList}" didn't match an existing caster class — the class keeps its own list; pick the lender in the preview or set spellcasting.class by hand.`);
   }

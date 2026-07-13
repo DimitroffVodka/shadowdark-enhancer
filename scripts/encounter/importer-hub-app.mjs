@@ -115,6 +115,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       manageExpandAll:        ImporterHubApp.prototype._onManageExpandAll,
       manageCollapseAll:      ImporterHubApp.prototype._onManageCollapseAll,
       charSeedPaste:          ImporterHubApp.prototype._onCharSeedPaste,
+      spellListSeed:          ImporterHubApp.prototype._onSpellListSeed,
       openClassImporter:      ImporterHubApp.prototype._onOpenClassImporter,
       openSpellImporter:      ImporterHubApp.prototype._onOpenSpellImporter,
       openSourcePdf:          ImporterHubApp.prototype._onOpenSourcePdf,
@@ -188,6 +189,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Manage strip (collapsible, lazy) ───────────────────────────────────────
   /** Whether the Manage strip is expanded (its census is computed only then). */
   _manageExpanded = false;
+  /** Hook id for the `contentUnlocked` subscription (refreshes the census when a
+   *  dedicated Class/Spell importer commits). @type {number|null} */
+  _contentHookId = null;
   /** Built Manage tree (top-level nodes), invalidated on cull/commit/migrate. @type {Array|null} */
   _manageTreeCache = null;
   /** Node ids currently expanded in the Manage tree (starts fully collapsed). */
@@ -231,6 +235,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async close(options = {}) {
     ImporterHubApp._instance = null;
+    if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
     return super.close(options);
   }
 
@@ -734,6 +739,22 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (manage.open && !this._manageExpanded) { this._manageExpanded = true; this.render(); }
       });
     }
+  }
+
+  /** Subscribe ONCE per instance to `contentUnlocked` so the Manage census
+   *  refreshes whenever content is unlocked from ANYWHERE — including the
+   *  dedicated Class/Spell Importer workspaces, which commit outside this app.
+   *  Without this a just-imported class/spell stays a "gap" until the hub is
+   *  closed and reopened (issue #1). Kept out of `_onRender` so a hook-triggered
+   *  re-render can't re-subscribe after close(). Unsubscribed in close(). */
+  _onFirstRender(context, options) {
+    super._onFirstRender?.(context, options);
+    this._contentHookId = Hooks.on(`${MODULE_ID}.contentUnlocked`, () => {
+      this._invalidateManageTree();
+      this._invalidateItemsCache();
+      this._invalidateMonstersCache();
+      if (this.rendered) this.render();
+    });
   }
 
   // ── Import-tab wiring helpers ─────────────────────────────────────────────
@@ -1355,8 +1376,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const text = this._importText;
     const type = this._importType;
 
-    // Sealed units first: if the paste contains the section's key phrases,
-    // decrypt the pre-authored, verified documents instead of parsing.
+    // RETIRED sealed path — DEAD. SEALED_UNITS is empty and nothing is
+    // bundled or decrypted, so sealedUnitsFor() always returns [] and this
+    // block falls straight through to the parse-and-author path below. Kept
+    // only until the later cleanup removes it (see sealed-content.mjs header).
     this._importSealed = null;
     const seed = this._importSeed;
     if (seed?._charSeed || seed?._monsterSeed) {
@@ -2327,6 +2350,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     SpellImporterApp.open();
   }
 
+  /** Bulk-import a caster spell list (Druid/Sorcerer/Mage/Priest/Necromancer):
+   *  open the Spell Importer preset to that list's class + alignment + source and
+   *  deep-link its PDF, so the GM pastes the whole section once. */
+  async _onSpellListSeed(event, target) {
+    const key = target?.dataset?.listKey;
+    if (!key) return;
+    const { SpellImporterApp } = await import("./spell-importer-app.mjs");
+    const app = SpellImporterApp.open();
+    app._reset();            // fresh list — never carry a stale parsed batch
+    app._onSelectList(key);  // sets class + alignment + source, opens the PDF, renders
+  }
+
   _onCharSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     const type = target.dataset.type ?? "";
@@ -2422,7 +2457,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
   async _onHubCommitChar() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import content."); return; }
-    // Sealed unlock: create the pre-authored documents with links remapped.
+    // RETIRED sealed path — DEAD (_importSealed is never set; see above).
     if (this._importSealed) {
       const { importSealedPayload } = await import("./sealed-content.mjs");
       const created = await importSealedPayload(this._importSealed.payload);

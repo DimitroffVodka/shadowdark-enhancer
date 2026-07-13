@@ -49,6 +49,98 @@ export const SOURCE_PDFS = {
   CS6:  "assets/Cursed Scroll 6 - City of Masks V1.pdf",
 };
 
+/**
+ * Known alignment/class-restricted spell lists the char-builder needs tagged
+ * correctly to offer the right spells to the right caster. In Shadowdark the
+ * "Druid / Sorcerer / Mage" lists are WIZARD spells split by ALIGNMENT
+ * (Druid=Neutral, Sorcerer=Chaotic, Mage=Lawful); the WR Priest lists split the
+ * PRIEST spells by alignment; the Necromancer is its own class (no alignment
+ * split). Each row carries the source key + the printed page it starts on, so
+ * the Spell Importer can deep-link the book PDF and preset the class+alignment
+ * for a one-paste bulk import. Pages user-supplied 2026-07-12.
+ *
+ *   casterClass — the base system/imported Class the spells attach to
+ *                 (system.class), resolved to a UUID at commit.
+ *   alignment   — "" (universal within the class) | lawful | neutral | chaotic;
+ *                 written to flags["shadowdark-extras"].alignment.
+ */
+export const SPELL_LISTS = [
+  { key: "cs4-druid",      label: "Druid — CS4 (Wizard · Neutral)",     short: "Druid (Wizard · Neutral)",    source: "CS4", page: "16",  casterClass: "Wizard",      alignment: "neutral" },
+  { key: "cs5-sorcerer",   label: "Sorcerer — CS5 (Wizard · Chaotic)",  short: "Sorcerer (Wizard · Chaotic)", source: "CS5", page: "15",  casterClass: "Wizard",      alignment: "chaotic" },
+  { key: "cs6-mage",       label: "Mage — CS6 (Wizard · Lawful)",       short: "Mage (Wizard · Lawful)",      source: "CS6", page: "19",  casterClass: "Wizard",      alignment: "lawful" },
+  { key: "wr-necromancer", label: "Necromancer — WR",                   short: "Necromancer",                 source: "WR",  page: "122", casterClass: "Necromancer", alignment: ""        },
+  { key: "wr-priest-lawful",  label: "Priest · Lawful — WR",            short: "Priest · Lawful",             source: "WR",  page: "132", casterClass: "Priest",      alignment: "lawful"  },
+  { key: "wr-priest-neutral", label: "Priest · Neutral — WR",           short: "Priest · Neutral",            source: "WR",  page: "136", casterClass: "Priest",      alignment: "neutral" },
+  { key: "wr-priest-chaotic", label: "Priest · Chaotic — WR",           short: "Priest · Chaotic",            source: "WR",  page: "140", casterClass: "Priest",      alignment: "chaotic" },
+  { key: "wr-druid",       label: "Druid — WR (Wizard · Neutral)",      short: "Druid (Wizard · Neutral)",    source: "WR",  page: "166", casterClass: "Wizard",      alignment: "neutral" },
+  { key: "wr-mage",        label: "Mage — WR (Wizard · Lawful)",        short: "Mage (Wizard · Lawful)",      source: "WR",  page: "172", casterClass: "Wizard",      alignment: "lawful"  },
+  { key: "wr-sorcerer",    label: "Sorcerer — WR (Wizard · Chaotic)",   short: "Sorcerer (Wizard · Chaotic)", source: "WR",  page: "178", casterClass: "Wizard",      alignment: "chaotic" },
+];
+
+/**
+ * Spell-list nickname → base caster class name, for the Wizard variant lists
+ * whose printed name ISN'T a class ("casts druid spells" → the Wizard list).
+ * Used when wiring a class's borrowed spell list (class-unit-importer): a class
+ * like the Green Knight casts the druid list, so its
+ * `system.spellcasting.class` must point at Wizard for the char-builder to
+ * offer those spells. Priest lists print as "priest" (already a class name), so
+ * only the Wizard variants need aliasing.
+ */
+export const SPELL_LIST_CLASS_ALIASES = { druid: "Wizard", mage: "Wizard", sorcerer: "Wizard" };
+
+/** SPELL_LISTS source key → the char-builder source slug the importer stamps. */
+export const LIST_SOURCE_SLUG = {
+  CS4: "cursed-scroll-4", CS5: "cursed-scroll-5", CS6: "cursed-scroll-6", WR: "western-reaches",
+};
+
+/**
+ * Live presence of each SPELL_LISTS caster list. Reads every Spell's
+ * source-title slug, alignment flag, and class links (from the compendium
+ * INDICES — cheap, no full-doc loads) and matches them to the lists so the
+ * Manage tree can show a bulk-import row per list with an accurate have/gap
+ * chip. Alignment alone doesn't disambiguate the WR Priest vs Wizard lists
+ * (both split neutral/lawful/chaotic), so the class link is required too; the
+ * Necromancer list (which imports unlinked until its class exists) matches a WR
+ * spell with a Necromancer link OR no class link. Universal within a class →
+ * alignment "".
+ * @returns {Promise<Map<string,{present:boolean,count:number}>>} keyed by list key
+ */
+export async function gatherSpellListCensus() {
+  const getProp = foundry.utils.getProperty;
+  // uuid → class name, to tell the WR Priest and Wizard lists apart.
+  const classNameByUuid = new Map();
+  const spells = [];
+  const fields = ["type", "system.class", "system.source.title", "flags.shadowdark-extras.alignment"];
+  for (const pack of game.packs.filter((p) => p.documentName === "Item")) {
+    let idx;
+    try { idx = await pack.getIndex({ fields }); } catch { continue; }
+    for (const e of idx) {
+      if (e.type === "Class") classNameByUuid.set(e.uuid, e.name);
+      else if (e.type === "Spell") spells.push(e);
+    }
+  }
+  for (const i of game.items) {
+    if (i.type === "Class") classNameByUuid.set(i.uuid, i.name);
+    else if (i.type === "Spell") spells.push(i);
+  }
+
+  const counts = new Map(SPELL_LISTS.map((l) => [l.key, 0]));
+  for (const sp of spells) {
+    const slug = _norm(getProp(sp, "system.source.title") ?? "").replace(/\s+/g, "-");
+    const align = getProp(sp, "flags.shadowdark-extras.alignment") ?? "";
+    const clsNames = (getProp(sp, "system.class") ?? []).map((u) => classNameByUuid.get(u)).filter(Boolean);
+    for (const l of SPELL_LISTS) {
+      if (slug !== LIST_SOURCE_SLUG[l.source]) continue;
+      if ((align || "") !== (l.alignment || "")) continue;
+      const classOk = l.casterClass === "Necromancer"
+        ? (clsNames.includes("Necromancer") || clsNames.length === 0)
+        : clsNames.includes(l.casterClass);
+      if (classOk) counts.set(l.key, counts.get(l.key) + 1);
+    }
+  }
+  return new Map(SPELL_LISTS.map((l) => [l.key, { present: counts.get(l.key) > 0, count: counts.get(l.key) }]));
+}
+
 // src → Foundry item type → expected names (from the source books' character
 // chapters). WR lists regenerated from the built suite after the compendium
 // reorg (talents/weapons/gear renamed, boats + siege weapons dropped as

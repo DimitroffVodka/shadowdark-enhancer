@@ -1,8 +1,8 @@
 {{!-- Recursive Manage-tree node. Invoked as {{> sdeTreeNode node=<node> }}.
       node: { id, label, icon, depth, expandable, expanded, have, locked,
               placeholder?, note?, children:[node], entries:[{name,seedAction,type,src,pages}] }
-      Self-recurses on node.children; leaf nodes list locked entries with an
-      Unlock button reusing the existing seed handlers. --}}
+      Self-recurses on node.children; leaf nodes list not-yet-imported entries
+      with an Import button reusing the existing seed handlers. --}}
 <div class="sde-mtree-node depth-{{node.depth}}">
   <div class="sde-mtree-row{{#if node.expandable}} is-expandable{{/if}}"
        {{#if node.expandable}}data-action="manageNodeExpand" data-node-id="{{node.id}}"{{/if}}>
@@ -10,10 +10,10 @@
     <i class="fas {{node.icon}} sde-mtree-icon"></i>
     <span class="sde-mtree-label">{{node.label}}</span>
     <span class="sde-mtree-chips">
-      <span class="sde-mtree-chip unlocked" title="Unlocked — present in this world / the suite">
-        <i class="fas fa-lock-open"></i> {{node.have}}</span>
-      <span class="sde-mtree-chip locked{{#if node.locked}} has{{/if}}" title="Locked — known content not yet imported">
-        <i class="fas fa-lock"></i> {{node.locked}}</span>
+      <span class="sde-mtree-chip unlocked" title="Present in this world / the suite">
+        <i class="fas fa-circle-check"></i> {{node.have}}</span>
+      <span class="sde-mtree-chip locked{{#if node.locked}} has{{/if}}" title="Not yet imported — paste from your own book to import">
+        <i class="fas fa-file-import"></i> {{node.locked}}</span>
     </span>
   </div>
 
@@ -29,17 +29,17 @@
     <ul class="sde-mtree-entries">
       {{#each node.entries as |e|}}
       <li class="sde-mtree-entry {{#if e.present}}is-present{{else}}is-locked{{/if}}">
-        <i class="fas {{#if e.present}}fa-circle-check{{else}}fa-lock{{/if}} sde-mtree-entry-mark"></i>
+        <i class="fas {{#if e.present}}fa-circle-check{{else}}fa-file-import{{/if}} sde-mtree-entry-mark"></i>
         <span class="sde-mtree-entry-name">{{e.name}}</span>
         {{#if e.pages}}<span class="sde-mtree-entry-pg" title="Page in the source book">{{#if e.src}}{{e.src}} {{/if}}pg {{e.pages}}{{#if e.pagesAlt}} or {{e.pagesAlt}}{{/if}}</span>{{/if}}
         {{#if e.present}}
-        <span class="sde-mtree-entry-tag">imported</span>
+        <span class="sde-mtree-entry-tag">{{#if e.countNote}}{{e.countNote}}{{else}}imported{{/if}}</span>
         {{else}}
           <button type="button" class="sde-mtree-unlock"
                   data-action="{{e.seedAction}}" data-name="{{e.name}}"
-                  data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}"
-                  title="Unlock “{{e.name}}” — seeds the Import paste box">
-            <i class="fas fa-unlock"></i> Unlock
+                  data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}" data-list-key="{{e.listKey}}"
+                  title="Import “{{e.name}}” — opens the importer (paste from your own book)">
+            <i class="fas fa-file-import"></i> {{#if e.importLabel}}{{e.importLabel}}{{else}}Import{{/if}}
           </button>
         {{/if}}
       </li>

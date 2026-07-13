@@ -300,6 +300,9 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const hadTables = this._hasStage2();
     if (hadTables) await this._attach();
     this._updateImported();
+    // Tell any open Character Builder / Importer Hub to drop caches + re-render so
+    // the class flips from gap→have without a close/reopen (issue #1).
+    Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
     ui.notifications?.info(`Class "${this._className}" ${rep.updated?.length ? "updated" : "created"}${hadTables ? " with its roll tables" : " — add its roll tables below, then Attach"}.`);
     this.render();
   }
@@ -375,6 +378,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const rep = await this._attach();
     if (rep && !rep.warnings.length) ui.notifications?.info(`Roll tables attached to "${this._className}".`);
     this._updateImported();
+    Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
     this.render();
   }
 

@@ -278,15 +278,32 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
  * @param {string} [alignment]  lawful|chaotic|neutral ("" / "universal" → no leaf)
  * @returns {string[]}
  */
-export function spellFolderNames(className, tier, alignment = "") {
-  const tierNum = Number(tier);
-  const tierLabel = Number.isFinite(tierNum) && tierNum > 0 ? `Tier ${tierNum}` : null;
+/** Wizard's alignment lists print under variant names — a neutral Wizard spell
+ *  IS a Druid spell, lawful = Mage, chaotic = Sorcerer. Other casters label
+ *  their alignment lists by the alignment itself (Priest (Lawful) …). */
+const WIZARD_ALIGN_VARIANT = { neutral: "Druid", lawful: "Mage", chaotic: "Sorcerer" };
+
+/**
+ * Spell-pack folder path for a spell: a SINGLE level under "Spells" named
+ * "<Class> (<Variant>)" — the variant is the Wizard list name
+ * (Druid/Mage/Sorcerer) or, for other casters, the alignment
+ * (Priest (Lawful)). A spell with no alignment folders under just "<Class>"
+ * (e.g. Necromancer). Tier is intentionally NOT a folder level — the builder
+ * groups spells by system.tier, and a Class→Tier→Alignment nest buried them
+ * four folders deep. Layout matches the user's reference image (2026-07-12).
+ * @param {string} className  e.g. "Wizard"
+ * @param {number} [_tier]    accepted for signature compatibility; unused
+ * @param {string} [alignment]  "" | lawful | neutral | chaotic | universal
+ */
+export function spellFolderNames(className, _tier, alignment = "") {
+  const titleCase = (s) => String(s ?? "").replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   const cls = String(className ?? "").trim();
-  const titleCase = (s) => s.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
   const clsTitle = cls ? titleCase(cls) : null;
+  if (!clsTitle) return ["Spells"];
   const al = String(alignment ?? "").trim().toLowerCase();
-  const alLabel = al && al !== "universal" ? titleCase(al) : null;
-  return ["Spells", clsTitle, tierLabel, alLabel].filter(Boolean);
+  if (!al || al === "universal") return ["Spells", clsTitle];
+  const variant = /^wizard$/i.test(cls) ? (WIZARD_ALIGN_VARIANT[al] ?? titleCase(al)) : titleCase(al);
+  return ["Spells", `${clsTitle} (${variant})`];
 }
 
 /**

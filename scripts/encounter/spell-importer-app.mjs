@@ -16,6 +16,8 @@
  * the workspace UI + state.
  */
 import { spellRecognizer } from "./spell-parser.mjs";
+import { SPELL_LISTS, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { sourcePdfHref } from "./source-pdf-registry.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -41,6 +43,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       siImport:    SpellImporterApp.prototype._onImport,
       siRemove:    SpellImporterApp.prototype._onRemove,
       siStartOver: SpellImporterApp.prototype._onStartOver,
+      siOpenPdf:   SpellImporterApp.prototype._onOpenPdf,
     },
   };
   static PARTS = { body: { template: "modules/shadowdark-enhancer/templates/spell-importer.hbs", scrollable: [""] } };
@@ -48,6 +51,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   // ── State ──────────────────────────────────────────────────────────────────
   _source = "Western Reaches";
   _pasteText = "";
+  _listKey = "";               // selected preset spell list (SPELL_LISTS[].key), or ""
   _bulkClass = "Wizard";       // the class these spells belong to (name → resolved to uuid)
   _bulkAlignment = "";         // "" = universal; else lawful/neutral/chaotic
   _spells = [];                // parsed drafts + {className, alignment} (editable)
@@ -88,9 +92,16 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const groupList = [...groups.values()].sort((a, b) =>
       a.class.localeCompare(b.class) || Number(a.tier) - Number(b.tier) || a.alignmentLabel.localeCompare(b.alignmentLabel));
 
+    // Preset spell-list picker (Druid/Sorcerer/Mage → Wizard+alignment, WR Priest
+    // by alignment, Necromancer): sets class+alignment+source and a source-PDF link.
+    const list = this._selectedList();
+    const listPdf = list ? sourcePdfHref(list.source, list.page) : null;
+
     return {
       source: this._source,
       sourceList: SOURCE_SUGGESTIONS,
+      spellLists: SPELL_LISTS.map((l) => ({ key: l.key, label: l.label, selected: this._listKey === l.key })),
+      listPdf, listPage: list?.page ?? null, listLabel: list?.label ?? null,
       pasteText: this._pasteText,
       bulkClass: this._bulkClass,
       bulkAlignOptions: ALIGNMENTS.map((a) => ({ ...a, selected: this._bulkAlignment === a.value })),
@@ -99,6 +110,11 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       summary: this._summary(),
       imported: this._imported,
     };
+  }
+
+  /** The selected preset spell list, or null. */
+  _selectedList() {
+    return SPELL_LISTS.find((l) => l.key === this._listKey) ?? null;
   }
 
   _summary() {
@@ -122,6 +138,11 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       paste.addEventListener("focus", () => { this._pasteFocused = true; });
       paste.addEventListener("blur", () => { this._pasteFocused = false; });
     }
+
+    // Preset spell-list picker — applies class + alignment + source in one go and
+    // opens the source PDF at the list's page (one-click flow like the other importers).
+    const listSel = el.querySelector("select[data-si-list]");
+    if (listSel) listSel.addEventListener("change", (ev) => this._onSelectList(ev.target.value));
 
     const bulkCls = el.querySelector("input[data-si-bulkclass]");
     if (bulkCls) bulkCls.addEventListener("input", (ev) => { this._bulkClass = ev.target.value; });
@@ -163,6 +184,36 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.render();
   }
 
+  /** Choosing a preset list presets class + alignment + source, applies them to
+   *  any already-parsed spells, and opens the source PDF at the list's page. */
+  _onSelectList(key) {
+    this._listKey = key;
+    const list = this._selectedList();
+    if (list) {
+      this._bulkClass = list.casterClass;
+      this._bulkAlignment = list.alignment || "";
+      this._source = CHAR_SOURCES[list.source]?.label ?? this._source;
+      if (this._spells.length) this._onApplyBulk();   // re-tag anything already parsed
+      const href = sourcePdfHref(list.source, list.page);
+      if (href) this._showPdf(href, `${list.label}${list.page ? ` — p.${list.page}` : ""}`);
+    }
+    this.render();
+  }
+
+  /** Open the source PDF for the selected list (button re-open). */
+  _onOpenPdf() {
+    const list = this._selectedList();
+    if (!list) return;
+    const href = sourcePdfHref(list.source, list.page);
+    if (href) this._showPdf(href, `${list.label}${list.page ? ` — p.${list.page}` : ""}`);
+    else ui.notifications?.warn(`No uploaded PDF for ${CHAR_SOURCES[list.source]?.label ?? list.source} — add it in the hub's Source PDFs manager.`);
+  }
+
+  async _showPdf(href, title) {
+    const { SourcePdfViewer } = await import("./source-pdf-viewer.mjs");
+    SourcePdfViewer.show(href, title);
+  }
+
   /** Re-apply the bulk Class + Alignment to every parsed spell. */
   _onApplyBulk() {
     for (const s of this._spells) {
@@ -181,7 +232,8 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import spells."); return; }
     if (!this._spells.length) { ui.notifications?.warn("Parse some spells first."); return; }
     const { ItemImporter } = await import("./item-importer.mjs");
-    const { resolveSpellClass } = await import("./class-index.mjs");
+    const { resolveSpellClass, ClassIndex } = await import("./class-index.mjs");
+    ClassIndex.invalidate();   // a class imported this session (e.g. Necromancer) must resolve
     const source = this._source.trim();
     const sourceTitle = _sourceTitle(source);
 
@@ -207,6 +259,9 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (unresolved.length) parts.push(`${unresolved.length} without a class link`);
     ui.notifications?.info(`Spells: ${parts.join(", ")} → world.spells.`);
     if (unresolved.length) console.warn(`${MODULE_ID} | Spell Importer — no class link for: ${unresolved.join(", ")}`);
+    // Tell any open Character Builder / Importer Hub to drop caches + re-render so
+    // the newly-imported spells flip from gap→have without a close/reopen.
+    if (result.created.length) Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
     this.render();
   }
 
@@ -214,7 +269,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
    *  hub's per-unlock seed path, so a second Unlock never imports a stale batch
    *  under the newly selected source. (review 2026-07-12 #2) */
   _reset() {
-    this._pasteText = ""; this._spells = []; this._imported = null;
+    this._pasteText = ""; this._spells = []; this._imported = null; this._listKey = "";
   }
   _onStartOver() {
     this._reset();

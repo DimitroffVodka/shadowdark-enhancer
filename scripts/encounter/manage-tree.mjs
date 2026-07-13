@@ -30,6 +30,7 @@
 import {
   gatherPresence, gatherCharContentEntries, hasTable,
   MANIFEST_CLASSES, CHAR_SOURCES, ANCESTRY_TABLES, BACKGROUND_TABLES,
+  SPELL_LISTS, gatherSpellListCensus,
 } from "./char-content-manifest.mjs";
 import { coreGroupsFor } from "./core-table-groups.mjs";
 import { GAMEPLAY_TABLES, PATRON_TABLES } from "./table-folders.mjs";
@@ -147,14 +148,47 @@ function buildCharContent(charEntries) {
   return branch("char", "Character Content", "fa-user-plus", [ancestries, backgrounds, classes, patrons]);
 }
 
-/** Spells top-level branch, sub-grouped by source. */
-function buildSpells(charEntries) {
-  const spellRecs = charEntries.filter((e) => e.type === "Spell");
-  const sources = [...new Set(spellRecs.map((r) => r.src))]
+/**
+ * Spells top-level branch, sub-grouped by source and — the part that matters —
+ * by CASTER LIST, not a flat spell dump. Each source lists its alignment/class
+ * lists (Druid=Wizard·Neutral, Sorcerer=Wizard·Chaotic, Mage=Wizard·Lawful, the
+ * WR Priest lists by alignment, Necromancer) as a single BULK-IMPORT row: one
+ * "Import list" button that opens the Spell Importer preset to that list's
+ * class + alignment + source and deep-links the PDF, so the GM pastes the whole
+ * section once instead of importing 16 spells one at a time. Presence is the
+ * live tag census (source slug + alignment flag + class link), so a list flips
+ * to "imported" once its spells carry the right tags. `spellListCensus` is
+ * Map<listKey,{present,count}>.
+ */
+function buildSpells(spellListCensus) {
+  const bySrc = new Map();
+  for (const l of SPELL_LISTS) {
+    if (!bySrc.has(l.source)) bySrc.set(l.source, []);
+    bySrc.get(l.source).push(l);
+  }
+  const sources = [...bySrc.keys()]
     .sort((a, b) => (CHAR_SOURCES[a]?.label ?? a).localeCompare(CHAR_SOURCES[b]?.label ?? b));
-  const children = sources.map((src) =>
-    leaf(`spells/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-wand-sparkles",
-      spellRecs.filter((r) => r.src === src), "charSeedPaste", true));
+  const children = sources.map((src) => {
+    const entries = bySrc.get(src).map((l) => {
+      const c = spellListCensus.get(l.key) ?? { present: false, count: 0 };
+      return {
+        name: l.short ?? l.label,
+        present: c.present,
+        seedAction: "spellListSeed",
+        type: "SpellList",
+        src: l.source,
+        pages: l.page,
+        listKey: l.key,
+        importLabel: "Import list",
+        countNote: c.count ? `${c.count} imported` : "",
+      };
+    });
+    const have = entries.filter((e) => e.present).length;
+    return {
+      id: `spells/${src}`, label: CHAR_SOURCES[src]?.label ?? src, icon: "fa-wand-sparkles",
+      entries, children: [], have, locked: entries.length - have,
+    };
+  });
   return branch("spells", "Spells", "fa-book-sparkles", children);
 }
 
@@ -310,15 +344,16 @@ function buildItems(charEntries, itemRecords) {
  */
 export async function buildManageTree() {
   const presence = await gatherPresence();
-  const [charEntries, monsterRows, actorRecords, itemRecords] = await Promise.all([
+  const [charEntries, monsterRows, actorRecords, itemRecords, spellListCensus] = await Promise.all([
     gatherCharContentEntries(presence),
     gatherCensus().catch((err) => { console.error("shadowdark-enhancer | monster census failed:", err); return []; }),
     liveActorRecords().catch((err) => { console.error("shadowdark-enhancer | actor records failed:", err); return []; }),
     liveItemRecords().catch((err) => { console.error("shadowdark-enhancer | item records failed:", err); return []; }),
+    gatherSpellListCensus().catch((err) => { console.error("shadowdark-enhancer | spell-list census failed:", err); return new Map(); }),
   ]);
   return [
     buildCharContent(charEntries),
-    buildSpells(charEntries),
+    buildSpells(spellListCensus),
     buildGameplay(charEntries, presence.tablesPresent),
     buildRollTables(charEntries, presence.tablesPresent),
     buildMonsters(monsterRows, actorRecords),

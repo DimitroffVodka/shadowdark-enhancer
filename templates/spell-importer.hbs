@@ -8,6 +8,18 @@
     </div>
   </div>
 
+  {{!-- Preset spell list — sets Class + Alignment + Source and deep-links the PDF.
+        Druid/Sorcerer/Mage are Wizard spells split by alignment; WR Priest lists
+        split by alignment; Necromancer is its own class. --}}
+  <label class="sde-si-field">
+    <span class="sde-si-fieldname">Spell list</span>
+    <select data-si-list class="sde-si-listsel">
+      <option value="">— pick a known list (auto-sets class + alignment) —</option>
+      {{#each spellLists as |l|}}<option value="{{l.key}}"{{#if l.selected}} selected{{/if}}>{{l.label}}</option>{{/each}}
+    </select>
+    {{#if listPdf}}<button type="button" data-action="siOpenPdf" data-href="{{listPdf}}" class="sde-cu-btn" title="Open {{listLabel}} in the PDF viewer"><i class="fas fa-file-pdf"></i> Open PDF{{#if listPage}} · p.{{listPage}}{{/if}}</button>{{/if}}
+  </label>
+
   <label class="sde-si-field">
     <span class="sde-si-fieldname">Source</span>
     <input type="text" data-si-source list="sde-si-sources" value="{{source}}" placeholder="Western Reaches / CS4 …">
@@ -26,14 +38,14 @@
     <span class="sde-si-bulklabel">These spells are:</span>
     <label class="sde-si-bulkfield">Class
       <input type="text" data-si-bulkclass list="sde-si-classes" value="{{bulkClass}}" placeholder="Wizard">
-      <datalist id="sde-si-classes"><option value="Wizard"></option><option value="Priest"></option><option value="Witch"></option><option value="Seer"></option><option value="Warlock"></option></datalist>
+      <datalist id="sde-si-classes"><option value="Wizard"></option><option value="Priest"></option><option value="Necromancer"></option><option value="Witch"></option><option value="Seer"></option><option value="Warlock"></option></datalist>
     </label>
     <label class="sde-si-bulkfield">Alignment
       <select data-si-bulkalign>{{#each bulkAlignOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}</select>
     </label>
     {{#if spellCount}}<button type="button" data-action="siApplyBulk" class="sde-cu-btn" title="Set every parsed spell to this class + alignment">Apply to all</button>{{/if}}
   </div>
-  <p class="sde-si-note"><i class="fas fa-circle-info"></i> e.g. the Green Knight's druid list = <strong>Wizard</strong> spells tagged <strong>Neutral</strong>. Set those above, paste the spells, then Import.</p>
+  <p class="sde-si-note"><i class="fas fa-circle-info"></i> Pick a <strong>Spell list</strong> above to auto-set these (e.g. Druid = <strong>Wizard</strong> spells tagged <strong>Neutral</strong>), or set them by hand. Then paste the whole list and Import — every spell is tagged in one go.</p>
 
   <textarea data-si-paste class="sde-si-paste" placeholder="Paste a block of spells (names in CAPS, as printed) — each as:&#10;&#10;SPELL NAME&#10;Tier 1, Wizard&#10;Duration: Instant&#10;Range: Near&#10;Rules text…">{{pasteText}}</textarea>
   <div class="sde-si-parsebtns">
