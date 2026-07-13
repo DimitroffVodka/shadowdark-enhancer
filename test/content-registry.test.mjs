@@ -151,6 +151,22 @@ test("prayer shape: a layout-formatted 3-column generator parses to a 3d6 compou
   assert.equal(cols[2].rows[5].text, "sigma rise!");
 });
 
+test("section registry: the stacked magic-item attribute tables are shaped with a column hint", () => {
+  const stacked = ["Armor Benefit", "Armor Curse", "Potion Benefit", "Weapon Curse", "Item Flaw", "Item Virtue", "Boons: Oaths", "Boons: Blessings"];
+  for (const n of stacked) {
+    const s = shapeForName(n);
+    assert.equal(s?.kind, "section", `${n} is a section shape`);
+    assert.equal(s.cols, "1", `${n} extracts single-column (vertically stacked)`);
+  }
+  // The Boons entries need an explicit caption (name != caption).
+  assert.equal(contentIdForName("Boons: Oaths", "CORE"), "core/boons-oaths");
+  assert.equal(shapeForName("Boons: Oaths").caption, "OATHS");
+  // p126's party tables sit in two gutter-split columns → 2-column extraction.
+  for (const n of ["Renown", "Secret", "Wealth"]) {
+    assert.equal(shapeForName(n).cols, "auto", `${n} needs the 2-column page mode`);
+  }
+});
+
 test("section shape: caption defaults to the name and a decoy caption is not matched", () => {
   const foo = parseByShape(STACKED_PAGE, { kind: "section" }, { name: "Foo" });
   assert.equal(foo.tables[0].formula, "1d6");

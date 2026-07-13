@@ -2552,13 +2552,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const pdfPages = (bookPages.length ? bookPages : [null])
       .map((bp) => (bp == null ? target.page : sourcePdfTarget(seed.src, String(bp))?.page))
       .filter((p) => p != null);
-    // A prayer generator is a 3-column layout the reading-order extractor
-    // collapses (parseByShape then can't read the columns). Extract it in
-    // "layout" mode — x-gaps become 2+ spaces the layout parser reads. Background
-    // bundles force single-column; everything else stays auto.
+    // Column mode by shape: a prayer generator is a 3-column layout that needs
+    // "layout" (x-gaps → 2+ spaces); a section-slice table is stacked under an
+    // ALL-CAPS caption that the 2-column gutter split shreds, so it needs single
+    // column; background bundles force single column too. Everything else auto.
     const { resolveShape } = await import("./table-shapes.mjs");
     const shp = resolveShape({ contentId: seed?.contentId, name: seed?.name, src: seed?.src });
-    const columns = seed._bgBundle ? "1" : (shp?.split === "prayer" ? "layout" : "auto");
+    const columns = seed._bgBundle ? "1"
+      : shp?.split === "prayer" ? "layout"
+      : shp?.kind === "section" ? (shp.cols || "1")
+      : "auto";
 
     let result;
     try {

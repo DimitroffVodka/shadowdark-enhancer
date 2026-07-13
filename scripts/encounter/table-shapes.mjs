@@ -43,7 +43,11 @@ const GRID3 = (size, labels) => ({ kind: "compound", split: "grid", cols: 3, siz
 // A single small table stacked with others on one Core Rulebook generator page.
 // The parser slices it out by its ALL-CAPS caption (defaults to the name) and
 // single-die-parses just that block — see parseSectionSlice in table-importer.
-const SECTION = (caption) => ({ kind: "section", ...(caption ? { caption } : {}) });
+// `cols` is the extraction column mode the page needs: "1" for a vertically
+// stacked page (the default), "auto"/"2" when the sections sit in two gutter-
+// split columns (e.g. p126's ANCESTRY|RENOWN layout) — 1-col there interleaves
+// the columns' rows and the slice breaks.
+const SECTION = (caption, cols = "1") => ({ kind: "section", cols, ...(caption ? { caption } : {}) });
 
 // ── Content registry — keyed by persistent contentId ─────────────────────────
 // Each entry: { id, src, names:[displayName…], shape }. The `id` is an EXPLICIT,
@@ -108,9 +112,28 @@ export const CONTENT_ENTRIES = [
   // Core Rulebook "Rival Crawlers" party page (p126) stacks several small
   // single-die tables under ALL-CAPS captions; the section shape slices the
   // named one out so it stops overlapping its page-mates. (rec #3)
-  _entry("core/renown", "CORE", "Renown", SECTION("RENOWN")),
-  _entry("core/secret", "CORE", "Secret", SECTION("SECRET")),
-  _entry("core/wealth", "CORE", "Wealth", SECTION("WEALTH")),
+  // p126 lays ANCESTRY/CLASS/ALIGNMENT and RENOWN/SECRET/WEALTH in two gutter-
+  // split columns, so these need the 2-column extraction, not single.
+  _entry("core/renown", "CORE", "Renown", SECTION("RENOWN", "auto")),
+  _entry("core/secret", "CORE", "Secret", SECTION("SECRET", "auto")),
+  _entry("core/wealth", "CORE", "Wealth", SECTION("WEALTH", "auto")),
+  // Core Rulebook magic-item + patron ATTRIBUTE tables: small single-die tables
+  // stacked under their own ALL-CAPS caption on shared pages (Benefit/Curse
+  // pairs, Item Flaw/Virtue, patron Oaths/Blessings). Section-sliced; the
+  // catalog pages were corrected to the real ones (core-table-groups.mjs, +4).
+  // Default caption = the name uppercased; Boons need an explicit caption.
+  _entry("core/armor-benefit", "CORE", "Armor Benefit", SECTION()),
+  _entry("core/armor-curse", "CORE", "Armor Curse", SECTION()),
+  _entry("core/potion-benefit", "CORE", "Potion Benefit", SECTION()),
+  _entry("core/potion-curse", "CORE", "Potion Curse", SECTION()),
+  _entry("core/utility-benefit", "CORE", "Utility Benefit", SECTION()),
+  _entry("core/utility-curse", "CORE", "Utility Curse", SECTION()),
+  _entry("core/weapon-benefit", "CORE", "Weapon Benefit", SECTION()),
+  _entry("core/weapon-curse", "CORE", "Weapon Curse", SECTION()),
+  _entry("core/item-flaw", "CORE", "Item Flaw", SECTION()),
+  _entry("core/item-virtue", "CORE", "Item Virtue", SECTION()),
+  _entry("core/boons-oaths", "CORE", "Boons: Oaths", SECTION("OATHS")),
+  _entry("core/boons-blessings", "CORE", "Boons: Blessings", SECTION("BLESSINGS")),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

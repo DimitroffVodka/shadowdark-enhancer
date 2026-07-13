@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 35,
-   "REVIEW": 106,
+   "clean": 47,
+   "REVIEW": 94,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -1079,15 +1079,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "280",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d68",
-   "rows": 34,
-   "warns": [
-    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d8",
+   "rows": 8,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Boons: Blessings::281",
@@ -1095,18 +1093,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "281",
-   "shape": null,
-   "route": "table:generic",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d12",
-   "rows": 24,
-   "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 2 and 14 overlap.",
-    "Rows 3 and 15 overlap.",
-    "Rows 4 and 16 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Boons: Secrets::281",
@@ -1959,625 +1952,599 @@
    "status": "clean"
   },
   {
-   "id": "Table::CORE::Personality::278",
+   "id": "Table::CORE::Personality::282",
    "name": "Personality",
    "type": "Table",
    "src": "CORE",
-   "pages": "278",
+   "pages": "282",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d360",
-   "rows": 25,
+   "formula": "1d72",
+   "rows": 36,
    "warns": [
-    "Value 11 has no row.",
-    "Value 21 has no row.",
-    "Value 22 has no row.",
-    "Value 23 has no row."
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Qualities::278",
+   "id": "Table::CORE::Qualities::282",
    "name": "Qualities",
    "type": "Table",
    "src": "CORE",
-   "pages": "278",
+   "pages": "282",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d360",
-   "rows": 25,
+   "formula": "1d72",
+   "rows": 36,
    "warns": [
-    "Value 11 has no row.",
-    "Value 21 has no row.",
-    "Value 22 has no row.",
-    "Value 23 has no row."
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Type::278",
+   "id": "Table::CORE::Type::282",
    "name": "Type",
    "type": "Table",
    "src": "CORE",
-   "pages": "278",
+   "pages": "282",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d360",
-   "rows": 25,
+   "formula": "1d72",
+   "rows": 36,
    "warns": [
-    "Value 11 has no row.",
-    "Value 21 has no row.",
-    "Value 22 has no row.",
-    "Value 23 has no row."
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Armor Bonus::280",
+   "id": "Table::CORE::Armor Bonus::284",
    "name": "Armor Bonus",
    "type": "Table",
    "src": "CORE",
-   "pages": "280",
+   "pages": "284",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d68",
-   "rows": 34,
+   "formula": "1d20",
+   "rows": 29,
    "warns": [
-    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Armor Feature::280",
+   "id": "Table::CORE::Armor Feature::284",
    "name": "Armor Feature",
    "type": "Table",
    "src": "CORE",
-   "pages": "280",
+   "pages": "284",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d68",
-   "rows": 34,
+   "formula": "1d20",
+   "rows": 29,
    "warns": [
-    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Armor Type::280",
+   "id": "Table::CORE::Armor Type::284",
    "name": "Armor Type",
    "type": "Table",
    "src": "CORE",
-   "pages": "280",
+   "pages": "284",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d68",
-   "rows": 34,
+   "formula": "1d20",
+   "rows": 29,
    "warns": [
-    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Armor Benefit::281",
+   "id": "Table::CORE::Armor Benefit::285",
    "name": "Armor Benefit",
    "type": "Table",
    "src": "CORE",
-   "pages": "281",
-   "shape": null,
-   "route": "table:generic",
+   "pages": "285",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d12",
-   "rows": 24,
-   "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 2 and 14 overlap.",
-    "Rows 3 and 15 overlap.",
-    "Rows 4 and 16 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Armor Curse::281",
+   "id": "Table::CORE::Armor Curse::285",
    "name": "Armor Curse",
    "type": "Table",
    "src": "CORE",
-   "pages": "281",
-   "shape": null,
-   "route": "table:generic",
+   "pages": "285",
+   "shape": "section",
+   "route": "table:shape(section)",
    "formula": "1d12",
-   "rows": 24,
-   "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 2 and 14 overlap.",
-    "Rows 3 and 15 overlap.",
-    "Rows 4 and 16 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Mixing Potions - Effect 1::282",
+   "id": "Table::CORE::Mixing Potions - Effect 1::286",
    "name": "Mixing Potions - Effect 1",
    "type": "Table",
    "src": "CORE",
-   "pages": "282",
+   "pages": "286",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d72",
-   "rows": 36,
+   "formula": "1d8",
+   "rows": 22,
    "warns": [
-    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 22 overlap.",
+    "Rows 2 and 10 overlap.",
+    "Rows 3 and 11 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Mixing Potions - Effect 2::282",
+   "id": "Table::CORE::Mixing Potions - Effect 2::286",
    "name": "Mixing Potions - Effect 2",
    "type": "Table",
    "src": "CORE",
-   "pages": "282",
+   "pages": "286",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d72",
-   "rows": 36,
+   "formula": "1d8",
+   "rows": 22,
    "warns": [
-    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 22 overlap.",
+    "Rows 2 and 10 overlap.",
+    "Rows 3 and 11 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Potion Features - Feature 1::282",
+   "id": "Table::CORE::Potion Features - Feature 1::286",
    "name": "Potion Features - Feature 1",
    "type": "Table",
    "src": "CORE",
-   "pages": "282",
+   "pages": "286",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d72",
-   "rows": 36,
+   "formula": "1d8",
+   "rows": 22,
    "warns": [
-    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 22 overlap.",
+    "Rows 2 and 10 overlap.",
+    "Rows 3 and 11 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Potion Features - Feature 2::282",
+   "id": "Table::CORE::Potion Features - Feature 2::286",
    "name": "Potion Features - Feature 2",
    "type": "Table",
    "src": "CORE",
-   "pages": "282",
+   "pages": "286",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d72",
-   "rows": 36,
+   "formula": "1d8",
+   "rows": 22,
    "warns": [
-    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 22 overlap.",
+    "Rows 2 and 10 overlap.",
+    "Rows 3 and 11 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Potion Features - Feature 3::282",
+   "id": "Table::CORE::Potion Features - Feature 3::286",
    "name": "Potion Features - Feature 3",
    "type": "Table",
    "src": "CORE",
-   "pages": "282",
+   "pages": "286",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d8",
+   "rows": 22,
+   "warns": [
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 22 overlap.",
+    "Rows 2 and 10 overlap.",
+    "Rows 3 and 11 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Potion Benefit::287",
+   "name": "Potion Benefit",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "287",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Potion Curse::287",
+   "name": "Potion Curse",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "287",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Scroll Feature::288",
+   "name": "Scroll Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Wand Feature::288",
+   "name": "Wand Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Spell Tier::288",
+   "name": "Spell Tier",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Curses/benefits::288",
+   "name": "Curses/benefits",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 1::288",
+   "name": "Tier 1",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 2::289",
+   "name": "Tier 2",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "289",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 46,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 1 and 24 overlap.",
+    "Rows 1 and 36 overlap.",
+    "Rows 2 and 14 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 3::289",
+   "name": "Tier 3",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "289",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 46,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 1 and 24 overlap.",
+    "Rows 1 and 36 overlap.",
+    "Rows 2 and 14 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 4::289",
+   "name": "Tier 4",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "289",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 46,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 1 and 24 overlap.",
+    "Rows 1 and 36 overlap.",
+    "Rows 2 and 14 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 5::289",
+   "name": "Tier 5",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "289",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 46,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 1 and 24 overlap.",
+    "Rows 1 and 36 overlap.",
+    "Rows 2 and 14 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Utility Type::290",
+   "name": "Utility Type",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "290",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 40,
+   "warns": [
+    "Rows 1 and 21 overlap.",
+    "Rows 2 and 22 overlap.",
+    "Rows 3 and 23 overlap.",
+    "Rows 4 and 24 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Utility Feature::290",
+   "name": "Utility Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "290",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 40,
+   "warns": [
+    "Rows 1 and 21 overlap.",
+    "Rows 2 and 22 overlap.",
+    "Rows 3 and 23 overlap.",
+    "Rows 4 and 24 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Utility Benefit::291",
+   "name": "Utility Benefit",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "291",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Utility Curse::291",
+   "name": "Utility Curse",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "291",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Weapon Type::292",
+   "name": "Weapon Type",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "292",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d92",
+   "rows": 46,
+   "warns": [
+    "Rebuilt 46 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Feature::292",
+   "name": "Weapon Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "292",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d92",
+   "rows": 46,
+   "warns": [
+    "Rebuilt 46 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Bonus::292",
+   "name": "Weapon Bonus",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "292",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d92",
+   "rows": 46,
+   "warns": [
+    "Rebuilt 46 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Benefit::293",
+   "name": "Weapon Benefit",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "293",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Weapon Curse::293",
+   "name": "Weapon Curse",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "293",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Item Flaw::295",
+   "name": "Item Flaw",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "295",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d20",
+   "rows": 20,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Item Virtue::294",
+   "name": "Item Virtue",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "294",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d20",
+   "rows": 20,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Personality Trait::295",
+   "name": "Personality Trait",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "295",
    "shape": null,
    "route": "table:generic",
    "formula": "1d72",
    "rows": 36,
    "warns": [
     "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Potion Benefit::283",
-   "name": "Potion Benefit",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "283",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 21,
-   "warns": [
-    "Rows reach 283 but formula is 1d20."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Potion Curse::283",
-   "name": "Potion Curse",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "283",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 21,
-   "warns": [
-    "Rows reach 283 but formula is 1d20."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Scroll Feature::284",
-   "name": "Scroll Feature",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "284",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Wand Feature::284",
-   "name": "Wand Feature",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "284",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Spell Tier::284",
-   "name": "Spell Tier",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "284",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Curses/benefits::284",
-   "name": "Curses/benefits",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "284",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Tier 1::284",
-   "name": "Tier 1",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "284",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 29,
-   "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 12 overlap.",
-    "Rows 1 and 13 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Tier 2::285",
-   "name": "Tier 2",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "285",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Tier 3::285",
-   "name": "Tier 3",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "285",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Tier 4::285",
-   "name": "Tier 4",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "285",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Tier 5::285",
-   "name": "Tier 5",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "285",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Utility Type::286",
-   "name": "Utility Type",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "286",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d8",
-   "rows": 22,
-   "warns": [
-    "Rows 1 and 9 overlap.",
-    "Rows 1 and 22 overlap.",
-    "Rows 2 and 10 overlap.",
-    "Rows 3 and 11 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Utility Feature::286",
-   "name": "Utility Feature",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "286",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d8",
-   "rows": 22,
-   "warns": [
-    "Rows 1 and 9 overlap.",
-    "Rows 1 and 22 overlap.",
-    "Rows 2 and 10 overlap.",
-    "Rows 3 and 11 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Utility Benefit::287",
-   "name": "Utility Benefit",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "287",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d56",
-   "rows": 28,
-   "warns": [
-    "Rebuilt 28 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Utility Curse::287",
-   "name": "Utility Curse",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "287",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d56",
-   "rows": 28,
-   "warns": [
-    "Rebuilt 28 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Weapon Type::288",
-   "name": "Weapon Type",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "288",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d84",
-   "rows": 42,
-   "warns": [
-    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Weapon Feature::288",
-   "name": "Weapon Feature",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "288",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d84",
-   "rows": 42,
-   "warns": [
-    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Weapon Bonus::288",
-   "name": "Weapon Bonus",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "288",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d84",
-   "rows": 42,
-   "warns": [
-    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Weapon Benefit::289",
-   "name": "Weapon Benefit",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "289",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d12",
-   "rows": 46,
-   "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 1 and 24 overlap.",
-    "Rows 1 and 36 overlap.",
-    "Rows 2 and 14 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Weapon Curse::289",
-   "name": "Weapon Curse",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "289",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d12",
-   "rows": 46,
-   "warns": [
-    "Rows 1 and 13 overlap.",
-    "Rows 1 and 24 overlap.",
-    "Rows 1 and 36 overlap.",
-    "Rows 2 and 14 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Item Flaw::290",
-   "name": "Item Flaw",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "290",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 40,
-   "warns": [
-    "Rows 1 and 21 overlap.",
-    "Rows 2 and 22 overlap.",
-    "Rows 3 and 23 overlap.",
-    "Rows 4 and 24 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Item Virtue::290",
-   "name": "Item Virtue",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "290",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 40,
-   "warns": [
-    "Rows 1 and 21 overlap.",
-    "Rows 2 and 22 overlap.",
-    "Rows 3 and 23 overlap.",
-    "Rows 4 and 24 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
-  },
-  {
-   "id": "Table::CORE::Personality Trait::291",
-   "name": "Personality Trait",
-   "type": "Table",
-   "src": "CORE",
-   "pages": "291",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d56",
-   "rows": 28,
-   "warns": [
-    "Rebuilt 28 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
    ],
    "shapeOk": null,
    "status": "REVIEW"
