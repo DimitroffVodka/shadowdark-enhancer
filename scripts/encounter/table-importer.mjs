@@ -1283,7 +1283,7 @@ function isSectionCaption(line) {
  * body rows (up to the next caption), or null. Shared by parseSectionSlice and
  * parseGridColumn.
  */
-function _sliceSection(text, { name = "", caption } = {}) {
+function _sliceSection(text, { name = "", caption, size } = {}) {
   const lines = String(text).split("\n").map((l) => l.trim());
   const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
   if (!want) return null;
@@ -1295,19 +1295,29 @@ function _sliceSection(text, { name = "", caption } = {}) {
   // Header line = the "dN Title" right after the caption (skip blanks).
   let h = start + 1;
   while (h < lines.length && !lines[h]) h++;
-  const die = parseDieHeader(lines[h]);
-  if (!die) return null;
+  let die = parseDieHeader(lines[h]);
+  let bodyStart = h + 1;
+  if (!die) {
+    // A `size` fallback rescues a header the die parser can't read (e.g. the
+    // Core Drinks table prints "d* Details"): synthesize the die and skip that
+    // pseudo-header line, but keep a real first row when there was no header.
+    if (!size) return null;
+    die = { count: 1, size, columns: [], remainder: "" };
+    const l = lines[h] || "";
+    const isPseudoHeader = /^d\S*/i.test(l) || /^(details?|results?|effects?)$/i.test(l);
+    bodyStart = isPseudoHeader ? h + 1 : h;
+  }
   // Body = rows until the next section caption.
   const body = [];
-  for (let i = h + 1; i < lines.length; i++) {
+  for (let i = bodyStart; i < lines.length; i++) {
     if (isSectionCaption(lines[i])) break;
     if (lines[i]) body.push(lines[i]);
   }
   return body.length ? { die, body } : null;
 }
 
-function parseSectionSlice(text, { name = "", caption } = {}) {
-  const s = _sliceSection(text, { name, caption });
+function parseSectionSlice(text, { name = "", caption, size } = {}) {
+  const s = _sliceSection(text, { name, caption, size });
   if (!s) return null;
   // Force single-die (columns stripped) so a multi-word title never matrix-splits.
   const pt = parseSingleDieBlock(name || s.die.remainder, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, s.body);
@@ -1445,7 +1455,7 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "section") {
-    const pt = parseSectionSlice(text, { name, caption: shape.caption });
+    const pt = parseSectionSlice(text, { name, caption: shape.caption, size: shape.size });
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "gridcol") {

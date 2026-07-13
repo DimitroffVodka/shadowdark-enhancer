@@ -47,7 +47,7 @@ const GRID3 = (size, labels) => ({ kind: "compound", split: "grid", cols: 3, siz
 // stacked page (the default), "auto"/"2" when the sections sit in two gutter-
 // split columns (e.g. p126's ANCESTRY|RENOWN layout) — 1-col there interleaves
 // the columns' rows and the slice breaks.
-const SECTION = (caption, cols = "1") => ({ kind: "section", cols, ...(caption ? { caption } : {}) });
+const SECTION = (caption, cols = "1", size) => ({ kind: "section", cols, ...(caption ? { caption } : {}), ...(size ? { size } : {}) });
 
 // One COLUMN of a captioned multi-column grid (e.g. the Core "FOOD" page's
 // "d12 Poor Standard Wealthy" — each price tier is its own single-die table).
@@ -160,6 +160,7 @@ export const CONTENT_ENTRIES = [
   _entry("core/armor-bonus", "CORE", "Armor Bonus", SECTION("ARMOR BONUS", "auto")),
   _entry("core/scroll-feature", "CORE", "Scroll Feature", SECTION("SCROLL FEATURE", "auto")),
   _entry("core/wand-feature", "CORE", "Wand Feature", SECTION("WAND FEATURE", "auto")),
+  _entry("core/spell-tier", "CORE", "Spell Tier", SECTION("SPELL TIER", "auto")),
   _entry("core/utility-type", "CORE", "Utility Type", SECTION("UTILITY TYPE", "auto")),
   _entry("core/utility-feature", "CORE", "Utility Feature", SECTION("UTILITY FEATURE", "auto")),
   _entry("core/weapon-type", "CORE", "Weapon Type", SECTION("WEAPON TYPE", "auto")),
@@ -215,6 +216,16 @@ export const CONTENT_ENTRIES = [
   // Luxury Items (p279): a d20 "Feature Item" list — one combined item per row,
   // section-sliced single-column.
   _entry("core/luxury-items", "CORE", "Luxury Items", SECTION("LUXURY ITEMS", "1")),
+  // Drinks (p137): a d12 list, but the die header prints as "d* Details" — the
+  // size fallback lets the section slice read it.
+  _entry("core/drinks", "CORE", "Drinks", SECTION("DRINKS", "1", 12)),
+  // p286 potion generators — each catalog entry is one column of a captioned
+  // grid (Potion Features d8 ×3, Mixing Potions d12 ×2).
+  _entry("core/potion-features-1", "CORE", "Potion Features - Feature 1", GRIDCOL("POTION FEATURES", 0, 3)),
+  _entry("core/potion-features-2", "CORE", "Potion Features - Feature 2", GRIDCOL("POTION FEATURES", 1, 3)),
+  _entry("core/potion-features-3", "CORE", "Potion Features - Feature 3", GRIDCOL("POTION FEATURES", 2, 3)),
+  _entry("core/mixing-potions-1", "CORE", "Mixing Potions - Effect 1", GRIDCOL("MIXING POTIONS", 0, 2)),
+  _entry("core/mixing-potions-2", "CORE", "Mixing Potions - Effect 2", GRIDCOL("MIXING POTIONS", 1, 2)),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

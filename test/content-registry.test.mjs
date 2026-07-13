@@ -280,6 +280,18 @@ test("matrix registry: the d4×d4 tables are matrix shapes needing layout extrac
   }
 });
 
+test("section shape: a size fallback rescues an unparseable die header (Drinks' d*)", () => {
+  // The Core Drinks table prints its header as "d* Details" — parseDieHeader
+  // can't read it, so the shape supplies the die size.
+  const page = ["DRINKS", "d* Details", "1 Ale", "2 Wine", "3 Mead"].join("\n");
+  const b = parseByShape(page, { kind: "section", caption: "DRINKS", cols: "1", size: 12 }, { name: "Drinks" });
+  const t = b?.tables?.[0];
+  assert.equal(t?.formula, "1d12", "die comes from the size fallback, not the unreadable header");
+  assert.deepEqual(t.rows.map((r) => r.text), ["Ale", "Wine", "Mead"]);
+  // Without a size fallback the unreadable header makes the slice bail.
+  assert.equal(parseByShape(page, { kind: "section", caption: "DRINKS", cols: "1" }, { name: "Drinks" }), null);
+});
+
 test("shops/food registry: shops are 2-col sections, food tiers are grid columns", () => {
   for (const n of ["Poor Shop", "Standard Shop", "Wealthy Shop"]) {
     const s = shapeForName(n);
