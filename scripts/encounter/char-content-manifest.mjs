@@ -432,7 +432,11 @@ const TYPE_PAGES = {
 /** Page cites for named Table entries (whose page isn't embedded in the name). */
 const TABLE_PAGES = {
   WR: {
-    "Western Reach Backgrounds": "74",
+    // d100 background list spans pp.74-77 (Desert…Secrets terrain groups). The
+    // whole range is extracted (1-column) so all ~100 entries import, not just
+    // p74's 22 — the auto-extract forces 1-col for background bundles because
+    // 2-column mode splits each entry's description off its name.
+    "Western Reach Backgrounds": "74-77",
     // Gods — prayer generators
     "Madeera the Covenant Prayers": "191", "Saint Terragnis Prayers": "193",
     "Gede Prayers": "195", "Ord Prayers": "197", "Memnon Prayers": "199",

@@ -1568,6 +1568,20 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         keep = tables.find((t) => t.name && t.name.toLowerCase() === want.toLowerCase())
           ?? tables.reduce((a, b) => ((b.rows?.length ?? 0) > (a.rows?.length ?? 0) ? b : a));
       }
+      // A background bundle's d100 list spans several PDF pages joined by blank
+      // lines, so parseTables split it into one table per page and `keep` holds
+      // only the first. Rebuild the whole table: drop the bare page-footer rows
+      // (74/75/76/77 collide with real faces) and collapse the page gaps so the
+      // full list parses as one d100 for the random-background roll.
+      if (this._importSeed._bgBundle) {
+        const { parsePageRange } = await import("./pdf-text-extract.mjs");
+        const footers = new Set(parsePageRange(this._importSeed.page).map(String));
+        const merged = this._importText
+          .split("\n").filter((l) => !footers.has(l.trim())).join("\n")
+          .replace(/\n\s*\n+/g, "\n");
+        const full = parseTables(merged).reduce((a, b) => ((b.rows?.length ?? 0) > (a?.rows?.length ?? 0) ? b : a), null);
+        if (full && (full.rows?.length ?? 0) > (keep?.rows?.length ?? 0)) keep = full;
+      }
       for (const t of [...nameTables, ...tables]) {
         if (t !== keep) skipped.push({ name: t.name || `(untitled ${t.formula ?? ""} table)`, reason: `dropped — this unlock expects only "${want}"` });
       }
@@ -2526,10 +2540,21 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
 
+    // A page cite may be a RANGE ("74-77", the WR d100 background list). Expand
+    // it to every PDF page (offset-corrected per page via sourcePdfTarget) so a
+    // multi-page table imports whole, not just its first page. A background
+    // bundle forces 1-column extraction: 2-column mode splits each entry's
+    // description off its name, which the "Name. Text" background parser drops.
+    const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+    const bookPages = parsePageRange(seed.page);
+    const pdfPages = (bookPages.length ? bookPages : [null])
+      .map((bp) => (bp == null ? target.page : sourcePdfTarget(seed.src, String(bp))?.page))
+      .filter((p) => p != null);
+    const columns = seed._bgBundle ? "1" : "auto";
+
     let result;
     try {
-      const { extractPdfText } = await import("./pdf-text-extract.mjs");
-      result = await extractPdfText(target.file, { pages: [target.page], columns: "auto" });
+      result = await extractPdfText(target.file, { pages: pdfPages.length ? pdfPages : [target.page], columns });
     } catch (err) {
       console.error("Shadowdark Enhancer | PDF text extraction failed", err);
       ui.notifications.error("Couldn't read text from that PDF page — see the console.");
