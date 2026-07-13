@@ -123,6 +123,34 @@ test("section shape: slices the named table out of a stacked page, single-die", 
   assert.ok(!t.warnings.some((w) => /overlap/i.test(w)), "no cross-table overlaps");
 });
 
+// A prayer generator is a 3-column layout the reading-order extractor collapses;
+// "layout" extraction restores the 2+-space column gaps the prayer parser reads.
+// This fixture is already layout-formatted (invented, no book text) and asserts
+// parseByShape reconstructs the 3d6 roll-each-column generator.
+const PRAYER_LAYOUT = [
+  "d6   Detail 1          Detail 2         Detail 3",
+  "1    Alpha one,        beta will        gamma go!",
+  "2    Delta two,        epsilon shall    zeta fly!",
+  "3    Eta three,        theta may         iota run!",
+  "4    Kappa four,       lambda must      mu leap!",
+  "5    Nu five,          xi can            omicron soar!",
+  "6    Pi six,           rho would         sigma rise!",
+].join("\n");
+
+test("prayer shape: a layout-formatted 3-column generator parses to a 3d6 compound", () => {
+  const shape = CONTENT["wr/gede-prayers"].shape;
+  const bucket = parseByShape("Test Prayers\n" + PRAYER_LAYOUT, shape, { name: "Test Prayers" });
+  assert.ok(bucket?.generators?.length === 1, "a generator was produced (not a null fallback)");
+  const g = bucket.generators[0];
+  assert.equal(g.formula, "3d6");
+  assert.equal(g.isCompound, true);
+  const cols = g.compound.columns;
+  assert.equal(cols.length, 3, "three columns");
+  assert.deepEqual(cols.map((c) => c.rows.filter((r) => r.text.trim()).length), [6, 6, 6], "each column has all six faces");
+  assert.equal(cols[0].rows[0].text, "Alpha one,");
+  assert.equal(cols[2].rows[5].text, "sigma rise!");
+});
+
 test("section shape: caption defaults to the name and a decoy caption is not matched", () => {
   const foo = parseByShape(STACKED_PAGE, { kind: "section" }, { name: "Foo" });
   assert.equal(foo.tables[0].formula, "1d6");

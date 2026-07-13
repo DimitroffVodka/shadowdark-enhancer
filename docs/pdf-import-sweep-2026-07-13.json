@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 33,
-   "REVIEW": 108,
+   "clean": 35,
+   "REVIEW": 106,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -85,6 +85,34 @@
   }
  },
  "records": [
+  {
+   "id": "Table::WR::Dwarf Names::18",
+   "name": "Dwarf Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "18",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Dwarf Trinket::19",
+   "name": "Dwarf Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "19",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
   {
    "id": "Table::WR::Elf Names::20",
    "name": "Elf Names",
@@ -137,6 +165,30 @@
    "route": "table:generic",
    "formula": "1d100",
    "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Ancestry::WR::Half-Elf::24",
+   "name": "Half-Elf",
+   "type": "Ancestry",
+   "src": "WR",
+   "pages": "24",
+   "route": "charcontent:ancestry",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Table::WR::Half-Elf Names::24",
+   "name": "Half-Elf Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "24",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
    "warns": [],
    "shapeOk": null,
    "status": "clean"
@@ -263,58 +315,6 @@
    "route": "table:generic",
    "formula": "1d100",
    "rows": 50,
-   "warns": [],
-   "shapeOk": null,
-   "status": "clean"
-  },
-  {
-   "id": "Table::WR::Dwarf Names::18",
-   "name": "Dwarf Names",
-   "type": "Table",
-   "src": "WR",
-   "pages": "18",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d100",
-   "rows": 100,
-   "warns": [],
-   "shapeOk": null,
-   "status": "clean"
-  },
-  {
-   "id": "Table::WR::Dwarf Trinket::19",
-   "name": "Dwarf Trinket",
-   "type": "Table",
-   "src": "WR",
-   "pages": "19",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d100",
-   "rows": 50,
-   "warns": [],
-   "shapeOk": null,
-   "status": "clean"
-  },
-  {
-   "id": "Ancestry::WR::Half-Elf::24",
-   "name": "Half-Elf",
-   "type": "Ancestry",
-   "src": "WR",
-   "pages": "24",
-   "route": "charcontent:ancestry",
-   "status": "clean",
-   "rows": 1
-  },
-  {
-   "id": "Table::WR::Half-Elf Names::24",
-   "name": "Half-Elf Names",
-   "type": "Table",
-   "src": "WR",
-   "pages": "24",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d100",
-   "rows": 100,
    "warns": [],
    "shapeOk": null,
    "status": "clean"
@@ -473,13 +473,13 @@
    "src": "WR",
    "pages": "195",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d74",
-   "rows": 37,
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
    "warns": [
-    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Prayer parse: 5 Detail-1 entries, expected 6."
    ],
-   "shapeOk": false,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -521,14 +521,12 @@
    "src": "WR",
    "pages": "191",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d70",
-   "rows": 35,
-   "warns": [
-    "Rebuilt 35 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": false,
-   "status": "REVIEW"
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::WR::Memnon Prayers::199",
@@ -537,13 +535,13 @@
    "src": "WR",
    "pages": "199",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d74",
-   "rows": 37,
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
    "warns": [
-    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Prayer parse: 4 Detail-1 entries, expected 6."
    ],
-   "shapeOk": false,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -617,13 +615,13 @@
    "src": "WR",
    "pages": "197",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d74",
-   "rows": 37,
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
    "warns": [
-    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Prayer parse: 5 Detail-1 entries, expected 6."
    ],
-   "shapeOk": false,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -649,13 +647,13 @@
    "src": "WR",
    "pages": "203",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d74",
-   "rows": 37,
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
    "warns": [
-    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Prayer parse: 5 Detail-3 entries, expected 6."
    ],
-   "shapeOk": false,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -681,14 +679,12 @@
    "src": "WR",
    "pages": "193",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d70",
-   "rows": 35,
-   "warns": [
-    "Rebuilt 35 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": false,
-   "status": "REVIEW"
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::WR::Saint Ydris Boons::219",
@@ -713,13 +709,13 @@
    "src": "WR",
    "pages": "201",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d72",
-   "rows": 36,
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
    "warns": [
-    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Prayer parse: 5 Detail-1 entries, expected 6."
    ],
-   "shapeOk": false,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -729,13 +725,13 @@
    "src": "WR",
    "pages": "205",
    "shape": "compound/prayer",
-   "route": "table:shape-fallback-generic(compound/prayer)",
-   "formula": "1d78",
-   "rows": 39,
+   "route": "table:shape(compound/prayer)",
+   "formula": null,
+   "rows": "gen:3col",
    "warns": [
-    "Rebuilt 39 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Prayer parse: 4 Detail-1 entries, expected 6."
    ],
-   "shapeOk": false,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {

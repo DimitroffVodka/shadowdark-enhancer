@@ -66,7 +66,7 @@ async function _openDoc(filePath) {
  * @returns {number|null} gutter x, or null
  */
 function detectGutter(its, W, mode = "auto") {
-  if (mode === "1") return null;
+  if (mode === "1" || mode === "layout") return null;
   if (its.length < 12) return mode === "2" ? W / 2 : null;
 
   const centers = its.map((i) => i.transform[4] + i.width / 2);
@@ -101,7 +101,18 @@ function detectGutter(its, W, mode = "auto") {
 }
 
 /** Group one column's items into reading-ordered text lines. */
-function columnLines(col) {
+function columnLines(col, pad = false) {
+  // `pad` (layout mode): reconstruct column x-positions as runs of spaces so a
+  // multi-column sub-table (e.g. a "d6 Detail 1 Detail 2 Detail 3" prayer
+  // generator) survives as 2+-space-delimited columns the layout parser reads,
+  // instead of collapsing every gap to one space. A page-average glyph width
+  // converts an x-gap to a space count; only gaps wider than a normal word
+  // space are padded, so inter-word spacing inside a cell stays single.
+  let cw = 5;
+  if (pad) {
+    const ws = col.map((i) => i.width / Math.max(1, i.str.length)).filter((w) => w > 0);
+    if (ws.length) cw = ws.reduce((a, b) => a + b, 0) / ws.length || 5;
+  }
   // Top-to-bottom (PDF y grows upward, so descending), then left-to-right.
   const sorted = [...col].sort(
     (a, b) => b.transform[5] - a.transform[5] || a.transform[4] - b.transform[4],
@@ -127,9 +138,17 @@ function columnLines(col) {
     let text = "";
     let prevEnd = null;
     for (const p of ln.parts) {
-      // Insert a space where two runs are separated by a real gap and the
-      // previous run didn't already end in whitespace.
-      if (prevEnd !== null && p.x - prevEnd > 1.5 && !text.endsWith(" ")) text += " ";
+      if (prevEnd !== null) {
+        const gap = p.x - prevEnd;
+        if (pad) {
+          // Wide gap (> ~1.8 glyphs) = a column boundary → pad proportionally so
+          // char-index tracks x; normal word gaps stay a single space.
+          const n = gap > cw * 1.8 ? Math.min(40, Math.max(2, Math.round(gap / cw))) : (gap > 1.5 ? 1 : 0);
+          if (n) text += " ".repeat(n);
+        } else if (gap > 1.5 && !text.endsWith(" ")) {
+          text += " ";
+        }
+      }
       text += p.s;
       prevEnd = p.x + p.w;
     }
@@ -163,7 +182,7 @@ async function extractPageLines(page, mode) {
         its.filter((i) => i.transform[4] + i.width / 2 < gutter),
         its.filter((i) => i.transform[4] + i.width / 2 >= gutter),
       ];
-  const lines = cols.flatMap(columnLines);
+  const lines = cols.flatMap((c) => columnLines(c, mode === "layout"));
   return { gutter: gutter == null ? null : Math.round(gutter), lines };
 }
 
