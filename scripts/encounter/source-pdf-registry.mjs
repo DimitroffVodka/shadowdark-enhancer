@@ -128,6 +128,22 @@ export function sourcePdfHref(src, pages) {
   return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${pdfPage}`;
 }
 
+/**
+ * Resolve a source + printed-page cite to the actual PDF file and its own page
+ * number (offset-corrected — see PAGE_OFFSETS). Feeds the Importer Hub's
+ * "Grab text" extractor. Returns null when the source has no resolvable PDF or
+ * the cite carries no page number.
+ * @param {string} src   CHAR_SOURCES key (e.g. "WR")
+ * @param {string|number} pages  a page cite ("72", "72-73", "p146")
+ * @returns {{file:string, page:number}|null}
+ */
+export function sourcePdfTarget(src, pages) {
+  const file = resolveSourcePdf(src);
+  const page = firstPage(pages);
+  if (!file || !page) return null;
+  return { file, page: page + (PAGE_OFFSETS[src] ?? 0) };
+}
+
 /** Does a served file actually exist? HEAD against its route; false on any error. */
 async function _fileExists(path) {
   try {

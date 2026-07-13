@@ -50,6 +50,7 @@
   <textarea data-si-paste class="sde-si-paste" placeholder="Paste a block of spells (names in CAPS, as printed) — each as:&#10;&#10;SPELL NAME&#10;Tier 1, Wizard&#10;Duration: Instant&#10;Range: Near&#10;Rules text…">{{pasteText}}</textarea>
   <div class="sde-si-parsebtns">
     <button type="button" data-action="siParse" class="sde-cu-btn"><i class="fas fa-wand-magic"></i> Parse spells</button>
+    <button type="button" data-action="siGrabPdf" class="sde-cu-btn" title="Pull spell writeups straight out of your book (pick the pages) into the box — no drag-selecting. Uses Foundry's built-in PDF engine."><i class="fas fa-wand-magic-sparkles"></i> Grab from PDF</button>
     {{#if summary}}<span class="sde-si-summary">{{summary}}</span>{{/if}}
   </div>
 

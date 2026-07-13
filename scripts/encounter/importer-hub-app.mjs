@@ -30,7 +30,7 @@ import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
 import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, BACKGROUND_TABLES, sourcedTableName } from "./char-content-manifest.mjs";
-import { sourcePdfHref } from "./source-pdf-registry.mjs";
+import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { findSuitePack } from "./compendium-suite.mjs";
 import { MODULE_ID } from "../module-id.mjs";
@@ -40,6 +40,31 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** Common source labels offered as datalist suggestions. */
 const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
 
+
+/**
+ * Pull the quoted row name out of each parser warning so the preview can flag
+ * the EXACT attack/feature row the warning is about. A statblock warning like
+ *   feature "Basilisk Cultists" captured from a standalone caps caption …
+ * names the offending row in quotes; matching that to a feature/attack lets the
+ * card highlight it and drop a "review" tag right on the row, instead of making
+ * the GM read the note and then hunt for which row it means (user QA 2026-07-13:
+ * "do a better job showing what is being flagged").
+ * @param {string[]} warnings
+ * @returns {Map<string,string>} lowercased row name → the warning message
+ */
+function flaggedRowNames(warnings) {
+  const map = new Map();
+  for (const w of warnings ?? []) {
+    // Straight or curly single/double quotes around a 2+ char name.
+    const re = /[“"'‘]([^“”"'’]{2,})[”"'’]/g;
+    let m;
+    while ((m = re.exec(String(w)))) {
+      const key = m[1].trim().toLowerCase();
+      if (key && !map.has(key)) map.set(key, String(w));
+    }
+  }
+  return map;
+}
 
 /**
  * Map parser warnings to draft field names for highlight flags.
@@ -104,6 +129,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubImportBundle:        ImporterHubApp.prototype._onImportBundle,
       // Source PDF library
       hubManageSourcePdfs:    ImporterHubApp.prototype._onManageSourcePdfs,
+      // PDF → text extraction (Foundry's bundled PDF.js; no external tool)
+      hubGrabPdfText:         ImporterHubApp.prototype._onGrabPdfText,
+      hubExtractPdf:          ImporterHubApp.prototype._onExtractPdf,
       // Manage strip — census/gap/duplicate + maintenance
       monsterGapExpand:       ImporterHubApp.prototype._onMonsterGapExpand,
       monsterSeedPaste:       ImporterHubApp.prototype._onMonsterSeedPaste,
@@ -255,9 +283,24 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const importMonsterCards = this._importMonsters.map((p, i) => {
       const wf = warnFields(p.warnings ?? []);
+      // Row-level flags: tie each quoted-name warning to its exact attack/feature
+      // row so the preview can mark it (not just list the note at the top).
+      const flagMap = flaggedRowNames(p.warnings);
+      const flagFor = (name) => {
+        const reason = flagMap.get(String(name ?? "").trim().toLowerCase());
+        return { flagged: !!reason, flagReason: reason ?? "" };
+      };
+      // Display views aligned 1:1 with the draft arrays (indices match, so the
+      // in-place field-edit + remove-row handlers still address the real draft).
+      const features = (p.draft.features ?? []).map((f) => ({
+        name: f.name, description: f.description, ...flagFor(f.name),
+      }));
+      const actions = (p.draft.actions ?? []).map((a) => ({ ...a, ...flagFor(a.name) }));
       return {
         idx: i,
         draft: p.draft,
+        features,
+        actions,
         warnings: p.warnings ?? [],
         hasWarnings: (p.warnings?.length ?? 0) > 0,
         warnCount: p.warnings?.length ?? 0,
@@ -2452,6 +2495,127 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ? `${seed.name}${seed.page ? ` — p.${seed.page}` : ""}`
       : "Source PDF";
     this._showSourcePdf(href, title);
+  }
+
+  /**
+   * "Grab text" (seed flow): pull the cited page's text straight out of the
+   * source PDF and drop it into the paste box — no viewer, no drag-selecting.
+   * Uses Foundry's bundled PDF.js (see pdf-text-extract.mjs); column-aware so
+   * two-column spell/table pages come out in reading order. Appends after
+   * whatever's already in the box (the seeded name line stays the title).
+   */
+  async _onGrabPdfText() {
+    const seed = this._importSeed;
+    const target = seed ? sourcePdfTarget(seed.src, seed.page) : null;
+    if (!target) {
+      ui.notifications.warn("No source PDF is linked for this entry, or it has no page cite. Use “Source PDFs” to upload the book.");
+      return;
+    }
+    // Preserve any live edits in the box before we append to it.
+    const ta = this.element.querySelector("textarea[data-import-text]");
+    if (ta) this._importText = ta.value;
+
+    let result;
+    try {
+      const { extractPdfText } = await import("./pdf-text-extract.mjs");
+      result = await extractPdfText(target.file, { pages: [target.page], columns: "auto" });
+    } catch (err) {
+      console.error("Shadowdark Enhancer | PDF text extraction failed", err);
+      ui.notifications.error("Couldn't read text from that PDF page — see the console.");
+      return;
+    }
+    if (!result.text) {
+      ui.notifications.warn(`Page ${target.page} has no selectable text (likely a scanned or art page).`);
+      return;
+    }
+    const base = this._importText.replace(/\s*$/, "");
+    this._importText = base ? `${base}\n${result.text}\n` : `${result.text}\n`;
+    this.render();
+    ui.notifications.info(`Pulled page ${target.page} into the paste box — review, then Parse.`);
+  }
+
+  /**
+   * "Extract from PDF" (standalone): pick a linked source book, a page or page
+   * range, and column handling, then drop the extracted text into the paste
+   * box. Same engine as the seed-flow grab, but page-driven for content that
+   * isn't tied to an unlock row.
+   */
+  async _onExtractPdf() {
+    const { listSourcePdfs } = await import("./source-pdf-registry.mjs");
+    const rows = (await listSourcePdfs()).filter((r) => r.linked && r.file);
+    if (!rows.length) {
+      ui.notifications.warn("No source PDFs are linked yet. Use “Source PDFs” to upload your books first.");
+      return;
+    }
+    const options = rows
+      .map((r) => `<option value="${r.src}">${foundry.utils.escapeHTML(r.label)}</option>`)
+      .join("");
+    const picked = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Extract text from PDF", icon: "fas fa-file-pdf" },
+      content: `
+        <p>Pull clean, reading-ordered text out of one of your uploaded books
+        using Foundry's built-in PDF engine — nothing is uploaded.</p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
+          <label for="sde-xpdf-src"><strong>Book</strong></label>
+          <select id="sde-xpdf-src" name="src">${options}</select>
+          <label for="sde-xpdf-pages"><strong>Pages</strong></label>
+          <input id="sde-xpdf-pages" name="pages" type="text" placeholder="e.g. 34 or 34-36 or 12,16,20-22">
+          <label for="sde-xpdf-cols"><strong>Columns</strong></label>
+          <select id="sde-xpdf-cols" name="cols">
+            <option value="auto" selected>Auto-detect</option>
+            <option value="1">Single column</option>
+            <option value="2">Two columns</option>
+          </select>
+        </div>
+        <p class="notes">These are the book's own PDF page numbers (including cover/credits), not the printed page. Auto-detect handles two-column spell/table pages; force Single/Two if a page comes out jumbled.</p>`,
+      buttons: [
+        { action: "extract", label: "Extract", icon: "fas fa-file-pdf", default: true,
+          callback: (event, button) => ({
+            src: button.form.elements.src.value,
+            pages: button.form.elements.pages.value,
+            cols: button.form.elements.cols.value,
+          }) },
+        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked || picked === "cancel") return;
+
+    const { resolveSourcePdf } = await import("./source-pdf-registry.mjs");
+    const file = resolveSourcePdf(picked.src);
+    if (!file) { ui.notifications.warn("That book isn't linked to a PDF."); return; }
+
+    const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+    let result;
+    try {
+      const doc = await extractPdfText(file, { pages: [1] });   // cheap open to learn page count
+      const pages = parsePageRange(picked.pages, doc.numPages);
+      if (!pages.length) {
+        ui.notifications.warn("Enter at least one valid page number.");
+        return;
+      }
+      result = await extractPdfText(file, { pages, columns: picked.cols });
+    } catch (err) {
+      console.error("Shadowdark Enhancer | PDF text extraction failed", err);
+      ui.notifications.error("Couldn't read text from that PDF — see the console.");
+      return;
+    }
+    if (!result.text) {
+      ui.notifications.warn("Those pages have no selectable text (likely scanned or art pages).");
+      return;
+    }
+    const ta = this.element.querySelector("textarea[data-import-text]");
+    if (ta) this._importText = ta.value;
+    const base = this._importText.replace(/\s*$/, "");
+    this._importText = base ? `${base}\n${result.text}\n` : `${result.text}\n`;
+    // Stamp the source label from the picked book if the field is empty.
+    if (!this._importSource.trim() && CHAR_SOURCES[picked.src]) {
+      this._importSource = CHAR_SOURCES[picked.src].label;
+    }
+    this.render();
+    const empties = result.pages.filter((p) => p.empty).map((p) => p.page);
+    const emptyNote = empties.length ? ` (${empties.length} page${empties.length > 1 ? "s" : ""} had no text: ${empties.join(", ")})` : "";
+    ui.notifications.info(`Extracted ${result.pages.length - empties.length} page(s) into the paste box${emptyNote} — review, then Parse.`);
   }
 
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */

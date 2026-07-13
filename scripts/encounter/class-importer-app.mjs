@@ -45,6 +45,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ciClearPart:   ClassImporterApp.prototype._onClearPart,
       ciAttach:      ClassImporterApp.prototype._onAttach,
       ciOpenPdf:     ClassImporterApp.prototype._onOpenPdf,
+      ciGrabPdf:     ClassImporterApp.prototype._onGrabPdf,
       ciStartOver:   ClassImporterApp.prototype._onStartOver,
     },
   };
@@ -387,6 +388,40 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!href) return;
     const { SourcePdfViewer } = await import("./source-pdf-viewer.mjs");
     SourcePdfViewer.show(href, target.dataset.title || "Source PDF");
+  }
+
+  /**
+   * Grab-text: pull the class's writeup page straight out of the source PDF into
+   * the body box (no drag-selecting), using Foundry's bundled PDF.js. The class
+   * NAME comes from the unlock seed / source field — the book's stylized class
+   * title isn't in the PDF text layer — so this only fills the body (flavor,
+   * weapons/armor, hit points, features, talent table).
+   */
+  async _onGrabPdf() {
+    const name = this._className || this._bodyName || this._seedClassName || "";
+    const srcKey = this._sourceKey();
+    const page = overlayFor(name)?.pages;
+    const { sourcePdfTarget } = await import("./source-pdf-registry.mjs");
+    const target = (srcKey && page) ? sourcePdfTarget(srcKey, page) : null;
+    if (!target) {
+      ui.notifications?.warn("No source PDF / writeup page for this class — set the source above, or add the PDF in the hub's Source PDFs manager.");
+      return;
+    }
+    let res;
+    try {
+      const { extractPdfText } = await import("./pdf-text-extract.mjs");
+      res = await extractPdfText(target.file, { pages: [target.page], columns: "auto" });
+    } catch (err) {
+      console.error("Shadowdark Enhancer | class PDF grab failed", err);
+      ui.notifications?.error("Couldn't read text from that PDF page — see the console.");
+      return;
+    }
+    if (!res.text) { ui.notifications?.warn(`Page ${target.page} has no selectable text.`); return; }
+    const base = (this._bodyText || "").replace(/\s*$/, "");
+    this._bodyText = base ? `${base}\n${res.text}\n` : `${res.text}\n`;
+    this._editingBody = true;
+    this.render();
+    ui.notifications?.info(`Pulled the writeup (p.${target.page}) into the box — review, then Preview.`);
   }
 
   /** Clear the whole workspace (no render). Shared by "Start over" and the hub's

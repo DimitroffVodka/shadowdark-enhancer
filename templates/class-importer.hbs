@@ -70,6 +70,7 @@
       {{/if}}
       {{#if writeupPdf}}
       <button type="button" data-action="ciOpenPdf" data-href="{{writeupPdf}}" data-title="{{className}} writeup — p.{{writeupPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · writeup p.{{writeupPage}}</button>
+      <button type="button" data-action="ciGrabPdf" class="sde-cu-btn" title="Pull the writeup page's text straight into the box (no drag-selecting). The class name comes from the unlock, so this fills the body."><i class="fas fa-wand-magic-sparkles"></i> Grab text · p.{{writeupPage}}</button>
       {{/if}}
     </div>
     {{#if bodyPreview}}

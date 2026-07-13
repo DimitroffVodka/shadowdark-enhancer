@@ -44,6 +44,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       siRemove:    SpellImporterApp.prototype._onRemove,
       siStartOver: SpellImporterApp.prototype._onStartOver,
       siOpenPdf:   SpellImporterApp.prototype._onOpenPdf,
+      siGrabPdf:   SpellImporterApp.prototype._onGrabPdf,
     },
   };
   static PARTS = { body: { template: "modules/shadowdark-enhancer/templates/spell-importer.hbs", scrollable: [""] } };
@@ -212,6 +213,82 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   async _showPdf(href, title) {
     const { SourcePdfViewer } = await import("./source-pdf-viewer.mjs");
     SourcePdfViewer.show(href, title);
+  }
+
+  /**
+   * Grab-text: pull spell writeups out of the book straight into the paste box,
+   * using Foundry's bundled PDF.js. Unlike the other importers this asks for a
+   * page RANGE — a preset's cited page is the spell *list* (names by tier); the
+   * writeups themselves (name · Tier · Duration · Range · rules) span the pages
+   * around it, so the GM picks which to pull. Defaults the book + starting page
+   * from the selected preset list.
+   */
+  async _onGrabPdf() {
+    const { listSourcePdfs, resolveSourcePdf } = await import("./source-pdf-registry.mjs");
+    const rows = (await listSourcePdfs()).filter((r) => r.linked && r.file);
+    if (!rows.length) { ui.notifications?.warn("No source PDFs linked yet — add them in the hub's Source PDFs manager."); return; }
+
+    // Default the book + page from the selected preset list, else the source field.
+    const list = this._selectedList();
+    let defaultKey = list?.source ?? null;
+    if (!defaultKey) {
+      const s = this._source.trim().toLowerCase();
+      for (const [k, v] of Object.entries(CHAR_SOURCES)) {
+        if (k.toLowerCase() === s || v.label.toLowerCase() === s) { defaultKey = k; break; }
+      }
+    }
+    const defaultPage = list?.page ? String(list.page) : "";
+    const options = rows
+      .map((r) => `<option value="${r.src}" ${r.src === defaultKey ? "selected" : ""}>${foundry.utils.escapeHTML(r.label)}</option>`)
+      .join("");
+
+    const picked = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Grab spells from PDF", icon: "fas fa-wand-sparkles" },
+      content: `
+        <p>Pull spell writeups out of your book with Foundry's built-in PDF engine —
+        nothing is uploaded. Writeups (name · Tier · Duration · Range · rules) usually
+        span several pages.</p>
+        <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
+          <label><strong>Book</strong></label><select name="src">${options}</select>
+          <label><strong>Pages</strong></label><input name="pages" type="text" value="${defaultPage}" placeholder="e.g. 17-21 or 122,124">
+          <label><strong>Columns</strong></label>
+          <select name="cols"><option value="auto" selected>Auto-detect</option><option value="1">Single</option><option value="2">Two</option></select>
+        </div>
+        <p class="notes">Book PDF page numbers. A preset's cited page is the spell <em>list</em>; the writeups usually begin at or just after it.</p>`,
+      buttons: [
+        { action: "extract", label: "Grab", icon: "fas fa-wand-sparkles", default: true,
+          callback: (event, button) => ({
+            src: button.form.elements.src.value,
+            pages: button.form.elements.pages.value,
+            cols: button.form.elements.cols.value,
+          }) },
+        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!picked || picked === "cancel") return;
+
+    const file = resolveSourcePdf(picked.src);
+    if (!file) { ui.notifications?.warn("That book isn't linked to a PDF."); return; }
+    let res;
+    try {
+      const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+      const first = await extractPdfText(file, { pages: [1] });   // cheap open for page count
+      const pages = parsePageRange(picked.pages, first.numPages);
+      if (!pages.length) { ui.notifications?.warn("Enter at least one valid page number."); return; }
+      res = await extractPdfText(file, { pages, columns: picked.cols });
+    } catch (err) {
+      console.error("Shadowdark Enhancer | spell PDF grab failed", err);
+      ui.notifications?.error("Couldn't read text from that PDF — see the console.");
+      return;
+    }
+    if (!res.text) { ui.notifications?.warn("Those pages have no selectable text."); return; }
+    const base = (this._pasteText || "").replace(/\s*$/, "");
+    this._pasteText = base ? `${base}\n${res.text}\n` : `${res.text}\n`;
+    if (CHAR_SOURCES[picked.src]) this._source = CHAR_SOURCES[picked.src].label;
+    this.render();
+    const empties = res.pages.filter((p) => p.empty).length;
+    ui.notifications?.info(`Grabbed ${res.pages.length - empties} page(s) into the paste box — click Parse to detect spells.`);
   }
 
   /** Re-apply the bulk Class + Alignment to every parsed spell. */

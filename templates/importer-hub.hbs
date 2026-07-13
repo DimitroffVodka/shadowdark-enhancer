@@ -29,7 +29,8 @@
     Pasting for: <strong>{{importData.seed.name}}</strong>
     {{#if importData.seed.book}}<span class="sde-hub-import-seed-tag"><i class="fas fa-book"></i> {{importData.seed.book}}{{#if importData.seed.page}}, page {{importData.seed.page}}{{/if}}</span>{{/if}}
     {{#if importData.seed.die}}<span class="sde-hub-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
-    {{#if importData.seedPdfHref}}<button type="button" data-action="openSourcePdf" data-href="{{importData.seedPdfHref}}" class="sde-hub-import-pdfbtn" title="Open the source PDF at the cited page to copy from"><i class="fas fa-file-pdf"></i> Open PDF{{#if importData.seed.page}} p.{{importData.seed.page}}{{/if}}</button>{{/if}}
+    {{#if importData.seedPdfHref}}<button type="button" data-action="openSourcePdf" data-href="{{importData.seedPdfHref}}" class="sde-hub-import-pdfbtn" title="Open the source PDF at the cited page to copy from"><i class="fas fa-file-pdf"></i> Open PDF{{#if importData.seed.page}} p.{{importData.seed.page}}{{/if}}</button>
+    <button type="button" data-action="hubGrabPdfText" class="sde-hub-import-pdfbtn" title="Pull the cited page's text straight into the paste box (no drag-selecting). Uses Foundry's built-in PDF engine; two-column pages come out in reading order."><i class="fas fa-wand-magic-sparkles"></i> Grab text{{#if importData.seed.page}} p.{{importData.seed.page}}{{/if}}</button>{{/if}}
     {{#unless importData.seedResult}}— paste that section and click Parse.{{/unless}}
     {{#if importData.seedResult}}
     {{#if importData.seedResult.ok}}
@@ -100,6 +101,10 @@
             title="Upload your own PDFs of the Shadowdark books. Each is linked to a source so the Open-PDF buttons jump to the cited page. Files stay in your world.">
       <i class="fas fa-file-pdf"></i> Source PDFs
     </button>
+    <button type="button" data-action="hubExtractPdf" class="sde-import-secondary"
+            title="Pull clean, reading-ordered text out of one of your uploaded books (any page or range) straight into the paste box. Uses Foundry's built-in PDF engine — nothing is uploaded, and two-column pages come out in order.">
+      <i class="fas fa-wand-magic-sparkles"></i> Extract from PDF
+    </button>
   </div>
 
   {{!-- ── Monsters preview ─────────────────────────────────────────────── --}}
@@ -169,8 +174,8 @@
             <button type="button" data-action="mimportAddAttack" class="sde-import-addrow"><i class="fas fa-plus"></i> Attack</button>
             <button type="button" data-action="mimportAddSpecial" class="sde-import-addrow"><i class="fas fa-plus"></i> Special</button>
           </div>
-          {{#each m.draft.actions as |a|}}
-          <div class="sde-mimport-attack" data-attack-idx="{{@index}}">
+          {{#each m.actions as |a|}}
+          <div class="sde-mimport-attack{{#if a.flagged}} flagged{{/if}}" data-attack-idx="{{@index}}">
             <input type="number" data-mimport-field="aNum" value="{{a.num}}" class="sde-import-num" aria-label="Attacks per round" title="count">
             <input type="text" data-mimport-field="aName" value="{{a.name}}" class="sde-mimport-aname" aria-label="Attack name" placeholder="name">
             <select data-mimport-field="aType" class="sde-mimport-sel" aria-label="Attack type">
@@ -180,6 +185,7 @@
             <input type="text" data-mimport-field="aDamage" value="{{a.damage}}" class="sde-mimport-dmg" aria-label="Damage" placeholder="1d6">
             <input type="text" data-mimport-field="aRanges" value="{{join a.ranges}}" class="sde-mimport-ranges" aria-label="Ranges" placeholder="close, near">
             <input type="text" data-mimport-field="aDesc" value="{{a.description}}" class="sde-import-rowtext" aria-label="Rider / effect" placeholder="rider (swallow…)">
+            {{#if a.flagged}}<span class="sde-mimport-flagtag" title="{{a.flagReason}}"><i class="fas fa-triangle-exclamation"></i> review</span>{{/if}}
             <button type="button" data-action="mimportRemoveAttack" class="sde-import-del" aria-label="Remove attack"><i class="fas fa-xmark"></i></button>
           </div>
           {{/each}}
@@ -189,10 +195,11 @@
             <span class="sde-mimport-sublabel">Features</span>
             <button type="button" data-action="mimportAddFeature" class="sde-import-addrow"><i class="fas fa-plus"></i> Feature</button>
           </div>
-          {{#each m.draft.features as |f|}}
-          <div class="sde-mimport-feature" data-feature-idx="{{@index}}">
+          {{#each m.features as |f|}}
+          <div class="sde-mimport-feature{{#if f.flagged}} flagged{{/if}}" data-feature-idx="{{@index}}">
             <input type="text" data-mimport-field="fName" value="{{f.name}}" class="sde-mimport-fname" aria-label="Feature name" placeholder="name">
             <input type="text" data-mimport-field="fDesc" value="{{f.description}}" class="sde-import-rowtext" aria-label="Feature text" placeholder="description">
+            {{#if f.flagged}}<span class="sde-mimport-flagtag" title="{{f.flagReason}}"><i class="fas fa-triangle-exclamation"></i> review</span>{{/if}}
             <button type="button" data-action="mimportRemoveFeature" class="sde-import-del" aria-label="Remove feature"><i class="fas fa-xmark"></i></button>
           </div>
           {{/each}}

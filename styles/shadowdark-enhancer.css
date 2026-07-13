@@ -5404,6 +5404,24 @@ body.theme-light .sde-hub-monsters-row td {
   gap: 0.3rem;
   flex-wrap: wrap;
 }
+/* A specific attack/feature row a parser warning named — mark it so the review
+   note points straight at the row to fix (user QA 2026-07-13). */
+.sde-mimport-attack.flagged,
+.sde-mimport-feature.flagged {
+  border-left: 2px solid var(--sde-bar-warn);
+  padding-left: 0.3rem;
+  background: color-mix(in srgb, var(--sde-bar-warn) 10%, transparent);
+  border-radius: 3px;
+}
+.sde-mimport-flagtag {
+  color: var(--sde-bar-warn);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  cursor: help;
+}
 
 /* ─── Loot delivery chat card ───────────────────────────────────────── */
 
