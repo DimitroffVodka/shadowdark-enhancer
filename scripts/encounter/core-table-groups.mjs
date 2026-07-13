@@ -77,10 +77,10 @@ export const CORE_TABLE_GROUPS = [
       // One d20 × 3-col compound (Name 1 / Name 2 / Known For) — columns, not
       // separate tables; parsed as one table by the grid shape.
       { name: "Tavern Generator", page: 136 },
-      { name: "Drinks", page: 133 },
-      { name: "Food - Poor", page: 133 },
-      { name: "Food - Standard", page: 133 },
-      { name: "Food - Wealthy", page: 133 },
+      { name: "Drinks", page: 137 },
+      { name: "Food - Poor", page: 137 },
+      { name: "Food - Standard", page: 137 },
+      { name: "Food - Wealthy", page: 137 },
     ],
   },
   {
@@ -89,10 +89,10 @@ export const CORE_TABLE_GROUPS = [
     rep: "Core PDF p143: Shop Generator", startPage: 134,
     pasteHint: "Shops section (Core pg 134–139)",
     tables: [
-      { name: "Poor Shop", page: 134 },
-      { name: "Standard Shop", page: 134 },
-      { name: "Wealthy Shop", page: 134 },
-      { name: "Interesting Customer", page: 135 },
+      { name: "Poor Shop", page: 138 },
+      { name: "Standard Shop", page: 138 },
+      { name: "Wealthy Shop", page: 138 },
+      { name: "Interesting Customer", page: 139 },
       // One d20 × 3-col compound (Name 1 / Name 2 / Known For) — grid shape.
       { name: "Shop Generator", page: 139 },
     ],

@@ -173,6 +173,43 @@ test("section registry: the stacked magic-item attribute tables are shaped with 
   }
 });
 
+// A captioned multi-column grid where each column is its own single-die table
+// (the Core FOOD page's Poor/Standard/Wealthy tiers). Invented — no book text.
+const GRID_PAGE = [
+  "FOODS",
+  "d4 Poor Standard Wealthy",
+  "1 Bread soup Roast lamb Golden pheasant",
+  "2 Boiled roots Smoked trout Glazed venison",
+  "3 Barley mush Stuffed quail Grilled lobster",
+  "4 Bean paste Spiced beef Gilded partridge",
+].join("\n");
+
+test("gridcol shape: extracts one column of a captioned grid as its own single-die table", () => {
+  const poor = parseByShape(GRID_PAGE, { kind: "gridcol", caption: "FOODS", col: 0, ncols: 3 }, { name: "Food - Poor" });
+  assert.ok(poor?.tables?.length === 1);
+  assert.equal(poor.tables[0].formula, "1d4");
+  assert.deepEqual(poor.tables[0].rows.map((r) => r.text), ["Bread soup", "Boiled roots", "Barley mush", "Bean paste"]);
+  const wealthy = parseByShape(GRID_PAGE, { kind: "gridcol", caption: "FOODS", col: 2, ncols: 3 }, { name: "Food - Wealthy" });
+  assert.equal(wealthy.tables[0].rows[0].text, "Golden pheasant");
+  assert.equal(wealthy.tables[0].rows[3].text, "Gilded partridge");
+  // Unknown caption → null (caller falls back).
+  assert.equal(parseByShape(GRID_PAGE, { kind: "gridcol", caption: "NOPE", col: 0, ncols: 3 }, { name: "x" }), null);
+});
+
+test("shops/food registry: shops are 2-col sections, food tiers are grid columns", () => {
+  for (const n of ["Poor Shop", "Standard Shop", "Wealthy Shop"]) {
+    const s = shapeForName(n);
+    assert.equal(s?.kind, "section");
+    assert.equal(s.cols, "auto");
+  }
+  for (const [n, col] of [["Food - Poor", 0], ["Food - Standard", 1], ["Food - Wealthy", 2]]) {
+    const s = shapeForName(n);
+    assert.equal(s?.kind, "gridcol");
+    assert.equal(s.col, col);
+    assert.equal(s.ncols, 3);
+  }
+});
+
 test("section shape: caption defaults to the name and a decoy caption is not matched", () => {
   const foo = parseByShape(STACKED_PAGE, { kind: "section" }, { name: "Foo" });
   assert.equal(foo.tables[0].formula, "1d6");

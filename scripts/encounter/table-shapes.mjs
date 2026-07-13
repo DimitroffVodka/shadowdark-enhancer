@@ -49,6 +49,12 @@ const GRID3 = (size, labels) => ({ kind: "compound", split: "grid", cols: 3, siz
 // the columns' rows and the slice breaks.
 const SECTION = (caption, cols = "1") => ({ kind: "section", cols, ...(caption ? { caption } : {}) });
 
+// One COLUMN of a captioned multi-column grid (e.g. the Core "FOOD" page's
+// "d12 Poor Standard Wealthy" — each price tier is its own single-die table).
+// `col` is the 0-based column index, `ncols` the total; parsed single-column
+// (the grid sits under one caption) — see parseGridColumn in table-importer.
+const GRIDCOL = (caption, col, ncols) => ({ kind: "gridcol", caption, col, ncols, cols: "1" });
+
 // ── Content registry — keyed by persistent contentId ─────────────────────────
 // Each entry: { id, src, names:[displayName…], shape }. The `id` is an EXPLICIT,
 // immutable string — deliberately NOT derived from the display name, so a name
@@ -152,6 +158,15 @@ export const CONTENT_ENTRIES = [
   _entry("core/tier-3", "CORE", "Tier 3", SECTION("TIER 3", "auto")),
   _entry("core/tier-4", "CORE", "Tier 4", SECTION("TIER 4", "auto")),
   _entry("core/tier-5", "CORE", "Tier 5", SECTION("TIER 5", "auto")),
+  // Shops (p138): POOR SHOP | STANDARD SHOP side by side, WEALTHY SHOP below.
+  _entry("core/poor-shop", "CORE", "Poor Shop", SECTION("POOR SHOP", "auto")),
+  _entry("core/standard-shop", "CORE", "Standard Shop", SECTION("STANDARD SHOP", "auto")),
+  _entry("core/wealthy-shop", "CORE", "Wealthy Shop", SECTION("WEALTHY SHOP", "auto")),
+  // Food (p137): one "d12 Poor Standard Wealthy" grid — each catalog entry is a
+  // single column of it, extracted by GRIDCOL(caption, columnIndex, columnCount).
+  _entry("core/food-poor", "CORE", "Food - Poor", GRIDCOL("FOOD", 0, 3)),
+  _entry("core/food-standard", "CORE", "Food - Standard", GRIDCOL("FOOD", 1, 3)),
+  _entry("core/food-wealthy", "CORE", "Food - Wealthy", GRIDCOL("FOOD", 2, 3)),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

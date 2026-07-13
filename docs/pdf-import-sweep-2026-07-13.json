@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 58,
-   "REVIEW": 83,
+   "clean": 64,
+   "REVIEW": 77,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -1342,153 +1342,123 @@
    "status": "clean"
   },
   {
-   "id": "Table::CORE::Drinks::133",
+   "id": "Table::CORE::Drinks::137",
    "name": "Drinks",
    "type": "Table",
    "src": "CORE",
-   "pages": "133",
+   "pages": "137",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d20",
-   "rows": 23,
+   "formula": "1d12",
+   "rows": 36,
    "warns": [
-    "Rows 1 and 16 overlap.",
-    "Rows 2 and 17 overlap.",
-    "Rows 3 and 18 overlap.",
-    "Rows 3 and 19 overlap."
+    "Rows 1 and 13 overlap.",
+    "Rows 1 and 25 overlap.",
+    "Rows 1 and 29 overlap.",
+    "Rows 2 and 14 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Food - Poor::133",
+   "id": "Table::CORE::Food - Poor::137",
    "name": "Food - Poor",
    "type": "Table",
    "src": "CORE",
-   "pages": "133",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 23,
-   "warns": [
-    "Rows 1 and 16 overlap.",
-    "Rows 2 and 17 overlap.",
-    "Rows 3 and 18 overlap.",
-    "Rows 3 and 19 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "137",
+   "shape": "gridcol",
+   "route": "table:shape(gridcol)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Food - Standard::133",
+   "id": "Table::CORE::Food - Standard::137",
    "name": "Food - Standard",
    "type": "Table",
    "src": "CORE",
-   "pages": "133",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 23,
-   "warns": [
-    "Rows 1 and 16 overlap.",
-    "Rows 2 and 17 overlap.",
-    "Rows 3 and 18 overlap.",
-    "Rows 3 and 19 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "137",
+   "shape": "gridcol",
+   "route": "table:shape(gridcol)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Food - Wealthy::133",
+   "id": "Table::CORE::Food - Wealthy::137",
    "name": "Food - Wealthy",
    "type": "Table",
    "src": "CORE",
-   "pages": "133",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 23,
-   "warns": [
-    "Rows 1 and 16 overlap.",
-    "Rows 2 and 17 overlap.",
-    "Rows 3 and 18 overlap.",
-    "Rows 3 and 19 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "137",
+   "shape": "gridcol",
+   "route": "table:shape(gridcol)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Poor Shop::134",
+   "id": "Table::CORE::Poor Shop::138",
    "name": "Poor Shop",
    "type": "Table",
    "src": "CORE",
-   "pages": "134",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d8",
-   "rows": 15,
-   "warns": [
-    "Rows 1 and 5 overlap.",
-    "Rows 1 and 13 overlap.",
-    "Rows 2 and 6 overlap.",
-    "Rows 2 and 7 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "138",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d12",
+   "rows": 12,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Standard Shop::134",
+   "id": "Table::CORE::Standard Shop::138",
    "name": "Standard Shop",
    "type": "Table",
    "src": "CORE",
-   "pages": "134",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d8",
-   "rows": 15,
-   "warns": [
-    "Rows 1 and 5 overlap.",
-    "Rows 1 and 13 overlap.",
-    "Rows 2 and 6 overlap.",
-    "Rows 2 and 7 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "138",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d10",
+   "rows": 10,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Wealthy Shop::134",
+   "id": "Table::CORE::Wealthy Shop::138",
    "name": "Wealthy Shop",
    "type": "Table",
    "src": "CORE",
-   "pages": "134",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d8",
-   "rows": 15,
-   "warns": [
-    "Rows 1 and 5 overlap.",
-    "Rows 1 and 13 overlap.",
-    "Rows 2 and 6 overlap.",
-    "Rows 2 and 7 overlap."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "138",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d10",
+   "rows": 10,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Interesting Customer::135",
+   "id": "Table::CORE::Interesting Customer::139",
    "name": "Interesting Customer",
    "type": "Table",
    "src": "CORE",
-   "pages": "135",
+   "pages": "139",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d6",
-   "rows": 36,
+   "formula": "1d20",
+   "rows": 25,
    "warns": [
-    "Rows 1 and 6 overlap.",
-    "Rows 1 and 11 overlap.",
-    "Rows 1 and 15 overlap.",
-    "Rows 1 and 19 overlap."
+    "Rows 1 and 21 overlap.",
+    "Rows 2 and 22 overlap.",
+    "Rows 2 and 25 overlap.",
+    "Rows 3 and 23 overlap."
    ],
    "shapeOk": null,
    "status": "REVIEW"

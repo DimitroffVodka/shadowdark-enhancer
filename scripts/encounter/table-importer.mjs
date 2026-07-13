@@ -1278,7 +1278,12 @@ function isSectionCaption(line) {
  * TITLE words are dropped so the matrix detector can't mis-split the rows.
  * Returns a ParsedTable or null (caller falls back to the generic parser).
  */
-function parseSectionSlice(text, { name = "", caption } = {}) {
+/**
+ * Locate a captioned block on a multi-table page and return its die header +
+ * body rows (up to the next caption), or null. Shared by parseSectionSlice and
+ * parseGridColumn.
+ */
+function _sliceSection(text, { name = "", caption } = {}) {
   const lines = String(text).split("\n").map((l) => l.trim());
   const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
   if (!want) return null;
@@ -1298,9 +1303,37 @@ function parseSectionSlice(text, { name = "", caption } = {}) {
     if (isSectionCaption(lines[i])) break;
     if (lines[i]) body.push(lines[i]);
   }
-  if (!body.length) return null;
+  return body.length ? { die, body } : null;
+}
+
+function parseSectionSlice(text, { name = "", caption } = {}) {
+  const s = _sliceSection(text, { name, caption });
+  if (!s) return null;
   // Force single-die (columns stripped) so a multi-word title never matrix-splits.
-  const pt = parseSingleDieBlock(name || die.remainder, { count: die.count, size: die.size, columns: [], remainder: "" }, body);
+  const pt = parseSingleDieBlock(name || s.die.remainder, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, s.body);
+  if (name) pt.name = name;
+  return pt.rows.length ? pt : null;
+}
+
+/**
+ * Extract ONE column of a captioned "dN Col1 Col2 Col3…" grid as its own
+ * single-die table (e.g. the Core "FOOD" page's Poor/Standard/Wealthy tiers).
+ * Each body row is split into `ncols` cells (capital-word boundaries) and the
+ * `col`-th cell becomes the row text. Returns a ParsedTable or null.
+ */
+function parseGridColumn(text, { name = "", caption, col = 0, ncols = 3 } = {}) {
+  const s = _sliceSection(text, { name, caption });
+  if (!s) return null;
+  const dataLines = [];
+  for (const line of s.body) {
+    const r = parseLeadingRange(line);
+    if (!r) continue;                                   // grid rows lead with a die value
+    const cells = splitCells(r.rest, ncols);
+    const cell = (cells[col] ?? "").trim();
+    if (cell) dataLines.push(`${r.min === r.max ? r.min : `${r.min}-${r.max}`} ${cell}`);
+  }
+  if (!dataLines.length) return null;
+  const pt = parseSingleDieBlock(name, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, dataLines);
   if (name) pt.name = name;
   return pt.rows.length ? pt : null;
 }
@@ -1309,6 +1342,10 @@ export function parseByShape(text, shape, { name = "" } = {}) {
   if (!shape) return null;
   if (shape.kind === "section") {
     const pt = parseSectionSlice(text, { name, caption: shape.caption });
+    return pt ? { tables: [pt] } : null;
+  }
+  if (shape.kind === "gridcol") {
+    const pt = parseGridColumn(text, { name, caption: shape.caption, col: shape.col, ncols: shape.ncols });
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "compound" && shape.split === "prayer") {
