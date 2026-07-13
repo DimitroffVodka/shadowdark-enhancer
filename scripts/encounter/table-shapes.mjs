@@ -40,6 +40,11 @@ const PRAYER = (size = 6) => ({
 
 const GRID3 = (size, labels) => ({ kind: "compound", split: "grid", cols: 3, size, labels });
 
+// A single small table stacked with others on one Core Rulebook generator page.
+// The parser slices it out by its ALL-CAPS caption (defaults to the name) and
+// single-die-parses just that block — see parseSectionSlice in table-importer.
+const SECTION = (caption) => ({ kind: "section", ...(caption ? { caption } : {}) });
+
 // ── Content registry — keyed by persistent contentId ─────────────────────────
 // Each entry: { src, names:[displayName…], shape }. `names[0]` is the canonical
 // display name; extra names are aliases the same content is known by. Adding a
@@ -93,6 +98,12 @@ export const CONTENT = Object.fromEntries([
   _entry("CORE", "Adventuring Site Name", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
   _entry("CORE", "Magic Item Idea Generator", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
   _entry("CORE", "NPC Qualities", GRID3(20, ["Appearance", "Does", "Secret"])),
+  // Core Rulebook "Rival Crawlers" party page (p126) stacks several small
+  // single-die tables under ALL-CAPS captions; the section shape slices the
+  // named one out so it stops overlapping its page-mates. (rec #3)
+  _entry("CORE", "Renown", SECTION("RENOWN")),
+  _entry("CORE", "Secret", SECTION("SECRET")),
+  _entry("CORE", "Wealth", SECTION("WEALTH")),
 ]);
 
 // Legacy display-name → shape map, derived from CONTENT. Kept exported for the

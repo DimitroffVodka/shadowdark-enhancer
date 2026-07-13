@@ -1252,8 +1252,61 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
  * `{ generators?, tables? }` bucket the hub routes into its preview lists, or
  * null when the shape can't parse the paste (caller falls back to heuristics).
  */
+// An ALL-CAPS section caption on a multi-table page (RENOWN, ARMOR TYPE,
+// ITEM FLAW). Uppercase letters + spaces and a few joiners, ≥2 chars, at least
+// one letter, and NOT a "dN …" die header or a leading die-range row.
+function isSectionCaption(line) {
+  const t = String(line).trim();
+  if (t.length < 2) return false;
+  if (parseDieHeader(t) || parseLeadingRange(t)) return false;
+  if (!/[A-Z]/.test(t)) return false;
+  return /^[A-Z0-9][A-Z0-9 '&/.\-]*$/.test(t) && !/[a-z]/.test(t);
+}
+
+/**
+ * Slice one named single-die table out of a multi-table page and parse just it.
+ * Core Rulebook generator pages stack several small tables — each an ALL-CAPS
+ * caption ("RENOWN"), a "dN Title" header, then rows — so a whole-page parse
+ * overlaps every table's low faces. The `section` shape finds the caption that
+ * matches the seeded name (case-insensitive, caption override allowed), takes
+ * the block up to the next caption, and runs the normal single-die parse on it.
+ * The header die (count+size, e.g. 2d6 Party Secret) is read but its trailing
+ * TITLE words are dropped so the matrix detector can't mis-split the rows.
+ * Returns a ParsedTable or null (caller falls back to the generic parser).
+ */
+function parseSectionSlice(text, { name = "", caption } = {}) {
+  const lines = String(text).split("\n").map((l) => l.trim());
+  const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
+  if (!want) return null;
+  let start = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (isSectionCaption(lines[i]) && lines[i].toUpperCase().replace(/\s+/g, " ") === want) { start = i; break; }
+  }
+  if (start === -1) return null;
+  // Header line = the "dN Title" right after the caption (skip blanks).
+  let h = start + 1;
+  while (h < lines.length && !lines[h]) h++;
+  const die = parseDieHeader(lines[h]);
+  if (!die) return null;
+  // Body = rows until the next section caption.
+  const body = [];
+  for (let i = h + 1; i < lines.length; i++) {
+    if (isSectionCaption(lines[i])) break;
+    if (lines[i]) body.push(lines[i]);
+  }
+  if (!body.length) return null;
+  // Force single-die (columns stripped) so a multi-word title never matrix-splits.
+  const pt = parseSingleDieBlock(name || die.remainder, { count: die.count, size: die.size, columns: [], remainder: "" }, body);
+  if (name) pt.name = name;
+  return pt.rows.length ? pt : null;
+}
+
 export function parseByShape(text, shape, { name = "" } = {}) {
   if (!shape) return null;
+  if (shape.kind === "section") {
+    const pt = parseSectionSlice(text, { name, caption: shape.caption });
+    return pt ? { tables: [pt] } : null;
+  }
   if (shape.kind === "compound" && shape.split === "prayer") {
     const pt = parsePrayerGenerator(text, { name, size: shape.size, labels: shape.labels });
     return pt ? { generators: [pt] } : null;
