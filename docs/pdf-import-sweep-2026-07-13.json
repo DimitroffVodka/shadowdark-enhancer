@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 64,
-   "REVIEW": 77,
+   "clean": 65,
+   "REVIEW": 76,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -1450,17 +1450,14 @@
    "type": "Table",
    "src": "CORE",
    "pages": "139",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d20",
-   "rows": 25,
+   "shape": "matrix",
+   "route": "table:shape(matrix)",
+   "formula": "1d16",
+   "rows": 16,
    "warns": [
-    "Rows 1 and 21 overlap.",
-    "Rows 2 and 22 overlap.",
-    "Rows 2 and 25 overlap.",
-    "Rows 3 and 23 overlap."
+    "Matrix parse: 3 of 4 rows didn't split into 4 cells — check the layout."
    ],
-   "shapeOk": null,
+   "shapeOk": true,
    "status": "REVIEW"
   },
   {
@@ -2460,15 +2457,13 @@
    "type": "Table",
    "src": "CORE",
    "pages": "295",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d72",
-   "rows": 36,
-   "warns": [
-    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "shape": "matrix",
+   "route": "table:shape(matrix)",
+   "formula": "1d16",
+   "rows": 16,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CS1::Cursed Scroll 1 p68: Diabolical Treasure::68",

@@ -34,7 +34,7 @@
  * a shape that falls through to the generic parser is route
  * "table:shape-fallback-generic" AND status REVIEW even when warning-free.
  * Items/classes/ancestry use their own recognizers. A warning is "bad" (→ REVIEW)
- * if it matches /overlap|has no row|couldn't split|reach|missing|verif|rebuilt|prayer parse/i.
+ * if it matches /overlap|has no row|couldn't split|reach|missing|verif|rebuilt|prayer parse|matrix parse/i.
  * meta.method records this same description so a re-run + diff stays clean.
  */
 export async function runManageCoverageSweep({ save = false } = {}) {
@@ -110,7 +110,7 @@ export async function runManageCoverageSweep({ save = false } = {}) {
         // "verify/rebuilt" (generic fallback hedge) and "Prayer parse: N …
         // expected M" (a shaped generator that dropped an entry to cell-wrap)
         // are bad too — a shape that parsed but is short of its faces is REVIEW.
-        const bad = (t?.warnings || g?.warnings || []).filter((w) => badRe.test(w) || /verif|rebuilt|prayer parse/i.test(w));
+        const bad = (t?.warnings || g?.warnings || []).filter((w) => badRe.test(w) || /verif|rebuilt|prayer parse|matrix parse/i.test(w));
         rec.formula = t?.formula ?? null;
         rec.rows = t?.rows?.length ?? (g ? `gen:${g.compound?.columns?.length}col` : null);
         rec.warns = bad.slice(0, 4);

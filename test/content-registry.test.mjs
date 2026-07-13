@@ -196,6 +196,39 @@ test("gridcol shape: extracts one column of a captioned grid as its own single-d
   assert.equal(parseByShape(GRID_PAGE, { kind: "gridcol", caption: "NOPE", col: 0, ncols: 3 }, { name: "x" }), null);
 });
 
+// A dN,dN cross-reference matrix in layout form (2+-space columns). Invented.
+const MATRIX_PAGE = [
+  "FEELINGS",
+  "d4, d4    1        2        3        4",
+  "1    Happy    Sad      Angry    Calm",
+  "2    Brave    Timid    Bold     Meek",
+  "3    Kind     Cruel    Warm     Cold",
+  "4    Wise     Silly    Sharp    Dull",
+].join("\n");
+
+test("matrix shape: a d4,d4 cross-reference flattens row-major to a 1d16 table", () => {
+  const b = parseByShape(MATRIX_PAGE, { kind: "matrix", caption: "FEELINGS", size: 4 }, { name: "Feelings" });
+  assert.ok(b?.tables?.length === 1);
+  const t = b.tables[0];
+  assert.equal(t.formula, "1d16");
+  assert.equal(t.rows.length, 16);
+  assert.deepEqual(t.rows.map((r) => r.text),
+    ["Happy", "Sad", "Angry", "Calm", "Brave", "Timid", "Bold", "Meek",
+      "Kind", "Cruel", "Warm", "Cold", "Wise", "Silly", "Sharp", "Dull"]);
+  assert.deepEqual(t.warnings, [], "clean single-word cells split without a warning");
+  // A wrong caption → null (falls back).
+  assert.equal(parseByShape(MATRIX_PAGE, { kind: "matrix", caption: "NOPE", size: 4 }, { name: "x" }), null);
+});
+
+test("matrix registry: the d4×d4 tables are matrix shapes needing layout extraction", () => {
+  for (const n of ["Interesting Customer", "Personality Trait"]) {
+    const s = shapeForName(n);
+    assert.equal(s?.kind, "matrix");
+    assert.equal(s.cols, "layout");
+    assert.equal(s.size, 4);
+  }
+});
+
 test("shops/food registry: shops are 2-col sections, food tiers are grid columns", () => {
   for (const n of ["Poor Shop", "Standard Shop", "Wealthy Shop"]) {
     const s = shapeForName(n);
@@ -220,8 +253,10 @@ test("section shape: caption defaults to the name and a decoy caption is not mat
 });
 
 test("no false positive: a distinct table sharing a word does not borrow a shape", () => {
-  // "Personality Trait" (a real clean CORE table) must NOT match the "Personality"
-  // generator's shape, and generically-named columns route by id, not name.
-  assert.equal(shapeForName("Personality Trait"), null);
-  assert.equal(contentIdForName("Personality Trait"), null);
+  // A name that merely shares a word with (or pluralizes) a shaped table must
+  // NOT match it — the suffix rule only fires on a real "… - <name>" prefix.
+  for (const n of ["Item Flaws", "Renowned Party", "Weapon Typing", "Utterly Unknown"]) {
+    assert.equal(shapeForName(n), null, `${n} borrows no shape`);
+    assert.equal(contentIdForName(n), null, `${n} maps to no id`);
+  }
 });

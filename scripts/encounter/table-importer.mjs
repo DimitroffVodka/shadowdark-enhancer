@@ -1338,8 +1338,71 @@ function parseGridColumn(text, { name = "", caption, col = 0, ncols = 3 } = {}) 
   return pt.rows.length ? pt : null;
 }
 
+/**
+ * Parse a "dN, dN" cross-reference matrix (roll dN for the row, dN for the
+ * column, read the cell) into a flat 1d(N·N) table — each of the N² cells is one
+ * equally-likely result, which reproduces the two-die distribution with a single
+ * roll. Reads LAYOUT-mode text: the header ("d4, d4  1  2  3  4") gives the
+ * column x-positions and each data row's cells bin to the nearest column, so a
+ * multi-word cell ("1d10 children") that a reading-order split can't separate is
+ * placed correctly. Returns a ParsedTable or null.
+ */
+function parseMatrix(text, { name = "", caption, size = 4 } = {}) {
+  const lines = String(text).split("\n");
+  const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
+  if (!want) return null;
+  let start = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (isSectionCaption(lines[i].trim()) && lines[i].trim().toUpperCase().replace(/\s+/g, " ") === want) { start = i; break; }
+  }
+  if (start === -1) return null;
+  // Header "dN, dN 1 2 …": its digit pieces are the column x-anchors.
+  let h = -1, n = size;
+  for (let i = start + 1; i < lines.length && i < start + 4; i++) {
+    const m = /\bd(\d+)\s*,\s*d(\d+)/i.exec(lines[i]);
+    if (m) { h = i; n = Number(m[1]); break; }
+  }
+  if (h === -1 || !(n >= 2)) return null;
+  // Body = lines after the header up to the next caption — bound the row search
+  // here so a same-numbered row of an EARLIER table on the page isn't grabbed.
+  let bodyEnd = lines.length;
+  for (let i = h + 1; i < lines.length; i++) { if (isSectionCaption(lines[i].trim())) { bodyEnd = i; break; } }
+  const body = lines.slice(h + 1, bodyEnd);
+  // Each data row leads with its die number, then its n cells IN ORDER (the
+  // layout padding separates columns with 2+ spaces). Take the cell pieces
+  // positionally — the header's digit labels are offset from the cell text, so
+  // binning by their x mis-assigns near a boundary. A row whose cells don't
+  // split into exactly n pieces (tight columns the padding couldn't separate)
+  // is kept best-effort and flagged.
+  const grid = [];
+  let raggedRows = 0;
+  for (let r = 1; r <= n; r++) {
+    const line = body.find((l) => { const p = parseLeadingRange(l.trim()); return p && p.min === r && p.max === r; });
+    const cellPieces = line ? _layoutPieces(line).slice(1).map((p) => p.text) : [];
+    if (cellPieces.length !== n) raggedRows++;
+    const cells = cellPieces.slice(0, n);
+    while (cells.length < n) cells.push("");
+    grid.push(cells);
+  }
+  // Flatten row-major to a 1d(n²) table.
+  const rows = [];
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) rows.push({ min: rows.length + 1, max: rows.length + 1, text: (grid[r]?.[c] ?? "").trim() });
+  const warnings = [];
+  if (raggedRows) warnings.push(`Matrix parse: ${raggedRows} of ${n} rows didn't split into ${n} cells — check the layout.`);
+  const nm = (name || caption || "Matrix").trim();
+  const pt = {
+    name: nm, formula: `1d${n * n}`, replacement: true, bestEffort: false,
+    category: classify(nm), customLabel: "", rows, warnings,
+  };
+  return rows.some((row) => row.text) ? pt : null;
+}
+
 export function parseByShape(text, shape, { name = "" } = {}) {
   if (!shape) return null;
+  if (shape.kind === "matrix") {
+    const pt = parseMatrix(text, { name, caption: shape.caption, size: shape.size });
+    return pt ? { tables: [pt] } : null;
+  }
   if (shape.kind === "section") {
     const pt = parseSectionSlice(text, { name, caption: shape.caption });
     return pt ? { tables: [pt] } : null;

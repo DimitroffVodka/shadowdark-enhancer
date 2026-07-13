@@ -55,6 +55,11 @@ const SECTION = (caption, cols = "1") => ({ kind: "section", cols, ...(caption ?
 // (the grid sits under one caption) — see parseGridColumn in table-importer.
 const GRIDCOL = (caption, col, ncols) => ({ kind: "gridcol", caption, col, ncols, cols: "1" });
 
+// A "dN, dN" cross-reference matrix (Interesting Customer, Personality Trait):
+// flattened to a 1d(N²) table. Needs layout extraction to keep the column
+// x-positions the matrix parser bins cells to.
+const MATRIX = (caption, size = 4) => ({ kind: "matrix", caption, size, cols: "layout" });
+
 // ── Content registry — keyed by persistent contentId ─────────────────────────
 // Each entry: { id, src, names:[displayName…], shape }. The `id` is an EXPLICIT,
 // immutable string — deliberately NOT derived from the display name, so a name
@@ -167,6 +172,9 @@ export const CONTENT_ENTRIES = [
   _entry("core/food-poor", "CORE", "Food - Poor", GRIDCOL("FOOD", 0, 3)),
   _entry("core/food-standard", "CORE", "Food - Standard", GRIDCOL("FOOD", 1, 3)),
   _entry("core/food-wealthy", "CORE", "Food - Wealthy", GRIDCOL("FOOD", 2, 3)),
+  // d4×d4 cross-reference matrices → flat 1d16.
+  _entry("core/interesting-customer", "CORE", "Interesting Customer", MATRIX("INTERESTING CUSTOMER", 4)),
+  _entry("core/personality-trait", "CORE", "Personality Trait", MATRIX("PERSONALITY TRAIT", 4)),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

@@ -2560,7 +2560,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const shp = resolveShape({ contentId: seed?.contentId, name: seed?.name, src: seed?.src });
     const columns = seed._bgBundle ? "1"
       : shp?.split === "prayer" ? "layout"
-      : (shp?.kind === "section" || shp?.kind === "gridcol") ? (shp.cols || "1")
+      : (shp?.kind === "section" || shp?.kind === "gridcol" || shp?.kind === "matrix") ? (shp.cols || "1")
       : "auto";
 
     let result;
