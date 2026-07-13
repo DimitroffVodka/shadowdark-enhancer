@@ -33,6 +33,7 @@ import {
   SPELL_LISTS, gatherSpellListCensus,
 } from "./char-content-manifest.mjs";
 import { coreGroupsFor } from "./core-table-groups.mjs";
+import { contentIdForName } from "./table-shapes.mjs";
 import { GAMEPLAY_TABLES, PATRON_TABLES } from "./table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monster-census-live.mjs";
 import { liveItemRecords } from "./item-census-live.mjs";
@@ -207,6 +208,7 @@ function coreGroupLeaf(g, tablesPresent) {
     return {
       name: t.name, present, seedAction: "charSeedPaste",
       type: "Table", src: "CORE", pages: String(t.page),
+      contentId: contentIdForName(t.name) ?? undefined,
     };
   });
   const have = entries.filter((e) => e.present).length;

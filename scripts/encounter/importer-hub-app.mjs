@@ -32,6 +32,7 @@ import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./it
 import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, BACKGROUND_TABLES, sourcedTableName } from "./char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
+import { contentIdForName } from "./table-shapes.mjs";
 import { findSuitePack } from "./compendium-suite.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
@@ -1452,8 +1453,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // lookup — reconstruct it deterministically instead of guessing. Driven by
     // the unlock seed's identity, or a "PRAYER GENERATOR" title in the paste.
     if (type === "auto" || type === "tables" || type === "generators") {
-      const { shapeForName } = await import("./table-shapes.mjs");
-      let shape = shapeForName(seed?.name);
+      const { resolveShape, shapeForName } = await import("./table-shapes.mjs");
+      // Dispatch by persistent contentId first (collision-free); fall back to
+      // the suffix-tolerant name match for freeform pastes with no seed id.
+      let shape = resolveShape({ contentId: seed?.contentId, name: seed?.name });
       if (!shape && /prayer\s+generator/i.test(text)) shape = shapeForName("Gede Prayers");
       if (shape) {
         const bucket = TableImporter.parseByShape(text, shape, { name: seed?.name || "" });
@@ -2464,6 +2467,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       name,
       src,
       type,
+      // Persistent content id (PDF-import review §09 rec #2): prefer the id the
+      // manage-tree stamped, else derive it from the name via the registry's
+      // reverse index. Drives collision-free shape dispatch in _onHubParse.
+      contentId: target.dataset.contentId || contentIdForName(name) || undefined,
       page: target.dataset.pages || undefined,
       book: CHAR_SOURCES[src]?.book || src || undefined,
       _charSeed: true,
