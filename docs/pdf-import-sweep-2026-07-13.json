@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 91,
-   "REVIEW": 50,
+   "clean": 92,
+   "REVIEW": 49,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -1821,36 +1821,37 @@
    "status": "clean"
   },
   {
-   "id": "Table::CORE::Unique Feature::274",
+   "id": "Table::CORE::Unique Feature::278",
    "name": "Unique Feature",
    "type": "Table",
    "src": "CORE",
-   "pages": "274",
+   "pages": "278",
    "shape": null,
    "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
+   "formula": "1d360",
+   "rows": 25,
    "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+    "Value 11 has no row.",
+    "Value 21 has no row.",
+    "Value 22 has no row.",
+    "Value 23 has no row."
    ],
    "shapeOk": null,
    "status": "REVIEW"
   },
   {
-   "id": "Table::CORE::Luxury Items::275",
+   "id": "Table::CORE::Luxury Items::279",
    "name": "Luxury Items",
    "type": "Table",
    "src": "CORE",
-   "pages": "275",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d68",
-   "rows": 34,
-   "warns": [
-    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "279",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d20",
+   "rows": 20,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::Magic Item Idea Generator::283",

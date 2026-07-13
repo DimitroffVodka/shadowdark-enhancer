@@ -139,8 +139,10 @@ export const CORE_TABLE_GROUPS = [
       { name: "TREASURE 4-6", page: "272-273" },
       { name: "TREASURE 7-9", page: "274-275" },
       { name: "TREASURE 10+", page: "276-277" },
-      { name: "Unique Feature", page: 274 },
-      { name: "Luxury Items", page: 275 },
+      // Unique Feature p278 (its d20 table is interleaved with prose — still
+      // REVIEW, but at least the page is right now, not TREASURE 7-9's p274).
+      { name: "Unique Feature", page: 278 },
+      { name: "Luxury Items", page: 279 },
     ],
   },
   {

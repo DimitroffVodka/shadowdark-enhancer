@@ -212,6 +212,9 @@ export const CONTENT_ENTRIES = [
   _entry("core/treasure-4-6", "CORE", "TREASURE 4-6", LONGTABLE("TREASURE 4-6")),
   _entry("core/treasure-7-9", "CORE", "TREASURE 7-9", LONGTABLE("TREASURE 7-9")),
   _entry("core/treasure-10", "CORE", "TREASURE 10+", LONGTABLE()),
+  // Luxury Items (p279): a d20 "Feature Item" list — one combined item per row,
+  // section-sliced single-column.
+  _entry("core/luxury-items", "CORE", "Luxury Items", SECTION("LUXURY ITEMS", "1")),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));
