@@ -220,6 +220,35 @@ test("matrix shape: a d4,d4 cross-reference flattens row-major to a 1d16 table",
   assert.equal(parseByShape(MATRIX_PAGE, { kind: "matrix", caption: "NOPE", size: 4 }, { name: "x" }), null);
 });
 
+// A two-page d100 table in 1-column form: a title-case seed line, a running-
+// header crumb, the caption + "d100 Details" header REPEATED on the second page,
+// and page-footer numbers — all noise the longtable parser strips. Invented.
+const LONG_PAGE = [
+  "Region Encounters",   // the import's title-case seed line (not a caption)
+  "Region",              // running-header crumb
+  "REGION ENCOUNTERS",   // caption
+  "d100 Details",
+  "01 Alpha",
+  "02-50 Beta",
+  "142",                 // page footer (> die) — stray
+  "Region",              // page-2 crumb
+  "REGION ENCOUNTERS",   // repeated caption
+  "d100 Details",        // repeated header
+  "51-99 Gamma",
+  "100 Delta",
+  "143",                 // page footer
+].join("\n");
+
+test("longtable shape: strips repeated caption/header + footers across two pages", () => {
+  const b = parseByShape(LONG_PAGE, { kind: "longtable", caption: "REGION ENCOUNTERS", size: 100 }, { name: "Region Encounters" });
+  assert.ok(b?.tables?.length === 1, "one table");
+  const t = b.tables[0];
+  assert.equal(t.formula, "1d100", "die is 1d100, not 1d142 from the page footer");
+  assert.deepEqual(t.rows.map((r) => [r.min, r.max, r.text]),
+    [[1, 1, "Alpha"], [2, 50, "Beta"], [51, 99, "Gamma"], [100, 100, "Delta"]], "weighted ranges intact, noise gone");
+  assert.ok(!t.warnings.some((w) => /has no row|reach/i.test(w)), "no coverage/formula warning");
+});
+
 test("matrix registry: the d4×d4 tables are matrix shapes needing layout extraction", () => {
   for (const n of ["Interesting Customer", "Personality Trait"]) {
     const s = shapeForName(n);

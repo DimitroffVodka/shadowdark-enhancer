@@ -1397,8 +1397,41 @@ function parseMatrix(text, { name = "", caption, size = 4 } = {}) {
   return rows.some((row) => row.text) ? pt : null;
 }
 
+/**
+ * A single large single-die table (a d100 encounter/treasure table) that spans
+ * TWO pages. In 1-column extraction the weighted roll ranges stay paired with
+ * their descriptions ("02-03 2d20 bandits…"), but the page carries noise the
+ * generic parser trips on: the running header word ("Arctic"), a REPEATED
+ * caption + "dN Details" header on the continuation page, and the page-footer
+ * numbers (142/143) that inflate the die to 1d142. This strips all of that
+ * (keeping the first caption/header) then single-die-parses the whole range.
+ */
+function parseLongTable(text, { name = "", caption, size = 100 } = {}) {
+  const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
+  let capSeen = 0, hdrSeen = 0;
+  const cleaned = String(text).split("\n").map((l) => l.trim()).filter((l) => {
+    if (!l) return false;
+    if (/^\d+$/.test(l) && Number(l) > size) return false;                  // page footer / stray > die
+    // Keep only the FIRST real (all-caps) caption; a title-case seed line isn't
+    // one, and the repeated caption on the continuation page is dropped.
+    if (isSectionCaption(l) && l.toUpperCase().replace(/\s+/g, " ") === want) { capSeen++; return capSeen === 1; }
+    if (/^d\d{1,3}\b/i.test(l) && /details?|results?|effects?/i.test(l)) { hdrSeen++; return hdrSeen === 1; }
+    if (/^[A-Z][a-z]+$/.test(l) && l.length < 12) return false;             // running-header crumb ("Arctic")
+    return true;
+  }).join("\n");
+  const s = _sliceSection(cleaned, { name, caption });
+  if (!s) return null;
+  const pt = parseSingleDieBlock(name || s.die.remainder, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, s.body);
+  if (name) pt.name = name;
+  return pt.rows.length ? pt : null;
+}
+
 export function parseByShape(text, shape, { name = "" } = {}) {
   if (!shape) return null;
+  if (shape.kind === "longtable") {
+    const pt = parseLongTable(text, { name, caption: shape.caption, size: shape.size });
+    return pt ? { tables: [pt] } : null;
+  }
   if (shape.kind === "matrix") {
     const pt = parseMatrix(text, { name, caption: shape.caption, size: shape.size });
     return pt ? { tables: [pt] } : null;

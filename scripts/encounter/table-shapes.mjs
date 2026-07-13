@@ -60,6 +60,11 @@ const GRIDCOL = (caption, col, ncols) => ({ kind: "gridcol", caption, col, ncols
 // x-positions the matrix parser bins cells to.
 const MATRIX = (caption, size = 4) => ({ kind: "matrix", caption, size, cols: "layout" });
 
+// A single large single-die table (a d100 encounter/treasure list) spanning two
+// pages. Needs 1-column extraction (keeps the weighted ranges paired with their
+// text); the parser strips the repeated caption/header + page footers.
+const LONGTABLE = (caption, size = 100) => ({ kind: "longtable", caption, size, cols: "1" });
+
 // ── Content registry — keyed by persistent contentId ─────────────────────────
 // Each entry: { id, src, names:[displayName…], shape }. The `id` is an EXPLICIT,
 // immutable string — deliberately NOT derived from the display name, so a name
@@ -175,6 +180,29 @@ export const CONTENT_ENTRIES = [
   // d4×d4 cross-reference matrices → flat 1d16.
   _entry("core/interesting-customer", "CORE", "Interesting Customer", MATRIX("INTERESTING CUSTOMER", 4)),
   _entry("core/personality-trait", "CORE", "Personality Trait", MATRIX("PERSONALITY TRAIT", 4)),
+  // Core Rulebook d100 random-encounter tables (each spans two pages). 1-column
+  // extraction keeps the weighted ranges; the longtable parser strips the noise.
+  _entry("core/arctic-encounters", "CORE", "Arctic Encounters", LONGTABLE("ARCTIC ENCOUNTERS")),
+  _entry("core/artisan-district-encounters", "CORE", "Artisan District Encounters", LONGTABLE("ARTISAN DISTRICT ENCOUNTERS")),
+  _entry("core/castle-district-encounters", "CORE", "Castle District Encounters", LONGTABLE("CASTLE DISTRICT ENCOUNTERS")),
+  _entry("core/cave-encounters", "CORE", "Cave Encounters", LONGTABLE("CAVE ENCOUNTERS")),
+  _entry("core/deep-tunnels-encounters", "CORE", "Deep Tunnels Encounters", LONGTABLE("DEEP TUNNELS ENCOUNTERS")),
+  _entry("core/desert-encounters", "CORE", "Desert Encounters", LONGTABLE("DESERT ENCOUNTERS")),
+  _entry("core/forest-encounters", "CORE", "Forest Encounters", LONGTABLE("FOREST ENCOUNTERS")),
+  _entry("core/grassland-encounters", "CORE", "Grassland Encounters", LONGTABLE("GRASSLAND ENCOUNTERS")),
+  _entry("core/high-district-encounters", "CORE", "High District Encounters", LONGTABLE("HIGH DISTRICT ENCOUNTERS")),
+  _entry("core/jungle-encounters", "CORE", "Jungle Encounters", LONGTABLE("JUNGLE ENCOUNTERS")),
+  _entry("core/low-district-encounters", "CORE", "Low District Encounters", LONGTABLE("LOW DISTRICT ENCOUNTERS")),
+  _entry("core/market-encounters", "CORE", "Market Encounters", LONGTABLE("MARKET ENCOUNTERS")),
+  _entry("core/mountain-encounters", "CORE", "Mountain Encounters", LONGTABLE("MOUNTAIN ENCOUNTERS")),
+  _entry("core/ocean-encounters", "CORE", "Ocean Encounters", LONGTABLE("OCEAN ENCOUNTERS")),
+  _entry("core/river-and-coast-encounters", "CORE", "River And Coast Encounters", LONGTABLE("RIVER AND COAST ENCOUNTERS")),
+  _entry("core/slums-encounters", "CORE", "Slums Encounters", LONGTABLE("SLUMS ENCOUNTERS")),
+  _entry("core/swamp-encounters", "CORE", "Swamp Encounters", LONGTABLE("SWAMP ENCOUNTERS")),
+  _entry("core/tavern-encounters", "CORE", "Tavern Encounters", LONGTABLE("TAVERN ENCOUNTERS")),
+  _entry("core/temple-district-encounters", "CORE", "Temple District Encounters", LONGTABLE("TEMPLE DISTRICT ENCOUNTERS")),
+  _entry("core/tomb-encounters", "CORE", "Tomb Encounters", LONGTABLE("TOMB ENCOUNTERS")),
+  _entry("core/university-district-encounters", "CORE", "University District Encounters", LONGTABLE("UNIVERSITY DISTRICT ENCOUNTERS")),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

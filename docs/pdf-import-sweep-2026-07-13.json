@@ -52,8 +52,8 @@
  ],
  "agg": {
   "Table": {
-   "clean": 65,
-   "REVIEW": 76,
+   "clean": 86,
+   "REVIEW": 55,
    "skip-no-page": 8
   },
   "Ancestry": {
@@ -1475,340 +1475,298 @@
    "status": "clean"
   },
   {
-   "id": "Table::CORE::Arctic Encounters::142",
+   "id": "Table::CORE::Arctic Encounters::142-143",
    "name": "Arctic Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "142",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "142-143",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Artisan District Encounters::144",
+   "id": "Table::CORE::Artisan District Encounters::144-145",
    "name": "Artisan District Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "144",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "144-145",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Castle District Encounters::146",
+   "id": "Table::CORE::Castle District Encounters::146-147",
    "name": "Castle District Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "146",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "146-147",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Cave Encounters::148",
+   "id": "Table::CORE::Cave Encounters::148-149",
    "name": "Cave Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "148",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "148-149",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Deep Tunnels Encounters::150",
+   "id": "Table::CORE::Deep Tunnels Encounters::150-151",
    "name": "Deep Tunnels Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "150",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "150-151",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Desert Encounters::152",
+   "id": "Table::CORE::Desert Encounters::152-153",
    "name": "Desert Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "152",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "152-153",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Forest Encounters::154",
+   "id": "Table::CORE::Forest Encounters::154-155",
    "name": "Forest Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "154",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "154-155",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Grassland Encounters::156",
+   "id": "Table::CORE::Grassland Encounters::156-157",
    "name": "Grassland Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "156",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "156-157",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::High District Encounters::158",
+   "id": "Table::CORE::High District Encounters::158-159",
    "name": "High District Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "158",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "158-159",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Jungle Encounters::160",
+   "id": "Table::CORE::Jungle Encounters::160-161",
    "name": "Jungle Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "160",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "160-161",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Low District Encounters::162",
+   "id": "Table::CORE::Low District Encounters::162-163",
    "name": "Low District Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "162",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "162-163",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Market Encounters::164",
+   "id": "Table::CORE::Market Encounters::164-165",
    "name": "Market Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "164",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "164-165",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Mountain Encounters::166",
+   "id": "Table::CORE::Mountain Encounters::166-167",
    "name": "Mountain Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "166",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "166-167",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Ocean Encounters::168",
+   "id": "Table::CORE::Ocean Encounters::168-169",
    "name": "Ocean Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "168",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "168-169",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::River And Coast Encounters::170",
+   "id": "Table::CORE::River And Coast Encounters::170-171",
    "name": "River And Coast Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "170",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "170-171",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Slums Encounters::174",
+   "id": "Table::CORE::Slums Encounters::174-175",
    "name": "Slums Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "174",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "174-175",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Swamp Encounters::176",
+   "id": "Table::CORE::Swamp Encounters::176-177",
    "name": "Swamp Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "176",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "176-177",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Tavern Encounters::178",
+   "id": "Table::CORE::Tavern Encounters::178-179",
    "name": "Tavern Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "178",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "178-179",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Temple District Encounters::180",
+   "id": "Table::CORE::Temple District Encounters::180-181",
    "name": "Temple District Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "180",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "180-181",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::Tomb Encounters::182",
+   "id": "Table::CORE::Tomb Encounters::182-183",
    "name": "Tomb Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "182",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d54",
-   "rows": 27,
-   "warns": [
-    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "182-183",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
-   "id": "Table::CORE::University District Encounters::184",
+   "id": "Table::CORE::University District Encounters::184-185",
    "name": "University District Encounters",
    "type": "Table",
    "src": "CORE",
-   "pages": "184",
-   "shape": null,
-   "route": "table:generic",
-   "formula": "1d52",
-   "rows": 26,
-   "warns": [
-    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
-   ],
-   "shapeOk": null,
-   "status": "REVIEW"
+   "pages": "184-185",
+   "shape": "longtable",
+   "route": "table:shape(longtable)",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
   },
   {
    "id": "Table::CORE::TREASURE 0-3::270",
