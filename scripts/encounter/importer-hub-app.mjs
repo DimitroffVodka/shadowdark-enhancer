@@ -2253,11 +2253,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onMonsterSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     if (!name) return;
+    const src = target.dataset.src ?? "";
     // Trailing newline so the seeded name reads as a title line and the GM's
     // pasted section lands on the line AFTER it (review: unlock line break).
     this._importText = `${name}\n`;
-    this._importSeed = { name, _monsterSeed: true };
+    this._importSeed = { name, src, _monsterSeed: true };
     this._importType = "monsters";
+    // Monster gaps carry a source (book) but no page cite — stamp the source so
+    // the import folder + the "Grab from PDF" extractor default to the book.
+    if (src) this._importSource = CHAR_SOURCES[src]?.label ?? src;
     this.render();
   }
 
@@ -2535,10 +2539,28 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * The CHAR_SOURCES key to pre-select in the Extract dialog: from the active
+   * seed's source (a manifest key like "CS4" or a display label like "Western
+   * Reaches") or the free-text Source field. Lets a monster-gap "Grab from PDF"
+   * open straight to the right book. Null when nothing matches.
+   */
+  _defaultExtractSrc() {
+    const cand = String(this._importSeed?.src || this._importSource || "").trim().toLowerCase();
+    if (!cand) return null;
+    for (const [k, v] of Object.entries(CHAR_SOURCES)) {
+      if (k.toLowerCase() === cand
+        || (v.label && v.label.toLowerCase() === cand)
+        || (v.book && v.book.toLowerCase() === cand)) return k;
+    }
+    return null;
+  }
+
+  /**
    * "Extract from PDF" (standalone): pick a linked source book, a page or page
    * range, and column handling, then drop the extracted text into the paste
    * box. Same engine as the seed-flow grab, but page-driven for content that
-   * isn't tied to an unlock row.
+   * isn't tied to an unlock row (e.g. monster-census gaps, which know the book
+   * but not the page). Pre-selects the book from the active seed / source.
    */
   async _onExtractPdf() {
     const { listSourcePdfs } = await import("./source-pdf-registry.mjs");
@@ -2547,8 +2569,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn("No source PDFs are linked yet. Use “Source PDFs” to upload your books first.");
       return;
     }
+    const defaultSrc = this._defaultExtractSrc();
     const options = rows
-      .map((r) => `<option value="${r.src}">${foundry.utils.escapeHTML(r.label)}</option>`)
+      .map((r) => `<option value="${r.src}"${r.src === defaultSrc ? " selected" : ""}>${foundry.utils.escapeHTML(r.label)}</option>`)
       .join("");
     const picked = await foundry.applications.api.DialogV2.wait({
       window: { title: "Extract text from PDF", icon: "fas fa-file-pdf" },

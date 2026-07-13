@@ -282,8 +282,11 @@ function buildMonsters(monsterRows, actorRecords) {
   const rowByLabel = new Map(monsterRows.map((r) => [r.label, r]));
 
   const makeLeaf = (label) => {
-    const present = [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true }));
-    const missing = (rowByLabel.get(label)?.missingNames ?? []).map((name) => ({ name, present: false }));
+    // Stamp each entry's source (the leaf label) so the seed carries the book —
+    // monster gaps have no page cite, but knowing the source lets the import
+    // folder + the "Grab from PDF" page-range extractor default to the right book.
+    const present = [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true, src: label }));
+    const missing = (rowByLabel.get(label)?.missingNames ?? []).map((name) => ({ name, present: false, src: label }));
     const node = leaf(`monsters/${label}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
     // Sealed bestiary that isn't fully imported here → one direct Unlock row.
     const sealed = SEALED_BESTIARIES[label];

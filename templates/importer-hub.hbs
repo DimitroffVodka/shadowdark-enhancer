@@ -30,7 +30,8 @@
     {{#if importData.seed.book}}<span class="sde-hub-import-seed-tag"><i class="fas fa-book"></i> {{importData.seed.book}}{{#if importData.seed.page}}, page {{importData.seed.page}}{{/if}}</span>{{/if}}
     {{#if importData.seed.die}}<span class="sde-hub-import-seed-tag">{{importData.seed.die}}</span>{{/if}}
     {{#if importData.seedPdfHref}}<button type="button" data-action="openSourcePdf" data-href="{{importData.seedPdfHref}}" class="sde-hub-import-pdfbtn" title="Open the source PDF at the cited page to copy from"><i class="fas fa-file-pdf"></i> Open PDF{{#if importData.seed.page}} p.{{importData.seed.page}}{{/if}}</button>
-    <button type="button" data-action="hubGrabPdfText" class="sde-hub-import-pdfbtn" title="Pull the cited page's text straight into the paste box (no drag-selecting). Uses Foundry's built-in PDF engine; two-column pages come out in reading order."><i class="fas fa-wand-magic-sparkles"></i> Grab text{{#if importData.seed.page}} p.{{importData.seed.page}}{{/if}}</button>{{/if}}
+    <button type="button" data-action="hubGrabPdfText" class="sde-hub-import-pdfbtn" title="Pull the cited page's text straight into the paste box (no drag-selecting). Uses Foundry's built-in PDF engine; two-column pages come out in reading order."><i class="fas fa-wand-magic-sparkles"></i> Grab text{{#if importData.seed.page}} p.{{importData.seed.page}}{{/if}}</button>
+    {{else}}<button type="button" data-action="hubExtractPdf" class="sde-hub-import-pdfbtn" title="This entry has no cited page — pull it from the book by page. Opens the page-range extractor with the book pre-selected."><i class="fas fa-wand-magic-sparkles"></i> Grab from PDF</button>{{/if}}
     {{#unless importData.seedResult}}— paste that section and click Parse.{{/unless}}
     {{#if importData.seedResult}}
     {{#if importData.seedResult.ok}}
