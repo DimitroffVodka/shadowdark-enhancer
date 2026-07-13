@@ -112,6 +112,68 @@ function computeWarnings(pt) {
   return warnings;
 }
 
+/**
+ * Repair shared-start range typos before warnings run. When a row's low bound
+ * equals the PREVIOUS row's low bound and its high bound is greater — e.g.
+ * "21-22" then "21-24", where the Western Reaches Dwarf Trinket table means
+ * "23-24" — the second row's low almost certainly should be prev.max + 1. This
+ * is the common single-digit source/OCR typo. The fix shifts ONLY the low bound
+ * (never the high), so it can't create a new overlap or gap and downstream
+ * tiling is unchanged, and it's recorded as an `Auto-fixed:` note — never
+ * silent. Genuine ambiguous overlaps (different starts, partial, or a row fully
+ * inside another) are left untouched for computeWarnings to flag.
+ * @param {Array<{min:number,max:number}>} rows  mutated in place
+ * @returns {string[]} Auto-fixed messages
+ */
+function repairSharedStartRanges(rows) {
+  const notes = [];
+  for (let i = 1; i < rows.length; i++) {
+    const prev = rows[i - 1], cur = rows[i];
+    if (cur.min === prev.min && cur.max > prev.max) {
+      const was = `${cur.min}-${cur.max}`;
+      cur.min = prev.max + 1;
+      notes.push(`Auto-fixed: row ${i + 1} range ${was} → ${cur.min}-${cur.max} (shared start with row ${i}).`);
+    }
+  }
+  return notes;
+}
+
+// Standard die faces a table can legitimately reach. A top row landing on one
+// of these (notably d100) is never treated as a stray page number, so real
+// dice tables are untouched.
+const PLAUSIBLE_DIE_MAX = new Set([2, 3, 4, 6, 8, 10, 12, 20, 30, 36, 66, 100]);
+
+/**
+ * Drop a stray "page-number" row that inflates the inferred die. In a shapeless
+ * multi-column generator (Renown/Secret/Wealth, the magic-item generator
+ * columns, Item Flaw/Virtue…), the source page number is extracted as a lone
+ * high leading-range row far above the table's real coverage — producing a
+ * bogus formula like `1d284` (p284) and a flood of "Value N has no row"
+ * warnings. When the single highest row value is an isolated, above-die-range
+ * outlier — more than double the next-highest row's max AND at least 50 above
+ * it, over a dense body of ≥3 other rows, and not itself a standard die face —
+ * it is almost certainly the page cite: drop it and record a visible note.
+ * Real dN tables tile densely up to a standard face, so they never trip this;
+ * the ≤100 / standard-face guard specifically protects legitimate d100 tables.
+ * (Deliberately conservative: a page number below 100 is indistinguishable from
+ * a real row and is left alone — bug #2 in the PDF-import review §07.)
+ * @param {Array<{min:number,max:number,text:string}>} rows mutated in place
+ * @returns {string[]} notes (never silent)
+ */
+function dropStrayPageNumber(rows) {
+  if (rows.length < 4) return [];
+  const byMax = [...rows].sort((a, b) => a.max - b.max);
+  const top = byMax[byMax.length - 1];
+  const second = byMax[byMax.length - 2];
+  const V = top.max, S = second.max;
+  if (V <= 100 || PLAUSIBLE_DIE_MAX.has(V)) return [];
+  if (!(V > 2 * S && V - S >= 50)) return [];
+  rows.splice(rows.indexOf(top), 1);
+  const range = top.min === top.max ? `${V}` : `${top.min}-${V}`;
+  const snip = String(top.text ?? "").trim().slice(0, 30);
+  return [`Dropped probable page-number row ${range}${snip ? ` ("${snip}")` : ""} — far above the table's ${S}-value coverage; formula reset from 1d${V}.`];
+}
+
 /** Build a single-die ParsedTable from a block's data lines. */
 function parseSingleDieBlock(title, die, dataLines) {
   const rows = [];
@@ -138,6 +200,20 @@ function parseSingleDieBlock(title, die, dataLines) {
       rows.push({ min: i + 1, max: i + 1, text: line.trim() });
     });
   }
+
+  // Drop rows left with no text after continuation-merging — a page number,
+  // header, or other single-token extraction artifact lands as an empty range
+  // row (e.g. a bare "19" page number → [19,19] with no description, which then
+  // false-overlaps a real row). A real single-die result always carries text.
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (!String(rows[i].text ?? "").trim()) rows.splice(i, 1);
+  }
+
+  // Drop a stray page-number row before the die/formula is inferred from the
+  // max range — otherwise a leftover page cite (e.g. "284") headlines the table
+  // as 1d284 and floods the coverage check. Only fires on an isolated
+  // above-die-range outlier; the note is added to warnings below.
+  const strayNotes = die ? [] : dropStrayPageNumber(rows);
 
   // Multi-column prose table (e.g. Carousing Outcome's "d14 Outcome Benefit"):
   // the header carries ≥2 column labels but the block isn't a single-word-cell
@@ -182,7 +258,12 @@ function parseSingleDieBlock(title, die, dataLines) {
     rows,
     warnings: [],
   };
+  // Repair shared-start range typos (mutates pt.rows) before the coverage/overlap
+  // pass, so the fixed ranges tile cleanly and the Auto-fixed notes lead the list.
+  const autoFixes = repairSharedStartRanges(pt.rows);
   pt.warnings = computeWarnings(pt);
+  if (autoFixes.length) pt.warnings.unshift(...autoFixes);
+  if (strayNotes.length) pt.warnings.unshift(...strayNotes);
   if (preRow.length) {
     pt.warnings.push(`Pre-row text kept as table description: "${preRow.join(" ")}"`);
   }

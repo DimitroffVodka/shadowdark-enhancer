@@ -109,3 +109,66 @@ test("#11: 'Weapons: none' grants no weapon named none", () => {
   assert.deepEqual(d.weaponNames, []);
   assert.deepEqual(d.armorNames, []);
 });
+
+// ── 2026-07-13 shared-start range auto-repair (repairSharedStartRanges) ───────
+// A row whose low bound repeats the PREVIOUS row's low bound (a common single-
+// digit source typo, e.g. the printed "21-24" that should read "23-24") has its
+// low shifted to prev.max+1, with an "Auto-fixed:" note. Fixtures are invented.
+
+test("range repair: a shared-start typo shifts the low bound and notes it", () => {
+  const [pt] = parseTables("d10 Detail\n1-2 alpha\n3-4 beta\n3-6 gamma\n7-8 delta\n9-10 epsilon");
+  const gamma = pt.rows.find((r) => r.text === "gamma");
+  assert.equal(gamma.min, 5, "low shifted from 3 to prev.max+1");
+  assert.equal(gamma.max, 6, "high bound is untouched");
+  assert.ok(pt.warnings.some((w) => /^Auto-fixed:/.test(w)), "repair is announced, not silent");
+  assert.ok(!pt.warnings.some((w) => /overlap/i.test(w)), "the overlap is resolved, not warned");
+});
+
+test("range repair guard: independent adjacent ranges are left alone", () => {
+  const [pt] = parseTables("d10 Detail\n1-2 a\n3-4 b\n5-6 c\n7-8 d\n9-10 e");
+  assert.deepEqual(pt.rows.map((r) => [r.min, r.max]), [[1,2],[3,4],[5,6],[7,8],[9,10]]);
+  assert.ok(!pt.warnings.some((w) => /^Auto-fixed:/.test(w)), "nothing to repair, no note");
+});
+
+// ── 2026-07-13 empty-row filter (page-number / caption artifacts) ─────────────
+// A bare number left on its own line (e.g. a page number swept in by extraction)
+// parses to an empty-text range row and is dropped, so it can't inflate the
+// formula or false-overlap a real row.
+
+test("empty-row filter: a bare page number is not kept as a table row", () => {
+  const [pt] = parseTables("d6 Detail\n1 a\n2 b\n3 c\n4 d\n5 e\n6 f\n99");
+  assert.equal(pt.rows.length, 6, "the stray '99' line is dropped");
+  assert.ok(!pt.rows.some((r) => r.min === 99), "no phantom row at the page number");
+  assert.ok(pt.rows.every((r) => String(r.text).trim().length > 0), "every kept row has text");
+});
+
+// ── 2026-07-13 stray page-number formula pollution (dropStrayPageNumber) ──────
+// A shapeless generator whose source page number is extracted WITH trailing
+// text (so the empty-row filter can't catch it) landed a lone high row like
+// [284,284,"MAGIC ITEM GENERATOR"], headlining the table as 1d284 with a flood
+// of "no row" warnings. The isolated above-die-range outlier is now dropped
+// with a visible note, so the die is inferred from the real coverage. Fixtures
+// are invented. (Recommendation #1 / §07 bug #2 of the PDF-import review.)
+
+test("stray page number: an isolated high row is dropped and the die is corrected", () => {
+  // "284" leads the block and swallows the header line as its continuation, so
+  // it carries text and survives the empty-row filter — the real pollution shape.
+  const [pt] = parseTables("284\nMAGIC ITEM GENERATOR\n1 alpha\n2 beta\n3 gamma\n4 delta\n5 epsilon\n6 zeta");
+  assert.ok(!pt.rows.some((r) => r.max === 284), "the page-number row is gone");
+  assert.equal(pt.formula, "1d6", "die inferred from the real 6-row body, not the page cite");
+  assert.ok(pt.warnings.some((w) => /page-number row 284/.test(w)), "the drop is announced, not silent");
+  assert.ok(!pt.warnings.some((w) => /has no row/.test(w)), "no phantom coverage gaps up to 284");
+});
+
+test("stray page number guard: a legitimate d100 table is left intact", () => {
+  const [pt] = parseTables("d100 Loot\n1-40 copper\n41-80 silver\n81-100 gold");
+  assert.equal(pt.formula, "1d100", "d100 header stands");
+  assert.equal(pt.rows.length, 3, "no row dropped");
+  assert.ok(!pt.warnings.some((w) => /page-number/.test(w)), "d100's reach of 100 is not a page cite");
+});
+
+test("stray page number guard: a headerless d100 reaching 100 is not mistaken for a page cite", () => {
+  const [pt] = parseTables("1-50 low\n51-90 mid\n91-100 high\n100 top");
+  assert.ok(pt.rows.some((r) => r.max === 100), "the top row at 100 survives");
+  assert.ok(!pt.warnings.some((w) => /page-number/.test(w)), "100 is a standard die face, never a stray");
+});
