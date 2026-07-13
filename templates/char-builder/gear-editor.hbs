@@ -1,0 +1,95 @@
+<div class="sde-ege">
+<style>
+/* Styles are embedded here (not in the module stylesheet) so the window renders
+   correctly regardless of Foundry's aggressive module-CSS caching. Unlayered, so
+   they win over the system's cascade layers. Theme-neutral gray alphas. */
+.sde-extra-gear-editor .window-content { padding: 0; display: flex; flex-direction: column; min-height: 0; }
+.sde-extra-gear-editor .sde-ege { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 8px 10px; gap: 6px; box-sizing: border-box; }
+
+.sde-extra-gear-editor .sde-ege-toolbar { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.sde-extra-gear-editor .sde-ege-filter { flex: 1 1 auto; min-width: 0; }
+.sde-extra-gear-editor .sde-ege-source { flex: 0 0 auto; max-width: 45%; }
+
+.sde-extra-gear-editor .sde-ege-subbar { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.sde-extra-gear-editor .sde-ege-count { font-size: 12px; opacity: 0.75; white-space: nowrap; }
+.sde-extra-gear-editor .sde-ege-subbar-actions { margin-left: auto; display: flex; gap: 4px; }
+.sde-extra-gear-editor .sde-ege-subbar-actions button { width: auto; flex: 0 0 auto; padding: 2px 8px; line-height: 1.6; }
+
+.sde-extra-gear-editor .sde-ege-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; border: 1px solid rgba(127,127,127,0.35); border-radius: 4px; }
+
+.sde-extra-gear-editor .sde-ege-folder { border-bottom: 1px solid rgba(127,127,127,0.22); }
+.sde-extra-gear-editor .sde-ege-folder[hidden] { display: none; }
+.sde-extra-gear-editor .sde-ege-folder-head { display: flex; align-items: center; gap: 6px; padding: 5px 8px; cursor: pointer; font-weight: 700; font-size: 13px; list-style: none; user-select: none; background: rgba(127,127,127,0.12); }
+.sde-extra-gear-editor .sde-ege-folder-head::-webkit-details-marker { display: none; }
+.sde-extra-gear-editor .sde-ege-folder-head:hover { background: rgba(127,127,127,0.2); }
+.sde-extra-gear-editor .sde-ege-caret { flex: 0 0 auto; font-size: 11px; opacity: 0.7; transition: transform 0.12s ease; }
+.sde-extra-gear-editor .sde-ege-folder[open] > .sde-ege-folder-head .sde-ege-caret { transform: rotate(90deg); }
+.sde-extra-gear-editor .sde-ege-folder-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-extra-gear-editor .sde-ege-folder-count { flex: 0 0 auto; font-size: 11px; font-weight: 400; opacity: 0.6; }
+.sde-extra-gear-editor .sde-ege-folder-body { padding: 2px 0; }
+
+.sde-extra-gear-editor .sde-ege-row { display: flex; align-items: center; gap: 7px; padding: 2px 8px 2px 22px; border-radius: 3px; cursor: pointer; line-height: 1.4; }
+.sde-extra-gear-editor .sde-ege-row:hover { background: rgba(127,127,127,0.16); }
+.sde-extra-gear-editor .sde-ege-row[hidden] { display: none; }
+.sde-extra-gear-editor .sde-ege-row.is-default { cursor: default; }
+.sde-extra-gear-editor .sde-ege-row input[type="checkbox"] { flex: 0 0 auto; width: 14px; height: 14px; margin: 0; }
+.sde-extra-gear-editor .sde-ege-row.is-default input[type="checkbox"] { opacity: 0.6; }
+.sde-extra-gear-editor .sde-ege-default-tag { flex: 0 0 auto; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 1px 5px; border-radius: 3px; background: rgba(127,127,127,0.28); opacity: 0.85; }
+.sde-extra-gear-editor .sde-ege-img { flex: 0 0 auto; width: 18px; height: 18px; border: none; object-fit: contain; }
+.sde-extra-gear-editor .sde-ege-name { flex: 1 1 auto; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sde-extra-gear-editor .sde-ege-type { flex: 0 0 auto; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.55; }
+
+.sde-extra-gear-editor .sde-ege-empty { padding: 24px; text-align: center; opacity: 0.7; }
+.sde-extra-gear-editor .sde-ege-footer { display: flex; justify-content: flex-end; gap: 8px; flex: 0 0 auto; padding-top: 2px; }
+.sde-extra-gear-editor .sde-ege-footer button { width: auto; flex: 0 0 auto; }
+</style>
+
+  <div class="sde-ege-toolbar">
+    <input type="search" class="sde-ege-filter" placeholder="{{localize 'SDE.charBuilder.extraGear.filter'}}" autocomplete="off">
+    <select class="sde-ege-source" title="{{localize 'SDE.charBuilder.extraGear.source'}}">
+      <option value="">{{localize "SDE.charBuilder.extraGear.allSources"}}</option>
+      {{#each sources}}
+      <option value="{{id}}">{{label}} ({{count}})</option>
+      {{/each}}
+    </select>
+  </div>
+
+  <div class="sde-ege-subbar">
+    <span class="sde-ege-count">{{localize "SDE.charBuilder.extraGear.selected"}}: {{count}}</span>
+    <div class="sde-ege-subbar-actions">
+      <button type="button" data-action="ege-reset" title="{{localize 'SDE.charBuilder.extraGear.resetHint'}}"><i class="fa-solid fa-rotate-left"></i> {{localize "SDE.charBuilder.extraGear.reset"}}</button>
+    </div>
+  </div>
+
+  <div class="sde-ege-list">
+    {{#if hasGroups}}
+      {{#each folders}}
+      <details class="sde-ege-folder" data-source="{{id}}"{{#if hasChecked}} open{{/if}}>
+        <summary class="sde-ege-folder-head">
+          <i class="fa-solid fa-caret-right sde-ege-caret"></i>
+          <span class="sde-ege-folder-name">{{label}}</span>
+          <span class="sde-ege-folder-count">{{count}}</span>
+        </summary>
+        <div class="sde-ege-folder-body">
+          {{#each items}}
+          <label class="sde-ege-row{{#if isDefault}} is-default{{/if}}" data-name="{{name}}">
+            <input type="checkbox" class="sde-gear-pick" data-uuid="{{uuid}}" {{#if checked}}checked{{/if}}{{#if isDefault}} disabled data-default="1"{{/if}}>
+            <img class="sde-ege-img" src="{{img}}" alt="" loading="lazy">
+            <span class="sde-ege-name">{{name}}</span>
+            {{#if isDefault}}<span class="sde-ege-default-tag" title="{{localize 'SDE.charBuilder.extraGear.defaultHint'}}">{{localize "SDE.charBuilder.extraGear.defaultTag"}}</span>{{/if}}
+            <span class="sde-ege-type">{{type}}</span>
+          </label>
+          {{/each}}
+        </div>
+      </details>
+      {{/each}}
+    {{else}}
+      <p class="sde-ege-empty">{{localize "SDE.charBuilder.extraGear.empty"}}</p>
+    {{/if}}
+  </div>
+
+  <footer class="sde-ege-footer">
+    <button type="button" data-action="ege-cancel"><i class="fa-solid fa-xmark"></i> {{localize "SDE.charBuilder.extraGear.cancel"}}</button>
+    <button type="submit" class="sde-ege-save"><i class="fa-solid fa-floppy-disk"></i> {{localize "SDE.charBuilder.extraGear.save"}}</button>
+  </footer>
+</div>

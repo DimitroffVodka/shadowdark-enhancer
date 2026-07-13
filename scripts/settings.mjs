@@ -1,4 +1,5 @@
 import { MODULE_ID } from "./module-id.mjs";
+import { ExtraGearEditor } from "./char-builder/gear-editor-app.mjs";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, "combatMovementDefault", {
@@ -136,6 +137,29 @@ export function registerSettings() {
     config: true,
     type: Number,
     default: 0,
+  });
+
+  // GM-curated extra gear for the builder's shop. Holds an array of item UUIDs
+  // the GM has granted beyond the curated starting stock (SHOP_STOCK in
+  // gear-step.mjs) — magic items, potions, and anything else. Edited in the
+  // "Extra Gear" picker window (registerMenu below). Changing it fires the
+  // builder's content-unlock hook so any open builder refreshes its shop.
+  game.settings.register(MODULE_ID, "charBuilderExtraGear", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: [],
+    onChange: () => Hooks.callAll(`${MODULE_ID}.contentUnlocked`),
+  });
+
+  // GM-only picker (Configure Settings → this module) to manage the above list.
+  game.settings.registerMenu(MODULE_ID, "charBuilderExtraGearMenu", {
+    name: "SDE.settings.charBuilderExtraGear.name",
+    hint: "SDE.settings.charBuilderExtraGear.hint",
+    label: "SDE.settings.charBuilderExtraGear.label",
+    icon: "fa-solid fa-toolbox",
+    type: ExtraGearEditor,
+    restricted: true,
   });
 
   // Ancestry Names/Trinkets and Background/Deity tables are auto-discovered from

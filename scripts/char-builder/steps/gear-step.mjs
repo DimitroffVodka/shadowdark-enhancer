@@ -1,5 +1,6 @@
 import { ListStep } from "./list-step.mjs";
 import { enrich } from "../data.mjs";
+import { MODULE_ID } from "../../module-id.mjs";
 
 /**
  * Step — Gear. A shop: browse purchasable equipment (left), view an item
@@ -10,13 +11,14 @@ import { enrich } from "../data.mjs";
  * gear (e.g. a Paladin's) is not auto-added — the player buys/adds it here.
  */
 const CATEGORIES = ["Armor", "Weapon", "Basic"];
-const slug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+export const slug = (name) => String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 /** The fixed shop stock (user-approved starting-gear list), as name slugs of
  *  the compendium documents. Anything the loaders return outside this list —
  *  magic items, treasure, siege engines — never reaches the shop. Bolas and
- *  Spear-thrower ship as Weapon-type documents, so they list under Weapons. */
-const SHOP_STOCK = new Set([
+ *  Spear-thrower ship as Weapon-type documents, so they list under Weapons.
+ *  Exported so the Extra Gear editor can flag which items are default stock. */
+export const SHOP_STOCK = new Set([
   // Basic gear
   "arrows", "backpack", "ball-bearing", "caltrops", "candle", "charcoal-jar", "crawling-kit",
   "crossbow-bolts", "crowbar", "flash-seed", "flask-or-bottle", "flint-and-steel",
@@ -69,9 +71,33 @@ export class GearStep extends ListStep {
         byKey.set(key, d);
       }
     }
-    return [...byKey.values()]
-      .filter((d) => SHOP_STOCK.has(slug(d.name)))
-      .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+    const base = [...byKey.values()].filter((d) => SHOP_STOCK.has(slug(d.name)));
+    // GM-granted extra gear joins the pool, bypassing SHOP_STOCK (so magic
+    // items, potions, and anything else the curated stock omits can be offered).
+    // It still flows through _classPermits in prepareContext, so extra
+    // weapons/armor stay hidden for classes that can't use them.
+    const seen = new Set(base.map((d) => d.uuid));
+    for (const extra of await this._loadExtraGear()) {
+      if (!seen.has(extra.uuid)) { base.push(extra); seen.add(extra.uuid); }
+    }
+    return base.sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+  }
+
+  /** GM-granted extra gear as resolved documents. Unresolvable UUIDs (deleted
+   *  or from an uninstalled pack) are silently dropped. */
+  async _loadExtraGear() {
+    let uuids = [];
+    try { uuids = game.settings.get(MODULE_ID, "charBuilderExtraGear") || []; } catch (_e) { return []; }
+    if (!uuids.length) return [];
+    const docs = await Promise.all(uuids.map((u) => fromUuid(u).catch(() => null)));
+    return docs.filter(Boolean);
+  }
+
+  /** Which shop tab an item shows under. Weapons and Armor keep their type;
+   *  every other type (GM-granted potions, scrolls, gems, wands…) files under
+   *  Basic so it's reachable — the shop has no other category tabs. */
+  _catOf(item) {
+    return item.type === "Weapon" ? "Weapon" : item.type === "Armor" ? "Armor" : "Basic";
   }
 
   /** Clicking a list item VIEWS it (does not add to cart). */
@@ -237,7 +263,7 @@ export class GearStep extends ListStep {
   async prepareContext() {
     const items = await this.items();
     const permitted = await this._permitted();
-    const shown = items.filter((i) => i.type === this._category && this._classPermits(i, permitted));
+    const shown = items.filter((i) => this._catOf(i) === this._category && this._classPermits(i, permitted));
     const entries = shown.map((i) => ({ id: i.uuid, name: i.name, img: i.img, selected: i.uuid === this._viewUuid }));
     // GM-only: shop-stock entries missing from this world list as 🔒 rows that
     // route to the Importer (clicks intercepted in ListStep.onRender).

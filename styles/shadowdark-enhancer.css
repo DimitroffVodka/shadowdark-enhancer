@@ -8203,3 +8203,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-si-align { width: 9rem; }
 .sde-si-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--cus-rule); }
 .sde-si-pending { font-size: 12px; color: var(--cus-dim); }
+
+/* Extra Gear editor styles are embedded in templates/char-builder/gear-editor.hbs
+   (as an inline <style>) rather than here — this window must render correctly even
+   when Foundry serves a stale cached copy of this module stylesheet. */
