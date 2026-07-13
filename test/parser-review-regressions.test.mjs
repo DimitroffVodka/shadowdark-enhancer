@@ -172,3 +172,12 @@ test("stray page number guard: a headerless d100 reaching 100 is not mistaken fo
   assert.ok(pt.rows.some((r) => r.max === 100), "the top row at 100 survives");
   assert.ok(!pt.warnings.some((w) => /page-number/.test(w)), "100 is a standard die face, never a stray");
 });
+
+test("stray page number guard: a legitimate wide RANGE row is never dropped (Codex #2)", () => {
+  // A high top row that is a SPAN (81-200), not a lone value, is real table data
+  // — a page cite is always a single number. It must survive untouched.
+  const [pt] = parseTables("1-20 a\n21-40 b\n41-80 c\n81-200 d");
+  assert.equal(pt.formula, "1d200", "die reflects the real 200-face span, not a trimmed 1d80");
+  assert.ok(pt.rows.some((r) => r.min === 81 && r.max === 200), "the 81-200 range row is intact");
+  assert.ok(!pt.warnings.some((w) => /page-number/.test(w)), "a span is not mistaken for a page cite");
+});

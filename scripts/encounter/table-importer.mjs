@@ -153,8 +153,11 @@ const PLAUSIBLE_DIE_MAX = new Set([2, 3, 4, 6, 8, 10, 12, 20, 30, 36, 66, 100]);
  * outlier — more than double the next-highest row's max AND at least 50 above
  * it, over a dense body of ≥3 other rows, and not itself a standard die face —
  * it is almost certainly the page cite: drop it and record a visible note.
- * Real dN tables tile densely up to a standard face, so they never trip this;
- * the ≤100 / standard-face guard specifically protects legitimate d100 tables.
+ * The outlier MUST be a SINGLETON row (min === max): a page cite is a lone
+ * number, never a span, so a legitimate wide range row like "81-200" is left
+ * intact (guarding the data-loss case the Codex review caught). Real dN tables
+ * tile densely up to a standard face, so they never trip this; the ≤100 /
+ * standard-face guard additionally protects legitimate d100 tables.
  * (Deliberately conservative: a page number below 100 is indistinguishable from
  * a real row and is left alone — bug #2 in the PDF-import review §07.)
  * @param {Array<{min:number,max:number,text:string}>} rows mutated in place
@@ -166,12 +169,12 @@ function dropStrayPageNumber(rows) {
   const top = byMax[byMax.length - 1];
   const second = byMax[byMax.length - 2];
   const V = top.max, S = second.max;
+  if (top.min !== top.max) return [];   // a page cite is a lone value, not a span
   if (V <= 100 || PLAUSIBLE_DIE_MAX.has(V)) return [];
   if (!(V > 2 * S && V - S >= 50)) return [];
   rows.splice(rows.indexOf(top), 1);
-  const range = top.min === top.max ? `${V}` : `${top.min}-${V}`;
   const snip = String(top.text ?? "").trim().slice(0, 30);
-  return [`Dropped probable page-number row ${range}${snip ? ` ("${snip}")` : ""} — far above the table's ${S}-value coverage; formula reset from 1d${V}.`];
+  return [`Dropped probable page-number row ${V}${snip ? ` ("${snip}")` : ""} — far above the table's ${S}-value coverage; formula reset from 1d${V}.`];
 }
 
 /** Build a single-die ParsedTable from a block's data lines. */
@@ -1260,7 +1263,7 @@ function isSectionCaption(line) {
   if (t.length < 2) return false;
   if (parseDieHeader(t) || parseLeadingRange(t)) return false;
   if (!/[A-Z]/.test(t)) return false;
-  return /^[A-Z0-9][A-Z0-9 '&/.\-]*$/.test(t) && !/[a-z]/.test(t);
+  return /^[A-Z0-9][A-Z0-9 '&/.-]*$/.test(t) && !/[a-z]/.test(t);
 }
 
 /**

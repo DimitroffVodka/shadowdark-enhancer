@@ -1,0 +1,2990 @@
+{
+ "pass": true,
+ "meta": {
+  "date": "2026-07-13",
+  "foundry": "14.364",
+  "system": "shadowdark 4.0.6",
+  "module": "0.10.0",
+  "method": "Real import path: _onCharSeedPaste (auto-extract) + _onHubParse (resolveShape{contentId,name,src}->parseByShape, else parseTables + _applyImportSeed) for Table entries; parseClassSection/parseCharContent/itemRecognizer for the rest. A shaped entry is checked for ACTUAL shape success (parseByShape returns the expected output class: compound->generator, lookup/section->table); a shape that falls through to the generic parser is route 'table:shape-fallback-generic' AND status REVIEW even if warning-free. Warnings classed 'bad' by /overlap|has no row|couldn't split|reach|missing|verif|rebuilt/i.",
+  "sources": [
+   "CORE:journal:linked",
+   "WR:journal:linked",
+   "CS1:journal:linked",
+   "CS2:journal:linked",
+   "CS3:journal:linked",
+   "CS4:journal:linked",
+   "CS5:journal:linked",
+   "CS6:journal:linked"
+  ],
+  "duplicateIds": []
+ },
+ "monsters": [
+  {
+   "src": "CS1",
+   "have": 0,
+   "missing": 14,
+   "entries": 1
+  },
+  {
+   "src": "CS2",
+   "have": 0,
+   "missing": 14,
+   "entries": 1
+  },
+  {
+   "src": "CS3",
+   "have": 0,
+   "missing": 12,
+   "entries": 1
+  },
+  {
+   "src": "CS4",
+   "have": 4,
+   "missing": 15,
+   "entries": 5
+  },
+  {
+   "src": "CS5",
+   "have": 0,
+   "missing": 5,
+   "entries": 1
+  }
+ ],
+ "agg": {
+  "Table": {
+   "clean": 33,
+   "REVIEW": 108,
+   "skip-no-page": 8
+  },
+  "Ancestry": {
+   "clean": 1
+  },
+  "Class": {
+   "clean": 7,
+   "no-parse": 1,
+   "partial": 1
+  },
+  "SpellList": {
+   "skip": 10
+  },
+  "Actor": {
+   "skip-no-page": 5
+  },
+  "?": {
+   "skip-no-page": 4
+  },
+  "Basic": {
+   "clean": 18
+  },
+  "Armor": {
+   "clean": 2
+  },
+  "Weapon": {
+   "clean": 3,
+   "skip-no-page": 2
+  }
+ },
+ "records": [
+  {
+   "id": "Table::WR::Elf Names::20",
+   "name": "Elf Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "20",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Elf Trinket::21",
+   "name": "Elf Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "21",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Goblin Names::22",
+   "name": "Goblin Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "22",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Goblin Trinket::23",
+   "name": "Goblin Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "23",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Half-Elf Trinket::25",
+   "name": "Half-Elf Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "25",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Half-Orc Names::26",
+   "name": "Half-Orc Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "26",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Half-Orc Trinket::27",
+   "name": "Half-Orc Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "27",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Halfling Names::28",
+   "name": "Halfling Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "28",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Halfling Trinket::29",
+   "name": "Halfling Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "29",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Human Names::30",
+   "name": "Human Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "30",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Human Trinket::31",
+   "name": "Human Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "31",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Kobold Names::32",
+   "name": "Kobold Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "32",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Kobold Trinket::33",
+   "name": "Kobold Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "33",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Dwarf Names::18",
+   "name": "Dwarf Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "18",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Dwarf Trinket::19",
+   "name": "Dwarf Trinket",
+   "type": "Table",
+   "src": "WR",
+   "pages": "19",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 50,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Ancestry::WR::Half-Elf::24",
+   "name": "Half-Elf",
+   "type": "Ancestry",
+   "src": "WR",
+   "pages": "24",
+   "route": "charcontent:ancestry",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Table::WR::Half-Elf Names::24",
+   "name": "Half-Elf Names",
+   "type": "Table",
+   "src": "WR",
+   "pages": "24",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 100,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::WR::Western Reach Backgrounds::74-77",
+   "name": "Western Reach Backgrounds",
+   "type": "Table",
+   "src": "WR",
+   "pages": "74-77",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 96,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Class::WR::Delver::38",
+   "name": "Delver",
+   "type": "Class",
+   "src": "WR",
+   "pages": "38",
+   "route": "class:parseClassSection",
+   "status": "clean",
+   "detail": {
+    "talent": 6,
+    "features": 3
+   }
+  },
+  {
+   "id": "Class::WR::Duelist::42",
+   "name": "Duelist",
+   "type": "Class",
+   "src": "WR",
+   "pages": "42",
+   "route": "class:parseClassSection",
+   "status": "clean",
+   "detail": {
+    "talent": 5,
+    "features": 3
+   }
+  },
+  {
+   "id": "Class::WR::Green Knight::44",
+   "name": "Green Knight",
+   "type": "Class",
+   "src": "WR",
+   "pages": "44",
+   "route": "class:parseClassSection",
+   "status": "clean",
+   "detail": {
+    "talent": 6,
+    "features": 2
+   }
+  },
+  {
+   "id": "Class::WR::Kyzian Archer::49",
+   "name": "Kyzian Archer",
+   "type": "Class",
+   "src": "WR",
+   "pages": "49",
+   "route": "class:parseClassSection",
+   "status": "clean",
+   "detail": {
+    "talent": 5,
+    "features": 1
+   }
+  },
+  {
+   "id": "Class::WR::Monk of Yag-Kesh::50",
+   "name": "Monk of Yag-Kesh",
+   "type": "Class",
+   "src": "WR",
+   "pages": "50",
+   "route": "class:parseClassSection",
+   "status": "clean",
+   "detail": {
+    "talent": 6,
+    "features": 2
+   }
+  },
+  {
+   "id": "Class::WR::Necromancer::52",
+   "name": "Necromancer",
+   "type": "Class",
+   "src": "WR",
+   "pages": "52",
+   "route": "class:parseClassSection",
+   "status": "no-parse",
+   "detail": {
+    "talent": 0,
+    "features": 0
+   }
+  },
+  {
+   "id": "Class::WR::Paladin::54",
+   "name": "Paladin",
+   "type": "Class",
+   "src": "WR",
+   "pages": "54",
+   "route": "class:parseClassSection",
+   "status": "partial",
+   "detail": {
+    "talent": 0,
+    "features": 2
+   }
+  },
+  {
+   "id": "Class::WR::Roustabout::63",
+   "name": "Roustabout",
+   "type": "Class",
+   "src": "WR",
+   "pages": "63",
+   "route": "class:parseClassSection",
+   "status": "clean",
+   "detail": {
+    "talent": 5,
+    "features": 3
+   }
+  },
+  {
+   "id": "Class::WR::Wyrdling::72",
+   "name": "Wyrdling",
+   "type": "Class",
+   "src": "WR",
+   "pages": "72",
+   "route": "class:parseClassSection",
+   "status": "clean",
+   "detail": {
+    "talent": 5,
+    "features": 3
+   }
+  },
+  {
+   "id": "Table::WR::Freya Boons::208",
+   "name": "Freya Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "208",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Gede Prayers::195",
+   "name": "Gede Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "195",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d74",
+   "rows": 37,
+   "warns": [
+    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Krraktanamak Boons::209",
+   "name": "Krraktanamak Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "209",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Loki Boons::211",
+   "name": "Loki Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "211",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Madeera the Covenant Prayers::191",
+   "name": "Madeera the Covenant Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "191",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d70",
+   "rows": 35,
+   "warns": [
+    "Rebuilt 35 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Memnon Prayers::199",
+   "name": "Memnon Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "199",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d74",
+   "rows": 37,
+   "warns": [
+    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Molek Boons::212",
+   "name": "Molek Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "212",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Oatali Boons::214",
+   "name": "Oatali Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "214",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Obe-Ixx Boons::215",
+   "name": "Obe-Ixx Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "215",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d64",
+   "rows": 32,
+   "warns": [
+    "Rebuilt 32 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Odin Boons::216",
+   "name": "Odin Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "216",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Ord Prayers::197",
+   "name": "Ord Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "197",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d74",
+   "rows": 37,
+   "warns": [
+    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Oros Boons::217",
+   "name": "Oros Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "217",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Ramlaat Prayers::203",
+   "name": "Ramlaat Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "203",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d74",
+   "rows": 37,
+   "warns": [
+    "Rebuilt 37 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Rathgamnon Boons::218",
+   "name": "Rathgamnon Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "218",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Saint Terragnis Prayers::193",
+   "name": "Saint Terragnis Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "193",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d70",
+   "rows": 35,
+   "warns": [
+    "Rebuilt 35 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Saint Ydris Boons::219",
+   "name": "Saint Ydris Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "219",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d64",
+   "rows": 32,
+   "warns": [
+    "Rebuilt 32 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Shune the Vile Prayers::201",
+   "name": "Shune the Vile Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "201",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d72",
+   "rows": 36,
+   "warns": [
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::The Lost Prayers::205",
+   "name": "The Lost Prayers",
+   "type": "Table",
+   "src": "WR",
+   "pages": "205",
+   "shape": "compound/prayer",
+   "route": "table:shape-fallback-generic(compound/prayer)",
+   "formula": "1d78",
+   "rows": 39,
+   "warns": [
+    "Rebuilt 39 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": false,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Yag-Kesh Boons::223",
+   "name": "Yag-Kesh Boons",
+   "type": "Table",
+   "src": "WR",
+   "pages": "223",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Patron Boons: Almazzat::207",
+   "name": "Patron Boons: Almazzat",
+   "type": "Table",
+   "src": "WR",
+   "pages": "207",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Patron Boons: Kytheros::210",
+   "name": "Patron Boons: Kytheros",
+   "type": "Table",
+   "src": "WR",
+   "pages": "210",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Patron Boons: Mugdulblub::213",
+   "name": "Patron Boons: Mugdulblub",
+   "type": "Table",
+   "src": "WR",
+   "pages": "213",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Patron Boons: Shune the Vile::220",
+   "name": "Patron Boons: Shune the Vile",
+   "type": "Table",
+   "src": "WR",
+   "pages": "220",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Patron Boons: The Willowman::222",
+   "name": "Patron Boons: The Willowman",
+   "type": "Table",
+   "src": "WR",
+   "pages": "222",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::WR::Patron Boons: Titania::221",
+   "name": "Patron Boons: Titania",
+   "type": "Table",
+   "src": "WR",
+   "pages": "221",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d66",
+   "rows": 33,
+   "warns": [
+    "Rebuilt 33 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "SpellList::CS4::Druid (Wizard · Neutral)::16",
+   "name": "Druid (Wizard · Neutral)",
+   "type": "SpellList",
+   "src": "CS4",
+   "pages": "16",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::CS5::Sorcerer (Wizard · Chaotic)::15",
+   "name": "Sorcerer (Wizard · Chaotic)",
+   "type": "SpellList",
+   "src": "CS5",
+   "pages": "15",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::CS6::Mage (Wizard · Lawful)::19",
+   "name": "Mage (Wizard · Lawful)",
+   "type": "SpellList",
+   "src": "CS6",
+   "pages": "19",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::WR::Necromancer::122",
+   "name": "Necromancer",
+   "type": "SpellList",
+   "src": "WR",
+   "pages": "122",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::WR::Priest · Lawful::132",
+   "name": "Priest · Lawful",
+   "type": "SpellList",
+   "src": "WR",
+   "pages": "132",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::WR::Priest · Neutral::136",
+   "name": "Priest · Neutral",
+   "type": "SpellList",
+   "src": "WR",
+   "pages": "136",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::WR::Priest · Chaotic::140",
+   "name": "Priest · Chaotic",
+   "type": "SpellList",
+   "src": "WR",
+   "pages": "140",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::WR::Druid (Wizard · Neutral)::166",
+   "name": "Druid (Wizard · Neutral)",
+   "type": "SpellList",
+   "src": "WR",
+   "pages": "166",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::WR::Mage (Wizard · Lawful)::172",
+   "name": "Mage (Wizard · Lawful)",
+   "type": "SpellList",
+   "src": "WR",
+   "pages": "172",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "SpellList::WR::Sorcerer (Wizard · Chaotic)::178",
+   "name": "Sorcerer (Wizard · Chaotic)",
+   "type": "SpellList",
+   "src": "WR",
+   "pages": "178",
+   "route": "skip:SpellList",
+   "status": "skip"
+  },
+  {
+   "id": "Table::CORE::Carousing Event::92",
+   "name": "Carousing Event",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "92",
+   "shape": "lookup",
+   "route": "table:shape(lookup)",
+   "formula": "1d7",
+   "rows": 7,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Carousing Outcome::93",
+   "name": "Carousing Outcome",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "93",
+   "shape": "lookup",
+   "route": "table:shape(lookup)",
+   "formula": "1d14",
+   "rows": 4,
+   "warns": [
+    "Rows 3 and 4 overlap.",
+    "Rows reach 100 but formula is 1d14.",
+    "Value 3 has no row.",
+    "Value 4 has no row."
+   ],
+   "shapeOk": true,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Wizards and Thieves: Low Stakes::95",
+   "name": "Wizards and Thieves: Low Stakes",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "95",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d4",
+   "rows": 15,
+   "warns": [
+    "Rows 1 and 5 overlap.",
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 6 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Wizards and Thieves: Mid Stakes::95",
+   "name": "Wizards and Thieves: Mid Stakes",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "95",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d4",
+   "rows": 15,
+   "warns": [
+    "Rows 1 and 5 overlap.",
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 6 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Wizards and Thieves: High Stakes::95",
+   "name": "Wizards and Thieves: High Stakes",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "95",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d4",
+   "rows": 15,
+   "warns": [
+    "Rows 1 and 5 overlap.",
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 6 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Wizards and Thieves: Epic Stakes::95",
+   "name": "Wizards and Thieves: Epic Stakes",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "95",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d4",
+   "rows": 15,
+   "warns": [
+    "Rows 1 and 5 overlap.",
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 6 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Traps::114",
+   "name": "Traps",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "114",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Hazards::115",
+   "name": "Hazards",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "115",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Boons: Oaths::280",
+   "name": "Boons: Oaths",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "280",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Boons: Blessings::281",
+   "name": "Boons: Blessings",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "281",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 24,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 14 overlap.",
+    "Rows 3 and 15 overlap.",
+    "Rows 4 and 16 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Boons: Secrets::281",
+   "name": "Boons: Secrets",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "281",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:2col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CS1::Diabolical Mishap 1-3::-",
+   "name": "Diabolical Mishap 1-3",
+   "type": "Table",
+   "src": "CS1",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Table::CS1::Diabolical Mishap 4-5::-",
+   "name": "Diabolical Mishap 4-5",
+   "type": "Table",
+   "src": "CS1",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Table::CS2::Cursed Scroll 2 p26: Enduring Wounds::26",
+   "name": "Cursed Scroll 2 p26: Enduring Wounds",
+   "type": "Table",
+   "src": "CS2",
+   "pages": "26",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d26",
+   "rows": 21,
+   "warns": [
+    "Value 21 has no row.",
+    "Value 22 has no row.",
+    "Value 23 has no row.",
+    "Value 24 has no row."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CS6::Carousing Outcome::-",
+   "name": "Carousing Outcome",
+   "type": "Table",
+   "src": "CS6",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Table::CS6::Carousing Outcome - Benefit::-",
+   "name": "Carousing Outcome - Benefit",
+   "type": "Table",
+   "src": "CS6",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Table::CS6::Carousing Outcome - Mishap::-",
+   "name": "Carousing Outcome - Mishap",
+   "type": "Table",
+   "src": "CS6",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Table::WR::Carousing Benefit::-",
+   "name": "Carousing Benefit",
+   "type": "Table",
+   "src": "WR",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Table::WR::Carousing Mishap::-",
+   "name": "Carousing Mishap",
+   "type": "Table",
+   "src": "WR",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Table::CORE::Something Happens!::118",
+   "name": "Something Happens!",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "118",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Rumors::120",
+   "name": "Rumors",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "120",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Adventure Generator::122",
+   "name": "Adventure Generator",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "122",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Adventuring Site Name::122",
+   "name": "Adventuring Site Name",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "122",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::NPC Qualities::124",
+   "name": "NPC Qualities",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "124",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Party Name::126",
+   "name": "Party Name",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "126",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Renown::126",
+   "name": "Renown",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "126",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d6",
+   "rows": 4,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Secret::126",
+   "name": "Secret",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "126",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "2d6",
+   "rows": 6,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Wealth::126",
+   "name": "Wealth",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "126",
+   "shape": "section",
+   "route": "table:shape(section)",
+   "formula": "1d6",
+   "rows": 4,
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Tavern Generator::136",
+   "name": "Tavern Generator",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "136",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Drinks::133",
+   "name": "Drinks",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "133",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 23,
+   "warns": [
+    "Rows 1 and 16 overlap.",
+    "Rows 2 and 17 overlap.",
+    "Rows 3 and 18 overlap.",
+    "Rows 3 and 19 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Food - Poor::133",
+   "name": "Food - Poor",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "133",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 23,
+   "warns": [
+    "Rows 1 and 16 overlap.",
+    "Rows 2 and 17 overlap.",
+    "Rows 3 and 18 overlap.",
+    "Rows 3 and 19 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Food - Standard::133",
+   "name": "Food - Standard",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "133",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 23,
+   "warns": [
+    "Rows 1 and 16 overlap.",
+    "Rows 2 and 17 overlap.",
+    "Rows 3 and 18 overlap.",
+    "Rows 3 and 19 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Food - Wealthy::133",
+   "name": "Food - Wealthy",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "133",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 23,
+   "warns": [
+    "Rows 1 and 16 overlap.",
+    "Rows 2 and 17 overlap.",
+    "Rows 3 and 18 overlap.",
+    "Rows 3 and 19 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Poor Shop::134",
+   "name": "Poor Shop",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "134",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d8",
+   "rows": 15,
+   "warns": [
+    "Rows 1 and 5 overlap.",
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 6 overlap.",
+    "Rows 2 and 7 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Standard Shop::134",
+   "name": "Standard Shop",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "134",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d8",
+   "rows": 15,
+   "warns": [
+    "Rows 1 and 5 overlap.",
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 6 overlap.",
+    "Rows 2 and 7 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Wealthy Shop::134",
+   "name": "Wealthy Shop",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "134",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d8",
+   "rows": 15,
+   "warns": [
+    "Rows 1 and 5 overlap.",
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 6 overlap.",
+    "Rows 2 and 7 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Interesting Customer::135",
+   "name": "Interesting Customer",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "135",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d6",
+   "rows": 36,
+   "warns": [
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 15 overlap.",
+    "Rows 1 and 19 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Shop Generator::139",
+   "name": "Shop Generator",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "139",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Arctic Encounters::142",
+   "name": "Arctic Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "142",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Artisan District Encounters::144",
+   "name": "Artisan District Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "144",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Castle District Encounters::146",
+   "name": "Castle District Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "146",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Cave Encounters::148",
+   "name": "Cave Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "148",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Deep Tunnels Encounters::150",
+   "name": "Deep Tunnels Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "150",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Desert Encounters::152",
+   "name": "Desert Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "152",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Forest Encounters::154",
+   "name": "Forest Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "154",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Grassland Encounters::156",
+   "name": "Grassland Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "156",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::High District Encounters::158",
+   "name": "High District Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "158",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Jungle Encounters::160",
+   "name": "Jungle Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "160",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Low District Encounters::162",
+   "name": "Low District Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "162",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Market Encounters::164",
+   "name": "Market Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "164",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Mountain Encounters::166",
+   "name": "Mountain Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "166",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Ocean Encounters::168",
+   "name": "Ocean Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "168",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::River And Coast Encounters::170",
+   "name": "River And Coast Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "170",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Slums Encounters::174",
+   "name": "Slums Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "174",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Swamp Encounters::176",
+   "name": "Swamp Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "176",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tavern Encounters::178",
+   "name": "Tavern Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "178",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Temple District Encounters::180",
+   "name": "Temple District Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "180",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tomb Encounters::182",
+   "name": "Tomb Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "182",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::University District Encounters::184",
+   "name": "University District Encounters",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "184",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::TREASURE 0-3::270",
+   "name": "TREASURE 0-3",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "270",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d45",
+   "rows": 23,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::TREASURE 4-6::272",
+   "name": "TREASURE 4-6",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "272",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::TREASURE 7-9::274",
+   "name": "TREASURE 7-9",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "274",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::TREASURE 10+::276",
+   "name": "TREASURE 10+",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "276",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Unique Feature::274",
+   "name": "Unique Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "274",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Luxury Items::275",
+   "name": "Luxury Items",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "275",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Magic Item Idea Generator::283",
+   "name": "Magic Item Idea Generator",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "283",
+   "shape": "compound/grid",
+   "route": "table:shape(compound/grid)",
+   "formula": null,
+   "rows": "gen:3col",
+   "warns": [],
+   "shapeOk": true,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CORE::Personality::278",
+   "name": "Personality",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "278",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d360",
+   "rows": 25,
+   "warns": [
+    "Value 11 has no row.",
+    "Value 21 has no row.",
+    "Value 22 has no row.",
+    "Value 23 has no row."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Qualities::278",
+   "name": "Qualities",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "278",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d360",
+   "rows": 25,
+   "warns": [
+    "Value 11 has no row.",
+    "Value 21 has no row.",
+    "Value 22 has no row.",
+    "Value 23 has no row."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Type::278",
+   "name": "Type",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "278",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d360",
+   "rows": 25,
+   "warns": [
+    "Value 11 has no row.",
+    "Value 21 has no row.",
+    "Value 22 has no row.",
+    "Value 23 has no row."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Armor Bonus::280",
+   "name": "Armor Bonus",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "280",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Armor Feature::280",
+   "name": "Armor Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "280",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Armor Type::280",
+   "name": "Armor Type",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "280",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d68",
+   "rows": 34,
+   "warns": [
+    "Rebuilt 34 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Armor Benefit::281",
+   "name": "Armor Benefit",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "281",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 24,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 14 overlap.",
+    "Rows 3 and 15 overlap.",
+    "Rows 4 and 16 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Armor Curse::281",
+   "name": "Armor Curse",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "281",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 24,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 2 and 14 overlap.",
+    "Rows 3 and 15 overlap.",
+    "Rows 4 and 16 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Mixing Potions - Effect 1::282",
+   "name": "Mixing Potions - Effect 1",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "282",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d72",
+   "rows": 36,
+   "warns": [
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Mixing Potions - Effect 2::282",
+   "name": "Mixing Potions - Effect 2",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "282",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d72",
+   "rows": 36,
+   "warns": [
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Potion Features - Feature 1::282",
+   "name": "Potion Features - Feature 1",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "282",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d72",
+   "rows": 36,
+   "warns": [
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Potion Features - Feature 2::282",
+   "name": "Potion Features - Feature 2",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "282",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d72",
+   "rows": 36,
+   "warns": [
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Potion Features - Feature 3::282",
+   "name": "Potion Features - Feature 3",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "282",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d72",
+   "rows": 36,
+   "warns": [
+    "Rebuilt 36 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Potion Benefit::283",
+   "name": "Potion Benefit",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "283",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 21,
+   "warns": [
+    "Rows reach 283 but formula is 1d20."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Potion Curse::283",
+   "name": "Potion Curse",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "283",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 21,
+   "warns": [
+    "Rows reach 283 but formula is 1d20."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Scroll Feature::284",
+   "name": "Scroll Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "284",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 29,
+   "warns": [
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Wand Feature::284",
+   "name": "Wand Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "284",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 29,
+   "warns": [
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Spell Tier::284",
+   "name": "Spell Tier",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "284",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 29,
+   "warns": [
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Curses/benefits::284",
+   "name": "Curses/benefits",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "284",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 29,
+   "warns": [
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 1::284",
+   "name": "Tier 1",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "284",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 29,
+   "warns": [
+    "Rows 1 and 6 overlap.",
+    "Rows 1 and 11 overlap.",
+    "Rows 1 and 12 overlap.",
+    "Rows 1 and 13 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 2::285",
+   "name": "Tier 2",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "285",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 3::285",
+   "name": "Tier 3",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "285",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 4::285",
+   "name": "Tier 4",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "285",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Tier 5::285",
+   "name": "Tier 5",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "285",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d54",
+   "rows": 27,
+   "warns": [
+    "Rebuilt 27 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Utility Type::286",
+   "name": "Utility Type",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "286",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d8",
+   "rows": 22,
+   "warns": [
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 22 overlap.",
+    "Rows 2 and 10 overlap.",
+    "Rows 3 and 11 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Utility Feature::286",
+   "name": "Utility Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "286",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d8",
+   "rows": 22,
+   "warns": [
+    "Rows 1 and 9 overlap.",
+    "Rows 1 and 22 overlap.",
+    "Rows 2 and 10 overlap.",
+    "Rows 3 and 11 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Utility Benefit::287",
+   "name": "Utility Benefit",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "287",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d56",
+   "rows": 28,
+   "warns": [
+    "Rebuilt 28 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Utility Curse::287",
+   "name": "Utility Curse",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "287",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d56",
+   "rows": 28,
+   "warns": [
+    "Rebuilt 28 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Type::288",
+   "name": "Weapon Type",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Feature::288",
+   "name": "Weapon Feature",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Bonus::288",
+   "name": "Weapon Bonus",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "288",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d84",
+   "rows": 42,
+   "warns": [
+    "Rebuilt 42 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Benefit::289",
+   "name": "Weapon Benefit",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "289",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 46,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 1 and 24 overlap.",
+    "Rows 1 and 36 overlap.",
+    "Rows 2 and 14 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Weapon Curse::289",
+   "name": "Weapon Curse",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "289",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d12",
+   "rows": 46,
+   "warns": [
+    "Rows 1 and 13 overlap.",
+    "Rows 1 and 24 overlap.",
+    "Rows 1 and 36 overlap.",
+    "Rows 2 and 14 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Item Flaw::290",
+   "name": "Item Flaw",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "290",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 40,
+   "warns": [
+    "Rows 1 and 21 overlap.",
+    "Rows 2 and 22 overlap.",
+    "Rows 3 and 23 overlap.",
+    "Rows 4 and 24 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Item Virtue::290",
+   "name": "Item Virtue",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "290",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 40,
+   "warns": [
+    "Rows 1 and 21 overlap.",
+    "Rows 2 and 22 overlap.",
+    "Rows 3 and 23 overlap.",
+    "Rows 4 and 24 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CORE::Personality Trait::291",
+   "name": "Personality Trait",
+   "type": "Table",
+   "src": "CORE",
+   "pages": "291",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d56",
+   "rows": 28,
+   "warns": [
+    "Rebuilt 28 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CS1::Cursed Scroll 1 p68: Diabolical Treasure::68",
+   "name": "Cursed Scroll 1 p68: Diabolical Treasure",
+   "type": "Table",
+   "src": "CS1",
+   "pages": "68",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 20,
+   "warns": [],
+   "shapeOk": null,
+   "status": "clean"
+  },
+  {
+   "id": "Table::CS2::Cursed Scroll 2 p68: In A Dead Bandit'S Hand, You Find...::68",
+   "name": "Cursed Scroll 2 p68: In A Dead Bandit'S Hand, You Find...",
+   "type": "Table",
+   "src": "CS2",
+   "pages": "68",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d100",
+   "rows": 25,
+   "warns": [
+    "Rebuilt 25 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CS3::Cursed Scroll 3 p16: Nord Names::16",
+   "name": "Cursed Scroll 3 p16: Nord Names",
+   "type": "Table",
+   "src": "CS3",
+   "pages": "16",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d20",
+   "rows": 21,
+   "warns": [
+    "Rows 16 and 21 overlap."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CS3::Cursed Scroll 3 p26: Arctic Sea Encounters::26",
+   "name": "Cursed Scroll 3 p26: Arctic Sea Encounters",
+   "type": "Table",
+   "src": "CS3",
+   "pages": "26",
+   "shape": null,
+   "route": "table:generic",
+   "formula": "1d52",
+   "rows": 26,
+   "warns": [
+    "Rebuilt 26 sequential d100 ranges from the descriptions — the source copy split the ranges out from the text; verify against the book."
+   ],
+   "shapeOk": null,
+   "status": "REVIEW"
+  },
+  {
+   "id": "Table::CS3::Sea Wolf Plunder From Distant Lands::-",
+   "name": "Sea Wolf Plunder From Distant Lands",
+   "type": "Table",
+   "src": "CS3",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Actor::CS1::Unlock the CS1 bestiary — 14 monsters (paste the book's bestiary)::-",
+   "name": "Unlock the CS1 bestiary — 14 monsters (paste the book's bestiary)",
+   "type": "Actor",
+   "src": "CS1",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Actor::CS2::Unlock the CS2 bestiary — 14 monsters (paste the book's bestiary)::-",
+   "name": "Unlock the CS2 bestiary — 14 monsters (paste the book's bestiary)",
+   "type": "Actor",
+   "src": "CS2",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Actor::CS3::Unlock the CS3 bestiary — 12 monsters (paste the book's bestiary)::-",
+   "name": "Unlock the CS3 bestiary — 12 monsters (paste the book's bestiary)",
+   "type": "Actor",
+   "src": "CS3",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Actor::CS4::Unlock the CS4 bestiary — 19 monsters (paste the book's bestiary)::-",
+   "name": "Unlock the CS4 bestiary — 19 monsters (paste the book's bestiary)",
+   "type": "Actor",
+   "src": "CS4",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "?::CS4::Anaconda, Giant::-",
+   "name": "Anaconda, Giant",
+   "type": "",
+   "src": "CS4",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "?::CS4::Ant, Giant::-",
+   "name": "Ant, Giant",
+   "type": "",
+   "src": "CS4",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "?::CS4::Stone Shaman::-",
+   "name": "Stone Shaman",
+   "type": "",
+   "src": "CS4",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "?::CS4::Stone Warrior::-",
+   "name": "Stone Warrior",
+   "type": "",
+   "src": "CS4",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Actor::CS5::Unlock the CS5 bestiary — 5 monsters (paste the book's bestiary)::-",
+   "name": "Unlock the CS5 bestiary — 5 monsters (paste the book's bestiary)",
+   "type": "Actor",
+   "src": "CS5",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Basic::WR::Ball Bearing::106",
+   "name": "Ball Bearing",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Bolas::106",
+   "name": "Bolas",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Candle::106",
+   "name": "Candle",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Charcoal, jar::106",
+   "name": "Charcoal, jar",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Flash Seed::106",
+   "name": "Flash Seed",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Flask or bottle::106",
+   "name": "Flask or bottle",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Gem::106",
+   "name": "Gem",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Glow paste, jar::106",
+   "name": "Glow paste, jar",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Holy water, flask::106",
+   "name": "Holy water, flask",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Lantern Hook::106",
+   "name": "Lantern Hook",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Miner's putty, jar::106",
+   "name": "Miner's putty, jar",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Morzo Silk Rope::106",
+   "name": "Morzo Silk Rope",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Net::106",
+   "name": "Net",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Saddle::106",
+   "name": "Saddle",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Spear-thrower::106",
+   "name": "Spear-thrower",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Tallow, jar::106",
+   "name": "Tallow, jar",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Traveler's Lamp::106",
+   "name": "Traveler's Lamp",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Basic::WR::Wagon::106",
+   "name": "Wagon",
+   "type": "Basic",
+   "src": "WR",
+   "pages": "106",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Armor::WR::Mithral Round Shield::112",
+   "name": "Mithral Round Shield",
+   "type": "Armor",
+   "src": "WR",
+   "pages": "112",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Armor::WR::Mithral Shield::112",
+   "name": "Mithral Shield",
+   "type": "Armor",
+   "src": "WR",
+   "pages": "112",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Weapon::WR::Chakram::110",
+   "name": "Chakram",
+   "type": "Weapon",
+   "src": "WR",
+   "pages": "110",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Weapon::WR::Lance::110",
+   "name": "Lance",
+   "type": "Weapon",
+   "src": "WR",
+   "pages": "110",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Weapon::WR::Sai::110",
+   "name": "Sai",
+   "type": "Weapon",
+   "src": "WR",
+   "pages": "110",
+   "route": "item:recognizer",
+   "status": "clean",
+   "rows": 1
+  },
+  {
+   "id": "Weapon::?::Falchion::-",
+   "name": "Falchion",
+   "type": "Weapon",
+   "src": "",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  },
+  {
+   "id": "Weapon::?::Rapier::-",
+   "name": "Rapier",
+   "type": "Weapon",
+   "src": "",
+   "pages": null,
+   "route": "no-page",
+   "status": "skip-no-page"
+  }
+ ]
+}

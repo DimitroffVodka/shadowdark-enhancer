@@ -78,6 +78,9 @@ function leaf(id, label, icon, records, seedAction, alpha = false) {
     type: r.type ?? "",
     src: r.src ?? "",
     pages: r.pages ?? "",
+    // Stamp the persistent shape id on every shaped entry (prayers, boons,
+    // gameplay tables), not just the Core leaf — source-scoped (Codex #1).
+    contentId: contentIdForName(r.name, r.src) ?? undefined,
   })), alpha);
   const have = entries.filter((e) => e.present).length;
   return { id, label, icon, have, locked: entries.length - have, entries, children: [] };
@@ -208,7 +211,7 @@ function coreGroupLeaf(g, tablesPresent) {
     return {
       name: t.name, present, seedAction: "charSeedPaste",
       type: "Table", src: "CORE", pages: String(t.page),
-      contentId: contentIdForName(t.name) ?? undefined,
+      contentId: contentIdForName(t.name, "CORE") ?? undefined,
     };
   });
   const have = entries.filter((e) => e.present).length;

@@ -7,7 +7,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  CONTENT, TABLE_SHAPES, makeContentId,
+  CONTENT, CONTENT_ENTRIES, TABLE_SHAPES, makeContentId,
   shapeForName, contentIdForName, resolveShape,
 } from "../scripts/encounter/table-shapes.mjs";
 import { parseByShape } from "../scripts/encounter/table-importer.mjs";
@@ -28,13 +28,20 @@ const STACKED_PAGE = [
   "7-12 zed",
 ].join("\n");
 
-test("registry: every entry has a canonical name + a shape, and ids are unique", () => {
-  const ids = Object.keys(CONTENT);
-  assert.equal(new Set(ids).size, ids.length, "contentIds are unique");
-  for (const [id, e] of Object.entries(CONTENT)) {
-    assert.ok(e.names?.length >= 1, `${id} has at least one name`);
-    assert.ok(e.shape && e.shape.kind, `${id} carries a shape`);
-    assert.match(id, /^[a-z0-9-]+\/[a-z0-9-]+$/, `${id} is a slug/slug contentId`);
+test("registry: ids are EXPLICIT and unique over the raw entry list (not just the deduped map)", () => {
+  // Assert over CONTENT_ENTRIES, before Object.fromEntries could silently drop a
+  // duplicate id — a check over Object.keys(CONTENT) would be tautological (Codex #5).
+  const ids = CONTENT_ENTRIES.map((e) => e.id);
+  assert.equal(new Set(ids).size, ids.length, `duplicate contentId in CONTENT_ENTRIES: ${ids.filter((id, i) => ids.indexOf(id) !== i)}`);
+  assert.equal(Object.keys(CONTENT).length, CONTENT_ENTRIES.length, "no entry was lost to a slug collision");
+  for (const e of CONTENT_ENTRIES) {
+    assert.ok(e.id && typeof e.id === "string", "explicit id string");
+    assert.ok(e.src, `${e.id} carries a src`);
+    assert.ok(e.names?.length >= 1, `${e.id} has at least one name`);
+    assert.ok(e.shape && e.shape.kind, `${e.id} carries a shape`);
+    assert.match(e.id, /^[a-z0-9-]+\/[a-z0-9-]+$/, `${e.id} is a slug/slug contentId`);
+    // Id is immutable, not recomputed from the (mutable) display name.
+    assert.notEqual(e.id, undefined);
   }
 });
 
@@ -66,6 +73,20 @@ test("contentIdForName reverse-resolves names (incl. prefixes) to a stable id", 
   assert.equal(contentIdForName("Nope"), null);
 });
 
+test("contentIdForName is source-aware: a same-name table in another source can't borrow the shape (Codex #1)", () => {
+  // The CORE Carousing Outcome is shaped; a CS6 table of the same name must NOT
+  // resolve to it. Only CORE (or its label) resolves; a foreign src returns null.
+  assert.equal(contentIdForName("Carousing Outcome", "CORE"), "core/carousing-outcome");
+  assert.equal(contentIdForName("Carousing Outcome", "Core Rulebook"), "core/carousing-outcome");
+  assert.equal(contentIdForName("Carousing Outcome", "CS6"), null);
+  assert.equal(contentIdForName("Carousing Outcome", "Western Reaches"), null);
+  // The source key and its full book label both match (WR ↔ Western Reaches).
+  assert.equal(contentIdForName("Gede Prayers", "WR"), "wr/gede-prayers");
+  assert.equal(contentIdForName("Gede Prayers", "Western Reaches"), "wr/gede-prayers");
+  // No src supplied → freeform paste falls back to the name match.
+  assert.equal(contentIdForName("Carousing Outcome"), "core/carousing-outcome");
+});
+
 test("resolveShape dispatches by contentId first, then falls back to name", () => {
   const id = "core/npc-qualities";
   // contentId wins even when the name is wrong/absent — the collision-free path.
@@ -76,6 +97,19 @@ test("resolveShape dispatches by contentId first, then falls back to name", () =
   // unknown everything → null.
   assert.equal(resolveShape({ contentId: "core/does-not-exist", name: "unknown" }), null);
   assert.equal(resolveShape({}), null);
+});
+
+test("resolveShape is source-aware end-to-end: CS6 never borrows the CORE shape (Codex #1 follow-up)", () => {
+  const core = CONTENT["core/carousing-outcome"].shape;
+  // Even with NO stamped id, a src-scoped dispatch stays within that source.
+  assert.equal(resolveShape({ name: "Carousing Outcome", src: "CORE" }), core);
+  assert.equal(resolveShape({ name: "Carousing Outcome", src: "Core Rulebook" }), core);
+  assert.equal(resolveShape({ name: "Carousing Outcome", src: "CS6" }), null, "CS6 gets no CORE shape");
+  assert.equal(resolveShape({ name: "Carousing Outcome", src: "Western Reaches" }), null);
+  // Freeform (neither id nor src) keeps the suffix-tolerant name match.
+  assert.equal(resolveShape({ name: "Carousing Outcome" }), core);
+  // An explicit contentId is the identity — no name fallback if it's unknown.
+  assert.equal(resolveShape({ contentId: "cs6/carousing-outcome", name: "Carousing Outcome" }), null);
 });
 
 test("section shape: slices the named table out of a stacked page, single-die", () => {

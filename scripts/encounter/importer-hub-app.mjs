@@ -1454,9 +1454,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // the unlock seed's identity, or a "PRAYER GENERATOR" title in the paste.
     if (type === "auto" || type === "tables" || type === "generators") {
       const { resolveShape, shapeForName } = await import("./table-shapes.mjs");
-      // Dispatch by persistent contentId first (collision-free); fall back to
-      // the suffix-tolerant name match for freeform pastes with no seed id.
-      let shape = resolveShape({ contentId: seed?.contentId, name: seed?.name });
+      // Dispatch by persistent contentId first (collision-free); else resolve
+      // the name WITHIN the seed's source, so a same-named table in another book
+      // can't borrow this shape; name-only fallback is for freeform seedless
+      // pastes (handled by the PRAYER GENERATOR title check below).
+      let shape = resolveShape({ contentId: seed?.contentId, name: seed?.name, src: seed?.src });
       if (!shape && /prayer\s+generator/i.test(text)) shape = shapeForName("Gede Prayers");
       if (shape) {
         const bucket = TableImporter.parseByShape(text, shape, { name: seed?.name || "" });
@@ -2484,7 +2486,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Persistent content id (PDF-import review §09 rec #2): prefer the id the
       // manage-tree stamped, else derive it from the name via the registry's
       // reverse index. Drives collision-free shape dispatch in _onHubParse.
-      contentId: target.dataset.contentId || contentIdForName(name) || undefined,
+      contentId: target.dataset.contentId || contentIdForName(name, src) || undefined,
       page: target.dataset.pages || undefined,
       book: CHAR_SOURCES[src]?.book || src || undefined,
       _charSeed: true,

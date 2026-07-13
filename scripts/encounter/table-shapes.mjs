@@ -46,33 +46,40 @@ const GRID3 = (size, labels) => ({ kind: "compound", split: "grid", cols: 3, siz
 const SECTION = (caption) => ({ kind: "section", ...(caption ? { caption } : {}) });
 
 // ── Content registry — keyed by persistent contentId ─────────────────────────
-// Each entry: { src, names:[displayName…], shape }. `names[0]` is the canonical
-// display name; extra names are aliases the same content is known by. Adding a
-// shaped generator here is all that rec #3 needs — TABLE_SHAPES, shapeForName,
-// resolveShape, and contentIdForName all derive from this one table.
-const _entry = (src, name, shape, aliases = []) =>
-  [makeContentId(src, name), { src, names: [name, ...aliases], shape }];
+// Each entry: { id, src, names:[displayName…], shape }. The `id` is an EXPLICIT,
+// immutable string — deliberately NOT derived from the display name, so a name
+// correction never changes the id (the whole point of a persistent id; Codex
+// review finding #1). `names[0]` is the canonical display name; extra names are
+// aliases. `src` scopes the entry so a same-name table in another source can't
+// borrow this shape. Adding a shaped generator here is all that rec #3 needs —
+// TABLE_SHAPES, shapeForName, resolveShape, and contentIdForName all derive from
+// this one table.
+const _entry = (id, src, name, shape, aliases = []) =>
+  ({ id, src, names: [name, ...aliases], shape });
 
-export const CONTENT = Object.fromEntries([
+// Raw list kept separate from CONTENT so the uniqueness test asserts over the
+// authored entries BEFORE Object.fromEntries silently dedups a slug collision
+// (Codex review finding #5).
+export const CONTENT_ENTRIES = [
   // WR god prayer generators (Western Reaches pp.191-205) — 3d6 compounds.
-  _entry("WR", "Madeera the Covenant Prayers", PRAYER(6)),
-  _entry("WR", "Saint Terragnis Prayers", PRAYER(6)),
-  _entry("WR", "Gede Prayers", PRAYER(6)),
-  _entry("WR", "Ord Prayers", PRAYER(6)),
-  _entry("WR", "Memnon Prayers", PRAYER(6)),
-  _entry("WR", "Shune the Vile Prayers", PRAYER(6)),
-  _entry("WR", "Ramlaat Prayers", PRAYER(6)),
-  _entry("WR", "The Lost Prayers", PRAYER(6)),
+  _entry("wr/madeera-the-covenant-prayers", "WR", "Madeera the Covenant Prayers", PRAYER(6)),
+  _entry("wr/saint-terragnis-prayers", "WR", "Saint Terragnis Prayers", PRAYER(6)),
+  _entry("wr/gede-prayers", "WR", "Gede Prayers", PRAYER(6)),
+  _entry("wr/ord-prayers", "WR", "Ord Prayers", PRAYER(6)),
+  _entry("wr/memnon-prayers", "WR", "Memnon Prayers", PRAYER(6)),
+  _entry("wr/shune-the-vile-prayers", "WR", "Shune the Vile Prayers", PRAYER(6)),
+  _entry("wr/ramlaat-prayers", "WR", "Ramlaat Prayers", PRAYER(6)),
+  _entry("wr/the-lost-prayers", "WR", "The Lost Prayers", PRAYER(6)),
   // Core Rulebook carousing lookups (book pp.92-93).
   // Both wrap heavily with the die/cost vertically centered — the lookup parser
   // groups wrapped lines to their nearest row anchor. Event has no die column
   // (keyed by Cost), so dieIndexed:false.
-  _entry("CORE", "Carousing Outcome",
+  _entry("core/carousing-outcome", "CORE", "Carousing Outcome",
     { kind: "lookup", cols: 2, size: 14, labels: ["Outcome", "Benefit"], col2Starts: "Gain" }),
   // Cost/Event/Bonus, no die. rowStart/colLast let the RAW (un-delimited,
   // wrapped) copy parse: Cost = leading "N gp", Bonus = trailing "+N", Event =
   // the wrapped middle. A manual "|" still wins when present.
-  _entry("CORE", "Carousing Event",
+  _entry("core/carousing-event", "CORE", "Carousing Event",
     { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"], dieIndexed: false,
       rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+" }),
   // Core Rulebook mix-and-match generators (roll each column, combine) — grid
@@ -81,43 +88,50 @@ export const CONTENT = Object.fromEntries([
   // header parser can't read: Trap → Trigger at the next Capitalized word,
   // Trigger → Damage at the first dice expression (1d6/2d8/3d10). One spec per
   // boundary (cols-1). A manual "|" still wins (parseGenerators handles it).
-  _entry("CORE", "Traps",
+  _entry("core/traps", "CORE", "Traps",
     { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"],
       reflow: ["cap", "dice"] }),
-  _entry("CORE", "Hazards",
+  _entry("core/hazards", "CORE", "Hazards",
     { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] }),
-  _entry("CORE", "Boons: Secrets",
+  _entry("core/boons-secrets", "CORE", "Boons: Secrets",
     { kind: "compound", split: "grid", cols: 2, size: 12, labels: ["Detail 1", "Detail 2"] }),
   // Core Rulebook d20 × 3-column name/idea generators (roll each column,
   // combine). Cartesian = 20^3 = 8,000 rows exceeds the expansion cap (2,000),
   // so these stay roll-each-column compounds rather than an 8k-row table.
-  _entry("CORE", "Tavern Generator", GRID3(20, ["Name 1", "Name 2", "Known For"])),
-  _entry("CORE", "Shop Generator", GRID3(20, ["Name 1", "Name 2", "Known For"])),
-  _entry("CORE", "Party Name", GRID3(20, ["Name 1", "Name 2", "Known For"])),
-  _entry("CORE", "Adventure Generator", GRID3(20, ["Detail 1", "Detail 2", "Detail 3"])),
-  _entry("CORE", "Adventuring Site Name", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
-  _entry("CORE", "Magic Item Idea Generator", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
-  _entry("CORE", "NPC Qualities", GRID3(20, ["Appearance", "Does", "Secret"])),
+  _entry("core/tavern-generator", "CORE", "Tavern Generator", GRID3(20, ["Name 1", "Name 2", "Known For"])),
+  _entry("core/shop-generator", "CORE", "Shop Generator", GRID3(20, ["Name 1", "Name 2", "Known For"])),
+  _entry("core/party-name", "CORE", "Party Name", GRID3(20, ["Name 1", "Name 2", "Known For"])),
+  _entry("core/adventure-generator", "CORE", "Adventure Generator", GRID3(20, ["Detail 1", "Detail 2", "Detail 3"])),
+  _entry("core/adventuring-site-name", "CORE", "Adventuring Site Name", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
+  _entry("core/magic-item-idea-generator", "CORE", "Magic Item Idea Generator", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
+  _entry("core/npc-qualities", "CORE", "NPC Qualities", GRID3(20, ["Appearance", "Does", "Secret"])),
   // Core Rulebook "Rival Crawlers" party page (p126) stacks several small
   // single-die tables under ALL-CAPS captions; the section shape slices the
   // named one out so it stops overlapping its page-mates. (rec #3)
-  _entry("CORE", "Renown", SECTION("RENOWN")),
-  _entry("CORE", "Secret", SECTION("SECRET")),
-  _entry("CORE", "Wealth", SECTION("WEALTH")),
-]);
+  _entry("core/renown", "CORE", "Renown", SECTION("RENOWN")),
+  _entry("core/secret", "CORE", "Secret", SECTION("SECRET")),
+  _entry("core/wealth", "CORE", "Wealth", SECTION("WEALTH")),
+];
+
+export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));
 
 // Legacy display-name → shape map, derived from CONTENT. Kept exported for the
 // freeform (no contentId) path, node tests, and any external reference. Every
 // alias of a shaped entry resolves to the same shape.
 export const TABLE_SHAPES = Object.fromEntries(
-  Object.values(CONTENT).flatMap((e) => (e.shape ? e.names.map((n) => [n, e.shape]) : [])),
+  CONTENT_ENTRIES.flatMap((e) => (e.shape ? e.names.map((n) => [n, e.shape]) : [])),
 );
 
-// Reverse index: normalized display name → contentId, for stamping manage-tree
-// entries and any name→id lookup.
-const _NAME_TO_ID = new Map();
-for (const [id, e] of Object.entries(CONTENT)) {
-  for (const n of e.names) _NAME_TO_ID.set(_norm(n), id);
+// Reverse index: normalized display name → [{ id, src }…], for stamping
+// manage-tree entries and any name→id lookup. A list (not a single id) so a
+// same-name entry in another source stays distinguishable by src.
+const _NAME_TO_ENTRIES = new Map();
+for (const e of CONTENT_ENTRIES) {
+  for (const n of e.names) {
+    const k = _norm(n);
+    if (!_NAME_TO_ENTRIES.has(k)) _NAME_TO_ENTRIES.set(k, []);
+    _NAME_TO_ENTRIES.get(k).push({ id: e.id, src: e.src });
+  }
 }
 
 /** Resolve a table name (suffix-tolerant) to its shape descriptor, or null. */
@@ -132,27 +146,67 @@ export function shapeForName(name) {
   return null;
 }
 
+// Normalize a source to a stable key so a registry src ("WR"/"CORE") matches
+// whichever form a manage-tree record carries — the key OR the full book label.
+const _srcNorm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+const _srcKey = (s) => {
+  const t = _srcNorm(s);
+  if (t === "wr" || t.includes("western reach")) return "wr";
+  if (t === "core" || t.includes("core rulebook") || t.includes("core rules")) return "core";
+  return t;
+};
+
+/**
+ * Pick the entry whose src matches, else — only when NO src is supplied — the
+ * lone name match. When a src IS supplied but nothing matches it, return null
+ * rather than borrowing a same-name entry from another source (Codex finding #1:
+ * CS6 "Carousing Outcome" must NOT resolve to CORE's). `src` accepts either a
+ * source key (CORE/WR) or its full label — both are matched loosely.
+ */
+function _pick(entries, src) {
+  if (!entries?.length) return null;
+  if (src) {
+    const s = _srcKey(src);
+    const hit = entries.find((e) => _srcKey(e.src) === s);
+    return hit ? hit.id : null;
+  }
+  // No src → resolve ONLY when the name is unambiguous (exactly one registry
+  // entry). Returning the first of several would reintroduce the cross-source
+  // ambiguity once a second same-named shaped table is registered (Codex #1).
+  return entries.length === 1 ? entries[0].id : null;
+}
+
 /**
  * Resolve the known contentId for a display name (suffix-tolerant), or null.
- * Used to stamp manage-tree entries so dispatch can key on a stable id.
+ * Pass the entry's `src` so a same-name table in another source can't borrow
+ * this id. Used to stamp manage-tree entries so dispatch keys on a stable id.
  */
-export function contentIdForName(name) {
+export function contentIdForName(name, src) {
   if (!name) return null;
   const n = _norm(name);
-  if (_NAME_TO_ID.has(n)) return _NAME_TO_ID.get(n);
-  for (const [kn, id] of _NAME_TO_ID) {
-    if (n.endsWith(`- ${kn}`) || n.endsWith(`: ${kn}`)) return id;
+  if (_NAME_TO_ENTRIES.has(n)) return _pick(_NAME_TO_ENTRIES.get(n), src);
+  for (const [kn, entries] of _NAME_TO_ENTRIES) {
+    if (n.endsWith(`- ${kn}`) || n.endsWith(`: ${kn}`)) return _pick(entries, src);
   }
   return null;
 }
 
 /**
- * Primary dispatch: resolve an entry to its shape descriptor. A persistent
- * `contentId` wins by EXACT lookup (no name-collision risk); otherwise fall
- * back to the suffix-tolerant name match for freeform pastes with no seed id.
- * @param {{contentId?:string, name?:string}} entry
+ * Primary dispatch: resolve an entry to its shape descriptor.
+ *   1. An explicit `contentId` IS the identity → exact lookup, NO name fallback.
+ *   2. Else a `src`-scoped lookup resolves the name WITHIN that source only; if
+ *      the source ships no matching shaped entry, return null rather than borrow
+ *      another source's shape (Codex #1 follow-up: a CS6 "Carousing Outcome"
+ *      must NOT get CORE's, even when pasted without a stamped id).
+ *   3. Else — genuinely freeform input, neither id nor src — the suffix-tolerant
+ *      name match keeps working.
+ * @param {{contentId?:string, name?:string, src?:string}} entry
  */
-export function resolveShape({ contentId, name } = {}) {
-  if (contentId && CONTENT[contentId]?.shape) return CONTENT[contentId].shape;
+export function resolveShape({ contentId, name, src } = {}) {
+  if (contentId) return CONTENT[contentId]?.shape ?? null;
+  if (src) {
+    const id = contentIdForName(name, src);
+    return id ? (CONTENT[id]?.shape ?? null) : null;
+  }
   return shapeForName(name);
 }
