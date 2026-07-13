@@ -331,6 +331,36 @@ function _findTitles(lines) {
  * (level, count-per-tier), "-" → 0.
  * Returns null or { skip: Set<lineIdx>, known: [{level, tiers: number[]}] }.
  */
+/**
+ * Slice just the "…SPELLS KNOWN" grid block out of a page's text (caption +
+ * "Spells Known By…" subtitle + "Level 1 2 3…" header + the numeric rows),
+ * dropping surrounding prose. A caster class's grid lives on the page AFTER the
+ * two-column writeup, where auto extraction shears the numbers off their levels;
+ * grabbing that page single-column and slicing this block lets _findSpellsKnown
+ * read it. Returns the block text, or null when the page has no grid.
+ */
+export function sliceSpellsKnown(text) {
+  const lines = String(text).split("\n").map((l) => l.trim());
+  // The caption is a standalone ALL-CAPS "… SPELLS KNOWN" line (or the "Spells
+  // Known by…" subtitle) — NOT a prose sentence that merely ends in "Spells
+  // Known" (e.g. the writeup's "…chainmail Necromancer Spells Known" reference).
+  const isCap = (l) => /^[A-Z][A-Z' -]*SPELLS\s+KNOWN$/.test(l) || /^spells\s+known\s+by/i.test(l);
+  const isTierHeader = (l) => /^levels?\b/i.test(l) && /\b1\b/.test(l) && /\b2\b/.test(l);
+  const isGridRow = (l) => l && l.split(/\s+/).every((p) => /^(?:levels?|\d{1,2}|[-–—+])$/i.test(p));
+  let start = lines.findIndex(isCap);
+  if (start === -1) start = lines.findIndex(isTierHeader);
+  if (start === -1) return null;
+  const out = [];
+  let sawGrid = false;
+  for (let i = start; i < lines.length; i++) {
+    const l = lines[i];
+    if (isCap(l)) { out.push(l); continue; }
+    if (isTierHeader(l) || isGridRow(l)) { out.push(l); sawGrid = true; continue; }
+    if (sawGrid) break;                 // the grid ended
+  }
+  return sawGrid && out.length ? out.join("\n") : null;
+}
+
 function _findSpellsKnown(lines) {
   // Anchor on a "SPELLS KNOWN" caption, a "Spells Known by …" subtitle, OR the
   // "Level 1 2 3 …" tier header — so a copied grid parses without an all-caps

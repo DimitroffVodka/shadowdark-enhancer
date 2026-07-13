@@ -9,7 +9,7 @@ import { splitStatblocks, parseStatblock } from "../scripts/encounter/statblock-
 import { parseItem } from "../scripts/encounter/item-parser.mjs";
 import { parseSpell } from "../scripts/encounter/spell-parser.mjs";
 import { parseTables, buildTableData } from "../scripts/encounter/table-importer.mjs";
-import { parseClassSection } from "../scripts/encounter/class-parser.mjs";
+import { parseClassSection, sliceSpellsKnown } from "../scripts/encounter/class-parser.mjs";
 
 // ── #4 ALL-CAPS monster feature detachment ──────────────────────────────────
 
@@ -103,6 +103,39 @@ test("#10: pre-row instruction text becomes the table description + warning", ()
 });
 
 // ── #11 Weapons: none ────────────────────────────────────────────────────────
+
+// ── 2026-07-13 caster spells-known grid slice (sliceSpellsKnown) ──────────────
+// A caster class's SPELLS KNOWN grid lives on the page after the writeup; a
+// single-column grab of that page carries the grid plus surrounding prose (and
+// the writeup's own "…Spells Known" reference sentence). The slicer must anchor
+// on the standalone ALL-CAPS caption, not the prose, and return just the grid.
+
+const CASTER_PAGE = [
+  "Armor: Leather armor, chainmail Necro Spells Known",   // prose reference — must NOT anchor here
+  "Hit Points: 1d6 per level",
+  "Death Sense. You can sense the undead.",
+  "NECRO SPELLS KNOWN",                                    // real caption
+  "Spells Known By Spell Tier",
+  "Level 1 2 3",
+  "1 1 - -",
+  "2 2 - -",
+  "3 2 1 -",
+  "The game continues with more prose.",                  // trailing prose — grid ended
+].join("\n");
+
+test("spells-known slice: anchors on the ALL-CAPS caption, not a prose reference", () => {
+  const block = sliceSpellsKnown(CASTER_PAGE);
+  assert.equal(block.split("\n")[0], "NECRO SPELLS KNOWN", "not the 'chainmail … Spells Known' prose line");
+  assert.ok(/^Level 1 2 3$/m.test(block), "keeps the tier header");
+  assert.ok(!/chainmail|game continues/.test(block), "drops surrounding prose");
+});
+
+test("spells-known slice: the sliced block parses into a level×tier grid; non-casters slice to null", () => {
+  const d = parseClassSection(`TESTCASTER\nBrave casters.\nHit Points: 1d6 per level\n${sliceSpellsKnown(CASTER_PAGE)}`);
+  assert.deepEqual(d.spellsKnown.map((r) => [r.level, ...r.tiers]), [[1, 1, 0, 0], [2, 2, 0, 0], [3, 2, 1, 0]]);
+  // A page that only mentions "spells known" in prose yields no grid.
+  assert.equal(sliceSpellsKnown("A class that references spells known casually.\nHit Points: 1d8"), null);
+});
 
 test("#11: 'Weapons: none' grants no weapon named none", () => {
   const d = parseClassSection("TESTCLASS\nBrave test heroes.\nWeapons: none\nArmor: none\nHit Points: 1d6 per level");
