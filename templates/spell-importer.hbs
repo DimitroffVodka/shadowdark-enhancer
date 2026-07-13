@@ -1,0 +1,68 @@
+<div class="sde-spell-importer">
+
+  <div class="sde-si-head">
+    <div class="sde-si-title"><i class="fa-solid fa-wand-sparkles"></i> Spell Importer</div>
+    <div class="sde-si-headright">
+      {{#if spellCount}}<span class="sde-si-chip sde-si-chip-on">{{spellCount}} parsed</span>{{else}}<span class="sde-si-chip">no spells yet</span>{{/if}}
+      <button type="button" data-action="siStartOver" class="sde-cu-btn"><i class="fas fa-rotate-left"></i> Start over</button>
+    </div>
+  </div>
+
+  <label class="sde-si-field">
+    <span class="sde-si-fieldname">Source</span>
+    <input type="text" data-si-source list="sde-si-sources" value="{{source}}" placeholder="Western Reaches / CS4 …">
+    <datalist id="sde-si-sources">{{#each sourceList as |s|}}<option value="{{s}}"></option>{{/each}}</datalist>
+  </label>
+
+  {{#if imported}}
+  <div class="sde-si-imported">
+    <div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> {{imported.created}} spell{{#unless imported.created}}s{{/unless}} imported into world.spells{{#if imported.skipped}} ({{imported.skipped}} already existed){{/if}}</div>
+    <div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> Class: {{imported.classes}} · Alignment: {{imported.alignments}}</div>
+  </div>
+  {{/if}}
+
+  {{!-- Defaults bar — the Class → Alignment these spells belong to. --}}
+  <div class="sde-si-bulkbar">
+    <span class="sde-si-bulklabel">These spells are:</span>
+    <label class="sde-si-bulkfield">Class
+      <input type="text" data-si-bulkclass list="sde-si-classes" value="{{bulkClass}}" placeholder="Wizard">
+      <datalist id="sde-si-classes"><option value="Wizard"></option><option value="Priest"></option><option value="Witch"></option><option value="Seer"></option><option value="Warlock"></option></datalist>
+    </label>
+    <label class="sde-si-bulkfield">Alignment
+      <select data-si-bulkalign>{{#each bulkAlignOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}</select>
+    </label>
+    {{#if spellCount}}<button type="button" data-action="siApplyBulk" class="sde-cu-btn" title="Set every parsed spell to this class + alignment">Apply to all</button>{{/if}}
+  </div>
+  <p class="sde-si-note"><i class="fas fa-circle-info"></i> e.g. the Green Knight's druid list = <strong>Wizard</strong> spells tagged <strong>Neutral</strong>. Set those above, paste the spells, then Import.</p>
+
+  <textarea data-si-paste class="sde-si-paste" placeholder="Paste a block of spells (names in CAPS, as printed) — each as:&#10;&#10;SPELL NAME&#10;Tier 1, Wizard&#10;Duration: Instant&#10;Range: Near&#10;Rules text…">{{pasteText}}</textarea>
+  <div class="sde-si-parsebtns">
+    <button type="button" data-action="siParse" class="sde-cu-btn"><i class="fas fa-wand-magic"></i> Parse spells</button>
+    {{#if summary}}<span class="sde-si-summary">{{summary}}</span>{{/if}}
+  </div>
+
+  {{#if spellCount}}
+  <div class="sde-si-groups">
+    {{#each groups as |g|}}
+    <div class="sde-si-group">
+      <div class="sde-si-grouphead"><i class="fa-solid fa-layer-group"></i> {{g.class}} · Tier {{g.tier}} · {{g.alignmentLabel}} <span class="sde-si-groupcount">({{g.spells.length}})</span></div>
+      {{#each g.spells as |sp|}}
+      <div class="sde-si-spellrow" data-si-spell="{{sp.idx}}">
+        <span class="sde-si-spellname{{#if sp.warn}} sde-si-warn{{/if}}" title="{{sp.desc}}">{{sp.name}}</span>
+        <label class="sde-si-inline">T<input type="number" min="1" max="5" data-si-field="tier" value="{{sp.tier}}" class="sde-si-tier"></label>
+        <input type="text" data-si-field="class" value="{{sp.className}}" class="sde-si-cls" aria-label="Casting class">
+        <select data-si-field="alignment" class="sde-si-align">{{#each sp.alignOptions as |a|}}<option value="{{a.value}}"{{#if a.selected}} selected{{/if}}>{{a.label}}</option>{{/each}}</select>
+        <button type="button" data-action="siRemove" class="sde-cu-btn sde-cu-btn-del" title="Remove"><i class="fas fa-trash"></i></button>
+      </div>
+      {{/each}}
+    </div>
+    {{/each}}
+  </div>
+
+  <div class="sde-si-footer">
+    <span class="sde-si-pending">{{summary}}</span>
+    <button type="button" data-action="siImport" class="sde-import-primary"><i class="fas fa-download"></i> Import {{spellCount}} spell{{#unless spellCount}}s{{/unless}} to world.spells</button>
+  </div>
+  {{/if}}
+
+</div>

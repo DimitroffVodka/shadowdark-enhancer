@@ -199,13 +199,18 @@ export async function manageSourcePdfs(app) {
   if (!game.user?.isGM) { ui.notifications.warn("Only a GM can manage source PDFs."); return; }
   const { listSourcePdfs, uploadSourcePdf } = await import("./source-pdf-registry.mjs");
 
-  const rows = listSourcePdfs();
+  const rows = await listSourcePdfs();
   const statusList = rows.map((r) => {
     const file = r.file ? foundry.utils.escapeHTML(r.file.split("/").pop()) : "—";
     const icon = r.linked ? "fa-file-pdf" : "fa-file-circle-xmark";
+    // A verified upload, the shared default path (HEAD-checked), or a default
+    // that points at nothing on this deployment. (review 2026-07-12 #5)
+    const note = r.origin === "fallback"
+      ? (r.linked ? " (default path)" : " (default path — file not found; upload your copy)")
+      : "";
     return `<li class="sde-srcpdf-row ${r.linked ? "linked" : "missing"}"><i class="fas ${icon}"></i>
       <strong>${foundry.utils.escapeHTML(r.label)}</strong>
-      <span class="sde-srcpdf-file">${file}</span></li>`;
+      <span class="sde-srcpdf-file">${file}${note}</span></li>`;
   }).join("");
   const options = rows.map((r) =>
     `<option value="${r.src}">${foundry.utils.escapeHTML(r.label)}${r.linked ? " (replace)" : ""}</option>`).join("");

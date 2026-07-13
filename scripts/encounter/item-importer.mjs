@@ -70,7 +70,14 @@ export function buildItemData(draft) {
         damageType: draft.damageType || "none",
         ...(draft.formula ? { formula: draft.formula } : {}),
       },
-      flags: { [MODULE_ID]: { imported: true } },
+      // Alignment tag (lawful/chaotic/neutral) — the char-builder's spell picker
+      // gates on flags["shadowdark-extras"].alignment (untagged = universal). The
+      // Spell Importer sets draft.alignment; a blank/"universal" value stays untagged.
+      flags: {
+        [MODULE_ID]: { imported: true },
+        ...(draft.alignment && draft.alignment !== "universal"
+          ? { "shadowdark-extras": { alignment: draft.alignment } } : {}),
+      },
     };
   }
 
@@ -263,19 +270,23 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
 
 /**
  * The folder path a spell files under, mirroring the system spells pack:
- * Spells → <Class> → Tier N. Blank class/tier segments drop out (an unclassed
- * spell → Spells → Tier N; a tierless one → Spells → <Class>).
+ * Spells → <Class> → Tier N → <Alignment>. Blank segments drop out (an unclassed
+ * spell → Spells → Tier N; an untagged one omits the alignment leaf).
  *
  * @param {string} className  resolved/parsed class name (e.g. "Wizard")
  * @param {number|string} tier
+ * @param {string} [alignment]  lawful|chaotic|neutral ("" / "universal" → no leaf)
  * @returns {string[]}
  */
-export function spellFolderNames(className, tier) {
+export function spellFolderNames(className, tier, alignment = "") {
   const tierNum = Number(tier);
   const tierLabel = Number.isFinite(tierNum) && tierNum > 0 ? `Tier ${tierNum}` : null;
   const cls = String(className ?? "").trim();
-  const clsTitle = cls ? cls.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : null;
-  return ["Spells", clsTitle, tierLabel].filter(Boolean);
+  const titleCase = (s) => s.replace(/\S+/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  const clsTitle = cls ? titleCase(cls) : null;
+  const al = String(alignment ?? "").trim().toLowerCase();
+  const alLabel = al && al !== "universal" ? titleCase(al) : null;
+  return ["Spells", clsTitle, tierLabel, alLabel].filter(Boolean);
 }
 
 /**
@@ -297,7 +308,7 @@ async function talentFolderId(pack, draft) {
   return ensureFolderPath(pack, talentFolderNames(draft.talentClass ?? "level"));
 }
 
-/** The sde-items folder id a spell draft belongs in (Spells → Class → Tier). */
+/** The spell-pack folder id a spell draft belongs in (Spells → Class → Tier → Alignment). */
 async function spellFolderId(pack, draft) {
   let className = draft.className ?? "";
   // Prefer the resolved class's canonical name over the raw parsed string.
@@ -305,7 +316,7 @@ async function spellFolderId(pack, draft) {
     const c = await fromUuid(draft.class[0]).catch(() => null);
     if (c?.name) className = c.name;
   }
-  return ensureFolderPath(pack, spellFolderNames(className, draft.tier));
+  return ensureFolderPath(pack, spellFolderNames(className, draft.tier, draft.alignment));
 }
 
 /**

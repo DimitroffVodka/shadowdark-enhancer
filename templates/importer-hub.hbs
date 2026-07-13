@@ -18,6 +18,8 @@
     <input id="sde-hub-import-genspec" type="text" data-gen-spec value="{{importData.genSpec}}"
            placeholder="e.g. 3d6" class="sde-hub-import-type-sel sde-hub-import-genspec-input" aria-label="Generator dice spec (e.g. 3d6)">
     {{/if}}
+    <button type="button" data-action="openClassImporter" class="sde-hub-import-type-sel" style="margin-left:auto;" title="Classes have their own guided workspace (body → roll tables → titles)"><i class="fa-solid fa-hat-wizard"></i> Class Importer</button>
+    <button type="button" data-action="openSpellImporter" class="sde-hub-import-type-sel" title="Spells have their own workspace (organize by Class → Tier → Alignment)"><i class="fa-solid fa-wand-sparkles"></i> Spell Importer</button>
   </div>
 
   {{!-- Seed hint: shown when a Manage-strip "Seed" click pre-filled this box --}}
@@ -396,6 +398,11 @@
             </div>
           </details>
 
+          {{#if c.unit.stage1}}
+          <p class="sde-class-preview-flavor"><i class="fas fa-circle-info"></i> Stage 1 imports the class body only. The <strong>talent table, titles, and spells known</strong> are imported next in <strong>Class · Roll Tables</strong> and attached to this class.</p>
+          {{/if}}
+
+          {{#unless c.unit.stage1}}
           <details class="sde-class-preview-block" open>
             <summary>Talent table{{#if c.unit.table}} ({{c.unit.table.formula}}){{else}} — none found{{/if}}</summary>
             {{#unless c.unit.table}}
@@ -443,19 +450,23 @@
               {{/if}}
             </div>
           </details>
+          {{/unless}}
 
           {{#if c.unit.isCaster}}
           <details class="sde-class-preview-block" open>
             <summary>Spellcasting</summary>
             <textarea data-cu-field="scText" rows="2" class="sde-cu-area" aria-label="Spellcasting rules text">{{c.unit.scText}}</textarea>
+            {{#unless c.unit.stage1}}
             {{#if c.unit.spellsKnown.length}}
             <div class="sde-cu-spellsknown" title="Spells known per level (tier 1 · 2 · 3 · …) — parsed from the SPELLS KNOWN table; commits to the class sheet's grid">
               {{#each c.unit.spellsKnown as |r|}}<span class="sde-class-opt">Lv {{r.level}}: {{r.cells}}</span>{{/each}}
             </div>
             {{/if}}
+            {{/unless}}
           </details>
           {{/if}}
 
+          {{#unless c.unit.stage1}}
           <details class="sde-class-preview-block" open>
             <summary>Titles ({{c.unit.titles.length}})</summary>
             <table class="sde-class-preview-table sde-cu-titles">
@@ -474,6 +485,7 @@
             </table>
             <button type="button" data-action="cuTitleAdd" class="sde-cu-btn sde-cu-addrow" title="Add a title band"><i class="fas fa-plus"></i> band</button>
           </details>
+          {{/unless}}
 
           {{#if c.unit.warnings.length}}
           <details class="sde-class-preview-block sde-class-preview-notes" open>
@@ -481,6 +493,59 @@
             <ul class="sde-import-warnings">
               {{#each c.unit.warnings as |w|}}<li>{{w}}</li>{{/each}}
             </ul>
+          </details>
+          {{/if}}
+        </div>
+        {{else if c.supplement}}
+        {{!-- Stage-2 supplement: attach parsed tables/titles/spells to a class. --}}
+        <div class="sde-class-preview sde-class-supplement" data-char-idx="{{@index}}">
+          <label class="sde-cusheet-field">
+            <span class="sde-cusheet-fieldname">Attach to class</span>
+            <select data-supplement-attach aria-label="Class to attach these tables to">
+              {{#each c.supplement.attachOptions as |o|}}<option value="{{o.value}}"{{#if o.selected}} selected{{/if}}>{{o.label}}</option>{{/each}}
+            </select>
+          </label>
+          {{#if c.supplement.hasTable}}
+          <details class="sde-class-preview-block" open>
+            <summary>Talent table ({{c.supplement.tableRows}} rows)</summary>
+          </details>
+          {{/if}}
+          {{!-- Titles: always editable — paste a TITLES block above to fill, or add/edit bands by hand. --}}
+          <details class="sde-class-preview-block" open>
+            <summary>Titles ({{c.supplement.titles.length}})</summary>
+            <p class="sde-class-preview-flavor">Paste a <code>TITLES</code> block above to fill these, or add bands by hand (Levels / Lawful / Chaotic / Neutral).</p>
+            <table class="sde-class-preview-table sde-cu-titles">
+              {{#if c.supplement.titles.length}}
+              <tr class="sde-cu-titlehead"><th>Levels</th><th>Lawful</th><th>Chaotic</th><th>Neutral</th><th></th></tr>
+              {{/if}}
+              {{#each c.supplement.titles as |t|}}
+              <tr data-cu-title="{{@index}}">
+                <td class="sde-class-preview-range"><input type="text" data-cu-field="titleRange" value="{{t.range}}" class="sde-cu-range" aria-label="Level range"></td>
+                <td><input type="text" data-cu-field="titleLawful" value="{{t.lawful}}" class="sde-cu-text" aria-label="Lawful title"></td>
+                <td><input type="text" data-cu-field="titleChaotic" value="{{t.chaotic}}" class="sde-cu-text" aria-label="Chaotic title"></td>
+                <td><input type="text" data-cu-field="titleNeutral" value="{{t.neutral}}" class="sde-cu-text" aria-label="Neutral title"></td>
+                <td class="sde-cu-rowdel"><button type="button" data-action="cuTitleDel" class="sde-cu-btn sde-cu-btn-del" title="Delete this band"><i class="fas fa-trash"></i></button></td>
+              </tr>
+              {{/each}}
+            </table>
+            <button type="button" data-action="cuTitleAdd" class="sde-cu-btn sde-cu-addrow" title="Add a title band"><i class="fas fa-plus"></i> band</button>
+          </details>
+          {{#if c.supplement.spellsKnown.length}}
+          <details class="sde-class-preview-block" open>
+            <summary>Spells known</summary>
+            <div class="sde-cu-spellsknown">{{#each c.supplement.spellsKnown as |r|}}<span class="sde-class-opt">Lv {{r.level}}: {{r.cells}}</span>{{/each}}</div>
+          </details>
+          {{/if}}
+          {{#if c.supplement.extraTables.length}}
+          <details class="sde-class-preview-block" open>
+            <summary>Extra tables ({{c.supplement.extraTables.length}})</summary>
+            <div class="sde-cu-spellsknown">{{#each c.supplement.extraTables as |t|}}<span class="sde-class-opt">{{t.name}} ({{t.rows}} rows)</span>{{/each}}</div>
+          </details>
+          {{/if}}
+          {{#if c.supplement.warnings.length}}
+          <details class="sde-class-preview-block sde-class-preview-notes" open>
+            <summary>Review notes ({{c.supplement.warnings.length}})</summary>
+            <ul class="sde-import-warnings">{{#each c.supplement.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
           </details>
           {{/if}}
         </div>

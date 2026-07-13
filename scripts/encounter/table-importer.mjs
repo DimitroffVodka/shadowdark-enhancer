@@ -1230,7 +1230,11 @@ export function buildTableData(pt) {
       for (let f = 1; f <= size; f++) cells.push((byFace.get(f) ?? "").trim());
       return cells;
     }).filter((a) => a.length);
-    const separator = " | ";
+    // Honor the compound's configured separator (prayers use " ", grids " | ")
+    // in the cartesian-expanded results too — matching the roll-each-column
+    // fallback below — instead of a hardcoded " | ". (review 2026-07-12 #3)
+    const sep = typeof pt.compound?.separator === "string"
+      ? pt.compound.separator : (typeof pt.separator === "string" ? pt.separator : " ");
     // An explicit "Cartesian" import (the user pressed the Cartesian button)
     // expands far higher — they've chosen the long flat table. The automatic
     // path stays at 2000 so a huge auto-compound (e.g. a d20×3 name generator)
@@ -1247,7 +1251,7 @@ export function buildTableData(pt) {
       }
       const results = combos.map((cells, i) => ({
         type: TEXT,
-        name: cells.filter((s) => s !== "").join(separator),
+        name: cells.filter((s) => s !== "").join(sep),
         weight: 1,
         range: [i + 1, i + 1],
       }));
@@ -1262,8 +1266,6 @@ export function buildTableData(pt) {
       formula: (c.formula ?? "").trim() || colFormula,
       rows: (c.rows ?? []).map((r) => ({ min: r.min, max: r.max, text: r.text ?? "" })),
     }));
-    const sep = typeof pt.compound?.separator === "string"
-      ? pt.compound.separator : (typeof pt.separator === "string" ? pt.separator : " ");
     return {
       name,
       formula: colFormula,

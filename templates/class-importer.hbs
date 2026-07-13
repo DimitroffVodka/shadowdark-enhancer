@@ -1,0 +1,171 @@
+<div class="sde-class-importer">
+
+  <div class="sde-ci-head">
+    <div class="sde-ci-title"><i class="fa-solid fa-hat-wizard"></i> Class Importer</div>
+    <div class="sde-ci-headright">
+      <span class="sde-ci-buildlabel">building</span>
+      {{#if created}}
+      <span class="sde-ci-chip sde-ci-chip-on">{{className}}</span>
+      {{else}}
+      <span class="sde-ci-chip">no class yet</span>
+      {{/if}}
+      <button type="button" data-action="ciStartOver" class="sde-cu-btn" title="Clear everything and start a new class"><i class="fas fa-rotate-left"></i> Start over</button>
+    </div>
+  </div>
+
+  <label class="sde-ci-sourcefield">
+    <span class="sde-ci-fieldname">Source</span>
+    <input type="text" data-ci-source list="sde-ci-sources" value="{{source}}" placeholder="Western Reaches / CS5 …">
+    <datalist id="sde-ci-sources">{{#each sourceList as |s|}}<option value="{{s}}"></option>{{/each}}</datalist>
+  </label>
+
+  {{!-- ── Imported summary (green checks for what's on the class) ─────────── --}}
+  {{#if imported}}
+  <div class="sde-ci-imported">
+    <div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> Class body — {{className}}</div>
+    <div class="sde-ci-impitem {{#if imported.talentRows}}sde-ci-impok{{else}}sde-ci-imppend{{/if}}"><i class="fas {{#if imported.talentRows}}fa-circle-check{{else}}fa-circle{{/if}}"></i> Talent table{{#if imported.talentRows}} — {{imported.talentRows}} rows{{else}} — not added{{/if}}</div>
+    <div class="sde-ci-impitem {{#if imported.titles}}sde-ci-impok{{else}}sde-ci-imppend{{/if}}"><i class="fas {{#if imported.titles}}fa-circle-check{{else}}fa-circle{{/if}}"></i> Titles{{#if imported.titles}} — {{imported.titles}} bands{{else}} — not added{{/if}}</div>
+    {{#if imported.spells}}<div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> Spells known — {{imported.spells}} levels</div>{{/if}}
+    {{#each imported.extras as |name|}}<div class="sde-ci-impitem sde-ci-impok"><i class="fas fa-circle-check"></i> {{name}} table</div>{{/each}}
+  </div>
+  {{/if}}
+
+  {{!-- ── Stage 1 · Class body ─────────────────────────────────────────── --}}
+  {{#if created}}
+  {{#unless editingBody}}
+  <div class="sde-ci-stage sde-ci-stage-done">
+    <div class="sde-ci-donerow">
+      <div class="sde-ci-donetext">
+        <i class="fas fa-circle-check"></i>
+        <div>
+          <div class="sde-ci-donetitle">1 · Class body</div>
+          <div class="sde-ci-donesub">Created in Classes — {{className}}{{#if report}} ({{report.created}} created{{#if report.updated}}, {{report.updated}} updated{{/if}}){{/if}}</div>
+        </div>
+      </div>
+      <button type="button" data-action="ciEditBody" class="sde-cu-btn"><i class="fas fa-pen"></i> Re-paste to update</button>
+    </div>
+  </div>
+  {{/unless}}
+  {{/if}}
+
+  {{#if showBody}}
+  <div class="sde-ci-stage">
+    <div class="sde-ci-stagehead">1 · Class body{{#if created}} — editing{{/if}}</div>
+    {{#if seedClassName}}
+    <div class="sde-ci-seedbanner">
+      <i class="fas fa-lock-open"></i> Unlocking <strong>{{seedClassName}}</strong>.
+      {{#if writeupPdf}}Its writeup (p.{{writeupPage}}) opened in the PDF viewer — copy the class and paste it here. Re-open it with the <strong>Open PDF</strong> button below.{{else}}Set the source above (e.g. Western Reaches) to open its PDF pages.{{/if}}
+    </div>
+    {{/if}}
+    <label class="sde-ci-namefield">
+      <span class="sde-ci-fieldname">Class name</span>
+      <input type="text" data-ci-name value="{{bodyName}}" placeholder="e.g. Delver">
+    </label>
+    <p class="sde-ci-note">The name comes from the field above — paste the writeup (flavor, weapons, armor, hit points, features) below. Roll tables are added in step 2.</p>
+    <textarea data-ci-body class="sde-ci-paste sde-ci-bodypaste" placeholder="Paste the writeup here — flavor, then:&#10;Weapons: …&#10;Armor: …&#10;Hit Points: 1d6 per level&#10;‹Feature name›. What the feature does…">{{bodyText}}</textarea>
+    <div class="sde-ci-bodybtns">
+      <button type="button" data-action="ciParseBody" class="sde-cu-btn"><i class="fas fa-eye"></i> Preview</button>
+      {{#if bodyPreview}}
+      <button type="button" data-action="ciCreateBody" class="sde-import-primary"><i class="fas fa-plus"></i> {{#if created}}Update{{else}}Create{{/if}} class “{{bodyPreview.name}}”{{#if hasStage2}} + tables{{/if}}</button>
+      {{/if}}
+      {{#if writeupPdf}}
+      <button type="button" data-action="ciOpenPdf" data-href="{{writeupPdf}}" data-title="{{className}} writeup — p.{{writeupPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · writeup p.{{writeupPage}}</button>
+      {{/if}}
+    </div>
+    {{#if bodyPreview}}
+    <div class="sde-ci-bodypreview">
+      <div class="sde-ci-previewrow"><strong>Hit die:</strong> {{bodyPreview.hp}}{{#if bodyPreview.isCaster}} · spellcaster{{/if}}</div>
+      <div class="sde-ci-previewrow"><strong>Weapons:</strong> {{bodyPreview.weapons}}</div>
+      <div class="sde-ci-previewrow"><strong>Armor:</strong> {{bodyPreview.armor}}</div>
+      <div class="sde-ci-previewrow"><strong>Features ({{bodyPreview.features.length}}):</strong></div>
+      <ul class="sde-ci-featlist">
+        {{#each bodyPreview.features as |f|}}<li><strong>{{f.name}}.</strong> {{f.text}}</li>{{/each}}
+      </ul>
+      {{#if bodyPreview.hasTables}}
+      <p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> This paste also has roll tables — they're ignored here and go in step 2 below.</p>
+      {{/if}}
+      {{#if bodyPreview.warnings.length}}
+      <ul class="sde-import-warnings">{{#each bodyPreview.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
+      {{/if}}
+    </div>
+    {{/if}}
+  </div>
+  {{/if}}
+
+  {{!-- ── Stage 2 · Roll tables — always visible; Attach enables once the body exists --}}
+  <div class="sde-ci-stagehead">2 · Roll tables</div>
+  {{#unless created}}<p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> Create the class body above first — then these attach to it. You can paste tables now; they're held until you create.</p>{{/unless}}
+  <p class="sde-ci-note">Paste each part below — it attaches to <strong>{{className}}</strong>. Any paste is sorted to the right slot. Titles aren't in the class writeup, so paste that block or add bands by hand.</p>
+
+  <div class="sde-ci-parts">
+
+    {{!-- Talent table --}}
+    <div class="sde-ci-part">
+      <div class="sde-ci-partrow">
+        <span class="sde-ci-partname"><i class="fa-solid fa-dice-d6"></i> Talent table</span>
+        {{#if talent}}<span class="sde-ci-status sde-ci-status-on"><i class="fas fa-check"></i> captured — {{talent.rows}} rows ({{talent.formula}}) <button type="button" data-action="ciClearPart" data-ci-part="talent" class="sde-cu-btn sde-cu-btn-del" title="Clear"><i class="fas fa-trash"></i></button></span>{{else}}<span class="sde-ci-status">pending</span>{{/if}}
+      </div>
+      {{#unless talent}}<textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the 2d6 Effect talent table…"></textarea>{{/unless}}
+    </div>
+
+    {{!-- Titles --}}
+    <div class="sde-ci-part sde-ci-part-titles">
+      <div class="sde-ci-partrow">
+        <span class="sde-ci-partname"><i class="fa-solid fa-ranking-star"></i> Titles ({{titlesCount}})</span>
+        {{#if titlesPdf}}
+        <button type="button" data-action="ciOpenPdf" data-href="{{titlesPdf}}" data-title="{{className}} titles — p.{{titlesPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · titles p.{{titlesPage}}</button>
+        {{else}}
+        <span class="sde-ci-status">paste a block, or add bands</span>
+        {{/if}}
+      </div>
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste a TITLES block (Levels  Lawful  Chaotic  Neutral)…"></textarea>
+      <table class="sde-class-preview-table sde-cu-titles">
+        {{#if titlesCount}}
+        <tr class="sde-cu-titlehead"><th>Levels</th><th>Lawful</th><th>Chaotic</th><th>Neutral</th><th></th></tr>
+        {{/if}}
+        {{#each titles as |t|}}
+        <tr data-ci-title="{{t.idx}}">
+          <td class="sde-class-preview-range"><input type="text" data-ci-tfield="range" value="{{t.range}}" class="sde-cu-range" aria-label="Level range"></td>
+          <td><input type="text" data-ci-tfield="lawful" value="{{t.lawful}}" class="sde-cu-text" aria-label="Lawful title"></td>
+          <td><input type="text" data-ci-tfield="chaotic" value="{{t.chaotic}}" class="sde-cu-text" aria-label="Chaotic title"></td>
+          <td><input type="text" data-ci-tfield="neutral" value="{{t.neutral}}" class="sde-cu-text" aria-label="Neutral title"></td>
+          <td class="sde-cu-rowdel"><button type="button" data-action="ciTitleDel" class="sde-cu-btn sde-cu-btn-del" title="Delete band"><i class="fas fa-trash"></i></button></td>
+        </tr>
+        {{/each}}
+      </table>
+      <button type="button" data-action="ciTitleAdd" class="sde-cu-btn sde-cu-addrow"><i class="fas fa-plus"></i> Add band</button>
+    </div>
+
+    {{!-- Spells known --}}
+    <div class="sde-ci-part">
+      <div class="sde-ci-partrow">
+        <span class="sde-ci-partname"><i class="fa-solid fa-wand-sparkles"></i> Spells known</span>
+        {{#if spells}}<span class="sde-ci-status sde-ci-status-on"><i class="fas fa-check"></i> captured — {{spells.rows}} levels <button type="button" data-action="ciClearPart" data-ci-part="spells" class="sde-cu-btn sde-cu-btn-del" title="Clear"><i class="fas fa-trash"></i></button></span>{{else}}<span class="sde-ci-status">casters only — paste the level×tier grid</span>{{/if}}
+      </div>
+      {{#unless spells}}<textarea data-ci-paste class="sde-ci-paste" placeholder="Paste the SPELLS KNOWN grid (Level 1 2 3 …)…"></textarea>{{/unless}}
+    </div>
+
+    {{!-- Extra tables --}}
+    <div class="sde-ci-part">
+      <div class="sde-ci-partrow">
+        <span class="sde-ci-partname"><i class="fa-solid fa-table-list"></i> Extra tables</span>
+        <span class="sde-ci-status">e.g. Corruption — paste if the class has one</span>
+      </div>
+      {{#if extras.length}}
+      <div class="sde-ci-extras">
+        {{#each extras as |t|}}
+        <span class="sde-class-opt"><i class="fas fa-check"></i> {{t.name}} ({{t.rows}} rows, {{t.formula}}) <button type="button" data-action="ciClearPart" data-ci-part="extra" data-ci-index="{{@index}}" class="sde-cu-btn sde-cu-btn-del" title="Remove"><i class="fas fa-xmark"></i></button></span>
+        {{/each}}
+      </div>
+      {{/if}}
+      <textarea data-ci-paste class="sde-ci-paste" placeholder="Paste a named table (CORRUPTION / d10 Effect / rows)…"></textarea>
+    </div>
+
+  </div>
+
+  <div class="sde-ci-footer">
+    <span class="sde-ci-pending">{{#if hasStage2}}Ready to add: {{pending}}{{else}}{{pending}}{{/if}}</span>
+    <button type="button" data-action="ciAttach" class="sde-import-primary"{{#unless canAttach}} disabled{{/unless}}><i class="fas fa-circle-plus"></i> {{#if hasStage2}}Add {{pending}} to {{displayName}}{{else}}Add tables to {{displayName}}{{/if}}</button>
+  </div>
+
+</div>

@@ -191,6 +191,23 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
       ["Level", className], report);
     return made.uuid;
   }
+  // Spellcasting-check bonus ("+1 to druid spellcasting checks") — the wording
+  // varies by class so _fuzzyFind misses the system's "+N on Spellcasting
+  // Checks" talent. Reuse that twin when it exists; else author its AE
+  // (system.roll.spell.bonus.all) so the bonus actually applies.
+  const scm = label.match(/([+-]\d+)\b(?=[\s\S]*\bspellcasting\s+checks?\b)/i);
+  if (scm) {
+    const twin = sysTalents.find((e) => _norm(e.name) === _norm(`${scm[1]} on spellcasting checks`));
+    if (twin) { report.systemReuse.push({ label, system: twin.name }); return twin.uuid; }
+    const made = await _ensureItem(pack, _talentData(label, `<p>${label}</p>`, sourceTitle, {
+      talentClass: "level",
+      effects: [{
+        name: "Spellcasting Check Bonus", img: "icons/magic/fire/flame-burning-fist-strike.webp", transfer: true,
+        changes: [{ key: "system.roll.spell.bonus.all", value: Number(scm[1]), type: "add", phase: "initial" }],
+      }],
+    }), ["Level", className], report);
+    return made.uuid;
+  }
   const made = await _ensureItem(pack, _talentData(label, `<p>${label}</p>`, sourceTitle),
     ["Level", className], report);
   if (!made.reused && /[+-]\d/.test(label))
@@ -199,45 +216,94 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
 }
 
 /**
- * Create/reuse every document for one parsed class unit.
- * @param {object} parsed  parseClassSection() output
- * @param {object} opts    { source: "Western Reaches", sourceTitle: "western-reaches" }
- * @returns {Promise<object>} report { created, reused, updated, systemReuse, warnings, classUuid, tableUuid }
- *   `updated` = same-name docs whose content differed from the corrected
- *   import and were updated in place ({name, type, uuid, fields}).
+ * Create the class's NAMED extra tables (Wyrdling CORRUPTION, …) as RollTables
+ * in the Tables pack under Class Tables/<class>, text-result rows. Idempotent:
+ * same-name table diffed and reused/updated. Returns
+ * [{ keyword, uuid, name }] so buildClassTalentTable can link the rows that
+ * reference them ("Gain a Corruption talent" → this table).
+ *
+ * @param {object} parsed  needs { name, extraTables: [{name, formula, rows}] }
+ * @param {object} ctx     { tablesPack, source, report, ensureFolderPath }
  */
-export async function createClassUnit(parsed, { source = "", sourceTitle = "", overlay = null } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
-  const { ensureSuite, ensureFolderPath } = await import("./compendium-suite.mjs");
-  const suite = await ensureSuite();
-  if (!suite?.items || !suite?.tables) { ui.notifications?.error("Suite packs unavailable."); return null; }
-  const itemsPack = suite.items, tablesPack = suite.tables;
+async function buildExtraTables(parsed, { tablesPack, source, report, ensureFolderPath }) {
+  const refs = [];
+  const className = parsed.name;
+  for (const t of parsed.extraTables ?? []) {
+    if (!(t.rows?.length)) continue;
+    const keyword = t.name.toLowerCase();
+    // "Wyrdling Corruption" — prefix the class unless the caption already names it.
+    const tblName = new RegExp(`\\b${className}\\b`, "i").test(t.name) ? t.name : `${className} ${t.name}`;
+    const results = t.rows.map((r) => ({ type: "text", name: r.text, range: [r.lo, r.hi] }));
+    const tblFlags = { [MODULE_ID]: { imported: true, ...(source ? { source } : {}) } };
 
-  const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(parsed.warnings ?? [])] };
-  const sysTalents = _systemIndex("Item", "shadowdark.talents");
-
-  // ── 0. WR-only gear the class references (overlay-shipped stat lines,
-  // no descriptions) — created first so the wield list resolves. ──
-  const ourGear = [];
-  for (const it of overlay?.items ?? []) {
-    const made = await _ensureItem(itemsPack, {
-      name: it.name, type: it.type, img: it.img,
-      system: { ...it.system, description: "", source: { title: sourceTitle } },
-      effects: (it.effects ?? []).map((e) => ({
-        name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
-        system: { changes: e.changes ?? [] },
-      })),
-      flags: { [MODULE_ID]: { imported: true } },
-    }, String(it.folder ?? "Gear/Weapons").split("/"), report);
-    ourGear.push({ name: it.name, uuid: made.uuid });
+    const tIdx = await tablesPack.getIndex();
+    const existing = tIdx.find((e) => e.name === tblName);
+    if (existing) {
+      const doc = await tablesPack.getDocument(existing._id);
+      const shape = (rs) => rs.map((r) => ({ name: r.name ?? "", range: [Number(r.range?.[0] ?? 0), Number(r.range?.[1] ?? 0)] }));
+      const same = doc.formula === t.formula && _deepEq(shape(doc.toObject().results), shape(results));
+      if (same) report.reused.push({ name: tblName, type: "RollTable", uuid: doc.uuid });
+      else {
+        const { replaceDocument } = await import("./compendium-suite.mjs");
+        await replaceDocument(doc, { name: tblName, formula: t.formula, folder: doc.toObject().folder ?? null, results, flags: tblFlags }, tablesPack);
+        report.updated.push({ name: tblName, type: "RollTable", uuid: doc.uuid, fields: ["results"] });
+      }
+      refs.push({ keyword, uuid: doc.uuid, name: tblName });
+    } else {
+      const folder = await ensureFolderPath(tablesPack, ["Class Tables", className]);
+      const doc = await RollTable.create({ name: tblName, formula: t.formula, folder, results, flags: tblFlags }, { pack: tablesPack.collection });
+      report.created.push({ name: doc.name, type: "RollTable", uuid: doc.uuid });
+      refs.push({ keyword, uuid: doc.uuid, name: tblName });
+    }
   }
+  return refs;
+}
 
-  // ── 1. Talent-table outcome docs ──
+/**
+ * Build the talent-table outcome Talents + the class-talent RollTable for a
+ * parsed class (or a supplement carrying just a talentTable). Outcome Talents
+ * are created in the Talents pack under Level/<class>; the "Class Talents:
+ * <name>" RollTable is created/updated in the Tables pack. Mutates `report` and
+ * returns the table uuid ("" when the parse carried no usable table).
+ *
+ * Shared by createClassUnit and mergeClassSupplement so a talent table pasted
+ * later attaches identically to one pasted with the class body.
+ *
+ * @param {object} parsed  needs { name, talentTable }
+ * @param {object} ctx     { talentsPack, tablesPack, sysTalents, sourceTitle,
+ *                           source, overlay, report, ensureFolderPath,
+ *                           extraTableRefs }
+ *   extraTableRefs: [{ keyword, uuid, name }] — rows whose text references one
+ *   ("Gain a new Corruption talent") link that table as a document result
+ *   (v14 nested roll) instead of creating an inert placeholder talent.
+ */
+async function buildClassTalentTable(parsed, { talentsPack, tablesPack, sysTalents, sourceTitle, source, overlay, report, ensureFolderPath, extraTableRefs = [] }) {
+  // ── Talent-table outcome docs ──
   const rowResults = [];   // per row: { range, uuids: [], chooseText? }
   const allOptionUuids = new Set();
   for (const row of parsed.talentTable?.rows ?? []) {
     const range = [row.lo, row.hi];
     if (row.kind === "grand") { rowResults.push({ range, grand: true, text: row.text }); continue; }
+    // Row that grants a roll on an extra table (e.g. "Gain a new Corruption
+    // talent") → a Talent that POINTS at the table via an @UUID[RollTable] link
+    // in its description. The char-builder's bonus-roll machinery then rolls
+    // that table — TWICE when the row says "two" (talentRollCount keys on the
+    // word, which survives in the name/description). The class table links this
+    // Talent (an Item), which _rollOnTable keeps as the outcome.
+    const ref = extraTableRefs.find((t) => row.text.toLowerCase().includes(t.keyword));
+    if (ref) {
+      const rangeKey = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`;
+      const authored = overlay?.rowTalents?.[rangeKey]?.[0] ?? null;
+      const talentName = authored?.name ?? row.text;   // keeps "two" for talentRollCount
+      const desc = `<p>${escapeHtml(row.text)}. Roll on @UUID[${ref.uuid}]{${ref.name}}.</p>`;
+      const made = await _ensureItem(talentsPack,
+        _talentData(talentName, desc, sourceTitle,
+          { talentClass: authored?.talentClass ?? "level", effects: authored?.effects ?? [] }),
+        ["Level", parsed.name], report);
+      rowResults.push({ range, uuids: [made.uuid] });
+      allOptionUuids.add(made.uuid);
+      continue;
+    }
     // Preview edits can leave blank rows/options — skip them, never create
     // a nameless Talent.
     const labels = (row.kind === "choice" ? (row.options ?? []) : [row.text])
@@ -248,60 +314,13 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     const uuids = [];
     for (const label of labels)
       uuids.push(await _resolveOutcome(label, {
-        pack: itemsPack, sysTalents, sourceTitle, className: parsed.name, report, queue,
+        pack: talentsPack, sysTalents, sourceTitle, className: parsed.name, report, queue,
       }));
     uuids.forEach((u) => allOptionUuids.add(u));
     rowResults.push({ range, uuids, choose: row.kind === "choice" });
   }
 
-  // ── 2. Fixed feature Talents (+ Spellcasting enabler) ──
-  const featureUuids = [];
-  for (const f of parsed.features) {
-    if (!String(f.name ?? "").trim()) continue;   // blank preview rows
-    const wired = overlay?.features
-      ? Object.entries(overlay.features).find(([k]) => k.toLowerCase() === f.name.toLowerCase())?.[1] ?? null
-      : null;
-    const made = await _ensureItem(itemsPack,
-      _talentData(f.name, f.description, sourceTitle,
-        { talentClass: wired?.talentClass ?? "class", effects: wired?.effects ?? [] }),
-      ["Class", parsed.name], report);
-    featureUuids.push(made.uuid);
-  }
-  // Borrowed spell list (Knight of St. Ydris → Witch pattern): resolve the
-  // preview's pick, or fall back to the parsed "casts wizard spells" name.
-  let spellClass = parsed.spellcasting?.spellClass ?? null;
-  if (parsed.spellcasting && !spellClass && parsed.spellcasting.spellList) {
-    const hit = _systemIndex("Item", "shadowdark.classes")
-      .find((e) => e.name.toLowerCase() === parsed.spellcasting.spellList);
-    if (hit) spellClass = { uuid: hit.uuid, name: hit.name, slug: hit.name.slugify?.() ?? _norm(hit.name).replace(/ /g, "-") };
-    else report.warnings.push(`Spell list "${parsed.spellcasting.spellList}" didn't match an existing caster class — the class keeps its own list; pick the lender in the preview or set spellcasting.class by hand.`);
-  }
-
-  if (parsed.spellcasting) {
-    const ownSlug = parsed.name.slugify?.() ?? _norm(parsed.name).replace(/ /g, "-");
-    // The enabler registers the slug of the class whose LIST is cast from —
-    // the lender's when borrowing (probed: Knight of St. Ydris adds "witch").
-    const slug = spellClass?.slug ?? ownSlug;
-    const donor = _fuzzyFind(sysTalents, "Spellcasting (Wizard)");
-    if (donor) {
-      const donorDoc = await fromUuid(donor.uuid);
-      const data = donorDoc.toObject();
-      delete data._id; delete data._stats; delete data.folder; delete data.ownership; delete data.sort;
-      data.name = `Spellcasting (${parsed.name})`;
-      data.system.description = parsed.spellcasting.text || data.system.description;
-      data.system.source = { title: sourceTitle };
-      for (const eff of data.effects ?? [])
-        for (const ch of eff.changes ?? [])
-          if (ch.key === "system.spellcasting.classes") ch.value = slug;
-      data.flags = { ...(data.flags ?? {}), [MODULE_ID]: { imported: true } };
-      const made = await _ensureItem(itemsPack, data, ["Class", parsed.name], report);
-      featureUuids.push(made.uuid);
-    } else {
-      report.warnings.push("System 'Spellcasting (Wizard)' talent not found — create the casting-enabler talent by hand (playbook: Spellcaster wiring).");
-    }
-  }
-
-  // ── 3. Class-talent RollTable (same-range multi-results for choices) ──
+  // ── Class-talent RollTable (same-range multi-results for choices) ──
   let tableUuid = "";
   if (parsed.talentTable && rowResults.length) {
     // The class sheet's "Class Talents Table" dropdown lists RollTables whose
@@ -368,6 +387,108 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       report.created.push({ name: table.name, type: "RollTable", uuid: table.uuid });
     }
   }
+  return tableUuid;
+}
+
+/**
+ * Create/reuse every document for one parsed class unit.
+ * @param {object} parsed  parseClassSection() output
+ * @param {object} opts    { source, sourceTitle, overlay, bodyOnly }
+ *   bodyOnly (2-stage Stage 1): create only the Class item + feature Talents +
+ *   wield/languages — SKIP the talent table, titles, spells-known grid, and
+ *   extra tables. Those are imported in Stage 2 (Class · Roll Tables) and
+ *   attached via mergeClassSupplement.
+ * @returns {Promise<object>} report { created, reused, updated, systemReuse, warnings, classUuid, tableUuid }
+ *   `updated` = same-name docs whose content differed from the corrected
+ *   import and were updated in place ({name, type, uuid, fields}).
+ */
+export async function createClassUnit(parsed, { source = "", sourceTitle = "", overlay = null, bodyOnly = false } = {}) {
+  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
+  const { ensureSuite, ensureFolderPath, sourceFolderName } = await import("./compendium-suite.mjs");
+  const suite = await ensureSuite();
+  if (!suite?.items || !suite?.tables || !suite?.classes || !suite?.talents) {
+    ui.notifications?.error("Suite packs unavailable."); return null;
+  }
+  const itemsPack = suite.items, tablesPack = suite.tables;
+  const classesPack = suite.classes, talentsPack = suite.talents;
+
+  const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(parsed.warnings ?? [])] };
+  const sysTalents = _systemIndex("Item", "shadowdark.talents");
+
+  // ── 0. WR-only gear the class references (overlay-shipped stat lines,
+  // no descriptions) — created first so the wield list resolves. ──
+  const ourGear = [];
+  for (const it of overlay?.items ?? []) {
+    const made = await _ensureItem(itemsPack, {
+      name: it.name, type: it.type, img: it.img,
+      system: { ...it.system, description: "", source: { title: sourceTitle } },
+      effects: (it.effects ?? []).map((e) => ({
+        name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
+        system: { changes: e.changes ?? [] },
+      })),
+      flags: { [MODULE_ID]: { imported: true } },
+    }, String(it.folder ?? "Gear/Weapons").split("/"), report);
+    ourGear.push({ name: it.name, uuid: made.uuid });
+  }
+
+  // ── 0.5. Named extra tables (Wyrdling CORRUPTION, …) + talent-table docs.
+  // Stage 1 (bodyOnly) skips all roll tables — they arrive in Stage 2.
+  const extraTableRefs = bodyOnly ? [] : await buildExtraTables(parsed, { tablesPack, source, report, ensureFolderPath });
+
+  // ── 1+3. Talent-table outcome docs + class-talent RollTable ──
+  // Outcome Talents → Talents pack (Level/<class>); table → Tables pack.
+  const tableUuid = bodyOnly ? "" : await buildClassTalentTable(parsed, {
+    talentsPack, tablesPack, sysTalents, sourceTitle, source, overlay, report, ensureFolderPath, extraTableRefs,
+  });
+  if (bodyOnly && (parsed.talentTable || parsed.titles?.length || parsed.spellsKnown?.length || parsed.extraTables?.length))
+    report.warnings.push("This paste also contained roll tables (talent table / titles / spells known / extra table) — import them in the \"Class · Roll Tables\" stage and attach them to this class.");
+
+  // ── 2. Fixed feature Talents (+ Spellcasting enabler) ──
+  const featureUuids = [];
+  for (const f of parsed.features) {
+    if (!String(f.name ?? "").trim()) continue;   // blank preview rows
+    const wired = overlay?.features
+      ? Object.entries(overlay.features).find(([k]) => k.toLowerCase() === f.name.toLowerCase())?.[1] ?? null
+      : null;
+    const made = await _ensureItem(talentsPack,
+      _talentData(f.name, f.description, sourceTitle,
+        { talentClass: wired?.talentClass ?? "class", effects: wired?.effects ?? [] }),
+      ["Class", parsed.name], report);
+    featureUuids.push(made.uuid);
+  }
+  // Borrowed spell list (Knight of St. Ydris → Witch pattern): resolve the
+  // preview's pick, or fall back to the parsed "casts wizard spells" name.
+  let spellClass = parsed.spellcasting?.spellClass ?? null;
+  if (parsed.spellcasting && !spellClass && parsed.spellcasting.spellList) {
+    const hit = _systemIndex("Item", "shadowdark.classes")
+      .find((e) => e.name.toLowerCase() === parsed.spellcasting.spellList);
+    if (hit) spellClass = { uuid: hit.uuid, name: hit.name, slug: hit.name.slugify?.() ?? _norm(hit.name).replace(/ /g, "-") };
+    else report.warnings.push(`Spell list "${parsed.spellcasting.spellList}" didn't match an existing caster class — the class keeps its own list; pick the lender in the preview or set spellcasting.class by hand.`);
+  }
+
+  if (parsed.spellcasting) {
+    const ownSlug = parsed.name.slugify?.() ?? _norm(parsed.name).replace(/ /g, "-");
+    // The enabler registers the slug of the class whose LIST is cast from —
+    // the lender's when borrowing (probed: Knight of St. Ydris adds "witch").
+    const slug = spellClass?.slug ?? ownSlug;
+    const donor = _fuzzyFind(sysTalents, "Spellcasting (Wizard)");
+    if (donor) {
+      const donorDoc = await fromUuid(donor.uuid);
+      const data = donorDoc.toObject();
+      delete data._id; delete data._stats; delete data.folder; delete data.ownership; delete data.sort;
+      data.name = `Spellcasting (${parsed.name})`;
+      data.system.description = parsed.spellcasting.text || data.system.description;
+      data.system.source = { title: sourceTitle };
+      for (const eff of data.effects ?? [])
+        for (const ch of eff.changes ?? [])
+          if (ch.key === "system.spellcasting.classes") ch.value = slug;
+      data.flags = { ...(data.flags ?? {}), [MODULE_ID]: { imported: true } };
+      const made = await _ensureItem(talentsPack, data, ["Class", parsed.name], report);
+      featureUuids.push(made.uuid);
+    } else {
+      report.warnings.push("System 'Spellcasting (Wizard)' talent not found — create the casting-enabler talent by hand (playbook: Spellcaster wiring).");
+    }
+  }
 
   // ── 4. The Class item ──
   const gearIndex = _systemIndex("Item", "shadowdark.gear");
@@ -386,7 +507,11 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   const classData = {
     name: parsed.name, type: "Class", img: "icons/skills/trades/academics-book-study-runes.webp",
     system: {
-      description: (parsed.flavor ?? "") + parsed.features.map((f) => `<p><strong>${escapeHtml(f.name)}.</strong></p>${f.description}`).join(""),
+      // Flavor only — matches the system convention (e.g. Wizard's description is
+      // just the intro paragraph). The features are separate Talent items in
+      // `talents` below; folding them into the description too made the
+      // char-builder show every feature twice.
+      description: parsed.flavor ?? "",
       hitPoints: parsed.hitPoints,
       allWeapons: parsed.allWeapons, allMeleeWeapons: parsed.allMeleeWeapons,
       allRangedWeapons: parsed.allRangedWeapons, allArmor: parsed.allArmor,
@@ -406,7 +531,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
         class: parsed.spellcasting ? (spellClass?.uuid ?? "") : "__not_spellcaster__",
         // System shape (probed from shadowdark.classes Wizard, SD 4.x):
         // { "<level>": { "1": n|null … "5": n|null } }, null for "—".
-        ...(parsed.spellcasting && (parsed.spellsKnown ?? []).length ? {
+        ...(!bodyOnly && parsed.spellcasting && (parsed.spellsKnown ?? []).length ? {
           spellsknown: Object.fromEntries(
             parsed.spellsKnown.filter((r) => r.level >= 1 && r.level <= 10).map((r) => [
               String(r.level),
@@ -414,7 +539,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
             ])),
         } : {}),
       },
-      titles: (parsed.titles ?? []).map((t) => ({
+      titles: bodyOnly ? [] : (parsed.titles ?? []).map((t) => ({
         from: Number(t.from) || 1, to: Number(t.to) || Number(t.from) || 1,
         lawful: t.lawful ?? "", chaotic: t.chaotic ?? "", neutral: t.neutral ?? "",
       })),
@@ -423,7 +548,29 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     // classFlags: SDE-original class metadata (e.g. fixedDeity → DeityStep pin)
     flags: { [MODULE_ID]: { imported: true, ...(overlay?.classFlags ?? {}) } },
   };
-  const madeClass = await _ensureItem(itemsPack, classData, ["Classes"], report);
+  // Body-only re-import must NOT clobber supplement-owned fields. Stage 1 builds
+  // classTalentTable/titles/spellsknown EMPTY (they arrive in Stage 2), and
+  // _ensureItem replaces the whole doc — so re-pasting just the writeup would
+  // erase an already-attached talent table + titles. Carry the existing class's
+  // Stage-2 values forward. (review 2026-07-12 #1)
+  if (bodyOnly) {
+    const prior = (await classesPack.getIndex({ fields: ["type"] }))
+      .find((e) => e.name === classData.name && e.type === "Class");
+    const existing = prior ? (await classesPack.getDocument(prior._id))?.toObject() : null;
+    if (existing) {
+      if (existing.system?.classTalentTable) classData.system.classTalentTable = existing.system.classTalentTable;
+      if (existing.system?.titles?.length) classData.system.titles = existing.system.titles;
+      const priorKnown = existing.system?.spellcasting?.spellsknown;
+      // Only when the body still describes a caster — don't strand a spells-known
+      // table on a class the re-paste turned non-caster.
+      if (parsed.spellcasting && priorKnown && Object.keys(priorKnown).length)
+        classData.system.spellcasting.spellsknown = priorKnown;
+    }
+  }
+
+  // Class item → world.classes, foldered by source (Western Reaches / Custom),
+  // matching the rest of the char-option suite.
+  const madeClass = await _ensureItem(classesPack, classData, [sourceFolderName(source)], report);
 
   // TRAP (playbook §1): classTalentTable silently vanished once — re-read the
   // pack copy and repair if the field didn't persist. Runs on EVERY path
@@ -431,10 +578,10 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   // was previously never rewired (review #12).
   if (tableUuid) {
     const id = madeClass.uuid.split(".").pop();
-    let fresh = await itemsPack.getDocument(id);
+    let fresh = await classesPack.getDocument(id);
     if (fresh && fresh.system.classTalentTable !== tableUuid) {
       await fresh.update({ "system.classTalentTable": tableUuid });
-      fresh = await itemsPack.getDocument(id);
+      fresh = await classesPack.getDocument(id);
       if (fresh.system.classTalentTable !== tableUuid)
         report.warnings.push("classTalentTable did NOT persist on the class after a repair attempt — set it by hand and tell the maintainer.");
     }
@@ -442,6 +589,80 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
 
   report.classUuid = madeClass.uuid;
   report.tableUuid = tableUuid;
+  return report;
+}
+
+/**
+ * Merge a class SUPPLEMENT (parseClassSupplement output) onto an already-imported
+ * Class item — the "stage 2" table imports pasted after the class body:
+ *   • talentTable → builds outcome Talents + the RollTable, sets classTalentTable
+ *   • titles      → system.titles
+ *   • spellsKnown → system.spellcasting.spellsknown
+ *   • extraTables → creates named RollTables (Corruption, …), links matching rows
+ * Only the fields present in `sup` are touched; the rest of the class is left as-is.
+ *
+ * @param {string} targetClassUuid  the Class item to attach to (world.classes or a legacy pack)
+ * @param {object} sup  { talentTable?, titles?, spellsKnown?, extraTables?, warnings? }
+ * @param {object} opts { source, sourceTitle, overlay }
+ * @returns {Promise<object|null>} report, or null when the target/suite is unusable
+ */
+export async function mergeClassSupplement(targetClassUuid, sup, { source = "", sourceTitle = "", overlay = null } = {}) {
+  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
+  if (!targetClassUuid || !sup) { ui.notifications?.warn("Pick a class to attach these tables to."); return null; }
+  const cls = await fromUuid(targetClassUuid).catch(() => null);
+  if (!cls || cls.type !== "Class") { ui.notifications?.error("Attach-to class not found."); return null; }
+  const { ensureSuite, ensureFolderPath } = await import("./compendium-suite.mjs");
+  const suite = await ensureSuite();
+  if (!suite?.talents || !suite?.tables) { ui.notifications?.error("Suite packs unavailable."); return null; }
+  const talentsPack = suite.talents, tablesPack = suite.tables;
+
+  const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(sup.warnings ?? [])] };
+  const sysTalents = _systemIndex("Item", "shadowdark.talents");
+  // Reuse the class's own source title/slug when the paste didn't set one.
+  const srcTitle = sourceTitle || cls.system?.source?.title || "";
+
+  // Named extra tables (a CORRUPTION block pasted alone or alongside a talent
+  // table) — create them first, then link the talent rows that reference them.
+  const extraTableRefs = await buildExtraTables({ name: cls.name, extraTables: sup.extraTables ?? [] }, { tablesPack, source, report, ensureFolderPath });
+
+  const update = {};
+  if (sup.talentTable) {
+    const parsedLike = { name: cls.name, talentTable: sup.talentTable };
+    const tableUuid = await buildClassTalentTable(parsedLike, {
+      talentsPack, tablesPack, sysTalents, sourceTitle: srcTitle, source, overlay, report, ensureFolderPath, extraTableRefs,
+    });
+    if (tableUuid) update["system.classTalentTable"] = tableUuid;
+  }
+  if (sup.titles?.length) {
+    update["system.titles"] = sup.titles.map((t) => ({
+      from: Number(t.from) || 1, to: Number(t.to) || Number(t.from) || 1,
+      lawful: t.lawful ?? "", chaotic: t.chaotic ?? "", neutral: t.neutral ?? "",
+    }));
+  }
+  if (sup.spellsKnown?.length) {
+    update["system.spellcasting.spellsknown"] = Object.fromEntries(
+      sup.spellsKnown.filter((r) => r.level >= 1 && r.level <= 10).map((r) => [
+        String(r.level),
+        Object.fromEntries([1, 2, 3, 4, 5].map((t) => [String(t), r.tiers[t - 1] || null])),
+      ]));
+  }
+
+  if (Object.keys(update).length) {
+    const fields = Object.keys(update);   // capture before update() injects _id
+    await cls.update(update);
+    report.updated.push({ name: cls.name, type: "Class", uuid: cls.uuid, fields });
+    // Re-read repair (playbook §1 trap): classTalentTable has silently vanished before.
+    if (update["system.classTalentTable"]) {
+      const fresh = await fromUuid(cls.uuid).catch(() => null);
+      if (fresh && fresh.system.classTalentTable !== update["system.classTalentTable"])
+        report.warnings.push("classTalentTable did NOT persist on the class after merge — set it by hand and tell the maintainer.");
+    }
+  } else if (!extraTableRefs.length) {
+    report.warnings.push("Nothing to merge — the paste had no talent table, titles, spells-known grid, or extra table.");
+  }
+
+  report.classUuid = cls.uuid;
+  report.tableUuid = update["system.classTalentTable"] ?? "";
   return report;
 }
 

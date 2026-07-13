@@ -335,6 +335,18 @@ Hooks.once("init", () => {
         (!tab || tab === "dashboard") ? "tables" : tab,
         seed,
       ),
+      // Dedicated Class Importer — classes have their own guided workspace
+      // (body → roll tables → titles) instead of the generic paste box.
+      openClassImporter: async () => {
+        const { ClassImporterApp } = await import("./encounter/class-importer-app.mjs");
+        return ClassImporterApp.open();
+      },
+      // Dedicated Spell Importer — organizes spells by Class → Tier → Alignment
+      // and tags them (system.class + tier + the shadowdark-extras alignment flag).
+      openSpellImporter: async () => {
+        const { SpellImporterApp } = await import("./encounter/spell-importer-app.mjs");
+        return SpellImporterApp.open();
+      },
       // Enrich an imported table to the Ruins standard: encounter -> monster
       // @UUID links + [[/r]] counts; treasure -> real compendium items.
       enrich: (uuid, kind) => TableEnricher.enrich(uuid, kind),

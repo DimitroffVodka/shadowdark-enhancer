@@ -14,7 +14,7 @@
  *     delegate to class-parser.mjs for the full parse-and-author unit)
  */
 
-import { parseClassSection } from "./class-parser.mjs";
+import { parseClassSection, parseClassSupplement } from "./class-parser.mjs";
 
 export const CHAR_SOURCES = {
   CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
@@ -643,6 +643,27 @@ function _parseClasses(text) {
     }];
   }
 
+  // Stage-2 supplement: a fragment pasted after the class body (a TITLES block,
+  // a bare talent table, or a SPELLS KNOWN grid) with no Hit-Points anchor. The
+  // draft carries `classSupplement`; the hub shows an "attach to class" picker
+  // and the commit routes it through mergeClassSupplement instead of creating a
+  // bare Class item.
+  const supplement = parseClassSupplement(src);
+  if (supplement) {
+    const parts = [];
+    if (supplement.talentTable) parts.push("talent table");
+    if (supplement.titles.length) parts.push(`${supplement.titles.length} title band${supplement.titles.length === 1 ? "" : "s"}`);
+    if (supplement.spellsKnown.length) parts.push("spells known");
+    if (supplement.extraTables?.length) parts.push(`${supplement.extraTables.length} extra table${supplement.extraTables.length === 1 ? "" : "s"}`);
+    return [{
+      draft: {
+        name: `Class tables — ${parts.join(", ") || "supplement"}`,
+        type: "ClassSupplement",
+        classSupplement: supplement,
+      },
+    }];
+  }
+
   const name = src.split("\n")[0].trim();
   if (!name || name.length > 50) return [];
   const hp = src.match(/hit\s*points?\s*[:.]?\s*(?:1)?(d\d+)/i)?.[1] ?? "";
@@ -1045,10 +1066,33 @@ export function identifyAncestryTable(text) {
 }
 
 /** @param {"backgrounds"|"talents"|"classes"|"ancestries"} kind */
+/** Stage 2 (Class · Roll Tables): parse a paste as a class SUPPLEMENT and always
+ *  yield one draft for any non-empty text — even when nothing parsed — so the
+ *  manual Titles band editor is available to fill in by hand. */
+function _parseClassTables(text) {
+  const src = String(text).trim();
+  if (!src) return [];
+  const supplement = parseClassSupplement(src)
+    ?? { titles: [], talentTable: null, spellsKnown: [], extraTables: [], warnings: [] };
+  const parts = [];
+  if (supplement.talentTable) parts.push("talent table");
+  if (supplement.titles.length) parts.push(`${supplement.titles.length} title band${supplement.titles.length === 1 ? "" : "s"}`);
+  if (supplement.spellsKnown.length) parts.push("spells known");
+  if (supplement.extraTables?.length) parts.push(`${supplement.extraTables.length} extra table${supplement.extraTables.length === 1 ? "" : "s"}`);
+  return [{
+    draft: {
+      name: `Class tables — ${parts.join(", ") || "add titles/tables"}`,
+      type: "ClassSupplement",
+      classSupplement: supplement,
+    },
+  }];
+}
+
 export function parseCharContent(text, kind) {
   if (kind === "backgrounds") return _parseBackgrounds(text);
   if (kind === "talents") return _parseTalents(text);
   if (kind === "classes") return _parseClasses(text);
+  if (kind === "classtables") return _parseClassTables(text);
   if (kind === "ancestries") return _parseAncestries(text);
   return [];
 }

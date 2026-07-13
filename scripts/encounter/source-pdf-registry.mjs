@@ -17,7 +17,9 @@
  * Exports:
  *   sourcePdfHref(src, pages)   — viewer.html?file=…#page=N, or null
  *   resolveSourcePdf(src)       — the file path for a source, or null
- *   listSourcePdfs()            — one row per known source (+ link status)
+ *   listSourcePdfs()            — async; one row per known source with origin
+ *                                 (journal upload vs static fallback) + verified
+ *                                 link status (fallback paths are HEAD-checked)
  *   uploadSourcePdf(src, file)  — upload a File and register it for a source
  *   registerSourcePdf(src, path)— link an already-uploaded path to a source
  *   ensureLibraryJournal()      — find/create the library JournalEntry
@@ -36,6 +38,31 @@ const KEY_FLAG = "sourceKey";          // marks a page as belonging to a source
  * runs +4 (printed page 92 is PDF page 96). Sources not listed are 1:1.
  */
 const PAGE_OFFSETS = { CORE: 4 };
+
+/**
+ * Western Reaches class-TITLES page per class. Titles live in a separate
+ * appendix (book pg 82-89), NOT on the class writeup page — so the Class
+ * Importer's "Open PDF · titles" button jumps straight to the right table.
+ * Extracted from the WR PDF's "<CLASS> TITLES" headings (WR is 1:1 book↔PDF).
+ */
+export const WR_TITLE_PAGES = {
+  "Bard": 82, "Basilisk Warrior": 82, "Delver": 82,
+  "Desert Rider": 83, "Duelist": 83, "Green Knight": 83,
+  "Knight of St. Ydris": 84, "Kyzian Archer": 84, "Monk of Yag-Kesh": 84,
+  "Necromancer": 85, "Paladin": 85,
+  "Pit Fighter": 86,
+  "Ranger": 87, "Ras-Godai": 87, "Roustabout": 87,
+  "Sea Wolf": 88, "Seer": 88, "Warlock": 88,
+  "Witch": 89, "Wyrdling": 89,
+};
+
+/** The WR titles-appendix page for a class name (case/space-insensitive), or null. */
+export function titlePageFor(className) {
+  const want = String(className ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  for (const [name, page] of Object.entries(WR_TITLE_PAGES))
+    if (name.toLowerCase() === want) return page;
+  return null;
+}
 
 /** Per-world upload target — packaged module dirs are read-only. */
 function uploadDir() {
@@ -101,12 +128,39 @@ export function sourcePdfHref(src, pages) {
   return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${pdfPage}`;
 }
 
-/** One row per known source, with its current link status — for the manager UI. */
-export function listSourcePdfs() {
-  return Object.entries(CHAR_SOURCES).map(([src, meta]) => {
-    const file = resolveSourcePdf(src);
-    return { src, label: meta.label, book: meta.book, file, linked: !!file };
-  });
+/** Does a served file actually exist? HEAD against its route; false on any error. */
+async function _fileExists(path) {
+  try {
+    const r = await fetch(foundry.utils.getRoute(path), { method: "HEAD" });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * One row per known source, with its current link status — for the manager UI.
+ * `origin` distinguishes a verified journal UPLOAD from the static FALLBACK
+ * path: fallbacks are deployment-local (never bundled), so on a clean install
+ * they can point at nothing — each is HEAD-verified before being reported as
+ * linked, instead of trusting the configured path. (review 2026-07-12 #5)
+ * @returns {Promise<Array<{src,label,book,file,origin,linked}>>}
+ *   origin: "journal" (uploaded + registered) | "fallback" (static default) | null
+ */
+export async function listSourcePdfs() {
+  const j = findLibraryJournal();
+  const rows = [];
+  for (const [src, meta] of Object.entries(CHAR_SOURCES)) {
+    const page = j?.pages.find((p) => p.type === "pdf" && p.src && p.getFlag(MODULE_ID, KEY_FLAG) === src);
+    const file = page?.src ?? SOURCE_PDFS[src] ?? null;
+    const origin = page ? "journal" : (SOURCE_PDFS[src] ? "fallback" : null);
+    // Journal registrations were verified at upload time; fallbacks are checked live.
+    const linked = origin === "journal" ? true
+      : origin === "fallback" ? await _fileExists(file)
+      : false;
+    rows.push({ src, label: meta.label, book: meta.book, file, origin, linked });
+  }
+  return rows;
 }
 
 /** Create/update the library's pdf page for a source, pointing at `filePath`. */
