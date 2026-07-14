@@ -1,15 +1,14 @@
 /**
- * Shadowdark Enhancer — Centralized Icon Registry
+ * Shadowdark Enhancer — centralized icon registry.
  *
- * Forked from vagabond-crawler/scripts/icons.mjs.
- *
- * Every icon used in the module is defined here.
- * To swap any icon, change its HTML snippet below:
+ * Every icon used in the module is defined here. To swap one, change its HTML
+ * snippet below:
  *
  *   FontAwesome:  `<i class="fas fa-icon-name"></i>`
- *   Custom SVG:   `<img class="sde-icon" src="${P}/my-icon.svg" alt="" />`
+ *   Vendored SVG: `gameIcon("slug")` → icons/game-icons/<slug>.svg
  *
- * SVG files live in  modules/shadowdark-enhancer/icons/
+ * All SVGs are vendored inside this module (icons/) — never fetched from an
+ * external URL or another module/system.
  */
 
 const P = "modules/shadowdark-enhancer/icons";
