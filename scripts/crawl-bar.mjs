@@ -89,17 +89,11 @@ export const CrawlBar = {
     if (!this._el) return;
     const state = CrawlState;
 
-    // OFF state — single "Start Crawl" button
-    if (!state.isActive) {
-      this._el.innerHTML = `
-        <div class="sde-bar-inner sde-bar-inactive">
-          <button class="sde-bar-btn sde-bar-start-btn" data-action="startCrawl">
-            ${ICONS.startCrawl} Start Crawl
-          </button>
-        </div>`;
-      this._bindEvents();
-      return;
-    }
+    // The crawl bar is ALWAYS shown (no separate "Start Crawl" screen). When no
+    // session is active the last button reads "Start"; starting flips it to
+    // "End". Session-only actions (Next Turn, Combat) are disabled while idle.
+    const idle = !state.isActive;
+    const idleAttr = idle ? 'disabled style="opacity:0.4;cursor:default"' : "";
 
     // COMBAT state
     if (state.mode === "combat") {
@@ -126,10 +120,10 @@ export const CrawlBar = {
     this._el.innerHTML = `
       <div class="sde-bar-inner sde-bar-active">
 
-        <span class="sde-bar-phase-badge sde-bar-phase-crawl">
+        <span class="sde-bar-phase-badge sde-bar-phase-crawl"${idle ? ' style="opacity:0.55"' : ""}>
           ${ICONS.startCrawl} Crawl · Turn ${state.crawlTurn}
         </span>
-        <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn">
+        <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn" ${idleAttr}>
           ${ICONS.nextTurn} Next Turn
         </button>
         <div class="sde-bar-divider"></div>
@@ -137,7 +131,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="addSelectedTokens" title="Left-click: add selected tokens to the crawl · Right-click: reset out-of-combat initiative">
           ${ICONS.addTokens} Add Tokens
         </button>
-        <button class="sde-bar-btn sde-bar-combat-btn" data-action="startCombat">
+        <button class="sde-bar-btn sde-bar-combat-btn" data-action="startCombat" ${idleAttr}>
           ${ICONS.combat} Combat
         </button>
 
@@ -152,9 +146,9 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">
           ${ICONS.importer} Importer
         </button>
-        <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl">
-          ${ICONS.close} End
-        </button>
+        ${idle
+          ? `<button class="sde-bar-btn sde-bar-start-btn" data-action="startCrawl" title="Start a new crawl session">${ICONS.startCrawl} Start</button>`
+          : `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl" title="End the crawl session">${ICONS.close} End</button>`}
 
       </div>`;
 
