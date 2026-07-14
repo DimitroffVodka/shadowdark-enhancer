@@ -178,12 +178,9 @@ export async function gatherSpellListCensus() {
 // non-char-builder content); census-verified 2026-07-06. CS4–6 unchanged.
 const MANIFEST = {
   CORE: {
-    // Core Rulebook GM/play tables ship sealed as ~11 section groups. Each
-    // entry below is the group's representative table — unlocking it (paste that
-    // section from the core rulebook) unseals the whole group (e.g. Arctic
-    // Encounters unseals all 22 encounter tables; Item Virtue unseals all 40
-    // magic-item attribute tables; Treasure 0-3 unseals the 4 treasure tables +
-    // their linked loot items). See SEALED_UNITS core-* for the full sets.
+    // Stable representative citations for the Core Rulebook table groups. The
+    // Manage tree expands these through core-table-groups.mjs; each member table
+    // is imported and presence-checked independently.
     Table: [
       "Core PDF p146: Arctic Encounters",
       "TREASURE 0-3",
@@ -199,18 +196,16 @@ const MANIFEST = {
     ],
   },
   CS1: {
-    // CS1 (Diablerie!) ships its Diabolical tables sealed (cs1-mishaps holds
-    // both mishap tables; cs1-treasure the back-cover d20). Names are the exact
-    // world-table names so _tableHave matches. The 14 CS1 monsters unlock via
-    // the live monster census, not this manifest.
+    // Names are the exact world-table names so _tableHave matches. The 14 CS1
+    // monsters are tracked through the live monster census, not this manifest.
     Table: [
       "Diabolical Mishap 1-3", "Diabolical Mishap 4-5",
       "Cursed Scroll 1 p68: Diabolical Treasure",
     ],
   },
   CS2: {
-    // Red Sands: Enduring Wounds (pg 26) + the back-cover Dead Bandit's Hand
-    // ship sealed; 14 monsters unlock via the live monster census.
+    // Red Sands: Enduring Wounds (pg 26) + the back-cover Dead Bandit's Hand.
+    // Its 14 monsters are tracked through the live monster census.
     Table: [
       "Cursed Scroll 2 p26: Enduring Wounds",
       "Cursed Scroll 2 p68: In A Dead Bandit'S Hand, You Find...",
@@ -218,8 +213,8 @@ const MANIFEST = {
   },
   CS3: {
     // Midnight Sun: Nord Names is a 4d20 compound (parent + Male/Female/
-    // Surname/Title, all unsealed together); Arctic Sea Encounters + the
-    // back-cover Sea Wolf Plunder. 12 monsters unlock via the monster census.
+    // Surname/Title); Arctic Sea Encounters + the back-cover Sea Wolf Plunder.
+    // Its 12 monsters are tracked through the live monster census.
     Table: [
       "Cursed Scroll 3 p16: Nord Names",
       "Cursed Scroll 3 p26: Arctic Sea Encounters",
@@ -253,13 +248,12 @@ const MANIFEST = {
       "Identify", "Meld", "Pacify", "Permanence", "Push/Pull", "Reveal",
       "Speak With Object", "Stasis", "Ward",
     ],
-    // Carousing (+ the rest of the CS6 tables) ship sealed as one unit
-    // (cs6-tables, coversType:"Table"); unlocking any entry unseals all 25.
+    // CS6 Carousing tables imported through the source-guided parser.
     Table: [
       "Carousing Outcome", "Carousing Outcome - Benefit", "Carousing Outcome - Mishap",
     ],
     // CS6 introduced the Duelist (also in WR) — dual-source unlock. (Bard is the
-    // system's "Bard (Legacy)", so it isn't sealed here.)
+    // system's "Bard (Legacy)", so it is not listed here.)
     Class: ["Duelist"],
   },
   WR: {
@@ -300,7 +294,7 @@ const MANIFEST = {
       // (user req 2026-07-11).
       "Patron Boons: Almazzat", "Patron Boons: Kytheros", "Patron Boons: Mugdulblub",
       "Patron Boons: Shune the Vile", "Patron Boons: The Willowman", "Patron Boons: Titania",
-      // Carousing + backgrounds (sealed-group reps, see note above)
+      // Carousing + background-table representatives
       "Carousing Mishap", "Carousing Benefit", "Western Reach Backgrounds",
     ],
     Talent: [
@@ -402,7 +396,7 @@ export const CLASS_SPECS = {
  */
 export const ANCESTRY_TABLES = [
   // Trinket is SINGULAR — the canonical table name everywhere (authored tables,
-  // sealed wr-anc-* units, table-manifest-data, char-builder auto-discovery).
+  // table-manifest-data, char-builder auto-discovery).
   // The census presence check is exact-name, so a plural here reads as
   // never-imported (user-reported: Dwarf Trinket stayed locked after unlock).
   { name: "Dwarf Names", pages: "18" },    { name: "Dwarf Trinket", pages: "19" },
@@ -614,14 +608,14 @@ export const CLASS_ABILITIES = Object.fromEntries(
 /**
  * Public: is a live table present under this display/manifest name? Suffix-aware
  * so a table imported as "Source - Name" satisfies a bare "Name" probe (the
- * de-sealed unlock stamps the source prefix; the Manage tree checks the bare
+ * source-guided import stamps the source prefix; the Manage tree checks the bare
  * sub-table name). Used by the per-sub-table core-table presence check.
  */
 export function hasTable(tablesPresent, name) { return _tableHave(tablesPresent, name); }
 
 /**
- * Strip a legacy sealed-group rep prefix ("Core PDF p118: Traps" → "Traps") so
- * a de-sealed import — which lands under the REAL table name ("Traps", or
+ * Strip a legacy group-representative prefix ("Core PDF p118: Traps" → "Traps")
+ * so an import — which lands under the REAL table name ("Traps", or
  * "Source - Traps") — satisfies the census presence probe. The display name and
  * page cite keep the prefixed form (page is lifted from the "pNNN" in it); only
  * the presence match uses the bare name. No-op for reps already stored as their

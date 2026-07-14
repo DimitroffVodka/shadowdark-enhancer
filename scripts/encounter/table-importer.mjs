@@ -830,8 +830,8 @@ export function parseGenerators(text, spec) {
 }
 
 // ── Shape-directed parse — per-unlock precise structure (table-shapes.mjs) ────
-// The "smaller + more detailed" successor to the old sealed AES blobs and to
-// formula-only seeds: an unlockable table ships its exact column recipe, so the
+// An importable table ships its exact column recipe rather than relying on a
+// formula-only seed, so the
 // paste is reconstructed DETERMINISTICALLY instead of guessed. No book text —
 // only the structure (column count + split rule). See table-shapes.mjs.
 
@@ -1529,21 +1529,32 @@ export function parseByShape(text, shape, { name = "" } = {}) {
         gtext = glines.slice(s, e).join("\n");
       }
     }
-    const reflowFirst = shape.reflow?.length
+    // Run ALL THREE split strategies and keep the best-filled result — each
+    // wins on different pages: the declared reflow boundaries on glued
+    // single-column rows (Boons: Secrets, Nord Names), the aligned x-position
+    // split on layout-preserved copies, and the generic spec parser on the
+    // auto-extracted generator pages (Traps: the aligned header never matches
+    // auto text, and reflow only fills column 1 — E2E follow-up 2026-07-14).
+    // Ties prefer the earlier candidate (author-declared reflow first).
+    const filled = (g) => (g?.columns ?? []).reduce((s, c) => s + (c.rows ?? []).filter((r) => String(r.text ?? "").trim()).length, 0);
+    const viaReflow = shape.reflow?.length
       ? parseGridReflow(gtext, { name, cols: shape.cols, size: shape.size, labels: shape.labels, reflow: shape.reflow })
       : null;
-    const pt = reflowFirst
-      || parseGridShape(gtext, { name, cols: shape.cols, size: shape.size, labels: shape.labels })
-      || parseGridReflow(gtext, { name, cols: shape.cols, size: shape.size, labels: shape.labels, reflow: shape.reflow });
-    if (pt) return { generators: [pt] };
-    const [g] = parseGenerators(gtext, { columns: shape.cols, die: shape.size });
-    if (!g) return null;
-    if (shape.labels?.length) {
-      g.columns.forEach((c, i) => { if (shape.labels[i]) c.label = shape.labels[i]; });
-      if (g.compound) g.compound.columns = g.columns;
-    }
-    if (name) g.name = name;
-    return { generators: [g] };
+    const viaAligned = parseGridShape(gtext, { name, cols: shape.cols, size: shape.size, labels: shape.labels });
+    const viaGenerators = (() => {
+      const [g] = parseGenerators(gtext, { columns: shape.cols, die: shape.size });
+      if (!g) return null;
+      if (shape.labels?.length) {
+        g.columns.forEach((c, i) => { if (shape.labels[i]) c.label = shape.labels[i]; });
+        if (g.compound) g.compound.columns = g.columns;
+      }
+      if (name) g.name = name;
+      return g;
+    })();
+    const candidates = [viaReflow, viaAligned, viaGenerators].filter(Boolean);
+    if (!candidates.length) return null;
+    const pt = candidates.reduce((a, b) => (filled(b) > filled(a) ? b : a));
+    return { generators: [pt] };
   }
   if (shape.kind === "lookup") {
     const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts, rowStart: shape.rowStart, colLast: shape.colLast });

@@ -336,9 +336,9 @@ test("shapeForName resolves exact + suffix-prefixed import names", () => {
 });
 
 test("census presence resolves a legacy 'Core PDF pNNN:' rep against the real table name", () => {
-  // Regression: a de-sealed import lands under the real name ("Traps"), but the
-  // manifest still probes the legacy sealed-group rep ("Core PDF p118: Traps").
-  // hasTable strips the rep prefix so the imported table clears the Unlock button.
+  // Regression: an import lands under the real name ("Traps"), but the manifest
+  // still probes the legacy group rep ("Core PDF p118: Traps"). hasTable strips
+  // the rep prefix so the imported table clears the Import button.
   assert.equal(hasTable(new Set(["traps"]), "Core PDF p118: Traps"), true);
   assert.equal(hasTable(new Set(["core rulebook - traps"]), "Core PDF p118: Traps"), true);  // source-prefixed
   assert.equal(hasTable(new Set(["hazards"]), "Core PDF p118: Traps"), false);               // wrong table

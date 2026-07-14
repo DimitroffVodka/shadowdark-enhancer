@@ -3,9 +3,8 @@
  *
  * A small, precise structure descriptor for each unlockable table, so the paste
  * parser reconstructs it DETERMINISTICALLY instead of guessing the column count
- * and boundaries. This is the "smaller + more detailed" successor to the old
- * sealed AES blobs (sealed-content.mjs, retired) and to formula-only structure
- * seeds: each entry ships the exact column recipe — NO book text, only structure.
+ * and boundaries. Each entry ships the exact column recipe — NO book text,
+ * only structure.
  *
  * DISPATCH MODEL (PDF-import review §05/§09 rec #2). Known content is keyed by a
  * persistent `contentId` (`{srcSlug}/{nameSlug}`) — stable across display-name
