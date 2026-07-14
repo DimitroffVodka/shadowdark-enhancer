@@ -1169,30 +1169,19 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 .sde-bar-btn .sde-bar-icon-dragon { width: 16px; height: 16px; }
 
-/* Fantasy RPG Dings glyph font (assets/fonts/, license: no redistribution —
-   see CREDITS.md). Keyboard characters render as fantasy icons; monochrome,
-   so they inherit the button text color like Font Awesome glyphs do.
-   NOTE: an in-progress migration to game-icons.net SVGs (.sde-game-icon) was
-   reverted — it referenced assets/icons/game-icons/*.svg files that don't
-   exist yet, which broke every UI icon. Restore the SVG path only once those
-   assets are committed. */
-@font-face {
-  font-family: "Fantasy RPG Dings";
-  src: url("../assets/fonts/fantasy-rpg-dings.otf") format("opentype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: block;
-}
-.sde-ding {
-  font-family: "Fantasy RPG Dings";
-  font-weight: normal;
-  font-style: normal;
-  line-height: 1;
+/* CC BY 3.0 game-icons.net SVGs, vendored under icons/game-icons/ (see
+   CREDITS.md). The source artwork is black; the filter maps it to the module's
+   gold accent, so the glyphs inherit the button color like the old icon font
+   did — no font file or runtime dependency. */
+.sde-game-icon {
   display: inline-block;
-  font-size: 1.25em;
-  vertical-align: -0.15em;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.25em;
+  object-fit: contain;
+  filter: invert(77%) sepia(38%) saturate(603%) hue-rotate(4deg) brightness(87%) contrast(84%);
 }
-.sde-bar-inner .sde-ding { font-size: 19px; vertical-align: middle; margin-top: -2px; }
+.sde-bar-inner .sde-game-icon { width: 19px; height: 19px; vertical-align: middle; margin-top: -2px; }
 
 /* Shikashi pixel-art icons (assets/icons/shikashi/) used as button glyphs.
    The art is 32px-native: sizes below ~22px lose the readable detail, so

@@ -13,32 +13,26 @@
  */
 
 const P = "modules/shadowdark-enhancer/icons";
-// Shikashi's Fantasy Icons Pack v2 (assets/icons/shikashi/, see CREDITS.md).
-// .sde-px-icon renders them pixel-crisp at button size.
-const S = "modules/shadowdark-enhancer/assets/icons/shikashi";
-const px = (slug) => `<img class="sde-bar-icon sde-px-icon" src="${S}/${slug}.webp" alt="" />`;
-// Fantasy RPG Dings glyph font (assets/fonts/, see CREDITS.md — do NOT
-// redistribute the font file). Each keyboard character is an icon; the
-// glyph sheet lives at dev/dings-sheet.png. Monochrome — inherits color.
-const ding = (ch) => `<span class="sde-ding" aria-hidden="true">${ch}</span>`;
+// CC BY 3.0 game-icons.net SVGs vendored under icons/game-icons/.
+const gameIcon = (slug) => `<img class="sde-game-icon" src="${P}/game-icons/${slug}.svg" alt="" />`;
 
 export const ICONS = {
 
   // ── Crawl Bar ────────────────────────────────────────────────────────────
-  startCrawl:  ding("0"),   // flame
+  startCrawl:  gameIcon("flame"),
   heroes:      `<i class="fas fa-users"></i>`,
   gm:          `<i class="fas fa-crown"></i>`,
   nextTurn:    `<i class="fas fa-chevron-right"></i>`,
   addTokens:   `<i class="fas fa-user-plus"></i>`,
-  encCheck:    ding("W"),   // d6 die
-  encounter:   ding("P"),   // skull & crossbones
+  encCheck:    gameIcon("perspective-dice-six-faces-random"),
+  encounter:   gameIcon("skull-crossed-bones"),
   tableScroll: `<i class="fas fa-scroll"></i>`,
   lights:      `<i class="fas fa-fire"></i>`,
-  combat:      ding("!"),   // crossed swords
-  forge:       ding("z"),   // treasure hoard
-  importer:    ding("+"),   // open book
-  charBuilder: ding("r"),   // knight helm
-  monsterArt:  ding("q"),   // dragon head
+  combat:      gameIcon("crossed-swords"),
+  forge:       gameIcon("open-treasure-chest"),
+  importer:    gameIcon("open-book"),
+  charBuilder: gameIcon("visored-helm"),
+  monsterArt:  gameIcon("dragon-head"),
   close:       `<i class="fas fa-times"></i>`,
   play:        `<i class="fas fa-play"></i>`,
   clock:       `<i class="fas fa-clock" style="font-size:20px;color:var(--sde-bar-accent)"></i>`,
@@ -79,5 +73,5 @@ export const ICONS = {
   rollbackMove: `<i class="fas fa-rotate-left"></i>`,
 
   // ── Chat Messages ────────────────────────────────────────────────────────
-  encounterChat: ding("P"),   // skull & crossbones, matches ICONS.encounter
+  encounterChat: gameIcon("skull-crossed-bones"),
 };
