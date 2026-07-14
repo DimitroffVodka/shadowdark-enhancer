@@ -1,20 +1,12 @@
 /**
- * Core Rulebook roll-table groups — the full per-table enumeration behind the
- * 11 sealed `core-*` units.
+ * Core Rulebook roll-table groups used by the Manage tree and folder router.
  *
- * The importer seals Core Rulebook GM/play tables as ~11 grouped bundles (see
- * SEALED_UNITS `core-*` in sealed-content.mjs); a single paste of a book section
- * unlocks the whole bundle atomically. The Manage tree used to surface one
- * "representative" row per bundle, so of the ~100 real tables the reader only
- * saw ~10 rows. This map expands each bundle into its member tables so the tree
- * mirrors the book — every table is listed, grouped under its bundle header.
+ * This catalog expands the old representative rows into their member tables so
+ * the tree mirrors the book. Every table is listed under a book-section header,
+ * and each member is imported and presence-checked independently.
  *
- * Presence is BUNDLE-LEVEL: a group is "unlocked" when its `rep` table (one of
- * the MANIFEST.CORE.Table names, the pre-existing presence probe) is present in
- * the world. Because a sealed unlock imports the whole unit at once, all of a
- * group's member rows flip to "imported" together — which is exactly how the
- * content lands. Individual member rows are informational; the group's single
- * Unlock row drives the paste.
+ * `unit` and `rep` retain stable legacy identifiers used by existing metadata;
+ * they do not imply bundled or encrypted content.
  *
  * `section`: which top-level Manage branch the group renders under —
  *   'rolltables' → Roll Tables › Core Rulebook  (content generators)
@@ -26,12 +18,11 @@
  * printed numbers; the deep-link layer (source-pdf-registry PAGE_OFFSETS)
  * applies that shift at link time — never bake it into these values.
  *
- * Member names are the real table names as sealed (verified against the Core
+ * Member names are the real table names (verified against the Core
  * table census in dev/fixtures/roll-tables-manifest.json), EXCEPT:
- *   • core-treasure was re-sealed from the user's curated "TREASURE 0-3/4-6…"
- *     tables (commit ea0854c), so those carry the curated names.
+ *   • core-treasure uses the user's curated "TREASURE 0-3/4-6…" table names.
  *   • core-traps-hazards isn't in that census; its members are listed
- *     best-effort (the bundle still unlocks atomically regardless).
+ *     best-effort.
  */
 export const CORE_TABLE_GROUPS = [
   // ── Roll Tables › Core Rulebook ─────────────────────────────────────────

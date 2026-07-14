@@ -30,6 +30,10 @@
 - **"Re-skin placed" now honors your multi-source picks.** The button re-skins already-placed tokens with the manager's resolved blend (Monster Manual / Paizo / Forgotten Adventures / Community, per monster) instead of the old single-source matcher — with a fuzzy fallback so renamed or homebrew actors still match.
 - **Switching a placed token to flat art (Forgotten Adventures / Community) no longer shrinks it.** A leftover dynamic ring from the previous art was squeezing the new flat art into its ring subject; re-skin now turns the ring off for flat sources so the art fills the tile.
 
+### Removed
+- **Retired sealed-content architecture.** Removed the unused AES-GCM seal/unseal runtime, its development builder and procedure, and the obsolete sealing plan. Source-guided parse-and-author import was already the only active path, so this removes dead code without changing importer behavior.
+- **Retired Fighter portrait duplicate.** Removed the unused `assets/classes/_retured/fighter.JPG`; the active Fighter portrait remains unchanged.
+
 ### Notes
 - Verified live against Foundry VTT **14.364** and Shadowdark **4.0.6**.
 - All art is still referenced from disk by path — nothing is copied or bundled. Imported-monster art draws from name-matched sources (curated id-keyed maps such as Community Tokens cover the base bestiary only).

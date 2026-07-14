@@ -7,7 +7,7 @@
  * class-level flags. Applied on top of parseClassSection() output at commit
  * (class-unit-importer.mjs) — the paste supplies every word of rules text,
  * these overlays supply the plumbing. Extracted from the authored gold
- * masters via in-memory unseal, 2026-07-10.
+ * masters during the parse-and-author migration, 2026-07-10.
  *
  * CONTENT CONTRACT (enforced by verify.sh, blocking): no rules text, no
  * flavor, no sentences from any book — mechanics, labels, and effect keys
