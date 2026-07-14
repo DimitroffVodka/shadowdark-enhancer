@@ -77,6 +77,34 @@ export const SPELL_LISTS = [
   { key: "wr-sorcerer",    label: "Sorcerer — WR (Wizard · Chaotic)",   short: "Sorcerer (Wizard · Chaotic)", source: "WR",  page: "178", casterClass: "Wizard",      alignment: "chaotic" },
 ];
 
+/** Cap on the auto-grabbed writeup span (pages) — see spellListWriteupRange. */
+export const SPELL_WRITEUP_MAX_SPAN = 14;
+
+/**
+ * The printed page RANGE a caster list's spell writeups occupy, for the
+ * one-click "Import list" auto-grab (the spell-side parallel to the Class/Table
+ * Unlock auto-pull). SPELL_LISTS records only the list page (spell names by
+ * tier); the writeups (name · Tier · Duration · Range · rules) begin there and
+ * run until the next list in the SAME book — bounded to SPELL_WRITEUP_MAX_SPAN
+ * pages so a large between-section gap (e.g. WR Priest·Chaotic p140 → Druid
+ * p166) never pulls dozens of unrelated pages. Over-grab is self-cleaning: the
+ * spell parser drops any non-spell page (the bare list, unrelated prose) on its
+ * own, so a slightly wide range costs nothing.
+ * @param {string} listKey  a SPELL_LISTS[].key
+ * @returns {string|null}   printed range like "122-131", or null if unknown
+ */
+export function spellListWriteupRange(listKey) {
+  const list = SPELL_LISTS.find((l) => l.key === listKey);
+  const start = Number(list?.page);
+  if (!Number.isFinite(start)) return null;
+  const nextStart = SPELL_LISTS
+    .filter((l) => l.source === list.source && Number(l.page) > start)
+    .reduce((min, l) => Math.min(min, Number(l.page)), Infinity);
+  const hardEnd = start + SPELL_WRITEUP_MAX_SPAN - 1;
+  const end = Number.isFinite(nextStart) ? Math.min(nextStart - 1, hardEnd) : hardEnd;
+  return end > start ? `${start}-${end}` : String(start);
+}
+
 /**
  * Spell-list nickname → base caster class name, for the Wizard variant lists
  * whose printed name ISN'T a class ("casts druid spells" → the Wizard list).
@@ -95,14 +123,17 @@ export const LIST_SOURCE_SLUG = {
 
 /**
  * Live presence of each SPELL_LISTS caster list. Reads every Spell's
- * source-title slug, alignment flag, and class links (from the compendium
- * INDICES — cheap, no full-doc loads) and matches them to the lists so the
- * Manage tree can show a bulk-import row per list with an accurate have/gap
- * chip. Alignment alone doesn't disambiguate the WR Priest vs Wizard lists
- * (both split neutral/lawful/chaotic), so the class link is required too; the
- * Necromancer list (which imports unlinked until its class exists) matches a WR
- * spell with a Necromancer link OR no class link. Universal within a class →
- * alignment "".
+ * alignment flag and class links (from the compendium INDICES — cheap, no
+ * full-doc loads) and matches them to the lists so the Manage tree can show a
+ * bulk-import row per list with an accurate have/gap chip. Matching is by
+ * CLASS link + ALIGNMENT, SOURCE-INDEPENDENT: the three Wizard-variant lists
+ * (Druid=Neutral, Sorcerer=Chaotic, Mage=Lawful) are the SAME spells in the
+ * Cursed Scrolls AND the Western Reaches, so importing e.g. the Neutral Wizard
+ * list from CS4 lights up BOTH the CS4 Druid and the WR Druid rows. The class
+ * link (not source) is what disambiguates the WR Priest vs Wizard lists (both
+ * split neutral/lawful/chaotic); the Necromancer list (which imports unlinked
+ * until its class exists) matches a spell with a Necromancer link OR no class
+ * link. Universal within a class → alignment "".
  * @returns {Promise<Map<string,{present:boolean,count:number}>>} keyed by list key
  */
 export async function gatherSpellListCensus() {
@@ -126,11 +157,11 @@ export async function gatherSpellListCensus() {
 
   const counts = new Map(SPELL_LISTS.map((l) => [l.key, 0]));
   for (const sp of spells) {
-    const slug = _norm(getProp(sp, "system.source.title") ?? "").replace(/\s+/g, "-");
     const align = getProp(sp, "flags.shadowdark-extras.alignment") ?? "";
     const clsNames = (getProp(sp, "system.class") ?? []).map((u) => classNameByUuid.get(u)).filter(Boolean);
     for (const l of SPELL_LISTS) {
-      if (slug !== LIST_SOURCE_SLUG[l.source]) continue;
+      // Class + alignment only — no source gate — so the shared Wizard-variant
+      // lists count for their CS and WR rows alike (see the doc comment).
       if ((align || "") !== (l.alignment || "")) continue;
       const classOk = l.casterClass === "Necromancer"
         ? (clsNames.includes("Necromancer") || clsNames.length === 0)
@@ -398,11 +429,26 @@ export const ANCESTRY_TABLES = [
  * @param {string} sourceLabel  e.g. "Western Reaches"
  * @param {string} baseName     e.g. "Dwarf Names", "Dwarf Trinket"
  */
+/**
+ * Strip a rep prefix ("Core PDF p284: ", "Cursed Scroll 2 p26: ") off a
+ * manifest/display name. Presence matching and source-prefixing both want the
+ * bare printed name — prefixing an already-prefixed entry name doubled it
+ * ("Cursed Scroll 2 - Cursed Scroll 2 p26: Enduring Wounds", E2E D4).
+ * Strict superset of the old Core-only strip.
+ */
+export function stripRepPrefix(name) {
+  return String(name).replace(/^(?:Core PDF|Cursed Scroll \d+|Western Reaches)\s+p\.?\s?\d{1,3}\s*:\s*/i, "");
+}
+
 export function sourcedTableName(sourceLabel, baseName) {
-  const raw = /\bnames$/i.test(baseName)
-    ? String(baseName).replace(/\s*names\s*$/i, "").trim()
-    : "";
-  if (!raw) return `${sourceLabel} - ${baseName}`;
+  const bare = stripRepPrefix(String(baseName)).trim();
+  // The "Character Names:" transform is for ANCESTRY name tables only — a
+  // non-ancestry table that happens to end in "Names" (CS3's "Nord Names"
+  // d20 grid) must keep its real name (E2E D4).
+  const isAncestryNames = /\bnames$/i.test(bare)
+    && ANCESTRY_TABLES.some((t) => _norm(t.name) === _norm(bare));
+  if (!isAncestryNames) return `${sourceLabel} - ${bare}`;
+  const raw = bare.replace(/\s*names\s*$/i, "").trim();
   // Normalize ancestry casing so an all-caps page caption ("DWARF", "HALF-ELF")
   // doesn't leak into the table name: lower, then re-capitalize each word start
   // (hyphen-aware, so "half-elf" → "Half-Elf"). Idempotent for mixed-case input.
@@ -424,9 +470,12 @@ const ITEM_PAGES = {
 };
 
 /** Section-level page cites by document type (user-supplied 2026-07-06):
- *  WR Basic Gear pg 106, Weapons pg 110, Armor pg 112, Backgrounds pg 74. */
+ *  WR Basic Gear pg 106, Weapons pg 110, Armor pg 112, Backgrounds pg 74.
+ *  Gear tables run onto the next page (Basic 106-107 Oil…Wagon; Weapons 110-111
+ *  Shortsword…Whip) — cite the full RANGE so a bulk unlock grabs the whole
+ *  table, not just its first page. */
 const TYPE_PAGES = {
-  WR: { Basic: "106", Weapon: "110", Armor: "112", Background: "74" },
+  WR: { Basic: "106-107", Weapon: "110-111", Armor: "112", Background: "74" },
 };
 
 /** Page cites for named Table entries (whose page isn't embedded in the name). */
@@ -450,11 +499,51 @@ const TABLE_PAGES = {
     "Saint Ydris Boons": "219", "Patron Boons: Shune the Vile": "220",
     "Patron Boons: Titania": "221", "Patron Boons: The Willowman": "222",
     "Yag-Kesh Boons": "223",
+    // Multi-page d100 carousing longtables (captions BENEFIT/MISHAP; verified
+    // against the PDF — Bastions starts p246).
+    "Carousing Benefit": "238-241",
+    "Carousing Mishap": "242-245",
+  },
+  CS3: {
+    // The d100 sea-encounter longtable spans pp.26-27 (p26's rows end at
+    // 44-45); a single-page cite imported only half the table (E2E D4).
+    "Cursed Scroll 3 p26: Arctic Sea Encounters": "26-27",
+    "Sea Wolf Plunder From Distant Lands": "68",
+  },
+  CS1: {
+    // One d12 mishap table per page (captions verified).
+    "Diabolical Mishap 1-3": "22",
+    "Diabolical Mishap 4-5": "23",
+  },
+  CS6: {
+    // p29 = d8 outcome lookup; Benefit/Mishap are 4-page d100 longtables.
+    "Carousing Outcome": "29",
+    "Carousing Outcome - Benefit": "30-33",
+    "Carousing Outcome - Mishap": "34-37",
   },
 };
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const _key = (type, name) => `${type}:${_norm(name)}`;
+
+/**
+ * Canonical matching variants of an item name, all normalized: the name
+ * itself, minus a "(3)"-style quantity suffix, and the comma-inverted form
+ * ("Rope, Morzo Silk" ↔ "Morzo Silk Rope"). Presence matching uses these so a
+ * manifest row flips when the created doc carries the book's row spelling
+ * (E2E D7: "Candle" never flipped against "Candle (3)").
+ */
+export function nameVariants(name) {
+  const out = new Set();
+  const base = _norm(name);
+  if (!base) return [];
+  out.add(base);
+  const noQty = base.replace(/\s*\(\d+\)$/, "").trim();
+  if (noQty) out.add(noQty);
+  const m = noQty.match(/^([^,]+),\s*(.+)$/);
+  if (m) out.add(`${m[2]} ${m[1]}`.replace(/\s+/g, " ").trim());
+  return [...out];
+}
 
 /** Page number embedded in a table name ("… p146: …", "… p26: …"), or "". */
 const _pageFromName = (name) => String(name).match(/\bp\.?\s?(\d{1,3})\b/i)?.[1] ?? "";
@@ -538,7 +627,7 @@ export function hasTable(tablesPresent, name) { return _tableHave(tablesPresent,
  * the presence match uses the bare name. No-op for reps already stored as their
  * real name (e.g. "TREASURE 0-3").
  */
-const _tableProbeName = (name) => String(name).replace(/^Core PDF p\d+:\s*/i, "");
+const _tableProbeName = (name) => stripRepPrefix(name);
 
 /** "Source - Table Name" suffix match (imports prefix the table with its source).
  *  Ancestry NAME tables import as "Character Names: <Source> <Ancestry>" instead
@@ -571,9 +660,9 @@ export async function gatherPresence() {
   const presentNames = new Set();   // normalized name, any type (ability lookups)
   for (const pack of game.packs.filter((p) => p.documentName === "Item")) {
     const idx = await pack.getIndex({ fields: ["type"] });
-    for (const e of idx) { present.add(_key(e.type, e.name)); presentNames.add(_norm(e.name)); }
+    for (const e of idx) { for (const v of nameVariants(e.name)) { present.add(`${e.type}:${v}`); presentNames.add(v); } }
   }
-  for (const i of game.items) { present.add(_key(i.type, i.name)); presentNames.add(_norm(i.name)); }
+  for (const i of game.items) { for (const v of nameVariants(i.name)) { present.add(`${i.type}:${v}`); presentNames.add(v); } }
 
   const tablesPresent = new Set(game.tables.map((t) => _norm(t.name)));
   for (const pack of game.packs.filter((p) => p.documentName === "RollTable")) {
@@ -600,7 +689,7 @@ export async function gatherCharContentEntries(presence) {
           src, type, name,
           // Tables live in the RollTable pack, not the Item packs — check them
           // via the table-presence set (suffix match), like the WR ancestry tables.
-          present: type === "Table" ? _tableHave(tablesPresent, name) : present.has(_key(type, name)),
+          present: type === "Table" ? _tableHave(tablesPresent, name) : nameVariants(name).some((v) => present.has(`${type}:${v}`)),
           // Explicit cite first (item/table/type maps), else lift a "…pNNN…"
           // page embedded in the name (CORE/CS1-3 table entries carry it there).
           pages: ITEM_PAGES[src]?.[name] ?? TABLE_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? _pageFromName(name),

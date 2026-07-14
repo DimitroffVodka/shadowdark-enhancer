@@ -215,7 +215,9 @@ test("stray page number: a page footer is dropped even under an explicit dN head
   assert.equal(pt.formula, "1d20");
   assert.equal(pt.rows.length, 20, "the 290 footer row is dropped");
   assert.ok(!pt.rows.some((r) => r.max === 290), "no phantom face at the page number");
-  assert.ok(pt.warnings.some((w) => /page-number row 290/.test(w)), "the drop is announced");
+  // The die-bound drop (E2E W3) announces "out-of-bounds row N"; the legacy
+  // headerless outlier path says "page-number row N" — either proves the drop.
+  assert.ok(pt.warnings.some((w) => /out-of-bounds row 290|page-number row 290/.test(w)), "the drop is announced");
 });
 
 test("stray page number guard: a legitimate wide RANGE row is never dropped (Codex #2)", () => {

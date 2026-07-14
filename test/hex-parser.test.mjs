@@ -26,7 +26,7 @@ test("hexcrawl: evidenced 3-anchor run still claims", () => {
   assert.equal(claimed.length, 3);
   assert.equal(remainder.trim(), "");
   const drafts = hexcrawlRecognizer.parse(claimed);
-  assert.deepEqual(drafts.map((d) => d.name), ["The Shattered Mill", "Weeping Stones", "Fen Of Sighs"]);
+  assert.deepEqual(drafts.map((d) => d.name), ["The Shattered Mill", "Weeping Stones", "Fen of Sighs"]);
 });
 
 test("hexcrawl: bare page-number blocks claim nothing (review #3 repro)", () => {

@@ -124,10 +124,16 @@ function extractRiders(lines) {
  * Returns `{ draft, warnings }` when the block has a valid anchor, or `null`
  * when the block has neither a rider keyword nor a cost pattern.
  *
+ * `force` (set when the hub's item-type selector is on a specific subtype — the
+ * GM has asserted "these are items") skips the anchor gate: every non-empty
+ * block becomes an item via the gear path, cost/slots optional. Auto mode keeps
+ * the strict gate so arbitrary prose never turns into items.
+ *
  * @param {string} blockText
+ * @param {{ force?: boolean }} [opts]
  * @returns {{ draft: object, warnings: string[] } | null}
  */
-export function parseItem(blockText) {
+export function parseItem(blockText, { force = false } = {}) {
   const warnings = [];
   const rawLines = String(blockText ?? "").replace(/\r\n?/g, "\n").split("\n")
     .map(l => l.replace(/\s+$/, "")).filter(l => l.trim() !== "");
@@ -158,7 +164,7 @@ export function parseItem(blockText) {
   const hasMagicAnchor = RIDER_KW.test(bodyText) || RIDER_KW.test(nameLine);
   const hasGearAnchor = COST_RE.test(bodyText) || COST_RE.test(nameLine);
 
-  if (!hasMagicAnchor && !hasGearAnchor) return null;
+  if (!hasMagicAnchor && !hasGearAnchor && !force) return null;
 
   // ── Shared defaults ──
   const type = inferItemType(name);
@@ -270,15 +276,29 @@ export const itemRecognizer = {
 
   /**
    * @param {string} rawText
+   * @param {{ force?: boolean }} [opts]  force → claim every block (subtype set)
    * @returns {{ claimed: string[], remainder: string, skipped?: {name,reason}[] }}
    */
-  claim(rawText) {
-    const blocks = splitRawBlocks(rawText);
+  claim(rawText, { force = false } = {}) {
+    const blocks = force ? _forceBlocks(rawText) : splitRawBlocks(rawText);
     const claimed = [];
     const remainderBlocks = [];
+    const skipped = [];
 
     for (const block of blocks) {
-      const result = parseItem(block);
+      // Force mode: a block still carrying many prices after splitting is a
+      // multi-column reference table (Basic Gear / Weapons grid) whose names and
+      // costs sit in separate columns — it can't be split into per-item rows, so
+      // parsing it as one item sums every price and mashes the whole grid into a
+      // single garbage description. Decline it with a clear reason instead.
+      if (force && _looksLikeTableDump(block)) {
+        skipped.push({
+          name: _firstLine(block),
+          reason: "Looks like a multi-column equipment table, not individual items — its names and prices are in separate columns, so it can't be split into rows. The core gear/weapons/armor already ship in the shadowdark.gear and shadowdark.magic-items compendiums; drag from there instead.",
+        });
+        continue;
+      }
+      const result = parseItem(block, { force });
       if (result !== null) {
         claimed.push(block);
       } else {
@@ -289,22 +309,138 @@ export const itemRecognizer = {
     return {
       claimed,
       remainder: remainderBlocks.join("\n\n"),
+      skipped,
     };
   },
 
   /**
    * @param {string[]} claimedBlocks
+   * @param {{ force?: boolean }} [opts]
    * @returns {{ draft: object, warnings: string[] }[]}
    */
-  parse(claimedBlocks) {
+  parse(claimedBlocks, { force = false } = {}) {
     const items = [];
     for (const block of claimedBlocks) {
-      const result = parseItem(block);
+      const result = parseItem(block, { force });
       if (result !== null) items.push(result);
     }
     return items;
   },
 };
+
+/**
+ * Block splitting for force (subtype-selected) mode. Starts from the blank-line
+ * blocks, then splits any block that is a clean gear LIST — 2+ lines, every line
+ * carrying a cost token and no rider keyword — into one item per line. This is
+ * the PDF-dump case where items ("Torch 5 sp, 1 slot" / "Rope 1 gp…") sit on
+ * consecutive lines with no blank gap, which blank-line splitting would fuse
+ * into one wrong item. Multi-line items (a name line + a description/cost line)
+ * are left intact because their non-cost lines fail the every-line test.
+ */
+function _forceBlocks(rawText) {
+  const out = [];
+  for (const block of splitRawBlocks(rawText)) {
+    if (RIDER_KW.test(block)) { out.push(block); continue; }   // magic item — keep whole
+    const lines = block.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
+    const priced = lines.filter((l) => COST_RE.test(l));
+    // A gear list / table: 2+ rows that each pair a name with a cost on the SAME
+    // line — a clean single-column extraction of the Basic Gear / Weapons grid
+    // ("Ball bearing 1 gp 1"), or a hand list. Emit each priced row as its own
+    // item; the ALL-CAPS caption ("BASIC GEAR"), the "Item Cost Quantity Slot"
+    // column header, and price-less rows (Coin/Gem "Varies") carry no cost token
+    // so they're naturally dropped — they'd need a manual cost anyway. This is
+    // what lets the WR gear table import as ~26 items instead of one blob.
+    if (priced.length >= 2) {
+      out.push(...priced);
+      // "Varies"-cost rows (Coin, Gem) are real gear the manifest expects —
+      // dropping them left "Gem" permanently locked (E2E D7). Emit them with a
+      // 0-cost token; the description pass supplies the value rules.
+      for (const l of lines) {
+        if (!COST_RE.test(l) && /\bvaries\b/i.test(l) && /^[A-Za-z]/.test(l.trim()))
+          out.push(l.replace(/\bvaries\b/i, "0 gp"));
+      }
+    } else {
+      out.push(block);
+    }
+  }
+  return out;
+}
+
+/** First non-empty line of a block, trimmed — a readable label for a skip. */
+function _firstLine(block) {
+  const l = String(block).split("\n").map((s) => s.trim()).find(Boolean) ?? "(empty)";
+  return l.length > 60 ? `${l.slice(0, 57)}…` : l;
+}
+
+/**
+ * A block that carries several prices across several lines is a multi-column
+ * reference table (prices in one column, names in another), not one item —
+ * parsing it as a single item sums every price and mashes the whole grid into
+ * one description. A ≥4-cost-token / ≥3-line threshold keeps it from firing on a
+ * legitimate item that merely mentions a price or two. Only consulted in force
+ * mode, after per-line gear-list splitting has already peeled off clean rows.
+ */
+function _looksLikeTableDump(block) {
+  const costs = String(block).match(new RegExp(COST_RE.source, "gi")) || [];
+  const lines = String(block).split("\n").filter((l) => l.trim());
+  return costs.length >= 4 && lines.length >= 3;
+}
+
+// ─── Item descriptions (second-pass, matched by name) ─────────────────────────
+
+/**
+ * Split a pasted "descriptions" blob — the book's `Name. flavor/rules text…`
+ * section that sits apart from the price table — into per-item descriptions,
+ * anchored on a KNOWN item-name list (from the already-imported items). Anchoring
+ * on real names is what makes this robust: a description's own sentences end in
+ * periods too, so a blind "Capitalised word ." split would shred them. A header
+ * is a known name at the start of the text or just after a sentence/line break,
+ * followed by a period; the description runs to the next header. Longest names
+ * win (so "Rope, morzo silk" beats "Rope"), and overlapping shorter matches are
+ * dropped. Returns [{ name, description }] in reading order; `name` is the exact
+ * known-list spelling so the caller can match it straight back to its item.
+ *
+ * @param {string} text
+ * @param {string[]} names   known item names to anchor on
+ * @returns {{name: string, description: string}[]}
+ */
+export function splitDescriptionsByNames(text, names) {
+  const clean = String(text ?? "").replace(/\r\n?/g, "\n");
+  const uniq = [...new Set((names ?? []).map((n) => String(n ?? "").trim()).filter(Boolean))];
+  if (!clean.trim() || !uniq.length) return [];
+  // Longest names first so a multi-word name anchors before its shorter prefix.
+  uniq.sort((a, b) => b.length - a.length);
+
+  const anchors = [];
+  for (const name of uniq) {
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Header = start-of-text or after a period/newline, the name, then a period.
+    const re = new RegExp(`(^|[.\\n]\\s*)(${esc})\\.`, "gi");
+    let m;
+    while ((m = re.exec(clean)) !== null) {
+      anchors.push({ name, start: m.index + m[1].length, bodyStart: re.lastIndex });
+      re.lastIndex = m.index + m[1].length + 1;   // allow overlapping scans
+    }
+  }
+  if (!anchors.length) return [];
+  // Earliest first; at a tie prefer the longer name. Then drop any anchor that
+  // starts inside an already-claimed header (a shorter name nested in a longer).
+  anchors.sort((a, b) => a.start - b.start || b.name.length - a.name.length);
+  const picked = [];
+  let claimedTo = -1;
+  for (const a of anchors) {
+    if (a.start < claimedTo) continue;
+    picked.push(a);
+    claimedTo = a.bodyStart;
+  }
+  const out = [];
+  for (let i = 0; i < picked.length; i++) {
+    const end = i + 1 < picked.length ? picked[i + 1].start : clean.length;
+    const description = collapse(clean.slice(picked[i].bodyStart, end));
+    if (description) out.push({ name: picked[i].name, description });
+  }
+  return out;
+}
 
 // ─── Internal helpers (exported for tests) ────────────────────────────────────
 

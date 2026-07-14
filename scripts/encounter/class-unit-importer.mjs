@@ -217,6 +217,49 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
 }
 
 /**
+ * PREVIEW-time read-only classifier: for each parsed talent-table row, report
+ * whether its effect maps to a REAL, mechanically-wired Talent item, or is only
+ * free text that would import as a description-only talent needing hand-wiring.
+ * Reuses the exact matcher (`_fuzzyFind`) and indexes (`shadowdark.talents` +
+ * the suite Talents pack) the commit path uses in `_resolveOutcome`, so the
+ * preview badge and the committed RollTable (document-link vs text result) can't
+ * disagree. Never creates anything.
+ *
+ * `via`: "system" (a shadowdark.talents doc with working AEs), "suite" (an
+ * already-imported suite Talent), "authored" (a spellcasting-check bonus the
+ * commit authors an AE for), or null (would import description-only).
+ *
+ * @param {Array<{text?:string, options?:string[], kind?:string}>} rows
+ * @returns {Promise<Array<{wired:boolean, via:string|null, match:string|null}>>}
+ */
+export async function classifyTalentRows(rows = []) {
+  const sysTalents = _systemIndex("Item", "shadowdark.talents");
+  let suiteIdx = [];
+  try {
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    const pack = findSuitePack("talents");
+    if (pack) {
+      await pack.getIndex();
+      suiteIdx = [...pack.index].map((e) => ({ name: e.name, uuid: e.uuid }));
+    }
+  } catch (_e) { /* no suite yet — system talents still classify */ }
+
+  return (rows ?? []).map((r) => {
+    const labels = [r?.text, ...(Array.isArray(r?.options) ? r.options : [])]
+      .map((s) => String(s ?? "").trim()).filter(Boolean);
+    for (const label of labels) {
+      const sys = _fuzzyFind(sysTalents, label);
+      if (sys) return { wired: true, via: "system", match: sys.name };
+      const suite = suiteIdx.length ? _fuzzyFind(suiteIdx, label) : null;
+      if (suite) return { wired: true, via: "suite", match: suite.name };
+      if (/([+-]\d+)\b(?=[\s\S]*\bspellcasting\s+checks?\b)/i.test(label))
+        return { wired: true, via: "authored", match: "Spellcasting Check Bonus" };
+    }
+    return { wired: false, via: null, match: null };
+  });
+}
+
+/**
  * Create the class's NAMED extra tables (Wyrdling CORRUPTION, …) as RollTables
  * in the Tables pack under Class Tables/<class>, text-result rows. Idempotent:
  * same-name table diffed and reused/updated. Returns
@@ -282,6 +325,13 @@ async function buildClassTalentTable(parsed, { talentsPack, tablesPack, sysTalen
   // ── Talent-table outcome docs ──
   const rowResults = [];   // per row: { range, uuids: [], chooseText? }
   const allOptionUuids = new Set();
+  // Overlay keys must line up with the parsed bands — a mismatch usually means
+  // the table parsed shifted/short and the authored names would mask it.
+  const parsedKeys = new Set((parsed.talentTable?.rows ?? []).map((r) => (r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`)));
+  for (const k of Object.keys(overlay?.rowTalents ?? {})) {
+    if (!parsedKeys.has(k))
+      report.warnings.push(`Class overlay authors a talent for band ${k}, but the parsed table has no such band (parsed: ${[...parsedKeys].join(", ") || "none"}) — check the talent table against the book.`);
+  }
   for (const row of parsed.talentTable?.rows ?? []) {
     const range = [row.lo, row.hi];
     if (row.kind === "grand") { rowResults.push({ range, grand: true, text: row.text }); continue; }
@@ -508,6 +558,15 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   // ("all swords", "strikes") that name-splitting can't resolve.
   const weaponNames = overlay?.weaponNames ?? parsed.weaponNames;
   const armorNames  = overlay?.armorNames ?? parsed.armorNames;
+  // The char-builder consumes languages.fixed/selectOptions as UUIDs — map any
+  // parsed NAMES (e.g. "Sylvan", "Primordial") through the system packs.
+  const { resolveLanguageNames } = await import("./language-resolver.mjs");
+  const classLanguages = { ...(parsed.languages ?? { common: 0, rare: 0, select: 0, selectOptions: [], fixed: [] }) };
+  classLanguages.fixed = await resolveLanguageNames(classLanguages.fixed);
+  classLanguages.selectOptions = await resolveLanguageNames(classLanguages.selectOptions);
+  for (const u of [...classLanguages.fixed, ...classLanguages.selectOptions]) {
+    if (!/^Compendium\./.test(String(u))) report.warnings.push(`Language "${u}" not found in the system language packs — the char-builder will skip it.`);
+  }
 
   const classData = {
     name: parsed.name, type: "Class", img: "icons/skills/trades/academics-book-study-runes.webp",
@@ -519,10 +578,13 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       description: parsed.flavor ?? "",
       hitPoints: parsed.hitPoints,
       allWeapons: parsed.allWeapons, allMeleeWeapons: parsed.allMeleeWeapons,
-      allRangedWeapons: parsed.allRangedWeapons, allArmor: parsed.allArmor,
+      allRangedWeapons: parsed.allRangedWeapons,
+      // Overlay fallback for classes whose "All armor…" stat line a degraded
+      // extraction can drop (never lets an overlay turn a parsed true off).
+      allArmor: parsed.allArmor || overlay?.allArmor === true,
       weapons: resolveGear(weaponNames, "Weapon"),
       armor: resolveGear(armorNames, "Armor"),
-      languages: parsed.languages,
+      languages: classLanguages,
       talents: featureUuids,
       talentChoiceCount: 0,
       classTalentTable: tableUuid,

@@ -93,6 +93,7 @@ export const CLASS_OVERLAYS = {
 
   "green knight": {
     source: "WR", pages: "44",
+    allArmor: true,   // book: "All armor and shields" — fallback if the grab drops the stat line
     rowTalents: {
       "2": [{ name: "Treewalk" }],
     },
@@ -134,7 +135,7 @@ export const CLASS_OVERLAYS = {
   },
 
   necromancer: {
-    source: "WR", pages: "52",
+    source: "WR", pages: "52-53",   // NECROMANCER TALENTS prints on p53
     rowTalents: {
       "2": [{ name: "Return to Life" }],
     },
@@ -147,7 +148,8 @@ export const CLASS_OVERLAYS = {
   },
 
   paladin: {
-    source: "WR", pages: "54",
+    source: "WR", pages: "54-55",   // PALADIN TALENTS prints on p55
+    allArmor: true,   // book: "All armor and shields" — fallback if the grab drops the stat line
     rowTalents: {
       "2": [{ name: "Named Blade Magic Benefit" }],
       "3-6": [{ name: "+1 to Named Blade Attacks and Damage" }],

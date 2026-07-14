@@ -82,9 +82,14 @@
       <ul class="sde-ci-featlist">
         {{#each bodyPreview.features as |f|}}<li><strong>{{f.name}}.</strong> {{f.text}}</li>{{/each}}
       </ul>
-      {{#if bodyPreview.hasTables}}
-      <p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> This paste also has roll tables — they're ignored here and go in step 2 below.</p>
-      {{/if}}
+      {{#if detectedTables.length}}
+      <div class="sde-ci-detected">
+        <div class="sde-ci-previewrow"><strong>Roll tables detected</strong> — review &amp; edit them in step 2 below:</div>
+        <ul class="sde-ci-detectedlist">{{#each detectedTables as |d|}}<li><i class="fas fa-table-list"></i> {{d}}</li>{{/each}}</ul>
+      </div>
+      {{else}}{{#if bodyPreview.hasTables}}
+      <p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> This paste also has roll tables — they go in step 2 below.</p>
+      {{/if}}{{/if}}
       {{#if bodyPreview.warnings.length}}
       <ul class="sde-import-warnings">{{#each bodyPreview.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
       {{/if}}
@@ -103,16 +108,23 @@
     {{!-- Talent table --}}
     <div class="sde-ci-part sde-ci-part-talents">
       <div class="sde-ci-partrow">
-        <span class="sde-ci-partname"><i class="fa-solid fa-dice-d6"></i> Talent table{{#if talent}} ({{talent.rows}} · {{talent.formula}}){{/if}}</span>
+        <span class="sde-ci-partname"><i class="fa-solid fa-dice-d6"></i> Talent table{{#if talent}} ({{talent.rows}} · {{talent.formula}}){{#if talent.rows}} · <span class="sde-ci-wiredcount" title="Rows backed by a real Talent item — the rest import as description-only text needing hand-wiring">{{talent.wiredCount}}/{{talent.rows}} wired</span>{{/if}}{{/if}}</span>
         {{#if talent}}<button type="button" data-action="ciClearPart" data-ci-part="talent" class="sde-cu-btn sde-cu-btn-del" title="Clear the talent table"><i class="fas fa-trash"></i></button>{{else}}<span class="sde-ci-status">pending</span>{{/if}}
       </div>
       {{#if talent}}
       <table class="sde-class-preview-table sde-cu-talents">
         <tr class="sde-cu-titlehead"><th>Roll</th><th>Effect</th><th></th></tr>
         {{#each talent.entries as |r|}}
-        <tr data-ci-talent="{{r.idx}}">
+        <tr data-ci-talent="{{r.idx}}" class="{{#if r.wired}}sde-ci-talent-wired{{else}}sde-ci-talent-unwired{{/if}}">
           <td class="sde-class-preview-range"><input type="text" data-ci-trfield="range" value="{{r.range}}" class="sde-cu-range" aria-label="Talent roll"></td>
-          <td><input type="text" data-ci-trfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="Talent effect"></td>
+          <td class="sde-ci-talent-effect">
+            <input type="text" data-ci-trfield="text" value="{{r.text}}" class="sde-cu-text" aria-label="Talent effect">
+            {{#if r.wired}}
+            <span class="sde-ci-wired sde-ci-wired-on" title="Backed by a real Talent item: {{r.wiredMatch}} ({{r.wiredVia}})"><i class="fas fa-link"></i> real talent</span>
+            {{else}}
+            <span class="sde-ci-wired sde-ci-wired-off" title="No matching Talent item — imports as description-only text; wire its effect by hand"><i class="fas fa-link-slash"></i> text only</span>
+            {{/if}}
+          </td>
           <td class="sde-cu-rowdel"><button type="button" data-action="ciTalentDel" class="sde-cu-btn sde-cu-btn-del" title="Delete row"><i class="fas fa-trash"></i></button></td>
         </tr>
         {{/each}}

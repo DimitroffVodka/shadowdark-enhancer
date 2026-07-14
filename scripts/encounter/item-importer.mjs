@@ -20,6 +20,8 @@ import { pickTreasureIcon } from "./loot-pack.mjs";
 import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml, SUITE_PACKS } from "./compendium-suite.mjs";
 import { LootLinker } from "./loot-linker.mjs";
+import { splitDescriptionsByNames } from "./item-parser.mjs";
+import { escapeHtml } from "./pdf-text-utils.mjs";
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
 
@@ -157,33 +159,23 @@ export function buildItemData(draft) {
     riders.curse ||
     riders.personality;
 
-  if (hasMagicRiders) {
-    // ── Magic item path — mirrors magic-forge.mjs assembleItemData shape ──
-    const lc = String(draft.type ?? "").toLowerCase();
-    const sdType = ({ weapon: "Weapon", armor: "Armor" })[lc] ?? "Basic";
-    return {
-      name,
-      type: sdType,
-      img,
-      system: {
-        description: draft.description ?? "<p></p>",
-        treasure: true,
-        cost: { gp: draft.cost?.gp ?? 0, sp: draft.cost?.sp ?? 0, cp: draft.cost?.cp ?? 0 },
-        slots: {
-          free_carry: draft.slots?.free_carry ?? 0,
-          per_slot:   draft.slots?.per_slot   ?? 1,
-          slots_used: draft.slots?.slots_used ?? 1,
-        },
-        quantity: 1,
-      },
-      flags: { [MODULE_ID]: { imported: true } },
-    };
-  }
+  // Honor the Shadowdark gear TYPE the draft carries — the hub's item-type
+  // selector stamps it (draft.type = "Potion"/"Scroll"/…), and the parser
+  // infers it from the name — instead of collapsing every item to Basic. A
+  // magic item with no explicit weapon/armor type still maps to Weapon/Armor
+  // when its name says so, else Basic. Unknown types fall back to Basic.
+  const GEAR_TYPES = new Set(["Basic", "Weapon", "Armor", "Potion", "Scroll", "Wand", "Gem"]);
+  const lc = String(draft.type ?? "").toLowerCase();
+  const sdType = GEAR_TYPES.has(draft.type)
+    ? draft.type
+    : (hasMagicRiders ? ({ weapon: "Weapon", armor: "Armor" })[lc] ?? "Basic" : "Basic");
 
-  // ── Gear/treasure path — mirrors loot-pack.mjs fabricateTreasureItem shape ──
+  // Mirrors loot-pack.mjs fabricateTreasureItem / magic-forge assembleItemData
+  // shape. `treasure` is a Basic-only field (the DataModel drops it on other
+  // types), harmless to send; kept for parity with the prior behavior.
   return {
     name,
-    type: "Basic",
+    type: sdType,
     img,
     system: {
       description: draft.description ?? "<p></p>",
@@ -421,4 +413,38 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
   return out;
 }
 
-export const ItemImporter = { buildItemData, createItem, createItems, spellFolderNames, talentFolderNames };
+/**
+ * Second pass of the two-step gear import: fill item DESCRIPTIONS from a pasted
+ * "Name. text…" block. READ-ONLY — builds the update list; the caller writes it
+ * after a confirm. Descriptions are split by name against the ACTUAL sde-items
+ * names (book-derived, so the headers line up), matched normalized. Only items
+ * that already exist are touched — this never creates items. Returns
+ * { updates: [{_id, name, html}], unmatched: string[], count }.
+ *
+ * @param {string} text            the pasted descriptions blob
+ * @param {{ pack?, onlyEmpty?: boolean }} opts  onlyEmpty skips items that
+ *        already have a description (don't clobber hand-written text)
+ */
+export async function matchDescriptionsToItems(text, { pack, onlyEmpty = false } = {}) {
+  if (!pack) pack = findSuitePack("sde-items") ?? (await ensureSuite())?.items;
+  if (!pack) { console.error(`${MODULE_ID} | matchDescriptionsToItems: sde-items pack not found`); return { updates: [], unmatched: [], count: 0 }; }
+  const docs = await pack.getDocuments();
+  const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const byName = new Map(docs.map((d) => [norm(d.name), d]));
+  const entries = splitDescriptionsByNames(text, docs.map((d) => d.name));
+  const updates = [];
+  const unmatched = [];
+  const hasText = (html) => _strip(html).length > 0;
+  for (const e of entries) {
+    const doc = byName.get(norm(e.name));
+    if (!doc) { unmatched.push(e.name); continue; }
+    if (onlyEmpty && hasText(doc.system?.description)) continue;
+    updates.push({ _id: doc.id, name: doc.name, html: `<p>${escapeHtml(e.description)}</p>` });
+  }
+  return { updates, unmatched, count: entries.length };
+}
+
+/** Strip tags/whitespace — is there real text? (shared with matchDescriptions.) */
+function _strip(html) { return String(html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
+
+export const ItemImporter = { buildItemData, createItem, createItems, matchDescriptionsToItems, spellFolderNames, talentFolderNames };

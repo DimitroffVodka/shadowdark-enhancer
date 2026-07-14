@@ -133,6 +133,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // PDF → text extraction (Foundry's bundled PDF.js; no external tool)
       hubGrabPdfText:         ImporterHubApp.prototype._onGrabPdfText,
       hubExtractPdf:          ImporterHubApp.prototype._onExtractPdf,
+      hubFillItemDescs:       ImporterHubApp.prototype._onFillItemDescriptions,
       // Manage strip — census/gap/duplicate + maintenance
       monsterGapExpand:       ImporterHubApp.prototype._onMonsterGapExpand,
       monsterSeedPaste:       ImporterHubApp.prototype._onMonsterSeedPaste,
@@ -1462,6 +1463,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!shape && /prayer\s+generator/i.test(text)) shape = shapeForName("Gede Prayers");
       if (shape) {
         const bucket = TableImporter.parseByShape(text, shape, { name: seed?.name || "" });
+        // A registered shape that does NOT match must never degrade silently
+        // into a generic guess (Codex review) — flag the fallback as a blocker
+        // so the preview and the commit gate treat it as suspect.
+        this._shapeFailNote = bucket ? null
+          : `BLOCKER: "${seed?.name ?? "this entry"}" has a registered ${shape.kind} shape that did not match the pasted text — the result below is a generic best-effort parse; verify it against the book before Create.`;
         if (bucket) {
           this._importMonsters = []; this._importItems = []; this._importSpells = [];
           this._importGenerators = bucket.generators ?? [];
@@ -1547,15 +1553,37 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       monsters = chunks.map((chunk) => parseStatblock(chunk));
       skipped  = sk ?? [];
     } else if (type === "items") {
-      const { claimed, remainder } = itemRecognizer.claim(text);
-      items   = itemRecognizer.parse(claimed);
-      skipped = this._leftoverSkipped(remainder);
+      // A specific item subtype means the GM asserted "these are items" — force
+      // every block through the parser (no cost/rider anchor required) so plain
+      // items aren't silently dropped to Skipped. Auto keeps the strict gate.
+      const force = this._importItemSubtype !== "auto";
+      const { claimed, remainder, skipped: itemSkipped } = itemRecognizer.claim(text, { force });
+      items   = itemRecognizer.parse(claimed, { force });
+      // In force mode the recognizer reports multi-column table dumps it declined
+      // (with a helpful reason); Auto mode reports its unclaimed remainder.
+      skipped = [...(itemSkipped ?? []), ...(force ? [] : this._leftoverSkipped(remainder))];
     } else if (type === "spells") {
       const { claimed, remainder } = spellRecognizer.claim(text);
       spells  = spellRecognizer.parse(claimed);
       skipped = this._leftoverSkipped(remainder);
     } else if (type === "tables") {
       tables = parseTables(effectiveText);
+    }
+
+    // Seeded generic parses sweep the seed line, the printed caption, the
+    // "dN Details" header, and page footers in as DATA rows (E2E D4: Arctic
+    // Sea rows 1-3). Strip them and re-parse; the note lands on the kept table.
+    let seedNoiseNote = null;
+    if (this._importSeed?._charSeed && !this._importSeed._bgBundle && (type === "tables" || type === "auto") && tables.length) {
+      const { stripSeedNoise } = await import("./table-importer.mjs");
+      const res = stripSeedNoise(effectiveText, { name: this._importSeed.name, pages: this._importSeed.page });
+      if (res.dropped) {
+        const reparsed = parseTables(res.text);
+        if (reparsed.length) {
+          tables = reparsed;
+          seedNoiseNote = `Stripped ${res.dropped} seed/caption/header line(s) before parsing.`;
+        }
+      }
     }
 
     // Seeded unlock (one expected table): keep the best-matching table only,
@@ -1595,6 +1623,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // — don't prefix them or it doubles the source and forks a duplicate.
       const srcLabel = CHAR_SOURCES[this._importSeed.src]?.label;
       keep.name = (srcLabel && !this._importSeed._bgBundle) ? sourcedTableName(srcLabel, want) : want;
+      if (seedNoiseNote) (keep.warnings ??= []).push(seedNoiseNote);
+      if (this._shapeFailNote) { (keep.warnings ??= []).push(this._shapeFailNote); this._shapeFailNote = null; }
       // Category drives the system-mirroring compendium folder.
       if (/\bnames$/i.test(want)) keep.category = "character-names";
       else if (/\btrinkets$/i.test(want)) keep.category = "trinkets";
@@ -1664,6 +1694,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (this._importItemSubtype !== "auto") {
       for (const it of items) it.draft.type = this._importItemSubtype;
     }
+
+    // A seeded item unlock ("Import Ball Bearing") grabs the whole equipment
+    // TABLE page range and imports EVERY row (bulk) — the GM commits the full
+    // Basic Gear / Weapons table at once, then fills descriptions in a second
+    // pass (matched by name). The clicked row is just the entry point.
 
     this._importMonsters = monsters;
     this._importItems    = items;
@@ -2078,20 +2113,59 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /**
+   * Quality gate before committing tables/generators: one aggregated DialogV2
+   * listing every draft with blockers. Returns "commit-clean" (default),
+   * "commit-all", or "cancel" (incl. ESC/close).
+   */
+  async _importQualityGate(kindLabel, flagged) {
+    const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const items = flagged.map(({ draft, blockers }) =>
+      `<li><strong>${esc(draft.name ?? "(untitled)")}</strong><ul style="margin:0.2em 0 0.4em 1.1em;">${blockers.map((b) => `<li>${esc(b.message)}</li>`).join("")}</ul></li>`).join("");
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Import quality check" },
+      position: { width: 480 },
+      content: `<p><strong>${flagged.length}</strong> ${esc(kindLabel)}${flagged.length === 1 ? "" : "s"} failed the quality check and would import broken:</p><ul>${items}</ul><p>“Commit clean only” imports the rest and keeps these in the preview for fixing.</p>`,
+      buttons: [
+        { action: "commit-clean", label: "Commit clean only", icon: "fa-solid fa-filter", default: true },
+        { action: "commit-all", label: "Commit anyway", icon: "fa-solid fa-triangle-exclamation" },
+        { action: "cancel", label: "Cancel", icon: "fa-solid fa-xmark" },
+      ],
+      rejectClose: false,
+    });
+    return choice ?? "cancel";
+  }
+
+  /** Blocker pre-scan shared by the table/generator commit paths. */
+  async _gateTableDrafts(kindLabel, drafts) {
+    const { computeBlockers } = await import("./table-importer.mjs");
+    const flagged = drafts.map((d) => ({ draft: d, blockers: computeBlockers(d) })).filter((x) => x.blockers.length);
+    if (!flagged.length) return { skip: new Set(), allowInvalid: false };
+    const choice = await this._importQualityGate(kindLabel, flagged);
+    if (choice === "cancel") return null;
+    if (choice === "commit-all") return { skip: new Set(), allowInvalid: true };
+    return { skip: new Set(flagged.map((f) => f.draft)), allowInvalid: false };
+  }
+
   /** Commit: create all pending tables into sde-tables. GM-gated. */
   async _onHubCommitTables() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import tables."); return; }
     if (!this._importTables.length) { ui.notifications.warn("No tables to import."); return; }
 
+    const gate = await this._gateTableDrafts("table", this._importTables);
+    if (!gate) return;
     const onConflict = this._tableConflictDialog();
     let created = 0;
     for (const tbl of [...this._importTables]) {
+      if (gate.skip.has(tbl)) continue;   // blocked draft stays in the preview
       // Convention at commit time too, so hand-typing "Elf Names" on the card
       // is enough — bare generic names ("Names") are left for the GM to fix.
       if (/\b(names|trinkets)$/i.test(tbl.name ?? "") && tbl.name.trim().split(/\s+/).length >= 2 && !/ - /.test(tbl.name)) {
-        tbl.name = `${this._importSource.trim() || "Western Reaches"} - ${tbl.name.trim()}`;
+        const { stripRepPrefix } = await import("./char-content-manifest.mjs");
+        tbl.name = `${this._importSource.trim() || "Western Reaches"} - ${stripRepPrefix(tbl.name).trim()}`;
       }
-      const table = await TableImporter.createTable(tbl, { onConflict });
+      const table = await TableImporter.createTable(tbl, { onConflict, allowInvalid: gate.allowInvalid });
+      if (table?.blocked) continue;       // choke-point veto (shouldn't happen post-gate)
       if (table) {
         created++;
         this._importTables = this._importTables.filter(t => t !== tbl);
@@ -2099,7 +2173,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         await this._registerCharBuilderTable(table);
       }
     }
-    ui.notifications.info(`Tables: ${created} created → sde-tables.`);
+    ui.notifications.info(`Tables: ${created} created${gate.skip.size ? `; ${gate.skip.size} kept in the preview (quality check)` : ""} → sde-tables.`);
     if (this._importSeed?._charSeed && !this._importTables.length) this._importSeed = null;
     this._invalidateCharCache();
     if (created) this._announceContentUnlocked();
@@ -2114,18 +2188,22 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import tables."); return; }
     if (!this._importGenerators.length) { ui.notifications.warn("No generators to import."); return; }
 
+    const gate = await this._gateTableDrafts("generator", this._importGenerators);
+    if (!gate) return;
     const onConflict = this._tableConflictDialog();
     let created = 0;
     for (const g of [...this._importGenerators]) {
+      if (gate.skip.has(g)) continue;
       const src = this._importSource.trim();
       if (src) g.source = src;
-      const table = await TableImporter.createTable(g, { onConflict });
+      const table = await TableImporter.createTable(g, { onConflict, allowInvalid: gate.allowInvalid });
+      if (table?.blocked) continue;
       if (table) {
         created++;
         this._importGenerators = this._importGenerators.filter(x => x !== g);
       }
     }
-    ui.notifications.info(`Generators: ${created} created → sde-tables. Roll from the table sheet to combine columns.`);
+    ui.notifications.info(`Generators: ${created} created${gate.skip.size ? `; ${gate.skip.size} kept in the preview (quality check)` : ""} → sde-tables. Roll from the table sheet to combine columns.`);
     // Compound grids (Traps/Hazards, name generators) land as sde-tables just
     // like plain tables — drop the char + Manage-tree caches so the census
     // re-scans and their Unlock buttons clear (parity with _onHubCommitTables).
@@ -2195,17 +2273,21 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Tables last
     if (hasTables) {
+      const gate = await this._gateTableDrafts("table", this._importTables);
+      if (!gate) { ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`); this.render(); return; }
       const onConflict = this._tableConflictDialog();
       let created = 0;
       for (const tbl of [...this._importTables]) {
-        const table = await TableImporter.createTable(tbl, { onConflict });
+        if (gate.skip.has(tbl)) continue;
+        const table = await TableImporter.createTable(tbl, { onConflict, allowInvalid: gate.allowInvalid });
+        if (table?.blocked) continue;
         if (table) {
           created++;
           this._importTables = this._importTables.filter(t => t !== tbl);
           if (tbl.manifestId) this._importSeed = null;
         }
       }
-      parts.push(`tables: ${created} created`);
+      parts.push(`tables: ${created} created${gate.skip.size ? `, ${gate.skip.size} blocked` : ""}`);
     }
 
     ui.notifications.info(`Import complete — ${parts.join("; ")}.`);
@@ -2424,11 +2506,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!key) return;
     const { SpellImporterApp } = await import("./spell-importer-app.mjs");
     const app = SpellImporterApp.open();
-    app._reset();            // fresh list — never carry a stale parsed batch
-    app._onSelectList(key);  // sets class + alignment + source, opens the PDF, renders
+    app._reset();                                 // fresh list — never carry a stale parsed batch
+    app._onSelectList(key, { openPdf: false });   // sets class + alignment + source, renders
+    // One press does Import + extraction — parity with the Class/Table Unlock:
+    // pull the list's spell writeups straight into the box and parse them. Falls
+    // back to opening the viewer for manual copy when no PDF text is available.
+    const grabbed = await app._autoGrabList();
+    if (!grabbed) app._onOpenPdf();
   }
 
-  _onCharSeedPaste(event, target) {
+  async _onCharSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     const type = target.dataset.type ?? "";
     const src = target.dataset.src ?? "";
@@ -2454,15 +2541,39 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // Seed the class name so the workspace knows which class it's unlocking.
         if (name) app._seedClassName = name;
         app.render();
-        // One-click flow (matches every other unlock): open the writeup PDF
-        // straight to the class's page — no separate Open-PDF click.
+        // One press does Import + extraction: pull the class writeup straight
+        // into the body box when its PDF is available; otherwise fall back to
+        // opening the viewer so the GM can copy the writeup by hand.
         const { overlayFor } = await import("./class-overlays.mjs");
         const page = target.dataset.pages || overlayFor(name)?.pages;
-        const href = sourcePdfHref(src, page);
-        if (href) this._showSourcePdf(href, `${name} writeup${page ? ` — p.${page}` : ""}`);
+        if (sourcePdfTarget(src, page)) await app._onGrabPdf();
+        else {
+          const href = sourcePdfHref(src, page);
+          if (href) this._showSourcePdf(href, `${name} writeup${page ? ` — p.${page}` : ""}`);
+        }
       });
       return;
     }
+
+    // Gear (Basic / Weapons / Armor) goes to the dedicated Item Builder — a
+    // guided table → descriptions → combine flow, not the generic paste box
+    // (which only ever made cost-only stubs with no descriptions).
+    if (["Basic", "Weapon", "Armor"].includes(type)) {
+      import("./item-builder-app.mjs").then(async ({ ItemBuilderApp }) => {
+        const app = ItemBuilderApp.open();
+        app._reset();
+        app._gearType = type;
+        if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
+        app.render();
+        // One press = open + grab the price table AND the descriptions (falls
+        // back to manual paste when the source PDF/pages aren't linked). The GM
+        // then fixes any description the two-column grab missed via Open PDF.
+        await app._onGrabTable();
+        await app._onGrabDesc();
+      });
+      return;
+    }
+
     const importType = ({
       Spell: "spells",
       Basic: "items", Weapon: "items", Armor: "items",
@@ -2493,12 +2604,26 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       _bgBundle: bgBundle,
     };
     this._importType = importType;
+    // An item unlock (Basic Gear / Weapons / Armor) forces its subtype so Parse
+    // runs in "force" mode — the grabbed page is a wide equipment TABLE, which
+    // must be row-split into items, not left as one blank-line block that fuses
+    // into a single garbage item. Non-item seeds reset it so a stale subtype
+    // never mis-types a later paste.
+    this._importItemSubtype = ["Basic", "Weapon", "Armor"].includes(type) ? type : "auto";
     if (src && CHAR_SOURCES[src]) this._importSource = CHAR_SOURCES[src].label;
-    this.render();
-    // One-click flow: if this source's PDF is uploaded and the entry has a page
-    // cite, open the viewer straight to it — no separate Open-PDF click needed.
-    const href = sourcePdfHref(src, this._importSeed.page);
-    if (href) this._showSourcePdf(href, `${name}${this._importSeed.page ? ` — p.${this._importSeed.page}` : ""}`);
+    // Await the render so the textarea holds the seeded name line before the
+    // auto-extract reads it — otherwise it reads a stale box and drops the name.
+    await this.render();
+    // One press does Import + extraction: when this source's PDF is uploaded and
+    // the entry has a page cite, pull that page straight into the paste box (no
+    // separate Grab-text click). Falls back to opening the viewer for manual copy
+    // when no PDF/page is linked.
+    if (sourcePdfTarget(src, this._importSeed.page)) {
+      await this._onGrabPdfText();
+    } else {
+      const href = sourcePdfHref(src, this._importSeed.page);
+      if (href) this._showSourcePdf(href, `${name}${this._importSeed.page ? ` — p.${this._importSeed.page}` : ""}`);
+    }
   }
 
   /** Open (or re-point) the in-Foundry PDF viewer at `href`, titled `title`. */
@@ -2559,6 +2684,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const { resolveShape } = await import("./table-shapes.mjs");
     const shp = resolveShape({ contentId: seed?.contentId, name: seed?.name, src: seed?.src });
     const columns = seed._bgBundle ? "1"
+      // Item unlocks come off a wide equipment table (Item · Cost · Quantity ·
+      // Slot). Single-column keeps each row's name and price on the SAME line;
+      // "auto" detects a false gutter and transposes the columns into a jumble.
+      : ["Basic", "Weapon", "Armor"].includes(seed?.type) ? "1"
+      // An entry may pin its own extraction mode (Boons: Secrets needs "1" so
+      // each grid row stays on one line for the reflow boundary split).
+      : shp?.extractCols ? shp.extractCols
       : shp?.split === "prayer" ? "layout"
       : (shp?.kind === "section" || shp?.kind === "gridcol" || shp?.kind === "matrix" || shp?.kind === "longtable") ? (shp.cols || "1")
       : "auto";
@@ -2599,6 +2731,62 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
+   * Fill item DESCRIPTIONS — the second pass of the two-step gear import. The
+   * table pass (Parse → Create) makes the items with their cost/slots; this
+   * pastes the book's separate "Name. text…" descriptions section and matches
+   * each to an already-imported sde-items item BY NAME, writing its description.
+   * Only items that still have no description are touched (never clobbers hand-
+   * written text). GM-gated; confirms the match list before writing.
+   */
+  async _onFillItemDescriptions() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import items."); return; }
+    const text = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Fill item descriptions", icon: "fas fa-align-left" },
+      content: `
+        <p>Paste the book's item <strong>descriptions</strong> section — the
+        "<em>Name.</em> flavor/rules text…" block that sits apart from the price
+        table. Each is matched to an item you already imported (by name) and fills
+        its description; items that already have one are left alone.</p>
+        <p class="notes">This section is two-column in the book — drag-select it in
+        the PDF viewer, or use <strong>Extract from PDF → Two columns</strong>, so
+        it reads in order before you paste.</p>
+        <textarea name="descs" style="width:100%;height:14rem;" placeholder="Ball bearing. A hefty marble of glossy metal…&#10;Bolas. Near range, one target…"></textarea>`,
+      buttons: [
+        { action: "match", label: "Match to items", icon: "fas fa-link", default: true,
+          callback: (event, button) => button.form.elements.descs.value },
+        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!text || text === "cancel" || !String(text).trim()) return;
+
+    const { findSuitePack } = await import("./compendium-suite.mjs");
+    const pack = findSuitePack("sde-items");
+    if (!pack) { ui.notifications.warn("No sde-items pack yet — import the item table first."); return; }
+    const { ItemImporter } = await import("./item-importer.mjs");
+    const { updates, unmatched, count } = await ItemImporter.matchDescriptionsToItems(text, { pack, onlyEmpty: true });
+    if (!updates.length) {
+      ui.notifications.warn(count
+        ? `Found ${count} description(s), but none matched an item that still needs one (already filled, or not imported yet).`
+        : "No item descriptions were recognized in that paste.");
+      return;
+    }
+    const esc = (s) => foundry.utils.escapeHTML(s);
+    const confirmed = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Fill item descriptions", icon: "fas fa-align-left" },
+      content: `<p>Fill descriptions for <strong>${updates.length}</strong> item(s):</p>
+        <p style="max-height:9rem;overflow:auto;">${updates.map((u) => esc(u.name)).join(", ")}</p>
+        ${unmatched.length ? `<p class="notes">${unmatched.length} description(s) matched no imported item (import those first): ${unmatched.map(esc).join(", ")}</p>` : ""}`,
+    }).catch(() => false);
+    if (!confirmed) return;
+
+    await Item.updateDocuments(updates.map((u) => ({ _id: u._id, "system.description": u.html })), { pack: pack.collection });
+    this._invalidateItemsCache();
+    this.render();
+    ui.notifications.info(`Filled ${updates.length} item description(s)${unmatched.length ? ` — ${unmatched.length} unmatched` : ""}.`);
+  }
+
+  /**
    * "Extract from PDF" (standalone): pick a linked source book, a page or page
    * range, and column handling, then drop the extracted text into the paste
    * box. Same engine as the seed-flow grab, but page-driven for content that
@@ -2633,7 +2821,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
             <option value="2">Two columns</option>
           </select>
         </div>
-        <p class="notes">These are the book's own PDF page numbers (including cover/credits), not the printed page. Auto-detect handles two-column spell/table pages; force Single/Two if a page comes out jumbled.</p>`,
+        <p class="notes">These are the book's own PDF page numbers (including cover/credits), not the printed page. Auto-detect handles two-column spell/table pages; force Single/Two if a page comes out jumbled. <strong>A wide equipment table (Item · Cost · Quantity · Slot) reads best as Single column</strong> — Auto-detect scrambles its columns into a jumble.</p>`,
       buttons: [
         { action: "extract", label: "Extract", icon: "fas fa-file-pdf", default: true,
           callback: (event, button) => ({
@@ -2813,15 +3001,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Idempotent: a re-import reuses/finds the existing talent by name.
    */
   async _resolveAncestryDraft(draft, sourceTitle, source) {
-    // Languages: names → UUIDs.
+    // Languages: names → UUIDs (shared with the class-builder path).
     const fixed = Array.isArray(draft.languages?.fixed) ? draft.languages.fixed : [];
-    if (fixed.some((f) => !/^Compendium\./.test(f))) {
-      const byName = {};
-      for (const getter of ["commonLanguages", "rareLanguages"]) {
-        try { for (const d of await shadowdark.compendiums[getter]()) byName[d.name.toLowerCase()] = d.uuid; }
-        catch (_e) { /* language pack unavailable — keep names */ }
-      }
-      draft.languages.fixed = fixed.map((f) => /^Compendium\./.test(f) ? f : (byName[String(f).toLowerCase()] ?? f));
+    if (fixed.length) {
+      const { resolveLanguageNames } = await import("./language-resolver.mjs");
+      draft.languages.fixed = await resolveLanguageNames(fixed);
     }
     // Talent: reuse an existing same-named ancestry talent (idempotent
     // re-import), else create it. Check FIRST so a re-import never duplicates.

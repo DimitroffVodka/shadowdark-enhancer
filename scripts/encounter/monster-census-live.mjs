@@ -149,6 +149,13 @@ async function _referencedNamesFromPackTables() {
 
   const tables = await pack.getDocuments();
   const names = [];
+  // A table's own name (with or without its source prefix) is never a monster.
+  const tableNameSet = new Set(tables.map((t) => String(t.name).toLowerCase().replace(/\s+/g, " ").trim()));
+  const isTableSelfName = (cand) => {
+    const c = cand.toLowerCase().replace(/\s+/g, " ").trim();
+    for (const n of tableNameSet) if (n === c || n.endsWith(`- ${c}`) || n.endsWith(`: ${c}`)) return true;
+    return false;
+  };
 
   // Un-enriched capitalized noun phrases (2+ words, Title Case)
   // e.g. "Gordock Breeg", "Giant Rat", "Dark Creeper".
@@ -191,7 +198,13 @@ async function _referencedNamesFromPackTables() {
       let m;
       nounPhraseRe.lastIndex = 0;
       while ((m = nounPhraseRe.exec(plain)) !== null) {
-        names.push({ name: m[1], label });
+        const cand = m[1];
+        // Junk-reference filters (E2E D8: 64 noisy gap rows). Conservative on
+        // purpose — a plausible monster ("The Swamp Shambler") must survive.
+        if (/['’]s$/.test(cand)) continue;                                   // possessive ("Baron Clard's")
+        if (/^(?:The\s+PCs?|Cursed\s+Scrolls?(?:\s+\d+)?)$/i.test(cand)) continue;  // party/book references
+        if (isTableSelfName(cand)) continue;                                 // the table naming itself
+        names.push({ name: cand, label });
       }
     }
   }

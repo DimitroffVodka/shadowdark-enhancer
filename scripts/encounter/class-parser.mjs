@@ -38,6 +38,10 @@ const DIE_ONLY    = /^(\d*d\d+)$/i;                         // a lone "2d6" line
 const ROW_START   = /^(\d{1,2})(?:\s*[-–—]\s*(\d{1,2}))?\s+(\S.*)$/;
 const LONE_RANGE  = /^(\d{1,2})(?:\s*[-–—]\s*(\d{1,2}))?$/; // a bare "3-6" line
 const CAPS_CAP    = /^[A-Z' -]{4,}$/;                       // any all-caps caption
+// Every class page closes with a flavor quote + attribution ("Have I told you
+// …?" / -Reginald Merrymay, human duelist). Effects never open with a quote,
+// never end sentence-then-quote, and never start with a dash-attribution.
+const FLAVOR_LINE = /^["“”]|^[-–—]\s?[A-Z]|[!?.]["”]$/;
 const FEATURE_RE  = /^([A-Z][A-Za-z'’ -]{0,39})\.\s+(\S.*)$/;
 const BULLET      = /^[•\-]\s+/;
 
@@ -76,9 +80,13 @@ const _WORD_NUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5 };
 function _parseLanguageGrant(text) {
   const lang = { common: 0, rare: 0, select: 0, selectOptions: [], fixed: [] };
   const flat = String(text).replace(/\s+/g, " ");
-  const known = flat.match(/know(?:s)?\s+(?:either\s+)?(?:the\s+)?([A-Z][\w'’-]+(?:\s*(?:,|and|or)\s*[A-Z][\w'’-]+)*)\s+languages?/i);
+  // Trailing "language(s)" is optional: WR grants read "You know Sylvan." /
+  // "You know Primordial." with no suffix. Safe because this parser only runs
+  // on the body of a feature literally named "Languages".
+  const known = flat.match(/know(?:s)?\s+(?:either\s+)?(?:the\s+)?([A-Z][\w'’-]+(?:(?:\s*(?:,|\band\b|\bor\b)\s*)+[A-Z][\w'’-]+)*)(?:\s+languages?)?/i);
   if (known) {
-    const names = known[1].split(/\s*(?:,|and|or)\s*/).map((w) => w.trim()).filter((w) => /^[A-Z]/.test(w));
+    // \b keeps "and"/"or" INSIDE a name intact ("Prim·or·dial" must not split).
+    const names = known[1].split(/\s*(?:,|\band\b|\bor\b)\s*/).map((w) => w.trim()).filter((w) => /^[A-Z]/.test(w));
     // "either Celestial, Diabolic, or Primordial" → a pick, not fixed grants.
     if (/know(?:s)?\s+either\b/i.test(flat)) { lang.select = 1; lang.selectOptions = names; }
     else lang.fixed.push(...names);
@@ -145,6 +153,42 @@ function _classifyTalentTable(tbl, warnings) {
   return { formula: tbl.formula, rows: tbl.rows };
 }
 
+/** "2d6" → {min:2, max:12}; "d6" → {min:1, max:6}; null when unparseable. */
+function _dieBounds(formula) {
+  const m = /^(\d*)d(\d+)$/i.exec(String(formula ?? "").trim());
+  if (!m) return null;
+  const n = Math.max(1, Number(m[1] || 1));
+  return { min: n, max: n * Number(m[2]) };
+}
+
+/**
+ * Post-parse band sanity for a talent table: drop rows outside the die's
+ * bounds (page-footer numbers that captured an effect text) and flag
+ * non-tiling bands — the signature of a shifted range↔effect pairing.
+ * Mutates and returns `tbl` (null passes through).
+ */
+function _validateTalentBands(tbl) {
+  const die = tbl ? _dieBounds(tbl.formula) : null;
+  if (!die) return tbl;
+  const kept = [];
+  for (const r of tbl.rows) {
+    if (r.lo < die.min || r.hi > die.max) {
+      tbl.warnings.push(`BLOCKER: talent row ${r.lo}${r.hi !== r.lo ? `-${r.hi}` : ""} ("${String(r.text).slice(0, 48)}") is outside ${tbl.formula} — dropped; verify the table against the book.`);
+      continue;
+    }
+    kept.push(r);
+  }
+  tbl.rows = kept;
+  if (kept.length) {
+    const sorted = [...kept].sort((a, b) => a.lo - b.lo);
+    let tiles = sorted[0].lo === die.min && sorted[sorted.length - 1].hi === die.max;
+    for (let i = 1; tiles && i < sorted.length; i++) tiles = sorted[i].lo === sorted[i - 1].hi + 1;
+    if (!tiles)
+      tbl.warnings.push(`BLOCKER: talent bands (${sorted.map((r) => (r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`)).join(", ")}) don't tile ${die.min}..${die.max} for ${tbl.formula} — the pairing may be shifted; verify against the book.`);
+  }
+  return tbl;
+}
+
 // ─── Talent-table extraction (both layouts) ──────────────────────────────────
 
 /**
@@ -163,8 +207,13 @@ function _findTalentTable(lines) {
     const texts = [];
     for (let k = start; k < lines.length; k++) {
       const l = lines[k];
-      if (/^effects?$/i.test(l) || /^\d{1,3}$/.test(l)) { skip.add(k); continue; }
+      // Drop page numbers, the bare "Effect" header, and — before any effect
+      // has been collected — the parenthetical header variant every WR class
+      // uses ("Effect (reroll 10-11 if …)"), which otherwise becomes texts[0]
+      // and silently shifts every range↔effect pairing by one.
+      if (/^\d{1,3}$/.test(l) || /^effects?$/i.test(l) || (!texts.length && /^effects?\b/i.test(l))) { skip.add(k); continue; }
       if (TITLES_CAP.test(l) || CAPS_CAP.test(l)) break;   // next caption
+      if (FLAVOR_LINE.test(l)) break;                      // trailing flavor quote / attribution
       skip.add(k);
       if (texts.length && /^[a-z]/.test(l)) texts[texts.length - 1] += " " + l;   // wrapped line
       else texts.push(l);
@@ -172,16 +221,38 @@ function _findTalentTable(lines) {
     return texts;
   };
   const zip = (run, texts, skip, formula) => {
-    const n = Math.min(run.length, texts.length);
-    const rows = [];
-    for (let k = 0; k < n; k++) {
-      const rm = run[k].match(LONE_RANGE);
-      rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: texts[k].replace(/\s+/g, " ").trim() });
+    const die = _dieBounds(formula);
+    const kept = [];
+    const warnings = [];
+    for (const l of run) {
+      const rm = l.match(LONE_RANGE);
+      const lo = Number(rm[1]), hi = Number(rm[2] ?? rm[1]);
+      // A bare singleton outside the die's bounds is a swept-in page footer
+      // (Delver's "38" on a 2d6) — drop it from the range run so the
+      // positional pairing below can't shift.
+      if (die && rm[2] == null && (lo < die.min || lo > die.max)) {
+        warnings.push(`Talent table: dropped stray "${l.trim()}" from the roll-range column (outside ${formula} — likely a page number).`);
+        continue;
+      }
+      kept.push({ lo, hi });
     }
-    const warnings = run.length !== texts.length
-      ? [`Talent table (column copy): ${run.length} roll ranges vs ${texts.length} effect lines — zipped the first ${n}; review the table before commit.`]
-      : [];
-    return rows.length ? { skip, formula, rows, warnings } : null;
+    const n = Math.min(kept.length, texts.length);
+    const rows = [];
+    for (let k = 0; k < n; k++)
+      rows.push({ lo: kept[k].lo, hi: kept[k].hi, text: texts[k].replace(/\s+/g, " ").trim() });
+    const res = rows.length ? _validateTalentBands({ skip, formula, rows, warnings }) : null;
+    if (res && kept.length !== texts.length) {
+      // Extra TRAILING texts with perfectly tiling bands = post-table junk the
+      // flavor-line filter missed (a quote whose opening mark was sheared off).
+      // Anything else — too few texts, or bands that no longer tile — is a
+      // genuine pairing hazard.
+      const bandsClean = !res.warnings.some((w) => /don't tile|is outside/.test(w));
+      if (texts.length > kept.length && bandsClean)
+        res.warnings.push(`Talent table: discarded ${texts.length - kept.length} trailing line(s) after the last band (flavor text): ${texts.slice(n).map((t) => `"${t.slice(0, 40)}"`).join(" | ")}`);
+      else
+        res.warnings.push(`BLOCKER: talent table (column copy) has ${kept.length} roll ranges vs ${texts.length} effect lines — zipped the first ${n}, so the pairing may be SHIFTED; verify every band against the book before commit.`);
+    }
+    return res;
   };
   // A run of ≥3 bare range lines needs a dash somewhere so clustered page
   // numbers can't fake it.
@@ -219,14 +290,15 @@ function _findTalentTable(lines) {
       const rows = [];
       for (let k = h + 1; k < lines.length; k++) {
         if (TALENTS_CAP.test(lines[k]) || TITLES_CAP.test(lines[k]) || CAPS_CAP.test(lines[k])) break;
-        if (/^effects?$/i.test(lines[k])) { skip.add(k); continue; }   // "Effect" header stray
+        if (/^effects?\b/i.test(lines[k]) || /^\d{1,3}$/.test(lines[k])) { skip.add(k); continue; }   // header / page-footer stray
+        if (FLAVOR_LINE.test(lines[k])) break;             // trailing flavor quote / attribution
         const rm = lines[k].match(ROW_START);
         if (rm) { rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] }); skip.add(k); }
         else if (rows.length) { rows[rows.length - 1].text += " " + lines[k]; skip.add(k); }   // wrapped row
         else break;   // die header not followed by rows — not a talent table
       }
       if (rows.length >= 3 && rows.some((r) => r.hi !== r.lo))
-        return { skip, formula, rows, warnings: [] };
+        return _validateTalentBands({ skip, formula, rows, warnings: [] });
     }
     return null;
   }
@@ -234,7 +306,7 @@ function _findTalentTable(lines) {
   let j = capIdx + 1;
   let formula = "2d6";
   // Skip die-header / "Effect" strays directly after the caption.
-  while (j < lines.length && (DIE_ONLY.test(lines[j]) || /^effects?$/i.test(lines[j]))) {
+  while (j < lines.length && (DIE_ONLY.test(lines[j]) || /^effects?\b/i.test(lines[j]))) {
     const dh = lines[j].match(DIE_ONLY);
     if (dh) formula = dh[1].toLowerCase();
     skip.add(j); j++;
@@ -258,11 +330,13 @@ function _findTalentTable(lines) {
   const rows = [];
   for (; j < lines.length; j++) {
     if (TITLES_CAP.test(lines[j]) || CAPS_CAP.test(lines[j])) break;
+    if (/^effects?\b/i.test(lines[j]) || /^\d{1,3}$/.test(lines[j])) { skip.add(j); continue; }   // header / page-footer stray
+    if (FLAVOR_LINE.test(lines[j])) break;                 // trailing flavor quote / attribution
     const rm = lines[j].match(ROW_START);
     if (rm) { rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] }); skip.add(j); }
     else if (rows.length) { rows[rows.length - 1].text += " " + lines[j]; skip.add(j); }   // wrapped row
   }
-  return rows.length ? { skip, formula, rows, warnings: [] } : null;
+  return rows.length ? _validateTalentBands({ skip, formula, rows, warnings: [] }) : null;
 }
 
 // ─── Titles extraction ───────────────────────────────────────────────────────
@@ -289,14 +363,38 @@ function _findTitles(lines) {
   if (capIdx !== -1) skip.add(capIdx);
   const warnings = [];
   let order = ["lawful", "chaotic", "neutral"];
+  let colOffsets = null;   // char offsets of the 3 column names in the header line
+  // A wide cell can abut its neighbour with a SINGLE space ("Knight of the
+  // Cross Blackguard") — the 2+-space split then fails. The header's column
+  // positions give an exact slice; a boundary landing mid-word nudges to the
+  // nearest gap (≤3 chars) or bails to the fallbacks.
+  const sliceAtOffsets = (line) => {
+    if (!colOffsets) return null;
+    const bounds = [];
+    for (const o of colOffsets) {
+      let b = Math.min(o, line.length);
+      if (b > 0 && b < line.length && line[b] !== " " && line[b - 1] !== " ") {
+        let found = -1;
+        for (let d = 1; d <= 3 && found === -1; d++) {
+          if (line[b - d] === " ") found = b - d + 1;
+          else if (line[b + d] === " ") found = b + d + 1;
+        }
+        if (found === -1) return null;
+        b = found;
+      }
+      bounds.push(b);
+    }
+    const cells = bounds.map((b, i) => line.slice(b, i + 1 < bounds.length ? bounds[i + 1] : undefined).trim());
+    return cells.length === 3 && cells.every(Boolean) ? cells : null;
+  };
   const bands = [];
   // Walk from just after the caption, or from the header line when caption-less.
   const start = capIdx !== -1 ? capIdx + 1 : headIdx;
   for (let k = start; k < lines.length; k++) {
     const l = lines[k];
     if (isHeader(l)) {
-      const cols = [...l.matchAll(/lawful|chaotic|neutral/gi)].map((m) => m[0].toLowerCase());
-      if (cols.length === 3) order = cols;
+      const hits = [...l.matchAll(/lawful|chaotic|neutral/gi)];
+      if (hits.length === 3) { order = hits.map((m) => m[0].toLowerCase()); colOffsets = hits.map((m) => m.index); }
       skip.add(k);
       continue;
     }
@@ -306,6 +404,10 @@ function _findTitles(lines) {
     const from = Number(m[1]);
     const to = m[2] ? Number(m[2]) : (l.includes("+") ? from : from);
     let cells = m[3].split(/\s{2,}/).map((c) => c.trim()).filter(Boolean);
+    if (cells.length !== 3) {
+      const sliced = sliceAtOffsets(l);
+      if (sliced) cells = sliced;
+    }
     if (cells.length !== 3) {
       const words = m[3].split(/\s+/);
       if (words.length === 3) cells = words;
@@ -364,40 +466,49 @@ export function sliceSpellsKnown(text) {
 function _findSpellsKnown(lines) {
   // Anchor on a "SPELLS KNOWN" caption, a "Spells Known by …" subtitle, OR the
   // "Level 1 2 3 …" tier header — so a copied grid parses without an all-caps
-  // caption above it.
+  // caption above it. A two-page grab can carry the grid TWICE (a sheared
+  // auto-extract copy earlier, the clean single-column slice appended later),
+  // so EVERY anchor is tried and the parse with the most level rows wins.
   const isCaption = (l) => /^[A-Z' -]*SPELLS\s+KNOWN$/.test(l) || /^spells\s+known\s+by/i.test(l);
   const isTierHeader = (l) => /^levels?\b/i.test(l) && /\b1\b/.test(l) && /\b2\b/.test(l);
-  const start = lines.findIndex((l) => isCaption(l) || isTierHeader(l));
-  if (start === -1) return null;
-  const skip = new Set();
-  const tokens = [];
-  for (let k = start; k < lines.length; k++) {
-    const l = lines[k];
-    if (isCaption(l) && !isTierHeader(l)) { skip.add(k); continue; }   // caption / subtitle
-    const parts = l.split(/\s+/);
-    if (!parts.every((p) => /^(?:levels?|\d{1,2}|[-–—+])$/i.test(p))) {
-      if (tokens.length) break;   // the numeric grid ended
-      continue;                    // stray line before the grid
+  const parseFrom = (start) => {
+    const skip = new Set();
+    const tokens = [];
+    for (let k = start; k < lines.length; k++) {
+      const l = lines[k];
+      if (isCaption(l) && !isTierHeader(l)) { skip.add(k); continue; }   // caption / subtitle
+      const parts = l.split(/\s+/);
+      if (!parts.every((p) => /^(?:levels?|\d{1,2}|[-–—+])$/i.test(p))) {
+        if (tokens.length) break;   // the numeric grid ended
+        continue;                    // stray line before the grid
+      }
+      skip.add(k);
+      tokens.push(...parts);
     }
-    skip.add(k);
-    tokens.push(...parts);
+    const lvIdx = tokens.findIndex((t) => /^levels?$/i.test(t));
+    if (lvIdx === -1) return null;
+    // Tier headers: the ascending 1,2,3,… run right after "Level".
+    let n = 0;
+    while (Number(tokens[lvIdx + 1 + n]) === n + 1) n++;
+    if (n < 1) return null;
+    const known = [];
+    for (let p = lvIdx + 1 + n; p + n < tokens.length; p += n + 1) {
+      const level = Number(tokens[p]);
+      if (!Number.isInteger(level) || level < 1 || level > 20) break;
+      known.push({
+        level,
+        tiers: tokens.slice(p + 1, p + 1 + n).map((t) => (/^\d+$/.test(t) ? Number(t) : 0)),
+      });
+    }
+    return known.length ? { skip, known } : null;
+  };
+  let best = null;
+  for (let i = 0; i < lines.length; i++) {
+    if (!isCaption(lines[i]) && !isTierHeader(lines[i])) continue;
+    const res = parseFrom(i);
+    if (res && (!best || res.known.length > best.known.length)) best = res;
   }
-  const lvIdx = tokens.findIndex((t) => /^levels?$/i.test(t));
-  if (lvIdx === -1) return null;
-  // Tier headers: the ascending 1,2,3,… run right after "Level".
-  let n = 0;
-  while (Number(tokens[lvIdx + 1 + n]) === n + 1) n++;
-  if (n < 1) return null;
-  const known = [];
-  for (let p = lvIdx + 1 + n; p + n < tokens.length; p += n + 1) {
-    const level = Number(tokens[p]);
-    if (!Number.isInteger(level) || level < 1 || level > 20) break;
-    known.push({
-      level,
-      tiers: tokens.slice(p + 1, p + 1 + n).map((t) => (/^\d+$/.test(t) ? Number(t) : 0)),
-    });
-  }
-  return known.length ? { skip, known } : null;
+  return best;
 }
 
 // ─── Extra named tables (CORRUPTION, etc.) ───────────────────────────────────

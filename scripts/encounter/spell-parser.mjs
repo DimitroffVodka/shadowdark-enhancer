@@ -54,6 +54,23 @@ function isNameLine(line) {
   return true;
 }
 
+/** Leading connective words that mark a WRAPPED name-continuation line. A long
+ *  ALL-CAPS spell heading wraps across lines in the books' two-column layout
+ *  ("PROTECTION" / "FROM GOOD"); the lower fragment starts with a connective,
+ *  which a real spell name never does — so it joins the line above it, while a
+ *  standalone section heading like "SPELLS" above a real name never merges. */
+const NAME_CONNECTIVE_RE = /^(?:from|of|the|and|to|with|in|on|for|at|by|into|upon|over|under)\b/i;
+
+/** The index where a wrapped spell name begins, given the name line NEAREST the
+ *  Tier anchor. Climbs over all-caps lines while the current line reads as a
+ *  connective-led continuation of the line above. Returns `nameIdx` unchanged
+ *  for the common single-line (or mixed-case) name. */
+function nameStartIndex(lines, nameIdx) {
+  let s = nameIdx;
+  while (s > 0 && isNameLine(lines[s - 1]) && NAME_CONNECTIVE_RE.test(String(lines[s]).trim())) s--;
+  return s;
+}
+
 // ─── Range / duration mapping ─────────────────────────────────────────────────
 
 /** Map a raw range word → Shadowdark range enum (self/close/near/far). */
@@ -131,16 +148,20 @@ export function parseSpell(blockText) {
   // Anchor check.
   if (tierIdx === -1 || (durationRaw === null && rangeRaw === null)) return null;
 
-  // Name: the NEAREST line above the Tier anchor (review #7) — a section
-  // heading pasted above the real name ("SPELLS") must not become the name.
-  // Lines above the name line are surfaced in a warning, never silently eaten.
-  let name = "";
-  const nameIdx = tierIdx - 1;
-  if (nameIdx >= 0) name = titleCaseName(rawLines[nameIdx].trim());
+  // Name: the heading above the Tier anchor (review #7 — a section heading like
+  // "SPELLS" pasted above the real name must NOT become the name). A long
+  // ALL-CAPS spell heading wraps across lines in the books' two-column layout
+  // ("PROTECTION" / "FROM GOOD"); nameStartIndex climbs over the connective-led
+  // continuation so the whole heading is the name, while a standalone heading
+  // stays out of it. Anything above the chosen block is surfaced in a warning.
+  const nameStart = tierIdx > 0 ? nameStartIndex(rawLines, tierIdx - 1) : tierIdx;
+  let name = nameStart < tierIdx
+    ? titleCaseName(rawLines.slice(nameStart, tierIdx).map((l) => l.trim()).join(" "))
+    : "";
   if (!name) { name = "Unnamed Spell"; warnings.push("name: no name line above the Tier line"); }
-  if (nameIdx > 0) {
-    const lead = rawLines.slice(0, nameIdx).map((l) => collapse(l)).filter(Boolean);
-    warnings.push(`ignored ${lead.length} line(s) above the spell name: "${lead.join(" / ")}"`);
+  if (nameStart > 0) {
+    const lead = rawLines.slice(0, nameStart).map((l) => collapse(l)).filter(Boolean);
+    if (lead.length) warnings.push(`ignored ${lead.length} line(s) above the spell name: "${lead.join(" / ")}"`);
   }
 
   // Description: every non-meta line after the Tier anchor, in source order.
@@ -197,7 +218,16 @@ function splitSpellUnits(blockText) {
     if (!isNameLine(lines[i])) continue;
     let j = i + 1;
     while (j < lines.length && lines[j].trim() === "") j++;
-    if (j < lines.length && TIER_RE.test(lines[j])) starts.push(i);
+    if (j < lines.length && TIER_RE.test(lines[j])) {
+      // A long ALL-CAPS heading wraps in the book's two-column layout
+      // ("PROTECTION" / "FROM GOOD"); only the LAST wrapped line sits directly
+      // above the Tier anchor. Extend the unit start UP over the connective-led
+      // continuation (shared with parseSpell) so the whole heading belongs to
+      // this spell, not glued to the previous one's description — while a real
+      // section heading above a standalone name is left out (review #7).
+      starts.push(nameStartIndex(lines, i));
+      i = j;   // don't rescan the wrapped lines (or the Tier line) as further starts
+    }
   }
   if (!starts.length) return { units: [], remainder: String(blockText ?? "") };
 

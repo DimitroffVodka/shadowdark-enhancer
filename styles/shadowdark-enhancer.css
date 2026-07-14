@@ -2486,7 +2486,53 @@ body.theme-light .sde-hub-import-item-desc-input {
   align-items: center;
 }
 .sde-cu-featname { width: 100%; font-weight: 700; }
-.sde-cu-titles input { width: 100%; min-width: 4rem; }
+.sde-cu-titles input, .sde-cu-talents input { width: 100%; min-width: 4rem; }
+.sde-cu-talents .sde-cu-range { min-width: 3rem; }
+/* A title band a parse warning flagged for review (e.g. a title that couldn't
+   be split into Lawful/Chaotic/Neutral) — mark the row + tag the reason. */
+.sde-cu-row-flagged td {
+  background: color-mix(in srgb, var(--sde-bar-warn, #c8930a) 12%, transparent);
+}
+.sde-cu-row-flagged .sde-cu-range { box-shadow: inset 2px 0 0 var(--sde-bar-warn, #c8930a); }
+.sde-ci-titlewarn { color: var(--sde-bar-warn, #c8930a); }
+
+/* Talent-row wiring badges (issue #4): mark whether each talent-table row is
+   backed by a real Talent item (green) or imports as description-only text
+   needing hand-wiring (amber). */
+.sde-ci-talent-effect { display: flex; align-items: center; gap: 0.4rem; }
+.sde-ci-talent-effect input { flex: 1 1 auto; }
+.sde-ci-wired {
+  flex: 0 0 auto; white-space: nowrap; font-size: 0.72rem; line-height: 1;
+  padding: 0.15rem 0.4rem; border-radius: 0.6rem; cursor: help;
+}
+.sde-ci-wired-on {
+  color: var(--sde-bar-ok, #2f8f4e);
+  background: color-mix(in srgb, var(--sde-bar-ok, #2f8f4e) 15%, transparent);
+}
+.sde-ci-wired-off {
+  color: var(--sde-bar-warn, #c8930a);
+  background: color-mix(in srgb, var(--sde-bar-warn, #c8930a) 15%, transparent);
+}
+.sde-ci-talent-unwired .sde-cu-range { box-shadow: inset 2px 0 0 var(--sde-bar-warn, #c8930a); }
+.sde-ci-wiredcount { color: var(--sde-faint, #8a8a8a); font-weight: normal; }
+/* Detected roll-tables summary in the class body preview (issue #5). */
+.sde-ci-detected { margin-top: 0.5rem; }
+.sde-ci-detectedlist { margin: 0.25rem 0 0; padding-left: 1.1rem; list-style: none; }
+.sde-ci-detectedlist li { color: var(--sde-faint, #8a8a8a); font-size: 0.85rem; }
+.sde-ci-detectedlist i { margin-right: 0.35rem; opacity: 0.8; }
+
+/* Item Builder — table → descriptions → combine (reuses the class-builder look). */
+.sde-ib-fields { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.sde-ib-fields .sde-ci-sourcefield { flex: 1 1 12rem; }
+.sde-ib-items { width: 100%; }
+.sde-ib-items td, .sde-ib-items th { vertical-align: middle; }
+.sde-ib-items input { width: 100%; }
+.sde-ib-items .sde-cu-range { min-width: 4rem; }
+.sde-ib-slots { text-align: center; color: var(--sde-faint, #8a8a8a); width: 3rem; }
+/* A row still missing its description — amber left edge (shares the unwired cue). */
+.sde-ib-items tr.sde-ci-talent-unwired input[data-ib-field="description"] {
+  box-shadow: inset 2px 0 0 var(--sde-bar-warn, #c8930a);
+}
 .sde-cu-spellsknown {
   display: flex;
   flex-wrap: wrap;

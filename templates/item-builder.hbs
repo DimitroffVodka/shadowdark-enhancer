@@ -1,0 +1,77 @@
+<div class="sde-class-importer sde-item-builder">
+
+  <div class="sde-ci-head">
+    <div class="sde-ci-title"><i class="fa-solid fa-boxes-stacked"></i> Item Builder</div>
+    <div class="sde-ci-headright">
+      <span class="sde-ci-buildlabel">building</span>
+      <span class="sde-ci-chip{{#if itemCount}} sde-ci-chip-on{{/if}}">{{typeLabel}}{{#if itemCount}} · {{itemCount}}{{/if}}</span>
+      <button type="button" data-action="ibStartOver" class="sde-cu-btn" title="Clear everything"><i class="fas fa-rotate-left"></i> Start over</button>
+    </div>
+  </div>
+
+  <div class="sde-ib-fields">
+    <label class="sde-ci-sourcefield">
+      <span class="sde-ci-fieldname">Source</span>
+      <input type="text" data-ib-source list="sde-ib-sources" value="{{source}}" placeholder="Western Reaches / CS5 …">
+      <datalist id="sde-ib-sources">{{#each sourceList as |s|}}<option value="{{s}}"></option>{{/each}}</datalist>
+    </label>
+    <label class="sde-ci-sourcefield">
+      <span class="sde-ci-fieldname">Type</span>
+      <select data-ib-type class="sde-mimport-sel">
+        {{#each gearTypes as |g|}}<option value="{{g.value}}" {{#if g.selected}}selected{{/if}}>{{g.label}}</option>{{/each}}
+      </select>
+    </label>
+  </div>
+
+  {{!-- ── Stage 1 · Table ─────────────────────────────────────────────── --}}
+  <div class="sde-ci-stage">
+    <div class="sde-ci-stagehead">1 · Price table <span class="sde-ci-status">names, cost &amp; slots</span></div>
+    <p class="sde-ci-note">Grab (or paste) the equipment price table — one row per item, e.g. <code>Ball bearing 1 gp 1</code>. Each becomes an item with its cost and slots.</p>
+    <textarea data-ib-table class="sde-ci-paste sde-ci-bodypaste" placeholder="Ball bearing 1 gp 1&#10;Bolas 2 gp 1&#10;Candle (3) 5 cp 1-3">{{tableText}}</textarea>
+    <div class="sde-ci-bodybtns">
+      {{#if tablePage}}<button type="button" data-action="ibGrabTable" class="sde-cu-btn" title="Pull the price table straight from the source PDF (single-column)."><i class="fas fa-wand-magic-sparkles"></i> Grab table · p.{{tablePage}}</button>{{/if}}
+      <button type="button" data-action="ibParseTable" class="sde-cu-btn"><i class="fas fa-eye"></i> Parse table</button>
+      {{#if tablePdf}}<button type="button" data-action="ibOpenPdf" data-href="{{tablePdf}}" data-title="{{typeLabel}} table — p.{{tablePage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · p.{{tablePage}}</button>{{/if}}
+    </div>
+  </div>
+
+  {{!-- ── Stage 2 · Descriptions ──────────────────────────────────────── --}}
+  <div class="sde-ci-stage">
+    <div class="sde-ci-stagehead">2 · Descriptions <span class="sde-ci-status">{{#if itemCount}}{{withDesc}}/{{itemCount}} filled{{else}}parse the table first{{/if}}</span></div>
+    <p class="sde-ci-note">Grab (or paste) the book's <strong>descriptions</strong> section (the two-column <code>Name. text…</code> block). Each is matched to a row above by name. The two-column source is imperfect — fix any stragglers in the table below.</p>
+    <textarea data-ib-desc class="sde-ci-paste sde-ci-bodypaste" placeholder="Ball bearing. A hefty marble of glossy metal…&#10;Bolas. Near range, one target…">{{descText}}</textarea>
+    <div class="sde-ci-bodybtns">
+      {{#if descPage}}<button type="button" data-action="ibGrabDesc" class="sde-cu-btn" title="Pull the descriptions section from the source PDF (two-column)."><i class="fas fa-wand-magic-sparkles"></i> Grab descriptions · p.{{descPage}}</button>{{/if}}
+      <button type="button" data-action="ibMatchDesc" class="sde-cu-btn"><i class="fas fa-link"></i> Match descriptions</button>
+      {{#if descPdf}}<button type="button" data-action="ibOpenPdf" data-href="{{descPdf}}" data-title="{{typeLabel}} descriptions — p.{{descPage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · p.{{descPage}}</button>{{/if}}
+    </div>
+    <p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-info"></i> Auto-grab misses items whose description shares the table page. Open the PDF, drag-select the missing ones (amber rows below), paste here, and Match again.</p>
+  </div>
+
+  {{!-- ── Combined items — reviewable/editable ────────────────────────── --}}
+  {{#if itemCount}}
+  <div class="sde-ci-stagehead">Items ({{itemCount}}){{#if needDesc}} · <span class="sde-ci-status">{{needDesc}} still need a description</span>{{/if}}</div>
+  <table class="sde-class-preview-table sde-ib-items">
+    <tr class="sde-cu-titlehead"><th>Name</th><th>Cost</th><th>Slots</th><th>Description</th><th></th></tr>
+    {{#each items as |it|}}
+    <tr data-ib-row="{{it.idx}}" class="{{#unless it.hasDesc}}sde-ci-talent-unwired{{/unless}}">
+      <td><input type="text" data-ib-field="name" value="{{it.name}}" class="sde-cu-text" aria-label="Item name"></td>
+      <td><input type="text" data-ib-field="cost" value="{{it.cost}}" class="sde-cu-range" aria-label="Cost"></td>
+      <td class="sde-ib-slots">{{it.slots}}</td>
+      <td><input type="text" data-ib-field="description" value="{{it.description}}" class="sde-cu-text" placeholder="{{#unless it.hasDesc}}no description — add or grab it{{/unless}}" aria-label="Description"></td>
+      <td class="sde-cu-rowdel"><button type="button" data-action="ibRowDel" class="sde-cu-btn sde-cu-btn-del" title="Remove this item"><i class="fas fa-trash"></i></button></td>
+    </tr>
+    {{/each}}
+  </table>
+  {{/if}}
+
+  {{!-- ── Stage 3 · Combine & create ──────────────────────────────────── --}}
+  <div class="sde-ci-footer">
+    <span class="sde-ci-pending">
+      {{#if itemCount}}Ready: {{itemCount}} {{typeLabel}} — {{withDesc}} with descriptions{{else}}Parse a table to begin{{/if}}
+      {{#if report}} · <i class="fas fa-circle-check"></i> created {{report.created}}{{#if report.replaced}}, updated {{report.replaced}}{{/if}}{{/if}}
+    </span>
+    <button type="button" data-action="ibCreate" class="sde-import-primary"{{#unless itemCount}} disabled{{/unless}}><i class="fas fa-circle-plus"></i> 3 · Create {{itemCount}} items</button>
+  </div>
+
+</div>

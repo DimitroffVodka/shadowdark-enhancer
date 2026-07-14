@@ -114,7 +114,13 @@ export const CONTENT_ENTRIES = [
   _entry("core/hazards", "CORE", "Hazards",
     { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] }),
   _entry("core/boons-secrets", "CORE", "Boons: Secrets",
-    { kind: "compound", split: "grid", cols: 2, size: 12, labels: ["Detail 1", "Detail 2"] }),
+    // p281's two Detail columns defeat every positional split (E2E D3: a flat
+    // 1d144 of shredded cells). Single-column extraction glues each row onto
+    // one line; Detail 2 always opens with a capitalized article ("The king",
+    // "A powerful demon") that never appears mid-cell in Detail 1 — the reflow
+    // boundary splits there.
+    { kind: "compound", split: "grid", cols: 2, size: 12, labels: ["Detail 1", "Detail 2"],
+      caption: "SECRETS", extractCols: "1", reflow: ["\\s(?:The|An?)\\b"] }),
   // Core Rulebook d20 × 3-column name/idea generators (roll each column,
   // combine). Cartesian = 20^3 = 8,000 rows exceeds the expansion cap (2,000),
   // so these stay roll-each-column compounds rather than an 8k-row table.
@@ -150,6 +156,57 @@ export const CONTENT_ENTRIES = [
   _entry("core/item-virtue", "CORE", "Item Virtue", SECTION()),
   _entry("core/boons-oaths", "CORE", "Boons: Oaths", SECTION("OATHS")),
   _entry("core/boons-blessings", "CORE", "Boons: Blessings", SECTION("BLESSINGS")),
+  // WR god Boons (pp.208-223): each page holds one clean 2d6 banded table under
+  // an ALL-CAPS "<GOD> BOONS" caption, followed by DEMANDS / IN THE REACHES
+  // prose (the next caption terminates the slice). Without these entries the
+  // generic parser chopped the god's lore prose into fake sequential rows
+  // (E2E 2026-07-13 defect D1). Captions verified against the WR PDF.
+  _entry("wr/freya-boons", "WR", "Freya Boons", SECTION("FREYA BOONS")),
+  _entry("wr/krraktanamak-boons", "WR", "Krraktanamak Boons", SECTION("KRRAKTANAMAK BOONS")),
+  _entry("wr/loki-boons", "WR", "Loki Boons", SECTION("LOKI BOONS")),
+  _entry("wr/molek-boons", "WR", "Molek Boons", SECTION("MOLEK BOONS")),
+  _entry("wr/oatali-boons", "WR", "Oatali Boons", SECTION("OATALI BOONS")),
+  _entry("wr/obe-ixx-boons", "WR", "Obe-Ixx Boons", SECTION("OBE-IXX BOONS")),
+  _entry("wr/odin-boons", "WR", "Odin Boons", SECTION("ODIN BOONS")),
+  _entry("wr/oros-boons", "WR", "Oros Boons", SECTION("OROS BOONS")),
+  _entry("wr/rathgamnon-boons", "WR", "Rathgamnon Boons", SECTION("RATHGAMNON BOONS")),
+  _entry("wr/saint-ydris-boons", "WR", "Saint Ydris Boons", SECTION("SAINT YDRIS BOONS")),
+  _entry("wr/yag-kesh-boons", "WR", "Yag-Kesh Boons", SECTION("YAG-KESH BOONS")),
+  // CS3 tables the generic parser mangled (E2E D4): Arctic Sea Encounters is a
+  // 2-page d100 longtable (pp.26-27 — same pattern as the CORE encounter
+  // tables); Nord Names is a d20 × 4-column name grid, not a single-die list.
+  _entry("cs3/arctic-sea-encounters", "CS3", "Cursed Scroll 3 p26: Arctic Sea Encounters",
+    LONGTABLE("ARCTIC SEA ENCOUNTERS"), ["Arctic Sea Encounters"]),
+  _entry("cs3/nord-names", "CS3", "Cursed Scroll 3 p16: Nord Names",
+    // Male/Female/Surname are always single words; Title is the remainder
+    // (may open lowercase: "the Eagle"), so reflow boundaries beat positional
+    // slicing (layout mode chopped "Asger" → "sger").
+    { kind: "compound", split: "grid", cols: 4, size: 20, labels: ["Male", "Female", "Surname", "Title"],
+      caption: "NORD NAMES", extractCols: "1", reflow: ["cap", "cap", "\\s"] },
+    ["Nord Names"]),
+  _entry("cs2/enduring-wounds", "CS2", "Cursed Scroll 2 p26: Enduring Wounds",
+    // 2-col auto extraction shears each row's text off mid-sentence; the
+    // single-column section slice keeps "1 Heart Attack. Pass a DC 15 …" whole.
+    SECTION("ENDURING WOUNDS"), ["Enduring Wounds"]),
+  // The seven formerly cite-less rows (E2E D8) — pages verified against the
+  // PDFs and added to TABLE_PAGES; each gets a deterministic shape so the
+  // automatic route completes.
+  _entry("cs1/diabolical-mishap-1-3", "CS1", "Diabolical Mishap 1-3", SECTION("DIABOLICAL MISHAP 1-3")),
+  _entry("cs1/diabolical-mishap-4-5", "CS1", "Diabolical Mishap 4-5", SECTION("DIABOLICAL MISHAP 4-5")),
+  _entry("cs3/sea-wolf-plunder", "CS3", "Sea Wolf Plunder From Distant Lands",
+    SECTION("SEA WOLF PLUNDER FROM DISTANT LANDS")),
+  _entry("cs6/carousing-outcome", "CS6", "Carousing Outcome",
+    // Roll-plus-modifier lookup: the header prints "d8" but the outcome values
+    // run 1..25 (drinks/level modifiers). All-numeric cells glue in extraction,
+    // so several rows mis-split — this table imports as REVIEW with visible
+    // warnings for a quick hand-fix in the preview (documented hold-out; the
+    // commit gate blocks it from landing silently broken).
+    { kind: "lookup", cols: 4, size: 25, labels: ["Mishaps", "Benefits", "% Modifier", "XP"],
+      dieIndexed: true, extractCols: "1" }),
+  _entry("cs6/carousing-benefit", "CS6", "Carousing Outcome - Benefit", LONGTABLE("BENEFIT"), ["Carousing Benefit"]),
+  _entry("cs6/carousing-mishap", "CS6", "Carousing Outcome - Mishap", LONGTABLE("MISHAP"), ["Carousing Mishap"]),
+  _entry("wr/carousing-benefit", "WR", "Carousing Benefit", LONGTABLE("BENEFIT")),
+  _entry("wr/carousing-mishap", "WR", "Carousing Mishap", LONGTABLE("MISHAP")),
   // Side-by-side two-column-caption pages (Armor/Weapon/Utility Type+Feature on
   // p284/290/292, Scroll/Wand Feature on p288, spell Tier 2-5 on p289). The
   // captions merge in 1-col, so these use the 2-column extraction and section-

@@ -163,18 +163,58 @@ const PLAUSIBLE_DIE_MAX = new Set([2, 3, 4, 6, 8, 10, 12, 20, 30, 36, 66, 100]);
  * @param {Array<{min:number,max:number,text:string}>} rows mutated in place
  * @returns {string[]} notes (never silent)
  */
-function dropStrayPageNumber(rows) {
-  if (rows.length < 4) return [];
+function dropStrayPageNumber(rows, { dieMax = null } = {}) {
+  const notes = [];
+  // With a KNOWN die header the bounds are authoritative: any SINGLETON row
+  // beyond them is a page cite or a neighbouring table's row (CS2 Enduring
+  // Wounds' dead 26-26 on a d20 — E2E D4). Spans are never touched.
+  if (dieMax) {
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const r = rows[i];
+      if (r.min === r.max && r.min > dieMax) {
+        rows.splice(i, 1);
+        const snip = String(r.text ?? "").trim().slice(0, 30);
+        notes.push(`Dropped out-of-bounds row ${r.min}${snip ? ` ("${snip}")` : ""} — the die header caps this table at ${dieMax}.`);
+      }
+    }
+  }
+  if (rows.length < 4) return notes;
   const byMax = [...rows].sort((a, b) => a.max - b.max);
   const top = byMax[byMax.length - 1];
   const second = byMax[byMax.length - 2];
   const V = top.max, S = second.max;
-  if (top.min !== top.max) return [];   // a page cite is a lone value, not a span
-  if (V <= 100 || PLAUSIBLE_DIE_MAX.has(V)) return [];
-  if (!(V > 2 * S && V - S >= 50)) return [];
+  if (top.min !== top.max) return notes;   // a page cite is a lone value, not a span
+  if (V <= 100 || PLAUSIBLE_DIE_MAX.has(V)) return notes;
+  if (!(V > 2 * S && V - S >= 50)) return notes;
   rows.splice(rows.indexOf(top), 1);
   const snip = String(top.text ?? "").trim().slice(0, 30);
-  return [`Dropped probable page-number row ${V}${snip ? ` ("${snip}")` : ""} — far above the table's ${S}-value coverage; formula reset from 1d${V}.`];
+  notes.push(`Dropped probable page-number row ${V}${snip ? ` ("${snip}")` : ""} — far above the table's ${S}-value coverage; formula reset from 1d${V}.`);
+  return notes;
+}
+
+/**
+ * Strip seed/header/footer noise from a seeded unlock's paste BEFORE the
+ * generic parse: the seed line the unlock wrote into the box, the printed
+ * table caption, "dN Details"-style headers, and bare page-footer numbers —
+ * all of which otherwise become DATA rows (E2E D4: Arctic Sea rows 1-3 were
+ * the seed line, the d100 header, and the caption).
+ */
+export function stripSeedNoise(text, { name = "", pages = "", size = 100 } = {}) {
+  const strip = (s) => String(s).toUpperCase().replace(/\s+/g, " ").trim();
+  // A tree entry name may embed its rep prefix ("Cursed Scroll 3 p26: Arctic
+  // Sea Encounters") while the page caption prints only the bare name.
+  const bare = String(name).replace(/^.*?\bp\.?\s?\d{1,3}\s*:\s*/i, "");
+  const wants = new Set([strip(name), strip(bare)].filter(Boolean));
+  const footers = new Set(String(pages).split(/[-,]/).map((p) => p.trim()).filter(Boolean));
+  const isHdr = (l) => /^\d{0,2}d\d{1,3}\b/i.test(l) && /\b(details?|results?|effects?|outcomes?)\b/i.test(l);
+  const out = [];
+  let dropped = 0;
+  for (const raw of String(text).split(/\r?\n/)) {
+    const l = raw.trim();
+    if (l && (wants.has(strip(l)) || isHdr(l) || (/^\d{1,3}$/.test(l) && (footers.has(l) || Number(l) > size)))) { dropped++; continue; }
+    out.push(raw);
+  }
+  return { text: out.join("\n"), dropped };
 }
 
 /** Build a single-die ParsedTable from a block's data lines. */
@@ -217,7 +257,7 @@ function parseSingleDieBlock(title, die, dataLines) {
   // (e.g. a section-sliced "d20 Type" table that swept in its page footer) it
   // adds a phantom face-290 row and a false overlap. The drop's own guards
   // (>100, singleton, isolated outlier) make it safe to run in both cases.
-  const strayNotes = dropStrayPageNumber(rows);
+  const strayNotes = dropStrayPageNumber(rows, { dieMax: die ? Math.max(1, die.count ?? 1) * die.size : null });
 
   // Multi-column prose table (e.g. Carousing Outcome's "d14 Outcome Benefit"):
   // the header carries ≥2 column labels but the block isn't a single-word-cell
@@ -1470,11 +1510,33 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     // Mix-and-match grid (Traps/Hazards 3d12, Boons: Secrets 2d12): slice at the
     // header's column x-positions (handles single-space gaps that defeat
     // delimiter splitting). Fall back to the spec generator parser when the
-    // header layout can't be read.
-    const pt = parseGridShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels })
-      || parseGridReflow(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, reflow: shape.reflow });
+    // header layout can't be read. When the entry declares reflow boundary
+    // specs, they run FIRST: the author has said the aligned split is
+    // unreliable for this page (Boons: Secrets "succeeded" positionally with
+    // shredded cells — E2E D3), so the declared boundaries take precedence.
+    // A caption bound keeps a shared page's OTHER die-numbered tables out of
+    // the reflow scan (p281 stacks SECRETS above BLESSINGS — without the slice
+    // the reflow happily reads the neighbour's rows). Freeform pastes without
+    // the caption fall through to the whole text.
+    let gtext = text;
+    if (shape.caption) {
+      const glines = String(text).split(/\r?\n/).map((l) => l.trim());
+      const want = shape.caption.toUpperCase().replace(/\s+/g, " ");
+      const s = glines.findIndex((l) => isSectionCaption(l) && l.toUpperCase().replace(/\s+/g, " ") === want);
+      if (s !== -1) {
+        let e = s + 1;
+        while (e < glines.length && !(isSectionCaption(glines[e]) && glines[e].toUpperCase().replace(/\s+/g, " ") !== want)) e++;
+        gtext = glines.slice(s, e).join("\n");
+      }
+    }
+    const reflowFirst = shape.reflow?.length
+      ? parseGridReflow(gtext, { name, cols: shape.cols, size: shape.size, labels: shape.labels, reflow: shape.reflow })
+      : null;
+    const pt = reflowFirst
+      || parseGridShape(gtext, { name, cols: shape.cols, size: shape.size, labels: shape.labels })
+      || parseGridReflow(gtext, { name, cols: shape.cols, size: shape.size, labels: shape.labels, reflow: shape.reflow });
     if (pt) return { generators: [pt] };
-    const [g] = parseGenerators(text, { columns: shape.cols, die: shape.size });
+    const [g] = parseGenerators(gtext, { columns: shape.cols, die: shape.size });
     if (!g) return null;
     if (shape.labels?.length) {
       g.columns.forEach((c, i) => { if (shape.labels[i]) c.label = shape.labels[i]; });
@@ -1485,6 +1547,25 @@ export function parseByShape(text, shape, { name = "" } = {}) {
   }
   if (shape.kind === "lookup") {
     const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts, rowStart: shape.rowStart, colLast: shape.colLast });
+    // A whole-page grab can sweep numbered prose (usage steps, sidebars) in as
+    // extra "rows" past the die (CS6 Carousing Outcome: 25 rows on a d8 —
+    // E2E W4). The declared size is authoritative: keep the first row per
+    // in-bounds face, drop the rest with a visible note.
+    if (pt && shape.size && shape.dieIndexed !== false) {
+      const seen = new Set();
+      const kept = [];
+      let dropped = 0;
+      for (const r of pt.rows) {
+        const key = `${r.min}-${r.max}`;
+        if (r.min < 1 || r.max > shape.size || seen.has(key)) { dropped++; continue; }
+        seen.add(key);
+        kept.push(r);
+      }
+      if (dropped) {
+        pt.rows = kept;
+        (pt.warnings ??= []).push(`Dropped ${dropped} row(s) outside or duplicating the d${shape.size} faces — numbered page prose swept into the lookup.`);
+      }
+    }
     return pt ? { tables: [pt] } : null;
   }
   return null;
@@ -1636,10 +1717,84 @@ function _categoryLabel(pt) {
  *   non-destructive rename.
  * @returns {Promise<RollTable|null>}
  */
-export async function createTable(pt, { onConflict } = {}) {
+/**
+ * Structured quality blockers for a parsed table — the conditions the E2E
+ * proved end up as broken RollTables when committed (garbage prose rows,
+ * unreachable bands, blank results). Pure; consumed by the preview badges and
+ * the commit gate. Returns [{ code, message }]; empty = clean.
+ * Coverage gaps only block when they are LARGE (>20% of faces) — small gaps
+ * stay ordinary review warnings so freeform lookups aren't over-blocked.
+ */
+export function computeBlockers(pt) {
+  const blockers = [];
+  const B = (code, message) => blockers.push({ code, message });
+  // A compound generator (Traps, name grids, Boons: Secrets) stores its data in
+  // `columns`, not `rows` — validate those instead of the single-die checks.
+  if (pt?.compound || (pt?.isCompound && pt?.columns?.length)) {
+    const cols = pt.columns ?? [];
+    if (!cols.length) { B("no-columns", "Compound generator has no columns."); return blockers; }
+    cols.forEach((c, i) => {
+      const crows = c.rows ?? c ?? [];
+      const blank = crows.filter((r) => !String(r.text ?? r ?? "").trim()).length;
+      // A WHOLE empty column = a broken generator (rolls produce blanks) →
+      // block. A few scattered blank cells are hand-fixable in the preview and
+      // the parser's own "N/M columns filled" warning already flags them, so
+      // they stay a review warning, not a hard block.
+      if (!crows.length || blank === crows.length)
+        B("empty-column", `Column ${i + 1}${c.label ? ` (${c.label})` : ""} is empty — the generator would roll blanks.`);
+    });
+    for (const w of (pt.warnings ?? [])) if (/^BLOCKER:/i.test(String(w))) B("parser-blocker", String(w).replace(/^BLOCKER:\s*/i, "").slice(0, 180));
+    return blockers;
+  }
+  const rows = pt?.rows ?? [];
+  if (!rows.length) { B("no-rows", "No rows parsed."); return blockers; }
+  const m = /^(\d+)d(\d+)$/.exec(String(pt.formula ?? "").trim());
+  if (!m) B("bad-formula", `Formula "${pt.formula}" is not a plain NdM die.`);
+  const lo = m ? Number(m[1]) : null;
+  const hi = m ? Number(m[1]) * Number(m[2]) : null;
+  const reversed = [], oob = [];
+  for (const r of rows) {
+    if (r.max < r.min) reversed.push(`${r.min}-${r.max}`);
+    else if (m && (r.min < lo || r.max > hi)) oob.push(r.min === r.max ? String(r.min) : `${r.min}-${r.max}`);
+  }
+  if (reversed.length) B("reversed-range", `${reversed.length} reversed range(s): ${reversed.slice(0, 4).join(", ")}.`);
+  if (oob.length) B("out-of-bounds", `${oob.length} row(s) outside ${lo}..${hi}: ${oob.slice(0, 4).join(", ")}${oob.length > 4 ? ", …" : ""}.`);
+  if (m) {
+    const inb = rows.filter((r) => r.min >= lo && r.max <= hi && r.max >= r.min).sort((a, b) => a.min - b.min);
+    let cursor = lo, uncovered = 0, overs = 0;
+    for (const r of inb) {
+      if (r.min > cursor) uncovered += r.min - cursor;
+      if (r.min < cursor) overs++;
+      cursor = Math.max(cursor, r.max + 1);
+    }
+    if (cursor <= hi) uncovered += hi - cursor + 1;
+    if (overs) B("overlap", `${overs} overlapping row range(s) — a roll matches more than one result.`);
+    const faces = hi - lo + 1;
+    if (uncovered / faces > 0.2) B("coverage-gap", `${uncovered} of ${faces} faces have no result.`);
+  }
+  const empty = rows.filter((r) => !String(r.text ?? "").trim() && !r.documentUuid).length;
+  if (empty) B("empty-row", `${empty} row(s) with no result text.`);
+  const dieRows = rows.filter((r) => /^\d*d\d+$/i.test(String(r.text ?? "").trim())).length;
+  if (dieRows) B("die-as-row", `${dieRows} row(s) whose text is just die notation — parse garbage.`);
+  for (const w of (pt.warnings ?? [])) {
+    if (/^BLOCKER:/i.test(String(w))) B("parser-blocker", String(w).replace(/^BLOCKER:\s*/i, "").slice(0, 180));
+  }
+  return blockers;
+}
+
+export async function createTable(pt, { onConflict, allowInvalid = false } = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can create roll tables.");
     return null;
+  }
+  // Foundry-bound choke point (Codex review): a broken structure never
+  // persists unless the caller explicitly overrode after a confirmation.
+  if (!allowInvalid) {
+    const blockers = computeBlockers(pt);
+    if (blockers.length) {
+      console.warn(`Shadowdark Enhancer | createTable blocked "${pt?.name ?? "(untitled)"}":`, blockers.map((b) => b.message));
+      return { blocked: true, blockers };
+    }
   }
 
   // Resolve the sde-tables pack (find-or-create via ensureSuite).

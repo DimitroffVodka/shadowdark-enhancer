@@ -108,6 +108,27 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   // ── Context ────────────────────────────────────────────────────────────────
   async _prepareContext() {
     const p = this._bodyParsed;
+
+    // Per-row talent wiring (issue #4): does each talent-table row map to a real,
+    // mechanically-wired Talent item, or would it import as description-only text?
+    // Reuses the commit-path matcher so the badge and the committed table agree.
+    let talentWiring = [];
+    if (this._talentTable?.rows?.length) {
+      try {
+        const { classifyTalentRows } = await import("./class-unit-importer.mjs");
+        talentWiring = await classifyTalentRows(this._talentTable.rows);
+      } catch (_e) { talentWiring = []; }
+    }
+    const wiredCount = talentWiring.filter((w) => w?.wired).length;
+
+    // What roll tables the parse/grab detected — surfaced in the body preview so
+    // the GM sees the class's tables came through, not just its features (issue #5).
+    const detectedTables = [];
+    if (this._talentTable) detectedTables.push(`talent table — ${this._talentTable.rows.length} rows`);
+    if (this._titles.length) detectedTables.push(`titles — ${this._titles.length} bands`);
+    if (this._spellsKnown.length) detectedTables.push(`spells known — ${this._spellsKnown.length} levels`);
+    for (const t of this._extraTables) detectedTables.push(`${t.name} — ${(t.rows ?? []).length} rows`);
+
     const bodyPreview = p ? {
       name: p.name,
       hp: p.hitPoints,
@@ -116,8 +137,11 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       armor: [p.allArmor && "all armor", ...p.armorNames].filter(Boolean).join(", "),
       isCaster: !!p.spellcasting,
       hasTables: !!(p.talentTable || p.titles?.length || p.spellsKnown?.length || p.extraTables?.length),
-      // Drop warnings about the roll tables — those are added in Stage 2, not the body.
-      warnings: (p.warnings ?? []).filter((w) => !/No TALENTS table|No TITLES table|No SPELLS KNOWN|Roll tables|import them in/i.test(w)),
+      // Drop warnings about roll tables added in Stage 2 — EXCEPT blockers:
+      // "No TALENTS table" must stay visible (a class without its talent
+      // table is incomplete — E2E D2 committed two such classes silently).
+      warnings: (p.warnings ?? []).filter((w) => /BLOCKER|No TALENTS table/i.test(w)
+        || !/No TITLES table|No SPELLS KNOWN|Roll tables|import them in/i.test(w)),
     } : null;
 
     // Match each per-band parse warning ("Titles row 7-8: …") to its band by the
@@ -158,15 +182,22 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       displayName: this._className || this._bodyName || this._seedClassName || "this class",
       // Caster state — from the created class, or the parsed preview before create.
       isCaster: this._isCaster || !!p?.spellcasting,
+      // Roll tables the parse/grab detected — listed in the body preview (issue #5).
+      detectedTables,
       // Stage-2 part statuses
       talent: this._talentTable ? {
         rows: this._talentTable.rows.length,
         formula: this._talentTable.formula,
-        // Editable/reviewable rows — parity with the titles table.
+        wiredCount,
+        // Editable/reviewable rows — parity with the titles table. Each carries
+        // whether its effect is backed by a real Talent item (issue #4).
         entries: this._talentTable.rows.map((r, i) => ({
           idx: i,
           range: r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`,
           text: _strip(r.text ?? ""),
+          wired: !!talentWiring[i]?.wired,
+          wiredVia: talentWiring[i]?.via ?? null,
+          wiredMatch: talentWiring[i]?.match ?? null,
         })),
       } : null,
       titles,
@@ -378,17 +409,22 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // extra tables (e.g. pulled in by Grab-text) — flow into stage 2 so Create
     // imports them WITH the class. createClassUnit runs bodyOnly, then attaches
     // these stage-2 fields; without seeding them here the body creates alone and
-    // the embedded tables are dropped. Only overwrite per-table when the body
-    // actually carries it, so a separately-attached table survives.
-    if (parsed.talentTable) this._talentTable = parsed.talentTable;
-    if (parsed.titles?.length) {
+    // the embedded tables are dropped.
+    //
+    // Seed a part ONLY when it hasn't been captured yet. A re-Preview (or an
+    // edit-then-Preview) must not overwrite tables the GM has already reviewed or
+    // hand-fixed — re-parsing the body used to blow away those edits every time
+    // (the "hit preview again and it erases my work" bug). A part cleared back to
+    // empty re-seeds on the next Preview; "Start over" resets everything.
+    if (parsed.talentTable && !this._talentTable) this._talentTable = parsed.talentTable;
+    if (parsed.titles?.length && !this._titles.length) {
       this._titles = parsed.titles;
       // Per-band title parse warnings (e.g. a multi-word title that couldn't be
       // split into Lawful/Chaotic/Neutral) — surfaced as review flags on the band.
       this._titleWarnings = (parsed.warnings ?? []).filter((w) => /couldn'?t split|titles?\s+row/i.test(w));
     }
-    if (parsed.spellsKnown?.length) this._spellsKnown = parsed.spellsKnown;
-    if (parsed.extraTables?.length) this._extraTables = parsed.extraTables;
+    if (parsed.spellsKnown?.length && !this._spellsKnown.length) this._spellsKnown = parsed.spellsKnown;
+    if (parsed.extraTables?.length && !this._extraTables.length) this._extraTables = parsed.extraTables;
     this._bodyName = parsed.name;   // reflect the resolved name back into the field
     this._editingBody = false;
     this.render();
@@ -396,6 +432,28 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   async _onCreateBody() {
     if (!this._bodyParsed) return this._onParseBody();
+    // Quality gate (E2E D2/D6): a class about to commit without its talent
+    // table, with BLOCKER-grade parse warnings, or with unsplit title bands
+    // needs an explicit go-ahead — never a silent broken commit.
+    const gateIssues = [];
+    if (!this._talentTable?.rows?.length && !this._bodyParsed.classSupplement)
+      gateIssues.push("No talent table — the class will be created without its level-up rolls.");
+    for (const w of (this._bodyParsed.warnings ?? [])) if (/^BLOCKER:/i.test(String(w))) gateIssues.push(String(w).replace(/^BLOCKER:\s*/i, ""));
+    for (const w of (this._titleWarnings ?? [])) gateIssues.push(String(w));
+    if (gateIssues.length) {
+      const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      const choice = await foundry.applications.api.DialogV2.wait({
+        window: { title: "Class quality check" },
+        position: { width: 460 },
+        content: `<p><strong>${esc(this._bodyName || this._seedClassName || "This class")}</strong> has unresolved issues:</p><ul>${gateIssues.map((g) => `<li>${esc(g)}</li>`).join("")}</ul><p>Create it anyway, or cancel and fix the flagged parts first?</p>`,
+        buttons: [
+          { action: "cancel", label: "Cancel and fix", icon: "fa-solid fa-xmark", default: true },
+          { action: "create-anyway", label: "Create anyway", icon: "fa-solid fa-triangle-exclamation" },
+        ],
+        rejectClose: false,
+      });
+      if (choice !== "create-anyway") return;
+    }
     const { createClassUnit } = await import("./class-unit-importer.mjs");
     const source = this._source.trim();
     const sourceTitle = _sourceTitle(source);
@@ -579,15 +637,18 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!writeupText) { ui.notifications?.warn(`Page ${target.page} has no selectable text.`); return; }
 
     // Also pull the TITLES appendix — a separate page holding several classes'
-    // title tables. Forced single-column: the 4-column Level/Lawful/Chaotic/
-    // Neutral layout is wide and auto/two-column detection mangles it. Sliced to
-    // this class and appended, so one Preview parses the writeup, the talent
-    // table, AND the titles together.
+    // title tables. Extracted in "layout" mode: the 4-column Level/Lawful/
+    // Chaotic/Neutral grid needs its column gaps preserved as runs of spaces so
+    // the titles parser can split each row into 3 cells — plain single-column
+    // ("1") collapses every gap to one space, which fuses multi-word titles like
+    // "Tomb Robber" into the wrong column (the row the GM kept fixing by hand).
+    // Sliced to this class and appended, so one Preview parses the writeup, the
+    // talent table, AND the titles together.
     let titlesText = "";
     const titlesTarget = srcKey ? sourcePdfTarget(srcKey, titlePageFor(name)) : null;
     if (titlesTarget) {
       try {
-        const raw = (await extractPdfText(titlesTarget.file, { pages: [titlesTarget.page], columns: "1" })).text;
+        const raw = (await extractPdfText(titlesTarget.file, { pages: [titlesTarget.page], columns: "layout" })).text;
         titlesText = sliceClassTitles(raw, name) ?? "";
       } catch (err) {
         console.warn("Shadowdark Enhancer | titles grab failed", err);

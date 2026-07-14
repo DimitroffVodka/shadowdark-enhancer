@@ -34,10 +34,17 @@ const FEATURE_FALSE_POSITIVES = new Set(["close", "near", "far", "focus", "self"
 
 const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
-/** Title-case a SHOUTING statblock name, e.g. "DIRE WOLF" → "Dire Wolf" (keeps ", Qualifier"). */
+/**
+ * Title-case a SHOUTING statblock name, e.g. "DIRE WOLF" → "Dire Wolf" (keeps
+ * ", Qualifier"). Apostrophes are NOT capital boundaries ("MINER'S PUTTY" →
+ * "Miner's Putty", not "Miner'S" — E2E D7; trades away rare O'BRIEN-style
+ * names, which these books don't use), and minor words lowercase when not
+ * first ("FLASK OR BOTTLE" → "Flask or Bottle").
+ */
 export function titleCaseName(s) {
   return String(s ?? "").toLowerCase()
-    .replace(/(^|[\s,\-'’/(&])([a-z])/g, (_, p, c) => p + c.toUpperCase());
+    .replace(/(^|[\s,\-/(&])([a-z])/g, (_, p, c) => p + c.toUpperCase())
+    .replace(/\b(Or|Of|The|And|A|An|In|On|To|For|Per)\b/g, (w, _1, off) => (off === 0 ? w : w.toLowerCase()));
 }
 
 /**

@@ -28,7 +28,7 @@
  * else → Roll Tables.
  */
 import {
-  gatherPresence, gatherCharContentEntries, hasTable,
+  gatherPresence, gatherCharContentEntries, hasTable, nameVariants,
   MANIFEST_CLASSES, CHAR_SOURCES, ANCESTRY_TABLES, BACKGROUND_TABLES,
   SPELL_LISTS, gatherSpellListCensus,
 } from "./char-content-manifest.mjs";
@@ -292,7 +292,10 @@ function buildMonsters(monsterRows, actorRecords) {
     // folder + the "Grab from PDF" page-range extractor default to the right book.
     const present = [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true, src: label }));
     const missing = (rowByLabel.get(label)?.missingNames ?? []).map((name) => ({ name, present: false, src: label }));
-    const node = leaf(`monsters/${label}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
+    // Sourceless name-references from table text are review material, not a
+    // curated bestiary — label the bucket honestly (E2E D8).
+    const displayLabel = label === "Custom" ? "Unresolved encounter references" : label;
+    const node = leaf(`monsters/${label}`, displayLabel, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
     // Sealed bestiary that isn't fully imported here → one direct Unlock row.
     const sealed = SEALED_BESTIARIES[label];
     if (sealed && node.have < sealed) {
@@ -328,12 +331,12 @@ function buildItems(charEntries, itemRecords) {
       if (!types.includes(r.type)) continue;
       const k = _norm(r.name);
       if (seenName.has(k)) continue;
-      seenName.add(k);
+      for (const v of nameVariants(r.name)) seenName.add(v);   // qty/comma variants flip aliases
       present.push({ name: r.name, present: true, type: r.type });
     }
     // Importable manifest gear of these types not already present.
     const importable = charEntries
-      .filter((e) => types.includes(e.type) && !e.present && !seenName.has(_norm(e.name)))
+      .filter((e) => types.includes(e.type) && !e.present && !nameVariants(e.name).some((v) => seenName.has(v)))
       .map((e) => ({ name: e.name, present: false, type: e.type, src: e.src, pages: e.pages }));
     return leaf(id, label, icon, [...present, ...importable], "charSeedPaste");
   };

@@ -16,7 +16,7 @@
  * the workspace UI + state.
  */
 import { spellRecognizer } from "./spell-parser.mjs";
-import { SPELL_LISTS, CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { SPELL_LISTS, CHAR_SOURCES, spellListWriteupRange } from "./char-content-manifest.mjs";
 import { sourcePdfHref } from "./source-pdf-registry.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 
@@ -186,8 +186,10 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   }
 
   /** Choosing a preset list presets class + alignment + source, applies them to
-   *  any already-parsed spells, and opens the source PDF at the list's page. */
-  _onSelectList(key) {
+   *  any already-parsed spells, and (unless suppressed) opens the source PDF at
+   *  the list's page. The unlock/auto-grab path passes `openPdf:false` because it
+   *  pulls the text directly — no viewer needed unless the grab fails. */
+  _onSelectList(key, { openPdf = true } = {}) {
     this._listKey = key;
     const list = this._selectedList();
     if (list) {
@@ -195,10 +197,73 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       this._bulkAlignment = list.alignment || "";
       this._source = CHAR_SOURCES[list.source]?.label ?? this._source;
       if (this._spells.length) this._onApplyBulk();   // re-tag anything already parsed
-      const href = sourcePdfHref(list.source, list.page);
-      if (href) this._showPdf(href, `${list.label}${list.page ? ` — p.${list.page}` : ""}`);
+      if (openPdf) {
+        const href = sourcePdfHref(list.source, list.page);
+        if (href) this._showPdf(href, `${list.label}${list.page ? ` — p.${list.page}` : ""}`);
+      }
     }
     this.render();
+  }
+
+  /**
+   * One-click list unlock: pull the selected caster list's spell WRITEUPS
+   * straight into the paste box and parse them — the spell-side parallel to the
+   * Class/Table Unlock auto-grab. Uses spellListWriteupRange() (list page → next
+   * list in the same book, capped) and applies the same printed→PDF offset the
+   * class grabber does. Returns false (so the caller can fall back to the viewer)
+   * when no linked PDF / page text is available.
+   * @returns {Promise<boolean>} true when spells were pulled AND parsed
+   */
+  async _autoGrabList() {
+    const list = this._selectedList();
+    if (!list) return false;
+    const range = spellListWriteupRange(list.key);
+    if (!range) return false;
+    const { sourcePdfTarget } = await import("./source-pdf-registry.mjs");
+    const target = sourcePdfTarget(list.source, list.page);   // offset anchor + file
+    if (!target?.file) return false;
+
+    let res, printed;
+    try {
+      const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+      printed = parsePageRange(range, 0);
+      if (!printed.length) return false;
+      const offset = target.page - Number(list.page);
+      const pdfPages = printed.map((n) => n + offset);
+      res = await extractPdfText(target.file, { pages: pdfPages, columns: "auto" });
+    } catch (err) {
+      console.error("Shadowdark Enhancer | spell list auto-grab failed", err);
+      return false;
+    }
+    if (!res?.pages?.length) return false;
+
+    // Trim the grabbed window at the NEXT list page. This list's writeups run from
+    // its list page until the next class's list/section page — and untracked WR
+    // classes (Seer, Witch) sit BETWEEN tracked lists, so a fixed page cap would
+    // sweep their spells in (the Priest·Chaotic bug: p140→p153 pulled the Seer
+    // list). A list page carries several "Tier N • …" bullet rows AND parses to
+    // zero spell writeups; the start page itself is always kept.
+    const kept = [];
+    for (let i = 0; i < res.pages.length; i++) {
+      const pageText = (res.pages[i].lines || []).join("\n");
+      if (i > 0 && _looksLikeSpellListPage(pageText)) {
+        const { claimed } = spellRecognizer.claim(pageText);
+        if (spellRecognizer.parse(claimed).length === 0) break;   // a real section boundary, not a bulleted writeup
+      }
+      kept.push(pageText);
+    }
+    const text = kept.join("\n").trim();
+    if (!text) return false;
+
+    const base = (this._pasteText || "").replace(/\s*$/, "");
+    this._pasteText = base ? `${base}\n${text}\n` : `${text}\n`;
+    this._onParse();   // fills Class→Tier→Alignment table + applies the preset class/alignment
+    const n = this._spells.length;
+    const lastKept = printed[kept.length - 1] ?? printed[0];
+    const span = printed[0] === lastKept ? `p.${printed[0]}` : `p.${printed[0]}–${lastKept}`;
+    if (n) ui.notifications?.info(`Pulled ${span} and parsed ${n} spell${n === 1 ? "" : "s"} — review, then Import.`);
+    else   ui.notifications?.warn(`Pulled ${span} but found no spell writeups — widen the pages with “Grab from PDF”.`);
+    return n > 0;
   }
 
   /** Open the source PDF for the selected list (button re-open). */
@@ -352,6 +417,19 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._reset();
     this.render();
   }
+}
+
+/**
+ * Heuristic: does this PDF page read as a spell-LIST page (a class's tier-by-tier
+ * name index) rather than a writeup page? List pages carry several "Tier N" rows
+ * each followed by "•"-bulleted spell names. Used by _autoGrabList to stop the
+ * grab at the next class's list page. The caller additionally confirms the page
+ * parses to zero spell writeups, so a bulleted writeup page won't be mistaken.
+ */
+function _looksLikeSpellListPage(text) {
+  const tiers = (String(text).match(/tier\s*\d/gi) || []).length;
+  const bullets = (String(text).match(/[•·]/g) || []).length;
+  return tiers >= 2 && bullets >= 2;
 }
 
 /** Free-text source label → char-builder source slug (mirrors the other importers). */

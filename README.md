@@ -38,6 +38,7 @@ A slim strip pinned to the top of the canvas, with a control **Crawl Bar** for t
   - **Movement** — live used-vs-budget; turns red when over. Default **30 ft** per combatant per turn in combat, **90 ft** per crawl turn out of combat.
   - **Luck** — clickable pips for PCs; click a filled pip to spend a Luck token. NPCs show `—`.
   - **AC** and **active-effect icons** render inline.
+  - **GM avatar** — the strip's GM face is configurable: click the portrait (or set it in settings) to pick the image shown for the GM.
 - **Movement budget enforcement:** out-of-combat over-budget moves are refused before they commit (toggleable); combat enforcement is opt-in. Turn-start positions are captured so a token can be **rolled back to its turn-start position** from the per-combatant HUD.
 - **Combat HUD dropdown** on the active card: HP ±1/±5, Spend Luck, Open Sheet, and Rollback-to-turn-start.
 
@@ -67,20 +68,26 @@ The Encounter Roller's fourth tab is a full NPC authoring panel — build a Shad
 
 A GM-only **Monster Art** button on the Actors sidebar opens a manager that re-skins the `shadowdark.monsters` compendium through Foundry's core compendium-art system. It **references token art you already have installed — by path — and never copies or bundles any artwork**, so nothing here is redistributed.
 
-- **Sources auto-discovered** from whatever's installed: **Monster Manual** (with its dynamic ring and per-token scale), **Pathfinder/Paizo** (`pf2e-tokens`), **Forgotten Adventures** (`dnd5e`), and **Community Tokens**. A source you don't own simply doesn't appear.
+- **Sources auto-discovered** from whatever's installed: **Monster Manual** (with its dynamic ring and per-token scale), **Pathfinder/Paizo** (`pf2e-tokens`, plus any `pf2e-tokens-*` module and the 59 pf2e **iconic** PC/companion portraits), **Forgotten Adventures** (`dnd5e`), and **Community Tokens**. A source you don't own simply doesn't appear.
 - **Drag to order source priority**, or override the art **per monster**; the chosen blend is written and injected at runtime — no world relaunch. Apply, re-skin already-placed tokens, or turn it off.
+- **Imported monsters get art too** — the overlay skins the enhancer's own imported-monsters pack (`sde-actors`, or the legacy `world.shadowdark-enhancer--actors`) alongside `shadowdark.monsters`, so Cursed Scroll / Western Reaches monsters you import can carry token art like the base bestiary.
+- **Visual image browser** — a **Browse** button on every monster opens a searchable grid of *every* installed token (2,000+ files across all sources), grouped by source with sticky headers, zoomable (slider / `Ctrl`+scroll / `Ctrl ±` / `Ctrl 0`), and filterable as you type — so a monster with no name-match can still be skinned by hand. A hand-picked image wins over source priority.
 - **Correct per-source presentation** — dynamic ring and fill scale are inherited so large art fills its footprint and flat art sits right.
 - **Semantic aliases** map Shadowdark's reflavoured monsters to the right art (Brain Eater → Mind Flayer, Stingbat → Stirge, Grimlow → Grimlock, …); Shadowdark-original creatures are pinned to Community art. Scriptable via `game.shadowdarkEnhancer.tokenArt`.
 
 ### 📥 Importer Hub
 
-A single ApplicationV2 front door for getting Shadowdark content into your world — paste a PDF dump and it segments it into typed buckets (monsters, items, tables, journals, locations), previews them editably, and commits with rename/replace/skip conflict handling. Nothing is ever silently overwritten or deleted.
+A single ApplicationV2 front door for getting Shadowdark content into your world — **one scrolling view, no tabs**. Paste a PDF dump and it segments it into typed buckets (monsters, items, spells, tables, character content), previews them editably, and commits with rename/replace/skip conflict handling into the managed **suite packs** (`sde-actors` / `sde-items` / `sde-tables`). Nothing is ever silently overwritten or deleted. Imported tables are auto-enriched with `@UUID` monster/item links and inline-roll counts.
 
-Six tabs — **Import / Tables / Monsters / Items / Journal / Scenes** — each a catalog-driven dashboard that reconciles a manifest of what each *Cursed Scroll* (CS1–CS6), the Core rules, and the *Player's Guide to the Western Reaches* contain against your world, marking every entry **in-system / imported / missing**. Missing rows carry an **Import** button that seeds the paste box; a global source filter scopes all tabs at once. Imported tables are auto-enriched with `@UUID` monster/item links and inline-roll counts.
+- **Manage review tree** — a collapsible, browsable folder/sub-folder tree that reconciles a manifest of what each *Cursed Scroll* (CS1–CS6), the Core rules, and the *Player's Guide to the Western Reaches* contain against your world, marking every entry **have / gap**. It scans lazily (opening the hub never scans the world) and every missing entry carries an **Import** button that seeds the paste box with the right type and source. Suite-wide maintenance lives here too: bundle export/import, relink tables, migrate world content, and monster backfill.
+- **Dedicated Class Importer workspace** — classes (the most complex type) get a guided single-view workspace: the class is pinned at the top, **Stage 1** pastes the writeup, **Stage 2** has per-part paste zones for the talent table, titles (hand-editable band editor), spells-known, and extra tables — any paste is routed to the right slot automatically. Re-importing just the writeup no longer erases the attached tables.
+- **Dedicated Spell Importer workspace** — spells import organized by **Class → Tier → Alignment** ("druid spells are Wizard spells with Neutral alignment"), writing the alignment flag the char-builder's spell picker filters on.
+- **Source-PDF deep links** — Import buttons and the Class Importer open **your own uploaded PDF** of the cited book at the cited page inside Foundry's native viewer; a **Source PDFs** manager links a PDF per book (files stay in your world — nothing leaves your machine).
+- **Shape-directed table parsing** — each unlockable table can carry a parsing recipe so messy PDF copies parse deterministically: prayer generators (3d6 compounds, cartesian-expanded to a flat table), Carousing lookups (wrapped cells, cost-indexed rows), grid shapes for mix-and-match tables (Traps / Hazards / Secrets, name generators), and reflowed single-spaced pastes. A **Cartesian (expand)** button flattens compound generators on demand.
 
-#### 🔒 Sealed sourcebook content (unlock with your own books)
+#### 📄 Source-guided PDF import (bring your own books)
 
-The module ships a growing library of **pre-authored, verified** content for the *Cursed Scrolls* and *Western Reaches* — classes, ancestries, backgrounds, spells, gear, monsters, and roll tables — so you don't have to hand-fix messy PDF pastes. **No readable rules text is bundled**: each unit is AES-GCM **encrypted**, and the key is derived from anchor phrases in the sourcebook itself. To unlock a unit, click **Unlock** on a missing entry and **paste that book's section** — proving you own the book. The pre-authored, link-remapped documents then import exactly as intended (idempotent — nothing is duplicated). Content that appears in more than one book (e.g. the Delver/Wyrdling classes, or the *Cursed Scroll* spells reprinted in *Western Reaches*) unlocks from **either** source. Content the Shadowdark **system already ships** (core spells, the base bestiary, the legacy Bard) is never sealed — you already have it.
+The Importer Hub is **source-guided**: for the *Cursed Scrolls* and *Western Reaches* it knows the **structure** of the content you own — names, source/page citations, dice formulas, and table/parsing layout — and **nothing else**. **No sourcebook prose or prepared documents are bundled in the module**, and nothing is encrypted; the module ships only citations and parsing structure. **You supply every word** by pasting the matching section from **your own PDF**. The paste is recognized, run through the right parsing recipe, link-remapped, and filed into the suite packs exactly as authored — idempotently, so re-importing never duplicates. Content that appears in more than one book (e.g. the Delver/Wyrdling classes, or the *Cursed Scroll* spells reprinted in *Western Reaches*) can be imported from **either** source's paste. Content the Shadowdark **system already ships** (core spells, the base bestiary, the legacy Bard) is skipped — you already have it.
 
 ### 💰 Loot & Magic Items
 
@@ -177,8 +184,8 @@ scripts/
 ├── actors/                      # Mount & Boat sub-types, sheets, vehicle rolls
 ├── char-builder/                # guided character-creation wizard + step managers
 ├── monster-art/                 # Monster Token Art manager + source catalog
-└── encounter/                   # importer hub, roller, loot, forge, tables,
-                                 # census dashboards, party XP, session recap
+└── encounter/                   # importer hub + class/spell importers, roller,
+                                 # loot, forge, tables, manage tree, party XP, recap
 templates/                       # Handlebars for every window + chat cards + partials
 styles/shadowdark-enhancer.css
 languages/en.json

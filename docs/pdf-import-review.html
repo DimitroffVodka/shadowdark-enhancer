@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shadowdark Enhancer — PDF Import Session Review</title>
+<style>
+  :root {
+    --bg: #ece9e2; --surface: #f7f5f0; --surface-2: #f0ede6; --ink: #201d18; --muted: #635e54;
+    --faint: #5e594f; --line: #d7d2c8; --line-strong: #c3bdb0; --accent: #2c7a6e; --accent-ink: #1e5a51;
+    --accent-soft: rgba(44,122,110,0.10); --good: #2f7049; --good-soft: rgba(47,112,73,0.13);
+    --warn: #815b11; --warn-soft: rgba(129,91,17,0.15); --crit: #a04a32; --crit-soft: rgba(160,74,50,0.13);
+    --shadow: 0 1px 2px rgba(30,26,20,0.05), 0 6px 20px rgba(30,26,20,0.05);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16151a; --surface: #1f1e24; --surface-2: #26252c; --ink: #e9e5db; --muted: #a29c90;
+      --faint: #958f83; --line: #322f38; --line-strong: #3f3b45; --accent: #4db6a4; --accent-ink: #6fd0bf;
+      --accent-soft: rgba(77,182,164,0.13); --good: #62bd83; --good-soft: rgba(98,189,131,0.15);
+      --warn: #d3a441; --warn-soft: rgba(211,164,65,0.16); --crit: #d78568; --crit-soft: rgba(215,133,104,0.15);
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 26px rgba(0,0,0,0.32);
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #ece9e2; --surface: #f7f5f0; --surface-2: #f0ede6; --ink: #201d18; --muted: #635e54;
+    --faint: #5e594f; --line: #d7d2c8; --line-strong: #c3bdb0; --accent: #2c7a6e; --accent-ink: #1e5a51;
+    --accent-soft: rgba(44,122,110,0.10); --good: #2f7049; --good-soft: rgba(47,112,73,0.13);
+    --warn: #815b11; --warn-soft: rgba(129,91,17,0.15); --crit: #a04a32; --crit-soft: rgba(160,74,50,0.13);
+    --shadow: 0 1px 2px rgba(30,26,20,0.05), 0 6px 20px rgba(30,26,20,0.05);
+  }
+  :root[data-theme="dark"] {
+    --bg: #16151a; --surface: #1f1e24; --surface-2: #26252c; --ink: #e9e5db; --muted: #a29c90;
+    --faint: #958f83; --line: #322f38; --line-strong: #3f3b45; --accent: #4db6a4; --accent-ink: #6fd0bf;
+    --accent-soft: rgba(77,182,164,0.13); --good: #62bd83; --good-soft: rgba(98,189,131,0.15);
+    --warn: #d3a441; --warn-soft: rgba(211,164,65,0.16); --crit: #d78568; --crit-soft: rgba(215,133,104,0.15);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 26px rgba(0,0,0,0.32);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .page { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 16px;
+    line-height: 1.62; -webkit-font-smoothing: antialiased; padding: clamp(1.25rem,4vw,3.5rem) clamp(1rem,5vw,2rem) 4rem; }
+  .wrap { max-width: 62rem; margin: 0 auto; }
+  .prose { max-width: 42rem; }
+
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; text-wrap: balance; line-height: 1.18; }
+  h1 { font-size: clamp(1.9rem,4.5vw,2.7rem); margin: 0.2rem 0 0.5rem; letter-spacing: -0.01em; }
+  h2 { font-size: clamp(1.35rem,3vw,1.7rem); margin: 0; }
+  h3 { font-size: 1.08rem; margin: 0 0 0.35rem; }
+  p { margin: 0 0 0.9rem; }
+  a { color: var(--accent-ink); text-decoration-color: var(--line-strong); text-underline-offset: 2px; }
+  strong { font-weight: 650; }
+  code { font-family: var(--mono); font-size: 0.86em; background: var(--surface-2); border: 1px solid var(--line);
+    padding: 0.08em 0.36em; border-radius: 4px; }
+
+  .eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent-ink); margin: 0 0 0.4rem; }
+  .lede { font-size: 1.12rem; color: var(--muted); max-width: 44rem; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem 1.4rem; margin-top: 1.1rem; font-family: var(--mono);
+    font-size: 0.78rem; color: var(--muted); }
+  .meta-row span strong { color: var(--ink); font-weight: 500; }
+
+  .banner { margin-top: 1.3rem; background: var(--accent-soft); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 0.85rem 1.05rem; font-size: 0.92rem; }
+  .banner a { font-family: var(--mono); font-size: 0.85em; }
+
+  .rule { height: 1px; background: var(--line); border: 0; margin: 2.6rem 0; }
+  section { margin-top: 2.8rem; }
+  .sec-head { display: flex; align-items: baseline; gap: 0.9rem; margin-bottom: 1.2rem; }
+  .sec-num { font-family: var(--mono); font-size: 0.8rem; color: var(--accent-ink); border: 1px solid var(--line-strong);
+    border-radius: 5px; padding: 0.12rem 0.5rem; flex: none; }
+  .sec-sub { color: var(--muted); margin-top: 0.15rem; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem,1fr)); gap: 0.9rem; margin: 1.6rem 0 0; }
+  .tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+  .tile .num { font-family: var(--serif); font-size: 2rem; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tile .lbl { font-size: 0.82rem; color: var(--muted); margin-top: 0.4rem; }
+  .tile .sub { font-family: var(--mono); font-size: 0.72rem; color: var(--faint); margin-top: 0.15rem; }
+
+  .chip { display: inline-flex; align-items: center; gap: 0.38em; font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.02em; padding: 0.16rem 0.5rem; border-radius: 999px; border: 1px solid var(--line-strong); white-space: nowrap; }
+  .chip::before { content: ""; width: 0.5em; height: 0.5em; border-radius: 50%; background: currentColor; }
+  .chip.good { color: var(--good); background: var(--good-soft); border-color: transparent; }
+  .chip.warn { color: var(--warn); background: var(--warn-soft); border-color: transparent; }
+  .chip.crit { color: var(--crit); background: var(--crit-soft); border-color: transparent; }
+  .chip.commit { color: var(--accent-ink); background: var(--accent-soft); border-color: transparent; }
+  .chip.plain { color: var(--muted); background: var(--surface-2); border-color: transparent; }
+
+  .timeline { display: flex; flex-direction: column; gap: 0.75rem; }
+  .mile { display: grid; grid-template-columns: 2.1rem 1fr; gap: 0.9rem; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+  .mile .idx { font-family: var(--mono); font-size: 0.82rem; color: var(--accent-ink); padding-top: 0.15rem; }
+  .mile h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; }
+  .mile p { margin: 0.1rem 0 0; color: var(--muted); font-size: 0.94rem; }
+  .mile code { font-size: 0.8em; }
+
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow); background: var(--surface); }
+  .table-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  caption { text-align: left; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--muted); padding: 0.6rem 0.85rem 0; }
+  th, td { text-align: left; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); background: var(--surface-2); border-bottom: 1px solid var(--line-strong); font-weight: 500; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td .mono, .mono { font-family: var(--mono); font-size: 0.86em; }
+  td.name { font-weight: 600; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(15.5rem,1fr)); gap: 0.9rem; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 0.9rem 1rem; box-shadow: var(--shadow); }
+  .card h3 { font-family: var(--sans); font-size: 0.92rem; font-weight: 650; }
+  .card p { margin: 0; font-size: 0.9rem; color: var(--muted); }
+
+  .note { background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 0.85rem 1.05rem; font-size: 0.92rem; }
+  .note.warn { background: var(--warn-soft); border-left-color: var(--warn); }
+
+  ul.tight { margin: 0.3rem 0 0; padding-left: 1.15rem; }
+  ul.tight li { margin-bottom: 0.45rem; }
+  ul.tight li::marker { color: var(--accent); }
+
+  .steps { display: flex; flex-direction: column; gap: 0.7rem; }
+  .step { display: grid; grid-template-columns: 2rem 1fr; gap: 0.9rem; background: var(--surface);
+    border: 1px solid var(--line); border-radius: 10px; padding: 0.95rem 1.05rem; box-shadow: var(--shadow); }
+  .step .n { font-family: var(--serif); font-size: 1.3rem; font-weight: 600; color: var(--accent-ink); line-height: 1; padding-top: 0.1rem; }
+  .step h3 { font-family: var(--sans); font-size: 0.98rem; }
+  .step p { margin: 0; font-size: 0.9rem; color: var(--muted); }
+  .step .tag { font-family: var(--mono); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+  .foot { margin-top: 3.2rem; padding-top: 1.2rem; border-top: 1px solid var(--line);
+    font-family: var(--mono); font-size: 0.74rem; color: var(--faint); }
+
+  a:focus-visible, .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  @media (max-width: 33rem) { .mile, .step { grid-template-columns: 1fr; } .mile .idx, .step .n { padding-top: 0; } }
+</style>
+
+</head>
+<body>
+<main class="page">
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Session Review · Shadowdark Enhancer</p>
+    <h1>Bringing your book PDFs into the importer</h1>
+    <p class="lede">A full pass at extracting text from your own Shadowdark PDFs inside Foundry and routing it through the Manage importers — what shipped, how well it covers the library today, and where to take it next.</p>
+    <div class="meta-row">
+      <span><strong>Date</strong> · 2026‑07‑13</span>
+      <span><strong>Module</strong> · shadowdark‑enhancer 0.10.0</span>
+      <span><strong>Foundry</strong> · v14.364 · SD 4.0.6</span>
+      <span><strong>Branch</strong> · master</span>
+    </div>
+    <div class="banner">
+      <strong>Revised 2026‑07‑13</strong> after an independent technical review, plus a same‑day errata pass (follow‑up findings A–E). Coverage figures are backed by a retained per‑entry artifact, <a href="./pdf-import-sweep-2026-07-13.json">pdf‑import‑sweep‑2026‑07‑13.json</a>, regenerated by the tracked probe <a href="./manage-coverage-sweep.mjs">docs/manage‑coverage‑sweep.mjs</a> — re‑run the probe and diff the JSON after any parser edit.
+    </div>
+  </header>
+
+  <div class="stats">
+    <div class="tile"><div class="num">184</div><div class="lbl">Manage entries swept</div><div class="sub">of 203 total; 19 have no page cite</div></div>
+    <div class="tile"><div class="num">73%</div><div class="lbl">Tables parse clean</div><div class="sub">103 / 141 · 0 unparseable</div></div>
+    <div class="tile"><div class="num">8</div><div class="lbl">Source PDFs registered</div><div class="sub">CORE · WR · CS1–6</div></div>
+    <div class="tile"><div class="num">2 / 3</div><div class="lbl">Commits landed / batches pending</div><div class="sub">b7253ad, ed5fae5 landed</div></div>
+  </div>
+
+  <hr class="rule">
+
+  <!-- 1 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">01</span><div><h2>What we built</h2><p class="sec-sub">In the order it happened — each piece builds on the last.</p></div></div>
+    <div class="timeline">
+      <div class="mile"><div class="idx">01</div><div><h3>PDF&nbsp;→&nbsp;text extraction engine <span class="chip commit">committed b7253ad</span></h3><p>New <code>pdf-text-extract.mjs</code> reads text out of your PDFs using the <strong>PDF.js that Foundry already bundles</strong>. Extraction runs locally — <strong>nothing is sent to an external service</strong>, and the module bundles no book content. Column‑aware: it finds the gutter on two‑column pages with a density‑valley detector and reads each column in order.</p></div></div>
+      <div class="mile"><div class="idx">02</div><div><h3>“Horizontal Pages” rotation fix <span class="chip commit">committed b7253ad</span></h3><p>Some Cursed Scrolls ship a re‑saved printing that rotates map/spread pages 90°. Pinning <code>rotation:&nbsp;0</code> when reading page width makes both printings extract <strong>byte‑identical</strong>.</p></div></div>
+      <div class="mile"><div class="idx">03</div><div><h3>Grab text · Extract from PDF · review flags <span class="chip commit">committed b7253ad</span></h3><p>Importer Hub gained one‑click <strong>Grab text</strong> and a <strong>page‑range Extract</strong> dialog. Monster cards flag the exact attack/feature row a warning names, with the reason on hover.</p></div></div>
+      <div class="mile"><div class="idx">04</div><div><h3>Monster‑census extraction path <span class="chip commit">committed ed5fae5</span></h3><p>Monster bundle rows carry no page cite, so they got source‑aware seeding and an inline <strong>Grab from PDF</strong> that pre‑selects the right book.</p></div></div>
+      <div class="mile"><div class="idx">05</div><div><h3>Table parser hardening <span class="chip warn">uncommitted</span> <span class="chip good">now tested</span></h3><p>Two <em>distinct</em> fixes (see §07). A general <strong>shared‑start range repair</strong> — prompted by the WR Dwarf Trinket table, whose PDF prints <code>21‑24</code> where it means <code>23‑24</code>, but it applies to any table. And an <strong>empty‑row filter</strong> that drops a bare page number before it becomes a phantom row. Both now have regression tests.</p></div></div>
+      <div class="mile"><div class="idx">06</div><div><h3>Import auto‑extracts &amp; auto‑parses <span class="chip warn">uncommitted</span></h3><p>Pressing <strong>Import</strong> now pulls the cited page in and parses it in one action. Two bugs found and fixed along the way: a render‑ordering bug (stale textarea read) and the stray page‑number row (§07 bug #1).</p></div></div>
+      <div class="mile"><div class="idx">07</div><div><h3>Class importer: full content + reviewable preview <span class="chip warn">uncommitted</span></h3><p>Class Import pulls the writeup, the talent table, <strong>and</strong> the titles (a separate appendix page, read single‑column and sliced per class). The preview makes the talent table, titles, extra tables (e.g. Wyrdling Corruption) and the spells‑known grid reviewable/editable before submitting, with title errors flagged in place.</p></div></div>
+      <div class="mile"><div class="idx">08</div><div><h3>Manage coverage audit <span class="chip plain">artifact retained</span></h3><p>Swept the 184 page‑cited entries through the real import path (the 10 spell lists log as workspace‑routed), registered all 8 source PDFs, triaged every table needing review, and <strong>saved the per‑entry results</strong> plus the sweep probe.</p></div></div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">02</span><div><h2>Does it work across Manage?</h2><p class="sec-sub">Tested through the real import path — shape recipes + seed forcing, not the generic parser.</p></div></div>
+    <div class="note" style="margin-bottom:1.2rem;"><strong>Why the method matters.</strong> A first sweep with the <em>generic</em> table parser flagged 130 of 141 tables as broken. The real import applies the <strong>shape‑recipe system</strong> and forces the correct formula from the seed — re‑running through the actual path flipped almost all of them to clean. The numbers below are from the real path and backed by the retained JSON.</div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Coverage by content type">
+      <table>
+        <caption>Coverage by content type (real import path)</caption>
+        <thead><tr><th scope="col">Content type</th><th scope="col" class="num">Page‑cited</th><th scope="col" class="num">Clean</th><th scope="col" class="num">Review</th><th scope="col">Status</th><th scope="col">Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="name">Items <span class="mono">(basic / armor / weapon)</span></td><td class="num">23</td><td class="num">23</td><td class="num">0</td><td><span class="chip good">clean</span></td><td>No work needed.</td></tr>
+          <tr><td class="name">Ancestries</td><td class="num">1</td><td class="num">1</td><td class="num">0</td><td><span class="chip good">clean</span></td><td>—</td></tr>
+          <tr><td class="name">Classes</td><td class="num">9</td><td class="num">7</td><td class="num">2</td><td><span class="chip warn">mostly</span></td><td>Necromancer won’t parse (caster spells‑known); 1 partial.</td></tr>
+          <tr><td class="name">Tables</td><td class="num">141</td><td class="num">103</td><td class="num">38</td><td><span class="chip warn">73% clean</span></td><td>0 unparseable — see §03.</td></tr>
+          <tr><td class="name">Monsters</td><td class="num">0</td><td class="num">—</td><td class="num">—</td><td><span class="chip plain">by hand</span></td><td>5 bestiary bundle rows (CS1–5), no page cite — see below.</td></tr>
+          <tr><td class="name">Spell lists</td><td class="num">10</td><td class="num">—</td><td class="num">—</td><td><span class="chip plain">workspace</span></td><td>Routed to the dedicated Spell workspace.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:1.1rem;"><strong>Monsters, precisely.</strong> There are no per‑monster gap rows with page cites — there are <strong>five bestiary bundle rows (CS1–CS5)</strong> covering <strong>64 catalogued monsters, 60 currently missing</strong> (only 4 CS4 are imported). Bundles have no fixed page cite, so they use manual page‑range extraction.</p>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Bestiary bundle counts" style="margin-top:0.6rem;">
+      <table>
+        <caption>Bestiary bundle rows</caption>
+        <thead><tr><th scope="col">Source</th><th scope="col" class="num">Catalogued</th><th scope="col" class="num">Present</th><th scope="col" class="num">Missing</th></tr></thead>
+        <tbody>
+          <tr><td class="name">CS1</td><td class="num">14</td><td class="num">0</td><td class="num">14</td></tr>
+          <tr><td class="name">CS2</td><td class="num">14</td><td class="num">0</td><td class="num">14</td></tr>
+          <tr><td class="name">CS3</td><td class="num">12</td><td class="num">0</td><td class="num">12</td></tr>
+          <tr><td class="name">CS4</td><td class="num">19</td><td class="num">4</td><td class="num">15</td></tr>
+          <tr><td class="name">CS5</td><td class="num">5</td><td class="num">0</td><td class="num">5</td></tr>
+          <tr><td class="name"><strong>Total</strong></td><td class="num"><strong>64</strong></td><td class="num"><strong>4</strong></td><td class="num"><strong>60</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">03</span><div><h2>The 38 tables that need review</h2><p class="sec-sub">35 Core Rulebook, plus WR Backgrounds, CS2 Enduring Wounds, and CS3 Nord Names. Of the 38, 37 have no matching shape; 1 (CORE Carousing Outcome) has a shape but still warns.</p></div></div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Triage of tables needing review">
+      <table>
+        <caption>Review buckets (approximate counts; total of 38 is exact)</caption>
+        <thead><tr><th scope="col">Bucket</th><th scope="col" class="num">~Count</th><th scope="col">What they are</th><th scope="col">Root cause</th><th scope="col">Fix</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="name">A · Un‑shaped generators/columns</td><td class="num">20</td>
+            <td>CORE column sub‑tables — <span class="mono">Personality/Qualities/Type</span>, the magic‑item columns (<span class="mono">Scroll Feature</span>, <span class="mono">Wand Feature</span>, <span class="mono">Spell Tier</span>, <span class="mono">Curses/benefits</span>, <span class="mono">Tier 1</span>, <span class="mono">Item Flaw/Virtue</span>), <span class="mono">Poor/Standard/Wealthy Shop</span>, <span class="mono">Renown/Secret/Wealth</span>, and the four <span class="mono">Wizards and Thieves</span> stakes tables.</td>
+            <td>Their names <strong>don’t match any shape entry</strong>, so <code>shapeForName()</code> misses and they fall to generic parse — where a page/stray number pollutes the formula (<span class="mono">1d284</span>, <span class="mono">1d290</span>, <span class="mono">1d134</span>). The <em>generator‑level</em> shapes (Shop Generator, NPC Qualities…) <strong>do</strong> exist and are their own <strong>clean</strong> entries — these are the separately‑named columns.</td>
+            <td>Route each real generator by its seeded name — <strong>and</strong> fix the page‑number formula pollution once, upstream (§07).</td>
+          </tr>
+          <tr>
+            <td class="name">B · Single‑die lookups</td><td class="num">17</td>
+            <td>Single‑die tables (d6–d26) — Boons, Armor/Weapon Benefit &amp; Curse, Drinks/Food, Utility, Interesting Customer, CS2 Enduring Wounds, CS3 Nord Names, and CORE Carousing Outcome.</td>
+            <td>Extraction overlaps on wrapped multi‑cell rows. <strong>Carousing Event parses clean</strong>; <strong>Carousing Outcome</strong> has a <code>lookup</code> shape but still emits 4 warnings — needs tuning.</td>
+            <td>Targeted shape / extraction tuning. Three (Potion Benefit, Potion Curse, Nord Names) are one‑warning and effectively fine.</td>
+          </tr>
+          <tr>
+            <td class="name">C · Backgrounds</td><td class="num">1</td>
+            <td>Western Reaches Backgrounds — a d100 table.</td>
+            <td>Only 23 of 100 rows survive extraction (wide, multi‑column, long).</td>
+            <td>Multi‑column long‑table extraction — the hardest single case.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note" style="margin-top:1.1rem;">Full per‑table results are in <a href="./pdf-import-sweep-2026-07-13.json"><span class="mono">pdf‑import‑sweep‑2026‑07‑13.json</span></a>. The biggest lever is Bucket A’s <strong>page‑number formula pollution</strong> — fixing it upstream clears a chunk of the 38 without adding recipes.</div>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">04</span><div><h2>Key technical findings</h2><p class="sec-sub">The things that shaped every decision.</p></div></div>
+    <div class="cards">
+      <div class="card"><h3>Foundry ships PDF.js</h3><p>The whole extractor rides on the bundled library. No external service; the module bundles no book content.</p></div>
+      <div class="card"><h3>Your books have real typos</h3><p>The Dwarf Trinket <code>21‑24</code> is in the printed PDF (spot‑checked independently). The repair is a <em>general</em> heuristic, not table‑specific — now covered by tests.</p></div>
+      <div class="card"><h3>Titles are graphics, not text</h3><p>Stylized class titles (“DELVER”) aren’t in the text layer. The class name is supplied by the unlock.</p></div>
+      <div class="card"><h3>Numeric columns mangle</h3><p>Narrow roll‑number / level columns (corruption d10, spells‑known grids, some name tables) separate from their text. Single‑column rescues titles but not these.</p></div>
+      <div class="card"><h3>The shape system carries most tables</h3><p>Prayers, carousing <em>Event</em>, traps, and generators only look broken under the generic parser. <em>Carousing Outcome</em> is the one shaped table still warning.</p></div>
+      <div class="card"><h3>One extractor change backfired</h3><p>A horizontal‑banding attempt regressed clean pages and was reverted. Extractor changes are high‑blast‑radius — verify against the full sweep.</p></div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">05</span><div><h2>Parsers &amp; the router question</h2><p class="sec-sub">On “too many parsers,” and whether a router should direct traffic.</p></div></div>
+    <div class="prose">
+      <p>Two very different things are called “parsers,” and only one carries real risk from growth:</p>
+      <ul class="tight">
+        <li><strong>Auto‑detect recognizers</strong> (the segmenter cascade) run on freeform pastes and compete to claim text. More of these = more mis‑classification. This is where “too many” bites.</li>
+        <li><strong>Shape recipes</strong> are name‑matched — they only fire on a matching seed, so they don’t compete on arbitrary input.</li>
+      </ul>
+      <p><code>shapeForName()</code> matches <strong>exact normalized names plus delimiter‑aware prefixes</strong> (<code>… - name</code> / <code>… : name</code>) — not general fuzzy matching. A future <em>generic</em> shape name could still collide with an unrelated prefixed name, which is the real argument for stable IDs.</p>
+    </div>
+    <div class="note" style="margin-top:1.1rem;">
+      <strong>A router is largely the right model — and much of it already exists.</strong> Manage entries carry <span class="mono">{ name, type, src, pages }</span>, and the importer already routes explicitly: seed types map to modes, classes and spell lists open dedicated workspaces, shape lookup runs before generic parse, and the segmenter runs only in <span class="mono">auto</span> mode. So the work is <strong>registry consolidation</strong>: give each manifest entry a persistent <span class="mono">contentId</span> (a display name + page is <em>not</em> stable), resolve known content by exact lookup, and fold <code>TABLE_SHAPES</code> under it to retire name‑based resolution. Routing does <em>not</em> fix extraction mangling — the two are complementary.
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">06</span><div><h2>Known limitations</h2><p class="sec-sub">Honest edges — none block import; all have a hand path.</p></div></div>
+    <ul class="tight prose">
+      <li><strong>Numeric‑column tables don’t auto‑parse</strong> (corruption d10, spells‑known grids, some name tables). Scaffolded: text pulled in, preview editable.</li>
+      <li><strong>Two‑word titles can’t single‑space‑split</strong> (e.g. “Tomb Robber”) — flagged and editable in place.</li>
+      <li><strong>Necromancer &amp; caster spells‑known</strong> don’t parse yet — the grid interleaves in the two‑column writeup.</li>
+      <li><strong>Monster bundle rows have no page cite</strong> — they use manual page‑range Extract.</li>
+      <li><strong>CSS changes need a hard refresh</strong> (Ctrl+Shift+R) — Foundry caches module CSS.</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">07</span><div><h2>Two page‑number bugs, kept distinct</h2><p class="sec-sub">“Page numbers” cause two separate failures — one fixed, one not.</p></div></div>
+    <div class="cards">
+      <div class="card" style="border-left-color:var(--good);"><h3>Bare page‑number row — fixed</h3><p>A page number alone on a line parses to an empty‑text range row. Dropped by the empty‑row filter in <code>parseSingleDieBlock</code>, with a regression test.</p></div>
+      <div class="card" style="border-left-color:var(--warn);"><h3>Number in formula/range — open</h3><p>In an un‑shaped multi‑column table, a page/large number contaminates the max‑range → a formula like <span class="mono">1d284</span>. This is Recommendation #1.</p></div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">08</span><div><h2>Verification</h2><p class="sec-sub">What is covered automatically vs. checked live but not yet retained.</p></div></div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Verification results">
+      <table>
+        <caption>Verification checks</caption>
+        <thead><tr><th scope="col">Check</th><th scope="col">Result</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">npm run test</td><td><strong>104 passed, 0 failed</strong> — +3 range‑repair / empty‑row regressions</td></tr>
+          <tr><td class="mono">npm run lint</td><td>0 errors, 125 warnings (pre‑existing)</td></tr>
+          <tr><td class="mono">./verify.sh</td><td>OK (grep wall + <span class="mono">node --check</span>)</td></tr>
+          <tr><td class="name">Live Foundry</td><td>v14.364 · Shadowdark 4.0.6 · 8 PDFs registered</td></tr>
+          <tr><td class="name">Coverage sweep</td><td>Retained per‑entry JSON — 203 records: 184 page‑cited swept, 19 uncited logged as skipped</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:1rem;font-size:0.92rem;color:var(--muted);"><strong>Checked live but not yet retained as tests:</strong> auto‑extract render ordering, class title‑page slicing, the editable talent/extra‑table/spells‑known grids, title‑warning‑to‑row matching, PDF rotation equivalence, and the 184‑entry sweep. Adding regression coverage for these is part of the commit plan (§09.5).</p>
+  </section>
+
+  <!-- 9 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">09</span><div><h2>Recommendations going forward</h2><p class="sec-sub">Sequenced so each step is independently verifiable.</p></div></div>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><div><span class="tag">quickest win</span><h3>Fix the page‑number formula pollution, then re‑sweep</h3><p>Stop a page/stray number reaching the max‑range (bug #2, §07). Re‑run the probe and diff the JSON against the retained baseline before deciding which recipes are needed.</p></div></div>
+      <div class="step"><div class="n">2</div><div><span class="tag">architecture</span><h3>Consolidate dispatch into a registry</h3><p>A <code>resolveHandler(entry)</code> keyed on a persistent <span class="mono">contentId</span>: exact lookup for known content, <code>TABLE_SHAPES</code> folded under it, name‑based resolution retired. Mostly formalizes routing that already exists.</p></div></div>
+      <div class="step"><div class="n">3</div><div><span class="tag">coverage</span><h3>Add the remaining generator shapes as registry configs</h3><p>Only for genuine multi‑column generators, keyed on <span class="mono">contentId</span>, with a live check each. The retained sweep is the acceptance test.</p></div></div>
+      <div class="step"><div class="n">4</div><div><span class="tag">hard cases</span><h3>Tackle Bucket B/C extraction &amp; caster spells‑known</h3><p>The multi‑column long tables (WR Backgrounds) and the caster spells‑known grid need real extraction work. Scaffolds keep them usable meanwhile.</p></div></div>
+      <div class="step"><div class="n">5</div><div><span class="tag">housekeeping</span><h3>Add focused tests, then commit in logical batches</h3><p>Cover the still‑untested paths from §08 first. Suggested batches: table‑parser fixes · auto‑extract‑on‑Import · class‑import + preview. Keep the pre‑existing terminology rewrite and <code>gear‑join.mjs</code> out.</p></div></div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section>
+    <div class="sec-head"><span class="sec-num">10</span><div><h2>Working‑tree &amp; world state</h2><p class="sec-sub">Where things stand now. Ownership is attributed from session history, not a git baseline — confirm against the diff before committing.</p></div></div>
+    <div class="cards">
+      <div class="card" style="border-left-color:var(--good);"><h3>Committed on master</h3><p><span class="mono">b7253ad</span> — PDF→text extraction.<br><span class="mono">ed5fae5</span> — monster‑census bundle rows.</p></div>
+      <div class="card" style="border-left-color:var(--warn);"><h3>Uncommitted (this session)</h3><p>Code: <span class="mono">table-importer</span>, <span class="mono">importer-hub-app</span>, <span class="mono">class-importer-app</span>, <span class="mono">class-overlays</span> (Wyrdling <span class="mono">72‑73</span>), templates, CSS, and the new regression tests.</p></div>
+      <div class="card" style="border-left-color:var(--accent);"><h3>New retained files</h3><p>The sweep JSON, the sweep probe, and these two review docs.</p></div>
+      <div class="card" style="border-left-color:var(--faint);"><h3>Left untouched (not ours)</h3><p>Pre‑existing terminology rewrite in <span class="mono">CHANGELOG</span>, <span class="mono">README</span>, <span class="mono">sealed-content.mjs</span>, part of the hub template, and untracked <span class="mono">gear-join.mjs</span>.</p></div>
+      <div class="card" style="border-left-color:var(--accent);"><h3>World changes</h3><p>All 8 source PDFs registered to the “Shadowdark Source PDFs” journal. (The Wyrdling page range is a code edit, listed under Uncommitted — not a world mutation.)</p></div>
+    </div>
+  </section>
+
+  <p class="foot">Shadowdark Enhancer · PDF import session review · revised 2026‑07‑13 per independent technical review · figures from the real import path, backed by the retained per‑entry sweep (<span class="mono">docs/pdf-import-sweep-2026-07-13.json</span>).</p>
+
+</div>
+</main>
+</body>
+</html>
