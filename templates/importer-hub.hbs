@@ -1,10 +1,10 @@
 <div class="sde-thub sde-importer-hub sde-hub-import" id="sde-hub-import">
 
-  {{!-- ═══ Type selector ═══ --}}
+  {{!-- ═══ Type selector — the single "what am I importing" control ═══ --}}
   <div class="sde-hub-import-typebar">
     <label for="sde-hub-import-type"><i class="fas fa-filter"></i> Importing</label>
     <select id="sde-hub-import-type" data-import-type class="sde-hub-import-type-sel" aria-label="What are you importing">
-      {{#each importData.typeOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+      {{#each importData.typeGroups as |g|}}<optgroup label="{{g.group}}">{{#each g.options as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}</optgroup>{{/each}}
     </select>
     {{#if importData.showItemSubtype}}
     <label for="sde-hub-import-subtype" class="sde-hub-import-subtype-label">item type</label>
@@ -18,8 +18,6 @@
     <input id="sde-hub-import-genspec" type="text" data-gen-spec value="{{importData.genSpec}}"
            placeholder="e.g. 3d6" class="sde-hub-import-type-sel sde-hub-import-genspec-input" aria-label="Generator dice spec (e.g. 3d6)">
     {{/if}}
-    <button type="button" data-action="openClassImporter" class="sde-hub-import-type-sel" style="margin-left:auto;" title="Classes have their own guided workspace (body → roll tables → titles)"><i class="fa-solid fa-hat-wizard"></i> Class Importer</button>
-    <button type="button" data-action="openSpellImporter" class="sde-hub-import-type-sel" title="Spells have their own workspace (organize by Class → Tier → Alignment)"><i class="fa-solid fa-wand-sparkles"></i> Spell Importer</button>
   </div>
 
   {{!-- Seed hint: shown when a Manage-strip "Seed" click pre-filled this box --}}
@@ -50,67 +48,56 @@
     Paste a raw dump from your Shadowdark book — monsters, items, spells, tables, or a mix:
   </label>
   <textarea id="sde-hub-import-text" data-import-text rows="6" class="sde-hub-import-text"
-            placeholder="DIRE WOLF&#10;AC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2&#10;&#10;DETECT MAGIC&#10;Tier 1, Wizard&#10;Duration: 5 rounds&#10;Range: Near&#10;You sense the presence of magic nearby.">{{importData.text}}</textarea>
+            placeholder="{{importData.formatExample}}">{{importData.text}}</textarea>
 
-  {{!-- Source label --}}
+  {{!-- Source label — which book this content is from (folder + per-doc tag) --}}
   <div class="sde-hub-import-sourcebar">
     <label for="sde-hub-import-source"><i class="fas fa-folder-tree"></i> Source</label>
-    <input id="sde-hub-import-source" type="text" data-import-source list="sde-hub-import-sources"
-           value="{{importData.source}}" placeholder="e.g. CS4 or Western Reaches"
-           class="sde-hub-import-source-input" aria-label="Source label (folder + per-doc tag)">
-    <datalist id="sde-hub-import-sources">
-      {{#each importData.sourceSuggestions as |s|}}<option value="{{s}}"></option>{{/each}}
-    </datalist>
+    <select id="sde-hub-import-source" data-import-source
+            class="sde-hub-import-source-input" aria-label="Source book (folder + per-doc tag)">
+      {{#each importData.sourceOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+    </select>
   </div>
 
-  {{!-- Controls: Parse / Clear / Import all --}}
+  {{!-- Controls: Parse / Clear / Import all + a Tools menu for everything else --}}
   <div class="sde-hub-import-controls">
-    <button type="button" data-action="hubParse"><i class="fas fa-wand-magic"></i> Parse</button>
-    <button type="button" data-action="hubParseCompound" class="sde-import-secondary"
-            title="Parse the paste as a roll-all compound generator (roll every column, combine in order). Asks for the dice, e.g. 3d6.">
-      <i class="fas fa-dice-d6"></i> Compound
-    </button>
-    <button type="button" data-action="hubParseCartesian" class="sde-import-secondary"
-            title="Spell out every combination of the columns into one long, fully-visible table (no hidden roll-each-column logic). Insert | between columns to set the splits. Asks for the dice, e.g. 3d6. Over 25,000 rows is blocked — use Compound for those.">
-      <i class="fas fa-table-cells"></i> Cartesian
-    </button>
+    <button type="button" data-action="hubParse" class="sde-import-primary"><i class="fas fa-wand-magic"></i> Parse</button>
     <button type="button" data-action="hubClear" class="sde-import-secondary"><i class="fas fa-eraser"></i> Clear</button>
     {{#if importData.showImportAll}}
     <button type="button" data-action="hubCommitAll" class="sde-import-primary">
       <i class="fas fa-file-import"></i> Import all
     </button>
     {{/if}}
+
+    {{!-- Tools: the power-user / one-time-setup actions, tucked away --}}
+    <details class="sde-hub-tools">
+      <summary class="sde-import-secondary"><i class="fas fa-toolbox"></i> Tools</summary>
+      <div class="sde-hub-tools-menu">
+        <button type="button" data-action="hubManageSourcePdfs"
+                title="Upload your own PDFs of the Shadowdark books. Each is linked to a source so the Open-PDF buttons jump to the cited page. Files stay in your world.">
+          <i class="fas fa-file-pdf"></i> Source PDFs<small>Upload &amp; link your book PDFs</small></button>
+        <button type="button" data-action="hubExtractPdf"
+                title="Pull clean, reading-ordered text out of one of your uploaded books (any page or range) straight into the paste box.">
+          <i class="fas fa-wand-magic-sparkles"></i> Extract from PDF<small>Pull a page's text into the box</small></button>
+        <button type="button" data-action="hubFillItemDescs"
+                title="Second pass of the gear import: paste the book's 'Name. text…' descriptions and match each to an already-imported item by name.">
+          <i class="fas fa-align-left"></i> Fill item descriptions<small>Second pass: match descriptions to gear</small></button>
+        <button type="button" data-action="hubExportBundle"
+                title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle.">
+          <i class="fas fa-file-export"></i> Export bundle<small>Back up the whole suite to a file</small></button>
+        <button type="button" data-action="hubImportBundle"
+                title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
+          <i class="fas fa-file-arrow-up"></i> Import bundle<small>Restore a suite from a file</small></button>
+      </div>
+    </details>
   </div>
 
   <p class="sde-import-note">
     <i class="fas fa-circle-info"></i> Parsing is offline — nothing is uploaded.
-    Auto-detect sorts a mixed dump; pick a specific type to force it. Fields the parser
-    wasn't sure about are <span class="sde-mimport-warn-legend">highlighted</span>.
+    Auto-detect sorts a mixed dump; pick a specific type to force it (the box shows an
+    example of that type's format). Fields the parser wasn't sure about are
+    <span class="sde-mimport-warn-legend">highlighted</span>.
   </p>
-
-  {{!-- Bundle row: suite-wide export / import --}}
-  <div class="sde-hub-import-controls sde-hub-bundle-row">
-    <button type="button" data-action="hubExportBundle" class="sde-import-secondary"
-            title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle.">
-      <i class="fas fa-file-export"></i> Export bundle
-    </button>
-    <button type="button" data-action="hubImportBundle" class="sde-import-secondary"
-            title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
-      <i class="fas fa-file-arrow-up"></i> Import bundle
-    </button>
-    <button type="button" data-action="hubManageSourcePdfs" class="sde-import-secondary"
-            title="Upload your own PDFs of the Shadowdark books. Each is linked to a source so the Open-PDF buttons jump to the cited page. Files stay in your world.">
-      <i class="fas fa-file-pdf"></i> Source PDFs
-    </button>
-    <button type="button" data-action="hubExtractPdf" class="sde-import-secondary"
-            title="Pull clean, reading-ordered text out of one of your uploaded books (any page or range) straight into the paste box. Uses Foundry's built-in PDF engine — nothing is uploaded, and two-column pages come out in order.">
-      <i class="fas fa-wand-magic-sparkles"></i> Extract from PDF
-    </button>
-    <button type="button" data-action="hubFillItemDescs" class="sde-import-secondary"
-            title="Second pass of the gear import: paste the book's 'Name. text…' item descriptions section and match each to an already-imported item by name, filling its description. Items that already have a description are left alone.">
-      <i class="fas fa-align-left"></i> Fill item descriptions
-    </button>
-  </div>
 
   {{!-- ── Monsters preview ─────────────────────────────────────────────── --}}
   {{#if importData.hasMonsters}}
@@ -810,29 +797,30 @@
       </section>
       {{/if}}
 
-      {{!-- Maintenance actions --}}
+      {{!-- Maintenance actions — rare one-off cleanups; each says what it does. --}}
       <section class="sde-hub-monsters-maintenance">
         <h3 class="sde-hub-monsters-section-title"><i class="fas fa-wrench"></i> Maintenance</h3>
+        <p class="sde-hub-maint-intro">One-off cleanups — you normally never need these. Each is safe to re-run.</p>
         <div class="sde-hub-monsters-maintenance-row">
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkTables"
-                  title="Re-link every compendium table to your imported monsters and items. Safe to re-run.">
-            <i class="fas fa-link"></i> Re-link pack tables
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkTables">
+            <span><i class="fas fa-link"></i> Re-link pack tables</span>
+            <small>Reconnect every roll table's rows to your imported monsters &amp; items (fixes broken links).</small>
           </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="migrateCompendium"
-                  title="Copy module-imported world tables into the sde-tables compendium pack (originals → _Backup).">
-            <i class="fas fa-box-archive"></i> Migrate tables to compendium
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="migrateCompendium">
+            <span><i class="fas fa-box-archive"></i> Migrate tables to compendium</span>
+            <small>Move loose world roll tables into the sde-tables pack (originals kept as a _Backup).</small>
           </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubFoldLegacyLoot"
-                  title="Copy the legacy world &quot;Loot&quot; pack's items into sde-items (originals stay; pack locked as backup).">
-            <i class="fas fa-boxes-packing"></i> Fold legacy Loot into Items
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubFoldLegacyLoot">
+            <span><i class="fas fa-boxes-packing"></i> Fold legacy Loot into Items</span>
+            <small>Copy an old world "Loot" pack's items into sde-items (the old pack stays as a locked backup).</small>
           </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportBackfill"
-                  title="Upgrade existing imported NPCs to fresh-import fidelity (descriptions, icons, art, spells).">
-            <i class="fas fa-arrow-up-from-bracket"></i> Backfill monsters
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportBackfill">
+            <span><i class="fas fa-arrow-up-from-bracket"></i> Backfill monsters</span>
+            <small>Re-run the importer over monsters you imported earlier to add newer fields (art, spells, icons).</small>
           </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportMigrateSuite"
-                  title="Move world-side imported monster actors into the sde-actors compendium pack.">
-            <i class="fas fa-box-archive"></i> Migrate monsters to suite
+          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportMigrateSuite">
+            <span><i class="fas fa-dragon"></i> Migrate monsters to suite</span>
+            <small>Move world-side imported monster actors into the sde-actors pack (originals → _Backup).</small>
           </button>
         </div>
       </section>

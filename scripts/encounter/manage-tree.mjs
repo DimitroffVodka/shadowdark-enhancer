@@ -48,13 +48,11 @@ const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reac
 // (single source of truth shared with the pack-folder resolver) — imported above.
 
 /**
- * Sealed monster bestiaries (source label → monster count). The monster census
- * is reference-driven (gaps come from pack tables that name a monster), so in a
- * fresh world nothing surfaces even though these bestiaries ship sealed. We add
- * one direct "Unlock N monsters" row per source so they're discoverable without
- * first importing a referencing table. Counts match the cs*-monsters units.
+ * Published bestiary sizes (source label → monster count). The monster census
+ * is reference-driven, so a fresh world may have no named gaps. These totals
+ * keep each source discoverable as a direct paste/import action.
  */
-const SEALED_BESTIARIES = { CS1: 14, CS2: 14, CS3: 12, CS4: 19, CS5: 5 };
+const BESTIARY_COUNTS = { CS1: 14, CS2: 14, CS3: 12, CS4: 19, CS5: 5 };
 
 /** Sort a leaf's entries: importable (locked) first, then imported, alpha within. */
 function sortEntries(entries, alpha = false) {
@@ -103,13 +101,21 @@ function branch(id, label, icon, children, extra = {}) {
 function buildCharContent(charEntries) {
   const ofType = (t) => charEntries.filter((e) => e.type === t);
 
-  // Ancestries: Ancestry items + the WR ancestry Names/Trinkets tables only —
-  // every other Table entry (carousing, encounters, boons, prayers…) lives in
-  // the top-level Roll Tables branch, not here.
+  // Ancestries: a branch with three sub-folders so the ~17 tables don't sit in
+  // one flat wall — the Ancestry items, the Names tables, and the Trinket
+  // tables (user request). Every other Table entry (carousing, encounters,
+  // boons, prayers…) lives in the top-level Roll Tables branch, not here.
   const ancestryTableNames = new Set(ANCESTRY_TABLES.map((t) => _norm(t.name)));
-  const ancestryRecords = charEntries.filter((e) =>
-    e.type === "Ancestry" || (e.type === "Table" && ancestryTableNames.has(_norm(e.name))));
-  const ancestries = leaf("char/ancestries", "Ancestries", "fa-people-group", ancestryRecords, "charSeedPaste");
+  const ancestryItemRecs = charEntries.filter((e) => e.type === "Ancestry");
+  const nameTableRecs = charEntries.filter((e) => e.type === "Table"
+    && ancestryTableNames.has(_norm(e.name)) && /\bnames$/i.test(e.name));
+  const trinketTableRecs = charEntries.filter((e) => e.type === "Table"
+    && ancestryTableNames.has(_norm(e.name)) && /\btrinket$/i.test(e.name));
+  const ancestries = branch("char/ancestries", "Ancestries", "fa-people-group", [
+    leaf("char/ancestries/kinds", "Ancestries", "fa-people-group", ancestryItemRecs, "charSeedPaste", true),
+    leaf("char/ancestries/names", "Names", "fa-signature", nameTableRecs, "charSeedPaste", true),
+    leaf("char/ancestries/trinkets", "Trinkets", "fa-gem", trinketTableRecs, "charSeedPaste", true),
+  ]);
 
   // Backgrounds: the per-book d100 background roll tables only (one row each).
   // The individual Background items still exist (the char-builder lists them for
@@ -143,11 +149,19 @@ function buildCharContent(charEntries) {
     locked: classEntries.filter((e) => !e.present).length,
   };
 
-  // Patrons & Deities: every god prayer generator + patron boon table (see
-  // PATRON_TABLES). Core-system reprints resolve present via their system copy.
+  // Patrons & Deities: a branch split into Boons and Prayers. The six
+  // "Patron Boons: X" entries ship in the core Shadowdark system already, so
+  // they're dropped from the importer list entirely (user request) — only the
+  // WR "<God> Boons" tables and the god prayer generators remain.
   const patronRecords = charEntries.filter((e) =>
-    e.type === "Table" && PATRON_TABLES.has(_norm(e.name)));
-  const patrons = leaf("char/patrons", "Patrons & Deities", "fa-hands-praying", patronRecords, "charSeedPaste");
+    e.type === "Table" && PATRON_TABLES.has(_norm(e.name)) && !/^patron boons:/i.test(e.name));
+  const boonRecs = patronRecords.filter((e) => /\bboons$/i.test(e.name));
+  const prayerRecs = patronRecords.filter((e) => /\bprayers$/i.test(e.name));
+  const otherPatron = patronRecords.filter((e) => !/\b(boons|prayers)$/i.test(e.name));
+  const patrons = branch("char/patrons", "Patrons & Deities", "fa-hands-praying", [
+    leaf("char/patrons/boons", "Boons", "fa-gift", [...boonRecs, ...otherPatron], "charSeedPaste", true),
+    leaf("char/patrons/prayers", "Prayers", "fa-hands-praying", prayerRecs, "charSeedPaste", true),
+  ]);
 
   return branch("char", "Character Content", "fa-user-plus", [ancestries, backgrounds, classes, patrons]);
 }
@@ -165,8 +179,16 @@ function buildCharContent(charEntries) {
  * Map<listKey,{present,count}>.
  */
 function buildSpells(spellListCensus) {
+  // The three Wizard-alignment lists (Druid·Neutral, Mage·Lawful,
+  // Sorcerer·Chaotic) are the SAME spells in the Cursed Scrolls and in Western
+  // Reaches, and the census is source-independent — so show ONE row each,
+  // sourced from WR (the char-builder's canonical book). Drop the CS twins so
+  // the user doesn't see (and can't accidentally double-import) the duplicate.
+  const wizardTwin = (l) => l.casterClass === "Wizard" && l.source !== "WR"
+    && SPELL_LISTS.some((o) => o.source === "WR" && o.short === l.short);
+  const lists = SPELL_LISTS.filter((l) => !wizardTwin(l));
   const bySrc = new Map();
-  for (const l of SPELL_LISTS) {
+  for (const l of lists) {
     if (!bySrc.has(l.source)) bySrc.set(l.source, []);
     bySrc.get(l.source).push(l);
   }
@@ -175,6 +197,7 @@ function buildSpells(spellListCensus) {
   const children = sources.map((src) => {
     const entries = bySrc.get(src).map((l) => {
       const c = spellListCensus.get(l.key) ?? { present: false, count: 0 };
+      const shared = l.casterClass === "Wizard";   // Druid/Mage/Sorcerer cover CS + WR
       return {
         name: l.short ?? l.label,
         present: c.present,
@@ -184,7 +207,7 @@ function buildSpells(spellListCensus) {
         pages: l.page,
         listKey: l.key,
         importLabel: "Import list",
-        countNote: c.count ? `${c.count} imported` : "",
+        countNote: c.count ? `${c.count} imported${shared ? " · covers CS + WR" : ""}` : (shared ? "covers CS + WR" : ""),
       };
     });
     const have = entries.filter((e) => e.present).length;
@@ -197,9 +220,9 @@ function buildSpells(spellListCensus) {
 }
 
 /**
- * A single Core Rulebook table BUNDLE as a leaf: its member tables enumerated
- * from CORE_TABLE_GROUPS, grouped under the section header. De-sealed: each
- * sub-table is INDIVIDUALLY unlockable and INDIVIDUALLY present-checked by its
+ * A Core Rulebook table group as a leaf: its member tables are enumerated from
+ * CORE_TABLE_GROUPS under the section header. Each sub-table is independently
+ * importable and present-checked by its
  * own name (a paste imports one named table; there is no atomic bundle). A
  * table imported as "Source - Name" satisfies the bare "Name" probe via
  * hasTable's suffix match, so a sub-table flips to "imported" the moment its
@@ -296,14 +319,14 @@ function buildMonsters(monsterRows, actorRecords) {
     // curated bestiary — label the bucket honestly (E2E D8).
     const displayLabel = label === "Custom" ? "Unresolved encounter references" : label;
     const node = leaf(`monsters/${label}`, displayLabel, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
-    // Sealed bestiary that isn't fully imported here → one direct Unlock row.
-    const sealed = SEALED_BESTIARIES[label];
-    if (sealed && node.have < sealed) {
+    // Incomplete published bestiary → one direct paste/import row.
+    const expected = BESTIARY_COUNTS[label];
+    if (expected && node.have < expected) {
       node.entries.unshift({
-        name: `Unlock the ${label} bestiary — ${sealed} monsters (paste the book's bestiary)`,
+        name: `Import the ${label} bestiary — ${expected} monsters (paste the book's bestiary)`,
         present: false, seedAction: "monsterSeedPaste", type: "Actor", src: label, pages: "",
       });
-      node.locked = sealed - node.have;
+      node.locked = expected - node.have;
     }
     return node;
   };

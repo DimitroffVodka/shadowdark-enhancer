@@ -41,6 +41,28 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** Common source labels offered as datalist suggestions. */
 const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
 
+/** The eight books, as a fixed Source dropdown (value = the folder/tag label). */
+const BOOK_SOURCES = [
+  "Core Rulebook",
+  "Cursed Scroll 1", "Cursed Scroll 2", "Cursed Scroll 3",
+  "Cursed Scroll 4", "Cursed Scroll 5", "Cursed Scroll 6",
+  "Western Reaches",
+];
+
+/** A short, correct example of each import type's paste format — shown as the
+ *  paste-box placeholder so a manually-picked type is self-documenting. */
+const FORMAT_EXAMPLES = {
+  auto: "Paste anything — monsters, items, spells, or tables (or a mix). Auto-detect sorts it.\n\nDIRE WOLF\nAC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2",
+  monsters: "One statblock per block (blank line between):\n\nDIRE WOLF\nAC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2",
+  items: "One item per line — Name then cost (and optional description):\n\nTorch  5 sp\nRope, 60'  1 gp\nGrappling hook  1 gp\n\nOr paste the book's 'Name. text…' block and use Tools → Fill item descriptions.",
+  tables: "A die header, then one row per line:\n\nd6  Result\n1  A cave-in blocks the passage\n2  The floor gives way beneath you\n3  A cold draft snuffs your light\n…",
+  backgrounds: "The book's d100 background list, one entry per line:\n\n01  Urchin. You grew up on the streets, quick and unseen.\n02  Wanted. There is a price on your head.\n…",
+  talents: "One talent per block — Name. then its rules text:\n\nWeapon Mastery. Choose one weapon type. You gain +1 to attack and damage rolls with it.",
+  ancestries: "The ancestry writeup — flavor, languages, and its named feature:\n\nDWARF\nBrave, stalwart folk. You know Common and Dwarvish.\nStout. Start with +2 HP; roll hit dice with advantage.",
+  generators: "A multi-column grid — pick the dice (e.g. 3d6), one row per line:\n\nd6  Trap  Trigger  Damage\n1  Pit  Pressure plate  1d6\n2  Dart wall  Tripwire  1d4 poison\n…",
+  cartesian: "Same as a compound generator, but every column combination is spelled out into one long, fully-visible table. Pick the dice (e.g. 3d6); put | between columns to force the splits.",
+};
+
 
 /**
  * Pull the quoted row name out of each parser warning so the preview can flag
@@ -343,6 +365,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // there for reuse — T5 "should show up in the drop down in the future".
     const sourceSuggestions = [...new Set([...SOURCE_SUGGESTIONS, ...topFolders])]
       .sort((a, b) => a.localeCompare(b));
+    // Source is now a fixed dropdown of the eight books. Preserve any current
+    // value that isn't one of them (a seed or custom folder) as a selected
+    // extra option so it still shows.
+    const curSource = this._importSource ?? "";
+    const sourceOptions = [
+      { value: "", label: "— none —", selected: !curSource },
+      ...BOOK_SOURCES.map((b) => ({ value: b, label: b, selected: b === curSource })),
+      ...(curSource && !BOOK_SOURCES.includes(curSource)
+        ? [{ value: curSource, label: `${curSource} (custom)`, selected: true }] : []),
+    ];
 
     // Compound generators → row-major grid for the editable preview.
     const importGenerators = this._importGenerators.map((g, i) => {
@@ -379,29 +411,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasGenerators = importGenerators.length > 0;
     const showImportAll = [hasMonsters, hasItems, hasSpells, hasTables].filter(Boolean).length > 1;
 
-    // Which sealed docs already exist at their destination? The import is
-    // idempotent (reuses by name), so tell the user up front which entries
-    // will be reused instead of implying everything is new.
-    const sealedPresent = new Set();
-    if (this._importSealed) {
-      const { findSuitePack } = await import("./compendium-suite.mjs");
-      const packOf = {
-        RollTable: findSuitePack("sde-tables") ?? game.packs.get("world.shadowdark-enhancer--roll-tables"),
-        Actor: findSuitePack("sde-actors") ?? game.packs.get("world.shadowdark-enhancer--actors"),
-        Item: findSuitePack("sde-items") ?? game.packs.get("world.shadowdark-enhancer--items"),
-      };
-      for (const d of this._importSealed.payload.docs) {
-        const kind = d.kind === "RollTable" ? "RollTable" : d.kind === "Actor" ? "Actor" : "Item";
-        const idx = packOf[kind]?.index;
-        if (idx?.find((x) => x.name === d.data.name)) sealedPresent.add(d.data.name);
-      }
-    }
-
     const t = this._importType;
     const importData = {
       text: this._importText,
       source: this._importSource,
       sourceSuggestions,
+      sourceOptions,
       seed: this._importSeed,
       // Deep-link into the user's uploaded source PDF at the cited page, so the
       // GM can jump straight to the section to copy. Only for char-content
@@ -425,20 +440,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         return { name: t.name, formula: t.formula, rows, ok,
           expected: isNames ? "100 rows on 1d100" : "full die coverage — see the warnings on the card" };
       })(),
-      // Type selector
+      // Type selector — the single "what am I importing" control. Parse-in-
+      // place types are grouped first; the two guided workspaces (Spells,
+      // Classes) sit in their own group and OPEN when picked (handled in
+      // _wireHubType) rather than parsing inline.
       importType: t,
-      typeOptions: [
-        { value: "auto",     label: "Auto-detect" },
-        { value: "monsters", label: "Monsters" },
-        { value: "items",    label: "Items" },
-        { value: "spells",   label: "Spells" },
-        { value: "tables",   label: "Tables" },
-        { value: "generators", label: "Generators (roll-all)" },
-        { value: "cartesian", label: "Cartesian (expand)" },
-        { value: "backgrounds", label: "Backgrounds" },
-        { value: "talents",  label: "Talents" },
-        { value: "ancestries", label: "Ancestry" },
-      ].map(o => ({ ...o, selected: o.value === t })),
+      formatExample: FORMAT_EXAMPLES[t] ?? FORMAT_EXAMPLES.auto,
+      typeGroups: [
+        { group: "Paste & parse here", options: [
+          { value: "auto",       label: "Auto-detect" },
+          { value: "monsters",   label: "Monsters" },
+          { value: "items",      label: "Items" },
+          { value: "tables",     label: "Tables" },
+          { value: "backgrounds", label: "Backgrounds" },
+          { value: "talents",    label: "Talents" },
+          { value: "ancestries", label: "Ancestry" },
+          { value: "generators", label: "Compound generator" },
+          { value: "cartesian",  label: "Cartesian table" },
+        ] },
+        { group: "Guided workspaces", options: [
+          { value: "__spells",  label: "Spells…" },
+          { value: "__classes", label: "Classes…" },
+        ] },
+      ].map(g => ({ ...g, options: g.options.map(o => ({ ...o, selected: o.value === t })) })),
       showItemSubtype: t === "items" || t === "auto",
       showGenSpec: t === "generators" || t === "cartesian",
       genSpec: this._importGenSpec,
@@ -455,15 +479,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       generators: importGenerators,
       skipped: this._importSkipped,
       hasMonsters, hasItems, hasSpells, hasTables, hasGenerators, showImportAll,
-      chars: this._importSealed
-        ? this._importSealed.payload.docs.map((d) => ({
-            name: d.data.name,
-            type: d.kind === "RollTable" ? "Table" : d.data.type,
-            preview: sealedPresent.has(d.data.name)
-              ? "✓ already in your library — will be reused, not duplicated"
-              : "🔓 sealed content — verified, imports exactly as authored",
-          }))
-        : this._importChar.map((p) => {
+      chars: this._importChar.map((p) => {
             const strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
             const u = p.draft.classUnit;
             // Auto-match the parsed "casts wizard spells" hint to a real class
@@ -569,19 +585,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
               preview: (unit || supplement) ? "" : strip(p.draft.description).slice(0, 140),
             };
           }),
-      hasChar: this._importChar.length > 0 || !!this._importSealed,
-      charsCount: this._importSealed?.payload.docs.length ?? this._importChar.length,
-      // Section title + commit label name the ACTUAL destination:
-      // importSealedPayload routes RollTables → sde-tables and Actors →
-      // sde-actors, so "Create in Items" is wrong for those payloads.
-      ...(() => {
-        if (!this._importSealed) return { charsTitle: "Character content", charsCommitLabel: "Create in Items" };
-        const kinds = new Set(this._importSealed.payload.docs.map((d) => d.kind === "RollTable" ? "RollTable" : d.kind === "Actor" ? "Actor" : "Item"));
-        if (kinds.size === 1 && kinds.has("RollTable")) return { charsTitle: "Sealed roll tables", charsCommitLabel: "Create in Roll Tables" };
-        if (kinds.size === 1 && kinds.has("Actor")) return { charsTitle: "Sealed monsters", charsCommitLabel: "Create in Actors" };
-        if (kinds.size === 1) return { charsTitle: "Sealed content", charsCommitLabel: "Create in Items" };
-        return { charsTitle: "Sealed content", charsCommitLabel: "Create in library" };
-      })(),
+      hasChar: this._importChar.length > 0,
+      charsCount: this._importChar.length,
+      charsTitle: "Character content",
+      charsCommitLabel: "Create in Items",
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
       itemsCount: this._importItems.length,
@@ -807,7 +814,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Import-type selector + item-subtype override. */
   _wireHubType() {
     const typeSel = this.element.querySelector("select[data-import-type]");
-    if (typeSel) typeSel.addEventListener("change", (ev) => { this._importType = ev.target.value; this.render(); });
+    if (typeSel) typeSel.addEventListener("change", (ev) => {
+      const v = ev.target.value;
+      // "Spells…" / "Classes…" are guided workspaces, not inline parse types —
+      // open the app and snap the dropdown back to the real current type.
+      if (v === "__spells")  { ev.target.value = this._importType; this._onOpenSpellImporter(); return; }
+      if (v === "__classes") { ev.target.value = this._importType; this._onOpenClassImporter(); return; }
+      this._importType = v;
+      this.render();
+    });
 
     const subSel = this.element.querySelector("select[data-import-subtype]");
     if (subSel) subSel.addEventListener("change", (ev) => {
@@ -845,9 +860,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Source label input: free-text, commit on input. */
   _wireHubSource() {
-    const input = this.element.querySelector("input[data-import-source]");
-    if (!input) return;
-    input.addEventListener("input", (ev) => { this._importSource = ev.target.value; });
+    // Source is a <select> now (was a free-text input); listen for both so a
+    // legacy input still works.
+    const el = this.element.querySelector("[data-import-source]");
+    if (!el) return;
+    const evt = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(evt, (ev) => { this._importSource = ev.target.value; });
   }
 
   /**
@@ -1421,33 +1439,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const text = this._importText;
     const type = this._importType;
 
-    // RETIRED sealed path — DEAD. SEALED_UNITS is empty and nothing is
-    // bundled or decrypted, so sealedUnitsFor() always returns [] and this
-    // block falls straight through to the parse-and-author path below. Kept
-    // only until the later cleanup removes it (see sealed-content.mjs header).
-    this._importSealed = null;
     const seed = this._importSeed;
-    if (seed?._charSeed || seed?._monsterSeed) {
-      const { sealedUnitsFor, tryUnseal } = await import("./sealed-content.mjs");
-      // A monster-census seed carries no doc type; it always covers Actor units.
-      const seedType = seed._monsterSeed ? "Actor" : seed.type;
-      const candidates = sealedUnitsFor({ name: seed.name, type: seedType, source: seed.src });
-      let best = { found: 0, total: 0, unit: null };
-      for (const unit of candidates) {
-        // eslint-disable-next-line no-await-in-loop
-        const res = await tryUnseal(unit, text);
-        if (res.ok) {
-          this._importSealed = { unit, payload: res.payload };
-          this._importMonsters = []; this._importItems = []; this._importSpells = [];
-          this._importTables = []; this._importChar = []; this._importSkipped = [];
-          ui.notifications.info(`Unlocked "${unit.name}": ${res.payload.docs.length} verified documents ready — review below, then Create.`);
-          this.render();
-          return;
-        }
-        if (res.found > best.found) best = { found: res.found, total: res.total, unit };
-      }
-      if (best.unit && best.found) ui.notifications.warn(`"${best.unit.name}": found ${best.found}/${best.total} key phrases — paste the full section to unlock the verified version. Falling back to the text parser.`);
-    }
 
     // Shape-directed parse: when the thing being unlocked ships a precise
     // structure descriptor (table-shapes.mjs) — a prayer generator, a Carousing
@@ -1734,7 +1726,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._importTables = [];
     this._importGenerators = [];
     this._importChar = [];
-    this._importSealed = null;
     this._importSkipped = [];
     this._importSeed = null;
     this.render();
@@ -2875,21 +2866,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
   async _onHubCommitChar() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import content."); return; }
-    // RETIRED sealed path — DEAD (_importSealed is never set; see above).
-    if (this._importSealed) {
-      const { importSealedPayload } = await import("./sealed-content.mjs");
-      const created = await importSealedPayload(this._importSealed.payload);
-      const reused = created.filter((c) => c.reused).length;
-      const madeNew = created.length - reused;
-      ui.notifications.info(`"${this._importSealed.unit.name}" unlocked: ${madeNew} created${reused ? `, ${reused} already in library (reused)` : ""}.`);
-      this._importSealed = null;
-      this._importSeed = null;
-      this._invalidateItemsCache();
-      this._invalidateCharCache();
-      this._announceContentUnlocked();
-      this.render();
-      return;
-    }
     if (!this._importChar.length) { ui.notifications.warn("No character content to import."); return; }
     const bgBundle = this._importSeed?._bgBundle;
 

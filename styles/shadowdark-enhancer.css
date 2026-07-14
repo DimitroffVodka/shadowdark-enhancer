@@ -3,22 +3,6 @@
    Dark / Light theme support
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* Legacy Vagabond font definitions are kept only for backwards compatibility
-   with older saved markup. The live UI below now uses Shadowdark's own
-   Montserrat / Old Newspaper fonts and Shadowdark Extras' black-gold palette. */
-@font-face {
-  font-family: "Eskapade";
-  src: url("/systems/vagabond/assets/fonts/eskapade-regular.ttf") format("truetype");
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: "Eskapade";
-  src: url("/systems/vagabond/assets/fonts/eskapade-black.ttf") format("truetype");
-  font-weight: 700 900;
-  font-display: swap;
-}
-
 :root {
   /* ── Surface / backgrounds ─────────────────────────────────────────────── */
   --sde-bar-bg:          #000000;
@@ -1185,26 +1169,17 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 .sde-bar-btn .sde-bar-icon-dragon { width: 16px; height: 16px; }
 
-/* Fantasy RPG Dings glyph font (assets/fonts/, license: no redistribution —
-   see CREDITS.md). Keyboard characters render as fantasy icons; monochrome,
-   so they inherit the button text color like Font Awesome glyphs do. */
-@font-face {
-  font-family: "Fantasy RPG Dings";
-  src: url("../assets/fonts/fantasy-rpg-dings.otf") format("opentype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: block;
-}
-.sde-ding {
-  font-family: "Fantasy RPG Dings";
-  font-weight: normal;
-  font-style: normal;
-  line-height: 1;
+/* CC BY 3.0 game-icons.net SVGs. The source artwork is black; the filter maps
+   it to the module's gold accent without a font or runtime module dependency. */
+.sde-game-icon {
   display: inline-block;
-  font-size: 1.25em;
-  vertical-align: -0.15em;
+  width: 1.25em;
+  height: 1.25em;
+  vertical-align: -0.25em;
+  object-fit: contain;
+  filter: invert(77%) sepia(38%) saturate(603%) hue-rotate(4deg) brightness(87%) contrast(84%);
 }
-.sde-bar-inner .sde-ding { font-size: 19px; vertical-align: middle; margin-top: -2px; }
+.sde-bar-inner .sde-game-icon { width: 19px; height: 19px; vertical-align: middle; margin-top: -2px; }
 
 /* Shikashi pixel-art icons (assets/icons/shikashi/) used as button glyphs.
    The art is 32px-native: sizes below ~22px lose the readable detail, so
@@ -2828,6 +2803,14 @@ body.theme-light .sde-hub-tab-btn.active {
   flex-wrap: wrap;
 }
 
+.sde-hub-maint-intro {
+  color: var(--sde-bar-text-muted);
+  font-size: 0.8rem;
+  margin: 0 0 0.4rem;
+}
+.sde-hub-monsters-maintenance-row {
+  flex-wrap: wrap;
+}
 .sde-hub-monsters-maint-btn {
   background: var(--sde-bar-btn-1);
   border: 1px solid var(--sde-bar-border);
@@ -2835,11 +2818,25 @@ body.theme-light .sde-hub-tab-btn.active {
   color: var(--sde-bar-text);
   font-size: 0.82rem;
   cursor: pointer;
-  padding: 4px 12px;
+  padding: 6px 12px;
   width: auto;
-  white-space: nowrap;
-  flex: 0 0 auto;
+  flex: 1 1 260px;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  white-space: normal;
 }
+.sde-hub-monsters-maint-btn > span { font-weight: 600; white-space: nowrap; }
+.sde-hub-monsters-maint-btn > small {
+  color: var(--sde-bar-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.25;
+  font-weight: 400;
+}
+.sde-hub-monsters-maint-btn:hover > small { color: var(--sde-bar-text-dim); }
 .sde-hub-monsters-maint-btn:hover {
   border-color: var(--sde-bar-accent);
   color: var(--sde-bar-accent);
@@ -5104,6 +5101,63 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-import-secondary {
   background: var(--sde-bar-bg-alt);
   color: var(--sde-bar-text);
+}
+
+/* Tools menu: a <details> disclosure that overlays a small action list so the
+   power-user / one-time-setup buttons don't crowd the control bar. */
+.sde-hub-tools {
+  position: relative;
+  display: inline-block;
+  margin-left: auto;
+}
+.sde-hub-tools > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 4px;
+  background: var(--sde-bar-bg-alt);
+  color: var(--sde-bar-text);
+}
+.sde-hub-tools > summary::-webkit-details-marker,
+.sde-hub-tools > summary::marker { display: none; content: ""; }
+.sde-hub-tools[open] > summary { background: var(--sde-bar-btn-hover-2); }
+.sde-hub-tools-menu {
+  position: absolute;
+  z-index: 30;
+  right: 0;
+  top: calc(100% + 4px);
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: var(--sde-bar-surface-2);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+.sde-hub-tools-menu button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 1px;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--sde-bar-text);
+}
+.sde-hub-tools-menu button:hover { background: var(--sde-bar-btn-hover-2); }
+.sde-hub-tools-menu button small {
+  color: var(--sde-bar-text-muted);
+  font-size: 0.78em;
+  padding-left: 1.3rem;
 }
 .sde-import-empty {
   color: var(--sde-bar-text-muted);
