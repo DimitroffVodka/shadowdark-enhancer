@@ -29,6 +29,7 @@ import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
 import { boundCount } from "./encounter/loot-setup-manifest.mjs";
 import { ImporterHubApp } from "./encounter/importer-hub-app.mjs";
 import { installCompoundRollTable } from "./encounter/compound-table.mjs";
+import { installLoadingDialogGuard } from "./loading-dialog-guard.mjs";
 import { TableEnricher } from "./encounter/table-enrich.mjs";
 import { MonsterImporterAPI } from "./encounter/monster-importer-app.mjs";
 import { segmentDump } from "./encounter/dump-segmenter.mjs";
@@ -377,6 +378,12 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
+  // Guarantee the system's "Searching Distant Lands…" loading spinner is never
+  // orphaned when an Item sheet's getData() throws (e.g. a transient failure in
+  // the compendium-scan path right after importing a class) — see
+  // loading-dialog-guard.mjs. Installed at ready when shadowdark.apps/sheets are
+  // available; sheets can't open before ready anyway.
+  installLoadingDialogGuard();
   // Foundry-conventional API discovery point + interop ready signal (REQ-26).
   const mod = game.modules.get(MODULE_ID);
   if (mod) mod.api = game.shadowdarkEnhancer;
