@@ -1,0 +1,2744 @@
+{
+  "template": "shadowdark-character-sheet.pdf",
+  "pageSize": [
+    612,
+    792
+  ],
+  "pages": 2,
+  "note": "rect = [x, y, width, height] in PDF points, y measured from the BOTTOM of the page. Fields 'name', 'class' and 'level' each have a second widget on page 2 (mirrored value). 'foundry' is the suggested Shadowdark system data source for the exporter.",
+  "fields": [
+    {
+      "id": "name",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        30,
+        703,
+        270,
+        19
+      ],
+      "fontSize": 13,
+      "multiline": false,
+      "align": "left",
+      "description": "Character name",
+      "foundry": "actor.name"
+    },
+    {
+      "id": "level",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        314,
+        703,
+        42,
+        19
+      ],
+      "fontSize": 14,
+      "multiline": false,
+      "align": "center",
+      "description": "Character level",
+      "foundry": "system.level.value"
+    },
+    {
+      "id": "xp",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        370,
+        703,
+        52,
+        18
+      ],
+      "fontSize": 11,
+      "multiline": false,
+      "align": "center",
+      "description": "Current XP",
+      "foundry": "system.level.xp"
+    },
+    {
+      "id": "xp_next",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        430,
+        703,
+        62,
+        18
+      ],
+      "fontSize": 11,
+      "multiline": false,
+      "align": "center",
+      "description": "XP needed for next level (10 x level)",
+      "foundry": "derived: 10 * level"
+    },
+    {
+      "id": "luck",
+      "page": 1,
+      "type": "checkbox",
+      "rect": [
+        538,
+        704.5,
+        13,
+        13
+      ],
+      "description": "Has a luck token",
+      "foundry": "system.luck.available"
+    },
+    {
+      "id": "hp",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        30,
+        656,
+        44,
+        22
+      ],
+      "fontSize": 13,
+      "multiline": false,
+      "align": "center",
+      "description": "Current hit points",
+      "foundry": "system.attributes.hp.value"
+    },
+    {
+      "id": "hp_max",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        84,
+        656,
+        46,
+        22
+      ],
+      "fontSize": 13,
+      "multiline": false,
+      "align": "center",
+      "description": "Maximum hit points",
+      "foundry": "system.attributes.hp.max"
+    },
+    {
+      "id": "ac",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        146,
+        656,
+        94,
+        22
+      ],
+      "fontSize": 14,
+      "multiline": false,
+      "align": "center",
+      "description": "Armor class",
+      "foundry": "system.attributes.ac.value"
+    },
+    {
+      "id": "str",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        33,
+        600,
+        46,
+        28
+      ],
+      "fontSize": 16,
+      "multiline": false,
+      "align": "center",
+      "description": "STRENGTH score",
+      "foundry": "system.abilities.str.base (+bonus)"
+    },
+    {
+      "id": "str_mod",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        89,
+        600,
+        34,
+        22
+      ],
+      "fontSize": 12,
+      "multiline": false,
+      "align": "center",
+      "description": "STRENGTH modifier",
+      "foundry": "derived ability modifier (STR)"
+    },
+    {
+      "id": "int",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        145,
+        600,
+        46,
+        28
+      ],
+      "fontSize": 16,
+      "multiline": false,
+      "align": "center",
+      "description": "INTELLIGENCE score",
+      "foundry": "system.abilities.int.base (+bonus)"
+    },
+    {
+      "id": "int_mod",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        201,
+        600,
+        34,
+        22
+      ],
+      "fontSize": 12,
+      "multiline": false,
+      "align": "center",
+      "description": "INTELLIGENCE modifier",
+      "foundry": "derived ability modifier (INT)"
+    },
+    {
+      "id": "dex",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        33,
+        542,
+        46,
+        28
+      ],
+      "fontSize": 16,
+      "multiline": false,
+      "align": "center",
+      "description": "DEXTERITY score",
+      "foundry": "system.abilities.dex.base (+bonus)"
+    },
+    {
+      "id": "dex_mod",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        89,
+        542,
+        34,
+        22
+      ],
+      "fontSize": 12,
+      "multiline": false,
+      "align": "center",
+      "description": "DEXTERITY modifier",
+      "foundry": "derived ability modifier (DEX)"
+    },
+    {
+      "id": "wis",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        145,
+        542,
+        46,
+        28
+      ],
+      "fontSize": 16,
+      "multiline": false,
+      "align": "center",
+      "description": "WISDOM score",
+      "foundry": "system.abilities.wis.base (+bonus)"
+    },
+    {
+      "id": "wis_mod",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        201,
+        542,
+        34,
+        22
+      ],
+      "fontSize": 12,
+      "multiline": false,
+      "align": "center",
+      "description": "WISDOM modifier",
+      "foundry": "derived ability modifier (WIS)"
+    },
+    {
+      "id": "con",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        33,
+        484,
+        46,
+        28
+      ],
+      "fontSize": 16,
+      "multiline": false,
+      "align": "center",
+      "description": "CONSTITUTION score",
+      "foundry": "system.abilities.con.base (+bonus)"
+    },
+    {
+      "id": "con_mod",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        89,
+        484,
+        34,
+        22
+      ],
+      "fontSize": 12,
+      "multiline": false,
+      "align": "center",
+      "description": "CONSTITUTION modifier",
+      "foundry": "derived ability modifier (CON)"
+    },
+    {
+      "id": "cha",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        145,
+        484,
+        46,
+        28
+      ],
+      "fontSize": 16,
+      "multiline": false,
+      "align": "center",
+      "description": "CHARISMA score",
+      "foundry": "system.abilities.cha.base (+bonus)"
+    },
+    {
+      "id": "cha_mod",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        201,
+        484,
+        34,
+        22
+      ],
+      "fontSize": 12,
+      "multiline": false,
+      "align": "center",
+      "description": "CHARISMA modifier",
+      "foundry": "derived ability modifier (CHA)"
+    },
+    {
+      "id": "attack_1_name",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        29,
+        422,
+        90,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Attack 1: weapon / attack name",
+      "foundry": "equipped weapon item name"
+    },
+    {
+      "id": "attack_1_bonus",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        123,
+        422,
+        28,
+        20
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 1: attack bonus",
+      "foundry": "derived: stat mod (+talents)"
+    },
+    {
+      "id": "attack_1_damage",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        153,
+        422,
+        50,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 1: damage",
+      "foundry": "weapon system.damage"
+    },
+    {
+      "id": "attack_1_range",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        205,
+        422,
+        38,
+        20
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 1: range",
+      "foundry": "weapon system.range"
+    },
+    {
+      "id": "attack_2_name",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        29,
+        394,
+        90,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Attack 2: weapon / attack name",
+      "foundry": "equipped weapon item name"
+    },
+    {
+      "id": "attack_2_bonus",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        123,
+        394,
+        28,
+        20
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 2: attack bonus",
+      "foundry": "derived: stat mod (+talents)"
+    },
+    {
+      "id": "attack_2_damage",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        153,
+        394,
+        50,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 2: damage",
+      "foundry": "weapon system.damage"
+    },
+    {
+      "id": "attack_2_range",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        205,
+        394,
+        38,
+        20
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 2: range",
+      "foundry": "weapon system.range"
+    },
+    {
+      "id": "attack_3_name",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        29,
+        366,
+        90,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Attack 3: weapon / attack name",
+      "foundry": "equipped weapon item name"
+    },
+    {
+      "id": "attack_3_bonus",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        123,
+        366,
+        28,
+        20
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 3: attack bonus",
+      "foundry": "derived: stat mod (+talents)"
+    },
+    {
+      "id": "attack_3_damage",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        153,
+        366,
+        50,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 3: damage",
+      "foundry": "weapon system.damage"
+    },
+    {
+      "id": "attack_3_range",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        205,
+        366,
+        38,
+        20
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 3: range",
+      "foundry": "weapon system.range"
+    },
+    {
+      "id": "attack_4_name",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        29,
+        338,
+        90,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Attack 4: weapon / attack name",
+      "foundry": "equipped weapon item name"
+    },
+    {
+      "id": "attack_4_bonus",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        123,
+        338,
+        28,
+        20
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 4: attack bonus",
+      "foundry": "derived: stat mod (+talents)"
+    },
+    {
+      "id": "attack_4_damage",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        153,
+        338,
+        50,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 4: damage",
+      "foundry": "weapon system.damage"
+    },
+    {
+      "id": "attack_4_range",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        205,
+        338,
+        38,
+        20
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 4: range",
+      "foundry": "weapon system.range"
+    },
+    {
+      "id": "attack_5_name",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        29,
+        310,
+        90,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Attack 5: weapon / attack name",
+      "foundry": "equipped weapon item name"
+    },
+    {
+      "id": "attack_5_bonus",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        123,
+        310,
+        28,
+        20
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 5: attack bonus",
+      "foundry": "derived: stat mod (+talents)"
+    },
+    {
+      "id": "attack_5_damage",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        153,
+        310,
+        50,
+        20
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 5: damage",
+      "foundry": "weapon system.damage"
+    },
+    {
+      "id": "attack_5_range",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        205,
+        310,
+        38,
+        20
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "center",
+      "description": "Attack 5: range",
+      "foundry": "weapon system.range"
+    },
+    {
+      "id": "ancestry",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        254,
+        649.5,
+        154,
+        30
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "left",
+      "description": "Ancestry name",
+      "foundry": "Ancestry item name"
+    },
+    {
+      "id": "class",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        254,
+        595.5,
+        154,
+        30
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "left",
+      "description": "Class name",
+      "foundry": "Class item name"
+    },
+    {
+      "id": "title",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        254,
+        541.5,
+        154,
+        30
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "left",
+      "description": "Class title for level + alignment",
+      "foundry": "class title table"
+    },
+    {
+      "id": "alignment",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        254,
+        487.5,
+        154,
+        30
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "left",
+      "description": "Alignment",
+      "foundry": "system.alignment"
+    },
+    {
+      "id": "background",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        254,
+        433.5,
+        154,
+        30
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "left",
+      "description": "Background",
+      "foundry": "Background item name"
+    },
+    {
+      "id": "deity",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        254,
+        379.5,
+        154,
+        30
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "left",
+      "description": "Deity",
+      "foundry": "system.deity"
+    },
+    {
+      "id": "languages",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        253,
+        302.5,
+        156,
+        53
+      ],
+      "fontSize": 8.5,
+      "multiline": true,
+      "align": "left",
+      "description": "Known languages",
+      "foundry": "system.languages -> names"
+    },
+    {
+      "id": "talents",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        421,
+        302.5,
+        162,
+        375
+      ],
+      "fontSize": 9,
+      "multiline": true,
+      "align": "left",
+      "description": "Talents, ancestry + class abilities (summary)",
+      "foundry": "Talent items (class + ancestry + level)"
+    },
+    {
+      "id": "gear_slots_used",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        300,
+        280.5,
+        26,
+        11
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "center",
+      "description": "Gear slots used",
+      "foundry": "derived: sum of carried item slots"
+    },
+    {
+      "id": "gear_slots_max",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        352,
+        280.5,
+        26,
+        11
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "center",
+      "description": "Max gear slots (STR or 10, whichever is higher)",
+      "foundry": "derived: max(str, 10)"
+    },
+    {
+      "id": "gear_1",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        256,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 1",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_2",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        234,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 2",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_3",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        212,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 3",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_4",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        190,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 4",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_5",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        168,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 5",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_6",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        146,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 6",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_7",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        124,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 7",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_8",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        102,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 8",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_9",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        80,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 9",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_10",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        43,
+        58,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 10",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_11",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        256,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 11",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_12",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        234,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 12",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_13",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        212,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 13",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_14",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        190,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 14",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_15",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        168,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 15",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_16",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        146,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 16",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_17",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        124,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 17",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_18",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        102,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 18",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_19",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        80,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 19",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gear_20",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        227,
+        58,
+        154,
+        15
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Gear slot line 20",
+      "foundry": "carried inventory items (one slot per line)"
+    },
+    {
+      "id": "gp",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        397,
+        246,
+        50,
+        19
+      ],
+      "fontSize": 11,
+      "multiline": false,
+      "align": "center",
+      "description": "GP coins",
+      "foundry": "system.coins.gp"
+    },
+    {
+      "id": "sp",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        465,
+        246,
+        50,
+        19
+      ],
+      "fontSize": 11,
+      "multiline": false,
+      "align": "center",
+      "description": "SP coins",
+      "foundry": "system.coins.sp"
+    },
+    {
+      "id": "cp",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        533,
+        246,
+        50,
+        19
+      ],
+      "fontSize": 11,
+      "multiline": false,
+      "align": "center",
+      "description": "CP coins",
+      "foundry": "system.coins.cp"
+    },
+    {
+      "id": "free_carry",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        397,
+        48.5,
+        186,
+        170
+      ],
+      "fontSize": 8.5,
+      "multiline": true,
+      "align": "left",
+      "description": "Items that don't use gear slots",
+      "foundry": "items with free carry / slots 0"
+    },
+    {
+      "id": "spellcasting_stat",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        470,
+        715,
+        52,
+        18
+      ],
+      "fontSize": 10,
+      "multiline": false,
+      "align": "center",
+      "description": "Spellcasting ability (INT / WIS / CHA)",
+      "foundry": "class item spellcasting ability"
+    },
+    {
+      "id": "spellcasting_mod",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        536,
+        715,
+        46,
+        18
+      ],
+      "fontSize": 12,
+      "multiline": false,
+      "align": "center",
+      "description": "Spellcasting ability modifier",
+      "foundry": "derived ability modifier"
+    },
+    {
+      "id": "spell_1_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        659.5,
+        11,
+        11
+      ],
+      "description": "Spell 1: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_1_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        656.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 1: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_1_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        656.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 1: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_1_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        656.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 1: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_1_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        656.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 1: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_1_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        656.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 1: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_2_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        634.5,
+        11,
+        11
+      ],
+      "description": "Spell 2: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_2_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        631.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 2: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_2_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        631.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 2: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_2_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        631.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 2: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_2_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        631.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 2: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_2_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        631.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 2: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_3_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        609.5,
+        11,
+        11
+      ],
+      "description": "Spell 3: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_3_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        606.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 3: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_3_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        606.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 3: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_3_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        606.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 3: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_3_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        606.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 3: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_3_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        606.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 3: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_4_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        584.5,
+        11,
+        11
+      ],
+      "description": "Spell 4: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_4_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        581.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 4: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_4_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        581.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 4: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_4_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        581.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 4: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_4_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        581.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 4: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_4_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        581.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 4: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_5_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        559.5,
+        11,
+        11
+      ],
+      "description": "Spell 5: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_5_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        556.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 5: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_5_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        556.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 5: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_5_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        556.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 5: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_5_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        556.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 5: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_5_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        556.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 5: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_6_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        534.5,
+        11,
+        11
+      ],
+      "description": "Spell 6: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_6_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        531.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 6: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_6_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        531.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 6: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_6_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        531.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 6: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_6_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        531.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 6: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_6_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        531.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 6: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_7_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        509.5,
+        11,
+        11
+      ],
+      "description": "Spell 7: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_7_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        506.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 7: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_7_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        506.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 7: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_7_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        506.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 7: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_7_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        506.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 7: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_7_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        506.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 7: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_8_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        484.5,
+        11,
+        11
+      ],
+      "description": "Spell 8: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_8_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        481.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 8: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_8_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        481.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 8: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_8_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        481.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 8: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_8_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        481.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 8: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_8_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        481.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 8: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_9_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        459.5,
+        11,
+        11
+      ],
+      "description": "Spell 9: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_9_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        456.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 9: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_9_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        456.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 9: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_9_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        456.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 9: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_9_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        456.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 9: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_9_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        456.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 9: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_10_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        434.5,
+        11,
+        11
+      ],
+      "description": "Spell 10: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_10_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        431.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 10: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_10_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        431.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 10: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_10_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        431.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 10: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_10_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        431.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 10: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_10_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        431.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 10: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_11_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        409.5,
+        11,
+        11
+      ],
+      "description": "Spell 11: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_11_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        406.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 11: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_11_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        406.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 11: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_11_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        406.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 11: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_11_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        406.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 11: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_11_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        406.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 11: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_12_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        384.5,
+        11,
+        11
+      ],
+      "description": "Spell 12: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_12_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        381.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 12: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_12_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        381.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 12: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_12_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        381.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 12: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_12_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        381.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 12: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_12_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        381.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 12: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_13_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        359.5,
+        11,
+        11
+      ],
+      "description": "Spell 13: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_13_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        356.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 13: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_13_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        356.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 13: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_13_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        356.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 13: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_13_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        356.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 13: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_13_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        356.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 13: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_14_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        334.5,
+        11,
+        11
+      ],
+      "description": "Spell 14: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_14_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        331.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 14: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_14_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        331.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 14: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_14_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        331.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 14: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_14_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        331.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 14: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_14_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        331.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 14: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_15_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        309.5,
+        11,
+        11
+      ],
+      "description": "Spell 15: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_15_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        306.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 15: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_15_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        306.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 15: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_15_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        306.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 15: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_15_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        306.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 15: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_15_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        306.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 15: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "spell_16_lost",
+      "page": 2,
+      "type": "checkbox",
+      "rect": [
+        33,
+        284.5,
+        11,
+        11
+      ],
+      "description": "Spell 16: lost until rest",
+      "foundry": "spell item system.lost"
+    },
+    {
+      "id": "spell_16_name",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        53,
+        281.5,
+        160,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 16: name",
+      "foundry": "spell item name"
+    },
+    {
+      "id": "spell_16_tier",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        220,
+        281.5,
+        26,
+        18
+      ],
+      "fontSize": 9,
+      "multiline": false,
+      "align": "center",
+      "description": "Spell 16: tier",
+      "foundry": "spell system.tier"
+    },
+    {
+      "id": "spell_16_range",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        251,
+        281.5,
+        80,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 16: range",
+      "foundry": "spell system.range"
+    },
+    {
+      "id": "spell_16_duration",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        337,
+        281.5,
+        90,
+        18
+      ],
+      "fontSize": 8.5,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 16: duration",
+      "foundry": "spell system.duration"
+    },
+    {
+      "id": "spell_16_notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        433,
+        281.5,
+        150,
+        18
+      ],
+      "fontSize": 8,
+      "multiline": false,
+      "align": "left",
+      "description": "Spell 16: notes",
+      "foundry": "spell summary / advantage notes"
+    },
+    {
+      "id": "features",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        29,
+        158.5,
+        554,
+        98
+      ],
+      "fontSize": 8.5,
+      "multiline": true,
+      "align": "left",
+      "description": "Class + ancestry feature details",
+      "foundry": "class/ancestry item descriptions"
+    },
+    {
+      "id": "notes",
+      "page": 2,
+      "type": "text",
+      "rect": [
+        29,
+        42.5,
+        554,
+        92
+      ],
+      "fontSize": 8.5,
+      "multiline": true,
+      "align": "left",
+      "description": "Free-form notes",
+      "foundry": "actor notes / biography"
+    }
+  ]
+}

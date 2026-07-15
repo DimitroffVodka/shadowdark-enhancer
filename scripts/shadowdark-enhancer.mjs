@@ -54,6 +54,7 @@ import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
 import { MonsterTokenArt } from "./monster-art/monster-token-art.mjs";
 import { TokenArtCatalog } from "./monster-art/token-art-catalog.mjs";
 import { TokenArtManagerApp } from "./monster-art/token-art-manager-app.mjs";
+import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
 // the Shadowdark system's NpcSD model + NpcSheetSD sheet, which the system
@@ -73,6 +74,8 @@ Hooks.once("init", () => {
   SessionRecap.registerSettings();
   ItemDrops.registerSettings();
   MonsterTokenArt.register();
+  // "Export to PDF" header button on owned Shadowdark player sheets.
+  PdfSheetExport.register();
   // Char-builder art gallery: registered on every client, but only ever executed on
   // the GM's, so permission-less players can browse the curated folder by proxy.
   registerArtGalleryQuery();

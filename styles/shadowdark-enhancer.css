@@ -8302,3 +8302,8 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* Extra Gear editor styles are embedded in templates/char-builder/gear-editor.hbs
    (as an inline <style>) rather than here — this window must render correctly even
    when Foundry serves a stale cached copy of this module stylesheet. */
+
+/* "Export to PDF" header button on Shadowdark player sheets. Inherits Foundry's
+   header-button styling; the icon gets a subtle PDF-red accent to stand out. */
+.window-app .window-header .sde-pdf-export i { color: #c0392b; }
+.window-app .window-header .sde-pdf-export:hover i { color: #e74c3c; }
