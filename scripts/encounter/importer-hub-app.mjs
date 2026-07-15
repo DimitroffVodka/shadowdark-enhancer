@@ -157,7 +157,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // PDF → text extraction (Foundry's bundled PDF.js; no external tool)
       hubGrabPdfText:         ImporterHubApp.prototype._onGrabPdfText,
       hubExtractPdf:          ImporterHubApp.prototype._onExtractPdf,
-      hubFillItemDescs:       ImporterHubApp.prototype._onFillItemDescriptions,
       // Manage strip — census/gap/duplicate + maintenance
       monsterGapExpand:       ImporterHubApp.prototype._onMonsterGapExpand,
       monsterSeedPaste:       ImporterHubApp.prototype._onMonsterSeedPaste,
@@ -184,11 +183,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cuFeatDel:              ImporterHubApp.prototype._onCuFeatDel,
       cuTitleAdd:             ImporterHubApp.prototype._onCuTitleAdd,
       cuTitleDel:             ImporterHubApp.prototype._onCuTitleDel,
-      hubRelinkTables:        ImporterHubApp.prototype._onRelinkTables,
-      migrateCompendium:      ImporterHubApp.prototype._onMigrateCompendium,
-      hubFoldLegacyLoot:      ImporterHubApp.prototype._onFoldLegacyLoot,
-      mimportBackfill:        ImporterHubApp.prototype._onBackfill,
-      mimportMigrateSuite:    ImporterHubApp.prototype._onMigrateSuite,
     },
   };
 
@@ -2343,12 +2337,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (parts.length) this._announceContentUnlocked();
     this.render();
   }
-  /** Migrate world RollTables into sde-tables — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
-  async _onMigrateCompendium() {
-    const { migrateCompendiumTables } = await import("./importer-hub-maintenance.mjs");
-    return migrateCompendiumTables(this);
-  }
-
   /** Export the suite as one JSON bundle (REQ-25) — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
   async _onExportBundle() {
     const { exportSuiteBundle } = await import("./importer-hub-maintenance.mjs");
@@ -2365,18 +2353,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onManageSourcePdfs() {
     const { manageSourcePdfs } = await import("./importer-hub-maintenance.mjs");
     return manageSourcePdfs(this);
-  }
-
-  /** Re-link sde-tables to imported monsters/items (REQ-24) — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
-  async _onRelinkTables() {
-    const { relinkPackTables } = await import("./importer-hub-maintenance.mjs");
-    return relinkPackTables(this);
-  }
-
-  /** Fold the legacy Loot pack into sde-items — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
-  async _onFoldLegacyLoot() {
-    const { foldLegacyLoot } = await import("./importer-hub-maintenance.mjs");
-    return foldLegacyLoot(this);
   }
 
   // ── Monsters-tab action handlers ───────────────────────────────────────────
@@ -2780,62 +2756,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Fill item DESCRIPTIONS — the second pass of the two-step gear import. The
-   * table pass (Parse → Create) makes the items with their cost/slots; this
-   * pastes the book's separate "Name. text…" descriptions section and matches
-   * each to an already-imported sde-items item BY NAME, writing its description.
-   * Only items that still have no description are touched (never clobbers hand-
-   * written text). GM-gated; confirms the match list before writing.
-   */
-  async _onFillItemDescriptions() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import items."); return; }
-    const text = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Fill item descriptions", icon: "fas fa-align-left" },
-      content: `
-        <p>Paste the book's item <strong>descriptions</strong> section — the
-        "<em>Name.</em> flavor/rules text…" block that sits apart from the price
-        table. Each is matched to an item you already imported (by name) and fills
-        its description; items that already have one are left alone.</p>
-        <p class="notes">This section is two-column in the book — drag-select it in
-        the PDF viewer, or use <strong>Extract from PDF → Two columns</strong>, so
-        it reads in order before you paste.</p>
-        <textarea name="descs" style="width:100%;height:14rem;" placeholder="Ball bearing. A hefty marble of glossy metal…&#10;Bolas. Near range, one target…"></textarea>`,
-      buttons: [
-        { action: "match", label: "Match to items", icon: "fas fa-link", default: true,
-          callback: (event, button) => button.form.elements.descs.value },
-        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
-      ],
-      rejectClose: false,
-    }).catch(() => null);
-    if (!text || text === "cancel" || !String(text).trim()) return;
-
-    const { findSuitePack } = await import("./compendium-suite.mjs");
-    const pack = findSuitePack("sde-items");
-    if (!pack) { ui.notifications.warn("No sde-items pack yet — import the item table first."); return; }
-    const { ItemImporter } = await import("./item-importer.mjs");
-    const { updates, unmatched, count } = await ItemImporter.matchDescriptionsToItems(text, { pack, onlyEmpty: true });
-    if (!updates.length) {
-      ui.notifications.warn(count
-        ? `Found ${count} description(s), but none matched an item that still needs one (already filled, or not imported yet).`
-        : "No item descriptions were recognized in that paste.");
-      return;
-    }
-    const esc = (s) => foundry.utils.escapeHTML(s);
-    const confirmed = await foundry.applications.api.DialogV2.confirm({
-      window: { title: "Fill item descriptions", icon: "fas fa-align-left" },
-      content: `<p>Fill descriptions for <strong>${updates.length}</strong> item(s):</p>
-        <p style="max-height:9rem;overflow:auto;">${updates.map((u) => esc(u.name)).join(", ")}</p>
-        ${unmatched.length ? `<p class="notes">${unmatched.length} description(s) matched no imported item (import those first): ${unmatched.map(esc).join(", ")}</p>` : ""}`,
-    }).catch(() => false);
-    if (!confirmed) return;
-
-    await Item.updateDocuments(updates.map((u) => ({ _id: u._id, "system.description": u.html })), { pack: pack.collection });
-    this._invalidateItemsCache();
-    this.render();
-    ui.notifications.info(`Filled ${updates.length} item description(s)${unmatched.length ? ` — ${unmatched.length} unmatched` : ""}.`);
-  }
-
-  /**
    * "Extract from PDF" (standalone): pick a linked source book, a page or page
    * range, and column handling, then drop the extracted text into the paste
    * box. Same engine as the seed-flow grab, but page-driven for content that
@@ -3120,17 +3040,6 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
-  /** Backfill imported NPCs to fresh-import fidelity — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
-  async _onBackfill() {
-    const { backfillMonsters } = await import("./importer-hub-maintenance.mjs");
-    return backfillMonsters(this);
-  }
-
-  /** Migrate world imported actors into sde-actors — extracted to importer-hub-maintenance.mjs (review 2026-07-11). */
-  async _onMigrateSuite() {
-    const { migrateSuiteActors } = await import("./importer-hub-maintenance.mjs");
-    return migrateSuiteActors(this);
-  }
 }
 
 /**

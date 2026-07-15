@@ -20,7 +20,6 @@ import { pickTreasureIcon } from "./loot-pack.mjs";
 import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml, SUITE_PACKS } from "./compendium-suite.mjs";
 import { LootLinker } from "./loot-linker.mjs";
-import { splitDescriptionsByNames } from "./item-parser.mjs";
 import { escapeHtml } from "./pdf-text-utils.mjs";
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
@@ -528,42 +527,14 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
   }
 
   LootLinker.invalidate();
+  if (out.created.length || out.replaced.length) {
+    // Treasure/encounter tables that referenced these items by bare name pick
+    // up real links via the debounced sweep — no manual Re-link needed.
+    const { TableEnricher } = await import("./table-enrich.mjs");
+    TableEnricher.scheduleRelinkSweep();
+  }
   return out;
 }
-
-/**
- * Second pass of the two-step gear import: fill item DESCRIPTIONS from a pasted
- * "Name. text…" block. READ-ONLY — builds the update list; the caller writes it
- * after a confirm. Descriptions are split by name against the ACTUAL sde-items
- * names (book-derived, so the headers line up), matched normalized. Only items
- * that already exist are touched — this never creates items. Returns
- * { updates: [{_id, name, html}], unmatched: string[], count }.
- *
- * @param {string} text            the pasted descriptions blob
- * @param {{ pack?, onlyEmpty?: boolean }} opts  onlyEmpty skips items that
- *        already have a description (don't clobber hand-written text)
- */
-export async function matchDescriptionsToItems(text, { pack, onlyEmpty = false } = {}) {
-  if (!pack) pack = findSuitePack("sde-items") ?? (await ensureSuite())?.items;
-  if (!pack) { console.error(`${MODULE_ID} | matchDescriptionsToItems: sde-items pack not found`); return { updates: [], unmatched: [], count: 0 }; }
-  const docs = await pack.getDocuments();
-  const norm = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const byName = new Map(docs.map((d) => [norm(d.name), d]));
-  const entries = splitDescriptionsByNames(text, docs.map((d) => d.name));
-  const updates = [];
-  const unmatched = [];
-  const hasText = (html) => _strip(html).length > 0;
-  for (const e of entries) {
-    const doc = byName.get(norm(e.name));
-    if (!doc) { unmatched.push(e.name); continue; }
-    if (onlyEmpty && hasText(doc.system?.description)) continue;
-    updates.push({ _id: doc.id, name: doc.name, html: `<p>${escapeHtml(e.description)}</p>` });
-  }
-  return { updates, unmatched, count: entries.length };
-}
-
-/** Strip tags/whitespace — is there real text? (shared with matchDescriptions.) */
-function _strip(html) { return String(html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
 
 /** The Shadowdark SYSTEM item packs whose contents ship with the game — an
  *  import that names one of these would only duplicate core content. Weapons
@@ -629,4 +600,4 @@ export async function partitionSystemDuplicates(items) {
   return { fresh, duplicates };
 }
 
-export const ItemImporter = { buildItemData, createItem, createItems, matchDescriptionsToItems, spellFolderNames, talentFolderNames, systemItemNameIndex, partitionSystemDuplicates, normalizeItemName, resolveGearProperties, resolveGearPropertiesAll };
+export const ItemImporter = { buildItemData, createItem, createItems, spellFolderNames, talentFolderNames, systemItemNameIndex, partitionSystemDuplicates, normalizeItemName, resolveGearProperties, resolveGearPropertiesAll };

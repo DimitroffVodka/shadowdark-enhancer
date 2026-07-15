@@ -100,7 +100,7 @@ export const TableEnricher = {
     MonsterLinker.invalidate();
     LootLinker.invalidate();
 
-    const tally = { tables: 0, encounters: 0, treasures: 0, linked: 0, skipped: 0, failures: 0 };
+    const tally = { tables: 0, encounters: 0, treasures: 0, linked: 0, updated: 0, skipped: 0, failures: 0 };
     const docs = await pack.getDocuments();
     for (const table of docs) {
       tally.tables++;
@@ -114,6 +114,7 @@ export const TableEnricher = {
           const res = await this.enrichEncounters(table);
           tally.encounters++;
           tally.linked += res?.linked ?? 0;
+          tally.updated += res?.updated ?? 0;
         } else {
           tally.skipped++;
         }
@@ -123,6 +124,30 @@ export const TableEnricher = {
       }
     }
     return tally;
+  },
+
+  /**
+   * Debounced, fire-and-forget sweepPack. The import primitives
+   * (createMonsters / createItems) call this after creating documents, so
+   * tables that referenced them by name pick up real @UUID links without the
+   * GM running Maintenance → Re-link by hand. A commit burst (Commit All runs
+   * monsters → items → spells back-to-back) collapses into one sweep. Silent
+   * unless a row actually changed; failures log, never throw.
+   */
+  scheduleRelinkSweep({ delayMs = 2500 } = {}) {
+    if (!game.user?.isGM) return;
+    clearTimeout(this._autoSweepTimer);
+    this._autoSweepTimer = setTimeout(async () => {
+      this._autoSweepTimer = null;
+      try {
+        const tally = await this.sweepPack();
+        if (tally?.updated) {
+          ui.notifications?.info(`Roll tables re-linked to the new imports: ${tally.updated} row(s) updated.`);
+        }
+      } catch (err) {
+        console.error(`${MODULE_ID} | auto table re-link failed:`, err);
+      }
+    }, delayMs);
   },
 
   /** Enrich every table in a list of {uuid, kind}. Returns a tally. */

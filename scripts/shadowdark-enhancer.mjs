@@ -417,6 +417,29 @@ Hooks.once("ready", () => {
     }
     game.settings.set(MODULE_ID, "lootSetupSeen", true);
   }
+  // When the module version changes, quietly bring already-imported monsters up
+  // to fresh-import fidelity (icons, casing, spell items, art) — the retired
+  // Maintenance → "Backfill monsters" button, now automatic. Idempotent and
+  // non-destructive; deferred so it never delays ready; silent unless it
+  // actually upgraded something. Version stamp only advances on success, so a
+  // failed sweep retries next load.
+  if (game.user.isGM) {
+    const cur = String(game.modules.get(MODULE_ID)?.version ?? "");
+    if (cur && game.settings.get(MODULE_ID, "backfillVersion") !== cur) {
+      setTimeout(async () => {
+        try {
+          const { backfillTargets } = await import("./encounter/monster-backfill.mjs");
+          const result = await backfillTargets({ scope: "pack", dryRun: false });
+          if (result?.changed?.length) {
+            ui.notifications.info(`Shadowdark Enhancer: ${result.changed.length} imported monster(s) upgraded to current import fidelity.`);
+          }
+          await game.settings.set(MODULE_ID, "backfillVersion", cur);
+        } catch (err) {
+          console.error(`${MODULE_ID} | auto-backfill after update failed:`, err);
+        }
+      }, 5000);
+    }
+  }
 });
 
 function checkCoexistence() {

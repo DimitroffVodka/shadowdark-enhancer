@@ -76,14 +76,27 @@ function detectGutter(its, W, mode = "auto") {
     const b = Math.min(NB - 1, Math.max(0, Math.floor((c / W) * NB)));
     bins[b]++;
   }
-  // Lowest-density bin within the central 30–70% band = candidate gutter.
+  // Candidate gutter = the WIDEST run of lowest-density bins in the central
+  // 30–70% band, split at its middle. A real column gap is several bins wide;
+  // taking the first minimum instead picked accidental one-bin gaps inside a
+  // column (WR p107 descriptions: x=138 between the bold item-name runs and
+  // their continuation lines, vs the true ~210 gutter — beheaded every entry).
   const lo = Math.floor(NB * 0.3);
   const hi = Math.ceil(NB * 0.7);
-  let valley = lo;
   let valleyCount = Infinity;
-  for (let b = lo; b <= hi; b++) {
-    if (bins[b] < valleyCount) { valleyCount = bins[b]; valley = b; }
+  for (let b = lo; b <= hi; b++) valleyCount = Math.min(valleyCount, bins[b]);
+  let best = null;
+  let run = null;
+  for (let b = lo; b <= hi + 1; b++) {
+    if (b <= hi && bins[b] === valleyCount) {
+      run = run ?? { start: b, end: b };
+      run.end = b;
+    } else if (run) {
+      if (!best || run.end - run.start > best.end - best.start) best = run;
+      run = null;
+    }
   }
+  const valley = best ? Math.round((best.start + best.end) / 2) : lo;
   const splitX = ((valley + 0.5) / NB) * W;
 
   if (mode === "2") return splitX;   // forced: trust the valley, no guard
@@ -156,8 +169,58 @@ function columnLines(col, pad = false) {
   });
 }
 
+/** A gear price-table row: "Name … 5 sp 1" — or a wrapped row whose cost
+ *  starts the line ("240 gp 1 13 + DEX mod M" under "Chainmail,"). */
+const PRICED_ROW_RE = /(?:^|\s)\d+\s*(?:gp|sp|cp)\b/i;
+
+/** Group items into visual lines (columns merged), top→bottom, with y kept. */
+function _yLineGroups(its) {
+  const sorted = [...its].sort(
+    (a, b) => b.transform[5] - a.transform[5] || a.transform[4] - b.transform[4],
+  );
+  const groups = [];
+  let cur = null;
+  let lastY = null;
+  for (const it of sorted) {
+    const y = it.transform[5];
+    if (lastY === null || Math.abs(y - lastY) > (it.height || 8) * 0.5) {
+      cur = { y, parts: [] };
+      groups.push(cur);
+      lastY = y;
+    }
+    cur.parts.push(it);
+  }
+  for (const g of groups) {
+    g.text = g.parts.sort((a, b) => a.transform[4] - b.transform[4]).map((p) => p.str).join(" ");
+  }
+  return groups;
+}
+
+/**
+ * Shared-page crop: a gear page can open with the full-width price table
+ * ("Oil, flask 5 sp 1") and continue into two-column descriptions. Those
+ * full-width rows drag the gutter valley off-center (verified on WR p107:
+ * forced-2 split at x=138 vs the true ~centre gutter), beheading the first
+ * description column. Drop every item at or above the table's last priced
+ * row so column detection sees only the true two-column region. A page whose
+ * top cluster has fewer than 3 contiguous priced rows (i.e. no real table
+ * prefix — a plain descriptions page) passes through untouched.
+ */
+function _cropTablePrefix(its) {
+  const groups = _yLineGroups(its);
+  let lastPriced = null;
+  let count = 0;
+  let dry = 0;
+  for (const g of groups) {
+    if (PRICED_ROW_RE.test(g.text)) { lastPriced = g.y; count++; dry = 0; }
+    else if (count && ++dry >= 2) break;   // two non-priced lines = table over
+  }
+  if (count < 3 || lastPriced == null) return its;
+  return its.filter((i) => i.transform[5] < lastPriced - ((i.height || 8) * 0.5));
+}
+
 /** Extract one already-loaded page to an ordered array of text lines. */
-async function extractPageLines(page, mode) {
+async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   // Force rotation:0 so page width matches the text items' coordinate space.
   // getTextContent() returns item transforms in UNROTATED page space, but a
   // viewport's default width reflects the page's /Rotate (e.g. a Rotate-90 page
@@ -166,7 +229,8 @@ async function extractPageLines(page, mode) {
   // rotate their map/spread pages). Pinning rotation:0 keeps both in sync.
   const vp = page.getViewport({ scale: 1, rotation: 0 });
   const tc = await page.getTextContent();
-  const its = tc.items.filter((i) => i.str && i.str.trim().length);
+  let its = tc.items.filter((i) => i.str && i.str.trim().length);
+  if (cropTablePrefix) its = _cropTablePrefix(its);
   const gutter = detectGutter(its, vp.width, mode);
   // Assign each item to a column by its CENTER (robust to the gutter estimate
   // being off-center within the true gap). Reading order: whole left column,
@@ -193,10 +257,12 @@ async function extractPageLines(page, mode) {
  * @param {object} [opts]
  * @param {number[]} [opts.pages]     1-based PDF page numbers (default: [1])
  * @param {"auto"|"1"|"2"} [opts.columns="auto"]  column handling
+ * @param {boolean} [opts.cropTablePrefix=false]  drop a leading full-width
+ *        price-table block before column detection (shared gear pages)
  * @returns {Promise<{text:string, numPages:number,
  *   pages: Array<{page:number, gutter:number|null, lines:string[], empty:boolean}>}>}
  */
-export async function extractPdfText(filePath, { pages = [1], columns = "auto" } = {}) {
+export async function extractPdfText(filePath, { pages = [1], columns = "auto", cropTablePrefix = false } = {}) {
   const doc = await _openDoc(filePath);
   const wanted = pages
     .filter((n) => Number.isInteger(n) && n >= 1 && n <= doc.numPages)
@@ -204,12 +270,15 @@ export async function extractPdfText(filePath, { pages = [1], columns = "auto" }
   const results = [];
   for (const n of wanted) {
     const page = await doc.getPage(n);
-    const { gutter, lines } = await extractPageLines(page, columns);
+    const { gutter, lines } = await extractPageLines(page, columns, { cropTablePrefix });
     results.push({ page: n, gutter, lines, empty: lines.length === 0 });
   }
   const text = results.map((r) => r.lines.join("\n")).join("\n\n").trim();
   return { text, numPages: doc.numPages, pages: results };
 }
+
+// Node-testable internals (no Foundry globals at module level).
+export const _internals = { detectGutter, columnLines, _yLineGroups, _cropTablePrefix, PRICED_ROW_RE };
 
 /**
  * Parse a page-range spec into a sorted, de-duped list of page numbers.

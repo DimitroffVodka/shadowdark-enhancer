@@ -39,7 +39,6 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       importAddRow:     RollTablesApp.prototype._onImportAddRow,
       importDeleteRow:  RollTablesApp.prototype._onImportDeleteRow,
       importUnlinkRow:  RollTablesApp.prototype._onImportUnlinkRow,
-      migrateCompendium: RollTablesApp.prototype._onMigrateCompendium,
     },
   };
 
@@ -470,86 +469,6 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * compendium. On success removes it from the preview list. When the preview
    * empties, hop back to the Dashboard so the GM sees the updated status.
    */
-  /**
-   * "Migrate to compendium" action (D-04).
-   * Dry-run preview first → DialogV2 confirm → commit sweep → re-render.
-   * GM-gated. Calls table-migration.mjs dynamically (Foundry-free import isolation).
-   */
-  async _onMigrateCompendium() {
-    if (!game.user?.isGM) return;
-
-    const { planTableMigration, migrateTables } = await import("./table-migration.mjs");
-
-    // 1. Dry-run: gather the plan without mutating anything (D-04).
-    const plan = await migrateTables({ dryRun: true });
-    if (!plan) return;
-
-    // Build a human-readable breakdown for the confirm dialog.
-    const bySourceLines = Object.entries(plan.bySource)
-      .filter(([, n]) => n > 0)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([src, n]) => `<li>${foundry.utils.escapeHTML(src || "(no source)")}: ${n}</li>`)
-      .join("");
-    const byCategoryLines = Object.entries(plan.byCategory)
-      .filter(([, n]) => n > 0)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([cat, n]) => `<li>${foundry.utils.escapeHTML(cat || "(no category)")}: ${n}</li>`)
-      .join("");
-
-    const previewHtml = plan.total === 0
-      ? `<p>No module-imported world tables found to migrate. All tables are either already in the compendium pack or are hand-made world tables.</p>`
-      : `<p>Found <strong>${plan.total}</strong> module-imported world table(s) to migrate into <em>sde-tables</em>.</p>
-         <p>Originals will be moved to <em>_Backup (pre-suite)</em> (never deleted).<br>
-         Loot Setup bindings will be repointed to the new pack UUIDs.</p>
-         ${bySourceLines ? `<p><strong>By source:</strong></p><ul>${bySourceLines}</ul>` : ""}
-         ${byCategoryLines ? `<p><strong>By category:</strong></p><ul>${byCategoryLines}</ul>` : ""}`;
-
-    if (plan.total === 0) {
-      // Nothing to do — inform and return without a commit dialog.
-      await foundry.applications.api.DialogV2.alert({
-        window: { title: "Migrate to Compendium" },
-        content: previewHtml,
-      }).catch(() => {});
-      return;
-    }
-
-    // 2. Show preview + confirm dialog (D-04 human-in-the-loop).
-    const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Migrate Tables to Compendium" },
-      content: previewHtml,
-      buttons: [
-        { action: "migrate", label: "Migrate", default: true },
-        { action: "cancel",  label: "Cancel" },
-      ],
-      rejectClose: false,
-    }).catch(() => "cancel");
-
-    if (!choice || choice === "cancel") return;
-
-    // 3. Commit the migration sweep.
-    let result;
-    try {
-      result = await migrateTables({ dryRun: false });
-    } catch (err) {
-      console.error("shadowdark-enhancer | table-migration: unexpected error:", err);
-      ui.notifications?.error("Table migration failed — see the console for details.");
-      return;
-    }
-
-    if (!result) return;
-
-    // 4. Report outcome and re-render so the hub reflects updated statuses.
-    const summary = [
-      `${result.copied} table(s) copied to compendium`,
-      `${result.backedUp} original(s) moved to _Backup`,
-      result.bindingsRepointed ? `${result.bindingsRepointed} Loot Setup binding(s) repointed` : "",
-      result.failures ? `${result.failures} failure(s) — see console` : "",
-    ].filter(Boolean).join(" · ");
-
-    ui.notifications?.info(`Migration complete: ${summary}.`);
-    this.render();
-  }
-
   async _createImportedTable(tbl, { silent = false } = {}) {
     const onConflict = async (name) => {
       const safe = foundry.utils.escapeHTML(name);

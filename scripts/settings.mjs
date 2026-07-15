@@ -242,6 +242,12 @@ export function registerSettings() {
     scope: "world", config: false, type: Boolean, default: false,
   });
 
+  // Last module version whose automatic monster backfill ran in this world —
+  // the update-time sweep that replaced Maintenance → "Backfill monsters".
+  game.settings.register(MODULE_ID, "backfillVersion", {
+    scope: "world", config: false, type: String, default: "",
+  });
+
   game.settings.register(MODULE_ID, "encounterRollGMOnly", {
     name: "SDE.settings.encounterRollGMOnly.name",
     hint: "SDE.settings.encounterRollGMOnly.hint",

@@ -131,7 +131,7 @@ export function classifyEntry(text, items) {
 /**
  * Persistence target for fabricated/catalog loot: the managed sde-items suite
  * pack (A-07 / D8 — nothing materializes into the legacy world "Loot" pack).
- * Name kept for callers; the legacy pack is folded in by item-migration.mjs.
+ * Name kept for callers.
  */
 export async function ensureLootPack() {
   let pack = findSuitePack("sde-items");

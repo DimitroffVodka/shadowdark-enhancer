@@ -79,9 +79,6 @@
         <button type="button" data-action="hubExtractPdf"
                 title="Pull clean, reading-ordered text out of one of your uploaded books (any page or range) straight into the paste box.">
           <i class="fas fa-wand-magic-sparkles"></i> Extract from PDF<small>Pull a page's text into the box</small></button>
-        <button type="button" data-action="hubFillItemDescs"
-                title="Second pass of the gear import: paste the book's 'Name. text…' descriptions and match each to an already-imported item by name.">
-          <i class="fas fa-align-left"></i> Fill item descriptions<small>Second pass: match descriptions to gear</small></button>
         <button type="button" data-action="hubExportBundle"
                 title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle.">
           <i class="fas fa-file-export"></i> Export bundle<small>Back up the whole suite to a file</small></button>
@@ -799,34 +796,6 @@
         </div>
       </section>
       {{/if}}
-
-      {{!-- Maintenance actions — rare one-off cleanups; each says what it does. --}}
-      <section class="sde-hub-monsters-maintenance">
-        <h3 class="sde-hub-monsters-section-title"><i class="fas fa-wrench"></i> Maintenance</h3>
-        <p class="sde-hub-maint-intro">One-off cleanups — you normally never need these. Each is safe to re-run.</p>
-        <div class="sde-hub-monsters-maintenance-row">
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubRelinkTables">
-            <span><i class="fas fa-link"></i> Re-link pack tables</span>
-            <small>Reconnect every roll table's rows to your imported monsters &amp; items (fixes broken links).</small>
-          </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="migrateCompendium">
-            <span><i class="fas fa-box-archive"></i> Migrate tables to compendium</span>
-            <small>Move loose world roll tables into the sde-tables pack (originals kept as a _Backup).</small>
-          </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="hubFoldLegacyLoot">
-            <span><i class="fas fa-boxes-packing"></i> Fold legacy Loot into Items</span>
-            <small>Copy an old world "Loot" pack's items into sde-items (the old pack stays as a locked backup).</small>
-          </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportBackfill">
-            <span><i class="fas fa-arrow-up-from-bracket"></i> Backfill monsters</span>
-            <small>Re-run the importer over monsters you imported earlier to add newer fields (art, spells, icons).</small>
-          </button>
-          <button type="button" class="sde-hub-monsters-maint-btn" data-action="mimportMigrateSuite">
-            <span><i class="fas fa-dragon"></i> Migrate monsters to suite</span>
-            <small>Move world-side imported monster actors into the sde-actors pack (originals → _Backup).</small>
-          </button>
-        </div>
-      </section>
 
     </div>
     {{else}}

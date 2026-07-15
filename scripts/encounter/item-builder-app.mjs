@@ -106,7 +106,7 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _reset() {
     this._tableText = ""; this._descText = ""; this._items = [];
-    this._lastReport = null; this._focused = null;
+    this._lastReport = null; this._focused = null; this._systemDupes = [];
   }
   _onStartOver() { this._reset(); this.render(); }
 
@@ -155,6 +155,8 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemCount: this._items.length,
       withDesc,
       needDesc: this._items.length - withDesc,
+      systemDupes: this._systemDupes ?? [],
+      systemDupeCount: (this._systemDupes ?? []).length,
       report: this._lastReport,
     };
   }
@@ -211,13 +213,29 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (text == null) return;
     this._tableText = this._append(this._tableText, text);
     this.render();
-    this._onParseTable();   // one press: grab + parse
+    await this._onParseTable();   // one press: grab + parse
   }
 
-  _onParseTable() {
+  async _onParseTable() {
     const { claimed } = itemRecognizer.claim(this._tableText, { force: true });
-    const drafts = itemRecognizer.parse(claimed, { force: true }).map((r) => r.draft);
+    let drafts = itemRecognizer.parse(claimed, { force: true }).map((r) => r.draft);
     if (!drafts.length) { ui.notifications?.warn("No priced item rows found — is this the price table (Name cost qty slot)?"); return; }
+    // Drop rows the Shadowdark SYSTEM already ships: the WR gear/weapon/armor
+    // tables reprint the whole core set (Arrows, Backpack, Caltrops, Crossbow
+    // Bolts, Crowbar, …), so importing them all would duplicate shadowdark.gear/
+    // magic-items. Keep only what's genuinely new; report the rest.
+    const { systemItemNameIndex, normalizeItemName } = await import("./item-importer.mjs");
+    const sys = await systemItemNameIndex();
+    this._systemDupes = [];
+    if (sys.size) {
+      const kept = [];
+      for (const d of drafts) {
+        const hit = sys.get(normalizeItemName(d.name));
+        if (hit) this._systemDupes.push(d.name);
+        else kept.push(d);
+      }
+      drafts = kept;
+    }
     // Merge into the working set: new names add a row (name+cost+slots),
     // existing names refresh cost/slots but KEEP any description already matched.
     for (const d of drafts) {
@@ -225,7 +243,8 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (existing) { existing.cost = d.cost; existing.slots = d.slots; }
       else this._items.push({ name: d.name, cost: d.cost, slots: d.slots, description: "" });
     }
-    ui.notifications?.info(`Table parsed — ${this._items.length} item(s). Now add descriptions in step 2.`);
+    const dupNote = this._systemDupes.length ? ` (${this._systemDupes.length} already in the system — skipped)` : "";
+    ui.notifications?.info(`Table parsed — ${this._items.length} new item(s)${dupNote}. Now add descriptions in step 2.`);
     this.render();
   }
 
@@ -235,19 +254,49 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const pages = this._pages();
     const target = (key && pages?.desc) ? sourcePdfTarget(key, pages.desc) : null;
     if (!target) { ui.notifications?.warn("No description page for this source + type — paste the descriptions below."); return; }
-    const text = await this._grab(key, target.file, pages.desc, "2");   // descriptions are two-column
-    if (text == null) return;
+    // Two-column, with the shared page's leading price-table block cropped out
+    // (it drags the column split off-centre and beheads the first entries).
+    const raw = await this._grab(key, target.file, pages.desc, "2", { cropTablePrefix: true });
+    if (raw == null) return;
+    const text = raw.split("\n").filter((l) => !/^\d{1,4}$/.test(l.trim())).join("\n");   // bare page-footer numbers
     this._descText = this._append(this._descText, text);
     this.render();
     this._onMatchDesc();   // one press: grab + match
   }
 
+  /** Anchor variants for one table row: the name itself, minus a trailing
+   *  "(3)" quantity, and the part before a container comma — the book's
+   *  description headers are bare nouns ("Candle.", "Tallow.") while the
+   *  table rows carry suffixes ("Candle (3)", "Tallow, Jar"). */
+  _descAnchorNames(name) {
+    const full = String(name ?? "").trim();
+    const noQty = full.replace(/\s*\([^)]*\)\s*$/, "").trim();
+    const noComma = noQty.split(",")[0].trim();
+    return [...new Set([full, noQty, noComma].filter(Boolean))];
+  }
+
   _onMatchDesc() {
     if (!this._items.length) { ui.notifications?.warn("Parse the table first (step 1) — descriptions match to those items by name."); return; }
-    const entries = splitDescriptionsByNames(this._descText, this._items.map((it) => it.name));
+    // Exact names claim their key outright; variants only fill free keys, and
+    // a variant two items share ("Rope" from both ropes) is dropped as
+    // ambiguous rather than mis-assigned.
+    const claim = new Map();   // _norm(anchor) → item | null (ambiguous)
+    const exact = new Set();
+    for (const it of this._items) { const k = _norm(it.name); claim.set(k, it); exact.add(k); }
+    for (const it of this._items) {
+      for (const v of this._descAnchorNames(it.name)) {
+        const k = _norm(v);
+        if (!k || exact.has(k)) continue;                   // exact names win outright
+        if (!claim.has(k)) claim.set(k, it);
+        else if (claim.get(k) !== it) claim.set(k, null);   // shared variant → ambiguous
+      }
+    }
+    const anchorNames = this._items.flatMap((it) => this._descAnchorNames(it.name))
+      .filter((v) => claim.get(_norm(v)) != null);
+    const entries = splitDescriptionsByNames(this._descText, anchorNames);
     let matched = 0;
     for (const e of entries) {
-      const it = this._items.find((x) => _norm(x.name) === _norm(e.name));
+      const it = claim.get(_norm(e.name));
       if (!it) continue;
       it.description = `<p>${_escape(e.description)}</p>`;
       matched++;
@@ -295,14 +344,14 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ── Shared helpers ────────────────────────────────────────────────────────────
   /** Pull the printed page range `spec` from `file` in `columns` mode, mapping
    *  each printed page through the registry's per-source offset. Text or null. */
-  async _grab(srcKey, file, spec, columns) {
+  async _grab(srcKey, file, spec, columns, extractOpts = {}) {
     const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
     const pdfPages = parsePageRange(spec)
       .map((p) => sourcePdfTarget(srcKey, String(p))?.page)
       .filter((p) => p != null);
     if (!pdfPages.length) { ui.notifications?.warn("Couldn't resolve those pages in the source PDF."); return null; }
     try {
-      const { text } = await extractPdfText(file, { pages: pdfPages, columns });
+      const { text } = await extractPdfText(file, { pages: pdfPages, columns, ...extractOpts });
       if (!text) { ui.notifications?.warn("That page has no selectable text."); return null; }
       return text;
     } catch (err) {

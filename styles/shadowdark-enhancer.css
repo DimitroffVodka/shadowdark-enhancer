@@ -2541,20 +2541,6 @@ body.theme-light .sde-hub-import-item-desc-input {
 /* Review-note list text on parchment */
 .sde-class-preview .sde-import-warnings { color: var(--cus-dim); }
 
-/* Migrate button — same style as .sde-thub-refresh */
-.sde-thub-migrate {
-  flex: 0 0 auto;
-  padding: 3px 10px;
-  background: var(--sde-bar-btn-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: var(--sde-bar-radius);
-  color: var(--sde-bar-text);
-  font-family: var(--sde-bar-font);
-  font-size: 12px;
-  cursor: pointer;
-}
-.sde-thub-migrate:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-accent); }
-
 /* Light-theme: keep tab active accent legible (8a7020 = 4.5:1 on #f0ede6) */
 body.theme-light .sde-hub-tab-btn:hover {
   background: var(--sde-bar-bg-hover);
@@ -2800,63 +2786,6 @@ body.theme-light .sde-hub-tab-btn.active {
   background: var(--sde-bar-bg-hover);
 }
 .sde-hub-monsters-cull-btn:focus-visible {
-  outline: 2px solid var(--sde-bar-accent);
-  outline-offset: 1px;
-}
-
-/* Maintenance row (D-03) */
-.sde-hub-monsters-maintenance {
-  border-top: 1px solid var(--sde-bar-border);
-  padding-bottom: 8px;
-}
-
-.sde-hub-monsters-maintenance-row {
-  display: flex;
-  gap: 8px;
-  padding: 6px 12px 0;
-  flex-wrap: wrap;
-}
-
-.sde-hub-maint-intro {
-  color: var(--sde-bar-text-muted);
-  font-size: 0.8rem;
-  margin: 0 0 0.4rem;
-}
-.sde-hub-monsters-maintenance-row {
-  flex-wrap: wrap;
-}
-.sde-hub-monsters-maint-btn {
-  background: var(--sde-bar-btn-1);
-  border: 1px solid var(--sde-bar-border);
-  border-radius: 3px;
-  color: var(--sde-bar-text);
-  font-size: 0.82rem;
-  cursor: pointer;
-  padding: 6px 12px;
-  width: auto;
-  flex: 1 1 260px;
-  max-width: 340px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  text-align: left;
-  white-space: normal;
-}
-.sde-hub-monsters-maint-btn > span { font-weight: 600; white-space: nowrap; }
-.sde-hub-monsters-maint-btn > small {
-  color: var(--sde-bar-text-muted);
-  font-size: 0.75rem;
-  line-height: 1.25;
-  font-weight: 400;
-}
-.sde-hub-monsters-maint-btn:hover > small { color: var(--sde-bar-text-dim); }
-.sde-hub-monsters-maint-btn:hover {
-  border-color: var(--sde-bar-accent);
-  color: var(--sde-bar-accent);
-  background: var(--sde-bar-bg-hover);
-}
-.sde-hub-monsters-maint-btn:focus-visible {
   outline: 2px solid var(--sde-bar-accent);
   outline-offset: 1px;
 }

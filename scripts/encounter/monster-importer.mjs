@@ -212,6 +212,12 @@ export async function createMonsters(drafts, { source = "", onConflict } = {}) {
     else out.created.push({ name: r.name, uuid: r.uuid });
   }
   MonsterLinker.invalidate();
+  if (out.created.length || out.replaced.length) {
+    // Tables imported before these monsters existed reference them by bare
+    // name; the debounced sweep upgrades those rows to real @UUID links.
+    const { TableEnricher } = await import("./table-enrich.mjs");
+    TableEnricher.scheduleRelinkSweep();
+  }
   return out;
 }
 
