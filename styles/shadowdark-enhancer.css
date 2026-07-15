@@ -7311,6 +7311,23 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   background: var(--sd-page);
   color: var(--sd-text-body);
   font-family: var(--sd-font-body);
+
+  /* Native widgets (select popups, scrollbars) follow Foundry's core
+     light/dark theme, not this always-dark app — under core light the closed
+     <select> face inherits near-black text, under core dark the option popup
+     paints white behind this app's inherited white text. Pin the scheme. */
+  color-scheme: dark;
+}
+
+.sde-cb select {
+  background: var(--cb-panel);
+  color: var(--cb-text);
+}
+.sde-cb select:disabled { color: var(--cb-muted); }
+.sde-cb select option,
+.sde-cb select optgroup {
+  background: var(--sd-quote-inner);
+  color: var(--cb-text);
 }
 
 /* --- Tab bar -------------------------------------------------------------- */
