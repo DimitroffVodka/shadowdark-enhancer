@@ -66,6 +66,15 @@ function _isFeatureName(s) {
   return words.every((w) => /^[A-Z]/.test(w) || _SMALL_WORDS.has(w.toLowerCase()));
 }
 
+/** "Spellcasting. You can cast…" — a feature-header line. Ends any talent-table
+ *  text run: WR prints features AFTER the talents box in column reading order
+ *  (Green Knight p44), and gluing one into a row text shears it from the walk —
+ *  the class then imports as a NON-caster. */
+function _isFeatureHeader(l) {
+  const fm = l.match(FEATURE_RE);
+  return !!fm && _isFeatureName(fm[1]);
+}
+
 /** All-caps book caption → display case ("GREEN KNIGHT" → "Green Knight"). */
 function _displayCase(s) {
   if (/[a-z]/.test(s)) return s;
@@ -214,6 +223,7 @@ function _findTalentTable(lines) {
       if (/^\d{1,3}$/.test(l) || /^effects?$/i.test(l) || (!texts.length && /^effects?\b/i.test(l))) { skip.add(k); continue; }
       if (TITLES_CAP.test(l) || CAPS_CAP.test(l)) break;   // next caption
       if (FLAVOR_LINE.test(l)) break;                      // trailing flavor quote / attribution
+      if (_isFeatureHeader(l)) break;                      // a feature resumes — table over
       skip.add(k);
       if (texts.length && /^[a-z]/.test(l)) texts[texts.length - 1] += " " + l;   // wrapped line
       else texts.push(l);
@@ -292,6 +302,7 @@ function _findTalentTable(lines) {
         if (TALENTS_CAP.test(lines[k]) || TITLES_CAP.test(lines[k]) || CAPS_CAP.test(lines[k])) break;
         if (/^effects?\b/i.test(lines[k]) || /^\d{1,3}$/.test(lines[k])) { skip.add(k); continue; }   // header / page-footer stray
         if (FLAVOR_LINE.test(lines[k])) break;             // trailing flavor quote / attribution
+        if (_isFeatureHeader(lines[k])) break;             // a feature resumes — table over
         const rm = lines[k].match(ROW_START);
         if (rm) { rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] }); skip.add(k); }
         else if (rows.length) { rows[rows.length - 1].text += " " + lines[k]; skip.add(k); }   // wrapped row
@@ -332,6 +343,7 @@ function _findTalentTable(lines) {
     if (TITLES_CAP.test(lines[j]) || CAPS_CAP.test(lines[j])) break;
     if (/^effects?\b/i.test(lines[j]) || /^\d{1,3}$/.test(lines[j])) { skip.add(j); continue; }   // header / page-footer stray
     if (FLAVOR_LINE.test(lines[j])) break;                 // trailing flavor quote / attribution
+    if (_isFeatureHeader(lines[j])) break;                 // a feature resumes — table over
     const rm = lines[j].match(ROW_START);
     if (rm) { rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] }); skip.add(j); }
     else if (rows.length) { rows[rows.length - 1].text += " " + lines[j]; skip.add(j); }   // wrapped row
@@ -682,6 +694,12 @@ export function parseClassSection(text) {
       warnings.push(`"${f.name}" is a choice-at-creation feature — register it in CHOICE_SPECS (class-step.mjs) and wire its effect.`);
     keptFeatures.push({ name: f.name, description: toHtml(f.lines) });
   }
+
+  // A spells-known grid with NO Spellcasting feature = the caster wiring got
+  // sheared (glued into a table or dropped by the walk). Committing would make
+  // a NON-caster class: no enabler talent, no spell picks at level-up.
+  if (!spellcasting && (sk?.known?.length ?? 0) > 0)
+    warnings.push("BLOCKER: the paste has a SPELLS KNOWN grid but no Spellcasting feature was captured — the class would import as a NON-caster (no enabler talent, no level-up spell choices). Find the writeup's Spellcasting paragraph (it can print after the talents box) and include it.");
 
   // ── Talent-table row classification ──
   const talentTable = _classifyTalentTable(tbl, warnings);

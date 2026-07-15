@@ -707,6 +707,8 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
     }));
   }
   if (sup.spellsKnown?.length) {
+    if ((cls.system?.spellcasting?.class ?? "") === "__not_spellcaster__")
+      report.warnings.push(`BLOCKER: "${cls.name}" is marked NOT a spellcaster, but this paste carries a SPELLS KNOWN grid — the body import probably lost its Spellcasting feature (it can print after the talents box). Re-import the class body, or set the casting ability and enabler talent by hand.`);
     update["system.spellcasting.spellsknown"] = Object.fromEntries(
       sup.spellsKnown.filter((r) => r.level >= 1 && r.level <= 10).map((r) => [
         String(r.level),
