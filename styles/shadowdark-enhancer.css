@@ -7743,14 +7743,11 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 /* Nothing chosen yet — the thumb is a hint, not a selection. */
 .sde-cb-art-thumb.is-unset img { opacity: 0.45; filter: grayscale(1); }
-/* Suggested class art is a monochrome game-icons emblem (black SVG): show it
-   contained + gold-filtered, frameless — the filter would invert a background
-   or border painted on the img itself. Placed after .is-unset so the gold
-   filter wins there too; the opacity dim still applies. */
+/* Suggested class art is a gold-tinted game-icons emblem SVG: show it
+   contained + frameless (photos keep the cover-crop frame above). */
 .sde-cb-art-thumb img[src$=".svg"] {
   object-fit: contain; padding: 10px; box-sizing: border-box;
   background: transparent; border-color: transparent;
-  filter: invert(77%) sepia(38%) saturate(603%) hue-rotate(4deg) brightness(87%) contrast(84%);
 }
 .sde-cb-art-thumb figcaption {
   font-family: var(--sd-font-body); font-size: 12px; color: var(--cb-muted);
@@ -7800,10 +7797,9 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   height: 100%; width: auto; display: block;
   border: 1px solid var(--sd-frame); border-radius: var(--sd-radius); box-shadow: var(--sd-shadow);
 }
-/* Class art is a monochrome game-icons emblem (black SVG artwork): frame it
-   as a square panel and gold-shift it with the module's icon color filter
-   (same values as .sde-game-icon). The panel background/frame live on the
-   WRAPPER — a filter on the img would invert its own background and border. */
+/* Class art is a monochrome game-icons emblem, pre-tinted gold in the SVG
+   itself (icons/game-icons/classes/ — no CSS filter, so it renders gold in any
+   context, cached CSS or not): frame it as a square panel. */
 .sde-cb-class-portrait:has(img[src$=".svg"]) {
   background: var(--cb-ink, rgba(0, 0, 0, 0.4));
   border: 1px solid var(--sd-frame); border-radius: var(--sd-radius); box-shadow: var(--sd-shadow);
@@ -7811,7 +7807,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-cb-class-portrait img[src$=".svg"] {
   width: 156px; height: 156px; object-fit: contain; padding: 20px; box-sizing: border-box;
   border: none; box-shadow: none;
-  filter: invert(77%) sepia(38%) saturate(603%) hue-rotate(4deg) brightness(87%) contrast(84%);
 }
 /* keep the floating portrait clear of the tab body on narrow windows */
 @container cbanc (max-width: 820px) {

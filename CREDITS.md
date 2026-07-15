@@ -36,6 +36,28 @@ is otherwise unchanged.
   `visored-helm.svg`, `dragon-head.svg` — **Lorc**
 - `open-treasure-chest.svg` — **Skoll**
 
+## Class icons (`icons/game-icons/classes/`)
+
+One icon per class, chosen to match each class's description. Also from
+[game-icons.net](https://game-icons.net/) under
+[CC BY 3.0](https://creativecommons.org/licenses/by/3.0/); the SVGs are
+recolored gold (`fill` attribute changed from `#000` to `#c9a54a`) and the
+artwork is otherwise unchanged.
+
+- `holy-symbol.svg` (Priest), `hood.svg` (Thief), `pointy-hat.svg` (Wizard),
+  `lyre.svg` (Bard), `snake-totem.svg` (Basilisk Warrior),
+  `stag-head.svg` (Green Knight), `winged-sword.svg` (Paladin),
+  `shadow-follower.svg` (Ras-Godai), `horned-helm.svg` (Sea Wolf),
+  `crystal-ball.svg` (Seer), `cauldron.svg` (Witch),
+  `tentacle-heart.svg` (Wyrdling), `arrow-cluster.svg` (Kyzian Archer),
+  `whip.svg` (Explorer) — **Lorc**
+- `sword-brandish.svg` (Fighter), `light-backpack.svg` (Delver),
+  `cavalry.svg` (Desert Rider), `fencer.svg` (Duelist),
+  `devil-mask.svg` (Knight of St. Ydris), `high-punch.svg` (Monk of Yag-Kesh),
+  `spartan-helmet.svg` (Pit Fighter), `archer.svg` (Ranger) — **Delapouite**
+- `raise-zombie.svg` (Necromancer), `pentacle.svg` (Warlock) — **Skoll**
+- `clover.svg` (Roustabout) — **Sbed**
+
 ## Item icons (`assets/icons/shikashi/`)
 
 284 item icons from **Shikashi's Fantasy Icons Pack v2** by **Shikashi**

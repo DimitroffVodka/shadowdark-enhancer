@@ -88,10 +88,10 @@ export class ClassStep extends ListStep {
   get lockedTypes() { return ["Class"]; }
   get stateKey() { return "class"; }
 
-  /** Use a bundled class portrait when one exists, else the system icon. */
+  /** Use a bundled class emblem when one exists, else the system icon. */
   portrait(item) { return classArt(item?.name); }
-  /** The art shows only as the header-corner portrait — list rows keep their icons. */
-  get showPortraitInList() { return false; }
+  /** List rows show the same gold emblem as the header portrait. */
+  get showPortraitInList() { return true; }
 
   async loadItems() {
     return Array.from(await shadowdark.compendiums.classes())
