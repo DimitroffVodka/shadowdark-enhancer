@@ -33,15 +33,17 @@ import { escapeHtml } from "./pdf-text-utils.mjs";
  *   Magic items (draft.riders present with at least one rider keyword):
  *     → type: ({weapon:"Weapon",armor:"Armor"})[lc] ?? "Basic"  (magic-forge mapping)
  *     → description: already HTML (D4 — item-parser guarantees this)
- *     → system.treasure: true
  *     → flags[MODULE_ID].imported: true
  *
- *   Gear/treasure items (no riders, or empty riders):
- *     → type: "Basic"  (loot-pack fabricateTreasureItem shape)
- *     → cost from draft.cost
- *     → slots from draft.slots
+ *   Armor / Weapon (draft.type or name says so):
+ *     → real stat shape (ac{}/damage{}/range/type) + resolved properties[]
+ *
+ *   Plain gear (no riders, or empty riders):
+ *     → type: "Basic" (or the draft's forced subtype)
+ *     → cost from draft.cost, slots from draft.slots
  *     → img: draft.img ?? pickTreasureIcon(draft.name)  (A-03 icon reuse)
- *     → system.treasure: true
+ *     → system.treasure: false  (only true when draft.treasure opts in — this
+ *       path imports GEAR, not loot; the treasure roller builds its own items)
  *
  * @param {object} draft  from item-parser.mjs (parseItem output)
  * @returns {object}  Foundry Item creation payload
@@ -170,26 +172,142 @@ export function buildItemData(draft) {
     ? draft.type
     : (hasMagicRiders ? ({ weapon: "Weapon", armor: "Armor" })[lc] ?? "Basic" : "Basic");
 
-  // Mirrors loot-pack.mjs fabricateTreasureItem / magic-forge assembleItemData
-  // shape. `treasure` is a Basic-only field (the DataModel drops it on other
-  // types), harmless to send; kept for parity with the prior behavior.
+  // Shared PhysicalItemSD fields (cost/slots/quantity) every gear type carries.
+  const physical = {
+    description: draft.description ?? "<p></p>",
+    cost:   { gp: draft.cost?.gp ?? 0, sp: draft.cost?.sp ?? 0, cp: draft.cost?.cp ?? 0 },
+    slots:  {
+      free_carry: draft.slots?.free_carry ?? 0,
+      per_slot:   draft.slots?.per_slot   ?? 1,
+      slots_used: draft.slots?.slots_used ?? 1,
+    },
+    quantity: 1,
+    // Armor/Weapon carry properties as an array of Property-item UUIDs; the gear
+    // parser + resolver stamp them on the draft. Empty for plain gear.
+    ...(Array.isArray(draft.properties) ? { properties: draft.properties } : {}),
+    ...(draft.magicItem ? { magicItem: true } : {}),
+    ...(draft.source?.title ? { source: { title: draft.source.title } } : {}),
+  };
+
+  // ── Armor — real stat shape (ArmorSD). ac.base is the absolute AC of worn
+  // armor (11/13/15); shields use base 0 + a modifier the actor stacks as bonus
+  // AC (PlayerSD keys off ac.base===0). attribute is the AC bonus attribute
+  // ("dex"), blank for shields. baseArmor references a base-armor slug. ──
+  if (sdType === "Armor") {
+    const ac = draft.ac ?? {};
+    return {
+      name, type: "Armor", img,
+      system: {
+        ...physical,
+        ac: {
+          attribute: ac.attribute ?? (ac.base ? "dex" : ""),
+          base:      Number(ac.base) || 0,
+          modifier:  Number(ac.modifier) || 0,
+        },
+        baseArmor: draft.baseArmor ?? "",
+      },
+      flags: { [MODULE_ID]: { imported: true } },
+    };
+  }
+
+  // ── Weapon — real stat shape (WeaponSD). damage.oneHanded / twoHanded hold
+  // die keys ("d8"); a versatile weapon fills both, a two-handed-only weapon
+  // (crossbow) fills only twoHanded. type is melee|ranged, range close|near|far.
+  // handedness is derived by the model from properties/damage, so we omit it. ──
+  if (sdType === "Weapon") {
+    const dmg = draft.damage ?? {};
+    return {
+      name, type: "Weapon", img,
+      system: {
+        ...physical,
+        damage: { oneHanded: dmg.oneHanded ?? "", twoHanded: dmg.twoHanded ?? "" },
+        range:  draft.range || "close",
+        type:   draft.wtype || "melee",
+        baseWeapon: draft.baseWeapon ?? "",
+        ammoClass:  draft.ammoClass ?? "",
+      },
+      flags: { [MODULE_ID]: { imported: true } },
+    };
+  }
+
+  // ── Basic / Potion / Scroll / Wand / Gem — plain gear. `treasure` is a
+  // Basic-only field (the DataModel drops it on other types). It marks
+  // valuables/loot, NOT ordinary gear, so it defaults false and is only set
+  // when a draft explicitly opts in (the loot-pack treasure path builds its own
+  // itemData directly and never routes through here). ──
   return {
     name,
     type: sdType,
     img,
     system: {
-      description: draft.description ?? "<p></p>",
-      cost:   { gp: draft.cost?.gp ?? 0, sp: draft.cost?.sp ?? 0, cp: draft.cost?.cp ?? 0 },
-      slots:  {
-        free_carry: draft.slots?.free_carry ?? 0,
-        per_slot:   draft.slots?.per_slot   ?? 1,
-        slots_used: draft.slots?.slots_used ?? 1,
-      },
-      treasure: true,
-      quantity: 1,
+      ...physical,
+      ...(sdType === "Basic" ? { treasure: !!draft.treasure } : {}),
     },
     flags: { [MODULE_ID]: { imported: true } },
   };
+}
+
+// ─── Gear property resolver (Foundry-bound) ──────────────────────────────────
+
+/**
+ * Cache of Shadowdark property NAME → UUID, keyed `${itemType}:${nameLower}`
+ * (itemType is "armor" | "weapon"). Some names — "Sundering" — exist for BOTH
+ * types as separate docs, so the key must include the type. Session-scoped;
+ * the pack doesn't change under a running world.
+ */
+let _propertyIndexCache = null;
+
+async function _propertyIndex() {
+  if (_propertyIndexCache) return _propertyIndexCache;
+  const map = new Map();
+  const pack = game.packs?.get("shadowdark.properties");
+  if (pack) {
+    // Only ~18 docs — load them fully so system.itemType is reliable rather than
+    // relying on index field projection.
+    for (const doc of await pack.getDocuments()) {
+      const itemType = doc.system?.itemType ?? "armor";
+      map.set(`${itemType}:${(doc.name ?? "").toLowerCase()}`, doc.uuid);
+    }
+  }
+  _propertyIndexCache = map;
+  return map;
+}
+
+/**
+ * Resolve a gear item's `draft.propNames` (Shadowdark property names emitted by
+ * gear-parser) into the DocumentUUID array the Armor/Weapon data models store
+ * in `system.properties`. Type-filtered so armor "Sundering" and weapon
+ * "Sundering" resolve to their own docs. Mutates the passed `{ draft, warnings }`
+ * in place: sets `draft.properties` (UUIDs) and appends a review warning for any
+ * name that can't be resolved. No-op for non-gear drafts. GM-independent (index
+ * read), but only meaningful in a live world.
+ *
+ * @param {{ draft: object, warnings?: string[] }} item
+ * @returns {Promise<{ draft: object, warnings: string[] }>}
+ */
+export async function resolveGearProperties(item) {
+  const draft = item?.draft ?? item;
+  if (!draft || (draft.type !== "Armor" && draft.type !== "Weapon")) return item;
+  const names = Array.isArray(draft.propNames) ? draft.propNames : [];
+  const warnings = item.warnings ?? (item.warnings = []);
+  const map = await _propertyIndex();
+  const itemType = draft.type === "Weapon" ? "weapon" : "armor";
+  const uuids = [];
+  for (const nm of names) {
+    const key = String(nm).toLowerCase();
+    const uuid = map.get(`${itemType}:${key}`)
+      ?? map.get(`weapon:${key}`) ?? map.get(`armor:${key}`);   // cross-type fallback
+    if (uuid) uuids.push(uuid);
+    else warnings.push(`Property "${nm}" not found in shadowdark.properties — left off; add it on the sheet.`);
+  }
+  draft.properties = uuids;
+  return item;
+}
+
+/** Resolve properties for a batch of gear items (see resolveGearProperties). */
+export async function resolveGearPropertiesAll(items) {
+  for (const it of items ?? []) await resolveGearProperties(it);
+  return items;
 }
 
 // ─── Pure name-uniqueness helper ──────────────────────────────────────────────
@@ -447,4 +565,68 @@ export async function matchDescriptionsToItems(text, { pack, onlyEmpty = false }
 /** Strip tags/whitespace — is there real text? (shared with matchDescriptions.) */
 function _strip(html) { return String(html ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(); }
 
-export const ItemImporter = { buildItemData, createItem, createItems, matchDescriptionsToItems, spellFolderNames, talentFolderNames };
+/** The Shadowdark SYSTEM item packs whose contents ship with the game — an
+ *  import that names one of these would only duplicate core content. Weapons
+ *  and armor both live in `gear` (no separate packs). */
+const SYSTEM_ITEM_PACKS = ["shadowdark.gear", "shadowdark.magic-items"];
+
+/**
+ * Normalize an item name for system-duplicate matching: drop parenthetical
+ * quantities ("Arrows (20)", "Caltrops (One Bag)"), fold case and punctuation.
+ * Deliberately does NOT strip trailing comma clauses — "Rope, 60'" must stay
+ * distinct from "Rope, Morzo Silk", and "Flask or bottle" from "Flask".
+ * @param {string} s
+ * @returns {string}
+ */
+export function normalizeItemName(s) {
+  return String(s ?? "")
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, " ")     // "(20)", "(One Bag)"
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/**
+ * Build a lookup of every item that already ships in the Shadowdark SYSTEM
+ * compendium (gear + magic-items), keyed by normalized name. Reads the pack
+ * indexes only (no full document load). Returns an empty Map when the system
+ * isn't Shadowdark or the packs are absent, so callers degrade to "import
+ * everything".
+ * @returns {Promise<Map<string, {name: string, pack: string}>>}
+ */
+export async function systemItemNameIndex() {
+  const index = new Map();
+  for (const key of SYSTEM_ITEM_PACKS) {
+    const pack = game.packs?.get(key);
+    if (!pack) continue;
+    const idx = pack.indexed ? pack.index : await pack.getIndex();
+    for (const e of idx) {
+      const k = normalizeItemName(e.name);
+      if (k && !index.has(k)) index.set(k, { name: e.name, pack: key });
+    }
+  }
+  return index;
+}
+
+/**
+ * Split parsed item drafts into those genuinely new to this world's Shadowdark
+ * system and those the system already ships (so the importer doesn't duplicate
+ * core gear/weapons/armor/magic items). Match is by normalized name against the
+ * live system pack indexes.
+ * @param {{draft: object}[]} items  parsed `{draft, warnings}` entries
+ * @returns {Promise<{fresh: object[], duplicates: {name: string, reason: string}[]}>}
+ */
+export async function partitionSystemDuplicates(items) {
+  const sys = await systemItemNameIndex();
+  if (!sys.size) return { fresh: items, duplicates: [] };
+  const fresh = [];
+  const duplicates = [];
+  for (const it of items) {
+    const hit = sys.get(normalizeItemName(it?.draft?.name));
+    if (hit) duplicates.push({ name: it.draft.name, reason: `already in ${hit.pack} (system content) — not re-imported` });
+    else fresh.push(it);
+  }
+  return { fresh, duplicates };
+}
+
+export const ItemImporter = { buildItemData, createItem, createItems, matchDescriptionsToItems, spellFolderNames, talentFolderNames, systemItemNameIndex, partitionSystemDuplicates, normalizeItemName, resolveGearProperties, resolveGearPropertiesAll };

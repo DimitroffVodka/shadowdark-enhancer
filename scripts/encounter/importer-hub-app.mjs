@@ -24,6 +24,8 @@ import { columnManifestId } from "./table-manifest.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
 import { parseStatblock, splitStatblocks } from "./statblock-parser.mjs";
 import { itemRecognizer } from "./item-parser.mjs";
+import { parseGear } from "./gear-parser.mjs";
+import { resolveGearPropertiesAll } from "./item-importer.mjs";
 import { spellRecognizer } from "./spell-parser.mjs";
 import { resolveSpellClass } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
@@ -344,6 +346,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       warnCount: p.warnings?.length ?? 0,
     }));
 
+    // Item cards reuse the live draft object (so in-place field edits still
+    // address the real draft), adding a read-only stat line for Weapon/Armor so
+    // the GM can eyeball the parsed AC/damage/range/properties before committing.
+    const importItemCards = this._importItems.map((p, i) => ({
+      idx: i,
+      draft: p.draft,
+      statLine: ImporterHubApp._gearStatLine(p.draft),
+      warnings: p.warnings ?? [],
+      hasWarnings: (p.warnings?.length ?? 0) > 0,
+      warnCount: p.warnings?.length ?? 0,
+    }));
+
     // Custom top-level folders the GM already created in the sde-tables pack
     // surface as reusable options ("If a custom folder is made it should show
     // up in the drop down in the future" — user QA 2026-07-11). Selecting one
@@ -473,7 +487,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ].map(o => ({ ...o, selected: o.value === this._importItemSubtype })),
       // Previews
       monsters: importMonsterCards,
-      items: this._importItems,
+      items: importItemCards,
       spells: importSpellCards,
       tables: this._importTables,
       generators: importGenerators,
@@ -1545,15 +1559,24 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       monsters = chunks.map((chunk) => parseStatblock(chunk));
       skipped  = sk ?? [];
     } else if (type === "items") {
-      // A specific item subtype means the GM asserted "these are items" — force
-      // every block through the parser (no cost/rider anchor required) so plain
-      // items aren't silently dropped to Skipped. Auto keeps the strict gate.
-      const force = this._importItemSubtype !== "auto";
-      const { claimed, remainder, skipped: itemSkipped } = itemRecognizer.claim(text, { force });
-      items   = itemRecognizer.parse(claimed, { force });
-      // In force mode the recognizer reports multi-column table dumps it declined
-      // (with a helpful reason); Auto mode reports its unclaimed remainder.
-      skipped = [...(itemSkipped ?? []), ...(force ? [] : this._leftoverSkipped(remainder))];
+      // Weapon/Armor subtype → the dedicated gear parser reads real stat columns
+      // (AC / damage / range / properties) instead of the generic recognizer's
+      // name+cost+slots shell, then resolves the letter-coded properties to the
+      // shadowdark.properties UUIDs the data models store.
+      if (this._importItemSubtype === "Weapon" || this._importItemSubtype === "Armor") {
+        items = parseGear(text, this._importItemSubtype);
+        await resolveGearPropertiesAll(items);
+      } else {
+        // A specific item subtype means the GM asserted "these are items" — force
+        // every block through the parser (no cost/rider anchor required) so plain
+        // items aren't silently dropped to Skipped. Auto keeps the strict gate.
+        const force = this._importItemSubtype !== "auto";
+        const { claimed, remainder, skipped: itemSkipped } = itemRecognizer.claim(text, { force });
+        items   = itemRecognizer.parse(claimed, { force });
+        // In force mode the recognizer reports multi-column table dumps it declined
+        // (with a helpful reason); Auto mode reports its unclaimed remainder.
+        skipped = [...(itemSkipped ?? []), ...(force ? [] : this._leftoverSkipped(remainder))];
+      }
     } else if (type === "spells") {
       const { claimed, remainder } = spellRecognizer.claim(text);
       spells  = spellRecognizer.parse(claimed);
@@ -1685,6 +1708,18 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Item subtype override (forces all parsed items to the chosen type).
     if (this._importItemSubtype !== "auto") {
       for (const it of items) it.draft.type = this._importItemSubtype;
+    }
+
+    // System-compendium de-dup: the WR gear/weapon/armor tables reprint the
+    // whole core set, so a Basic Gear import parses ~32 rows of which most
+    // already ship in shadowdark.gear/magic-items. Divert every row the system
+    // already has to the Skipped list (with the pack named) so the preview
+    // shows only content genuinely new to this world.
+    if (items.length) {
+      const { partitionSystemDuplicates } = await import("./item-importer.mjs");
+      const { fresh, duplicates } = await partitionSystemDuplicates(items);
+      items = fresh;
+      if (duplicates.length) skipped = [...skipped, ...duplicates];
     }
 
     // A seeded item unlock ("Import Ball Bearing") grabs the whole equipment
@@ -2025,6 +2060,29 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (result.replaced?.length) parts.push(`${result.replaced.length} replaced`);
     if (result.skipped?.length) parts.push(`${result.skipped.length} skipped`);
     return parts.join(", ");
+  }
+
+  /**
+   * Read-only one-line stat summary for a Weapon/Armor draft, mirroring the
+   * system's item subtext (AC/attribute/properties for armor; type/range/damage/
+   * properties for weapons). Empty string for plain gear (no stat line shown).
+   */
+  static _gearStatLine(draft) {
+    if (!draft) return "";
+    const props = (draft.propNames ?? []).join(", ");
+    if (draft.type === "Armor") {
+      const base = Number(draft.ac?.base) || 0;
+      const mod = Number(draft.ac?.modifier) || 0;
+      const ac = base || mod ? `AC ${base || ""}${mod ? (mod > 0 ? `+${mod}` : mod) : ""}`.trim() : "";
+      const attr = draft.ac?.attribute ? draft.ac.attribute.toUpperCase() : "";
+      return [ac, attr, props].filter(Boolean).join(" • ");
+    }
+    if (draft.type === "Weapon") {
+      const dmg = [draft.damage?.oneHanded, draft.damage?.twoHanded].filter(Boolean).join(" / ");
+      const type = draft.wtype ? draft.wtype[0].toUpperCase() + draft.wtype.slice(1) : "";
+      return [type, draft.range, dmg, props].filter(Boolean).join(" • ");
+    }
+    return "";
   }
 
   /**

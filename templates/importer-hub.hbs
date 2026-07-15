@@ -235,6 +235,9 @@
           <label class="sde-hub-import-item-field"><span class="sde-hub-import-item-label">slots</span>
             <input type="number" data-iimport-field="slots" value="{{it.draft.slots.slots_used}}" class="sde-import-num" aria-label="Slots used"></label>
         </div>
+        {{#if it.statLine}}
+        <div class="sde-hub-import-item-stats" title="Parsed weapon/armor stats — fine-tune on the item sheet after import"><i class="fas fa-shield-halved"></i> {{it.statLine}}</div>
+        {{/if}}
         <div class="sde-hub-import-item-desc">
           <textarea data-iimport-field="description" rows="2"
                     class="sde-hub-import-item-desc-input" aria-label="Item description"
