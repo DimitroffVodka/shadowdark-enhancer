@@ -16,11 +16,16 @@
  *   ③ Combine      — create the items in sde-items with cost, slots, AND
  *                    description together.
  *
- * Reuses the pure parsers (itemRecognizer force-parse for the table,
+ * Reuses the pure parsers (item-builder-gear.parseGearTable — gear-parser stat
+ * columns for Weapon/Armor, itemRecognizer force-parse for Basic — plus
  * splitDescriptionsByNames for the descriptions) and the Foundry-bound importer
- * (ItemImporter.createItems) — this app is only the workspace UI + state.
+ * (ItemImporter.createItems) — this app is only the workspace UI + state. Rows
+ * carry the FULL stat draft (damage/AC/range/type/properties) end to end, so
+ * created Weapon/Armor items are mechanically real, not descriptive shells
+ * (2026-07-14 pre-push review, blocker #1).
  */
-import { itemRecognizer, splitDescriptionsByNames } from "./item-parser.mjs";
+import { splitDescriptionsByNames } from "./item-parser.mjs";
+import { parseGearTable, mergeGearRows, assembleCreateDrafts, gearStatsLabel, sourceTitleSlug } from "./item-builder-gear.mjs";
 import { ItemImporter } from "./item-importer.mjs";
 import { sourcePdfTarget, sourcePdfHref } from "./source-pdf-registry.mjs";
 import { CHAR_SOURCES } from "./char-content-manifest.mjs";
@@ -83,9 +88,13 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _gearType = "Basic";
   _tableText = "";
   _descText = "";
-  // Working set — the combined items. Each: { name, cost:{gp,sp,cp},
-  // slots:{free_carry,per_slot,slots_used}, description }.
+  // Working set — the combined items. Each row is a FULL gear draft (name,
+  // cost, slots, and for Weapon/Armor: damage/range/wtype or ac/baseArmor,
+  // propNames + resolved properties) plus description ("" until stage ②) and
+  // warnings[] (shown as a review flag on the row).
   _items = [];
+  // Stray lines stage ① refused to mint as items ({ text, reason }).
+  _dropped = [];
   _lastReport = null;
   // Paste-box focus preservation.
   _focused = null;
@@ -107,6 +116,7 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _reset() {
     this._tableText = ""; this._descText = ""; this._items = [];
     this._lastReport = null; this._focused = null; this._systemDupes = [];
+    this._dropped = [];
   }
   _onStartOver() { this._reset(); this.render(); }
 
@@ -149,10 +159,14 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
         name: it.name,
         cost: this._costLabel(it.cost),
         slots: it.slots?.slots_used ?? 1,
+        stats: gearStatsLabel(it, this._gearType),
+        flag: (it.warnings ?? []).join(" "),
         description: _strip(it.description),
         hasDesc: _strip(it.description).length > 0,
       })),
       itemCount: this._items.length,
+      dropped: this._dropped ?? [],
+      droppedCount: (this._dropped ?? []).length,
       withDesc,
       needDesc: this._items.length - withDesc,
       systemDupes: this._systemDupes ?? [],
@@ -217,9 +231,13 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onParseTable() {
-    const { claimed } = itemRecognizer.claim(this._tableText, { force: true });
-    let drafts = itemRecognizer.parse(claimed, { force: true }).map((r) => r.draft);
-    if (!drafts.length) { ui.notifications?.warn("No priced item rows found — is this the price table (Name cost qty slot)?"); return; }
+    const dropped = [];
+    let rows = parseGearTable(this._tableText, this._gearType,
+      { onDrop: (text, reason) => dropped.push({ text, reason }) });
+    if (!rows.length) { ui.notifications?.warn("No priced item rows found — is this the price table (Name cost qty slot)?"); return; }
+    // Weapon/Armor: resolve property NAMES → shadowdark.properties UUIDs now,
+    // so unresolved names surface as review flags on the rows below.
+    if (this._gearType !== "Basic") await ItemImporter.resolveGearPropertiesAll(rows);
     // Drop rows the Shadowdark SYSTEM already ships: the WR gear/weapon/armor
     // tables reprint the whole core set (Arrows, Backpack, Caltrops, Crossbow
     // Bolts, Crowbar, …), so importing them all would duplicate shadowdark.gear/
@@ -229,22 +247,20 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._systemDupes = [];
     if (sys.size) {
       const kept = [];
-      for (const d of drafts) {
+      for (const d of rows) {
         const hit = sys.get(normalizeItemName(d.name));
         if (hit) this._systemDupes.push(d.name);
         else kept.push(d);
       }
-      drafts = kept;
+      rows = kept;
     }
-    // Merge into the working set: new names add a row (name+cost+slots),
-    // existing names refresh cost/slots but KEEP any description already matched.
-    for (const d of drafts) {
-      const existing = this._items.find((it) => _norm(it.name) === _norm(d.name));
-      if (existing) { existing.cost = d.cost; existing.slots = d.slots; }
-      else this._items.push({ name: d.name, cost: d.cost, slots: d.slots, description: "" });
-    }
+    // Merge into the working set: new names add a full-stat row; existing names
+    // refresh ALL mechanics but KEEP the edited name + matched description.
+    this._items = mergeGearRows(this._items, rows);
+    this._dropped = dropped;
     const dupNote = this._systemDupes.length ? ` (${this._systemDupes.length} already in the system — skipped)` : "";
-    ui.notifications?.info(`Table parsed — ${this._items.length} new item(s)${dupNote}. Now add descriptions in step 2.`);
+    const dropNote = dropped.length ? ` · ${dropped.length} stray line(s) skipped` : "";
+    ui.notifications?.info(`Table parsed — ${this._items.length} new item(s)${dupNote}${dropNote}. Now add descriptions in step 2.`);
     this.render();
   }
 
@@ -325,14 +341,11 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can create items."); return; }
     if (!this._items.length) { ui.notifications?.warn("Nothing to create — parse the table first."); return; }
     const source = this._source.trim();
-    const drafts = this._items.map((it) => ({
-      name: it.name,
-      type: this._gearType,
-      cost: { gp: it.cost?.gp ?? 0, sp: it.cost?.sp ?? 0, cp: it.cost?.cp ?? 0 },
-      slots: { free_carry: it.slots?.free_carry ?? 0, per_slot: it.slots?.per_slot ?? 1, slots_used: it.slots?.slots_used ?? 1 },
-      description: _strip(it.description) ? it.description : "<p></p>",
-      riders: { benefit: [], bonus: "", curse: "", personality: "" },
-    }));
+    // Full pass-through: the mechanics parsed in stage ① (damage/AC/range/
+    // type/properties) ride the drafts into creation — never rebuilt narrow
+    // (that rebuild was pre-push-review blocker #1). system.source.title gets
+    // the same slug the char-content commits stamp (char-builder gating).
+    const drafts = assembleCreateDrafts(this._items, this._gearType, { sourceTitle: sourceTitleSlug(source) });
     const result = await ItemImporter.createItems(drafts, { source, onConflict: () => "replace" });
     if (!result) return;
     this._lastReport = { created: result.created.length, replaced: (result.replaced ?? []).length, skipped: (result.skipped ?? []).length };

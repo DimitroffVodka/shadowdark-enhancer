@@ -1558,8 +1558,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // name+cost+slots shell, then resolves the letter-coded properties to the
       // shadowdark.properties UUIDs the data models store.
       if (this._importItemSubtype === "Weapon" || this._importItemSubtype === "Armor") {
-        items = parseGear(text, this._importItemSubtype);
+        // Strays the parser refuses to mint ("+", page footers) land in the
+        // Skipped review list instead of vanishing.
+        const dropped = [];
+        items = parseGear(text, this._importItemSubtype,
+          { onDrop: (t, reason) => dropped.push({ name: String(t).slice(0, 80), reason }) });
         await resolveGearPropertiesAll(items);
+        skipped = dropped;
       } else {
         // A specific item subtype means the GM asserted "these are items" — force
         // every block through the parser (no cost/rider anchor required) so plain

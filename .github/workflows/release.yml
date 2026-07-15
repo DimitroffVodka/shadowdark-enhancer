@@ -50,10 +50,12 @@ jobs:
 
       - name: Build module.zip
         run: |
+          # docs/ stays out of the zip on purpose — it holds internal audits,
+          # working-state reports, and development artifacts, not user docs.
           zip -r module.zip \
             module.json \
             README.md LICENSE CHANGELOG.md CREDITS.md \
-            assets icons languages scripts styles templates docs \
+            assets icons languages scripts styles templates \
             -x "scripts/**/*.test.mjs"
 
       - name: Publish release

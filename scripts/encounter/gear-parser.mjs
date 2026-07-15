@@ -19,6 +19,20 @@
  *         mithral       ← material tag
  *   • Inline — one record per line, comma-separated:
  *         Longsword, 9 gp, 1 slot, 1d8 (1d10 two-handed), close, F
+ *     A run of such lines (a clean table extract) splits per LINE — blank lines
+ *     are not required between inline records; a wrapped property column
+ *     rejoins the row above.
+ *   • Stat row — the book table's space-separated columns, one row per line
+ *     (what the single-column PDF extract of the WR weapon/armor tables
+ *     actually yields; live-verified 2026-07-14):
+ *         Weapon:  Falchion 12 gp M C 1d8 2H, F        (Type M|R|M/R · Range C|N|F)
+ *         Armor:   Plate mail 130 gp 3 15 H, L, M       (slots · AC "15"/"11 + DEX mod"/"+2")
+ *     Armor wraps long names across three lines ("Chainmail," / "240 gp 1 13
+ *     + DEX mod M" / "mithral") — the bare comma-name binds to the headless
+ *     stat line below it and a trailing lowercase word is the material.
+ *     Headers, page-footer numbers, and the interleaved property-definitions
+ *     PROSE on the same pages are dropped and reported via onDrop, never
+ *     minted as items (2026-07-14 pre-push review; the "+"/"" phantom rows).
  *
  * OUTPUT: { draft, warnings }[] matching item-parser's itemRecognizer.parse, so
  * the hub's item pipeline and item-importer.buildItemData consume it unchanged.
@@ -44,6 +58,8 @@ const SLOTS_WORD_RE = /(\d+)\s*slots?\b/i;
 const DIE_RE = /^\d*d\d+(\s*(?:\/|\bor\b)\s*\d*d\d+)?$/i;
 /** Ranges the weapon model accepts. */
 const RANGES = new Set(["close", "near", "far", "nearline"]);
+/** A "none" table cell — books print an em-dash (or hyphen) for "no value". */
+const NONE_FIELD_RE = /^[—–-]+$/;
 
 const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 const titleCase = (s) => String(s).replace(/\b\w/g, (c) => c.toUpperCase());
@@ -79,7 +95,16 @@ export const WR_WEAPON_CODES = {
   S: "Sundering",
   R: "Returning",
   B: "Breakable",
+  // WR-only weapon codes with no core Shadowdark property — flagged with
+  // their book label (live weapon table p110-111), never applied silently.
+  C: null,    // Charge
+  D: null,    // Devastating
+  M: null,    // Mounted
+  O: null,    // Obsidian
+  Sn: null,   // Sniper
 };
+/** Weapon-side labels for null-mapped codes (armor labels live in WR_CODE_LABELS). */
+export const WR_WEAPON_LABELS = { C: "Charge", D: "Devastating", M: "Mounted", O: "Obsidian", Sn: "Sniper" };
 
 /** Full property names we recognize verbatim (so pastes can spell them out). */
 const KNOWN_PROP_NAMES = new Set([
@@ -88,13 +113,153 @@ const KNOWN_PROP_NAMES = new Set([
   "two-handed", "returning", "breakable",
 ].map((s) => s));
 
-/** Split a paste into reflowed records: blank line = record boundary. */
-function splitRecords(text) {
-  return String(text ?? "")
+/**
+ * Anchored gear-signal test for one comma field. Anchoring matters: prose like
+ * "deals 1d4 damage" or "is worth 10 gp at least" must NOT count, or the
+ * property-definitions section printed beside the book tables trips the
+ * inline-run splitter (live-verified failure mode, 2026-07-14).
+ */
+function isFieldSignal(f) {
+  return /^\d+\s*(?:gp|sp|cp)(?:\s+\d+\s*(?:gp|sp|cp))*$/i.test(f)
+    || /^varies$/i.test(f) || NONE_FIELD_RE.test(f)
+    || /^\d+\s*slots?$/i.test(f) || /^\+?\d+$/.test(f)
+    || /^\d*d\d+(?:\s*\/\s*\d*d\d+)?$/i.test(f)
+    || RANGES.has(f.toLowerCase()) || /^(melee|ranged)$/i.test(f)
+    || asCodeTokens(f) !== null;
+}
+
+/**
+ * Does a line read as a COMPLETE inline gear row ("Name, cost, …")? Needs a
+ * name-like first field, ≥3 comma fields, and at least one whole-field gear
+ * signal among the rest (cost, Varies, "—", slots, die, range, melee/ranged,
+ * a bare/plus number, or property codes). Cost alone is deliberately NOT
+ * required — real tables print "Varies" and "—" costs.
+ */
+function looksInlineRow(line) {
+  const fields = String(line).split(",").map(collapse).filter(Boolean);
+  if (fields.length < 3) return false;
+  if (!/^[A-Za-z]/.test(fields[0]) || fields[0].length < 2) return false;
+  return fields.slice(1).some(isFieldSignal);
+}
+
+// ── Book stat rows (space-separated table columns) ────────────────────────────
+
+/** Table column codes → the model's words. Dual codes ("M/R", "C/N") keep the
+ *  FIRST as the stored value — the props column (Th) carries the other use,
+ *  matching how the core system data stores e.g. the Dagger. */
+const TYPE_CODE = { M: "melee", R: "ranged" };
+const RANGE_CODE = { C: "close", N: "near", F: "far" };
+
+// Cost is a coin amount or a "—" (the unarmed-strikes row prints a dash cost;
+// the dash passes through as a none-field so "No cost found" review-flags it).
+const WEAPON_STAT_ROW_RE = /^(?<name>[A-Za-z][A-Za-z0-9' -]*?)\s+(?<cost>\d+\s*(?:gp|sp|cp)|[—–-])\s+(?<type>[MR](?:\/[MR])?)(?<x2>\s+2x)?\s+(?<range>[CNF](?:\/[CNF])?)\s+(?<damage>\d*d\d+(?:\/\d*d\d+)?|\d+|[—–-])(?:\s+(?<props>\S.*))?$/;
+const WEAPON_STAT_HEADLESS_RE = /^(?<cost>\d+\s*(?:gp|sp|cp)|[—–-])\s+(?<type>[MR](?:\/[MR])?)(?<x2>\s+2x)?\s+(?<range>[CNF](?:\/[CNF])?)\s+(?<damage>\d*d\d+(?:\/\d*d\d+)?|\d+|[—–-])(?:\s+(?<props>\S.*))?$/;
+const ARMOR_STAT_ROW_RE = /^(?<name>[A-Za-z][A-Za-z0-9' -]*?(?:,\s*[A-Za-z][A-Za-z ]*?)?)\s+(?<cost>\d+\s*(?:gp|sp|cp))\s+(?<slots>\d)\s+(?<ac>\+\d+|\d{2}(?:\s*\+\s*DEX(?:\s+mod)?)?)(?:\s+(?<props>\S.*))?$/i;
+const ARMOR_STAT_HEADLESS_RE = /^(?<cost>\d+\s*(?:gp|sp|cp))\s+(?<slots>\d)\s+(?<ac>\+\d+|\d{2}(?:\s*\+\s*DEX(?:\s+mod)?)?)(?:\s+(?<props>\S.*))?$/i;
+
+/** Match a line as a book stat row for `kind`. → { full } | { headless } | null */
+function matchStatRow(line, kind) {
+  const [fullRe, headlessRe] = kind === "Armor"
+    ? [ARMOR_STAT_ROW_RE, ARMOR_STAT_HEADLESS_RE]
+    : [WEAPON_STAT_ROW_RE, WEAPON_STAT_HEADLESS_RE];
+  const full = fullRe.exec(line);
+  if (full) return { full };
+  const headless = headlessRe.exec(line);
+  if (headless) return { headless };
+  return null;
+}
+
+/**
+ * Turn a matched stat row into a synthetic FIELDS record (multi-element array,
+ * so recordFields passes it through verbatim — no comma re-splitting).
+ * `pendingName` supplies the name for a headless wrap line.
+ */
+function statRowFields(kind, groups, pendingName) {
+  const g = groups;
+  const name = collapse(pendingName ?? g.name ?? "");
+  const fields = [name, g.cost];
+  if (kind === "Armor") {
+    fields.push(`${g.slots} slots`);
+    // "11 + DEX mod" → base 11 (the parser defaults attribute to dex on a
+    // base); "+2" stays a shield modifier; "15" stays a base.
+    fields.push(g.ac.replace(/\s*\+\s*DEX(?:\s+mod)?$/i, "").trim());
+    if (g.props) fields.push(g.props);
+  } else {
+    fields.push(TYPE_CODE[g.type[0]]);
+    fields.push(RANGE_CODE[g.range[0]]);
+    // Flat damage ("1") and "—" have no die — leave the field off so the
+    // parser's "No damage die found" review flag fires (faithful; the GM
+    // confirms flat/no damage on the sheet).
+    if (/\d*d\d+/.test(g.damage)) fields.push(g.damage);
+    if (g.x2) fields.push("2x");   // reach notation — surfaces as an unparsed-field review flag
+    for (const tok of String(g.props ?? "").split(",").map(collapse).filter(Boolean)) fields.push(tok);
+  }
+  return fields;
+}
+
+/**
+ * Split a paste into records. Blank lines always bound blocks (the reflowed
+ * PDF-viewer shape). Within a block:
+ *   1. ≥2 book STAT rows → a run of one-row records; bare comma-names bind to
+ *      the headless stat line below (armor name wrap), a trailing lowercase
+ *      word is that record's material, everything else (headers, page-footer
+ *      numbers, the property-definitions prose) is dropped + reported.
+ *   2. else ≥2 comma-INLINE rows → a run of one-line records; non-row lines
+ *      rejoin the row above (wrapped property columns), symbol-only strays
+ *      and leading noise are dropped + reported.
+ *   3. else the block is one reflowed record.
+ */
+function splitRecords(text, kind, { onDrop } = {}) {
+  const blocks = String(text ?? "")
     .replace(/\r\n?/g, "\n")
     .split(/\n\s*\n+/)
     .map((r) => r.split("\n").map((l) => l.trim()).filter(Boolean))
     .filter((lines) => lines.length > 0);
+  const records = [];
+  for (const lines of blocks) {
+    const stat = lines.map((l) => matchStatRow(l, kind));
+    if (lines.length > 1 && stat.filter(Boolean).length >= 2) {
+      let pendingName = null;   // "Chainmail," — waiting for its headless stat line
+      let lastWrap = null;      // record built from a wrap — its material may follow
+      const dropPending = () => { if (pendingName) { onDrop?.(pendingName, "not a gear row"); pendingName = null; } };
+      for (let i = 0; i < lines.length; i++) {
+        const m = stat[i];
+        if (m?.full) {
+          dropPending();
+          records.push(statRowFields(kind, m.full.groups, null));
+          lastWrap = null;
+        } else if (m?.headless) {
+          if (pendingName) {
+            const rec = statRowFields(kind, m.headless.groups, pendingName.replace(/,\s*$/, ""));
+            records.push(rec); lastWrap = rec; pendingName = null;
+          } else onDrop?.(lines[i], "stat columns without an item name");
+        } else if (lastWrap && /^[a-z][a-z' -]*$/.test(lines[i])) {
+          lastWrap.push(lines[i]);   // "mithral" → material field on the wrap record
+          lastWrap = null;
+        } else if (/^[A-Za-z][A-Za-z' -]*,$/.test(lines[i])) {
+          dropPending();
+          pendingName = lines[i];    // wrap start: a bare name ending in a comma
+          lastWrap = null;
+        } else {
+          onDrop?.(lines[i], "not a gear row");
+          lastWrap = null;
+        }
+      }
+      dropPending();
+      continue;
+    }
+    const inline = lines.map(looksInlineRow);
+    if (lines.length > 1 && inline.filter(Boolean).length >= 2) {
+      let cur = null;
+      for (let i = 0; i < lines.length; i++) {
+        if (inline[i]) { cur = [lines[i]]; records.push(cur); }
+        else if (/^[^A-Za-z0-9]*$/.test(lines[i])) onDrop?.(lines[i], "stray symbol between rows");
+        else if (cur) cur[0] = `${cur[0]}, ${lines[i]}`;   // wrap continuation
+        else onDrop?.(lines[i], "not a gear row");          // leading header/noise
+      }
+    } else records.push(lines);
+  }
+  return records;
 }
 
 /**
@@ -148,7 +313,8 @@ function decodeProps(field, kind) {
       }
       const name = codeMap[key];
       if (name === null) {
-        const label = WR_CODE_LABELS[key] ?? key;
+        const labels = kind === "Armor" ? WR_CODE_LABELS : WR_WEAPON_LABELS;
+        const label = labels[key] ?? key;
         warnings.push(`Property "${label}" (${key}) has no core Shadowdark property — left off; note it in the description.`);
         continue;
       }
@@ -194,7 +360,7 @@ function parseArmorRecord(lines) {
 
   for (const field of fields.slice(1)) {
     const f = collapse(field);
-    if (!f) continue;
+    if (!f || NONE_FIELD_RE.test(f) || /^varies$/i.test(f)) continue;   // "—"/"Varies" = no value
     const c = parseCost(f);
     if (c) { cost = c; continue; }
     const sw = f.match(SLOTS_WORD_RE);
@@ -253,7 +419,7 @@ function parseWeaponRecord(lines) {
   const other = [];
   for (const field of rest) {
     const f = collapse(field);
-    if (!f) continue;
+    if (!f || NONE_FIELD_RE.test(f) || /^varies$/i.test(f)) continue;   // "—"/"Varies" = no value
     if (parseCost(f)) { cost = parseCost(f); continue; }
     const sw = f.match(SLOTS_WORD_RE);
     if (sw) { slots = Number(sw[1]); continue; }
@@ -304,12 +470,37 @@ function parseWeaponRecord(lines) {
  * Parse a Weapon or Armor paste.
  * @param {string} text
  * @param {"Weapon"|"Armor"} kind
+ * @param {{ onDrop?: (text: string, reason: string) => void }} [opts] — called
+ *   for every block/line rejected as not-a-record (strays, phantoms), so the
+ *   caller can surface the drops (hub Skipped list / builder note) instead of
+ *   silently losing them.
  * @returns {{ draft: object, warnings: string[] }[]}
  */
-export function parseGear(text, kind) {
-  const records = splitRecords(text);
+export function parseGear(text, kind, { onDrop } = {}) {
+  const records = splitRecords(text, kind, { onDrop });
   const parseOne = kind === "Armor" ? parseArmorRecord : parseWeaponRecord;
-  return records.map(parseOne);
+  // Record hygiene: never mint an item from a nameless/symbol-only block
+  // ("+", "112" page footers — the observed phantom rows), drop multi-line
+  // PROSE blocks (the property-definitions section shares the table's pages),
+  // and treat lone one-word blocks ("mithral") as noise when real rows exist.
+  const keep = [];
+  const loneWords = [];
+  for (const rec of records) {
+    const nameField = collapse(recordFields(rec)[0] ?? "").replace(/,\s*$/, "");
+    if (!nameField || !/^[A-Za-z]/.test(nameField)) { onDrop?.(rec.join(" / "), "no item name"); continue; }
+    const prose = rec.length >= 3
+      && rec.every((l) => !matchStatRow(l, kind))
+      && rec.reduce((n, l) => n + l.length, 0) / rec.length > 30;
+    if (prose) { onDrop?.(`${rec[0]} …`, "prose block, not a gear record"); continue; }
+    const substantial = rec.length > 1 || recordFields(rec).length > 1;
+    if (!substantial && /^[A-Za-z][A-Za-z' -]*$/.test(nameField)) { loneWords.push(rec); continue; }
+    keep.push(rec);
+  }
+  // A lone word next to real rows is extraction noise, but a name-only paste
+  // (seeded unlock, hand-typed name) should still make a reviewable draft.
+  if (keep.length === 0) keep.push(...loneWords);
+  else for (const rec of loneWords) onDrop?.(rec.join(" / "), "lone word — not an item row");
+  return keep.map(parseOne);
 }
 
 export const gearParser = { parseGear, WR_ARMOR_CODES, WR_WEAPON_CODES };

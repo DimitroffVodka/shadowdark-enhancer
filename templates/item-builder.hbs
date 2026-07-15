@@ -34,6 +34,7 @@
       {{#if tablePdf}}<button type="button" data-action="ibOpenPdf" data-href="{{tablePdf}}" data-title="{{typeLabel}} table — p.{{tablePage}}" class="sde-cu-btn"><i class="fas fa-file-pdf"></i> Open PDF · p.{{tablePage}}</button>{{/if}}
     </div>
     {{#if systemDupeCount}}<p class="sde-ci-note sde-ci-note-info"><i class="fas fa-circle-check"></i> Skipped {{systemDupeCount}} row(s) already in the Shadowdark system compendium (not re-imported): {{#each systemDupes as |n|}}<code>{{n}}</code> {{/each}}</p>{{/if}}
+    {{#if droppedCount}}<p class="sde-ci-note sde-ci-note-info"><i class="fas fa-broom"></i> Skipped {{droppedCount}} stray line(s) that aren't item rows: {{#each dropped as |d|}}<code title="{{d.reason}}">{{d.text}}</code> {{/each}}</p>{{/if}}
   </div>
 
   {{!-- ── Stage 2 · Descriptions ──────────────────────────────────────── --}}
@@ -56,7 +57,10 @@
     <tr class="sde-cu-titlehead"><th>Name</th><th>Cost</th><th>Slots</th><th>Description</th><th></th></tr>
     {{#each items as |it|}}
     <tr data-ib-row="{{it.idx}}" class="{{#unless it.hasDesc}}sde-ci-talent-unwired{{/unless}}">
-      <td><input type="text" data-ib-field="name" value="{{it.name}}" class="sde-cu-text" aria-label="Item name"></td>
+      <td><input type="text" data-ib-field="name" value="{{it.name}}" class="sde-cu-text" aria-label="Item name">
+        {{#if it.stats}}<div class="sde-ci-status">{{it.stats}}</div>{{/if}}
+        {{#if it.flag}}<div class="sde-ci-status" title="{{it.flag}}"><i class="fas fa-triangle-exclamation"></i> review</div>{{/if}}
+      </td>
       <td><input type="text" data-ib-field="cost" value="{{it.cost}}" class="sde-cu-range" aria-label="Cost"></td>
       <td class="sde-ib-slots">{{it.slots}}</td>
       <td><input type="text" data-ib-field="description" value="{{it.description}}" class="sde-cu-text" placeholder="{{#unless it.hasDesc}}no description — add or grab it{{/unless}}" aria-label="Description"></td>
