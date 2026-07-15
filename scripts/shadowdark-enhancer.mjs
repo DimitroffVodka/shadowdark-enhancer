@@ -446,6 +446,18 @@ Hooks.once("ready", () => {
         }
       }, 5000);
     }
+    // Spell↔class self-heal, EVERY load (index-scan cheap, idempotent, silent
+    // when there's nothing to do): spells imported before their caster class
+    // existed link up as soon as both are present, whichever was created first.
+    setTimeout(async () => {
+      try {
+        const { relinkSpellsToClasses } = await import("./encounter/item-importer.mjs");
+        const n = await relinkSpellsToClasses();
+        if (n) ui.notifications.info(`Shadowdark Enhancer: linked ${n} spell(s) to their caster class.`);
+      } catch (err) {
+        console.error(`${MODULE_ID} | spell↔class re-link sweep failed:`, err);
+      }
+    }, 5000);
   }
 });
 

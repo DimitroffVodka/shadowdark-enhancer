@@ -654,6 +654,23 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     }
   }
 
+  // Spells and classes import in either order: drop the session class index so
+  // this class resolves for any spell commit that follows, then retro-link
+  // spells that were imported while this class didn't exist yet (their
+  // system.class stayed empty — resolveSpellClass had nothing to point at).
+  try {
+    const { ClassIndex } = await import("./class-index.mjs");
+    ClassIndex.invalidate();
+    const { relinkSpellsToClasses } = await import("./item-importer.mjs");
+    const relinked = await relinkSpellsToClasses();
+    if (relinked) {
+      report.relinkedSpells = relinked;
+      ui.notifications?.info(`Linked ${relinked} already-imported spell(s) to their caster class.`);
+    }
+  } catch (err) {
+    console.error(`${MODULE_ID} | spell re-link after class import failed:`, err);
+  }
+
   report.classUuid = madeClass.uuid;
   report.tableUuid = tableUuid;
   return report;

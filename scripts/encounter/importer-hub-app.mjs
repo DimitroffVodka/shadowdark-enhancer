@@ -27,7 +27,7 @@ import { itemRecognizer } from "./item-parser.mjs";
 import { parseGear } from "./gear-parser.mjs";
 import { resolveGearPropertiesAll } from "./item-importer.mjs";
 import { spellRecognizer } from "./spell-parser.mjs";
-import { resolveSpellClass } from "./class-index.mjs";
+import { resolveSpellClass, ClassIndex } from "./class-index.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
@@ -2118,6 +2118,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _commitSpells(source) {
     if (!this._importSpells.length) return null;
     const drafts = this._importSpells.map((p) => p.draft);
+    // A class imported earlier this session (e.g. Necromancer) must resolve —
+    // same staleness guard as the Spell Importer app's commit.
+    ClassIndex.invalidate();
     const unresolved = [];
     for (const d of drafts) {
       const w = await resolveSpellClass(d);

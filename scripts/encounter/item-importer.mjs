@@ -13,6 +13,7 @@
  *   buildItemData(draft) → itemData   — pure, Foundry-free, node-testable
  *   createItem(draft, opts)            — Foundry-bound single-item commit
  *   createItems(drafts, opts)          — Foundry-bound batch commit
+ *   relinkSpellsToClasses()            — Foundry-bound spell↔class retro-link sweep
  *   ItemImporter = { buildItemData, createItem, createItems }
  */
 import { MODULE_ID } from "../module-id.mjs";
@@ -77,7 +78,15 @@ export function buildItemData(draft) {
       // gates on flags["shadowdark-extras"].alignment (untagged = universal). The
       // Spell Importer sets draft.alignment; a blank/"universal" value stays untagged.
       flags: {
-        [MODULE_ID]: { imported: true },
+        [MODULE_ID]: {
+          imported: true,
+          // Parsed caster-class NAME. system.class above only fills when the
+          // class already exists at commit time (resolveSpellClass); this keeps
+          // the intent on the doc so relinkSpellsToClasses() can link the spell
+          // when the class is imported later — either import order works.
+          ...(String(draft.className ?? "").trim()
+            ? { spellClassName: String(draft.className).trim() } : {}),
+        },
         ...(draft.alignment && draft.alignment !== "universal"
           ? { "shadowdark-extras": { alignment: draft.alignment } } : {}),
       },
@@ -416,6 +425,17 @@ export function spellFolderNames(className, _tier, alignment = "") {
 }
 
 /**
+ * Inverse of spellFolderNames' leaf: "<Class> (Variant)" → "<Class>".
+ * Fallback class-name signal for spells imported before the
+ * flags[MODULE_ID].spellClassName stamp existed. Pure, node-testable.
+ * @param {string} folderName  e.g. "Wizard (Druid)", "Priest (Lawful)", "Necromancer"
+ * @returns {string} class name, "" when the folder carries none
+ */
+export function classNameFromSpellFolder(folderName) {
+  return String(folderName ?? "").replace(/\s*\([^)]*\)\s*$/, "").trim();
+}
+
+/**
  * The talents pack folder a talent files under, mirroring the system Talents
  * pack's top-level grouping by `talentClass`: Ancestry / Class / Level /
  * Patron Boon. Unknown/blank talentClass → "Level" (the schema initial).
@@ -536,6 +556,57 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
   return out;
 }
 
+/**
+ * Link suite spells to their caster class — the retro half of "spells and
+ * classes import in either order". resolveSpellClass links a spell at commit
+ * time when its class already exists; this sweep covers the opposite order:
+ * any world.spells Spell with NO live class ref whose intended class NOW
+ * resolves gets linked. Intent = flags[MODULE_ID].spellClassName (stamped at
+ * creation) or, for spells imported before that stamp existed, the
+ * "Spells / <Class> (Variant)" pack folder name. Resolution goes through
+ * ClassIndex so priority matches commit-time linking (system packs first);
+ * a spell with a live class link is never touched (borrowed lists link
+ * elsewhere on purpose). Idempotent and silent — callers notify on > 0.
+ *
+ * Fires automatically from createClassUnit (a class just appeared) and once
+ * per GM ready (self-heals worlds that imported spells before their class).
+ *
+ * @returns {Promise<number>} spells updated
+ */
+export async function relinkSpellsToClasses() {
+  const pack = findSuitePack("spells");
+  if (!pack) return 0;
+  const { ClassIndex } = await import("./class-index.mjs");
+  const index = await pack.getIndex({ fields: ["type", "system.class", "folder", `flags.${MODULE_ID}.spellClassName`] });
+  const updates = [];
+  for (const entry of index) {
+    if (entry.type !== "Spell") continue;
+    const raw = entry.system?.class;
+    const cur = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    let live = false;
+    for (const u of cur) {
+      // eslint-disable-next-line no-await-in-loop
+      if (await fromUuid(u).catch(() => null)) { live = true; break; }
+    }
+    if (live) continue;   // already linked where it belongs
+    const folderName = pack.folders.get(entry.folder)?.name ?? "";
+    const want = String(entry.flags?.[MODULE_ID]?.spellClassName ?? "").trim()
+      || classNameFromSpellFolder(folderName);
+    if (!want) continue;
+    // eslint-disable-next-line no-await-in-loop
+    const hit = await ClassIndex.resolveByName(want);
+    if (!hit?.uuid) continue;   // class still absent — a later import links it
+    updates.push({ _id: entry._id, "system.class": [hit.uuid] });
+  }
+  if (!updates.length) return 0;
+  if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
+  await Item.updateDocuments(updates, { pack: pack.collection });
+  console.log(`${MODULE_ID} | relinkSpellsToClasses: linked ${updates.length} spell(s) to their caster class`);
+  // Open char-builder / hub instances drop caches + re-render (gap→have flips).
+  Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
+  return updates.length;
+}
+
 /** The Shadowdark SYSTEM item packs whose contents ship with the game — an
  *  import that names one of these would only duplicate core content. Weapons
  *  and armor both live in `gear` (no separate packs). */
@@ -600,4 +671,4 @@ export async function partitionSystemDuplicates(items) {
   return { fresh, duplicates };
 }
 
-export const ItemImporter = { buildItemData, createItem, createItems, spellFolderNames, talentFolderNames, systemItemNameIndex, partitionSystemDuplicates, normalizeItemName, resolveGearProperties, resolveGearPropertiesAll };
+export const ItemImporter = { buildItemData, createItem, createItems, relinkSpellsToClasses, spellFolderNames, talentFolderNames, systemItemNameIndex, partitionSystemDuplicates, normalizeItemName, resolveGearProperties, resolveGearPropertiesAll };
