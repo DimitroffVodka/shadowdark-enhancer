@@ -63,6 +63,9 @@ const NONE_FIELD_RE = /^[—–-]+$/;
 
 const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 const titleCase = (s) => String(s).replace(/\b\w/g, (c) => c.toUpperCase());
+/** System-style slug ("Plate mail" → "plate-mail") — matches shadowdark.gear's
+ *  baseArmor values (live-verified: Mithral Chainmail → "chainmail"). */
+const slugify = (s) => String(s ?? "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 /**
  * WR armor property letter-codes → Shadowdark property names.
@@ -180,9 +183,13 @@ function statRowFields(kind, groups, pendingName) {
   const fields = [name, g.cost];
   if (kind === "Armor") {
     fields.push(`${g.slots} slots`);
-    // "11 + DEX mod" → base 11 (the parser defaults attribute to dex on a
-    // base); "+2" stays a shield modifier; "15" stays a base.
-    fields.push(g.ac.replace(/\s*\+\s*DEX(?:\s+mod)?$/i, "").trim());
+    // Keep the book's AC distinction intact: "13 + DEX mod" stays a DEX-armor
+    // field, a bare "15" becomes the explicit no-DEX "AC 15" (plate-style —
+    // the system stores attribute "" there, live-verified vs shadowdark.gear),
+    // and "+2" stays a shield modifier.
+    if (/^\+\d+$/.test(g.ac)) fields.push(g.ac);
+    else if (/dex/i.test(g.ac)) fields.push(g.ac.replace(/\s*mod$/i, "").trim());
+    else fields.push(`AC ${g.ac}`);
     if (g.props) fields.push(g.props);
   } else {
     fields.push(TYPE_CODE[g.type[0]]);
@@ -218,7 +225,11 @@ function splitRecords(text, kind, { onDrop } = {}) {
   const records = [];
   for (const lines of blocks) {
     const stat = lines.map((l) => matchStatRow(l, kind));
-    if (lines.length > 1 && stat.filter(Boolean).length >= 2) {
+    // One FULL stat row is decisive on its own (the regex is strict: name +
+    // cost + column codes) — so an isolated row, or blank-separated rows one
+    // per block, parse as stat rows too. Headless matches still need company.
+    const fullCount = stat.filter((m) => m?.full).length;
+    if (fullCount >= 1 || stat.filter(Boolean).length >= 2) {
       let pendingName = null;   // "Chainmail," — waiting for its headless stat line
       let lastWrap = null;      // record built from a wrap — its material may follow
       const dropPending = () => { if (pendingName) { onDrop?.(pendingName, "not a gear row"); pendingName = null; } };
@@ -354,8 +365,10 @@ function normDie(d) {
 function parseArmorRecord(lines) {
   const fields = recordFields(lines);
   const warnings = [];
-  let nameRaw = collapse(fields[0] ?? "").replace(/,\s*$/, "");
-  let cost = null, base = 0, modifier = 0, slots = null, baseArmor = "";
+  const originalName = collapse(fields[0] ?? "").replace(/,\s*$/, "");
+  let nameRaw = originalName;
+  let cost = null, base = 0, modifier = 0, slots = null, material = "";
+  let acAttr = null;   // null = unstated; "dex" / "" when the source is explicit
   const propNames = [];
 
   for (const field of fields.slice(1)) {
@@ -366,6 +379,10 @@ function parseArmorRecord(lines) {
     const sw = f.match(SLOTS_WORD_RE);
     if (sw) { slots = Number(sw[1]); continue; }
     if (/^\+\d+$/.test(f)) { modifier = Number(f.slice(1)); continue; }   // +2 → shield bonus
+    const dexAc = f.match(/^(\d+)\s*\+\s*dex(?:\s+mod)?$/i);              // "13 + DEX (mod)"
+    if (dexAc) { base = Number(dexAc[1]); acAttr = "dex"; continue; }
+    const flatAc = f.match(/^ac\s+(\d+)$/i);                              // "AC 15" — explicit no-DEX
+    if (flatAc) { base = Number(flatAc[1]); acAttr = ""; continue; }
     if (/^\d+$/.test(f)) {
       const n = Number(f);
       if (n >= 10) base = n;          // worn armor AC (11/13/15)
@@ -379,15 +396,23 @@ function parseArmorRecord(lines) {
       continue;
     }
     // A lone word that isn't a code/number/cost → material (mithral, etc.).
-    if (/^[A-Za-z][A-Za-z' -]*$/.test(f)) { baseArmor = f.toLowerCase(); continue; }
+    if (/^[A-Za-z][A-Za-z' -]*$/.test(f)) { material = f.toLowerCase(); continue; }
     warnings.push(`Unparsed armor field "${f}" — ignored.`);
   }
 
   // Fold a material into the name: a ", mithral" suffix or a standalone tag.
   const suffix = nameRaw.match(/,\s*([A-Za-z][A-Za-z' -]*)$/);
-  if (suffix) { baseArmor = baseArmor || suffix[1].toLowerCase(); nameRaw = nameRaw.slice(0, suffix.index).trim(); }
-  const name = baseArmor && !nameRaw.toLowerCase().includes(baseArmor)
-    ? `${titleCase(baseArmor)} ${nameRaw}` : nameRaw;
+  if (suffix) { material = material || suffix[1].toLowerCase(); nameRaw = nameRaw.slice(0, suffix.index).trim(); }
+  const folded = material && !nameRaw.toLowerCase().includes(material);
+  const name = folded ? `${titleCase(material)} ${nameRaw}` : nameRaw;
+  // baseArmor holds the UNDERLYING armor's slug on material variants (system
+  // convention, live-verified: Mithral Chainmail → "chainmail"); plain "".
+  const baseArmor = folded ? slugify(nameRaw) : "";
+  // The pre-fold spellings anchor description matching (the book's headers
+  // say "Shield." while the folded item is "Mithral Shield").
+  const altNames = folded
+    ? [...new Set([originalName, nameRaw])].filter((n) => n && n !== collapse(name))
+    : [];
 
   if (cost === null) warnings.push("No cost found — defaulted to 0 gp.");
   if (base === 0 && modifier === 0) warnings.push("No AC value found — set the AC on the sheet after import.");
@@ -397,8 +422,11 @@ function parseArmorRecord(lines) {
     type: "Armor",
     cost: cost ?? { gp: 0, sp: 0, cp: 0 },
     slots: { free_carry: 0, per_slot: 1, slots_used: slots ?? 1 },
-    ac: { base, modifier, attribute: base ? "dex" : "" },
+    // Explicit source notation wins; a bare reflowed number keeps the old
+    // dex default (11/13 worn armor is DEX armor unless the book says not).
+    ac: { base, modifier, attribute: acAttr ?? (base ? "dex" : "") },
     baseArmor,
+    ...(altNames.length ? { altNames } : {}),
     propNames,
     description: "<p></p>",
   };

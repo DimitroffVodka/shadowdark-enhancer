@@ -300,14 +300,17 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const exact = new Set();
     for (const it of this._items) { const k = _norm(it.name); claim.set(k, it); exact.add(k); }
     for (const it of this._items) {
-      for (const v of this._descAnchorNames(it.name)) {
+      // altNames carry a folded row's pre-fold spellings ("Shield, mithral",
+      // "Shield") so the book's bare-noun headers still anchor.
+      for (const v of [...this._descAnchorNames(it.name), ...(it.altNames ?? [])]) {
         const k = _norm(v);
         if (!k || exact.has(k)) continue;                   // exact names win outright
         if (!claim.has(k)) claim.set(k, it);
         else if (claim.get(k) !== it) claim.set(k, null);   // shared variant → ambiguous
       }
     }
-    const anchorNames = this._items.flatMap((it) => this._descAnchorNames(it.name))
+    const anchorNames = this._items
+      .flatMap((it) => [...this._descAnchorNames(it.name), ...(it.altNames ?? [])])
       .filter((v) => claim.get(_norm(v)) != null);
     const entries = splitDescriptionsByNames(this._descText, anchorNames);
     let matched = 0;

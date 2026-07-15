@@ -2855,13 +2855,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const source = this._importSource.trim();
     // The char-builder gates visibility on system.source.title — stamp it from
     // the source label so unlocked content is attributed like hand-imports.
-    const sourceTitle = ({
-      "cursed scroll 4": "cursed-scroll-4",
-      "cursed scroll 5": "cursed-scroll-5",
-      "cursed scroll 6": "cursed-scroll-6",
-      "cs4": "cursed-scroll-4", "cs5": "cursed-scroll-5", "cs6": "cursed-scroll-6",
-      "western reaches": "western-reaches",
-    })[source.toLowerCase()] ?? source.toLowerCase().replace(/\s+/g, "-");
+    // Shared canonical mapping (item-builder-gear) so the builder and the char
+    // commit can never diverge on a slug.
+    const { sourceTitleSlug } = await import("./item-builder-gear.mjs");
+    const sourceTitle = sourceTitleSlug(source);
 
     // Full class units (parse-and-author path) go through the class-unit
     // importer: talents + 2d6 table + wired Class, in dependency order.

@@ -34,8 +34,9 @@ test("reflowed shield: slots vs AC-modifier disambiguation + C/S codes", () => {
   assert.equal(draft.ac.base, 0);
   assert.equal(draft.ac.modifier, 2);
   assert.equal(draft.ac.attribute, "");              // shields carry no bonus attribute
-  assert.equal(draft.baseArmor, "mithral");
+  assert.equal(draft.baseArmor, "round-shield");     // slug of the UNDERLYING armor (system convention)
   assert.equal(draft.name, "Mithral Round shield");
+  assert.deepEqual(draft.altNames, ["Round shield"]); // pre-fold spelling anchors desc matching
   assert.deepEqual(draft.propNames, ["Occupies One Hand", "Sundering"]);
   assert.deepEqual(warnings, []);
 });
@@ -103,7 +104,7 @@ test("buildItemData maps an Armor draft to the ArmorSD system shape", () => {
   const data = buildItemData(draft);
   assert.equal(data.type, "Armor");
   assert.deepEqual(data.system.ac, { attribute: "", base: 0, modifier: 2 });
-  assert.equal(data.system.baseArmor, "mithral");
+  assert.equal(data.system.baseArmor, "round-shield");
   assert.equal(data.system.slots.slots_used, 0);
   assert.deepEqual(data.system.properties, draft.properties);
   assert.equal("treasure" in data.system, false);   // Armor never carries treasure
@@ -335,35 +336,64 @@ test("armor stat-row table incl. the three-line mithral wrap and a comma-materia
     "Item Cost Gear Slots AC Properties",
     "Hide armor 10 gp 1 11 + DEX mod M",
     "Scalemail 60 gp 2 13 + DEX mod L, M, R",
+    "Warplate 130 gp 3 15 H, L",
     "Scalemail,",
     "240 gp 1 13 + DEX mod M",
     "mithral",
     "Tower shield 15 gp 1 +2 C, S",
     "Buckler, mithral 40 gp 0 +2 C",
   ].join("\n"), "Armor", { onDrop: (text) => dropped.push(text) });
-  assert.equal(recs.length, 5);
+  assert.equal(recs.length, 6);
   const hide = recs[0].draft;
   assert.deepEqual(hide.cost, { gp: 10, sp: 0, cp: 0 });
   assert.equal(hide.ac.base, 11);
-  assert.equal(hide.ac.attribute, "dex");
+  assert.equal(hide.ac.attribute, "dex");   // "11 + DEX mod" → explicit DEX armor
+  assert.equal(hide.baseArmor, "");         // plain armor: no base-armor slug
   assert.equal(hide.slots.slots_used, 1);
   assert.ok(recs[0].warnings.some((w) => /Mount.*\(M\).*no core Shadowdark property/.test(w)));
   assert.deepEqual(recs[1].draft.propNames, ["Disadvantage/Stealth", "Disadvantage/Swim"]);
-  const wrap = recs[2].draft;
+  // Bare AC in a stat row means NO DEX (plate-style) — the book prints the
+  // difference and the system stores attribute "" there.
+  const plate = recs[2].draft;
+  assert.equal(plate.ac.base, 15);
+  assert.equal(plate.ac.attribute, "");
+  const wrap = recs[3].draft;
   assert.equal(wrap.name, "Mithral Scalemail");
   assert.deepEqual(wrap.cost, { gp: 240, sp: 0, cp: 0 });
   assert.equal(wrap.ac.base, 13);
-  assert.equal(wrap.baseArmor, "mithral");
+  assert.equal(wrap.ac.attribute, "dex");
+  assert.equal(wrap.baseArmor, "scalemail");        // underlying armor's slug
+  assert.deepEqual(wrap.altNames, ["Scalemail"]);
   assert.equal(wrap.slots.slots_used, 1);
-  const tower = recs[3].draft;
+  const tower = recs[4].draft;
   assert.equal(tower.ac.base, 0);
   assert.equal(tower.ac.modifier, 2);
   assert.deepEqual(tower.propNames, ["Occupies One Hand", "Sundering"]);
-  const buckler = recs[4].draft;
+  const buckler = recs[5].draft;
   assert.equal(buckler.name, "Mithral Buckler");
   assert.equal(buckler.ac.modifier, 2);
   assert.equal(buckler.slots.slots_used, 0);
+  assert.equal(buckler.baseArmor, "buckler");
+  assert.deepEqual(buckler.altNames, ["Buckler, mithral", "Buckler"]);
   assert.deepEqual(dropped, ["Item Cost Gear Slots AC Properties"]);
+});
+
+test("isolated and blank-separated stat rows parse without a run", () => {
+  // A single full stat row on its own is decisive.
+  const [lone] = parseGear("Falchion 12 gp M C 1d8 2H, F", "Weapon");
+  assert.equal(lone.draft.name, "Falchion");
+  assert.deepEqual(lone.draft.damage, { oneHanded: "", twoHanded: "d8" });
+  assert.deepEqual(lone.draft.propNames, ["Two-Handed", "Finesse"]);
+  const [loneArmor] = parseGear("Warplate 130 gp 3 15 H", "Armor");
+  assert.equal(loneArmor.draft.ac.base, 15);
+  assert.equal(loneArmor.draft.ac.attribute, "");
+  // Blank-line-separated stat rows (one per block) each parse fully.
+  const recs = parseGear(
+    "Falchion 12 gp M C 1d8 2H, F\n\nChakram 20 gp R N 1d6 R, Th",
+    "Weapon");
+  assert.equal(recs.length, 2);
+  assert.deepEqual(recs[1].draft.damage, { oneHanded: "d6", twoHanded: "" });
+  assert.equal(recs[1].draft.wtype, "ranged");
 });
 
 test("a property-definitions prose block is dropped whole, not minted", () => {

@@ -66,13 +66,12 @@ export function mergeGearRows(existingRows, newRows) {
 export function sourceTitleSlug(label) {
   const s = String(label ?? "").trim().toLowerCase();
   if (!s) return "";
-  return ({
-    "cursed scroll 4": "cursed-scroll-4",
-    "cursed scroll 5": "cursed-scroll-5",
-    "cursed scroll 6": "cursed-scroll-6",
-    "cs4": "cursed-scroll-4", "cs5": "cursed-scroll-5", "cs6": "cursed-scroll-6",
-    "western reaches": "western-reaches",
-  })[s] ?? s.replace(/\s+/g, "-");
+  // Every offered label form maps canonically: "CS1"…"CS6" and
+  // "Cursed Scroll 1"…"Cursed Scroll 6" → cursed-scroll-N; WR both ways.
+  const cs = s.match(/^(?:cs\s*|cursed scrolls?\s+)([1-6])$/);
+  if (cs) return `cursed-scroll-${cs[1]}`;
+  if (s === "western reaches" || s === "wr") return "western-reaches";
+  return s.replace(/\s+/g, "-");
 }
 
 /**

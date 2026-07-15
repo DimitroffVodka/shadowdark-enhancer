@@ -69,6 +69,16 @@ test("Basic path still goes through the generic recognizer and builds Basic item
   assert.equal("damage" in data.system, false);
 });
 
+test("folded armor rows carry pre-fold altNames through to the builder rows", () => {
+  const rows = parseGearTable("Buckler, mithral 40 gp 0 +2 C\nTower shield 15 gp 1 +2 C, S", "Armor");
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].name, "Mithral Buckler");
+  assert.deepEqual(rows[0].altNames, ["Buckler, mithral", "Buckler"]);
+  assert.equal(rows[0].baseArmor, "buckler");
+  const data = buildItemData(assembleCreateDrafts(rows, "Armor")[0]);
+  assert.equal(data.system.baseArmor, "buckler");
+});
+
 test("stray lines in a Weapon table paste are reported, not minted", () => {
   const dropped = [];
   const rows = parseGearTable(`${TWO_WEAPONS}\n\n+\n\n112`, "Weapon",
@@ -80,6 +90,9 @@ test("stray lines in a Weapon table paste are reported, not minted", () => {
 test("source label stamps the char-builder gating slug onto created gear", () => {
   assert.equal(sourceTitleSlug("Western Reaches"), "western-reaches");
   assert.equal(sourceTitleSlug("CS5"), "cursed-scroll-5");
+  // EVERY offered label maps canonically — including CS1–CS3 and full titles.
+  assert.equal(sourceTitleSlug("CS1"), "cursed-scroll-1");
+  assert.equal(sourceTitleSlug("Cursed Scroll 3"), "cursed-scroll-3");
   assert.equal(sourceTitleSlug("My Homebrew Book"), "my-homebrew-book");
   assert.equal(sourceTitleSlug(""), "");
   const rows = parseGearTable("Falchion 12 gp M C 1d8 2H, F\nLongknife 9 gp M C 1d8 -", "Weapon");

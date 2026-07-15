@@ -51,10 +51,12 @@ jobs:
       - name: Build module.zip
         run: |
           # docs/ stays out of the zip on purpose — it holds internal audits,
-          # working-state reports, and development artifacts, not user docs.
+          # working-state reports, and development artifacts. The one public
+          # document, docs/API.md (linked from README), ships explicitly.
           zip -r module.zip \
             module.json \
             README.md LICENSE CHANGELOG.md CREDITS.md \
+            docs/API.md \
             assets icons languages scripts styles templates \
             -x "scripts/**/*.test.mjs"
 
