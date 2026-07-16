@@ -15,7 +15,8 @@ import { MovementTracker } from "./movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { EncounterRollerApp } from "./encounter/encounter-roller-app.mjs";
 import { MonsterCreator } from "./encounter/encounter-creator.mjs";
-import { createMutatedActor, MUTATIONS } from "./encounter/monster-mutator.mjs";
+import { createMutatedActor } from "./encounter/monster-mutator.mjs";
+import { catalog as monsterTableCatalog } from "./encounter/monster-table-runtime.mjs";
 import { LootCatalog } from "./encounter/loot-catalog.mjs";
 import { LootGenerator } from "./encounter/loot-generator.mjs";
 import { LootDelivery } from "./encounter/loot-delivery.mjs";
@@ -284,11 +285,19 @@ Hooks.once("init", () => {
     // create NPC actors into the managed world compendium. See monster-importer-app.mjs.
     monsters: MonsterImporterAPI,
     mutator: {
-      // Clone a bestiary/world actor, apply mutation ids, create a NEW
-      // world actor (source untouched). See monster-mutator.mjs.
-      create: (baseUuid, mutationIds, customName = null) =>
-        createMutatedActor(baseUuid, mutationIds, customName),
-      catalog: () => MUTATIONS,
+      // Clone a bestiary/world actor, append validated IMPORTED matrix results
+      // as descriptive NPC Features, and create a NEW world actor (source
+      // untouched). `resultRefs` are { manifestId, tableUuid, resultId }
+      // references — old static string ids throw a deprecation error before
+      // anything is persisted. See monster-mutator.mjs.
+      create: (baseUuid, resultRefs, customName = null) =>
+        createMutatedActor(baseUuid, resultRefs, customName),
+      createFromResults: (baseUuid, resultRefs, customName = null) =>
+        createMutatedActor(baseUuid, resultRefs, customName),
+      // Async: current locked/partial/ready/ambiguous/invalid state + dynamic
+      // columns/results for the Generator and Make It Weird sets, read from the
+      // GM's imported sde-tables matrices. See monster-table-runtime.mjs.
+      catalog: () => monsterTableCatalog(),
     },
     loot: {
       // Generate a treasure hoard for a level and post a claimable loot card.

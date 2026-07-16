@@ -116,10 +116,29 @@ const report = await api.bundle.apply(bundleObject);
 
 ## `mutator`
 
+Reads the GM's **own imported** Core Rulebook matrices (Monster Generator d20×4,
+Make It Weird d12×3) from the managed `sde-tables` pack — there is no shipped
+catalogue. Results are applied conservatively as descriptive `NPC Feature`s only
+(no stat/attack/movement/spellcasting/name inference).
+
 ```js
-api.mutator.catalog();                                 // available mutations
-await api.mutator.create(baseActorUuid, ["giant"]);    // mutated copy (new actor)
+// Async — structured state + dynamic columns/results for both sets:
+//   { generator, mutations } each with
+//   { state: "locked"|"partial"|"ready"|"ambiguous"|"invalid", ready, columns: [...] }
+const cat = await api.mutator.catalog();
+const combat = cat.generator.columns[0].results;   // [{ manifestId, tableUuid, resultId, range, columnKey, columnLabel, text }]
+
+// Create a variant copy from validated imported-result references. Old static
+// string ids (e.g. "giant") throw a deprecation error BEFORE anything persists.
+const refs = [{ manifestId: combat[0].manifestId, tableUuid: combat[0].tableUuid, resultId: combat[0].resultId }];
+await api.mutator.create(baseActorUuid, refs);            // → new world actor
+await api.mutator.createFromResults(baseActorUuid, refs); // alias
 ```
+
+New actors record provenance **version 2** under `flags["shadowdark-enhancer"].mutation`
+— stable references only (`manifestId`, `tableUuid`, `resultId`, `range`, plus
+`baseUuid`/`baseName`/`createdAt`), never source prose. Version-1 provenance on
+older actors is left untouched.
 
 ## `monsterCreator` / `forge`
 

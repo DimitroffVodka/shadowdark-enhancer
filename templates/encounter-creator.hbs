@@ -446,72 +446,122 @@
     </div>
   </details>
 
-  {{!-- ═══ Mutations Section ═══
-       Curated Shadowdark-native adaptation of Vagabond Crawler's mutation
-       system. Cards toggle into a selection; "Apply to Draft" mutates the
-       in-progress draft in place, "Create Mutated Copy" spins off a NEW
-       world actor from a clone (draft untouched). Both run the same
-       applyMutations engine (mutation-data.mjs). --}}
+  {{!-- ═══ Generator & Mutator Section ═══
+       Two dynamic status cards backed by the GM's OWN imported Core Rulebook
+       matrix tables (Monster Generator d20×4, Make It Weird d12×3), read live
+       from sde-tables via monster-table-runtime.mjs. A set unlocks only when
+       every child column resolves to exactly one valid table. Selecting/rolling
+       results and applying them adds DESCRIPTIVE NPC FEATURES ONLY — never
+       stats, attacks, movement, name, or spellcasting. --}}
   <details class="sde-creator-section" {{#if sectionOpen.mutations}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="mutations">
-      <i class="fas fa-dna"></i> Mutations
+      <i class="fas fa-dna"></i> Generator &amp; Mutator
       {{#if mutations.selectedCount}}<span class="sde-mut-badge">{{mutations.selectedCount}}</span>{{/if}}
     </summary>
     <div class="sde-creator-section-body">
 
-      {{!-- Category filter pills --}}
-      <div class="sde-mut-categories">
-        {{#each mutations.categories}}
-          <button type="button" class="sde-mut-cat-pill {{#if this.active}}is-active{{/if}}"
-                  data-action="creatorMutCategory" data-category="{{this.key}}"
-                  aria-pressed="{{#if this.active}}true{{else}}false{{/if}}">
-            <i class="fas {{this.icon}}"></i> {{this.label}}
-          </button>
-        {{/each}}
-      </div>
+      <p class="sde-mut-notice">
+        <i class="fas fa-circle-info"></i>
+        Reads <strong>your imported</strong> Core Rulebook tables. Applying a
+        result adds a descriptive <strong>Feature only</strong> — HP, AC,
+        abilities, attacks, movement, and spellcasting are never changed.
+      </p>
 
-      {{!-- Mutation cards --}}
-      <div class="sde-mut-grid">
-        {{#each mutations.list}}
-          <button type="button"
-                  class="sde-mut-card sde-mut-{{this.type}}{{#if this.selected}} is-selected{{/if}}{{#if this.conflict}} is-conflict{{/if}}"
-                  data-action="creatorMutToggle" data-mutation-id="{{this.id}}"
-                  aria-pressed="{{#if this.selected}}true{{else}}false{{/if}}"
-                  title="{{this.description}}">
-            <span class="sde-mut-card-head">
-              <span class="sde-mut-name">{{this.name}}</span>
-              {{#if this.selected}}<i class="fas fa-check sde-mut-check"></i>{{/if}}
-            </span>
-            <span class="sde-mut-desc">{{this.description}}</span>
-            {{#if this.conflict}}
-              <span class="sde-mut-conflict-note">Replaces {{this.conflict}}</span>
-            {{else if this.suggestedBaneName}}
-              <span class="sde-mut-suggest">Suggested bane: {{this.suggestedBaneName}}</span>
-            {{/if}}
-          </button>
-        {{else}}
-          <div class="sde-creator-empty">No mutations in this category.</div>
-        {{/each}}
-      </div>
+      {{#each mutations.sets}}
+        <div class="sde-mut-set sde-mut-set-{{this.state}}">
+          <div class="sde-mut-set-head">
+            <span class="sde-mut-set-name">{{this.label}}</span>
+            <span class="sde-mut-state sde-mut-state-{{this.state}}">{{this.stateLabel}}</span>
+          </div>
 
-      {{!-- Name preview (only when something is selected) --}}
+          {{#if this.ready}}
+            <div class="sde-mut-columns">
+              {{#each this.columns}}
+                <label class="sde-mut-col">
+                  <span class="sde-mut-col-label">{{this.columnLabel}}</span>
+                  <span class="sde-mut-col-controls">
+                    <select data-mut-result data-set="{{../key}}"
+                            data-manifest="{{this.manifestId}}" data-table="{{this.tableUuid}}">
+                      <option value="">— none —</option>
+                      {{#each this.results}}
+                        <option value="{{this.resultId}}" {{#if this.selected}}selected{{/if}}>{{this.text}}</option>
+                      {{/each}}
+                    </select>
+                    <button type="button" class="sde-mut-roll1" title="Roll this column"
+                            data-action="creatorMutRollColumn"
+                            data-set="{{../key}}" data-manifest="{{this.manifestId}}">
+                      <i class="fas fa-dice-d20"></i>
+                    </button>
+                  </span>
+                </label>
+              {{/each}}
+            </div>
+            <div class="sde-mut-set-actions">
+              <button type="button" data-action="creatorMutRollSet" data-set="{{this.key}}">
+                <i class="fas fa-dice"></i> Roll all columns
+              </button>
+              <button type="button" class="sde-mut-clear" data-action="creatorMutClearSet" data-set="{{this.key}}">
+                <i class="fas fa-xmark"></i> Clear
+              </button>
+            </div>
+          {{else}}
+            <div class="sde-mut-diagnostics">
+              {{#each this.diagnostics}}
+                <p class="sde-mut-diag sde-mut-diag-{{this.code}}">
+                  <i class="fas fa-triangle-exclamation"></i> {{this.message}}
+                </p>
+              {{else}}
+                <p class="sde-mut-diag">
+                  <i class="fas fa-triangle-exclamation"></i>
+                  Import the “{{this.label}}” table to unlock this set.
+                </p>
+              {{/each}}
+            </div>
+            <div class="sde-mut-set-actions">
+              <button type="button" data-action="creatorMutImport" data-set="{{this.key}}">
+                <i class="fas fa-file-import"></i> Import from Core Rulebook…
+              </button>
+            </div>
+          {{/if}}
+        </div>
+      {{/each}}
+
+      {{!-- Live selection summary --}}
       {{#if mutations.selectedCount}}
-        <div class="sde-mut-preview">
-          <span class="sde-mut-preview-label">Mutated name</span>
-          <span class="sde-mut-preview-name">{{mutations.namePreview}}</span>
+        <div class="sde-mut-selection">
+          <span class="sde-mut-selection-label">Selected results ({{mutations.selectedCount}})</span>
+          <ul class="sde-mut-selection-list">
+            {{#each mutations.selection}}
+              <li class="sde-mut-selected">
+                <span class="sde-mut-selected-col">{{this.setLabel}} · {{this.columnLabel}}</span>
+                <span class="sde-mut-selected-text">{{this.text}}</span>
+                <button type="button" class="sde-mut-remove" title="Remove"
+                        data-action="creatorMutRemove" data-manifest="{{this.manifestId}}">
+                  <i class="fas fa-xmark"></i>
+                </button>
+              </li>
+            {{/each}}
+          </ul>
         </div>
       {{/if}}
 
-      {{!-- Mutation actions --}}
+      {{#if mutations.staleCount}}
+        <p class="sde-mut-stale">
+          <i class="fas fa-circle-info"></i>
+          {{mutations.staleCount}} earlier selection(s) were dropped because their imported table changed.
+        </p>
+      {{/if}}
+
+      {{!-- Apply / Create --}}
       <div class="sde-creator-action-buttons sde-mut-actions">
         <button type="button" data-action="creatorMutApply" {{#unless mutations.selectedCount}}disabled{{/unless}}>
-          <i class="fas fa-wand-magic-sparkles"></i> Apply to Draft
+          <i class="fas fa-wand-magic-sparkles"></i> Apply Features to Draft
         </button>
         <button type="button" data-action="creatorMutCreateCopy" {{#unless mutations.selectedCount}}disabled{{/unless}}>
-          <i class="fas fa-clone"></i> Create Mutated Copy
+          <i class="fas fa-clone"></i> Create Variant Copy
         </button>
         <button type="button" class="sde-mut-clear" data-action="creatorMutClear" {{#unless mutations.selectedCount}}disabled{{/unless}}>
-          <i class="fas fa-xmark"></i> Clear
+          <i class="fas fa-xmark"></i> Clear all
         </button>
       </div>
 

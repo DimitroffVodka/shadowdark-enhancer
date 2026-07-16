@@ -4495,123 +4495,162 @@ body.theme-light .sde-hub-monsters-row td {
   text-align: center;
 }
 
-.sde-mut-categories {
+/* Notice banner — descriptive features only. */
+.sde-mut-notice {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 10px;
-}
-.sde-mut-cat-pill {
-  background: var(--sde-bar-surface-2);
+  margin: 0 0 10px;
+  padding: 7px 10px;
+  background: var(--sde-bar-surface-1);
   border: 1px solid var(--sde-bar-border);
+  border-left: 3px solid var(--sde-bar-accent);
+  border-radius: var(--sde-bar-radius);
   color: var(--sde-bar-text-muted);
-  font-family: var(--sde-bar-font);
   font-size: 11px;
-  font-weight: 700;
-  padding: 4px 9px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  line-height: 1.4;
 }
-.sde-mut-cat-pill:hover {
-  background: var(--sde-bar-bg-hover);
-  color: var(--sde-bar-text-bright);
-}
-.sde-mut-cat-pill.is-active {
-  background: var(--sde-bar-accent-dim);
-  border-color: var(--sde-bar-accent);
-  color: var(--sde-bar-on-accent);
-}
-.sde-mut-cat-pill i { margin-right: 3px; }
+.sde-mut-notice i { margin-top: 2px; color: var(--sde-bar-accent); }
+.sde-mut-notice strong { color: var(--sde-bar-text-bright); }
 
-.sde-mut-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
+/* Per-set status card. */
+.sde-mut-set {
   margin-bottom: 10px;
-}
-.sde-mut-card {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: left;
-  /* Foundry forces a fixed height + centered single-line layout on
-     <button>. These cards are multi-line, so without height:auto the
-     content overflows the button box and the grid rows collapse onto
-     each other. Reset the button-box constraints explicitly. */
-  height: auto;
-  min-height: 0;
-  line-height: 1.3;
-  white-space: normal;
+  padding: 9px 11px;
   background: var(--sde-bar-surface-2);
   border: 1px solid var(--sde-bar-border);
   border-left-width: 3px;
   border-radius: var(--sde-bar-radius);
-  padding: 8px 10px;
-  cursor: pointer;
-  font-family: var(--sde-bar-font);
-  transition: background 0.12s, border-color 0.12s, filter 0.12s;
 }
-.sde-mut-card:hover { filter: brightness(1.12); }
-/* Boon = green left edge, bane = red left edge. */
-.sde-mut-boon { border-left-color: var(--sde-bar-mut-boon); }
-.sde-mut-bane { border-left-color: var(--sde-bar-mut-bane); }
-.sde-mut-card.is-selected {
-  background: var(--sde-bar-bg-hover);
-  border-color: var(--sde-bar-accent);
-  box-shadow: inset 0 0 0 1px var(--sde-bar-accent-dim);
-}
-.sde-mut-card.is-conflict { opacity: 0.85; }
+.sde-mut-set-ready     { border-left-color: var(--sde-bar-mut-boon); }
+.sde-mut-set-locked    { border-left-color: var(--sde-bar-border); }
+.sde-mut-set-partial   { border-left-color: var(--sde-bar-mut-conflict, #c9a227); }
+.sde-mut-set-ambiguous { border-left-color: var(--sde-bar-mut-conflict, #c9a227); }
+.sde-mut-set-invalid   { border-left-color: var(--sde-bar-mut-bane); }
 
-.sde-mut-card-head {
+.sde-mut-set-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
-.sde-mut-name {
+.sde-mut-set-name {
   color: var(--sde-bar-text-bright);
   font-size: 13px;
   font-weight: 700;
 }
-.sde-mut-check { color: var(--sde-bar-accent); font-size: 12px; }
-.sde-mut-desc {
-  color: var(--sde-bar-text-muted);
-  font-size: 11px;
-  line-height: 1.35;
-}
-.sde-mut-suggest {
-  color: var(--sde-bar-text-muted);
-  font-size: 10px;
-  font-style: italic;
-  opacity: 0.8;
-}
-.sde-mut-conflict-note {
-  color: var(--sde-bar-mut-conflict);
+.sde-mut-state {
   font-size: 10px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--sde-bar-surface-1);
+  color: var(--sde-bar-text-muted);
+  border: 1px solid var(--sde-bar-border);
+}
+.sde-mut-state-ready     { color: var(--sde-bar-on-accent); background: var(--sde-bar-mut-boon); border-color: transparent; }
+.sde-mut-state-invalid,
+.sde-mut-state-ambiguous,
+.sde-mut-state-partial   { color: var(--sde-bar-text-bright); }
+
+.sde-mut-columns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.sde-mut-col {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sde-mut-col-label {
+  flex: 0 0 90px;
+  color: var(--sde-bar-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.sde-mut-col-controls {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 6px;
+  min-width: 0;
+}
+.sde-mut-col-controls select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.sde-mut-roll1 {
+  flex: 0 0 auto;
+  width: 30px;
+  cursor: pointer;
 }
 
-.sde-mut-preview {
+.sde-mut-diagnostics { margin-bottom: 8px; }
+.sde-mut-diag {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 6px 10px;
+  gap: 6px;
+  margin: 0 0 4px;
+  color: var(--sde-bar-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+.sde-mut-diag i { margin-top: 2px; color: var(--sde-bar-mut-conflict, #c9a227); }
+.sde-mut-diag-invalid i { color: var(--sde-bar-mut-bane); }
+
+.sde-mut-set-actions {
+  display: flex;
+  gap: 6px;
+}
+.sde-mut-set-actions .sde-mut-clear { margin-left: auto; }
+
+/* Live selection summary. */
+.sde-mut-selection {
   margin-bottom: 8px;
+  padding: 8px 10px;
   background: var(--sde-bar-surface-1);
   border: 1px solid var(--sde-bar-border);
   border-radius: var(--sde-bar-radius);
 }
-.sde-mut-preview-label {
+.sde-mut-selection-label {
+  display: block;
+  margin-bottom: 6px;
   color: var(--sde-bar-text-muted);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.sde-mut-preview-name {
+.sde-mut-selection-list { margin: 0; padding: 0; list-style: none; }
+.sde-mut-selected {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 0;
+}
+.sde-mut-selected-col {
+  flex: 0 0 auto;
   color: var(--sde-bar-text-bright);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 700;
+}
+.sde-mut-selected-text {
+  flex: 1 1 auto;
+  color: var(--sde-bar-text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.sde-mut-remove {
+  flex: 0 0 auto;
+  width: 24px;
+  cursor: pointer;
+}
+.sde-mut-stale {
+  margin: 0 0 8px;
+  color: var(--sde-bar-text-muted);
+  font-size: 11px;
+  font-style: italic;
 }
 
 .sde-mut-actions button:disabled { opacity: 0.4; cursor: not-allowed; }

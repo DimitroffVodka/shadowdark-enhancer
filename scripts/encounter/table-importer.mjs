@@ -27,6 +27,7 @@
 // never mistaken for a row token.
 import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
 import { splitRawBlocks } from "./pdf-text-utils.mjs";
+import { columnManifestId } from "./table-manifest.mjs";
 
 // Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
 // treated as the plain number — the shape's size caps the die, so "14+" is row 14.
@@ -1793,6 +1794,46 @@ export function computeBlockers(pt) {
   return blockers;
 }
 
+/**
+ * Fail-closed validation for a WHOLE selected-matrix commit (e.g. the Monster
+ * Generator d20×4 or Make It Weird d12×3). A matrix imports as N child tables or
+ * not at all — a partially-imported matrix would leave the runtime set locked
+ * and confusing. This asserts, for a live matrix seed:
+ *   - exactly `seed.columns.length` child drafts, in column order;
+ *   - each child carries the expected `columnManifestId(seed.manifestId, col)`;
+ *   - every child is clean (zero computeBlockers).
+ * Pure — the hub calls it before committing and refuses the whole set on any
+ * failure (no commit-clean / commit-anyway escape hatch for a selected matrix).
+ *
+ * @param {{manifestId:string, columns:string[]}} seed
+ * @param {object[]} tables  the parsed child ParsedTables, in preview order
+ * @returns {{ok:boolean, errors:string[]}}
+ */
+export function validateMatrixCommit(seed, tables) {
+  const errors = [];
+  const cols = Array.isArray(seed?.columns) ? seed.columns : [];
+  const list = Array.isArray(tables) ? tables : [];
+  if (!seed?.manifestId || !cols.length) {
+    return { ok: false, errors: ["Not a valid matrix seed."] };
+  }
+  if (list.length !== cols.length) {
+    errors.push(`Expected ${cols.length} child tables for “${seed.name ?? seed.manifestId}”, found ${list.length}.`);
+  }
+  cols.forEach((col, i) => {
+    const expected = columnManifestId(seed.manifestId, col);
+    const t = list[i];
+    if (!t) { errors.push(`Missing child table for column ${i + 1} (${col}).`); return; }
+    if (t.manifestId !== expected) {
+      errors.push(`Child ${i + 1} carries id "${t.manifestId ?? "(none)"}", expected "${expected}" (${col}).`);
+    }
+    const blockers = computeBlockers(t);
+    if (blockers.length) {
+      errors.push(`Column “${col}”: ${blockers.map((b) => b.message).join(" ")}`);
+    }
+  });
+  return { ok: errors.length === 0, errors };
+}
+
 export async function createTable(pt, { onConflict, allowInvalid = false } = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can create roll tables.");
@@ -1996,7 +2037,98 @@ async function _autoEnrich(table, pt) {
  *   single-spaced paste (the "cheat" — we know each cell's word count from the rules).
  * @returns {Array<ParsedTable>}  one ParsedTable per column
  */
+/**
+ * Column-major / "split-plane" matrix layout (real Core Rulebook p.191 shape):
+ * the FIRST column prints as a numbered block `1 <cell>` … `M <cell>`, then —
+ * after arbitrary prose — a header line names the REMAINING columns, and exactly
+ * M UNNUMBERED lines follow, each carrying the remaining columns' cells for that
+ * face (single-spaced). Row-major parsing sees only the numbered first column
+ * and leaves the rest empty.
+ *
+ * This is GENERAL and provenance-safe: detection keys off the KNOWN column
+ * labels (to find the plane header) and the per-row `widths` word-counts (to
+ * split each plane row) — no source text or result phrases are baked in. Returns
+ * N complete ParsedTables, or null when the layout is not split-plane (so the
+ * caller falls through to the unchanged row-major parser).
+ *
+ * @param {string} text
+ * @param {string[]} columns
+ * @param {number[][]} widths  per-row cell word-counts (required for the plane split)
+ * @returns {Array<object>|null}
+ */
+function _parseSplitPlaneMatrix(text, columns, widths) {
+  const N = columns.length;
+  if (N < 2 || !Array.isArray(widths)) return null;
+  const lines = String(text ?? "").split(/\r?\n/).map((l) => l.trim());
+
+  // 1) The numbered first-column block: the maximal leading run of numbered
+  //    lines whose face equals its 1-based position (1, 2, 3, … M).
+  const numbered = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^(\d+)\s+(\S.*)$/.exec(lines[i]);
+    if (m) numbered.push({ face: Number(m[1]), text: m[2].trim(), lineIdx: i });
+  }
+  let M = 0;
+  for (let k = 0; k < numbered.length; k++) {
+    if (numbered[k].face === k + 1) M = k + 1; else break;
+  }
+  if (M < 2) return null;
+  const col0 = numbered.slice(0, M).map((n) => n.text);
+  const blockEndIdx = numbered[M - 1].lineIdx;
+
+  // 2) The plane header — the first line AFTER the numbered block that names ALL
+  //    remaining columns. Its presence is what distinguishes split-plane from a
+  //    row-major table (whose data is entirely on the numbered lines).
+  const remaining = columns.slice(1).map((c) => String(c).toLowerCase());
+  let headerIdx = -1;
+  for (let i = blockEndIdx + 1; i < lines.length; i++) {
+    const low = lines[i].toLowerCase();
+    if (remaining.every((label) => low.includes(label))) { headerIdx = i; break; }
+  }
+  if (headerIdx < 0) return null;
+
+  // 3) Exactly M unnumbered plane rows (blank lines skipped). Missing rows stay
+  //    empty → the whole-matrix commit gate blocks an incomplete plane.
+  const planeRows = [];
+  for (let i = headerIdx + 1; i < lines.length && planeRows.length < M; i++) {
+    if (lines[i]) planeRows.push(lines[i]);
+  }
+
+  // 4) Split each plane row by the per-row remaining-column word counts
+  //    (widths[r].slice(1)). A row whose token count doesn't match its widths
+  //    leaves those cells empty → blocked, never silently mis-assigned.
+  const cols = columns.map(() => []);
+  for (let r = 0; r < M; r++) {
+    cols[0].push({ min: r + 1, max: r + 1, text: col0[r] });
+    const w = Array.isArray(widths[r]) ? widths[r].slice(1) : null;
+    const toks = (planeRows[r] ?? "").split(/\s+/).filter(Boolean);
+    let cells = new Array(N - 1).fill("");
+    if (w && w.length === N - 1 && w.reduce((a, b) => a + b, 0) === toks.length) {
+      let k = 0;
+      cells = w.map((ww) => { const s = toks.slice(k, k + ww).join(" "); k += ww; return s; });
+    }
+    for (let c = 1; c < N; c++) cols[c].push({ min: r + 1, max: r + 1, text: cells[c - 1] ?? "" });
+  }
+
+  const formula = `1d${M}`;
+  const warnings = [
+    `Detected column-major (split-plane) layout — first column numbered 1..${M}, ${remaining.length} further column(s) read from the plane below.`,
+  ];
+  if (planeRows.length < M) {
+    warnings.push(`Second plane has only ${planeRows.length} of ${M} rows — the remaining columns are incomplete.`);
+  }
+  return columns.map((col, i) => ({
+    name: col, formula, replacement: true, bestEffort: true,
+    rows: cols[i], warnings: i === 0 ? warnings : [],
+  }));
+}
+
 export function parseMatrixByColumns(text, columns, widths) {
+  // Column-major / split-plane layout first (returns null when not applicable,
+  // so row-major behavior below is preserved exactly).
+  const splitPlane = _parseSplitPlaneMatrix(text, columns, widths);
+  if (splitPlane) return splitPlane;
+
   const N = columns.length;
   const cols = columns.map(() => []);
   const warnings = [];
@@ -2055,5 +2187,7 @@ export const TableImporter = {
   parseDiceSpec,
   parseMatrixByColumns,
   buildTableData,
+  computeBlockers,
+  validateMatrixCommit,
   createTable,
 };

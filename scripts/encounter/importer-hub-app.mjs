@@ -275,9 +275,35 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static open(_tab = null, seed = null) {
     if (!this._instance) this._instance = new ImporterHubApp();
     const inst = this._instance;
-    if (seed) inst._importSeed = seed;
+    if (seed) {
+      inst._importSeed = seed;
+      // A matrix TABLE seed (e.g. the Monster Generator / Make It Weird matrices
+      // routed in from the Monster Creator) pre-selects the tables type and seeds
+      // the paste box with the title line, mirroring the char-content unlock flow
+      // so Open PDF / Grab text work immediately. Char seeds set this themselves.
+      if (seed.manifestId && !seed._charSeed) {
+        inst._importType = "tables";
+        inst._importText = seed.name ? `${seed.name}\n` : "";
+        inst._importItemSubtype = "auto";
+        if (seed.src && CHAR_SOURCES[seed.src]) inst._importSource = CHAR_SOURCES[seed.src].label;
+      }
+    }
     if (!inst.rendered) inst.render(true);
     else { inst.bringToFront(); inst.render(); }
+    // One-press Import + extraction for a matrix seed: once the paste box is
+    // rendered, pull the cited page straight in (falls back to opening the
+    // viewer when the book PDF isn't linked). Best-effort; never blocks open().
+    if (seed?.manifestId && !seed._charSeed && seed.src && seed.page) {
+      Promise.resolve().then(async () => {
+        await inst.render();
+        if (sourcePdfTarget(seed.src, seed.page)) {
+          await inst._onGrabPdfText();
+        } else {
+          const href = sourcePdfHref(seed.src, seed.page);
+          if (href) await inst._showSourcePdf(href, `${seed.name} — p.${seed.page}`);
+        }
+      }).catch((err) => console.warn(`${MODULE_ID} | matrix seed auto-grab failed`, err));
+    }
     return inst;
   }
 
@@ -427,9 +453,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sourceOptions,
       seed: this._importSeed,
       // Deep-link into the user's uploaded source PDF at the cited page, so the
-      // GM can jump straight to the section to copy. Only for char-content
-      // seeds whose source has a mapped PDF + a page cite (else null → no link).
-      seedPdfHref: this._importSeed?._charSeed
+      // GM can jump straight to the section to copy. ANY seed carrying a
+      // source-PDF key (`src`) + page cite qualifies — char-content unlocks and
+      // matrix-table seeds (Monster Generator / Make It Weird) alike (else null).
+      seedPdfHref: (this._importSeed?.src && this._importSeed?.page)
         ? sourcePdfHref(this._importSeed.src, this._importSeed.page)
         : null,
       // Post-parse feedback for a seeded import: what landed, so the GM can
@@ -2199,9 +2226,32 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Commit: create all pending tables into sde-tables. GM-gated. */
+  /**
+   * Fail-closed guard for a live selected-matrix seed (e.g. the Monster
+   * Generator / Make It Weird matrices routed in from the Monster Creator). A
+   * matrix imports as ALL its child tables or NONE — a partial/mis-ordered/
+   * invalid set is refused wholesale, with no commit-clean escape hatch, and
+   * every preview draft is kept for the GM to fix. Returns true to STOP the
+   * commit; false to proceed with the normal per-draft flow.
+   */
+  _matrixCommitRefused() {
+    const seed = this._importSeed;
+    const isLiveMatrix = !!(seed?.matrix && seed?.manifestId && !seed._charSeed
+      && Array.isArray(seed.columns) && seed.columns.length);
+    if (!isLiveMatrix) return false;
+    const { ok, errors } = TableImporter.validateMatrixCommit(seed, this._importTables);
+    if (ok) return false;
+    ui.notifications.error(
+      `Can't create the “${seed.name}” matrix: it must import as ${seed.columns.length} complete, valid child tables. ` +
+      `${errors[0]} Fix the paste and re-parse — nothing was created.`,
+    );
+    return true;
+  }
+
   async _onHubCommitTables() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import tables."); return; }
     if (!this._importTables.length) { ui.notifications.warn("No tables to import."); return; }
+    if (this._matrixCommitRefused()) { this.render(); return; }
 
     const gate = await this._gateTableDrafts("table", this._importTables);
     if (!gate) return;
@@ -2324,6 +2374,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     // Tables last
     if (hasTables) {
+      // A live selected-matrix seed is all-or-nothing (see _matrixCommitRefused):
+      // refuse the whole tables portion rather than committing a partial matrix.
+      if (this._matrixCommitRefused()) {
+        ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`);
+        this.render();
+        return;
+      }
       const gate = await this._gateTableDrafts("table", this._importTables);
       if (!gate) { ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`); this.render(); return; }
       const onConflict = this._tableConflictDialog();

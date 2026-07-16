@@ -19,9 +19,11 @@ import { npcMoveKeys } from "./npc-moves.mjs";
 import { ACTION_QUICK_PICKS } from "./action-templates.mjs";
 import { FEATURE_QUICK_PICKS } from "./feature-templates.mjs";
 import {
-  MUTATIONS, MUTATION_CATEGORIES,
-  getMutation, getConflict, applyMutations, generateMutatedName,
-} from "./mutation-data.mjs";
+  catalog as monsterTableCatalog,
+  resolveSelection,
+  appendResultFeatures,
+  buildMonsterTableSeed,
+} from "./monster-table-runtime.mjs";
 import { createMutatedFromDraft } from "./monster-mutator.mjs";
 import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
 import { titleCaseName } from "./statblock-parser.mjs";
@@ -115,8 +117,11 @@ export class MonsterCreatorApp {
     creatorLoaderToggleAlign:   MonsterCreatorApp.prototype._onLoaderToggleAlign,
     creatorLoaderToggleDark:    MonsterCreatorApp.prototype._onLoaderToggleDark,
     creatorLoaderToggleSpellcaster: MonsterCreatorApp.prototype._onLoaderToggleSpellcaster,
-    creatorMutCategory:         MonsterCreatorApp.prototype._onMutCategory,
-    creatorMutToggle:           MonsterCreatorApp.prototype._onMutToggle,
+    creatorMutRollColumn:       MonsterCreatorApp.prototype._onMutRollColumn,
+    creatorMutRollSet:          MonsterCreatorApp.prototype._onMutRollSet,
+    creatorMutClearSet:         MonsterCreatorApp.prototype._onMutClearSet,
+    creatorMutRemove:           MonsterCreatorApp.prototype._onMutRemove,
+    creatorMutImport:           MonsterCreatorApp.prototype._onMutImport,
     creatorMutApply:            MonsterCreatorApp.prototype._onMutApply,
     creatorMutCreateCopy:       MonsterCreatorApp.prototype._onMutCreateCopy,
     creatorMutClear:            MonsterCreatorApp.prototype._onMutClear,
@@ -136,10 +141,25 @@ export class MonsterCreatorApp {
       mutations:    false,
       description:  false,
     };
-    // Mutations section state (survives renders). `_mutSelected` holds the
-    // chosen mutation ids; `_mutCategory` is the active catalog filter pill.
-    this._mutSelected = [];
-    this._mutCategory = "all";
+    // Generator/Mutator section state (survives renders). `_mutSelection`
+    // holds per-column references { setKey, manifestId, tableUuid, resultId }
+    // into the GM's IMPORTED matrix tables; `_mutStatesCache` caches the live
+    // adapter catalog, invalidated when sde-tables tables change.
+    this._mutSelection = [];
+    this._mutStatesCache = null;
+    // Refresh imported-table state when RollTables (their results) change, so
+    // the two status cards reflect create/update/delete without a manual reload.
+    // NOTE (intentional): MonsterCreatorApp is a persistent singleton (static
+    // _instance). The constructor runs exactly once per page load, so these
+    // hooks register once and live for the session; unmountPanel() only clears
+    // the DOM host and preserves state (the singleton is never torn down), so
+    // there is no leak and no unregister step is needed.
+    for (const hook of [
+      "createRollTable", "updateRollTable", "deleteRollTable",
+      "createTableResult", "updateTableResult", "deleteTableResult",
+    ]) {
+      Hooks.on(hook, () => this._onTablesChanged());
+    }
     // Spell picker state (survives renders). The picker only queries the
     // Spell compendiums while there's a search term or tier filter set, so
     // an empty section doesn't load hundreds of spells.
@@ -295,43 +315,11 @@ export class MonsterCreatorApp {
       };
     }
 
-    // Mutations section — category pills + the catalog filtered to the
-    // active category, each entry flagged with its current selection and
-    // any conflict against an already-selected same-group mutation. The
-    // name preview shows what "Create Mutated Copy" would title the actor.
-    const mutCategory = this._mutCategory || "all";
-    const selectedSet = new Set(this._mutSelected);
-    const mutCategories = [
-      { key: "all", label: "All", icon: "fa-shapes", active: mutCategory === "all" },
-      ...Object.entries(MUTATION_CATEGORIES).map(([key, c]) => ({
-        key, label: c.label, icon: c.icon, active: mutCategory === key,
-      })),
-    ];
-    const mutSource = mutCategory === "all"
-      ? MUTATIONS
-      : MUTATIONS.filter(m => m.category === mutCategory);
-    const mutList = mutSource.map(m => {
-      const selected = selectedSet.has(m.id);
-      return {
-        id:               m.id,
-        name:             m.name,
-        type:             m.type,
-        description:      m.description,
-        suggestedBaneName: m.suggestedBane ? (getMutation(m.suggestedBane)?.name ?? null) : null,
-        selected,
-        // Conflict only matters for an unselected card — it tells the user
-        // that picking it will replace the named same-group selection.
-        conflict:         selected ? null : getConflict(m.id, selectedSet),
-      };
-    });
-    const selectedMutations = this._mutSelected.map(getMutation).filter(Boolean);
-    const mutNamePreview = selectedMutations.length
-      ? generateMutatedName(
-          this._draft.name || "Creature",
-          selectedMutations.map(m => m.namePrefix).filter(Boolean),
-          selectedMutations.map(m => m.nameSuffix).filter(Boolean),
-        )
-      : "";
+    // Generator/Mutator section — two dynamic status cards backed by the GM's
+    // OWN imported Core Rulebook matrix tables (never a shipped catalogue).
+    // Each set unlocks independently only when every child column resolves to
+    // exactly one valid table; otherwise it shows actionable diagnostics.
+    const mutations = this._buildMutationsContext(await this._getMutStates());
 
     // Spell picker — only queries the compendiums while the Spellcasting
     // section is open AND a search/tier filter is active. Results cap at
@@ -378,12 +366,7 @@ export class MonsterCreatorApp {
       draftPreview: _draftPreview(this._draft),
       sectionOpen: this._sectionOpen,
       spellPicker,
-      mutations: {
-        categories:    mutCategories,
-        list:          mutList,
-        selectedCount: this._mutSelected.length,
-        namePreview:   mutNamePreview,
-      },
+      mutations,
       alignments:  ["L", "N", "C"],
       // Movement options come from the system's NPC_MOVES enum — the
       // full set (close/near/doubleNear/tripleNear/far/special/none),
@@ -416,6 +399,24 @@ export class MonsterCreatorApp {
     this._wireFieldInputs();
     this._wireLoaderInputs();
     this._wireSpellInputs();
+    this._wireMutInputs();
+  }
+
+  /**
+   * Wire the per-column result `<select>` dropdowns in the Generator/Mutator
+   * cards. Selecting a result manually sets that column's selection; the empty
+   * option clears it. (Selects are committed on change, not through the click
+   * action map.)
+   */
+  _wireMutInputs() {
+    if (!this._mountHost) return;
+    for (const sel of this._mountHost.querySelectorAll("select[data-mut-result]")) {
+      sel.addEventListener("change", (ev) => {
+        const t = ev.currentTarget;
+        this._setMutSelection(t.dataset.set, t.dataset.manifest, t.dataset.table, t.value);
+        this.render();
+      });
+    }
   }
 
   /**
@@ -846,77 +847,185 @@ export class MonsterCreatorApp {
     this.render();
   }
 
-  // ─── Mutation handlers ───────────────────────────────────────────
+  // ─── Generator / Mutator handlers ────────────────────────────────
 
-  _onMutCategory(event, target) {
-    this._mutCategory = target.dataset.category || "all";
-    this.render();
+  /** Live adapter catalog, cached until sde-tables tables change. */
+  async _getMutStates() {
+    if (!this._mutStatesCache) this._mutStatesCache = await monsterTableCatalog();
+    return this._mutStatesCache;
   }
 
-  /** Toggle a mutation in/out of the selection. Selecting a mutation that
-   *  shares a conflictGroup with an existing pick (e.g. two body-type HP
-   *  mutations) auto-removes the conflicting one, since they can't coexist. */
-  _onMutToggle(event, target) {
-    const id = target.dataset.mutationId;
-    if (!id) return;
-    const set = new Set(this._mutSelected);
-    if (set.has(id)) {
-      set.delete(id);
-    } else {
-      const mut = getMutation(id);
-      if (mut?.conflictGroup) {
-        for (const sid of [...set]) {
-          if (getMutation(sid)?.conflictGroup === mut.conflictGroup) set.delete(sid);
-        }
-      }
-      set.add(id);
+  /** Invalidate the cached catalog and re-render if the section is visible. */
+  _onTablesChanged() {
+    this._mutStatesCache = null;
+    if (this._mountHost && this._sectionOpen.mutations) this.render();
+  }
+
+  /** Set (or, with a falsy resultId, clear) a single column's selection. */
+  _setMutSelection(setKey, manifestId, tableUuid, resultId) {
+    this._mutSelection = this._mutSelection.filter((r) => r.manifestId !== manifestId);
+    if (resultId) this._mutSelection.push({ setKey, manifestId, tableUuid, resultId });
+  }
+
+  /**
+   * Build the Generator/Mutator template context from the live catalog. Prunes
+   * any stale selection (table replaced/deleted) so the UI never offers a dead
+   * reference, and shapes the two status cards + the live selection summary.
+   */
+  _buildMutationsContext(states) {
+    const { live, stale } = resolveSelection(states, this._mutSelection);
+    if (stale.length) {
+      const staleKeys = new Set(stale.map((s) => `${s.tableUuid}::${s.resultId}`));
+      this._mutSelection = this._mutSelection.filter(
+        (r) => !staleKeys.has(`${r.tableUuid}::${r.resultId}`),
+      );
     }
-    this._mutSelected = [...set];
+    const STATE_LABELS = {
+      locked: "Locked", partial: "Partial", ambiguous: "Ambiguous",
+      invalid: "Invalid", ready: "Ready",
+    };
+    const selByManifest = new Map(this._mutSelection.map((r) => [r.manifestId, r]));
+    const setLabelByManifest = new Map();
+
+    const sets = ["generator", "mutations"].map((key) => {
+      const s = states[key];
+      return {
+        key: s.key, label: s.label, page: s.page, formula: s.formula,
+        manifestId: s.manifestId, state: s.state, ready: s.ready,
+        stateLabel: STATE_LABELS[s.state] ?? s.state,
+        diagnostics: s.diagnostics,
+        columns: s.columns.map((c) => {
+          setLabelByManifest.set(c.manifestId, s.label);
+          const sel = selByManifest.get(c.manifestId);
+          return {
+            columnKey: c.columnKey, columnLabel: c.columnLabel, manifestId: c.manifestId,
+            tableUuid: c.tableUuid, present: c.present, valid: c.valid, count: c.count,
+            resultCount: c.resultCount, errors: c.errors,
+            selectedResultId: sel?.resultId ?? "",
+            results: c.results.map((r) => ({
+              resultId: r.resultId, text: r.text, selected: sel?.resultId === r.resultId,
+            })),
+          };
+        }),
+      };
+    });
+
+    const selection = live.map((r) => ({
+      manifestId: r.manifestId, tableUuid: r.tableUuid, resultId: r.resultId,
+      columnLabel: r.columnLabel, setLabel: setLabelByManifest.get(r.manifestId) ?? "",
+      text: r.text,
+    }));
+
+    return {
+      sets,
+      selection,
+      selectedCount: selection.length,
+      staleCount: stale.length,
+      anyReady: sets.some((s) => s.ready),
+      hasDraftName: !!this._draft.name?.trim(),
+    };
+  }
+
+  /** Roll one column: pick a uniform-random imported result for it. */
+  async _onMutRollColumn(event, target) {
+    const states = await this._getMutStates();
+    const set = states[target.dataset.set];
+    const col = set?.columns.find((c) => c.manifestId === target.dataset.manifest);
+    if (!col?.results?.length) return;
+    const pick = col.results[Math.floor(Math.random() * col.results.length)];
+    this._setMutSelection(set.key, col.manifestId, col.tableUuid, pick.resultId);
     this.render();
   }
 
-  _onMutClear() {
-    this._mutSelected = [];
+  /** Roll every column in a ready set. */
+  async _onMutRollSet(event, target) {
+    const states = await this._getMutStates();
+    const set = states[target.dataset.set];
+    if (!set?.ready) return;
+    for (const col of set.columns) {
+      if (!col.results.length) continue;
+      const pick = col.results[Math.floor(Math.random() * col.results.length)];
+      this._setMutSelection(set.key, col.manifestId, col.tableUuid, pick.resultId);
+    }
     this.render();
   }
 
-  /** Apply selected mutations to the IN-PROGRESS draft, in place. Opens the
-   *  sections the mutations touched so the changes are visible, then clears
-   *  the selection. */
-  _onMutApply() {
-    if (!this._mutSelected.length) {
-      ui.notifications.warn("Select at least one mutation to apply.");
+  /** Clear every selection belonging to one set. */
+  _onMutClearSet(event, target) {
+    const key = target.dataset.set;
+    this._mutSelection = this._mutSelection.filter((r) => r.setKey !== key);
+    this.render();
+  }
+
+  /** Remove a single selected result. */
+  _onMutRemove(event, target) {
+    this._mutSelection = this._mutSelection.filter((r) => r.manifestId !== target.dataset.manifest);
+    this.render();
+  }
+
+  /** Open the canonical Importer Hub seeded to a set's Core Rulebook matrix, so
+   *  the GM gets Open PDF / Grab text / extraction and the whole-matrix commit
+   *  gate — then imports it in one place (reuses the canonical flow). */
+  async _onMutImport(event, target) {
+    if (!game.user?.isGM) {
+      ui.notifications.warn("Only a GM can import roll tables.");
       return;
     }
-    const { applied } = applyMutations(this._draft, this._mutSelected);
-    this._sectionOpen.stats = true;
-    this._sectionOpen.actions = this._draft.actions.length > 0;
+    const setKey = target.dataset.set === "generator" ? "generator" : "mutations";
+    const seed = buildMonsterTableSeed(setKey);
+    const { ImporterHubApp } = await import("./importer-hub-app.mjs");
+    ImporterHubApp.open(null, seed);
+  }
+
+  /**
+   * Apply the selected IMPORTED results to the in-progress draft as descriptive
+   * NPC Features ONLY. No stats/attacks/movement/spellcasting/name are changed;
+   * existing features are preserved.
+   */
+  async _onMutApply() {
+    const states = await this._getMutStates();
+    const { live } = resolveSelection(states, this._mutSelection);
+    if (!live.length) {
+      ui.notifications.warn("Select at least one imported result to apply.");
+      return;
+    }
+    const { features, added } = appendResultFeatures(this._draft.features, live, {
+      idFn: foundry.utils.randomID,
+    });
+    this._draft.features = features;
     this._sectionOpen.features = this._draft.features.length > 0;
-    this._mutSelected = [];
     ui.notifications.info(
-      `Applied ${applied.length} mutation${applied.length === 1 ? "" : "s"} to the draft.`,
+      `Applied ${added.length} imported feature${added.length === 1 ? "" : "s"} to the draft.`,
     );
     this.render();
   }
 
-  /** Create a NEW world actor from a mutated COPY of the current draft,
-   *  leaving the draft untouched. Mirrors the standalone mutator path. */
+  /** Create a NEW world actor from a COPY of the current draft with the selected
+   *  imported results appended as features, leaving the draft untouched. */
   async _onMutCreateCopy() {
-    if (!this._mutSelected.length) {
-      ui.notifications.warn("Select at least one mutation to create a mutated copy.");
+    const states = await this._getMutStates();
+    const { live } = resolveSelection(states, this._mutSelection);
+    if (!live.length) {
+      ui.notifications.warn("Select at least one imported result to create a variant copy.");
       return;
     }
     if (!this._draft.name?.trim()) {
-      ui.notifications.warn("The draft needs a name before creating a mutated copy.");
+      ui.notifications.warn("The draft needs a name before creating a variant copy.");
       return;
     }
     try {
-      const actor = await createMutatedFromDraft(this._draft, this._mutSelected);
-      ui.notifications.info(`Created mutated copy: ${actor.name}`);
+      const actor = await createMutatedFromDraft(this._draft, live);
+      ui.notifications.info(`Created variant copy: ${actor.name}`);
     } catch (err) {
-      console.error(MODULE_ID, "Create mutated copy failed:", err);
-      ui.notifications.error(`Failed to create mutated copy: ${err.message}`);
+      console.error(MODULE_ID, "Create variant copy failed:", err);
+      ui.notifications.error(`Failed to create variant copy: ${err.message}`);
     }
+  }
+
+  /** Clear the entire imported-result selection. */
+  _onMutClear() {
+    this._mutSelection = [];
+    this.render();
   }
 
   async _onLoaderPick(event, target) {

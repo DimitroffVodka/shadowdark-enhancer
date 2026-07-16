@@ -60,7 +60,7 @@ The Encounter Roller's fourth tab is a full NPC authoring panel — build a Shad
 - **Spells** attach via a debounced compendium search + tier filter, shown as removable chips.
 - **Portrait & token art** are set through Foundry's FilePicker; leaving token art empty inherits the portrait.
 - **Bestiary loader** searches and loads any world or compendium NPC into the draft — the fast path for making variants of an existing creature (with smart art resolution for community token mappings).
-- **Mutations** — filter and toggle a mutation catalog, then apply it to the draft or spawn a new mutated actor.
+- **Generator & Mutator** — reads *your own imported* Core Rulebook *Monster Generator* (d20 × 4 columns) and *Make It Weird* monster-mutations (d12 × 3 columns) tables from the managed pack; each set unlocks independently once all its columns are imported and valid. Roll or pick results per column, then apply them as **descriptive NPC Features only** (stats, attacks, movement, and spellcasting are never changed) or spawn a variant copy. Missing/ambiguous/invalid sets show what to fix and a one-click import.
 - **Bulk import** shortcut opens the paste-to-create monster importer.
 - **Save** validates the name, creates a `type: "NPC"` world Actor, and embeds the Attack / Special / Feature / Spell items. Open it headlessly with `game.shadowdarkEnhancer.monsterCreator.open()`.
 
