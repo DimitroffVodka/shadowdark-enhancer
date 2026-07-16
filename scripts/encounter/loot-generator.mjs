@@ -13,7 +13,7 @@ import { TREASURE_TABLES } from "./treasure-data.mjs";
 import { isCoinEntry, parseValue, isDeferredType, stripPrice, fabricateTreasureItem, pickTreasureIcon } from "./loot-pack.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { MODULE_ID } from "../module-id.mjs";
-import { itemValueGp, parseValueGp, bonusOf, isMagicItem, scoreItem } from "./loot-value.mjs";
+import { itemValueGp, parseValueGp, bonusOf, isMagicItem, scoreItem, forgeTypeOf } from "./loot-value.mjs";
 
 /**
  * The uuid of the LINKED item for a drawn TableResult, or null for a text row.
@@ -160,7 +160,7 @@ export const LootGenerator = {
               const fRoll = (await new Roll("1d100").evaluate()).total;
               if (fRoll <= featurePct) feature = await this._rollFeature(featureTable);
             }
-            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp, feature, forgeable });
+            items.push({ uuid: res.uuid, name: doc?.name ?? res.name, qty: 1, img: doc?.img ?? "icons/svg/item-bag.svg", value: gp, tier, xp, feature, forgeable, forgeType: forgeTypeOf({ type: doc?.type, name: doc?.name ?? res.name }) });
             gotContent = true;
           } else {
             // TEXT row → link to a real item, fabricate a priced valuable, else keep as flavor.
@@ -172,7 +172,7 @@ export const LootGenerator = {
               const gp = itemValueGp(doc) || parseValueGp(text);
               const magic = isMagicItem({ name: link.name, type: doc?.type, needsRefinement: doc?.getFlag?.(MODULE_ID, "needsRefinement"), magicPack: /spell|magic/i.test(link.uuid) });
               const { tier, xp } = scoreItem({ gp, magic, bonus: bonusOf(text) }, thresholds);
-              items.push({ uuid: link.uuid, name: doc?.name ?? link.name, qty: 1, img: doc?.img ?? pickTreasureIcon(text), value: gp, tier, xp, feature: null, forgeable: magic && doc?.getFlag?.(MODULE_ID, "needsRefinement") === true });
+              items.push({ uuid: link.uuid, name: doc?.name ?? link.name, qty: 1, img: doc?.img ?? pickTreasureIcon(text), value: gp, tier, xp, feature: null, forgeable: magic && doc?.getFlag?.(MODULE_ID, "needsRefinement") === true, forgeType: forgeTypeOf({ type: doc?.type, name: doc?.name ?? link.name }) });
               gotContent = true;
               continue;
             }
@@ -189,7 +189,7 @@ export const LootGenerator = {
                 const fRoll = (await new Roll("1d100").evaluate()).total;
                 if (fRoll <= featurePct) feature = await this._rollFeature(featureTable);
               }
-              items.push({ uuid: null, fabricate: itemData, name, qty: 1, img: itemData.img, value: gp, tier, xp, feature, forgeable: deferred });
+              items.push({ uuid: null, fabricate: itemData, name, qty: 1, img: itemData.img, value: gp, tier, xp, feature, forgeable: deferred, forgeType: forgeTypeOf({ type: itemData?.type, name }) });
               gotContent = true;
               continue;
             }

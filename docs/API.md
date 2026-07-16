@@ -145,7 +145,29 @@ older actors is left untouched.
 ```js
 api.monsterCreator.open();   // Monster Creator window
 api.forge.open();            // Magic Item Forge window
+
+// Phase-1 Core magic-item tables (weapons & armor) — read-only.
+await api.forge.catalog();            // live { magic-weapon-base, …, magic-personality-detail }
+                                      //   state per set: locked|partial|ready|ambiguous|invalid,
+                                      //   with per-table readiness + (when ready) rolled/selectable
+                                      //   results read from your OWN imported sde-tables.
+api.forge.sets();                     // set metadata (ids, child tables, formulas, domains, pages)
+api.forge.buildSetSeed("magic-weapon-base");     // Importer-Hub seed for a whole set (base = bundle,
+                                                 //   all-or-nothing; riders/personality = per-table)
+api.forge.buildChildSeed("core-weapon-benefit"); // Importer-Hub seed for a single child table
 ```
+
+The Forge's **Core Rulebook tables** mode drives Weapon/Armor recipes off these
+imported tables. Only an unambiguous whole-result `+N` (0..3) from a *Bonus*
+table is mechanized (weapon = two transferring Active Effects, armor =
+`system.ac.modifier`); Feature/Benefit/Curse/Virtue/Flaw/Personality are escaped
+descriptive riders (marked non-automated); the rolled Type is a base-selector
+hint only. Forged items store **provenance v2** (refs only — `manifestId`,
+`tableUuid`, `resultId`, `range` + automation summary), never source prose;
+selections are re-validated against the live pack immediately before creation
+and fail closed. No persistent raw-prose API is exposed. Manual forging is
+unchanged. Potion / Utility / Scroll / Wand Core-table automation is out of
+scope for Phase 1.
 
 ## `charBuilder` — guided character creation
 

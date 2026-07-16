@@ -13,13 +13,32 @@
  * create flow. Public API (`open({seed, onCreate})`) and the forged-flag contract
  * are preserved for the loot generator / loot delivery integrations.
  */
-import { assembleItemData, composeName, WORKING_TYPES, TYPE_LABELS } from "./magic-forge.mjs";
+import { assembleItemData, composeName, parseBonusValue, resolveSelectedBonus, resolveForgeType, WORKING_TYPES, TYPE_LABELS } from "./magic-forge.mjs";
+import {
+  MAGIC_SET_DEFS, catalog, resolveResultRefs, buildForgeProvenance,
+  buildChildSeed, buildSetSeed, roleIsMechanical, roleIsHint, toPlainText,
+} from "./magic-table-runtime.mjs";
 import { MODULE_ID } from "../module-id.mjs";
 import { esc } from "../util/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 const TYPE_ICON = { weapon: "fa-gavel", armor: "fa-shield-halved", scroll: "fa-scroll", wand: "fa-wand-sparkles" };
+
+/** Applicable Core set keys per gear type (Phase 1 = weapon + armor only). */
+const CORE_SETS_BY_TYPE = {
+  weapon: ["magic-weapon-base", "magic-weapon-benefit", "magic-weapon-curse", "magic-personality-detail"],
+  armor:  ["magic-armor-base", "magic-armor-benefit", "magic-armor-curse", "magic-personality-detail"],
+};
+
+/** State → readiness badge presentation. */
+const STATE_BADGE = {
+  ready:     { label: "Ready", cls: "ready", icon: "fa-circle-check" },
+  locked:    { label: "Not imported", cls: "locked", icon: "fa-lock" },
+  partial:   { label: "Incomplete", cls: "partial", icon: "fa-circle-half-stroke" },
+  ambiguous: { label: "Ambiguous", cls: "bad", icon: "fa-clone" },
+  invalid:   { label: "Invalid", cls: "bad", icon: "fa-triangle-exclamation" },
+};
 
 export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -29,12 +48,16 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     position: { width: 720, height: "auto" },
     actions: {
       setType:     MagicForgeApp.prototype._onSetType,
+      setMode:     MagicForgeApp.prototype._onSetMode,
       setBonus:    MagicForgeApp.prototype._onSetBonus,
       pickBase:    MagicForgeApp.prototype._onPickBase,
       clearBase:   MagicForgeApp.prototype._onClearBase,
       toggleSpell: MagicForgeApp.prototype._onToggleSpell,
       setTier:     MagicForgeApp.prototype._onSetTier,
       openSpell:   MagicForgeApp.prototype._onOpenSpell,
+      coreRoll:    MagicForgeApp.prototype._onCoreRoll,
+      coreClear:   MagicForgeApp.prototype._onCoreClear,
+      coreImport:  MagicForgeApp.prototype._onCoreImport,
       createItem:  MagicForgeApp.prototype._onCreateItem,
     },
   };
@@ -52,9 +75,27 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const inst = this._instance;
     inst._onCreate = onCreate;
     if (seed) inst._applySeed(seed);
+    inst._coreStates = null; // reload readiness on (re)open
+    MagicForgeApp._installReadinessHooks();
     if (!inst.rendered) inst.render(true);
     else { inst.bringToFront(); inst.render(); }
     return inst;
+  }
+
+  /**
+   * Refresh Core readiness when the managed tables change. Lifecycle-safe: a
+   * single set of hooks for the singleton, guarded on the live instance's
+   * rendered state — never re-registered, never fires against a torn-down app.
+   */
+  static _installReadinessHooks() {
+    if (this._readinessHooksInstalled) return;
+    this._readinessHooksInstalled = true;
+    const refresh = () => {
+      const inst = MagicForgeApp._instance;
+      if (inst?.rendered && inst._mode === "core") { inst._coreStates = null; inst.render(); }
+    };
+    for (const h of ["createRollTable", "updateRollTable", "deleteRollTable",
+      "createTableResult", "updateTableResult", "deleteTableResult"]) Hooks.on(h, refresh);
   }
 
   constructor(options = {}) {
@@ -67,6 +108,10 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._spellUuids = [];    // selected spell uuids (scroll: [0]; wand: all)
     this._identified = true;
     this._onCreate = null;
+    // Core mode (imported Core Rulebook tables) — Phase 1: weapon/armor only.
+    this._mode = "manual";            // "manual" | "core"
+    this._coreStates = null;          // cached catalog() result
+    this._coreSelections = new Map(); // manifestId → { manifestId, tableUuid, resultId, range, role, text }
     // search queries (DOM-filtered, no re-render)
     this._baseQuery = "";
     this._spellQuery = "";
@@ -78,13 +123,18 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._spellByUuid = new Map();
   }
 
-  /** Preset type + bonus from an inferred seed ({type, bonus}). */
+  /**
+   * Preset type + bonus from a forge seed. A stable `forgeType` hint (threaded
+   * from a loot placeholder's classification) wins over the loosely-inferred
+   * `type`; legacy cards supply only `{type, bonus}` via inferSeedFromName.
+   */
   _applySeed(seed) {
-    if (WORKING_TYPES.includes(seed.type)) this._type = seed.type;
-    else if (seed.type === "potion" || seed.type === "utility") this._type = "wand"; // nearest working type
+    const t = resolveForgeType(seed);
+    if (t) this._type = t;
     if (typeof seed.bonus === "number") this._bonus = Math.max(0, Math.min(3, seed.bonus));
     // reset per-forge selections so a fresh seed starts clean
     this._name = ""; this._baseUuid = null; this._baseData = null; this._spellUuids = [];
+    this._coreSelections = new Map();
   }
 
   async close(options = {}) {
@@ -156,6 +206,13 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const isGear = this._type === "weapon" || this._type === "armor";
     const isSpellItem = this._type === "scroll" || this._type === "wand";
 
+    // Core mode is Phase-1 weapon/armor only; spell items force manual.
+    const coreAvailable = isGear;
+    if (!coreAvailable && this._mode === "core") this._mode = "manual";
+    const isCore = this._mode === "core" && coreAvailable;
+    if (isCore && !this._coreStates) this._coreStates = await catalog();
+    const coreSets = isCore ? this._buildCoreSets() : [];
+
     const types = WORKING_TYPES.map(id => ({
       id, label: TYPE_LABELS[id], icon: TYPE_ICON[id], active: id === this._type,
     }));
@@ -175,6 +232,12 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isGear, isSpellItem,
       isWand: this._type === "wand",
       typeLabel: TYPE_LABELS[this._type],
+      mode: this._mode,
+      isCore,
+      coreAvailable,
+      coreSets,
+      coreBonusHint: isCore ? this._coreBonusValue() : null,
+      typeHint: isCore ? this._coreTypeHint() : null,
       bonus: this._bonus,
       bonusOptions: [0, 1, 2, 3].map(n => ({ n, active: n === this._bonus })),
       name: this._name,
@@ -188,6 +251,90 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  // ─── Core mode (imported Core Rulebook tables) ───
+
+  /** Applicable Core set keys for the current gear type. */
+  _coreSetKeys() {
+    return CORE_SETS_BY_TYPE[this._type] ?? [];
+  }
+
+  /** The bonus child manifestId for the current gear type. */
+  _coreBonusChildId() {
+    return this._type === "weapon" ? "core-weapon-bonus" : this._type === "armor" ? "core-armor-bonus" : null;
+  }
+
+  /** The parsed numeric bonus from the selected bonus-table result (or null). */
+  _coreBonusValue() {
+    const sel = this._coreSelections.get(this._coreBonusChildId());
+    return sel ? parseBonusValue(sel.text) : null;
+  }
+
+  /** Display-only hint text from the selected Type result (never persisted). */
+  _coreTypeHint() {
+    const id = this._type === "weapon" ? "core-weapon-type" : "core-armor-type";
+    return this._coreSelections.get(id)?.text ?? null;
+  }
+
+  /** Find a requirement (child) in the cached states by manifestId. */
+  _findReq(manifestId) {
+    for (const key of this._coreSetKeys()) {
+      const st = this._coreStates?.[key];
+      const req = st?.requirements.find(r => r.manifestId === manifestId);
+      if (req) return req;
+    }
+    return null;
+  }
+
+  /** Build the Core readiness/selection view-model for each applicable set. */
+  _buildCoreSets() {
+    return this._coreSetKeys().map(key => {
+      const def = MAGIC_SET_DEFS[key];
+      const st = this._coreStates[key];
+      const badge = STATE_BADGE[st.state] ?? STATE_BADGE.locked;
+      const fields = st.requirements.map(req => {
+        const sel = this._coreSelections.get(req.manifestId) ?? null;
+        const roleClass = roleIsMechanical(req.role) ? "mechanical" : roleIsHint(req.role) ? "hint" : "descriptive";
+        const roleLabel = roleIsMechanical(req.role) ? "mechanical +N" : roleIsHint(req.role) ? "base hint" : "descriptive";
+        return {
+          manifestId: req.manifestId,
+          label: req.label,
+          role: req.role,
+          roleClass, roleLabel,
+          ready: req.valid && req.count === 1,
+          page: req.page,
+          setKey: key,
+          perTable: def.perTable,
+          results: req.results.map(r => ({
+            resultId: r.resultId, tableUuid: r.tableUuid,
+            rangeLabel: r.range[0] === r.range[1] ? `${r.range[0]}` : `${r.range[0]}–${r.range[1]}`,
+            text: r.text, selected: sel?.resultId === r.resultId,
+          })),
+          selectedText: sel?.text ?? "",
+          hasSelection: !!sel,
+        };
+      });
+      return {
+        key, label: def.label, role: def.role, perTable: def.perTable,
+        state: st.state, ready: st.ready, badge,
+        diagnostics: st.diagnostics,
+        pageLabel: st.pages.length > 1 ? `pp.${st.pages.join("/")}` : `p.${st.page}`,
+        fields,
+      };
+    });
+  }
+
+  /**
+   * The bonus that will actually be forged. In Core mode the mechanical +N is
+   * driven ENTIRELY by the imported Bonus table (0 until a numeric result is
+   * picked); Manual mode uses the +N row.
+   */
+  _effectiveBonus() {
+    if (this._mode === "core" && (this._type === "weapon" || this._type === "armor")) {
+      return this._coreBonusValue() ?? 0;
+    }
+    return this._bonus;
+  }
+
   /** Derive the item name shown in the preview / used on create. */
   _deriveName() {
     if (this._name.trim()) return this._name.trim();
@@ -196,7 +343,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const word = this._type === "scroll" ? "Scroll" : "Wand";
       return first ? `${word} of ${first.name}` : word;
     }
-    return composeName({ type: this._type, baseItem: this._baseData?.name ?? "", bonus: this._bonus });
+    return composeName({ type: this._type, baseItem: this._baseData?.name ?? "", bonus: this._effectiveBonus() });
   }
 
   _canForge() {
@@ -212,7 +359,14 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const lines = [];
     if (this._type === "weapon" || this._type === "armor") {
       lines.push(this._baseData ? `Base: ${this._baseData.name}` : "Pick a base item");
-      if (this._bonus > 0) lines.push(`Magic bonus: +${this._bonus}`);
+      const eb = this._effectiveBonus();
+      if (eb > 0) lines.push(`Magic bonus: +${eb}${this._mode === "core" && this._coreBonusValue() != null ? " (from Core table)" : ""}`);
+      if (this._mode === "core") {
+        const riders = [...this._coreSelections.values()].filter(s => this._coreSetKeys().some(k => MAGIC_SET_DEFS[k].children.some(c => c.manifestId === s.manifestId)) && s.role !== "bonus" && s.role !== "type");
+        if (riders.length) lines.push(`${riders.length} descriptive rider(s) selected`);
+        const hint = this._coreTypeHint();
+        if (hint) lines.push(`Type hint: ${hint}`);
+      }
     } else {
       const spells = this._spellUuids.map(u => this._spellByUuid.get(u)).filter(Boolean);
       if (!spells.length) lines.push("Pick a spell");
@@ -259,6 +413,20 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (this._spellQuery) return;
         if (group.open) this._openClasses.add(group.dataset.class);
         else this._openClasses.delete(group.dataset.class);
+      }, { signal });
+    }
+
+    // Core result <select> — manual selection (never fabricates a roll).
+    for (const sel of el.querySelectorAll(".sde-forge-core-select")) {
+      sel.addEventListener("change", () => {
+        const manifestId = sel.dataset.manifestId;
+        const req = this._findReq(manifestId);
+        if (!req) return;
+        const resultId = sel.value;
+        if (!resultId) { this._coreSelections.delete(manifestId); this.render(); return; }
+        const hit = req.results.find(r => r.resultId === resultId);
+        if (hit) this._selectCoreResult(req, hit);
+        this.render();
       }, { signal });
     }
 
@@ -330,9 +498,66 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /** Switch Manual ⇄ Core mode (Core is weapon/armor only). No auto-rolls. */
+  _onSetMode(event, target) {
+    const m = target.dataset.mode === "core" ? "core" : "manual";
+    if (m === this._mode) return;
+    if (m === "core" && !(this._type === "weapon" || this._type === "armor")) return;
+    this._mode = m;
+    if (m === "core") this._coreStates = null; // lazy reload
+    this.render();
+  }
+
   _onSetBonus(event, target) {
     this._bonus = Math.max(0, Math.min(3, Number(target.dataset.bonus) || 0));
     this.render();
+  }
+
+  /** Roll a Core child table with a real Foundry Roll; select the covering row. */
+  async _onCoreRoll(event, target) {
+    if (!this._coreStates) this._coreStates = await catalog();
+    const manifestId = target.dataset.manifestId;
+    const req = this._findReq(manifestId);
+    if (!req || !req.results?.length) { ui.notifications.warn("Import this table first."); return; }
+    const roll = await (new Roll(req.formula)).evaluate();
+    const total = roll.total;
+    const hit = req.results.find(r => total >= r.range[0] && total <= r.range[1]) ?? req.results[req.results.length - 1];
+    this._selectCoreResult(req, hit);
+    // For a Bonus table, show the EXACT mechanical value the strict parser will
+    // apply (or a clear "not a usable +N" note) — never leave it ambiguous.
+    let mech = "";
+    if (req.role === "bonus") {
+      const parsed = parseBonusValue(hit.text);
+      mech = parsed != null
+        ? ` <strong>[applies +${parsed}]</strong>`
+        : ` <strong>[not a usable +N — pick again]</strong>`;
+    }
+    await roll.toMessage({
+      speaker: ChatMessage.getSpeaker(),
+      flavor: `<strong>Magic Item Forge — ${esc(req.label)}</strong> (${esc(req.formula)})<br>${esc(hit.text)}${mech}`,
+    });
+    this.render();
+  }
+
+  /** Store a Core selection keyed by its table's manifestId. */
+  _selectCoreResult(req, result) {
+    this._coreSelections.set(req.manifestId, {
+      manifestId: req.manifestId, tableUuid: result.tableUuid, resultId: result.resultId,
+      range: [...result.range], role: req.role, text: result.text,
+    });
+  }
+
+  /** Clear a Core selection (leaves the imported table intact). */
+  _onCoreClear(event, target) {
+    this._coreSelections.delete(target.dataset.manifestId);
+    this.render();
+  }
+
+  /** Open the Importer Hub seeded to import this set/table from the Core PDF. */
+  async _onCoreImport(event, target) {
+    const seed = target.dataset.child ? buildChildSeed(target.dataset.child) : buildSetSeed(target.dataset.set);
+    const { ImporterHubApp } = await import("./importer-hub-app.mjs");
+    ImporterHubApp.open(null, seed);
   }
 
   async _onPickBase(event, target) {
@@ -380,6 +605,59 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     else ui.notifications.warn("Could not open that spell.");
   }
 
+  /** The applicable set key owning a child manifestId (for provenance recipe). */
+  _setKeyForChild(manifestId) {
+    return this._coreSetKeys().find(k => MAGIC_SET_DEFS[k].children.some(c => c.manifestId === manifestId)) ?? null;
+  }
+
+  /**
+   * Build the forge draft. Manual mode uses the +N row directly. Core mode
+   * re-resolves every selected imported-result reference against the live pack
+   * (throws on any stale/invalid/changed selection — fail-closed) and maps the
+   * bonus row (numeric mechanic) + descriptive riders + refs-only provenance.
+   */
+  async _buildForgeDraft(isGear) {
+    const base = {
+      type: this._type,
+      name: this._deriveName(),
+      baseItem: this._baseData?.name ?? "",
+      baseItemData: isGear ? this._baseData : null,
+      spellUuids: this._spellUuids,
+      identified: this._identified,
+    };
+    if (!(this._mode === "core" && isGear)) return { ...base, bonus: this._bonus };
+
+    const selections = [...this._coreSelections.values()].filter(s =>
+      this._coreSetKeys().some(k => MAGIC_SET_DEFS[k].children.some(c => c.manifestId === s.manifestId)));
+    const refs = selections.map(s => ({ manifestId: s.manifestId, tableUuid: s.tableUuid, resultId: s.resultId }));
+    const live = refs.length ? await resolveResultRefs(refs) : [];
+
+    // Integrity guard: a table can be edited in place (same result id, changed
+    // text). Compare each selection's remembered text (ephemeral, never
+    // persisted) to the live resolved text and BLOCK on any mismatch — the
+    // semantics changed under the selection, so fail closed rather than swap.
+    for (const sel of selections) {
+      const hit = live.find(r => r.manifestId === sel.manifestId && r.tableUuid === sel.tableUuid && r.resultId === sel.resultId);
+      if (hit && toPlainText(hit.text) !== toPlainText(sel.text)) {
+        throw new Error(`A selected “${hit.label ?? sel.manifestId}” result changed since you picked it — re-roll or re-select it. Nothing was created.`);
+      }
+    }
+
+    const descriptors = live.filter(r => r.role !== "bonus" && r.role !== "type").map(r => ({ role: r.role, text: r.text }));
+    const bonusResult = live.find(r => r.role === "bonus");
+    // A picked Bonus result that isn't a usable whole +N fails closed (never
+    // silently becomes +0 or disappears).
+    const coreBonus = bonusResult ? resolveSelectedBonus(bonusResult.text) : null;
+    const bonus = coreBonus ?? 0; // Core mode: mechanic comes only from the Bonus table
+    const automation = [];
+    if (coreBonus != null && coreBonus > 0) automation.push({ kind: `${this._type}-bonus`, value: coreBonus });
+    const forge = buildForgeProvenance({
+      recipe: { mode: "core", type: this._type, sets: [...new Set(selections.map(s => this._setKeyForChild(s.manifestId)).filter(Boolean))] },
+      results: live, automation, nonAutomated: descriptors.length > 0,
+    });
+    return { ...base, bonus, descriptors, forge };
+  }
+
   async _onCreateItem() {
     if (!game.user.isGM) { ui.notifications.warn("GM only."); return; }
     if (!this._canForge()) {
@@ -390,15 +668,17 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     const isGear = this._type === "weapon" || this._type === "armor";
-    const draft = {
-      type: this._type,
-      name: this._deriveName(),
-      baseItem: this._baseData?.name ?? "",
-      baseItemData: isGear ? this._baseData : null,
-      bonus: this._bonus,
-      spellUuids: this._spellUuids,
-      identified: this._identified,
-    };
+    let draft;
+    try {
+      draft = await this._buildForgeDraft(isGear);
+    } catch (err) {
+      // Fail-closed: a stale/invalid/changed Core selection blocks creation and
+      // leaves all state intact (nothing persisted).
+      ui.notifications.error(`Forge blocked: ${err.message}`);
+      this._coreStates = null;
+      this.render();
+      return;
+    }
     const data = assembleItemData(draft);
     if (!data.img && this._baseData?.img) data.img = this._baseData.img;
 
@@ -428,8 +708,10 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _previewSubtitle(item) {
-    if (this._type === "weapon" || this._type === "armor")
-      return this._bonus > 0 ? `Magic ${TYPE_LABELS[this._type]} +${this._bonus}` : `Magic ${TYPE_LABELS[this._type]}`;
+    if (this._type === "weapon" || this._type === "armor") {
+      const eb = this._effectiveBonus(); // the +N that was actually forged (Core wins)
+      return eb > 0 ? `Magic ${TYPE_LABELS[this._type]} +${eb}` : `Magic ${TYPE_LABELS[this._type]}`;
+    }
     const spells = this._spellUuids.map(u => this._spellByUuid.get(u)).filter(Boolean);
     return spells.map(s => `${s.name} (DC ${s.tier + 10})`).join(", ");
   }

@@ -1866,12 +1866,15 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
     data.description = cleanImportHtml(data.description);
   }
 
-  // Conflict check against the PACK index (not world game.tables).
-  const packIndex = await pack.getIndex();
-  const existing = packIndex.find(e => e.name === data.name);
+  // Conflict check against the PACK index (not world game.tables). Match a
+  // module-owned table by its manifestId FIRST — so a GM-renamed owned table
+  // (single rider/personality re-import) is replaced/renamed/cancelled instead
+  // of duplicated — then fall back to an exact name match.
+  const packIndex = await pack.getIndex({ fields: MANIFEST_INDEX_FIELDS });
+  const existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
   let replaceTarget = null;
   if (existing) {
-    const choice = onConflict ? await onConflict(data.name) : "rename";
+    const choice = onConflict ? await onConflict(existing.name ?? data.name) : "rename";
     if (choice === "cancel") return null;
     if (choice === "replace") {
       // Replace ONLY the matching document — never the compendium (T-09-08).
@@ -2180,14 +2183,305 @@ export function parseMatrixByColumns(text, columns, widths) {
   }));
 }
 
+/**
+ * Fully resolve a parsed table draft into RollTable creation data WITHOUT
+ * persisting and WITHOUT resolving name conflicts: buildTableData + HTML clean +
+ * category-first folder + SDE flags (tableType / manifestId / source). Mirrors
+ * the build half of createTable so the atomic bundle committer files children
+ * identically to the per-table path.
+ * @param {object} pt   parsed table draft
+ * @param {object} pack the sde-tables compendium
+ * @returns {Promise<object>} RollTable creation data (name not yet uniqued)
+ */
+export async function buildResolvedTableData(pt, pack) {
+  const data = buildTableData(pt);
+  if (data.description) {
+    const { cleanImportHtml } = await import("./compendium-suite.mjs");
+    data.description = cleanImportHtml(data.description);
+  }
+  const { ensureFolderPath: _ensureFolderPath } = await import("./compendium-suite.mjs");
+  const { resolveTableFolderPath } = await import("./table-folders.mjs");
+  const folderId = await _ensureFolderPath(pack, resolveTableFolderPath({ ...pt, name: data.name }));
+  const sourceId = pt.source
+    ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
+  data.folder = folderId ?? null;
+  data.flags = {
+    ...(data.flags ?? {}),
+    "shadowdark-enhancer": {
+      ...(data.flags?.["shadowdark-enhancer"] ?? {}),
+      tableType: (() => {
+        const path = Array.isArray(pt.folderPath) ? pt.folderPath.filter(Boolean) : null;
+        const leafLabel = path?.length ? path[path.length - 1] : null;
+        return leafLabel ?? (pt.category === CUSTOM_ID ? (_categoryLabel(pt)) : (pt.category ?? "other"));
+      })(),
+      ...(pt.manifestId ? { manifestId: pt.manifestId } : {}),
+      ...(sourceId ? { source: sourceId } : {}),
+    },
+  };
+  return data;
+}
+
+/**
+ * Structurally separate stacked tables in a single grabbed page so parseTables
+ * (which splits on blank lines) can see every section: insert a blank line
+ * before each table TITLE — the line immediately preceding a die-header line
+ * (`d20`, `2d6`, …) that is itself neither blank nor a die-header. Purely
+ * structural (die-header pattern only); carries NO content, prose, or
+ * table-name knowledge. Idempotent on already-separated text.
+ * @param {string} text
+ * @returns {string}
+ */
+export function blankSeparateTables(text) {
+  const DIE = /^\s*(?:\d+)?d\d+\b/i;
+  const lines = String(text ?? "").split(/\r?\n/);
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (DIE.test(lines[i]) && i > 0 && lines[i - 1].trim() && !DIE.test(lines[i - 1])) {
+      // The previous (already-pushed) line is this table's title — break before
+      // it, but only when it isn't already blank-separated (idempotent).
+      const t = out.length - 1;
+      const alreadyBroken = t <= 0 || out[t - 1].trim() === "";
+      if (t >= 0 && out[t].trim() !== "" && !alreadyBroken) out.splice(t, 0, "");
+    }
+    out.push(lines[i]);
+  }
+  return out.join("\n");
+}
+
+/**
+ * Parse a grabbed multi-table page into ALL its table drafts, structurally
+ * separating stacked sections first (blankSeparateTables) so no section bleeds
+ * into its neighbour. Backs the magic base-recipe bundle import: the whole page
+ * yields one draft per section (child tables + any extras), which the exact
+ * matchBundleTables path then matches/validates/isolates.
+ * @param {string} text
+ * @returns {object[]} parsed table drafts
+ */
+export function parseStackedTables(text) {
+  return parseTables(blankSeparateTables(text));
+}
+
+/**
+ * Collapse EXACT-duplicate parsed table drafts. A PDF extractor that emits the
+ * same page in multiple layout passes yields byte-identical repeats of each
+ * section; those are safe to fold. Two drafts collapse ONLY when their
+ * deterministic normalized signature — name, formula, and every row's
+ * [min,max] range + normalized text — is identical; the FIRST occurrence is
+ * kept. Drafts that differ by even one row / range / formula / name are
+ * preserved (they stay genuinely ambiguous and are blocked downstream). Pure;
+ * ships no content — the signature is derived from the caller's own drafts.
+ * @param {object[]} drafts
+ * @returns {object[]} drafts with exact repeats removed (first kept)
+ */
+export function dedupExactTables(drafts) {
+  const norm = (s) => String(s ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+  const sig = (t) => JSON.stringify([
+    norm(t?.name),
+    norm(t?.formula),
+    (Array.isArray(t?.rows) ? t.rows : []).map((r) => `${Number(r?.min)}-${Number(r?.max)}:${norm(r?.text)}`),
+  ]);
+  const seen = new Set();
+  const out = [];
+  for (const t of (Array.isArray(drafts) ? drafts : [])) {
+    const s = sig(t);
+    if (seen.has(s)) continue;
+    seen.add(s);
+    out.push(t);
+  }
+  return out;
+}
+
+/** Pack-index field list needed for stable-manifest conflict lookup. */
+export const MANIFEST_INDEX_FIELDS = ["flags.shadowdark-enhancer.manifestId"];
+
+/**
+ * Find a module-owned table in a pack index by its EXACT
+ * flags.shadowdark-enhancer.manifestId first — so a GM-RENAMED owned table is
+ * still matched and replaced/renamed/cancelled rather than duplicated — falling
+ * back to an exact name match for tables with no manifest id. Pure.
+ * @param {Iterable<object>} index  pack index entries (need the manifestId flag field)
+ * @param {string|null} manifestId
+ * @param {string} name
+ * @returns {object|null}
+ */
+export function findExistingByManifestOrName(index, manifestId, name) {
+  const list = Array.isArray(index) ? index : [...(index ?? [])];
+  if (manifestId) {
+    const byId = list.find((e) => e?.flags?.["shadowdark-enhancer"]?.manifestId === manifestId);
+    if (byId) return byId;
+  }
+  return list.find((e) => e?.name === name) ?? null;
+}
+
+/**
+ * Replace a RollTable's content IN PLACE — preserve the document (its UUID and
+ * every inbound @UUID link) by updating top-level fields non-recursively and
+ * swapping the TableResult rows. Errors bubble so the caller's rollback restores
+ * the pre-write snapshot (also via this helper). Bundle docs are always
+ * RollTables, so no document-recreation fallback is needed.
+ * @param {RollTable} target
+ * @param {object} data  full table data (may carry a `results` array)
+ * @returns {Promise<RollTable>} the same document
+ */
+async function replaceRollTableInPlace(target, data) {
+  const rows = Array.isArray(data?.results) ? data.results.map((r) => foundry.utils.deepClone(r)) : [];
+  const top = { ...data };
+  delete top.results;
+  delete top._id;
+  await target.update(top, { recursive: false });
+  const oldIds = [...(target.results ?? [])].map((r) => r.id ?? r._id).filter(Boolean);
+  if (oldIds.length) await target.deleteEmbeddedDocuments("TableResult", oldIds);
+  if (rows.length) await target.createEmbeddedDocuments("TableResult", rows);
+  return target;
+}
+
+/**
+ * All-or-nothing commit orchestrator for a bundle of documents. Foundry-free:
+ * the caller injects a `persist` adapter so this is unit-testable with injected
+ * write failures / conflict cancels. Two phases:
+ *   A. Preflight — resolve EVERY conflict decision up front; a single `cancel`
+ *      aborts with zero writes.
+ *   B. Write — create/replace each item; on ANY throw, roll back
+ *      (delete newly-created docs, restore replaced docs from their snapshot),
+ *      leaving zero net documents and unchanged originals.
+ *
+ * @param {Array<{key?:string, name:string, data:object, existing:(object|null)}>} items
+ * @param {{
+ *   resolveConflict:(name:string, existing:object)=>Promise<"replace"|"rename"|"cancel">,
+ *   uniqueName:(name:string)=>string,
+ *   snapshot:(existing:object)=>Promise<*>,
+ *   create:(data:object)=>Promise<object>,
+ *   replace:(existing:object, data:object)=>Promise<object>,
+ *   remove:(doc:object)=>Promise<void>,
+ *   restore:(existing:object, token:*)=>Promise<void>,
+ * }} persist
+ * @returns {Promise<{ok:boolean, reason?:string, error?:string, created:object[], replaced:object[]}>}
+ */
+export async function commitBundleAtomic(items, persist) {
+  const list = Array.isArray(items) ? items : [];
+
+  // Phase A — preflight every conflict decision. No writes yet.
+  const plan = [];
+  for (const it of list) {
+    if (!it.existing) { plan.push({ ...it, mode: "create" }); continue; }
+    const choice = await persist.resolveConflict(it.name, it.existing);
+    if (choice === "cancel") return { ok: false, reason: "cancelled", created: [], replaced: [] };
+    if (choice === "replace") { plan.push({ ...it, mode: "replace" }); continue; }
+    const name = await persist.uniqueName(it.name);          // rename → non-conflicting create
+    plan.push({ ...it, mode: "create", name, data: { ...it.data, name } });
+  }
+
+  // Phase B — write with rollback.
+  const created = [];
+  const restores = [];
+  const replaced = [];
+  try {
+    for (const step of plan) {
+      if (step.mode === "create") {
+        created.push(await persist.create(step.data));
+      } else {
+        // Register the restore BEFORE the write: a replace that partially
+        // mutates then throws (e.g. rows deleted, then the row rebuild fails)
+        // must still be rolled back from its pre-write snapshot.
+        const token = await persist.snapshot(step.existing);
+        restores.push({ existing: step.existing, token });
+        replaced.push(await persist.replace(step.existing, step.data));
+      }
+    }
+  } catch (err) {
+    for (const doc of created) { try { await persist.remove(doc); } catch { /* best-effort */ } }
+    for (const r of restores) { try { await persist.restore(r.existing, r.token); } catch { /* best-effort */ } }
+    return { ok: false, reason: "write-failed", error: String(err?.message ?? err), created: [], replaced: [] };
+  }
+  return { ok: true, created, replaced };
+}
+
+/**
+ * Commit a set of parsed table drafts to sde-tables ATOMICALLY (all children or
+ * none). Preflights blockers + every name conflict before any write, then
+ * persists with rollback via commitBundleAtomic. No per-child skip path.
+ * @param {object[]} drafts  parsed table drafts (already identity-stamped)
+ * @param {{onConflict?:Function}} [opts]
+ * @returns {Promise<{ok:boolean, reason?:string, created:object[], replaced:object[], blocked?:object[]}>}
+ */
+export async function commitTableBundle(drafts, { onConflict } = {}) {
+  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can create roll tables."); return { ok: false, reason: "not-gm", created: [], replaced: [] }; }
+  const list = Array.isArray(drafts) ? drafts : [];
+  if (!list.length) return { ok: false, reason: "empty", created: [], replaced: [] };
+
+  // Preflight validation — any blocker refuses the whole bundle (no override).
+  const blocked = list.filter((d) => computeBlockers(d).length);
+  if (blocked.length) return { ok: false, reason: "invalid", created: [], replaced: [], blocked };
+
+  const { ensureSuite } = await import("./compendium-suite.mjs");
+  const suite = await ensureSuite();
+  const pack = suite?.tables;
+  if (!pack) { ui.notifications?.error("Could not access the sde-tables compendium."); return { ok: false, reason: "no-pack", created: [], replaced: [] }; }
+
+  // Index must carry the manifestId flag so a GM-renamed owned table is matched
+  // by identity (not left to duplicate under a fresh name).
+  const packIndex = await pack.getIndex({ fields: MANIFEST_INDEX_FIELDS });
+  const items = [];
+  for (const pt of list) {
+    const data = await buildResolvedTableData(pt, pack);
+    const existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
+    items.push({ key: pt.manifestId, name: data.name, data, existing });
+  }
+
+  // Key by manifestId (stamped into the data flags) so enrichment still resolves
+  // its source draft after a conflict-rename changes the name.
+  const ptByManifest = new Map(list.filter((pt) => pt.manifestId).map((pt) => [pt.manifestId, pt]));
+  const enrich = async (doc, data) => {
+    const pt = ptByManifest.get(data?.flags?.["shadowdark-enhancer"]?.manifestId);
+    if (!pt) return;
+    try {
+      if (!pt.isCompound) await _autoEnrich(doc, pt);
+      await applyTableStructureSeed(doc);
+    } catch (e) { console.warn(`Shadowdark Enhancer | bundle enrich failed for "${doc?.name}"`, e); }
+  };
+
+  const persist = {
+    resolveConflict: async (name) => (onConflict ? await onConflict(name) : "replace"),
+    uniqueName: (name) => _uniqueNameAgainstIndex(name, [...packIndex]),
+    snapshot: async (existing) => (await pack.getDocument(existing._id)).toObject(),
+    create: async (data) => {
+      const doc = await RollTable.create(data, { pack: pack.collection });
+      await enrich(doc, data);
+      return doc;
+    },
+    replace: async (existing, data) => {
+      // In-place RollTable replacement (UUID + inbound links preserved). Errors
+      // bubble; the pre-registered rollback restores the snapshot.
+      const target = await pack.getDocument(existing._id);
+      await replaceRollTableInPlace(target, data);
+      await enrich(target, data);
+      return target;
+    },
+    remove: async (doc) => { await doc?.delete?.(); },
+    restore: async (existing, token) => {
+      const target = await pack.getDocument(existing._id);
+      if (target) await replaceRollTableInPlace(target, token);
+    },
+  };
+
+  return commitBundleAtomic(items, persist);
+}
+
 export const TableImporter = {
   parse: parseTables,
   parseGenerators,
   parseByShape,
   parseDiceSpec,
   parseMatrixByColumns,
+  parseStackedTables,
+  blankSeparateTables,
+  dedupExactTables,
   buildTableData,
+  buildResolvedTableData,
+  findExistingByManifestOrName,
   computeBlockers,
   validateMatrixCommit,
   createTable,
+  commitBundleAtomic,
+  commitTableBundle,
 };

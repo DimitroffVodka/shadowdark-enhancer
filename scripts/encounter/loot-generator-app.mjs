@@ -223,8 +223,10 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!entry) return;
     const it = entry.batch.items[Number(target.dataset.itemIndex)];
     if (!it) return;
+    // Prefer the stable forgeType hint; legacy history entries fall back to the
+    // name-only inference for the initial UI seed only.
     MagicForgeApp.open({
-      seed: inferSeedFromName(it.name),
+      seed: { ...inferSeedFromName(it.name), forgeType: it.forgeType ?? null },
       onCreate: (forged) => { it.uuid = forged.uuid; it.name = forged.name; it.img = forged.img ?? it.img; it.forgeable = false; this.render(); },
     });
   }

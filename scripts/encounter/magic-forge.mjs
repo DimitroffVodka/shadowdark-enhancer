@@ -33,6 +33,15 @@ const SD_TYPE = { weapon: "Weapon", armor: "Armor", scroll: "Scroll", wand: "Wan
 // (no Foundry globals) and the AE shape is assertable under node --test.
 const AE_MODE_ADD = 2;
 
+// Generic label for a Core-mode descriptive rider role (never book prose).
+const DESCRIPTOR_LABELS = {
+  feature: "Feature", benefit: "Benefit", curse: "Curse",
+  virtue: "Virtue", flaw: "Flaw", trait: "Personality", type: "Type",
+};
+
+/** A visible marker that a descriptive rider is NOT mechanized by the system. */
+const NON_AUTO_MARKER = `<em class="sde-forge-nonauto">(descriptive — apply at the table)</em>`;
+
 // Legacy count/bonus curves. No longer on the create path (the rebuild does not
 // auto-roll flavor), but retained as exports because the unit tests pin them and
 // removing them would be a silent breaking change.
@@ -41,10 +50,59 @@ export function curseFromRoll(d6) { return d6 <= 2; }
 export function bonusFromRoll(d12) { return d12 <= 2 ? 0 : d12 <= 9 ? 1 : d12 <= 11 ? 2 : 3; }
 export function personalityFromRoll(d6) { return d6 === 1; }
 
+/**
+ * Strict, generic numeric bonus parser (Core-mode). Accepts ONLY a WHOLE-result
+ * numeric `+N` in the allowed 0..3 range, optionally trailed by a single generic
+ * "bonus" label — e.g. "+2", "2", "+3", "+2 bonus". Everything else yields null:
+ * ranges ("1-3"), currency/commas ("3,000 gp"), dice ("2d6"), decimals ("1.5"),
+ * multi-digit ("12"), out-of-range ("4"/"+4"), signs other than `+` ("-1"), and
+ * any arbitrary trailing prose ("+2 to attacks"). The forge never maps
+ * descriptive text to a mechanic.
+ * @param {string} text
+ * @returns {number|null} 0..3, or null when not an unambiguous whole numeric bonus
+ */
+export function parseBonusValue(text) {
+  const s = String(text ?? "").trim();
+  const m = s.match(/^\+?([0-3])(?:\s+bonus)?$/i);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Resolve a SELECTED Core Bonus result's numeric value or FAIL CLOSED. A bonus
+ * result the GM explicitly picked must be a usable whole `+N`; if it isn't, this
+ * throws so the forge blocks before Item.create with a clear message — it never
+ * silently degrades to +0 or drops the selection. (Pure — the app catches it.)
+ * @param {string} text
+ * @returns {number} 0..3
+ */
+export function resolveSelectedBonus(text) {
+  const n = parseBonusValue(text);
+  if (n == null) {
+    throw new Error("The selected Bonus result is not a usable +N value (expected +0 to +3). Clear it or pick a numeric bonus result.");
+  }
+  return n;
+}
+
 /** `+N Base` / `Base` / type-label fallback (pure). */
 export function composeName({ type, baseItem, bonus }) {
   const base = (baseItem && baseItem.trim()) || TYPE_LABELS[type] || "Magic Item";
   return bonus > 0 ? `+${bonus} ${base}` : base;
+}
+
+/**
+ * Resolve the forge type a seed should open at (pure). A stable `forgeType`
+ * hint (threaded from a loot placeholder's classification) wins over the
+ * loosely-inferred `type`; a potion/utility hint maps to the nearest working
+ * type (wand). Returns null when neither yields a usable type (leave as-is).
+ * @param {{forgeType?:string, type?:string}} [seed]
+ * @returns {string|null}
+ */
+export function resolveForgeType(seed) {
+  const known = (v) => WORKING_TYPES.includes(v) || v === "potion" || v === "utility";
+  const preferred = known(seed?.forgeType) ? seed.forgeType : seed?.type;
+  if (WORKING_TYPES.includes(preferred)) return preferred;
+  if (preferred === "potion" || preferred === "utility") return "wand";
+  return null;
 }
 
 /** Infer a forge seed {type, bonus} from a placeholder item name (pure). */
@@ -125,6 +183,13 @@ export function assembleItemData(draft) {
   data.system = data.system ?? {};
   data.name = draft.name || composeName(draft);
 
+  // Cloning a base that was ITSELF forged (or any doc carrying SDE forge bonus
+  // effects) must not stack a second pair — strip our prior bonus effects and
+  // prior forge id before re-applying. Base damage/AC/properties are preserved.
+  if (Array.isArray(data.effects)) {
+    data.effects = data.effects.filter((e) => !e?.flags?.[MODULE_ID]?.forgeBonus);
+  }
+
   // ── Optional forged flavor text (appended to any carried-through description) ──
   const parts = [];
   if (draft.feature) parts.push(`<p><strong>Feature:</strong> ${esc(draft.feature)}</p>`);
@@ -135,6 +200,15 @@ export function assembleItemData(draft) {
     if (p.virtue) parts.push(`<p><strong>Virtue:</strong> ${esc(p.virtue)}</p>`);
     if (p.flaw) parts.push(`<p><strong>Flaw:</strong> ${esc(p.flaw)}</p>`);
     if (p.trait) parts.push(`<p><strong>Personality:</strong> ${esc(p.trait)}</p>`);
+  }
+  // ── Core-mode descriptive riders (Feature/Benefit/Curse/Virtue/Flaw/Trait) ──
+  // Each is escaped and carries a visible non-automated marker; "type" rows are
+  // a base-selector HINT only and are never written into the item description.
+  for (const d of draft.descriptors ?? []) {
+    const text = String(d?.text ?? "").trim();
+    if (!text || d?.role === "type") continue;
+    const label = DESCRIPTOR_LABELS[d.role] ?? (d.role ? d.role[0].toUpperCase() + d.role.slice(1) : "Detail");
+    parts.push(`<p><strong>${esc(label)}:</strong> ${esc(text)} ${NON_AUTO_MARKER}</p>`);
   }
   const flavor = parts.join("\n");
   const baseDesc = data.system.description ?? "";
@@ -158,17 +232,29 @@ export function assembleItemData(draft) {
     data.system.magicItem = true;
   } else if (draft.type === "weapon" || draft.type === "armor") {
     data.system.treasure = true;
-    if (bonus > 0) {
-      data.system.magicItem = true;
-      applyBonus(data, draft.type, bonus);
-    }
+    // A +0 item that still carries Core magic (a descriptive rider or refs-only
+    // provenance) is a magic item too — flag it. Only a real +N ever applies the
+    // mechanic (weapon effects / armor modifier).
+    const hasMagicFlavor = !!(
+      draft.feature || draft.curse || (draft.benefits?.length) ||
+      draft.personality?.present || (draft.descriptors?.length) || draft.forge
+    );
+    if (bonus > 0 || hasMagicFlavor) data.system.magicItem = true;
+    if (bonus > 0) applyBonus(data, draft.type, bonus);
   }
 
-  // ── Forge flags (contract: loot delivery/generator read forged + bonus) ──
-  data.flags = {
-    ...(data.flags ?? {}),
-    [MODULE_ID]: { ...(data.flags?.[MODULE_ID] ?? {}), forged: true, bonus },
-  };
+  // ── Forge flags ──
+  // Keep the existing forged/bonus contract (loot delivery/generator read it),
+  // and add the Core-mode provenance v2 flag when supplied. `draft.forge` is a
+  // refs-only object built by buildForgeProvenance (magic-table-runtime) — it
+  // never carries result text/name/summaries.
+  const sdeFlags = { ...(data.flags?.[MODULE_ID] ?? {}), forged: true, bonus };
+  // Always drop any INHERITED provenance from a carried-through base — a manual
+  // re-forge must not retain stale Core refs — then stamp fresh provenance only
+  // when this forge supplied it.
+  delete sdeFlags.forge;
+  if (draft.forge) sdeFlags.forge = draft.forge;
+  data.flags = { ...(data.flags ?? {}), [MODULE_ID]: sdeFlags };
 
   return data;
 }

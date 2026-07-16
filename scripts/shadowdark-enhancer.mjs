@@ -26,6 +26,12 @@ import { ItemDrops } from "./encounter/item-drops.mjs";
 import { LootTableTag } from "./encounter/loot-table-tag.mjs";
 import { TableRegistry } from "./encounter/table-registry.mjs";
 import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
+import {
+  MAGIC_SET_DEFS,
+  catalog as magicCatalog,
+  buildSetSeed as magicBuildSetSeed,
+  buildChildSeed as magicBuildChildSeed,
+} from "./encounter/magic-table-runtime.mjs";
 import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
 import { boundCount } from "./encounter/loot-setup-manifest.mjs";
 import { ImporterHubApp } from "./encounter/importer-hub-app.mjs";
@@ -321,6 +327,14 @@ Hooks.once("init", () => {
     },
     forge: {
       open: () => MagicForgeApp.open(),
+      // Read-only Phase-1 Core magic-item table catalog: live readiness derived
+      // from the GM's OWN imported sde-tables, plus import-seed builders and set
+      // metadata. No persistent raw-prose API — result text is only ever the
+      // GM's own imported content, read live at call time.
+      catalog: () => magicCatalog(),
+      sets: () => MAGIC_SET_DEFS,
+      buildSetSeed: (setKey) => magicBuildSetSeed(setKey),
+      buildChildSeed: (manifestId) => magicBuildChildSeed(manifestId),
     },
     // Party XP (standalone GM tool). Tag an item with an XP value (or type a
     // flat amount) and award it in full to every selected party member —

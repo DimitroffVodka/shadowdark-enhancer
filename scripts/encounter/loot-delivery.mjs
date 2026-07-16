@@ -72,6 +72,7 @@ export const LootDelivery = {
         qty: i.qty ?? 1, claimedBy: null, claimedByName: null,
         value: i.value ?? 0, tier: i.tier ?? null, xp: i.xp ?? 0,
         feature: i.feature ?? null, forgeable: i.forgeable ?? false,
+        forgeType: i.forgeType ?? null,
         fabricate: i.fabricate ?? null,
       })),
       notes: batch.notes ?? [],
@@ -180,8 +181,10 @@ export const LootDelivery = {
           const idx = Number(btn.dataset.itemIndex);
           const it = flags.items[idx];
           if (!it) return;
+          // Prefer the stable forgeType hint from the placeholder classification;
+          // legacy cards (pre-forgeType) fall back to the name-only inference.
           MagicForgeApp.open({
-            seed: inferSeedFromName(it.name),
+            seed: { ...inferSeedFromName(it.name), forgeType: it.forgeType ?? null },
             onCreate: (forged) => this._handleForgedReplace(message.id, idx, forged),
           });
         });

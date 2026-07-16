@@ -21,6 +21,7 @@ import { npcMoveKeys } from "./npc-moves.mjs";
 import { LootLinker } from "./loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
 import { columnManifestId } from "./table-manifest.mjs";
+import { MAGIC_SET_DEFS, matchBundleTables } from "./magic-table-runtime.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
 import { parseStatblock, splitStatblocks } from "./statblock-parser.mjs";
 import { itemRecognizer } from "./item-parser.mjs";
@@ -281,9 +282,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // routed in from the Monster Creator) pre-selects the tables type and seeds
       // the paste box with the title line, mirroring the char-content unlock flow
       // so Open PDF / Grab text work immediately. Char seeds set this themselves.
-      if (seed.manifestId && !seed._charSeed) {
+      // A magic base-recipe BUNDLE seed (several tables on one page) carries a
+      // `magicSet` + `children` list instead of a single manifestId; leave the
+      // paste box empty so the auto-grab fills the whole page for the gate.
+      const isMagicBundle = !!(seed.magicSet && Array.isArray(seed.children) && seed.children.length > 1);
+      if ((seed.manifestId || seed.magicSet) && !seed._charSeed) {
         inst._importType = "tables";
-        inst._importText = seed.name ? `${seed.name}\n` : "";
+        inst._importText = (!isMagicBundle && seed.name) ? `${seed.name}\n` : "";
         inst._importItemSubtype = "auto";
         if (seed.src && CHAR_SOURCES[seed.src]) inst._importSource = CHAR_SOURCES[seed.src].label;
       }
@@ -293,7 +298,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // One-press Import + extraction for a matrix seed: once the paste box is
     // rendered, pull the cited page straight in (falls back to opening the
     // viewer when the book PDF isn't linked). Best-effort; never blocks open().
-    if (seed?.manifestId && !seed._charSeed && seed.src && seed.page) {
+    if ((seed?.manifestId || seed?.magicSet) && !seed._charSeed && seed.src && seed.page) {
       Promise.resolve().then(async () => {
         await inst.render();
         if (sourcePdfTarget(seed.src, seed.page)) {
@@ -1476,6 +1481,33 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     const seed = this._importSeed;
 
+    // Magic base-recipe BUNDLE seed: the grabbed page stacks several child
+    // tables (Weapon/Armor Type + Bonus + Feature). Parse the WHOLE page into
+    // one draft per section (structural split only — see parseStackedTables),
+    // NOT the single-child shape path, then let the exact matchBundleTables /
+    // atomic commit path match, validate, and isolate them. Never runs
+    // _applyImportSeed (which would rename/stamp only the first table).
+    if (this._isMagicBundleSeed()) {
+      // Some PDF extractors emit the same page in multiple layout passes, so the
+      // grab repeats each section verbatim. Collapse only EXACT-duplicate drafts
+      // (identical name/formula/rows) — near-duplicates stay and block as
+      // ambiguous.
+      const parsedAll = TableImporter.parseStackedTables(text);
+      this._importTables = TableImporter.dedupExactTables(parsedAll);
+      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importGenerators = []; this._importChar = []; this._importSkipped = [];
+      this._shapeFailNote = null;
+      const dropped = parsedAll.length - this._importTables.length;
+      if (dropped > 0) {
+        ui.notifications.info(`Collapsed ${dropped} duplicate table pass${dropped === 1 ? "" : "es"} the PDF grab emitted.`);
+      }
+      if (!this._importTables.length) {
+        ui.notifications.warn("No tables found on the pasted page — check that the whole Core page was grabbed.");
+      }
+      this.render();
+      return;
+    }
+
     // Shape-directed parse: when the thing being unlocked ships a precise
     // structure descriptor (table-shapes.mjs) — a prayer generator, a Carousing
     // lookup — reconstruct it deterministically instead of guessing. Driven by
@@ -1803,6 +1835,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Character-content seeds set their own identity in _onHubParse
     // ("Source - Name" convention + category) — don't clobber it here.
     if (seed._charSeed) return;
+    // A magic base-recipe BUNDLE seed carries several separate tables; identity
+    // is stamped at commit by the bundle path (_magicBundlePlan →
+    // matchBundleTables), so leave the parsed drafts untouched here.
+    if (seed.magicSet && Array.isArray(seed.children) && seed.children.length > 1) return;
     const folderPath = [seed.category, seed.folderLabel].filter(Boolean);
 
     if (seed.grid && Array.isArray(seed.columns) && seed.columns.length) {
@@ -2248,10 +2284,105 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return true;
   }
 
+  /** Adapt a parsed hub table draft to the magic-runtime descriptor shape. */
+  static _magicDraftDescriptor(d) {
+    return {
+      manifestId: d?.manifestId ?? null,
+      formula: d?.formula ?? "",
+      // Parsed drafts have no per-row ids yet (Foundry assigns them at create);
+      // synthesize stable ones so the range-aware validator's id check passes.
+      results: (Array.isArray(d?.rows) ? d.rows : []).map((r, i) => ({
+        id: `row-${i}`, range: [r.min, r.max], text: r.text,
+      })),
+    };
+  }
+
+  /**
+   * Plan a magic base-recipe BUNDLE commit (Weapon/Armor base: several separate
+   * tables off one page). The set imports as ALL its child tables — valid,
+   * non-duplicate — or NONE. Returns:
+   *   - `null`   — not a bundle seed (rider/personality import per-table).
+   *   - `"refuse"` — matched failed (missing/invalid/duplicate); already notified.
+   *   - `{def, matched}` — the EXACT matched child drafts (identity-stamped),
+   *     isolating them from any other tables parsed off the same page.
+   */
+  /** True when the active seed is a multi-child, non-perTable magic bundle. */
+  _isMagicBundleSeed() {
+    const seed = this._importSeed;
+    if (!seed?.magicSet || seed._charSeed) return false;
+    const def = MAGIC_SET_DEFS[seed.magicSet];
+    return !!(def && !def.perTable && def.children.length > 1);
+  }
+
+  _magicBundlePlan() {
+    const seed = this._importSeed;
+    if (!seed?.magicSet || seed._charSeed) return null;
+    const def = MAGIC_SET_DEFS[seed.magicSet];
+    if (!def || def.perTable || def.children.length < 2) return null;
+
+    const descriptors = this._importTables.map((d) => ImporterHubApp._magicDraftDescriptor(d));
+    const res = matchBundleTables(def, descriptors);
+    if (!res.ok) {
+      const first = res.errors?.[0]?.message ?? "The set is incomplete.";
+      ui.notifications.error(
+        `Can't create the “${def.label}” set: it must import as ${def.children.length} complete, valid, ` +
+        `non-duplicate tables. ${first} Fix the paste and re-parse — nothing was created.`,
+      );
+      return "refuse";
+    }
+    // Bundle isolation: keep ONLY the matched child drafts (stamp identity);
+    // any other tables parsed off the same page are left in the preview,
+    // never silently committed with the bundle.
+    const matched = res.payloads.map((p) => {
+      const draft = this._importTables[p.sourceIndex];
+      draft.manifestId = p.manifestId;
+      draft.name = p.name;
+      return draft;
+    });
+    return { def, matched };
+  }
+
+  /**
+   * Commit a matched bundle ATOMICALLY (all children or none) through the shared
+   * choke point (TableImporter.commitTableBundle → commitBundleAtomic): every
+   * child's blockers and every name-conflict decision are preflighted before any
+   * write; a cancel or a mid-write failure rolls back to zero net documents. On
+   * success only the matched children leave the preview.
+   * @returns {Promise<number>} count of tables persisted (0 on refuse/failure)
+   */
+  async _commitMagicBundle({ def, matched }) {
+    const result = await TableImporter.commitTableBundle(matched, { onConflict: this._tableConflictDialog() });
+    if (!result?.ok) {
+      const reason = result?.reason;
+      const msg = reason === "cancelled"
+        ? `“${def.label}” import cancelled at a conflict — nothing was created.`
+        : reason === "invalid"
+          ? `“${def.label}” blocked — one or more tables failed validation. Nothing created.`
+          : reason === "write-failed"
+            ? `“${def.label}” failed to persist and was rolled back — nothing created.`
+            : `“${def.label}” could not be imported — nothing created.`;
+      (reason === "cancelled" ? ui.notifications.info : ui.notifications.error)(msg);
+      return 0;
+    }
+    const done = new Set(matched);
+    this._importTables = this._importTables.filter((t) => !done.has(t));
+    this._importSeed = null;
+    for (const doc of [...result.created, ...result.replaced]) await this._registerCharBuilderTable(doc);
+    this._invalidateCharCache();
+    this._announceContentUnlocked();
+    const n = result.created.length + result.replaced.length;
+    ui.notifications.info(`Set “${def.label}” imported: ${n} table${n === 1 ? "" : "s"} → sde-tables.`);
+    return n;
+  }
+
   async _onHubCommitTables() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import tables."); return; }
     if (!this._importTables.length) { ui.notifications.warn("No tables to import."); return; }
     if (this._matrixCommitRefused()) { this.render(); return; }
+    // Magic base-recipe bundle → dedicated ATOMIC path (isolated, all-or-nothing).
+    const bundlePlan = this._magicBundlePlan();
+    if (bundlePlan === "refuse") { this.render(); return; }
+    if (bundlePlan) { await this._commitMagicBundle(bundlePlan); this.render(); return; }
 
     const gate = await this._gateTableDrafts("table", this._importTables);
     if (!gate) return;
@@ -2378,6 +2509,31 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // refuse the whole tables portion rather than committing a partial matrix.
       if (this._matrixCommitRefused()) {
         ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`);
+        this.render();
+        return;
+      }
+      // Magic base-recipe bundle → dedicated ATOMIC path (same choke point as
+      // Commit Tables). Refuse stops; success commits ONLY the matched children.
+      const bundlePlan = this._magicBundlePlan();
+      if (bundlePlan === "refuse") {
+        ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`);
+        this.render();
+        return;
+      }
+      if (bundlePlan) {
+        // _commitMagicBundle shows its own error/cancel notice and, on success,
+        // announces the unlock itself.
+        const n = await this._commitMagicBundle(bundlePlan);
+        if (n > 0) {
+          parts.push(`tables: ${n} created (bundle)`);
+          ui.notifications.info(`Import complete — ${parts.join("; ")}.`);
+        } else {
+          // Bundle failed/cancelled: do NOT claim a tables entry, do NOT say
+          // "Import complete", and do NOT announce an unlock for the zero result
+          // — but still surface any earlier commits (monsters/items/spells).
+          if (parts.length) this._announceContentUnlocked();
+          ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`);
+        }
         this.render();
         return;
       }
