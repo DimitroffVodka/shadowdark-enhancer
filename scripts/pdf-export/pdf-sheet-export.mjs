@@ -50,13 +50,37 @@ async function resolveName(v) {
 /** Strip HTML to plain text with newlines for the notes / features boxes.
  * Parsed in an INERT document (DOMParser) — never via innerHTML on a live
  * document — so a player's crafted notes (e.g. `<img onerror=…>`) cannot run
- * JS in the exporter's browser (a GM owns every actor and can export any). */
+ * JS in the exporter's browser (a GM owns every actor and can export any).
+ *
+ * When no DOMParser is present (a node test harness), fall back to a textual
+ * tag-strip: still inert (markup is never assigned to a live document, so no
+ * script/handler can run), and it keeps the plain-text mapping unit-testable.
+ * In the browser DOMParser is always defined, so the fallback never runs live. */
 function htmlToText(html) {
   if (!html) return "";
-  const doc = new DOMParser().parseFromString(String(html), "text/html");
-  doc.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
-  doc.querySelectorAll("p, li, div, h1, h2, h3, h4").forEach((el) => el.append("\n"));
-  return (doc.body?.textContent ?? "").replace(/\n{3,}/g, "\n\n").replace(/[ \t]+\n/g, "\n").trim();
+  const Parser = globalThis.DOMParser;
+  if (typeof Parser === "function") {
+    const doc = new Parser().parseFromString(String(html), "text/html");
+    doc.querySelectorAll("br").forEach((br) => br.replaceWith("\n"));
+    doc.querySelectorAll("p, li, div, h1, h2, h3, h4").forEach((el) => el.append("\n"));
+    return (doc.body?.textContent ?? "").replace(/\n{3,}/g, "\n\n").replace(/[ \t]+\n/g, "\n").trim();
+  }
+  return String(html)
+    .replace(/<\s*(?:br|\/p|\/li|\/div|\/h[1-4])\s*\/?>/gi, "\n")
+    .replace(/<[^>]*>/g, "")                       // drop every remaining tag (incl. <img onerror…>)
+    .replace(/\n{3,}/g, "\n\n").replace(/[ \t]+\n/g, "\n").trim();
+}
+
+/** Concise, plain-text one-liner for a spell's notes cell — the first sentence
+ * of the (inert-parsed) description, capped. Never HTML: the manifest declares
+ * spell_*_notes as plain text fields, so we fill them with a safe summary
+ * rather than injecting markup. */
+function spellSummary(spell) {
+  const text = htmlToText(spell?.system?.description);
+  if (!text) return "";
+  const firstLine = text.split("\n").map((l) => l.trim()).filter(Boolean)[0] ?? "";
+  const sentence = (firstLine.split(/(?<=[.!?])\s/)[0] ?? firstLine).trim();
+  return sentence.length > 140 ? `${sentence.slice(0, 137).trimEnd()}…` : sentence;
 }
 
 /** Human label for a range slug, via the system's own maps (nearLine → "Near
@@ -167,11 +191,23 @@ export async function buildFieldValues(actor) {
   T("hp_max", sys.attributes?.hp?.max);
   T("ac", sys.attributes?.ac?.value);
 
-  /* attacks — the model's own computed roll formulas */
-  const attacks = [...(attackData?.melee ?? []), ...(attackData?.ranged ?? [])];
+  /* attacks — the model's own computed roll formulas. getAttacks() returns
+   * { melee, ranged, … } buckets; keep the standard melee→ranged order, then
+   * append any OTHER array buckets (custom attack types) instead of silently
+   * dropping them. */
+  const attacks = [
+    ...(Array.isArray(attackData?.melee) ? attackData.melee : []),
+    ...(Array.isArray(attackData?.ranged) ? attackData.ranged : []),
+  ];
+  for (const [k, v] of Object.entries(attackData ?? {})) {
+    if (k === "melee" || k === "ranged" || !Array.isArray(v)) continue;
+    attacks.push(...v);
+  }
   attacks.slice(0, 5).forEach((att, i) => {
     const r = i + 1;
-    const weapon = att.itemUuid ? fromUuidSync?.(att.itemUuid) : null;
+    // Prefer the already-resolved item on the attack entry (getAttacks attaches
+    // it), fall back to a UUID lookup, then the entry's own name/label.
+    const weapon = att.item ?? (att.itemUuid ? fromUuidSync?.(att.itemUuid) : null);
     T(`attack_${r}_name`, weapon?.name ?? att.name ?? att.label ?? "");
     T(`attack_${r}_bonus`, tightenBonus(att.mainRoll?.bonus));
     T(`attack_${r}_damage`, tightenFormula(att.damageRoll?.formula));
@@ -212,6 +248,9 @@ export async function buildFieldValues(actor) {
     T(`spell_${r}_tier`, s.system?.tier ?? "");
     T(`spell_${r}_range`, rangeLabel(s.system?.range));
     T(`spell_${r}_duration`, durationLabel(s.system?.duration));
+    // The template declares spell_*_notes — fill it with a safe, concise
+    // plain-text summary (never HTML) so the column isn't left blank.
+    T(`spell_${r}_notes`, spellSummary(s));
     C(`spell_${r}_lost`, s.system?.lost);
   });
 
@@ -313,6 +352,14 @@ export async function exportActorToPdf(actor) {
     ui.notifications?.error(`PDF export failed: ${err.message}`);
   }
 }
+
+/* --------------------------------------------------------- test internals */
+
+/** Pure helpers exposed for node tests (no public API surface). */
+export const _internals = {
+  htmlToText, spellSummary, itemSlotCount, isFreeCarry, gearLine,
+  rangeLabel, durationLabel, fmtMod, tightenBonus, tightenFormula,
+};
 
 /* --------------------------------------------------------------- register */
 

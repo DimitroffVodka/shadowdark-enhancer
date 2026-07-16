@@ -571,12 +571,27 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
  * Fires automatically from createClassUnit (a class just appeared) and once
  * per GM ready (self-heals worlds that imported spells before their class).
  *
+ * The Foundry touch points are injectable so the persistence logic is
+ * node-testable without a live world (defaults hit the real pack / ClassIndex /
+ * Item / Hooks). The LIVE semantics are unchanged.
+ *
+ * @param {object} [deps]
+ * @param {object}   [deps.pack]            spells pack (default findSuitePack("spells"))
+ * @param {Function} [deps.resolveByName]   async name → { uuid } (default ClassIndex)
+ * @param {Function} [deps.resolveUuid]     async uuid → doc|null (default fromUuid)
+ * @param {Function} [deps.updateDocuments] async (updates, opts) → void (default Item.updateDocuments)
+ * @param {Function} [deps.callHook]        (name) → void (default Hooks.callAll)
  * @returns {Promise<number>} spells updated
  */
-export async function relinkSpellsToClasses() {
-  const pack = findSuitePack("spells");
+export async function relinkSpellsToClasses(deps = {}) {
+  const pack = deps.pack ?? findSuitePack("spells");
   if (!pack) return 0;
-  const { ClassIndex } = await import("./class-index.mjs");
+  const resolveByName = deps.resolveByName
+    ?? (async (name) => (await import("./class-index.mjs")).ClassIndex.resolveByName(name));
+  const resolveUuid = deps.resolveUuid ?? ((u) => fromUuid(u).catch(() => null));
+  const updateDocuments = deps.updateDocuments ?? ((updates, opts) => Item.updateDocuments(updates, opts));
+  const callHook = deps.callHook ?? ((name) => Hooks.callAll(name));
+
   const index = await pack.getIndex({ fields: ["type", "system.class", "folder", `flags.${MODULE_ID}.spellClassName`] });
   const updates = [];
   for (const entry of index) {
@@ -586,24 +601,26 @@ export async function relinkSpellsToClasses() {
     let live = false;
     for (const u of cur) {
       // eslint-disable-next-line no-await-in-loop
-      if (await fromUuid(u).catch(() => null)) { live = true; break; }
+      if (await resolveUuid(u)) { live = true; break; }
     }
-    if (live) continue;   // already linked where it belongs
+    if (live) continue;   // already linked where it belongs (borrowed/multi-class kept)
     const folderName = pack.folders.get(entry.folder)?.name ?? "";
+    // Intent flag wins over the folder-name fallback (folder-only = a spell
+    // imported before the stamp existed).
     const want = String(entry.flags?.[MODULE_ID]?.spellClassName ?? "").trim()
       || classNameFromSpellFolder(folderName);
     if (!want) continue;
     // eslint-disable-next-line no-await-in-loop
-    const hit = await ClassIndex.resolveByName(want);
+    const hit = await resolveByName(want);
     if (!hit?.uuid) continue;   // class still absent — a later import links it
     updates.push({ _id: entry._id, "system.class": [hit.uuid] });
   }
   if (!updates.length) return 0;
   if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
-  await Item.updateDocuments(updates, { pack: pack.collection });
+  await updateDocuments(updates, { pack: pack.collection });
   console.log(`${MODULE_ID} | relinkSpellsToClasses: linked ${updates.length} spell(s) to their caster class`);
   // Open char-builder / hub instances drop caches + re-render (gap→have flips).
-  Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
+  callHook(`${MODULE_ID}.contentUnlocked`);
   return updates.length;
 }
 

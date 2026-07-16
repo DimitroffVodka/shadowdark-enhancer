@@ -209,10 +209,34 @@ function _validateTalentBands(tbl) {
 function _findTalentTable(lines) {
   const capIdx = lines.findIndex((l) => TALENTS_CAP.test(l));
 
+  // Number of effect rows a column-copy run expects — one per in-bounds roll
+  // range (mirrors zip()'s kept-range filter so a swept-in page-number singleton
+  // doesn't inflate the count). Bounds the feature-header break below.
+  const expectedEffects = (run, formula) => {
+    const die = _dieBounds(formula);
+    let n = 0;
+    for (const l of run) {
+      const rm = l.match(LONE_RANGE);
+      if (!rm) continue;
+      const lo = Number(rm[1]);
+      if (die && rm[2] == null && (lo < die.min || lo > die.max)) continue;   // page-number singleton
+      n++;
+    }
+    return n;
+  };
+
   // Effect texts from `start` until the next caption: wrapped (lowercase-
   // start) lines merge into the previous text; page numbers and "Effect"
   // header strays are dropped. Consumed lines land in `skip`.
-  const collectTexts = (start, skip) => {
+  //
+  // `expected` is the run's roll-range count. A talent effect can ITSELF be a
+  // titled feature-shape line ("Weapon Mastery. Choose one weapon to master.")
+  // — those must not terminate the table. So a feature header only ends the run
+  // once every expected effect is already collected; the real post-table
+  // feature (WR prints "Spellcasting. …" after the talents box, Green Knight
+  // p44) then stops it. With no expected count (Infinity) any feature header
+  // breaks, preserving the original behavior for callers that pass none.
+  const collectTexts = (start, skip, expected = Infinity) => {
     const texts = [];
     for (let k = start; k < lines.length; k++) {
       const l = lines[k];
@@ -223,9 +247,10 @@ function _findTalentTable(lines) {
       if (/^\d{1,3}$/.test(l) || /^effects?$/i.test(l) || (!texts.length && /^effects?\b/i.test(l))) { skip.add(k); continue; }
       if (TITLES_CAP.test(l) || CAPS_CAP.test(l)) break;   // next caption
       if (FLAVOR_LINE.test(l)) break;                      // trailing flavor quote / attribution
-      if (_isFeatureHeader(l)) break;                      // a feature resumes — table over
+      const wrapped = texts.length > 0 && /^[a-z]/.test(l);
+      if (!wrapped && texts.length >= expected && _isFeatureHeader(l)) break;   // real post-table feature
       skip.add(k);
-      if (texts.length && /^[a-z]/.test(l)) texts[texts.length - 1] += " " + l;   // wrapped line
+      if (wrapped) texts[texts.length - 1] += " " + l;   // wrapped line
       else texts.push(l);
     }
     return texts;
@@ -282,7 +307,8 @@ function _findTalentTable(lines) {
       let formula = "2d6";
       if (i > 0 && DIE_ONLY.test(lines[i - 1])) { formula = lines[i - 1].toLowerCase(); skip.add(i - 1); }
       for (let k = i; k < j; k++) skip.add(k);
-      return zip(lines.slice(i, j), collectTexts(capIdx + 1, skip), skip, formula);
+      const run = lines.slice(i, j);
+      return zip(run, collectTexts(capIdx + 1, skip, expectedEffects(run, formula)), skip, formula);
     }
     i = j === -1 ? i : j;
   }
@@ -333,7 +359,8 @@ function _findTalentTable(lines) {
     const k = runEnd(j);
     if (k !== -1) {
       for (let x = j; x < k; x++) skip.add(x);
-      return zip(lines.slice(j, k), collectTexts(k, skip), skip, formula);
+      const run = lines.slice(j, k);
+      return zip(run, collectTexts(k, skip, expectedEffects(run, formula)), skip, formula);
     }
   }
 

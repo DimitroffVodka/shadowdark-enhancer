@@ -2879,8 +2879,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const overlay = overlayFor(p.draft.name);
         // Stage 1: the class BODY only (description + features). Roll tables are
         // imported in Stage 2 ("Class · Roll Tables") and attached.
-        const rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay, bodyOnly: true });
-        if (!rep) continue;
+        let rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay, bodyOnly: true });
+        if (rep?.blocked) {
+          // Fail-closed low level flagged BLOCKER-grade issues — confirm the
+          // shared override dialog before persisting anything.
+          const { confirmClassGate } = await import("./class-quality-gate.mjs");
+          if (!(await confirmClassGate(p.draft.name, rep.issues))) continue;
+          rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay, bodyOnly: true, allowInvalid: true });
+        }
+        if (!rep || rep.blocked) continue;
         const updated = rep.updated ?? [];
         parts.push(`class "${p.draft.name}": ${rep.created.length} created, ${updated.length} updated, ${rep.reused.length} reused, ${rep.systemReuse.length} system talents linked`);
         if (updated.length) {
@@ -2905,9 +2912,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           ui.notifications.warn(`"${p.draft.name}" — pick a class to attach these tables to first.`);
           continue;
         }
-        const rep = await mergeClassSupplement(p.draft.attachTo, p.draft.classSupplement, { source, sourceTitle });
-        if (!rep) continue;
+        let rep = await mergeClassSupplement(p.draft.attachTo, p.draft.classSupplement, { source, sourceTitle });
         const target = await fromUuid(p.draft.attachTo).catch(() => null);
+        if (rep?.blocked) {
+          const { confirmClassGate } = await import("./class-quality-gate.mjs");
+          if (!(await confirmClassGate(target?.name ?? p.draft.name, rep.issues))) continue;
+          rep = await mergeClassSupplement(p.draft.attachTo, p.draft.classSupplement, { source, sourceTitle, allowInvalid: true });
+        }
+        if (!rep || rep.blocked) continue;
         parts.push(`tables → "${target?.name ?? "class"}": ${rep.created.length} created, ${rep.updated.length} updated, ${rep.reused.length} reused`);
         if (rep.warnings.length) {
           console.warn(`${MODULE_ID} | class supplement → "${target?.name ?? p.draft.attachTo}" — review notes:\n- ${rep.warnings.join("\n- ")}`);

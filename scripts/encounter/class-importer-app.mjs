@@ -434,33 +434,24 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!this._bodyParsed) return this._onParseBody();
     // Quality gate (E2E D2/D6): a class about to commit without its talent
     // table, with BLOCKER-grade parse warnings, or with unsplit title bands
-    // needs an explicit go-ahead — never a silent broken commit.
-    const gateIssues = [];
-    if (!this._talentTable?.rows?.length && !this._bodyParsed.classSupplement)
-      gateIssues.push("No talent table — the class will be created without its level-up rolls.");
-    for (const w of (this._bodyParsed.warnings ?? [])) if (/^BLOCKER:/i.test(String(w))) gateIssues.push(String(w).replace(/^BLOCKER:\s*/i, ""));
-    for (const w of (this._titleWarnings ?? [])) gateIssues.push(String(w));
-    if (gateIssues.length) {
-      const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-      const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Class quality check" },
-        position: { width: 460 },
-        content: `<p><strong>${esc(this._bodyName || this._seedClassName || "This class")}</strong> has unresolved issues:</p><ul>${gateIssues.map((g) => `<li>${esc(g)}</li>`).join("")}</ul><p>Create it anyway, or cancel and fix the flagged parts first?</p>`,
-        buttons: [
-          { action: "cancel", label: "Cancel and fix", icon: "fa-solid fa-xmark", default: true },
-          { action: "create-anyway", label: "Create anyway", icon: "fa-solid fa-triangle-exclamation" },
-        ],
-        rejectClose: false,
-      });
-      if (choice !== "create-anyway") return;
-    }
+    // needs an explicit go-ahead — never a silent broken commit. Shared with
+    // the Importer Hub (class-quality-gate) — one issue set, one dialog.
+    const { classGateIssues, confirmClassGate } = await import("./class-quality-gate.mjs");
+    const gateIssues = classGateIssues({
+      warnings: this._bodyParsed.warnings,
+      hasTalentTable: !!this._talentTable?.rows?.length,
+      isSupplement: !!this._bodyParsed.classSupplement,
+      titleWarnings: this._titleWarnings,
+    });
+    if (!(await confirmClassGate(this._bodyName || this._seedClassName, gateIssues))) return;
     const { createClassUnit } = await import("./class-unit-importer.mjs");
     const source = this._source.trim();
     const sourceTitle = _sourceTitle(source);
     const rep = await createClassUnit(this._bodyParsed, {
       source, sourceTitle, overlay: overlayFor(this._bodyParsed.name), bodyOnly: true,
+      allowInvalid: gateIssues.length > 0,
     });
-    if (!rep) return;
+    if (!rep || rep.blocked) return;
     this._classUuid = rep.classUuid;
     this._className = this._bodyParsed.name;
     this._isCaster = !!this._bodyParsed.spellcasting;
@@ -572,10 +563,14 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       extraTables: this._extraTables,
       warnings: [],
     };
-    const rep = await mergeClassSupplement(this._classUuid, sup, {
-      source, sourceTitle: _sourceTitle(source), overlay: overlayFor(this._className),
-    });
-    if (rep) {
+    const mergeOpts = { source, sourceTitle: _sourceTitle(source), overlay: overlayFor(this._className) };
+    let rep = await mergeClassSupplement(this._classUuid, sup, mergeOpts);
+    if (rep?.blocked) {
+      const { confirmClassGate } = await import("./class-quality-gate.mjs");
+      if (!(await confirmClassGate(this._className, rep.issues))) return null;
+      rep = await mergeClassSupplement(this._classUuid, sup, { ...mergeOpts, allowInvalid: true });
+    }
+    if (rep && !rep.blocked) {
       this._lastReport = { created: rep.created.length, updated: (rep.updated ?? []).length, reused: rep.reused.length };
       if (rep.warnings.length) {
         console.warn(`${MODULE_ID} | Class Importer — attach notes:\n- ${rep.warnings.join("\n- ")}`);

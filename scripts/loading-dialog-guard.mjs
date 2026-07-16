@@ -92,11 +92,21 @@ export function installLoadingDialogGuard() {
  * Close every open `LoadingSD` spinner. Uses the (now bounded) close() so the
  * window is torn down cleanly and can't hang the caller. Fire-and-forget: the
  * caller rethrows immediately so the render fails fast and a retry succeeds.
+ *
+ * close() is async (and bounded), so both a synchronous throw AND a rejected
+ * close() promise are swallowed here — a failed dismissal must never surface as
+ * an unhandled promise rejection (it would spam the console during the very
+ * failure this guard is recovering from). Returns the count of spinners it
+ * attempted to close, for observability/tests.
  */
-function dismissLoadingDialogs() {
+export function dismissLoadingDialogs() {
+  let closed = 0;
   for (const app of Object.values(ui.windows ?? {})) {
     if (app?.constructor?.name === "LoadingSD") {
-      try { app.close({ force: true }); } catch (_) { /* already closing */ }
+      closed++;
+      try { Promise.resolve(app.close({ force: true })).catch(() => { /* already closing / torn down */ }); }
+      catch (_) { /* synchronous close throw — ignore */ }
     }
   }
+  return closed;
 }

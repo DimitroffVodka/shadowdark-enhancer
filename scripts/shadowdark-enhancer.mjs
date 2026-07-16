@@ -452,7 +452,11 @@ Hooks.once("ready", () => {
     // Spell↔class self-heal, EVERY load (index-scan cheap, idempotent, silent
     // when there's nothing to do): spells imported before their caster class
     // existed link up as soon as both are present, whichever was created first.
+    // Guard to the SINGLE active GM (game.users.activeGM) so a table with
+    // several GMs online doesn't run the pack-write sweep concurrently — the
+    // same pattern used by the merchant/loot/session-recap workers.
     setTimeout(async () => {
+      if (game.users.activeGM?.id !== game.user.id) return;
       try {
         const { relinkSpellsToClasses } = await import("./encounter/item-importer.mjs");
         const n = await relinkSpellsToClasses();

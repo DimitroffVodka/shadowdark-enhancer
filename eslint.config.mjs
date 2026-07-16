@@ -9,7 +9,10 @@ import globals from "globals";
  */
 export default [
   {
-    ignores: ["node_modules/**", "assets/**", "templates/**", "styles/**"],
+    // Vendored, minified third-party runtime (pdf-lib v1.17.1, MIT — see
+    // scripts/pdf-export/lib/LICENSE). Not our source; linting a 512 KB minified
+    // bundle only produces noise. Scoped to the vendor dir, not a rule weakening.
+    ignores: ["node_modules/**", "assets/**", "templates/**", "styles/**", "scripts/pdf-export/lib/**"],
   },
   js.configs.recommended,
   {

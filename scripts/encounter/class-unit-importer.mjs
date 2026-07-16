@@ -25,6 +25,7 @@
 import { MODULE_ID } from "../module-id.mjs";
 import { escapeHtml } from "./pdf-text-utils.mjs";
 import { SPELL_LIST_CLASS_ALIASES } from "./char-content-manifest.mjs";
+import { classGateBlockers, supplementGateBlockers } from "./class-quality-gate.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -453,8 +454,14 @@ async function buildClassTalentTable(parsed, { talentsPack, tablesPack, sysTalen
  *   `updated` = same-name docs whose content differed from the corrected
  *   import and were updated in place ({name, type, uuid, fields}).
  */
-export async function createClassUnit(parsed, { source = "", sourceTitle = "", overlay = null, bodyOnly = false } = {}) {
+export async function createClassUnit(parsed, { source = "", sourceTitle = "", overlay = null, bodyOnly = false, allowInvalid = false } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
+  // Fail closed: BLOCKER-grade parse issues are never persisted without an
+  // explicit override. UI adapters compute the same issues (class-quality-gate)
+  // and prompt the user before passing allowInvalid; a direct caller that skips
+  // the prompt gets the sentinel and writes nothing.
+  const gateBlockers = classGateBlockers(parsed.warnings);
+  if (gateBlockers.length && !allowInvalid) return { blocked: true, name: parsed.name, issues: gateBlockers };
   const { ensureSuite, ensureFolderPath, sourceFolderName } = await import("./compendium-suite.mjs");
   const suite = await ensureSuite();
   if (!suite?.items || !suite?.tables || !suite?.classes || !suite?.talents) {
@@ -690,17 +697,29 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
  * @param {object} opts { source, sourceTitle, overlay }
  * @returns {Promise<object|null>} report, or null when the target/suite is unusable
  */
-export async function mergeClassSupplement(targetClassUuid, sup, { source = "", sourceTitle = "", overlay = null } = {}) {
+export async function mergeClassSupplement(targetClassUuid, sup, { source = "", sourceTitle = "", overlay = null, allowInvalid = false } = {}) {
   if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can import a class."); return null; }
   if (!targetClassUuid || !sup) { ui.notifications?.warn("Pick a class to attach these tables to."); return null; }
   const cls = await fromUuid(targetClassUuid).catch(() => null);
   if (!cls || cls.type !== "Class") { ui.notifications?.error("Attach-to class not found."); return null; }
+  // Fail closed: writing a SPELLS KNOWN grid onto a class flagged NON-caster
+  // (or any BLOCKER-tagged supplement warning) is refused without an explicit
+  // override — the exact "warns then writes anyway" bug this replaces.
+  const gateBlockers = supplementGateBlockers(cls.system?.spellcasting?.class, sup, cls.name);
+  if (gateBlockers.length && !allowInvalid) return { blocked: true, name: cls.name, issues: gateBlockers };
   const { ensureSuite, ensureFolderPath } = await import("./compendium-suite.mjs");
   const suite = await ensureSuite();
   if (!suite?.talents || !suite?.tables) { ui.notifications?.error("Suite packs unavailable."); return null; }
   const talentsPack = suite.talents, tablesPack = suite.tables;
 
   const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(sup.warnings ?? [])] };
+  // Surface a gate blocker in the report when the user chose to override, so the
+  // "review notes" record what was forced through — but only the GENERATED ones
+  // (e.g. the not-a-caster message), never a blocker already carried in
+  // sup.warnings, or it would be listed twice and inflate the note count.
+  for (const b of gateBlockers) {
+    if (!report.warnings.some((w) => classGateBlockers([w])[0] === b)) report.warnings.push(`BLOCKER: ${b}`);
+  }
   const sysTalents = _systemIndex("Item", "shadowdark.talents");
   // Reuse the class's own source title/slug when the paste didn't set one.
   const srcTitle = sourceTitle || cls.system?.source?.title || "";
@@ -724,8 +743,8 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
     }));
   }
   if (sup.spellsKnown?.length) {
-    if ((cls.system?.spellcasting?.class ?? "") === "__not_spellcaster__")
-      report.warnings.push(`BLOCKER: "${cls.name}" is marked NOT a spellcaster, but this paste carries a SPELLS KNOWN grid — the body import probably lost its Spellcasting feature (it can print after the talents box). Re-import the class body, or set the casting ability and enabler talent by hand.`);
+    // The NON-caster + SPELLS KNOWN blocker is enforced above (fail-closed);
+    // reaching here means either the class is a caster or the user overrode.
     update["system.spellcasting.spellsknown"] = Object.fromEntries(
       sup.spellsKnown.filter((r) => r.level >= 1 && r.level <= 10).map((r) => [
         String(r.level),

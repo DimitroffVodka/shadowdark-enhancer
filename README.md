@@ -118,6 +118,12 @@ Seven tabs, freely navigable, each with a completion check mark. Every tab that 
 
 Name, Trinket, Background, and Deity rolls draw from installed roll tables **automatically** — the builder discovers any table named for a known ancestry (Names/Trinkets) or a Background/Deity table, so imported Western Reaches or homebrew tables just work with no configuration.
 
+### 📄 Export to PDF
+
+Player character sheets carry an **Export to PDF** button in the sheet-window header, shown only to a character's **owner** (the player who owns it, or a GM). Clicking it fills a bundled form-fillable Shadowdark character sheet with the actor's data — abilities (with active-effect bonuses applied), attacks, gear and slot usage, spells (with lost markers and a short summary), talents, languages, and class/ancestry features — and hands you the finished PDF.
+
+Everything is **local and offline**: the sheet is written to disk through your browser's native *Save As* dialog, falling back to an ordinary download if that isn't available, and **nothing is uploaded or sent to any server** — the only network access is your own browser fetching the module's bundled template and PDF library. Character data is read from the Shadowdark data model's own computed values and any HTML (like your notes) is parsed inertly, so an export can never run code, even for a GM exporting a player's sheet. The bundled PDF library is [pdf-lib](https://github.com/Hopding/pdf-lib) (MIT, © Andrew Dillon).
+
 ### 🐴 Mounts & Boats
 
 Two Actor sub-types (**Mount**, **Boat**) with dedicated sheets and shared Occupants / Inventory / Description tabs, for the *Western Reaches* mounts, warband units, boats, and siege vehicles. The Mount type reuses the Shadowdark system's own NPC data model and sheet.

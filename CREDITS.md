@@ -66,3 +66,13 @@ games and projects. Many of the pack's designs are based on **game-icons.net**
 icons, which are **CC BY 3.0**. Individual 32×32 icons were sliced from the
 pack's transparent spritesheet, upscaled 4× (nearest neighbor), and encoded
 as lossless WebP for the module.
+
+## Bundled code (`scripts/pdf-export/lib/`)
+
+- `pdf-lib.esm.min.js` — [**pdf-lib**](https://github.com/Hopding/pdf-lib)
+  **v1.17.1** (ESM build) by **Andrew Dillon**, **MIT licensed** (© 2019 Andrew
+  Dillon). Used browser-side to fill the AcroForm character-sheet template on
+  "Export to PDF". Vendored unmodified except for stripping the trailing
+  `sourceMappingURL` comment (the map is not shipped). The full upstream license
+  text ships beside the bundle in
+  [`scripts/pdf-export/lib/LICENSE`](scripts/pdf-export/lib/LICENSE).
