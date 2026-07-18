@@ -21,7 +21,7 @@
 
 import { titleCaseName } from "./statblock-parser.mjs";
 import { parseValue, pickTreasureIcon } from "./loot-pack.mjs";
-import { escapeHtml, textToHtml, splitRawBlocks } from "./pdf-text-utils.mjs";
+import { escapeHtml, textToHtml, splitRawBlocks, collapse } from "./pdf-text-utils.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
@@ -58,8 +58,6 @@ function inferItemType(name) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
 /**
  * Wrap body text in `<p>…</p>`, HTML-escaped. Pasted PDF text is plain text —

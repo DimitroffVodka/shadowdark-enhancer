@@ -33,6 +33,7 @@ import { MODULE_ID }  from "./module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "./icons.mjs";
+import { segmentFeet } from "./movement-calc.mjs";
 
 // ── Shared speed helpers ────────────────────────────────────────────────────
 
@@ -230,10 +231,16 @@ export const MovementTracker = {
           const oldY = doc._source?.y ?? doc.y;
           const newX = changes.x ?? oldX;
           const newY = changes.y ?? oldY;
-          const dx = (newX - oldX) / gridSize;
-          const dy = (newY - oldY) / gridSize;
           // Terrain difficulty deferred — multiplier of 1.
-          const distanceFt = Math.round((Math.max(Math.abs(dx), Math.abs(dy)) * gridDist) / 5) * 5;
+          const distanceFt = segmentFeet({
+            oldX,
+            oldY,
+            newX,
+            newY,
+            gridSize,
+            gridDistance: gridDist,
+            diagonals: scene?.grid?.diagonals,
+          });
           this._pendingDeduct[doc.id] = distanceFt;
         }
       }
@@ -388,9 +395,15 @@ export const MovementTracker = {
       const oldY = doc._source?.y ?? doc.y;
       const newX = changes.x ?? oldX;
       const newY = changes.y ?? oldY;
-      const dx = (newX - oldX) / gridSize;
-      const dy = (newY - oldY) / gridSize;
-      segFt = Math.round((Math.max(Math.abs(dx), Math.abs(dy)) * gridDist) / 5) * 5;
+      segFt = segmentFeet({
+        oldX,
+        oldY,
+        newX,
+        newY,
+        gridSize,
+        gridDistance: gridDist,
+        diagonals: scene?.grid?.diagonals,
+      });
     }
 
     // Shadowdark has no Rush — the cap is just moveRemaining in both modes.

@@ -50,6 +50,8 @@
  *   Mount (M)       → (no core SD property — flagged)
  */
 
+import { collapse } from "./pdf-text-utils.mjs";
+
 /** Cost token — `N gp/sp/cp`. Mirrors item-parser.COST_RE. */
 const COST_RE = /(\d+)\s*(gp|sp|cp)\b/i;
 /** Slots token — `N slot(s)`. */
@@ -61,7 +63,6 @@ const RANGES = new Set(["close", "near", "far", "nearline"]);
 /** A "none" table cell — books print an em-dash (or hyphen) for "no value". */
 const NONE_FIELD_RE = /^[—–-]+$/;
 
-const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 const titleCase = (s) => String(s).replace(/\b\w/g, (c) => c.toUpperCase());
 /** System-style slug ("Plate mail" → "plate-mail") — matches shadowdark.gear's
  *  baseArmor values (live-verified: Mithral Chainmail → "chainmail"). */

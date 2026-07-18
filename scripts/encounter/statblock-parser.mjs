@@ -17,6 +17,8 @@
  * Ships ZERO book content — this is machinery only.
  */
 
+import { collapse, normalizeText } from "./pdf-text-utils.mjs";
+
 // Movement words → Shadowdark NPC move keys (system.move).
 const MOVE_KEYS = {
   "close": "close", "near": "near", "far": "far",
@@ -31,8 +33,6 @@ const RANGE_KEYS = new Set(["close", "near", "far", "self"]);
 // keywords (e.g. a spell desc wrapping to a line that starts "Close. …"),
 // NOT real features. Prevents over-splitting spellcaster feature blocks.
 const FEATURE_FALSE_POSITIVES = new Set(["close", "near", "far", "focus", "self"]);
-
-const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
 /**
  * Title-case a SHOUTING statblock name, e.g. "DIRE WOLF" → "Dire Wolf" (keeps
@@ -77,7 +77,7 @@ export const STAT_LV = /\bLV\s+\d+/i;
  * @returns {{ monsters: string[], skipped: {name:string, reason:string}[] }}
  */
 export function splitStatblocks(rawText) {
-  const lines = String(rawText ?? "").replace(/\r\n?/g, "\n").split("\n")
+  const lines = normalizeText(String(rawText ?? "").replace(/\r\n?/g, "\n")).split("\n")
     .filter((l) => !isPageNumber(l));               // drop page numbers globally
 
   // Partition into name-delimited blocks.

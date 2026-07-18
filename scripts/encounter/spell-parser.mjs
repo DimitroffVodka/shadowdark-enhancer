@@ -28,15 +28,13 @@
  */
 
 import { titleCaseName } from "./statblock-parser.mjs";
-import { textToHtml, splitRawBlocks } from "./pdf-text-utils.mjs";
+import { textToHtml, splitRawBlocks, collapse } from "./pdf-text-utils.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
 const TIER_RE     = /^\s*Tier\s+([1-5])\b\s*[,.\-–]?\s*(.*)$/i;
 const DURATION_RE = /^\s*Duration\s*[:\-]\s*(.+)$/i;
 const RANGE_RE    = /^\s*Range\s*[:\-]\s*(.+)$/i;
-
-const collapse = (s) => String(s ?? "").replace(/\s+/g, " ").trim();
 
 /**
  * Wrap body text in `<p>…</p>`, HTML-escaped — pasted PDF text is never

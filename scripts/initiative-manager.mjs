@@ -1,5 +1,5 @@
 import { MODULE_ID } from "./module-id.mjs";
-import { CrawlState } from "./crawl-state.mjs";
+import { CrawlState, isActiveGM } from "./crawl-state.mjs";
 
 /**
  * Out-of-combat initiative for crawl rounds.
@@ -26,7 +26,10 @@ const CONFIG_TAG = "sdeOocTokenId";
 // the roll is an OoC init roll (or a reroll of one). Sync the total into
 // CrawlState so the strip's badge updates.
 Hooks.on("createChatMessage", async (msg) => {
-  if (!game.user.isGM) return;     // only the GM writes the world setting
+  // Fires on EVERY connected client for the same message, so gate on the
+  // single active GM (not just any GM) — otherwise two online GMs would
+  // both react to the same roll and write CrawlState.oocInitiative twice.
+  if (!isActiveGM()) return;
   const cfg = msg?.flags?.shadowdark?.rollConfig;
   const tokenId = cfg?.[CONFIG_TAG];
   if (!tokenId) return;

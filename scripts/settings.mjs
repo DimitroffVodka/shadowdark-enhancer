@@ -1,5 +1,6 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { ExtraGearEditor } from "./char-builder/gear-editor-app.mjs";
+import { defaultCrawlState } from "./crawl-state-core.mjs";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, "combatMovementDefault", {
@@ -167,11 +168,13 @@ export function registerSettings() {
   // no setting to configure; imported tables just work.
 
   // Internal world setting — not displayed in config UI. Holds the CrawlState singleton.
+  // Default is sourced from crawl-state-core.mjs so the setting default and the
+  // domain default (including `members` and the `_v` version stamp) can't drift.
   game.settings.register(MODULE_ID, "crawlState", {
     scope: "world",
     config: false,
     type: Object,
-    default: { mode: "off", crawlTurn: 0, oocInitiative: {} },
+    default: defaultCrawlState(),
   });
 
   game.settings.register(MODULE_ID, "encounterSources", {
