@@ -63,6 +63,22 @@ import { TokenArtCatalog } from "./monster-art/token-art-catalog.mjs";
 import { TokenArtManagerApp } from "./monster-art/token-art-manager-app.mjs";
 import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 
+// Foundry can retain a module stylesheet across reloads while fetching fresh
+// templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
+// the startup fallback, then layer a content-addressed copy above it. The layout
+// contract test requires this revision to change whenever the CSS file changes.
+const STYLESHEET_REV = "a47a9d5f1189";
+
+function ensureFreshStylesheet() {
+  const id = `${MODULE_ID}-fresh-stylesheet`;
+  document.getElementById(id)?.remove();
+  const link = document.createElement("link");
+  link.id = id;
+  link.rel = "stylesheet";
+  link.href = `modules/${MODULE_ID}/styles/shadowdark-enhancer.css?v=${STYLESHEET_REV}`;
+  document.head.append(link);
+}
+
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
 // the Shadowdark system's NpcSD model + NpcSheetSD sheet, which the system
 // registers in its own `init` hook — and module init hooks can run BEFORE the
@@ -75,6 +91,7 @@ Hooks.once("i18nInit", () => {
 });
 
 Hooks.once("init", () => {
+  ensureFreshStylesheet();
   console.log(`${MODULE_ID} | init`);
   registerSettings();
   MerchantShop.registerSettings();
@@ -291,9 +308,10 @@ Hooks.once("init", () => {
     // create NPC actors into the managed world compendium. See monster-importer-app.mjs.
     monsters: MonsterImporterAPI,
     mutator: {
-      // Clone a bestiary/world actor, append validated IMPORTED matrix results
-      // as descriptive NPC Features, and create a NEW world actor (source
-      // untouched). `resultRefs` are { manifestId, tableUuid, resultId }
+      // Clone a bestiary/world actor, apply structurally authorized mechanics or
+      // GM-adjudicated Features from validated IMPORTED matrix results, and
+      // create a NEW world actor (source untouched). `resultRefs` are
+      // { manifestId, tableUuid, resultId }
       // references — old static string ids throw a deprecation error before
       // anything is persisted. See monster-mutator.mjs.
       create: (baseUuid, resultRefs, customName = null) =>

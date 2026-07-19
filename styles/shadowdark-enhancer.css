@@ -4482,6 +4482,12 @@ body.theme-light .sde-hub-monsters-row td {
 
 /* ── Mutations Section (Monster Creator) ─────────────────────────────────── */
 
+/* Foundry app windows resize independently of the viewport. Keep this
+   component responsive to its own width rather than the browser window. */
+.sde-mut-section {
+  container-type: inline-size;
+}
+
 .sde-mut-badge {
   display: inline-block;
   min-width: 18px;
@@ -4510,6 +4516,7 @@ body.theme-light .sde-hub-monsters-row td {
   line-height: 1.4;
 }
 .sde-mut-notice i { margin-top: 2px; color: var(--sde-bar-accent); }
+.sde-mut-notice-copy { min-width: 0; }
 .sde-mut-notice strong { color: var(--sde-bar-text-bright); }
 
 /* Per-set status card. */
@@ -4556,8 +4563,8 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-mut-state-partial   { color: var(--sde-bar-text-bright); }
 
 .sde-mut-columns {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   margin-bottom: 8px;
 }
@@ -4602,6 +4609,7 @@ body.theme-light .sde-hub-monsters-row td {
 
 .sde-mut-set-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 .sde-mut-set-actions .sde-mut-clear { margin-left: auto; }
@@ -4624,8 +4632,9 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-mut-selection-list { margin: 0; padding: 0; list-style: none; }
 .sde-mut-selected {
-  display: flex;
-  align-items: baseline;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) 24px;
+  align-items: start;
   gap: 8px;
   padding: 3px 0;
 }
@@ -4655,6 +4664,107 @@ body.theme-light .sde-hub-monsters-row td {
 
 .sde-mut-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
 .sde-mut-actions .sde-mut-clear { flex: 0 0 auto; }
+.sde-mut-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.sde-mut-actions button {
+  flex: 0 1 240px;
+  max-width: 240px;
+}
+
+/* ── Applied generated-effect ledger: badges, chips, remove controls ─────── */
+.sde-mut-applied {
+  margin-top: 10px;
+  padding: 8px;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.12);
+}
+.sde-mut-applied-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.sde-mut-applied-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--sde-bar-text-bright);
+}
+.sde-mut-applied-counts { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+.sde-mut-applied-list { margin: 0 0 8px; padding: 0; list-style: none; }
+.sde-mut-applied-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 4px 0;
+  border-top: 1px solid var(--sde-bar-border);
+}
+.sde-mut-applied-set { font-size: 11px; color: var(--sde-bar-text-muted); }
+.sde-mut-applied-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.sde-mut-chip {
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  background: var(--sde-bar-border);
+  color: var(--sde-bar-text-bright);
+}
+.sde-mut-badge-mode {
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sde-mut-mode-automated { color: var(--sde-bar-on-accent); background: var(--sde-bar-mut-boon); }
+.sde-mut-mode-mixed     { color: var(--sde-bar-text-bright); background: var(--sde-bar-mut-conflict, #c9a227); }
+.sde-mut-mode-gm        { color: var(--sde-bar-text-bright); background: var(--sde-bar-border); }
+.sde-mut-mode-edited    { color: var(--sde-bar-text-bright); background: var(--sde-bar-mut-conflict, #c9a227); }
+.sde-mut-mode-conflict  { color: var(--sde-bar-on-accent); background: var(--sde-bar-mut-bane); }
+.sde-mut-remove-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.sde-mut-remove-actions button { flex: 0 1 240px; max-width: 240px; }
+.sde-mut-remove-actions .sde-mut-remove-all { color: var(--sde-bar-mut-bane); }
+
+@container (max-width: 700px) {
+  .sde-mut-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+@container (max-width: 440px) {
+  .sde-mut-col {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .sde-mut-col-label { flex-basis: auto; }
+  .sde-mut-col-controls { width: 100%; }
+  .sde-mut-set-actions .sde-mut-clear { margin-left: 0; }
+  .sde-mut-selected {
+    grid-template-columns: minmax(0, 1fr) 24px;
+    gap: 2px 8px;
+  }
+  .sde-mut-selected-col { grid-column: 1; }
+  .sde-mut-selected-text { grid-column: 1; }
+  .sde-mut-remove { grid-column: 2; grid-row: 1 / span 2; }
+  .sde-mut-actions button {
+    flex-basis: calc(50% - 4px);
+    max-width: none;
+  }
+  .sde-mut-remove-actions button {
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .sde-mut-applied-counts { margin-left: 0; }
+}
 
 /* ── Spell picker (Monster Creator → Spellcasting) ───────────────────────── */
 

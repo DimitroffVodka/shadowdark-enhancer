@@ -21,9 +21,18 @@ import { FEATURE_QUICK_PICKS } from "./feature-templates.mjs";
 import {
   catalog as monsterTableCatalog,
   resolveSelection,
-  appendResultFeatures,
   buildMonsterTableSeed,
+  featureDescriptionHtml,
 } from "./monster-table-runtime.mjs";
+import {
+  applyResult,
+  planResultEffects,
+  removeGeneratedEffects,
+  summarizeGeneratedEffects,
+  buildProvenanceV3,
+  reconstructGeneratedEffects,
+  itemGenerationFlag,
+} from "./monster-effect-runtime.mjs";
 import { createMutatedFromDraft } from "./monster-mutator.mjs";
 import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
 import { titleCaseName } from "./statblock-parser.mjs";
@@ -72,6 +81,9 @@ function _defaultDraft() {
     // Each: {uuid, name, img, tierLabel, source} where `source` is the
     // full spell toObject() (minus _id) pushed verbatim on save.
     spells:   [],
+    // Provenance-backed generated-effect ledger (monster-effect-runtime.mjs).
+    // Additive; manual entries omit `generation` and are never bulk-removed.
+    generatedEffects: { version: 1, applications: [] },
   };
 }
 
@@ -125,6 +137,9 @@ export class MonsterCreatorApp {
     creatorMutApply:            MonsterCreatorApp.prototype._onMutApply,
     creatorMutCreateCopy:       MonsterCreatorApp.prototype._onMutCreateCopy,
     creatorMutClear:            MonsterCreatorApp.prototype._onMutClear,
+    creatorMutRemoveGenerator:  MonsterCreatorApp.prototype._onMutRemoveGenerator,
+    creatorMutRemoveMutations:  MonsterCreatorApp.prototype._onMutRemoveMutations,
+    creatorMutRemoveAll:        MonsterCreatorApp.prototype._onMutRemoveAll,
     save:                       MonsterCreatorApp.prototype._onSave,
   };
 
@@ -886,6 +901,7 @@ export class MonsterCreatorApp {
     };
     const selByManifest = new Map(this._mutSelection.map((r) => [r.manifestId, r]));
     const setLabelByManifest = new Map();
+    const columnLabelByManifest = new Map();
 
     const sets = ["generator", "mutations"].map((key) => {
       const s = states[key];
@@ -896,6 +912,7 @@ export class MonsterCreatorApp {
         diagnostics: s.diagnostics,
         columns: s.columns.map((c) => {
           setLabelByManifest.set(c.manifestId, s.label);
+          columnLabelByManifest.set(c.manifestId, c.columnLabel);
           const sel = selByManifest.get(c.manifestId);
           return {
             columnKey: c.columnKey, columnLabel: c.columnLabel, manifestId: c.manifestId,
@@ -910,11 +927,38 @@ export class MonsterCreatorApp {
       };
     });
 
-    const selection = live.map((r) => ({
-      manifestId: r.manifestId, tableUuid: r.tableUuid, resultId: r.resultId,
-      columnLabel: r.columnLabel, setLabel: setLabelByManifest.get(r.manifestId) ?? "",
-      text: r.text,
-    }));
+    const MODE_LABELS = { automated: "Automated", mixed: "Mixed", gm: "GM adjudication" };
+    const selection = live.map((r) => {
+      const plan = planResultEffects(r, this._draft);
+      return {
+        manifestId: r.manifestId, tableUuid: r.tableUuid, resultId: r.resultId,
+        columnLabel: r.columnLabel, setLabel: setLabelByManifest.get(r.manifestId) ?? "",
+        text: r.text,
+        mode: plan.mode,
+        modeLabel: MODE_LABELS[plan.mode] ?? plan.mode,
+      };
+    });
+
+    // Applied-effect ledger summary → badges/chips + separate remove controls.
+    const summary = summarizeGeneratedEffects(this._draft);
+    const applied = {
+      total: summary.counts.total,
+      generatorCount: summary.counts.generator ?? 0,
+      mutationsCount: summary.counts.mutations ?? 0,
+      automated: summary.counts.automated ?? 0,
+      mixed: summary.counts.mixed ?? 0,
+      gm: summary.counts.gm ?? 0,
+      applications: summary.applications.map((a) => ({
+        setKey: a.setKey,
+        setLabel: a.setKey === "generator" ? "Generator" : "Make It Weird",
+        columnLabel: columnLabelByManifest.get(a.slotKey) ?? a.slotKey,
+        mode: a.mode,
+        modeLabel: MODE_LABELS[a.mode] ?? a.mode,
+        edited: a.edited,
+        conflict: a.conflict,
+        chips: a.chips,
+      })),
+    };
 
     return {
       sets,
@@ -923,6 +967,7 @@ export class MonsterCreatorApp {
       staleCount: stale.length,
       anyReady: sets.some((s) => s.ready),
       hasDraftName: !!this._draft.name?.trim(),
+      applied,
     };
   }
 
@@ -978,9 +1023,12 @@ export class MonsterCreatorApp {
   }
 
   /**
-   * Apply the selected IMPORTED results to the in-progress draft as descriptive
-   * NPC Features ONLY. No stats/attacks/movement/spellcasting/name are changed;
-   * existing features are preserved.
+   * Apply the selected IMPORTED results to the in-progress draft through the
+   * shared, provenance-backed effect runtime. Structural adapters decide what
+   * each result may do (stat deltas, attacks, movement, spellcasting, or a
+   * rules-bearing / GM-adjudicated Feature). Reapplying the exact ref is a
+   * no-op; a different result in the same column reconciles/replaces it. Manual
+   * entries are never touched.
    */
   async _onMutApply() {
     const states = await this._getMutStates();
@@ -989,14 +1037,42 @@ export class MonsterCreatorApp {
       ui.notifications.warn("Select at least one imported result to apply.");
       return;
     }
-    const { features, added } = appendResultFeatures(this._draft.features, live, {
-      idFn: foundry.utils.randomID,
-    });
-    this._draft.features = features;
+    let applied = 0;
+    for (const result of live) {
+      const r = applyResult(this._draft, result, { idFn: foundry.utils.randomID });
+      if (!r.noop) applied += 1;
+    }
     this._sectionOpen.features = this._draft.features.length > 0;
+    this._sectionOpen.actions  = this._draft.actions.length > 0;
+    this._sectionOpen.mutations = true;
     ui.notifications.info(
-      `Applied ${added.length} imported feature${added.length === 1 ? "" : "s"} to the draft.`,
+      applied
+        ? `Applied ${applied} generated effect${applied === 1 ? "" : "s"} to the draft.`
+        : "Those results were already applied — no changes.",
     );
+    this.render();
+  }
+
+  /** Remove all Generator-set generated changes (conflict-safe, manual-preserving). */
+  _onMutRemoveGenerator() { this._removeGenerated({ setKey: "generator" }, "Generator"); }
+
+  /** Remove all Make It Weird generated changes (conflict-safe, manual-preserving). */
+  _onMutRemoveMutations() { this._removeGenerated({ setKey: "mutations" }, "Make It Weird"); }
+
+  /** Remove every generated change (conflict-safe, manual-preserving). */
+  _onMutRemoveAll() { this._removeGenerated({ all: true }, "all generated"); }
+
+  /** Shared applied-effect removal + user report. */
+  _removeGenerated(filter, label) {
+    const report = removeGeneratedEffects(this._draft, filter);
+    if (!report.removedApplications.length) {
+      ui.notifications.info(`No ${label} changes to remove.`);
+      return;
+    }
+    const bits = [`Removed ${report.removedApplications.length} ${label} application(s)`];
+    if (report.detached.length) bits.push(`${report.detached.length} edited item(s) kept as manual`);
+    if (report.conflicts.length) bits.push(`${report.conflicts.length} change(s) preserved (conflict)`);
+    ui.notifications.info(`${bits.join("; ")}.`);
     this.render();
   }
 
@@ -1077,18 +1153,22 @@ export class MonsterCreatorApp {
 // ───── Helpers ─────────────────────────────────────────────────────
 
 /**
- * Wrap a GM-authored description in HTML so the Shadowdark NPC sheet renders it.
- * NpcSheetSD passes item descriptions through jQuery `$(...)`, which throws
- * ("unrecognized expression") on bare text because jQuery reads a non-`<` string
- * as a CSS selector. The system stores its own NPC descriptions as `<p>…</p>`.
- * Idempotent: passes through anything already starting with a tag; "" for empty.
+ * Wrap a PLAIN-TEXT draft description in escaped HTML so the Shadowdark NPC
+ * sheet renders it. Draft textareas are never an HTML-authoring boundary, so a
+ * leading tag is escaped like any other user-authored text.
  */
 function _descHtml(text) {
+  return featureDescriptionHtml(text);
+}
+
+/** Preserve existing rich Spell HTML, but sanitize it at the copy boundary. */
+function _storedDescriptionHtml(text) {
   const s = String(text ?? "").trim();
   if (!s) return "";
-  if (s.startsWith("<")) return s;
-  const esc = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return `<p>${esc}</p>`;
+  if (!s.startsWith("<")) return _descHtml(s);
+  return typeof foundry.utils.cleanHTML === "function"
+    ? foundry.utils.cleanHTML(s)
+    : _descHtml(_stripHtml(s));
 }
 
 /**
@@ -1160,8 +1240,9 @@ export async function actorToDraft(actor) {
 
   // Split items into Actions, Features, and Spells
   for (const item of actor.items) {
+    const gen = _readItemGeneration(item);
     if (item.type === "NPC Attack" || item.type === "NPC Special Attack") {
-      draft.actions.push({
+      const action = {
         id:     foundry.utils.randomID(),
         name:   item.name,
         type:   item.type,
@@ -1170,13 +1251,17 @@ export async function actorToDraft(actor) {
         damage: item.system.damage?.value || "",
         ranges: item.system.ranges || [],
         description: _stripHtml(item.system.description || item.system.damage?.special || ""),
-      });
+      };
+      if (gen) action.generation = gen;
+      draft.actions.push(action);
     } else if (item.type === "NPC Feature") {
-      draft.features.push({
+      const feature = {
         id:     foundry.utils.randomID(),
         name:   item.name,
         description: _stripHtml(item.system.description || ""),
-      });
+      };
+      if (gen) feature.generation = gen;
+      draft.features.push(feature);
     } else if (item.type === "Spell") {
       const source = item.toObject();
       delete source._id;
@@ -1190,7 +1275,24 @@ export async function actorToDraft(actor) {
     }
   }
 
+  // Rebuild the generated-effect ledger from the persisted v3 actor flag +
+  // per-item generation flags. v2/missing → empty ledger (all items manual).
+  const actorMutFlag =
+    (typeof actor.getFlag === "function" ? actor.getFlag(MODULE_ID, "mutation") : null) ??
+    actor.flags?.[MODULE_ID]?.mutation ??
+    null;
+  draft.generatedEffects = reconstructGeneratedEffects(actorMutFlag, draft.features, draft.actions);
+
   return draft;
+}
+
+/** Read a generated embedded item's provenance flag (v3), if present. */
+function _readItemGeneration(item) {
+  const flag =
+    (typeof item.getFlag === "function" ? item.getFlag(MODULE_ID, "monsterGeneration") : null) ??
+    item.flags?.[MODULE_ID]?.monsterGeneration ??
+    null;
+  return flag ? { ...flag } : null;
 }
 
 /**
@@ -1290,6 +1392,10 @@ export function draftToActorData(d) {
       base.system.attack  = { num: Number(a.num ?? 1) };
       base.system.bonuses = { attackBonus: Number(a.bonus ?? 0) };
     }
+    // Persist prose-free generated-item provenance (v3) when this action was
+    // produced by the effect runtime; manual actions carry no such flag.
+    const gen = itemGenerationFlag(a, { name: base.name });
+    if (gen) base.flags = { [MODULE_ID]: { monsterGeneration: gen } };
     return base;
   });
 
@@ -1299,12 +1405,15 @@ export function draftToActorData(d) {
     // resolveSpellFeatures in monster-importer.mjs) — skip the Feature item,
     // but it's still listed in the notes stat block above.
     if (f.isSpell) continue;
-    items.push({
+    const feature = {
       name: (f.name || "").trim() || "New Feature",
       type: "NPC Feature",
       img: NPC_ITEM_ICONS["NPC Feature"],
       system: { description: _descHtml(f.description) },
-    });
+    };
+    const gen = itemGenerationFlag(f);
+    if (gen) feature.flags = { [MODULE_ID]: { monsterGeneration: gen } };
+    items.push(feature);
   }
 
   // ─── Spell Items ──────────────────────────────────────────────
@@ -1318,8 +1427,22 @@ export function draftToActorData(d) {
     // The NPC sheet renders item descriptions through jQuery $(), which throws
     // on bare text. Most spells ship HTML, but some 3rd-party spell packs store
     // a plain-text description — wrap it like every other item description.
-    if (src.system) src.system.description = _descHtml(src.system.description);
+    if (src.system) src.system.description = _storedDescriptionHtml(src.system.description);
     items.push(src);
+  }
+
+  // ─── Actor-level generated-effect provenance (v3, prose-free) ─────────
+  // Written for BOTH normal Save and Create Variant Copy so scalar/mechanical
+  // application state + audit refs survive to the Actor. Item-level ownership
+  // lives on each generated item's own flag (above). Absent when nothing was
+  // generated — legacy/manual actors stay untouched.
+  const apps = d.generatedEffects?.applications ?? [];
+  if (apps.length) {
+    actorData.flags = actorData.flags || {};
+    actorData.flags[MODULE_ID] = {
+      ...(actorData.flags[MODULE_ID] || {}),
+      mutation: buildProvenanceV3(d, d._provenanceMeta || {}),
+    };
   }
 
   return { actorData, items };

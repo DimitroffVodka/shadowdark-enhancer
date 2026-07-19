@@ -450,10 +450,10 @@
        Two dynamic status cards backed by the GM's OWN imported Core Rulebook
        matrix tables (Monster Generator d20×4, Make It Weird d12×3), read live
        from sde-tables via monster-table-runtime.mjs. A set unlocks only when
-       every child column resolves to exactly one valid table. Selecting/rolling
-       results and applying them adds DESCRIPTIVE NPC FEATURES ONLY — never
-       stats, attacks, movement, name, or spellcasting. --}}
-  <details class="sde-creator-section" {{#if sectionOpen.mutations}}open{{/if}}>
+       every child column resolves to exactly one valid table. Structural
+       adapters apply supported mechanics; ambiguous results remain visibly
+       GM-adjudicated features. --}}
+  <details class="sde-creator-section sde-mut-section" {{#if sectionOpen.mutations}}open{{/if}}>
     <summary data-action="sectionToggle" data-section="mutations">
       <i class="fas fa-dna"></i> Generator &amp; Mutator
       {{#if mutations.selectedCount}}<span class="sde-mut-badge">{{mutations.selectedCount}}</span>{{/if}}
@@ -462,9 +462,13 @@
 
       <p class="sde-mut-notice">
         <i class="fas fa-circle-info"></i>
-        Reads <strong>your imported</strong> Core Rulebook tables. Applying a
-        result adds a descriptive <strong>Feature only</strong> — HP, AC,
-        abilities, attacks, movement, and spellcasting are never changed.
+        <span class="sde-mut-notice-copy">
+          Reads <strong>your imported</strong> Core Rulebook tables. Applying a
+          result runs it through structural adapters — creating attacks, stat
+          changes, movement, spellcasting, or a rules-bearing / GM-adjudicated
+          Feature. Generated changes are <strong>reversible</strong> and never
+          touch your manual entries.
+        </span>
       </p>
 
       {{#each mutations.sets}}
@@ -500,8 +504,8 @@
               <button type="button" data-action="creatorMutRollSet" data-set="{{this.key}}">
                 <i class="fas fa-dice"></i> Roll all columns
               </button>
-              <button type="button" class="sde-mut-clear" data-action="creatorMutClearSet" data-set="{{this.key}}">
-                <i class="fas fa-xmark"></i> Clear
+              <button type="button" class="sde-mut-clear" title="Clear this set's selections (does not remove applied effects)" data-action="creatorMutClearSet" data-set="{{this.key}}">
+                <i class="fas fa-xmark"></i> Clear selection
               </button>
             </div>
           {{else}}
@@ -533,7 +537,10 @@
           <ul class="sde-mut-selection-list">
             {{#each mutations.selection}}
               <li class="sde-mut-selected">
-                <span class="sde-mut-selected-col">{{this.setLabel}} · {{this.columnLabel}}</span>
+                <span class="sde-mut-selected-col">
+                  {{this.setLabel}} · {{this.columnLabel}}
+                  <span class="sde-mut-badge-mode sde-mut-mode-{{this.mode}}">{{this.modeLabel}}</span>
+                </span>
                 <span class="sde-mut-selected-text">{{this.text}}</span>
                 <button type="button" class="sde-mut-remove" title="Remove"
                         data-action="creatorMutRemove" data-manifest="{{this.manifestId}}">
@@ -555,15 +562,58 @@
       {{!-- Apply / Create --}}
       <div class="sde-creator-action-buttons sde-mut-actions">
         <button type="button" data-action="creatorMutApply" {{#unless mutations.selectedCount}}disabled{{/unless}}>
-          <i class="fas fa-wand-magic-sparkles"></i> Apply Features to Draft
+          <i class="fas fa-wand-magic-sparkles"></i> Apply to Draft
         </button>
         <button type="button" data-action="creatorMutCreateCopy" {{#unless mutations.selectedCount}}disabled{{/unless}}>
           <i class="fas fa-clone"></i> Create Variant Copy
         </button>
-        <button type="button" class="sde-mut-clear" data-action="creatorMutClear" {{#unless mutations.selectedCount}}disabled{{/unless}}>
-          <i class="fas fa-xmark"></i> Clear all
+        <button type="button" class="sde-mut-clear" title="Clear every selection (does not remove applied effects)" data-action="creatorMutClear" {{#unless mutations.selectedCount}}disabled{{/unless}}>
+          <i class="fas fa-xmark"></i> Clear all selections
         </button>
       </div>
+
+      {{!-- Applied generated-effect ledger: badges, per-application chips, and
+           the SEPARATE (non-destructive-to-manual) removal controls. --}}
+      {{#if mutations.applied.total}}
+        <div class="sde-mut-applied">
+          <div class="sde-mut-applied-head">
+            <span class="sde-mut-applied-label">Applied effects ({{mutations.applied.total}})</span>
+            <span class="sde-mut-applied-counts">
+              {{#if mutations.applied.automated}}<span class="sde-mut-badge-mode sde-mut-mode-automated">{{mutations.applied.automated}} Automated</span>{{/if}}
+              {{#if mutations.applied.mixed}}<span class="sde-mut-badge-mode sde-mut-mode-mixed">{{mutations.applied.mixed}} Mixed</span>{{/if}}
+              {{#if mutations.applied.gm}}<span class="sde-mut-badge-mode sde-mut-mode-gm">{{mutations.applied.gm}} GM adjudication</span>{{/if}}
+            </span>
+          </div>
+          <ul class="sde-mut-applied-list">
+            {{#each mutations.applied.applications}}
+              <li class="sde-mut-applied-item">
+                <span class="sde-mut-badge-mode sde-mut-mode-{{this.mode}}">{{this.modeLabel}}</span>
+                {{#if this.edited}}<span class="sde-mut-badge-mode sde-mut-mode-edited">Edited</span>{{/if}}
+                {{#if this.conflict}}<span class="sde-mut-badge-mode sde-mut-mode-conflict">Conflict</span>{{/if}}
+                <span class="sde-mut-applied-set">{{this.setLabel}} · {{this.columnLabel}}</span>
+                <span class="sde-mut-applied-chips">
+                  {{#each this.chips}}<span class="sde-mut-chip">{{this.label}}</span>{{/each}}
+                </span>
+              </li>
+            {{/each}}
+          </ul>
+          <div class="sde-mut-remove-actions">
+            {{#if mutations.applied.generatorCount}}
+              <button type="button" data-action="creatorMutRemoveGenerator">
+                <i class="fas fa-trash-can"></i> Remove Generator changes
+              </button>
+            {{/if}}
+            {{#if mutations.applied.mutationsCount}}
+              <button type="button" data-action="creatorMutRemoveMutations">
+                <i class="fas fa-trash-can"></i> Remove Make It Weird changes
+              </button>
+            {{/if}}
+            <button type="button" class="sde-mut-remove-all" data-action="creatorMutRemoveAll">
+              <i class="fas fa-trash-can"></i> Remove all generated changes
+            </button>
+          </div>
+        </div>
+      {{/if}}
 
     </div>
   </details>

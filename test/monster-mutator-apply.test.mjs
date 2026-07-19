@@ -45,14 +45,25 @@ function readyCatalog() {
   return { descriptors, states: buildSetStates(descriptors) };
 }
 
+// Replicate _descHtml (the draftToActorData persistence boundary): wrap bare
+// PLAIN-TEXT draft descriptions in exactly one safe, escaped <p>.
+function descHtml(text) {
+  const s = String(text ?? "").trim();
+  if (!s) return "";
+  if (s.startsWith("<")) return s;
+  const esc = s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return `<p>${esc}</p>`;
+}
+
 // Replicate draftToActorData's NPC Feature mapping (Foundry-bound in the app).
+// The draft carries PLAIN text; the HTML wrapper is added HERE, at persistence.
 function toFeatureItems(features) {
   return features
     .filter((f) => !f.isSpell)
     .map((f) => ({
       name: (f.name || "").trim() || "New Feature",
       type: "NPC Feature",
-      system: { description: f.description /* already escaped safe HTML */ },
+      system: { description: descHtml(f.description) },
     }));
 }
 
@@ -69,8 +80,13 @@ test("apply adds exactly one Feature per selected result, generic names, escaped
   assert.equal(added.length, 3);
   assert.deepEqual(features.map((f) => f.name), ["Combat", "Strength", "Mutation 2"]);
   for (const f of features) {
-    assert.match(f.description, /^<p>/);
+    // Draft-plain-text contract: no literal HTML in the editable draft field.
+    assert.ok(!/[<>]/.test(f.description), `draft description must be plain text: ${f.description}`);
     assert.ok(!/<script|<img/i.test(f.description));
+  }
+  // Persistence boundary wraps each once in a safe <p>.
+  for (const item of toFeatureItems(features)) {
+    assert.match(item.system.description, /^<p>/);
   }
 });
 
@@ -104,9 +120,11 @@ test("selected results map to correct NPC Feature item payloads", () => {
   assert.equal(items.length, 1);
   assert.equal(items[0].type, "NPC Feature");
   assert.equal(items[0].name, "Mutation 1");
-  // draftToActorData wraps feature descriptions with _descHtml, which passes
-  // through strings that already start with "<" — our escaped <p> qualifies.
+  // The draft field itself is plain text …
+  assert.ok(!/[<>]/.test(features[0].description));
+  // … and draftToActorData's _descHtml wraps it in exactly one safe <p>.
   assert.match(items[0].system.description, /^<p>/);
+  assert.equal((items[0].system.description.match(/<p>/g) || []).length, 1);
 });
 
 test("hostile result text cannot inject markup into the feature item", () => {
@@ -116,8 +134,13 @@ test("hostile result text cannot inject markup into the feature item", () => {
     text: "</p><img src=x onerror=alert(1)><script>steal()</script>",
   };
   const f = featureFromResult(hostile);
-  assert.ok(!/<img|<script|onerror/i.test(f.description));
-  assert.match(f.description, /^<p>/);
+  // Draft: plain text, no markup at all (not even a <p> wrapper).
+  assert.ok(!/[<>]/.test(f.description), `draft leaked markup: ${f.description}`);
+  // Persistence: exactly one safe <p>, hostile markup neutralized.
+  const persisted = toFeatureItems([{ name: f.name, description: f.description }])[0].system.description;
+  assert.ok(!/<img|<script|onerror/i.test(persisted));
+  assert.match(persisted, /^<p>/);
+  assert.equal((persisted.match(/<p>/g) || []).length, 1);
 });
 
 /* -- provenance v2 --------------------------------------------------------- */

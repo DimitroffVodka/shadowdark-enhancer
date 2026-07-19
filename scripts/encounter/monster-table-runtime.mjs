@@ -5,8 +5,9 @@
  * static catalogue. Instead it reads the GM's OWN imported Core Rulebook
  * matrix tables — the "Monster Generator" (d20, 4 columns) and "Make It Weird"
  * monster-mutations grid (d12, 3 columns) — from the managed `sde-tables`
- * compendium, and applies whatever the GM rolled/selected as descriptive NPC
- * Features only.
+ * compendium. This module resolves source-owned text and structural identities;
+ * the separate effect runtime decides whether a result has an authorized native
+ * mechanic or remains a GM-adjudicated Feature.
  *
  * This module is the boundary between those live RollTables and the UI/apply
  * layer. Almost everything here is pure and Foundry-free (identity, validation,
@@ -23,9 +24,9 @@
  *       core-monster-mutations:mutation-1 / :mutation-2 / :mutation-3
  *   - A set unlocks only when EVERY child column resolves to exactly one valid
  *     table. Incomplete / ambiguous / invalid columns are diagnostic-only.
- *   - Imported results are applied CONSERVATIVELY: one descriptive NPC Feature
- *     per selected result. No stat / attack / movement / spellcasting / name
- *     inference. No source prose is stored in provenance flags.
+ *   - Mechanics are authorized only by exact manifestId + result range in the
+ *     effect adapter. No broad prose inference. No source prose is stored in
+ *     provenance flags.
  */
 
 import { MODULE_ID } from "../module-id.mjs";
@@ -466,15 +467,17 @@ export function featureName(result) {
 
 /**
  * Build a text-only NPC Feature `{name, description}` from one resolved result.
- * Description is escaped safe HTML; name is generic. Pure — the caller stamps
- * an id if its draft model needs one.
+ * Description is DRAFT-SAFE PLAIN TEXT (no HTML) so it can be shown in a textarea
+ * without leaking literal markup; the HTML wrapper is added only at the
+ * draftToActorData persistence boundary (see featureDescriptionHtml / _descHtml).
+ * Name is generic. Pure — the caller stamps an id if its draft model needs one.
  * @param {object} result
  * @returns {{name:string, description:string}}
  */
 export function featureFromResult(result) {
   return {
     name: featureName(result),
-    description: featureDescriptionHtml(result?.text),
+    description: toPlainText(result?.text),
   };
 }
 

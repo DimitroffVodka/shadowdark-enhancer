@@ -255,7 +255,7 @@ test("assertResultRefs rejects deprecated string ids before persistence", () => 
 
 /* -- conservative apply + provenance --------------------------------------- */
 
-test("featureFromResult: one safe generic-named, escaped feature per result", () => {
+test("featureFromResult: draft feature carries PLAIN text — no literal HTML", () => {
   const result = {
     manifestId: MUT.identities[0].manifestId,
     tableUuid: "T",
@@ -268,8 +268,17 @@ test("featureFromResult: one safe generic-named, escaped feature per result", ()
   assert.equal(featureName(result), "Mutation 1"); // generic — never the prose
   const f = featureFromResult(result);
   assert.equal(f.name, "Mutation 1");
-  assert.ok(!/<script/i.test(f.description));
+  // Draft-plain-text contract: NO tags at all, not even a <p> wrapper.
+  assert.ok(!/[<>]/.test(f.description), `draft feature must be plain text: ${f.description}`);
   assert.match(f.description, /Sprouts extra limbs\./);
+});
+
+test("featureDescriptionHtml wraps plain text in exactly one safe <p> at the persistence boundary", () => {
+  const html = featureDescriptionHtml("<script>evil()</script>Sprouts extra limbs.");
+  assert.equal((html.match(/<p>/g) || []).length, 1);
+  assert.match(html, /^<p>/);
+  assert.match(html, /<\/p>$/);
+  assert.ok(!/<script/i.test(html));
 });
 
 test("buildProvenanceV2 stores stable refs only — no source prose", () => {
