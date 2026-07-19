@@ -488,6 +488,21 @@ Hooks.once("ready", () => {
         console.error(`${MODULE_ID} | spell↔class re-link sweep failed:`, err);
       }
     }, 5000);
+    // Borrowed-list caster self-heal, EVERY load (index-scan cheap, idempotent,
+    // silent when there's nothing to do): a Wizard-variant borrower (Green
+    // Knight casts the neutral Druid list) whose spells were imported after the
+    // class — or an existing world that predates this wiring — gets its class
+    // uuid stamped onto its variant's spells so the level-up spellbook offers
+    // exactly that list. Deferred so it never delays ready.
+    setTimeout(async () => {
+      try {
+        const { tagBorrowedSpellLists } = await import("./encounter/class-unit-importer.mjs");
+        const n = await tagBorrowedSpellLists();
+        if (n) ui.notifications.info(`Shadowdark Enhancer: tagged ${n} spell(s) to a borrowed-list caster class.`);
+      } catch (err) {
+        console.error(`${MODULE_ID} | borrowed-list spell tag sweep failed:`, err);
+      }
+    }, 5000);
   }
 });
 

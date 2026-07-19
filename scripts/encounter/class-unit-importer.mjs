@@ -24,7 +24,7 @@
 
 import { MODULE_ID } from "../module-id.mjs";
 import { escapeHtml } from "./pdf-text-utils.mjs";
-import { SPELL_LIST_CLASS_ALIASES } from "./char-content-manifest.mjs";
+import { SPELL_LIST_VARIANTS } from "./char-content-manifest.mjs";
 import { classGateBlockers, supplementGateBlockers } from "./class-quality-gate.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
@@ -514,24 +514,35 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       ["Class", parsed.name], report);
     featureUuids.push(made.uuid);
   }
-  // Borrowed spell list (Knight of St. Ydris → Witch pattern): resolve the
-  // preview's pick, or fall back to the parsed "casts wizard spells" name.
+  // How the caster's spell list wires (see classifySpellWiring):
+  //   • "borrow"  — an explicit preview lender pick OR a list that names a REAL
+  //     class (Knight of St. Ydris → Witch): point spellcasting.class at that
+  //     class, enabler adds the lender's slug — the class casts the WHOLE list.
+  //   • "variant" — a Wizard-variant list ("casts druid spells"): stay a
+  //     SELF-CONTAINED own-list caster (spellcasting.class="", own slug, book
+  //     ability). tagBorrowedSpellLists() stamps this class's uuid onto exactly
+  //     its variant's alignment-tagged Wizard spells, so the system's alignment-
+  //     blind level-up spellbook offers that list only — not all 108 wizard spells.
   let spellClass = parsed.spellcasting?.spellClass ?? null;
-  if (parsed.spellcasting && !spellClass && parsed.spellcasting.spellList) {
-    // A variant list ("casts druid spells") isn't a class name — map it to its
-    // base caster (druid/mage/sorcerer → Wizard) so the class actually links.
-    const listName = parsed.spellcasting.spellList.toLowerCase();
-    const wantName = (SPELL_LIST_CLASS_ALIASES[listName] ?? parsed.spellcasting.spellList).toLowerCase();
-    const hit = _systemIndex("Item", "shadowdark.classes")
-      .find((e) => e.name.toLowerCase() === wantName);
-    if (hit) spellClass = { uuid: hit.uuid, name: hit.name, slug: hit.name.slugify?.() ?? _norm(hit.name).replace(/ /g, "-") };
-    else report.warnings.push(`Spell list "${parsed.spellcasting.spellList}" didn't match an existing caster class — the class keeps its own list; pick the lender in the preview or set spellcasting.class by hand.`);
+  let variantList = null;
+  if (parsed.spellcasting) {
+    const wiring = classifySpellWiring(parsed.spellcasting);
+    if (wiring.kind === "variant") {
+      variantList = wiring.variant;
+    } else if (wiring.kind === "borrow" && !spellClass && wiring.listName) {
+      const hit = _systemIndex("Item", "shadowdark.classes")
+        .find((e) => e.name.toLowerCase() === wiring.listName);
+      if (hit) spellClass = { uuid: hit.uuid, name: hit.name, slug: hit.name.slugify?.() ?? _norm(hit.name).replace(/ /g, "-") };
+      else report.warnings.push(`Spell list "${parsed.spellcasting.spellList}" didn't match an existing caster class — the class keeps its own list; pick the lender in the preview or set spellcasting.class by hand.`);
+    }
   }
 
   if (parsed.spellcasting) {
     const ownSlug = parsed.name.slugify?.() ?? _norm(parsed.name).replace(/ /g, "-");
-    // The enabler registers the slug of the class whose LIST is cast from —
-    // the lender's when borrowing (probed: Knight of St. Ydris adds "witch").
+    // The enabler registers the slug of the class whose LIST is cast from: the
+    // lender's on a full-class borrow (probed: Knight of St. Ydris adds "witch"),
+    // else the class's OWN slug (own list AND Wizard-variant borrowers alike —
+    // the latter cast from their own tagged list, not Wizard's).
     const slug = spellClass?.slug ?? ownSlug;
     const donor = _fuzzyFind(sysTalents, "Spellcasting (Wizard)");
     if (donor) {
@@ -619,8 +630,12 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       })),
       source: { title: sourceTitle },
     },
-    // classFlags: SDE-original class metadata (e.g. fixedDeity → DeityStep pin)
-    flags: { [MODULE_ID]: { imported: true, ...(overlay?.classFlags ?? {}) } },
+    // classFlags: SDE-original class metadata (e.g. fixedDeity → DeityStep pin).
+    // borrowedSpellList: the Wizard-variant nickname this class casts ("druid")
+    // — tagBorrowedSpellLists() reads it to stamp the class onto that variant's
+    // spells (own-list caster; no lender uuid on spellcasting.class).
+    flags: { [MODULE_ID]: { imported: true, ...(overlay?.classFlags ?? {}),
+      ...(variantList ? { borrowedSpellList: variantList } : {}) } },
   };
   // Body-only re-import must NOT clobber supplement-owned fields. Stage 1 builds
   // classTalentTable/titles/spellsknown EMPTY (they arrive in Stage 2), and
@@ -676,6 +691,21 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     }
   } catch (err) {
     console.error(`${MODULE_ID} | spell re-link after class import failed:`, err);
+  }
+
+  // A Wizard-variant borrower just appeared (or a plain caster whose variant
+  // spells already exist) — stamp its uuid onto its list's spells so the
+  // system level-up spellbook and the char-builder both offer exactly that
+  // list. Import-order independent: also fires when the spells arrive later
+  // (createItems) and once per GM ready.
+  try {
+    const tagged = await tagBorrowedSpellLists();
+    if (tagged) {
+      report.taggedBorrowedSpells = tagged;
+      ui.notifications?.info(`Tagged ${tagged} spell(s) to a borrowed-list class.`);
+    }
+  } catch (err) {
+    console.error(`${MODULE_ID} | tagBorrowedSpellLists after class import failed:`, err);
   }
 
   report.classUuid = madeClass.uuid;
@@ -771,6 +801,134 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
   return report;
 }
 
+/**
+ * PURE. Classify how a parsed caster's spell list should be wired, before any
+ * Foundry lookup. Distinguishes a Wizard-variant list (self-contained own-list
+ * caster) from a full-class borrow (points at a lender class) from a plain
+ * own-list caster.
+ *
+ * @param {object|null} spellcasting  parsed.spellcasting ({ ability, spellList,
+ *                                     spellClass } | null)
+ * @param {object} [variants]  SPELL_LIST_VARIANTS-shaped map (injectable for tests)
+ * @returns {{kind:"none"|"variant"|"borrow"|"own", variant?:string, listName?:string}}
+ *   none    — not a caster (spellcasting falsy)
+ *   variant — Wizard-variant list; `variant` is its nickname ("druid"). Wire as
+ *             a self-contained own-list caster + tag its spells to this class.
+ *   borrow  — an explicit lender pick (spellClass set; listName null) OR a list
+ *             naming a real class (`listName` = that name, to resolve). Point
+ *             spellcasting.class at the lender.
+ *   own     — a caster with no borrow signal (no spellList). Own list, own slug.
+ */
+export function classifySpellWiring(spellcasting, variants = SPELL_LIST_VARIANTS) {
+  if (!spellcasting) return { kind: "none" };
+  if (spellcasting.spellClass) return { kind: "borrow", listName: null };
+  const listName = String(spellcasting.spellList ?? "").trim().toLowerCase();
+  if (!listName) return { kind: "own" };
+  if (variants[listName]) return { kind: "variant", variant: listName };
+  return { kind: "borrow", listName };
+}
+
+/**
+ * PURE. Which borrower-class uuids should be ADDED to one spell's system.class,
+ * given the spell's current class links + alignment and the resolved borrower
+ * targets. Keeps the lender link (never removes), never re-adds a uuid already
+ * present. A spell qualifies for a target when its alignment matches the target
+ * variant's alignment AND it already links one of the lender's uuids.
+ *
+ * @param {string[]|string} spellClass    the spell's system.class value
+ * @param {string} spellAlignment         flags["shadowdark-extras"].alignment ("" = universal)
+ * @param {Array<{borrowerUuid:string, alignment:string, lenderUuids:string[]}>} targets
+ * @returns {string[]} borrower uuids to append (empty = no change)
+ */
+export function borrowedTagsForSpell(spellClass, spellAlignment, targets) {
+  const cur = Array.isArray(spellClass) ? spellClass : (spellClass ? [spellClass] : []);
+  const align = String(spellAlignment ?? "");
+  const add = [];
+  for (const t of targets ?? []) {
+    const bu = t?.borrowerUuid;
+    if (!bu || cur.includes(bu) || add.includes(bu)) continue;
+    if (align !== String(t.alignment ?? "")) continue;
+    const lenders = t.lenderUuids ?? [];
+    if (!cur.some((u) => lenders.includes(u))) continue;
+    add.push(bu);
+  }
+  return add;
+}
+
+/**
+ * Stamp each Wizard-variant "borrowed list" caster class's uuid onto exactly its
+ * variant's spells — the completion half of borrowed-variant caster wiring
+ * (createClassUnit records the variant in flags[MODULE_ID].borrowedSpellList and
+ * leaves spellcasting.class="" / own slug). A class like the Green Knight casts
+ * the neutral Wizard (Druid) list; the system level-up spellbook
+ * (CompendiumsSD.classSpellBook) has NO alignment filter, so it offers that list
+ * only if the spells' system.class[] includes the borrower's uuid. This sweep
+ * adds it to every suite spell whose lender-class link + alignment flag match
+ * the borrower's variant, KEEPING the lender (Wizard) link so a real Wizard
+ * still sees the spell and gatherSpellListCensus (class-link + alignment) still
+ * counts it.
+ *
+ * Import-order independent, idempotent, silent when nothing to do. Fires from
+ * createClassUnit (a borrower just appeared), createItems (its spells arrived),
+ * and once per GM ready (self-heals existing worlds). Callers notify on > 0.
+ *
+ * @returns {Promise<number>} spells newly tagged
+ */
+export async function tagBorrowedSpellLists() {
+  const { findSuitePack } = await import("./compendium-suite.mjs");
+  const spellsPack = findSuitePack("spells");
+  if (!spellsPack) return 0;
+
+  // Class NAME → uuids (across every Item pack + world items), plus the list of
+  // variant borrowers with their recorded variant nickname. A spell links to
+  // "Wizard" by whichever Wizard uuid resolveSpellClass chose, so match by name.
+  const uuidsByClassName = new Map();   // lowercased class name → Set<uuid>
+  const borrowers = [];                 // { uuid, variant }
+  const noteClass = (name, uuid, flags) => {
+    const key = String(name ?? "").trim().toLowerCase();
+    if (key && uuid) (uuidsByClassName.get(key) ?? uuidsByClassName.set(key, new Set()).get(key)).add(uuid);
+    const variant = String(flags?.[MODULE_ID]?.borrowedSpellList ?? "").trim().toLowerCase();
+    if (uuid && SPELL_LIST_VARIANTS[variant]) borrowers.push({ uuid, variant });
+  };
+  for (const pack of game.packs.filter((p) => p.documentName === "Item")) {
+    let idx;
+    try { idx = await pack.getIndex({ fields: ["type", `flags.${MODULE_ID}.borrowedSpellList`] }); } catch { continue; }
+    for (const e of idx) if (e.type === "Class") noteClass(e.name, e.uuid, e.flags);
+  }
+  for (const i of game.items) if (i.type === "Class") noteClass(i.name, i.uuid, i.flags);
+  if (!borrowers.length) return 0;
+
+  // variant → { casterClass, alignment } → the lender's concrete uuids.
+  const targets = borrowers.map(({ uuid, variant }) => {
+    const meta = SPELL_LIST_VARIANTS[variant];
+    return {
+      borrowerUuid: uuid,
+      alignment: meta.alignment,
+      lenderUuids: [...(uuidsByClassName.get(meta.casterClass.toLowerCase()) ?? [])],
+    };
+  }).filter((t) => t.lenderUuids.length);   // no lender in this world → nothing to match yet
+  if (!targets.length) return 0;
+
+  const getProp = foundry.utils.getProperty;
+  const idx = await spellsPack.getIndex({ fields: ["type", "system.class", "flags.shadowdark-extras.alignment"] });
+  const updates = [];
+  for (const e of idx) {
+    if (e.type !== "Spell") continue;
+    const add = borrowedTagsForSpell(getProp(e, "system.class"), getProp(e, "flags.shadowdark-extras.alignment") ?? "", targets);
+    if (!add.length) continue;
+    const raw = getProp(e, "system.class");
+    const cur = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+    updates.push({ _id: e._id, "system.class": [...cur, ...add] });
+  }
+  if (!updates.length) return 0;
+  if (spellsPack.locked) { try { await spellsPack.configure({ locked: false }); } catch (_) {} }
+  await Item.updateDocuments(updates, { pack: spellsPack.collection });
+  console.log(`${MODULE_ID} | tagBorrowedSpellLists: tagged ${updates.length} spell(s) to a borrowed-list class`);
+  // Open char-builder / hub instances drop caches + re-render (gap→have flips).
+  Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
+  return updates.length;
+}
+
 // ─── Internal exports for tests (pure helpers only) ──────────────────────────
 
-export const _internals = { _deepEq, _subsetEq, _staleFields, _effectShape };
+export const _internals = { _deepEq, _subsetEq, _staleFields, _effectShape, classifySpellWiring, borrowedTagsForSpell };
