@@ -278,6 +278,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const inst = this._instance;
     if (seed) {
       inst._importSeed = seed;
+      // A NEW unlock seed means a NEW import: drop the previous unlock's parsed
+      // drafts, or the preview keeps showing the last import's tables (e.g. the
+      // Armor Benefit rows rendering under a fresh Armor Curse seed) and a
+      // Commit would create the stale content instead of the seeded one.
+      inst._importTables = []; inst._importMonsters = []; inst._importItems = [];
+      inst._importSpells = []; inst._importGenerators = []; inst._importChar = [];
+      inst._importSkipped = []; inst._shapeFailNote = null;
       // A matrix TABLE seed (e.g. the Monster Generator / Make It Weird matrices
       // routed in from the Monster Creator) pre-selects the tables type and seeds
       // the paste box with the title line, mirroring the char-content unlock flow

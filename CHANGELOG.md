@@ -15,6 +15,9 @@
 ### Removed
 - **`scripts/encounter/mutation-data.mjs`.** The static mutation catalogue and its `applyMutations` / `generateMutatedName` / `getConflict` helpers are deleted outright (no compatibility stub). All consumers were migrated to the imported-table runtime above.
 
+### Fixed
+- **Magic Item Forge — "Armor Curse" imported the Benefit table and wouldn't validate.** Two bugs: (1) the Importer Hub is a single reused window, and opening it for a new unlock kept the previous unlock's parsed tables, so importing **Armor Curse** right after **Armor Benefit** still showed (and would have committed) the Benefit rows — opening now clears the prior drafts. (2) The `core-armor-curse` manifest listed **11** rows, but the printed table has **12**, so a correct import validated as `invalid` ("Expected 11, found 12") and the Forge refused it — the count is corrected (and its content hash regenerated). Applies to any set the hub is reused for, not just armor.
+
 ## [0.10.0] — 2026-07-15
 
 **Source-guided PDF import** — the importer recognizes a large range of *Cursed Scroll* and *Western Reaches* content (classes, ancestries, backgrounds, spells, gear, monsters, roll tables) from **your own PDF paste** and files it cleanly, without hand-fixing the text. The module ships only names, source/page citations, formulas, and parsing structure — no rules text, no prepared documents, nothing encrypted. Plus **dedicated Class & Spell Importer workspaces**, **source-PDF deep links**, a much smarter **table importer**, and follow-ups to the **Monster Token Art Manager**.

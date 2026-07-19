@@ -100,7 +100,10 @@ test("set defs expose the Phase-1 sets with correct formulas/domains/counts", ()
   assert.deepEqual([aBonus.formula, aBonus.domain, aBonus.expectedCount], ["2d6", [2, 12], 4]);
   assert.deepEqual([aFeat.formula, aFeat.domain, aFeat.expectedCount], ["1d20", [1, 20], 20]);
 
-  assert.deepEqual([ACUR.children[0].formula, ACUR.children[0].domain, ACUR.children[0].expectedCount], ["1d12", [1, 12], 11]);
+  // 12, not 11: the printed ARMOR CURSE table is twelve single-face d12 rows —
+  // the manifest's original rows:11 was a count typo that made every correct
+  // import validate `invalid` ("Expected 11 results, found 12").
+  assert.deepEqual([ACUR.children[0].formula, ACUR.children[0].domain, ACUR.children[0].expectedCount], ["1d12", [1, 12], 12]);
   const [virtue, flaw, trait] = PERS.children;
   assert.deepEqual([virtue.formula, virtue.expectedCount], ["1d20", 20]);
   assert.deepEqual([flaw.formula, flaw.expectedCount], ["1d20", 20]);
