@@ -20,6 +20,13 @@
  *   rowTalents:  { "<lo>" | "<lo>-<hi>": [{ name, talentClass?, effects? }] }
  *                — a QUEUE per row: options that resolve to system talents
  *                take those; remaining options consume these entries in order
+ *   classAbilities: [{ name, group?, ability?, dc?, limitedUses?, uses?,
+ *                loseOnFailure?, usesRule?, effects?, fromParent? }] — activated
+ *                grouped powers the parser can't derive as separate docs
+ *                (Presence/Herbalism-style members). Mechanics ONLY (contract:
+ *                no rules text); a member's DESCRIPTION is sliced from the paste
+ *                of the parent feature named by `fromParent`. Overlay entries
+ *                win field-by-field over an auto-detected same-name ability.
  *   items:       WR-only gear the class references — created before the
  *                class so its wield list resolves ({ name, type, img, system })
  *   weaponNames / armorNames: wield-list overrides for grants the text

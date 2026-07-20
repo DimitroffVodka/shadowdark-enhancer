@@ -111,6 +111,96 @@ function _parseLanguageGrant(text) {
   return lang;
 }
 
+// ─── Class-ability detection ─────────────────────────────────────────────────
+
+const _STAT_ABBR = {
+  strength: "str", dexterity: "dex", constitution: "con",
+  intelligence: "int", wisdom: "wis", charisma: "cha",
+  str: "str", dex: "dex", con: "con", int: "int", wis: "wis", cha: "cha",
+};
+const _USE_WORD = { once: 1, twice: 2, three: 3, four: 4, five: 5 };
+
+/**
+ * Decide whether a class FEATURE is really an activated **Class Ability** — the
+ * grouped, rolled, and/or limited-use power the SD system stores as a separate
+ * "Class Ability" document (Bard's Inspire, Sea Wolf's Berserk, Seer's Omen) —
+ * rather than a passive Talent. The distinction is a real system data model:
+ * Class Ability items carry group/ability/dc/uses/loseOnFailure and get roll
+ * buttons + per-day use tracking on the sheet; Talents don't.
+ *
+ * The tell (user's rule): it's a Class Ability if it **requires a roll** OR you
+ * can **only do it a limited number of times per day**. Detection keys on
+ * exactly those two, via concrete hooks so passive prose ("advantage on checks")
+ * can't false-positive:
+ *   • a roll — "[[check 12 cha]]", "DC 12 CHA", "make a Wisdom check", a bare
+ *     "DC 15" (a check target), or an "if you fail" outcome (implies a roll)
+ *   • limited uses — "3/day", "once per day", "twice per day"
+ * loseOnFailure ("if you fail … until you rest") is recorded on the ability and
+ * also counts as a roll.
+ *
+ * `groupParent` flags a Presence/Herbalism-style feature that ENUMERATES member
+ * abilities ("one of the following", a "DC | Effect" remedy list): it stays a
+ * Talent and its members each need their own Class Ability — too format-varied
+ * to slice reliably from a raw paste, so the caller warns and defers to the
+ * class overlay instead of emitting the parent as an ability.
+ *
+ * @param {string} text  the feature's body text (tags already stripped is fine)
+ * @returns {{ability, dc, uses, limitedUses, loseOnFailure, groupParent}|null}
+ */
+export function detectClassAbility(text) {
+  const t = String(text).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  let ability = "", dc = null, sawCheck = false;
+  // Inline roll macro: "[[check 12 cha]]".
+  let m = t.match(/\[\[\s*check\s+(\d+)\s+(str|dex|con|int|wis|cha)\b/i);
+  if (m) { dc = Number(m[1]); ability = _STAT_ABBR[m[2].toLowerCase()]; sawCheck = true; }
+  // "DC 12 CHA" / "DC 12 Charisma".
+  if (!ability) {
+    m = t.match(/\bDC\s*(\d+)\s+(strength|dexterity|constitution|intelligence|wisdom|charisma|str|dex|con|int|wis|cha)\b/i);
+    if (m) { dc = Number(m[1]); ability = _STAT_ABBR[m[2].toLowerCase()]; sawCheck = true; }
+  }
+  // "make a(n) [DC 12] Wisdom check" — a roll even with no DC number stated.
+  if (!ability) {
+    m = t.match(/\bmakes?\s+an?\s+(?:DC\s*(\d+)\s+)?(strength|dexterity|constitution|intelligence|wisdom|charisma|str|dex|con|int|wis|cha)\s+check/i);
+    if (m) { if (m[1]) dc = Number(m[1]); ability = _STAT_ABBR[m[2].toLowerCase()]; sawCheck = true; }
+  }
+  // A bare DC with no explicit stat ("Make a DC 15 check") — still a roll.
+  if (dc == null) { m = t.match(/\bDC\s*(\d+)\b/i); if (m) { dc = Number(m[1]); sawCheck = true; } }
+
+  // Limited uses: "3/day", "once per day/rest", "twice…", "three times…".
+  let uses = null, limitedUses = false, usesRule = null;
+  let n = null;
+  const slash = t.match(/\b(\d+)\s*\/\s*day\b/i);
+  if (slash) n = Number(slash[1]);
+  else {
+    const word = t.match(/\b(once|twice|three|four|five)\s+(?:times\s+)?per\s+(?:day|rest)\b/i);
+    if (word) n = _USE_WORD[word[1].toLowerCase()];
+  }
+  if (Number.isFinite(n) && n > 0) { uses = { available: n, max: n }; limitedUses = true; usesRule = { type: "base", base: n }; }
+  // Level-scaled per-day pool: "… per day equal to your (character) level" (Monk
+  // of Yag-Kesh's Still the Heart). No fixed count — the actor-side
+  // class-ability-uses.mjs recomputes max = level from a {type:"level"} rule.
+  else if (/\bper day\b[^.]*\bequal to your (?:character )?level\b/i.test(t)
+        || /\bequal to your (?:character )?level\b[^.]*\bper day\b/i.test(t)) {
+    limitedUses = true; uses = { available: 1, max: 1 }; usesRule = { type: "level" };
+  }
+
+  const loseOnFailure = /\bif you fail\b/i.test(t)
+    && /\b(?:until you (?:successfully )?rest|again until|can't\s+(?:use|make|do|cast)\b[^.]*\bagain)\b/i.test(t);
+  // "If you fail …" implies a roll happened.
+  if (loseOnFailure) sawCheck = true;
+
+  // Group parent: enumerates members AND drives them off an ability check.
+  const enumerates = /\bone of the following\b/i.test(t)
+    || /\bDC\s*\|?\s*effect\b/i.test(t)
+    || /\bremed(?:y|ies)\s+you\s+choose\b/i.test(t);
+  const groupParent = enumerates && (ability !== "" || /\bmakes?\s+an?\b/i.test(t));
+
+  // The rule: requires a roll OR limited uses per day.
+  const hasSignal = sawCheck || limitedUses;
+  if (!hasSignal && !groupParent) return null;
+  return { ability: ability || "", dc: dc ?? 10, uses, limitedUses, usesRule, loseOnFailure, groupParent };
+}
+
 // ─── Talent-row choice detection ─────────────────────────────────────────────
 
 const _STAT_CHOICE = /^\+(\d+)\s+(?:points?\s+)?to\s+([A-Za-z]+),\s*([A-Za-z]+),?\s+or\s+([A-Za-z]+)(?:\s+stats?)?\.?$/i;
@@ -719,7 +809,23 @@ export function parseClassSection(text) {
     if ((/choose one type of (?:gear or )?weapon.*(?:wield|attack)/i.test(body) || /choose one type of gear/i.test(body))
         && !WIRED_CHOICE_FEATURES.has(f.name.trim().toLowerCase()))
       warnings.push(`"${f.name}" is a choice-at-creation feature — register it in CHOICE_SPECS (class-step.mjs) and wire its effect.`);
-    keptFeatures.push({ name: f.name, description: toHtml(f.lines) });
+    // Activated/grouped power? The SD system models these as separate "Class
+    // Ability" items (roll buttons + per-day use tracking) alongside the feature
+    // Talent. Auto-emit confident single abilities; a group parent stays a
+    // Talent and its members are overlay-wired.
+    let classAbility = null;
+    const ca = detectClassAbility(body);
+    if (ca && ca.groupParent) {
+      warnings.push(`"${f.name}" reads like an ability-GROUP parent (Presence/Herbalism-style: "one of the following"). Kept as a Talent, but each listed member ability needs its own Class Ability item (group/roll/uses) — declare them in the class overlay's classAbilities so they get roll buttons and use-tracking.`);
+    } else if (ca) {
+      classAbility = { ability: ca.ability, dc: ca.dc, limitedUses: ca.limitedUses,
+        uses: ca.uses ?? { available: 0, max: 0 }, usesRule: ca.usesRule ?? null, loseOnFailure: ca.loseOnFailure };
+      const usesLabel = ca.usesRule?.type === "level" ? "level/day" : (ca.limitedUses ? `${ca.uses.max}/day` : "");
+      const bits = [ca.ability ? ca.ability.toUpperCase() : "", ca.dc != null ? `DC ${ca.dc}` : "",
+        usesLabel].filter(Boolean).join(" ");
+      warnings.push(`"${f.name}" looks like an activated Class Ability — imported as BOTH a Talent (feature text) and a Class Ability (group "${name}"${bits ? `, ${bits}` : ""}). Review the detected mechanics before commit.`);
+    }
+    keptFeatures.push({ name: f.name, description: toHtml(f.lines), classAbility });
   }
 
   // A spells-known grid with NO Spellcasting feature = the caster wiring got

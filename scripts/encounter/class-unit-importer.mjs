@@ -7,6 +7,9 @@
  *      effect (those carry working ActiveEffects; ours would be inert copies)
  *   2. fixed feature Talents (incl. a Spellcasting enabler cloned from the
  *      system's "Spellcasting (Wizard)" with the class's own slug)
+ *   2b. Class Ability docs for activated/grouped powers (roll + per-day uses):
+ *      auto-detected single abilities (parser) + overlay-declared group members,
+ *      created alongside the feature Talent and wired into system.classAbilities
  *   3. the 2d6 class-talent RollTable (choice rows = same-range multi-results:
  *      text "Choose 1" + one document result per option)
  *   4. the Class item wiring talents + classTalentTable + languages + wield
@@ -169,6 +172,52 @@ function _talentData(name, description, sourceTitle, { talentClass = "level", ef
     })),
     flags: { [MODULE_ID]: { imported: true } },
   };
+}
+
+/**
+ * Create-shaped data for a "Class Ability" — the SD document type for activated,
+ * grouped, roll-and-uses powers (Bard's Inspire, Sea Wolf's Berserk). Distinct
+ * from a Talent: it carries group/ability/dc/limitedUses/uses/loseOnFailure, so
+ * the actor sheet renders a roll button and class-ability-uses.mjs tracks the
+ * per-day pool. A limited-use ability also stamps the module `usesRule` flag
+ * (base = its max) so the boost-talent machinery ("used twice per day") applies.
+ */
+function _classAbilityData(name, description, sourceTitle, {
+  group = "", ability = "", dc = 10, limitedUses = false, uses = null,
+  loseOnFailure = true, usesRule = null, effects = [],
+} = {}) {
+  const pool = uses ?? { available: 0, max: 0 };
+  const rule = usesRule ?? (limitedUses && Number(pool.max) > 0 ? { type: "base", base: Number(pool.max) } : null);
+  return {
+    name, type: "Class Ability", img: effects[0]?.img ?? "icons/sundries/documents/document-torn-diagram-tan.webp",
+    system: {
+      description, group, ability, dc,
+      limitedUses, loseOnFailure, lost: false,
+      uses: { available: Number(pool.available) || 0, max: Number(pool.max) || 0 },
+      source: { title: sourceTitle ?? "" },
+    },
+    effects: effects.map((e) => ({
+      name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
+      system: { changes: e.changes ?? [] },
+    })),
+    flags: { [MODULE_ID]: { imported: true, ...(rule ? { usesRule: rule } : {}) } },
+  };
+}
+
+/**
+ * Best-effort slice of a group MEMBER's rules text out of its parent feature's
+ * pasted description (contract: overlay class abilities carry mechanics only —
+ * the words come from the paste). Finds the member name in the parent Talent's
+ * text and takes the sentence(s) that follow. Returns "" when not found; the
+ * parent Talent still holds the full list, so an empty member desc is benign.
+ */
+function _sliceMemberText(features, parentName, memberName) {
+  const parent = (features ?? []).find((f) => _norm(f.name) === _norm(parentName));
+  if (!parent || !memberName) return "";
+  const plain = String(parent.description).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  const i = plain.toLowerCase().indexOf(String(memberName).toLowerCase());
+  if (i === -1) return "";
+  return escapeHtml(plain.slice(i, i + 240).trim());
 }
 
 /**
@@ -464,11 +513,12 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   if (gateBlockers.length && !allowInvalid) return { blocked: true, name: parsed.name, issues: gateBlockers };
   const { ensureSuite, ensureFolderPath, sourceFolderName } = await import("./compendium-suite.mjs");
   const suite = await ensureSuite();
-  if (!suite?.items || !suite?.tables || !suite?.classes || !suite?.talents) {
+  if (!suite?.items || !suite?.tables || !suite?.classes || !suite?.talents || !suite?.classAbilities) {
     ui.notifications?.error("Suite packs unavailable."); return null;
   }
   const itemsPack = suite.items, tablesPack = suite.tables;
   const classesPack = suite.classes, talentsPack = suite.talents;
+  const classAbilitiesPack = suite.classAbilities;
 
   const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(parsed.warnings ?? [])] };
   const sysTalents = _systemIndex("Item", "shadowdark.talents");
@@ -514,6 +564,44 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       ["Class", parsed.name], report);
     featureUuids.push(made.uuid);
   }
+
+  // ── 2b. Class Ability docs (activated/grouped powers) ──
+  // Emitted ALONGSIDE the feature Talent (the char-builder dedups the shared
+  // name and grants both). Auto-detected single abilities come from the parser
+  // (feature.classAbility, group = class name); overlay entries add/override
+  // group members (Presence/Herbalism) and win field-by-field. These carry the
+  // group/ability/dc/uses the sheet renders with roll buttons and
+  // class-ability-uses.mjs tracks — the wiring a plain Talent can't hold.
+  const caByName = new Map();
+  for (const f of parsed.features) {
+    if (!f.classAbility || !String(f.name ?? "").trim()) continue;
+    caByName.set(_norm(f.name), { name: f.name, description: f.description, group: parsed.name, ...f.classAbility });
+  }
+  for (const ca of overlay?.classAbilities ?? []) {
+    if (!String(ca.name ?? "").trim()) continue;
+    const key = _norm(ca.name);
+    const prev = caByName.get(key) ?? {};
+    const description = ca.fromParent ? _sliceMemberText(parsed.features, ca.fromParent, ca.name) : (prev.description ?? "");
+    caByName.set(key, {
+      name: ca.name, description,
+      group: ca.group ?? prev.group ?? parsed.name,
+      ability: ca.ability ?? prev.ability ?? "",
+      dc: ca.dc ?? prev.dc ?? 10,
+      limitedUses: ca.limitedUses ?? prev.limitedUses ?? false,
+      uses: ca.uses ?? prev.uses ?? null,
+      loseOnFailure: ca.loseOnFailure ?? prev.loseOnFailure ?? true,
+      usesRule: ca.usesRule ?? null,
+      effects: ca.effects ?? [],
+    });
+  }
+  const classAbilityUuids = [];
+  for (const ca of caByName.values()) {
+    const made = await _ensureItem(classAbilitiesPack,
+      _classAbilityData(ca.name, ca.description, sourceTitle, ca),
+      ["Class", parsed.name], report);
+    classAbilityUuids.push(made.uuid);
+  }
+
   // How the caster's spell list wires (see classifySpellWiring):
   //   • "borrow"  — an explicit preview lender pick OR a list that names a REAL
   //     class (Knight of St. Ydris → Witch): point spellcasting.class at that
@@ -606,7 +694,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       talents: featureUuids,
       talentChoiceCount: 0,
       classTalentTable: tableUuid,
-      classAbilities: [], talentChoices: [],
+      classAbilities: classAbilityUuids, talentChoices: [],
       patron: { required: false, startingBoons: 0 },
       spellcasting: {
         ability: parsed.spellcasting?.ability ?? "",
