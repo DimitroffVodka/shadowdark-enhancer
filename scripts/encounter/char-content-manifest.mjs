@@ -106,15 +106,33 @@ export function spellListWriteupRange(listKey) {
 }
 
 /**
- * Spell-list nickname → base caster class name, for the Wizard variant lists
- * whose printed name ISN'T a class ("casts druid spells" → the Wizard list).
- * Used when wiring a class's borrowed spell list (class-unit-importer): a class
- * like the Green Knight casts the druid list, so its
- * `system.spellcasting.class` must point at Wizard for the char-builder to
- * offer those spells. Priest lists print as "priest" (already a class name), so
- * only the Wizard variants need aliasing.
+ * Wizard-variant spell-list nicknames → their base caster class + the alignment
+ * the variant is gated on. The three variant lists ("casts druid spells", …)
+ * aren't classes: each is the SUBSET of the Wizard pool tagged with that
+ * alignment (Druid=Neutral, Mage=Lawful, Sorcerer=Chaotic — the same spells in
+ * the Cursed Scrolls and the Western Reaches). A class that casts one (the Green
+ * Knight casts the neutral Druid list) is wired as a SELF-CONTAINED own-list
+ * caster — NOT pointed at Wizard — because the system's level-up spellbook
+ * (CompendiumsSD.classSpellBook) applies NO alignment filter: borrowing the
+ * whole Wizard class would offer all ~108 wizard spells. Instead the borrower's
+ * own class uuid is stamped onto exactly its variant's spells
+ * (tagBorrowedSpellLists), so classSpellBook(<borrower>) = that list. The lender
+ * (Wizard) link is kept, so a real Wizard still sees the spell and
+ * gatherSpellListCensus (class-link + alignment) still counts it.
  */
-export const SPELL_LIST_CLASS_ALIASES = { druid: "Wizard", mage: "Wizard", sorcerer: "Wizard" };
+export const SPELL_LIST_VARIANTS = {
+  druid:    { casterClass: "Wizard", alignment: "neutral" },
+  mage:     { casterClass: "Wizard", alignment: "lawful"  },
+  sorcerer: { casterClass: "Wizard", alignment: "chaotic" },
+};
+
+/**
+ * Spell-list nickname → base caster class name (derived from SPELL_LIST_VARIANTS).
+ * Retained for callers that only need the class name; new borrowed-list wiring
+ * uses SPELL_LIST_VARIANTS so it also has the alignment.
+ */
+export const SPELL_LIST_CLASS_ALIASES = Object.fromEntries(
+  Object.entries(SPELL_LIST_VARIANTS).map(([list, v]) => [list, v.casterClass]));
 
 /** SPELL_LISTS source key → the char-builder source slug the importer stamps. */
 export const LIST_SOURCE_SLUG = {

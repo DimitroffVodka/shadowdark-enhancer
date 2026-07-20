@@ -552,6 +552,19 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
     // up real links via the debounced sweep — no manual Re-link needed.
     const { TableEnricher } = await import("./table-enrich.mjs");
     TableEnricher.scheduleRelinkSweep();
+    // Fresh spells may belong to a Wizard-variant borrower's list (Green Knight
+    // casts the neutral Druid list) whose class already imported — stamp its
+    // uuid on so the level-up spellbook offers that list. Import-order
+    // independent (also fires from createClassUnit + GM ready); silent otherwise.
+    if (drafts.some((d) => d.type === "Spell")) {
+      try {
+        const { tagBorrowedSpellLists } = await import("./class-unit-importer.mjs");
+        const tagged = await tagBorrowedSpellLists();
+        if (tagged) ui.notifications?.info(`Tagged ${tagged} spell(s) to a borrowed-list class.`);
+      } catch (err) {
+        console.error(`${MODULE_ID} | tagBorrowedSpellLists after spell import failed:`, err);
+      }
+    }
   }
   return out;
 }

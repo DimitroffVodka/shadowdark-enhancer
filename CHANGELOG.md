@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Wizard-variant caster classes now cast their own short list, not all of Wizard's.** Some Western Reaches classes cast a Wizard *variant* list — the Green Knight "casts druid spells," which in Shadowdark are the Neutral-aligned Wizard spells. The importer used to wire these classes to the **full** Wizard spell list with Wizard's Intelligence, so a level-up Green Knight was offered the whole wizard spellbook cast off INT instead of its ~16 druid spells cast off Wisdom. Such a class is now imported as a **self-contained own-list caster**: it keeps its own casting ability, and the importer tags exactly its variant's alignment-matched spells to the class while **preserving** their Wizard link — so the class's level-up spellbook offers only that list, while the real Wizard (and the spell-list census) are left unchanged. The tagging is **import-order independent** — it runs after class import, after each spell batch, and once on world load, so it also self-heals worlds imported before this fix. Classes whose list names a **real** class (e.g. Knight of St. Ydris → Witch) still borrow that whole class's list as before.
+
 ## [0.10.0] — 2026-07-19
 
 **Source-guided PDF import** — the importer recognizes a large range of *Cursed Scroll* and *Western Reaches* content (classes, ancestries, backgrounds, spells, gear, monsters, roll tables) from **your own PDF paste** and files it cleanly, without hand-fixing the text. The module ships only names, source/page citations, formulas, and parsing structure — no rules text, no prepared documents, nothing encrypted. Plus **dedicated Class & Spell Importer workspaces**, **source-PDF deep links**, a much smarter **table importer**, and follow-ups to the **Monster Token Art Manager**.
