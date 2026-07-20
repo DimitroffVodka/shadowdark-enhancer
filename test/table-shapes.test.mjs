@@ -419,3 +419,21 @@ test("grid shape: a blank middle cell keeps its neighbour in the right column", 
   assert.equal(at(2, 2), "Venison");   // NOT pulled left into Standard
   assert.equal(at(1, 3), "Porridge");  // later rows unaffected
 });
+
+// v0.10.0 shipped a crash here: splitCells gained a {cells, short} return shape
+// (44c1634) and _lookupSimple's die-indexed branch was never updated — a short
+// row (routine in a wrapped PDF copy) hit `cells.join is not a function` and
+// killed the whole Unlock parse. The row must import padded, with a warning
+// naming it, and above all must not throw.
+test("lookup shape: a short row imports padded with a warning instead of crashing", () => {
+  const shape = { kind: "lookup", cols: 2, size: 8, labels: ["d8", "Outcome"], dieIndexed: true };
+  const text = [
+    "d8   Outcome",
+    "1    Fined 10 gp",
+    "7    Jailed",
+  ].join("\n");
+  const pt = parseByShape(text, shape, { name: "Short Row" }).tables[0];
+  const r7 = pt.rows.find((r) => r.min === 7);
+  assert.equal(r7.text, "Jailed | ");
+  assert.ok(pt.warnings.some((w) => /Row 7 .*fewer than 2 columns/.test(w)), pt.warnings.join(" | "));
+});

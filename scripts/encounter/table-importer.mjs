@@ -1276,10 +1276,11 @@ function parseGridReflow(text, { name = "", cols = 2, size, labels, reflow } = {
  *  (`col2Starts`, e.g. Carousing Outcome's Benefit always begins "Gain"), a
  *  2-column row is split there — reliable where delimiter/geometry can't see a
  *  boundary in single-spaced prose. Otherwise falls back to splitCells. */
-function _lookupSimple(text, { cols, col2Starts, dieIndexed = true }) {
+function _lookupSimple(text, { cols, col2Starts, dieIndexed = true, warnings = null }) {
   const col2Re = col2Starts && cols === 2
     ? new RegExp(`\\b${col2Starts.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`) : null;
   const rows = [];
+  const shortRows = [];
   let seq = 0;
   for (const l of String(text).split(/\r?\n/)) {
     const line = l.trim();
@@ -1290,10 +1291,16 @@ function _lookupSimple(text, { cols, col2Starts, dieIndexed = true }) {
       if (!r || r.rest === "") continue;
       // A manually-typed "|" always wins (splitCells honours it); only reach for
       // the keyword split when the user did NOT delimit the row themselves.
+      // splitCells returns {cells, short} for a row with fewer tokens than
+      // columns (a wrapped PDF copy routinely produces them) — normalise via
+      // _cells/_isShort like every other caller. Calling .join on the flagged
+      // object was a shipped crash (v0.10.0): the whole Unlock parse died.
       const m = r.rest.includes("|") ? null : col2Re?.exec(r.rest);
-      const cells = (m && m.index > 0)
+      const res = (m && m.index > 0)
         ? [r.rest.slice(0, m.index).trim(), r.rest.slice(m.index).trim()]
         : splitCells(r.rest, cols);
+      const cells = _cells(res);
+      if (_isShort(res)) shortRows.push(r.min === r.max ? `${r.min}` : `${r.min}-${r.max}`);
       rows.push({ min: r.min, max: r.max, text: cells.join(" | ") });
     } else {
       // No die column (Carousing Event, keyed by Cost). Do NOT run
@@ -1305,6 +1312,12 @@ function _lookupSimple(text, { cols, col2Starts, dieIndexed = true }) {
       if (!line.includes("|") && byDelim.length !== cols) continue;
       rows.push({ min: ++seq, max: seq, text: splitCells(line, cols).join(" | ") });
     }
+  }
+  if (shortRows.length && warnings) {
+    warnings.push(
+      `Row${shortRows.length > 1 ? "s" : ""} ${shortRows.join(", ")} had fewer than ${cols} columns — ` +
+      `later cells were left blank. A wrapped paste can do this; check these rows against the book.`,
+    );
   }
   return rows;
 }
@@ -1389,7 +1402,7 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
     const pr = parsePatternLookup(text, { cols, rowStart, colLast });
     if (pr.length) rows = pr;
   }
-  if (!rows) rows = _lookupSimple(text, { cols, col2Starts, dieIndexed });
+  if (!rows) rows = _lookupSimple(text, { cols, col2Starts, dieIndexed, warnings });
   if (!rows.length) return null;
 
   const maxRange = rows.reduce((m, r) => Math.max(m, r.max), 0);
