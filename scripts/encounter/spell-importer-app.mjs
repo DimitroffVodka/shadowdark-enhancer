@@ -415,9 +415,15 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
 
   /** Clear the parsed batch + summary (no render). Shared by "Start over" and the
    *  hub's per-unlock seed path, so a second Unlock never imports a stale batch
-   *  under the newly selected source. (review 2026-07-12 #2) */
+   *  under the newly selected source. (review 2026-07-12 #2)
+   *  Also clears the bulk Class/Alignment override: a preset spell-list session
+   *  seeds _bulkClass (e.g. "Priest"), and on the singleton app a later Unlock
+   *  would silently re-tag the NEW class's parsed spells with the stale value —
+   *  bulk beats parsed — defeating the empty-default fix. _onSelectList re-seeds
+   *  both for the preset path, so clearing here costs that flow nothing. */
   _reset() {
     this._pasteText = ""; this._spells = []; this._imported = null; this._listKey = "";
+    this._bulkClass = ""; this._bulkAlignment = "";
   }
   _onStartOver() {
     this._reset();
