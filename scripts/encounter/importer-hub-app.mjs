@@ -2416,6 +2416,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         const { stripRepPrefix } = await import("./char-content-manifest.mjs");
         tbl.name = `${this._importSource.trim() || "Western Reaches"} - ${stripRepPrefix(tbl.name).trim()}`;
       }
+      // Stamp the source so createTable files the table under its book folder —
+      // parity with _onHubCommitGenerators (which already sets g.source). Without
+      // this a plain-table unlock (e.g. CS2 "In a Dead Bandit's Hand") lands in
+      // the fallback "Custom" folder with no source flag.
+      const src = this._importSource.trim();
+      if (src) tbl.source = src;
       const table = await TableImporter.createTable(tbl, { onConflict, allowInvalid: gate.allowInvalid });
       if (table?.blocked) continue;       // choke-point veto (shouldn't happen post-gate)
       if (table) {

@@ -654,7 +654,12 @@ const _tableProbeName = (name) => stripRepPrefix(name);
 function _tableHave(tablesPresent, want) {
   const w = _norm(_tableProbeName(want));
   const anc = w.match(/^(.+?)\s+names$/)?.[1] ?? null;   // "dwarf names" → "dwarf"
-  for (const n of tablesPresent) {
+  for (const raw of tablesPresent) {
+    // Imports store the rep-prefixed name ("Cursed Scroll 1 p68: Diabolical
+    // Treasure"); strip it off the PRESENT side too, exactly as _tableProbeName
+    // strips the want — otherwise the colon prefix defeats both the exact and
+    // "- " suffix match and the Unlock button never clears after import.
+    const n = _norm(_tableProbeName(raw));
     if (n === w || n.endsWith(`- ${w}`)) return true;
     if (anc) {
       const rest = n.match(/^character names:\s*(.+)$/)?.[1]?.trim();

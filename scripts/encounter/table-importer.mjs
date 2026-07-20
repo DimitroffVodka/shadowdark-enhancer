@@ -1089,7 +1089,18 @@ function _sliceCols(line, colX) {
     cuts.push(Math.max(c, lo));
     lo = cuts[cuts.length - 1];
   }
-  const cells = []; let prev = colX[0];
+  // The first column's left edge is pinned to the header x (colX[0]). Internal
+  // boundaries word-snap + drift-correct, but this one never did — so when the
+  // die column is narrower than its header (a single-digit face "2" under the
+  // "d20" header shifts the item one char left), the hard edge cuts the first
+  // cell mid-word ("Eyeball" → "yeball"). Snap it back to the word start when it
+  // lands strictly mid-word; the die/first-column gap bounds the walk, so this
+  // only ever recovers a dropped leading char and never touches aligned rows.
+  let start = colX[0];
+  if (start > 0 && start < line.length && line[start] !== " " && line[start - 1] !== " ") {
+    while (start > 0 && line[start - 1] !== " ") start--;
+  }
+  const cells = []; let prev = start;
   for (const cut of cuts) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
   cells.push(line.slice(prev).trim());
   return cells;

@@ -194,6 +194,23 @@ export const CONTENT_ENTRIES = [
   _entry("cs1/diabolical-mishap-4-5", "CS1", "Diabolical Mishap 4-5", SECTION("DIABOLICAL MISHAP 4-5")),
   _entry("cs3/sea-wolf-plunder", "CS3", "Sea Wolf Plunder From Distant Lands",
     SECTION("SEA WOLF PLUNDER FROM DISTANT LANDS")),
+  // p68 back-cover treasure tables. Both have a wide die→text gutter that the
+  // 2-column auto extraction splits on, transposing the die index away from its
+  // row (bare "1..20" lines divorced from their text) — so each pins its own
+  // extraction mode instead of falling through to "auto".
+  //   • Diabolical Treasure is the ONLY two-column one (Item + Feature). The
+  //     user rolls it as a 2d20 cartesian (mix & match), so it's a grid compound
+  //     — buildTableData expands 20×20 = 400 ≤ cap to a flat 1d400. Layout
+  //     extraction keeps the Item|Feature gutter; the aligned x-split relies on
+  //     the _sliceCols first-column word-snap (the 1–2-digit die column shifts
+  //     single-digit rows one char left of the "Item" header x).
+  _entry("cs1/diabolical-treasure", "CS1", "Diabolical Treasure",
+    { kind: "compound", split: "grid", cols: 2, size: 20, labels: ["Item", "Feature"], extractCols: "layout" }),
+  //   • In a Dead Bandit's Hand (CS2 p68) is a plain single-column d20; single-
+  //     column extraction keeps each "N item" row whole and the longtable parser
+  //     strips the caption/header and reads the 20 faces.
+  _entry("cs2/in-a-dead-bandits-hand", "CS2", "In a Dead Bandit's Hand, You Find...",
+    LONGTABLE("IN A DEAD BANDIT'S HAND, YOU FIND...", 20)),
   _entry("cs6/carousing-outcome", "CS6", "Carousing Outcome",
     // Roll-plus-modifier lookup: the header prints "d8" but the outcome values
     // run 1..25 (drinks/level modifiers). All-numeric cells glue in extraction,

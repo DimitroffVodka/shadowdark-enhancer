@@ -75,7 +75,7 @@ export const LOOT_LIBRARY = [
   {
     src: "CURSED", label: "Cursed Scroll",
     entries: [
-      { name: "Cursed Scroll 1 p68: Diabolical Treasure", src: "CS1", page: "68", displayName: "Diabolical Treasure" },
+      { name: "Cursed Scroll 1 p68: Diabolical Treasure", src: "CS1", page: "68", displayName: "Diabolical Treasure", contentId: "cs1/diabolical-treasure" },
       { name: "Sea Wolf Plunder From Distant Lands", src: "CS3", page: "68", contentId: "cs3/sea-wolf-plunder" },
     ],
   },
