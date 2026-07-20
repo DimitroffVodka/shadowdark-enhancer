@@ -69,7 +69,12 @@ const isPageNumber = (line) => /^\s*\d{1,4}\s*$/.test(line);
 // recognizer-order logic) reuses the OWNING parser's definition instead of
 // keeping a drifting copy (review 2026-07-11 maintainability).
 export const STAT_AC = /\bAC\s+\d+/i;
-export const STAT_LV = /\bLV\s+\d+/i;
+// The LV terminator also accepts multi-form ("LV 6/9" — core Air Elemental)
+// and variable ("LV *" — core Hydra) levels. Without "*" the statline
+// reassembly loop keeps consuming feature lines hunting for a numeric LV
+// (e.g. until "Each is LV 2" inside a trait) — silently wrong level AND
+// destroyed features.
+export const STAT_LV = /\bLV\s+(?:\d+(?:\s*\/\s*\d+)?|\*)/i;
 
 /**
  * Group a raw dump into blocks and classify each as a monster (has an AC…LV
@@ -80,11 +85,21 @@ export function splitStatblocks(rawText) {
   const lines = normalizeText(String(rawText ?? "").replace(/\r\n?/g, "\n")).split("\n")
     .filter((l) => !isPageNumber(l));               // drop page numbers globally
 
-  // Partition into name-delimited blocks.
+  // Partition into name-delimited blocks. DIRECTLY consecutive ALL-CAPS lines
+  // are ONE wrapped name (PDF line wrap — "MINOTAUR\nLORD"), not two blocks:
+  // merge them, rejoining hyphen wraps ("SHIELD-\nBEARER" → "SHIELD-BEARER").
+  // Trade-off: an ALL-CAPS section header sitting immediately above a name
+  // glues into it (visible in the preview grid, GM-correctable) — far less
+  // destructive than the old behavior, which dropped half the name AND
+  // orphaned the other half as a skipped block.
   const blocks = [];
   let cur = null;
   for (const line of lines) {
     if (isNameLine(line)) {
+      if (cur && !cur.lines.length) {
+        cur.name = cur.name.endsWith("-") ? cur.name + line.trim() : `${cur.name} ${line.trim()}`;
+        continue;
+      }
       if (cur) blocks.push(cur);
       cur = { name: line.trim(), lines: [] };
     } else if (cur) {
@@ -179,8 +194,10 @@ function parseOneAttack(s, warnings) {
   // damage group, falling back to a free scan only when there's no parenthetical
   // (e.g. "spell +4"). Stops a signed number inside a rider from being read as
   // the to-hit. The lookahead keeps the match text the bare bonus, so the
-  // index/slice math below is byte-identical on canonical inputs.
-  const bonusM = /([+-]\d+)(?=\s*\()/.exec(rest) || /([+-]\d+)/.exec(rest);
+  // index/slice math below is byte-identical on canonical inputs. A multi-form
+  // to-hit ("+7/+9" — core Air Elemental) is consumed whole (so the name/damage
+  // slices stay clean), keeps the first form, and is flagged below.
+  const bonusM = /([+-]\d+(?:\s*\/\s*[+-]?\d+)?)(?=\s*\()/.exec(rest) || /([+-]\d+)/.exec(rest);
   if (!bonusM) {
     // No bonus/damage → a special attack ("hypnotize", "pounce") or bare "spell".
     const nameOnly = collapse(rest.replace(/\([^)]*\)/g, ""));
@@ -189,7 +206,8 @@ function parseOneAttack(s, warnings) {
       num, bonus: 0, damage: "", ranges: [], description: "" };
   }
 
-  const bonus = Number(bonusM[1]);
+  const bonusForms = bonusM[1].split(/\s*\/\s*/);
+  const bonus = Number(bonusForms[0]);
   const beforeBonus = rest.slice(0, bonusM.index).trim();
   const afterBonus = rest.slice(bonusM.index + bonusM[0].length).trim();
 
@@ -197,6 +215,10 @@ function parseOneAttack(s, warnings) {
   let name = beforeBonus, range = "";
   const rangeM = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(beforeBonus);
   if (rangeM) { name = rangeM[1].trim(); range = rangeM[2].trim(); }
+
+  if (bonusForms.length > 1) {
+    warnings.push(`attack "${name}" multi-form to-hit ${bonusM[1]} — used first form (${bonusForms[0]})`);
+  }
 
   if (/^spells?\b/i.test(name)) return { spell: true, num, bonus };
 
@@ -209,12 +231,21 @@ function parseOneAttack(s, warnings) {
   const dmgM = /^\((.*)\)/.exec(afterBonus);
   if (dmgM) {
     const inner = collapse(dmgM[1]);
-    const parts = inner.split(/\s*\+\s*/);
+    const rawParts = inner.split(/\s*\+\s*/);
     // Greedily absorb ALL leading dice/flat-numeric terms into the damage
     // formula, so a flat modifier ("1d6 + 2", "2d6 + 1", "1d12 + 1d6") is kept as
     // real damage instead of being stranded as a "special" rider. The first
     // non-numeric token (e.g. "swallow") starts the rider.
     const isTerm = (p) => /^(\d*d\d+|\d+)$/.test(p);
+    // Multi-form damage ("2d6/3d6" — core Air Elemental) keeps the first form
+    // as the rollable formula and flags the alternate for the GM.
+    let multiForm = false;
+    const parts = rawParts.map((p) => {
+      const forms = p.split(/\s*\/\s*/);
+      if (forms.length > 1 && forms.every(isTerm)) { multiForm = true; return forms[0]; }
+      return p;
+    });
+    if (multiForm) warnings.push(`attack "${name}" multi-form damage "${inner}" — used first form`);
     if (isTerm(parts[0])) {
       let i = 0;
       const dmg = [];
@@ -352,31 +383,58 @@ export function parseStatblock(chunk) {
   draft.description = collapse(lines.slice(firstIdx + 1, statStart).join(" "));
 
   // ── parse the stat line fields ──
-  const ac = /\bAC\s+(\d+)(?:\s*\(([^)]*)\))?/i.exec(statLine);
-  if (ac) { draft.ac = Number(ac[1]); if (ac[2]) draft.acNote = collapse(ac[2]); }
+  // Multi-form statblocks (core Air Elemental "AC 17/19, HP 29/42 … LV 6/9")
+  // keep the FIRST form's numbers; each alternate is surfaced as a warning so
+  // the GM sees the other form in the preview grid instead of losing it.
+  const ac = /\bAC\s+(\d+)(?:\s*\/\s*(\d+))?(?:\s*\(([^)]*)\))?/i.exec(statLine);
+  if (ac) {
+    draft.ac = Number(ac[1]);
+    if (ac[3]) draft.acNote = collapse(ac[3]);
+    if (ac[2]) warnings.push(`multi-form AC ${ac[1]}/${ac[2]} — used first form (${ac[1]})`);
+  }
   else warnings.push("AC not found");
   // An AC parenthetical (e.g. "AC 16 (shield)") is kept as acNote for the
   // stat-block description; the numeric value drives the AC field.
 
-  const hp = /\bHP\s+(\d+)/i.exec(statLine);
-  if (hp) { draft.hp = { value: Number(hp[1]), max: Number(hp[1]) }; }
-  else warnings.push("HP not found");
+  const hp = /\bHP\s+(\d+)(?:\s*\/\s*(\d+))?/i.exec(statLine);
+  if (hp) {
+    draft.hp = { value: Number(hp[1]), max: Number(hp[1]) };
+    if (hp[2]) warnings.push(`multi-form HP ${hp[1]}/${hp[2]} — used first form (${hp[1]})`);
+  } else if (/\bHP\s+\*/i.test(statLine)) {
+    // Variable-HP monster (core Hydra "HP *") — the real value lives in a
+    // trait; never guess a number, make the GM set it.
+    warnings.push("HP \"*\" (variable — see features) — set HP manually");
+  } else warnings.push("HP not found");
 
   // Parse each ability mod INDEPENDENTLY so one missing/garbled token doesn't
   // reset the whole block to zeros (the old single all-or-nothing alternation
   // did). `\bC\s*[+-]` can't steal CHA's value because "Ch" has an "h" (not a
   // sign) after the C, so the CON scan skips it. CHA also accepts "Cha"/"CHA".
   // A real 0 mod ("C +0") yields Number 0 (kept); only a truly absent stat is
-  // null and gets flagged.
+  // null and gets flagged. The sign is OPTIONAL — some PDF copies drop the "+"
+  // glyph entirely ("S 3, D 0, C 1" — Knight-style), and unsigned = positive.
+  // Any letter after the key still kills the match, so "1d6"/"AC"/"DC" can't
+  // false-hit an unsigned digit.
   const grabMod = (key) => {
-    const m = new RegExp(`\\b${key}\\s*([+-]\\d+)`, "i").exec(statLine);
+    const m = new RegExp(`\\b${key}\\s*([+-]?\\d+)`, "i").exec(statLine);
     return m ? Number(m[1]) : null;
   };
   const abVals = {
     str: grabMod("S"), dex: grabMod("D"), con: grabMod("C"),
     int: grabMod("I"), wis: grabMod("W"),
   };
-  const chaM = /\bCh(?:a)?\s*([+-]\d+)/i.exec(statLine);
+  let chaM = /\bCh(?:a)?\s*([+-]?\d+)/i.exec(statLine);
+  if (!chaM) {
+    // Some PDF copies garble the "Ch" glyph into a bare "X" or "Z"
+    // ("X +2, AL L"). Accept those ONLY in charisma POSITION — after the W
+    // mod, or (if W is garbled too) immediately before AL — so an uppercase
+    // X/Z inside an attack name can never be read as charisma. Uppercase-only
+    // (no /i): the artifact glyph is always caps.
+    const wM = /\bW\s*[+-]?\d+/i.exec(statLine);
+    chaM = wM
+      ? /\b[XZ]\s*([+-]?\d+)/.exec(statLine.slice(wM.index + wM[0].length))
+      : /\b[XZ]\s*([+-]?\d+)(?=\s*,?\s*AL\b)/.exec(statLine);
+  }
   abVals.cha = chaM ? Number(chaM[1]) : null;
   const missingMods = Object.entries(abVals).filter(([, v]) => v === null).map(([k]) => k);
   draft.abilities = {
@@ -391,10 +449,18 @@ export function parseStatblock(chunk) {
   const al = /\bAL\s+([LNC])(?:awful|eutral|haotic)?\b/i.exec(statLine);
   if (al) draft.alignment = al[1].toUpperCase(); else warnings.push("alignment not found");
 
-  const lv = /\bLV\s+(\d+)/i.exec(statLine);
-  if (lv) draft.level = Number(lv[1]); else warnings.push("level not found");
+  const lv = /\bLV\s+(\d+)(?:\s*\/\s*(\d+))?/i.exec(statLine);
+  if (lv) {
+    draft.level = Number(lv[1]);
+    if (lv[2]) warnings.push(`multi-form LV ${lv[1]}/${lv[2]} — used first form (${lv[1]})`);
+  } else if (/\bLV\s+\*/i.test(statLine)) {
+    // Variable-LV monster (core Hydra "LV *") — level depends on a trait
+    // (e.g. head count); leave the default and make the GM set it.
+    warnings.push("LV \"*\" (variable — see features) — set level manually");
+  } else warnings.push("level not found");
 
-  const mv = /\bMV\s+(.+?),\s*S\s*[+-]\d/i.exec(statLine);
+  // The S anchor is sign-optional to match grabMod (unsigned-mod PDFs).
+  const mv = /\bMV\s+(.+?),\s*S\s*[+-]?\d/i.exec(statLine);
   if (mv) {
     const { move, moveNote } = parseMove(mv[1], warnings);
     draft.move = move; draft.moveNote = moveNote;
