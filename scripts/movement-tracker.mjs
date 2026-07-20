@@ -487,6 +487,29 @@ export const MovementTracker = {
       animate: false, [MODULE_ID]: { rollback: true },
     });
 
+    // Wipe the recorded movement path. Core draws the token's turn movement as
+    // a canvas trail from `_movementHistory` (populated whenever a combat is
+    // started — see TokenDocument#_shouldRecordMovementHistory); the displace
+    // above returns the token to its start square but leaves that trail behind,
+    // so the just-undone path stays drawn until the next turn reset. Clearing it
+    // makes the rollback visually fresh. No-ops when history is already empty
+    // (out-of-combat crawl moves record nothing), so it's safe in both modes.
+    await doc.clearMovementHistory();
+
+    // Drop the drawn ruler + its grid highlight for this token, matching the
+    // post-move clear above. clearMovementHistory resets the underlying state,
+    // but the SDETokenRuler graphics + the `TokenRuler.<id>` highlight child
+    // already rendered on canvas don't refresh away on their own, so the old
+    // path would linger visually until the next selection/move. Canvas-guarded:
+    // a headless GM serving a player relay has no token here.
+    const placeable = canvas.tokens?.get(doc.id);
+    if (placeable) {
+      placeable.ruler?.clear();
+      const highlight = canvas.interface?.grid?.highlight?.children
+        ?.find((c) => c.name === `TokenRuler.${doc.id}`);
+      if (highlight) highlight.visible = false;
+    }
+
     // Refund full turn movement (base speed — no Rush in Shadowdark)
     if (actor) {
       const fullSpeed = Math.round(_getBaseSpeed(actor, doc) / 5) * 5;
