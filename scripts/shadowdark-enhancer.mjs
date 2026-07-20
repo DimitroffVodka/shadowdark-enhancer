@@ -517,8 +517,11 @@ Hooks.once("ready", () => {
     // Knight casts the neutral Druid list) whose spells were imported after the
     // class — or an existing world that predates this wiring — gets its class
     // uuid stamped onto its variant's spells so the level-up spellbook offers
-    // exactly that list. Deferred so it never delays ready.
+    // exactly that list. Deferred so it never delays ready. Guarded to the
+    // SINGLE active GM like the sweep above — it writes spell items, so several
+    // GMs online would otherwise run it concurrently.
     setTimeout(async () => {
+      if (game.users.activeGM?.id !== game.user.id) return;
       try {
         const { tagBorrowedSpellLists } = await import("./encounter/class-unit-importer.mjs");
         const n = await tagBorrowedSpellLists();
