@@ -439,22 +439,39 @@ export const MovementTracker = {
   // ── Rollback ──────────────────────────────────────────────────────────────
 
   async rollback(tokenId) {
-    // Players relay to GM (turn-start positions are only tracked on the GM client)
+    // Players relay to a GM (only GM clients may write the rollback).
     if (!game.user.isGM) {
       game.socket.emit(`module.${MODULE_ID}`, { action: "rollbackMove", tokenId, userId: game.user.id });
       return;
     }
-    const start = this._turnStartPos[tokenId];
-    if (!start) { ui.notifications.warn("No turn-start position recorded for this token."); return; }
-
-    const token = canvas.tokens?.get(tokenId);
-    const doc   = token?.document;
+    // Resolve the token DOCUMENT canvas-free: the responding GM may be viewing
+    // a different scene, or be a headless client with the canvas disabled
+    // entirely (this world's always-on bridge GM runs core.noCanvas) — a
+    // canvas-only lookup silently dropped the request in both cases. The
+    // teleport below is a document update, so no canvas is needed at all.
+    const doc = canvas.tokens?.get(tokenId)?.document
+      ?? game.combat?.scene?.tokens.get(tokenId)
+      ?? game.scenes.active?.tokens.get(tokenId)
+      ?? game.scenes.find((s) => s.tokens.get(tokenId))?.tokens.get(tokenId);
     if (!doc) return;
+    // The turn-start snapshot lives on the token DOCUMENT (written by whichever
+    // GM ran the reset), so any GM — in particular the active GM answering the
+    // player relay — can serve the rollback. The in-memory copy is only a
+    // fallback for a turn begun before this fix deployed.
+    const start = doc.getFlag(MODULE_ID, "turnStart") ?? this._turnStartPos[tokenId];
+    if (!start) { ui.notifications.warn("No turn-start position recorded for this token."); return; }
 
     const actor = doc.actor;
 
-    // Teleport token back to turn-start position (bypass wall collision)
-    await doc.update({ x: start.x, y: start.y }, {
+    // Teleport back to the turn-start position (bypass wall collision).
+    // Restore elevation/level when the snapshot carries them (levelled scenes:
+    // same square, wrong floor otherwise); an old {x,y}-only snapshot omits
+    // them and inherits the token's current values, i.e. the old behaviour.
+    await doc.update({
+      x: start.x, y: start.y,
+      ...(start.elevation !== undefined ? { elevation: start.elevation } : {}),
+      ...(start.level ? { level: start.level } : {}),
+    }, {
       teleport: true, animate: false, [MODULE_ID]: { rollback: true },
     });
 
@@ -472,7 +489,20 @@ export const MovementTracker = {
   async resetToken(tokenDoc) {
     const actor = tokenDoc?.actor;
     const speed = _getBaseSpeed(actor, tokenDoc);
-    await tokenDoc.setFlag(MODULE_ID, "moveRemaining", Math.round(speed / 5) * 5);
+    // One update carrying both flags (was a setFlag for moveRemaining alone):
+    // the turn-start snapshot must live on the DOCUMENT so the crawl anchor
+    // captured by the clicking GM is readable by whichever GM serves a later
+    // rollback — with the rollback socket gated to the active GM, a
+    // client-local snapshot on a different GM was unreachable.
+    await tokenDoc.update({
+      [`flags.${MODULE_ID}.moveRemaining`]: Math.round(speed / 5) * 5,
+      [`flags.${MODULE_ID}.turnStart`]: {
+        x: tokenDoc._source?.x ?? tokenDoc.x,
+        y: tokenDoc._source?.y ?? tokenDoc.y,
+        elevation: tokenDoc._source?.elevation ?? tokenDoc.elevation,
+        ...(tokenDoc._source?.level ? { level: tokenDoc._source.level } : {}),
+      },
+    });
   },
 
   /**
@@ -491,14 +521,25 @@ export const MovementTracker = {
         if (!tokenDoc?.parent) continue;
         const speed = _getBaseSpeed(tokenDoc.actor, tokenDoc);
         if (!byScene.has(tokenDoc.parent)) byScene.set(tokenDoc.parent, []);
+        const startPos = {
+          x: tokenDoc._source?.x ?? tokenDoc.x,
+          y: tokenDoc._source?.y ?? tokenDoc.y,
+          // Elevation + level too: on a levelled scene (v14 scene levels) an
+          // x/y-only rollback returns the token to the right square on the
+          // WRONG floor if it took stairs mid-turn.
+          elevation: tokenDoc._source?.elevation ?? tokenDoc.elevation,
+          ...(tokenDoc._source?.level ? { level: tokenDoc._source.level } : {}),
+        };
         byScene.get(tokenDoc.parent).push({
           _id: tokenDoc.id,
           [`flags.${MODULE_ID}.moveRemaining`]: Math.round(speed / 5) * 5,
+          // Snapshot document-side, in the SAME batched write: since the
+          // active-GM gating (3d54e0b) only one client runs this reset, so a
+          // client-local snapshot left every OTHER GM unable to serve a
+          // rollback (or worse, serving a stale one). Any GM can read a flag.
+          [`flags.${MODULE_ID}.turnStart`]: startPos,
         });
-        this._turnStartPos[tokenDoc.id] = {
-          x: tokenDoc._source?.x ?? tokenDoc.x,
-          y: tokenDoc._source?.y ?? tokenDoc.y,
-        };
+        this._turnStartPos[tokenDoc.id] = startPos;
       }
       for (const [scene, updates] of byScene) {
         await scene.updateEmbeddedDocuments("Token", updates);
@@ -584,7 +625,12 @@ export const MovementTracker = {
     const scene = canvas.scene;
     const tokens = scene?.tokens?.contents ?? [];
     for (const t of tokens) {
-      await t.unsetFlag(MODULE_ID, "moveRemaining").catch(() => {});
+      // One update deleting both flags (the turnStart snapshot now lives
+      // document-side too) — same round-trip count as the old unsetFlag.
+      await t.update({
+        [`flags.${MODULE_ID}.-=moveRemaining`]: null,
+        [`flags.${MODULE_ID}.-=turnStart`]: null,
+      }).catch(() => {});
     }
     this._turnStartPos = {};
   },
