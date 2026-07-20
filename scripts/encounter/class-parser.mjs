@@ -288,6 +288,47 @@ function _validateTalentBands(tbl) {
   return tbl;
 }
 
+/**
+ * Talent-table BAND warning strings — the parse-time diagnostics that describe
+ * how the ORIGINAL paste paired roll ranges to effect lines (don't-tile,
+ * out-of-bounds, column-copy shift, dropped/discarded stray). Every one is
+ * stale the moment a user edits the talent table by hand in a preview.
+ */
+const TALENT_BAND_WARNING =
+  /talent bands? \(.*\) don'?t tile|talent row .* is outside|talent table \(column copy\)|Talent table: (?:dropped stray|discarded)/i;
+
+/**
+ * Re-derive a draft's talent-table band warnings against its CURRENT rows.
+ *
+ * The band diagnostics emitted at parse time describe the pasted layout. Once
+ * the user edits the talent table in a preview — fixes a range, adds the
+ * missing bands, deletes a stray — those strings are stale, and the class
+ * quality gate must not keep blocking on issues the user has already fixed
+ * (`classGateBlockers` only reads the warnings array; nothing recomputes it).
+ * Returns a NEW warnings array with every talent-band string removed and a
+ * fresh out-of-bounds / don't-tile BLOCKER re-added only if the LIVE rows still
+ * fail to tile the die.
+ *
+ * @param {object|null} talentTable  { formula, rows:[{lo,hi,text}] }
+ * @param {string[]} [warnings]
+ * @returns {string[]}
+ */
+export function revalidateTalentBandWarnings(talentTable, warnings = []) {
+  const kept = (warnings ?? []).filter((w) => !TALENT_BAND_WARNING.test(String(w)));
+  if (talentTable?.rows?.length) {
+    // Probe on a COPY — _validateTalentBands drops out-of-bounds rows; we want
+    // only its fresh warnings, not to mutate the live table.
+    const probe = {
+      formula: talentTable.formula,
+      rows: talentTable.rows.map((r) => ({ lo: r.lo, hi: r.hi, text: r.text ?? "" })),
+      warnings: [],
+    };
+    _validateTalentBands(probe);
+    for (const w of probe.warnings) kept.push(w);
+  }
+  return kept;
+}
+
 // ─── Talent-table extraction (both layouts) ──────────────────────────────────
 
 /**

@@ -33,6 +33,7 @@ import { MonsterImporter } from "./monster-importer.mjs";
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./item-census-live.mjs";
 import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, BACKGROUND_TABLES, sourcedTableName } from "./char-content-manifest.mjs";
+import { revalidateTalentBandWarnings } from "./class-parser.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { contentIdForName } from "./table-shapes.mjs";
@@ -1013,6 +1014,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
             if (!r) { ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`; return; }
             row.lo = r.lo; row.hi = r.hi;
             ev.target.value = r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`;
+            this._refreshTalentWarnings(unit);   // bands may now tile — clear stale gate blockers
           } else if (field === "text") {
             row.text = v.trim();
           } else if (field === "option") {
@@ -1054,6 +1056,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const m = v.trim().match(/^\d*d\d+$/i);
           if (!m || !unit.talentTable) { ev.target.value = unit.talentTable?.formula ?? "2d6"; return; }
           unit.talentTable.formula = v.trim().toLowerCase();
+          this._refreshTalentWarnings(unit);   // die changed — re-check band tiling
         } else if (field === "langFixed") {
           unit.languages.fixed = splitNames(v);
         } else if (field === "langCommon") {
@@ -1136,6 +1139,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return out;
   }
 
+  /**
+   * Re-derive a classUnit's talent-band warnings from its LIVE rows after a
+   * manual edit, so the quality gate stops blocking on parse-time band issues
+   * (don't-tile / column-copy shift / stray) the user has already fixed by hand.
+   */
+  _refreshTalentWarnings(unit) {
+    if (unit) unit.warnings = revalidateTalentBandWarnings(unit.talentTable, unit.warnings);
+  }
+
   /** Resolve the classUnit talent row a click/change happened in. */
   _cuRowFor(target) {
     const unit = this._importChar[Number(target.closest("[data-char-idx]")?.dataset.charIdx)]?.draft.classUnit;
@@ -1185,9 +1197,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Delete a talent row. */
   _onCuRowDel(event, target) {
-    const { rows, rowIdx } = this._cuRowFor(target);
+    const { unit, rows, rowIdx } = this._cuRowFor(target);
     if (!rows || rowIdx < 0) return;
     rows.splice(rowIdx, 1);
+    this._refreshTalentWarnings(unit);
     this.render();
   }
 
@@ -1199,6 +1212,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const rows = unit.talentTable.rows;
     const next = rows.length ? Math.max(...rows.map((r) => r.hi)) + 1 : 2;
     rows.push({ lo: next, hi: next, text: "", kind: "single" });
+    this._refreshTalentWarnings(unit);
     this.render();
   }
 
@@ -3146,6 +3160,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // SDE wiring overlay (effects, invented outcome names) — the paste
         // supplies the text, the overlay supplies the plumbing.
         const overlay = overlayFor(p.draft.name);
+        // Re-derive talent-band warnings from the (possibly hand-edited) live
+        // table so the gate never blocks on parse-time band issues the user
+        // already fixed in the preview.
+        this._refreshTalentWarnings(p.draft.classUnit);
         // Stage 1: the class BODY only (description + features). Roll tables are
         // imported in Stage 2 ("Class · Roll Tables") and attached.
         let rep = await createClassUnit(p.draft.classUnit, { source, sourceTitle, overlay, bodyOnly: true });

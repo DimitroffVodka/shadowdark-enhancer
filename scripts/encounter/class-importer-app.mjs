@@ -18,7 +18,7 @@
  * Foundry-bound importer (createClassUnit / mergeClassSupplement) — this app is
  * only the workspace UI + state.
  */
-import { parseClassSection, parseClassSupplement, sliceSpellsKnown } from "./class-parser.mjs";
+import { parseClassSection, parseClassSupplement, sliceSpellsKnown, revalidateTalentBandWarnings } from "./class-parser.mjs";
 import { overlayFor } from "./class-overlays.mjs";
 import { sourcePdfHref, titlePageFor } from "./source-pdf-registry.mjs";
 import { CHAR_SOURCES } from "./char-content-manifest.mjs";
@@ -319,6 +319,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
           if (!m) { ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`; return; }
           row.lo = Number(m[1]); row.hi = Number(m[2] ?? m[1]);
           ev.target.value = row.lo === row.hi ? String(row.lo) : `${row.lo}-${row.hi}`;
+          this._refreshTalentWarnings();   // bands may now tile — clear stale gate blockers
         } else if (f === "text") {
           row.text = v;
           delete row.options;   // an edited effect replaces any auto-split choice options
@@ -382,6 +383,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       got.push(`${sup.extraTables.length} extra table(s)`);
     }
     if (got.length) ui.notifications?.info(`Captured: ${got.join(", ")}.`);
+    if (sup.talentTable) this._refreshTalentWarnings();   // re-derive bands from the re-pasted table
     this.render();
   }
 
@@ -437,6 +439,9 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // needs an explicit go-ahead — never a silent broken commit. Shared with
     // the Importer Hub (class-quality-gate) — one issue set, one dialog.
     const { classGateIssues, confirmClassGate } = await import("./class-quality-gate.mjs");
+    // Re-derive band warnings from the (possibly hand-edited) live talent table
+    // so the gate never blocks on parse-time band issues already fixed here.
+    this._refreshTalentWarnings();
     const gateIssues = classGateIssues({
       warnings: this._bodyParsed.warnings,
       hasTalentTable: !!this._talentTable?.rows?.length,
@@ -484,16 +489,24 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const idx = Number(target.closest("[data-ci-title]")?.dataset.ciTitle);
     if (idx >= 0) { this._titles.splice(idx, 1); this.render(); }
   }
+  /** Re-derive the parsed body's talent-band warnings from the LIVE talent
+   *  table after a manual edit, so the quality gate stops blocking on band
+   *  issues (don't-tile / column-copy shift / stray) already fixed by hand. */
+  _refreshTalentWarnings() {
+    if (this._bodyParsed)
+      this._bodyParsed.warnings = revalidateTalentBandWarnings(this._talentTable, this._bodyParsed.warnings);
+  }
   _onTalentAdd() {
     if (!this._talentTable) this._talentTable = { formula: "2d6", rows: [], replacement: true };
     const last = this._talentTable.rows[this._talentTable.rows.length - 1];
     const lo = last ? last.hi + 1 : 1;
     this._talentTable.rows.push({ lo, hi: lo, text: "", kind: "single" });
+    this._refreshTalentWarnings();
     this.render();
   }
   _onTalentDel(event, target) {
     const idx = Number(target.closest("[data-ci-talent]")?.dataset.ciTalent);
-    if (this._talentTable && idx >= 0) { this._talentTable.rows.splice(idx, 1); this.render(); }
+    if (this._talentTable && idx >= 0) { this._talentTable.rows.splice(idx, 1); this._refreshTalentWarnings(); this.render(); }
   }
   // ── Extra tables (e.g. Corruption) — reviewable/editable, hand-buildable ──────
   _onExtraAdd() {
