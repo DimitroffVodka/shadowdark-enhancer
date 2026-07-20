@@ -30,7 +30,7 @@
  */
 
 import { MODULE_ID }  from "./module-id.mjs";
-import { CrawlState } from "./crawl-state.mjs";
+import { CrawlState, isActiveGM } from "./crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "./icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
@@ -326,22 +326,28 @@ export const MovementTracker = {
       });
     });
 
+    // Both combat hooks fire on EVERY connected client, and resetAll() writes
+    // per-scene updateEmbeddedDocuments — so gate on the single active GM, not
+    // on "is a GM", or every turn change is written once per connected GM.
     Hooks.on("combatStart", async () => {
-      if (!CrawlState.isActive || !game.user.isGM) return;
+      if (!CrawlState.isActive || !isActiveGM()) return;
       await this.resetAll();
     });
 
     Hooks.on("updateCombat", async (combat, changes) => {
-      if (!CrawlState.isActive || !game.user.isGM) return;
+      if (!CrawlState.isActive || !isActiveGM()) return;
       // Reset on round change OR turn change (each combatant gets fresh budget)
       if (changes.round === undefined && changes.turn === undefined) return;
       await this.resetAll();
     });
 
     // Socket relay — players ask GM to perform rollback (turn-start positions
-    // are tracked on the GM client).
+    // are tracked on the GM client). A socket message is delivered to every
+    // client, so answer it on the single active GM only: two connected GMs
+    // would otherwise both teleport the token, both refund the budget flag,
+    // and both post the "rolled back" notification.
     game.socket.on(`module.${MODULE_ID}`, (msg) => {
-      if (msg?.action !== "rollbackMove" || !game.user.isGM) return;
+      if (msg?.action !== "rollbackMove" || !isActiveGM()) return;
       // Raw-socket sender id is advisory (not authenticated); gate on it anyway
       // so a casual client can't roll back a token it has no claim to. The
       // requester must be a GM or an owner of the token's actor.
