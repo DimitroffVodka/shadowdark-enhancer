@@ -53,7 +53,13 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _source = "Western Reaches";
   _pasteText = "";
   _listKey = "";               // selected preset spell list (SPELL_LISTS[].key), or ""
-  _bulkClass = "Wizard";       // the class these spells belong to (name → resolved to uuid)
+  // Bulk class override — EMPTY by default so the class the parser read off each
+  // spell's "Tier N, <class>" line wins (see the `|| r.draft.className` fallback
+  // in _onParse). A non-empty default made that fallback unreachable, so every
+  // spell imported as a Wizard spell unless the GM cleared the field by hand.
+  // The template already carries placeholder="Wizard"; _onSelectList still seeds
+  // this from a chosen list, and Apply-to-all still overrides everything.
+  _bulkClass = "";             // the class these spells belong to (name → resolved to uuid)
   _bulkAlignment = "";         // "" = universal; else lawful/neutral/chaotic
   _spells = [];                // parsed drafts + {className, alignment} (editable)
   _imported = null;            // green-check summary
