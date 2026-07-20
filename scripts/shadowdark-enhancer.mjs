@@ -478,6 +478,12 @@ Hooks.once("ready", () => {
     const cur = String(game.modules.get(MODULE_ID)?.version ?? "");
     if (cur && game.settings.get(MODULE_ID, "backfillVersion") !== cur) {
       setTimeout(async () => {
+        // Guard to the SINGLE active GM (game.users.activeGM), same as the
+        // spell↔class sweep below: this writes to a compendium pack and then
+        // stamps a world setting, so several GMs online would otherwise run it
+        // concurrently. Checked at fire time, not at `ready` — activeGM can
+        // differ five seconds later.
+        if (game.users.activeGM?.id !== game.user.id) return;
         try {
           const { backfillTargets } = await import("./encounter/monster-backfill.mjs");
           const result = await backfillTargets({ scope: "pack", dryRun: false });
