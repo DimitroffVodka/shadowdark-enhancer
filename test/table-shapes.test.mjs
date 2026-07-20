@@ -373,3 +373,25 @@ test("folder resolver mirrors the Manage tree (category-first)", () => {
   assert.equal(p({ name: "My Homebrew", category: "custom", customLabel: "Gameplay" }), "Gameplay");   // typed custom folder → top level
   assert.equal(p({ name: "Random Junk", category: "other", source: "CS9 Zine" }), "Roll Tables / CS9 Zine");
 });
+
+// Column drift: a cell wider than its header ("1,200 gp" under "Cost") pushes
+// every later boundary on that line right of its header x. Searching around the
+// raw x then found no gap in the window and fell back to a word-snap, cutting
+// the next cell mid-phrase ("You make | a friend   +2"). Each search is now
+// centred on the header x plus the drift already observed. Synthetic fixture.
+test("lookup shape: a wide first cell doesn't cut the next column mid-phrase", () => {
+  const text = [
+    "Cost   Event   Bonus",
+    "30 gp   You win at cards   +1",
+    "60 gp   You make a friend   +2",
+    "1,200 gp   A spirited fete   +3",
+  ].join("\n");
+  const shape = { kind: "lookup", cols: 3, size: 3, labels: ["Cost", "Event", "Bonus"],
+    dieIndexed: false, rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+" };
+  const rows = parseByShape(text, shape, { name: "Drift Check" }).tables[0].rows;
+  assert.deepEqual(rows.map((r) => r.text), [
+    "30 gp | You win at cards | +1",
+    "60 gp | You make a friend | +2",
+    "1,200 gp | A spirited fete | +3",
+  ]);
+});

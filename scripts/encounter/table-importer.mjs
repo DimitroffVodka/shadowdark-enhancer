@@ -1048,22 +1048,38 @@ function _sliceCols(line, colX) {
   // text landed in the next column. The lookup path has no best-filled
   // comparison to catch that (parseLookupShape checks only the row COUNT), so
   // the table committed silently wrong.
+  // Column drift: when a cell is wider than its header ("1,200 gp" under a
+  // "Cost" header), every later boundary on THAT line sits right of its header
+  // x. Searching around the raw x then finds no gap within the window and falls
+  // through to a word-snap, cutting a cell mid-phrase ("You make | a friend").
+  // So centre each search on the header x shifted by the drift already observed.
+  //
+  // Only a CONFIDENT match updates the drift. A gap matched out at the window
+  // edge is usually not a boundary at all but one wide run spanning a blank
+  // cell — drifting off that propagates the error and pushes a blank column's
+  // content into its neighbour (the "Turnip | | Venison" shape).
+  const DRIFT_CONF = 6;
   const cuts = [];
   let lo = colX[0];
+  let drift = 0;
   for (const x of colX.slice(1)) {
-    let best = null, bd = 13;                              // window: a gap within 12 cols of x
+    const target = x + drift;
+    let best = null, bd = 13;                              // window: a gap within 12 cols of target
     for (const end of gapEnds) {
       if (end <= lo) continue;                             // already consumed by an earlier column
-      const d = Math.abs(end - x);
+      const d = Math.abs(end - target);
       if (d < bd) { bd = d; best = end; }
     }
     let c;
-    if (best != null) c = best;
-    else if (x <= 0 || x >= line.length || line[x] === " " || line[x - 1] === " ") c = x;
-    else {
-      let l = x; while (l > 0 && line[l - 1] !== " ") l--;
-      let r = x; while (r < line.length && line[r] !== " ") r++;
-      c = (x - l <= r - x) ? l : r;
+    if (best != null) {
+      c = best;
+      if (bd <= DRIFT_CONF) drift = best - x;
+    } else if (target <= 0 || target >= line.length || line[target] === " " || line[target - 1] === " ") {
+      c = target;
+    } else {
+      let l = target; while (l > 0 && line[l - 1] !== " ") l--;
+      let r = target; while (r < line.length && line[r] !== " ") r++;
+      c = (target - l <= r - target) ? l : r;
     }
     cuts.push(Math.max(c, lo));
     lo = cuts[cuts.length - 1];
