@@ -14,6 +14,7 @@ import { esc }              from "./util/esc.mjs";
 import { CrawlState }       from "./crawl-state.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "./icons.mjs";
+import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import {
   buildTabStripHTML,
   bindActionMenuEvents,
@@ -355,6 +356,15 @@ export const CrawlStrip = {
         }
       }
 
+      // Light-source badge — PC cards only, in both crawl and combat. Shows
+      // whether a light is burning (and roughly how much life is left) and lets
+      // the owner/GM light or snuff a torch/lantern with one click. Rendered as
+      // a direct child of the card (below), NOT inside the pointer-events:none
+      // overlay, so its click target is live.
+      const lightBadge = (actor && m.type === "player")
+        ? this._lightBadgeHTML(actor, { shifted: isCurrent })
+        : "";
+
       const cardHTML = `
         <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isCurrent ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} sde-strip-type-${m.type}"
              data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} tabindex="0">
@@ -371,6 +381,7 @@ export const CrawlStrip = {
               ${pills}
             </div>
           </div>
+          ${lightBadge}
           ${isCurrent ? `<div class="sde-strip-turn-badge">${ICONS.turnArrow}</div>` : ""}
           ${isDefeated ? `<div class="sde-strip-defeated-icon">${ICONS.skull}</div>` : ""}
           ${(() => {
@@ -417,6 +428,17 @@ export const CrawlStrip = {
     const heroCards = heroes.map(makeCard).join("");
     const npcCards  = npcs.map(makeCard).join("");
 
+    // Crawl turn badge — the GM can advance the crawl turn straight from the
+    // strip (parity with the Crawl Bar's "Next Turn"); players see a static
+    // read-only counter. Advancing goes through CrawlState.nextCrawlTurn(),
+    // which commits + broadcasts state and captures fresh movement anchors.
+    const crawlBadge = game.user.isGM
+      ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
+           <div class="sde-strip-crawl-turn" title="Crawl Turn">${state.crawlTurn}</div>
+           <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="Next Turn">${ICONS.nextRound}</button>
+         </div>`
+      : `<div class="sde-strip-turn-num" title="Crawl Turn">${state.crawlTurn}</div>`;
+
     // Left badge — combat controls in combat, crawl turn counter otherwise.
     const leftBadge = inCombat ? `
       <div class="sde-strip-combat-controls">
@@ -425,7 +447,7 @@ export const CrawlStrip = {
         <div class="sde-strip-round-num">R${game.combat?.round ?? 1}</div>
         <button class="sde-strip-cbtn" data-combat="nextTurn"  title="Next Turn">${ICONS.nextRound}</button>
         <button class="sde-strip-cbtn" data-combat="nextRound" title="Next Round">${ICONS.nextRound}</button>
-      </div>` : `<div class="sde-strip-turn-num">${state.crawlTurn}</div>`;
+      </div>` : crawlBadge;
 
     // Combat: single flat init-ordered list, no PARTY/NPCS label.
     // Crawl:  Players-only list with PARTY label.
@@ -539,6 +561,132 @@ export const CrawlStrip = {
     };
   },
 
+  /**
+   * Build the corner light-source badge for a PC card. Returns "" when the
+   * actor carries no light source (keeps the card uncluttered).
+   *
+   * States (from computeLightState):
+   *   - lit:       glowing flame, colour by remaining life; owner/GM click snuffs it
+   *   - available: dim ember; owner/GM click lights it (chooser when >1 carried)
+   *
+   * @param {Actor} actor
+   * @param {{shifted?:boolean}} opts  shifted → nudge below the current-turn chevron
+   * @returns {string}
+   */
+  _lightBadgeHTML(actor, opts = {}) {
+    const items = actor.items?.contents ?? Array.from(actor.items ?? []);
+    const state = computeLightState(items);
+    if (state.state === "none") return "";
+
+    const canToggle = !!(actor.isOwner || game.user.isGM);
+    const lit       = state.state === "lit";
+    // Interactive only when there's an action to take: snuff a Basic source, or
+    // light a carried one. Effect-only lit sources are read-only indicators.
+    const hasAction = lit ? !!state.toggleId : (state.choices?.length > 0);
+    const clickable = canToggle && hasAction;
+
+    // Respect the system's "players see remaining minutes" setting for non-GMs.
+    let showMins = game.user.isGM;
+    if (!showMins) {
+      try { showMins = (game.settings.get("shadowdark", "playerShowLightRemaining") ?? 0) > 1; }
+      catch { showMins = false; }
+    }
+
+    let title;
+    if (lit) {
+      const mins = showMins ? ` — ${state.remainingMins} min left` : "";
+      const tail = clickable ? " · click to put out" : "";
+      title = `${state.activeName} is lit${mins}${tail}`;
+    } else if (state.choices.length === 1) {
+      title = `Light ${state.choices[0].name}`;
+    } else {
+      title = `Light a source (${state.choices.length} carried)`;
+    }
+
+    const classes = [
+      "sde-strip-light-badge",
+      lit ? "sde-strip-light-lit" : "sde-strip-light-off",
+      lit && state.lifeClass ? state.lifeClass : "",
+      opts.shifted ? "sde-strip-light-shift" : "",
+      clickable ? "sde-strip-light-clickable" : "",
+    ].filter(Boolean).join(" ");
+
+    const actionAttrs = clickable
+      ? `data-action="toggleLight" data-actor-id="${actor.id}"${state.toggleId ? ` data-light-id="${state.toggleId}"` : ""} role="button" tabindex="0" aria-label="${esc(title)}"`
+      : "";
+
+    return `<div class="${classes}" ${actionAttrs} title="${esc(title)}">${ICONS.torch}</div>`;
+  },
+
+  // Owner/GM clicked a light badge. Resolve the target source, then toggle via
+  // the system's own sheet flow (chat card + light tracker + token light stay
+  // in sync). A missing direct target means several carriables → chooser.
+  async _onToggleLight(el) {
+    const actor = el.dataset.actorId ? game.actors.get(el.dataset.actorId) : null;
+    if (!actor || !(actor.isOwner || game.user.isGM)) return;
+
+    const directId = el.dataset.lightId;
+    if (directId) return this._applyLightToggle(actor, directId);
+
+    const items = actor.items?.contents ?? Array.from(actor.items ?? []);
+    const carried = items.filter(i => isLightItem(i) && i.type === "Basic" && !i.system.light.active);
+    if (!carried.length) return;
+    if (carried.length === 1) return this._applyLightToggle(actor, carried[0].id);
+
+    const chosen = await this._promptLightChoice(actor, carried);
+    if (chosen) await this._applyLightToggle(actor, chosen);
+  },
+
+  async _applyLightToggle(actor, itemId) {
+    const item = actor.items.get(itemId);
+    if (!item) return;
+    try {
+      // Prefer the system's PlayerSheet flow: it snuffs any other active light,
+      // stamps hasBeenUsed, updates the token light, posts the chat card, and
+      // pings the Light Source Tracker — all the things a raw item update skips.
+      if (typeof actor.sheet?._toggleLightSource === "function") {
+        await actor.sheet._toggleLightSource(item);
+      } else {
+        await this._fallbackToggleLight(actor, item);
+      }
+    } catch (err) {
+      console.error(`${MODULE_ID} | light toggle failed`, err);
+      ui.notifications?.warn("Could not toggle that light source.");
+    }
+    this.queueRender();
+  },
+
+  // Defensive path if the system sheet API is unavailable — mirror its core
+  // effect: snuff other active lights, flip this one, sync the token light.
+  async _fallbackToggleLight(actor, item) {
+    const active = !item.system.light.active;
+    const updates = [];
+    if (active) {
+      for (const l of actor.items) {
+        if (isLightItem(l) && l.system.light.active) {
+          updates.push({ _id: l.id, "system.light.active": false });
+        }
+      }
+    }
+    updates.push({ _id: item.id, "system.light.active": active, "system.light.hasBeenUsed": true });
+    await actor.updateEmbeddedDocuments("Item", updates);
+    if (typeof actor.toggleLight === "function") await actor.toggleLight(active, item.id);
+  },
+
+  async _promptLightChoice(actor, carried) {
+    const dlg = foundry?.applications?.api?.DialogV2;
+    if (!dlg?.wait) return carried[0]?.id ?? null; // no DialogV2 → light the first
+    const buttons = carried.map(i => ({ action: i.id, label: esc(i.name), icon: "fas fa-fire" }));
+    buttons.push({ action: "cancel", label: game.i18n.localize("Cancel"), icon: "fas fa-times" });
+    const result = await dlg.wait({
+      window: { title: "Light a Source", icon: "fas fa-fire" },
+      content: `<p>Which light source should ${esc(actor.name)} light?</p>`,
+      buttons,
+      rejectClose: false,
+    }).catch(() => null);
+    return (result && result !== "cancel") ? result : null;
+  },
+
   _bindEvents() {
     if (!this._el) return;
 
@@ -632,6 +780,23 @@ export const CrawlStrip = {
       });
     });
 
+    // Light-source badges — clickable for a member's owner or the GM (bound
+    // before the GM-only guard below so players can light their own torch).
+    // stopPropagation keeps the card's select/pan click from also firing.
+    this._el.querySelectorAll('[data-action="toggleLight"]').forEach(el => {
+      el.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        await this._onToggleLight(el);
+      });
+      el.addEventListener("keydown", ev => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        el.click();
+      });
+    });
+
     // Merchant Shop button — available to the GM always, to players when the
     // shop is open. openLocally() renders the manage view (GM) or buy/sell
     // (player). Bound before the GM-only guard below so players can open it.
@@ -646,7 +811,7 @@ export const CrawlStrip = {
     if (!game.user.isGM) return;
 
     // Combat control buttons (prev/next round/turn)
-    this._el.querySelectorAll(".sde-strip-cbtn").forEach(btn => {
+    this._el.querySelectorAll(".sde-strip-cbtn[data-combat]").forEach(btn => {
       btn.addEventListener("click", async ev => {
         ev.stopPropagation();
         const action = btn.dataset.combat;
@@ -656,6 +821,14 @@ export const CrawlStrip = {
         else if (action === "prevTurn")   await combat.previousTurn();
         else if (action === "nextRound")  await combat.nextRound();
         else if (action === "prevRound")  await combat.previousRound();
+      });
+    });
+
+    // Crawl turn advance — strip parity with the Crawl Bar's "Next Turn".
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextCrawlTurn"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        await CrawlState.nextCrawlTurn();
       });
     });
 

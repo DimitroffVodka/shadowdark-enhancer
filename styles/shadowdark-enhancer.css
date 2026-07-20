@@ -557,6 +557,17 @@ body.theme-light .sde-bar-start-btn:hover {
 .sde-strip-cbtn { position: relative; }
 .sde-strip-cbtn::after { content: ""; position: absolute; inset: -6px 0; }
 
+/* ── Crawl turn controls (advanceable turn counter, GM-only) ──────────────── */
+
+.sde-strip-crawl-controls { gap: 3px; }
+.sde-strip-crawl-turn {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--sde-bar-overlay-text);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  line-height: 1;
+}
+
 /* ── Activate / End Turn button on card ───────────────────────────────────── */
 
 .sde-strip-activate-btn {
@@ -587,10 +598,10 @@ body.theme-light .sde-bar-start-btn:hover {
 .sde-strip-card-wrap:focus-within .sde-strip-activate-btn { display: flex; }
 
 /* Roll Initiative button — always visible when the combatant has no init yet
-   (no hover gating; it's a call-to-action). Sits in the top-right corner. */
+   (no hover gating; it's a call-to-action). Sits below the name row, right side. */
 .sde-strip-rollinit-btn {
   position: absolute;
-  top: 3px;
+  top: 22px;
   right: 3px;
   display: inline-flex;
   align-items: center;
@@ -660,23 +671,25 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 /* Init result badge — replaces the dice button once an initiative is recorded. */
 .sde-strip-init-badge {
   position: absolute;
-  top: 3px;
+  /* Below the name row (level with the AC line) so it never covers the name. */
+  top: 22px;
   right: 3px;
   min-width: 22px;
-  height: 22px;
+  height: 20px;
   padding: 0 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 18, 14, 0.92);
-  border: 1px solid var(--sde-bar-accent);
+  background: transparent;
+  border: none;
   border-radius: 4px;
   color: var(--sde-bar-accent);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.5px;
   z-index: 3;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+  /* Transparent badge — legibility comes from a strong shadow, not a box. */
+  text-shadow: 0 1px 3px rgba(0,0,0,0.95), 0 0 3px rgba(0,0,0,0.9);
 }
 
 /* ── Members strip ────────────────────────────────────────────────────────── */
@@ -877,14 +890,17 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   display: flex;
   gap: 0;
   width: 100%;
-  background: var(--sde-bar-overlay);
+  /* Transparent — let the portrait show through; text-shadow carries legibility. */
+  background: transparent;
 }
 .sde-strip-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
-  padding: 3px 4px;
+  /* Trimmed vertical padding removes the dead band under the HP bar so more
+     of the portrait shows. */
+  padding: 1px 4px;
   font-size: 13px;
   font-weight: 700;
   color: var(--sde-bar-overlay-text);
@@ -982,6 +998,59 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   box-shadow: 0 0 4px color-mix(in srgb, var(--sde-bar-accent) 50%, transparent);
 }
 .sde-strip-turn-badge i { font-size: 10px; color: #1b1b1b; }
+
+/* ── Light-source badge (crawl + combat, PC cards) ───────────────────────────
+   Direct child of the card (NOT the pointer-events:none overlay). Sits below
+   the name row (level with the AC line / init badge), left side, so it never
+   covers the name. Transparent — it's just the flame; a drop-shadow keeps it
+   legible on any portrait and the lit glow radiates from the glyph itself. */
+.sde-strip-light-badge {
+  position: absolute;
+  top: 22px;
+  left: 3px;
+  width: 22px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  z-index: 4;
+  pointer-events: none;              /* indicator by default */
+  background: transparent;
+  border: none;
+}
+.sde-strip-light-badge i { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95)); }
+.sde-strip-light-badge.sde-strip-light-shift { top: 26px; }   /* clear turn chevron */
+.sde-strip-light-badge.sde-strip-light-clickable {
+  pointer-events: auto;             /* re-enable over the overlay */
+  cursor: pointer;
+}
+.sde-strip-light-badge.sde-strip-light-clickable:hover { filter: brightness(1.35); }
+
+/* Lit — glowing flame; colour shifts as the source burns down. Glow is a
+   text-shadow on the glyph (no box), so a transparent badge still reads as fire. */
+.sde-strip-light-badge.sde-strip-light-lit i {
+  color: #ffb347;
+  text-shadow: 0 0 6px rgba(255, 150, 40, 0.95), 0 0 3px rgba(255, 180, 60, 0.85);
+  animation: sde-light-flicker 2.4s ease-in-out infinite;
+}
+.sde-strip-light-badge.sde-strip-light-lit.sde-strip-light-mid i { color: #ffd27a; }
+.sde-strip-light-badge.sde-strip-light-lit.sde-strip-light-low i {
+  color: #ff7a4a;
+  text-shadow: 0 0 6px rgba(255, 70, 30, 0.98), 0 0 3px rgba(255, 110, 50, 0.9);
+}
+@keyframes sde-light-flicker {
+  0%, 100% { opacity: 0.9;  text-shadow: 0 0 5px rgba(255, 150, 40, 0.7); }
+  50%      { opacity: 1;    text-shadow: 0 0 9px rgba(255, 175, 60, 1); }
+}
+
+/* Unlit but carried — dim ember ready to spark. */
+.sde-strip-light-badge.sde-strip-light-off i { color: rgba(255, 255, 255, 0.55); }
+.sde-strip-light-badge.sde-strip-light-off.sde-strip-light-clickable:hover i { color: #ffb347; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sde-strip-light-badge.sde-strip-light-lit i { animation: none; }
+}
 
 .sde-strip-remove {
   position: absolute;
@@ -7114,6 +7183,7 @@ body.theme-light .sde-strip-ptab { background: #f4f1ec !important; }
 .sde-bar-phase-badge,
 .sde-strip-group-label,
 .sde-strip-turn-num,
+.sde-strip-crawl-turn,
 .sde-strip-round-num,
 .sde-strip-init-badge {
   font-family: "Old Newspaper Font", serif !important;
@@ -7197,8 +7267,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   text-shadow: none !important;
 }
 
-.sde-strip-pill,
-.sde-strip-init-badge,
 .sde-strip-rollinit-btn,
 .sde-strip-turn-badge,
 .sde-strip-action-tabs,
@@ -7207,6 +7275,24 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   border: 1px solid var(--sde-bar-border) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
+}
+
+/* Init badge + movement/luck pills read as transparent over the portrait
+   (matching the light flame) — no box, legibility from the text-shadow.
+   The shadow is restored here because the newspaper layer above zeroes it.
+   ID-scoped (specificity 1,1,0) so it wins over any class-level themed box. */
+#shadowdark-enhancer-strip .sde-strip-pill,
+#shadowdark-enhancer-strip .sde-strip-init-badge {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95), 0 0 3px rgba(0, 0, 0, 0.9) !important;
+}
+
+/* Movement-over-budget stays a visible alert even with transparent pills. */
+#shadowdark-enhancer-strip .sde-strip-pill.sde-strip-pill-over {
+  background: rgba(157, 0, 0, 0.32) !important;
+  border: 1px solid rgba(255, 100, 100, 0.5) !important;
 }
 
 .sde-strip-init-badge,
