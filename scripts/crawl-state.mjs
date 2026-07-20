@@ -110,19 +110,33 @@ export const CrawlState = {
     // world setting. priorMode is persisted IN the state itself (not
     // client-local memory) so a reload or active-GM handoff mid-combat still
     // restores the correct mode on exit.
-    const doEnterCombatMode = () => {
+    const doEnterCombatMode = (combat) => {
       if (!isActiveGM()) return;
       const { state, changed } = _enterCombatMode(this._state);
       if (!changed) return;
-      void this._commit(state).catch((error) => {
-        console.error(`${MODULE_ID} | failed to enter combat crawl mode`, error);
-      });
+      void this._commit(state)
+        // When combat starts DURING an active crawl, the party shouldn't drop
+        // off the strip: the strip switches to mirroring game.combat.turns, so
+        // any crawl member who isn't a combatant would vanish. Auto-enroll the
+        // crawl's player members into the just-created combat so they stay on
+        // the strip (and in the tracker) alongside whatever hostile triggered it.
+        .then(() => this._enrollCrawlMembersInCombat(combat))
+        .catch((error) => {
+          console.error(`${MODULE_ID} | failed to enter combat crawl mode`, error);
+        });
     };
     Hooks.on("createCombat", doEnterCombatMode);
     Hooks.on("combatStart",   doEnterCombatMode);
 
-    Hooks.on("deleteCombat", () => {
+    Hooks.on("deleteCombat", (combat) => {
       if (!isActiveGM()) return;
+      // Only LEAVE combat mode when no combat remains. Deleting one combat
+      // while another still exists (a second encounter, or a stray/throwaway
+      // combat) must not drop the strip back to crawl while a live fight is
+      // still on the tracker. deleteCombat fires post-removal, so game.combats
+      // no longer holds the deleted one; the id guard is belt-and-suspenders.
+      const stillInCombat = game.combats.some(c => c.id !== combat?.id);
+      if (stillInCombat) return;
       const { state, changed } = _exitCombatMode(this._state);
       if (!changed) return;
       void this._commit(state).catch((error) => {
@@ -157,6 +171,37 @@ export const CrawlState = {
         await c.update({ turn: 0 });
       }, 150);
     });
+
+    // Self-heal any mode↔combat desync on load. The createCombat/deleteCombat
+    // mode drivers only fire on the transition itself — they do NOT fire for a
+    // combat that already exists when this client loads. So a state left
+    // inconsistent by a crash, a stray combat deletion, or a mid-combat
+    // active-GM handoff would otherwise persist across reloads. Reconcile the
+    // mode to the ground truth of game.combats (consistent with the
+    // create/delete guards: any combat present ⇒ combat mode).
+    this._reconcileCombatMode();
+  },
+
+  /**
+   * Bring the persisted mode into agreement with whether a combat actually
+   * exists. Active-GM gated (single writer). A combat present while mode isn't
+   * "combat" ⇒ enter combat (preserving the pre-combat mode as priorMode);
+   * mode "combat" with no combat at all ⇒ exit (restore priorMode).
+   */
+  _reconcileCombatMode() {
+    if (!isActiveGM()) return;
+    const anyCombat = (game.combats?.size ?? 0) > 0;
+    if (anyCombat && this._state.mode !== "combat") {
+      const { state, changed } = _enterCombatMode(this._state);
+      if (changed) void this._commit(state).catch((error) => {
+        console.error(`${MODULE_ID} | failed to reconcile crawl mode → combat`, error);
+      });
+    } else if (!anyCombat && this._state.mode === "combat") {
+      const { state, changed } = _exitCombatMode(this._state);
+      if (changed) void this._commit(state).catch((error) => {
+        console.error(`${MODULE_ID} | failed to reconcile crawl mode → exit combat`, error);
+      });
+    }
   },
 
   // ── Public mutators (any GM) ─────────────────────────────────────────────
@@ -251,6 +296,47 @@ export const CrawlState = {
   },
 
   // ── Internal ───────────────────────────────────────────────────────────
+  /**
+   * Add the active crawl's player members to `combat` as combatants, so a
+   * combat that starts mid-crawl (e.g. the GM right-clicks a hostile → Toggle
+   * Combat State) doesn't drop the party off the strip. Idempotent: members
+   * already in the combat are skipped. Only runs when we entered combat FROM a
+   * crawl (priorMode === "crawl") — a plain monster-only encounter with no
+   * active crawl enrolls nobody. Resolves each member to its token on the
+   * combat's scene; a member with no token there is skipped (a combatant needs
+   * a placed token). GM-gated by the caller (isActiveGM).
+   */
+  async _enrollCrawlMembersInCombat(combat) {
+    combat = combat ?? game.combat;
+    if (!combat) return;
+    if (this._state.priorMode !== "crawl") return;
+    const memberActorIds = this._state.members ?? [];
+    if (!memberActorIds.length) return;
+
+    // Resolve the combat's scene document (Combat#scene is a getter → Scene doc
+    // in v13+, but fall back to the id field / current scene defensively).
+    const scene = (combat.scene?.tokens ? combat.scene : null)
+      ?? game.scenes.get(combat.scene?.id ?? combat.scene)
+      ?? canvas.scene;
+    if (!scene) return;
+
+    const existingTokenIds = new Set(combat.combatants.map(c => c.tokenId));
+    const toAdd = [];
+    for (const actorId of memberActorIds) {
+      const actor = game.actors.get(actorId);
+      if (!actor || actor.type !== "Player") continue;
+      const tokenDoc = scene.tokens.find(t => t.actorId === actorId);
+      if (!tokenDoc) continue;
+      if (existingTokenIds.has(tokenDoc.id)) continue;
+      // Carry the token's hidden state onto the combatant so a hidden member
+      // (rare) stays hidden from players — matches the hidden-sync contract.
+      toAdd.push({ tokenId: tokenDoc.id, sceneId: scene.id, hidden: tokenDoc.hidden });
+    }
+    if (toAdd.length) {
+      await combat.createEmbeddedDocuments("Combatant", toAdd);
+    }
+  },
+
   _hasFutureWorldState() {
     const authoritative = game.settings.get(MODULE_ID, SETTING_KEY);
     if (!(Number(authoritative?._v) > STATE_VERSION)) return false;

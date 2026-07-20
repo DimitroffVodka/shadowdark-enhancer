@@ -39,15 +39,6 @@ export function registerSettings() {
     default: false,
   });
 
-  game.settings.register(MODULE_ID, "hideHiddenNpcCards", {
-    name: "SDE.settings.hideHiddenNpcCards.name",
-    hint: "SDE.settings.hideHiddenNpcCards.hint",
-    scope: "world",
-    config: true,
-    type: Boolean,
-    default: true,
-  });
-
   // Portrait shown on the synthetic "Game Master" card in the crawl strip.
   // Empty = the default cowled/mystery icon. The GM can also set this by
   // clicking the GM card's portrait in the strip (opens a FilePicker).
@@ -207,6 +198,16 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {},
+  });
+
+  // UUIDs of tables the GM added to the Loot Generator picker from the Loot
+  // Setup window. World tables use the isLootTable flag instead; this list
+  // exists for compendium tables, which can't be flagged in place.
+  game.settings.register(MODULE_ID, "lootPickerTables", {
+    scope: "world",
+    config: false,
+    type: Array,
+    default: [],
   });
 
   game.settings.register(MODULE_ID, "lootDropEnabled", {

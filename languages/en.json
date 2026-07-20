@@ -11,8 +11,6 @@
   "SDE.settings.oocEnforceBudget.hint": "If on, refuse moves that exceed the crawl budget. Off: still colors red but lets the move commit.",
   "SDE.settings.combatEnforceBudget.name": "Enforce combat movement budget",
   "SDE.settings.combatEnforceBudget.hint": "If on, refuse combat moves that exceed the remaining movement. Default off — Shadowdark combat traditionally relies on player honesty rather than hard enforcement.",
-  "SDE.settings.hideHiddenNpcCards.name": "Hide hidden NPCs from the strip",
-  "SDE.settings.hideHiddenNpcCards.hint": "If on, combatants with token.hidden or combatant.hidden are suppressed from the strip.",
   "SDE.settings.gmAvatarImage.name": "Game Master avatar",
   "SDE.settings.gmAvatarImage.hint": "Image shown on the Game Master card in the crawl strip. Leave blank for the default cowled icon. You can also click the GM card's portrait in the strip to change it.",
   "SDE.crawlStrip.gmAvatarPick": "Click to change the Game Master portrait",

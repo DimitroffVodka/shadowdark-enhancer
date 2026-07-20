@@ -62,6 +62,7 @@ export const ICONS = {
   clinging:    `<i class="fas fa-spider"></i>`,
   skull:       `<i class="fas fa-skull"></i>`,
   torch:       `<i class="fas fa-fire"></i>`,
+  eyeSlash:    `<i class="fas fa-eye-slash"></i>`,
   gmCrown:     `<i class="fas fa-crown sde-strip-gm-icon"></i>`,
   turnArrow:   `<i class="fas fa-chevron-right"></i>`,
   activate:    `<i class="fas fa-play"></i>`,

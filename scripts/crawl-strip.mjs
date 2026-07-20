@@ -238,7 +238,6 @@ export const CrawlStrip = {
     document.body.classList.toggle("sde-strip-paused", state.mode === "combat");
 
     const inCombat   = state.mode === "combat";
-    const hideHidden = game.settings.get(MODULE_ID, "hideHiddenNpcCards") && !game.user.isGM;
 
     const combatantMap = new Map(
       (game.combat?.combatants ?? []).map(c => [c.tokenId, c])
@@ -285,12 +284,15 @@ export const CrawlStrip = {
         : (m.tokenId ? combatantMap.get(m.tokenId) : null);
       const isDefeated = combatant?.defeated ?? false;
 
-      // Visibility — hide cards for hidden combatants/tokens from non-GMs
+      // Visibility:
+      //   - Players NEVER see a hidden token/combatant — it stays off their
+      //     strip until the GM reveals it (no name/HP/presence leak).
+      //   - The GM ALWAYS sees it, flagged hidden below (dim + eye-slash) so
+      //     they can tell at a glance which cards the party can't see.
       const combatantHidden = combatant?.hidden === true;
       const tokenHidden     = tokenDoc?.hidden === true;
-      if (combatantHidden && tokenHidden) return "";
-      if ((combatantHidden || tokenHidden) && !game.user.isGM) return "";
-      if (hideHidden && (combatantHidden || tokenHidden)) return "";
+      const isHidden        = combatantHidden || tokenHidden;
+      if (isHidden && !game.user.isGM) return "";
 
       // Active phase highlight:
       //   - in combat: the current combatant is "active"; everyone else dim
@@ -366,9 +368,10 @@ export const CrawlStrip = {
         : "";
 
       const cardHTML = `
-        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isCurrent ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} sde-strip-type-${m.type}"
+        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isCurrent ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}"
              data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} tabindex="0">
           <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
+          ${isHidden ? `<div class="sde-strip-hidden-icon" title="Hidden from players">${ICONS.eyeSlash}</div>` : ""}
           <div class="sde-strip-overlay">
             ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
             ${acLine}
