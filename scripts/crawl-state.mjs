@@ -229,6 +229,12 @@ export const CrawlState = {
     if (!changed) return;
     if (!await this._commit(state)) return;
     await MovementTracker.captureCrawlAnchors();
+    // Every crawl turn triggers a wandering-monster check. nextCrawlTurn is
+    // GM-gated and each advance is a single user-initiated click, so exactly
+    // one check fires per turn (no per-connected-GM race). The check reads its
+    // own 1d6-vs-encounterThreshold default; the API hop mirrors the manual
+    // "check" menu action and avoids a crawl-state ↔ encounter-check import cycle.
+    await game.shadowdarkEnhancer.encounter.check();
   },
 
   async setOocInitiative(actorId, entry) {
