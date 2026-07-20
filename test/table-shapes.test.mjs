@@ -395,3 +395,27 @@ test("lookup shape: a wide first cell doesn't cut the next column mid-phrase", (
     "1,200 gp | A spirited fete | +3",
   ]);
 });
+
+// A blank interior cell must stay blank: the value to its right belongs to the
+// column it was printed under, not the empty one. NOTE the header spacing —
+// parseGridShape needs `cols + 1` layout pieces, so the die label must be
+// separated from the first column by 2+ spaces. With a single space "d4 Poor"
+// merges into one piece, the shape bails, and the caller falls back to a
+// delimiter parser that DOES shift the row (it warns, but the data is wrong).
+test("grid shape: a blank middle cell keeps its neighbour in the right column", () => {
+  const text = [
+    "FOOD",
+    "d4   Poor      Standard    Wealthy",
+    "1    Gruel     Bread       Pheasant",
+    "2    Turnip                Venison",
+    "3    Crust     Porridge    Swan",
+    "4    Rind      Stew        Boar",
+  ].join("\n");
+  const g = parseByShape(text, { kind: "compound", split: "grid", cols: 3, size: 4,
+    labels: ["Poor", "Standard", "Wealthy"] }, { name: "Food" }).generators[0];
+  const at = (col, face) => g.columns[col].rows.find((r) => r.min === face)?.text;
+  assert.equal(at(0, 2), "Turnip");
+  assert.equal(at(1, 2), "");          // blank in the source stays blank
+  assert.equal(at(2, 2), "Venison");   // NOT pulled left into Standard
+  assert.equal(at(1, 3), "Porridge");  // later rows unaffected
+});
