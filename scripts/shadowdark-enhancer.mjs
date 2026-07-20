@@ -33,7 +33,7 @@ import {
   buildChildSeed as magicBuildChildSeed,
 } from "./encounter/magic-table-runtime.mjs";
 import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
-import { boundCount } from "./encounter/loot-setup-manifest.mjs";
+import { boundCount } from "./encounter/loot-table-catalog.mjs";
 import { ImporterHubApp } from "./encounter/importer-hub-app.mjs";
 import { installCompoundRollTable } from "./encounter/compound-table.mjs";
 import { installLoadingDialogGuard } from "./loading-dialog-guard.mjs";
@@ -67,7 +67,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "84a94d13f98b";
+const STYLESHEET_REV = "fecf8043b006";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;

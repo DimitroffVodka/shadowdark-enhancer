@@ -319,6 +319,19 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return inst;
   }
 
+  /**
+   * Open the hub and seed a generic content unlock from an external caller —
+   * e.g. the Loot Setup treasure-library Unlock buttons. Mirrors the Manage
+   * tree's charSeedPaste flow (name title line + one-press PDF extraction) so
+   * every unlock entry point shares one seeding path.
+   * @param {{name:string, src?:string, type?:string, contentId?:string|null, page?:string|null}} seed
+   */
+  static async openContentUnlock(seed) {
+    const inst = this.open();
+    await inst._seedGenericUnlock(seed);
+    return inst;
+  }
+
   async close(options = {}) {
     ImporterHubApp._instance = null;
     if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
@@ -2838,6 +2851,25 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
+    // Generic content unlock (Table / Talent / Background / Ancestry): seed the
+    // paste box + one-press extract via the shared helper (also used by external
+    // callers like the Loot Setup treasure-library Unlock buttons).
+    await this._seedGenericUnlock({
+      name, src, type,
+      contentId: target.dataset.contentId,
+      page: target.dataset.pages,
+    });
+  }
+
+  /**
+   * Seed the paste box for a generic content unlock and one-press extract the
+   * cited page from the source PDF. Shared path for the Manage tree unlock rows
+   * (_onCharSeedPaste) and external openers (ImporterHubApp.openContentUnlock),
+   * so both drive an identical seed + auto-grab flow. Spell/Class/Gear unlocks
+   * still route to their own workspaces in _onCharSeedPaste before reaching here.
+   */
+  async _seedGenericUnlock({ name, src = "", type = "Table", contentId = null, page = null } = {}) {
+    if (!name) return;
     const importType = ({
       Spell: "spells",
       Basic: "items", Weapon: "items", Armor: "items",
@@ -2861,8 +2893,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Persistent content id (PDF-import review §09 rec #2): prefer the id the
       // manage-tree stamped, else derive it from the name via the registry's
       // reverse index. Drives collision-free shape dispatch in _onHubParse.
-      contentId: target.dataset.contentId || contentIdForName(name, src) || undefined,
-      page: target.dataset.pages || undefined,
+      contentId: contentId || contentIdForName(name, src) || undefined,
+      page: page || undefined,
       book: CHAR_SOURCES[src]?.book || src || undefined,
       _charSeed: true,
       _bgBundle: bgBundle,

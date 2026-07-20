@@ -1,19 +1,32 @@
 /**
  * Shadowdark Enhancer — Loot Setup window.
- * Guided onboarding: paste your own Shadowdark treasure tables into 4 labeled
- * slots (or bind tables already in the world); each is auto-bound to
- * lootTierTables so the Loot Generator produces real, level-scaled items.
- * Ships zero book content (see loot-setup-manifest.mjs).
+ *
+ * One browsable Loot & Treasure Library (Core + Cursed Scroll). Each row is a
+ * treasure table you can:
+ *   • UNLOCK from your own source PDF through the Importer Hub (files into
+ *     sde-tables, then shows as present), and
+ *   • BIND to its level tier — the four Core bands feed the Loot Generator's
+ *     automatic, level-scaled drops.
+ * Plus a "Bind another table" picker for binding any loot table you own — a
+ * homebrew table, a compendium table, or one from a book we don't catalog.
+ *
+ * Ships zero book content — only table names + page cites (see
+ * loot-table-catalog.mjs). All imports flow through the Importer unlock system.
  */
 import { MODULE_ID } from "../module-id.mjs";
-import { LOOT_SETUP_SLOTS, slotStatus, boundCount } from "./loot-setup-manifest.mjs";
-import { TableImporter } from "./table-importer.mjs";
-import { LootCatalog } from "./loot-catalog.mjs";
-import { findSuitePack } from "./compendium-suite.mjs";
-
-// The Shadowdark system ships exactly one treasure table in its compendium.
-const SYSTEM_PACK = "shadowdark.rollable-tables";
-const SYSTEM_TREASURE_TIER = "0-3";
+import { ImporterHubApp } from "./importer-hub-app.mjs";
+import {
+  LOOT_TIER_ENTRIES,
+  LOOT_LIBRARY,
+  LOOT_PICKER_SETTING,
+  boundCount,
+  getPickerExtras,
+  gatherLootTables,
+  gatherLootLibraryCensus,
+  gatherAddableTables,
+  gatherPickerManaged,
+  unlockSeedFor,
+} from "./loot-table-catalog.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -22,11 +35,13 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     id: "sde-loot-setup",
     tag: "form",
     window: { title: "Loot Setup — Treasure Tables", icon: "fas fa-gear", resizable: true },
-    position: { width: 640, height: "auto" },
+    position: { width: 620, height: "auto" },
     actions: {
-      importSlot:  LootSetupApp.prototype._onImportSlot,
-      useExisting: LootSetupApp.prototype._onUseExisting,
-      useSystem:   LootSetupApp.prototype._onUseSystem,
+      bindLibrary:   LootSetupApp.prototype._onBindLibrary,
+      bindCustom:    LootSetupApp.prototype._onBindCustom,
+      unlockLibrary: LootSetupApp.prototype._onUnlockLibrary,
+      addPicker:     LootSetupApp.prototype._onAddPicker,
+      removePicker:  LootSetupApp.prototype._onRemovePicker,
     },
   };
 
@@ -39,118 +54,178 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
     else { this._instance.bringToFront(); this._instance.render(); }
     return this._instance;
   }
-  async close(options = {}) { LootSetupApp._instance = null; return super.close(options); }
+
+  /** Hook id for the `contentUnlocked` subscription (see _onFirstRender). */
+  _contentHookId = null;
+
+  /**
+   * Cache of the "Add to Loot Generator" candidate list. gatherAddableTables
+   * sweeps EVERY RollTable compendium index, so we must not re-run it on every
+   * render (the auto-refresh hook, add/remove, and every bind all re-render).
+   * Invalidated by _invalidateAddable() after any change that alters it.
+   */
+  _addableCache = null;
+  async _getAddable() {
+    if (!this._addableCache) this._addableCache = await gatherAddableTables();
+    return this._addableCache;
+  }
+  _invalidateAddable() { this._addableCache = null; }
+
+  /**
+   * Subscribe once to `contentUnlocked` so the library refreshes the moment a
+   * table is unlocked through the Importer Hub — otherwise a just-imported
+   * treasure table stays "missing" until this window is closed and reopened.
+   * Kept out of _onRender so a hook-driven re-render can't re-subscribe;
+   * unsubscribed in close().
+   */
+  _onFirstRender(context, options) {
+    super._onFirstRender?.(context, options);
+    this._contentHookId = Hooks.on(`${MODULE_ID}.contentUnlocked`, () => {
+      this._invalidateAddable();   // a new import may have added a table
+      if (this.rendered) this.render();
+    });
+  }
+
+  async close(options = {}) {
+    LootSetupApp._instance = null;
+    if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
+    return super.close(options);
+  }
 
   async _prepareContext() {
     const map = game.settings.get(MODULE_ID, "lootTierTables") ?? {};
 
-    // Build the full table list from world tables + sde-tables pack (D-08 / REQ-30).
-    // The loot generator already resolves via fromUuid(uuid).draw(), which is
-    // pack-capable — so we only need to make pack tables selectable here.
-    const allTables = game.tables.contents
-      .map(t => ({ uuid: t.uuid, name: t.name }));
+    // Curated loot tables (world + sde-tables + system pack) for the custom
+    // "bind another table" picker — never every table in the world.
+    const lootTables = await gatherLootTables();
 
-    const tablesPack = findSuitePack("sde-tables");
-    if (tablesPack) {
-      try {
-        const packIndex = await tablesPack.getIndex();
-        for (const entry of packIndex) {
-          const packUuid = `Compendium.${tablesPack.collection}.RollTable.${entry._id}`;
-          allTables.push({ uuid: packUuid, name: `[Pack] ${entry.name}` });
-        }
-      } catch (_) {
-        // Pack not yet indexed — silently skip; pack tables appear on next render.
-      }
-    }
+    // Live census of the loot/treasure library. Drop empty source groups
+    // (e.g. Western Reaches, which ships no dedicated treasure table).
+    const census = await gatherLootLibraryCensus();
+    const library = census
+      .filter((g) => g.entries.length > 0)
+      .map((g) => ({
+        label: g.label,
+        entries: g.entries.map((e) => {
+          const boundUuid = e.tier ? (map[e.tier] || null) : null;
+          return {
+            name: e.name,
+            displayName: e.displayName,
+            src: e.src,
+            page: e.page,
+            tier: e.tier,
+            isTier: !!e.tier,
+            present: e.present,
+            uuid: e.uuid,
+            // A tier row is "bound" only when THIS table is what's bound to it.
+            boundHere: !!(e.tier && e.present && boundUuid && boundUuid === e.uuid),
+          };
+        }),
+      }));
 
-    allTables.sort((a, b) => a.name.localeCompare(b.name));
-
-    const slots = slotStatus(map).map(s => ({
-      ...s,
-      boundName: s.boundUuid ? (fromUuidSync(s.boundUuid)?.name ?? "(missing table)") : null,
-      tables: allTables.map(t => ({ ...t, selected: t.uuid === s.boundUuid })),
-      // Only the 0-3 tier can be filled from the Shadowdark system compendium
-      // (it ships just the one treasure table).
-      canUseSystem: s.tier === SYSTEM_TREASURE_TIER,
+    // Tier options for the custom picker — label carries the current binding so
+    // the four tiers' state is visible without a second list of tables.
+    const tierOptions = LOOT_TIER_ENTRIES.map((e) => ({
+      tier: e.tier,
+      label: e.label.replace(/^Treasure — /, ""),
+      boundName: map[e.tier] ? (fromUuidSync(map[e.tier])?.name ?? "(missing table)") : null,
     }));
-    const done = boundCount(map);
-    return { slots, done, total: LOOT_SETUP_SLOTS.length, hasTables: allTables.length > 0 };
+
+    // "Add to Loot Generator" section: what's currently in the picker (with a
+    // Remove), and every other table you could add (world + all compendia).
+    const managed = await gatherPickerManaged();
+    const addable = await this._getAddable();
+
+    return {
+      library,
+      lootTables,
+      tierOptions,
+      hasLootTables: lootTables.length > 0,
+      done: boundCount(map),
+      total: LOOT_TIER_ENTRIES.length,
+      managed,
+      addable,
+      hasAddable: addable.length > 0,
+    };
   }
 
-  async _onImportSlot(event, target) {
+  // ── Actions ───────────────────────────────────────────────────────────────
+
+  /** Bind a Core tier row's present table to its level tier. */
+  async _onBindLibrary(event, target) {
     if (!game.user.isGM) return;
-    const slot = LOOT_SETUP_SLOTS.find(s => s.id === target.dataset.slotId);
-    if (!slot) return;
-    const ta = this.element.querySelector(`textarea[data-slot-id="${slot.id}"]`);
-    const text = (ta?.value ?? "").trim();
-    if (!text) { ui.notifications.warn("Paste the table text first."); return; }
-    const parsed = TableImporter.parse(text);
-    const pt = parsed?.[0];
-    if (!pt || !(pt.rows?.length)) { ui.notifications.warn("Couldn't parse any rows — check the paste against the format hint."); return; }
-    pt.name = slot.label;        // canonical, recognizable name
-    pt.category = "loot";        // files under Imported Tables/Loot + tags tableType:"loot"
-    const table = await TableImporter.createTable(pt, { onConflict: () => "rename" });
-    if (!table) return;
-    await this._bind(slot.tier, table.uuid);
-    ui.notifications.info(`${slot.label}: imported ${pt.rows.length} rows and bound.`);
+    const { tier, uuid } = target.dataset;
+    if (!tier || !uuid) return;
+    await this._bind(tier, uuid);
+    ui.notifications.info(`Treasure ${tier}: bound.`);
     this.render();
   }
 
-  async _onUseExisting(event, target) {
+  /** Bind any curated loot table (custom picker) to a chosen tier. */
+  async _onBindCustom(event, target) {
     if (!game.user.isGM) return;
-    const slot = LOOT_SETUP_SLOTS.find(s => s.id === target.dataset.slotId);
-    if (!slot) return;
-    const sel = this.element.querySelector(`select[data-slot-id="${slot.id}"]`);
-    const uuid = sel?.value;
-    if (!uuid) { ui.notifications.warn("Pick a table from the dropdown first."); return; }
-    await this._bind(slot.tier, uuid);
-    ui.notifications.info(`${slot.label}: bound to existing table.`);
+    const tier = this.element.querySelector("select[data-custom-tier]")?.value;
+    const uuid = this.element.querySelector("select[data-custom-table]")?.value;
+    if (!tier) { ui.notifications.warn("Pick a tier first."); return; }
+    if (!uuid) { ui.notifications.warn("Pick a loot table first."); return; }
+    await this._bind(tier, uuid);
+    ui.notifications.info(`Treasure ${tier}: bound to the selected table.`);
     this.render();
+  }
+
+  /** Open the Importer Hub seeded to unlock a library entry (Core/CS). */
+  _onUnlockLibrary(event, target) {
+    const { name, src } = target.dataset;
+    const entry = LOOT_LIBRARY.flatMap((g) => g.entries).find((e) => e.name === name && e.src === src);
+    if (!entry) return;
+    ImporterHubApp.openContentUnlock(unlockSeedFor(entry));
+    ui.notifications.info(`Opening the Importer to unlock “${entry.displayName ?? entry.name}”.`);
   }
 
   /**
-   * Import the Shadowdark system's built-in Treasure 0-3 into the world,
-   * enhance it (link items / keep coins; existing document links preserved),
-   * and bind it to the 0-3 loot tier. Re-uses a prior import instead of
-   * duplicating. GM-only.
+   * Add the picker-dropdown's table to the Loot Generator. World tables get the
+   * isLootTable flag (matching the sidebar "Mark as Loot Table"); compendium
+   * tables — which can't be flagged in place — are stored in the lootPickerTables
+   * setting. Both surface in the picker via gatherLootTables.
    */
-  async _onUseSystem(event, target) {
+  async _onAddPicker(event, target) {
     if (!game.user.isGM) return;
-    const slot = LOOT_SETUP_SLOTS.find(s => s.id === target.dataset.slotId);
-    if (!slot) return;
-    const pack = game.packs.get(SYSTEM_PACK);
-    if (!pack) { ui.notifications.warn(`Compendium "${SYSTEM_PACK}" not found.`); return; }
-    const idx = await pack.getIndex();
-    const entry = idx.find(e => /^\s*treasure\s*0\s*-\s*3\s*$/i.test(e.name))
-      ?? idx.find(e => /treasure\s*0\s*-\s*3/i.test(e.name));
-    if (!entry) { ui.notifications.warn("Couldn't find a 'Treasure 0-3' table in the Shadowdark compendium."); return; }
-
-    const name = "Treasure 0-3 (Shadowdark)";
-    let table = game.tables.find(t => t.name === name);
-    if (!table) {
-      const src = await pack.getDocument(entry._id);
-      const data = src.toObject();
-      delete data._id;
-      data.name = name;
-      data.folder = (await this._ensureLootFolder())?.id ?? null;
-      data.flags = {
-        ...(data.flags ?? {}),
-        [MODULE_ID]: { ...((data.flags ?? {})[MODULE_ID] ?? {}), tableType: "loot", isLootTable: true },
-      };
-      table = await RollTable.create(data);
+    const uuid = this.element.querySelector("select[data-picker-add]")?.value;
+    if (!uuid) { ui.notifications.warn("Pick a table to add first."); return; }
+    if (uuid.startsWith("Compendium.")) {
+      const extras = [...getPickerExtras()];
+      if (!extras.includes(uuid)) { extras.push(uuid); await game.settings.set(MODULE_ID, LOOT_PICKER_SETTING, extras); }
+    } else {
+      const doc = await fromUuid(uuid).catch(() => null);
+      await doc?.setFlag(MODULE_ID, "isLootTable", true);
     }
-    await LootCatalog.linkTableItems(table);
-    await this._bind(slot.tier, table.uuid);
-    ui.notifications.info(`${slot.label}: imported Shadowdark's Treasure 0-3 (${table.results.size} rows) and bound.`);
+    ui.notifications.info("Added to the Loot Generator.");
+    this._invalidateAddable();
+    this._refreshGenerator();
     this.render();
   }
 
-  /** Find-or-create the Imported Tables/Loot folder for RollTables. */
-  async _ensureLootFolder() {
-    const root = game.folders.find(f => f.type === "RollTable" && f.name === "Imported Tables" && !f.folder)
-      ?? await Folder.create({ name: "Imported Tables", type: "RollTable" });
-    return game.folders.find(f => f.type === "RollTable" && f.name === "Loot" && f.folder?.id === root.id)
-      ?? await Folder.create({ name: "Loot", type: "RollTable", folder: root.id });
+  /** Remove a table from the Loot Generator (unset flag and/or drop from list). */
+  async _onRemovePicker(event, target) {
+    if (!game.user.isGM) return;
+    const uuid = target.dataset.uuid;
+    if (!uuid) return;
+    const extras = getPickerExtras();
+    const trimmed = extras.filter((u) => u !== uuid);
+    if (trimmed.length !== extras.length) await game.settings.set(MODULE_ID, LOOT_PICKER_SETTING, trimmed);
+    if (!uuid.startsWith("Compendium.")) {
+      const doc = await fromUuid(uuid).catch(() => null);
+      if (doc?.getFlag(MODULE_ID, "isLootTable") === true) await doc.unsetFlag(MODULE_ID, "isLootTable");
+    }
+    ui.notifications.info("Removed from the Loot Generator.");
+    this._invalidateAddable();
+    this._refreshGenerator();
+    this.render();
+  }
+
+  /** Re-render the Loot Generator window if it's open so its picker updates. */
+  _refreshGenerator() {
+    try { foundry.applications.instances?.get?.("sde-loot-generator")?.render?.(); } catch (_) { /* not open */ }
   }
 
   /** Write one tier->table binding into the lootTierTables world setting. */

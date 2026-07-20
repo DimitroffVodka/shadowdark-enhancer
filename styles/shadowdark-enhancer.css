@@ -6053,6 +6053,37 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-loot-setup-existing { flex: 1 1 160px; min-width: 120px; }
 .sde-lootgen-setup.needs-setup { box-shadow: 0 0 0 2px var(--sde-bar-accent-dim) inset; font-weight: 600; }
 
+/* ─── Loot / treasure library (browse + unlock) ─────────────────────────── */
+.sde-loot-setup-lib-title { margin: 14px 0 2px; font-size: 14px; }
+.sde-loot-setup-lib-note { font-size: 11px; color: var(--sde-bar-text-muted, #9a9a9a); margin: 0 0 8px; }
+.sde-loot-setup-library { display: flex; flex-direction: column; gap: 10px; }
+.sde-loot-lib-group-title { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--sde-bar-text-muted, #9a9a9a); }
+.sde-loot-lib-entries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.sde-loot-lib-entry {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 3px 0; min-height: 26px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.sde-loot-lib-entry:last-child { border-bottom: 0; }
+.sde-loot-lib-name { flex: 1 1 auto; min-width: 0; font-size: 12px; }
+.sde-loot-lib-page { color: var(--sde-bar-text-muted, #9a9a9a); font-size: 11px; }
+.sde-loot-lib-tier { margin-left: 6px; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--sde-bar-text-muted, #9a9a9a); border: 1px solid rgba(255,255,255,.18); border-radius: 3px; padding: 0 4px; vertical-align: middle; }
+.sde-loot-lib-ctrl { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.sde-loot-lib-ctrl .sde-loot-setup-unlock,
+.sde-loot-lib-ctrl .sde-loot-setup-bind { width: auto; margin: 0; }
+.sde-loot-lib-empty { font-size: 11px; color: var(--sde-bar-text-muted, #9a9a9a); margin: 0; font-style: italic; }
+
+/* Bind-another-table picker */
+.sde-loot-custom { margin-top: 14px; border-top: 1px solid rgba(255,255,255,.08); padding-top: 10px; }
+.sde-loot-custom-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+.sde-loot-custom-row select { flex: 1 1 150px; min-width: 120px; }
+.sde-loot-custom-row .sde-loot-setup-bind { width: auto; margin: 0; }
+.sde-loot-custom-hint { font-size: 11px; color: var(--sde-bar-text-muted, #9a9a9a); margin: 2px 0 0; }
+.sde-loot-picker-list { list-style: none; margin: 4px 0; padding: 0; display: flex; flex-direction: column; }
+.sde-loot-picker-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; min-height: 26px; border-bottom: 1px solid rgba(255,255,255,.05); }
+.sde-loot-picker-item:last-child { border-bottom: 0; }
+.sde-loot-picker-item .sde-loot-setup-unlock { flex: 0 0 auto; width: auto; margin: 0; white-space: nowrap; }
+
 /* ─── Audit P2-3: shared minimum hit size for GM-window icon buttons ─────── */
 .sde-import-del,
 .sde-stepper button,

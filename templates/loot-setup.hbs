@@ -1,50 +1,97 @@
 <div class="sde-loot-setup">
   <p class="sde-loot-setup-intro">
-    These treasure tables are <strong>The Arcane Library's</strong> content, so the module can't include them.
-    Paste them from your own copy of the Shadowdark rules (or the free Quickstart Set), or bind tables you've
-    already imported. Each slot is auto-wired to the Loot Generator the moment it's filled.
+    Browse the loot &amp; treasure tables below. These are <strong>The Arcane Library's</strong> content, so the
+    module can't ship them — <em>Unlock</em> pulls one from your own PDF through the Importer (it files into the
+    tables compendium). <em>Bind</em> a Core band to its level tier so the Loot Generator can roll level-scaled
+    drops automatically.
   </p>
 
-  <div class="sde-loot-setup-progress"><i class="fas fa-list-check"></i> {{done}} of {{total}} treasure tables ready</div>
+  <div class="sde-loot-setup-progress"><i class="fas fa-list-check"></i> {{done}} of {{total}} treasure tiers bound</div>
 
-  <ul class="sde-loot-setup-slots">
-    {{#each slots as |s|}}
-    <li class="sde-loot-setup-slot {{#if s.bound}}is-bound{{/if}}">
-      <div class="sde-loot-setup-slot-head">
-        <span class="sde-loot-setup-slot-label">{{s.label}}</span>
-        {{#if s.bound}}
-        <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> {{s.boundName}}</span>
-        {{else}}
-        <span class="sde-loot-setup-badge no"><i class="fas fa-xmark"></i> Not set</span>
-        {{/if}}
-      </div>
-      <div class="sde-loot-setup-ref"><i class="fas fa-book"></i> {{s.pageRef}}</div>
-
-      <textarea class="sde-loot-setup-paste" data-slot-id="{{s.id}}" rows="3"
-        placeholder="{{s.formatHint}}" aria-label="Paste {{s.label}} table"></textarea>
-      <div class="sde-loot-setup-actions">
-        <button type="button" class="sde-loot-setup-import" data-action="importSlot" data-slot-id="{{s.id}}">
-          <i class="fas fa-file-import"></i> Import &amp; bind
-        </button>
-        {{#if @root.hasTables}}
-        <span class="sde-loot-setup-or">or</span>
-        <select class="sde-loot-setup-existing" data-slot-id="{{s.id}}" aria-label="Use existing table for {{s.label}}">
-          <option value="">Use an existing table…</option>
-          {{#each s.tables as |t|}}<option value="{{t.uuid}}" {{#if t.selected}}selected{{/if}}>{{t.name}}</option>{{/each}}
-        </select>
-        <button type="button" class="sde-loot-setup-bind" data-action="useExisting" data-slot-id="{{s.id}}">
-          <i class="fas fa-link"></i> Bind
-        </button>
-        {{/if}}
-        {{#if s.canUseSystem}}
-        <span class="sde-loot-setup-or">or</span>
-        <button type="button" class="sde-loot-setup-system" data-action="useSystem" data-slot-id="{{s.id}}"
-                title="Copy the Shadowdark system's built-in Treasure 0-3, link its items, and bind it to this tier">
-          <i class="fas fa-wand-magic-sparkles"></i> Use Shadowdark's Treasure 0-3
-        </button>
-        {{/if}}
-      </div>
-    </li>
+  <div class="sde-loot-setup-library">
+    {{#each library as |g|}}
+    <section class="sde-loot-lib-group">
+      <h4 class="sde-loot-lib-group-title">{{g.label}}</h4>
+      <ul class="sde-loot-lib-entries">
+        {{#each g.entries as |e|}}
+        <li class="sde-loot-lib-entry {{#if e.present}}is-present{{/if}}">
+          <span class="sde-loot-lib-name">
+            {{e.displayName}}{{#if e.page}} <span class="sde-loot-lib-page">p.{{e.page}}</span>{{/if}}
+            {{#if e.isTier}}<span class="sde-loot-lib-tier">Tier {{e.tier}}</span>{{/if}}
+          </span>
+          <span class="sde-loot-lib-ctrl">
+            {{#if e.present}}
+              {{#if e.isTier}}
+                {{#if e.boundHere}}
+                <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> Bound</span>
+                {{else}}
+                <button type="button" class="sde-loot-setup-bind" data-action="bindLibrary" data-tier="{{e.tier}}" data-uuid="{{e.uuid}}"
+                        title="Bind this table to the Levels {{e.tier}} tier">
+                  <i class="fas fa-link"></i> Bind
+                </button>
+                {{/if}}
+              {{else}}
+                <span class="sde-loot-setup-badge ok"><i class="fas fa-check"></i> In library</span>
+              {{/if}}
+            {{else}}
+            <button type="button" class="sde-loot-setup-unlock" data-action="unlockLibrary" data-name="{{e.name}}" data-src="{{e.src}}">
+              <i class="fas fa-unlock"></i> Unlock
+            </button>
+            {{/if}}
+          </span>
+        </li>
+        {{/each}}
+      </ul>
+    </section>
     {{/each}}
-  </ul>
+  </div>
+
+  {{! ── Add any table to the Loot Generator dropdown (no tier) ── }}
+  <section class="sde-loot-custom">
+    <h4 class="sde-loot-lib-group-title">Loot Generator tables</h4>
+    <p class="sde-loot-custom-hint">Tables you can pick and roll directly in the Loot Generator — no level tier needed.</p>
+    {{#if managed.length}}
+    <ul class="sde-loot-picker-list">
+      {{#each managed as |m|}}
+      <li class="sde-loot-picker-item">
+        <span class="sde-loot-lib-name">{{m.name}} <span class="sde-loot-lib-page">{{m.group}}</span></span>
+        <button type="button" class="sde-loot-setup-unlock" data-action="removePicker" data-uuid="{{m.uuid}}" title="Remove from the Loot Generator">
+          <i class="fas fa-xmark"></i> Remove
+        </button>
+      </li>
+      {{/each}}
+    </ul>
+    {{else}}
+    <p class="sde-loot-custom-hint">None added yet.</p>
+    {{/if}}
+    {{#if hasAddable}}
+    <div class="sde-loot-custom-row">
+      <select data-picker-add aria-label="Add a table to the Loot Generator">
+        <option value="">Choose a table to add…</option>
+        {{#each addable as |t|}}<option value="{{t.uuid}}">{{t.name}} ({{t.group}})</option>{{/each}}
+      </select>
+      <button type="button" class="sde-loot-setup-bind" data-action="addPicker"><i class="fas fa-plus"></i> Add</button>
+    </div>
+    {{/if}}
+  </section>
+
+  {{! ── Bind any other loot table to a tier (homebrew / other books) ── }}
+  <section class="sde-loot-custom">
+    <h4 class="sde-loot-lib-group-title">Bind another table</h4>
+    {{#if hasLootTables}}
+    <div class="sde-loot-custom-row">
+      <select data-custom-tier aria-label="Tier">
+        {{#each tierOptions as |t|}}<option value="{{t.tier}}">{{t.label}}{{#if t.boundName}} — {{t.boundName}}{{/if}}</option>{{/each}}
+      </select>
+      <select data-custom-table aria-label="Loot table">
+        <option value="">Choose a loot table…</option>
+        {{#each lootTables as |t|}}<option value="{{t.uuid}}">{{t.name}} ({{t.group}})</option>{{/each}}
+      </select>
+      <button type="button" class="sde-loot-setup-bind" data-action="bindCustom"><i class="fas fa-link"></i> Bind</button>
+    </div>
+    {{else}}
+    <p class="sde-loot-custom-hint">No loot tables yet — unlock one above first.</p>
+    {{/if}}
+    <p class="sde-loot-custom-hint">Don't see your table? Right-click it in the sidebar → <strong>Mark as Loot Table</strong>, then it'll appear here.</p>
+  </section>
 </div>

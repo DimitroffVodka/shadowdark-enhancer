@@ -12,9 +12,10 @@
     <button type="button" class="sde-lootgen-dropcoins-manual" data-action="dropCoinsPrompt"><i class="fas fa-coins"></i> Drop Coins…</button>
   </div>
   <p class="notes">Roll Loot adds to the history below. Roll for Selected Token whispers a claimable card to that token's owner.</p>
-  {{#if noneMarked}}<p class="notes"><i class="fa-solid fa-circle-info"></i> Showing all tables. Right-click a table in the sidebar → <strong>Mark as Loot Table</strong> to narrow this list.</p>{{/if}}
+  <p class="notes"><i class="fa-solid fa-circle-info"></i> Showing curated loot/treasure tables (world + compendium). Right-click any table in the sidebar → <strong>Mark as Loot Table</strong> to add another.</p>
   {{else}}
-  <p class="notes">No RollTables in this world yet. Load a loot table from a PDF or build one via the Roll Table Importer, then reopen this window.</p>
+  <p class="notes">No loot tables yet. Open <strong>Set up loot tables</strong> to unlock treasure tables from your books and bind them.</p>
+  <button type="button" class="sde-lootgen-setup needs-setup" data-action="openSetup"><i class="fas fa-gear"></i> Set up loot tables</button>
   {{/if}}
 
   {{#if hasHistory}}

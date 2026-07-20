@@ -6,10 +6,9 @@
  */
 import { MODULE_ID } from "../module-id.mjs";
 import { LootSetupApp } from "./loot-setup-app.mjs";
-import { boundCount } from "./loot-setup-manifest.mjs";
+import { boundCount, gatherLootTables } from "./loot-table-catalog.mjs";
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
-import { LootTableTag } from "./loot-table-tag.mjs";
 import { MagicForgeApp } from "./magic-forge-app.mjs";
 import { inferSeedFromName } from "./magic-forge.mjs";
 import { ItemDrops } from "./item-drops.mjs";
@@ -65,23 +64,18 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
   // ─── Data Preparation ───
 
   /**
-   * The picker options: tables marked as loot (or Importer-tagged "loot").
-   * Falls back to ALL tables when none are marked yet, so the window is never
-   * empty before the GM curates — `noneMarked` drives a hint in that case.
+   * The picker options: curated loot/treasure tables across the world AND the
+   * sde-tables / Shadowdark system compendia (loot-table-catalog classifier).
+   * No longer falls back to listing every world table — the list is curated
+   * end to end, so `noneMarked` is always false now.
    */
-  _lootTables() {
-    const all = game.tables.contents;
-    const loot = all.filter(t => LootTableTag.isLootTable(t));
-    const noneMarked = loot.length === 0;
-    const use = noneMarked ? all : loot;
-    return {
-      noneMarked,
-      tables: use.map(t => ({ uuid: t.uuid, name: t.name })).sort((a, b) => a.name.localeCompare(b.name)),
-    };
+  async _lootTables() {
+    const tables = await gatherLootTables();
+    return { noneMarked: false, tables };
   }
 
   async _prepareContext() {
-    const { tables, noneMarked } = this._lootTables();
+    const { tables, noneMarked } = await this._lootTables();
     // Reset the selection if it was filtered out (e.g. a now-unmarked table).
     if (this._selectedTableUuid && !tables.some(t => t.uuid === this._selectedTableUuid)) this._selectedTableUuid = null;
     if (!this._selectedTableUuid && tables.length) this._selectedTableUuid = tables[0].uuid;
