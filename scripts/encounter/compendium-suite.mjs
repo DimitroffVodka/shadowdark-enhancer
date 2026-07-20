@@ -68,10 +68,18 @@ const NONE     = "NONE";
 
 /**
  * Map a source id to its display label for pack sub-folders.
- *   cs1..cs6  → "CS1".."CS6"
- *   pgwr / gmgwr / wr → "Western Reaches"
+ *   cs1..cs6 / "Cursed Scroll N"  → "CS1".."CS6"
+ *   pgwr / gmgwr / wr / "Western Reaches" → "Western Reaches"
+ *   core / "Core Rulebook" → "CORE"
  *   custom / "" / null / undefined → "Custom"
  *   anything else → upper-cased id
+ *
+ * Both the short keys (CHAR_SOURCES keys, manage-tree `src`) and the long book
+ * labels (the Source dropdown's values, and `CHAR_SOURCES[k].label`, which every
+ * seed path stamps) must fold to the SAME short code — the census skeleton in
+ * manage-tree.mjs is keyed by the short form. Without the long-label cases an
+ * import files under "CURSED SCROLL 1" while the CS1 node stays at have: 0
+ * forever, and a duplicate all-caps leaf appears beside it.
  * @param {string|null|undefined} sourceId
  * @returns {string}
  */
@@ -79,7 +87,10 @@ export function sourceFolderName(sourceId) {
   const s = String(sourceId ?? "").trim().toLowerCase();
   if (!s || s === "custom") return "Custom";
   if (/^cs[1-6]$/.test(s)) return s.toUpperCase();
-  if (s === "pgwr" || s === "gmgwr" || s === "wr") return "Western Reaches";
+  const cs = s.match(/^cursed scroll\s*([1-6])$/);
+  if (cs) return `CS${cs[1]}`;
+  if (s === "pgwr" || s === "gmgwr" || s === "wr" || s === "western reaches") return "Western Reaches";
+  if (s === "core" || s === "core rulebook") return "CORE";
   return s.toUpperCase();
 }
 
