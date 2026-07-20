@@ -231,7 +231,15 @@ function parseOneAttack(s, warnings) {
   const dmgM = /^\((.*)\)/.exec(afterBonus);
   if (dmgM) {
     const inner = collapse(dmgM[1]);
-    const rawParts = inner.split(/\s*\+\s*/);
+    // Terms are separated by "+" OR "," — the core book writes both, e.g. the
+    // Azer's "(1d10, ignites flammables)" and the Salamander's "(1d6, ignites
+    // flammables)". Splitting on "+" alone left the whole string failing the
+    // dice test, so those monsters imported their PRIMARY attack with no damage
+    // (verified against 279 real statblocks: these two were the only cases).
+    // Capture the separator so a rider is rebuilt with the one the book used.
+    const tokens = inner.split(/\s*([+,])\s*/);
+    const rawParts = tokens.filter((_, i) => i % 2 === 0);
+    const seps = tokens.filter((_, i) => i % 2 === 1);
     // Greedily absorb ALL leading dice/flat-numeric terms into the damage
     // formula, so a flat modifier ("1d6 + 2", "2d6 + 1", "1d12 + 1d6") is kept as
     // real damage instead of being stranded as a "special" rider. The first
@@ -251,7 +259,12 @@ function parseOneAttack(s, warnings) {
       const dmg = [];
       while (i < parts.length && isTerm(parts[i])) { dmg.push(parts[i]); i++; }
       damage = dmg.join(" + ");
-      special = parts.slice(i).join(" + ");
+      // Rebuild the rider with the separators the source actually used, so
+      // "1d10, ignites flammables" doesn't come back as "1d10 + ignites …".
+      special = parts.slice(i).reduce(
+        (acc, p, k) => (k === 0 ? p : `${acc}${seps[i + k - 1] === "," ? "," : " +"} ${p}`),
+        "",
+      );
     } else {
       special = inner;
       warnings.push(`attack "${name}" damage "${inner}" isn't dice — left blank for review`);

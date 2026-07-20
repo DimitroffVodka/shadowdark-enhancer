@@ -155,3 +155,44 @@ test("splitStatblocks rejoins a hyphen-wrapped ALL-CAPS name", () => {
   assert.equal(monsters.length, 1);
   assert.equal(parseStatblock(monsters[0]).draft.name, "Shield-Bearer");
 });
+
+// Core-book statblocks separate a damage die from its rider with a COMMA as
+// well as a "+" — the Azer's "(1d10, ignites flammables)" and the Salamander's
+// "(1d6, ignites flammables)". Splitting on "+" alone failed the dice test and
+// blanked the PRIMARY attack's damage. Found by parsing 279 real statblocks;
+// these two were the only cases in the whole corpus.
+test("comma-separated damage rider keeps the dice (Azer / Salamander)", () => {
+  const AZER = [
+    "AZER",
+    "AC 17, HP 26, ATK 2 flaming warhammer +3 (1d10, ignites flammables) or 1 crossbow (far) +0 (1d6), MV near,",
+    "S +2, D +1, C +2, I +0, W +1, Ch +0, AL L, LV 5",
+  ].join("\n");
+  const { draft, warnings } = parseStatblock(AZER);
+  const atks = draft.actions.filter((a) => a.type === "NPC Attack");
+  assert.equal(atks[0].damage, "1d10");
+  assert.equal(atks[0].description, "ignites flammables");
+  assert.equal(atks[1].damage, "1d6");
+  assert.equal(warnings.filter((w) => /isn't dice/.test(w)).length, 0);
+});
+
+test("a '+' rider is still rejoined with '+', not a comma", () => {
+  const SB = [
+    "TEST BEAST",
+    "AC 13, HP 10, ATK 1 bite +3 (1d8 + poison + curse), MV near,",
+    "S +1, D +0, C +1, I -2, W +0, Ch -1, AL C, LV 2",
+  ].join("\n");
+  const a = parseStatblock(SB).draft.actions.find((x) => x.type === "NPC Attack");
+  assert.equal(a.damage, "1d8");
+  assert.equal(a.description, "poison + curse");
+});
+
+test("flat damage modifiers are still absorbed, not split off by the comma change", () => {
+  const SB = [
+    "TEST BEAST",
+    "AC 13, HP 10, ATK 1 slam +3 (1d6 + 2), MV near,",
+    "S +1, D +0, C +1, I -2, W +0, Ch -1, AL C, LV 2",
+  ].join("\n");
+  const a = parseStatblock(SB).draft.actions.find((x) => x.type === "NPC Attack");
+  assert.equal(a.damage, "1d6 + 2");
+  assert.equal(a.description, "");
+});
