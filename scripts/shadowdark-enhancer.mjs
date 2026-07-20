@@ -76,7 +76,47 @@ function ensureFreshStylesheet() {
   link.id = id;
   link.rel = "stylesheet";
   link.href = `modules/${MODULE_ID}/styles/shadowdark-enhancer.css?v=${STYLESHEET_REV}`;
+  // Foundry pulls the manifest stylesheet in via an @import (inside a shared
+  // inline <style>) and/or a plain <link>. That copy is served from cache and
+  // can be STALE — an old build's `!important` rules then win over this
+  // content-addressed copy regardless of specificity, so edited styles never
+  // appear until a manual cache-clear (which Foundry's Ctrl+Shift+R interception
+  // makes awkward). Once the fresh copy has loaded, drop the stale one so only
+  // the current CSS applies. Gated on `load` so there's never a frame without
+  // our stylesheet; re-run at `ready` as a backstop for late @import injection.
+  const cssPath = `modules/${MODULE_ID}/styles/shadowdark-enhancer.css`;
+  const drop = () => dropStaleModuleStylesheet(cssPath, id);
+  link.addEventListener("load", drop, { once: true });
   document.head.append(link);
+  if (link.sheet) drop();          // already cached/parsed synchronously
+  Hooks.once("ready", drop);
+}
+
+// Remove the stale manifest copy of our stylesheet: delete any @import rule that
+// pulls it in (leaving other modules' imports in the shared <style> untouched)
+// and disable any non-content-addressed <link> to it. Never touches the fresh
+// `?v=` copy (id === keepId, or any href carrying `?v=`). Idempotent.
+function dropStaleModuleStylesheet(cssPath, keepId) {
+  try {
+    for (const sheet of document.styleSheets) {
+      let rules;
+      try { rules = sheet.cssRules; } catch { continue; } // cross-origin
+      if (!rules) continue;
+      for (let i = rules.length - 1; i >= 0; i--) {
+        const r = rules[i];
+        if (r.type === CSSRule.IMPORT_RULE && (r.href || "").includes(cssPath)) {
+          try { sheet.deleteRule(i); } catch { /* live sheet churn */ }
+        }
+      }
+    }
+    for (const l of document.querySelectorAll('link[rel~="stylesheet"]')) {
+      if (l.id === keepId) continue;
+      const href = l.getAttribute("href") || "";
+      if (href.includes(cssPath) && !href.includes("?v=")) l.disabled = true;
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not drop stale stylesheet`, err);
+  }
 }
 
 // Register the Mount/Boat actor sub-types in `i18nInit`. The mount type reuses
