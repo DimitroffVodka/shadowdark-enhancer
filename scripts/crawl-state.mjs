@@ -54,7 +54,7 @@ export const CrawlState = {
   get mode()           { return this._state.mode; },
   get crawlTurn()      { return this._state.crawlTurn; },
   get oocInitiative()  { return this._state.oocInitiative ?? {}; },
-  get members()        { return this._state.members ?? []; },   // token IDs added to the crawl
+  get members()        { return this._state.members ?? []; },   // actor IDs added to the crawl (world-scoped)
   get isActive()       { return this._state.mode !== "off"; },
 
   // ── Bootstrap ──────────────────────────────────────────────────────────
@@ -190,25 +190,28 @@ export const CrawlState = {
     await MovementTracker.clearCrawlAnchors();
   },
 
-  // Add token IDs to the crawl member list (idempotent — no duplicates).
-  async addMembers(tokenIds) {
+  // Add actor IDs to the crawl member list (idempotent — no duplicates).
+  // Membership is world-scoped: a member is identified by its actor, and its
+  // token is resolved per-scene, so the roster survives a scene switch.
+  async addMembers(actorIds) {
     if (!game.user.isGM) return;
     const wasCrawling = this._state.mode === "crawl";
-    const { state, newIds, changed } = _addMembers(this._state, tokenIds);
+    const { state, newIds, changed } = _addMembers(this._state, actorIds);
     if (!changed) return;
     if (!await this._commit(state)) return;
     // Capture an anchor for each new member so movement tracks from where
     // they were when added (not from their position at startCrawl, which may
-    // have been before they were on the scene).
+    // have been before they were on the scene). newIds are actor IDs; the
+    // tracker resolves them to their token on the current scene.
     if (wasCrawling) {
       await MovementTracker.captureCrawlAnchorsFor(newIds);
     }
   },
 
-  // Remove a token ID from the crawl member list.
-  async removeMember(tokenId) {
+  // Remove an actor ID from the crawl member list.
+  async removeMember(actorId) {
     if (!game.user.isGM) return;
-    const { state, changed } = _removeMember(this._state, tokenId);
+    const { state, changed } = _removeMember(this._state, actorId);
     if (!changed) return;
     await this._commit(state);
   },
@@ -228,9 +231,9 @@ export const CrawlState = {
     await MovementTracker.captureCrawlAnchors();
   },
 
-  async setOocInitiative(tokenId, entry) {
+  async setOocInitiative(actorId, entry) {
     if (!game.user.isGM) return;
-    const { state } = _setOocInitiative(this._state, tokenId, entry);
+    const { state } = _setOocInitiative(this._state, actorId, entry);
     await this._commit(state);
   },
 

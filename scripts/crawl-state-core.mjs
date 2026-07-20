@@ -15,7 +15,11 @@ const VALID_MODES = new Set(["off", "crawl", "combat"]);
 // "combat" itself is never a valid value here.
 const VALID_PRIOR_MODES = new Set(["off", "crawl"]);
 
-/** Versioned default state. `members` has been part of the shape since v1. */
+/**
+ * Versioned default state. `members` has been part of the shape since v1; it
+ * holds ACTOR ids (world-scoped crawl roster), resolved to per-scene tokens by
+ * the Foundry-facing layer. `oocInitiative` is likewise keyed by actor id.
+ */
 export function defaultCrawlState() {
   return { _v: STATE_VERSION, mode: "off", crawlTurn: 0, oocInitiative: {}, members: [], priorMode: "off" };
 }
@@ -92,9 +96,9 @@ export function endCrawl(state) {
   return { state: { ...state, mode: "off", crawlTurn: 0, members: [], oocInitiative: {} }, changed: true };
 }
 
-/** Add token IDs to the crawl roster, deduplicated. No-op if none are new. */
-export function addMembers(state, tokenIds) {
-  const ids = Array.isArray(tokenIds) ? tokenIds : [];
+/** Add actor IDs to the crawl roster, deduplicated. No-op if none are new. */
+export function addMembers(state, actorIds) {
+  const ids = Array.isArray(actorIds) ? actorIds : [];
   const current = new Set(state.members);
   const newIds = [];
   for (const id of ids) {
@@ -104,10 +108,10 @@ export function addMembers(state, tokenIds) {
   return { state: { ...state, members: [...current] }, newIds, changed: true };
 }
 
-/** Remove one token ID from the roster. No-op if it wasn't a member. */
-export function removeMember(state, tokenId) {
-  if (!state.members.includes(tokenId)) return { state, changed: false };
-  return { state: { ...state, members: state.members.filter(id => id !== tokenId) }, changed: true };
+/** Remove one actor ID from the roster. No-op if it wasn't a member. */
+export function removeMember(state, actorId) {
+  if (!state.members.includes(actorId)) return { state, changed: false };
+  return { state: { ...state, members: state.members.filter(id => id !== actorId) }, changed: true };
 }
 
 /** Clear the roster. No-op if already empty. */
@@ -122,9 +126,9 @@ export function nextCrawlTurn(state) {
   return { state: { ...state, crawlTurn: state.crawlTurn + 1 }, changed: true };
 }
 
-/** Set (or overwrite) one token's out-of-crawl initiative entry. */
-export function setOocInitiative(state, tokenId, entry) {
-  return { state: { ...state, oocInitiative: { ...state.oocInitiative, [tokenId]: entry } }, changed: true };
+/** Set (or overwrite) one actor's out-of-crawl initiative entry. */
+export function setOocInitiative(state, actorId, entry) {
+  return { state: { ...state, oocInitiative: { ...state.oocInitiative, [actorId]: entry } }, changed: true };
 }
 
 /** Clear all OoC initiative entries. No-op if already empty. */

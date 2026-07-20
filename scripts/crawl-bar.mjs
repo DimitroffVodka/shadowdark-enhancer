@@ -518,19 +518,23 @@ export const CrawlBar = {
     }
 
     // In crawl mode: add to CrawlState.members (opt-in roster, not auto).
+    // Membership is world-scoped — keyed by ACTOR id, not scene-local token id
+    // — so a member stays in the strip when the GM switches scenes.
     if (CrawlState.mode === "crawl") {
-      const pcTokenIds = selected
-        .filter(t => t.actor?.type === "Player")
-        .map(t => t.document.id);
-      const skipped = selected.length - pcTokenIds.length;
-      if (!pcTokenIds.length) {
+      const pcActorIds = [...new Set(
+        selected
+          .filter(t => t.actor?.type === "Player")
+          .map(t => t.actor.id)
+      )];
+      const skipped = selected.length - selected.filter(t => t.actor?.type === "Player").length;
+      if (!pcActorIds.length) {
         ui.notifications.warn("Select Player tokens to add to the crawl.");
         return;
       }
       const before = new Set(CrawlState.members);
-      await CrawlState.addMembers(pcTokenIds);
-      const added = pcTokenIds.filter(id => !before.has(id)).length;
-      const dup = pcTokenIds.length - added;
+      await CrawlState.addMembers(pcActorIds);
+      const added = pcActorIds.filter(id => !before.has(id)).length;
+      const dup = pcActorIds.length - added;
       const parts = [];
       if (added) parts.push(`Added ${added}`);
       if (dup) parts.push(`${dup} already in roster`);

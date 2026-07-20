@@ -297,19 +297,20 @@ test("initiative-manager's createChatMessage writer only reacts for the active G
     CrawlState.init();
     await import("../scripts/initiative-manager.mjs");
 
+    // OoC initiative is keyed by ACTOR id (world-scoped membership).
     const fakeMsg = {
-      flags: { shadowdark: { rollConfig: { sdeOocTokenId: "tok1", advantage: 0 } } },
+      flags: { shadowdark: { rollConfig: { sdeOocActorId: "actor1", advantage: 0 } } },
       rolls: [{ total: 14 }],
     };
 
     // Non-active GM's client also gets createChatMessage — must no-op.
     env.Hooks.callAll("createChatMessage", fakeMsg);
-    assert.equal(CrawlState.oocInitiative.tok1, undefined);
+    assert.equal(CrawlState.oocInitiative.actor1, undefined);
 
     // Active GM's client writes it.
     env.game.user = GM_B;
     env.Hooks.callAll("createChatMessage", fakeMsg);
-    assert.deepEqual(CrawlState.oocInitiative.tok1, { roll: 14, advantage: 0 });
+    assert.deepEqual(CrawlState.oocInitiative.actor1, { roll: 14, advantage: 0 });
     await flush();
   } finally { env.restore(); }
 });

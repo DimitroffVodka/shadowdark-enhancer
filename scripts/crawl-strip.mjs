@@ -153,22 +153,39 @@ export const CrawlStrip = {
     const inCombat = mode === "combat" && !!game.combat;
 
     if (!inCombat) {
-      // Crawl mode — opt-in member list (Add Tokens drives this).
-      const memberIds = CrawlState.members ?? [];
+      // Crawl mode — opt-in member list (Add Tokens drives this). Membership is
+      // world-scoped: `CrawlState.members` holds ACTOR ids, not scene-local
+      // token ids, so the same party shows in the strip on every scene. Each
+      // member resolves to its token on the CURRENT scene (when one exists) for
+      // movement/select/pan; a member whose actor has no token placed on this
+      // scene still gets a card (resolved from the world actor).
+      const memberActorIds = CrawlState.members ?? [];
       const scene = canvas.scene;
       const ooc = CrawlState.oocInitiative;
-      const tokens = memberIds
-        .map(id => scene?.tokens.get(id))
-        .filter(t => t && t.actor?.type === "Player")
+      const entries = memberActorIds
+        .map(actorId => {
+          const actor = game.actors.get(actorId);
+          if (!actor || actor.type !== "Player") return null;
+          const tokenDoc = scene?.tokens.find(t => t.actorId === actorId) ?? null;
+          return { actorId, actor, tokenDoc };
+        })
+        .filter(Boolean)
         .sort((a, b) => {
-          const ai = ooc[a.id]?.roll;
-          const bi = ooc[b.id]?.roll;
+          const ai = ooc[a.actorId]?.roll;
+          const bi = ooc[b.actorId]?.roll;
           if (ai != null && bi != null) return bi - ai;
           if (ai != null) return -1;
           if (bi != null) return 1;
-          return (a.actor?.name ?? "").localeCompare(b.actor?.name ?? "");
+          return (a.actor.name ?? "").localeCompare(b.actor.name ?? "");
         });
-      const heroes = tokens.map(t => this._memberFromToken(t, "player"));
+      const heroes = entries.map(({ actorId, actor, tokenDoc }) => ({
+        id:      `member-${actorId}`,
+        name:    tokenDoc?.name ?? actor.name ?? "Token",
+        img:     tokenDoc?.texture?.src ?? actor.img ?? "icons/svg/mystery-man.svg",
+        type:    "player",
+        actorId,
+        tokenId: tokenDoc?.id ?? null,
+      }));
       // Append the synthetic GM card — out of combat always shows it so the
       // GM has a visible "their turn" marker for things like encounter rolls,
       // light tracker ticks, etc. (Vagabond pattern.)
@@ -202,18 +219,6 @@ export const CrawlStrip = {
       });
     }
     return { heroes, npcs: [], inCombat: true };
-  },
-
-  _memberFromToken(tokenDoc, type) {
-    const actor = tokenDoc.actor;
-    return {
-      id:      `token-${tokenDoc.id}`,
-      name:    tokenDoc.name ?? actor?.name ?? "Token",
-      img:     tokenDoc.texture?.src ?? actor?.img ?? "icons/svg/mystery-man.svg",
-      type,
-      actorId: actor?.id ?? null,
-      tokenId: tokenDoc.id,
-    };
   },
 
   render() {
@@ -378,11 +383,13 @@ export const CrawlStrip = {
                 return `<div class="sde-strip-init-badge" title="Initiative">${combatant.initiative}</div>`;
               }
             }
-            // Crawl mode: dice when no oocInitiative; otherwise show the rolled value.
-            if (!inCombat && m.tokenId && m.type === "player") {
-              const oocEntry = CrawlState.oocInitiative[m.tokenId];
+            // Crawl mode: dice when no oocInitiative; otherwise show the rolled
+            // value. Keyed by actorId (world-scoped) so the rolled order carries
+            // across scenes.
+            if (!inCombat && m.actorId && m.type === "player") {
+              const oocEntry = CrawlState.oocInitiative[m.actorId];
               if (!oocEntry && (actor?.isOwner || game.user.isGM)) {
-                return `<button class="sde-strip-rollinit-btn" data-token-id="${m.tokenId}" data-action="rollOocInit" title="Roll Initiative (out of combat)">${ICONS.diceD20}</button>`;
+                return `<button class="sde-strip-rollinit-btn" data-actor-id="${m.actorId}" data-action="rollOocInit" title="Roll Initiative (out of combat)">${ICONS.diceD20}</button>`;
               }
               if (oocEntry) {
                 return `<div class="sde-strip-init-badge" title="Initiative (out of combat)">${oocEntry.roll}</div>`;
@@ -571,11 +578,12 @@ export const CrawlStrip = {
 
           if (action === "rollOocInit") {
             // Crawl-mode out-of-combat initiative — uses InitiativeManager so
-            // the roll goes through Roll#toMessage (chat card + DsN).
-            const tokenId = btn.dataset.tokenId;
-            if (tokenId && !CrawlState.oocInitiative[tokenId]) {
+            // the roll goes through Roll#toMessage (chat card + DsN). Keyed by
+            // actor (world-scoped membership).
+            const actorId = btn.dataset.actorId;
+            if (actorId && !CrawlState.oocInitiative[actorId]) {
               const { InitiativeManager } = await import("./initiative-manager.mjs");
-              await InitiativeManager.rollOocForToken(tokenId);
+              await InitiativeManager.rollOocForActor(actorId);
               this.queueRender();
             }
             return;

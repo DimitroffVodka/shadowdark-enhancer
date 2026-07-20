@@ -10,19 +10,20 @@ import { CrawlState, isActiveGM } from "./crawl-state.mjs";
  * the Shadowdark style — same look as the system's attack / save / check
  * cards. Dice So Nice picks up the 3D roll automatically.
  *
- * Reroll handling: we stamp the rollConfig with `sdeOocTokenId` and listen
+ * Reroll handling: we stamp the rollConfig with `sdeOocActorId` and listen
  * for `createChatMessage`. The system's `rerollFromMessage` reuses the
  * original config to create a NEW message — our hook catches the new total
  * and updates CrawlState.oocInitiative.
  *
- * Result is stored on CrawlState.oocInitiative keyed by tokenId; the strip's
- * card sort honors it; cleared by CrawlState.clearOocInitiative() (Reset Init
- * button on the bar) or on startCrawl / endCrawl.
+ * Result is stored on CrawlState.oocInitiative keyed by ACTOR id (world-scoped,
+ * matching crawl membership) so the rolled order survives a scene switch; the
+ * strip's card sort honors it; cleared by CrawlState.clearOocInitiative()
+ * (Reset Init button on the bar) or on startCrawl / endCrawl.
  */
 
-const CONFIG_TAG = "sdeOocTokenId";
+const CONFIG_TAG = "sdeOocActorId";
 
-// Watch every new chat message — if its rollConfig carries our token tag,
+// Watch every new chat message — if its rollConfig carries our actor tag,
 // the roll is an OoC init roll (or a reroll of one). Sync the total into
 // CrawlState so the strip's badge updates.
 Hooks.on("createChatMessage", async (msg) => {
@@ -31,25 +32,24 @@ Hooks.on("createChatMessage", async (msg) => {
   // both react to the same roll and write CrawlState.oocInitiative twice.
   if (!isActiveGM()) return;
   const cfg = msg?.flags?.shadowdark?.rollConfig;
-  const tokenId = cfg?.[CONFIG_TAG];
-  if (!tokenId) return;
+  const actorId = cfg?.[CONFIG_TAG];
+  if (!actorId) return;
   const total = msg.rolls?.[0]?.total;
   if (typeof total !== "number") return;
-  await CrawlState.setOocInitiative(tokenId, { roll: total, advantage: cfg.advantage ?? 0 });
+  await CrawlState.setOocInitiative(actorId, { roll: total, advantage: cfg.advantage ?? 0 });
 });
 
 export const InitiativeManager = {
 
-  async rollOocForToken(tokenId) {
-    const token = canvas.scene?.tokens.get(tokenId);
-    const actor = token?.actor;
+  async rollOocForActor(actorId) {
+    const actor = game.actors.get(actorId);
     if (!actor) return null;
     if (!game.user.isGM && !actor.testUserPermission(game.user, "OWNER")) return null;
 
     const dice = globalThis.shadowdark?.dice;
     if (!dice?.rollFromConfig || !dice?.initializeD20Check) {
       // Defensive fallback if the system API isn't available.
-      return this._fallbackRoll(actor, tokenId);
+      return this._fallbackRoll(actor, actorId);
     }
 
     // Shadowdark initiative = 1d20 + DEX mod + any extra `roll.initiative.bonus`.
@@ -72,8 +72,8 @@ export const InitiativeManager = {
       heading: `${actor.name} — Initiative <em>(out of combat)</em>`,
       // Tag the config so the createChatMessage hook can identify this roll
       // (and any later reroll via the system's reroll-icon) as an OoC init
-      // roll for this specific token, and update CrawlState accordingly.
-      [CONFIG_TAG]: tokenId,
+      // roll for this specific actor, and update CrawlState accordingly.
+      [CONFIG_TAG]: actorId,
       advantage,
     });
 
@@ -85,11 +85,11 @@ export const InitiativeManager = {
   },
 
   async rollOocForAll() {
-    const tokens = canvas.scene?.tokens?.contents ?? [];
-    const candidates = tokens.filter(t => {
-      const actor = t.actor;
+    // World-scoped: roll for each crawl member (actor id) that hasn't rolled.
+    const candidates = (CrawlState.members ?? []).filter(actorId => {
+      const actor = game.actors.get(actorId);
       if (!actor || actor.type !== "Player") return false;
-      if (CrawlState.oocInitiative[t.id]) return false;
+      if (CrawlState.oocInitiative[actorId]) return false;
       if (!game.user.isGM && !actor.testUserPermission(game.user, "OWNER")) return false;
       return true;
     });
@@ -97,14 +97,14 @@ export const InitiativeManager = {
       ui.notifications.info("Shadowdark Enhancer: nothing to roll.");
       return;
     }
-    for (const token of candidates) {
-      await this.rollOocForToken(token.id);
+    for (const actorId of candidates) {
+      await this.rollOocForActor(actorId);
     }
   },
 
   // ── Internal ──────────────────────────────────────────────────────────────
 
-  async _fallbackRoll(actor, tokenId) {
+  async _fallbackRoll(actor, actorId) {
     const dexMod = Number(actor.system?.abilities?.dex?.mod ?? 0);
     const extraBonus = Number(actor.system?.roll?.initiative?.bonus ?? 0);
     const bonus = dexMod + extraBonus;
@@ -123,7 +123,7 @@ export const InitiativeManager = {
         <strong class="sde-chat-init-total">${roll.total}</strong>`,
       content,
     });
-    await CrawlState.setOocInitiative(tokenId, { roll: roll.total, advantage });
+    await CrawlState.setOocInitiative(actorId, { roll: roll.total, advantage });
     return roll.total;
   },
 };

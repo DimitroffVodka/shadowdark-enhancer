@@ -13,10 +13,12 @@
  *   - No Rush, no overloaded check, no terrain difficulty regions.
  *   - No fly/swim/climb effective-mode resolution.
  *   - Actor types are "Player" and "NPC" (capitalized).
- *   - CrawlState.members is [tokenId, ...] (array of strings), NOT objects.
+ *   - CrawlState.members is [actorId, ...] (array of strings), NOT objects.
+ *     Membership is world-scoped, so a token counts as a crawl member when its
+ *     `actorId` is in the roster — resolved per-scene, not by a stored tokenId.
  *   - CrawlState mode flags: `CrawlState.mode === "combat"` replaces Vagabond's `paused`.
- *   - moveRemaining is stored on the TOKEN (not actor) — members are tracked by tokenId
- *     and the same actor may have multiple tokens.
+ *   - moveRemaining is stored on the TOKEN (not actor) — the per-scene token
+ *     carries the flag; membership identity is the actor.
  *
  * TokenRulerWaypoint (what _getSegmentStyle receives) is NOT the same
  * object as the TokenMeasuredMovementWaypoint passed to refresh().
@@ -116,7 +118,7 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
     if (!CrawlState.isActive) return false;
     const doc = this.token?.document;
     if (!doc) return false;
-    return CrawlState.members.includes(doc.id);
+    return CrawlState.members.includes(doc.actorId);
   }
 
   /**
@@ -258,7 +260,7 @@ export const MovementTracker = {
         // permission-denied rejection and double deduction.
         if (CrawlState.isActive && userId === game.userId) {
           const actor    = doc.actor;
-          const isMember = CrawlState.members.includes(doc.id);
+          const isMember = CrawlState.members.includes(doc.actorId);
           const inCombat = CrawlState.mode === "combat";
           // In combat we also track tokens that aren't crawl members
           // (combatants get added to the combat tracker, not the crawl roster).
@@ -300,7 +302,7 @@ export const MovementTracker = {
       if (!token?.isOwner) return;
       const tokenDoc = token.document;
       const inCombat = CrawlState.mode === "combat";
-      const isMember = CrawlState.members.includes(tokenDoc.id);
+      const isMember = CrawlState.members.includes(tokenDoc.actorId);
       // Show rollback HUD button for crawl members in crawl mode, and for any
       // owned combatant in combat mode.
       if (!isMember && !inCombat) return;
@@ -381,7 +383,7 @@ export const MovementTracker = {
     if (!actor) return;
 
     const inCombat = CrawlState.mode === "combat";
-    const isMember = CrawlState.members.includes(doc.id);
+    const isMember = CrawlState.members.includes(doc.actorId);
     if (!isMember && !inCombat) return;
 
     const enforce = inCombat
@@ -560,16 +562,22 @@ export const MovementTracker = {
 
   /**
    * Reset moveRemaining + snapshot anchor for crawl members.
-   * Called from CrawlState.startCrawl / nextCrawlTurn.
+   * Called from CrawlState.startCrawl / nextCrawlTurn / addMembers.
+   *
+   * `actorIds` (defaulting to the world-scoped roster) are resolved to their
+   * token on the CURRENT scene — a member with no token here is simply skipped
+   * (its movement is only tracked on scenes where it's actually placed). The
+   * `_turnStartPos` snapshot is keyed by the resolved token id so rollback,
+   * which reads it by token id, stays consistent.
    */
-  async resetCrawl(tokenIds = null) {
-    const ids = tokenIds ?? CrawlState.members;
+  async resetCrawl(actorIds = null) {
+    const ids = actorIds ?? CrawlState.members;
     const scene = canvas.scene;
-    for (const id of ids) {
-      const tokenDoc = scene?.tokens.get(id);
+    for (const actorId of ids) {
+      const tokenDoc = scene?.tokens.find(t => t.actorId === actorId);
       if (!tokenDoc) continue;
       await this.resetToken(tokenDoc);
-      this._turnStartPos[id] = {
+      this._turnStartPos[tokenDoc.id] = {
         x: tokenDoc._source?.x ?? tokenDoc.x,
         y: tokenDoc._source?.y ?? tokenDoc.y,
       };
