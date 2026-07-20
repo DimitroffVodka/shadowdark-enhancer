@@ -448,7 +448,7 @@ export const MovementTracker = {
     // a different scene, or be a headless client with the canvas disabled
     // entirely (this world's always-on bridge GM runs core.noCanvas) — a
     // canvas-only lookup silently dropped the request in both cases. The
-    // teleport below is a document update, so no canvas is needed at all.
+    // displace below is a document update, so no canvas is needed at all.
     const doc = canvas.tokens?.get(tokenId)?.document
       ?? game.combat?.scene?.tokens.get(tokenId)
       ?? game.scenes.active?.tokens.get(tokenId)
@@ -463,16 +463,26 @@ export const MovementTracker = {
 
     const actor = doc.actor;
 
-    // Teleport back to the turn-start position (bypass wall collision).
+    // Displace back to the turn-start position (bypass wall collision).
     // Restore elevation/level when the snapshot carries them (levelled scenes:
     // same square, wrong floor otherwise); an old {x,y}-only snapshot omits
     // them and inherits the token's current values, i.e. the old behaviour.
-    await doc.update({
+    //
+    // An explicit "displace" waypoint replaces the deprecated `teleport: true`
+    // operation option (removed in v15) with identical semantics: no wall
+    // collision (walls: null), zero movement cost, no path measurement. The
+    // restored fields must live ON the waypoint — core overwrites the changes'
+    // movement fields from the final waypoint, filling omitted ones from
+    // _source — so a changes-only elevation/level would be discarded.
+    const waypoint = {
       x: start.x, y: start.y,
       ...(start.elevation !== undefined ? { elevation: start.elevation } : {}),
       ...(start.level ? { level: start.level } : {}),
-    }, {
-      teleport: true, animate: false, [MODULE_ID]: { rollback: true },
+      action: "displace", snapped: false, explicit: false, checkpoint: true,
+    };
+    await doc.update({ x: start.x, y: start.y }, {
+      movement: { [doc.id]: { waypoints: [waypoint] } },
+      animate: false, [MODULE_ID]: { rollback: true },
     });
 
     // Refund full turn movement (base speed — no Rush in Shadowdark)
