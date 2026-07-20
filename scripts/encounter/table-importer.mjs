@@ -336,15 +336,68 @@ function splitByCapitals(rest, n) {
   return cells;
 }
 
+/** Start offset of each 2+-space-separated cell in a row. Null when the row
+ *  contains a tab (tab-delimited rows split cleanly and need no geometry). */
+function _cellStarts(s) {
+  if (s.includes("\t")) return null;
+  const starts = []; let i = 0;
+  while (i < s.length) {
+    while (i < s.length && s[i] === " ") i++;
+    if (i >= s.length) break;
+    starts.push(i);
+    while (i < s.length && !(s[i] === " " && s[i + 1] === " ")) i++;
+  }
+  return starts;
+}
+
+/**
+ * Derive consensus column x-positions from the rows of one block that DO split
+ * cleanly into n cells, so a row with a BLANK interior cell can be sliced
+ * positionally instead of packed left.
+ *
+ * Why this is needed: `/\s{2,}/` swallows the whole whitespace run spanning an
+ * empty cell, so a blank middle column yields n-1 pieces with no empty token to
+ * detect — the row then packs left and every later cell lands one column early
+ * (a Wealthy-tier item filed under Standard), with no warning on that column.
+ * The blank cannot be located from the row alone; it takes the block's own
+ * well-formed rows to say where the columns are.
+ *
+ * Offsets are measured on the post-die-number remainder (`r.rest`), so a
+ * one-digit vs two-digit die face doesn't shift the columns.
+ * Returns null when fewer than two clean rows exist, or when the medians aren't
+ * strictly increasing — i.e. whenever the evidence is too weak to act on.
+ */
+function _consensusColX(rests, n) {
+  const samples = Array.from({ length: n }, () => []);
+  let clean = 0;
+  for (const rest of rests) {
+    const st = _cellStarts(String(rest));
+    if (!st || st.length !== n) continue;
+    clean++;
+    for (let i = 0; i < n; i++) samples[i].push(st[i]);
+  }
+  if (clean < 2) return null;
+  const med = (a) => { const s = a.slice().sort((x, y) => x - y); return s[Math.floor(s.length / 2)]; };
+  const colX = samples.map(med);
+  for (let i = 1; i < n; i++) if (!(colX[i] > colX[i - 1])) return null;
+  return colX;
+}
+
 /**
  * Split a row's result text into exactly n cells. Column detection, in order:
  *   1. an explicit "|" delimiter (user pref for multi-column tables),
  *   2. tab / 2+ spaces (aligned PDF columns),
  *   3. one word per column (single-token cells),
  *   4. a capital-letter boundary (multi-word cells; see splitByCapitals),
- *   5. else surplus tokens fold into the last cell.
+ *   5. positional slicing at `colX` when the row is SHORT a cell (a blank
+ *      interior column — see _consensusColX; only reached when 1-4 all failed,
+ *      so it can never change a row that already split cleanly),
+ *   6. else surplus tokens fold into the last cell.
+ * @param {number[]|null} colX  consensus column offsets for the block, if known
+ * @returns {string[]|{cells: string[], short: true}} plain cells, or a flagged
+ *   result when the row was short a cell and could NOT be rescued positionally
  */
-function splitCells(rest, n) {
+function splitCells(rest, n, colX = null) {
   const s = String(rest);
   const pad = (cells) => { const c = cells.slice(0, n); while (c.length < n) c.push(""); return c; };
   if (s.includes("|")) return pad(s.split("|").map((x) => x.trim()));
@@ -354,12 +407,23 @@ function splitCells(rest, n) {
   if (tokens.length === n) return tokens;
   const byCaps = splitByCapitals(s, n);
   if (byCaps) return byCaps;
-  if (tokens.length < n) return pad(tokens);
+  if (tokens.length < n) {
+    if (colX) {
+      const sliced = _sliceCols(s, colX);
+      if (sliced.length === n && sliced.filter((c) => c).length === tokens.length) return sliced;
+    }
+    // No usable geometry: the old left-pack, but tell the caller it guessed.
+    return { cells: pad(tokens), short: true };
+  }
   const cells = [];
   for (let i = 0; i < n - 1; i++) cells.push(tokens[i]);
   cells.push(tokens.slice(n - 1).join(" "));
   return cells;
 }
+
+/** splitCells returns either cells or a {cells, short} flag — normalise. */
+function _cells(res) { return Array.isArray(res) ? res : res.cells; }
+function _isShort(res) { return !Array.isArray(res) && res.short === true; }
 
 /** Build N best-effort ParsedTables from a multi-column block. */
 function parseMatrixBlock(title, die, dataLines) {
@@ -378,16 +442,30 @@ function parseMatrixBlock(title, die, dataLines) {
     };
   });
 
-  for (const line of dataLines) {
-    const r = parseLeadingRange(line);
-    if (!r) continue; // matrix rows must lead with a die value
-    const cells = splitCells(r.rest, n);
+  // Consensus column geometry from this block's own clean rows, so a row with a
+  // blank interior cell is sliced positionally instead of packed left.
+  const parsed = dataLines.map(parseLeadingRange).filter(Boolean);
+  const colX = _consensusColX(parsed.map((r) => r.rest), n);
+  const shortRows = [];
+
+  for (const r of parsed) {
+    const res = splitCells(r.rest, n, colX);
+    const cells = _cells(res);
+    if (_isShort(res)) shortRows.push(r.min === r.max ? `${r.min}` : `${r.min}-${r.max}`);
     for (let ci = 0; ci < n; ci++) {
       tables[ci].rows.push({ min: r.min, max: r.max, text: cells[ci] ?? "" });
     }
   }
 
-  for (const t of tables) t.warnings = computeWarnings(t);
+  for (const t of tables) {
+    t.warnings = computeWarnings(t);
+    if (shortRows.length) {
+      t.warnings.unshift(
+        `Row${shortRows.length > 1 ? "s" : ""} ${shortRows.join(", ")} didn't split into ${n} columns and the layout couldn't be read — ` +
+        `cells after a blank one may be shifted left. Check these rows against the book.`,
+      );
+    }
+  }
   return tables;
 }
 
@@ -1375,17 +1453,28 @@ function parseSectionSlice(text, { name = "", caption, size } = {}) {
 function parseGridColumn(text, { name = "", caption, col = 0, ncols = 3 } = {}) {
   const s = _sliceSection(text, { name, caption });
   if (!s) return null;
+  // Consensus column geometry from this grid's own clean rows — without it a
+  // row with a blank tier packs left and this column silently receives the
+  // NEXT tier's value (and only the last column ever reports a coverage gap).
+  const parsed = s.body.map(parseLeadingRange).filter(Boolean);  // grid rows lead with a die value
+  const colX = _consensusColX(parsed.map((r) => r.rest), ncols);
   const dataLines = [];
-  for (const line of s.body) {
-    const r = parseLeadingRange(line);
-    if (!r) continue;                                   // grid rows lead with a die value
-    const cells = splitCells(r.rest, ncols);
-    const cell = (cells[col] ?? "").trim();
+  const shortRows = [];
+  for (const r of parsed) {
+    const res = splitCells(r.rest, ncols, colX);
+    if (_isShort(res)) shortRows.push(r.min === r.max ? `${r.min}` : `${r.min}-${r.max}`);
+    const cell = (_cells(res)[col] ?? "").trim();
     if (cell) dataLines.push(`${r.min === r.max ? r.min : `${r.min}-${r.max}`} ${cell}`);
   }
   if (!dataLines.length) return null;
   const pt = parseSingleDieBlock(name, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, dataLines);
   if (name) pt.name = name;
+  if (shortRows.length) {
+    pt.warnings.unshift(
+      `Row${shortRows.length > 1 ? "s" : ""} ${shortRows.join(", ")} didn't split into ${ncols} columns and the layout couldn't be read — ` +
+      `this column's value may belong to a neighbouring one. Check these rows against the book.`,
+    );
+  }
   return pt.rows.length ? pt : null;
 }
 
