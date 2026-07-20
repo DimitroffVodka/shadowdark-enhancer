@@ -2775,28 +2775,30 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!name) return;
     // Spells go to their own Class → Tier → Alignment workspace.
     if (type === "Spell") {
-      import("./spell-importer-app.mjs").then(({ SpellImporterApp }) => {
-        const app = SpellImporterApp.open();
-        app._reset();   // fresh unlock — never import a stale parsed batch (review #2)
-        if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
-        if (name) app._pasteText = `${name}\n`;   // start the paste with the unlocked spell's name
-        app.render();
-      });
+      const { SpellImporterApp } = await import("./spell-importer-app.mjs");
+      const app = SpellImporterApp.open();
+      app._reset();   // fresh unlock — never import a stale parsed batch (review #2)
+      if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
+      if (name) app._pasteText = `${name}\n`;   // start the paste with the unlocked spell's name
+      app.render();
       return;
     }
 
     // Classes go to their own workspace, not the generic paste box.
     if (type === "Class") {
-      import("./class-importer-app.mjs").then(async ({ ClassImporterApp }) => {
-        const app = ClassImporterApp.open();
-        app._reset();   // fresh unlock — clear any prior class's state (review #2)
-        if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
-        // Seed the class name so the workspace knows which class it's unlocking.
-        if (name) app._seedClassName = name;
-        app.render();
-        // One press does Import + extraction: pull the class writeup straight
-        // into the body box when its PDF is available; otherwise fall back to
-        // opening the viewer so the GM can copy the writeup by hand.
+      const { ClassImporterApp } = await import("./class-importer-app.mjs");
+      const app = ClassImporterApp.open();
+      app._reset();   // fresh unlock — clear any prior class's state (review #2)
+      if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
+      // Seed the class name so the workspace knows which class it's unlocking.
+      if (name) app._seedClassName = name;
+      app.render();
+      // One press does Import + extraction: pull the class writeup straight
+      // into the body box when its PDF is available; otherwise fall back to
+      // opening the viewer so the GM can copy the writeup by hand. The grab can
+      // fail on a locked, scanned, or missing PDF — say so, because the
+      // workspace is already open and would otherwise just sit there empty.
+      try {
         const { overlayFor } = await import("./class-overlays.mjs");
         const page = target.dataset.pages || overlayFor(name)?.pages;
         if (sourcePdfTarget(src, page)) await app._onGrabPdf();
@@ -2804,7 +2806,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           const href = sourcePdfHref(src, page);
           if (href) this._showSourcePdf(href, `${name} writeup${page ? ` — p.${page}` : ""}`);
         }
-      });
+      } catch (err) {
+        console.error("Shadowdark Enhancer | class unlock extraction failed", err);
+        ui.notifications.error(`Couldn't pull the “${name}” writeup from the source PDF — paste it by hand, or see the console.`);
+      }
       return;
     }
 
@@ -2812,18 +2817,24 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // guided table → descriptions → combine flow, not the generic paste box
     // (which only ever made cost-only stubs with no descriptions).
     if (["Basic", "Weapon", "Armor"].includes(type)) {
-      import("./item-builder-app.mjs").then(async ({ ItemBuilderApp }) => {
-        const app = ItemBuilderApp.open();
-        app._reset();
-        app._gearType = type;
-        if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
-        app.render();
-        // One press = open + grab the price table AND the descriptions (falls
-        // back to manual paste when the source PDF/pages aren't linked). The GM
-        // then fixes any description the two-column grab missed via Open PDF.
+      const { ItemBuilderApp } = await import("./item-builder-app.mjs");
+      const app = ItemBuilderApp.open();
+      app._reset();
+      app._gearType = type;
+      if (src) app._source = CHAR_SOURCES[src]?.label ?? src;
+      app.render();
+      // One press = open + grab the price table AND the descriptions (falls
+      // back to manual paste when the source PDF/pages aren't linked). The GM
+      // then fixes any description the two-column grab missed via Open PDF.
+      // A failed grab leaves the builder open and empty, so report it rather
+      // than letting the rejection disappear.
+      try {
         await app._onGrabTable();
         await app._onGrabDesc();
-      });
+      } catch (err) {
+        console.error("Shadowdark Enhancer | gear unlock extraction failed", err);
+        ui.notifications.error(`Couldn't pull the ${type.toLowerCase()} tables from the source PDF — paste them by hand, or see the console.`);
+      }
       return;
     }
 
