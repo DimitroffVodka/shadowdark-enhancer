@@ -437,3 +437,27 @@ test("lookup shape: a short row imports padded with a warning instead of crashin
   assert.equal(r7.text, "Jailed | ");
   assert.ok(pt.warnings.some((w) => /Row 7 .*fewer than 2 columns/.test(w)), pt.warnings.join(" | "));
 });
+
+// Narrow columns (~6 chars apart, the 4-column name-grid layout): the gap
+// spanning a BLANK cell sits close enough to the previous boundary that a
+// fixed drift-confidence threshold scored it as a real boundary, re-learned
+// drift from it, and shifted every later cell left — re-introducing the exact
+// defect the consensus-colX fix removed. The ownership test (a gap nearer the
+// NEXT boundary belongs to it) must keep the blank in place.
+test("grid shape: narrow columns with a blank cell don't re-learn drift", () => {
+  const text = [
+    "NAMES",
+    "d4   Aaaa  Bbbb  Cccc  Dddd",
+    "1    Aldo  Bram  Cora  Dain",
+    "2    Aldo        Cora  Dain",
+    "3    Ann   Bel   Cee   Dot",
+    "4    Arn   Bo    Cy    Del",
+  ].join("\n");
+  const g = parseByShape(text, { kind: "compound", split: "grid", cols: 4, size: 4,
+    labels: ["Aaaa", "Bbbb", "Cccc", "Dddd"] }, { name: "Names" }).generators[0];
+  const at = (col, face) => g.columns[col].rows.find((r) => r.min === face)?.text;
+  assert.equal(at(0, 2), "Aldo");
+  assert.equal(at(1, 2), "");        // blank stays blank
+  assert.equal(at(2, 2), "Cora");    // NOT pulled left into Bbbb
+  assert.equal(at(3, 2), "Dain");
+});

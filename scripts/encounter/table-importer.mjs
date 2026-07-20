@@ -1054,26 +1054,31 @@ function _sliceCols(line, colX) {
   // through to a word-snap, cutting a cell mid-phrase ("You make | a friend").
   // So centre each search on the header x shifted by the drift already observed.
   //
-  // Only a CONFIDENT match updates the drift. A gap matched out at the window
-  // edge is usually not a boundary at all but one wide run spanning a blank
-  // cell — drifting off that propagates the error and pushes a blank column's
-  // content into its neighbour (the "Turnip | | Venison" shape).
-  const DRIFT_CONF = 6;
+  // OWNERSHIP gates every match: a candidate gap that sits nearer the NEXT
+  // boundary's position than this one's is that column's edge — typically one
+  // wide run spanning a blank cell. Claiming it here shifts every later cell
+  // left AND teaches `drift` a lie that compounds the shift. (A fixed
+  // confidence threshold was tried first and failed on narrow columns: with
+  // headers ~6 chars apart, the blank-spanning gap scored as a confident match
+  // and re-introduced the exact shift the consensus-colX fix removed.)
   const cuts = [];
   let lo = colX[0];
   let drift = 0;
-  for (const x of colX.slice(1)) {
-    const target = x + drift;
+  for (let bi = 1; bi < colX.length; bi++) {
+    const target = colX[bi] + drift;
+    const nextTarget = bi + 1 < colX.length ? colX[bi + 1] + drift : null;
     let best = null, bd = 13;                              // window: a gap within 12 cols of target
     for (const end of gapEnds) {
       if (end <= lo) continue;                             // already consumed by an earlier column
       const d = Math.abs(end - target);
-      if (d < bd) { bd = d; best = end; }
+      if (d >= bd) continue;
+      if (nextTarget != null && Math.abs(end - nextTarget) < d) continue;  // owned by the next column
+      bd = d; best = end;
     }
     let c;
     if (best != null) {
       c = best;
-      if (bd <= DRIFT_CONF) drift = best - x;
+      drift = best - colX[bi];
     } else if (target <= 0 || target >= line.length || line[target] === " " || line[target - 1] === " ") {
       c = target;
     } else {
