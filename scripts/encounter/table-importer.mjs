@@ -1041,17 +1041,35 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
  *  the neighbouring column. */
 function _sliceCols(line, colX) {
   const gapEnds = [...line.matchAll(/\S(\s{2,})/g)].map((m) => m.index + m[0].length);
-  const cutAt = (x) => {
+  // Resolve boundaries LEFT TO RIGHT, each at or after the previous one, and
+  // never let two columns claim the same gap. Resolving each independently let
+  // two header x-positions that both sat within the ±12 window of the SAME gap
+  // snap to the same index: the column between them collapsed to "" and its
+  // text landed in the next column. The lookup path has no best-filled
+  // comparison to catch that (parseLookupShape checks only the row COUNT), so
+  // the table committed silently wrong.
+  const cuts = [];
+  let lo = colX[0];
+  for (const x of colX.slice(1)) {
     let best = null, bd = 13;                              // window: a gap within 12 cols of x
-    for (const end of gapEnds) { const d = Math.abs(end - x); if (d < bd) { bd = d; best = end; } }
-    if (best != null) return best;
-    if (x <= 0 || x >= line.length || line[x] === " " || line[x - 1] === " ") return x;
-    let l = x; while (l > 0 && line[l - 1] !== " ") l--;
-    let r = x; while (r < line.length && line[r] !== " ") r++;
-    return (x - l <= r - x) ? l : r;
-  };
+    for (const end of gapEnds) {
+      if (end <= lo) continue;                             // already consumed by an earlier column
+      const d = Math.abs(end - x);
+      if (d < bd) { bd = d; best = end; }
+    }
+    let c;
+    if (best != null) c = best;
+    else if (x <= 0 || x >= line.length || line[x] === " " || line[x - 1] === " ") c = x;
+    else {
+      let l = x; while (l > 0 && line[l - 1] !== " ") l--;
+      let r = x; while (r < line.length && line[r] !== " ") r++;
+      c = (x - l <= r - x) ? l : r;
+    }
+    cuts.push(Math.max(c, lo));
+    lo = cuts[cuts.length - 1];
+  }
   const cells = []; let prev = colX[0];
-  for (const cut of colX.slice(1).map(cutAt)) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
+  for (const cut of cuts) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
   cells.push(line.slice(prev).trim());
   return cells;
 }
