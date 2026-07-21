@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **Internal: in-client regression tests for the combat state machine.** A
+  Quench batch (`shadowdark-enhancer.combat-state`) now covers the three
+  combat-start flows and asserts every crawl member joins the tracker exactly
+  once — the invariant the v0.11.1 fix restored. Dev installs with the Quench
+  module get it automatically; release installs are unaffected (the test
+  directory doesn't ship, and the loader quietly no-ops).
+
 ## [0.11.1] — 2026-07-21
 
 ### Fixed

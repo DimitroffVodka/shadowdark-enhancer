@@ -460,6 +460,18 @@ Hooks.once("init", () => {
   };
 });
 
+// Quench regression batches (dev installs only). Lazy: nothing loads unless
+// the Quench module is active and fires quenchReady. test/ never ships in the
+// release zip, so on a released install the import 404s and the catch no-ops.
+Hooks.on("quenchReady", async (quench) => {
+  try {
+    const { registerCombatStateBatch } = await import("../test/quench/combat-state.batch.mjs");
+    registerCombatStateBatch(quench);
+  } catch (err) {
+    console.debug(`${MODULE_ID} | Quench batches not available (expected on a release install)`, err);
+  }
+});
+
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
   // Guarantee the system's "Searching Distant Lands…" loading spinner is never

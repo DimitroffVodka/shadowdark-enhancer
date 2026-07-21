@@ -16,7 +16,9 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ["scripts/**/*.mjs"],
+    // test/quench/ runs INSIDE the Foundry client (Quench batches), so it
+    // shares the browser + Foundry globals, not the node test block below.
+    files: ["scripts/**/*.mjs", "test/quench/**/*.mjs"],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: "module",
