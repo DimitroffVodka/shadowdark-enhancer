@@ -689,10 +689,4 @@ export const MovementTracker = {
     }
     this._turnStartPos = {};
   },
-
-  /** Rollback helper consumed by the strip's combat-mode rollback action. */
-  async rollbackToTurnStart(tokenDoc) {
-    if (!tokenDoc) return;
-    await this.rollback(tokenDoc.id);
-  },
 };
