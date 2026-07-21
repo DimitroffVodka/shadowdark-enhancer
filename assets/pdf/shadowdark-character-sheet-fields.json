@@ -74,15 +74,18 @@
     {
       "id": "luck",
       "page": 1,
-      "type": "checkbox",
+      "type": "text",
       "rect": [
-        538,
-        704.5,
-        13,
-        13
+        506,
+        703,
+        76,
+        19
       ],
-      "description": "Has a luck token",
-      "foundry": "system.luck.available"
+      "fontSize": 14,
+      "multiline": false,
+      "align": "center",
+      "description": "Luck tokens",
+      "foundry": "system.luck.remaining"
     },
     {
       "id": "hp",

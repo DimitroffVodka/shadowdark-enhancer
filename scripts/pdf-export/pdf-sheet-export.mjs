@@ -168,7 +168,11 @@ export async function buildFieldValues(actor) {
   T("level", level);
   T("xp", sys.level?.xp ?? 0);
   T("xp_next", level * 10);
-  C("luck", sys.luck?.available);
+  // Luck is a numeric field on the sheet now (was a checkbox): show the token
+  // count from the pulp-mode variant, falling back to 1 for the base
+  // single-token rule. Leave the box blank when they have no luck.
+  const luckCount = sys.luck?.remaining || (sys.luck?.available ? 1 : 0);
+  T("luck", luckCount || "");
   const classDoc = sys.class ? await fromUuid(sys.class).catch(() => null) : null;
   T("ancestry", await resolveName(sys.ancestry));
   T("class", classDoc?.name ?? (await resolveName(sys.class)));
