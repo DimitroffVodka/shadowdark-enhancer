@@ -28,9 +28,9 @@ export const ANCESTRY_ART = {
   "half-elf": "elf.webp",      // reuse the elf portrait until dedicated art exists
   goblin: "goblin.webp",
   "half-orc": "half-orc.webp",
-  halfling: "halfling.png",
+  halfling: "halfling.webp",
   kobold: "kobold.webp",
-  human: "human.png",
+  human: "human.webp",
 };
 
 /** Class name-slug → file in icons/game-icons/classes/. One monochrome

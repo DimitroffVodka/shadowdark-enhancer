@@ -18,8 +18,9 @@
   assets, settings keys, flags, and the `game.shadowdarkEnhancer` API are all
   unchanged.
 - **The bundled art is much smaller, and the unsourced class photos are gone.**
-  The Kobold ancestry portrait was resized (≤1024 px) and re-encoded to WebP
-  with camera metadata stripped. The eleven photographed class portraits in
+  The Kobold, Halfling, and Human ancestry portraits were resized (≤1024 px)
+  and re-encoded to WebP with camera metadata stripped — every bundled
+  ancestry portrait is now a compact WebP. The eleven photographed class portraits in
   `assets/classes/` were **removed** — their sourcing was never recorded, and
   the character builder has used the gold game-icons class emblems since
   0.10.0, so nothing in the UI referenced them beyond the optional portrait

@@ -8,9 +8,13 @@ into the **public domain (CC0)**. No attribution is required for CC0 works; it
 is provided here as a courtesy. Images were resized/re-encoded to WebP for the
 module.
 
-- `human.png` — "Robin Hood" by **Louis Rhead**, from *Bold Robin Hood and His
+- `human.webp` — "Robin Hood" by **Louis Rhead**, from *Bold Robin Hood and His
   Outlaw Band* (New York, 1912). **Public domain** (Rhead d. 1926; pre-1929
   publication). Cropped (banner/frame removed) and cleaned to black-on-white.
+- `halfling.webp` — halfling artwork by **Jonathan Torres**, licensed
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), via the
+  [Public Domain Super Heroes wiki](https://pdsh.fandom.com/wiki/Halfling).
+  The module's copy is on a plain background, resized, and re-encoded to WebP.
 
 ## UI button icons (`icons/game-icons/`)
 
