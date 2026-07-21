@@ -27,6 +27,23 @@ test("composeName", () => {
   assert.equal(composeName({ type: "utility", baseItem: "", bonus: 0 }), "Utility");
 });
 
+test("composeName does not stack bonus prefixes when re-forging a forged base", () => {
+  // Re-forging FROM a forged item is supported (assembleItemData strips the old
+  // bonus effects); the name must be re-derived, not stacked.
+  assert.equal(composeName({ type: "weapon", baseItem: "+2 Longsword", bonus: 3 }), "+3 Longsword");
+  assert.equal(composeName({ type: "weapon", baseItem: "+2 Longsword", bonus: 2 }), "+2 Longsword");
+  // Dropping to +0 drops the prefix — the effects are gone, so the name must not lie.
+  assert.equal(composeName({ type: "weapon", baseItem: "+2 Longsword", bonus: 0 }), "Longsword");
+  // Heals names already doubled by the pre-fix behaviour.
+  assert.equal(composeName({ type: "weapon", baseItem: "+2 +2 Longsword", bonus: 1 }), "+1 Longsword");
+  assert.equal(composeName({ type: "armor", baseItem: "+1 Plate Mail", bonus: 0 }), "Plate Mail");
+  // A "+N" that isn't a leading prefix belongs to the name and is left alone.
+  assert.equal(composeName({ type: "weapon", baseItem: "Sword of +1 Smiting", bonus: 2 }), "+2 Sword of +1 Smiting");
+  assert.equal(composeName({ type: "weapon", baseItem: "Longsword +1", bonus: 2 }), "+2 Longsword +1");
+  // A base named only "+2" has no strippable prefix (no trailing word) — kept.
+  assert.equal(composeName({ type: "weapon", baseItem: "+2", bonus: 1 }), "+1 +2");
+});
+
 test("inferSeedFromName (legacy loot fallback)", () => {
   assert.deepEqual(inferSeedFromName("+2 Longsword"), { type: "weapon", bonus: 2 });
   assert.deepEqual(inferSeedFromName("Plate Mail"), { type: "armor", bonus: 0 });

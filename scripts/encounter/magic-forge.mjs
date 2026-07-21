@@ -83,9 +83,27 @@ export function resolveSelectedBonus(text) {
   return n;
 }
 
+/**
+ * Strip any leading `+N ` bonus prefixes a base name already carries (pure).
+ * Forging FROM a forged item is a supported path (`assembleItemData` strips the
+ * old bonus effects for exactly that case), so the name must be re-derived from
+ * the plain base rather than stacked: `+2 Longsword` re-forged at +3 is
+ * `+3 Longsword`, not `+3 +2 Longsword`. Repeats to also heal names already
+ * doubled by the pre-fix behaviour. Leading-anchored only — a `+1` elsewhere in
+ * a name is part of that name and is left alone.
+ * @param {string} name
+ * @returns {string}
+ */
+function stripBonusPrefix(name) {
+  let s = String(name ?? "").trim();
+  let prev;
+  do { prev = s; s = s.replace(/^\+\d+\s+/, "").trim(); } while (s !== prev);
+  return s;
+}
+
 /** `+N Base` / `Base` / type-label fallback (pure). */
 export function composeName({ type, baseItem, bonus }) {
-  const base = (baseItem && baseItem.trim()) || TYPE_LABELS[type] || "Magic Item";
+  const base = stripBonusPrefix(baseItem) || TYPE_LABELS[type] || "Magic Item";
   return bonus > 0 ? `+${bonus} ${base}` : base;
 }
 
