@@ -29,7 +29,7 @@ const SOCKET = `module.${MODULE_ID}`;
  * Build a fresh fake game/Hooks environment and install it on globalThis.
  * Mirrors the setup()/restore() pattern in loading-dialog-guard.test.mjs.
  */
-function setup({ users = [], activeGMId = null, crawlState } = {}) {
+function setup({ users = [], activeGMId = null, crawlState, combats = [] } = {}) {
   const settingsStore = { [SETTING_KEY]: crawlState };
   const socketListeners = [];   // { event, cb }
   const hooksMap = new Map();   // event -> cb[]
@@ -37,8 +37,19 @@ function setup({ users = [], activeGMId = null, crawlState } = {}) {
   const emitted = [];           // { event, payload }
   const settingsSetCalls = [];  // { key, value }
 
+  // Live-combat model for _reconcileCombatMode()/deleteCombat, which read
+  // game.combats.size / .some(). A Foundry Collection exposes both; mirror just
+  // that surface so tests can declare "a combat still exists" (e.g. a reload
+  // mid-fight) and clear it to model the fight ending.
+  let combatsArr = combats.slice();
+  const combatsCollection = {
+    get size() { return combatsArr.length; },
+    some: (fn) => combatsArr.some(fn),
+  };
+
   const fakeGame = {
     user: null,
+    combats: combatsCollection,
     users: {
       get: (id) => usersById.get(id),
       activeGM: activeGMId ? usersById.get(activeGMId) : null,
@@ -75,6 +86,7 @@ function setup({ users = [], activeGMId = null, crawlState } = {}) {
   return {
     game: fakeGame, Hooks: fakeHooks, settingsStore, socketListeners, emitted, settingsSetCalls,
     setActiveGM: (id) => { fakeGame.users.activeGM = id ? usersById.get(id) : null; },
+    setCombats: (arr) => { combatsArr = arr.slice(); },
     restore: () => Object.assign(globalThis, prev),
   };
 }
@@ -200,13 +212,21 @@ test("priorMode is persisted in the world setting and survives a reload + active
   // Simulate a reload where GM B (NOT the client that entered combat) is now
   // the active GM. No client-local memory carries over — only what's in
   // `persisted` (the world setting) does.
-  const env2 = setup({ users: [GM_A, GM_B], activeGMId: GM_B.id, crawlState: persisted });
+  // The reload is mid-fight: the combat still exists, so init()'s
+  // _reconcileCombatMode() must see it (game.combats.size > 0) and leave the
+  // persisted "combat" mode alone rather than self-healing back to crawl.
+  const env2 = setup({
+    users: [GM_A, GM_B], activeGMId: GM_B.id, crawlState: persisted,
+    combats: [{ id: "c1" }],
+  });
   try {
     env2.game.user = GM_B;
     CrawlState.init();
     assert.equal(CrawlState.mode, "combat");
     assert.equal(CrawlState._state.priorMode, "crawl");
 
+    // The fight ends: deleteCombat fires post-removal, so no combat remains.
+    env2.setCombats([]);
     env2.Hooks.callAll("deleteCombat");
     // Restored to "crawl" using the PERSISTED priorMode, not any value GM B's
     // fresh client could have remembered locally.

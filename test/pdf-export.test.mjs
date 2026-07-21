@@ -47,7 +47,7 @@ function makeActor(over = {}) {
   };
   const sys = {
     level: { value: 3, xp: 12 },
-    luck: { available: false },
+    luck: over.luck ?? { available: false },
     class: classUuid,
     ancestry: "Dwarf",
     alignment: "lawful",
@@ -92,9 +92,28 @@ test("core identity + abilities come from the derived model (active-effect value
     assert.equal(text.hp_max, "24");
     assert.equal(text.ac, "15");
     assert.equal(text.gp, "100");
-    assert.equal(checks.luck, false);
+    assert.equal(text.luck, "");                 // no luck ⇒ blank numeric field
+    assert.equal("luck" in checks, false);       // luck is a number field now, not a checkbox
     assert.equal(text.languages, "Common, Dwarvish");
   } finally { restore(); }
+});
+
+test("luck renders as a number: base token ⇒ 1, pulp remaining ⇒ count, none ⇒ blank", async () => {
+  const cases = [
+    { luck: { available: true, remaining: 0 }, expected: "1" },   // base rule, has token
+    { luck: { available: false, remaining: 0 }, expected: "" },   // base rule, spent ⇒ blank
+    { luck: { available: true, remaining: 3 }, expected: "3" },   // pulp mode, 3 remaining
+    { luck: { available: false, remaining: 0 }, expected: "" },   // pulp mode, none ⇒ blank
+  ];
+  for (const { luck, expected } of cases) {
+    const actor = makeActor({ luck });
+    const restore = installGlobals(actor.uuidMap);
+    try {
+      const { text, checks } = await buildFieldValues(actor);
+      assert.equal(text.luck, expected);
+      assert.equal("luck" in checks, false);
+    } finally { restore(); }
+  }
 });
 
 test("attacks: att.item fallback, UUID lookup, and custom buckets are all mapped", async () => {
