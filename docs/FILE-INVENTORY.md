@@ -302,14 +302,13 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 | Path | Contents |
 |---|---|
 | `assets/icons/shikashi/` | 284 `.webp` item icons + `manifest.json`. Credited in CREDITS.md. |
-| `assets/ancestries/` | 7 ancestry portraits. |
-| `assets/classes/` | 11 class portraits. **Release note: several are multi-MB camera JPEGs needing re-encode + per-file credits (CREDITS.md TODO).** |
+| `assets/ancestries/` | 7 ancestry portraits (WebP, ≤1024 px). |
 | `assets/pdf/` | Form-fillable character sheet + field map JSON. |
 | `assets/portraits/README.md` | Gallery folder usage note. |
 | `icons/game-icons/classes/` | 25 recolored game-icons.net class emblems (fill baked in). |
 | `icons/game-icons/` | 8 shared SVGs. |
 | `icons/` root | `dragon-head.svg`, `light-sabers.svg`, `shamrock.svg`. |
-| `assets/fonts/`, `assets/classes/_retured/` | **Empty directories** — safe to delete. |
+| `assets/fonts/` | **Empty directory** — safe to delete. |
 
 ## 9. Tracked-but-not-shipped, and local-only
 

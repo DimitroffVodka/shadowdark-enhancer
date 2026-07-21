@@ -94,10 +94,12 @@ export function registerSettings() {
     config: true,
     type: String,
     // Ship self-contained: the module's own bundled art (a dedicated portraits
-    // folder plus the class/ancestry portraits) so the gallery is populated out
+    // folder plus the ancestry portraits) so the gallery is populated out
     // of the box with no dependency on Tokenizer or any other module. A GM can
     // append their own folders — incl. Tokenizer's save locations — via settings.
-    default: `modules/${MODULE_ID}/assets/portraits, modules/${MODULE_ID}/assets/classes, modules/${MODULE_ID}/assets/ancestries`,
+    // (Worlds that stored the pre-0.11 default listing assets/classes are fine:
+    // the gallery skips folders it cannot browse.)
+    default: `modules/${MODULE_ID}/assets/portraits, modules/${MODULE_ID}/assets/ancestries`,
   });
 
   // Animate the builder's dice (Dice So Nice) for ability / HP / gold rolls.

@@ -12,20 +12,6 @@ module.
   Outlaw Band* (New York, 1912). **Public domain** (Rhead d. 1926; pre-1929
   publication). Cropped (banner/frame removed) and cleaned to black-on-white.
 
-## Character Builder — class portraits (`assets/classes/`)
-
-- `priest.png` — "Friar Tuck" by **Louis Rhead**, from *Bold Robin Hood and His
-  Outlaw Band* (New York, 1912). **Public domain**. Banner/frame cropped, cleaned
-  to black-on-white.
-- `wizard.png` — "Merlin" by **Louis Rhead**. **Public domain** (Rhead d. 1926).
-  Trimmed and cleaned to black-on-white.
-
-Other class portraits (Bard, Fighter, Necromancer, Pit Fighter, Ranger,
-Ras-Godai, Roustabout, Sea Wolf, Thief) — per-file credit added as sourced.
-
-All class portraits were resized (≤1024 px) and re-encoded to WebP for the
-module, with camera metadata stripped.
-
 ## UI button icons (`icons/game-icons/`)
 
 The following icons are from [game-icons.net](https://game-icons.net/) and are
