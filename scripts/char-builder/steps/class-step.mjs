@@ -123,16 +123,11 @@ export class ClassStep extends ListStep {
     // read slot counts immediately.
     await this.langStep._data();
 
-    // Auto-roll guaranteed level-1 class-feature table rolls — the Wyrdling's
-    // free Corruption talent is granted the moment you pick the class, not a
-    // manual step the player might miss (these are the `dedupe` fixed-talent
-    // sources, keyed `talent-…`; follow-ups from the talent table stay manual).
-    for (const s of await this._bonusSources(item)) {
-      if (s.dedupe && s.key.startsWith("talent-")) {
-        // eslint-disable-next-line no-await-in-loop
-        await this.rollBonus(s.key, { silent: true });
-      }
-    }
+    // Fixed level-1 table rolls (the Wyrdling's Corruption) are NOT auto-rolled —
+    // the player rolls them manually with a roll/reroll button like the class
+    // talent table. Warm the bonus-source cache so isComplete() blocks Next
+    // until they've been rolled.
+    await this._bonusSources(item);
   }
 
   /** Complete once patron / spells-known / bonus-roll / language requirements are met. */
@@ -295,9 +290,11 @@ export class ClassStep extends ListStep {
         tableName: s.tableName,
         rolled: !!e,
         duplicate,
-        // Free reroll for ordinary bonus rolls; dedupe rolls (Corruption) lock in
-        // and only reroll a duplicate.
-        canReroll: !s.dedupe || duplicate,
+        // Free reroll for ordinary bonus rolls and for the fixed level-1 table
+        // roll (talent-…, the Wyrdling's Corruption — rerolls like the class
+        // talent table). Follow-up dedupe rolls ("Gain a/Two Corruption
+        // Talents") keep the book's "reroll duplicates only" lock.
+        canReroll: !s.dedupe || duplicate || s.key.startsWith("talent-"),
         total: e?.total ?? null,
         needsChoice: (e?.options?.length ?? 0) > 1,
         options: (e?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === e?.chosenUuid })),

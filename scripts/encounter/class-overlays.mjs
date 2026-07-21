@@ -190,6 +190,21 @@ export const CLASS_OVERLAYS = {
       "7-9": [{ name: "Gain a Corruption Talent" }],
       "10-11": [{ name: "+1 to Pseudopod Attacks and Damage" }],
     },
+    // Mechanics for CORRUPTION table talents that map cleanly to an SD change
+    // key. Keyed by the row's talent name (lowercased). The rest of the table
+    // (Fish Gills, Evolution's point-buy, Abominable Hunger's 1/day, Creepy
+    // Stillness's hide-only advantage, etc.) stays description-only — the system
+    // has no faithful key for them, and an all-checks key would over-grant.
+    extraTableTalents: {
+      "thickened skin": {
+        effects: [{
+          name: "Thickened Skin",
+          img: "icons/equipment/chest/breastplate-scale-grey.webp",
+          transfer: true,
+          changes: [{ key: "system.attributes.ac.value", value: 1, type: "add", phase: "initial" }],
+        }],
+      },
+    },
     items: [
       _weapon("Pseudopod", "icons/creatures/slimes/slime-movement-dripping-pseudopods-green.webp",
         { type: "melee", damage: { oneHanded: "d6", twoHanded: "d6" }, range: "near", properties: [_FINESSE, _THROWN] }),

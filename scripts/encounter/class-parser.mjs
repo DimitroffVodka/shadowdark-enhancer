@@ -693,6 +693,59 @@ function _findSpellsKnown(lines) {
  * @param {string[]} lines
  * @param {Set<number>} consumed  line indices already claimed (talent/titles/spells)
  */
+/**
+ * Reflow a numbered-table block into rows, tolerant of the two-column PDF
+ * layout where a row's number is sheared onto its OWN line in the MIDDLE of the
+ * effect ("Mad Certainty. …\n1\nmind or spirit…") for effects that wrap, while
+ * short effects keep the number line-leading ("4 Fish Gills. …"). Both shapes,
+ * and any mix of them (the Wyrdling Corruption table), reduce to the same rows.
+ *
+ * Row-major tables (every number line-leading) take the simple path — a text
+ * line only starts a NEW pre-number fragment when the block actually contains
+ * lone-number lines, so a wrapped continuation that happens to read like a
+ * "Name. …" feature is never mis-split in an ordinary table.
+ */
+function _reflowNumberedRows(blk) {
+  const src = blk.map((s) => s.trim()).filter(Boolean);
+  const hasLone = src.some((l) => LONE_RANGE.test(l) && !ROW_START.test(l));
+  const rows = [];
+  let open = null;      // current row absorbing post-number continuation text
+  let pending = "";     // pre-number text awaiting its lone-number line
+  const pushOpen = () => { if (open) { rows.push(open); open = null; } };
+  const appendPrev = (t) => { if (rows.length) rows[rows.length - 1].text += " " + t; };
+  const isNewEffect = (l) => { const m = l.match(FEATURE_RE); return !!m && _isFeatureName(m[1]); };
+  for (const l of src) {
+    const lead = l.match(ROW_START);            // "4 Fish Gills. …"
+    if (lead) {
+      pushOpen();
+      if (pending) { appendPrev(pending); pending = ""; }   // stray pre-text → previous row
+      open = { lo: Number(lead[1]), hi: Number(lead[2] ?? lead[1]), text: lead[3].trim() };
+      continue;
+    }
+    const lone = hasLone ? l.match(LONE_RANGE) : null;      // bare "1" — numbers the pending fragment
+    if (lone) {
+      pushOpen();
+      open = { lo: Number(lone[1]), hi: Number(lone[2] ?? lone[1]), text: pending.trim() };
+      pending = "";
+      continue;
+    }
+    if (hasLone && isNewEffect(l)) {            // start of the next effect's pre-number fragment
+      pushOpen();
+      if (pending) appendPrev(pending);
+      pending = l;
+    } else if (open) {
+      open.text += " " + l;                     // continuation of the open row
+    } else if (hasLone) {
+      pending += (pending ? " " : "") + l;
+    }
+  }
+  pushOpen();
+  if (pending) appendPrev(pending);
+  return rows
+    .map((r) => ({ lo: r.lo, hi: r.hi, text: r.text.replace(/\s+/g, " ").trim() }))
+    .filter((r) => r.text);
+}
+
 function _findExtraTables(lines, consumed) {
   const skip = new Set();
   const tables = [];
@@ -706,24 +759,25 @@ function _findExtraTables(lines, consumed) {
     const dh = j < lines.length ? lines[j].match(DIE_HEADER) : null;
     if (!dh || ROW_START.test(lines[j])) continue;
     const formula = dh[1].toLowerCase().replace(/^d/, "1d");
-    const rows = [];
+    // Max rollable value — a stray number line above it (a page number like
+    // "73" between the table and the TITLES block) ends the table.
+    const dm = formula.match(/(\d*)d(\d+)/i);
+    const dieMax = dm ? (Number(dm[1] || 1) * Number(dm[2])) : Infinity;
+    // Collect the block's lines, then reflow (handles sheared number columns).
+    const block = [];
     let k = j + 1;
     for (; k < lines.length; k++) {
       if (consumed.has(k)) break;
       if (CAPS_CAP.test(lines[k]) || TALENTS_CAP.test(lines[k]) || TITLES_CAP.test(lines[k])) break;
-      const rm = lines[k].match(ROW_START);
-      if (rm) rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] });
-      else if (rows.length) rows[rows.length - 1].text += " " + lines[k];   // wrapped row
-      else break;   // caption + die header but no rows — not a table
+      const num = lines[k].match(ROW_START) ?? lines[k].match(LONE_RANGE);
+      if (num && Number(num[1]) > dieMax) break;   // out-of-range marker → table ended
+      block.push({ idx: k, line: lines[k] });
     }
+    const rows = _reflowNumberedRows(block.map((b) => b.line));
     if (rows.length >= 3) {
       skip.add(i); skip.add(j);
-      for (let x = j + 1; x < k; x++) skip.add(x);
-      tables.push({
-        name: _displayCase(lines[i]),
-        formula,
-        rows: rows.map((r) => ({ lo: r.lo, hi: r.hi, text: r.text.replace(/\s+/g, " ").trim() })),
-      });
+      for (const b of block) skip.add(b.idx);
+      tables.push({ name: _displayCase(lines[i]), formula, rows });
     }
   }
   return { skip, tables };

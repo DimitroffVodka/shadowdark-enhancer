@@ -7824,7 +7824,11 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   margin-top: 16px; padding: 12px; background: var(--cb-panel); border: 1px solid var(--cb-border); border-radius: 6px;
 }
 .sde-cb-subpanel-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-.sde-cb-subpanel .sde-cb-panel-title { margin-bottom: 8px; }
+/* Rendered as a <span> in the subpanel header — force block so its
+   border-bottom divider spans the full width and its margin-bottom actually
+   clears the first row (inline spans drop vertical margins, which let the
+   divider strike through the "(Table)" label below it). */
+.sde-cb-subpanel .sde-cb-panel-title { display: block; margin-bottom: 8px; }
 .sde-cb-talent-result { font-size: 15px; color: var(--cb-text); margin: 6px 0 0; }
 .sde-cb-talent-result i { color: var(--cb-accent); }
 .sde-cb-talent-desc { color: #cdc7ba; font-size: 12.5px; line-height: 1.4; margin: 3px 0 0; }

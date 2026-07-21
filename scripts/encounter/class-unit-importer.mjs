@@ -319,22 +319,58 @@ export async function classifyTalentRows(rows = []) {
  * @param {object} parsed  needs { name, extraTables: [{name, formula, rows}] }
  * @param {object} ctx     { tablesPack, source, report, ensureFolderPath }
  */
-async function buildExtraTables(parsed, { tablesPack, source, report, ensureFolderPath }) {
+async function buildExtraTables(parsed, { tablesPack, talentsPack, sourceTitle, overlay, source, report, ensureFolderPath }) {
   const refs = [];
   const className = parsed.name;
+  const talentRows = parsed.talentTable?.rows ?? [];
+  // A "Name. Rules text." row splits into an authored Talent (name + its own
+  // description) so a talent-GRANTING extra table (Wyrdling Corruption, Aberrant
+  // Mutation) can drop the rolled result onto the sheet as a real item instead
+  // of an inert text row the char-builder can only ask the player to add by hand.
+  const NAMED = /^([A-Z][A-Za-z'’ -]{0,39})\.\s+(\S[\s\S]*)$/;
+  const splitNamed = (txt) => {
+    const m = String(txt).trim().match(NAMED);
+    return m ? { name: m[1].trim(), desc: m[2].trim() } : { name: String(txt).trim(), desc: "" };
+  };
+
   for (const t of parsed.extraTables ?? []) {
     if (!(t.rows?.length)) continue;
     const keyword = t.name.toLowerCase();
     // "Wyrdling Corruption" — prefix the class unless the caption already names it.
     const tblName = new RegExp(`\\b${className}\\b`, "i").test(t.name) ? t.name : `${className} ${t.name}`;
-    const results = t.rows.map((r) => ({ type: "text", name: r.text, range: [r.lo, r.hi] }));
+    // Talent-granting when a talent-table row points here ("Gain a Corruption
+    // talent") OR every row reads as a "Name. Rules." talent. Then each row
+    // links a real Talent item; a purely descriptive table keeps text rows.
+    const referenced = talentRows.some((r) => String(r.text ?? "").toLowerCase().includes(keyword));
+    const allNamed = t.rows.every((r) => NAMED.test(String(r.text ?? "").trim()));
+    const grantsTalents = !!talentsPack && (referenced || allNamed);
+    let results;
+    if (grantsTalents) {
+      results = [];
+      for (const r of t.rows) {
+        const { name, desc } = splitNamed(r.text);
+        // Overlay may author mechanics for a row (e.g. Thickened Skin → +1 AC);
+        // otherwise the talent is description-only, faithful to the book text.
+        const authored = overlay?.extraTableTalents?.[name.toLowerCase()] ?? null;
+        // eslint-disable-next-line no-await-in-loop
+        const made = await _ensureItem(talentsPack,
+          _talentData(name, `<p>${escapeHtml(desc || name)}</p>`, sourceTitle,
+            { talentClass: authored?.talentClass ?? "class", effects: authored?.effects ?? [] }),
+          ["Class", className], report);
+        results.push({ type: "document", documentUuid: made.uuid, range: [r.lo, r.hi] });
+      }
+    } else {
+      results = t.rows.map((r) => ({ type: "text", name: r.text, range: [r.lo, r.hi] }));
+    }
     const tblFlags = { [MODULE_ID]: { imported: true, ...(source ? { source } : {}) } };
 
     const tIdx = await tablesPack.getIndex();
     const existing = tIdx.find((e) => e.name === tblName);
     if (existing) {
       const doc = await tablesPack.getDocument(existing._id);
-      const shape = (rs) => rs.map((r) => ({ name: r.name ?? "", range: [Number(r.range?.[0] ?? 0), Number(r.range?.[1] ?? 0)] }));
+      // Compare type + linked uuid too, so a text→document (or relinked) table
+      // is rewritten rather than reused on the identical name/range shape.
+      const shape = (rs) => rs.map((r) => ({ name: r.name ?? "", type: r.type ?? "text", uuid: r.documentUuid ?? "", range: [Number(r.range?.[0] ?? 0), Number(r.range?.[1] ?? 0)] }));
       const same = doc.formula === t.formula && _deepEq(shape(doc.toObject().results), shape(results));
       if (same) report.reused.push({ name: tblName, type: "RollTable", uuid: doc.uuid });
       else {
@@ -541,7 +577,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
 
   // ── 0.5. Named extra tables (Wyrdling CORRUPTION, …) + talent-table docs.
   // Stage 1 (bodyOnly) skips all roll tables — they arrive in Stage 2.
-  const extraTableRefs = bodyOnly ? [] : await buildExtraTables(parsed, { tablesPack, source, report, ensureFolderPath });
+  const extraTableRefs = bodyOnly ? [] : await buildExtraTables(parsed, { tablesPack, talentsPack, sourceTitle, overlay, source, report, ensureFolderPath });
 
   // ── 1+3. Talent-table outcome docs + class-talent RollTable ──
   // Outcome Talents → Talents pack (Level/<class>); table → Tables pack.
@@ -844,7 +880,9 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
 
   // Named extra tables (a CORRUPTION block pasted alone or alongside a talent
   // table) — create them first, then link the talent rows that reference them.
-  const extraTableRefs = await buildExtraTables({ name: cls.name, extraTables: sup.extraTables ?? [] }, { tablesPack, source, report, ensureFolderPath });
+  const extraTableRefs = await buildExtraTables(
+    { name: cls.name, extraTables: sup.extraTables ?? [], talentTable: sup.talentTable },
+    { tablesPack, talentsPack, sourceTitle: srcTitle, overlay, source, report, ensureFolderPath });
 
   const update = {};
   if (sup.talentTable) {
