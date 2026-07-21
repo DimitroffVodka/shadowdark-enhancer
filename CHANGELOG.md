@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.11.0] — 2026-07-21
 
 ### Added
 - **Advance the crawl turn from the Crawl Strip.** The out-of-combat turn counter on the left of the strip is now a live control for the GM — the same **Next Turn** advance that lived only on the Crawl Bar. A small arrow beneath the turn number bumps the crawl forward (committing state and capturing fresh movement anchors exactly as the bar does), so you can keep the round moving without leaving the strip. Players still see a read-only counter.
