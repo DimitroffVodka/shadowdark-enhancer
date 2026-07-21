@@ -353,8 +353,11 @@ export const MovementTracker = {
       // Raw-socket sender id is advisory (not authenticated); gate on it anyway
       // so a casual client can't roll back a token it has no claim to. The
       // requester must be a GM or an owner of the token's actor.
+      // Resolve the same canvas-free way rollback() does — a canvas-only lookup
+      // here rejected every request whose token wasn't on the responding GM's
+      // viewed scene (or any request at all on a headless GM), silently.
       const requester = game.users.get(msg.userId);
-      const actor = canvas.tokens?.get(msg.tokenId)?.actor;
+      const actor = this._resolveTokenDoc(msg.tokenId)?.actor;
       if (!requester || !actor) return;
       if (!requester.isGM && !actor.testUserPermission(requester, "OWNER")) return;
       this.rollback(msg.tokenId);
@@ -440,21 +443,32 @@ export const MovementTracker = {
 
   // ── Rollback ──────────────────────────────────────────────────────────────
 
+  /**
+   * Resolve a token DOCUMENT from its id without needing a canvas: the client
+   * doing the work may be viewing a different scene, or be a headless client
+   * with the canvas disabled entirely (this world's always-on bridge GM runs
+   * core.noCanvas). A canvas-only lookup silently drops the request in both
+   * cases. Rollback is a document update, so no canvas is needed at all.
+   *
+   * Shared by rollback() and the socket relay's permission gate ON PURPOSE:
+   * when the gate resolved the token one way and rollback() another, the gate
+   * rejected requests the rollback could have served, and the gap was invisible
+   * — the request just vanished.
+   */
+  _resolveTokenDoc(tokenId) {
+    return canvas.tokens?.get(tokenId)?.document
+      ?? game.combat?.scene?.tokens.get(tokenId)
+      ?? game.scenes.active?.tokens.get(tokenId)
+      ?? game.scenes.find((s) => s.tokens.get(tokenId))?.tokens.get(tokenId);
+  },
+
   async rollback(tokenId) {
     // Players relay to a GM (only GM clients may write the rollback).
     if (!game.user.isGM) {
       game.socket.emit(`module.${MODULE_ID}`, { action: "rollbackMove", tokenId, userId: game.user.id });
       return;
     }
-    // Resolve the token DOCUMENT canvas-free: the responding GM may be viewing
-    // a different scene, or be a headless client with the canvas disabled
-    // entirely (this world's always-on bridge GM runs core.noCanvas) — a
-    // canvas-only lookup silently dropped the request in both cases. The
-    // displace below is a document update, so no canvas is needed at all.
-    const doc = canvas.tokens?.get(tokenId)?.document
-      ?? game.combat?.scene?.tokens.get(tokenId)
-      ?? game.scenes.active?.tokens.get(tokenId)
-      ?? game.scenes.find((s) => s.tokens.get(tokenId))?.tokens.get(tokenId);
+    const doc = this._resolveTokenDoc(tokenId);
     if (!doc) return;
     // The turn-start snapshot lives on the token DOCUMENT (written by whichever
     // GM ran the reset), so any GM — in particular the active GM answering the
