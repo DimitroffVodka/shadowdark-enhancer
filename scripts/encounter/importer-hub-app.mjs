@@ -1576,6 +1576,31 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
+    // Shape-directed parse: when the thing being unlocked ships a precise
+    // structure descriptor (table-shapes.mjs) — a prayer generator, a Carousing
+    // lookup — reconstruct it deterministically instead of guessing. Driven by
+    // the unlock seed's identity, or a "PRAYER GENERATOR" title in the paste.
+    if (type === "auto" || type === "tables" || type === "generators") {
+      const { shapeForName } = await import("./table-shapes.mjs");
+      let shape = shapeForName(seed?.name);
+      if (!shape && /prayer\s+generator/i.test(text)) shape = shapeForName("Gede Prayers");
+      if (shape) {
+        const bucket = TableImporter.parseByShape(text, shape, { name: seed?.name || "" });
+        if (bucket) {
+          this._importMonsters = []; this._importItems = []; this._importSpells = [];
+          this._importGenerators = bucket.generators ?? [];
+          this._importTables = bucket.tables ?? [];
+          this._importChar = []; this._importSkipped = [];
+          this._applyImportSeed();
+          if (!this._importGenerators.length && !this._importTables.length) {
+            ui.notifications.warn("Shape parse produced nothing — check the pasted section.");
+          }
+          this.render();
+          return;
+        }
+      }
+    }
+
     // Compound generators are an explicit type only (never in a mixed dump):
     // one table rolled once per column, cells combined in order. Parse and
     // return early — the table/char pipeline below doesn't apply.
