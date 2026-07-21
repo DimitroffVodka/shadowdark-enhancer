@@ -304,11 +304,14 @@ export const CrawlState = {
    * crawl (priorMode === "crawl") — a plain monster-only encounter with no
    * active crawl enrolls nobody. Resolves each member to its token on the
    * combat's scene; a member with no token there is skipped (a combatant needs
-   * a placed token). GM-gated by the caller (isActiveGM).
+   * a placed token). GM-gated by the caller (isActiveGM). Combats flagged
+   * noAutoEnroll (the crawl bar's Start Combat) are skipped entirely — their
+   * creator populates the party itself.
    */
   async _enrollCrawlMembersInCombat(combat) {
     combat = combat ?? game.combat;
     if (!combat) return;
+    if (combat.flags?.[MODULE_ID]?.noAutoEnroll) return;
     if (this._state.priorMode !== "crawl") return;
     const memberActorIds = this._state.members ?? [];
     if (!memberActorIds.length) return;
@@ -333,7 +336,18 @@ export const CrawlState = {
       toAdd.push({ tokenId: tokenDoc.id, sceneId: scene.id, hidden: tokenDoc.hidden });
     }
     if (toAdd.length) {
-      await combat.createEmbeddedDocuments("Combatant", toAdd);
+      const created = await combat.createEmbeddedDocuments("Combatant", toAdd);
+      // The existingTokenIds dedupe above can miss a combatant batch still in
+      // flight (e.g. core's toggle-combat-state create for the same PC
+      // tokens). By the time OUR create resolves, every batch this client
+      // dispatched earlier has landed — so a member token holding two
+      // combatants now means we made the extra copy. Drop ours, keep theirs.
+      const surplus = created
+        .filter(c => combat.combatants.filter(o => o.tokenId === c.tokenId).length > 1)
+        .map(c => c.id);
+      if (surplus.length) {
+        await combat.deleteEmbeddedDocuments("Combatant", surplus);
+      }
     }
   },
 

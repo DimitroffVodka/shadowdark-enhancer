@@ -555,8 +555,16 @@ export const CrawlBar = {
 
     // Create combat if none exists — CrawlState transitions to "combat" via the
     // combatStart / createCombat hook in CrawlState.init().
+    // noAutoEnroll: this method adds the whole party itself (all scene PC
+    // tokens + selection, below). Without the flag, CrawlState's createCombat
+    // auto-enroll races this add — each side dedupes against a combatant
+    // collection the other's in-flight write hasn't reached yet — and every
+    // crawl member lands in the tracker twice.
     let combat = game.combat;
-    if (!combat) combat = await Combat.create({ scene: scene.id });
+    if (!combat) combat = await Combat.create({
+      scene: scene.id,
+      flags: { [MODULE_ID]: { noAutoEnroll: true } },
+    });
     if (combat.active === false) await combat.activate();
 
     // Add all PC tokens from the scene + selected tokens, deduped.

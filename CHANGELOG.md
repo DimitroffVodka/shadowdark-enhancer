@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Starting combat no longer double-adds the party.** Starting combat from the
+  Crawl Bar duplicated every crawl member in the combat tracker (each player
+  token appeared twice): the bar's own "add all PC tokens" step raced the new
+  v0.11.0 auto-enroll that keeps the party on the strip when combat starts, and
+  each side checked for existing combatants before the other's write had
+  landed. Combats the bar creates are now flagged so auto-enroll leaves them
+  alone (the bar already adds the whole party), and auto-enroll additionally
+  self-heals the reverse overlap — if a member token ends up with two
+  combatants because the GM toggled party tokens into an external combat,
+  the extra copy is removed automatically.
+
 ## [0.11.0] — 2026-07-21
 
 ### Added
