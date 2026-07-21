@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.11.1] — 2026-07-21
 
 ### Fixed
 - **Starting combat no longer double-adds the party.** Starting combat from the

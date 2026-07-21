@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory (release review, 2026-07-21)
 
 598 tracked files · ~72,300 lines of code/markup across scripts+templates+styles+test.
-`v0.11.0` in both `module.json` and `package.json`.
+`v0.11.1` in both `module.json` and `package.json`.
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
 
 ---
