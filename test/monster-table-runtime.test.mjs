@@ -19,7 +19,7 @@ import {
   assertResultRefs,
   buildProvenanceV2,
   refKey,
-} from "../scripts/encounter/monster-table-runtime.mjs";
+} from "../scripts/monster-creator/monster-table-runtime.mjs";
 
 /* -- helpers: synthetic descriptors ---------------------------------------- */
 

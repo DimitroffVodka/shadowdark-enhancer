@@ -6,7 +6,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { findById } from "../scripts/encounter/table-manifest.mjs";
+import { findById } from "../scripts/importer/tables/table-manifest.mjs";
 import {
   MAGIC_SET_DEFS,
   MAGIC_SET_KEYS,
@@ -28,7 +28,7 @@ import {
   forgeRef,
   buildForgeProvenance,
   refKey,
-} from "../scripts/encounter/magic-table-runtime.mjs";
+} from "../scripts/magic-forge/magic-table-runtime.mjs";
 
 /* -- synthetic fixtures ---------------------------------------------------- */
 

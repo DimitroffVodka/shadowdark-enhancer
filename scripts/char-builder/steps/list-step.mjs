@@ -73,7 +73,7 @@ export class ListStep extends BaseStep {
   async _lockedEntries(types) {
     if (!game.user?.isGM || !types?.length) return [];
     if (!this.app._lockedCensus) {
-      const { gatherCharContentCensus } = await import("../../encounter/char-content-manifest.mjs");
+      const { gatherCharContentCensus } = await import("../../importer/char-content/char-content-manifest.mjs");
       this.app._lockedCensus = await gatherCharContentCensus().catch((err) => {
         console.error("shadowdark-enhancer | locked census failed:", err);
         return [];
@@ -106,10 +106,10 @@ export class ListStep extends BaseStep {
     const name = rest.join("::");
     const pages = (this.app._lockedCensus ?? [])
       .find((r) => r.source === src)?.missingNames.find((m) => m.name === name)?.pages ?? "";
-    const { ImporterHubApp } = await import("../../encounter/importer-hub-app.mjs");
+    const { ImporterHubApp } = await import("../../importer/importer-hub-app.mjs");
     const inst = ImporterHubApp.open();
     inst._onCharSeedPaste(null, { dataset: { name, type, src, pages } });
-    const { CHAR_SOURCES } = await import("../../encounter/char-content-manifest.mjs");
+    const { CHAR_SOURCES } = await import("../../importer/char-content/char-content-manifest.mjs");
     ui.notifications.info(`Unlock "${name}": paste its section from ${CHAR_SOURCES[src]?.book ?? src} into the Importer and Parse.`);
     // Force fresh lists once the import lands and the builder re-renders.
     this._items = null;

@@ -1,8 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { collapse, normalizeText, dehyphenateWrappedWords, splitRawBlocks } from "../scripts/encounter/pdf-text-utils.mjs";
-import { splitStatblocks, parseStatblock } from "../scripts/encounter/statblock-parser.mjs";
-import { itemRecognizer } from "../scripts/encounter/item-parser.mjs";
+import { collapse, normalizeText, dehyphenateWrappedWords, splitRawBlocks } from "../scripts/importer/pdf-text-utils.mjs";
+import { splitStatblocks, parseStatblock } from "../scripts/importer/monsters/statblock-parser.mjs";
+import { itemRecognizer } from "../scripts/importer/items/item-parser.mjs";
 
 // All fixture text below is invented (D1) — no book content.
 

@@ -6,12 +6,12 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { escapeHtml, textToHtml } from "../scripts/encounter/pdf-text-utils.mjs";
-import { parseItem } from "../scripts/encounter/item-parser.mjs";
-import { parseSpell } from "../scripts/encounter/spell-parser.mjs";
-import { parseClassSection } from "../scripts/encounter/class-parser.mjs";
-import { hexcrawlRecognizer, buildHexPageHtml } from "../scripts/encounter/hex-parser.mjs";
-import { cleanImportHtml } from "../scripts/encounter/compendium-suite.mjs";
+import { escapeHtml, textToHtml } from "../scripts/importer/pdf-text-utils.mjs";
+import { parseItem } from "../scripts/importer/items/item-parser.mjs";
+import { parseSpell } from "../scripts/importer/spells/spell-parser.mjs";
+import { parseClassSection } from "../scripts/importer/char-content/class-parser.mjs";
+import { hexcrawlRecognizer, buildHexPageHtml } from "../scripts/importer/tables/hex-parser.mjs";
+import { cleanImportHtml } from "../scripts/shared/compendium-suite.mjs";
 
 const XSS = "<img src=x onerror=alert(1)>";
 const noRawTag = (html) => {

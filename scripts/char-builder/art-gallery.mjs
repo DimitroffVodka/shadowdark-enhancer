@@ -16,7 +16,7 @@
  * folder from the world setting. A player cannot ask the GM's client to browse an
  * arbitrary path.
  */
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /** Query name, namespaced per Foundry's convention. */
 export const ART_QUERY = `${MODULE_ID}.browseArt`;

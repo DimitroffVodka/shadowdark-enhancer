@@ -6,7 +6,7 @@ import {
   segmentFeet,
   sumCommittedSegments,
   compareWaypointCost,
-} from "../scripts/movement-calc.mjs";
+} from "../scripts/crawl-strip/movement-calc.mjs";
 
 const GRID = { gridSize: 100, gridDistance: 5 }; // Foundry default: 100px/square, 5ft/square
 
@@ -63,7 +63,7 @@ test("segmentFeet: default/unknown diagonal rule remains equidistant for backwar
 });
 
 test("movement tracker forwards the scene diagonal rule at both accounting call sites", () => {
-  const source = readFileSync(new URL("../scripts/movement-tracker.mjs", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../scripts/crawl-strip/movement-tracker.mjs", import.meta.url), "utf8");
   const forwards = source.match(/diagonals:\s*scene\?\.grid\?\.diagonals/g) ?? [];
   assert.equal(forwards.length, 2);
 });

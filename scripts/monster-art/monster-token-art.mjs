@@ -1,5 +1,5 @@
-import { MODULE_ID } from "../module-id.mjs";
-import { findMonsterPack } from "../encounter/monster-pack.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
+import { findMonsterPack } from "../importer/monsters/monster-pack.mjs";
 
 /**
  * Monster Token Art — re-skin Shadowdark NPC tokens/portraits with art from a

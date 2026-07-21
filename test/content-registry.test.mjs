@@ -9,8 +9,8 @@ import assert from "node:assert/strict";
 import {
   CONTENT, CONTENT_ENTRIES, TABLE_SHAPES, makeContentId,
   shapeForName, contentIdForName, resolveShape,
-} from "../scripts/encounter/table-shapes.mjs";
-import { parseByShape } from "../scripts/encounter/table-importer.mjs";
+} from "../scripts/importer/tables/table-shapes.mjs";
+import { parseByShape } from "../scripts/importer/tables/table-importer.mjs";
 
 // A synthetic multi-table generator page: two small single-die tables stacked
 // under ALL-CAPS captions, the layout the "section" shape must slice. All

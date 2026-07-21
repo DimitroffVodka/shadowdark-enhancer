@@ -3,9 +3,9 @@
  * Slice 1a: d6 roll, chat post, on-hit branch.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
-import { CrawlState } from "../crawl-state.mjs";
-import { SessionRecap } from "./session-recap.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
+import { CrawlState } from "../crawl-strip/crawl-state.mjs";
+import { SessionRecap } from "../session-recap/session-recap.mjs";
 
 // v13/v14 namespaced renderTemplate (the global `renderTemplate` still
 // works but emits deprecation warnings).

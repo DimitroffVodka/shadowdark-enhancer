@@ -6,8 +6,8 @@
 // NAME → UUID resolution is Foundry-bound and live-verified, not here.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseGearTable, mergeGearRows, assembleCreateDrafts, gearStatsLabel, sourceTitleSlug } from "../scripts/encounter/item-builder-gear.mjs";
-import { buildItemData } from "../scripts/encounter/item-importer.mjs";
+import { parseGearTable, mergeGearRows, assembleCreateDrafts, gearStatsLabel, sourceTitleSlug } from "../scripts/importer/items/item-builder-gear.mjs";
+import { buildItemData } from "../scripts/importer/items/item-importer.mjs";
 
 const TWO_WEAPONS = [
   "Bastard sword, 10 gp, 1 slot, d8/d10, close, V",

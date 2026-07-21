@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
   addToPurse, spendFromPurse, parseCoinsFromText,
-} from "../scripts/util/coins.mjs";
+} from "../scripts/shared/coins.mjs";
 
 test("toCopper / fromCopper round-trip", () => {
   assert.equal(toCopper({ gp: 1, sp: 2, cp: 3 }), 123);

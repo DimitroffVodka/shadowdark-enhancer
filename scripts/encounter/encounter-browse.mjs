@@ -6,7 +6,7 @@
  * inside EncounterRollerApp calls into this module for its data needs.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { createNpcIndexRow, filterNpcIndexRows, sortNpcIndexRows } from "./npc-index.mjs";
 
 // In-memory cache: sourceId → array<row>. Cleared on browser refresh.

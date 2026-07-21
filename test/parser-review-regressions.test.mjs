@@ -5,11 +5,11 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { splitStatblocks, parseStatblock } from "../scripts/encounter/statblock-parser.mjs";
-import { parseItem } from "../scripts/encounter/item-parser.mjs";
-import { parseSpell } from "../scripts/encounter/spell-parser.mjs";
-import { parseTables, buildTableData } from "../scripts/encounter/table-importer.mjs";
-import { parseClassSection, sliceSpellsKnown } from "../scripts/encounter/class-parser.mjs";
+import { splitStatblocks, parseStatblock } from "../scripts/importer/monsters/statblock-parser.mjs";
+import { parseItem } from "../scripts/importer/items/item-parser.mjs";
+import { parseSpell } from "../scripts/importer/spells/spell-parser.mjs";
+import { parseTables, buildTableData } from "../scripts/importer/tables/table-importer.mjs";
+import { parseClassSection, sliceSpellsKnown } from "../scripts/importer/char-content/class-parser.mjs";
 
 // ── #4 ALL-CAPS monster feature detachment ──────────────────────────────────
 

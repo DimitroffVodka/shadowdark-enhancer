@@ -1,5 +1,5 @@
 import { BaseStep } from "./base-step.mjs";
-import { MODULE_ID } from "../../module-id.mjs";
+import { MODULE_ID } from "../../shared/module-id.mjs";
 import { builderDiceAnimation } from "../constants.mjs";
 
 /**

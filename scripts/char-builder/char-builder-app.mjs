@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { invalidateConfiguredTables } from "./data.mjs";
 import { CharBuilderState } from "./state.mjs";
 import { DEFAULT_STAT_METHOD } from "./constants.mjs";

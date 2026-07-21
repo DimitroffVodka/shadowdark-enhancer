@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { normalizeXp, pickItemXp, planAward, XP_PER_LEVEL } from "../scripts/encounter/party-xp-core.mjs";
+import { normalizeXp, pickItemXp, planAward, XP_PER_LEVEL } from "../scripts/party-xp/party-xp-core.mjs";
 
 test("normalizeXp treats missing as null, not zero", () => {
   assert.equal(normalizeXp(null), null);

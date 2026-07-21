@@ -20,7 +20,7 @@ import {
   buildProvenanceV2,
   resolveResultRefs,
   resolveSelection,
-} from "../scripts/encounter/monster-table-runtime.mjs";
+} from "../scripts/monster-creator/monster-table-runtime.mjs";
 
 /* -- synthetic ready catalog ----------------------------------------------- */
 

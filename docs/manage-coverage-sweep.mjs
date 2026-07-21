@@ -38,14 +38,14 @@
  * meta.method records this same description so a re-run + diff stays clean.
  */
 export async function runManageCoverageSweep({ save = false } = {}) {
-  const base = "modules/shadowdark-enhancer/scripts/encounter/";
+  const base = "modules/shadowdark-enhancer/scripts/importer/";
   const { ImporterHubApp } = await import(foundry.utils.getRoute(base + "importer-hub-app.mjs"));
   const { buildManageTree } = await import(foundry.utils.getRoute(base + "manage-tree.mjs"));
-  const { parseCharContent } = await import(foundry.utils.getRoute(base + "char-content-manifest.mjs"));
-  const { parseClassSection } = await import(foundry.utils.getRoute(base + "class-parser.mjs"));
-  const itemMod = await import(foundry.utils.getRoute(base + "item-parser.mjs"));
-  const { resolveShape } = await import(foundry.utils.getRoute(base + "table-shapes.mjs"));
-  const { parseByShape } = await import(foundry.utils.getRoute(base + "table-importer.mjs"));
+  const { parseCharContent } = await import(foundry.utils.getRoute(base + "char-content/char-content-manifest.mjs"));
+  const { parseClassSection } = await import(foundry.utils.getRoute(base + "char-content/class-parser.mjs"));
+  const itemMod = await import(foundry.utils.getRoute(base + "items/item-parser.mjs"));
+  const { resolveShape } = await import(foundry.utils.getRoute(base + "tables/table-shapes.mjs"));
+  const { parseByShape } = await import(foundry.utils.getRoute(base + "tables/table-importer.mjs"));
   const reg = await import(foundry.utils.getRoute(base + "source-pdf-registry.mjs"));
   const mod = await import(foundry.utils.getRoute(base + "pdf-text-extract.mjs"));
 

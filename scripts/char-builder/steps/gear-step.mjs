@@ -1,6 +1,6 @@
 import { ListStep } from "./list-step.mjs";
 import { enrich } from "../data.mjs";
-import { MODULE_ID } from "../../module-id.mjs";
+import { MODULE_ID } from "../../shared/module-id.mjs";
 
 /**
  * Step — Gear. A shop: browse purchasable equipment (left), view an item

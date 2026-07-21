@@ -13,7 +13,7 @@
  * give the same numbers the sheet shows WITHOUT invoking actor.sheet.getData()
  * (that enriches notes into a live document, a system-side XSS sink).
  */
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 const TEMPLATE_PATH = `modules/${MODULE_ID}/assets/pdf/shadowdark-character-sheet.pdf`;
 const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min.js`;

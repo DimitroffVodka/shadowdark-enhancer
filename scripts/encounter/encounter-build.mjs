@@ -6,7 +6,7 @@
  * inside EncounterRollerApp calls into this module for its data needs.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /**
  * Supported die formulas for Build Table.

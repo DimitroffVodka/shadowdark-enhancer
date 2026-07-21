@@ -6,7 +6,7 @@
  * describe the pieces the builder's step managers share.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /** Ability keys in the canonical Shadowdark "down the line" order. */
 export const ABILITY_ORDER = ["str", "dex", "con", "int", "wis", "cha"];

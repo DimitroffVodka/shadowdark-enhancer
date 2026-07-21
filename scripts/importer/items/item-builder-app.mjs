@@ -1,0 +1,394 @@
+/**
+ * Shadowdark Enhancer — Item Builder (ApplicationV2).
+ *
+ * The items analogue of the Class Builder: a guided, multi-stage workspace that
+ * turns a book's equipment section into FINISHED items — not cost-only stubs.
+ * The book splits an item across two sections (a price TABLE and a separate
+ * two-column DESCRIPTIONS block), so this app builds them in three steps and
+ * combines them:
+ *
+ *   ① Table        — paste/grab the price table → one row per item with its
+ *                    cost + slots (reviewable/editable).
+ *   ② Descriptions — paste/grab the descriptions section → matched to the ①
+ *                    rows BY NAME, filling each item's description (editable;
+ *                    the two-column source is imperfect, so hand-fixing is a
+ *                    first-class step, not a failure).
+ *   ③ Combine      — create the items in sde-items with cost, slots, AND
+ *                    description together.
+ *
+ * Reuses the pure parsers (item-builder-gear.parseGearTable — gear-parser stat
+ * columns for Weapon/Armor, itemRecognizer force-parse for Basic — plus
+ * splitDescriptionsByNames for the descriptions) and the Foundry-bound importer
+ * (ItemImporter.createItems) — this app is only the workspace UI + state. Rows
+ * carry the FULL stat draft (damage/AC/range/type/properties) end to end, so
+ * created Weapon/Armor items are mechanically real, not descriptive shells
+ * (2026-07-14 pre-push review, blocker #1).
+ */
+import { splitDescriptionsByNames } from "./item-parser.mjs";
+import { parseGearTable, mergeGearRows, assembleCreateDrafts, gearStatsLabel, sourceTitleSlug } from "./item-builder-gear.mjs";
+import { ItemImporter } from "./item-importer.mjs";
+import { sourcePdfTarget, sourcePdfHref } from "../source-pdf-registry.mjs";
+import { CHAR_SOURCES } from "../char-content/char-content-manifest.mjs";
+import { MODULE_ID } from "../../shared/module-id.mjs";
+
+const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+/** Source labels offered as datalist suggestions (mirrors the hub/class builder). */
+const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
+
+/** Gear types this builder handles, with a friendly label. */
+const GEAR_TYPES = [
+  { value: "Basic",  label: "Basic Gear" },
+  { value: "Weapon", label: "Weapons" },
+  { value: "Armor",  label: "Armor" },
+];
+
+/**
+ * Per-source, per-type page cites: the TABLE page range (single-column, rows
+ * "Name cost qty slot") and the DESCRIPTIONS page range (two-column "Name.
+ * text"). Only what's verified is listed; anything absent falls back to a manual
+ * paste (the Grab buttons just hide). Western Reaches Basic Gear verified live:
+ * table 106-107, descriptions 107-109 (107 mixes the table + first descriptions
+ * so those come out partial — hand-fixable in stage ②).
+ */
+const GEAR_PAGES = {
+  WR: {
+    Basic:  { table: "106-107", desc: "107-109" },
+    Weapon: { table: "110-111", desc: "111-113" },
+    Armor:  { table: "112",     desc: "112-113" },
+  },
+};
+
+const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+const _norm  = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
+  static DEFAULT_OPTIONS = {
+    id: "sde-item-builder",
+    window: { title: "Item Builder", icon: "fa-solid fa-boxes-stacked", resizable: true },
+    position: { width: 760, height: 820 },
+    actions: {
+      ibGrabTable:  ItemBuilderApp.prototype._onGrabTable,
+      ibParseTable: ItemBuilderApp.prototype._onParseTable,
+      ibGrabDesc:   ItemBuilderApp.prototype._onGrabDesc,
+      ibMatchDesc:  ItemBuilderApp.prototype._onMatchDesc,
+      ibOpenPdf:    ItemBuilderApp.prototype._onOpenPdf,
+      ibRowDel:     ItemBuilderApp.prototype._onRowDel,
+      ibCreate:     ItemBuilderApp.prototype._onCreate,
+      ibStartOver:  ItemBuilderApp.prototype._onStartOver,
+    },
+  };
+
+  static PARTS = {
+    body: { template: "modules/shadowdark-enhancer/templates/item-builder.hbs", scrollable: [""] },
+  };
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  _source = "Western Reaches";
+  _gearType = "Basic";
+  _tableText = "";
+  _descText = "";
+  // Working set — the combined items. Each row is a FULL gear draft (name,
+  // cost, slots, and for Weapon/Armor: damage/range/wtype or ac/baseArmor,
+  // propNames + resolved properties) plus description ("" until stage ②) and
+  // warnings[] (shown as a review flag on the row).
+  _items = [];
+  // Stray lines stage ① refused to mint as items ({ text, reason }).
+  _dropped = [];
+  _lastReport = null;
+  // Paste-box focus preservation.
+  _focused = null;
+
+  // ── Singleton ──────────────────────────────────────────────────────────────
+  static _instance = null;
+  static open() {
+    if (!this._instance) this._instance = new ItemBuilderApp();
+    const inst = this._instance;
+    if (!inst.rendered) inst.render(true);
+    else { inst.bringToFront(); inst.render(); }
+    return inst;
+  }
+  async close(options = {}) {
+    ItemBuilderApp._instance = null;
+    return super.close(options);
+  }
+
+  _reset() {
+    this._tableText = ""; this._descText = ""; this._items = [];
+    this._lastReport = null; this._focused = null; this._systemDupes = [];
+    this._dropped = [];
+  }
+  _onStartOver() { this._reset(); this.render(); }
+
+  // ── Source / page helpers ────────────────────────────────────────────────────
+  /** Map the free-text source to a CHAR_SOURCES key (WR / CS4 …), or null. */
+  _sourceKey() {
+    const s = this._source.trim().toLowerCase();
+    if (!s) return null;
+    for (const [key, meta] of Object.entries(CHAR_SOURCES))
+      if (key.toLowerCase() === s || meta.label?.toLowerCase() === s || meta.book?.toLowerCase() === s) return key;
+    return null;
+  }
+  _pages() {
+    const key = this._sourceKey();
+    return (key && GEAR_PAGES[key]?.[this._gearType]) || null;
+  }
+
+  // ── Context ────────────────────────────────────────────────────────────────
+  async _prepareContext() {
+    const pages = this._pages();
+    const key = this._sourceKey();
+    const withDesc = this._items.filter((i) => _strip(i.description).length > 0).length;
+    // Source-PDF deep links — so the GM can open the book to the exact page and
+    // drag-select the descriptions the two-column auto-grab couldn't recover.
+    const firstPage = (spec) => String(spec ?? "").split(/[-,\s]/).filter(Boolean)[0];
+    return {
+      source: this._source,
+      sourceList: SOURCE_SUGGESTIONS,
+      gearType: this._gearType,
+      gearTypes: GEAR_TYPES.map((g) => ({ ...g, selected: g.value === this._gearType })),
+      typeLabel: GEAR_TYPES.find((g) => g.value === this._gearType)?.label ?? "Items",
+      tableText: this._tableText,
+      descText: this._descText,
+      tablePage: pages?.table ?? null,
+      descPage: pages?.desc ?? null,
+      tablePdf: (key && pages?.table) ? sourcePdfHref(key, firstPage(pages.table)) : null,
+      descPdf:  (key && pages?.desc)  ? sourcePdfHref(key, firstPage(pages.desc))  : null,
+      items: this._items.map((it, i) => ({
+        idx: i,
+        name: it.name,
+        cost: this._costLabel(it.cost),
+        slots: it.slots?.slots_used ?? 1,
+        stats: gearStatsLabel(it, this._gearType),
+        flag: (it.warnings ?? []).join(" "),
+        description: _strip(it.description),
+        hasDesc: _strip(it.description).length > 0,
+      })),
+      itemCount: this._items.length,
+      dropped: this._dropped ?? [],
+      droppedCount: (this._dropped ?? []).length,
+      withDesc,
+      needDesc: this._items.length - withDesc,
+      systemDupes: this._systemDupes ?? [],
+      systemDupeCount: (this._systemDupes ?? []).length,
+      report: this._lastReport,
+    };
+  }
+
+  _costLabel(cost) {
+    const parts = [];
+    if (cost?.gp) parts.push(`${cost.gp} gp`);
+    if (cost?.sp) parts.push(`${cost.sp} sp`);
+    if (cost?.cp) parts.push(`${cost.cp} cp`);
+    return parts.join(" ") || "0 gp";
+  }
+
+  // ── Render wiring ────────────────────────────────────────────────────────────
+  _onRender() {
+    const el = this.element;
+    const bind = (sel, set, key) => {
+      const node = el.querySelector(sel);
+      if (!node) return;
+      if (this._focused === key) node.focus();
+      node.addEventListener("input", (ev) => { set(ev.target.value); });
+      node.addEventListener("focus", () => { this._focused = key; });
+      node.addEventListener("blur", () => { if (this._focused === key) this._focused = null; });
+    };
+    bind("input[data-ib-source]", (v) => { this._source = v; }, "source");
+    bind("textarea[data-ib-table]", (v) => { this._tableText = v; }, "table");
+    bind("textarea[data-ib-desc]", (v) => { this._descText = v; }, "desc");
+
+    const typeSel = el.querySelector("select[data-ib-type]");
+    if (typeSel) typeSel.addEventListener("change", (ev) => { this._gearType = ev.target.value; this.render(); });
+
+    // Per-item editable fields (name / cost / description). No re-render on edit
+    // (preserve cursor) — structural changes (delete) re-render.
+    el.querySelectorAll("[data-ib-row]").forEach((row) => {
+      const it = this._items[Number(row.dataset.ibRow)];
+      if (!it) return;
+      row.querySelectorAll("[data-ib-field]").forEach((input) => {
+        input.addEventListener("change", (ev) => {
+          const f = ev.target.dataset.ibField, v = ev.target.value;
+          if (f === "name") it.name = v.trim() || it.name;
+          else if (f === "cost") it.cost = _parseCost(v);
+          else if (f === "description") it.description = v.trim() ? `<p>${_escape(v.trim())}</p>` : "";
+        });
+      });
+    });
+  }
+
+  // ── Stage ① · Table ──────────────────────────────────────────────────────────
+  async _onGrabTable() {
+    const key = this._sourceKey();
+    const pages = this._pages();
+    const target = (key && pages?.table) ? sourcePdfTarget(key, pages.table) : null;
+    if (!target) { ui.notifications?.warn("No source PDF / table page for this source + type — paste the table below."); return; }
+    const text = await this._grab(key, target.file, pages.table, "1");   // table is single-column
+    if (text == null) return;
+    this._tableText = this._append(this._tableText, text);
+    this.render();
+    await this._onParseTable();   // one press: grab + parse
+  }
+
+  async _onParseTable() {
+    const dropped = [];
+    let rows = parseGearTable(this._tableText, this._gearType,
+      { onDrop: (text, reason) => dropped.push({ text, reason }) });
+    if (!rows.length) { ui.notifications?.warn("No priced item rows found — is this the price table (Name cost qty slot)?"); return; }
+    // Weapon/Armor: resolve property NAMES → shadowdark.properties UUIDs now,
+    // so unresolved names surface as review flags on the rows below.
+    if (this._gearType !== "Basic") await ItemImporter.resolveGearPropertiesAll(rows);
+    // Drop rows the Shadowdark SYSTEM already ships: the WR gear/weapon/armor
+    // tables reprint the whole core set (Arrows, Backpack, Caltrops, Crossbow
+    // Bolts, Crowbar, …), so importing them all would duplicate shadowdark.gear/
+    // magic-items. Keep only what's genuinely new; report the rest.
+    const { systemItemNameIndex, normalizeItemName } = await import("./item-importer.mjs");
+    const sys = await systemItemNameIndex();
+    this._systemDupes = [];
+    if (sys.size) {
+      const kept = [];
+      for (const d of rows) {
+        const hit = sys.get(normalizeItemName(d.name));
+        if (hit) this._systemDupes.push(d.name);
+        else kept.push(d);
+      }
+      rows = kept;
+    }
+    // Merge into the working set: new names add a full-stat row; existing names
+    // refresh ALL mechanics but KEEP the edited name + matched description.
+    this._items = mergeGearRows(this._items, rows);
+    this._dropped = dropped;
+    const dupNote = this._systemDupes.length ? ` (${this._systemDupes.length} already in the system — skipped)` : "";
+    const dropNote = dropped.length ? ` · ${dropped.length} stray line(s) skipped` : "";
+    ui.notifications?.info(`Table parsed — ${this._items.length} new item(s)${dupNote}${dropNote}. Now add descriptions in step 2.`);
+    this.render();
+  }
+
+  // ── Stage ② · Descriptions ────────────────────────────────────────────────────
+  async _onGrabDesc() {
+    const key = this._sourceKey();
+    const pages = this._pages();
+    const target = (key && pages?.desc) ? sourcePdfTarget(key, pages.desc) : null;
+    if (!target) { ui.notifications?.warn("No description page for this source + type — paste the descriptions below."); return; }
+    // Two-column, with the shared page's leading price-table block cropped out
+    // (it drags the column split off-centre and beheads the first entries).
+    const raw = await this._grab(key, target.file, pages.desc, "2", { cropTablePrefix: true });
+    if (raw == null) return;
+    const text = raw.split("\n").filter((l) => !/^\d{1,4}$/.test(l.trim())).join("\n");   // bare page-footer numbers
+    this._descText = this._append(this._descText, text);
+    this.render();
+    this._onMatchDesc();   // one press: grab + match
+  }
+
+  /** Anchor variants for one table row: the name itself, minus a trailing
+   *  "(3)" quantity, and the part before a container comma — the book's
+   *  description headers are bare nouns ("Candle.", "Tallow.") while the
+   *  table rows carry suffixes ("Candle (3)", "Tallow, Jar"). */
+  _descAnchorNames(name) {
+    const full = String(name ?? "").trim();
+    const noQty = full.replace(/\s*\([^)]*\)\s*$/, "").trim();
+    const noComma = noQty.split(",")[0].trim();
+    return [...new Set([full, noQty, noComma].filter(Boolean))];
+  }
+
+  _onMatchDesc() {
+    if (!this._items.length) { ui.notifications?.warn("Parse the table first (step 1) — descriptions match to those items by name."); return; }
+    // Exact names claim their key outright; variants only fill free keys, and
+    // a variant two items share ("Rope" from both ropes) is dropped as
+    // ambiguous rather than mis-assigned.
+    const claim = new Map();   // _norm(anchor) → item | null (ambiguous)
+    const exact = new Set();
+    for (const it of this._items) { const k = _norm(it.name); claim.set(k, it); exact.add(k); }
+    for (const it of this._items) {
+      // altNames carry a folded row's pre-fold spellings ("Shield, mithral",
+      // "Shield") so the book's bare-noun headers still anchor.
+      for (const v of [...this._descAnchorNames(it.name), ...(it.altNames ?? [])]) {
+        const k = _norm(v);
+        if (!k || exact.has(k)) continue;                   // exact names win outright
+        if (!claim.has(k)) claim.set(k, it);
+        else if (claim.get(k) !== it) claim.set(k, null);   // shared variant → ambiguous
+      }
+    }
+    const anchorNames = this._items
+      .flatMap((it) => [...this._descAnchorNames(it.name), ...(it.altNames ?? [])])
+      .filter((v) => claim.get(_norm(v)) != null);
+    const entries = splitDescriptionsByNames(this._descText, anchorNames);
+    let matched = 0;
+    for (const e of entries) {
+      const it = claim.get(_norm(e.name));
+      if (!it) continue;
+      it.description = `<p>${_escape(e.description)}</p>`;
+      matched++;
+    }
+    const missing = this._items.length - this._items.filter((i) => _strip(i.description)).length;
+    ui.notifications?.info(`Matched ${matched} description(s).${missing ? ` ${missing} still need one — edit them below.` : ""}`);
+    this.render();
+  }
+
+  _onRowDel(event, target) {
+    const i = Number(target.closest("[data-ib-row]")?.dataset.ibRow);
+    if (i >= 0) { this._items.splice(i, 1); this.render(); }
+  }
+
+  /** Open the source PDF at a page in Foundry's viewer, so the GM can read /
+   *  drag-select the descriptions the two-column auto-grab missed. */
+  async _onOpenPdf(event, target) {
+    const href = target?.dataset?.href;
+    if (!href) return;
+    const { SourcePdfViewer } = await import("../source-pdf-viewer.mjs");
+    SourcePdfViewer.show(href, target.dataset.title || "Source PDF");
+  }
+
+  // ── Stage ③ · Combine & create ────────────────────────────────────────────────
+  async _onCreate() {
+    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can create items."); return; }
+    if (!this._items.length) { ui.notifications?.warn("Nothing to create — parse the table first."); return; }
+    const source = this._source.trim();
+    // Full pass-through: the mechanics parsed in stage ① (damage/AC/range/
+    // type/properties) ride the drafts into creation — never rebuilt narrow
+    // (that rebuild was pre-push-review blocker #1). system.source.title gets
+    // the same slug the char-content commits stamp (char-builder gating).
+    const drafts = assembleCreateDrafts(this._items, this._gearType, { sourceTitle: sourceTitleSlug(source) });
+    const result = await ItemImporter.createItems(drafts, { source, onConflict: () => "replace" });
+    if (!result) return;
+    this._lastReport = { created: result.created.length, replaced: (result.replaced ?? []).length, skipped: (result.skipped ?? []).length };
+    Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
+    ui.notifications?.info(`Created ${this._lastReport.created}${this._lastReport.replaced ? `, updated ${this._lastReport.replaced}` : ""} ${GEAR_TYPES.find((g) => g.value === this._gearType)?.label ?? "item"}(s) in your items compendium.`);
+    this.render();
+  }
+
+  // ── Shared helpers ────────────────────────────────────────────────────────────
+  /** Pull the printed page range `spec` from `file` in `columns` mode, mapping
+   *  each printed page through the registry's per-source offset. Text or null. */
+  async _grab(srcKey, file, spec, columns, extractOpts = {}) {
+    const { extractPdfText, parsePageRange } = await import("../pdf-text-extract.mjs");
+    const pdfPages = parsePageRange(spec)
+      .map((p) => sourcePdfTarget(srcKey, String(p))?.page)
+      .filter((p) => p != null);
+    if (!pdfPages.length) { ui.notifications?.warn("Couldn't resolve those pages in the source PDF."); return null; }
+    try {
+      const { text } = await extractPdfText(file, { pages: pdfPages, columns, ...extractOpts });
+      if (!text) { ui.notifications?.warn("That page has no selectable text."); return null; }
+      return text;
+    } catch (err) {
+      console.error(`${MODULE_ID} | Item Builder — PDF grab failed`, err);
+      ui.notifications?.error("Couldn't read text from that PDF page — see the console.");
+      return null;
+    }
+  }
+  _append(base, text) {
+    const b = (base || "").replace(/\s*$/, "");
+    return b ? `${b}\n${text}\n` : `${text}\n`;
+  }
+}
+
+// ── Module-free helpers ───────────────────────────────────────────────────────
+
+const _escape = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** Parse a freeform cost string ("5 sp", "1 gp 5 sp") into {gp,sp,cp}. */
+function _parseCost(str) {
+  const cost = { gp: 0, sp: 0, cp: 0 };
+  for (const m of String(str ?? "").matchAll(/(\d+)\s*(gp|sp|cp)\b/gi)) cost[m[2].toLowerCase()] += Number(m[1]);
+  return cost;
+}

@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /**
  * Pure recompute of a Class Ability's use pool from its rule. Returns the new

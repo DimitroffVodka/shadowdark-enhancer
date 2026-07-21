@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MODULE_ID } from "../scripts/module-id.mjs";
+import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 import {
   benefitCountFromRoll, curseFromRoll, bonusFromRoll, personalityFromRoll,
   composeName, inferSeedFromName, parseBonusValue, resolveSelectedBonus, assembleItemData,
-} from "../scripts/encounter/magic-forge.mjs";
-import { buildForgeProvenance } from "../scripts/encounter/magic-table-runtime.mjs";
+} from "../scripts/magic-forge/magic-forge.mjs";
+import { buildForgeProvenance } from "../scripts/magic-forge/magic-table-runtime.mjs";
 
 /* -- legacy roll curves (pinned, back-compat) ------------------------------ */
 

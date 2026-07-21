@@ -2,7 +2,7 @@
  * Shared helpers for the Mount / Boat sheet helper-roll buttons.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /**
  * Evaluate a Roll and post it as a chat card flavored for the given actor.

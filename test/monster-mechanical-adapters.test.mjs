@@ -13,7 +13,7 @@ import {
   resolveAdapterOps,
   deriveDisplayName,
   MECH_ADAPTERS,
-} from "../scripts/encounter/monster-mechanical-adapters.mjs";
+} from "../scripts/monster-creator/monster-mechanical-adapters.mjs";
 
 /* -- strict dice parser ---------------------------------------------------- */
 

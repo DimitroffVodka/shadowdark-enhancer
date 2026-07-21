@@ -17,7 +17,7 @@
  * and passed in, so we never hard-import from the system bundle.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { rollToChat, promptNumber } from "./vehicle-rolls.mjs";
 
 const PHYSICAL_TYPES = ["Weapon", "Armor", "Basic", "Gem", "Potion", "Scroll", "Wand", "Light"];

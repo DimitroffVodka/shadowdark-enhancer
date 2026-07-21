@@ -1,6 +1,6 @@
 import { ABILITY_ORDER } from "./constants.mjs";
 import { TALENT_DESCRIPTION_FIXES } from "./data.mjs";
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /**
  * Turn a completed builder state into a Shadowdark PlayerSD actor.

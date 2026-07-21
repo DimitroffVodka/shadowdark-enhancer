@@ -13,7 +13,7 @@ import {
   classGateBlockers,
   supplementGateBlockers,
   classGateIssues,
-} from "../scripts/encounter/class-quality-gate.mjs";
+} from "../scripts/importer/char-content/class-quality-gate.mjs";
 
 test("classGateBlockers extracts only BLOCKER-tagged warnings, tag stripped", () => {
   const warnings = [

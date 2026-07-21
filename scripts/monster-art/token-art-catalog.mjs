@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 
 /**

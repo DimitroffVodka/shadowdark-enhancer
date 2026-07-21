@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   formatCurrency, sumCoins, formatDuration, generateSessionName,
-} from "../scripts/encounter/session-recap-core.mjs";
+} from "../scripts/session-recap/session-recap-core.mjs";
 
 test("formatCurrency", () => {
   assert.equal(formatCurrency(0), "0cp");

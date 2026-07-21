@@ -7,18 +7,18 @@
  * matches the final design from day one.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { DISTANCE, ACTIVITY, reactionBand } from "./encounter-result.mjs";
 import { EncounterBrowse } from "./encounter-browse.mjs";
-import { npcMoveKeys } from "./npc-moves.mjs";
+import { npcMoveKeys } from "../monster-creator/npc-moves.mjs";
 import { EncounterBuild } from "./encounter-build.mjs";
 import {
   _isPlaceholderArt, _firstNonPlaceholder,
   _getCompendiumArtFor, _bestArtForActor,
   _findCompendiumActorByName,
-} from "./art-utils.mjs";
-import { MonsterCreator } from "./encounter-creator.mjs";
-import { findSuitePack } from "./compendium-suite.mjs";
+} from "../shared/art-utils.mjs";
+import { MonsterCreator } from "../monster-creator/encounter-creator.mjs";
+import { findSuitePack } from "../shared/compendium-suite.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // v13/v14 namespaced renderTemplate (the global emits deprecation warnings).

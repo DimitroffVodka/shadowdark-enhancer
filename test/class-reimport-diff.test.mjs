@@ -6,7 +6,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { _internals } from "../scripts/encounter/class-unit-importer.mjs";
+import { _internals } from "../scripts/importer/char-content/class-unit-importer.mjs";
 
 const { _deepEq, _subsetEq, _staleFields, _effectShape } = _internals;
 

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { titleCaseName, splitStatblocks, parseStatblock } from "../scripts/encounter/statblock-parser.mjs";
+import { titleCaseName, splitStatblocks, parseStatblock } from "../scripts/importer/monsters/statblock-parser.mjs";
 
 test("titleCaseName", () => {
   assert.equal(titleCaseName("GOBLIN"), "Goblin");

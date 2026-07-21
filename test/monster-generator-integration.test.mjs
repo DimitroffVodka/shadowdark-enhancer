@@ -16,7 +16,7 @@ const read = (p) => readFile(new URL(p, ROOT), "utf8");
 /* -- action map + handlers ------------------------------------------------- */
 
 test("creator wires the three separate remove-generated actions to handlers", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   for (const action of ["creatorMutRemoveGenerator", "creatorMutRemoveMutations", "creatorMutRemoveAll"]) {
     assert.match(src, new RegExp(`${action}:\\s*MonsterCreatorApp\\.prototype\\._on\\w+`), `${action} mapped`);
   }
@@ -26,7 +26,7 @@ test("creator wires the three separate remove-generated actions to handlers", as
 });
 
 test("bulk removal goes through removeGeneratedEffects and reports removed/detached/conflicts", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(src, /_removeGenerated\(filter, label\)\s*\{[\s\S]*removeGeneratedEffects\(this\._draft, filter\)/);
   assert.match(src, /report\.removedApplications\.length/);
   assert.match(src, /report\.detached\.length/);
@@ -34,14 +34,14 @@ test("bulk removal goes through removeGeneratedEffects and reports removed/detac
 });
 
 test("apply-to-draft runs through the shared effect runtime (applyResult)", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(src, /_onMutApply\(\)\s*\{[\s\S]*applyResult\(this\._draft, result,/);
   // The legacy append-only path is gone.
   assert.doesNotMatch(src, /appendResultFeatures/);
 });
 
 test("Clear selection handlers remain selection-only (non-destructive)", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(src, /_onMutClearSet\(event, target\)\s*\{[^}]*_mutSelection\s*=\s*this\._mutSelection\.filter/s);
   assert.match(src, /_onMutClear\(\)\s*\{\s*this\._mutSelection\s*=\s*\[\];/);
 });
@@ -49,12 +49,12 @@ test("Clear selection handlers remain selection-only (non-destructive)", async (
 /* -- draft + persistence flags --------------------------------------------- */
 
 test("_defaultDraft seeds the generatedEffects ledger", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(src, /generatedEffects:\s*\{\s*version:\s*1,\s*applications:\s*\[\]\s*\}/);
 });
 
 test("draftToActorData writes actor v3 flag + per-item generation flags", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   // Actor-level prose-free v3 flag, only when something was generated.
   assert.match(src, /d\.generatedEffects\?\.applications/);
   assert.match(src, /mutation:\s*buildProvenanceV3\(d/);
@@ -65,14 +65,14 @@ test("draftToActorData writes actor v3 flag + per-item generation flags", async 
 });
 
 test("draft persistence always escapes textarea HTML instead of trusting a leading tag", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(src, /featureDescriptionHtml/);
   assert.match(src, /function _descHtml\(text\)\s*\{\s*return featureDescriptionHtml\(text\);\s*\}/s);
   assert.doesNotMatch(src, /if\s*\(s\.startsWith\("<"\)\)\s*return s/);
 });
 
 test("actorToDraft reconstructs the ledger and reads item generation flags", async () => {
-  const src = await read("scripts/encounter/encounter-creator.mjs");
+  const src = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(src, /_readItemGeneration\(item\)/);
   assert.match(src, /getFlag\(MODULE_ID,\s*"monsterGeneration"\)/);
   assert.match(src, /draft\.generatedEffects\s*=\s*reconstructGeneratedEffects\(actorMutFlag, draft\.features, draft\.actions\)/);
@@ -82,7 +82,7 @@ test("actorToDraft reconstructs the ledger and reads item generation flags", asy
 /* -- variant copy parity --------------------------------------------------- */
 
 test("Create Variant Copy uses the SAME runtime + v3 provenance (no divergent path)", async () => {
-  const src = await read("scripts/encounter/monster-mutator.mjs");
+  const src = await read("scripts/monster-creator/monster-mutator.mjs");
   assert.match(src, /applyResult\(draft, result, \{ idFn: foundry\.utils\.randomID \}\)/);
   assert.match(src, /draftToActorData\(draft\)/);
   assert.match(src, /_provenanceMeta\s*=\s*\{/);
@@ -119,7 +119,7 @@ test("template exposes the exact visible labels and badge classes", async () => 
     /sde-mut-selected[\s\S]*sde-mut-mode-\{\{this\.mode\}\}/,
     "selected results preview their automation mode before Apply",
   );
-  const creator = await read("scripts/encounter/encounter-creator.mjs");
+  const creator = await read("scripts/monster-creator/encounter-creator.mjs");
   assert.match(creator, /selection\s*=\s*live\.map[\s\S]*planResultEffects\(r,/);
   assert.match(tpl, /sde-mut-applied-set">\{\{this\.setLabel\}\}\s*·\s*\{\{this\.columnLabel\}\}/);
   assert.match(creator, /columnLabel:\s*columnLabelByManifest\.get\(a\.slotKey\)/);
@@ -135,7 +135,7 @@ test("badge/remove CSS classes exist in the stylesheet", async () => {
 /* -- provenance hygiene: no deprecated ids / no ported source prose -------- */
 
 test("adapters registry carries generic mechanics only — no deprecated ids or ported prose", async () => {
-  const src = await read("scripts/encounter/monster-mechanical-adapters.mjs");
+  const src = await read("scripts/monster-creator/monster-mechanical-adapters.mjs");
   // No deprecated static string ids (form-/combat-/mind-/str-/weak- keys).
   assert.doesNotMatch(src, /"(form|combat|mind|str|weak)-[a-z0-9-]+"/i);
   // No ported apply() constructors or name-prefix machinery.

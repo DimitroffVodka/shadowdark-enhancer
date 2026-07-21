@@ -11,9 +11,9 @@ import {
   parseMatrixByColumns,
   buildTableData,
   computeBlockers,
-} from "../scripts/encounter/table-importer.mjs";
-import { findById, columnManifestId, isMatrix } from "../scripts/encounter/table-manifest.mjs";
-import { SET_DEFS, IDENTITY_IDS } from "../scripts/encounter/monster-table-runtime.mjs";
+} from "../scripts/importer/tables/table-importer.mjs";
+import { findById, columnManifestId, isMatrix } from "../scripts/importer/tables/table-manifest.mjs";
+import { SET_DEFS, IDENTITY_IDS } from "../scripts/monster-creator/monster-table-runtime.mjs";
 
 const GEN = findById("core-monster-generator");
 const MUT = findById("core-monster-mutations");

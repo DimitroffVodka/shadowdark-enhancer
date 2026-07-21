@@ -5,8 +5,8 @@
 // values — no book content ships in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseGear, WR_ARMOR_CODES, WR_WEAPON_CODES } from "../scripts/encounter/gear-parser.mjs";
-import { buildItemData } from "../scripts/encounter/item-importer.mjs";
+import { parseGear, WR_ARMOR_CODES, WR_WEAPON_CODES } from "../scripts/importer/items/gear-parser.mjs";
+import { buildItemData } from "../scripts/importer/items/item-importer.mjs";
 
 // Single-record helper — asserts the paste produced EXACTLY one record, so a
 // splitter that collapses rows (or mints phantom extras) fails loudly here

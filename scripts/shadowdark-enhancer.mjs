@@ -2,59 +2,59 @@
  * Shadowdark Enhancer — entry point
  */
 
-export { MODULE_ID } from "./module-id.mjs";
-import { MODULE_ID } from "./module-id.mjs";
-import { ICONS } from "./icons.mjs";
+export { MODULE_ID } from "./shared/module-id.mjs";
+import { MODULE_ID } from "./shared/module-id.mjs";
+import { ICONS } from "./shared/icons.mjs";
 
-import { registerSettings } from "./settings.mjs";
-import { CrawlState } from "./crawl-state.mjs";
-import { CrawlStrip } from "./crawl-strip.mjs";
-import { CrawlBar }      from "./crawl-bar.mjs";
-import { registerHiddenSync } from "./hidden-sync.mjs";
-import { MovementTracker } from "./movement-tracker.mjs";
+import { registerSettings } from "./shared/settings.mjs";
+import { CrawlState } from "./crawl-strip/crawl-state.mjs";
+import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
+import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
+import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
+import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { EncounterRollerApp } from "./encounter/encounter-roller-app.mjs";
-import { MonsterCreator } from "./encounter/encounter-creator.mjs";
-import { createMutatedActor } from "./encounter/monster-mutator.mjs";
-import { catalog as monsterTableCatalog } from "./encounter/monster-table-runtime.mjs";
-import { LootCatalog } from "./encounter/loot-catalog.mjs";
-import { LootGenerator } from "./encounter/loot-generator.mjs";
-import { LootDelivery } from "./encounter/loot-delivery.mjs";
-import { LootGeneratorApp } from "./encounter/loot-generator-app.mjs";
-import { LootDrops } from "./encounter/loot-drops.mjs";
-import { ItemDrops } from "./encounter/item-drops.mjs";
-import { LootTableTag } from "./encounter/loot-table-tag.mjs";
-import { TableRegistry } from "./encounter/table-registry.mjs";
-import { MagicForgeApp } from "./encounter/magic-forge-app.mjs";
+import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
+import { createMutatedActor } from "./monster-creator/monster-mutator.mjs";
+import { catalog as monsterTableCatalog } from "./monster-creator/monster-table-runtime.mjs";
+import { LootCatalog } from "./loot/loot-catalog.mjs";
+import { LootGenerator } from "./loot/loot-generator.mjs";
+import { LootDelivery } from "./loot/loot-delivery.mjs";
+import { LootGeneratorApp } from "./loot/loot-generator-app.mjs";
+import { LootDrops } from "./loot/loot-drops.mjs";
+import { ItemDrops } from "./loot/item-drops.mjs";
+import { LootTableTag } from "./loot/loot-table-tag.mjs";
+import { TableRegistry } from "./importer/tables/table-registry.mjs";
+import { MagicForgeApp } from "./magic-forge/magic-forge-app.mjs";
 import {
   MAGIC_SET_DEFS,
   catalog as magicCatalog,
   buildSetSeed as magicBuildSetSeed,
   buildChildSeed as magicBuildChildSeed,
-} from "./encounter/magic-table-runtime.mjs";
-import { LootSetupApp } from "./encounter/loot-setup-app.mjs";
-import { boundCount } from "./encounter/loot-table-catalog.mjs";
-import { ImporterHubApp } from "./encounter/importer-hub-app.mjs";
-import { installCompoundRollTable } from "./encounter/compound-table.mjs";
-import { installLoadingDialogGuard } from "./loading-dialog-guard.mjs";
-import { TableEnricher } from "./encounter/table-enrich.mjs";
-import { MonsterImporterAPI } from "./encounter/monster-importer-app.mjs";
-import { segmentDump } from "./encounter/dump-segmenter.mjs";
-import { parseItem } from "./encounter/item-parser.mjs";
-import { ItemImporter } from "./encounter/item-importer.mjs";
-import { MonsterLinker } from "./encounter/monster-linker.mjs";
-import { LootLinker } from "./encounter/loot-linker.mjs";
-import { buildBundle, exportBundle, applyBundle } from "./encounter/bundle-io.mjs";
-import { MerchantShop } from "./merchant-shop.mjs";
-import { PartyXP } from "./encounter/party-xp.mjs";
-import { SessionRecap } from "./encounter/session-recap.mjs";
+} from "./magic-forge/magic-table-runtime.mjs";
+import { LootSetupApp } from "./loot/loot-setup-app.mjs";
+import { boundCount } from "./loot/loot-table-catalog.mjs";
+import { ImporterHubApp } from "./importer/importer-hub-app.mjs";
+import { installCompoundRollTable } from "./importer/tables/compound-table.mjs";
+import { installLoadingDialogGuard } from "./shared/loading-dialog-guard.mjs";
+import { TableEnricher } from "./importer/tables/table-enrich.mjs";
+import { MonsterImporterAPI } from "./importer/monsters/monster-importer-app.mjs";
+import { segmentDump } from "./importer/dump-segmenter.mjs";
+import { parseItem } from "./importer/items/item-parser.mjs";
+import { ItemImporter } from "./importer/items/item-importer.mjs";
+import { MonsterLinker } from "./importer/monsters/monster-linker.mjs";
+import { LootLinker } from "./loot/loot-linker.mjs";
+import { buildBundle, exportBundle, applyBundle } from "./importer/bundle-io.mjs";
+import { MerchantShop } from "./merchant/merchant-shop.mjs";
+import { PartyXP } from "./party-xp/party-xp.mjs";
+import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
 // personally triggers the lazy import in crawl-strip. Otherwise a player who
 // rolls OoC initiative first reaches a GM whose hook isn't registered yet and
 // the roll never lands in CrawlState.
-import "./initiative-manager.mjs";
+import "./crawl-strip/initiative-manager.mjs";
 import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
 import { registerArtGalleryQuery } from "./char-builder/art-gallery.mjs";
 import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
@@ -423,13 +423,13 @@ Hooks.once("init", () => {
       // Dedicated Class Importer — classes have their own guided workspace
       // (body → roll tables → titles) instead of the generic paste box.
       openClassImporter: async () => {
-        const { ClassImporterApp } = await import("./encounter/class-importer-app.mjs");
+        const { ClassImporterApp } = await import("./importer/char-content/class-importer-app.mjs");
         return ClassImporterApp.open();
       },
       // Dedicated Spell Importer — organizes spells by Class → Tier → Alignment
       // and tags them (system.class + tier + the shadowdark-extras alignment flag).
       openSpellImporter: async () => {
-        const { SpellImporterApp } = await import("./encounter/spell-importer-app.mjs");
+        const { SpellImporterApp } = await import("./importer/spells/spell-importer-app.mjs");
         return SpellImporterApp.open();
       },
       // Enrich an imported table to the Ruins standard: encounter -> monster
@@ -525,7 +525,7 @@ Hooks.once("ready", () => {
         // differ five seconds later.
         if (game.users.activeGM?.id !== game.user.id) return;
         try {
-          const { backfillTargets } = await import("./encounter/monster-backfill.mjs");
+          const { backfillTargets } = await import("./importer/monsters/monster-backfill.mjs");
           const result = await backfillTargets({ scope: "pack", dryRun: false });
           if (result?.changed?.length) {
             ui.notifications.info(`Shadowdark Enhancer: ${result.changed.length} imported monster(s) upgraded to current import fidelity.`);
@@ -545,7 +545,7 @@ Hooks.once("ready", () => {
     setTimeout(async () => {
       if (game.users.activeGM?.id !== game.user.id) return;
       try {
-        const { relinkSpellsToClasses } = await import("./encounter/item-importer.mjs");
+        const { relinkSpellsToClasses } = await import("./importer/items/item-importer.mjs");
         const n = await relinkSpellsToClasses();
         if (n) ui.notifications.info(`Shadowdark Enhancer: linked ${n} spell(s) to their caster class.`);
       } catch (err) {
@@ -563,7 +563,7 @@ Hooks.once("ready", () => {
     setTimeout(async () => {
       if (game.users.activeGM?.id !== game.user.id) return;
       try {
-        const { tagBorrowedSpellLists } = await import("./encounter/class-unit-importer.mjs");
+        const { tagBorrowedSpellLists } = await import("./importer/char-content/class-unit-importer.mjs");
         const n = await tagBorrowedSpellLists();
         if (n) ui.notifications.info(`Shadowdark Enhancer: tagged ${n} spell(s) to a borrowed-list caster class.`);
       } catch (err) {

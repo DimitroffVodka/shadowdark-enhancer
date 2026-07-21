@@ -11,8 +11,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildItemData, classNameFromSpellFolder } from "../scripts/encounter/item-importer.mjs";
-import { MODULE_ID } from "../scripts/module-id.mjs";
+import { buildItemData, classNameFromSpellFolder } from "../scripts/importer/items/item-importer.mjs";
+import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 
 test("classNameFromSpellFolder: plain class name passes through", () => {
   assert.equal(classNameFromSpellFolder("Necromancer"), "Necromancer");

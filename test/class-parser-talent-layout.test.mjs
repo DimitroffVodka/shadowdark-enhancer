@@ -17,7 +17,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseClassSection } from "../scripts/encounter/class-parser.mjs";
+import { parseClassSection } from "../scripts/importer/char-content/class-parser.mjs";
 
 const HEADER = `WARDEN
 A stalwart guardian of the wild groves.

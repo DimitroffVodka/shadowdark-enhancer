@@ -12,7 +12,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { installLoadingDialogGuard, dismissLoadingDialogs } from "../scripts/loading-dialog-guard.mjs";
+import { installLoadingDialogGuard, dismissLoadingDialogs } from "../scripts/shared/loading-dialog-guard.mjs";
 
 function setup({ getDataImpl } = {}) {
   const appCloseCalls = [];

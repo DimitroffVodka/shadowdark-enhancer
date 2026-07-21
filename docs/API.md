@@ -186,6 +186,6 @@ the GM via the system socket (the GM must be connected).
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
-  (`scripts/encounter/*.mjs` exports) may change without notice.
+  (direct `scripts/**/*.mjs` exports) may change without notice.
 - `apiVersion` was introduced at `1.0.0`; earlier releases (≤ v0.3.0)
   exposed the same core namespaces without a version field.

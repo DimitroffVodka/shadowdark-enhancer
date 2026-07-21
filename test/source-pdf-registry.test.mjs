@@ -21,7 +21,7 @@ const stubGlobals = ({ journal = undefined, fetchOk = false } = {}) => {
   };
 };
 
-const { listSourcePdfs } = await import("../scripts/encounter/source-pdf-registry.mjs");
+const { listSourcePdfs } = await import("../scripts/importer/source-pdf-registry.mjs");
 
 test("clean install: fallback paths verify against the server, dead ones are NOT linked", async () => {
   const restore = stubGlobals({ journal: undefined, fetchOk: false });   // no journal, no files

@@ -5,8 +5,8 @@ import {
   anchorHasEvidence,
   MIN_RUN_UNITS,
   MAX_ANCHOR_GAP,
-} from "../scripts/encounter/hex-parser.mjs";
-import { segmentDump } from "../scripts/encounter/dump-segmenter.mjs";
+} from "../scripts/importer/tables/hex-parser.mjs";
+import { segmentDump } from "../scripts/importer/dump-segmenter.mjs";
 
 // All fixture text is invented (D1) — no book content.
 

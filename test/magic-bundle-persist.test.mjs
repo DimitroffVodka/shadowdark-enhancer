@@ -8,7 +8,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { commitBundleAtomic, findExistingByManifestOrName } from "../scripts/encounter/table-importer.mjs";
+import { commitBundleAtomic, findExistingByManifestOrName } from "../scripts/importer/tables/table-importer.mjs";
 
 /**
  * In-memory pack + persist adapter. `failAt` throws on the Nth write (1-based,

@@ -4,7 +4,7 @@
  * builder always reflects the live installed content.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 /** Enrich Shadowdark description HTML — resolves @UUID links + [[/r]] inline rolls. */
 export async function enrich(html) {

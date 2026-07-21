@@ -1,4 +1,4 @@
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { SHOP_STOCK, slug } from "./steps/gear-step.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;

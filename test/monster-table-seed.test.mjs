@@ -13,12 +13,12 @@ import assert from "node:assert/strict";
 import {
   buildMonsterTableSeed,
   CORE_PDF_SOURCE_KEY,
-} from "../scripts/encounter/monster-table-runtime.mjs";
+} from "../scripts/monster-creator/monster-table-runtime.mjs";
 import {
   validateMatrixCommit,
   parseMatrixByColumns,
-} from "../scripts/encounter/table-importer.mjs";
-import { columnManifestId } from "../scripts/encounter/table-manifest.mjs";
+} from "../scripts/importer/tables/table-importer.mjs";
+import { columnManifestId } from "../scripts/importer/tables/table-manifest.mjs";
 
 /* -- seed shape ------------------------------------------------------------ */
 
@@ -56,7 +56,7 @@ test("a Monster table seed resolves a Core PDF href + grab target", async () => 
   globalThis.game = {};
   globalThis.foundry = { utils: { getRoute: (p) => p } };
   try {
-    const { sourcePdfHref, sourcePdfTarget } = await import("../scripts/encounter/source-pdf-registry.mjs");
+    const { sourcePdfHref, sourcePdfTarget } = await import("../scripts/importer/source-pdf-registry.mjs");
     const seed = buildMonsterTableSeed("generator");
 
     const target = sourcePdfTarget(seed.src, seed.page);

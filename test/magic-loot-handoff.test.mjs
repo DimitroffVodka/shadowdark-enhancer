@@ -7,10 +7,10 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MODULE_ID } from "../scripts/module-id.mjs";
-import { forgeTypeOf } from "../scripts/encounter/loot-value.mjs";
-import { resolveForgeType, inferSeedFromName, assembleItemData } from "../scripts/encounter/magic-forge.mjs";
-import { buildForgeProvenance } from "../scripts/encounter/magic-table-runtime.mjs";
+import { MODULE_ID } from "../scripts/shared/module-id.mjs";
+import { forgeTypeOf } from "../scripts/loot/loot-value.mjs";
+import { resolveForgeType, inferSeedFromName, assembleItemData } from "../scripts/magic-forge/magic-forge.mjs";
+import { buildForgeProvenance } from "../scripts/magic-forge/magic-table-runtime.mjs";
 
 /* -- stable classification ------------------------------------------------- */
 

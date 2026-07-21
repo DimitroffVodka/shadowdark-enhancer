@@ -20,7 +20,7 @@ import {
   buildProvenanceV3,
   reconstructGeneratedEffects,
   itemGenerationFlag,
-} from "../scripts/encounter/monster-effect-runtime.mjs";
+} from "../scripts/monster-creator/monster-effect-runtime.mjs";
 
 /* -- helpers --------------------------------------------------------------- */
 

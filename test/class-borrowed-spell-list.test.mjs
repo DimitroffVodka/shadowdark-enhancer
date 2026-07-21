@@ -12,8 +12,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { _internals, classifySpellWiring, borrowedTagsForSpell } from "../scripts/encounter/class-unit-importer.mjs";
-import { SPELL_LIST_VARIANTS, SPELL_LIST_CLASS_ALIASES } from "../scripts/encounter/char-content-manifest.mjs";
+import { _internals, classifySpellWiring, borrowedTagsForSpell } from "../scripts/importer/char-content/class-unit-importer.mjs";
+import { SPELL_LIST_VARIANTS, SPELL_LIST_CLASS_ALIASES } from "../scripts/importer/char-content/char-content-manifest.mjs";
 
 test("SPELL_LIST_VARIANTS: the three Wizard variants map to their alignments", () => {
   assert.deepEqual(SPELL_LIST_VARIANTS.druid,    { casterClass: "Wizard", alignment: "neutral" });

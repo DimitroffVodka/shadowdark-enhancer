@@ -5,7 +5,7 @@
 // text — no book content ships in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseCharContent } from "../scripts/encounter/char-content-manifest.mjs";
+import { parseCharContent } from "../scripts/importer/char-content/char-content-manifest.mjs";
 
 const anc = (t) => parseCharContent(t, "ancestries")[0]?.draft;
 

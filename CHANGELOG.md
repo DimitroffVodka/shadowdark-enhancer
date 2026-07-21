@@ -7,6 +7,16 @@
 - **Light sources on the Crawl Strip.** Each player card now shows a small flame, just below the character's name, when that character is carrying a light source — so you can see at a glance who has a torch or lantern going. A **burning** source glows (the flame itself, no box), warming from gold toward red as it nears the end of its hour, with the minutes remaining in the tooltip (players see the countdown only where the system's *"show light remaining"* setting already allows it). An **unlit** source shows a dim ember. Click the flame to light or snuff it: a character's owner (or the GM) can light a carried torch, or put out the one that's burning, right from the strip — if several unlit sources are carried, a quick chooser asks which to light. Toggling runs through Shadowdark's own light flow, so the token's light, the chat notice, and the Light Tracker all update exactly as they do from the sheet, and only one source burns at a time. Cards for characters you don't own show the flame as a read-only indicator.
 
 ### Changed
+- **Internal: the module's source tree is reorganized by feature.** `scripts/` now
+  mirrors the feature list — `crawl-strip/`, `crawl-bar/`, `encounter/`,
+  `monster-creator/`, `loot/`, `magic-forge/`, `merchant/`, `party-xp/`,
+  `session-recap/`, `importer/` (with `char-content/`, `spells/`, `tables/`,
+  `monsters/`, `items/`), `actors/`, `char-builder/`, `monster-art/`,
+  `pdf-export/`, and a `shared/` folder for cross-feature infrastructure —
+  instead of one 90-file `encounter/` catch-all. 102 files moved with history
+  preserved; no behavior change. Nothing user-facing moves: templates, styles,
+  assets, settings keys, flags, and the `game.shadowdarkEnhancer` API are all
+  unchanged.
 - **Crawl-strip cards show more of the portrait.** The initiative number, the light flame, and the roll-initiative button now sit just below the character's name (level with the AC line) instead of overlapping the name in the top corners. The initiative number and the luck/movement footer lost their solid backgrounds — they read as text straight over the portrait, matching the flame — and the footer's padding was trimmed, so more of each character's art shows.
 
 ### Fixed

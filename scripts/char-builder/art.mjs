@@ -14,7 +14,7 @@
  * Bundled ancestry art is public domain (CC0); class emblems are game-icons.net
  * CC BY 3.0 — see CREDITS.md for both.
  */
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 
 const slug = (name) => String(name || "")
   .toLowerCase()

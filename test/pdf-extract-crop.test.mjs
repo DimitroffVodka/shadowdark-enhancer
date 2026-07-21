@@ -13,7 +13,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { _internals } from "../scripts/encounter/pdf-text-extract.mjs";
+import { _internals } from "../scripts/importer/pdf-text-extract.mjs";
 
 const { detectGutter, _cropTablePrefix, PRICED_ROW_RE } = _internals;
 

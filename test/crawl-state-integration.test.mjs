@@ -13,7 +13,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MODULE_ID } from "../scripts/module-id.mjs";
+import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 
 // movement-tracker.mjs (imported transitively by crawl-state.mjs) declares
 // `class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler`
@@ -117,7 +117,7 @@ function socketListenerFor(env) {
 // ── 1. Socket authority: forged payload ignored, authoritative reread ──────
 
 test("socket listener ignores a forged payload/userId and rereads the authoritative world setting", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const env = setup({
     users: [GM_A], activeGMId: GM_A.id,
     crawlState: { _v: 1, mode: "crawl", crawlTurn: 5, oocInitiative: {}, members: ["t1"], priorMode: "off" },
@@ -146,7 +146,7 @@ test("socket listener ignores a forged payload/userId and rereads the authoritat
 });
 
 test("socket listener ignores messages that aren't type:\"state\"", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const env = setup({
     users: [GM_A], activeGMId: GM_A.id,
     crawlState: { _v: 1, mode: "crawl", crawlTurn: 5, oocInitiative: {}, members: [], priorMode: "off" },
@@ -164,7 +164,7 @@ test("socket listener ignores messages that aren't type:\"state\"", async () => 
 // ── 2. No payload/userId emitted on _commit ─────────────────────────────────
 
 test("_commit emits a bare notification — no payload, no userId", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const env = setup({
     users: [GM_A], activeGMId: GM_A.id,
     crawlState: { _v: 1, mode: "off", crawlTurn: 0, oocInitiative: {}, members: [], priorMode: "off" },
@@ -188,7 +188,7 @@ test("_commit emits a bare notification — no payload, no userId", async () => 
 // ── 3. priorMode survives an active-GM handoff / reload mid-combat ─────────
 
 test("priorMode is persisted in the world setting and survives a reload + active-GM handoff", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
 
   // GM A is crawling, then enters combat.
   const env1 = setup({
@@ -239,7 +239,7 @@ test("priorMode is persisted in the world setting and survives a reload + active
 // ── 4. Public mutators: any GM, non-GM denied ───────────────────────────────
 
 test("public mutators run for ANY GM, even one that is not the active GM", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const env = setup({
     users: [GM_A, GM_B], activeGMId: GM_B.id, // GM_A is a connected GM but NOT active
     crawlState: { _v: 1, mode: "off", crawlTurn: 0, oocInitiative: {}, members: [], priorMode: "off" },
@@ -255,7 +255,7 @@ test("public mutators run for ANY GM, even one that is not the active GM", async
 });
 
 test("public mutators are denied for a non-GM user", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const env = setup({
     users: [PLAYER], activeGMId: null,
     crawlState: { _v: 1, mode: "off", crawlTurn: 0, oocInitiative: { t1: { roll: 3 } }, members: [], priorMode: "off" },
@@ -278,7 +278,7 @@ test("public mutators are denied for a non-GM user", async () => {
 // ── 5. Automatic hooks are active-GM only ───────────────────────────────────
 
 test("automatic createCombat/deleteCombat hooks only react for the active GM", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const env = setup({
     users: [GM_A, GM_B], activeGMId: GM_B.id, // GM_A connected but not active
     crawlState: { _v: 1, mode: "off", crawlTurn: 0, oocInitiative: {}, members: [], priorMode: "off" },
@@ -313,9 +313,9 @@ test("initiative-manager's createChatMessage writer only reacts for the active G
     // module top-level, exactly once for the life of the process — import it
     // HERE (module cache means only the FIRST import's Hooks map is ever
     // wired), so this test owns that one registration.
-    const { CrawlState } = await import("../scripts/crawl-state.mjs");
+    const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
     CrawlState.init();
-    await import("../scripts/initiative-manager.mjs");
+    await import("../scripts/crawl-strip/initiative-manager.mjs");
 
     // OoC initiative is keyed by ACTOR id (world-scoped membership).
     const fakeMsg = {
@@ -338,7 +338,7 @@ test("initiative-manager's createChatMessage writer only reacts for the active G
 // ── 6. Migration hardening: malformed-but-current persists, future version doesn't downgrade ──
 
 test("init(): a malformed-but-current-version (v1) setting is repaired and persisted", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const env = setup({
     users: [GM_A], activeGMId: GM_A.id,
     crawlState: { _v: 1, mode: "crawl", crawlTurn: -5, oocInitiative: null, members: ["a", "a", "b"], priorMode: "off" },
@@ -356,7 +356,7 @@ test("init(): a malformed-but-current-version (v1) setting is repaired and persi
 });
 
 test("init(): an ALREADY-normalized v1 setting is not rewritten (no-op, no loop)", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const clean = { _v: 1, mode: "crawl", crawlTurn: 3, oocInitiative: {}, members: ["a"], priorMode: "off" };
   const env = setup({ users: [GM_A], activeGMId: GM_A.id, crawlState: clean });
   try {
@@ -371,7 +371,7 @@ test("init(): an ALREADY-normalized v1 setting is not rewritten (no-op, no loop)
 });
 
 test("init(): a future-version (_v > STATE_VERSION) setting is normalized in memory only, never downgraded", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const future = { _v: 99, mode: "combat", priorMode: "crawl", crawlTurn: 3, oocInitiative: {}, members: [], somethingNew: "future-field" };
   const env = setup({ users: [GM_A], activeGMId: GM_A.id, crawlState: future });
   try {
@@ -397,7 +397,7 @@ test("init(): a future-version (_v > STATE_VERSION) setting is normalized in mem
 });
 
 test("init(): a legacy (missing _v) setting is upgraded and persisted, priorMode defaults to off", async () => {
-  const { CrawlState } = await import("../scripts/crawl-state.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const legacy = { mode: "off", crawlTurn: 0, oocInitiative: {} }; // pre-migration shape: no members, no priorMode, no _v
   const env = setup({ users: [GM_A], activeGMId: GM_A.id, crawlState: legacy });
   try {

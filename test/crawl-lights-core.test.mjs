@@ -4,7 +4,7 @@ import {
   isLightItem,
   lifeClass,
   computeLightState,
-} from "../scripts/crawl-lights-core.mjs";
+} from "../scripts/crawl-strip/crawl-lights-core.mjs";
 
 // Minimal ItemSD-shaped factory.
 const light = (id, name, { type = "Basic", isSource = true, active = false,

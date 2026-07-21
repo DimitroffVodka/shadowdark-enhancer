@@ -8,8 +8,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { MAGIC_SET_DEFS, matchBundleTables } from "../scripts/encounter/magic-table-runtime.mjs";
-import { parseStackedTables, blankSeparateTables, dedupExactTables } from "../scripts/encounter/table-importer.mjs";
+import { MAGIC_SET_DEFS, matchBundleTables } from "../scripts/magic-forge/magic-table-runtime.mjs";
+import { parseStackedTables, blankSeparateTables, dedupExactTables } from "../scripts/importer/tables/table-importer.mjs";
 
 const WB = MAGIC_SET_DEFS["magic-weapon-base"];
 const AB = MAGIC_SET_DEFS["magic-armor-base"];

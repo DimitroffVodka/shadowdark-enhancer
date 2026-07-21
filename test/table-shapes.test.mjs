@@ -5,10 +5,10 @@
 // user's own uploaded PDFs, not in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseByShape, buildTableData, parseTables } from "../scripts/encounter/table-importer.mjs";
-import { shapeForName, TABLE_SHAPES } from "../scripts/encounter/table-shapes.mjs";
-import { resolveTableFolderPath } from "../scripts/encounter/table-folders.mjs";
-import { hasTable, sourcedTableName } from "../scripts/encounter/char-content-manifest.mjs";
+import { parseByShape, buildTableData, parseTables } from "../scripts/importer/tables/table-importer.mjs";
+import { shapeForName, TABLE_SHAPES } from "../scripts/importer/tables/table-shapes.mjs";
+import { resolveTableFolderPath } from "../scripts/importer/tables/table-folders.mjs";
+import { hasTable, sourcedTableName } from "../scripts/importer/char-content/char-content-manifest.mjs";
 
 // ── Prayer ──────────────────────────────────────────────────────────────────
 const PRAYER = { kind: "compound", split: "prayer", cols: 3, size: 4, labels: ["Detail 1", "Detail 2", "Detail 3"] };

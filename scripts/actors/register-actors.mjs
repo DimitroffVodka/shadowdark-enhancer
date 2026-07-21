@@ -18,7 +18,7 @@
  * NPC model + sheet are already in CONFIG).
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { BoatDataModel } from "./boat-data-model.mjs";
 import { BoatSheet } from "./boat-sheet.mjs";
 import { buildMountNpcSheet } from "./mount-npc-sheet.mjs";

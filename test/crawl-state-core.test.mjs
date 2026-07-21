@@ -14,7 +14,7 @@ import {
   nextCrawlTurn,
   setOocInitiative,
   clearOocInitiative,
-} from "../scripts/crawl-state-core.mjs";
+} from "../scripts/crawl-strip/crawl-state-core.mjs";
 
 // ── defaults / normalization ────────────────────────────────────────────────
 

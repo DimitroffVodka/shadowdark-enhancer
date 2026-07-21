@@ -6,7 +6,7 @@
  * properties, siege weapons, and the sinking-countdown helpers.
  */
 
-import { MODULE_ID } from "../module-id.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
 import { VehicleSheet } from "./vehicle-sheet.mjs";
 
 const BOAT_TYPES = [

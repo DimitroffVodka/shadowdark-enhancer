@@ -1,0 +1,856 @@
+/**
+ * Shadowdark Enhancer — Crawl Strip
+ *
+ * Faithful port of vagabond-crawler/scripts/crawl-strip/crawl-strip.mjs.
+ * Adapted for Shadowdark's simpler CrawlState model:
+ *   - No heroes/gm phases — just `mode: "off" | "crawl" | "combat"`
+ *   - Single `crawlTurn` counter (no phase toggle)
+ *   - Luck instead of Stress (shamrock icon stays; semantics shift)
+ *   - Movement is module-setting-driven (no per-actor speed field)
+ */
+
+import { MODULE_ID }        from "../shared/module-id.mjs";
+import { esc }              from "../shared/esc.mjs";
+import { CrawlState }       from "./crawl-state.mjs";
+import { MovementTracker }  from "./movement-tracker.mjs";
+import { ICONS }            from "../shared/icons.mjs";
+import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
+import {
+  buildTabStripHTML,
+  bindActionMenuEvents,
+  closeActionMenu,
+} from "./npc-action-menu.mjs";
+
+const STRIP_ID = "shadowdark-enhancer-strip";
+
+export const CrawlStrip = {
+
+  _el:             null,
+  _renderQueued:   false,
+  _hookIds:        [],
+  _resizeListener: null,
+
+  init() {
+    this.mount();
+    const queue = () => this.queueRender();
+    // Store [event, id] pairs — Hooks.off REQUIRES the event name (a bare
+    // numeric id is a silent no-op in v14), so destroy() can actually detach.
+    const on = (ev, fn) => this._hookIds.push([ev, Hooks.on(ev, fn)]);
+    on(CrawlState.HOOK_CHANGED, queue);
+    on("combatStart",   queue);
+    on("combatRound",   queue);
+    on("combatTurn",    () => { closeActionMenu(); queue(); });
+    on("updateCombat",  queue);
+    on("updateCombatant", queue);
+    on("createCombatant", queue);
+    on("deleteCombatant", queue);
+    on("deleteCombat",  queue);
+    // Relevance filter: world-wide document churn (a player editing
+    // inventory on another scene, an actor nobody displays) must not rebuild
+    // the strip. Only re-render when the changed document belongs to a
+    // currently displayed member card. Membership changes themselves arrive
+    // via the CrawlState/combatant hooks above, which stay unfiltered.
+    const shown = (attr, id) => !!(id && this._el?.querySelector(`[data-${attr}="${id}"]`));
+    const actorOf = doc => doc?.documentName === "Actor" ? doc
+      : (doc?.parent?.documentName === "Actor" ? doc.parent : doc?.parent?.parent);
+    const queueIfShown = doc => {
+      const a = actorOf(doc);
+      if (shown("actor-id", a?.id) || shown("token-id", a?.token?.id)) queue();
+    };
+    on("updateActor",   queueIfShown);
+    on("updateToken",   td => { if (shown("token-id", td?.id) || shown("actor-id", td?.actorId)) queue(); });
+    on("createToken",   queue);
+    on("deleteToken",   queue);
+    on("canvasReady",   queue);
+    on("updateItem",    queueIfShown);
+    on("createActiveEffect", queueIfShown);
+    on("deleteActiveEffect", queueIfShown);
+    on("updateActiveEffect", queueIfShown);
+  },
+
+  queueRender() {
+    // Microtask debounce: coalesces synchronous hook bursts (e.g. state change
+    // + combat hook firing in the same tick) into a single render. Avoiding
+    // requestAnimationFrame here because Foundry's canvas pauses rAF callbacks
+    // when the scene is idle, which can starve renders triggered by non-canvas
+    // events (state changes, settings tweaks, member additions).
+    if (this._renderQueued) return;
+    this._renderQueued = true;
+    Promise.resolve().then(() => {
+      this._renderQueued = false;
+      this.render();
+    });
+  },
+
+  destroy() {
+    if (this._resizeListener) {
+      window.removeEventListener("resize", this._resizeListener);
+      this._resizeListener = null;
+    }
+    for (const [ev, id] of this._hookIds) Hooks.off(ev, id);
+    this._hookIds = [];
+    this._el?.remove();
+    this._el = null;
+  },
+
+  mount() {
+    if (document.getElementById(STRIP_ID)) {
+      this._el = document.getElementById(STRIP_ID);
+      this.render();
+      return;
+    }
+    const strip = document.createElement("div");
+    strip.id = STRIP_ID;
+    strip.classList.add("shadowdark-enhancer-strip");
+
+    // Mount into #interface so we can push left past #ui-top's left edge
+    const iface = document.getElementById("interface");
+    if (iface) {
+      iface.prepend(strip);
+    } else {
+      document.getElementById("ui-top")?.prepend(strip);
+    }
+    this._el = strip;
+    this.render();
+
+    const updateBounds = () => {
+      if (!this._el) return;
+      const sceneNav = document.getElementById("scene-navigation");
+      const sidebar  = document.getElementById("sidebar");
+      const iface    = document.getElementById("interface");
+      if (!iface) return;
+
+      const ifaceRect = iface.getBoundingClientRect();
+      const leftEdge  = sceneNav
+        ? sceneNav.getBoundingClientRect().right - ifaceRect.left
+        : 0;
+      const rightEdge = sidebar
+        ? sidebar.getBoundingClientRect().left - ifaceRect.left
+        : ifaceRect.width;
+
+      this._el.style.left  = leftEdge + "px";
+      this._el.style.width = (rightEdge - leftEdge) + "px";
+      this._sizeCards();
+    };
+    this._resizeListener = updateBounds;
+    window.addEventListener("resize", updateBounds);
+    this._hookIds.push(["collapseSidebar", Hooks.on("collapseSidebar", () => setTimeout(updateBounds, 350))]);
+    this._hookIds.push(["renderSidebar",   Hooks.on("renderSidebar",   () => setTimeout(updateBounds, 350))]);
+    this._hookIds.push(["renderSceneNavigation", Hooks.on("renderSceneNavigation", () => setTimeout(updateBounds, 50))]);
+    updateBounds();
+  },
+
+  // Resolve the strip's member set from current world state.
+  //   - crawl mode:  Player tokens explicitly added via Add Tokens
+  //                  (CrawlState.members), sorted by OoC init when present
+  //   - combat mode: ALL combatants in game.combat.turns order (initiative
+  //                  order, including the system's Clockwise Initiative setting).
+  //                  No heroes/NPC split — Shadowdark uses individual initiative
+  //                  so the strip mirrors the combat tracker's flat list.
+  _gatherMembers() {
+    const mode = CrawlState.mode;
+    if (mode === "off") return { heroes: [], npcs: [], inCombat: false };
+
+    const inCombat = mode === "combat" && !!game.combat;
+
+    if (!inCombat) {
+      // Crawl mode — opt-in member list (Add Tokens drives this). Membership is
+      // world-scoped: `CrawlState.members` holds ACTOR ids, not scene-local
+      // token ids, so the same party shows in the strip on every scene. Each
+      // member resolves to its token on the CURRENT scene (when one exists) for
+      // movement/select/pan; a member whose actor has no token placed on this
+      // scene still gets a card (resolved from the world actor).
+      const memberActorIds = CrawlState.members ?? [];
+      const scene = canvas.scene;
+      const ooc = CrawlState.oocInitiative;
+      const entries = memberActorIds
+        .map(actorId => {
+          const actor = game.actors.get(actorId);
+          if (!actor || actor.type !== "Player") return null;
+          const tokenDoc = scene?.tokens.find(t => t.actorId === actorId) ?? null;
+          return { actorId, actor, tokenDoc };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+          const ai = ooc[a.actorId]?.roll;
+          const bi = ooc[b.actorId]?.roll;
+          if (ai != null && bi != null) return bi - ai;
+          if (ai != null) return -1;
+          if (bi != null) return 1;
+          return (a.actor.name ?? "").localeCompare(b.actor.name ?? "");
+        });
+      const heroes = entries.map(({ actorId, actor, tokenDoc }) => ({
+        id:      `member-${actorId}`,
+        name:    tokenDoc?.name ?? actor.name ?? "Token",
+        img:     tokenDoc?.texture?.src ?? actor.img ?? "icons/svg/mystery-man.svg",
+        type:    "player",
+        actorId,
+        tokenId: tokenDoc?.id ?? null,
+      }));
+      // Append the synthetic GM card — out of combat always shows it so the
+      // GM has a visible "their turn" marker for things like encounter rolls,
+      // light tracker ticks, etc. (Vagabond pattern.)
+      heroes.push({
+        id:      "sde-gm",
+        name:    "Game Master",
+        img:     game.settings.get(MODULE_ID, "gmAvatarImage") || "icons/svg/cowled.svg",
+        type:    "gm",
+        actorId: null,
+        tokenId: null,
+      });
+      return { heroes, npcs: [], inCombat: false };
+    }
+
+    // Combat — single flat list in initiative order. No heroes/NPC split.
+    const turns = game.combat.turns ?? [];
+    const heroes = [];
+    for (const c of turns) {
+      const actor = c.actor;
+      if (!actor) continue;
+      const tokenDoc = c.token;
+      const isPlayer = actor.type === "Player";
+      heroes.push({
+        id:        `combatant-${c.id}`,
+        name:      tokenDoc?.name ?? actor.name,
+        img:       tokenDoc?.texture?.src ?? actor.img,
+        type:      isPlayer ? "player" : "npc",
+        actorId:   actor.id,
+        tokenId:   tokenDoc?.id ?? c.tokenId,
+        combatantId: c.id,
+      });
+    }
+    return { heroes, npcs: [], inCombat: true };
+  },
+
+  render() {
+    if (!this._el) return;
+    const state = CrawlState;
+
+    if (!state.isActive) {
+      this._el.innerHTML = "";
+      this._el.classList.remove("sde-strip-visible");
+      document.body.classList.remove("sde-strip-active");
+      return;
+    }
+
+    this._el.classList.add("sde-strip-visible");
+    document.body.classList.add("sde-strip-active");
+    document.body.classList.toggle("sde-strip-paused", state.mode === "combat");
+
+    const inCombat   = state.mode === "combat";
+
+    const combatantMap = new Map(
+      (game.combat?.combatants ?? []).map(c => [c.tokenId, c])
+    );
+
+    const { heroes, npcs } = this._gatherMembers();
+
+    const makeCard = (m) => {
+      // Special-case the synthetic GM card — no actor lookup, no stats, just
+      // a visible marker for the GM's turn in the crawl loop.
+      if (m.type === "gm") {
+        const gmTitle = game.user.isGM
+          ? game.i18n.localize("SDE.crawlStrip.gmAvatarPick")
+          : esc(m.name);
+        return `
+        <div class="sde-strip-card-wrap">
+          <div class="sde-strip-member sde-strip-active sde-strip-type-gm${game.user.isGM ? " sde-strip-gm-editable" : ""}"
+               data-member-id="${m.id}" title="${gmTitle}">
+            <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
+            <div class="sde-strip-overlay">
+              <div class="sde-strip-name">${esc(m.name)}</div>
+            </div>
+            <div class="sde-strip-gm-crown">${ICONS.gmCrown}</div>
+          </div>
+        </div>`;
+      }
+
+      // Resolve actor + token
+      let actor = null;
+      let tokenDoc = null;
+      if (m.tokenId) {
+        const token = canvas.tokens?.get(m.tokenId);
+        actor    = token?.actor ?? (m.actorId ? game.actors.get(m.actorId) : null);
+        tokenDoc = token?.document ?? null;
+      } else if (m.actorId) {
+        actor = game.actors.get(m.actorId);
+      }
+      const data = actor ? this._extractData(actor, inCombat, tokenDoc) : null;
+
+      // Combat current-turn detection (no `combatantId` for crawl members)
+      const isCurrent  = !!m.combatantId && game.combat?.combatant?.id === m.combatantId;
+      const combatant  = m.combatantId
+        ? game.combat?.combatants.get(m.combatantId)
+        : (m.tokenId ? combatantMap.get(m.tokenId) : null);
+      const isDefeated = combatant?.defeated ?? false;
+
+      // Visibility:
+      //   - Players NEVER see a hidden token/combatant — it stays off their
+      //     strip until the GM reveals it (no name/HP/presence leak).
+      //   - The GM ALWAYS sees it, flagged hidden below (dim + eye-slash) so
+      //     they can tell at a glance which cards the party can't see.
+      const combatantHidden = combatant?.hidden === true;
+      const tokenHidden     = tokenDoc?.hidden === true;
+      const isHidden        = combatantHidden || tokenHidden;
+      if (isHidden && !game.user.isGM) return "";
+
+      // Active phase highlight:
+      //   - in combat: the current combatant is "active"; everyone else dim
+      //   - in crawl:  all heroes are "active" (no phase split)
+      const isActivePhase = inCombat ? isCurrent : true;
+
+      const displayName = esc(m.name);
+
+      const hpPct   = data && data.hpMax > 0 ? Math.max(0, Math.min(100, Math.round((data.hp / data.hpMax) * 100))) : 0;
+      const hpClass = !data || data.hp <= 0     ? "sde-strip-hp-dead"
+        : data.hp <= data.hpMax * 0.25          ? "sde-strip-hp-critical"
+        : data.hp <= data.hpMax * 0.50          ? "sde-strip-hp-low"
+        : data.hp <= data.hpMax * 0.75          ? "sde-strip-hp-mid"
+        : "sde-strip-hp-ok";
+      const luckClass = data?.luck === 0 ? "sde-strip-pill-empty" : "";
+      // Negative = past the soft cap → red. Exactly 0 → empty/dim. Positive → normal.
+      const moveClass = (data && data.moveRemaining < 0)
+        ? "sde-strip-pill-over"
+        : (data?.moveExhausted ? "sde-strip-pill-empty" : "");
+
+      // AC sub-line — rendered right under the name to keep the pill row uncrowded.
+      const acLine = (data && data.ac != null)
+        ? `<div class="sde-strip-ac-line" title="Armor Class">AC ${data.ac}</div>`
+        : "";
+
+      // Pills:
+      //   - PCs:  luck + movement
+      //   - NPCs in combat: movement only (no luck — NPCs don't carry it)
+      let pills = "";
+      if (data) {
+        if (m.type === "player") {
+          // Luck pill is clickable → spends a luck token via actor.system.useLuckToken().
+          // Only attach the data-action when there's actually a token to spend.
+          const luckClickable = data.luck > 0 ? `data-action="spendLuck" data-actor-id="${m.actorId ?? ""}" role="button" tabindex="0" aria-label="Spend a Luck Token"` : "";
+          const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : "No Luck Tokens";
+          pills = `
+        <div class="sde-strip-pills">
+          <div class="sde-strip-pill ${luckClass}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
+          <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
+        </div>`;
+        } else if (m.type === "npc" && inCombat) {
+          pills = `
+        <div class="sde-strip-pills">
+          <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
+        </div>`;
+        }
+      }
+
+      // Active effects row — status conditions only
+      let effectsRow = "";
+      if (actor) {
+        const activeEffects = actor.effects.filter(e => !e.disabled && e.statuses?.size > 0);
+        if (activeEffects.length) {
+          const icons = activeEffects.map(e => {
+            const icon = esc(e.img || "icons/svg/aura.svg");
+            const label = esc(e.name || "Effect");
+            const durationInfo = e.duration?.rounds
+              ? ` (${e.duration.rounds}R)`
+              : "";
+            return `<img class="sde-strip-effect-icon" src="${icon}" title="${label}${durationInfo}" alt="${label}" width="18" height="18" />`;
+          }).join("");
+          effectsRow = `<div class="sde-strip-effects-row">${icons}</div>`;
+        }
+      }
+
+      // Light-source badge — PC cards only, in both crawl and combat. Shows
+      // whether a light is burning (and roughly how much life is left) and lets
+      // the owner/GM light or snuff a torch/lantern with one click. Rendered as
+      // a direct child of the card (below), NOT inside the pointer-events:none
+      // overlay, so its click target is live.
+      const lightBadge = (actor && m.type === "player")
+        ? this._lightBadgeHTML(actor, { shifted: isCurrent })
+        : "";
+
+      const cardHTML = `
+        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isCurrent ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}"
+             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} tabindex="0">
+          <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
+          ${isHidden ? `<div class="sde-strip-hidden-icon" title="Hidden from players">${ICONS.eyeSlash}</div>` : ""}
+          <div class="sde-strip-overlay">
+            ${displayName ? `<div class="sde-strip-name">${displayName}</div>` : ""}
+            ${acLine}
+            ${effectsRow}
+            <div class="sde-strip-bottom">
+              <div class="sde-strip-hp-bar-wrap">
+                <div class="sde-strip-hp-bar ${hpClass}" style="width:${hpPct}%"></div>
+                <span class="sde-strip-hp-label">${data ? `${data.hp}/${data.hpMax}` : ""}</span>
+              </div>
+              ${pills}
+            </div>
+          </div>
+          ${lightBadge}
+          ${isCurrent ? `<div class="sde-strip-turn-badge">${ICONS.turnArrow}</div>` : ""}
+          ${isDefeated ? `<div class="sde-strip-defeated-icon">${ICONS.skull}</div>` : ""}
+          ${(() => {
+            // Combat mode: dice when combatant has no initiative; otherwise show the rolled value as a badge.
+            if (inCombat && combatant) {
+              if (combatant.initiative == null && (actor?.isOwner || game.user.isGM)) {
+                return `<button class="sde-strip-rollinit-btn" data-combatant-id="${combatant.id}" data-action="rollInit" title="Roll Initiative">${ICONS.diceD20}</button>`;
+              }
+              if (combatant.initiative != null) {
+                return `<div class="sde-strip-init-badge" title="Initiative">${combatant.initiative}</div>`;
+              }
+            }
+            // Crawl mode: dice when no oocInitiative; otherwise show the rolled
+            // value. Keyed by actorId (world-scoped) so the rolled order carries
+            // across scenes.
+            if (!inCombat && m.actorId && m.type === "player") {
+              const oocEntry = CrawlState.oocInitiative[m.actorId];
+              if (!oocEntry && (actor?.isOwner || game.user.isGM)) {
+                return `<button class="sde-strip-rollinit-btn" data-actor-id="${m.actorId}" data-action="rollOocInit" title="Roll Initiative (out of combat)">${ICONS.diceD20}</button>`;
+              }
+              if (oocEntry) {
+                return `<div class="sde-strip-init-badge" title="Initiative (out of combat)">${oocEntry.roll}</div>`;
+              }
+            }
+            return "";
+          })()}
+          ${inCombat && combatant && game.user.isGM ? `<button class="sde-strip-activate-btn ${isCurrent ? "sde-strip-activate-active" : ""}" data-combatant-id="${combatant.id}" data-action="${isCurrent ? "endTurn" : "activateTurn"}" title="${isCurrent ? "End Turn" : "Activate Turn"}">${isCurrent ? ICONS.deactivate : ICONS.activate}</button>` : ""}
+        </div>`;
+
+      // Action menu tab strip — owned cards in any mode. Players need to cast
+      // utility spells, browse weapons, etc. out of combat too.
+      const isNPCType = actor && actor.type !== "Player";
+      const showMenu  = actor?.isOwner;
+      const tabStrip  = showMenu ? buildTabStripHTML(actor, isNPCType) : "";
+      const hasMenu   = showMenu && !!tabStrip;
+
+      return `<div class="sde-strip-card-wrap"
+                   ${hasMenu ? `data-has-menu data-actor-id="${actor.id}" data-is-npc="${isNPCType ? 1 : 0}"` : ""}>
+        ${cardHTML}
+        ${tabStrip}
+      </div>`;
+    };
+
+    const heroCards = heroes.map(makeCard).join("");
+    const npcCards  = npcs.map(makeCard).join("");
+
+    // Crawl turn badge — the GM can advance the crawl turn straight from the
+    // strip (parity with the Crawl Bar's "Next Turn"); players see a static
+    // read-only counter. Advancing goes through CrawlState.nextCrawlTurn(),
+    // which commits + broadcasts state and captures fresh movement anchors.
+    const crawlBadge = game.user.isGM
+      ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
+           <div class="sde-strip-crawl-turn" title="Crawl Turn">${state.crawlTurn}</div>
+           <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="Next Turn">${ICONS.nextRound}</button>
+         </div>`
+      : `<div class="sde-strip-turn-num" title="Crawl Turn">${state.crawlTurn}</div>`;
+
+    // Left badge — combat controls in combat, crawl turn counter otherwise.
+    const leftBadge = inCombat ? `
+      <div class="sde-strip-combat-controls">
+        <button class="sde-strip-cbtn" data-combat="prevRound" title="Previous Round">${ICONS.prevRound}</button>
+        <button class="sde-strip-cbtn" data-combat="prevTurn"  title="Previous Turn">${ICONS.prevRound}</button>
+        <div class="sde-strip-round-num">R${game.combat?.round ?? 1}</div>
+        <button class="sde-strip-cbtn" data-combat="nextTurn"  title="Next Turn">${ICONS.nextRound}</button>
+        <button class="sde-strip-cbtn" data-combat="nextRound" title="Next Round">${ICONS.nextRound}</button>
+      </div>` : crawlBadge;
+
+    // Combat: single flat init-ordered list, no PARTY/NPCS label.
+    // Crawl:  Players-only list with PARTY label.
+    const heroesBlock = heroCards
+      ? (inCombat
+          ? `<div class="sde-strip-group sde-strip-group-combat">
+               <div class="sde-strip-members">${heroCards}</div>
+             </div>`
+          : `<div class="sde-strip-group sde-strip-group-heroes">
+               <div class="sde-strip-group-label sde-strip-label-heroes">PARTY</div>
+               <div class="sde-strip-members">${heroCards}</div>
+             </div>`)
+      : "";
+    const npcsBlock = ""; // no longer used — kept identifier for diff readability
+
+    // Merchant Shop launcher — visible to the GM always, and to players only
+    // while the shop is open for them. Re-renders pick up availability changes
+    // because MerchantShop calls CrawlStrip.queueRender() when it toggles.
+    const shopAvailable = game.user.isGM
+      || game.settings.get(MODULE_ID, "shopAvailableToPlayers");
+    const shopButton = shopAvailable
+      ? `<button class="sde-strip-merchant-btn" data-action="openMerchant" title="Open Merchant Shop"><i class="fas fa-store"></i></button>`
+      : "";
+
+    this._el.innerHTML = `
+      <div class="sde-strip-inner ${inCombat ? "sde-strip-paused" : ""}">
+        ${leftBadge}
+        ${heroesBlock}
+        ${npcsBlock}
+        ${shopButton}
+      </div>`;
+
+    this._bindEvents();
+    this._sizeCards();
+    bindActionMenuEvents(this._el);
+    requestAnimationFrame(() => {
+      if (!this._el) return;
+      const h = this._el.getBoundingClientRect().height ?? 0;
+      if (h > 0) document.documentElement.style.setProperty("--sde-strip-height", Math.ceil(h) + "px");
+    });
+  },
+
+  _sizeCards() {
+    if (!this._el) return;
+    const available = this._el.getBoundingClientRect().width;
+    if (available < 10) return;
+
+    const cards = this._el.querySelectorAll(".sde-strip-member");
+    if (!cards.length) return;
+
+    const n      = cards.length;
+    const gap    = 2;
+    const reserved = 36 + 16 + 16 + 32;
+    const maxW   = 110;
+    const maxH   = 130;
+
+    const idealW = (available - reserved - gap * (n - 1)) / n;
+    const cardW  = Math.min(maxW, Math.max(36, Math.floor(idealW)));
+    const cardH  = Math.round(cardW * (maxH / maxW));
+
+    cards.forEach(c => {
+      c.style.width  = cardW + "px";
+      c.style.height = cardH + "px";
+    });
+  },
+
+  /**
+   * Extract per-actor display data.
+   * Shadowdark adaptation:
+   *   - HP from actor.system.attributes.hp.{value,max}
+   *   - Luck from actor.system.luck.{remaining|available}
+   *   - Movement from MovementTracker (module setting, not per-actor)
+   */
+  _extractData(actor, inCombat = false, tokenDoc = null) {
+    const s = actor.system ?? {};
+    const hp = s.attributes?.hp ?? { value: 0, max: 0 };
+    const ac = s.attributes?.ac?.value ?? null;   // Shadowdark stores derived AC at system.attributes.ac.value
+
+    // Luck count for the shamrock pill.
+    //   - Pulp Mode (`shadowdark.usePulpMode` setting): luck is numeric; show
+    //     `remaining` directly (which can be 0). `available` is leftover from
+    //     non-pulp use and must be ignored.
+    //   - Classic mode: a fresh PC has `{available: true, remaining: 0}` (one
+    //     base token). After spending, `available` flips to false. Show
+    //     `remaining` if > 0, else 1 if `available`, else 0.
+    const luckObj = s.luck ?? {};
+    const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
+    let luck = 0;
+    if (pulp) {
+      luck = typeof luckObj.remaining === "number" ? luckObj.remaining : 0;
+    } else if (typeof luckObj.remaining === "number" && luckObj.remaining > 0) {
+      luck = luckObj.remaining;
+    } else if (luckObj.available === true) {
+      luck = 1;
+    }
+
+    // Movement — module setting drives the budget. No per-actor speed in Shadowdark.
+    // Reads the per-token moveRemaining flag directly (Vagabond pattern).
+    const mode        = inCombat ? "combat" : "crawl";
+    const activeSpeed = MovementTracker.budgetFor(mode, tokenDoc);
+    const moveRemaining = MovementTracker.remainingFor(tokenDoc, mode);
+
+    return {
+      hp:           hp.value ?? 0,
+      hpMax:        hp.max   ?? 0,
+      ac,
+      luck,
+      activeSpeed,
+      moveRemaining,
+      moveExhausted: moveRemaining <= 0,
+    };
+  },
+
+  /**
+   * Build the corner light-source badge for a PC card. Returns "" when the
+   * actor carries no light source (keeps the card uncluttered).
+   *
+   * States (from computeLightState):
+   *   - lit:       glowing flame, colour by remaining life; owner/GM click snuffs it
+   *   - available: dim ember; owner/GM click lights it (chooser when >1 carried)
+   *
+   * @param {Actor} actor
+   * @param {{shifted?:boolean}} opts  shifted → nudge below the current-turn chevron
+   * @returns {string}
+   */
+  _lightBadgeHTML(actor, opts = {}) {
+    const items = actor.items?.contents ?? Array.from(actor.items ?? []);
+    const state = computeLightState(items);
+    if (state.state === "none") return "";
+
+    const canToggle = !!(actor.isOwner || game.user.isGM);
+    const lit       = state.state === "lit";
+    // Interactive only when there's an action to take: snuff a Basic source, or
+    // light a carried one. Effect-only lit sources are read-only indicators.
+    const hasAction = lit ? !!state.toggleId : (state.choices?.length > 0);
+    const clickable = canToggle && hasAction;
+
+    // Respect the system's "players see remaining minutes" setting for non-GMs.
+    let showMins = game.user.isGM;
+    if (!showMins) {
+      try { showMins = (game.settings.get("shadowdark", "playerShowLightRemaining") ?? 0) > 1; }
+      catch { showMins = false; }
+    }
+
+    let title;
+    if (lit) {
+      const mins = showMins ? ` — ${state.remainingMins} min left` : "";
+      const tail = clickable ? " · click to put out" : "";
+      title = `${state.activeName} is lit${mins}${tail}`;
+    } else if (state.choices.length === 1) {
+      title = `Light ${state.choices[0].name}`;
+    } else {
+      title = `Light a source (${state.choices.length} carried)`;
+    }
+
+    const classes = [
+      "sde-strip-light-badge",
+      lit ? "sde-strip-light-lit" : "sde-strip-light-off",
+      lit && state.lifeClass ? state.lifeClass : "",
+      opts.shifted ? "sde-strip-light-shift" : "",
+      clickable ? "sde-strip-light-clickable" : "",
+    ].filter(Boolean).join(" ");
+
+    const actionAttrs = clickable
+      ? `data-action="toggleLight" data-actor-id="${actor.id}"${state.toggleId ? ` data-light-id="${state.toggleId}"` : ""} role="button" tabindex="0" aria-label="${esc(title)}"`
+      : "";
+
+    return `<div class="${classes}" ${actionAttrs} title="${esc(title)}">${ICONS.torch}</div>`;
+  },
+
+  // Owner/GM clicked a light badge. Resolve the target source, then toggle via
+  // the system's own sheet flow (chat card + light tracker + token light stay
+  // in sync). A missing direct target means several carriables → chooser.
+  async _onToggleLight(el) {
+    const actor = el.dataset.actorId ? game.actors.get(el.dataset.actorId) : null;
+    if (!actor || !(actor.isOwner || game.user.isGM)) return;
+
+    const directId = el.dataset.lightId;
+    if (directId) return this._applyLightToggle(actor, directId);
+
+    const items = actor.items?.contents ?? Array.from(actor.items ?? []);
+    const carried = items.filter(i => isLightItem(i) && i.type === "Basic" && !i.system.light.active);
+    if (!carried.length) return;
+    if (carried.length === 1) return this._applyLightToggle(actor, carried[0].id);
+
+    const chosen = await this._promptLightChoice(actor, carried);
+    if (chosen) await this._applyLightToggle(actor, chosen);
+  },
+
+  async _applyLightToggle(actor, itemId) {
+    const item = actor.items.get(itemId);
+    if (!item) return;
+    try {
+      // Prefer the system's PlayerSheet flow: it snuffs any other active light,
+      // stamps hasBeenUsed, updates the token light, posts the chat card, and
+      // pings the Light Source Tracker — all the things a raw item update skips.
+      if (typeof actor.sheet?._toggleLightSource === "function") {
+        await actor.sheet._toggleLightSource(item);
+      } else {
+        await this._fallbackToggleLight(actor, item);
+      }
+    } catch (err) {
+      console.error(`${MODULE_ID} | light toggle failed`, err);
+      ui.notifications?.warn("Could not toggle that light source.");
+    }
+    this.queueRender();
+  },
+
+  // Defensive path if the system sheet API is unavailable — mirror its core
+  // effect: snuff other active lights, flip this one, sync the token light.
+  async _fallbackToggleLight(actor, item) {
+    const active = !item.system.light.active;
+    const updates = [];
+    if (active) {
+      for (const l of actor.items) {
+        if (isLightItem(l) && l.system.light.active) {
+          updates.push({ _id: l.id, "system.light.active": false });
+        }
+      }
+    }
+    updates.push({ _id: item.id, "system.light.active": active, "system.light.hasBeenUsed": true });
+    await actor.updateEmbeddedDocuments("Item", updates);
+    if (typeof actor.toggleLight === "function") await actor.toggleLight(active, item.id);
+  },
+
+  async _promptLightChoice(actor, carried) {
+    const dlg = foundry?.applications?.api?.DialogV2;
+    if (!dlg?.wait) return carried[0]?.id ?? null; // no DialogV2 → light the first
+    const buttons = carried.map(i => ({ action: i.id, label: esc(i.name), icon: "fas fa-fire" }));
+    buttons.push({ action: "cancel", label: game.i18n.localize("Cancel"), icon: "fas fa-times" });
+    const result = await dlg.wait({
+      window: { title: "Light a Source", icon: "fas fa-fire" },
+      content: `<p>Which light source should ${esc(actor.name)} light?</p>`,
+      buttons,
+      rejectClose: false,
+    }).catch(() => null);
+    return (result && result !== "cancel") ? result : null;
+  },
+
+  _bindEvents() {
+    if (!this._el) return;
+
+    // Card double-click → open sheet; single-click → pan + select token
+    this._el.querySelectorAll(".sde-strip-member").forEach(card => {
+      card.addEventListener("dblclick", async (ev) => {
+        if (ev.target.closest(".sde-strip-activate-btn")) return;
+        if (ev.target.closest(".sde-strip-rollinit-btn")) return;
+        const tokenId = card.dataset.tokenId;
+        const token = tokenId ? canvas.tokens?.get(tokenId) : null;
+        const actor = token?.actor ?? (card.dataset.actorId ? game.actors.get(card.dataset.actorId) : null);
+        if (actor) actor.sheet.render(true);
+      });
+      card.addEventListener("click", async (ev) => {
+        // GM avatar card → click to pick a portrait (GM only). The synthetic
+        // GM card has no token/actor, so it owns its own click behaviour.
+        if (card.classList.contains("sde-strip-type-gm")) {
+          if (!game.user.isGM) return;
+          ev.stopPropagation();
+          const FilePickerImpl = foundry.applications?.apps?.FilePicker?.implementation ?? FilePicker;
+          const fp = new FilePickerImpl({
+            type: "imagevideo",
+            current: game.settings.get(MODULE_ID, "gmAvatarImage") || "",
+            callback: async (path) => {
+              await game.settings.set(MODULE_ID, "gmAvatarImage", path);
+              this.queueRender();
+            },
+          });
+          fp.render(true);
+          return;
+        }
+        if (ev.target.closest(".sde-strip-activate-btn")) return;
+        if (ev.target.closest(".sde-strip-rollinit-btn")) {
+          ev.stopPropagation();
+          const btn = ev.target.closest(".sde-strip-rollinit-btn");
+          const action = btn.dataset.action;
+
+          if (action === "rollOocInit") {
+            // Crawl-mode out-of-combat initiative — uses InitiativeManager so
+            // the roll goes through Roll#toMessage (chat card + DsN). Keyed by
+            // actor (world-scoped membership).
+            const actorId = btn.dataset.actorId;
+            if (actorId && !CrawlState.oocInitiative[actorId]) {
+              const { InitiativeManager } = await import("./initiative-manager.mjs");
+              await InitiativeManager.rollOocForActor(actorId);
+              this.queueRender();
+            }
+            return;
+          }
+
+          // Combat-mode initiative — combat exists, combatant has no init yet
+          const combatantId = btn.dataset.combatantId;
+          const combat = game.combat;
+          const combatant = (combatantId && combat) ? combat.combatants.get(combatantId) : null;
+          if (combatant && combatant.initiative == null) {
+            await combat.rollInitiative([combatant.id]);
+            this.queueRender();
+          }
+          return;
+        }
+
+        // Luck pill click → spend a luck token via the actor's system method.
+        const luckBtn = ev.target.closest('[data-action="spendLuck"]');
+        if (luckBtn) {
+          ev.stopPropagation();
+          const actorId = luckBtn.dataset.actorId || card.dataset.actorId;
+          const actor = actorId ? game.actors.get(actorId) : null;
+          if (actor?.system?.useLuckToken) await actor.system.useLuckToken();
+          return;
+        }
+
+        const tokenId = card.dataset.tokenId;
+        if (!tokenId) return;
+        const token = canvas.tokens?.get(tokenId);
+        if (!token) return;
+        token.control({ releaseOthers: !ev.shiftKey });
+        await canvas.animatePan({ x: token.center.x, y: token.center.y,
+          scale: Math.max(canvas.stage.scale.x, 0.5) });
+      });
+
+      // Keyboard parity: Enter/Space on the focused card = select + pan
+      // (same as click), or spend Luck when the pill is focused. Real
+      // <button>s inside the card handle their own keys.
+      card.addEventListener("keydown", ev => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        if (ev.target.closest("button")) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        const luck = ev.target.closest('[data-action="spendLuck"]');
+        if (luck) luck.click(); else card.click();
+      });
+    });
+
+    // Light-source badges — clickable for a member's owner or the GM (bound
+    // before the GM-only guard below so players can light their own torch).
+    // stopPropagation keeps the card's select/pan click from also firing.
+    this._el.querySelectorAll('[data-action="toggleLight"]').forEach(el => {
+      el.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        ev.preventDefault();
+        await this._onToggleLight(el);
+      });
+      el.addEventListener("keydown", ev => {
+        if (ev.key !== "Enter" && ev.key !== " ") return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        el.click();
+      });
+    });
+
+    // Merchant Shop button — available to the GM always, to players when the
+    // shop is open. openLocally() renders the manage view (GM) or buy/sell
+    // (player). Bound before the GM-only guard below so players can open it.
+    const merchantBtn = this._el.querySelector('[data-action="openMerchant"]');
+    if (merchantBtn) {
+      merchantBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        game.shadowdarkEnhancer?.merchant?.openLocally();
+      });
+    }
+
+    if (!game.user.isGM) return;
+
+    // Combat control buttons (prev/next round/turn)
+    this._el.querySelectorAll(".sde-strip-cbtn[data-combat]").forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        const action = btn.dataset.combat;
+        const combat = game.combat;
+        if (!combat) return;
+        if      (action === "nextTurn")   await combat.nextTurn();
+        else if (action === "prevTurn")   await combat.previousTurn();
+        else if (action === "nextRound")  await combat.nextRound();
+        else if (action === "prevRound")  await combat.previousRound();
+      });
+    });
+
+    // Crawl turn advance — strip parity with the Crawl Bar's "Next Turn".
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextCrawlTurn"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        await CrawlState.nextCrawlTurn();
+      });
+    });
+
+    // Activate / end-turn buttons — bridge to the combat tracker's native buttons
+    this._el.querySelectorAll(".sde-strip-activate-btn").forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        const combatantId = btn.dataset.combatantId;
+        const action      = btn.dataset.action;
+        const combat = game.combat;
+        if (!combat) return;
+        if (action === "activateTurn") {
+          // Find combatant's turn index, advance combat to it
+          const idx = combat.turns.findIndex(c => c.id === combatantId);
+          if (idx >= 0) await combat.update({ turn: idx });
+        } else if (action === "endTurn") {
+          await combat.nextTurn();
+        }
+      });
+    });
+  },
+};

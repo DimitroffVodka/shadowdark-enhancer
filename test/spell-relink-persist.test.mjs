@@ -11,7 +11,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { relinkSpellsToClasses } from "../scripts/encounter/item-importer.mjs";
+import { relinkSpellsToClasses } from "../scripts/importer/items/item-importer.mjs";
 
 const MODULE_ID = "shadowdark-enhancer";
 
