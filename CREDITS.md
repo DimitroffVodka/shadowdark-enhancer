@@ -23,6 +23,9 @@ module.
 Other class portraits (Bard, Fighter, Necromancer, Pit Fighter, Ranger,
 Ras-Godai, Roustabout, Sea Wolf, Thief) — per-file credit added as sourced.
 
+All class portraits were resized (≤1024 px) and re-encoded to WebP for the
+module, with camera metadata stripped.
+
 ## UI button icons (`icons/game-icons/`)
 
 The following icons are from [game-icons.net](https://game-icons.net/) and are

@@ -29,7 +29,7 @@ export const ANCESTRY_ART = {
   goblin: "goblin.webp",
   "half-orc": "half-orc.webp",
   halfling: "halfling.png",
-  kobold: "kobold.jpg",
+  kobold: "kobold.webp",
   human: "human.png",
 };
 

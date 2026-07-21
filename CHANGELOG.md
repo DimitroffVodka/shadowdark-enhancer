@@ -17,6 +17,12 @@
   preserved; no behavior change. Nothing user-facing moves: templates, styles,
   assets, settings keys, flags, and the `game.shadowdarkEnhancer` API are all
   unchanged.
+- **The bundled portraits are much smaller.** The character-builder class
+  portraits and the Kobold ancestry portrait were resized (≤1024 px) and
+  re-encoded to WebP — about 14 MB of the module download drops to roughly
+  1 MB with no visible quality loss, and camera metadata is stripped from the
+  photographed plates. The images themselves are unchanged; the gallery and
+  ancestry cards pick them up as before.
 - **Crawl-strip cards show more of the portrait.** The initiative number, the light flame, and the roll-initiative button now sit just below the character's name (level with the AC line) instead of overlapping the name in the top corners. The initiative number and the luck/movement footer lost their solid backgrounds — they read as text straight over the portrait, matching the flame — and the footer's padding was trimmed, so more of each character's art shows.
 
 ### Fixed
