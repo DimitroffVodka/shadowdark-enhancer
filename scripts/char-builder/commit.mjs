@@ -1,5 +1,6 @@
 import { ABILITY_ORDER } from "./constants.mjs";
 import { TALENT_DESCRIPTION_FIXES } from "./data.mjs";
+import { MODULE_ID } from "../module-id.mjs";
 
 /**
  * Turn a completed builder state into a Shadowdark PlayerSD actor.
@@ -242,6 +243,11 @@ async function gatherItems(state, classSys) {
     if (b.chosenUuid) await addTalent(b.chosenUuid, choice(`bonus:${b.key}`));
   }
   for (const uuid of (classSys?.classAbilities || [])) await addSource(uuid);
+  // Class-granted natural weapons/gear (e.g. the Wyrdling's Pseudopod): the
+  // class SHIPS these overlay items and every member gets one at creation —
+  // unlike the proficiency-only weapons (Club, Dagger…) in system.weapons that
+  // the player buys. The importer stamps the grant list on the class flag.
+  for (const uuid of (state.class?.item?.flags?.[MODULE_ID]?.grantedItems || [])) await addSource(uuid);
   for (const sp of (state.spells || [])) await addSource(sp.uuid);
 
   // A Crawling Kit is a bundle, not an item — the sheet gets its contents

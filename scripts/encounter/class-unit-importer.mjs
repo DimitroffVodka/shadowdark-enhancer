@@ -755,10 +755,14 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       source: { title: sourceTitle },
     },
     // classFlags: SDE-original class metadata (e.g. fixedDeity → DeityStep pin).
+    // grantedItems: overlay-shipped natural weapons/gear (the Wyrdling's
+    // Pseudopod) the char-builder embeds on every member at creation — distinct
+    // from the proficiency-only weapons the player buys.
     // borrowedSpellList: the Wizard-variant nickname this class casts ("druid")
     // — tagBorrowedSpellLists() reads it to stamp the class onto that variant's
     // spells (own-list caster; no lender uuid on spellcasting.class).
     flags: { [MODULE_ID]: { imported: true, ...(overlay?.classFlags ?? {}),
+      ...(ourGear.length ? { grantedItems: ourGear.map((g) => g.uuid) } : {}),
       ...(variantList ? { borrowedSpellList: variantList } : {}) } },
   };
   // Body-only re-import must NOT clobber supplement-owned fields. Stage 1 builds
