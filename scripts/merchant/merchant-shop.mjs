@@ -19,12 +19,6 @@ import {
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
-/** Default gamble costs per loot level (in gp). */
-const GAMBLE_COSTS = {
-  1: 1, 2: 2, 3: 3, 4: 4, 5: 5,
-  6: 6, 7: 8, 8: 12, 9: 15, 10: 50,
-};
-
 // ── Currency helpers ──────────────────────────────────────────────────────────
 // Thin aliases over the shared, testable util/coins.mjs so existing call sites
 // read unchanged. `_canAfford` keeps its actor-taking signature.
@@ -724,7 +718,7 @@ export const MerchantShop = {
     });
 
     // Restock the merchant with the sold item
-    await this._restockMerchantInventory(itemData, quantity, originalUuid);
+    await this._restockMerchantInventory(itemData, quantity, originalUuid, ctx);
 
     // Refresh open shop inventory if applicable
     if (this._app?.rendered) {
@@ -1088,10 +1082,15 @@ export const MerchantShop = {
     }
   },
 
-  async _restockMerchantInventory(itemData, quantity, originalUuid = null) {
-    const mode = this._app?._mode ?? "compendium";
-    if (mode === "actor" && this._app?._actorId) {
-      const merchant = game.actors.get(this._app._actorId);
+  async _restockMerchantInventory(itemData, quantity, originalUuid = null, ctx = null) {
+    // Prefer the authoritative transaction context (mirrors _updateStock): a
+    // headless active GM — window closed, or a second GM serving the player
+    // relay — has no _app, and falling back to "compendium" mis-restocked an
+    // actor-mode sale into the shopInventory setting.
+    const mode = ctx?.mode ?? this._app?._mode ?? "compendium";
+    const actorId = ctx?.actorId ?? this._app?._actorId;
+    if (mode === "actor" && actorId) {
+      const merchant = game.actors.get(actorId);
       if (!merchant) return;
       itemData.system.quantity = quantity;
       await Item.create(itemData, { parent: merchant });
