@@ -88,7 +88,7 @@ test("resolveSelectedBonus returns +N or throws (fail-closed for a picked bonus)
 
 /* -- weapon +N mechanics --------------------------------------------------- */
 
-const AE_MODE_ADD = 2;
+const AE_CHANGE_ADD = "add";
 
 test("weapon +0 forges no bonus effects, flags bonus 0", () => {
   const data = assembleItemData({ type: "weapon", baseItemData: { type: "Weapon", system: {} }, bonus: 0 });
@@ -105,7 +105,7 @@ test("weapon +2 forges exactly two transferring AEs with the native SD keys", ()
   for (const e of data.effects) {
     assert.equal(e.transfer, true);
     assert.equal(e.changes[0].value, 2);
-    assert.equal(e.changes[0].mode, AE_MODE_ADD);
+    assert.equal(e.changes[0].type, AE_CHANGE_ADD);
     assert.equal(e.flags[MODULE_ID].forgeBonus, true);
   }
   assert.equal(data.system.magicItem, true);
@@ -138,10 +138,13 @@ test("cloning a base preserves its mechanics (damage die, properties)", () => {
 test("re-forging a base that already carries SDE bonus effects does not stack (dedup)", () => {
   const forgedBase = {
     type: "Weapon", system: {},
+    // Old effects keep the LEGACY numeric mode on purpose: items forged before
+    // the v14 type-string migration still look like this, and dedup must match
+    // them by forgeBonus flag regardless of change shape.
     effects: [
-      { name: "old atk", changes: [{ key: "system.roll.attack.bonus.this", value: 1, mode: AE_MODE_ADD }], flags: { [MODULE_ID]: { forgeBonus: true } } },
-      { name: "old dmg", changes: [{ key: "system.roll.attack.damage.this", value: 1, mode: AE_MODE_ADD }], flags: { [MODULE_ID]: { forgeBonus: true } } },
-      { name: "unrelated glow", changes: [{ key: "system.light.range", value: 20, mode: AE_MODE_ADD }], flags: {} },
+      { name: "old atk", changes: [{ key: "system.roll.attack.bonus.this", value: 1, mode: 2 }], flags: { [MODULE_ID]: { forgeBonus: true } } },
+      { name: "old dmg", changes: [{ key: "system.roll.attack.damage.this", value: 1, mode: 2 }], flags: { [MODULE_ID]: { forgeBonus: true } } },
+      { name: "unrelated glow", changes: [{ key: "system.light.range", value: 20, mode: 2 }], flags: {} },
     ],
   };
   const data = assembleItemData({ type: "weapon", baseItemData: forgedBase, bonus: 3 });

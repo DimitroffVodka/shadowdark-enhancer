@@ -73,14 +73,23 @@ function _deepEq(a, b) {
   return false;
 }
 
-/** Comparable shape for embedded ActiveEffects (core `changes` or SD `system.changes`). */
+/** Legacy numeric ActiveEffect modes → v14 string change types. */
+const LEGACY_MODE_TO_TYPE = {
+  0: "custom", 1: "multiply", 2: "add", 3: "downgrade", 4: "upgrade", 5: "override",
+};
+
+/** Comparable shape for embedded ActiveEffects (core `changes` or SD `system.changes`).
+ *  Normalizes on the v14 string `type`; legacy numeric `mode` values (pre-v14
+ *  authored data, old world docs) map through LEGACY_MODE_TO_TYPE. */
 function _effectShape(list) {
   return (list ?? []).map((e) => ({
     name: e.name ?? "",
     img: e.img ?? null,
     transfer: e.transfer !== false,
     changes: [...(e.changes ?? []), ...(e.system?.changes ?? [])].map((c) => ({
-      key: c.key ?? "", mode: Number(c.mode ?? 2), value: String(c.value ?? ""),
+      key: c.key ?? "",
+      type: c.type ?? LEGACY_MODE_TO_TYPE[Number(c.mode ?? 2)] ?? "add",
+      value: String(c.value ?? ""),
     })),
   }));
 }
@@ -352,7 +361,7 @@ async function buildExtraTables(parsed, { tablesPack, talentsPack, sourceTitle, 
         // Overlay may author mechanics for a row (e.g. Thickened Skin → +1 AC);
         // otherwise the talent is description-only, faithful to the book text.
         const authored = overlay?.extraTableTalents?.[name.toLowerCase()] ?? null;
-        // eslint-disable-next-line no-await-in-loop
+         
         const made = await _ensureItem(talentsPack,
           _talentData(name, `<p>${escapeHtml(desc || name)}</p>`, sourceTitle,
             { talentClass: authored?.talentClass ?? "class", effects: authored?.effects ?? [] }),

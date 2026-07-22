@@ -29,9 +29,10 @@ export const WORKING_TYPES = ["weapon", "armor", "scroll", "wand"];
 /** Logical forge type → Shadowdark Item type. Unhandled types fall back to "Basic". */
 const SD_TYPE = { weapon: "Weapon", armor: "Armor", scroll: "Scroll", wand: "Wand" };
 
-// CONST.ACTIVE_EFFECT_MODES.ADD — kept as a literal so this module stays pure
-// (no Foundry globals) and the AE shape is assertable under node --test.
-const AE_MODE_ADD = 2;
+// v14 string change type (CONST.ACTIVE_EFFECT_CHANGE_TYPES) — kept as a literal
+// so this module stays pure (no Foundry globals) and the AE shape is assertable
+// under node --test. Numeric `mode` is deprecated since v14, removed in v16.
+const AE_CHANGE_ADD = "add";
 
 // Generic label for a Core-mode descriptive rider role (never book prose).
 const DESCRIPTOR_LABELS = {
@@ -157,7 +158,7 @@ function applyBonus(itemData, type, bonus) {
         img: "icons/skills/melee/strike-polearm-glowing-white.webp",
         disabled: false,
         transfer: true,
-        changes: [{ key: "system.roll.attack.bonus.this", value: bonus, mode: AE_MODE_ADD }],
+        changes: [{ key: "system.roll.attack.bonus.this", value: bonus, type: AE_CHANGE_ADD }],
         flags: { [MODULE_ID]: { forgeBonus: true } },
       },
       {
@@ -165,7 +166,7 @@ function applyBonus(itemData, type, bonus) {
         img: "icons/weapons/ammunition/arrow-head-war-flight.webp",
         disabled: false,
         transfer: true,
-        changes: [{ key: "system.roll.attack.damage.this", value: bonus, mode: AE_MODE_ADD }],
+        changes: [{ key: "system.roll.attack.damage.this", value: bonus, type: AE_CHANGE_ADD }],
         flags: { [MODULE_ID]: { forgeBonus: true } },
       },
     );
