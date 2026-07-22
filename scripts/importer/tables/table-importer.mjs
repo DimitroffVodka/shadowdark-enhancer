@@ -972,12 +972,48 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
   const [, x1, x2, x3] = starts;
   const refs = [x1, x2, x3];
   const frag = [[], [], []];
+
+  // ── Left-margin overflow routing ────────────────────────────────────────
+  // Wrapped cells can render their overflow at the LEFT MARGIN (x≈0, inside
+  // the die-number band), and the overflow can belong to ANY column: Gede
+  // p195 wraps Detail 1 there ("Beneath Her" / "verdant boughs,"), Ramlaat
+  // p203 wraps Detail 3 ("consume the" / "cowardly!") AND Detail 2
+  // ("our strength" / "shall"). Position cannot route these; the cell
+  // TERMINATORS can — Detail 1 ends in a clause separator, Detail 3 in "!",
+  // Detail 2 has neither. An unterminated fragment routes by peeking at the
+  // next margin fragment (it is the start of whatever cell that one closes).
+  // Pre-scan the same line range and queue a column per margin fragment; the
+  // main loop consumes the queue in order.
+  const marginQueue = [];
+  for (let i = hi + 1; i < raw.length; i++) {
+    const l = raw[i];
+    if (!l.trim()) continue;
+    for (const p of _layoutPieces(l)) {
+      if (p.x >= x1 - 3 || /^\d{1,4}$/.test(p.text)) continue;
+      marginQueue.push({ line: i, text: p.text, col: null });
+    }
+  }
+  for (let k = 0; k < marginQueue.length; k++) {
+    const f = marginQueue[k];
+    if (_BANG_END.test(f.text)) { f.col = 2; continue; }
+    if (_CLAUSE_END.test(f.text)) { f.col = 0; continue; }
+    const next = marginQueue[k + 1];
+    if (next && next.line - f.line <= 3) {
+      f.col = _BANG_END.test(next.text) ? 2 : _CLAUSE_END.test(next.text) ? 0 : 1;
+    } else f.col = 1;
+  }
+  let marginIdx = 0;
+
   for (let i = hi + 1; i < raw.length; i++) {
     const l = raw[i];
     if (!l.trim()) { if (frag[0].length || frag[2].length) break; else continue; }
     for (const p of _layoutPieces(l)) {
-      if (p.x < x1 - 3) continue;                        // die-number column
-      if (/^\d{1,4}$/.test(p.text)) continue;            // stray page number
+      if (/^\d{1,4}$/.test(p.text)) continue;            // die number / stray page number
+      if (p.x < x1 - 3) {                                // margin overflow — pre-routed
+        const q = marginQueue[marginIdx++];
+        frag[q?.col ?? 0].push({ line: i, text: p.text });
+        continue;
+      }
       let best = 0, bd = Infinity;
       refs.forEach((rx, c) => { const d = Math.abs(p.x - rx); if (d < bd) { bd = d; best = c; } });
       if (best === 0) {                                  // Detail1|Detail2 merge
@@ -1039,7 +1075,7 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
  *  gap is nearby does it snap x off any word it lands inside (single-space
  *  column gaps). This keeps wrapped continuation lines from cutting a word into
  *  the neighbouring column. */
-function _sliceCols(line, colX) {
+function _sliceCols(line, colX, { recoverGutter = false, gutterDieMax = null } = {}) {
   const gapEnds = [...line.matchAll(/\S(\s{2,})/g)].map((m) => m.index + m[0].length);
   // Resolve boundaries LEFT TO RIGHT, each at or after the previous one, and
   // never let two columns claim the same gap. Resolving each independently let
@@ -1103,6 +1139,21 @@ function _sliceCols(line, colX) {
   const cells = []; let prev = start;
   for (const cut of cuts) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
   cells.push(line.slice(prev).trim());
+  // Wrapped continuation lines can start at the LEFT MARGIN, inside the die
+  // gutter (CORE p93: "You wake up in a gutter…" / "your total wealth spent"
+  // print at x=0 under a first column headered at x=4) — the pinned first
+  // edge silently dropped their first word(s). With recoverGutter, anything
+  // left of the first cell that isn't the die face itself is first-cell text.
+  if (recoverGutter && start > 0) {
+    let residue = line.slice(0, start);
+    const dm = /^\s*(\d{1,4})\s*\+?\s*/.exec(residue);
+    if (dm && (gutterDieMax == null || Number(dm[1]) <= gutterDieMax)) residue = residue.slice(dm[0].length);
+    const rest = residue.trim();
+    if (rest && cells.length) {
+      cells[0] = rest + (cells[0] ? ` ${cells[0]}` : "");
+      cells.gutterRecovered = true;   // read by _groupLayoutRows' ambiguity flag
+    }
+  }
   return cells;
 }
 
@@ -1157,13 +1208,20 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
       while (cells.length < cols) cells.push("");
       cells = cells.slice(0, cols);
     } else {
-      cells = _sliceCols(l, colX);
+      cells = _sliceCols(l, colX, { recoverGutter: dieIndexed, gutterDieMax: size || null });
       if (col2Re && cells[0]) {
         const m = col2Re.exec(cells[0]);
         if (m && m.index > 0) {                              // keyword bled into col 1
           const moved = cells[0].slice(m.index).trim();
           cells[0] = cells[0].slice(0, m.index).trim();
           cells[1] = moved + (cells[1] ? ` ${cells[1]}` : "");
+        } else if (m && m.index === 0 && !cells[1]) {
+          // A wrapped LAST-column line whose x drifted left of the boundary
+          // slices whole into cell 1 ("Gain 6 XP and an 80-", CORE p93 row
+          // 13). The keyword opening the cell with nothing to its right is
+          // that column's own overflow — move the whole cell.
+          cells[1] = cells[0];
+          cells[0] = "";
         }
       }
     }
@@ -1181,6 +1239,7 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
   }
   if (!anchors.length) return { rows: [] };
   const buckets = anchors.map(() => Array.from({ length: cols }, () => []));
+  const marginOnly = anchors.map(() => 0);   // pure-margin lines per row (see warning below)
   for (const f of frags) {
     let best = 0, bd = Infinity;
     anchors.forEach((a, idx) => {
@@ -1190,8 +1249,19 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
       // tieUp: keep the earlier (upper) anchor on a tie.
     });
     for (let c = 0; c < cols; c++) if (f.cells[c]?.trim()) buckets[best][c].push(f.cells[c].trim());
+    if (f.cells.gutterRecovered && f.cells.slice(1).every((c) => !c?.trim())) marginOnly[best]++;
   }
-  return { rows: anchors.map((a, idx) => ({ id: a.id, cells: buckets[idx].map((p) => p.join(" ")) })) };
+  // A row where BOTH columns wrapped to the left margin cannot be attributed
+  // by position alone (CORE p93 row 13: the Benefit's "treasure table" prints
+  // at x=0 just like the Outcome's own wraps). All words are kept, but the
+  // column split for that row needs eyes — flag the exact row (never silent).
+  const warnings = [];
+  anchors.forEach((a, idx) => {
+    if (marginOnly[idx] && buckets[idx][cols - 1].length >= 2) {
+      warnings.push(`Row ${a.id} wraps into the margin from more than one column — verify its column split against the book.`);
+    }
+  });
+  return { rows: anchors.map((a, idx) => ({ id: a.id, cells: buckets[idx].map((p) => p.join(" ")) })), warnings };
 }
 
 /** Shared: assemble grouped {id, cells} rows into a compound grid ParsedTable. */
@@ -1402,8 +1472,9 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
     // column (e.g. Carousing Event's Cost "1,200 gp") isn't clipped at its header x.
     const colX = dieIndexed ? pcs.slice(1, cols + 1) : [0, ...pcs.slice(1, cols)];
     if (colX.length === cols) {
-      const { rows: grouped } = _groupLayoutRows(raw, hi, colX, { dieIndexed, size, col2Starts });
+      const { rows: grouped, warnings: groupWarnings } = _groupLayoutRows(raw, hi, colX, { dieIndexed, size, col2Starts });
       if (grouped.length) {
+        if (groupWarnings?.length) warnings.push(...groupWarnings);
         rows = grouped.map((r) => ({ min: r.id, max: r.id, text: r.cells.join(" | ") }));
         if (size && rows.length !== size) {
           warnings.push(`Lookup parse: ${rows.length} rows found, expected ${size} — check the paste for missing/merged rows.`);
@@ -1469,11 +1540,22 @@ function _sliceSection(text, { name = "", caption, size } = {}) {
   const lines = String(text).split("\n").map((l) => l.trim());
   const want = String(caption || name).toUpperCase().replace(/\s+/g, " ").trim();
   if (!want) return null;
-  let start = -1;
+  // A page can print the same word as a PROSE heading above the actual table
+  // (CORE p282 opens with a "QUALITIES" rules paragraph; the QUALITIES d6
+  // table sits further down). Prefer the occurrence whose next non-blank line
+  // is a parseable die header; fall back to the first occurrence (which the
+  // `size` pseudo-header rescue may still handle, e.g. Drinks' "d* Details").
+  const starts = [];
   for (let i = 0; i < lines.length; i++) {
-    if (isSectionCaption(lines[i]) && lines[i].toUpperCase().replace(/\s+/g, " ") === want) { start = i; break; }
+    if (isSectionCaption(lines[i]) && lines[i].toUpperCase().replace(/\s+/g, " ") === want) starts.push(i);
   }
-  if (start === -1) return null;
+  if (!starts.length) return null;
+  let start = starts.find((s) => {
+    let h = s + 1;
+    while (h < lines.length && !lines[h]) h++;
+    return !!parseDieHeader(lines[h]);
+  });
+  if (start === undefined) start = starts[0];
   // Header line = the "dN Title" right after the caption (skip blanks).
   let h = start + 1;
   while (h < lines.length && !lines[h]) h++;
@@ -1577,15 +1659,44 @@ function parseMatrix(text, { name = "", caption, size = 4 } = {}) {
   // binning by their x mis-assigns near a boundary. A row whose cells don't
   // split into exactly n pieces (tight columns the padding couldn't separate)
   // is kept best-effort and flagged.
+  const rowLines = [];
+  const rowPieces = [];
+  for (let r = 1; r <= n; r++) {
+    const line = body.find((l) => { const p = parseLeadingRange(l.trim()); return p && p.min === r && p.max === r; }) ?? "";
+    rowLines.push(line);
+    rowPieces.push(line ? _layoutPieces(line).slice(1) : []);
+  }
+  // Column x-anchors from the rows that DID split into n pieces — tight rows
+  // (cells one space apart, "Goblin pirate Cowled mage") can then be re-cut by
+  // CHARACTER position: layout text is column-faithful, so slicing at each
+  // anchor (snapped to the nearest space within ±5 chars so a cell is never
+  // cut mid-word) recovers the cells the padding couldn't separate.
+  const cleanRows = rowPieces.filter((p) => p.length === n);
+  const anchors = cleanRows.length
+    ? Array.from({ length: n }, (_, c) => Math.round(cleanRows.reduce((s, p) => s + p[c].x, 0) / cleanRows.length))
+    : null;
   const grid = [];
   let raggedRows = 0;
-  for (let r = 1; r <= n; r++) {
-    const line = body.find((l) => { const p = parseLeadingRange(l.trim()); return p && p.min === r && p.max === r; });
-    const cellPieces = line ? _layoutPieces(line).slice(1).map((p) => p.text) : [];
-    if (cellPieces.length !== n) raggedRows++;
-    const cells = cellPieces.slice(0, n);
-    while (cells.length < n) cells.push("");
-    grid.push(cells);
+  for (let r = 0; r < n; r++) {
+    let cells = rowPieces[r].map((p) => p.text);
+    if (cells.length !== n && anchors && rowLines[r]) {
+      const line = rowLines[r];
+      const snap = (q) => {
+        for (let d = 0; d <= 5; d++) {
+          for (const pos of [q - d, q + d]) {
+            if (pos > 0 && pos < line.length && line[pos] === " ") return pos;
+          }
+        }
+        return q;
+      };
+      const cuts = anchors.map((a) => snap(Math.max(0, a - 2)));
+      const sliced = cuts.map((c, i) => line.slice(c, i + 1 < cuts.length ? cuts[i + 1] : undefined).trim());
+      if (sliced.filter(Boolean).length === n) cells = sliced;
+    }
+    if (cells.length !== n) raggedRows++;
+    const out = cells.slice(0, n);
+    while (out.length < n) out.push("");
+    grid.push(out);
   }
   // Flatten row-major to a 1d(n²) table.
   const rows = [];

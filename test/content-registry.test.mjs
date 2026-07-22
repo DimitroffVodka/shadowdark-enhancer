@@ -163,6 +163,70 @@ test("prayer shape: a layout-formatted 3-column generator parses to a 3d6 compou
   assert.equal(cols[2].rows[5].text, "sigma rise!");
 });
 
+// Regression (2026-07-22): a wrapped Detail-1 cell whose overflow renders at
+// the LEFT MARGIN (x=0, inside the die-number band) with the die numeral alone
+// on its own line — WR p195 Gede row 2 ("Beneath Her" / "2" / "verdant
+// boughs,"). The old x-position guard dropped both margin fragments and the
+// face count came up 5/6. Only pure numerals may be dropped by the die-column
+// filter; margin TEXT is a Detail-1 overflow. Fixture is invented text in the
+// exact layout pattern.
+const PRAYER_LAYOUT_WRAPPED = [
+  "d6   Detail 1          Detail 2         Detail 3",
+  "1    Alpha one,        beta will        gamma go!",
+  "Delta margin           epsilon shall",
+  "2                                       zeta fly!",
+  "wrap two,              theta may",
+  "3    Eta three,        iota must        kappa run!",
+  "4    Mu four,          nu shall         xi leap!",
+  "5    Omicron five,     pi can           rho soar!",
+  "6    Sigma six,        tau would        upsilon rise!",
+].join("\n");
+
+test("prayer shape: margin-wrapped Detail-1 overflow keeps all six faces", () => {
+  const shape = CONTENT["wr/gede-prayers"].shape;
+  const bucket = parseByShape("Test Prayers\n" + PRAYER_LAYOUT_WRAPPED, shape, { name: "Test Prayers" });
+  assert.ok(bucket?.generators?.length === 1, "a generator was produced");
+  const g = bucket.generators[0];
+  const cols = g.compound.columns;
+  assert.deepEqual(cols.map((c) => c.rows.filter((r) => r.text.trim()).length), [6, 6, 6],
+    "all six faces survive the margin wrap");
+  assert.equal(cols[0].rows[1].text, "Delta margin wrap two,", "wrapped Detail-1 re-joined in order");
+  assert.equal(cols[1].rows[1].text, "epsilon shall theta may", "Detail-2 fragments binned to the wrapped face");
+  assert.equal(cols[2].rows[1].text, "zeta fly!", "Detail-3 stays on the die line");
+});
+
+// Regression (2026-07-22, second pattern): margin overflow belonging to
+// Detail 3 and Detail 2 — WR p203 Ramlaat rows 5-6 ("consume the"/"cowardly!"
+// wrap face 5's Detail 3; "our strength"/"shall" wrap face 6's Detail 2).
+// Routing is by terminator (clause → D1, "!" → D3, else peek at the next
+// margin fragment), never by x-position. Invented text, exact layout pattern.
+const PRAYER_LAYOUT_D3_D2_WRAP = [
+  "d6  Detail 1                 Detail 2        Detail 3",
+  "1   By Alpha rite,           may beta      be dealt!",
+  "2   By gamma horns,          let delta     doom the weak!",
+  "3   Show no epsilon;         zeta shall    reign high!",
+  "4   In the eta days,         theta will    overtake all!",
+  "consume the",
+  "5   Through iota and fire,   may kappa",
+  "cowardly!",
+  "our strength",
+  "6   Lambda has spoken:                     prevail!",
+  "shall",
+].join("\n");
+
+test("prayer shape: margin-wrapped Detail-3 and Detail-2 overflow route by terminator", () => {
+  const shape = CONTENT["wr/gede-prayers"].shape;
+  const bucket = parseByShape("Test Prayers\n" + PRAYER_LAYOUT_D3_D2_WRAP, shape, { name: "Test Prayers" });
+  assert.ok(bucket?.generators?.length === 1, "a generator was produced");
+  const g = bucket.generators[0];
+  const cols = g.compound.columns;
+  assert.deepEqual(cols.map((c) => c.rows.filter((r) => r.text.trim()).length), [6, 6, 6],
+    "all six faces in every column");
+  assert.equal(cols[2].rows[4].text, "consume the cowardly!", "wrapped Detail-3 re-joined");
+  assert.equal(cols[1].rows[5].text, "our strength shall", "wrapped Detail-2 binned to the last face");
+  assert.equal(cols[0].rows[5].text, "Lambda has spoken:", "Detail-1 face 6 untouched");
+});
+
 test("section registry: the stacked magic-item attribute tables are shaped with a column hint", () => {
   const stacked = ["Armor Benefit", "Armor Curse", "Potion Benefit", "Weapon Curse", "Item Flaw", "Item Virtue", "Boons: Oaths", "Boons: Blessings"];
   for (const n of stacked) {
@@ -230,6 +294,32 @@ test("matrix shape: a d4,d4 cross-reference flattens row-major to a 1d16 table",
   assert.deepEqual(t.warnings, [], "clean single-word cells split without a warning");
   // A wrong caption → null (falls back).
   assert.equal(parseByShape(MATRIX_PAGE, { kind: "matrix", caption: "NOPE", size: 4 }, { name: "x" }), null);
+});
+
+// Regression (2026-07-22): multi-word cells one SINGLE space apart ("Goblin
+// pirate Cowled mage" — CORE p139 Interesting Customer rows 1/3/4) defeat the
+// 2+-space piece splitter. Rows that do split cleanly provide per-column
+// x-anchors; ragged rows are re-cut by character position with the cut
+// snapped to the nearest space. Invented text, exact layout pattern.
+const MATRIX_TIGHT_PAGE = [
+  "FEELINGS",
+  "d4, d4       1             2              3            4",
+  "1     Odd apple    1d10 pears     Cackling fig   Loud plum",
+  "2     Nervous kiwi   Shifty date    Town grape   1d4 melons",
+  "3    Golden pear Cowled lime Half-ripe cherry Dry mango",
+  "4    Staring peach Rival berries  Glum quince  Pit stone",
+].join("\n");
+
+test("matrix shape: single-space-merged cells re-cut from clean-row anchors", () => {
+  const b = parseByShape(MATRIX_TIGHT_PAGE, { kind: "matrix", caption: "FEELINGS", size: 4 }, { name: "Feelings" });
+  assert.ok(b?.tables?.length === 1);
+  const t = b.tables[0];
+  assert.equal(t.rows.length, 16);
+  assert.deepEqual(t.warnings, [], "tight rows recovered without a ragged-row warning");
+  assert.deepEqual(t.rows.slice(8, 12).map((r) => r.text),
+    ["Golden pear", "Cowled lime", "Half-ripe cherry", "Dry mango"],
+    "the fully single-spaced row splits at the anchor boundaries");
+  assert.equal(t.rows[1].text, "1d10 pears", "multi-word cell with interior space intact");
 });
 
 // A two-page d100 table in 1-column form: a title-case seed line, a running-
