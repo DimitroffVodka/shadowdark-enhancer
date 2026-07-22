@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { ExtraGearEditor } from "../char-builder/gear-editor-app.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
+import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 
 export function registerSettings() {
   game.settings.register(MODULE_ID, "combatMovementDefault", {
@@ -170,11 +171,14 @@ export function registerSettings() {
     default: defaultCrawlState(),
   });
 
+  // Default is sourced from encounter-sources.mjs so it can't drift from the
+  // fallbacks in the two consumers. Worlds that stored the pre-4.x pack id are
+  // repaired at `ready` by migrateEncounterSources.
   game.settings.register(MODULE_ID, "encounterSources", {
     scope: "world",
     config: false,
     type: Array,
-    default: ["world", "shadowdark.bestiary"],
+    default: [...DEFAULT_ENCOUNTER_SOURCES],
   });
 
   game.settings.register(MODULE_ID, "encounterThreshold", {

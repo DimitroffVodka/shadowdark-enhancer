@@ -143,7 +143,7 @@ Configured under **Configure Settings → Shadowdark Enhancer** (world scope). H
 | Hide hidden NPCs from the strip | on | Suppresses `token.hidden` / `combatant.hidden` cards. |
 | Warn when shadowdark-crawl-helper is enabled | on | Non-blocking load-time notice. |
 | Encounter threshold (1d6) | 1 | Hit on ≤ threshold. |
-| Encounter sources | world + bestiary | Which packs feed encounters. |
+| Encounter sources | world + `shadowdark.monsters` | Which packs feed encounters. |
 | GM-only encounter rolls | on | Players can't trigger checks. |
 | Pause on encounter | on | Auto-pause the game on a hit. |
 | Auto-roll active table | on | Roll the bound table on a hit. |

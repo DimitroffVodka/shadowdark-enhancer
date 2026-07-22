@@ -3,6 +3,15 @@
 ## [Unreleased]
 
 ### Fixed
+- **The Encounter Roller's default source list pointed at a compendium that no
+  longer exists.** Shadowdark 4.x renamed its bundled monster pack
+  `shadowdark.bestiary` → `shadowdark.monsters`, so a fresh world's Browse NPCs
+  tab started with one dead source that silently contributed no monsters. The
+  default now names the real pack, and worlds that had already toggled their
+  source pills — whose stored list still names the old pack — are repaired
+  automatically at load. The repair preserves your pill order and collapses the
+  entry if you had already added `shadowdark.monsters` by hand, so nothing gets
+  browsed twice.
 - **The Magic Item Forge window scrolls again when Core-mode content is taller
   than the screen** (window capped at 95vh with the root column scrolling,
   matching the importer hub).
