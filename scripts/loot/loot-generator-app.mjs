@@ -5,11 +5,9 @@
  * history where each result can be posted to chat or given to a player.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { LootSetupApp } from "./loot-setup-app.mjs";
 import { boundCount, gatherLootTables } from "./loot-table-catalog.mjs";
 import { LootGenerator } from "./loot-generator.mjs";
 import { LootDelivery } from "./loot-delivery.mjs";
-import { MagicForgeApp } from "../magic-forge/magic-forge-app.mjs";
 import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { ItemDrops } from "./item-drops.mjs";
 
@@ -210,7 +208,9 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.render();
   }
 
-  _onOpenSetup() { LootSetupApp.open(); }
+  async _onOpenSetup() {
+    (await import("./loot-setup-app.mjs")).LootSetupApp.open();
+  }
 
   async _onForgeEntryItem(event, target) {
     const entry = this._history.find(e => e.id === target.dataset.entryId);
@@ -219,6 +219,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (!it) return;
     // Prefer the stable forgeType hint; legacy history entries fall back to the
     // name-only inference for the initial UI seed only.
+    const { MagicForgeApp } = await import("../magic-forge/magic-forge-app.mjs");
     MagicForgeApp.open({
       seed: { ...inferSeedFromName(it.name), forgeType: it.forgeType ?? null },
       onCreate: (forged) => { it.uuid = forged.uuid; it.name = forged.name; it.img = forged.img ?? it.img; it.forgeable = false; this.render(); },

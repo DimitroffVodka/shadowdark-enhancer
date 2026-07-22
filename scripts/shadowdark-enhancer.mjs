@@ -13,28 +13,23 @@ import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
-import { EncounterRollerApp } from "./encounter/encounter-roller-app.mjs";
 import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
 import { createMutatedActor } from "./monster-creator/monster-mutator.mjs";
 import { catalog as monsterTableCatalog } from "./monster-creator/monster-table-runtime.mjs";
 import { LootCatalog } from "./loot/loot-catalog.mjs";
 import { LootGenerator } from "./loot/loot-generator.mjs";
 import { LootDelivery } from "./loot/loot-delivery.mjs";
-import { LootGeneratorApp } from "./loot/loot-generator-app.mjs";
 import { LootDrops } from "./loot/loot-drops.mjs";
 import { ItemDrops } from "./loot/item-drops.mjs";
 import { LootTableTag } from "./loot/loot-table-tag.mjs";
 import { TableRegistry } from "./importer/tables/table-registry.mjs";
-import { MagicForgeApp } from "./magic-forge/magic-forge-app.mjs";
 import {
   MAGIC_SET_DEFS,
   catalog as magicCatalog,
   buildSetSeed as magicBuildSetSeed,
   buildChildSeed as magicBuildChildSeed,
 } from "./magic-forge/magic-table-runtime.mjs";
-import { LootSetupApp } from "./loot/loot-setup-app.mjs";
 import { boundCount } from "./loot/loot-table-catalog.mjs";
-import { ImporterHubApp } from "./importer/importer-hub-app.mjs";
 import { installCompoundRollTable } from "./importer/tables/compound-table.mjs";
 import { installLoadingDialogGuard } from "./shared/loading-dialog-guard.mjs";
 import { TableEnricher } from "./importer/tables/table-enrich.mjs";
@@ -55,12 +50,10 @@ import { registerActorTypes } from "./actors/register-actors.mjs";
 // rolls OoC initiative first reaches a GM whose hook isn't registered yet and
 // the roll never lands in CrawlState.
 import "./crawl-strip/initiative-manager.mjs";
-import { ShadowdarkCharBuilder } from "./char-builder/char-builder-app.mjs";
 import { registerArtGalleryQuery } from "./char-builder/art-gallery.mjs";
 import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
 import { MonsterTokenArt } from "./monster-art/monster-token-art.mjs";
 import { TokenArtCatalog } from "./monster-art/token-art-catalog.mjs";
-import { TokenArtManagerApp } from "./monster-art/token-art-manager-app.mjs";
 import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 
 // Foundry can retain a module stylesheet across reloads while fetching fresh
@@ -246,7 +239,8 @@ Hooks.once("init", () => {
     btn.innerHTML =
       ICONS.charBuilder +
       `<b class="button-text">${game.i18n.localize("SDE.charBuilder.title")}</b>`;
-    btn.addEventListener("click", () => ShadowdarkCharBuilder.open());
+    btn.addEventListener("click", async () =>
+      (await import("./char-builder/char-builder-app.mjs")).ShadowdarkCharBuilder.open());
     actions.appendChild(btn);
 
     // GM-only: re-skin NPC tokens/portraits with art from a locally-installed
@@ -256,7 +250,8 @@ Hooks.once("init", () => {
       artBtn.type = "button";
       artBtn.className = "sde-monster-art-launch";
       artBtn.innerHTML = `${ICONS.monsterArt}<span>${game.i18n.localize("SDE.tokenArt.button")}</span>`;
-      artBtn.addEventListener("click", () => TokenArtManagerApp.open());
+      artBtn.addEventListener("click", async () =>
+        (await import("./monster-art/token-art-manager-app.mjs")).TokenArtManagerApp.open());
       actions.appendChild(artBtn);
     }
   });
@@ -270,8 +265,13 @@ Hooks.once("init", () => {
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
-      open: (opts = {}) => ShadowdarkCharBuilder.open(opts),
-      app: ShadowdarkCharBuilder,
+      open: async (opts = {}) =>
+        (await import("./char-builder/char-builder-app.mjs")).ShadowdarkCharBuilder.open(opts),
+      // Lazy since the 0.11.x lazy-load pass: the wizard parses on first use.
+      // The bare-class `app` property became the async `appClass()` accessor
+      // (docs/API.md) — a sync class handle would force the whole tree eager.
+      appClass: async () =>
+        (await import("./char-builder/char-builder-app.mjs")).ShadowdarkCharBuilder,
     },
     // Universal dump segmentation (D9): one paste → typed buckets.
     import: {
@@ -311,7 +311,8 @@ Hooks.once("init", () => {
     },
     encounter: {
       check: () => EncounterCheck.check(),
-      openRoller: (tab, seed) => EncounterRollerApp.open(tab, seed),
+      openRoller: async (tab, seed) =>
+        (await import("./encounter/encounter-roller-app.mjs")).EncounterRollerApp.open(tab, seed),
       setActiveTable: (uuid) => game.settings.set(MODULE_ID, "encounterTableUuid", uuid || ""),
       getThreshold: () => game.settings.get(MODULE_ID, "encounterThreshold"),
       setThreshold: (n) => game.settings.set(MODULE_ID, "encounterThreshold", n),
@@ -324,7 +325,8 @@ Hooks.once("init", () => {
     // dnd-monster-manual. See monster-art/monster-token-art.mjs.
     tokenArt: {
       // Full multi-source per-monster manager (Actors sidebar → "Monster Art").
-      openManager: () => TokenArtManagerApp.open(),
+      openManager: async () =>
+        (await import("./monster-art/token-art-manager-app.mjs")).TokenArtManagerApp.open(),
       // Legacy single-source dialog (compendium overlay / re-skin / turn off).
       open: () => MonsterTokenArt.openDialog(),
       // Compendium-art overlay: skin EVERY future monster drag (GM). Generates
@@ -380,11 +382,11 @@ Hooks.once("init", () => {
       linkTables: (table) => table
         ? LootCatalog.linkTableItems(table)
         : LootCatalog.linkLootTables(),
-      open: () => LootGeneratorApp.open(),
-      openSetup: () => LootSetupApp.open(),
+      open: async () => (await import("./loot/loot-generator-app.mjs")).LootGeneratorApp.open(),
+      openSetup: async () => (await import("./loot/loot-setup-app.mjs")).LootSetupApp.open(),
     },
     forge: {
-      open: () => MagicForgeApp.open(),
+      open: async () => (await import("./magic-forge/magic-forge-app.mjs")).MagicForgeApp.open(),
       // Read-only Phase-1 Core magic-item table catalog: live readiness derived
       // from the GM's OWN imported sde-tables, plus import-seed builders and set
       // metadata. No persistent raw-prose API — result text is only ever the
@@ -416,10 +418,11 @@ Hooks.once("init", () => {
       // Importer hub — 4-tab shell (Import / Tables / Monsters / Items).
       // Back-compat: legacy tab="dashboard" maps to "tables"; retired
       // "journal"/"scenes" tabs coerce to Import; seed forces Import tab.
-      openHub: (tab, seed) => ImporterHubApp.open(
-        (!tab || tab === "dashboard") ? "tables" : tab,
-        seed,
-      ),
+      openHub: async (tab, seed) =>
+        (await import("./importer/importer-hub-app.mjs")).ImporterHubApp.open(
+          (!tab || tab === "dashboard") ? "tables" : tab,
+          seed,
+        ),
       // Dedicated Class Importer — classes have their own guided workspace
       // (body → roll tables → titles) instead of the generic paste box.
       openClassImporter: async () => {

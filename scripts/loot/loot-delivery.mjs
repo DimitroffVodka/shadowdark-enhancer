@@ -16,7 +16,6 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { MagicForgeApp } from "../magic-forge/magic-forge-app.mjs";
 import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
@@ -177,12 +176,13 @@ export const LootDelivery = {
       });
 
       html.querySelectorAll(".sde-loot-forge").forEach(btn => {
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", async () => {
           const idx = Number(btn.dataset.itemIndex);
           const it = flags.items[idx];
           if (!it) return;
           // Prefer the stable forgeType hint from the placeholder classification;
           // legacy cards (pre-forgeType) fall back to the name-only inference.
+          const { MagicForgeApp } = await import("../magic-forge/magic-forge-app.mjs");
           MagicForgeApp.open({
             seed: { ...inferSeedFromName(it.name), forgeType: it.forgeType ?? null },
             onCreate: (forged) => this._handleForgedReplace(message.id, idx, forged),

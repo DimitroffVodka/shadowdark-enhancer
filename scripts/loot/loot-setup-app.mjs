@@ -14,7 +14,6 @@
  * loot-table-catalog.mjs). All imports flow through the Importer unlock system.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { ImporterHubApp } from "../importer/importer-hub-app.mjs";
 import {
   LOOT_TIER_ENTRIES,
   LOOT_LIBRARY,
@@ -162,7 +161,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Bind any curated loot table (custom picker) to a chosen tier. */
-  async _onBindCustom(event, target) {
+  async _onBindCustom(_event, _target) {
     if (!game.user.isGM) return;
     const tier = this.element.querySelector("select[data-custom-tier]")?.value;
     const uuid = this.element.querySelector("select[data-custom-table]")?.value;
@@ -174,10 +173,11 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /** Open the Importer Hub seeded to unlock a library entry (Core/CS). */
-  _onUnlockLibrary(event, target) {
+  async _onUnlockLibrary(event, target) {
     const { name, src } = target.dataset;
     const entry = LOOT_LIBRARY.flatMap((g) => g.entries).find((e) => e.name === name && e.src === src);
     if (!entry) return;
+    const { ImporterHubApp } = await import("../importer/importer-hub-app.mjs");
     ImporterHubApp.openContentUnlock(unlockSeedFor(entry));
     ui.notifications.info(`Opening the Importer to unlock “${entry.displayName ?? entry.name}”.`);
   }
@@ -188,7 +188,7 @@ export class LootSetupApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * tables — which can't be flagged in place — are stored in the lootPickerTables
    * setting. Both surface in the picker via gatherLootTables.
    */
-  async _onAddPicker(event, target) {
+  async _onAddPicker(_event, _target) {
     if (!game.user.isGM) return;
     const uuid = this.element.querySelector("select[data-picker-add]")?.value;
     if (!uuid) { ui.notifications.warn("Pick a table to add first."); return; }

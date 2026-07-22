@@ -174,8 +174,15 @@ scope for Phase 1.
 ```js
 api.charBuilder.open();      // Character Builder window (singleton — an already-
                              // open builder is brought to front, not replaced)
-api.charBuilder.app;         // the ShadowdarkCharBuilder Application class
+await api.charBuilder.appClass();  // the ShadowdarkCharBuilder Application class
 ```
+
+> Since the lazy-load pass, heavy feature UIs (builder, importer hub, forge,
+> loot apps, encounter roller, token-art manager) parse on first open instead
+> of at `init`. Their `open()` API calls are now async (they were already
+> fire-and-forget for every known caller). The former sync `charBuilder.app`
+> class handle is replaced by the async `appClass()` accessor — a sync handle
+> would have forced the whole builder tree eager again.
 
 The builder is player-usable: it commits through the Shadowdark system's own
 creation path, and a player without actor-create permission is handed off to

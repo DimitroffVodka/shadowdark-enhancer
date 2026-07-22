@@ -15,7 +15,6 @@
 import { parseStatblocks } from "./statblock-parser.mjs";
 import { npcMoveKeys } from "../../monster-creator/npc-moves.mjs";
 import { MonsterImporter } from "./monster-importer.mjs";
-import { ImporterHubApp } from "../importer-hub-app.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -346,7 +345,8 @@ export const MonsterImporterAPI = {
    * Monsters census/management dashboard instead — least-surprise for existing
    * "manage imported monsters" usage.
    */
-  openImporter: () => ImporterHubApp.open("monsters"),
+  openImporter: async () =>
+    (await import("../importer-hub-app.mjs")).ImporterHubApp.open("monsters"),
   /**
    * Headless import: parse a raw dump and create the monsters directly (no UI).
    * For power users / other modules. GM-only (enforced in createMonsters).
