@@ -2,7 +2,44 @@
 
 ## [Unreleased]
 
+### Fixed
+- **The Magic Item Forge window scrolls again when Core-mode content is taller
+  than the screen** (window capped at 95vh with the root column scrolling,
+  matching the importer hub).
+- **Selling to a merchant now restocks correctly when the GM has no shop
+  window open.** The restock step read the shop mode from the GM's own open
+  window instead of the published transaction context, so a headless active GM
+  (window closed, or a second GM serving a player's sell request) filed an
+  actor-mode sale into the compendium shop inventory instead of back onto the
+  merchant. Restock now uses the same authoritative context as stock updates.
+- **Monster census category filter regained its word boundaries.** The
+  "zone … encounters" category-row filter contained literal backspace bytes
+  where `\b` regex word boundaries were intended, so that half of the filter
+  could never match; junk gap rows it should have suppressed could slip
+  through.
+
 ### Changed
+- **Magic Forge effects use the Foundry v14 change format.** Forged weapon
+  bonuses now author the string `type: "add"` instead of the legacy numeric
+  `mode`, eliminating a batch of deprecation warnings (numeric modes are
+  removed in Foundry v16). Existing forged items keep working — dedup matches
+  by flag, not change shape.
+- **Faster startup: heavy tools load on first open.** The importer hub,
+  character builder, magic forge, loot generator/setup, encounter roller, and
+  token-art manager now parse when first opened instead of at world load. API
+  `open()` calls are now async; `api.charBuilder.app` became the async
+  `api.charBuilder.appClass()` (see docs/API.md).
+- **The Foundry package-browser description now covers the whole suite** (it
+  still described only the Crawl Strip).
+- **Internal: three new in-client Quench regression batches** — importer
+  commit round-trip (never-overwrite/replace-in-place invariants), merchant
+  transactions (coin conservation, refusal, restock), and movement budget +
+  turn-start rollback. Dev installs with Quench get them automatically;
+  release installs are unaffected.
+- **Internal: the importer hub was split into paste/commit/manage/shared
+  modules** (one ApplicationV2 across five files; behavior unchanged), the
+  132-warning lint backlog was cleared and CI now fails on any new warning,
+  and `verify.sh` lost its stale sibling-module checks.
 - **Internal: in-client regression tests for the combat state machine.** A
   Quench batch (`shadowdark-enhancer.combat-state`) now covers the three
   combat-start flows and asserts every crawl member joins the tracker exactly

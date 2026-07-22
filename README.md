@@ -200,6 +200,15 @@ docs/API.md
 
 See **[CHANGELOG.md](CHANGELOG.md)** for the full release history.
 
+## Localization
+
+The module is **English-only by design**. `languages/en.json` exists and some
+templates use `localize`, but full string extraction is deliberately deferred:
+much of the UI renders GM-imported book content verbatim, so translated chrome
+around untranslated content buys little. Contributions should not add new
+translation keys for their own sake — plain English strings in templates and
+controllers are the house style until a real localization pass is scheduled.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
