@@ -94,7 +94,10 @@ export const CONTENT_ENTRIES = [
   // groups wrapped lines to their nearest row anchor. Event has no die column
   // (keyed by Cost), so dieIndexed:false.
   _entry("core/carousing-outcome", "CORE", "Carousing Outcome",
-    { kind: "lookup", cols: 2, size: 14, labels: ["Outcome", "Benefit"], col2Starts: "Gain" }),
+    // extractCols "layout": the p93 rows wrap over 2-3 lines with the die
+    // face alone mid-wrap — reading-order text interleaves them beyond
+    // repair, but x-positions group cleanly (same lesson as the prayers).
+    { kind: "lookup", cols: 2, size: 14, labels: ["Outcome", "Benefit"], col2Starts: "Gain", extractCols: "layout" }),
   // Cost/Event/Bonus, no die. rowStart/colLast let the RAW (un-delimited,
   // wrapped) copy parse: Cost = leading "N gp", Bonus = trailing "+N", Event =
   // the wrapped middle. A manual "|" still wins when present.
@@ -292,6 +295,27 @@ export const CONTENT_ENTRIES = [
   // Drinks (p137): a d12 list, but the die header prints as "d* Details" — the
   // size fallback lets the section slice read it.
   _entry("core/drinks", "CORE", "Drinks", SECTION("DRINKS", "1", 12)),
+  // Wizards & Thieves gambling stakes (book p95 → PDF p99 via the CORE +4
+  // offset): four small d4 tables stacked in the RIGHT column under
+  // LOW/MID/HIGH/EPIC STAKES captions; the left column is game prose, so the
+  // 2-col ("auto") extraction isolates the stack before the caption slice.
+  _entry("core/wizards-and-thieves-low-stakes", "CORE", "Wizards and Thieves: Low Stakes", SECTION("LOW STAKES", "auto", 4)),
+  _entry("core/wizards-and-thieves-mid-stakes", "CORE", "Wizards and Thieves: Mid Stakes", SECTION("MID STAKES", "auto", 4)),
+  _entry("core/wizards-and-thieves-high-stakes", "CORE", "Wizards and Thieves: High Stakes", SECTION("HIGH STAKES", "auto", 4)),
+  _entry("core/wizards-and-thieves-epic-stakes", "CORE", "Wizards and Thieves: Epic Stakes", SECTION("EPIC STAKES", "auto", 4)),
+  // Magic-item attribute pages (book p282/p288/p292 → PDF +4). Each cited
+  // entry is one small captioned table on a mixed prose+tables page; 2-col
+  // extraction isolates the table column, the caption slices the block. The
+  // p282 QUALITIES table shares its caption with the page's opening prose
+  // section — _sliceSection prefers the occurrence with a die header.
+  _entry("core/magic-item-type", "CORE", "Type", SECTION("TYPE", "auto")),
+  _entry("core/magic-item-qualities", "CORE", "Qualities", SECTION("QUALITIES", "auto")),
+  _entry("core/magic-item-personality", "CORE", "Personality", SECTION("PERSONALITY", "auto")),
+  // First of the TIER 1-5 spell-list series (Tier 2-5 above cite p289; the
+  // TIER 1 list starts one page earlier with the scroll tables).
+  _entry("core/tier-1", "CORE", "Tier 1", SECTION("TIER 1", "auto")),
+  _entry("core/curses-benefits", "CORE", "Curses/benefits", SECTION("CURSES/BENEFITS", "auto")),
+  _entry("core/weapon-bonus", "CORE", "Weapon Bonus", SECTION("WEAPON BONUS", "auto")),
   // p286 potion generators — each catalog entry is one column of a captioned
   // grid (Potion Features d8 ×3, Mixing Potions d12 ×2).
   _entry("core/potion-features-1", "CORE", "Potion Features - Feature 1", GRIDCOL("POTION FEATURES", 0, 3)),
