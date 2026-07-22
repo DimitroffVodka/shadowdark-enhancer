@@ -35,6 +35,12 @@ import {
   itemGenerationFlag,
 } from "./monster-effect-runtime.mjs";
 import { createMutatedFromDraft } from "./monster-mutator.mjs";
+import {
+  getGuidelinesTable,
+  guidelineFor,
+  planLevelAdjust,
+  spellLevelAdjustment,
+} from "./level-guidelines.mjs";
 import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
 import { titleCaseName } from "../importer/monsters/statblock-parser.mjs";
 
@@ -47,6 +53,12 @@ const TEMPLATE_PATH = "modules/shadowdark-enhancer/templates/encounter-creator.h
  * Shadowdark NpcSD schema fields we expose for editing in 1e-i, plus
  * fields reserved for later sub-slices (kept commented out).
  */
+/** Render a number the way a stat block does: "+4", "-1", "+0". */
+function _signed(n) {
+  const v = Number(n) || 0;
+  return v < 0 ? String(v) : `+${v}`;
+}
+
 function _defaultDraft() {
   return {
     name:        "",
@@ -141,6 +153,11 @@ export class MonsterCreatorApp {
     creatorMutRemoveGenerator:  MonsterCreatorApp.prototype._onMutRemoveGenerator,
     creatorMutRemoveMutations:  MonsterCreatorApp.prototype._onMutRemoveMutations,
     creatorMutRemoveAll:        MonsterCreatorApp.prototype._onMutRemoveAll,
+    creatorBaselineApply:       MonsterCreatorApp.prototype._onBaselineApply,
+    creatorBaselineUseSpellLevel: MonsterCreatorApp.prototype._onBaselineUseSpellLevel,
+    creatorLevelStep:           MonsterCreatorApp.prototype._onLevelStep,
+    creatorSaveAsNew:           MonsterCreatorApp.prototype._onSaveAsNew,
+    creatorClearSource:         MonsterCreatorApp.prototype._onClearSource,
     save:                       MonsterCreatorApp.prototype._onSave,
   };
 
@@ -155,8 +172,17 @@ export class MonsterCreatorApp {
       features:     false,
       spellcasting: false,
       mutations:    false,
+      baseline:     false,
       description:  false,
     };
+    // Level Baseline section — which stat groups the Apply button writes.
+    // All on by default; unchecking one leaves that stat alone.
+    this._baselineApply = { ac: true, hp: true, abilities: true, attacks: true };
+    // When the draft was loaded from an existing actor (token HUD "Open in
+    // Creator"), remember where it came from so Save can write BACK to it
+    // instead of minting a duplicate. `{ uuid, name, isToken }` or null.
+    // Cleared on save-as-new, on a fresh draft, and by the Detach button.
+    this._sourceRef = null;
     // Generator/Mutator section state (survives renders). `_mutSelection`
     // holds per-column references { setKey, manifestId, tableUuid, resultId }
     // into the GM's IMPORTED matrix tables; `_mutStatesCache` caches the live
@@ -377,12 +403,32 @@ export class MonsterCreatorApp {
       selectedCount: draftSpells.length,
     };
 
+    // Level Baseline — what the guidelines say a monster of this draft's level
+    // should look like, and the diff against what the draft currently holds.
+    const baseline = this._buildBaselineContext();
+    const maxLevel = this._maxGuidelineLevel();
+    const levelStep = {
+      max:   maxLevel,
+      atMin: Number(this._draft.level ?? 1) <= 0,
+      atMax: Number(this._draft.level ?? 1) >= maxLevel,
+    };
+
+    // Non-null only when the draft was loaded from a live actor — drives the
+    // "editing X" banner and turns Save into an in-place update.
+    const source = this._sourceRef && {
+      name:  this._sourceRef.name,
+      scope: this._sourceRef.isToken ? "this token only" : "world actor",
+    };
+
     return {
       draft:       this._draft,
+      levelStep,
+      source,
       draftPreview: _draftPreview(this._draft),
       sectionOpen: this._sectionOpen,
       spellPicker,
       mutations,
+      baseline,
       alignments:  ["L", "N", "C"],
       // Movement options come from the system's NPC_MOVES enum — the
       // full set (close/near/doubleNear/tripleNear/far/special/none),
@@ -416,6 +462,7 @@ export class MonsterCreatorApp {
     this._wireLoaderInputs();
     this._wireSpellInputs();
     this._wireMutInputs();
+    this._wireBaselineInputs();
   }
 
   /**
@@ -424,6 +471,46 @@ export class MonsterCreatorApp {
    * option clears it. (Selects are committed on change, not through the click
    * action map.)
    */
+  /** Level Baseline checkboxes. A re-render is needed rather than a silent
+   *  state flip: the HP row is a function of CON, so unchecking Abilities
+   *  changes the HP the preview promises. */
+  _wireBaselineInputs() {
+    if (!this._mountHost) return;
+    for (const box of this._mountHost.querySelectorAll("input[data-baseline-apply]")) {
+      box.addEventListener("change", (ev) => {
+        const key = ev.currentTarget.dataset.baselineApply;
+        if (!(key in this._baselineApply)) return;
+        this._baselineApply[key] = ev.currentTarget.checked;
+        this.render();
+      });
+    }
+
+    // The Level Baseline preview is a function of draft.level, but the generic
+    // [data-draft-field] binder writes the draft WITHOUT re-rendering — so
+    // typing a new level would leave the section quoting the old one. This
+    // listener is registered after the binder, so it runs once the value has
+    // landed. `change` on a number input fires on blur/Enter, so the field is
+    // no longer being typed into when the re-render replaces it.
+    this._mountHost.querySelector('[data-draft-field="level"]')
+      ?.addEventListener("change", () => this.render());
+  }
+
+  /** Highest level the guidelines table covers — the level stepper's ceiling. */
+  _maxGuidelineLevel() {
+    const levels = Object.keys(getGuidelinesTable()).map(Number).filter(Number.isFinite);
+    return levels.length ? Math.max(...levels) : 30;
+  }
+
+  /** −/+ stepper beside the Identity level field. The native number spinners
+   *  are too small to hit reliably at Foundry's input size. */
+  _onLevelStep(event, target) {
+    const step = Number(target?.dataset?.step) || 0;
+    if (!step) return;
+    const next = Number(this._draft.level ?? 1) + step;
+    this._draft.level = Math.min(this._maxGuidelineLevel(), Math.max(0, next));
+    this.render();
+  }
+
   _wireMutInputs() {
     if (!this._mountHost) return;
     for (const sel of this._mountHost.querySelectorAll("select[data-mut-result]")) {
@@ -1126,23 +1213,282 @@ export class MonsterCreatorApp {
     this._sectionOpen.description = !!draft.description;
   }
 
-  async _onSave() {
+  // ─── Level Baseline ───────────────────────────────────────────────────
+  //
+  // Shows what the guidelines table expects of a monster at this draft's
+  // level, diffed against what the draft currently holds, and lets the GM
+  // pull any subset of it in. Nothing here is persisted — the draft is only
+  // written to the world by Save — so unlike the token quick-adjust there is
+  // no backup/rollback to manage.
+
+  /** Normalize the draft into the snapshot shape `planLevelAdjust` expects. */
+  _baselineSnapshot(level = this._draft.level) {
+    const d = this._draft;
+    return {
+      level: Number(level ?? 1),
+      ac: Number(d.ac ?? 10),
+      hp: { value: Number(d.hp?.value ?? 1), max: Number(d.hp?.max ?? 1) },
+      abilities: { ...d.abilities },
+      // Only true attack items scale; NPC Special Attacks carry their effect
+      // in prose and have no damage die to rewrite.
+      attacks: (d.actions ?? [])
+        .filter(a => a.type === "NPC Attack")
+        .map(a => ({ id: a.id, name: a.name, num: a.num, bonus: a.bonus, damage: a.damage })),
+    };
+  }
+
+  _buildBaselineContext() {
+    const table = getGuidelinesTable();
+    const written = Number(this._draft.level ?? 1);
+
+    // Spells push a monster above its written level (Spell Tier Impact).
+    // Advisory: the readout retargets the guideline, but `draft.level` is
+    // never rewritten behind the GM's back.
+    const spell = spellLevelAdjustment(this._draft.spells ?? []);
+    const effective = written + spell.adjustment;
+
+    const plan = planLevelAdjust(this._baselineSnapshot(written), effective, {
+      table,
+      applyAbilities: this._baselineApply.abilities,
+    });
+
+    // Ability modifiers read as signed ("+4", "-1"); AC/HP do not.
+    const decorate = (row, signed = false) => row && {
+      ...row,
+      fromLabel:  signed ? _signed(row.from) : String(row.from),
+      toLabel:    signed ? _signed(row.to) : String(row.to),
+      deltaLabel: row.delta === 0 ? "" : _signed(row.delta),
+    };
+    const group = key => plan.rows.filter(r => r.group === key);
+    const abilityRows = group("abilities").map(r => decorate(r, true));
+
+    return {
+      writtenLevel:   written,
+      effectiveLevel: effective,
+      hasSpellBump:   spell.adjustment > 0,
+      spellReasons:   spell.reasons,
+      guideline:      guidelineFor(effective, table),
+      apply:          this._baselineApply,
+      changed:        plan.changed,
+      abilityDelta:   plan.abilityDelta,
+      rows: {
+        ac: decorate(group("ac")[0]),
+        hp: decorate(group("hp")[0]),
+        abilities: abilityRows,
+      },
+      abilitiesChanged: abilityRows.some(r => r.changed),
+      attacks:      plan.attacks,
+      hasAttacks:   plan.attacks.length > 0,
+      attacksChanged: plan.attacks.some(a => a.changed),
+    };
+  }
+
+  /** Adopt the spell-adjusted effective level as the draft's written level. */
+  _onBaselineUseSpellLevel() {
+    const spell = spellLevelAdjustment(this._draft.spells ?? []);
+    if (!spell.adjustment) return;
+    this._draft.level = Number(this._draft.level ?? 1) + spell.adjustment;
+    this.render();
+  }
+
+  /** Write the checked parts of the baseline into the draft. */
+  _onBaselineApply() {
+    const ctx = this._buildBaselineContext();
+    const plan = planLevelAdjust(this._baselineSnapshot(ctx.writtenLevel), ctx.effectiveLevel, {
+      table: getGuidelinesTable(),
+      applyAbilities: this._baselineApply.abilities,
+    });
+    const d = this._draft;
+
+    if (this._baselineApply.ac) d.ac = plan.guideline.ac;
+    if (this._baselineApply.hp) {
+      d.hp.max = plan.nextHp;
+      d.hp.value = plan.nextHp;
+    }
+    if (this._baselineApply.abilities) {
+      for (const [key, value] of Object.entries(plan.nextAbilities)) d.abilities[key] = value;
+      // HP is a function of CON, so a checked HP box must follow the new CON
+      // even though the plan above was computed before these writes landed.
+      if (this._baselineApply.hp) {
+        d.hp.max = plan.nextHp;
+        d.hp.value = plan.nextHp;
+      }
+    }
+    if (this._baselineApply.attacks) {
+      const byId = new Map(plan.attacks.map(a => [a.id, a]));
+      for (const action of (d.actions ?? [])) {
+        const row = byId.get(action.id);
+        if (!row) continue;
+        action.num    = row.num.to;
+        action.bonus  = row.bonus.to;
+        action.damage = row.damage.to;
+      }
+    }
+
+    this._sectionOpen.stats = true;
+    this.render();
+    ui.notifications.info(
+      game.i18n.format("SDE.monsterCreator.baseline.applied", { level: ctx.effectiveLevel }),
+    );
+  }
+
+  // ─── Loading an existing actor for further editing ────────────────────
+
+  /**
+   * Open the full Creator with `actor` loaded — the token HUD's "Open in
+   * Creator" path. Records the source so Save updates that actor in place
+   * rather than creating a near-duplicate.
+   *
+   * For an UNLINKED token the caller passes the token's synthetic actor, so
+   * edits land on that token alone; the banner says so.
+   */
+  static async openWithActor(actor) {
+    if (!actor) return null;
+    const inst = this.instance;
+    await inst._draftFromActor(actor);
+    inst._sourceRef = { uuid: actor.uuid, name: actor.name, isToken: !!actor.isToken };
+    inst._sectionOpen.baseline = true;
+    // Dynamic import: encounter-roller-app.mjs imports THIS module, so a
+    // static import would close the cycle at load time.
+    const { EncounterRollerApp } = await import("../encounter/encounter-roller-app.mjs");
+    await EncounterRollerApp.open("creator");
+    inst.render();
+    return inst;
+  }
+
+  /** Resolve the recorded source back to a live document, or null if it's gone
+   *  (actor deleted, token removed, scene changed). */
+  async _resolveSource() {
+    if (!this._sourceRef?.uuid) return null;
+    try { return (await fromUuid(this._sourceRef.uuid)) ?? null; }
+    catch { return null; }
+  }
+
+  _onClearSource() {
+    this._sourceRef = null;
+    this.render();
+  }
+
+  /**
+   * Write the draft back onto an existing actor.
+   *
+   * Items are RECONCILED by (type, name) rather than wiped and recreated, so
+   * an untouched attack keeps its item id — which matters because the token
+   * quick-adjust's backup flag references attack items by id.
+   *
+   * Only the four types the Creator actually authors are touched; anything
+   * else on the actor (Effects, Talents, gear) is left alone.
+   */
+  async _updateSourceActor(actor) {
+    const { actorData, items } = draftToActorData(this._draft);
+
+    await actor.update({
+      name:   actorData.name,
+      img:    actorData.img,
+      system: actorData.system,
+      prototypeToken: {
+        name: actorData.name,
+        texture: { src: actorData.prototypeToken?.texture?.src },
+      },
+    });
+
+    const MANAGED = new Set(["NPC Attack", "NPC Special Attack", "NPC Feature", "Spell"]);
+    const keyOf = (type, name) => `${type}::${String(name ?? "").trim().toLowerCase()}`;
+    const existing = actor.items.filter(i => MANAGED.has(i.type));
+    const byKey = new Map();
+    for (const item of existing) {
+      // First match wins, so duplicate names don't collapse onto one item.
+      if (!byKey.has(keyOf(item.type, item.name))) byKey.set(keyOf(item.type, item.name), item);
+    }
+
+    const claimed = new Set();
+    const toCreate = [];
+    const toUpdate = [];
+    for (const data of items) {
+      const match = byKey.get(keyOf(data.type, data.name));
+      if (match && !claimed.has(match.id)) {
+        claimed.add(match.id);
+        toUpdate.push({ ...data, _id: match.id });
+      } else {
+        toCreate.push(data);
+      }
+    }
+    const toDelete = existing.filter(i => !claimed.has(i.id)).map(i => i.id);
+
+    if (toDelete.length) await actor.deleteEmbeddedDocuments("Item", toDelete);
+    if (toUpdate.length) await actor.updateEmbeddedDocuments("Item", toUpdate);
+    if (toCreate.length) await actor.createEmbeddedDocuments("Item", toCreate);
+
+    // A quick-adjust backup describes the stats as they were BEFORE this edit
+    // and keys its attacks by item id. Once the Creator has rewritten those
+    // items, "Revert" would restore a half-truth — so drop it and say so.
+    let droppedBackup = false;
+    if (actor.getFlag(MODULE_ID, "quickAdjustBackup")) {
+      await actor.unsetFlag(MODULE_ID, "quickAdjustBackup");
+      droppedBackup = true;
+    }
+
+    return { created: toCreate.length, updated: toUpdate.length, deleted: toDelete.length, droppedBackup };
+  }
+
+  /** Create a brand-new actor from the draft, ignoring any recorded source. */
+  async _createFromDraft() {
+    const { actorData, items } = draftToActorData(this._draft);
+    const actor = await Actor.implementation.create(actorData);
+    if (items.length) await actor.createEmbeddedDocuments("Item", items);
+    return actor;
+  }
+
+  /** Explicit "Save as New" — breaks the link to the source actor. */
+  async _onSaveAsNew() {
+    await this._onSave({ forceCreate: true });
+  }
+
+  async _onSave(opts = {}) {
     const d = this._draft;
     if (!d.name?.trim()) {
       ui.notifications.warn("Monster needs a name before it can be saved.");
       return;
     }
 
+    // `_onSave` is also the click handler for [data-action="save"], which is
+    // called with (event, target) — so only trust an explicit options object.
+    const forceCreate = opts?.forceCreate === true;
+
     try {
-      const { actorData, items } = draftToActorData(d);
-      const actor = await Actor.implementation.create(actorData);
-      if (items.length) {
-        await actor.createEmbeddedDocuments("Item", items);
+      const source = forceCreate ? null : await this._resolveSource();
+
+      if (source) {
+        const report = await this._updateSourceActor(source);
+        const bits = [];
+        if (report.updated) bits.push(`${report.updated} updated`);
+        if (report.created) bits.push(`${report.created} added`);
+        if (report.deleted) bits.push(`${report.deleted} removed`);
+        const itemNote = bits.length ? ` (items: ${bits.join(", ")})` : "";
+        ui.notifications.info(`Updated ${source.name}${itemNote}.`);
+        if (report.droppedBackup) {
+          ui.notifications.warn(
+            `${source.name}'s quick-adjust "Revert" point was cleared — the Creator has rewritten its stats.`,
+          );
+        }
+        // Keep the draft and the link: editing an existing monster is usually
+        // iterative, and a wiped form would lose the GM's place.
+        this._sourceRef = { uuid: source.uuid, name: source.name, isToken: !!source.isToken };
+        this.render();
+        return;
       }
 
+      if (this._sourceRef && !forceCreate) {
+        ui.notifications.warn(
+          `The monster this draft came from (${this._sourceRef.name}) no longer exists — creating a new one instead.`,
+        );
+      }
+
+      const actor = await this._createFromDraft();
       ui.notifications.info(`Created NPC: ${actor.name}`);
       // Reset the draft so the form is ready for the next monster.
       this._draft = _defaultDraft();
+      this._sourceRef = null;
       this.render();
     } catch (err) {
       console.error(MODULE_ID, "Monster Creator save failed:", err);

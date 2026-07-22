@@ -1,0 +1,180 @@
+<div class="sde-qa">
+<style>
+/* Embedded rather than in the module stylesheet — Foundry caches module CSS
+   aggressively and this window must render correctly the first time it opens.
+   Unlayered so it wins over the system cascade. Theme-neutral gray alphas. */
+.sde-quick-adjust .window-content { padding: 0; }
+.sde-quick-adjust .sde-qa { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; }
+
+.sde-quick-adjust .sde-qa-head { display: flex; align-items: center; gap: 10px; }
+.sde-quick-adjust .sde-qa-portrait { width: 44px; height: 44px; border: none; border-radius: 4px; object-fit: cover; flex: 0 0 auto; }
+.sde-quick-adjust .sde-qa-name { font-size: 15px; font-weight: 700; line-height: 1.2; }
+.sde-quick-adjust .sde-qa-sub { font-size: 11px; opacity: 0.7; }
+.sde-quick-adjust .sde-qa-level { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.sde-quick-adjust .sde-qa-level label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+.sde-quick-adjust .sde-qa-level input { width: 52px; text-align: center; height: 26px; font-size: 14px; font-weight: 700; }
+
+/* The native number spinners are ~10px tall and vanish under some browser
+   themes, so the panel ships its own hit targets and hides the natives. */
+.sde-quick-adjust .sde-qa-stepper { display: flex; align-items: center; gap: 3px; }
+.sde-quick-adjust .sde-qa-stepper input { -moz-appearance: textfield; appearance: textfield; }
+.sde-quick-adjust .sde-qa-stepper input::-webkit-outer-spin-button,
+.sde-quick-adjust .sde-qa-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sde-quick-adjust .sde-qa-step {
+  flex: 0 0 auto; width: 26px; height: 26px; padding: 0; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; cursor: pointer;
+}
+.sde-quick-adjust .sde-qa-step:disabled { opacity: 0.35; cursor: default; }
+
+.sde-quick-adjust .sde-qa-spell {
+  font-size: 11px; line-height: 1.4; padding: 5px 8px; border-radius: 4px;
+  background: rgba(127,127,127,0.14); border: 1px solid rgba(127,127,127,0.3);
+}
+.sde-quick-adjust .sde-qa-spell b { font-weight: 700; }
+
+.sde-quick-adjust table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sde-quick-adjust thead th {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em;
+  opacity: 0.7; text-align: left; font-weight: 700;
+  padding: 0 4px 3px; border-bottom: 1px solid rgba(127,127,127,0.35);
+}
+.sde-quick-adjust tbody td { padding: 4px; border-bottom: 1px solid rgba(127,127,127,0.2); vertical-align: top; }
+.sde-quick-adjust tbody tr.is-same { opacity: 0.45; }
+.sde-quick-adjust .sde-qa-check { width: 22px; }
+.sde-quick-adjust .sde-qa-check input { margin: 0; }
+.sde-quick-adjust .sde-qa-stat { font-weight: 700; white-space: nowrap; }
+.sde-quick-adjust .sde-qa-arrow { opacity: 0.6; padding: 0 2px; }
+.sde-quick-adjust .sde-qa-to { font-weight: 700; }
+.sde-quick-adjust .sde-qa-delta { opacity: 0.7; white-space: nowrap; text-align: right; }
+
+.sde-quick-adjust .sde-qa-abilities { display: flex; flex-wrap: wrap; gap: 3px 10px; }
+.sde-quick-adjust .sde-qa-ability { font-size: 12px; white-space: nowrap; }
+.sde-quick-adjust .sde-qa-ability.is-same { opacity: 0.55; }
+.sde-quick-adjust .sde-qa-ability b { font-size: 10px; text-transform: uppercase; opacity: 0.7; }
+
+.sde-quick-adjust .sde-qa-attacks { display: flex; flex-direction: column; gap: 2px; }
+.sde-quick-adjust .sde-qa-attack { font-size: 12px; }
+.sde-quick-adjust .sde-qa-attack.is-same { opacity: 0.55; }
+.sde-quick-adjust .sde-qa-none { font-size: 12px; font-style: italic; opacity: 0.6; }
+
+.sde-quick-adjust .sde-qa-note { font-size: 11px; opacity: 0.65; line-height: 1.4; margin: 0; }
+.sde-quick-adjust .sde-qa-ontarget { font-size: 13px; opacity: 0.75; margin: 0; padding: 6px 0; }
+
+.sde-quick-adjust .sde-qa-footer { display: flex; gap: 6px; align-items: center; }
+.sde-quick-adjust .sde-qa-footer button { width: auto; flex: 0 0 auto; padding: 4px 12px; }
+.sde-quick-adjust .sde-qa-footer .sde-qa-revert { margin-left: auto; }
+</style>
+
+  <div class="sde-qa-head">
+    <img class="sde-qa-portrait" src="{{img}}" alt="">
+    <div>
+      <div class="sde-qa-name">{{actorName}}</div>
+      <div class="sde-qa-sub">Currently level {{currentLevel}}</div>
+    </div>
+    <div class="sde-qa-level">
+      <label for="sde-qa-target">{{localize "SDE.quickAdjust.targetLevel"}}</label>
+      <div class="sde-qa-stepper">
+        <button type="button" class="sde-qa-step" data-action="qa-step" data-step="-1"
+                aria-label="Lower the target level" title="Lower the target level"
+                {{#if atMinLevel}}disabled{{/if}}><i class="fa-solid fa-minus"></i></button>
+        <input id="sde-qa-target" type="number" data-qa-level value="{{targetLevel}}" min="0" max="{{maxLevel}}">
+        <button type="button" class="sde-qa-step" data-action="qa-step" data-step="1"
+                aria-label="Raise the target level" title="Raise the target level"
+                {{#if atMaxLevel}}disabled{{/if}}><i class="fa-solid fa-plus"></i></button>
+      </div>
+    </div>
+  </div>
+
+  {{#if spellBump}}
+  <div class="sde-qa-spell">
+    <b>Spells raise this monster's effective level to {{spellLevel}}.</b>
+    {{#each spellReasons}} {{this}}.{{/each}}
+  </div>
+  {{/if}}
+
+  {{#if changed}}
+  <table>
+    <thead>
+      <tr><th class="sde-qa-check"></th><th>Stat</th><th>Now</th><th></th><th>Guideline</th><th class="sde-qa-delta">&Delta;</th></tr>
+    </thead>
+    <tbody>
+      <tr class="{{#unless rows.ac.changed}}is-same{{/unless}}">
+        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="ac" {{#if apply.ac}}checked{{/if}} aria-label="Apply AC"></td>
+        <td class="sde-qa-stat">AC</td>
+        <td>{{rows.ac.fromLabel}}</td>
+        <td class="sde-qa-arrow">&rarr;</td>
+        <td class="sde-qa-to">{{rows.ac.toLabel}}</td>
+        <td class="sde-qa-delta">{{rows.ac.deltaLabel}}</td>
+      </tr>
+      <tr class="{{#unless rows.hp.changed}}is-same{{/unless}}">
+        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="hp" {{#if apply.hp}}checked{{/if}} aria-label="Apply HP"></td>
+        <td class="sde-qa-stat">HP</td>
+        <td>{{rows.hp.fromLabel}}</td>
+        <td class="sde-qa-arrow">&rarr;</td>
+        <td class="sde-qa-to">{{rows.hp.toLabel}}</td>
+        <td class="sde-qa-delta">{{rows.hp.deltaLabel}}</td>
+      </tr>
+      <tr class="{{#unless abilitiesChanged}}is-same{{/unless}}">
+        <td class="sde-qa-check"><input type="checkbox" data-qa-apply="abilities" {{#if apply.abilities}}checked{{/if}} aria-label="Apply ability modifiers"></td>
+        <td class="sde-qa-stat">Abilities</td>
+        <td colspan="4">
+          <div class="sde-qa-abilities">
+            {{#each rows.abilities}}
+              <span class="sde-qa-ability {{#unless this.changed}}is-same{{/unless}}">
+                <b>{{this.label}}</b> {{this.fromLabel}}{{#if this.changed}} &rarr; {{this.toLabel}}{{/if}}
+              </span>
+            {{/each}}
+          </div>
+        </td>
+      </tr>
+      <tr class="{{#unless attacksChanged}}is-same{{/unless}}">
+        <td class="sde-qa-check">
+          <input type="checkbox" data-qa-apply="attacks" {{#if apply.attacks}}checked{{/if}}
+                 aria-label="Apply attacks" {{#unless hasAttacks}}disabled{{/unless}}>
+        </td>
+        <td class="sde-qa-stat">{{localize "SDE.quickAdjust.attacksHeading"}}</td>
+        <td colspan="4">
+          {{#if hasAttacks}}
+            <div class="sde-qa-attacks">
+              {{#each attacks}}
+                <div class="sde-qa-attack {{#unless this.changed}}is-same{{/unless}}">
+                  <b>{{this.name}}</b>
+                  {{this.num.from}} atk +{{this.bonus.from}} ({{this.damage.from}})
+                  {{#if this.changed}}<span class="sde-qa-arrow">&rarr;</span>
+                    <span class="sde-qa-to">{{this.num.to}} atk +{{this.bonus.to}} ({{this.damage.to}})</span>{{/if}}
+                </div>
+              {{/each}}
+            </div>
+          {{else}}
+            <span class="sde-qa-none">{{localize "SDE.quickAdjust.noAttacks"}}</span>
+          {{/if}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="sde-qa-note">
+    HP is applied as level &times; 4.5 + CON. {{localize "SDE.quickAdjust.statBlockNote"}}
+  </p>
+  {{else}}
+  <p class="sde-qa-ontarget">{{localize "SDE.quickAdjust.noChange" level=targetLevel}}</p>
+  {{/if}}
+
+  <footer class="sde-qa-footer">
+    <button type="button" data-action="qa-apply" {{#unless changed}}disabled{{/unless}}>
+      <i class="fa-solid fa-wand-magic-sparkles"></i> {{localize "SDE.quickAdjust.apply"}}
+    </button>
+    <button type="button" data-action="qa-copy">
+      <i class="fa-solid fa-copy"></i> {{localize "SDE.quickAdjust.createCopy"}}
+    </button>
+    <button type="button" data-action="qa-open-creator"
+            title="{{localize 'SDE.quickAdjust.openCreatorHint'}}">
+      <i class="fa-solid fa-pen-to-square"></i> {{localize "SDE.quickAdjust.openCreator"}}
+    </button>
+    <button type="button" class="sde-qa-revert" data-action="qa-revert"
+            title="{{localize 'SDE.quickAdjust.revertHint'}}" {{#unless hasBackup}}disabled{{/unless}}>
+      <i class="fa-solid fa-rotate-left"></i> {{localize "SDE.quickAdjust.revert"}}
+    </button>
+  </footer>
+</div>

@@ -1,0 +1,109 @@
+<div class="sde-lg">
+<style>
+/* Embedded rather than in the module stylesheet — Foundry caches module CSS
+   aggressively and a settings window must render correctly on first open.
+   Unlayered so these win over the system cascade. Theme-neutral gray alphas. */
+.sde-level-guidelines .window-content { padding: 0; display: flex; flex-direction: column; min-height: 0; }
+.sde-level-guidelines .sde-lg { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; padding: 8px 10px; gap: 6px; box-sizing: border-box; }
+
+.sde-level-guidelines .sde-lg-intro { font-size: 12px; opacity: 0.75; line-height: 1.45; margin: 0; flex: 0 0 auto; }
+.sde-level-guidelines .sde-lg-intro code { font-size: 11px; }
+
+.sde-level-guidelines .sde-lg-tools { display: flex; gap: 4px; flex: 0 0 auto; flex-wrap: wrap; }
+.sde-level-guidelines .sde-lg-tools button { width: auto; flex: 0 0 auto; padding: 2px 8px; line-height: 1.6; font-size: 12px; }
+
+.sde-level-guidelines .sde-lg-list { flex: 1 1 auto; min-height: 0; overflow: auto; border: 1px solid rgba(127,127,127,0.35); border-radius: 4px; }
+
+.sde-level-guidelines table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sde-level-guidelines thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: rgba(127,127,127,0.22);
+  padding: 4px 5px; text-align: center; font-weight: 700; white-space: nowrap;
+}
+.sde-level-guidelines thead th.sde-lg-group { font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; }
+.sde-level-guidelines tbody tr:nth-child(even) { background: rgba(127,127,127,0.08); }
+.sde-level-guidelines tbody tr:hover { background: rgba(127,127,127,0.16); }
+.sde-level-guidelines tbody td { padding: 2px 4px; text-align: center; }
+.sde-level-guidelines .sde-lg-level { font-weight: 700; width: 42px; }
+.sde-level-guidelines input {
+  width: 100%; min-width: 0; text-align: center;
+  padding: 1px 2px; height: 22px; font-size: 12px;
+}
+.sde-level-guidelines input.sde-lg-die { text-align: center; }
+.sde-level-guidelines col.sde-lg-sep { border-left: 1px solid rgba(127,127,127,0.35); }
+
+.sde-level-guidelines .sde-lg-footer { display: flex; gap: 6px; justify-content: flex-end; flex: 0 0 auto; padding-top: 2px; }
+.sde-level-guidelines .sde-lg-footer button { width: auto; flex: 0 0 auto; padding: 3px 12px; }
+</style>
+
+  <p class="sde-lg-intro">
+    {{localize "SDE.settings.levelGuidelines.intro"}}
+    <br>
+    {{localize "SDE.settings.levelGuidelines.hpNote"}}
+  </p>
+
+  <div class="sde-lg-tools">
+    <button type="button" data-action="lg-recalc" title="{{localize 'SDE.settings.levelGuidelines.recalcHint'}}">
+      <i class="fa-solid fa-arrows-rotate"></i> {{localize "SDE.settings.levelGuidelines.recalc"}}
+    </button>
+    <button type="button" data-action="lg-reset">
+      <i class="fa-solid fa-rotate-left"></i> {{localize "SDE.settings.levelGuidelines.reset"}}
+    </button>
+    <button type="button" data-action="lg-export">
+      <i class="fa-solid fa-file-export"></i> {{localize "SDE.settings.levelGuidelines.export"}}
+    </button>
+    <button type="button" data-action="lg-import">
+      <i class="fa-solid fa-file-import"></i> {{localize "SDE.settings.levelGuidelines.import"}}
+    </button>
+  </div>
+
+  <div class="sde-lg-list">
+    <table>
+      <colgroup>
+        <col><col><col>
+        <col class="sde-lg-sep"><col><col>
+        <col class="sde-lg-sep"><col><col>
+        <col class="sde-lg-sep">
+      </colgroup>
+      <thead>
+        <tr>
+          <th rowspan="2">{{localize "SDE.settings.levelGuidelines.col.level"}}</th>
+          <th rowspan="2">{{localize "SDE.settings.levelGuidelines.col.ac"}}</th>
+          <th rowspan="2">{{localize "SDE.settings.levelGuidelines.col.hp"}}</th>
+          <th colspan="3" class="sde-lg-group">{{localize "SDE.settings.levelGuidelines.col.attack"}}</th>
+          <th colspan="3" class="sde-lg-group">{{localize "SDE.settings.levelGuidelines.col.statMod"}}</th>
+          <th rowspan="2">{{localize "SDE.settings.levelGuidelines.col.talentDC"}}</th>
+        </tr>
+        <tr>
+          <th>{{localize "SDE.settings.levelGuidelines.col.num"}}</th>
+          <th>{{localize "SDE.settings.levelGuidelines.col.bonus"}}</th>
+          <th>{{localize "SDE.settings.levelGuidelines.col.damage"}}</th>
+          <th>{{localize "SDE.settings.levelGuidelines.col.median"}}</th>
+          <th>{{localize "SDE.settings.levelGuidelines.col.low"}}</th>
+          <th>{{localize "SDE.settings.levelGuidelines.col.high"}}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each rows}}
+        <tr data-level="{{this.level}}">
+          <td class="sde-lg-level">{{this.level}}</td>
+          <td><input type="number" data-field="ac" value="{{this.ac}}" aria-label="Level {{this.level}} AC"></td>
+          <td><input type="number" data-field="hp" value="{{this.hp}}" min="1" aria-label="Level {{this.level}} HP"></td>
+          <td><input type="number" data-field="num" value="{{this.num}}" min="1" aria-label="Level {{this.level}} attacks"></td>
+          <td><input type="number" data-field="bonus" value="{{this.bonus}}" aria-label="Level {{this.level}} attack bonus"></td>
+          <td><input type="text" class="sde-lg-die" data-field="damage" value="{{this.damage}}" aria-label="Level {{this.level}} damage"></td>
+          <td><input type="number" data-field="median" value="{{this.median}}" aria-label="Level {{this.level}} median ability mod"></td>
+          <td><input type="number" data-field="low" value="{{this.low}}" aria-label="Level {{this.level}} lowest ability mod"></td>
+          <td><input type="number" data-field="high" value="{{this.high}}" aria-label="Level {{this.level}} highest ability mod"></td>
+          <td><input type="number" data-field="talentDC" value="{{this.talentDC}}" aria-label="Level {{this.level}} talent DC"></td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+  </div>
+
+  <footer class="sde-lg-footer">
+    <button type="button" data-action="lg-cancel"><i class="fa-solid fa-xmark"></i> {{localize "SDE.settings.levelGuidelines.cancel"}}</button>
+    <button type="submit"><i class="fa-solid fa-floppy-disk"></i> {{localize "SDE.settings.levelGuidelines.save"}}</button>
+  </footer>
+</div>
