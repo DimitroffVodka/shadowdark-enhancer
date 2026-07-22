@@ -56,7 +56,12 @@ export default [
       },
     },
     rules: {
-      "no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+        destructuredArrayIgnorePattern: "^_",
+      }],
       "no-empty": ["warn", { allowEmptyCatch: true }],
       "no-console": "off",
       // Both fire on intentional patterns in the PDF statblock parser and

@@ -34,7 +34,7 @@ export class LanguagesStep extends BaseStep {
     const fixedUuids = [...new Set([...(ancL.fixed || []), ...(clsL.fixed || [])])];
     const fixed = [];
     for (const u of fixedUuids) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const d = await fromUuid(u).catch(() => null);
       if (d) fixed.push({ uuid: u, name: d.name });
     }
@@ -48,7 +48,7 @@ export class LanguagesStep extends BaseStep {
     const selectUuids = [...new Set([...(ancL.selectOptions || []), ...(clsL.selectOptions || [])])];
     const selectPool = [];
     for (const u of selectUuids) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const d = await fromUuid(u).catch(() => null);
       if (d) selectPool.push({ uuid: u, name: d.name });
     }

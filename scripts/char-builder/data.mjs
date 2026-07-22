@@ -4,7 +4,6 @@
  * builder always reflects the live installed content.
  */
 
-import { MODULE_ID } from "../shared/module-id.mjs";
 
 /** Enrich Shadowdark description HTML — resolves @UUID links + [[/r]] inline rolls. */
 export async function enrich(html) {
@@ -117,7 +116,7 @@ export async function findTableByName(names, hints = [], { requireHints = false 
     if (wants.includes(t.name.toLowerCase().trim())) matches.push({ doc: t, key: "world" });
   }
   for (const p of game.packs.filter((pk) => pk.documentName === "RollTable")) {
-    // eslint-disable-next-line no-await-in-loop
+     
     const idx = await p.getIndex();
     for (const e of idx) {
       if (wants.includes(e.name.toLowerCase().trim())) matches.push({ pack: p, id: e._id, key: p.collection.toLowerCase() });
@@ -187,7 +186,7 @@ export async function configuredTables(kind) {
   const candidates = [];
   for (const t of (game.tables ?? [])) if (match(t.name)) candidates.push({ uuid: t.uuid, doc: t });
   for (const p of game.packs.filter((pk) => pk.documentName === "RollTable")) {
-    // eslint-disable-next-line no-await-in-loop
+     
     for (const e of await p.getIndex()) if (match(e.name)) candidates.push({ uuid: `Compendium.${p.collection}.RollTable.${e._id}` });
   }
   const out = [];
@@ -196,7 +195,7 @@ export async function configuredTables(kind) {
     if (seen.has(c.uuid)) continue;
     seen.add(c.uuid);
     let doc = c.doc ?? _configuredDocCache.get(c.uuid);
-    // eslint-disable-next-line no-await-in-loop
+     
     if (doc === undefined) { doc = await fromUuid(c.uuid).catch(() => null); _configuredDocCache.set(c.uuid, doc); }
     if (doc?.results?.size > 0) {
       const origin = doc.pack ? (game.packs.get(doc.pack)?.title ?? doc.pack) : "world";

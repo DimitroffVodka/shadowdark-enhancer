@@ -9,7 +9,6 @@
 
 import { MODULE_ID }       from "../shared/module-id.mjs";
 import { CrawlState }      from "../crawl-strip/crawl-state.mjs";
-import { MovementTracker } from "../crawl-strip/movement-tracker.mjs";
 import { ICONS }           from "../shared/icons.mjs";
 import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 
@@ -300,7 +299,7 @@ export const CrawlBar = {
     }
   },
 
-  _onAddTokensContextMenu(el, ev) {
+  _onAddTokensContextMenu(el, _ev) {
     if (!game.user.isGM || CrawlState.mode !== "crawl") return;
 
     const existing = document.getElementById("sde-add-tokens-context-menu");
@@ -355,7 +354,7 @@ export const CrawlBar = {
     setTimeout(() => document.addEventListener("click", close), 10);
   },
 
-  _onEncounterContextMenu(el, ev) {
+  _onEncounterContextMenu(el, _ev) {
     if (!game.user.isGM) return;
 
     const threshold = game.shadowdarkEnhancer.encounter.getThreshold();
@@ -430,7 +429,7 @@ export const CrawlBar = {
     setTimeout(() => document.addEventListener("click", close), 10);
   },
 
-  _onLootContextMenu(el, ev) {
+  _onLootContextMenu(el, _ev) {
     if (!game.user.isGM) return;
 
     const existing = document.getElementById("sde-loot-context-menu");

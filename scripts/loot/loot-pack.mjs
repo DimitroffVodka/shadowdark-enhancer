@@ -31,7 +31,6 @@ const ICONS = {
   vessel:  "icons/containers/kitchenware/bowl-clay-brown.webp",
   book:    "icons/sundries/books/book-backed-blue-gold.webp",
 };
-const LOOT_PACK_LABEL = "Loot";
 
 /** Sum every `N gp/sp/cp` occurrence into a coin object. */
 export function parseValue(text) {

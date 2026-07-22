@@ -195,7 +195,7 @@ export class TokenArtCatalog {
   static async _browseFlatDir(dir) {
     const found = new Map();
     let res;
-    try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (e) { return found; }
+    try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (_e) { return found; }
     for (const f of res.files ?? []) {
       if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
       const base = f.split("/").pop();
@@ -209,7 +209,7 @@ export class TokenArtCatalog {
     const found = new Map();
     const walk = async (dir) => {
       let res;
-      try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (e) { return; }
+      try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (_e) { return; }
       for (const f of res.files ?? []) {
         if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
         const base = f.split("/").pop();
@@ -230,7 +230,7 @@ export class TokenArtCatalog {
     if (!path) return scales;
     let json;
     try { json = await foundry.utils.fetchJsonWithTimeout(path); }
-    catch (e) { return scales; }
+    catch (_e) { return scales; }
     for (const docs of Object.values(json)) {
       for (const v of Object.values(docs)) {
         const src = v?.token?.texture?.src;
@@ -287,7 +287,7 @@ export class TokenArtCatalog {
     for (const p of paths ?? []) {
       let json;
       try { json = await foundry.utils.fetchJsonWithTimeout(p); }
-      catch (e) { continue; }
+      catch (_e) { continue; }
       for (const docs of Object.values(json)) {
         for (const v of Object.values(docs)) {
           const src = v?.token?.texture?.src;
@@ -371,7 +371,7 @@ export class TokenArtCatalog {
     if (source.kind === "mapping") {
       let json;
       try { json = await foundry.utils.fetchJsonWithTimeout(source.mapping); }
-      catch (e) { return art; }
+      catch (_e) { return art; }
       const tbl = json?.["shadowdark.monsters"] ?? {};
       for (const [id, v] of Object.entries(tbl)) {
         const src = v?.token?.texture?.src;

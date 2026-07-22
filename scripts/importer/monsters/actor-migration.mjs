@@ -139,7 +139,7 @@ export async function planActorMigration() {
   }
 
   const { ensureSuite } = await import("../../shared/compendium-suite.mjs");
-  const { findMonsterPack, MONSTER_PACK_LABEL } = await import("./monster-pack.mjs");
+  const { MONSTER_PACK_LABEL } = await import("./monster-pack.mjs");
 
   // Ensure the suite exists so we have the actors pack available.
   await ensureSuite();

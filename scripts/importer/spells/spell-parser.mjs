@@ -33,8 +33,8 @@ import { textToHtml, splitRawBlocks, collapse } from "../pdf-text-utils.mjs";
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
 const TIER_RE     = /^\s*Tier\s+([1-5])\b\s*[,.\-–]?\s*(.*)$/i;
-const DURATION_RE = /^\s*Duration\s*[:\-]\s*(.+)$/i;
-const RANGE_RE    = /^\s*Range\s*[:\-]\s*(.+)$/i;
+const DURATION_RE = /^\s*Duration\s*[:-]\s*(.+)$/i;
+const RANGE_RE    = /^\s*Range\s*[:-]\s*(.+)$/i;
 
 /**
  * Wrap body text in `<p>…</p>`, HTML-escaped — pasted PDF text is never
@@ -47,7 +47,7 @@ function toHtml(body) {
 /** True if a line is an ALL-CAPS spell-name line (mirrors statblock isNameLine). */
 function isNameLine(line) {
   const t = String(line ?? "").trim();
-  if (!/^[A-Z][A-Z0-9 &/,.'’\-]*$/.test(t)) return false;
+  if (!/^[A-Z][A-Z0-9 &/,.'’-]*$/.test(t)) return false;
   if ((t.match(/[A-Z]/g) || []).length < 2) return false;
   return true;
 }

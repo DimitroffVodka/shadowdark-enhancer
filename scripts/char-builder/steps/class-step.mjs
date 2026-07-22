@@ -176,7 +176,7 @@ export class ClassStep extends ListStep {
     const names = async (uuids) => {
       const out = [];
       for (const u of (uuids || [])) {
-        // eslint-disable-next-line no-await-in-loop
+         
         const d = await fromUuid(u).catch(() => null);
         if (d) out.push(d.name);
       }
@@ -214,7 +214,7 @@ export class ClassStep extends ListStep {
       const rk = r.range[0] === r.range[1] ? `${r.range[0]}` : `${r.range[0]}–${r.range[1]}`;
       if (!groups[rk]) groups[rk] = { range: rk, min: r.range[0], docs: [], texts: [] };
       if (r.documentUuid) {
-        // eslint-disable-next-line no-await-in-loop
+         
         const d = await fromUuid(r.documentUuid).catch(() => null);
         if (d) { groups[rk].docs.push(d.name); continue; }
       }
@@ -319,7 +319,7 @@ export class ClassStep extends ListStep {
     // ability's shorter usage line. Display-only; the actor still gets both.
     const seenNames = new Set();
     for (const uuid of [...(item.system.talents || []), ...(item.system.classAbilities || [])]) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const doc = await fromUuid(uuid).catch(() => null);
       if (!doc || doc.documentName !== "Item") continue;
       const nameKey = doc.name.toLowerCase().trim();
@@ -330,7 +330,7 @@ export class ClassStep extends ListStep {
       // fall back to the system dialog at actor creation.
       const found = choosableEffect(doc);
       const asksOnCreate = !!found && !found.spec;
-      // eslint-disable-next-line no-await-in-loop
+       
       traits.push({ name: doc.name, descInline: await inlineDesc(doc.system?.description), asksOnCreate });
     }
     this._traitsCache[key] = traits;
@@ -458,7 +458,7 @@ export class ClassStep extends ListStep {
       if (total < r.range[0] || total > r.range[1]) continue;
       const uuid = r.documentUuid ?? null;
       if (uuid) {
-        // eslint-disable-next-line no-await-in-loop
+         
         const doc = await fromUuid(uuid).catch(() => null);
         // Only linked Talent Items are embeddable (skip nested "Distribute to
         // Stats" RollTables etc.).
@@ -564,10 +564,10 @@ export class ClassStep extends ListStep {
 
     // Fixed class talents that reference a roll table.
     for (const uuid of (item.system.talents || [])) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const doc = await fromUuid(uuid).catch(() => null);
       if (!doc) continue;
-      // eslint-disable-next-line no-await-in-loop
+       
       const table = await this._talentRollTable(item, doc);
       if (table) sources.push({ key: `talent-${doc.uuid}`, label: doc.name, tableUuid: table.uuid, tableName: table.name, dedupe: true });
     }
@@ -575,10 +575,10 @@ export class ClassStep extends ListStep {
     // Rolled class-talent results that themselves grant a table roll — e.g. the
     // Wyrdling's "Gain a/Two Corruption Talents" → roll on the Corruption Table.
     for (const t of (this.state.classTalents || [])) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const doc = await fromUuid(t.uuid).catch(() => null);
       if (!doc) continue;
-      // eslint-disable-next-line no-await-in-loop
+       
       const table = await this._talentRollTable(item, doc);
       if (!table) continue;
       const count = talentRollCount(doc);
@@ -681,11 +681,11 @@ export class ClassStep extends ListStep {
     ];
     const pending = [];
     for (const inst of instances) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const doc = await fromUuid(inst.uuid).catch(() => null);
       const found = doc ? choosableEffect(doc) : null;
       if (!found?.spec) continue;   // no choice, or unsupported → system dialog
-      // eslint-disable-next-line no-await-in-loop
+       
       let options = await choiceOptions(found.spec);
       // Weapon picks are limited to what the CLASS can wield (book: "you can
       // wield") — unless it has blanket weapon training like the Fighter.
@@ -693,7 +693,7 @@ export class ClassStep extends ListStep {
       if (found.spec.loader === CHOICE_SPECS[0].loader && !s.allWeapons && !s.allMeleeWeapons && !s.allRangedWeapons) {
         const permitted = new Set();
         for (const wu of (s.weapons || [])) {
-          // eslint-disable-next-line no-await-in-loop
+           
           const w = await fromUuid(wu).catch(() => null);
           if (w) permitted.add(shadowdark.utils.slugify?.(w.name) ?? w.name.slugify?.() ?? w.name.toLowerCase());
         }

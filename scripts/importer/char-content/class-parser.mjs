@@ -43,7 +43,7 @@ const CAPS_CAP    = /^[A-Z' -]{4,}$/;                       // any all-caps capt
 // never end sentence-then-quote, and never start with a dash-attribution.
 const FLAVOR_LINE = /^["“”]|^[-–—]\s?[A-Z]|[!?.]["”]$/;
 const FEATURE_RE  = /^([A-Z][A-Za-z'’ -]{0,39})\.\s+(\S.*)$/;
-const BULLET      = /^[•\-]\s+/;
+const BULLET      = /^[•-]\s+/;
 
 /**
  * Choice-at-creation feature names the char-builder ALREADY wires — mirror of

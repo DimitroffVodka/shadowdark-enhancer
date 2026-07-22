@@ -1,4 +1,3 @@
-import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState, isActiveGM } from "./crawl-state.mjs";
 
 /**

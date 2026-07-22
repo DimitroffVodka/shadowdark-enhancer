@@ -22,7 +22,7 @@ function _isMarked(table) {
 
 /** Re-render the Loot Generator window if it's open (no hard import cycle). */
 function _refreshGenerator() {
-  try { foundry.applications.instances?.get?.("sde-loot-generator")?.render?.(); } catch (e) { /* not open */ }
+  try { foundry.applications.instances?.get?.("sde-loot-generator")?.render?.(); } catch (_e) { /* not open */ }
 }
 
 export const LootTableTag = {

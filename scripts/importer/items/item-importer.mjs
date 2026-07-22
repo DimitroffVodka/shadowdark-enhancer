@@ -21,7 +21,6 @@ import { pickTreasureIcon } from "../../loot/loot-pack.mjs";
 import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml, SUITE_PACKS } from "../../shared/compendium-suite.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
-import { escapeHtml } from "../pdf-text-utils.mjs";
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
 
@@ -613,7 +612,7 @@ export async function relinkSpellsToClasses(deps = {}) {
     const cur = Array.isArray(raw) ? raw : (raw ? [raw] : []);
     let live = false;
     for (const u of cur) {
-      // eslint-disable-next-line no-await-in-loop
+       
       if (await resolveUuid(u)) { live = true; break; }
     }
     if (live) continue;   // already linked where it belongs (borrowed/multi-class kept)
@@ -623,7 +622,7 @@ export async function relinkSpellsToClasses(deps = {}) {
     const want = String(entry.flags?.[MODULE_ID]?.spellClassName ?? "").trim()
       || classNameFromSpellFolder(folderName);
     if (!want) continue;
-    // eslint-disable-next-line no-await-in-loop
+     
     const hit = await resolveByName(want);
     if (!hit?.uuid) continue;   // class still absent — a later import links it
     updates.push({ _id: entry._id, "system.class": [hit.uuid] });

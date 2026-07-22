@@ -140,7 +140,7 @@ export class GearStep extends ListStep {
     for (const p of item.system.properties || []) {
       if (!p.includes(".")) { out.push(p); continue; }   // already a plain name
       if (!(p in this._propNameCache)) {
-        // eslint-disable-next-line no-await-in-loop
+         
         const d = await fromUuid(p).catch(() => null);
         this._propNameCache[p] = d?.name || null;
       }
@@ -199,7 +199,7 @@ export class GearStep extends ListStep {
     const resolve = async (uuids) => {
       const slugs = new Set();
       for (const u of (uuids || [])) {
-        // eslint-disable-next-line no-await-in-loop
+         
         const d = await fromUuid(u).catch(() => null);
         if (d) slugs.add(slug(d.name));
       }

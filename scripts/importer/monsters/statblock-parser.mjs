@@ -56,7 +56,7 @@ export function titleCaseName(s) {
  */
 function isNameLine(line) {
   const t = line.trim();
-  if (!/^[A-Z][A-Z &/,.'’\-]*$/.test(t)) return false;           // uppercase letters + light punct (incl & and /), no digits/+/(
+  if (!/^[A-Z][A-Z &/,.'’-]*$/.test(t)) return false;           // uppercase letters + light punct (incl & and /), no digits/+/(
   if ((t.match(/[A-Z]/g) || []).length < 2) return false;
   if (/\b(AC|HP|ATK|MV|AL|LV|DC|ADV|DISADV)\b/.test(t)) return false; // a stat-line fragment, not a name
   return true;

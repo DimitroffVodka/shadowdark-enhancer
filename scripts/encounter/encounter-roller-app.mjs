@@ -157,7 +157,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   static _instance = null;
 
-  static async open(tab = "tables", seed = null) {
+  static async open(tab = "tables", _seed = null) {
     if (!this._instance) {
       this._instance = new EncounterRollerApp();
     }
@@ -189,7 +189,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   // ─── Data Preparation ───
 
-  async _prepareContext(options) {
+  async _prepareContext(_options) {
     const activeTableUuid = game.settings.get(MODULE_ID, "encounterTableUuid");
 
     // Group world tables by folder
@@ -699,7 +699,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     }
   }
 
-  async _onSetAsActive(event, target) {
+  async _onSetAsActive(_event, _target) {
     if (!this._selectedTableId) return;
     // _selectedTableId is now a full UUID — resolve via fromUuid so pack tables work.
     const table = await fromUuid(this._selectedTableId).catch(() => null)
@@ -712,7 +712,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     this.render();
   }
 
-  async _onRollTable(event, target) {
+  async _onRollTable(_event, _target) {
     await this.rollActiveTable(this._selectedTableId);
   }
 

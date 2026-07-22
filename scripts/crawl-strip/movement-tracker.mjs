@@ -79,7 +79,7 @@ function _npcMoveToFt(moveValue) {
  *   - All tokens: `oocMovementBudget` setting (90 ft). Crawl pace is
  *     overland; NPCs in the crawl roster (rare) keep pace with the party.
  */
-function _getBaseSpeed(actor, tokenDoc = null) {
+function _getBaseSpeed(actor, _tokenDoc = null) {
   if (!actor) return 0;
   const inCombat = CrawlState.mode === "combat";
 
@@ -296,7 +296,7 @@ export const MovementTracker = {
       }
     });
 
-    Hooks.on("renderTokenHUD", (hud, html, data) => {
+    Hooks.on("renderTokenHUD", (hud, html, _data) => {
       if (!CrawlState.isActive) return;
       const token = hud.object;
       if (!token?.isOwner) return;
@@ -321,7 +321,7 @@ export const MovementTracker = {
       root.querySelector(".col.left")?.appendChild(btn);
     });
 
-    Hooks.on("controlToken", (token, controlled) => {
+    Hooks.on("controlToken", (_token, _controlled) => {
       // Clear all rulers when token selection changes — catches any stale ghost trails
       canvas.tokens?.placeables?.forEach(t => {
         if (t.ruler && !t.isMoving) t.ruler.clear();
@@ -370,7 +370,7 @@ export const MovementTracker = {
     const tokens = canvas.tokens?.placeables ?? [];
     for (const token of tokens) {
       if (token.ruler instanceof SDETokenRuler) continue;
-      try { token.ruler?.destroy(); } catch(e) {}
+      try { token.ruler?.destroy(); } catch(_e) {}
       token.ruler = new SDETokenRuler(token);
       token.ruler.draw().catch(() => {});
     }

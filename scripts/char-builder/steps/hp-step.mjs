@@ -34,7 +34,7 @@ export class HpStep extends BaseStep {
     if (this._modsCache?.key === key) return this._modsCache.mods;
     const mods = { bonus: 0, advantage: false };
     for (const uuid of (this.state.ancestryTalents || [])) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const doc = await fromUuid(uuid).catch(() => null);
       for (const effect of (doc?.effects ?? [])) {
         for (const c of (effect.changes ?? [])) {

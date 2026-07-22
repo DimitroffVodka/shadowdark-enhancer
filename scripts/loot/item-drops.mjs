@@ -350,7 +350,7 @@ export const ItemDrops = {
   /*  Pickup: TokenHUD Button                     */
   /* -------------------------------------------- */
 
-  _onRenderTokenHUD(hud, html, tokenData) {
+  _onRenderTokenHUD(hud, html, _tokenData) {
     if (!game.settings.get(MODULE_ID, "itemDropsEnabled")) return;
 
     const token = hud.object;

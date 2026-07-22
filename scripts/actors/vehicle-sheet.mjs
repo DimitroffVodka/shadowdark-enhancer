@@ -12,7 +12,6 @@
  * `_prepareContext` with type-specific data.
  */
 
-import { MODULE_ID } from "../shared/module-id.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 const { ActorSheetV2 } = foundry.applications.sheets;

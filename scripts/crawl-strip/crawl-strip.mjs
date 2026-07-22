@@ -243,7 +243,7 @@ export const CrawlStrip = {
       (game.combat?.combatants ?? []).map(c => [c.tokenId, c])
     );
 
-    const { heroes, npcs } = this._gatherMembers();
+    const { heroes } = this._gatherMembers();
 
     const makeCard = (m) => {
       // Special-case the synthetic GM card — no actor lookup, no stats, just
@@ -429,7 +429,6 @@ export const CrawlStrip = {
     };
 
     const heroCards = heroes.map(makeCard).join("");
-    const npcCards  = npcs.map(makeCard).join("");
 
     // Crawl turn badge — the GM can advance the crawl turn straight from the
     // strip (parity with the Crawl Bar's "Next Turn"); players see a static

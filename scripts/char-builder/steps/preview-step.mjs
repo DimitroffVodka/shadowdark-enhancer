@@ -46,7 +46,7 @@ export class PreviewStep extends BaseStep {
   async _names(uuids) {
     const out = [];
     for (const u of (uuids || [])) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const n = await this._name(u);
       if (n) out.push(n);
     }

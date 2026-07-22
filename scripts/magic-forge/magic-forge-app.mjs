@@ -18,7 +18,6 @@ import {
   MAGIC_SET_DEFS, catalog, resolveResultRefs, buildForgeProvenance,
   buildChildSeed, buildSetSeed, roleIsMechanical, roleIsHint, toPlainText,
 } from "./magic-table-runtime.mjs";
-import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -707,7 +706,7 @@ export class MagicForgeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  _previewSubtitle(item) {
+  _previewSubtitle(_item) {
     if (this._type === "weapon" || this._type === "armor") {
       const eb = this._effectiveBonus(); // the +N that was actually forged (Core wins)
       return eb > 0 ? `Magic ${TYPE_LABELS[this._type]} +${eb}` : `Magic ${TYPE_LABELS[this._type]}`;

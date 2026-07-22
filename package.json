@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "lint": "eslint scripts test",
+    "lint": "eslint scripts test --max-warnings 0",
     "lint:fix": "eslint scripts test --fix"
   },
   "license": "MIT",

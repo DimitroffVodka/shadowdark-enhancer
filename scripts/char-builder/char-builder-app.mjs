@@ -190,7 +190,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
 
   static async _onFullRandom() {
     for (const step of this.steps) {
-      // eslint-disable-next-line no-await-in-loop
+       
       if (step.supportsRandom?.()) await step.randomize?.();
     }
     await this.render();

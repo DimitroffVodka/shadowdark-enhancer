@@ -324,7 +324,7 @@ export class MonsterTokenArt {
       try {
         const b = await this.FilePickerCls.browse("data", dir);
         return new Set(b.files.map((f) => f.split("/").pop()));
-      } catch (e) { return null; }
+      } catch (_e) { return null; }
     };
     const tokenFiles = await browse(source.tokenDir);
     const portraitFiles = await browse(source.portraitDir);
@@ -363,7 +363,7 @@ export class MonsterTokenArt {
           };
         }
       }
-    } catch (e) { /* no mapping file — flat fallback */ }
+    } catch (_e) { /* no mapping file — flat fallback */ }
     return map;
   }
 

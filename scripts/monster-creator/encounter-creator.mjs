@@ -408,7 +408,7 @@ export class MonsterCreatorApp {
     };
   }
 
-  _onRender(context) {
+  _onRender(_context) {
     this._restoreFocus();
     this._wireActions();
     this._wireFieldInputs();

@@ -194,7 +194,7 @@ export class StatsStep extends BaseStep {
     const m = this.method;
     const rolls = [];
     for (let i = 0; i < ABILITY_ORDER.length; i++) {
-      // eslint-disable-next-line no-await-in-loop
+       
       rolls.push(await new Roll(m.formula).evaluate());
     }
     const results = rolls.map((r) => r.total);

@@ -156,7 +156,7 @@ export async function buildDefaultMerchantConfigs() {
   for (const def of DEFAULT_MERCHANTS) {
     const inventory = [];
     for (const spec of DEFAULT_MERCHANT_ITEMS.filter(def.filter)) {
-      // eslint-disable-next-line no-await-in-loop
+       
       const entry = await _resolveEntry(spec);
       if (entry) inventory.push(entry);
     }
