@@ -19,6 +19,16 @@
   through.
 
 ### Changed
+- **PDF table imports got dramatically more faithful on wrapped layouts.** The
+  extractor's coverage audit went from 19 tables needing review to 2: all
+  eight Western Reaches prayer generators now reconstruct 6/6/6 (wrapped cells
+  that print at the page margin are routed by their terminators instead of
+  dropped), the four Wizards & Thieves stakes tables and six Core magic-item
+  attribute tables (Type/Qualities/Personality, Tier 1, Curses/Benefits,
+  Weapon Bonus) gained parsing recipes, cross-reference matrices recover cells
+  that print only one space apart (Interesting Customer), and Core Carousing
+  Outcome parses 13 of its 14 rows word-perfectly — the one genuinely
+  ambiguous row is now flagged by number instead of committing silently.
 - **Magic Forge effects use the Foundry v14 change format.** Forged weapon
   bonuses now author the string `type: "add"` instead of the legacy numeric
   `mode`, eliminating a batch of deprecation warnings (numeric modes are
