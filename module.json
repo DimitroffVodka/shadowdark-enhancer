@@ -1,7 +1,7 @@
 {
   "id": "shadowdark-enhancer",
   "title": "Shadowdark Enhancer",
-  "description": "<p>Top Crawl Strip for Shadowdark RPG: out-of-combat marching order, in-combat initiative, HP/Movement/Luck readouts, movement-budget enforcement with turn-start rollback, and per-combatant action HUD.</p>",
+  "description": "<p>GM companion suite for Shadowdark RPG. Crawl Strip &amp; Crawl Bar: marching order, initiative, HP/Movement/Luck readouts, movement-budget enforcement with turn-start rollback, and a per-combatant action HUD. Plus random encounters, a monster creator, an importer hub for content from your own PDFs, a character builder, loot &amp; magic-item tools, merchant shops, party XP &amp; session recap, monster token art, character PDF export, and mounts &amp; boats.</p>",
   "version": "0.11.1",
   "authors": [
     { "name": "DimitroffVodka", "flags": {} }
