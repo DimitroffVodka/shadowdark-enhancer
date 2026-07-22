@@ -5848,7 +5848,28 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-lootgen-clear { width: auto; cursor: pointer; padding: 0.2rem 0.6rem; }
 
 /* ── Magic Item Forge ──────────────────────────────────────────────────────── */
-.sde-forge { padding: 8px; display: flex; flex-direction: column; gap: 10px; }
+/* The window opens with height:"auto" — cap growth to the viewport and let the
+   forge root scroll as one column (same pattern as .sde-importer-hub), so Core
+   mode's stack of table cards never runs off-screen with no scrollbar. */
+#sde-magic-forge { max-height: 95vh; }
+#sde-magic-forge .window-content { overflow: hidden; }
+.sde-forge {
+  padding: 8px; display: flex; flex-direction: column; gap: 10px;
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: auto;
+  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
+  scrollbar-gutter: stable;
+}
+.sde-forge::-webkit-scrollbar { width: 10px; }
+.sde-forge::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
+.sde-forge::-webkit-scrollbar-thumb {
+  background: var(--sde-bar-border, #6b6b6b);
+  border-radius: 5px;
+}
+.sde-forge::-webkit-scrollbar-thumb:hover { background: var(--sde-bar-accent, #d4a017); }
+/* Never crush sections to "fit" — keep natural heights, root scrollbar takes the rest. */
+.sde-forge > * { flex-shrink: 0; }
 
 /* Type tabs */
 .sde-forge-types { display: flex; gap: 6px; flex-wrap: wrap; }
