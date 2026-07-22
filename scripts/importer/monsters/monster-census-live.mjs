@@ -171,7 +171,7 @@ async function _referencedNamesFromPackTables() {
     // Zone pickers ("Encounter Zone") pass the keyword gate but their cells
     // are CATEGORY words, not monster names — they produced junk gap rows
     // like "Demon Demon Demon Demon" (live-caught by the GM).
-    if (/encounter\s+zone|zone.*encounters?/i.test(hay)) continue;
+    if (/encounter\s+zone|zone\b.*encounters?\b/i.test(hay)) continue;
 
     const label = sourceFolderName(sde.source ?? "");
     // Core is not an import source — the system compendium ships every Core
