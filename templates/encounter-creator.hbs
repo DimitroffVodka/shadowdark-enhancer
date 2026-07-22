@@ -231,7 +231,15 @@
 
       <div class="sde-creator-row">
         <label for="sde-cr-level">Level</label>
-        <input id="sde-cr-level" type="number" data-draft-field="level" value="{{draft.level}}" min="0" max="30">
+        <div class="sde-creator-stepper">
+          <button type="button" class="sde-creator-step" data-action="creatorLevelStep" data-step="-1"
+                  aria-label="Lower the level" title="Lower the level"
+                  {{#if levelStep.atMin}}disabled{{/if}}><i class="fas fa-minus"></i></button>
+          <input id="sde-cr-level" type="number" data-draft-field="level" value="{{draft.level}}" min="0" max="{{levelStep.max}}">
+          <button type="button" class="sde-creator-step" data-action="creatorLevelStep" data-step="1"
+                  aria-label="Raise the level" title="Raise the level"
+                  {{#if levelStep.atMax}}disabled{{/if}}><i class="fas fa-plus"></i></button>
+        </div>
       </div>
 
       <div class="sde-creator-row">
@@ -295,6 +303,113 @@
         <label for="sde-cr-dark">Dark-Adapted</label>
         <input id="sde-cr-dark" type="checkbox" data-draft-field="darkAdapted" {{#if draft.darkAdapted}}checked{{/if}}>
       </div>
+
+    </div>
+  </details>
+
+  {{#if source}}
+  {{!-- Editing an existing monster (loaded from the token quick-adjust).
+       Save writes back to it; the scope note matters for unlinked tokens. --}}
+  <div class="sde-creator-source">
+    <i class="fas fa-link"></i>
+    <span class="sde-creator-source-text">
+      Editing <b>{{source.name}}</b> <span class="sde-creator-source-scope">({{source.scope}})</span>
+    </span>
+    <button type="button" data-action="creatorClearSource"
+            title="Stop editing {{source.name}} — Save will create a new monster instead">
+      <i class="fas fa-link-slash"></i> Detach
+    </button>
+  </div>
+  {{/if}}
+
+  {{!-- ═══ Level Baseline Section ═══ --}}
+  <details class="sde-creator-section" {{#if sectionOpen.baseline}}open{{/if}}>
+    <summary data-action="sectionToggle" data-section="baseline">
+      <i class="fas fa-scale-balanced"></i> Level Baseline
+      <span class="sde-baseline-tag">LV {{baseline.effectiveLevel}}</span>
+    </summary>
+    <div class="sde-creator-section-body sde-baseline">
+
+      {{#if baseline.hasSpellBump}}
+      <div class="sde-baseline-spell">
+        <div class="sde-baseline-spell-head">
+          <i class="fas fa-wand-sparkles"></i>
+          Written LV {{baseline.writtenLevel}} &rarr; plays as LV {{baseline.effectiveLevel}}
+          <button type="button" data-action="creatorBaselineUseSpellLevel"
+                  title="Set the draft's level to {{baseline.effectiveLevel}}">Use LV {{baseline.effectiveLevel}}</button>
+        </div>
+        <ul class="sde-baseline-spell-why">
+          {{#each baseline.spellReasons}}<li>{{this}}</li>{{/each}}
+        </ul>
+      </div>
+      {{/if}}
+
+      {{#if baseline.changed}}
+      <table class="sde-baseline-table">
+        <thead>
+          <tr><th class="sde-baseline-check"></th><th>Stat</th><th>Now</th><th></th><th>Guideline</th><th>&Delta;</th></tr>
+        </thead>
+        <tbody>
+          <tr class="{{#unless baseline.rows.ac.changed}}is-same{{/unless}}">
+            <td><input type="checkbox" data-baseline-apply="ac" {{#if baseline.apply.ac}}checked{{/if}} aria-label="Apply AC"></td>
+            <td class="sde-baseline-label">AC</td>
+            <td>{{baseline.rows.ac.fromLabel}}</td>
+            <td class="sde-baseline-arrow">&rarr;</td>
+            <td class="sde-baseline-to">{{baseline.rows.ac.toLabel}}</td>
+            <td class="sde-baseline-delta">{{baseline.rows.ac.deltaLabel}}</td>
+          </tr>
+          <tr class="{{#unless baseline.rows.hp.changed}}is-same{{/unless}}">
+            <td><input type="checkbox" data-baseline-apply="hp" {{#if baseline.apply.hp}}checked{{/if}} aria-label="Apply HP"></td>
+            <td class="sde-baseline-label">HP</td>
+            <td>{{baseline.rows.hp.fromLabel}}</td>
+            <td class="sde-baseline-arrow">&rarr;</td>
+            <td class="sde-baseline-to">{{baseline.rows.hp.toLabel}}</td>
+            <td class="sde-baseline-delta">{{baseline.rows.hp.deltaLabel}}</td>
+          </tr>
+          <tr class="{{#unless baseline.abilitiesChanged}}is-same{{/unless}}">
+            <td><input type="checkbox" data-baseline-apply="abilities" {{#if baseline.apply.abilities}}checked{{/if}} aria-label="Apply ability modifiers"></td>
+            <td class="sde-baseline-label">Abilities</td>
+            <td colspan="4" class="sde-baseline-abilities">
+              {{#each baseline.rows.abilities}}
+                <span class="sde-baseline-ability {{#unless this.changed}}is-same{{/unless}}">
+                  <b>{{this.label}}</b> {{this.fromLabel}}{{#if this.changed}} &rarr; {{this.toLabel}}{{/if}}
+                </span>
+              {{/each}}
+            </td>
+          </tr>
+          <tr class="{{#unless baseline.attacksChanged}}is-same{{/unless}}">
+            <td><input type="checkbox" data-baseline-apply="attacks" {{#if baseline.apply.attacks}}checked{{/if}} aria-label="Apply attacks"
+                       {{#unless baseline.hasAttacks}}disabled{{/unless}}></td>
+            <td class="sde-baseline-label">Attacks</td>
+            <td colspan="4" class="sde-baseline-attacks">
+              {{#if baseline.hasAttacks}}
+                {{#each baseline.attacks}}
+                  <div class="sde-baseline-attack {{#unless this.changed}}is-same{{/unless}}">
+                    <b>{{this.name}}</b>
+                    {{this.num.from}} atk +{{this.bonus.from}} ({{this.damage.from}})
+                    {{#if this.changed}}<span class="sde-baseline-arrow">&rarr;</span>
+                      <span class="sde-baseline-to">{{this.num.to}} atk +{{this.bonus.to}} ({{this.damage.to}})</span>{{/if}}
+                  </div>
+                {{/each}}
+              {{else}}
+                <span class="sde-baseline-none">No attack items on this draft yet.</span>
+              {{/if}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="sde-baseline-actions">
+        <button type="button" data-action="creatorBaselineApply">
+          <i class="fas fa-wand-magic-sparkles"></i> Apply to draft
+        </button>
+        <span class="sde-baseline-hint">HP uses level &times; 4.5 + CON. Nothing is saved until you press Save.</span>
+      </div>
+      {{else}}
+      <p class="sde-baseline-ontarget">
+        <i class="fas fa-check"></i> This draft already matches the level {{baseline.effectiveLevel}} guideline.
+      </p>
+      {{/if}}
 
     </div>
   </details>
@@ -720,9 +835,20 @@
   {{!-- ═══ Save bar (sticky at bottom of panel) ═══ --}}
   <div class="sde-creator-footer">
     <div class="sde-creator-preview-line">{{draftPreview}}</div>
-    <button type="button" class="sde-creator-save-btn" data-action="save">
-      <i class="fas fa-floppy-disk"></i> Create World Actor
-    </button>
+    {{#if source}}
+      <button type="button" class="sde-creator-save-btn" data-action="save"
+              title="Write these changes back to {{source.name}}">
+        <i class="fas fa-floppy-disk"></i> Update {{source.name}}
+      </button>
+      <button type="button" class="sde-creator-save-alt" data-action="creatorSaveAsNew"
+              title="Create a separate monster and leave {{source.name}} untouched">
+        <i class="fas fa-copy"></i> Save as New
+      </button>
+    {{else}}
+      <button type="button" class="sde-creator-save-btn" data-action="save">
+        <i class="fas fa-floppy-disk"></i> Create World Actor
+      </button>
+    {{/if}}
   </div>
 
   {{/if}}{{!-- end of !_loaderOpen branch --}}

@@ -1,5 +1,6 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { ExtraGearEditor } from "../char-builder/gear-editor-app.mjs";
+import { LevelGuidelinesEditor } from "../monster-creator/level-guidelines-app.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
 
 export function registerSettings() {
@@ -168,6 +169,29 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: defaultCrawlState(),
+  });
+
+  // Monster level guidelines — "what should a level-N monster look like?".
+  // Drives the Monster Creator's Level Baseline section and the token-HUD
+  // quick-adjust. Stored as a SPARSE diff over the shipped defaults (see
+  // level-guidelines.mjs `getGuidelinesTable`), so the default is `{}` rather
+  // than a snapshot: a GM who edits one row still inherits later improvements
+  // to every other row.
+  game.settings.register(MODULE_ID, "levelGuidelines", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
+
+  // GM-only editor (Configure Settings → this module) for the table above.
+  game.settings.registerMenu(MODULE_ID, "levelGuidelinesMenu", {
+    name: "SDE.settings.levelGuidelines.name",
+    hint: "SDE.settings.levelGuidelines.hint",
+    label: "SDE.settings.levelGuidelines.label",
+    icon: "fa-solid fa-scale-balanced",
+    type: LevelGuidelinesEditor,
+    restricted: true,
   });
 
   game.settings.register(MODULE_ID, "encounterSources", {

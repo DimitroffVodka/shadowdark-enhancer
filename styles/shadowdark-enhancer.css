@@ -8670,3 +8670,170 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
    header-button styling; the icon gets a subtle PDF-red accent to stand out. */
 .window-app .window-header .sde-pdf-export i { color: #c0392b; }
 .window-app .window-header .sde-pdf-export:hover i { color: #e74c3c; }
+
+/* ─── Monster Creator: Level Baseline ─────────────────────────────────────
+   Preview of the level guidelines table diffed against the current draft.
+   Rows that already match are dimmed so the eye lands on what would change. */
+.sde-baseline-tag {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--sde-bar-input-bg);
+  border: 1px solid var(--sde-bar-border);
+  color: var(--sde-bar-text-muted);
+}
+
+.sde-baseline-spell {
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: var(--sde-bar-input-bg);
+}
+.sde-baseline-spell-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.sde-baseline-spell-head button {
+  margin-left: auto;
+  flex: 0 0 auto;
+  width: auto;
+  padding: 1px 8px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.sde-baseline-spell-why {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  font-size: 11px;
+  color: var(--sde-bar-text-muted);
+}
+
+.sde-baseline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.sde-baseline-table thead th {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sde-bar-text-muted);
+  text-align: left;
+  font-weight: 700;
+  padding: 0 4px 3px;
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+.sde-baseline-table td {
+  padding: 4px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--sde-bar-border);
+}
+.sde-baseline-table tr.is-same { opacity: 0.45; }
+.sde-baseline-table .sde-baseline-check { width: 22px; }
+.sde-baseline-table input[type="checkbox"] { margin: 0; }
+.sde-baseline-label { font-weight: 700; white-space: nowrap; }
+.sde-baseline-arrow { color: var(--sde-bar-text-muted); padding: 0 2px; }
+.sde-baseline-to { font-weight: 700; }
+.sde-baseline-delta { color: var(--sde-bar-text-muted); white-space: nowrap; }
+
+.sde-baseline-abilities { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.sde-baseline-ability { white-space: nowrap; font-size: 12px; }
+.sde-baseline-ability.is-same { opacity: 0.55; }
+.sde-baseline-ability b {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--sde-bar-text-muted);
+}
+
+.sde-baseline-attacks { display: flex; flex-direction: column; gap: 2px; }
+.sde-baseline-attack { font-size: 12px; }
+.sde-baseline-attack.is-same { opacity: 0.55; }
+.sde-baseline-none { font-size: 12px; color: var(--sde-bar-text-muted); font-style: italic; }
+
+.sde-baseline-actions { display: flex; align-items: center; gap: 8px; }
+.sde-baseline-actions button { flex: 0 0 auto; width: auto; padding: 3px 12px; }
+.sde-baseline-hint { font-size: 11px; color: var(--sde-bar-text-muted); }
+.sde-baseline-ontarget {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sde-bar-text-muted);
+}
+.sde-baseline-ontarget i { color: #4caf50; }
+
+/* Level field stepper (Identity section). The row's input styling is bound to
+   a DIRECT child selector (.sde-creator-row > input[type="number"]), which the
+   wrapper breaks — so the base look is restated here. Native number spinners
+   are hidden in favour of buttons big enough to actually hit. */
+.sde-creator-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sde-creator-stepper input[type="number"] {
+  background: var(--sde-bar-input-bg);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  font-family: var(--sde-bar-font);
+  font-size: 14px;
+  padding: 5px 10px;
+  border-radius: 2px;
+  width: 80px;
+  text-align: center;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.sde-creator-stepper input[type="number"]::-webkit-outer-spin-button,
+.sde-creator-stepper input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.sde-creator-step {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+}
+.sde-creator-step:disabled { opacity: 0.35; cursor: default; }
+
+/* "Editing <actor>" banner — shown when the Creator draft was loaded from a
+   live actor (token HUD → Open in Creator). Save writes back to it, so the
+   scope note is load-bearing for unlinked tokens. */
+.sde-creator-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--sde-bar-border);
+  border-left: 3px solid var(--sde-bar-text-muted);
+  border-radius: 3px;
+  background: var(--sde-bar-input-bg);
+  font-size: 13px;
+}
+.sde-creator-source-text { flex: 1 1 auto; min-width: 0; }
+.sde-creator-source-scope { color: var(--sde-bar-text-muted); font-size: 11px; }
+.sde-creator-source button {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.sde-creator-save-alt {
+  flex: 0 0 auto;
+  width: auto;
+  padding: 4px 10px;
+  margin-left: 6px;
+  font-size: 12px;
+}

@@ -15,6 +15,7 @@ import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
 import { createMutatedActor } from "./monster-creator/monster-mutator.mjs";
+import { registerQuickAdjustHUD } from "./monster-creator/quick-adjust-app.mjs";
 import { catalog as monsterTableCatalog } from "./monster-creator/monster-table-runtime.mjs";
 import { LootCatalog } from "./loot/loot-catalog.mjs";
 import { LootGenerator } from "./loot/loot-generator.mjs";
@@ -60,7 +61,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "273608d775ad";
+const STYLESHEET_REV = "2709e376adc4";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -472,6 +473,7 @@ Hooks.on("quenchReady", async (quench) => {
     ["../test/quench/importer-roundtrip.batch.mjs",   "registerImporterRoundtripBatch"],
     ["../test/quench/merchant-transaction.batch.mjs", "registerMerchantTransactionBatch"],
     ["../test/quench/movement-rollback.batch.mjs",    "registerMovementRollbackBatch"],
+    ["../test/quench/creator-update.batch.mjs",       "registerCreatorUpdateBatch"],
   ];
   for (const [path, fn] of batches) {
     try {
@@ -518,6 +520,8 @@ Hooks.once("ready", () => {
   MonsterTokenArt.initCompendiumArt();
   LootDrops.init();
   ItemDrops.init();
+  // Token HUD "adjust monster level" button (GM-only, NPC tokens).
+  registerQuickAdjustHUD();
   MerchantShop.init();
   // Seed the two shipped default merchants (Base / Western Reaches). GM-only,
   // idempotent; fills in the WR merchant once its item pack is present.
