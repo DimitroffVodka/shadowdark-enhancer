@@ -44,8 +44,8 @@ export const EncounterBrowse = {
     for (const pack of game.packs) {
       if (pack.metadata.type !== "Actor") continue;
       sources.push({
-        id: pack.collection,           // e.g. "shadowdark.bestiary"
-        label: pack.metadata.label,    // e.g. "Shadowdark Bestiary"
+        id: pack.collection,           // e.g. "shadowdark.monsters"
+        label: pack.metadata.label,    // e.g. "Shadowdark Monsters"
         type: "pack",
       });
     }

@@ -13,6 +13,7 @@ import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
+import { migrateEncounterSources } from "./encounter/encounter-sources.mjs";
 import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
 import { createMutatedActor } from "./monster-creator/monster-mutator.mjs";
 import { registerQuickAdjustHUD } from "./monster-creator/quick-adjust-app.mjs";
@@ -534,6 +535,25 @@ Hooks.once("ready", () => {
       ui.notifications.info("Shadowdark Enhancer: set up your loot tables so the Loot Generator produces real items — open the Loot Generator and click “Set up loot tables”.");
     }
     game.settings.set(MODULE_ID, "lootSetupSeen", true);
+  }
+  // Repair encounter-source lists that name a compendium the Shadowdark system
+  // has since renamed (4.x: shadowdark.bestiary → shadowdark.monsters). Changing
+  // the registered default only fixes worlds that never toggled the Browse tab's
+  // source pills; a world that DID toggle them has a stored array still naming
+  // the old pack, which resolves to nothing and silently browses one dead source.
+  // Idempotent and silent — after the first repair migrateEncounterSources
+  // returns null, so this costs one settings read per load. Guarded to the single
+  // active GM because it writes a world setting.
+  if (game.users.activeGM?.id === game.user.id) {
+    try {
+      const migrated = migrateEncounterSources(game.settings.get(MODULE_ID, "encounterSources"));
+      if (migrated) {
+        game.settings.set(MODULE_ID, "encounterSources", migrated);
+        console.log(`${MODULE_ID} | encounter sources migrated to renamed system packs:`, migrated);
+      }
+    } catch (err) {
+      console.error(`${MODULE_ID} | encounter-source migration failed:`, err);
+    }
   }
   // When the module version changes, quietly bring already-imported monsters up
   // to fresh-import fidelity (icons, casing, spell items, art) — the retired

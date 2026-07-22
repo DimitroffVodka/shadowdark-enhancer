@@ -16,6 +16,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { _bestArtForActor, _isPlaceholderArt } from "../shared/art-utils.mjs";
 import { npcMoveKeys } from "./npc-moves.mjs";
+import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 import { ACTION_QUICK_PICKS } from "./action-templates.mjs";
 import { FEATURE_QUICK_PICKS } from "./feature-templates.mjs";
 import {
@@ -902,7 +903,7 @@ export class MonsterCreatorApp {
     // tab shows. _prepareContext does the actual load/filter/sort.
     if (this._loaderOpen && this._loaderSources === null) {
       this._loaderSources = game.settings.get(MODULE_ID, "encounterSources")
-        ?? ["world", "shadowdark.bestiary"];
+        ?? [...DEFAULT_ENCOUNTER_SOURCES];
     }
     this.render();
   }

@@ -10,6 +10,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { DISTANCE, ACTIVITY, reactionBand } from "./encounter-result.mjs";
 import { EncounterBrowse } from "./encounter-browse.mjs";
+import { DEFAULT_ENCOUNTER_SOURCES } from "./encounter-sources.mjs";
 import { npcMoveKeys } from "../monster-creator/npc-moves.mjs";
 import { EncounterBuild } from "./encounter-build.mjs";
 import {
@@ -117,7 +118,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     // Browse NPCs tab state. Loaded lazily — only when the user actually
     // opens the Browse tab do we read from compendium packs.
-    this._browseSources    = game.settings.get(MODULE_ID, "encounterSources") ?? ["world", "shadowdark.bestiary"];
+    this._browseSources    = game.settings.get(MODULE_ID, "encounterSources") ?? [...DEFAULT_ENCOUNTER_SOURCES];
     this._browseSearch     = "";
     this._browseAlignment  = []; // empty array = all alignments pass
     this._browseLevelMin   = null;
