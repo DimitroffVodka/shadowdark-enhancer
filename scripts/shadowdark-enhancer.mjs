@@ -464,11 +464,19 @@ Hooks.once("init", () => {
 // the Quench module is active and fires quenchReady. test/ never ships in the
 // release zip, so on a released install the import 404s and the catch no-ops.
 Hooks.on("quenchReady", async (quench) => {
-  try {
-    const { registerCombatStateBatch } = await import("../test/quench/combat-state.batch.mjs");
-    registerCombatStateBatch(quench);
-  } catch (err) {
-    console.debug(`${MODULE_ID} | Quench batches not available (expected on a release install)`, err);
+  const batches = [
+    ["../test/quench/combat-state.batch.mjs",         "registerCombatStateBatch"],
+    ["../test/quench/importer-roundtrip.batch.mjs",   "registerImporterRoundtripBatch"],
+    ["../test/quench/merchant-transaction.batch.mjs", "registerMerchantTransactionBatch"],
+    ["../test/quench/movement-rollback.batch.mjs",    "registerMovementRollbackBatch"],
+  ];
+  for (const [path, fn] of batches) {
+    try {
+      const mod = await import(path);
+      mod[fn](quench);
+    } catch (err) {
+      console.debug(`${MODULE_ID} | Quench batch ${path} not available (expected on a release install)`, err);
+    }
   }
 });
 
