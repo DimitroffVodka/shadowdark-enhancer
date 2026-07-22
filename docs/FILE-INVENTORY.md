@@ -148,7 +148,11 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 3381 | **The single front door.** Universal paste box + type selector + per-type previews + commit, plus the Manage strip. |
+| `importer-hub-app.mjs` | 668 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-paste.mjs` | 1275 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-commit.mjs` | 708 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-manage.mjs` | 732 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-shared.mjs` | 91 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 192 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
@@ -308,7 +312,6 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 | `icons/game-icons/classes/` | 25 recolored game-icons.net class emblems (fill baked in). |
 | `icons/game-icons/` | 8 shared SVGs. |
 | `icons/` root | `dragon-head.svg`, `light-sabers.svg`, `shamrock.svg`. |
-| `assets/fonts/` | **Empty directory** — safe to delete. |
 
 ## 9. Tracked-but-not-shipped, and local-only
 
