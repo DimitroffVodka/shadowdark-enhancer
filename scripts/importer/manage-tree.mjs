@@ -37,7 +37,11 @@ import { contentIdForName } from "./tables/table-shapes.mjs";
 import { GAMEPLAY_TABLES, PATRON_TABLES } from "./tables/table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
-import { sourceFolderName } from "../shared/compendium-suite.mjs";
+import { findMonsterPack } from "./monsters/monster-pack.mjs";
+import { sourceFolderName, findSuitePack } from "../shared/compendium-suite.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
+import { BOAT_MANIFEST } from "./boats/boat-parser.mjs";
+import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -376,14 +380,60 @@ function buildItems(charEntries, itemRecords) {
  * and per-node depth are applied by the caller (importer-hub-app).
  * @returns {Promise<Array<object>>}
  */
+/** Boat names already imported into the sde-actors pack (lowercased). */
+async function gatherBoatNames() {
+  const pack = findMonsterPack();
+  if (!pack) return new Set();
+  try {
+    const idx = await pack.getIndex({ fields: ["type"] });
+    const boatType = `${MODULE_ID}.boat`;
+    return new Set([...idx].filter((e) => e.type === boatType).map((e) => (e.name ?? "").toLowerCase()));
+  } catch { return new Set(); }
+}
+
+/** Weapon-item names already imported into the sde-items pack (lowercased). */
+async function gatherItemNames() {
+  const pack = findSuitePack("sde-items");
+  if (!pack) return new Set();
+  try {
+    const idx = await pack.getIndex({ fields: ["type"] });
+    return new Set([...idx].map((e) => (e.name ?? "").toLowerCase()));
+  } catch { return new Set(); }
+}
+
+/**
+ * Vehicles branch — the WR boats, imported as `shadowdark-enhancer.boat` actors
+ * into the sde-actors compendium. Presence is checked against the pack index; a
+ * missing boat carries an Unlock button that seeds the paste box and grabs WR
+ * p.118 from the user's PDF (the standard `charSeedPaste` flow, type "Boat" →
+ * "boats") — one grab yields the whole table, which commits all eight boats.
+ * Names + the p118 cite only — no stats are bundled.
+ */
+function buildVehicles(boatNames, itemNames) {
+  const boatRecords = BOAT_MANIFEST.map((b) => ({
+    name: b.name, present: boatNames.has(b.name.toLowerCase()),
+    type: "Boat", src: b.src, pages: b.page,
+  }));
+  const siegeRecords = SIEGE_MANIFEST.map((s) => ({
+    name: s.name, present: itemNames.has(s.name.toLowerCase()),
+    type: "SiegeWeapon", src: s.src, pages: s.page,
+  }));
+  return branch("vehicles", "Vehicles", "fa-anchor", [
+    leaf("vehicles/boats", "Boats", "fa-sailboat", boatRecords, "charSeedPaste", true),
+    leaf("vehicles/siege", "Siege Weapons", "fa-explosion", siegeRecords, "charSeedPaste", true),
+  ]);
+}
+
 export async function buildManageTree() {
   const presence = await gatherPresence();
-  const [charEntries, monsterRows, actorRecords, itemRecords, spellListCensus] = await Promise.all([
+  const [charEntries, monsterRows, actorRecords, itemRecords, spellListCensus, boatNames, itemNames] = await Promise.all([
     gatherCharContentEntries(presence),
     gatherCensus().catch((err) => { console.error("shadowdark-enhancer | monster census failed:", err); return []; }),
     liveActorRecords().catch((err) => { console.error("shadowdark-enhancer | actor records failed:", err); return []; }),
     liveItemRecords().catch((err) => { console.error("shadowdark-enhancer | item records failed:", err); return []; }),
     gatherSpellListCensus().catch((err) => { console.error("shadowdark-enhancer | spell-list census failed:", err); return new Map(); }),
+    gatherBoatNames().catch(() => new Set()),
+    gatherItemNames().catch(() => new Set()),
   ]);
   return [
     buildCharContent(charEntries),
@@ -392,5 +442,6 @@ export async function buildManageTree() {
     buildRollTables(charEntries, presence.tablesPresent),
     buildMonsters(monsterRows, actorRecords),
     buildItems(charEntries, itemRecords),
+    buildVehicles(boatNames, itemNames),
   ];
 }

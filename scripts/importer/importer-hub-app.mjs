@@ -65,6 +65,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitItems:         function (...args) { return this._onHubCommitItems(...args); },
       hubCommitSpells:        function (...args) { return this._onHubCommitSpells(...args); },
       hubCommitTables:        function (...args) { return this._onHubCommitTables(...args); },
+      hubCommitBoats:         function (...args) { return this._onHubCommitBoats(...args); },
       hubCommitGenerators:    function (...args) { return this._onHubCommitGenerators(...args); },
       hubCommitAll:           function (...args) { return this._onHubCommitAll(...args); },
       // Bundle export/import
@@ -142,6 +143,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importSpells = [];
   /** Table parse results: ParsedTable[] */
   _importTables = [];
+  /** Boat parse results: [{ draft }] (Western Reaches boats) */
+  _importBoats = [];
   /** Compound-generator parse results: ParsedTable[] with isCompound + compound.columns */
   _importGenerators = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
@@ -201,6 +204,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Commit would create the stale content instead of the seeded one.
       inst._importTables = []; inst._importMonsters = []; inst._importItems = [];
       inst._importSpells = []; inst._importGenerators = []; inst._importChar = [];
+      inst._importBoats = [];
       inst._importSkipped = []; inst._shapeFailNote = null;
       // A matrix TABLE seed (e.g. the Monster Generator / Make It Weird matrices
       // routed in from the Monster Creator) pre-selects the tables type and seeds
@@ -380,10 +384,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       };
     });
 
+    const importBoatCards = this._importBoats.map((p) => ({
+      name: p.draft.name, cost: p.draft.cost, ac: p.draft.ac, hp: p.draft.hp,
+      speed: p.draft.speed, gearSlots: p.draft.gearSlots, props: p.draft.propsRaw,
+    }));
+
     const hasMonsters = importMonsterCards.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasSpells   = importSpellCards.length > 0;
     const hasTables   = this._importTables.length > 0;
+    const hasBoats    = importBoatCards.length > 0;
     const hasGenerators = importGenerators.length > 0;
     const showImportAll = [hasMonsters, hasItems, hasSpells, hasTables].filter(Boolean).length > 1;
 
@@ -429,6 +439,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           { value: "monsters",   label: "Monsters" },
           { value: "items",      label: "Items" },
           { value: "tables",     label: "Tables" },
+          { value: "boats",      label: "Boats" },
           { value: "backgrounds", label: "Backgrounds" },
           { value: "talents",    label: "Talents" },
           { value: "ancestries", label: "Ancestry" },
@@ -453,9 +464,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       items: importItemCards,
       spells: importSpellCards,
       tables: this._importTables,
+      boats: importBoatCards,
       generators: importGenerators,
       skipped: this._importSkipped,
-      hasMonsters, hasItems, hasSpells, hasTables, hasGenerators, showImportAll,
+      hasMonsters, hasItems, hasSpells, hasTables, hasBoats, hasGenerators, showImportAll,
       chars: this._importChar.map((p) => {
             const strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
             const u = p.draft.classUnit;

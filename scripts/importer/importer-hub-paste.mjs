@@ -45,9 +45,10 @@ class HubPasteMethods {
     const subSel = this.element.querySelector("select[data-import-subtype]");
     if (subSel) subSel.addEventListener("change", (ev) => {
       this._importItemSubtype = ev.target.value;
-      // Re-type any already-parsed items immediately.
+      // Re-type any already-parsed items immediately (never ammunition — a
+      // siege import mixes Weapon drafts with a Basic "Siege Weapon Ammunition").
       if (this._importItemSubtype !== "auto") {
-        for (const it of this._importItems) it.draft.type = this._importItemSubtype;
+        for (const it of this._importItems) if (!it.draft.isAmmunition) it.draft.type = this._importItemSubtype;
       }
       this.render();
     });
@@ -685,7 +686,7 @@ class HubPasteMethods {
       // ambiguous.
       const parsedAll = TableImporter.parseStackedTables(text);
       this._importTables = TableImporter.dedupExactTables(parsedAll);
-      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
       this._importGenerators = []; this._importChar = []; this._importSkipped = [];
       this._shapeFailNote = null;
       const dropped = parsedAll.length - this._importTables.length;
@@ -694,6 +695,38 @@ class HubPasteMethods {
       }
       if (!this._importTables.length) {
         ui.notifications.warn("No tables found on the pasted page — check that the whole Core page was grabbed.");
+      }
+      this.render();
+      return;
+    }
+
+    // Boats: the Western Reaches boats table → one draft per boat (dedicated
+    // early return, like the tables/monsters paths, feeding the shared preview
+    // + commit). The parser handles the two-column split-table a PDF grab emits.
+    if (type === "boats") {
+      const { parseBoats } = await import("./boats/boat-parser.mjs");
+      this._importBoats = parseBoats(text).map((draft) => ({ draft }));
+      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importTables = []; this._importGenerators = []; this._importChar = [];
+      this._importSkipped = []; this._shapeFailNote = null;
+      if (!this._importBoats.length) {
+        ui.notifications.warn("No boats found — paste the Western Reaches p118 BOATS table (Name/Cost/Speed/AC/HP/Gear Slots/Properties).");
+      }
+      this.render();
+      return;
+    }
+
+    // Siege weapons (WR p119) → Shadowdark Weapon item drafts, fed through the
+    // shared item preview + commit (importType stays "items"; only the parse is
+    // special-cased). Detected by the unlock seed type.
+    if (this._importSeed?.type === "SiegeWeapon") {
+      const { parseSiegeWeapons } = await import("./boats/siege-parser.mjs");
+      this._importItems = parseSiegeWeapons(text).map((draft) => ({ draft, warnings: [] }));
+      this._importMonsters = []; this._importSpells = []; this._importTables = [];
+      this._importGenerators = []; this._importChar = []; this._importBoats = [];
+      this._importSkipped = []; this._shapeFailNote = null;
+      if (!this._importItems.length) {
+        ui.notifications.warn("No siege weapons found — paste the Western Reaches p119 SIEGE WEAPONS table.");
       }
       this.render();
       return;
@@ -719,7 +752,7 @@ class HubPasteMethods {
         this._shapeFailNote = bucket ? null
           : `BLOCKER: "${seed?.name ?? "this entry"}" has a registered ${shape.kind} shape that did not match the pasted text — the result below is a generic best-effort parse; verify it against the book before Create.`;
         if (bucket) {
-          this._importMonsters = []; this._importItems = []; this._importSpells = [];
+          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
           this._importGenerators = bucket.generators ?? [];
           this._importTables = bucket.tables ?? [];
           this._importChar = []; this._importSkipped = [];
@@ -744,7 +777,7 @@ class HubPasteMethods {
       if (shape) {
         const bucket = TableImporter.parseByShape(text, shape, { name: seed?.name || "" });
         if (bucket) {
-          this._importMonsters = []; this._importItems = []; this._importSpells = [];
+          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
           this._importGenerators = bucket.generators ?? [];
           this._importTables = bucket.tables ?? [];
           this._importChar = []; this._importSkipped = [];
@@ -763,7 +796,7 @@ class HubPasteMethods {
     // return early — the table/char pipeline below doesn't apply.
     if (type === "generators") {
       this._importGenerators = parseGenerators(text, this._importGenSpec);
-      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!this._importGenerators.length) {
         ui.notifications.warn("No compound generator recognized — need a die header (e.g. d6) and 2+ column labels (e.g. Detail 1, Detail 2…).");
@@ -790,7 +823,7 @@ class HubPasteMethods {
         kept.push(g);
       }
       this._importGenerators = kept;
-      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!kept.length) {
         ui.notifications.warn("Nothing to expand — need a die header (e.g. d6) and 2+ columns (insert | between them), and ≤ 25,000 total rows.");

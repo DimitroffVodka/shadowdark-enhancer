@@ -3,6 +3,81 @@
 ## [Unreleased]
 
 ### Fixed
+- **Boat sheet edits weren't saving.** The sheet's template wrapped its fields
+  in a second `<form>` inside ApplicationV2's own form, which disconnected every
+  input from the save handler — so lowering a boat's HP (and everything else)
+  reverted on close, and the damage-derived Repair cost never moved off 0. The
+  template root is now a plain container, so edits persist. The window's built-in
+  Toggle-Controls and Close icons were also invisible (blacked out by the sheet's
+  dark-ink rule) and are now light on the dark title bar.
+
+### Changed
+- **Boat properties match the Western Reaches book exactly.** The property list is
+  now Crew / Fast / **Row Galley** / Unseaworthy / Weapons — CS3's *Oars* and
+  *Portage* are gone (WR dropped them). Existing boats migrate automatically (the old
+  `oars` flag becomes Row Galley; Portage is removed), so nothing is lost.
+- **Only siege weapons appear on a boat's Weapons tab now.** Mounted weapons are
+  classified by a flag, not by item type, so ordinary weapons carried aboard stay in
+  Cargo instead of masquerading as siege weapons. Dropping a weapon onto the Weapons
+  tab mounts it as a siege weapon (home-brew welcome); non-weapons are turned away.
+  WR's limits — up to two siege weapons, trebuchets on galleons only, a Weapons
+  property to mount — warn but don't hard-block (the GM adjudicates). Actor/item names
+  in the attack dialog and chat cards are HTML-escaped, and a boat keeps a single
+  captain (assigning a new one steps down the last).
+
+### Added
+- **Crew roles on the boat sheet — Captain & Gunner.** Each occupant on the
+  Passengers & Crew tab gets a role selector (Passenger / Captain / Gunner / Crew),
+  shown as a badge. The **Gunner** is auto-selected as the operator when you fire a
+  siege weapon. **Captain, Gunner, and Crew** all count toward the boat's *4+ trained
+  crew* requirement (plain Passengers don't); the Overview shows the **Crew aboard**
+  total — assigned working occupants plus a **Hired crew** number for abstract NPC
+  hands — and warns when a vessel is short. The **Captain** appears in a new **Command** box on the Overview with a
+  **Right the ship** button — an *optional Cursed Scroll 3* rule (Western Reaches
+  boats sink rather than capsize), clearly labelled as such: a DC 20 STR check
+  rolled with the captain's STR, at advantage for a Sea Wolf captain (**Seafarer**).
+- **Import the Western Reaches siege weapons + mount them on boats.** The four
+  siege weapons (Ballista, Catapult, Crossbow (heavy), Trebuchet — *WR p119*)
+  import through the standard paste → preview → commit flow as Shadowdark
+  **Weapon** items in `sde-items` (Importer Hub → Manage → **Vehicles → Siege
+  Weapons**). As with every unlock, no stats are bundled — the table is read from
+  your own WR PDF. Each import also materializes the **Blast** and **Exploding**
+  weapon properties (real Property items, so they list on the weapon sheet, with
+  the rule text read off the page) and a **Siege Weapon Ammunition** item (1 gp,
+  2 slots) the weapons point at. The Boat sheet gains a **Weapons** tab: drag a
+  siege weapon from a compendium onto it to mount it (kept out of the Cargo tab),
+  and each mounted weapon has **Attack** and **Damage** roll buttons, so a boat
+  fights with its weapons like any other actor. **Attack** rolls as a crew member:
+  add the operator to the boat's Passengers, then Attack rolls `1d20 +` that
+  actor's Shadowdark ranged attack bonus (their DEX modifier, plus any attack
+  bonuses) — matching the designer's ruling that the operator uses their ranged
+  attack bonus. The Attack dialog also picks a roll mode (**Normal / Advantage /
+  Disadvantage**); the untrained-**Disadvantage** option supports Kelsey's house
+  rule that a character not proficient in all weapons fires a siege weapon at
+  disadvantage. **Damage** rolls the weapon's own die, including multi-die
+  formulas (e.g. a siege 3d6).
+- **Import the Western Reaches boats as ready-made Boat actors.** The Importer
+  Hub's Manage tree gains a **Vehicles → Boats** section with an **Import**
+  button per boat (Canoe, Galleon, Junk, Longboat, Raft, Rowboat, Sailboat,
+  Sloop), cited to *WR pg 118*, plus a macro-friendly
+  `game.shadowdarkEnhancer.actors.importBoats()` API for the bulk import. In
+  keeping with the suite's sealed-content contract, **no stats are bundled** —
+  the importer grabs the boats table from your own Western Reaches PDF and
+  parses it (handling the book's split-column table layout), falling back to a
+  paste box, then creates the actors in a **Boats** folder (skipping any that
+  already exist). Boat actors gained a **cost** field, shown on the sheet.
+
+### Changed
+- **The Boat actor sheet now matches the system's own sheets.** It was a plain
+  ApplicationV2 window that followed the client's dark theme; it now wears the
+  ShadowDark chrome — parchment body, black `SD-header` with the ShadowDark
+  logo and the vessel name, `SD-nav` tabs, and `SD-box` sections — with the
+  vital stats (HP / AC / Movement / Passengers) as their own boxes down a left
+  rail and the detail sections filling the right. The window is titled by the
+  vessel's name and carries inline **Sheet** and **Prototype Token** header
+  buttons, so a Boat reads as the real actor it is.
+
+### Fixed
 - **Dragging an item onto the canvas left a second, purposeless image beside
   the pickup token.** The item-drop handler ran too late in Foundry's
   `dropCanvasData` chain and returned its "handled — stop here" signal from an

@@ -193,6 +193,7 @@ export function buildItemData(draft) {
     // parser + resolver stamp them on the draft. Empty for plain gear.
     ...(Array.isArray(draft.properties) ? { properties: draft.properties } : {}),
     ...(draft.magicItem ? { magicItem: true } : {}),
+    ...(draft.isAmmunition ? { isAmmunition: true } : {}),
     ...(draft.source?.title ? { source: { title: draft.source.title } } : {}),
   };
 
@@ -233,7 +234,7 @@ export function buildItemData(draft) {
         baseWeapon: draft.baseWeapon ?? "",
         ammoClass:  draft.ammoClass ?? "",
       },
-      flags: { [MODULE_ID]: { imported: true } },
+      flags: { [MODULE_ID]: { imported: true, ...(draft.flags?.[MODULE_ID] ?? {}) } },
     };
   }
 

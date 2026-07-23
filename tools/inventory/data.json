@@ -238,7 +238,11 @@
       "scripts/importer/items/item-census-live.mjs",
       "scripts/importer/items/shikashi-icons.mjs",
       "scripts/importer/tables/table-manifest.mjs",
-      "scripts/importer/tables/table-manifest-data.mjs"
+      "scripts/importer/tables/table-manifest-data.mjs",
+      "scripts/importer/boats/boat-parser.mjs",
+      "scripts/importer/boats/boat-importer.mjs",
+      "scripts/importer/boats/siege-parser.mjs",
+      "scripts/importer/boats/siege-importer.mjs"
     ],
     "3.13": [
       "scripts/actors/register-actors.mjs",
@@ -401,6 +405,10 @@
     "scripts/actors/mount-npc-sheet.mjs": "Mount sheet — subclass of the system's `NpcSheetSD`.",
     "scripts/actors/vehicle-sheet.mjs": "Shared party-like container base (ApplicationV2).",
     "scripts/actors/vehicle-rolls.mjs": "Shared helper-roll button handlers.",
+    "scripts/importer/boats/boat-parser.mjs": "Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest.",
+    "scripts/importer/boats/boat-importer.mjs": "Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`.",
+    "scripts/importer/boats/siege-parser.mjs": "Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure).",
+    "scripts/importer/boats/siege-importer.mjs": "Materializes Blast/Exploding Property items for the siege weapons in `sde-items`.",
     "scripts/char-builder/char-builder-app.mjs": "`ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle.",
     "scripts/char-builder/state.mjs": "`CharBuilderState` — the in-progress character.",
     "scripts/char-builder/constants.mjs": "Shared constants; hands off to the system's `CharacterGeneratorSD`.",

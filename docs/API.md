@@ -12,9 +12,10 @@ merchant, party-XP, session-recap, and character-builder features.
 [`forge`](#monstercreator--forge) · [`tokenArt`](#tokenart--monster-compendium-art) ·
 [`merchant`](#merchant--shop-window--transaction-log) ·
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
-[`charBuilder`](#charbuilder--guided-character-creation)
+[`charBuilder`](#charbuilder--guided-character-creation) ·
+[`actors`](#actors--western-reaches-boats)
 
-**API version:** `1.0.0` (semver — additive changes bump the minor version,
+**API version:** `1.1.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -48,6 +49,21 @@ const seg = api.import.segment(rawPastedText);
 Deterministic anchor-based recognition (statblock `AC…LV` lines, item
 `Benefit./Curse.` riders and `N gp` cost lines, dice-table headers/ranges).
 Unrecognized blocks land in `skipped` — never silently dropped.
+
+## `actors` — Western Reaches boats
+
+```js
+// GM-only. Opens the Importer Hub seeded for the Western Reaches boats table
+// (Player's Guide p118): it grabs that page from the GM's OWN uploaded WR PDF
+// (no stats are bundled), parses the eight boats, and shows them in the preview.
+// Committing files them as `shadowdark-enhancer.boat` actors into the sde-actors
+// compendium (skipping same-name boats). A paste box covers a missing PDF.
+await api.actors.importBoats();
+```
+
+Boats import through the standard paste → preview → commit flow, exactly like
+monsters and items. The Importer Hub's **Manage → Vehicles → Boats** tree opens the
+same flow (as does `api.actors.importBoats()`).
 
 ## `items` — bulk items importer
 

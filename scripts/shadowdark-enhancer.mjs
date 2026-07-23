@@ -62,7 +62,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "f4aa4f144e8d";
+const STYLESHEET_REV = "ec1eaccf7ce0";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -263,7 +263,7 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    apiVersion: "1.0.0",
+    apiVersion: "1.1.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -274,6 +274,16 @@ Hooks.once("init", () => {
       // (docs/API.md) — a sync class handle would force the whole tree eager.
       appClass: async () =>
         (await import("./char-builder/char-builder-app.mjs")).ShadowdarkCharBuilder,
+    },
+    // Vehicles. `importBoats()` is the macro-friendly entry for the Western
+    // Reaches boats (p118) — the Importer Hub Manage tree exposes the same per
+    // boat via Unlock rows. Parses the cited page from the user's own PDF; no
+    // stats are bundled.
+    actors: {
+      importBoats: async () => {
+        const { ImporterHubApp } = await import("./importer/importer-hub-app.mjs");
+        return ImporterHubApp.openContentUnlock({ name: "Canoe", src: "WR", type: "Boat", page: "118" });
+      },
     },
     // Universal dump segmentation (D9): one paste → typed buckets.
     import: {

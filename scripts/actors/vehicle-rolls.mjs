@@ -35,3 +35,44 @@ export async function promptNumber({ title, label, initial = 0 }) {
   });
   return Number.isFinite(result) ? result : null;
 }
+
+/**
+ * Prompt for a siege-weapon attack: which crew member operates it and the roll
+ * mode. Per the designer's ruling a siege weapon uses the operator's ranged
+ * attack bonus; an untrained operator fires at disadvantage (a house rule, so
+ * it's a choice, not forced — a Thief's Thievery advantage would cancel it).
+ * @param {object} cfg
+ * @param {string} cfg.title
+ * @param {Array<{value:string,label:string}>} cfg.operators - one entry per crew member
+ * @param {string} [cfg.preselect] - operator value to default the dropdown to (e.g. the assigned gunner)
+ * @returns {Promise<{operator:string,mode:"normal"|"advantage"|"disadvantage"}|null>}
+ */
+export async function promptSiegeAttack({ title, operators, preselect }) {
+  const { DialogV2 } = foundry.applications.api;
+  const esc = foundry.utils.escapeHTML;
+  const sel = (v) => (preselect && v === preselect ? " selected" : "");
+  const operatorControl = operators.length === 1
+    ? `<input type="hidden" name="operator" value="${esc(operators[0].value)}" /><span class="sde-veh-operator">${esc(operators[0].label)}</span>`
+    : `<select name="operator" autofocus>${operators.map((o) => `<option value="${esc(o.value)}"${sel(o.value)}>${esc(o.label)}</option>`).join("")}</select>`;
+  const result = await DialogV2.prompt({
+    window: { title },
+    content: `<div class="form-group"><label>Operator</label>${operatorControl}</div>
+      <div class="form-group">
+        <label>Roll</label>
+        <select name="mode">
+          <option value="normal" selected>Normal</option>
+          <option value="advantage">Advantage</option>
+          <option value="disadvantage">Disadvantage (untrained)</option>
+        </select>
+      </div>`,
+    ok: {
+      label: "Attack",
+      callback: (_ev, button) => ({
+        operator: button.form.elements.operator.value,
+        mode: button.form.elements.mode.value,
+      }),
+    },
+    rejectClose: false,
+  });
+  return result && result.operator ? result : null;
+}

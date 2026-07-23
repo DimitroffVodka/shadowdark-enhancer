@@ -563,6 +563,31 @@
   </section>
   {{/if}}
 
+  {{!-- ── Boats preview ────────────────────────────────────────────────── --}}
+  {{#if importData.hasBoats}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-sailboat"></i> Boats ({{importData.boats.length}})</span>
+      <button type="button" data-action="hubCommitBoats" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-anchor"></i> Create boats
+      </button>
+    </div>
+    <div class="sde-import-preview">
+      <table class="sde-import-boats">
+        <thead><tr><th>Name</th><th>Cost</th><th>Speed</th><th>AC</th><th>HP</th><th>Slots</th><th>Properties</th></tr></thead>
+        <tbody>
+          {{#each importData.boats as |b|}}
+          <tr>
+            <td>{{b.name}}</td><td>{{b.cost}} gp</td><td>{{b.speed}}</td>
+            <td>{{b.ac}}</td><td>{{b.hp}}</td><td>{{b.gearSlots}}</td><td>{{b.props}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{/if}}
+
   {{!-- ── Tables preview ───────────────────────────────────────────────── --}}
   {{#if importData.hasTables}}
   <section class="sde-hub-import-section">

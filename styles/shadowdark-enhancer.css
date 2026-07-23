@@ -7481,72 +7481,127 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-veh-reflist { margin: 4px 0; padding-left: 18px; }
 .sde-veh-reflist li { margin: 2px 0; }
 
-/* ── Tabbed container (Mount & Boat) ──────────────────────────────────────── */
-.sde-vehicle-sheet .window-content { padding: 0; overflow: hidden; }
+/* ── Tabbed container (Boat sheet — Shadowdark parchment chrome) ───────────── */
 .sde-vehicle-sheet-body { height: 100%; }
 
-.sde-veh-header {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid var(--color-border-light-tertiary, #999);
+/* The Boat is an ApplicationV2 window, which follows the client's dark/light
+ * theme. Force the classic Shadowdark parchment body + dark ink so it matches
+ * the system's own (ApplicationV1) sheets — e.g. the NPC-based Mount sheet —
+ * regardless of the user's theme. The .SD-header / .SD-nav / .SD-box chrome
+ * comes from the system stylesheet via the `shadowdark sheet` classes. */
+.sde-boat-sheet .window-content {
+  padding: 0;
+  overflow: hidden;
+  background: url("/ui/parchment.jpg") repeat;
+  color: #191813;
 }
-.sde-veh-portrait {
-  width: 56px;
-  height: 56px;
-  object-fit: cover;
-  border: 1px solid var(--color-border-dark, #111);
+.sde-boat-sheet,
+.sde-boat-sheet input,
+.sde-boat-sheet select,
+.sde-boat-sheet textarea,
+.sde-boat-sheet label,
+.sde-boat-sheet button { color: #191813; }
+
+/* The vessel name sits inside the black .SD-header — render it as the big
+ * Old-Newspaper title the system's ApplicationV1 sheets show. AppV2 inputs
+ * don't inherit the parent's font, so restate it here (and keep it light,
+ * overriding the parchment ink above). */
+.sde-boat-sheet .SD-title,
+.sde-boat-sheet .SD-title input { color: #fff; }
+.sde-boat-sheet .SD-title input {
+  font-family: "Old Newspaper Font", serif;
+  font-size: 40px;
+  text-align: center;
+}
+.sde-boat-sheet .SD-title input::placeholder { color: rgba(255, 255, 255, 0.55); }
+
+/* Buttons as light SD controls (AppV2 would otherwise paint them dark-theme). */
+.sde-boat-sheet button.sde-veh-btn {
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.35);
   border-radius: 4px;
-  cursor: pointer;
+}
+.sde-boat-sheet button.sde-veh-btn:hover { background: rgba(0, 0, 0, 0.12); }
+
+/* Section boxes: breathing room around the system .SD-box chrome. */
+.sde-boat-sheet .SD-box { margin: 6px 8px; }
+
+/* SD-box header labels are white on their black bar — the parchment-ink rule
+ * above must not darken them (they'd be unreadable, as the Mount's are white). */
+.sde-boat-sheet .SD-box .header label { color: #fff; }
+
+/* Match the system's larger in-box value sizing (Mount inputs render at 20px;
+ * ours were inheriting 14px, which read as "too small"). */
+.sde-boat-sheet .sde-veh-field input,
+.sde-boat-sheet .sde-veh-stat input { font-size: 18px; height: 30px; }
+.sde-boat-sheet .sde-veh-field select { font-size: 16px; }
+
+/* Header: portrait spans both rows + the ShadowDark logo (the system scopes
+ * both of these to .npc/.player sheets only, so restate them for the Boat). */
+.sde-boat-sheet .SD-header .portrait {
+  grid-row: span 2;
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+}
+.sde-boat-sheet .shadowdark-logo {
+  font-family: "JSL Blackletter", sans-serif;
+  font-size: 1.75rem;
+  color: #fff;
+  text-align: center;
+}
+.sde-boat-sheet .shadowdark-logo span { border-bottom: solid 1px #fff; padding: 0 10px; }
+
+/* Actor header buttons injected into the AppV2 title bar (Sheet / Prototype
+ * Token) — labelled like the system's ApplicationV1 header and light on the dark
+ * title bar (the parchment-ink button rule above would otherwise hide them).
+ * Also drop the copy-UUID button the Mount's header doesn't show. */
+.sde-boat-sheet .window-header .sde-veh-hdrbtn {
   flex: 0 0 auto;
-}
-.sde-veh-headmain { flex: 1 1 auto; min-width: 0; }
-.sde-veh-namefield {
-  width: 100% !important;
-  font-size: 18px;
-  font-weight: bold;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid transparent;
-}
-.sde-veh-namefield:hover, .sde-veh-namefield:focus { border-bottom-color: var(--color-border-light-tertiary, #999); }
-.sde-veh-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.sde-veh-chip {
+  width: auto;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  padding: 1px 8px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.15);
+  gap: 5px;
+  padding: 0 8px;
+  white-space: nowrap;
+  font-size: 13px;
+  color: rgba(235, 230, 220, 0.82);
 }
+.sde-boat-sheet .window-header .sde-veh-hdrbtn span { display: inline; font-size: 13px; }
+.sde-boat-sheet .window-header .sde-veh-hdrbtn:hover { color: #fff; }
+.sde-boat-sheet .window-header [data-action="copyUuid"] { display: none; }
+/* The built-in ⋮ (Toggle Controls) and ✕ (Close) controls: keep them light on
+ * the dark title bar — the parchment-ink `button` rule would black them out. */
+.sde-boat-sheet .window-header .header-control { color: rgba(235, 230, 220, 0.82); }
+.sde-boat-sheet .window-header .header-control:hover { color: #fff; }
 
-.sde-veh-nav {
+/* Overview = vital-stat boxes down a 1/3 left column, detail sections in the
+ * 2/3 right column (mirrors the Mount's left-rail / right-content split). */
+.sde-boat-sheet .sde-veh-overview { display: flex; gap: 8px; align-items: flex-start; margin: 6px 8px; }
+.sde-boat-sheet .sde-veh-col-left { flex: 0 0 33%; display: flex; flex-direction: column; gap: 8px; }
+.sde-boat-sheet .sde-veh-col-right { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.sde-boat-sheet .sde-veh-overview .SD-box { margin: 0; }
+.sde-boat-sheet .sde-veh-col-left .sde-veh-hint { margin: 2px 0 0; }
+
+/* AC + Move sit side by side (half-width each) in the left rail. */
+.sde-boat-sheet .sde-veh-statpair { display: flex; gap: 8px; }
+.sde-boat-sheet .sde-veh-statpair .SD-box { flex: 1 1 0; min-width: 0; }
+
+/* Vital-stat boxes (HP / AC / Movement / Passengers) — compact SD-boxes like
+ * the Mount's HP/AC/LEVEL. */
+.sde-boat-sheet .sde-veh-stat .content {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: 4px 6px 0;
-  border-bottom: 1px solid var(--color-border-light-tertiary, #999);
-  flex: 0 0 auto;
+  padding: 6px 5px;
 }
-.sde-veh-navbtn {
-  width: auto !important;
-  flex: 1 1 auto;
-  padding: 4px 6px;
-  border: 1px solid transparent;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
-  background: transparent;
-  cursor: pointer;
-  font-size: 12px;
-  opacity: 0.7;
-}
-.sde-veh-navbtn.active {
-  opacity: 1;
-  font-weight: bold;
-  border-color: var(--color-border-light-tertiary, #999);
-  background: rgba(0, 0, 0, 0.12);
-}
+.sde-boat-sheet .sde-veh-stat input { text-align: center; }
+.sde-boat-sheet .sde-veh-hpline { display: flex; align-items: center; gap: 4px; }
+.sde-boat-sheet .sde-veh-hpline input { width: 46px !important; }
+.sde-boat-sheet .sde-veh-statbig { font-size: 22px; }
+.sde-boat-sheet .sde-veh-substat { font-size: 10px; opacity: 0.65; text-align: center; }
 
 .sde-veh-tab-content { display: none; padding: 8px; overflow-y: auto; }
 .sde-veh-tab-content.active { display: block; flex: 1 1 auto; min-height: 0; }
@@ -7592,6 +7647,52 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-veh-member-remove:hover { opacity: 1; color: #b22222; }
 .sde-veh-member-broken { flex: 1 1 auto; color: #b22222; font-style: italic; }
 
+/* Crew roles: per-occupant selector + at-a-glance badge */
+.sde-veh-member-rolesel { flex: 0 0 auto; margin: 0 4px; }
+.sde-veh-member-rolesel select {
+  font-size: 11px;
+  padding: 1px 4px;
+  height: auto;
+  min-width: 92px;
+}
+.sde-veh-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  vertical-align: middle;
+}
+.sde-veh-role-badge.is-captain { background: rgba(30, 80, 140, 0.16); color: #1e508c; }
+.sde-veh-role-badge.is-gunner { background: rgba(150, 70, 20, 0.16); color: #964614; }
+.sde-veh-role-badge.is-crew { background: rgba(40, 110, 60, 0.16); color: #2a7a3c; }
+
+/* Source tag (e.g. a CS3 marker on an optional non-WR rule) */
+.sde-veh-srctag {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 5px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
+  background: rgba(120, 90, 40, 0.2);
+  color: #7a5a1e;
+}
+
+/* Command box (Captain / Gunners + right-the-ship) */
+.sde-veh-command { display: flex; flex-direction: column; gap: 6px; }
+.sde-veh-cmdrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sde-veh-cmdlabel { flex: 0 0 88px; font-weight: 600; font-size: 12px; }
+.sde-veh-cmdval { flex: 1 1 auto; font-size: 13px; }
+.sde-veh-cmdrow .sde-veh-btn { flex: 0 0 auto; }
+
 /* Inventory / cargo */
 .sde-veh-slottally { font-size: 13px; margin-bottom: 6px; }
 .sde-veh-slotnote { opacity: 0.7; font-size: 11px; }
@@ -7615,6 +7716,20 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   opacity: 0.6;
 }
 .sde-veh-item-del:hover { opacity: 1; color: #b22222; }
+
+/* Attack / Damage roll buttons on the Weapons tab. */
+.sde-veh-wpn-btn {
+  width: auto !important;
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+.sde-veh-wpn-btn:hover { background: rgba(0, 0, 0, 0.12); }
 
 .sde-veh-tab-content[data-tab-content="description"] textarea { width: 100% !important; resize: vertical; }
 

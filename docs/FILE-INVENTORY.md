@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-640 tracked files · ~77,600 lines of code/markup across scripts+templates+styles+test.
+646 tracked files · ~78,500 lines of code/markup across scripts+templates+styles+test.
 `v0.12.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -215,17 +215,21 @@
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
 | `tables/table-manifest.mjs` | 166 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
 | `tables/table-manifest-data.mjs` | 335 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
+| `boats/boat-parser.mjs` | 157 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
+| `boats/boat-importer.mjs` | 49 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
+| `boats/siege-parser.mjs` | 158 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
+| `boats/siege-importer.mjs` | 61 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
 
 ### 3.13 `scripts/actors/` — Mount & Boat sub-types
 
 | File | Lines | Description |
 |---|---:|---|
 | `register-actors.mjs` | 74 | Registers `shadowdark-enhancer.mount` / `.boat` (models + sheets, in `i18nInit`). |
-| `boat-data-model.mjs` | 79 | Boat data model — WR vessel rules. |
-| `boat-sheet.mjs` | 135 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
+| `boat-data-model.mjs` | 115 | Boat data model — WR vessel rules. |
+| `boat-sheet.mjs` | 174 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 329 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `vehicle-sheet.mjs` | 293 | Shared party-like container base (ApplicationV2). |
-| `vehicle-rolls.mjs` | 37 | Shared helper-roll button handlers. |
+| `vehicle-sheet.mjs` | 411 | Shared party-like container base (ApplicationV2). |
+| `vehicle-rolls.mjs` | 78 | Shared helper-roll button handlers. |
 
 ### 3.14 `scripts/char-builder/` — guided character creation
 

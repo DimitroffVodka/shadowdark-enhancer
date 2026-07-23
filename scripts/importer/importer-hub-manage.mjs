@@ -438,6 +438,8 @@ class HubManageMethods {
       Talent: "talents",
       Class: "classes", Ancestry: "ancestries",
       Table: "tables",
+      Boat: "boats",
+      SiegeWeapon: "items",
     })[type] ?? "auto";
     // Background roll tables bundle-unlock: one paste creates both the d100
     // table AND the individual Background items (the char-builder lists those
@@ -466,7 +468,8 @@ class HubManageMethods {
     // must be row-split into items, not left as one blank-line block that fuses
     // into a single garbage item. Non-item seeds reset it so a stale subtype
     // never mis-types a later paste.
-    this._importItemSubtype = ["Basic", "Weapon", "Armor"].includes(type) ? type : "auto";
+    this._importItemSubtype = ["Basic", "Weapon", "Armor"].includes(type) ? type
+      : (type === "SiegeWeapon" ? "Weapon" : "auto");
     if (src && CHAR_SOURCES[src]) this._importSource = CHAR_SOURCES[src].label;
     // Await the render so the textarea holds the seeded name line before the
     // auto-extract reads it — otherwise it reads a stale box and drops the name.

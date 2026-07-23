@@ -13,6 +13,7 @@ import { TableImporter } from "./tables/table-importer.mjs";
 import { MAGIC_SET_DEFS, matchBundleTables } from "../magic-forge/magic-table-runtime.mjs";
 import { resolveSpellClass, ClassIndex } from "./char-content/class-index.mjs";
 import { MonsterImporter } from "./monsters/monster-importer.mjs";
+import { BoatImporter } from "./boats/boat-importer.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
@@ -128,6 +129,12 @@ class HubCommitMethods {
 
     const source = this._importSource.trim();
     const drafts = this._importItems.map((p) => p.draft);
+    // Siege weapons carry Blast/Exploding — not in the core properties pack.
+    // Materialize them as Property items + stamp UUIDs before the create.
+    if (drafts.some((d) => d.siegeProperties?.length)) {
+      const { resolveSiegeProperties } = await import("./boats/siege-importer.mjs");
+      await resolveSiegeProperties(drafts);
+    }
     const { ItemImporter } = await import("./items/item-importer.mjs");
     const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
     if (!result) return;
@@ -188,6 +195,22 @@ class HubCommitMethods {
 
     ui.notifications.info(`Monsters: ${ImporterHubApp._commitSummary(result)} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
     this._importMonsters = [];
+    this.render();
+  }
+
+  /** Commit: create all pending boats into the sde-actors compendium. GM-gated. */
+  async _onHubCommitBoats() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import boats."); return; }
+    if (!this._importBoats.length) { ui.notifications.warn("No boats to import."); return; }
+    const source = this._importSource.trim();
+    const drafts = this._importBoats.map((p) => p.draft);
+    const report = await BoatImporter.createBoats(drafts, { source });
+    const bits = [];
+    if (report.created.length) bits.push(`${report.created.length} created`);
+    if (report.skipped.length) bits.push(`${report.skipped.length} already present`);
+    ui.notifications.info(`Boats: ${bits.join(", ") || "nothing to do"} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
+    this._importBoats = [];
+    this._invalidateManageTree?.();
     this.render();
   }
 
