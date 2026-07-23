@@ -240,13 +240,38 @@ export function registerSettings() {
     default: [],
   });
 
+  // Opt-in: auto loot cards on combat end don't fit every Shadowdark table,
+  // so the feature ships disabled.
   game.settings.register(MODULE_ID, "lootDropEnabled", {
     name: "SDE.settings.lootDropEnabled.name",
     hint: "SDE.settings.lootDropEnabled.hint",
     scope: "world",
     config: true,
     type: Boolean,
-    default: true,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, "lootDropMode", {
+    name: "SDE.settings.lootDropMode.name",
+    hint: "SDE.settings.lootDropMode.hint",
+    scope: "world",
+    config: true,
+    type: String,
+    choices: {
+      npc: "SDE.settings.lootDropMode.npc",
+      encounter: "SDE.settings.lootDropMode.encounter",
+    },
+    default: "npc",
+  });
+
+  game.settings.register(MODULE_ID, "lootDropChance", {
+    name: "SDE.settings.lootDropChance.name",
+    hint: "SDE.settings.lootDropChance.hint",
+    scope: "world",
+    config: true,
+    type: Number,
+    range: { min: 0, max: 100, step: 5 },
+    default: 50,
   });
 
   game.settings.register(MODULE_ID, "xpThresholdNormal", {

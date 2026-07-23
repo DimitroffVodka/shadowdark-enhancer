@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+### Added
+- **Real controls for loot drops.** A world **Loot drop chance (%)** setting
+  (default `50`) replaces the hard-coded 50% roll, and every NPC sheet gains a
+  GM-only **Loot** header button (visible while the feature is on) to pick a
+  specific loot table and/or a per-NPC drop-chance override — the actor flags
+  the feature always read but that previously had no UI.
+- **Loot drop mode.** Choose between the classic **per defeated NPC** drops
+  and **per encounter (one card)**: a single chance roll and at most one card
+  for the whole combat, generated at the highest-level defeated NPC's level
+  (that NPC's per-NPC overrides apply, so a boss's custom table wins). The
+  card's source line lists the defeated monsters.
+
 ### Fixed
 - **The Encounter Roller's default source list pointed at a compendium that no
   longer exists.** Shadowdark 4.x renamed its bundled monster pack
@@ -12,6 +24,11 @@
   automatically at load. The repair preserves your pill order and collapses the
   entry if you had already added `shadowdark.monsters` by hand, so nothing gets
   browsed twice.
+- **Combat-end loot drops no longer double-post in multi-GM worlds.** The
+  drop handler ran on every GM-level client (including an always-on assistant
+  GM), so each rolled and posted its own cards; it now runs only on the
+  active GM, matching the guard the loot claim, merchant, and session-recap
+  handlers already used.
 - **The Magic Item Forge window scrolls again when Core-mode content is taller
   than the screen** (window capped at 95vh with the root column scrolling,
   matching the importer hub).
@@ -28,6 +45,11 @@
   through.
 
 ### Changed
+- **Loot drops on combat end are now opt-in (default off)** — automatic loot
+  cards don't fit every Shadowdark table. The setting was also renamed from
+  "Enable loot drops" to **"Loot drops on combat end"** and its description
+  now says what it actually gates (it previously described the coin-pile /
+  canvas feature). Worlds that stored the old value keep their choice.
 - **PDF table imports got dramatically more faithful on wrapped layouts.** The
   extractor's coverage audit went from 19 tables needing review to 2: all
   eight Western Reaches prayer generators now reconstruct 6/6/6 (wrapped cells
