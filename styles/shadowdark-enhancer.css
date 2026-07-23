@@ -757,23 +757,14 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   pointer-events: none;
 }
 
-/* GM card — crown badge top-right; no pills/HP rendered */
-.sde-strip-gm-crown {
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  font-size: 14px;
-  color: #f3d27b;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.9);
-  pointer-events: none;
-}
+/* GM card — crown sits inline to the left of the name; no pills/HP rendered */
 .sde-strip-member.sde-strip-type-gm .sde-strip-bottom { display: none; }
 
 /* GM card is click-to-change for the GM: hint it with a pointer + hover camera. */
 .sde-strip-member.sde-strip-gm-editable { cursor: pointer; }
 .sde-strip-member.sde-strip-gm-editable::after {
   content: "\f030"; /* fa camera */
-  font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
+  font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome";
   font-weight: 900;
   position: absolute;
   left: 3px;
@@ -966,12 +957,11 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 /* ── GM crown + remove ────────────────────────────────────────────────────── */
 
 .sde-strip-gm-icon {
-  position: absolute;
-  top: 4px;
-  right: 4px;
   font-size: 11px;
   color: var(--sde-bar-gm-icon);
   text-shadow: 0 0 6px rgba(0,0,0,0.9);
+  margin-right: 4px;
+  vertical-align: baseline;
 }
 
 /* ── Active turn state ────────────────────────────────────────────────────── */
@@ -1933,7 +1923,7 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
 .sde-hub-manage-summary::-webkit-details-marker { display: none; }
 .sde-hub-manage-summary::before {
   content: "\f0da"; /* caret-right */
-  font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro";
+  font-family: "Font Awesome 7 Pro", "Font Awesome 6 Free", "Font Awesome 6 Pro", "FontAwesome";
   font-weight: 900;
   color: var(--sde-bar-accent);
   transition: transform 0.15s ease;

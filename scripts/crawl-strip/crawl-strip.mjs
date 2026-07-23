@@ -267,9 +267,8 @@ export const CrawlStrip = {
                data-member-id="${m.id}" title="${gmTitle}">
             <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
             <div class="sde-strip-overlay">
-              <div class="sde-strip-name">${esc(m.name)}</div>
+              <div class="sde-strip-name">${ICONS.gmCrown}${esc(m.name)}</div>
             </div>
-            <div class="sde-strip-gm-crown">${ICONS.gmCrown}</div>
           </div>
         </div>`;
       }
