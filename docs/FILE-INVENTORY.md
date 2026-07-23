@@ -1,8 +1,15 @@
-# Shadowdark Enhancer — File Inventory (release review, 2026-07-22)
+# Shadowdark Enhancer — File Inventory
 
-651 tracked files · ~77,100 lines of code/markup across scripts+templates+styles+test.
+<!-- inventory:stats:start -->
+656 tracked files · ~77,500 lines of code/markup across scripts+templates+styles+test.
 `v0.12.0` in both `module.json` and `package.json`.
+<!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
+
+> The counts above and the §3 `scripts/` tables are **generated** — run
+> `npm run inventory` after adding or renaming a script. Per-file descriptions
+> and section prose live in `tools/inventory/data.json`; everything else on this
+> page is hand-written.
 
 ---
 
@@ -29,20 +36,21 @@
 
 ---
 
+<!-- inventory:scripts:start -->
 ## 3. `scripts/` — module code (feature-folder layout)
 
 ### 3.1 `scripts/` root
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 581 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 638 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
 | File | Lines | Description |
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
-| `settings.mjs` | 281 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 336 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 78 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -54,13 +62,13 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 856 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 365 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-strip.mjs` | 863 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-state.mjs` | 379 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 138 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
-| `initiative-manager.mjs` | 129 | Combat/initiative state machine glue for the strip. |
+| `initiative-manager.mjs` | 128 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
-| `movement-tracker.mjs` | 684 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
+| `movement-tracker.mjs` | 692 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 509 | Per-combatant hover action HUD. |
 
@@ -68,24 +76,25 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 607 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 613 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-roller-app.mjs` | 1362 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
+| `encounter-roller-app.mjs` | 1363 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
 | `encounter-check.mjs` | 80 | The d6 random-encounter check + chat post. |
 | `encounter-result.mjs` | 32 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 286 | Build-a-table data layer (slots, die formats, save to RollTable). |
-| `encounter-browse.mjs` | 218 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
+| `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
 | `npc-index.mjs` | 260 | NPC actors → compact browse row model. |
+| `encounter-sources.mjs` | 56 | Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll). |
 
 ### 3.6 `scripts/monster-creator/`
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-creator.mjs` | 1531 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
+| `encounter-creator.mjs` | 1878 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
 | `action-templates.mjs` | 126 | Quick-pick NPC attack/action catalog (FA6 Free glyphs only). |
 | `feature-templates.mjs` | 83 | Quick-pick NPC feature catalog. |
 | `monster-effect-runtime.mjs` | 540 | Provenance-backed effect overlay engine for the Creator draft. |
@@ -95,38 +104,41 @@
 | `spell-index.mjs` | 190 | Lightweight Spell index (compendium indices, not documents). |
 | `npc-moves.mjs` | 16 | Canonical NPC movement keys with a pre-config fallback. |
 | `npc-statblock.mjs` | 125 | Builds the formatted `system.notes` statblock HTML. |
+| `level-guidelines-app.mjs` | 220 | GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like. |
+| `level-guidelines.mjs` | 502 | Pure, node-testable monster level-guideline math (isotonic-smoothed medians over the system's 244 monsters). |
+| `quick-adjust-app.mjs` | 463 | Quick stat-adjust dialog — lightweight AC/HP/level/attack swaps on an existing monster (not a generated effect). |
 
 ### 3.7 `scripts/loot/`
 
 | File | Lines | Description |
 |---|---:|---|
-| `loot-generator-app.mjs` | 227 | Roll a loot table, work a running batch, whisper claimable cards. |
+| `loot-generator-app.mjs` | 265 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 209 | RollTable → structured loot batch (documents, coins, flavor). |
-| `loot-delivery.mjs` | 413 | Shared claimable chat card; first-claim-wins, GM-authoritative over socket. |
-| `loot-drops.mjs` | 39 | Auto-drop loot on NPC defeat at combat end. |
+| `loot-delivery.mjs` | 419 | Shared claimable chat card; first-claim-wins, GM-authoritative over socket. |
+| `loot-drops.mjs` | 179 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 237 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
 | `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
 | `loot-table-tag.mjs` | 80 | Sidebar context-menu "Mark as Loot Table" toggle. |
 | `loot-catalog.mjs` | 114 | Rewrites loot tables so entries become DOCUMENT results. |
 | `loot-linker.mjs` | 115 | Loot row text → confident compendium item link. |
-| `loot-pack.mjs` | 162 | Classify/fabricate treasure entries + world "Loot" pack ops. |
+| `loot-pack.mjs` | 161 | Classify/fabricate treasure entries + world "Loot" pack ops. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 553 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 668 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 
 ### 3.8 `scripts/magic-forge/`
 
 | File | Lines | Description |
 |---|---:|---|
-| `magic-forge-app.mjs` | 725 | Magic Item Forge window (weapons/armor with working +N, benefit/curse riders). |
-| `magic-forge.mjs` | 260 | Core engine building items that actually function in the system. |
+| `magic-forge-app.mjs` | 724 | Magic Item Forge window (weapons/armor with working +N, benefit/curse riders). |
+| `magic-forge.mjs` | 279 | Core engine building items that actually function in the system. |
 | `magic-table-runtime.mjs` | 708 | Drives forge recipes off the GM's own imported magic-item tables. |
 
 ### 3.9 `scripts/merchant/`
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2405 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2404 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 178 | The two shipped merchant configs (Base, Western Reaches). |
 
 ### 3.10 `scripts/party-xp/`
@@ -148,95 +160,71 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 668 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1275 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
-| `importer-hub-commit.mjs` | 708 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 732 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-app.mjs` | 680 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-paste.mjs` | 1308 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-commit.mjs` | 731 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-manage.mjs` | 735 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-shared.mjs` | 91 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 192 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 396 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 447 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `pdf-text-extract.mjs` | 308 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 215 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-
-#### 3.12.1 `importer/char-content/`
-
-| File | Lines | Description |
-|---|---:|---|
-| `char-content-manifest.mjs` | 1303 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
-| `class-parser.mjs` | 1002 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
-| `class-importer-app.mjs` | 733 | Purpose-built single-view class workspace. |
-| `class-unit-importer.mjs` | 1064 | Class unit → real documents in dependency order. |
-| `class-overlays.mjs` | 220 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
-| `class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
-| `class-index.mjs` | 85 | Class name → system Class item UUID. |
-| `language-resolver.mjs` | 16 | Language names → system UUIDs. |
-
-#### 3.12.2 `importer/spells/`
-
-| File | Lines | Description |
-|---|---:|---|
-| `spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
-| `spell-importer-app.mjs` | 454 | Spell workspace organized by class / tier / alignment. |
-
-#### 3.12.3 `importer/tables/` (incl. the Gameplay content taxonomy)
-
-| File | Lines | Description |
-|---|---:|---|
-| `table-importer.mjs` | 2639 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `table-shapes.mjs` | 400 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
-| `table-manifest.mjs` / `table-manifest-data.mjs` | 166 / 335 | Canonical table catalog (data half generated by `dev/gen-table-manifest.py`). |
-| `table-hub.mjs` | 288 | Reconciles the shipped manifest against the live world (system / imported / missing). |
-| `table-hub-app.mjs` | 499 | "Set up ALL tables" window — dashboard + import view. |
-| `table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
-| `table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
-| `table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
-| `table-folders.mjs` | 131 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
-| `table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
-| `table-enrich.mjs` | 164 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
-| `core-table-groups.mjs` | 246 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
-| `compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
-| `hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |
-
-#### 3.12.4 `importer/monsters/`
-
-| File | Lines | Description |
-|---|---:|---|
-| `statblock-parser.mjs` | 516 | Monster statblock dump → draft objects. Pure. |
-| `monster-importer.mjs` | 226 | Drafts → NPC actors in `sde-actors`. |
-| `monster-importer-app.mjs` | 378 | Paste dump → per-monster preview/edit grid → create. |
-| `monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
-| `monster-census-live.mjs` | 378 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
-| `monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
-| `actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
-| `monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
-| `monster-pack.mjs` | 42 | Shared pack-identity leaf so importer and linker agree. |
-
-#### 3.12.5 `importer/items/`
-
-| File | Lines | Description |
-|---|---:|---|
-| `item-parser.mjs` | 450 | Generic item recognizer (name/cost/slots). Pure. |
-| `gear-parser.mjs` | 535 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
-| `gear-join.mjs` | 244 | Joins split cost-table + description layouts into one item. Pure. |
-| `item-importer.mjs` | 704 | Drafts → Items in `sde-items`, foldered by source. |
-| `item-builder-app.mjs` | 394 | Guided multi-stage equipment-section workspace. |
-| `item-builder-gear.mjs` | 121 | Pure stage-①/③ logic for the Item Builder. |
-| `item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
-| `shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
+| `char-content/char-content-manifest.mjs` | 1303 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/class-parser.mjs` | 1002 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
+| `char-content/class-importer-app.mjs` | 733 | Purpose-built single-view class workspace. |
+| `char-content/class-unit-importer.mjs` | 1073 | Class unit → real documents in dependency order. |
+| `char-content/class-overlays.mjs` | 220 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
+| `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
+| `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |
+| `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
+| `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
+| `spells/spell-importer-app.mjs` | 454 | Spell workspace organized by class / tier / alignment. |
+| `tables/table-importer.mjs` | 2750 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-shapes.mjs` | 424 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `tables/table-hub.mjs` | 288 | Reconciles the shipped manifest against the live world (system / imported / missing). |
+| `tables/table-hub-app.mjs` | 499 | "Set up ALL tables" window — dashboard + import view. |
+| `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
+| `tables/table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
+| `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
+| `tables/table-folders.mjs` | 131 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
+| `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
+| `tables/table-enrich.mjs` | 164 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
+| `tables/core-table-groups.mjs` | 246 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
+| `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
+| `tables/hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |
+| `monsters/statblock-parser.mjs` | 516 | Monster statblock dump → draft objects. Pure. |
+| `monsters/monster-importer.mjs` | 226 | Drafts → NPC actors in `sde-actors`. |
+| `monsters/monster-importer-app.mjs` | 378 | Paste dump → per-monster preview/edit grid → create. |
+| `monsters/monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
+| `monsters/monster-census-live.mjs` | 378 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
+| `monsters/monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
+| `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
+| `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
+| `monsters/monster-pack.mjs` | 42 | Shared pack-identity leaf so importer and linker agree. |
+| `items/item-parser.mjs` | 450 | Generic item recognizer (name/cost/slots). Pure. |
+| `items/gear-parser.mjs` | 535 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
+| `items/gear-join.mjs` | 244 | Joins split cost-table + description layouts into one item. Pure. |
+| `items/item-importer.mjs` | 704 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-builder-app.mjs` | 394 | Guided multi-stage equipment-section workspace. |
+| `items/item-builder-gear.mjs` | 121 | Pure stage-①/③ logic for the Item Builder. |
+| `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
+| `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
+| `tables/table-manifest.mjs` | 166 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
+| `tables/table-manifest-data.mjs` | 335 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
 
 ### 3.13 `scripts/actors/` — Mount & Boat sub-types
 
 | File | Lines | Description |
 |---|---:|---|
 | `register-actors.mjs` | 74 | Registers `shadowdark-enhancer.mount` / `.boat` (models + sheets, in `i18nInit`). |
-| `boat-data-model.mjs` | 77 | Boat data model — WR vessel rules. |
-| `boat-sheet.mjs` | 104 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
+| `boat-data-model.mjs` | 79 | Boat data model — WR vessel rules. |
+| `boat-sheet.mjs` | 135 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 329 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `vehicle-sheet.mjs` | 256 | Shared party-like container base (ApplicationV2). |
+| `vehicle-sheet.mjs` | 270 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 37 | Shared helper-roll button handlers. |
 
 ### 3.14 `scripts/char-builder/` — guided character creation
@@ -246,13 +234,27 @@
 | `char-builder-app.mjs` | 276 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 63 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 137 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
-| `data.mjs` | 256 | Thin wrappers over the system's compendium loaders. |
+| `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 286 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
 | `art-gallery.mjs` | 162 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 112 | Per-day/roll uses for Class Ability items. |
 | `gear-editor-app.mjs` | 152 | `ExtraGearEditor` sub-window. |
-| `steps/` (15 files) | ~2,600 | base-step + list-step bases, then stats, ancestry, class (824 — largest), origins, background, alignment, deity, languages, hp, hp-gold, gold, gear, preview. |
+| `steps/base-step.mjs` | 54 | Base class for character-builder wizard steps (shared lifecycle, render and validation). |
+| `steps/list-step.mjs` | 197 | Base class for the list/detail/aside steps (Ancestry, Class, Background, Deity). |
+| `steps/alignment-step.mjs` | 68 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
+| `steps/ancestry-step.mjs` | 233 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
+| `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
+| `steps/class-step.mjs` | 824 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
+| `steps/deity-step.mjs` | 77 | Step — Deity. Optional list/detail pick showing the deity's detail. |
+| `steps/gear-step.mjs` | 321 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
+| `steps/gold-step.mjs` | 77 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |
+| `steps/hp-gold-step.mjs` | 52 | Step — Hit Points & Gold on one tab (both are single dice rolls). |
+| `steps/hp-step.mjs` | 123 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
+| `steps/languages-step.mjs` | 131 | Step — Languages (runs after Class, so ancestry and class both contribute). |
+| `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
+| `steps/preview-step.mjs` | 270 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/stats-step.mjs` | 271 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`
 
@@ -266,9 +268,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `pdf-sheet-export.mjs` | 385 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
-| `lib/pdf-lib.esm.min.js` | — | Vendored pdf-lib v1.17.1 (MIT; license + provenance note beside it). |
-
+| `pdf-sheet-export.mjs` | 403 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
+<!-- inventory:scripts:end -->
 ---
 
 ## 4. `templates/` — 38 Handlebars templates
@@ -316,7 +317,8 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 ## 9. Tracked-but-not-shipped, and local-only
 
 **Tracked in git but excluded from module.zip** (release.yml allowlist):
-`test/`, `package.json`, `eslint.config.mjs`, `.github/`, and all of `docs/`
+`test/`, `package.json`, `eslint.config.mjs`, `.github/`, `tools/` (the
+`npm run inventory` generator that maintains this page), and all of `docs/`
 except `API.md` (internal audits, review reports, superpowers plans/specs).
 
 **Gitignored / local-only** (never published):

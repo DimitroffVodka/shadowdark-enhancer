@@ -22,3 +22,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Inventory up to date
+        run: npm run inventory:check

@@ -83,6 +83,14 @@ that alters what a GM sees or does is not finished until the matching page is.
 - an image in `docs/wiki/images/` is unreferenced, or a wiki page is unlinked;
 - `languages/en.json` carries `SDE.settings.*` strings with no registered setting.
 
+`docs/FILE-INVENTORY.md` is **generated**, not hand-maintained. Its §3 `scripts/`
+tables and header counts come from `git ls-files` + line counts via
+`npm run inventory`; you hand-edit only the section prose and per-file
+descriptions in `tools/inventory/data.json`. `npm test` fails when a
+`scripts/**/*.mjs` file is added, removed or renamed without a matching row, and
+CI runs `npm run inventory:check` to catch stale line counts. **When you add or
+rename a script, run `npm run inventory` and commit the result.**
+
 The contract cannot check prose. **When you change any of these, update the page
 in the same commit:**
 
