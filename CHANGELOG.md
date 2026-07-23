@@ -45,6 +45,12 @@
   through.
 
 ### Changed
+- **Dead enemies leave the crawl strip.** An NPC combatant that is marked
+  defeated or drops to 0 HP no longer takes up a card in combat mode — the
+  strip shows who is still standing. The combatant stays in the combat
+  tracker untouched, so end-of-combat loot drops and the session recap still
+  see it, and healing the NPC above 0 HP (or clearing the defeated marker)
+  brings the card back.
 - **Loot drops on combat end are now opt-in (default off)** — automatic loot
   cards don't fit every Shadowdark table. The setting was also renamed from
   "Enable loot drops" to **"Loot drops on combat end"** and its description

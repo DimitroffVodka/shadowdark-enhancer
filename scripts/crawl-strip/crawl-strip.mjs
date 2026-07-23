@@ -56,6 +56,10 @@ export const CrawlStrip = {
     const queueIfShown = doc => {
       const a = actorOf(doc);
       if (shown("actor-id", a?.id) || shown("token-id", a?.token?.id)) queue();
+      // A dead NPC has no card left to match, but healing it back above 0 HP
+      // must restore the card — in combat, combatant membership counts as shown.
+      else if (a?.id && CrawlState.mode === "combat" &&
+               game.combat?.combatants.some(c => c.actorId === a.id)) queue();
     };
     on("updateActor",   queueIfShown);
     on("updateToken",   td => { if (shown("token-id", td?.id) || shown("actor-id", td?.actorId)) queue(); });
@@ -209,6 +213,11 @@ export const CrawlStrip = {
       if (!actor) continue;
       const tokenDoc = c.token;
       const isPlayer = actor.type === "Player";
+      // Dead enemies drop off the strip but stay in the combat tracker — the
+      // tracker is the end-of-combat ledger (loot drops and the session recap
+      // read defeated combatants from it). Same death test as those readers.
+      const hp = actor.system?.attributes?.hp?.value ?? actor.system?.hp?.value ?? 1;
+      if (!isPlayer && (c.defeated || hp <= 0)) continue;
       heroes.push({
         id:        `combatant-${c.id}`,
         name:      tokenDoc?.name ?? actor.name,
