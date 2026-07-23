@@ -228,6 +228,12 @@ export const LootDelivery = {
   },
 
   /**
+   * Public resolve for other loot surfaces (the generator's Drop on Ground):
+   * same uuid/fabricate/feature handling the claim path uses.
+   */
+  resolveItemData(item) { return this._resolveItemData(item); },
+
+  /**
    * Resolve a card/batch item to creatable Item data. Either a linked
    * document (`uuid`) or a fabricated-from-text valuable (`fabricate`). The
    * cosmetic Unique Feature is appended to the description either way.

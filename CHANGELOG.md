@@ -3,6 +3,14 @@
 ## [Unreleased]
 
 ### Added
+- **Party delivery in the Loot Generator — no more forced recipient.** Each
+  rolled result's **Give** dropdown now defaults to **Party (claim in chat)**
+  (Give then posts the shared claim card instead of requiring a player), and a
+  new **Drop on Ground** button puts the whole result on the canvas — every
+  item becomes a pickup-able token and the coins a pile, clustered at your
+  controlled token or view centre — so the players decide who takes what. It
+  replaces the per-result coins-only **Drop Coins** button (the toolbar's
+  **Drop Coins…** prompt is unchanged).
 - **Real controls for loot drops.** A world **Loot drop chance (%)** setting
   (default `50`) replaces the hard-coded 50% roll, and every NPC sheet gains a
   GM-only **Loot** header button (visible while the feature is on) to pick a

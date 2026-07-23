@@ -275,8 +275,48 @@ export const ItemDrops = {
   },
 
   /* -------------------------------------------- */
-  /*  Drop: Coin Pile (GM-only)                   */
+  /*  Drop: GM-initiated (coins / loot items)     */
   /* -------------------------------------------- */
+
+  /**
+   * Default drop point for GM-initiated drops: the controlled token's centre,
+   * else the current view centre, else the scene centre.
+   */
+  defaultDropPoint(scene) {
+    const sel = canvas.tokens?.controlled?.[0];
+    if (sel) return { x: sel.center?.x ?? sel.x, y: sel.center?.y ?? sel.y };
+    if (canvas.stage?.pivot) return { x: canvas.stage.pivot.x, y: canvas.stage.pivot.y };
+    return {
+      x: (scene.dimensions?.width ?? scene.width ?? 0) / 2,
+      y: (scene.dimensions?.height ?? scene.height ?? 0) / 2,
+    };
+  },
+
+  /**
+   * Drop already-resolved Item data onto the canvas as a pickup-able token
+   * (GM-only). Placement mirrors `dropCoins`. Used by the Loot Generator's
+   * per-result "Drop on Ground" so a generated hoard can be left for the
+   * party to divvy up.
+   */
+  async dropItemData(itemData, { sceneId = null, x = null, y = null } = {}) {
+    if (!game.user.isGM) { ui.notifications?.warn("Only a GM can drop items."); return false; }
+    if (!itemData?.name) return false;
+    const scene = (sceneId ? game.scenes.get(sceneId) : null) || canvas.scene || game.scenes.active;
+    if (!scene) { ui.notifications?.warn("No active scene to drop items onto."); return false; }
+    let dropX = x, dropY = y;
+    if (dropX == null || dropY == null) ({ x: dropX, y: dropY } = this.defaultDropPoint(scene));
+    const qty = Math.max(1, Math.floor(Number(itemData.system?.quantity ?? 1)) || 1);
+    await this._createDroppedItemToken({
+      itemData: foundry.utils.deepClone(itemData),
+      sourceActorId: null,
+      sourceItemId: null,
+      dropQty: qty,
+      x: dropX,
+      y: dropY,
+      sceneId: scene.id,
+    });
+    return true;
+  },
 
   /**
    * Drop a pickup-able coin pile onto the canvas (GM-only). `coins` is
@@ -302,15 +342,7 @@ export const ItemDrops = {
 
     // Placement: explicit coords → controlled token → view centre → scene centre.
     let dropX = x, dropY = y;
-    if (dropX == null || dropY == null) {
-      const sel = canvas.tokens?.controlled?.[0];
-      if (sel) { dropX = sel.center?.x ?? sel.x; dropY = sel.center?.y ?? sel.y; }
-      else if (canvas.stage?.pivot) { dropX = canvas.stage.pivot.x; dropY = canvas.stage.pivot.y; }
-      else {
-        dropX = (scene.dimensions?.width ?? scene.width ?? 0) / 2;
-        dropY = (scene.dimensions?.height ?? scene.height ?? 0) / 2;
-      }
-    }
+    if (dropX == null || dropY == null) ({ x: dropX, y: dropY } = this.defaultDropPoint(scene));
 
     const label = _coinLabel(coinData);
     const actor = await Actor.create({

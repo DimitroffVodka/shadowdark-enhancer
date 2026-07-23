@@ -2,7 +2,8 @@
  * Shadowdark Enhancer — Loot Generator window (M2.1 / G4).
  * Vagabond-Crawler-style: pick a loot RollTable, "Roll Loot" (or "Roll for
  * Selected Token" → whisper a claimable card to its owner), and work a running
- * history where each result can be posted to chat or given to a player.
+ * history where each result can be posted to chat for the party to claim,
+ * dropped on the ground as pickup-able tokens, or given to a chosen player.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { boundCount, gatherLootTables } from "./loot-table-catalog.mjs";
@@ -24,7 +25,7 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
       rollForToken:   LootGeneratorApp.prototype._onRollForToken,
       postEntry:      LootGeneratorApp.prototype._onPostEntry,
       giveEntry:      LootGeneratorApp.prototype._onGiveEntry,
-      dropEntryCoins: LootGeneratorApp.prototype._onDropEntryCoins,
+      dropEntry:      LootGeneratorApp.prototype._onDropEntry,
       dropCoinsPrompt: LootGeneratorApp.prototype._onDropCoinsPrompt,
       clearHistory:   LootGeneratorApp.prototype._onClearHistory,
       forgeEntryItem: LootGeneratorApp.prototype._onForgeEntryItem,
@@ -160,7 +161,13 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const entry = this._history.find(e => e.id === target.dataset.entryId);
     if (!entry) return;
     const sel = this.element.querySelector(`.sde-lootgen-recipient[data-entry-id="${entry.id}"]`);
-    const actor = game.actors.get(sel?.value);
+    // "Party" (the default) has no single recipient — post the shared claim
+    // card instead, so the players decide who takes what.
+    if (!sel?.value || sel.value === "party") {
+      await LootDelivery.postCard({ ...entry.batch, source: entry.tableName });
+      return;
+    }
+    const actor = game.actors.get(sel.value);
     if (!actor) { ui.notifications.warn("Pick a recipient first."); return; }
     await LootDelivery.depositToActor(actor, entry.batch);
     ui.notifications.info(`Gave ${entry.tableName} loot to ${actor.name}.`);
@@ -190,17 +197,47 @@ export class LootGeneratorApp extends HandlebarsApplicationMixin(ApplicationV2) 
     if (actor) ui.notifications.info(`Dropped ${actor.name} on the canvas — players can pick it up from the token.`);
   }
 
-  /** Drop this entry's coins onto the canvas as a pickup-able pile (GM). */
-  async _onDropEntryCoins(event, target) {
+  /**
+   * Drop this whole result on the ground: every item becomes a pickup-able
+   * token and the coins a pile, clustered at the default drop point, for the
+   * party to divvy up in person.
+   */
+  async _onDropEntry(event, target) {
     const entry = this._history.find(e => e.id === target.dataset.entryId);
     if (!entry) return;
+    const items = entry.batch.items ?? [];
     const coins = entry.batch.coins ?? { gp: 0, sp: 0, cp: 0 };
-    if ((coins.gp || 0) + (coins.sp || 0) + (coins.cp || 0) <= 0) {
-      ui.notifications.warn("This result has no coins to drop.");
-      return;
+    const hasCoins = (coins.gp || 0) + (coins.sp || 0) + (coins.cp || 0) > 0;
+    if (!items.length && !hasCoins) { ui.notifications.warn("This result has nothing to drop."); return; }
+
+    const scene = canvas.scene ?? game.scenes.active;
+    if (!scene) { ui.notifications.warn("No active scene to drop loot onto."); return; }
+
+    // Cluster the 0.5-grid tokens in a 3-wide grid at the drop point so a
+    // big hoard doesn't land in one unclickable stack.
+    const base = ItemDrops.defaultDropPoint(scene);
+    const step = (scene.grid?.size ?? 100) * 0.5;
+    let placed = 0;
+    const nextPoint = () => {
+      const p = { x: base.x + (placed % 3) * step, y: base.y + Math.floor(placed / 3) * step };
+      placed += 1;
+      return p;
+    };
+
+    let dropped = 0;
+    for (const it of items) {
+      const data = await LootDelivery.resolveItemData(it);
+      if (!data) continue;
+      if ((it.qty ?? 1) > 1) { data.system = data.system ?? {}; data.system.quantity = it.qty; }
+      const p = nextPoint();
+      if (await ItemDrops.dropItemData(data, { sceneId: scene.id, x: p.x, y: p.y })) dropped++;
     }
-    const actor = await ItemDrops.dropCoins(coins, { source: entry.tableName });
-    if (actor) ui.notifications.info(`Dropped ${entry.tableName} coins on the canvas — players can pick them up from the token.`);
+    if (hasCoins) {
+      const p = nextPoint();
+      if (await ItemDrops.dropCoins(coins, { sceneId: scene.id, source: entry.tableName, x: p.x, y: p.y })) dropped++;
+    }
+    if (dropped) ui.notifications.info(`Dropped ${entry.tableName} loot on the canvas — players pick it up from the tokens.`);
+    else ui.notifications.warn("Nothing in this result could be dropped.");
   }
 
   _onClearHistory() {

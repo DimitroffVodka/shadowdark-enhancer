@@ -35,11 +35,12 @@
       {{#if e.isEmpty}}<div class="sde-lootgen-note">(nothing)</div>{{/if}}
       <div class="sde-lootgen-entry-actions">
         <button type="button" class="sde-lootgen-post" data-action="postEntry" data-entry-id="{{e.id}}"><i class="fas fa-comment"></i> Post to Chat</button>
+        <button type="button" class="sde-lootgen-drop" data-action="dropEntry" data-entry-id="{{e.id}}"><i class="fas fa-box-open"></i> Drop on Ground</button>
         <select class="sde-lootgen-recipient" data-entry-id="{{e.id}}" aria-label="Give recipient">
+          <option value="party">Party (claim in chat)</option>
           {{#each e.party as |p|}}<option value="{{p.id}}">{{p.name}}</option>{{/each}}
         </select>
         <button type="button" class="sde-lootgen-give" data-action="giveEntry" data-entry-id="{{e.id}}"><i class="fas fa-gift"></i> Give</button>
-        {{#if e.hasCoins}}<button type="button" class="sde-lootgen-dropcoins" data-action="dropEntryCoins" data-entry-id="{{e.id}}"><i class="fas fa-coins"></i> Drop Coins</button>{{/if}}
       </div>
     </li>
     {{/each}}
