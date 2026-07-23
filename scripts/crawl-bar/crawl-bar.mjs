@@ -448,7 +448,6 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="merchant" role="menuitem" tabindex="0">
         <i class="fas fa-store"></i> Merchant Shop
       </div>
-      <div class="sde-menu-divider"></div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="partyXp" role="menuitem" tabindex="0">
         <i class="fas fa-star"></i> Party XP
       </div>
