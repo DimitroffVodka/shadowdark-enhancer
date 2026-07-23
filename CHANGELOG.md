@@ -1,8 +1,21 @@
 # Changelog
 
-## [Unreleased]
+## [0.12.0] — 2026-07-22
 
 ### Added
+- **Monster Creator level guidelines, in-place editing, and a token-HUD quick
+  adjust.** The Creator now answers "what should a level-N Shadowdark monster
+  look like?" A new **Level Baseline** section shows the target AC, HP, attack
+  count/bonus, damage die, and ability band for the chosen level, computed from
+  the 244 monsters in `shadowdark.monsters` (a settings menu lets a GM view and
+  **Recalculate** the guidelines against their own world — shipped defaults and
+  a GM rescan run the same algorithm). **Open in Creator** hands an existing
+  monster to the full editor and **Save** now writes back to that actor instead
+  of making a copy — items reconcile by type and name, so an untouched attack
+  keeps its id. A token-HUD **quick adjust** panel re-levels a selected monster
+  in place — shifting its ability scores into the target level's band and
+  rewriting the printed stat block — with a one-click **Revert** that restores
+  the actor exactly.
 - **Party delivery in the Loot Generator — no more forced recipient.** Each
   rolled result's **Give** dropdown now defaults to **Party (claim in chat)**
   (Give then posts the shared claim card instead of requiring a player), and a
@@ -51,6 +64,10 @@
   where `\b` regex word boundaries were intended, so that half of the filter
   could never match; junk gap rows it should have suppressed could slip
   through.
+- **The class importer's stage-2 paste hint no longer renders a dangling
+  sentence.** Before a class exists its internal name is empty, so the hint
+  showed "it attaches to ." — it now uses the same display-name fallback the
+  Attach button does.
 
 ### Changed
 - **Dead enemies leave the crawl strip.** An NPC combatant that is marked
