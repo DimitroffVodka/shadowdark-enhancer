@@ -33,11 +33,15 @@ export function resultUuid(r) {
 /**
  * The displayed string for a drawn TableResult. Foundry v13 split
  * `TableResult#text` into `name` + `description`; the importer stores TEXT-row
- * content in `name`. Read from `_source` so a broken document link can't throw.
+ * content in `name`. Read from `_source` so a broken document link can't
+ * throw — but never read `.text` there: `_initializeSource` runs `shimData`
+ * on `_source`, so even the raw object carries the v13 `text` deprecation
+ * getter, and `migrateData` has already moved any legacy `text` value into
+ * `name`/`description` by construction time.
  */
 export function resultText(r) {
   const s = r?._source ?? {};
-  return (s.name || s.text || s.description || "").trim();
+  return (s.name || s.description || "").trim();
 }
 
 /** Classify one drawn TableResult into coin / item / note (pure). */

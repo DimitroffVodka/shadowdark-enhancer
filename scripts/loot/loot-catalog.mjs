@@ -14,9 +14,11 @@ import { findSuitePack } from "../shared/compendium-suite.mjs";
 // Pre-migration fallback only — catalog lookups prefer the sde-items suite pack (A-07).
 const LOOT_PACK = "world.loot";
 
-/** The current display text of a TableResult (v13 name/description/text). */
+/** The current display text of a TableResult (v13 split text → name/description). */
 function _resultText(r) {
-  return r.name || r.description || r.text || "";
+  // No `.text` fallback: it is a v13 deprecation getter that just aliases
+  // name/description, so it can never add anything — only warn.
+  return r.name || r.description || "";
 }
 
 /** Resolve a loot-entry text to a compendium item uuid (catalog or existing). */
