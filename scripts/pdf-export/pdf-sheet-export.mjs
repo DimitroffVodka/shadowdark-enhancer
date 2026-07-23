@@ -173,6 +173,10 @@ export async function buildFieldValues(actor) {
   // single-token rule. Leave the box blank when they have no luck.
   const luckCount = sys.luck?.remaining || (sys.luck?.available ? 1 : 0);
   T("luck", luckCount || "");
+  // Renown is a plain integer on the Player model (reputation with a patron /
+  // faction). Blank at 0, matching Luck — an unused counter leaves the box open
+  // for manual entry rather than printing "0" on every sheet.
+  T("renown", sys.renown || "");
   const classDoc = sys.class ? await fromUuid(sys.class).catch(() => null) : null;
   T("ancestry", await resolveName(sys.ancestry));
   T("class", classDoc?.name ?? (await resolveName(sys.class)));
@@ -218,9 +222,15 @@ export async function buildFieldValues(actor) {
     T(`attack_${r}_range`, rangeLabel(att.attack?.range ?? att.range ?? ""));
   });
 
-  /* talents & languages */
+  /* talents & languages — page 1 "Talents & Abilities" lists the talents/boons
+   * the character ACQUIRED (level-up rolls, patron boons, and anything not tagged
+   * as a fixed class/ancestry feature). The fixed class + ancestry features get
+   * their own detailed box on page 2, so no talent is printed in both places. */
   const talents = actor.items.filter((i) => i.type === "Talent");
-  T("talents", talents.map((i) => `- ${i.name}`).join("\n"));
+  const isAncestryFeat = (i) => i.system?.talentClass === "ancestry";
+  const isClassFeat = (i) => i.system?.talentClass === "class";
+  const acquired = talents.filter((i) => !isAncestryFeat(i) && !isClassFeat(i));
+  T("talents", acquired.map((i) => `- ${i.name}`).join("\n"));
   const langs = (langItems ?? []).map((l) => l?.name).filter(Boolean);
   T("languages", (langs.length ? langs : actor.items.filter((i) => i.type === "Language").map((i) => i.name)).join(", "));
 
@@ -258,19 +268,27 @@ export async function buildFieldValues(actor) {
     C(`spell_${r}_lost`, s.system?.lost);
   });
 
-  /* features + notes — class/ancestry are UUID refs (or a getData doc), NOT
-   * embedded items, so source the names the same way the header fields did. */
+  /* features + notes — page 2 "Class & Ancestry Features" gives the DESCRIPTIONS
+   * (rules text) of the fixed class + ancestry features, grouped, so it
+   * complements page 1's acquired-talent name list rather than repeating it.
+   * class/ancestry are UUID refs (resolved above), NOT embedded items. */
+  const featLine = (i) => {
+    let d = htmlToText(i.system?.description).replace(/\s*\n+\s*/g, " ");
+    if (d.length > 220) d = `${d.slice(0, 217).trimEnd()}…`;
+    return d ? `${i.name} — ${d}` : `- ${i.name}`;
+  };
   const features = [];
   const ancName = text.ancestry;
   if (ancName) {
-    const anc = talents.filter((i) => i.system?.talentClass === "ancestry").map((i) => i.name);
-    features.push(`Ancestry: ${ancName}${anc.length ? ` — ${anc.join(", ")}` : ""}`);
+    features.push(`ANCESTRY: ${ancName}`);
+    talents.filter(isAncestryFeat).forEach((i) => features.push(featLine(i)));
   }
   const clsName = text.class;
   if (clsName) {
-    const cls = talents.filter((i) => i.system?.talentClass !== "ancestry").map((i) => i.name);
     const hd = classDoc?.system?.hitPoints ? ` (hit die ${classDoc.system.hitPoints})` : "";
-    features.push(`Class: ${clsName}${hd}${cls.length ? ` — ${cls.join(", ")}` : ""}`);
+    if (ancName) features.push("");
+    features.push(`CLASS: ${clsName}${hd}`);
+    talents.filter(isClassFeat).forEach((i) => features.push(featLine(i)));
   }
   T("features", features.join("\n"));
   const notes = [];

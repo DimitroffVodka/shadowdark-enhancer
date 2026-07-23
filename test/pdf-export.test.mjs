@@ -94,6 +94,7 @@ test("core identity + abilities come from the derived model (active-effect value
     assert.equal(text.gp, "100");
     assert.equal(text.luck, "");                 // no luck ⇒ blank numeric field
     assert.equal("luck" in checks, false);       // luck is a number field now, not a checkbox
+    assert.equal(text.renown, "");               // no renown ⇒ blank numeric field
     assert.equal(text.languages, "Common, Dwarvish");
   } finally { restore(); }
 });
@@ -112,6 +113,22 @@ test("luck renders as a number: base token ⇒ 1, pulp remaining ⇒ count, none
       const { text, checks } = await buildFieldValues(actor);
       assert.equal(text.luck, expected);
       assert.equal("luck" in checks, false);
+    } finally { restore(); }
+  }
+});
+
+test("renown renders as a number: a value ⇒ the count, 0/unset ⇒ blank", async () => {
+  const cases = [
+    { renown: 4, expected: "4" },
+    { renown: 0, expected: "" },     // 0 renown ⇒ blank, matching luck
+    { renown: undefined, expected: "" },
+  ];
+  for (const { renown, expected } of cases) {
+    const actor = makeActor({ sys: { renown } });
+    const restore = installGlobals(actor.uuidMap);
+    try {
+      const { text } = await buildFieldValues(actor);
+      assert.equal(text.renown, expected);
     } finally { restore(); }
   }
 });
@@ -211,6 +228,34 @@ test("overflow: extra attacks/spells summarised in notes, capped fields not exce
     assert.match(text.notes, /2 more attack/);
     assert.match(text.notes, /2 more spell/);
     assert.match(text.notes, /Gear overflow/);
+  } finally { restore(); }
+});
+
+test("talents vs features split by talentClass: acquired on page 1, class/ancestry (with text) on page 2, no overlap", async () => {
+  const items = [
+    { type: "Talent", name: "Ambitious", system: { talentClass: "ancestry", description: "<p>One extra talent roll at 1st level.</p>" } },
+    { type: "Talent", name: "Grit", system: { talentClass: "class", description: "<p>Reroll a failed check once per day.</p>" } },
+    { type: "Talent", name: "+1 to Melee Attacks", system: { talentClass: "level", description: "" } },
+    { type: "Talent", name: "Force Morale Check", system: { talentClass: "patronBoon", description: "<p>1/day, force a morale check.</p>" } },
+    { type: "Talent", name: "Legacy Talent", system: { description: "<p>Old data, no talentClass.</p>" } },
+  ];
+  const actor = makeActor({ items });        // default ancestry Dwarf, class Fighter (hit die d8)
+  const restore = installGlobals(actor.uuidMap);
+  try {
+    const { text } = await buildFieldValues(actor);
+    // page 1 — acquired talents only (level roll, patron boon, untagged legacy)
+    assert.match(text.talents, /\+1 to Melee Attacks/);
+    assert.match(text.talents, /Force Morale Check/);
+    assert.match(text.talents, /Legacy Talent/);          // untagged ⇒ acquired bucket
+    assert.doesNotMatch(text.talents, /Ambitious/);        // ancestry feature not here
+    assert.doesNotMatch(text.talents, /Grit/);             // class feature not here
+    // page 2 — class/ancestry features, grouped, WITH their descriptions
+    assert.match(text.features, /ANCESTRY: Dwarf/);
+    assert.match(text.features, /Ambitious — One extra talent roll at 1st level\./);
+    assert.match(text.features, /CLASS: Fighter \(hit die d8\)/);
+    assert.match(text.features, /Grit — Reroll a failed check once per day\./);
+    assert.doesNotMatch(text.features, /Melee Attacks/);   // acquired talent not here
+    assert.doesNotMatch(text.features, /Force Morale/);
   } finally { restore(); }
 });
 

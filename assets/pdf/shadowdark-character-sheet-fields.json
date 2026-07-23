@@ -78,7 +78,7 @@
       "rect": [
         506,
         703,
-        76,
+        32,
         19
       ],
       "fontSize": 14,
@@ -86,6 +86,22 @@
       "align": "center",
       "description": "Luck tokens",
       "foundry": "system.luck.remaining"
+    },
+    {
+      "id": "renown",
+      "page": 1,
+      "type": "text",
+      "rect": [
+        550,
+        703,
+        32,
+        19
+      ],
+      "fontSize": 14,
+      "multiline": false,
+      "align": "center",
+      "description": "Renown (reputation with patron / faction)",
+      "foundry": "system.renown"
     },
     {
       "id": "hp",

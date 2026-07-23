@@ -28,12 +28,18 @@ ordinary download.
 ## What gets filled in
 
 - **Abilities**, with active-effect bonuses applied
+- **Luck** and **Renown**
 - **Attacks**
 - **Gear and slot usage**
 - **Spells**, with lost markers and a short summary
-- **Talents**
+- **Talents and abilities** — the talents and boons your character has acquired
 - **Languages**
-- **Class and ancestry features**
+- **Class and ancestry features**, with their descriptions
+
+Talents split cleanly between the two boxes: the *Talents & Abilities* box (page 1)
+lists what your character picked up (level-up talents, patron boons), while the
+*Class & Ancestry Features* box (page 2) holds the fixed features that come from
+your class and ancestry, with their rules text. No talent is printed twice.
 
 Data is read from the Shadowdark data model's **own computed values** — the same
 getters the sheet uses — rather than from the sheet's render context. That means
