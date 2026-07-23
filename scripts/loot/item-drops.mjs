@@ -76,8 +76,15 @@ export const ItemDrops = {
   init() {
     if (!game.settings.get(MODULE_ID, "itemDropsEnabled")) return;
 
-    // Hook: intercept item drops on canvas
-    Hooks.on("dropCanvasData", (canvas, data) => this._onDropCanvas(canvas, data));
+    // Hook: intercept item drops on canvas, then hoist ourselves to the FRONT
+    // of the chain. Returning false only cancels handlers that run AFTER ours,
+    // but Monk's Active Tiles registers its "item → Tile" handler at module-
+    // eval time — before our init — so it sits ahead of us by default. Being
+    // async, it commits to creating its Tile the moment it runs, regardless of
+    // any later false. Running first lets us claim the physical-item drops we
+    // own and stop Monk's (the stray second image) before it fires.
+    const dropHookId = Hooks.on("dropCanvasData", (canvas, data) => this._onDropCanvas(canvas, data));
+    this._hoistDropHook(dropHookId);
 
     // Hook: add pickup button to TokenHUD for dropped items
     Hooks.on("renderTokenHUD", (hud, html, tokenData) => this._onRenderTokenHUD(hud, html, tokenData));
@@ -100,34 +107,113 @@ export const ItemDrops = {
     console.log(`${MODULE_ID} | Item Drops initialized.`);
   },
 
+  /**
+   * Move our just-registered `dropCanvasData` handler to the front of the
+   * hook chain so it runs before other modules (notably Monk's Active Tiles)
+   * that also react to item drops. Foundry runs `dropCanvasData` handlers in
+   * registration order and a handler can only pre-empt those AFTER it, so a
+   * handler registered at our init time would otherwise be stuck behind
+   * module-eval-time registrations. `Hooks.events` exposes the live registry
+   * array (client/helpers/hooks.mjs) and `Hooks.call` snapshots it per call,
+   * so reordering in place is picked up on the next drop. Best-effort: any
+   * failure just leaves us in registration order.
+   */
+  _hoistDropHook(id) {
+    try {
+      const chain = Hooks.events?.["dropCanvasData"];
+      if (!Array.isArray(chain)) return;
+      const idx = chain.findIndex(e => e.id === id);
+      if (idx > 0) chain.unshift(chain.splice(idx, 1)[0]);
+    } catch (err) {
+      console.warn(`${MODULE_ID} | Could not hoist dropCanvasData handler:`, err);
+    }
+  },
+
   /* -------------------------------------------- */
   /*  Drop: Canvas Drop Handler                   */
   /* -------------------------------------------- */
 
-  async _onDropCanvas(canvas, data) {
+  /**
+   * `dropCanvasData` handler. MUST stay synchronous and return `false` in the
+   * same tick to actually cancel the drop: Foundry's `Hooks.call` only stops
+   * the chain — and the core default — when a handler returns exactly `false`
+   * (client/helpers/hooks.mjs). An `async` handler returns a Promise, which is
+   * always truthy, so the cancel never registers and every downstream handler
+   * still runs. Concretely, Monk's Active Tiles' own `dropCanvasData` handler
+   * then fires and drops a *second*, purposeless Tile beside our pickup token
+   * — the reported "two images" bug.
+   *
+   * So we gate synchronously (resolving the item with `fromUuidSync`, exactly
+   * as the Shadowdark system does in its own drop hooks) and, once we commit
+   * to handling the drop, kick off the async work detached and return `false`
+   * immediately.
+   */
+  _onDropCanvas(canvas, data) {
     if (data.type !== "Item") return;
     if (!game.settings.get(MODULE_ID, "itemDropsEnabled")) return;
 
-    // Resolve the item
-    let item;
-    if (data.uuid) {
-      item = await fromUuid(data.uuid);
-    } else if (data.actorId && data.data?._id) {
-      const actor = game.actors.get(data.actorId);
-      item = actor?.items.get(data.data._id);
-    }
+    const item = this._resolveDroppedItemSync(data);
     if (!item) return;
 
-    // Only tangible inventory items
+    // Only tangible inventory items…
     if (!DROPPABLE_TYPES.includes(item.type)) return;
-
-    // Exclude light sources — handled by the Shadowdark system itself.
+    // …and never light sources (the Shadowdark system handles those).
     if (_isLightSource(item)) return;
 
     // `item.actor` is null for world / compendium items. Players may only
     // drop items they own from inventory; the GM may drop from anywhere.
-    const sourceActor = item.actor;
+    const sourceActor = item.actor ?? null;
     if (!sourceActor && !game.user.isGM) return;
+
+    // We are handling this drop. Run the async tail (quantity prompt + token
+    // creation / socket relay) detached, and cancel the default + all
+    // downstream handlers synchronously so no stray Tile is created.
+    this._handleItemDrop(canvas, data, item, sourceActor).catch(err =>
+      console.error(`${MODULE_ID} | Item drop failed:`, err),
+    );
+    return false;
+  },
+
+  /**
+   * Resolve a canvas-drop payload to an Item *synchronously* — required
+   * because the `dropCanvasData` handler must decide whether to cancel in the
+   * same tick. Prefers the drag `uuid` (`fromUuidSync`, covering world and
+   * actor-embedded items), then the legacy embedded-drop payload (`actorId`
+   * + `data._id`). For a compendium entry not yet cached, `fromUuidSync`
+   * yields the index entry — enough to read `type`; `_handleItemDrop`
+   * re-resolves the full document before use.
+   */
+  _resolveDroppedItemSync(data) {
+    if (data.uuid) {
+      try {
+        const doc = fromUuidSync(data.uuid);
+        if (doc) return doc;
+      } catch { /* fall through to the legacy embedded path */ }
+    }
+    if (data.actorId && data.data?._id) {
+      const actor = game.actors.get(data.actorId);
+      return actor?.items.get(data.data._id) ?? null;
+    }
+    return null;
+  },
+
+  /**
+   * Async tail of a claimed item drop: prompt for a quantity when the stack
+   * holds more than one, then create the pickup token (GM) or relay the
+   * request to the active GM (player). Detached from `_onDropCanvas` so that
+   * handler can return `false` synchronously.
+   */
+  async _handleItemDrop(canvas, data, item, sourceActor) {
+    // The synchronous gate may have handed us a compendium *index entry*
+    // rather than a full document — those have no `toObject()`. Re-resolve
+    // and re-check the gates (an index entry can lack the light-source field).
+    if (typeof item.toObject !== "function") {
+      if (!data.uuid) return;
+      item = await fromUuid(data.uuid);
+      if (!item || !DROPPABLE_TYPES.includes(item.type) || _isLightSource(item)) return;
+      sourceActor = item.actor ?? null;
+      if (!sourceActor && !game.user.isGM) return;
+    }
 
     // Ask the dropper how many to drop when the stack holds more than one.
     const available = Math.max(1, Math.floor(Number(item.system?.quantity ?? 1)) || 1);
@@ -159,9 +245,6 @@ export const ItemDrops = {
         ...dropData,
       });
     }
-
-    // Prevent default Foundry item drop behavior
-    return false;
   },
 
   /**

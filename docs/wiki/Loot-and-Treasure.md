@@ -177,6 +177,13 @@ request. Check that a GM is online.
 Coin assignment is a GM choice on the card, separate from item claims — pick the
 character before assigning.
 
+**Dragging an item onto the map leaves a second, larger image next to the pickup token.**
+That extra image is a *Tile* dropped by another module — Monk's Active Tiles has
+a "drop item creates a tile" option that fires on the same drop. The enhancer
+now claims item drops before that runs, so only the pickup token appears; reload
+your client (Ctrl+Shift+R) after updating. Monk's tile behaviour still applies to
+drop types the enhancer doesn't handle.
+
 **The "set up your loot tables" notice keeps appearing.**
 It shouldn't — it fires once per world and only when fewer than four tiers are
 bound. Once you bind tables and it has shown once, it stays quiet.

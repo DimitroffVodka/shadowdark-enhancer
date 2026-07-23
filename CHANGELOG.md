@@ -1,5 +1,19 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Dragging an item onto the canvas left a second, purposeless image beside
+  the pickup token.** The item-drop handler ran too late in Foundry's
+  `dropCanvasData` chain and returned its "handled — stop here" signal from an
+  `async` function, which Foundry cannot honour (a Promise is never the literal
+  `false` the hook checks for). Another module's item-drop handler (Monk's
+  Active Tiles, with its *drop item → tile* option enabled) had already fired
+  and dropped a stray **Tile**. The handler is now synchronous and hoists
+  itself to the front of the drop chain, so it claims the drops it owns and no
+  duplicate image appears; item drops the enhancer doesn't handle fall through
+  untouched.
+
 ## [0.12.0] — 2026-07-22
 
 ### Added
