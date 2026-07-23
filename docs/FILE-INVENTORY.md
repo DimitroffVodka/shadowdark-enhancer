@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-656 tracked files · ~77,500 lines of code/markup across scripts+templates+styles+test.
+640 tracked files · ~77,600 lines of code/markup across scripts+templates+styles+test.
 `v0.12.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -224,7 +224,7 @@
 | `boat-data-model.mjs` | 79 | Boat data model — WR vessel rules. |
 | `boat-sheet.mjs` | 135 | Boat sheet: Overview / Passengers & Crew / Cargo / Description. |
 | `mount-npc-sheet.mjs` | 329 | Mount sheet — subclass of the system's `NpcSheetSD`. |
-| `vehicle-sheet.mjs` | 270 | Shared party-like container base (ApplicationV2). |
+| `vehicle-sheet.mjs` | 293 | Shared party-like container base (ApplicationV2). |
 | `vehicle-rolls.mjs` | 37 | Shared helper-roll button handlers. |
 
 ### 3.14 `scripts/char-builder/` — guided character creation
@@ -318,12 +318,13 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 
 **Tracked in git but excluded from module.zip** (release.yml allowlist):
 `test/`, `package.json`, `eslint.config.mjs`, `.github/`, `tools/` (the
-`npm run inventory` generator that maintains this page), and all of `docs/`
-except `API.md` (internal audits, review reports, superpowers plans/specs).
+`npm run inventory` generator that maintains this page), `docs/wiki/` (the
+manual) and this `docs/FILE-INVENTORY.md`. Of `docs/`, only `API.md` ships.
 
 **Gitignored / local-only** (never published):
 - `data/` — `monster-art-mapping.json` (install-specific), `bestiary-reference.json` (third-party scrape; deliberately kept out).
 - `dev/` — probes, fixtures, `dev/tests/` content-contract suite, generators, e2e drivers + dumps, `real-pastes/`, `pdf-sheet/` sandbox, page renders, backups, `reorg-2026-07/` (the folder-reorg migration scripts).
+- `docs/` except `wiki/`, `API.md`, `FILE-INVENTORY.md` — internal audits, review reports, sweep dumps, the promo plan and `superpowers/` plans/specs; kept on disk, out of git.
 - `.planning/` — STATUS, ROADMAP, REQUIREMENTS, playbooks, phases, seeds, sessions, wr-scrape.
 - `.claude/`, `.gemini/`, `.superpowers/`, `.hermes/`, `.playwright-mcp/`, `node_modules/`, `package-lock.json`, agent docs, `verify.sh`.
 - `training-android/`, `training-app/` — untracked and NOT gitignored; unrelated to the module. Decide: ignore, remove, or move out.

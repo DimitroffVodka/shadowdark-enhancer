@@ -31,3 +31,11 @@ data/
 
 # Playwright MCP scratch output
 .playwright-mcp/
+
+# docs/ tracks only the published manual (wiki/), API.md, and the generated
+# FILE-INVENTORY.md. Internal audits, review reports, sweep dumps, the promo
+# plan and superpowers plans/specs stay local — never tracked, never shipped.
+docs/*
+!docs/wiki/
+!docs/API.md
+!docs/FILE-INVENTORY.md
