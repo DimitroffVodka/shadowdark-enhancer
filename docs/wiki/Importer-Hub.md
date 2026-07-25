@@ -153,6 +153,19 @@ exactly that field. Import a Western Reaches class and it shows up in the builde
 
 ---
 
+## The Tools menu
+
+The setup and housekeeping actions live behind **Tools**, out of the way of the
+everyday paste-and-commit loop.
+
+![The Tools dropdown — Source PDFs and Extract from PDF, then Export bundle and
+Import bundle below a divider](images/tools-dropdown.png)
+
+Two groups: working with your **book PDFs**, then **backing up the whole suite**.
+Each is covered below.
+
+---
+
 ## Source PDFs
 
 You can register **your own uploaded PDF** for each book. Once registered:
