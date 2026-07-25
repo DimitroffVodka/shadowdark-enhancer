@@ -24,7 +24,7 @@ knows about.
 
 ## Shapes
 
-**125 tables** currently carry a recipe. Each recipe names a shape kind:
+**128 tables** currently carry a recipe. Each recipe names a shape kind:
 
 | Kind | For |
 |---|---|

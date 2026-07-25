@@ -163,6 +163,22 @@
 - **The Source PDFs window opened nearly as wide as the screen** (its widest
   line was a long PDF filename). It opens at a sane width, is resizable, and
   each book's filename sits under its name instead of stretching the window.
+- **The Western Reaches and Cursed Scroll 6 carousing tables were missing, and
+  the Core one had no row at all.** All three books print a *Carousing Event* and
+  a *Carousing Outcome*, but only CS6's Outcome was listed — WR's two were left
+  out deliberately, because the census matched tables by name alone and one
+  book's copy would have marked another book's row as imported. The census now
+  reads the source off the table's name, so every book lists its own: **Core**
+  (pg 92 / 93), **Western Reaches** (pg 236 / 237) and **Cursed Scroll 6**
+  (pg 28 / 29), each with the parsing recipe its layout needs — WR and CS6 print
+  a ten-row Event table (30 gp → 4,000 gp) where Core prints seven.
+
+  One consequence worth knowing: for a table name that several books print, a
+  copy carrying **no** book name in it can't be attributed to any of them, so it
+  no longer counts as imported anywhere. Imports have carried their book name for
+  a long time (*"Western Reaches - Carousing Event"*), so this only affects older
+  bare copies — re-import it, or rename it to `<Book> - <Table>`, and its row
+  lights up. Tables only one book prints are unaffected.
 - **The Core Rulebook's Carousing Event table imported as seven empty rows.**
   Its Cost column comes out of the PDF as one block, separated from the events
   by a page number and an entire sidebar, so a cost-anchored parse produced

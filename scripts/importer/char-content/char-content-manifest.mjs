@@ -202,6 +202,9 @@ const MANIFEST = {
     Table: [
       "Core PDF p146: Arctic Encounters",
       "TREASURE 0-3",
+      // Both carousing tables — the Event (book pg 92) was shaped but never
+      // listed, so it had no row in the tree to import from.
+      "Core PDF p96: Carousing Event",
       "Core PDF p97: Carousing Outcome",
       "Core PDF p118: Traps",
       "Core PDF p122: Something Happens!",
@@ -266,8 +269,12 @@ const MANIFEST = {
       "Identify", "Meld", "Pacify", "Permanence", "Push/Pull", "Reveal",
       "Speak With Object", "Stasis", "Ward",
     ],
-    // CS6 Carousing tables imported through the source-guided parser.
+    // CS6 Carousing tables imported through the source-guided parser. CS6 and WR
+    // print their own Carousing Event/Outcome (both expansions of CORE pg 92), so
+    // all three sources list them; the census tells them apart by the source
+    // qualifier the import carries (see tableNameMatches).
     Table: [
+      "Carousing Event",
       "Carousing Outcome", "Carousing Outcome - Benefit", "Carousing Outcome - Mishap",
     ],
     // CS6 introduced the Duelist (also in WR) — dual-source unlock. (Bard is the
@@ -293,10 +300,11 @@ const MANIFEST = {
     // "X Boons" tables here; KYTHEROS is unrevised — the system's
     // "Patron Boons: Kytheros" already matches WR band-for-band, so it stays a
     // system link (link-prefer-system-packs) and keeps its system name below.
-    // Carousing (wr-carousing: Outcome d25 + Mishap/Benefit d100, pg 235-247) —
-    // reps are the two uniquely-named tables ("Carousing Outcome" would collide
-    // with CS6's same-named entry in the name-matched census). Backgrounds table
-    // (wr-backgrounds-table) rep is the uniquely-named d100 copy.
+    // Carousing (wr-carousing: Event pg 236, Outcome d25 pg 237, Mishap/Benefit
+    // d100 pp 238-245). Event/Outcome are listed here now that the census is
+    // source-aware — before, a bare "Carousing Outcome" want was satisfied by
+    // CS6's import (and vice versa), so WR's two were left out rather than lie.
+    // Backgrounds table (wr-backgrounds-table) rep is the uniquely-named d100 copy.
     Table: [
       // Gods — prayer generators (WR pp.191-205)
       "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
@@ -313,6 +321,7 @@ const MANIFEST = {
       "Patron Boons: Almazzat", "Patron Boons: Kytheros", "Patron Boons: Mugdulblub",
       "Patron Boons: Shune the Vile", "Patron Boons: The Willowman", "Patron Boons: Titania",
       // Carousing + background-table representatives
+      "Carousing Event", "Carousing Outcome",
       "Carousing Mishap", "Carousing Benefit", "Western Reach Backgrounds",
     ],
     Talent: [
@@ -516,6 +525,9 @@ const TABLE_PAGES = {
     "Yag-Kesh Boons": "223",
     // Multi-page d100 carousing longtables (captions BENEFIT/MISHAP; verified
     // against the PDF — Bastions starts p246).
+    // Cost/Example Event/Bonus lookup, then the d8+bonus outcome (rows 1-25).
+    "Carousing Event": "236",
+    "Carousing Outcome": "237",
     "Carousing Benefit": "238-241",
     "Carousing Mishap": "242-245",
   },
@@ -531,7 +543,9 @@ const TABLE_PAGES = {
     "Diabolical Mishap 4-5": "23",
   },
   CS6: {
-    // p29 = d8 outcome lookup; Benefit/Mishap are 4-page d100 longtables.
+    // p28 = the Cost/Example Event/Bonus lookup; p29 = d8 outcome lookup;
+    // Benefit/Mishap are 4-page d100 longtables.
+    "Carousing Event": "28",
     "Carousing Outcome": "29",
     "Carousing Outcome - Benefit": "30-33",
     "Carousing Outcome - Mishap": "34-37",
@@ -651,9 +665,37 @@ const _tableProbeName = (name) => stripRepPrefix(name);
  *  source-qualified "Character Names: … <Ancestry>" table exists. The source
  *  qualifier is required — a bare "Character Names: <Ancestry>" (the core
  *  system table) must NOT satisfy a WR ancestry gap. */
-function _tableHave(tablesPresent, want) {
-  for (const raw of tablesPresent) if (tableNameMatches(raw, want)) return true;
+function _tableHave(tablesPresent, want, src) {
+  for (const raw of tablesPresent) if (tableNameMatches(raw, want, src)) return true;
   return false;
+}
+
+/** Known "<Source label> - " qualifiers that an import may carry (sourcedTableName). */
+const _SOURCE_LABELS = new Map(Object.entries(CHAR_SOURCES).map(([k, v]) => [_norm(v.label), k]));
+
+/**
+ * Table names printed by MORE THAN ONE book (Carousing Event, Carousing
+ * Outcome). For these, an unqualified table can't prove which book it came
+ * from, so it satisfies none of them — otherwise one copy makes all three rows
+ * read "imported" and the tree can't answer which variant you're missing.
+ * Every import has carried its source qualifier since the naming convention
+ * landed (sourcedTableName), so this only ever affects older bare copies, and
+ * re-importing names them properly. Names owned by a single source keep the
+ * permissive match, so no other world regresses.
+ */
+let _contested = null;
+function _isContestedTable(normName) {
+  if (!_contested) {
+    const counts = new Map();
+    for (const m of Object.values(MANIFEST)) {
+      for (const n of m.Table ?? []) {
+        const k = _norm(_tableProbeName(n));
+        counts.set(k, (counts.get(k) ?? 0) + 1);
+      }
+    }
+    _contested = new Set([...counts].filter(([, c]) => c > 1).map(([k]) => k));
+  }
+  return _contested.has(normName);
 }
 
 /**
@@ -668,11 +710,27 @@ function _tableHave(tablesPresent, want) {
  * strips the want — otherwise the colon prefix defeats both the exact and
  * "- " suffix match and the Unlock button never clears after import.
  */
-export function tableNameMatches(raw, want) {
+export function tableNameMatches(raw, want, src) {
   const w = _norm(_tableProbeName(want));
   const anc = w.match(/^(.+?)\s+names$/)?.[1] ?? null;   // "dwarf names" → "dwarf"
   const n = _norm(_tableProbeName(raw));
-  if (n === w || n.endsWith(`- ${w}`)) return true;
+  // A name several books print is only satisfied by a copy that says which book
+  // it is — see _isContestedTable.
+  if (src && _isContestedTable(w)) {
+    if (!n.endsWith(`- ${w}`)) return false;
+    return _SOURCE_LABELS.get(n.slice(0, n.length - `- ${w}`.length).trim()) === src;
+  }
+  if (n === w) return true;
+  if (n.endsWith(`- ${w}`)) {
+    // Imports are named "<Source> - <Table>" (sourcedTableName), and the suffix
+    // rule above is what lets a bare manifest name find one. Three books print a
+    // "Carousing Event", so that rule alone made CORE's entry look satisfied by
+    // Western Reaches' import — which is why WR's carousing tables were left out
+    // of the manifest entirely. When the caller says which source it is asking
+    // for, a DIFFERENT book's qualifier no longer counts.
+    const qualifier = _SOURCE_LABELS.get(n.slice(0, n.length - `- ${w}`.length).trim());
+    if (!src || !qualifier || qualifier === src) return true;
+  }
   if (anc) {
     const rest = n.match(/^character names:\s*(.+)$/)?.[1]?.trim();
     if (rest && rest !== anc && rest.endsWith(` ${anc}`)) return true;
@@ -720,7 +778,7 @@ export async function gatherCharContentEntries(presence) {
           src, type, name,
           // Tables live in the RollTable pack, not the Item packs — check them
           // via the table-presence set (suffix match), like the WR ancestry tables.
-          present: type === "Table" ? _tableHave(tablesPresent, name) : nameVariants(name).some((v) => present.has(`${type}:${v}`)),
+          present: type === "Table" ? _tableHave(tablesPresent, name, src) : nameVariants(name).some((v) => present.has(`${type}:${v}`)),
           // Explicit cite first (item/table/type maps), else lift a "…pNNN…"
           // page embedded in the name (CORE/CS1-3 table entries carry it there).
           pages: ITEM_PAGES[src]?.[name] ?? TABLE_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? _pageFromName(name),
@@ -729,7 +787,7 @@ export async function gatherCharContentEntries(presence) {
     }
     if (src === "WR") {
       for (const t of ANCESTRY_TABLES) {
-        out.push({ src, type: "Table", name: t.name, present: _tableHave(tablesPresent, t.name), pages: t.pages });
+        out.push({ src, type: "Table", name: t.name, present: _tableHave(tablesPresent, t.name, src), pages: t.pages });
       }
     }
   }

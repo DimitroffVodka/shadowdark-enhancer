@@ -83,11 +83,12 @@ test("contentIdForName is source-aware: a same-name table in another source can'
   // resolve to it. Only CORE (or its label) resolves; a foreign src returns null.
   assert.equal(contentIdForName("Carousing Outcome", "CORE"), "core/carousing-outcome");
   assert.equal(contentIdForName("Carousing Outcome", "Core Rulebook"), "core/carousing-outcome");
-  // CS6 owns its own entry since the E2E W4 additions; a source with none
-  // (CS4) still resolves to nothing rather than borrowing.
+  // CS6 and WR each own one (all three books print a Carousing Outcome); a
+  // source with none (CS4) still resolves to nothing rather than borrowing.
   assert.equal(contentIdForName("Carousing Outcome", "CS6"), "cs6/carousing-outcome");
+  assert.equal(contentIdForName("Carousing Outcome", "WR"), "wr/carousing-outcome");
+  assert.equal(contentIdForName("Carousing Outcome", "Western Reaches"), "wr/carousing-outcome");
   assert.equal(contentIdForName("Carousing Outcome", "CS4"), null);
-  assert.equal(contentIdForName("Carousing Outcome", "Western Reaches"), null);
   // The source key and its full book label both match (WR ↔ Western Reaches).
   assert.equal(contentIdForName("Gede Prayers", "WR"), "wr/gede-prayers");
   assert.equal(contentIdForName("Gede Prayers", "Western Reaches"), "wr/gede-prayers");
@@ -116,10 +117,13 @@ test("resolveShape is source-aware end-to-end: CS6 never borrows the CORE shape 
   assert.equal(resolveShape({ name: "Carousing Outcome", src: "Core Rulebook" }), core);
   assert.equal(resolveShape({ name: "Carousing Outcome", src: "CS6" }), cs6, "CS6 resolves to its OWN shape, never CORE's");
   assert.equal(resolveShape({ name: "Carousing Outcome", src: "CS4" }), null, "a source with no entry borrows nothing");
-  assert.equal(resolveShape({ name: "Carousing Outcome", src: "Western Reaches" }), null);
+  const wr = CONTENT["wr/carousing-outcome"].shape;
+  assert.equal(resolveShape({ name: "Carousing Outcome", src: "WR" }), wr, "WR resolves to its OWN shape");
+  assert.equal(resolveShape({ name: "Carousing Outcome", src: "Western Reaches" }), wr);
+  assert.notEqual(wr, cs6, "WR heads the modifier column 'd100 Modifier', CS6 '% Modifier'");
   // Freeform (neither id nor src) keeps the suffix-tolerant name match — it
   // lands on ONE of the same-named entries (which one is a map-order detail).
-  assert.ok([core, cs6].includes(resolveShape({ name: "Carousing Outcome" })));
+  assert.ok([core, cs6, wr].includes(resolveShape({ name: "Carousing Outcome" })));
   // An explicit contentId is the identity — no name fallback if it's unknown.
   assert.equal(resolveShape({ contentId: "cs9/no-such-entry", name: "Carousing Outcome" }), null);
 });

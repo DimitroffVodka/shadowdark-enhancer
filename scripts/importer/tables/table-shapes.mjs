@@ -64,6 +64,16 @@ const MATRIX = (caption, size = 4) => ({ kind: "matrix", caption, size, cols: "l
 // text); the parser strips the repeated caption/header + page footers.
 const LONGTABLE = (caption, size = 100) => ({ kind: "longtable", caption, size, cols: "1" });
 
+// The expanded ten-row Carousing Event printed identically in WR (pg 236) and
+// CS6 (pg 28): Total Cost / Example Event / Bonus, keyed by cost, one line per
+// row. `rowStart`/`colLast` anchor the row on the cost and peel the trailing
+// bonus; layout extraction keeps the three columns off each other.
+const CAROUSING_EVENT_10 = {
+  kind: "lookup", cols: 3, size: 10, labels: ["Total Cost", "Example Event", "Bonus"],
+  dieIndexed: false, rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+", extractCols: "layout",
+  singleLine: true,
+};
+
 // ── Content registry — keyed by persistent contentId ─────────────────────────
 // Each entry: { id, src, names:[displayName…], shape }. The `id` is an EXPLICIT,
 // immutable string — deliberately NOT derived from the display name, so a name
@@ -231,6 +241,18 @@ export const CONTENT_ENTRIES = [
   _entry("cs6/carousing-mishap", "CS6", "Carousing Outcome - Mishap", LONGTABLE("MISHAP"), ["Carousing Mishap"]),
   _entry("wr/carousing-benefit", "WR", "Carousing Benefit", LONGTABLE("BENEFIT")),
   _entry("wr/carousing-mishap", "WR", "Carousing Mishap", LONGTABLE("MISHAP")),
+  // WR pg 236 / CS6 pg 28 print the SAME expanded Carousing Event: ten rows,
+  // 30 gp → 4,000 gp, "Total Cost / Example Event / Bonus", one line each (so no
+  // wrap-grouping needed, unlike CORE's seven-row version on pg 92). Only the
+  // last row's flavour differs between the two books, which is exactly why each
+  // needs its own entry rather than sharing one.
+  _entry("wr/carousing-event", "WR", "Carousing Event", CAROUSING_EVENT_10),
+  _entry("cs6/carousing-event", "CS6", "Carousing Event", CAROUSING_EVENT_10),
+  // WR pg 237: same roll-plus-modifier lookup as CS6 pg 29, with the modifier
+  // column headed "d100 Modifier" instead of "% Modifier".
+  _entry("wr/carousing-outcome", "WR", "Carousing Outcome",
+    { kind: "lookup", cols: 4, size: 25, labels: ["Mishaps", "Benefits", "d100 Modifier", "XP"],
+      dieIndexed: true, extractCols: "1" }),
   // Side-by-side two-column-caption pages (Armor/Weapon/Utility Type+Feature on
   // p284/290/292, Scroll/Wand Feature on p288, spell Tier 2-5 on p289). The
   // captions merge in 1-col, so these use the 2-column extraction and section-

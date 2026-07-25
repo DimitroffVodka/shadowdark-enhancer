@@ -1529,13 +1529,17 @@ function _lookupSimple(text, { cols, col2Starts, dieIndexed = true, warnings = n
  * remains between is the middle column. Rows are numbered in order. Returns []
  * when it can't anchor a row (caller falls back to _lookupSimple).
  */
-function parsePatternLookup(text, { cols, rowStart, colLast }) {
+function parsePatternLookup(text, { cols, rowStart, colLast, size }) {
   const startRe = new RegExp(`^\\s*(${rowStart})`, "i");
   const lastRe = colLast ? new RegExp(`(${colLast})\\s*$`, "i") : null;
   const blobs = [];
   for (const raw of String(text).split(/\r?\n/)) {
     const line = raw.trim();
     if (!line) continue;
+    // A bare number below the table is the page footer, not a wrap — stitching
+    // it on pushes the row's trailing column out of last position.
+    const bare = /^\d{1,4}$/.exec(line);
+    if (bare && Number(bare[0]) > (size || 300)) continue;
     if (startRe.test(line)) blobs.push(line);              // a new row begins
     else if (blobs.length) blobs[blobs.length - 1] += ` ${line}`;   // wrap of the current row
     // lines before the first match (title / header) are dropped
@@ -1565,8 +1569,27 @@ function parsePatternLookup(text, { cols, rowStart, colLast }) {
  * a leading die number (Carousing Event, keyed by Cost). Column labels land in
  * the description. Returns a single ParsedTable or null.
  */
-function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true, col2Starts, rowStart, colLast } = {}) {
+function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true, col2Starts, rowStart, colLast, singleLine = false } = {}) {
   const raw = String(text).split(/\r?\n/);
+  // `singleLine`: each row prints on ONE line with recognisable first/last
+  // columns (WR pg 236 / CS6 pg 28 Carousing Event). Geometry is the wrong tool
+  // there — those books CENTRE the middle column, so a boundary taken from the
+  // header label cuts mid-cell ("30 gp   Night at the | tavern to toast…").
+  // The row's own pattern is exact, so anchor on it and skip the x-slice.
+  if (singleLine && rowStart && !text.includes("|")) {
+    const pr = parsePatternLookup(text, { cols, rowStart, colLast, size });
+    if (pr.length) {
+      const nm0 = (name || "").trim();
+      const pt0 = {
+        name: nm0, formula: `1d${size || pr.length}`,
+        replacement: true, bestEffort: false, category: classify(nm0), customLabel: "",
+        ...(labels ? { description: `Columns: ${labels.join(" | ")}` } : {}),
+        rows: pr, warnings: [],
+      };
+      pt0.warnings = computeWarnings(pt0);
+      return pt0;
+    }
+  }
   // Header: a "dN Label…" line (die-indexed) or the labels line (no die).
   let hi = raw.findIndex((l) =>
     /(^|\s)d\d{1,3}(\s|$)/.test(l) && _layoutPieces(l).length >= cols + 1);
@@ -1932,7 +1955,7 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     return { generators: [pt] };
   }
   if (shape.kind === "lookup") {
-    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts, rowStart: shape.rowStart, colLast: shape.colLast });
+    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts, rowStart: shape.rowStart, colLast: shape.colLast, singleLine: shape.singleLine });
     // A whole-page grab can sweep numbered prose (usage steps, sidebars) in as
     // extra "rows" past the die (CS6 Carousing Outcome: 25 rows on a d8 —
     // E2E W4). The declared size is authoritative: keep the first row per
