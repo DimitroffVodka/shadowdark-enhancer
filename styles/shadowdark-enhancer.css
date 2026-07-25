@@ -6975,7 +6975,6 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-pxp-amount-field input { width: 6rem; }
 .sde-pxp-label-field { flex: 1 1 12rem; }
 .sde-pxp-label-field input { width: 100%; }
-.sde-pxp-hint { color: var(--sde-bar-text-muted, #9a9a9a); font-weight: 400; }
 
 /* Party member selection */
 .sde-pxp-party { display: flex; flex-direction: column; gap: 4px; }
