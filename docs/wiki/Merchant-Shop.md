@@ -89,6 +89,19 @@ Load either merchant again whenever you like from **Manage → Saved Merchants**
 
 Save your own configurations alongside them.
 
+## Gamble
+
+Off by default. Tick **Allow players to gamble on loot tables** on the Manage
+tab, then add options: a display name, a roll table, and a gold cost. Players
+pay the cost and get whatever the table rolls — items are created on their
+sheet, coin results are parsed out of the result text and added to their purse.
+
+The table picker lists **every roll table in the world *and* in every compendium**,
+grouped by where it lives (world tables first, then one group per pack, labelled
+with the package it came from). If a gamble's table can't be found when a player
+pulls the lever — a compendium whose module was uninstalled, a deleted table —
+they are told so and **not** charged.
+
 ## The transaction log
 
 Every purchase and sale is recorded and **exportable to Discord** as markdown.

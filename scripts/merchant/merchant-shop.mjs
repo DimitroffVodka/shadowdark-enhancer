@@ -957,12 +957,24 @@ export const MerchantShop = {
 
     const costCopper = _toCopper(option.cost);
 
-    // loot-level sources are Vagabond-specific; reject before deducting funds.
+    // loot-level sources are Vagabond-specific and no longer offered by the
+    // Manage picker; a config saved before they were dropped can still name
+    // one, so reject it before deducting funds.
     if (option.source.startsWith("loot-level:")) {
       return this._broadcastError(
         "This gamble option isn't supported. Configure Gamble with a Shadowdark roll table.",
         userId,
       );
+    }
+
+    // Resolve the table BEFORE taking any money. The source may be a world
+    // table OR a compendium one, and a compendium can disappear when its module
+    // is uninstalled — charging for a table that no longer resolves would
+    // silently sell the player "nothing". (loot-level sources are rejected
+    // above, so only roll-table sources reach here.)
+    const table = await fromUuid(option.source).catch(() => null);
+    if (!table) {
+      return this._broadcastError("That gamble's roll table is missing — tell your GM.", userId);
     }
 
     // Check funds
@@ -984,10 +996,7 @@ export const MerchantShop = {
       result.currency.gp += c.gp; result.currency.sp += c.sp; result.currency.cp += c.cp;
     };
 
-    // World RollTable (loot-level sources are rejected above, so only
-    // roll-table sources reach here).
-    const table = await fromUuid(option.source);
-    if (table) {
+    try {
       const draw = await table.draw({ displayChat: false, resetTable: false });
       // Process table results into currency + items
       for (const r of draw.results) {
@@ -1014,6 +1023,17 @@ export const MerchantShop = {
           addCurrency(_parseCoinsFromText(r.text ?? r.description ?? r.name));
         }
       }
+    } catch (err) {
+      // The draw blew up after the player paid — give the coins back rather
+      // than pocketing them, then report it.
+      console.error(`${MODULE_ID} | Gamble draw failed for "${table.name}":`, err);
+      const refunded = _addToPurse(buyer.system.coins, option.cost);
+      await buyer.update({
+        "system.coins.gp": refunded.gp,
+        "system.coins.sp": refunded.sp,
+        "system.coins.cp": refunded.cp,
+      });
+      return this._broadcastError("The gamble's table failed to roll — your coins were refunded.", userId);
     }
 
     // Add currency to buyer (field-wise so their denominations are preserved)
@@ -1680,12 +1700,38 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         canAfford: walletCopper >= _toCopper(o.cost),
       })),
       // Available sources for the gamble config on Manage tab
-      gambleSources: [
-        ...Array.from({ length: 10 }, (_, i) => ({ id: `loot-level:${i + 1}`, label: `Loot Level ${i + 1}` })),
-        ...game.tables.contents.map(t => ({ id: t.uuid, label: t.name })),
-      ],
+      gambleSources: this._gambleSourceGroups(),
       savedConfigs: game.settings.get(MODULE_ID, "savedShopConfigs") || {},
     };
+  }
+
+  /**
+   * RollTable sources offerable to Gamble, grouped for `<optgroup>`: world
+   * tables first, then one group per RollTable compendium. `_handleGamble`
+   * resolves the stored value with `fromUuid`, so a pack UUID rolls exactly
+   * like a world one. Pack indexes are already loaded, so this stays sync.
+   */
+  _gambleSourceGroups() {
+    const byName = (a, b) => a.label.localeCompare(b.label);
+    const groups = [];
+
+    const world = game.tables.contents.map(t => ({ id: t.uuid, label: t.name })).sort(byName);
+    if (world.length) groups.push({ label: "World Roll Tables", options: world });
+
+    // Two packs can share a display label ("Roll Tables" ships in more than one
+    // package), so qualify each group with the package it comes from.
+    for (const pack of game.packs.filter(p => p.documentName === "RollTable")) {
+      const options = pack.index.contents
+        .map(e => ({ id: e.uuid ?? `Compendium.${pack.collection}.RollTable.${e._id}`, label: e.name }))
+        .sort(byName);
+      if (!options.length) continue;
+      const { packageType, packageName, label } = pack.metadata;
+      const owner = packageType === "world" ? "World compendium"
+        : packageName === game.system.id ? game.system.title
+        : game.modules.get(packageName)?.title ?? packageName;
+      groups.push({ label: `${label} — ${owner}`, options });
+    }
+    return groups;
   }
 
   _buildTabs() {

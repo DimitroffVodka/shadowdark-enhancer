@@ -455,7 +455,11 @@
           <input type="text" class="sdems-gamble-new-name" placeholder="Display name…">
           <select class="sdems-gamble-new-source">
             {{#each gambleSources}}
-            <option value="{{id}}">{{label}}</option>
+            <optgroup label="{{label}}">
+              {{#each options}}
+              <option value="{{id}}">{{label}}</option>
+              {{/each}}
+            </optgroup>
             {{/each}}
           </select>
           <input type="number" class="sdems-gamble-new-gold" value="5" min="0" placeholder="gp cost">

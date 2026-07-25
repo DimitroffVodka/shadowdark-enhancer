@@ -120,7 +120,7 @@ Stored as settings because that is where world-scoped state lives in Foundry.
 | `crawlState` | The crawl state machine — mode, turn counter, roster, out-of-combat initiative |
 | `sessionRecap` | The live session recap |
 | `sessionHistory` | Saved past sessions |
-| `shopInventory` · `shopLog` · `savedShopConfigs` · `shopAvailableToPlayers` · `shopAvailabilityData` · `gambleOptions` | Merchant shop state |
+| `shopInventory` · `shopLog` · `savedShopConfigs` · `shopAvailableToPlayers` · `shopAvailabilityData` · `gambleOptions` · `shopDefaultApplied` | Merchant shop state |
 | `tokenArtCompendium` | Whether the compendium-art overlay is on |
 | `lootSetupSeen` | Whether the first-run loot nudge has been shown |
 | `backfillVersion` | Last module version whose monster backfill ran in this world |
@@ -139,7 +139,12 @@ Stored as settings because that is where world-scoped state lives in Foundry.
   cannot change any of this for themselves.
 - **`gambleOptions` ships disabled** — its default sources referenced a loot
   generator this module has no equivalent for. GMs can enable and configure
-  Gamble themselves from the shop's Manage tab.
+  Gamble themselves from the shop's Manage tab, picking from any world or
+  compendium roll table.
+- **`shopDefaultApplied`** latches the one-time load of the shipped
+  "The Merchant - Base" stock into a new world's shop. Clearing it makes that
+  load happen again on the next world load — but only if the shop is empty at
+  the time, so it will not overwrite a shop you have stocked yourself.
 - Ancestry Name/Trinket and Background/Deity tables are **auto-discovered**, not
   configured. There is deliberately no setting.
 
