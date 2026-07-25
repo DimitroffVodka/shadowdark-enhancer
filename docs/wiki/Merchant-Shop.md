@@ -81,6 +81,12 @@ The module seeds two saved merchant configurations at world load, idempotently:
 | **The Merchant - Base** | Core system gear |
 | **The Merchant - Western Reaches** | Base gear plus enhancer items (fills in once its item pack exists) |
 
+**The Merchant - Base** is also loaded as the live shop in a brand-new world, so
+the **Buy** tab has stock the first time you open the window — no setup needed.
+This happens once: if the world already has shop inventory it is left alone, and
+once you have emptied or replaced the stock it stays that way across reloads.
+Load either merchant again whenever you like from **Manage → Saved Merchants**.
+
 Save your own configurations alongside them.
 
 ## The transaction log

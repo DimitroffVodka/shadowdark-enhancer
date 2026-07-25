@@ -81,6 +81,12 @@ export const MerchantShop = {
     game.settings.register(MODULE_ID, "savedShopConfigs", {
       scope: "world", config: false, type: Object, default: {},
     });
+    // One-shot latch: set the first time the shipped Base merchant is loaded as
+    // the live shop (or skipped because the world already had stock). Keeps a
+    // deliberately emptied shop empty on the next reload.
+    game.settings.register(MODULE_ID, "shopDefaultApplied", {
+      scope: "world", config: false, type: Boolean, default: false,
+    });
     // Player opt-in shop: when true, players can open/close their own
     // shop window at will (chat card + Crawl Strip button) until the GM
     // closes the shop. Persisted so a reload restores the indicator.
@@ -223,6 +229,10 @@ export const MerchantShop = {
    * inventory has changed (e.g. after the Western Reaches items are imported).
    * Never touches a merchant a GM has saved over — the save path rebuilds the
    * config without the marker, making an edited default user-owned.
+   *
+   * Also loads the Base merchant as the LIVE shop the first time through, so a
+   * new world's Buy tab has stock instead of an empty list (see
+   * `_applyDefaultActiveMerchant`).
    */
   async seedDefaultMerchants() {
     if (!game.user?.isGM) return;
@@ -246,6 +256,41 @@ export const MerchantShop = {
       // else: user saved over it (marker gone) → leave untouched
     }
     if (changed) await game.settings.set(MODULE_ID, "savedShopConfigs", configs);
+
+    await this._applyDefaultActiveMerchant(configs);
+  },
+
+  /**
+   * First-run only: load the shipped Base merchant into the live shop settings
+   * (the same writes the Manage tab's Load button makes) so the Buy tab isn't
+   * empty for a GM who hasn't configured anything yet.
+   *
+   * Runs at most once per world, latched by `shopDefaultApplied`:
+   *   • world already has inventory → latch, never seed (existing shops keep theirs)
+   *   • Base resolved → apply + latch
+   *   • Base resolved to nothing (packs not ready) → no latch, retry next load
+   * After the latch, emptying the shop keeps it empty.
+   */
+  async _applyDefaultActiveMerchant(configs) {
+    if (game.settings.get(MODULE_ID, "shopDefaultApplied")) return;
+
+    const current = game.settings.get(MODULE_ID, "shopInventory") || [];
+    if (current.length) {
+      await game.settings.set(MODULE_ID, "shopDefaultApplied", true);
+      return;
+    }
+
+    const { DEFAULT_ACTIVE_MERCHANT } = await import("./merchant-defaults.mjs");
+    const base = configs[DEFAULT_ACTIVE_MERCHANT];
+    if (!base?.inventory?.length) return;   // nothing resolved yet — try again next load
+
+    await game.settings.set(MODULE_ID, "shopInventory", foundry.utils.deepClone(base.inventory));
+    await game.settings.set(MODULE_ID, "shopName", base.shopName);
+    await game.settings.set(MODULE_ID, "shopSellRatio", base.sellRatio);
+    await game.settings.set(MODULE_ID, "gambleOptions", foundry.utils.deepClone(base.gambleOptions || []));
+    await game.settings.set(MODULE_ID, "shopDefaultApplied", true);
+
+    console.log(`${MODULE_ID} | Merchant Shop: loaded "${base.shopName}" as the default shop (${base.inventory.length} items).`);
   },
 
   _buildActorInventory(actorId) {

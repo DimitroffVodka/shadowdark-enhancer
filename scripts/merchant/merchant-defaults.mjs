@@ -118,6 +118,11 @@ export const DEFAULT_MERCHANTS = [
   { key: "The Merchant - Western Reaches", shopName: "The Merchant - Western Reaches", filter: () => true },
 ];
 
+/** Which shipped merchant a brand-new world loads as its live shop, so the Buy
+ *  tab has stock before the GM configures anything. Base only — the Western
+ *  Reaches merchant needs content that may not be imported yet. */
+export const DEFAULT_ACTIVE_MERCHANT = "The Merchant - Base";
+
 /** Marker set on seeded configs so re-seeding may refresh them; cleared the
  *  moment a GM saves over one (the save path rebuilds the object without it),
  *  which makes an edited default become a user-owned merchant. */
