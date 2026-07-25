@@ -41,6 +41,50 @@ PDF copy came out single-spaced with the column structure gone; the hint tells
 the parser where cell boundaries fall — a capitalisation change, a dice
 expression, or an explicit pattern like *"the/a/an" starting a new cell*.
 
+A recipe may also pin **`extractCols`**, which decides how **Grab text** pulls
+the page out of the PDF before any parsing happens. The default, `auto`, detects
+the page's column gutter — but on a page that prints two prose columns *above* a
+full-width table (Core *Traps* p114, *Hazards* p115), that gutter belongs to the
+prose, and applying it to the table slices the table in half: the first column
+arrives as one die-numbered block and the rest as a second, detached block. Pin
+`"layout"` there, which pads every cell to its true x-position so all columns
+stay on one line; pin `"1"` for a table that needs each row glued onto a single
+line. Getting this wrong is rarely subtle — cells come out shredded into single
+words, because the fallback splitter is left guessing at whitespace.
+
+Every Core d20 × 3-column generator page has this shape (*Tavern* p136, *Shop*
+p139, *Adventure* p122, *Adventuring Site Name* p123, *NPC Qualities* p125,
+*Party Name* p127, *Magic Item Idea* p283), so all seven pin `"layout"` too.
+
+## A caption bound is not optional on a shared page
+
+Most of those generator pages stack a **second** die table below the generator —
+`SHOP GENERATOR` over `INTERESTING CUSTOMER`, `NPC QUALITIES` over `OCCUPATION`,
+`PARTY NAME` over `SIGNATURE TACTICS`. A grid recipe runs three split strategies
+and keeps the best-filled result, and the page-mate's table can win that vote
+outright: *Shop Generator* parsed **60/60 cells with zero warnings** — entirely
+from the `INTERESTING CUSTOMER` matrix below it.
+
+So on any shared page, set **`caption`** to the table's own all-caps heading. The
+parser slices to that block first and votes only within it.
+
+> **A clean score is not evidence you read the right table.** Filled-cell counts
+> and warning counts tell you a parse was *self-consistent*, not that it came
+> from the table you asked for. Always read the actual rows back — and check the
+> last row, not just the first.
+
+Two failure modes only the rows reveal:
+
+- **A page cite one page short** still parses clean, off the wrong table. Three
+  of these entries had exactly that (`Adventuring Site Name` cited p122 when the
+  table is on p123, `NPC Qualities` p124 → p125, `Party Name` p126 → p127); each
+  returned a confident full-marks parse of its neighbour.
+- **A page-bottom pull quote** gets glued onto the final row. Core pages close
+  with a designer quote and attribution printed directly under the table with no
+  blank line, and neither line carries a die face, so the wrap grouper files both
+  onto the last row. The parser now stops at that trailer — but it is the kind of
+  damage that shows up *only* in row 20.
+
 ## Compound tables and cartesian expansion
 
 A compound generator (`roll 3d6, take one result per column, combine`) isn't a
@@ -94,7 +138,12 @@ _entry("wr/gede-prayers", "WR", "Gede Prayers", PRAYER(6)),
 _entry("core/traps", "CORE", "Traps",
   { kind: "compound", split: "grid", cols: 3, size: 12,
     labels: ["Trap", "Trigger", "Damage or Effect"],
-    reflow: ["cap", "dice"] }),
+    extractCols: "layout", reflow: ["cap", "dice"] }),
+
+// A d20 generator sharing its page with another die table: GEN3 pins
+// extractCols "layout" and binds the caption in one place.
+_entry("core/shop-generator", "CORE", "Shop Generator",
+  GEN3("SHOP GENERATOR", ["Name 1", "Name 2", "Known For"])),
 ```
 
 The workflow: paste the table, see what generic parsing does to it, then pick the
@@ -102,6 +151,11 @@ kind that matches its printed layout and set `cols`, `size`, and `labels` to
 match the page. Test by re-pasting through the real shape path — not through
 generic table parsing, which will give you a different (and misleadingly clean)
 result.
+
+Before you call a recipe done: confirm the page cite against the book, dump
+**every** row rather than the first, and check whether anything else is printed
+on that page. Those three checks are what separate a correct recipe from one that
+merely scores well.
 
 ---
 

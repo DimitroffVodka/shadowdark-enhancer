@@ -44,16 +44,21 @@ export const CORE_TABLE_GROUPS = [
     unit: "core-adventure-generator", section: "rolltables", key: "adventure",
     header: "Adventure Generator", icon: "fa-compass",
     rep: "Core PDF p126: Adventure Generator", startPage: 118,
-    pasteHint: "Adventure Generator section (Core pg 118–122)",
+    pasteHint: "Adventure Generator section (Core pg 118–127)",
     tables: [
       // The GM-chapter d20 × 3-col generators are each one compound (their
       // per-column "- Detail N" / "- Appearance/Does/Secret" rows were columns,
       // not tables — the table-shapes grid shape parses each as one table).
       // Renown/Secret/Wealth are small single-column party tables (no shape).
+      // Page cites verified against the book 2026-07-25 — three were one page
+      // short and grabbed the WRONG table: p122 is Adventure Generator alone
+      // (Adventuring Site Name is p123), p124 is the ANCESTRY/AGE/ALIGNMENT/
+      // WEALTH block (NPC Qualities is p125), and p126 is the Rival Crawlers
+      // RENOWN/SECRET/WEALTH page (Party Name is p127).
       { name: "Adventure Generator", page: 122 },
-      { name: "Adventuring Site Name", page: 122 },
-      { name: "NPC Qualities", page: 124 },
-      { name: "Party Name", page: 126 },
+      { name: "Adventuring Site Name", page: 123 },
+      { name: "NPC Qualities", page: 125 },
+      { name: "Party Name", page: 127 },
       { name: "Renown", page: 126 },
       { name: "Secret", page: 126 },
       { name: "Wealth", page: 126 },

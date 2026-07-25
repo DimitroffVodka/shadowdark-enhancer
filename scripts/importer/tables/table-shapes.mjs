@@ -39,6 +39,23 @@ const PRAYER = (size = 6) => ({
 
 const GRID3 = (size, labels) => ({ kind: "compound", split: "grid", cols: 3, size, labels });
 
+// The Core Rulebook's d20 × 3-column generator pages. Every one prints two
+// PROSE columns above a full-width table — the exact layout that defeats "auto"
+// gutter detection: auto locks onto the PROSE gutter and cuts the table in half
+// too, so the generic word-splitter shreds each cell ("The | Crimson | Rat
+// High-stakes gambling" instead of "The Crimson | Rat | High-stakes gambling").
+// Pinning "layout" keeps all three cells on one line for parseGridShape to read
+// from the header x-positions.
+//
+// Most of these pages also stack a SECOND die table below the generator (SHOP
+// GENERATOR over INTERESTING CUSTOMER, NPC QUALITIES over OCCUPATION, PARTY
+// NAME over SIGNATURE TACTICS). Without a caption bound the best-filled vote
+// returns the NEIGHBOUR's rows at a full 60/60 with zero warnings — so the
+// caption is load-bearing here, not decoration, and a clean score is never on
+// its own proof the right table was read.
+// Live-verified against the user's Core PDF: 20/20 rows each, no warnings.
+const GEN3 = (caption, labels) => ({ ...GRID3(20, labels), caption, extractCols: "layout" });
+
 // A single small table stacked with others on one Core Rulebook generator page.
 // The parser slices it out by its ALL-CAPS caption (defaults to the name) and
 // single-die-parses just that block — see parseSectionSlice in table-importer.
@@ -125,11 +142,20 @@ export const CONTENT_ENTRIES = [
   // header parser can't read: Trap → Trigger at the next Capitalized word,
   // Trigger → Damage at the first dice expression (1d6/2d8/3d10). One spec per
   // boundary (cols-1). A manual "|" still wins (parseGenerators handles it).
+  // extractCols "layout" on both: p114/p115 print two prose columns ABOVE a
+  // full-width table, so "auto" gutter detection reads the prose gutter and cuts
+  // the TABLE in half too — the Trap/Movement column arrives as one die-numbered
+  // block and Trigger+Damage as a second, detached block with no die faces. The
+  // die-led block is then all any parser can see, and the generic word-splitter
+  // wins the best-filled vote by shredding each cell ("Hail | of | needles").
+  // X-positions keep all four columns on one line, which parseGridShape reads
+  // exactly (verified live against the user's Core PDF: 12/12 rows, no warnings).
   _entry("core/traps", "CORE", "Traps",
     { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Trap", "Trigger", "Damage or Effect"],
-      reflow: ["cap", "dice"] }),
+      extractCols: "layout", reflow: ["cap", "dice"] }),
   _entry("core/hazards", "CORE", "Hazards",
-    { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"] }),
+    { kind: "compound", split: "grid", cols: 3, size: 12, labels: ["Movement", "Damage", "Weaken"],
+      extractCols: "layout" }),
   _entry("core/boons-secrets", "CORE", "Boons: Secrets",
     // p281's two Detail columns defeat every positional split (E2E D3: a flat
     // 1d144 of shredded cells). Single-column extraction glues each row onto
@@ -141,13 +167,13 @@ export const CONTENT_ENTRIES = [
   // Core Rulebook d20 × 3-column name/idea generators (roll each column,
   // combine). Cartesian = 20^3 = 8,000 rows exceeds the expansion cap (2,000),
   // so these stay roll-each-column compounds rather than an 8k-row table.
-  _entry("core/tavern-generator", "CORE", "Tavern Generator", GRID3(20, ["Name 1", "Name 2", "Known For"])),
-  _entry("core/shop-generator", "CORE", "Shop Generator", GRID3(20, ["Name 1", "Name 2", "Known For"])),
-  _entry("core/party-name", "CORE", "Party Name", GRID3(20, ["Name 1", "Name 2", "Known For"])),
-  _entry("core/adventure-generator", "CORE", "Adventure Generator", GRID3(20, ["Detail 1", "Detail 2", "Detail 3"])),
-  _entry("core/adventuring-site-name", "CORE", "Adventuring Site Name", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
-  _entry("core/magic-item-idea-generator", "CORE", "Magic Item Idea Generator", GRID3(20, ["Name 1", "Name 2", "Name 3"])),
-  _entry("core/npc-qualities", "CORE", "NPC Qualities", GRID3(20, ["Appearance", "Does", "Secret"])),
+  _entry("core/tavern-generator", "CORE", "Tavern Generator", GEN3("TAVERN GENERATOR", ["Name 1", "Name 2", "Known For"])),
+  _entry("core/shop-generator", "CORE", "Shop Generator", GEN3("SHOP GENERATOR", ["Name 1", "Name 2", "Known For"])),
+  _entry("core/party-name", "CORE", "Party Name", GEN3("PARTY NAME", ["Name 1", "Name 2", "Known For"])),
+  _entry("core/adventure-generator", "CORE", "Adventure Generator", GEN3("ADVENTURE GENERATOR", ["Detail 1", "Detail 2", "Detail 3"])),
+  _entry("core/adventuring-site-name", "CORE", "Adventuring Site Name", GEN3("ADVENTURING SITE NAME", ["Name 1", "Name 2", "Name 3"])),
+  _entry("core/magic-item-idea-generator", "CORE", "Magic Item Idea Generator", GEN3("MAGIC ITEM IDEA GENERATOR", ["Name 1", "Name 2", "Name 3"])),
+  _entry("core/npc-qualities", "CORE", "NPC Qualities", GEN3("NPC QUALITIES", ["Appearance", "Does", "Secret"])),
   // Core Rulebook "Rival Crawlers" party page (p126) stacks several small
   // single-die tables under ALL-CAPS captions; the section shape slices the
   // named one out so it stops overlapping its page-mates. (rec #3)
