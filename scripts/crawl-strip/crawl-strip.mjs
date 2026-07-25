@@ -267,7 +267,7 @@ export const CrawlStrip = {
                data-member-id="${m.id}" title="${gmTitle}">
             <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
             <div class="sde-strip-overlay">
-              <div class="sde-strip-name">${ICONS.gmCrown}${esc(m.name)}</div>
+              <div class="sde-strip-name">${esc(m.name)}</div>
             </div>
           </div>
         </div>`;
@@ -372,7 +372,7 @@ export const CrawlStrip = {
       // a direct child of the card (below), NOT inside the pointer-events:none
       // overlay, so its click target is live.
       const lightBadge = (actor && m.type === "player")
-        ? this._lightBadgeHTML(actor, { shifted: isCurrent })
+        ? this._lightBadgeHTML(actor)
         : "";
 
       const cardHTML = `
@@ -393,7 +393,6 @@ export const CrawlStrip = {
             </div>
           </div>
           ${lightBadge}
-          ${isCurrent ? `<div class="sde-strip-turn-badge">${ICONS.turnArrow}</div>` : ""}
           ${isDefeated ? `<div class="sde-strip-defeated-icon">${ICONS.skull}</div>` : ""}
           ${(() => {
             // Combat mode: dice when combatant has no initiative; otherwise show the rolled value as a badge.
@@ -459,35 +458,47 @@ export const CrawlStrip = {
         <button class="sde-strip-cbtn" data-combat="nextRound" title="Next Round">${ICONS.nextRound}</button>
       </div>` : crawlBadge;
 
+    // Merchant Shop launcher — visible to the GM always, and to players only
+    // while the shop is open for them. Re-renders pick up availability changes
+    // because MerchantShop calls CrawlStrip.queueRender() when it toggles.
+    // Never shown in combat: shopping isn't a combat action, and the strip is
+    // the initiative board there.
+    const shopAvailable = !inCombat
+      && (game.user.isGM || game.settings.get(MODULE_ID, "shopAvailableToPlayers"));
+    const shopButton = shopAvailable
+      ? `<button class="sde-strip-merchant-btn" data-action="openMerchant" title="Open Merchant Shop"><i class="fas fa-store"></i></button>`
+      : "";
+
     // Combat: single flat init-ordered list, no PARTY/NPCS label.
-    // Crawl:  Players-only list with PARTY label.
+    // Crawl:  Players-only list with PARTY label. The label plate is a column —
+    //         PARTY claims the space above, the shop button fills the dead
+    //         space beneath it (the vertical word never reaches the bottom).
     const heroesBlock = heroCards
       ? (inCombat
           ? `<div class="sde-strip-group sde-strip-group-combat">
                <div class="sde-strip-members">${heroCards}</div>
              </div>`
           : `<div class="sde-strip-group sde-strip-group-heroes">
-               <div class="sde-strip-group-label sde-strip-label-heroes">PARTY</div>
+               <div class="sde-strip-label-col sde-strip-label-heroes">
+                 <div class="sde-strip-group-label">PARTY</div>
+                 ${shopButton}
+               </div>
                <div class="sde-strip-members">${heroCards}</div>
              </div>`)
       : "";
     const npcsBlock = ""; // no longer used — kept identifier for diff readability
 
-    // Merchant Shop launcher — visible to the GM always, and to players only
-    // while the shop is open for them. Re-renders pick up availability changes
-    // because MerchantShop calls CrawlStrip.queueRender() when it toggles.
-    const shopAvailable = game.user.isGM
-      || game.settings.get(MODULE_ID, "shopAvailableToPlayers");
-    const shopButton = shopAvailable
-      ? `<button class="sde-strip-merchant-btn" data-action="openMerchant" title="Open Merchant Shop"><i class="fas fa-store"></i></button>`
-      : "";
+    // An empty party draws no label plate to tuck the button into, so in that
+    // one case it keeps its old spot at the end of the strip. (Combat never
+    // renders it at all — `shopAvailable` is false there.)
+    const looseShopButton = heroCards ? "" : shopButton;
 
     this._el.innerHTML = `
       <div class="sde-strip-inner ${inCombat ? "sde-strip-paused" : ""}">
         ${leftBadge}
         ${heroesBlock}
         ${npcsBlock}
-        ${shopButton}
+        ${looseShopButton}
       </div>`;
 
     this._bindEvents();
@@ -580,10 +591,9 @@ export const CrawlStrip = {
    *   - available: dim ember; owner/GM click lights it (chooser when >1 carried)
    *
    * @param {Actor} actor
-   * @param {{shifted?:boolean}} opts  shifted → nudge below the current-turn chevron
    * @returns {string}
    */
-  _lightBadgeHTML(actor, opts = {}) {
+  _lightBadgeHTML(actor) {
     const items = actor.items?.contents ?? Array.from(actor.items ?? []);
     const state = computeLightState(items);
     if (state.state === "none") return "";
@@ -617,7 +627,6 @@ export const CrawlStrip = {
       "sde-strip-light-badge",
       lit ? "sde-strip-light-lit" : "sde-strip-light-off",
       lit && state.lifeClass ? state.lifeClass : "",
-      opts.shifted ? "sde-strip-light-shift" : "",
       clickable ? "sde-strip-light-clickable" : "",
     ].filter(Boolean).join(" ");
 

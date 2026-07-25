@@ -103,7 +103,6 @@ export const CrawlBar = {
             ? `<button class="sde-bar-btn sde-bar-danger-btn" data-action="endEncounter">${ICONS.close} End Encounter</button>`
             : `<button class="sde-bar-btn sde-bar-combat-btn" data-action="beginEncounter">${ICONS.combat} Begin Encounter</button>`
           }
-          <div class="sde-bar-divider"></div>
           <button class="sde-bar-btn" data-action="addSelectedTokens" title="Add selected tokens to the combat tracker">
             ${ICONS.addTokens} Add Tokens
           </button>
@@ -125,7 +124,6 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn" ${idleAttr}>
           ${ICONS.nextTurn} Next Turn
         </button>
-        <div class="sde-bar-divider"></div>
 
         <button class="sde-bar-btn" data-action="addSelectedTokens" title="Left-click: add selected tokens to the crawl · Right-click: reset out-of-combat initiative">
           ${ICONS.addTokens} Add Tokens
@@ -133,8 +131,6 @@ export const CrawlBar = {
         <button class="sde-bar-btn sde-bar-combat-btn" data-action="startCombat" ${idleAttr}>
           ${ICONS.combat} Combat
         </button>
-
-        <div class="sde-bar-divider"></div>
 
         <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu">
           ${ICONS.encounter} Encounter

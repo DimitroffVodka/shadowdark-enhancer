@@ -75,8 +75,7 @@ decides who takes what.
 
 ### The claimable chat card
 
-<!-- TODO screenshot: images/loot-card.png — A claimable loot card in chat
-     How: Loot Generator -> generate -> Post to chat; screenshot the claimable card. -->
+![A claimable loot card in chat — a magic wand with its Claim button, and the hoard total beneath](images/loot-card.png)
 
 Post the hoard to chat and **the first player to click Claim takes it**.
 

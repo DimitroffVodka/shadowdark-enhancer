@@ -97,8 +97,7 @@ begins, and stamped onto the token document.
 To undo: **open the token HUD** (right-click the token) and click the
 **Rollback Movement** button — the circular arrow in the left column.
 
-<!-- TODO screenshot: images/rollback-hud.png — The Rollback Movement button on the token HUD
-     How: Start a crawl, right-click a party token; screenshot the token HUD with the Rollback Movement button. -->
+![The Rollback Movement button on the token HUD](images/rollback-hud.png)
 
 The token returns to its turn-start square **and its full movement budget is
 refunded**. A chat notification confirms it.

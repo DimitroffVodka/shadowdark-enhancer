@@ -1137,7 +1137,8 @@ export const MerchantShop = {
     // Log
     await this.logTransaction({
       player: buyer.name,
-      action: "buy",
+      action: "buy",     // stays a purchase: the session recap totals spend from "buy"
+      kind: "gamble",    // …but the Log tab marks it with the dice, not the cart
       item: `Gamble (${option.name}): ${lootDesc}`,
       quantity: 1,
       price: option.cost,
@@ -1659,6 +1660,9 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         qtyStr,
         priceDisplay: _formatPrice(e.price),
         isBuy: e.action === "buy",
+        // Entries logged before `kind` existed are recognised by their item text,
+        // so an existing world's log gets the dice too.
+        isGamble: e.kind === "gamble" || /^Gamble \(/.test(e.item ?? ""),
       });
     }
 

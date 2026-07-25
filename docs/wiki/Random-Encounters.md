@@ -14,12 +14,13 @@ creatures standing on the map.
 Right-click the **Encounter** button on the [Crawl Bar](Crawl-Strip-and-Crawl-Bar.md)
 and choose **Encounter Check**.
 
+![The Encounter right-click menu — the check, the threshold options, and the active table](images/encounter-menu.png)
+
 It rolls `1d6` and **hits on a result at or below the threshold**. The roll is
 attached to the chat message as a real Foundry `Roll`, so Dice So Nice animates
 it, the result is inspectable, and it persists in the log.
 
-<!-- TODO screenshot: images/encounter-check-card.png — The encounter check chat card
-     How: Crawl Bar -> right-click Encounter -> Encounter Check; screenshot the chat card. -->
+![Two encounter checks at threshold 1-in-6 — a 3 reads "the dungeon is quiet", a 1 reads "encounter occurs"](images/encounter-check-chat.png)
 
 ### Setting the threshold
 
@@ -70,11 +71,12 @@ directly from the preview, without rolling.
 
 ### The result card
 
-<!-- TODO screenshot: images/encounter-result.png — An encounter result with its rolled facets
-     How: Roll an encounter table in the roller; screenshot the result card with its four facets. -->
+![An encounter result — 3 × Beastman with its Distance, Activity and Reaction facets](images/encounter-result.png)
 
-A rolled encounter produces a card with four facets, each **individually
-re-rollable** via its circular-arrow button:
+A rolled encounter produces a card with four facets. **Distance, Activity and
+Reaction are each individually re-rollable** via their circular-arrow buttons;
+Appearing is rolled once from the table row's own formula and has no re-roll
+button:
 
 | Facet | Roll | Results |
 |---|---|---|
@@ -91,6 +93,11 @@ Then:
 - **Post** — send the card to chat.
 - **Place** — drop the tokens on the canvas. They are grid-snapped; press `ESC`
   to cancel placement.
+
+A posted card carries the creature with its count, then the Distance, Activity
+and Reaction rows, each with its raw roll in the right-hand column:
+
+![A posted encounter card in chat — 1 × Cave Creeper, Near, Hunting, Hostile](images/encounter-posted-card.png)
 
 Rows that are **flavour-only** (an environmental result with no creature) are
 recognised as such — they get an *Environmental Result* card with a Post button

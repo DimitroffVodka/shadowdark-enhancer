@@ -53,7 +53,6 @@
   --sde-bar-gm-text:       #c9aa58;
   --sde-bar-gm-border:     rgba(201,170,88,0.35);
   --sde-bar-gm-light:      #f0f0f0;
-  --sde-bar-gm-icon:       #c9aa58;
   /* Attack-mode hues (P2-16): tokenized so light theme can remap them. */
   --sde-ranged:            #9f9275;
   --sde-spell:             var(--clickable, #a546b6);
@@ -163,7 +162,6 @@ body.theme-light {
   --sde-bar-gm-text:       #2a3a58;
   --sde-bar-gm-border:     #7070a8;
   --sde-bar-gm-light:      #3a4a68;
-  --sde-bar-gm-icon:       #6040a0;
 
   --sde-bar-combat:        #a02020;
   --sde-bar-combat-text:   #8a2020;
@@ -193,6 +191,7 @@ body.theme-light {
 
 /* ── Light-mode element overrides (hardcoded rgba backgrounds) ───────────── */
 
+body.theme-light .sde-strip-label-col,
 body.theme-light .sde-strip-group-label {
   background: #e8e4dc;
   text-shadow: none;
@@ -401,16 +400,6 @@ body.theme-light .sde-bar-start-btn:hover {
   white-space: nowrap;
 }
 
-/* ── Divider ──────────────────────────────────────────────────────────────── */
-
-.sde-bar-divider {
-  width: 1px;
-  height: 28px;
-  background: var(--sde-bar-border);
-  margin: 0 3px;
-  flex-shrink: 0;
-}
-
 /* ═══════════════════════════════════════════════════════════════════════════
    TOP STRIP
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -465,6 +454,18 @@ body.theme-light .sde-bar-start-btn:hover {
   display: flex;
   align-items: stretch;
 }
+/* The label plate: the vertical word plus anything tucked in beneath it (the
+   merchant button). The COLUMN carries the plate's background and right border
+   so the black runs the full height of the strip even though the word itself
+   only claims the space above the button. */
+.sde-strip-label-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex-shrink: 0;
+  background: #000;
+  border-right: 2px solid;
+}
 .sde-strip-group-label {
   writing-mode: vertical-rl;
   text-orientation: mixed;
@@ -477,11 +478,9 @@ body.theme-light .sde-bar-start-btn:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
+  flex: 1;                        /* centres the word in the space above the button */
   user-select: none;
   font-family: "Eskapade", "Palatino Linotype", Palatino, serif;
-  background: #000;
-  border-right: 2px solid;
   text-shadow: 1px 1px 2px rgba(0,0,0,0.9);
 }
 .sde-strip-label-heroes {
@@ -831,6 +830,17 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   flex-shrink: 0;
 }
 
+/* The GM card carries ONLY a name (no AC line, effects row, HP bar or pills),
+   so it has the vertical room the stat cards don't. Let the name wrap instead
+   of ellipsizing: "Game Master" measures ~89px against a ~74px content box and
+   was rendering as "Game Mas…" — unreadable, which is the whole point of the
+   card. Stat cards keep the single-line ellipsis. */
+.sde-strip-type-gm .sde-strip-name {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
 /* ── Active effects row — above HP bar ────────────────────────────────────── */
 
 .sde-strip-effects-row {
@@ -954,16 +964,6 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 .sde-strip-pill.sde-strip-pill-over i.fa-person-walking { color: #ff8a8a; }
 
-/* ── GM crown + remove ────────────────────────────────────────────────────── */
-
-.sde-strip-gm-icon {
-  font-size: 11px;
-  color: var(--sde-bar-gm-icon);
-  text-shadow: 0 0 6px rgba(0,0,0,0.9);
-  margin-right: 4px;
-  vertical-align: baseline;
-}
-
 /* ── Active turn state ────────────────────────────────────────────────────── */
 
 .sde-strip-member.sde-strip-is-turn {
@@ -989,22 +989,6 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   50%       { opacity: 1; }
 }
 
-.sde-strip-turn-badge {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 20px;
-  height: 20px;
-  background: color-mix(in srgb, var(--sde-bar-accent) 90%, transparent);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  box-shadow: 0 0 4px color-mix(in srgb, var(--sde-bar-accent) 50%, transparent);
-}
-.sde-strip-turn-badge i { font-size: 10px; color: #1b1b1b; }
-
 /* ── Light-source badge (crawl + combat, PC cards) ───────────────────────────
    Direct child of the card (NOT the pointer-events:none overlay). Sits below
    the name row (level with the AC line / init badge), left side, so it never
@@ -1026,7 +1010,6 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   border: none;
 }
 .sde-strip-light-badge i { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95)); }
-.sde-strip-light-badge.sde-strip-light-shift { top: 26px; }   /* clear turn chevron */
 .sde-strip-light-badge.sde-strip-light-clickable {
   pointer-events: auto;             /* re-enable over the overlay */
   cursor: pointer;
@@ -6852,6 +6835,31 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-strip-merchant-btn:hover { background: #2e3138; color: #f4c542; }
 
+/* Tucked into the PARTY plate (crawl mode): sized to the column and flush with
+   its bottom edge so it reads as part of the plate, not a floating box. Combat
+   has no plate, so the button keeps the standalone box above. */
+/* The word's intrinsic height (~55px of vertical text + padding) plus the
+   button exceeds the card height, which would grow the whole strip. min-height:0
+   lets the flex item shrink into the space that's actually there — the point of
+   the exercise was to USE the dead space, not add more. */
+.sde-strip-label-col .sde-strip-group-label {
+  min-height: 0;
+  padding: 4px;
+  overflow: hidden;
+}
+.sde-strip-label-col .sde-strip-merchant-btn {
+  align-self: stretch;
+  width: auto;
+  min-width: 0;
+  height: 30px;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--sde-bar-border, #3a3d44);
+  border-radius: 0;
+}
+.sde-strip-label-col .sde-strip-merchant-btn:hover { background: rgba(218, 165, 32, 0.15); }
+
 /* ── Merchant Shop — reconcile with Shadowdark system form styling ──────────
    The Shadowdark system forces form controls to width:100% and flattens some
    flex rows inside .window-content. The ported Vagabond rules are single-class
@@ -7284,6 +7292,7 @@ body.theme-light .sde-bar-danger-btn { background: #f4f1ec !important; }
   filter: grayscale(40%) !important;
 }
 
+.sde-strip-label-col,
 .sde-strip-group-label,
 .sde-strip-turn-num,
 .sde-strip-combat-controls {
@@ -7292,6 +7301,7 @@ body.theme-light .sde-bar-danger-btn { background: #f4f1ec !important; }
   color: var(--sde-bar-accent) !important;
 }
 
+body.theme-light .sde-strip-label-col,
 body.theme-light .sde-strip-group-label,
 body.theme-light .sde-strip-turn-num,
 body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
@@ -7326,7 +7336,6 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 
 .sde-strip-rollinit-btn,
-.sde-strip-turn-badge,
 .sde-strip-action-tabs,
 .sde-strip-panel-tabs {
   background: #111111 !important;

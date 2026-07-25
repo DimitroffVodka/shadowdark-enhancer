@@ -248,7 +248,7 @@
         <div class="sdems-log-entry">
           <span class="sdems-log-time">{{time}}</span>
           <span class="sdems-log-icon {{#if isBuy}}sdems-log-buy{{else}}sdems-log-sell{{/if}}">
-            <i class="fas {{#if isBuy}}fa-cart-shopping{{else}}fa-coins{{/if}}"></i>
+            <i class="fas {{#if isGamble}}fa-dice{{else}}{{#if isBuy}}fa-cart-shopping{{else}}fa-coins{{/if}}{{/if}}"></i>
           </span>
           <span class="sdems-log-player">{{player}}</span>
           <span class="sdems-log-action">{{#if isBuy}}bought{{else}}sold{{/if}}</span>

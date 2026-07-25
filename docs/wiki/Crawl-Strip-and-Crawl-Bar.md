@@ -106,16 +106,26 @@ Each card renders, from the actor's live data:
 | **Active effects** | A row of effect icons; hover for the label and remaining duration |
 | **Light source** | PC cards only, in both modes. Click to toggle the actor's light source — it reuses the system character sheet's own toggle. |
 | **Initiative** | A **d20 button** when nothing is rolled yet; the rolled **value badge** once it is. Works in both combat and out-of-combat. |
-| **Turn arrow** | Marks whose turn it is |
+| **Current turn** | The active combatant's card is outlined in the accent colour — in combat only that card is lit, the rest are dimmed |
 | **Skull** | Marks a defeated PC. (Defeated NPCs don't show a skull — they leave the strip entirely, see above.) |
 | **Eye-slash** | Marks a combatant hidden from players |
 
 ### The GM card
 
-The strip carries a **Game Master** card with a crown. The GM can **click its
+The strip carries a **Game Master** card. The GM can **click its
 portrait to change the image** (opens a FilePicker), or set it in
 **Configure Settings → Game Master avatar**. Leave it blank for the default
 cowled icon.
+
+### The Merchant Shop button
+
+In crawl mode the **PARTY** plate down the left of the roster carries a shop
+button beneath the word — one click opens the
+[Merchant Shop](Merchant-Shop.md). The GM always sees it; players see it only
+while the shop is available to them.
+
+**It disappears in combat** — shopping isn't a combat action, and the strip is
+the initiative board there. It returns when the encounter ends.
 
 ### The activate button (GM, in combat)
 
