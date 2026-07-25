@@ -188,6 +188,29 @@
   Rumors"*, *"Core Rulebook - NPC Wealth"* — gaining only as much as it needs to
   be distinct, and the conflict check no longer treats a different book's table
   as the one you're importing. Names no other entry uses are untouched.
+
+  The same guard sits at the **commit** now, not just in the catalog window: a
+  table whose name is already taken by another book is filed under its own book
+  whichever screen you imported it from, so a plain paste with a Source set
+  behaves like a catalogued import.
+- **A book's table could be reported missing, or open the wrong book's copy.**
+  One book was spelled four ways across the code and the data — `pgwr`,
+  `Western Reaches`, `Cursed Scroll #6` (with a #), `Cursed Scroll 6` — and each
+  screen knew a different subset. A Cursed Scroll 6 table imported and stamped
+  as such read as **missing** because neither its flag nor its name matched what
+  the census recognised, and double-clicking Western Reaches' row in the Manage
+  tree opened Cursed Scroll 6's table instead. All four spellings now resolve to
+  one key, and a row opens the table stamped with **its** book — which is also
+  the only way to find a copy imported before the naming convention, since those
+  carry no book in the name at all.
+- **The Carousing Outcome table lost every row with a "–" in it.** Roughly half
+  the table: on *Western Reaches* pg 237 and *Cursed Scroll 6* pg 29 the rows
+  where a character takes no mishap read `5 - 1 -10 3`, and the leading `5 -` was
+  parsed as a die range (5 to 1) rather than "roll 5, no mishap". Those rows
+  landed nowhere, and the importer reported the gaps without being able to
+  explain them. Both books' tables now import complete — 25 rows, no warnings —
+  which also retires a standing note that Cursed Scroll 6's copy needed hand
+  fixing after every import.
 - **The Core Rulebook's Carousing Event table imported as seven empty rows.**
   Its Cost column comes out of the PDF as one block, separated from the events
   by a page number and an entire sidebar, so a cost-anchored parse produced
