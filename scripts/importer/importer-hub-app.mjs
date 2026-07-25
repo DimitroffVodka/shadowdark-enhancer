@@ -85,6 +85,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       itemSeedPaste:          function (...args) { return this._onItemSeedPaste(...args); },
       itemCullGroup:          function (...args) { return this._onItemCullGroup(...args); },
       manageNodeExpand:       function (...args) { return this._onManageNodeExpand(...args); },
+      manageFilter:           function (...args) { return this._onManageFilter(...args); },
       manageExpandAll:        function (...args) { return this._onManageExpandAll(...args); },
       manageCollapseAll:      function (...args) { return this._onManageCollapseAll(...args); },
       charSeedPaste:          function (...args) { return this._onCharSeedPaste(...args); },
@@ -169,6 +170,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _manageTreeCache = null;
   /** Node ids currently expanded in the Manage tree (starts fully collapsed). */
   _manageExpandedNodes = new Set();
+  /** Manage tree row filter: "all" | "locked" (still importable) | "imported". */
+  _manageFilter = "all";
 
   // ── Monsters-tab census cache ─────────────────────────────────────────────
   /**
@@ -644,7 +647,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         this._prepareItemsContext(),
         this._prepareManageTree(),
       ]);
-      manage = { monstersData, itemsData, tree };
+      manage = {
+        monstersData, itemsData, tree,
+        filter: this._manageFilter,
+        filterAll: this._manageFilter === "all",
+        filterLocked: this._manageFilter === "locked",
+        filterImported: this._manageFilter === "imported",
+        // Filtered to nothing is an ANSWER ("nothing left to unlock"), not an
+        // error — the template says so rather than showing a blank panel.
+        filterEmpty: this._manageFilter !== "all" && tree.length === 0,
+      };
     }
 
     return { importData, manageExpanded: this._manageExpanded, manage };

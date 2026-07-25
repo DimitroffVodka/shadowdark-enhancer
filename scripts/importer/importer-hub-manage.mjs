@@ -189,14 +189,25 @@ class HubManageMethods {
         return [];
       });
     }
-    const applyState = (node, depth) => {
-      node.depth = depth;
-      node.expandable = node.children.length > 0 || node.entries.length > 0;
-      node.expanded = this._manageExpandedNodes.has(node.id);
-      node.children.forEach((c) => applyState(c, depth + 1));
-      return node;
+    // "What do I still need?" is the question this tree exists to answer, so it
+    // can be narrowed to just the locked rows (or just the imported ones). The
+    // filter shapes a COPY per render — the cache stays whole, so switching
+    // filters never re-runs a census. Branches left with nothing are pruned,
+    // otherwise filtering leaves a tree of empty folders to click through.
+    const wanted = (e) => this._manageFilter === "locked" ? !e.present
+      : this._manageFilter === "imported" ? !!e.present
+      : true;
+    const shape = (node, depth) => {
+      const entries = (node.entries ?? []).filter(wanted);
+      const children = (node.children ?? []).map((c) => shape(c, depth + 1)).filter(Boolean);
+      if (this._manageFilter !== "all" && !entries.length && !children.length) return null;
+      return {
+        ...node, depth, entries, children,
+        expandable: children.length > 0 || entries.length > 0,
+        expanded: this._manageExpandedNodes.has(node.id),
+      };
     };
-    return this._manageTreeCache.map((n) => applyState(n, 0));
+    return this._manageTreeCache.map((n) => shape(n, 0)).filter(Boolean);
   }
 
   /** Invalidate the built Manage tree (content changed). */
@@ -345,6 +356,15 @@ class HubManageMethods {
   }
 
   /** Expand every node in the Manage tree. */
+  /** Narrow the tree to everything / only what's still locked / only what's
+   *  imported. Cheap: the census cache is untouched, only the view is reshaped. */
+  _onManageFilter(event, target) {
+    const next = target?.dataset?.filter;
+    if (!["all", "locked", "imported"].includes(next)) return;
+    this._manageFilter = next;
+    this.render();
+  }
+
   _onManageExpandAll() {
     const ids = [];
     const walk = (nodes) => { for (const n of nodes) { ids.push(n.id); walk(n.children); } };

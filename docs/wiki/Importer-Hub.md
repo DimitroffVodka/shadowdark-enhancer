@@ -129,6 +129,12 @@ belongs in the import flow, not in a repair tool you have to remember.
 
 ## The Manage review tree
 
+**Filter it to what you still need.** The tree's toolbar has **All · Still
+locked · Imported**. *Still locked* hides everything already in your library —
+and hides the folders that are now empty with it — so what's left is your
+to-import list. When there's nothing left it says so outright rather than
+showing you an empty panel.
+
 ![The manage review tree](images/importer-manage-tree.png)
 
 A collapsible `<details>` strip holding a browsable folder tree that reconciles a

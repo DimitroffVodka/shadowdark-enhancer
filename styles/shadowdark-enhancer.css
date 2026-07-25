@@ -2037,6 +2037,30 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
   white-space: nowrap;
 }
 .sde-mtree-toolbtn:hover { background: var(--sde-bar-bg-hover); }
+/* Segmented "All / Still locked / Imported" filter — one selected at a time,
+   so it reads as a state rather than three independent buttons. */
+.sde-mtree-filter { display: inline-flex; margin-right: 6px; }
+.sde-mtree-filterbtn {
+  background: transparent;
+  border: 1px solid var(--sde-bar-border);
+  border-right-width: 0;
+  color: var(--sde-bar-text-muted);
+  font-size: 0.74rem;
+  cursor: pointer;
+  padding: 2px 8px;
+  width: auto;
+  white-space: nowrap;
+}
+.sde-mtree-filterbtn:first-child { border-radius: 3px 0 0 3px; }
+.sde-mtree-filterbtn:last-child { border-radius: 0 3px 3px 0; border-right-width: 1px; }
+.sde-mtree-filterbtn:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-text); }
+.sde-mtree-filterbtn.is-on {
+  background: var(--sde-bar-btn-hover-2, rgba(255, 255, 255, 0.08));
+  color: var(--sde-bar-accent);
+  font-weight: 600;
+}
+.sde-mtree-filterbtn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
+.sde-mtree-filter-empty { margin: 8px 0; }
 .sde-mtree-toolbtn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
 
 body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-label,

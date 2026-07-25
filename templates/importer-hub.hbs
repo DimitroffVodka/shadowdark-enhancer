@@ -770,6 +770,16 @@
             <i class="fas fa-file-import"></i> missing = importable. <strong>Import</strong> seeds the paste box (paste from your own book).
           </p>
           <div class="sde-mtree-tools">
+            <div class="sde-mtree-filter" role="group" aria-label="Show which rows">
+              <button type="button" class="sde-mtree-filterbtn{{#if manage.filterAll}} is-on{{/if}}"
+                      data-action="manageFilter" data-filter="all" title="Show everything">All</button>
+              <button type="button" class="sde-mtree-filterbtn{{#if manage.filterLocked}} is-on{{/if}}"
+                      data-action="manageFilter" data-filter="locked" title="Only what you haven't imported yet">
+                <i class="fas fa-file-import"></i> Still locked</button>
+              <button type="button" class="sde-mtree-filterbtn{{#if manage.filterImported}} is-on{{/if}}"
+                      data-action="manageFilter" data-filter="imported" title="Only what's already in your library">
+                <i class="fas fa-circle-check"></i> Imported</button>
+            </div>
             <button type="button" class="sde-mtree-toolbtn" data-action="manageExpandAll" title="Expand every folder">
               <i class="fas fa-angles-down"></i> Expand all
             </button>
@@ -778,6 +788,12 @@
             </button>
           </div>
         </div>
+        {{#if manage.filterEmpty}}
+        <p class="sde-import-empty sde-mtree-filter-empty">
+          {{#if manage.filterLocked}}<i class="fas fa-circle-check"></i> Nothing left to unlock — everything in this list is imported.
+          {{else}}<i class="fas fa-file-import"></i> Nothing imported yet — switch to <strong>Still locked</strong> to see what's available.{{/if}}
+        </p>
+        {{/if}}
         {{#each manage.tree as |node|}}
           {{> sdeTreeNode node=node}}
         {{/each}}

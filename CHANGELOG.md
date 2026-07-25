@@ -121,6 +121,13 @@
 - **Double-click anything in the Manage tree to open it.** An imported table,
   item, class, monster or boat opens its own sheet, so the library is somewhere
   you can actually reach your content from rather than a list to read.
+- **Filter the Manage tree to what you still need.** New **All · Still locked ·
+  Imported** buttons above the tree. *Still locked* drops every row you've
+  already imported — and the folders that are left empty by it — so what remains
+  is exactly your to-import list; *Imported* does the reverse for reviewing what
+  you have. When a filter leaves nothing, it tells you ("Nothing left to unlock
+  — everything in this list is imported") instead of showing a blank panel.
+  Switching filters is instant: it reshapes the view without re-running a census.
 - **A Cartesian import now tells you what it's about to create.** Cartesian and
   Compound share a preview, and it described only the Compound behaviour — the
   opposite of what Cartesian does — while never saying how big the result would
