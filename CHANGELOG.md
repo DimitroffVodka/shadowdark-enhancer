@@ -121,6 +121,13 @@
 - **Double-click anything in the Manage tree to open it.** An imported table,
   item, class, monster or boat opens its own sheet, so the library is somewhere
   you can actually reach your content from rather than a list to read.
+- **A Cartesian import now tells you what it's about to create.** Cartesian and
+  Compound share a preview, and it described only the Compound behaviour — the
+  opposite of what Cartesian does — while never saying how big the result would
+  be. In Cartesian mode the section is now labelled as such and each table shows
+  *"Expands to 36 rows (6 × 6), rolled as 1d36 — one row per combination"*, with
+  the note making clear that the grid above is the columns you're combining, not
+  the table that gets created.
 
 ### Fixed
 - **Gambling on a table of text rows paid out nothing.** The gamble read each
@@ -149,6 +156,15 @@
 - **The Source PDFs window opened nearly as wide as the screen** (its widest
   line was a long PDF filename). It opens at a sane width, is resizable, and
   each book's filename sits under its name instead of stretching the window.
+- **The Core Rulebook's Carousing Event table imported as seven empty rows.**
+  Its Cost column comes out of the PDF as one block, separated from the events
+  by a page number and an entire sidebar, so a cost-anchored parse produced
+  *"30 gp | |"* seven times with the page furniture swept into the last row. It
+  now reads the page by column position, and — because that table has no die
+  column — uses the shape's own idea of what a row looks like to tell a real row
+  from a wrapped line. All seven rows import with their cost, their full event
+  text (which wraps both above and below the cost line in the book), and their
+  bonus.
 - **The importer's "should be full die coverage" warning cried wolf, and said
   nothing useful when it didn't.** A complete table was reported as broken
   because the parser had noted what it did with the paste's heading lines —

@@ -1275,8 +1275,18 @@ function _sliceCols(line, colX, { recoverGutter = false, gutterDieMax = null } =
  * → tie down (default).
  * @returns {{ rows: Array<{ id:number, cells:string[] }> }}
  */
-function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = false, col2Starts } = {}) {
+function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = false, col2Starts, rowStart } = {}) {
   const cols = colX.length;
+  // A no-die shape can say what a REAL row looks like (Carousing Event: the Cost
+  // "N gp"). Without it, "first column non-empty" is the anchor test — and since
+  // a no-die first column starts at x=0, every wrapped line qualifies and each
+  // becomes its own row (CORE p92 parsed 21 rows for a 7-row table). With it,
+  // wrapped lines stay fragments and group to their row.
+  const rowStartRe = rowStart ? new RegExp(`^\\s*(?:${rowStart})`, "i") : null;
+  // Only anchor lines carry the first/last columns; a fragment is all middle,
+  // so keep its whole text together instead of letting the x-slice scatter its
+  // leading words into the Cost column.
+  const wrapCol = cols >= 3 ? 1 : cols - 1;
   // Semantic boundary for a 2-column lookup: the LAST column always starts with
   // this keyword (e.g. Carousing Outcome's Benefit always starts "Gain"). When a
   // long first-column cell collapses the gap to a single space and shoves the
@@ -1326,7 +1336,7 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
       if (dm && dm.index < colX[0] && (!size || Number(dm[1]) <= size)) {
         anchors.push({ line: i, id: Number(dm[1]) });
       }
-    } else if (cells[0]?.trim()) {
+    } else if (rowStartRe ? rowStartRe.test(l) : cells[0]?.trim()) {
       anchors.push({ line: i, id: anchors.length + 1 });
     }
   }
@@ -1341,7 +1351,15 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
       else if (d === bd && !tieUp && a.line > anchors[best].line) best = idx; // tie → lower row
       // tieUp: keep the earlier (upper) anchor on a tie.
     });
-    for (let c = 0; c < cols; c++) if (f.cells[c]?.trim()) buckets[best][c].push(f.cells[c].trim());
+    const isAnchor = anchors.some((a) => a.line === f.line);
+    if (rowStartRe && !isAnchor) {
+      // Wrapped continuation: one cell's worth of text, whatever the x-slice
+      // made of it. Rejoin it and file it under the wrapping column.
+      const whole = f.cells.map((c) => (c ?? "").trim()).filter(Boolean).join(" ");
+      if (whole) buckets[best][wrapCol].push(whole);
+    } else {
+      for (let c = 0; c < cols; c++) if (f.cells[c]?.trim()) buckets[best][c].push(f.cells[c].trim());
+    }
     if (f.cells.gutterRecovered && f.cells.slice(1).every((c) => !c?.trim())) marginOnly[best]++;
   }
   // A row where BOTH columns wrapped to the left margin cannot be attributed
@@ -1565,7 +1583,7 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
     // column (e.g. Carousing Event's Cost "1,200 gp") isn't clipped at its header x.
     const colX = dieIndexed ? pcs.slice(1, cols + 1) : [0, ...pcs.slice(1, cols)];
     if (colX.length === cols) {
-      const { rows: grouped, warnings: groupWarnings } = _groupLayoutRows(raw, hi, colX, { dieIndexed, size, col2Starts });
+      const { rows: grouped, warnings: groupWarnings } = _groupLayoutRows(raw, hi, colX, { dieIndexed, size, col2Starts, rowStart });
       if (grouped.length) {
         if (groupWarnings?.length) warnings.push(...groupWarnings);
         rows = grouped.map((r) => ({ min: r.id, max: r.id, text: r.cells.join(" | ") }));

@@ -101,9 +101,14 @@ export const CONTENT_ENTRIES = [
   // Cost/Event/Bonus, no die. rowStart/colLast let the RAW (un-delimited,
   // wrapped) copy parse: Cost = leading "N gp", Bonus = trailing "+N", Event =
   // the wrapped middle. A manual "|" still wins when present.
+  // extractCols "layout" for the same reason as the Outcome table above: in
+  // reading order the seven Costs come out as one block, then a page number and
+  // a whole sidebar, THEN the events — so a cost-anchored parse gives seven
+  // empty rows and a last row full of page furniture. X-positions keep Cost /
+  // Event / Bonus on their own rows; rowStart then marks the real anchors.
   _entry("core/carousing-event", "CORE", "Carousing Event",
     { kind: "lookup", cols: 3, size: 7, labels: ["Cost", "Event", "Bonus"], dieIndexed: false,
-      rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+" }),
+      rowStart: "[\\d,]+\\s*gp", colLast: "\\+\\d+", extractCols: "layout" }),
   // Core Rulebook mix-and-match generators (roll each column, combine) — grid
   // splits deterministically to `cols` columns; cartesian-expanded at commit.
   // `reflow` splits a REFLOWED (single-spaced, PDF-copy) paste the aligned
