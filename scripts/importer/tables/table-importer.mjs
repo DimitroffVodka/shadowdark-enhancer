@@ -114,16 +114,29 @@ function computeWarnings(pt) {
 }
 
 /**
- * True for a warning that reports what the parser DID, not something wrong
- * with the table: an auto-repaired range, a rebuilt range set, or heading text
- * kept as the description. The table is complete either way, so these must not
- * count against correctness — a Western Reaches backgrounds paste that covered
- * all 100 faces was reported as broken purely because of the pre-row note.
+ * True for a warning that reports what the parser DID, not something wrong with
+ * the table. The table is complete either way, so these must not count against
+ * correctness — a Western Reaches backgrounds paste covering all 100 faces was
+ * reported as broken purely because of the pre-row note, and an Elf Trinket
+ * paste for the stripped-header note.
  *
- * Lives beside the code that pushes these strings so the two stay in step.
+ * From an audit of every `warnings.push` across the table parsers, the "what I
+ * did" family is:
+ *   Auto-fixed:…              a shared-start range typo repaired (:203)
+ *   Rebuilt …                 ranges rebuilt from descriptions (char-content-manifest)
+ *   Pre-row text kept …       heading lines kept as the description (:380)
+ *   Stripped N seed/caption…  seed/caption lines removed before parsing (importer-hub-paste)
+ *   Dropped probable page-number row …   a page number mistaken for a row
+ * Everything else names a real defect — gaps, overlaps, ragged columns, a row
+ * outside the die, a dropped OUT-OF-BOUNDS row (that one means content was
+ * removed and the die size is suspect, so it deliberately stays a defect).
+ *
+ * A new "what I did" note must be added here, or it will read as a defect.
+ * Lives beside the code pushing these strings so the two stay in step.
  */
 export function isInformationalWarning(w) {
-  return /^(Auto-fixed|Rebuilt|Pre-row text kept)\b/.test(String(w ?? ""));
+  return /^(Auto-fixed|Rebuilt|Pre-row text kept|Stripped \d+ seed|Dropped probable page-number)\b/
+    .test(String(w ?? ""));
 }
 
 /** [1,2,3,7,9,10] → "1-3, 7, 9-10". Keeps a long gap list readable. */
