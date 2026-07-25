@@ -28,6 +28,7 @@
 import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
 import { splitRawBlocks } from "../pdf-text-utils.mjs";
 import { columnManifestId } from "./table-manifest.mjs";
+import { sourceKey as _sourceKey, sourceLabel as _sourceLabel } from "../../shared/source-keys.mjs";
 
 // Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
 // treated as the plain number — the shape's size caps the die, so "14+" is row 14.
@@ -2277,8 +2278,8 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   const incomingSrc = pt.source
     ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
   if (existing && incomingSrc) {
-    const theirs = sourceKey(existing.flags?.["shadowdark-enhancer"]?.source);
-    const mine = sourceKey(incomingSrc);
+    const theirs = _sourceKey(existing.flags?.["shadowdark-enhancer"]?.source);
+    const mine = _sourceKey(incomingSrc);
     if (theirs && mine && theirs !== mine) {
       data.name = qualifyTableName(incomingSrc, data.name);
       existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
@@ -2716,31 +2717,14 @@ export const MANIFEST_INDEX_FIELDS = ["flags.shadowdark-enhancer.manifestId"];
  * @param {string} name
  * @returns {object|null}
  */
-/** Source spellings that mean the same book. The catalog says "pgwr", the
- *  char-content manifest "WR", the GM's Source box "Western Reaches". */
-const _SRC_KEY = {
-  core: "core", "core rulebook": "core",
-  cs1: "cs1", "cursed scroll 1": "cs1", "cursed scroll #1": "cs1",
-  cs2: "cs2", "cursed scroll 2": "cs2", "cursed scroll #2": "cs2",
-  cs3: "cs3", "cursed scroll 3": "cs3", "cursed scroll #3": "cs3",
-  cs4: "cs4", "cursed scroll 4": "cs4", "cursed scroll #4": "cs4",
-  cs5: "cs5", "cursed scroll 5": "cs5", "cursed scroll #5": "cs5",
-  cs6: "cs6", "cursed scroll 6": "cs6", "cursed scroll #6": "cs6",
-  wr: "wr", pgwr: "wr", gmgwr: "wr", "western reaches": "wr",
-};
-const _SRC_LABEL = {
-  core: "Core Rulebook", cs1: "Cursed Scroll #1", cs2: "Cursed Scroll #2",
-  cs3: "Cursed Scroll #3", cs4: "Cursed Scroll #4", cs5: "Cursed Scroll #5",
-  cs6: "Cursed Scroll #6", wr: "Western Reaches",
-};
-/** Normalize any spelling of a source to one key (unknown sources pass through). */
-export function sourceKey(src) {
-  const s = String(src ?? "").trim().toLowerCase();
-  return s ? (_SRC_KEY[s] ?? s) : null;
-}
+/** One canonical key per book, shared with the census (shared/source-keys.mjs)
+ *  so "pgwr", "Western Reaches", "Cursed Scroll 6" and "Cursed Scroll #6" can't
+ *  disagree about which book they mean. */
+export { sourceKey } from "../../shared/source-keys.mjs";
+
 /** Prefix a table name with its book, unless it already carries it. */
 export function qualifyTableName(src, name) {
-  const label = _SRC_LABEL[sourceKey(src)] ?? String(src ?? "").trim();
+  const label = _sourceLabel(src);
   if (!label) return name;
   return name.toLowerCase().startsWith(`${label.toLowerCase()} - `) ? name : `${label} - ${name}`;
 }

@@ -16,6 +16,7 @@
 
 import { parseClassSection, parseClassSupplement } from "./class-parser.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";   // source flags on imported tables
+import { charSourceKey } from "../../shared/source-keys.mjs";
 
 export const CHAR_SOURCES = {
   CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
@@ -673,15 +674,9 @@ function _tableHave(tablesPresent, want, src, tablesBySource) {
   return false;
 }
 
-/** Import-time `source` flag values → CHAR_SOURCES keys (the table catalog
- *  writes "core"/"cs6"/"pgwr"; the two WR guides both mean WR). */
-const _FLAG_SOURCES = {
-  core: "CORE", cs1: "CS1", cs2: "CS2", cs3: "CS3", cs4: "CS4", cs5: "CS5", cs6: "CS6",
-  pgwr: "WR", gmgwr: "WR", wr: "WR",
-};
 
-/** Known "<Source label> - " qualifiers that an import may carry (sourcedTableName). */
-const _SOURCE_LABELS = new Map(Object.entries(CHAR_SOURCES).map(([k, v]) => [_norm(v.label), k]));
+
+
 
 /**
  * Table names printed by MORE THAN ONE book (Carousing Event, Carousing
@@ -728,7 +723,7 @@ export function tableNameMatches(raw, want, src) {
   // it is — see _isContestedTable.
   if (src && _isContestedTable(w)) {
     if (!n.endsWith(`- ${w}`)) return false;
-    return _SOURCE_LABELS.get(n.slice(0, n.length - `- ${w}`.length).trim()) === src;
+    return charSourceKey(n.slice(0, n.length - `- ${w}`.length).trim()) === src;
   }
   if (n === w) return true;
   if (n.endsWith(`- ${w}`)) {
@@ -738,7 +733,7 @@ export function tableNameMatches(raw, want, src) {
     // Western Reaches' import — which is why WR's carousing tables were left out
     // of the manifest entirely. When the caller says which source it is asking
     // for, a DIFFERENT book's qualifier no longer counts.
-    const qualifier = _SOURCE_LABELS.get(n.slice(0, n.length - `- ${w}`.length).trim());
+    const qualifier = charSourceKey(n.slice(0, n.length - `- ${w}`.length).trim());
     if (!src || !qualifier || qualifier === src) return true;
   }
   if (anc) {
@@ -770,7 +765,7 @@ export async function gatherPresence() {
   const tablesPresent = new Set(game.tables.map((t) => _norm(t.name)));
   const tablesBySource = new Set();
   const stamp = (name, srcFlag) => {
-    const key = _FLAG_SOURCES[String(srcFlag ?? "").toLowerCase()];
+    const key = charSourceKey(srcFlag);
     if (key) tablesBySource.add(`${key}|${_norm(_tableProbeName(name))}`);
   };
   for (const t of game.tables) stamp(t.name, t.getFlag?.(MODULE_ID, "source"));

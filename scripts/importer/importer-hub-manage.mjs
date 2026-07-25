@@ -16,6 +16,8 @@ import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
+import { MODULE_ID } from "../shared/module-id.mjs";
+import { charSourceKey } from "../shared/source-keys.mjs";
 
 class HubManageMethods {
 
@@ -28,16 +30,27 @@ class HubManageMethods {
    *
    * @param {{name:string, type:string}} entry
    */
-  async _openManageEntry({ name, type }) {
+  async _openManageEntry({ name, type, src }) {
     if (!name) return;
     const isTable = type === "Table";
     // Name matching mirrors the census exactly: tableNameMatches for tables,
     // and for everything else the same nameVariants comparison gatherPresence
     // keys its presence set on — so "imported" and "openable" can't disagree.
     const want = new Set(nameVariants(name));
-    const matches = isTable
-      ? (candidate) => tableNameMatches(candidate, name)
-      : (candidate) => nameVariants(candidate).some((v) => want.has(v));
+    // Flag first, exactly like the census: a table stamped with this book and
+    // carrying this name IS the one, whatever it's called. Then fall back to the
+    // source-aware name match — which needs the book passed in, or the first
+    // "<Book> - Carousing Event" in the pack wins and Western Reaches' row opens
+    // Cursed Scroll #6's table. Core's copy is bare-named and only the flag
+    // finds it.
+    const flagOf = (d) => d?.getFlag?.(MODULE_ID, "source") ?? d?.flags?.[MODULE_ID]?.source ?? null;
+    const matches = (d) => {
+      const cname = d?.name ?? "";
+      if (!isTable) return nameVariants(cname).some((v) => want.has(v));
+      const flag = flagOf(d);
+      if (src && flag && charSourceKey(flag) === src && tableNameMatches(cname, name)) return true;
+      return tableNameMatches(cname, name, src || undefined);
+    };
 
     // Which collections to try, in order. Not every leaf stamps a type (boats
     // arrive with ""), so an unknown type sweeps all three rather than guessing
@@ -50,10 +63,13 @@ class HubManageMethods {
     const world = { Item: () => game.items, Actor: () => game.actors, RollTable: () => game.tables };
     for (const docName of order) {
       // World documents first — a GM editing content works on those.
-      const hit = world[docName]().find((d) => matches(d.name));
+      const hit = world[docName]().find(matches);
       if (hit) return hit.sheet.render(true);
       for (const pack of game.packs.filter((p) => p.documentName === docName)) {
-        const entry = pack.index.find((e) => matches(e.name));
+        // Ask for the source flag: the cached index carries names only, and the
+        // flag is what tells two books' same-named tables apart.
+        const index = await pack.getIndex({ fields: [`flags.${MODULE_ID}.source`] }).catch(() => pack.index);
+        const entry = [...index].find(matches);
         if (!entry) continue;
         const doc = await pack.getDocument(entry._id).catch(() => null);
         if (doc) return doc.sheet.render(true);

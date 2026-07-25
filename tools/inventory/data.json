@@ -104,6 +104,7 @@
     ],
     "3.2": [
       "scripts/shared/module-id.mjs",
+      "scripts/shared/source-keys.mjs",
       "scripts/shared/settings.mjs",
       "scripts/shared/icons.mjs",
       "scripts/shared/compendium-suite.mjs",
@@ -291,6 +292,7 @@
   "descriptions": {
     "scripts/shadowdark-enhancer.mjs": "**Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system.",
     "scripts/shared/module-id.mjs": "Single source of truth for the module ID (highest fan-in file: 58 importers).",
+    "scripts/shared/source-keys.mjs": "One canonical key per source book (core/cs1-6/wr) across every spelling.",
     "scripts/shared/settings.mjs": "All `game.settings.register` calls + migration-safe defaults.",
     "scripts/shared/icons.mjs": "Centralized icon registry — FontAwesome snippets and vendored SVG references.",
     "scripts/shared/compendium-suite.mjs": "Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers.",
