@@ -45,7 +45,36 @@ test("joins every kind of problem into one line", () => {
 test("says nothing when there is nothing structural to say", () => {
   assert.equal(summarizeStructuralWarnings([]), "");
   assert.equal(summarizeStructuralWarnings(), "");
-  // Auto-fix / rebuild notes are informational and never reach this helper,
-  // but an unrecognised string must not invent a problem either.
-  assert.equal(summarizeStructuralWarnings(["Auto-fixed: row 12 range 21-24 → 23-24."]), "");
+});
+
+// A seeded import runs the shape recipes in table-shapes.mjs, which report the
+// SAME defect in different words ("Roll 49: no row found." — :1335). Missing
+// this is what made the banner fall back to the vague wording on a real
+// Western Reaches backgrounds paste.
+test("understands the shape parser's wording for a missing roll", () => {
+  const w = [49, 97, 98, 99, 100].map(n => `Roll ${n}: no row found.`);
+  assert.equal(summarizeStructuralWarnings(w), "values 49, 97-100 have no row");
+});
+
+test("mixes both vocabularies into one list", () => {
+  assert.equal(
+    summarizeStructuralWarnings(["Roll 3: no row found.", "Value 5 has no row."]),
+    "values 3, 5 have no row",
+  );
+});
+
+test("reports rolls that fell outside the die", () => {
+  assert.equal(
+    summarizeStructuralWarnings(["Roll 21 is outside 1–20 — check the die size."]),
+    "roll 21 fell outside the die",
+  );
+});
+
+test("an unrecognised warning is quoted verbatim rather than dropped", () => {
+  // Guards the failure mode this helper shipped with: an unknown string made
+  // the summary empty, so the banner said nothing concrete.
+  assert.equal(
+    summarizeStructuralWarnings(["Lookup parse: 12 rows found, expected 20 — check the paste."]),
+    "Lookup parse: 12 rows found, expected 20 — check the paste",
+  );
 });

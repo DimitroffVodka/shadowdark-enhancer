@@ -139,11 +139,18 @@ function _asRanges(nums) {
  */
 export function summarizeStructuralWarnings(warnings = []) {
   const missing = [];
+  const outside = [];
   const overlaps = [];
   let reach = "";
   for (const w of warnings) {
-    let m = /^Value (\d+) has no row\.$/.exec(w);
+    // Two vocabularies reach here: computeWarnings above ("Value N has no
+    // row.") and the shape recipes in table-shapes.mjs, which say "Roll N: no
+    // row found." for the same defect. A seeded import runs the shape path, so
+    // missing BOTH is how this summary silently came back empty.
+    let m = /^Value (\d+) has no row\.$/.exec(w) ?? /^Roll (\d+): no row found\.$/.exec(w);
     if (m) { missing.push(Number(m[1])); continue; }
+    m = /^Roll (\d+) is outside 1[–-](\d+)/.exec(w);
+    if (m) { outside.push(Number(m[1])); continue; }
     m = /^Rows (\d+) and (\d+) overlap\.$/.exec(w);
     if (m) { overlaps.push(`${m[1]} and ${m[2]}`); continue; }
     m = /^Rows reach (\d+) but formula is (.+)\.$/.exec(w);
@@ -156,12 +163,20 @@ export function summarizeStructuralWarnings(warnings = []) {
       ? `value ${missing[0]} has no row`
       : `values ${_asRanges(missing)} have no row`);
   }
+  if (outside.length) {
+    outside.sort((a, b) => a - b);
+    parts.push(`${outside.length === 1 ? "roll" : "rolls"} ${_asRanges(outside)} fell outside the die`);
+  }
   if (overlaps.length) {
     parts.push(overlaps.length === 1
       ? `rows ${overlaps[0]} overlap`
       : `${overlaps.length} pairs of rows overlap`);
   }
   if (reach) parts.push(reach);
+  // Something is wrong but phrased in a way this helper doesn't know: say it
+  // verbatim rather than falling back to a vague "should be full die coverage".
+  // A new warning string anywhere still produces a concrete banner.
+  if (!parts.length && warnings.length) return String(warnings[0]).replace(/\.$/, "");
   return parts.join("; ");
 }
 
