@@ -89,6 +89,78 @@
   duplicate image appears; item drops the enhancer doesn't handle fall through
   untouched.
 
+### Added
+- **A new world's shop is stocked out of the box.** "The Merchant - Base" is
+  loaded as the live shop the first time a world loads, so the **Buy** tab has
+  the core gear in it before you configure anything. This happens once: a world
+  that already has stock is left alone, and once you've emptied or replaced the
+  shop it stays that way. Load either shipped merchant again whenever you like
+  from **Manage → Saved Merchants**.
+- **Gamble can roll on any table you own, not just world tables.** The source
+  picker now lists every roll table in the world *and* in every compendium —
+  including the suite's own `sde-tables` — grouped by where they live and
+  labelled with the package they came from. (The dead "Loot Level 1–10" options,
+  inherited from a loot generator this module has no equivalent for, are gone.)
+- **Table rows that print a family of objects now roll out to the actual
+  object.** A treasure row like *"Meteorite 1d4: 1. lute, 2. viol, 3. harp,
+  4. flute"* is not an item — it's a prefix plus a die that picks which item.
+  Both the Gamble and the Loot Generator now roll that die and hand over
+  *Meteorite harp* as a real treasure item. A comma before the die marks the
+  option as a property rather than the noun, matching how the books print it, so
+  *"Mithral Bottle, 1d4: 1. wine…"* gives *Mithral Bottle (wine)*.
+- **Double-click a book in Source PDFs to read it.** Every other Open-PDF button
+  needs a page cite, so the library itself — the one screen listing your books —
+  had no way to just open one. Now it opens at page one in Foundry's viewer.
+- **Source PDFs takes books that aren't Shadowdark's.** Pick **➕ Another book…**,
+  name it, upload: a third-party adventure, a homebrew supplement, anything you
+  want to read or pull text from inside Foundry. Your books sit in the library
+  beside the rest, open on double-click, and appear in **Extract from PDF**.
+  Re-uploading under the same name replaces that book rather than adding a
+  second; to remove one, delete its page from the **Shadowdark Source PDFs**
+  journal.
+- **Double-click anything in the Manage tree to open it.** An imported table,
+  item, class, monster or boat opens its own sheet, so the library is somewhere
+  you can actually reach your content from rather than a list to read.
+
+### Fixed
+- **Gambling on a table of text rows paid out nothing.** The gamble read each
+  drawn row through a field that is empty on tables which store their text the
+  way Foundry now expects, so every text row came through blank — no coins, and
+  no items at all. Rows are now folded into loot with **the Loot Generator's own
+  rules**, so a table gives the same thing however you roll it: linked items,
+  coins parsed out of currency rows, priced valuables fabricated as treasure,
+  and anything else printed on the card as what you rolled instead of a bare
+  *"No items"*.
+- **A gamble could charge for a table that no longer exists.** The table was
+  resolved *after* the cost was deducted, so a source pointing into an
+  uninstalled compendium took the player's gold and delivered nothing. The table
+  is resolved before any money moves, and a draw that fails refunds the cost.
+- **Gamble entries in the shop log wore the shopping cart.** They're logged as
+  purchases so the session recap still totals the spend, but the log now marks
+  them with dice. Existing log entries pick this up too.
+- **The importer's Tools menu was unreadable, then unreachable.** Each item's
+  hint overflowed its own button and was drawn on top of the next one, so
+  nothing looked like it belonged to anything; items now size to their content,
+  with the hint aligned under its own title and the PDF actions separated from
+  the backup pair. The menu was also clipped by the hub's scroll container
+  whenever the window was shorter than the menu — with Manage collapsed, the
+  bottom items simply vanished — so it now renders above everything, flipping
+  above the button when there's more room there.
+- **The Source PDFs window opened nearly as wide as the screen** (its widest
+  line was a long PDF filename). It opens at a sane width, is resizable, and
+  each book's filename sits under its name instead of stretching the window.
+- **The importer's "should be full die coverage" warning cried wolf, and said
+  nothing useful when it didn't.** A complete table was reported as broken
+  because the parser had noted what it did with the paste's heading lines —
+  those notes no longer count against correctness. When something *is* wrong the
+  banner now names it: *"values 49, 97-100 have no row"*, *"rows 3 and 4
+  overlap"* — rather than a fixed phrase sitting next to a row count that looks
+  perfectly correct.
+
+### Changed
+- **The Party XP window's Label field lost its "(shown on the chat card)"
+  hint** — the chat card shows it, which the card itself makes obvious.
+
 ## [0.12.0] — 2026-07-22
 
 ### Added
