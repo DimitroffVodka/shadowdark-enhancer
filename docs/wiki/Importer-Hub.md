@@ -182,6 +182,14 @@ Manage them from the hub's Tools menu → **Source PDFs**. **Double-click any
 linked book there to open it** at page one, for when you just want to read it
 rather than jump to a cite — the rest of the Open-PDF buttons all need a page.
 
+![The Source PDFs library — each book with the file linked to it, and the Book
+selector set to "Another book…" with its name field showing](images/source-pdf.png)
+
+Each row is a book and the file currently linked to it. `(default path)` means
+the module's expected filename, checked and found, rather than something you
+uploaded; when that file isn't there the row says **file not found** and asks
+you to upload your copy.
+
 ### Books that aren't Shadowdark's
 
 The list starts with the Core Rulebook, Western Reaches and Cursed Scroll 1–6,
