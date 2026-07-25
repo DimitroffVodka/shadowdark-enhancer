@@ -656,16 +656,26 @@
   {{#if importData.hasGenerators}}
   <section class="sde-hub-import-section">
     <div class="sde-hub-import-sechead">
-      <span class="sde-hub-import-sectitle"><i class="fas fa-dice-d6"></i> Generators ({{importData.generatorsCount}})</span>
+      <span class="sde-hub-import-sectitle"><i class="fas fa-dice-d6"></i>
+        {{#if importData.cartesianMode}}Cartesian tables{{else}}Generators{{/if}} ({{importData.generatorsCount}})</span>
       <button type="button" data-action="hubCommitGenerators" class="sde-import-primary sde-hub-import-secbtn">
-        <i class="fas fa-dice-d6"></i> Create generators
+        <i class="fas fa-dice-d6"></i> {{#if importData.cartesianMode}}Create tables{{else}}Create generators{{/if}}
       </button>
     </div>
+    {{#if importData.cartesianMode}}
+    <p class="sde-import-note">
+      <i class="fas fa-circle-info"></i> Every column combination is <strong>spelled out</strong> into one
+      long, fully-visible table — <strong>{{importData.cartesianTotal}} rows</strong> in total, rolled with a
+      single die. The grid below is what you're combining, not what gets created; each generator's own row
+      count is shown beside its name. Nothing is hidden, so you can read and edit every result afterwards.
+    </p>
+    {{else}}
     <p class="sde-import-note">
       <i class="fas fa-circle-info"></i> A generator rolls <strong>every column once</strong> and joins the
       cells in order. Each grid row is a die face; each column is rolled independently. Fix any flagged
       cells below, then Create — roll it from the table sheet or Roll Tables directory.
     </p>
+    {{/if}}
     <div class="sde-import-preview">
       {{#each importData.generators as |gen|}}
       <div class="sde-import-gen" data-gen-idx="{{gen.idx}}">
@@ -679,6 +689,12 @@
           </label>
           <button type="button" data-action="hubCommitGenerators" class="sde-import-primary"><i class="fas fa-plus"></i> Create</button>
         </div>
+        {{#if gen.isCartesian}}
+        <p class="sde-import-cartesian-note">
+          <i class="fas fa-table-cells"></i> Expands to <strong>{{gen.expandRowsLabel}} rows</strong>
+          ({{gen.expandMath}}), rolled as <strong>{{gen.expandFormula}}</strong> — one row per combination.
+        </p>
+        {{/if}}
         {{#if gen.hasWarnings}}
         <ul class="sde-import-warnings">{{#each gen.warnings as |w|}}<li>{{w}}</li>{{/each}}</ul>
         {{/if}}

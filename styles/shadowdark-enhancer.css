@@ -5226,6 +5226,15 @@ body.theme-light .sde-hub-monsters-row td {
   margin: 0;
 }
 .sde-import-note i { opacity: 0.7; margin-right: 0.25rem; }
+/* Per-generator Cartesian line: says what committing actually creates, since
+   the grid above it is the INPUT columns, not the expanded table. */
+.sde-import-cartesian-note {
+  font-family: var(--sde-bar-font);
+  font-size: 0.78rem;
+  color: var(--sde-bar-accent, #d9b45b);
+  margin: 2px 0 4px;
+}
+.sde-import-cartesian-note i { opacity: 0.8; margin-right: 0.25rem; }
 .sde-thub-missing-note {
   opacity: 0.9;
   border-left: 3px solid var(--sde-init, #c8a13a);

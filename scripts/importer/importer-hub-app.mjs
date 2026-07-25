@@ -377,6 +377,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           }),
         });
       }
+      // A Cartesian import expands to the full cross-product at commit — one
+      // flat table rolled with a single die — which is the OPPOSITE of the
+      // roll-each-column generator this preview is otherwise describing. Work
+      // out what it will actually create so the UI can say so before commit.
+      const isCartesian = g.expand === "cartesian";
+      const perColumn = cols
+        .map((c) => (c.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0))
+        .filter((n) => n > 0);
+      const expandRows = perColumn.length ? perColumn.reduce((a, n) => a * n, 1) : 0;
       return {
         idx: i,
         name: g.name,
@@ -387,6 +396,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         faces,
         warnings: g.warnings ?? [],
         hasWarnings: (g.warnings?.length ?? 0) > 0,
+        isCartesian,
+        expandRows,
+        expandRowsLabel: expandRows.toLocaleString(),
+        expandMath: perColumn.join(" × "),
+        expandFormula: `1d${expandRows}`,
       };
     });
 
@@ -401,6 +415,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasTables   = this._importTables.length > 0;
     const hasBoats    = importBoatCards.length > 0;
     const hasGenerators = importGenerators.length > 0;
+    // Cartesian and Compound share one preview; the wording has to follow the
+    // parse that produced it, not the section it lives in.
+    const cartesianMode = importGenerators.some((g) => g.isCartesian);
+    const cartesianTotal = importGenerators
+      .reduce((a, g) => a + (g.isCartesian ? g.expandRows : 0), 0).toLocaleString();
     const showImportAll = [hasMonsters, hasItems, hasSpells, hasTables].filter(Boolean).length > 1;
 
     const t = this._importType;
@@ -595,6 +614,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       spellsCount: importSpellCards.length,
       tablesCount: this._importTables.length,
       generatorsCount: importGenerators.length,
+      cartesianMode,
+      cartesianTotal,
       // Option lists
       itemTypeOptions: ["Basic", "Weapon", "Armor", "Potion", "Scroll", "Wand"],
       spellRanges: ["self", "touch", "close", "near", "doubleNear", "far"],
