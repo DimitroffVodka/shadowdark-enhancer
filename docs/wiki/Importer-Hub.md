@@ -178,7 +178,9 @@ You can register **your own uploaded PDF** for each book. Once registered:
 
 Your PDFs stay in your world. **Nothing leaves your machine.**
 
-Manage them from the hub's Tools menu → **Source PDFs**.
+Manage them from the hub's Tools menu → **Source PDFs**. **Double-click any
+linked book there to open it** at page one, for when you just want to read it
+rather than jump to a cite — the rest of the Open-PDF buttons all need a page.
 
 ---
 
