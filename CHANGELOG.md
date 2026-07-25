@@ -173,12 +173,21 @@
   (pg 28 / 29), each with the parsing recipe its layout needs — WR and CS6 print
   a ten-row Event table (30 gp → 4,000 gp) where Core prints seven.
 
-  One consequence worth knowing: for a table name that several books print, a
-  copy carrying **no** book name in it can't be attributed to any of them, so it
-  no longer counts as imported anywhere. Imports have carried their book name for
-  a long time (*"Western Reaches - Carousing Event"*), so this only affects older
-  bare copies — re-import it, or rename it to `<Book> - <Table>`, and its row
-  lights up. Tables only one book prints are unaffected.
+  Which book a table came from is read from the **flag stamped on it at import**,
+  not from its name, so a table you imported before any of this still counts for
+  its own book however it's named. Only a table with no flag *and* a name several
+  books share can't be attributed — rename it `<Book> - <Table>` or re-import it.
+- **Importing a table two books both print offered to replace the other book's
+  copy.** Sixty-seven catalog entries share a name with another entry —
+  *Carousing Event* is in three books, *Rumors* in all seven, and Core alone
+  prints *Wealth* twice (NPCs, Rival Crawlers). Every one was created under the
+  bare printed name, so the second import landed on the first's table and the
+  commit dialog asked whether to **replace** it. Say yes and one book's rows
+  overwrote another's. Each now imports under a name that identifies it —
+  *"Western Reaches - Carousing Event"*, *"Cursed Scroll #1 - The Gloaming
+  Rumors"*, *"Core Rulebook - NPC Wealth"* — gaining only as much as it needs to
+  be distinct, and the conflict check no longer treats a different book's table
+  as the one you're importing. Names no other entry uses are untouched.
 - **The Core Rulebook's Carousing Event table imported as seven empty rows.**
   Its Cost column comes out of the PDF as one block, separated from the events
   by a page number and an entire sidebar, so a cost-anchored parse produced

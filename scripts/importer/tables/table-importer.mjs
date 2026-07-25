@@ -2703,11 +2703,18 @@ export const MANIFEST_INDEX_FIELDS = ["flags.shadowdark-enhancer.manifestId"];
  */
 export function findExistingByManifestOrName(index, manifestId, name) {
   const list = Array.isArray(index) ? index : [...(index ?? [])];
+  const idOf = (e) => e?.flags?.["shadowdark-enhancer"]?.manifestId ?? null;
   if (manifestId) {
-    const byId = list.find((e) => e?.flags?.["shadowdark-enhancer"]?.manifestId === manifestId);
+    const byId = list.find((e) => idOf(e) === manifestId);
     if (byId) return byId;
   }
-  return list.find((e) => e?.name === name) ?? null;
+  const byName = list.find((e) => e?.name === name) ?? null;
+  // Seventeen table names are printed by more than one book ("Carousing Event"
+  // in three, "Rumors" in all seven). A same-named table that is a DIFFERENT
+  // manifest entry is another book's table, not this one — treating it as the
+  // conflict offered to replace Core's copy with Western Reaches' rows.
+  if (byName && manifestId && idOf(byName) && idOf(byName) !== manifestId) return null;
+  return byName;
 }
 
 /**

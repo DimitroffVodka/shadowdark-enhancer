@@ -115,6 +115,50 @@ export function sources() {
   return [...new Set(TABLE_MANIFEST.map(e => e.source))];
 }
 
+/**
+ * Import names, keyed by entry id.
+ *
+ * Dozens of catalog names repeat — "Carousing Event" in three books, "Rumors"
+ * in all seven, and some WITHIN one book ("Wealth" twice in Core, once for NPCs
+ * and once for Rival Crawlers). Importing the second one landed on the first's
+ * name, so the commit offered to REPLACE a table it had nothing to do with.
+ *
+ * A name nobody else uses is left exactly as the book prints it — qualifying
+ * everything would rename hundreds of existing imports for no reason. A
+ * repeated one gains just enough to be unique, in order: its book, then the
+ * sub-section it sits under, then its category. The last resort appends the
+ * entry id, so the result is unique by construction rather than by hope
+ * (asserted over the whole manifest in test/table-shared-names.test.mjs).
+ */
+let _importNames = null;
+function _computeImportNames() {
+  const byName = new Map();
+  for (const e of TABLE_MANIFEST) {
+    if (!byName.has(e.name)) byName.set(e.name, []);
+    byName.get(e.name).push(e);
+  }
+  const book = (e) => e.sourceLabel || sourceShort(e.source) || "";
+  const levels = [
+    (e) => `${book(e)} - ${e.name}`,
+    (e) => `${book(e)} - ${e.sub ? `${e.sub} ` : ""}${e.name}`,
+    (e) => `${book(e)} - ${e.sub ? `${e.sub} ` : ""}${e.name}${e.category ? ` (${e.category})` : ""}`,
+  ];
+  const out = new Map();
+  for (const [name, peers] of byName) {
+    if (peers.length === 1) { out.set(peers[0].id, name); continue; }
+    const fit = levels.find((fmt) => new Set(peers.map(fmt)).size === peers.length);
+    for (const e of peers) out.set(e.id, fit ? fit(e) : `${levels[2](e)} [${e.id}]`);
+  }
+  return out;
+}
+
+/** The name an entry should be CREATED under — see _computeImportNames. */
+export function importNameFor(entry) {
+  if (!entry?.name) return "";
+  if (!_importNames) _importNames = _computeImportNames();
+  return _importNames.get(entry.id) ?? entry.name;
+}
+
 /** Distinct categories, in first-seen order. */
 export function categories() {
   return [...new Set(TABLE_MANIFEST.map(e => e.category))];

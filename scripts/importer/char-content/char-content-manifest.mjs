@@ -15,6 +15,7 @@
  */
 
 import { parseClassSection, parseClassSupplement } from "./class-parser.mjs";
+import { MODULE_ID } from "../../shared/module-id.mjs";   // source flags on imported tables
 
 export const CHAR_SOURCES = {
   CORE: { label: "Core Rulebook", book: "Shadowdark RPG" },
@@ -665,10 +666,19 @@ const _tableProbeName = (name) => stripRepPrefix(name);
  *  source-qualified "Character Names: … <Ancestry>" table exists. The source
  *  qualifier is required — a bare "Character Names: <Ancestry>" (the core
  *  system table) must NOT satisfy a WR ancestry gap. */
-function _tableHave(tablesPresent, want, src) {
+function _tableHave(tablesPresent, want, src, tablesBySource) {
+  // A table stamped with this book satisfies it outright — no name guessing.
+  if (src && tablesBySource?.has(`${src}|${_norm(_tableProbeName(want))}`)) return true;
   for (const raw of tablesPresent) if (tableNameMatches(raw, want, src)) return true;
   return false;
 }
+
+/** Import-time `source` flag values → CHAR_SOURCES keys (the table catalog
+ *  writes "core"/"cs6"/"pgwr"; the two WR guides both mean WR). */
+const _FLAG_SOURCES = {
+  core: "CORE", cs1: "CS1", cs2: "CS2", cs3: "CS3", cs4: "CS4", cs5: "CS5", cs6: "CS6",
+  pgwr: "WR", gmgwr: "WR", wr: "WR",
+};
 
 /** Known "<Source label> - " qualifiers that an import may carry (sourcedTableName). */
 const _SOURCE_LABELS = new Map(Object.entries(CHAR_SOURCES).map(([k, v]) => [_norm(v.label), k]));
@@ -753,11 +763,24 @@ export async function gatherPresence() {
   }
   for (const i of game.items) { for (const v of nameVariants(i.name)) { present.add(`${i.type}:${v}`); presentNames.add(v); } }
 
+  // Tables carry the book they came from as a flag (`source`, stamped at
+  // import). That is far better evidence than the name — a table named
+  // "Carousing Event" flagged `core` IS Core's, whatever three books call
+  // theirs — so collect both and let the flag win in _tableHave.
   const tablesPresent = new Set(game.tables.map((t) => _norm(t.name)));
+  const tablesBySource = new Set();
+  const stamp = (name, srcFlag) => {
+    const key = _FLAG_SOURCES[String(srcFlag ?? "").toLowerCase()];
+    if (key) tablesBySource.add(`${key}|${_norm(_tableProbeName(name))}`);
+  };
+  for (const t of game.tables) stamp(t.name, t.getFlag?.(MODULE_ID, "source"));
   for (const pack of game.packs.filter((p) => p.documentName === "RollTable")) {
-    for (const e of await pack.getIndex()) tablesPresent.add(_norm(e.name));
+    for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.source`] })) {
+      tablesPresent.add(_norm(e.name));
+      stamp(e.name, e.flags?.[MODULE_ID]?.source);
+    }
   }
-  return { present, presentNames, tablesPresent };
+  return { present, presentNames, tablesPresent, tablesBySource };
 }
 
 /**
@@ -769,7 +792,7 @@ export async function gatherPresence() {
  * @returns {Promise<Array<{src:string, type:string, name:string, present:boolean, pages:string}>>}
  */
 export async function gatherCharContentEntries(presence) {
-  const { present, tablesPresent } = presence ?? await gatherPresence();
+  const { present, tablesPresent, tablesBySource } = presence ?? await gatherPresence();
   const out = [];
   for (const [src, byType] of Object.entries(MANIFEST)) {
     for (const [type, names] of Object.entries(byType)) {
@@ -778,7 +801,7 @@ export async function gatherCharContentEntries(presence) {
           src, type, name,
           // Tables live in the RollTable pack, not the Item packs — check them
           // via the table-presence set (suffix match), like the WR ancestry tables.
-          present: type === "Table" ? _tableHave(tablesPresent, name, src) : nameVariants(name).some((v) => present.has(`${type}:${v}`)),
+          present: type === "Table" ? _tableHave(tablesPresent, name, src, tablesBySource) : nameVariants(name).some((v) => present.has(`${type}:${v}`)),
           // Explicit cite first (item/table/type maps), else lift a "…pNNN…"
           // page embedded in the name (CORE/CS1-3 table entries carry it there).
           pages: ITEM_PAGES[src]?.[name] ?? TABLE_PAGES[src]?.[name] ?? TYPE_PAGES[src]?.[type] ?? _pageFromName(name),
@@ -787,7 +810,7 @@ export async function gatherCharContentEntries(presence) {
     }
     if (src === "WR") {
       for (const t of ANCESTRY_TABLES) {
-        out.push({ src, type: "Table", name: t.name, present: _tableHave(tablesPresent, t.name, src), pages: t.pages });
+        out.push({ src, type: "Table", name: t.name, present: _tableHave(tablesPresent, t.name, src, tablesBySource), pages: t.pages });
       }
     }
   }

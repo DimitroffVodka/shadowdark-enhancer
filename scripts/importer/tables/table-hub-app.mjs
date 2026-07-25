@@ -17,7 +17,7 @@ import { TableHub } from "./table-hub.mjs";
 import { TableImporter } from "./table-importer.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
-import { findById, formulaFromDie, isMatrix, columnManifestId } from "./table-manifest.mjs";
+import { findById, formulaFromDie, isMatrix, columnManifestId, importNameFor } from "./table-manifest.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -312,7 +312,9 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const entry = findById(target?.dataset?.id);
     if (!entry) return;
     this._importSeed = {
-      name: entry.name,
+      // Qualified when several books print this name, so importing WR's copy
+      // can't land on Core's table (importNameFor).
+      name: importNameFor(entry),
       die: entry.die,
       page: entry.page,
       formula: formulaFromDie(entry.die),
