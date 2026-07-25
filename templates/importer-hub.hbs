@@ -37,7 +37,9 @@
       Parsed "{{importData.seedResult.name}}": {{importData.seedResult.rows}} rows on {{importData.seedResult.formula}} — correct. Review below, then Create tables.</span>
     {{else}}
     <span class="sde-thub-stat miss"><i class="fas fa-triangle-exclamation"></i>
-      Parsed {{importData.seedResult.rows}} rows on {{importData.seedResult.formula}}, but "{{importData.seedResult.name}}" should be {{importData.seedResult.expected}} — check the paste for missing lines.</span>
+      Parsed {{importData.seedResult.rows}} rows on {{importData.seedResult.formula}} for "{{importData.seedResult.name}}" —
+      {{#if importData.seedResult.problem}}{{importData.seedResult.problem}}. Check the paste for those lines; the rows are flagged on the card below.
+      {{else}}it should be {{importData.seedResult.expected}} — check the paste for missing lines.{{/if}}</span>
     {{/if}}
     {{/if}}
   </div>

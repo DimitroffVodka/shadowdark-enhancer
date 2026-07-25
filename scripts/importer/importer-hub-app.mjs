@@ -18,6 +18,7 @@
  */
 import { npcMoveKeys } from "../monster-creator/npc-moves.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./tables/table-categories.mjs";
+import { summarizeStructuralWarnings } from "./tables/table-importer.mjs";
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
@@ -429,8 +430,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // Names tables additionally have a known-correct shape: 100 on 1d100.
         const isNames = /\bnames$/i.test(this._importSeed.name ?? "");
         const ok = structural.length === 0 && (!isNames || (rows === 100 && t.formula === "1d100"));
+        // Say WHICH values are missing. A row count that looks right ("96 rows
+        // on 1d100") next to "should be full die coverage" reads as a bug in the
+        // importer; naming the gap points at the paste instead.
         return { name: t.name, formula: t.formula, rows, ok,
-          expected: isNames ? "100 rows on 1d100" : "full die coverage — see the warnings on the card" };
+          problem: summarizeStructuralWarnings(structural),
+          expected: isNames ? "100 rows on 1d100" : "full die coverage" };
       })(),
       // Type selector — the single "what am I importing" control. Parse-in-
       // place types are grouped first; the two guided workspaces (Spells,

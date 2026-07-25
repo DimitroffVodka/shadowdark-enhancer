@@ -113,6 +113,58 @@ function computeWarnings(pt) {
   return warnings;
 }
 
+/** [1,2,3,7,9,10] → "1-3, 7, 9-10". Keeps a long gap list readable. */
+function _asRanges(nums) {
+  const out = [];
+  for (let i = 0; i < nums.length; i++) {
+    const start = nums[i];
+    while (i + 1 < nums.length && nums[i + 1] === nums[i] + 1) i++;
+    out.push(start === nums[i] ? `${start}` : `${start}-${nums[i]}`);
+  }
+  return out.join(", ");
+}
+
+/**
+ * One-line, human summary of what is structurally wrong with a parsed table.
+ *
+ * Built by reading the very strings `computeWarnings` produces above — kept
+ * adjacent to it deliberately, so a change to those strings is staring at
+ * whoever edits them. The Importer Hub's seed banner used to say only
+ * "should be full die coverage", which reads as nonsense next to a row count
+ * that looks right ("96 rows on 1d100"): the count is not the test, coverage
+ * is, and this says which values are actually missing.
+ *
+ * @param {string[]} warnings from `computeWarnings`
+ * @returns {string} "" when nothing structural is wrong
+ */
+export function summarizeStructuralWarnings(warnings = []) {
+  const missing = [];
+  const overlaps = [];
+  let reach = "";
+  for (const w of warnings) {
+    let m = /^Value (\d+) has no row\.$/.exec(w);
+    if (m) { missing.push(Number(m[1])); continue; }
+    m = /^Rows (\d+) and (\d+) overlap\.$/.exec(w);
+    if (m) { overlaps.push(`${m[1]} and ${m[2]}`); continue; }
+    m = /^Rows reach (\d+) but formula is (.+)\.$/.exec(w);
+    if (m) reach = `rows reach ${m[1]} but the formula is ${m[2]}`;
+  }
+  const parts = [];
+  if (missing.length) {
+    missing.sort((a, b) => a - b);
+    parts.push(missing.length === 1
+      ? `value ${missing[0]} has no row`
+      : `values ${_asRanges(missing)} have no row`);
+  }
+  if (overlaps.length) {
+    parts.push(overlaps.length === 1
+      ? `rows ${overlaps[0]} overlap`
+      : `${overlaps.length} pairs of rows overlap`);
+  }
+  if (reach) parts.push(reach);
+  return parts.join("; ");
+}
+
 /**
  * Repair shared-start range typos before warnings run. When a row's low bound
  * equals the PREVIOUS row's low bound and its high bound is greater — e.g.
