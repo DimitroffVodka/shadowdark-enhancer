@@ -72,19 +72,24 @@
     {{!-- Tools: the power-user / one-time-setup actions, tucked away --}}
     <details class="sde-hub-tools">
       <summary class="sde-import-secondary"><i class="fas fa-toolbox"></i> Tools</summary>
+      {{!-- Two groups: working with your book PDFs, then whole-suite backup. --}}
       <div class="sde-hub-tools-menu">
-        <button type="button" data-action="hubManageSourcePdfs"
-                title="Upload your own PDFs of the Shadowdark books. Each is linked to a source so the Open-PDF buttons jump to the cited page. Files stay in your world.">
-          <i class="fas fa-file-pdf"></i> Source PDFs<small>Upload &amp; link your book PDFs</small></button>
-        <button type="button" data-action="hubExtractPdf"
-                title="Pull clean, reading-ordered text out of one of your uploaded books (any page or range) straight into the paste box.">
-          <i class="fas fa-wand-magic-sparkles"></i> Extract from PDF<small>Pull a page's text into the box</small></button>
-        <button type="button" data-action="hubExportBundle"
-                title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle.">
-          <i class="fas fa-file-export"></i> Export bundle<small>Back up the whole suite to a file</small></button>
-        <button type="button" data-action="hubImportBundle"
-                title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
-          <i class="fas fa-file-arrow-up"></i> Import bundle<small>Restore a suite from a file</small></button>
+        <div class="sde-hub-tools-group">
+          <button type="button" data-action="hubManageSourcePdfs"
+                  title="Upload your own PDFs of the Shadowdark books. Each is linked to a source so the Open-PDF buttons jump to the cited page. Files stay in your world.">
+            <i class="fas fa-file-pdf"></i><span>Source PDFs</span><small>Upload &amp; link your book PDFs</small></button>
+          <button type="button" data-action="hubExtractPdf"
+                  title="Pull clean, reading-ordered text out of one of your uploaded books (any page or range) straight into the paste box.">
+            <i class="fas fa-wand-magic-sparkles"></i><span>Extract from PDF</span><small>Pull a page's text into the box</small></button>
+        </div>
+        <div class="sde-hub-tools-group">
+          <button type="button" data-action="hubExportBundle"
+                  title="Download all imported content (every Shadowdark Enhancer compendium pack) as one JSON bundle.">
+            <i class="fas fa-file-export"></i><span>Export bundle</span><small>Back up the whole suite to a file</small></button>
+          <button type="button" data-action="hubImportBundle"
+                  title="Import a bundle file into this world's compendium packs. Existing documents are never overwritten.">
+            <i class="fas fa-file-arrow-up"></i><span>Import bundle</span><small>Restore a suite from a file</small></button>
+        </div>
       </div>
     </details>
   </div>
