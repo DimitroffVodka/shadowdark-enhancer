@@ -16,6 +16,13 @@ import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
   addToPurse, spendFromPurse, parseCoinsFromText,
 } from "../shared/coins.mjs";
+// Gamble folds a drawn table into loot with the Loot Generator's rules, so the
+// same table yields the same loot however it is rolled.
+import { resultUuid, resultText } from "../loot/loot-generator.mjs";
+import { LootLinker } from "../loot/loot-linker.mjs";
+import {
+  isCoinEntry, parseValue, stripPrice, isDeferredType, fabricateTreasureItem,
+} from "../loot/loot-pack.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -942,6 +949,81 @@ export const MerchantShop = {
 
   // ── Gamble handler (GM-side) ────────────────────────────────────────────
 
+  /**
+   * Fold drawn TableResults into `{ currency, items, notes }`, recursing into
+   * sub-tables.
+   *
+   * Row reading is the Loot Generator's `resultUuid`/`resultText`, and TEXT
+   * rows follow its classification (coins → link to a real item → fabricate a
+   * priced treasure item → flavor note), so a table gambled on and the same
+   * table rolled for loot produce the same thing.
+   *
+   * The old inline version read `r.text ?? r.description ?? r.name`. On v13+
+   * `text` is a deprecation shim for `description`, which is `""` on tables
+   * that (correctly) store row text in `name` — and `??` does not fall through
+   * an empty string, so every TEXT row was read as blank: no coins, no items,
+   * "No items" on the card.
+   *
+   * @param {TableResult[]} results
+   * @param {{currency:object, items:object[], notes:string[]}} out — mutated
+   * @param {object[]} itemIndex — from `LootLinker.buildItemIndex()`
+   * @param {number} [depth] — sub-table recursion guard
+   */
+  async _collectGambleLoot(results, out, itemIndex, depth = 0) {
+    for (const r of results) {
+      const uuid = resultUuid(r);
+      if (uuid) {
+        const doc = await fromUuid(uuid).catch(() => null);
+        if (!doc) continue;
+        if (doc instanceof RollTable) {
+          if (depth >= 3) continue;   // a table that chains back into itself
+          const sub = await doc.draw({ displayChat: false, resetTable: false });
+          await this._collectGambleLoot(sub.results, out, itemIndex, depth + 1);
+        } else {
+          out.items.push(doc.toObject());
+        }
+        continue;
+      }
+
+      const text = resultText(r);
+      if (!text) continue;
+
+      // Pure currency ("10 cp in a greasy pouch") — but NOT a priced object
+      // ("Silver tooth (1 gp)"), which is loot worth that much, not coins.
+      if (isCoinEntry(text)) {
+        const c = parseValue(text);
+        out.currency.gp += c.gp; out.currency.sp += c.sp; out.currency.cp += c.cp;
+        continue;
+      }
+
+      // Names real gear → hand over that item.
+      const link = LootLinker.findLink(text, itemIndex);
+      if (link) {
+        const doc = await fromUuid(link.uuid).catch(() => null);
+        if (doc) { out.items.push(doc.toObject()); continue; }
+      }
+
+      // A priced valuable (or a scroll/wand/+N) → fabricate the treasure item.
+      const value = parseValue(text);
+      const deferred = isDeferredType(text);
+      if (value.gp || value.sp || value.cp || deferred) {
+        out.items.push(fabricateTreasureItem({
+          name: stripPrice(text), value, needsRefinement: deferred,
+        }));
+        continue;
+      }
+
+      // Word-form coins ("3 Gold") that the gp/sp/cp matcher above misses.
+      const worded = _parseCoinsFromText(text);
+      if (worded.gp || worded.sp || worded.cp) {
+        out.currency.gp += worded.gp; out.currency.sp += worded.sp; out.currency.cp += worded.cp;
+        continue;
+      }
+
+      out.notes.push(text);   // flavor — shown on the card, no item created
+    }
+  },
+
   async _handleGamble(data) {
     const { buyerActorId, gambleId, userId } = data;
     const buyer = this._resolveOwnedActor(buyerActorId, userId);
@@ -991,38 +1073,12 @@ export const MerchantShop = {
     });
 
     // Roll loot from the configured source
-    const result = { currency: { gp: 0, sp: 0, cp: 0 }, items: [] };
-    const addCurrency = (c) => {
-      result.currency.gp += c.gp; result.currency.sp += c.sp; result.currency.cp += c.cp;
-    };
+    const result = { currency: { gp: 0, sp: 0, cp: 0 }, items: [], notes: [] };
 
     try {
+      const itemIndex = await LootLinker.buildItemIndex();
       const draw = await table.draw({ displayChat: false, resetTable: false });
-      // Process table results into currency + items
-      for (const r of draw.results) {
-        if (r.documentUuid) {
-          const doc = await fromUuid(r.documentUuid);
-          if (doc) {
-            if (doc instanceof RollTable) {
-              // Sub-table: draw from it too
-              const subDraw = await doc.draw({ displayChat: false, resetTable: false });
-              for (const sr of subDraw.results) {
-                if (sr.documentUuid) {
-                  const sdoc = await fromUuid(sr.documentUuid);
-                  if (sdoc && !(sdoc instanceof RollTable)) result.items.push(sdoc.toObject());
-                } else {
-                  addCurrency(_parseCoinsFromText(sr.text ?? sr.description ?? sr.name));
-                }
-              }
-            } else {
-              result.items.push(doc.toObject());
-            }
-          }
-        } else {
-          // Text/flavor result — pull any coin reward out of it.
-          addCurrency(_parseCoinsFromText(r.text ?? r.description ?? r.name));
-        }
-      }
+      await this._collectGambleLoot(draw.results, result, itemIndex);
     } catch (err) {
       // The draw blew up after the player paid — give the coins back rather
       // than pocketing them, then report it.
@@ -1057,6 +1113,7 @@ export const MerchantShop = {
     if (result.currency.sp) lootParts.push(`${result.currency.sp} Silver`);
     if (result.currency.cp) lootParts.push(`${result.currency.cp} Copper`);
     for (const it of result.items) lootParts.push(it.name);
+    lootParts.push(...result.notes);
     const lootDesc = lootParts.join(", ") || "nothing";
     const costDisplay = _formatPrice(option.cost);
 
@@ -1080,8 +1137,13 @@ export const MerchantShop = {
       return `<strong>${esc(it.name)}</strong>${valStr}`;
     }).join("<br>");
 
+    // Flavor rows that named no item and no coins — still what they rolled, so
+    // show it rather than the bare "No items" the card used to fall back to.
+    const noteLines = result.notes.map(n => `<em>${esc(n)}</em>`).join("<br>");
+    const bodyLines = [itemLines, noteLines].filter(Boolean).join("<br>");
+
     const currLine = (result.currency.gp || result.currency.sp || result.currency.cp)
-      ? `<br><i class="fas fa-coins"></i> ${lootParts.filter(p => p.match(/Gold|Silver|Copper/)).join(", ")}`
+      ? `<br><i class="fas fa-coins"></i> ${lootParts.filter(p => p.match(/^\d+ (?:Gold|Silver|Copper)$/)).join(", ")}`
       : "";
 
     await ChatMessage.create({
@@ -1102,7 +1164,7 @@ export const MerchantShop = {
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 8px;">
-              <p>${itemLines || "<em>No items</em>"}${currLine}</p>
+              <p>${bodyLines || "<em>No items</em>"}${currLine}</p>
             </div>
           </section>
         </div>

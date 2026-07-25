@@ -93,8 +93,20 @@ Save your own configurations alongside them.
 
 Off by default. Tick **Allow players to gamble on loot tables** on the Manage
 tab, then add options: a display name, a roll table, and a gold cost. Players
-pay the cost and get whatever the table rolls — items are created on their
-sheet, coin results are parsed out of the result text and added to their purse.
+pay the cost and get whatever the table rolls.
+
+A drawn row is turned into loot with **the same rules the
+[Loot Generator](Loot-and-Treasure.md) uses**, so a table gives the same thing
+however you roll it:
+
+| The row | What the player gets |
+|---|---|
+| A linked item | That item, on their sheet |
+| A linked table | Rolled too, up to three levels deep |
+| Currency text (`10 cp in a greasy pouch`) | Coins in their purse |
+| Text naming real gear (`Torch`) | That item |
+| Priced text (`Silver tooth (1 gp)`), scrolls, wands, `+N` | A treasure item worth that much |
+| Any other text | Printed on the card as what they rolled — no item |
 
 The table picker lists **every roll table in the world *and* in every compendium**,
 grouped by where it lives (world tables first, then one group per pack, labelled
