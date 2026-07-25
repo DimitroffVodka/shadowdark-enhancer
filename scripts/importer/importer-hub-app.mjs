@@ -161,6 +161,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Hook id for the `contentUnlocked` subscription (refreshes the census when a
    *  dedicated Class/Spell importer commits). @type {number|null} */
   _contentHookId = null;
+  /** Aborts the Tools-menu listeners (incl. document-level ones) on re-render
+   *  and close. @type {AbortController|null} */
+  _toolsAbort = null;
   /** Built Manage tree (top-level nodes), invalidated on cull/commit/migrate. @type {Array|null} */
   _manageTreeCache = null;
   /** Node ids currently expanded in the Manage tree (starts fully collapsed). */
@@ -256,6 +259,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async close(options = {}) {
     ImporterHubApp._instance = null;
     if (this._contentHookId) { Hooks.off(`${MODULE_ID}.contentUnlocked`, this._contentHookId); this._contentHookId = null; }
+    this._toolsAbort?.abort();   // drop the document-level Tools-menu listeners
+    this._toolsAbort = null;
     return super.close(options);
   }
 
@@ -633,6 +638,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubTableFieldEdits();
     this._wireHubGeneratorFieldEdits();
     this._wireHubClassRowEdits();
+    this._wireHubToolsMenu();
 
     // Manage strip: prepare its census lazily the first time it's expanded, so
     // opening the importer never triggers a world scan.
@@ -642,6 +648,56 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (manage.open && !this._manageExpanded) { this._manageExpanded = true; this.render(); }
       });
     }
+  }
+
+  /**
+   * Tools menu placement. The menu is a popover, so it renders in the top layer
+   * and escapes the clipping the hub's own `overflow:auto` body — and Foundry's
+   * `.window-content` / `.application`, both `overflow:hidden` — used to impose:
+   * with Manage collapsed the window is shorter than the menu and the bottom
+   * items were simply cut off.
+   *
+   * Being in the top layer means nothing positions it for us, so pin it under
+   * the Tools button here, flipping above when there isn't room below and
+   * clamping into the viewport either way. Listeners hang off a per-render
+   * AbortController because `_onRender` runs again on every re-render.
+   */
+  _wireHubToolsMenu() {
+    const details = this.element.querySelector("details.sde-hub-tools");
+    const menu = details?.querySelector(".sde-hub-tools-menu");
+    const summary = details?.querySelector("summary");
+    if (!details || !menu || !summary) return;
+
+    this._toolsAbort?.abort();
+    this._toolsAbort = new AbortController();
+    const { signal } = this._toolsAbort;
+    const usePopover = typeof menu.showPopover === "function";
+
+    const place = () => {
+      const s = summary.getBoundingClientRect();
+      const { offsetWidth: w, offsetHeight: h } = menu;
+      const gap = 4;
+      const roomBelow = window.innerHeight - s.bottom - gap;
+      const up = roomBelow < h && s.top - gap > roomBelow;   // flip only if above is roomier
+      menu.style.left = `${Math.round(Math.max(gap, Math.min(s.right - w, window.innerWidth - w - gap)))}px`;
+      menu.style.top = `${Math.round(up ? Math.max(gap, s.top - h - gap) : s.bottom + gap)}px`;
+    };
+
+    details.addEventListener("toggle", () => {
+      if (!usePopover) return;
+      if (details.open) { menu.showPopover(); place(); }
+      else if (menu.matches(":popover-open")) menu.hidePopover();
+    }, { signal });
+
+    // Picking a tool, clicking away, or Escape all close it.
+    menu.addEventListener("click", () => { details.open = false; }, { signal });
+    document.addEventListener("pointerdown", (ev) => {
+      if (details.open && !details.contains(ev.target) && !menu.contains(ev.target)) details.open = false;
+    }, { signal });
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && details.open) details.open = false;
+    }, { signal });
+    window.addEventListener("resize", () => { if (details.open) place(); }, { signal });
   }
 
   /** Subscribe ONCE per instance to `contentUnlocked` so the Manage census

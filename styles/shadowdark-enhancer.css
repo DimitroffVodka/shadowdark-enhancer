@@ -5275,13 +5275,19 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-hub-tools > summary::-webkit-details-marker,
 .sde-hub-tools > summary::marker { display: none; content: ""; }
 .sde-hub-tools[open] > summary { background: var(--sde-bar-btn-hover-2); }
+/* Lives in the top layer (popover), because the hub's own scroll container and
+   Foundry's .window-content/.application all clip overflow — an absolutely
+   positioned menu got cut off whenever the window was shorter than the menu
+   (e.g. Manage collapsed). Coordinates come from _wireHubToolsMenu. */
 .sde-hub-tools-menu {
-  position: absolute;
+  position: fixed;
+  inset: auto;
+  margin: 0;
   z-index: 30;
-  right: 0;
-  top: calc(100% + 4px);
   min-width: 260px;
-  display: flex;
+  max-height: 70vh;
+  overflow-y: auto;
+  display: none;
   flex-direction: column;
   padding: 5px;
   background: var(--sde-bar-surface-2);
@@ -5289,6 +5295,10 @@ body.theme-light .sde-hub-monsters-row td {
   border-radius: 6px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
+/* Shown as a popover when the API is there; the [open] rule keeps the menu
+   working (in-flow, clipped as before) if it ever isn't. */
+.sde-hub-tools-menu:popover-open,
+.sde-hub-tools[open] > .sde-hub-tools-menu { display: flex; }
 /* PDF actions, then whole-suite backup — a rule instead of guesswork. */
 .sde-hub-tools-group { display: flex; flex-direction: column; gap: 2px; }
 .sde-hub-tools-group + .sde-hub-tools-group {
