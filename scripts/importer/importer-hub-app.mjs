@@ -645,6 +645,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubGeneratorFieldEdits();
     this._wireHubClassRowEdits();
     this._wireHubToolsMenu();
+    this._wireManageTreeOpen();
 
     // Manage strip: prepare its census lazily the first time it's expanded, so
     // opening the importer never triggers a world scan.

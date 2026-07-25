@@ -2061,6 +2061,9 @@ body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-icon { colo
 .sde-mtree-entry-pg { flex: 0 0 auto; font-size: 0.72rem; color: var(--sde-bar-text-muted); }
 .sde-mtree-entry-mark { flex: 0 0 auto; width: 0.85rem; text-align: center; font-size: 0.72rem; }
 .sde-mtree-entry.is-present .sde-mtree-entry-mark { color: #6fb86f; }
+/* An imported row opens its document on double-click — advertise it. */
+.sde-mtree-entry.is-present { cursor: pointer; }
+.sde-mtree-entry.is-present:hover { background: var(--sde-bar-btn-hover-2, rgba(255, 255, 255, 0.06)); }
 .sde-mtree-entry.is-locked .sde-mtree-entry-mark { color: #d98a3a; }
 .sde-mtree-entry.is-present .sde-mtree-entry-name { color: var(--sde-bar-text-muted); }
 .sde-mtree-entry-tag {

@@ -11,13 +11,65 @@
 
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monsters/monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./items/item-census-live.mjs";
-import { CHAR_SOURCES, BACKGROUND_TABLES } from "./char-content/char-content-manifest.mjs";
+import { CHAR_SOURCES, BACKGROUND_TABLES, tableNameMatches, nameVariants } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 
 class HubManageMethods {
+
+  /**
+   * Open the document behind an imported manage-tree entry — the point of a
+   * library is being able to reach what's in it. Resolution mirrors the
+   * census's own presence rules (`tableNameMatches` for tables, `nameVariants`
+   * for the rest), so anything the tree calls "imported" is reachable; a row
+   * that resolves to nothing says so instead of failing silently.
+   *
+   * @param {{name:string, type:string}} entry
+   */
+  async _openManageEntry({ name, type }) {
+    if (!name) return;
+    const isTable = type === "Table";
+    // Name matching mirrors the census exactly: tableNameMatches for tables,
+    // and for everything else the same nameVariants comparison gatherPresence
+    // keys its presence set on — so "imported" and "openable" can't disagree.
+    const want = new Set(nameVariants(name));
+    const matches = isTable
+      ? (candidate) => tableNameMatches(candidate, name)
+      : (candidate) => nameVariants(candidate).some((v) => want.has(v));
+
+    // Which collections to try, in order. Not every leaf stamps a type (boats
+    // arrive with ""), so an unknown type sweeps all three rather than guessing
+    // Items and reporting a false miss.
+    const order = isTable ? ["RollTable"]
+      : ["Actor", "Boat", "SiegeWeapon", "Monster"].includes(type) ? ["Actor", "Item"]
+      : type ? ["Item", "Actor"]
+      : ["Item", "Actor", "RollTable"];
+
+    const world = { Item: () => game.items, Actor: () => game.actors, RollTable: () => game.tables };
+    for (const docName of order) {
+      // World documents first — a GM editing content works on those.
+      const hit = world[docName]().find((d) => matches(d.name));
+      if (hit) return hit.sheet.render(true);
+      for (const pack of game.packs.filter((p) => p.documentName === docName)) {
+        const entry = pack.index.find((e) => matches(e.name));
+        if (!entry) continue;
+        const doc = await pack.getDocument(entry._id).catch(() => null);
+        if (doc) return doc.sheet.render(true);
+      }
+    }
+    ui.notifications.warn(`Couldn't find “${name}” — it may have been renamed or deleted since the census ran.`);
+  }
+
+  /** Double-click an imported row to open it. Wired per render (the tree is
+   *  re-rendered on every expand), scoped to the app element so it needs no
+   *  teardown of its own. */
+  _wireManageTreeOpen() {
+    this.element.querySelectorAll(".sde-mtree-entry.is-present[data-name]").forEach((li) => {
+      li.addEventListener("dblclick", () => this._openManageEntry({ ...li.dataset }));
+    });
+  }
 
   /**
    * Prepare Monsters-tab context: per-source live census rows merged with gap

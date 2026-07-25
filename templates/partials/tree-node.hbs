@@ -28,7 +28,9 @@
     {{#if node.entries.length}}
     <ul class="sde-mtree-entries">
       {{#each node.entries as |e|}}
-      <li class="sde-mtree-entry {{#if e.present}}is-present{{else}}is-locked{{/if}}">
+      <li class="sde-mtree-entry {{#if e.present}}is-present{{else}}is-locked{{/if}}"
+          {{#if e.present}}data-name="{{e.name}}" data-type="{{e.type}}"
+          title="Double-click to open “{{e.name}}”"{{/if}}>
         <i class="fas {{#if e.present}}fa-circle-check{{else}}fa-file-import{{/if}} sde-mtree-entry-mark"></i>
         <span class="sde-mtree-entry-name">{{e.name}}</span>
         {{#if e.pages}}<span class="sde-mtree-entry-pg" title="Page in the source book">{{#if e.src}}{{e.src}} {{/if}}pg {{e.pages}}{{#if e.pagesAlt}} or {{e.pagesAlt}}{{/if}}</span>{{/if}}

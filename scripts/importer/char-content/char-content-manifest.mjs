@@ -652,19 +652,30 @@ const _tableProbeName = (name) => stripRepPrefix(name);
  *  qualifier is required — a bare "Character Names: <Ancestry>" (the core
  *  system table) must NOT satisfy a WR ancestry gap. */
 function _tableHave(tablesPresent, want) {
+  for (const raw of tablesPresent) if (tableNameMatches(raw, want)) return true;
+  return false;
+}
+
+/**
+ * Does an existing table `raw` satisfy a wanted manifest name?
+ *
+ * Pulled out of `_tableHave` so "is it imported?" and "which document IS it?"
+ * (the manage tree's open-on-double-click) can never disagree — a census that
+ * says imported while the opener finds nothing is the worst of both.
+ *
+ * Imports store the rep-prefixed name ("Cursed Scroll 1 p68: Diabolical
+ * Treasure"); strip it off the PRESENT side too, exactly as _tableProbeName
+ * strips the want — otherwise the colon prefix defeats both the exact and
+ * "- " suffix match and the Unlock button never clears after import.
+ */
+export function tableNameMatches(raw, want) {
   const w = _norm(_tableProbeName(want));
   const anc = w.match(/^(.+?)\s+names$/)?.[1] ?? null;   // "dwarf names" → "dwarf"
-  for (const raw of tablesPresent) {
-    // Imports store the rep-prefixed name ("Cursed Scroll 1 p68: Diabolical
-    // Treasure"); strip it off the PRESENT side too, exactly as _tableProbeName
-    // strips the want — otherwise the colon prefix defeats both the exact and
-    // "- " suffix match and the Unlock button never clears after import.
-    const n = _norm(_tableProbeName(raw));
-    if (n === w || n.endsWith(`- ${w}`)) return true;
-    if (anc) {
-      const rest = n.match(/^character names:\s*(.+)$/)?.[1]?.trim();
-      if (rest && rest !== anc && rest.endsWith(` ${anc}`)) return true;
-    }
+  const n = _norm(_tableProbeName(raw));
+  if (n === w || n.endsWith(`- ${w}`)) return true;
+  if (anc) {
+    const rest = n.match(/^character names:\s*(.+)$/)?.[1]?.trim();
+    if (rest && rest !== anc && rest.endsWith(` ${anc}`)) return true;
   }
   return false;
 }
