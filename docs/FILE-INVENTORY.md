@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-646 tracked files · ~78,500 lines of code/markup across scripts+templates+styles+test.
+648 tracked files · ~78,900 lines of code/markup across scripts+templates+styles+test.
 `v0.12.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -113,7 +113,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `loot-generator-app.mjs` | 265 | Roll a loot table, work a running batch, whisper claimable cards. |
-| `loot-generator.mjs` | 209 | RollTable → structured loot batch (documents, coins, flavor). |
+| `loot-generator.mjs` | 230 | RollTable → structured loot batch (documents, coins, flavor). |
 | `loot-delivery.mjs` | 419 | Shared claimable chat card; first-claim-wins, GM-authoritative over socket. |
 | `loot-drops.mjs` | 179 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 237 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
@@ -123,6 +123,7 @@
 | `loot-catalog.mjs` | 114 | Rewrites loot tables so entries become DOCUMENT results. |
 | `loot-linker.mjs` | 115 | Loot row text → confident compendium item link. |
 | `loot-pack.mjs` | 161 | Classify/fabricate treasure entries + world "Loot" pack ops. |
+| `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
 | `item-drops.mjs` | 668 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 
@@ -138,8 +139,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2404 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
-| `merchant-defaults.mjs` | 178 | The two shipped merchant configs (Base, Western Reaches). |
+| `merchant-shop.mjs` | 2574 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-defaults.mjs` | 183 | The two shipped merchant configs (Base, Western Reaches). |
 
 ### 3.10 `scripts/party-xp/`
 

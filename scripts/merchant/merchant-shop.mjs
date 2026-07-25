@@ -23,6 +23,10 @@ import { LootLinker } from "../loot/loot-linker.mjs";
 import {
   isCoinEntry, parseValue, stripPrice, isDeferredType, fabricateTreasureItem,
 } from "../loot/loot-pack.mjs";
+import { resolveInlineSubroll } from "../loot/subroll.mjs";
+
+/** Dice roller for the sub-roll resolver, which is kept Foundry-free. */
+const _rollDice = async (dice) => (await new Roll(dice).evaluate()).total;
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -993,6 +997,19 @@ export const MerchantShop = {
       if (isCoinEntry(text)) {
         const c = parseValue(text);
         out.currency.gp += c.gp; out.currency.sp += c.sp; out.currency.cp += c.cp;
+        continue;
+      }
+
+      // "Meteorite 1d4: 1. lute, 2. viol, …" — a family of objects on one row.
+      // Roll the die so the player gets the actual thing, and fabricate from
+      // the resolved name: running the linker over the raw row instead makes it
+      // match a stray word out of the option list ("White marble 1d4: 1. mirror,
+      // …" → a plain 10gp Mirror).
+      const rolled = await resolveInlineSubroll(text, _rollDice);
+      if (rolled) {
+        out.items.push(fabricateTreasureItem({
+          name: rolled, value: parseValue(text), needsRefinement: isDeferredType(text),
+        }));
         continue;
       }
 

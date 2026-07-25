@@ -164,6 +164,13 @@ The table's rows aren't linked to compendium items. Tables imported through the
 [Importer Hub](Importer-Hub.md) are auto-enriched with `@UUID` links; a
 hand-built table needs the links added.
 
+A row that prints a whole family of objects at once — `Meteorite 1d4: 1. lute,
+2. viol, 3. harp, 4. flute` — is a special case and needs no links: the die is
+rolled and you get the one it picked, as a real treasure item (*Meteorite harp*).
+A comma before the die makes the option a property instead of the noun, matching
+how the books print it: `Mithral Bottle, 1d4: 1. wine…` gives *Mithral Bottle
+(wine)*.
+
 **Two players both claimed the same item.**
 They shouldn't be able to. Claims are serialised on a single GM client with an
 in-flight lock. If you can reproduce it,

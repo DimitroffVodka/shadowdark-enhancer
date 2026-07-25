@@ -162,6 +162,7 @@
       "scripts/loot/loot-catalog.mjs",
       "scripts/loot/loot-linker.mjs",
       "scripts/loot/loot-pack.mjs",
+      "scripts/loot/subroll.mjs",
       "scripts/loot/treasure-data.mjs",
       "scripts/loot/item-drops.mjs"
     ],
@@ -334,6 +335,7 @@
     "scripts/loot/loot-catalog.mjs": "Rewrites loot tables so entries become DOCUMENT results.",
     "scripts/loot/loot-linker.mjs": "Loot row text → confident compendium item link.",
     "scripts/loot/loot-pack.mjs": "Classify/fabricate treasure entries + world \"Loot\" pack ops.",
+    "scripts/loot/subroll.mjs": "Resolve \"Meteorite 1d4: 1. lute…\" table rows to the object rolled.",
     "scripts/loot/treasure-data.mjs": "Level → tier band boundaries.",
     "scripts/loot/item-drops.mjs": "Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn.",
     "scripts/magic-forge/magic-forge-app.mjs": "Magic Item Forge window (weapons/armor with working +N, benefit/curse riders).",

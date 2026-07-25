@@ -12,6 +12,7 @@
 import { TREASURE_TABLES } from "./treasure-data.mjs";
 import { isCoinEntry, parseValue, isDeferredType, stripPrice, fabricateTreasureItem, pickTreasureIcon } from "./loot-pack.mjs";
 import { LootLinker } from "./loot-linker.mjs";
+import { resolveInlineSubroll } from "./subroll.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { itemValueGp, parseValueGp, bonusOf, isMagicItem, scoreItem, forgeTypeOf } from "./loot-value.mjs";
 
@@ -166,6 +167,26 @@ export const LootGenerator = {
             // TEXT row → link to a real item, fabricate a priced valuable, else keep as flavor.
             const text = res.text;
             if (!text) continue;
+
+            // "Meteorite 1d4: 1. lute, 2. viol, …" is a family of objects on one
+            // row, not an item. Roll the die for the actual one and fabricate
+            // that — the linker run over the raw row matches a stray word from
+            // the option list instead ("White marble 1d4: 1. mirror, …" → the
+            // plain system Mirror).
+            const subName = await resolveInlineSubroll(text, r => new Roll(r).evaluate().then(x => x.total));
+            if (subName) {
+              const value = parseValue(text);
+              const gpSub = (value.gp || 0) + (value.sp || 0) / 10 + (value.cp || 0) / 100;
+              const deferredSub = isDeferredType(text);
+              const itemData = fabricateTreasureItem({ name: subName, value, needsRefinement: deferredSub });
+              const { tier, xp } = scoreItem({ gp: gpSub, magic: deferredSub, bonus: bonusOf(text) }, thresholds);
+              items.push({ uuid: null, fabricate: itemData, name: subName, qty: 1, img: itemData.img,
+                value: gpSub, tier, xp, feature: null, forgeable: deferredSub,
+                forgeType: forgeTypeOf({ type: itemData?.type, name: subName }) });
+              gotContent = true;
+              continue;
+            }
+
             const link = LootLinker.findLink(text, itemIndex);
             if (link) {
               const doc = await fromUuid(link.uuid).catch(() => null);

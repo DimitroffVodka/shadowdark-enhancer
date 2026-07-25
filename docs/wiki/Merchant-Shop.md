@@ -104,6 +104,7 @@ however you roll it:
 | A linked item | That item, on their sheet |
 | A linked table | Rolled too, up to three levels deep |
 | Currency text (`10 cp in a greasy pouch`) | Coins in their purse |
+| A sub-roll row (`Meteorite 1d4: 1. lute, 2. viol…`) | The die is rolled — *Meteorite harp*, as a treasure item |
 | Text naming real gear (`Torch`) | That item |
 | Priced text (`Silver tooth (1 gp)`), scrolls, wands, `+N` | A treasure item worth that much |
 | Any other text | Printed on the card as what they rolled — no item |
