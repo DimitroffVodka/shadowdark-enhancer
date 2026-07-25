@@ -2268,7 +2268,22 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   // (single rider/personality re-import) is replaced/renamed/cancelled instead
   // of duplicated — then fall back to an exact name match.
   const packIndex = await pack.getIndex({ fields: MANIFEST_INDEX_FIELDS });
-  const existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
+  let existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
+  // A same-named table from ANOTHER book is not this table. Several books print
+  // a "Carousing Event"; importing the second one asked to replace the first,
+  // and there was no way to keep both. File the newcomer under its own book
+  // instead — this sits at the commit, so every import path gets it, whichever
+  // window the GM came from.
+  const incomingSrc = pt.source
+    ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
+  if (existing && incomingSrc) {
+    const theirs = sourceKey(existing.flags?.["shadowdark-enhancer"]?.source);
+    const mine = sourceKey(incomingSrc);
+    if (theirs && mine && theirs !== mine) {
+      data.name = qualifyTableName(incomingSrc, data.name);
+      existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
+    }
+  }
   let replaceTarget = null;
   if (existing) {
     const choice = onConflict ? await onConflict(existing.name ?? data.name) : "rename";
@@ -2701,6 +2716,35 @@ export const MANIFEST_INDEX_FIELDS = ["flags.shadowdark-enhancer.manifestId"];
  * @param {string} name
  * @returns {object|null}
  */
+/** Source spellings that mean the same book. The catalog says "pgwr", the
+ *  char-content manifest "WR", the GM's Source box "Western Reaches". */
+const _SRC_KEY = {
+  core: "core", "core rulebook": "core",
+  cs1: "cs1", "cursed scroll 1": "cs1", "cursed scroll #1": "cs1",
+  cs2: "cs2", "cursed scroll 2": "cs2", "cursed scroll #2": "cs2",
+  cs3: "cs3", "cursed scroll 3": "cs3", "cursed scroll #3": "cs3",
+  cs4: "cs4", "cursed scroll 4": "cs4", "cursed scroll #4": "cs4",
+  cs5: "cs5", "cursed scroll 5": "cs5", "cursed scroll #5": "cs5",
+  cs6: "cs6", "cursed scroll 6": "cs6", "cursed scroll #6": "cs6",
+  wr: "wr", pgwr: "wr", gmgwr: "wr", "western reaches": "wr",
+};
+const _SRC_LABEL = {
+  core: "Core Rulebook", cs1: "Cursed Scroll #1", cs2: "Cursed Scroll #2",
+  cs3: "Cursed Scroll #3", cs4: "Cursed Scroll #4", cs5: "Cursed Scroll #5",
+  cs6: "Cursed Scroll #6", wr: "Western Reaches",
+};
+/** Normalize any spelling of a source to one key (unknown sources pass through). */
+export function sourceKey(src) {
+  const s = String(src ?? "").trim().toLowerCase();
+  return s ? (_SRC_KEY[s] ?? s) : null;
+}
+/** Prefix a table name with its book, unless it already carries it. */
+export function qualifyTableName(src, name) {
+  const label = _SRC_LABEL[sourceKey(src)] ?? String(src ?? "").trim();
+  if (!label) return name;
+  return name.toLowerCase().startsWith(`${label.toLowerCase()} - `) ? name : `${label} - ${name}`;
+}
+
 export function findExistingByManifestOrName(index, manifestId, name) {
   const list = Array.isArray(index) ? index : [...(index ?? [])];
   const idOf = (e) => e?.flags?.["shadowdark-enhancer"]?.manifestId ?? null;

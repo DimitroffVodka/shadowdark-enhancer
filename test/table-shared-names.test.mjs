@@ -1,7 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { importNameFor, TABLE_MANIFEST, findById } from "../scripts/importer/tables/table-manifest.mjs";
-import { findExistingByManifestOrName } from "../scripts/importer/tables/table-importer.mjs";
+import {
+  findExistingByManifestOrName, sourceKey, qualifyTableName,
+} from "../scripts/importer/tables/table-importer.mjs";
 
 /**
  * Seventeen catalog names are printed by more than one book — "Carousing Event"
@@ -63,4 +65,29 @@ test("an unflagged same-named table is still treated as the conflict", () => {
   // GM's call rather than silently creating a duplicate.
   const list = idx([{ id: "a", name: "Carousing Event" }]);
   assert.equal(findExistingByManifestOrName(list, "pgwr-carousing-event", "Carousing Event")?._id, "a");
+});
+
+// ── the commit-layer guard ───────────────────────────────────────────────────
+// The surface-independent one: whichever window the GM imports from, a table
+// whose name is already taken by ANOTHER book is filed under its own book
+// instead of prompting to overwrite. (Reported against the Importer Hub after
+// the Roll Tables hub was fixed — the paste there carries a source but no
+// manifestId, so id-based guards never saw it.)
+
+test("source spellings collapse to one key per book", () => {
+  assert.equal(sourceKey("pgwr"), sourceKey("Western Reaches"));
+  assert.equal(sourceKey("core"), sourceKey("Core Rulebook"));
+  assert.equal(sourceKey("cs6"), sourceKey("Cursed Scroll #6"));
+  assert.notEqual(sourceKey("Western Reaches"), sourceKey("core"));
+  assert.equal(sourceKey(""), null);
+  assert.equal(sourceKey("Homebrew"), "homebrew", "an unknown source is still its own key");
+});
+
+test("qualifyTableName prefixes the book, once", () => {
+  assert.equal(qualifyTableName("Western Reaches", "Carousing Event"), "Western Reaches - Carousing Event");
+  assert.equal(qualifyTableName("pgwr", "Carousing Event"), "Western Reaches - Carousing Event");
+  assert.equal(qualifyTableName("Western Reaches", "Western Reaches - Carousing Event"),
+    "Western Reaches - Carousing Event", "never doubles up");
+  assert.equal(qualifyTableName("Homebrew", "Carousing Event"), "Homebrew - Carousing Event");
+  assert.equal(qualifyTableName("", "Carousing Event"), "Carousing Event");
 });
