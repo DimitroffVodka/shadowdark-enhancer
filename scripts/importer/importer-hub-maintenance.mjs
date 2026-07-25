@@ -152,7 +152,10 @@ export async function manageSourcePdfs(app) {
     `<option value="${r.src}">${foundry.utils.escapeHTML(r.label)}${r.linked ? " (replace)" : ""}</option>`).join("");
 
   const picked = await foundry.applications.api.DialogV2.wait({
-    window: { title: "Source PDFs", icon: "fas fa-file-pdf" },
+    // Without a width DialogV2 sizes to content, and the intro paragraph is one
+    // long line — the dialog came out nearly as wide as the screen.
+    window: { title: "Source PDFs", icon: "fas fa-file-pdf", resizable: true },
+    position: { width: 620 },
     content: `
       <p>Upload your own PDFs of the Shadowdark books. Each is linked to a source so the
       importer's <em>Open PDF</em> buttons jump straight to the cited page. Files stay in your

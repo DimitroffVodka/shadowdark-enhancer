@@ -1775,13 +1775,19 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
 
 /* Source-PDF manager dialog list. */
 .sde-srcpdf-list { list-style: none; margin: 8px 0; padding: 0; }
+/* Book name on top, file underneath, icon spanning both. The filename used to
+   sit on the same line pushed right with margin-left:auto, so a long one
+   ("[Shadowdark RPG] - Core Rulebook … (V4-9).pdf") forced the dialog wide. */
 .sde-srcpdf-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 4px;
+  display: grid;
+  grid-template-columns: 1.15rem 1fr;
+  column-gap: 8px;
+  row-gap: 1px;
+  align-items: start;
+  padding: 4px;
   border-bottom: 1px solid var(--sde-bar-border, rgba(0,0,0,.1));
 }
+.sde-srcpdf-row > i { grid-row: 1 / span 2; align-self: center; justify-self: center; }
 .sde-srcpdf-row.linked i { color: #3a8f3a; }
 /* A linked book opens on double-click — say so with the cursor + a hover cue. */
 .sde-srcpdf-row.linked { cursor: pointer; }
@@ -1789,7 +1795,7 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
 .sde-srcpdf-tip { font-size: 11px; opacity: 0.85; margin: 6px 0 0; }
 .sde-srcpdf-row.missing { opacity: .7; }
 .sde-srcpdf-row.missing i { color: #b04a4a; }
-.sde-srcpdf-file { margin-left: auto; font-size: 11px; opacity: .8; }
+.sde-srcpdf-file { font-size: 11px; opacity: .8; overflow-wrap: anywhere; }
 .sde-srcpdf-upload { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
 
 /* Deep-link to the user's uploaded source PDF at the cited page. */
