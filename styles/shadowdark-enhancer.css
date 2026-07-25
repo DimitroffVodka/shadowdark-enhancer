@@ -1783,6 +1783,10 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
   border-bottom: 1px solid var(--sde-bar-border, rgba(0,0,0,.1));
 }
 .sde-srcpdf-row.linked i { color: #3a8f3a; }
+/* A linked book opens on double-click — say so with the cursor + a hover cue. */
+.sde-srcpdf-row.linked { cursor: pointer; }
+.sde-srcpdf-row.linked:hover { background: var(--sde-bar-btn-hover-2, rgba(255, 255, 255, 0.07)); }
+.sde-srcpdf-tip { font-size: 11px; opacity: 0.85; margin: 6px 0 0; }
 .sde-srcpdf-row.missing { opacity: .7; }
 .sde-srcpdf-row.missing i { color: #b04a4a; }
 .sde-srcpdf-file { margin-left: auto; font-size: 11px; opacity: .8; }

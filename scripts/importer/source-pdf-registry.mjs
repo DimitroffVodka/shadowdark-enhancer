@@ -129,6 +129,20 @@ export function sourcePdfHref(src, pages) {
 }
 
 /**
+ * Viewer link for a source's whole book, opened at its first page — the
+ * "just open the book" case (double-clicking it in the Source PDFs library),
+ * as opposed to `sourcePdfHref`, which needs a page cite and shifts it by the
+ * book's PAGE_OFFSET. No offset applies here: page 1 means the PDF's page 1.
+ * @returns {string|null} null when the source has no resolvable PDF.
+ */
+export function sourcePdfBookHref(src) {
+  const file = resolveSourcePdf(src);
+  if (!file) return null;
+  const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
+  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}`;
+}
+
+/**
  * Resolve a source + printed-page cite to the actual PDF file and its own page
  * number (offset-corrected — see PAGE_OFFSETS). Feeds the Importer Hub's
  * "Grab text" extractor. Returns null when the source has no resolvable PDF or

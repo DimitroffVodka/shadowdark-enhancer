@@ -129,7 +129,7 @@ export async function importSuiteBundle(app) {
  */
 export async function manageSourcePdfs(app) {
   if (!game.user?.isGM) { ui.notifications.warn("Only a GM can manage source PDFs."); return; }
-  const { listSourcePdfs, uploadSourcePdf } = await import("./source-pdf-registry.mjs");
+  const { listSourcePdfs, uploadSourcePdf, sourcePdfBookHref } = await import("./source-pdf-registry.mjs");
 
   const rows = await listSourcePdfs();
   const statusList = rows.map((r) => {
@@ -140,7 +140,11 @@ export async function manageSourcePdfs(app) {
     const note = r.origin === "fallback"
       ? (r.linked ? " (default path)" : " (default path — file not found; upload your copy)")
       : "";
-    return `<li class="sde-srcpdf-row ${r.linked ? "linked" : "missing"}"><i class="fas ${icon}"></i>
+    // `data-src` + the open hint only on rows that actually resolve to a file.
+    const open = r.linked
+      ? ` data-src="${foundry.utils.escapeHTML(r.src)}" title="Double-click to open this book"`
+      : "";
+    return `<li class="sde-srcpdf-row ${r.linked ? "linked" : "missing"}"${open}><i class="fas ${icon}"></i>
       <strong>${foundry.utils.escapeHTML(r.label)}</strong>
       <span class="sde-srcpdf-file">${file}${note}</span></li>`;
   }).join("");
@@ -154,6 +158,8 @@ export async function manageSourcePdfs(app) {
       importer's <em>Open PDF</em> buttons jump straight to the cited page. Files stay in your
       world (<code>worlds/${foundry.utils.escapeHTML(game.world.id)}/source-pdfs</code>) — nothing
       leaves your machine.</p>
+      <p class="sde-srcpdf-tip"><i class="fas fa-hand-pointer"></i>
+      <strong>Double-click a linked book</strong> to open it in Foundry's PDF viewer.</p>
       <ul class="sde-srcpdf-list">${statusList}</ul>
       <div class="sde-srcpdf-upload">
         <label>Book <select name="src">${options}</select></label>
@@ -172,6 +178,19 @@ export async function manageSourcePdfs(app) {
       { action: "close", label: "Done" },
     ],
     rejectClose: false,
+    // Double-click a linked row to just read the book — the Open-PDF buttons
+    // elsewhere all need a page cite, so the library had no way to open one.
+    render: (_event, dialog) => {
+      const root = dialog?.element ?? dialog;
+      root?.querySelectorAll?.(".sde-srcpdf-row.linked[data-src]").forEach((li) => {
+        li.addEventListener("dblclick", () => {
+          const src = li.dataset.src;
+          const href = sourcePdfBookHref(src);
+          if (!href) { ui.notifications.warn("That book's PDF couldn't be found."); return; }
+          app._showSourcePdf(href, CHAR_SOURCES[src]?.label ?? src);
+        });
+      });
+    },
   }).catch(() => null);
 
   if (!picked || picked === "close" || !picked.file) return;
