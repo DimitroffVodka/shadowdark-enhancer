@@ -46,8 +46,13 @@ Then pick the characters and award. A chat card summarises the result:
 - their level
 - a **ready to level up** flag for anyone who has reached the threshold
 
-<!-- TODO screenshot: images/party-xp-card.png — The Party XP chat card
-     How: Party XP -> award to the party; screenshot the chat card. -->
+![The Party XP chat card — the award's label as its title, the per-character
+amount, then one row per character with their level and old → new XP](images/party-xp-card.png)
+
+The **label** is appended to the card's heading, so the award reads back as what
+it was for — above, `Party XP — +1 Plate Mail`, worth `+3 XP to each character`
+and taking Bazogo from `3 → 6 XP`. Dragging an item in fills the label with the
+item's name, so that heading writes itself.
 
 ## What it writes — and doesn't
 
