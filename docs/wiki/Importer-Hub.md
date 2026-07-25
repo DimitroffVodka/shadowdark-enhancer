@@ -71,12 +71,22 @@ what didn't make it.
 
 ### 3. Review the preview
 
-<!-- TODO screenshot: images/importer-preview.png — The import preview with a flagged row
-     How: Paste a stat block from your own PDF into the hub and Parse; screenshot the preview with a flagged row. -->
+![A parsed table in the preview — its name, dice formula, Replacement toggle and
+folder, above one editable row per result with its range and text](images/importer-preview.png)
 
 Each parsed entry appears as an editable preview. **Field edits apply in place
 with no re-render**, so the cursor doesn't jump while you're typing. Structural
 changes — adding or removing a row — re-render.
+
+For a table that means the name, the **formula** it rolls on, whether it draws
+with **Replacement**, and the **Folder** it will be filed under — every result
+row sitting below it as an editable range and text, with **×** to drop one.
+Nothing is written until you press **Create** (or **Create tables** for the whole
+section).
+
+<!-- TODO screenshot: images/importer-preview-flagged.png — The preview with a flagged row
+     How: Paste content the parser is unsure about (e.g. a table with overlapping
+     ranges) and Parse; screenshot a row carrying its inline review tag. -->
 
 **Rows the parser is unsure about are marked directly on the row** — highlighted,
 with an inline *review* tag and the reason on hover. You are never told "something
