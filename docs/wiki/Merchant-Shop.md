@@ -54,6 +54,13 @@ Grouped into collapsible category sections:
 - **Selling** removes the item and pays out at the **sell ratio** — the
   percentage of an item's value the shop pays back.
 
+![The Sell tab — Your Equipment listed with each item's value, the payout at the
+current sell ratio, a quantity box and a Sell button](images/sell-tab.png)
+
+The **Sell** tab lists the character's own equipment under **Your Equipment**,
+with the ratio shown top-right. Each row gives the item's **Value** and, in
+green, what the shop actually pays: a 2 gp Backpack pays `1 gp` at 50%.
+
 | Setting | Default | Range |
 |---|---|---|
 | Merchant Sell Ratio (%) | `50` | 0–100, in steps of 5 |
@@ -94,6 +101,12 @@ Save your own configurations alongside them.
 Off by default. Tick **Allow players to gamble on loot tables** on the Manage
 tab, then add options: a display name, a roll table, and a gold cost. Players
 pay the cost and get whatever the table rolls.
+
+![The Gamble tab — two configured options, Treasure 0-3 at 10 gp and Luxury at
+25 gp, each with its own Gamble button](images/gamble-tab.png)
+
+Each option is one row: its name, its cost, and a **Gamble** button. The player's
+purse sits in the header, and an option they can't afford is disabled.
 
 A drawn row is turned into loot with **the same rules the
 [Loot Generator](Loot-and-Treasure.md) uses**, so a table gives the same thing
