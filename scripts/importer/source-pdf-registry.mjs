@@ -32,6 +32,36 @@ const LIB_FLAG = "sourcePdfLibrary";   // marks the library JournalEntry
 const KEY_FLAG = "sourceKey";          // marks a page as belonging to a source
 
 /**
+ * Key prefix for books that aren't one of the known CHAR_SOURCES — third-party
+ * adventures, homebrew, anything the GM wants deep-links into. Prefixed so a
+ * custom key can never collide with a built-in source key, and so everything
+ * else can tell the two apart. Their label lives on the journal page's name
+ * (CHAR_SOURCES has no entry to read it from).
+ */
+const CUSTOM_PREFIX = "custom:";
+
+/** True for a GM-added book (as opposed to a known CHAR_SOURCES key). */
+export function isCustomSource(src) {
+  return String(src ?? "").startsWith(CUSTOM_PREFIX);
+}
+
+/** A source key for a GM-supplied book name. Stable, so re-adding the same
+ *  name updates that book rather than making a second row. */
+export function customSourceKey(name) {
+  const slug = String(name ?? "").trim().toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+  return slug ? `${CUSTOM_PREFIX}${slug}` : null;
+}
+
+/** Display name for any source key: built-in label, else the registered page's
+ *  name, else the key itself. */
+export function sourceLabel(src) {
+  if (CHAR_SOURCES[src]?.label) return CHAR_SOURCES[src].label;
+  const page = findLibraryJournal()?.pages.find((p) => p.getFlag(MODULE_ID, KEY_FLAG) === src);
+  return page?.name ?? String(src ?? "");
+}
+
+/**
  * Book-page → PDF-page offset per source. A cite records the PRINTED page a
  * section lives on, but the PDF's front matter (covers, credits, ToC) shifts
  * the file's page count ahead of the printed numbers. The Core Rulebook PDF
@@ -188,15 +218,28 @@ export async function listSourcePdfs() {
     const linked = origin === "journal" ? true
       : origin === "fallback" ? await _fileExists(file)
       : false;
-    rows.push({ src, label: meta.label, book: meta.book, file, origin, linked });
+    rows.push({ src, label: meta.label, book: meta.book, file, origin, linked, custom: false });
+  }
+  // Books the GM added themselves: any registered page whose key isn't built in.
+  // They only ever exist as journal registrations, so they're linked by
+  // definition, and their label is the page name.
+  for (const p of j?.pages ?? []) {
+    const key = p.getFlag(MODULE_ID, KEY_FLAG);
+    if (!key || p.type !== "pdf" || !p.src || !isCustomSource(key)) continue;
+    rows.push({ src: key, label: p.name, book: null, file: p.src,
+      origin: "journal", linked: true, custom: true });
   }
   return rows;
 }
 
-/** Create/update the library's pdf page for a source, pointing at `filePath`. */
-export async function registerSourcePdf(src, filePath) {
+/**
+ * Create/update the library's pdf page for a source, pointing at `filePath`.
+ * @param {string} [label] display name — required for a custom key, which has
+ *   no CHAR_SOURCES entry to take one from.
+ */
+export async function registerSourcePdf(src, filePath, label) {
   const journal = await ensureLibraryJournal();
-  const label = CHAR_SOURCES[src]?.label ?? src;
+  label = label || CHAR_SOURCES[src]?.label || (isCustomSource(src) ? src.slice(CUSTOM_PREFIX.length) : src);
   const existing = journal.pages.find((p) => p.getFlag(MODULE_ID, KEY_FLAG) === src);
   if (existing) {
     await existing.update({ src: filePath, name: label });
@@ -214,16 +257,17 @@ export async function registerSourcePdf(src, filePath) {
 /**
  * Upload a user-picked PDF File to the per-world source-pdfs folder and link it
  * to `src` in the library journal. Returns the stored path.
- * @param {string} src  CHAR_SOURCES key
+ * @param {string} src  CHAR_SOURCES key, or a `custom:` key from customSourceKey
  * @param {File} file   the picked PDF
+ * @param {string} [label] display name, for a custom key
  * @returns {Promise<string>} stored path
  */
-export async function uploadSourcePdf(src, file) {
+export async function uploadSourcePdf(src, file, label) {
   const dir = uploadDir();
   const FP = filePicker();
   try { await FP.createDirectory("data", dir); } catch (_e) { /* already exists */ }
   const result = await FP.upload("data", dir, file, {}, { notify: false });
   const path = result?.path ?? `${dir}/${file.name}`;
-  await registerSourcePdf(src, path);
+  await registerSourcePdf(src, path, label);
   return path;
 }

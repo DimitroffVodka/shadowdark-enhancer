@@ -182,6 +182,19 @@ Manage them from the hub's Tools menu → **Source PDFs**. **Double-click any
 linked book there to open it** at page one, for when you just want to read it
 rather than jump to a cite — the rest of the Open-PDF buttons all need a page.
 
+### Books that aren't Shadowdark's
+
+The list starts with the Core Rulebook, Western Reaches and Cursed Scroll 1–6,
+but you aren't limited to them. Pick **➕ Another book…** in the Book selector,
+name it, and upload — a third-party adventure, a homebrew supplement, anything
+you want to read or pull text from inside Foundry. Your books appear in the
+library alongside the rest, open on double-click, and show up in **Extract from
+PDF**.
+
+Re-uploading under the same name replaces that book rather than adding a second
+entry. To remove one, delete its page from the **Shadowdark Source PDFs**
+journal — the library is a real journal, deliberately, so it's yours to edit.
+
 ---
 
 ## Bundle export / import

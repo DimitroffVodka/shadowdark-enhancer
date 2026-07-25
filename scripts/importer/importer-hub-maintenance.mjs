@@ -127,9 +127,13 @@ export async function importSuiteBundle(app) {
  * the importer's Open-PDF deep-links resolve to them. Reopens after each
  * upload so the GM can link several books in a row. GM-gated.
  */
+/** Sentinel value of the "Another book…" option in the Book selector. */
+const NEW_BOOK = "__new";
+
 export async function manageSourcePdfs(app) {
   if (!game.user?.isGM) { ui.notifications.warn("Only a GM can manage source PDFs."); return; }
-  const { listSourcePdfs, uploadSourcePdf, sourcePdfBookHref } = await import("./source-pdf-registry.mjs");
+  const { listSourcePdfs, uploadSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel } =
+    await import("./source-pdf-registry.mjs");
 
   const rows = await listSourcePdfs();
   const statusList = rows.map((r) => {
@@ -149,7 +153,9 @@ export async function manageSourcePdfs(app) {
       <span class="sde-srcpdf-file">${file}${note}</span></li>`;
   }).join("");
   const options = rows.map((r) =>
-    `<option value="${r.src}">${foundry.utils.escapeHTML(r.label)}${r.linked ? " (replace)" : ""}</option>`).join("");
+    `<option value="${foundry.utils.escapeHTML(r.src)}">${foundry.utils.escapeHTML(r.label)}${r.linked ? " (replace)" : ""}</option>`).join("")
+    // Anything that isn't a Shadowdark book — third-party adventures, homebrew.
+    + `<option value="${NEW_BOOK}">➕ Another book…</option>`;
 
   const picked = await foundry.applications.api.DialogV2.wait({
     // Without a width DialogV2 sizes to content, and the intro paragraph is one
@@ -166,6 +172,7 @@ export async function manageSourcePdfs(app) {
       <ul class="sde-srcpdf-list">${statusList}</ul>
       <div class="sde-srcpdf-upload">
         <label>Book <select name="src">${options}</select></label>
+        <input type="text" name="newlabel" placeholder="Name this book" class="sde-srcpdf-newlabel" hidden>
         <input type="file" name="pdf" accept="application/pdf,.pdf">
       </div>`,
     buttons: [
@@ -175,7 +182,8 @@ export async function manageSourcePdfs(app) {
           const root = dialog.element ?? dialog;
           const src = root.querySelector("select[name='src']")?.value;
           const file = root.querySelector("input[name='pdf']")?.files?.[0] ?? null;
-          return file ? { src, file } : null;
+          const newLabel = root.querySelector("input[name='newlabel']")?.value?.trim() ?? "";
+          return file ? { src, file, newLabel } : null;
         },
       },
       { action: "close", label: "Done" },
@@ -185,12 +193,19 @@ export async function manageSourcePdfs(app) {
     // elsewhere all need a page cite, so the library had no way to open one.
     render: (_event, dialog) => {
       const root = dialog?.element ?? dialog;
+      // "Another book…" needs a name to file it under; only ask when picked.
+      const sel = root?.querySelector?.("select[name='src']");
+      const newLabel = root?.querySelector?.("input[name='newlabel']");
+      sel?.addEventListener("change", () => {
+        newLabel.hidden = sel.value !== NEW_BOOK;
+        if (!newLabel.hidden) newLabel.focus();
+      });
       root?.querySelectorAll?.(".sde-srcpdf-row.linked[data-src]").forEach((li) => {
         li.addEventListener("dblclick", () => {
           const src = li.dataset.src;
           const href = sourcePdfBookHref(src);
           if (!href) { ui.notifications.warn("That book's PDF couldn't be found."); return; }
-          app._showSourcePdf(href, CHAR_SOURCES[src]?.label ?? src);
+          app._showSourcePdf(href, sourceLabel(src));
         });
       });
     },
@@ -201,9 +216,22 @@ export async function manageSourcePdfs(app) {
     ui.notifications.warn("That doesn't look like a PDF file.");
     return manageSourcePdfs(app);
   }
+
+  // "Another book…": file it under a key derived from the name the GM gave it.
+  let { src } = picked;
+  let label = "";
+  if (src === NEW_BOOK) {
+    label = picked.newLabel;
+    src = customSourceKey(label);
+    if (!src) {
+      ui.notifications.warn("Give the book a name before uploading it.");
+      return manageSourcePdfs(app);
+    }
+  }
+
   try {
-    const path = await uploadSourcePdf(picked.src, picked.file);
-    ui.notifications.info(`Linked ${CHAR_SOURCES[picked.src]?.label ?? picked.src} → ${path.split("/").pop()}.`);
+    const path = await uploadSourcePdf(src, picked.file, label);
+    ui.notifications.info(`Linked ${label || CHAR_SOURCES[src]?.label || src} → ${path.split("/").pop()}.`);
   } catch (err) {
     console.error("[SDE] source PDF upload failed", err);
     ui.notifications.error("Upload failed — see console.");
