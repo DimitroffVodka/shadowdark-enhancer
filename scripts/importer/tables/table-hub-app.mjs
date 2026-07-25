@@ -337,13 +337,40 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onImportParse() {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
-    this._importParsed = TableImporter.parse(this._importText);
+    this._importParsed = (await this._parseByShapeIfKnown()) ?? TableImporter.parse(this._importText);
     this._applyImportSeed();
     await this._linkLootTables();
     if (!this._importParsed.length) {
       ui.notifications.warn("No tables found in the pasted text.");
     }
     this.render();
+  }
+
+  /**
+   * Parse through the entry's SHAPE recipe when it has one.
+   *
+   * The generic parser reads a row as "<range> <text>", which is wrong for a
+   * table keyed by cost: Western Reaches' Carousing Event came out as five rows
+   * with "30 gp" read as range 30 and the rest of the book glued onto the last
+   * row. The recipes (table-shapes.mjs) already describe these tables exactly —
+   * this is the same dispatch the Importer Hub uses, just reached from here.
+   *
+   * @returns {Promise<Array|null>} parsed tables, or null to use the generic path
+   */
+  async _parseByShapeIfKnown() {
+    const entry = this._importSeed?.manifestId ? findById(this._importSeed.manifestId) : null;
+    if (!entry) return null;
+    const { resolveShape } = await import("./table-shapes.mjs");
+    // The table catalog's source ids ("core"/"cs6"/"pgwr") and the shape
+    // registry's ("CORE"/"CS6"/"WR") are different vocabularies for one thing.
+    const SRC = { core: "CORE", cs1: "CS1", cs2: "CS2", cs3: "CS3", cs4: "CS4",
+      cs5: "CS5", cs6: "CS6", pgwr: "WR", gmgwr: "WR" };
+    const shape = resolveShape({ name: entry.name, src: SRC[entry.source] ?? entry.source });
+    if (!shape) return null;
+    const bucket = TableImporter.parseByShape(this._importText, shape, { name: entry.name });
+    const tables = bucket?.tables ?? [];
+    if (!tables.length) return null;          // recipe didn't match — generic parse still gets its turn
+    return tables;
   }
 
   /**

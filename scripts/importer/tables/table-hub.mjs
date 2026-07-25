@@ -164,6 +164,15 @@ export const TableHub = {
     keys.push(normalizeName(entry.name));
     for (const key of keys) {
       const survivor = (byNorm.get(key) ?? []).find(t => {
+        // A table stamped with a DIFFERENT manifest entry is that entry's, full
+        // stop. Three books print a "Carousing Event"; without this, Core's
+        // import (named bare, flagged core-carousing-event) was claimed by the
+        // WR and CS6 rows too — they read "Imported → Carousing Event", and
+        // importing anyway collided with it.
+        const mid = typeof t.getFlag === "function"
+          ? t.getFlag(MODULE_ID, "manifestId")
+          : t.flags?.[MODULE_ID]?.manifestId;
+        if (mid && mid !== entry.id) return false;
         const hint = worldSourceHint(t.name);
         return hint === null || hint === entry.source;
       });
