@@ -18,7 +18,7 @@
  */
 import { npcMoveKeys } from "../monster-creator/npc-moves.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./tables/table-categories.mjs";
-import { summarizeStructuralWarnings } from "./tables/table-importer.mjs";
+import { summarizeStructuralWarnings, isInformationalWarning } from "./tables/table-importer.mjs";
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
@@ -423,10 +423,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         if (!this._importSeed || !this._importTables.length) return null;
         const t = this._importTables[0];
         const rows = t.rows?.length ?? 0;
-        // Structural problems = gap/overlap warnings from the parser. Auto-fix
-        // and range-rebuild notes are informational (the table is complete) and
-        // don't count against correctness.
-        const structural = (t.warnings ?? []).filter((w) => !/^(Auto-fixed|Rebuilt)\b/.test(w));
+        // Structural problems = gap/overlap warnings from the parser. Notes
+        // about what the parser DID (auto-fixed a range, rebuilt ranges, kept
+        // heading text as the description) leave the table complete and don't
+        // count against correctness — see isInformationalWarning.
+        const structural = (t.warnings ?? []).filter((w) => !isInformationalWarning(w));
         // Names tables additionally have a known-correct shape: 100 on 1d100.
         const isNames = /\bnames$/i.test(this._importSeed.name ?? "");
         const ok = structural.length === 0 && (!isNames || (rows === 100 && t.formula === "1d100"));

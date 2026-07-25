@@ -113,6 +113,19 @@ function computeWarnings(pt) {
   return warnings;
 }
 
+/**
+ * True for a warning that reports what the parser DID, not something wrong
+ * with the table: an auto-repaired range, a rebuilt range set, or heading text
+ * kept as the description. The table is complete either way, so these must not
+ * count against correctness — a Western Reaches backgrounds paste that covered
+ * all 100 faces was reported as broken purely because of the pre-row note.
+ *
+ * Lives beside the code that pushes these strings so the two stay in step.
+ */
+export function isInformationalWarning(w) {
+  return /^(Auto-fixed|Rebuilt|Pre-row text kept)\b/.test(String(w ?? ""));
+}
+
 /** [1,2,3,7,9,10] → "1-3, 7, 9-10". Keeps a long gap list readable. */
 function _asRanges(nums) {
   const out = [];

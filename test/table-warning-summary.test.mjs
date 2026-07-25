@@ -1,6 +1,25 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { summarizeStructuralWarnings } from "../scripts/importer/tables/table-importer.mjs";
+import {
+  summarizeStructuralWarnings, isInformationalWarning,
+} from "../scripts/importer/tables/table-importer.mjs";
+
+// What the parser DID vs. what is WRONG. A complete table carrying only these
+// notes must still report as correct — a Western Reaches backgrounds paste
+// covering all 100 faces was flagged broken purely for the pre-row note.
+test("notes about what the parser did are informational, not defects", () => {
+  assert.ok(isInformationalWarning("Auto-fixed: row 12 range 21-24 → 23-24."));
+  assert.ok(isInformationalWarning("Rebuilt ranges from row order."));
+  assert.ok(isInformationalWarning('Pre-row text kept as table description: "BACKGROUNDS d100/d12 Desert"'));
+});
+
+test("real defects are not informational", () => {
+  assert.equal(isInformationalWarning("Value 7 has no row."), false);
+  assert.equal(isInformationalWarning("Roll 49: no row found."), false);
+  assert.equal(isInformationalWarning("Rows 3 and 4 overlap."), false);
+  assert.equal(isInformationalWarning(""), false);
+  assert.equal(isInformationalWarning(), false);
+});
 
 // The strings below are exactly what computeWarnings() emits — if that wording
 // changes, these tests are what catches the summary silently going blank.
