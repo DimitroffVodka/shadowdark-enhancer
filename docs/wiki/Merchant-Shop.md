@@ -133,6 +133,17 @@ they are told so and **not** charged.
 Every purchase and sale is recorded and **exportable to Discord** as markdown.
 Transactions also feed the [Session Recap](Session-Recap.md) automatically.
 
+![The Log tab — timestamped rows showing who bought or sold what and for how
+much, with Shop Log and Session Summary export buttons](images/log-tab.png)
+
+Each row is stamped with the time, the character, and the price. The icon says
+which kind of transaction it was — a cart for a purchase, coins for a sale, and
+**dice for a gamble**, whose row records what the table rolled.
+
+The two buttons copy Discord-ready markdown **to your clipboard**: **Shop Log**
+is the shop's own history, **Session Summary** the wider recap. GMs also get a
+**Clear Log** button.
+
 ---
 
 ## Troubleshooting
