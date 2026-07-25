@@ -420,6 +420,31 @@ test("grid shape: a blank middle cell keeps its neighbour in the right column", 
   assert.equal(at(1, 3), "Porridge");  // later rows unaffected
 });
 
+// A wrapped cell's continuation line has NOTHING to its left, so it offers no
+// 2+-space gap for _sliceCols to measure its column edges from. When such a line
+// also starts a few chars LEFT of its header x — routine drift in an extracted
+// PDF — the boundary walk fell through to a word-snap and cut the run in half,
+// scattering it across two columns ("with" into Standard, "a cracked rim" into
+// Wealthy). An unbroken run is one column's overflow: it must land whole, in the
+// column nearest its start x.
+test("grid shape: a wrapped line starting left of its column stays in one cell", () => {
+  const text = [
+    "FEAST",
+    "d4   Poor      Standard    Wealthy",
+    "1    Gruel     Bread       Pheasant",
+    "2    Turnip    Porridge    Venison",
+    "3    Crust     Broth       Swan",
+    "4    Rind      Stew        Boar under glass",
+    " ".repeat(24) + "with a cracked rim",   // 3 chars left of Wealthy's x=27
+  ].join("\n");
+  const g = parseByShape(text, { kind: "compound", split: "grid", cols: 3, size: 4,
+    labels: ["Poor", "Standard", "Wealthy"] }, { name: "Feast" }).generators[0];
+  const at = (col, face) => g.columns[col].rows.find((r) => r.min === face)?.text;
+  assert.equal(at(2, 4), "Boar under glass with a cracked rim");  // whole run, one cell
+  assert.equal(at(1, 4), "Stew");      // NOT "Stew with"
+  assert.equal(at(0, 4), "Rind");
+});
+
 // v0.10.0 shipped a crash here: splitCells gained a {cells, short} return shape
 // (44c1634) and _lookupSimple's die-indexed branch was never updated — a short
 // row (routine in a wrapped PDF copy) hit `cells.join is not a function` and

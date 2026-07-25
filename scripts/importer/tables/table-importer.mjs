@@ -1206,6 +1206,18 @@ function parsePrayerGenerator(text, { name = "", size = 6, labels } = {}) {
  *  column gaps). This keeps wrapped continuation lines from cutting a word into
  *  the neighbouring column. */
 function _sliceCols(line, colX, { recoverGutter = false, gutterDieMax = null } = {}) {
+  // A continuation line with NOTHING to its left — pure indent, then a single
+  // unbroken run of text (one cell that wrapped) — offers no `\S(\s{2,})` gap for
+  // the boundary walk below to measure against. When such a run also starts a few
+  // chars LEFT of its header x, a boundary can land on a SPACE inside it and cut
+  // it in two: "Dram a low" + "Dusty hall with ceiling" corrupted BOTH columns.
+  // (A boundary landing mid-WORD is already handled — the word-snap keeps that
+  // word whole — so only the space case leaks.) Flagged here, repaired after the
+  // walk. Only when the text starts at/after the first content column: anything
+  // left of colX[0] is in the die gutter, which is recoverGutter's business (and
+  // a die face there must not be swallowed).
+  const textStart = line.search(/\S/);
+  const loneRun = textStart > 0 && textStart >= colX[0] && !/\S\s{2,}\S/.test(line.trim());
   const gapEnds = [...line.matchAll(/\S(\s{2,})/g)].map((m) => m.index + m[0].length);
   // Resolve boundaries LEFT TO RIGHT, each at or after the previous one, and
   // never let two columns claim the same gap. Resolving each independently let
@@ -1269,6 +1281,24 @@ function _sliceCols(line, colX, { recoverGutter = false, gutterDieMax = null } =
   const cells = []; let prev = start;
   for (const cut of cuts) { cells.push(line.slice(prev, cut).trim()); prev = cut; }
   cells.push(line.slice(prev).trim());
+  // The lone-run repair (see `loneRun` above). One unbroken run is ONE column's
+  // overflow, so put it back together — but only when the walk actually broke it
+  // apart, so every line that already sliced to a single cell keeps the column it
+  // has always been given. A real wrap starts at its column's left edge give or
+  // take a char of rounding, so a start within WRAP_SNAP of a header is that
+  // header's column; farther in, the start is mid-column and containment is the
+  // honest read.
+  if (loneRun && cells.filter((c) => c).length > 1) {
+    const WRAP_SNAP = 3;
+    let bi = -1;
+    for (let i = 0; i < colX.length; i++) {
+      const d = Math.abs(textStart - colX[i]);
+      if (d <= WRAP_SNAP && (bi < 0 || d < Math.abs(textStart - colX[bi]))) bi = i;
+    }
+    if (bi < 0) { bi = 0; while (bi + 1 < colX.length && colX[bi + 1] <= textStart) bi++; }
+    cells.fill("");
+    cells[bi] = line.trim();
+  }
   // Wrapped continuation lines can start at the LEFT MARGIN, inside the die
   // gutter (CORE p93: "You wake up in a gutter…" / "your total wealth spent"
   // print at x=0 under a first column headered at x=4) — the pinned first
