@@ -1276,6 +1276,13 @@ function _sliceCols(line, colX, { recoverGutter = false, gutterDieMax = null } =
  * → tie down (default).
  * @returns {{ rows: Array<{ id:number, cells:string[] }> }}
  */
+// A page-bottom pull quote (fully quote-wrapped line) or its attribution
+// ("-Creeg, human wizard"). Deliberately narrow: the quote form must open AND
+// close with a quote mark, and the attribution must be a dash followed by a
+// capitalised word, so a wrapped cell that merely contains punctuation is
+// unaffected. See the trailer guard in _groupLayoutRows.
+const PAGE_TRAILER = /^\s*(?:[“"”][^]*["”“][.,]?\s*$|[-–—]\s*[A-Z][a-z])/;
+
 function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = false, col2Starts, rowStart } = {}) {
   const cols = colX.length;
   // A no-die shape can say what a REAL row looks like (Carousing Event: the Cost
@@ -1300,6 +1307,14 @@ function _groupLayoutRows(raw, hi, colX, { dieIndexed = true, size, tieUp = fals
   for (let i = hi + 1; i < raw.length; i++) {
     const l = raw[i];
     if (!l.trim()) { if (anchors.length) break; else continue; }
+    // Core pages close with a designer pull quote and its attribution printed
+    // BELOW the table, with no blank line between (CORE p123: “Crypt of the
+    // Blighted Wastes? Sounds delightful." / -Creeg, human wizard). Neither
+    // carries a die face, so the wrap grouper files both onto the LAST row
+    // ("Shrine of the “Crypt of the Blighted…"). The table has ended — stop.
+    // Table rows can't be mistaken for either: an anchor line always opens
+    // with its die face, so the quote/dash is never in first position.
+    if (anchors.length && PAGE_TRAILER.test(l)) break;
     const bare = /^\s*(\d{1,4})\s*$/.exec(l);
     if (bare && Number(bare[1]) > (size || 300)) continue;   // stray page number
     let cells;
@@ -1560,6 +1575,47 @@ function parsePatternLookup(text, { cols, rowStart, colLast, size }) {
 }
 
 /**
+ * Row-per-line parse for a lookup whose cells are single TOKENS — the carousing
+ * outcome tables (WR pg 237 / CS6 pg 29): "d8 Mishap Benefit Modifier XP", where
+ * every cell is a small number, a signed number, or "-" for none:
+ *
+ *   1  2  -  -20  2
+ *   5  -  1  -10  3
+ *   25+ - 3  +25  10
+ *
+ * Range-prefixed parsing reads "5 - 1" as the range 5–1, so every row whose
+ * Mishap is "-" disappeared: exactly the values the banner reported missing
+ * (5, 8, 11-12, 14-15, …). Splitting on whitespace is unambiguous here because
+ * the column count is known, and a wrapped paste that glued two rows onto one
+ * line is split back into whole rows rather than dropped.
+ *
+ * @returns {Array<{min:number,max:number,text:string}>} [] when it can't parse
+ */
+function parseTokenLookup(text, { cols, size }) {
+  const perRow = cols + 1;                       // die face + one token per column
+  const rows = [];
+  const take = (toks) => {
+    const face = parseInt(toks[0], 10);          // "25+" → 25
+    if (!Number.isFinite(face) || face < 1 || (size && face > size)) return;
+    rows.push({ min: face, max: face, text: toks.slice(1, perRow).join(" | ") });
+  };
+  for (const raw of String(text).split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const toks = line.split(/\s+/);
+    // A page footer ("237") is a single token — never a row.
+    if (toks.length < perRow) continue;
+    if (toks.length === perRow) { take(toks); continue; }
+    // Wrapped paste: N whole rows on one line.
+    if (toks.length % perRow === 0) {
+      for (let i = 0; i < toks.length; i += perRow) take(toks.slice(i, i + perRow));
+    }
+  }
+  // Only trust it if it read the table it was promised.
+  return size && rows.length !== size ? [] : rows;
+}
+
+/**
  * Deterministic parse of a "lookup" table: one roll → one row read across
  * `cols` columns, cells joined by " | " (e.g. Carousing Outcome d14
  * Outcome|Benefit). Handles the Core carousing layout where cells wrap across
@@ -1570,8 +1626,23 @@ function parsePatternLookup(text, { cols, rowStart, colLast, size }) {
  * a leading die number (Carousing Event, keyed by Cost). Column labels land in
  * the description. Returns a single ParsedTable or null.
  */
-function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true, col2Starts, rowStart, colLast, singleLine = false } = {}) {
+function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed = true, col2Starts, rowStart, colLast, singleLine = false, tokens = false } = {}) {
   const raw = String(text).split(/\r?\n/);
+  // Token rows (carousing outcome): unambiguous, so try them before geometry.
+  if (tokens) {
+    const tr = parseTokenLookup(text, { cols, size });
+    if (tr.length) {
+      const nm = (name || "").trim();
+      const pt = {
+        name: nm, formula: `1d${size || tr.length}`,
+        replacement: true, bestEffort: false, category: classify(nm), customLabel: "",
+        ...(labels ? { description: `Columns: ${labels.join(" | ")}` } : {}),
+        rows: tr, warnings: [],
+      };
+      pt.warnings = computeWarnings(pt);
+      return pt;
+    }
+  }
   // `singleLine`: each row prints on ONE line with recognisable first/last
   // columns (WR pg 236 / CS6 pg 28 Carousing Event). Geometry is the wrong tool
   // there — those books CENTRE the middle column, so a boundary taken from the
@@ -1956,7 +2027,7 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     return { generators: [pt] };
   }
   if (shape.kind === "lookup") {
-    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts, rowStart: shape.rowStart, colLast: shape.colLast, singleLine: shape.singleLine });
+    const pt = parseLookupShape(text, { name, cols: shape.cols, size: shape.size, labels: shape.labels, dieIndexed: shape.dieIndexed, col2Starts: shape.col2Starts, rowStart: shape.rowStart, colLast: shape.colLast, singleLine: shape.singleLine, tokens: shape.tokens });
     // A whole-page grab can sweep numbered prose (usage steps, sidebars) in as
     // extra "rows" past the die (CS6 Carousing Outcome: 25 rows on a d8 —
     // E2E W4). The declared size is authoritative: keep the first row per

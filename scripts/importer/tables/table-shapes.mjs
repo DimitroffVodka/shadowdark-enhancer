@@ -236,7 +236,7 @@ export const CONTENT_ENTRIES = [
     // warnings for a quick hand-fix in the preview (documented hold-out; the
     // commit gate blocks it from landing silently broken).
     { kind: "lookup", cols: 4, size: 25, labels: ["Mishaps", "Benefits", "% Modifier", "XP"],
-      dieIndexed: true, extractCols: "1" }),
+      dieIndexed: true, extractCols: "1", tokens: true }),
   _entry("cs6/carousing-benefit", "CS6", "Carousing Outcome - Benefit", LONGTABLE("BENEFIT"), ["Carousing Benefit"]),
   _entry("cs6/carousing-mishap", "CS6", "Carousing Outcome - Mishap", LONGTABLE("MISHAP"), ["Carousing Mishap"]),
   _entry("wr/carousing-benefit", "WR", "Carousing Benefit", LONGTABLE("BENEFIT")),
@@ -252,7 +252,7 @@ export const CONTENT_ENTRIES = [
   // column headed "d100 Modifier" instead of "% Modifier".
   _entry("wr/carousing-outcome", "WR", "Carousing Outcome",
     { kind: "lookup", cols: 4, size: 25, labels: ["Mishaps", "Benefits", "d100 Modifier", "XP"],
-      dieIndexed: true, extractCols: "1" }),
+      dieIndexed: true, extractCols: "1", tokens: true }),
   // Side-by-side two-column-caption pages (Armor/Weapon/Utility Type+Feature on
   // p284/290/292, Scroll/Wand Feature on p288, spell Tier 2-5 on p289). The
   // captions merge in 1-col, so these use the 2-column extraction and section-
