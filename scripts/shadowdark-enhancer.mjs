@@ -129,6 +129,12 @@ Hooks.once("init", () => {
   ensureFreshStylesheet();
   console.log(`${MODULE_ID} | init`);
   registerSettings();
+  // Register Western Reaches as an official source tag for items, so it appears
+  // in the Source dropdown alongside the system's built-in books.
+  const sd = game.shadowdark;
+  if (sd?.config?.OFFICIAL_SOURCES && !sd.config.OFFICIAL_SOURCES["western-reaches"]) {
+    sd.config.OFFICIAL_SOURCES["western-reaches"] = "Shadowdark RPG: Western Reaches";
+  }
   MerchantShop.registerSettings();
   SessionRecap.registerSettings();
   ItemDrops.registerSettings();

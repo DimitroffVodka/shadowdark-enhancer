@@ -268,13 +268,29 @@ let _propertyIndexCache = null;
 async function _propertyIndex() {
   if (_propertyIndexCache) return _propertyIndexCache;
   const map = new Map();
-  const pack = game.packs?.get("shadowdark.properties");
-  if (pack) {
-    // Only ~18 docs — load them fully so system.itemType is reliable rather than
-    // relying on index field projection.
-    for (const doc of await pack.getDocuments()) {
+  // System properties pack (shadowdark.properties).
+  const sysPack = game.packs?.get("shadowdark.properties");
+  if (sysPack) {
+    for (const doc of await sysPack.getDocuments()) {
       const itemType = doc.system?.itemType ?? "armor";
       map.set(`${itemType}:${(doc.name ?? "").toLowerCase()}`, doc.uuid);
+    }
+  }
+  // Custom Western Reaches properties live in the canonical items pack
+  // (world.shadowdark-enhancer--items → Weapon Properties folder). These are
+  // Property-type items the GM curated — they resolve the same way as system
+  // properties so weapons/armor reference them by UUID.
+  const sdeItems = game.packs?.get("world.shadowdark-enhancer--items");
+  if (sdeItems) {
+    for (const doc of await sdeItems.getDocuments()) {
+      if (doc.type !== "Property") continue;
+      const itemType = doc.system?.itemType ?? "weapon";
+      map.set(`${itemType}:${(doc.name ?? "").toLowerCase()}`, doc.uuid);
+      // Also index without the type prefix for cross-type fallback.
+      if (!map.has(`weapon:${(doc.name ?? "").toLowerCase()}`))
+        map.set(`weapon:${(doc.name ?? "").toLowerCase()}`, doc.uuid);
+      if (!map.has(`armor:${(doc.name ?? "").toLowerCase()}`))
+        map.set(`armor:${(doc.name ?? "").toLowerCase()}`, doc.uuid);
     }
   }
   _propertyIndexCache = map;
@@ -370,10 +386,12 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
     if (choice === "replace") {
       const old = await pack.getDocument(existing._id).catch(() => null);
       if (old) {
-        // Non-destructive replace: in-place update (UUID + inbound links
-        // survive) with create-then-delete fallback — the original is never
-        // deleted before the replacement exists.
-        const { doc, mode } = await replaceDocument(old, buildPayload(), pack);
+        // Preserve curated fields from the canonical pack: if the GM has
+        // hand-edited descriptions, icons, or properties, don't overwrite
+        // them with parser-generated defaults.
+        const payload = buildPayload();
+        _preserveCuratedFields(payload, old);
+        const { doc, mode } = await replaceDocument(old, payload, pack);
         return { uuid: doc.uuid, name: doc.name, status: "replaced", mode };
       }
       // Index entry without a resolvable document — fall through to create.
@@ -483,6 +501,46 @@ const TYPE_TO_PACK_ID = {
   Language:   "languages",
 };
 
+// ─── Replace-time curation preservation ──────────────────────────────────────
+
+/**
+ * When replacing an existing item, preserve fields the GM has manually curated
+ * (description, icon, properties) so a re-import doesn't overwrite hand-edited
+ * work with parser-generated defaults. A curated description is one that isn't
+ * the placeholder `<p></p>` or a purely auto-generated string; a curated icon
+ * is one that differs from the auto-picked treasure icon.
+ */
+function _preserveCuratedFields(payload, existingDoc) {
+  const src = payload.system ?? {};
+  const old = existingDoc.system ?? {};
+
+  // Description: keep the existing one if it has real content and the new one
+  // is the default `<p></p>` or empty.
+  const oldDesc = String(old.description ?? "").trim();
+  const newDesc = String(src.description ?? "").trim();
+  if (oldDesc && oldDesc !== "<p></p>" && (!newDesc || newDesc === "<p></p>")) {
+    if (payload.system) payload.system.description = old.description;
+  }
+
+  // Icon: keep the existing curated icon if the new one is auto-picked.
+  // Don't overwrite a hand-picked icon with pickTreasureIcon's default.
+  if (existingDoc.img && existingDoc.img !== payload.img) {
+    const newIsDefault = payload.img && (
+      payload.img.startsWith("icons/") ||
+      payload.img.includes("default")
+    );
+    if (newIsDefault) payload.img = existingDoc.img;
+  }
+
+  // Properties: if the existing item already has resolved property UUIDs and
+  // the new draft has none (or fewer), keep the existing ones.
+  const oldProps = Array.isArray(old.properties) ? old.properties : [];
+  const newProps = Array.isArray(src.properties) ? src.properties : [];
+  if (oldProps.length > 0 && newProps.length === 0) {
+    if (payload.system) payload.system.properties = oldProps;
+  }
+}
+
 /** Find-or-create the suite pack a draft type routes to (default sde-items). */
 async function _packForType(type) {
   const id = TYPE_TO_PACK_ID[type] ?? "sde-items";
@@ -499,6 +557,49 @@ async function _packForType(type) {
   if (existing) return existing;
   if (id === "sde-items" || !desc) return (await ensureSuite())?.items;
   return ensurePack(desc);
+}
+
+/** Known siege weapon names from Western Reaches (pg 119). */
+const SIEGE_WEAPON_NAMES = new Set([
+  "trebuchet", "catapult", "ballista", "crossbow, heavy",
+]);
+
+/**
+ * Folder path segments for gear items, keyed by source key → item type.
+ * Returns null for the root source folder (no sub-folder).
+ */
+function _gearSubfolder(sourceKey, draft) {
+  // Only WR uses typed sub-folders — other sources stay flat.
+  if (sourceKey !== "wr" && sourceKey !== "western reaches") return null;
+  const sdType = draft.type;
+  if (sdType === "Basic") return "Basic Gear";
+  if (sdType === "Armor") return "Armor";
+  if (sdType === "Property") return "Weapon Properties";
+  if (sdType === "Weapon") {
+    const name = String(draft.name ?? "").toLowerCase();
+    return SIEGE_WEAPON_NAMES.has(name) ? "Siege Weapons" : "Weapons";
+  }
+  return null;
+}
+
+/**
+ * Resolve the folder id for a gear draft. For WR items this creates a
+ * type-specific sub-folder nested under the source folder; for other sources
+ * it returns the flat source folder directly.
+ */
+async function _gearFolderId(pack, draft, sourceFolder, source) {
+  const src = String(source ?? "").trim().toLowerCase();
+  const sub = _gearSubfolder(src, draft);
+  if (!sub) return sourceFolder;
+  return ensureFolderPath(pack, [sourceFolder ? await _sourceFolderName(sourceFolder, pack) : null, sub].filter(Boolean));
+}
+
+async function _sourceFolderName(folderId, pack) {
+  if (!folderId) return null;
+  try {
+    const f = pack.folders?.find?.((f) => f.id === folderId);
+    return f?.name ?? null;
+  } catch { return null; }
 }
 
 /**
@@ -537,7 +638,7 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
       let folder;
       if (draft.type === "Spell") folder = await spellFolderId(pack, draft);
       else if (draft.type === "Talent") folder = await talentFolderId(pack, draft);
-      else folder = sourceFolder;
+      else folder = await _gearFolderId(pack, draft, sourceFolder, source);
       const r = await createItem(draft, { pack, folder, source, onConflict });
       if (!r) continue;
       if (r.status === "skipped") out.skipped.push(r.name);
