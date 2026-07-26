@@ -42,11 +42,12 @@ import { sourceFolderName, findSuitePack } from "../shared/compendium-suite.mjs"
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { BOAT_MANIFEST } from "./boats/boat-parser.mjs";
 import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
+import { MOUNT_MANIFEST } from "./boats/mount-parser.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
-/** Fixed monster-source skeleton so empty sources still render (0 locked). */
-const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
+/** Curated bestiary skeleton. Western Reaches creatures are represented by Mounts. */
+const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6"];
 
 // GAMEPLAY_TABLES / PATRON_TABLES routing sets now live in table-folders.mjs
 // (single source of truth shared with the pack-folder resolver) — imported above.
@@ -56,7 +57,13 @@ const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reac
  * is reference-driven, so a fresh world may have no named gaps. These totals
  * keep each source discoverable as a direct paste/import action.
  */
-const BESTIARY_COUNTS = { CS1: 14, CS2: 14, CS3: 12, CS4: 19, CS5: 5 };
+const BESTIARY_COUNTS = {
+  CS1: { count: 14, pages: "46-48" },
+  CS2: { count: 14, pages: "40-43" },
+  CS3: { count: 12, pages: "44-47" },
+  CS4: { count: 18, pages: "60-64" },
+  CS5: { count: 6,  pages: "34-35" },
+};
 
 /** Sort a leaf's entries: importable (locked) first, then imported, alpha within. */
 function sortEntries(entries, alpha = false) {
@@ -299,9 +306,9 @@ function buildGameplay(charEntries, tablesPresent) {
 }
 
 /**
- * Monsters top-level branch. Each source leaf enumerates already-imported
- * monsters (from sde-actors) plus importable gap names (referenced by pack
- * tables but not resolvable). Fixed CS1–6 + WR skeleton, then any other source.
+ * Monsters top-level branch. Only curated CS bestiaries are source leaves;
+ * reference-derived Custom/Core noise and Western Reaches mount actors do not
+ * become generic monster folders. Western Reaches is represented by Mounts.
  */
 function buildMonsters(monsterRows, actorRecords) {
   // Imported monster names grouped by display source label (deduped).
@@ -319,30 +326,35 @@ function buildMonsters(monsterRows, actorRecords) {
     // folder + the "Grab from PDF" page-range extractor default to the right book.
     const present = [...(presentByLabel.get(label)?.values() ?? [])].map((name) => ({ name, present: true, src: label }));
     const missing = (rowByLabel.get(label)?.missingNames ?? []).map((name) => ({ name, present: false, src: label }));
-    // Sourceless name-references from table text are review material, not a
-    // curated bestiary — label the bucket honestly (E2E D8).
-    const displayLabel = label === "Custom" ? "Unresolved encounter references" : label;
-    const node = leaf(`monsters/${label}`, displayLabel, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
+    const node = leaf(`monsters/${label}`, label, "fa-dragon", [...present, ...missing], "monsterSeedPaste");
     // Incomplete published bestiary → one direct paste/import row.
     const expected = BESTIARY_COUNTS[label];
-    if (expected && node.have < expected) {
+    if (expected && node.have < expected.count) {
       node.entries.unshift({
-        name: `Import the ${label} bestiary — ${expected} monsters (paste the book's bestiary)`,
-        present: false, seedAction: "monsterSeedPaste", type: "Actor", src: label, pages: "",
+        name: `Import the ${label} bestiary — ${expected.count} monsters (${expected.pages})`,
+        present: false, seedAction: "monsterSeedPaste", type: "Actor", src: label, pages: expected.pages,
       });
-      node.locked = expected - node.have;
+      node.locked = expected.count - node.have;
     }
     return node;
   };
 
-  const children = [];
-  const seen = new Set();
-  for (const label of MONSTER_SOURCES) { seen.add(label); children.push(makeLeaf(label)); }
-  for (const label of new Set([...presentByLabel.keys(), ...rowByLabel.keys()])) {
-    if (!seen.has(label)) children.push(makeLeaf(label));
-  }
+  const children = MONSTER_SOURCES.map(makeLeaf);
+
+  // Mounts are content identities, not source identities. A matching actor in
+  // any imported source (and either NPC or custom Mount form) satisfies the row.
+  const actorNames = new Set(actorRecords.map((r) => _norm(r.name)));
+  const mountRecords = MOUNT_MANIFEST.map((m) => ({
+    name: m.name, present: actorNames.has(_norm(m.name)),
+    type: "Mount", src: m.src, pages: m.pages,
+  }));
+  children.push(leaf("monsters/mounts", "Mounts", "fa-horse", mountRecords, "charSeedPaste", true));
+
   return branch("monsters", "Monsters", "fa-dragon", children);
 }
+
+/** Pure test seam for curated source filtering and cross-source mount presence. */
+export const _testBuildMonsters = buildMonsters;
 
 /**
  * Items top-level branch, grouped by type (Magic Items = Potion+Scroll+Wand).

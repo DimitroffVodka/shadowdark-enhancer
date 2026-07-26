@@ -190,11 +190,19 @@ class HubCommitMethods {
 
     const source = this._importSource.trim();
     const drafts = this._importMonsters.map((p) => p.draft);
-    const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
+    const isMount = this._importSeed?.type === "Mount";
+    let result;
+    if (isMount) {
+      const { MountImporter } = await import("./boats/mount-importer.mjs");
+      result = await MountImporter.createMounts(drafts, { source });
+    } else {
+      result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
+    }
     if (!result) return;
 
-    ui.notifications.info(`Monsters: ${ImporterHubApp._commitSummary(result)} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(`${isMount ? "Mounts" : "Monsters"}: ${ImporterHubApp._commitSummary(result)} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
     this._importMonsters = [];
+    this._invalidateMonstersCache();
     this.render();
   }
 
@@ -469,10 +477,22 @@ class HubCommitMethods {
     // Monsters first
     if (hasMonsters) {
       const drafts = this._importMonsters.map((p) => p.draft);
-      const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
-      if (result) {
-        parts.push(`monsters: ${ImporterHubApp._commitSummary(result)}`);
-        this._importMonsters = [];
+      // Mounts: imported as mount-type actors instead of standard NPCs.
+      if (this._importSeed?.type === "Mount") {
+        const { MountImporter } = await import("./boats/mount-importer.mjs");
+        const result = await MountImporter.createMounts(drafts, { source });
+        if (result) {
+          parts.push(`mounts: ${ImporterHubApp._commitSummary(result)}`);
+          this._importMonsters = [];
+          this._invalidateMonstersCache();
+        }
+      } else {
+        const result = await MonsterImporter.createMonsters(drafts, { source, onConflict: this._monsterConflictDialog() });
+        if (result) {
+          parts.push(`monsters: ${ImporterHubApp._commitSummary(result)}`);
+          this._importMonsters = [];
+          this._invalidateMonstersCache();
+        }
       }
     }
 

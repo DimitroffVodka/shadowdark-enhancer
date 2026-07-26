@@ -219,6 +219,76 @@ function _cropTablePrefix(its) {
   return its.filter((i) => i.transform[5] < lastPriced - ((i.height || 8) * 0.5));
 }
 
+/** True when a PDF item looks like a centered, full-width section title. */
+function _isFullWidthHeading(it, W, medianHeight) {
+  const text = String(it.str ?? "").trim();
+  if (!/^[A-Z][A-Z &/,.'’-]*$/.test(text)) return false;
+  if ((text.match(/[A-Z]/g) ?? []).length < 2) return false;
+  if (/\b(AC|HP|ATK|MV|AL|LV|DC|ADV|DISADV)\b/.test(text)) return false;
+  const x1 = it.transform[4];
+  const x2 = x1 + it.width;
+  return x1 < W / 2 && x2 > W / 2 && (it.height || 0) >= medianHeight * 1.15;
+}
+
+/**
+ * Find a full-width lower band on a page whose upper region is two-column.
+ * Some bestiary pages switch layout mid-page: two monster columns above, then
+ * one full-width monster below. A single page-wide gutter cuts that lower
+ * statblock in half. Return the band boundary and the gutter detected from the
+ * upper region only, or null when the evidence is insufficient.
+ */
+function _findFullWidthLowerBand(its, W) {
+  if (its.length < 12) return null;
+  const heights = its.map((i) => i.height || 0).filter((h) => h > 0).sort((a, b) => a - b);
+  const medianHeight = heights[Math.floor(heights.length / 2)] || 8;
+  const headings = its
+    .filter((i) => _isFullWidthHeading(i, W, medianHeight))
+    .sort((a, b) => b.transform[5] - a.transform[5]);
+
+  for (const heading of headings) {
+    const boundaryY = heading.transform[5] + (heading.height || medianHeight) * 0.5;
+    const upper = its.filter((i) => i.transform[5] > boundaryY);
+    const lower = its.filter((i) => i.transform[5] <= boundaryY);
+    const gutter = detectGutter(upper, W, "auto");
+    if (gutter == null) continue;
+    // Require at least two lower-band runs (besides the title) to cross the
+    // upper gutter. That distinguishes a genuine full-width block from a
+    // centered decorative heading followed by ordinary columns.
+    const spanning = lower.filter((i) => i !== heading &&
+      i.transform[4] < gutter && i.transform[4] + i.width > gutter);
+    if (spanning.length >= 2) return { boundaryY, gutter };
+  }
+  return null;
+}
+
+/** Reconstruct reading-order lines from positioned PDF.js text items. */
+function layoutPageItems(its, W, mode) {
+  if (mode === "auto") {
+    const band = _findFullWidthLowerBand(its, W);
+    if (band) {
+      const upper = its.filter((i) => i.transform[5] > band.boundaryY);
+      const lower = its.filter((i) => i.transform[5] <= band.boundaryY);
+      const cols = [
+        upper.filter((i) => i.transform[4] + i.width / 2 < band.gutter),
+        upper.filter((i) => i.transform[4] + i.width / 2 >= band.gutter),
+      ];
+      return {
+        gutter: band.gutter,
+        lines: [...cols.flatMap((c) => columnLines(c)), ...columnLines(lower)],
+      };
+    }
+  }
+
+  const gutter = detectGutter(its, W, mode);
+  const cols = gutter == null
+    ? [its]
+    : [
+        its.filter((i) => i.transform[4] + i.width / 2 < gutter),
+        its.filter((i) => i.transform[4] + i.width / 2 >= gutter),
+      ];
+  return { gutter, lines: cols.flatMap((c) => columnLines(c, mode === "layout")) };
+}
+
 /** Extract one already-loaded page to an ordered array of text lines. */
 async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   // Force rotation:0 so page width matches the text items' coordinate space.
@@ -231,22 +301,7 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   const tc = await page.getTextContent();
   let its = tc.items.filter((i) => i.str && i.str.trim().length);
   if (cropTablePrefix) its = _cropTablePrefix(its);
-  const gutter = detectGutter(its, vp.width, mode);
-  // Assign each item to a column by its CENTER (robust to the gutter estimate
-  // being off-center within the true gap). Reading order: whole left column,
-  // then whole right column. NOTE: a full-width banner/header that sits between
-  // two-column content (e.g. a "BASILISK CULTISTS" section banner) folds onto
-  // the end of a column here and can be mis-read as the preceding block's
-  // feature — an attempted horizontal-banding fix was reverted because the
-  // gutter estimate isn't precise enough to place band separators without
-  // corrupting normal pages. The preview's row-level review flag catches those.
-  const cols = gutter == null
-    ? [its]
-    : [
-        its.filter((i) => i.transform[4] + i.width / 2 < gutter),
-        its.filter((i) => i.transform[4] + i.width / 2 >= gutter),
-      ];
-  const lines = cols.flatMap((c) => columnLines(c, mode === "layout"));
+  const { gutter, lines } = layoutPageItems(its, vp.width, mode);
   return { gutter: gutter == null ? null : Math.round(gutter), lines };
 }
 
@@ -278,7 +333,15 @@ export async function extractPdfText(filePath, { pages = [1], columns = "auto", 
 }
 
 // Node-testable internals (no Foundry globals at module level).
-export const _internals = { detectGutter, columnLines, _yLineGroups, _cropTablePrefix, PRICED_ROW_RE };
+export const _internals = {
+  detectGutter,
+  columnLines,
+  layoutPageItems,
+  _findFullWidthLowerBand,
+  _yLineGroups,
+  _cropTablePrefix,
+  PRICED_ROW_RE,
+};
 
 /**
  * Parse a page-range spec into a sorted, de-duped list of page numbers.

@@ -312,6 +312,42 @@ export function stripSeedNoise(text, { name = "", pages = "", size = 100 } = {})
   return { text: out.join("\n"), dropped };
 }
 
+/** Remove only bare page-number lines cited by the active unlock. */
+export function stripPageFooterLines(text, pages = "") {
+  const footers = new Set();
+  for (const token of String(pages).split(",")) {
+    const match = /^\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?\s*$/.exec(token);
+    if (!match) continue;
+    const start = Number(match[1]);
+    const end = Number(match[2] ?? match[1]);
+    const step = start <= end ? 1 : -1;
+    for (let page = start; page !== end + step; page += step) footers.add(String(page));
+  }
+  const lines = String(text).split(/\r?\n/);
+  const drop = new Set();
+  for (let i = 0; i < lines.length; i++) {
+    if (!footers.has(lines[i].trim())) continue;
+    drop.add(i);
+
+    // Layout extraction can place a page-bottom pull-quote mark immediately
+    // before the footer and the next page's running title immediately after it.
+    // Neither is table data; without this guard both attach to the last die row.
+    let before = i - 1;
+    while (before >= 0 && !lines[before].trim()) before--;
+    if (before >= 0 && /^[“”"'‘’—–-]+$/.test(lines[before].trim())) drop.add(before);
+
+    let after = i + 1;
+    while (after < lines.length && !lines[after].trim()) after++;
+    let next = after + 1;
+    while (next < lines.length && !lines[next].trim()) next++;
+    const runningTitle = lines[after]?.trim() ?? "";
+    if (runningTitle && runningTitle.split(/\s+/).length <= 5 && isSectionCaption(lines[next] ?? "")) {
+      drop.add(after);
+    }
+  }
+  return lines.filter((_line, index) => !drop.has(index)).join("\n");
+}
+
 /** Build a single-die ParsedTable from a block's data lines. */
 function parseSingleDieBlock(title, die, dataLines) {
   const rows = [];
@@ -1781,6 +1817,11 @@ function _sliceSection(text, { name = "", caption, size } = {}) {
   const body = [];
   for (let i = bodyStart; i < lines.length; i++) {
     if (isSectionCaption(lines[i])) break;
+    // A closing quote can be extracted without its opening mark; detect it by
+    // the attribution on the next line and stop before either trailer line can
+    // attach to the final die result.
+    if (body.length && (PAGE_TRAILER.test(lines[i])
+      || (!parseLeadingRange(lines[i]) && PAGE_TRAILER.test(lines[i + 1] ?? "")))) break;
     if (lines[i]) body.push(lines[i]);
   }
   return body.length ? { die, body } : null;
@@ -1791,6 +1832,28 @@ function parseSectionSlice(text, { name = "", caption, size } = {}) {
   if (!s) return null;
   // Force single-die (columns stripped) so a multi-word title never matrix-splits.
   const pt = parseSingleDieBlock(name || s.die.remainder, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, s.body);
+  if (name) pt.name = name;
+  return pt.rows.length ? pt : null;
+}
+
+/** Parse a section whose row has several count columns and retain their labels. */
+function parseLabeledSection(text, { name = "", caption, labels = [] } = {}) {
+  const s = _sliceSection(text, { name, caption });
+  if (!s || !labels.length) return null;
+  const dataLines = [];
+  for (const line of s.body) {
+    const row = parseLeadingRange(line);
+    if (!row) continue;
+    const values = row.rest.trim().split(/\s+/);
+    if (values.length !== labels.length) return null;
+    const value = labels
+      .map((label, index) => `${label}: ${values[index] === "-" ? "0" : values[index]}`)
+      .join("; ");
+    const range = row.min === row.max ? `${row.min}` : `${row.min}-${row.max}`;
+    dataLines.push(`${range} ${value}`);
+  }
+  if (!dataLines.length) return null;
+  const pt = parseSingleDieBlock(name, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, dataLines);
   if (name) pt.name = name;
   return pt.rows.length ? pt : null;
 }
@@ -1966,6 +2029,10 @@ export function parseByShape(text, shape, { name = "" } = {}) {
   }
   if (shape.kind === "section") {
     const pt = parseSectionSlice(text, { name, caption: shape.caption, size: shape.size });
+    return pt ? { tables: [pt] } : null;
+  }
+  if (shape.kind === "labeled-section") {
+    const pt = parseLabeledSection(text, { name, caption: shape.caption, labels: shape.labels });
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "gridcol") {

@@ -69,7 +69,10 @@ const SECTION = (caption, cols = "1", size) => ({ kind: "section", cols, ...(cap
 // "d12 Poor Standard Wealthy" — each price tier is its own single-die table).
 // `col` is the 0-based column index, `ncols` the total; parsed single-column
 // (the grid sits under one caption) — see parseGridColumn in table-importer.
-const GRIDCOL = (caption, col, ncols) => ({ kind: "gridcol", caption, col, ncols, cols: "1" });
+const GRIDCOL = (caption, col, ncols, cols = "1") => ({ kind: "gridcol", caption, col, ncols, cols });
+
+// One roll produces several labeled counts (e.g. "Benefit: 1; Curse: 0").
+const LABELED_SECTION = (caption, labels) => ({ kind: "labeled-section", caption, labels, cols: "auto" });
 
 // A "dN, dN" cross-reference matrix (Interesting Customer, Personality Trait):
 // flattened to a 1d(N²) table. Needs layout extraction to keep the column
@@ -362,8 +365,8 @@ export const CONTENT_ENTRIES = [
   // p282 QUALITIES table shares its caption with the page's opening prose
   // section — _sliceSection prefers the occurrence with a die header.
   _entry("core/magic-item-type", "CORE", "Type", SECTION("TYPE", "auto")),
-  _entry("core/magic-item-qualities", "CORE", "Qualities", SECTION("QUALITIES", "auto")),
-  _entry("core/magic-item-personality", "CORE", "Personality", SECTION("PERSONALITY", "auto")),
+  _entry("core/magic-item-qualities", "CORE", "Qualities", LABELED_SECTION("QUALITIES", ["Benefit", "Curse"])),
+  _entry("core/magic-item-personality", "CORE", "Personality", LABELED_SECTION("PERSONALITY", ["Virtue", "Flaw"])),
   // First of the TIER 1-5 spell-list series (Tier 2-5 above cite p289; the
   // TIER 1 list starts one page earlier with the scroll tables).
   _entry("core/tier-1", "CORE", "Tier 1", SECTION("TIER 1", "auto")),
@@ -371,11 +374,11 @@ export const CONTENT_ENTRIES = [
   _entry("core/weapon-bonus", "CORE", "Weapon Bonus", SECTION("WEAPON BONUS", "auto")),
   // p286 potion generators — each catalog entry is one column of a captioned
   // grid (Potion Features d8 ×3, Mixing Potions d12 ×2).
-  _entry("core/potion-features-1", "CORE", "Potion Features - Feature 1", GRIDCOL("POTION FEATURES", 0, 3)),
-  _entry("core/potion-features-2", "CORE", "Potion Features - Feature 2", GRIDCOL("POTION FEATURES", 1, 3)),
-  _entry("core/potion-features-3", "CORE", "Potion Features - Feature 3", GRIDCOL("POTION FEATURES", 2, 3)),
-  _entry("core/mixing-potions-1", "CORE", "Mixing Potions - Effect 1", GRIDCOL("MIXING POTIONS", 0, 2)),
-  _entry("core/mixing-potions-2", "CORE", "Mixing Potions - Effect 2", GRIDCOL("MIXING POTIONS", 1, 2)),
+  _entry("core/potion-features-1", "CORE", "Potion Features - Feature 1", GRIDCOL("POTION FEATURES", 0, 3, "layout")),
+  _entry("core/potion-features-2", "CORE", "Potion Features - Feature 2", GRIDCOL("POTION FEATURES", 1, 3, "layout")),
+  _entry("core/potion-features-3", "CORE", "Potion Features - Feature 3", GRIDCOL("POTION FEATURES", 2, 3, "layout")),
+  _entry("core/mixing-potions-1", "CORE", "Mixing Potions - Effect 1", GRIDCOL("MIXING POTIONS", 0, 2, "layout")),
+  _entry("core/mixing-potions-2", "CORE", "Mixing Potions - Effect 2", GRIDCOL("MIXING POTIONS", 1, 2, "layout")),
 ];
 
 export const CONTENT = Object.fromEntries(CONTENT_ENTRIES.map((e) => [e.id, e]));

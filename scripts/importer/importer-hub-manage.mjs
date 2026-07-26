@@ -56,7 +56,7 @@ class HubManageMethods {
     // arrive with ""), so an unknown type sweeps all three rather than guessing
     // Items and reporting a false miss.
     const order = isTable ? ["RollTable"]
-      : ["Actor", "Boat", "SiegeWeapon", "Monster"].includes(type) ? ["Actor", "Item"]
+      : ["Actor", "Boat", "Mount", "SiegeWeapon", "Monster"].includes(type) ? ["Actor", "Item"]
       : type ? ["Item", "Actor"]
       : ["Item", "Actor", "RollTable"];
 
@@ -257,19 +257,27 @@ class HubManageMethods {
    * single missing monster name, switches to the Import tab, re-renders.
    * Reuses the 10-03 seed-hint pattern (sets _importSeed so the hint bar shows).
    */
-  _onMonsterSeedPaste(event, target) {
+  async _onMonsterSeedPaste(event, target) {
     const name = target.dataset.name ?? "";
     if (!name) return;
     const src = target.dataset.src ?? "";
+    const pages = target.dataset.pages ?? "";
+    const type = target.dataset.type ?? "";
     // Trailing newline so the seeded name reads as a title line and the GM's
     // pasted section lands on the line AFTER it (review: unlock line break).
     this._importText = `${name}\n`;
-    this._importSeed = { name, src, _monsterSeed: true };
+    this._importSeed = { name, src, type, page: pages || undefined, _monsterSeed: true };
     this._importType = "monsters";
-    // Monster gaps carry a source (book) but no page cite — stamp the source so
+    // Monster gaps carry a source (book) — stamp the source so
     // the import folder + the "Grab from PDF" extractor default to the book.
     if (src) this._importSource = CHAR_SOURCES[src]?.label ?? src;
-    this.render();
+    await this.render();
+    // Auto-grab the PDF page range when available (CS1-CS5 bestiary imports).
+    // Falls back to silent no-op when the source PDF isn't linked.
+    if (pages) {
+      try { await this._onGrabPdfText(); }
+      catch (err) { console.warn("Shadowdark Enhancer | monster seed PDF grab failed:", err); }
+    }
   }
 
   /**
@@ -527,6 +535,7 @@ class HubManageMethods {
       Class: "classes", Ancestry: "ancestries",
       Table: "tables",
       Boat: "boats",
+      Mount: "auto",
       SiegeWeapon: "items",
     })[type] ?? "auto";
     // Background roll tables bundle-unlock: one paste creates both the d100

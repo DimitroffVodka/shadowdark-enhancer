@@ -376,14 +376,13 @@ const MANIFEST = {
       "Stormborn", "Sworn", "Thief", "Trader", "Treasure Hunter", "Warden",
       "Warrior", "Witchborn", "Witness",
     ],
-    // Bolas, Spear-thrower (this list) and Stave (Weapon) were dropped
-    // 2026-07-14: they already ship in shadowdark.gear (as Weapon-type items),
-    // so importing them would duplicate system content.
+    // Keep this list to useful non-system gear only. Bolas, Spear-thrower and
+    // Stave duplicate system weapons; Flask or bottle and Gem are intentionally
+    // not offered as importer unlocks.
     Basic: [
       "Ball Bearing", "Candle", "Charcoal, jar", "Flash Seed",
-      "Flask or bottle", "Gem", "Glow paste, jar", "Holy water, flask",
-      "Lantern Hook", "Miner's putty, jar", "Morzo Silk Rope", "Net", "Saddle",
-      "Tallow, jar", "Traveler's Lamp", "Wagon",
+      "Glow paste, jar", "Holy water, flask", "Lantern Hook", "Miner's putty, jar",
+      "Morzo Silk Rope", "Net", "Saddle", "Tallow, jar", "Traveler's Lamp", "Wagon",
     ],
     Weapon: ["Chakram", "Falchion", "Lance", "Rapier", "Sai"],
     Armor: ["Mithral Round Shield", "Mithral Shield"],

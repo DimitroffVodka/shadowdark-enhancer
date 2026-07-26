@@ -26,7 +26,7 @@
 // tables are verified live against the user's own PDF.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseByShape } from "../scripts/importer/tables/table-importer.mjs";
+import { parseByShape, stripPageFooterLines } from "../scripts/importer/tables/table-importer.mjs";
 import { resolveShape } from "../scripts/importer/tables/table-shapes.mjs";
 import { CORE_TABLE_GROUPS } from "../scripts/importer/tables/core-table-groups.mjs";
 
@@ -56,6 +56,66 @@ const cellsOf = (g, size = 4) => {
   const cols = g.compound?.columns ?? g.columns ?? [];
   return Array.from({ length: size }, (_, i) => cols.map((c) => c.rows?.[i]?.text ?? ""));
 };
+
+test("seeded shape input strips only cited bare page-footer lines", () => {
+  const text = [
+    "MIXING POTIONS",
+    "1 First result",
+    "“",
+    "286",
+    "Mixing Potions",
+    "NEXT TABLE",
+    "d2 Details",
+    "2 Result mentioning 286 coins",
+    "287",
+  ].join("\n");
+  assert.equal(
+    stripPageFooterLines(text, "286"),
+    "MIXING POTIONS\n1 First result\nNEXT TABLE\nd2 Details\n2 Result mentioning 286 coins\n287",
+  );
+});
+
+test("magic-item count grids label each rolled column", () => {
+  const text = [
+    "QUALITIES",
+    "2d6 Benefit Curse",
+    "2-3 - 1",
+    "4-7 1 1",
+    "8-11 1 -",
+    "12 2 -",
+  ].join("\n");
+  const shape = resolveShape({ contentId: "core/magic-item-qualities", name: "Qualities", src: "CORE" });
+  const table = parseByShape(text, shape, { name: "Qualities" }).tables[0];
+  assert.deepEqual(table.rows.map((r) => r.text), [
+    "Benefit: 0; Curse: 1",
+    "Benefit: 1; Curse: 1",
+    "Benefit: 1; Curse: 0",
+    "Benefit: 2; Curse: 0",
+  ]);
+});
+
+test("potion grids request layout extraction so multi-word cells stay intact", () => {
+  for (const contentId of [
+    "core/potion-features-1", "core/potion-features-2", "core/potion-features-3",
+    "core/mixing-potions-1", "core/mixing-potions-2",
+  ]) {
+    const shape = resolveShape({ contentId, src: "CORE" });
+    assert.equal(shape?.cols, "layout", `${contentId}: must preserve PDF column geometry`);
+  }
+});
+
+test("section tables stop before a page-bottom quote and attribution", () => {
+  const text = [
+    "UTILITY FEATURE",
+    "d2 Details",
+    "1 First feature",
+    "2 Final feature",
+    "This page-bottom remark is not a result.\"",
+    "-Creeg, human wizard",
+  ].join("\n");
+  const table = parseByShape(text, { kind: "section", caption: "UTILITY FEATURE", size: 2 }, { name: "Utility Feature" }).tables[0];
+  assert.deepEqual(table.rows.map((r) => r.text), ["First feature", "Final feature"]);
+});
 
 test("every generator pins layout extraction and a caption bound", () => {
   for (const [name, caption] of GENERATORS) {

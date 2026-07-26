@@ -9,7 +9,7 @@
  * bodies (never at module top level).
  */
 
-import { TableImporter, parseTables, parseGenerators } from "./tables/table-importer.mjs";
+import { TableImporter, parseTables, parseGenerators, stripPageFooterLines } from "./tables/table-importer.mjs";
 import { LootLinker } from "../loot/loot-linker.mjs";
 import { CUSTOM_ID } from "./tables/table-categories.mjs";
 import { columnManifestId } from "./tables/table-manifest.mjs";
@@ -732,6 +732,10 @@ class HubPasteMethods {
       return;
     }
 
+    // Keep shape captions/die headers, but remove cited bare PDF page footers
+    // before they can masquerade as out-of-range die rows.
+    const shapeText = seed?._charSeed ? stripPageFooterLines(text, seed.page) : text;
+
     // Shape-directed parse: when the thing being unlocked ships a precise
     // structure descriptor (table-shapes.mjs) — a prayer generator, a Carousing
     // lookup — reconstruct it deterministically instead of guessing. Driven by
@@ -745,7 +749,7 @@ class HubPasteMethods {
       let shape = resolveShape({ contentId: seed?.contentId, name: seed?.name, src: seed?.src });
       if (!shape && /prayer\s+generator/i.test(text)) shape = shapeForName("Gede Prayers");
       if (shape) {
-        const bucket = TableImporter.parseByShape(text, shape, { name: seed?.name || "" });
+        const bucket = TableImporter.parseByShape(shapeText, shape, { name: seed?.name || "" });
         // A registered shape that does NOT match must never degrade silently
         // into a generic guess (Codex review) — flag the fallback as a blocker
         // so the preview and the commit gate treat it as suspect.
@@ -775,7 +779,7 @@ class HubPasteMethods {
       let shape = shapeForName(seed?.name);
       if (!shape && /prayer\s+generator/i.test(text)) shape = shapeForName("Gede Prayers");
       if (shape) {
-        const bucket = TableImporter.parseByShape(text, shape, { name: seed?.name || "" });
+        const bucket = TableImporter.parseByShape(shapeText, shape, { name: seed?.name || "" });
         if (bucket) {
           this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
           this._importGenerators = bucket.generators ?? [];
@@ -1027,6 +1031,21 @@ class HubPasteMethods {
       const { fresh, duplicates } = await partitionSystemDuplicates(items);
       items = fresh;
       if (duplicates.length) skipped = [...skipped, ...duplicates];
+    }
+
+    // A Mount unlock grabs the full two-page WR mount spread, but represents
+    // one selected content identity. Keep only that draft so importing a single
+    // missing mount never creates the other fourteen as duplicate mount actors.
+    if (this._importSeed?.type === "Mount" && monsters.length) {
+      const { selectMountDrafts } = await import("./boats/mount-parser.mjs");
+      const selected = selectMountDrafts(monsters, this._importSeed.name);
+      if (!selected.length) {
+        skipped = [...skipped, {
+          name: this._importSeed.name,
+          reason: "selected mount was not found in the extracted page range",
+        }];
+      }
+      monsters = selected;
     }
 
     // A seeded item unlock ("Import Ball Bearing") grabs the whole equipment

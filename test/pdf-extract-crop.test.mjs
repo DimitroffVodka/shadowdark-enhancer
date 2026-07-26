@@ -14,8 +14,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { _internals } from "../scripts/importer/pdf-text-extract.mjs";
+import { splitStatblocks } from "../scripts/importer/monsters/statblock-parser.mjs";
 
-const { detectGutter, _cropTablePrefix, PRICED_ROW_RE } = _internals;
+const { detectGutter, layoutPageItems, _cropTablePrefix, PRICED_ROW_RE } = _internals;
 
 /** One synthetic PDF.js text item whose x-center is `cx`, at height `y`. */
 const item = (cx, y, str = "x", width = 2) =>
@@ -73,4 +74,43 @@ test("PRICED_ROW_RE matches mid-line and line-start costs, not prose mentions", 
   assert.match("Oil, flask 5 sp 1", PRICED_ROW_RE);
   assert.match("240 gp 1 13 + DEX mod M", PRICED_ROW_RE);
   assert.doesNotMatch("worth 10 silver pieces (sp) or 100", PRICED_ROW_RE);
+});
+
+test("layoutPageItems preserves a full-width statblock below two columns", () => {
+  const W = 420;
+  const its = [
+    item(105, 540, "SKRELL", 55),
+    item(100, 520, "AC 13, HP 5, ATK 1 claw +2 (1d6)", 170),
+    item(100, 500, "MV double near, S +2, D +3, C +1, I -3, W +1, Ch -3, AL C, LV 1", 170),
+    item(100, 480, "Clever. Advantage on checks", 170),
+    item(100, 460, "to repeat the same action", 170),
+    item(100, 440, "on a consecutive turn.", 170),
+    item(105, 410, "TAR BAT", 58),
+    item(100, 390, "AC 13, HP 4, ATK 1 bite +3 (1d4)", 170),
+    item(100, 370, "MV near, S -3, D +3, C +0, I -3, W +1, Ch -3, AL N, LV 1", 170),
+    item(300, 540, "PLOGRINA B.", 90),
+    item(300, 520, "AC 14, HP 25, ATK 2 tendril +4 (1d6)", 170),
+    item(300, 500, "MV near, S +0, D +4, C +3, I +1, W +1, Ch +3, AL C, LV 5", 170),
+    item(300, 480, "Rubbery. Half damage", 170),
+    item(300, 460, "from stabbing weapons.", 170),
+    item(300, 440, "Slime Form. Climb walls.", 170),
+    { ...item(210, 205, "THE WILLOWMAN", 124), height: 13 },
+    item(205, 183, "A pale, faceless man with elongated limbs and curved talons.", 338),
+    item(205, 149, "AC 17, HP 61, ATK 3 finger needle +9 (2d10), MV near", 338),
+    item(173, 134, "S +5, D +7, C +3, I +4, W +4, Ch +5, AL C, LV 13", 274),
+  ];
+
+  const { gutter, lines } = layoutPageItems(its, W, "auto");
+  assert.ok(gutter > 150 && gutter < 275, `expected an upper-column gutter, got ${gutter}`);
+  assert.deepEqual(lines.slice(0, 3).map((s) => s.split(" ")[0]), ["SKRELL", "AC", "MV"]);
+  const willowIdx = lines.indexOf("THE WILLOWMAN");
+  const plogrinaIdx = lines.indexOf("PLOGRINA B.");
+  assert.ok(willowIdx > plogrinaIdx, "full-width block must follow both upper columns");
+  assert.match(lines[willowIdx + 2], /^AC 17, HP 61/);
+  assert.match(lines[willowIdx + 3], /LV 13$/);
+
+  const parsed = splitStatblocks(lines.join("\n"));
+  assert.deepEqual(parsed.monsters.map((m) => m.split("\n")[0]),
+    ["SKRELL", "TAR BAT", "PLOGRINA B.", "THE WILLOWMAN"]);
+  assert.deepEqual(parsed.skipped, []);
 });
