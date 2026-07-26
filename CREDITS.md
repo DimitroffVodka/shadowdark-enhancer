@@ -1,4 +1,10 @@
-# Art Credits
+# Credits and Licenses
+
+## Shadowdark RPG Third-Party License
+
+Shadowdark Enhancer is an independent product published under the Shadowdark
+RPG Third-Party License and is not affiliated with The Arcane Library, LLC.
+Shadowdark RPG © 2023 The Arcane Library, LLC.
 
 ## Character Builder — ancestry portraits (`assets/ancestries/`)
 

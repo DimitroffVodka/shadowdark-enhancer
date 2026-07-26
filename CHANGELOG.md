@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.13.1] — 2026-07-26
+
+### Changed
+- Added the prescribed Shadowdark RPG Third-Party License attribution to the
+  shipped README and credits.
+
 ## [0.13.0] — 2026-07-26
 
 ### Fixed
