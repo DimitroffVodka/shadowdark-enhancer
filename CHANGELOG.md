@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.13.0] — 2026-07-26
 
 ### Fixed
 - **Boat sheet edits weren't saving.** The sheet's template wrapped its fields

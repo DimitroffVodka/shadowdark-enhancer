@@ -35,7 +35,7 @@ const RANGE_KEYS = new Set(["close", "near", "far", "self"]);
 const FEATURE_FALSE_POSITIVES = new Set(["close", "near", "far", "focus", "self"]);
 
 /**
- * Title-case a SHOUTING statblock name, e.g. "DIRE WOLF" → "Dire Wolf" (keeps
+ * Title-case a SHOUTING statblock name, e.g. "ENHANCED SYNTHETIC" → "Enhanced Synthetic" (keeps
  * ", Qualifier"). Apostrophes are NOT capital boundaries ("MINER'S PUTTY" →
  * "Miner's Putty", not "Miner'S" — E2E D7; trades away rare O'BRIEN-style
  * names, which these books don't use), and minor words lowercase when not

@@ -58,7 +58,6 @@ function makeDraft(name, cost, speed, ac, hp, gearSlots, propsRaw) {
     props, propsRaw: propsRaw || "-",
   };
 }
-
 /**
  * Split-table layout: a two-column page splits the table at the gutter into a
  * `Name Cost Speed` half and an `AC HP Gear Slots Properties` half, each in row
@@ -154,4 +153,3 @@ export function boatDraftToActorData(d) {
     },
   };
 }
-

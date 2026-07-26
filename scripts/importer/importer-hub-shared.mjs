@@ -21,8 +21,8 @@ export const BOOK_SOURCES = [
 /** A short, correct example of each import type's paste format — shown as the
  *  paste-box placeholder so a manually-picked type is self-documenting. */
 export const FORMAT_EXAMPLES = {
-  auto: "Paste anything — monsters, items, spells, or tables (or a mix). Auto-detect sorts it.\n\nDIRE WOLF\nAC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2",
-  monsters: "One statblock per block (blank line between):\n\nDIRE WOLF\nAC 12, HP 11, ATK 1 bite +3 (1d6), MV double near, S +2, D +2, C +1, I -3, W +1, Ch -2, AL N, LV 2",
+  auto: "Paste anything — monsters, items, spells, or tables (or a mix). Auto-detect sorts it.\n\nENHANCED SYNTHETIC\nAC 13, HP 9, ATK 1 calibration beam +3 (1d6), MV near, S +1, D +2, C +1, I +0, W +0, Ch -2, AL N, LV 2",
+  monsters: "One statblock per block (blank line between):\n\nENHANCED SYNTHETIC\nAC 13, HP 9, ATK 1 calibration beam +3 (1d6), MV near, S +1, D +2, C +1, I +0, W +0, Ch -2, AL N, LV 2",
   items: "One item per line — Name then cost (and optional description):\n\nTorch  5 sp\nRope, 60'  1 gp\nGrappling hook  1 gp\n\nOr paste the book's 'Name. text…' block and use Tools → Fill item descriptions.",
   tables: "A die header, then one row per line:\n\nd6  Result\n1  A cave-in blocks the passage\n2  The floor gives way beneath you\n3  A cold draft snuffs your light\n…",
   backgrounds: "The book's d100 background list, one entry per line:\n\n01  Urchin. You grew up on the streets, quick and unseen.\n02  Wanted. There is a price on your head.\n…",

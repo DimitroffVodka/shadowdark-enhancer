@@ -59,33 +59,33 @@ Each row links to its full manual page.
 
 | | |
 |---|---|
-| 🧭 **[Crawl Strip & Crawl Bar](docs/wiki/Crawl-Strip-and-Crawl-Bar.md)** | Live HP, movement, Luck, AC and active effects for the whole party. Marching order out of combat, initiative order in it. Per-actor action menus so players can attack and cast without a sheet. |
-| 🏃 **[Movement Budgets](docs/wiki/Movement-Budgets.md)** | A coloured ruler while you drag, per-turn allowances, optional refusal of over-budget moves, and one-click rollback to where a token started its turn. |
-| ⚔️ **[Random Encounters](docs/wiki/Random-Encounters.md)** | The `1d6` check, a four-tab roller, and result cards that roll appearing count, distance, activity and a `2d6+CHA` reaction — then place the tokens on the map. |
-| 💰 **[Loot & Treasure](docs/wiki/Loot-and-Treasure.md)** | Generate a hoard, then post it as a chat card players race to claim or drop it on the ground as pickup-able tokens — no need to pick a recipient. First claim wins, coins land in the right purse. Opt-in loot drops when combat ends. |
-| 🏪 **[Merchant Shop](docs/wiki/Merchant-Shop.md)** | A shop that opens for every player at once, backed by a catalog or an NPC's own inventory. Buying and selling against `system.coins`, serialised so nobody double-spends. |
-| 🎖️ **[Party XP](docs/wiki/Party-XP.md)** | Award XP to the whole party at once — full amount to each character, per Shadowdark RAW. Flags who's ready to level; never levels anyone itself. |
-| 📜 **[Session Recap](docs/wiki/Session-Recap.md)** | A session log that fills itself in — loot, XP, combats, rolls, kills, merchant activity — with a **Copy for Discord** export. Tied to the crawl, so there's no extra button to remember. |
+| **[Crawl Strip & Crawl Bar](docs/wiki/Crawl-Strip-and-Crawl-Bar.md)** | Live HP, movement, Luck, AC and active effects for the whole party. Marching order out of combat, initiative order in it. Per-actor action menus so players can attack and cast without a sheet. |
+|  **[Movement Budgets](docs/wiki/Movement-Budgets.md)** | A coloured ruler while you drag, per-turn allowances, optional refusal of over-budget moves, and one-click rollback to where a token started its turn. |
+|  **[Random Encounters](docs/wiki/Random-Encounters.md)** | The `1d6` check, a four-tab roller, and result cards that roll appearing count, distance, activity and a `2d6+CHA` reaction — then place the tokens on the map. |
+| **[Loot & Treasure](docs/wiki/Loot-and-Treasure.md)** | Generate a hoard, then post it as a chat card players race to claim or drop it on the ground as pickup-able tokens — no need to pick a recipient. First claim wins, coins land in the right purse. Opt-in loot drops when combat ends. |
+|  **[Merchant Shop](docs/wiki/Merchant-Shop.md)** | A shop that opens for every player at once, backed by a catalog or an NPC's own inventory. Buying and selling against `system.coins`, serialised so nobody double-spends. |
+|  **[Party XP](docs/wiki/Party-XP.md)** | Award XP to the whole party at once — full amount to each character, per Shadowdark RAW. Flags who's ready to level; never levels anyone itself. |
+|  **[Session Recap](docs/wiki/Session-Recap.md)** | A session log that fills itself in — loot, XP, combats, rolls, kills, merchant activity — with a **Copy for Discord** export. Tied to the crawl, so there's no extra button to remember. |
 
 ### Building content
 
 | | |
 |---|---|
-| 📥 **[Importer Hub](docs/wiki/Importer-Hub.md)** | Paste a section from your own PDF. It's recognised, parsed, previewed editably, and committed into managed packs — never overwriting, never deleting, idempotent on re-import. |
-| 🧩 **[Class & Spell Importers](docs/wiki/Class-and-Spell-Importers.md)** | Dedicated workspaces for the two hardest types: per-part paste zones for a class's writeup, talent table and titles; spells organised by Class → Tier → Alignment. |
-| 📊 **[Table Import & Shapes](docs/wiki/Table-Import-and-Shapes.md)** | 119 tables carry a parsing recipe, so messy PDF copies parse deterministically — prayer generators, wrapped-cell lookups, mix-and-match grids, reflowed pastes. |
-| 👹 **[Monster Creator](docs/wiki/Monster-Creator.md)** | Author a Shadowdark creature from scratch or remix an existing one. Quick-pick catalogs, compendium spell search, and a Generator/Mutator driven by your own imported Core tables. |
-| ⚖️ **[Monster Level Guidelines](docs/wiki/Monster-Level-Guidelines.md)** | What a level-N monster should look like, derived from the bestiary rather than guessed. Re-level any creature from its token with a preview, per-stat checkboxes and a full undo. |
-| 🖼️ **[Monster Token Art](docs/wiki/Monster-Token-Art.md)** | Re-skin the bestiary with art you already own, **referenced by path and never copied or bundled**. Sources auto-discovered, drag to prioritise, browse 2,000+ tokens by hand. |
-| 🔨 **[Magic Item Forge](docs/wiki/Magic-Item-Forge.md)** | Roll or hand-build magic items. Only a whole-result `+N` becomes a real mechanic — everything else stays honest descriptive text. |
+|  **[Importer Hub](docs/wiki/Importer-Hub.md)** | Paste a section from your own PDF. It's recognised, parsed, previewed editably, and committed into managed packs — never overwriting, never deleting, idempotent on re-import. |
+|  **[Class & Spell Importers](docs/wiki/Class-and-Spell-Importers.md)** | Dedicated workspaces for the two hardest types: per-part paste zones for a class's writeup, talent table and titles; spells organised by Class → Tier → Alignment. |
+|  **[Table Import & Shapes](docs/wiki/Table-Import-and-Shapes.md)** | 119 tables carry a parsing recipe, so messy PDF copies parse deterministically — prayer generators, wrapped-cell lookups, mix-and-match grids, reflowed pastes. |
+|  **[Monster Creator](docs/wiki/Monster-Creator.md)** | Author a Shadowdark creature from scratch or remix an existing one. Quick-pick catalogs, compendium spell search, and a Generator/Mutator driven by your own imported Core tables. |
+|  **[Monster Level Guidelines](docs/wiki/Monster-Level-Guidelines.md)** | What a level-N monster should look like, derived from the bestiary rather than guessed. Re-level any creature from its token with a preview, per-stat checkboxes and a full undo. |
+|  **[Monster Token Art](docs/wiki/Monster-Token-Art.md)** | Re-skin the bestiary with art you already own, **referenced by path and never copied or bundled**. Sources auto-discovered, drag to prioritise, browse 2,000+ tokens by hand. |
+| **[Magic Item Forge](docs/wiki/Magic-Item-Forge.md)** | Roll or hand-build magic items. Only a whole-result `+N` becomes a real mechanic — everything else stays honest descriptive text. |
 
 ### Characters
 
 | | |
 |---|---|
-| 🧙 **[Character Builder](docs/wiki/Character-Builder.md)** | A guided, ordered replacement for the system's all-random generator. Seven steps, a complete level-1 character, every roll posted to chat as an audit trail. Players can use it without any file permissions. |
-| 📄 **[Export to PDF](docs/wiki/Export-to-PDF.md)** | Fill a real form-fillable Shadowdark sheet from an actor. Entirely local — nothing is uploaded anywhere. |
-| 🐴 **[Mounts & Boats](docs/wiki/Mounts-and-Boats.md)** | Two Actor sub-types with dedicated sheets for Western Reaches mounts, warbands, boats and siege vehicles. |
+|  **[Character Builder](docs/wiki/Character-Builder.md)** | A guided, ordered replacement for the system's all-random generator. Seven steps, a complete level-1 character, every roll posted to chat as an audit trail. Players can use it without any file permissions. |
+|  **[Export to PDF](docs/wiki/Export-to-PDF.md)** | Fill a real form-fillable Shadowdark sheet from an actor. Entirely local — nothing is uploaded anywhere. |
+| **[Mounts & Boats](docs/wiki/Mounts-and-Boats.md)** | Two Actor sub-types with dedicated sheets for Western Reaches mounts, warbands, boats and siege vehicles. |
 
 ---
 
