@@ -16,6 +16,7 @@
  * Tree structure:
  *   Character Content → Ancestries · Backgrounds · Classes(→per-class→{Class Abilities, Talents}, Multi) · Patrons & Deities
  *   Spells            → per source (CS4 / CS5 / CS6 / Western Reaches)
+ *                       and Mishaps sub-branch (per-class casting mishap tables)
  *   Gameplay          → per source — mechanics tables (carousing, enduring wounds,
  *                       traps & hazards, boons, casting mishaps)
  *   Roll Tables       → per source — the remaining manifest Table entries
@@ -34,7 +35,7 @@ import {
 } from "./char-content/char-content-manifest.mjs";
 import { coreGroupsFor } from "./tables/core-table-groups.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
-import { GAMEPLAY_TABLES, PATRON_TABLES } from "./tables/table-folders.mjs";
+import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES } from "./tables/table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
 import { findMonsterPack } from "./monsters/monster-pack.mjs";
@@ -189,7 +190,7 @@ function buildCharContent(charEntries) {
  * to "imported" once its spells carry the right tags. `spellListCensus` is
  * Map<listKey,{present,count}>.
  */
-function buildSpells(spellListCensus) {
+function buildSpells(spellListCensus, mishapsNode = null) {
   // The three Wizard-alignment lists (Druid·Neutral, Mage·Lawful,
   // Sorcerer·Chaotic) are the SAME spells in the Cursed Scrolls and in Western
   // Reaches, and the census is source-independent — so show ONE row each,
@@ -227,6 +228,7 @@ function buildSpells(spellListCensus) {
       entries, children: [], have, locked: entries.length - have,
     };
   });
+  if (mishapsNode) children.push(mishapsNode);
   return branch("spells", "Spells", "fa-book-sparkles", children);
 }
 
@@ -290,12 +292,12 @@ function buildRollTables(charEntries, tablesPresent) {
 
 /**
  * Gameplay top-level branch, sub-grouped by source — the books' Gameplay-chapter
- * mechanics tables (carousing, enduring wounds, traps & hazards, boons, casting
- * mishaps). Same entry shape/flow as Roll Tables; membership = GAMEPLAY_TABLES.
+ * mechanics tables (carousing, enduring wounds, traps & hazards, boons).
+ * Same entry shape/flow as Roll Tables; membership = GAMEPLAY_TABLES.
  */
 function buildGameplay(charEntries, tablesPresent) {
   const recs = charEntries.filter((e) =>
-    e.type === "Table" && GAMEPLAY_TABLES.has(_norm(e.name)));
+    e.type === "Table" && GAMEPLAY_TABLES.has(_norm(e.name)) && !MISHAP_TABLES.has(_norm(e.name)));
   const sources = [...new Set(recs.map((r) => r.src))];
   const children = sources.map((src) =>
     src === "CORE"
@@ -303,6 +305,21 @@ function buildGameplay(charEntries, tablesPresent) {
       : leaf(`gameplay/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-chess-knight",
           recs.filter((r) => r.src === src), "charSeedPaste"));
   return branch("gameplay", "Gameplay", "fa-dice-d20", children);
+}
+
+/**
+ * Casting Mishaps sub-branch under Spells, grouped by source.
+ * These are the per-class mishap tables (Diabolical, Necromancer, etc.).
+ */
+function buildMishaps(charEntries, tablesPresent) {
+  const recs = charEntries.filter((e) =>
+    e.type === "Table" && MISHAP_TABLES.has(_norm(e.name)));
+  if (!recs.length) return null;
+  const sources = [...new Set(recs.map((r) => r.src))];
+  const children = sources.map((src) =>
+    leaf(`spells/mishaps/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-clover",
+        recs.filter((r) => r.src === src), "charSeedPaste"));
+  return branch("spells-mishaps", "Mishaps", "fa-clover", children);
 }
 
 /**
@@ -447,9 +464,10 @@ export async function buildManageTree() {
     gatherBoatNames().catch(() => new Set()),
     gatherItemNames().catch(() => new Set()),
   ]);
+  const mishapsNode = buildMishaps(charEntries, presence.tablesPresent);
   return [
     buildCharContent(charEntries),
-    buildSpells(spellListCensus),
+    buildSpells(spellListCensus, mishapsNode),
     buildGameplay(charEntries, presence.tablesPresent),
     buildRollTables(charEntries, presence.tablesPresent),
     buildMonsters(monsterRows, actorRecords),

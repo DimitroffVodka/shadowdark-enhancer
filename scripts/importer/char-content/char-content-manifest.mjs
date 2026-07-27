@@ -876,11 +876,11 @@ function _ancestryDescription(src) {
   }).filter(Boolean).join("");
 }
 
-/** "Name. Flavor sentence" per line (leading d100 roll numbers tolerated). */
+/** "Name. Flavor sentence" per line (leading d100 values/ranges tolerated). */
 function _parseBackgrounds(text) {
   const out = [];
   for (const raw of String(text).split("\n")) {
-    const line = raw.trim().replace(/^\d+[.)]?\s+/, "");
+    const line = raw.trim().replace(/^\d+(?:\s*[-–—]\s*\d+)?[.)]?\s+/, "");
     const m = line.match(/^([A-Z][^.]{1,40})\.\s+(.+)$/);
     if (!m) continue;
     out.push({ draft: { name: m[1].trim(), type: "Background", description: `<p>${m[2].trim()}</p>` } });
