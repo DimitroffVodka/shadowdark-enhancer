@@ -325,6 +325,8 @@ const MANIFEST = {
       // Carousing + background-table representatives
       "Carousing Event", "Carousing Outcome",
       "Carousing Mishap", "Carousing Benefit", "Western Reach Backgrounds",
+      // Necromancer mishap tables (WR pp.186-187)
+      "Necromancer Mishap 1-3", "Necromancer Mishap 4-5",
     ],
     Talent: [
       "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",
@@ -531,6 +533,9 @@ const TABLE_PAGES = {
     "Carousing Outcome": "237",
     "Carousing Benefit": "238-241",
     "Carousing Mishap": "242-245",
+    // Necromancer mishap tables
+    "Necromancer Mishap 1-3": "186",
+    "Necromancer Mishap 4-5": "187",
   },
   CS3: {
     // The d100 sea-encounter longtable spans pp.26-27 (p26's rows end at
