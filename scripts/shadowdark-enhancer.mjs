@@ -11,6 +11,7 @@ import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
+import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
@@ -535,6 +536,7 @@ Hooks.once("ready", () => {
   CrawlStrip.init();
   luckRerollInit();
   spellMishapInit();
+  prayerRollInit();
   CrawlBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
