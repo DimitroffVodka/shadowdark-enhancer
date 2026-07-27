@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-674 tracked files · ~81,500 lines of code/markup across scripts+templates+styles+test.
+675 tracked files · ~81,700 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -45,6 +45,7 @@
 |---|---:|---|
 | `shadowdark-enhancer.mjs` | 648 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 68 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
+| `spell-mishap/spell-mishap.mjs` | 134 | Detects Wizard spellcasting nat-1 failures and auto-rolls the tier-appropriate mishap table. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -52,7 +53,7 @@
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
-| `settings.mjs` | 345 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 354 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 76 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |

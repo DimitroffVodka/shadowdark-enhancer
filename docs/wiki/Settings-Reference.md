@@ -42,7 +42,7 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the appropriate Wizard Mishap table from the Shadowdark compendium. |
+| **Auto-roll spell mishap tables** | on | When a Wizard's spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the appropriate Wizard Mishap table (tiered by spell level). Priests are excluded — they simply lose the spell. |
 
 ### Encounters
 
