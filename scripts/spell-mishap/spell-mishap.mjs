@@ -40,13 +40,12 @@ const MISHAP_SETS = {
       { max: 5, tableId: "fLI3BWuv2FgiEkXb" },  // Diabolical Mishap 4-5
     ],
   },
-  // Necromancer uses Wizard mishap tables
+  // Necromancer uses its own mishap tables (Western Reaches pg. 186-187)
   necromancer: {
-    pack: "shadowdark.rollable-tables",
+    pack: "world.shadowdark-enhancer--roll-tables",
     tiers: [
-      { max: 2, tableId: "NiiJKAiBjpPAj5U1" },
-      { max: 4, tableId: "tXhX6Iv3rOc6GlF6" },
-      { max: 5, tableId: "q83PUKIAznuLpqSr" },
+      { max: 3, tableId: "m3BNCd282yl4Zmaf" },  // Necromancer Mishap 1-3
+      { max: 5, tableId: "C3ltjE1DvuU9aO1o" },  // Necromancer Mishap 4-5
     ],
   },
 };
