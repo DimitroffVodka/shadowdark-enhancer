@@ -2,37 +2,70 @@
  * Shadowdark Enhancer — Spell Mishap Auto-Roll
  *
  * Detects natural 1s on spellcasting checks and automatically rolls
- * the appropriate tiered mishap table from the Shadowdark compendium.
+ * the class-appropriate mishap table.
  *
  * Mishap triggers when:
  *   1. A chat message has a spell check (type "spell" in rollConfig)
  *   2. The d20 result is a natural 1
  *   3. The total is below the spell DC (10 + tier)
+ *   4. The caster is not a divine class (Priest, Green Knight, Seer)
+ *
+ * Table sets are keyed by spellcasting class:
+ *   wizard/necromancer → Wizard Mishap (system pack, tiers 1-2, 3-4, 5)
+ *   witch              → Diabolical Mishap (enhancer pack, tiers 1-3, 4-5)
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 
-/** Compendium pack id for the Shadowdark system rollable tables */
-const SD_TABLES = "shadowdark.rollable-tables";
+/** Divine spellcasters that do penance or lose the spell — no mishap table */
+const DIVINE_CLASSES = new Set(["priest", "green knight", "seer"]);
 
-/** Mishap table compendium document IDs keyed by tier range */
-const MISHAP_TABLES = {
-  "1-2": "NiiJKAiBjpPAj5U1",   // Wizard Mishap Tier 1-2
-  "3-4": "tXhX6Iv3rOc6GlF6",   // Wizard Mishap Tier 3-4
-  "5":   "q83PUKIAznuLpqSr",   // Wizard Mishap Tier 5
+/**
+ * Per-class mishap table configuration.
+ * Key = spellcasting class id (matches actor.system.spellcasting.classes)
+ */
+const MISHAP_SETS = {
+  wizard: {
+    pack: "shadowdark.rollable-tables",
+    tiers: [
+      { max: 2, tableId: "NiiJKAiBjpPAj5U1" },  // Wizard Mishap Tier 1-2
+      { max: 4, tableId: "tXhX6Iv3rOc6GlF6" },  // Wizard Mishap Tier 3-4
+      { max: 5, tableId: "q83PUKIAznuLpqSr" },  // Wizard Mishap Tier 5
+    ],
+  },
+  witch: {
+    pack: "world.shadowdark-enhancer--roll-tables",
+    tiers: [
+      { max: 3, tableId: "tN3Qj8Dj1uvdRBC0" },  // Diabolical Mishap 1-3
+      { max: 5, tableId: "fLI3BWuv2FgiEkXb" },  // Diabolical Mishap 4-5
+    ],
+  },
+  // Necromancer uses Wizard mishap tables
+  necromancer: {
+    pack: "shadowdark.rollable-tables",
+    tiers: [
+      { max: 2, tableId: "NiiJKAiBjpPAj5U1" },
+      { max: 4, tableId: "tXhX6Iv3rOc6GlF6" },
+      { max: 5, tableId: "q83PUKIAznuLpqSr" },
+    ],
+  },
 };
 
 /** Setting key */
 const SETTING = "spellMishapAutoRoll";
 
 /**
- * Map a spell tier (1-5) to a mishap table tier range.
+ * Get the mishap table id for a given class and spell tier.
  */
-function tierRange(tier) {
-  tier = Number(tier) || 1;
-  if (tier <= 2) return "1-2";
-  if (tier <= 4) return "3-4";
-  return "5";
+function getMishapTableId(spellcastingClasses, tier) {
+  for (const cls of spellcastingClasses) {
+    const set = MISHAP_SETS[cls];
+    if (!set) continue;
+    for (const t of set.tiers) {
+      if (tier <= t.max) return { tableId: t.tableId, pack: set.pack };
+    }
+  }
+  return null;
 }
 
 /**
@@ -58,24 +91,20 @@ function isNatural1(roll) {
 
 /**
  * Detect a spell mishap from a chat message.
- * Returns { tier, actor } if mishap detected, null otherwise.
+ * Returns { tier, actor, spellcastingClasses } if mishap detected, null otherwise.
  */
 async function detectMishap(message) {
   const config = message.flags?.shadowdark?.rollConfig;
   if (!config) return null;
 
-  // Must be a spell cast
   if (config.type !== "spell") return null;
 
-  // Must have a natural 1 on the d20
   const mainRoll = message.rolls?.[0];
   if (!mainRoll || !isNatural1(mainRoll)) return null;
 
-  // Get the spell tier
   const tier = await getSpellTier(config.itemUuid);
   if (tier == null) return null;
 
-  // Check if below spell DC (10 + tier): the check must have failed
   const dc = 10 + tier;
   if (mainRoll.total >= dc) return null;
 
@@ -83,33 +112,32 @@ async function detectMishap(message) {
     ? await fromUuid(config.actorUuid)
     : null;
 
-  // Priests and other divine casters just lose the spell on a nat 1 — no mishap table.
-  // Priest loses the spell; Green Knight & Seer do penance instead.
-  // Arcane casters (Wizard, Witch, Necromancer, Knight of St. Ydris, etc.) get mishaps.
-  const classes = actor?.system?.spellcasting?.classes ?? [];
-  const divineClasses = ["priest", "green knight", "seer"];
-  if (!classes.length || classes.some(c => divineClasses.includes(c))) return null;
+  if (!actor) return null;
 
-  return { tier, actor };
+  const classes = actor.system?.spellcasting?.classes ?? [];
+  if (!classes.length) return null;
+
+  // Divine casters don't get mishap tables
+  if (classes.some(c => DIVINE_CLASSES.has(c))) return null;
+
+  return { tier, actor, spellcastingClasses: classes };
 }
 
 /**
  * Roll the mishap table and post the result.
  */
-async function rollMishapTable(tier, actor) {
-  const range = tierRange(tier);
-  const tableId = MISHAP_TABLES[range];
-  if (!tableId) return;
+async function rollMishapTable(tier, actor, spellcastingClasses) {
+  const info = getMishapTableId(spellcastingClasses, tier);
+  if (!info) return;
 
-  const pack = game.packs.get(SD_TABLES);
+  const pack = game.packs.get(info.pack);
   if (!pack) return;
 
-  const tableDoc = await pack.getDocument(tableId);
+  const tableDoc = await pack.getDocument(info.tableId);
   if (!tableDoc) return;
 
-  const draw = await tableDoc.draw({ displayChat: true });
+  await tableDoc.draw({ displayChat: true });
 
-  // Post a contextual message
   if (actor) {
     await ChatMessage.create({
       content: game.i18n.format("SDE.mishap.rolled", {
@@ -120,18 +148,16 @@ async function rollMishapTable(tier, actor) {
       speaker: ChatMessage.getSpeaker({ actor }),
     });
   }
-
-  return draw;
 }
 
 export function init() {
   Hooks.on("createChatMessage", async (message) => {
     if (!game.settings.get(MODULE_ID, SETTING)) return;
-    if (!game.user.isGM) return; // Only GM rolls mishap tables
+    if (!game.user.isGM) return;
 
     const mishap = await detectMishap(message);
     if (!mishap) return;
 
-    await rollMishapTable(mishap.tier, mishap.actor);
+    await rollMishapTable(mishap.tier, mishap.actor, mishap.spellcastingClasses);
   });
 }
