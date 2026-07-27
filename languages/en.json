@@ -368,5 +368,10 @@
   "SDE.luckReroll.pipHint": "Spend a Luck token to re-roll",
 
   "SDE.settings.luckRerollPreventNat1.name": "Prevent Luck rerolls on natural 1s",
-  "SDE.settings.luckRerollPreventNat1.hint": "If on, Luck tokens cannot be used to reroll attack rolls, checks, or saves that resulted in a natural 1."
+  "SDE.settings.luckRerollPreventNat1.hint": "If on, Luck tokens cannot be used to reroll attack rolls, checks, or saves that resulted in a natural 1.",
+
+  "SDE.settings.spellMishapAutoRoll.name": "Auto-roll spell mishap tables",
+  "SDE.settings.spellMishapAutoRoll.hint": "If on, a natural 1 on a failed spellcasting check automatically rolls the appropriate Wizard Mishap table.",
+
+  "SDE.mishap.rolled": "{name} rolled a mishap on a Tier {tier} spell — {tableName}:"
 }

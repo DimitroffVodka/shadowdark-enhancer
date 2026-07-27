@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-673 tracked files · ~81,200 lines of code/markup across scripts+templates+styles+test.
+674 tracked files · ~81,500 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -43,7 +43,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 644 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 648 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `luck-reroll/luck-reroll.mjs` | 68 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -51,7 +52,7 @@
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
-| `settings.mjs` | 336 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 345 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 76 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -63,7 +64,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 872 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1069 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 379 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 138 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
@@ -154,8 +155,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 595 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
-| `session-recap-core.mjs` | 310 | Pure data shape, currency math, duration format, Discord-markdown export. |
+| `session-recap.mjs` | 612 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap-core.mjs` | 327 | Pure data shape, currency math, duration format, Discord-markdown export. |
 | `session-recap-app.mjs` | 267 | Recap window: Overview / Combat / Loot / XP / History. |
 
 ### 3.12 `scripts/importer/` — hub + cross-type infrastructure

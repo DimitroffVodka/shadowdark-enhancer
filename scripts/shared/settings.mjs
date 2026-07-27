@@ -342,4 +342,13 @@ export function registerSettings() {
     type: Boolean,
     default: true,
   });
+
+  game.settings.register(MODULE_ID, "spellMishapAutoRoll", {
+    name: "SDE.settings.spellMishapAutoRoll.name",
+    hint: "SDE.settings.spellMishapAutoRoll.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
 }

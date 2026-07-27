@@ -36,7 +36,13 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Prevent Luck rerolls on natural 1s** | on | When on, the Luck pip is hidden on attack rolls, checks, and saves that resulted in a natural 1. |
+| **Prevent Luck rerolls on natural 1s** | on | When on, Luck tokens cannot be used to reroll attack rolls, checks, or saves that resulted in a natural 1. |
+
+### Spell Mishaps
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the appropriate Wizard Mishap table from the Shadowdark compendium. |
 
 ### Encounters
 
