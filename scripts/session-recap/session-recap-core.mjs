@@ -21,6 +21,7 @@ export const DEFAULT_DATA = {
   xp: [],
   combats: [],
   encounterChecks: [],
+  luckSpent: [],
   playerStats: {},
 };
 
@@ -303,6 +304,22 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       lines.push(`**Session XP Awarded: ${grandTotal} XP**`);
       lines.push("");
     }
+  }
+
+  // ── Luck Spent ──────────────────────────────────────────────
+  if (Array.isArray(data.luckSpent) && data.luckSpent.length > 0) {
+    const byPlayer = {};
+    for (const e of data.luckSpent) {
+      (byPlayer[e.player] ??= []).push(e);
+    }
+    lines.push("## Luck Spent");
+    for (const [player, entries] of Object.entries(byPlayer)) {
+      lines.push(`- **${player}:** ${entries.length} token${entries.length !== 1 ? "s" : ""}`);
+      for (const e of entries) {
+        lines.push(`  - ${e.formula}: ${e.oldTotal} → ${e.newTotal}`);
+      }
+    }
+    lines.push("");
   }
 
   if (lines.length <= 3) return "No session activity recorded.";

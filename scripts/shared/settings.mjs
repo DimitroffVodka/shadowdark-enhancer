@@ -333,4 +333,13 @@ export function registerSettings() {
     type: Boolean,
     default: true,
   });
+
+  game.settings.register(MODULE_ID, "luckRerollPreventNat1", {
+    name: "SDE.settings.luckRerollPreventNat1.name",
+    hint: "SDE.settings.luckRerollPreventNat1.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
 }
