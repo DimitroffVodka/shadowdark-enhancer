@@ -83,10 +83,12 @@ async function detectMishap(message) {
     ? await fromUuid(config.actorUuid)
     : null;
 
-  // Priests just lose the spell on a nat 1 — no mishap table roll.
-  // All other spellcasters (Wizard, Necromancer, Witch, Seer, Green Knight, etc.) get mishaps.
+  // Priests and other divine casters just lose the spell on a nat 1 — no mishap table.
+  // Priest loses the spell; Green Knight & Seer do penance instead.
+  // Arcane casters (Wizard, Witch, Necromancer, Knight of St. Ydris, etc.) get mishaps.
   const classes = actor?.system?.spellcasting?.classes ?? [];
-  if (!classes.length || classes.includes("priest")) return null;
+  const divineClasses = ["priest", "green knight", "seer"];
+  if (!classes.length || classes.some(c => divineClasses.includes(c))) return null;
 
   return { tier, actor };
 }
