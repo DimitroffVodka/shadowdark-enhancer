@@ -89,7 +89,7 @@ export function init() {
     icon.src = PRAYER_ICON;
     icon.alt = "Pray";
     icon.title = game.i18n.format("SDE.prayerRoll.title", { deity: deityName });
-    icon.style.cssText = "width:16px;height:16px;margin-left:6px;cursor:pointer;opacity:0.7;vertical-align:middle;";
+    icon.style.cssText = "width:16px;height:16px;margin-left:6px;cursor:pointer;opacity:0.7;display:inline-block;vertical-align:middle;";
     icon.addEventListener("mouseenter", () => { icon.style.opacity = "1"; });
     icon.addEventListener("mouseleave", () => { icon.style.opacity = "0.7"; });
     icon.addEventListener("click", async (ev) => {
