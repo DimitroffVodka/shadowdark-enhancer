@@ -83,9 +83,10 @@ async function detectMishap(message) {
     ? await fromUuid(config.actorUuid)
     : null;
 
-  // Only Wizards suffer mishaps in Shadowdark — Priests just lose the spell
-  const spellcastingClasses = actor?.system?.spellcasting?.classes ?? [];
-  if (!spellcastingClasses.includes("wizard")) return null;
+  // Priests just lose the spell on a nat 1 — no mishap table roll.
+  // All other spellcasters (Wizard, Necromancer, Witch, Seer, Green Knight, etc.) get mishaps.
+  const classes = actor?.system?.spellcasting?.classes ?? [];
+  if (!classes.length || classes.includes("priest")) return null;
 
   return { tier, actor };
 }
