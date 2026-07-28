@@ -3,7 +3,7 @@
 [← Wiki home](Home.md)
 
 Build a Shadowdark creature from scratch, remix an existing one, or roll a new
-one on your own imported Core Rulebook generator tables — then save it as a real
+one on your own imported Core Rulebook generator tables, then save it as a real
 world Actor.
 
 ![The Monster Creator](images/monster-creator.png)
@@ -69,7 +69,7 @@ art empty and it inherits the portrait.**
      stats differ from the guideline, so the diff table is populated. -->
 
 Answers "is this creature actually a level 6?" while you build. The section
-header carries the level it is judging — **LV 6** — and the table diffs your
+header carries the level it is judging (**LV 6**), and the table diffs your
 draft against it:
 
 | Column | Meaning |
@@ -81,16 +81,16 @@ draft against it:
 
 Rows that already match are dimmed. **Each row has a checkbox**, and
 **Apply to draft** writes only the checked ones. Nothing reaches the world until
-you save — this is a draft edit, so there is no undo to manage.
+you save. This is a draft edit, so there is no undo to manage.
 
 If the draft has spells attached, a note reports that they push the creature
-above its written level — *Written LV 5 → plays as LV 9* — with a **Use LV 9**
+above its written level (*Written LV 5 → plays as LV 9*), with a **Use LV 9**
 button that adopts that level. The guidelines shown are for the *effective*
-level; your written level is never changed behind your back.
+level. Your written level is never changed behind your back.
 
 HP is applied as **`level × 4.5 + CON`, rounded up**, so ticking **Abilities**
-changes what the HP row promises. For the full rules — where the numbers come
-from, how ability modifiers are clamped, and how to edit the table — see
+changes what the HP row promises. For the full rules on where the numbers come
+from, how ability modifiers are clamped, and how to edit the table, see
 [Monster Level Guidelines](Monster-Level-Guidelines.md).
 
 ---
@@ -98,7 +98,7 @@ from, how ability modifiers are clamped, and how to edit the table — see
 ## Starting from an existing creature
 
 The **bestiary loader** searches every world and compendium NPC and loads one
-into the draft. This is the fast path for variants — load *Goblin*, bump the
+into the draft. This is the fast path for variants: load *Goblin*, bump the
 level, add a feature, save as *Goblin Chieftain*.
 
 Art is resolved intelligently on load, including community token mappings, so a
@@ -112,7 +112,7 @@ remembers where it came from*. A banner appears at the top of the Creator:
 
 > **Editing Ogre** *(world actor)*  · **Detach**
 
-The save bar changes to match — **Update Ogre** alongside **Save as New**:
+The save bar changes to match, with **Update Ogre** alongside **Save as New**:
 
 | Button | What it does |
 |---|---|
@@ -120,12 +120,12 @@ The save bar changes to match — **Update Ogre** alongside **Save as New**:
 | **Save as New** | Creates a separate monster and leaves the original untouched. |
 | **Detach** | Breaks the link. The save bar returns to **Create World Actor**. |
 
-On an **unlinked token** the banner reads *(this token only)* — you are editing
+On an **unlinked token** the banner reads *(this token only)*. You are editing
 that token's own copy, not the shared world actor.
 
-Updating reconciles items rather than replacing them wholesale: an attack you did
-not touch keeps its identity. Item types the Creator does not author — Effects,
-Talents, gear — are left completely alone.
+Updating reconciles items instead of replacing them wholesale: an attack you did
+not touch keeps its identity. Item types the Creator does not author (Effects,
+Talents, gear) are left completely alone.
 
 > If the creature had a Quick Adjust restore point, updating **clears** it and
 > says so. The restore point described the stats before the adjustment and can no
@@ -152,9 +152,9 @@ import that seeds the [Importer Hub](Importer-Hub.md).
 
 Roll or hand-pick a result per column, then either:
 
-- **Apply to the draft** — the results are added as **descriptive NPC Features
-  only**, or
-- **Spawn a variant copy** — creates a separate mutated creature.
+- **Apply to the draft.** The results are added as **descriptive NPC Features
+  only**.
+- **Spawn a variant copy.** Creates a separate mutated creature.
 
 > **Generated results never change mechanics.** Stats, attacks, movement, and
 > spellcasting are left exactly as they were. The tables produce flavour, and
@@ -170,15 +170,15 @@ Applied results can be removed again per set.
 **Create World Actor** validates the name, then creates a `type: "NPC"` world
 Actor with the Attack / Special / Feature / Spell entries embedded as real items.
 
-A live summary sits beside it — `LV 1 · HP 1 · AC 10 · no attacks · 0 traits` —
+A live summary sits beside it (`LV 1 · HP 1 · AC 10 · no attacks · 0 traits`),
 so you can see the creature's shape without expanding every section.
 
 If the draft was loaded from a live creature, this button reads **Update *name***
-instead and writes back to it — see
+instead and writes back to it. See
 [Editing a creature in place](#editing-a-creature-in-place) above.
 
 There is also a **Bulk import** shortcut that jumps to the paste-to-create
-monster importer for when you have a stack of stat blocks rather than one
+monster importer for when you have a stack of stat blocks instead of one
 creature. See [Importer Hub](Importer-Hub.md).
 
 ---
@@ -187,7 +187,7 @@ creature. See [Importer Hub](Importer-Hub.md).
 
 **The Generator panel says a set isn't ready.**
 All columns of that set must be imported and valid. The panel lists which ones
-are missing, ambiguous, or invalid — click the import button to seed the hub with
+are missing, ambiguous, or invalid. Click the import button to seed the hub with
 the right table.
 
 **Save does nothing.**
@@ -203,24 +203,24 @@ Drafts survive tab switches within the roller, but not closing the window. Save
 before you close.
 
 **Applied generator results didn't change the creature's stats.**
-That is by design — see the note above.
+That is by design. See the note above.
 
 **I saved and got a duplicate instead of updating the original.**
 The draft was not linked to a creature. The link only exists when you arrive via
-**Open in Creator** from the token Quick Adjust panel — the bestiary loader
+**Open in Creator** from the token Quick Adjust panel. The bestiary loader
 deliberately does *not* link, because its job is building variants. Check the save
 bar: **Update *name*** means linked, **Create World Actor** means it will make a
 new one.
 
 **Save as New made a copy but my next save updated the original.**
-It shouldn't — **Save as New** breaks the link, and the button reverts to
+It shouldn't. **Save as New** breaks the link, and the button reverts to
 **Create World Actor**. If you saw otherwise, the draft was re-linked in between
 (re-opening from Quick Adjust does that).
 
 **The Level Baseline section says everything matches, but the creature feels off.**
 It only judges AC, HP, ability modifiers and attack items. Features, spells and
 special attacks carry a lot of a creature's real weight and are not scored. Spells
-at least get a note — see
+at least get a note. See
 [Monster Level Guidelines](Monster-Level-Guidelines.md).
 
 **Apply to draft didn't change my ability modifiers.**

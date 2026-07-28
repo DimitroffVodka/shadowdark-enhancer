@@ -29,7 +29,7 @@ You don't start and stop it separately:
 
 Saved sessions go to a history you can browse later.
 
-## What it captures — with no extra clicks
+## What it captures, with no extra clicks
 
 | Captured | From |
 |---|---|
@@ -64,7 +64,7 @@ and content sweeps use.
 ## Troubleshooting
 
 **Nothing is being recorded.**
-No session is active. Start a crawl — the recap begins with it. Every logging
+No session is active. Start a crawl. The recap begins with it. Every logging
 call self-guards on an active session, so it silently does nothing otherwise.
 
 **I ended the crawl and lost the session.**
@@ -72,12 +72,12 @@ The end-crawl prompt offers save / pause / discard. Discard throws it away.
 Choose **pause** if you want to resume the same session later.
 
 **Two GMs are online and entries look duplicated.**
-They shouldn't be — only the active GM records. If you can reproduce this,
+They shouldn't be. Only the active GM records. If you can reproduce this,
 [report it](https://github.com/DimitroffVodka/shadowdark-enhancer/issues).
 
 **The Discord export is missing a section.**
 Sections with no entries are omitted. If you expected combat data, confirm the
-combats ran while the session was active rather than before you started the
+combats ran while the session was active and not before you started the
 crawl.
 
 **Encounter checks aren't showing a turn number.**

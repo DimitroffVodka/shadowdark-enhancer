@@ -12,7 +12,7 @@ session.
 
 ## What it does
 
-The **Crawl Strip** is a row of cards — one per party member — showing live HP,
+The **Crawl Strip** is a row of cards, one per party member, showing live HP,
 movement, Luck, AC and active effects without opening a single sheet. The
 **Crawl Bar** underneath it changes shape depending on whether you are crawling
 or fighting, and holds the launchers for the rest of the suite.
@@ -21,11 +21,11 @@ There are two modes, and the strip switches between them automatically:
 
 | Mode | Cards shown | Ordering |
 |---|---|---|
-| **Crawl** (out of combat) | The crawl roster — party members you added | Out-of-combat initiative, once rolled |
+| **Crawl** (out of combat) | The crawl roster: party members you added | Out-of-combat initiative, once rolled |
 | **Combat** | One card per combatant | Foundry's initiative order, live from the tracker |
 
 The module respects the Shadowdark system's *Clockwise Initiative* setting
-automatically — you do not configure ordering twice.
+automatically. You do not configure ordering twice.
 
 ## Opening it
 
@@ -42,9 +42,9 @@ The strip hides itself when there is nothing to show.
 
 | Control | Left-click | Right-click |
 |---|---|---|
-| **Crawl · Turn N** | *(badge — the current crawl turn)* | — |
+| **Crawl · Turn N** | *(badge: the current crawl turn)* | — |
 | **Next Turn** | Advance the crawl turn. Refills every member's movement budget. | — |
-| **Add Tokens** | Add the selected tokens to the crawl roster | **Reset Initiative** — clear all out-of-combat initiative rolls |
+| **Add Tokens** | Add the selected tokens to the crawl roster | **Reset Initiative**, clearing all out-of-combat initiative rolls |
 | **Combat** | Start a combat encounter from the current state | — |
 | **Encounter** | Open the [Encounter Roller](Random-Encounters.md) | Encounter menu: run a check, set the threshold, see/clear the active table |
 | **Forge & Loot** | Menu (same on either click): [Loot Generator](Loot-and-Treasure.md) · [Magic Item Forge](Magic-Item-Forge.md) · [Merchant Shop](Merchant-Shop.md) · [Party XP](Party-XP.md) · [Session Recap](Session-Recap.md) | Same menu |
@@ -74,13 +74,13 @@ The strip switches to one card per combatant, in initiative order:
 
 Dead enemies don't get a card: an NPC that is marked defeated or sits at 0 HP
 is dropped from the strip (but stays in the combat tracker, so end-of-combat
-loot and the session recap still count it). Healing it above 0 HP — or
-clearing the defeated marker — brings the card back. PC cards always stay.
+loot and the session recap still count it). Healing it above 0 HP, or
+clearing the defeated marker, brings the card back. PC cards always stay.
 
 ## Starting and ending a crawl
 
 **Start** begins a crawl session. This also begins (or continues) a
-[Session Recap](Session-Recap.md) — the recap is tied to the crawl, so you get
+[Session Recap](Session-Recap.md). The recap is tied to the crawl, so you get
 session tracking for free without a second button to remember.
 
 **End** ends the crawl and offers to save, pause, or discard the recap.
@@ -102,12 +102,12 @@ Each card renders, from the actor's live data:
 | **HP bar** | `attributes.hp.value / max`, with the numbers written on the bar. Colour bands: **ok** > 75%, **mid** ≤ 75%, **low** ≤ 50%, **critical** ≤ 25%, **dead** at 0 or below |
 | **AC** | Shown as `AC n` when the actor has one |
 | **Luck pill** | PCs only. **Left-click** to spend a Luck token (posts to chat). **Right-click** (GM only) to grant a token. **Left-click another PC's pill** to offer one of your own Luck tokens to them. Greys out at zero. |
-| **Movement pill** | `remaining / budget ft`. Turns **red when over budget**, greys out when exhausted. NPCs in combat show this without a Luck pill — NPCs don't carry Luck. |
-| **Active effects** | A row of effect icons; hover for the label and remaining duration |
-| **Light source** | PC cards only, in both modes. Click to toggle the actor's light source — it reuses the system character sheet's own toggle. |
-| **Initiative** | A **d20 button** when nothing is rolled yet; the rolled **value badge** once it is. Works in both combat and out-of-combat. |
-| **Current turn** | The active combatant's card is outlined in the accent colour — in combat only that card is lit, the rest are dimmed |
-| **Skull** | Marks a defeated PC. (Defeated NPCs don't show a skull — they leave the strip entirely, see above.) |
+| **Movement pill** | `remaining / budget ft`. Turns **red when over budget**, greys out when exhausted. NPCs in combat show this without a Luck pill, since NPCs don't carry Luck. |
+| **Active effects** | A row of effect icons. Hover for the label and remaining duration |
+| **Light source** | PC cards only, in both modes. Click to toggle the actor's light source. It reuses the system character sheet's own toggle. |
+| **Initiative** | A **d20 button** when nothing is rolled yet, then the rolled **value badge** once it is. Works in both combat and out-of-combat. |
+| **Current turn** | The active combatant's card is outlined in the accent colour. In combat only that card is lit, the rest are dimmed |
+| **Skull** | Marks a defeated PC. (Defeated NPCs don't show a skull. They leave the strip entirely, see above.) |
 | **Eye-slash** | Marks a combatant hidden from players |
 
 ### The GM card
@@ -120,11 +120,11 @@ cowled icon.
 ### The Merchant Shop button
 
 In crawl mode the **PARTY** plate down the left of the roster carries a shop
-button beneath the word — one click opens the
-[Merchant Shop](Merchant-Shop.md). The GM always sees it; players see it only
-while the shop is available to them.
+button beneath the word. One click opens the
+[Merchant Shop](Merchant-Shop.md). The GM always sees it, and players see it
+only while the shop is available to them.
 
-**It disappears in combat** — shopping isn't a combat action, and the strip is
+**It disappears in combat.** Shopping isn't a combat action, and the strip is
 the initiative board there. It returns when the encounter ends.
 
 ### The activate button (GM, in combat)
@@ -137,7 +137,7 @@ overriding at the table.
 
 ## The action menu
 
-Cards you own carry a **tab strip below the card** — in either mode, not just in
+Cards you own carry a **tab strip below the card**, in crawl mode as well as
 combat. Hovering a tab opens a floating panel built from that actor's own items,
 laid out in Shadowdark stat-block order. Players get this on their own
 characters, so they can cast and attack without opening a sheet.
@@ -151,30 +151,30 @@ to put in it:
 | **PC** | Weapons · Spells · Abilities | **Equipped** weapons · `Spell` items · `Class Ability` items |
 
 - **Weapons and attacks** show damage inline (e.g. `Claws  2d6 piercing`), with a
-  small icon distinguishing melee from ranged. A thrown weapon appears twice —
+  small icon distinguishing melee from ranged. A thrown weapon appears twice:
   once as itself, once as a `(thrown)` variant. Clicking rolls through the
   system's own `rollAttack`, falling back to opening the item sheet.
 - **Abilities and features** open the item sheet for the description. Talents
-  are deliberately excluded — they are passive, not actions.
+  are deliberately excluded. They are passive, not actions.
 
 > **Spend Luck** is the Luck pill on the card itself, not a menu entry.
 > **Rollback to turn start** is a button on Foundry's **token HUD** (right-click
-> the token), not on the strip — see [Movement Budgets](Movement-Budgets.md).
+> the token), not on the strip. See [Movement Budgets](Movement-Budgets.md).
 
 ## Hidden combatants
 
 The module keeps `token.hidden` and `combatant.hidden` **synced in both
-directions**, which Foundry does not do on its own — adding a hidden token to
+directions**, which Foundry does not do on its own. Adding a hidden token to
 combat normally produces a *visible* combatant. Two things follow:
 
 - A combatant hidden either way stays suppressed from players through Foundry's
   own visibility rules.
 - Hidden combatants' initiative rolls are **not** posted to players. Foundry
   rolls them as a private GM roll, but the roll message itself still shows
-  players a "someone rolled something" placeholder — which gives away that an
+  players a "someone rolled something" placeholder, which gives away that an
   unseen combatant exists. The module drops those messages for players entirely.
 
-There is **no setting** for this; it is always on.
+There is **no setting** for this. It is always on.
 
 ---
 
@@ -185,17 +185,17 @@ The crawl roster is opt-in. Select your player tokens and click **Add Tokens**.
 Only actors of type `Player` are added.
 
 **A player's card vanished when I changed scenes.**
-It shouldn't — membership is stored by actor id, not token id. If a card is
-missing, the actor has no token placed on the current scene; that is expected,
+It shouldn't. Membership is stored by actor id, not token id. If a card is
+missing, the actor has no token placed on the current scene. That is expected,
 since the card needs a token to report movement against.
 
 **An enemy disappeared from the strip mid-fight.**
-It died — NPCs at 0 HP (or marked defeated in the tracker) are removed from
-the strip on purpose. The combatant is still in the combat tracker; heal it
+It died. NPCs at 0 HP (or marked defeated in the tracker) are removed from
+the strip on purpose. The combatant is still in the combat tracker, so heal it
 above 0 HP or clear its defeated marker and the card returns.
 
 **Two party strips are showing.**
-`shadowdark-crawl-helper` is still enabled. Disable it — see
+`shadowdark-crawl-helper` is still enabled. Disable it. See
 [Installation & Setup](Installation-and-Setup.md).
 
 **Initiative order looks wrong at the start of round 1.**
@@ -210,10 +210,10 @@ only on PCs. A greyed pill means zero remaining.
 
 **Granting or giving a Luck token says the character already has one.**
 Outside Pulp mode, Shadowdark tracks a single Luck token per character as a
-yes/no flag — there is nowhere to put a second, and one banked anyway could
-never be spent. So in classic mode both the GM's right-click grant and a
-player's give are refused when the receiver already holds their token. Turn on
-Pulp mode if your table wants Luck to stack.
+yes/no flag, so there is nowhere to put a second and one banked anyway could
+never be spent. In classic mode both the GM's right-click grant and a player's
+give are refused when the receiver already holds their token. Turn on Pulp mode
+if your table wants Luck to stack.
 
 **The strip renders unstyled / as plain blocks.**
 Your browser is serving a cached copy of the module stylesheet. Hard-reload with

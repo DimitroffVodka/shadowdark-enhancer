@@ -14,13 +14,13 @@ creatures standing on the map.
 Right-click the **Encounter** button on the [Crawl Bar](Crawl-Strip-and-Crawl-Bar.md)
 and choose **Encounter Check**.
 
-![The Encounter right-click menu — the check, the threshold options, and the active table](images/encounter-menu.png)
+![The Encounter right-click menu: the check, the threshold options, and the active table](images/encounter-menu.png)
 
 It rolls `1d6` and **hits on a result at or below the threshold**. The roll is
 attached to the chat message as a real Foundry `Roll`, so Dice So Nice animates
 it, the result is inspectable, and it persists in the log.
 
-![Two encounter checks at threshold 1-in-6 — a 3 reads "the dungeon is quiet", a 1 reads "encounter occurs"](images/encounter-check-chat.png)
+![Two encounter checks at threshold 1-in-6: a 3 reads "the dungeon is quiet", a 1 reads "encounter occurs"](images/encounter-check-chat.png)
 
 ### Setting the threshold
 
@@ -39,7 +39,7 @@ Three things, each individually toggleable in
 | Auto-roll active table on hit | on | The active table is rolled automatically |
 | Roll Encounters as GM-only | on | The check card and roller results are whispered to the GM |
 
-A miss posts a quiet card — *"the dungeon is quiet"* — and does nothing else.
+A miss posts a quiet card, *"the dungeon is quiet"*, and does nothing else.
 Every check, hit or miss, is recorded in the [Session Recap](Session-Recap.md)
 along with the crawl turn it happened on.
 
@@ -63,7 +63,7 @@ Four tabs. Left-click the **Encounter** button to open it, or call
 ### 1. Roll Tables
 
 Pick a table and roll it. Tables are grouped by folder, and both world tables and
-compendium tables are listed — including the module's own `sde-tables` pack.
+compendium tables are listed, including the module's own `sde-tables` pack.
 
 Selecting a table shows a **preview of its full contents**, with each row's range
 label (`1`, `2-3`, `4-6`). Any row can be posted to chat or placed on the map
@@ -71,10 +71,10 @@ directly from the preview, without rolling.
 
 ### The result card
 
-![An encounter result — 3 × Beastman with its Distance, Activity and Reaction facets](images/encounter-result.png)
+![An encounter result: 3 × Beastman with its Distance, Activity and Reaction facets](images/encounter-result.png)
 
 A rolled encounter produces a card with four facets. **Distance, Activity and
-Reaction are each individually re-rollable** via their circular-arrow buttons;
+Reaction are each individually re-rollable** via their circular-arrow buttons.
 Appearing is rolled once from the table row's own formula and has no re-roll
 button:
 
@@ -86,21 +86,21 @@ button:
 | **Reaction** | `2d6 + CHA` | `≤6` Hostile · `7–8` Suspicious · `9` Neutral · `10–11` Curious · `12+` Friendly |
 
 The **CHA modifier** applied to the reaction roll is adjustable on the card with
-up/down arrows — set it to whichever character is doing the talking.
+up/down arrows. Set it to whichever character is doing the talking.
 
 Then:
 
-- **Post** — send the card to chat.
-- **Place** — drop the tokens on the canvas. They are grid-snapped; press `ESC`
+- **Post** sends the card to chat.
+- **Place** drops the tokens on the canvas. They are grid-snapped, so press `ESC`
   to cancel placement.
 
 A posted card carries the creature with its count, then the Distance, Activity
 and Reaction rows, each with its raw roll in the right-hand column:
 
-![A posted encounter card in chat — 1 × Cave Creeper, Near, Hunting, Hostile](images/encounter-posted-card.png)
+![A posted encounter card in chat: 1 × Cave Creeper, Near, Hunting, Hostile](images/encounter-posted-card.png)
 
 Rows that are **flavour-only** (an environmental result with no creature) are
-recognised as such — they get an *Environmental Result* card with a Post button
+recognised as such. They get an *Environmental Result* card with a Post button
 and no Place button, because there is nothing to place.
 
 ### 2. Build Table
@@ -111,11 +111,11 @@ Build an encounter table by hand. Choose a die (`1d4`, `1d6`, `1d8`, `1d10`,
 - **Drag an NPC onto a slot** to fill it, or type a name.
 - Each slot gets an optional **appearing formula** (`1d4`, `2d6`, …) stored with
   the row.
-- Mark a slot as **flavour** for a non-creature result — it loses its appearing
+- Mark a slot as **flavour** for a non-creature result. It loses its appearing
   count.
 - **Slot ranges are editable**, so a `2d6` table can group its eleven outcomes
   into bands the way published tables do.
-- Add, clear, and remove slots freely; post or place any slot to test it.
+- Add, clear, and remove slots freely, and post or place any slot to test it.
 
 **Save** writes a real RollTable you can use anywhere in Foundry.
 
@@ -124,10 +124,10 @@ Build an encounter table by hand. Choose a die (`1d4`, `1d6`, `1d8`, `1d10`,
 ![The Browse NPCs tab](images/encounter-browse.png)
 
 A filterable, sortable browser over every NPC in your installed compendiums and
-world. This is the fastest way to find something to drop into a Build Table slot
-— each row has a **+** button.
+world. This is the fastest way to find something to drop into a Build Table slot,
+and each row has a **+** button.
 
-Columns: **Name · LV · Al · HP · AC · DPR · Attack** — including a computed
+Columns: **Name · LV · Al · HP · AC · DPR · Attack**, including a computed
 **DPR** (damage per round), which is the quickest way to gauge whether a creature
 suits the party.
 
@@ -157,14 +157,14 @@ encounter machinery. It defaults to your **world actors** plus
 
 > **Known issue on Shadowdark 4.x:** the system renamed its bestiary pack to
 > **`shadowdark.monsters`**, so the shipped default's second entry matches
-> nothing — out of the box, only world actors feed the browser. Until the
+> nothing. Out of the box, only world actors feed the browser. Until the
 > default is fixed, point the setting at the current pack yourself:
 
 ```js
 game.settings.set("shadowdark-enhancer", "encounterSources", ["world", "shadowdark.monsters"]);
 ```
 
-The setting is not exposed in the settings window — the snippet above is the
+The setting is not exposed in the settings window. The snippet above is the
 way to change it.
 
 ---
@@ -172,7 +172,7 @@ way to change it.
 ## Troubleshooting
 
 **The check hits but nothing rolls.**
-No active table is set. The roller still opens — pick a table and click
+No active table is set. The roller still opens. Pick a table and click
 **Set as Active** so future hits roll it automatically.
 
 **Players can see my encounter checks.**
@@ -185,16 +185,16 @@ bind a new one.
 
 **Place puts tokens in the wrong spot.**
 Placement is grid-snapped to the scene's grid. Press `ESC` to cancel and try
-again; check that the scene's grid is configured.
+again, and check that the scene's grid is configured.
 
 **The Browse tab is empty (or shows only world actors).**
-Only NPCs in the configured encounter sources are listed — and on Shadowdark
+Only NPCs in the configured encounter sources are listed, and on Shadowdark
 4.x the shipped default points at the old `shadowdark.bestiary` pack id, which
 no longer exists (see *Where encounters draw NPCs from* above). Set
 `encounterSources` to include `shadowdark.monsters`.
 
 **A table row places nothing.**
-The row has no linked actor — it is a name-only or flavour row. Link it to an
+The row has no linked actor, so it is a name-only or flavour row. Link it to an
 actor by re-importing the table (imports auto-link `@UUID` references) or by
 rebuilding the row in the Build tab.
 

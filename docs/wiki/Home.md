@@ -1,10 +1,10 @@
-# Shadowdark Enhancer — Wiki
+# Shadowdark Enhancer Wiki
 
 A GM companion suite for [Shadowdark RPG](https://www.thearcanelibrary.com/pages/shadowdark)
 on Foundry VTT.
 
-This wiki is the full manual. The [README](../../README.md) is the short pitch;
-everything below is the detail.
+This wiki is the full manual. The [README](../../README.md) is the short pitch,
+and everything below is the detail.
 
 ---
 
@@ -12,11 +12,11 @@ everything below is the detail.
 
 If you have just installed the module, read these three in order:
 
-1. **[Installation & Setup](Installation-and-Setup.md)** — install, first-run
+1. **[Installation & Setup](Installation-and-Setup.md)**: install, first-run
    checklist, what to turn on before your first session.
-2. **[Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md)** — the always-on
+2. **[Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md)**: the always-on
    party display and the bar every other tool launches from.
-3. **[Compendium Packs](Compendium-Packs.md)** — where the module keeps content
+3. **[Compendium Packs](Compendium-Packs.md)**: where the module keeps content
    it creates, and the never-overwrite rules it follows.
 
 Everything else can wait until you need it.
@@ -35,7 +35,7 @@ Tools you use while a session is running.
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard generation, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A shop window open to every player at once, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Awarding XP to the whole party, Shadowdark treasure-XP rules |
-| [Session Recap](Session-Recap.md) | Automatic session log — loot, XP, combats, rolls, kills — with a Discord export |
+| [Session Recap](Session-Recap.md) | Automatic session log (loot, XP, combats, rolls, kills) with a Discord export |
 
 ## Building content
 
@@ -47,8 +47,8 @@ Tools you use in prep, between sessions.
 | [Class & Spell Importers](Class-and-Spell-Importers.md) | The two dedicated workspaces for the hardest content types |
 | [Table Import & Shapes](Table-Import-and-Shapes.md) | How messy PDF tables are parsed deterministically, and how to add a recipe |
 | [Monster Creator](Monster-Creator.md) | Author a Shadowdark NPC from scratch, or remix an existing one |
-| [Monster Level Guidelines](Monster-Level-Guidelines.md) | What a level-N monster should look like — the editable table, and the token button that re-levels a creature |
-| [Monster Token Art](Monster-Token-Art.md) | Re-skin the bestiary using art you already own — referenced, never copied |
+| [Monster Level Guidelines](Monster-Level-Guidelines.md) | What a level-N monster should look like: the editable table, and the token button that re-levels a creature |
+| [Monster Token Art](Monster-Token-Art.md) | Re-skin the bestiary using art you already own, referenced and never copied |
 | [Magic Item Forge](Magic-Item-Forge.md) | Roll or hand-build magic items, including from your own imported Core tables |
 
 ## Characters
@@ -66,7 +66,7 @@ Tools you use in prep, between sessions.
 | [Settings Reference](Settings-Reference.md) | Every setting, its default, and what it actually does |
 | [Compendium Packs](Compendium-Packs.md) | `sde-actors` / `sde-items` / `sde-tables`, and the content contract |
 | [Troubleshooting](Troubleshooting.md) | Symptoms, causes, fixes |
-| [API for developers](../API.md) | `game.shadowdarkEnhancer` — the public, versioned surface |
+| [API for developers](../API.md) | `game.shadowdarkEnhancer`, the public, versioned surface |
 
 ---
 
@@ -74,8 +74,8 @@ Tools you use in prep, between sessions.
 
 **You bring your own books.** The module ships no sourcebook prose. For the
 *Cursed Scrolls* and the *Player's Guide to the Western Reaches* it knows the
-**structure** of the content — names, page citations, dice formulas, table
-layouts — and nothing else. You paste the text from your own PDF and the module
+**structure** of the content (names, page citations, dice formulas, table
+layouts) and nothing else. You paste the text from your own PDF and the module
 parses and files it. See [Importer Hub](Importer-Hub.md).
 
 **Nothing is overwritten or deleted.** Every document-creating entry point is

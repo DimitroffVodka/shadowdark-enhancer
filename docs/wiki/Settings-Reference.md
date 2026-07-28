@@ -4,7 +4,7 @@
 
 Every setting the module registers, its real default, and what it actually does.
 
-All settings are **world-scoped** — they are the GM's, not per-player.
+All settings are **world-scoped**. They are the GM's, not per-player.
 
 ---
 
@@ -21,7 +21,7 @@ Gear*) that open their own editor windows.
 | **Combat movement default (ft)** | `30` | Default movement budget per combatant turn. The token's ruler turns red past this from the turn-start position. |
 | **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl turn. Reset on **Next Turn**. |
 | **Enforce out-of-combat movement budget** | **off** | On: refuse moves that exceed the crawl budget. Off: still colours red, but lets the move commit. |
-| **Enforce combat movement budget** | **off** | On: refuse combat moves beyond the remaining movement. Off by default — Shadowdark combat traditionally relies on player honesty. |
+| **Enforce combat movement budget** | **off** | On: refuse combat moves beyond the remaining movement. Off by default, since Shadowdark combat traditionally relies on player honesty. |
 
 See [Movement Budgets](Movement-Budgets.md).
 
@@ -42,7 +42,7 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate mishap table for the casting class: Wizard Mishap for wizards and necromancers, Diabolical Mishap for witches. Divine casters — Priest, Green Knight, Seer — are exempt and simply lose the spell per RAW. Wand and scroll casts use the spell behind them, not the wand. |
+| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate mishap table for the casting class: Wizard Mishap for wizards and necromancers, Diabolical Mishap for witches. Divine casters (Priest, Green Knight, Seer) are exempt and simply lose the spell per RAW. Wand and scroll casts use the spell behind them, not the wand. |
 
 ### Encounters
 
@@ -52,8 +52,8 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Pause game on encounter** | on | Auto-pause when a check hits. |
 | **Auto-roll active table on hit** | on | Draw from the active table automatically on a hit. |
 
-> **The encounter threshold is not here.** Set it on the Crawl Bar —
-> right-click **Encounter**. See [Random Encounters](Random-Encounters.md).
+> **The encounter threshold is not here.** Set it on the Crawl Bar by
+> right-clicking **Encounter**. See [Random Encounters](Random-Encounters.md).
 
 ### Loot & XP
 
@@ -71,13 +71,13 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Monster token-art source module** | `dnd-monster-manual` | Module id whose `assets/tokens` and `assets/portraits` supply monster art. The module must be **installed** under `Data/modules` but does **not** need to be enabled — art is referenced from disk, never copied. |
+| **Monster token-art source module** | `dnd-monster-manual` | Module id whose `assets/tokens` and `assets/portraits` supply monster art. The module must be **installed** under `Data/modules` but does **not** need to be enabled, since art is referenced from disk, never copied. |
 
 ### Monsters
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Monster level guidelines** *(menu)* | *(shipped table)* | GM-only editor — **Edit Guidelines Table**. What a monster of each level is expected to have: AC, HP, attacks, ability-modifier band, Talent DC. Drives the Monster Creator's **Level Baseline** section and the token **Adjust monster level** button. Your edits are stored as a sparse diff, so untouched rows still track future module updates. **Recalculate** rebuilds it from the monsters installed in your world. |
+| **Monster level guidelines** *(menu)* | *(shipped table)* | GM-only editor, **Edit Guidelines Table**. What a monster of each level is expected to have: AC, HP, attacks, ability-modifier band, Talent DC. Drives the Monster Creator's **Level Baseline** section and the token **Adjust monster level** button. Your edits are stored as a sparse diff, so untouched rows still track future module updates. **Recalculate** rebuilds it from the monsters installed in your world. |
 
 See [Monster Level Guidelines](Monster-Level-Guidelines.md).
 
@@ -87,10 +87,10 @@ See [Monster Level Guidelines](Monster-Level-Guidelines.md).
 |---|---|---|
 | **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated. Players roll with whatever is set here and cannot change it. Options: *3d6 Down the Line* · *3d6, Reroll if None ≥ 14* · *3d6, Assign as You Like* · *4d6 Drop Lowest, Down the Line* · *4d6 Drop Lowest, Assign as You Like*. |
 | **Portrait/token art folders** | the module's own `assets/portraits, assets/ancestries` | Comma-separated folders offered to players as a gallery on the Preview step. **The browse runs on the GM's client**, so players need no file permissions and see only these folders. Add your own (e.g. Tokenizer's save locations). Missing folders are skipped. Blank disables it. |
-| **Animate dice (Dice So Nice)** | off | Play the 3D animation for ability, HP, and gold rolls. **The audit chat card posts either way** — this only adds the dice. |
+| **Animate dice (Dice So Nice)** | off | Play the 3D animation for ability, HP, and gold rolls. **The audit chat card posts either way**, and this only adds the dice. |
 | **Max Level-1 HP** | off | Set Level-1 HP to hit-die maximum + CON instead of rolling. |
 | **Fixed starting gold (gp)** | `0` | A fixed amount. `0` rolls the standard `2d6 × 5 gp`. |
-| **Extra gear** *(menu)* | *(empty)* | GM-only picker — **Manage Extra Gear**. Grants the builder's shop items beyond its curated starting stock. Extra weapons and armour still respect each class's usable list. |
+| **Extra gear** *(menu)* | *(empty)* | GM-only picker, **Manage Extra Gear**. Grants the builder's shop items beyond its curated starting stock. Extra weapons and armour still respect each class's usable list. |
 
 See [Character Builder](Character-Builder.md).
 
@@ -98,7 +98,7 @@ See [Character Builder](Character-Builder.md).
 
 ## Settings edited elsewhere
 
-These are real settings, but they are **not in the settings window** — they are
+These are real settings, but they are **not in the settings window**. They are
 edited through the feature's own UI, which is why you won't find them by
 searching Configure Settings.
 
@@ -108,7 +108,7 @@ searching Configure Settings.
 | **Merchant Shop Name** | `The Merchant` | The Merchant Shop window |
 | **Encounter threshold** | `1` | Crawl Bar → right-click **Encounter** |
 | **Active encounter table** | *(none)* | Crawl Bar → drag a table onto **Encounter**, or the roller's **Set as Active** |
-| **Encounter sources** | `["world", "shadowdark.bestiary"]` — **stale on Shadowdark 4.x**, whose pack is `shadowdark.monsters`; see [Random Encounters](Random-Encounters.md#where-encounters-draw-npcs-from) | API only (see below) |
+| **Encounter sources** | `["world", "shadowdark.bestiary"]`, **stale on Shadowdark 4.x**, whose pack is `shadowdark.monsters`. See [Random Encounters](Random-Encounters.md#where-encounters-draw-npcs-from) | API only (see below) |
 | **Loot tier tables** | *(empty)* | Loot Generator → **Set up loot tables** |
 | **Loot picker tables** | *(empty)* | Loot Setup window |
 | **Magic forge table overrides** | *(empty)* | Magic Item Forge |
@@ -125,11 +125,11 @@ game.settings.set("shadowdark-enhancer", "encounterSources", ["world", "shadowda
 ## Internal state
 
 Stored as settings because that is where world-scoped state lives in Foundry.
-**Don't edit these by hand** — they are written and read by the module.
+**Don't edit these by hand.** They are written and read by the module.
 
 | Key | Holds |
 |---|---|
-| `crawlState` | The crawl state machine — mode, turn counter, roster, out-of-combat initiative |
+| `crawlState` | The crawl state machine: mode, turn counter, roster, out-of-combat initiative |
 | `sessionRecap` | The live session recap |
 | `sessionHistory` | Saved past sessions |
 | `shopInventory` · `shopLog` · `savedShopConfigs` · `shopAvailableToPlayers` · `shopAvailabilityData` · `gambleOptions` · `shopDefaultApplied` | Merchant shop state |
@@ -149,13 +149,13 @@ Stored as settings because that is where world-scoped state lives in Foundry.
 
 - **Everything is world scope.** There are no client-scoped settings, so a player
   cannot change any of this for themselves.
-- **`gambleOptions` ships disabled** — its default sources referenced a loot
+- **`gambleOptions` ships disabled.** Its default sources referenced a loot
   generator this module has no equivalent for. GMs can enable and configure
   Gamble themselves from the shop's Manage tab, picking from any world or
   compendium roll table.
 - **`shopDefaultApplied`** latches the one-time load of the shipped
   "The Merchant - Base" stock into a new world's shop. Clearing it makes that
-  load happen again on the next world load — but only if the shop is empty at
+  load happen again on the next world load, but only if the shop is empty at
   the time, so it will not overwrite a shop you have stocked yourself.
 - Ancestry Name/Trinket and Background/Deity tables are **auto-discovered**, not
   configured. There is deliberately no setting.
