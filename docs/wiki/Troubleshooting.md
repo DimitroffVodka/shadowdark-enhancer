@@ -3,21 +3,21 @@
 [← Wiki home](Home.md)
 
 Symptoms, causes, and fixes. Each feature page also has its own troubleshooting
-section — this page covers what spans features.
+section. This page covers what spans features.
 
 ---
 
 ## Start here
 
-### The UI renders unstyled — plain blocks, no layout
+### The UI renders unstyled: plain blocks, no layout
 
 Your browser is serving a **cached copy of the module stylesheet**. This is the
 single most common cosmetic problem after an update.
 
 **Fix:** hard-reload with `Ctrl+Shift+R`.
 
-A plain reload — and Foundry's own "Reload Application" — will **not** refetch
-module CSS. The module layers a content-addressed stylesheet copy over the
+A plain reload will **not** refetch module CSS, and neither will Foundry's own
+"Reload Application". The module layers a content-addressed stylesheet copy over the
 cached one to mitigate this, but a genuinely stale cache still needs the hard
 reload.
 
@@ -25,7 +25,7 @@ reload.
 
 1. Confirm **Shadowdark Enhancer** is enabled in **Manage Modules**.
 2. Check the console (`F12`) for `shadowdark-enhancer | ready`. If it isn't
-   there, the module failed to load — the error above it will say why.
+   there, the module failed to load, and the error above it will say why.
 3. Confirm you are on Foundry **v13+** and the Shadowdark system **v3.6.2+**.
 
 ### Mount and Boat aren't in Create Actor
@@ -52,11 +52,11 @@ monster creation, XP awards, loot generation, art application.
 
 | Feature | Player access |
 |---|---|
-| [Character Builder](Character-Builder.md) | Full — relayed to the GM if they lack create permission |
+| [Character Builder](Character-Builder.md) | Full, relayed to the GM if they lack create permission |
 | [Export to PDF](Export-to-PDF.md) | On characters they own |
 | Spending Luck | On characters they own |
 | Claiming loot / buying from a merchant | Yes |
-| Rolling back their own token's movement | Yes — relayed to the GM |
+| Rolling back their own token's movement | Yes, relayed to the GM |
 
 ### A player action does nothing and no error appears
 
@@ -70,7 +70,7 @@ online.
 ### A player can't pick portrait art
 
 They used the file-browser route, which needs `FILES_BROWSE`. Three other routes
-need no permission at all — **Use Suggested Art**, **From URL…**, and the
+need no permission at all: **Use Suggested Art**, **From URL…**, and the
 curated gallery (which browses on the GM's client). See
 [Character Builder](Character-Builder.md).
 
@@ -88,8 +88,8 @@ GM** (`game.users.activeGM`), so two GMs online don't both write:
 
 If you see duplicated entries or double-processed transactions in a multi-GM
 world, that is a bug worth
-[reporting](https://github.com/DimitroffVodka/shadowdark-enhancer/issues) —
-it is not expected behaviour.
+[reporting](https://github.com/DimitroffVodka/shadowdark-enhancer/issues). It is
+not expected behaviour.
 
 ---
 
@@ -100,14 +100,14 @@ it is not expected behaviour.
 The census matches on **name and source folder**. Committing without a source
 label files content under *Custom*, and the book's node stays at zero.
 
-Watch for a duplicate all-caps folder (`CURSED SCROLL 1` beside `CS1`) — that is
+Watch for a duplicate all-caps folder (`CURSED SCROLL 1` beside `CS1`). That is
 the signature of a source label that didn't fold to the expected short code. See
 [Compendium Packs](Compendium-Packs.md).
 
 ### Re-importing created duplicates
 
-Check what you chose in the conflict dialog. The default — **rename the
-newcomer** — creates a second copy on purpose. Choose **skip** to leave the
+Check what you chose in the conflict dialog. The default, **rename the
+newcomer**, creates a second copy on purpose. Choose **skip** to leave the
 existing document untouched, or **replace** to update it while keeping the same
 UUID (and therefore all existing links).
 
@@ -119,9 +119,9 @@ pointing at it. Import bundles without renaming packs.
 
 ### Half my PDF paste ended up in "Skipped"
 
-PDF copy artifacts — headers, footers, interleaved columns. If you have
+PDF copy artifacts: headers, footers, interleaved columns. If you have
 registered a source PDF, use the hub's **Grab text** instead of copying from
-your PDF reader; it is column-aware and produces reading order.
+your PDF reader. It is column-aware and produces reading order.
 
 ### A table parsed into nonsense
 
@@ -142,14 +142,14 @@ once every round-1 combatant has an initiative. It corrects itself.
 
 - Is the crawl actually running? The bar shows **End** when it is.
 - In crawl mode, is the actor in the roster? Select the token and click
-  **Add Tokens** — only `Player`-type actors are added.
+  **Add Tokens**. Only `Player`-type actors are added.
 - In combat, all owned combatant tokens are tracked automatically.
 
 ### "No turn-start position recorded for this token"
 
-The token's turn never began while the crawl was running — dropped mid-turn, or
-the crawl started after combat. There is nothing to roll back to yet; it will
-have a position from the next turn.
+The token's turn never began while the crawl was running, either dropped
+mid-turn or the crawl started after combat. There is nothing to roll back to
+yet. It will have a position from the next turn.
 
 ### Remaining movement shows a negative number
 
@@ -163,11 +163,11 @@ the cap a token went. A floor at zero would hide it.
 Two things run automatically once, on the next world load, for the single active
 GM:
 
-1. **Monster backfill** — brings already-imported monsters up to current import
+1. **Monster backfill.** Brings already-imported monsters up to current import
    fidelity (icons, casing, spell items, art). Deferred 5 seconds, idempotent,
    silent unless it actually changed something. The version stamp only advances
    on success, so a failed sweep retries next load.
-2. **Spell↔class relink** — runs every load, not just after updates.
+2. **Spell↔class relink.** Runs on every load, updates or no updates.
 
 Neither deletes anything. To force the backfill again, clear the
 `backfillVersion` setting.
@@ -179,11 +179,11 @@ Neither deletes anything. To force the backfill again, clear the
 ### The "Searching Distant Lands…" spinner is stuck
 
 The Shadowdark system leaks its loading dialog when an item sheet's data
-preparation throws — most often right after importing a class, and its `close()`
+preparation throws, most often right after importing a class, and its `close()`
 can hang unbounded. The module installs a guard that closes the orphaned dialog
 and logs the underlying error to the console.
 
-If you hit it, the console entry is worth including in a bug report — the
+If you hit it, the console entry is worth including in a bug report. The
 underlying throw is intermittent and not yet root-caused.
 
 ---

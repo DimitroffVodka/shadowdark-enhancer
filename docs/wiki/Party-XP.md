@@ -33,12 +33,11 @@ Two ways to set the amount:
 
 1. **Type it.**
 2. **Drag an item in** and use its XP value. The value is resolved in order:
-   - an **XP value tagged on the item** wins, if present;
+   - an **XP value tagged on the item** wins, if present.
    - otherwise the item's **loot-quality score** is used.
 
-   The window tells you which of the two it used.
-
-You can also **assign an XP value to an item** so future drags use it.
+   The window tells you which of the two it used, and you can also **assign an
+   XP value to an item** so future drags use it.
 
 Then pick the characters and award. A chat card summarises the result:
 
@@ -46,23 +45,23 @@ Then pick the characters and award. A chat card summarises the result:
 - their level
 - a **ready to level up** flag for anyone who has reached the threshold
 
-![The Party XP chat card — the award's label as its title, the per-character
+![The Party XP chat card: the award's label as its title, the per-character
 amount, then one row per character with their level and old → new XP](images/party-xp-card.png)
 
 The **label** is appended to the card's heading, so the award reads back as what
-it was for — above, `Party XP — +1 Plate Mail`, worth `+3 XP to each character`
+it was for. Above, `Party XP — +1 Plate Mail`, worth `+3 XP to each character`
 and taking Bazogo from `3 → 6 XP`. Dragging an item in fills the label with the
 item's name, so that heading writes itself.
 
-## What it writes — and doesn't
+## What it writes, and what it doesn't
 
 It writes **only** `system.level.xp`.
 
 > **It never levels anyone up.** `system.level.value` is untouched. Reaching the
-> threshold is *flagged* on the card; performing the level-up stays a deliberate
+> threshold is *flagged* on the card. Performing the level-up stays a deliberate
 > act by the player, through the system's own flow.
 
-The level threshold is **10 XP per level** — Shadowdark RAW, and fixed in the
+The level threshold is **10 XP per level**, Shadowdark RAW, and fixed in the
 module (it is not a setting).
 
 ## Treasure XP values
@@ -82,19 +81,19 @@ Awards are recorded in the [Session Recap](Session-Recap.md) automatically.
 ## Troubleshooting
 
 **A dragged item shows 0 XP.**
-It has no tagged XP value and its loot-quality score is zero — typically ordinary
-gear rather than treasure. Type an amount, or assign an XP value to the item.
+It has no tagged XP value and its loot-quality score is zero, typically ordinary
+gear and not treasure. Type an amount, or assign an XP value to the item.
 
 **"Only a GM can award party XP."**
 Exactly what it says. The award is written by the GM authoritatively.
 
 **Nobody was flagged as ready to level up.**
-The flag fires at `10` XP — the Shadowdark RAW threshold, hard-coded. If a
+The flag fires at `10` XP, the Shadowdark RAW threshold, hard-coded, so if a
 character shows `10+` XP without the flag, that's a bug worth
 [reporting](https://github.com/DimitroffVodka/shadowdark-enhancer/issues).
 
 **A character levelled up on their own.**
-Not from this tool — it never writes `system.level.value`. Something else did.
+Not from this tool. It never writes `system.level.value`. Something else did.
 
 ---
 

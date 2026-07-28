@@ -14,9 +14,9 @@ that re-levels a creature in two clicks.
 
 ## Quick Adjust (token HUD)
 
-Select an NPC token and click the **scales** icon in the HUD's right column —
-tooltip **Adjust monster level**. GM-only; it does not appear on player-character
-tokens.
+Select an NPC token and click the **scales** icon in the HUD's right column,
+tooltip **Adjust monster level**. GM-only, and it does not appear on
+player-character tokens.
 
 The panel shows the creature, its current level, and a **Target level** box with
 **−** / **+** buttons. Everything below is a preview of what *would* change:
@@ -29,7 +29,7 @@ The panel shows the creature, its current level, and a **Target level** box with
 | **Δ** | the difference |
 
 Rows that already match are dimmed, so your eye lands on what would actually
-move. **Each row has a checkbox** — uncheck one and that stat is left alone.
+move. **Each row has a checkbox.** Uncheck one and that stat is left alone.
 Nothing is written until you press **Apply**.
 
 ### The buttons
@@ -47,8 +47,8 @@ Along the bottom, left to right:
 
 - **AC** comes straight from the guidelines table.
 - **HP** is a formula, not a lookup: **`level × 4.5 + CON`, rounded up**. Shadowdark
-  monsters use a d8 hit die under the hood and 4.5 is its average roll. This is why
-  the HP you get can differ from the table's HP column — that column assumes no
+  monsters roll a d8 hit die and 4.5 is its average. This is why
+  the HP you get can differ from the table's HP column, which assumes no
   Constitution modifier.
 - **Ability modifiers** shift **uniformly** by the difference between the two
   levels, then clamp into the target level's observed range. This preserves the
@@ -64,14 +64,14 @@ Along the bottom, left to right:
 
 ### What Apply also does
 
-The printed stat block in the creature's Description tab — `AC 9, HP 30, ATK 2
-greatclub +6 (2d6), … LV 6` — is **rewritten to match**. Shadowdark stores that
+The printed stat block in the creature's Description tab (`AC 9, HP 30, ATK 2
+greatclub +6 (2d6), … LV 6`) is **rewritten to match**. Shadowdark stores that
 line as text, so without the rebuild the sheet would contradict its own data.
 
 ### Spells and effective level
 
 If the creature carries Spell items, the panel notes that spells raise its
-*effective* level and by how much. It is advice, not an action — the target level
+*effective* level and by how much. It is advice, not an action. The target level
 is still whatever you set.
 
 ---
@@ -92,15 +92,15 @@ demand):
 | **LV** | Monster level |
 | **AC** | Expected armour class |
 | **HP** | Typical hit points at that level, assuming no CON modifier |
-| **Attack — # / Bonus / Damage** | Attacks per round, attack bonus, damage die |
-| **Ability Modifier — Typical / Lowest / Highest** | The band ability modifiers are clamped into |
+| **Attack: # / Bonus / Damage** | Attacks per round, attack bonus, damage die |
+| **Ability Modifier: Typical / Lowest / Highest** | The band ability modifiers are clamped into |
 | **Talent DC** | Suggested DC for a monster's special ability |
 
 Every value is editable. Buttons:
 
 | Button | What it does |
 |---|---|
-| **Recalculate** | Rebuilds the whole table from every NPC installed in this world — all Actor compendiums plus world actors. Needs at least 10 monsters. Fills the form; you still press **Save**. |
+| **Recalculate** | Rebuilds the whole table from every NPC installed in this world: all Actor compendiums plus world actors. Needs at least 10 monsters. Fills the form, and you still press **Save**. |
 | **Reset** | Discards your edits and restores the shipped table. Asks first. |
 | **Export** | Saves the table as JSON. |
 | **Import** | Loads an exported JSON file. It is validated before anything is replaced. |
@@ -111,9 +111,9 @@ one row still leaves you inheriting improvements to every other row in future
 module updates.
 
 > **Talent DC is advisory.** Unlike the other columns it is never written to a
-> creature — it exists to help you pick a DC while authoring. It is also the
+> creature. It exists to help you pick a DC while authoring. It is also the
 > softest number in the table, since it was derived from DC mentions in feature
-> prose rather than a structured field.
+> prose instead of a structured field.
 
 ### Where the shipped numbers come from
 
@@ -123,7 +123,7 @@ damage die at each level plus the 10th–90th percentile band of ability modifie
 and smooths the result so that a level represented by a single monster cannot
 distort the guideline and no level ends up weaker than the one below it.
 
-That is the same routine the **Recalculate** button runs — the difference is only
+That is the same routine the **Recalculate** button runs. The difference is only
 which monsters it reads. If you play with a heavily homebrewed bestiary,
 recalculating will give you a table that matches *your* game.
 
@@ -132,7 +132,7 @@ recalculating will give you a table that matches *your* game.
 ## Level Baseline in the Creator
 
 The same guidelines drive a **Level Baseline** section inside the
-[Monster Creator](Monster-Creator.md), which applies them to a draft rather than
+[Monster Creator](Monster-Creator.md), which applies them to a draft instead of
 to a live actor. See that page for the walkthrough.
 
 ---
@@ -148,17 +148,17 @@ Nothing would change at that target level. Move the target, or check a row that
 is currently unticked.
 
 **Revert is greyed out.**
-There is no saved restore point — either you have not applied an adjustment to
+There is no saved restore point. Either you have not applied an adjustment to
 this creature, or the restore point was cleared (see below).
 
 **Revert vanished after I edited the creature in the Creator.**
 Deliberate. The restore point describes the stats from before the quick
-adjustment and references attack items by identity; once the Creator has rewritten
+adjustment and references attack items by identity. Once the Creator has rewritten
 those items, restoring it would put back a half-truth. The Creator tells you when
 it clears the point.
 
 **HP came out different from the table's HP column.**
-Expected. HP applies `level × 4.5 + CON`; the column assumes CON 0. A creature
+Expected. HP applies `level × 4.5 + CON`, while the column assumes CON 0. A creature
 with a positive Constitution modifier gets more.
 
 **A dump stat crept upward.**

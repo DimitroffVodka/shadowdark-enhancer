@@ -13,12 +13,12 @@ of over-budget moves, and a one-click rollback to where a token started its turn
 ## What it does
 
 Every tracked token carries a **remaining movement** figure. Dragging it draws
-Foundry's ruler in **green while the move fits** and **red once it doesn't**. The
-matching pill on the [crawl strip](Crawl-Strip-and-Crawl-Bar.md) card counts down
-as the token moves.
+Foundry's ruler in **green while the move fits** and **red once it doesn't**,
+while the matching pill on the [crawl strip](Crawl-Strip-and-Crawl-Bar.md) card
+counts down as the token moves.
 
 Whether an over-budget move is actually *refused* is a separate, per-mode
-setting — and both are **off by default**. Out of the box this is a visual aid,
+setting, and both are **off by default**. Out of the box this is a visual aid,
 not a cage.
 
 ## Which tokens are tracked
@@ -26,20 +26,20 @@ not a cage.
 | Mode | Tracked |
 |---|---|
 | **Crawl** | Tokens whose actor is in the crawl roster (added via **Add Tokens**) |
-| **Combat** | **Every** owned token in the combat — combatants join the tracker, not the crawl roster |
+| **Combat** | **Every** owned token in the combat. Combatants join the tracker, not the crawl roster |
 
 Nothing is tracked while the crawl is stopped.
 
 ## Where the budget comes from
 
-There is **no per-actor speed setting** for player characters — the budget is
+There is **no per-actor speed setting** for player characters. The budget is
 driven by module settings, deliberately, because Shadowdark has no per-character
 speed stat.
 
 | Situation | Budget |
 |---|---|
-| **Crawl**, any token | `Out-of-combat movement budget` — default **90 ft** |
-| **Combat**, PC token | `Combat movement default` — default **30 ft** |
+| **Crawl**, any token | `Out-of-combat movement budget`, default **90 ft** |
+| **Combat**, PC token | `Combat movement default`, default **30 ft** |
 | **Combat**, NPC token | The NPC's own `system.move` from its stat block (see below) |
 
 ### NPC movement in combat
@@ -75,8 +75,8 @@ An unrecognised or missing value also falls back to the combat default.
 | Enforce out-of-combat movement budget | **off** | Crawl moves beyond the budget are refused before they commit |
 | Enforce combat movement budget | **off** | Combat moves beyond the remaining movement are refused |
 
-Combat enforcement is off by default on purpose — Shadowdark combat traditionally
-runs on player honesty rather than hard limits.
+Combat enforcement is off by default on purpose, because Shadowdark combat
+traditionally runs on player honesty and not on hard limits.
 
 When a move is refused you get a warning naming the actor and the feet remaining
 (`Sneaky Pete: only 15ft remaining.`), the token does not move, and its budget is
@@ -95,7 +95,7 @@ Each token's **turn-start position** is snapshotted when its turn or round
 begins, and stamped onto the token document.
 
 To undo: **open the token HUD** (right-click the token) and click the
-**Rollback Movement** button — the circular arrow in the left column.
+**Rollback Movement** button, the circular arrow in the left column.
 
 ![The Rollback Movement button on the token HUD](images/rollback-hud.png)
 
@@ -109,7 +109,7 @@ The button appears for:
 
 **Players can roll back their own tokens.** Only GM clients may write the change,
 so a player's click is relayed to the active GM over the socket and performed
-there. With several GMs online, exactly one serves the request — you never get a
+there. With several GMs online, exactly one serves the request. You never get a
 double rollback or a double refund.
 
 ---
@@ -117,13 +117,13 @@ double rollback or a double refund.
 ## Troubleshooting
 
 **"No turn-start position recorded for this token."**
-The token's turn never started while the crawl was running — for example it was
+The token's turn never started while the crawl was running. For example it was
 dropped onto the scene mid-turn, or the crawl was started after combat began.
 There is nothing to roll back to. It will have a position from the next turn on.
 
 **Movement isn't being deducted.**
 Check that the crawl is actually running (the bar shows **End**, not **Start**),
-and in crawl mode that the actor is in the roster — select the token and click
+and in crawl mode that the actor is in the roster. Select the token and click
 **Add Tokens**.
 
 **The ruler stays green past the budget.**
@@ -132,16 +132,16 @@ token has never moved this turn the flag may be unset and it falls back to the
 base speed. Advance a turn to reset cleanly.
 
 **A ghost ruler trail is left on the canvas.**
-Selecting a different token clears stale rulers. This is also cleaned up
+Selecting a different token clears stale rulers, and this is also cleaned up
 automatically ~100 ms after a move commits.
 
 **Enforcement is on but a GM can still move tokens freely.**
 Enforcement applies to whoever performs the move, GM included. If a move is
-committing anyway, confirm the token is tracked — an untracked token in crawl
-mode (not in the roster) is never checked.
+committing anyway, confirm the token is tracked, since an untracked token in
+crawl mode (not in the roster) is never checked.
 
 **Movement got deducted twice.**
-It shouldn't — the deduction is written by exactly one client, the user who moved
+It shouldn't. The deduction is written by exactly one client, the user who moved
 the token. If you can reproduce this, it's a bug worth
 [reporting](https://github.com/DimitroffVodka/shadowdark-enhancer/issues).
 
