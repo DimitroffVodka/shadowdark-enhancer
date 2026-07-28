@@ -18,13 +18,15 @@
 
 Run a crawl without opening a single character sheet.
 
-Shadowdark Enhancer started as a top-anchored **Crawl Strip** (marching order,
-initiative, and live HP / Movement / Luck for the whole party) and grew into the
-rest of the table: random encounters, treasure, a merchant, party XP, a session
-recap that writes itself, a guided character builder, and a content importer that
-turns a copy-paste from **your own PDF** into real Foundry documents.
+It began as one **Crawl Strip** pinned to the top of the canvas: marching order,
+initiative, and live HP / Movement / Luck for the whole party. Everything since
+has been the rest of what a table needs mid-session, so there are now random
+encounters, treasure players race each other to claim, a merchant, XP, and a
+recap that fills itself in while you play. Prep crept in after that. An importer
+turns a copy-paste from **your own PDF** into real Foundry documents, and a
+guided builder takes a player from ability rolls to a finished level-1 character.
 
-Everything runs from one **Crawl Bar** at the top of the canvas.
+All of it launches from one **Crawl Bar** at the top of the canvas.
 
 ## Install
 
