@@ -311,7 +311,7 @@ function buildGameplay(charEntries, tablesPresent) {
  * Casting Mishaps sub-branch under Spells, grouped by source.
  * These are the per-class mishap tables (Diabolical, Necromancer, etc.).
  */
-function buildMishaps(charEntries, tablesPresent) {
+function buildMishaps(charEntries, _tablesPresent) {
   const recs = charEntries.filter((e) =>
     e.type === "Table" && MISHAP_TABLES.has(_norm(e.name)));
   if (!recs.length) return null;

@@ -8,7 +8,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 
-const PRAYER_ICON = "modules/shadowdark-enhancer/icons/game-icons/prayer.svg";
+const PRAYER_ICON = `modules/${MODULE_ID}/icons/game-icons/prayer.svg`;
 
 /**
  * Map a deity item name to its prayer table name.
@@ -53,8 +53,6 @@ export function init() {
     if (!deityUuid) return;
 
     // Find the Deity header in the DOM
-    const deityBox = html[0]?.querySelector(".SD-box") ?? html.querySelector(".SD-box");
-    // More specific: find the deity section
     const deitySections = html[0]?.querySelectorAll(".SD-box .header label")
       ?? html.querySelectorAll(".SD-box .header label");
     
