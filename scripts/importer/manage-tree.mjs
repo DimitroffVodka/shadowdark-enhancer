@@ -270,9 +270,11 @@ function buildCoreRulebook(section, tablesPresent) {
 
 /**
  * Roll Tables top-level branch, sub-grouped by source. Carries every manifest
- * Table entry EXCEPT the WR ancestry Names/Trinkets (those stay under
- * Character Content → Ancestries). Non-Core sources render a flat leaf; the
- * Core Rulebook renders per-bundle sub-branches enumerating every table (see
+ * Table entry EXCEPT the ones another branch already owns: the WR ancestry
+ * Names/Trinkets (Character Content → Ancestries), gameplay, patron and
+ * background tables, and the casting mishaps (Spells → Mishaps — listing them
+ * here too put every mishap table on the tree twice). Non-Core sources render
+ * a flat leaf; the Core Rulebook renders per-bundle sub-branches (see
  * buildCoreRulebook). Unlock rows seed the same charSeedPaste flow.
  */
 function buildRollTables(charEntries, tablesPresent) {
@@ -280,7 +282,7 @@ function buildRollTables(charEntries, tablesPresent) {
   const tableRecs = charEntries.filter((e) =>
     e.type === "Table" && !ancestryTableNames.has(_norm(e.name))
     && !GAMEPLAY_TABLES.has(_norm(e.name)) && !PATRON_TABLES.has(_norm(e.name))
-    && !BACKGROUND_TABLES.has(_norm(e.name)));
+    && !BACKGROUND_TABLES.has(_norm(e.name)) && !MISHAP_TABLES.has(_norm(e.name)));
   const sources = [...new Set(tableRecs.map((r) => r.src))];
   const children = sources.map((src) =>
     src === "CORE"

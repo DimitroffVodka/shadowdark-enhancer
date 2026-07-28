@@ -42,7 +42,7 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate Wizard Mishap table. Applies to all spellcasters except Priests (who simply lose the spell per RAW). |
+| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate mishap table for the casting class: Wizard Mishap for wizards and necromancers, Diabolical Mishap for witches. Divine casters — Priest, Green Knight, Seer — are exempt and simply lose the spell per RAW. Wand and scroll casts use the spell behind them, not the wand. |
 
 ### Encounters
 

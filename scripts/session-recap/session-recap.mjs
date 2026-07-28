@@ -498,7 +498,7 @@ export const SessionRecap = {
       endTime: now,
       data: {
         loot: data.loot, sales: data.sales, purchases: data.purchases,
-        xp: data.xp, combats: data.combats,
+        xp: data.xp, combats: data.combats, luckSpent: data.luckSpent,
         encounterChecks: data.encounterChecks, playerStats: data.playerStats,
       },
     };

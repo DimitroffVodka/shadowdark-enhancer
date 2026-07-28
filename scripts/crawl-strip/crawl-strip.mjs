@@ -923,16 +923,17 @@ export const CrawlStrip = {
     const system = actor.system;
     const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
 
-    let update;
-    if (pulp) {
-      update = { "system.luck.remaining": (system.luck.remaining ?? 0) + 1 };
-    } else if (!system.luck.available) {
-      // Classic: restore the base token
-      update = { "system.luck.available": true };
-    } else {
-      // Classic: already have the base token, add an extra
-      update = { "system.luck.remaining": (system.luck.remaining ?? 0) + 1 };
+    // Classic mode stores one boolean token and the system's useLuckToken()
+    // only ever reads luck.available outside pulp — an "extra" written to
+    // luck.remaining there is a token the player can never spend. Say so.
+    if (!pulp && system.luck?.available) {
+      ui.notifications?.warn(`${actor.name} already has a luck token.`);
+      return;
     }
+
+    const update = pulp
+      ? { "system.luck.remaining": (system.luck.remaining ?? 0) + 1 }
+      : { "system.luck.available": true };
 
     await actor.update(update);
 
@@ -1026,20 +1027,29 @@ export const CrawlStrip = {
    * Transfer one luck token from giver to receiver. Both are Player actors.
    */
   async _giveLuckToken(giver, receiver) {
-    // Spend from giver (use the system method so classic/pulp are handled correctly)
-    if (giver.system?.useLuckToken) await giver.system.useLuckToken(false);
-
-    // Add to receiver
     const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
     const rSystem = receiver.system;
-    let update;
-    if (pulp) {
-      update = { "system.luck.remaining": (rSystem.luck.remaining ?? 0) + 1 };
-    } else if (!rSystem.luck.available) {
-      update = { "system.luck.available": true };
-    } else {
-      update = { "system.luck.remaining": (rSystem.luck.remaining ?? 0) + 1 };
+
+    // Classic mode has one boolean token per PC, so a receiver already holding
+    // it has nowhere to put a second — refuse before anyone spends anything
+    // rather than bank an unspendable one (see _addLuckToken).
+    if (!pulp && rSystem.luck?.available) {
+      ui.notifications?.warn(`${receiver.name} already has a luck token.`);
+      return;
     }
+
+    // Spend from giver (use the system method so classic/pulp are handled
+    // correctly). It returns false when there was nothing to spend — crediting
+    // the receiver anyway would mint a token out of nothing.
+    const spent = await giver.system?.useLuckToken?.(false);
+    if (spent === false) {
+      ui.notifications?.warn(`${giver.name} has no luck token to give.`);
+      return;
+    }
+
+    const update = pulp
+      ? { "system.luck.remaining": (rSystem.luck.remaining ?? 0) + 1 }
+      : { "system.luck.available": true };
     await receiver.update(update);
 
     await ChatMessage.create({
