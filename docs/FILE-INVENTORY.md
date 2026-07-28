@@ -20,8 +20,8 @@
 | `module.json` | Foundry manifest. id `shadowdark-enhancer`, v0.13.1, core min 13 / verified 14.365, system shadowdark min 3.6.2 / verified 4.0.6, recommends `shadowdark-extras` 6.10.45. Declares the `mount` + `boat` Actor sub-types, one ESM entry, one stylesheet, `socket: true`. |
 | `package.json` | Dev-only. `npm test` → `node --test test/*.test.mjs`; `npm run lint` → eslint over `scripts test`. |
 | `eslint.config.mjs` | Flat ESLint config (browser + node globals, Foundry globals). |
-| `README.md` | 9 KB user-facing feature docs. |
-| `CHANGELOG.md` | 173 KB running changelog. |
+| `README.md` | User-facing feature docs. |
+| `CHANGELOG.md` | Running changelog. |
 | `CREDITS.md` | Third-party asset attribution (Shikashi icon pack, game-icons.net, PD portraits). |
 | `LICENSE` | MIT. |
 | `.gitattributes`, `.gitignore` | Line-ending rules; ignore list (see §9). |
