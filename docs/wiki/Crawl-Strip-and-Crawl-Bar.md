@@ -42,7 +42,7 @@ The strip hides itself when there is nothing to show.
 
 | Control | Left-click | Right-click |
 |---|---|---|
-| **Crawl · Turn N** | *(badge: the current crawl turn)* | — |
+| **Crawl · Turn #** | *(badge: the current crawl turn)* | — |
 | **Next Turn** | Advance the crawl turn. Refills every member's movement budget. | — |
 | **Add Tokens** | Add the selected tokens to the crawl roster | **Reset Initiative**, clearing all out-of-combat initiative rolls |
 | **Combat** | Start a combat encounter from the current state | — |
