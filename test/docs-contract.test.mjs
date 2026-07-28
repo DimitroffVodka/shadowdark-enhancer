@@ -300,14 +300,29 @@ describe("docs contract — code-derived facts", () => {
   // the wiki said "119 tables" after the count moved to 125, and claimed a
   // verified Foundry version the manifest doesn't declare.
 
+  // Widened 2026-07-28: FILE-INVENTORY.md's hand-written §1 carried
+  // "verified 14.364" for several releases while the manifest said 14.365, and
+  // this test could not see it — it read only two files, and its pattern
+  // required the version to be **bold**. Both limits are gone.
+  const FOUNDRY_VERSION_PAGES = [
+    "docs/wiki/Installation-and-Setup.md",
+    "README.md",
+    "docs/FILE-INVENTORY.md",
+  ];
+
+  // Bold optional. The lookbehind is load-bearing: without it the "13.1" inside
+  // a module semver like `v0.13.1` reads as Foundry 13.1.
+  const FOUNDRY_VERSION_RE = /(?<![.\d])v?(1[3-9]\.\d+)/g;
+
   test("verified Foundry version in docs matches module.json", () => {
     const manifest = JSON.parse(read(path.join(ROOT, "module.json")));
     const verified = manifest.compatibility?.verified;
     assert.ok(verified, "module.json has no compatibility.verified");
-    for (const page of ["docs/wiki/Installation-and-Setup.md", "README.md"]) {
+    const major = String(verified).split(".")[0];
+    for (const page of FOUNDRY_VERSION_PAGES) {
       const txt = read(path.join(ROOT, page));
-      const claimed = [...txt.matchAll(/\*\*v?(1[34]\.\d+)\*\*/g)].map((m) => m[1]);
-      for (const v of claimed.filter((v) => v.startsWith("14."))) {
+      const claimed = [...txt.matchAll(FOUNDRY_VERSION_RE)].map((m) => m[1]);
+      for (const v of claimed.filter((c) => c.startsWith(`${major}.`))) {
         assert.equal(
           v,
           verified,
