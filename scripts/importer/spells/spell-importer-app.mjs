@@ -360,6 +360,11 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this.render();
     const empties = res.pages.filter((p) => p.empty).length;
     ui.notifications?.info(`Grabbed ${res.pages.length - empties} page(s) into the paste box — click Parse to detect spells.`);
+    // A mis-detected gutter moves a word between columns and still parses
+    // clean, so flag an uncertain column split while the text is reviewable.
+    for (const w of res.warnings ?? []) {
+      ui.notifications?.warn(`Column check — ${w}. Compare the paste box against the page before you Parse.`);
+    }
   }
 
   /** Re-apply the bulk Class + Alignment to every parsed spell. */

@@ -19,6 +19,23 @@ import { installMethods } from "./importer-hub-shared.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
 
+/**
+ * Surface a column-split the extractor is unsure about.
+ *
+ * A two-column page whose gutter is detected a little wrong reads perfectly —
+ * it just moves a word or two between the columns, which a parser will happily
+ * score as a clean match (CS6 p26 parsed 25 of 25 with the wrong text stored).
+ * The extractor now reports those cuts instead of staying silent, so say so
+ * while the text is still sitting in the paste box waiting to be reviewed.
+ *
+ * @param {{warnings?:string[]}} result  an extractPdfText result
+ */
+function _warnGutter(result) {
+  for (const w of result?.warnings ?? []) {
+    ui.notifications.warn(`Column check — ${w}. Compare the paste box against the page before you Parse.`);
+  }
+}
+
 class HubManageMethods {
 
   /**
@@ -668,6 +685,7 @@ class HubManageMethods {
     this._importText = base ? `${base}\n${result.text}\n` : `${result.text}\n`;
     this.render();
     ui.notifications.info(`Pulled page ${target.page} into the paste box — review, then Parse.`);
+    _warnGutter(result);
   }
 
   /**
@@ -771,6 +789,7 @@ class HubManageMethods {
     const empties = result.pages.filter((p) => p.empty).map((p) => p.page);
     const emptyNote = empties.length ? ` (${empties.length} page${empties.length > 1 ? "s" : ""} had no text: ${empties.join(", ")})` : "";
     ui.notifications.info(`Extracted ${result.pages.length - empties.length} page(s) into the paste box${emptyNote} — review, then Parse.`);
+    _warnGutter(result);
   }
 
   /**
