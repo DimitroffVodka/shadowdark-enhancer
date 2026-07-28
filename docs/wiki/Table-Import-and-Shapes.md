@@ -96,7 +96,7 @@ There is a **Cartesian (expand)** button to flatten a compound generator on
 demand. Two different caps apply: **automatic** expansion at commit is capped at
 **2,000 rows** (so a huge auto-detected compound can't silently commit as an
 unusable table), while an **explicit** Cartesian request via the button allows
-up to **25,000 rows**. A deliberate request gets more headroom.
+up to **25,000 rows**.
 
 ## Automatic range repair
 
@@ -146,16 +146,15 @@ _entry("core/shop-generator", "CORE", "Shop Generator",
   GEN3("SHOP GENERATOR", ["Name 1", "Name 2", "Known For"])),
 ```
 
-The workflow: paste the table, see what generic parsing does to it, then pick the
-kind that matches its printed layout and set `cols`, `size`, and `labels` to
+Start by pasting the table and seeing what generic parsing does to it, then pick
+the kind that matches its printed layout and set `cols`, `size`, and `labels` to
 match the page. Test by re-pasting through the real shape path, never through
 generic table parsing, which will give you a different (and misleadingly clean)
 result.
 
-Before you call a recipe done: confirm the page cite against the book, dump
+Before you call a recipe done, confirm the page cite against the book, dump
 **every** row instead of the first, and check whether anything else is printed
-on that page. Those three checks are what separate a correct recipe from one that
-merely scores well.
+on that page. A recipe that scores well can still be reading the wrong table.
 
 ---
 

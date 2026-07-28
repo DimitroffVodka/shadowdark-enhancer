@@ -82,8 +82,8 @@ per-tier folders, because tier is a field, not a folder.
 
 ### Own-list casters vs borrowed-list casters
 
-This is the subtlety worth understanding before importing a homebrew or Western
-Reaches caster.
+Homebrew and Western Reaches casters divide into two kinds, and which one you
+have decides how the class gets slugged.
 
 **Own-list casters** have their own spell list. They link up automatically. The
 spell↔class relink sweep runs on class import, on world load, and after each

@@ -12,17 +12,15 @@ commit it into the managed compendium packs.
 
 ## Bring your own books
 
-This is the part people ask about, so it is worth stating plainly.
-
 **The module ships no sourcebook prose.** For the *Cursed Scrolls* (CS1–CS6), the
 Core rules, and the *Player's Guide to the Western Reaches*, it knows the
 **structure** of the content you own (entry names, source and page citations,
 dice formulas, and table layout) and nothing else. Nothing is encrypted and
 nothing is hidden. There is no text to ship.
 
-**You supply every word** by pasting the matching section from your own PDF. What
-the module contributes is the parsing: recognising what kind of content the paste
-is, applying the right recipe, remapping links, and filing the result correctly.
+**You supply every word** by pasting the matching section from your own PDF. The
+module reads what kind of content it is, applies the right recipe, remaps the
+links, and files the result where it belongs.
 
 Two consequences worth knowing:
 

@@ -56,8 +56,6 @@ Per set you can **roll**, **pick**, **re-roll**, or **clear**.
 
 ## What becomes a real mechanic
 
-This is the important rule, and it is deliberately conservative:
-
 > **Only a whole-result `+N` becomes a real mechanic.** A weapon gets Active
 > Effects, and armour gets an AC modifier. **Everything else is escaped
 > descriptive text.**

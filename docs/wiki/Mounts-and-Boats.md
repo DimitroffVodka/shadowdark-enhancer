@@ -21,10 +21,10 @@ list. They register at world load alongside the system's own types.
 
 ## Mount
 
-The Mount type **reuses the Shadowdark system's own NPC data model and sheet**,
-which is the important design decision here: a mount is a creature, so its
-Abilities, Description, and Effects tabs are **pixel-identical to a native NPC**,
-and NPC Attacks, Features, and Spells plug straight in.
+The Mount type **reuses the Shadowdark system's own NPC data model and sheet**.
+A mount is a creature, so its Abilities, Description, and Effects tabs are
+**pixel-identical to a native NPC**, and NPC Attacks, Features, and Spells plug
+straight in.
 
 On top of that it adds three tabs:
 
@@ -106,7 +106,7 @@ items**, and, like every other unlock in this suite, **no stats are bundled**.
 The importer reads the boats table from *your own* Western Reaches PDF (falling
 back to a paste box if the page can't be read), parses all eight, previews them,
 and on commit files them as Boat actors into the **`sde-actors` compendium**
-(skipping any you already have). Nothing copyrighted ships in the module.
+(skipping any you already have).
 
 **Three ways to start it. All open the same importer preview:**
 
