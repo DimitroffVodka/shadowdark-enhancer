@@ -361,15 +361,16 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Pull the printed page range `spec` from `file` in `columns` mode, mapping
    *  each printed page through the registry's per-source offset. Text or null. */
   async _grab(srcKey, file, spec, columns, extractOpts = {}) {
-    const { extractPdfText, parsePageRange } = await import("../pdf-text-extract.mjs");
+    const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("../pdf-text-extract.mjs");
     const pdfPages = parsePageRange(spec)
       .map((p) => sourcePdfTarget(srcKey, String(p))?.page)
       .filter((p) => p != null);
     if (!pdfPages.length) { ui.notifications?.warn("Couldn't resolve those pages in the source PDF."); return null; }
     try {
-      const { text } = await extractPdfText(file, { pages: pdfPages, columns, ...extractOpts });
-      if (!text) { ui.notifications?.warn("That page has no selectable text."); return null; }
-      return text;
+      const result = await extractPdfText(file, { pages: pdfPages, columns, ...extractOpts });
+      if (!result.text) { ui.notifications?.warn("That page has no selectable text."); return null; }
+      notifyGutterWarnings(result);
+      return result.text;
     } catch (err) {
       console.error(`${MODULE_ID} | Item Builder — PDF grab failed`, err);
       ui.notifications?.error("Couldn't read text from that PDF page — see the console.");
