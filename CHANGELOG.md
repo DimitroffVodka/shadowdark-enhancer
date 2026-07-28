@@ -18,6 +18,8 @@
   words or sits well off the page midline, so a doubtful page says so instead of
   failing silently.
 
+## [0.13.1] — 2026-07-26
+
 ### Changed
 - Added the prescribed Shadowdark RPG Third-Party License attribution to the
   shipped README and credits.

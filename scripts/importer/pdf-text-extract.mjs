@@ -523,6 +523,24 @@ export async function extractPdfText(filePath, { pages = [1], columns = "auto", 
   return { text, numPages: doc.numPages, warnings, pages: results };
 }
 
+/**
+ * Surface an extraction's column-split warnings to the GM.
+ *
+ * Every grab path funnels through here so none of them can quietly drop the
+ * flags — a warning nobody shows is the same silence this detection exists to
+ * break. Advisory only: the text is already in hand either way.
+ *
+ * Note for pinned callers: "1" and "layout" never detect a gutter, so they
+ * never warn; "auto", "2" and "2mid" can.
+ *
+ * @param {{warnings?:string[]}} result  an extractPdfText result
+ */
+export function notifyGutterWarnings(result) {
+  for (const w of result?.warnings ?? []) {
+    ui.notifications?.warn(`Column check — ${w}. Compare the extracted text against the page before importing.`);
+  }
+}
+
 // Node-testable internals (no Foundry globals at module level).
 export const _internals = {
   detectGutter,

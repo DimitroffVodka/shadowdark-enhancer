@@ -19,23 +19,6 @@ import { installMethods } from "./importer-hub-shared.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
 
-/**
- * Surface a column-split the extractor is unsure about.
- *
- * A two-column page whose gutter is detected a little wrong reads perfectly —
- * it just moves a word or two between the columns, which a parser will happily
- * score as a clean match (CS6 p26 parsed 25 of 25 with the wrong text stored).
- * The extractor now reports those cuts instead of staying silent, so say so
- * while the text is still sitting in the paste box waiting to be reviewed.
- *
- * @param {{warnings?:string[]}} result  an extractPdfText result
- */
-function _warnGutter(result) {
-  for (const w of result?.warnings ?? []) {
-    ui.notifications.warn(`Column check — ${w}. Compare the paste box against the page before you Parse.`);
-  }
-}
-
 class HubManageMethods {
 
   /**
@@ -646,7 +629,7 @@ class HubManageMethods {
     // multi-page table imports whole, not just its first page. A background
     // bundle forces 1-column extraction: 2-column mode splits each entry's
     // description off its name, which the "Name. Text" background parser drops.
-    const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+    const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
     const bookPages = parsePageRange(seed.page);
     const pdfPages = (bookPages.length ? bookPages : [null])
       .map((bp) => (bp == null ? target.page : sourcePdfTarget(seed.src, String(bp))?.page))
@@ -685,7 +668,7 @@ class HubManageMethods {
     this._importText = base ? `${base}\n${result.text}\n` : `${result.text}\n`;
     this.render();
     ui.notifications.info(`Pulled page ${target.page} into the paste box — review, then Parse.`);
-    _warnGutter(result);
+    notifyGutterWarnings(result);
   }
 
   /**
@@ -758,7 +741,7 @@ class HubManageMethods {
     const file = resolveSourcePdf(picked.src);
     if (!file) { ui.notifications.warn("That book isn't linked to a PDF."); return; }
 
-    const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+    const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
     let result;
     try {
       const doc = await extractPdfText(file, { pages: [1] });   // cheap open to learn page count
@@ -789,7 +772,7 @@ class HubManageMethods {
     const empties = result.pages.filter((p) => p.empty).map((p) => p.page);
     const emptyNote = empties.length ? ` (${empties.length} page${empties.length > 1 ? "s" : ""} had no text: ${empties.join(", ")})` : "";
     ui.notifications.info(`Extracted ${result.pages.length - empties.length} page(s) into the paste box${emptyNote} — review, then Parse.`);
-    _warnGutter(result);
+    notifyGutterWarnings(result);
   }
 
   /**

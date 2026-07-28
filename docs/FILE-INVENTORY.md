@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-680 tracked files · ~82,500 lines of code/markup across scripts+templates+styles+test.
+681 tracked files · ~82,600 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -170,26 +170,26 @@
 | `importer-hub-app.mjs` | 776 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1327 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 751 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 851 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-manage.mjs` | 834 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-shared.mjs` | 91 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 479 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
-| `pdf-text-extract.mjs` | 565 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 583 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1394 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1002 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
-| `char-content/class-importer-app.mjs` | 733 | Purpose-built single-view class workspace. |
+| `char-content/class-importer-app.mjs` | 737 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1073 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 220 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
-| `spells/spell-importer-app.mjs` | 459 | Spell workspace organized by class / tier / alignment. |
+| `spells/spell-importer-app.mjs` | 460 | Spell workspace organized by class / tier / alignment. |
 | `tables/table-importer.mjs` | 3087 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
 | `tables/table-shapes.mjs` | 480 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 297 | Reconciles the shipped manifest against the live world (system / imported / missing). |
@@ -216,7 +216,7 @@
 | `items/gear-parser.mjs` | 535 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/gear-join.mjs` | 244 | Joins split cost-table + description layouts into one item. Pure. |
 | `items/item-importer.mjs` | 805 | Drafts → Items in `sde-items`, foldered by source. |
-| `items/item-builder-app.mjs` | 394 | Guided multi-stage equipment-section workspace. |
+| `items/item-builder-app.mjs` | 395 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 121 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
@@ -312,9 +312,9 @@
 
 `en.json` — the only localization file.
 
-## 7. `test/` — 60 node `--test` suites (~10,000 lines, flat by design)
+## 7. `test/` — 61 node `--test` suites (~10,100 lines, flat by design)
 
-Parsers: `statblock-parser`, `gear-parser`, `ancestry-parser`, `hex-parser`, `class-parser-talent-layout`, `table-shapes`, `pdf-text-normalize`, `pdf-extract-crop`, `pdf-extract-gutter`, `parser-review-regressions`.
+Parsers: `statblock-parser`, `gear-parser`, `ancestry-parser`, `hex-parser`, `class-parser-talent-layout`, `table-shapes`, `pdf-text-normalize`, `pdf-extract-crop`, `pdf-extract-gutter`, `pdf-grab-warnings`, `parser-review-regressions`.
 Class pipeline: `class-quality-gate`, `class-reimport-diff`, `class-borrowed-spell-list`, `class-ability-uses`, `spell-relink`, `spell-relink-persist`.
 Monsters: `monster-effect-runtime`, `monster-mechanical-adapters`, `monster-mutator-apply`, `monster-table-runtime`, `monster-table-seed`, `monster-matrix-import`, `monster-generator-integration`, `monster-generator-layout`.
 Magic/loot: `magic-forge`, `magic-table-runtime`, `magic-bundle-import`, `magic-bundle-persist`, `magic-loot-handoff`.

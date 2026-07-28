@@ -265,6 +265,9 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     this._pasteText = base ? `${base}\n${text}\n` : `${text}\n`;
     this._onParse();   // fills Class→Tier→Alignment table + applies the preset class/alignment
     const n = this._spells.length;
+    // This path parses immediately, so a doubtful column split would otherwise
+    // reach the preview as clean-looking spell text with no way to notice.
+    (await import("../pdf-text-extract.mjs")).notifyGutterWarnings(res);
     const lastKept = printed[kept.length - 1] ?? printed[0];
     const span = printed[0] === lastKept ? `p.${printed[0]}` : `p.${printed[0]}–${lastKept}`;
     if (n) ui.notifications?.info(`Pulled ${span} and parsed ${n} spell${n === 1 ? "" : "s"} — review, then Import.`);
@@ -362,9 +365,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     ui.notifications?.info(`Grabbed ${res.pages.length - empties} page(s) into the paste box — click Parse to detect spells.`);
     // A mis-detected gutter moves a word between columns and still parses
     // clean, so flag an uncertain column split while the text is reviewable.
-    for (const w of res.warnings ?? []) {
-      ui.notifications?.warn(`Column check — ${w}. Compare the paste box against the page before you Parse.`);
-    }
+    (await import("../pdf-text-extract.mjs")).notifyGutterWarnings(res);
   }
 
   /** Re-apply the bulk Class + Alignment to every parsed spell. */
