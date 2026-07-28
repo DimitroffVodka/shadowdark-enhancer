@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-678 tracked files · ~82,100 lines of code/markup across scripts+templates+styles+test.
+679 tracked files · ~82,100 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -28,10 +28,13 @@
 | `.github/workflows/ci.yml` | Lint + `node --test` on push/PR. |
 | `.github/workflows/release.yml` | Tag → build module.zip (allowlist: module.json, README, LICENSE, CHANGELOG, CREDITS, docs/API.md, assets, icons, languages, scripts, styles, templates) + attach manifest to the GitHub release. `test/` and the rest of `docs/` never ship. |
 
-## 2. Repo root (local-only, NOT shipped — see §9)
+## 2. Repo root (NOT shipped — see §9)
 
+**Tracked in git, excluded from the release zip:**
+`verify.sh` (pre-commit grep wall + `node --check` + eslint, `--strict` tier).
+
+**Not in git at all:**
 `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.impeccable.md` (agent instructions) ·
-`verify.sh` (pre-commit grep wall + `node --check` + eslint, `--strict` tier) ·
 `package-lock.json`, `node_modules/`.
 
 ---
@@ -342,5 +345,5 @@ manual) and this `docs/FILE-INVENTORY.md`. Of `docs/`, only `API.md` ships.
 - `dev/` — probes, fixtures, `dev/tests/` content-contract suite, generators, e2e drivers + dumps, `real-pastes/`, `pdf-sheet/` sandbox, page renders, backups, `reorg-2026-07/` (the folder-reorg migration scripts).
 - `docs/` except `wiki/`, `API.md`, `FILE-INVENTORY.md` — internal audits, review reports, sweep dumps, the promo plan and `superpowers/` plans/specs; kept on disk, out of git.
 - `.planning/` — STATUS, ROADMAP, REQUIREMENTS, playbooks, phases, seeds, sessions, wr-scrape.
-- `.claude/`, `.gemini/`, `.superpowers/`, `.hermes/`, `.playwright-mcp/`, `node_modules/`, `package-lock.json`, agent docs, `verify.sh`.
+- `.claude/`, `.gemini/`, `.superpowers/`, `.hermes/`, `.playwright-mcp/`, `node_modules/`, `package-lock.json`, agent docs. (`verify.sh` is tracked but stays out of the release zip, which is allowlist-based.)
 - `training-android/`, `training-app/` — untracked and NOT gitignored; unrelated to the module. Decide: ignore, remove, or move out.
