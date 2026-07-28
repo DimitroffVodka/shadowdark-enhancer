@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-679 tracked files · ~82,100 lines of code/markup across scripts+templates+styles+test.
+681 tracked files · ~82,600 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,8 +46,8 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 650 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
-| `luck-reroll/luck-reroll.mjs` | 163 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
+| `shadowdark-enhancer.mjs` | 657 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 207 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
@@ -63,6 +63,7 @@
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
+| `gm-relay.mjs` | 241 | Liveness + module-version handshake run before any player → active-GM socket relay, so a player whose GM tab is running an older build is warned to have it reloaded instead of clicking a button that silently does nothing. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
@@ -120,7 +121,7 @@
 |---|---:|---|
 | `loot-generator-app.mjs` | 265 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
-| `loot-delivery.mjs` | 419 | Shared claimable chat card; first-claim-wins, GM-authoritative over socket. |
+| `loot-delivery.mjs` | 425 | Shared claimable chat card; first-claim-wins, GM-authoritative over socket. |
 | `loot-drops.mjs` | 179 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 237 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
@@ -131,7 +132,7 @@
 | `loot-pack.mjs` | 161 | Classify/fabricate treasure entries + world "Loot" pack ops. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 668 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 676 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 
 ### 3.8 `scripts/magic-forge/`
 
@@ -145,7 +146,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2578 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2586 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 183 | The two shipped merchant configs (Base, Western Reaches). |
 
 ### 3.10 `scripts/party-xp/`

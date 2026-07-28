@@ -61,11 +61,29 @@ monster creation, XP awards, loot generation, art application.
 ### A player action does nothing and no error appears
 
 Most player actions are **relayed to the active GM over the socket**: loot
-claims, merchant transactions, movement rollback, character creation without
-create permission.
+claims, merchant transactions, downtime picks and rolls, item drops and pickups,
+movement rollback, character creation without create permission.
 
 **If no GM is connected, nothing processes the request.** Check that a GM is
 online.
+
+**If a GM is online but has had the tab open since before the module was
+updated,** that tab is still running the old code and has no listener for the
+newer actions. The player's click lands in a client that ignores it — nothing
+throws, nothing logs, the button simply does nothing.
+
+The module now checks for this before sending. A player's action pings the
+active GM first and compares module versions; a stale tab, a mismatched version,
+or no GM at all, and the player gets a warning instead of silence:
+
+> Your GM's Foundry tab needs a reload before downtime actions can land.
+
+**The fix is always the same: have the GM reload their Foundry tab** (`F5`). The
+check covers downtime actions, shop transactions, loot claims, and item drops
+and pickups. It deliberately does *not* cover Luck-spend logging, which is
+bookkeeping for the [Session Recap](Session-Recap.md) rather than a player
+action — the reroll itself has already happened on the player's own client, so
+at worst a stale GM costs one line in the recap.
 
 ### A player can't pick portrait art
 

@@ -12,6 +12,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlStrip } from "../crawl-strip/crawl-strip.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
+import { relayToGM } from "../shared/gm-relay.mjs";
 import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
   addToPurse, spendFromPurse, parseCoinsFromText,
@@ -33,6 +34,13 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 // ── Currency helpers ──────────────────────────────────────────────────────────
 // Thin aliases over the shared, testable util/coins.mjs so existing call sites
 // read unchanged. `_canAfford` keeps its actor-taking signature.
+/**
+ * Fills "…needs a reload before X can land" when a player's buy/sell/gamble
+ * can't reach the active GM. Money moves on the GM side, so a silently dropped
+ * relay looks to the player like the shop simply ignored them.
+ */
+const SHOP_RELAY_LABEL = "shop transactions";
+
 
 const _toCopper = toCopper;
 const _fromCopper = fromCopper;
@@ -2451,14 +2459,14 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:buy",
         buyerActorId: actor.id,
         shopItemId,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 
@@ -2477,13 +2485,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:sell",
         sellerActorId: actor.id,
         itemId,
         quantity,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 
@@ -2529,12 +2537,12 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:gamble",
         buyerActorId: actor.id,
         gambleId,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 
@@ -2565,14 +2573,14 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:catalogBuy",
         buyerActorId: actor.id,
         itemUuid,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 }

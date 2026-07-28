@@ -170,6 +170,14 @@ This was a real bug fixed in v0.11.x: a headless active GM (window closed, or a
 second GM relaying for a player) restocked an actor-mode sale into the compendium
 inventory. If you are on an older build, update.
 
+**"Your GM's Foundry tab needs a reload before shop transactions can land."**
+Buying and selling happen on the **active GM's** client, and that tab has been
+open since before the module was updated, so it is running code that doesn't
+know about the transaction. Rather than let a purchase go silently nowhere, the
+module pings the GM and compares versions before sending — this warning is that
+check firing. Have the GM reload their tab. See
+[Troubleshooting](Troubleshooting.md#a-player-action-does-nothing-and-no-error-appears).
+
 **Stock didn't go down after a purchase.**
 Compendium-catalog mode sells from an unlimited list by design. Use actor mode if
 you want depletion.

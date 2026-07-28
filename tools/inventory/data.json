@@ -119,7 +119,8 @@
       "scripts/shared/loading-dialog-guard.mjs",
       "scripts/shared/art-utils.mjs",
       "scripts/shared/coins.mjs",
-      "scripts/shared/esc.mjs"
+      "scripts/shared/esc.mjs",
+      "scripts/shared/gm-relay.mjs"
     ],
     "3.3": [
       "scripts/crawl-strip/crawl-strip.mjs",
@@ -313,6 +314,7 @@
     "scripts/shared/art-utils.mjs": "Portrait/token image resolution across world + compendium sources.",
     "scripts/shared/coins.mjs": "Pure Shadowdark currency math (10cp=1sp, 10sp=1gp).",
     "scripts/shared/esc.mjs": "HTML-escape helper for safe `innerHTML` interpolation.",
+    "scripts/shared/gm-relay.mjs": "Liveness + module-version handshake run before any player \u2192 active-GM socket relay, so a player whose GM tab is running an older build is warned to have it reloaded instead of clicking a button that silently does nothing.",
     "scripts/crawl-strip/crawl-strip.mjs": "The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2.",
     "scripts/crawl-strip/crawl-state.mjs": "Foundry-coupled state singleton — persistence, sockets, hook emission.",
     "scripts/crawl-strip/crawl-state-core.mjs": "Pure reducer/normalizer behind crawl-state. Node-testable.",

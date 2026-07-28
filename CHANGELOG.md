@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **A player's action no longer vanishes into a GM tab running old code.** Loot
+  claims, shop transactions and item drops are all handled by the **active GM's**
+  client. A GM who had left a tab open since before the module was updated was
+  running a build with no listener for the newer actions, so a player's click
+  landed nowhere: nothing threw, nothing logged, the button just did nothing.
+  Every one of those relays now pings the active GM and compares module versions
+  *before* sending. A stale tab, a mismatched version, or no GM online, and the
+  player is told — *"Your GM's Foundry tab needs a reload before loot claims can
+  land."* — naming both builds when the versions differ. A proven GM is cached
+  briefly so a burst of clicks costs one round trip; a failure is never cached,
+  so the very next attempt after the GM reloads goes straight through. A blocked
+  loot claim hands its button back rather than leaving the item looking claimed.
+  Only the **active** GM answers the ping, so an always-on second GM client can't
+  vouch for a stale one. Luck-spend logging is deliberately left unguarded: the
+  reroll has already happened on the player's own client, so a stale GM costs one
+  line in the Session Recap rather than a lost action.
+
 ## [0.13.1] — 2026-07-26
 
 ### Changed

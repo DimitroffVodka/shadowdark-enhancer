@@ -7,6 +7,7 @@ import { MODULE_ID } from "./shared/module-id.mjs";
 import { ICONS } from "./shared/icons.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
+import { installGMRelayHandshake } from "./shared/gm-relay.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
@@ -541,6 +542,12 @@ Hooks.once("ready", () => {
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).
   MonsterTokenArt.initCompendiumArt();
+  // Liveness+version probe used by every player→active-GM relay below. Must be
+  // installed before them: a player whose GM tab is running an older build gets
+  // a "reload your GM's tab" warning instead of a button that silently does
+  // nothing (gm-relay.mjs). Every client installs it — players send the ping,
+  // the active GM answers it.
+  installGMRelayHandshake();
   LootDrops.init();
   ItemDrops.init();
   // Token HUD "adjust monster level" button (GM-only, NPC tokens).

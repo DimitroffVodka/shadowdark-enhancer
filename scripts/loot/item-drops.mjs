@@ -27,6 +27,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
+import { relayToGM } from "../shared/gm-relay.mjs";
 
 /* -------------------------------------------- */
 /*  Droppable Item Types                        */
@@ -39,6 +40,13 @@ const DROPPABLE_TYPES = ["Armor", "Basic", "Gem", "Potion", "Scroll", "Wand", "W
 
 // Default art for a dropped coin pile.
 const COIN_IMG = "icons/commodities/currency/coins-plain-stack-gold.webp";
+
+/**
+ * Fills "…needs a reload before X can land". Only the GM can create the token,
+ * so an undelivered drop leaves the item gone from the player's sheet with
+ * nothing on the canvas to show for it.
+ */
+const DROP_RELAY_LABEL = "item drops and pickups";
 
 /** Human label for a coin bundle, e.g. "12 gp, 5 sp". */
 function _coinLabel(c) {
@@ -239,11 +247,11 @@ export const ItemDrops = {
       // Player: relay to GM via socket. The GM re-reads the item server-side
       // and verifies ownership using userId, so a crafted payload can't
       // fabricate items or drop from an actor the sender doesn't own.
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "itemDrop:create",
         userId: game.userId,
         ...dropData,
-      });
+      }, { label: DROP_RELAY_LABEL });
     }
   },
 
@@ -504,14 +512,14 @@ export const ItemDrops = {
           userId: game.userId,
         });
       } else {
-        game.socket.emit(`module.${MODULE_ID}`, {
+        await relayToGM({
           action: "itemDrop:pickup",
           tokenId: token.id,
           actorId: actor.id,
           recipientId: recipient.id,
           sceneId: canvas.scene.id,
           userId: game.userId,
-        });
+        }, { label: DROP_RELAY_LABEL });
       }
 
       // Close the HUD

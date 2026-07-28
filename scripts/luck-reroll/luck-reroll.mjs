@@ -59,6 +59,14 @@ function isPrimaryGM() {
  * Write one Luck-spent entry. The recap lives in a world setting, which players
  * (and second GMs) can't write — they hand it to the primary GM over the module
  * socket, mirroring the crawl strip's `luck:give` relay.
+ *
+ * DELIBERATELY NOT handshake-guarded (shared/gm-relay.mjs), unlike the downtime,
+ * shop, loot-claim and item-drop relays. Those carry a player ACTION whose whole
+ * visible outcome happens on the GM; losing one leaves the player staring at a
+ * button that did nothing. This carries BOOKKEEPING: the reroll already happened
+ * on this client and the player has their new result either way. A stale GM tab
+ * costs one line in the session recap, which is not worth making every reroll
+ * wait on a socket round trip — or interrupting the moment with a warning toast.
  */
 async function recordLuckSpent(entry) {
   if (isPrimaryGM()) {
