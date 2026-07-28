@@ -31,7 +31,7 @@
 ## 2. Repo root (local-only, NOT shipped — see §9)
 
 `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.impeccable.md` (agent instructions) ·
-`verify.sh` (pre-commit grep wall + `node --check`, `--strict` tier) ·
+`verify.sh` (pre-commit grep wall + `node --check` + eslint, `--strict` tier) ·
 `package-lock.json`, `node_modules/`.
 
 ---

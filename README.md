@@ -152,7 +152,7 @@ walkthroughs and troubleshooting.
 ## Contributing
 
 Bug reports and pull requests are welcome. See
-**[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, the two gate commands, the
+**[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, the gate commands, the
 Foundry-specific things that catch people out, and the content contract this
 module holds itself to.
 

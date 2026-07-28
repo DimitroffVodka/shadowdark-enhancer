@@ -24,12 +24,23 @@ Enable the module in a test world and you're running your working copy.
 
 ## The gates
 
-Two commands, both of which must pass before a pull request:
+Three commands, all of which must pass before a pull request. CI runs these
+same three in this order and stops at the first failure, so a green `npm test`
+on its own tells you nothing about the other two:
 
 ```bash
-npm test          # node:test — unit tests plus the contract tests
-npm run lint      # eslint, --max-warnings 0
+npm run lint             # eslint, --max-warnings 0
+npm test                 # node:test — unit tests plus the contract tests
+npm run inventory:check  # docs/FILE-INVENTORY.md matches the tree
 ```
+
+`./verify.sh` runs the lint gate as well, alongside its grep wall and
+`node --check`, so it catches a lint-dirty tree before you commit. It does not
+run the test or inventory gates.
+
+Any commit that adds, removes or renames lines in `scripts/` changes a line
+count in the inventory, so run `npm run inventory` in that same commit or the
+third gate fails.
 
 For anything touching the combat / crawl / initiative state machine, also run
 the in-client **Quench** batches (`test/quench/`). Install the
