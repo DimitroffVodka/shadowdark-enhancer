@@ -210,10 +210,10 @@ only on PCs. A greyed pill means zero remaining.
 
 **Granting or giving a Luck token says the character already has one.**
 Outside Pulp mode, Shadowdark tracks a single Luck token per character as a
-yes/no flag — there is nowhere to put a second, and one banked anyway could
-never be spent. So in classic mode both the GM's right-click grant and a
-player's give are refused when the receiver already holds their token. Turn on
-Pulp mode if your table wants Luck to stack.
+yes/no flag, so there is nowhere to put a second and one banked anyway could
+never be spent. In classic mode both the GM's right-click grant and a player's
+give are refused when the receiver already holds their token. Turn on Pulp mode
+if your table wants Luck to stack.
 
 **The strip renders unstyled / as plain blocks.**
 Your browser is serving a cached copy of the module stylesheet. Hard-reload with
