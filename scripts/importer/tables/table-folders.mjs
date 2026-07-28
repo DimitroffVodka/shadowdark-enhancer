@@ -22,13 +22,19 @@ import { CORE_TABLE_GROUPS } from "./core-table-groups.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
+/** Manifest table names that are casting mishaps → routed under Spells. */
+export const MISHAP_TABLES = new Set([
+  "Diabolical Mishap 1-3",
+  "Diabolical Mishap 4-5",
+  "Necromancer Mishap 1-3",
+  "Necromancer Mishap 4-5",
+].map(_norm));
+
 /** Manifest table names that are GAMEPLAY mechanics (books' Gameplay chapters). */
 export const GAMEPLAY_TABLES = new Set([
   "Core PDF p97: Carousing Outcome",
   "Core PDF p118: Traps",
   "Core PDF p284: Boons: Oaths",
-  "Diabolical Mishap 1-3",
-  "Diabolical Mishap 4-5",
   "Cursed Scroll 2 p26: Enduring Wounds",
   "Carousing Outcome",
   "Carousing Event",
@@ -118,7 +124,9 @@ export function resolveTableFolderPath(pt) {
     "talents": ["Character Content", "Class Talents"],
   })[pt?.category];
   if (charPath) return charPath;
-  // 5. Gameplay-chapter mechanics.
+  // 5. Casting mishaps → under Spells.
+  if (_inSet(MISHAP_TABLES, name)) return ["Spells", "Mishaps", src];
+  // 6. Gameplay-chapter mechanics.
   if (_inSet(GAMEPLAY_TABLES, name) || ["carousing", "traps", "hazards"].includes(pt?.category)) {
     return ["Gameplay", src];
   }

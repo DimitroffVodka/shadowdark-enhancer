@@ -70,6 +70,21 @@ export const CrawlStrip = {
     on("createActiveEffect", queueIfShown);
     on("deleteActiveEffect", queueIfShown);
     on("updateActiveEffect", queueIfShown);
+
+    // Listen for luck-give requests from players (who can't update other
+    // actors directly). Only the GM acts on them; the sender gets a
+    // notification if the GM isn't online.
+    game.socket.on(`module.${MODULE_ID}`, async (msg) => {
+      if (msg.action !== "luck:give") return;
+      if (!game.user.isGM) return;
+      const giver = game.actors.get(msg.giverId);
+      const receiver = game.actors.get(msg.receiverId);
+      if (!giver || !receiver) return;
+      // Gate: only the player who owns the giver can give from it
+      const sender = game.users.get(msg.userId);
+      if (!sender || !giver.testUserPermission(sender, "OWNER")) return;
+      await this._giveLuckToken(giver, receiver);
+    });
   },
 
   queueRender() {
@@ -95,6 +110,7 @@ export const CrawlStrip = {
     this._hookIds = [];
     this._el?.remove();
     this._el = null;
+    this._contextmenuBound = false;
   },
 
   mount() {
@@ -334,11 +350,12 @@ export const CrawlStrip = {
         if (m.type === "player") {
           // Luck pill is clickable → spends a luck token via actor.system.useLuckToken().
           // Only attach the data-action when there's actually a token to spend.
-          const luckClickable = data.luck > 0 ? `data-action="spendLuck" data-actor-id="${m.actorId ?? ""}" role="button" tabindex="0" aria-label="Spend a Luck Token"` : "";
-          const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : "No Luck Tokens";
+          // Always include data-actor-id so the GM can right-click to add a token even at zero.
+          const luckClickable = data.luck > 0 ? `data-action="spendLuck" role="button" tabindex="0" aria-label="Spend a Luck Token"` : "";
+          const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : (game.user.isGM ? "No Luck Tokens — right-click to add one" : "No Luck Tokens");
           pills = `
         <div class="sde-strip-pills">
-          <div class="sde-strip-pill ${luckClass}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
+          <div class="sde-strip-pill ${luckClass}" data-actor-id="${m.actorId ?? ""}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
         </div>`;
         } else if (m.type === "npc" && inCombat) {
@@ -767,13 +784,23 @@ export const CrawlStrip = {
           return;
         }
 
-        // Luck pill click → spend a luck token via the actor's system method.
-        const luckBtn = ev.target.closest('[data-action="spendLuck"]');
+        // Luck pill click → spend (if owned) or offer to give (if another player's).
+        // Match on data-actor-id so pills at 0 luck are still reachable for giving.
+        const luckBtn = ev.target.closest('.sde-strip-pill[data-actor-id]');
         if (luckBtn) {
           ev.stopPropagation();
-          const actorId = luckBtn.dataset.actorId || card.dataset.actorId;
+          const actorId = luckBtn.dataset.actorId;
           const actor = actorId ? game.actors.get(actorId) : null;
-          if (actor?.system?.useLuckToken) await actor.system.useLuckToken();
+          if (!actor) return;
+          // Owned pill with luck → spend normally
+          if (actor.isOwner && luckBtn.hasAttribute("data-action")) {
+            if (actor.system?.useLuckToken) await actor.system.useLuckToken(true);
+            return;
+          }
+          // Owned pill at 0 → nothing to spend
+          if (actor.isOwner) return;
+          // Another player's pill → offer to give a luck token from your own PC
+          await this._offerGiveLuck(actor);
           return;
         }
 
@@ -827,6 +854,24 @@ export const CrawlStrip = {
       });
     }
 
+    // Luck pill right-click → GM adds a luck token (delegated on the strip so
+    // it survives re-renders). Matches on data-actor-id so empty pills work too.
+    // Bound once via a flag — _bindEvents runs on every render, and addEventListener
+    // on the persistent strip element would otherwise stack duplicate listeners.
+    if (!this._contextmenuBound) {
+      this._contextmenuBound = true;
+      this._el.addEventListener("contextmenu", async (ev) => {
+        const luckBtn = ev.target.closest('.sde-strip-pill[data-actor-id]');
+        if (!luckBtn) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (!game.user.isGM) return;
+        const actorId = luckBtn.dataset.actorId;
+        const actor = actorId ? game.actors.get(actorId) : null;
+        if (actor) await this._addLuckToken(actor);
+      });
+    }
+
     if (!game.user.isGM) return;
 
     // Combat control buttons (prev/next round/turn)
@@ -868,5 +913,167 @@ export const CrawlStrip = {
         }
       });
     });
+  },
+
+  /**
+   * Add a luck token to an actor (GM right-click on the Luck pill).
+   * Respects Pulp/Classic mode just like the display logic in _extractData.
+   */
+  async _addLuckToken(actor) {
+    const system = actor.system;
+    const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
+
+    // Classic mode stores one boolean token and the system's useLuckToken()
+    // only ever reads luck.available outside pulp — an "extra" written to
+    // luck.remaining there is a token the player can never spend. Say so.
+    if (!pulp && system.luck?.available) {
+      ui.notifications?.warn(`${actor.name} already has a luck token.`);
+      return;
+    }
+
+    const update = pulp
+      ? { "system.luck.remaining": (system.luck.remaining ?? 0) + 1 }
+      : { "system.luck.available": true };
+
+    await actor.update(update);
+
+    await ChatMessage.create({
+      content: game.i18n.format("SDE.crawlStrip.luckTokenRegained", { name: actor.name }),
+      speaker: ChatMessage.getSpeaker({ actor }),
+      user: game.user.id,
+    });
+
+    this.queueRender();
+  },
+
+  /**
+   * Show a dialog offering to give one of your own luck tokens to another PC.
+   * @param {Actor} receiver — the actor whose pill was clicked
+   */
+  async _offerGiveLuck(receiver) {
+    // Find PCs owned by the current user that have luck tokens to give
+    const owned = game.actors.filter(a =>
+      a.type === "Player" && a.isOwner && this._luckCount(a) > 0
+    );
+
+    if (!owned.length) {
+      ui.notifications?.warn("You have no luck tokens to give.");
+      return;
+    }
+
+    // Single giver → straightforward confirmation
+    if (owned.length === 1) {
+      const giver = owned[0];
+      const dlg = foundry?.applications?.api?.DialogV2;
+      if (!dlg?.confirm) {
+        await this._executeGive(giver, receiver);
+        return;
+      }
+      const confirmed = await dlg.confirm({
+        window: { title: "Give Luck Token" },
+        content: game.i18n.format("SDE.crawlStrip.giveLuckConfirm", {
+          giver: giver.name,
+          receiver: receiver.name,
+        }),
+        yes: { label: "Give", icon: "fas fa-hand-holding-heart" },
+        no: { label: "Cancel", icon: "fas fa-times" },
+        defaultYes: false,
+      }).catch(() => false);
+      if (confirmed) await this._executeGive(giver, receiver);
+      return;
+    }
+
+    // Multiple givers → pick which PC to give from
+    const dlg = foundry?.applications?.api?.DialogV2;
+    if (!dlg?.wait) {
+      await this._executeGive(owned[0], receiver);
+      return;
+    }
+    const buttons = owned.map(a => ({
+      action: a.id,
+      label: `${a.name} (${this._luckCount(a)} luck)`,
+      icon: "fas fa-user",
+    }));
+    buttons.push({ action: "cancel", label: game.i18n.localize("Cancel"), icon: "fas fa-times" });
+    const chosen = await dlg.wait({
+      window: { title: "Give Luck Token" },
+      content: game.i18n.format("SDE.crawlStrip.giveLuckChoose", { receiver: receiver.name }),
+      buttons,
+      rejectClose: false,
+    }).catch(() => null);
+    if (!chosen || chosen === "cancel") return;
+    const giver = game.actors.get(chosen);
+    if (giver) await this._executeGive(giver, receiver);
+  },
+
+  /**
+   * Route a luck-give through the GM if the current user isn't one.
+   * Players can't update another actor directly, so we relay via socket.
+   */
+  async _executeGive(giver, receiver) {
+    if (game.user.isGM) {
+      await this._giveLuckToken(giver, receiver);
+    } else {
+      game.socket.emit(`module.${MODULE_ID}`, {
+        action: "luck:give",
+        giverId: giver.id,
+        receiverId: receiver.id,
+        userId: game.user.id,
+      });
+    }
+  },
+
+  /**
+   * Transfer one luck token from giver to receiver. Both are Player actors.
+   */
+  async _giveLuckToken(giver, receiver) {
+    const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
+    const rSystem = receiver.system;
+
+    // Classic mode has one boolean token per PC, so a receiver already holding
+    // it has nowhere to put a second — refuse before anyone spends anything
+    // rather than bank an unspendable one (see _addLuckToken).
+    if (!pulp && rSystem.luck?.available) {
+      ui.notifications?.warn(`${receiver.name} already has a luck token.`);
+      return;
+    }
+
+    // Spend from giver (use the system method so classic/pulp are handled
+    // correctly). It returns false when there was nothing to spend — crediting
+    // the receiver anyway would mint a token out of nothing.
+    const spent = await giver.system?.useLuckToken?.(false);
+    if (spent === false) {
+      ui.notifications?.warn(`${giver.name} has no luck token to give.`);
+      return;
+    }
+
+    const update = pulp
+      ? { "system.luck.remaining": (rSystem.luck.remaining ?? 0) + 1 }
+      : { "system.luck.available": true };
+    await receiver.update(update);
+
+    await ChatMessage.create({
+      content: game.i18n.format("SDE.crawlStrip.luckTokenGiven", {
+        giver: giver.name,
+        receiver: receiver.name,
+      }),
+      speaker: ChatMessage.getSpeaker({ actor: giver }),
+      user: game.user.id,
+    });
+
+    this.queueRender();
+  },
+
+  /**
+   * Count displayable luck tokens for a player actor.
+   * Mirrors the logic in _extractData so the count matches what's on the pill.
+   */
+  _luckCount(actor) {
+    const luck = actor.system?.luck ?? {};
+    const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
+    if (pulp) return typeof luck.remaining === "number" ? luck.remaining : 0;
+    if (typeof luck.remaining === "number" && luck.remaining > 0) return luck.remaining;
+    if (luck.available === true) return 1;
+    return 0;
   },
 };

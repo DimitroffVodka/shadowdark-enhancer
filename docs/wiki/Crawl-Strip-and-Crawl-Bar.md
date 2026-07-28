@@ -101,7 +101,7 @@ Each card renders, from the actor's live data:
 | **Portrait & name** | From the actor |
 | **HP bar** | `attributes.hp.value / max`, with the numbers written on the bar. Colour bands: **ok** > 75%, **mid** ≤ 75%, **low** ≤ 50%, **critical** ≤ 25%, **dead** at 0 or below |
 | **AC** | Shown as `AC n` when the actor has one |
-| **Luck pill** | PCs only. **Click a Luck pill with tokens left to spend one** — it calls the system's own `useLuckToken()`. Greys out at zero. |
+| **Luck pill** | PCs only. **Left-click** to spend a Luck token (posts to chat). **Right-click** (GM only) to grant a token. **Left-click another PC's pill** to offer one of your own Luck tokens to them. Greys out at zero. |
 | **Movement pill** | `remaining / budget ft`. Turns **red when over budget**, greys out when exhausted. NPCs in combat show this without a Luck pill — NPCs don't carry Luck. |
 | **Active effects** | A row of effect icons; hover for the label and remaining duration |
 | **Light source** | PC cards only, in both modes. Click to toggle the actor's light source — it reuses the system character sheet's own toggle. |
@@ -207,6 +207,13 @@ you see it mid-settle, it will correct itself.
 **Clicking a Luck pip does nothing.**
 The pill is only clickable when the character actually has Luck tokens left, and
 only on PCs. A greyed pill means zero remaining.
+
+**Granting or giving a Luck token says the character already has one.**
+Outside Pulp mode, Shadowdark tracks a single Luck token per character as a
+yes/no flag — there is nowhere to put a second, and one banked anyway could
+never be spent. So in classic mode both the GM's right-click grant and a
+player's give are refused when the receiver already holds their token. Turn on
+Pulp mode if your table wants Luck to stack.
 
 **The strip renders unstyled / as plain blocks.**
 Your browser is serving a cached copy of the module stylesheet. Hard-reload with

@@ -182,6 +182,23 @@ export const SessionRecap = {
     });
   },
 
+  // ── Luck Tracking ───────────────────────────────────────────
+
+  /** Log one Luck token spent for a reroll. */
+  async logLuckSpent({ player, actorId, formula, oldTotal, newTotal }) {
+    if (!this.isActive()) return;
+    return this._mutate(data => {
+      this._ensureStart(data);
+      if (!Array.isArray(data.luckSpent)) data.luckSpent = [];
+      data.luckSpent.push({
+        player, actorId, formula,
+        oldTotal: Number(oldTotal) || 0,
+        newTotal: Number(newTotal) || 0,
+        ...this._stamp(),
+      });
+    });
+  },
+
   // ── Combat Logging ─────────────────────────────────────────
 
   async logCombat(combatEntry) {
@@ -481,7 +498,7 @@ export const SessionRecap = {
       endTime: now,
       data: {
         loot: data.loot, sales: data.sales, purchases: data.purchases,
-        xp: data.xp, combats: data.combats,
+        xp: data.xp, combats: data.combats, luckSpent: data.luckSpent,
         encounterChecks: data.encounterChecks, playerStats: data.playerStats,
       },
     };

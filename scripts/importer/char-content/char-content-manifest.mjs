@@ -325,6 +325,8 @@ const MANIFEST = {
       // Carousing + background-table representatives
       "Carousing Event", "Carousing Outcome",
       "Carousing Mishap", "Carousing Benefit", "Western Reach Backgrounds",
+      // Necromancer mishap tables (WR pp.186-187)
+      "Necromancer Mishap 1-3", "Necromancer Mishap 4-5",
     ],
     Talent: [
       "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",
@@ -531,6 +533,9 @@ const TABLE_PAGES = {
     "Carousing Outcome": "237",
     "Carousing Benefit": "238-241",
     "Carousing Mishap": "242-245",
+    // Necromancer mishap tables
+    "Necromancer Mishap 1-3": "186",
+    "Necromancer Mishap 4-5": "187",
   },
   CS3: {
     // The d100 sea-encounter longtable spans pp.26-27 (p26's rows end at
@@ -876,11 +881,11 @@ function _ancestryDescription(src) {
   }).filter(Boolean).join("");
 }
 
-/** "Name. Flavor sentence" per line (leading d100 roll numbers tolerated). */
+/** "Name. Flavor sentence" per line (leading d100 values/ranges tolerated). */
 function _parseBackgrounds(text) {
   const out = [];
   for (const raw of String(text).split("\n")) {
-    const line = raw.trim().replace(/^\d+[.)]?\s+/, "");
+    const line = raw.trim().replace(/^\d+(?:\s*[-–—]\s*\d+)?[.)]?\s+/, "");
     const m = line.match(/^([A-Z][^.]{1,40})\.\s+(.+)$/);
     if (!m) continue;
     out.push({ draft: { name: m[1].trim(), type: "Background", description: `<p>${m[2].trim()}</p>` } });

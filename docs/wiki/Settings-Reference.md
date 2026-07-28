@@ -32,6 +32,18 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Game Master avatar** | *(blank)* | Image on the GM card. Blank uses the default cowled icon. You can also click the GM card's portrait in the strip. |
 | **Warn when shadowdark-crawl-helper is enabled** | on | Load-time notice if Crawl Helper is active. Non-blocking. |
 
+### Luck Reroll
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Prevent Luck rerolls on natural 1s** | on | When on, Luck tokens cannot be used to reroll attack rolls, checks, or saves that resulted in a natural 1. |
+
+### Spell Mishaps
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate mishap table for the casting class: Wizard Mishap for wizards and necromancers, Diabolical Mishap for witches. Divine casters — Priest, Green Knight, Seer — are exempt and simply lose the spell per RAW. Wand and scroll casts use the spell behind them, not the wand. |
+
 ### Encounters
 
 | Setting | Default | What it does |
