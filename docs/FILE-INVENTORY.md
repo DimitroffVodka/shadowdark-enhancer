@@ -284,7 +284,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `prayer-roll.mjs` | 133 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
+| `prayer-roll.mjs` | 131 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
 <!-- inventory:scripts:end -->
 ---
 
