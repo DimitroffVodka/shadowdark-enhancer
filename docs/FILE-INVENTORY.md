@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-675 tracked files · ~81,700 lines of code/markup across scripts+templates+styles+test.
+678 tracked files · ~81,900 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -43,9 +43,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 648 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 650 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 68 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
-| `spell-mishap/spell-mishap.mjs` | 134 | Detects Wizard spellcasting nat-1 failures and auto-rolls the tier-appropriate mishap table. |
+| `spell-mishap/spell-mishap.mjs` | 162 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -172,12 +172,12 @@
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 459 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 477 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `pdf-text-extract.mjs` | 371 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1389 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1394 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1002 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 733 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1073 | Class unit → real documents in dependency order. |
@@ -194,7 +194,7 @@
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
 | `tables/table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
-| `tables/table-folders.mjs` | 131 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
+| `tables/table-folders.mjs` | 139 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
 | `tables/table-enrich.mjs` | 164 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
 | `tables/core-table-groups.mjs` | 251 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
@@ -279,6 +279,12 @@
 | File | Lines | Description |
 |---|---:|---|
 | `pdf-sheet-export.mjs` | 403 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
+
+### 3.17 `scripts/character-sheet/` — Shadowdark sheet injections
+
+| File | Lines | Description |
+|---|---:|---|
+| `prayer-roll.mjs` | 133 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
 <!-- inventory:scripts:end -->
 ---
 

@@ -96,11 +96,19 @@
       "dir": "scripts/pdf-export",
       "title": "`scripts/pdf-export/`",
       "note": ""
+    },
+    {
+      "id": "3.17",
+      "dir": "scripts/character-sheet",
+      "title": "`scripts/character-sheet/` — Shadowdark sheet injections",
+      "note": ""
     }
   ],
   "order": {
     "3.1": [
-      "scripts/shadowdark-enhancer.mjs"
+      "scripts/shadowdark-enhancer.mjs",
+      "scripts/luck-reroll/luck-reroll.mjs",
+      "scripts/spell-mishap/spell-mishap.mjs"
     ],
     "3.2": [
       "scripts/shared/module-id.mjs",
@@ -289,6 +297,9 @@
     ],
     "3.16": [
       "scripts/pdf-export/pdf-sheet-export.mjs"
+    ],
+    "3.17": [
+      "scripts/character-sheet/prayer-roll.mjs"
     ]
   },
   "descriptions": {
@@ -450,6 +461,9 @@
     "scripts/char-builder/steps/languages-step.mjs": "Step — Languages (runs after Class, so ancestry and class both contribute).",
     "scripts/char-builder/steps/origins-step.mjs": "Step — Origins: Background + Alignment + Deity on one tab.",
     "scripts/char-builder/steps/preview-step.mjs": "Step — Preview. Final character-sheet preview before creation.",
-    "scripts/char-builder/steps/stats-step.mjs": "Step — Abilities. Roll or assign the six ability scores."
+    "scripts/char-builder/steps/stats-step.mjs": "Step — Abilities. Roll or assign the six ability scores.",
+    "scripts/character-sheet/prayer-roll.mjs": "Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums).",
+    "scripts/luck-reroll/luck-reroll.mjs": "Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap.",
+    "scripts/spell-mishap/spell-mishap.mjs": "Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt."
   }
 }
