@@ -6,10 +6,13 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "lint": "eslint scripts test --max-warnings 0",
-    "lint:fix": "eslint scripts test --fix",
+    "lint": "eslint scripts test tools demo --max-warnings 0",
+    "lint:fix": "eslint scripts test tools demo --fix",
     "inventory": "node tools/inventory/generate.mjs",
-    "inventory:check": "node tools/inventory/generate.mjs --check"
+    "inventory:check": "node tools/inventory/generate.mjs --check",
+    "demo:build": "node tools/demo/build.mjs --clean",
+    "demo:check": "node tools/demo/check-glyphs.mjs",
+    "demo:vendor": "node tools/demo/fetch-vendor.mjs"
   },
   "license": "MIT",
   "devDependencies": {

@@ -2,6 +2,8 @@
 
 [← Wiki home](Home.md)
 
+**[▶ Try this in your browser](https://dimitroffvodka.github.io/shadowdark-enhancer/#crawl-strip)** — hover a portrait and open its action menu. No install needed.
+
 The always-on party display pinned to the top of the canvas, and the control bar
 every other tool launches from. This is the part of the module you look at all
 session.

@@ -8,11 +8,69 @@
 [![System](https://img.shields.io/badge/Shadowdark-v3.6.2%2B-brightgreen)](https://foundryvtt.com/packages/shadowdark)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
-[Install](#install) · [Features](#what-it-does) · [**Full documentation →**](docs/wiki/Home.md)
+[Install](#install) · [Features](#what-it-does) · [**Try the demo →**](https://dimitroffvodka.github.io/shadowdark-enhancer/) · [**Full documentation →**](docs/wiki/Home.md)
 
 </div>
 
-![The Crawl Strip: live HP, movement, Luck and AC for the whole party](docs/wiki/images/crawl-strip.png)
+![The Crawl Strip: live HP, movement, Luck and AC for the whole party, with each character's weapons and spells opening beneath their portrait](docs/wiki/images/crawl-strip-animated.svg)
+
+<!--
+  Click-to-open party roster. GitHub filters <script> and <style> out of
+  markdown (GFM 6.11), so the strip's real hover menu cannot run here — but
+  <details> is left untouched, which buys genuine click interaction. This is
+  the same roster the image above cycles through.
+-->
+<details>
+<summary><b>Eliara</b> &nbsp;·&nbsp; AC 15 &nbsp;·&nbsp; 15/18 HP &nbsp;·&nbsp; torch lit</summary>
+
+| Weapons | | Spells | |
+|---|---|---|---|
+| Staff | (Close) +1 1d4 | Magic Missile | T1 force |
+| Dagger (thrown) | (Near) +4 1d4 | Burning Hands | T1 fire |
+| Dagger | (Close) +1 1d4 | Mirror Image | T2 |
+
+</details>
+
+<details>
+<summary><b>Bazogo</b> &nbsp;·&nbsp; AC 16 &nbsp;·&nbsp; 14/22 HP &nbsp;·&nbsp; torch guttering</summary>
+
+| Weapons | | Abilities |
+|---|---|---|
+| Bastard sword | (Close) +5 1d10 | Weapon Mastery |
+| Javelin | (Far) +3 1d6 | Grit |
+
+</details>
+
+<details>
+<summary><b>Willow</b> &nbsp;·&nbsp; AC 13 &nbsp;·&nbsp; 3/13 HP &nbsp;·&nbsp; out of Luck</summary>
+
+| Weapons | | Abilities |
+|---|---|---|
+| Shortsword | (Close) +4 1d6 | Backstab |
+| Shortbow | (Far) +5 1d4 | Thievery |
+
+</details>
+
+<details>
+<summary><b>Troana</b> &nbsp;·&nbsp; AC 12 &nbsp;·&nbsp; 9/10 HP &nbsp;·&nbsp; over her movement budget</summary>
+
+| Weapons | | Spells |
+|---|---|---|
+| Mace | (Close) +2 1d6 | Cure Wounds · Turn Undead |
+
+</details>
+
+<details>
+<summary><b>Goblin Scout</b> &nbsp;·&nbsp; AC 12 &nbsp;·&nbsp; 3/7 HP &nbsp;·&nbsp; hostile</summary>
+
+| Actions | |
+|---|---|
+| ×2 Shortsword | (Close) +1 1d6 |
+| Sling | (Near) +2 1d4 |
+
+</details>
+
+**[▶ The real thing, with hover menus](https://dimitroffvodka.github.io/shadowdark-enhancer/#crawl-strip)** — no install needed.
 
 ---
 
@@ -143,6 +201,7 @@ walkthroughs and troubleshooting.
 
 | | |
 |---|---|
+| [Interactive demo](https://dimitroffvodka.github.io/shadowdark-enhancer/) | Click around the interface without installing anything |
 | [Installation & Setup](docs/wiki/Installation-and-Setup.md) | First-run checklist |
 | [Settings Reference](docs/wiki/Settings-Reference.md) | Every setting and its real default |
 | [Troubleshooting](docs/wiki/Troubleshooting.md) | Symptoms → causes → fixes |

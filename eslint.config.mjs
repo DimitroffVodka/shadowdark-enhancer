@@ -12,7 +12,12 @@ export default [
     // Vendored, minified third-party runtime (pdf-lib v1.17.1, MIT — see
     // scripts/pdf-export/lib/LICENSE). Not our source; linting a 512 KB minified
     // bundle only produces noise. Scoped to the vendor dir, not a rule weakening.
-    ignores: ["node_modules/**", "assets/**", "templates/**", "styles/**", "scripts/pdf-export/lib/**"],
+    // demo/vendor/ is third-party Font Awesome and font files; dist/ is
+    // generated output from tools/demo/build.mjs.
+    ignores: [
+      "node_modules/**", "assets/**", "templates/**", "styles/**",
+      "scripts/pdf-export/lib/**", "demo/vendor/**", "dist/**",
+    ],
   },
   js.configs.recommended,
   {
@@ -72,6 +77,25 @@ export default [
   },
   {
     files: ["test/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "module",
+      globals: { ...globals.node },
+    },
+  },
+  {
+    // The demo site's own script. Plain browser JS, no Foundry globals — it
+    // runs on GitHub Pages with no Foundry anywhere near it.
+    files: ["demo/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2023,
+      sourceType: "script",
+      globals: { ...globals.browser },
+    },
+  },
+  {
+    // Build tooling: node, not shipped.
+    files: ["tools/**/*.mjs"],
     languageOptions: {
       ecmaVersion: 2023,
       sourceType: "module",

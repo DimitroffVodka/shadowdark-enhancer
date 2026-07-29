@@ -2,6 +2,8 @@
 
 [← Wiki home](Home.md)
 
+**[▶ Try this in your browser](https://dimitroffvodka.github.io/shadowdark-enhancer/#merchant-shop)** — search the stock and spend a character's gold. No install needed.
+
 A GM-run shop that opens for every player at once. Players buy and sell against
 their own `system.coins`, and every transaction is logged.
 

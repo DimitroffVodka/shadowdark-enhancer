@@ -98,6 +98,22 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **You can try the interface before installing anything.** A demo site at
+  <https://dimitroffvodka.github.io/shadowdark-enhancer/> recreates five
+  surfaces in the browser — the crawl strip with its hover dropdown, the
+  encounter roller, the merchant shop, the session recap and the character
+  builder's ability roll. Hovering, tabs, search, the wallet and the dice all
+  respond; nothing is wired to anything, by design. The page is built from the
+  module's own stylesheet and markup rather than a mock-up, and the build copies
+  both in fresh each time, so it cannot drift away from what the module actually
+  looks like. Source lives in `demo/`, never ships in the release zip. Each of
+  the five wiki pages now opens with a link straight to its matching panel.
+- **The README's crawl strip moves.** The hero image is now an animated SVG that
+  walks along the party, lighting each portrait and opening its weapon menu
+  underneath. GitHub strips scripts and stylesheets out of markdown, so the live
+  demo cannot be embedded there — but a linked image is never touched by that
+  filter, and the animation lives inside the file. It is smaller than the static
+  screenshot it replaces (133 KB against 191 KB) and stays sharp at any width.
 - **An activity nobody can pay for cannot be picked.** A slot whose fee is
   beyond the character's purse renders dimmed with the shortfall spelled out,
   for example `Costs 50 gp per attempt — you're 19 gp 9 sp short`, and its

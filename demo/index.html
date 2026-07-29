@@ -1,0 +1,943 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shadowdark Enhancer — interactive demo</title>
+<meta name="description" content="Click around the Shadowdark Enhancer interface without installing Foundry VTT. A faithful, non-functional replica of the crawl strip, encounter roller, merchant shop, session recap and character builder." />
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+
+<!-- The module's own stylesheet, copied verbatim at build time. Everything
+     .sde-* on this page is drawn by it; demo.css only adds page chrome. -->
+<link rel="stylesheet" href="styles/shadowdark-enhancer.css" />
+<link rel="stylesheet" href="vendor/fontawesome/css/all.min.css" />
+<link rel="stylesheet" href="demo.css" />
+</head>
+
+<body class="theme-dark">
+<div class="demo-wrap">
+
+<header class="demo-masthead">
+  <h1>Shadowdark Enhancer</h1>
+  <p class="demo-tagline">
+    A GM companion suite for Shadowdark RPG on Foundry VTT. This page is the
+    real interface, rebuilt to run in a browser, so you can poke at it before
+    deciding whether to install anything.
+  </p>
+  <nav class="demo-links">
+    <a class="demo-link demo-link-primary" href="https://github.com/DimitroffVodka/shadowdark-enhancer">
+      <i class="fab fa-github"></i> Source on GitHub
+    </a>
+    <a class="demo-link" href="https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/wiki/Home.md">
+      <i class="fas fa-book"></i> Documentation
+    </a>
+    <button class="demo-link demo-theme-toggle" type="button" data-demo="theme">
+      <i class="fas fa-circle-half-stroke"></i> <span data-demo="theme-label">Light theme</span>
+    </button>
+  </nav>
+
+  <div class="demo-notice">
+    <i class="fas fa-circle-info"></i>
+    <p>
+      <strong>Nothing here is wired up.</strong> Menus open, tabs switch and
+      the dice land, but every number is canned and no click changes anything.
+      It is a replica of the interface, not the module running in your browser.
+    </p>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     1. CRAWL STRIP
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<section class="demo-panel" id="crawl-strip">
+  <header>
+    <h2>The crawl strip</h2>
+    <p class="demo-blurb">
+      The whole party across the top of the canvas: hit points, armour class,
+      Luck tokens, movement left this turn, and whose torch is still burning.
+      Hover a portrait and its weapons, spells and abilities drop down where
+      you can reach them without opening a sheet.
+    </p>
+    <span class="demo-try"><i class="fas fa-arrow-pointer"></i> Hover a portrait</span>
+  </header>
+
+  <div class="demo-stage demo-stage-strip">
+    <div class="demo-sidebar-hint" aria-hidden="true">
+      <i class="fas fa-message"></i><i class="fas fa-users"></i><i class="fas fa-map"></i>
+      <i class="fas fa-suitcase"></i><i class="fas fa-book-atlas"></i><i class="fas fa-gears"></i>
+    </div>
+
+    <div id="shadowdark-enhancer-strip" class="shadowdark-enhancer-strip sde-strip-visible">
+      <div class="sde-strip-inner">
+
+        <div class="sde-strip-combat-controls sde-strip-crawl-controls">
+          <div class="sde-strip-crawl-turn" title="Crawl Turn" data-demo="crawl-turn">7</div>
+          <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="Next Turn"><i class="fas fa-angle-down"></i></button>
+        </div>
+
+        <div class="sde-strip-group sde-strip-group-heroes">
+          <div class="sde-strip-label-col sde-strip-label-heroes">
+            <div class="sde-strip-group-label">PARTY</div>
+            <button class="sde-strip-merchant-btn" data-action="openMerchant" title="Open Merchant Shop"><i class="fas fa-store"></i></button>
+          </div>
+
+          <div class="sde-strip-members">
+
+            <!-- Eliara — healthy, torch lit, one effect -->
+            <div class="sde-strip-card-wrap" data-has-menu data-actor-id="eliara" data-is-npc="0">
+              <div class="sde-strip-member sde-strip-active sde-strip-type-player" data-member-id="eliara" tabindex="0">
+                <img class="sde-strip-portrait" src="modules/shadowdark-enhancer/assets/ancestries/human.webp" alt="Eliara" />
+                <div class="sde-strip-overlay">
+                  <div class="sde-strip-name">Eliara</div>
+                  <div class="sde-strip-ac-line" title="Armor Class">AC 15</div>
+                  <div class="sde-strip-effects-row">
+                    <img class="sde-strip-effect-icon demo-tint-effect" src="modules/shadowdark-enhancer/icons/game-icons/prayer.svg" title="Bless (8R)" alt="Bless" width="18" height="18" />
+                  </div>
+                  <div class="sde-strip-bottom">
+                    <div class="sde-strip-hp-bar-wrap">
+                      <div class="sde-strip-hp-bar sde-strip-hp-ok" style="width:83%"></div>
+                      <span class="sde-strip-hp-label">15/18</span>
+                    </div>
+                    <div class="sde-strip-pills">
+                      <div class="sde-strip-pill" data-action="spendLuck" role="button" tabindex="0" aria-label="Spend a Luck Token" title="Click to spend a Luck Token"><img class="sde-bar-icon-shamrock" src="modules/shadowdark-enhancer/icons/shamrock.svg" alt="" />1</div>
+                      <div class="sde-strip-pill"><i class="fas fa-person-walking"></i>30/30ft</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="sde-strip-light-badge sde-strip-light-lit sde-strip-light-clickable" data-action="toggleLight" role="button" tabindex="0" aria-label="Put out torch" title="Torch is lit — 42 min left · click to put out"><i class="fas fa-fire"></i></div>
+                <div class="sde-strip-init-badge" title="Initiative (out of combat)">17</div>
+              </div>
+              <div class="sde-strip-action-tabs" data-actor-id="eliara">
+                <button class="sde-strip-atab sde-strip-atab-active" data-tab="a">Weapons</button>
+                <button class="sde-strip-atab" data-tab="b">Spells</button>
+                <button class="sde-strip-atab" data-tab="c">Abilities</button>
+              </div>
+            </div>
+
+            <!-- Bazogo — wounded, torch guttering -->
+            <div class="sde-strip-card-wrap" data-has-menu data-actor-id="bazogo" data-is-npc="0">
+              <div class="sde-strip-member sde-strip-active sde-strip-type-player" data-member-id="bazogo" tabindex="0">
+                <img class="sde-strip-portrait" src="modules/shadowdark-enhancer/assets/ancestries/half-orc.webp" alt="Bazogo" />
+                <div class="sde-strip-overlay">
+                  <div class="sde-strip-name">Bazogo</div>
+                  <div class="sde-strip-ac-line" title="Armor Class">AC 16</div>
+                  <div class="sde-strip-bottom">
+                    <div class="sde-strip-hp-bar-wrap">
+                      <div class="sde-strip-hp-bar sde-strip-hp-mid" style="width:64%"></div>
+                      <span class="sde-strip-hp-label">14/22</span>
+                    </div>
+                    <div class="sde-strip-pills">
+                      <div class="sde-strip-pill" data-action="spendLuck" role="button" tabindex="0" aria-label="Spend a Luck Token" title="Click to spend a Luck Token"><img class="sde-bar-icon-shamrock" src="modules/shadowdark-enhancer/icons/shamrock.svg" alt="" />1</div>
+                      <div class="sde-strip-pill"><i class="fas fa-person-walking"></i>20/30ft</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="sde-strip-light-badge sde-strip-light-lit sde-strip-light-low sde-strip-light-clickable" data-action="toggleLight" role="button" tabindex="0" aria-label="Put out torch" title="Torch is lit — 6 min left · click to put out"><i class="fas fa-fire"></i></div>
+                <div class="sde-strip-init-badge" title="Initiative (out of combat)">12</div>
+              </div>
+              <div class="sde-strip-action-tabs" data-actor-id="bazogo">
+                <button class="sde-strip-atab sde-strip-atab-active" data-tab="a">Weapons</button>
+                <button class="sde-strip-atab" data-tab="c">Abilities</button>
+              </div>
+            </div>
+
+            <!-- Willow — badly hurt, out of Luck -->
+            <div class="sde-strip-card-wrap" data-has-menu data-actor-id="willow" data-is-npc="0">
+              <div class="sde-strip-member sde-strip-active sde-strip-type-player" data-member-id="willow" tabindex="0">
+                <img class="sde-strip-portrait" src="modules/shadowdark-enhancer/assets/ancestries/halfling.webp" alt="Willow" />
+                <div class="sde-strip-overlay">
+                  <div class="sde-strip-name">Willow</div>
+                  <div class="sde-strip-ac-line" title="Armor Class">AC 13</div>
+                  <div class="sde-strip-bottom">
+                    <div class="sde-strip-hp-bar-wrap">
+                      <div class="sde-strip-hp-bar sde-strip-hp-critical" style="width:23%"></div>
+                      <span class="sde-strip-hp-label">3/13</span>
+                    </div>
+                    <div class="sde-strip-pills">
+                      <div class="sde-strip-pill sde-strip-pill-empty" title="No Luck Tokens"><img class="sde-bar-icon-shamrock" src="modules/shadowdark-enhancer/icons/shamrock.svg" alt="" />0</div>
+                      <div class="sde-strip-pill"><i class="fas fa-person-walking"></i>30/30ft</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="sde-strip-light-badge sde-strip-light-lit sde-strip-light-mid sde-strip-light-clickable" data-action="toggleLight" role="button" tabindex="0" aria-label="Put out lantern" title="Lantern is lit — 21 min left · click to put out"><i class="fas fa-fire"></i></div>
+                <div class="sde-strip-init-badge" title="Initiative (out of combat)">15</div>
+              </div>
+              <div class="sde-strip-action-tabs" data-actor-id="willow">
+                <button class="sde-strip-atab sde-strip-atab-active" data-tab="a">Weapons</button>
+                <button class="sde-strip-atab" data-tab="c">Abilities</button>
+              </div>
+            </div>
+
+            <!-- Troana — light out, over movement budget -->
+            <div class="sde-strip-card-wrap" data-has-menu data-actor-id="troana" data-is-npc="0">
+              <div class="sde-strip-member sde-strip-active sde-strip-type-player" data-member-id="troana" tabindex="0">
+                <img class="sde-strip-portrait" src="modules/shadowdark-enhancer/assets/ancestries/elf.webp" alt="Troana" />
+                <div class="sde-strip-overlay">
+                  <div class="sde-strip-name">Troana</div>
+                  <div class="sde-strip-ac-line" title="Armor Class">AC 12</div>
+                  <div class="sde-strip-bottom">
+                    <div class="sde-strip-hp-bar-wrap">
+                      <div class="sde-strip-hp-bar sde-strip-hp-ok" style="width:90%"></div>
+                      <span class="sde-strip-hp-label">9/10</span>
+                    </div>
+                    <div class="sde-strip-pills">
+                      <div class="sde-strip-pill" data-action="spendLuck" role="button" tabindex="0" aria-label="Spend a Luck Token" title="Click to spend a Luck Token"><img class="sde-bar-icon-shamrock" src="modules/shadowdark-enhancer/icons/shamrock.svg" alt="" />2</div>
+                      <div class="sde-strip-pill sde-strip-pill-over"><i class="fas fa-person-walking"></i>-5/30ft</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="sde-strip-light-badge sde-strip-light-off sde-strip-light-clickable" data-action="toggleLight" role="button" tabindex="0" aria-label="Light torch" title="No light source lit · click to light a torch"><i class="fas fa-fire"></i></div>
+                <div class="sde-strip-init-badge" title="Initiative (out of combat)">9</div>
+              </div>
+              <div class="sde-strip-action-tabs" data-actor-id="troana">
+                <button class="sde-strip-atab sde-strip-atab-active" data-tab="a">Weapons</button>
+                <button class="sde-strip-atab" data-tab="b">Spells</button>
+                <button class="sde-strip-atab" data-tab="c">Abilities</button>
+              </div>
+            </div>
+
+            <!-- Goblin Scout — an NPC pulled into the crawl, red border, different tabs -->
+            <div class="sde-strip-card-wrap" data-has-menu data-actor-id="goblin" data-is-npc="1">
+              <div class="sde-strip-member sde-strip-active sde-strip-type-npc" data-member-id="goblin" tabindex="0">
+                <img class="sde-strip-portrait" src="modules/shadowdark-enhancer/assets/ancestries/goblin.webp" alt="Goblin Scout" />
+                <div class="sde-strip-overlay">
+                  <div class="sde-strip-name">Goblin Scout</div>
+                  <div class="sde-strip-ac-line" title="Armor Class">AC 12</div>
+                  <div class="sde-strip-bottom">
+                    <div class="sde-strip-hp-bar-wrap">
+                      <div class="sde-strip-hp-bar sde-strip-hp-low" style="width:43%"></div>
+                      <span class="sde-strip-hp-label">3/7</span>
+                    </div>
+                    <div class="sde-strip-pills">
+                      <div class="sde-strip-pill"><i class="fas fa-person-walking"></i>30/30ft</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="sde-strip-init-badge" title="Initiative (out of combat)">11</div>
+              </div>
+              <div class="sde-strip-action-tabs" data-actor-id="goblin">
+                <button class="sde-strip-atab sde-strip-atab-active" data-tab="a">Actions</button>
+                <button class="sde-strip-atab" data-tab="c">Abilities</button>
+              </div>
+            </div>
+
+            <!-- The GM card, appended last in crawl mode -->
+            <div class="sde-strip-card-wrap">
+              <div class="sde-strip-member sde-strip-active sde-strip-type-gm sde-strip-gm-editable" data-member-id="gm" title="Game Master — click to change the portrait">
+                <img class="sde-strip-portrait" src="modules/shadowdark-enhancer/icons/game-icons/classes/hood.svg" alt="Game Master" />
+                <div class="sde-strip-overlay">
+                  <div class="sde-strip-name">Game Master</div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- The bottom bar is a separate element that Foundry docks into #ui-middle. -->
+    <div class="demo-bar-dock">
+      <div id="shadowdark-enhancer-bar">
+        <div class="sde-bar-inner sde-bar-active">
+          <span class="sde-bar-phase-badge sde-bar-phase-crawl"><img class="sde-game-icon" src="modules/shadowdark-enhancer/icons/game-icons/flame.svg" alt="" /> Crawl · Turn <span data-demo="bar-turn">7</span></span>
+          <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn"><i class="fas fa-chevron-right"></i> Next Turn</button>
+          <button class="sde-bar-btn" data-action="addSelectedTokens" title="Left-click: add selected tokens to the crawl · Right-click: reset out-of-combat initiative"><i class="fas fa-user-plus"></i> Add Tokens</button>
+          <button class="sde-bar-btn sde-bar-combat-btn" data-action="startCombat"><img class="sde-game-icon" src="modules/shadowdark-enhancer/icons/game-icons/crossed-swords.svg" alt="" /> Combat</button>
+          <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu"><img class="sde-game-icon" src="modules/shadowdark-enhancer/icons/game-icons/skull-crossed-bones.svg" alt="" /> Encounter</button>
+          <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop"><img class="sde-game-icon" src="modules/shadowdark-enhancer/icons/game-icons/open-treasure-chest.svg" alt="" /> Forge &amp; Loot</button>
+          <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters"><img class="sde-game-icon" src="modules/shadowdark-enhancer/icons/game-icons/open-book.svg" alt="" /> Importer</button>
+          <button class="sde-bar-btn sde-bar-danger-btn" data-action="endCrawl" title="End the crawl session"><i class="fas fa-times"></i> End</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     2. ENCOUNTER ROLLER
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<section class="demo-panel" id="encounter-roller">
+  <header>
+    <h2>The encounter roller</h2>
+    <p class="demo-blurb">
+      Roll a wandering monster and get the whole situation, not just the name:
+      how many, how far off, what they were doing before you walked in, and
+      whether they want to talk. Each reading rerolls on its own.
+    </p>
+    <span class="demo-try"><i class="fas fa-dice-d20"></i> Press Roll, then reroll a single line</span>
+  </header>
+
+  <div class="demo-stage demo-stage-window">
+    <div class="demo-window demo-window-wide">
+      <div class="demo-window-header">
+        <i class="fas fa-dice-d20"></i> Random Encounter
+        <span class="demo-window-controls"><i class="fas fa-window-minimize"></i><i class="fas fa-xmark"></i></span>
+      </div>
+      <div class="demo-window-body">
+        <div class="sde-encounter-roller">
+
+          <nav class="sde-tabs" data-group="primary">
+            <button type="button" class="item active" data-tab="tables"><i class="fas fa-table-list"></i> Roll Tables</button>
+            <button type="button" class="item" data-tab="build"><i class="fas fa-hammer"></i> Build Table</button>
+            <button type="button" class="item" data-tab="browse"><i class="fas fa-user-group"></i> Browse NPCs</button>
+            <button type="button" class="item" data-tab="creator"><i class="fas fa-wand-magic-sparkles"></i> Monster Creator</button>
+          </nav>
+
+          <hr>
+
+          <section class="sde-content">
+            <div class="tab active" data-tab="tables">
+              <div class="sde-control-row">
+                <select name="selectedTable">
+                  <option value="wr-forest" selected>★ Western Reaches - Forest Encounters</option>
+                  <option value="wr-road">Western Reaches - Road Encounters</option>
+                  <option value="core-dungeon">Core - Dungeon Encounters</option>
+                </select>
+                <button type="button" data-action="setAsActive">Set as Active</button>
+                <button type="button" class="sde-roll-btn" data-action="rollTable"><i class="fas fa-dice-d20"></i> Roll</button>
+              </div>
+
+              <div class="sde-table-preview">
+                <header class="sde-preview-header">
+                  <span class="sde-preview-name">Western Reaches - Forest Encounters</span>
+                  <span class="sde-preview-formula">(1d8)</span>
+                </header>
+                <div class="sde-preview-rows">
+                  <div class="sde-preview-row"><span class="sde-preview-range">1</span><span class="sde-preview-entry">Goblin Scouts</span><span class="sde-preview-appearing">2d4</span><span class="sde-preview-actions"><button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button><button type="button" data-action="previewPlace" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button></span></div>
+                  <div class="sde-preview-row"><span class="sde-preview-range">2</span><span class="sde-preview-entry">Kobold Trappers</span><span class="sde-preview-appearing">1d6</span><span class="sde-preview-actions"><button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button><button type="button" data-action="previewPlace" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button></span></div>
+                  <div class="sde-preview-row sde-preview-flavor"><span class="sde-preview-range">3</span><span class="sde-preview-entry">A cold wind carries woodsmoke from somewhere ahead</span><span class="sde-preview-appearing"></span><span class="sde-preview-actions"><button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button></span></div>
+                  <div class="sde-preview-row"><span class="sde-preview-range">4-5</span><span class="sde-preview-entry">Half-Orc Marauders</span><span class="sde-preview-appearing">1d4</span><span class="sde-preview-actions"><button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button><button type="button" data-action="previewPlace" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button></span></div>
+                  <div class="sde-preview-row"><span class="sde-preview-range">6</span><span class="sde-preview-entry">Dire Wolf</span><span class="sde-preview-appearing">1</span><span class="sde-preview-actions"><button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button><button type="button" data-action="previewPlace" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button></span></div>
+                  <div class="sde-preview-row sde-preview-flavor"><span class="sde-preview-range">7</span><span class="sde-preview-entry">Standing stones, recently cleared of moss</span><span class="sde-preview-appearing"></span><span class="sde-preview-actions"><button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button></span></div>
+                  <div class="sde-preview-row"><span class="sde-preview-range">8</span><span class="sde-preview-entry">Elf Wayfarers</span><span class="sde-preview-appearing">1d3</span><span class="sde-preview-actions"><button type="button" data-action="previewPost" title="Post this entry to chat"><i class="fas fa-clipboard-list"></i></button><button type="button" data-action="previewPlace" title="Place tokens for this entry"><i class="fas fa-bullseye"></i></button></span></div>
+                </div>
+              </div>
+
+              <div class="sde-result-panel" data-demo="encounter-result">
+                <!-- populated by demo.js so Roll can swap the whole card -->
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     3. MERCHANT SHOP
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<section class="demo-panel" id="merchant-shop">
+  <header>
+    <h2>The merchant shop</h2>
+    <p class="demo-blurb">
+      A shop the party can browse themselves. Stock, prices and markup are
+      yours to set; players spend their own coin, and anything they cannot
+      afford greys out before they ask.
+    </p>
+    <span class="demo-try"><i class="fas fa-cart-shopping"></i> Search, collapse a category, spend Willow's gold</span>
+  </header>
+
+  <div class="demo-stage demo-stage-window">
+    <div class="demo-window">
+      <div class="demo-window-header">
+        <i class="fas fa-shop"></i> Merchant Shop
+        <span class="demo-window-controls"><i class="fas fa-window-minimize"></i><i class="fas fa-xmark"></i></span>
+      </div>
+      <div class="demo-window-body">
+        <div class="sdems-container">
+
+          <div class="sdems-header">
+            <i class="fas fa-shop sdems-header-icon"></i>
+            <h2 class="sdems-title">The Gilded Sparrow</h2>
+            <span class="sdems-wallet"><i class="fas fa-coins"></i> Willow: <span data-demo="wallet">42 gp 5 sp 0 cp</span></span>
+          </div>
+
+          <div class="sdems-tab-bar">
+            <button class="sdems-tab-btn active" data-tab="buy" type="button"><i class="fas fa-cart-shopping"></i> Buy</button>
+            <button class="sdems-tab-btn" data-tab="catalog" type="button"><i class="fas fa-book-open"></i> Catalog</button>
+            <button class="sdems-tab-btn" data-tab="gamble" type="button"><i class="fas fa-dice"></i> Gamble</button>
+            <button class="sdems-tab-btn" data-tab="sell" type="button"><i class="fas fa-coins"></i> Sell</button>
+            <button class="sdems-tab-btn" data-tab="log" type="button"><i class="fas fa-clipboard-list"></i> Log</button>
+            <button class="sdems-tab-btn" data-tab="manage" type="button"><i class="fas fa-cog"></i> Manage</button>
+          </div>
+
+          <div class="sdems-body">
+            <div class="sdems-tab-content sdems-buy-tab">
+
+              <div class="sdems-filters">
+                <input type="text" class="sdems-search-input" placeholder="Search items…" value="">
+                <select class="sdems-category-select">
+                  <option value="all">All Categories</option>
+                  <option value="Basic Gear">Basic Gear</option>
+                  <option value="Weapons">Weapons</option>
+                  <option value="Armor">Armor</option>
+                  <option value="Potions">Potions</option>
+                </select>
+              </div>
+
+              <div class="sdems-item-list">
+
+                <div class="sdems-shop-section" data-section="gear">
+                  <div class="sdems-section-header" data-section-toggle="gear" role="button" tabindex="0" aria-expanded="true">
+                    <i class="fas fa-chevron-down sdems-section-caret"></i>
+                    <span class="sdems-section-title">Basic Gear</span>
+                    <span class="sdems-section-count">6</span>
+                  </div>
+                  <div class="sdems-section-body">
+                    <div class="sdems-item-row" data-shop-item-id="torch" data-price="0.05">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/torch.webp" alt="Torch" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Torch</span><span class="sdems-item-cat">Basic Gear</span></div>
+                      <span class="sdems-item-price">5 cp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="rope" data-price="1">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/rope.webp" alt="Rope, 60'" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Rope, 60'</span><span class="sdems-item-cat">Basic Gear</span></div>
+                      <span class="sdems-item-price">1 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="knapsack" data-price="2">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/knapsack.webp" alt="Backpack" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Backpack</span><span class="sdems-item-cat">Basic Gear</span></div>
+                      <span class="sdems-item-price">2 gp</span>
+                      <span class="sdems-item-stock" title="4 remaining">4</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="grapple" data-price="1">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/grappling-hook.webp" alt="Grappling hook" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Grappling hook</span><span class="sdems-item-cat">Basic Gear</span></div>
+                      <span class="sdems-item-price">1 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="lantern" data-price="5">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/lantern.webp" alt="Lantern" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Lantern</span><span class="sdems-item-cat">Basic Gear</span></div>
+                      <span class="sdems-item-price">5 gp</span>
+                      <span class="sdems-item-stock" title="2 remaining">2</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row sdems-out-of-stock" data-shop-item-id="mirror" data-price="10">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/mirror.webp" alt="Mirror" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Mirror</span><span class="sdems-item-cat">Basic Gear</span></div>
+                      <span class="sdems-item-price">10 gp</span>
+                      <span class="sdems-item-stock" title="Out of stock">0</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button" disabled><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sdems-shop-section" data-section="weapons">
+                  <div class="sdems-section-header" data-section-toggle="weapons" role="button" tabindex="0" aria-expanded="true">
+                    <i class="fas fa-chevron-down sdems-section-caret"></i>
+                    <span class="sdems-section-title">Weapons</span>
+                    <span class="sdems-section-count">3</span>
+                  </div>
+                  <div class="sdems-section-body">
+                    <div class="sdems-item-row" data-shop-item-id="dagger" data-price="1">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/dagger.webp" alt="Dagger" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Dagger</span><span class="sdems-item-cat">Weapons</span></div>
+                      <span class="sdems-item-price">1 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="longsword" data-price="9">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/longsword.webp" alt="Longsword" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Longsword</span><span class="sdems-item-cat">Weapons</span></div>
+                      <span class="sdems-item-price">9 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="bow" data-price="6">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/bow-and-arrow.webp" alt="Shortbow" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Shortbow</span><span class="sdems-item-cat">Weapons</span></div>
+                      <span class="sdems-item-price">6 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sdems-shop-section" data-section="armor">
+                  <div class="sdems-section-header" data-section-toggle="armor" role="button" tabindex="0" aria-expanded="true">
+                    <i class="fas fa-chevron-down sdems-section-caret"></i>
+                    <span class="sdems-section-title">Armor</span>
+                    <span class="sdems-section-count">3</span>
+                  </div>
+                  <div class="sdems-section-body">
+                    <div class="sdems-item-row" data-shop-item-id="leather" data-price="10">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/leather-armour.webp" alt="Leather armor" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Leather armor</span><span class="sdems-item-cat">Armor</span></div>
+                      <span class="sdems-item-price">10 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="shield" data-price="10">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/buckler-shield.webp" alt="Shield" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Shield</span><span class="sdems-item-cat">Armor</span></div>
+                      <span class="sdems-item-price">10 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row sdems-cant-afford" data-shop-item-id="chainmail" data-price="60">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/iron-armour.webp" alt="Chainmail" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Chainmail</span><span class="sdems-item-cat">Armor</span></div>
+                      <span class="sdems-item-price">60 gp</span>
+                      <span class="sdems-item-stock" title="Unlimited">∞</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button" disabled><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sdems-shop-section" data-section="potions">
+                  <div class="sdems-section-header" data-section-toggle="potions" role="button" tabindex="0" aria-expanded="true">
+                    <i class="fas fa-chevron-down sdems-section-caret"></i>
+                    <span class="sdems-section-title">Potions</span>
+                    <span class="sdems-section-count">2</span>
+                  </div>
+                  <div class="sdems-section-body">
+                    <div class="sdems-item-row" data-shop-item-id="healing" data-price="35">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/flask-full-1.webp" alt="Potion of Healing" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Potion of Healing</span><span class="sdems-item-cat">Potions</span></div>
+                      <span class="sdems-item-price">35 gp</span>
+                      <span class="sdems-item-stock" title="1 remaining">1</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                    <div class="sdems-item-row" data-shop-item-id="scroll" data-price="25">
+                      <img class="sdems-item-icon" src="modules/shadowdark-enhancer/assets/icons/shikashi/magic-scroll-1.webp" alt="Scroll of Light" width="32" height="32">
+                      <div class="sdems-item-info"><span class="sdems-item-name">Scroll of Light</span><span class="sdems-item-cat">Potions</span></div>
+                      <span class="sdems-item-price">25 gp</span>
+                      <span class="sdems-item-stock" title="2 remaining">2</span>
+                      <div class="sdems-item-actions"><input type="number" class="sdems-qty-input" value="1" min="1" max="99"><button class="sdems-buy-btn" type="button"><i class="fas fa-cart-plus"></i> Buy</button></div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     4. SESSION RECAP
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<section class="demo-panel" id="session-recap">
+  <header>
+    <h2>The session recap</h2>
+    <p class="demo-blurb">
+      Fills itself in while you play. Who hit what, who took the worst of it,
+      what got picked up and who is still owed a share. When the night ends
+      there is a write-up waiting, ready to paste into Discord.
+    </p>
+    <span class="demo-try"><i class="fas fa-chart-pie"></i> Switch tabs, expand an encounter</span>
+  </header>
+
+  <div class="demo-stage demo-stage-window">
+    <div class="demo-window">
+      <div class="demo-window-header">
+        <i class="fas fa-scroll"></i> Session Recap
+        <span class="demo-window-controls"><i class="fas fa-window-minimize"></i><i class="fas fa-xmark"></i></span>
+      </div>
+      <div class="demo-window-body">
+        <div class="sde-session-recap">
+          <div class="sr-wrapper">
+
+            <nav class="sr-tabs">
+              <button type="button" class="sr-tab active" data-action="changeTab" data-tab="overview"><i class="fas fa-chart-pie"></i> Overview</button>
+              <button type="button" class="sr-tab" data-action="changeTab" data-tab="combat"><i class="fas fa-khanda"></i> Combat</button>
+              <button type="button" class="sr-tab" data-action="changeTab" data-tab="loot"><i class="fas fa-coins"></i> Loot</button>
+              <button type="button" class="sr-tab" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> XP</button>
+              <button type="button" class="sr-tab" data-action="changeTab" data-tab="downtime"><i class="fas fa-mug-hot"></i> Downtime</button>
+              <button type="button" class="sr-tab" data-action="changeTab" data-tab="history"><i class="fas fa-book"></i> History</button>
+            </nav>
+
+            <div class="sr-tab-content">
+
+              <section class="sr-section" data-panel="overview">
+                <header class="sr-chapter-header">
+                  <div class="sr-chapter-kicker">In progress</div>
+                  <h1 class="sr-chapter-title">2026.07.29 Session 12</h1>
+                  <div class="sr-chapter-stats">
+                    <span>1h 12m</span><span class="sr-chapter-sep" aria-hidden="true">·</span><span>2 combats</span><span class="sr-chapter-sep" aria-hidden="true">·</span><span>9 defeated</span><span class="sr-chapter-sep" aria-hidden="true">·</span><span>4 loot</span>
+                  </div>
+                  <hr class="sr-chapter-rule" />
+                </header>
+
+                <p class="sr-encounter-summary"><i class="fas fa-dice-d6"></i> 7 encounter checks, 2 encounters</p>
+
+                <h4 class="sr-section-title">The Party</h4>
+                <div class="sr-party-grid">
+                  <article class="sr-party-card">
+                    <h4 class="sr-party-name">Eliara</h4>
+                    <dl class="sr-party-stats">
+                      <div class="sr-party-stat"><dt>Kills</dt><dd>3</dd></div>
+                      <div class="sr-party-stat"><dt>Dealt</dt><dd>41</dd></div>
+                      <div class="sr-party-stat"><dt>Taken</dt><dd>3</dd></div>
+                      <div class="sr-party-stat"><dt>XP</dt><dd>4</dd></div>
+                    </dl>
+                  </article>
+                  <article class="sr-party-card">
+                    <h4 class="sr-party-name">Bazogo</h4>
+                    <dl class="sr-party-stats">
+                      <div class="sr-party-stat"><dt>Kills</dt><dd>4</dd></div>
+                      <div class="sr-party-stat"><dt>Dealt</dt><dd>58</dd></div>
+                      <div class="sr-party-stat"><dt>Taken</dt><dd>22</dd></div>
+                      <div class="sr-party-stat"><dt>XP</dt><dd>4</dd></div>
+                    </dl>
+                  </article>
+                  <article class="sr-party-card">
+                    <h4 class="sr-party-name">Willow</h4>
+                    <dl class="sr-party-stats">
+                      <div class="sr-party-stat"><dt>Kills</dt><dd>2</dd></div>
+                      <div class="sr-party-stat"><dt>Dealt</dt><dd>27</dd></div>
+                      <div class="sr-party-stat"><dt>Taken</dt><dd>16</dd></div>
+                      <div class="sr-party-stat"><dt>XP</dt><dd>5</dd></div>
+                    </dl>
+                  </article>
+                  <article class="sr-party-card">
+                    <h4 class="sr-party-name">Troana</h4>
+                    <dl class="sr-party-stats">
+                      <div class="sr-party-stat"><dt>Kills</dt><dd>0</dd></div>
+                      <div class="sr-party-stat"><dt>Dealt</dt><dd>6</dd></div>
+                      <div class="sr-party-stat"><dt>Taken</dt><dd>1</dd></div>
+                      <div class="sr-party-stat"><dt>XP</dt><dd>4</dd></div>
+                    </dl>
+                  </article>
+                </div>
+              </section>
+
+              <section class="sr-section" data-panel="combat" hidden>
+                <div class="sr-encounter">
+                  <div class="sr-encounter-header" data-action="toggleEncounter" data-index="0">
+                    <i class="fas fa-chevron-down"></i>
+                    <strong>Goblin Scouts</strong> — 4 rounds (2m 51s)
+                    <span class="sr-encounter-badge">4/4 defeated</span>
+                  </div>
+                  <div class="sr-encounter-body">
+                    <div class="sr-enemy-list">
+                      <span class="sr-enemy defeated">Goblin Scout <i class="fas fa-skull"></i> <em>(Bazogo)</em></span>
+                      <span class="sr-enemy defeated">Goblin Scout <i class="fas fa-skull"></i> <em>(Willow)</em></span>
+                      <span class="sr-enemy defeated">Goblin Scout <i class="fas fa-skull"></i> <em>(Eliara)</em></span>
+                      <span class="sr-enemy defeated">Goblin Boss <i class="fas fa-skull"></i> <em>(Bazogo)</em></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="sr-encounter">
+                  <div class="sr-encounter-header" data-action="toggleEncounter" data-index="1">
+                    <i class="fas fa-chevron-right"></i>
+                    <strong>Kobold Trappers</strong> — 6 rounds (5m 08s)
+                    <span class="sr-encounter-badge">5/6 defeated</span>
+                  </div>
+                  <div class="sr-encounter-body" hidden>
+                    <div class="sr-enemy-list">
+                      <span class="sr-enemy defeated">Kobold Trapper <i class="fas fa-skull"></i> <em>(Eliara)</em></span>
+                      <span class="sr-enemy defeated">Kobold Trapper <i class="fas fa-skull"></i> <em>(Bazogo)</em></span>
+                      <span class="sr-enemy defeated">Kobold Trapper <i class="fas fa-skull"></i> <em>(Bazogo)</em></span>
+                      <span class="sr-enemy defeated">Kobold Trapper <i class="fas fa-skull"></i> <em>(Willow)</em></span>
+                      <span class="sr-enemy defeated">Kobold Trapper <i class="fas fa-skull"></i> <em>(Eliara)</em></span>
+                      <span class="sr-enemy">Kobold Sneak</span>
+                    </div>
+                  </div>
+                </div>
+
+                <h4 class="sr-section-title">Roll &amp; Damage Stats</h4>
+                <table class="sr-stats-table">
+                  <thead><tr><th>Player</th><th>Hit Rate</th><th>Nat 20</th><th>Nat 1</th><th>Avg d20</th><th>Checks</th><th>Dealt</th><th>Taken</th><th>Kills</th></tr></thead>
+                  <tbody>
+                    <tr><td class="sr-cell-name">Eliara</td><td>64%</td><td>1</td><td>0</td><td>11.8</td><td>3/4</td><td>41</td><td>3</td><td>3</td></tr>
+                    <tr><td class="sr-cell-name">Bazogo</td><td>71%</td><td>2</td><td>1</td><td>12.4</td><td>2/5</td><td>58</td><td>22</td><td>4</td></tr>
+                    <tr><td class="sr-cell-name">Willow</td><td>58%</td><td>0</td><td>1</td><td>10.1</td><td>4/4</td><td>27</td><td>16</td><td>2</td></tr>
+                    <tr><td class="sr-cell-name">Troana</td><td>33%</td><td>0</td><td>0</td><td>9.6</td><td>1/2</td><td>6</td><td>1</td><td>0</td></tr>
+                  </tbody>
+                </table>
+              </section>
+
+              <section class="sr-section" data-panel="loot" hidden>
+                <div class="sr-loot-list">
+                  <div class="sr-loot-entry"><span class="sr-loot-time">20:14</span><span class="sr-loot-icon"><i class="fas fa-coins"></i></span><span class="sr-loot-player">Willow</span><span class="sr-loot-detail">62 gp, 40 sp</span><span class="sr-loot-source">Goblin Boss</span></div>
+                  <div class="sr-loot-entry"><span class="sr-loot-time">20:15</span><span class="sr-loot-icon"><i class="fas fa-wand-sparkles"></i></span><span class="sr-loot-player">Eliara</span><span class="sr-loot-detail">Scroll of Mirror Image</span><span class="sr-loot-source">Goblin Boss</span></div>
+                  <div class="sr-loot-entry unclaimed"><span class="sr-loot-time">20:41</span><span class="sr-loot-icon"><i class="fas fa-gem"></i></span><span class="sr-loot-player">Unclaimed</span><span class="sr-loot-detail">Amber pendant (80 gp)</span><span class="sr-loot-source">Kobold cache</span></div>
+                  <div class="sr-loot-entry"><span class="sr-loot-time">20:47</span><span class="sr-loot-icon"><i class="fas fa-flask"></i></span><span class="sr-loot-player">Bazogo</span><span class="sr-loot-detail">Potion of Healing</span><span class="sr-loot-source">Kobold cache</span></div>
+                </div>
+
+                <h4 class="sr-section-title">Merchant</h4>
+                <div class="sr-merchant-block">
+                  <div class="sr-merchant-head"><i class="fas fa-shopping-bag"></i> Purchases</div>
+                  <div class="sr-merchant-player"><span class="sr-merchant-name">Willow</span><span class="sr-merchant-subtotal">19 gp 0 sp 0 cp</span></div>
+                  <div class="sr-merchant-item">Longsword — 9 gp</div>
+                  <div class="sr-merchant-item">Lantern ×2 — 10 gp</div>
+                </div>
+              </section>
+
+              <section class="sr-section" data-panel="xp" hidden>
+                <div class="sr-xp-player">
+                  <h4>Eliara</h4>
+                  <div class="sr-xp-award"><span class="sr-xp-time">20:16</span><span class="sr-xp-label">Goblin Scouts defeated</span><span class="sr-xp-total">+2 XP</span></div>
+                  <div class="sr-xp-award"><span class="sr-xp-time">20:52</span><span class="sr-xp-label">Kobold Trappers defeated</span><span class="sr-xp-total">+2 XP</span></div>
+                  <div class="sr-xp-player-total">Total: 4 XP</div>
+                </div>
+                <div class="sr-xp-player">
+                  <h4>Willow</h4>
+                  <div class="sr-xp-award"><span class="sr-xp-time">20:16</span><span class="sr-xp-label">Goblin Scouts defeated</span><span class="sr-xp-total">+2 XP</span></div>
+                  <div class="sr-xp-award"><span class="sr-xp-time">20:44</span><span class="sr-xp-label">Disarmed the pit trap</span><span class="sr-xp-total">+1 XP</span></div>
+                  <div class="sr-xp-award"><span class="sr-xp-time">20:52</span><span class="sr-xp-label">Kobold Trappers defeated</span><span class="sr-xp-total">+2 XP</span></div>
+                  <div class="sr-xp-player-total">Total: 5 XP</div>
+                </div>
+              </section>
+
+              <section class="sr-section" data-panel="downtime" hidden>
+                <p class="sr-empty">No downtime activity recorded.</p>
+              </section>
+
+              <section class="sr-section" data-panel="history" hidden>
+                <div class="sr-history-list">
+                  <div class="sr-history-entry">
+                    <div class="sr-history-info" data-action="viewSession" data-session-id="s11">
+                      <span class="sr-history-name">2026.07.22 Session 11</span>
+                      <span class="sr-history-meta">2h 04m — 3 combats, 14 defeated, 7 loot</span>
+                    </div>
+                    <button type="button" class="sr-history-delete" data-action="deleteSession" data-session-id="s11"><i class="fas fa-trash"></i></button>
+                  </div>
+                  <div class="sr-history-entry">
+                    <div class="sr-history-info" data-action="viewSession" data-session-id="s10">
+                      <span class="sr-history-name">2026.07.15 Session 10</span>
+                      <span class="sr-history-meta">1h 47m — 1 combat, 5 defeated, 3 loot</span>
+                    </div>
+                    <button type="button" class="sr-history-delete" data-action="deleteSession" data-session-id="s10"><i class="fas fa-trash"></i></button>
+                  </div>
+                </div>
+              </section>
+
+            </div>
+
+            <footer class="sr-footer">
+              <button type="button" class="sr-copy-btn" data-action="copyDiscord"><i class="fab fa-discord"></i> Copy for Discord</button>
+              <button type="button" class="sr-clear-btn" data-action="clearSession"><i class="fas fa-trash"></i> Clear Session</button>
+            </footer>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     5. CHARACTER BUILDER
+     ══════════════════════════════════════════════════════════════════════ -->
+
+<section class="demo-panel" id="character-builder">
+  <header>
+    <h2>The character builder</h2>
+    <p class="demo-blurb">
+      Seven steps from an empty sheet to a finished level-1 character, in the
+      look of a printed rulebook. This is step one — the ability roll — with
+      each score explaining what it actually does at the table.
+    </p>
+    <span class="demo-try"><i class="fas fa-dice"></i> Press Roll Abilities</span>
+  </header>
+
+  <div class="demo-stage demo-stage-window">
+    <div class="demo-window demo-window-wide">
+      <div class="demo-window-header">
+        <i class="fas fa-user-plus"></i> Character Builder
+        <span class="demo-window-controls"><i class="fas fa-window-minimize"></i><i class="fas fa-xmark"></i></span>
+      </div>
+      <div class="demo-window-body">
+        <div class="sde-cb">
+
+          <nav class="sde-cb-tabs">
+            <button type="button" class="sde-cb-tab active" data-action="cb-goto" data-index="0" data-step="stats"><span class="sde-cb-tab-num">1</span><span class="sde-cb-tab-label">Abilities</span></button>
+            <button type="button" class="sde-cb-tab" data-action="cb-goto" data-index="1" data-step="ancestry"><span class="sde-cb-tab-num">2</span><span class="sde-cb-tab-label">Ancestry</span></button>
+            <button type="button" class="sde-cb-tab" data-action="cb-goto" data-index="2" data-step="origins"><span class="sde-cb-tab-num">3</span><span class="sde-cb-tab-label">Origins</span></button>
+            <button type="button" class="sde-cb-tab" data-action="cb-goto" data-index="3" data-step="class"><span class="sde-cb-tab-num">4</span><span class="sde-cb-tab-label">Class</span></button>
+            <button type="button" class="sde-cb-tab" data-action="cb-goto" data-index="4" data-step="hpGold"><span class="sde-cb-tab-num">5</span><span class="sde-cb-tab-label">HP &amp; Gold</span></button>
+            <button type="button" class="sde-cb-tab" data-action="cb-goto" data-index="5" data-step="gear"><span class="sde-cb-tab-num">6</span><span class="sde-cb-tab-label">Gear</span></button>
+            <button type="button" class="sde-cb-tab" data-action="cb-goto" data-index="6" data-step="preview"><span class="sde-cb-tab-num">7</span><span class="sde-cb-tab-label">Preview</span></button>
+          </nav>
+
+          <div class="sde-cb-body" data-step="stats">
+            <div class="sde-cb-stats">
+
+              <div class="sde-cb-page-title sd-band">
+                <h1>Abilities</h1>
+              </div>
+
+              <div class="sde-cb-stats-main">
+                <div class="sde-cb-method-label sd-band sd-band--tight">
+                  Method: <b>4d6 Drop Lowest, Down the Line</b>
+                  <span class="gm">(set by GM)</span>
+                </div>
+
+                <p class="sde-cb-stats-desc">Roll your six ability scores using the method your GM has set.</p>
+
+                <div class="sde-cb-stats-bar">
+                  <button type="button" class="sde-cb-btn dice" data-action="cb-roll-stats">
+                    <i class="fa-solid fa-dice"></i> <span data-demo="cb-roll-label">Roll Abilities</span>
+                  </button>
+                  <button type="button" class="sde-cb-btn ghost" data-action="cb-reset-stats" title="Reset" hidden>
+                    <i class="fa-solid fa-arrow-rotate-left"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="sde-cb-abil-grid">
+                <div class="sde-cb-abil-col">
+                  <div class="sde-cb-abil-tile empty" data-demo="tile" data-abil="str">
+                    <div class="tile-val"><span class="ph">–</span></div>
+                    <div class="tile-name">STR</div>
+                    <div class="tile-mod"></div>
+                  </div>
+                  <div class="sde-cb-abil-info-card">
+                    <div class="ai-name">Strength</div>
+                    <div class="ai-represents">Physical power</div>
+                    <div class="ai-row"><span class="ai-k">Checks:</span> Bashing open a stuck or locked door, bending prison bars, lifting a large rock overhead, or swimming in rough water.</div>
+                    <div class="ai-row"><span class="ai-k">Mechanics:</span> Drives your melee and thrown attack rolls — damage is always just the weapon's die, never your modifier. It also sets your gear slots: carry items equal to your Strength score or 10, whichever is higher.</div>
+                    <div class="ai-row"><span class="ai-k">Key Classes:</span> Any melee class leans on Strength — it's your to-hit stat in melee, not a gate on wielding weapons or armor. Fighters lean on it hardest.</div>
+                  </div>
+                </div>
+
+                <div class="sde-cb-abil-col">
+                  <div class="sde-cb-abil-tile empty" data-demo="tile" data-abil="dex">
+                    <div class="tile-val"><span class="ph">–</span></div>
+                    <div class="tile-name">DEX</div>
+                    <div class="tile-mod"></div>
+                  </div>
+                  <div class="sde-cb-abil-info-card">
+                    <div class="ai-name">Dexterity</div>
+                    <div class="ai-represents">Agility and reflexes</div>
+                    <div class="ai-row"><span class="ai-k">Checks:</span> Balancing on a ledge, sneaking silently, diving away from a trap, disabling a tripwire, or scaling a sheer wall.</div>
+                    <div class="ai-row"><span class="ai-k">Mechanics:</span> Adds to your Armor Class, drives your ranged attack rolls (again, not damage), and sets your initiative order at the start of combat.</div>
+                    <div class="ai-row"><span class="ai-k">Key Classes:</span> Thieves depend on Dexterity for backstab, sneaking, and thievery; it's also every archer's aim.</div>
+                  </div>
+                </div>
+
+                <div class="sde-cb-abil-col">
+                  <div class="sde-cb-abil-tile empty" data-demo="tile" data-abil="con">
+                    <div class="tile-val"><span class="ph">–</span></div>
+                    <div class="tile-name">CON</div>
+                    <div class="tile-mod"></div>
+                  </div>
+                  <div class="sde-cb-abil-info-card">
+                    <div class="ai-name">Constitution</div>
+                    <div class="ai-represents">Endurance and resistance to injury</div>
+                    <div class="ai-row"><span class="ai-k">Checks:</span> Holding your breath underwater, withstanding intense pain, resisting poison or disease, or enduring searing heat or freezing cold.</div>
+                    <div class="ai-row"><span class="ai-k">Mechanics:</span> Adds to your maximum Hit Points, and sets how long you cling to life at 0 HP — you die in 1d4 + your Constitution modifier rounds (minimum 1).</div>
+                    <div class="ai-row"><span class="ai-k">Key Classes:</span> Every class wants Constitution — in a game this lethal, it's raw survival.</div>
+                  </div>
+                </div>
+
+                <div class="sde-cb-abil-col">
+                  <div class="sde-cb-abil-tile empty" data-demo="tile" data-abil="int">
+                    <div class="tile-val"><span class="ph">–</span></div>
+                    <div class="tile-name">INT</div>
+                    <div class="tile-mod"></div>
+                  </div>
+                  <div class="sde-cb-abil-info-card">
+                    <div class="ai-name">Intelligence</div>
+                    <div class="ai-represents">Logical ability and knowledge</div>
+                    <div class="ai-row"><span class="ai-k">Checks:</span> Deciphering runes, giving first aid to a dying character, recalling a maze's path, or foraging for food and water.</div>
+                    <div class="ai-row"><span class="ai-k">Mechanics:</span> Powers your wizard spellcasting checks, and the Intelligence check to permanently learn a spell from a scroll.</div>
+                    <div class="ai-row"><span class="ai-k">Key Classes:</span> Wizards cast their arcane spells with Intelligence.</div>
+                  </div>
+                </div>
+
+                <div class="sde-cb-abil-col">
+                  <div class="sde-cb-abil-tile empty" data-demo="tile" data-abil="wis">
+                    <div class="tile-val"><span class="ph">–</span></div>
+                    <div class="tile-name">WIS</div>
+                    <div class="tile-mod"></div>
+                  </div>
+                  <div class="sde-cb-abil-info-card">
+                    <div class="ai-name">Wisdom</div>
+                    <div class="ai-represents">Instinct, willpower, and sensory acuity</div>
+                    <div class="ai-row"><span class="ai-k">Checks:</span> Detecting the hidden, recognizing omens, spotting a well-hidden enemy, or hearing what's on the other side of a door.</div>
+                    <div class="ai-row"><span class="ai-k">Mechanics:</span> Powers priest and seer spellcasting checks. It's also the ability rolled for morale — the check that decides whether bloodied enemies flee.</div>
+                    <div class="ai-row"><span class="ai-k">Key Classes:</span> Priests and Seers channel their divine and mystic magic through Wisdom.</div>
+                  </div>
+                </div>
+
+                <div class="sde-cb-abil-col">
+                  <div class="sde-cb-abil-tile empty" data-demo="tile" data-abil="cha">
+                    <div class="tile-val"><span class="ph">–</span></div>
+                    <div class="tile-name">CHA</div>
+                    <div class="tile-mod"></div>
+                  </div>
+                  <div class="sde-cb-abil-info-card">
+                    <div class="ai-name">Charisma</div>
+                    <div class="ai-represents">Appeal, presence, and force of personality</div>
+                    <div class="ai-row"><span class="ai-k">Checks:</span> Convincing creatures to be friendly, resisting mental control, applying a disguise, or rallying terrified allies.</div>
+                    <div class="ai-row"><span class="ai-k">Mechanics:</span> Adds to the reaction roll (2d6 + your Charisma) that decides how creatures you meet react, from hostile to friendly.</div>
+                    <div class="ai-row"><span class="ai-k">Key Classes:</span> Witches and Knights of St. Ydris cast with Charisma, and Bards trade on it for their performances.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sde-cb-stats-foot" data-demo="cb-foot"></div>
+            </div>
+          </div>
+
+          <footer class="sde-cb-footer">
+            <div class="sde-cb-footer-left">
+              <button type="button" class="sde-cb-btn ghost" data-action="cb-dismiss"><i class="fa-solid fa-circle-xmark"></i> Dismiss</button>
+              <button type="button" class="sde-cb-btn danger" data-action="cb-full-random"><i class="fa-solid fa-bolt"></i> Full Random Character</button>
+              <button type="button" class="sde-cb-btn dice" data-action="cb-random"><i class="fa-solid fa-dice"></i> Random</button>
+            </div>
+            <div class="sde-cb-footer-right">
+              <button type="button" class="sde-cb-btn nav" data-action="cb-prev" disabled><i class="fa-solid fa-caret-left"></i> Back</button>
+              <button type="button" class="sde-cb-btn nav" data-action="cb-next">Next <i class="fa-solid fa-caret-right"></i></button>
+              <button type="button" class="sde-cb-btn nav finish" data-action="cb-finish"><i class="fa-solid fa-check"></i> Create Character</button>
+            </div>
+          </footer>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PANELS-INSERTION-POINT -->
+
+<footer class="demo-footer">
+  <h3>About this page</h3>
+  <p>
+    Every panel above is built from the module's own markup and styled by its
+    own stylesheet, copied straight out of the repository when this page was
+    built. Behaviour is faked; appearance is not.
+  </p>
+
+  <h3>Licences</h3>
+  <p>
+    Shadowdark Enhancer is an independent product published under the
+    Shadowdark RPG Third-Party License and is not affiliated with The Arcane
+    Library, LLC. Shadowdark RPG © 2023 The Arcane Library, LLC.
+  </p>
+  <p>
+    Module code is MIT. Interface icons and class emblems are from
+    <a href="https://game-icons.net/">game-icons.net</a> under CC BY 3.0
+    (Lorc, Delapouite, Skoll, Sbed, Carl Olsen). Ancestry portraits are public
+    domain or CC BY 4.0 — see
+    <a href="https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md">CREDITS.md</a>
+    for the full attribution. Typefaces: Montserrat and IM Fell English under
+    the SIL Open Font License, JSL Blackletter © Jeffrey S. Lee, and
+    <a href="https://fontawesome.com/">Font Awesome</a> Free 6 under CC BY 4.0
+    and the SIL OFL.
+  </p>
+</footer>
+
+</div>
+<script src="demo.js"></script>
+</body>
+</html>

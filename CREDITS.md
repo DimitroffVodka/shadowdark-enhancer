@@ -66,6 +66,37 @@ icons, which are **CC BY 3.0**. Individual 32×32 icons were sliced from the
 pack's transparent spritesheet, upscaled 4× (nearest neighbor), and encoded
 as lossless WebP for the module.
 
+## Demo site (`demo/vendor/`)
+
+Assets used only by the public demo page. They are not part of the module and
+never ship in the release zip.
+
+Montserrat, IM Fell English and Font Awesome Free are additionally **subset and
+embedded as data URIs** inside `docs/wiki/images/crawl-strip-animated.svg` (the
+README hero), because an SVG loaded as an image cannot fetch external fonts.
+All three licences permit that redistribution. JSL Blackletter is *not* in that
+file — it may only be distributed unaltered.
+
+- **Font Awesome Free 6.7.2** — [fontawesome.com](https://fontawesome.com/),
+  icons **CC BY 4.0**, fonts **SIL OFL 1.1**, code **MIT**. Full text in
+  [`demo/vendor/fontawesome/LICENSE.txt`](demo/vendor/fontawesome/LICENSE.txt).
+  Foundry itself bundles Font Awesome *Pro*, which is licensed to Foundry and
+  is deliberately not reused here.
+- **Montserrat** (weights 500, 600) — **SIL OFL 1.1**, © 2011 The Montserrat
+  Project Authors. Stands in for the `Montserrat-Medium` / `Montserrat-SemiBold`
+  faces the Shadowdark system ships.
+- **IM Fell English** — **SIL OFL 1.1**, © 2010 Igino Marini. Substituted for
+  *Old Newspaper Font* (Martin Steiner, bit-fonts.com), whose specimen sheet
+  states "free for personal use" and which therefore cannot be redistributed.
+- **JSL Blackletter** — © 1997–2000 Jeffrey S. Lee. Its readme permits free
+  redistribution provided the font is **unaltered** and accompanied by that
+  readme, and bars inclusion in commercial packages. It ships here as the
+  original unmodified `.ttf` alongside
+  [`demo/vendor/fonts/JBLACK.TXT`](demo/vendor/fonts/JBLACK.TXT).
+
+The reasoning behind each choice is recorded in
+[`demo/vendor/fonts/README.md`](demo/vendor/fonts/README.md).
+
 ## Bundled code (`scripts/pdf-export/lib/`)
 
 - `pdf-lib.esm.min.js` — [**pdf-lib**](https://github.com/Hopding/pdf-lib)

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-706 tracked files · ~91,500 lines of code/markup across scripts+templates+styles+test.
+741 tracked files · ~91,500 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -18,7 +18,7 @@
 | File | What it is |
 |---|---|
 | `module.json` | Foundry manifest. id `shadowdark-enhancer`, v0.13.1, core min 13 / verified 14.365, system shadowdark min 3.6.2 / verified 4.0.6, recommends `shadowdark-extras` 6.10.45. Declares the `mount` + `boat` Actor sub-types, one ESM entry, one stylesheet, `socket: true`. |
-| `package.json` | Dev-only. `npm test` → `node --test test/*.test.mjs`; `npm run lint` → eslint over `scripts test`. |
+| `package.json` | Dev-only. `npm test` → `node --test test/*.test.mjs`; `npm run lint` → eslint over `scripts test tools demo`; `npm run demo:build` / `demo:check` / `demo:vendor` drive the demo site (§2). |
 | `eslint.config.mjs` | Flat ESLint config (browser + node globals, Foundry globals). |
 | `README.md` | User-facing feature docs. |
 | `CHANGELOG.md` | Running changelog. |
@@ -26,12 +26,33 @@
 | `LICENSE` | MIT. |
 | `.gitattributes`, `.gitignore` | Line-ending rules; ignore list (see §9). |
 | `.github/workflows/ci.yml` | Lint + `node --test` on push/PR. |
+| `.github/workflows/pages.yml` | Push to `master` touching `demo/`, `tools/demo/`, the stylesheet or the copied asset dirs → build `dist/demo` and publish it to GitHub Pages. Also `workflow_dispatch`. Requires the repo's Pages source to be set to "GitHub Actions" by hand. |
 | `.github/workflows/release.yml` | Tag → build module.zip (allowlist: module.json, README, LICENSE, CHANGELOG, CREDITS, docs/API.md, assets, icons, languages, scripts, styles, templates) + attach manifest to the GitHub release. `test/` and the rest of `docs/` never ship. |
 
 ## 2. Repo root (NOT shipped — see §9)
 
 **Tracked in git, excluded from the release zip:**
 `verify.sh` (pre-commit grep wall + `node --check` + eslint, `--strict` tier).
+
+`demo/` — source for the public demo site at
+<https://dimitroffvodka.github.io/shadowdark-enhancer/>: a browser replica of
+five UI surfaces (crawl strip, encounter roller, merchant shop, session recap,
+character builder step 1) that looks and behaves like the module but does
+nothing. `index.html` + `demo.css` + `demo.js`, plus `vendor/` (Font Awesome
+Free 6 and four web fonts — see CREDITS.md and `demo/vendor/fonts/README.md`
+for why two of the system's fonts could not be reused).
+
+`tools/demo/` — `build.mjs` assembles `dist/demo/` by copying `demo/` plus the
+module's **real** `styles/shadowdark-enhancer.css`, `icons/` and two asset dirs,
+so the demo can never drift from the shipped UI. `check-glyphs.mjs` fails the
+build on a Pro-only Font Awesome glyph, which Foundry's bundled Pro kit would
+otherwise hide until the page was live. `fetch-vendor.mjs` re-downloads
+`demo/vendor/` and records each file's provenance. `build-strip-svg.py`
+(Python, needs Pillow + fonttools) emits `docs/wiki/images/crawl-strip-animated.svg`,
+the README hero — a self-contained SMIL animation of the strip with the
+portraits and three subset fonts inlined as data URIs, because GitHub's
+markdown pipeline filters `<script>`/`<style>`/`<iframe>` out of the document
+(GFM 6.11) and a linked image is the only way to show motion there.
 
 **Not in git at all:**
 `CLAUDE.md`, `AGENTS.md`, `GEMINI.md`, `.impeccable.md` (agent instructions) ·
@@ -360,13 +381,15 @@ Other: `content-registry`, `coins`, `party-xp-core`, `session-recap-core`, `pdf-
 
 **Tracked in git but excluded from module.zip** (release.yml allowlist):
 `test/`, `package.json`, `eslint.config.mjs`, `.github/`, `tools/` (the
-`npm run inventory` generator that maintains this page), `docs/wiki/` (the
-manual) and this `docs/FILE-INVENTORY.md`. Of `docs/`, only `API.md` ships.
+`npm run inventory` generator that maintains this page, and `tools/demo/`),
+`demo/` (the demo-site source, §2), `docs/wiki/` (the manual) and this
+`docs/FILE-INVENTORY.md`. Of `docs/`, only `API.md` ships.
 
 **Gitignored / local-only** (never published):
 - `data/` — `monster-art-mapping.json` (install-specific), `bestiary-reference.json` (third-party scrape; deliberately kept out).
 - `dev/` — probes, fixtures, `dev/tests/` content-contract suite, generators, e2e drivers + dumps, `real-pastes/`, `pdf-sheet/` sandbox, page renders, backups, `reorg-2026-07/` (the folder-reorg migration scripts).
 - `docs/` except `wiki/`, `API.md`, `FILE-INVENTORY.md` — internal audits, review reports, sweep dumps, the promo plan and `superpowers/` plans/specs; kept on disk, out of git.
 - `.planning/` — STATUS, ROADMAP, REQUIREMENTS, playbooks, phases, seeds, sessions, wr-scrape.
+- `dist/` — build output, including `dist/demo/` from `npm run demo:build`. Regenerated on every run and published by `pages.yml`; never committed, so a stale hand-copy cannot creep in.
 - `.claude/`, `.gemini/`, `.superpowers/`, `.hermes/`, `.playwright-mcp/`, `node_modules/`, `package-lock.json`, agent docs. (`verify.sh` is tracked but stays out of the release zip, which is allowlist-based.)
 - `training-android/`, `training-app/` — untracked and NOT gitignored; unrelated to the module. Decide: ignore, remove, or move out.

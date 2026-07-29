@@ -10,3 +10,16 @@
 *.gif  binary
 *.zip  binary
 *.db   binary
+
+# Web fonts vendored for the demo site (demo/vendor/fonts/). Marked explicitly
+# rather than left to `text=auto` NUL-sniffing — JSL Blackletter in particular
+# may only be redistributed unaltered, and an eol rewrite would alter it.
+*.woff2 binary
+*.woff  binary
+*.ttf   binary
+*.otf   binary
+
+# JSL Blackletter's readme is a condition of its licence — the font may only be
+# redistributed accompanied by this file. Keep it byte-identical to the copy the
+# author shipped; `text=auto` would rewrite its CRLF line endings.
+demo/vendor/fonts/JBLACK.TXT -text

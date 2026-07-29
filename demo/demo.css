@@ -1,0 +1,405 @@
+/*
+ * Demo-site chrome. Loaded AFTER styles/shadowdark-enhancer.css.
+ *
+ * GROUND RULE: nothing in here may restyle a .sde-* element. The panels are
+ * built from the module's real markup so the module's real CSS draws them; if
+ * a panel looks wrong the fix belongs in the markup, not here. The only
+ * exceptions are the two things the module sets from JavaScript at runtime
+ * (strip geometry and card size), which have no CSS source to inherit from.
+ */
+
+/* ══ Fonts ══════════════════════════════════════════════════════════════════
+ * Declared under the family names the module's CSS actually asks for, so it
+ * resolves them untouched. See vendor/fonts/README.md for the licensing.
+ */
+
+@font-face {
+  font-family: "Montserrat-Medium";
+  src: url("vendor/fonts/montserrat-500.woff2") format("woff2");
+  font-weight: 400 550;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Montserrat-SemiBold";
+  src: url("vendor/fonts/montserrat-600.woff2") format("woff2");
+  font-weight: 550 700;
+  font-display: swap;
+}
+
+/*
+ * "Old Newspaper Font" is licensed free for personal use only and cannot ship.
+ * IM Fell English stands in under the same family name. size-adjust is
+ * load-bearing: IM Fell sits smaller on the em, and without it the strip's
+ * PARTY label and turn numbers render visibly undersized against the real UI.
+ */
+@font-face {
+  font-family: "Old Newspaper Font";
+  src: url("vendor/fonts/imfell-english-400.woff2") format("woff2");
+  font-weight: 400 900;
+  font-display: swap;
+  size-adjust: 108%;
+}
+
+/* Shipped as the original unaltered TTF — its licence forbids modifying it,
+   and subsetting or converting to woff2 would count. */
+@font-face {
+  font-family: "JSL Blackletter";
+  src: url("vendor/fonts/JBLACK.TTF") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+/* ══ Foundry core variables ═════════════════════════════════════════════════
+ * The module's CSS already carries an inline fallback at every use site, so
+ * this block is a fidelity upgrade rather than a requirement. Values read from
+ * Foundry's own foundry2.css.
+ *
+ * --font-header is deliberately absent: Foundry does not define it either, so
+ * the module's var(--font-header, serif) fallback is what real users get.
+ * Defining it here would make the demo LESS faithful.
+ */
+
+:root {
+  --font-sans: "Signika", ui-sans-serif, system-ui, sans-serif;
+  --font-primary: "Signika", sans-serif;
+  --color-border-light-2: #999;
+  --color-border-light-tertiary: #7a7971;
+  --color-border-highlight: #ff6400;
+
+  --demo-page-bg: #0a0a0b;
+  --demo-page-fg: #e8e4da;
+  --demo-muted: #9f9275;
+  --demo-gold: #c9aa58;
+  --demo-rule: #2a2a2c;
+  --demo-card: #121214;
+}
+
+body.theme-light {
+  --demo-page-bg: #efece4;
+  --demo-page-fg: #23211c;
+  --demo-muted: #6b6455;
+  --demo-rule: #d6d0c2;
+  --demo-card: #fbf9f4;
+}
+
+/* ══ Page chrome ════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; }
+
+/*
+ * `hidden` is only a user-agent `display: none`, so ANY class rule that sets
+ * display beats it -- e.g. `.sde-session-recap .sr-section { display: flex }`
+ * at CSS:7140, which left every recap tab visible at once. The module has
+ * dozens of such rules, so restore the attribute's meaning globally rather
+ * than sprinkling inline styles at each call site.
+ */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--demo-page-bg);
+  color: var(--demo-page-fg);
+  font-family: "Montserrat-Medium", ui-sans-serif, system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.demo-wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 20px 80px;
+}
+
+/* ── Masthead ── */
+
+.demo-masthead {
+  padding: 56px 0 28px;
+  border-bottom: 1px solid var(--demo-rule);
+  position: relative;
+}
+
+.demo-masthead h1 {
+  font-family: "Old Newspaper Font", serif;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  line-height: 1.05;
+  margin: 0 0 10px;
+  color: var(--demo-gold);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+.demo-tagline {
+  margin: 0 0 22px;
+  max-width: 62ch;
+  font-size: 1.05rem;
+  color: var(--demo-page-fg);
+  opacity: 0.85;
+}
+
+.demo-links { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+.demo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--demo-rule);
+  background: var(--demo-card);
+  color: var(--demo-page-fg);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, color 0.15s;
+}
+.demo-link:hover { border-color: var(--demo-gold); color: var(--demo-gold); }
+.demo-link-primary { border-color: var(--demo-gold); color: var(--demo-gold); }
+
+.demo-theme-toggle {
+  margin-left: auto;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ── The "nothing here is real" banner ── */
+
+.demo-notice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 26px 0 0;
+  padding: 13px 16px;
+  border: 1px solid var(--demo-rule);
+  border-left: 3px solid var(--demo-gold);
+  background: var(--demo-card);
+  font-size: 0.92rem;
+}
+.demo-notice i { color: var(--demo-gold); margin-top: 3px; }
+.demo-notice p { margin: 0; }
+
+/* ── Section headings ── */
+
+.demo-panel { padding: 54px 0 0; }
+
+.demo-panel > header { margin-bottom: 18px; }
+
+.demo-panel h2 {
+  font-family: "Old Newspaper Font", serif;
+  font-weight: 400;
+  font-size: 1.85rem;
+  margin: 0 0 6px;
+  color: var(--demo-gold);
+}
+
+.demo-panel .demo-blurb {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--demo-page-fg);
+  opacity: 0.8;
+}
+
+.demo-try {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 4px 10px;
+  border: 1px dashed var(--demo-muted);
+  font-size: 0.84rem;
+  color: var(--demo-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ══ The mock Foundry canvas ════════════════════════════════════════════════
+ * A dim map with Foundry's square grid, drawn entirely in CSS — no bitmap, so
+ * nothing to license and nothing to 404. It exists to give the UI the dark
+ * backdrop it was designed against; the module's own chrome does the rest.
+ */
+
+.demo-stage {
+  position: relative;
+  min-height: 340px;
+  overflow: hidden;
+  border: 1px solid var(--demo-rule);
+  background-color: #14161a;
+  background-image:
+    radial-gradient(ellipse 70% 60% at 50% 38%, rgba(90, 78, 54, 0.30), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 82% 78%, rgba(40, 60, 80, 0.22), transparent 70%),
+    linear-gradient(rgba(255, 255, 255, 0.030) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.030) 1px, transparent 1px);
+  background-size: auto, auto, 64px 64px, 64px 64px;
+}
+
+/* Vignette, so the flat grid reads as a lit area rather than graph paper. */
+.demo-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 80% at 50% 45%, transparent 45%, rgba(0, 0, 0, 0.62));
+}
+
+/* Stages that host a window rather than the strip get breathing room. */
+.demo-stage-window {
+  display: flex;
+  justify-content: center;
+  padding: 34px 20px;
+}
+.demo-stage-strip { padding-bottom: 150px; }
+
+/*
+ * A stand-in for Foundry's right sidebar. Purely suggestive — it anchors the
+ * strip's centring the way the real UI does and stops the stage reading as an
+ * empty rectangle.
+ */
+.demo-sidebar-hint {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.55) 40%);
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding-top: 14px;
+  z-index: 2;
+  pointer-events: none;
+}
+.demo-sidebar-hint i { color: rgba(232, 228, 218, 0.22); font-size: 15px; }
+
+/* ══ Runtime geometry the module sets from JavaScript ═══════════════════════
+ * These have no CSS source in the module to inherit from, so the demo has to
+ * restate them. Both values are the module's own.
+ */
+
+/* crawl-strip.mjs:151 writes left/width inline from the canvas edges. */
+#shadowdark-enhancer-strip {
+  left: 0;
+  width: 100%;
+}
+
+/*
+ * _sizeCards() (crawl-strip.mjs:531) writes width/height on every card,
+ * clamped to a 110x130 maximum at a fixed 130/110 ratio. CSS alone would
+ * give the wrong size, so the demo pins the maximum.
+ */
+.sde-strip-member {
+  width: 110px;
+  height: 130px;
+}
+
+/*
+ * Foundry's real active-effect icons are full-colour art from its own icon
+ * set, which is not ours to redistribute. The demo borrows a game-icons SVG
+ * instead -- but those are solid black and vanish against the card's dark
+ * overlay, so tint it to parchment. The drop-shadow is restated because it
+ * would otherwise be lost: `filter` replaces, it does not accumulate.
+ */
+.demo-tint-effect {
+  filter:
+    invert(90%) sepia(16%) saturate(420%) hue-rotate(3deg) brightness(96%) contrast(88%)
+    drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
+/*
+ * Foundry docks the bottom bar into #ui-middle, a bottom-anchored flex column.
+ * The bar styles itself with `align-self: center; width: max-content`, so all
+ * the demo has to supply is that column.
+ */
+.demo-bar-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+}
+
+/* ══ Window frames ══════════════════════════════════════════════════════════
+ * Foundry draws the title bar and border around every application; the module
+ * only supplies the contents. Without a frame the panels would float loose on
+ * the stage, so the demo reproduces Foundry's ApplicationV2 chrome.
+ */
+
+.demo-window {
+  width: 100%;
+  max-width: 780px;
+  border: 1px solid #000;
+  background: #0e0e10;
+  box-shadow: 0 0 22px rgba(0, 0, 0, 0.65);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.demo-window-wide { max-width: 1000px; }
+
+.demo-window-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #16161a;
+  border-bottom: 1px solid #2a2a2c;
+  font-size: 0.86rem;
+  color: var(--demo-gold);
+  font-family: "Old Newspaper Font", serif;
+  letter-spacing: 0.03em;
+}
+.demo-window-header .demo-window-controls {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+  color: rgba(232, 228, 218, 0.35);
+  font-size: 0.8rem;
+}
+
+.demo-window-body {
+  padding: 8px;
+  overflow: auto;
+  max-height: 560px;
+}
+
+/* ══ Footer ═════════════════════════════════════════════════════════════════ */
+
+.demo-footer {
+  margin-top: 70px;
+  padding-top: 26px;
+  border-top: 1px solid var(--demo-rule);
+  font-size: 0.85rem;
+  color: var(--demo-muted);
+}
+.demo-footer h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--demo-page-fg);
+  opacity: 0.7;
+  margin: 0 0 8px;
+}
+.demo-footer p { margin: 0 0 12px; max-width: 78ch; }
+.demo-footer a { color: var(--demo-muted); }
+.demo-footer a:hover { color: var(--demo-gold); }
+
+/* ══ Small screens ══════════════════════════════════════════════════════════
+ * The module's windows are sized for a desktop VTT (the Encounter Roller is
+ * 1280px natively). Rather than reflow UI that has no responsive mode in the
+ * real product, let wide panels scroll horizontally inside their stage — the
+ * page itself never scrolls sideways.
+ */
+
+@media (max-width: 900px) {
+  .demo-stage-window { padding: 16px 10px; overflow-x: auto; }
+  .demo-window { min-width: 620px; }
+  .demo-stage-strip { overflow-x: auto; padding-bottom: 130px; }
+  .demo-sidebar-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
+}

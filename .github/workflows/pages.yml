@@ -1,0 +1,62 @@
+name: Deploy demo to Pages
+
+# The demo site reuses the module's real stylesheet and icons, copied into the
+# artifact at build time (tools/demo/build.mjs). So a change to styles/ or
+# icons/ changes the published site even though demo/ was untouched -- those
+# paths MUST stay in the filter below or the site silently goes stale.
+on:
+  push:
+    branches: [master]
+    paths:
+      - "demo/**"
+      - "tools/demo/**"
+      - "styles/shadowdark-enhancer.css"
+      - "icons/**"
+      - "assets/ancestries/**"
+      - "assets/icons/shikashi/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deploy in flight: a cancelled deploy-pages can leave the Pages
+# service pinned to a half-published artifact.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No actions/setup-node on purpose. ubuntu-latest already ships Node 20+,
+      # the builder has zero dependencies, and `cache: npm` would hard-fail
+      # because .gitignore excludes package-lock.json.
+      - name: Build demo site
+        run: node tools/demo/build.mjs --clean
+
+      # Foundry bundles Font Awesome Pro, so a Pro-only glyph works in a live
+      # world and silently becomes a blank box here. Nothing else in CI can
+      # see that: it is valid HTML that renders without an error.
+      - name: Check for Pro-only Font Awesome glyphs
+        run: node tools/demo/check-glyphs.mjs
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/demo
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

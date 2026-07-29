@@ -2,6 +2,8 @@
 
 [← Wiki home](Home.md)
 
+**[▶ Try this in your browser](https://dimitroffvodka.github.io/shadowdark-enhancer/#encounter-roller)** — roll an encounter and reroll a single reading. No install needed.
+
 The `1d6` encounter check, and a four-tab Encounter Roller for turning a hit into
 creatures standing on the map.
 

@@ -2,6 +2,8 @@
 
 [← Wiki home](Home.md)
 
+**[▶ Try this in your browser](https://dimitroffvodka.github.io/shadowdark-enhancer/#character-builder)** — roll a set of abilities. No install needed.
+
 A guided, ordered character-creation wizard, a step-by-step replacement for the
 system's all-random generator. It builds a **complete level-1 character**,
 including rolled hit points and the chosen class talent, so the sheet never

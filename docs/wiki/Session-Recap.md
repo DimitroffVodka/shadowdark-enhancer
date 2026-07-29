@@ -2,6 +2,8 @@
 
 [← Wiki home](Home.md)
 
+**[▶ Try this in your browser](https://dimitroffvodka.github.io/shadowdark-enhancer/#session-recap)** — click through the tabs. No install needed.
+
 A session log that fills itself in while you play, and exports to Discord as
 markdown.
 
