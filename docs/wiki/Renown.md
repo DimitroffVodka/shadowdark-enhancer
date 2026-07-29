@@ -49,7 +49,11 @@ A character's renown starts equal to their **CHA modifier**. The dialog's
 | 8 to 11 | Known name | +2 |
 | 12 or more | Celebrity | +3 |
 
-The bonus applies to **reaction rolls** and **carousing event rolls**.
+By the book, the bonus applies to **reaction rolls** and **carousing event
+rolls**. The module automates the reaction roll only — the Encounter Roller's
+**Recognised here** toggle is what adds it. Carousing is not automated anywhere
+in the module, so if your table uses the carousing tables, add the bonus by hand
+when you roll them.
 
 Each band carries a one-line note about how people treat you, shown beside the
 band in the Renown dialog and on the Encounter Roller. Those notes are the

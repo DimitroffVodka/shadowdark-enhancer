@@ -88,6 +88,23 @@
   old listener alive until it does.
 
 ### Fixed
+- **Two GMs awarding renown at once lost one of the awards.** Renown is adjusted
+  by reading the current value, adding the change and writing the sum back, and
+  "GM-only" is not the same as "one client" — a world with an assistant GM, or
+  with an always-on watchdog client, has more than one. Both would read 5, both
+  would write 6, and two separate `+1` awards left the character on 6 with both
+  of them written into the recap. Awards made on a GM client that isn't the
+  primary one are now handed to the primary GM, which re-reads the character and
+  applies the *change* rather than a total, one award at a time. The queue matters
+  even with a single GM: saving a character waits on the server, so two awards
+  fired in quick succession could overlap on one client too.
+- **Renown claimed a carousing bonus the module never applied.** The wiki, the
+  award dialog and the roster tooltip all said the bonus applies to reaction rolls
+  *and* carousing event rolls. The first half was true — the Encounter Roller's
+  **Recognised here** toggle adds it — but there is no carousing roll anywhere in
+  the module for the second half to attach to, so nothing was ever added. The
+  wording now says which one is automatic and which one you apply yourself. The
+  numbers are unchanged.
 - **Downtime training could advertise a free-text answer and then refuse it.**
   The three "new weapon or armor" slots record a descriptive Talent, so the
   option buttons are only what the gear packs happen to hold — but a name that

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-711 tracked files · ~92,700 lines of code/markup across scripts+templates+styles+test.
+712 tracked files · ~93,100 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -311,9 +311,9 @@ Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP
 
 | File | Lines | Description |
 |---|---:|---|
-| `renown-core.mjs` | 144 | Pure band ladder and phrasing: `renownBand`/`renownBonus` (≤3 / 4–7 / 8–11 / 12+ → +0/+1/+2/+3), `startingRenown` (the CHA modifier), the shared `recapRow`/`renownChangeLine` wording, the short trigger labels, and `isDoubleOnes` — a raw 2d6 total of 2 can only be 1+1. Foundry-free, node-tested. |
-| `renown.mjs` | 306 | The single write path for `system.renown`. `Renown.award` updates the actor, logs to the Session Recap and posts a chat card; downtime and the level-up watcher both route through it. Also the party readers the Encounter Roller uses, and the `renownOnLevelUp` setting plus its active-GM-gated `updateActor` watcher. GM-side only. |
-| `renown-award-dialog.mjs` | 161 | The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, plus a "Start at CHA mod" seed. GM-only; every write goes through `Renown.award`. |
+| `renown-core.mjs` | 169 | Pure band ladder and phrasing: `renownBand`/`renownBonus` (≤3 / 4–7 / 8–11 / 12+ → +0/+1/+2/+3), `startingRenown` (the CHA modifier), the shared `recapRow`/`renownChangeLine` wording, the short trigger labels, `isDoubleOnes` — a raw 2d6 total of 2 can only be 1+1 — and `authorizeRenownAward`, the GM-only rule both the direct call and the query handler check. Foundry-free, node-tested. |
+| `renown.mjs` | 438 | The single write path for `system.renown`. `Renown.award` updates the actor, logs to the Session Recap and posts a chat card; downtime and the level-up watcher both route through it. Because the write is read-add-write, it is also the single WRITER: an award made on a GM client that is not `game.users.activeGM` is forwarded there over the `sde.renown` query (the delta travels, never a computed total), and on that client awards run one at a time through `_txQueue`, each re-reading the actor inside its turn — two GMs, or two overlapping awards on one, would otherwise lose one of them. Also the party readers the Encounter Roller uses, and the `renownOnLevelUp` setting plus its active-GM-gated `updateActor` watcher. GM-side only. |
+| `renown-award-dialog.mjs` | 162 | The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, plus a "Start at CHA mod" seed. GM-only; every write goes through `Renown.award`. |
 
 The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This folder adds the band ladder, the single logged write path every renown change goes through, and the GM's award dialog. Band thresholds and bonus numbers are mechanics; the one-line band meanings are the module's own wording, not the book's.
 <!-- inventory:scripts:end -->
