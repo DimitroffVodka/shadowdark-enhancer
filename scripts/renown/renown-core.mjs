@@ -86,9 +86,34 @@ export function renownBand(value) {
   return RENOWN_BANDS.find((b) => v <= b.max) ?? RENOWN_BANDS[RENOWN_BANDS.length - 1];
 }
 
-/** The reaction / carousing bonus a renown value grants (0–3). */
+/**
+ * The bonus a renown value grants (0–3).
+ *
+ * The book applies it to reaction rolls AND carousing event rolls. Only the
+ * reaction roll is automated (encounter-roller-app.mjs) — the module has no
+ * carousing roll to hook, so carousing is applied by hand at the table. Do not
+ * describe this as automatic anywhere user-facing.
+ */
 export function renownBonus(value) {
   return renownBand(value).bonus;
+}
+
+/**
+ * Who may change renown. Pure, so the rule is testable without a Foundry client.
+ *
+ * An award writes an actor AND the `sessionRecap` world setting, so a non-GM
+ * caller could not finish it — it refuses rather than half-applying. This is
+ * also the check the query handler runs against its authenticated sender:
+ * the handler is registered on GM clients, and a query's recipient is chosen by
+ * the SENDER, so a player can address it directly and nothing else in that path
+ * would turn them away.
+ *
+ * @param {{requesterIsGM:boolean}} ctx
+ * @returns {null|{ok:false, error:string}} null when the award may proceed.
+ */
+export function authorizeRenownAward({ requesterIsGM } = {}) {
+  if (!requesterIsGM) return { ok: false, error: "Only a GM can change renown." };
+  return null;
 }
 
 /**

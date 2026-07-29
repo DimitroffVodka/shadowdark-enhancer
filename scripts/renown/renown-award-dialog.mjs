@@ -133,7 +133,7 @@ function _content({ party, preferred, delta, reason }) {
     <div class="sde-renown-dialog">
       <table class="sde-renown-roster">
         <thead>
-          <tr><th>Character</th><th>Renown</th><th>Band</th><th title="Bonus on reaction and carousing rolls">Bonus</th></tr>
+          <tr><th>Character</th><th>Renown</th><th>Band</th><th title="Bonus on reaction rolls, which the Encounter Roller applies, and on carousing rolls, which you apply yourself">Bonus</th></tr>
         </thead>
         <tbody>${rows}</tbody>
       </table>
@@ -152,8 +152,9 @@ function _content({ party, preferred, delta, reason }) {
       </div>
 
       <p class="sde-renown-hint">
-        Renown may go negative. The bonus applies to reaction and carousing rolls
-        only where the character would be recognised — you decide that per roll.
+        Renown may go negative. The Encounter Roller adds the bonus to a reaction
+        roll when you mark the party as recognised — you decide that per roll.
+        Carousing rolls are not automated, so add it by hand there.
         <strong>Start at CHA mod</strong> sets renown to the character's starting value
         and ignores the Change field.
       </p>

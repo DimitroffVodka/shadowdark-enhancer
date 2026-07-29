@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import {
   RENOWN_BANDS,
   RENOWN_TRIGGERS,
+  authorizeRenownAward,
   isDoubleOnes,
   recapRow,
   renownBand,
@@ -149,5 +150,25 @@ describe("double 1s on a reaction roll", () => {
     assert.equal(reactionBand(7 + 0 + renownBonus(3)), "Suspicious");
     assert.equal(reactionBand(7 + 0 + renownBonus(8)), "Neutral");
     assert.equal(reactionBand(7 + 0 + renownBonus(12)), "Curious");
+  });
+});
+
+describe("who may change renown", () => {
+  test("a GM may proceed", () => {
+    assert.equal(authorizeRenownAward({ requesterIsGM: true }), null);
+  });
+
+  test("a player is refused, and the refusal is already result-shaped", () => {
+    const denied = authorizeRenownAward({ requesterIsGM: false });
+    assert.equal(denied.ok, false);
+    assert.equal(denied.error, "Only a GM can change renown.");
+  });
+
+  test("an absent or malformed context is refused, not waved through", () => {
+    // The query handler passes `!!user?.isGM` — an unauthenticated sender must
+    // land in the refusal branch rather than defaulting to allowed.
+    for (const ctx of [undefined, {}, { requesterIsGM: null }, { requesterIsGM: 0 }]) {
+      assert.equal(authorizeRenownAward(ctx)?.ok, false, `context ${JSON.stringify(ctx)}`);
+    }
   });
 });

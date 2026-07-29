@@ -482,7 +482,11 @@ await api.renown.open();            // GM award / dock dialog. Also the party ro
 await api.renown.open({ actorId, delta: -1, reason: "Public humiliation" });
 
 // The one write path. GM-only — it writes the actor AND the session recap, so a
-// player-side call is refused rather than half-applied.
+// player-side call is refused rather than half-applied. On a GM client that is
+// NOT `game.users.activeGM`, the call is forwarded there and the delta applied on
+// that client, so two GMs cannot lose each other's awards (see the relay trust
+// model). Awaiting it awaits the remote write, and a delivery failure comes back
+// as `{ok: false, error}` like any other refusal.
 const r = await api.renown.award({
   actor,                  // Actor
   delta: 1,               // signed; 0 is a no-op
@@ -509,6 +513,10 @@ Encounter Roller carries a **Recognised here** toggle (off by default) and a
 picker for whose renown applies. Independent of all of that, **double 1s on the
 reaction dice are always hostile** — `reactionBand(total, { doubleOnes })` in
 `encounter-result.mjs` short-circuits before the band ladder.
+
+**Carousing is not automated.** By the book the same bonus applies to carousing
+event rolls, but the module has no carousing roll to hook it into, so `bonusOf`
+is all it offers there — add the bonus by hand when you roll the table.
 
 Only one trigger is wired automatically: a level gain, controlled by the
 **Renown on level-up** setting. Reaching level 1 is excluded, because the
@@ -590,6 +598,18 @@ left on the raw socket is one-to-many state nudges that carry no payload at all
 — `shop:open`, `shop:close`, `downtime:sync`, `crawl:state` — where the receiver
 re-reads the world setting and a forged nudge buys an idempotent re-read of what
 the GM actually persisted.
+
+**A GM can be the wrong writer too.** Renown is the one value the module adjusts
+by reading it, adding a delta and writing the sum back — and "GM-only" is not
+"one client": a world with an assistant GM, or with an always-on watchdog client,
+has several. Two GMs awarding in the same moment both read the same value and
+both write the same total, so one award is silently lost while both are logged.
+`Renown.award` therefore forwards to `game.users.activeGM` whenever it is not
+already running there (query `sde.renown`, registered by GM clients only), and
+the receiving client re-reads the actor and applies the **delta** inside a
+serialized queue. The delta is what travels; a computed total never does. The
+queue is needed on top of the single-writer rule because `actor.update` awaits a
+server round trip, so two awards on one client can still overlap.
 
 Two consequences worth knowing:
 

@@ -9,19 +9,35 @@
  *
  * EXECUTION CONTEXT: **GM-side only.** `award` writes an actor AND the
  * `sessionRecap` world setting, which a player client cannot do. It refuses
- * loudly on a non-GM rather than half-applying. No player relay exists because
- * no player-facing control writes renown: the award dialog is GM-only, the
- * level-up watcher is active-GM-gated, and the downtime callers were already
- * GM-side (see their file headers).
+ * loudly on a non-GM rather than half-applying. No player-facing control writes
+ * renown either: the award dialog is GM-only and the downtime callers were
+ * already GM-side (see their file headers).
  *
- * The pure band/format half lives in renown-core.mjs (node-tested).
+ * ONE WRITER, ONE AT A TIME. Renown is read-compute-write — read the current
+ * value, add the delta, write the sum — and that shape loses updates under
+ * concurrency in two distinct ways:
+ *
+ *   1. Two GM CLIENTS. This world runs a second always-on GM (the Bridge
+ *      watchdog), so "GM-only" is not "one client". Both read 5, both write 6,
+ *      and two awards of +1 leave the actor at 6 with both logged. Fixed by
+ *      forwarding every non-active-GM award to the active GM over the
+ *      authenticated query channel, so exactly one client ever writes.
+ *   2. Two awards on ONE client. `actor.update` awaits a server round trip, so
+ *      an award that starts while another is in flight still reads the old
+ *      value. Being on one client is not enough — hence `_txQueue`.
+ *
+ * The pure band/format half lives in renown-core.mjs (node-tested), including
+ * `authorizeRenownAward`, which is the rule both the direct call and the query
+ * handler check.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
+import { isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
 import {
   RENOWN_BANDS,
   RENOWN_TRIGGERS,
+  authorizeRenownAward,
   isDoubleOnes,
   recapRow,
   renownBand,
@@ -45,6 +61,14 @@ export {
  * not see a setting registered through this constant.
  */
 const LEVEL_UP_SETTING = "renownOnLevelUp";
+
+/**
+ * Query channel a non-active GM's award is forwarded down, so every write to
+ * `system.renown` lands on one client. Registered by GM clients only — a player
+ * who addresses it gets the "unregistered query" throw, and would be turned away
+ * by `authorizeRenownAward` even if they didn't.
+ */
+export const RENOWN_QUERY = `${MODULE_ID}.renown`;
 
 /**
  * Last-seen level per actor id, kept on the GM client only.
@@ -85,7 +109,10 @@ export const Renown = {
     return renownBand(this.valueOf(actor));
   },
 
-  /** The reaction / carousing bonus an actor's renown grants (0–3). */
+  /**
+   * The bonus an actor's renown grants (0–3). Automated for reaction rolls
+   * only; carousing is applied by hand — see renownBonus in renown-core.mjs.
+   */
   bonusOf(actor) {
     return renownBonus(this.valueOf(actor));
   },
@@ -137,32 +164,64 @@ export const Renown = {
     if (!actor) {
       return { ok: false, before: 0, after: 0, delta: 0, band: renownBand(0), summary: "", error: "No character was supplied." };
     }
-    if (!game.user?.isGM) {
-      // Deliberately loud. Renown writes the recap world setting too, so a
-      // player-side call would silently record nothing even where the actor
-      // update itself succeeded.
-      return { ok: false, before, after: before, delta: 0, band: renownBand(before), summary: "", error: "Only a GM can change renown." };
+
+    // Deliberately loud. Renown writes the recap world setting too, so a
+    // player-side call would silently record nothing even where the actor
+    // update itself succeeded.
+    const denied = authorizeRenownAward({ requesterIsGM: !!game.user?.isGM });
+    if (denied) {
+      return { ok: false, before, after: before, delta: 0, band: renownBand(before), summary: "", error: denied.error };
     }
+
     if (step === 0) {
       return { ok: true, before, after: before, delta: 0, band: renownBand(before), summary: "" };
     }
 
+    // Hand off to the one client allowed to write (see the file header). The
+    // delta travels, never the computed total — the active GM re-reads and adds
+    // it there, so a stale read here cannot overwrite somebody else's award.
+    if (!isActiveGM()) {
+      const reply = await queryActiveGM(RENOWN_QUERY, {
+        action: "award",
+        actorId: actor.id,
+        delta: step,
+        reason: String(reason ?? ""),
+        source: String(source ?? "gm"),
+        chat: chat !== false,
+      }, { label: "Renown changes" });
+      return _shapeReply(reply, before);
+    }
+
+    return this._enqueueTx(() => this._awardNow({ actor, step, reason, source, chat }));
+  },
+
+  /**
+   * The critical section: re-read, write, log, announce.
+   *
+   * Runs on the active GM only, and only via `_enqueueTx`. The re-read is the
+   * point of it — the caller measured `before` prior to joining the queue, and
+   * an award ahead of it may have moved the value in the meantime.
+   */
+  async _awardNow({ actor, step, reason = "", source = "gm", chat = true } = {}) {
+    const live = game.actors?.get(actor?.id) ?? actor;
+    const before = this.valueOf(live);
     const after = before + step;
+
     try {
-      await actor.update({ "system.renown": after });
+      await live.update({ "system.renown": after });
     } catch (err) {
-      console.error(`${MODULE_ID} | renown: could not update ${actor.name}`, err);
+      console.error(`${MODULE_ID} | renown: could not update ${live?.name}`, err);
       return { ok: false, before, after: before, delta: 0, band: renownBand(before), summary: "", error: err?.message ?? "The update failed." };
     }
 
-    const summary = renownChangeLine({ actorName: actor.name, delta: step, after });
+    const summary = renownChangeLine({ actorName: live.name, delta: step, after });
 
     // Logging must never take down the thing that caused the award.
     try {
       await SessionRecap.logRenown({
-        actorId: actor.id,
-        actorName: actor.name,
-        player: _controllingPlayerName(actor),
+        actorId: live.id,
+        actorName: live.name,
+        player: _controllingPlayerName(live),
         delta: step,
         before,
         after,
@@ -175,13 +234,64 @@ export const Renown = {
 
     if (chat) {
       try {
-        await _postRenownCard({ actor, delta: step, after, reason });
+        await _postRenownCard({ actor: live, delta: step, after, reason });
       } catch (err) {
         console.warn(`${MODULE_ID} | renown: chat card failed`, err);
       }
     }
 
     return { ok: true, before, after, delta: step, band: renownBand(after), summary };
+  },
+
+  /**
+   * Serializes awards on the writing client — see failure mode 2 in the header.
+   * The same single-promise-chain mechanism as merchant-shop.mjs:84 and
+   * downtime-session.mjs:351, and for the same reason: check-then-write across
+   * an await double-applies without it.
+   */
+  _txQueue: Promise.resolve(),
+
+  _enqueueTx(fn) {
+    const run = this._txQueue.then(fn, fn);
+    this._txQueue = run.catch(() => {});
+    return run;
+  },
+
+  /**
+   * Query entry point — where another GM's award arrives.
+   *
+   * `refuseQuery` makes the RECEIVING client decide whether it is the active GM.
+   * That is not redundant with addressing `game.users.activeGM`: `User#query`
+   * lets the SENDER pick any active recipient, so a caller can address every
+   * connected GM in turn and `_txQueue` is per-client — the exact duplicate the
+   * activeGM gate exists to stop.
+   *
+   * The isGM check is separate and load-bearing. This handler is registered on
+   * GM clients, and a player may address it directly; nothing else on this path
+   * would refuse them.
+   *
+   * @param {object} data  Ids and a delta only — never a computed total.
+   * @param {User}   user  The AUTHENTICATED sender, from core's query context.
+   */
+  async handleQuery(data, user) {
+    const refusal = refuseQuery(user, "Renown changes");
+    if (refusal) return refusal;
+
+    if (data?.action !== "award") return { ok: false, error: "Unknown renown action." };
+
+    const denied = authorizeRenownAward({ requesterIsGM: !!user?.isGM });
+    if (denied) return denied;
+
+    const actor = game.actors?.get(data.actorId);
+    if (!actor) return { ok: false, error: "No character was supplied." };
+
+    return this._enqueueTx(() => this._awardNow({
+      actor,
+      step: renownValue(data.delta),
+      reason: String(data.reason ?? ""),
+      source: String(data.source ?? "gm"),
+      chat: data.chat !== false,
+    }));
   },
 
   /**
@@ -224,6 +334,10 @@ export const Renown = {
   init() {
     if (!game.user?.isGM) return;
 
+    // Every GM registers the handler; the handler decides for itself whether
+    // this client is the active GM, so a forwarded award still runs exactly once.
+    CONFIG.queries[RENOWN_QUERY] = (data, { user } = {}) => Renown.handleQuery(data, user);
+
     for (const actor of game.actors) {
       if (actor.type === "Player") _levelSeen.set(actor.id, _levelOf(actor));
     }
@@ -263,6 +377,24 @@ export const Renown = {
 
 function _levelOf(actor) {
   return renownValue(actor?.system?.level?.value);
+}
+
+/**
+ * Give a relayed award the same result shape a local one returns. On a delivery
+ * failure `queryActiveGM` answers `{ok:false, error}` and none of the numeric
+ * fields every caller reads, so fill them from what this client last saw.
+ */
+function _shapeReply(reply, before) {
+  if (reply?.ok) return reply;
+  return {
+    ok: false,
+    before,
+    after: before,
+    delta: 0,
+    band: renownBand(before),
+    summary: "",
+    error: reply?.error ?? "The primary GM did not answer.",
+  };
 }
 
 /** True only on the single active GM — the multi-GM guard used module-wide. */
