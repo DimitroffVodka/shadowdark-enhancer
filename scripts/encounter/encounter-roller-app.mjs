@@ -9,6 +9,8 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { DISTANCE, ACTIVITY, reactionBand } from "./encounter-result.mjs";
+import { Renown } from "../renown/renown.mjs";
+import { isDoubleOnes, signedRenown } from "../renown/renown-core.mjs";
 import { EncounterBrowse } from "./encounter-browse.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "./encounter-sources.mjs";
 import { npcMoveKeys } from "../monster-creator/npc-moves.mjs";
@@ -67,6 +69,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       reroll:       EncounterRollerApp.prototype._onReroll,
       chaDec:       EncounterRollerApp.prototype._onChaDec,
       chaInc:       EncounterRollerApp.prototype._onChaInc,
+      renownToggle: EncounterRollerApp.prototype._onRenownToggle,
       postToChat:   EncounterRollerApp.prototype._onPostToChat,
       placeTokens:  EncounterRollerApp.prototype._onPlaceTokens,
       previewPost:  EncounterRollerApp.prototype._onPreviewPost,
@@ -359,6 +362,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
       tableGroups,
       tablePreview,
       lastResult: this._lastResult,
+      renown: this._renownContext(),
       browseData,
       buildData,
     };
@@ -460,6 +464,17 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (select) {
       select.addEventListener("change", ev => {
         this._selectedTableId = ev.currentTarget.value;
+        this.render();
+      });
+    }
+
+    // Reaction tab: which PC's renown the encounter is measured against.
+    const renownSelect = this.element.querySelector("select[name='renownActor']");
+    if (renownSelect) {
+      renownSelect.addEventListener("change", ev => {
+        if (!this._lastResult) return;
+        this._lastResult.renownActorId = ev.currentTarget.value || null;
+        this._updateResultStrings();
         this.render();
       });
     }
@@ -770,7 +785,8 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
         distanceRoll: await this._roll("1d6"),
         activityRoll: await this._roll("2d6"),
         reactionRoll: await this._roll("2d6"),
-        chaMod: 0
+        chaMod: 0,
+        ...this._freshRenownState(),
       };
       this._updateResultStrings();
     } else {
@@ -858,12 +874,55 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     return r.total;
   }
 
+  /**
+   * Renown defaults for a freshly rolled encounter.
+   *
+   * The bonus starts OFF. Western Reaches p233 makes it conditional — a PC adds
+   * their renown bonus only where they would plausibly be recognised — so it is
+   * the GM's per-roll call, not an automatic add. The pre-selected character is
+   * the party's MOST renowned: one reaction roll is made for the whole
+   * encounter, so the party is effectively putting its best-known face forward,
+   * and that is also the only choice that can ever change the band.
+   */
+  _freshRenownState() {
+    const best = Renown.mostRenowned();
+    return { renownOn: false, renownActorId: best?.actorId ?? null };
+  }
+
+  /** The party roster for the renown picker, plus the currently chosen entry. */
+  _renownContext() {
+    const res = this._lastResult;
+    const party = Renown.party();
+    const chosen = party.find((p) => p.actorId === res?.renownActorId) ?? null;
+    return {
+      party: party.map((p) => ({ ...p, selected: p.actorId === res?.renownActorId })),
+      hasParty: party.length > 0,
+      chosen,
+    };
+  }
+
   _updateResultStrings() {
     if (!this._lastResult) return;
     const res = this._lastResult;
     res.distanceText = DISTANCE[res.distanceRoll];
     res.activityText = ACTIVITY[res.activityRoll];
-    res.reactionBand = reactionBand(res.reactionRoll + res.chaMod);
+
+    // Renown bonus — only when the GM says the party is somewhere it would be
+    // recognised, and only from the one character they picked.
+    const chosen = res.renownActorId ? game.actors.get(res.renownActorId) : null;
+    res.renownName = chosen?.name ?? null;
+    const band = chosen ? Renown.bandOf(chosen) : null;
+    res.renownBandLabel = band?.label ?? null;
+    res.renownValue = chosen ? Renown.valueOf(chosen) : null;
+    res.renownBonus = res.renownOn && band ? band.bonus : 0;
+    res.renownBonusText = signedRenown(res.renownBonus);
+    res.renownApplied = res.renownOn && res.renownBonus !== 0;
+
+    // Double 1s are always hostile, whatever the modifiers total (p233). The
+    // raw 2d6 total of 2 can only be 1+1.
+    res.reactionDoubleOnes = isDoubleOnes(res.reactionRoll);
+    res.reactionTotal = res.reactionRoll + res.chaMod + res.renownBonus;
+    res.reactionBand = reactionBand(res.reactionTotal, { doubleOnes: res.reactionDoubleOnes });
   }
 
   async _onReroll(event, target) {
@@ -887,6 +946,14 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
     if (!this._lastResult) return;
     if (this._lastResult.chaMod >= CHA_MOD_MAX) return;
     this._lastResult.chaMod++;
+    this._updateResultStrings();
+    this.render();
+  }
+
+  /** "Recognised here" — folds the chosen PC's renown bonus into the reaction. */
+  _onRenownToggle() {
+    if (!this._lastResult) return;
+    this._lastResult.renownOn = !this._lastResult.renownOn;
     this._updateResultStrings();
     this.render();
   }
@@ -1318,6 +1385,7 @@ export class EncounterRollerApp extends HandlebarsApplicationMixin(ApplicationV2
           activityRoll: await this._roll("2d6"),
           reactionRoll: await this._roll("2d6"),
           chaMod: 0,
+          ...this._freshRenownState(),
         };
         this._updateResultStrings();
         this.render();

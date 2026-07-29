@@ -44,6 +44,12 @@ See [Movement Budgets](Movement-Budgets.md).
 |---|---|---|
 | **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate mishap table for the casting class: Wizard Mishap for wizards and necromancers, Diabolical Mishap for witches. Divine casters (Priest, Green Knight, Seer) are exempt and simply lose the spell per RAW. Wand and scroll casts use the spell behind them, not the wand. |
 
+### Renown
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Renown on level-up** | on | Gives a player character a point of renown each time their level goes up. Reaching level 1 is excluded, because character creation writes that value. Every other renown trigger is a judgement call and stays on the **Renown** dialog. See [Renown](Renown.md). |
+
 ### Encounters
 
 | Setting | Default | What it does |

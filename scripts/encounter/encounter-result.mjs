@@ -19,11 +19,20 @@ export const ACTIVITY = {
 };
 
 /**
- * Maps a 2d6+CHA roll total to a Shadowdark reaction band.
- * @param {number} total
+ * Maps a modified 2d6 reaction total to a Shadowdark reaction band.
+ *
+ * `doubleOnes` short-circuits everything: two 1s on the reaction dice are
+ * always a hostile reaction, no matter what the CHA modifier and the renown
+ * bonus add up to (Western Reaches p233). The caller knows this from the RAW
+ * 2d6 total, because 2 on two six-sided dice can only be 1+1 — see
+ * `isDoubleOnes` in renown-core.mjs.
+ *
+ * @param {number} total  the roll plus every modifier
+ * @param {{doubleOnes?: boolean}} [opts]
  * @returns {string}
  */
-export function reactionBand(total) {
+export function reactionBand(total, { doubleOnes = false } = {}) {
+  if (doubleOnes) return "Hostile";
   if (total <= 6)  return "Hostile";
   if (total <= 8)  return "Suspicious";
   if (total === 9) return "Neutral";

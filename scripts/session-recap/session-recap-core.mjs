@@ -15,6 +15,10 @@
 // window, the Discord export and the persistent journal all phrase a downtime
 // attempt identically. downtime-log-core.mjs is Foundry-free, like this file.
 import { recapRow as downtimeRecapRow } from "../downtime/downtime-log-core.mjs";
+// Same one-way arrangement for renown, so the chat card, the recap window and
+// the Discord export phrase a renown change identically. renown-core.mjs is
+// Foundry-free, like this file.
+import { recapRow as renownRecapRow } from "../renown/renown-core.mjs";
 
 /** Empty session payload. Cloned on session start / clear. */
 export const DEFAULT_DATA = {
@@ -28,6 +32,7 @@ export const DEFAULT_DATA = {
   encounterChecks: [],
   luckSpent: [],
   downtime: [],
+  renown: [],
   playerStats: {},
 };
 
@@ -308,6 +313,22 @@ export function formatForDiscordFromData(data, startTime, endTime) {
     }
     if (Object.keys(byPlayer).length > 1) {
       lines.push(`**Session XP Awarded: ${grandTotal} XP**`);
+      lines.push("");
+    }
+  }
+
+  // ── Renown ──────────────────────────────────────────────────
+  // Every change to `system.renown` this session, whatever caused it — a GM
+  // award, a level-up, or a downtime rumour. A downtime-driven change also
+  // appears under Downtime as part of that attempt's effect summary; this
+  // section is the renown ledger, the same double-entry Purchases has.
+  if (Array.isArray(data.renown) && data.renown.length > 0) {
+    lines.push("## Renown");
+    const byPlayer = {};
+    for (const e of data.renown) (byPlayer[e.player || "GM"] ??= []).push(e);
+    for (const [player, entries] of Object.entries(byPlayer)) {
+      lines.push(`### ${player}`);
+      for (const e of entries) lines.push(`- ${renownRecapRow(e)}`);
       lines.push("");
     }
   }

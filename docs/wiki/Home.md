@@ -36,6 +36,7 @@ Tools you use while a session is running.
 | [Merchant Shop](Merchant-Shop.md) | A shop window open to every player at once, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Awarding XP to the whole party, Shadowdark treasure-XP rules |
 | [Downtime](Downtime.md) | Between-crawl activities, the DC step-down ladder, per-attempt costs, unlocked from your own book |
+| [Renown](Renown.md) | The fame track, its four bands, the reaction-roll bonus, awarding and docking it |
 | [Session Recap](Session-Recap.md) | Automatic session log (loot, XP, combats, rolls, kills) with a Discord export |
 
 ## Building content

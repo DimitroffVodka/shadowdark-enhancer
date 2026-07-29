@@ -469,6 +469,64 @@ consumes it on the next completed buy **or** sell.
 
 ---
 
+## `renown` — the fame track
+
+Renown is the Western Reaches fame score. The **number is the system's field**,
+`system.renown` on a Player actor, and the Shadowdark sheet already shows it —
+this namespace adds the band ladder that gives the number meaning, the single
+write path that keeps every change logged, and the GM's award dialog.
+
+```js
+await api.renown.open();            // GM award / dock dialog. Also the party roster:
+                                    // every PC's renown, band, meaning and bonus.
+await api.renown.open({ actorId, delta: -1, reason: "Public humiliation" });
+
+// The one write path. GM-only — it writes the actor AND the session recap, so a
+// player-side call is refused rather than half-applied.
+const r = await api.renown.award({
+  actor,                  // Actor
+  delta: 1,               // signed; 0 is a no-op
+  reason: "A major triumph",
+  source: "gm",           // "gm" | "downtime" | "level-up" | "start"
+  chat: true,             // post the announcement card (default true)
+});
+// → { ok, before, after, delta, band, summary, error? }
+
+await api.renown.seedFromCha(actor); // set renown to the character's CHA modifier
+
+api.renown.valueOf(actor);  // integer; may be negative
+api.renown.bandOf(actor);   // { key, label, max, bonus, note }
+api.renown.bonusOf(actor);  // 0 | 1 | 2 | 3
+api.renown.party();         // [{ actorId, name, renown, band, bonus }], highest first
+```
+
+The four bands run `≤3` / `4–7` / `8–11` / `12+`, granting a `+0` / `+1` / `+2` /
+`+3` bonus. Renown has no floor and is allowed to go negative.
+
+**The reaction bonus is never added automatically.** A character adds it only
+where they would plausibly be recognised, which is a per-roll decision, so the
+Encounter Roller carries a **Recognised here** toggle (off by default) and a
+picker for whose renown applies. Independent of all of that, **double 1s on the
+reaction dice are always hostile** — `reactionBand(total, { doubleOnes })` in
+`encounter-result.mjs` short-circuits before the band ladder.
+
+Only one trigger is wired automatically: a level gain, controlled by the
+**Renown on level-up** setting. Reaching level 1 is excluded, because the
+Character Builder and the level-0 funnel both write `system.level.value` as part
+of creating the character. Everything else the book lists is a judgement call and
+lives on the dialog as a suggestion.
+
+Every change — a GM award, a level-up, a downtime rumour — is logged to the
+Session Recap (its **XP & Renown** tab, and a `## Renown` section in the Discord
+export) and posts a chat card, unless the caller passes `chat: false`. Downtime
+passes `chat: false`, because its own result card already reports the change.
+
+**Ships no book prose.** The band thresholds, the bonus numbers and the trigger
+labels are mechanics. The one-line meanings shown beside each band are the
+module's own wording, not the book's.
+
+---
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals

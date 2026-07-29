@@ -373,6 +373,9 @@
   "SDE.settings.spellMishapAutoRoll.name": "Auto-roll spell mishap tables",
   "SDE.settings.spellMishapAutoRoll.hint": "If on, a natural 1 on a failed spellcasting check automatically rolls the appropriate Wizard Mishap table.",
 
+  "SDE.settings.renownOnLevelUp.name": "Renown on level-up",
+  "SDE.settings.renownOnLevelUp.hint": "If on, a player character gains a point of renown each time their level goes up. Reaching level 1 is excluded, since character creation writes it. Every other renown trigger stays a GM call through the Renown dialog.",
+
   "SDE.mishap.rolled": "{name} rolled a mishap on a Tier {tier} spell — {tableName}:",
 
   "SDE.prayerRoll.title": "Pray to {deity}",

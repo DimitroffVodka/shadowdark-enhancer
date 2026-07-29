@@ -49,6 +49,7 @@ import { MerchantShop } from "./merchant/merchant-shop.mjs";
 import { PartyXP } from "./party-xp/party-xp.mjs";
 import { SessionRecap } from "./session-recap/session-recap.mjs";
 import { DowntimeSession } from "./downtime/downtime-session.mjs";
+import { Renown } from "./renown/renown.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -66,7 +67,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "70b1b68e9fdb";
+const STYLESHEET_REV = "95be5bb05b53";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -142,6 +143,7 @@ Hooks.once("init", () => {
   MerchantShop.registerSettings();
   SessionRecap.registerSettings();
   ItemDrops.registerSettings();
+  Renown.registerSettings();
   MonsterTokenArt.register();
   // "Export to PDF" header button on owned Shadowdark player sheets.
   PdfSheetExport.register();
@@ -495,6 +497,23 @@ Hooks.once("init", () => {
       releaseRolls: () => DowntimeSession.setPhase("select"),
       sessionState: () => foundry.utils.deepClone(DowntimeSession.state),
     },
+    // Renown — the Western Reaches fame track (p233). The number itself is the
+    // SYSTEM's field (`system.renown`); this is the single write path plus the
+    // band ladder that the reaction roll and the downtime window read.
+    renown: {
+      // GM award / dock dialog, which doubles as the party renown roster.
+      open: (opts) => Renown.openDialog(opts),
+      // The one write path. GM-only; logs to the Session Recap and posts a card.
+      award: (args) => Renown.award(args),
+      // Set renown to the book's starting value (the character's CHA modifier).
+      seedFromCha: (actor, opts) => Renown.seedFromCha(actor, opts),
+      // Reads: value, band ({key,label,bonus,note}), bonus (0–3).
+      valueOf: (actor) => Renown.valueOf(actor),
+      bandOf: (actor) => Renown.bandOf(actor),
+      bonusOf: (actor) => Renown.bonusOf(actor),
+      // Party roster, highest renown first.
+      party: () => Renown.party(),
+    },
   };
 });
 
@@ -521,6 +540,10 @@ Hooks.on("quenchReady", async (quench) => {
 
 Hooks.once("ready", () => {
   console.log(`${MODULE_ID} | ready`);
+  // Renown's level-up watcher. GM clients only; the award itself is gated to
+  // the single ACTIVE GM inside, so the always-on Bridge client cannot make it
+  // fire twice.
+  Renown.init();
   // Guarantee the system's "Searching Distant Lands…" loading spinner is never
   // orphaned when an Item sheet's getData() throws (e.g. a transient failure in
   // the compendium-scan path right after importing a class) — see

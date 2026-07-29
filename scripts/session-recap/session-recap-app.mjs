@@ -10,6 +10,7 @@
 import { SessionRecap } from "./session-recap.mjs";
 import { toCopper, formatCurrency } from "./session-recap-core.mjs";
 import { recapRow as downtimeRecapRow } from "../downtime/downtime-log-core.mjs";
+import { recapRow as renownRecapRow, signedRenown } from "../renown/renown-core.mjs";
 import { esc } from "../shared/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -63,7 +64,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     // Defensive defaults for archived payloads missing newer arrays.
     data.sales ??= []; data.purchases ??= []; data.encounterChecks ??= [];
-    data.downtime ??= [];
+    data.downtime ??= []; data.renown ??= [];
 
     const hasDamageLog = game.modules.get("damage-log")?.active ?? false;
     const sessionDuration = viewingSession
@@ -147,6 +148,22 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       total,
     }));
 
+    // Renown — grouped by controlling player, newest first. Shares the XP tab:
+    // both are per-character advancement ledgers the GM awards, and a session
+    // rarely produces more than a couple of renown rows — not enough to earn a
+    // tab of its own.
+    const renownByPlayer = {};
+    for (const e of data.renown ?? []) (renownByPlayer[e.player || "GM"] ??= []).push(e);
+    const renownPlayers = Object.entries(renownByPlayer).map(([player, list]) => ({
+      player,
+      net: signedRenown(list.reduce((s, e) => s + (Number(e.delta) || 0), 0)),
+      changes: [...list].reverse().map(e => ({
+        time: e.time ?? "",
+        text: renownRecapRow(e),
+        up: (Number(e.delta) || 0) > 0,
+      })),
+    }));
+
     // Downtime — grouped by controlling player, newest first within a group.
     // The headline row is formatted by the same pure helper the Discord export
     // and the persistent Downtime Log journal use, so all three read alike.
@@ -207,6 +224,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       lootEntries, hasLoot: lootEntries.length > 0,
       sales, purchases, hasMerchant: sales.length > 0 || purchases.length > 0,
       xpPlayers, hasXp: xpPlayers.length > 0,
+      renownPlayers, hasRenown: renownPlayers.length > 0,
       downtimePlayers, hasDowntime: downtimePlayers.length > 0,
       encounterChecks, hasEncounterChecks: encounterChecks.length > 0, encounterSummary,
       viewingSession: viewingSession ? { id: viewingSession.id, name: viewingSession.name } : null,

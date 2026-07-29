@@ -108,6 +108,12 @@
       "dir": "scripts/downtime",
       "title": "`scripts/downtime/` — between-crawls downtime activities",
       "note": "Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo."
+    },
+    {
+      "id": "3.19",
+      "dir": "scripts/renown",
+      "title": "`scripts/renown/` — the renown fame track",
+      "note": "The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This folder adds the band ladder, the single logged write path every renown change goes through, and the GM's award dialog. Band thresholds and bonus numbers are mechanics; the one-line band meanings are the module's own wording, not the book's."
     }
   ],
   "order": {
@@ -319,6 +325,11 @@
       "scripts/downtime/downtime-warnings.mjs",
       "scripts/downtime/downtime-app.mjs",
       "scripts/downtime/downtime-session.mjs"
+    ],
+    "3.19": [
+      "scripts/renown/renown-core.mjs",
+      "scripts/renown/renown.mjs",
+      "scripts/renown/renown-award-dialog.mjs"
     ]
   },
   "descriptions": {
@@ -494,6 +505,9 @@
     "scripts/downtime/downtime-log.mjs": "`recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged \"Downtime Log\" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only.",
     "scripts/downtime/downtime-warnings.mjs": "Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically.",
     "scripts/downtime/downtime-app.mjs": "The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub.",
-    "scripts/downtime/downtime-session.mjs": "Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles."
+    "scripts/downtime/downtime-session.mjs": "Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles.",
+    "scripts/renown/renown-core.mjs": "Pure band ladder and phrasing: `renownBand`/`renownBonus` (≤3 / 4–7 / 8–11 / 12+ → +0/+1/+2/+3), `startingRenown` (the CHA modifier), the shared `recapRow`/`renownChangeLine` wording, the short trigger labels, and `isDoubleOnes` — a raw 2d6 total of 2 can only be 1+1. Foundry-free, node-tested.",
+    "scripts/renown/renown.mjs": "The single write path for `system.renown`. `Renown.award` updates the actor, logs to the Session Recap and posts a chat card; downtime and the level-up watcher both route through it. Also the party readers the Encounter Roller uses, and the `renownOnLevelUp` setting plus its active-GM-gated `updateActor` watcher. GM-side only.",
+    "scripts/renown/renown-award-dialog.mjs": "The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, plus a \"Start at CHA mod\" seed. GM-only; every write goes through `Renown.award`."
   }
 }

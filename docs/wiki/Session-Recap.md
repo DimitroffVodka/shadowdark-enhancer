@@ -44,7 +44,19 @@ Saved sessions go to a history you can browse later.
 
 ## The tabs
 
-**Overview · Combat · Loot · XP · Downtime · History**
+**Overview · Combat · Loot · XP & Renown · Downtime · History**
+
+### XP & Renown
+
+XP awards first, grouped by player with a per-player total. Underneath, a
+**Renown** block with every change to a character's [renown](Renown.md) this
+session — the time, the change, the new total, the band it landed in and your
+reason — grouped by player with a net change each. The block is hidden entirely
+when nothing moved.
+
+Renown shares this tab rather than taking one of its own: both are per-character
+advancement ledgers the GM awards, and a session rarely produces more than a
+couple of renown rows.
 
 ### Downtime
 
@@ -66,7 +78,7 @@ the session. See [Downtime](Downtime.md#the-downtime-log).
 ## Exporting
 
 **Copy for Discord** produces a markdown recap ready to paste into a channel,
-including a **Downtime** section with the same per-player grouping.
+including **Renown** and **Downtime** sections with the same per-player grouping.
 
 ---
 

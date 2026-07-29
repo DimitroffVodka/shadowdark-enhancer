@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-706 tracked files · ~91,500 lines of code/markup across scripts+templates+styles+test.
+711 tracked files · ~92,700 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 670 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 693 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 207 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 
@@ -83,15 +83,15 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 613 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 617 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-roller-app.mjs` | 1363 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
+| `encounter-roller-app.mjs` | 1431 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
 | `encounter-check.mjs` | 80 | The d6 random-encounter check + chat post. |
-| `encounter-result.mjs` | 32 | Distance / Activity / Reaction RAW lookups. |
+| `encounter-result.mjs` | 41 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 286 | Build-a-table data layer (slots, die formats, save to RollTable). |
 | `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
 | `npc-index.mjs` | 260 | NPC actors → compact browse row model. |
@@ -160,9 +160,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 648 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
-| `session-recap-core.mjs` | 353 | Pure data shape, currency math, duration format, Discord-markdown export. |
-| `session-recap-app.mjs` | 291 | Recap window: Overview / Combat / Loot / XP / History. |
+| `session-recap.mjs` | 675 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap-core.mjs` | 374 | Pure data shape, currency math, duration format, Discord-markdown export. |
+| `session-recap-app.mjs` | 309 | Recap window: Overview / Combat / Loot / XP / History. |
 
 ### 3.12 `scripts/importer/` — hub + cross-type infrastructure
 
@@ -298,14 +298,24 @@
 | `downtime-parser.mjs` | 291 | Parses a pasted downtime page into per-slot outcome text; segment-scoped DC + keyword matching with a rescue pass for column-interleaved PDF copies. Unmatched lines are reported back, never guessed at. |
 | `downtime-core.mjs` | 208 | Pure downtime rules math: the DC step-down ladder, per-attempt cost by source, the martial-training hit-die tier and caster-list gates, and the stored unlock record shape. |
 | `downtime-effects-core.mjs` | 262 | Pure decision layer for downtime outcomes: the slot-to-plan table (auto / choice / narrative), the per-weapon martial-training limit counters and damage-die ladder, the one-shot extortion math, and the XP level-up threshold. Ships item names only, no rules text. |
-| `downtime-effects.mjs` | 779 | Applies a successful downtime outcome for real — renown, XP, weapon-training Active Effects, damage-die steps, fabricated scrolls/wands/potions, spell trades, advantage reminders and the merchant extortion flag. Enumerates the concrete choices first; GM-side execution only. |
+| `downtime-effects.mjs` | 788 | Applies a successful downtime outcome for real — renown, XP, weapon-training Active Effects, damage-die steps, fabricated scrolls/wands/potions, spell trades, advantage reminders and the merchant extortion flag. Enumerates the concrete choices first; GM-side execution only. |
 | `downtime-log-core.mjs` | 199 | Pure downtime-log formatting: the recap headline row, the escaped journal `<li>`, and the newest-first grouping that splices a row under its `data-sde-day` heading. Shared by the recap window, the Discord export and the journal so all three phrase an attempt identically. |
 | `downtime-log.mjs` | 183 | `recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged "Downtime Log" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only. |
 | `downtime-warnings.mjs` | 87 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
-| `downtime-app.mjs` | 1374 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
+| `downtime-app.mjs` | 1395 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
 | `downtime-session.mjs` | 984 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 
 Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo.
+
+### 3.19 `scripts/renown/` — the renown fame track
+
+| File | Lines | Description |
+|---|---:|---|
+| `renown-core.mjs` | 144 | Pure band ladder and phrasing: `renownBand`/`renownBonus` (≤3 / 4–7 / 8–11 / 12+ → +0/+1/+2/+3), `startingRenown` (the CHA modifier), the shared `recapRow`/`renownChangeLine` wording, the short trigger labels, and `isDoubleOnes` — a raw 2d6 total of 2 can only be 1+1. Foundry-free, node-tested. |
+| `renown.mjs` | 306 | The single write path for `system.renown`. `Renown.award` updates the actor, logs to the Session Recap and posts a chat card; downtime and the level-up watcher both route through it. Also the party readers the Encounter Roller uses, and the `renownOnLevelUp` setting plus its active-GM-gated `updateActor` watcher. GM-side only. |
+| `renown-award-dialog.mjs` | 161 | The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, plus a "Start at CHA mod" seed. GM-only; every write goes through `Renown.award`. |
+
+The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This folder adds the band ladder, the single logged write path every renown change goes through, and the GM's award dialog. Band thresholds and bonus numbers are mechanics; the one-line band meanings are the module's own wording, not the book's.
 <!-- inventory:scripts:end -->
 ---
 

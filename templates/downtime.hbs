@@ -55,7 +55,7 @@
       <div class="sde-dt-purse">
         <span title="Level">L{{actorLevel}}</span>
         <span title="Coins"><i class="fas fa-coins"></i> {{coins.gp}} gp {{coins.sp}} sp {{coins.cp}} cp</span>
-        <span title="Renown"><i class="fas fa-crown"></i> {{renown}}</span>
+        <span title="Renown — {{renownBandNote}}"><i class="fas fa-crown"></i> {{renown}} · {{renownBand}}{{#if renownBonus}} ({{renownBonus}}){{/if}}</span>
       </div>
     {{/if}}
 
