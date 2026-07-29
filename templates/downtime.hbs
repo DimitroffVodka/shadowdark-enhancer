@@ -174,6 +174,22 @@
                 {{/if}}
               {{/each}}
             </div>
+            {{#if myResult.pendingChoice.freeText}}
+              {{!-- Martial training records a descriptive Talent, so the preset
+                    buttons above are only what the gear packs happen to hold.
+                    The book lets you train with anything, so a typed name is a
+                    first-class answer — the GM cleans and length-caps it. --}}
+              <div class="sde-dt-freetext">
+                <label class="sde-dt-freetext-label" for="sde-dt-freetext-input">
+                  Not listed? Type it:
+                </label>
+                <input type="text" id="sde-dt-freetext-input" class="sde-dt-freetext-input"
+                       maxlength="60" placeholder="e.g. Boar spear" autocomplete="off">
+                <button type="button" class="sde-dt-btn sde-dt-primary" data-action="submitFreeText">
+                  <i class="fas fa-check"></i> Train with this
+                </button>
+              </div>
+            {{/if}}
           </div>
         {{/if}}
       {{else}}

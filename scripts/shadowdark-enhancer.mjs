@@ -67,7 +67,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "dd7161d50a1e";
+const STYLESHEET_REV = "70b1b68e9fdb";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -571,10 +571,11 @@ Hooks.once("ready", () => {
   // idempotent; fills in the WR merchant once its item pack is present.
   if (game.user.isGM) MerchantShop.seedDefaultMerchants();
   SessionRecap.init();
-  // Downtime sessions: socket listener + announcement-card wiring. Runs on
-  // EVERY client (players included) — players need the listener to receive the
-  // state nudge and the card button; the handlers that mutate world state are
-  // activeGM-gated inside the module.
+  // Downtime sessions: sync listener, GM query handler, announcement-card
+  // wiring. Runs on EVERY client (players included) — players need the listener
+  // for the state nudge and the card button. The raw socket carries only the
+  // payload-free nudge; every player action that mutates world state arrives as
+  // an authenticated user query, so the GM knows who asked.
   DowntimeSession.init();
   checkCoexistence();
   if (game.user.isGM && !game.settings.get(MODULE_ID, "lootSetupSeen")) {

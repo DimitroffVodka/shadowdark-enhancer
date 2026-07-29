@@ -9358,6 +9358,14 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-dt-trade-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 3px 0; }
 .sde-dt-trade-drop { font-family: var(--sd-font-title); font-size: 14px; color: var(--sd-text); }
 .sde-dt-trade-gain { font-size: 11.5px; }
+/* Typed answer for the training slots, sitting under the shortlist rather than
+   replacing it — the presets stay one click away. */
+.sde-dt-freetext {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-top: 10px; padding-top: 10px; border-top: 1px dotted var(--sd-frame);
+}
+.sde-dt-freetext-label { font-size: 11.5px; color: var(--sd-text-muted); }
+.sde-dt-freetext-input { flex: 1 1 160px; min-width: 140px; font-size: 12px; }
 
 /* --- In-app result area ---------------------------------------------------- */
 .sde-dt-result { border-left: 3px solid var(--sd-hairline); }

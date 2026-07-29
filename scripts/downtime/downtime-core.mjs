@@ -102,3 +102,105 @@ export function slotByKey(key) {
   const entry = SLOT_INDEX.get(key);
   return entry ? { activity: entry.activity, slot: entry.slot } : null;
 }
+
+/* ── Request authorization ──────────────────────────────────────────────────
+ * The GM-side decisions that answer "may this person do this?", kept pure so
+ * they can be pinned by tests without a Foundry world. The session layer feeds
+ * them facts it has already read off authenticated documents; nothing in here
+ * ever reads an id out of a message payload.
+ */
+
+/** Longest free-text training name accepted. Long enough for "Two-handed maul". */
+export const FREE_TEXT_MAX_LENGTH = 60;
+
+/**
+ * May this requester act for this character?
+ *
+ * A GM may act for anyone (they roll for absent players). Everyone else must
+ * hold OWNER on the actor — the caller resolves that from the authenticated
+ * User document, never from a payload field.
+ */
+export function authorizeActorRequest({ actorExists, requesterIsGM, requesterOwnsActor } = {}) {
+  if (!actorExists) return { ok: false, error: "That character no longer exists." };
+  if (requesterIsGM || requesterOwnsActor) return { ok: true };
+  return { ok: false, error: "You don't own that character." };
+}
+
+/**
+ * Is this ChatMessage a legitimate, unspent roll for this attempt?
+ *
+ * Reading the total off the message document stops a player *inventing* a
+ * number, but on its own it lets them nominate any roll they ever made. The
+ * attempt therefore carries a one-shot capability: the GM mints `pick.nonce`
+ * when it records the pick, the roller stamps it into the message's downtime
+ * flag, and it is spent on settlement. Every axis of "is this the right roll"
+ * is checked separately so the refusal can say which one failed.
+ *
+ * @param {object} claim
+ * @param {string} claim.actorId            Character the attempt is for.
+ * @param {string} claim.slotKey            Activity slot being settled.
+ * @param {string} claim.messageId          Message the requester nominated.
+ * @param {?object} claim.pick              The session's recorded pick.
+ * @param {?object} claim.rollFlag          flags[MODULE_ID].downtimeRoll off the message.
+ * @param {boolean} claim.hasRoll           Does the message carry an evaluated Roll?
+ * @param {?string} claim.messageAuthorId   Authenticated author of the message.
+ * @param {?string} claim.messageActorId    Actor the message's speaker resolves to.
+ * @param {?string} claim.requesterId       Authenticated sender.
+ * @param {string[]} [claim.consumedNonces] Nonces already spent this session.
+ * @param {string[]} [claim.settledMessageIds] Messages already settled this session.
+ */
+export function validateRollClaim({
+  actorId, slotKey, messageId, pick, rollFlag, hasRoll,
+  messageAuthorId, messageActorId, requesterId,
+  consumedNonces = [], settledMessageIds = [],
+} = {}) {
+  if (!pick) return { ok: false, error: "You haven't chosen an activity." };
+  if (pick.slotKey !== slotKey) return { ok: false, error: "That doesn't match your locked pick." };
+  if (!pick.nonce) {
+    // Only reachable for a pick recorded before this guard shipped. Failing
+    // closed is the whole point, so say plainly how to get unstuck.
+    return { ok: false, error: "That pick predates a security update — ask your GM to reopen picks so you can choose again." };
+  }
+  if (!hasRoll) return { ok: false, error: "Couldn't find that roll." };
+
+  if (!rollFlag || typeof rollFlag !== "object") {
+    return { ok: false, error: "That message isn't a downtime roll." };
+  }
+  if (rollFlag.actorId !== actorId) return { ok: false, error: "That roll was made for a different character." };
+  if (rollFlag.slotKey !== slotKey) return { ok: false, error: "That roll was made for a different activity." };
+  if (rollFlag.nonce !== pick.nonce) return { ok: false, error: "That roll doesn't belong to this attempt." };
+
+  if (requesterId && messageAuthorId && messageAuthorId !== requesterId) {
+    return { ok: false, error: "That roll isn't yours." };
+  }
+  if (messageActorId && messageActorId !== actorId) {
+    return { ok: false, error: "That roll was spoken by a different character." };
+  }
+
+  if (consumedNonces.includes(pick.nonce)) return { ok: false, error: "That roll has already been used." };
+  if (messageId && settledMessageIds.includes(messageId)) {
+    return { ok: false, error: "That roll has already been used." };
+  }
+  return { ok: true };
+}
+
+/**
+ * Clean a typed training name before it becomes an Item name and a chat line.
+ *
+ * Control characters and angle brackets are removed outright rather than left
+ * for the renderer: every consumer escapes, but an item name travels far enough
+ * (sheets, chat, exports, other modules) that carrying markup at all is a risk
+ * worth nothing. Everything else — apostrophes, ampersands, accents — survives,
+ * because "Bow & Arrow" is a real answer.
+ */
+export function sanitizeFreeTextName(raw, { max = FREE_TEXT_MAX_LENGTH } = {}) {
+  const cleaned = String(raw ?? "")
+    .replace(/\p{Cc}+/gu, " ")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max)
+    .trim();
+  if (!cleaned) return { ok: false, error: "Type the name of the weapon or armor trained with." };
+  return { ok: true, name: cleaned };
+}

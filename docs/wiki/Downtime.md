@@ -310,6 +310,15 @@ what before the dice come out. The options name their own dice, reading
 > that chat message and recomputes the DC, the cost and the gating from the
 > skeleton, so a player's client is never trusted for a number.
 
+> **Nor for who they are.** Picks, rolls and effect choices reach the GM over
+> Foundry's authenticated user-query channel, where the *server* tells the GM's
+> client who sent the message. The GM then checks that the sender actually owns
+> the character before anything is written — a GM may act for anyone, everyone
+> else only for their own. Each pick also mints a one-shot token that the roll
+> message carries, so a roll settles the attempt it was made for and only once.
+> Nominating an old high roll, or somebody else's character, is refused and
+> writes nothing: no coin, no ladder progress, no result, no card.
+
 ### The GM control panel
 
 While a session runs, the GM's window grows a panel headed
@@ -464,6 +473,15 @@ the same weapon twice. Training with something new creates a Talent called
 Talent says as much on its own description. A wand is refused while an unbroken
 one of that spell is already carried.
 
+**Trained with something that isn't on the list.** The three "new weapon or
+armor" slots record a descriptive Talent, so the buttons are only what your gear
+packs happen to hold — the book lets a character train with anything. Under the
+buttons those slots carry `Not listed? Type it:`, a text box, and a
+**Train with this** button. Type the name and the same Talent is created from it.
+The preset buttons keep working; the box is the way out when the thing you
+trained with was never imported. Names are trimmed, capped at 60 characters and
+stripped of markup before they become an item.
+
 **Left to the table.** Some outcomes have no mechanical shape in Shadowdark at
 all. Lay low, hide out, both crimes, the talent reroll, and a cleansing on a
 character with no flagged curse all print a note saying the GM adjudicates it.
@@ -534,7 +552,7 @@ pick that might never come. It is not backfilled later.
 | What | Where |
 |---|---|
 | Unlocked outcome text | The `downtimeContent` world setting, per source |
-| The live session (book, phase, picks, results) | The `downtimeSession` world setting |
+| The live session (book, phase, picks, results, spent roll tokens) | The `downtimeSession` world setting |
 | DC ladder progress | `flags["shadowdark-enhancer"].downtime.steps` on the actor |
 | The arcane / divine pick for a CHA caster | `flags["shadowdark-enhancer"].downtime.casterList` |
 | A pending extortion swing | `flags["shadowdark-enhancer"].downtimeExtortion` on the actor |
@@ -582,6 +600,28 @@ chosen sees `waiting for the GM to unlock the dice`.
 **Somebody missed the session.**
 Use **Roll for** on their row in the GM panel. The chat card is marked
 `(rolled by the GM)` so the log stays honest.
+
+**"That roll doesn't belong to this attempt." / "That message isn't a downtime
+roll." / "That roll has already been used."**
+Every downtime roll carries a token issued when the pick was recorded, and the
+token is spent the moment the attempt settles. These three refusals mean the
+message being offered isn't this attempt's roll — usually because the pick was
+cleared and re-made (which issues a fresh token and retires the old one) or
+because the attempt already resolved. Roll again from the **Roll it** button;
+that is the only thing that stamps a valid roll.
+
+**"That pick predates a security update — ask your GM to reopen picks."**
+A session that was already mid-roll when the module was updated has picks with no
+token, so nothing can settle against them. **Re-open picks** and press
+**Lock & unlock dice** again; that issues the missing tokens for everyone, and
+the picks themselves are kept.
+
+**"You don't own that character."**
+Downtime actions are checked against the character's ownership on the GM's side,
+using the identity Foundry's server reports for the sender — not anything the
+sending client claims. A player can act for their own characters; a GM can act
+for anyone. If a player genuinely should be able to drive a character, give them
+Owner permission on that actor.
 
 **A choice button is greyed out.**
 That option isn't legal for this character right now, and the reason is on hover.

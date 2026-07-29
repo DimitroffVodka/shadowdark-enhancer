@@ -7,7 +7,7 @@
  * theirs — the roll executes on their client so their Dice So Nice colours and
  * their roll history are the ones that show up.
  *
- * TRUST MODEL — the two rules everything here follows:
+ * TRUST MODEL — the four rules everything here follows:
  *
  *   1. THE GM NEVER TRUSTS A NUMBER FROM A PAYLOAD. A player message carries
  *      only ids ({actorId, slotKey}, a messageId, a choice id). The GM re-reads
@@ -16,17 +16,41 @@
  *      roll total is read back off the ChatMessage document, never taken from
  *      the payload. Mirrors merchant-shop `_txContext` (merchant-shop.mjs:585).
  *
- *   2. AUTOMATIC REACTIONS ARE activeGM-GATED. This world runs an always-on
+ *   2. THE GM NEVER TRUSTS AN IDENTITY FROM A PAYLOAD EITHER. `game.socket.emit`
+ *      is unauthenticated — any client can send any bytes on the module channel,
+ *      including a `userId` naming the GM. The three player→GM actions therefore
+ *      travel as Foundry USER QUERIES (`CONFIG.queries` + `User#query`, v13+),
+ *      where the SERVER hands the receiving client the sender's real id off the
+ *      authenticated socket (`Activity.#o` in dist/components/activity.mjs sets
+ *      `sender` from `socket.user`, not from the payload) and core delivers it
+ *      as `context.user`. Live-proven on 14.365: a query whose data claimed a
+ *      different `userId` still arrived with `context.user` = the true sender.
+ *      Every handler derives the requester from that User document and requires
+ *      OWNER on the actor (GMs may act for anyone). Same shape as the art
+ *      gallery's GM-side browse query (art-gallery.mjs:80).
+ *
+ *   3. A ROLL IS A ONE-SHOT CAPABILITY. Reading the total off the ChatMessage
+ *      stops a player inventing a number, but on its own it lets them nominate
+ *      any high roll they ever made. So the GM mints a `nonce` when it records
+ *      the pick; the roller stamps {actorId, slotKey, nonce} into the message's
+ *      `downtimeRoll` flag; settlement checks all three, checks the speaker
+ *      resolves to the same actor, and spends the nonce into `state.consumed`
+ *      so it cannot be replayed.
+ *
+ *   4. AUTOMATIC REACTIONS ARE activeGM-GATED. This world runs an always-on
  *      second GM (the Bridge watchdog), so a handler gated only on `isGM`
  *      double-fires in NORMAL use — that is exactly how spell-mishap shipped
  *      broken (.planning/STATUS.md:322). Socket handlers and hook reactions
- *      therefore check `isActiveGM()`. Direct GM button clicks are NOT gated:
- *      those are one physical click by whichever GM made it, so a second GM's
- *      Lock button still has to work (crawl-state.mjs:36-45).
+ *      therefore check `isActiveGM()`. Queries need no such gate: they are
+ *      point-to-point, addressed to `game.users.activeGM` by the sender, so
+ *      exactly one client ever runs them. Direct GM button clicks are NOT
+ *      gated: those are one physical click by whichever GM made it, so a second
+ *      GM's Lock button still has to work (crawl-state.mjs:36-45).
  *
  * State sync copies CrawlState: the world setting is the single source of
  * truth, the socket carries a payload-free "go re-read" nudge, and listeners
- * re-read + re-render (crawl-state.mjs:96, :369).
+ * re-read + re-render (crawl-state.mjs:96, :369). That nudge is the ONLY
+ * downtime traffic left on the raw socket, and it carries nothing to trust.
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -42,6 +66,9 @@ import {
   casterListForAbility,
   readStored,
   ladderIndex,
+  authorizeActorRequest,
+  validateRollClaim,
+  sanitizeFreeTextName,
 } from "./downtime-core.mjs";
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
 
@@ -51,13 +78,27 @@ const SOCKET = `module.${MODULE_ID}`;
 const HOOK_CHANGED = "sde.downtimeSessionChanged";
 const DOWNTIME_FLAG = "downtime";
 
-/** Socket action names. The live-verification pass drives these directly. */
+/** Per-message flag proving a roll belongs to one attempt. */
+export const ROLL_FLAG = "downtimeRoll";
+
+/**
+ * The one authenticated player→GM channel, namespaced per Foundry's convention
+ * (art-gallery.mjs:22 does the same). Registered on every client at init; only
+ * the client a query is addressed to ever runs the handler.
+ */
+export const DOWNTIME_QUERY = `${MODULE_ID}.downtime`;
+
+/**
+ * Action names. SYNC is the only one that still travels on the raw module
+ * socket — it is a payload-free "go re-read the setting" nudge that every
+ * client may send and none may be harmed by. The other three are QUERY action
+ * discriminators, delivered with a server-authenticated sender.
+ */
 export const ACTIONS = {
-  SYNC:   "downtime:sync",          // any → all      { action }                                    (payload-free nudge)
-  PICK:   "downtime:pick",          // player → GM    { action, actorId, slotKey, ability, advantage, userId }
-  ROLLED: "downtime:rolled",        // player → GM    { action, actorId, slotKey, messageId, userId }
-  CHOICE: "downtime:effectChoice",  // player → GM    { action, actorId, slotKey, choice, userId }
-  REJECT: "downtime:reject",        // GM → player    { action, userId, reason }
+  SYNC:   "downtime:sync",          // any → all   socket  { action }                                    (payload-free nudge)
+  PICK:   "downtime:pick",          // player → GM query   { action, actorId, slotKey, ability, advantage }
+  ROLLED: "downtime:rolled",        // player → GM query   { action, actorId, slotKey, messageId }
+  CHOICE: "downtime:effectChoice",  // player → GM query   { action, actorId, slotKey, choice }
 };
 
 /**
@@ -69,7 +110,7 @@ export function isActiveGM() {
 }
 
 export function defaultSession() {
-  return { active: false, source: null, phase: "select", picks: {}, results: {}, announcementId: null };
+  return { active: false, source: null, phase: "select", picks: {}, results: {}, consumed: [], announcementId: null };
 }
 
 /** Defensive normalizer — a hand-edited or partial setting can't crash a render. */
@@ -82,8 +123,19 @@ export function normalizeSession(raw) {
     phase: raw.phase === "roll" ? "roll" : "select",
     picks: raw.picks && typeof raw.picks === "object" ? { ...raw.picks } : {},
     results: raw.results && typeof raw.results === "object" ? { ...raw.results } : {},
+    // Spent roll nonces. A session started before this field existed reads back
+    // as [], which is correct: its picks carry no nonce, so nothing can settle
+    // against them anyway (validateRollClaim refuses a nonce-less pick).
+    consumed: Array.isArray(raw.consumed) ? raw.consumed.filter(n => typeof n === "string") : [],
     announcementId: typeof raw.announcementId === "string" ? raw.announcementId : null,
   };
+}
+
+/** Message ids already spent on a settled result, for the replay guard. */
+export function settledMessageIds(state) {
+  return Object.values(state?.results ?? {})
+    .map(r => r?.messageId)
+    .filter(id => typeof id === "string");
 }
 
 // ─── Shared resolution helpers ──────────────────────────────────────────────
@@ -320,35 +372,47 @@ export const DowntimeSession = {
   init() {
     this._state = normalizeSession(game.settings.get(MODULE_ID, SETTING_KEY));
 
-    game.socket.on(SOCKET, async (msg) => {
-      const action = msg?.action;
-      if (typeof action !== "string" || !action.startsWith("downtime:")) return;
-
-      // Payload-free nudge: re-read the world setting (the only source of
-      // truth) and let listeners re-render. Safe for every client, GM or not.
-      if (action === ACTIONS.SYNC) {
-        this._state = normalizeSession(game.settings.get(MODULE_ID, SETTING_KEY));
-        Hooks.callAll(HOOK_CHANGED, this._state);
-        return;
-      }
-
-      // Targeted rejection notice back to one player.
-      if (action === ACTIONS.REJECT) {
-        if (msg.userId === game.user.id) ui.notifications.warn(msg.reason ?? "Downtime action refused.");
-        return;
-      }
-
-      // Everything below MUTATES world state. Exactly one GM may handle it.
-      if (!isActiveGM()) return;
-      if (action === ACTIONS.PICK)   return this._enqueue(() => this._handlePick(msg));
-      if (action === ACTIONS.ROLLED) return this._enqueue(() => this._handleRolled(msg));
-      if (action === ACTIONS.CHOICE) return this._enqueue(() => this._handleEffectChoice(msg));
+    // The raw socket now carries EXACTLY ONE downtime message: the payload-free
+    // re-read nudge. Nothing that mutates world state is reachable from here,
+    // because nothing on this channel can prove who sent it.
+    game.socket.on(SOCKET, (msg) => {
+      if (msg?.action !== ACTIONS.SYNC) return;
+      this._state = normalizeSession(game.settings.get(MODULE_ID, SETTING_KEY));
+      Hooks.callAll(HOOK_CHANGED, this._state);
     });
+
+    // The authenticated player→GM channel. `user` is supplied by core from the
+    // sender's socket session, so it cannot be forged in the payload.
+    CONFIG.queries[DOWNTIME_QUERY] = (data, { user } = {}) => DowntimeSession.handleQuery(data, user);
 
     // Announcement-card buttons, wired per client (loot-delivery.mjs:150).
     Hooks.on("renderChatMessageHTML", (message, html) => this._wireCard(message, html));
 
     console.log(`${MODULE_ID} | Downtime session initialized.`);
+  },
+
+  /**
+   * Query entry point — the ONLY way a player reaches the mutating handlers.
+   *
+   * Runs on whichever client the sender addressed (always `game.users.activeGM`
+   * from the player side), so no isActiveGM gate is needed or wanted: a query
+   * is point-to-point and cannot double-fire across two connected GMs. Writes
+   * still go through `_enqueue` so two players landing together can't clobber
+   * one another's commit.
+   *
+   * @param {object} data  Action-discriminated payload. Carries ids only.
+   * @param {User}   user  The AUTHENTICATED sender, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>} JSON-serializable; the
+   *   sender's client shows `error` itself, so no rejection socket is needed.
+   */
+  async handleQuery(data, user) {
+    if (!game.user?.isGM) return { ok: false, error: "Downtime actions are resolved by the GM." };
+    if (!user?.id) return { ok: false, error: "Downtime action refused: the sender could not be identified." };
+    const action = data?.action;
+    if (action === ACTIONS.PICK)   return this._enqueue(() => this._handlePick(data, user));
+    if (action === ACTIONS.ROLLED) return this._enqueue(() => this._handleRolled(data, user));
+    if (action === ACTIONS.CHOICE) return this._enqueue(() => this._handleEffectChoice(data, user));
+    return { ok: false, error: "Unknown downtime action." };
   },
 
   // ── Persistence ───────────────────────────────────────────────────────────
@@ -372,9 +436,28 @@ export const DowntimeSession = {
     return true;
   },
 
-  _reject(userId, reason) {
-    if (userId && userId !== game.user.id) game.socket.emit(SOCKET, { action: ACTIONS.REJECT, userId, reason });
-    else ui.notifications.warn(reason);
+  /**
+   * A refusal. Returned, never emitted: the query hands it straight back to the
+   * client that asked, which is both simpler and safer than the old broadcast
+   * rejection (that one had to name its recipient in a payload, which is the
+   * very thing this rewrite stopped trusting).
+   */
+  _refuse(reason) {
+    return { ok: false, error: reason };
+  },
+
+  /**
+   * Resolve the actor a request names and decide whether this AUTHENTICATED
+   * user may act for it. GMs may act for anyone; everyone else needs OWNER.
+   */
+  _authorizeActor(actorId, user) {
+    const actor = game.actors.get(actorId);
+    const verdict = authorizeActorRequest({
+      actorExists: !!actor && actor.type === "Player",
+      requesterIsGM: !!user?.isGM,
+      requesterOwnsActor: !!(actor && user && actor.testUserPermission(user, "OWNER")),
+    });
+    return verdict.ok ? { ok: true, actor } : verdict;
   },
 
   // ── Content access ────────────────────────────────────────────────────────
@@ -456,7 +539,17 @@ export const DowntimeSession = {
     if (!game.user.isGM) return false;
     const state = this._read();
     if (!state.active) return false;
-    return this._commit({ ...state, phase: phase === "roll" ? "roll" : "select" });
+    const next = phase === "roll" ? "roll" : "select";
+    // Backfill: a pick recorded before roll nonces existed would be unrollable
+    // forever. Unlocking the dice is the GM action that opens the roll window,
+    // so it is the natural place to issue the missing capability.
+    const picks = { ...state.picks };
+    if (next === "roll") {
+      for (const [actorId, pick] of Object.entries(picks)) {
+        if (!pick?.nonce) picks[actorId] = { ...pick, nonce: foundry.utils.randomID() };
+      }
+    }
+    return this._commit({ ...state, picks, phase: next });
   },
 
   async end() {
@@ -468,36 +561,35 @@ export const DowntimeSession = {
 
   /** GM sets or clears a pick on a player's behalf (absent player). */
   async gmSetPick(actorId, slotKey, opts = {}) {
-    if (!game.user.isGM) return false;
+    if (!game.user.isGM) return { ok: false, error: "Only a GM can set a pick." };
     if (!slotKey) {
       const state = this._read();
       const picks = { ...state.picks };
       delete picks[actorId];
-      return this._commit({ ...state, picks });
+      await this._commit({ ...state, picks });
+      return { ok: true };
     }
-    return this._applyPick({ actorId, slotKey, ...opts, userId: game.user.id });
+    return this._applyPick({ actorId, slotKey, ...opts });
   },
 
-  // ── Socket handlers (activeGM-gated by the dispatcher above) ─────────────
+  // ── Request handlers ─────────────────────────────────────────────────────
+  // Reached only from `handleQuery` (authenticated player) or from a GM's own
+  // window (where `user` is that GM). `user` is ALWAYS a User document core or
+  // this client vouched for — never something read out of the payload.
 
-  async _handlePick(payload) {
-    const { actorId, userId } = payload ?? {};
-    const actor = game.actors.get(actorId);
-    // Ownership: the requesting user must actually own the character.
-    const user = game.users.get(userId);
-    if (!actor || !user || !actor.testUserPermission(user, "OWNER")) {
-      return this._reject(userId, "You don't own that character.");
-    }
-    return this._applyPick(payload);
+  async _handlePick(data, user) {
+    const auth = this._authorizeActor(data?.actorId, user);
+    if (!auth.ok) return auth;
+    return this._applyPick(data);
   },
 
-  async _applyPick({ actorId, slotKey, ability, advantage, userId }) {
+  async _applyPick({ actorId, slotKey, ability, advantage }) {
     const state = this._read();
-    if (state.phase !== "select") return this._reject(userId, "Picks are locked — the GM has already unlocked the dice.");
-    if (state.results?.[actorId]) return this._reject(userId, "That character already rolled this session.");
+    if (state.phase !== "select") return this._refuse("Picks are locked — the GM has already unlocked the dice.");
+    if (state.results?.[actorId]) return this._refuse("That character already rolled this session.");
 
     const ctx = await this.context(actorId, slotKey, { choiceAbility: ability });
-    if (!ctx.ok) return this._reject(userId, ctx.error);
+    if (!ctx.ok) return this._refuse(ctx.error);
 
     // AUTHORITATIVE affordability gate on SELECTION. The client blocks the
     // button and refuses the click, but the GM re-reads the actor here and
@@ -506,8 +598,7 @@ export const DowntimeSession = {
     // No GM override by design: adding coin to the sheet is the escape hatch.
     const money = affordability(ctx.actor, ctx.state.source, ctx.slot, ctx.level);
     if (!money.affordable) {
-      return this._reject(
-        userId,
+      return this._refuse(
         `"${ctx.slot.label}" costs ${money.cost} gp per attempt and ${ctx.actor.name} is `
         + `${money.shortfallText} short — pick something else, or get the coin first.`,
       );
@@ -524,46 +615,78 @@ export const DowntimeSession = {
         ...(legalAbility ? { ability: legalAbility } : {}),
         ...(ctx.casterList ? { casterList: ctx.casterList } : {}),
         advantage: advMode(advantage).key,
+        // The attempt's one-shot capability. Minted GM-side, so the player can
+        // read it (world setting) but never choose it; re-picking mints a fresh
+        // one, which retires the old attempt's roll along with it.
+        nonce: foundry.utils.randomID(),
       },
     };
-    return this._commit({ ...state, picks });
+    await this._commit({ ...state, picks });
+    return { ok: true, slotKey };
   },
 
   /**
    * A player rolled. The TOTAL is read off the ChatMessage document, never the
-   * payload — a crafted message can name a roll it doesn't own, so we also
-   * check the message actually belongs to that user and carries a roll.
+   * payload — but a message id alone proves nothing, so the message must also
+   * carry THIS attempt's `downtimeRoll` capability ({actorId, slotKey, nonce}),
+   * be authored by the authenticated requester, speak as the same actor, and
+   * name a nonce that has not already been spent. Anything less is refused and
+   * writes nothing: no coin moves, no flag, no result, no card.
    */
-  async _handleRolled(payload) {
-    const { actorId, slotKey, messageId, userId } = payload ?? {};
-    const state = this._read();
-    if (!state.active) return;
-    if (state.phase !== "roll") return this._reject(userId, "Rolls aren't unlocked yet.");
-    if (state.results?.[actorId]) return this._reject(userId, "That character already rolled.");
+  async _handleRolled(data, user) {
+    const { actorId, slotKey, messageId } = data ?? {};
+    const auth = this._authorizeActor(actorId, user);
+    if (!auth.ok) return auth;
 
-    const pick = state.picks?.[actorId];
-    if (!pick || pick.slotKey !== slotKey) return this._reject(userId, "That doesn't match your locked pick.");
+    const state = this._read();
+    if (!state.active) return this._refuse("No downtime session is running.");
+    if (state.phase !== "roll") return this._refuse("Rolls aren't unlocked yet.");
+    if (state.results?.[actorId]) return this._refuse("That character already rolled.");
 
     const message = game.messages.get(messageId);
     const roll = message?.rolls?.[0];
-    if (!message || !roll) return this._reject(userId, "Couldn't find that roll.");
-    if (userId && message.author?.id && message.author.id !== userId) {
-      return this._reject(userId, "That roll isn't yours.");
-    }
+    const claim = validateRollClaim({
+      actorId, slotKey, messageId,
+      pick: state.picks?.[actorId] ?? null,
+      rollFlag: message?.getFlag(MODULE_ID, ROLL_FLAG) ?? null,
+      hasRoll: !!(message && roll),
+      messageAuthorId: message?.author?.id ?? null,
+      messageActorId: this._speakerActorId(message),
+      requesterId: user?.id ?? null,
+      consumedNonces: state.consumed ?? [],
+      settledMessageIds: settledMessageIds(state),
+    });
+    if (!claim.ok) return this._refuse(claim.error);
+
     const total = Number(roll.total);
-    if (!Number.isFinite(total)) return this._reject(userId, "That roll has no total.");
+    if (!Number.isFinite(total)) return this._refuse("That roll has no total.");
 
+    const pick = state.picks[actorId];
     const ctx = await this.context(actorId, slotKey, { choiceAbility: pick.ability });
-    if (!ctx.ok) return this._reject(userId, ctx.error);
+    if (!ctx.ok) return this._refuse(ctx.error);
 
-    return this._settle(ctx, { total, messageId, userId });
+    return this._settle(ctx, { total, messageId, userId: user?.id ?? null, nonce: pick.nonce });
+  },
+
+  /**
+   * Which actor a message SPOKE as. Token-based speakers resolve through the
+   * scene, so this goes via core's own resolver rather than reading
+   * `speaker.actor` and hoping.
+   */
+  _speakerActorId(message) {
+    if (!message?.speaker) return null;
+    try {
+      const actor = ChatMessage.implementation.getSpeakerActor(message.speaker);
+      if (actor?.id) return actor.id;
+    } catch { /* fall through to the raw field */ }
+    return typeof message.speaker.actor === "string" ? message.speaker.actor : null;
   },
 
   /**
    * Charge, judge, walk the ladder, then plan the effect. Shared by the player
    * flow and the GM's roll-for-absent-player control.
    */
-  async _settle(ctx, { total, messageId, userId }) {
+  async _settle(ctx, { total, messageId, userId, nonce = null }) {
     const { actor, activity, slot, flag, dc, cost } = ctx;
     const state = this._read();
 
@@ -582,8 +705,7 @@ export const DowntimeSession = {
       // why a real-looking roll produced no outcome.
       if (!canAfford(actor.system.coins, price)) {
         const short = affordability(actor, state.source, slot, ctx.level);
-        return this._reject(
-          userId,
+        return this._refuse(
           `The fee couldn't be paid — that roll didn't count. "${slot.label}" costs ${cost} gp`
           + `${short.shortfallText ? ` and ${actor.name} is ${short.shortfallText} short` : ""}.`
           + " Your pick is still set; roll again once you can pay.",
@@ -656,7 +778,12 @@ export const DowntimeSession = {
     }
 
     const results = { ...state.results, [actor.id]: result };
-    await this._commit({ ...state, results });
+    // Spend the capability in the SAME write as the result, so a second attempt
+    // to settle the same roll finds it gone no matter how it arrives.
+    const consumed = nonce && !state.consumed.includes(nonce)
+      ? [...state.consumed, nonce]
+      : state.consumed;
+    await this._commit({ ...state, results, consumed });
     await this._postResult(ctx, result);
 
     // Log AFTER the result is committed and the card is posted, so a broken
@@ -676,7 +803,7 @@ export const DowntimeSession = {
       gmRolled: !!game.users.get(userId)?.isGM,
       timestamp: new Date().toISOString(),
     });
-    return result;
+    return { ok: true, ...result };
   },
 
   async _applyEffect(actor, slot, choice) {
@@ -690,27 +817,19 @@ export const DowntimeSession = {
     }
   },
 
-  async _handleEffectChoice(payload) {
-    const { actorId, slotKey, choice, userId } = payload ?? {};
+  async _handleEffectChoice(data, user) {
+    const { actorId, slotKey, choice } = data ?? {};
+    const auth = this._authorizeActor(actorId, user);
+    if (!auth.ok) return auth;
+    const actor = auth.actor;
+
     const state = this._read();
     const result = state.results?.[actorId];
-    if (!result || result.slotKey !== slotKey) return this._reject(userId, "No pending downtime effect for that character.");
-    if (!result.effect?.pending) return this._reject(userId, "That effect was already resolved.");
-
-    const actor = game.actors.get(actorId);
-    const user = game.users.get(userId);
-    if (!actor) return this._reject(userId, "That character no longer exists.");
-    if (user && !game.users.get(userId)?.isGM && !actor.testUserPermission(user, "OWNER")) {
-      return this._reject(userId, "You don't own that character.");
-    }
-    // The id must be one the plan actually offered, and not one it greyed out.
-    const wantedId = String(choice?.id ?? choice ?? "");
-    const opt = (result.effect.options ?? []).find(o => o.id === wantedId);
-    if (!opt) return this._reject(userId, "That isn't one of the offered options.");
-    if (opt.disabled) return this._reject(userId, opt.reason ?? "That option isn't available.");
+    if (!result || result.slotKey !== slotKey) return this._refuse("No pending downtime effect for that character.");
+    if (!result.effect?.pending) return this._refuse("That effect was already resolved.");
 
     const found = this.findSlot(slotKey);
-    if (!found) return this._reject(userId, "That activity is no longer in the skeleton.");
+    if (!found) return this._refuse("That activity is no longer in the skeleton.");
 
     /**
      * downtime-effects reads `choice?.id`, `choice?.gain`, `choice?.name` … —
@@ -719,21 +838,44 @@ export const DowntimeSession = {
      * payload (the spell trade's replacement uuid), so the handler sees the
      * same data effectPlanFor published.
      */
-    const gainUuid = String(choice?.gainSpellUuid ?? "");
-    if (Array.isArray(opt.gain) && opt.gain.length) {
-      if (!gainUuid) return this._reject(userId, "Pick the replacement spell as well.");
-      if (!opt.gain.some(g => g.uuid === gainUuid)) {
-        return this._reject(userId, "That replacement isn't offered for the spell you gave up.");
+    const wantedId = String(choice?.id ?? choice ?? "");
+    const opt = (result.effect.options ?? []).find(o => o.id === wantedId);
+
+    let choiceObj;
+    if (opt) {
+      if (opt.disabled) return this._refuse(opt.reason ?? "That option isn't available.");
+      const gainUuid = String(choice?.gainSpellUuid ?? "");
+      if (Array.isArray(opt.gain) && opt.gain.length) {
+        if (!gainUuid) return this._refuse("Pick the replacement spell as well.");
+        if (!opt.gain.some(g => g.uuid === gainUuid)) {
+          return this._refuse("That replacement isn't offered for the spell you gave up.");
+        }
       }
+      choiceObj = { ...opt, ...(gainUuid ? { gainSpellUuid: gainUuid } : {}) };
+    } else if (result.effect.freeText) {
+      /**
+       * Free text, but ONLY where the GM-computed plan said so. The martial
+       * training slots record a descriptive Talent, so the indexed gear list is
+       * a convenience — the book lets you train with anything, and a pack that
+       * doesn't happen to hold "Boar spear" must not strand a paid success.
+       *
+       * `freeText` comes off `result.effect`, which the GM wrote from
+       * `effectPlanFor`; a player cannot turn it on, and every other slot still
+       * falls through to the "not one of the offered options" refusal below.
+       */
+      const clean = sanitizeFreeTextName(choice?.name);
+      if (!clean.ok) return this._refuse(clean.error);
+      choiceObj = { id: clean.name, label: clean.name, name: clean.name, freeText: true };
+    } else {
+      return this._refuse("That isn't one of the offered options.");
     }
-    const choiceObj = { ...opt, ...(gainUuid ? { gainSpellUuid: gainUuid } : {}) };
 
     const applied = await this._applyEffect(actor, found.slot, choiceObj);
     const fresh = this._read();
     const results = { ...fresh.results, [actorId]: { ...fresh.results[actorId], effect: applied } };
     await this._commit({ ...fresh, results });
     await this._postEffectNote(actor, found.slot, applied);
-    return applied;
+    return { ok: true, ...applied };
   },
 
   // ── Chat surfaces ─────────────────────────────────────────────────────────

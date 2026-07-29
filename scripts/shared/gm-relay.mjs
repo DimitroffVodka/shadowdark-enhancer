@@ -246,3 +246,65 @@ export async function relayToGM(payload, { label = "that action", timeoutMs } = 
   game.socket.emit(SOCKET, payload);
   return true;
 }
+
+/** How long the GM gets to answer a query before the player is told it failed. */
+export const QUERY_TIMEOUT_MS = 20000;
+
+/**
+ * Relay a player action to the active GM over an AUTHENTICATED channel, and
+ * bring the GM's verdict back.
+ *
+ * `relayToGM` above emits on the raw module socket, which carries no proof of
+ * who sent it — fine for fire-and-forget bookkeeping, not for anything the GM
+ * must authorize. A user query instead makes the SERVER stamp the sender: the
+ * receiving client is handed a `context.user` built from the sender's socket
+ * session, so a payload cannot claim to be somebody else. Handlers on the far
+ * side derive identity from that and from nothing else.
+ *
+ * The handshake still runs first. A GM tab on an older build has no handler
+ * registered for the query name, and core throws that away without ever calling
+ * back — the player would simply hang until the timeout. Probing first turns
+ * that into the same "your GM's tab needs a reload" sentence every other relay
+ * gives, immediately.
+ *
+ * @param {string} queryName          Registered `CONFIG.queries` key.
+ * @param {object} data               JSON-serializable payload. Ids only.
+ * @param {object} [options]
+ * @param {string} [options.label]    Plural noun phrase, e.g. "downtime actions".
+ * @param {number} [options.timeoutMs]      Override the handshake wait.
+ * @param {number} [options.queryTimeoutMs] Override the GM's answer window.
+ * @returns {Promise<object>} The GM's reply, or `{ok:false, error}` when the
+ *   query could not be delivered. Never throws.
+ */
+export async function queryActiveGM(queryName, data, {
+  label = "that action", timeoutMs, queryTimeoutMs = QUERY_TIMEOUT_MS,
+} = {}) {
+  const verdict = await probeActiveGM(timeoutMs === undefined ? {} : { timeoutMs });
+  if (!verdict.ok) {
+    const warning = handshakeWarning(verdict, label);
+    console.warn(`${MODULE_ID} | query blocked (${verdict.reason}) for ${queryName}: ${warning}`);
+    return { ok: false, error: warning };
+  }
+
+  const gm = game.users?.activeGM;
+  if (!gm) return { ok: false, error: handshakeWarning({ reason: "no-gm" }, label) };
+
+  // QUERY_USER is a Player-role permission by default, but a world can revoke
+  // it — and then nothing a player does here can reach the GM. Say so plainly
+  // rather than letting core's raw error surface.
+  if (!game.user.hasPermission("QUERY_USER")) {
+    return {
+      ok: false,
+      error: `Your user role can't send ${label} to the GM — ask them to re-enable `
+        + `the "Query User" permission for your role.`,
+    };
+  }
+
+  try {
+    const reply = await gm.query(queryName, data, { timeout: queryTimeoutMs });
+    return reply ?? { ok: false, error: "The GM's tab returned nothing." };
+  } catch (err) {
+    console.warn(`${MODULE_ID} | query ${queryName} failed:`, err);
+    return { ok: false, error: `Your GM's tab didn't answer — ${label} couldn't be processed.` };
+  }
+}

@@ -2,6 +2,40 @@
 
 ## [Unreleased]
 
+### Security
+- **A player could settle a downtime attempt with somebody else's dice, or with
+  their own dice from an hour ago.** The GM read the roll total off whichever
+  chat message the incoming payload named, checking only that the same user had
+  authored it — not that the message was a downtime roll, belonged to that
+  character, that activity or that attempt, nor that it had not already been
+  used. Any earlier high roll settled the attempt; live testing turned a 25 on an
+  out-of-combat initiative roll into a success against DC 12. Each pick now mints
+  a one-shot token that the **Roll it** button stamps into the roll message
+  alongside the character and slot; settlement checks all three, checks the
+  message speaks as the same character, and spends the token so it cannot be
+  offered twice. A refused roll writes nothing at all — no fee, no ladder
+  progress, no result, no card.
+- **Downtime actions took the sender's word for who they were.** Picks, rolls and
+  effect choices travelled on the raw module socket, which authenticates nothing,
+  and the GM authorized them from a `userId` field inside the message. Naming the
+  GM's id passed every ownership check, so any client could resolve another
+  character's pending reward; the roll path had no ownership check at all. The
+  three actions now travel as Foundry user queries, where the server hands the
+  GM's client the sender's real identity, and every one of them requires the
+  sender to own the character (a GM may still act for anyone). **GMs must reload
+  their Foundry tab after updating** — a tab left open on the old build keeps the
+  old listener alive until it does.
+
+### Fixed
+- **Downtime training could advertise a free-text answer and then refuse it.**
+  The three "new weapon or armor" slots record a descriptive Talent, so the
+  option buttons are only what the gear packs happen to hold — but a name that
+  wasn't in an index had nowhere to go, stranding a paid success. Those slots now
+  carry `Not listed? Type it:` with a text box and a **Train with this** button
+  under the presets. Typed names are trimmed, capped at 60 characters and
+  stripped of markup before they become an item name and a chat line; the presets
+  are unchanged, and no other slot accepts free text.
+
 ### Added
 - **An activity nobody can pay for cannot be picked.** A slot whose fee is
   beyond the character's purse renders dimmed with the shortfall spelled out,

@@ -31,7 +31,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import { canAfford, spendFromPurse, toCopper } from "../shared/coins.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
-import { relayToGM } from "../shared/gm-relay.mjs";
+import { queryActiveGM } from "../shared/gm-relay.mjs";
 import {
   SOURCES,
   DOWNTIME_SKELETON,
@@ -48,6 +48,8 @@ import {
 import {
   DowntimeSession,
   ACTIONS,
+  DOWNTIME_QUERY,
+  ROLL_FLAG,
   ADV_MODES,
   advMode,
   abilityMod,
@@ -107,6 +109,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       pickSlot:        DowntimeApp.prototype._onPickSlot,
       rollPick:        DowntimeApp.prototype._onRollPick,
       chooseEffect:    DowntimeApp.prototype._onChooseEffect,
+      submitFreeText:  DowntimeApp.prototype._onSubmitFreeText,
       // Session flow — GM control panel
       startSession:    DowntimeApp.prototype._onStartSession,
       lockRolls:       DowntimeApp.prototype._onLockRolls,
@@ -447,6 +450,10 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       pendingChoice: result.effect?.pending ? {
         prompt: result.effect.prompt ?? "Choose one:",
         options: result.effect.options ?? [],
+        // Martial training records a descriptive Talent, so the indexed gear
+        // list is a shortlist rather than the rules. Dropping this flag here is
+        // what used to strand a paid success whose weapon wasn't in a pack.
+        freeText: !!result.effect.freeText,
       } : null,
     };
   }
@@ -1090,11 +1097,30 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
   // ─── Session flow — player side ───────────────────────────────────────────
 
   /**
-   * Declare a pick. Players emit; a GM driving their own window applies it
-   * directly (they are already the authority — no round trip).
+   * Send one player action to the GM and surface the verdict.
    *
-   * The payload carries ONLY ids plus the declared ability/advantage. The GM
-   * recomputes DC, cost and gating in DowntimeSession.context().
+   * A GM driving their own window is already the authority, so it runs the
+   * handler in-process (passing their own User document as the requester — the
+   * handler authorizes it exactly like anyone else's). A player goes over the
+   * authenticated query channel, which carries their identity as the SERVER
+   * sees it. Either way the reply is `{ok, error?}` and a refusal is shown.
+   */
+  async _sendDowntime(data) {
+    // `handleQuery` does its own `_enqueue`, so this must NOT wrap it in
+    // another one: the inner call would chain onto the outer's own promise and
+    // wait for itself.
+    const reply = game.user.isGM
+      ? await DowntimeSession.handleQuery(data, game.user)
+      : await queryActiveGM(DOWNTIME_QUERY, data, { label: DOWNTIME_RELAY_LABEL });
+    if (!reply?.ok && reply?.error) ui.notifications.warn(reply.error);
+    return reply ?? { ok: false };
+  }
+
+  /**
+   * Declare a pick. The payload carries ONLY ids plus the declared
+   * ability/advantage — never an identity. The GM recomputes DC, cost and
+   * gating in DowntimeSession.context() and derives the requester from the
+   * authenticated query context.
    */
   async _onPickSlot(event, target) {
     const actor = this._actor();
@@ -1117,16 +1143,13 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
         );
       }
     }
-    const payload = {
+    await this._sendDowntime({
       action: ACTIONS.PICK,
       actorId: actor.id,
       slotKey,
       ability: this._choiceAbility ?? null,
       advantage: this._advantage,
-      userId: game.user.id,
-    };
-    if (game.user.isGM) await DowntimeSession._applyPick(payload);
-    else if (!await relayToGM(payload, { label: DOWNTIME_RELAY_LABEL })) return;
+    });
     this.render();
   }
 
@@ -1134,6 +1157,12 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * THE PLAYER PRESSES THE DIE. The roll runs on this client so the dice — and
    * Dice So Nice, if they have it — are theirs. Only the message id travels;
    * the GM reads the total back off the ChatMessage document.
+   *
+   * The message is stamped with this attempt's capability
+   * ({actorId, slotKey, nonce}) before it leaves. Without that stamp the GM has
+   * no way to tell a downtime roll from any other d20 the player once made, and
+   * a replayed message id settles the attempt — which is exactly what it used
+   * to do.
    */
   async _onRollPick() {
     const actor = this._actor();
@@ -1143,6 +1172,11 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const pick = sess.pickFor(actor.id);
     if (!pick) return ui.notifications.warn("You haven't chosen an activity.");
     if (sess.resultFor(actor.id)) return ui.notifications.warn("You've already rolled this session.");
+    if (!pick.nonce) {
+      return ui.notifications.warn(
+        "Your pick predates a security update — ask your GM to reopen picks so you can choose again.",
+      );
+    }
 
     const found = slotByKey(pick.slotKey);
     if (!found) return ui.notifications.warn("That activity is no longer available.");
@@ -1176,19 +1210,21 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       flavor: `<strong>${esc(found.activity.name)} — ${esc(found.slot.label)} (DC ${dc})</strong>`
         + `<br><span class="sde-dt-check">${ability ? String(ability).toUpperCase() : "—"} ${signed(mod)}`
         + `${mode.key === "normal" ? "" : ` · ${esc(mode.label)}`}</span>`,
-      flags: { [MODULE_ID]: { downtimeRoll: true, slotKey: pick.slotKey } },
+      flags: {
+        [MODULE_ID]: {
+          [ROLL_FLAG]: { actorId: actor.id, slotKey: pick.slotKey, nonce: pick.nonce },
+        },
+      },
     });
 
-    const payload = {
-      action: ACTIONS.ROLLED,
-      actorId: actor.id, slotKey: pick.slotKey,
-      messageId: msg?.id, userId: game.user.id,
-    };
     // The dice have already landed in chat by this point, so a blocked relay
     // still renders: the warning explains why the result panel stays empty,
     // and the GM can resolve this roll by hand from the message once reloaded.
-    if (game.user.isGM) await DowntimeSession._enqueue(() => DowntimeSession._handleRolled(payload));
-    else await relayToGM(payload, { label: DOWNTIME_RELAY_LABEL });
+    await this._sendDowntime({
+      action: ACTIONS.ROLLED,
+      actorId: actor.id, slotKey: pick.slotKey,
+      messageId: msg?.id,
+    });
     this.render();
   }
 
@@ -1206,13 +1242,36 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const res = DowntimeSession.resultFor(actor.id);
     if (!res?.effect?.pending) return;
     const gainSpellUuid = target?.dataset?.gain || null;
-    const choice = { id, ...(gainSpellUuid ? { gainSpellUuid } : {}) };
-    const payload = {
+    await this._sendDowntime({
       action: ACTIONS.CHOICE,
-      actorId: actor.id, slotKey: res.slotKey, choice, userId: game.user.id,
-    };
-    if (game.user.isGM) await DowntimeSession._enqueue(() => DowntimeSession._handleEffectChoice(payload));
-    else if (!await relayToGM(payload, { label: DOWNTIME_RELAY_LABEL })) return;
+      actorId: actor.id, slotKey: res.slotKey,
+      choice: { id, ...(gainSpellUuid ? { gainSpellUuid } : {}) },
+    });
+    this.render();
+  }
+
+  /**
+   * Resolve a pending choice with a TYPED name, for the martial-training slots
+   * whose plan sets `freeText`. The preset buttons are a shortlist of what the
+   * gear packs happen to hold; the book lets a character train with anything,
+   * so a name that isn't in an index still has to be answerable.
+   *
+   * The name is only cleaned and length-checked for real on the GM's side —
+   * this trim is so the button doesn't fire on an empty box.
+   */
+  async _onSubmitFreeText(event, target) {
+    const actor = this._actor();
+    if (!actor) return;
+    const res = DowntimeSession.resultFor(actor.id);
+    if (!res?.effect?.pending || !res.effect.freeText) return;
+    const input = target?.closest(".sde-dt-choice-box")?.querySelector(".sde-dt-freetext-input");
+    const name = String(input?.value ?? "").trim();
+    if (!name) return ui.notifications.warn("Type the name of the weapon or armor trained with.");
+    await this._sendDowntime({
+      action: ACTIONS.CHOICE,
+      actorId: actor.id, slotKey: res.slotKey,
+      choice: { name },
+    });
     this.render();
   }
 
@@ -1253,6 +1312,11 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const pick = DowntimeSession.pickFor(actorId);
     if (!pick) return ui.notifications.warn(`${actor.name} hasn't chosen an activity.`);
     if (DowntimeSession.phase !== "roll") return ui.notifications.warn("Unlock the dice first.");
+    if (!pick.nonce) {
+      return ui.notifications.warn(
+        `${actor.name}'s pick predates a security update — reopen picks and set it again.`,
+      );
+    }
 
     const found = slotByKey(pick.slotKey);
     if (!found) return;
@@ -1275,12 +1339,17 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const msg = await roll.toMessage({
       speaker: ChatMessage.getSpeaker({ actor }),
       flavor: `<strong>${esc(found.activity.name)} — ${esc(found.slot.label)}</strong> <em>(rolled by the GM)</em>`,
-      flags: { [MODULE_ID]: { downtimeRoll: true, slotKey: pick.slotKey } },
+      flags: {
+        [MODULE_ID]: {
+          [ROLL_FLAG]: { actorId, slotKey: pick.slotKey, nonce: pick.nonce },
+        },
+      },
     });
-    await DowntimeSession._enqueue(() => DowntimeSession._handleRolled({
-      action: ACTIONS.ROLLED, actorId, slotKey: pick.slotKey,
-      messageId: msg?.id, userId: game.user.id,
-    }));
+    // Same handler, same checks — the GM just happens to satisfy them by being
+    // a GM. Nothing here is a privileged side door.
+    await this._sendDowntime({
+      action: ACTIONS.ROLLED, actorId, slotKey: pick.slotKey, messageId: msg?.id,
+    });
     this.render();
   }
 
