@@ -511,6 +511,17 @@ player→GM actions now travel that way, and the raw module socket carries
 only GM→everyone broadcasts and payload-free "re-read the setting" nudges, none
 of which grant anything.
 
+**The same rule applies in reverse.** A GM→everyone push has no authenticated
+sender on a raw socket either, so the merchant's transaction notices are queries
+addressed to each connected player, and the receiver checks `user.isGM` on the
+server-stamped sender. Stamping the GM's id into a broadcast payload and
+comparing it against `game.users.activeGM` would *look* like a fix and be none:
+the stamp is a payload field, so an attacker writes the GM's id into it. What is
+left on the raw socket is one-to-many state nudges that carry no payload at all
+— `shop:open`, `shop:close`, `downtime:sync`, `crawl:state` — where the receiver
+re-reads the world setting and a forged nudge buys an idempotent re-read of what
+the GM actually persisted.
+
 Two consequences worth knowing:
 
 - **`QUERY_USER` must stay enabled for the player role.** It is on by default.
@@ -522,7 +533,8 @@ Two consequences worth knowing:
 
 Module code registering its own relay should use `scripts/shared/gm-relay.mjs`:
 `relayToGM(queryName, data, {label})` on the player side, `refuseQuery(user)`
-plus `authorizeActorFor(actorId, user)` on the GM side.
+plus `authorizeActorFor(actorId, user)` on the GM side, and
+`notifyPlayers(queryName, data)` for a GM→players push.
 
 ## Public hooks
 

@@ -40,6 +40,20 @@
   the GM was demonstrably current. Reloading did not help, because the attacker
   answered again. The ping and pong are gone: a query that the GM's build cannot
   answer is itself the stale-tab signal, and it comes from the server.
+- **Any client could publish a fake price list to the whole table.** The
+  shop-availability broadcast carried the entire inventory and every client
+  acted on it without checking who sent it, so a player could push a price list
+  into everyone's window. The Buy button stayed real: the victim clicked
+  expecting 1 gp, the GM charged the true price, and the victim's own coins
+  moved. The transaction-result broadcast was forgeable the same way, firing an
+  invented "X bought Y for Z" on every screen. Availability is now a
+  payload-free "the setting changed, go re-read it" nudge, so a forged one
+  achieves an idempotent re-read of what the GM actually saved, and transaction
+  notices are sent to each player over the authenticated channel, where the
+  receiving client can confirm a GM really sent them.
+- **A player could sell into a shop the GM had never opened.** Buy, catalog buy
+  and gamble all refuse when there is no live shop; sell read the ratio through
+  a `?.` that swallowed the missing context and completed at the default 50%.
 - **Luck-token gifts were processed twice in a two-GM world.** The handler
   checked "am I a GM" rather than "am I the GM doing the work", so a world with a
   second connected GM ran it on both clients. In pulp mode the giver was charged

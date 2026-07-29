@@ -12,7 +12,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlStrip } from "../crawl-strip/crawl-strip.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
-import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, notifyPlayers, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
   addToPurse, spendFromPurse, parseCoinsFromText,
@@ -46,6 +46,13 @@ const SHOP_RELAY_LABEL = "shop transactions";
  * Foundry's convention (art-gallery.mjs:22, downtime-session.mjs:89).
  */
 export const MERCHANT_QUERY = `${MODULE_ID}.merchant`;
+
+/**
+ * GM→players transaction notices. A separate name from MERCHANT_QUERY because
+ * it runs the other way: the GM sends, players receive, and the receiver checks
+ * `user.isGM` off the server-stamped sender.
+ */
+export const SHOP_NOTICE_QUERY = `${MODULE_ID}.shopNotice`;
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -110,6 +117,30 @@ export const MerchantShop = {
     return (await this._enqueueTx(run)) ?? { ok: true };
   },
 
+  /**
+   * A transaction notice pushed by the GM. The sender comes from core's query
+   * context, so `user.isGM` is a fact rather than a claim — which is the whole
+   * reason this is a query and not a socket broadcast. A player emitting a fake
+   * "Vella bought a Sword +3 for 1 gp" toast on everyone's screen was a working
+   * social-engineering primitive (audit 2026-07-29, F6).
+   *
+   * @param {object} data  The result payload `_onResult` renders.
+   * @param {User}   user  The AUTHENTICATED sender.
+   */
+  handleNotice(data, user) {
+    if (!user?.isGM) return { ok: false, error: "Shop notices come from the GM." };
+    // "close" dismisses the window without retiring the shop (see `close`);
+    // everything else is a completed transaction to toast.
+    if (data?.kind === "close") {
+      this._app?.close();
+      CrawlStrip.queueRender();
+      return { ok: true };
+    }
+    if (data?.kind && data.kind !== "result") return { ok: false, error: "Unknown shop notice." };
+    this._onResult(data);
+    return { ok: true };
+  },
+
   // ── Settings ──────────────────────────────────────────────────────────────
 
   registerSettings() {
@@ -169,12 +200,29 @@ export const MerchantShop = {
     // (gm-relay.mjs). Mirrors the downtime query (downtime-session.mjs:89).
     CONFIG.queries[MERCHANT_QUERY] = (data, { user } = {}) => MerchantShop.handleQuery(data, user);
 
+    // Transaction notices travel GM→players as queries too, so the receiving
+    // client can check the sender really is a GM (gm-relay.mjs `notifyPlayers`).
+    CONFIG.queries[SHOP_NOTICE_QUERY] = (data, { user } = {}) => MerchantShop.handleNotice(data, user);
+
+    // Availability changes arrive as a PAYLOAD-FREE nudge: "the setting moved,
+    // go re-read it". The snapshot is already persisted in `shopAvailabilityData`
+    // before either nudge goes out (`_setAvailability`), so the message carries
+    // nothing worth forging. It used to carry the whole snapshot, which let any
+    // client push a fake price list into every player's window — a real Buy
+    // button at an invented price (audit 2026-07-29, F6). Copies the crawl-state
+    // nudge (crawl-state.mjs:96).
     game.socket.on(`module.${MODULE_ID}`, (data) => {
-      // All clients: handle display-only broadcasts from the GM.
-      if (data.action === "shop:open")   this._onRemoteOpen(data);
-      if (data.action === "shop:close")  this._onRemoteClose();
-      if (data.action === "shop:result") this._onResult(data);
+      if (data.action === "shop:open" || data.action === "shop:close") this._syncAvailability();
     });
+
+    // ...and react to the setting itself, so the nudge's arrival order relative
+    // to Foundry's own setting sync cannot produce a stale read. Both paths are
+    // the same idempotent re-read, so running twice costs nothing.
+    const onSetting = (setting) => {
+      if (setting?.key === `${MODULE_ID}.shopAvailabilityData`) this._syncAvailability();
+    };
+    Hooks.on("updateSetting", onSetting);
+    Hooks.on("createSetting", onSetting);
 
     // Reload restoration: if shop was available before page reload,
     // mirror that state into transient flags so the Crawl Strip's
@@ -247,12 +295,20 @@ export const MerchantShop = {
     this._app.render(true);
   },
 
-  /** GM closes the shop on all clients. */
+  /**
+   * GM closes the shop window on all clients.
+   *
+   * Distinct from `_setAvailability(false)`, which retires the shop itself: this
+   * only dismisses windows and deliberately leaves `shopAvailabilityData`
+   * standing, so a player can re-open from the chat card. That is exactly why it
+   * cannot be a "go re-read the setting" nudge — the setting has not moved — so
+   * it travels as an authenticated GM→players notice instead.
+   */
   close() {
     if (!game.user.isGM) return;
     if (this._isOpenForPlayers) {
       this._isOpenForPlayers = false;
-      game.socket.emit(`module.${MODULE_ID}`, { action: "shop:close" });
+      notifyPlayers(SHOP_NOTICE_QUERY, { kind: "close" });
     }
     this._app?.close();
   },
@@ -368,20 +424,39 @@ export const MerchantShop = {
   // ── Remote handlers (all clients) ─────────────────────────────────────────
 
   /**
-   * Cache the broadcast snapshot so the player can open the window on
-   * demand later without round-tripping to the GM. Does NOT force the
-   * window open — players opt in via the chat card or Crawl Strip.
-   * GM is exempt because they already have their own window.
+   * Re-read availability from the world setting — the single source of truth —
+   * and bring this client into line with it.
+   *
+   * This replaced a pair of handlers that took the GM's word for the shop's
+   * state and its whole price list straight off the socket. Nothing is read
+   * from a message here, so the worst a hostile client achieves by forging the
+   * nudge is an idempotent re-read of what the GM actually persisted.
+   *
+   * Caches the snapshot so a player can open the window later without a round
+   * trip. Does NOT force the window open — players opt in via the chat card or
+   * the Crawl Strip. The GM is exempt throughout: they have their own window
+   * and their own authoring state, which a player-facing snapshot must not
+   * overwrite.
    */
-  _onRemoteOpen(data) {
+  _syncAvailability() {
     if (game.user.isGM) return;
+    const snapshot = game.settings.get(MODULE_ID, "shopAvailabilityData");
 
-    this._cachedAvailabilityData = foundry.utils.deepClone(data);
+    if (!snapshot) {
+      // Shop closed. Drop the cache, close any open window, and let the Crawl
+      // Strip lose the merchant button on its next render.
+      this._cachedAvailabilityData = null;
+      this._app?.close();
+      CrawlStrip.queueRender();
+      return;
+    }
 
-    // Refresh any already-open shop window (player kept it open while
-    // GM restocked, etc.) without forcing one to appear.
+    this._cachedAvailabilityData = foundry.utils.deepClone(snapshot);
+
+    // Refresh an already-open window (a player kept it open while the GM
+    // restocked) without forcing one to appear.
     if (this._app?.rendered) {
-      this._applyAvailabilityToApp(data);
+      this._applyAvailabilityToApp(snapshot);
       this._app.render();
     }
 
@@ -390,19 +465,8 @@ export const MerchantShop = {
   },
 
   /**
-   * GM closed the shop. Close any open player window and let the
-   * Crawl Strip drop the merchant button on its next render.
-   */
-  _onRemoteClose() {
-    if (game.user.isGM) return;
-    this._cachedAvailabilityData = null;
-    this._app?.close();
-    CrawlStrip.queueRender();
-  },
-
-  /**
    * Apply broadcast/cached availability data onto the local _app
-   * instance. Pulled out of `_onRemoteOpen` so `openLocally` can reuse
+   * instance. Pulled out of `_syncAvailability` so `openLocally` can reuse
    * the same wiring when a player opts in after the broadcast.
    */
   _applyAvailabilityToApp(data) {
@@ -479,8 +543,11 @@ export const MerchantShop = {
       // players don't get confused which "open" message is current.
       await this._invalidateOldShopCards();
 
-      // Broadcast so live clients refresh strip / cache, then post chat card.
-      game.socket.emit(`module.${MODULE_ID}`, { action: "shop:open", ...snapshot });
+      // Nudge live clients to re-read the setting written just above, then post
+      // the chat card. The nudge carries NO payload on purpose: it used to ship
+      // the whole snapshot, and any client could send one, so a player could
+      // push a fake price list into everyone's window (audit F6).
+      game.socket.emit(`module.${MODULE_ID}`, { action: "shop:open" });
       await this._postShopCard("open", snapshot);
     } else {
       await game.settings.set(MODULE_ID, "shopAvailabilityData", null);
@@ -572,26 +639,28 @@ export const MerchantShop = {
     });
   },
 
+  /**
+   * A completed transaction: toast it and bring an open window's stock line up
+   * to date. Reached on the GM's own client directly, and on players' clients
+   * through `handleNotice`, which has already established the sender is a GM.
+   *
+   * Every caller reports a success. The old failure branch here — warn if
+   * `data.userId` matches me — became unreachable when refusals moved onto the
+   * query's return value, and the only thing that could still have reached it
+   * was a forged message, so it is gone.
+   */
   _onResult(data) {
-    // Show notification
-    if (data.success) {
-      const verb = data.txAction === "buy" ? "bought" : "sold";
-      const qtyStr = data.quantity > 1 ? ` ×${data.quantity}` : "";
-      // Name the downtime extortion swing when it moved this price.
-      const pct = Number(data.extortionPct) || 0;
-      const swingStr = pct
-        ? ` (extortion: ${data.txAction === "buy" ? `${pct}% off` : `+${pct}%`})`
-        : "";
-      ui.notifications.info(`${data.playerName} ${verb} ${data.itemName}${qtyStr} for ${_formatPrice(data.price)}${swingStr}.`);
-    } else {
-      // Only show error to the player who initiated
-      if (data.userId === game.userId) {
-        ui.notifications.warn(data.error || "Transaction failed.");
-      }
-    }
+    const verb = data.txAction === "buy" ? "bought" : "sold";
+    const qtyStr = data.quantity > 1 ? ` ×${data.quantity}` : "";
+    // Name the downtime extortion swing when it moved this price.
+    const pct = Number(data.extortionPct) || 0;
+    const swingStr = pct
+      ? ` (extortion: ${data.txAction === "buy" ? `${pct}% off` : `+${pct}%`})`
+      : "";
+    ui.notifications.info(`${data.playerName} ${verb} ${data.itemName}${qtyStr} for ${_formatPrice(data.price)}${swingStr}.`);
 
     // Update inventory stock in local app
-    if (data.success && this._app?._inventory) {
+    if (this._app?._inventory) {
       if (data.inventory) {
         this._app._inventory = foundry.utils.deepClone(data.inventory);
       } else if (data.stockUpdate) {
@@ -774,27 +843,19 @@ export const MerchantShop = {
       </div>`,
     });
 
-    // Broadcast result
-    game.socket.emit(`module.${MODULE_ID}`, {
-      action: "shop:result",
-      success: true,
+    // Tell the table. Players get it over the authenticated notice channel, so
+    // the toast cannot be forged; this client renders it directly.
+    const notice = {
       txAction: "buy",
       playerName: buyer.name,
       itemName: entry.name,
       quantity,
       price: totalCost,
       extortionPct: swing.applied ? swing.pct : 0,
-      userId,
       stockUpdate: { id: entry.id, newStock },
-    });
-    // Also handle locally
-    this._onResult({
-      success: true, txAction: "buy",
-      playerName: buyer.name, itemName: entry.name,
-      quantity, price: totalCost, userId,
-      extortionPct: swing.applied ? swing.pct : 0,
-      stockUpdate: { id: entry.id, newStock },
-    });
+    };
+    notifyPlayers(SHOP_NOTICE_QUERY, notice);
+    this._onResult(notice);
   },
 
   // ── Sell handler (GM-side) ────────────────────────────────────────────────
@@ -810,8 +871,13 @@ export const MerchantShop = {
     const item = seller.items.get(itemId);
     if (!item) return this._broadcastError("Item not found in inventory.", userId);
 
+    // Sell needs the same shop-open gate buy, catalogBuy and gamble already
+    // have. Without it the `?.` below swallowed a missing context and the
+    // transaction went through at the default ratio against a shop the GM had
+    // never made available to players (audit 2026-07-29, F4).
     const ctx = this._txContext(userId);
-    const sellRatio = ctx?.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
+    if (!ctx) return this._broadcastError("The shop isn't available right now.", userId);
+    const sellRatio = ctx.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const unitSellPrice = _applySellRatio(cost, sellRatio);
     // The same one-shot downtime extortion swing, in the seller's favour.
@@ -899,28 +965,20 @@ export const MerchantShop = {
       this._app?._actorId ?? null,
     );
 
-    // Broadcast
-    game.socket.emit(`module.${MODULE_ID}`, {
-      action: "shop:result",
-      success: true,
+    // Tell the table. Players get it over the authenticated notice channel, so
+    // the toast cannot be forged; this client renders it directly.
+    const notice = {
       txAction: "sell",
       playerName: seller.name,
       itemName: item.name,
       quantity,
       price: totalSellPrice,
       extortionPct: swing.applied ? swing.pct : 0,
-      userId,
       stockUpdate: null,
       inventory: updatedInventory,
-    });
-    this._onResult({
-      success: true, txAction: "sell",
-      playerName: seller.name, itemName: item.name,
-      quantity, price: totalSellPrice, userId,
-      extortionPct: swing.applied ? swing.pct : 0,
-      stockUpdate: null,
-      inventory: updatedInventory,
-    });
+    };
+    notifyPlayers(SHOP_NOTICE_QUERY, notice);
+    this._onResult(notice);
   },
 
   // ── Catalog buy handler (GM-side) ──────────────────────────────────────────
@@ -1016,22 +1074,20 @@ export const MerchantShop = {
       this._app?._actorId ?? null,
     );
 
-    // Broadcast result
-    const result = {
-      action: "shop:result",
-      success: true,
+    // Tell the table. Players get it over the authenticated notice channel, so
+    // the toast cannot be forged; this client renders it directly.
+    const notice = {
       txAction: "buy",
       playerName: buyer.name,
       itemName: doc.name,
       quantity,
       price: totalCost,
       extortionPct: swing.applied ? swing.pct : 0,
-      userId,
       stockUpdate: null,
       inventory: updatedInventory,
     };
-    game.socket.emit(`module.${MODULE_ID}`, result);
-    this._onResult(result);
+    notifyPlayers(SHOP_NOTICE_QUERY, notice);
+    this._onResult(notice);
   },
 
   // ── Gamble handler (GM-side) ────────────────────────────────────────────
@@ -1274,20 +1330,18 @@ export const MerchantShop = {
       </div>`,
     });
 
-    // Broadcast result
-    const resultData = {
-      action: "shop:result",
-      success: true,
+    // Tell the table. Players get it over the authenticated notice channel, so
+    // the toast cannot be forged; this client renders it directly.
+    const notice = {
       txAction: "buy",
       playerName: buyer.name,
       itemName: `Gamble (${option.name})`,
       quantity: 1,
       price: option.cost,
-      userId,
       stockUpdate: null,
     };
-    game.socket.emit(`module.${MODULE_ID}`, resultData);
-    this._onResult(resultData);
+    notifyPlayers(SHOP_NOTICE_QUERY, notice);
+    this._onResult(notice);
   },
 
   // ── Stock management ──────────────────────────────────────────────────────

@@ -78,6 +78,9 @@ import { MODULE_ID } from "./module-id.mjs";
 /** How long the GM gets to answer a query before the player is told it failed. */
 export const QUERY_TIMEOUT_MS = 20000;
 
+/** How long a GM→player cosmetic notice waits before being abandoned. */
+export const NOTICE_TIMEOUT_MS = 5000;
+
 // ─── Pure decision logic (unit-tested; no Foundry globals) ──────────────────
 
 /**
@@ -240,6 +243,41 @@ export async function queryActiveGM(queryName, data, {
     console.warn(`${MODULE_ID} | query ${queryName} failed:`, err);
     const verdict = evaluateHandshake({ gmPresent: true, answered: false, myVersion: moduleVersion() });
     return { ok: false, error: handshakeWarning(verdict, label) };
+  }
+}
+
+/**
+ * Push a GM-authored notice to every connected player, over the same
+ * authenticated channel and in the same direction-reversed shape.
+ *
+ * WHY NOT A BROADCAST. `game.socket.emit` reaches every client with no proof of
+ * origin, so a player could emit a "the GM says…" message and every other
+ * client would act on it. The obvious patch — stamp the sending GM's id into
+ * the payload and have receivers compare it to `game.users.activeGM` — is not a
+ * fix at all: the stamp is a payload field, so the attacker simply writes the
+ * GM's id into it. That is the identity-from-payload flaw this whole file
+ * exists to remove, and it must not be reintroduced in the other direction.
+ *
+ * A query carries a server-injected sender in both directions, so the receiver
+ * can check `user.isGM` and mean it.
+ *
+ * Fire-and-forget by design: a notice is cosmetic, and a player whose tab is
+ * mid-reload must not stall the GM's transaction. Failures are swallowed,
+ * including the synchronous throw from an unregistered query name on a stale
+ * client (foundry.mjs:59078).
+ *
+ * @param {string} queryName  Registered `CONFIG.queries` key.
+ * @param {object} data       JSON-serializable notice.
+ * @param {object} [options]
+ * @param {number} [options.timeoutMs]
+ */
+export function notifyPlayers(queryName, data, { timeoutMs = NOTICE_TIMEOUT_MS } = {}) {
+  if (!game.user?.isGM) return;
+  for (const user of game.users ?? []) {
+    if (user.isGM || !user.active) continue;
+    Promise.resolve()
+      .then(() => user.query(queryName, data, { timeout: timeoutMs }))
+      .catch(() => { /* cosmetic; a client that can't hear it loses a toast */ });
   }
 }
 
