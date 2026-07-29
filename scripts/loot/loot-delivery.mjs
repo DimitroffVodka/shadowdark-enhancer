@@ -20,14 +20,19 @@ import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
-import { relayToGM } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
-const SOCKET = `module.${MODULE_ID}`;
 const CARD_TEMPLATE = "modules/shadowdark-enhancer/templates/chat/loot-card.hbs";
 
 /** Fills "…needs a reload before X can land" for an undeliverable claim. */
 const LOOT_RELAY_LABEL = "loot claims";
+
+/**
+ * The one authenticated player→GM channel for claims, namespaced per Foundry's
+ * convention (downtime-session.mjs:89).
+ */
+export const LOOT_QUERY = `${MODULE_ID}.loot`;
 
 export const LootDelivery = {
 
@@ -38,20 +43,32 @@ export const LootDelivery = {
   // JS; only the active GM processes, so one Set is authoritative).
   _claimsInFlight: new Set(),
 
-  /** Register the socket handler + chat-card wiring. Call once at init. */
+  /** Register the claim query + chat-card wiring. Call once at init. */
   init() {
-    game.socket.on(SOCKET, async (data) => {
-      // Only the PRIMARY (active) GM processes player-emitted claims. Every
-      // connected GM receives the socket, so in a multi-GM world (e.g. a human
-      // GM + the always-on "Bridge" client) an unguarded handler would create
-      // the claimed item / add the coins twice. Mirrors the merchant-shop and
-      // session-recap activeGM guard. GM-direct paths in _wireCard run on a
-      // single client already and are intentionally not gated here.
-      if (!(game.user.isGM && game.users.activeGM?.id === game.user.id)) return;
-      if (data?.action === "lootClaimItem") await this._handleClaimItem(data);
-      else if (data?.action === "lootClaimCoins") await this._handleClaimCoins(data);
-    });
+    CONFIG.queries[LOOT_QUERY] = (data, { user } = {}) => LootDelivery.handleQuery(data, user);
     Hooks.on("renderChatMessageHTML", (message, html) => this._wireCard(message, html));
+  },
+
+  /**
+   * Query entry point — the ONLY way a player reaches a claim handler.
+   *
+   * A query is point-to-point: the sender addresses `game.users.activeGM`, so
+   * exactly one client runs this. The old broadcast needed an activeGM gate
+   * because every connected GM received it (a human GM plus the always-on
+   * "Bridge" client would each create the claimed item); a query cannot
+   * double-fire that way. The synchronous `_claimsInFlight` lock still guards
+   * two players racing the same row.
+   *
+   * @param {object} data  Action-discriminated payload. Ids only.
+   * @param {User}   user  The AUTHENTICATED claimer, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async handleQuery(data, user) {
+    const refusal = refuseQuery(user, "Loot claims");
+    if (refusal) return refusal;
+    if (data?.action === "lootClaimItem") return this._handleClaimItem(data, user);
+    if (data?.action === "lootClaimCoins") return this._handleClaimCoins(data, user);
+    return { ok: false, error: "Unknown loot action." };
   },
 
   /**
@@ -164,11 +181,11 @@ export const LootDelivery = {
           ?? game.actors.find(a => a.type === "Player" && a.isOwner);
         if (!actor) { ui.notifications.warn("No character assigned to claim with."); return; }
         btn.disabled = true;
-        const payload = { action: "lootClaimItem", messageId: message.id, itemIndex: idx, userId: game.user.id, actorId: actor.id };
-        if (game.user.isGM) await this._handleClaimItem(payload);
-        // A blocked relay never reaches the GM, so nothing will re-render this
-        // card — hand the button back or the item looks permanently claimed.
-        else if (!await relayToGM(payload, { label: LOOT_RELAY_LABEL })) btn.disabled = false;
+        const request = { action: "lootClaimItem", messageId: message.id, itemIndex: idx, actorId: actor.id };
+        if (game.user.isGM) await this._handleClaimItem(request);
+        // A refused claim never re-renders this card — hand the button back or
+        // the item looks permanently claimed.
+        else if (!await relayToGM(LOOT_QUERY, request, { label: LOOT_RELAY_LABEL })) btn.disabled = false;
       });
     });
 
@@ -206,9 +223,9 @@ export const LootDelivery = {
           ?? game.actors.find(a => a.type === "Player" && a.isOwner);
         if (!actor) { ui.notifications.warn("No character assigned to claim with."); return; }
         claimCoinsBtn.disabled = true;
-        const payload = { action: "lootClaimCoins", messageId: message.id, userId: game.user.id, actorId: actor.id };
-        if (game.user.isGM) await this._handleClaimCoins(payload);
-        else if (!await relayToGM(payload, { label: LOOT_RELAY_LABEL })) claimCoinsBtn.disabled = false;
+        const request = { action: "lootClaimCoins", messageId: message.id, actorId: actor.id };
+        if (game.user.isGM) await this._handleClaimCoins(request);
+        else if (!await relayToGM(LOOT_QUERY, request, { label: LOOT_RELAY_LABEL })) claimCoinsBtn.disabled = false;
       });
     }
 
@@ -270,27 +287,34 @@ export const LootDelivery = {
     return null;
   },
 
-  /** GM-authoritative item claim: lock the flag, then create the item. */
-  async _handleClaimItem({ messageId, itemIndex, userId, actorId }) {
+  /**
+   * GM-authoritative item claim: lock the flag, then create the item.
+   *
+   * @param {object} payload
+   * @param {User} [user]  The AUTHENTICATED claimer. Defaults to the GM running
+   *                       it directly. Never read off the payload: a claimed id
+   *                       naming a GM opened this gate for anyone, because
+   *                       `testUserPermission` returns OWNER for every GM.
+   */
+  async _handleClaimItem({ messageId, itemIndex, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
-    if (!flags?.lootCard) return;
+    if (!flags?.lootCard) return { ok: false, error: "That loot card is gone." };
     const item = flags.items[itemIndex];
-    if (!item || item.claimedBy) return; // already claimed
-    const actor = game.actors.get(actorId);
-    const user = game.users.get(userId);
-    if (!actor || !user) return;
-    if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return;
+    if (!item || item.claimedBy) return { ok: false, error: "Someone already claimed that." };
+    const auth = authorizeActorFor(actorId, user);
+    if (!auth.ok) return auth;
+    const actor = auth.actor;
 
     // Claim the in-memory lock synchronously before any await so a concurrent
     // claim of the same item bails here rather than double-creating it.
     const lockKey = `${messageId}:item:${itemIndex}`;
-    if (this._claimsInFlight.has(lockKey)) return;
+    if (this._claimsInFlight.has(lockKey)) return { ok: false, error: "Someone already claimed that." };
     this._claimsInFlight.add(lockKey);
     try {
       // Optimistic lock: mark claimed FIRST (persisted flag survives reload).
       const items = foundry.utils.deepClone(flags.items);
-      items[itemIndex] = { ...item, claimedBy: userId, claimedByName: actor.name };
+      items[itemIndex] = { ...item, claimedBy: user.id, claimedByName: actor.name };
       await message.update({ [`flags.${MODULE_ID}.items`]: items });
 
       const data = await this._resolveItemData(item);
@@ -298,6 +322,7 @@ export const LootDelivery = {
 
       SessionRecap.logLoot({ type: "item", player: actor.name, detail: item.name, source: flags.source ?? null, img: item.img, qty: item.qty ?? 1 });
       await this._refresh(message);
+      return { ok: true };
     } finally {
       this._claimsInFlight.delete(lockKey);
     }
@@ -330,19 +355,19 @@ export const LootDelivery = {
    * First claim wins via the shared coinsAssigned lock; coins are added to the
    * actor's system.coins. Validates the claimer owns the actor (or is GM).
    */
-  async _handleClaimCoins({ messageId, userId, actorId }) {
+  async _handleClaimCoins({ messageId, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
     const flags = message?.flags?.[MODULE_ID];
-    if (!flags?.lootCard || flags.coinsAssigned) return; // already taken
-    const actor = game.actors.get(actorId);
-    const user = game.users.get(userId);
-    if (!actor || !user) return;
-    if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return;
+    if (!flags?.lootCard) return { ok: false, error: "That loot card is gone." };
+    if (flags.coinsAssigned) return { ok: false, error: "Someone already claimed the coins." };
+    const auth = authorizeActorFor(actorId, user);   // see _handleClaimItem
+    if (!auth.ok) return auth;
+    const actor = auth.actor;
 
     // Synchronous in-memory lock (see _handleClaimItem) so two concurrent coin
     // claims can't both credit before either persists the coinsAssigned flag.
     const lockKey = `${messageId}:coins`;
-    if (this._claimsInFlight.has(lockKey)) return;
+    if (this._claimsInFlight.has(lockKey)) return { ok: false, error: "Someone already claimed the coins." };
     this._claimsInFlight.add(lockKey);
     try {
       await message.update({ [`flags.${MODULE_ID}.coinsAssigned`]: { actorId, actorName: actor.name } });
@@ -357,6 +382,7 @@ export const LootDelivery = {
 
       if (c.gp || c.sp || c.cp) SessionRecap.logLoot({ type: "currency", player: actor.name, coins: { gp: c.gp ?? 0, sp: c.sp ?? 0, cp: c.cp ?? 0 } });
       await this._refresh(message);
+      return { ok: true };
     } finally {
       this._claimsInFlight.delete(lockKey);
     }

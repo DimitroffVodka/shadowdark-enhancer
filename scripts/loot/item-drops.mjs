@@ -27,7 +27,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
-import { relayToGM } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 
 /* -------------------------------------------- */
 /*  Droppable Item Types                        */
@@ -47,6 +47,12 @@ const COIN_IMG = "icons/commodities/currency/coins-plain-stack-gold.webp";
  * nothing on the canvas to show for it.
  */
 const DROP_RELAY_LABEL = "item drops and pickups";
+
+/**
+ * The one authenticated player→GM channel for drops and pickups, namespaced per
+ * Foundry's convention (downtime-session.mjs:89).
+ */
+export const DROP_QUERY = `${MODULE_ID}.itemDrops`;
 
 /** Human label for a coin bundle, e.g. "12 gp, 5 sp". */
 function _coinLabel(c) {
@@ -97,22 +103,28 @@ export const ItemDrops = {
     // Hook: add pickup button to TokenHUD for dropped items
     Hooks.on("renderTokenHUD", (hud, html, tokenData) => this._onRenderTokenHUD(hud, html, tokenData));
 
-    // Socket: handle player requests (they can't create actors/tokens).
-    // Only the PRIMARY (active) GM processes them — otherwise every connected
-    // GM (e.g. a second GM or an always-on relay client) would create a
-    // duplicate token / double-credit a pickup. Mirrors the loot-delivery
-    // and merchant-shop activeGM guard.
-    game.socket.on(`module.${MODULE_ID}`, async (data) => {
-      if (!(game.user.isGM && game.users.activeGM?.id === game.user.id)) return;
-      if (data?.action === "itemDrop:create") {
-        await this._createDroppedItemToken(data);
-      }
-      if (data?.action === "itemDrop:pickup") {
-        await this._handlePickup(data);
-      }
-    });
+    // Player requests (they can't create actors/tokens) arrive as authenticated
+    // queries. Registered on every client; only the one a query is addressed to
+    // runs the handler, so a second GM or the always-on Bridge client can't
+    // create a duplicate token or double-credit a pickup.
+    CONFIG.queries[DROP_QUERY] = (data, { user } = {}) => ItemDrops.handleQuery(data, user);
 
     console.log(`${MODULE_ID} | Item Drops initialized.`);
+  },
+
+  /**
+   * Query entry point — the ONLY way a player reaches a drop or pickup.
+   *
+   * @param {object} data  Action-discriminated payload. Ids and a quantity.
+   * @param {User}   user  The AUTHENTICATED sender, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async handleQuery(data, user) {
+    const refusal = refuseQuery(user, "Item drops");
+    if (refusal) return refusal;
+    if (data?.action === "itemDrop:create") return this._createDroppedItemToken(data, user);
+    if (data?.action === "itemDrop:pickup") return this._handlePickup(data, user);
+    return { ok: false, error: "Unknown item-drop action." };
   },
 
   /**
@@ -244,14 +256,10 @@ export const ItemDrops = {
     if (game.user.isGM) {
       await this._createDroppedItemToken(dropData);
     } else {
-      // Player: relay to GM via socket. The GM re-reads the item server-side
-      // and verifies ownership using userId, so a crafted payload can't
-      // fabricate items or drop from an actor the sender doesn't own.
-      await relayToGM({
-        action: "itemDrop:create",
-        userId: game.userId,
-        ...dropData,
-      }, { label: DROP_RELAY_LABEL });
+      // Player: the GM re-reads the item off the source actor and checks OWNER
+      // against the sender the SERVER identified, so a crafted request can
+      // neither fabricate item data nor drop from an actor it doesn't own.
+      await relayToGM(DROP_QUERY, { action: "itemDrop:create", ...dropData }, { label: DROP_RELAY_LABEL });
     }
   },
 
@@ -280,31 +288,47 @@ export const ItemDrops = {
 
   /**
    * Create a token on the canvas representing a dropped item.
-   * GM-only execution (players relay via socket).
+   * GM-only execution (players arrive through `handleQuery`).
+   *
+   * @param {object} data
+   * @param {User} [requester]  The AUTHENTICATED user this acts for. Defaults
+   *                            to the GM running it directly.
    */
-  async _createDroppedItemToken(data) {
-    const { sourceActorId, sourceItemId, x, y, sceneId, userId } = data;
+  async _createDroppedItemToken(data, requester = game.user) {
+    const { sourceActorId, sourceItemId, x, y, sceneId } = data;
     let itemData = data.itemData;
     let qtyToDrop = Math.max(1, Math.floor(Number(data.dropQty)) || 1);
 
-    // A relayed player request (userId present and not our own GM action) is
-    // untrusted. The player may only drop an item they actually OWN, and we
-    // re-read the item from the source actor server-side rather than trusting
-    // the payload's `itemData` — otherwise a crafted socket message could
-    // fabricate arbitrary item data or an inflated quantity to dupe on pickup.
-    if (userId && userId !== game.userId) {
-      const user = game.users.get(userId);
-      const sourceActor = game.actors.get(sourceActorId);
-      if (!user || !sourceActor) return;
-      if (!sourceActor.testUserPermission(user, "OWNER")) return;
+    // VALIDATE UNCONDITIONALLY. This used to read
+    // `if (userId && userId !== game.userId) { …all of it… }`, so a payload
+    // naming a GM did not merely pass the ownership check — it deleted the
+    // authoritative re-read along with it, and the handler baked the payload's
+    // own `itemData` into a world Actor and a Scene Token. Both are documents a
+    // player cannot create, which made this the worst instance in the
+    // 2026-07-29 impersonation audit. There is no "skip validation when it's
+    // us" branch any more: a GM passes because they are a GM.
+    const sourceActor = sourceActorId ? game.actors.get(sourceActorId) : null;
+    if (sourceActor) {
+      // Dropping from a sheet: re-read the item off the actor rather than
+      // trusting the payload, so a crafted request can neither fabricate item
+      // data nor inflate the quantity to dupe on pickup.
+      const auth = authorizeActorFor(sourceActorId, requester);
+      if (!auth.ok) return auth;
       const sourceItem = sourceActor.items.get(sourceItemId);
-      if (!sourceItem) return;
-      if (!DROPPABLE_TYPES.includes(sourceItem.type) || _isLightSource(sourceItem)) return;
+      if (!sourceItem) return { ok: false, error: "That item isn't on that character." };
+      if (!DROPPABLE_TYPES.includes(sourceItem.type) || _isLightSource(sourceItem)) {
+        return { ok: false, error: "That kind of item can't be dropped." };
+      }
       itemData = sourceItem.toObject();
       const available = Math.max(1, Math.floor(Number(sourceItem.system?.quantity ?? 1)) || 1);
       qtyToDrop = Math.min(qtyToDrop, available);
+    } else if (!requester?.isGM) {
+      // No source actor means there is nothing to re-read, so `itemData` could
+      // only have come from the payload. Only a GM may drop from a compendium,
+      // the world, or the Loot Generator (`dropItemData` below).
+      return { ok: false, error: "Only the GM can drop an item that isn't from a character sheet." };
     }
-    if (!itemData) return;
+    if (!itemData) return { ok: false, error: "Nothing to drop." };
 
     // Remove item from source actor (or decrement quantity). World/compendium
     // drops carry no source actor, so there is nothing to take from.
@@ -363,6 +387,7 @@ export const ItemDrops = {
     }]);
 
     console.log(`${MODULE_ID} | Item dropped: ${itemData.name} at (${x}, ${y})`);
+    return { ok: true };
   },
 
   /* -------------------------------------------- */
@@ -503,24 +528,14 @@ export const ItemDrops = {
         return;
       }
 
-      if (game.user.isGM) {
-        await this._handlePickup({
-          tokenId: token.id,
-          actorId: actor.id,
-          recipientId: recipient.id,
-          sceneId: canvas.scene.id,
-          userId: game.userId,
-        });
-      } else {
-        await relayToGM({
-          action: "itemDrop:pickup",
-          tokenId: token.id,
-          actorId: actor.id,
-          recipientId: recipient.id,
-          sceneId: canvas.scene.id,
-          userId: game.userId,
-        }, { label: DROP_RELAY_LABEL });
-      }
+      const request = {
+        tokenId: token.id,
+        actorId: actor.id,
+        recipientId: recipient.id,
+        sceneId: canvas.scene.id,
+      };
+      if (game.user.isGM) await this._handlePickup(request);
+      else await relayToGM(DROP_QUERY, { action: "itemDrop:pickup", ...request }, { label: DROP_RELAY_LABEL });
 
       // Close the HUD
       canvas.hud.token.clear();
@@ -533,21 +548,19 @@ export const ItemDrops = {
    * Transfer the dropped item OR coin pile to the recipient and clean up.
    * GM-only execution. Branches on the temp actor's flags.
    */
-  async _handlePickup(data) {
-    const { tokenId, actorId, recipientId, sceneId, userId } = data;
+  async _handlePickup(data, requester = game.user) {
+    const { tokenId, actorId, recipientId, sceneId } = data;
 
     const dropActor = game.actors.get(actorId);
-    if (!dropActor) return;
+    if (!dropActor) return { ok: false, error: "That pile is already gone." };
 
-    const recipient = game.actors.get(recipientId);
-    if (!recipient) return;
-
-    // The recipient is attacker-controlled over the socket: a player may only
-    // pick up onto an actor they OWN (GM-initiated pickups skip the check).
-    if (userId && userId !== game.userId) {
-      const user = game.users.get(userId);
-      if (!user || !recipient.testUserPermission(user, "OWNER")) return;
-    }
+    // CHECK UNCONDITIONALLY. The recipient id comes off the wire, and the old
+    // `if (userId && userId !== game.userId)` shape meant a payload naming a GM
+    // skipped the check entirely — routing any dropped pile onto any actor,
+    // including an NPC, to deny it to the party. A GM passes on being a GM.
+    const auth = authorizeActorFor(recipientId, requester);
+    if (!auth.ok) return auth;
+    const recipient = auth.actor;
 
     // Concurrency guard: two players clicking pickup emit two sockets, both
     // processed on this one active-GM client. Without a lock both would read
@@ -556,10 +569,11 @@ export const ItemDrops = {
     // exclusion (JS is single-threaded; the set is claimed synchronously
     // before any await).
     this._pickupInFlight ??= new Set();
-    if (this._pickupInFlight.has(actorId)) return;
+    if (this._pickupInFlight.has(actorId)) return { ok: false, error: "Someone is already picking that up." };
     this._pickupInFlight.add(actorId);
     try {
       await this._doPickup(dropActor, recipient, tokenId, sceneId);
+      return { ok: true };
     } finally {
       this._pickupInFlight.delete(actorId);
     }

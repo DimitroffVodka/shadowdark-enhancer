@@ -426,14 +426,8 @@ api.downtime.sessionState();             // deep clone of the live session state
 only. The active GM re-reads the skeleton, the unlock setting, the actor and the
 session at handling time and recomputes the DC, the cost and the gating itself.
 Even the roll total is read back off the `ChatMessage` document rather than taken
-from the payload.
-
-Player-driven work is handled by the **active GM's** client. A GM tab running
-module code from before an update has no listener for a new action name, so a
-player's message would land in a deaf client and nothing would throw. Every
-player relay therefore runs a liveness and version handshake against the active
-GM first, and warns the player to have their GM reload rather than leaving a
-button that silently did nothing.
+from the payload. This is the shape every relayed action in the module follows —
+see [Relay trust model](#relay-trust-model).
 
 **Ships no book content.** The module bundles only the *skeleton* — activity
 names, slot labels, DCs, per-attempt costs and the mechanical deltas (renown,
@@ -487,9 +481,48 @@ consumes it on the next completed buy **or** sell.
   not bump `apiVersion`.
 - Anything that creates or modifies documents is **GM-only** and follows the
   never-overwrite, never-delete contract. Player-initiated actions that need a
-  write (loot claims, merchant transactions, movement rollback, character
-  creation without create permission) are relayed to the **active GM** over the
-  module socket — they silently do nothing when no GM is connected.
+  write (loot claims, merchant transactions, item drops, luck-token gifts,
+  movement rollback, downtime picks, character creation without create
+  permission) are relayed to the **active GM** — see the trust model below.
+
+## Relay trust model
+
+Players cannot write world settings or create documents they do not own, so
+every player action that mutates shared state is performed by one client: the
+**active GM**. Two rules govern how that client decides whether to do it.
+
+**1. The payload is data, never authority.** A request carries ids and nothing
+else. The GM re-reads the actor, the item, the shop inventory, the loot card and
+the session at handling time and recomputes prices, quantities and gating from
+those documents. A forged `cost`, an inflated quantity or a fabricated item body
+is not consulted, so it cannot take effect.
+
+**2. The sender is established by the server, never by the request.** Player
+actions travel as Foundry **user queries** (`CONFIG.queries` + `User#query`,
+v13+), where the server stamps the sender from the authenticated socket before
+delivering. The handler receives that `User` document and requires OWNER on the
+actor being acted for; GMs may act for anyone.
+
+Rule 2 is load-bearing rather than belt-and-braces. `game.socket.emit` carries
+no proof of who sent a message, and `Document#testUserPermission` returns OWNER
+unconditionally for any GM — so while identity came out of the payload, a client
+naming any online GM satisfied every ownership check in the module. All
+player→GM actions now travel that way, and the raw module socket carries
+only GM→everyone broadcasts and payload-free "re-read the setting" nudges, none
+of which grant anything.
+
+Two consequences worth knowing:
+
+- **`QUERY_USER` must stay enabled for the player role.** It is on by default.
+  A world that revokes it gets an explicit warning naming the permission rather
+  than a dead button.
+- **A refusal reaches the player who asked, and nobody else.** The GM's handler
+  returns `{ok: false, error}` and that string is shown as a warning on the
+  requesting client. Refusals are no longer broadcast.
+
+Module code registering its own relay should use `scripts/shared/gm-relay.mjs`:
+`relayToGM(queryName, data, {label})` on the player side, `refuseQuery(user)`
+plus `authorizeActorFor(actorId, user)` on the GM side.
 
 ## Public hooks
 

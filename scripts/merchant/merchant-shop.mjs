@@ -12,7 +12,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlStrip } from "../crawl-strip/crawl-strip.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
-import { relayToGM } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
   addToPurse, spendFromPurse, parseCoinsFromText,
@@ -40,6 +40,12 @@ const _rollDice = async (dice) => (await new Roll(dice).evaluate()).total;
  * relay looks to the player like the shop simply ignored them.
  */
 const SHOP_RELAY_LABEL = "shop transactions";
+
+/**
+ * The one authenticated player→GM channel for transactions, namespaced per
+ * Foundry's convention (art-gallery.mjs:22, downtime-session.mjs:89).
+ */
+export const MERCHANT_QUERY = `${MODULE_ID}.merchant`;
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -74,6 +80,34 @@ export const MerchantShop = {
     const run = this._txQueue.then(fn, fn);
     this._txQueue = run.catch(() => {});
     return run;
+  },
+
+  /**
+   * Query entry point — the ONLY way a player reaches a transaction handler.
+   *
+   * A query is point-to-point: the sender addresses `game.users.activeGM`, so
+   * exactly one client runs this and the old `activeGM` gate (which stopped a
+   * second GM double-processing a broadcast) is no longer needed. Transactions
+   * still queue, so two players landing together can't race the stock check.
+   *
+   * @param {object} data  Action-discriminated payload. Ids and quantities only.
+   * @param {User}   user  The AUTHENTICATED sender, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async handleQuery(data, user) {
+    const refusal = refuseQuery(user, "Shop transactions");
+    if (refusal) return refusal;
+    const action = data?.action;
+    const run = {
+      "shop:buy":        () => this._handleBuy(data, user),
+      "shop:sell":       () => this._handleSell(data, user),
+      "shop:catalogBuy": () => this._handleCatalogBuy(data, user),
+      "shop:gamble":     () => this._handleGamble(data, user),
+    }[action];
+    if (!run) return { ok: false, error: "Unknown shop action." };
+    // A handler that returns nothing has already posted its own result card;
+    // only a refusal comes back as a value (`_broadcastError`).
+    return (await this._enqueueTx(run)) ?? { ok: true };
   },
 
   // ── Settings ──────────────────────────────────────────────────────────────
@@ -129,19 +163,14 @@ export const MerchantShop = {
   // ── Init (socket listeners) ───────────────────────────────────────────────
 
   init() {
-    game.socket.on(`module.${MODULE_ID}`, async (data) => {
-      // GM-side: process player-initiated transactions. Only the PRIMARY GM
-      // (game.users.activeGM) handles them — otherwise every connected GM
-      // (e.g. an always-on bridge/relay client, or a second logged-in GM)
-      // processes the same socket and creates duplicate chat cards + items.
-      if (game.user.isGM && game.users.activeGM?.id === game.user.id) {
-        if (data.action === "shop:buy")        await this._enqueueTx(() => this._handleBuy(data));
-        if (data.action === "shop:sell")       await this._enqueueTx(() => this._handleSell(data));
-        if (data.action === "shop:catalogBuy") await this._enqueueTx(() => this._handleCatalogBuy(data));
-        if (data.action === "shop:gamble")     await this._enqueueTx(() => this._handleGamble(data));
-      }
+    // The one authenticated player→GM channel for transactions. Registered on
+    // every client; only the client a query is addressed to runs the handler,
+    // and the sender it receives comes from the server, not the payload
+    // (gm-relay.mjs). Mirrors the downtime query (downtime-session.mjs:89).
+    CONFIG.queries[MERCHANT_QUERY] = (data, { user } = {}) => MerchantShop.handleQuery(data, user);
 
-      // All clients: handle broadcasts from GM
+    game.socket.on(`module.${MODULE_ID}`, (data) => {
+      // All clients: handle display-only broadcasts from the GM.
       if (data.action === "shop:open")   this._onRemoteOpen(data);
       if (data.action === "shop:close")  this._onRemoteClose();
       if (data.action === "shop:result") this._onResult(data);
@@ -578,19 +607,20 @@ export const MerchantShop = {
   // ── Transaction security helpers ──────────────────────────────────────────
 
   /**
-   * Resolve the actor for a transaction only if the requesting user is
-   * allowed to act on it. The socket payload is attacker-controlled, so we
-   * never trust `actorId`/`userId` blindly: a non-GM user must actually OWN
-   * the actor. Mirrors loot-delivery's `testUserPermission(user, "OWNER")`
-   * gate. Returns the actor, or null (caller broadcasts an error).
+   * Resolve the actor for a transaction only if the requesting user is allowed
+   * to act on it. The payload is attacker-controlled, so `actorId` is never
+   * trusted blindly: a non-GM must actually OWN the actor.
+   *
+   * `user` is a User DOCUMENT from the query context, not an id off the wire.
+   * That distinction is the whole fix: this gate used to resolve a payload's
+   * `userId`, and `testUserPermission` returns OWNER for every GM
+   * (foundry.mjs:14794), so naming any online GM opened it for any actor in the
+   * world. Do not reintroduce a caller-supplied id here.
+   *
+   * Returns the actor, or null (caller refuses).
    */
-  _resolveOwnedActor(actorId, userId) {
-    const actor = game.actors.get(actorId);
-    if (!actor) return null;
-    const user = game.users.get(userId);
-    if (!user) return null;
-    if (!user.isGM && !actor.testUserPermission(user, "OWNER")) return null;
-    return actor;
+  _resolveOwnedActor(actorId, user) {
+    return authorizeActorFor(actorId, user).actor ?? null;
   },
 
   /**
@@ -599,6 +629,10 @@ export const MerchantShop = {
    * `buyMultiplier: 0` (everything free) or force a different inventory. For
    * the GM's own window we trust the live `_app`; for a player-initiated
    * request we use the snapshot published when the shop was opened.
+   *
+   * The `_app` branch is now reachable only by a GM acting in their own window:
+   * `userId` is the authenticated sender, so a player can no longer select it
+   * and transact against a shop that was never made available to them.
    */
   _txContext(userId) {
     if (userId === game.userId && this._app) {
@@ -638,10 +672,12 @@ export const MerchantShop = {
 
   // ── Buy handler (GM-side) ─────────────────────────────────────────────────
 
-  async _handleBuy(data) {
-    const { buyerActorId, shopItemId, userId } = data;
+  async _handleBuy(data, user = game.user) {
+    const { buyerActorId, shopItemId } = data;
+    // Identity comes from the query context, never from `data`.
+    const userId = user?.id;
     const quantity = this._sanitizeQty(data.quantity);
-    const buyer = this._resolveOwnedActor(buyerActorId, userId);
+    const buyer = this._resolveOwnedActor(buyerActorId, user);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
 
     const ctx = this._txContext(userId);
@@ -763,10 +799,12 @@ export const MerchantShop = {
 
   // ── Sell handler (GM-side) ────────────────────────────────────────────────
 
-  async _handleSell(data) {
-    const { sellerActorId, itemId, userId } = data;
+  async _handleSell(data, user = game.user) {
+    const { sellerActorId, itemId } = data;
+    // Identity comes from the query context, never from `data`.
+    const userId = user?.id;
     const quantity = this._sanitizeQty(data.quantity);
-    const seller = this._resolveOwnedActor(sellerActorId, userId);
+    const seller = this._resolveOwnedActor(sellerActorId, user);
     if (!seller) return this._broadcastError("Actor not found.", userId);
 
     const item = seller.items.get(itemId);
@@ -887,10 +925,12 @@ export const MerchantShop = {
 
   // ── Catalog buy handler (GM-side) ──────────────────────────────────────────
 
-  async _handleCatalogBuy(data) {
-    const { buyerActorId, itemUuid, userId } = data;
+  async _handleCatalogBuy(data, user = game.user) {
+    const { buyerActorId, itemUuid } = data;
+    // Identity comes from the query context, never from `data`.
+    const userId = user?.id;
     const quantity = this._sanitizeQty(data.quantity);
-    const buyer = this._resolveOwnedActor(buyerActorId, userId);
+    const buyer = this._resolveOwnedActor(buyerActorId, user);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
 
     const ctx = this._txContext(userId);
@@ -1084,9 +1124,11 @@ export const MerchantShop = {
     }
   },
 
-  async _handleGamble(data) {
-    const { buyerActorId, gambleId, userId } = data;
-    const buyer = this._resolveOwnedActor(buyerActorId, userId);
+  async _handleGamble(data, user = game.user) {
+    const { buyerActorId, gambleId } = data;
+    // Identity comes from the query context, never from `data`.
+    const userId = user?.id;
+    const buyer = this._resolveOwnedActor(buyerActorId, user);
     if (!buyer) return this._broadcastError("Actor not found.", userId);
 
     const ctx = this._txContext(userId);
@@ -1310,17 +1352,16 @@ export const MerchantShop = {
     await game.settings.set(MODULE_ID, "shopInventory", inv);
   },
 
+  /**
+   * A refusal. RETURNED, not broadcast: a player's request arrived as a query,
+   * so the reply goes straight back to the client that asked. The old version
+   * emitted `shop:result` to every client with the recipient named in the
+   * payload — the exact shape this rewrite stopped trusting. Only a GM's own
+   * click still needs a local toast, because nothing is waiting on a reply.
+   */
   _broadcastError(error, userId) {
-    game.socket.emit(`module.${MODULE_ID}`, {
-      action: "shop:result",
-      success: false,
-      error,
-      userId,
-    });
-    // Also show locally if the GM did the action
-    if (userId === game.userId) {
-      ui.notifications.warn(error);
-    }
+    if (userId === game.userId) ui.notifications.warn(error);
+    return { ok: false, error };
   },
 
   // ── Inventory management (GM) ─────────────────────────────────────────────
@@ -2496,24 +2537,15 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    if (game.user.isGM) {
-      await MerchantShop._enqueueTx(() => MerchantShop._handleBuy({
-        buyerActorId: actor.id,
-        shopItemId,
-        quantity,
-        buyMultiplier: this._buyMultiplier,
-        userId: game.userId,
-      }));
-    } else {
-      await relayToGM({
-        action: "shop:buy",
-        buyerActorId: actor.id,
-        shopItemId,
-        quantity,
-        buyMultiplier: this._buyMultiplier,
-        userId: game.userId,
-      }, { label: SHOP_RELAY_LABEL });
-    }
+    const request = {
+      action: "shop:buy",
+      buyerActorId: actor.id,
+      shopItemId,
+      quantity,
+      buyMultiplier: this._buyMultiplier,
+    };
+    if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleBuy(request));
+    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
   }
 
   async _doSell(itemId, quantity) {
@@ -2523,22 +2555,9 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    if (game.user.isGM) {
-      await MerchantShop._enqueueTx(() => MerchantShop._handleSell({
-        sellerActorId: actor.id,
-        itemId,
-        quantity,
-        userId: game.userId,
-      }));
-    } else {
-      await relayToGM({
-        action: "shop:sell",
-        sellerActorId: actor.id,
-        itemId,
-        quantity,
-        userId: game.userId,
-      }, { label: SHOP_RELAY_LABEL });
-    }
+    const request = { action: "shop:sell", sellerActorId: actor.id, itemId, quantity };
+    if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleSell(request));
+    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
   }
 
   /** Resolve a UUID for an item row that doesn't have data-item-uuid. */
@@ -2576,20 +2595,9 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
 
-    if (game.user.isGM) {
-      await MerchantShop._enqueueTx(() => MerchantShop._handleGamble({
-        buyerActorId: actor.id,
-        gambleId,
-        userId: game.userId,
-      }));
-    } else {
-      await relayToGM({
-        action: "shop:gamble",
-        buyerActorId: actor.id,
-        gambleId,
-        userId: game.userId,
-      }, { label: SHOP_RELAY_LABEL });
-    }
+    const request = { action: "shop:gamble", buyerActorId: actor.id, gambleId };
+    if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleGamble(request));
+    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
   }
 
   async _doCatalogBuy(itemUuid, quantity) {
@@ -2612,23 +2620,14 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       }
     }
 
-    if (game.user.isGM) {
-      await MerchantShop._enqueueTx(() => MerchantShop._handleCatalogBuy({
-        buyerActorId: actor.id,
-        itemUuid,
-        quantity,
-        buyMultiplier: this._buyMultiplier,
-        userId: game.userId,
-      }));
-    } else {
-      await relayToGM({
-        action: "shop:catalogBuy",
-        buyerActorId: actor.id,
-        itemUuid,
-        quantity,
-        buyMultiplier: this._buyMultiplier,
-        userId: game.userId,
-      }, { label: SHOP_RELAY_LABEL });
-    }
+    const request = {
+      action: "shop:catalogBuy",
+      buyerActorId: actor.id,
+      itemUuid,
+      quantity,
+      buyMultiplier: this._buyMultiplier,
+    };
+    if (game.user.isGM) await MerchantShop._enqueueTx(() => MerchantShop._handleCatalogBuy(request));
+    else await relayToGM(MERCHANT_QUERY, request, { label: SHOP_RELAY_LABEL });
   }
 }

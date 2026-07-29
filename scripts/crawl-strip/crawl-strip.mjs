@@ -14,6 +14,7 @@ import { esc }              from "../shared/esc.mjs";
 import { CrawlState }       from "./crawl-state.mjs";
 import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "../shared/icons.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import {
   buildTabStripHTML,
@@ -22,6 +23,12 @@ import {
 } from "./npc-action-menu.mjs";
 
 const STRIP_ID = "shadowdark-enhancer-strip";
+
+/**
+ * The authenticated player→GM channel for luck-token gifts, namespaced per
+ * Foundry's convention (downtime-session.mjs:89).
+ */
+export const LUCK_QUERY = `${MODULE_ID}.luck`;
 
 export const CrawlStrip = {
 
@@ -71,20 +78,37 @@ export const CrawlStrip = {
     on("deleteActiveEffect", queueIfShown);
     on("updateActiveEffect", queueIfShown);
 
-    // Listen for luck-give requests from players (who can't update other
-    // actors directly). Only the GM acts on them; the sender gets a
-    // notification if the GM isn't online.
-    game.socket.on(`module.${MODULE_ID}`, async (msg) => {
-      if (msg.action !== "luck:give") return;
-      if (!game.user.isGM) return;
-      const giver = game.actors.get(msg.giverId);
-      const receiver = game.actors.get(msg.receiverId);
-      if (!giver || !receiver) return;
-      // Gate: only the player who owns the giver can give from it
-      const sender = game.users.get(msg.userId);
-      if (!sender || !giver.testUserPermission(sender, "OWNER")) return;
-      await this._giveLuckToken(giver, receiver);
-    });
+    // Luck-give requests from players (who can't update other actors directly),
+    // over the authenticated relay. TWO defects closed here, both real:
+    //
+    //   * the gate read the CLAIMED `msg.userId`, so naming any online GM took
+    //     a luck token OFF another character and put it on the attacker's —
+    //     the one finding in the 2026-07-29 audit that moved a resource between
+    //     players rather than merely griefing;
+    //   * the handler checked `isGM`, not `activeGM`, so in this world (always-
+    //     on "Bridge" GM) BOTH GM clients ran it and pulp mode debited the
+    //     giver twice. A query is point-to-point, which fixes that by shape.
+    CONFIG.queries[LUCK_QUERY] = (data, { user } = {}) => CrawlStrip.handleLuckQuery(data, user);
+  },
+
+  /**
+   * @param {object} data  { action, giverId, receiverId }
+   * @param {User}   user  The AUTHENTICATED giver, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async handleLuckQuery(data, user) {
+    const refusal = refuseQuery(user, "Luck token gifts");
+    if (refusal) return refusal;
+    if (data?.action !== "luck:give") return { ok: false, error: "Unknown luck action." };
+
+    // Only someone who owns the GIVER may give from it.
+    const auth = authorizeActorFor(data.giverId, user);
+    if (!auth.ok) return auth;
+    const receiver = game.actors.get(data.receiverId);
+    if (!receiver) return { ok: false, error: "That character no longer exists." };
+
+    await this._giveLuckToken(auth.actor, receiver);
+    return { ok: true };
   },
 
   queueRender() {
@@ -1014,12 +1038,11 @@ export const CrawlStrip = {
     if (game.user.isGM) {
       await this._giveLuckToken(giver, receiver);
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM(LUCK_QUERY, {
         action: "luck:give",
         giverId: giver.id,
         receiverId: receiver.id,
-        userId: game.user.id,
-      });
+      }, { label: "luck token gifts" });
     }
   },
 

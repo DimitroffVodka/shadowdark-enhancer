@@ -119,12 +119,14 @@ export const FREE_TEXT_MAX_LENGTH = 60;
  * A GM may act for anyone (they roll for absent players). Everyone else must
  * hold OWNER on the actor — the caller resolves that from the authenticated
  * User document, never from a payload field.
+ *
+ * Downtime proved this shape first; the 2026-07-29 audit found the same hole in
+ * eight other handlers, so the definition now lives in `shared/gm-relay.mjs`
+ * alongside the transport that makes it sound. Re-exported here because this is
+ * where downtime's callers and tests already look for it — one implementation,
+ * two doorways.
  */
-export function authorizeActorRequest({ actorExists, requesterIsGM, requesterOwnsActor } = {}) {
-  if (!actorExists) return { ok: false, error: "That character no longer exists." };
-  if (requesterIsGM || requesterOwnsActor) return { ok: true };
-  return { ok: false, error: "You don't own that character." };
-}
+export { authorizeActorRequest } from "../shared/gm-relay.mjs";
 
 /**
  * Is this ChatMessage a legitimate, unspent roll for this attempt?

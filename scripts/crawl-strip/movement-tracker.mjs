@@ -36,6 +36,7 @@ import { CrawlState, isActiveGM } from "./crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 
 // ── Shared speed helpers ────────────────────────────────────────────────────
 
@@ -197,6 +198,12 @@ class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler {
 
 // ── MovementTracker ─────────────────────────────────────────────────────────
 
+/**
+ * The authenticated player→GM channel for rollbacks, namespaced per Foundry's
+ * convention (downtime-session.mjs:89).
+ */
+export const MOVEMENT_QUERY = `${MODULE_ID}.movement`;
+
 export const MovementTracker = {
 
   _turnStartPos: {},   // tokenId → {x, y} snapshotted at turn/round start
@@ -343,25 +350,38 @@ export const MovementTracker = {
       await this.resetAll();
     });
 
-    // Socket relay — players ask GM to perform rollback (turn-start positions
-    // are tracked on the GM client). A socket message is delivered to every
-    // client, so answer it on the single active GM only: two connected GMs
-    // would otherwise both teleport the token, both refund the budget flag,
-    // and both post the "rolled back" notification.
-    game.socket.on(`module.${MODULE_ID}`, (msg) => {
-      if (msg?.action !== "rollbackMove" || !isActiveGM()) return;
-      // Raw-socket sender id is advisory (not authenticated); gate on it anyway
-      // so a casual client can't roll back a token it has no claim to. The
-      // requester must be a GM or an owner of the token's actor.
-      // Resolve the same canvas-free way rollback() does — a canvas-only lookup
-      // here rejected every request whose token wasn't on the responding GM's
-      // viewed scene (or any request at all on a headless GM), silently.
-      const requester = game.users.get(msg.userId);
-      const actor = this._resolveTokenDoc(msg.tokenId)?.actor;
-      if (!requester || !actor) return;
-      if (!requester.isGM && !actor.testUserPermission(requester, "OWNER")) return;
-      this.rollback(msg.tokenId);
-    });
+    // Players ask the GM to perform a rollback (turn-start positions are tracked
+    // on the GM client). A query is point-to-point, so exactly one GM serves it:
+    // two connected GMs on the old broadcast would both teleport the token,
+    // both refund the budget flag, and both post the notification.
+    CONFIG.queries[MOVEMENT_QUERY] = (data, { user } = {}) => MovementTracker.handleQuery(data, user);
+  },
+
+  /**
+   * @param {object} data  { action, tokenId }
+   * @param {User}   user  The AUTHENTICATED requester, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async handleQuery(data, user) {
+    const refusal = refuseQuery(user, "Movement rollbacks");
+    if (refusal) return refusal;
+    if (data?.action !== "rollbackMove") return { ok: false, error: "Unknown movement action." };
+
+    // The requester must be a GM or an owner of the token's actor. The old
+    // raw-socket version read the id out of the payload and its own comment
+    // called it "advisory (not authenticated)" — which meant naming a GM rolled
+    // back any token on the map.
+    //
+    // Resolve the token the same canvas-free way rollback() does: a canvas-only
+    // lookup here rejected every request whose token wasn't on the responding
+    // GM's viewed scene (or any request at all on a headless GM), silently.
+    const actor = this._resolveTokenDoc(data.tokenId)?.actor;
+    if (!actor) return { ok: false, error: "That token is no longer on any scene." };
+    const auth = authorizeActorFor(actor.id, user);
+    if (!auth.ok) return { ok: false, error: "You don't control that token." };
+
+    await this.rollback(data.tokenId);
+    return { ok: true };
   },
 
   // ── Ruler installation ────────────────────────────────────────────────────
@@ -465,7 +485,7 @@ export const MovementTracker = {
   async rollback(tokenId) {
     // Players relay to a GM (only GM clients may write the rollback).
     if (!game.user.isGM) {
-      game.socket.emit(`module.${MODULE_ID}`, { action: "rollbackMove", tokenId, userId: game.user.id });
+      await relayToGM(MOVEMENT_QUERY, { action: "rollbackMove", tokenId }, { label: "movement rollbacks" });
       return;
     }
     const doc = this._resolveTokenDoc(tokenId);
