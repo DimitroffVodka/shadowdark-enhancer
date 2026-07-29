@@ -1,0 +1,449 @@
+{{!--
+  Downtime window. Every {{ }} below auto-escapes, which is the point: outcome
+  text originates in a GM paste.
+
+  NOTHING here may render a skeleton slot label, DC or cost unless that slot's
+  text was unlocked from the GM's own book — _prepareContext drops locked slots
+  before they reach this template, and the locked-source card below has no slot
+  loop at all. With no source unlocked, the body is the locked cards and
+  nothing else: no controls, no rules text.
+--}}
+<div class="sde-downtime-root">
+
+  {{#unless hasSources}}
+    <p class="sde-dt-empty">No downtime sources are defined in this build.</p>
+  {{/unless}}
+
+  {{#if anyUnlocked}}
+  <header class="sde-dt-header">
+
+    <div class="sde-dt-field">
+      <label for="sde-dt-source">Source</label>
+      {{#if inSession}}
+        {{!-- Pinned: the whole table is doing downtime out of one book. --}}
+        <span class="sde-dt-pinned"><i class="fas fa-book"></i> {{session.sourceLabel}}</span>
+      {{else}}
+        <select id="sde-dt-source" data-field="source">
+          {{#each sources}}
+            <option value="{{this.slug}}" {{#if this.selected}}selected{{/if}}>
+              {{this.label}}{{#unless this.unlocked}} (locked){{/unless}}
+            </option>
+          {{/each}}
+        </select>
+      {{/if}}
+    </div>
+
+    <div class="sde-dt-field">
+      <label for="sde-dt-actor">Character</label>
+      <select id="sde-dt-actor" data-field="actor">
+        {{#each actors}}
+          <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    <div class="sde-dt-field">
+      <label for="sde-dt-adv">Roll with</label>
+      <select id="sde-dt-adv" data-field="advantage">
+        {{#each advModes}}
+          <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.long}}</option>
+        {{/each}}
+      </select>
+    </div>
+
+    {{#if hasActors}}
+      <div class="sde-dt-purse">
+        <span title="Level">L{{actorLevel}}</span>
+        <span title="Coins"><i class="fas fa-coins"></i> {{coins.gp}} gp {{coins.sp}} sp {{coins.cp}} cp</span>
+        <span title="Renown"><i class="fas fa-crown"></i> {{renown}}</span>
+      </div>
+    {{/if}}
+
+    {{!-- GM-only, like the per-slot steppers: the DC ladder is the GM's to
+          grant or wipe, and a player clearing it only costs them credit. --}}
+    {{#unless isPlayer}}
+      {{#if hasSteps}}
+        <button type="button" class="sde-dt-mini" data-action="clearSteps"
+                title="Reset every stepped-down DC for this character">
+          Clear DC progress
+        </button>
+      {{/if}}
+    {{/unless}}
+  </header>
+
+  {{!-- GM control panel: only while a session is running. --}}
+  {{#if overview}}
+    <section class="sde-dt-panel">
+      <header class="sde-dt-panel-head">
+        <span><i class="fas fa-users"></i> Session — {{session.sourceLabel}}</span>
+        <span class="sde-dt-panel-stat">{{session.pickCount}} chosen · {{session.resultCount}} rolled</span>
+        {{#if session.locked}}
+          <button type="button" class="sde-dt-mini" data-action="releaseRolls">Re-open picks</button>
+        {{else}}
+          <button type="button" class="sde-dt-btn sde-dt-primary" data-action="lockRolls">Lock &amp; unlock dice</button>
+        {{/if}}
+        <button type="button" class="sde-dt-mini sde-dt-danger" data-action="endSession">End session</button>
+      </header>
+      <p class="sde-dt-note">
+        {{#if session.locked}}Dice are unlocked — players roll their own.
+        {{else}}Players are choosing. Lock when everyone has picked.{{/if}}
+      </p>
+      <ul class="sde-dt-overview">
+        {{#each overview}}
+          <li class="sde-dt-ov-row {{#if this.rolled}}sde-dt-ov-done{{/if}}">
+            <span class="sde-dt-ov-name">{{this.name}}</span>
+            <span class="sde-dt-ov-pick">
+              {{#if this.picked}}{{this.pickLabel}} <em>({{this.advantage}})</em>
+              {{else}}<span class="sde-dt-ov-waiting">choosing…</span>{{/if}}
+            </span>
+            <span class="sde-dt-ov-result">
+              {{#if this.rolled}}
+                {{this.total}} vs {{this.dc}} — {{#if this.success}}SUCCESS{{else}}FAILURE{{/if}}
+                {{#if this.awaitingChoice}}<em>· awaiting choice</em>{{/if}}
+              {{/if}}
+            </span>
+            {{#unless this.rolled}}
+              {{#if this.picked}}
+                <button type="button" class="sde-dt-mini" data-action="gmClearPick"
+                        data-actor-id="{{this.actorId}}" title="Clear this pick">Clear</button>
+                <button type="button" class="sde-dt-mini" data-action="gmRollFor"
+                        data-actor-id="{{this.actorId}}" title="Roll for an absent player">Roll for</button>
+              {{/if}}
+            {{/unless}}
+          </li>
+        {{/each}}
+      </ul>
+    </section>
+  {{/if}}
+
+  {{!-- GM, no session running: offer to start one. --}}
+  {{#if soloMode}}
+    {{#unless isPlayer}}
+      {{#if anyUnlocked}}
+        <p class="sde-dt-banner sde-dt-start">
+          Run downtime as a table: everyone picks their own activity and rolls their own dice.
+          <button type="button" class="sde-dt-btn sde-dt-primary" data-action="startSession">
+            <i class="fas fa-users"></i> Start session
+          </button>
+        </p>
+      {{/if}}
+    {{/unless}}
+  {{/if}}
+
+  {{!-- Player-facing status strip. --}}
+  {{#if inSession}}
+    <section class="sde-dt-status">
+      {{#if myResult}}
+        <div class="sde-dt-status-line {{#if myResult.success}}sde-dt-success{{else}}sde-dt-failure{{/if}}">
+          <strong>{{myResult.activityName}} — {{myResult.label}}</strong>
+          <span>{{myResult.total}} vs DC {{myResult.dc}}</span>
+          <span class="sde-dt-verdict">{{#if myResult.success}}SUCCESS{{else}}FAILURE{{/if}}</span>
+        </div>
+        {{#if myResult.effectSummary}}
+          <p class="sde-dt-note">{{myResult.effectSummary}}</p>
+        {{/if}}
+        {{#unless myResult.success}}
+          <p class="sde-dt-note">Next attempt on this activity is DC {{myResult.nextDC}}.</p>
+        {{/unless}}
+        {{#if myResult.pendingChoice}}
+          <div class="sde-dt-choice-box">
+            <p class="sde-dt-choice-prompt">{{myResult.pendingChoice.prompt}}</p>
+            <div class="sde-dt-choice-opts">
+              {{#each myResult.pendingChoice.options}}
+                {{#if this.gain}}
+                  {{!-- Spell trade: each drop option carries its own legal
+                        same-tier replacements, so the pair is one click. --}}
+                  <div class="sde-dt-trade-group {{#if this.disabled}}sde-dt-opt-off{{/if}}">
+                    <span class="sde-dt-trade-drop">Give up {{this.label}}</span>
+                    {{#if this.disabled}}
+                      <span class="sde-dt-opt-reason">{{this.reason}}</span>
+                    {{else}}
+                      {{#each this.gain}}
+                        <button type="button" class="sde-dt-btn sde-dt-trade-gain"
+                                data-action="chooseEffect" data-choice="{{../this.id}}"
+                                data-gain="{{this.uuid}}">→ {{this.label}}</button>
+                      {{/each}}
+                    {{/if}}
+                  </div>
+                {{else}}
+                  {{!-- Unavailable options are greyed WITH their reason, never
+                        hidden: the player should see what they just missed. --}}
+                  <button type="button" class="sde-dt-btn {{#if this.disabled}}sde-dt-opt-off{{/if}}"
+                          data-action="chooseEffect" data-choice="{{this.id}}"
+                          {{#if this.disabled}}disabled title="{{this.reason}}"{{/if}}>{{this.label}}</button>
+                {{/if}}
+              {{/each}}
+            </div>
+            {{#if myResult.pendingChoice.freeText}}
+              {{!-- Martial training records a descriptive Talent, so the preset
+                    buttons above are only what the gear packs happen to hold.
+                    The book lets you train with anything, so a typed name is a
+                    first-class answer — the GM cleans and length-caps it. --}}
+              <div class="sde-dt-freetext">
+                <label class="sde-dt-freetext-label" for="sde-dt-freetext-input">
+                  Not listed? Type it:
+                </label>
+                <input type="text" id="sde-dt-freetext-input" class="sde-dt-freetext-input"
+                       maxlength="60" placeholder="e.g. Boar spear" autocomplete="off">
+                <button type="button" class="sde-dt-btn sde-dt-primary" data-action="submitFreeText">
+                  <i class="fas fa-check"></i> Train with this
+                </button>
+              </div>
+            {{/if}}
+          </div>
+        {{/if}}
+      {{else}}
+        {{#if myPick}}
+          <div class="sde-dt-status-line">
+            <span>You chose <strong>{{myPick.label}}</strong> <em>({{myPick.advantage}})</em></span>
+            {{#if canRoll}}
+              <button type="button" class="sde-dt-btn sde-dt-primary sde-dt-roll" data-action="rollPick">
+                <i class="fas fa-dice-d20"></i> Roll it
+              </button>
+            {{else}}
+              {{#if rollBlockedReason}}
+                {{!-- Pay-per-attempt: the button is dead and says why, rather
+                      than rolling dice the GM will refuse. --}}
+                <button type="button" class="sde-dt-btn sde-dt-roll sde-dt-opt-off"
+                        data-action="rollPick" disabled title="{{rollBlockedReason}}">
+                  <i class="fas fa-dice-d20"></i> Roll it
+                </button>
+                <span class="sde-dt-opt-reason"><i class="fas fa-coins"></i> {{rollBlockedReason}}</span>
+              {{else}}
+                <span class="sde-dt-waiting"><i class="fas fa-lock"></i> waiting for the GM to unlock the dice</span>
+              {{/if}}
+            {{/if}}
+          </div>
+        {{else}}
+          <p class="sde-dt-note">
+            {{#if session.locked}}Picks are locked and you didn't choose one.
+            {{else}}Choose one activity below. You can read what each one does before you commit.{{/if}}
+          </p>
+        {{/if}}
+      {{/if}}
+    </section>
+  {{/if}}
+
+  {{#unless hasActors}}
+    <p class="sde-dt-empty">No player characters found. Downtime needs a Player actor with an owner.</p>
+  {{/unless}}
+  {{/if}}
+
+  {{!--
+    Everything above this point is PINNED: the pickers, the GM's session panel
+    and the player's status strip are controls you need while reading the list.
+    Everything below scrolls. Four activity sections with their descriptions run
+    ~1500px, well past any window, and the ApplicationV2 .window-content clips
+    with overflow:hidden — so without this region the tail was simply unreachable.
+  --}}
+  <div class="sde-dt-scroll">
+
+  {{#each staleSources}}
+    <p class="sde-dt-banner sde-dt-stale">
+      {{this.label}} was unlocked against an older skeleton. It still works, but
+      re-importing it will pick up any entries added since.
+      <button type="button" class="sde-dt-mini" data-action="unlockViaImporter" data-source="{{this.slug}}">Re-import</button>
+    </p>
+  {{/each}}
+
+  {{!--
+    LOCKED SOURCE CARD. Deliberately contains NO slot loop, no DCs, no costs and
+    no activity names — only the book's title and page cite, which are our own
+    metadata. Greying out the full mechanical outline would imply we already
+    hold the book's content.
+  --}}
+  {{#each lockedSources}}
+    <section class="sde-dt-locked-card">
+      <header class="sde-dt-locked-head">
+        <i class="fas fa-lock"></i>
+        <span class="sde-dt-locked-title">{{this.label}}</span>
+        {{#if this.pages}}<span class="sde-dt-cite">pg {{this.pages}}</span>{{/if}}
+      </header>
+      <p class="sde-dt-locked-body">
+        This book's downtime activities aren't included with the module. Import them
+        from your own copy to use them here.
+      </p>
+      <button type="button" class="sde-dt-btn sde-dt-primary"
+              data-action="unlockViaImporter" data-source="{{this.slug}}">
+        Unlock via Importer
+      </button>
+    </section>
+  {{/each}}
+
+  {{#if result}}
+    <section class="sde-dt-result {{#if result.success}}sde-dt-success{{else}}sde-dt-failure{{/if}}">
+      <header class="sde-dt-result-head">
+        {{result.activityName}} — {{result.label}}
+        <span class="sde-dt-result-num">{{result.total}} vs DC {{result.dc}}</span>
+        <button type="button" class="sde-dt-mini" data-action="dismissResult">Dismiss</button>
+      </header>
+
+      {{#if result.success}}
+        <p class="sde-dt-outcome">{{result.outcome}}</p>
+
+        {{#if result.renownDelta}}
+          <div class="sde-dt-extra">
+            <span>Renown {{result.renownDelta}}</span>
+            <button type="button" class="sde-dt-btn" data-action="applyRenown"
+                    {{#if result.applied}}disabled{{/if}}>Apply</button>
+          </div>
+        {{/if}}
+
+        {{#if result.renownSigned}}
+          <div class="sde-dt-extra">
+            <span>Rumor — the table decides which way it cuts:</span>
+            <select data-field="renownTarget">
+              {{#each result.targets}}
+                <option value="{{this.id}}" {{#if this.selected}}selected{{/if}}>{{this.name}}</option>
+              {{/each}}
+            </select>
+            <button type="button" class="sde-dt-btn" data-action="applyRenownSign" data-sign="+"
+                    {{#if result.applied}}disabled{{/if}}>+1</button>
+            <button type="button" class="sde-dt-btn" data-action="applyRenownSign" data-sign="-"
+                    {{#if result.applied}}disabled{{/if}}>&minus;1</button>
+          </div>
+        {{/if}}
+
+        {{#if result.xpDelta}}
+          <div class="sde-dt-extra">
+            <span>{{result.xpDelta}} XP</span>
+            <button type="button" class="sde-dt-btn" data-action="applyXp"
+                    {{#if result.applied}}disabled{{/if}}>Apply</button>
+          </div>
+        {{/if}}
+      {{else}}
+        <p class="sde-dt-note">Failed — the next attempt on this activity is DC {{result.nextDC}}.</p>
+      {{/if}}
+    </section>
+  {{/if}}
+
+  {{#each activities}}
+    <section class="sde-dt-activity" data-activity="{{this.key}}">
+      <header class="sde-dt-activity-head">
+        <span class="sde-dt-activity-name">{{this.name}}</span>
+        {{#if this.checkLabel}}<span class="sde-dt-check-label">{{this.checkLabel}}</span>{{/if}}
+      </header>
+
+      {{#if this.gateNote}}
+        <p class="sde-dt-note sde-dt-gate">{{this.gateNote}}</p>
+      {{/if}}
+
+      {{#if this.casterToggle}}
+        <div class="sde-dt-toggle">
+          <span>Spell list:</span>
+          <button type="button" class="sde-dt-mini {{#if this.casterToggle.arcane}}sde-dt-on{{/if}}"
+                  data-action="setCasterList" data-list="arcane">Arcane</button>
+          <button type="button" class="sde-dt-mini {{#if this.casterToggle.divine}}sde-dt-on{{/if}}"
+                  data-action="setCasterList" data-list="divine">Divine</button>
+        </div>
+      {{/if}}
+
+      {{!-- Martial training: browse any tier; only the character's own is live
+            for a player (the GM may train any of them). --}}
+      {{#if this.tierPicker}}
+        <div class="sde-dt-field sde-dt-choice">
+          <label for="sde-dt-tier-{{this.key}}">Training tier</label>
+          <select id="sde-dt-tier-{{this.key}}" data-field="martialTier">
+            {{#each this.tierPicker.options}}
+              <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>
+                {{this.label}}{{#if this.detected}} — this character{{/if}}
+              </option>
+            {{/each}}
+          </select>
+        </div>
+      {{/if}}
+
+      {{#if this.choice}}
+        <div class="sde-dt-field sde-dt-choice">
+          <label for="sde-dt-choice-{{this.key}}">Ability</label>
+          <select id="sde-dt-choice-{{this.key}}" data-field="choiceAbility">
+            {{#each this.choice.options}}
+              <option value="{{this.key}}" {{#if this.selected}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
+        </div>
+      {{/if}}
+
+      {{#each this.groups}}
+        {{!-- Magical research prints as two labelled subsections, the way the
+              book does. The inapplicable one stays visible but dead. --}}
+        {{#if this.label}}
+          <div class="sde-dt-subhead {{#unless this.enabled}}sde-dt-opt-off{{/unless}}">
+            <span class="sde-dt-subhead-label">{{this.label}}</span>
+            {{#if this.reason}}<span class="sde-dt-opt-reason">{{this.reason}}</span>{{/if}}
+          </div>
+        {{else}}
+          {{#if this.reason}}<p class="sde-dt-note">{{this.reason}}</p>{{/if}}
+        {{/if}}
+
+        <ul class="sde-dt-slots {{#unless this.enabled}}sde-dt-opt-off{{/unless}}">
+          {{#each this.slots}}
+            <li class="sde-dt-slot-row {{#if this.chosen}}sde-dt-slot-chosen{{/if}}">
+              <div class="sde-dt-slot-main">
+                <span class="sde-dt-slot-label">{{this.label}}</span>
+                {{!-- Per-row stat + DC: the section header can't speak for
+                      skulduggery, which mixes CHA and DEX rows. --}}
+                <span class="sde-dt-slot-dc">
+                  {{#if this.statChip}}<span class="sde-dt-stat">{{this.statChip}}</span>{{/if}}
+                  DC {{this.dc}}{{#if this.stepped}} <em>(was {{this.baseDc}})</em>{{/if}}
+                </span>
+                {{#if ../../showStepper}}
+                  <span class="sde-dt-stepper" title="Adjust this character's DC credit for this activity">
+                    <button type="button" class="sde-dt-step" data-action="adjustStep"
+                            data-slot-key="{{this.key}}" data-dc-delta="-1"
+                            {{#unless this.canStepDown}}disabled{{/unless}}
+                            aria-label="Lower the DC one step">&minus;</button>
+                    <button type="button" class="sde-dt-step" data-action="adjustStep"
+                            data-slot-key="{{this.key}}" data-dc-delta="1"
+                            {{#unless this.canStepUp}}disabled{{/unless}}
+                            aria-label="Raise the DC one step">+</button>
+                  </span>
+                {{/if}}
+                <span class="sde-dt-slot-cost">{{this.costLabel}}</span>
+                {{#if this.inSession}}
+                  <button type="button" class="sde-dt-btn {{#if this.chosen}}sde-dt-primary{{/if}}"
+                          data-action="pickSlot" data-slot-key="{{this.key}}"
+                          {{#if this.pickDisabled}}disabled{{/if}}
+                          {{#if this.rowReason}}title="{{this.rowReason}}"{{/if}}>
+                    {{#if this.chosen}}<i class="fas fa-check"></i> Chosen{{else}}Choose{{/if}}
+                  </button>
+                {{else}}
+                  <button type="button" class="sde-dt-btn" data-action="attempt"
+                          data-slot-key="{{this.key}}" data-activity-key="{{this.activityKey}}"
+                          {{#if this.disabled}}disabled{{/if}}
+                          {{#if this.rowReason}}title="{{this.rowReason}}"{{/if}}>Attempt</button>
+                {{/if}}
+              </div>
+              {{!-- The description IS the decision: players read it before choosing. --}}
+              <p class="sde-dt-slot-desc">{{this.outcome}}</p>
+              {{#if this.unaffordable}}
+                {{!-- Can't pay, can't pick. Stated on the row rather than left
+                      for the player to discover at the die. --}}
+                <p class="sde-dt-opt-reason sde-dt-row-block">
+                  <i class="fas fa-coins"></i> {{this.rowReason}}
+                </p>
+              {{/if}}
+            </li>
+          {{/each}}
+        </ul>
+      {{/each}}
+    </section>
+  {{/each}}
+
+  {{!-- Partial unlock: how many are missing, never which ones. --}}
+  {{#if isPartial}}
+    <p class="sde-dt-banner sde-dt-partial-note">
+      {{missingCount}} entries did not unlock. Re-run the unlock from the Importer with a cleaner paste.
+      <button type="button" class="sde-dt-mini" data-action="unlockViaImporter"
+              data-source="{{selectedSource.slug}}">Open Importer</button>
+    </p>
+  {{/if}}
+
+  {{#if anyUnlocked}}
+    <footer class="sde-dt-footer">
+      Luck tokens cannot be spent on downtime checks.
+    </footer>
+  {{/if}}
+
+  </div>{{!-- /.sde-dt-scroll --}}
+</div>

@@ -49,8 +49,13 @@ prose, and applying it to the table slices the table in half: the first column
 arrives as one die-numbered block and the rest as a second, detached block. Pin
 `"layout"` there, which pads every cell to its true x-position so all columns
 stay on one line. Pin `"1"` for a table that needs each row glued onto a single
-line. Getting this wrong is rarely subtle. Cells come out shredded into single
-words, because the fallback splitter is left guessing at whitespace.
+line. Pin `"2mid"` for a two-column page whose gutter detection lands in the
+wrong place: it skips detection and splits at the page midline instead. No recipe
+currently needs it — detection measures where the page's ink actually is, which
+reads a ragged column edge correctly — so reach for it only if you meet a page
+that still comes out mis-split. Getting this wrong is rarely
+subtle. Cells come out shredded into single words, because the fallback splitter
+is left guessing at whitespace.
 
 Every Core d20 × 3-column generator page has this shape (*Tavern* p136, *Shop*
 p139, *Adventure* p122, *Adventuring Site Name* p123, *NPC Qualities* p125,

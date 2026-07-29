@@ -29,6 +29,10 @@ export const ICONS = {
   lights:      `<i class="fas fa-fire"></i>`,
   combat:      gameIcon("crossed-swords"),
   forge:       gameIcon("open-treasure-chest"),
+  // Downtime is the between-crawls tavern interlude (carousing, training,
+  // research). FontAwesome rather than a vendored SVG: game-icons.net art is
+  // only added here when the slug is actually vendored under icons/game-icons/,
+  // and no downtime-shaped slug is.
   importer:    gameIcon("open-book"),
   charBuilder: gameIcon("visored-helm"),
   monsterArt:  gameIcon("dragon-head"),

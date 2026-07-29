@@ -47,7 +47,7 @@ The strip hides itself when there is nothing to show.
 | **Add Tokens** | Add the selected tokens to the crawl roster | **Reset Initiative**, clearing all out-of-combat initiative rolls |
 | **Combat** | Start a combat encounter from the current state | — |
 | **Encounter** | Open the [Encounter Roller](Random-Encounters.md) | Encounter menu: run a check, set the threshold, see/clear the active table |
-| **Forge & Loot** | Menu (same on either click): [Loot Generator](Loot-and-Treasure.md) · [Magic Item Forge](Magic-Item-Forge.md) · [Merchant Shop](Merchant-Shop.md) · [Party XP](Party-XP.md) · [Session Recap](Session-Recap.md) | Same menu |
+| **Forge & Loot** | Menu (same on either click): [Loot Generator](Loot-and-Treasure.md) · [Magic Item Forge](Magic-Item-Forge.md) · [Merchant Shop](Merchant-Shop.md) · [Party XP](Party-XP.md) · [Downtime](Downtime.md) · [Session Recap](Session-Recap.md) | Same menu |
 | **Importer** | Open the [Importer Hub](Importer-Hub.md) | — |
 | **Start / End** | Begin or end the crawl session | — |
 

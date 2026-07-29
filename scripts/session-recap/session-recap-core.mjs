@@ -11,6 +11,11 @@
  * 100c = 1s ratios). Internally we reduce to a copper total where 1gp = 100cp.
  */
 
+// One-way dependency on the downtime log's pure row formatter, so the recap
+// window, the Discord export and the persistent journal all phrase a downtime
+// attempt identically. downtime-log-core.mjs is Foundry-free, like this file.
+import { recapRow as downtimeRecapRow } from "../downtime/downtime-log-core.mjs";
+
 /** Empty session payload. Cloned on session start / clear. */
 export const DEFAULT_DATA = {
   sessionState: "inactive",
@@ -22,6 +27,7 @@ export const DEFAULT_DATA = {
   combats: [],
   encounterChecks: [],
   luckSpent: [],
+  downtime: [],
   playerStats: {},
 };
 
@@ -302,6 +308,26 @@ export function formatForDiscordFromData(data, startTime, endTime) {
     }
     if (Object.keys(byPlayer).length > 1) {
       lines.push(`**Session XP Awarded: ${grandTotal} XP**`);
+      lines.push("");
+    }
+  }
+
+  // ── Downtime ────────────────────────────────────────────────
+  // The narrative record. Paid attempts ALSO appear under Purchases (the money
+  // ledger) — that double-entry is deliberate, see downtime-log.mjs.
+  if (Array.isArray(data.downtime) && data.downtime.length > 0) {
+    lines.push("## Downtime");
+    const byPlayer = {};
+    for (const e of data.downtime) (byPlayer[e.player || "GM"] ??= []).push(e);
+    for (const [player, entries] of Object.entries(byPlayer)) {
+      lines.push(`### ${player}`);
+      for (const e of entries) {
+        lines.push(`- ${downtimeRecapRow(e)}`);
+        if (e.effectSummary) lines.push(`  - *${e.effectSummary}*`);
+      }
+      const spent = entries.reduce((s, e) => s + (Number(e.costGp) || 0), 0);
+      const won = entries.filter((e) => e.success).length;
+      lines.push(`- **${won}/${entries.length} succeeded**${spent > 0 ? ` · ${spent} gp spent` : ""}`);
       lines.push("");
     }
   }

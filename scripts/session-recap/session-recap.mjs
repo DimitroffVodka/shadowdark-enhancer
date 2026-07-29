@@ -199,6 +199,42 @@ export const SessionRecap = {
     });
   },
 
+  // ── Downtime Logging ───────────────────────────────────────
+
+  /**
+   * Log one resolved downtime attempt. Called through
+   * `downtime-log.recordDowntime`, which also writes the persistent journal.
+   * Self-guarded on an active session, like its siblings.
+   *
+   * The caller's ISO timestamp is kept as `at`; `_stamp()` still supplies the
+   * numeric `timestamp` + `time` every other recap array carries.
+   */
+  async logDowntime(entry) {
+    if (!this.isActive()) return;
+    return this._mutate(data => {
+      this._ensureStart(data);
+      if (!Array.isArray(data.downtime)) data.downtime = [];
+      data.downtime.push({
+        actorId: entry?.actorId ?? null,
+        actorName: entry?.actorName ?? "Someone",
+        player: entry?.player ?? "GM",
+        sourceSlug: entry?.sourceSlug ?? null,
+        slotKey: entry?.slotKey ?? null,
+        slotLabel: entry?.slotLabel ?? "",
+        activityKey: entry?.activityKey ?? null,
+        activityName: entry?.activityName ?? "Downtime",
+        total: Number(entry?.total) || 0,
+        dc: Number(entry?.dc) || 0,
+        success: !!entry?.success,
+        costGp: Number(entry?.costGp) || 0,
+        effectSummary: entry?.effectSummary ?? "",
+        gmRolled: !!entry?.gmRolled,
+        at: entry?.timestamp ?? null,
+        ...this._stamp(),
+      });
+    });
+  },
+
   // ── Combat Logging ─────────────────────────────────────────
 
   async logCombat(combatEntry) {

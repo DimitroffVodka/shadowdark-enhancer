@@ -103,6 +103,75 @@
     <span class="sde-mimport-warn-legend">highlighted</span>.
   </p>
 
+  {{!-- ── Downtime unlock ──────────────────────────────────────────────────
+        The one type that unlocks a world SETTING instead of creating
+        documents: the pasted outcome text is the GM's own book copy. Slot
+        labels appear in this preview only — the person reading it has the
+        book open — and never in the Manage tree. --}}
+  {{#if importData.hasDowntime}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-mug-hot"></i> Downtime</span>
+      {{#if importData.downtime.result.canCommit}}
+      <button type="button" data-action="hubCommitDowntime" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-unlock"></i> Unlock outcomes
+      </button>
+      {{/if}}
+    </div>
+    <div class="sde-hub-import-sourcebar">
+      <label for="sde-hub-downtime-source"><i class="fas fa-book"></i> Book</label>
+      <select id="sde-hub-downtime-source" data-downtime-source
+              class="sde-hub-import-source-input" aria-label="Downtime source book">
+        {{#each importData.downtime.sourceOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+      </select>
+    </div>
+    <p class="sde-hub-import-srcnote">
+      Paste the downtime pages from your own copy of {{importData.downtime.label}}{{#if importData.downtime.pages}}
+      (pg {{importData.downtime.pages}}){{/if}}, then Parse. The outcome text is stored in this world only.
+      Switching books clears the parse — pick the book first.
+    </p>
+
+    {{!-- sde-dt-hub-preview: a full 25-slot parse plus its warning, unfilled and
+          unmatched lists runs far taller than the section, pushing the Unlock
+          button out of reach. The extra class bounds THIS preview only — the
+          other seven import types keep the unbounded .sde-import-preview. --}}
+    {{#if importData.downtime.result}}
+    <div class="sde-import-preview sde-dt-hub-preview">
+      <p class="sde-hub-import-srcnote">
+        <span class="sde-thub-stat {{#if importData.downtime.result.complete}}ok{{else}}part{{/if}}">
+          <i class="fas {{#if importData.downtime.result.complete}}fa-circle-check{{else}}fa-triangle-exclamation{{/if}}"></i>
+          Matched {{importData.downtime.result.filledCount}} of {{importData.downtime.expected}} slots.
+        </span>
+      </p>
+
+      {{#if importData.downtime.result.warnings.length}}
+      <ul class="sde-import-warnings">
+        {{#each importData.downtime.result.warnings as |w|}}
+        <li{{#unless w.info}} class="sde-import-flag"{{/unless}}>{{w.text}}</li>
+        {{/each}}
+      </ul>
+      {{/if}}
+
+      {{#if importData.downtime.result.unfilled.length}}
+      <p class="sde-hub-import-srcnote">Still unfilled:</p>
+      <ul class="sde-import-warnings">
+        {{#each importData.downtime.result.unfilled as |u|}}<li>{{u}}</li>{{/each}}
+      </ul>
+      {{/if}}
+
+      {{#if importData.downtime.result.unmatched.length}}
+      <p class="sde-hub-import-srcnote">Lines nothing claimed:</p>
+      <ul class="sde-hub-import-skipped-list">
+        {{#each importData.downtime.result.unmatched as |b|}}
+        <li><strong>DC {{b.dc}}{{#if b.paid}} *{{/if}}</strong> — {{b.text}}</li>
+        {{/each}}
+      </ul>
+      {{/if}}
+    </div>
+    {{/if}}
+  </section>
+  {{/if}}
+
   {{!-- ── Monsters preview ─────────────────────────────────────────────── --}}
   {{#if importData.hasMonsters}}
   <section class="sde-hub-import-section">

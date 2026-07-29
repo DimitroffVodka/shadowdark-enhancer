@@ -115,10 +115,11 @@ function _coverProfile(its, W, n = COVER_SAMPLES) {
 function detectGutter(its, W, mode = "auto") {
   if (mode === "1" || mode === "layout") return null;
   // "2mid": split at the page MIDLINE, detection skipped entirely. An opt-in
-  // pin for pages whose boundary is known to be the midline; the Downtime
-  // spread pins it. It predates the ink-coverage detector below, which now
-  // reads those same pages correctly, but the pin stays exact and honoured —
-  // a pinned caller asked for the midline, not for our best guess.
+  // pin for pages whose boundary is known to be the midline. It predates the
+  // ink-coverage detector below and was written for the Downtime spread, which
+  // no longer pins it — the detector reads that spread correctly, so nothing in
+  // the tree pins "2mid" today. The mode stays because a pinned caller asked for
+  // the midline, not for our best guess, and a recipe may still pin it.
   if (mode === "2mid") return W / 2;
   if (its.length < 12) return mode === "2" ? W / 2 : null;
 

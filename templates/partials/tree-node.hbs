@@ -37,6 +37,9 @@
         {{#if e.present}}
         <span class="sde-mtree-entry-tag">{{#if e.countNote}}{{e.countNote}}{{else}}imported{{/if}}</span>
         {{else}}
+          {{!-- State for rows that are partly filled rather than simply absent
+                (downtime: "Partial (21/25)" / "Locked"). Counts only. --}}
+          {{#if e.stateNote}}<span class="sde-mtree-entry-tag">{{e.stateNote}}</span>{{/if}}
           <button type="button" class="sde-mtree-unlock"
                   data-action="{{e.seedAction}}" data-name="{{e.name}}"
                   data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}" data-list-key="{{e.listKey}}" data-content-id="{{e.contentId}}"

@@ -9,6 +9,7 @@
 
 import { SessionRecap } from "./session-recap.mjs";
 import { toCopper, formatCurrency } from "./session-recap-core.mjs";
+import { recapRow as downtimeRecapRow } from "../downtime/downtime-log-core.mjs";
 import { esc } from "../shared/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -62,6 +63,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     // Defensive defaults for archived payloads missing newer arrays.
     data.sales ??= []; data.purchases ??= []; data.encounterChecks ??= [];
+    data.downtime ??= [];
 
     const hasDamageLog = game.modules.get("damage-log")?.active ?? false;
     const sessionDuration = viewingSession
@@ -145,6 +147,26 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       total,
     }));
 
+    // Downtime — grouped by controlling player, newest first within a group.
+    // The headline row is formatted by the same pure helper the Discord export
+    // and the persistent Downtime Log journal use, so all three read alike.
+    const downtimeByPlayer = {};
+    for (const e of data.downtime) (downtimeByPlayer[e.player || "GM"] ??= []).push(e);
+    const downtimePlayers = Object.entries(downtimeByPlayer).map(([player, list]) => ({
+      player,
+      subtotal: (() => {
+        const won = list.filter(e => e.success).length;
+        const gp = list.reduce((s, e) => s + (Number(e.costGp) || 0), 0);
+        return `${won}/${list.length}${gp > 0 ? ` · ${gp} gp` : ""}`;
+      })(),
+      rows: [...list].reverse().map(e => ({
+        time: e.time ?? "",
+        text: downtimeRecapRow(e),
+        effect: e.effectSummary || null,
+        success: !!e.success,
+      })),
+    }));
+
     // Encounter checks
     const checks = data.encounterChecks;
     const encounterChecks = checks.map(c => ({ ...c }));
@@ -172,6 +194,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
         combat: this.activeTab === "combat",
         loot: this.activeTab === "loot",
         xp: this.activeTab === "xp",
+        downtime: this.activeTab === "downtime",
         history: this.activeTab === "history",
       },
       activeTab: this.activeTab,
@@ -184,6 +207,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       lootEntries, hasLoot: lootEntries.length > 0,
       sales, purchases, hasMerchant: sales.length > 0 || purchases.length > 0,
       xpPlayers, hasXp: xpPlayers.length > 0,
+      downtimePlayers, hasDowntime: downtimePlayers.length > 0,
       encounterChecks, hasEncounterChecks: encounterChecks.length > 0, encounterSummary,
       viewingSession: viewingSession ? { id: viewingSession.id, name: viewingSession.name } : null,
       isViewingHistory: !!this._viewingHistoryId,

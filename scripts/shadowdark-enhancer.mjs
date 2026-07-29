@@ -7,6 +7,7 @@ import { MODULE_ID } from "./shared/module-id.mjs";
 import { ICONS } from "./shared/icons.mjs";
 
 import { registerSettings } from "./shared/settings.mjs";
+import { installGMRelayHandshake } from "./shared/gm-relay.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
@@ -48,6 +49,7 @@ import { buildBundle, exportBundle, applyBundle } from "./importer/bundle-io.mjs
 import { MerchantShop } from "./merchant/merchant-shop.mjs";
 import { PartyXP } from "./party-xp/party-xp.mjs";
 import { SessionRecap } from "./session-recap/session-recap.mjs";
+import { DowntimeSession } from "./downtime/downtime-session.mjs";
 import { registerActorTypes } from "./actors/register-actors.mjs";
 // Imported for its top-level createChatMessage hook: the out-of-combat
 // initiative sync must be live on the GM from load, not only after the GM
@@ -65,7 +67,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "1051cfca7f37";
+const STYLESHEET_REV = "70b1b68e9fdb";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -481,6 +483,19 @@ Hooks.once("init", () => {
       formatForDiscord: () => SessionRecap.formatForDiscord(),
       isActive: () => SessionRecap.isActive(),
     },
+    // Downtime — the between-crawls activity window (carousing, training,
+    // research). Ships the mechanical skeleton only; outcome text is unlocked
+    // per source from the GM's own book. See downtime-app.mjs.
+    downtime: {
+      open: async () => (await import("./downtime/downtime-app.mjs")).DowntimeApp.open(),
+      // Table session: the GM opens downtime for the whole party, each player
+      // picks their own activity and rolls their own dice.
+      startSession: (sourceSlug) => DowntimeSession.start(sourceSlug),
+      endSession: () => DowntimeSession.end(),
+      lockRolls: () => DowntimeSession.setPhase("roll"),
+      releaseRolls: () => DowntimeSession.setPhase("select"),
+      sessionState: () => foundry.utils.deepClone(DowntimeSession.state),
+    },
   };
 });
 
@@ -527,6 +542,12 @@ Hooks.once("ready", () => {
       setTimeout(() => registerMedkitPack(tries + 1), 250);
     }
   })();
+  // Liveness+version probe used by every player→active-GM relay below. Must be
+  // installed before them: a player whose GM tab is running an older build gets
+  // a "reload your GM's tab" warning instead of a button that silently does
+  // nothing (gm-relay.mjs). Every client installs it — players send the ping,
+  // the active GM answers it.
+  installGMRelayHandshake();
   CrawlState.init();
   registerHiddenSync();
   // Seed the char-builder Name/Trinket table sources from the legacy boolean
@@ -550,6 +571,12 @@ Hooks.once("ready", () => {
   // idempotent; fills in the WR merchant once its item pack is present.
   if (game.user.isGM) MerchantShop.seedDefaultMerchants();
   SessionRecap.init();
+  // Downtime sessions: sync listener, GM query handler, announcement-card
+  // wiring. Runs on EVERY client (players included) — players need the listener
+  // for the state nudge and the card button. The raw socket carries only the
+  // payload-free nudge; every player action that mutates world state arrives as
+  // an authenticated user query, so the GM knows who asked.
+  DowntimeSession.init();
   checkCoexistence();
   if (game.user.isGM && !game.settings.get(MODULE_ID, "lootSetupSeen")) {
     const bound = boundCount(game.settings.get(MODULE_ID, "lootTierTables") ?? {});

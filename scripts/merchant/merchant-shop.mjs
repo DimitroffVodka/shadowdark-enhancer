@@ -12,6 +12,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlStrip } from "../crawl-strip/crawl-strip.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
+import { relayToGM } from "../shared/gm-relay.mjs";
 import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
   addToPurse, spendFromPurse, parseCoinsFromText,
@@ -24,9 +25,21 @@ import {
   isCoinEntry, parseValue, stripPrice, isDeferredType, fabricateTreasureItem,
 } from "../loot/loot-pack.mjs";
 import { resolveInlineSubroll } from "../loot/subroll.mjs";
+// Downtime's "extortion" outcome arms a ONE-SHOT ±25% swing on a single
+// character. It is deliberately per-actor (an actor flag) rather than a tweak
+// to `ctx.buyMultiplier`, which is shop-wide and GM-authored: one character's
+// leverage must never reprice the shop for the whole party.
+import { applyExtortion, readExtortion, spendExtortion } from "../downtime/downtime-effects.mjs";
 
 /** Dice roller for the sub-roll resolver, which is kept Foundry-free. */
 const _rollDice = async (dice) => (await new Roll(dice).evaluate()).total;
+
+/**
+ * Fills "…needs a reload before X can land" when a player's buy/sell/gamble
+ * can't reach the active GM. Money moves on the GM side, so a silently dropped
+ * relay looks to the player like the shop simply ignored them.
+ */
+const SHOP_RELAY_LABEL = "shop transactions";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -535,7 +548,12 @@ export const MerchantShop = {
     if (data.success) {
       const verb = data.txAction === "buy" ? "bought" : "sold";
       const qtyStr = data.quantity > 1 ? ` ×${data.quantity}` : "";
-      ui.notifications.info(`${data.playerName} ${verb} ${data.itemName}${qtyStr} for ${_formatPrice(data.price)}.`);
+      // Name the downtime extortion swing when it moved this price.
+      const pct = Number(data.extortionPct) || 0;
+      const swingStr = pct
+        ? ` (extortion: ${data.txAction === "buy" ? `${pct}% off` : `+${pct}%`})`
+        : "";
+      ui.notifications.info(`${data.playerName} ${verb} ${data.itemName}${qtyStr} for ${_formatPrice(data.price)}${swingStr}.`);
     } else {
       // Only show error to the player who initiated
       if (data.userId === game.userId) {
@@ -639,9 +657,12 @@ export const MerchantShop = {
       return this._broadcastError("Not enough stock.", userId);
     }
 
-    // Calculate total cost with the GM-side (never client-supplied) multiplier.
+    // Calculate total cost with the GM-side (never client-supplied) multiplier,
+    // then apply this buyer's own one-shot downtime extortion swing (if any).
     const mult = ctx.buyMultiplier / 100;
-    const totalCopper = Math.round(_toCopper(entry.cost) * mult * quantity);
+    const listCopper = Math.round(_toCopper(entry.cost) * mult * quantity);
+    const swing = applyExtortion(listCopper, readExtortion(buyer), "buy");
+    const totalCopper = swing.copper;
     const totalCost = _fromCopper(totalCopper);
 
     // Check funds
@@ -675,6 +696,11 @@ export const MerchantShop = {
       await this._updateStock(entry.id, newStock, ctx);
     }
 
+    // Execute: the extortion swing is spent once the transaction has landed —
+    // a failed funds/stock check above returns early and leaves it unspent.
+    if (swing.applied) await spendExtortion(buyer);
+    const swingNote = swing.applied ? ` <em>(${swing.pct}% off — extortion)</em>` : "";
+
     // Log
     await this.logTransaction({
       player: buyer.name,
@@ -705,7 +731,7 @@ export const MerchantShop = {
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(entry.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
+              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(entry.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.${swingNote}</p>
             </div>
           </section>
         </div>
@@ -721,6 +747,7 @@ export const MerchantShop = {
       itemName: entry.name,
       quantity,
       price: totalCost,
+      extortionPct: swing.applied ? swing.pct : 0,
       userId,
       stockUpdate: { id: entry.id, newStock },
     });
@@ -729,6 +756,7 @@ export const MerchantShop = {
       success: true, txAction: "buy",
       playerName: buyer.name, itemName: entry.name,
       quantity, price: totalCost, userId,
+      extortionPct: swing.applied ? swing.pct : 0,
       stockUpdate: { id: entry.id, newStock },
     });
   },
@@ -748,7 +776,9 @@ export const MerchantShop = {
     const sellRatio = ctx?.sellRatio ?? game.settings.get(MODULE_ID, "shopSellRatio") ?? 50;
     const cost = item.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const unitSellPrice = _applySellRatio(cost, sellRatio);
-    const totalCopper = _toCopper(unitSellPrice) * quantity;
+    // The same one-shot downtime extortion swing, in the seller's favour.
+    const swing = applyExtortion(_toCopper(unitSellPrice) * quantity, readExtortion(seller), "sell");
+    const totalCopper = swing.copper;
     const totalSellPrice = _fromCopper(totalCopper);
 
     const originalUuid = item.uuid;
@@ -772,6 +802,10 @@ export const MerchantShop = {
       "system.coins.sp": newTotal.sp,
       "system.coins.cp": newTotal.cp,
     });
+
+    // The extortion swing is spent once the sale has landed.
+    if (swing.applied) await spendExtortion(seller);
+    const swingNote = swing.applied ? ` <em>(+${swing.pct}% — extortion)</em>` : "";
 
     // Restock the merchant with the sold item
     await this._restockMerchantInventory(itemData, quantity, originalUuid, ctx);
@@ -815,7 +849,7 @@ export const MerchantShop = {
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${esc(seller.name)}</strong> sold <strong>${esc(item.name)}${qtyStr}</strong> for ${_formatPrice(totalSellPrice)} (${sellRatio}%).</p>
+              <p><strong>${esc(seller.name)}</strong> sold <strong>${esc(item.name)}${qtyStr}</strong> for ${_formatPrice(totalSellPrice)} (${sellRatio}%).${swingNote}</p>
             </div>
           </section>
         </div>
@@ -836,6 +870,7 @@ export const MerchantShop = {
       itemName: item.name,
       quantity,
       price: totalSellPrice,
+      extortionPct: swing.applied ? swing.pct : 0,
       userId,
       stockUpdate: null,
       inventory: updatedInventory,
@@ -844,6 +879,7 @@ export const MerchantShop = {
       success: true, txAction: "sell",
       playerName: seller.name, itemName: item.name,
       quantity, price: totalSellPrice, userId,
+      extortionPct: swing.applied ? swing.pct : 0,
       stockUpdate: null,
       inventory: updatedInventory,
     });
@@ -873,7 +909,9 @@ export const MerchantShop = {
 
     const cost = doc.system.cost ?? { gp: 0, sp: 0, cp: 0 };
     const catMult = ctx.buyMultiplier / 100;
-    const totalCopper = Math.round(_toCopper(cost) * catMult * quantity);
+    const listCopper = Math.round(_toCopper(cost) * catMult * quantity);
+    const swing = applyExtortion(listCopper, readExtortion(buyer), "buy");
+    const totalCopper = swing.copper;
     const totalCost = _fromCopper(totalCopper);
 
     // Check funds
@@ -893,6 +931,10 @@ export const MerchantShop = {
     const itemData = doc.toObject();
     if (quantity > 1) itemData.system.quantity = quantity;
     await Item.create(itemData, { parent: buyer });
+
+    // Spend the one-shot downtime extortion swing now the purchase has landed.
+    if (swing.applied) await spendExtortion(buyer);
+    const swingNote = swing.applied ? ` <em>(${swing.pct}% off — extortion)</em>` : "";
 
     // Log
     await this.logTransaction({
@@ -922,7 +964,7 @@ export const MerchantShop = {
           </header>
           <section class="content-body">
             <div class="card-description" style="padding:4px 0;">
-              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(doc.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.</p>
+              <p><strong>${esc(buyer.name)}</strong> bought <strong>${esc(doc.name)}${qtyStr}</strong> for ${_formatPrice(totalCost)}.${swingNote}</p>
             </div>
           </section>
         </div>
@@ -943,6 +985,7 @@ export const MerchantShop = {
       itemName: doc.name,
       quantity,
       price: totalCost,
+      extortionPct: swing.applied ? swing.pct : 0,
       userId,
       stockUpdate: null,
       inventory: updatedInventory,
@@ -1559,10 +1602,15 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const wallet = playerActor?.system?.coins ?? { gp: 0, sp: 0, cp: 0 };
     const walletCopper = _toCopper(wallet);
 
-    // Build display inventory (apply buy multiplier to prices)
+    // Build display inventory (apply buy multiplier to prices). The shown price
+    // must match what the GM-side handler will actually charge, so this
+    // character's one-shot downtime extortion swing is applied here too.
     const mult = this._buyMultiplier / 100;
+    const extortion = readExtortion(playerActor);
     const inventory = (this._inventory || []).map(entry => {
-      const adjustedCopper = Math.round(_toCopper(entry.cost) * mult);
+      const adjustedCopper = applyExtortion(
+        Math.round(_toCopper(entry.cost) * mult), extortion, "buy",
+      ).copper;
       const adjustedCost = _fromCopper(adjustedCopper);
       const canAfford = walletCopper >= adjustedCopper;
       const outOfStock = entry.stock === 0;
@@ -1630,7 +1678,9 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         .filter(i => ["Basic", "Weapon", "Armor"].includes(i.type))
         .map(i => {
           const cost = i.system.cost ?? { gp: 0, sp: 0, cp: 0 };
-          const sellPrice = _applySellRatio(cost, this._sellRatio);
+          const sellPrice = _fromCopper(
+            applyExtortion(_toCopper(_applySellRatio(cost, this._sellRatio)), extortion, "sell").copper,
+          );
           return {
             id: i.id,
             name: i.name,
@@ -1712,7 +1762,7 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
       // Enrich with affordability
       catalogItems = filtered.map(e => {
-        const adjCopper = Math.round(e.copperValue * mult);
+        const adjCopper = applyExtortion(Math.round(e.copperValue * mult), extortion, "buy").copper;
         return {
           ...e,
           priceDisplay: _formatPrice(_fromCopper(adjCopper)),
@@ -2435,8 +2485,12 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn("Not enough stock.");
       return;
     }
+    // Mirror the GM-side formula exactly, extortion swing included, so the
+    // pre-check never rejects a purchase the handler would have allowed.
     const mult = this._buyMultiplier / 100;
-    const totalCost = _fromCopper(Math.round(_toCopper(entry.cost) * mult * quantity));
+    const totalCost = _fromCopper(applyExtortion(
+      Math.round(_toCopper(entry.cost) * mult * quantity), readExtortion(actor), "buy",
+    ).copper);
     if (!_canAfford(actor, totalCost)) {
       ui.notifications.warn("Insufficient funds.");
       return;
@@ -2451,14 +2505,14 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:buy",
         buyerActorId: actor.id,
         shopItemId,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 
@@ -2477,13 +2531,13 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:sell",
         sellerActorId: actor.id,
         itemId,
         quantity,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 
@@ -2529,12 +2583,12 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:gamble",
         buyerActorId: actor.id,
         gambleId,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 
@@ -2549,7 +2603,9 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const catMult = this._buyMultiplier / 100;
     const entry = this._catalogCache?.find(e => e.uuid === itemUuid);
     if (entry) {
-      const totalCost = _fromCopper(Math.round(entry.copperValue * catMult * quantity));
+      const totalCost = _fromCopper(applyExtortion(
+        Math.round(entry.copperValue * catMult * quantity), readExtortion(actor), "buy",
+      ).copper);
       if (!_canAfford(actor, totalCost)) {
         ui.notifications.warn("Insufficient funds.");
         return;
@@ -2565,14 +2621,14 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
         userId: game.userId,
       }));
     } else {
-      game.socket.emit(`module.${MODULE_ID}`, {
+      await relayToGM({
         action: "shop:catalogBuy",
         buyerActorId: actor.id,
         itemUuid,
         quantity,
         buyMultiplier: this._buyMultiplier,
         userId: game.userId,
-      });
+      }, { label: SHOP_RELAY_LABEL });
     }
   }
 }

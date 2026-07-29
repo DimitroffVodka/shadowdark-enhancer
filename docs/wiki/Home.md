@@ -35,6 +35,7 @@ Tools you use while a session is running.
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard generation, claimable chat cards, opt-in loot drops on combat end, coin piles |
 | [Merchant Shop](Merchant-Shop.md) | A shop window open to every player at once, buying and selling against `system.coins` |
 | [Party XP](Party-XP.md) | Awarding XP to the whole party, Shadowdark treasure-XP rules |
+| [Downtime](Downtime.md) | Between-crawl activities, the DC step-down ladder, per-attempt costs, unlocked from your own book |
 | [Session Recap](Session-Recap.md) | Automatic session log (loot, XP, combats, rolls, kills) with a Discord export |
 
 ## Building content

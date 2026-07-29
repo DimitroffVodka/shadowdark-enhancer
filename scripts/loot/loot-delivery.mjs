@@ -20,10 +20,14 @@ import { inferSeedFromName } from "../magic-forge/magic-forge.mjs";
 import { esc } from "../shared/esc.mjs";
 import { addToPurse } from "../shared/coins.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
+import { relayToGM } from "../shared/gm-relay.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 const SOCKET = `module.${MODULE_ID}`;
 const CARD_TEMPLATE = "modules/shadowdark-enhancer/templates/chat/loot-card.hbs";
+
+/** Fills "…needs a reload before X can land" for an undeliverable claim. */
+const LOOT_RELAY_LABEL = "loot claims";
 
 export const LootDelivery = {
 
@@ -162,7 +166,9 @@ export const LootDelivery = {
         btn.disabled = true;
         const payload = { action: "lootClaimItem", messageId: message.id, itemIndex: idx, userId: game.user.id, actorId: actor.id };
         if (game.user.isGM) await this._handleClaimItem(payload);
-        else game.socket.emit(SOCKET, payload);
+        // A blocked relay never reaches the GM, so nothing will re-render this
+        // card — hand the button back or the item looks permanently claimed.
+        else if (!await relayToGM(payload, { label: LOOT_RELAY_LABEL })) btn.disabled = false;
       });
     });
 
@@ -202,7 +208,7 @@ export const LootDelivery = {
         claimCoinsBtn.disabled = true;
         const payload = { action: "lootClaimCoins", messageId: message.id, userId: game.user.id, actorId: actor.id };
         if (game.user.isGM) await this._handleClaimCoins(payload);
-        else game.socket.emit(SOCKET, payload);
+        else if (!await relayToGM(payload, { label: LOOT_RELAY_LABEL })) claimCoinsBtn.disabled = false;
       });
     }
 

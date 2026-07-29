@@ -18,6 +18,15 @@ import { contentIdForName } from "./tables/table-shapes.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
+import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
+
+/**
+ * Downtime source slug → the CHAR_SOURCES / source-PDF registry key for the
+ * same book, so a downtime unlock can drive the shared PDF machinery
+ * (resolveSourcePdf, PAGE_OFFSETS, the Grab-text extractor). The downtime
+ * skeleton keys by `system.source.title` slug; the PDF library keys by book.
+ */
+const DOWNTIME_PDF_KEYS = { "cs6": "CS6", "western-reaches": "WR" };
 
 class HubManageMethods {
 
@@ -32,6 +41,13 @@ class HubManageMethods {
    */
   async _openManageEntry({ name, type, src }) {
     if (!name) return;
+    // Downtime rows are censused from a world setting, not a document — there
+    // is nothing to look up, so open the window that reads it.
+    if (type === "Downtime") {
+      const { DowntimeApp } = await import("../downtime/downtime-app.mjs");
+      DowntimeApp.open();
+      return;
+    }
     const isTable = type === "Table";
     // Name matching mirrors the census exactly: tableNameMatches for tables,
     // and for everything else the same nameVariants comparison gatherPresence
@@ -583,6 +599,99 @@ class HubManageMethods {
     }
   }
 
+  /**
+   * Unlock a downtime source from the Manage tree: pre-select the downtime
+   * import type, point the preview's source select at that book, and put the
+   * cursor in the paste box. Mirrors _onCharSeedPaste, minus the seed line and
+   * the PDF auto-grab — downtime unlocks a world setting, not a manifest entry,
+   * so there is no name to seed and no `_importSeed` to hint.
+   */
+  async _onDowntimeSeedPaste(event, target) {
+    // The tree carries the slug in data-list-key (data-src stays empty so the
+    // row's page chip reads "pg 26-27", not "cs6 pg 26-27").
+    this._seedDowntimeUnlock(target?.dataset?.listKey ?? "");
+    await this.render();
+    await this._autoGrabDowntimePdf();
+  }
+
+  /**
+   * One-press unlock, same as every other manage-tree Import row: pull the
+   * cited pages out of the user's registered book PDF straight into the paste
+   * box, leaving only Parse to click. Never parses or commits — the GM reviews
+   * the extraction first.
+   *
+   * Reuses `_onGrabPdfText` wholesale (page-cite range expansion, the per-book
+   * printed→PDF page offset in PAGE_OFFSETS, and the column-mode ladder) rather
+   * than reimplementing any of it; the downtime seed just supplies src + page.
+   * Fallback order matches `_seedGenericUnlock` exactly: grab when book+cite
+   * resolve, else open the viewer when only the file resolves, else leave the
+   * empty box focused — silently, which is what the table rows do.
+   */
+  async _autoGrabDowntimePdf() {
+    const seed = this._importSeed;
+    if (seed?.type !== "Downtime" || !seed.src) return;
+    if (sourcePdfTarget(seed.src, seed.page)) {
+      await this._onGrabPdfText();
+      // _onGrabPdfText fires its render WITHOUT awaiting, so on return the box
+      // still holds the pre-grab DOM value even though _importText is updated.
+      // A human clicking Parse never notices, but anything that parses straight
+      // after this helper reads an empty textarea — settle the render so the
+      // box on screen matches the text we just pulled.
+      await this.render();
+      return;
+    }
+    // No grabbable page: leave the GM an empty, focused box to paste into by
+    // hand (and open the viewer when the book resolves but the cite doesn't).
+    // Silent, like the table rows — the section note already says what to paste.
+    this._importTextFocused = true;
+    this._importTextCursor = 0;
+    const href = sourcePdfHref(seed.src, seed.page);
+    if (href) await this._showSourcePdf(href, `${seed.name} — pg ${seed.page}`);
+    await this.render();
+  }
+
+  /**
+   * Shared downtime seeding path: the Manage-tree Unlock rows and the external
+   * `openHub("import", { downtimeSource })` contract both land here, so both
+   * open on exactly the same state.
+   * @param {string} slug "cs6" | "western-reaches"
+   */
+  _seedDowntimeUnlock(slug) {
+    this._importType = "downtime";
+    this._downtimeSource = DOWNTIME_SOURCES[slug] ? slug : DOWNTIME_SLUGS[0];
+    const src = DOWNTIME_SOURCES[this._downtimeSource];
+    const pdfKey = DOWNTIME_PDF_KEYS[this._downtimeSource];
+    // A new unlock is a new paste: never offer to commit the previous book's
+    // parse under this one, and start from an empty box so the auto-grab below
+    // lands clean instead of appending under stale text.
+    this._downtimeParse = null;
+    this._importText = "";
+    // A real seed now, so this unlock gets the same hint bar (Open PDF / Grab
+    // text) and the same one-press extraction as every other unlock row. It is
+    // NOT a `_charSeed`: the downtime parse branch returns before any seed
+    // handling, so nothing here reaches _applyImportSeed or the table paths.
+    this._importSeed = pdfKey ? {
+      name: `${src.label} downtime`,
+      src: pdfKey,
+      type: "Downtime",
+      page: src.pages,
+      book: CHAR_SOURCES[pdfKey]?.book,
+    } : null;
+    // Drop the previous import's drafts, like every other unlock seed does —
+    // otherwise a stale Monsters/Tables preview (and its Create button) sits
+    // under the downtime section. The paste box itself is left alone.
+    this._importMonsters = []; this._importItems = []; this._importSpells = [];
+    this._importTables = []; this._importGenerators = []; this._importChar = [];
+    this._importBoats = []; this._importSkipped = []; this._shapeFailNote = null;
+    // Deliberately NOT focusing the box here. _wireHubPaste's blur handler does
+    // `this._importText = ta.value`, and a re-render DETACHES the focused
+    // textarea — which fires blur on the old, still-empty node and writes ""
+    // back over whatever the auto-grab just pulled in. Focus is only set on the
+    // manual-paste fallback below, where there is nothing to overwrite.
+    this._importTextFocused = false;
+    this._importTextCursor = 0;
+  }
+
   /** Open (or re-point) the in-Foundry PDF viewer at `href`, titled `title`. */
   async _showSourcePdf(href, title) {
     if (!href) return;
@@ -645,6 +754,12 @@ class HubManageMethods {
       // Slot). Single-column keeps each row's name and price on the SAME line;
       // "auto" detects a false gutter and transposes the columns into a jumble.
       : ["Basic", "Weapon", "Armor"].includes(seed?.type) ? "1"
+      // Downtime deliberately takes no pin. It briefly pinned "2mid" because the
+      // old x-centre detector cut CS6 p26 at 172 — the left column's ragged edge
+      // — and spliced a left-column word into the right column's bullet list.
+      // The ink-coverage detector finds the real gutter (205) on its own, and a
+      // grab under "auto" parses to the same 25 slots, byte for byte, on both
+      // books. One code path is worth more here than a pin restating the default.
       // An entry may pin its own extraction mode (Boons: Secrets needs "1" so
       // each grid row stays on one line for the reflow boundary split).
       : shp?.extractCols ? shp.extractCols

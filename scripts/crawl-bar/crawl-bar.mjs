@@ -278,7 +278,7 @@ export const CrawlBar = {
         break;
 
       case "loot":
-        // Left-click opens the Forge & Loot menu (Loot Generator | Magic Item Forge).
+        // Left-click opens the Forge & Loot menu.
         this._onLootContextMenu(el, ev);
         break;
 
@@ -447,6 +447,9 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="partyXp" role="menuitem" tabindex="0">
         <i class="fas fa-star"></i> Party XP
       </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="downtime" role="menuitem" tabindex="0">
+        <i class="fas fa-mug-hot"></i> Downtime
+      </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="recap" role="menuitem" tabindex="0">
         <i class="fas fa-scroll"></i> Session Recap
       </div>
@@ -478,6 +481,7 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
       if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
       if (target.dataset.lootAction === "partyXp") game.shadowdarkEnhancer.partyXp.open();
+      if (target.dataset.lootAction === "downtime") game.shadowdarkEnhancer.downtime.open();
       if (target.dataset.lootAction === "recap") game.shadowdarkEnhancer.recap.open();
       menu.remove();
     });

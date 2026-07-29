@@ -148,6 +148,15 @@ in and award its XP to the whole party.
 
 ## Troubleshooting
 
+**"Your GM's Foundry tab needs a reload before loot claims can land."**
+(Or *…before item drops and pickups can land.*) Claiming, dropping and picking
+up all happen on the **active GM's** client, and that tab has been open since
+before the module was updated, so it is running code that doesn't know about the
+action. The module pings the GM and compares versions before sending, so a claim
+warns instead of doing nothing at all; the claim button is handed back rather
+than left greyed out. Have the GM reload their tab. See
+[Troubleshooting](Troubleshooting.md#a-player-action-does-nothing-and-no-error-appears).
+
 **Monsters never drop loot when combat ends.**
 Loot drops are **off by default**. Turn on **Loot drops on combat end** in the
 module settings, check **Loot drop chance (%)** isn't `0`, and make sure a

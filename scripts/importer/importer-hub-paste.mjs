@@ -24,6 +24,8 @@ import { revalidateTalentBandWarnings } from "./char-content/class-parser.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
+import { parseDowntimeText } from "../downtime/downtime-parser.mjs";
+import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
 
 class HubPasteMethods {
 
@@ -75,6 +77,23 @@ class HubPasteMethods {
       t = setTimeout(() => { this._importText = ev.target.value; }, 200);
     });
     ta.addEventListener("blur", () => { this._importTextFocused = false; this._importText = ta.value; });
+  }
+
+  /**
+   * Downtime source select. The parsed outcome text is matched against ONE
+   * book's recipe, so switching books drops the previous parse instead of
+   * letting a Commit file cs6 text under western-reaches: pick the book, then
+   * Parse. (The parse also re-reads the live select, so a programmatic set
+   * that skipped the change event still lands on the right book.)
+   */
+  _wireHubDowntime() {
+    const sel = this.element.querySelector("select[data-downtime-source]");
+    if (!sel) return;
+    sel.addEventListener("change", (ev) => {
+      this._downtimeSource = ev.target.value;
+      this._downtimeParse = null;
+      this.render();
+    });
   }
 
   /** Source label input: free-text, commit on input. */
@@ -673,6 +692,43 @@ class HubPasteMethods {
 
     const seed = this._importSeed;
 
+    // Downtime: the one type that unlocks a WORLD SETTING rather than creating
+    // compendium documents. Matched against the selected book's recipe by
+    // parseDowntimeText; nothing here is stored until Unlock outcomes is
+    // clicked (see _onHubCommitDowntime). Deliberately absent from the auto
+    // segmenter — under Auto a downtime page just lands in Skipped.
+    if (type === "downtime") {
+      const sel = this.element.querySelector("select[data-downtime-source]");
+      const slug = DOWNTIME_SOURCES[sel?.value] ? sel.value
+        : (DOWNTIME_SOURCES[this._downtimeSource] ? this._downtimeSource : DOWNTIME_SLUGS[0]);
+      this._downtimeSource = slug;
+      // Empty box: never run the parser. A 0-match result object is not a
+      // "failed unlock" — it is 25 skeleton labels with nothing pasted behind
+      // them, and rendering that is exactly the pre-unlock mechanical outline
+      // we don't display. Matches the Compound/Cartesian guard convention.
+      if (!text.trim()) {
+        this._downtimeParse = null;
+        ui.notifications.warn(`Paste the ${DOWNTIME_SOURCES[slug].label} downtime pages (pg ${DOWNTIME_SOURCES[slug].pages}) first, then click Parse.`);
+        this.render();
+        return;
+      }
+      this._importMonsters = []; this._importItems = []; this._importSpells = [];
+      this._importTables = []; this._importGenerators = []; this._importChar = [];
+      this._importBoats = []; this._importSkipped = []; this._shapeFailNote = null;
+      try {
+        this._downtimeParse = parseDowntimeText(text, { source: slug });
+      } catch (err) {
+        console.error(`${MODULE_ID} | downtime parse failed`, err);
+        ui.notifications.error("Couldn't parse that downtime page — see the console.");
+        this._downtimeParse = null;
+      }
+      if (this._downtimeParse && !Object.keys(this._downtimeParse.filled).length) {
+        ui.notifications.warn(`Nothing matched — paste the ${DOWNTIME_SOURCES[slug].label} downtime pages (${DOWNTIME_SOURCES[slug].pages}), headers and DC lines included.`);
+      }
+      this.render();
+      return;
+    }
+
     // Magic base-recipe BUNDLE seed: the grabbed page stacks several child
     // tables (Weapon/Armor Type + Bonus + Feature). Parse the WHOLE page into
     // one draft per section (structural split only — see parseStackedTables),
@@ -1081,6 +1137,7 @@ class HubPasteMethods {
 
   _onHubClear() {
     this._importText = "";
+    this._downtimeParse = null;
     this._importMonsters = [];
     this._importItems = [];
     this._importSpells = [];
