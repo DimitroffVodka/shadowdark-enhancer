@@ -22,6 +22,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import { assembleItemData } from "../magic-forge/magic-forge.mjs";
+import { Renown } from "../renown/renown.mjs";
 import {
   ARCANE_POTION_NAMES,
   EXTORTION_PCT,
@@ -442,11 +443,19 @@ export async function applyDowntimeEffect({ actor, slotKey, choice = null } = {}
 
 /* ── Renown / XP ──────────────────────────────────────────────────────────── */
 
+/**
+ * Renown goes through the single write path in renown.mjs so the change is
+ * logged like any other. `chat: false` — the downtime result card already tells
+ * the table what happened, and a second card would just repeat it.
+ */
 async function bumpRenown(actor, delta) {
-  const next = (Number(actor.system?.renown) || 0) + delta;
-  await actor.update({ "system.renown": next });
+  const result = await Renown.award({
+    actor, delta, source: "downtime", chat: false,
+    reason: "Downtime",
+  });
+  if (!result.ok) return fail(result.error ?? "Renown could not be changed.");
   const sign = delta < 0 ? String(delta) : `+${delta}`;
-  return ok(`${actor.name}: renown ${sign} → ${next}.`);
+  return ok(`${actor.name}: renown ${sign} → ${result.after}.`);
 }
 
 async function grantXp(actor, delta) {

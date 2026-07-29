@@ -416,6 +416,10 @@ mechanical on a success, and a button appears on the result card so you decide.
 | Spiritual strengthening | **Apply** | `system.level.xp` **+2** |
 | Start a rumor | **+1** or **−1** | `system.renown`, on the character you pick |
 
+Both renown buttons write through the shared renown path, so the change is
+logged and shows its band exactly like a GM award or a level-up. See
+[Renown](Renown.md#downtime-writes-renown-too).
+
 A rumor cuts both ways, so instead of one Apply it offers the signed pair plus a
 dropdown of party members, because a rumor a character starts is usually about
 somebody else. The buttons disable after one use so the same result can't be

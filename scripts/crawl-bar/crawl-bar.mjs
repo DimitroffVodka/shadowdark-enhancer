@@ -450,6 +450,9 @@ export const CrawlBar = {
       <div class="sde-menu-item sde-menu-btn" data-loot-action="downtime" role="menuitem" tabindex="0">
         <i class="fas fa-mug-hot"></i> Downtime
       </div>
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="renown" role="menuitem" tabindex="0">
+        <i class="fas fa-crown"></i> Renown
+      </div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="recap" role="menuitem" tabindex="0">
         <i class="fas fa-scroll"></i> Session Recap
       </div>
@@ -482,6 +485,7 @@ export const CrawlBar = {
       if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
       if (target.dataset.lootAction === "partyXp") game.shadowdarkEnhancer.partyXp.open();
       if (target.dataset.lootAction === "downtime") game.shadowdarkEnhancer.downtime.open();
+      if (target.dataset.lootAction === "renown") game.shadowdarkEnhancer.renown.open();
       if (target.dataset.lootAction === "recap") game.shadowdarkEnhancer.recap.open();
       menu.remove();
     });

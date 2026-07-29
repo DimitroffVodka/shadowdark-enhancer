@@ -3335,7 +3335,11 @@ body.theme-light .sde-hub-monsters-row td {
   color: var(--sde-bar-text-dim);
 }
 .sde-facet-roll {
-  width: 110px;
+  /* Wide enough for the longest reaction line the roller can build,
+     "2d6+CHA = 12 + (-5) + 3" — measured at 194px in the live window. At the
+     old 110px even the unmodified "2d6+CHA = 7 + (0)" wrapped to two lines. */
+  width: 200px;
+  white-space: nowrap;
   font-family: monospace;
   font-size: 14px;
   color: var(--sde-bar-text-muted);
@@ -3402,6 +3406,132 @@ body.theme-light .sde-hub-monsters-row td {
   cursor: pointer;
 }
 .sde-stepper button:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-text); }
+
+/* ── Renown ──────────────────────────────────────────────────────────────
+   Three surfaces, one vocabulary: the encounter roller's reaction row, the
+   GM award dialog, and the chat card a change posts. */
+
+/* Encounter roller — the note under a facet row (renown applied, double 1s). */
+.sde-facet-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 14px;
+  font-size: 13px;
+  color: var(--sde-bar-text-muted);
+}
+.sde-facet-renown { color: var(--sde-bar-accent); }
+.sde-facet-warn { color: var(--sde-bar-hit); font-weight: 700; }
+
+/* Encounter roller — the "Recognised here" toggle plus whose renown applies. */
+.sde-renown-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.sde-renown-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sde-bar-bg-alt);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: var(--sde-bar-radius);
+  color: var(--sde-bar-text-muted);
+  padding: 3px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sde-renown-btn:hover { background: var(--sde-bar-bg-hover); color: var(--sde-bar-text); }
+.sde-renown-btn.active {
+  background: var(--sde-bar-accent-dim);
+  border-color: var(--sde-bar-accent);
+  color: var(--sde-bar-text);
+}
+/* The longest option the picker can build — "<name> — 9 · Known name (+2)" —
+   measured at 273px of text in the live window, plus the dropdown arrow. */
+.sde-renown-row select { flex: 0 1 310px; min-width: 0; }
+.sde-renown-meaning {
+  flex: 1;
+  min-width: 0;
+  color: var(--sde-bar-text-muted);
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Award dialog — the party roster doubles as the band reference. */
+.sde-renown-roster {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+.sde-renown-roster th {
+  text-align: left;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-bottom: 1px solid var(--sde-bar-border, #555);
+}
+.sde-renown-roster td { padding: 3px 6px; vertical-align: top; }
+.sde-renown-cell-value,
+.sde-renown-cell-bonus { text-align: center; font-weight: 700; width: 4em; }
+.sde-renown-row-current { background: rgb(0 0 0 / 12%); }
+.sde-renown-band-label { display: block; font-weight: 700; }
+.sde-renown-band-note { display: block; opacity: 0.75; font-size: 12px; }
+
+.sde-renown-form {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 6px 10px;
+}
+.sde-renown-hint {
+  margin: 10px 0 0;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Chat card posted by an award. */
+.sde-renown-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.sde-renown-delta { margin-left: auto; font-size: 16px; }
+.sde-renown-up .sde-renown-delta { color: var(--sde-bar-miss, #4c9a4c); }
+.sde-renown-down .sde-renown-delta { color: var(--sde-bar-hit, #a33); }
+.sde-renown-card-body {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+}
+.sde-renown-total { font-size: 20px; font-weight: 700; }
+.sde-renown-band { opacity: 0.8; font-size: 12px; }
+.sde-renown-card-foot { font-style: italic; opacity: 0.8; font-size: 12px; }
+
+/* Encounter chat card — the renown / double-1s note under the facets. */
+.sde-chat-facet-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+  padding-top: 2px;
+}
+
+/* Session Recap — the Renown block sharing the XP tab. */
+.sr-subhead {
+  margin: 14px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
 
 /* ── Browse NPCs tab v2 — sidebar layout ─────────────────────────────────
    Two-column flex: left sidebar holds filters, right pane holds the

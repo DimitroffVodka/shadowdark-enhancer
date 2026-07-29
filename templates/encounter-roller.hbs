@@ -129,11 +129,25 @@
 
                 <div class="sde-facet-row">
                   <span class="sde-facet-label"><i class="fas fa-comment"></i> Reaction</span>
-                  <span class="sde-facet-roll">2d6+CHA = {{lastResult.reactionRoll}} + ({{lastResult.chaMod}})</span>
+                  <span class="sde-facet-roll">2d6+CHA = {{lastResult.reactionRoll}} + ({{lastResult.chaMod}}){{#if lastResult.renownApplied}} + {{lastResult.renownBonus}}{{/if}}</span>
                   <span class="sde-facet-arrow">→</span>
                   <span class="sde-facet-result {{lastResult.reactionBand}}">{{lastResult.reactionBand}}</span>
                   <button type="button" class="sde-reroll-btn" data-action="reroll" data-facet="reaction" title="Reroll reaction" aria-label="Reroll reaction"><i class="fas fa-sync"></i></button>
                 </div>
+
+                {{#if lastResult.renownApplied}}
+                <div class="sde-facet-note sde-facet-renown">
+                  <i class="fas fa-crown"></i>
+                  Renown {{lastResult.renownBonusText}} — {{lastResult.renownName}} is {{lastResult.renownBandLabel}} here ({{lastResult.renownValue}} renown)
+                </div>
+                {{/if}}
+
+                {{#if lastResult.reactionDoubleOnes}}
+                <div class="sde-facet-note sde-facet-warn">
+                  <i class="fas fa-triangle-exclamation"></i>
+                  Double 1s — hostile whatever the modifiers add up to.
+                </div>
+                {{/if}}
               </div>
 
               <div class="sde-stepper-row">
@@ -144,6 +158,26 @@
                   <button type="button" data-action="chaInc" aria-label="Increase CHA mod"><i class="fas fa-caret-up"></i></button>
                 </div>
               </div>
+
+              {{#if renown.hasParty}}
+              <div class="sde-renown-row">
+                <button type="button" class="sde-renown-btn {{#if lastResult.renownOn}}active{{/if}}"
+                        data-action="renownToggle" aria-pressed="{{#if lastResult.renownOn}}true{{else}}false{{/if}}"
+                        title="Add the renown bonus — only where the party would be recognised">
+                  <i class="fas fa-crown"></i> Recognised here
+                </button>
+                <select name="renownActor" aria-label="Whose renown applies">
+                  {{#each renown.party}}
+                  <option value="{{this.actorId}}" {{#if this.selected}}selected{{/if}}>{{this.name}} — {{this.renown}} · {{this.band.label}}{{#if this.bonus}} (+{{this.bonus}}){{/if}}</option>
+                  {{/each}}
+                </select>
+                {{#if renown.chosen}}
+                {{!-- Ellipsised when the row is tight, so carry the full text
+                      on the title for a hover. --}}
+                <span class="sde-renown-meaning" title="{{renown.chosen.band.note}}">{{renown.chosen.band.note}}</span>
+                {{/if}}
+              </div>
+              {{/if}}
             </div>
           {{/if}}
 

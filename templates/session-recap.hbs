@@ -4,7 +4,7 @@
     <button type="button" class="sr-tab {{#if tab.overview}}active{{/if}}" data-action="changeTab" data-tab="overview"><i class="fas fa-chart-pie"></i> Overview</button>
     <button type="button" class="sr-tab {{#if tab.combat}}active{{/if}}" data-action="changeTab" data-tab="combat"><i class="fas fa-khanda"></i> Combat</button>
     <button type="button" class="sr-tab {{#if tab.loot}}active{{/if}}" data-action="changeTab" data-tab="loot"><i class="fas fa-coins"></i> Loot</button>
-    <button type="button" class="sr-tab {{#if tab.xp}}active{{/if}}" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> XP</button>
+    <button type="button" class="sr-tab {{#if tab.xp}}active{{/if}}" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> XP &amp; Renown</button>
     <button type="button" class="sr-tab {{#if tab.downtime}}active{{/if}}" data-action="changeTab" data-tab="downtime"><i class="fas fa-mug-hot"></i> Downtime</button>
     <button type="button" class="sr-tab {{#if tab.history}}active{{/if}}" data-action="changeTab" data-tab="history"><i class="fas fa-book"></i> History</button>
   </nav>
@@ -154,6 +154,22 @@
       {{/each}}
       {{else}}
       <p class="sr-empty">No XP awarded yet.</p>
+      {{/if}}
+
+      {{#if hasRenown}}
+      <h3 class="sr-subhead"><i class="fas fa-crown"></i> Renown</h3>
+      {{#each renownPlayers}}
+      <div class="sr-xp-player">
+        <h4>{{player}}</h4>
+        {{#each changes}}
+        <div class="sr-xp-award">
+          <span class="sr-xp-time">{{time}}</span>
+          <span class="sr-xp-label">{{text}}</span>
+        </div>
+        {{/each}}
+        <div class="sr-xp-player-total">Net: {{net}}</div>
+      </div>
+      {{/each}}
       {{/if}}
     </section>
     {{/if}}

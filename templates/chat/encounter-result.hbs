@@ -25,7 +25,17 @@
     <div class="sde-chat-facet">
       <span class="sde-chat-facet-label"><i class="fas fa-comment"></i> Reaction</span>
       <span class="sde-chat-facet-result sde-reaction-{{reactionBand}}">{{reactionBand}}</span>
-      <span class="sde-chat-facet-roll">({{reactionRoll}} + {{chaMod}})</span>
+      <span class="sde-chat-facet-roll">({{reactionRoll}} + {{chaMod}}{{#if renownApplied}} + {{renownBonus}}{{/if}})</span>
     </div>
+    {{#if renownApplied}}
+    <div class="sde-chat-facet-note">
+      <i class="fas fa-crown"></i> Renown {{renownBonusText}} — {{renownName}}, {{renownBandLabel}}
+    </div>
+    {{/if}}
+    {{#if reactionDoubleOnes}}
+    <div class="sde-chat-facet-note">
+      <i class="fas fa-triangle-exclamation"></i> Double 1s — always hostile
+    </div>
+    {{/if}}
   </div>
 </div>

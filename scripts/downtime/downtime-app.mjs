@@ -32,6 +32,8 @@ import { esc } from "../shared/esc.mjs";
 import { canAfford, spendFromPurse, toCopper } from "../shared/coins.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { queryActiveGM } from "../shared/gm-relay.mjs";
+import { Renown } from "../renown/renown.mjs";
+import { renownBand, renownValue } from "../renown/renown-core.mjs";
 import {
   SOURCES,
   DOWNTIME_SKELETON,
@@ -352,6 +354,7 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const inSession = sess.active;
     const myPick = actor ? sess.pickFor(actor.id) : null;
     const myResult = actor ? sess.resultFor(actor.id) : null;
+    const band = renownBand(actor?.system?.renown);
 
     return {
       // Which of the three faces this window is wearing.
@@ -377,7 +380,13 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
       actorName: actor?.name ?? "",
       actorLevel: level,
       coins: actor?.system?.coins ?? { gp: 0, sp: 0, cp: 0 },
-      renown: Number(actor?.system?.renown ?? 0),
+      // Renown, with the band it lands in. The purse strip is the only place
+      // renown is already on screen, so the band and its meaning go here rather
+      // than in a window of their own.
+      renown: renownValue(actor?.system?.renown),
+      renownBand: band.label,
+      renownBandNote: band.note,
+      renownBonus: band.bonus ? signed(band.bonus) : "",
       advModes: ADV_MODES.map(m => ({
         ...m,
         selected: m.key === (myPick?.advantage ?? this._advantage),
@@ -1046,10 +1055,22 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /**
+   * Solo-mode renown apply. Routed through renown.mjs's single write path so a
+   * change made here is logged the same as one made by a session roll, a
+   * level-up or the GM's own award dialog. `chat: false` — the downtime result
+   * card is already on screen.
+   */
   async _bumpRenown(actor, delta) {
-    const next = Number(actor.system?.renown ?? 0) + delta;
-    await actor.update({ "system.renown": next });
-    ui.notifications.info(`${actor.name}: renown ${signed(delta)} → ${next}.`);
+    const result = await Renown.award({
+      actor, delta, source: "downtime", chat: false,
+      reason: "Downtime",
+    });
+    if (!result.ok) {
+      ui.notifications.warn(result.error ?? "Renown could not be changed.");
+      return;
+    }
+    ui.notifications.info(`${actor.name}: renown ${signed(delta)} → ${result.after}.`);
   }
 
   async _onApplyXp() {

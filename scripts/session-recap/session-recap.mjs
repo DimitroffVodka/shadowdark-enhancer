@@ -235,6 +235,33 @@ export const SessionRecap = {
     });
   },
 
+  // ── Renown Logging ─────────────────────────────────────────
+
+  /**
+   * Log one renown change. Called through `Renown.award`, which is the single
+   * write path for `system.renown` — a downtime rumour, a level-up and a GM's
+   * own award all land here in the same shape. Self-guarded on an active
+   * session, like its siblings.
+   */
+  async logRenown(entry) {
+    if (!this.isActive()) return;
+    return this._mutate(data => {
+      this._ensureStart(data);
+      if (!Array.isArray(data.renown)) data.renown = [];
+      data.renown.push({
+        actorId: entry?.actorId ?? null,
+        actorName: entry?.actorName ?? "Someone",
+        player: entry?.player ?? "GM",
+        delta: Number(entry?.delta) || 0,
+        before: Number(entry?.before) || 0,
+        after: Number(entry?.after) || 0,
+        reason: entry?.reason ?? "",
+        source: entry?.source ?? "gm",
+        ...this._stamp(),
+      });
+    });
+  },
+
   // ── Combat Logging ─────────────────────────────────────────
 
   async logCombat(combatEntry) {

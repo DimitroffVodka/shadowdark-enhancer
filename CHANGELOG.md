@@ -98,6 +98,31 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **Renown, the fame track.** The number was already on the character sheet —
+  the system owns `system.renown` — but nothing read it. It now means something.
+  A new **Renown** entry in the Crawl Bar's **Forge & Loot** menu opens a GM
+  dialog listing every party character with their renown, the band it puts them
+  in (`≤3` Unknown, `4–7` Locally known, `8–11` Known name, `12+` Celebrity),
+  what that band means at the table, and the `+0` / `+1` / `+2` / `+3` bonus it
+  grants. Award or dock from the same dialog with a reason, with the book's
+  triggers offered as suggestions, or press **Start at CHA mod** to set a
+  character's starting value. Renown has no floor and is allowed to go negative.
+  Gaining a level is the one trigger wired automatically, controlled by the new
+  **Renown on level-up** setting; reaching level 1 is excluded, since character
+  creation writes it. Every change — a GM award, a level-up, or one of the two
+  Downtime outcomes that move renown — now goes through one write path, posts a
+  chat card and is logged to the Session Recap, whose **XP** tab is now
+  **XP & Renown** and whose Discord export gains a `## Renown` section. New API
+  namespace `game.shadowdarkEnhancer.renown`. Documented in
+  [docs/wiki/Renown.md](docs/wiki/Renown.md).
+- **The Encounter Roller can add a renown bonus to a reaction roll.** Under the
+  CHA stepper, a **Recognised here** toggle and a picker for whose renown
+  applies, defaulting to the party's most renowned character. The toggle is
+  **off by default**: a character adds the bonus only somewhere they would
+  plausibly be known, so it stays the GM's call per roll rather than an
+  automatic add. When it is on, the result card and the chat card both show the
+  arithmetic and the reason (`Renown +2 — Eliara is Known name here`).
+
 - **An activity nobody can pay for cannot be picked.** A slot whose fee is
   beyond the character's purse renders dimmed with the shortfall spelled out,
   for example `Costs 50 gp per attempt — you're 19 gp 9 sp short`, and its
@@ -246,6 +271,10 @@
   tree follows the same rule and reports counts only.
 
 ### Fixed
+- **Double 1s on a reaction roll are now always hostile.** The rule was never
+  implemented: a raw `2` with a `+5` CHA modifier came out *Suspicious*. It is
+  now applied before the band ladder, so no modifier can rescue it, and the
+  roller says why on the card.
 - **A player's action no longer vanishes into a GM tab running old code.** Loot
   claims, shop transactions, downtime picks and rolls, and item drops all get
   handled by the **active GM's** client. A GM who had left a tab open since

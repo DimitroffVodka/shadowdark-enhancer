@@ -88,6 +88,28 @@ button:
 The **CHA modifier** applied to the reaction roll is adjustable on the card with
 up/down arrows. Set it to whichever character is doing the talking.
 
+> **Double 1s are always hostile.** Two 1s on the reaction dice mean a hostile
+> reaction whatever the modifiers add up to, and the card says so when it
+> happens.
+
+### Renown on the reaction roll
+
+Below the CHA stepper sits a **Recognised here** toggle and a picker for whose
+[renown](Renown.md) applies. The toggle is **off by default** — a character adds
+their renown bonus only where they would plausibly be known, so it stays your
+call per roll. The picker defaults to the party's most renowned character, since
+one reaction roll covers the whole encounter.
+
+With it on, the reaction row shows the added bonus and why, and the same line
+rides along on the posted chat card:
+
+```
+Reaction   2d6+CHA = 7 + (0) + 2   →   Neutral
+           Renown +2 — Eliara is Known name here (9 renown)
+```
+
+The toggle and picker only appear when the world has player characters.
+
 Then:
 
 - **Post** sends the card to chat.
