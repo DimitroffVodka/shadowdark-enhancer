@@ -261,6 +261,33 @@ test("relayToGM: a proven GM is not re-pinged on the next action", async () => {
   );
 });
 
+test("probe: an observed failure retires a cached success", async () => {
+  // Found in live verification (2026-07-28): a probe that saw a timeout left an
+  // earlier success cached, so the next relay was waved through on the stale
+  // positive without a warning. Production never reaches that state — nothing
+  // passes `force`, and a GM going stale disconnects, which clears the cache
+  // via userConnected — but a probe that computes "not ok" while leaving "ok"
+  // cached is incoherent, so the failure path now clears it.
+  actAs(PLAYER);
+  const first = relayToGM({ action: "shop:buy" }, { label: "shop transactions" });
+  deliver({ action: PONG, pingId: lastPing().payload.pingId, userId: PLAYER.id, version: MY_VERSION });
+  assert.equal(await first, true, "precondition: the GM is proven and now cached");
+
+  // A forced probe is the only way to look past the cache; make it fail.
+  assert.equal((await probeActiveGM({ timeoutMs: 20, force: true })).ok, false);
+
+  emitted.length = 0; warnings.length = 0;
+  const sent = await quietly(() => relayToGM(
+    { action: "shop:sell" }, { label: "shop transactions", timeoutMs: 20 },
+  ));
+  assert.equal(sent, false, "the retired cache must force a fresh probe, which fails");
+  assert.equal(warnings.length, 1, "the player is warned rather than silently dropped");
+  assert.equal(
+    emitted.filter(e => e.payload?.action === "shop:sell").length, 0,
+    "no payload may go out on a retired cache entry",
+  );
+});
+
 test("relayToGM: a failure is never cached, so a GM reload unblocks immediately", async () => {
   actAs(PLAYER);
   assert.equal(

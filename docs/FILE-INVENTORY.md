@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-681 tracked files · ~82,600 lines of code/markup across scripts+templates+styles+test.
+681 tracked files · ~82,700 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -63,7 +63,7 @@
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
-| `gm-relay.mjs` | 241 | Liveness + module-version handshake run before any player → active-GM socket relay, so a player whose GM tab is running an older build is warned to have it reloaded instead of clicking a button that silently does nothing. |
+| `gm-relay.mjs` | 248 | Liveness + module-version handshake run before any player → active-GM socket relay, so a player whose GM tab is running an older build is warned to have it reloaded instead of clicking a button that silently does nothing. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 

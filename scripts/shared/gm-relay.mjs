@@ -213,6 +213,13 @@ export async function probeActiveGM({ timeoutMs = HANDSHAKE_TIMEOUT_MS, force = 
   if (verdict.ok) {
     _okGmId = gm.id;
     _okUntil = Date.now() + HANDSHAKE_OK_TTL_MS;
+  } else {
+    // An observed failure RETIRES any earlier success. Without this, a GM that
+    // was proven healthy and then went stale keeps a valid cache entry, and the
+    // next relay is waved straight through into exactly the silence this guard
+    // exists to catch — found in live verification 2026-07-28, where a forced
+    // probe timed out while relayToGM still emitted on the cached positive.
+    resetHandshakeCache();
   }
   return verdict;
 }
