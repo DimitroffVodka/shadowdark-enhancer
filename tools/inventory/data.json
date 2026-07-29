@@ -114,6 +114,12 @@
       "dir": "scripts/renown",
       "title": "`scripts/renown/` — the renown fame track",
       "note": "The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This folder adds the band ladder, the single logged write path every renown change goes through, and the GM's award dialog. Band thresholds and bonus numbers are mechanics; the one-line band meanings are the module's own wording, not the book's."
+    },
+    {
+      "id": "3.20",
+      "dir": "scripts/pit-fighting",
+      "title": "`scripts/pit-fighting/` — Cursed Scroll 2 pit fighting bouts",
+      "note": "Structure and thresholds only. Venue descriptions, twist details, what each stakes tier is fought for and the foes themselves all live in the RollTables you import from your own book — this folder holds dice ranges and mechanics, the same class of bare numbers as the reaction bands. The book leaves the danger level and the foe to the GM, so the module suggests and never decides."
     }
   ],
   "order": {
@@ -332,6 +338,10 @@
       "scripts/renown/renown-core.mjs",
       "scripts/renown/renown.mjs",
       "scripts/renown/renown-award-dialog.mjs"
+    ],
+    "3.20": [
+      "scripts/pit-fighting/pit-fighting-core.mjs",
+      "scripts/pit-fighting/pit-fighting-app.mjs"
     ]
   },
   "descriptions": {
@@ -513,6 +523,8 @@
     "scripts/renown/renown-award-dialog.mjs": "The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, then the collapsed per-player **Renown log** (native `<details>`, since DialogV2 does not re-render its content), plus a \"Start at CHA mod\" seed that forces past both the setting and the once-only rule. GM-only; every write goes through `Renown.award`.",
     "scripts/session-recap/carousing-feed.mjs": "Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM.",
     "scripts/session-recap/carousing-feed-core.mjs": "Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested.",
-    "scripts/pdf-export/lib/FileSaver.min.js": "Vendored FileSaver.js (MIT, © 2015 Eli Grey) — the blob-download mechanism every browser honours, used when `showSaveFilePicker` is unavailable (i.e. anything but Chromium on a secure context)."
+    "scripts/pdf-export/lib/FileSaver.min.js": "Vendored FileSaver.js (MIT, © 2015 Eli Grey) — the blob-download mechanism every browser honours, used when `showSaveFilePicker` is unavailable (i.e. anything but Chromium on a secure context).",
+    "scripts/pit-fighting/pit-fighting-core.mjs": "Pure bout set-up: the stakes ladder (APL + 1d6 → 2-5 / 6-10 / 11-13 / 14+), `averagePartyLevel` (rounds half up, ignores unreadable levels rather than counting them as level 0), the 2d6 venue rows, the 2d6 twist bands as machine-readable effects (`extra-danger` and its 1d4 sub-roll, `none`, `stakes-up-1`, `boon`), the three danger levels, `encounterTableName` (High and Epic share one encounter tier, so four stakes tiers map to three table tiers) and `buildBout`. `suggestedDanger` derives from the stakes only — the book hands the GM the venue too and then says the GM decides, and no venue risk rating exists to read. Rolls no dice and holds no text. Foundry-free, node-tested.",
+    "scripts/pit-fighting/pit-fighting-app.mjs": "The bout roller: the `sde-pit-fighting` ApplicationV2 plus the `PitFighting` logic object. Picks the fighters (their count decides solo vs group, their average level sets the stakes), rolls venue / stakes / twist, offers the danger level as an override that redraws the foe from the newly selected encounter table, holds the twist back until Reveal, draws the prize, and awards the fame through `Renown.award`. `findBoutTable` resolves tables by book name and tolerates the suite's `Source - Name` prefix; a table that is missing is NAMED in the window with a link to the importer, never substituted with text of its own. Reads TableResult `name || description` — never `text`, which still fires the v13 deprecation getter. GM-only."
   }
 }
