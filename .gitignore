@@ -10,7 +10,12 @@ dist/
 *.zip
 
 # Node (in case we add tooling later)
-node_modules/
+# No trailing slash on purpose: `node_modules/` matches a directory only, and a
+# git worktree has no node_modules of its own, so anyone running ./verify.sh
+# there (it looks for node_modules/.bin/eslint at a relative path) tends to
+# symlink one — which the slashed form does NOT ignore, and `git add -A` then
+# commits as an absolute path pointing at one machine.
+node_modules
 package-lock.json
 
 # Local development
