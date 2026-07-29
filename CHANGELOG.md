@@ -3,6 +3,67 @@
 ## [Unreleased]
 
 ### Security
+- **Any player could act as the GM, on any character, in nine more handlers.**
+  The same flaw the downtime fix below closed ran through the whole module: every
+  player action travelled on the raw module socket, which authenticates nothing,
+  and the GM authorized it from a `userId` field inside the message. Because
+  Foundry's `testUserPermission` returns OWNER unconditionally for a GM, and
+  `game.users` is readable by every client, a player naming any online GM's id
+  passed every ownership check there was. Live-verified on 14.365 from a real
+  player account: one socket message spent another character's coins and put the
+  goods on their sheet. The same trick could sell another player's magic sword,
+  claim loot onto a character you don't play, take a luck token off someone
+  else's sheet and put it on your own, and teleport any token on the map back to
+  its turn-start position. Shop buys, sells, catalog buys and gambles, loot and
+  coin claims, item drops and pickups, luck-token gifts and movement rollbacks
+  now travel as Foundry user queries, where the server states who sent the
+  message, and every one of them requires the sender to own the character (a GM
+  may still act for anyone). **GMs must reload their Foundry tab after
+  updating.**
+- **Item drops were worse than the rest: naming the GM skipped the entire
+  check.** The drop handler guarded its authoritative re-read with "unless the
+  sender is us", so a message claiming to be from the GM did not merely pass
+  validation, it deleted it, and the payload's own item data was baked into a new
+  world Actor and a Scene Token. Both are documents a player cannot create.
+  Live-verified: a player account created an actor and a map token of its own
+  naming and artwork. The item is now always re-read from the source character
+  and the quantity always clamped to the stack that is actually there, with no
+  "skip when it's us" branch left to impersonate into. A drop carrying no source
+  character (the Loot Generator's *Drop on Ground*) is GM-only, because there is
+  nothing to re-read.
+- **One player could block every other player's actions, with a message blaming
+  the GM.** The stale-tab handshake asked over a broadcast, so every client saw
+  another client's ping, and nothing checked that the answer came from a GM.
+  Live-verified: a listener on one player account made four of five probes from
+  another client report *Your GM's Foundry tab is running Shadowdark Enhancer
+  0.0.0 and yours is 0.13.1*, freezing loot claims, purchases and downtime while
+  the GM was demonstrably current. Reloading did not help, because the attacker
+  answered again. The ping and pong are gone: a query that the GM's build cannot
+  answer is itself the stale-tab signal, and it comes from the server.
+- **Any client could publish a fake price list to the whole table.** The
+  shop-availability broadcast carried the entire inventory and every client
+  acted on it without checking who sent it, so a player could push a price list
+  into everyone's window. The Buy button stayed real: the victim clicked
+  expecting 1 gp, the GM charged the true price, and the victim's own coins
+  moved. The transaction-result broadcast was forgeable the same way, firing an
+  invented "X bought Y for Z" on every screen. Availability is now a
+  payload-free "the setting changed, go re-read it" nudge, so a forged one
+  achieves an idempotent re-read of what the GM actually saved, and transaction
+  notices are sent to each player over the authenticated channel, where the
+  receiving client can confirm a GM really sent them.
+- **A player could sell into a shop the GM had never opened.** Buy, catalog buy
+  and gamble all refuse when there is no live shop; sell read the ratio through
+  a `?.` that swallowed the missing context and completed at the default 50%.
+- **Luck-token gifts were processed twice in a two-GM world.** The handler
+  checked "am I a GM" rather than "am I the GM doing the work", so a world with a
+  second connected GM ran it on both clients. In pulp mode the giver was charged
+  twice for one gift. Every player action now confirms this client is the primary
+  GM before acting — which matters more than it first appears, because the sender
+  of a query chooses who receives it. A player could otherwise send the same
+  request to each connected GM in turn and have it performed once per GM: two
+  luck tokens debited, two claimed items created, two dropped tokens, two
+  rollbacks. Worlds with an assistant GM or an always-on watchdog client were
+  exposed to that on every relayed action, not just luck.
 - **A player could settle a downtime attempt with somebody else's dice, or with
   their own dice from an hour ago.** The GM read the roll total off whichever
   chat message the incoming payload named, checking only that the same user had

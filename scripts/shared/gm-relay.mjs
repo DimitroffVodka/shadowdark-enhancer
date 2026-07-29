@@ -1,60 +1,85 @@
 /**
- * Shadowdark Enhancer — player → active-GM relay handshake.
+ * Shadowdark Enhancer — the authenticated player → active-GM relay.
  *
- * THE BUG THIS EXISTS FOR (live-verified 2026-07-28). Players cannot write
- * world settings or create documents they don't own, so every player action
- * that mutates shared state is relayed over the module socket and handled by
- * ONE client: `game.users.activeGM`. If that GM's browser tab is running an
- * OLDER build of this module than the player's — trivially common, because a
- * GM leaves a tab open for hours while the module is updated underneath it —
- * the GM has no listener registered for the new action name. The player's
- * message lands in a client that ignores it. Nothing throws, nothing logs, no
- * dialog appears: the player clicks and the world simply does not change.
+ * TWO BUGS THIS EXISTS FOR. Different problems; one answer.
  *
- * The fix is a liveness + version probe before the emit. The player pings; the
- * ACTIVE GM (and only that one — see below) pongs with its module version. No
- * pong inside the timeout, or a version that differs from the player's, means
- * the relay would have been swallowed, so the player is told to get their GM
- * to reload instead of being left staring at a button that did nothing.
+ * 1. THE SILENT DROP (live-verified 2026-07-28). Players cannot write world
+ *    settings or create documents they don't own, so every player action that
+ *    mutates shared state is handled by ONE client: `game.users.activeGM`. If
+ *    that GM's browser tab is running an OLDER build than the player's —
+ *    trivially common, because a GM leaves a tab open for hours while the
+ *    module is updated underneath it — the GM has no handler registered for the
+ *    new action. The message lands in a client that ignores it. Nothing throws,
+ *    nothing logs, no dialog appears: the player clicks and the world simply
+ *    does not change.
  *
- * WHY ONLY THE ACTIVE GM ANSWERS. This world runs an always-on second GM (the
- * "Bridge" watchdog client). A responder gated on `isGM` alone would let a
- * current-code Bridge answer on behalf of a stale human GM, reporting healthy
- * while the client that actually handles the relay stays deaf. Gating the
- * responder on `activeGM` means the probe measures exactly the client that
- * will do the work. This is the same guard every reactive handler in the
- * module uses (loot-delivery.mjs:46, merchant-shop.mjs:129).
+ * 2. THE GM-IMPERSONATION BYPASS (audited 2026-07-29,
+ *    .planning/SOCKET-AUTH-AUDIT-2026-07-29.md). `game.socket.emit` does not
+ *    authenticate its sender, so a `userId` in a payload is a CLAIM, never
+ *    proof. Every ownership gate in the module resolved that claimed id and
+ *    called `actor.testUserPermission(user, "OWNER")` — which returns OWNER
+ *    unconditionally for any GM (foundry.mjs:14791-14799). `game.users` is a
+ *    client-readable collection, so a player reading a GM's id in one
+ *    expression and putting it in the payload opened every gate in the module:
+ *    spend another character's coins, delete their items, claim their loot,
+ *    take their luck token, fabricate a world Actor and a Scene Token.
  *
- * WHAT IS DELIBERATELY NOT GUARDED. `luck:logSpent` (luck-reroll.mjs) is
- * fire-and-forget bookkeeping: the player's reroll has already happened
- * locally and the relay only appends a line to the GM's session recap. A
- * dropped message costs one recap entry, not a player action — so blocking a
- * reroll on a round trip, or interrupting the moment with a warning toast,
- * would cost more than it saves. GM-direct paths (`if (game.user.isGM)`) never
- * touch the socket at all and need no probe.
+ * THE TRANSPORT. Foundry v13+ user queries (`CONFIG.queries` + `User#query`)
+ * are relayed by the SERVER, which replaces the client-supplied id with the id
+ * bound to the authenticated socket before forwarding. Verified in the
+ * installed build (FoundryVTT-Node-14.364/14.365,
+ * `dist/components/activity.mjs`):
  *
- * Socket conventions followed here: the single `module.<id>` channel, an
- * action-prefixed message, an activeGM gate on the reactive half, and no trust
- * placed in any field of an inbound payload beyond routing.
+ *     const c = e.user;                                    // socket → User
+ *     if (!c.hasPermission("QUERY_USER")) return void o({status:"rejected", …});
+ *     n.sockets.forEach(e => e.timeout(d)
+ *       .emit("userQuery", c.id, i, s, r, a, …));          // ← SERVER injects
+ *
+ * The receiving client resolves that id and hands the handler `{user}`
+ * (foundry.mjs:46634-46656). A client cannot influence the `user` its handler
+ * receives. `QUERY_USER` defaults to the PLAYER role (foundry.mjs:4643-4648),
+ * so this needs no permission change; a world that has revoked it gets a
+ * warning that says so instead of a dead button.
+ *
+ * ...AND WHY THAT ALSO ANSWERS BUG 1. A rejected query IS the stale-GM signal,
+ * delivered by the server rather than by a client. A GM tab on an older build
+ * has no `CONFIG.queries` entry, so its client throws before acknowledging
+ * (foundry.mjs:46636 — outside the try that would have answered) and the ack
+ * timeout rejects the caller. A GM that has the query but not the action
+ * answers plainly. Both end up in `evaluateHandshake`, unchanged from the
+ * ping/pong implementation this replaces.
+ *
+ * WHY THE PING/PONG HANDSHAKE IS GONE. It was a raw broadcast, so every client
+ * received another client's ping INCLUDING its unguessable id, and nothing
+ * distinguished a forged pong from the GM's. One player could answer every
+ * other player's probe with a bogus version and shut down loot claims,
+ * purchases and downtime for the whole table behind a warning that blamed the
+ * GM (audit F2). Its one advantage was speed: it failed in 3s where a stale GM
+ * now costs the full `QUERY_TIMEOUT_MS`. That is the trade — a slower warning
+ * in a rare failure case, in exchange for a warning no player can manufacture.
+ *
+ * THE TIMEOUT IS LOAD-BEARING. Without one the server does not wrap the ack
+ * (`e.timeout(d).emit(...)` above is conditional on it), so a GM whose build
+ * lacks the query never acknowledges and the caller's promise stays pending
+ * until that GM disconnects — the silent drop wearing a new hat.
+ *
+ * WHAT DELIBERATELY DOES NOT COME THROUGH HERE. `luck:logSpent`
+ * (luck-reroll.mjs) is fire-and-forget bookkeeping: the player's reroll has
+ * already happened locally and the message only appends a line to the GM's
+ * session recap. A dropped one costs a recap entry, not a player action, and a
+ * forged one writes a Markdown string with no HTML sink. GM→all broadcasts
+ * (`shop:open`, `downtime:sync`, the `crawl:state` nudge) stay on the raw
+ * socket: they are one-to-many, and the safe ones carry no payload the receiver
+ * trusts.
  */
 
 import { MODULE_ID } from "./module-id.mjs";
 
-const SOCKET = `module.${MODULE_ID}`;
+/** How long the GM gets to answer a query before the player is told it failed. */
+export const QUERY_TIMEOUT_MS = 20000;
 
-export const PING = "sde:relayPing";
-export const PONG = "sde:relayPong";
-
-/** How long a player waits for the active GM to answer before giving up. */
-export const HANDSHAKE_TIMEOUT_MS = 3000;
-
-/**
- * How long a SUCCESSFUL probe is trusted, so a burst of clicks costs one round
- * trip rather than one per click. Only successes are cached: a failure clears
- * the moment the GM reloads, and a player retrying after that reload must not
- * be told "still broken" by a stale negative.
- */
-export const HANDSHAKE_OK_TTL_MS = 60000;
+/** How long a GM→player cosmetic notice waits before being abandoned. */
+export const NOTICE_TIMEOUT_MS = 5000;
 
 // ─── Pure decision logic (unit-tested; no Foundry globals) ──────────────────
 
@@ -63,7 +88,7 @@ export const HANDSHAKE_OK_TTL_MS = 60000;
  *
  * @param {object}  facts
  * @param {boolean} facts.gmPresent  Is any GM connected at all?
- * @param {boolean} facts.answered   Did the active GM pong inside the timeout?
+ * @param {boolean} facts.answered   Did the active GM answer in time?
  * @param {?string} facts.gmVersion  Module version the GM reported.
  * @param {?string} facts.myVersion  Module version on this client.
  * @returns {{ok: boolean, reason: string, gmVersion?: string, myVersion?: string}}
@@ -73,7 +98,7 @@ export function evaluateHandshake({ gmPresent, answered, gmVersion, myVersion })
   if (!answered)  return { ok: false, reason: "timeout" };
   // A missing version from an otherwise-answering GM means a build that speaks
   // the handshake but didn't report — treat as healthy rather than inventing a
-  // mismatch, since it demonstrably has the listener.
+  // mismatch, since it demonstrably has the handler.
   if (gmVersion && myVersion && gmVersion !== myVersion) {
     return { ok: false, reason: "version", gmVersion, myVersion };
   }
@@ -81,7 +106,7 @@ export function evaluateHandshake({ gmPresent, answered, gmVersion, myVersion })
 }
 
 /**
- * The player-facing sentence for a failed handshake.
+ * The player-facing sentence for a failed relay.
  *
  * @param {object} result  An `evaluateHandshake` result.
  * @param {string} label   Plural noun phrase for the blocked action, e.g.
@@ -91,6 +116,10 @@ export function handshakeWarning(result, label = "that action") {
   if (result?.reason === "no-gm") {
     return `No GM is connected — ${label} can't be processed until one is online.`;
   }
+  if (result?.reason === "no-query-permission") {
+    return `Your user role can't send ${label} to the GM — ask them to re-enable `
+      + `the "Query User" permission for your role.`;
+  }
   if (result?.reason === "version") {
     return `Your GM's Foundry tab is running Shadowdark Enhancer ${result.gmVersion} `
       + `and yours is ${result.myVersion} — the out-of-date tab needs a reload `
@@ -99,212 +128,190 @@ export function handshakeWarning(result, label = "that action") {
   return `Your GM's Foundry tab needs a reload before ${label} can land.`;
 }
 
-// ─── Socket plumbing ────────────────────────────────────────────────────────
+/**
+ * May this requester act for this actor? Pure, so the decision is testable
+ * without a Foundry document in sight.
+ *
+ * It is only sound when the caller's `requesterIsGM` / `requesterOwnsActor`
+ * were computed from the AUTHENTICATED sender. `testUserPermission` returns
+ * OWNER for any GM (foundry.mjs:14794), so feeding it a user id read out of a
+ * payload is the bypass this module was audited for. `authorizeActorFor` below
+ * is the only supported way to compute them.
+ *
+ * @param {object} facts
+ * @param {boolean} facts.actorExists
+ * @param {boolean} facts.requesterIsGM        GMs may act for anyone.
+ * @param {boolean} facts.requesterOwnsActor
+ * @returns {{ok: boolean, error?: string}}
+ */
+export function authorizeActorRequest({ actorExists, requesterIsGM, requesterOwnsActor } = {}) {
+  if (!actorExists) return { ok: false, error: "That character no longer exists." };
+  if (requesterIsGM || requesterOwnsActor) return { ok: true };
+  return { ok: false, error: "You don't own that character." };
+}
 
-let _installed = false;
-
-/** pingId → resolver, for pongs still in flight on this client. */
-const _waiting = new Map();
-
-/** Cached success: which GM answered, and until when. */
-let _okGmId = null;
-let _okUntil = 0;
+// ─── GM side ────────────────────────────────────────────────────────────────
 
 /** This module's version as the client currently has it loaded. */
 export function moduleVersion() {
   return game.modules?.get(MODULE_ID)?.version ?? null;
 }
 
-function isActiveGM() {
+/**
+ * Resolve the actor a request names and decide whether this AUTHENTICATED user
+ * may act for it. The shared gate behind every relayed action.
+ *
+ * @param {string} actorId
+ * @param {User} user              From core's query context — never a payload.
+ * @param {object} [options]
+ * @param {?string} [options.type] Require this actor type (e.g. "Player").
+ * @returns {{ok: true, actor: Actor}|{ok: false, error: string}}
+ */
+export function authorizeActorFor(actorId, user, { type = null } = {}) {
+  const actor = game.actors.get(actorId);
+  const exists = !!actor && (!type || actor.type === type);
+  const verdict = authorizeActorRequest({
+    actorExists: exists,
+    requesterIsGM: !!user?.isGM,
+    requesterOwnsActor: !!(exists && user && actor.testUserPermission(user, "OWNER")),
+  });
+  return verdict.ok ? { ok: true, actor } : verdict;
+}
+
+/**
+ * Is this client the ONE GM that does relayed work?
+ *
+ * `getDesignatedUser` picks the highest role and breaks ties on user id
+ * (foundry.mjs:46503-46512), so every client computes the same answer from the
+ * same collection. That makes it safe to decide on the receiving side.
+ */
+export function isActiveGM() {
   return !!game.user?.isGM && game.users?.activeGM?.id === game.user?.id;
 }
 
-/** Drop the cached success. Exposed for tests and for GM-connection changes. */
-export function resetHandshakeCache() {
-  _okGmId = null;
-  _okUntil = 0;
-}
-
 /**
- * Install the ping responder and the pong router. Idempotent; call once per
- * client at ready, BEFORE the feature modules that relay through it.
- */
-export function installGMRelayHandshake() {
-  if (_installed) return;
-  _installed = true;
-
-  game.socket.on(SOCKET, (msg) => {
-    const action = msg?.action;
-
-    if (action === PING) {
-      // Only the client that would actually handle the relay answers.
-      if (!isActiveGM()) return;
-      // Routing fields only — nothing here is trusted beyond echoing it back.
-      if (typeof msg.pingId !== "string" || typeof msg.userId !== "string") return;
-      game.socket.emit(SOCKET, {
-        action: PONG,
-        pingId: msg.pingId,
-        userId: msg.userId,
-        version: moduleVersion(),
-        gmUserId: game.user.id,
-      });
-      return;
-    }
-
-    if (action === PONG) {
-      if (msg?.userId !== game.user?.id) return;
-      const resolve = _waiting.get(msg.pingId);
-      if (!resolve) return;
-      _waiting.delete(msg.pingId);
-      resolve({
-        answered: true,
-        gmVersion: typeof msg.version === "string" ? msg.version : null,
-      });
-    }
-  });
-
-  // A GM connecting or dropping can change who `activeGM` is; the cached
-  // success belongs to the previous one.
-  Hooks.on("userConnected", () => resetHandshakeCache());
-}
-
-/**
- * Probe the active GM. Resolves `{ok: true}` when a relay would be handled.
+ * The guard every feature's `CONFIG.queries` entry opens with.
  *
- * @param {object} [options]
- * @param {number} [options.timeoutMs]
- * @param {boolean} [options.force]  Skip the success cache.
- */
-export async function probeActiveGM({ timeoutMs = HANDSHAKE_TIMEOUT_MS, force = false } = {}) {
-  // The active GM is its own authority and never relays to itself; Foundry
-  // does not loop an emit back to its sender, so a self-probe would always
-  // time out. Defensive — callers branch on isGM before reaching here.
-  if (isActiveGM()) return { ok: true, reason: "self" };
-
-  const gm = game.users?.activeGM;
-  if (!gm) return evaluateHandshake({ gmPresent: false });
-
-  if (!force && _okGmId === gm.id && Date.now() < _okUntil) {
-    return { ok: true, reason: "cached" };
-  }
-
-  const pingId = foundry.utils.randomID();
-  const myVersion = moduleVersion();
-
-  const answer = await new Promise((resolve) => {
-    _waiting.set(pingId, resolve);
-    game.socket.emit(SOCKET, {
-      action: PING, pingId, userId: game.user.id, version: myVersion,
-    });
-    window.setTimeout(() => {
-      // delete() is true only if this ping is still outstanding, which makes
-      // the timeout a no-op once a pong has already resolved it.
-      if (_waiting.delete(pingId)) resolve({ answered: false, gmVersion: null });
-    }, timeoutMs);
-  });
-
-  const verdict = evaluateHandshake({
-    gmPresent: true,
-    answered: answer.answered,
-    gmVersion: answer.gmVersion,
-    myVersion,
-  });
-
-  if (verdict.ok) {
-    _okGmId = gm.id;
-    _okUntil = Date.now() + HANDSHAKE_OK_TTL_MS;
-  } else {
-    // An observed failure RETIRES any earlier success. Without this, a GM that
-    // was proven healthy and then went stale keeps a valid cache entry, and the
-    // next relay is waved straight through into exactly the silence this guard
-    // exists to catch — found in live verification 2026-07-28, where a forced
-    // probe timed out while relayToGM still emitted on the cached positive.
-    resetHandshakeCache();
-  }
-  return verdict;
-}
-
-/**
- * Relay a player action to the active GM, but only once the GM has proven it
- * is listening on a matching build. Warns the player and returns false when it
- * has not — so the caller can restore whatever UI it optimistically disabled.
+ * TWO checks, and the second one is not paranoia. It is tempting to reason that
+ * a query is point-to-point, so the sender addressing `game.users.activeGM`
+ * already guarantees exactly one client runs the handler. That holds only for a
+ * COOPERATIVE sender: `User#query` lets the caller pick any active recipient,
+ * so a player can skip `relayToGM` and send the same authenticated query to
+ * every connected GM in turn. Each of their clients has these handlers
+ * registered, and the in-memory locks (`_txQueue`, `_claimsInFlight`,
+ * `_pickupInFlight`) are per-client, so the action runs once per GM — the
+ * duplicate-execution bug the activeGM gate existed to prevent, walking back in
+ * through the new door. Live-proven on 14.365 against a non-designated GM.
  *
- * @param {object} payload             Action-prefixed message for the module channel.
- * @param {object} [options]
- * @param {string} [options.label]     Plural noun phrase, e.g. "loot claims".
- * @param {number} [options.timeoutMs] Override the handshake wait.
- * @returns {Promise<boolean>} Whether the message was emitted.
+ * So the receiving client decides for itself whether it is the one that should
+ * be working, exactly as the old socket handlers did.
+ *
+ * @param {User} user   From core's query context.
+ * @param {string} what Plural noun phrase for the refusal sentence.
+ * @returns {null|{ok: false, error: string}} null when the query may proceed.
  */
-export async function relayToGM(payload, { label = "that action", timeoutMs } = {}) {
-  const verdict = await probeActiveGM(timeoutMs === undefined ? {} : { timeoutMs });
-  if (!verdict.ok) {
-    const warning = handshakeWarning(verdict, label);
-    ui.notifications?.warn(warning);
-    console.warn(`${MODULE_ID} | relay blocked (${verdict.reason}) for ${payload?.action}: ${warning}`);
-    return false;
-  }
-  game.socket.emit(SOCKET, payload);
-  return true;
+export function refuseQuery(user, what = "these actions") {
+  if (!user?.id) return { ok: false, error: `Request refused: the sender could not be identified.` };
+  if (!isActiveGM()) return { ok: false, error: `${what} are resolved by the primary GM.` };
+  return null;
 }
 
-/** How long the GM gets to answer a query before the player is told it failed. */
-export const QUERY_TIMEOUT_MS = 20000;
+// ─── Player side ────────────────────────────────────────────────────────────
 
 /**
  * Relay a player action to the active GM over an AUTHENTICATED channel, and
  * bring the GM's verdict back.
  *
- * `relayToGM` above emits on the raw module socket, which carries no proof of
- * who sent it — fine for fire-and-forget bookkeeping, not for anything the GM
- * must authorize. A user query instead makes the SERVER stamp the sender: the
- * receiving client is handed a `context.user` built from the sender's socket
- * session, so a payload cannot claim to be somebody else. Handlers on the far
- * side derive identity from that and from nothing else.
- *
- * The handshake still runs first. A GM tab on an older build has no handler
- * registered for the query name, and core throws that away without ever calling
- * back — the player would simply hang until the timeout. Probing first turns
- * that into the same "your GM's tab needs a reload" sentence every other relay
- * gives, immediately.
+ * The raw module socket carries no proof of who sent a message — fine for
+ * fire-and-forget bookkeeping, not for anything the GM must authorize. A user
+ * query instead makes the SERVER stamp the sender: the receiving client is
+ * handed a `context.user` built from the sender's socket session, so a payload
+ * cannot claim to be somebody else. Handlers on the far side derive identity
+ * from that and from nothing else.
  *
  * @param {string} queryName          Registered `CONFIG.queries` key.
  * @param {object} data               JSON-serializable payload. Ids only.
  * @param {object} [options]
- * @param {string} [options.label]    Plural noun phrase, e.g. "downtime actions".
- * @param {number} [options.timeoutMs]      Override the handshake wait.
+ * @param {string} [options.label]    Plural noun phrase, e.g. "loot claims".
  * @param {number} [options.queryTimeoutMs] Override the GM's answer window.
  * @returns {Promise<object>} The GM's reply, or `{ok:false, error}` when the
  *   query could not be delivered. Never throws.
  */
 export async function queryActiveGM(queryName, data, {
-  label = "that action", timeoutMs, queryTimeoutMs = QUERY_TIMEOUT_MS,
+  label = "that action", queryTimeoutMs = QUERY_TIMEOUT_MS,
 } = {}) {
-  const verdict = await probeActiveGM(timeoutMs === undefined ? {} : { timeoutMs });
-  if (!verdict.ok) {
-    const warning = handshakeWarning(verdict, label);
-    console.warn(`${MODULE_ID} | query blocked (${verdict.reason}) for ${queryName}: ${warning}`);
-    return { ok: false, error: warning };
-  }
-
   const gm = game.users?.activeGM;
   if (!gm) return { ok: false, error: handshakeWarning({ reason: "no-gm" }, label) };
 
   // QUERY_USER is a Player-role permission by default, but a world can revoke
-  // it — and then nothing a player does here can reach the GM. Say so plainly
-  // rather than letting core's raw error surface.
-  if (!game.user.hasPermission("QUERY_USER")) {
-    return {
-      ok: false,
-      error: `Your user role can't send ${label} to the GM — ask them to re-enable `
-        + `the "Query User" permission for your role.`,
-    };
+  // it — and then nothing a player does here can reach the GM. Check before
+  // sending: `User#query` throws on it (foundry.mjs:59079), which would
+  // otherwise read as a stale GM tab and send the table off reloading the
+  // wrong thing.
+  if (!game.user?.hasPermission?.("QUERY_USER")) {
+    return { ok: false, error: handshakeWarning({ reason: "no-query-permission" }, label) };
   }
 
   try {
+    // The timeout is not optional — see the header note.
     const reply = await gm.query(queryName, data, { timeout: queryTimeoutMs });
     return reply ?? { ok: false, error: "The GM's tab returned nothing." };
   } catch (err) {
+    // Unregistered query name on a stale GM, a disconnect mid-flight, or the
+    // ack timeout. All of them mean the same thing to the player.
     console.warn(`${MODULE_ID} | query ${queryName} failed:`, err);
-    return { ok: false, error: `Your GM's tab didn't answer — ${label} couldn't be processed.` };
+    const verdict = evaluateHandshake({ gmPresent: true, answered: false, myVersion: moduleVersion() });
+    return { ok: false, error: handshakeWarning(verdict, label) };
   }
+}
+
+/**
+ * Push a GM-authored notice to every connected player, over the same
+ * authenticated channel and in the same direction-reversed shape.
+ *
+ * WHY NOT A BROADCAST. `game.socket.emit` reaches every client with no proof of
+ * origin, so a player could emit a "the GM says…" message and every other
+ * client would act on it. The obvious patch — stamp the sending GM's id into
+ * the payload and have receivers compare it to `game.users.activeGM` — is not a
+ * fix at all: the stamp is a payload field, so the attacker simply writes the
+ * GM's id into it. That is the identity-from-payload flaw this whole file
+ * exists to remove, and it must not be reintroduced in the other direction.
+ *
+ * A query carries a server-injected sender in both directions, so the receiver
+ * can check `user.isGM` and mean it.
+ *
+ * Fire-and-forget by design: a notice is cosmetic, and a player whose tab is
+ * mid-reload must not stall the GM's transaction. Failures are swallowed,
+ * including the synchronous throw from an unregistered query name on a stale
+ * client (foundry.mjs:59078).
+ *
+ * @param {string} queryName  Registered `CONFIG.queries` key.
+ * @param {object} data       JSON-serializable notice.
+ * @param {object} [options]
+ * @param {number} [options.timeoutMs]
+ */
+export function notifyPlayers(queryName, data, { timeoutMs = NOTICE_TIMEOUT_MS } = {}) {
+  if (!game.user?.isGM) return;
+  for (const user of game.users ?? []) {
+    if (user.isGM || !user.active) continue;
+    Promise.resolve()
+      .then(() => user.query(queryName, data, { timeout: timeoutMs }))
+      .catch(() => { /* cosmetic; a client that can't hear it loses a toast */ });
+  }
+}
+
+/**
+ * `queryActiveGM` plus the notification. Most call sites just want "did it
+ * land, and tell the player if not"; this is that.
+ *
+ * @returns {Promise<boolean>} Whether the GM accepted and performed the action.
+ */
+export async function relayToGM(queryName, data, options = {}) {
+  const reply = await queryActiveGM(queryName, data, options);
+  if (!reply?.ok) {
+    if (reply?.error) ui.notifications?.warn(reply.error);
+    console.warn(`${MODULE_ID} | relay refused for ${data?.action ?? queryName}: ${reply?.error ?? "no reason given"}`);
+    return false;
+  }
+  return true;
 }

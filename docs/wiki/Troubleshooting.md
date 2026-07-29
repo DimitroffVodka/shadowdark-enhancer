@@ -60,30 +60,40 @@ monster creation, XP awards, loot generation, art application.
 
 ### A player action does nothing and no error appears
 
-Most player actions are **relayed to the active GM over the socket**: loot
-claims, merchant transactions, downtime picks and rolls, item drops and pickups,
-movement rollback, character creation without create permission.
+Most player actions are **handled by the active GM's client**: loot claims,
+merchant transactions, downtime picks and rolls, item drops and pickups, luck
+token gifts, movement rollback, character creation without create permission.
 
 **If no GM is connected, nothing processes the request.** Check that a GM is
-online.
+online. The player is told so:
+
+> No GM is connected, loot claims can't be processed until one is online.
 
 **If a GM is online but has had the tab open since before the module was
-updated,** that tab is still running the old code and has no listener for the
-newer actions. The player's click lands in a client that ignores it — nothing
-throws, nothing logs, the button simply does nothing.
-
-The module now checks for this before sending. A player's action pings the
-active GM first and compares module versions; a stale tab, a mismatched version,
-or no GM at all, and the player gets a warning instead of silence:
+updated,** that tab is still running the old code and does not recognise the
+newer actions. The request cannot be handled. Rather than leaving the button
+looking broken, the player gets a warning after a short pause:
 
 > Your GM's Foundry tab needs a reload before downtime actions can land.
 
-**The fix is always the same: have the GM reload their Foundry tab** (`F5`). The
-check covers downtime actions, shop transactions, loot claims, and item drops
-and pickups. It deliberately does *not* cover Luck-spend logging, which is
-bookkeeping for the [Session Recap](Session-Recap.md) rather than a player
-action — the reroll itself has already happened on the player's own client, so
-at worst a stale GM costs one line in the recap.
+**The fix is always the same: have the GM reload their Foundry tab** (`F5`).
+
+**If every player action is refused and no GM tab is stale,** check the
+**Query User** permission for the Player role in Foundry's *Configure
+Permissions*. It is enabled by default, and player actions cannot reach the GM
+without it. A player whose role lacks it sees:
+
+> Your user role can't send shop transactions to the GM, ask them to re-enable
+> the "Query User" permission for your role.
+
+A refused action explains itself on the player's own screen, so a message like
+*You don't own that character* means the GM's client considered the request and
+turned it down, not that anything is broken.
+
+None of this covers Luck-spend logging, which is bookkeeping for the
+[Session Recap](Session-Recap.md) rather than a player action. The reroll itself
+has already happened on the player's own client, so at worst a stale GM costs
+one line in the recap.
 
 ### A player can't pick portrait art
 
@@ -99,10 +109,14 @@ curated gallery (which browses on the GM's client). See
 Several sweeps and handlers are deliberately restricted to the **single active
 GM** (`game.users.activeGM`), so two GMs online don't both write:
 
-- loot claims and merchant transactions
 - session recap recording
 - the monster backfill and the spell↔class relink sweep
-- movement rollback relays
+- hook reactions that write world state
+
+Player actions are addressed to the active GM directly, so exactly one client
+ever runs them. Luck token gifts used to be the exception and could be processed
+by two GMs at once, which in pulp mode charged the giver twice. That is now
+fixed.
 
 If you see duplicated entries or double-processed transactions in a multi-GM
 world, that is a bug worth

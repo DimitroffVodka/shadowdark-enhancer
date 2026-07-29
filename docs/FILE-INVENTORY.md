@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-704 tracked files · ~90,700 lines of code/markup across scripts+templates+styles+test.
+706 tracked files · ~91,500 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 677 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 670 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 207 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 
@@ -63,19 +63,19 @@
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
-| `gm-relay.mjs` | 310 | Liveness + module-version handshake run before any player → active-GM relay, so a player whose GM tab is running an older build is warned to have it reloaded instead of clicking a button that silently does nothing. Offers both transports: a fire-and-forget socket emit, and `queryActiveGM` for actions the GM must authorize, which rides Foundry's user-query channel so the sender's identity comes from the server rather than the payload. |
+| `gm-relay.mjs` | 317 | The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1079 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1103 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 379 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 138 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `initiative-manager.mjs` | 128 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
-| `movement-tracker.mjs` | 692 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
+| `movement-tracker.mjs` | 713 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 509 | Per-combatant hover action HUD. |
 
@@ -121,7 +121,7 @@
 |---|---:|---|
 | `loot-generator-app.mjs` | 265 | Roll a loot table, work a running batch, whisper claimable cards. |
 | `loot-generator.mjs` | 234 | RollTable → structured loot batch (documents, coins, flavor). |
-| `loot-delivery.mjs` | 425 | Shared claimable chat card; first-claim-wins, GM-authoritative over socket. |
+| `loot-delivery.mjs` | 450 | Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query. |
 | `loot-drops.mjs` | 179 | Auto-drop loot on NPC defeat at combat end. |
 | `loot-setup-app.mjs` | 237 | Browsable Loot & Treasure library; rows unlock from the GM's own PDF. |
 | `loot-value.mjs` | 68 | gp value → Shadowdark XP quality tiers. |
@@ -132,7 +132,7 @@
 | `loot-pack.mjs` | 161 | Classify/fabricate treasure entries + world "Loot" pack ops. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
-| `item-drops.mjs` | 676 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
+| `item-drops.mjs` | 690 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |
 
 ### 3.8 `scripts/magic-forge/`
 
@@ -146,7 +146,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `merchant-shop.mjs` | 2634 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
+| `merchant-shop.mjs` | 2689 | Two-mode shop system (compendium global or actor NPC inventory); GM opens for all players. |
 | `merchant-defaults.mjs` | 183 | The two shipped merchant configs (Base, Western Reaches). |
 
 ### 3.10 `scripts/party-xp/`
@@ -296,14 +296,14 @@
 |---|---:|---|
 | `downtime-skeleton.mjs` | 196 | Shipped downtime metadata: 25 slots across four activities with names, compressed labels, DCs, paid flags, keyword matchers and renown/XP deltas. Carries no rules text. |
 | `downtime-parser.mjs` | 291 | Parses a pasted downtime page into per-slot outcome text; segment-scoped DC + keyword matching with a rescue pass for column-interleaved PDF copies. Unmatched lines are reported back, never guessed at. |
-| `downtime-core.mjs` | 206 | Pure downtime rules math: the DC step-down ladder, per-attempt cost by source, the martial-training hit-die tier and caster-list gates, and the stored unlock record shape. |
+| `downtime-core.mjs` | 208 | Pure downtime rules math: the DC step-down ladder, per-attempt cost by source, the martial-training hit-die tier and caster-list gates, and the stored unlock record shape. |
 | `downtime-effects-core.mjs` | 262 | Pure decision layer for downtime outcomes: the slot-to-plan table (auto / choice / narrative), the per-weapon martial-training limit counters and damage-die ladder, the one-shot extortion math, and the XP level-up threshold. Ships item names only, no rules text. |
 | `downtime-effects.mjs` | 779 | Applies a successful downtime outcome for real — renown, XP, weapon-training Active Effects, damage-die steps, fabricated scrolls/wands/potions, spell trades, advantage reminders and the merchant extortion flag. Enumerates the concrete choices first; GM-side execution only. |
 | `downtime-log-core.mjs` | 199 | Pure downtime-log formatting: the recap headline row, the escaped journal `<li>`, and the newest-first grouping that splices a row under its `data-sde-day` heading. Shared by the recap window, the Discord export and the journal so all three phrase an attempt identically. |
 | `downtime-log.mjs` | 183 | `recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged "Downtime Log" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only. |
 | `downtime-warnings.mjs` | 87 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
 | `downtime-app.mjs` | 1374 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
-| `downtime-session.mjs` | 980 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
+| `downtime-session.mjs` | 984 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 
 Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo.
 <!-- inventory:scripts:end -->
