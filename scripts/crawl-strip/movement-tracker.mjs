@@ -351,9 +351,10 @@ export const MovementTracker = {
     });
 
     // Players ask the GM to perform a rollback (turn-start positions are tracked
-    // on the GM client). A query is point-to-point, so exactly one GM serves it:
-    // two connected GMs on the old broadcast would both teleport the token,
-    // both refund the budget flag, and both post the notification.
+    // on the GM client). `refuseQuery` keeps the activeGM gate: two GMs serving
+    // one request would both teleport the token, both refund the budget flag and
+    // both post the notification, and a query does not prevent that on its own —
+    // the SENDER picks the recipient and can pick every GM.
     CONFIG.queries[MOVEMENT_QUERY] = (data, { user } = {}) => MovementTracker.handleQuery(data, user);
   },
 

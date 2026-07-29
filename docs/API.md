@@ -503,6 +503,17 @@ v13+), where the server stamps the sender from the authenticated socket before
 delivering. The handler receives that `User` document and requires OWNER on the
 actor being acted for; GMs may act for anyone.
 
+**3. The receiving client decides whether it is the one that should act.** A
+query is point-to-point, but the *sender* chooses the recipient, so "the player
+addresses `game.users.activeGM`" is a property of a cooperative client and not a
+guarantee. A player can send the same authenticated query to every connected GM,
+and since each client has the handlers registered and its own in-memory locks,
+the action would run once per GM. Every query entry point therefore opens with
+`refuseQuery`, which requires this client to *be* `game.users.activeGM` — the
+same gate the old socket handlers had, kept for the same reason. In a world with
+a second GM (an assistant, or an always-on watchdog client) dropping it would
+double every transaction.
+
 Rule 2 is load-bearing rather than belt-and-braces. `game.socket.emit` carries
 no proof of who sent a message, and `Document#testUserPermission` returns OWNER
 unconditionally for any GM — so while identity came out of the payload, a client

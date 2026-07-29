@@ -27,6 +27,7 @@ import {
   authorizeActorRequest,
   evaluateHandshake,
   handshakeWarning,
+  isActiveGM,
   queryActiveGM,
   refuseQuery,
   relayToGM,
@@ -137,6 +138,7 @@ test("handshakeWarning: a revoked QUERY_USER permission names the permission", (
 
 const PLAYER = { id: "player1", isGM: false, name: "Vella", hasPermission: () => true };
 const GM = { id: "gm1", isGM: true, name: "Gamemaster", hasPermission: () => true };
+const BRIDGE_GM = { id: "gm2", isGM: true, name: "Bridge", hasPermission: () => true };
 
 const warnings = [];   // ui.notifications.warn strings
 const sent = [];       // { name, data, opts } seen by the stubbed User#query
@@ -181,7 +183,7 @@ test("refuseQuery: a client that isn't a GM refuses rather than half-running", (
   actAs(PLAYER);
   const out = refuseQuery(PLAYER, "Loot claims");
   assert.equal(out.ok, false);
-  assert.match(out.error, /resolved by the GM/);
+  assert.match(out.error, /primary GM/);
 });
 
 test("refuseQuery: no authenticated sender means no handler runs", () => {
@@ -191,6 +193,36 @@ test("refuseQuery: no authenticated sender means no handler runs", () => {
   assert.equal(refuseQuery(undefined, "Loot claims").ok, false);
   assert.equal(refuseQuery({}, "Loot claims").ok, false);
   assert.equal(refuseQuery(PLAYER, "Loot claims"), null, "a real sender on a GM client proceeds");
+});
+
+test("refuseQuery: a GM that is NOT the designated one refuses", () => {
+  // THE MULTI-GM HOLE. `User#query` lets the sender pick any active recipient,
+  // so "the sender addresses activeGM" guarantees nothing — a player can send
+  // the same authenticated query to every connected GM and have it run once
+  // per GM. In this world that is the human GM plus the always-on Bridge
+  // client, which is how `luck:give` charged the giver twice before.
+  actAs(BRIDGE_GM, GM);          // I am a GM; the designated one is somebody else
+  assert.equal(globalThis.game.user.isGM, true, "precondition: a real GM client");
+
+  const out = refuseQuery(PLAYER, "Luck token gifts");
+  assert.equal(out.ok, false, "being a GM is not enough — it must be THE GM");
+  assert.match(out.error, /primary GM/);
+});
+
+test("refuseQuery: the designated GM proceeds", () => {
+  actAs(GM, GM);
+  assert.equal(refuseQuery(PLAYER, "Luck token gifts"), null);
+});
+
+test("isActiveGM: only the designated GM says yes", () => {
+  actAs(GM, GM);
+  assert.equal(isActiveGM(), true);
+  actAs(BRIDGE_GM, GM);
+  assert.equal(isActiveGM(), false, "a second connected GM must not self-elect");
+  actAs(PLAYER, GM);
+  assert.equal(isActiveGM(), false);
+  actAs(GM, null);
+  assert.equal(isActiveGM(), false, "no designated GM at all");
 });
 
 // ─── The player side ────────────────────────────────────────────────────────

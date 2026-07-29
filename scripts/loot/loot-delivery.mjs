@@ -52,12 +52,11 @@ export const LootDelivery = {
   /**
    * Query entry point — the ONLY way a player reaches a claim handler.
    *
-   * A query is point-to-point: the sender addresses `game.users.activeGM`, so
-   * exactly one client runs this. The old broadcast needed an activeGM gate
-   * because every connected GM received it (a human GM plus the always-on
-   * "Bridge" client would each create the claimed item); a query cannot
-   * double-fire that way. The synchronous `_claimsInFlight` lock still guards
-   * two players racing the same row.
+   * `refuseQuery` keeps the activeGM gate the old broadcast needed. A query is
+   * point-to-point, but the SENDER picks the recipient, so a player can address
+   * every connected GM in turn — a human GM plus the always-on "Bridge" client
+   * would each create the claimed item, because `_claimsInFlight` is per-client.
+   * That lock still guards two players racing the same row on one client.
    *
    * @param {object} data  Action-discriminated payload. Ids only.
    * @param {User}   user  The AUTHENTICATED claimer, from core's query context.

@@ -87,7 +87,8 @@ export const CrawlStrip = {
     //     players rather than merely griefing;
     //   * the handler checked `isGM`, not `activeGM`, so in this world (always-
     //     on "Bridge" GM) BOTH GM clients ran it and pulp mode debited the
-    //     giver twice. A query is point-to-point, which fixes that by shape.
+    //     giver twice. `refuseQuery` keeps that gate: a query is point-to-point
+    //     but the SENDER chooses the recipient, so it can choose both GMs.
     CONFIG.queries[LUCK_QUERY] = (data, { user } = {}) => CrawlStrip.handleLuckQuery(data, user);
   },
 

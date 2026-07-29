@@ -92,10 +92,12 @@ export const MerchantShop = {
   /**
    * Query entry point — the ONLY way a player reaches a transaction handler.
    *
-   * A query is point-to-point: the sender addresses `game.users.activeGM`, so
-   * exactly one client runs this and the old `activeGM` gate (which stopped a
-   * second GM double-processing a broadcast) is no longer needed. Transactions
-   * still queue, so two players landing together can't race the stock check.
+   * `refuseQuery` keeps the activeGM gate the old broadcast needed. A query is
+   * point-to-point, but the SENDER picks the recipient, so a player can address
+   * every connected GM in turn and have the transaction run once per GM — the
+   * `_enqueueTx` queue is per-client and would not stop it. Transactions still
+   * queue on top of that, so two players landing together can't race the stock
+   * check.
    *
    * @param {object} data  Action-discriminated payload. Ids and quantities only.
    * @param {User}   user  The AUTHENTICATED sender, from core's query context.

@@ -41,11 +41,12 @@
  *      second GM (the Bridge watchdog), so a handler gated only on `isGM`
  *      double-fires in NORMAL use — that is exactly how spell-mishap shipped
  *      broken (.planning/STATUS.md:322). Socket handlers and hook reactions
- *      therefore check `isActiveGM()`. Queries need no such gate: they are
- *      point-to-point, addressed to `game.users.activeGM` by the sender, so
- *      exactly one client ever runs them. Direct GM button clicks are NOT
- *      gated: those are one physical click by whichever GM made it, so a second
- *      GM's Lock button still has to work (crawl-state.mjs:36-45).
+ *      therefore check `isActiveGM()`, and so does every query entry point —
+ *      being addressed to a client is not the same as being the client that
+ *      should act, because the SENDER chooses the recipient and can choose all
+ *      of them. Direct GM button clicks are NOT gated: those are one physical
+ *      click by whichever GM made it, so a second GM's Lock button still has to
+ *      work (crawl-state.mjs:36-45).
  *
  * State sync copies CrawlState: the world setting is the single source of
  * truth, the socket carries a payload-free "go re-read" nudge, and listeners
@@ -71,6 +72,7 @@ import {
   sanitizeFreeTextName,
 } from "./downtime-core.mjs";
 import { effectPlanFor, applyDowntimeEffect } from "./downtime-effects.mjs";
+import { refuseQuery } from "../shared/gm-relay.mjs";
 
 const SETTING_KEY = "downtimeSession";
 const CONTENT_KEY = "downtimeContent";
@@ -83,8 +85,9 @@ export const ROLL_FLAG = "downtimeRoll";
 
 /**
  * The one authenticated player→GM channel, namespaced per Foundry's convention
- * (art-gallery.mjs:22 does the same). Registered on every client at init; only
- * the client a query is addressed to ever runs the handler.
+ * (art-gallery.mjs:22 does the same). Registered on every client at init; the
+ * client a query is addressed to runs the handler, and `refuseQuery` makes it
+ * confirm it is the active GM before acting on one.
  */
 export const DOWNTIME_QUERY = `${MODULE_ID}.downtime`;
 
@@ -102,12 +105,11 @@ export const ACTIONS = {
 };
 
 /**
- * Active-GM check. Gates AUTOMATIC reactions only — see the header note and
+ * Active-GM check. Re-exported from the shared relay so there is exactly one
+ * definition of "the GM that does the work" — see the header note and
  * crawl-state.mjs:36-45 for why direct clicks are deliberately NOT gated.
  */
-export function isActiveGM() {
-  return !!game.user?.isGM && game.users?.activeGM?.id === game.user?.id;
-}
+export { isActiveGM } from "../shared/gm-relay.mjs";
 
 export function defaultSession() {
   return { active: false, source: null, phase: "select", picks: {}, results: {}, consumed: [], announcementId: null };
@@ -394,11 +396,13 @@ export const DowntimeSession = {
   /**
    * Query entry point — the ONLY way a player reaches the mutating handlers.
    *
-   * Runs on whichever client the sender addressed (always `game.users.activeGM`
-   * from the player side), so no isActiveGM gate is needed or wanted: a query
-   * is point-to-point and cannot double-fire across two connected GMs. Writes
-   * still go through `_enqueue` so two players landing together can't clobber
-   * one another's commit.
+   * Runs on whichever client the sender ADDRESSED, which is not necessarily the
+   * one that should be working: `User#query` lets the caller pick any active
+   * recipient, so a player can send the same query to every connected GM and
+   * have it run once per GM. `refuseQuery` therefore makes this client check
+   * that it is the active GM before doing anything (gm-relay.mjs). Writes still
+   * go through `_enqueue` so two players landing together can't clobber one
+   * another's commit.
    *
    * @param {object} data  Action-discriminated payload. Carries ids only.
    * @param {User}   user  The AUTHENTICATED sender, from core's query context.
@@ -406,8 +410,8 @@ export const DowntimeSession = {
    *   sender's client shows `error` itself, so no rejection socket is needed.
    */
   async handleQuery(data, user) {
-    if (!game.user?.isGM) return { ok: false, error: "Downtime actions are resolved by the GM." };
-    if (!user?.id) return { ok: false, error: "Downtime action refused: the sender could not be identified." };
+    const refusal = refuseQuery(user, "Downtime actions");
+    if (refusal) return refusal;
     const action = data?.action;
     if (action === ACTIONS.PICK)   return this._enqueue(() => this._handlePick(data, user));
     if (action === ACTIONS.ROLLED) return this._enqueue(() => this._handleRolled(data, user));

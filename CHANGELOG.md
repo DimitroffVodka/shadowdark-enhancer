@@ -57,7 +57,13 @@
 - **Luck-token gifts were processed twice in a two-GM world.** The handler
   checked "am I a GM" rather than "am I the GM doing the work", so a world with a
   second connected GM ran it on both clients. In pulp mode the giver was charged
-  twice for one gift. Gifts now go to one client by construction.
+  twice for one gift. Every player action now confirms this client is the primary
+  GM before acting — which matters more than it first appears, because the sender
+  of a query chooses who receives it. A player could otherwise send the same
+  request to each connected GM in turn and have it performed once per GM: two
+  luck tokens debited, two claimed items created, two dropped tokens, two
+  rollbacks. Worlds with an assistant GM or an always-on watchdog client were
+  exposed to that on every relayed action, not just luck.
 - **A player could settle a downtime attempt with somebody else's dice, or with
   their own dice from an hour ago.** The GM read the roll total off whichever
   chat message the incoming payload named, checking only that the same user had

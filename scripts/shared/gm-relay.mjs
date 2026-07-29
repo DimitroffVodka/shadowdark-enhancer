@@ -179,21 +179,40 @@ export function authorizeActorFor(actorId, user, { type = null } = {}) {
 }
 
 /**
+ * Is this client the ONE GM that does relayed work?
+ *
+ * `getDesignatedUser` picks the highest role and breaks ties on user id
+ * (foundry.mjs:46503-46512), so every client computes the same answer from the
+ * same collection. That makes it safe to decide on the receiving side.
+ */
+export function isActiveGM() {
+  return !!game.user?.isGM && game.users?.activeGM?.id === game.user?.id;
+}
+
+/**
  * The guard every feature's `CONFIG.queries` entry opens with.
  *
- * A query is point-to-point — the sender addresses `game.users.activeGM`, so
- * exactly one client runs the handler and no activeGM gate is needed or wanted
- * (see the downtime trust model, downtime-session.mjs). What still has to be
- * checked is that this client can actually do GM work, and that core gave us a
- * sender at all.
+ * TWO checks, and the second one is not paranoia. It is tempting to reason that
+ * a query is point-to-point, so the sender addressing `game.users.activeGM`
+ * already guarantees exactly one client runs the handler. That holds only for a
+ * COOPERATIVE sender: `User#query` lets the caller pick any active recipient,
+ * so a player can skip `relayToGM` and send the same authenticated query to
+ * every connected GM in turn. Each of their clients has these handlers
+ * registered, and the in-memory locks (`_txQueue`, `_claimsInFlight`,
+ * `_pickupInFlight`) are per-client, so the action runs once per GM — the
+ * duplicate-execution bug the activeGM gate existed to prevent, walking back in
+ * through the new door. Live-proven on 14.365 against a non-designated GM.
+ *
+ * So the receiving client decides for itself whether it is the one that should
+ * be working, exactly as the old socket handlers did.
  *
  * @param {User} user   From core's query context.
  * @param {string} what Plural noun phrase for the refusal sentence.
  * @returns {null|{ok: false, error: string}} null when the query may proceed.
  */
 export function refuseQuery(user, what = "these actions") {
-  if (!game.user?.isGM) return { ok: false, error: `${what} are resolved by the GM.` };
   if (!user?.id) return { ok: false, error: `Request refused: the sender could not be identified.` };
+  if (!isActiveGM()) return { ok: false, error: `${what} are resolved by the primary GM.` };
   return null;
 }
 

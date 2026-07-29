@@ -273,3 +273,105 @@ test("the item-drop query refuses a sender core could not identify", async () =>
   assert.equal(created.actors.length, 0);
   assert.equal(refuseQuery(undefined, "Item drops").ok, false);
 });
+
+
+// ─── Multi-GM: the sender picks the recipient, so the recipient must decide ──
+
+/**
+ * Stand up a client that IS a GM but is NOT the designated active GM — the
+ * always-on "Bridge" watchdog this world runs alongside the human GM.
+ */
+async function nonActiveGmHarness() {
+  const BRIDGE = { id: "gm2", isGM: true, active: true, name: "Bridge" };
+  const users = [PLAYER, GM, BRIDGE];
+  const created = { actors: [], tokens: [] };
+  const scene = { id: "scene1", createEmbeddedDocuments: async (_t, d) => { created.tokens.push(...d); return d; } };
+  const mine = makeActor({ id: "pc1", name: "Vella's PC", ownerId: PLAYER.id });
+  const other = makeActor({ id: "pc2", name: "Tobin's PC", ownerId: PLAYER.id });
+
+  globalThis.foundry = {
+    applications: { handlebars: { renderTemplate: async () => "" },
+      api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (B) => class extends B {}, DialogV2: {} },
+      apps: {}, ux: {} },
+    utils: { deepClone: (o) => structuredClone(o) },
+    canvas: { placeables: { tokens: { TokenRuler: class {} } } },
+  };
+  globalThis.CONFIG = { queries: {} };
+  globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { OWNER }, TOKEN_DISPOSITIONS: { NEUTRAL: 0 } };
+  globalThis.Hooks = { on: () => 1, once: () => 1, callAll: () => {}, call: () => true, events: {} };
+  globalThis.ui = { notifications: { warn: () => {}, info: () => {}, error: () => {} } };
+  globalThis.canvas = { scene };
+  globalThis.Actor = { create: async (d) => { const a = { id: `x${created.actors.length}`, ...d }; created.actors.push(a); return a; } };
+  globalThis.game = {
+    user: BRIDGE,                       // ← a GM, but not the designated one
+    userId: BRIDGE.id,
+    users: Object.assign([...users], { activeGM: GM, get: (id) => users.find((u) => u.id === id) }),
+    actors: { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) },
+    scenes: { get: () => scene },
+    settings: { get: () => true, set: async () => {} },
+  };
+
+  const { CrawlStrip } = await import("../scripts/crawl-strip/crawl-strip.mjs");
+  const { ItemDrops } = await import("../scripts/loot/item-drops.mjs");
+  return { CrawlStrip, ItemDrops, BRIDGE, created, mine, other };
+}
+
+test("EXPLOIT: a second GM addressed directly must not run the action a second time", async () => {
+  // `User#query` lets the SENDER choose the recipient, so "the player addresses
+  // game.users.activeGM" guarantees nothing. A player can skip relayToGM and
+  // send the same authenticated query to every connected GM. Each client has
+  // the handlers registered and its own in-memory locks, so without this gate
+  // the action runs once per GM — which is exactly how luck:give charged the
+  // giver twice before the query migration, reintroduced through the new door.
+  const { CrawlStrip, mine, other } = await nonActiveGmHarness();
+
+  let gave = 0;
+  const real = CrawlStrip._giveLuckToken;
+  CrawlStrip._giveLuckToken = async () => { gave += 1; };
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: mine.id, receiverId: other.id }, PLAYER,
+    );
+    assert.equal(reply.ok, false, "a non-designated GM must refuse");
+    assert.match(reply.error, /primary GM/);
+    assert.equal(gave, 0, "and must not perform the transfer");
+  } finally {
+    CrawlStrip._giveLuckToken = real;
+  }
+});
+
+test("the designated GM still serves the very same request", async () => {
+  // The gate must reject the duplicate, not the feature.
+  const { CrawlStrip, mine, other } = await nonActiveGmHarness();
+  globalThis.game.user = GM;                       // become the designated GM
+  globalThis.game.users.activeGM = GM;
+
+  let gave = 0;
+  const real = CrawlStrip._giveLuckToken;
+  CrawlStrip._giveLuckToken = async () => { gave += 1; };
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: mine.id, receiverId: other.id }, PLAYER,
+    );
+    assert.equal(reply.ok, true);
+    assert.equal(gave, 1, "exactly once, on exactly one client");
+  } finally {
+    CrawlStrip._giveLuckToken = real;
+  }
+});
+
+test("the gate is shared, so every feature's query entry point inherits it", async () => {
+  // Same defect, different feature: item drops would have created a second
+  // world Actor and Scene Token on the second GM.
+  const { ItemDrops, created } = await nonActiveGmHarness();
+  const reply = await ItemDrops.handleQuery({
+    action: "itemDrop:create", sourceActorId: null, sourceItemId: null, dropQty: 1,
+    itemData: { name: "Ruby", type: "Gem", img: "icons/svg/gem.svg", system: { quantity: 1 } },
+    x: 10, y: 10, sceneId: "scene1",
+  }, GM);
+
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /primary GM/);
+  assert.equal(created.actors.length, 0, "no duplicate world Actor");
+  assert.equal(created.tokens.length, 0, "no duplicate Scene Token");
+});
