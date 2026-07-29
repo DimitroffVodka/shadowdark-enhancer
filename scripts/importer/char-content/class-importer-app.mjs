@@ -627,7 +627,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       ui.notifications?.warn("No source PDF / writeup page for this class — set the source above, or add the PDF in the hub's Source PDFs manager.");
       return;
     }
-    const { extractPdfText, parsePageRange } = await import("../pdf-text-extract.mjs");
+    const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("../pdf-text-extract.mjs");
     // Grab the FULL overlay page range, not just the first — many writeups spill
     // an extra table onto the next page (e.g. the Wyrdling Corruption d10 table on
     // p73). Apply the same printed→PDF offset the first page got.
@@ -636,7 +636,11 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const pdfPages = (printed.length ? printed : [Number(page)]).map((n) => n + offset);
     let writeupText;
     try {
-      writeupText = (await extractPdfText(target.file, { pages: pdfPages, columns: "auto" })).text;
+      const writeup = await extractPdfText(target.file, { pages: pdfPages, columns: "auto" });
+      // Only this grab detects a gutter — the titles appendix and skills pages
+      // below pin "layout"/"1", which never split and so never warn.
+      notifyGutterWarnings(writeup);
+      writeupText = writeup.text;
     } catch (err) {
       console.error("Shadowdark Enhancer | class PDF grab failed", err);
       ui.notifications?.error("Couldn't read text from that PDF page — see the console.");

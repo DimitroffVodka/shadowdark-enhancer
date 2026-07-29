@@ -13,13 +13,13 @@
  *
  * The hard case is two-column pages (every Cursed Scroll spell list, etc.).
  * Naive top-to-bottom-by-y ordering interleaves the columns into gibberish.
- * We detect the gutter via a density valley in the item-x-center histogram
- * (robust to the occasional word that bridges the gutter and would collapse a
- * simpler projection-gap test), split into columns, and read each column fully
- * before the next. Verified live against CS1 two-column spell pages.
+ * We detect the gutter as the emptiest vertical slice of the page's ink
+ * (see detectGutter), split into columns, and read each column fully before
+ * the next. Verified live against CS1 two-column spell pages.
  *
  * Exports:
- *   extractPdfText(filePath, opts) — { text, pages: [{page, gutter, lines, empty}] }
+ *   extractPdfText(filePath, opts) — { text, warnings,
+ *                                      pages: [{page, gutter, lines, warnings, empty}] }
  *   parsePageRange(spec, max)      — "12", "12-14", "12,16,20-22" → [numbers]
  */
 
@@ -52,73 +52,249 @@ async function _openDoc(filePath) {
   }
 }
 
+/** Sampled x-positions per page used by the ink-coverage profile. */
+const COVER_SAMPLES = 200;
+
+/** Ink coverage at or below this share of the busiest slice reads as gutter. */
+const GUTTER_LEVEL = 0.20;
+
+/**
+ * Ink-coverage profile: how many item BODIES cross each of N sampled x-slices.
+ *
+ * An item covers every slice its [x, x+width] box overlaps, so a slice's count
+ * is "how many lines of text run through this x". Unlike an x-CENTER
+ * histogram, a column's ragged right edge stays covered here — the long lines
+ * above and below the short one still run through it.
+ *
+ * @param {Array} its  text items (already filtered to non-empty str)
+ * @param {number} W   page width in PDF units
+ * @param {number} [n] slice count
+ * @returns {{cover:number[], step:number}}
+ */
+function _coverProfile(its, W, n = COVER_SAMPLES) {
+  const step = W / n;
+  const cover = new Array(n).fill(0);
+  for (const it of its) {
+    const x1 = it.transform[4];
+    const a = Math.max(0, Math.min(n - 1, Math.floor(x1 / step)));
+    const b = Math.max(a, Math.min(n - 1, Math.floor((x1 + (it.width || 0)) / step)));
+    for (let s = a; s <= b; s++) cover[s]++;
+  }
+  return { cover, step };
+}
+
 /**
  * Detect a two-column gutter x-position, or null for single column.
  *
- * Bins item x-centers across the page width and looks for a low-density valley
- * in the central band with a populated cluster on either side. A single word
- * straddling the gutter drops one center into the valley bin — not enough to
- * fill it — so this survives the bridging that defeats a projection-gap test.
+ * Reads the INK-COVERAGE profile (above), not an x-center histogram, and takes
+ * the widest lightly-inked run in the central 30–70% band.
+ *
+ * Centers were the original signal and they are ambiguous in a way that fails
+ * silently. A column's ragged right edge empties the last few center bins
+ * exactly the way a gutter does, so on a page whose left column is short or
+ * ragged the widest empty center run lands INSIDE that column and steals its
+ * trailing words. CS6 p26 is the reproduction: cut at x=172 (the left column's
+ * ragged edge) against a true gutter at ~x=205, moving one trailing word into
+ * a right-column bullet — a 25/25 zero-warning parse that stored wrong text.
+ * Ink coverage has no such ambiguity: only the gutter is (nearly) ink-free.
+ *
+ * Checked over all seven Shadowdark books (642 text pages) against an
+ * independent gap-voting detector: this agrees on 343 pages where the centre
+ * histogram agreed on 210, and splits a page that detector calls single-column
+ * 249 times against 364. Those totals flatter neither side — the check itself
+ * misreads multi-column TABLES (it votes for a table's own column gap) and
+ * two-column spreads whose columns sit on independent baselines. The pages the
+ * two still disagree on are nearly all tables, where no split is the right
+ * answer and the callers pin "1" or "layout" anyway.
  *
  * @param {Array} its   text items (already filtered to non-empty str)
  * @param {number} W    page width in PDF units
- * @param {"auto"|"1"|"2"|"2mid"} mode
+ * @param {"auto"|"1"|"2"|"2mid"|"layout"} mode
  * @returns {number|null} gutter x, or null
  */
 function detectGutter(its, W, mode = "auto") {
   if (mode === "1" || mode === "layout") return null;
-  // "2mid": two columns split at the page MIDLINE, detection skipped entirely.
-  // For an opt-in pin only — a page whose valley detection is known to land off
-  // the true column boundary. The CS6/WR downtime spread is the case that
-  // forced it: p26's widest low-density run sits at x=172 (the ragged right
-  // edge of the left column's prose) while the real boundary is the midline at
-  // 210, so a left-column word centred at 183 was assigned to the right column
-  // and spliced into the middle of that column's bullet list.
+  // "2mid": split at the page MIDLINE, detection skipped entirely. An opt-in
+  // pin for pages whose boundary is known to be the midline. It predates the
+  // ink-coverage detector below and was written for the Downtime spread, which
+  // no longer pins it — the detector reads that spread correctly, so nothing in
+  // the tree pins "2mid" today. The mode stays because a pinned caller asked for
+  // the midline, not for our best guess, and a recipe may still pin it.
   if (mode === "2mid") return W / 2;
   if (its.length < 12) return mode === "2" ? W / 2 : null;
 
-  const centers = its.map((i) => i.transform[4] + i.width / 2);
-  const NB = 50;
-  const bins = new Array(NB).fill(0);
-  for (const c of centers) {
-    const b = Math.min(NB - 1, Math.max(0, Math.floor((c / W) * NB)));
-    bins[b]++;
+  const { cover, step } = _coverProfile(its, W);
+  const NS = cover.length;
+  const lo = Math.floor(NS * 0.3);
+  const hi = Math.ceil(NS * 0.7);
+  let valley = Infinity;
+  let peak = 0;
+  for (let s = lo; s <= hi; s++) {
+    valley = Math.min(valley, cover[s]);
+    peak = Math.max(peak, cover[s]);
   }
-  // Candidate gutter = the WIDEST run of lowest-density bins in the central
-  // 30–70% band, split at its middle. A real column gap is several bins wide;
-  // taking the first minimum instead picked accidental one-bin gaps inside a
-  // column (WR p107 descriptions: x=138 between the bold item-name runs and
-  // their continuation lines, vs the true ~210 gutter — beheaded every entry).
-  const lo = Math.floor(NB * 0.3);
-  const hi = Math.ceil(NB * 0.7);
-  let valleyCount = Infinity;
-  for (let b = lo; b <= hi; b++) valleyCount = Math.min(valleyCount, bins[b]);
+
+  // Widest run at or below GUTTER_LEVEL of the busiest slice — NOT the widest
+  // run at the exact minimum. A gutter is rarely the emptiest place on the
+  // page: full-width headings and rules cross it, while a one-slice sliver of
+  // accidental whitespace inside a column is emptier still and would win on a
+  // strict minimum (Core p129: a width-1 zero at x=154 beating the real gutter
+  // at x=235). Taking a level instead of a minimum merges the gutter's
+  // heading-crossed slices into one wide run that outranks any sliver.
+  const level = Math.max(valley, Math.round(peak * GUTTER_LEVEL));
+  // Ties go to the run nearest the page midline: a two-column gutter is
+  // near-centred, and an equally empty run further out is more likely to be a
+  // margin, a figure's whitespace, or a table's inter-column gap.
+  const midS = (NS - 1) / 2;
+  const wins = (r, b) => {
+    if (!b) return true;
+    const rw = r.end - r.start;
+    const bw = b.end - b.start;
+    if (rw !== bw) return rw > bw;
+    return Math.abs((r.start + r.end) / 2 - midS) < Math.abs((b.start + b.end) / 2 - midS);
+  };
   let best = null;
   let run = null;
-  for (let b = lo; b <= hi + 1; b++) {
-    if (b <= hi && bins[b] === valleyCount) {
-      run = run ?? { start: b, end: b };
-      run.end = b;
+  for (let s = lo; s <= hi + 1; s++) {
+    if (s <= hi && cover[s] <= level) {
+      run = run ?? { start: s, end: s };
+      run.end = s;
     } else if (run) {
-      if (!best || run.end - run.start > best.end - best.start) best = run;
+      if (wins(run, best)) best = run;
       run = null;
     }
   }
-  const valley = best ? Math.round((best.start + best.end) / 2) : lo;
-  const splitX = ((valley + 0.5) / NB) * W;
+  const cut = best ? (best.start + best.end) / 2 : lo;
+  const splitX = (cut + 0.5) * step;
 
-  if (mode === "2") return splitX;   // forced: trust the valley, no guard
+  if (mode === "2") return splitX;   // forced two-column: trust the cut, no guard
 
-  // auto: only accept if the valley is a real trough between two populated
-  // columns — otherwise it's a single column and we'd corrupt the order.
-  const leftPeak = Math.max(0, ...bins.slice(0, valley));
-  const rightPeak = Math.max(0, ...bins.slice(valley + 1));
+  // auto: accept only if the cut actually behaves like a gutter, or we'd slice
+  // a single column of prose down the middle and interleave it. The test is
+  // structural rather than a density ratio: count text ROWS the cut divides
+  // cleanly (ink both sides, nothing straddling) against rows it cuts THROUGH.
+  // A two-column page is nearly all the former; single-column prose is nearly
+  // all the latter. A density threshold can't tell them apart here, because on
+  // an ink profile the gutter's residual coverage is full-width headings and
+  // rules — legitimate on a two-column page, and enough of them to look
+  // "dense" (CS1 p10: 7 spanning rows against 12 cleanly split ones).
+  // Rows confined to one side count too: plenty of two-column spreads set
+  // their columns on independent baselines, so no row holds ink from both and
+  // `paired` alone would read them as single-column (Core p44: 23 left-only
+  // and 22 right-only rows against exactly one paired row).
+  const { paired, crossed, leftOnly, rightOnly } = _rowSplit(its, splitX);
+  const separated = paired + Math.min(leftOnly, rightOnly);
+  const centers = its.map((i) => i.transform[4] + i.width / 2);
   const leftN = centers.filter((c) => c < splitX).length;
   const rightN = centers.length - leftN;
-  const ok = valleyCount <= 0.3 * Math.min(leftPeak, rightPeak)
+  const ok = separated >= 3 && separated >= crossed
     && leftN >= 0.25 * centers.length
     && rightN >= 0.25 * centers.length;
   return ok ? splitX : null;
+}
+
+/**
+ * How a candidate cut divides the page's text rows.
+ *
+ * `paired` — rows with ink on both sides and nothing crossing: the signature
+ * of a gutter. `crossed` — rows an item straddles: the signature of a cut
+ * running through body text. `leftOnly`/`rightOnly` — rows confined to one
+ * side, which two-column layouts on independent baselines produce instead of
+ * paired ones.
+ *
+ * @param {Array} its
+ * @param {number} cut
+ * @returns {{paired:number, crossed:number, leftOnly:number, rightOnly:number, rows:number}}
+ */
+function _rowSplit(its, cut) {
+  const rows = new Map();
+  for (const i of its) {
+    // Quantise the baseline so a row survives the sub-point y jitter of
+    // superscripts and mixed font sizes.
+    const k = Math.round(i.transform[5] / 4);
+    if (!rows.has(k)) rows.set(k, []);
+    rows.get(k).push(i);
+  }
+  let paired = 0;
+  let crossed = 0;
+  let leftOnly = 0;
+  let rightOnly = 0;
+  for (const parts of rows.values()) {
+    const l = parts.some((i) => i.transform[4] + (i.width || 0) <= cut);
+    const r = parts.some((i) => i.transform[4] >= cut);
+    if (parts.some((i) => i.transform[4] < cut && i.transform[4] + (i.width || 0) > cut)) crossed++;
+    else if (l && r) paired++;
+    else if (l) leftOnly++;
+    else if (r) rightOnly++;
+  }
+  return { paired, crossed, leftOnly, rightOnly, rows: rows.size };
+}
+
+/** An item this wide is a full-width element (heading, rule, spread caption)
+ *  and is EXPECTED to cross a gutter; anything narrower is body text. */
+const FULL_WIDTH_FRAC = 0.25;
+
+/**
+ * Risk flags for a chosen gutter, so a silent mis-split becomes a visible one.
+ *
+ * The CS6 p26 defect scored a perfect parse while storing a wrong word, so the
+ * detector fix above ships with a second line of defence: report the cut's
+ * geometry when it looks unsafe, and let the paste preview say so.
+ *
+ * @param {Array} its       text items
+ * @param {number} W        page width
+ * @param {number|null} splitX  the chosen gutter (null = single column)
+ * @returns {string[]} human-readable warnings (empty when the cut looks clean)
+ */
+function gutterRisks(its, W, splitX) {
+  if (splitX == null || !its.length) return [];
+  const out = [];
+  const wide = W * FULL_WIDTH_FRAC;
+
+  // How many items share each baseline, so we can tell a word inside a LINE of
+  // text from page furniture sitting alone on its own row.
+  const rowSize = new Map();
+  for (const i of its) {
+    const k = Math.round(i.transform[5] / 4);
+    rowSize.set(k, (rowSize.get(k) ?? 0) + 1);
+  }
+  /** Body text: narrow enough not to be a full-width element, and part of a
+   *  line rather than a lone centred heading, page number or ornament — those
+   *  cross a perfectly good gutter all the time and land in one column
+   *  harmlessly, so warning about them would only teach the user to ignore
+   *  the warning. */
+  const isBody = (i) => (i.width || 0) < wide && rowSize.get(Math.round(i.transform[5] / 4)) > 1;
+
+  // A body word whose BOX straddles the cut is a word the split runs through:
+  // it lands in one column whole, and it is the wrong one half the time. This
+  // is the CS6 p26 signature — at the bad x=172 cut three body words straddle.
+  const straddlers = its.filter((i) => {
+    const x1 = i.transform[4];
+    return isBody(i) && x1 < splitX && x1 + (i.width || 0) > splitX;
+  });
+  if (straddlers.length) {
+    out.push(`gutter at x=${Math.round(splitX)} cuts through ${straddlers.length} `
+      + `word${straddlers.length === 1 ? "" : "s"} — one column may have borrowed text from the other`);
+  }
+
+  // A body item centred on the cut is a coin-flip assignment even when nothing
+  // straddles: a hair's difference in the detected gutter would move it.
+  const grazing = Math.max(2, W * 0.01);
+  const near = its.filter((i) => isBody(i)
+    && Math.abs(i.transform[4] + (i.width || 0) / 2 - splitX) < grazing);
+  if (near.length && !straddlers.length) {
+    out.push(`gutter at x=${Math.round(splitX)} runs within a glyph of ${near.length} `
+      + `item${near.length === 1 ? "" : "s"} — check the column split`);
+  }
+
+  // Far off the midline usually means the detector locked onto a margin or a
+  // column edge rather than the gutter. Legitimately asymmetric spreads exist,
+  // so this is a flag to look, not a rejection.
+  const off = Math.abs(splitX - W / 2) / W;
+  if (off > 0.15) {
+    out.push(`gutter at x=${Math.round(splitX)} sits ${Math.round(off * 100)}% off the page midline`);
+  }
+  return out;
 }
 
 /** Group one column's items into reading-ordered text lines. */
@@ -310,7 +486,11 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   let its = tc.items.filter((i) => i.str && i.str.trim().length);
   if (cropTablePrefix) its = _cropTablePrefix(its);
   const { gutter, lines } = layoutPageItems(its, vp.width, mode);
-  return { gutter: gutter == null ? null : Math.round(gutter), lines };
+  return {
+    gutter: gutter == null ? null : Math.round(gutter),
+    lines,
+    warnings: gutterRisks(its, vp.width, gutter),
+  };
 }
 
 /**
@@ -320,11 +500,13 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
  * @param {object} [opts]
  * @param {number[]} [opts.pages]     1-based PDF page numbers (default: [1])
  * @param {"auto"|"1"|"2"|"2mid"|"layout"} [opts.columns="auto"]  column handling
- *        ("2mid" = two columns split at the page midline, no valley detection)
  * @param {boolean} [opts.cropTablePrefix=false]  drop a leading full-width
  *        price-table block before column detection (shared gear pages)
- * @returns {Promise<{text:string, numPages:number,
- *   pages: Array<{page:number, gutter:number|null, lines:string[], empty:boolean}>}>}
+ * @returns {Promise<{text:string, numPages:number, warnings:string[],
+ *   pages: Array<{page:number, gutter:number|null, lines:string[],
+ *                 warnings:string[], empty:boolean}>}>}
+ *   `warnings` flags a column split that may have moved text between columns —
+ *   see gutterRisks. Advisory: the text is still returned.
  */
 export async function extractPdfText(filePath, { pages = [1], columns = "auto", cropTablePrefix = false } = {}) {
   const doc = await _openDoc(filePath);
@@ -334,16 +516,38 @@ export async function extractPdfText(filePath, { pages = [1], columns = "auto", 
   const results = [];
   for (const n of wanted) {
     const page = await doc.getPage(n);
-    const { gutter, lines } = await extractPageLines(page, columns, { cropTablePrefix });
-    results.push({ page: n, gutter, lines, empty: lines.length === 0 });
+    const { gutter, lines, warnings } = await extractPageLines(page, columns, { cropTablePrefix });
+    results.push({ page: n, gutter, lines, warnings, empty: lines.length === 0 });
   }
   const text = results.map((r) => r.lines.join("\n")).join("\n\n").trim();
-  return { text, numPages: doc.numPages, pages: results };
+  const warnings = results.flatMap((r) => r.warnings.map((w) => `p${r.page}: ${w}`));
+  return { text, numPages: doc.numPages, warnings, pages: results };
+}
+
+/**
+ * Surface an extraction's column-split warnings to the GM.
+ *
+ * Every grab path funnels through here so none of them can quietly drop the
+ * flags — a warning nobody shows is the same silence this detection exists to
+ * break. Advisory only: the text is already in hand either way.
+ *
+ * Note for pinned callers: "1" and "layout" never detect a gutter, so they
+ * never warn; "auto", "2" and "2mid" can.
+ *
+ * @param {{warnings?:string[]}} result  an extractPdfText result
+ */
+export function notifyGutterWarnings(result) {
+  for (const w of result?.warnings ?? []) {
+    ui.notifications?.warn(`Column check — ${w}. Compare the extracted text against the page before importing.`);
+  }
 }
 
 // Node-testable internals (no Foundry globals at module level).
 export const _internals = {
   detectGutter,
+  _rowSplit,
+  gutterRisks,
+  _coverProfile,
   columnLines,
   layoutPageItems,
   _findFullWidthLowerBand,

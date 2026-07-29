@@ -168,6 +168,20 @@
   for a stale one. Luck-spend logging is deliberately left unguarded: the reroll
   has already happened on the player's own client, so a stale GM costs one line
   in the Session Recap rather than a lost action.
+- **PDF text extraction could quietly move a word between columns.** Column
+  detection looked for the widest empty band in a histogram of word *centres*,
+  and a column's ragged right edge leaves exactly the same gap a gutter does —
+  so on a page whose left column runs short, the split landed inside that column
+  and handed its last word to the other one. The page still read cleanly and
+  still parsed to a perfect score; only the stored text was wrong. Detection now
+  measures where the page's *ink* actually is, which tells a ragged edge (still
+  crossed by the long lines above and below it) from a real gutter (crossed by
+  nothing but the odd full-width heading). Checked page by page across all seven
+  books, it now agrees with an independent second opinion on 343 of 642 pages
+  where the old code managed 210, and it splits far fewer pages that should have
+  been left whole. Grabbing text also warns you now when a split runs through
+  words or sits well off the page midline, so a doubtful page says so instead of
+  failing silently.
 
 ### Changed
 - **The Merchant Shop honours a downtime extortion.** A character who succeeded

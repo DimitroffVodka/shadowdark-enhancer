@@ -738,7 +738,7 @@ class HubManageMethods {
     // multi-page table imports whole, not just its first page. A background
     // bundle forces 1-column extraction: 2-column mode splits each entry's
     // description off its name, which the "Name. Text" background parser drops.
-    const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+    const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
     const bookPages = parsePageRange(seed.page);
     const pdfPages = (bookPages.length ? bookPages : [null])
       .map((bp) => (bp == null ? target.page : sourcePdfTarget(seed.src, String(bp))?.page))
@@ -754,11 +754,12 @@ class HubManageMethods {
       // Slot). Single-column keeps each row's name and price on the SAME line;
       // "auto" detects a false gutter and transposes the columns into a jumble.
       : ["Basic", "Weapon", "Armor"].includes(seed?.type) ? "1"
-      // The downtime spread's valley detection lands off the true boundary on
-      // the left column's ragged edge (CS6 p26: 172 vs the real 210 midline),
-      // which splices a left-column word into the right column's bullet list.
-      // Pinning the midline split makes the grab byte-identical to a hand copy.
-      : seed?.type === "Downtime" ? "2mid"
+      // Downtime deliberately takes no pin. It briefly pinned "2mid" because the
+      // old x-centre detector cut CS6 p26 at 172 — the left column's ragged edge
+      // — and spliced a left-column word into the right column's bullet list.
+      // The ink-coverage detector finds the real gutter (205) on its own, and a
+      // grab under "auto" parses to the same 25 slots, byte for byte, on both
+      // books. One code path is worth more here than a pin restating the default.
       // An entry may pin its own extraction mode (Boons: Secrets needs "1" so
       // each grid row stays on one line for the reflow boundary split).
       : shp?.extractCols ? shp.extractCols
@@ -782,6 +783,7 @@ class HubManageMethods {
     this._importText = base ? `${base}\n${result.text}\n` : `${result.text}\n`;
     this.render();
     ui.notifications.info(`Pulled page ${target.page} into the paste box — review, then Parse.`);
+    notifyGutterWarnings(result);
   }
 
   /**
@@ -854,7 +856,7 @@ class HubManageMethods {
     const file = resolveSourcePdf(picked.src);
     if (!file) { ui.notifications.warn("That book isn't linked to a PDF."); return; }
 
-    const { extractPdfText, parsePageRange } = await import("./pdf-text-extract.mjs");
+    const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
     let result;
     try {
       const doc = await extractPdfText(file, { pages: [1] });   // cheap open to learn page count
@@ -885,6 +887,7 @@ class HubManageMethods {
     const empties = result.pages.filter((p) => p.empty).map((p) => p.page);
     const emptyNote = empties.length ? ` (${empties.length} page${empties.length > 1 ? "s" : ""} had no text: ${empties.join(", ")})` : "";
     ui.notifications.info(`Extracted ${result.pages.length - empties.length} page(s) into the paste box${emptyNote} — review, then Parse.`);
+    notifyGutterWarnings(result);
   }
 
   /**
