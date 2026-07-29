@@ -23,6 +23,8 @@
  *                       (generators, encounters, treasure, names)
  *   Monsters          → CS1…CS6 · Western Reaches (fixed skeleton) + any other present source
  *   Items             → Basic Gear · Armor · Weapons · Magic Items (Potion+Scroll+Wand)
+ *   Downtime          → one row per source book, censused from the
+ *                       `downtimeContent` world setting (counts only)
  *
  * Table routing: ANCESTRY_TABLES → Ancestries; BACKGROUND_TABLES → Backgrounds;
  * PATRON_TABLES → Patrons & Deities; GAMEPLAY_TABLES → Gameplay; everything
@@ -41,6 +43,12 @@ import { liveItemRecords } from "./items/item-census-live.mjs";
 import { findMonsterPack } from "./monsters/monster-pack.mjs";
 import { sourceFolderName, findSuitePack } from "../shared/compendium-suite.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
+import {
+  SOURCES as DOWNTIME_SOURCES,
+  SOURCE_SLUGS as DOWNTIME_SLUGS,
+  EXPECTED_SLOT_COUNT,
+} from "../downtime/downtime-skeleton.mjs";
+import { readStored } from "../downtime/downtime-core.mjs";
 import { BOAT_MANIFEST } from "./boats/boat-parser.mjs";
 import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
 import { MOUNT_MANIFEST } from "./boats/mount-parser.mjs";
@@ -455,6 +463,55 @@ function buildVehicles(boatNames, itemNames) {
   ]);
 }
 
+/**
+ * Downtime branch — the one node censused from a WORLD SETTING rather than a
+ * pack: `downtimeContent` holds the outcome text the GM pasted from their own
+ * book, per source slug. Rows report COUNTS ONLY (label, pages, n/25). Slot
+ * labels and DCs are deliberately absent — the tree must never display locked
+ * material as though the module shipped it; the paste preview is the one place
+ * labels appear, and only for the person holding the book.
+ */
+function buildDowntime() {
+  let content = {};
+  try { content = game.settings.get(MODULE_ID, "downtimeContent") ?? {}; }
+  catch (err) { console.error("shadowdark-enhancer | downtime census failed:", err); }
+
+  const entries = DOWNTIME_SLUGS.map((slug) => {
+    const src = DOWNTIME_SOURCES[slug];
+    let count = 0;
+    try {
+      const read = readStored(content?.[slug]);
+      count = read.ok ? Object.keys(read.slots).length : 0;
+    } catch { count = 0; }
+    const present = count >= EXPECTED_SLOT_COUNT;
+    return {
+      name: src.label,
+      present,
+      seedAction: "downtimeSeedPaste",
+      type: "Downtime",
+      // Blank src keeps the page chip reading "pg 26-27"; the seed handler
+      // reads the slug off data-list-key.
+      src: "",
+      pages: src.pages,
+      listKey: slug,
+      // "Import" is the tree's generic verb; downtime unlocks a setting, and
+      // both the Downtime window and the hub's commit say "unlock".
+      importLabel: "Unlock",
+      countNote: `Unlocked (${count}/${EXPECTED_SLOT_COUNT})`,
+      stateNote: count ? `Partial (${count}/${EXPECTED_SLOT_COUNT})` : "Locked",
+    };
+  });
+  return {
+    id: "downtime", label: "Downtime", icon: "fa-mug-hot",
+    entries, children: [],
+    have: entries.filter((e) => e.present).length,
+    locked: entries.filter((e) => !e.present).length,
+  };
+}
+
+/** Pure test seam for the settings-censused downtime rows. */
+export const _testBuildDowntime = buildDowntime;
+
 export async function buildManageTree() {
   const presence = await gatherPresence();
   const [charEntries, monsterRows, actorRecords, itemRecords, spellListCensus, boatNames, itemNames] = await Promise.all([
@@ -475,5 +532,6 @@ export async function buildManageTree() {
     buildMonsters(monsterRows, actorRecords),
     buildItems(charEntries, itemRecords),
     buildVehicles(boatNames, itemNames),
+    buildDowntime(),
   ];
 }

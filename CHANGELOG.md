@@ -2,23 +2,181 @@
 
 ## [Unreleased]
 
+### Added
+- **An activity nobody can pay for cannot be picked.** A slot whose fee is
+  beyond the character's purse renders dimmed with the shortfall spelled out,
+  for example `Costs 50 gp per attempt — you're 19 gp 9 sp short`, and its
+  **Choose** button is dead. Free slots are never blocked. The block lifts on
+  its own when the character gains the coin, with no reopening. The same check
+  runs again when the die is pressed, since a purse can empty in between: no
+  fee, no roll, and the pick survives so the character can try once they can
+  pay. Previously the dice were rolled and posted to chat before the fee was
+  found wanting, which read as a roll that simply did not count. There is no GM
+  override on any path, including picking or rolling for an absent player. The
+  remedy is to add coin to the sheet.
+- **Downtime, the between-crawls activity window.** A new **Downtime** entry in
+  the Crawl Bar's **Forge & Loot** menu opens a
+  window covering the 25 downtime activities across **Spiritualism**,
+  **Skulduggery**, **Martial Training** and **Magical Research**. Pick a book,
+  pick a character, press **Attempt**: the fee is taken from their purse
+  *before* the roll (per attempt, win or lose, per RAW), the check is rolled at
+  Advantage / Normal / Disadvantage, and a chat card reports the total against
+  the DC with the outcome. **Every row names its own ability and DC** as a chip
+  (`CHA DC 9`, `DEX DC 15`, `INT/STR/DEX DC 15`, `Spellcasting DC 12`), because
+  the section header can't speak for Skulduggery, which mixes CHA and DEX rows
+  in one activity. A **failed attempt walks that slot's DC one rung down
+  the ladder** (`9 · 12 · 15 · 18 · 20`) for the next try and a success resets
+  it, tracked per character and shown on the row as `DC 12 (was 18)`, with a
+  **Clear DC progress** button to wipe it. Activities gate themselves: Martial
+  Training is tiered by class hit die (d4 / d6 / d8+) behind a **Training tier**
+  dropdown that defaults to the character's own, labelled `d4 — this character`,
+  and Magical Research is hidden for non-casters and prints **both** of the
+  book's subsections under their real headings, **INT or CHA Spellcasters** and
+  **WIS or CHA Spellcasters**, with the inapplicable one visible but dead and
+  its reason beside the heading. A CHA caster belongs to both
+  lists in the book, so that character gets an **Arcane** / **Divine** toggle
+  that decides which subsection is live,
+  remembered on the actor instead of a guess. Successes worth renown or XP offer
+  an **Apply** button rather than writing silently, and the rumor result offers a
+  signed **+1** / **−1** pair plus a party dropdown, because a rumor can cut
+  either way. Every card carries the line *"Luck tokens cannot be spent on
+  downtime checks."* Downtime fees are mirrored into the Session Recap as
+  `Downtime: <slot label>`. New API namespace `game.shadowdarkEnhancer.downtime`.
+  Documented in [docs/wiki/Downtime.md](docs/wiki/Downtime.md).
+- **A GM can set the DC credit by hand.** Beside every row's DC there is now a
+  **−** / **+** stepper, GM-only and never shown to players. **−** grants one
+  rung of credit, **+** takes one back, and both clamp to the same ladder bound
+  the automatic failure walk uses, so a hand-set DC can never leave the ladder.
+  The row still reads `DC 15 (was 18)`, so credit is always visible rather than
+  buried in a flag. This is for the attempt that happened away from the tool: a
+  failure rolled in play, or a session you ran straight from the book, should
+  still walk the ladder down, and a ruling you want back should not cost you that
+  character's whole history via **Clear DC progress**. Automatic step-down on
+  failure and reset on success are unchanged.
+- **Browse any Martial Training tier.** The **Training tier** dropdown lists
+  **d4**, **d6** and **d8+**, defaulting to the character's own tier and marking
+  it `d4 — this character`. A GM may attempt any tier. A player may switch to
+  read another one, but its controls stay dead with the reason naming the tier
+  they actually train at, so browsing never becomes taking. A hit die the module
+  can't read still refuses to guess: every tier shows, all dead, with the note
+  saying why.
+- **The downtime log, in two places.** Every resolved attempt is now recorded.
+  The [Session Recap](docs/wiki/Session-Recap.md) gains a **Downtime** tab
+  holding one row per attempt, grouped by controlling player and newest first,
+  each group carrying a `2/3 · 30 gp` subtotal of what landed and what it cost,
+  and it exports under its own **Downtime** heading in the Discord markdown.
+  Separately, a persistent world JournalEntry called **Downtime Log** collects
+  the same attempts beyond the session, at the Journal root with no folder,
+  created GM-side the first time anything is recorded, grouped under a heading
+  per real-world day with **newest day first and newest row first within a day**.
+  It is found by an internal flag and never by name, so renaming it is safe and a
+  journal you happen to name the same is never adopted. Deleting it is safe too:
+  the next attempt makes a fresh one. Logging runs **after** the result is
+  committed, so a logging failure can never cost somebody a paid roll, and an
+  attempt still owing an effect choice is logged as it rolled rather than waiting
+  on a pick that may never come. **The fee mirror into Purchases stays**, which
+  is deliberate double entry: Purchases is the money ledger that feeds the spend
+  totals, the Downtime section is the narrative record of what was tried.
+- **Downtime at the table: everyone picks, everyone rolls.** The GM presses
+  **Start session** and picks the book, which pins for the whole table. A chat
+  card announces it with an **Open Downtime** button, and players open their own
+  window (their own characters only). Each slot row now prints its **full
+  unlocked outcome text**, so a player reads what an activity does before
+  committing, then presses **Choose**. Advantage is declared at pick time, not at
+  roll time. The GM presses **Lock & unlock dice** and every player gets a
+  **Roll it** button. **The dice are the player's own**: the roll executes on
+  their client under their speaker, so their dice colours and roll history are
+  the ones that show up, and only the message id travels back. The GM side then
+  reads the total off the chat message and recomputes DC, cost and gating from
+  the skeleton, never trusting a number from a player's payload. A live panel
+  shows every character's pick, their declared advantage and their result, with
+  **Clear** to drop a pick, **Re-open picks** to go back a phase, **Roll for** to
+  cover an absent player (the card is marked `(rolled by the GM)`) and **End
+  session**, which greys the announcement card to **Downtime ended**. Working
+  solo without a session is unchanged. New world setting `downtimeSession`
+  (internal, not in Configure Settings) and five new API entries:
+  `startSession` · `endSession` · `lockRolls` · `releaseRolls` · `sessionState`.
+- **Downtime outcomes now actually happen.** Inside a session a success is
+  applied rather than described. Straight away: renown for church favor and
+  rumor (with a target picker, since a rumor cuts both ways), **+2 XP** which
+  also raises Shadowdark's own level-up prompt once the character is at the
+  threshold, the two "advantage on your next…" outcomes as real labelled Active
+  Effects (the divine one carrying 3 uses, and neither self-decrementing, so
+  deleting it stays a deliberate act), the Potion of Healing, and the extortion
+  swing. Where the book asks you to choose, the result card asks too. Weapon
+  training writes real attack and damage effects onto the weapon you name and
+  records what it granted, so the same award can't land on the same weapon twice.
+  The damage-die step edits the weapon itself, capped at d12 and twice per weapon.
+  Training with something new creates a `Training: <name>` Talent, free text
+  allowed, because Shadowdark has no proficiency field to set. Create
+  scroll / wand / potion fabricates the real item, with a wand refused while an
+  unbroken one of that spell is carried. The spell trade swaps an embedded
+  spell for a same-tier replacement in one click. **An option you can't take is
+  greyed out with its reason on hover, never hidden.** Outcomes Shadowdark models
+  no mechanic for (lay low, hide out, both crimes, the talent reroll, cleansing
+  with no flagged curse) print a GM-adjudication note instead of faking one.
+
+- **Downtime outcomes unlock through the Importer.** As everywhere else, no
+  sourcebook prose ships. The module carries the skeleton only (activity names,
+  compressed slot labels, DCs, which slots cost gold, and the renown or XP a
+  success is worth) and every outcome sentence comes from a GM paste. The
+  Importer Hub gains a **Downtime** import type: pick the **Book**, paste the
+  pages from your own copy, **Parse** to read `Matched 25 of 25 slots.`, then
+  **Unlock outcomes**, which confirms with
+  `Downtime (Cursed Scroll 6): 25 of 25 entries unlocked.` It is the one import
+  type that writes a world setting (`downtimeContent`) instead of creating
+  documents, and the one **Auto-detect** deliberately does not recognise, so a
+  downtime page pasted under Auto lands in **Skipped**. The parser matches inside
+  each activity's own block and has a rescue pass for the interleaving that
+  two-column PDF copies produce, and it never assigns a line by resemblance.
+  Anything it cannot place is listed back to you under **Lines nothing claimed:**,
+  alongside **Still unfilled:** for the slots that got no text. Pasting the wrong
+  book is caught by the authority wording (*Cursed Scroll 6* says City Guard, the
+  *Western Reaches* says authorities). The hub's Manage tree gains a **Downtime**
+  node with one row per book, showing a state chip (`Unlocked (25/25)`,
+  `Partial (12/25)`, `Locked`) and an **Unlock** button that seeds the paste flow.
+  Double-clicking an unlocked row opens the Downtime window. Re-unlocking a book
+  replaces that book's stored text and leaves the other book alone. The two books
+  differ on price (`10 gp × level` per attempt in Cursed Scroll 6, a flat `50 gp`
+  in the Western Reaches) and on one slot, minor crime, which the Western Reaches
+  does not charge for.
+- **A locked book shows its title and nothing else.** The Downtime window no
+  longer renders locked material greyed out. A book you haven't imported is a
+  single card carrying the title, its page cite, and an **Unlock via Importer**
+  button that opens the hub pre-seeded. No activity sections, no slot labels, no
+  DCs, no costs, because an outline of a book's tables is still a reading of that
+  book's tables. With nothing imported the window body is just those cards, header
+  and footer included. A partial unlock shows what came through plus one count
+  line (`N entries did not unlock.`) and never names what is missing. The Manage
+  tree follows the same rule and reports counts only.
+
 ### Fixed
 - **A player's action no longer vanishes into a GM tab running old code.** Loot
-  claims, shop transactions and item drops are all handled by the **active GM's**
-  client. A GM who had left a tab open since before the module was updated was
-  running a build with no listener for the newer actions, so a player's click
-  landed nowhere: nothing threw, nothing logged, the button just did nothing.
-  Every one of those relays now pings the active GM and compares module versions
-  *before* sending. A stale tab, a mismatched version, or no GM online, and the
-  player is told — *"Your GM's Foundry tab needs a reload before loot claims can
-  land."* — naming both builds when the versions differ. A proven GM is cached
-  briefly so a burst of clicks costs one round trip; a failure is never cached,
-  so the very next attempt after the GM reloads goes straight through. A blocked
-  loot claim hands its button back rather than leaving the item looking claimed.
-  Only the **active** GM answers the ping, so an always-on second GM client can't
-  vouch for a stale one. Luck-spend logging is deliberately left unguarded: the
-  reroll has already happened on the player's own client, so a stale GM costs one
-  line in the Session Recap rather than a lost action.
+  claims, shop transactions, downtime picks and rolls, and item drops all get
+  handled by the **active GM's** client. A GM who had left a tab open since
+  before the module was updated was running a build with no listener for the
+  newer actions, so a player's click landed nowhere: nothing threw, nothing
+  logged, the button just did nothing. Every one of those relays now pings the
+  active GM and compares module versions *before* sending. A stale tab, a
+  mismatched version, or no GM online, and the player is told —
+  *"Your GM's Foundry tab needs a reload before downtime actions can land."* —
+  naming both builds when the versions differ. A proven GM is cached briefly so
+  a burst of clicks costs one round trip; a failure is never cached, so the very
+  next attempt after the GM reloads goes straight through. A blocked loot claim
+  hands its button back rather than leaving the item looking claimed. Only the
+  **active** GM answers the ping, so an always-on second GM client can't vouch
+  for a stale one. Luck-spend logging is deliberately left unguarded: the reroll
+  has already happened on the player's own client, so a stale GM costs one line
+  in the Session Recap rather than a lost action.
+
+### Changed
+- **The Merchant Shop honours a downtime extortion.** A character who succeeded
+  at **Extortion: 25% price swing** gets **25% off** their next purchase **or**
+  **25% more** for their next sale, whichever comes first. It is armed on the
+  character rather than the shop, so it never reprices anything for the rest of
+  the party, and it is spent only once a transaction has actually landed (a
+  purchase refused for want of funds leaves it armed). Both the charged price and
+  the transaction's chat card name it.
 
 ## [0.13.1] — 2026-07-26
 

@@ -351,4 +351,28 @@ export function registerSettings() {
     type: Boolean,
     default: true,
   });
+
+  // Per-source downtime outcome text, unlocked by the GM from their own book.
+  // Keyed by source slug ("cs6", "western-reaches") → the unlock record built by
+  // downtime-core.buildUnlockRecord. The module ships the SKELETON only (slot
+  // labels, DCs, costs); every outcome string in here came from the GM's own
+  // paste, so nothing copyrighted is bundled. Edited in the Downtime window.
+  game.settings.register(MODULE_ID, "downtimeContent", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
+
+  // Live downtime session: which book, whether picks are still open, each
+  // character's chosen activity and settled result. Internal — the Downtime
+  // window and its socket handlers own it. Written ONLY by a GM (players can't
+  // write world settings, which is why their actions travel over the socket);
+  // every client re-reads it on a payload-free nudge, exactly like crawlState.
+  game.settings.register(MODULE_ID, "downtimeSession", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
 }

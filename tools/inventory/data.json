@@ -102,6 +102,12 @@
       "dir": "scripts/character-sheet",
       "title": "`scripts/character-sheet/` — Shadowdark sheet injections",
       "note": ""
+    },
+    {
+      "id": "3.18",
+      "dir": "scripts/downtime",
+      "title": "`scripts/downtime/` — between-crawls downtime activities",
+      "note": "Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP deltas). Every outcome sentence is pasted by the GM from their own book and stored in the `downtimeContent` world setting, never in the repo."
     }
   ],
   "order": {
@@ -301,6 +307,18 @@
     ],
     "3.17": [
       "scripts/character-sheet/prayer-roll.mjs"
+    ],
+    "3.18": [
+      "scripts/downtime/downtime-skeleton.mjs",
+      "scripts/downtime/downtime-parser.mjs",
+      "scripts/downtime/downtime-core.mjs",
+      "scripts/downtime/downtime-effects-core.mjs",
+      "scripts/downtime/downtime-effects.mjs",
+      "scripts/downtime/downtime-log-core.mjs",
+      "scripts/downtime/downtime-log.mjs",
+      "scripts/downtime/downtime-warnings.mjs",
+      "scripts/downtime/downtime-app.mjs",
+      "scripts/downtime/downtime-session.mjs"
     ]
   },
   "descriptions": {
@@ -314,7 +332,6 @@
     "scripts/shared/art-utils.mjs": "Portrait/token image resolution across world + compendium sources.",
     "scripts/shared/coins.mjs": "Pure Shadowdark currency math (10cp=1sp, 10sp=1gp).",
     "scripts/shared/esc.mjs": "HTML-escape helper for safe `innerHTML` interpolation.",
-    "scripts/shared/gm-relay.mjs": "Liveness + module-version handshake run before any player \u2192 active-GM socket relay, so a player whose GM tab is running an older build is warned to have it reloaded instead of clicking a button that silently does nothing.",
     "scripts/crawl-strip/crawl-strip.mjs": "The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2.",
     "scripts/crawl-strip/crawl-state.mjs": "Foundry-coupled state singleton — persistence, sockets, hook emission.",
     "scripts/crawl-strip/crawl-state-core.mjs": "Pure reducer/normalizer behind crawl-state. Node-testable.",
@@ -466,6 +483,17 @@
     "scripts/char-builder/steps/stats-step.mjs": "Step — Abilities. Roll or assign the six ability scores.",
     "scripts/character-sheet/prayer-roll.mjs": "Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums).",
     "scripts/luck-reroll/luck-reroll.mjs": "Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap.",
-    "scripts/spell-mishap/spell-mishap.mjs": "Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt."
+    "scripts/spell-mishap/spell-mishap.mjs": "Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt.",
+    "scripts/shared/gm-relay.mjs": "Liveness + module-version handshake run before any player → active-GM socket relay, so a player whose GM tab is running an older build is warned to have it reloaded instead of clicking a button that silently does nothing.",
+    "scripts/downtime/downtime-skeleton.mjs": "Shipped downtime metadata: 25 slots across four activities with names, compressed labels, DCs, paid flags, keyword matchers and renown/XP deltas. Carries no rules text.",
+    "scripts/downtime/downtime-parser.mjs": "Parses a pasted downtime page into per-slot outcome text; segment-scoped DC + keyword matching with a rescue pass for column-interleaved PDF copies. Unmatched lines are reported back, never guessed at.",
+    "scripts/downtime/downtime-core.mjs": "Pure downtime rules math: the DC step-down ladder, per-attempt cost by source, the martial-training hit-die tier and caster-list gates, and the stored unlock record shape.",
+    "scripts/downtime/downtime-effects-core.mjs": "Pure decision layer for downtime outcomes: the slot-to-plan table (auto / choice / narrative), the per-weapon martial-training limit counters and damage-die ladder, the one-shot extortion math, and the XP level-up threshold. Ships item names only, no rules text.",
+    "scripts/downtime/downtime-effects.mjs": "Applies a successful downtime outcome for real — renown, XP, weapon-training Active Effects, damage-die steps, fabricated scrolls/wands/potions, spell trades, advantage reminders and the merchant extortion flag. Enumerates the concrete choices first; GM-side execution only.",
+    "scripts/downtime/downtime-log-core.mjs": "Pure downtime-log formatting: the recap headline row, the escaped journal `<li>`, and the newest-first grouping that splices a row under its `data-sde-day` heading. Shared by the recap window, the Discord export and the journal so all three phrase an attempt identically.",
+    "scripts/downtime/downtime-log.mjs": "`recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged \"Downtime Log\" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only.",
+    "scripts/downtime/downtime-warnings.mjs": "Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically.",
+    "scripts/downtime/downtime-app.mjs": "The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub.",
+    "scripts/downtime/downtime-session.mjs": "Table-wide downtime session: world-setting state model, the downtime:* socket protocol, and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton rather than trusting a player's payload. Players pick and roll; the active GM settles."
   }
 }

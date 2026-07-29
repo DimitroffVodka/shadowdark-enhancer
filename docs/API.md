@@ -400,6 +400,79 @@ The builder is player-usable: it commits through the Shadowdark system's own
 creation path, and a player without actor-create permission is handed off to
 the GM via the system socket (the GM must be connected).
 
+## `downtime` — between-crawls activities
+
+The downtime window: pick a source book and a character, attempt an activity,
+pay its cost, roll the check, read the outcome. A GM can also run it as a table
+session, where each player picks their own activity and rolls their own dice.
+
+```js
+await api.downtime.open();   // Downtime window. A GM may always open it; a player
+                             // only while a session is running (otherwise warns and
+                             // returns null). Singleton — an already-open window is
+                             // brought to front, not replaced.
+
+// Table session. GM-side; all four write the `downtimeSession` world setting
+// and nudge every client to re-read it.
+await api.downtime.startSession("cs6");  // "cs6" | "western-reaches" — must be unlocked
+await api.downtime.lockRolls();          // phase "select" → "roll": picks freeze, dice open
+await api.downtime.releaseRolls();       // phase "roll" → "select": back to choosing
+await api.downtime.endSession();         // closes it and greys the announcement card
+
+api.downtime.sessionState();             // deep clone of the live session state
+```
+
+**The GM never trusts a number from a player.** A player's message carries ids
+only. The active GM re-reads the skeleton, the unlock setting, the actor and the
+session at handling time and recomputes the DC, the cost and the gating itself.
+Even the roll total is read back off the `ChatMessage` document rather than taken
+from the payload.
+
+Player-driven work is handled by the **active GM's** client. A GM tab running
+module code from before an update has no listener for a new action name, so a
+player's message would land in a deaf client and nothing would throw. Every
+player relay therefore runs a liveness and version handshake against the active
+GM first, and warns the player to have their GM reload rather than leaving a
+button that silently did nothing.
+
+**Ships no book content.** The module bundles only the *skeleton* — activity
+names, slot labels, DCs, per-attempt costs and the mechanical deltas (renown,
+XP). Every outcome string is pasted by the GM from their own copy of the book
+through the Importer Hub's **Downtime** import type, and stored in the
+`downtimeContent` world setting, keyed by source slug. A book with no stored text
+renders as a title-only card carrying an **Unlock via Importer** button, with no
+activity list, no slot labels, no DCs and no costs, because the outline itself
+would be a reading of the book's tables.
+
+```js
+// The frozen hand-off contract the window's own button uses.
+await api.tables.openHub("import", { downtimeSource: "cs6" });
+```
+
+Rules behaviour worth knowing before you script around it:
+
+- The fee is charged **per attempt, success or not**, and is debited *before*
+  the die is rolled. Coins move through the shared `spendFromPurse` helper, so
+  denominations are preserved and a purse is never driven negative.
+- A failed attempt walks that slot's DC one rung down the 9/12/15/18/20 ladder
+  for the character's next try; a success resets it. Progress is per-actor, in
+  `flags["shadowdark-enhancer"].downtime.steps`, keyed by slot.
+- Luck tokens cannot be spent on downtime checks. Every card says so.
+- **Inside a session a success is applied for real** (renown, XP and the
+  level-up prompt, weapon-training effects, damage-die steps, fabricated
+  scrolls / wands / potions, spell trades, advantage effects, the merchant
+  extortion swing). Outcomes with no mechanical shape in Shadowdark print a
+  GM-adjudication note instead of faking one. Solo mode, outside a session,
+  keeps the manual **Apply** buttons.
+
+Purchases are mirrored into the session recap as `Downtime: <slot label>`, so
+downtime spend shows up in the session's purchase total.
+
+A successful extortion arms a one-shot ±25% swing as
+`flags["shadowdark-enhancer"].downtimeExtortion` on that actor. The Merchant Shop
+reads it through `readExtortion` / `applyExtortion` / `spendExtortion` and
+consumes it on the next completed buy **or** sell.
+
 ---
 
 ## Stability notes

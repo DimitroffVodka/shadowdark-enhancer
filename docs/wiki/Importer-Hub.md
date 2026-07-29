@@ -48,8 +48,8 @@ The census work is lazy and only runs when you expand the Manage strip.
 
 The type selector has two groups. **Paste & parse here:**
 
-`Auto-detect` · `Monsters` · `Items` · `Tables` · `Backgrounds` · `Talents` ·
-`Ancestry` · `Compound generator` · `Cartesian table`
+`Auto-detect` · `Monsters` · `Items` · `Tables` · `Boats` · `Backgrounds` ·
+`Talents` · `Ancestry` · `Compound generator` · `Cartesian table` · `Downtime`
 
 **Guided workspaces:** `Spells…` and `Classes…`. Picking either opens the
 dedicated [Spell or Class Importer](Class-and-Spell-Importers.md) instead of
@@ -60,6 +60,29 @@ a mixed dump into typed buckets, or choose a specific type so only that
 recogniser runs, which is what you want when auto guesses wrong.
 
 Items can additionally be forced to a specific **item subtype**.
+
+> **`Downtime` is the one type Auto-detect will not find.** It has to be picked
+> by hand, or seeded for you from the Manage tree. Under **Auto-detect** a
+> downtime page lands in **Skipped**.
+
+### The Downtime type
+
+Downtime is the odd one out, because it doesn't create documents. It unlocks the
+outcome text for the [Downtime](Downtime.md) window into a world setting, per
+book.
+
+Its preview section adds a **Book** picker above the paste box. Switching books
+clears the parse, so pick the book first. Arriving through an **Unlock** button
+also auto-fills the paste box from the book's registered source PDF, the same
+grab the table rows use, so the usual path is just review then Parse.
+**Parse** reports
+`Matched 25 of 25 slots.`, lists **Still unfilled:** and **Lines nothing
+claimed:** underneath, and **Unlock outcomes** writes it, confirming with
+`Downtime (Cursed Scroll 6): 25 of 25 entries unlocked.`
+
+This preview is the only place in the module that prints downtime slot labels,
+and only for someone who has the book open in front of them. A second unlock of
+the same book replaces that book's stored text. The other book is untouched.
 
 ### 2. Paste
 
@@ -102,6 +125,7 @@ written, and the result report tells you what was **created**, **replaced**, and
 | Items, spells, character content | `sde-items` |
 | Tables | `sde-tables` |
 | Classes, talents, ancestries, backgrounds | The Character Options packs |
+| Downtime outcomes | The `downtimeContent` world setting, not a pack |
 
 **Commit All** runs monsters → items → spells → tables in order.
 
@@ -151,6 +175,18 @@ The tree covers monsters, items, and the **character-content unlock** rows:
 the classes, talents, spells, backgrounds, and gear from CS4–CS6 and Western
 Reaches that the core system doesn't ship. The manifest holds names, types and
 sources only. No rules text.
+
+### The Downtime node
+
+One node sits apart from the rest, because it is censused from a world setting
+rather than from a pack. **Downtime** holds one row per book, showing the book,
+its pages, and a state chip: `Unlocked (25/25)`, `Partial (12/25)` or `Locked`.
+
+Counts and nothing else. The row never says what is in the book, before or after
+import. Its button reads **Unlock** instead of Import, and it seeds the paste
+flow the same way every other row does. Double-clicking a row that is already
+unlocked opens the [Downtime](Downtime.md) window, since there is no document
+behind it to reveal.
 
 Character content committed here is stamped with a `system.source.title` slug
 (e.g. `western-reaches`), because the character builder filters what it offers on

@@ -79,6 +79,24 @@ free goods is possible via the API's `open({ buyMultiplier: 0 })`, not the UI.)
 > buying the last item in stock, can't both succeed. No double-spending, no
 > overselling.
 
+### The extortion swing
+
+A character who succeeded at **Extortion: 25% price swing** during
+[Downtime](Downtime.md) walks in with leverage. The shop honours it on that
+character's **next** transaction, whichever kind comes first:
+
+- a purchase costs **25% less**, or
+- a sale earns **25% more**.
+
+It is armed on the character, not on the shop, so it never reprices anything for
+anyone else and it stacks on top of whatever markup and sell ratio you have set.
+The price the buyer is charged already includes it, and the transaction's chat
+card and notification both name it, reading `(25% off — extortion)` on a purchase
+and `(+25% — extortion)` on a sale.
+
+It is spent only once the transaction has actually landed. A purchase turned away
+for want of funds, or a sale that fails, leaves the swing armed for next time.
+
 ## Saved merchants
 
 The module seeds two saved merchant configurations at world load, idempotently:
@@ -152,6 +170,14 @@ is the shop's own history, **Session Summary** the wider recap. GMs also get a
 Either the GM hasn't opened it, or it isn't marked available to players. Check
 the shop's availability toggle.
 
+**"Your GM's Foundry tab needs a reload before shop transactions can land."**
+Buying and selling happen on the **active GM's** client, and that tab has been
+open since before the module was updated, so it is running code that doesn't
+know about the transaction. Rather than let a purchase go silently nowhere, the
+module pings the GM and compares versions before sending — this warning is that
+check firing. Have the GM reload their tab. See
+[Troubleshooting](Troubleshooting.md#a-player-action-does-nothing-and-no-error-appears).
+
 **A purchase went through but the player has no item.**
 The item is created on the *buying actor*. If a player controls several actors,
 check the one they had selected in the shop.
@@ -169,14 +195,6 @@ Check the sell ratio. At the default `50`, a 10 gp item sells back for 5 gp.
 This was a real bug fixed in v0.11.x: a headless active GM (window closed, or a
 second GM relaying for a player) restocked an actor-mode sale into the compendium
 inventory. If you are on an older build, update.
-
-**"Your GM's Foundry tab needs a reload before shop transactions can land."**
-Buying and selling happen on the **active GM's** client, and that tab has been
-open since before the module was updated, so it is running code that doesn't
-know about the transaction. Rather than let a purchase go silently nowhere, the
-module pings the GM and compares versions before sending — this warning is that
-check firing. Have the GM reload their tab. See
-[Troubleshooting](Troubleshooting.md#a-player-action-does-nothing-and-no-error-appears).
 
 **Stock didn't go down after a purchase.**
 Compendium-catalog mode sells from an unlimited list by design. Use actor mode if

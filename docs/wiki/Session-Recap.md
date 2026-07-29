@@ -36,6 +36,7 @@ Saved sessions go to a history you can browse later.
 | **Loot claims** | [Loot & Treasure](Loot-and-Treasure.md) |
 | **XP awards** | [Party XP](Party-XP.md) |
 | **Merchant purchases and sales** | [Merchant Shop](Merchant-Shop.md) |
+| **Downtime attempts** | [Downtime](Downtime.md) |
 | **Encounter checks** | Roll, threshold, hit/miss, and the crawl turn it happened on |
 | **Combats** | Start, end, and participants |
 | **Per-PC roll statistics** | Every roll each character made |
@@ -43,11 +44,29 @@ Saved sessions go to a history you can browse later.
 
 ## The tabs
 
-**Overview · Combat · Loot · XP · History**
+**Overview · Combat · Loot · XP · Downtime · History**
+
+### Downtime
+
+One row per resolved [Downtime](Downtime.md) attempt, grouped by the controlling
+player and newest first inside each group. The group header carries a subtotal of
+how many landed and what they cost, reading `2/3 · 30 gp`. A row gives the time,
+the character, the activity and slot, the check, the verdict and the fee, with
+whatever the success actually applied in italics underneath. With nothing
+recorded it says `No downtime activity recorded.`
+
+> **A paid attempt is counted twice, deliberately.** The fee also appears under
+> the merchant purchases as `Downtime: <slot label>`, because that is the money
+> ledger and feeds the spend totals. This tab is the narrative record of what was
+> attempted and how it went. Both views need their own copy.
+
+Downtime is also written to a permanent **Downtime Log** journal that outlives
+the session. See [Downtime](Downtime.md#the-downtime-log).
 
 ## Exporting
 
-**Copy for Discord** produces a markdown recap ready to paste into a channel.
+**Copy for Discord** produces a markdown recap ready to paste into a channel,
+including a **Downtime** section with the same per-player grouping.
 
 ---
 

@@ -23,6 +23,12 @@ import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
+import {
+  SOURCES as DOWNTIME_SOURCES,
+  SOURCE_SLUGS as DOWNTIME_SLUGS,
+  EXPECTED_SLOT_COUNT as DOWNTIME_SLOT_COUNT,
+} from "../downtime/downtime-skeleton.mjs";
+import { slotLabel as downtimeSlotLabel, warningLines } from "../downtime/downtime-warnings.mjs";
 import { SOURCE_SUGGESTIONS, BOOK_SOURCES, FORMAT_EXAMPLES, flaggedRowNames, warnFields } from "./importer-hub-shared.mjs";
 import { installHubPaste } from "./importer-hub-paste.mjs";
 import { installHubCommit } from "./importer-hub-commit.mjs";
@@ -67,6 +73,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitSpells:        function (...args) { return this._onHubCommitSpells(...args); },
       hubCommitTables:        function (...args) { return this._onHubCommitTables(...args); },
       hubCommitBoats:         function (...args) { return this._onHubCommitBoats(...args); },
+      hubCommitDowntime:      function (...args) { return this._onHubCommitDowntime(...args); },
       hubCommitGenerators:    function (...args) { return this._onHubCommitGenerators(...args); },
       hubCommitAll:           function (...args) { return this._onHubCommitAll(...args); },
       // Bundle export/import
@@ -89,6 +96,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       manageExpandAll:        function (...args) { return this._onManageExpandAll(...args); },
       manageCollapseAll:      function (...args) { return this._onManageCollapseAll(...args); },
       charSeedPaste:          function (...args) { return this._onCharSeedPaste(...args); },
+      downtimeSeedPaste:      function (...args) { return this._onDowntimeSeedPaste(...args); },
       spellListSeed:          function (...args) { return this._onSpellListSeed(...args); },
       openClassImporter:      function (...args) { return this._onOpenClassImporter(...args); },
       openSpellImporter:      function (...args) { return this._onOpenSpellImporter(...args); },
@@ -119,7 +127,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   // ── Import type selector ───────────────────────────────────────────────────
-  /** @type {"auto"|"monsters"|"items"|"spells"|"tables"|"backgrounds"|"talents"|"classes"|"ancestries"} */
+  /** @type {"auto"|"monsters"|"items"|"spells"|"tables"|"backgrounds"|"talents"|"classes"|"ancestries"|"downtime"} */
   _importType = "auto";
   /** Forced item subtype when importing items ("auto" = name inference). */
   _importItemSubtype = "auto";
@@ -156,6 +164,13 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Paste-box focus/cursor preservation. */
   _importTextFocused = false;
   _importTextCursor = 0;
+
+  // ── Downtime unlock (writes a world setting, not a compendium) ─────────────
+  /** Which downtime book the paste is from: "cs6" | "western-reaches". */
+  _downtimeSource = DOWNTIME_SLUGS[0];
+  /** Last parseDowntimeText result awaiting commit, or null.
+   *  @type {{filled: object, unmatchedBullets: object[], unfilledSlots: string[], warnings: object[]}|null} */
+  _downtimeParse = null;
 
   // ── Manage strip (collapsible, lazy) ───────────────────────────────────────
   /** Whether the Manage strip is expanded (its census is computed only then). */
@@ -203,6 +218,25 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static open(_tab = null, seed = null) {
     if (!this._instance) this._instance = new ImporterHubApp();
     const inst = this._instance;
+    // Downtime unlock seed — the frozen contract with the Downtime window:
+    //   openHub("import", { downtimeSource: "cs6" | "western-reaches" })
+    // opens the hub on the downtime type with that book pre-picked. It is NOT
+    // an `_importSeed` (there's no manifest entry, no name line, no PDF page to
+    // grab), so it never reaches the seed-hint bar or _applyImportSeed.
+    if (seed?.downtimeSource) {
+      const slug = DOWNTIME_SOURCES[seed.downtimeSource] ? seed.downtimeSource : DOWNTIME_SLUGS[0];
+      inst._seedDowntimeUnlock(slug);
+      if (!inst.rendered) inst.render(true);
+      else { inst.bringToFront(); inst.render(); }
+      // One-press unlock, exactly like the manage-tree rows: once the paste box
+      // exists, pull the cited pages straight in. Best-effort and awaited off
+      // the render, so it never blocks open() (same shape as the matrix seed).
+      Promise.resolve().then(async () => {
+        await inst.render();
+        await inst._autoGrabDowntimePdf();
+      }).catch((err) => console.warn(`${MODULE_ID} | downtime seed auto-grab failed`, err));
+      return inst;
+    }
     if (seed) {
       inst._importSeed = seed;
       // A NEW unlock seed means a NEW import: drop the previous unlock's parsed
@@ -426,6 +460,48 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const showImportAll = [hasMonsters, hasItems, hasSpells, hasTables].filter(Boolean).length > 1;
 
     const t = this._importType;
+
+    // Downtime unlock: not a compendium import — the parsed outcome text goes
+    // into the `downtimeContent` world setting, per source book. The section is
+    // shown whenever the type is picked (the source select has to be settable
+    // BEFORE a parse); the result block appears once Parse has run.
+    const downtime = t === "downtime" ? (() => {
+      const src = DOWNTIME_SOURCES[this._downtimeSource];
+      const p = this._downtimeParse;
+      const filledCount = Object.keys(p?.filled ?? {}).length;
+      return {
+        expected: DOWNTIME_SLOT_COUNT,
+        label: src?.label ?? this._downtimeSource,
+        pages: src?.pages ?? "",
+        sourceOptions: DOWNTIME_SLUGS.map((slug) => ({
+          value: slug,
+          label: DOWNTIME_SOURCES[slug].label,
+          selected: slug === this._downtimeSource,
+        })),
+        result: p ? {
+          filledCount,
+          complete: filledCount >= DOWNTIME_SLOT_COUNT,
+          canCommit: filledCount > 0,
+          // Real problems first; the two-column recovery notes sort below them.
+          warnings: warningLines(p),
+          // Slot LABELS are allowed here and nowhere else: the person reading
+          // this has the book open in front of them. Nothing locked is shown
+          // as if the module shipped it.
+          //
+          // ZERO matches is precisely the case where that premise fails — junk
+          // or an empty box proves nothing about who is holding what — so the
+          // labels are withheld from the render data entirely (not hidden in
+          // the template, which would still ship them to the client). A partial
+          // parse (>=1 filled) keeps the full list: that GM demonstrably has
+          // the page and needs to know what is still missing.
+          unfilled: filledCount > 0 ? (p.unfilledSlots ?? []).map((k) => downtimeSlotLabel(k)) : [],
+          unmatched: (p.unmatchedBullets ?? []).map((b) => ({
+            dc: b?.dc ?? "", paid: !!b?.paid, text: b?.text ?? "",
+          })),
+        } : null,
+      };
+    })() : null;
+
     const importData = {
       text: this._importText,
       source: this._importSource,
@@ -478,6 +554,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           { value: "ancestries", label: "Ancestry" },
           { value: "generators", label: "Compound generator" },
           { value: "cartesian",  label: "Cartesian table" },
+          { value: "downtime",   label: "Downtime" },
         ] },
         { group: "Guided workspaces", options: [
           { value: "__spells",  label: "Spells…" },
@@ -501,6 +578,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       generators: importGenerators,
       skipped: this._importSkipped,
       hasMonsters, hasItems, hasSpells, hasTables, hasBoats, hasGenerators, showImportAll,
+      downtime, hasDowntime: !!downtime,
       chars: this._importChar.map((p) => {
             const strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
             const u = p.draft.classUnit;
@@ -671,6 +749,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubType();
     this._wireHubPaste();
     this._wireHubSource();
+    this._wireHubDowntime();
     this._wireHubMonsterFieldEdits();
     this._wireHubItemFieldEdits();
     this._wireHubSpellFieldEdits();

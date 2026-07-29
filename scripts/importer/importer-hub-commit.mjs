@@ -17,6 +17,12 @@ import { BoatImporter } from "./boats/boat-importer.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
+import { buildUnlockRecord, readStored } from "../downtime/downtime-core.mjs";
+import {
+  SOURCES as DOWNTIME_SOURCES,
+  SOURCE_SLUGS as DOWNTIME_SLUGS,
+  EXPECTED_SLOT_COUNT as DOWNTIME_SLOT_COUNT,
+} from "../downtime/downtime-skeleton.mjs";
 
 class HubCommitMethods {
 
@@ -218,6 +224,81 @@ class HubCommitMethods {
     if (report.skipped.length) bits.push(`${report.skipped.length} already present`);
     ui.notifications.info(`Boats: ${bits.join(", ") || "nothing to do"} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
     this._importBoats = [];
+    this._invalidateManageTree?.();
+    this.render();
+  }
+
+  /**
+   * Conflict dialog for a downtime RE-unlock that would shrink what's stored.
+   * A commit replaces the whole per-book record, so re-unlocking from a worse
+   * paste silently re-locks outcomes the GM already had. Same DialogV2 shape as
+   * the monster/table conflict prompts; the safe option is the default.
+   * @returns {Promise<"replace"|"cancel">}
+   */
+  async _downtimeDowngradeDialog(label, existingCount, newCount) {
+    const safe = foundry.utils.escapeHTML(label);
+    const choice = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Downtime Already Unlocked" },
+      content: `<p><strong>${safe}</strong> already has <strong>${existingCount}</strong> of ${DOWNTIME_SLOT_COUNT} outcomes unlocked, but this paste matched only <strong>${newCount}</strong>.</p>`
+        + `<p>Replacing swaps the stored text for the smaller set — the ${existingCount - newCount} outcome${existingCount - newCount === 1 ? "" : "s"} not in this paste would lock again.</p>`,
+      buttons: [
+        { action: "cancel", label: "Keep Existing", icon: "fa-solid fa-shield", default: true },
+        { action: "replace", label: "Replace Anyway", icon: "fa-solid fa-triangle-exclamation" },
+      ],
+      rejectClose: false,
+    }).catch(() => "cancel");
+    return choice ?? "cancel";
+  }
+
+  /**
+   * Commit: store the parsed downtime outcomes for ONE source book in the
+   * `downtimeContent` world setting. GM-gated like every other commit.
+   *
+   * The only commit that writes a setting instead of compendium documents —
+   * the pasted text is the GM's own book copy, so it never becomes a shipped
+   * document. The other book's record is merged through untouched, and the
+   * Downtime window re-renders off its own `updateSetting` subscription
+   * (downtime-app.mjs `_onFirstRender`), so nothing reaches into that app.
+   */
+  async _onHubCommitDowntime() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can unlock downtime outcomes."); return; }
+    const parse = this._downtimeParse;
+    if (!parse) { ui.notifications.warn("Parse a downtime page first."); return; }
+    const slug = DOWNTIME_SOURCES[this._downtimeSource] ? this._downtimeSource : DOWNTIME_SLUGS[0];
+    const label = DOWNTIME_SOURCES[slug].label;
+    const filledCount = Object.keys(parse.filled ?? {}).length;
+    if (!filledCount) {
+      ui.notifications.warn(`Nothing matched the ${label} downtime pages — check the book selection and re-paste.`);
+      return;
+    }
+    // Merge, never replace: unlocking one book must leave the other's text alone.
+    // WITHIN a book the record IS replaced, so a re-unlock from a worse paste
+    // would silently re-lock outcomes the GM already has — confirm that first.
+    const content = { ...(game.settings.get(MODULE_ID, "downtimeContent") ?? {}) };
+    let priorCount = 0;
+    try {
+      const prior = readStored(content[slug]);
+      priorCount = prior.ok ? Object.keys(prior.slots).length : 0;
+    } catch { priorCount = 0; }
+    if (priorCount > filledCount) {
+      const choice = await this._downtimeDowngradeDialog(label, priorCount, filledCount);
+      if (choice !== "replace") {
+        ui.notifications.info(`Kept the existing ${label} downtime unlock (${priorCount} of ${DOWNTIME_SLOT_COUNT}).`);
+        return;
+      }
+    }
+    let record;
+    try {
+      record = buildUnlockRecord(parse, { unlockedAt: new Date().toISOString() });
+    } catch (err) {
+      console.error(`${MODULE_ID} | downtime: buildUnlockRecord failed`, err);
+      ui.notifications.error("Couldn't build the downtime unlock record — see the console.");
+      return;
+    }
+    content[slug] = record;
+    await game.settings.set(MODULE_ID, "downtimeContent", content);
+    ui.notifications.info(`Downtime (${label}): ${filledCount} of ${DOWNTIME_SLOT_COUNT} entries unlocked.`);
+    this._downtimeParse = null;
     this._invalidateManageTree?.();
     this.render();
   }

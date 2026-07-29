@@ -62,11 +62,19 @@ async function _openDoc(filePath) {
  *
  * @param {Array} its   text items (already filtered to non-empty str)
  * @param {number} W    page width in PDF units
- * @param {"auto"|"1"|"2"} mode
+ * @param {"auto"|"1"|"2"|"2mid"} mode
  * @returns {number|null} gutter x, or null
  */
 function detectGutter(its, W, mode = "auto") {
   if (mode === "1" || mode === "layout") return null;
+  // "2mid": two columns split at the page MIDLINE, detection skipped entirely.
+  // For an opt-in pin only — a page whose valley detection is known to land off
+  // the true column boundary. The CS6/WR downtime spread is the case that
+  // forced it: p26's widest low-density run sits at x=172 (the ragged right
+  // edge of the left column's prose) while the real boundary is the midline at
+  // 210, so a left-column word centred at 183 was assigned to the right column
+  // and spliced into the middle of that column's bullet list.
+  if (mode === "2mid") return W / 2;
   if (its.length < 12) return mode === "2" ? W / 2 : null;
 
   const centers = its.map((i) => i.transform[4] + i.width / 2);
@@ -311,7 +319,8 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
  * @param {string} filePath  served path to the user's PDF (data-relative)
  * @param {object} [opts]
  * @param {number[]} [opts.pages]     1-based PDF page numbers (default: [1])
- * @param {"auto"|"1"|"2"} [opts.columns="auto"]  column handling
+ * @param {"auto"|"1"|"2"|"2mid"|"layout"} [opts.columns="auto"]  column handling
+ *        ("2mid" = two columns split at the page midline, no valley detection)
  * @param {boolean} [opts.cropTablePrefix=false]  drop a leading full-width
  *        price-table block before column detection (shared gear pages)
  * @returns {Promise<{text:string, numPages:number,

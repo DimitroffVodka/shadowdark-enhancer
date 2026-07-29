@@ -49,8 +49,14 @@ prose, and applying it to the table slices the table in half: the first column
 arrives as one die-numbered block and the rest as a second, detached block. Pin
 `"layout"` there, which pads every cell to its true x-position so all columns
 stay on one line. Pin `"1"` for a table that needs each row glued onto a single
-line. Getting this wrong is rarely subtle. Cells come out shredded into single
-words, because the fallback splitter is left guessing at whitespace.
+line. Pin `"2mid"` for a two-column page whose gutter detection lands in the
+wrong place: it skips detection and splits at the page midline instead. The
+Cursed Scroll 6 and Western Reaches downtime spreads are the case that needed it,
+where the widest low-density run sits at the ragged right edge of the left
+column's prose rather than at the real boundary, so a left-column word was being
+spliced into the middle of the right column's list. Getting this wrong is rarely
+subtle. Cells come out shredded into single words, because the fallback splitter
+is left guessing at whitespace.
 
 Every Core d20 × 3-column generator page has this shape (*Tavern* p136, *Shop*
 p139, *Adventure* p122, *Adventuring Site Name* p123, *NPC Qualities* p125,

@@ -1865,6 +1865,12 @@ body.theme-light .sde-mimport-warncount { color: #7c5800; }
   padding: 3px 6px;
 }
 
+/* The downtime Book select must fit "Western Reaches Players Guide"
+   (192px of text + arrow); the family's 200px cap clips it. */
+select[data-downtime-source].sde-hub-import-source-input {
+  max-width: 260px;
+}
+
 /* Type selector bar */
 .sde-hub-import-typebar {
   display: flex;
@@ -9030,4 +9036,425 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   padding: 4px 10px;
   margin-left: 6px;
   font-size: 12px;
+}
+
+/* ==========================================================================
+   Downtime (sde-downtime) — Character Builder design language.
+   The builder is the house style the user picked, so this window speaks its
+   vocabulary rather than inventing a third one: the same printed-rulebook
+   palette, blackletter section titles over a hairline rule, panel cards on a
+   black page, list rows that mark selection with a left rail, and the
+   .sde-cb-btn button scale.
+
+   Deliberately NOT coupled to .sde-cb-* selectors — downtime re-declares the
+   --sd-* palette (source of truth: the .sde-cb block above) and styles its own
+   classes, so a change to the builder's internals cannot silently re-skin or
+   break this window.
+   ========================================================================== */
+.sde-downtime .window-content { padding: 0; }
+
+.sde-downtime .sde-downtime-root {
+  /* Printed-rulebook palette, mirrored from the Character Builder. */
+  --sd-page:#000; --sd-panel:#0d0d0d; --sd-quote-inner:#1a1a1a;
+  --sd-text:#fff; --sd-text-body:#f0f0f0; --sd-text-2:#e0e0e0; --sd-text-muted:#999;
+  --sd-hairline:#443c3c; --sd-frame:#c9c9c9; --sd-gold:#c9aa58;
+  --sd-desc:#cdc7ba;
+  --sd-font-title:"JSL Blackletter", var(--font-header, serif);
+  --sd-font-body:"Montserrat-Medium", var(--font-sans, "Signika"), sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--sd-page);
+  color: var(--sd-text-body);
+  font-family: var(--sd-font-body);
+  font-size: 13px;
+  /* Native selects/scrollbars follow core's theme, not this always-dark app. */
+  color-scheme: dark;
+}
+.sde-downtime .sde-downtime-root select {
+  background: var(--sd-panel);
+  color: var(--sd-text);
+  border: 1px solid var(--sd-hairline);
+  border-radius: 5px;
+}
+.sde-downtime .sde-downtime-root select option { background: var(--sd-quote-inner); color: var(--sd-text); }
+
+/* --- Pinned header bar (mirrors .sde-cb-tabs) ----------------------------- */
+.sde-dt-header {
+  flex: 0 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--sd-page);
+  border-bottom: 1px solid var(--sd-hairline);
+}
+.sde-dt-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sde-dt-field label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--sd-text-muted);
+}
+.sde-dt-field select { min-width: 150px; max-width: 240px; padding: 4px 6px; font-size: 12.5px; }
+.sde-dt-pinned {
+  font-family: var(--sd-font-title);
+  font-size: 17px;
+  color: var(--sd-text);
+  display: inline-flex; align-items: center; gap: 6px;
+  letter-spacing: 0.03em;
+}
+.sde-dt-purse {
+  display: flex; gap: 12px; margin-left: auto; align-items: center;
+  font-size: 12px; color: var(--sd-text-muted); white-space: nowrap;
+}
+.sde-dt-choice { margin: 0; }
+
+/* --- Buttons (mirrors .sde-cb-btn) ---------------------------------------- */
+.sde-dt-btn, .sde-dt-mini {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: auto; flex: 0 0 auto;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 5px;
+  background: var(--sd-panel);
+  color: var(--sd-text);
+  cursor: pointer;
+  line-height: 1.5;
+  transition: background 0.12s, border-color 0.12s, filter 0.12s;
+}
+.sde-dt-btn  { padding: 7px 14px; font-size: 13px; }
+.sde-dt-mini { padding: 5px 10px; font-size: 11px; color: var(--sd-text-2); }
+.sde-dt-btn:hover:not(:disabled),
+.sde-dt-mini:hover:not(:disabled) { border-color: var(--sd-text); }
+.sde-dt-btn:disabled, .sde-dt-mini:disabled { opacity: 0.4; cursor: not-allowed; }
+/* The builder's "ready/danger" treatment: filled, inverted, bold. */
+.sde-dt-primary {
+  background: var(--sd-text); border-color: var(--sd-text);
+  color: var(--sd-page); font-weight: 700;
+}
+.sde-dt-primary:hover:not(:disabled) { filter: brightness(1.1); }
+.sde-dt-danger { border-color: var(--sd-frame); color: var(--sd-text-2); }
+.sde-dt-mini.sde-dt-on { border-color: var(--sd-text); color: var(--sd-text); }
+
+/* --- Scroll plumbing: pinned controls, scrolling body --------------------- */
+.sde-downtime .window-content { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.sde-dt-header, .sde-dt-panel, .sde-dt-status { flex: 0 0 auto; }
+.sde-dt-scroll {
+  /* SHRINK, don't grow: shrink + min-height:0 lets a 1300px list collapse into
+     the window and scroll; refusing to grow keeps the short locked-cards state
+     at its natural height instead of stretching an empty panel down the page. */
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--sd-hairline) var(--sd-page);
+}
+.sde-dt-scroll::-webkit-scrollbar { width: 10px; }
+.sde-dt-scroll::-webkit-scrollbar-track { background: var(--sd-page); }
+.sde-dt-scroll::-webkit-scrollbar-thumb { background: var(--sd-hairline); border-radius: 5px; }
+.sde-dt-scroll:empty { display: none; }
+
+/* --- Panel cards (mirrors .sde-cb-align-card / panel-title) --------------- */
+.sde-dt-activity,
+.sde-dt-panel,
+.sde-dt-status,
+.sde-dt-result {
+  background: var(--sd-panel);
+  border: 1px solid var(--sd-hairline);
+  border-radius: 8px;
+  padding: 14px 16px;
+}
+.sde-dt-panel, .sde-dt-status { margin: 12px 12px 0; }
+
+/* The builder's section header: blackletter over a hairline rule. */
+.sde-dt-activity-head,
+.sde-dt-panel-head,
+.sde-dt-result-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px;
+  font-family: var(--sd-font-title);
+  font-size: 17px;
+  color: var(--sd-text);
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--sd-frame);
+  padding-bottom: 5px;
+  margin-bottom: 10px;
+}
+.sde-dt-activity-name { font-family: inherit; }
+.sde-dt-check-label {
+  margin-left: auto; white-space: nowrap;
+  font-family: var(--sd-font-body); font-size: 11.5px; color: var(--sd-text-muted);
+}
+.sde-dt-note {
+  margin: 4px 0; font-size: 12px; font-style: italic; color: var(--sd-text-muted);
+}
+.sde-dt-note.sde-dt-gate { color: var(--sd-frame); font-style: normal; }
+.sde-dt-empty { margin: 12px; font-style: italic; color: var(--sd-text-muted); }
+.sde-dt-toggle { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; font-size: 11.5px; }
+
+/* --- Slot rows (mirrors .sde-cb-list-item) -------------------------------- */
+.sde-dt-slots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sde-dt-slot-row {
+  display: flex; flex-direction: column; align-items: stretch;
+  padding: 8px 10px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 5px;
+  background: transparent;
+  transition: border-color 0.12s, background 0.12s;
+}
+.sde-dt-slot-row:hover { border-color: var(--sd-frame); }
+/* Selection reads as a left rail, exactly like the builder's option lists.
+   The builder draws its rail with `inset` box-shadow; this uses a real
+   border-left instead. Identical on screen, and it survives html2canvas —
+   inset shadows capture as a solid fill over the whole row, which makes a
+   correct window look broken in every screenshot. */
+.sde-dt-slot-chosen {
+  border-color: var(--sd-text);
+  border-left: 3px solid var(--sd-text);
+  padding-left: 8px;
+  background: var(--sd-quote-inner);
+}
+.sde-dt-slot-main { display: flex; align-items: center; gap: 10px; }
+.sde-dt-slot-label {
+  flex: 1 1 auto; min-width: 0;
+  font-family: var(--sd-font-title); font-size: 15px; color: var(--sd-text);
+  letter-spacing: 0.02em;
+}
+.sde-dt-slot-dc {
+  flex: 0 0 auto; font-variant-numeric: tabular-nums; white-space: nowrap;
+  font-size: 12.5px; color: var(--sd-text-2);
+}
+.sde-dt-slot-dc em { color: var(--sd-text-muted); font-size: 11px; font-style: normal; }
+/* Per-row stat chip ("CHA DC 9"). Skulduggery mixes CHA and DEX rows inside one
+   activity, so the section header alone can't say what you're rolling. */
+.sde-dt-stat {
+  display: inline-block;
+  margin-right: 5px;
+  padding: 1px 5px;
+  border: 1px solid var(--sd-hairline);
+  border-radius: 3px;
+  font-family: var(--sd-font-body);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--sd-text-muted);
+  vertical-align: 1px;
+}
+
+/* GM-only manual DC ladder control. Automatic step-down on failure is
+   unchanged; this is for off-tool attempts and corrections. */
+.sde-dt-stepper { flex: 0 0 auto; display: inline-flex; gap: 2px; }
+.sde-dt-step {
+  width: 20px; height: 20px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--sd-hairline); border-radius: 3px;
+  background: var(--sd-panel); color: var(--sd-text-2);
+  font-size: 12px; line-height: 1; cursor: pointer;
+}
+.sde-dt-step:hover:not(:disabled) { border-color: var(--sd-text); color: var(--sd-text); }
+.sde-dt-step:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Book-style subsection header (the two spellcaster lists). */
+.sde-dt-subhead {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
+  margin: 10px 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--sd-hairline);
+}
+.sde-dt-subhead-label {
+  font-family: var(--sd-font-body);
+  font-size: 10.5px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--sd-text-2);
+}
+.sde-dt-slot-cost {
+  flex: 0 0 auto; min-width: 52px; text-align: right; white-space: nowrap;
+  font-variant-numeric: tabular-nums; font-size: 12.5px; color: var(--sd-gold);
+}
+/* The description IS the decision — the builder's trait-desc voice. */
+.sde-dt-slot-desc {
+  margin: 6px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--sd-desc);
+}
+/* Row-level block notice (unaffordable fee). Sits under the description so the
+   player reads what the activity does, then why they can't take it. */
+.sde-dt-row-block { margin: 4px 0 0; display: flex; align-items: center; gap: 5px; }
+.sde-dt-slot-row:has(.sde-dt-row-block) .sde-dt-slot-label { opacity: 0.6; }
+/* NOTE: no ".sde-dt-slot-locked" greyed state exists. A slot whose text is not
+   unlocked is not rendered at all — see downtime.hbs. */
+
+/* --- Locked book card (mirrors .sde-cb-align-card.suggested) -------------- */
+.sde-dt-locked-card {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  background: var(--sd-panel);
+  border: 1px dashed var(--sd-hairline);
+  border-radius: 8px;
+  padding: 18px 16px;
+}
+.sde-dt-locked-head { display: flex; align-items: baseline; gap: 10px; }
+.sde-dt-locked-head .fa-lock { color: var(--sd-text-muted); font-size: 13px; }
+.sde-dt-locked-title { font-family: var(--sd-font-title); font-size: 22px; color: var(--sd-text); }
+.sde-dt-cite { font-size: 11.5px; color: var(--sd-text-muted); }
+.sde-dt-locked-body { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--sd-desc); max-width: 62ch; }
+
+/* --- Banners -------------------------------------------------------------- */
+.sde-dt-banner {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  margin: 0; padding: 10px 12px;
+  background: var(--sd-panel);
+  border: 1px solid var(--sd-hairline);
+  border-left-width: 3px;
+  border-radius: 5px;
+  font-size: 12.5px; line-height: 1.5; color: var(--sd-desc);
+}
+.sde-dt-banner.sde-dt-stale        { border-left-color: var(--sd-text-muted); }
+.sde-dt-banner.sde-dt-partial-note { border-left-color: var(--sd-frame); }
+.sde-dt-banner.sde-dt-start        { border-left-color: var(--sd-text); margin: 12px 12px 0; }
+
+/* --- GM control panel ------------------------------------------------------ */
+.sde-dt-panel-stat { margin-right: auto; font-family: var(--sd-font-body); font-size: 11.5px; color: var(--sd-text-muted); }
+.sde-dt-overview { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+  /* Pinned, so it must not grow without limit — it scrolls on its own. */
+  max-height: 128px; overflow-y: auto; scrollbar-width: thin; }
+.sde-dt-ov-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 8px; border: 1px solid transparent; border-radius: 5px; font-size: 12.5px;
+}
+.sde-dt-ov-row:nth-child(odd) { background: var(--sd-quote-inner); }
+.sde-dt-ov-done { opacity: 0.7; }
+.sde-dt-ov-name { flex: 0 0 26%; min-width: 0; font-family: var(--sd-font-title); font-size: 14px; color: var(--sd-text); }
+.sde-dt-ov-pick { flex: 1 1 auto; min-width: 0; color: var(--sd-desc); }
+.sde-dt-ov-waiting { color: var(--sd-text-muted); font-style: italic; }
+.sde-dt-ov-result { flex: 0 0 auto; white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--sd-text-2); }
+
+/* --- Player status strip --------------------------------------------------- */
+.sde-dt-status { border-left: 3px solid var(--sd-text); }
+.sde-dt-status-line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; font-size: 13px; }
+.sde-dt-status-line strong { font-family: var(--sd-font-title); font-size: 15px; color: var(--sd-text); font-weight: 400; }
+.sde-dt-verdict { font-weight: 700; letter-spacing: 0.1em; font-size: 11.5px; }
+.sde-dt-status-line.sde-dt-success .sde-dt-verdict { color: var(--sd-gold); }
+.sde-dt-status-line.sde-dt-failure .sde-dt-verdict { color: var(--sd-text-muted); }
+.sde-dt-waiting { color: var(--sd-text-muted); font-style: italic; font-size: 12px; }
+.sde-dt-roll { margin-left: auto; }
+
+/* --- Pending effect choice ------------------------------------------------- */
+.sde-dt-choice-box {
+  margin-top: 10px; padding: 12px;
+  border: 1px dashed var(--sd-frame); border-radius: 8px; background: var(--sd-quote-inner);
+}
+.sde-dt-choice-prompt { margin: 0 0 8px; font-size: 12.5px; color: var(--sd-text); }
+.sde-dt-choice-opts { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Unavailable options stay visible and greyed WITH their reason — the player
+   should see what they just missed, not a silently shorter list. */
+.sde-dt-opt-off { opacity: 0.45; }
+.sde-dt-opt-reason { font-size: 11.5px; font-style: italic; color: var(--sd-text-muted); }
+.sde-dt-trade-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; padding: 3px 0; }
+.sde-dt-trade-drop { font-family: var(--sd-font-title); font-size: 14px; color: var(--sd-text); }
+.sde-dt-trade-gain { font-size: 11.5px; }
+
+/* --- In-app result area ---------------------------------------------------- */
+.sde-dt-result { border-left: 3px solid var(--sd-hairline); }
+.sde-dt-result.sde-dt-success { border-left-color: var(--sd-gold); }
+.sde-dt-result.sde-dt-failure { border-left-color: var(--sd-text-muted); }
+.sde-dt-result-num { margin-left: auto; font-family: var(--sd-font-body); font-size: 12.5px;
+  font-variant-numeric: tabular-nums; color: var(--sd-text-muted); }
+.sde-dt-outcome { margin: 6px 0; font-size: 12.5px; line-height: 1.45; color: var(--sd-desc); }
+.sde-dt-extra { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; font-size: 12.5px; }
+.sde-dt-extra select { width: auto; min-width: 140px; }
+
+/* --- Footer ---------------------------------------------------------------- */
+.sde-dt-footer {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border-top: 1px solid var(--sd-hairline);
+  font-size: 11.5px; font-style: italic; color: var(--sd-text-muted);
+}
+
+/* Importer Hub — downtime parse preview.
+   A complete 25-slot parse renders the match line plus warning / unfilled /
+   unmatched lists; unbounded it pushed the "Unlock outcomes" button below the
+   fold. Bounded here so the section's own controls stay reachable and the
+   preview scrolls on its own. Scoped to the downtime preview: the hub's other
+   import types keep their unbounded .sde-import-preview. */
+.sde-dt-hub-preview {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scrollbar-color: var(--sde-bar-border, #6b6b6b) var(--sde-bar-surface-1, #1a1a1a);
+}
+.sde-dt-hub-preview::-webkit-scrollbar { width: 9px; }
+.sde-dt-hub-preview::-webkit-scrollbar-track { background: var(--sde-bar-surface-1, #1a1a1a); }
+.sde-dt-hub-preview::-webkit-scrollbar-thumb {
+  background: var(--sde-bar-border, #6b6b6b);
+  border-radius: 5px;
+}
+
+/* ── Downtime chat card ──────────────────────────────────────────────────── */
+
+.sde-downtime-card {
+  border: 1px solid var(--sde-bar-border, #6c6560);
+  border-left: 3px solid var(--sde-bar-text-muted, #8a8177);
+  border-radius: 3px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+.sde-downtime-card.sde-dt-success { border-left-color: var(--sde-bar-accent, #c9aa58); }
+.sde-dt-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-weight: 600;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--sde-bar-border, #6c6560);
+}
+.sde-dt-head .sde-dt-slot { margin-left: auto; font-weight: 400; font-size: 11px; opacity: 0.8; }
+.sde-dt-check { font-size: 11px; opacity: 0.85; }
+.sde-dt-total { display: flex; align-items: baseline; gap: 8px; margin: 4px 0; }
+.sde-dt-num { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sde-dt-vs { font-size: 11px; opacity: 0.8; }
+.sde-dt-verdict { margin-left: auto; font-weight: 700; letter-spacing: 0.08em; font-size: 11px; }
+.sde-downtime-card.sde-dt-success .sde-dt-verdict { color: var(--sde-bar-accent, #c9aa58); }
+.sde-dt-line { font-size: 12px; margin: 2px 0; }
+.sde-dt-outcome { margin: 4px 0; line-height: 1.45; }
+.sde-dt-foot {
+  margin-top: 5px;
+  padding-top: 4px;
+  border-top: 1px solid var(--sde-bar-border, #6c6560);
+  font-size: 10px;
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* Announcement card (chat). Lives with the other chat-card rules, not with the
+   window chrome — it renders inside chat's design language, not the app's. */
+.sde-dt-announce .sde-dt-book { font-weight: 600; }
+/* Chat cards render OUTSIDE the app root, so the --sd-* tokens declared there
+   don't reach this button — hard values only, filled-primary like the app.
+   Scoped under the card class: core's chat button rules out-specify a lone
+   class and swallowed the background (invisible dark-on-dark button). */
+.sde-downtime-card .sde-dt-open-btn {
+  width: auto;
+  padding: 3px 12px;
+  margin-top: 4px;
+  /* !important: core's comma-list chat button rules out-specify anything
+     class-based here and painted the button dark-on-dark (invisible). */
+  background: #f0f0f0 !important;
+  color: #111 !important;
+  font-weight: 700 !important;
+  border: 1px solid #c9c9c9 !important;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.sde-downtime-card .sde-dt-open-btn:hover {
+  background: #fff !important;
 }

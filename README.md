@@ -67,6 +67,7 @@ Each row links to its full manual page.
 | **[Loot & Treasure](docs/wiki/Loot-and-Treasure.md)** | Generate a hoard, then post it as a chat card players race to claim or drop it on the ground as pickup-able tokens, with no need to pick a recipient. First claim wins, coins land in the right purse. Opt-in loot drops when combat ends. |
 |  **[Merchant Shop](docs/wiki/Merchant-Shop.md)** | A shop that opens for every player at once, backed by a catalog or an NPC's own inventory. Buying and selling against `system.coins`, serialised so nobody double-spends. |
 |  **[Party XP](docs/wiki/Party-XP.md)** | Award XP to the whole party at once: full amount to each character, per Shadowdark RAW. Flags who's ready to level, and never levels anyone itself. |
+|  **[Downtime](docs/wiki/Downtime.md)** | The between-crawl activities from *Cursed Scroll 6* or the *Western Reaches*: spiritualism, skulduggery, martial training, magical research. It knows the DCs, the costs and the step-down ladder. The outcomes come from your own book, through the Importer. A book you haven't imported shows its title and nothing else. |
 |  **[Session Recap](docs/wiki/Session-Recap.md)** | A session log that fills itself in (loot, XP, combats, rolls, kills, merchant activity) with a **Copy for Discord** export. Tied to the crawl, so there's no extra button to remember. |
 
 ### Building content
@@ -131,7 +132,7 @@ Hooks.once("shadowdarkEnhancer.ready", (api) => {
 
 Namespaces: `import` · `items` · `monsters` · `linker` · `encounter` · `loot` ·
 `tables` · `bundle` · `mutator` · `monsterCreator` · `tokenArt` · `forge` ·
-`charBuilder` · `merchant` · `partyXp` · `recap`
+`charBuilder` · `merchant` · `partyXp` · `recap` · `downtime`
 
 Full reference: **[docs/API.md](docs/API.md)**.
 

@@ -30,6 +30,7 @@ export const FORMAT_EXAMPLES = {
   ancestries: "The ancestry writeup — flavor, languages, and its named feature:\n\nDWARF\nBrave, stalwart folk. You know Common and Dwarvish.\nStout. Start with +2 HP; roll hit dice with advantage.",
   generators: "A multi-column grid — pick the dice (e.g. 3d6), one row per line:\n\nd6  Trap  Trigger  Damage\n1  Pit  Pressure plate  1d6\n2  Dart wall  Tripwire  1d4 poison\n…",
   cartesian: "Same as a compound generator, but every column combination is spelled out into one long, fully-visible table. Pick the dice (e.g. 3d6); put | between columns to force the splits.",
+  downtime: "Pick the book above, then paste its downtime pages — headers, check lines and DC bullets, exactly as printed:\n\nSPIRITUALISM\nWIS Check\nDC 9: …\nDC 12: …\nDC 15*: …",
 };
 
 

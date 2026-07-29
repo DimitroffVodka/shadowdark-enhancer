@@ -5,6 +5,7 @@
     <button type="button" class="sr-tab {{#if tab.combat}}active{{/if}}" data-action="changeTab" data-tab="combat"><i class="fas fa-khanda"></i> Combat</button>
     <button type="button" class="sr-tab {{#if tab.loot}}active{{/if}}" data-action="changeTab" data-tab="loot"><i class="fas fa-coins"></i> Loot</button>
     <button type="button" class="sr-tab {{#if tab.xp}}active{{/if}}" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> XP</button>
+    <button type="button" class="sr-tab {{#if tab.downtime}}active{{/if}}" data-action="changeTab" data-tab="downtime"><i class="fas fa-mug-hot"></i> Downtime</button>
     <button type="button" class="sr-tab {{#if tab.history}}active{{/if}}" data-action="changeTab" data-tab="history"><i class="fas fa-book"></i> History</button>
   </nav>
 
@@ -153,6 +154,25 @@
       {{/each}}
       {{else}}
       <p class="sr-empty">No XP awarded yet.</p>
+      {{/if}}
+    </section>
+    {{/if}}
+
+    {{#if tab.downtime}}
+    <section class="sr-section">
+      {{#if hasDowntime}}
+      {{#each downtimePlayers}}
+      <div class="sr-merchant-block">
+        <div class="sr-merchant-head"><i class="fas fa-mug-hot"></i> {{player}}</div>
+        <div class="sr-merchant-player"><span class="sr-merchant-name">Attempts</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
+        {{#each rows}}
+        <div class="sr-merchant-item">{{#if time}}{{time}} — {{/if}}{{text}}</div>
+        {{#if effect}}<div class="sr-merchant-item"><em>{{effect}}</em></div>{{/if}}
+        {{/each}}
+      </div>
+      {{/each}}
+      {{else}}
+      <p class="sr-empty">No downtime activity recorded.</p>
       {{/if}}
     </section>
     {{/if}}

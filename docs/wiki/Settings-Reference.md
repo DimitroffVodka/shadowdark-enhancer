@@ -136,6 +136,8 @@ Stored as settings because that is where world-scoped state lives in Foundry.
 | `tokenArtCompendium` | Whether the compendium-art overlay is on |
 | `lootSetupSeen` | Whether the first-run loot nudge has been shown |
 | `backfillVersion` | Last module version whose monster backfill ran in this world |
+| `downtimeContent` | The downtime outcome text you unlocked, per source book. Written by the Importer's **Downtime** import type, read by the [Downtime](Downtime.md) window |
+| `downtimeSession` | The live downtime session: which book, whether picks are still open, and each character's chosen activity and settled result |
 | `uniqueFeatureTableUuid` | The bound unique-feature table |
 
 > **`backfillVersion` is the one worth knowing about.** Clearing it makes the
