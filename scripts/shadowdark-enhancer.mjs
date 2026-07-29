@@ -67,7 +67,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "6af47c6147e0";
+const STYLESHEET_REV = "507b9d39ef73";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -520,6 +520,20 @@ Hooks.once("init", () => {
       // the player who owned the character when each change was made.
       history: (actor) => Renown.history(actor),
       historyByPlayer: () => Renown.historyByPlayer(),
+    },
+    // Pit Fighting — CS2's bouts (pgs 20–24). Mechanics only: the venue, twist,
+    // prize and foe text all come from RollTables the GM imports from their own
+    // book, and the window names any that are missing instead of inventing them.
+    pitFighting: {
+      // The bout roller (GM only). Lazy — nothing loads until it is opened.
+      open: async () => (await import("./pit-fighting/pit-fighting-app.mjs")).PitFightingApp.open(),
+      // Headless set-up: rolls venue / stakes / twist, picks the encounter table
+      // and reads what it can out of the imported tables.
+      setUpBout: async (args) =>
+        (await import("./pit-fighting/pit-fighting-app.mjs")).PitFighting.setUpBout(args),
+      // Award a bout's fame; routes through Renown.award, so it is logged there.
+      awardFame: async (args) =>
+        (await import("./pit-fighting/pit-fighting-app.mjs")).PitFighting.awardFame(args),
     },
   };
 });

@@ -606,6 +606,58 @@ module's own wording, not the book's.
 
 ---
 
+## `pitFighting` — Cursed Scroll 2 bouts
+
+Sets a pit fight up in the book's order and records what came of it. GM-only.
+
+```js
+const api = game.shadowdarkEnhancer;
+
+await api.pitFighting.open();          // the bout roller window
+
+// Headless set-up. Rolls Venue (2d6), Stakes (APL + 1d6) and the Twist (2d6),
+// picks the encounter table, and reads what it can out of the imported tables.
+const s = await api.pitFighting.setUpBout({
+  fighterIds: ["abc123", "def456"],    // who enters the pit
+  danger: null,                        // null follows the suggestion
+});
+// → { bout, aplDetail, fighters, twistSub, venueText, twistText, foeText, missing }
+
+// Award the fame. One Renown.award per fighter, so each is logged and announced
+// by that single write path.
+await api.pitFighting.awardFame({ fighterIds: [...], delta: 1, reason: "Won a bout" });
+```
+
+`bout` carries the mechanics: `venue.total`/`venue.row`, `stakes`
+(`total`, `key`, `label`, `table`, `raised`, `rolledKey`), `danger`
+(`key`, `label`, `suggested`, `overridden`), `twist`
+(`total`, `key`, `effect`, `subRoll`) and `encounterTable`.
+
+Four things worth knowing before you build on it:
+
+- **The danger level is a suggestion, never a ruling.** The book hands the GM the
+  stakes *and* the venue and then says the GM decides. Only the stakes half can be
+  derived — a venue's riskiness is a judgement about a described place, and no risk
+  rating is printed to read it off. `danger.suggested` is what the module proposed;
+  `danger.overridden` says whether you went elsewhere. Changing it changes
+  `encounterTable`, so the foe is redrawn from the table that now applies.
+- **A twist that raises the stakes moves the prize table, not the danger.** The GM
+  set the danger and the fighters accepted on that basis before the twist was
+  revealed. `stakes.raised` flags it and `stakes.rolledKey` keeps the original.
+- **The twist is secret.** It is rolled during set-up and nothing about it reaches
+  chat until the GM presses Reveal, which is when the book has it come out.
+- **No renown value for a bout exists in print.** The default is a flat point for a
+  win and nothing for a loss, for the GM to edit. Deliberately not scaled by
+  stakes: a ladder would read as a rule, and there isn't one.
+
+**Ships no book prose.** Venue descriptions, twist details, what each tier is
+fought for and the foes themselves all come from RollTables you import from your
+own copy of CS2. A table that isn't there is **named** in the window with a link to
+the importer — the roller never substitutes text of its own. `missing` is that
+list, so a headless caller sees the same gaps the window shows.
+
+---
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
