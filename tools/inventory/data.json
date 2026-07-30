@@ -114,12 +114,6 @@
       "dir": "scripts/renown",
       "title": "`scripts/renown/` — the renown fame track",
       "note": "The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This folder adds the band ladder, the single logged write path every renown change goes through, and the GM's award dialog. Band thresholds and bonus numbers are mechanics; the one-line band meanings are the module's own wording, not the book's."
-    },
-    {
-      "id": "3.20",
-      "dir": "scripts/pit-fighting",
-      "title": "`scripts/pit-fighting/` — Cursed Scroll 2 pit fighting bouts",
-      "note": "Structure and thresholds only. Venue descriptions, twist details, what each stakes tier is fought for and the foes themselves all live in the RollTables you import from your own book — this folder holds dice ranges and mechanics, the same class of bare numbers as the reaction bands. The book leaves the danger level and the foe to the GM, so the module suggests and never decides."
     }
   ],
   "order": {
@@ -336,10 +330,6 @@
       "scripts/renown/renown-core.mjs",
       "scripts/renown/renown.mjs",
       "scripts/renown/renown-award-dialog.mjs"
-    ],
-    "3.20": [
-      "scripts/pit-fighting/pit-fighting-core.mjs",
-      "scripts/pit-fighting/pit-fighting-app.mjs"
     ]
   },
   "descriptions": {
@@ -518,8 +508,6 @@
     "scripts/downtime/downtime-session.mjs": "Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles.",
     "scripts/renown/renown-core.mjs": "Pure band ladder and phrasing: `renownBand`/`renownBonus` (≤3 / 4–7 / 8–11 / 12+ → +0/+1/+2/+3), `startingRenown` (the CHA modifier), the shared `recapRow`/`renownChangeLine` wording, the short trigger labels, `isDoubleOnes` — a raw 2d6 total of 2 can only be 1+1 — and `authorizeRenownAward`, the GM-only rule both the direct call and the query handler check. Foundry-free, node-tested.",
     "scripts/renown/renown.mjs": "The single write path for `system.renown`. `Renown.award` updates the actor, logs to the Session Recap and posts a chat card; downtime and the level-up watcher both route through it. Because the write is read-add-write, it is also the single WRITER: an award made on a GM client that is not `game.users.activeGM` is forwarded there over the `sde.renown` query (the delta travels, never a computed total), and on that client awards run one at a time through `_txQueue`, each re-reading the actor inside its turn — two GMs, or two overlapping awards on one, would otherwise lose one of them. Also the party readers the Encounter Roller uses, and the `renownOnLevelUp` setting plus its active-GM-gated `updateActor` watcher. GM-side only.",
-    "scripts/renown/renown-award-dialog.mjs": "The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, plus a \"Start at CHA mod\" seed. GM-only; every write goes through `Renown.award`.",
-    "scripts/pit-fighting/pit-fighting-app.mjs": "The bout roller: the `sde-pit-fighting` ApplicationV2 plus the `PitFighting` logic object. Picks the fighters (their count decides solo vs group, their average level sets the stakes), rolls venue / stakes / twist, offers the danger level as an override that redraws the foe from the newly selected encounter table, holds the twist back until Reveal, draws the prize, and awards the fame through `Renown.award`. `findBoutTable` resolves tables by book name and tolerates the suite's `Source - Name` prefix; a table that is missing is NAMED in the window with a link to the importer, never substituted with text of its own. Reads TableResult `name || description` — never `text`, which still fires the v13 deprecation getter. GM-only.",
-    "scripts/pit-fighting/pit-fighting-core.mjs": "Pure bout set-up: the stakes ladder (APL + 1d6 → 2-5 / 6-10 / 11-13 / 14+), `averagePartyLevel` (rounds half up, ignores unreadable levels rather than counting them as level 0), the 2d6 venue rows, the 2d6 twist bands as machine-readable effects (`extra-danger` and its 1d4 sub-roll, `none`, `stakes-up-1`, `boon`), the three danger levels, `encounterTableName` (High and Epic share one encounter tier, so four stakes tiers map to three table tiers) and `buildBout`. `suggestedDanger` derives from the stakes only — the book hands the GM the venue too and then says the GM decides, and no venue risk rating exists to read. Rolls no dice and holds no text. Foundry-free, node-tested."
+    "scripts/renown/renown-award-dialog.mjs": "The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, plus a \"Start at CHA mod\" seed. GM-only; every write goes through `Renown.award`."
   }
 }
