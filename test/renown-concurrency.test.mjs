@@ -34,13 +34,33 @@ const ROUND_TRIP_MS = 5;
  * An actor whose renown lands only after a round trip — the detail that makes
  * the race real. A synchronous stub would hide the bug entirely.
  */
-function makeActor({ id = "a1", name = "Troana", renown = 5 } = {}) {
+function makeActor({ id = "a1", name = "Troana", renown = 5, cha = 2, type = "Player", flags = {} } = {}) {
   return {
-    id, name,
-    system: { renown },
+    id, name, type,
+    system: { renown, abilities: { cha: { mod: cha } } },
+    flags: structuredClone(flags),
+
+    /**
+     * Applies the whole update, not just the renown key — the ledger rides in
+     * the same call, and a stub that dropped it would hide a broken flag path.
+     */
     async update(data) {
       await new Promise((r) => setTimeout(r, ROUND_TRIP_MS));
-      this.system.renown = data["system.renown"];
+      for (const [path, value] of Object.entries(data)) {
+        const keys = path.split(".");
+        let node = this;
+        while (keys.length > 1) {
+          const key = keys.shift();
+          node[key] ??= {};
+          node = node[key];
+        }
+        node[keys[0]] = value;
+      }
+    },
+
+    getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
+    async setFlag(scope, key, value) {
+      return this.update({ [`flags.${scope}.${key}`]: value });
     },
     testUserPermission: () => false,
   };
@@ -57,14 +77,32 @@ async function harness({ actors = {}, me = GM, activeGM = GM } = {}) {
   const queries = [];
 
   globalThis.CONFIG = { queries: {} };
-  globalThis.Hooks = { on: () => 1, once: () => 1, callAll: () => {} };
+  // Real dispatch, so `Renown.init()`'s watchers can be driven the way Foundry
+  // drives them. A stub that swallowed handlers would leave the external-change
+  // path — the one that catches another module's write — completely untested.
+  const hooks = new Map();
+  globalThis.Hooks = {
+    on: (name, fn) => { (hooks.get(name) ?? hooks.set(name, []).get(name)).push(fn); return 1; },
+    once: () => 1,
+    callAll: () => {},
+    /** Await every handler, which Foundry does not do — tests need the result. */
+    fire: async (name, ...args) => {
+      for (const fn of hooks.get(name) ?? []) await fn(...args);
+    },
+  };
   globalThis.ui = { notifications: { warn: () => {}, info: () => {}, error: () => {} } };
   globalThis.ChatMessage = {
     create: async (data) => { cards.push(data); return { id: `m${cards.length}` }; },
     getSpeaker: () => ({}),
   };
   globalThis.foundry = {
-    utils: { escapeHTML: (s) => String(s ?? ""), getProperty: () => undefined },
+    utils: {
+      escapeHTML: (s) => String(s ?? ""),
+      // A real implementation, not a stub: the watchers decide what changed by
+      // reading paths out of Foundry's diff, so a `() => undefined` stub would
+      // silently disable every one of them.
+      getProperty: (obj, path) => path.split(".").reduce((node, key) => node?.[key], obj),
+    },
   };
   globalThis.game = {
     user: me,
@@ -74,7 +112,9 @@ async function harness({ actors = {}, me = GM, activeGM = GM } = {}) {
       get: (id) => USERS.find((u) => u.id === id),
       find: (fn) => USERS.find(fn),
     }),
-    actors: Object.assign([], { get: (id) => actors[id] ?? null }),
+    // Populated, so `Renown.init()` can seed its caches the way it does on a
+    // real client — `game.actors` is iterable there.
+    actors: Object.assign(Object.values(actors), { get: (id) => actors[id] ?? null }),
     settings: { get: () => true, set: async () => {} },
     modules: { get: () => ({ version: "0.13.1" }) },
   };
@@ -260,4 +300,417 @@ test("a hand-off the primary GM never answers reports a failure, not a silent no
   assert.equal(res.after, 5);
   assert.equal(res.delta, 0);
   assert.equal(actor.system.renown, 5);
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* The per-character ledger                                                   */
+/*                                                                            */
+/* `SessionRecap.logRenown` returns early when no session is running, so       */
+/* before the ledger an out-of-session change survived only as a chat card.    */
+/* The ledger is written in the SAME actor update as the number, which is what */
+/* keeps the two from ever disagreeing.                                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const LEDGER = "shadowdark-enhancer";
+
+/** The ledger as the actor actually stores it. */
+const ledgerOf = (actor) => actor.flags?.[LEDGER]?.renownLog ?? [];
+
+test("an award records itself on the character, in the same update as the number", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Renown.award({ actor, delta: 1, reason: "A major triumph", chat: false });
+
+  const log = ledgerOf(actor);
+  assert.equal(log.length, 1);
+  assert.equal(actor.system.renown, 6);
+  assert.deepEqual(
+    { delta: log[0].delta, before: log[0].before, after: log[0].after, reason: log[0].reason, source: log[0].source },
+    { delta: 1, before: 5, after: 6, reason: "A major triumph", source: "gm" }
+  );
+  assert.equal(log[0].gm, "Gamemaster", "the GM who applied it is on the row");
+  assert.ok(log[0].at > 0, "a row without a timestamp cannot be ordered");
+});
+
+test("the ledger agrees with the actor after overlapping awards", async () => {
+  // The race from the top of this file, asserted against the ledger rather than
+  // the recap: two rows, and the second one's `before` is the first one's
+  // `after` — proof the re-read inside the queue reached the ledger too.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Promise.all([
+    Renown.award({ actor, delta: 1, reason: "one", chat: false }),
+    Renown.award({ actor, delta: 1, reason: "two", chat: false }),
+  ]);
+
+  const log = ledgerOf(actor);
+  assert.equal(actor.system.renown, 7);
+  assert.equal(log.length, 2);
+  assert.deepEqual(log.map((r) => [r.before, r.after]), [[5, 6], [6, 7]]);
+  assert.equal(log.at(-1).after, actor.system.renown, "the last row must match the live value");
+});
+
+test("a failed update leaves no ledger row behind", async () => {
+  const actor = makeActor({ renown: 5 });
+  actor.update = async () => { throw new Error("no permission"); };
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.award({ actor, delta: 1, chat: false });
+
+  assert.equal(result.ok, false);
+  assert.equal(ledgerOf(actor).length, 0, "the row and the number land together or not at all");
+  assert.equal(actor.system.renown, 5);
+});
+
+test("a no-op award writes nothing at all", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.award({ actor, delta: 0, chat: false });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.delta, 0);
+  assert.equal(ledgerOf(actor).length, 0, "0 renown is not an event");
+});
+
+test("the ledger reads back per player, newest change last", async () => {
+  const troana = makeActor({ id: "a1", name: "Troana", renown: 0 });
+  const bazogo = makeActor({ id: "a2", name: "Bazogo", renown: 0 });
+  const { Renown } = await harness({ actors: { a1: troana, a2: bazogo } });
+
+  // Both characters belong to the same player, which is the case the grouped
+  // view exists for.
+  for (const actor of [troana, bazogo]) actor.testUserPermission = (u) => u.id === PLAYER.id;
+  globalThis.game.actors.push(troana, bazogo);
+  globalThis.game.actors.filter = (fn) => [troana, bazogo].filter(fn);
+  troana.hasPlayerOwner = true;
+  bazogo.hasPlayerOwner = true;
+
+  await Renown.award({ actor: troana, delta: 2, reason: "one", chat: false });
+  await Renown.award({ actor: bazogo, delta: -1, reason: "two", chat: false });
+
+  assert.deepEqual(Renown.history(troana).map((r) => r.delta), [2]);
+
+  const groups = Renown.historyByPlayer();
+  assert.deepEqual(groups.map((g) => g.player), ["Vella"]);
+  assert.equal(groups[0].net, 1);
+  assert.equal(groups[0].count, 2);
+  assert.deepEqual(groups[0].entries.map((r) => r.actorName), ["Troana", "Bazogo"], "oldest first");
+});
+
+test("history() hands back a copy, so a caller cannot reorder the stored flag", async () => {
+  const actor = makeActor({ renown: 0 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Renown.award({ actor, delta: 1, reason: "first", chat: false });
+  await Renown.award({ actor, delta: 1, reason: "second", chat: false });
+
+  const read = Renown.history(actor);
+  read.reverse();
+  read[0].reason = "clobbered";
+
+  assert.deepEqual(ledgerOf(actor).map((r) => r.reason), ["first", "second"]);
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* The automatic starting seed                                                */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+test("a new character is seeded from their CHA modifier, and only once", async () => {
+  const actor = makeActor({ renown: 0, cha: 2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const first = await Renown.maybeSeedFromCha(actor);
+  assert.equal(first.ok, true);
+  assert.equal(actor.system.renown, 2);
+  assert.equal(actor.flags[LEDGER].renownSeeded, true, "a seed that moved the number spends the flag");
+  assert.equal(ledgerOf(actor).length, 1);
+  assert.equal(ledgerOf(actor)[0].source, "start");
+
+  // Called again — by a second CHA edit, say — it must decline.
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 2);
+  assert.equal(ledgerOf(actor).length, 1);
+});
+
+test("a negative CHA modifier seeds a negative starting renown", async () => {
+  const actor = makeActor({ renown: 0, cha: -2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Renown.maybeSeedFromCha(actor);
+  assert.equal(actor.system.renown, -2);
+});
+
+test("a seed of +0 does NOT spend the flag, so a blank actor stays eligible", async () => {
+  // The placeholder case: an actor created before its abilities are rolled reads
+  // CHA 10 (mod 0). Stamping there would burn the seed on nothing, and the real
+  // scores arrive minutes later.
+  const actor = makeActor({ renown: 0, cha: 0 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.maybeSeedFromCha(actor);
+  assert.equal(result.delta, 0);
+  assert.equal(actor.flags?.[LEDGER]?.renownSeeded, undefined);
+
+  // CHA is rolled for real, and the seed it was owed lands.
+  actor.system.abilities.cha.mod = 3;
+  await Renown.maybeSeedFromCha(actor);
+  assert.equal(actor.system.renown, 3);
+  assert.equal(actor.flags[LEDGER].renownSeeded, true);
+});
+
+test("an established character is never re-seeded by a later CHA change", async () => {
+  // The failure that would matter most: a curse or a stat fix on a character
+  // who has been earning renown for a campaign must not reset them.
+  const actor = makeActor({ renown: 9, cha: 1 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 9);
+});
+
+test("a character docked back to zero is protected by their ledger", async () => {
+  const actor = makeActor({ renown: 0, cha: 3, flags: { [LEDGER]: { renownLog: [{ delta: -1, before: 1, after: 0 }] } } });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 0);
+});
+
+test("the setting turns the automatic seed off without touching the manual one", async () => {
+  const actor = makeActor({ renown: 0, cha: 2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  globalThis.game.settings.get = () => false;
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 0);
+
+  // The dialog's explicit button. `force` also overrides the eligibility rule,
+  // which is what makes it usable on an existing character.
+  const forced = await Renown.maybeSeedFromCha(actor, { force: true });
+  assert.equal(forced.ok, true);
+  assert.equal(actor.system.renown, 2);
+});
+
+test("a forced seed re-seeds an established character on demand", async () => {
+  const actor = makeActor({ renown: 9, cha: 1 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.maybeSeedFromCha(actor, { force: true });
+  assert.equal(result.ok, true);
+  assert.equal(actor.system.renown, 1, "set to the CHA modifier, not added to");
+  assert.equal(ledgerOf(actor).at(-1).delta, -8, "the correction itself is ledgered");
+});
+
+test("a non-GM client never seeds, even with the setting on", async () => {
+  const actor = makeActor({ renown: 0, cha: 2 });
+  const { Renown } = await harness({ actors: { a1: actor }, me: GM2, activeGM: GM });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null, "only the active GM seeds");
+  assert.equal(actor.system.renown, 0);
+});
+
+test("an NPC is not a renown character and is never seeded", async () => {
+  const actor = makeActor({ renown: 0, cha: 3, type: "NPC" });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(await Renown.maybeSeedFromCha(actor, { force: true }), null, "force is not a type override");
+  assert.equal(actor.system.renown, 0);
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Changes this module did not make                                           */
+/*                                                                            */
+/* `system.renown` is the SYSTEM's field, so the sheet input, a macro and other */
+/* modules all write it. shadowdark-extras applies carousing renown with a bare */
+/* `actor.update({"system.renown": next})` (CarousingSD.mjs applyRenownDelta),  */
+/* carrying nothing that identifies it — a -3 carousing mishap moved the number */
+/* on the sheet and left no trace in the log. The watcher below is what closes  */
+/* that, and it must not double-log our own awards to do it.                    */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/** Drive the watcher the way Foundry does: write, then fire `updateActor`. */
+async function externalWrite(actor, renown) {
+  await actor.update({ "system.renown": renown });
+  await globalThis.Hooks.fire("updateActor", actor, { system: { renown } }, {}, GM.id);
+}
+
+test("another module's renown write is caught and logged", async () => {
+  const actor = makeActor({ renown: 7 });
+  const { Renown, cards } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  // Exactly SDX's shape: current + delta, written straight to the field.
+  await externalWrite(actor, 4);
+
+  const log = ledgerOf(actor);
+  assert.equal(log.length, 1, "an external change must still reach the ledger");
+  assert.deepEqual(
+    { delta: log[0].delta, before: log[0].before, after: log[0].after, source: log[0].source },
+    { delta: -3, before: 7, after: 4, source: "external" }
+  );
+  assert.equal(cards.length, 0, "no card — whoever wrote it already reported it");
+});
+
+test("an external change is reported to the recap too", async () => {
+  const actor = makeActor({ renown: 0 });
+  const { Renown, logged } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 2);
+
+  assert.equal(logged.length, 1);
+  assert.deepEqual([logged[0].delta, logged[0].after, logged[0].source], [2, 2, "external"]);
+});
+
+test("our own award is NOT logged twice by the watcher", async () => {
+  // The award writes the number and the row in one update, so the watcher sees
+  // an update carrying the ledger flag and must recognise it as ours.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await Renown.award({ actor, delta: 1, reason: "A major triumph", chat: false });
+  await globalThis.Hooks.fire("updateActor", actor, {
+    system: { renown: 6 },
+    flags: { "shadowdark-enhancer": { renownLog: ledgerOf(actor) } },
+  }, {}, GM.id);
+
+  const log = ledgerOf(actor);
+  assert.equal(log.length, 1, "one change, one row");
+  assert.equal(log[0].source, "gm");
+});
+
+test("an external change lands on a later award's `before`", async () => {
+  // The value the watcher caches is what the next award measures against, so a
+  // sheet edit followed by an award must not resurrect the pre-edit number.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 9);
+  const result = await Renown.award({ actor, delta: 1, chat: false });
+
+  assert.equal(result.before, 9);
+  assert.equal(actor.system.renown, 10);
+  assert.deepEqual(ledgerOf(actor).map((r) => [r.source, r.delta]), [["external", 4], ["gm", 1]]);
+});
+
+test("an update that does not touch renown is ignored", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await actor.update({ "system.attributes.hp.value": 3 });
+  await globalThis.Hooks.fire("updateActor", actor, { system: { attributes: { hp: { value: 3 } } } }, {}, GM.id);
+
+  assert.equal(ledgerOf(actor).length, 0);
+});
+
+test("a write that changes nothing is not an event", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 5);
+
+  assert.equal(ledgerOf(actor).length, 0, "5 → 5 is not a change");
+});
+
+test("only the active GM logs an external change", async () => {
+  // Every client gets `updateActor`, so an ungated watcher would write one row
+  // per connected GM — the same multi-GM trap the award path already avoids.
+  const actor = makeActor({ renown: 7 });
+  const { Renown } = await harness({ actors: { a1: actor }, me: GM2, activeGM: GM });
+  Renown.init();
+
+  await externalWrite(actor, 4);
+
+  assert.equal(ledgerOf(actor).length, 0, "the watchdog GM must stay quiet");
+});
+
+test("an NPC's renown is not tracked", async () => {
+  const actor = makeActor({ renown: 7, type: "NPC" });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 4);
+
+  assert.equal(ledgerOf(actor).length, 0);
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* A writer's own account of an external change                               */
+/*                                                                            */
+/* A module that writes `system.renown` itself can describe what it did in the */
+/* update options. shadowdark-extras' `migrateLegacyRenown` is the case that   */
+/* needs `silent`: moving a retired flag into the system field is a data move, */
+/* not a change in anybody's fame, and would otherwise log one row per         */
+/* character on the first load after an upgrade.                              */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/** An external write that carries a hint, as `<module>.renown` in the options. */
+async function hintedWrite(actor, renown, hint, userId = GM.id) {
+  await actor.update({ "system.renown": renown });
+  await globalThis.Hooks.fire("updateActor", actor, { system: { renown } },
+    { "shadowdark-enhancer": { renown: hint } }, userId);
+}
+
+test("a writer's reason and source are used instead of the generic label", async () => {
+  const actor = makeActor({ renown: 2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await hintedWrite(actor, -1, { reason: "A nobleman overheard your joke", source: "carousing" });
+
+  const [row] = ledgerOf(actor);
+  assert.deepEqual(
+    { delta: row.delta, source: row.source, reason: row.reason },
+    { delta: -3, source: "carousing", reason: "A nobleman overheard your joke" }
+  );
+});
+
+test("`silent` skips the row entirely — what a data migration wants", async () => {
+  const actor = makeActor({ renown: 0 });
+  const { Renown, logged } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await hintedWrite(actor, 8, { silent: true });
+
+  assert.equal(ledgerOf(actor).length, 0, "a migration is not a change in fame");
+  assert.equal(logged.length, 0, "and it must not reach the recap either");
+  // The cache still moved, so the NEXT change is measured from 8.
+  await externalWrite(actor, 9);
+  assert.deepEqual(ledgerOf(actor).map((r) => [r.before, r.after]), [[8, 9]]);
+});
+
+test("a hint from a NON-GM is ignored, and the change is still logged plainly", async () => {
+  // Options travel with the update from whoever made it, and a player owns their
+  // own character — so `silent` from a player must not hide their own edit, and
+  // a player-supplied source must not label it.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await hintedWrite(actor, 99, { reason: "totally legitimate", source: "level-up", silent: true }, PLAYER.id);
+
+  const [row] = ledgerOf(actor);
+  assert.equal(row.source, "external", "an untrusted label is discarded");
+  assert.equal(row.reason, "", "as is an untrusted reason");
+  assert.equal(row.delta, 94, "and the change itself is still on the record");
+});
+
+test("a malformed hint falls back to the generic label rather than throwing", async () => {
+  const actor = makeActor({ renown: 1 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  for (const [i, hint] of [null, "nope", 7, [], { source: "" }].entries()) {
+    await hintedWrite(actor, 2 + i, hint);
+    assert.equal(ledgerOf(actor).at(-1).source, "external", `hint ${JSON.stringify(hint)}`);
+  }
+  assert.equal(ledgerOf(actor).length, 5);
 });

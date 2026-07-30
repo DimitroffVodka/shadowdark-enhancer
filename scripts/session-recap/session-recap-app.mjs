@@ -11,6 +11,9 @@ import { SessionRecap } from "./session-recap.mjs";
 import { toCopper, formatCurrency } from "./session-recap-core.mjs";
 import { recapRow as downtimeRecapRow } from "../downtime/downtime-log-core.mjs";
 import { recapRow as renownRecapRow, signedRenown } from "../renown/renown-core.mjs";
+import {
+  recapRow as carousingRecapRow, carousingSubtotal, tierLine,
+} from "./carousing-feed-core.mjs";
 import { esc } from "../shared/esc.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -64,7 +67,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     // Defensive defaults for archived payloads missing newer arrays.
     data.sales ??= []; data.purchases ??= []; data.encounterChecks ??= [];
-    data.downtime ??= []; data.renown ??= [];
+    data.downtime ??= []; data.renown ??= []; data.carousing ??= [];
 
     const hasDamageLog = game.modules.get("damage-log")?.active ?? false;
     const sessionDuration = viewingSession
@@ -184,6 +187,27 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })),
     }));
 
+    // Carousing — mirrored from Shadowdark Extras, newest carouse first.
+    // Grouped per CAROUSE, not per player: the tier and its cost belong to the
+    // night the party bought, and every character rolled against the same one.
+    const carousing = [...data.carousing].reverse().map(c => ({
+      logId: c.logId,
+      heading: c.date || c.time || "Carouse",
+      subtotal: carousingSubtotal(c.entries ?? []),
+      tier: tierLine(c),
+      rows: (c.entries ?? []).map(e => ({
+        // Players commonly take their character's name as their Foundry username,
+        // and "Bazogo — d8 4 · 3 XP (Bazogo)" reads as a bug. The attribution is
+        // only worth showing when it says something the row does not.
+        player: e.player === e.actorName ? "" : e.player,
+        text: carousingRecapRow(e),
+        benefits: (e.benefits ?? []).map(b => b.text),
+        mishaps: (e.mishaps ?? []).map(m => m.text),
+        applied: e.applied || null,
+        pending: e.appliedState === "pending",
+      })),
+    }));
+
     // Encounter checks
     const checks = data.encounterChecks;
     const encounterChecks = checks.map(c => ({ ...c }));
@@ -226,6 +250,7 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       xpPlayers, hasXp: xpPlayers.length > 0,
       renownPlayers, hasRenown: renownPlayers.length > 0,
       downtimePlayers, hasDowntime: downtimePlayers.length > 0,
+      carousing, hasCarousing: carousing.length > 0,
       encounterChecks, hasEncounterChecks: encounterChecks.length > 0, encounterSummary,
       viewingSession: viewingSession ? { id: viewingSession.id, name: viewingSession.name } : null,
       isViewingHistory: !!this._viewingHistoryId,

@@ -11,15 +11,23 @@ import assert from "node:assert/strict";
 
 import {
   RENOWN_BANDS,
+  RENOWN_HISTORY_CAP,
   RENOWN_TRIGGERS,
+  RENOWN_SOURCE_LABELS,
+  appendRenownHistory,
   authorizeRenownAward,
+  groupHistoryByPlayer,
+  historyRow,
   isDoubleOnes,
   recapRow,
   renownBand,
   renownBonus,
   renownChangeLine,
   renownValue,
+  shouldSeedStartingRenown,
+  showsSourceTag,
   signedRenown,
+  sourceLabel,
   startingRenown,
 } from "../scripts/renown/renown-core.mjs";
 import { reactionBand } from "../scripts/encounter/encounter-result.mjs";
@@ -170,5 +178,189 @@ describe("who may change renown", () => {
     for (const ctx of [undefined, {}, { requesterIsGM: null }, { requesterIsGM: 0 }]) {
       assert.equal(authorizeRenownAward(ctx)?.ok, false, `context ${JSON.stringify(ctx)}`);
     }
+  });
+});
+
+describe("the one automatic starting seed", () => {
+  test("a fresh character is owed one", () => {
+    assert.equal(shouldSeedStartingRenown({ seeded: false, renown: 0, historyCount: 0 }), true);
+    // The eligibility rule must also hold for an absent context, since the
+    // caller reads three optional flags off a live actor.
+    assert.equal(shouldSeedStartingRenown(), true);
+    assert.equal(shouldSeedStartingRenown({}), true);
+  });
+
+  test("a spent flag ends it, whatever the other two say", () => {
+    assert.equal(shouldSeedStartingRenown({ seeded: true, renown: 0, historyCount: 0 }), false);
+  });
+
+  test("a non-zero score is somebody's real renown and is never overwritten", () => {
+    // Typed on the sheet, imported with the character, or awarded — the seed
+    // cannot tell the difference, and must not touch any of them.
+    for (const renown of [1, -1, 7, -4]) {
+      assert.equal(shouldSeedStartingRenown({ renown }), false, `renown ${renown}`);
+    }
+  });
+
+  test("a character docked back to exactly zero is protected by its ledger", () => {
+    // The whole reason historyCount is a condition: renown 0 alone cannot tell
+    // a new character from one who earned a point and lost it again.
+    assert.equal(shouldSeedStartingRenown({ renown: 0, historyCount: 2 }), false);
+  });
+});
+
+describe("the renown ledger", () => {
+  const entry = { delta: 1, before: 4, after: 5, reason: "A major triumph", source: "gm", player: "Vella", at: 1000 };
+
+  test("an append returns a new array and leaves the stored one alone", () => {
+    const stored = [{ delta: 1, after: 4 }];
+    const next = appendRenownHistory(stored, entry);
+    assert.equal(stored.length, 1, "the live actor flag must not be mutated");
+    assert.equal(next.length, 2);
+    assert.notEqual(next, stored);
+  });
+
+  test("junk in the stored flag is treated as an empty ledger", () => {
+    for (const junk of [undefined, null, "nope", 7, {}]) {
+      assert.equal(appendRenownHistory(junk, entry).length, 1, `junk ${JSON.stringify(junk)}`);
+    }
+    // A row that is not an object cannot be rendered, so it is dropped rather
+    // than carried forward into the display.
+    assert.equal(appendRenownHistory([null, "x", { delta: 1 }], entry).length, 2);
+  });
+
+  test("every field is coerced, so a malformed caller cannot store garbage", () => {
+    const [row] = appendRenownHistory([], { delta: "2", before: null, after: "9.7", reason: 5, source: undefined, at: "1000" });
+    assert.equal(row.delta, 2);
+    assert.equal(row.before, 0);
+    assert.equal(row.after, 9, "truncated, like every other renown value");
+    assert.equal(row.reason, "5");
+    assert.equal(row.source, "gm");
+    assert.equal(row.at, 1000);
+  });
+
+  test("the cap drops the OLDEST entries, not the newest", () => {
+    let log = [];
+    for (let i = 1; i <= RENOWN_HISTORY_CAP + 5; i++) log = appendRenownHistory(log, { ...entry, after: i });
+    assert.equal(log.length, RENOWN_HISTORY_CAP);
+    assert.equal(log.at(-1).after, RENOWN_HISTORY_CAP + 5, "the newest change survives");
+    assert.equal(log[0].after, 6, "the first five fell off the front");
+  });
+
+  test("a nonsense cap still keeps at least the change being recorded", () => {
+    assert.equal(appendRenownHistory([{ delta: 1 }], entry, { cap: 0 }).length, 1);
+    assert.equal(appendRenownHistory([{ delta: 1 }], entry, { cap: -3 }).length, 1);
+  });
+});
+
+describe("ledger display", () => {
+  test("a row reads as the change, the resulting total, and the reason", () => {
+    assert.equal(historyRow({ delta: 1, after: 5, reason: "A major triumph" }), "+1 → 5 · A major triumph");
+    assert.equal(historyRow({ delta: -2, after: -1, reason: "Public humiliation" }), "-2 → -1 · Public humiliation");
+  });
+
+  test("with no reason, the source tag is spelled out instead of leaking a slug", () => {
+    assert.equal(historyRow({ delta: 1, after: 2, source: "level-up" }), "+1 → 2 · Gained a level");
+    assert.equal(historyRow({ delta: 2, after: 2, source: "start" }), "+2 → 2 · Starting renown");
+    // An unrecognised tag falls back to itself rather than vanishing.
+    assert.equal(historyRow({ delta: 1, after: 1, source: "pit-fighting" }), "+1 → 1 · pit-fighting");
+    assert.equal(historyRow({ delta: 1, after: 1, source: "" }), "+1 → 1");
+    assert.equal(historyRow(), "0 → 0");
+  });
+});
+
+describe("grouping the ledger per player", () => {
+  const rows = [
+    { player: "Vella", actorName: "Troana", delta: 2 },
+    { player: "Sam", actorName: "Bazogo", delta: 1 },
+    { player: "Vella", actorName: "Troana", delta: -1 },
+    { player: "Vella", actorName: "Willow", delta: 3 },
+  ];
+
+  test("each player gets their net change and their own rows", () => {
+    const groups = groupHistoryByPlayer(rows);
+    assert.deepEqual(groups.map(g => g.player), ["Sam", "Vella"], "sorted by player name");
+
+    const vella = groups.find(g => g.player === "Vella");
+    assert.equal(vella.net, 4);
+    assert.equal(vella.count, 3);
+    assert.deepEqual(vella.entries.map(e => e.actorName), ["Troana", "Troana", "Willow"]);
+  });
+
+  test("an unattributed change is filed under the GM rather than dropped", () => {
+    const groups = groupHistoryByPlayer([{ delta: 1 }, { player: "", delta: 1 }]);
+    assert.deepEqual(groups.map(g => g.player), ["GM"]);
+    assert.equal(groups[0].count, 2);
+  });
+
+  test("junk input groups to nothing instead of throwing", () => {
+    for (const junk of [undefined, null, "nope", 7, {}]) {
+      assert.deepEqual(groupHistoryByPlayer(junk), [], `junk ${JSON.stringify(junk)}`);
+    }
+  });
+});
+
+describe("source tags", () => {
+  test("every source a write path actually uses has a label", () => {
+    // The tags `Renown.award` is called with across the module, plus the two
+    // that arrive from outside it. A missing one renders as a raw slug in the
+    // dialog — how the carousing tag was caught in review.
+    for (const tag of ["gm", "start", "level-up", "downtime", "carousing", "external"]) {
+      assert.ok(RENOWN_SOURCE_LABELS[tag], `source "${tag}" has no label`);
+      assert.equal(sourceLabel(tag), RENOWN_SOURCE_LABELS[tag]);
+    }
+  });
+
+  test("an unknown tag degrades to itself rather than disappearing", () => {
+    // Another module may pass its own provenance; showing "pit-fighting" beats
+    // showing nothing at all.
+    assert.equal(sourceLabel("pit-fighting"), "pit-fighting");
+    assert.equal(sourceLabel(""), "");
+    assert.equal(sourceLabel(undefined), "");
+    assert.equal(sourceLabel(null), "");
+  });
+
+  test("carousing renders as words, not a slug", () => {
+    assert.equal(sourceLabel("carousing"), "Carousing");
+    // With no reason supplied, the row text IS the label.
+    assert.equal(historyRow({ delta: -3, after: -1, source: "carousing" }), "-3 → -1 · Carousing");
+    // With a reason, the reason wins and the tag is rendered separately by the
+    // dialog — so both the wording and the cause are visible.
+    assert.equal(
+      historyRow({ delta: -3, after: -1, source: "carousing", reason: "A nobleman overheard your joke" }),
+      "-3 → -1 · A nobleman overheard your joke"
+    );
+  });
+});
+
+describe("when a row shows its provenance tag", () => {
+  test("a writer's own wording gets tagged, so the cause is still visible", () => {
+    assert.equal(showsSourceTag({ reason: "A nobleman overheard your joke", source: "carousing" }), true);
+    assert.equal(showsSourceTag({ reason: "A major triumph", source: "gm" }), true);
+    assert.equal(showsSourceTag({ reason: "Started a rumour", source: "downtime" }), true);
+    // An unknown module's tag still shows — it is the only clue to where the
+    // change came from.
+    assert.equal(showsSourceTag({ reason: "Won a bout", source: "pit-fighting" }), true);
+  });
+
+  test("a reason we generated ourselves is not tagged with what it already says", () => {
+    // "Starting renown (CHA +1)  Starting renown" reads as a stutter.
+    assert.equal(showsSourceTag({ reason: "Starting renown (CHA +1)", source: "start" }), false);
+    assert.equal(showsSourceTag({ reason: "Gained a level", source: "level-up" }), false);
+    // Including the plural, which a substring test against the label would miss.
+    assert.equal(showsSourceTag({ reason: "Gained 2 levels", source: "level-up" }), false);
+  });
+
+  test("with no reason there is nothing to tag — the label is the row text", () => {
+    for (const source of ["carousing", "external", "gm", ""]) {
+      assert.equal(showsSourceTag({ source }), false, `source ${source}`);
+      assert.equal(showsSourceTag({ reason: "   ", source }), false, `blank reason, source ${source}`);
+    }
+    assert.equal(showsSourceTag(), false);
+  });
+
+  test("a reason with no source cannot be tagged", () => {
+    assert.equal(showsSourceTag({ reason: "Something happened" }), false);
+    assert.equal(showsSourceTag({ reason: "Something happened", source: "" }), false);
   });
 });

@@ -498,11 +498,33 @@ const r = await api.renown.award({
 
 await api.renown.seedFromCha(actor); // set renown to the character's CHA modifier
 
+// The same seed, but only if this character is still owed one — what the
+// `renownOnCreate` setting fires on a new character. Returns null when nothing
+// was owed: the seed is already spent, renown is non-zero, or there is a log
+// entry. `force` skips the setting AND the eligibility rule, for a character made
+// before the setting existed or one whose CHA has since changed.
+await api.renown.maybeSeedFromCha(actor);
+await api.renown.maybeSeedFromCha(actor, { force: true, chat: true });
+
 api.renown.valueOf(actor);  // integer; may be negative
 api.renown.bandOf(actor);   // { key, label, max, bonus, note }
 api.renown.bonusOf(actor);  // 0 | 1 | 2 | 3
 api.renown.party();         // [{ actorId, name, renown, band, bonus }], highest first
+
+// The permanent per-character log. A copy, so sorting it cannot reorder the flag.
+api.renown.history(actor);  // [{ delta, before, after, reason, source, player, gm, at }]
+                            // oldest change first; the last 50 per character
+api.renown.historyByPlayer();
+// → [{ player, net, count, entries: [{ ...row, actorId, actorName }] }], by player name
 ```
+
+**The log is written in the same `actor.update` as the number**, under
+`flags.shadowdark-enhancer.renownLog`, so a change that failed to apply leaves no
+row and a row always carries the total it produced. It exists because
+`SessionRecap.logRenown` returns early when no session is running — before it, a
+change made between sessions survived only as a chat card. Rows are stamped with
+the owning player at award time, so reassigning a character does not rewrite its
+history. `flags.shadowdark-enhancer.renownSeeded` marks the starting seed spent.
 
 The four bands run `≤3` / `4–7` / `8–11` / `12+`, granting a `+0` / `+1` / `+2` /
 `+3` bonus. Renown has no floor and is allowed to go negative.
@@ -514,20 +536,69 @@ picker for whose renown applies. Independent of all of that, **double 1s on the
 reaction dice are always hostile** — `reactionBand(total, { doubleOnes })` in
 `encounter-result.mjs` short-circuits before the band ladder.
 
-**Carousing is not automated.** By the book the same bonus applies to carousing
-event rolls, but the module has no carousing roll to hook it into, so `bonusOf`
-is all it offers there — add the bonus by hand when you roll the table.
+**Carousing belongs to shadowdark-extras, and it applies the bonus itself.** By
+the book the same bonus applies to carousing event rolls. This module has no
+carousing roll to hook, but SDX does, and its `getRenownBonus` (CarousingSD.mjs)
+is the same `≥4/≥8/≥12 → +1/+2/+3` ladder folded into the carousing `totalBonus`.
+So do NOT tell users to add it by hand where SDX is installed — that doubles it.
+SDX also applies carousing renown *deltas* with a bare
+`actor.update({"system.renown": next})` (`applyRenownDelta`), which is why the
+external-change watcher below exists.
 
-Only one trigger is wired automatically: a level gain, controlled by the
-**Renown on level-up** setting. Reaching level 1 is excluded, because the
-Character Builder and the level-0 funnel both write `system.level.value` as part
-of creating the character. Everything else the book lists is a judgement call and
-lives on the dialog as a suggestion.
+Two triggers are wired automatically, both settings-gated, and everything else the
+book lists is a judgement call that lives on the dialog as a suggestion:
 
-Every change — a GM award, a level-up, a downtime rumour — is logged to the
-Session Recap (its **XP & Renown** tab, and a `## Renown` section in the Discord
-export) and posts a chat card, unless the caller passes `chat: false`. Downtime
-passes `chat: false`, because its own result card already reports the change.
+- **Starting renown from CHA** — a new character is seeded to their CHA modifier,
+  once. Attempted on `createActor` and again on the first `system.abilities.cha`
+  change, because an actor made through **Create Actor** starts on the model's
+  default 10s and gets its real scores later; a seed of +0 therefore does not
+  count as spent. Active-GM only, and it refuses any character with non-zero
+  renown or an existing log entry, so it cannot reset an established character.
+- **Renown on level-up** — a level gain grants a point, two levels grant two.
+  Reaching level 1 is excluded, because the Character Builder and the level-0
+  funnel both write `system.level.value` as part of creating the character.
+
+Beyond those, an `updateActor` watcher logs any change to `system.renown` that did
+NOT come through `award`, with `source: "external"`. **`system.renown` is the
+system's field, so the sheet input, a macro and other modules all write it** —
+without this the log would record our awards rather than the character's renown.
+Our own write is told apart by the ledger flag riding in the same update, so an
+award is never logged twice. Active-GM only, measured against a per-client cache
+(`updateActor` fires everywhere; `preUpdateActor` only on the initiating client),
+and it posts no chat card, because whoever wrote the value already reported it.
+The row is appended in its own update — the same-update atomicity guarantee
+applies only to `award`, since here the number is already committed.
+
+**Integrating a module that writes the field itself.** Calling `award` is the
+better path and is what shadowdark-extras' carousing does (`applyRenownDelta`
+delegates, passing the outcome text as `reason` and `source: "carousing"`, with
+`chat: false`). Where that is not possible — a one-off migration, or a caller that
+cannot await — describe the write in the update options instead:
+
+```js
+await actor.update({ "system.renown": next }, {
+  "shadowdark-enhancer": { renown: { reason: "A nobleman overheard your joke", source: "carousing" } },
+});
+// A data move rather than a change in anybody's fame:
+await actor.update({ "system.renown": legacy }, {
+  "shadowdark-enhancer": { renown: { silent: true } },
+});
+```
+
+`silent` suppresses the row and the recap write while still advancing the cache, so
+the next real change is measured from the migrated value. **A hint is honoured only
+on a GM-initiated update** — options travel with the update from whoever made it
+and a player owns their own character, so an untrusted `silent` could otherwise
+hide a self-edit. A non-GM's write is always recorded plainly as `external`. An
+unrecognised `source` renders as its own slug via `sourceLabel`, so a module's own
+provenance is never swallowed.
+
+Every change — a GM award, a starting seed, a level-up, a downtime rumour — is
+recorded on the character (see the log above), logged to the Session Recap (its
+**XP & Renown** tab, and a `## Renown` section in the Discord export) and posts a
+chat card, unless the caller passes `chat: false`. Downtime passes `chat: false`
+because its own result card already reports the change, and the automatic starting
+seed passes it because a funnel drops several characters in at once.
 
 **Ships no book prose.** The band thresholds, the bonus numbers and the trigger
 labels are mechanics. The one-line meanings shown beside each band are the

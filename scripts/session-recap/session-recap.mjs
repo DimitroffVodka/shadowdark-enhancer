@@ -25,6 +25,7 @@ import {
   DEFAULT_DATA, emptyPlayerStat, formatDuration, generateSessionName,
   formatForDiscordFromData,
 } from "./session-recap-core.mjs";
+import { CarousingFeed } from "./carousing-feed.mjs";
 
 const SETTING_KEY = "sessionRecap";
 const HISTORY_KEY = "sessionHistory";
@@ -58,6 +59,7 @@ export const SessionRecap = {
     if (!Array.isArray(data.sales)) data.sales = [];
     if (!Array.isArray(data.purchases)) data.purchases = [];
     if (!Array.isArray(data.encounterChecks)) data.encounterChecks = [];
+    if (!Array.isArray(data.carousing)) data.carousing = [];
     return data;
   },
 
@@ -259,6 +261,61 @@ export const SessionRecap = {
         source: entry?.source ?? "gm",
         ...this._stamp(),
       });
+    });
+  },
+
+  // ── Carousing Logging ──────────────────────────────────────
+
+  /**
+   * Upsert one carouse mirrored from Shadowdark Extras, keyed on SDX's `logId`.
+   *
+   * Unlike its siblings this one UPDATES rather than appends: SDX rewrites a
+   * carouse as the GM applies each character's outcome, and every one of those
+   * rewrites reaches us (see carousing-feed.mjs). Appending would stack four
+   * copies of the same night in the log.
+   *
+   * Called through `CarousingFeed.capture`. Self-guarded on an active session,
+   * like its siblings.
+   */
+  async logCarousing(carouse) {
+    if (!this.isActive()) return;
+    if (!carouse?.logId) return;
+    return this._mutate(data => {
+      this._ensureStart(data);
+      if (!Array.isArray(data.carousing)) data.carousing = [];
+      const idx = data.carousing.findIndex(c => c.logId === carouse.logId);
+      if (idx === -1) {
+        data.carousing.push({ ...carouse, ...this._stamp() });
+        return;
+      }
+      // Keep the ORIGINAL stamp: the row should stay where it happened in the
+      // evening rather than jumping to the front each time an outcome is applied.
+      const prev = data.carousing[idx];
+      data.carousing[idx] = {
+        ...carouse,
+        entries: this._mergeCarousingEntries(prev.entries, carouse.entries),
+        timestamp: prev.timestamp, time: prev.time,
+      };
+    });
+  },
+
+  /**
+   * Merge a re-captured carouse over what we already hold, per participant.
+   *
+   * The overlay's actor-drop map is what resolves a player's participant id to a
+   * character name, and the GM clearing the overlay wipes it. A re-capture after
+   * that resolves to SDX's "?" placeholder, so a name (or player) we captured
+   * while the drop was still live is kept rather than overwritten with nothing.
+   */
+  _mergeCarousingEntries(prevEntries, nextEntries) {
+    const prev = new Map((prevEntries ?? []).map(e => [e.participantId, e]));
+    return (nextEntries ?? []).map(entry => {
+      const old = prev.get(entry.participantId);
+      if (!old) return entry;
+      const merged = { ...entry };
+      if ((!merged.actorName || merged.actorName === "?") && old.actorName) merged.actorName = old.actorName;
+      if ((!merged.player || merged.player === "GM") && old.player) merged.player = old.player;
+      return merged;
     });
   },
 
@@ -559,10 +616,16 @@ export const SessionRecap = {
       name: this._generateSessionName(data.sessionStart ?? now),
       startTime: data.sessionStart ?? now,
       endTime: now,
+      // Every array the window and the Discord export read. `downtime`, `renown`
+      // and `carousing` were absent here, so archiving a session silently
+      // dropped all three: the History view and its export showed a night with
+      // no downtime, no renown changes and no carousing.
       data: {
         loot: data.loot, sales: data.sales, purchases: data.purchases,
         xp: data.xp, combats: data.combats, luckSpent: data.luckSpent,
         encounterChecks: data.encounterChecks, playerStats: data.playerStats,
+        downtime: data.downtime ?? [], renown: data.renown ?? [],
+        carousing: data.carousing ?? [],
       },
     };
     history.unshift(snapshot);
@@ -618,9 +681,14 @@ export const SessionRecap = {
     Hooks.on(`${MODULE_ID}.crawlEnd`, async () => {
       const data = this.getData();
       if (data.sessionState !== "active" && data.sessionState !== "paused") return;
+      // Gates the Discard button, so it has to count everything the session can
+      // hold — a night of nothing but downtime and carousing is still a session
+      // worth being offered the choice about.
       const hasData = data.loot.length > 0 || data.xp.length > 0 || data.combats.length > 0
         || Object.keys(data.playerStats).length > 0 || data.encounterChecks.length > 0
-        || data.sales.length > 0 || data.purchases.length > 0;
+        || data.sales.length > 0 || data.purchases.length > 0
+        || (data.downtime?.length ?? 0) > 0 || (data.renown?.length ?? 0) > 0
+        || (data.carousing?.length ?? 0) > 0;
 
       const buttons = [
         { label: "End & Save", icon: "fas fa-save", value: "save" },
@@ -659,6 +727,9 @@ export const SessionRecap = {
     this._initRollHooks();
     this._initFeedHooks();
     this._initLifecycleHooks();
+    // Shadowdark Extras' carousing, mirrored in. Self-gates on SDX being active
+    // with carousing enabled, so this is a no-op in a world without it.
+    CarousingFeed.init(this);
     console.log(`${MODULE_ID} | Session Recap initialized.`);
   },
 

@@ -373,6 +373,8 @@
   "SDE.settings.spellMishapAutoRoll.name": "Auto-roll spell mishap tables",
   "SDE.settings.spellMishapAutoRoll.hint": "If on, a natural 1 on a failed spellcasting check automatically rolls the appropriate Wizard Mishap table.",
 
+  "SDE.settings.renownOnCreate.name": "Starting renown from CHA",
+  "SDE.settings.renownOnCreate.hint": "If on, a new player character's renown is set to their Charisma modifier, once. If the character was made before their abilities were rolled, the seed waits for the first Charisma change. It never touches a character whose renown is already non-zero or who already has a renown log entry, so it cannot overwrite a score you have been playing with.",
   "SDE.settings.renownOnLevelUp.name": "Renown on level-up",
   "SDE.settings.renownOnLevelUp.hint": "If on, a player character gains a point of renown each time their level goes up. Reaching level 1 is excluded, since character creation writes it. Every other renown trigger stays a GM call through the Renown dialog.",
 

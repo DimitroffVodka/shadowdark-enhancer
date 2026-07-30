@@ -124,6 +124,163 @@ export function startingRenown(chaMod) {
   return renownValue(chaMod);
 }
 
+/**
+ * How many ledger entries a character keeps. Old entries fall off the front.
+ *
+ * The ledger lives in an actor flag, so it is part of the actor document and
+ * travels with an export — it needs a ceiling. 50 changes is several campaigns
+ * of a track that moves a point at a time.
+ */
+export const RENOWN_HISTORY_CAP = 50;
+
+/**
+ * Whether a character is still eligible for its one automatic starting seed.
+ *
+ * Pure, because this is the rule that decides whether an automatic write touches
+ * a live character, and it must be testable without a Foundry client.
+ *
+ * Three conditions, and all three exist to stop the seed landing on somebody
+ * whose renown is already meaningful:
+ *
+ *   - `seeded` — the flag stamped by a seed that actually moved the number. A
+ *     seed of +0 (a CHA modifier of 0) deliberately does NOT stamp: a blank
+ *     actor created before its abilities are rolled reads CHA 10, and stamping
+ *     there would burn the seed on a placeholder.
+ *   - `renown` — a non-zero value is somebody's real score, whether it was
+ *     awarded, typed on the sheet, or came in with an imported character.
+ *   - `historyCount` — a character docked back to exactly 0 has a non-zero score
+ *     in every sense that matters, and the ledger is what proves it.
+ *
+ * @param {{seeded?:boolean, renown?:number, historyCount?:number}} ctx
+ * @returns {boolean}
+ */
+export function shouldSeedStartingRenown({ seeded = false, renown = 0, historyCount = 0 } = {}) {
+  if (seeded) return false;
+  if (renownValue(renown) !== 0) return false;
+  if (renownValue(historyCount) > 0) return false;
+  return true;
+}
+
+/**
+ * Append one entry to a character's renown ledger, oldest first, capped.
+ *
+ * Returns a NEW array and never mutates the input, because the input is a live
+ * actor flag value.
+ *
+ * @param {Array<object>} existing  the stored ledger; junk is treated as empty
+ * @param {object} entry            the change to record
+ * @param {{cap?:number}} [opts]
+ * @returns {Array<object>}
+ */
+export function appendRenownHistory(existing, entry, { cap = RENOWN_HISTORY_CAP } = {}) {
+  const rows = Array.isArray(existing) ? existing.filter((r) => r && typeof r === "object") : [];
+  const next = [...rows, {
+    delta: renownValue(entry?.delta),
+    before: renownValue(entry?.before),
+    after: renownValue(entry?.after),
+    reason: String(entry?.reason ?? ""),
+    source: String(entry?.source ?? "gm"),
+    player: String(entry?.player ?? "GM"),
+    gm: String(entry?.gm ?? ""),
+    at: renownValue(entry?.at),
+  }];
+  const limit = Math.max(1, renownValue(cap));
+  return next.length > limit ? next.slice(next.length - limit) : next;
+}
+
+/**
+ * What each `source` tag means in the ledger. Used as the row text when nothing
+ * supplied a reason, and as the small provenance tag beside a reason that did.
+ * The tags themselves are the provenance values `Renown.award` accepts.
+ *
+ * `carousing` is shadowdark-extras', which delegates its carousing renown to
+ * `Renown.award` when this module is present (CarousingSD.mjs
+ * `applyRenownDelta`). A tag arriving from anywhere else still renders — see
+ * `sourceLabel` — so an unknown module's slug is never swallowed.
+ */
+export const RENOWN_SOURCE_LABELS = {
+  gm: "GM adjustment",
+  start: "Starting renown",
+  "level-up": "Gained a level",
+  downtime: "Downtime",
+  carousing: "Carousing",
+  external: "Changed outside the module",
+};
+
+/**
+ * The display name for a source tag: the known label, else the tag itself, so an
+ * unrecognised provenance degrades to a readable slug rather than vanishing.
+ * @param {string} source
+ */
+export function sourceLabel(source) {
+  const tag = String(source ?? "").trim();
+  return RENOWN_SOURCE_LABELS[tag] ?? tag;
+}
+
+/**
+ * Sources whose reason is written by this module and already names the cause —
+ * "Starting renown (CHA +1)", "Gained a level". Tagging those repeats the row
+ * back at the reader ("Starting renown (CHA +1)  Starting renown").
+ *
+ * A set rather than a substring test, because the substring test gets "Gained 2
+ * levels" wrong against a "Gained a level" label, and a rule that is right by
+ * construction beats one that is right most of the time.
+ */
+export const RENOWN_SELF_DESCRIBING_SOURCES = new Set(["start", "level-up"]);
+
+/**
+ * Whether a ledger row should carry a provenance tag beside its reason.
+ *
+ * False when there is no reason (the label IS the row text — see `historyRow`),
+ * when the reason already names the cause, and when the source is blank.
+ *
+ * @param {{reason?:string, source?:string}} entry
+ */
+export function showsSourceTag(entry = {}) {
+  if (!String(entry?.reason ?? "").trim()) return false;
+  const tag = String(entry?.source ?? "").trim();
+  if (!tag || RENOWN_SELF_DESCRIBING_SOURCES.has(tag)) return false;
+  return !!sourceLabel(tag);
+}
+
+/**
+ * One ledger line for display: the change, the resulting total, and why.
+ * Pure and markup-free, like `recapRow` — the caller adds the bullet.
+ * @param {{delta?:number, after?:number, reason?:string, source?:string}} entry
+ */
+export function historyRow(entry = {}) {
+  const head = `${signedRenown(entry?.delta)} → ${renownValue(entry?.after)}`;
+  const reason = String(entry?.reason ?? "").trim();
+  const tail = reason || sourceLabel(entry?.source);
+  return tail ? `${head} · ${tail}` : head;
+}
+
+/**
+ * Group a flat ledger by the player who owns the character.
+ *
+ * The per-player view is the one the table asks for — "what has my character
+ * done?" — and a character's owner is captured on each entry rather than looked
+ * up at read time, so a reassigned character keeps its history intact.
+ *
+ * @param {Array<{player?:string, actorName?:string, delta?:number}>} entries
+ * @returns {Array<{player:string, net:number, count:number, entries:Array<object>}>}
+ */
+export function groupHistoryByPlayer(entries) {
+  const rows = Array.isArray(entries) ? entries.filter((r) => r && typeof r === "object") : [];
+  const byPlayer = new Map();
+
+  for (const row of rows) {
+    const player = String(row.player ?? "GM") || "GM";
+    if (!byPlayer.has(player)) byPlayer.set(player, { player, net: 0, count: 0, entries: [] });
+    const bucket = byPlayer.get(player);
+    bucket.net += renownValue(row.delta);
+    bucket.count += 1;
+    bucket.entries.push(row);
+  }
+
+  return [...byPlayer.values()].sort((a, b) => a.player.localeCompare(b.player));
+}
+
 /** "+2" / "-1" / "0" — the sign is always explicit for a positive delta. */
 export function signedRenown(delta) {
   const n = renownValue(delta);

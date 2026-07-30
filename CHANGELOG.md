@@ -88,6 +88,13 @@
   old listener alive until it does.
 
 ### Fixed
+- **Saving a session threw away its downtime and renown.** The archive kept eight
+  of the recap's arrays and silently dropped the rest, so a session you saved at
+  the end of the night reopened from **History** with no downtime attempts and no
+  renown changes — and exported to Discord without those sections too. Everything
+  the window can show is now archived. The end-crawl prompt also counts them when
+  deciding whether to offer **Discard**: an evening of nothing but downtime and
+  carousing used to look like an empty session.
 - **Two GMs awarding renown at once lost one of the awards.** Renown is adjusted
   by reading the current value, adding the change and writing the sum back, and
   "GM-only" is not the same as "one client" — a world with an assistant GM, or
@@ -115,6 +122,71 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **Carousing now lands in the Session Recap.** Shadowdark Extras runs carousing;
+  this module never did, so a night at the tavern was the one downtime activity
+  that left no trace in the session log. Its results are now mirrored into a
+  **Carousing** block on the renamed **Downtime & Carousing** tab, and into the
+  **Copy for Discord** export. Both of that module's carousing modes are read —
+  Original's d8 outcome with its single benefit, and Expanded's d8-to-XP with its
+  d100 benefit and mishap rolls — detected from the results themselves rather than
+  the mode setting, so a carouse rolled before the GM flipped that setting still
+  reads correctly. Grouped per carouse rather than per player, because the tier
+  and its cost were bought by the whole party. Nothing is written back: no rolls,
+  no actor changes, no edits to that module's own Carousing Log journal. The block
+  appears only when Shadowdark Extras is active with **Enable Carousing** on.
+  Each carouse is *copied* rather than read live, because that module's overlay
+  holds one carouse at a time and resetting it for a second round of the evening
+  erases the first.
+- **Carousing renown is attributed properly.** Shadowdark Extras now hands its
+  carousing renown to this module rather than writing the field itself, so a
+  mishap appears in the log as its own sentence — *"A nobleman overheard your
+  joke"* — with a **Carousing** tag beside it, instead of as an anonymous
+  adjustment. A module that cannot delegate can describe its write in the update
+  options instead (`{ "shadowdark-enhancer": { renown: { reason, source } } }`),
+  or pass `silent: true` for a data migration, which is a move rather than a
+  change in anybody's fame. A hint is honoured only on a GM-initiated update: a
+  player owns their own character, and an untrusted `silent` would otherwise hide
+  a self-edit. Log rows now carry a provenance tag whenever a reason supplies the
+  row text, so Carousing, Downtime and a GM's own award are told apart at a glance.
+- **Renown changes made outside the module are logged too.** `system.renown` is
+  the Shadowdark system's field, so the sheet's own input, a macro and other
+  modules all write it — and the log recorded only changes routed through this
+  module, which made it a record of our awards rather than of the character's
+  renown. The case that bit in practice: **Shadowdark Extras' carousing** applied
+  its renown with a bare `actor.update`, so a mishap reading "-3 renown" moved the
+  sheet and left no trace. An `updateActor` watcher now catches any change we did
+  not make and logs it as *Changed outside the module*, with no chat card, since
+  whoever wrote the value already reported it. Our own awards are told apart by
+  the ledger row riding in the same update, so nothing is logged twice.
+  Carousing itself does better than that fallback: it now hands its changes to
+  this module, so a carousing row reads as the mishap's or benefit's own wording
+  tagged **Carousing** rather than as an anonymous adjustment — and removing a
+  result posts a reversing entry instead of rewriting the row. The watcher remains
+  the catch-all for sheet edits, macros, and older Shadowdark Extras builds.
+- **A new character's renown is set from their Charisma modifier, without a
+  click.** Previously the starting value existed only as a **Start at CHA mod**
+  button somebody had to remember to press. The seed is attempted when the
+  character is created and again the first time their Charisma changes, because
+  the two ways a character arrives differ: the Character Builder and the level-0
+  funnel write the abilities as part of creating the actor, while **Create Actor**
+  makes a character on the model's default 10s and gets its real scores minutes
+  later. A seed of exactly +0 therefore does not count as spent. It runs once per
+  character ever, on the active GM only, and refuses any character whose renown is
+  already non-zero or who already has a log entry — a stat fix or a curse late in
+  a campaign cannot reset somebody's fame. New **Starting renown from CHA**
+  setting, on by default. **Start at CHA mod** still works and now overrides both
+  the setting and the once-only rule, for characters made before this existed.
+- **Every renown change is now logged on the character, permanently.** The
+  Session Recap only records while a session is running, so a change made between
+  sessions — or with no recap started — survived only as a chat card, and chat
+  gets cleared. Each character now keeps its own ledger: what moved, the total it
+  produced, the reason, the source, the GM who applied it, the player who owned
+  the character at the time, and when. Read it in the **Renown** dialog under
+  **Renown log**, collapsed by default, grouped one section per player with their
+  net change. The row is written in the *same actor update* as the number, so the
+  two cannot disagree — a change that failed to apply leaves no row behind. Each
+  character keeps its last 50 changes, since the log lives on the actor document.
+  `renown.history(actor)` and `renown.historyByPlayer()` on the API.
 - **Renown, the fame track.** The number was already on the character sheet —
   the system owns `system.renown` — but nothing read it. It now means something.
   A new **Renown** entry in the Crawl Bar's **Forge & Loot** menu opens a GM

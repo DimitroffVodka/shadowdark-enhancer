@@ -67,7 +67,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "95be5bb05b53";
+const STYLESHEET_REV = "6af47c6147e0";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -507,12 +507,19 @@ Hooks.once("init", () => {
       award: (args) => Renown.award(args),
       // Set renown to the book's starting value (the character's CHA modifier).
       seedFromCha: (actor, opts) => Renown.seedFromCha(actor, opts),
+      // The same seed, but only if this character is still owed one. What the
+      // `renownOnCreate` setting fires on a new character; pass force to re-seed.
+      maybeSeedFromCha: (actor, opts) => Renown.maybeSeedFromCha(actor, opts),
       // Reads: value, band ({key,label,bonus,note}), bonus (0–3).
       valueOf: (actor) => Renown.valueOf(actor),
       bandOf: (actor) => Renown.bandOf(actor),
       bonusOf: (actor) => Renown.bonusOf(actor),
       // Party roster, highest renown first.
       party: () => Renown.party(),
+      // The permanent per-character ledger, and the whole party's grouped by
+      // the player who owned the character when each change was made.
+      history: (actor) => Renown.history(actor),
+      historyByPlayer: () => Renown.historyByPlayer(),
     },
   };
 });
