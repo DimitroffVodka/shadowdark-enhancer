@@ -115,6 +115,30 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **A new character's renown is set from their Charisma modifier, without a
+  click.** Previously the starting value existed only as a **Start at CHA mod**
+  button somebody had to remember to press. The seed is attempted when the
+  character is created and again the first time their Charisma changes, because
+  the two ways a character arrives differ: the Character Builder and the level-0
+  funnel write the abilities as part of creating the actor, while **Create Actor**
+  makes a character on the model's default 10s and gets its real scores minutes
+  later. A seed of exactly +0 therefore does not count as spent. It runs once per
+  character ever, on the active GM only, and refuses any character whose renown is
+  already non-zero or who already has a log entry — a stat fix or a curse late in
+  a campaign cannot reset somebody's fame. New **Starting renown from CHA**
+  setting, on by default. **Start at CHA mod** still works and now overrides both
+  the setting and the once-only rule, for characters made before this existed.
+- **Every renown change is now logged on the character, permanently.** The
+  Session Recap only records while a session is running, so a change made between
+  sessions — or with no recap started — survived only as a chat card, and chat
+  gets cleared. Each character now keeps its own ledger: what moved, the total it
+  produced, the reason, the source, the GM who applied it, the player who owned
+  the character at the time, and when. Read it in the **Renown** dialog under
+  **Renown log**, collapsed by default, grouped one section per player with their
+  net change. The row is written in the *same actor update* as the number, so the
+  two cannot disagree — a change that failed to apply leaves no row behind. Each
+  character keeps its last 50 changes, since the log lives on the actor document.
+  `renown.history(actor)` and `renown.historyByPlayer()` on the API.
 - **Renown, the fame track.** The number was already on the character sheet —
   the system owns `system.renown` — but nothing read it. It now means something.
   A new **Renown** entry in the Crawl Bar's **Forge & Loot** menu opens a GM

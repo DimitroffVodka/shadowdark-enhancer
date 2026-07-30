@@ -36,22 +36,29 @@ import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { isActiveGM, queryActiveGM, refuseQuery } from "../shared/gm-relay.mjs";
 import {
   RENOWN_BANDS,
+  RENOWN_HISTORY_CAP,
+  RENOWN_SOURCE_LABELS,
   RENOWN_TRIGGERS,
+  appendRenownHistory,
   authorizeRenownAward,
+  groupHistoryByPlayer,
+  historyRow,
   isDoubleOnes,
   recapRow,
   renownBand,
   renownBonus,
   renownChangeLine,
   renownValue,
+  shouldSeedStartingRenown,
   signedRenown,
   startingRenown,
 } from "./renown-core.mjs";
 
 export {
-  RENOWN_BANDS, RENOWN_TRIGGERS, isDoubleOnes, recapRow,
+  RENOWN_BANDS, RENOWN_HISTORY_CAP, RENOWN_SOURCE_LABELS, RENOWN_TRIGGERS,
+  appendRenownHistory, groupHistoryByPlayer, historyRow, isDoubleOnes, recapRow,
   renownBand, renownBonus, renownChangeLine, renownValue,
-  signedRenown, startingRenown,
+  shouldSeedStartingRenown, signedRenown, startingRenown,
 };
 
 /**
@@ -61,6 +68,26 @@ export {
  * not see a setting registered through this constant.
  */
 const LEVEL_UP_SETTING = "renownOnLevelUp";
+
+/**
+ * World setting: seed a new character's renown from their CHA modifier.
+ * Spelled out as a literal at the registration below for the same reason.
+ */
+const ON_CREATE_SETTING = "renownOnCreate";
+
+/**
+ * Actor flags. `renownLog` is the permanent per-character ledger; `renownSeeded`
+ * records that the automatic starting seed has been spent.
+ *
+ * WHY A LEDGER ON THE ACTOR: `SessionRecap.logRenown` returns early when no
+ * session is running (session-recap.mjs:247), so before this the only record of
+ * an out-of-session change was the chat card, which gets cleared. The ledger is
+ * written in the SAME `actor.update` as the number it describes, so the two
+ * cannot disagree.
+ */
+const HISTORY_FLAG = "renownLog";
+const SEEDED_FLAG = "renownSeeded";
+const HISTORY_PATH = `flags.${MODULE_ID}.${HISTORY_FLAG}`;
 
 /**
  * Query channel a non-active GM's award is forwarded down, so every write to
@@ -90,6 +117,15 @@ export const Renown = {
     game.settings.register(MODULE_ID, "renownOnLevelUp", {
       name: "SDE.settings.renownOnLevelUp.name",
       hint: "SDE.settings.renownOnLevelUp.hint",
+      scope: "world",
+      config: true,
+      type: Boolean,
+      default: true,
+    });
+
+    game.settings.register(MODULE_ID, "renownOnCreate", {
+      name: "SDE.settings.renownOnCreate.name",
+      hint: "SDE.settings.renownOnCreate.hint",
       scope: "world",
       config: true,
       type: Boolean,
@@ -138,6 +174,42 @@ export const Renown = {
   /** The party member with the most renown, or null on an empty party. */
   mostRenowned() {
     return this.party()[0] ?? null;
+  },
+
+  /**
+   * One character's renown ledger, oldest change first.
+   *
+   * A copy, not the live flag array — a caller that sorts or reverses it must not
+   * reorder what is stored on the actor.
+   *
+   * @param {Actor} actor
+   * @returns {Array<object>}
+   */
+  history(actor) {
+    const stored = actor?.getFlag?.(MODULE_ID, HISTORY_FLAG);
+    return Array.isArray(stored) ? stored.filter((r) => r && typeof r === "object").map((r) => ({ ...r })) : [];
+  },
+
+  /**
+   * The whole party's ledger, grouped by the player who owns the character.
+   *
+   * Each entry carries the character it belongs to, since one player may run
+   * several. Rows are stamped with the owner AT THE TIME OF THE AWARD, so a
+   * character handed to another player keeps its history where it happened.
+   *
+   * @returns {Array<{player:string, net:number, count:number, entries:Array<object>}>}
+   */
+  historyByPlayer() {
+    const all = [];
+    for (const member of this.party()) {
+      const actor = game.actors.get(member.actorId);
+      if (!actor) continue;
+      for (const row of this.history(actor)) {
+        all.push({ ...row, actorId: actor.id, actorName: actor.name });
+      }
+    }
+    all.sort((a, b) => renownValue(a.at) - renownValue(b.at));
+    return groupHistoryByPlayer(all);
   },
 
   // ── The write path ─────────────────────────────────────────
@@ -206,9 +278,24 @@ export const Renown = {
     const live = game.actors?.get(actor?.id) ?? actor;
     const before = this.valueOf(live);
     const after = before + step;
+    const player = _controllingPlayerName(live);
+
+    // The ledger row rides along in the same update as the number. Two writes
+    // could half-apply; one cannot, so the ledger can never claim a change the
+    // actor did not take (or miss one it did).
+    const nextHistory = appendRenownHistory(live?.getFlag?.(MODULE_ID, HISTORY_FLAG), {
+      delta: step,
+      before,
+      after,
+      reason,
+      source,
+      player,
+      gm: game.user?.name ?? "",
+      at: Date.now(),
+    });
 
     try {
-      await live.update({ "system.renown": after });
+      await live.update({ "system.renown": after, [HISTORY_PATH]: nextHistory });
     } catch (err) {
       console.error(`${MODULE_ID} | renown: could not update ${live?.name}`, err);
       return { ok: false, before, after: before, delta: 0, band: renownBand(before), summary: "", error: err?.message ?? "The update failed." };
@@ -221,7 +308,7 @@ export const Renown = {
       await SessionRecap.logRenown({
         actorId: live.id,
         actorName: live.name,
-        player: _controllingPlayerName(live),
+        player,
         delta: step,
         before,
         after,
@@ -308,6 +395,57 @@ export const Renown = {
     return this.award({ actor, delta, reason: `Starting renown (CHA ${signedRenown(chaMod)})`, source: "start", chat });
   },
 
+  /**
+   * Seed a new character's starting renown, once, automatically.
+   *
+   * WHY THIS IS NOT SIMPLY `createActor` → `seedFromCha`: at `createActor` the
+   * abilities may not exist yet. The system's Character Builder writes them as
+   * part of the creation data, so that path seeds correctly on the spot — but an
+   * actor made through **Create Actor** starts on the model's default 10s (CHA
+   * mod 0) and gets its real scores minutes later, by hand or from the level-0
+   * funnel. So the seed is *attempted* at creation and again whenever CHA
+   * changes, and `shouldSeedStartingRenown` decides whether it is still owed.
+   *
+   * A seed of exactly +0 does not stamp the flag, precisely so the placeholder
+   * case above stays eligible. That leaves the automatic seed idempotent in the
+   * only sense that matters: it can never move a character whose renown is
+   * already non-zero or already has a ledger entry.
+   *
+   * `chat: false` — a funnel drops four or five characters in at once, and five
+   * "Starting renown" cards is noise, not news. It is still ledgered.
+   *
+   * @param {Actor} actor
+   * @param {{force?:boolean, chat?:boolean}} [opts]  force skips the setting and
+   *   the eligibility rule, for the dialog's explicit button, which also asks for
+   *   the chat card the automatic path suppresses
+   * @returns {Promise<object|null>} the award result, or null if nothing was owed
+   */
+  async maybeSeedFromCha(actor, { force = false, chat = false } = {}) {
+    if (actor?.type !== "Player") return null;
+    if (!force) {
+      if (!_isPrimaryGM()) return null;
+      if (!game.settings.get(MODULE_ID, ON_CREATE_SETTING)) return null;
+      const eligible = shouldSeedStartingRenown({
+        seeded: !!actor.getFlag?.(MODULE_ID, SEEDED_FLAG),
+        renown: this.valueOf(actor),
+        historyCount: this.history(actor).length,
+      });
+      if (!eligible) return null;
+    }
+
+    const result = await this.seedFromCha(actor, { chat });
+
+    // Only a seed that actually moved the number spends the flag — see above.
+    if (result?.ok && result.delta !== 0) {
+      try {
+        await actor.setFlag(MODULE_ID, SEEDED_FLAG, true);
+      } catch (err) {
+        console.warn(`${MODULE_ID} | renown: could not stamp the seed flag on ${actor?.name}`, err);
+      }
+    }
+    return result;
+  },
+
   // ── The GM affordance ──────────────────────────────────────
 
   /** Open the award / dock dialog (GM only). */
@@ -342,12 +480,25 @@ export const Renown = {
       if (actor.type === "Player") _levelSeen.set(actor.id, _levelOf(actor));
     }
 
-    Hooks.on("createActor", (actor) => {
-      if (actor?.type === "Player") _levelSeen.set(actor.id, _levelOf(actor));
+    Hooks.on("createActor", async (actor) => {
+      if (actor?.type !== "Player") return;
+      _levelSeen.set(actor.id, _levelOf(actor));
+      await this.maybeSeedFromCha(actor);
     });
 
     Hooks.on("updateActor", async (actor, changed) => {
       if (actor?.type !== "Player") return;
+
+      // A character created before its abilities were rolled is still owed its
+      // starting seed; `maybeSeedFromCha` decides. Independent of the level
+      // branch below, so both can fire on an update that touches both.
+      //
+      // `cha.mod` is derived, not stored, so the diff never mentions it — match
+      // on the whole cha object, which covers base and bonus alike.
+      if (foundry.utils.getProperty(changed, "system.abilities.cha") !== undefined) {
+        await this.maybeSeedFromCha(actor);
+      }
+
       // Foundry diffs updates, so the key is present only on a real change.
       if (foundry.utils.getProperty(changed, "system.level.value") === undefined) return;
 

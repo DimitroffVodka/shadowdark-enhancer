@@ -34,13 +34,33 @@ const ROUND_TRIP_MS = 5;
  * An actor whose renown lands only after a round trip — the detail that makes
  * the race real. A synchronous stub would hide the bug entirely.
  */
-function makeActor({ id = "a1", name = "Troana", renown = 5 } = {}) {
+function makeActor({ id = "a1", name = "Troana", renown = 5, cha = 2, type = "Player", flags = {} } = {}) {
   return {
-    id, name,
-    system: { renown },
+    id, name, type,
+    system: { renown, abilities: { cha: { mod: cha } } },
+    flags: structuredClone(flags),
+
+    /**
+     * Applies the whole update, not just the renown key — the ledger rides in
+     * the same call, and a stub that dropped it would hide a broken flag path.
+     */
     async update(data) {
       await new Promise((r) => setTimeout(r, ROUND_TRIP_MS));
-      this.system.renown = data["system.renown"];
+      for (const [path, value] of Object.entries(data)) {
+        const keys = path.split(".");
+        let node = this;
+        while (keys.length > 1) {
+          const key = keys.shift();
+          node[key] ??= {};
+          node = node[key];
+        }
+        node[keys[0]] = value;
+      }
+    },
+
+    getFlag(scope, key) { return this.flags?.[scope]?.[key]; },
+    async setFlag(scope, key, value) {
+      return this.update({ [`flags.${scope}.${key}`]: value });
     },
     testUserPermission: () => false,
   };
@@ -260,4 +280,223 @@ test("a hand-off the primary GM never answers reports a failure, not a silent no
   assert.equal(res.after, 5);
   assert.equal(res.delta, 0);
   assert.equal(actor.system.renown, 5);
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* The per-character ledger                                                   */
+/*                                                                            */
+/* `SessionRecap.logRenown` returns early when no session is running, so       */
+/* before the ledger an out-of-session change survived only as a chat card.    */
+/* The ledger is written in the SAME actor update as the number, which is what */
+/* keeps the two from ever disagreeing.                                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+const LEDGER = "shadowdark-enhancer";
+
+/** The ledger as the actor actually stores it. */
+const ledgerOf = (actor) => actor.flags?.[LEDGER]?.renownLog ?? [];
+
+test("an award records itself on the character, in the same update as the number", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Renown.award({ actor, delta: 1, reason: "A major triumph", chat: false });
+
+  const log = ledgerOf(actor);
+  assert.equal(log.length, 1);
+  assert.equal(actor.system.renown, 6);
+  assert.deepEqual(
+    { delta: log[0].delta, before: log[0].before, after: log[0].after, reason: log[0].reason, source: log[0].source },
+    { delta: 1, before: 5, after: 6, reason: "A major triumph", source: "gm" }
+  );
+  assert.equal(log[0].gm, "Gamemaster", "the GM who applied it is on the row");
+  assert.ok(log[0].at > 0, "a row without a timestamp cannot be ordered");
+});
+
+test("the ledger agrees with the actor after overlapping awards", async () => {
+  // The race from the top of this file, asserted against the ledger rather than
+  // the recap: two rows, and the second one's `before` is the first one's
+  // `after` — proof the re-read inside the queue reached the ledger too.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Promise.all([
+    Renown.award({ actor, delta: 1, reason: "one", chat: false }),
+    Renown.award({ actor, delta: 1, reason: "two", chat: false }),
+  ]);
+
+  const log = ledgerOf(actor);
+  assert.equal(actor.system.renown, 7);
+  assert.equal(log.length, 2);
+  assert.deepEqual(log.map((r) => [r.before, r.after]), [[5, 6], [6, 7]]);
+  assert.equal(log.at(-1).after, actor.system.renown, "the last row must match the live value");
+});
+
+test("a failed update leaves no ledger row behind", async () => {
+  const actor = makeActor({ renown: 5 });
+  actor.update = async () => { throw new Error("no permission"); };
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.award({ actor, delta: 1, chat: false });
+
+  assert.equal(result.ok, false);
+  assert.equal(ledgerOf(actor).length, 0, "the row and the number land together or not at all");
+  assert.equal(actor.system.renown, 5);
+});
+
+test("a no-op award writes nothing at all", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.award({ actor, delta: 0, chat: false });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.delta, 0);
+  assert.equal(ledgerOf(actor).length, 0, "0 renown is not an event");
+});
+
+test("the ledger reads back per player, newest change last", async () => {
+  const troana = makeActor({ id: "a1", name: "Troana", renown: 0 });
+  const bazogo = makeActor({ id: "a2", name: "Bazogo", renown: 0 });
+  const { Renown } = await harness({ actors: { a1: troana, a2: bazogo } });
+
+  // Both characters belong to the same player, which is the case the grouped
+  // view exists for.
+  for (const actor of [troana, bazogo]) actor.testUserPermission = (u) => u.id === PLAYER.id;
+  globalThis.game.actors.push(troana, bazogo);
+  globalThis.game.actors.filter = (fn) => [troana, bazogo].filter(fn);
+  troana.hasPlayerOwner = true;
+  bazogo.hasPlayerOwner = true;
+
+  await Renown.award({ actor: troana, delta: 2, reason: "one", chat: false });
+  await Renown.award({ actor: bazogo, delta: -1, reason: "two", chat: false });
+
+  assert.deepEqual(Renown.history(troana).map((r) => r.delta), [2]);
+
+  const groups = Renown.historyByPlayer();
+  assert.deepEqual(groups.map((g) => g.player), ["Vella"]);
+  assert.equal(groups[0].net, 1);
+  assert.equal(groups[0].count, 2);
+  assert.deepEqual(groups[0].entries.map((r) => r.actorName), ["Troana", "Bazogo"], "oldest first");
+});
+
+test("history() hands back a copy, so a caller cannot reorder the stored flag", async () => {
+  const actor = makeActor({ renown: 0 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Renown.award({ actor, delta: 1, reason: "first", chat: false });
+  await Renown.award({ actor, delta: 1, reason: "second", chat: false });
+
+  const read = Renown.history(actor);
+  read.reverse();
+  read[0].reason = "clobbered";
+
+  assert.deepEqual(ledgerOf(actor).map((r) => r.reason), ["first", "second"]);
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* The automatic starting seed                                                */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+test("a new character is seeded from their CHA modifier, and only once", async () => {
+  const actor = makeActor({ renown: 0, cha: 2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const first = await Renown.maybeSeedFromCha(actor);
+  assert.equal(first.ok, true);
+  assert.equal(actor.system.renown, 2);
+  assert.equal(actor.flags[LEDGER].renownSeeded, true, "a seed that moved the number spends the flag");
+  assert.equal(ledgerOf(actor).length, 1);
+  assert.equal(ledgerOf(actor)[0].source, "start");
+
+  // Called again — by a second CHA edit, say — it must decline.
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 2);
+  assert.equal(ledgerOf(actor).length, 1);
+});
+
+test("a negative CHA modifier seeds a negative starting renown", async () => {
+  const actor = makeActor({ renown: 0, cha: -2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  await Renown.maybeSeedFromCha(actor);
+  assert.equal(actor.system.renown, -2);
+});
+
+test("a seed of +0 does NOT spend the flag, so a blank actor stays eligible", async () => {
+  // The placeholder case: an actor created before its abilities are rolled reads
+  // CHA 10 (mod 0). Stamping there would burn the seed on nothing, and the real
+  // scores arrive minutes later.
+  const actor = makeActor({ renown: 0, cha: 0 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.maybeSeedFromCha(actor);
+  assert.equal(result.delta, 0);
+  assert.equal(actor.flags?.[LEDGER]?.renownSeeded, undefined);
+
+  // CHA is rolled for real, and the seed it was owed lands.
+  actor.system.abilities.cha.mod = 3;
+  await Renown.maybeSeedFromCha(actor);
+  assert.equal(actor.system.renown, 3);
+  assert.equal(actor.flags[LEDGER].renownSeeded, true);
+});
+
+test("an established character is never re-seeded by a later CHA change", async () => {
+  // The failure that would matter most: a curse or a stat fix on a character
+  // who has been earning renown for a campaign must not reset them.
+  const actor = makeActor({ renown: 9, cha: 1 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 9);
+});
+
+test("a character docked back to zero is protected by their ledger", async () => {
+  const actor = makeActor({ renown: 0, cha: 3, flags: { [LEDGER]: { renownLog: [{ delta: -1, before: 1, after: 0 }] } } });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 0);
+});
+
+test("the setting turns the automatic seed off without touching the manual one", async () => {
+  const actor = makeActor({ renown: 0, cha: 2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  globalThis.game.settings.get = () => false;
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(actor.system.renown, 0);
+
+  // The dialog's explicit button. `force` also overrides the eligibility rule,
+  // which is what makes it usable on an existing character.
+  const forced = await Renown.maybeSeedFromCha(actor, { force: true });
+  assert.equal(forced.ok, true);
+  assert.equal(actor.system.renown, 2);
+});
+
+test("a forced seed re-seeds an established character on demand", async () => {
+  const actor = makeActor({ renown: 9, cha: 1 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  const result = await Renown.maybeSeedFromCha(actor, { force: true });
+  assert.equal(result.ok, true);
+  assert.equal(actor.system.renown, 1, "set to the CHA modifier, not added to");
+  assert.equal(ledgerOf(actor).at(-1).delta, -8, "the correction itself is ledgered");
+});
+
+test("a non-GM client never seeds, even with the setting on", async () => {
+  const actor = makeActor({ renown: 0, cha: 2 });
+  const { Renown } = await harness({ actors: { a1: actor }, me: GM2, activeGM: GM });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null, "only the active GM seeds");
+  assert.equal(actor.system.renown, 0);
+});
+
+test("an NPC is not a renown character and is never seeded", async () => {
+  const actor = makeActor({ renown: 0, cha: 3, type: "NPC" });
+  const { Renown } = await harness({ actors: { a1: actor } });
+
+  assert.equal(await Renown.maybeSeedFromCha(actor), null);
+  assert.equal(await Renown.maybeSeedFromCha(actor, { force: true }), null, "force is not a type override");
+  assert.equal(actor.system.renown, 0);
 });

@@ -16,7 +16,7 @@
  */
 
 import { Renown } from "./renown.mjs";
-import { RENOWN_TRIGGERS, signedRenown } from "./renown-core.mjs";
+import { RENOWN_HISTORY_CAP, RENOWN_TRIGGERS, historyRow, signedRenown } from "./renown-core.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -42,6 +42,10 @@ export const RenownAwardDialog = {
       return null;
     }
 
+    // Read once, before the dialog opens — the ledger is static for the life of
+    // one dialog, which is a single "who, how much, why".
+    const history = Renown.historyByPlayer();
+
     // Default target: the selected token's PC if there is one, else whoever
     // the GM asked for, else the character with the most renown — the one the
     // table is most likely to be talking about.
@@ -53,7 +57,7 @@ export const RenownAwardDialog = {
     const choice = await DialogV2.wait({
       window: { title: "Renown", icon: "fas fa-crown" },
       position: { width: 460 },
-      content: _content({ party, preferred, delta, reason }),
+      content: _content({ party, preferred, delta, reason, history }),
       buttons: [
         { action: "apply", label: "Apply", icon: "fas fa-check", default: true, callback: _readForm },
         { action: "cha", label: "Start at CHA mod", icon: "fas fa-dice-d20", callback: _readForm },
@@ -70,8 +74,10 @@ export const RenownAwardDialog = {
       return null;
     }
 
+    // `force` — an explicit click overrides both the setting and the once-only
+    // rule, and asks for the chat card the automatic seed suppresses.
     const result = choice.action === "cha"
-      ? await Renown.seedFromCha(actor)
+      ? await Renown.maybeSeedFromCha(actor, { force: true, chat: true })
       : await Renown.award({ actor, delta: choice.delta, reason: choice.reason, source: "gm" });
 
     if (!result.ok) {
@@ -108,7 +114,65 @@ function _readForm(_event, button, dialog) {
   };
 }
 
-function _content({ party, preferred, delta, reason }) {
+/**
+ * The per-player ledger, one collapsed `<details>` per player.
+ *
+ * Static HTML on purpose. DialogV2 wraps the content in a form and does not
+ * re-render it, so a panel that had to follow the Character select would need
+ * event wiring on a one-shot dialog; `<details>` is browser-native and needs
+ * none. Newest change first inside each player, which is the order a GM asks in.
+ *
+ * @param {Array<{player:string, net:number, count:number, entries:Array<object>}>} history
+ */
+function _historySection(history) {
+  const esc = foundry.utils.escapeHTML;
+
+  if (!history.length) {
+    return `
+      <details class="sde-renown-history">
+        <summary>Renown log</summary>
+        <p class="sde-renown-history-empty">
+          No renown changes recorded yet. Every change from here, from a level-up
+          and from downtime is logged on the character from now on.
+        </p>
+      </details>`;
+  }
+
+  const players = history.map((group) => {
+    const rows = [...group.entries].reverse().map((row) => {
+      const when = Number(row.at) > 0 ? new Date(Number(row.at)).toLocaleString() : "";
+      return `
+        <li class="sde-renown-history-row ${Number(row.delta) < 0 ? "sde-renown-down" : "sde-renown-up"}">
+          <span class="sde-renown-history-who">${esc(String(row.actorName ?? "—"))}</span>
+          <span class="sde-renown-history-what">${esc(historyRow(row))}</span>
+          ${when ? `<span class="sde-renown-history-when" title="${esc(when)}">${esc(when.split(",")[0])}</span>` : ""}
+        </li>`;
+    }).join("");
+
+    return `
+      <details class="sde-renown-history-player">
+        <summary>
+          <span class="sde-renown-history-name">${esc(group.player)}</span>
+          <span class="sde-renown-history-net">${signedRenown(group.net)} over ${group.count} change${group.count === 1 ? "" : "s"}</span>
+        </summary>
+        <ul class="sde-renown-history-list">${rows}</ul>
+      </details>`;
+  }).join("");
+
+  const total = history.reduce((sum, g) => sum + g.count, 0);
+
+  return `
+    <details class="sde-renown-history">
+      <summary>Renown log — ${total} change${total === 1 ? "" : "s"}</summary>
+      <div class="sde-renown-history-body">${players}</div>
+      <p class="sde-renown-history-foot">
+        Grouped by the player who owned the character when the change was made.
+        Each character keeps its last ${RENOWN_HISTORY_CAP} changes.
+      </p>
+    </details>`;
+}
+
+function _content({ party, preferred, delta, reason, history = [] }) {
   const esc = foundry.utils.escapeHTML;
 
   const rows = party.map((p) => `
@@ -151,12 +215,16 @@ function _content({ party, preferred, delta, reason }) {
         <datalist id="sde-renown-triggers">${suggestions}</datalist>
       </div>
 
+      ${_historySection(history)}
+
       <p class="sde-renown-hint">
         Renown may go negative. The Encounter Roller adds the bonus to a reaction
         roll when you mark the party as recognised — you decide that per roll.
         Carousing rolls are not automated, so add it by hand there.
-        <strong>Start at CHA mod</strong> sets renown to the character's starting value
-        and ignores the Change field.
+        A new character is seeded from their CHA modifier automatically;
+        <strong>Start at CHA mod</strong> does it again on demand, for a character
+        made before this was on or one whose CHA has since changed. It ignores the
+        Change field.
       </p>
     </div>`;
 }
