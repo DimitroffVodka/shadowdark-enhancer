@@ -3728,6 +3728,30 @@ body.theme-light .sde-hub-monsters-row td {
   border-left: 3px solid var(--sde-bar-hit, #a33);
   padding-left: 8px;
 }
+/* The drawn row read as creatures. This sits UNDER the row's own text rather
+   than replacing it: the text is what the book said, the list is what can be
+   put on the table, and a GM needs to see the first to trust the second. A
+   creature with no matching monster stays in the list, dimmed and marked —
+   dropping it silently would read as the row having named fewer foes. */
+.sde-pit-foes {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0 0 0 8px;
+  font-size: 12px;
+}
+.sde-pit-foe {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 1px 0;
+}
+.sde-pit-foe > i { font-size: 10px; color: var(--sde-bar-miss, #4c9a4c); }
+.sde-pit-foe-count { font-weight: 700; }
+.sde-pit-foe-name { font-weight: 600; }
+.sde-pit-foe-note { opacity: 0.75; }
+.sde-pit-foe-missing { opacity: 0.6; }
+.sde-pit-foe-missing > i { color: var(--sde-bar-border, #555); }
+.sde-pit-foe-why { font-style: italic; opacity: 0.8; }
 /* The window's paragraphs of guidance. They are read once and then in the way,
    so they stay small and quiet rather than competing with the controls. The
    declined notice is exempt: it reports a decision, not advice, and muting it

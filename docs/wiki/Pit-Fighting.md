@@ -37,19 +37,28 @@ get the die total and the row number instead of the description.
 
 ## Setting up a bout
 
-**Pick who enters the pit.** Everyone is ticked to begin with. Two things follow
-from the selection: more than one fighter uses the *group* encounter tables
-instead of the solo ones, and the fighters' average level sets the stakes. If
-that average isn't a whole number it rounds to nearest, and the window shows you
-the unrounded figure beside it so you can see what happened.
+The window follows the book's own order: **the offer** first, then the secret
+twist, and only then who steps up. The offer exists before anyone volunteers,
+which is why the stakes are rolled against the **whole party's** average level —
+shown at the top as *Party APL*. If that average isn't a whole number it rounds
+to nearest and prints the unrounded figure beside it, so you can see what
+happened.
 
-**Set up a bout** then rolls three things at once:
+**Roll the whole offer** rolls everything at once. Each line can also be rolled
+on its own, or picked from its dropdown instead:
 
-| Roll | Dice | What it decides |
+| Line | Dice | What it decides |
 |---|---|---|
 | Venue | 2d6 | Where the fight happens |
-| Stakes | average level + 1d6 | What it's worth: Low, Mid, High or Epic |
+| Stakes | Party APL + 1d6 | What it's worth: Low, Mid, High or Epic |
+| Size | — | Solo or group, which picks the encounter table |
+| Danger | — | How dangerous, which picks the tier |
+| Foe | table | Who they face — **Draw** redraws it |
 | Twist | 2d6 | Whether something goes sideways — kept hidden |
+
+**Size** is a button, not a consequence. Solo and group are separate tables in
+the book, and the offer is made before you know how many will take it, so you
+say which kind of bout is on the bill.
 
 **Danger** is the one thing the module won't decide for you. The book gives you
 the stakes and the venue and then leaves the call to the GM, so the dropdown
@@ -58,8 +67,40 @@ otherwise — a back-alley cellar and a noble's private arena can pay the same a
 be nothing alike. Changing it picks a different encounter table, so the foe is
 redrawn from the one that now applies.
 
-Once the danger is settled the fighters accept or decline, and that's a
-conversation at the table rather than a button here.
+Then the fighters answer, under **Who steps up** — tick whoever accepts and press
+**Accept the bout**, or **Decline**. Declining is recorded rather than swallowed:
+CS2 notes that fighters who break their word risk losing future offers, so the
+refusal stays on screen against the bout.
+
+---
+
+## Putting it on the table
+
+The foe is drawn as a row of the book's own text — two creatures and a
+complication, like `2 hero* | 2 lion | 30' deep pits`. Underneath it the window
+lists what that row actually names, with a tick against each creature it can
+find in your compendium.
+
+**Place** then drops them on the current scene, one per click, walking the list
+in order — two Heroes, then two Lions — with the notification naming what the
+next click will drop. Escape stops the rest; whatever you already placed stays.
+
+Names are matched the way the book writes them, which is not the way Shadowdark
+files them. `Gt. centipede` finds **Centipede, Giant**; `2 hero*` drops the
+pg. 39 footnote star and the count; `Wyvern (chained)` looks for **Wyvern** and
+keeps *chained* as a note beside it. Anything it can't find stays in the list,
+dimmed and marked *not in your compendium*, and Place simply skips it — a row
+reading `2d4 rival crawlers | 2 canyon ape` still gets the apes down. Rival
+crawlers are a rival adventuring party rather than a monster, so they never
+resolve anywhere, by design.
+
+**Thraxis Arena** opens CS2's own arena as a scene, drawing it the first time you
+ask and reusing it afterwards — press it again next session and you get the map
+you dressed, not a second copy. It's a granite ring on desert sand at night, lit
+by a ring of torches, sized so a *near* move crosses less than half of it. The
+book prints no battle map, so this one is drawn from its description rather than
+copied. Any other scene works exactly as well: Place drops foes on whatever
+you're looking at.
 
 ---
 
@@ -110,13 +151,22 @@ and killing humanoids is forbidden in most public venues. None of that is
 automated. The danger level is a label the roller uses to pick an encounter
 table; what happens when a fighter drops is a ruling at your table.
 
-**The foe is a table row, not an actor.** The encounter tables name creatures and
-a complication. If those creature names don't resolve to monsters you own, the
-importer's census will list them as gaps — CS2's own arena monsters are on page
-39 and import like any other stat block.
+**The arena monsters are on page 39.** Three of the creatures the encounter
+tables name — **Rookie**, **Hero** and **Canyon Ape** — are printed in CS2 itself
+rather than in the core rules, marked with a `*` in the tables. Import them from
+your own book like any other stat block; until you do, the importer's monster
+census lists them under their source as gaps, and the bout window marks them
+*not in your compendium* and places the rest.
 
-**Rerolling.** *Roll a new bout* rolls everything fresh and clears the result
-below it. Changing the danger keeps the same dice and only redraws the foe.
+**Rerolling.** *New offer* clears everything and starts again. Changing the
+danger keeps the same dice and only redraws the foe, and **Draw** redraws the foe
+alone.
+
+**The bout survives the fight.** Close the window, run the combat, reopen it an
+hour later and the offer is still there — the stakes, the venue, the drawn foe,
+who accepted, and the prize still to roll. The bout is stored in the world, not
+in the window, because closing the window to get at the map is part of running a
+pit fight, not the end of one. Only **New offer** throws it away.
 
 ---
 

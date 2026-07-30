@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-727 tracked files · ~98,500 lines of code/markup across scripts+templates+styles+test.
+745 tracked files · ~100,000 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -56,7 +56,7 @@
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
-| `settings.mjs` | 378 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 396 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 80 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -64,6 +64,7 @@
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
 | `gm-relay.mjs` | 317 | The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept. |
+| `token-placement.mjs` | 230 | Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
@@ -210,7 +211,7 @@
 | `monsters/monster-importer.mjs` | 226 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 378 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
-| `monsters/monster-census-live.mjs` | 378 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
+| `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
@@ -324,7 +325,10 @@ The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This fold
 | File | Lines | Description |
 |---|---:|---|
 | `pit-fighting-core.mjs` | 290 | Pure bout set-up: the stakes ladder (APL + 1d6 → 2-5 / 6-10 / 11-13 / 14+), `averagePartyLevel` (rounds half up, ignores unreadable levels rather than counting them as level 0), the 2d6 venue rows, the 2d6 twist bands as machine-readable effects (`extra-danger` and its 1d4 sub-roll, `none`, `stakes-up-1`, `boon`), the three danger levels, `encounterTableName` (High and Epic share one encounter tier, so four stakes tiers map to three table tiers) and `buildBout`. `suggestedDanger` derives from the stakes only — the book hands the GM the venue too and then says the GM decides, and no venue risk rating exists to read. Rolls no dice and holds no text. Foundry-free, node-tested. |
-| `pit-fighting-app.mjs` | 720 | The bout roller: the `sde-pit-fighting` ApplicationV2 plus the `PitFighting` logic object. Picks the fighters (their count decides solo vs group, their average level sets the stakes), rolls venue / stakes / twist, offers the danger level as an override that redraws the foe from the newly selected encounter table, holds the twist back until Reveal, draws the prize, and awards the fame through `Renown.award`. `findBoutTable` resolves tables by book name and tolerates the suite's `Source - Name` prefix; a table that is missing is NAMED in the window with a link to the importer, never substituted with text of its own. Reads TableResult `name \|\| description` — never `text`, which still fires the v13 deprecation getter. GM-only. |
+| `foe-resolver-core.mjs` | 168 | Pure reader for a drawn CS2 encounter row (`"2 hero* \| 2 lion \| 30' deep pits"`). `parseFoeCell` strips a leading count (kept as a STRING because one cell is `2d4`), the pg. 39 footnote star, a trailing parenthetical that is a stage direction rather than part of the name (`Wyvern (chained)`), and the book's `Gt.` abbreviation; it singularises only when a count made the plural. `nameCandidates` adds the system's inverted `Family, Variant` form, which is what resolves `Gt. centipede` to *Centipede, Giant* without a lookup table. `parseFoeRow` reads creatures by COLUMN POSITION so the complication is never mistaken for a monster. Shared with the monster census, so the census and the Place button agree on what a row names. Foundry-free, node-tested. |
+| `arena-layout.mjs` | 97 | **Generated** by `tools/arena/build-thraxis-arena.py` — do not hand-edit. The map size, grid, slab radius and the eleven torch positions the arena map was PAINTED with. The scene builder puts an AmbientLight on each, so lights and painted torches cannot drift apart; that coupling is the whole reason the generator emits a module instead of the coordinates being typed by hand. |
+| `arena-scene.mjs` | 175 | Builds CS2 pg. 23's Thraxis Arena as a playable scene: the generated map on a 5 ft grid, night darkness, and a torch ring built from `ARENA_TORCHES`. Idempotent — matched on its own flag first so a rename survives, so pressing the button again returns the map the GM already dressed. VIEWED, never activated: activating would drag every connected player onto the map. **v14 note:** the background lives on the new `Level` embedded document (`scene.levels[].background.src`); `Scene#background` is a read-only v13 shim, and writing the old shape is discarded silently by schema cleaning, leaving a grey scene and no error. |
+| `pit-fighting-app.mjs` | 966 | The bout roller: the `sde-pit-fighting` ApplicationV2 plus the `PitFighting` logic object. Picks the fighters (their count decides solo vs group, their average level sets the stakes), rolls venue / stakes / twist, offers the danger level as an override that redraws the foe from the newly selected encounter table, holds the twist back until Reveal, draws the prize, and awards the fame through `Renown.award`. `findBoutTable` resolves tables by book name and tolerates the suite's `Source - Name` prefix; a table that is missing is NAMED in the window with a link to the importer, never substituted with text of its own. Reads TableResult `name \|\| description` — never `text`, which still fires the v13 deprecation getter. GM-only. |
 
 Structure and thresholds only. Venue descriptions, twist details, what each stakes tier is fought for and the foes themselves all live in the RollTables you import from your own book — this folder holds dice ranges and mechanics, the same class of bare numbers as the reaction bands. The book leaves the danger level and the foe to the GM, so the module suggests and never decides.
 <!-- inventory:scripts:end -->

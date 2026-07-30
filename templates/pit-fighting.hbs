@@ -25,6 +25,10 @@
         <option value="{{v.total}}" {{#if v.selected}}selected{{/if}}>{{v.range}} · {{#if v.text}}{{v.text}}{{else}}row {{v.row}}{{/if}}</option>
         {{/each}}
       </select>
+      <button type="button" class="sde-pit-mini" data-action="openArena"
+              title="Open CS2's own arena as a scene — made the first time you ask for it. Any other map works too.">
+        <i class="fas fa-map"></i> Thraxis Arena
+      </button>
       {{#if venueText}}<div class="sde-pit-drawn">{{venueText}}</div>{{/if}}
     </span>
   </div>
@@ -81,7 +85,26 @@
     <span class="sde-pit-roll-total sde-pit-no-die" title="{{bout.encounterTable}}"><i class="fas fa-table-list"></i></span>
     <span class="sde-pit-text">
       <button type="button" class="sde-pit-mini" data-action="drawFoe"><i class="fas fa-rotate"></i> Draw</button>
+      {{#if canPlaceFoes}}
+      <button type="button" class="sde-pit-mini" data-action="placeFoes"
+              title="Drop these on the scene, one per click">
+        <i class="fas fa-bullseye"></i> Place
+      </button>
+      {{/if}}
       <div class="sde-pit-drawn">{{#if foeText}}{{foeText}}{{else}}<em>{{bout.encounterTable}} — not imported</em>{{/if}}</div>
+      {{#if foes.length}}
+      <ul class="sde-pit-foes">
+        {{#each foes as |f|}}
+        <li class="sde-pit-foe{{#unless f.uuid}} sde-pit-foe-missing{{/unless}}">
+          {{#if f.uuid}}<i class="fas fa-circle-check"></i>{{else}}<i class="fas fa-circle-question"></i>{{/if}}
+          {{#unless (eq f.count "1")}}<span class="sde-pit-foe-count">{{f.count}}&times;</span>{{/unless}}
+          <span class="sde-pit-foe-name">{{f.display}}</span>
+          {{#if f.note}}<em class="sde-pit-foe-note">({{f.note}})</em>{{/if}}
+          {{#unless f.uuid}}<span class="sde-pit-foe-why">not in your compendium</span>{{/unless}}
+        </li>
+        {{/each}}
+      </ul>
+      {{/if}}
     </span>
   </div>
   {{else}}

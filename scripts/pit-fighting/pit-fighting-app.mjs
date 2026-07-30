@@ -25,7 +25,11 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { esc } from "../shared/esc.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
+import { placeTokensByClick } from "../shared/token-placement.mjs";
 import { Renown } from "../renown/renown.mjs";
+import { MonsterLinker } from "../importer/monsters/monster-linker.mjs";
+import { normalizeMonsterName } from "../importer/monsters/monster-census.mjs";
+import { nameCandidates, parseFoeRow } from "./foe-resolver-core.mjs";
 import {
   DANGER_LEVELS,
   STAKES_TIERS,
@@ -234,11 +238,74 @@ export const PitFighting = {
     const foeTable = await findBoutTable(foeName);
     if (!foeTable) missing.push(foeName);
 
+    const foeText = await _drawOne(foeTable);
+
     return {
       venueText: await _rowFor(venueTable, bout.venue.total),
       twistText: bout.twist ? await _rowFor(twistTable, bout.twist.total) : "",
-      foeText: await _drawOne(foeTable),
+      foeText,
+      foes: await this.resolveFoes(foeText),
       missing,
+    };
+  },
+
+  /**
+   * Read the drawn foe row as creatures and match each to an actor.
+   *
+   * Resolved here rather than at render time so the lookup happens once per
+   * draw: `_prepareContext` runs on every re-render, and ticking a fighter
+   * would otherwise re-walk the monster index.
+   *
+   * A name that matches nothing is KEPT, with `actor: null`. CS2's "rival
+   * crawlers" are a rival adventuring party rather than a monster, so they will
+   * never resolve in any world, and a GM whose compendium simply lacks a foe
+   * should still see the row the dice gave them. The window says which ones it
+   * could not find; it does not quietly shorten the list.
+   *
+   * @param {string} foeText  the drawn row
+   * @returns {Promise<{creatures:Array<object>, complication:string|null,
+   *                    placeable:number, unresolved:string[]}>}
+   */
+  async resolveFoes(foeText) {
+    const { creatures, complication } = parseFoeRow(foeText);
+    if (!creatures.length) {
+      return { creatures: [], complication, placeable: 0, unresolved: [] };
+    }
+
+    // Resolution is an enhancement on top of the draw, so a monster index that
+    // cannot be built must not take the bout with it. A world without the
+    // system's monster compendium still rolls a pit fight; it just gets the
+    // row's text and no Place button — the same degradation as a table that
+    // was never imported.
+    let byName = new Map();
+    try {
+      const index = await MonsterLinker.buildIndex();
+      byName = new Map(index.map((e) => [normalizeMonsterName(e.name), e]));
+    } catch (err) {
+      console.warn(`${MODULE_ID} | pit fighting: monster index unavailable`, err);
+    }
+
+    const resolved = [];
+    for (const creature of creatures) {
+      let hit = null;
+      for (const candidate of nameCandidates(creature.name)) {
+        hit = byName.get(normalizeMonsterName(candidate)) ?? null;
+        if (hit) break;
+      }
+      resolved.push({
+        ...creature,
+        uuid: hit?.uuid ?? null,
+        // The actor's own spelling when we have it — CS2 prints names
+        // mid-sentence ("2 gt. frog"), which reads badly as a button label.
+        display: hit?.name ?? creature.name,
+      });
+    }
+
+    return {
+      creatures: resolved,
+      complication,
+      placeable: resolved.filter((c) => c.uuid).length,
+      unresolved: resolved.filter((c) => !c.uuid).map((c) => c.display),
     };
   },
 
@@ -317,6 +384,8 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       rollOffer: PitFightingApp.prototype._onRollOffer,
       toggleSize: PitFightingApp.prototype._onToggleSize,
       drawFoe: PitFightingApp.prototype._onDrawFoe,
+      placeFoes: PitFightingApp.prototype._onPlaceFoes,
+      openArena: PitFightingApp.prototype._onOpenArena,
       revealTwist: PitFightingApp.prototype._onRevealTwist,
       accept: PitFightingApp.prototype._onAccept,
       decline: PitFightingApp.prototype._onDecline,
@@ -348,6 +417,8 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   constructor(options = {}) {
     super(options);
     this._resetOffer();
+    // Pick up a bout left running from before the window was closed.
+    this._restore();
   }
 
   /**
@@ -390,7 +461,93 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     return this._venueTotal !== null && this._stakesTotal !== null;
   }
 
+  /* ── Surviving the fight ──────────────────────────────────────────────── */
+
+  /**
+   * Write the bout to the world so it outlives this window.
+   *
+   * A pit fight is not finished when the window closes — that is the MIDDLE of
+   * it. The GM sets the offer up, closes the window to run the fight on the
+   * canvas, and comes back afterwards for the prize and the fame. Holding the
+   * bout on the instance meant closing the window destroyed the stakes, the
+   * venue and the drawn foe, with no way to get them back: the reveal card
+   * carries only the twist, so even the chat log could not say what the bout
+   * had been for.
+   *
+   * The drawn TEXT is stored alongside the dice. Venue and foe are random
+   * draws, so rebuilding a bout from its totals alone would quietly hand back
+   * a different fight.
+   */
+  async _persist() {
+    if (!game.user?.isGM) return;
+    const state = {
+      venueTotal: this._venueTotal,
+      stakesTotal: this._stakesTotal,
+      twistTotal: this._twistTotal,
+      twistSub: this._twistSub,
+      group: this._group,
+      danger: this._danger,
+      setUp: this._setUp,
+      twistRevealed: this._twistRevealed,
+      accepted: this._accepted,
+      fighters: [...this._fighters],
+      prize: this._prize,
+      outcome: this._outcome,
+      renownDelta: this._renownDelta,
+      applied: this._applied,
+    };
+    try {
+      await game.settings.set(MODULE_ID, "pitFightingBout", state);
+    } catch (err) {
+      console.warn(`${MODULE_ID} | pit fighting: could not save the bout`, err);
+    }
+  }
+
+  /** Drop the stored bout. Called when one is finished or thrown away. */
+  async _clearPersisted() {
+    if (!game.user?.isGM) return;
+    try {
+      await game.settings.set(MODULE_ID, "pitFightingBout", {});
+    } catch (err) {
+      console.warn(`${MODULE_ID} | pit fighting: could not clear the bout`, err);
+    }
+  }
+
+  /**
+   * Load a bout left over from earlier, if there is one.
+   *
+   * Silent when there is nothing stored, so opening the window fresh behaves
+   * exactly as before. A stored bout with no venue or stakes is treated as
+   * nothing — it cannot be shown, and keeping it would block a new offer.
+   */
+  _restore() {
+    let state = null;
+    try {
+      state = game.settings.get(MODULE_ID, "pitFightingBout");
+    } catch { return false; }
+    if (!state || state.venueTotal == null || state.stakesTotal == null) return false;
+
+    this._venueTotal = state.venueTotal;
+    this._stakesTotal = state.stakesTotal;
+    this._twistTotal = state.twistTotal ?? null;
+    this._twistSub = state.twistSub ?? null;
+    this._group = !!state.group;
+    this._danger = state.danger ?? null;
+    this._setUp = state.setUp ?? null;
+    this._twistRevealed = !!state.twistRevealed;
+    this._accepted = state.accepted ?? null;
+    this._fighters = new Set(Array.isArray(state.fighters) ? state.fighters : []);
+    this._prize = state.prize ?? "";
+    this._outcome = state.outcome ?? null;
+    this._renownDelta = Number(state.renownDelta) || 0;
+    this._applied = !!state.applied;
+    return true;
+  }
+
   async close(options = {}) {
+    // Save on the way out rather than only on each change, so a bout is stored
+    // even if a handler somewhere forgets to persist.
+    await this._persist();
     PitFightingApp._instance = null;
     return super.close(options);
   }
@@ -440,6 +597,15 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       venueText: setUp?.venueText ?? "",
       foeText: setUp?.foeText ?? "",
 
+      // ── The foe as creatures ────────────────────────────────────
+      // The row's own text still prints above this; the list is what can be
+      // put on the table. `canPlaceFoes` gates the button on there being an
+      // actor to place AND a scene to place it on.
+      foes: setUp?.foes?.creatures ?? [],
+      foesPlaceable: setUp?.foes?.placeable ?? 0,
+      foesUnresolved: setUp?.foes?.unresolved ?? [],
+      canPlaceFoes: (setUp?.foes?.placeable ?? 0) > 0,
+
       // ── The twist ───────────────────────────────────────────────
       hasTwist: !!bout?.twist,
       twistText: setUp?.twistText ?? "",
@@ -479,7 +645,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Fighter checkboxes: edit in place, no re-render, so a click does not
     // scroll the window back to the top mid-selection.
     for (const box of root.querySelectorAll("[data-fighter]")) {
-      box.addEventListener("change", (ev) => {
+      box.addEventListener("change", async (ev) => {
         const id = ev.currentTarget.dataset.fighter;
         if (ev.currentTarget.checked) this._fighters.add(id);
         else this._fighters.delete(id);
@@ -490,6 +656,8 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // ticking a name leaves Accept dead.
         const accept = root.querySelector('[data-action="accept"]');
         if (accept) accept.disabled = this._fighters.size === 0;
+        // Edits in place, so nothing else here would store the selection.
+        await this._persist();
       });
     }
 
@@ -512,9 +680,10 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await this._refresh();
     });
 
-    root.querySelector("[data-renown-delta]")?.addEventListener("change", (ev) => {
+    root.querySelector("[data-renown-delta]")?.addEventListener("change", async (ev) => {
       const n = Math.trunc(Number(ev.currentTarget.value));
       this._renownDelta = Number.isFinite(n) ? n : 0;
+      await this._persist();
     });
   }
 
@@ -538,6 +707,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // Pin the twist and its detail die so later refreshes cannot reroll them.
     this._twistTotal = this._setUp.bout.twist?.total ?? this._twistTotal;
     this._twistSub = this._setUp.twistSub;
+    await this._persist();
     this.render();
   }
 
@@ -579,7 +749,74 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._setUp) return;
     const text = await PitFighting._drawFor(this._setUp.bout);
     this._setUp = { ...this._setUp, ...text };
+    await this._persist();
     this.render();
+  }
+
+  /**
+   * Put the drawn foe on the canvas, one creature per click.
+   *
+   * The window is minimised first because the GM is about to click the map
+   * underneath it — the placer ignores clicks that miss the board, so a window
+   * sitting over the arena would swallow them silently.
+   *
+   * Creatures that did not resolve are skipped rather than blocking the rest:
+   * a row reading "2d4 rival crawlers | 2 canyon ape" should still get the apes
+   * down, with the crawlers left to the GM.
+   */
+  async _onPlaceFoes() {
+    const foes = this._setUp?.foes;
+    if (!foes?.placeable) {
+      ui.notifications?.warn("No foe from this row resolves to a monster you own.");
+      return;
+    }
+
+    const queue = [];
+    for (const creature of foes.creatures) {
+      if (!creature.uuid) continue;
+      const actor = await fromUuid(creature.uuid);
+      if (!actor) continue;
+      // A dice count is rolled at placement, not at draw time: re-rolling the
+      // window should not silently change how many foes are waiting.
+      const count = creature.countIsDice
+        ? (await new Roll(creature.count).evaluate()).total
+        : Number(creature.count);
+      queue.push({
+        actor,
+        origin: actor,
+        count: Math.max(1, Math.trunc(count) || 1),
+        label: creature.display,
+      });
+    }
+
+    if (!queue.length) {
+      ui.notifications?.warn("Could not load the foe actors.");
+      return;
+    }
+
+    if (foes.unresolved.length) {
+      ui.notifications?.info(`Not placed (no matching monster): ${foes.unresolved.join(", ")}.`);
+    }
+
+    await this.minimize();
+    await placeTokensByClick(queue);
+    await this.maximize();
+  }
+
+  /**
+   * Bring up the Thraxis Arena, making it the first time it is asked for.
+   *
+   * CS2's own arena, and the map the module draws — a GM whose venue roll says
+   * "open-air, large arena" has somewhere to put the fight without going to
+   * find a map. Any other scene works exactly as well; Place drops foes on
+   * whatever is in front of you.
+   */
+  async _onOpenArena() {
+    const { createArenaScene } = await import("./arena-scene.mjs");
+    const result = await createArenaScene({ view: true });
+    if (result?.created) {
+      ui.notifications?.info("Created the Thraxis Arena scene.");
+    }
   }
 
   async _onAccept() {
@@ -589,6 +826,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     this._accepted = true;
     this._renownDelta = 0;
+    await this._persist();
     this.render();
   }
 
@@ -597,14 +835,18 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * their word risk losing future offers, so it is recorded rather than
    * swallowed — the offer stays on screen with the refusal against it.
    */
-  _onDecline() {
+  async _onDecline() {
     this._accepted = false;
     this._fighters.clear();
+    await this._persist();
     this.render();
   }
 
-  _onClearBout() {
+  async _onClearBout() {
     this._resetOffer();
+    // Throwing the offer away has to clear the STORED bout too, or the next
+    // window to open would restore the fight the GM just discarded.
+    await this._clearPersisted();
     this.render();
   }
 
@@ -625,6 +867,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
           <div class="sde-pit-card-body">${esc(body)}${sub ? ` <em>(1d4: ${sub})</em>` : ""}</div>
         </div>`,
     });
+    await this._persist();
     this.render();
   }
 
@@ -637,12 +880,14 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
     this._prize = text;
+    await this._persist();
     this.render();
   }
 
-  _onSetOutcome(event, target) {
+  async _onSetOutcome(event, target) {
     this._outcome = target?.dataset?.outcome === "win" ? "win" : "loss";
     this._renownDelta = suggestedRenown(this._outcome);
+    await this._persist();
     this.render();
   }
 
@@ -678,6 +923,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // retryable once whatever refused it is sorted out, and a card that says
     // "Applied" over a character whose renown never moved is a lie.
     this._applied = failed.length === 0;
+    await this._persist();
     this.render();
   }
 

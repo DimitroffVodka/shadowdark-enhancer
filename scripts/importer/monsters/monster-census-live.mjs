@@ -28,6 +28,59 @@ import {
 import { findSuitePack, sourceFolderName } from "../../shared/compendium-suite.mjs";
 import { effectiveSource, BACKUP_FOLDER_NAME } from "./actor-migration.mjs";
 import { MonsterLinker } from "./monster-linker.mjs";
+import { TABLE_MANIFEST } from "../tables/table-manifest-data.mjs";
+// Pure, Foundry-free, and about reading a book's encounter row rather than about
+// pit fighting as such — the same parser the bout roller uses, so the census and
+// the Place button agree on what a row names. If they disagreed, the window
+// would offer to place a monster the census had just called missing.
+import { nameCandidates, parseFoeRow } from "../../pit-fighting/foe-resolver-core.mjs";
+
+/**
+ * Manifest entries that are creature MATRICES — three-column encounter grids
+ * whose cells are creatures, keyed by the bare table name.
+ *
+ * These are why the census used to miss CS2's arena monsters entirely. The
+ * tables commit as `tableType: "other"` and are called "… Pit Fight (solo)", so
+ * the keyword gate below rejected them before a single row was read, and their
+ * cells ("Rookie*", "Canyon ape*", "Gt. centipede") are single words or
+ * lower-cased seconds that the Title-Case noun-phrase scanner could not have
+ * matched anyway. The manifest already knows the shape, so it is the thing to
+ * ask rather than a new flag that would need every world to re-import.
+ */
+const _CREATURE_MATRICES = new Map(
+  TABLE_MANIFEST
+    .filter((e) => e.matrix && Array.isArray(e.columns)
+      && e.columns.some((c) => /creature/i.test(c)))
+    .map((e) => [String(e.name).toLowerCase().trim(), e]),
+);
+
+/**
+ * Match a committed table to its manifest matrix entry.
+ *
+ * Committed tables carry a collision-avoiding source prefix ("Cursed Scroll 2 -
+ * Low Stakes Pit Fight (solo)"), so the manifest name is matched as a suffix,
+ * the same way the character-content census does it.
+ */
+function _creatureMatrixFor(tableName) {
+  const n = String(tableName ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  for (const [key, entry] of _CREATURE_MATRICES) {
+    if (n === key || n.endsWith(` - ${key}`) || n.endsWith(`: ${key}`)) return entry;
+  }
+  return null;
+}
+
+/**
+ * The display text of a table row.
+ *
+ * `name` FIRST. Authored TableResults put their text in `name` — reading only
+ * `description` missed 419 of the 491 rows in a real world's suite pack, which
+ * is why newer imports contributed nothing to the census at all. `_source.text`
+ * is deliberately not consulted: it still fires the v13 deprecation getter, and
+ * migrateData has already moved any legacy value into `description`.
+ */
+function _rowText(result) {
+  return String(result?.name || result?.description || "").trim();
+}
 
 // ─── Internal: live actor record builder ─────────────────────────────────────
 
@@ -100,7 +153,7 @@ async function _gatherGapsInternal() {
 
   // Collect referenced monster names from the GM's own imported pack tables,
   // tagged with the source label of the table each came from.
-  const referenced = await _referencedNamesFromPackTables();
+  const referenced = await _referencedNamesFromPackTables(resolvedSet);
 
   // Bucket per label, resolve each bucket independently.
   /** @type {Map<string, string[]>} label → referenced names */
@@ -139,11 +192,14 @@ async function _gatherGapsInternal() {
  *
  * D1-safe: only reads the GM's own pack tables — no shipped roster involved.
  *
+ * @param {Set<string>} resolvedSet  normalised names the world already owns.
+ *   Creature-matrix cells need it: their names have to be tried in the system's
+ *   inverted "Family, Variant" form before one can be called a gap.
  * @returns {Promise<Array<{ name: string, label: string }>>} referenced names
  *   tagged with the source LABEL of the table they came from (per-source gap
  *   bucketing, D-05). Sourceless tables tag as "Custom".
  */
-async function _referencedNamesFromPackTables() {
+async function _referencedNamesFromPackTables(resolvedSet = new Set()) {
   const pack = findSuitePack("sde-tables");
   if (!pack) return [];
 
@@ -167,7 +223,11 @@ async function _referencedNamesFromPackTables() {
     // Encounter gate — mirror the enrichment heuristic, encounter side only.
     const hay = [sde.tableType, sde.category, sde.customLabel, table.name]
       .filter(Boolean).join(" ");
-    if (!/encounter/i.test(hay)) continue;
+    // A creature matrix IS an encounter table whatever it is called, so it
+    // comes in past the keyword gate on the manifest's word rather than on
+    // whether someone happened to put "encounter" in its name.
+    const matrix = _creatureMatrixFor(table.name);
+    if (!matrix && !/encounter/i.test(hay)) continue;
     // Zone pickers ("Encounter Zone") pass the keyword gate but their cells
     // are CATEGORY words, not monster names — they produced junk gap rows
     // like "Demon Demon Demon Demon" (live-caught by the GM).
@@ -185,14 +245,38 @@ async function _referencedNamesFromPackTables() {
     // also pass the keyword gate, but every row is bare capitalized category
     // words ("Flier Flier Flier Flier") - no prose, no dice, no links. Skip
     // the whole table when ALL rows look like that (live-caught, round 2).
-    const rowTexts = results
-      .map((r) => String(r.description ?? r.text ?? "").trim())
-      .filter(Boolean);
+    const rowTexts = results.map(_rowText).filter(Boolean);
     const isCategoryRow = (t) => /^(?:[A-Z][a-zA-Z'-]*\s+){1,5}[A-Z][a-zA-Z'-]*$/.test(t);
-    if (rowTexts.length && rowTexts.every(isCategoryRow)) continue;
+    // Matrices are exempt: the manifest has already said their cells are
+    // creatures, and single-word rows like "Ogre | — | —" would otherwise trip
+    // the category-word guard and skip the whole table.
+    if (!matrix && rowTexts.length && rowTexts.every(isCategoryRow)) continue;
+
+    // ── Creature matrices: read the cells, not the prose ───────────────────
+    // Column position decides what is a creature, so the complication cannot be
+    // mistaken for one ("Spiked nets" looks exactly like a monster name).
+    if (matrix) {
+      for (const result of results) {
+        for (const creature of parseFoeRow(_rowText(result)).creatures) {
+          // Rival crawlers are another adventuring party — the GM's own NPCs,
+          // not a compendium monster. Left in, it would sit in the census as a
+          // gap that no import could ever close. Same class as the "The PCs"
+          // exclusion the noun-phrase scanner already applies below.
+          if (/^rival\s+crawlers?$/i.test(creature.name)) continue;
+          // Report the name the BOOK printed unless one of its candidates is
+          // something the world owns — "Gt. centipede" resolves through the
+          // system's "Centipede, Giant", and reporting the book's spelling as a
+          // gap would send a GM hunting for a monster they already have.
+          const owned = nameCandidates(creature.name)
+            .find((c) => resolvedSet.has(normalizeMonsterName(c)));
+          names.push({ name: owned ?? creature.name, label });
+        }
+      }
+      continue;
+    }
 
     for (const result of results) {
-      const text = String(result.description ?? result.text ?? "");
+      const text = _rowText(result);
       // Strip resolved links, scan what remains.
       const plain = text.replace(/@UUID\[[^\]]*\]\{[^}]*\}/g, " ");
       let m;
