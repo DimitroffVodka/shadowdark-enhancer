@@ -115,6 +115,31 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **Pit fighting, from Cursed Scroll 2.** A new **Pit Fighting** entry in the
+  Crawl Bar's **Forge & Loot** menu sets a bout up in the book's order: roll the
+  venue, roll the stakes against the fighters' average level, settle the danger,
+  draw the foe, and check for a twist. Ticking more than one fighter switches to
+  the group encounter tables and averages their levels for the stakes; a
+  fractional average rounds to nearest and shows you the unrounded figure beside
+  it. **The danger level is yours** — the book gives the GM the stakes *and* the
+  venue and then leaves the call, so the dropdown arrives pre-set to what the
+  stakes suggest and changing it redraws the foe from the encounter table that now
+  applies. **The twist stays hidden** until you press Reveal, including when it
+  turns out to be nothing: a hidden line that always meant trouble would tell the
+  table something. The one twist with a mechanical consequence — a donor raising
+  the stakes — moves the *prize* table without making the fight deadlier, since
+  the fighters accepted on the danger you already set. Afterwards, mark it won or
+  lost, roll the prize for the tier actually fought for, and apply the fame, which
+  goes through the same single renown write path as everything else. Documented in
+  [docs/wiki/Pit-Fighting.md](docs/wiki/Pit-Fighting.md).
+  The descriptions all come from **your own book**: venues, twists, prizes and
+  foes are read out of the fourteen CS2 tables you import, and a table you haven't
+  imported yet is **named in the window** with a link to the importer rather than
+  filled in with wording of ours. CS2 prints no renown value for a bout, so the
+  default is a point for a win and nothing for a loss, for you to change —
+  deliberately not scaled by stakes, which would read as a rule that isn't there.
+  Lethality is not automated: the danger level picks an encounter table, and what
+  happens when a fighter drops stays a ruling at your table.
 - **Renown, the fame track.** The number was already on the character sheet —
   the system owns `system.renown` — but nothing read it. It now means something.
   A new **Renown** entry in the Crawl Bar's **Forge & Loot** menu opens a GM
