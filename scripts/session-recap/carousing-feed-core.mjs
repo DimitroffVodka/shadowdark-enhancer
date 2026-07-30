@@ -70,6 +70,19 @@ function normalizeResult(participantId, result, resolveParticipant) {
   const expanded = isExpandedResult(result);
   // Original mode has at most one benefit and no mishaps: its outcome row
   // carries a single `benefit` string beside the description.
+  //
+  // `renownDelta: 0` here is "not known", NOT "no renown happened". Expanded mode
+  // stores a structured `renownDelta` per roll; original mode stores none — SDX
+  // re-derives it from the outcome TEXT at apply time (`parseOutcomeEffects` in
+  // its CarousingSD.mjs) and keeps only the localized phrase in
+  // `applied.summary`. Re-deriving it here would mean reimplementing SDX's parser
+  // and risking a number that disagrees with the one it actually applied, so this
+  // deliberately reports nothing rather than guessing. The renown is NOT lost to
+  // the reader: it shows in the `applied` summary line, and — since SDX routes
+  // the change through `Renown.award` — as its own tagged row in the recap's
+  // Renown section and the character's permanent ledger. Only the per-carouse
+  // AGGREGATE in `carousingSubtotal` cannot include it. Do not "fix" this by
+  // inventing a delta; see the test that pins it.
   const benefits = expanded
     ? (result.benefits ?? []).map(outcomeEntry).filter((b) => b.text)
     : [String(result?.benefit ?? "").trim()].filter(Boolean)

@@ -106,14 +106,22 @@ The block only appears when Shadowdark Extras is installed, active, and its
 > first. The recap keeps every carouse it saw, which is also what lets an
 > archived session still show one.
 
-> **A carousing renown swing is counted twice, deliberately.** The subtotal here
-> reads `renown +2` for the night, and the same change also appears as its own row
-> under **XP & Renown** and in the character's permanent
+> **A carousing renown swing is counted twice, deliberately.** The same change
+> appears as its own row under **XP & Renown** and in the character's
 > [renown log](Renown.md#changes-made-outside-the-module), tagged **Carousing**.
 > That is the same double-entry downtime uses: this block is the night's summary,
-> the renown ledger is the per-character record. The two always agree, because
-> Shadowdark Extras hands the change to this module and records back the number
-> this module actually wrote.
+> the renown ledger is the per-character record.
+
+In **Expanded** mode the subtotal also carries the night's net swing, reading
+`renown +2`, and it agrees with the ledger — Shadowdark Extras hands the change to
+this module and records back the number this module actually wrote.
+
+In **Original** mode the subtotal leaves renown out. That mode stores no renown
+figure on the result; Shadowdark Extras works it out from the outcome's wording
+when you press Apply, and keeps only the sentence. Re-deriving it here would mean
+second-guessing that module's own reading, so the block shows what it applied
+instead — the renown appears in the italic applied line for that character, and in
+the renown ledger, just not in the header total.
 
 Shadowdark Extras keeps its own permanent **Carousing Log** journal as well, with
 its own table per session. That one is the GM-only record inside that module; this

@@ -268,6 +268,36 @@ describe("subtotals", () => {
     assert.match(carousingSubtotal(c.entries), /1 not applied$/);
   });
 
+  test("original mode reports NO renown rather than inventing one", () => {
+    // SDX stores no renown figure on an original-mode result — it re-derives it
+    // from the outcome text at apply time and keeps only the localized phrase.
+    // Reimplementing that parser here could produce a number disagreeing with the
+    // one SDX actually applied, so the aggregate deliberately omits it. The value
+    // still reaches the reader through the applied summary and the renown ledger.
+    const c = normalizeCarousingSession(session({
+      "user-dimi": originalResult({
+        description: "A nobleman overheard your joke about him; -3 renown",
+        applied: { at: 1, summary: "-3 renown", actorName: "Bazogo" },
+      }),
+    }), resolve);
+    assert.equal(c.entries[0].renownDelta, 0, "a renown delta was fabricated from the outcome text");
+    assert.equal(carousingSubtotal(c.entries).includes("renown"), false);
+    // …but it is not hidden: the applied summary carries it.
+    assert.equal(c.entries[0].applied, "-3 renown");
+  });
+
+  test("a mixed session sums only the renown it actually knows", () => {
+    // The expanded row's +2 counts; the original row contributes nothing rather
+    // than a guess. Understating beats reporting a number that is wrong.
+    const c = normalizeCarousingSession(session({
+      "user-dimi": originalResult({ description: "Feted, and richer for it; +1 renown" }),
+      "user-sam": expandedResult({
+        benefits: [{ description: "A patron", renownDelta: 2 }], mishaps: [],
+      }),
+    }), resolve);
+    assert.match(carousingSubtotal(c.entries), /renown \+2/);
+  });
+
   test("a net-zero renown swing is omitted rather than shown as 0", () => {
     const c = normalizeCarousingSession(session({ "user-sam": expandedResult() }), resolve);
     assert.equal(carousingSubtotal(c.entries).includes("renown"), false);
