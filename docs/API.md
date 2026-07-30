@@ -536,9 +536,14 @@ picker for whose renown applies. Independent of all of that, **double 1s on the
 reaction dice are always hostile** — `reactionBand(total, { doubleOnes })` in
 `encounter-result.mjs` short-circuits before the band ladder.
 
-**Carousing is not automated.** By the book the same bonus applies to carousing
-event rolls, but the module has no carousing roll to hook it into, so `bonusOf`
-is all it offers there — add the bonus by hand when you roll the table.
+**Carousing belongs to shadowdark-extras, and it applies the bonus itself.** By
+the book the same bonus applies to carousing event rolls. This module has no
+carousing roll to hook, but SDX does, and its `getRenownBonus` (CarousingSD.mjs)
+is the same `≥4/≥8/≥12 → +1/+2/+3` ladder folded into the carousing `totalBonus`.
+So do NOT tell users to add it by hand where SDX is installed — that doubles it.
+SDX also applies carousing renown *deltas* with a bare
+`actor.update({"system.renown": next})` (`applyRenownDelta`), which is why the
+external-change watcher below exists.
 
 Two triggers are wired automatically, both settings-gated, and everything else the
 book lists is a judgement call that lives on the dialog as a suggestion:
@@ -552,6 +557,17 @@ book lists is a judgement call that lives on the dialog as a suggestion:
 - **Renown on level-up** — a level gain grants a point, two levels grant two.
   Reaching level 1 is excluded, because the Character Builder and the level-0
   funnel both write `system.level.value` as part of creating the character.
+
+Beyond those, an `updateActor` watcher logs any change to `system.renown` that did
+NOT come through `award`, with `source: "external"`. **`system.renown` is the
+system's field, so the sheet input, a macro and other modules all write it** —
+without this the log would record our awards rather than the character's renown.
+Our own write is told apart by the ledger flag riding in the same update, so an
+award is never logged twice. Active-GM only, measured against a per-client cache
+(`updateActor` fires everywhere; `preUpdateActor` only on the initiating client),
+and it posts no chat card, because whoever wrote the value already reported it.
+The row is appended in its own update — the same-update atomicity guarantee
+applies only to `award`, since here the number is already committed.
 
 Every change — a GM award, a starting seed, a level-up, a downtime rumour — is
 recorded on the character (see the log above), logged to the Session Recap (its

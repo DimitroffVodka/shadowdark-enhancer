@@ -115,6 +115,16 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **Renown changes made outside the module are logged too.** `system.renown` is
+  the Shadowdark system's field, so the sheet's own input, a macro and other
+  modules all write it — and the log recorded only changes routed through this
+  module, which made it a record of our awards rather than of the character's
+  renown. The case that bit in practice: **Shadowdark Extras' carousing** applies
+  its renown with a bare `actor.update`, so a mishap reading "-3 renown" moved the
+  sheet and left no trace. An `updateActor` watcher now catches any change we did
+  not make and logs it as *Changed outside the module*, with no chat card, since
+  whoever wrote the value already reported it. Our own awards are told apart by
+  the ledger row riding in the same update, so nothing is logged twice.
 - **A new character's renown is set from their Charisma modifier, without a
   click.** Previously the starting value existed only as a **Start at CHA mod**
   button somebody had to remember to press. The seed is attempted when the

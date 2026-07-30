@@ -109,6 +109,25 @@ export const RENOWN_QUERY = `${MODULE_ID}.renown`;
  */
 const _levelSeen = new Map();
 
+/**
+ * Last-seen renown per actor id, so a write this module did NOT make can still
+ * be measured and logged.
+ *
+ * WHY THIS EXISTS: `system.renown` is the SYSTEM's field, and anything may write
+ * it — the Shadowdark sheet's own input, a macro, or another module.
+ * shadowdark-extras applies carousing renown with a bare
+ * `actor.update({"system.renown": next})` (CarousingSD.mjs `applyRenownDelta`),
+ * carrying nothing that identifies it. Without this, a -3 from a carousing mishap
+ * moved the number on the sheet and left no trace in the log, which makes the log
+ * a record of *our* awards rather than of the character's renown.
+ *
+ * A cache rather than `preUpdateActor`, which fires only on the client that
+ * initiated the write; `updateActor` fires on every client, so the value has to
+ * be diffed against something this client already had. Same reasoning, and the
+ * same shape, as `_levelSeen` above.
+ */
+const _renownSeen = new Map();
+
 export const Renown = {
 
   // ── Settings ───────────────────────────────────────────────
@@ -382,6 +401,66 @@ export const Renown = {
   },
 
   /**
+   * Record a change to `system.renown` that this module did not make.
+   *
+   * The number is already committed by whoever wrote it, so this is a
+   * best-effort follow-up rather than the atomic write `_awardNow` performs: the
+   * row is appended in its own update, and it deliberately posts NO chat card,
+   * because whatever made the change has already reported it its own way (SDX's
+   * carousing card, or the GM simply typing in the field).
+   *
+   * Serialized through the same queue as an award, so an external change landing
+   * beside one cannot clobber its ledger row.
+   *
+   * @param {Actor} actor
+   * @param {number} before  this client's last-seen value
+   * @param {number} after   the value now on the actor
+   */
+  async _recordExternalChange(actor, before, after) {
+    const step = after - before;
+    if (!step) return null;
+
+    return this._enqueueTx(async () => {
+      const live = game.actors?.get(actor?.id) ?? actor;
+      const player = _controllingPlayerName(live);
+      const next = appendRenownHistory(live?.getFlag?.(MODULE_ID, HISTORY_FLAG), {
+        delta: step,
+        before,
+        after,
+        reason: "",
+        source: "external",
+        player,
+        gm: game.user?.name ?? "",
+        at: Date.now(),
+      });
+
+      try {
+        await live.update({ [HISTORY_PATH]: next });
+      } catch (err) {
+        console.warn(`${MODULE_ID} | renown: could not log an external change to ${live?.name}`, err);
+        return null;
+      }
+
+      try {
+        await SessionRecap.logRenown({
+          actorId: live.id,
+          actorName: live.name,
+          player,
+          delta: step,
+          before,
+          after,
+          reason: "",
+          source: "external",
+        });
+      } catch (err) {
+        console.warn(`${MODULE_ID} | renown: recap write failed`, err);
+      }
+
+      return { ok: true, before, after, delta: step, band: renownBand(after), summary: renownChangeLine({ actorName: live.name, delta: step, after }) };
+    });
+  },
+
+  /**
    * Set renown to the book's starting value — the character's CHA modifier.
    * Routed through `award` so it is logged like every other change.
    */
@@ -477,17 +556,44 @@ export const Renown = {
     CONFIG.queries[RENOWN_QUERY] = (data, { user } = {}) => Renown.handleQuery(data, user);
 
     for (const actor of game.actors) {
-      if (actor.type === "Player") _levelSeen.set(actor.id, _levelOf(actor));
+      if (actor.type !== "Player") continue;
+      _levelSeen.set(actor.id, _levelOf(actor));
+      _renownSeen.set(actor.id, this.valueOf(actor));
     }
 
     Hooks.on("createActor", async (actor) => {
       if (actor?.type !== "Player") return;
       _levelSeen.set(actor.id, _levelOf(actor));
+      _renownSeen.set(actor.id, this.valueOf(actor));
       await this.maybeSeedFromCha(actor);
+    });
+
+    // A character can come back with the same id — an export re-imported, an
+    // undone delete — and a stale cached value would mis-measure the first
+    // external change after it returns.
+    Hooks.on("deleteActor", (actor) => {
+      _levelSeen.delete(actor?.id);
+      _renownSeen.delete(actor?.id);
     });
 
     Hooks.on("updateActor", async (actor, changed) => {
       if (actor?.type !== "Player") return;
+
+      // Any write to the system's renown field, ours or somebody else's. The
+      // cache is refreshed on EVERY client before the active-GM gate, so a
+      // later external change is still measured against the right value.
+      if (foundry.utils.getProperty(changed, "system.renown") !== undefined) {
+        const prev = _renownSeen.get(actor.id);
+        const next = this.valueOf(actor);
+        _renownSeen.set(actor.id, next);
+
+        // `_awardNow` writes the number and its ledger row in ONE update, so an
+        // update carrying the ledger flag is ours and is already recorded.
+        const ours = foundry.utils.getProperty(changed, `flags.${MODULE_ID}.${HISTORY_FLAG}`) !== undefined;
+        if (!ours && _isPrimaryGM() && prev !== undefined && next !== prev) {
+          await this._recordExternalChange(actor, prev, next);
+        }
+      }
 
       // A character created before its abilities were rolled is still owed its
       // starting seed; `maybeSeedFromCha` decides. Independent of the level

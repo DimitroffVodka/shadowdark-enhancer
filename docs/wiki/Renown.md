@@ -50,10 +50,15 @@ is seeded automatically — see below.
 | 12 or more | Celebrity | +3 |
 
 By the book, the bonus applies to **reaction rolls** and **carousing event
-rolls**. The module automates the reaction roll only — the Encounter Roller's
-**Recognised here** toggle is what adds it. Carousing is not automated anywhere
-in the module, so if your table uses the carousing tables, add the bonus by hand
-when you roll them.
+rolls**. This module automates the reaction roll — the Encounter Roller's
+**Recognised here** toggle is what adds it.
+
+**Carousing is not this module's feature, and you should not add the bonus by
+hand for it.** Carousing lives in **Shadowdark Extras**, which already adds the
+same bonus off the same ladder (`getRenownBonus` in its `CarousingSD.mjs`) when
+you drop a character on a carousing tier. Adding it again yourself would double
+it. Only add it by hand if you are rolling carousing straight from the book with
+Shadowdark Extras not installed.
 
 Each band carries a one-line note about how people treat you, shown beside the
 band in the Renown dialog and on the Encounter Roller. Those notes are the
@@ -188,11 +193,12 @@ because the downtime result card already reports what happened.
 
 Every renown change lands in three places:
 
-- **The renown log on the character.** Permanent, and the only one of the three
-  that does not depend on anything else being switched on. Open the **Renown**
-  dialog and expand **Renown log** to read it: one collapsible section per
-  player, with their net change and every individual change under it — the
-  character, what moved, the total it produced, why, and when.
+- **The renown log on the character.** Permanent, the only one of the three that
+  does not depend on anything else being switched on, and the only one that
+  records changes this module did not make. Open the **Renown** dialog and expand
+  **Renown log** to read it: one collapsible section per player, with their net
+  change and every individual change under it — the character, what moved, the
+  total it produced, why, and when.
 - **A chat card**, naming the character, the change, the new total, the band and
   your reason. Public, because renown *is* public reputation — a triumph and a
   humiliation are both things the table watched happen.
@@ -213,6 +219,21 @@ document and travels with a character export.
 
 Grouping is by the player who owned the character **at the time of the change**,
 so handing a character to another player does not rewrite its history.
+
+### Changes made outside the module
+
+`system.renown` belongs to the Shadowdark system, so the sheet's own input, a
+macro, and other modules can all write it. Those changes are caught too, and
+appear in the log as **Changed outside the module** with the right numbers and
+time — they just carry no reason, because nothing supplied one.
+
+The case that matters in practice: **Shadowdark Extras' carousing** applies its
+renown gains and losses straight to the field, so a mishap reading *"-3 renown"*
+moves the sheet without this module ever being told. It is now logged. It posts no
+chat card, because SDX's own carousing card already reported it.
+
+A change made before this existed cannot be recovered — there was no record of it
+to read. The value on the sheet is still correct; only the log entry is missing.
 
 There is no separate Renown Log journal. Downtime has one because downtime is
 resolved between sessions with no recap running; renown now keeps its own record

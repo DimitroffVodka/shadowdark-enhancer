@@ -197,6 +197,7 @@ export const RENOWN_SOURCE_LABELS = {
   start: "Starting renown",
   "level-up": "Gained a level",
   downtime: "Downtime",
+  external: "Changed outside the module",
 };
 
 /**

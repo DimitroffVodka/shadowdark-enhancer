@@ -77,14 +77,32 @@ async function harness({ actors = {}, me = GM, activeGM = GM } = {}) {
   const queries = [];
 
   globalThis.CONFIG = { queries: {} };
-  globalThis.Hooks = { on: () => 1, once: () => 1, callAll: () => {} };
+  // Real dispatch, so `Renown.init()`'s watchers can be driven the way Foundry
+  // drives them. A stub that swallowed handlers would leave the external-change
+  // path — the one that catches another module's write — completely untested.
+  const hooks = new Map();
+  globalThis.Hooks = {
+    on: (name, fn) => { (hooks.get(name) ?? hooks.set(name, []).get(name)).push(fn); return 1; },
+    once: () => 1,
+    callAll: () => {},
+    /** Await every handler, which Foundry does not do — tests need the result. */
+    fire: async (name, ...args) => {
+      for (const fn of hooks.get(name) ?? []) await fn(...args);
+    },
+  };
   globalThis.ui = { notifications: { warn: () => {}, info: () => {}, error: () => {} } };
   globalThis.ChatMessage = {
     create: async (data) => { cards.push(data); return { id: `m${cards.length}` }; },
     getSpeaker: () => ({}),
   };
   globalThis.foundry = {
-    utils: { escapeHTML: (s) => String(s ?? ""), getProperty: () => undefined },
+    utils: {
+      escapeHTML: (s) => String(s ?? ""),
+      // A real implementation, not a stub: the watchers decide what changed by
+      // reading paths out of Foundry's diff, so a `() => undefined` stub would
+      // silently disable every one of them.
+      getProperty: (obj, path) => path.split(".").reduce((node, key) => node?.[key], obj),
+    },
   };
   globalThis.game = {
     user: me,
@@ -94,7 +112,9 @@ async function harness({ actors = {}, me = GM, activeGM = GM } = {}) {
       get: (id) => USERS.find((u) => u.id === id),
       find: (fn) => USERS.find(fn),
     }),
-    actors: Object.assign([], { get: (id) => actors[id] ?? null }),
+    // Populated, so `Renown.init()` can seed its caches the way it does on a
+    // real client — `game.actors` is iterable there.
+    actors: Object.assign(Object.values(actors), { get: (id) => actors[id] ?? null }),
     settings: { get: () => true, set: async () => {} },
     modules: { get: () => ({ version: "0.13.1" }) },
   };
@@ -499,4 +519,125 @@ test("an NPC is not a renown character and is never seeded", async () => {
   assert.equal(await Renown.maybeSeedFromCha(actor), null);
   assert.equal(await Renown.maybeSeedFromCha(actor, { force: true }), null, "force is not a type override");
   assert.equal(actor.system.renown, 0);
+});
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Changes this module did not make                                           */
+/*                                                                            */
+/* `system.renown` is the SYSTEM's field, so the sheet input, a macro and other */
+/* modules all write it. shadowdark-extras applies carousing renown with a bare */
+/* `actor.update({"system.renown": next})` (CarousingSD.mjs applyRenownDelta),  */
+/* carrying nothing that identifies it — a -3 carousing mishap moved the number */
+/* on the sheet and left no trace in the log. The watcher below is what closes  */
+/* that, and it must not double-log our own awards to do it.                    */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/** Drive the watcher the way Foundry does: write, then fire `updateActor`. */
+async function externalWrite(actor, renown) {
+  await actor.update({ "system.renown": renown });
+  await globalThis.Hooks.fire("updateActor", actor, { system: { renown } }, {}, GM.id);
+}
+
+test("another module's renown write is caught and logged", async () => {
+  const actor = makeActor({ renown: 7 });
+  const { Renown, cards } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  // Exactly SDX's shape: current + delta, written straight to the field.
+  await externalWrite(actor, 4);
+
+  const log = ledgerOf(actor);
+  assert.equal(log.length, 1, "an external change must still reach the ledger");
+  assert.deepEqual(
+    { delta: log[0].delta, before: log[0].before, after: log[0].after, source: log[0].source },
+    { delta: -3, before: 7, after: 4, source: "external" }
+  );
+  assert.equal(cards.length, 0, "no card — whoever wrote it already reported it");
+});
+
+test("an external change is reported to the recap too", async () => {
+  const actor = makeActor({ renown: 0 });
+  const { Renown, logged } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 2);
+
+  assert.equal(logged.length, 1);
+  assert.deepEqual([logged[0].delta, logged[0].after, logged[0].source], [2, 2, "external"]);
+});
+
+test("our own award is NOT logged twice by the watcher", async () => {
+  // The award writes the number and the row in one update, so the watcher sees
+  // an update carrying the ledger flag and must recognise it as ours.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await Renown.award({ actor, delta: 1, reason: "A major triumph", chat: false });
+  await globalThis.Hooks.fire("updateActor", actor, {
+    system: { renown: 6 },
+    flags: { "shadowdark-enhancer": { renownLog: ledgerOf(actor) } },
+  }, {}, GM.id);
+
+  const log = ledgerOf(actor);
+  assert.equal(log.length, 1, "one change, one row");
+  assert.equal(log[0].source, "gm");
+});
+
+test("an external change lands on a later award's `before`", async () => {
+  // The value the watcher caches is what the next award measures against, so a
+  // sheet edit followed by an award must not resurrect the pre-edit number.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 9);
+  const result = await Renown.award({ actor, delta: 1, chat: false });
+
+  assert.equal(result.before, 9);
+  assert.equal(actor.system.renown, 10);
+  assert.deepEqual(ledgerOf(actor).map((r) => [r.source, r.delta]), [["external", 4], ["gm", 1]]);
+});
+
+test("an update that does not touch renown is ignored", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await actor.update({ "system.attributes.hp.value": 3 });
+  await globalThis.Hooks.fire("updateActor", actor, { system: { attributes: { hp: { value: 3 } } } }, {}, GM.id);
+
+  assert.equal(ledgerOf(actor).length, 0);
+});
+
+test("a write that changes nothing is not an event", async () => {
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 5);
+
+  assert.equal(ledgerOf(actor).length, 0, "5 → 5 is not a change");
+});
+
+test("only the active GM logs an external change", async () => {
+  // Every client gets `updateActor`, so an ungated watcher would write one row
+  // per connected GM — the same multi-GM trap the award path already avoids.
+  const actor = makeActor({ renown: 7 });
+  const { Renown } = await harness({ actors: { a1: actor }, me: GM2, activeGM: GM });
+  Renown.init();
+
+  await externalWrite(actor, 4);
+
+  assert.equal(ledgerOf(actor).length, 0, "the watchdog GM must stay quiet");
+});
+
+test("an NPC's renown is not tracked", async () => {
+  const actor = makeActor({ renown: 7, type: "NPC" });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await externalWrite(actor, 4);
+
+  assert.equal(ledgerOf(actor).length, 0);
 });
