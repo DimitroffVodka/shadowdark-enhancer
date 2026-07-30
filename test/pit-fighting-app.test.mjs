@@ -21,6 +21,20 @@ import assert from "node:assert/strict";
 /** Roll totals handed out in order, per formula. */
 let ROLLS = {};
 
+/**
+ * A `game.actors` stand-in where the SAME enriched objects back both `filter`
+ * and `get`.
+ *
+ * `hasPlayerOwner` defaults true because the APL now comes from
+ * `PitFighting.party()`, which uses the module-wide PC definition — a Player
+ * actor with a player owner. A fixture missing that flag reads as an empty party,
+ * so every APL silently becomes 1.
+ */
+function _actorCollection(actors) {
+  const enriched = actors.map((a) => ({ hasPlayerOwner: true, ...a }));
+  return Object.assign(enriched, { get: (id) => enriched.find((a) => a.id === id) ?? null });
+}
+
 function stubFoundry({ packTables = [], worldTables = [], actors = [] } = {}) {
   class ApplicationV2 { static DEFAULT_OPTIONS = {}; render() {} close() {} bringToFront() {} }
   globalThis.foundry = {
@@ -59,7 +73,7 @@ function stubFoundry({ packTables = [], worldTables = [], actors = [] } = {}) {
     users: Object.assign([], { activeGM: { id: "gm1" }, find: () => null, get: () => null }),
     packs: Object.assign([pack], { find: (fn) => [pack].find(fn) }),
     tables: Object.assign([...worldTables], { find: (fn) => worldTables.find(fn) }),
-    actors: Object.assign([...actors], { get: (id) => actors.find((a) => a.id === id) ?? null }),
+    actors: _actorCollection(actors),
     settings: { get: () => true, set: async () => {} },
     modules: { get: () => ({ version: "0.13.1" }) },
     shadowdarkEnhancer: {},
@@ -144,7 +158,7 @@ test("a bout reads the row the dice landed on, not a fresh draw", async () => {
     actors: [{ id: "a1", type: "Player", name: "Troana", system: { level: { value: 1 } } }],
   });
 
-  const s = await PitFighting.setUpBout({ fighterIds: ["a1"] });
+  const s = await PitFighting.setUpBout({});
 
   assert.equal(s.bout.venue.total, 4);
   assert.equal(s.venueText, "a cellar", "venue 4 is the FIRST row, not a random one");
@@ -161,7 +175,7 @@ test("a table that is not imported is named, and nothing is invented for it", as
     actors: [{ id: "a1", type: "Player", name: "Troana", system: { level: { value: 2 } } }],
   });
 
-  const s = await PitFighting.setUpBout({ fighterIds: ["a1"] });
+  const s = await PitFighting.setUpBout({});
 
   assert.equal(s.venueText, "", "no substitute wording");
   assert.equal(s.twistText, "");
@@ -174,7 +188,7 @@ test("a table that is not imported is named, and nothing is invented for it", as
   assert.equal(s.bout.stakes.total, 5);
 });
 
-test("the fighters set solo vs group and the stakes they roll against", async () => {
+test("the offer needs no fighters, and the stakes use the party's average level", async () => {
   ROLLS = { "2d6": [7, 7], "1d6": [1] };
   const { PitFighting } = await load({
     actors: [
@@ -183,10 +197,25 @@ test("the fighters set solo vs group and the stakes they roll against", async ()
     ],
   });
 
-  const s = await PitFighting.setUpBout({ fighterIds: ["a1", "a2"] });
+  // No fighters are named. That is the whole point of the ordering: CS2 has the
+  // bout rolled and described BEFORE anyone accepts, and the stakes use the
+  // party's average level, which exists without knowing who will step up.
+  const s = await PitFighting.setUpBout({});
 
-  assert.equal(s.aplDetail.apl, 4, "average of 3 and 5");
+  assert.equal(s.aplDetail.apl, 4, "average of the whole party, 3 and 5");
   assert.equal(s.bout.stakes.total, 5, "APL 4 + 1");
+  assert.equal(s.bout.group, false, "size is the GM's call, and defaults to solo");
+  assert.match(s.bout.encounterTable, /\(solo\)$/);
+});
+
+test("the GM's size toggle is what picks the group encounter tables", async () => {
+  ROLLS = { "2d6": [7, 7], "1d6": [1] };
+  const { PitFighting } = await load({
+    actors: [{ id: "a1", type: "Player", name: "A", system: { level: { value: 1 } } }],
+  });
+
+  const s = await PitFighting.setUpBout({ group: true });
+
   assert.equal(s.bout.group, true);
   assert.match(s.bout.encounterTable, /\(group\)$/);
 });
@@ -197,26 +226,44 @@ test("a GM danger override selects a different encounter table", async () => {
     actors: [{ id: "a1", type: "Player", name: "A", system: { level: { value: 1 } } }],
   });
 
-  const suggested = await PitFighting.setUpBout({ fighterIds: ["a1"] });
+  const suggested = await PitFighting.setUpBout({});
   assert.equal(suggested.bout.encounterTable, "Low Stakes Pit Fight (solo)");
 
   ROLLS = { "2d6": [7, 7], "1d6": [1] };
-  const overridden = await PitFighting.setUpBout({ fighterIds: ["a1"], danger: "high" });
+  const overridden = await PitFighting.setUpBout({ danger: "high" });
   assert.equal(overridden.bout.encounterTable, "High/epic Stakes Pit Fight (solo)");
   assert.equal(overridden.bout.danger.overridden, true);
 });
 
-test("an unknown fighter id is ignored rather than counted as level 0", async () => {
-  ROLLS = { "2d6": [7, 7], "1d6": [1] };
+test("a supplied total is used instead of rolling — the 'or pick' half", async () => {
+  // Dice that would give a wildly different bout if they were consulted at all.
+  ROLLS = { "2d6": [12, 12], "1d6": [6] };
   const { PitFighting } = await load({
     actors: [{ id: "a1", type: "Player", name: "A", system: { level: { value: 4 } } }],
   });
 
-  const s = await PitFighting.setUpBout({ fighterIds: ["a1", "ghost"] });
+  const s = await PitFighting.setUpBout({ venueTotal: 2, stakesTotal: 6, twistTotal: 7 });
 
+  assert.equal(s.bout.venue.total, 2, "the picked venue, not the 12 on the dice");
+  assert.equal(s.bout.venue.row, 1);
+  assert.equal(s.bout.stakes.key, "mid", "6 is the low end of Mid");
+  assert.equal(s.bout.twist.key, "none");
   assert.equal(s.aplDetail.counted, 1);
-  assert.equal(s.aplDetail.apl, 4);
-  assert.equal(s.bout.group, false, "one real fighter is a solo bout");
+});
+
+test("a picked twist keeps its own detail die when one is supplied", async () => {
+  ROLLS = { "2d6": [7, 7], "1d6": [1], "1d4": [3] };
+  const { PitFighting } = await load({
+    actors: [{ id: "a1", type: "Player", name: "A", system: { level: { value: 1 } } }],
+  });
+
+  // Band 2–5 is the one that needs a second die.
+  const rolled = await PitFighting.setUpBout({ twistTotal: 2 });
+  assert.equal(rolled.bout.twist.subRoll, "1d4");
+  assert.equal(rolled.twistSub, 3, "rolled when not supplied");
+
+  const pinned = await PitFighting.setUpBout({ twistTotal: 2, twistSub: 1 });
+  assert.equal(pinned.twistSub, 1, "a supplied detail die is kept, not rerolled");
 });
 
 test("a row that carries only a description still reads", async () => {
@@ -228,6 +275,6 @@ test("a row that carries only a description still reads", async () => {
     actors: [{ id: "a1", type: "Player", name: "A", system: { level: { value: 1 } } }],
   });
 
-  const s = await PitFighting.setUpBout({ fighterIds: ["a1"] });
+  const s = await PitFighting.setUpBout({});
   assert.equal(s.venueText, "an old-style row");
 });

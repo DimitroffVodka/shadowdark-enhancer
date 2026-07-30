@@ -28,6 +28,9 @@ import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { Renown } from "../renown/renown.mjs";
 import {
   DANGER_LEVELS,
+  STAKES_TIERS,
+  TWIST_BANDS,
+  VENUE_ROWS,
   averagePartyLevel,
   buildBout,
   suggestedRenown,
@@ -122,11 +125,22 @@ async function _rowFor(table, total) {
   return results.map(_resultText).filter(Boolean).join(" ");
 }
 
-/** Draw one random row, without posting the system's own card. */
+/**
+ * Draw one random row, without posting the system's own card.
+ *
+ * The encounter tables are three columns joined by " | ", and the book leaves a
+ * cell empty with an em dash when a bout has no second creature or no
+ * complication. Printing those through gives "Soldier | — | —", which is three
+ * columns of nothing said out loud — so empty cells are dropped from the line.
+ */
 async function _drawOne(table) {
   if (!table) return "";
   const draw = await table.draw({ displayChat: false });
-  return _resultText(draw?.results?.[0]);
+  const text = _resultText(draw?.results?.[0]);
+  if (!text.includes("|")) return text;
+  return text.split("|").map((c) => c.trim())
+    .filter((c) => c && !/^[-–—]+$/.test(c))
+    .join(" | ");
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */
@@ -148,45 +162,58 @@ export const PitFighting = {
   },
 
   /**
-   * Set a bout up from dice, with no UI involved — the headless path, and what
-   * the window itself calls.
+   * The party's average level, which the stakes roll is made against.
+   *
+   * The WHOLE party, not the fighters — and that is what makes the book's order
+   * possible. CS2 has you roll Venue and Stakes for an available bout, share the
+   * danger and the foe, and only THEN have the fighters accept or decline. The
+   * first cut of this window asked who was entering first, which is a fight
+   * nobody has described yet. "Groups of PCs use their Average Party Level (APL)
+   * for stakes rolls" is a property of the party, so the offer needs no fighters.
+   */
+  partyApl() {
+    return averagePartyLevel(this.party().map((a) => a.system?.level?.value));
+  },
+
+  /**
+   * Assemble a bout. Every die may be supplied instead of rolled, because the GM
+   * is allowed to CHOOSE the venue, the stakes or the twist rather than roll it —
+   * a chosen value arrives here as the lowest total in that band, so one code
+   * path covers both and `buildBout` needs no notion of "chosen".
+   *
+   * Fighters are deliberately not a parameter: they accept or decline AFTER this.
    *
    * @param {object} args
-   * @param {string[]} [args.fighterIds]  who enters the pit; sets APL and solo/group
    * @param {string}  [args.danger]       GM override, else the suggestion
+   * @param {boolean} [args.group]        group bout (the GM sets the offer's size)
+   * @param {number}  [args.venueTotal]   supply to skip the 2d6
+   * @param {number}  [args.stakesTotal]  supply to skip APL + 1d6
+   * @param {number}  [args.twistTotal]   supply to skip the 2d6
+   * @param {number}  [args.twistSub]     supply to skip the twist's own 1d4
    * @returns {Promise<object>} the bout, plus the drawn text and any missing tables
    */
-  async setUpBout({ fighterIds = [], danger = null } = {}) {
-    const fighters = fighterIds
-      .map((id) => game.actors?.get(id))
-      .filter((a) => a && a.type === "Player");
+  async setUpBout({
+    danger = null, group = false,
+    venueTotal = null, stakesTotal = null, twistTotal = null, twistSub = null,
+  } = {}) {
+    const { apl, mean, counted } = this.partyApl();
 
-    const { apl, mean, counted } = averagePartyLevel(
-      fighters.map((a) => a.system?.level?.value),
-    );
-
-    const venueTotal = await _total("2d6");
-    const stakesTotal = apl + await _total("1d6");
-    const twistTotal = await _total("2d6");
+    const venue = venueTotal ?? await _total("2d6");
+    const stakes = stakesTotal ?? (apl + await _total("1d6"));
+    const twist = twistTotal ?? await _total("2d6");
 
     const bout = buildBout({
-      venueTotal, stakesTotal, apl, twistTotal,
-      danger,
-      group: fighters.length > 1,
+      venueTotal: venue, stakesTotal: stakes, apl, twistTotal: twist, danger, group,
     });
 
     // The extra-danger twist needs its own die before it means anything.
-    const twistSub = bout.twist?.subRoll ? await _total(bout.twist.subRoll) : null;
+    const sub = bout.twist?.subRoll
+      ? (twistSub ?? await _total(bout.twist.subRoll))
+      : null;
 
     const text = await this._drawFor(bout);
 
-    return {
-      bout,
-      aplDetail: { apl, mean, counted },
-      fighters: fighters.map((a) => ({ id: a.id, name: a.name })),
-      twistSub,
-      ...text,
-    };
+    return { bout, aplDetail: { apl, mean, counted }, twistSub: sub, ...text };
   },
 
   /**
@@ -212,6 +239,36 @@ export const PitFighting = {
       twistText: bout.twist ? await _rowFor(twistTable, bout.twist.total) : "",
       foeText: await _drawOne(foeTable),
       missing,
+    };
+  },
+
+  /**
+   * The pickable options behind the "or choose" half of each roll.
+   *
+   * Each option carries the LOW total of its band, which is what gets fed back
+   * into `setUpBout` — so choosing and rolling arrive by the same path. Venue and
+   * twist options also carry the row's imported text, because "choose the venue"
+   * is meaningless as a list of dice ranges.
+   */
+  async bandOptions() {
+    const venueTable = await findBoutTable(SETUP_TABLES.venue);
+    const twistTable = await findBoutTable(SETUP_TABLES.twist);
+    const range = (b) => (b.min === b.max ? `${b.min}` : `${b.min}–${b.max}`);
+
+    const venue = [];
+    for (const r of VENUE_ROWS) {
+      venue.push({ row: r.row, total: r.min, range: range(r), text: await _rowFor(venueTable, r.min) });
+    }
+
+    const twist = [];
+    for (const b of TWIST_BANDS) {
+      twist.push({ key: b.key, total: b.min, range: range(b), text: await _rowFor(twistTable, b.min) });
+    }
+
+    return {
+      venue,
+      twist,
+      stakes: STAKES_TIERS.map((t) => ({ key: t.key, label: t.label, total: t.min })),
     };
   },
 
@@ -254,8 +311,15 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     window: { title: "Pit Fighting", icon: "fas fa-hand-fist", resizable: true },
     position: { width: 520, height: "auto" },
     actions: {
-      rollBout: PitFightingApp.prototype._onRollBout,
+      rollVenue: PitFightingApp.prototype._onRollVenue,
+      rollStakes: PitFightingApp.prototype._onRollStakes,
+      rollTwist: PitFightingApp.prototype._onRollTwist,
+      rollOffer: PitFightingApp.prototype._onRollOffer,
+      toggleSize: PitFightingApp.prototype._onToggleSize,
+      drawFoe: PitFightingApp.prototype._onDrawFoe,
       revealTwist: PitFightingApp.prototype._onRevealTwist,
+      accept: PitFightingApp.prototype._onAccept,
+      decline: PitFightingApp.prototype._onDecline,
       rollPrize: PitFightingApp.prototype._onRollPrize,
       setOutcome: PitFightingApp.prototype._onSetOutcome,
       applyResults: PitFightingApp.prototype._onApplyResults,
@@ -283,18 +347,47 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   constructor(options = {}) {
     super(options);
-    /** @type {Set<string>|null} fighter ids; null until the party is first read */
-    this._fighters = null;
-    /** @type {object|null} the result of PitFighting.setUpBout */
-    this._setUp = null;
+    this._resetOffer();
+  }
+
+  /**
+   * The bout is built up one die at a time, in the book's order, because each
+   * step is rollable OR choosable and the GM may redo any of them before the
+   * fighters have committed. `null` means "not settled yet", which is what gates
+   * the later stages of the window.
+   */
+  _resetOffer() {
+    /** @type {number|null} 2d6, or the low end of a chosen venue band */
+    this._venueTotal = null;
+    /** @type {number|null} APL + 1d6, or the low end of a chosen tier */
+    this._stakesTotal = null;
+    /** @type {number|null} 2d6, or the low end of a chosen twist band */
+    this._twistTotal = null;
+    /** @type {number|null} the twist's own 1d4, when its band calls for one */
+    this._twistSub = null;
+    /** A group bout draws from the group encounter tables. The GM's call. */
+    this._group = false;
     /** GM override for the danger level; null follows the suggestion. */
     this._danger = null;
+    /** @type {object|null} derived from the four above by `_refresh` */
+    this._setUp = null;
+
     this._twistRevealed = false;
+    /** @type {true|false|null} null until the fighters answer the offer */
+    this._accepted = null;
+    /** @type {Set<string>} who stepped up; empty until the offer is accepted */
+    this._fighters = new Set();
+
     this._prize = "";
     /** @type {"win"|"loss"|null} */
     this._outcome = null;
     this._renownDelta = 0;
     this._applied = false;
+  }
+
+  /** True once there is something a fighter could actually say yes to. */
+  get _hasOffer() {
+    return this._venueTotal !== null && this._stakesTotal !== null;
   }
 
   async close(options = {}) {
@@ -304,13 +397,60 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _prepareContext() {
     const party = PitFighting.party();
-    if (this._fighters === null) this._fighters = new Set(party.map((a) => a.id));
+    const apl = PitFighting.partyApl();
+    const options = await PitFighting.bandOptions();
 
     const setUp = this._setUp;
     const bout = setUp?.bout ?? null;
 
     return {
+      // ── Stage gating ────────────────────────────────────────────
       hasParty: party.length > 0,
+      hasVenue: this._venueTotal !== null,
+      hasStakes: this._stakesTotal !== null,
+      hasOffer: this._hasOffer,
+      accepted: this._accepted === true,
+      declined: this._accepted === false,
+      undecided: this._hasOffer && this._accepted === null,
+
+      // ── The offer ───────────────────────────────────────────────
+      // The APL is shown BEFORE anything is rolled, so the GM can see what the
+      // stakes will be rolled against.
+      apl: apl.apl,
+      aplRounded: apl.counted > 0 && apl.mean !== apl.apl,
+      aplMeanText: _oneDecimal(apl.mean),
+      partySize: apl.counted,
+
+      venueOptions: options.venue.map((o) => ({ ...o, selected: o.total === this._venueTotal })),
+      stakesOptions: options.stakes.map((o) => ({
+        ...o, selected: bout ? o.key === bout.stakes.rolledKey : false,
+      })),
+      twistOptions: options.twist.map((o) => ({
+        ...o, selected: bout?.twist ? o.key === bout.twist.key : false,
+      })),
+      dangerOptions: DANGER_LEVELS.map((d) => ({
+        key: d.key, label: d.label,
+        selected: bout ? d.key === bout.danger.key : false,
+      })),
+
+      group: this._group,
+      sizeLabel: this._group ? "Group bout" : "Solo bout",
+
+      bout,
+      venueText: setUp?.venueText ?? "",
+      foeText: setUp?.foeText ?? "",
+
+      // ── The twist ───────────────────────────────────────────────
+      hasTwist: !!bout?.twist,
+      twistText: setUp?.twistText ?? "",
+      twistSub: setUp?.twistSub ?? null,
+      twistRevealed: this._twistRevealed,
+      twistIsNone: bout?.twist?.effect === "none",
+
+      missing: setUp?.missing ?? [],
+      hasMissing: !!setUp?.missing?.length,
+
+      // ── Who accepted ────────────────────────────────────────────
       party: party.map((a) => ({
         id: a.id,
         name: a.name,
@@ -320,38 +460,15 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })),
       fighterCount: this._fighters.size,
 
-      dangerOptions: DANGER_LEVELS.map((d) => ({
-        key: d.key,
-        label: d.label,
-        selected: bout ? d.key === bout.danger.key : false,
-      })),
-
-      hasBout: !!bout,
-      bout,
-      aplDetail: setUp?.aplDetail ?? null,
-      // Show the rounding only when it actually rounded, so the common case
-      // stays quiet.
-      aplRounded: setUp?.aplDetail
-        ? setUp.aplDetail.counted > 0 && setUp.aplDetail.mean !== setUp.aplDetail.apl
-        : false,
-      aplMeanText: setUp?.aplDetail ? _oneDecimal(setUp.aplDetail.mean) : "",
-      venueText: setUp?.venueText ?? "",
-      foeText: setUp?.foeText ?? "",
-      twistText: setUp?.twistText ?? "",
-      twistSub: setUp?.twistSub ?? null,
-      twistRevealed: this._twistRevealed,
-      twistIsNone: bout?.twist?.effect === "none",
-
-      missing: setUp?.missing ?? [],
-      hasMissing: !!setUp?.missing?.length,
-
+      // ── The result ──────────────────────────────────────────────
       prize: this._prize,
       outcome: this._outcome,
       isWin: this._outcome === "win",
       isLoss: this._outcome === "loss",
       renownDelta: this._renownDelta,
       applied: this._applied,
-      canApply: !!bout && !!this._outcome && !this._applied && this._fighters.size > 0,
+      canApply: this._accepted === true && !!this._outcome && !this._applied
+        && this._fighters.size > 0,
     };
   }
 
@@ -368,14 +485,31 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
         else this._fighters.delete(id);
         const count = root.querySelector("[data-fighter-count]");
         if (count) count.textContent = String(this._fighters.size);
+        // Accept is rendered disabled at zero fighters, and this handler edits in
+        // place without re-rendering — so it has to move the button itself or
+        // ticking a name leaves Accept dead.
+        const accept = root.querySelector('[data-action="accept"]');
+        if (accept) accept.disabled = this._fighters.size === 0;
       });
     }
 
-    // Danger override: re-derives the bout, which changes the encounter table,
-    // so the foe is redrawn from the new one.
+    // The "or choose" half of every roll. Each option carries the LOW total of
+    // its band, so a pick reaches `setUpBout` by exactly the path a roll does.
+    const pick = (sel, apply) =>
+      root.querySelector(sel)?.addEventListener("change", async (ev) => {
+        const total = Number(ev.currentTarget.value);
+        if (Number.isFinite(total)) apply(total);
+        await this._refresh();
+      });
+
+    pick("[data-venue-select]", (t) => { this._venueTotal = t; });
+    pick("[data-stakes-select]", (t) => { this._stakesTotal = t; });
+    pick("[data-twist-select]", (t) => { this._twistTotal = t; this._twistSub = null; });
+
+    // Danger decides which encounter table applies, so the foe is redrawn.
     root.querySelector("[data-danger-select]")?.addEventListener("change", async (ev) => {
       this._danger = ev.currentTarget.value || null;
-      if (this._setUp) await this._redraw();
+      await this._refresh();
     });
 
     root.querySelector("[data-renown-delta]")?.addEventListener("change", (ev) => {
@@ -384,47 +518,93 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     });
   }
 
-  /** Re-derive the bout from the SAME dice under a new danger level. */
-  async _redraw() {
-    const prev = this._setUp;
-    const bout = buildBout({
-      venueTotal: prev.bout.venue.total,
-      stakesTotal: prev.bout.stakes.total,
-      apl: prev.bout.apl,
-      twistTotal: prev.bout.twist?.total ?? null,
+  /**
+   * Rebuild the bout from whatever is settled so far, then re-render.
+   *
+   * One place turns state into a bout, so every roll, pick and toggle goes
+   * through here. It does nothing until BOTH a venue and stakes exist — before
+   * that there is no offer to put in front of anybody.
+   */
+  async _refresh() {
+    if (!this._hasOffer) { this.render(); return; }
+    this._setUp = await PitFighting.setUpBout({
       danger: this._danger,
-      group: prev.bout.group,
+      group: this._group,
+      venueTotal: this._venueTotal,
+      stakesTotal: this._stakesTotal,
+      twistTotal: this._twistTotal,
+      twistSub: this._twistSub,
     });
-    const text = await PitFighting._drawFor(bout);
-    this._setUp = { ...prev, bout, ...text };
+    // Pin the twist and its detail die so later refreshes cannot reroll them.
+    this._twistTotal = this._setUp.bout.twist?.total ?? this._twistTotal;
+    this._twistSub = this._setUp.twistSub;
     this.render();
   }
 
-  async _onRollBout() {
-    if (!this._fighters?.size) {
-      ui.notifications?.warn("Pick at least one fighter first.");
+  async _onRollVenue() {
+    this._venueTotal = await _total("2d6");
+    await this._refresh();
+  }
+
+  async _onRollStakes() {
+    this._stakesTotal = PitFighting.partyApl().apl + await _total("1d6");
+    await this._refresh();
+  }
+
+  async _onRollTwist() {
+    this._twistTotal = await _total("2d6");
+    this._twistSub = null;            // a new twist gets a new detail die
+    this._twistRevealed = false;
+    await this._refresh();
+  }
+
+  /** Roll the whole offer at once — venue, stakes, and the secret twist. */
+  async _onRollOffer() {
+    this._venueTotal = await _total("2d6");
+    this._stakesTotal = PitFighting.partyApl().apl + await _total("1d6");
+    this._twistTotal = await _total("2d6");
+    this._twistSub = null;
+    this._twistRevealed = false;
+    await this._refresh();
+  }
+
+  /** Solo or group. It decides which encounter table the foe is drawn from. */
+  async _onToggleSize() {
+    this._group = !this._group;
+    await this._refresh();
+  }
+
+  /** Redraw just the foe, leaving every die where it is. */
+  async _onDrawFoe() {
+    if (!this._setUp) return;
+    const text = await PitFighting._drawFor(this._setUp.bout);
+    this._setUp = { ...this._setUp, ...text };
+    this.render();
+  }
+
+  async _onAccept() {
+    if (!this._fighters.size) {
+      ui.notifications?.warn("Tick who steps up first.");
       return;
     }
-    this._setUp = await PitFighting.setUpBout({
-      fighterIds: [...this._fighters],
-      danger: this._danger,
-    });
-    // A fresh bout resets everything downstream of it.
-    this._twistRevealed = false;
-    this._prize = "";
-    this._outcome = null;
+    this._accepted = true;
     this._renownDelta = 0;
-    this._applied = false;
+    this.render();
+  }
+
+  /**
+   * Declining is an answer, not a cancel. CS2 notes that fighters who break
+   * their word risk losing future offers, so it is recorded rather than
+   * swallowed — the offer stays on screen with the refusal against it.
+   */
+  _onDecline() {
+    this._accepted = false;
+    this._fighters.clear();
     this.render();
   }
 
   _onClearBout() {
-    this._setUp = null;
-    this._twistRevealed = false;
-    this._prize = "";
-    this._outcome = null;
-    this._renownDelta = 0;
-    this._applied = false;
+    this._resetOffer();
     this.render();
   }
 

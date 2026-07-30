@@ -1,148 +1,212 @@
 <div class="sde-pit">
 
-  <p class="notes">Rolls a bout in the book's order: <strong>Venue</strong>, then <strong>Stakes</strong> against the fighters' average level, then the foe from the encounter table the danger level selects. The <strong>Twist</strong> is rolled now and stays hidden until you reveal it.</p>
+  {{#unless hasParty}}
+  <p class="notes"><i class="fa-solid fa-circle-info"></i> No player characters found. Assign a Player-type actor to a player first.</p>
+  {{/unless}}
 
-  <div class="sde-pit-fighters">
-    <div class="sde-pit-section-head">
-      <span>Who enters the pit (<span data-fighter-count>{{fighterCount}}</span>)</span>
-    </div>
-
-    {{#if hasParty}}
-    <ul class="sde-pit-members">
-      {{#each party as |p|}}
-      <li class="sde-pit-member">
-        <label>
-          <input type="checkbox" data-fighter="{{p.id}}" {{#if p.checked}}checked{{/if}}>
-          <span class="sde-pit-member-name">{{p.name}}</span>
-        </label>
-        <span class="sde-pit-member-stats">
-          {{#if p.level}}<span class="sde-pit-lvl">L{{p.level}}</span>{{/if}}
-          <span class="sde-pit-ren" title="Current renown"><i class="fas fa-crown"></i> {{p.renown}}</span>
-        </span>
-      </li>
-      {{/each}}
-    </ul>
-    <p class="notes">More than one fighter uses the <em>group</em> encounter tables, and their average level sets the stakes.</p>
-    {{else}}
-    <p class="notes"><i class="fa-solid fa-circle-info"></i> No player characters found. Assign a Player-type actor to a player first.</p>
-    {{/if}}
+  {{!-- ── 1. THE OFFER ───────────────────────────────────────────────────── --}}
+  <div class="sde-pit-section-head">
+    <span>The offer</span>
+    <span class="sde-pit-apl" title="Average level of the whole party — what the stakes are rolled against">
+      Party APL {{apl}}{{#if aplRounded}} <em>(mean {{aplMeanText}})</em>{{/if}}
+    </span>
   </div>
 
+  <p class="notes">Roll or pick a venue and the stakes; the fighters answer afterwards.</p>
+
+  <div class="sde-pit-row">
+    <span class="sde-pit-label">Venue</span>
+    <span class="sde-pit-roll-total" title="2d6">{{#if hasVenue}}{{bout.venue.total}}{{/if}}</span>
+    <span class="sde-pit-text">
+      <button type="button" class="sde-pit-mini" data-action="rollVenue"><i class="fas fa-dice"></i> Roll</button>
+      <select data-venue-select aria-label="Choose a venue">
+        <option value="">or pick…</option>
+        {{#each venueOptions as |v|}}
+        <option value="{{v.total}}" {{#if v.selected}}selected{{/if}}>{{v.range}} · {{#if v.text}}{{v.text}}{{else}}row {{v.row}}{{/if}}</option>
+        {{/each}}
+      </select>
+      {{#if venueText}}<div class="sde-pit-drawn">{{venueText}}</div>{{/if}}
+    </span>
+  </div>
+
+  <div class="sde-pit-row">
+    <span class="sde-pit-label">Stakes</span>
+    <span class="sde-pit-roll-total" title="Party APL + 1d6">{{#if hasStakes}}{{bout.stakes.total}}{{/if}}</span>
+    <span class="sde-pit-text">
+      <button type="button" class="sde-pit-mini" data-action="rollStakes"><i class="fas fa-dice"></i> Roll</button>
+      <select data-stakes-select aria-label="Choose the stakes">
+        <option value="">or pick…</option>
+        {{#each stakesOptions as |s|}}
+        <option value="{{s.total}}" {{#if s.selected}}selected{{/if}}>{{s.label}}</option>
+        {{/each}}
+      </select>
+      {{!-- The tier alone would only repeat the dropdown beside it. Say it
+            when the twist MOVED it, which the dropdown cannot show. --}}
+      {{#if bout.stakes.raised}}
+      <div class="sde-pit-drawn">
+        <strong>{{bout.stakes.label}}</strong>
+        <em class="sde-pit-raised">raised a step by the twist</em>
+      </div>
+      {{/if}}
+    </span>
+  </div>
+
+  {{#if hasOffer}}
+  <div class="sde-pit-row">
+    <span class="sde-pit-label">Size</span>
+    <span class="sde-pit-roll-total sde-pit-no-die"></span>
+    <span class="sde-pit-text">
+      <button type="button" class="sde-pit-mini {{#if group}}sde-pit-on{{/if}}" data-action="toggleSize"
+              title="Solo or group picks which encounter table the foe is drawn from">
+        <i class="fas fa-users"></i> {{sizeLabel}}
+      </button>
+    </span>
+  </div>
+
+  <div class="sde-pit-row">
+    <span class="sde-pit-label">Danger</span>
+    <span class="sde-pit-roll-total sde-pit-no-die"></span>
+    <span class="sde-pit-text">
+      <select data-danger-select aria-label="Danger level">
+        {{#each dangerOptions as |d|}}
+        <option value="{{d.key}}" {{#if d.selected}}selected{{/if}}>{{d.label}}</option>
+        {{/each}}
+      </select>
+      {{#if bout.danger.overridden}}<em>your call, not the suggestion</em>{{/if}}
+    </span>
+  </div>
+
+  <div class="sde-pit-row">
+    <span class="sde-pit-label">Foe</span>
+    <span class="sde-pit-roll-total sde-pit-no-die" title="{{bout.encounterTable}}"><i class="fas fa-table-list"></i></span>
+    <span class="sde-pit-text">
+      <button type="button" class="sde-pit-mini" data-action="drawFoe"><i class="fas fa-rotate"></i> Draw</button>
+      <div class="sde-pit-drawn">{{#if foeText}}{{foeText}}{{else}}<em>{{bout.encounterTable}} — not imported</em>{{/if}}</div>
+    </span>
+  </div>
+  {{else}}
   <div class="sde-pit-footer">
-    <button type="button" class="sde-pit-roll" data-action="rollBout" {{#unless hasParty}}disabled{{/unless}}>
-      <i class="fas fa-dice"></i> {{#if hasBout}}Roll a new bout{{else}}Set up a bout{{/if}}
+    <button type="button" class="sde-pit-roll" data-action="rollOffer" {{#unless hasParty}}disabled{{/unless}}>
+      <i class="fas fa-dice"></i> Roll the whole offer
     </button>
-    {{#if hasBout}}
-    <button type="button" class="sde-pit-mini" data-action="clearBout">Clear</button>
-    {{/if}}
   </div>
+  {{/if}}
 
   {{#if hasMissing}}
   <div class="sde-pit-missing">
-    <p><i class="fa-solid fa-triangle-exclamation"></i> These tables aren't imported yet, so their text is blank:</p>
-    <ul>
-      {{#each missing as |m|}}<li>{{m}}</li>{{/each}}
-    </ul>
+    <p><i class="fa-solid fa-triangle-exclamation"></i> Not imported yet, so these lines stay blank:</p>
+    <ul>{{#each missing as |m|}}<li>{{m}}</li>{{/each}}</ul>
     <button type="button" class="sde-pit-mini" data-action="openImporter">
       <i class="fas fa-file-import"></i> Open the Importer
     </button>
   </div>
   {{/if}}
 
-  {{#if hasBout}}
-  <div class="sde-pit-bout">
-
-    <div class="sde-pit-row">
-      <span class="sde-pit-label">Venue</span>
-      <span class="sde-pit-roll-total" title="2d6">{{bout.venue.total}}</span>
-      <span class="sde-pit-text">{{#if venueText}}{{venueText}}{{else}}<em>row {{bout.venue.row}} — table not imported</em>{{/if}}</span>
-    </div>
-
-    <div class="sde-pit-row">
-      <span class="sde-pit-label">Stakes</span>
-      <span class="sde-pit-roll-total" title="APL + 1d6">{{bout.stakes.total}}</span>
-      <span class="sde-pit-text">
-        <strong>{{bout.stakes.label}}</strong>
-        {{#if bout.stakes.raised}}<em class="sde-pit-raised">raised a step by the twist</em>{{/if}}
-        {{#if aplDetail}}<span class="sde-pit-apl" title="Average party level of the fighters">APL {{aplDetail.apl}}{{#if aplRounded}} (mean {{aplMeanText}}){{/if}}</span>{{/if}}
-      </span>
-    </div>
-
-    <div class="sde-pit-row">
-      <span class="sde-pit-label">Danger</span>
-      <span class="sde-pit-roll-total sde-pit-no-die">—</span>
-      <span class="sde-pit-text">
-        <select data-danger-select aria-label="Danger level">
-          {{#each dangerOptions as |d|}}
-          <option value="{{d.key}}" {{#if d.selected}}selected{{/if}}>{{d.label}}</option>
-          {{/each}}
-        </select>
-        {{#if bout.danger.overridden}}<em>your call, not the suggestion</em>{{/if}}
-      </span>
-    </div>
-
-    <div class="sde-pit-row">
-      <span class="sde-pit-label">Foe</span>
-      <span class="sde-pit-roll-total sde-pit-no-die" title="{{bout.encounterTable}}"><i class="fas fa-table-list"></i></span>
-      <span class="sde-pit-text">{{#if foeText}}{{foeText}}{{else}}<em>{{bout.encounterTable}} — not imported</em>{{/if}}</span>
-    </div>
-
-    <div class="sde-pit-row sde-pit-twist">
-      <span class="sde-pit-label">Twist</span>
-      <span class="sde-pit-roll-total" title="2d6">{{bout.twist.total}}</span>
-      <span class="sde-pit-text">
-        {{#if twistRevealed}}
+  {{!-- ── 2. THE TWIST — secret until revealed ───────────────────────────── --}}
+  {{#if hasOffer}}
+  <div class="sde-pit-row sde-pit-twist">
+    <span class="sde-pit-label">Twist</span>
+    <span class="sde-pit-roll-total" title="2d6">{{#if hasTwist}}{{bout.twist.total}}{{/if}}</span>
+    <span class="sde-pit-text">
+      {{#if twistRevealed}}
+        <div class="sde-pit-drawn">
           {{#if twistText}}{{twistText}}{{else}}<em>Twist table not imported</em>{{/if}}
           {{#if twistSub}}<em>(1d4: {{twistSub}})</em>{{/if}}
-        {{else}}
-          <span class="sde-pit-hidden">Hidden — {{#if twistIsNone}}nothing happens, but only you know that{{else}}rolled and waiting{{/if}}</span>
-          <button type="button" class="sde-pit-mini" data-action="revealTwist">
-            <i class="fas fa-eye"></i> Reveal
-          </button>
-        {{/if}}
-      </span>
-    </div>
+        </div>
+      {{else}}
+        <button type="button" class="sde-pit-mini" data-action="rollTwist"><i class="fas fa-dice"></i> Reroll</button>
+        <select data-twist-select aria-label="Choose the twist">
+          <option value="">or pick…</option>
+          {{#each twistOptions as |t|}}
+          <option value="{{t.total}}" {{#if t.selected}}selected{{/if}}>{{t.range}} · {{#if t.text}}{{t.text}}{{else}}{{t.key}}{{/if}}</option>
+          {{/each}}
+        </select>
+        <button type="button" class="sde-pit-mini" data-action="revealTwist"><i class="fas fa-eye"></i> Reveal</button>
+        <div class="sde-pit-hidden">Hidden — {{#if twistIsNone}}nothing happens, but only you know that{{else}}rolled and waiting{{/if}}</div>
+      {{/if}}
+    </span>
+  </div>
+  {{/if}}
 
+  {{!-- ── 3. THE ANSWER — only once there is a bout to answer ────────────── --}}
+  {{#if hasOffer}}
+  <div class="sde-pit-section-head">
+    <span>Who steps up (<span data-fighter-count>{{fighterCount}}</span>)</span>
   </div>
 
-  <div class="sde-pit-results">
-    <div class="sde-pit-section-head"><span>Result</span></div>
+  {{#if declined}}
+  <p class="notes sde-pit-declined"><i class="fas fa-hand"></i> Declined. Fighters who break their word risk losing future offers — roll a new offer when you are ready.</p>
+  {{/if}}
 
-    <div class="sde-pit-outcome">
-      <button type="button" class="sde-pit-mini {{#if isWin}}sde-pit-on{{/if}}" data-action="setOutcome" data-outcome="win">
-        <i class="fas fa-trophy"></i> Won
-      </button>
-      <button type="button" class="sde-pit-mini {{#if isLoss}}sde-pit-on{{/if}}" data-action="setOutcome" data-outcome="loss">
-        <i class="fas fa-skull"></i> Lost
-      </button>
-
-      <button type="button" class="sde-pit-mini" data-action="rollPrize">
-        <i class="fas fa-sack-dollar"></i> Roll {{bout.stakes.table}}
-      </button>
-    </div>
-
-    {{#if prize}}
-    <div class="sde-pit-row">
-      <span class="sde-pit-label">Prize</span>
-      <span class="sde-pit-text">{{prize}}</span>
-    </div>
-    {{/if}}
-
-    {{#if outcome}}
-    <div class="sde-pit-fame">
+  {{#if hasParty}}
+  <ul class="sde-pit-members">
+    {{#each party as |p|}}
+    <li class="sde-pit-member">
       <label>
-        Renown each
-        <input type="number" step="1" value="{{renownDelta}}" data-renown-delta aria-label="Renown change for each fighter">
+        <input type="checkbox" data-fighter="{{p.id}}" {{#if p.checked}}checked{{/if}} {{#if ../accepted}}disabled{{/if}}>
+        <span class="sde-pit-member-name">{{p.name}}</span>
       </label>
-      <p class="notes">The book gives no renown value for a bout, so this is the module's default — a point for a win, nothing for a loss. Change it to whatever the fight was worth.</p>
-    </div>
-    {{/if}}
+      <span class="sde-pit-member-stats">
+        {{#if p.level}}<span class="sde-pit-lvl">L{{p.level}}</span>{{/if}}
+        <span class="sde-pit-ren" title="Current renown"><i class="fas fa-crown"></i> {{p.renown}}</span>
+      </span>
+    </li>
+    {{/each}}
+  </ul>
+  {{/if}}
 
-    <div class="sde-pit-footer">
-      <button type="button" class="sde-pit-apply" data-action="applyResults" {{#unless canApply}}disabled{{/unless}}>
-        <i class="fas fa-check"></i> {{#if applied}}Applied{{else}}Apply the result{{/if}}
-      </button>
-    </div>
+  {{#if undecided}}
+  <div class="sde-pit-footer">
+    <button type="button" class="sde-pit-apply" data-action="accept" {{#unless fighterCount}}disabled{{/unless}}>
+      <i class="fas fa-check"></i> Accept the bout
+    </button>
+    <button type="button" class="sde-pit-mini" data-action="decline">
+      <i class="fas fa-xmark"></i> Decline
+    </button>
+    <button type="button" class="sde-pit-mini" data-action="clearBout">New offer</button>
+  </div>
+  {{/if}}
+  {{/if}}
+
+  {{!-- ── 4. THE RESULT ──────────────────────────────────────────────────── --}}
+  {{#if accepted}}
+  <div class="sde-pit-section-head"><span>Result</span></div>
+
+  <div class="sde-pit-outcome">
+    <button type="button" class="sde-pit-mini {{#if isWin}}sde-pit-on{{/if}}" data-action="setOutcome" data-outcome="win">
+      <i class="fas fa-trophy"></i> Won
+    </button>
+    <button type="button" class="sde-pit-mini {{#if isLoss}}sde-pit-on{{/if}}" data-action="setOutcome" data-outcome="loss">
+      <i class="fas fa-skull"></i> Lost
+    </button>
+    <button type="button" class="sde-pit-mini" data-action="rollPrize">
+      <i class="fas fa-sack-dollar"></i> Roll {{bout.stakes.table}}
+    </button>
+  </div>
+
+  {{#if prize}}
+  <div class="sde-pit-row">
+    <span class="sde-pit-label">Prize</span>
+    <span class="sde-pit-roll-total sde-pit-no-die"></span>
+    <span class="sde-pit-text">{{prize}}</span>
+  </div>
+  {{/if}}
+
+  {{#if outcome}}
+  <div class="sde-pit-fame">
+    <label>
+      Renown each
+      <input type="number" step="1" value="{{renownDelta}}" data-renown-delta aria-label="Renown change for each fighter">
+    </label>
+    <p class="notes">The book gives no renown value for a bout, so this is the module's default — a point for a win, nothing for a loss. Change it to whatever the fight was worth.</p>
+  </div>
+  {{/if}}
+
+  <div class="sde-pit-footer">
+    <button type="button" class="sde-pit-apply" data-action="applyResults" {{#unless canApply}}disabled{{/unless}}>
+      <i class="fas fa-check"></i> {{#if applied}}Applied{{else}}Apply the result{{/if}}
+    </button>
+    <button type="button" class="sde-pit-mini" data-action="clearBout">New offer</button>
   </div>
   {{/if}}
 

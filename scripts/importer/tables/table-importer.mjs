@@ -1784,12 +1784,33 @@ function parseLookupShape(text, { name = "", cols = 2, size, labels, dieIndexed 
 // An ALL-CAPS section caption on a multi-table page (RENOWN, ARMOR TYPE,
 // ITEM FLAW). Uppercase letters + spaces and a few joiners, ≥2 chars, at least
 // one letter, and NOT a "dN …" die header or a leading die-range row.
+/**
+ * Drop a page's FOOTNOTE line — an asterisked note printed under a table, with
+ * the page number set beside it on the same baseline (CS2 pg 22 emits
+ * "22    *New monsters, pg. 39", pg 23 the mirror image). A grid parser reading
+ * column x-positions has no reason to think that line isn't a row, so it lands
+ * in the last one: "4 rust monster *New monsters, pg. 39".
+ *
+ * Recognized as: an optional bare page number at either end, and the rest
+ * opening with "*". A real row always opens with its die face, never a marker.
+ */
+function stripFootnoteLines(text) {
+  return String(text).split(/\r?\n/).filter((l) => {
+    const core = l.trim().replace(/^\d{1,3}\s+/, "").replace(/\s+\d{1,3}$/, "").trim();
+    return !(core.startsWith("*") && core.length > 1);
+  }).join("\n");
+}
+
 function isSectionCaption(line) {
   const t = String(line).trim();
   if (t.length < 2) return false;
   if (parseDieHeader(t) || parseLeadingRange(t)) return false;
   if (!/[A-Z]/.test(t)) return false;
-  return /^[A-Z0-9][A-Z0-9 '&/.-]*$/.test(t) && !/[a-z]/.test(t);
+  // Parentheses are part of a caption, not a disqualifier: CS2 pg 22-23 print
+  // "LOW STAKES PIT FIGHT (SOLO)" / "(GROUP)", and rejecting those left six
+  // stacked encounter tables with no boundary between them — the whole page
+  // parsed as one table with overlapping rows.
+  return /^[A-Z0-9][A-Z0-9 '&/.()-]*$/.test(t) && !/[a-z]/.test(t);
 }
 
 /**
@@ -1840,7 +1861,14 @@ function _sliceSection(text, { name = "", caption, size } = {}) {
     if (!size) return null;
     die = { count: 1, size, columns: [], remainder: "" };
     const l = lines[h] || "";
-    const isPseudoHeader = /^d\S*/i.test(l) || /^(details?|results?|effects?)$/i.test(l);
+    // A header the die parser can't read is still a HEADER, not a row. Besides
+    // the "d* Details" pseudo-header, a book may print an unrollable formula in
+    // that slot — CS2 pg 21's Stakes table heads its column "APL + 1d6 Stakes",
+    // where the APL is the party's average level. Anything carrying a dice
+    // expression but no leading die face is that line, not data: a real row
+    // always opens with its face, so "1 Roll 1d6 damage" is never caught here.
+    const isPseudoHeader = /^d\S*/i.test(l) || /^(details?|results?|effects?)$/i.test(l)
+      || (/\b\d{0,2}d\d{1,3}\b/i.test(l) && !parseLeadingRange(l));
     bodyStart = isPseudoHeader ? h + 1 : h;
   }
   // Body = rows until the next section caption.
@@ -1864,6 +1892,108 @@ function parseSectionSlice(text, { name = "", caption, size } = {}) {
   const pt = parseSingleDieBlock(name || s.die.remainder, { count: s.die.count, size: s.die.size, columns: [], remainder: "" }, s.body);
   if (name) pt.name = name;
   return pt.rows.length ? pt : null;
+}
+
+/**
+ * Split `n` consecutive lines into one contiguous run per anchor, so that each
+ * run is CENTERED on its anchor line.
+ *
+ * This is the typographic rule the books actually follow: a table cell taller
+ * than one line prints its die face vertically centered against the cell, so
+ * the extracted lines come out as (wrap, wrap, FACE, wrap, wrap) rather than
+ * face-first. Attaching a face-less line to the nearest anchor gets this wrong
+ * whenever two cells wrap back to back — CS2 pg 21's Twist table puts
+ * "(armor, weapon, spell)" one line above the 6-9 face and two below the 2-5
+ * face, and it belongs to 2-5.
+ *
+ * Exact rather than heuristic: a small DP minimizes the total distance from
+ * each run's midpoint to its anchor. Runs cover the lines from 0 (leading wraps
+ * belong to the first row) but the LAST run stops where centering says it
+ * should — trailing lines are page furniture that outran the table, and the
+ * caller reports them instead of gluing them onto the final row.
+ *
+ * @param {number} n            line count
+ * @param {number[]} anchors    ascending line indices that carry a die face
+ * @returns {number[][]} one array of line indices per anchor
+ */
+function _centeredRuns(n, anchors) {
+  const K = anchors.length;
+  if (!K) return [];
+  const INF = Number.POSITIVE_INFINITY;
+  // best[k][s] = cheapest way to place the first k runs covering lines [0, s).
+  const best = Array.from({ length: K + 1 }, () => new Array(n + 1).fill(INF));
+  const from = Array.from({ length: K + 1 }, () => new Array(n + 1).fill(-1));
+  best[0][0] = 0;
+  for (let k = 0; k < K; k++) {
+    for (let s = 0; s <= anchors[k]; s++) {
+      if (best[k][s] === INF) continue;
+      for (let e = anchors[k] + 1; e <= n; e++) {          // run = lines [s, e-1]
+        if (k + 1 < K && e > anchors[k + 1]) break;        // never swallow the next anchor
+        const cost = best[k][s] + Math.abs((s + e - 1) / 2 - anchors[k]);
+        if (cost < best[k + 1][e]) { best[k + 1][e] = cost; from[k + 1][e] = s; }
+      }
+    }
+  }
+  let end = 0;
+  for (let e = 0; e <= n; e++) if (best[K][e] < best[K][end]) end = e;
+  const runs = new Array(K);
+  for (let k = K; k > 0; k--) {
+    const s = from[k][end];
+    runs[k - 1] = Array.from({ length: end - s }, (_, i) => s + i);
+    end = s;
+  }
+  return runs;
+}
+
+/**
+ * Parse a captioned block whose rows are BANDS ("2-4", "14+") and whose cells
+ * wrap around a vertically centered die face — CS2 pg 21's Venue/Stakes/Twist
+ * and pg 24's Tonight's Crowd.
+ *
+ * The plain section slice reads these as a stray description plus rows made of
+ * the wrong halves of two cells; `_centeredRuns` above reassembles them. Faces
+ * outside the die's range are ignored rather than treated as rows, which is
+ * what keeps a page number or the next page's prose from opening a phantom row.
+ */
+function parseBandedSlice(text, { name = "", caption, size } = {}) {
+  const s = _sliceSection(text, { name, caption, size });
+  if (!s) return null;
+  const die = s.die;
+  const faces = Math.max(1, (die.count || 1) * (die.size || size || 1));
+  const body = s.body;
+  const hits = body.map((l) => parseLeadingRange(l));
+  const anchors = [];
+  body.forEach((l, i) => {
+    const h = hits[i];
+    if (h && h.min >= 1 && h.max <= faces) anchors.push(i);
+  });
+  if (!anchors.length) return null;
+
+  const runs = _centeredRuns(body.length, anchors);
+  const rows = runs.map((run, k) => {
+    const a = hits[anchors[k]];
+    const parts = [];
+    for (const i of run) parts.push(hits[i] && i === anchors[k] ? hits[i].rest : body[i]);
+    return { min: a.min, max: a.max, text: parts.map((p) => p.trim()).filter(Boolean).join(" ") };
+  });
+
+  // Lines past the last row are normal — a section slice runs to the next
+  // caption, which on a page like CS2 pg 21→24 means a whole page of prose.
+  // Only say so when one of them could have BEEN a row (a die face in range),
+  // which is the case where the table really was cut short.
+  const warnings = [];
+  const covered = runs.at(-1)?.at(-1) ?? -1;
+  const spare = body.slice(covered + 1)
+    .filter((l) => { const h = parseLeadingRange(l); return h && h.min >= 1 && h.max <= faces; });
+  if (spare.length) {
+    warnings.push(`Ignored ${spare.length} line(s) after the last row that carry a die face in range — check the table wasn't cut short.`);
+  }
+  const pt = {
+    name: (name || "").trim(), formula: `${die.count > 1 ? die.count : 1}d${die.size}`,
+    replacement: true, category: classify(name || ""), customLabel: "", rows, warnings,
+  };
+  pt.warnings = [...warnings, ...computeWarnings(pt)];
+  return rows.length ? pt : null;
 }
 
 /** Parse a section whose row has several count columns and retain their labels. */
@@ -2049,6 +2179,29 @@ function parseLongTable(text, { name = "", caption, size = 100 } = {}) {
 
 export function parseByShape(text, shape, { name = "" } = {}) {
   if (!shape) return null;
+  if (shape.kind === "suite") {
+    // A whole feature in one press: run every member shape over the SAME text
+    // and collect what each one claims. Members are caption-bound, so they can
+    // safely share a paste that holds all of them — and a member that finds
+    // nothing is reported by name rather than silently dropped, because "13 of
+    // 14 imported" has to be visible or the missing one is discovered in play.
+    const tables = [];
+    const generators = [];
+    const missing = [];
+    for (const m of shape.members ?? []) {
+      const got = parseByShape(text, m.shape, { name: m.name });
+      const found = [...(got?.tables ?? []), ...(got?.generators ?? [])];
+      if (!found.length) { missing.push(m.name); continue; }
+      for (const pt of found) {
+        pt.name = m.name;
+        if (m.formula) pt.formula = m.formula;
+      }
+      tables.push(...(got.tables ?? []));
+      generators.push(...(got.generators ?? []));
+    }
+    if (!tables.length && !generators.length) return null;
+    return { tables, generators, missing };
+  }
   if (shape.kind === "longtable") {
     const pt = parseLongTable(text, { name, caption: shape.caption, size: shape.size });
     return pt ? { tables: [pt] } : null;
@@ -2059,6 +2212,10 @@ export function parseByShape(text, shape, { name = "" } = {}) {
   }
   if (shape.kind === "section") {
     const pt = parseSectionSlice(text, { name, caption: shape.caption, size: shape.size });
+    return pt ? { tables: [pt] } : null;
+  }
+  if (shape.kind === "banded") {
+    const pt = parseBandedSlice(text, { name, caption: shape.caption, size: shape.size });
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "labeled-section") {
@@ -2085,14 +2242,18 @@ export function parseByShape(text, shape, { name = "" } = {}) {
     // the reflow scan (p281 stacks SECRETS above BLESSINGS — without the slice
     // the reflow happily reads the neighbour's rows). Freeform pastes without
     // the caption fall through to the whole text.
-    let gtext = text;
+    let gtext = stripFootnoteLines(text);
     if (shape.caption) {
-      const glines = String(text).split(/\r?\n/).map((l) => l.trim());
-      const want = shape.caption.toUpperCase().replace(/\s+/g, " ");
-      const s = glines.findIndex((l) => isSectionCaption(l) && l.toUpperCase().replace(/\s+/g, " ") === want);
+      // Lines keep their layout padding here: an aligned-x split reads the
+      // header's column positions off them, and trimming the slice would leave
+      // the aligned candidate with nothing to align to.
+      const glines = gtext.split(/\r?\n/);
+      const norm = (l) => String(l).trim().toUpperCase().replace(/\s+/g, " ");
+      const want = norm(shape.caption);
+      const s = glines.findIndex((l) => isSectionCaption(l) && norm(l) === want);
       if (s !== -1) {
         let e = s + 1;
-        while (e < glines.length && !(isSectionCaption(glines[e]) && glines[e].toUpperCase().replace(/\s+/g, " ") !== want)) e++;
+        while (e < glines.length && !(isSectionCaption(glines[e]) && norm(glines[e]) !== want)) e++;
         gtext = glines.slice(s, e).join("\n");
       }
     }
@@ -2118,8 +2279,17 @@ export function parseByShape(text, shape, { name = "" } = {}) {
       if (name) g.name = name;
       return g;
     })();
-    const candidates = [viaReflow, viaAligned, viaGenerators].filter(Boolean);
+    let candidates = [viaReflow, viaAligned, viaGenerators].filter(Boolean);
     if (!candidates.length) return null;
+    // The declared size is authoritative, and best-filled alone will happily
+    // buy an extra row with page furniture: CS2 pg 22 footers its last grid
+    // with "22  *New monsters, pg. 39", which the generic spec parser read as
+    // a 22nd face and won the vote with (a 3×22 grid, 21 cells filled, against
+    // the correct 3×6). Prefer candidates that came out the declared height.
+    if (shape.size) {
+      const right = candidates.filter((g) => (g?.columns?.[0]?.rows?.length ?? 0) === shape.size);
+      if (right.length) candidates = right;
+    }
     const pt = candidates.reduce((a, b) => (filled(b) > filled(a) ? b : a));
     return { generators: [pt] };
   }

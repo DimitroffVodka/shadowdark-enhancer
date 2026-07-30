@@ -229,9 +229,30 @@ const MANIFEST = {
   CS2: {
     // Red Sands: Enduring Wounds (pg 26) + the back-cover Dead Bandit's Hand.
     // Its 14 monsters are tracked through the live monster census.
+    //
+    // Then the pit-fighting suite (pgs 20–24), which the Manage tree pulls out
+    // into its own `Gameplay > Pit Fighting` branch — see PIT_FIGHTING_TABLES in
+    // table-folders.mjs. Listed BARE, matching their names in
+    // table-manifest-data.mjs; `_tableHave` is source-scoped and tolerates the
+    // suite's "Cursed Scroll #2 - Venue" filing prefix, so bare names still
+    // detect an imported copy.
     Table: [
       "Cursed Scroll 2 p26: Enduring Wounds",
       "Cursed Scroll 2 p68: In A Dead Bandit'S Hand, You Find...",
+      "Venue",
+      "Stakes",
+      "Twist",
+      "Low Stakes",
+      "Mid Stakes",
+      "High Stakes",
+      "Epic Stakes",
+      "Low Stakes Pit Fight (solo)",
+      "Mid Stakes Pit Fight (solo)",
+      "High/epic Stakes Pit Fight (solo)",
+      "Low Stakes Pit Fight (group)",
+      "Mid Stakes Pit Fight (group)",
+      "High/epic Stakes Pit Fight (group)",
+      "Tonight's Crowd",
     ],
   },
   CS3: {

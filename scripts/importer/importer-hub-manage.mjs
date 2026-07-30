@@ -739,10 +739,14 @@ class HubManageMethods {
     // bundle forces 1-column extraction: 2-column mode splits each entry's
     // description off its name, which the "Name. Text" background parser drops.
     const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
-    const bookPages = parsePageRange(seed.page);
-    const pdfPages = (bookPages.length ? bookPages : [null])
-      .map((bp) => (bp == null ? target.page : sourcePdfTarget(seed.src, String(bp))?.page))
-      .filter((p) => p != null);
+    /** Book page cite → the PDF pages it lands on (each page offset-corrected). */
+    const toPdfPages = (spec) => {
+      const bookPages = parsePageRange(spec);
+      return (bookPages.length ? bookPages : [null])
+        .map((bp) => (bp == null ? target.page : sourcePdfTarget(seed.src, String(bp))?.page))
+        .filter((p) => p != null);
+    };
+    const pdfPages = toPdfPages(seed.page);
     // Column mode by shape: a prayer generator is a 3-column layout that needs
     // "layout" (x-gaps → 2+ spaces); a section-slice table is stacked under an
     // ALL-CAPS caption that the 2-column gutter split shreds, so it needs single
@@ -767,23 +771,41 @@ class HubManageMethods {
       : (shp?.kind === "section" || shp?.kind === "gridcol" || shp?.kind === "matrix" || shp?.kind === "longtable") ? (shp.cols || "1")
       : "auto";
 
-    let result;
-    try {
-      result = await extractPdfText(target.file, { pages: pdfPages.length ? pdfPages : [target.page], columns });
-    } catch (err) {
-      console.error("Shadowdark Enhancer | PDF text extraction failed", err);
-      ui.notifications.error("Couldn't read text from that PDF page — see the console.");
-      return;
+    // A SUITE spans pages that need DIFFERENT extraction modes — CS2's pit
+    // suite prints two-column set-up pages beside single-column encounter
+    // grids, and one mode for the whole grab shreds half of them. Each declared
+    // range is extracted on its own and the results are concatenated; the
+    // caption-bound member shapes don't care what order they arrive in.
+    const passes = (shp?.kind === "suite" && shp.pageModes?.length)
+      ? shp.pageModes.map((m) => ({ pages: toPdfPages(m.pages), columns: m.cols || "auto" }))
+      : [{ pages: pdfPages.length ? pdfPages : [target.page], columns }];
+
+    const chunks = [];
+    for (const pass of passes) {
+      if (!pass.pages.length) continue;
+      let result;
+      try {
+        result = await extractPdfText(target.file, { pages: pass.pages, columns: pass.columns });
+      } catch (err) {
+        console.error("Shadowdark Enhancer | PDF text extraction failed", err);
+        ui.notifications.error("Couldn't read text from that PDF page — see the console.");
+        return;
+      }
+      if (result.text) chunks.push(result.text);
+      notifyGutterWarnings(result);
     }
-    if (!result.text) {
+    if (!chunks.length) {
       ui.notifications.warn(`Page ${target.page} has no selectable text (likely a scanned or art page).`);
       return;
     }
+    const grabbed = chunks.join("\n\n");
     const base = this._importText.replace(/\s*$/, "");
-    this._importText = base ? `${base}\n${result.text}\n` : `${result.text}\n`;
+    this._importText = base ? `${base}\n${grabbed}\n` : `${grabbed}\n`;
     this.render();
-    ui.notifications.info(`Pulled page ${target.page} into the paste box — review, then Parse.`);
-    notifyGutterWarnings(result);
+    const pageCount = passes.reduce((n, p) => n + p.pages.length, 0);
+    ui.notifications.info(pageCount > 1
+      ? `Pulled ${pageCount} pages into the paste box — review, then Parse.`
+      : `Pulled page ${target.page} into the paste box — review, then Parse.`);
   }
 
   /**

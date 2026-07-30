@@ -8,6 +8,7 @@
  *   Character Content → Ancestries → Names / Trinkets
  *                     → Backgrounds · Class Talents · Patrons & Deities
  *   Gameplay          → Core Rulebook → Carousing / Traps & Hazards / Boons
+ *                     → Pit Fighting   (the CS2 suite, unlocked as one feature)
  *                     → <source>       (CS/WR gameplay-chapter tables)
  *   Roll Tables       → Core Rulebook → <group header>
  *                     → <source>       (everything else)
@@ -30,19 +31,52 @@ export const MISHAP_TABLES = new Set([
   "Necromancer Mishap 4-5",
 ].map(_norm));
 
+/**
+ * Cursed Scroll 2's pit-fighting suite (pgs 20–24), as its own set.
+ *
+ * Fourteen tables that are ONE feature and get unlocked together, so the Manage
+ * tree gives them a named `Gameplay > Pit Fighting` branch instead of burying
+ * them among the rest of that book's rows. They are also members of
+ * GAMEPLAY_TABLES below, which is what keeps them out of the generic Roll Tables
+ * branch.
+ *
+ * Bare names on purpose: this set is matched against MANIFEST names, which carry
+ * no source prefix. The prefixed form ("Cursed Scroll #2 - Venue") exists only on
+ * the imported documents.
+ */
+export const PIT_FIGHTING_TABLES = new Set([
+  "Venue",
+  "Stakes",
+  "Twist",
+  "Low Stakes",
+  "Mid Stakes",
+  "High Stakes",
+  "Epic Stakes",
+  "Low Stakes Pit Fight (solo)",
+  "Mid Stakes Pit Fight (solo)",
+  "High/epic Stakes Pit Fight (solo)",
+  "Low Stakes Pit Fight (group)",
+  "Mid Stakes Pit Fight (group)",
+  "High/epic Stakes Pit Fight (group)",
+  "Tonight's Crowd",
+].map(_norm));
+
 /** Manifest table names that are GAMEPLAY mechanics (books' Gameplay chapters). */
 export const GAMEPLAY_TABLES = new Set([
-  "Core PDF p97: Carousing Outcome",
-  "Core PDF p118: Traps",
-  "Core PDF p284: Boons: Oaths",
-  "Cursed Scroll 2 p26: Enduring Wounds",
-  "Carousing Outcome",
-  "Carousing Event",
-  "Carousing Outcome - Benefit",
-  "Carousing Outcome - Mishap",
-  "Carousing Mishap",
-  "Carousing Benefit",
-].map(_norm));
+  ...[
+    "Core PDF p97: Carousing Outcome",
+    "Core PDF p118: Traps",
+    "Core PDF p284: Boons: Oaths",
+    "Cursed Scroll 2 p26: Enduring Wounds",
+    "Carousing Outcome",
+    "Carousing Event",
+    "Carousing Outcome - Benefit",
+    "Carousing Outcome - Mishap",
+    "Carousing Mishap",
+    "Carousing Benefit",
+  ].map(_norm),
+  ...PIT_FIGHTING_TABLES,
+]);
 
 /** Manifest table names that belong under Character Content → Patrons & Deities:
  *  the 8 god prayer generators (3d6 compounds) + the 17 patron boon tables.
@@ -126,14 +160,20 @@ export function resolveTableFolderPath(pt) {
   if (charPath) return charPath;
   // 5. Casting mishaps → under Spells.
   if (_inSet(MISHAP_TABLES, name)) return ["Spells", "Mishaps", src];
-  // 6. Gameplay-chapter mechanics.
+  // 6. The pit-fighting suite files under its own name, not its book's, so the
+  //    pack folders mirror the Manage tree's `Gameplay > Pit Fighting` branch.
+  //    Safe against the Core Rulebook's identically-captioned gambling tables
+  //    ("Wizards and Thieves: Low Stakes"): those are core-group members and
+  //    returned at step 2, before this ever runs.
+  if (_inSet(PIT_FIGHTING_TABLES, name)) return ["Gameplay", "Pit Fighting"];
+  // 7. Gameplay-chapter mechanics.
   if (_inSet(GAMEPLAY_TABLES, name) || ["carousing", "traps", "hazards"].includes(pt?.category)) {
     return ["Gameplay", src];
   }
-  // 6. Legacy manifest seeds carried an explicit folderPath — honor it.
+  // 8. Legacy manifest seeds carried an explicit folderPath — honor it.
   if (Array.isArray(pt?.folderPath) && pt.folderPath.filter(Boolean).length) {
     return pt.folderPath.filter(Boolean).map(String);
   }
-  // 7. Everything else → Roll Tables by source.
+  // 9. Everything else → Roll Tables by source.
   return ["Roll Tables", src];
 }
