@@ -189,16 +189,59 @@ export function appendRenownHistory(existing, entry, { cap = RENOWN_HISTORY_CAP 
 }
 
 /**
- * What each `source` tag means in the ledger, for an entry with no GM reason.
+ * What each `source` tag means in the ledger. Used as the row text when nothing
+ * supplied a reason, and as the small provenance tag beside a reason that did.
  * The tags themselves are the provenance values `Renown.award` accepts.
+ *
+ * `carousing` is shadowdark-extras', which delegates its carousing renown to
+ * `Renown.award` when this module is present (CarousingSD.mjs
+ * `applyRenownDelta`). A tag arriving from anywhere else still renders — see
+ * `sourceLabel` — so an unknown module's slug is never swallowed.
  */
 export const RENOWN_SOURCE_LABELS = {
   gm: "GM adjustment",
   start: "Starting renown",
   "level-up": "Gained a level",
   downtime: "Downtime",
+  carousing: "Carousing",
   external: "Changed outside the module",
 };
+
+/**
+ * The display name for a source tag: the known label, else the tag itself, so an
+ * unrecognised provenance degrades to a readable slug rather than vanishing.
+ * @param {string} source
+ */
+export function sourceLabel(source) {
+  const tag = String(source ?? "").trim();
+  return RENOWN_SOURCE_LABELS[tag] ?? tag;
+}
+
+/**
+ * Sources whose reason is written by this module and already names the cause —
+ * "Starting renown (CHA +1)", "Gained a level". Tagging those repeats the row
+ * back at the reader ("Starting renown (CHA +1)  Starting renown").
+ *
+ * A set rather than a substring test, because the substring test gets "Gained 2
+ * levels" wrong against a "Gained a level" label, and a rule that is right by
+ * construction beats one that is right most of the time.
+ */
+export const RENOWN_SELF_DESCRIBING_SOURCES = new Set(["start", "level-up"]);
+
+/**
+ * Whether a ledger row should carry a provenance tag beside its reason.
+ *
+ * False when there is no reason (the label IS the row text — see `historyRow`),
+ * when the reason already names the cause, and when the source is blank.
+ *
+ * @param {{reason?:string, source?:string}} entry
+ */
+export function showsSourceTag(entry = {}) {
+  if (!String(entry?.reason ?? "").trim()) return false;
+  const tag = String(entry?.source ?? "").trim();
+  if (!tag || RENOWN_SELF_DESCRIBING_SOURCES.has(tag)) return false;
+  return !!sourceLabel(tag);
+}
 
 /**
  * One ledger line for display: the change, the resulting total, and why.
@@ -208,8 +251,7 @@ export const RENOWN_SOURCE_LABELS = {
 export function historyRow(entry = {}) {
   const head = `${signedRenown(entry?.delta)} → ${renownValue(entry?.after)}`;
   const reason = String(entry?.reason ?? "").trim();
-  const source = String(entry?.source ?? "").trim();
-  const tail = reason || RENOWN_SOURCE_LABELS[source] || source;
+  const tail = reason || sourceLabel(entry?.source);
   return tail ? `${head} · ${tail}` : head;
 }
 

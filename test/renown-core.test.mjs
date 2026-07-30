@@ -13,6 +13,7 @@ import {
   RENOWN_BANDS,
   RENOWN_HISTORY_CAP,
   RENOWN_TRIGGERS,
+  RENOWN_SOURCE_LABELS,
   appendRenownHistory,
   authorizeRenownAward,
   groupHistoryByPlayer,
@@ -24,7 +25,9 @@ import {
   renownChangeLine,
   renownValue,
   shouldSeedStartingRenown,
+  showsSourceTag,
   signedRenown,
+  sourceLabel,
   startingRenown,
 } from "../scripts/renown/renown-core.mjs";
 import { reactionBand } from "../scripts/encounter/encounter-result.mjs";
@@ -260,7 +263,7 @@ describe("ledger display", () => {
     assert.equal(historyRow({ delta: 1, after: 2, source: "level-up" }), "+1 → 2 · Gained a level");
     assert.equal(historyRow({ delta: 2, after: 2, source: "start" }), "+2 → 2 · Starting renown");
     // An unrecognised tag falls back to itself rather than vanishing.
-    assert.equal(historyRow({ delta: 1, after: 1, source: "carousing" }), "+1 → 1 · carousing");
+    assert.equal(historyRow({ delta: 1, after: 1, source: "pit-fighting" }), "+1 → 1 · pit-fighting");
     assert.equal(historyRow({ delta: 1, after: 1, source: "" }), "+1 → 1");
     assert.equal(historyRow(), "0 → 0");
   });
@@ -294,5 +297,70 @@ describe("grouping the ledger per player", () => {
     for (const junk of [undefined, null, "nope", 7, {}]) {
       assert.deepEqual(groupHistoryByPlayer(junk), [], `junk ${JSON.stringify(junk)}`);
     }
+  });
+});
+
+describe("source tags", () => {
+  test("every source a write path actually uses has a label", () => {
+    // The tags `Renown.award` is called with across the module, plus the two
+    // that arrive from outside it. A missing one renders as a raw slug in the
+    // dialog — how the carousing tag was caught in review.
+    for (const tag of ["gm", "start", "level-up", "downtime", "carousing", "external"]) {
+      assert.ok(RENOWN_SOURCE_LABELS[tag], `source "${tag}" has no label`);
+      assert.equal(sourceLabel(tag), RENOWN_SOURCE_LABELS[tag]);
+    }
+  });
+
+  test("an unknown tag degrades to itself rather than disappearing", () => {
+    // Another module may pass its own provenance; showing "pit-fighting" beats
+    // showing nothing at all.
+    assert.equal(sourceLabel("pit-fighting"), "pit-fighting");
+    assert.equal(sourceLabel(""), "");
+    assert.equal(sourceLabel(undefined), "");
+    assert.equal(sourceLabel(null), "");
+  });
+
+  test("carousing renders as words, not a slug", () => {
+    assert.equal(sourceLabel("carousing"), "Carousing");
+    // With no reason supplied, the row text IS the label.
+    assert.equal(historyRow({ delta: -3, after: -1, source: "carousing" }), "-3 → -1 · Carousing");
+    // With a reason, the reason wins and the tag is rendered separately by the
+    // dialog — so both the wording and the cause are visible.
+    assert.equal(
+      historyRow({ delta: -3, after: -1, source: "carousing", reason: "A nobleman overheard your joke" }),
+      "-3 → -1 · A nobleman overheard your joke"
+    );
+  });
+});
+
+describe("when a row shows its provenance tag", () => {
+  test("a writer's own wording gets tagged, so the cause is still visible", () => {
+    assert.equal(showsSourceTag({ reason: "A nobleman overheard your joke", source: "carousing" }), true);
+    assert.equal(showsSourceTag({ reason: "A major triumph", source: "gm" }), true);
+    assert.equal(showsSourceTag({ reason: "Started a rumour", source: "downtime" }), true);
+    // An unknown module's tag still shows — it is the only clue to where the
+    // change came from.
+    assert.equal(showsSourceTag({ reason: "Won a bout", source: "pit-fighting" }), true);
+  });
+
+  test("a reason we generated ourselves is not tagged with what it already says", () => {
+    // "Starting renown (CHA +1)  Starting renown" reads as a stutter.
+    assert.equal(showsSourceTag({ reason: "Starting renown (CHA +1)", source: "start" }), false);
+    assert.equal(showsSourceTag({ reason: "Gained a level", source: "level-up" }), false);
+    // Including the plural, which a substring test against the label would miss.
+    assert.equal(showsSourceTag({ reason: "Gained 2 levels", source: "level-up" }), false);
+  });
+
+  test("with no reason there is nothing to tag — the label is the row text", () => {
+    for (const source of ["carousing", "external", "gm", ""]) {
+      assert.equal(showsSourceTag({ source }), false, `source ${source}`);
+      assert.equal(showsSourceTag({ reason: "   ", source }), false, `blank reason, source ${source}`);
+    }
+    assert.equal(showsSourceTag(), false);
+  });
+
+  test("a reason with no source cannot be tagged", () => {
+    assert.equal(showsSourceTag({ reason: "Something happened" }), false);
+    assert.equal(showsSourceTag({ reason: "Something happened", source: "" }), false);
   });
 });

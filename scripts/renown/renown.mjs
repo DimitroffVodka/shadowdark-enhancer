@@ -416,7 +416,7 @@ export const Renown = {
    * @param {number} before  this client's last-seen value
    * @param {number} after   the value now on the actor
    */
-  async _recordExternalChange(actor, before, after) {
+  async _recordExternalChange(actor, before, after, { reason = "", source = "external" } = {}) {
     const step = after - before;
     if (!step) return null;
 
@@ -427,8 +427,8 @@ export const Renown = {
         delta: step,
         before,
         after,
-        reason: "",
-        source: "external",
+        reason,
+        source,
         player,
         gm: game.user?.name ?? "",
         at: Date.now(),
@@ -449,8 +449,8 @@ export const Renown = {
           delta: step,
           before,
           after,
-          reason: "",
-          source: "external",
+          reason,
+          source,
         });
       } catch (err) {
         console.warn(`${MODULE_ID} | renown: recap write failed`, err);
@@ -576,7 +576,7 @@ export const Renown = {
       _renownSeen.delete(actor?.id);
     });
 
-    Hooks.on("updateActor", async (actor, changed) => {
+    Hooks.on("updateActor", async (actor, changed, options, userId) => {
       if (actor?.type !== "Player") return;
 
       // Any write to the system's renown field, ours or somebody else's. The
@@ -591,7 +591,10 @@ export const Renown = {
         // update carrying the ledger flag is ours and is already recorded.
         const ours = foundry.utils.getProperty(changed, `flags.${MODULE_ID}.${HISTORY_FLAG}`) !== undefined;
         if (!ours && _isPrimaryGM() && prev !== undefined && next !== prev) {
-          await this._recordExternalChange(actor, prev, next);
+          const hint = _renownHint(options, userId);
+          if (!hint.silent) {
+            await this._recordExternalChange(actor, prev, next, hint);
+          }
         }
       }
 
@@ -651,6 +654,45 @@ function _shapeReply(reply, before) {
     band: renownBand(before),
     summary: "",
     error: reply?.error ?? "The primary GM did not answer.",
+  };
+}
+
+/**
+ * Read a writer's own account of a renown change out of the update options.
+ *
+ * The integration point for a module that writes `system.renown` itself instead
+ * of calling `award` — a one-off data migration, or a caller that cannot await an
+ * async API:
+ *
+ *   actor.update({ "system.renown": next },
+ *                { "shadowdark-enhancer": { renown: { reason, source } } });
+ *   actor.update({ "system.renown": next },
+ *                { "shadowdark-enhancer": { renown: { silent: true } } });
+ *
+ * `silent` is what a migration wants: shadowdark-extras' `migrateLegacyRenown`
+ * moves a retired flag into the system field, which is a data move rather than a
+ * change in anybody's fame, and would otherwise log one row per character on the
+ * first load after an upgrade.
+ *
+ * ONLY HONOURED FROM A GM-INITIATED UPDATE. Options travel with the update from
+ * whoever made it, and a player owns their own character — so an untrusted
+ * sender could otherwise label their own edit, or hide it with `silent`. A
+ * non-GM's update is always recorded plainly. `userId` is Foundry's, not the
+ * payload's, so it cannot be spoofed.
+ *
+ * @returns {{reason:string, source:string, silent:boolean}}
+ */
+function _renownHint(options, userId) {
+  const fallback = { reason: "", source: "external", silent: false };
+  if (!game.users?.get(userId)?.isGM) return fallback;
+
+  const hint = options?.[MODULE_ID]?.renown;
+  if (!hint || typeof hint !== "object") return fallback;
+
+  return {
+    reason: String(hint.reason ?? ""),
+    source: String(hint.source ?? "") || "external",
+    silent: !!hint.silent,
   };
 }
 

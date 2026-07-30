@@ -641,3 +641,76 @@ test("an NPC's renown is not tracked", async () => {
 
   assert.equal(ledgerOf(actor).length, 0);
 });
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* A writer's own account of an external change                               */
+/*                                                                            */
+/* A module that writes `system.renown` itself can describe what it did in the */
+/* update options. shadowdark-extras' `migrateLegacyRenown` is the case that   */
+/* needs `silent`: moving a retired flag into the system field is a data move, */
+/* not a change in anybody's fame, and would otherwise log one row per         */
+/* character on the first load after an upgrade.                              */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+/** An external write that carries a hint, as `<module>.renown` in the options. */
+async function hintedWrite(actor, renown, hint, userId = GM.id) {
+  await actor.update({ "system.renown": renown });
+  await globalThis.Hooks.fire("updateActor", actor, { system: { renown } },
+    { "shadowdark-enhancer": { renown: hint } }, userId);
+}
+
+test("a writer's reason and source are used instead of the generic label", async () => {
+  const actor = makeActor({ renown: 2 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await hintedWrite(actor, -1, { reason: "A nobleman overheard your joke", source: "carousing" });
+
+  const [row] = ledgerOf(actor);
+  assert.deepEqual(
+    { delta: row.delta, source: row.source, reason: row.reason },
+    { delta: -3, source: "carousing", reason: "A nobleman overheard your joke" }
+  );
+});
+
+test("`silent` skips the row entirely — what a data migration wants", async () => {
+  const actor = makeActor({ renown: 0 });
+  const { Renown, logged } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await hintedWrite(actor, 8, { silent: true });
+
+  assert.equal(ledgerOf(actor).length, 0, "a migration is not a change in fame");
+  assert.equal(logged.length, 0, "and it must not reach the recap either");
+  // The cache still moved, so the NEXT change is measured from 8.
+  await externalWrite(actor, 9);
+  assert.deepEqual(ledgerOf(actor).map((r) => [r.before, r.after]), [[8, 9]]);
+});
+
+test("a hint from a NON-GM is ignored, and the change is still logged plainly", async () => {
+  // Options travel with the update from whoever made it, and a player owns their
+  // own character — so `silent` from a player must not hide their own edit, and
+  // a player-supplied source must not label it.
+  const actor = makeActor({ renown: 5 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  await hintedWrite(actor, 99, { reason: "totally legitimate", source: "level-up", silent: true }, PLAYER.id);
+
+  const [row] = ledgerOf(actor);
+  assert.equal(row.source, "external", "an untrusted label is discarded");
+  assert.equal(row.reason, "", "as is an untrusted reason");
+  assert.equal(row.delta, 94, "and the change itself is still on the record");
+});
+
+test("a malformed hint falls back to the generic label rather than throwing", async () => {
+  const actor = makeActor({ renown: 1 });
+  const { Renown } = await harness({ actors: { a1: actor } });
+  Renown.init();
+
+  for (const [i, hint] of [null, "nope", 7, [], { source: "" }].entries()) {
+    await hintedWrite(actor, 2 + i, hint);
+    assert.equal(ledgerOf(actor).at(-1).source, "external", `hint ${JSON.stringify(hint)}`);
+  }
+  assert.equal(ledgerOf(actor).length, 5);
+});

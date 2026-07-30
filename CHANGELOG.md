@@ -115,6 +115,17 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **Carousing renown is attributed properly.** Shadowdark Extras now hands its
+  carousing renown to this module rather than writing the field itself, so a
+  mishap appears in the log as its own sentence — *"A nobleman overheard your
+  joke"* — with a **Carousing** tag beside it, instead of as an anonymous
+  adjustment. A module that cannot delegate can describe its write in the update
+  options instead (`{ "shadowdark-enhancer": { renown: { reason, source } } }`),
+  or pass `silent: true` for a data migration, which is a move rather than a
+  change in anybody's fame. A hint is honoured only on a GM-initiated update: a
+  player owns their own character, and an untrusted `silent` would otherwise hide
+  a self-edit. Log rows now carry a provenance tag whenever a reason supplies the
+  row text, so Carousing, Downtime and a GM's own award are told apart at a glance.
 - **Renown changes made outside the module are logged too.** `system.renown` is
   the Shadowdark system's field, so the sheet's own input, a macro and other
   modules all write it — and the log recorded only changes routed through this

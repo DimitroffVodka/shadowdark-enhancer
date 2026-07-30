@@ -3542,6 +3542,18 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-renown-history-who { flex: 0 0 6.5em; font-weight: 600; }
 .sde-renown-history-what { flex: 1 1 auto; min-width: 0; }
 .sde-renown-history-when { flex: 0 0 auto; opacity: 0.6; white-space: nowrap; }
+/* Provenance tag, shown only when a reason already occupies the row text. */
+.sde-renown-history-tag {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border: 1px solid var(--sde-bar-border, rgb(0 0 0 / 25%));
+  border-radius: 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
 .sde-renown-history-row.sde-renown-up .sde-renown-history-what { color: var(--sde-bar-miss, #4c9a4c); }
 .sde-renown-history-row.sde-renown-down .sde-renown-history-what { color: var(--sde-bar-hit, #a33); }
 .sde-renown-history-empty,

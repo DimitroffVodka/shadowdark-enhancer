@@ -16,7 +16,9 @@
  */
 
 import { Renown } from "./renown.mjs";
-import { RENOWN_HISTORY_CAP, RENOWN_TRIGGERS, historyRow, signedRenown } from "./renown-core.mjs";
+import {
+  RENOWN_HISTORY_CAP, RENOWN_TRIGGERS, historyRow, showsSourceTag, signedRenown, sourceLabel,
+} from "./renown-core.mjs";
 
 const { DialogV2 } = foundry.applications.api;
 
@@ -141,10 +143,16 @@ function _historySection(history) {
   const players = history.map((group) => {
     const rows = [...group.entries].reverse().map((row) => {
       const when = Number(row.at) > 0 ? new Date(Number(row.at)).toLocaleString() : "";
+      // The provenance tag — see `showsSourceTag`. It is what makes the cause
+      // visible at all for a writer that supplies its own wording, which
+      // shadowdark-extras' carousing always does.
+      const tagged = showsSourceTag(row);
+      const label = tagged ? sourceLabel(row.source) : "";
       return `
         <li class="sde-renown-history-row ${Number(row.delta) < 0 ? "sde-renown-down" : "sde-renown-up"}">
           <span class="sde-renown-history-who">${esc(String(row.actorName ?? "—"))}</span>
           <span class="sde-renown-history-what">${esc(historyRow(row))}</span>
+          ${tagged ? `<span class="sde-renown-history-tag">${esc(label)}</span>` : ""}
           ${when ? `<span class="sde-renown-history-when" title="${esc(when)}">${esc(when.split(",")[0])}</span>` : ""}
         </li>`;
     }).join("");

@@ -227,10 +227,14 @@ macro, and other modules can all write it. Those changes are caught too, and
 appear in the log as **Changed outside the module** with the right numbers and
 time — they just carry no reason, because nothing supplied one.
 
-The case that matters in practice: **Shadowdark Extras' carousing** applies its
-renown gains and losses straight to the field, so a mishap reading *"-3 renown"*
-moves the sheet without this module ever being told. It is now logged. It posts no
-chat card, because SDX's own carousing card already reported it.
+Where the writer says what it did, the log says so too: the row shows that
+wording, with a small tag naming the cause. **Shadowdark Extras' carousing** does
+this — it hands its renown changes to this module, so a carousing mishap reads as
+its own sentence tagged **Carousing** rather than as an anonymous adjustment. No
+chat card, because SDX's carousing card already reported it.
+
+A writer that cannot do that still gets caught by the watcher; it just shows up as
+*Changed outside the module*.
 
 A change made before this existed cannot be recovered — there was no record of it
 to read. The value on the sheet is still correct; only the log entry is missing.

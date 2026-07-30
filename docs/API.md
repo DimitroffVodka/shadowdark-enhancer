@@ -569,6 +569,30 @@ and it posts no chat card, because whoever wrote the value already reported it.
 The row is appended in its own update — the same-update atomicity guarantee
 applies only to `award`, since here the number is already committed.
 
+**Integrating a module that writes the field itself.** Calling `award` is the
+better path and is what shadowdark-extras' carousing does (`applyRenownDelta`
+delegates, passing the outcome text as `reason` and `source: "carousing"`, with
+`chat: false`). Where that is not possible — a one-off migration, or a caller that
+cannot await — describe the write in the update options instead:
+
+```js
+await actor.update({ "system.renown": next }, {
+  "shadowdark-enhancer": { renown: { reason: "A nobleman overheard your joke", source: "carousing" } },
+});
+// A data move rather than a change in anybody's fame:
+await actor.update({ "system.renown": legacy }, {
+  "shadowdark-enhancer": { renown: { silent: true } },
+});
+```
+
+`silent` suppresses the row and the recap write while still advancing the cache, so
+the next real change is measured from the migrated value. **A hint is honoured only
+on a GM-initiated update** — options travel with the update from whoever made it
+and a player owns their own character, so an untrusted `silent` could otherwise
+hide a self-edit. A non-GM's write is always recorded plainly as `external`. An
+unrecognised `source` renders as its own slug via `sourceLabel`, so a module's own
+provenance is never swallowed.
+
 Every change — a GM award, a starting seed, a level-up, a downtime rumour — is
 recorded on the character (see the log above), logged to the Session Recap (its
 **XP & Renown** tab, and a `## Renown` section in the Discord export) and posts a
