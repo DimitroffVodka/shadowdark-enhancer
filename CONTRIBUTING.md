@@ -42,6 +42,25 @@ Any commit that adds, removes or renames lines in `scripts/` changes a line
 count in the inventory, so run `npm run inventory` in that same commit or the
 third gate fails.
 
+**Newly *tracking* a file trips the same gate, even when no code moved.** The
+inventory header counts tracked files, so un-ignoring a path bumps it on its own.
+`docs/` is ignored wholesale with a short allow-list, and each tracked
+subdirectory needs its own negation:
+
+```gitignore
+docs/*
+!docs/wiki/            # the user-facing manual
+!docs/API.md
+!docs/FILE-INVENTORY.md
+!docs/agents/          # per-repo config the agent skills read
+```
+
+`docs/agents/` holds the issue-tracker, triage-label and domain-doc conventions
+that coding agents consult; it is tracked so a clone and CI see the same rules.
+Add a negation like it for any new tracked docs directory — and regenerate the
+inventory in that same commit, or `inventory:check` goes red on a clean checkout
+while passing in your own tree.
+
 For anything touching the combat / crawl / initiative state machine, also run
 the in-client **Quench** batches (`test/quench/`). Install the
 [Quench](https://foundryvtt.com/packages/quench) module and run
