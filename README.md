@@ -69,7 +69,7 @@ Each row links to its full manual page.
 |  **[Party XP](docs/wiki/Party-XP.md)** | Award XP to the whole party at once: full amount to each character, per Shadowdark RAW. Flags who's ready to level, and never levels anyone itself. |
 |  **[Downtime](docs/wiki/Downtime.md)** | The between-crawl activities from *Cursed Scroll 6* or the *Western Reaches*: spiritualism, skulduggery, martial training, magical research. It knows the DCs, the costs and the step-down ladder. The outcomes come from your own book, through the Importer. A book you haven't imported shows its title and nothing else. |
 |  **[Renown](docs/wiki/Renown.md)** | The fame track, with the four bands and what each one means. Award or dock it with a reason, or let a level-up do it. Its bonus folds into a reaction roll only when you say the party would be recognised, and double 1s stay hostile regardless. |
-|  **[Session Recap](docs/wiki/Session-Recap.md)** | A session log that fills itself in (loot, XP, combats, rolls, kills, merchant activity) with a **Copy for Discord** export. Tied to the crawl, so there's no extra button to remember. |
+|  **[Session Recap](docs/wiki/Session-Recap.md)** | A session log that fills itself in (loot, XP, combats, rolls, kills, merchant activity, and carousing if you run Shadowdark Extras) with a **Copy for Discord** export. Tied to the crawl, so there's no extra button to remember. |
 
 ### Building content
 

@@ -5,7 +5,7 @@
     <button type="button" class="sr-tab {{#if tab.combat}}active{{/if}}" data-action="changeTab" data-tab="combat"><i class="fas fa-khanda"></i> Combat</button>
     <button type="button" class="sr-tab {{#if tab.loot}}active{{/if}}" data-action="changeTab" data-tab="loot"><i class="fas fa-coins"></i> Loot</button>
     <button type="button" class="sr-tab {{#if tab.xp}}active{{/if}}" data-action="changeTab" data-tab="xp"><i class="fas fa-star"></i> XP &amp; Renown</button>
-    <button type="button" class="sr-tab {{#if tab.downtime}}active{{/if}}" data-action="changeTab" data-tab="downtime"><i class="fas fa-mug-hot"></i> Downtime</button>
+    <button type="button" class="sr-tab {{#if tab.downtime}}active{{/if}}" data-action="changeTab" data-tab="downtime"><i class="fas fa-mug-hot"></i> Downtime &amp; Carousing</button>
     <button type="button" class="sr-tab {{#if tab.history}}active{{/if}}" data-action="changeTab" data-tab="history"><i class="fas fa-book"></i> History</button>
   </nav>
 
@@ -189,6 +189,24 @@
       {{/each}}
       {{else}}
       <p class="sr-empty">No downtime activity recorded.</p>
+      {{/if}}
+
+      {{#if hasCarousing}}
+      <h3 class="sr-subhead"><i class="fas fa-beer-mug-empty"></i> Carousing</h3>
+      {{#each carousing}}
+      <div class="sr-merchant-block">
+        <div class="sr-merchant-head"><i class="fas fa-beer-mug-empty"></i> {{heading}}</div>
+        {{#if tier}}<div class="sr-merchant-item"><em>{{tier}}</em></div>{{/if}}
+        <div class="sr-merchant-player"><span class="sr-merchant-name">Carousers</span><span class="sr-merchant-subtotal">{{subtotal}}</span></div>
+        {{#each rows}}
+        <div class="sr-merchant-item">{{text}}{{#if player}} <span class="sr-xp-time">({{player}})</span>{{/if}}</div>
+        {{#each benefits}}<div class="sr-merchant-item">— Benefit: {{this}}</div>{{/each}}
+        {{#each mishaps}}<div class="sr-merchant-item">— Mishap: {{this}}</div>{{/each}}
+        {{#if applied}}<div class="sr-merchant-item"><em>{{applied}}</em></div>{{/if}}
+        {{#if pending}}<div class="sr-merchant-item"><em>not applied</em></div>{{/if}}
+        {{/each}}
+      </div>
+      {{/each}}
       {{/if}}
     </section>
     {{/if}}

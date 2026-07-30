@@ -19,6 +19,11 @@ import { recapRow as downtimeRecapRow } from "../downtime/downtime-log-core.mjs"
 // the Discord export phrase a renown change identically. renown-core.mjs is
 // Foundry-free, like this file.
 import { recapRow as renownRecapRow } from "../renown/renown-core.mjs";
+// And again for carousing, which Shadowdark Extras owns — carousing-feed-core.mjs
+// normalizes SDX's two result shapes and is likewise Foundry-free.
+import {
+  recapRow as carousingRecapRow, carousingSubtotal, tierLine,
+} from "./carousing-feed-core.mjs";
 
 /** Empty session payload. Cloned on session start / clear. */
 export const DEFAULT_DATA = {
@@ -33,6 +38,7 @@ export const DEFAULT_DATA = {
   luckSpent: [],
   downtime: [],
   renown: [],
+  carousing: [],
   playerStats: {},
 };
 
@@ -349,6 +355,28 @@ export function formatForDiscordFromData(data, startTime, endTime) {
       const spent = entries.reduce((s, e) => s + (Number(e.costGp) || 0), 0);
       const won = entries.filter((e) => e.success).length;
       lines.push(`- **${won}/${entries.length} succeeded**${spent > 0 ? ` · ${spent} gp spent` : ""}`);
+      lines.push("");
+    }
+  }
+
+  // ── Carousing ───────────────────────────────────────────────
+  // Mirrored from Shadowdark Extras. Grouped per CAROUSE rather than per player,
+  // because a carouse is one shared event the whole party bought into — the
+  // tier and its cost belong to the night, not to any one character.
+  if (Array.isArray(data.carousing) && data.carousing.length > 0) {
+    lines.push("## Carousing");
+    for (const carouse of data.carousing) {
+      const entries = Array.isArray(carouse.entries) ? carouse.entries : [];
+      lines.push(`**${carouse.date || "Carouse"}** — ${carousingSubtotal(entries)}`);
+      const tier = tierLine(carouse);
+      if (tier) lines.push(`*${tier}*`);
+      for (const e of entries) {
+        lines.push(`- ${carousingRecapRow(e)}`);
+        for (const b of e.benefits ?? []) lines.push(`  - Benefit: ${b.text}`);
+        for (const m of e.mishaps ?? []) lines.push(`  - Mishap: ${m.text}`);
+        if (e.applied) lines.push(`  - *${e.applied}*`);
+        else if (e.appliedState === "pending") lines.push("  - *not applied*");
+      }
       lines.push("");
     }
   }

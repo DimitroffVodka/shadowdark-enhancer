@@ -88,6 +88,13 @@
   old listener alive until it does.
 
 ### Fixed
+- **Saving a session threw away its downtime and renown.** The archive kept eight
+  of the recap's arrays and silently dropped the rest, so a session you saved at
+  the end of the night reopened from **History** with no downtime attempts and no
+  renown changes — and exported to Discord without those sections too. Everything
+  the window can show is now archived. The end-crawl prompt also counts them when
+  deciding whether to offer **Discard**: an evening of nothing but downtime and
+  carousing used to look like an empty session.
 - **Two GMs awarding renown at once lost one of the awards.** Renown is adjusted
   by reading the current value, adding the change and writing the sum back, and
   "GM-only" is not the same as "one client" — a world with an assistant GM, or
@@ -115,6 +122,21 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **Carousing now lands in the Session Recap.** Shadowdark Extras runs carousing;
+  this module never did, so a night at the tavern was the one downtime activity
+  that left no trace in the session log. Its results are now mirrored into a
+  **Carousing** block on the renamed **Downtime & Carousing** tab, and into the
+  **Copy for Discord** export. Both of that module's carousing modes are read —
+  Original's d8 outcome with its single benefit, and Expanded's d8-to-XP with its
+  d100 benefit and mishap rolls — detected from the results themselves rather than
+  the mode setting, so a carouse rolled before the GM flipped that setting still
+  reads correctly. Grouped per carouse rather than per player, because the tier
+  and its cost were bought by the whole party. Nothing is written back: no rolls,
+  no actor changes, no edits to that module's own Carousing Log journal. The block
+  appears only when Shadowdark Extras is active with **Enable Carousing** on.
+  Each carouse is *copied* rather than read live, because that module's overlay
+  holds one carouse at a time and resetting it for a second round of the evening
+  erases the first.
 - **Carousing renown is attributed properly.** Shadowdark Extras now hands its
   carousing renown to this module rather than writing the field itself, so a
   mishap appears in the log as its own sentence — *"A nobleman overheard your
@@ -130,12 +152,17 @@
   the Shadowdark system's field, so the sheet's own input, a macro and other
   modules all write it — and the log recorded only changes routed through this
   module, which made it a record of our awards rather than of the character's
-  renown. The case that bit in practice: **Shadowdark Extras' carousing** applies
+  renown. The case that bit in practice: **Shadowdark Extras' carousing** applied
   its renown with a bare `actor.update`, so a mishap reading "-3 renown" moved the
   sheet and left no trace. An `updateActor` watcher now catches any change we did
   not make and logs it as *Changed outside the module*, with no chat card, since
   whoever wrote the value already reported it. Our own awards are told apart by
   the ledger row riding in the same update, so nothing is logged twice.
+  Carousing itself does better than that fallback: it now hands its changes to
+  this module, so a carousing row reads as the mishap's or benefit's own wording
+  tagged **Carousing** rather than as an anonymous adjustment — and removing a
+  result posts a reversing entry instead of rewriting the row. The watcher remains
+  the catch-all for sheet edits, macros, and older Shadowdark Extras builds.
 - **A new character's renown is set from their Charisma modifier, without a
   click.** Previously the starting value existed only as a **Start at CHA mod**
   button somebody had to remember to press. The seed is attempted when the

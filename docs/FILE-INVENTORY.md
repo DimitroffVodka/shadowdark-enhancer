@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-712 tracked files · ~94,100 lines of code/markup across scripts+templates+styles+test.
+716 tracked files · ~95,400 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -160,9 +160,11 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `session-recap.mjs` | 675 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
-| `session-recap-core.mjs` | 374 | Pure data shape, currency math, duration format, Discord-markdown export. |
-| `session-recap-app.mjs` | 309 | Recap window: Overview / Combat / Loot / XP / History. |
+| `session-recap.mjs` | 746 | Session event tracker singleton (loot, sales, XP, combats, per-PC stats). |
+| `session-recap-core.mjs` | 402 | Pure data shape, currency math, duration format, Discord-markdown export. |
+| `session-recap-app.mjs` | 334 | Recap window: Overview / Combat / Loot / XP / History. |
+| `carousing-feed.mjs` | 141 | Mirrors Shadowdark Extras' carousing into the session log. SDX emits no carousing hook and exposes none of it on `module.api`, but it keeps the whole live carouse in one journal flag on the hidden `__sdx_carousing_sync__` entry — so this watches that document rather than calling anything. Each carouse is COPIED into our own `carousing` array keyed on SDX's `logId`, because SDX's overlay holds only one live carouse and resetting it for the next round erases the last. Self-gates on SDX being active with carousing enabled, on an active session, and on the primary GM. |
+| `carousing-feed-core.mjs` | 194 | Pure normalizer for both SDX carousing result shapes — original (d8 outcome + one benefit, GM applies) and expanded (d8 → XP + d100 benefit/mishap arrays, self-applying) — detected off the payload, not off SDX's mode setting, so a carouse rolled before the GM flipped it still reads. Also the shared `recapRow`, `carousingSubtotal` and `tierLine` wording the recap window and the Discord export both use. Foundry-free, node-tested. |
 
 ### 3.12 `scripts/importer/` — hub + cross-type infrastructure
 
