@@ -1179,8 +1179,9 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   text-overflow: ellipsis;
 }
 
-/* Weapon type indicator — sword for melee, crosshairs for ranged.
-   Small, color-coded so the player can see attack mode at a glance. */
+/* Entry type indicator — sword for melee, crosshairs for ranged, and on the
+   Spells tab a scroll or wand marking a spell that comes off an item rather
+   than out of the caster's head. Small, color-coded to read at a glance. */
 .sde-strip-panel-type {
   font-size: 11px;
   width: 14px;
@@ -1190,6 +1191,8 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 .sde-strip-panel-type-melee  { color: #e07050; } /* warm red — close combat */
 .sde-strip-panel-type-ranged { color: var(--sde-ranged); } /* cool blue — at distance */
+.sde-strip-panel-type-scroll { color: #c8a06a; } /* parchment — one use, then gone */
+.sde-strip-panel-type-wand   { color: #a483d8; } /* arcane violet — charged item */
 .sde-strip-panel-item:hover .sde-strip-panel-type { opacity: 1; }
 
 .sde-strip-menu-dmg {

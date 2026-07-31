@@ -21,6 +21,7 @@
  * Click handlers route to Shadowdark's actor methods:
  *   - PC weapon → `actor.system.rollAttack(itemId)`
  *   - PC spell  → `actor.system.castSpell(itemId)`
+ *   - PC scroll/wand → `actor.system.castSpell(spellUuid, { itemUuid })`
  *   - NPC attack → `actor.rollAttack(itemId)` / fallback to sheet
  *   - NPC feature → open item sheet (passive description)
  */
@@ -152,21 +153,105 @@ async function _buildPcWeapons(actor) {
         itemId: item.id,
         attackType,
         kind: "weapon",
+        icon: attackType === "ranged" ? "fa-crosshairs" : "fa-swords",
+        iconVariant: attackType,
+        iconTitle: attackType === "ranged" ? "Ranged" : "Melee",
       });
     }
   }
   return entries;
 }
 
-function _buildPcSpells(actor) {
-  return (actor.items?.contents ?? [])
-    .filter(i => i.type === "Spell" && !i.system?.lost)
-    .map(item => ({
-      label: item.name || "Unnamed",
-      dmg: _spellDmgLabel(item),
-      itemId: item.id,
-      kind: "spell",
-    }));
+/**
+ * Everything the Spells tab can cast, in the character sheet's own order:
+ * memorised `Spell` items first, then wands, then scrolls.
+ *
+ * Shadowdark stores a scroll's spell as `system.spellUuid` and a wand's as
+ * `system.spells[] = {uuid, lost}` — a pointer to a real Spell document
+ * elsewhere, NOT an embedded copy. So this pass only decides *which* rows
+ * exist and what they point at; resolving the pointer is async and belongs to
+ * the caller.
+ *
+ * The exclusions mirror `PlayerSheetSD._prepareItems` verbatim, so the strip
+ * never offers something the sheet would hide: a lost spell (spent until the
+ * next rest), a stashed item (left back at camp), an unidentified one (an
+ * unknown stick — you don't know what it casts), a broken wand, or a wand
+ * spell already burned out.
+ *
+ * Pure — takes item-shaped objects, touches no globals.
+ *
+ * @param {Array<object>} items  `actor.items.contents`
+ * @returns {Array<{source: "spell"|"wand"|"scroll", item: object, spellUuid: string}>}
+ */
+export function spellItemSources(items = []) {
+  const spells = [];
+  const wands = [];
+  const scrolls = [];
+
+  for (const item of items ?? []) {
+    const sys = item?.system ?? {};
+
+    if (item?.type === "Spell") {
+      if (!sys.lost) spells.push({ source: "spell", item, spellUuid: item.uuid });
+      continue;
+    }
+    if (item?.type !== "Wand" && item?.type !== "Scroll") continue;
+
+    // `isIdentified` is the data-model getter; the raw field is the fallback
+    // for plain objects (tests, and any doc read before prepareData).
+    const identified = sys.isIdentified ?? sys.identification?.identified ?? true;
+    if (!identified || sys.stashed) continue;
+
+    if (item.type === "Wand") {
+      if (sys.broken) continue;
+      for (const s of sys.spells ?? []) {
+        if (s?.uuid && !s.lost) wands.push({ source: "wand", item, spellUuid: s.uuid });
+      }
+      continue;
+    }
+    if (sys.spellUuid) scrolls.push({ source: "scroll", item, spellUuid: sys.spellUuid });
+  }
+
+  return [...spells, ...wands, ...scrolls];
+}
+
+// Async because a wand/scroll row names the spell it carries, and that spell
+// lives at a UUID (usually in a compendium) that has to be resolved.
+async function _buildPcSpells(actor) {
+  const entries = [];
+
+  for (const src of spellItemSources(actor.items?.contents ?? [])) {
+    if (src.source === "spell") {
+      entries.push({
+        label: src.item.name || "Unnamed",
+        dmg: _spellDmgLabel(src.item),
+        itemId: src.item.id,
+        kind: "spell",
+      });
+      continue;
+    }
+
+    // The row is named for the SPELL, matching the sheet — the stick itself is
+    // the tooltip. A dangling link (spell deleted from its pack) drops the row
+    // rather than rendering a raw UUID at the player.
+    const spell = await fromUuid(src.spellUuid);
+    if (!spell) continue;
+
+    const isWand = src.source === "wand";
+    entries.push({
+      label: spell.name || "Unnamed",
+      dmg: _spellDmgLabel(spell),
+      itemId: src.item.id,
+      spellUuid: src.spellUuid,
+      kind: src.source,
+      icon: isWand ? "fa-wand-magic-sparkles" : "fa-scroll",
+      iconVariant: src.source,
+      iconTitle: isWand ? "Wand" : "Scroll",
+      tooltip: `${isWand ? "Wand" : "Scroll"}: ${src.item.name || "Unnamed"}`,
+    });
+  }
+
+  return entries;
 }
 
 // PC Abilities tab — only `Class Ability` items (Special Abilities section on
@@ -201,7 +286,7 @@ async function _buildMenuData(actor, isNPC) {
     tabB: "Spells",
     tabC: "Abilities",
     itemsA: await _buildPcWeapons(actor),
-    itemsB: _buildPcSpells(actor),
+    itemsB: await _buildPcSpells(actor),
     itemsC: _buildPcAbilities(actor),
   };
 }
@@ -224,7 +309,9 @@ function _menuTabAvailability(actor, isNPC) {
     tabB: "Spells",
     tabC: "Abilities",
     hasA: items.some(i => i.system?.isWeapon && i.system?.equipped),
-    hasB: items.some(i => i.type === "Spell"),
+    // Wands and scrolls count, so a non-caster carrying one still gets the tab.
+    // Same filter the panel uses, so strip and panel never disagree.
+    hasB: spellItemSources(items).length > 0,
     hasC: items.some(i => i.type === "Class Ability"),
   };
 }
@@ -279,8 +366,12 @@ let _showSession = 0;
 async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
   _clearHideTimer();
 
-  // Re-use existing panel for same actor
-  if (_activePanel && _activePanel.dataset.actorId === actor.id) {
+  // Re-use existing panel for same actor — but only while it's still mounted.
+  // The panel is a child of the strip root, so any strip re-render (an item
+  // update, a combat turn, casting a scroll and consuming it) wipes the node
+  // via innerHTML while this pointer survives. Reusing that orphan silently
+  // showed no menu at all until the player hovered some other card first.
+  if (_activePanel?.isConnected && _activePanel.dataset.actorId === actor.id) {
     if (activeTab) _switchTab(_activePanel, activeTab);
     return;
   }
@@ -301,19 +392,18 @@ async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
   const renderItems = (items) => items && items.length
     ? items.map(it => {
         const dataAttrs = [
-          it.itemId       ? `data-item-id="${it.itemId}"`         : "",
-          it.attackType   ? `data-attack-type="${it.attackType}"` : "",
-          it.attackNum    ? `data-attack-num="${it.attackNum}"`   : "",
+          it.itemId       ? `data-item-id="${it.itemId}"`             : "",
+          it.spellUuid    ? `data-spell-uuid="${esc(it.spellUuid)}"`  : "",
+          it.attackType   ? `data-attack-type="${it.attackType}"`     : "",
+          it.attackNum    ? `data-attack-num="${it.attackNum}"`       : "",
         ].filter(Boolean).join(" ");
-        // Weapon entries get a small left-side icon so melee vs ranged
-        // is visible at a glance (especially helpful for thrown weapons
-        // that appear in both variants).
-        const typeIcon = it.kind === "weapon" && it.attackType
-          ? (it.attackType === "ranged"
-              ? `<i class="fas fa-crosshairs sde-strip-panel-type sde-strip-panel-type-ranged" title="Ranged"></i>`
-              : `<i class="fas fa-swords sde-strip-panel-type sde-strip-panel-type-melee" title="Melee"></i>`)
+        // Small left-side icon so the entry's nature reads at a glance:
+        // melee vs ranged on weapons (especially helpful for thrown weapons
+        // that appear in both variants), scroll vs wand on carried magic.
+        const typeIcon = it.icon
+          ? `<i class="fas ${esc(it.icon)} sde-strip-panel-type sde-strip-panel-type-${esc(it.iconVariant)}" title="${esc(it.iconTitle ?? "")}"></i>`
           : "";
-        return `<button type="button" class="sde-strip-panel-item" data-kind="${it.kind}" ${dataAttrs}>
+        return `<button type="button" class="sde-strip-panel-item" data-kind="${it.kind}" ${dataAttrs} ${it.tooltip ? `title="${esc(it.tooltip)}"` : ""}>
           ${typeIcon}<span class="sde-strip-panel-name">${esc(it.label)}</span>${it.dmg}
         </button>`;
       }).join("")
@@ -357,6 +447,7 @@ async function _showPanel(stripEl, cardWrap, actor, isNPC, activeTab) {
       await _onItemClick(resolvedActor, item.dataset.kind, item.dataset.itemId, {
         attackType: item.dataset.attackType,
         attackNum: Number(item.dataset.attackNum ?? 1),
+        spellUuid: item.dataset.spellUuid,
       });
       _removePanel();
     });
@@ -431,6 +522,17 @@ async function _onItemClick(actor, kind, itemId, opts = {}) {
         // PC castSpell takes a UUID (uses fromUuid internally), not an ID.
         if (typeof actor.system?.castSpell === "function") {
           return await actor.system.castSpell(item.uuid);
+        }
+        return item.sheet.render(true);
+
+      case "scroll":
+      case "wand":
+        // The spell is what gets cast; the scroll/wand rides along as
+        // `itemUuid` so the system can apply its own item rules — the scroll
+        // is consumed either way, a wand breaks on a critical failure, and a
+        // non-caster is allowed to use one at all.
+        if (typeof actor.system?.castSpell === "function" && opts?.spellUuid) {
+          return await actor.system.castSpell(opts.spellUuid, { itemUuid: item.uuid });
         }
         return item.sheet.render(true);
 

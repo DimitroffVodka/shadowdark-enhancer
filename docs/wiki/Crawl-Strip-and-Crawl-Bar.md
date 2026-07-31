@@ -148,12 +148,24 @@ to put in it:
 | Actor | Tabs | Contents |
 |---|---|---|
 | **NPC** | Actions · Abilities | `NPC Attack` / `NPC Special Attack` · `NPC Feature` |
-| **PC** | Weapons · Spells · Abilities | **Equipped** weapons · `Spell` items · `Class Ability` items |
+| **PC** | Weapons · Spells · Abilities | **Equipped** weapons · `Spell` items, plus `Wand` and `Scroll` spells · `Class Ability` items |
 
 - **Weapons and attacks** show damage inline (e.g. `Claws  2d6 piercing`), with a
   small icon distinguishing melee from ranged. A thrown weapon appears twice:
   once as itself, once as a `(thrown)` variant. Clicking rolls through the
   system's own `rollAttack`, falling back to opening the item sheet.
+- **Spells** are the memorised ones plus anything castable off an item. A wand
+  lists each spell it holds; a scroll lists the one it carries. Those rows are
+  named for the *spell* and marked with a small wand or scroll icon, with the
+  item's own name in the tooltip — so `Fireball` off a Wand of Wonder and
+  `Fireball` off a scroll are told apart at a glance. Clicking casts through
+  the system's `castSpell` with the item attached, so the normal rules apply:
+  the scroll is spent, a wand can break on a critical failure, and a
+  non-caster may still use both. The Spells tab appears for anyone carrying a
+  wand or scroll, caster or not.
+- **What the Spells tab hides**, matching the character sheet exactly: lost
+  spells, burned-out wand charges, broken wands, and anything **stashed** or
+  **unidentified** — an unknown stick doesn't advertise what it casts.
 - **Abilities and features** open the item sheet for the description. Talents
   are deliberately excluded. They are passive, not actions.
 
