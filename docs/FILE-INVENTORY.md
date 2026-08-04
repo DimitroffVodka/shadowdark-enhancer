@@ -284,7 +284,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `pdf-sheet-export.mjs` | 403 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
+| `pdf-sheet-export.mjs` | 406 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
 
 ### 3.17 `scripts/character-sheet/` — Shadowdark sheet injections
 
