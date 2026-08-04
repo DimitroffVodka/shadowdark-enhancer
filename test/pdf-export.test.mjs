@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { buildFieldValues, _internals } from "../scripts/pdf-export/pdf-sheet-export.mjs";
+import { buildFieldValues, exportActorToPdf, _internals } from "../scripts/pdf-export/pdf-sheet-export.mjs";
 
 const MANIFEST = JSON.parse(fs.readFileSync(
   fileURLToPath(new URL("../assets/pdf/shadowdark-character-sheet-fields.json", import.meta.url)), "utf8"));
@@ -309,4 +309,77 @@ test("template field-contract: every produced id exists in the manifest; all 16 
     for (let r = 1; r <= 16; r++)
       assert.ok(text[`spell_${r}_notes`] && text[`spell_${r}_notes`].length > 0, `spell_${r}_notes populated`);
   } finally { restore(); }
+});
+
+test("fallback blob remains available when a browser PDF viewer downloads it later", async () => {
+  const templateBytes = fs.readFileSync(fileURLToPath(
+    new URL("../assets/pdf/shadowdark-character-sheet.pdf", import.meta.url),
+  ));
+  const pdfLibUrl = new URL(
+    "../scripts/pdf-export/lib/pdf-lib.esm.min.js",
+    import.meta.url,
+  ).href;
+  const liveBlobUrls = new Map();
+  let clickedHref = "";
+  const prev = {
+    foundry: globalThis.foundry,
+    fetch: globalThis.fetch,
+    window: globalThis.window,
+    ui: globalThis.ui,
+    document: globalThis.document,
+    createObjectURL: URL.createObjectURL,
+    revokeObjectURL: URL.revokeObjectURL,
+  };
+  const restoreActorGlobals = installGlobals();
+
+  globalThis.foundry = { utils: { getRoute: (path) => (
+    path.endsWith("pdf-lib.esm.min.js") ? pdfLibUrl : "sde-template://character-sheet"
+  ) } };
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    arrayBuffer: async () => templateBytes.buffer.slice(
+      templateBytes.byteOffset,
+      templateBytes.byteOffset + templateBytes.byteLength,
+    ),
+  });
+  globalThis.window = {}; // insecure HTTP origin: no showSaveFilePicker
+  globalThis.ui = { notifications: { info() {}, error(message) { throw new Error(message); } } };
+  globalThis.document = {
+    body: { appendChild() {} },
+    createElement() {
+      return {
+        href: "",
+        download: "",
+        click() { clickedHref = this.href; },
+        remove() {},
+      };
+    },
+  };
+  URL.createObjectURL = (blob) => {
+    const url = "blob:http://remote-foundry.invalid/generated-character-sheet";
+    liveBlobUrls.set(url, blob);
+    return url;
+  };
+  URL.revokeObjectURL = (url) => liveBlobUrls.delete(url);
+
+  try {
+    await exportActorToPdf(makeActor());
+    assert.ok(clickedHref.startsWith("blob:"), "fallback clicked a blob URL");
+    assert.ok(liveBlobUrls.has(clickedHref), "blob is initially available");
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    assert.ok(
+      liveBlobUrls.has(clickedHref),
+      "Chrome's PDF viewer can still retrieve the PDF after its delayed Download click",
+    );
+  } finally {
+    restoreActorGlobals();
+    globalThis.foundry = prev.foundry;
+    globalThis.fetch = prev.fetch;
+    globalThis.window = prev.window;
+    globalThis.ui = prev.ui;
+    globalThis.document = prev.document;
+    URL.createObjectURL = prev.createObjectURL;
+    URL.revokeObjectURL = prev.revokeObjectURL;
+  }
 });

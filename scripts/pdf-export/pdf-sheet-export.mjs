@@ -345,7 +345,10 @@ export async function exportActorToPdf(actor) {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      // Do not revoke this URL on a short timer. On insecure HTTP origins Chrome
+      // cannot use showSaveFilePicker and may open the blob in its PDF viewer;
+      // that viewer can fetch the URL again when the user clicks Download. The
+      // browser releases document-owned blob URLs when the document unloads.
       ui.notifications?.info(`Downloaded ${filename}`);
     };
 
