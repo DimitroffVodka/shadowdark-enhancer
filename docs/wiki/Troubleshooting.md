@@ -181,7 +181,7 @@ once every round-1 combatant has an initiative. It corrects itself.
 
 The token's turn never began while the crawl was running, either dropped
 mid-turn or the crawl started after combat. There is nothing to roll back to
-yet. It will have a position from the next turn.
+yet. It will have a position from the next round.
 
 ### Remaining movement shows a negative number
 

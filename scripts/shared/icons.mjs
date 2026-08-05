@@ -71,6 +71,10 @@ export const ICONS = {
   deactivate:  `<i class="fas fa-circle-xmark"></i>`,
   prevRound:   `<i class="fas fa-angle-up"></i>`,
   nextRound:   `<i class="fas fa-angle-down"></i>`,
+  // Distinct from nextRound (the crawl-turn / round counter advance): the
+  // out-of-combat initiative advance must not look like the crawl-turn
+  // button sitting next to it.
+  nextOocTurn: `<i class="fas fa-forward"></i>`,
 
   // ── Movement ─────────────────────────────────────────────────────────────
   rollbackMove: `<i class="fas fa-rotate-left"></i>`,

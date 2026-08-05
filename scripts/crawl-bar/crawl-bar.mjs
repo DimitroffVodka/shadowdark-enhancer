@@ -119,10 +119,10 @@ export const CrawlBar = {
       <div class="sde-bar-inner sde-bar-active">
 
         <span class="sde-bar-phase-badge sde-bar-phase-crawl"${idle ? ' style="opacity:0.55"' : ""}>
-          ${ICONS.startCrawl} Crawl · Turn ${state.crawlTurn}
+          ${ICONS.startCrawl} ${game.i18n.format("SDE.crawlBar.roundBadge", { turn: state.crawlTurn })}
         </span>
         <button class="sde-bar-btn sde-bar-next-btn" data-action="nextCrawlTurn" ${idleAttr}>
-          ${ICONS.nextTurn} Next Turn
+          ${ICONS.nextTurn} ${game.i18n.localize("SDE.crawlBar.nextRound")}
         </button>
 
         <button class="sde-bar-btn" data-action="addSelectedTokens" title="Left-click: add selected tokens to the crawl · Right-click: reset out-of-combat initiative">

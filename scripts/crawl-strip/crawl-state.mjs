@@ -13,18 +13,21 @@ import {
   clearMembers    as _clearMembers,
   nextCrawlTurn   as _nextCrawlTurn,
   setOocInitiative   as _setOocInitiative,
+  ensureOocTurn      as _ensureOocTurn,
+  advanceOocTurn     as _advanceOocTurn,
   clearOocInitiative as _clearOocInitiative,
 } from "./crawl-state-core.mjs";
 
 /**
  * CrawlState — single source of truth for the strip's mode.
  *
- * Persists `{_v, mode, crawlTurn, oocInitiative, members, priorMode}` to a
- * world setting — the world setting IS the authoritative state; the module
- * socket only ever carries an empty "something changed, re-read" nudge
- * (never a payload) so other clients re-render. State shape/normalization/
- * reducer logic lives in the pure crawl-state-core.mjs; this module is the
- * Foundry-coupled I/O wrapper (persistence, socket, GM gating, Hooks).
+ * Persists `{_v, mode, crawlTurn, oocInitiative, oocTurn, members,
+ * priorMode}` to a world setting — the world setting IS the authoritative
+ * state; the module socket only ever carries an empty "something changed,
+ * re-read" nudge (never a payload) so other clients re-render. State
+ * shape/normalization/reducer logic lives in the pure crawl-state-core.mjs;
+ * this module is the Foundry-coupled I/O wrapper (persistence, socket, GM
+ * gating, Hooks).
  *
  * Forked pattern from vagabond-crawler/scripts/crawl-strip/crawl-state.mjs.
  */
@@ -54,6 +57,7 @@ export const CrawlState = {
   get mode()           { return this._state.mode; },
   get crawlTurn()      { return this._state.crawlTurn; },
   get oocInitiative()  { return this._state.oocInitiative ?? {}; },
+  get oocTurn()        { return this._state.oocTurn ?? null; },  // actor id of the current OoC turn-holder
   get members()        { return this._state.members ?? []; },   // actor IDs added to the crawl (world-scoped)
   get isActive()       { return this._state.mode !== "off"; },
 
@@ -286,6 +290,40 @@ export const CrawlState = {
     if (!game.user.isGM) return;
     const { state } = _setOocInitiative(this._state, actorId, entry);
     await this._commit(state);
+  },
+
+  /**
+   * Pin the out-of-combat turn to the top of the order when it is unset.
+   * Called once at the end of a roll-all batch (rolls land one chat message
+   * at a time, so the first roll can start the turn on a non-top roller).
+   */
+  async ensureOocTurn() {
+    if (!game.user.isGM) return;
+    const { state, changed } = _ensureOocTurn(this._state);
+    if (!changed) return;
+    await this._commit(state);
+  },
+
+  /**
+   * Advance the out-of-combat turn to the next member in the rolled order
+   * (wrapping). GM-gated: players reach this through the authenticated relay
+   * (CrawlStrip.handleOocAdvanceQuery), which re-verifies ownership of the
+   * CURRENT holder on the GM side first.
+   *
+   * When the advance completes a full cycle (the last member's turn ends and
+   * the order wraps — or a single-member order cycles), the crawl clock
+   * advances one ROUND as part of the same GM-side action: nextCrawlTurn
+   * captures fresh movement anchors and fires the wandering-monster check
+   * (the Shadowdark behaviour the user asked for). One wrap = one round =
+   * one check: the caller holds the "ooc" advance lock for the whole call,
+   * so a racing second advance (relayed player or GM-local) is refused
+   * mid-flight and cannot double-fire.
+   */
+  async advanceOocTurn() {
+    if (!game.user.isGM) return;
+    const { state, changed, wrapped } = _advanceOocTurn(this._state);
+    if (changed) await this._commit(state);
+    if (wrapped) await this.nextCrawlTurn();
   },
 
   async clearOocInitiative() {

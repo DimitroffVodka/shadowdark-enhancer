@@ -29,7 +29,7 @@ Tools you use while a session is running.
 
 | Page | What it covers |
 |---|---|
-| [Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md) | Party HP / movement / Luck at a glance, marching order, crawl turns, the combat HUD |
+| [Crawl Strip & Crawl Bar](Crawl-Strip-and-Crawl-Bar.md) | Party HP / movement / Luck at a glance, marching order, crawl rounds, the combat HUD |
 | [Movement Budgets](Movement-Budgets.md) | Per-turn movement allowances, over-budget enforcement, rollback to turn start |
 | [Random Encounters](Random-Encounters.md) | The `1d6` encounter check, the Encounter Roller, placing the result on the map |
 | [Loot & Treasure](Loot-and-Treasure.md) | Hoard generation, claimable chat cards, opt-in loot drops on combat end, coin piles |
