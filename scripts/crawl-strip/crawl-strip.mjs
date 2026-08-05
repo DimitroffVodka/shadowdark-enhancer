@@ -50,6 +50,28 @@ export const CRAWL_TURN_QUERY = `${MODULE_ID}.combatNextTurn`;
 export const OOC_TURN_QUERY = `${MODULE_ID}.oocNextTurn`;
 
 /**
+ * The card highlight state for one strip member — combat and the
+ * out-of-combat order speak ONE visual idiom (issue #14 part 2): the current
+ * turn-holder is the "active" card (`sde-strip-active` + the
+ * `sde-strip-is-turn` accent) and every other card is dimmed
+ * (`sde-strip-dim`), exactly the contrast users already know from combat.
+ * Out of combat with NO active order, every card stays active as it always
+ * has — no phase split, no accent.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.inCombat        The strip is rendering combat mode.
+ * @param {boolean} facts.isCurrent       This card is the current combatant.
+ * @param {boolean} facts.oocOrderActive  An OoC order is in effect (crawl mode + complete order + a holder exists).
+ * @param {boolean} facts.isOocHolder     This card is the current OoC turn-holder.
+ * @returns {{isActivePhase: boolean, isTurn: boolean}}
+ */
+export function cardTurnState({ inCombat, isCurrent, oocOrderActive, isOocHolder } = {}) {
+  if (inCombat) return { isActivePhase: isCurrent, isTurn: isCurrent };
+  if (oocOrderActive) return { isActivePhase: isOocHolder, isTurn: isOocHolder };
+  return { isActivePhase: true, isTurn: false };
+}
+
+/**
  * In-flight turn-advance locks on the GM client, keyed
  * `${combat.id}:${combat.round}:${combat.turn}`.
  *
@@ -509,6 +531,13 @@ export const CrawlStrip = {
 
     const inCombat   = state.mode === "combat";
 
+    // An out-of-combat order is "in effect" only in crawl mode, once EVERY
+    // member has rolled AND someone holds the turn (the lock fails open on a
+    // missing holder, and so does the presentation — no holder means no turn
+    // to show). Shared by the card highlight idiom and the badge below, so
+    // the two cannot disagree about whether an order is active.
+    const oocOrderActive = !inCombat && oocOrderComplete(state) && !!state.oocTurn;
+
     const combatantMap = new Map(
       (game.combat?.combatants ?? []).map(c => [c.tokenId, c])
     );
@@ -548,13 +577,10 @@ export const CrawlStrip = {
 
       // Combat current-turn detection (no `combatantId` for crawl members)
       const isCurrent  = !!m.combatantId && game.combat?.combatant?.id === m.combatantId;
-      // Out-of-combat: the current OoC turn-holder gets the same highlight the
-      // combat tracker gives its current combatant — the pointer is otherwise
-      // invisible. Only player cards hold the OoC turn (the order is over
-      // crawl members).
+      // Out-of-combat: the current OoC turn-holder. Only player cards hold
+      // the OoC turn (the order is over crawl members).
       const isOocHolder = !inCombat && m.type === "player" && !!m.actorId
         && CrawlState.oocTurn === m.actorId;
-      const isTurn = isCurrent || isOocHolder;
       const combatant  = m.combatantId
         ? game.combat?.combatants.get(m.combatantId)
         : (m.tokenId ? combatantMap.get(m.tokenId) : null);
@@ -570,10 +596,16 @@ export const CrawlStrip = {
       const isHidden        = combatantHidden || tokenHidden;
       if (isHidden && !game.user.isGM) return "";
 
-      // Active phase highlight:
-      //   - in combat: the current combatant is "active"; everyone else dim
-      //   - in crawl:  all heroes are "active" (no phase split)
-      const isActivePhase = inCombat ? isCurrent : true;
+      // Active phase highlight — combat and the OoC order speak ONE visual
+      // idiom (cardTurnState): the current turn-holder is the active card,
+      // everyone else is dim, plus the is-turn accent. With no active order
+      // out of combat, every card stays active exactly as before.
+      const { isActivePhase, isTurn } = cardTurnState({
+        inCombat,
+        isCurrent,
+        oocOrderActive,
+        isOocHolder,
+      });
 
       const displayName = esc(m.name);
 
@@ -646,7 +678,7 @@ export const CrawlStrip = {
 
       const cardHTML = `
         <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}"
-             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${isOocHolder ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
+             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${!inCombat && isTurn ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
           <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
           ${isHidden ? `<div class="sde-strip-hidden-icon" title="Hidden from players">${ICONS.eyeSlash}</div>` : ""}
           <div class="sde-strip-overlay">
@@ -712,18 +744,17 @@ export const CrawlStrip = {
     // which commits + broadcasts state and captures fresh movement anchors.
     //
     // Out-of-combat turn order (issue #14 part 2): the order is in effect
-    // only in crawl mode AND once EVERY crawl member has rolled — an
-    // incomplete order is not an order, so the advance button and holder
-    // highlight appear exactly when the movement lock engages (and no dead
-    // buttons exist for a partial order or during combat). A player only
-    // ever sees the advance when the CURRENT holder is an actor they own;
-    // the GM re-verifies that ownership on the far side of the relay
-    // (handleOocAdvanceQuery).
-    const oocOrderActive = state.mode === "crawl" && oocOrderComplete(state);
-    const oocHolderId = oocOrderActive ? (state.oocTurn ?? null) : null;
+    // only in crawl mode, once EVERY crawl member has rolled AND someone
+    // holds the turn — an incomplete order is not an order, so the advance
+    // button appears exactly when the movement lock engages (and no dead
+    // buttons exist for a partial order, a holderless order, or during
+    // combat). A player only ever sees the advance when the CURRENT holder
+    // is an actor they own; the GM re-verifies that ownership on the far
+    // side of the relay (handleOocAdvanceQuery).
+    const oocHolderId = oocOrderActive ? state.oocTurn : null;
     const playerMayAdvance = !!oocHolderId && !!game.actors.get(oocHolderId)?.isOwner;
     const oocAdvanceBtn = (game.user.isGM || playerMayAdvance)
-      ? `<button class="sde-strip-cbtn" data-action="nextOocTurn" title="${game.i18n.localize("SDE.crawlStrip.nextOocTurn")}"${this._turnAdvanceInFlight ? " disabled" : ""}>${ICONS.nextRound}</button>`
+      ? `<button class="sde-strip-cbtn" data-action="nextOocTurn" title="${game.i18n.localize("SDE.crawlStrip.nextOocTurn")}"${this._turnAdvanceInFlight ? " disabled" : ""}>${ICONS.nextOocTurn}</button>`
       : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">

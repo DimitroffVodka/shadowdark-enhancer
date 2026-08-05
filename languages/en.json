@@ -25,7 +25,7 @@
   "SDE.crawlStrip.turnAdvanceRoundBoundary": "The GM advances the next round.",
   "SDE.crawlStrip.turnAdvanceInProgress": "A turn advance is already in progress.",
   "SDE.crawlStrip.oocTurnAdvanceNoOrder": "No initiative order is rolled yet.",
-  "SDE.crawlStrip.nextOocTurn": "Next Turn (out of combat)",
+  "SDE.crawlStrip.nextOocTurn": "Next player's turn",
   "SDE.crawlStrip.currentTurn": "Current turn",
   "SDE.crawlStrip.unknownAction": "Unknown action.",
   "SDE.crawlStrip.unknownCombatAction": "Unknown combat action.",

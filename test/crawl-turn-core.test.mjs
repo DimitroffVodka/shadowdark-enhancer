@@ -258,7 +258,7 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     settings: { get: () => null, set: async () => {} },
     socket: { emit: () => {} },
   };
-  const { CrawlStrip } = await import("../scripts/crawl-strip/crawl-strip.mjs");
+  const { CrawlStrip, cardTurnState } = await import("../scripts/crawl-strip/crawl-strip.mjs");
   const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
   // Reset the shared CrawlState singleton per test so OOC handler tests do
@@ -271,6 +271,7 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     oocHandle: CrawlStrip.handleOocAdvanceQuery,
     gmAdvance: (c) => CrawlStrip._gmAdvanceTurn(c),
     CrawlState,
+    cardTurnState,
     advanced: advanced ?? [],
   };
 }
@@ -682,4 +683,31 @@ test("OOC in-flight lock: a second advance refuses while the first awaits the wo
   assert.match(second.error, /turnAdvanceInProgress/);
   await first;
   assert.equal(CrawlState.oocTurn, "pc2", "exactly one advance landed — not a double-advance back to pc1");
+});
+
+// ─── Card turn-state classes: ONE visual idiom for combat and the OoC order ─
+
+test("cardTurnState: in combat, only the current combatant is active+turn", async () => {
+  const { cardTurnState: cts } = await gmClientHarness({});
+  assert.deepEqual(cts({ inCombat: true, isCurrent: true, oocOrderActive: false, isOocHolder: false }),
+    { isActivePhase: true, isTurn: true }, "current combatant: active + is-turn");
+  assert.deepEqual(cts({ inCombat: true, isCurrent: false, oocOrderActive: true, isOocHolder: true }),
+    { isActivePhase: false, isTurn: false }, "non-current combatant: dim, no accent — even if it holds the OoC turn");
+});
+
+test("cardTurnState: with an active OoC order the holder is active+turn and non-holders are dim", async () => {
+  const { cardTurnState: cts } = await gmClientHarness({});
+  assert.deepEqual(cts({ inCombat: false, isCurrent: false, oocOrderActive: true, isOocHolder: true }),
+    { isActivePhase: true, isTurn: true }, "the holder speaks the combat active-card language");
+  assert.deepEqual(cts({ inCombat: false, isCurrent: false, oocOrderActive: true, isOocHolder: false }),
+    { isActivePhase: false, isTurn: false }, "every non-holder is dimmed, exactly like combat's waiting cards");
+});
+
+test("cardTurnState: with no active order every card stays active — nothing changes", async () => {
+  const { cardTurnState: cts } = await gmClientHarness({});
+  assert.deepEqual(cts({ inCombat: false, isCurrent: false, oocOrderActive: false, isOocHolder: false }),
+    { isActivePhase: true, isTurn: false }, "ordinary crawl: all active, no accent");
+  assert.deepEqual(cts({ inCombat: false, isCurrent: false, oocOrderActive: false, isOocHolder: true }),
+    { isActivePhase: true, isTurn: false }, "a stray pointer with no active order changes nothing");
+  assert.deepEqual(cts(), { isActivePhase: true, isTurn: false }, "missing facts default to no order");
 });
