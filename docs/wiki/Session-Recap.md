@@ -38,7 +38,7 @@ Saved sessions go to a history you can browse later.
 | **Merchant purchases and sales** | [Merchant Shop](Merchant-Shop.md) |
 | **Downtime attempts** | [Downtime](Downtime.md) |
 | **Carousing** | Shadowdark Extras' carousing overlay, if you run it |
-| **Encounter checks** | Roll, threshold, hit/miss, and the crawl turn it happened on |
+| **Encounter checks** | Roll, threshold, hit/miss, and the crawl round it happened on |
 | **Combats** | Start, end, and participants |
 | **Per-PC roll statistics** | Every roll each character made |
 | **Damage dealt and kills** | Combat tracking |
@@ -177,7 +177,7 @@ to a carouse whose rolls were never seen — one from before the session started
 for instance.
 
 **Encounter checks aren't showing a turn number.**
-The crawl turn is only stamped when the check happens in crawl mode. Checks made
+The crawl round is only stamped when the check happens in crawl mode. Checks made
 during combat are recorded without one.
 
 ---

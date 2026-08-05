@@ -25,7 +25,7 @@ export const EncounterCheck = {
     await this._postToChat(roll, threshold, hit);
 
     // Record the check in the session recap (self-guards on an active session).
-    const clockLabel = CrawlState.mode === "crawl" ? `Turn ${CrawlState.crawlTurn}` : null;
+    const clockLabel = CrawlState.mode === "crawl" ? `Round ${CrawlState.crawlTurn}` : null;
     SessionRecap.logEncounterCheck({ roll: roll.total, threshold, hit, clockLabel });
 
     if (hit) {

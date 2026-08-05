@@ -14,6 +14,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
+import { STATE_VERSION } from "../scripts/crawl-strip/crawl-state-core.mjs";
 
 // movement-tracker.mjs (imported transitively by crawl-state.mjs) declares
 // `class SDETokenRuler extends foundry.canvas.placeables.tokens.TokenRuler`
@@ -355,9 +356,9 @@ test("init(): a malformed-but-current-version (v1) setting is repaired and persi
   } finally { env.restore(); }
 });
 
-test("init(): an ALREADY-normalized v1 setting is not rewritten (no-op, no loop)", async () => {
+test("init(): an ALREADY-normalized v2 setting is not rewritten (no-op, no loop)", async () => {
   const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
-  const clean = { _v: 1, mode: "crawl", crawlTurn: 3, oocInitiative: {}, members: ["a"], priorMode: "off" };
+  const clean = { _v: 2, mode: "crawl", crawlTurn: 3, oocInitiative: {}, oocTurn: null, members: ["a"], priorMode: "off" };
   const env = setup({ users: [GM_A], activeGMId: GM_A.id, crawlState: clean });
   try {
     env.game.user = GM_A;
@@ -406,8 +407,9 @@ test("init(): a legacy (missing _v) setting is upgraded and persisted, priorMode
 
     assert.equal(env.settingsSetCalls.length, 1);
     const persisted = env.settingsStore[SETTING_KEY];
-    assert.equal(persisted._v, 1);
+    assert.equal(persisted._v, STATE_VERSION);
     assert.deepEqual(persisted.members, []);
     assert.equal(persisted.priorMode, "off");
+    assert.equal(persisted.oocTurn, null);
   } finally { env.restore(); }
 });

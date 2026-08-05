@@ -62,7 +62,7 @@ An unrecognised or missing value also falls back to the combat default.
 
 | Event | Effect |
 |---|---|
-| **Next Turn** on the crawl bar | Every crawl member's budget refills |
+| **Next Round** on the crawl bar | Every crawl member's budget refills |
 | **Combat round or turn change** | Each combatant gets a fresh budget |
 | **Rollback** | The token's budget is restored along with its position |
 
@@ -126,7 +126,7 @@ double rollback or a double refund.
 **"No turn-start position recorded for this token."**
 The token's turn never started while the crawl was running. For example it was
 dropped onto the scene mid-turn, or the crawl was started after combat began.
-There is nothing to roll back to. It will have a position from the next turn on.
+There is nothing to roll back to. It will have a position from the next round on.
 
 **Movement isn't being deducted.**
 Check that the crawl is actually running (the bar shows **End**, not **Start**),

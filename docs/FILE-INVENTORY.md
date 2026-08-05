@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-730 tracked files · ~98,200 lines of code/markup across scripts+templates+styles+test.
+730 tracked files · ~99,300 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -57,7 +57,7 @@
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
 | `settings.mjs` | 387 | All `game.settings.register` calls + migration-safe defaults. |
-| `icons.mjs` | 80 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
+| `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
@@ -70,17 +70,17 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1325 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 379 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
-| `crawl-state-core.mjs` | 138 | Pure reducer/normalizer behind crawl-state. Node-testable. |
+| `crawl-strip.mjs` | 1475 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-state.mjs` | 417 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-state-core.mjs` | 281 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
-| `initiative-manager.mjs` | 128 | Combat/initiative state machine glue for the strip. |
+| `initiative-manager.mjs` | 133 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
-| `movement-tracker.mjs` | 790 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
+| `movement-tracker.mjs` | 806 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 630 | Per-combatant hover action HUD. |
-| `crawl-turn-core.mjs` | 100 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
-| `movement-lock-core.mjs` | 43 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — blocks only a non-current combatant of a started combat, matched by (sceneId, tokenId). GMs, non-combatants, non-positional updates, and everything out of combat pass through. |
+| `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` / `canAdvanceOocTurn()` (owner of the current turn-holder, non-GM, order active) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
+| `movement-lock-core.mjs` | 78 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — in combat, only a non-current combatant is blocked; out of combat, only once every crawl member has rolled and a turn-holder exists. GMs and non-members are never blocked. |
 
 ### 3.4 `scripts/crawl-bar/`
 

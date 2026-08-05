@@ -99,6 +99,11 @@ export const InitiativeManager = {
     for (const actorId of candidates) {
       await this.rollOocForActor(actorId);
     }
+    // setOocInitiative pins the turn to the true top the moment the last
+    // member's roll completes the order, so ensureOocTurn is normally a
+    // no-op here — it stays as a defensive guard for any path that reaches a
+    // complete order with a null pointer (e.g. a future state shape).
+    await CrawlState.ensureOocTurn();
   },
 
   // ── Internal ──────────────────────────────────────────────────────────────
