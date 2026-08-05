@@ -64,7 +64,7 @@
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
 | `gm-relay.mjs` | 317 | The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept. |
-| `clipboard.mjs` | 46 | **TODO: describe** |
+| `clipboard.mjs` | 46 | `copyText()` — clipboard write that survives insecure origins, where `navigator.clipboard` is undefined; falls back to a hidden textarea + `execCommand`, restores focus, and never throws. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
