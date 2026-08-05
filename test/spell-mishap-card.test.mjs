@@ -53,6 +53,7 @@ const WIZARD_TIER_1_2 = "Wizard Mishap Tier 1-2";
  */
 function harness({ drawResults = [], roll = null, rollMode = "roll", tableName = WIZARD_TIER_1_2, innerTable = null } = {}) {
   const cards = [];
+  const enriched = [];
   const draws = [];
 
   const tableDoc = {
@@ -77,6 +78,14 @@ function harness({ drawResults = [], roll = null, rollMode = "roll", tableName =
       }
       return { roll, results };
     },
+  };
+
+  // Core enriches result text rather than escaping it; the identity stub keeps
+  // the input verbatim so the assertions below show exactly what reaches chat.
+  globalThis.foundry = {
+    applications: { ux: { TextEditor: { implementation: {
+      async enrichHTML(html) { enriched.push(html); return html; },
+    } } } },
   };
 
   globalThis.game = {
@@ -110,7 +119,7 @@ function harness({ drawResults = [], roll = null, rollMode = "roll", tableName =
     },
   };
 
-  return { cards, draws };
+  return { cards, draws, enriched };
 }
 
 const VELLA = { id: "a1", name: "Vella" };
@@ -127,7 +136,7 @@ test("draws silently and posts exactly one card with flavor, result, roll and sp
 
   const content = cards[0].content;
   assert.ok(content.includes("<p>Vella rolled a mishap on a Tier 1 spell — Wizard Mishap Tier 1-2:</p>"), content);
-  assert.ok(content.includes("<p>The spell backfires.</p>"), content);
+  assert.ok(content.includes('<div class="sde-mishap-result">The spell backfires.</div>'), content);
   assert.equal(cards[0].speaker.actor, "a1");
   assert.equal(cards[0].speaker.alias, "Vella");
   assert.deepEqual(cards[0].rolls, [roll], "draw roll attached so Dice So Nice animates");
@@ -143,7 +152,7 @@ test("no-actor path still posts exactly one card carrying the drawn result", asy
   assert.equal(draws.length, 1);
   assert.equal(cards.length, 1, "no-actor path must not post zero cards");
   assert.ok(cards[0].content.includes("<p>A mishap occurred on a Tier 1 spell — Wizard Mishap Tier 1-2:</p>"), cards[0].content);
-  assert.ok(cards[0].content.includes("<p>The staff shatters.</p>"), "drawn result must survive the no-actor path");
+  assert.ok(cards[0].content.includes('<div class="sde-mishap-result">The staff shatters.</div>'), "drawn result must survive the no-actor path");
   assert.equal(cards[0].speaker, undefined, "no actor → no actor speaker");
   assert.deepEqual(cards[0].rolls, [roll], "roll still attached without an actor");
 });
@@ -204,26 +213,20 @@ test("nested table result folds into the single card", async () => {
   // verification, not a unit assertion.
   assert.equal(inner.rolls, 1, "fixture resolves the table link exactly once");
   assert.equal(cards.length, 1, "exactly one card even with a nested result");
-  assert.ok(cards[0].content.includes("<p>Outer result</p>"), cards[0].content);
-  assert.ok(cards[0].content.includes("<p>Inner mishap text</p>"), "inner result folded into the single card");
+  assert.ok(cards[0].content.includes('<div class="sde-mishap-result">Outer result</div>'), cards[0].content);
+  assert.ok(cards[0].content.includes('<div class="sde-mishap-result">Inner mishap text</div>'), "inner result folded into the single card");
   assert.deepEqual(cards[0].rolls, [roll]);
 });
 
-test("interpolated values are escaped (actor name, table name, drawn text)", async () => {
-  const { cards } = harness({
-    tableName: XSS,
-    drawResults: [{ name: XSS, description: "" }],
-  });
+test("interpolated names are escaped (actor name, table name)", async () => {
+  const { cards } = harness({ tableName: XSS, drawResults: [] });
 
   await rollMishapTable(1, { id: "a2", name: XSS }, "wizard");
 
-  const content = cards[0].content;
-  // Same two-clause check as test/html-safety.test.mjs: no literal tag, and no
-  // onerror handler riding on a real tag (escaped text may still contain the
-  // inert string "onerror=").
-  assert.ok(!/<img|<script/i.test(content), `raw tag survived: ${content}`);
-  assert.ok(!/onerror\s*=[^&]/i.test(content) || !/<[a-z]+[^>]*onerror/i.test(content), `handler survived: ${content}`);
-  assert.ok(content.includes("&lt;img src=x onerror=alert(1)&gt;"), content);
+  // The flavor line is the part built from untrusted input, so it stays escaped.
+  const flavor = cards[0].content.split("</p>")[0];
+  assert.ok(!/<img|<script/i.test(flavor), `raw tag survived: ${flavor}`);
+  assert.ok(flavor.includes("&lt;img src=x onerror=alert(1)&gt;"), flavor);
   assert.equal(cards.length, 1);
 });
 
@@ -239,8 +242,8 @@ test("reads display text from name || description, never .text", async () => {
   await rollMishapTable(1, VELLA, "wizard");
 
   const content = cards[0].content;
-  assert.ok(content.includes("<p>Named result</p>"), content);
-  assert.ok(content.includes("<p>Description-only result</p>"), content);
+  assert.ok(content.includes('<div class="sde-mishap-result">Named result</div>'), content);
+  assert.ok(content.includes('<div class="sde-mishap-result">Description-only result</div>'), content);
   assert.ok(!content.includes("TEXT MUST NOT WIN"), `.text must never be read: ${content}`);
   assert.equal(cards.length, 1);
 });
@@ -275,4 +278,44 @@ test("i18n keys exist in en.json with the expected placeholders", () => {
   assert.match(en["SDE.mishap.rolled"], /\{name\}.*\{tier\}.*\{tableName\}/);
   assert.match(en["SDE.mishap.rolledNoActor"], /\{tier\}.*\{tableName\}/);
   assert.ok(!en["SDE.mishap.rolledNoActor"].includes("{name}"), "no-actor flavor must not require a name");
+});
+
+/* --------------------------------------------------------------------- *
+ * Result markup must reach chat intact.
+ *
+ * The system's own mishap tables put real HTML in `description` with an empty
+ * `name` — `<b>Explosion!</b> You take [[/r 1d8]] damage`. Escaping it printed
+ * `<b>Explosion!</b>` at the player verbatim (reported 2026-08-05). Core's own
+ * table card enriches instead (TableResult#getHTML → enrichHTML), so bold
+ * survives and [[/r ...]] stays a clickable inline roll.
+ * --------------------------------------------------------------------- */
+
+const SYSTEM_SHAPED = [
+  { name: "", description: "<p><strong>Devastation!</strong> Roll twice and combine both effects.</p>" },
+  { name: "", description: "<b>Explosion!</b> You take [[/r 1d8]] damage" },
+];
+
+test("result markup is enriched, not escaped — bold and inline rolls survive", async () => {
+  const { cards, enriched } = harness({ drawResults: SYSTEM_SHAPED });
+
+  await rollMishapTable(1, VELLA, "wizard");
+
+  const content = cards[0].content;
+  assert.ok(content.includes("<strong>Devastation!</strong>"), `bold was mangled: ${content}`);
+  assert.ok(content.includes("<b>Explosion!</b>"), `bold was mangled: ${content}`);
+  assert.ok(content.includes("[[/r 1d8]]"), `inline roll was mangled: ${content}`);
+  assert.ok(!content.includes("&lt;b&gt;"), `tags were escaped: ${content}`);
+  // Every result went through the enricher, which is what makes [[/r]] live.
+  assert.equal(enriched.length, 2, "each drawn result is enriched exactly once");
+});
+
+test("an already-<p>-wrapped description is not nested inside another <p>", async () => {
+  const { cards } = harness({ drawResults: [SYSTEM_SHAPED[0]] });
+
+  await rollMishapTable(1, VELLA, "wizard");
+
+  // <div> may legally contain <p>; <p> may not. Nesting them silently splits
+  // the paragraph in the browser and breaks the card's spacing.
+  assert.ok(!/<p>\s*<p>/.test(cards[0].content), `nested paragraphs: ${cards[0].content}`);
+  assert.ok(cards[0].content.includes('<div class="sde-mishap-result"><p>'), cards[0].content);
 });

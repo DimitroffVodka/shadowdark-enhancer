@@ -193,22 +193,35 @@ export async function rollMishapTable(tier, actor, classSlug) {
   // A TableResult's display text lives on `name`/`description`. Never read
   // `.text` (or `._source.text`) here — the removed-in-v15 deprecation shim
   // fires on this Foundry version.
-  const drawn = (draw.results ?? [])
-    .map(r => r.name || r.description)
-    .filter(Boolean);
+  //
+  // Result text is CONTENT, and it is NOT plain: the system's own mishap
+  // tables store real markup in `description` with an empty `name` — e.g.
+  // `<b>Explosion!</b> You take [[/r 1d8]] damage`. Escaping it printed the
+  // tags at the player verbatim (`<b>Explosion!</b>`). Enrich it the way
+  // core's own table card does (TableResult#getHTML → enrichHTML) so bold
+  // survives and [[/r ...]] stays a real inline roll button. `secrets: false`
+  // because a chat card is read by everyone, not just the result's owner.
+  //
+  // This is not a hole: the values that carry untrusted input are the
+  // interpolated NAMES below, and those are still escaped. Table content is
+  // authored by the GM or shipped by the system — exactly what core renders
+  // unescaped in its own table card.
+  const drawn = [];
+  for (const r of draw.results ?? []) {
+    const raw = r.name || r.description;
+    if (!raw) continue;
+    drawn.push(await foundry.applications.ux.TextEditor.implementation
+      .enrichHTML(String(raw), { relativeTo: r, secrets: false }));
+  }
 
-  // Escape every interpolated value: the flavor line puts actor/table names
-  // into the card's HTML, and the drawn text is table content. Note: esc()
-  // flattens inline-roll syntax ([[/r 1d6]]) in result text — unreachable
-  // for the system and suite mishap tables (plain text only), but user world
-  // tables could hit it; deliberate tradeoff, consistent with the prayer roll.
+  // The flavor line still interpolates actor/table names into the card's HTML.
   const flavor = game.i18n.format(actor ? "SDE.mishap.rolled" : "SDE.mishap.rolledNoActor", {
     name: esc(actor?.name),
     tier: esc(tier),
     tableName: esc(tableDoc.name),
   });
-  const content = [flavor, ...drawn.map(text => esc(text))]
-    .map(part => `<p>${part}</p>`).join("");
+  const content = [`<p>${flavor}</p>`,
+    ...drawn.map(html => `<div class="sde-mishap-result">${html}</div>`)].join("");
 
   const messageData = { content };
   // Set the speaker from the actor when there is one; otherwise the message
