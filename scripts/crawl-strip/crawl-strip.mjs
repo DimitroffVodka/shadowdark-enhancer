@@ -133,6 +133,11 @@ export const CrawlStrip = {
     on("deleteToken",   queue);
     on("canvasReady",   queue);
     on("updateItem",    queueIfShown);
+    // Gaining or spending an item changes which action-menu tabs a card has —
+    // casting a scroll deletes it, learning a spell creates one. Without these
+    // the tab strip keeps offering a tab whose contents are gone.
+    on("createItem",    queueIfShown);
+    on("deleteItem",    queueIfShown);
     on("createActiveEffect", queueIfShown);
     on("deleteActiveEffect", queueIfShown);
     on("updateActiveEffect", queueIfShown);
