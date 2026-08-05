@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { buildFieldValues, _internals } from "../scripts/pdf-export/pdf-sheet-export.mjs";
+import { buildFieldValues, exportActorToPdf, _internals } from "../scripts/pdf-export/pdf-sheet-export.mjs";
 
 const MANIFEST = JSON.parse(fs.readFileSync(
   fileURLToPath(new URL("../assets/pdf/shadowdark-character-sheet-fields.json", import.meta.url)), "utf8"));
@@ -309,4 +309,114 @@ test("template field-contract: every produced id exists in the manifest; all 16 
     for (let r = 1; r <= 16; r++)
       assert.ok(text[`spell_${r}_notes`] && text[`spell_${r}_notes`].length > 0, `spell_${r}_notes populated`);
   } finally { restore(); }
+});
+
+/* --------------------------------------------------------------------- *
+ * Insecure-origin fallback download (issue #17).
+ *
+ * On an insecure HTTP origin showSaveFilePicker is unavailable, so
+ * exportActorToPdf ends on the vendored FileSaver.js `saveAs(blob, name)`
+ * call (module.json `scripts`). These tests pin the contract:
+ *   - saveAs receives an application/pdf blob and the clean
+ *     `<Name> - Shadowdark.pdf` filename, and
+ *   - tier 1 still gets the clean `suggestedName` and does not download.
+ * --------------------------------------------------------------------- */
+
+/** Stub everything the export path touches and capture the saveAs call,
+ * picker options, and console warnings. `saveFilePicker: true` makes the
+ * native picker available (secure context); otherwise the test runs the
+ * insecure-origin FileSaver path. */
+function installExportHarness({ saveFilePicker = false } = {}) {
+  const templateBytes = fs.readFileSync(fileURLToPath(
+    new URL("../assets/pdf/shadowdark-character-sheet.pdf", import.meta.url)));
+  const pdfLibUrl = new URL(
+    "../scripts/pdf-export/lib/pdf-lib.esm.min.js", import.meta.url).href;
+  const restoreActorGlobals = installGlobals(makeActor().uuidMap);
+
+  const capture = {
+    saveCalls: [],       // { blob, filename } passed to FileSaver's saveAs
+    pickerOptions: null, // showSaveFilePicker options, when exercised
+    warns: [],           // console.warn payloads while the harness is active
+  };
+
+  const prev = {
+    foundry: globalThis.foundry,
+    fetch: globalThis.fetch,
+    window: globalThis.window,
+    ui: globalThis.ui,
+    game: globalThis.game,
+    saveAs: globalThis.saveAs,
+    consoleWarn: console.warn,
+  };
+
+  globalThis.foundry = { utils: { getRoute: (path) => (
+    path.endsWith("pdf-lib.esm.min.js") ? pdfLibUrl : "sde-template://character-sheet"
+  ) } };
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    arrayBuffer: async () => templateBytes.buffer.slice(
+      templateBytes.byteOffset,
+      templateBytes.byteOffset + templateBytes.byteLength,
+    ),
+  });
+  globalThis.window = {}; // insecure HTTP origin: no showSaveFilePicker
+  if (saveFilePicker) {
+    globalThis.window.showSaveFilePicker = async (options) => {
+      capture.pickerOptions = options;
+      return {
+        createWritable: async () => ({ write: async () => {}, close: async () => {} }),
+      };
+    };
+  }
+  globalThis.ui = { notifications: { info() {}, error(message) { throw new Error(message); } } };
+  globalThis.game = {
+    user: { id: "tester" },
+    i18n: {
+      localize: (k) => k,
+      format: (k, data) => String(k).replace(/\{(\w+)\}/g, (_, n) => data[n]),
+    },
+  };
+  console.warn = (...args) => { capture.warns.push(args.map(String).join(" ")); };
+  // FileSaver.js sets this global; the real implementation owns the blob
+  // lifecycle (its own 40 s revoke), so the tests only observe the call.
+  globalThis.saveAs = (blob, filename) => capture.saveCalls.push({ blob, filename });
+
+  return {
+    capture,
+    restore() {
+      restoreActorGlobals();
+      globalThis.foundry = prev.foundry;
+      globalThis.fetch = prev.fetch;
+      globalThis.window = prev.window;
+      globalThis.ui = prev.ui;
+      globalThis.game = prev.game;
+      globalThis.saveAs = prev.saveAs;
+      console.warn = prev.consoleWarn;
+    },
+  };
+}
+
+test("insecure-origin path hands saveAs an application/pdf blob and the clean filename", async () => {
+  const h = installExportHarness();
+  try {
+    await exportActorToPdf(makeActor()); // default actor name: Naugrim
+    assert.equal(h.capture.saveCalls.length, 1, "FileSaver saveAs called exactly once");
+    const { blob, filename } = h.capture.saveCalls[0];
+    assert.equal(blob.type, "application/pdf", "blob keeps the PDF mime type");
+    assert.ok(blob.size > 1000, "blob carries the generated PDF bytes");
+    assert.equal(filename, "Naugrim - Shadowdark.pdf",
+      "clean undated filename — the download attribute FileSaver sets internally");
+    assert.equal(h.capture.pickerOptions, null, "no save picker on the insecure-origin path");
+  } finally { h.restore(); }
+});
+
+test("tier 1 save picker keeps the clean, undated filename and does not download", async () => {
+  const h = installExportHarness({ saveFilePicker: true });
+  try {
+    await exportActorToPdf(makeActor());
+    assert.equal(h.capture.pickerOptions.suggestedName, "Naugrim - Shadowdark.pdf",
+      "native save dialog proposes the clean name");
+    assert.equal(h.capture.saveCalls.length, 0, "picker path returns without a FileSaver download");
+  } finally { h.restore(); }
 });

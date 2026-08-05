@@ -379,6 +379,7 @@
   "SDE.settings.renownOnLevelUp.hint": "If on, a player character gains a point of renown each time their level goes up. Reaching level 1 is excluded, since character creation writes it. Every other renown trigger stays a GM call through the Renown dialog.",
 
   "SDE.mishap.rolled": "{name} rolled a mishap on a Tier {tier} spell — {tableName}:",
+  "SDE.mishap.rolledNoActor": "A mishap occurred on a Tier {tier} spell — {tableName}:",
 
   "SDE.prayerRoll.title": "Pray to {deity}",
   "SDE.prayerRoll.rolled": "{name} prayed to {deity}:"
