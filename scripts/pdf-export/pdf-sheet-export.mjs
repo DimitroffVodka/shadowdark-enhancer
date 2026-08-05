@@ -374,6 +374,18 @@ export async function exportActorToPdf(actor) {
     }
 
     // Plain browser download (FileSaver.js): the insecure-origin path.
+    // `saveAs` is a bare global from the classic `scripts` entry in module.json,
+    // so it can be absent in ways this module can't see coming — a hand-made
+    // zip missing lib/, a CSP blocking the classic script, a future Foundry
+    // dropping non-module scripts. Without this guard the ReferenceError is
+    // caught below and reported as a generic "PDF export failed", which sends
+    // whoever debugs it looking at the PDF code instead of the missing file.
+    // No anchor fallback here on purpose: a hand-rolled anchor was tried and
+    // silently failed in production Firefox (see the note above the function).
+    if (typeof saveAs !== "function") {
+      throw new Error("FileSaver.js did not load — reinstall the module, or check "
+        + "the browser console for a blocked script (scripts/pdf-export/lib/FileSaver.min.js).");
+    }
     saveAs(new Blob([bytes], { type: "application/pdf" }), filename);
     ui.notifications?.info(`Downloaded ${filename}`);
   } catch (err) {
