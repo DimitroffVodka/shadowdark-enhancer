@@ -337,7 +337,7 @@ test("template field-contract: every produced id exists in the manifest; all 16 
  * active. By default FilePicker.upload is DENIED (returns false, exactly
  * what Foundry v14 does for a user without FILES_UPLOAD) so the blob tier
  * runs; pass `upload` to make the server tier succeed. */
-function installExportHarness({ upload = async () => false, exportFolder = null } = {}) {
+function installExportHarness({ upload = async () => false, exportFolder = null, saveFilePicker = false } = {}) {
   const templateBytes = fs.readFileSync(fileURLToPath(
     new URL("../assets/pdf/shadowdark-character-sheet.pdf", import.meta.url)));
   const pdfLibUrl = new URL(
@@ -354,6 +354,7 @@ function installExportHarness({ upload = async () => false, exportFolder = null 
     uploads: [],         // { source, dir, file } server-upload attempts
     createdDirs: [],     // FilePicker.createDirectory targets
     chatMessages: [],    // ChatMessage.create payloads
+    pickerOptions: null, // showSaveFilePicker options, when exercised
   };
 
   const prev = {
@@ -383,6 +384,14 @@ function installExportHarness({ upload = async () => false, exportFolder = null 
     ),
   });
   globalThis.window = {}; // insecure HTTP origin: no showSaveFilePicker
+  if (saveFilePicker) {
+    globalThis.window.showSaveFilePicker = async (options) => {
+      capture.pickerOptions = options;
+      return {
+        createWritable: async () => ({ write: async () => {}, close: async () => {} }),
+      };
+    };
+  }
   globalThis.window.addEventListener = (type, fn) => {
     (capture.listeners[type] ??= []).push(fn);
   };
@@ -545,14 +554,20 @@ test("anchor carries the correct download filename and stays in the DOM until re
  * that needs no secure context, so it works on plain-HTTP origins):
  *   - tier 2 runs when showSaveFilePicker is absent, and its success means
  *     NO blob URL is ever created,
- *   - the upload carries the correct filename into the configured folder,
+ *   - the upload carries a TIMESTAMPED filename (v14 cannot overwrite a
+ *     non-media file, so a stable name would fail on the second export)
+ *     into the configured folder,
  *   - when the upload is denied (FilePicker.upload returns false for a user
- *     without FILES_UPLOAD — verified v14 behaviour), tier 3 takes over.
+ *     without FILES_UPLOAD — verified v14 behaviour), tier 3 takes over,
+ *   - tiers 1 and 3 keep the clean undated `<Name> - Shadowdark.pdf`.
  * --------------------------------------------------------------------- */
+
+const STAMPED_NAME = /^Naugrim - \d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf$/;
 
 test("server-upload tier is used when showSaveFilePicker is absent, with a download card", async () => {
   const h = installExportHarness({
-    upload: async () => ({ path: "assets/shadowdark-enhancer/exports/Naugrim%20-%20Shadowdark.pdf" }),
+    // Echo the real uploaded name back as the served path, like Foundry does.
+    upload: async (_s, _d, file) => ({ path: `assets/shadowdark-enhancer/exports/${encodeURIComponent(file.name)}` }),
   });
   try {
     await exportActorToPdf(makeActor());
@@ -564,18 +579,18 @@ test("server-upload tier is used when showSaveFilePicker is absent, with a downl
     assert.equal(h.capture.chatMessages.length, 1, "save card posted");
     const card = h.capture.chatMessages[0];
     assert.match(card.content,
-      /href="assets\/shadowdark-enhancer\/exports\/Naugrim%20-%20Shadowdark\.pdf"/,
-      "card links the same-origin file");
-    assert.match(card.content, /download="Naugrim - Shadowdark\.pdf"/,
-      "link downloads with the right filename");
+      /href="assets\/shadowdark-enhancer\/exports\/Naugrim%20-%20\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf"/,
+      "card links the same-origin file (timestamped upload name)");
+    assert.match(card.content, /download="Naugrim - \d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf"/,
+      "link downloads with the timestamped filename");
     assert.deepEqual(card.whisper, ["tester"], "card whispered to the exporter");
   } finally { h.restore(); }
 });
 
-test("server upload receives the correct filename in the configured folder", async () => {
+test("server upload receives a timestamped filename in the configured folder", async () => {
   const h = installExportHarness({
     exportFolder: "assets/custom-exports",
-    upload: async () => ({ path: "assets/custom-exports/Naugrim%20-%20Shadowdark.pdf" }),
+    upload: async (_s, _d, file) => ({ path: `assets/custom-exports/${encodeURIComponent(file.name)}` }),
   });
   try {
     await exportActorToPdf(makeActor()); // default actor name: Naugrim
@@ -583,9 +598,50 @@ test("server upload receives the correct filename in the configured folder", asy
     const { source, dir, file } = h.capture.uploads[0];
     assert.equal(source, "data");
     assert.equal(dir, "assets/custom-exports", "folder comes from the world setting");
-    assert.equal(file.name, "Naugrim - Shadowdark.pdf");
+    assert.match(file.name, STAMPED_NAME, `upload name is timestamped, got "${file.name}"`);
     assert.equal(file.type, "application/pdf");
     assert.ok(file.size > 1000, "carries the generated PDF bytes");
+  } finally { h.restore(); }
+});
+
+test("tier 2 uploads are unique across two exports of the same actor", async () => {
+  const h = installExportHarness({
+    upload: async (_s, _d, file) => ({ path: `assets/shadowdark-enhancer/exports/${encodeURIComponent(file.name)}` }),
+  });
+  try {
+    await exportActorToPdf(makeActor());
+    await exportActorToPdf(makeActor());
+    assert.equal(h.capture.uploads.length, 2);
+    const names = h.capture.uploads.map((u) => u.file.name);
+    for (const n of names)
+      assert.match(n, STAMPED_NAME, `upload name is timestamped, got "${n}"`);
+    assert.notEqual(names[0], names[1],
+      "two exports of the same actor never collide on the server");
+  } finally { h.restore(); }
+});
+
+test("stampFilename: sortable, colon-free, millisecond precision, deterministic on the date", () => {
+  const { stampFilename } = _internals;
+  const d = new Date(2026, 7, 4, 14, 37, 12, 123); // 2026-08-04 14:37:12.123
+  assert.equal(stampFilename("Naugrim", d), "Naugrim - 2026-08-04_14-37-12-123.pdf");
+  // single-digit components are zero-padded
+  const early = new Date(2026, 0, 5, 9, 7, 3, 9);
+  assert.equal(stampFilename("Bazogo", early), "Bazogo - 2026-01-05_09-07-03-009.pdf");
+  // same date -> same name; 1 ms apart -> different (uniqueness, no wall clock)
+  assert.equal(stampFilename("Naugrim", d), stampFilename("Naugrim", new Date(d.getTime())));
+  assert.notEqual(stampFilename("Naugrim", d), stampFilename("Naugrim", new Date(d.getTime() + 1)));
+  assert.match(stampFilename("Naugrim", d), /^Naugrim - \d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf$/);
+  assert.doesNotMatch(stampFilename("Naugrim", d), /:/, "colon-free for Windows filenames");
+});
+
+test("tier 1 save picker keeps the clean, undated filename", async () => {
+  const h = installExportHarness({ saveFilePicker: true });
+  try {
+    await exportActorToPdf(makeActor());
+    assert.equal(h.capture.pickerOptions.suggestedName, "Naugrim - Shadowdark.pdf",
+      "native save dialog proposes the clean name, not a timestamped one");
+    assert.equal(h.capture.uploads.length, 0, "picker path returns without uploading");
+    assert.equal(h.capture.createdUrls.length, 0, "picker path returns without a blob");
   } finally { h.restore(); }
 });
 

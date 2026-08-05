@@ -345,15 +345,35 @@ export async function fillActorPdf(actor) {
 
 /* ------------------------------------------------------------------- save */
 
+const pad = (n, w = 2) => String(n).padStart(w, "0");
+
+/** Tier-2 upload filename: `<Actor Name> - 2026-08-04_14-37-12-123.pdf`.
+ *
+ * Server-side exports cannot overwrite — v14's Files.upload only permits
+ * overwriting media files, and a PDF is not media — so a stable name would
+ * fail on the second export of the same character. Stamping every upload
+ * (no clean-name-first attempt: that would make naming inconsistent and
+ * still accumulate) gives each export a unique, sortable, colon-free
+ * (Windows-safe) name with millisecond precision. The actor name leads so
+ * the folder sorts and browses sensibly. Date is injectable for tests;
+ * production calls it with no argument.
+ */
+function stampFilename(name, date = new Date()) {
+  const stamp = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    + `_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}-${pad(date.getMilliseconds(), 3)}`;
+  return `${name} - ${stamp}.pdf`;
+}
+
 /**
  * Tier 2 fallback: save the PDF into Foundry's own user-data folder via the
  * normal server upload endpoint. That is an ordinary HTTP POST — it needs no
  * secure context, so it works on the plain-HTTP LAN origins most Foundry
- * tables actually play on, and the filename is whatever we pass. Returns
- * true on success; false when the upload cannot happen (no FILES_UPLOAD
- * permission, an existing file with the same name, …) so the caller falls
- * through to the blob tier. FilePicker.upload does NOT throw on a denied
- * upload — it shows a notification (suppressed here) and returns false.
+ * tables actually play on, and the filename is whatever we pass (the caller
+ * passes a timestamped one — see stampFilename). Returns true on success;
+ * false when the upload cannot happen (no FILES_UPLOAD permission, …) so
+ * the caller falls through to the blob tier. FilePicker.upload does NOT
+ * throw on a denied upload — it shows a notification (suppressed here) and
+ * returns false.
  */
 async function uploadPdfToServer(bytes, filename) {
   try {
@@ -466,7 +486,10 @@ export async function exportActorToPdf(actor) {
 
     // Tier 2 — server upload (no secure context needed; requires
     // FILES_UPLOAD, which players may not have — then tier 3 takes over).
-    if (await uploadPdfToServer(bytes, filename)) return;
+    // Server exports cannot overwrite (PDFs are non-media in v14), so the
+    // name is timestamped for uniqueness — tiers 1 and 3 keep the clean name
+    // because the user picks the destination there and no collision exists.
+    if (await uploadPdfToServer(bytes, stampFilename(safe))) return;
 
     blobDownload();
   } catch (err) {
@@ -481,6 +504,7 @@ export async function exportActorToPdf(actor) {
 export const _internals = {
   htmlToText, spellSummary, itemSlotCount, isFreeCarry, gearLine,
   rangeLabel, durationLabel, fmtMod, tightenBonus, tightenFormula,
+  stampFilename,
 };
 
 /* --------------------------------------------------------------- register */

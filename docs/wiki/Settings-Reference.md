@@ -55,7 +55,7 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **PDF export folder** | `assets/shadowdark-enhancer/exports` | Where the PDF export fallback saves character sheets when the browser cannot show a native save dialog (Foundry over plain HTTP). Relative to the Foundry user data folder, outside the module folder. The saved file is also offered as a clickable download link in a whispered chat card. Players without the upload permission get a direct browser download instead. |
+| **PDF export folder** | `assets/shadowdark-enhancer/exports` | Where the PDF export fallback saves character sheets when the browser cannot show a native save dialog (Foundry over plain HTTP). Relative to the Foundry user data folder, outside the module folder. Server-side exports are timestamped and **accumulate here indefinitely** — the Foundry host must clear this folder periodically, since the module cannot delete files. The saved file is also offered as a clickable download link in a whispered chat card. Players without the upload permission get a direct browser download instead. |
 
 ### Encounters
 

@@ -354,10 +354,13 @@ export function registerSettings() {
 
   // Where the PDF export's server-upload fallback saves sheets when the
   // browser cannot show a native save dialog (plain-HTTP Foundry). Relative
-  // to the Foundry user data folder, outside the module dir. The exported
-  // file is also offered as a clickable download link in a whispered chat
-  // card. Players without FILES_UPLOAD skip this tier and get a direct
-  // browser download instead.
+  // to the Foundry user data folder, outside the module dir. Uploads are
+  // timestamped (v14 cannot overwrite a non-media file, so a stable name
+  // would fail on the second export) and therefore persist and accumulate —
+  // the host must clear the folder periodically; the module cannot delete
+  // files. The exported file is also offered as a clickable download link in
+  // a whispered chat card. Players without FILES_UPLOAD skip this tier and
+  // get a direct browser download instead.
   game.settings.register(MODULE_ID, "pdfExportFolder", {
     name: "SDE.settings.pdfExportFolder.name",
     hint: "SDE.settings.pdfExportFolder.hint",
