@@ -758,12 +758,12 @@ export const CrawlStrip = {
       : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
-           <div class="sde-strip-crawl-turn" title="Crawl Turn">${state.crawlTurn}</div>
-           <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="Next Turn">${ICONS.nextRound}</button>
+           <div class="sde-strip-crawl-turn" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
+           <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="${game.i18n.localize("SDE.crawlStrip.nextCrawlRound")}">${ICONS.nextRound}</button>
            ${oocAdvanceBtn}
          </div>`
       : `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
-           <div class="sde-strip-turn-num" title="Crawl Turn">${state.crawlTurn}</div>
+           <div class="sde-strip-turn-num" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
            ${oocAdvanceBtn}
          </div>`;
 

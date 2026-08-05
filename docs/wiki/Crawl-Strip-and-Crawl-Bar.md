@@ -42,8 +42,8 @@ The strip hides itself when there is nothing to show.
 
 | Control | Left-click | Right-click |
 |---|---|---|
-| **Crawl · Turn #** | *(badge: the current crawl turn)* | — |
-| **Next Turn** | Advance the crawl turn. Refills every member's movement budget. | — |
+| **Crawl · Round #** | *(badge: the current crawl round)* | — |
+| **Next Round** | Advance the crawl round. Refills every member's movement budget. | — |
 | **Add Tokens** | Add the selected tokens to the crawl roster | **Reset Initiative**, clearing all out-of-combat initiative rolls |
 | **Combat** | Start a combat encounter from the current state | — |
 | **Encounter** | Open the [Encounter Roller](Random-Encounters.md) | Encounter menu: run a check, set the threshold, see/clear the active table |
@@ -85,7 +85,7 @@ session tracking for free without a second button to remember.
 
 **End** ends the crawl and offers to save, pause, or discard the recap.
 
-**Next Turn** advances the crawl turn counter and resets every member's
+**Next Round** advances the crawl round counter and resets every member's
 out-of-combat movement budget. See [Movement Budgets](Movement-Budgets.md).
 
 ---

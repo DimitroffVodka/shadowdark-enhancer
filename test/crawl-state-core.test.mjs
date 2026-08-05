@@ -409,11 +409,41 @@ test("advanceOocTurn: an unset pointer starts at the top of the order", () => {
   assert.equal(r.state.oocTurn, "A");
 });
 
-test("advanceOocTurn: a single-member order wraps to itself (no-op)", () => {
+test("advanceOocTurn: a single-member order cycles back to itself — a complete cycle each time", () => {
   const state = orderedState({ members: ["A"], oocTurn: "A" });
   const r = advanceOocTurn(state);
-  assert.equal(r.changed, false);
+  assert.equal(r.state.oocTurn, "A", "the pointer cannot move");
+  assert.equal(r.changed, false, "no state change — the round advance is the wrapper's job");
+  assert.equal(r.wrapped, true, "a single-member cycle is a full round: the member's turn ends and the round rolls over");
+});
+
+test("advanceOocTurn: reports wrapped on the last→first transition", () => {
+  // order: A(10), B(5), C(1). C is last; advancing past C wraps to A.
+  const state = orderedState({ members: ["A", "B", "C"], rolls: { A: { roll: 10 }, B: { roll: 5 }, C: { roll: 1 } }, oocTurn: "C" });
+  const r = advanceOocTurn(state);
+  assert.equal(r.changed, true);
+  assert.equal(r.wrapped, true, "the last member's turn ended — the order wrapped to the top");
   assert.equal(r.state.oocTurn, "A");
+});
+
+test("advanceOocTurn: mid-order advances never wrap", () => {
+  const state = orderedState({ members: ["A", "B", "C"], rolls: { A: { roll: 10 }, B: { roll: 5 }, C: { roll: 1 } }, oocTurn: "A" });
+  const r = advanceOocTurn(state);
+  assert.equal(r.changed, true);
+  assert.equal(r.wrapped, false);
+  assert.equal(r.state.oocTurn, "B");
+});
+
+test("advanceOocTurn: establishing the turn from a null pointer is not a wrap", () => {
+  const r = advanceOocTurn(orderedState({ oocTurn: null }));
+  assert.equal(r.wrapped, false, "nothing completed — the turn is merely established at the top");
+  assert.equal(r.state.oocTurn, "A");
+});
+
+test("advanceOocTurn: no order or wrong mode never wraps", () => {
+  assert.equal(advanceOocTurn(orderedState({ mode: "off", oocTurn: "A" })).wrapped, false);
+  const noOrder = { ...defaultCrawlState(), mode: "crawl", members: ["A"], oocInitiative: {}, oocTurn: null };
+  assert.equal(advanceOocTurn(noOrder).wrapped, false);
 });
 
 test("advanceOocTurn: no-op outside crawl mode or with no order", () => {

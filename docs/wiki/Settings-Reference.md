@@ -19,7 +19,7 @@ Gear*) that open their own editor windows.
 | Setting | Default | What it does |
 |---|---|---|
 | **Combat movement default (ft)** | `30` | Default movement budget per combatant turn. The token's ruler turns red past this from the turn-start position. |
-| **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl turn. Reset on **Next Turn**. |
+| **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl round. Reset on **Next Round**. |
 | **Enforce out-of-combat movement budget** | **off** | On: refuse moves that exceed the crawl budget. Off: still colours red, but lets the move commit. |
 | **Enforce combat movement budget** | **off** | On: refuse combat moves beyond the remaining movement. Off by default, since Shadowdark combat traditionally relies on player honesty. |
 | **Lock movement out of turn** | **off** | On: while a combat is running, players can only move a combatant token when it is that combatant's turn. GMs and tokens outside the combat are never locked. |

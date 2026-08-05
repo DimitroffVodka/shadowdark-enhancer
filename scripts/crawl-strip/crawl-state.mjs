@@ -309,12 +309,21 @@ export const CrawlState = {
    * (wrapping). GM-gated: players reach this through the authenticated relay
    * (CrawlStrip.handleOocAdvanceQuery), which re-verifies ownership of the
    * CURRENT holder on the GM side first.
+   *
+   * When the advance completes a full cycle (the last member's turn ends and
+   * the order wraps — or a single-member order cycles), the crawl clock
+   * advances one ROUND as part of the same GM-side action: nextCrawlTurn
+   * captures fresh movement anchors and fires the wandering-monster check
+   * (the Shadowdark behaviour the user asked for). One wrap = one round =
+   * one check: the caller holds the "ooc" advance lock for the whole call,
+   * so a racing second advance (relayed player or GM-local) is refused
+   * mid-flight and cannot double-fire.
    */
   async advanceOocTurn() {
     if (!game.user.isGM) return;
-    const { state, changed } = _advanceOocTurn(this._state);
-    if (!changed) return;
-    await this._commit(state);
+    const { state, changed, wrapped } = _advanceOocTurn(this._state);
+    if (changed) await this._commit(state);
+    if (wrapped) await this.nextCrawlTurn();
   },
 
   async clearOocInitiative() {

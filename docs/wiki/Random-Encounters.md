@@ -41,7 +41,7 @@ Three things, each individually toggleable in
 
 A miss posts a quiet card, *"the dungeon is quiet"*, and does nothing else.
 Every check, hit or miss, is recorded in the [Session Recap](Session-Recap.md)
-along with the crawl turn it happened on.
+along with the crawl round it happened on.
 
 ### The active table
 

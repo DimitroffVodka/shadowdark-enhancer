@@ -252,15 +252,26 @@ export function ensureOocTurn(state) {
  * Advance the out-of-combat turn to the next member in the rolled order,
  * wrapping past the last member back to the first. No-op outside crawl mode
  * or when no order exists; an unset pointer starts at the top of the order.
+ *
+ * The return additionally reports `wrapped: true` when the advance COMPLETED
+ * a full cycle — the pointer moved past the LAST member back to the first,
+ * or a single-member order cycled back to itself (that is a complete cycle
+ * every time: the member's turn ends and the round rolls over). The
+ * Foundry-coupled wrapper advances the crawl round on this flag (one wrap =
+ * one round = one encounter check). Advancing from a NULL pointer (no holder
+ * yet) merely ESTABLISHES the turn at the top — nothing completed, no wrap.
  */
 export function advanceOocTurn(state) {
-  if (state.mode !== "crawl") return { state, changed: false };
+  if (state.mode !== "crawl") return { state, changed: false, wrapped: false };
   const order = orderedMembers(state);
-  if (order.length === 0) return { state, changed: false };
+  if (order.length === 0) return { state, changed: false, wrapped: false };
   const idx = state.oocTurn ? order.indexOf(state.oocTurn) : -1;
-  const oocTurn = order[(idx + 1) % order.length];
-  if (oocTurn === state.oocTurn) return { state, changed: false };
-  return { state: { ...state, oocTurn }, changed: true };
+  const nextIdx = (idx + 1) % order.length;
+  const oocTurn = order[nextIdx];
+  const selfCycle = order.length === 1 && oocTurn === state.oocTurn;
+  if (!selfCycle && oocTurn === state.oocTurn) return { state, changed: false, wrapped: false };
+  const wrapped = idx >= 0 && (order.length === 1 || nextIdx === 0);
+  return { state: selfCycle ? state : { ...state, oocTurn }, changed: !selfCycle, wrapped };
 }
 
 /** Clear all OoC initiative entries and the turn pointer. No-op if already empty. */

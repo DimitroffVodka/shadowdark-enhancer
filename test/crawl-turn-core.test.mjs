@@ -257,21 +257,30 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     // real wrapper, so these must exist.
     settings: { get: () => null, set: async () => {} },
     socket: { emit: () => {} },
+    // A wrap-advance calls nextCrawlTurn, which fires the wandering-monster
+    // check — count the fires so the "one wrap = one check" contract is
+    // assertable. The anchors capture is movement-tracker's own tested
+    // domain (canvas-bound); not this harness's subject.
+    shadowdarkEnhancer: { encounter: { check: async () => { encounterChecks.push(1); } } },
   };
   const { CrawlStrip, cardTurnState } = await import("../scripts/crawl-strip/crawl-strip.mjs");
   const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
+  const { MovementTracker } = await import("../scripts/crawl-strip/movement-tracker.mjs");
+  MovementTracker.captureCrawlAnchors = async () => {};
   // Reset the shared CrawlState singleton per test so OOC handler tests do
   // not leak state into each other (or into the combat-path tests).
   CrawlState._state = normalizeCrawlState(
     oocState ?? { mode: "off", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: [], priorMode: "off" },
   );
+  const encounterChecks = [];
   return {
     handle: CrawlStrip.handleAdvanceTurnQuery,
     oocHandle: CrawlStrip.handleOocAdvanceQuery,
     gmAdvance: (c) => CrawlStrip._gmAdvanceTurn(c),
     CrawlState,
     cardTurnState,
+    encounterChecks,
     advanced: advanced ?? [],
   };
 }
@@ -710,4 +719,77 @@ test("cardTurnState: with no active order every card stays active — nothing ch
   assert.deepEqual(cts({ inCombat: false, isCurrent: false, oocOrderActive: false, isOocHolder: true }),
     { isActivePhase: true, isTurn: false }, "a stray pointer with no active order changes nothing");
   assert.deepEqual(cts(), { isActivePhase: true, isTurn: false }, "missing facts default to no order");
+});
+
+// ─── OOC wrap → crawl round advance (issue #14 part 2 follow-up) ────────────
+
+test("OOC wrap: a player advancing the LAST turn wraps the pointer and advances the round exactly once (relayed, GM-side)", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const mine2 = makeActor({ id: "pc2", ownerId: PLAYER.id });
+  const { oocHandle, CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc2",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: mine2 }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, true);
+  assert.equal(CrawlState.oocTurn, "pc1", "the order wrapped back to the top");
+  assert.equal(CrawlState.crawlTurn, 1, "the wrap advanced the crawl clock one round");
+  assert.equal(encounterChecks.length, 1, "exactly one encounter check fired — on the GM side, not the player's client");
+});
+
+test("OOC non-wrap: advancing mid-order never touches the round", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const mine2 = makeActor({ id: "pc2", ownerId: PLAYER.id });
+  const { oocHandle, CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: mine2 }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, true);
+  assert.equal(CrawlState.oocTurn, "pc2");
+  assert.equal(CrawlState.crawlTurn, 0, "mid-order advance: the round stays put");
+  assert.equal(encounterChecks.length, 0, "no encounter check without a wrap");
+});
+
+test("OOC wrap: the GM's own advance (local path) advances the round too", async () => {
+  const other = makeActor({ id: "pc1", ownerId: OTHER_PLAYER.id });
+  const { CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc2",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: other, pc2: other }[id] ?? null) };
+
+  await CrawlState.advanceOocTurn(); // the GM-local click path (game.user is GM)
+  assert.equal(CrawlState.oocTurn, "pc1");
+  assert.equal(CrawlState.crawlTurn, 1, "the GM's wrap advances the round exactly once");
+  assert.equal(encounterChecks.length, 1);
+});
+
+test("OOC wrap in-flight lock: a racing second advance cannot double-fire the round", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const mine2 = makeActor({ id: "pc2", ownerId: PLAYER.id });
+  const { oocHandle, CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc2",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: mine2 }[id] ?? null) };
+
+  const first = oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  const second = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(second.ok, false, "the racing advance is refused mid-flight");
+  await first;
+  assert.equal(CrawlState.crawlTurn, 1, "exactly ONE round advanced — not two");
+  assert.equal(encounterChecks.length, 1, "exactly ONE encounter check — the lock serialized the wrap");
 });
