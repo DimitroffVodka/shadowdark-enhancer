@@ -98,3 +98,24 @@ export function canAdvanceTurn({
   if (advanceWouldRollRound) return { ok: false, reason: "round-boundary" };
   return { ok: true, reason: "ok" };
 }
+
+/**
+ * May the requester advance the OUT-OF-COMBAT turn (the crawl strip's rolled
+ * initiative order)?
+ *
+ * Same discipline as `canAdvanceTurn`: the caller computes the booleans from
+ * CURRENT state on the GM client, never from the payload. The holder of the
+ * current OoC turn may advance it, and a GM always may; nobody else, and
+ * never when no order has been rolled.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.orderActive                 An OoC order is rolled (some member has initiative).
+ * @param {boolean} facts.requesterIsGM               GMs may advance for anyone.
+ * @param {boolean} facts.requesterOwnsCurrentHolder  Requester owns the current OoC turn-holder's actor.
+ * @returns {{ok: true, reason: "ok"}|{ok: false, reason: "no-order"|"not-your-turn"}}
+ */
+export function canAdvanceOocTurn({ orderActive, requesterIsGM, requesterOwnsCurrentHolder } = {}) {
+  if (!orderActive) return { ok: false, reason: "no-order" };
+  if (requesterIsGM || requesterOwnsCurrentHolder) return { ok: true, reason: "ok" };
+  return { ok: false, reason: "not-your-turn" };
+}

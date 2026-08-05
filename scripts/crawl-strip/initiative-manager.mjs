@@ -99,6 +99,11 @@ export const InitiativeManager = {
     for (const actorId of candidates) {
       await this.rollOocForActor(actorId);
     }
+    // Rolls land one chat message at a time, so the first roll may have
+    // started the OoC turn on someone who is NOT the highest roller. Once the
+    // batch is complete, pin the turn to the true top of the order (no-op if
+    // a turn was already established mid-batch by a single-roll path).
+    await CrawlState.ensureOocTurn();
   },
 
   // ── Internal ──────────────────────────────────────────────────────────────

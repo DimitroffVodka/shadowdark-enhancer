@@ -16,7 +16,8 @@ import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
-import { canAdvanceTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
+import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
+import { oocOrderComplete } from "./crawl-state-core.mjs";
 import {
   buildTabStripHTML,
   bindActionMenuEvents,
@@ -38,6 +39,15 @@ export const LUCK_QUERY = `${MODULE_ID}.luck`;
  * at handling time (handleAdvanceTurnQuery / canAdvanceTurn).
  */
 export const CRAWL_TURN_QUERY = `${MODULE_ID}.combatNextTurn`;
+
+/**
+ * The authenticated player→GM channel for OUT-OF-COMBAT turn advances. The
+ * current OoC turn-holder may ask the GM to advance the rolled initiative
+ * order one step; the GM re-verifies ownership of the CURRENT holder against
+ * server-authenticated state at handling time (handleOocAdvanceQuery /
+ * canAdvanceOocTurn).
+ */
+export const OOC_TURN_QUERY = `${MODULE_ID}.oocNextTurn`;
 
 /**
  * In-flight turn-advance locks on the GM client, keyed
@@ -63,26 +73,30 @@ export const CRAWL_TURN_QUERY = `${MODULE_ID}.combatNextTurn`;
 const _advanceLocks = new Set();
 
 /**
- * Run `fn` under the in-flight advance lock for `combat`'s current
- * `id:round:turn`. The check-and-insert is synchronous and precedes the
- * first await, so of two racing callers (a relayed request and a GM-local
- * click included) only one runs `fn`; the loser gets `false`. The key
- * clears in a `finally`, so a throw cannot strand it.
+ * Run `fn` under the in-flight advance lock for `key`. The check-and-insert
+ * is synchronous and precedes the first await, so of two racing callers (a
+ * relayed request and a GM-local click included) only one runs `fn`; the
+ * loser gets `false`. The key clears in a `finally`, so a throw cannot
+ * strand it.
  *
- * @param {Combat} combat
+ * Combat advances key on `${combat.id}:${combat.round}:${combat.turn}` (the
+ * same turn cannot advance twice); the out-of-combat advance uses a single
+ * global key — the pointer mutates synchronously in the reducer, so the
+ * first advance's new turn can only be advanced after it lands.
+ *
+ * @param {string} key
  * @param {() => Promise<unknown>} fn
- * @returns {Promise<boolean>} true if `fn` ran, false if another advance for
- *   the same turn is already in flight on this client.
+ * @returns {Promise<boolean>} true if `fn` ran, false if another advance
+ *   under the same key is already in flight on this client.
  */
-async function withAdvanceLock(combat, fn) {
-  const lockKey = `${combat.id}:${combat.round}:${combat.turn}`;
-  if (_advanceLocks.has(lockKey)) return false;
-  _advanceLocks.add(lockKey);
+async function withAdvanceLock(key, fn) {
+  if (_advanceLocks.has(key)) return false;
+  _advanceLocks.add(key);
   try {
     await fn();
     return true;
   } finally {
-    _advanceLocks.delete(lockKey);
+    _advanceLocks.delete(key);
   }
 }
 
@@ -153,6 +167,9 @@ export const CrawlStrip = {
     // handler re-verifies ownership of the CURRENT combatant against state it
     // reads itself — see handleAdvanceTurnQuery.
     CONFIG.queries[CRAWL_TURN_QUERY] = (data, { user } = {}) => CrawlStrip.handleAdvanceTurnQuery(data, user);
+    // Player OUT-OF-COMBAT turn-advance, same discipline — see
+    // handleOocAdvanceQuery.
+    CONFIG.queries[OOC_TURN_QUERY] = (data, { user } = {}) => CrawlStrip.handleOocAdvanceQuery(data, user);
   },
 
   /**
@@ -245,7 +262,58 @@ export const CrawlStrip = {
     // (the combat state has not changed yet — the update lands only with the
     // server response) and refuses. The client-side button disable covers one
     // user's double-click; this covers any two senders racing.
-    if (!(await withAdvanceLock(combat, () => combat.nextTurn()))) {
+    if (!(await withAdvanceLock(`${combat.id}:${combat.round}:${combat.turn}`, () => combat.nextTurn()))) {
+      return { ok: false, error: game.i18n.localize("SDE.crawlStrip.turnAdvanceInProgress") };
+    }
+    return { ok: true };
+  },
+
+  /**
+   * GM side of the OUT-OF-COMBAT turn-advance relay. The ONLY permitted
+   * action is "advance one turn" of the rolled initiative order; everything
+   * else is refused. The holder is whoever CrawlState currently points at on
+   * THIS client — the payload carries no ids at all, and ownership is
+   * re-verified against that re-read state (canAdvanceOocTurn), so a
+   * malicious client cannot advance someone else's turn or fabricate an
+   * order. The advance itself goes through the same in-memory lock as the
+   * combat path.
+   *
+   * @param {object} data  { action: "ooc:nextTurn" }. Any other field is ignored.
+   * @param {User}   user  The AUTHENTICATED requester, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async handleOocAdvanceQuery(data, user) {
+    const refusal = refuseQuery(user, "Out-of-combat turn advances");
+    if (refusal) return refusal;
+    if (data?.action !== "ooc:nextTurn") {
+      return { ok: false, error: game.i18n.localize("SDE.crawlStrip.unknownAction") };
+    }
+
+    // Re-read current state — nothing in the payload is trusted. The
+    // requester may advance only when they own the CURRENT holder (or are a
+    // GM), the crawl is actually in crawl mode (during combat the OoC order
+    // is dormant — advanceOocTurn would no-op), and a COMPLETE order exists
+    // (every crawl member has rolled — an incomplete order is not an order).
+    const holderId = CrawlState.oocTurn;
+    const holderActor = holderId ? game.actors.get(holderId) : null;
+    const orderActive = CrawlState.mode === "crawl" && oocOrderComplete(CrawlState);
+    const verdict = canAdvanceOocTurn({
+      orderActive,
+      requesterIsGM: !!user?.isGM,
+      requesterOwnsCurrentHolder: !!(holderActor && user && holderActor.testUserPermission(user, "OWNER")),
+    });
+    if (!verdict.ok) {
+      const refusalKeys = {
+        "no-order": "SDE.crawlStrip.oocTurnAdvanceNoOrder",
+        "not-your-turn": "SDE.crawlStrip.turnAdvanceNotYourTurn",
+      };
+      return {
+        ok: false,
+        error: game.i18n.localize(refusalKeys[verdict.reason] ?? refusalKeys["not-your-turn"]),
+      };
+    }
+
+    if (!(await withAdvanceLock("ooc", () => CrawlState.advanceOocTurn()))) {
       return { ok: false, error: game.i18n.localize("SDE.crawlStrip.turnAdvanceInProgress") };
     }
     return { ok: true };
@@ -261,7 +329,7 @@ export const CrawlStrip = {
    * @param {Combat} combat
    */
   async _gmAdvanceTurn(combat) {
-    await withAdvanceLock(combat, () => combat.nextTurn());
+    await withAdvanceLock(`${combat.id}:${combat.round}:${combat.turn}`, () => combat.nextTurn());
   },
 
   queueRender() {
@@ -480,6 +548,13 @@ export const CrawlStrip = {
 
       // Combat current-turn detection (no `combatantId` for crawl members)
       const isCurrent  = !!m.combatantId && game.combat?.combatant?.id === m.combatantId;
+      // Out-of-combat: the current OoC turn-holder gets the same highlight the
+      // combat tracker gives its current combatant — the pointer is otherwise
+      // invisible. Only player cards hold the OoC turn (the order is over
+      // crawl members).
+      const isOocHolder = !inCombat && m.type === "player" && !!m.actorId
+        && CrawlState.oocTurn === m.actorId;
+      const isTurn = isCurrent || isOocHolder;
       const combatant  = m.combatantId
         ? game.combat?.combatants.get(m.combatantId)
         : (m.tokenId ? combatantMap.get(m.tokenId) : null);
@@ -570,8 +645,8 @@ export const CrawlStrip = {
         : "";
 
       const cardHTML = `
-        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isCurrent ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}"
-             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} tabindex="0">
+        <div class="sde-strip-member ${isActivePhase ? "sde-strip-active" : "sde-strip-dim"} ${isTurn ? "sde-strip-is-turn" : ""} ${isDefeated ? "sde-strip-defeated" : ""} ${isHidden ? "sde-strip-hidden" : ""} sde-strip-type-${m.type}"
+             data-member-id="${m.id}" data-token-id="${m.tokenId ?? ""}" data-actor-id="${m.actorId ?? ""}" ${m.combatantId ? `data-combatant-id="${m.combatantId}"` : ""} title="${isOocHolder ? game.i18n.localize("SDE.crawlStrip.currentTurn") : ""}" tabindex="0">
           <img class="sde-strip-portrait" src="${esc(m.img)}" alt="${esc(m.name)}" />
           ${isHidden ? `<div class="sde-strip-hidden-icon" title="Hidden from players">${ICONS.eyeSlash}</div>` : ""}
           <div class="sde-strip-overlay">
@@ -635,12 +710,31 @@ export const CrawlStrip = {
     // strip (parity with the Crawl Bar's "Next Turn"); players see a static
     // read-only counter. Advancing goes through CrawlState.nextCrawlTurn(),
     // which commits + broadcasts state and captures fresh movement anchors.
+    //
+    // Out-of-combat turn order (issue #14 part 2): the order is in effect
+    // only in crawl mode AND once EVERY crawl member has rolled — an
+    // incomplete order is not an order, so the advance button and holder
+    // highlight appear exactly when the movement lock engages (and no dead
+    // buttons exist for a partial order or during combat). A player only
+    // ever sees the advance when the CURRENT holder is an actor they own;
+    // the GM re-verifies that ownership on the far side of the relay
+    // (handleOocAdvanceQuery).
+    const oocOrderActive = state.mode === "crawl" && oocOrderComplete(state);
+    const oocHolderId = oocOrderActive ? (state.oocTurn ?? null) : null;
+    const playerMayAdvance = !!oocHolderId && !!game.actors.get(oocHolderId)?.isOwner;
+    const oocAdvanceBtn = (game.user.isGM || playerMayAdvance)
+      ? `<button class="sde-strip-cbtn" data-action="nextOocTurn" title="${game.i18n.localize("SDE.crawlStrip.nextOocTurn")}"${this._turnAdvanceInFlight ? " disabled" : ""}>${ICONS.nextRound}</button>`
+      : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
            <div class="sde-strip-crawl-turn" title="Crawl Turn">${state.crawlTurn}</div>
            <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="Next Turn">${ICONS.nextRound}</button>
+           ${oocAdvanceBtn}
          </div>`
-      : `<div class="sde-strip-turn-num" title="Crawl Turn">${state.crawlTurn}</div>`;
+      : `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
+           <div class="sde-strip-turn-num" title="Crawl Turn">${state.crawlTurn}</div>
+           ${oocAdvanceBtn}
+         </div>`;
 
     // Left badge — combat controls in combat, crawl turn counter otherwise.
     // The full four-button set is GM-only; a player gets just the round
@@ -1125,6 +1219,31 @@ export const CrawlStrip = {
         if      (action === "prevTurn")   await combat.previousTurn();
         else if (action === "nextRound")  await combat.nextRound();
         else if (action === "prevRound")  await combat.previousRound();
+      });
+    });
+
+    // Out-of-combat turn advance — the current OoC turn-holder (or any GM)
+    // advances the rolled initiative order. GMs advance locally under the
+    // same in-memory lock (two tabs produce one advance); players relay
+    // through the authenticated GM channel (handleOocAdvanceQuery), which
+    // re-verifies ownership of the CURRENT holder before advancing.
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextOocTurn"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        if (game.user.isGM) {
+          await withAdvanceLock("ooc", () => CrawlState.advanceOocTurn());
+          return;
+        }
+        if (this._turnAdvanceInFlight) return;
+        this._turnAdvanceInFlight = true;
+        btn.disabled = true;
+        try {
+          await relayToGM(OOC_TURN_QUERY, { action: "ooc:nextTurn" },
+            { label: "out-of-combat turn advances" });
+        } finally {
+          this._turnAdvanceInFlight = false;
+          this.queueRender(); // re-render re-enables the button
+        }
       });
     });
 

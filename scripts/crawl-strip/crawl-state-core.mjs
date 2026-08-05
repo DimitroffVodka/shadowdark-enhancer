@@ -8,7 +8,7 @@
  * the same split as party-xp-core.mjs / loot-value.mjs.
  */
 
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 const VALID_MODES = new Set(["off", "crawl", "combat"]);
 // priorMode only ever needs to hold what to restore ON EXIT FROM COMBAT, so
@@ -19,9 +19,15 @@ const VALID_PRIOR_MODES = new Set(["off", "crawl"]);
  * Versioned default state. `members` has been part of the shape since v1; it
  * holds ACTOR ids (world-scoped crawl roster), resolved to per-scene tokens by
  * the Foundry-facing layer. `oocInitiative` is likewise keyed by actor id.
+ *
+ * v2 adds `oocTurn`: the actor id of the current out-of-combat turn-holder
+ * (issue #14's "whose turn is it" pointer), or null when no order is
+ * established. The migration is purely additive — v1 state normalizes with
+ * `oocTurn: null`, and the first initiative roll of an upgraded world
+ * establishes the pointer (rolling sets it when unset).
  */
 export function defaultCrawlState() {
-  return { _v: STATE_VERSION, mode: "off", crawlTurn: 0, oocInitiative: {}, members: [], priorMode: "off" };
+  return { _v: STATE_VERSION, mode: "off", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: [], priorMode: "off" };
 }
 
 /**
@@ -54,7 +60,17 @@ export function normalizeCrawlState(value) {
     }
   }
 
-  return { _v: STATE_VERSION, mode, crawlTurn, oocInitiative, members, priorMode };
+  // The pointer is only ever valid when it names a member who is actually in
+  // the rolled order; anything else normalizes away to null (never strands a
+  // stale id in the persisted shape).
+  let oocTurn = base.oocTurn;
+  if (typeof value.oocTurn === "string" && value.oocTurn
+    && members.includes(value.oocTurn)
+    && oocInitiative[value.oocTurn]?.roll != null) {
+    oocTurn = value.oocTurn;
+  }
+
+  return { _v: STATE_VERSION, mode, crawlTurn, oocInitiative, oocTurn, members, priorMode };
 }
 
 // ── Pure reducers ────────────────────────────────────────────────────────
@@ -63,6 +79,51 @@ export function normalizeCrawlState(value) {
 // `{ state, changed }` — `changed: false` means the input is returned as-is
 // and the caller should skip persistence/broadcast (idempotency / no-op
 // guards live here, not just in the Foundry-facing wrapper).
+
+/** Members with an initiative entry, in the strip's order (roll desc). */
+function orderedMembers(state) {
+  return state.members
+    .filter(id => hasOocRoll(state.oocInitiative, id))
+    .sort((a, b) => (state.oocInitiative[b].roll ?? -Infinity) - (state.oocInitiative[a].roll ?? -Infinity));
+}
+
+/** The member with the highest roll (first in members order on ties), or null. */
+function topOfOrder(state) {
+  const order = orderedMembers(state);
+  return order.length > 0 ? order[0] : null;
+}
+
+// ── Out-of-combat order facts (issue #14 part 2) ────────────────────────────
+//
+// The "does this member have a roll" check is the single shared primitive for
+// the OoC order: the tracker derives its rolled-count from it, and the strip
+// render + relay handler derive completeness through oocOrderComplete, so the
+// three call sites that read CrawlState cannot drift apart.
+
+/**
+ * Does this crawl member have an out-of-combat initiative roll?
+ * @param {object} oocInitiative  The state's oocInitiative map (CrawlState-shaped).
+ * @param {string} actorId        Crawl member actor id.
+ * @returns {boolean}
+ */
+export function hasOocRoll(oocInitiative, actorId) {
+  return oocInitiative?.[actorId]?.roll != null;
+}
+
+/**
+ * Is the out-of-combat order COMPLETE — every crawl member has rolled?
+ * An incomplete order is not an order: the OoC lock, the advance button and
+ * the holder highlight all engage only once this holds (an empty roster is
+ * never an order). Callers reading CrawlState use this (or hasOocRoll for
+ * the tracker's counts) instead of re-deriving the rule.
+ * @param {{members: string[], oocInitiative: object}} state  CrawlState-shaped.
+ * @returns {boolean}
+ */
+export function oocOrderComplete(state) {
+  const members = state?.members ?? [];
+  const oocInitiative = state?.oocInitiative ?? {};
+  return members.length > 0 && members.every(id => hasOocRoll(oocInitiative, id));
+}
 
 /**
  * Enter combat mode, stamping `priorMode` INTO the persisted state (not
@@ -84,16 +145,16 @@ export function exitCombatMode(state) {
   return { state: { ...state, mode: state.priorMode ?? "off", priorMode: "off" }, changed: true };
 }
 
-/** Start a crawl: clears leftover OoC initiative. No-op during combat. */
+/** Start a crawl: clears leftover OoC initiative and its turn pointer. No-op during combat. */
 export function startCrawl(state) {
   if (state.mode === "combat") return { state, changed: false };
-  return { state: { ...state, mode: "crawl", oocInitiative: {} }, changed: true };
+  return { state: { ...state, mode: "crawl", oocInitiative: {}, oocTurn: null }, changed: true };
 }
 
 /** End a crawl: resets turn/members/OoC initiative. No-op during combat. */
 export function endCrawl(state) {
   if (state.mode === "combat") return { state, changed: false };
-  return { state: { ...state, mode: "off", crawlTurn: 0, members: [], oocInitiative: {} }, changed: true };
+  return { state: { ...state, mode: "off", crawlTurn: 0, members: [], oocInitiative: {}, oocTurn: null }, changed: true };
 }
 
 /** Add actor IDs to the crawl roster, deduplicated. No-op if none are new. */
@@ -108,16 +169,37 @@ export function addMembers(state, actorIds) {
   return { state: { ...state, members: [...current] }, newIds, changed: true };
 }
 
-/** Remove one actor ID from the roster. No-op if it wasn't a member. */
+/**
+ * Remove one actor ID from the roster, dropping their initiative entry along
+ * with it (a departed member's roll would otherwise accumulate in persisted
+ * world state forever). If the departing member held the out-of-combat turn,
+ * the pointer passes to the NEXT member in the rolled order (wrapping), or
+ * clears when nobody with a roll remains — the turn is never stranded on a
+ * departed actor.
+ */
 export function removeMember(state, actorId) {
   if (!state.members.includes(actorId)) return { state, changed: false };
-  return { state: { ...state, members: state.members.filter(id => id !== actorId) }, changed: true };
+  const members = state.members.filter(id => id !== actorId);
+  const oocInitiative = { ...state.oocInitiative };
+  delete oocInitiative[actorId];
+  let oocTurn = state.oocTurn;
+  if (oocTurn === actorId) {
+    // The order as it stood BEFORE the removal; the successor is whoever
+    // comes next after the departed holder, wrapping to the front.
+    const before = orderedMembers(state);
+    const idx = before.indexOf(actorId);
+    oocTurn = before.length > 1 ? before[(idx + 1) % before.length] : null;
+  }
+  return { state: { ...state, members, oocInitiative, oocTurn }, changed: true };
 }
 
-/** Clear the roster. No-op if already empty. */
+/**
+ * Clear the roster and the OoC turn pointer with it. No-op if already empty
+ * (and no pointer to clear).
+ */
 export function clearMembers(state) {
-  if (state.members.length === 0) return { state, changed: false };
-  return { state: { ...state, members: [] }, changed: true };
+  if (state.members.length === 0 && !state.oocTurn) return { state, changed: false };
+  return { state: { ...state, members: [], oocTurn: null }, changed: true };
 }
 
 /** Advance the crawl turn counter. No-op outside crawl mode. */
@@ -126,13 +208,48 @@ export function nextCrawlTurn(state) {
   return { state: { ...state, crawlTurn: state.crawlTurn + 1 }, changed: true };
 }
 
-/** Set (or overwrite) one actor's out-of-crawl initiative entry. */
+/**
+ * Set (or overwrite) one actor's out-of-crawl initiative entry. A roll that
+ * establishes a previously-empty order also starts the turn at the top of the
+ * order; a roll into an order that already has a holder leaves the turn where
+ * it is (a reroll never steals the current turn).
+ */
 export function setOocInitiative(state, actorId, entry) {
-  return { state: { ...state, oocInitiative: { ...state.oocInitiative, [actorId]: entry } }, changed: true };
+  const oocInitiative = { ...state.oocInitiative, [actorId]: entry };
+  const oocTurn = state.oocTurn ?? topOfOrder({ ...state, oocInitiative });
+  return { state: { ...state, oocInitiative, oocTurn }, changed: true };
 }
 
-/** Clear all OoC initiative entries. No-op if already empty. */
+/**
+ * Pin the pointer to the top of the order when it is unset. Used at the end
+ * of a roll-all batch: rolls land one chat message at a time, so the first
+ * roll may have started the turn on someone who is NOT the highest roller —
+ * once the batch is complete, the true top takes the turn.
+ */
+export function ensureOocTurn(state) {
+  if (state.oocTurn) return { state, changed: false };
+  const oocTurn = topOfOrder(state);
+  if (!oocTurn) return { state, changed: false };
+  return { state: { ...state, oocTurn }, changed: true };
+}
+
+/**
+ * Advance the out-of-combat turn to the next member in the rolled order,
+ * wrapping past the last member back to the first. No-op outside crawl mode
+ * or when no order exists; an unset pointer starts at the top of the order.
+ */
+export function advanceOocTurn(state) {
+  if (state.mode !== "crawl") return { state, changed: false };
+  const order = orderedMembers(state);
+  if (order.length === 0) return { state, changed: false };
+  const idx = state.oocTurn ? order.indexOf(state.oocTurn) : -1;
+  const oocTurn = order[(idx + 1) % order.length];
+  if (oocTurn === state.oocTurn) return { state, changed: false };
+  return { state: { ...state, oocTurn }, changed: true };
+}
+
+/** Clear all OoC initiative entries and the turn pointer. No-op if already empty. */
 export function clearOocInitiative(state) {
-  if (Object.keys(state.oocInitiative).length === 0) return { state, changed: false };
-  return { state: { ...state, oocInitiative: {} }, changed: true };
+  if (Object.keys(state.oocInitiative).length === 0 && !state.oocTurn) return { state, changed: false };
+  return { state: { ...state, oocInitiative: {}, oocTurn: null }, changed: true };
 }

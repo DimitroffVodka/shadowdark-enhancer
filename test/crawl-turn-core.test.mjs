@@ -15,7 +15,7 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { canAdvanceTurn, nextTurnWouldRollRound } from "../scripts/crawl-strip/crawl-turn-core.mjs";
+import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "../scripts/crawl-strip/crawl-turn-core.mjs";
 
 // ─── Pure decision logic ────────────────────────────────────────────────────
 
@@ -83,6 +83,37 @@ test("canAdvanceTurn: no combat in progress → refused even for a GM (nothing t
 test("canAdvanceTurn: missing facts default to a refusal", () => {
   assert.equal(canAdvanceTurn().ok, false);
   assert.equal(canAdvanceTurn({}).ok, false);
+});
+
+// ─── canAdvanceOocTurn: the out-of-combat turn advance ──────────────────────
+
+test("canAdvanceOocTurn: the current holder may advance", () => {
+  assert.deepEqual(canAdvanceOocTurn({
+    orderActive: true, requesterIsGM: false, requesterOwnsCurrentHolder: true,
+  }), { ok: true, reason: "ok" });
+});
+
+test("canAdvanceOocTurn: a GM may advance regardless of ownership", () => {
+  assert.deepEqual(canAdvanceOocTurn({
+    orderActive: true, requesterIsGM: true, requesterOwnsCurrentHolder: false,
+  }), { ok: true, reason: "ok" });
+});
+
+test("canAdvanceOocTurn: someone who does not own the current holder is refused", () => {
+  assert.deepEqual(canAdvanceOocTurn({
+    orderActive: true, requesterIsGM: false, requesterOwnsCurrentHolder: false,
+  }), { ok: false, reason: "not-your-turn" });
+});
+
+test("canAdvanceOocTurn: no rolled order → refused even for a GM", () => {
+  assert.deepEqual(canAdvanceOocTurn({
+    orderActive: false, requesterIsGM: true, requesterOwnsCurrentHolder: false,
+  }), { ok: false, reason: "no-order" });
+});
+
+test("canAdvanceOocTurn: missing facts default to a refusal", () => {
+  assert.equal(canAdvanceOocTurn().ok, false);
+  assert.equal(canAdvanceOocTurn({}).ok, false);
 });
 
 // ─── nextTurnWouldRollRound: mirrors Combat#nextTurn (foundry.mjs:51029) ─────
@@ -187,7 +218,7 @@ function combatWith(combatant, {
  * authenticated query invokes; `user`/`requester` are passed separately so
  * the tests exercise the real refuseQuery / ownership flow end to end.
  */
-async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM } = {}) {
+async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM, oocState = null } = {}) {
   // crawl-strip.mjs's transitive imports touch Foundry globals at module load
   // (movement-tracker.mjs SDETokenRuler extends
   // foundry.canvas.placeables.tokens.TokenRuler), so stub them before the
@@ -222,11 +253,24 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     i18n: { localize: (key) => `[${key}]` },
     combat,
     actors: { get: () => null },
+    // CrawlState._commit persists + nudges; the OOC relay handler drives the
+    // real wrapper, so these must exist.
+    settings: { get: () => null, set: async () => {} },
+    socket: { emit: () => {} },
   };
   const { CrawlStrip } = await import("../scripts/crawl-strip/crawl-strip.mjs");
+  const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
+  const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
+  // Reset the shared CrawlState singleton per test so OOC handler tests do
+  // not leak state into each other (or into the combat-path tests).
+  CrawlState._state = normalizeCrawlState(
+    oocState ?? { mode: "off", crawlTurn: 0, oocInitiative: {}, oocTurn: null, members: [], priorMode: "off" },
+  );
   return {
     handle: CrawlStrip.handleAdvanceTurnQuery,
+    oocHandle: CrawlStrip.handleOocAdvanceQuery,
     gmAdvance: (c) => CrawlStrip._gmAdvanceTurn(c),
+    CrawlState,
     advanced: advanced ?? [],
   };
 }
@@ -464,4 +508,178 @@ test("two rapid GM-local advances produce ONE turn advance (the two-tab GM hole)
   // Lock cleared: a fresh click after the round-trip is served normally.
   await gmAdvance(combat);
   assert.deepEqual(advanced, ["c1", "c1"], "subsequent GM clicks still advance");
+});
+
+// ─── Out-of-combat turn advance: relay handler (issue #14 part 2) ───────────
+
+test("OOC: a player who owns the current holder is served — the turn advances one step", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, true);
+  assert.equal(CrawlState.oocTurn, "pc2", "the turn passed to the next member in order");
+});
+
+test("OOC: a player who does not own the current holder is refused and nothing advances", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc2",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /turnAdvanceNotYourTurn/);
+  assert.equal(CrawlState.oocTurn, "pc2", "nothing advanced");
+});
+
+test("OOC: a GM may advance the order regardless of who holds the turn", async () => {
+  const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc2"],
+      oocInitiative: { pc2: { roll: 5 } }, oocTurn: "pc2",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc2: other }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, GM);
+  assert.equal(reply.ok, true);
+  assert.equal(CrawlState.oocTurn, "pc2", "a single-member order wraps to itself");
+});
+
+test("OOC: no rolled order → refused", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: { mode: "crawl", members: ["pc1"], oocInitiative: {}, oocTurn: null },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /oocTurnAdvanceNoOrder/);
+  assert.equal(CrawlState.oocTurn, null);
+});
+
+test("OOC: a partial order (not every member has rolled) refuses even the current holder", async () => {
+  // An incomplete order is not an order: pc1 holds (first roll) but pc2 has
+  // not rolled, so no turn may advance — the holder is refused like anyone
+  // else until the order completes.
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /oocTurnAdvanceNoOrder/);
+  assert.equal(CrawlState.oocTurn, "pc1", "nothing advanced");
+});
+
+test("OOC: during combat the relay refuses — no false ok for a no-op advance", async () => {
+  // The OoC order survives into combat mode (enterCombatMode preserves it),
+  // so a hand-crafted query would pass a completeness check alone — but
+  // advanceOocTurn no-ops outside crawl mode. The handler must refuse rather
+  // than acknowledge work it did not do.
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: {
+      mode: "combat", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, false, "a hand-crafted query during combat must not be acknowledged");
+  assert.match(reply.error, /oocTurnAdvanceNoOrder/);
+  assert.equal(CrawlState.oocTurn, "pc1", "nothing advanced");
+});
+
+test("OOC: only the whitelisted action is accepted", async () => {
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: { mode: "crawl", members: [], oocInitiative: {}, oocTurn: null },
+  });
+  const reply = await oocHandle({ action: "ooc:setTurn" }, GM);
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /unknownAction/);
+  assert.equal(CrawlState.oocTurn, null);
+});
+
+test("EXPLOIT: a hostile OOC payload cannot name a holder or jump turns", async () => {
+  // The wire carries no trusted ids: forged holderId/turn fields are ignored,
+  // and the CURRENT holder's turn advances exactly one step.
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const other = makeActor({ id: "pc2", ownerId: OTHER_PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: other }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn", holderId: "pc2", turn: 42 }, PLAYER);
+  assert.equal(reply.ok, true);
+  assert.equal(CrawlState.oocTurn, "pc2", "advanced the CURRENT holder's turn exactly once");
+});
+
+test("EXPLOIT: a non-designated GM refuses the OOC advance (the sender picks the recipient)", async () => {
+  const BRIDGE = { id: "gm2", isGM: true, name: "Bridge" };
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    responder: BRIDGE, activeGM: GM,
+    oocState: {
+      mode: "crawl", members: ["pc1"],
+      oocInitiative: { pc1: { roll: 10 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, false);
+  assert.match(reply.error, /primary GM/);
+  assert.equal(CrawlState.oocTurn, "pc1", "the non-designated GM must not advance");
+});
+
+test("OOC in-flight lock: a second advance refuses while the first awaits the world write", async () => {
+  // The pointer mutates synchronously in the reducer, so a second request
+  // racing the first would already see the NEW holder — only the global
+  // "ooc" lock can tell the two requests apart. Both actors owned by the
+  // requester so the second request passes authorization and reaches the
+  // lock; without the lock it would advance twice (wrap back to pc1).
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const mine2 = makeActor({ id: "pc2", ownerId: PLAYER.id });
+  const { oocHandle, CrawlState } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"],
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc1",
+    },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: mine2 }[id] ?? null) };
+
+  const first = oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  const second = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(second.ok, false);
+  assert.match(second.error, /turnAdvanceInProgress/);
+  await first;
+  assert.equal(CrawlState.oocTurn, "pc2", "exactly one advance landed — not a double-advance back to pc1");
 });

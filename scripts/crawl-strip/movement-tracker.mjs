@@ -33,6 +33,7 @@
 
 import { MODULE_ID }  from "../shared/module-id.mjs";
 import { CrawlState, isActiveGM } from "./crawl-state.mjs";
+import { hasOocRoll } from "./crawl-state-core.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
@@ -428,6 +429,16 @@ export const MovementTracker = {
     // internal; if a future Foundry changes it, the strict equivalent is
     // game.users.get(userId)?.isGM.)
     const combat = game.combat;
+    // Out-of-combat order state (issue #14, part 2): the lock engages only
+    // once EVERY crawl member has rolled — an incomplete order is not an
+    // order, so a party mid-roll is never partially frozen (the combat
+    // regime's principle: tokens outside the combat are never locked). A
+    // member who never rolls suspends the lock for everyone, visibly, rather
+    // than dodging it for themselves. All reads are synchronous property/
+    // getter reads of CrawlState; nothing is awaited before the return.
+    const members = CrawlState.members ?? [];
+    const oocMemberCount = members.length;
+    const oocRolledCount = members.filter(id => hasOocRoll(CrawlState.oocInitiative, id)).length;
     if (shouldBlockMovement({
       enabled: game.settings.get(MODULE_ID, "lockMovementOutOfTurn"),
       combatActive: !!combat?.started,
@@ -435,6 +446,10 @@ export const MovementTracker = {
       isCombatant: combat?.combatants?.some((c) => c.tokenId === doc.id) ?? false,
       isCurrentCombatant: combat?.combatant?.tokenId === doc.id,
       movesPosition: changes.x !== undefined || changes.y !== undefined,
+      oocMemberCount,
+      oocRolledCount,
+      isOocMember: members.includes(doc.actorId),
+      isCurrentOocHolder: CrawlState.oocTurn === doc.actorId,
     })) {
       // The outer hook may have cached a precomputed segment for this token;
       // a move that never committed must not leave it behind for updateToken.
