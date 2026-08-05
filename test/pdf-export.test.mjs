@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { buildFieldValues, _internals } from "../scripts/pdf-export/pdf-sheet-export.mjs";
+import { buildFieldValues, exportActorToPdf, _internals } from "../scripts/pdf-export/pdf-sheet-export.mjs";
 
 const MANIFEST = JSON.parse(fs.readFileSync(
   fileURLToPath(new URL("../assets/pdf/shadowdark-character-sheet-fields.json", import.meta.url)), "utf8"));
@@ -309,4 +309,196 @@ test("template field-contract: every produced id exists in the manifest; all 16 
     for (let r = 1; r <= 16; r++)
       assert.ok(text[`spell_${r}_notes`] && text[`spell_${r}_notes`].length > 0, `spell_${r}_notes populated`);
   } finally { restore(); }
+});
+
+/* --------------------------------------------------------------------- *
+ * Insecure-origin fallback download lifecycle (issue #17).
+ *
+ * On an insecure HTTP origin showSaveFilePicker is unavailable, so
+ * exportActorToPdf falls back to an <a download href="blob:…"> click. The
+ * click hands the download to the browser asynchronously: with "Ask where
+ * to save each file" the save dialog can stay open for minutes and the blob
+ * is only read once the user confirms. These tests pin the bounded-lifetime
+ * contract:
+ *   - the blob URL is NOT revoked on a short timer (regression guard for
+ *     the old 1s revokeObjectURL that killed the download mid-dialog), and
+ *   - it IS eventually revoked — on pagehide, or by the generous fallback
+ *     timer — so a GM exporting a party cannot accumulate every PDF in
+ *     memory for the document's lifetime (the leak PR #18 introduced), and
+ *   - the anchor keeps the correct `download` filename and stays in the DOM
+ *     until release (browsers that re-consult the initiating element when
+ *     the save dialog opens still find it).
+ * --------------------------------------------------------------------- */
+
+/** Stub everything the fallback path touches and capture the download
+ * lifecycle: blob URLs created/revoked, the anchor, window listeners, and
+ * every timer scheduled while the stub is active. */
+function installExportHarness() {
+  const templateBytes = fs.readFileSync(fileURLToPath(
+    new URL("../assets/pdf/shadowdark-character-sheet.pdf", import.meta.url)));
+  const pdfLibUrl = new URL(
+    "../scripts/pdf-export/lib/pdf-lib.esm.min.js", import.meta.url).href;
+  const restoreActorGlobals = installGlobals(makeActor().uuidMap);
+
+  const capture = {
+    timers: [],          // { cb, delay, cleared } in scheduling order
+    revokeCalls: [],     // blob URLs passed to URL.revokeObjectURL
+    createdUrls: [],     // blob URLs returned by URL.createObjectURL
+    listeners: {},       // window event name -> [handlers]
+    anchor: null,        // the <a> handed to document.createElement
+    appendedToBody: false,
+  };
+
+  const prev = {
+    foundry: globalThis.foundry,
+    fetch: globalThis.fetch,
+    window: globalThis.window,
+    ui: globalThis.ui,
+    document: globalThis.document,
+    setTimeout: globalThis.setTimeout,
+    clearTimeout: globalThis.clearTimeout,
+    createObjectURL: URL.createObjectURL,
+    revokeObjectURL: URL.revokeObjectURL,
+  };
+
+  globalThis.foundry = { utils: { getRoute: (path) => (
+    path.endsWith("pdf-lib.esm.min.js") ? pdfLibUrl : "sde-template://character-sheet"
+  ) } };
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    arrayBuffer: async () => templateBytes.buffer.slice(
+      templateBytes.byteOffset,
+      templateBytes.byteOffset + templateBytes.byteLength,
+    ),
+  });
+  globalThis.window = {}; // insecure HTTP origin: no showSaveFilePicker
+  globalThis.window.addEventListener = (type, fn) => {
+    (capture.listeners[type] ??= []).push(fn);
+  };
+  globalThis.window.removeEventListener = (type, fn) => {
+    capture.listeners[type] = (capture.listeners[type] ?? []).filter((f) => f !== fn);
+  };
+  globalThis.ui = { notifications: { info() {}, error(message) { throw new Error(message); } } };
+  globalThis.document = {
+    body: {
+      appendChild(el) { el.isConnected = true; capture.appendedToBody = true; },
+    },
+    createElement(tag) {
+      assert.equal(tag, "a", "the fallback downloads through an anchor");
+      const anchor = {
+        href: "", download: "", isConnected: false, removed: false,
+        click() {}, // the real click is browser-side; nothing to observe here
+        remove() { this.isConnected = false; this.removed = true; },
+      };
+      capture.anchor = anchor;
+      return anchor;
+    },
+  };
+  globalThis.setTimeout = (cb, delay) => {
+    const t = { cb, delay, cleared: false };
+    capture.timers.push(t);
+    // pdf-lib's internals schedule 0-delay macrotasks while parsing the
+    // template's fonts; run those on the real timer so loading completes.
+    // Everything else (the release fallback, and any regressive short
+    // revoke timer) is recorded but never executed — the tests drive it.
+    if (delay === 0) prev.setTimeout(cb, 0);
+    return t;
+  };
+  globalThis.clearTimeout = (t) => { t.cleared = true; };
+  URL.createObjectURL = () => {
+    const url = "blob:http://192.168.0.106:30000/generated-character-sheet";
+    capture.createdUrls.push(url);
+    return url;
+  };
+  URL.revokeObjectURL = (url) => capture.revokeCalls.push(url);
+
+  return {
+    capture,
+    restore() {
+      restoreActorGlobals();
+      globalThis.foundry = prev.foundry;
+      globalThis.fetch = prev.fetch;
+      globalThis.window = prev.window;
+      globalThis.ui = prev.ui;
+      globalThis.document = prev.document;
+      globalThis.setTimeout = prev.setTimeout;
+      globalThis.clearTimeout = prev.clearTimeout;
+      URL.createObjectURL = prev.createObjectURL;
+      URL.revokeObjectURL = prev.revokeObjectURL;
+    },
+  };
+}
+
+test("insecure-origin fallback: no short revoke timer; the blob is untouched right after export", async () => {
+  const h = installExportHarness();
+  try {
+    await exportActorToPdf(makeActor());
+    assert.equal(h.capture.revokeCalls.length, 0,
+      "blob URL must not be revoked within a short window of the click");
+    // Exactly one long-lived release path is scheduled: the generous
+    // fallback. (pdf-lib's internal 0-delay macrotasks are recorded too, so
+    // filter them out.)
+    const release = h.capture.timers.filter((t) => t.delay >= 60 * 1000);
+    assert.equal(release.length, 1, "exactly one release timer scheduled");
+    assert.ok(release[0].delay >= 5 * 60 * 1000,
+      `fallback is generous, not a 1s timer (got ${release[0].delay}ms)`);
+    assert.equal(release[0].cleared, false);
+    const short = h.capture.timers.filter((t) => t.delay > 0 && t.delay < 60 * 1000);
+    assert.deepEqual(short.map((t) => t.delay), [],
+      "no short revoke timer scheduled — the old 1s revokeObjectURL would show up here");
+  } finally { h.restore(); }
+});
+
+test("pagehide releases the blob URL and removes the anchor", async () => {
+  const h = installExportHarness();
+  try {
+    await exportActorToPdf(makeActor());
+    const [url] = h.capture.createdUrls;
+    assert.ok(url.startsWith("blob:"));
+    assert.equal(h.capture.revokeCalls.length, 0, "blob is live while the dialog may be open");
+    assert.equal(h.capture.listeners.pagehide.length, 1, "pagehide release registered");
+
+    h.capture.listeners.pagehide[0](); // the document is going away
+
+    assert.deepEqual(h.capture.revokeCalls, [url], "blob URL revoked on pagehide");
+    assert.equal(h.capture.anchor.isConnected, false, "anchor removed once released");
+    assert.equal(h.capture.anchor.removed, true);
+    const release = h.capture.timers.find((t) => t.delay >= 60 * 1000);
+    assert.equal(release.cleared, true, "fallback timer cancelled by pagehide");
+    assert.equal(h.capture.listeners.pagehide.length, 0, "release unregistered itself");
+  } finally { h.restore(); }
+});
+
+test("generous fallback timer releases the blob when pagehide never fires", async () => {
+  const h = installExportHarness();
+  try {
+    await exportActorToPdf(makeActor());
+    const [url] = h.capture.createdUrls;
+    assert.equal(h.capture.revokeCalls.length, 0);
+    const release = h.capture.timers.find((t) => t.delay >= 60 * 1000);
+
+    release.cb(); // frozen tab: no pagehide, fallback fires
+
+    assert.deepEqual(h.capture.revokeCalls, [url], "fallback timer revokes the blob");
+    assert.equal(h.capture.anchor.isConnected, false, "anchor removed by the fallback too");
+    assert.equal(h.capture.listeners.pagehide.length, 0, "release unregistered itself");
+
+    release.cb(); // release is idempotent
+    assert.equal(h.capture.revokeCalls.length, 1);
+  } finally { h.restore(); }
+});
+
+test("anchor carries the correct download filename and stays in the DOM until release", async () => {
+  const h = installExportHarness();
+  try {
+    await exportActorToPdf(makeActor()); // default actor name: Naugrim
+    assert.equal(h.capture.anchor.download, "Naugrim - Shadowdark.pdf");
+    assert.equal(h.capture.anchor.href, h.capture.createdUrls[0]);
+    assert.equal(h.capture.appendedToBody, true, "anchor is in the document when clicked");
+    assert.equal(h.capture.anchor.isConnected, true,
+      "anchor stays in the DOM after the click — the save dialog can re-consult it");
+    assert.equal(h.capture.anchor.removed, false);
+    assert.equal(h.capture.revokeCalls.length, 0);
+  } finally { h.restore(); }
 });

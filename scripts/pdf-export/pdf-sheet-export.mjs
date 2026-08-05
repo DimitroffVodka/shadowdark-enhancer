@@ -18,6 +18,16 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 const TEMPLATE_PATH = `modules/${MODULE_ID}/assets/pdf/shadowdark-character-sheet.pdf`;
 const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min.js`;
 
+// How long a fallback-download blob URL may outlive the click before we
+// force-release it. The real release happens on pagehide; this cap only
+// exists for pages that never fire pagehide (frozen tabs, process death),
+// so it is deliberately generous — a "where to save" dialog can legitimately
+// stay open for minutes. It still bounds the leak: without it, every
+// exported PDF would stay in memory for the document's lifetime (the leak
+// PR #18 introduced by deleting the revoke entirely), which a GM exporting
+// a whole party would accumulate.
+const BLOB_REVOKE_FALLBACK_MS = 10 * 60 * 1000;
+
 let _pdflib = null;
 /** Lazy-load the vendored pdf-lib ESM bundle (only when the user exports). */
 async function getPdfLib() {
@@ -344,8 +354,31 @@ export async function exportActorToPdf(actor) {
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      // a.click() hands the download to the browser asynchronously. With
+      // Chrome's "Ask where to save each file" the save dialog can stay open
+      // for minutes and the blob is only read once the user confirms — the
+      // old 1s revokeObjectURL timer killed the download mid-dialog (a
+      // "Check internet connection" error on Save). Never revoking (PR #18's
+      // approach) instead leaks every exported PDF for the document's
+      // lifetime. Bound it: release on pagehide (a save dialog cannot
+      // outlive the page), with the generous fallback above for pages that
+      // never fire pagehide. The anchor stays in the DOM until release so
+      // browsers that re-consult the initiating element when the save dialog
+      // opens still find it with its download attribute.
+      let released = false;
+      let fallback;
+      const release = () => {
+        if (released) return;
+        released = true;
+        URL.revokeObjectURL(url);
+        if (a.isConnected) a.remove();
+        window.removeEventListener("pagehide", release);
+        clearTimeout(fallback);
+      };
+      window.addEventListener("pagehide", release);
+      fallback = setTimeout(release, BLOB_REVOKE_FALLBACK_MS);
+
       ui.notifications?.info(`Downloaded ${filename}`);
     };
 
