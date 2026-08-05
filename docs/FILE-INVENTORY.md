@@ -78,8 +78,8 @@
 | `movement-tracker.mjs` | 796 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 509 | Per-combatant hover action HUD. |
-| `crawl-turn-core.mjs` | 121 | **TODO: describe** |
-| `movement-lock-core.mjs` | 78 | **TODO: describe** |
+| `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` / `canAdvanceOocTurn()` (owner of the current turn-holder, non-GM, order active) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
+| `movement-lock-core.mjs` | 78 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — in combat, only a non-current combatant is blocked; out of combat, only once every crawl member has rolled and a turn-holder exists. GMs and non-members are never blocked. |
 
 ### 3.4 `scripts/crawl-bar/`
 
