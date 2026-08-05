@@ -74,9 +74,16 @@ An unrecognised or missing value also falls back to the combat default.
 |---|---|---|
 | Enforce out-of-combat movement budget | **off** | Crawl moves beyond the budget are refused before they commit |
 | Enforce combat movement budget | **off** | Combat moves beyond the remaining movement are refused |
+| Lock movement out of turn | **off** | During a combat, only the current combatant's token may move; every other combatant's move is refused |
 
 Combat enforcement is off by default on purpose, because Shadowdark combat
 traditionally runs on player honesty and not on hard limits.
+
+Unlike the distance-based refusals above, **Lock movement out of turn** is not
+about how far a token moves — it refuses *any* positional move by a combatant
+whose turn it isn't. GMs are never locked, and neither are tokens that aren't
+combatants in the running combat, so scenery and GM-placed tokens keep moving
+freely.
 
 When a move is refused you get a warning naming the actor and the feet remaining
 (`Sneaky Pete: only 15ft remaining.`), the token does not move, and its budget is
