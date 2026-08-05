@@ -315,12 +315,11 @@ test("template field-contract: every produced id exists in the manifest; all 16 
  * Insecure-origin fallback download lifecycle (issue #17).
  *
  * On an insecure HTTP origin showSaveFilePicker is unavailable, so
- * exportActorToPdf falls back first to a server upload (FilePicker.upload)
- * and then to an <a download href="blob:…"> click. The click hands the
- * download to the browser asynchronously: with "Ask where to save each
- * file" the save dialog can stay open for minutes and the blob is only read
- * once the user confirms. These tests pin the BLOB tier's bounded-lifetime
- * contract (the server tier has its own block below):
+ * exportActorToPdf ends on an <a download href="blob:…"> click. The click
+ * hands the download to the browser asynchronously: with "Ask where to
+ * save each file" the save dialog can stay open for minutes and the blob
+ * is only read once the user confirms. These tests pin the blob tier's
+ * bounded-lifetime contract:
  *   - the blob URL is NOT revoked on a short timer (regression guard for
  *     the old 1s revokeObjectURL that killed the download mid-dialog), and
  *   - it IS eventually revoked — on pagehide, or by the generous fallback
@@ -332,12 +331,11 @@ test("template field-contract: every produced id exists in the manifest; all 16 
  * --------------------------------------------------------------------- */
 
 /** Stub everything the fallback path touches and capture the download
- * lifecycle: server-upload attempts, blob URLs created/revoked, the anchor,
- * window listeners, chat cards, and every timer scheduled while the stub is
- * active. By default FilePicker.upload is DENIED (returns false, exactly
- * what Foundry v14 does for a user without FILES_UPLOAD) so the blob tier
- * runs; pass `upload` to make the server tier succeed. */
-function installExportHarness({ upload = async () => false, exportFolder = null, saveFilePicker = false, createDir = async () => {} } = {}) {
+ * lifecycle: blob URLs created/revoked, the anchor, window listeners,
+ * picker options, and every timer scheduled while the stub is active.
+ * `saveFilePicker: true` makes the native picker available (secure
+ * context); otherwise the test runs the insecure-origin blob path. */
+function installExportHarness({ saveFilePicker = false } = {}) {
   const templateBytes = fs.readFileSync(fileURLToPath(
     new URL("../assets/pdf/shadowdark-character-sheet.pdf", import.meta.url)));
   const pdfLibUrl = new URL(
@@ -351,9 +349,6 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
     listeners: {},       // window event name -> [handlers]
     anchor: null,        // the <a> handed to document.createElement
     appendedToBody: false,
-    uploads: [],         // { source, dir, file } server-upload attempts
-    createdDirs: [],     // FilePicker.createDirectory targets, in order
-    chatMessages: [],    // ChatMessage.create payloads
     pickerOptions: null, // showSaveFilePicker options, when exercised
     warns: [],           // console.warn payloads while the harness is active
   };
@@ -367,8 +362,6 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
     setTimeout: globalThis.setTimeout,
     clearTimeout: globalThis.clearTimeout,
     game: globalThis.game,
-    FilePicker: globalThis.FilePicker,
-    ChatMessage: globalThis.ChatMessage,
     consoleWarn: console.warn,
     createObjectURL: URL.createObjectURL,
     revokeObjectURL: URL.revokeObjectURL,
@@ -403,27 +396,10 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
   globalThis.ui = { notifications: { info() {}, error(message) { throw new Error(message); } } };
   globalThis.game = {
     user: { id: "tester" },
-    settings: {
-      get: (_moduleId, key) => (key === "pdfExportFolder" ? exportFolder : null),
-    },
     i18n: {
       localize: (k) => k,
       format: (k, data) => String(k).replace(/\{(\w+)\}/g, (_, n) => data[n]),
     },
-  };
-  globalThis.FilePicker = {
-    createDirectory: async (source, target) => {
-      capture.createdDirs.push(target);
-      await createDir(source, target);
-    },
-    upload: async (source, dir, file) => {
-      capture.uploads.push({ source, dir, file });
-      return upload(source, dir, file);
-    },
-  };
-  globalThis.ChatMessage = {
-    getSpeaker: () => ({ id: "speaker" }),
-    create: async (data) => { capture.chatMessages.push(data); return data; },
   };
   console.warn = (...args) => { capture.warns.push(args.map(String).join(" ")); };
   globalThis.document = {
@@ -471,8 +447,6 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
       globalThis.setTimeout = prev.setTimeout;
       globalThis.clearTimeout = prev.clearTimeout;
       globalThis.game = prev.game;
-      globalThis.FilePicker = prev.FilePicker;
-      globalThis.ChatMessage = prev.ChatMessage;
       console.warn = prev.consoleWarn;
       URL.createObjectURL = prev.createObjectURL;
       URL.revokeObjectURL = prev.revokeObjectURL;
@@ -553,164 +527,12 @@ test("anchor carries the correct download filename and stays in the DOM until re
   } finally { h.restore(); }
 });
 
-/* --------------------------------------------------------------------- *
- * Server-upload tier (issue #17 follow-up).
- *
- * The blob anchor is the LAST resort. Before it, exportActorToPdf tries
- * Foundry's own server upload (FilePicker.upload — an ordinary HTTP POST
- * that needs no secure context, so it works on plain-HTTP origins):
- *   - tier 2 runs when showSaveFilePicker is absent, and its success means
- *     NO blob URL is ever created,
- *   - the upload carries a TIMESTAMPED filename (v14 cannot overwrite a
- *     non-media file, so a stable name would fail on the second export)
- *     into the configured folder,
- *   - when the upload is denied (FilePicker.upload returns false for a user
- *     without FILES_UPLOAD — verified v14 behaviour), tier 3 takes over,
- *   - tiers 1 and 3 keep the clean undated `<Name> - Shadowdark.pdf`.
- * --------------------------------------------------------------------- */
-
-const STAMPED_NAME = /^Naugrim - \d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf$/;
-
-test("server-upload tier is used when showSaveFilePicker is absent, with a download card", async () => {
-  const h = installExportHarness({
-    // Echo the real uploaded name back as the served path, like Foundry does.
-    upload: async (_s, _d, file) => ({ path: `assets/shadowdark-enhancer/exports/${encodeURIComponent(file.name)}` }),
-  });
-  try {
-    await exportActorToPdf(makeActor());
-    assert.equal(h.capture.uploads.length, 1, "server upload attempted");
-    assert.deepEqual(h.capture.createdDirs,
-      ["assets", "assets/shadowdark-enhancer", "assets/shadowdark-enhancer/exports"],
-      "export folder ensured one segment at a time before uploading");
-    assert.equal(h.capture.createdUrls.length, 0,
-      "no blob URL created — the server tier succeeded");
-    assert.equal(h.capture.chatMessages.length, 1, "save card posted");
-    const card = h.capture.chatMessages[0];
-    assert.match(card.content,
-      /href="assets\/shadowdark-enhancer\/exports\/Naugrim%20-%20\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf"/,
-      "card links the same-origin file (timestamped upload name)");
-    assert.match(card.content, /download="Naugrim - \d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf"/,
-      "link downloads with the timestamped filename");
-    assert.deepEqual(card.whisper, ["tester"], "card whispered to the exporter");
-  } finally { h.restore(); }
-});
-
-test("server upload receives a timestamped filename in the configured folder", async () => {
-  const h = installExportHarness({
-    exportFolder: "assets/custom-exports",
-    upload: async (_s, _d, file) => ({ path: `assets/custom-exports/${encodeURIComponent(file.name)}` }),
-  });
-  try {
-    await exportActorToPdf(makeActor()); // default actor name: Naugrim
-    assert.equal(h.capture.uploads.length, 1);
-    const { source, dir, file } = h.capture.uploads[0];
-    assert.equal(source, "data");
-    assert.equal(dir, "assets/custom-exports", "folder comes from the world setting");
-    assert.match(file.name, STAMPED_NAME, `upload name is timestamped, got "${file.name}"`);
-    assert.equal(file.type, "application/pdf");
-    assert.ok(file.size > 1000, "carries the generated PDF bytes");
-  } finally { h.restore(); }
-});
-
-test("tier 2 uploads are unique across two exports of the same actor", async () => {
-  const h = installExportHarness({
-    upload: async (_s, _d, file) => ({ path: `assets/shadowdark-enhancer/exports/${encodeURIComponent(file.name)}` }),
-  });
-  try {
-    await exportActorToPdf(makeActor());
-    await exportActorToPdf(makeActor());
-    assert.equal(h.capture.uploads.length, 2);
-    const names = h.capture.uploads.map((u) => u.file.name);
-    for (const n of names)
-      assert.match(n, STAMPED_NAME, `upload name is timestamped, got "${n}"`);
-    assert.notEqual(names[0], names[1],
-      "two exports of the same actor never collide on the server");
-  } finally { h.restore(); }
-});
-
-test("stampFilename: sortable, colon-free, millisecond precision, deterministic on the date", () => {
-  const { stampFilename } = _internals;
-  const d = new Date(2026, 7, 4, 14, 37, 12, 123); // 2026-08-04 14:37:12.123
-  assert.equal(stampFilename("Naugrim", d), "Naugrim - 2026-08-04_14-37-12-123.pdf");
-  // single-digit components are zero-padded
-  const early = new Date(2026, 0, 5, 9, 7, 3, 9);
-  assert.equal(stampFilename("Bazogo", early), "Bazogo - 2026-01-05_09-07-03-009.pdf");
-  // same date -> same name; 1 ms apart -> different (uniqueness, no wall clock)
-  assert.equal(stampFilename("Naugrim", d), stampFilename("Naugrim", new Date(d.getTime())));
-  assert.notEqual(stampFilename("Naugrim", d), stampFilename("Naugrim", new Date(d.getTime() + 1)));
-  assert.match(stampFilename("Naugrim", d), /^Naugrim - \d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}-\d{3}\.pdf$/);
-  assert.doesNotMatch(stampFilename("Naugrim", d), /:/, "colon-free for Windows filenames");
-});
-
 test("tier 1 save picker keeps the clean, undated filename", async () => {
   const h = installExportHarness({ saveFilePicker: true });
   try {
     await exportActorToPdf(makeActor());
     assert.equal(h.capture.pickerOptions.suggestedName, "Naugrim - Shadowdark.pdf",
-      "native save dialog proposes the clean name, not a timestamped one");
-    assert.equal(h.capture.uploads.length, 0, "picker path returns without uploading");
+      "native save dialog proposes the clean name");
     assert.equal(h.capture.createdUrls.length, 0, "picker path returns without a blob");
-  } finally { h.restore(); }
-});
-
-/* --------------------------------------------------------------------- *
- * Export-folder directory walk (issue #17, third round).
- *
- * v14's FilePicker.createDirectory is NON-RECURSIVE and rejects when the
- * parent is missing — a single call for "assets/shadowdark-enhancer/exports"
- * dies with ENOENT unless "assets/shadowdark-enhancer" already exists. That
- * is why tier 2 silently fell through to the browser download on every
- * fresh install. These tests pin the per-segment walk and the narrowed
- * swallow.
- * --------------------------------------------------------------------- */
-
-test("multi-segment export folder is ensured one segment at a time, in order", async () => {
-  const h = installExportHarness({
-    exportFolder: "assets/shadowdark-enhancer/exports",
-    upload: async (_s, _d, file) => ({ path: `assets/shadowdark-enhancer/exports/${encodeURIComponent(file.name)}` }),
-  });
-  try {
-    await exportActorToPdf(makeActor());
-    assert.deepEqual(h.capture.createdDirs,
-      ["assets", "assets/shadowdark-enhancer", "assets/shadowdark-enhancer/exports"],
-      "every path segment is created in order — a single leaf-only call fails on a bare Data/");
-    assert.equal(h.capture.uploads.length, 1, "upload still attempted after the dirs are ensured");
-  } finally { h.restore(); }
-});
-
-test("createDirectory failures: EEXIST and permission denials stay silent, unexpected ones are logged", async () => {
-  const h = installExportHarness({
-    exportFolder: "assets/deep/nested/exports",
-    createDir: async (_s, target) => {
-      // EEXIST = already exists — the common case, must stay silent.
-      if (target === "assets/deep/nested") throw new Error("EEXIST: file already exists, mkdir '...'");
-      // A non-admin denial — the designed fall-to-tier-3 path, also silent.
-      if (target === "assets/deep/nested/exports") throw new Error("You may not create directories in this location");
-      // A missing parent mid-walk is a real problem — must be logged.
-      if (target === "assets/deep") throw new Error("ENOENT: no such file or directory, mkdir '...'");
-    },
-    upload: async (_s, _d, file) => ({ path: `assets/deep/nested/exports/${encodeURIComponent(file.name)}` }),
-  });
-  try {
-    await exportActorToPdf(makeActor());
-    assert.deepEqual(h.capture.createdDirs,
-      ["assets", "assets/deep", "assets/deep/nested", "assets/deep/nested/exports"],
-      "every segment is still attempted even when earlier ones fail");
-    assert.equal(h.capture.warns.length, 1, "only the genuinely unexpected ENOENT is logged");
-    assert.match(h.capture.warns[0], /assets\/deep/, "the warning names the failing segment");
-    assert.doesNotMatch(h.capture.warns[0], /EEXIST|may not create directories/);
-    assert.equal(h.capture.uploads.length, 1, "the upload still runs — its result, not the dir walk, decides success");
-  } finally { h.restore(); }
-});
-
-test("blob tier is the last resort when the server upload is denied (no FILES_UPLOAD)", async () => {
-  const h = installExportHarness(); // default: FilePicker.upload → false
-  try {
-    await exportActorToPdf(makeActor());
-    assert.equal(h.capture.uploads.length, 1, "server upload attempted first");
-    assert.equal(h.capture.createdUrls.length, 1, "fell through to the blob download");
-    assert.equal(h.capture.anchor.download, "Naugrim - Shadowdark.pdf");
-    assert.equal(h.capture.anchor.isConnected, true, "blob anchor kept in the DOM");
-    assert.equal(h.capture.chatMessages.length, 0, "no save card when the upload failed");
   } finally { h.restore(); }
 });

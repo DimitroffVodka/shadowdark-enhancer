@@ -378,13 +378,6 @@
   "SDE.settings.renownOnLevelUp.name": "Renown on level-up",
   "SDE.settings.renownOnLevelUp.hint": "If on, a player character gains a point of renown each time their level goes up. Reaching level 1 is excluded, since character creation writes it. Every other renown trigger stays a GM call through the Renown dialog.",
 
-  "SDE.settings.pdfExportFolder.name": "PDF export folder",
-  "SDE.settings.pdfExportFolder.hint": "Where the PDF export fallback saves character sheets when the browser cannot show a native save dialog (Foundry over plain HTTP). Relative to the Foundry user data folder, outside the module folder. Server-side exports are timestamped and accumulate here indefinitely — the Foundry host must clear this folder periodically; the module cannot delete files. The saved file is also offered as a clickable download link in a whispered chat card. Players without the upload permission get a direct browser download instead.",
-
-  "SDE.pdfExport.cardTitle": "PDF exported to server",
-  "SDE.pdfExport.savedTo": "Saved to {path}",
-  "SDE.pdfExport.download": "Download {name}",
-
   "SDE.mishap.rolled": "{name} rolled a mishap on a Tier {tier} spell — {tableName}:",
 
   "SDE.prayerRoll.title": "Pray to {deity}",

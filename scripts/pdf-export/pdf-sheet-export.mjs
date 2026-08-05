@@ -14,7 +14,6 @@
  * (that enriches notes into a live document, a system-side XSS sink).
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { esc } from "../shared/esc.mjs";
 
 const TEMPLATE_PATH = `modules/${MODULE_ID}/assets/pdf/shadowdark-character-sheet.pdf`;
 const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min.js`;
@@ -28,12 +27,6 @@ const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min
 // PR #18 introduced by deleting the revoke entirely), which a GM exporting
 // a whole party would accumulate.
 const BLOB_REVOKE_FALLBACK_MS = 10 * 60 * 1000;
-
-// Where the server-upload fallback saves exported PDFs, when the GM has not
-// configured a different folder (game setting `pdfExportFolder`). Relative
-// to the Foundry user data folder; lives OUTSIDE the module dir so module
-// updates never wipe it and Foundry never warns about module-dir writes.
-const DEFAULT_PDF_EXPORT_DIR = "assets/shadowdark-enhancer/exports";
 
 let _pdflib = null;
 /** Lazy-load the vendored pdf-lib ESM bundle (only when the user exports). */
@@ -345,109 +338,22 @@ export async function fillActorPdf(actor) {
 
 /* ------------------------------------------------------------------- save */
 
-const pad = (n, w = 2) => String(n).padStart(w, "0");
-
-/** Tier-2 upload filename: `<Actor Name> - 2026-08-04_14-37-12-123.pdf`.
+/** Export a character sheet as a filled PDF. `showSaveFilePicker` when the
+ * browser can offer a native "Save As"; otherwise a plain blob download.
  *
- * Server-side exports cannot overwrite — v14's Files.upload only permits
- * overwriting media files, and a PDF is not media — so a stable name would
- * fail on the second export of the same character. Stamping every upload
- * (no clean-name-first attempt: that would make naming inconsistent and
- * still accumulate) gives each export a unique, sortable, colon-free
- * (Windows-safe) name with millisecond precision. The actor name leads so
- * the folder sorts and browses sensibly. Date is injectable for tests;
- * production calls it with no argument.
+ * WHY THE BLOB PATH LOOKS LIKE THIS (do not re-derive):
+ * - `showSaveFilePicker` is secure-context-only, so a plain-HTTP game always
+ *   takes this path.
+ * - The `download` attribute is what routes a blob: URL to the download
+ *   manager instead of opening it in the PDF viewer — verified empirically;
+ *   without the attribute the same URL navigates.
+ * - The revoke must not be on a short timer: a "where to save" dialog can
+ *   outlive it and the save then fails with a network error. FileSaver.js
+ *   uses 40 s and still has this bug at the margin; `pagehide` covers any
+ *   dialog duration.
+ * - This is the same mechanism sheet-export and every other Foundry export
+ *   module uses via FileSaver.js, minus the legacy branches.
  */
-function stampFilename(name, date = new Date()) {
-  const stamp = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-    + `_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}-${pad(date.getMilliseconds(), 3)}`;
-  return `${name} - ${stamp}.pdf`;
-}
-
-/** Create every path segment of the export folder in turn. v14's
- * FilePicker.createDirectory is NON-RECURSIVE (mkdirSync without
- * recursive:true) and rejects when the parent is missing — a single call
- * for "assets/shadowdark-enhancer/exports" dies with ENOENT unless
- * "assets/shadowdark-enhancer" already exists on disk (which is exactly
- * why tier 2 silently fell through to the browser download on every fresh
- * install). Walking the segments makes ANY configured folder work from a
- * bare Data/.
- *
- * Per-segment failures are still swallowed — the common case genuinely is
- * "already exists" — but the swallow is NARROW: only EEXIST and the
- * designed non-admin denials stay silent; anything else (a missing parent
- * mid-walk, a path that escapes Data/, …) is a real configuration problem
- * and gets logged instead of hidden. The UPLOAD's own result remains the
- * success signal either way.
- */
-async function ensureUploadDir(dir) {
-  let cur = "";
-  for (const part of String(dir).split("/").filter(Boolean)) {
-    cur = cur ? `${cur}/${part}` : part;
-    try {
-      await FilePicker.createDirectory("data", cur);
-    } catch (err) {
-      const msg = String(err?.message ?? err);
-      const expected = msg.includes("EEXIST")                    // already exists
-        || msg.includes("may not create directories")           // non-admin user
-        || msg.includes("do not have permission to browse");    // no FILES_BROWSE
-      if (!expected) {
-        console.warn(`${MODULE_ID} | PDF export: could not ensure folder segment "${cur}"`, err);
-      }
-    }
-  }
-}
-
-/**
- * Tier 2 fallback: save the PDF into Foundry's own user-data folder via the
- * normal server upload endpoint. That is an ordinary HTTP POST — it needs no
- * secure context, so it works on the plain-HTTP LAN origins most Foundry
- * tables actually play on, and the filename is whatever we pass (the caller
- * passes a timestamped one — see stampFilename). Returns true on success;
- * false when the upload cannot happen (no FILES_UPLOAD permission, …) so
- * the caller falls through to the blob tier. FilePicker.upload does NOT
- * throw on a denied upload — it shows a notification (suppressed here) and
- * returns false.
- */
-async function uploadPdfToServer(bytes, filename) {
-  try {
-    const exportDir = (game.settings.get(MODULE_ID, "pdfExportFolder") || DEFAULT_PDF_EXPORT_DIR)
-      .replace(/\/+$/, "");
-    await ensureUploadDir(exportDir);
-    const blob = new Blob([bytes], { type: "application/pdf" });
-    const file = new File([blob], filename, { type: "application/pdf" });
-    const result = await FilePicker.upload("data", exportDir, file, {}, { notify: false });
-    if (!result || !result.path) return false;
-    offerUploadedPdf(result.path, filename);
-    return true;
-  } catch (err) {
-    console.warn(`${MODULE_ID} | PDF export: server upload failed, downloading instead`, err);
-    return false;
-  }
-}
-
-/** Tell the user where the server copy landed, and give them a clickable
- * download link. `result.path` is a normal same-origin HTTP URL, so a plain
- * `<a download>` performs a regular GET and downloads with the right
- * filename on any origin (no blob, no secure context). Whispered chat card
- * rather than a toast — the module's UX convention, and a party export
- * shouldn't spam the table. */
-function offerUploadedPdf(path, filename) {
-  let prettyPath;
-  try { prettyPath = decodeURIComponent(path); } catch { prettyPath = path; }
-  const link = `<a href="${esc(path)}" download="${esc(filename)}">`
-    + `${esc(game.i18n.format("SDE.pdfExport.download", { name: filename }))}</a>`;
-  const content = `<div class="sde-pdf-export-card">`
-    + `<h4>${esc(game.i18n.localize("SDE.pdfExport.cardTitle"))}</h4>`
-    + `<p>${esc(game.i18n.format("SDE.pdfExport.savedTo", { path: prettyPath }))}</p>`
-    + `<p>${link}</p></div>`;
-  ChatMessage.create({ speaker: ChatMessage.getSpeaker(), whisper: [game.user.id], content })
-    .catch((e) => {
-      console.warn(`${MODULE_ID} | PDF export: save card failed`, e);
-      ui.notifications?.info(`Saved ${filename}`);
-    });
-}
-
 export async function exportActorToPdf(actor) {
   if (!actor) return;
   ui.notifications?.info(`Exporting ${actor.name} to PDF…`);
@@ -456,9 +362,6 @@ export async function exportActorToPdf(actor) {
     const safe = actor.name.replace(/[\s\\/:*?"<>|]+/g, "_").replace(/^_+|_+$/g, "") || "character";
     const filename = `${safe} - Shadowdark.pdf`;
 
-    /** Tier 3 — last resort: plain browser download of the blob. Only used
-     * when there is no native save picker (insecure origin) AND the server
-     * upload could not happen (no FILES_UPLOAD permission). */
     const blobDownload = () => {
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
@@ -497,7 +400,7 @@ export async function exportActorToPdf(actor) {
 
     // Tier 1 — native "Save As" (Electron / Chromium / Edge). On anything
     // other than the user cancelling — SecurityError in a cross-origin
-    // iframe, expired user activation — fall through to the tiers below
+    // iframe, expired user activation — fall through to the blob download
     // rather than hard-failing.
     if (typeof window.showSaveFilePicker === "function") {
       try {
@@ -512,16 +415,9 @@ export async function exportActorToPdf(actor) {
         return;
       } catch (err) {
         if (err.name === "AbortError") return; // user cancelled
-        console.warn(`${MODULE_ID} | PDF export: save picker failed, trying server upload`, err);
+        console.warn(`${MODULE_ID} | PDF export: save picker failed, downloading instead`, err);
       }
     }
-
-    // Tier 2 — server upload (no secure context needed; requires
-    // FILES_UPLOAD, which players may not have — then tier 3 takes over).
-    // Server exports cannot overwrite (PDFs are non-media in v14), so the
-    // name is timestamped for uniqueness — tiers 1 and 3 keep the clean name
-    // because the user picks the destination there and no collision exists.
-    if (await uploadPdfToServer(bytes, stampFilename(safe))) return;
 
     blobDownload();
   } catch (err) {
@@ -536,7 +432,6 @@ export async function exportActorToPdf(actor) {
 export const _internals = {
   htmlToText, spellSummary, itemSlotCount, isFreeCarry, gearLine,
   rangeLabel, durationLabel, fmtMod, tightenBonus, tightenFormula,
-  stampFilename,
 };
 
 /* --------------------------------------------------------------- register */
