@@ -312,29 +312,20 @@ test("template field-contract: every produced id exists in the manifest; all 16 
 });
 
 /* --------------------------------------------------------------------- *
- * Insecure-origin fallback download lifecycle (issue #17).
+ * Insecure-origin fallback download (issue #17).
  *
  * On an insecure HTTP origin showSaveFilePicker is unavailable, so
- * exportActorToPdf ends on an <a download href="blob:…"> click. The click
- * hands the download to the browser asynchronously: with "Ask where to
- * save each file" the save dialog can stay open for minutes and the blob
- * is only read once the user confirms. These tests pin the blob tier's
- * bounded-lifetime contract:
- *   - the blob URL is NOT revoked on a short timer (regression guard for
- *     the old 1s revokeObjectURL that killed the download mid-dialog), and
- *   - it IS eventually revoked — on pagehide, or by the generous fallback
- *     timer — so a GM exporting a party cannot accumulate every PDF in
- *     memory for the document's lifetime (the leak PR #18 introduced), and
- *   - the anchor keeps the correct `download` filename and stays in the DOM
- *     until release (browsers that re-consult the initiating element when
- *     the save dialog opens still find it).
+ * exportActorToPdf ends on the vendored FileSaver.js `saveAs(blob, name)`
+ * call (module.json `scripts`). These tests pin the contract:
+ *   - saveAs receives an application/pdf blob and the clean
+ *     `<Name> - Shadowdark.pdf` filename, and
+ *   - tier 1 still gets the clean `suggestedName` and does not download.
  * --------------------------------------------------------------------- */
 
-/** Stub everything the fallback path touches and capture the download
- * lifecycle: blob URLs created/revoked, the anchor, window listeners,
- * picker options, and every timer scheduled while the stub is active.
- * `saveFilePicker: true` makes the native picker available (secure
- * context); otherwise the test runs the insecure-origin blob path. */
+/** Stub everything the export path touches and capture the saveAs call,
+ * picker options, and console warnings. `saveFilePicker: true` makes the
+ * native picker available (secure context); otherwise the test runs the
+ * insecure-origin FileSaver path. */
 function installExportHarness({ saveFilePicker = false } = {}) {
   const templateBytes = fs.readFileSync(fileURLToPath(
     new URL("../assets/pdf/shadowdark-character-sheet.pdf", import.meta.url)));
@@ -343,12 +334,7 @@ function installExportHarness({ saveFilePicker = false } = {}) {
   const restoreActorGlobals = installGlobals(makeActor().uuidMap);
 
   const capture = {
-    timers: [],          // { cb, delay, cleared } in scheduling order
-    revokeCalls: [],     // blob URLs passed to URL.revokeObjectURL
-    createdUrls: [],     // blob URLs returned by URL.createObjectURL
-    listeners: {},       // window event name -> [handlers]
-    anchor: null,        // the <a> handed to document.createElement
-    appendedToBody: false,
+    saveCalls: [],       // { blob, filename } passed to FileSaver's saveAs
     pickerOptions: null, // showSaveFilePicker options, when exercised
     warns: [],           // console.warn payloads while the harness is active
   };
@@ -358,13 +344,9 @@ function installExportHarness({ saveFilePicker = false } = {}) {
     fetch: globalThis.fetch,
     window: globalThis.window,
     ui: globalThis.ui,
-    document: globalThis.document,
-    setTimeout: globalThis.setTimeout,
-    clearTimeout: globalThis.clearTimeout,
     game: globalThis.game,
+    saveAs: globalThis.saveAs,
     consoleWarn: console.warn,
-    createObjectURL: URL.createObjectURL,
-    revokeObjectURL: URL.revokeObjectURL,
   };
 
   globalThis.foundry = { utils: { getRoute: (path) => (
@@ -387,12 +369,6 @@ function installExportHarness({ saveFilePicker = false } = {}) {
       };
     };
   }
-  globalThis.window.addEventListener = (type, fn) => {
-    (capture.listeners[type] ??= []).push(fn);
-  };
-  globalThis.window.removeEventListener = (type, fn) => {
-    capture.listeners[type] = (capture.listeners[type] ?? []).filter((f) => f !== fn);
-  };
   globalThis.ui = { notifications: { info() {}, error(message) { throw new Error(message); } } };
   globalThis.game = {
     user: { id: "tester" },
@@ -402,38 +378,9 @@ function installExportHarness({ saveFilePicker = false } = {}) {
     },
   };
   console.warn = (...args) => { capture.warns.push(args.map(String).join(" ")); };
-  globalThis.document = {
-    body: {
-      appendChild(el) { el.isConnected = true; capture.appendedToBody = true; },
-    },
-    createElement(tag) {
-      assert.equal(tag, "a", "the fallback downloads through an anchor");
-      const anchor = {
-        href: "", download: "", isConnected: false, removed: false,
-        click() {}, // the real click is browser-side; nothing to observe here
-        remove() { this.isConnected = false; this.removed = true; },
-      };
-      capture.anchor = anchor;
-      return anchor;
-    },
-  };
-  globalThis.setTimeout = (cb, delay) => {
-    const t = { cb, delay, cleared: false };
-    capture.timers.push(t);
-    // pdf-lib's internals schedule 0-delay macrotasks while parsing the
-    // template's fonts; run those on the real timer so loading completes.
-    // Everything else (the release fallback, and any regressive short
-    // revoke timer) is recorded but never executed — the tests drive it.
-    if (delay === 0) prev.setTimeout(cb, 0);
-    return t;
-  };
-  globalThis.clearTimeout = (t) => { t.cleared = true; };
-  URL.createObjectURL = () => {
-    const url = "blob:http://192.168.0.106:30000/generated-character-sheet";
-    capture.createdUrls.push(url);
-    return url;
-  };
-  URL.revokeObjectURL = (url) => capture.revokeCalls.push(url);
+  // FileSaver.js sets this global; the real implementation owns the blob
+  // lifecycle (its own 40 s revoke), so the tests only observe the call.
+  globalThis.saveAs = (blob, filename) => capture.saveCalls.push({ blob, filename });
 
   return {
     capture,
@@ -443,96 +390,33 @@ function installExportHarness({ saveFilePicker = false } = {}) {
       globalThis.fetch = prev.fetch;
       globalThis.window = prev.window;
       globalThis.ui = prev.ui;
-      globalThis.document = prev.document;
-      globalThis.setTimeout = prev.setTimeout;
-      globalThis.clearTimeout = prev.clearTimeout;
       globalThis.game = prev.game;
+      globalThis.saveAs = prev.saveAs;
       console.warn = prev.consoleWarn;
-      URL.createObjectURL = prev.createObjectURL;
-      URL.revokeObjectURL = prev.revokeObjectURL;
     },
   };
 }
 
-test("insecure-origin fallback: no short revoke timer; the blob is untouched right after export", async () => {
-  const h = installExportHarness();
-  try {
-    await exportActorToPdf(makeActor());
-    assert.equal(h.capture.revokeCalls.length, 0,
-      "blob URL must not be revoked within a short window of the click");
-    // Exactly one long-lived release path is scheduled: the generous
-    // fallback. (pdf-lib's internal 0-delay macrotasks are recorded too, so
-    // filter them out.)
-    const release = h.capture.timers.filter((t) => t.delay >= 60 * 1000);
-    assert.equal(release.length, 1, "exactly one release timer scheduled");
-    assert.ok(release[0].delay >= 5 * 60 * 1000,
-      `fallback is generous, not a 1s timer (got ${release[0].delay}ms)`);
-    assert.equal(release[0].cleared, false);
-    const short = h.capture.timers.filter((t) => t.delay > 0 && t.delay < 60 * 1000);
-    assert.deepEqual(short.map((t) => t.delay), [],
-      "no short revoke timer scheduled — the old 1s revokeObjectURL would show up here");
-  } finally { h.restore(); }
-});
-
-test("pagehide releases the blob URL and removes the anchor", async () => {
-  const h = installExportHarness();
-  try {
-    await exportActorToPdf(makeActor());
-    const [url] = h.capture.createdUrls;
-    assert.ok(url.startsWith("blob:"));
-    assert.equal(h.capture.revokeCalls.length, 0, "blob is live while the dialog may be open");
-    assert.equal(h.capture.listeners.pagehide.length, 1, "pagehide release registered");
-
-    h.capture.listeners.pagehide[0](); // the document is going away
-
-    assert.deepEqual(h.capture.revokeCalls, [url], "blob URL revoked on pagehide");
-    assert.equal(h.capture.anchor.isConnected, false, "anchor removed once released");
-    assert.equal(h.capture.anchor.removed, true);
-    const release = h.capture.timers.find((t) => t.delay >= 60 * 1000);
-    assert.equal(release.cleared, true, "fallback timer cancelled by pagehide");
-    assert.equal(h.capture.listeners.pagehide.length, 0, "release unregistered itself");
-  } finally { h.restore(); }
-});
-
-test("generous fallback timer releases the blob when pagehide never fires", async () => {
-  const h = installExportHarness();
-  try {
-    await exportActorToPdf(makeActor());
-    const [url] = h.capture.createdUrls;
-    assert.equal(h.capture.revokeCalls.length, 0);
-    const release = h.capture.timers.find((t) => t.delay >= 60 * 1000);
-
-    release.cb(); // frozen tab: no pagehide, fallback fires
-
-    assert.deepEqual(h.capture.revokeCalls, [url], "fallback timer revokes the blob");
-    assert.equal(h.capture.anchor.isConnected, false, "anchor removed by the fallback too");
-    assert.equal(h.capture.listeners.pagehide.length, 0, "release unregistered itself");
-
-    release.cb(); // release is idempotent
-    assert.equal(h.capture.revokeCalls.length, 1);
-  } finally { h.restore(); }
-});
-
-test("anchor carries the correct download filename and stays in the DOM until release", async () => {
+test("insecure-origin path hands saveAs an application/pdf blob and the clean filename", async () => {
   const h = installExportHarness();
   try {
     await exportActorToPdf(makeActor()); // default actor name: Naugrim
-    assert.equal(h.capture.anchor.download, "Naugrim - Shadowdark.pdf");
-    assert.equal(h.capture.anchor.href, h.capture.createdUrls[0]);
-    assert.equal(h.capture.appendedToBody, true, "anchor is in the document when clicked");
-    assert.equal(h.capture.anchor.isConnected, true,
-      "anchor stays in the DOM after the click — the save dialog can re-consult it");
-    assert.equal(h.capture.anchor.removed, false);
-    assert.equal(h.capture.revokeCalls.length, 0);
+    assert.equal(h.capture.saveCalls.length, 1, "FileSaver saveAs called exactly once");
+    const { blob, filename } = h.capture.saveCalls[0];
+    assert.equal(blob.type, "application/pdf", "blob keeps the PDF mime type");
+    assert.ok(blob.size > 1000, "blob carries the generated PDF bytes");
+    assert.equal(filename, "Naugrim - Shadowdark.pdf",
+      "clean undated filename — the download attribute FileSaver sets internally");
+    assert.equal(h.capture.pickerOptions, null, "no save picker on the insecure-origin path");
   } finally { h.restore(); }
 });
 
-test("tier 1 save picker keeps the clean, undated filename", async () => {
+test("tier 1 save picker keeps the clean, undated filename and does not download", async () => {
   const h = installExportHarness({ saveFilePicker: true });
   try {
     await exportActorToPdf(makeActor());
     assert.equal(h.capture.pickerOptions.suggestedName, "Naugrim - Shadowdark.pdf",
       "native save dialog proposes the clean name");
-    assert.equal(h.capture.createdUrls.length, 0, "picker path returns without a blob");
+    assert.equal(h.capture.saveCalls.length, 0, "picker path returns without a FileSaver download");
   } finally { h.restore(); }
 });
