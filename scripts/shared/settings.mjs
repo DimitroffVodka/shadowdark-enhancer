@@ -41,6 +41,15 @@ export function registerSettings() {
     default: false,
   });
 
+  game.settings.register(MODULE_ID, "lockMovementOutOfTurn", {
+    name: "SDE.settings.lockMovementOutOfTurn.name",
+    hint: "SDE.settings.lockMovementOutOfTurn.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
   // Portrait shown on the synthetic "Game Master" card in the crawl strip.
   // Empty = the default cowled/mystery icon. The GM can also set this by
   // clicking the GM card's portrait in the strip (opens a FilePicker).

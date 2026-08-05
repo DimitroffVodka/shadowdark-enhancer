@@ -53,6 +53,9 @@ export default [
         shadowdark: "readonly",
         jQuery: "readonly",
         $: "readonly",
+        // FileSaver.js (vendored at scripts/pdf-export/lib, loaded via
+        // module.json `scripts`) exposes saveAs globally.
+        saveAs: "readonly",
       },
     },
     rules: {

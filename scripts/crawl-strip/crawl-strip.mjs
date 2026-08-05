@@ -16,6 +16,7 @@ import { MovementTracker }  from "./movement-tracker.mjs";
 import { ICONS }            from "../shared/icons.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
+import { canAdvanceTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import {
   buildTabStripHTML,
   bindActionMenuEvents,
@@ -30,12 +31,70 @@ const STRIP_ID = "shadowdark-enhancer-strip";
  */
 export const LUCK_QUERY = `${MODULE_ID}.luck`;
 
+/**
+ * The authenticated player→GM channel for combat turn advances. A player may
+ * only ever ask the GM to advance ONE turn, and only while the actor whose
+ * turn it is belongs to them — the GM re-verifies both against current state
+ * at handling time (handleAdvanceTurnQuery / canAdvanceTurn).
+ */
+export const CRAWL_TURN_QUERY = `${MODULE_ID}.combatNextTurn`;
+
+/**
+ * In-flight turn-advance locks on the GM client, keyed
+ * `${combat.id}:${combat.round}:${combat.turn}`.
+ *
+ * The authoritative guard against a double advance. Two relayed requests that
+ * race run their whole synchronous prologue against the SAME pre-advance
+ * Foundry state — the Combat document only updates after the server
+ * round-trip (ClientDatabaseBackend applies the response), so no re-read of
+ * `combat.turn`/`combatant` can tell the handlers apart. Only a marker set
+ * synchronously BEFORE the await can: the second handler entering while the
+ * first awaits sees the key and refuses. Cleared in a `finally`, so a throw
+ * cannot strand it.
+ *
+ * NOT A TOTAL GUARANTEE: this is per-client in-memory state. If the active
+ * GM disconnects (or another GM logs in) mid-advance, the NEW active GM
+ * starts with an empty lock and can serve a second request against still-
+ * stale combat state. Closing that fully requires server-side serialization
+ * of Combat updates, which is out of scope here — treat this lock as the
+ * defence for the cooperative-race case it was built for, not as a
+ * substitute for server serialization.
+ */
+const _advanceLocks = new Set();
+
+/**
+ * Run `fn` under the in-flight advance lock for `combat`'s current
+ * `id:round:turn`. The check-and-insert is synchronous and precedes the
+ * first await, so of two racing callers (a relayed request and a GM-local
+ * click included) only one runs `fn`; the loser gets `false`. The key
+ * clears in a `finally`, so a throw cannot strand it.
+ *
+ * @param {Combat} combat
+ * @param {() => Promise<unknown>} fn
+ * @returns {Promise<boolean>} true if `fn` ran, false if another advance for
+ *   the same turn is already in flight on this client.
+ */
+async function withAdvanceLock(combat, fn) {
+  const lockKey = `${combat.id}:${combat.round}:${combat.turn}`;
+  if (_advanceLocks.has(lockKey)) return false;
+  _advanceLocks.add(lockKey);
+  try {
+    await fn();
+    return true;
+  } finally {
+    _advanceLocks.delete(lockKey);
+  }
+}
+
 export const CrawlStrip = {
 
   _el:             null,
   _renderQueued:   false,
   _hookIds:        [],
   _resizeListener: null,
+  // True while a player's turn-advance relay is in flight; the nextTurn
+  // button renders disabled so a double-click cannot queue two advances.
+  _turnAdvanceInFlight: false,
 
   init() {
     this.mount();
@@ -95,6 +154,10 @@ export const CrawlStrip = {
     //     giver twice. `refuseQuery` keeps that gate: a query is point-to-point
     //     but the SENDER chooses the recipient, so it can choose both GMs.
     CONFIG.queries[LUCK_QUERY] = (data, { user } = {}) => CrawlStrip.handleLuckQuery(data, user);
+    // Player combat turn-advance, over the same authenticated channel. The
+    // handler re-verifies ownership of the CURRENT combatant against state it
+    // reads itself — see handleAdvanceTurnQuery.
+    CONFIG.queries[CRAWL_TURN_QUERY] = (data, { user } = {}) => CrawlStrip.handleAdvanceTurnQuery(data, user);
   },
 
   /**
@@ -115,6 +178,95 @@ export const CrawlStrip = {
 
     await this._giveLuckToken(auth.actor, receiver);
     return { ok: true };
+  },
+
+  /**
+   * GM side of the player turn-advance relay. The ONLY permitted action is
+   * "advance one turn"; everything else is refused. The combatant is whoever
+   * is current on THIS client's combat document at handling time — the
+   * payload carries no ids at all, and ownership is re-verified against that
+   * re-read state (canAdvanceTurn), so a malicious client cannot spin the
+   * tracker, jump turns, or advance someone else's turn. The most a forged
+   * request can do is advance the current combatant's turn early, which is
+   * exactly what the actor's owner is entitled to anyway.
+   *
+   * Two further guards on top of the decision:
+   *   - `_advanceLocks` refuses a second advance of the same
+   *     `combat.id:round:turn` while the first is awaiting the server
+   *     round-trip. A client-side button disable is not enough — two clients
+   *     (or two tabs) can both send, and both handlers would otherwise pass
+   *     authorization against the same stale pre-advance state. The lock is
+   *     the only thing that can distinguish them, because it is set
+   *     synchronously before the await;
+   *   - a player may not advance when doing so would roll the round
+   *     (nextTurnWouldRollRound): rounds are the GM's control.
+   *
+   * @param {object} data  { action: "combat:nextTurn" }. Any other field is ignored.
+   * @param {User}   user  The AUTHENTICATED requester, from core's query context.
+   * @returns {Promise<{ok: boolean, error?: string}>}
+   */
+  async handleAdvanceTurnQuery(data, user) {
+    const refusal = refuseQuery(user, "Combat turn advances");
+    if (refusal) return refusal;
+    if (data?.action !== "combat:nextTurn") {
+      return { ok: false, error: game.i18n.localize("SDE.crawlStrip.unknownCombatAction") };
+    }
+
+    // Re-read current world state — nothing in the payload is trusted. The
+    // requester may advance only when the actor whose turn it is right now is
+    // one they own, and only when the advance would not roll the round.
+    const combat = game.combat;
+    const combatant = combat?.combatant;
+    const turns = combat?.turns ?? [];
+    const turnIndex = combat?.turn ?? -1;
+    const verdict = canAdvanceTurn({
+      combatActive: !!(combat && combatant),
+      requesterIsGM: !!user?.isGM,
+      requesterOwnsCurrentCombatant: !!(combatant?.actor && user
+        && combatant.actor.testUserPermission(user, "OWNER")),
+      advanceWouldRollRound: nextTurnWouldRollRound({
+        round: combat?.round ?? 0,
+        turn: turnIndex,
+        turnCount: turns.length,
+        skipDefeated: combat?.settings?.skipDefeated ?? false,
+        defeated: turns.map(t => !!t?.isDefeated),
+      }),
+    });
+    if (!verdict.ok) {
+      const refusalKeys = {
+        "no-combat": "SDE.crawlStrip.turnAdvanceNoCombat",
+        "round-boundary": "SDE.crawlStrip.turnAdvanceRoundBoundary",
+        "not-your-turn": "SDE.crawlStrip.turnAdvanceNotYourTurn",
+      };
+      return {
+        ok: false,
+        error: game.i18n.localize(refusalKeys[verdict.reason] ?? refusalKeys["not-your-turn"]),
+      };
+    }
+
+    // Authoritative race guard: the in-memory lock (withAdvanceLock) is
+    // checked and inserted synchronously BEFORE the await. A second handler
+    // entering while this one awaits the server round-trip sees the same key
+    // (the combat state has not changed yet — the update lands only with the
+    // server response) and refuses. The client-side button disable covers one
+    // user's double-click; this covers any two senders racing.
+    if (!(await withAdvanceLock(combat, () => combat.nextTurn()))) {
+      return { ok: false, error: game.i18n.localize("SDE.crawlStrip.turnAdvanceInProgress") };
+    }
+    return { ok: true };
+  },
+
+  /**
+   * GM-local next-turn advance from the strip's own combat buttons. Same
+   * in-memory lock as the relay handler, so a GM clicking next-turn in two
+   * tabs (or a fast double-click) produces ONE advance; the loser is a
+   * silent no-op — never the player-facing "already in progress" toast, and
+   * nothing a GM can notice in ordinary single-click use.
+   *
+   * @param {Combat} combat
+   */
+  async _gmAdvanceTurn(combat) {
+    await withAdvanceLock(combat, () => combat.nextTurn());
   },
 
   queueRender() {
@@ -496,14 +648,11 @@ export const CrawlStrip = {
       : `<div class="sde-strip-turn-num" title="Crawl Turn">${state.crawlTurn}</div>`;
 
     // Left badge — combat controls in combat, crawl turn counter otherwise.
-    const leftBadge = inCombat ? `
-      <div class="sde-strip-combat-controls">
-        <button class="sde-strip-cbtn" data-combat="prevRound" title="Previous Round">${ICONS.prevRound}</button>
-        <button class="sde-strip-cbtn" data-combat="prevTurn"  title="Previous Turn">${ICONS.prevRound}</button>
-        <div class="sde-strip-round-num">R${game.combat?.round ?? 1}</div>
-        <button class="sde-strip-cbtn" data-combat="nextTurn"  title="Next Turn">${ICONS.nextRound}</button>
-        <button class="sde-strip-cbtn" data-combat="nextRound" title="Next Round">${ICONS.nextRound}</button>
-      </div>` : crawlBadge;
+    // The full four-button set is GM-only; a player gets just the round
+    // counter plus the next-turn advance, and only while the current
+    // combatant is an actor they own (the GM re-verifies that ownership on
+    // the far side of the relay — crawl-turn-core.mjs).
+    const leftBadge = inCombat ? this._combatControlsHTML() : crawlBadge;
 
     // Merchant Shop launcher — visible to the GM always, and to players only
     // while the shop is open for them. Re-renders pick up availability changes
@@ -556,6 +705,38 @@ export const CrawlStrip = {
       const h = this._el.getBoundingClientRect().height ?? 0;
       if (h > 0) document.documentElement.style.setProperty("--sde-strip-height", Math.ceil(h) + "px");
     });
+  },
+
+  /**
+   * The combat-control button column. GMs get the full set (previous/next
+   * round and turn) exactly as before, all acting locally. A non-GM gets
+   * ONLY the advance they may actually use: the next-turn button renders
+   * solely while the current combatant's actor is one they own, and even
+   * then the GM re-checks ownership at handling time — so this is a UI
+   * filter, not the gate. prevTurn / nextRound / prevRound are never
+   * rendered for players.
+   */
+  _combatControlsHTML() {
+    const combat = game.combat;
+    const roundNum = `<div class="sde-strip-round-num">R${combat?.round ?? 1}</div>`;
+    if (game.user.isGM) {
+      return `<div class="sde-strip-combat-controls">
+        <button class="sde-strip-cbtn" data-combat="prevRound" title="${game.i18n.localize("SDE.crawlStrip.combatPrevRound")}">${ICONS.prevRound}</button>
+        <button class="sde-strip-cbtn" data-combat="prevTurn"  title="${game.i18n.localize("SDE.crawlStrip.combatPrevTurn")}">${ICONS.prevRound}</button>
+        ${roundNum}
+        <button class="sde-strip-cbtn" data-combat="nextTurn"  title="${game.i18n.localize("SDE.crawlStrip.combatNextTurn")}">${ICONS.nextRound}</button>
+        <button class="sde-strip-cbtn" data-combat="nextRound" title="${game.i18n.localize("SDE.crawlStrip.combatNextRound")}">${ICONS.nextRound}</button>
+      </div>`;
+    }
+    const currentCombatant = combat?.combatant;
+    const mayAdvance = !!currentCombatant?.actor && currentCombatant.actor.isOwner;
+    const busy = this._turnAdvanceInFlight;
+    return `<div class="sde-strip-combat-controls">
+      ${roundNum}
+      ${mayAdvance
+        ? `<button class="sde-strip-cbtn" data-combat="nextTurn" title="${game.i18n.localize("SDE.crawlStrip.combatNextTurn")}"${busy ? " disabled" : ""}>${ICONS.nextRound}</button>`
+        : ""}
+    </div>`;
   },
 
   _sizeCards() {
@@ -902,21 +1083,57 @@ export const CrawlStrip = {
       });
     }
 
-    if (!game.user.isGM) return;
-
-    // Combat control buttons (prev/next round/turn)
+    // Combat control buttons (prev/next round/turn). Bound on every client:
+    // the next-turn advance is a player action too when the current
+    // combatant's actor is theirs. A GM's click advances locally, exactly as
+    // before; a player's click relays through the authenticated GM channel,
+    // whose handler re-verifies ownership against current combat state before
+    // advancing (handleAdvanceTurnQuery / canAdvanceTurn). The other three
+    // buttons are GM-only and never rendered for players — a player's click
+    // here can only ever be the advance they were shown.
     this._el.querySelectorAll(".sde-strip-cbtn[data-combat]").forEach(btn => {
       btn.addEventListener("click", async ev => {
         ev.stopPropagation();
         const action = btn.dataset.combat;
         const combat = game.combat;
         if (!combat) return;
-        if      (action === "nextTurn")   await combat.nextTurn();
-        else if (action === "prevTurn")   await combat.previousTurn();
+        if (action === "nextTurn") {
+          if (game.user.isGM) {
+            // Same in-memory lock as the relay path: a GM clicking next-turn
+            // in two tabs produces one advance, not two.
+            await this._gmAdvanceTurn(combat);
+          } else {
+            // One relayed advance at a time: a double-click (or a re-render
+            // that re-enables the button mid-flight) must not queue a second
+            // request. The GM side is still the authoritative guard.
+            if (this._turnAdvanceInFlight) return;
+            this._turnAdvanceInFlight = true;
+            btn.disabled = true;
+            try {
+              await relayToGM(CRAWL_TURN_QUERY, { action: "combat:nextTurn" },
+                { label: "combat turn advances" });
+            } finally {
+              this._turnAdvanceInFlight = false;
+              this.queueRender(); // re-render re-enables the button
+            }
+          }
+          return;
+        }
+        if (!game.user.isGM) return;
+        // prevTurn / nextRound / prevRound are DELIBERATELY NOT locked. A GM
+        // double-click here (two tabs, or a fast repeat) can double-advance
+        // world time — `Combat#nextRound` writes `worldTime: {delta}` and
+        // fires `combatRound` per call (foundry.mjs:50983) — the same class
+        // as the nextTurn hole, but GM-only, self-inflicted, and identical to
+        // core tracker behaviour. Out of scope for the player-channel fix;
+        // only nextTurn goes through withAdvanceLock.
+        if      (action === "prevTurn")   await combat.previousTurn();
         else if (action === "nextRound")  await combat.nextRound();
         else if (action === "prevRound")  await combat.previousRound();
       });
     });
+
+    if (!game.user.isGM) return;
 
     // Crawl turn advance — strip parity with the Crawl Bar's "Next Turn".
     this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextCrawlTurn"]').forEach(btn => {

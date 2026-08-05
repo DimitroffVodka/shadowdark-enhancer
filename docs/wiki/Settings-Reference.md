@@ -22,6 +22,7 @@ Gear*) that open their own editor windows.
 | **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl turn. Reset on **Next Turn**. |
 | **Enforce out-of-combat movement budget** | **off** | On: refuse moves that exceed the crawl budget. Off: still colours red, but lets the move commit. |
 | **Enforce combat movement budget** | **off** | On: refuse combat moves beyond the remaining movement. Off by default, since Shadowdark combat traditionally relies on player honesty. |
+| **Lock movement out of turn** | **off** | On: while a combat is running, players can only move a combatant token when it is that combatant's turn. GMs and tokens outside the combat are never locked. |
 
 See [Movement Budgets](Movement-Budgets.md).
 
@@ -50,6 +51,11 @@ See [Movement Budgets](Movement-Budgets.md).
 |---|---|---|
 | **Starting renown from CHA** | on | Sets a new player character's renown to their Charisma modifier, once. If the character was made before their abilities were rolled, the seed waits for the first Charisma change. It never touches a character whose renown is already non-zero or who already has a renown log entry, so it cannot overwrite a score you have been playing with. See [Renown](Renown.md). |
 | **Renown on level-up** | on | Gives a player character a point of renown each time their level goes up. Reaching level 1 is excluded, because character creation writes that value. Every other renown trigger is a judgement call and stays on the **Renown** dialog. See [Renown](Renown.md). |
+
+### PDF Export
+
+| Setting | Default | What it does |
+|---|---|---|
 
 ### Encounters
 

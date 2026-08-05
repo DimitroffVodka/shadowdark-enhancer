@@ -34,6 +34,7 @@
       "boat": { "htmlFields": ["notes"] }
     }
   },
+  "scripts": ["scripts/pdf-export/lib/FileSaver.min.js"],
   "esmodules": ["scripts/shadowdark-enhancer.mjs"],
   "styles": [{ "src": "styles/shadowdark-enhancer.css" }],
   "languages": [
