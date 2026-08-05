@@ -36,6 +36,7 @@ import { CrawlState, isActiveGM } from "./crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip.mjs";
 import { ICONS }      from "../shared/icons.mjs";
 import { segmentFeet } from "./movement-calc.mjs";
+import { shouldBlockMovement } from "./movement-lock-core.mjs";
 import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 
 // ── Shared speed helpers ────────────────────────────────────────────────────
@@ -209,6 +210,7 @@ export const MovementTracker = {
   _turnStartPos: {},   // tokenId → {x, y} snapshotted at turn/round start
   _pendingDeduct: {},  // tokenId → distance feet awaiting deduction
   _clearTimers:   {},  // tokenId → setTimeout handle for ruler clear
+  _lockWarnedAt:  {},  // tokenId → last out-of-turn-lock warning timestamp (debounce)
 
   /** Snapshot a token's current position as the rollback target. */
   snapshotPosition(tokenId) {
@@ -226,35 +228,7 @@ export const MovementTracker = {
     Hooks.on("canvasReady", () => this._installRulers());
 
     Hooks.on("preUpdateToken", (doc, changes, opts, userId) => {
-      if (opts?.[MODULE_ID]?.rollback) return; // skip accounting for rollback moves
-      if (changes.x !== undefined || changes.y !== undefined) {
-
-        // Compute and cache the distance now, while we still have old position.
-        // Foundry v14 interpolates doc.x/doc.y mid-animation — use _source for
-        // the data-model coords.
-        if (CrawlState.isActive) {
-          const scene    = doc.parent;
-          const gridSize = scene?.grid?.size     ?? 100;
-          const gridDist = scene?.grid?.distance ?? 5;
-          const oldX = doc._source?.x ?? doc.x;
-          const oldY = doc._source?.y ?? doc.y;
-          const newX = changes.x ?? oldX;
-          const newY = changes.y ?? oldY;
-          // Terrain difficulty deferred — multiplier of 1.
-          const distanceFt = segmentFeet({
-            oldX,
-            oldY,
-            newX,
-            newY,
-            gridSize,
-            gridDistance: gridDist,
-            diagonals: scene?.grid?.diagonals,
-          });
-          this._pendingDeduct[doc.id] = distanceFt;
-        }
-      }
-      // Block move if it exceeds remaining movement
-      return this._onPreUpdate(doc, changes, userId, this._pendingDeduct[doc.id]);
+      return this._onPreUpdateToken(doc, changes, opts, userId);
     });
 
     Hooks.on("updateToken", (doc, changes, opts, userId) => {
@@ -399,7 +373,87 @@ export const MovementTracker = {
 
   // ── preUpdateToken ────────────────────────────────────────────────────────
 
+  /**
+   * The registered preUpdateToken handler, as a named seam so tests can drive
+   * the real cancellation path (including the rollback bypass) without a live
+   * Foundry client. Returns the hook's verdict verbatim: a literal false
+   * cancels the update, undefined lets it through.
+   */
+  _onPreUpdateToken(doc, changes, opts, userId) {
+    if (opts?.[MODULE_ID]?.rollback) return; // skip accounting for rollback moves
+    if (changes.x !== undefined || changes.y !== undefined) {
+
+      // Compute and cache the distance now, while we still have old position.
+      // Foundry v14 interpolates doc.x/doc.y mid-animation — use _source for
+      // the data-model coords.
+      if (CrawlState.isActive) {
+        const scene    = doc.parent;
+        const gridSize = scene?.grid?.size     ?? 100;
+        const gridDist = scene?.grid?.distance ?? 5;
+        const oldX = doc._source?.x ?? doc.x;
+        const oldY = doc._source?.y ?? doc.y;
+        const newX = changes.x ?? oldX;
+        const newY = changes.y ?? oldY;
+        // Terrain difficulty deferred — multiplier of 1.
+        const distanceFt = segmentFeet({
+          oldX,
+          oldY,
+          newX,
+          newY,
+          gridSize,
+          gridDistance: gridDist,
+          diagonals: scene?.grid?.diagonals,
+        });
+        this._pendingDeduct[doc.id] = distanceFt;
+      }
+    }
+    // Block move if it exceeds remaining movement
+    return this._onPreUpdate(doc, changes, userId, this._pendingDeduct[doc.id]);
+  },
+
   _onPreUpdate(doc, changes, userId, precomputedFt) {
+    // Out-of-turn lock (issue #14). Checked BEFORE the CrawlState.isActive
+    // gate below: the lock is a standalone combat feature that must work
+    // whether or not the crawl strip is running. The decision path is fully
+    // synchronous — a cancelling preUpdateToken hook must return a literal
+    // false, and an async/awaited decision returns a truthy promise that
+    // Foundry lets through. Every input below is a plain property read or
+    // collection call; nothing is awaited before the return.
+    //
+    // Invariant that makes `game.user.isGM` the acting user's GM status:
+    // only the INITIATING client's preUpdateToken return is honoured —
+    // ClientDatabaseBackend.#preUpdateDocumentArray drops the update before
+    // socket dispatch, so receiving clients never run the public pre-hook.
+    // The acting user is therefore always the local user here. (Undocumented
+    // internal; if a future Foundry changes it, the strict equivalent is
+    // game.users.get(userId)?.isGM.)
+    const combat = game.combat;
+    // Identify the combatant by (sceneId, tokenId) — the pair core itself uses
+    // (foundry.mjs:51928). Embedded ids are only unique within their parent
+    // scene, so a duplicated scene carries tokens with the SAME _id as the
+    // original: matching on tokenId alone would lock a player's token on the
+    // copy while combat runs on the original, with no combat visible to them.
+    // Legitimately off-scene combatants still match, because their recorded
+    // sceneId is their own scene.
+    const sceneId = doc.parent?.id;
+    if (shouldBlockMovement({
+      enabled: game.settings.get(MODULE_ID, "lockMovementOutOfTurn"),
+      combatActive: !!combat?.started,
+      isGM: game.user?.isGM ?? false,
+      isCombatant: combat?.combatants?.some(
+        (c) => c.tokenId === doc.id && c.sceneId === sceneId) ?? false,
+      isCurrentCombatant: combat?.combatant?.tokenId === doc.id
+        && combat?.combatant?.sceneId === sceneId,
+      movesPosition: changes.x !== undefined || changes.y !== undefined,
+    })) {
+      // The outer hook may have cached a precomputed segment for this token;
+      // a move that never committed must not leave it behind for updateToken.
+      delete this._pendingDeduct[doc.id];
+      this._clearRulerLoop(doc.id);
+      this._warnLockedMove(doc.id, userId);
+      return false;
+    }
+
     if (!CrawlState.isActive) return;
     if (changes.x === undefined && changes.y === undefined) return;
 
@@ -446,20 +500,43 @@ export const MovementTracker = {
       if (userId === game.userId) {
         const msg = `${actor.name}: only ${Math.max(0, moveRemaining)}ft remaining.`;
         ui.notifications.warn(msg);
-        // Schedule repeated clear attempts — #continueMovement may redraw after our first clear
-        const tokenId = doc.id;
-        let attempts = 0;
-        const clearLoop = setInterval(() => {
-          const token = canvas.tokens?.get(tokenId);
-          token?.ruler?.clear();
-          const h = canvas.interface?.grid?.highlight?.children
-            ?.find(c => c.name === `TokenRuler.${tokenId}`);
-          if (h) h.visible = false;
-          if (++attempts >= 10) clearInterval(clearLoop);
-        }, 50);
+        this._clearRulerLoop(doc.id);
       }
       return false;
     }
+  },
+
+  // ── Blocked-move helpers (out-of-turn lock + budget refusal) ──────────────
+
+  /**
+   * Warn the acting player that their move was refused. Debounced per token
+   * so a drag that fires preUpdateToken once per segment posts a single
+   * notification instead of a dozen.
+   */
+  _warnLockedMove(tokenId, userId) {
+    if (userId !== game.userId) return;
+    const now = Date.now();
+    if (now - (this._lockWarnedAt[tokenId] ?? 0) < 1000) return;
+    this._lockWarnedAt[tokenId] = now;
+    ui.notifications?.warn(game.i18n.localize("SDE.notifications.notYourTurn"));
+  },
+
+  /**
+   * Clear a token's measurement ruler and grid highlight after a refused
+   * move. #continueMovement may redraw the ruler after the first clear, so
+   * keep trying briefly. Shared by both block paths: the out-of-turn lock
+   * and the budget refusal.
+   */
+  _clearRulerLoop(tokenId) {
+    let attempts = 0;
+    const clearLoop = setInterval(() => {
+      const token = canvas.tokens?.get(tokenId);
+      token?.ruler?.clear();
+      const h = canvas.interface?.grid?.highlight?.children
+        ?.find((c) => c.name === `TokenRuler.${tokenId}`);
+      if (h) h.visible = false;
+      if (++attempts >= 10) clearInterval(clearLoop);
+    }, 50);
   },
 
   // ── Rollback ──────────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlStrip } from "../crawl-strip/crawl-strip.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
 import { esc } from "../shared/esc.mjs";
+import { copyText } from "../shared/clipboard.mjs";
 import { relayToGM, notifyPlayers, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
 import {
   toCopper, fromCopper, formatPrice, canAfford, applySellRatio,
@@ -2254,14 +2255,16 @@ class MerchantShopApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     el.querySelector(".sdems-copy-discord")?.addEventListener("click", async () => {
       const text = MerchantShop.formatForDiscord();
-      await navigator.clipboard.writeText(text);
-      ui.notifications.info("Shop log copied to clipboard!");
+      const ok = await copyText(text);
+      if (ok) ui.notifications.info("Shop log copied to clipboard!");
+      else ui.notifications.error("Could not copy shop log — clipboard unavailable.");
     }, { signal });
 
     el.querySelector(".sdems-copy-session")?.addEventListener("click", async () => {
       const text = MerchantShop.formatSessionSummary();
-      await navigator.clipboard.writeText(text);
-      ui.notifications.info("Session summary copied to clipboard!");
+      const ok = await copyText(text);
+      if (ok) ui.notifications.info("Session summary copied to clipboard!");
+      else ui.notifications.error("Could not copy session summary — clipboard unavailable.");
     }, { signal });
 
     el.querySelector(".sdems-clear-log")?.addEventListener("click", async () => {
