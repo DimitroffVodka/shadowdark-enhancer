@@ -67,7 +67,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "b769250edcc6";
+const STYLESHEET_REV = "7f7f8dbfc234";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
