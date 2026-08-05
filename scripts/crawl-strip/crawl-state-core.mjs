@@ -62,12 +62,20 @@ export function normalizeCrawlState(value) {
 
   // The pointer is only ever valid when it names a member who is actually in
   // the rolled order; anything else normalizes away to null (never strands a
-  // stale id in the persisted shape).
+  // stale id in the persisted shape). A COMPLETE order with no valid holder
+  // is backfilled to the top of the order: a migrated world (v1 had no
+  // pointer) with existing rolls must not be left holderless — the OoC lock
+  // fails open on a null holder, but the table should still show whose turn
+  // it is. The backfill settles exactly once: the backfilled pointer is
+  // itself valid, so the next normalize leaves it untouched, and a
+  // legitimately advanced (non-top) pointer is never clobbered.
   let oocTurn = base.oocTurn;
   if (typeof value.oocTurn === "string" && value.oocTurn
     && members.includes(value.oocTurn)
     && oocInitiative[value.oocTurn]?.roll != null) {
     oocTurn = value.oocTurn;
+  } else if (members.length > 0 && members.every(id => hasOocRoll(oocInitiative, id))) {
+    oocTurn = topOfOrder({ members, oocInitiative });
   }
 
   return { _v: STATE_VERSION, mode, crawlTurn, oocInitiative, oocTurn, members, priorMode };
@@ -209,22 +217,29 @@ export function nextCrawlTurn(state) {
 }
 
 /**
- * Set (or overwrite) one actor's out-of-crawl initiative entry. A roll that
- * establishes a previously-empty order also starts the turn at the top of the
- * order; a roll into an order that already has a holder leaves the turn where
- * it is (a reroll never steals the current turn).
+ * Set (or overwrite) one actor's out-of-crawl initiative entry. The turn is
+ * established the moment the order becomes COMPLETE (every crawl member has
+ * rolled): the highest roller leads. During formation (partial order) there
+ * is no turn yet — a pointer that landed on "whoever's chat message arrived
+ * first" would be the wrong holder after a roll-all — and a roll into an
+ * order that already has a holder never steals it (a reroll doesn't move the
+ * turn).
  */
 export function setOocInitiative(state, actorId, entry) {
   const oocInitiative = { ...state.oocInitiative, [actorId]: entry };
-  const oocTurn = state.oocTurn ?? topOfOrder({ ...state, oocInitiative });
+  const completeNow = state.members.length > 0
+    && state.members.every(id => hasOocRoll(oocInitiative, id));
+  const oocTurn = state.oocTurn ?? (completeNow ? topOfOrder({ ...state, oocInitiative }) : null);
   return { state: { ...state, oocInitiative, oocTurn }, changed: true };
 }
 
 /**
- * Pin the pointer to the top of the order when it is unset. Used at the end
- * of a roll-all batch: rolls land one chat message at a time, so the first
- * roll may have started the turn on someone who is NOT the highest roller —
- * once the batch is complete, the true top takes the turn.
+ * Pin the pointer to the top of the order when it is unset. Belt-and-braces:
+ * setOocInitiative pins the top the moment the order becomes complete (and
+ * normalize backfills on load), so this only fires if some path reaches a
+ * complete order with a null pointer anyway — e.g. a future state shape.
+ * rollOocForAll calls it at batch end as a defensive guard; it is normally
+ * a no-op.
  */
 export function ensureOocTurn(state) {
   if (state.oocTurn) return { state, changed: false };

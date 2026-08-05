@@ -448,6 +448,7 @@ export const MovementTracker = {
       movesPosition: changes.x !== undefined || changes.y !== undefined,
       oocMemberCount,
       oocRolledCount,
+      hasOocHolder: CrawlState.oocTurn != null,
       isOocMember: members.includes(doc.actorId),
       isCurrentOocHolder: CrawlState.oocTurn === doc.actorId,
     })) {

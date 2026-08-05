@@ -56,6 +56,7 @@ const BLOCK_OOC = {
   movesPosition: true,
   oocMemberCount: 2,         // two members in the crawl
   oocRolledCount: 2,         // both have rolled — the order is COMPLETE
+  hasOocHolder: true,        // and someone holds the turn
   isOocMember: true,
   isCurrentOocHolder: false,
 };
@@ -64,6 +65,15 @@ test("shouldBlockMovement: OOC — a complete order blocks every member except t
   assert.equal(shouldBlockMovement(BLOCK_OOC), true, "a non-holder member is blocked");
   assert.equal(shouldBlockMovement({ ...BLOCK_OOC, isCurrentOocHolder: true }), false, "the holder's own move is never blocked");
   assert.equal(shouldBlockMovement({ ...BLOCK_OOC, isOocMember: false }), false, "non-members are never locked");
+});
+
+test("shouldBlockMovement: OOC — a complete order with NO holder blocks nobody (fail open)", () => {
+  // The live-bug regression: a null holder (a migrated world before the
+  // backfill, or any future state shape) must NEVER freeze the whole table —
+  // no holder means no turn means nothing to enforce, exactly as an empty
+  // order blocks nobody.
+  assert.equal(shouldBlockMovement({ ...BLOCK_OOC, hasOocHolder: false }), false);
+  assert.equal(shouldBlockMovement({ ...BLOCK_OOC, hasOocHolder: false, isCurrentOocHolder: false }), false);
 });
 
 test("shouldBlockMovement: OOC — an incomplete order (a member missing a roll) blocks nobody", () => {
@@ -80,7 +90,7 @@ test("shouldBlockMovement: OOC — no roster, or an impossible over-count, means
 });
 
 test("shouldBlockMovement: OOC — flipping any single gate from the blocking state passes the move through", () => {
-  const gates = ["enabled", "isGM", "movesPosition", "oocRolledCount", "isOocMember", "isCurrentOocHolder"];
+  const gates = ["enabled", "isGM", "movesPosition", "oocRolledCount", "hasOocHolder", "isOocMember", "isCurrentOocHolder"];
   for (const gate of gates) {
     const flipped = { ...BLOCK_OOC, [gate]: !BLOCK_OOC[gate] };
     assert.equal(shouldBlockMovement(flipped), false, `flipping ${gate} must not block`);

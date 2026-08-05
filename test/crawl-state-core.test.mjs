@@ -270,29 +270,80 @@ function orderedState({ members = ["A", "B"], oocTurn = null, rolls = { A: { rol
   return { ...defaultCrawlState(), mode, members, oocInitiative: rolls, oocTurn };
 }
 
-test("normalizeCrawlState: a valid v2 oocTurn is kept, invalid ones normalize to null", () => {
+test("normalizeCrawlState: a valid v2 oocTurn is kept, invalid ones normalize away", () => {
   const base = { mode: "crawl", members: ["A", "B"], oocInitiative: { A: { roll: 10 }, B: { roll: 5 } } };
   assert.equal(normalizeCrawlState({ ...base, oocTurn: "A" }).oocTurn, "A");
   assert.equal(normalizeCrawlState({ ...base, oocTurn: "B" }).oocTurn, "B");
-  assert.equal(normalizeCrawlState({ ...base, oocTurn: "ghost" }).oocTurn, null, "non-member holder is dropped");
-  assert.equal(normalizeCrawlState({ ...base, oocTurn: "C" }).oocTurn, null);
-  assert.equal(normalizeCrawlState({ ...base, oocTurn: 42 }).oocTurn, null, "non-string holder is dropped");
-  assert.equal(normalizeCrawlState({ ...base, oocTurn: "A", oocInitiative: {} }).oocTurn, null, "holder without a roll is dropped");
+
+  // Invalid pointers on a COMPLETE order: the backfill takes over — the
+  // table is never left holderless.
+  assert.equal(normalizeCrawlState({ ...base, oocTurn: "ghost" }).oocTurn, "A", "invalid holder on a complete order backfills to the top");
+  assert.equal(normalizeCrawlState({ ...base, oocTurn: 42 }).oocTurn, "A");
+  assert.equal(normalizeCrawlState({ ...base, oocTurn: "A", oocInitiative: {} }).oocTurn, null, "no rolls at all → no holder");
+
+  // On an INCOMPLETE order an invalid pointer normalizes to null (no backfill).
+  const partial = { ...base, oocInitiative: { A: { roll: 10 } } };
+  assert.equal(normalizeCrawlState({ ...partial, oocTurn: "B" }).oocTurn, null, "holder without a roll stays null on a partial order");
+  assert.equal(normalizeCrawlState({ ...partial, oocTurn: 42 }).oocTurn, null);
 });
 
-test("normalizeCrawlState: a v1 state (no oocTurn field) migrates to v2 with a null pointer", () => {
-  const v1 = { _v: 1, mode: "crawl", crawlTurn: 0, oocInitiative: { A: { roll: 10 } }, members: ["A"], priorMode: "off" };
-  const out = normalizeCrawlState(v1);
+test("normalizeCrawlState: v1 migration — a COMPLETE order is backfilled to the top, an incomplete one stays null", () => {
+  // The live-bug fix: a v1 world (no pointer field) with existing rolls must
+  // not be left holderless — the highest roller takes the turn on load.
+  const complete = { _v: 1, mode: "crawl", crawlTurn: 0, oocInitiative: { A: { roll: 10 }, B: { roll: 5 } }, members: ["A", "B"], priorMode: "off" };
+  const out = normalizeCrawlState(complete);
   assert.equal(out._v, STATE_VERSION);
-  assert.equal(out.oocTurn, null);
-  assert.deepEqual(out.members, ["A"], "the roster survives the migration");
-  assert.deepEqual(out.oocInitiative, { A: { roll: 10 } }, "existing rolls survive the migration");
+  assert.equal(out.oocTurn, "A", "the highest roller is backfilled as the holder");
+  assert.deepEqual(out.members, ["A", "B"], "the roster survives the migration");
+  assert.deepEqual(out.oocInitiative, { A: { roll: 10 }, B: { roll: 5 } }, "existing rolls survive the migration");
+
+  const incomplete = { ...complete, oocInitiative: { A: { roll: 10 } } };
+  assert.equal(normalizeCrawlState(incomplete).oocTurn, null, "an incomplete order still has no turn");
 });
 
-test("setOocInitiative: the first roll of a fresh order starts the turn on that member", () => {
+test("normalizeCrawlState: the backfill settles once — an advanced pointer is never clobbered", () => {
+  // A legitimately ADVANCED pointer (not the top) survives normalize.
+  const advanced = { mode: "crawl", members: ["A", "B"], oocInitiative: { A: { roll: 10 }, B: { roll: 5 } }, oocTurn: "B" };
+  assert.equal(normalizeCrawlState(advanced).oocTurn, "B", "advanced pointer untouched");
+
+  // Idempotent: normalizing the backfilled state changes nothing (no
+  // ping-pong on every load).
+  const backfilled = normalizeCrawlState({ mode: "crawl", members: ["A", "B"], oocInitiative: { A: { roll: 10 }, B: { roll: 5 } }, oocTurn: null });
+  assert.equal(backfilled.oocTurn, "A");
+  assert.deepEqual(normalizeCrawlState(backfilled), backfilled);
+});
+
+test("normalizeCrawlState: the backfill never invents a holder for an empty or partial order", () => {
+  assert.equal(normalizeCrawlState({ mode: "crawl", members: [], oocInitiative: {} }).oocTurn, null);
+  assert.equal(normalizeCrawlState({ mode: "crawl", members: ["A", "B"], oocInitiative: { A: { roll: 10 } } }).oocTurn, null);
+  assert.equal(normalizeCrawlState({ mode: "crawl", members: ["A"], oocInitiative: {} }).oocTurn, null);
+});
+
+test("setOocInitiative: the completing roll of a one-member order starts the turn on that member", () => {
   const state = { ...defaultCrawlState(), mode: "crawl", members: ["A"] };
   const r = setOocInitiative(state, "A", { roll: 10 });
   assert.equal(r.state.oocTurn, "A");
+});
+
+test("setOocInitiative: no turn during formation — the pointer appears only when the order is COMPLETE", () => {
+  // Multi-member party mid-roll: nobody holds until EVERY member has rolled,
+  // so the pointer never lands on "whoever's chat message arrived first".
+  const state = { ...defaultCrawlState(), mode: "crawl", members: ["A", "B"] };
+  const first = setOocInitiative(state, "A", { roll: 10 });
+  assert.equal(first.state.oocTurn, null, "the first roller does not hold — the order is incomplete");
+
+  const second = setOocInitiative(first.state, "B", { roll: 5 });
+  assert.equal(second.state.oocTurn, "A", "the highest roller takes the turn once every member has rolled");
+});
+
+test("setOocInitiative: the completing roll (not the first) establishes the turn at the true top", () => {
+  // roll-all ordering: A's message lands first with a low roll, B's lands
+  // last with the high roll — B must be the holder, not A.
+  const state = { ...defaultCrawlState(), mode: "crawl", members: ["A", "B"] };
+  const afterA = setOocInitiative(state, "A", { roll: 5 });
+  assert.equal(afterA.state.oocTurn, null);
+  const afterB = setOocInitiative(afterA.state, "B", { roll: 18 });
+  assert.equal(afterB.state.oocTurn, "B", "the completing roll pins the true top");
 });
 
 test("setOocInitiative: a roll into an order that already has a holder never steals the turn", () => {
@@ -323,6 +374,19 @@ test("ensureOocTurn: no-op when a turn is already established or no order exists
   assert.equal(ensureOocTurn(orderedState({ oocTurn: "B" })).changed, false);
   const noOrder = { ...defaultCrawlState(), mode: "crawl", members: ["A"], oocInitiative: {}, oocTurn: null };
   assert.equal(ensureOocTurn(noOrder).changed, false);
+});
+
+test("ensureOocTurn: consistent with the completion transition — no-op once the turn is pinned", () => {
+  // setOocInitiative pins the true top the moment the order completes, so
+  // the roll-all end guard never fights it (the pre-fix contradiction: the
+  // guard could never re-pin because the first roller already held).
+  const complete = { ...defaultCrawlState(), mode: "crawl", members: ["A", "B"], oocInitiative: { A: { roll: 10 }, B: { roll: 5 } }, oocTurn: "A" };
+  assert.equal(ensureOocTurn(complete).changed, false);
+  // And a complete order that somehow has no pointer is still pinned to the
+  // true top by the guard.
+  const holderless = { ...complete, oocTurn: null };
+  assert.equal(ensureOocTurn(holderless).changed, true);
+  assert.equal(ensureOocTurn(holderless).state.oocTurn, "A");
 });
 
 test("advanceOocTurn: moves to the next member in rolled order", () => {

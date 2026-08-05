@@ -27,10 +27,12 @@ const { normalizeCrawlState, defaultCrawlState } = await import("../scripts/craw
 let preUpdateToken; // the handler as registered by MovementTracker.init()
 
 /** Install the given OoC order on the shared CrawlState singleton. */
-function setOocState({ mode = "crawl", members = [], rolls = {}, oocTurn = null } = {}) {
-  CrawlState._state = normalizeCrawlState({
-    ...defaultCrawlState(), mode, members, oocInitiative: rolls, oocTurn,
-  });
+function setOocState({ mode = "crawl", members = [], rolls = {}, oocTurn = null, raw = false } = {}) {
+  const shape = { ...defaultCrawlState(), mode, members, oocInitiative: rolls, oocTurn };
+  // `raw` bypasses normalize: the freeze-regression test must install a
+  // null-holder state exactly as the live bug produced it in memory (the
+  // normalize backfill would otherwise fill the pointer).
+  CrawlState._state = raw ? shape : normalizeCrawlState(shape);
 }
 
 /**
@@ -156,6 +158,23 @@ test("wiring OOC: a non-holder member's move is cancelled with the literal false
   setOocState({ members: ["actorA", "actorB"], rolls: { actorA: { roll: 10 }, actorB: { roll: 5 } }, oocTurn: "actorA" });
   const result = preUpdateToken({ id: "tok-b", actorId: "actorB" }, { x: 200 }, {}, "u1");
   assert.strictEqual(result, false, "async handlers must fail this strict assertion");
+});
+
+test("wiring OOC: a complete order with no holder blocks nobody — the freeze regression", () => {
+  boot();
+  stubGame({ started: false });
+  // The live-bug scenario: every member has a roll (order complete) but the
+  // pointer is null (migrated world before the backfill). The lock must fail
+  // OPEN — no holder means no turn means nothing to enforce. Installed raw
+  // because normalize would backfill the pointer.
+  setOocState({
+    members: ["actorA", "actorB"],
+    rolls: { actorA: { roll: 10 }, actorB: { roll: 5 } },
+    oocTurn: null,
+    raw: true,
+  });
+  assert.strictEqual(preUpdateToken({ id: "tok-a", actorId: "actorA" }, { x: 200 }, {}, "u1"), undefined);
+  assert.strictEqual(preUpdateToken({ id: "tok-b", actorId: "actorB" }, { x: 200 }, {}, "u1"), undefined);
 });
 
 test("wiring OOC: the current holder's own move is never cancelled", () => {

@@ -26,6 +26,9 @@
  *   - the lock setting is enabled, AND
  *   - the out-of-combat order is COMPLETE — every crawl member has rolled
  *     (an incomplete order is not an order), AND
+ *   - the order HAS a holder (a null holder fails OPEN — no turn means
+ *     nothing to enforce; a lock that freezes the whole table because state
+ *     is incomplete is indistinguishable from the module being broken), AND
  *   - the moved token belongs to a crawl member, AND
  *   - it is not the current out-of-combat turn-holder, AND
  *   - the update actually changes position, AND
@@ -55,6 +58,7 @@ export function shouldBlockMovement({
   movesPosition,
   oocMemberCount,
   oocRolledCount,
+  hasOocHolder,
   isOocMember,
   isCurrentOocHolder,
 } = {}) {
@@ -64,5 +68,11 @@ export function shouldBlockMovement({
   // member; `===` states the "every member has rolled" rule exactly (and an
   // impossible over-count stays a non-blocking state, defensively).
   const completeOrder = oocMemberCount > 0 && oocRolledCount === oocMemberCount;
-  return Boolean(completeOrder && isOocMember && !isCurrentOocHolder);
+  // `hasOocHolder` fails OPEN on purpose: no holder = no turn = nothing to
+  // enforce, exactly as an empty order blocks nobody. A lock that freezes
+  // the whole table because the pointer is missing (e.g. a migrated world
+  // before the normalize backfill, or any future state shape) would be
+  // indistinguishable from a broken module, and the user cannot escape it
+  // from the UI.
+  return Boolean(completeOrder && hasOocHolder && isOocMember && !isCurrentOocHolder);
 }
