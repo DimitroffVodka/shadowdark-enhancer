@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-719 tracked files · ~95,700 lines of code/markup across scripts+templates+styles+test.
+720 tracked files · ~95,800 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -284,7 +284,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `pdf-sheet-export.mjs` | 403 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
+| `pdf-sheet-export.mjs` | 410 | "Export to PDF" header button; fills the bundled form-fillable sheet from SD data-model getters. |
 
 ### 3.17 `scripts/character-sheet/` — Shadowdark sheet injections
 
