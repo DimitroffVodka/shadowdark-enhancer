@@ -37,7 +37,7 @@ const XSS = "<img src=x onerror=alert(1)>";
  * world table (no pack) draws directly; a compendium-backed table resolves
  * through `table.pack.getDocument` first (see the pack tests below).
  */
-function harness({ drawResults = [], roll = null, rollMode = "roll" } = {}) {
+function harness({ drawResults = [], roll = null, rollMode = "roll", sde = null } = {}) {
   const cards = [];
   const draws = [];
 
@@ -45,7 +45,9 @@ function harness({ drawResults = [], roll = null, rollMode = "roll" } = {}) {
     name: "Sol Prayers",
     async draw(opts) {
       draws.push(opts);
-      return { roll, results: drawResults };
+      // `sde` mirrors what installCompoundRollTable's wrapper returns for a
+      // compound generator; core's own shape has no `sde` key at all.
+      return sde ? { roll, results: drawResults, sde } : { roll, results: drawResults };
     },
   };
 
@@ -202,6 +204,67 @@ test("reads display text from name || description, never .text", async () => {
   assert.ok(content.includes("<p>Description-only result</p>"), content);
   assert.ok(!content.includes("TEXT MUST NOT WIN"), `.text must never be read: ${content}`);
   assert.equal(cards.length, 1);
+});
+
+/**
+ * COMPOUND GENERATORS — the module's own primary path.
+ *
+ * All 8 WR deity prayer tables are `{kind: "compound"}` (table-shapes.mjs),
+ * and findPrayerTable() resolves exactly their names ("{Deity} Prayers").
+ * installCompoundRollTable() wraps RollTable#draw for them, so a silent draw
+ * returns `{roll: null, results: [], sde: {compound, combined, detail}}` —
+ * `results` is empty and the prayer text is on `sde.combined`. Reading only
+ * `results` drops the prayer while still posting the flavor line.
+ */
+const COMPOUND_DRAW = {
+  compound: true,
+  combined: "Grant me the sight to see through stone.",
+  detail: [
+    { label: "Detail 1", face: 3, text: "Grant me" },
+    { label: "Detail 2", face: 5, text: "the sight" },
+    { label: "Detail 3", face: 2, text: "to see through stone." },
+  ],
+};
+
+test("compound prayer table renders sde.combined — results is empty by design", async () => {
+  const { cards, draws, tableDoc } = harness({ drawResults: [], roll: null, sde: COMPOUND_DRAW });
+
+  await rollPrayerTable(tableDoc, VELLA, "Ord");
+
+  assert.equal(draws.length, 1);
+  assert.deepEqual(draws[0], { displayChat: false });
+  assert.equal(cards.length, 1, "exactly one card, as on the plain-table path");
+
+  const content = cards[0].content;
+  assert.ok(content.includes("<p>Vella prayed to Ord:</p>"), content);
+  assert.ok(content.includes("<p>Grant me the sight to see through stone.</p>"),
+    `the prayer text must survive the silent compound draw: ${content}`);
+});
+
+test("compound draw with nothing rolled posts flavor only, no empty paragraph", async () => {
+  const { cards, tableDoc } = harness({
+    drawResults: [],
+    sde: { compound: true, combined: "", detail: [] },
+  });
+
+  await rollPrayerTable(tableDoc, VELLA, "Ord");
+
+  assert.equal(cards.length, 1);
+  assert.ok(cards[0].content.includes("<p>Vella prayed to Ord:</p>"), cards[0].content);
+  assert.ok(!/<p>[\s]*<\/p>/.test(cards[0].content), "no empty result paragraph");
+});
+
+test("compound combined text is escaped like any other table content", async () => {
+  const { cards, tableDoc } = harness({
+    drawResults: [],
+    sde: { compound: true, combined: XSS, detail: [] },
+  });
+
+  await rollPrayerTable(tableDoc, VELLA, "Ord");
+
+  const content = cards[0].content;
+  assert.ok(!/<img|<script/i.test(content), `raw tag survived: ${content}`);
+  assert.ok(content.includes("&lt;img src=x onerror=alert(1)&gt;"), content);
 });
 
 test("compendium-backed table resolves through the pack and posts one card", async () => {

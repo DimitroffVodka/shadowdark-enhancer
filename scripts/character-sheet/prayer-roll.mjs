@@ -125,12 +125,24 @@ export async function rollPrayerTable(table, actor, deityName) {
   // flavor line).
   const draw = await rollTable.draw({ displayChat: false });
 
-  // A TableResult's display text lives on `name`/`description`. Never read
-  // `.text` (or `._source.text`) here — the removed-in-v15 deprecation shim
-  // fires on this Foundry version.
-  const drawn = (draw.results ?? [])
-    .map(r => r.name || r.description)
-    .filter(Boolean);
+  // COMPOUND TABLES: the module's own 8 WR deity prayer generators are
+  // `{kind: "compound"}` (see table-shapes.mjs) — one table whose columns are
+  // each rolled and concatenated. installCompoundRollTable() wraps
+  // RollTable#draw for them, and its `displayChat: false` branch returns
+  // `{roll: null, results: [], sde: {compound: true, combined, detail}}`: the
+  // prayer text is on `sde.combined` and `results` is ALWAYS empty. Reading
+  // only `results` posts the flavor line with the prayer silently missing —
+  // and findPrayerTable() resolves "{Deity} Prayers", so that is the primary
+  // path for every PC worshipping a WR god, not an edge case.
+  //
+  // Otherwise: a TableResult's display text lives on `name`/`description`.
+  // Never read `.text` (or `._source.text`) here — the removed-in-v15
+  // deprecation shim fires on this Foundry version.
+  const drawn = draw.sde?.compound
+    ? [draw.sde.combined].filter(Boolean)
+    : (draw.results ?? [])
+      .map(r => r.name || r.description)
+      .filter(Boolean);
 
   // Escape both sides: the flavor line interpolates actor/deity names into
   // the card's HTML, and the drawn text is table content. Note: esc() flattens
@@ -148,7 +160,10 @@ export async function rollPrayerTable(table, actor, deityName) {
     content,
     speaker: ChatMessage.getSpeaker({ actor }),
   };
-  // Attach the evaluated draw roll so Dice So Nice still animates it.
+  // Attach the evaluated draw roll so Dice So Nice still animates it. Compound
+  // draws have no single roll to attach (each column is rolled and discarded,
+  // only the face survives on sde.detail) — that matches what those tables
+  // already did on their own card, so nothing is lost here.
   if (draw.roll) messageData.rolls = [draw.roll];
   // v14 live-verified: the deprecated `core.rollMode` getter returns null (it
   // does not merely warn), so the effective mode is `core.messageMode` reached

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-722 tracked files · ~96,100 lines of code/markup across scripts+templates+styles+test.
+722 tracked files · ~96,200 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -291,7 +291,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `prayer-roll.mjs` | 159 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
+| `prayer-roll.mjs` | 174 | Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums). |
 
 ### 3.18 `scripts/downtime/` — between-crawls downtime activities
 
