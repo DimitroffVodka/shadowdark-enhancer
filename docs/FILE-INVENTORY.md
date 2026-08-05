@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-720 tracked files · ~95,900 lines of code/markup across scripts+templates+styles+test.
+720 tracked files · ~96,000 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -77,7 +77,7 @@
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `movement-tracker.mjs` | 713 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
-| `npc-action-menu.mjs` | 611 | Per-combatant hover action HUD. |
+| `npc-action-menu.mjs` | 630 | Per-combatant hover action HUD. |
 
 ### 3.4 `scripts/crawl-bar/`
 

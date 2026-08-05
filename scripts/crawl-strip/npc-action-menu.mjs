@@ -172,18 +172,31 @@ async function _buildPcWeapons(actor) {
  * exist and what they point at; resolving the pointer is async and belongs to
  * the caller.
  *
- * The exclusions mirror `PlayerSheetSD._prepareItems` verbatim, so the strip
- * never offers something the sheet would hide: a lost spell (spent until the
- * next rest), a stashed item (left back at camp), an unidentified one (an
- * unknown stick — you don't know what it casts), a broken wand, or a wand
- * spell already burned out.
+ * The exclusions follow `PlayerSheetSD._prepareItems`, so the strip never
+ * offers something the sheet would hide: a lost spell (spent until the next
+ * rest), a stashed item (left back at camp), an unidentified one (an unknown
+ * stick — you don't know what it casts), or a broken wand. Deliberately
+ * STRICTER than the sheet in one place: a burned-out wand spell is dropped
+ * here, where the sheet still lists it greyed out.
+ *
+ * `canUseMagicItems` is the same gate the native sheet puts on the Spells tab
+ * (`showSpellsTab = isSpellCaster || canUseMagicItems`, and the getter is
+ * `isSpellCaster || spellcasting.allowAllItems`). Without it the system REFUSES
+ * the cast outright — `PlayerSD.castSpell` ends in `not_a_spellcaster` — so a
+ * row offered to an ungated non-caster is an action that can only ever fail.
+ * It defaults to `true` so the pure item-filtering tests read as such; both
+ * real call sites pass the actor's value explicitly.
  *
  * Pure — takes item-shaped objects, touches no globals.
  *
  * @param {Array<object>} items  `actor.items.contents`
+ * @param {object}  [opts]
+ * @param {boolean} [opts.canUseMagicItems=true]  `actor.system.canUseMagicItems`
  * @returns {Array<{source: "spell"|"wand"|"scroll", item: object, spellUuid: string}>}
  */
-export function spellItemSources(items = []) {
+export function spellItemSources(items = [], { canUseMagicItems = true } = {}) {
+  if (!canUseMagicItems) return [];
+
   const spells = [];
   const wands = [];
   const scrolls = [];
@@ -220,7 +233,8 @@ export function spellItemSources(items = []) {
 async function _buildPcSpells(actor) {
   const entries = [];
 
-  for (const src of spellItemSources(actor.items?.contents ?? [])) {
+  const canUseMagicItems = actor.system?.canUseMagicItems ?? false;
+  for (const src of spellItemSources(actor.items?.contents ?? [], { canUseMagicItems })) {
     if (src.source === "spell") {
       entries.push({
         label: src.item.name || "Unnamed",
@@ -309,9 +323,12 @@ function _menuTabAvailability(actor, isNPC) {
     tabB: "Spells",
     tabC: "Abilities",
     hasA: items.some(i => i.system?.isWeapon && i.system?.equipped),
-    // Wands and scrolls count, so a non-caster carrying one still gets the tab.
-    // Same filter the panel uses, so strip and panel never disagree.
-    hasB: spellItemSources(items).length > 0,
+    // Wands and scrolls count, so a caster (or an `allowAllItems` non-caster)
+    // carrying one gets the tab. Same filter AND same gate the panel uses, so
+    // strip and panel never disagree.
+    hasB: spellItemSources(items, {
+      canUseMagicItems: actor.system?.canUseMagicItems ?? false,
+    }).length > 0,
     hasC: items.some(i => i.type === "Class Ability"),
   };
 }
@@ -529,8 +546,10 @@ async function _onItemClick(actor, kind, itemId, opts = {}) {
       case "wand":
         // The spell is what gets cast; the scroll/wand rides along as
         // `itemUuid` so the system can apply its own item rules — the scroll
-        // is consumed either way, a wand breaks on a critical failure, and a
-        // non-caster is allowed to use one at all.
+        // is consumed either way, and a wand breaks on a critical failure.
+        // castSpell also re-checks who may cast, refusing a non-caster unless
+        // `spellcasting.allowAllItems` is set — spellItemSources() gates the
+        // rows on the same rule, so reaching here means it already passed.
         if (typeof actor.system?.castSpell === "function" && opts?.spellUuid) {
           return await actor.system.castSpell(opts.spellUuid, { itemUuid: item.uuid });
         }

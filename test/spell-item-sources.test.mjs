@@ -137,3 +137,42 @@ test("no items, or junk in the list, is survivable", () => {
   assert.deepEqual(spellItemSources([]), []);
   assert.deepEqual(spellItemSources([null, undefined, {}]), []);
 });
+
+/* --------------------------------------------------------------------- *
+ * canUseMagicItems gate.
+ *
+ * The native sheet hides the Spells tab entirely unless
+ * `showSpellsTab = isSpellCaster || canUseMagicItems` (shadowdark-compiled.mjs
+ * :16559), and the getter is `isSpellCaster || spellcasting.allowAllItems`
+ * (:12095). It is not merely cosmetic: `PlayerSD.castSpell` re-checks and
+ * bails with `not_a_spellcaster` (:12643), so a row shown to an ungated
+ * non-caster is an action that can only ever fail.
+ * --------------------------------------------------------------------- */
+
+const SCROLL = {
+  type: "Scroll", id: "s1", name: "Scroll of Fireball",
+  system: { spellUuid: "Compendium.shadowdark.spells.Item.fireball" },
+};
+const WAND = {
+  type: "Wand", id: "w1", name: "Wand of Light",
+  system: { spells: [{ uuid: "Compendium.shadowdark.spells.Item.light" }] },
+};
+const MEMORISED = { type: "Spell", id: "m1", name: "Magic Missile", system: {} };
+
+test("a non-caster without allowAllItems gets no rows at all", () => {
+  assert.deepEqual(
+    spellItemSources([SCROLL, WAND, MEMORISED], { canUseMagicItems: false }), [],
+    "the system would refuse every one of these casts");
+});
+
+test("canUseMagicItems true yields the same rows as before the gate", () => {
+  const gated = spellItemSources([SCROLL, WAND, MEMORISED], { canUseMagicItems: true });
+  assert.deepEqual(gated.map(s => s.source), ["spell", "wand", "scroll"]);
+  // A caster is unaffected: identical to the ungated default.
+  assert.deepEqual(gated, spellItemSources([SCROLL, WAND, MEMORISED]));
+});
+
+test("the gate short-circuits regardless of what is carried", () => {
+  for (const items of [[], [SCROLL], [WAND], [MEMORISED], [null, {}]])
+    assert.deepEqual(spellItemSources(items, { canUseMagicItems: false }), []);
+});

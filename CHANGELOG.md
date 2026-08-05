@@ -137,8 +137,10 @@
   the tooltip, so `Fireball` off a wand reads apart from `Fireball` off a scroll.
   Clicking casts through the system's own `castSpell` with the item attached, so
   its rules still apply: the scroll is spent, a wand can break on a critical
-  failure, and a non-caster may use both. The tab now shows up for anyone carrying
-  one, caster or not. What the character sheet hides, the strip hides — lost
+  failure, and a non-caster may use both *if* the GM has ticked that character's
+  **Allow all magic items** box. The tab follows the character sheet's own rule
+  (`canUseMagicItems`), so a plain non-caster does not get one — the system would
+  refuse the cast. What the character sheet hides, the strip hides — lost
   spells, burned-out wand charges, broken wands, and anything stashed or
   unidentified.
 - **Carousing now lands in the Session Recap.** Shadowdark Extras runs carousing;

@@ -160,9 +160,11 @@ to put in it:
   item's own name in the tooltip — so `Fireball` off a Wand of Wonder and
   `Fireball` off a scroll are told apart at a glance. Clicking casts through
   the system's `castSpell` with the item attached, so the normal rules apply:
-  the scroll is spent, a wand can break on a critical failure, and a
-  non-caster may still use both. The Spells tab appears for anyone carrying a
-  wand or scroll, caster or not.
+  the scroll is spent, and a wand can break on a critical failure. A
+  non-caster may use a wand or scroll only when the GM has ticked that
+  character's **Allow all magic items** box — Shadowdark refuses the cast
+  otherwise. The Spells tab follows the same rule the character sheet uses, so
+  it appears for spellcasters, and for anyone else only with that box ticked.
 - **What the Spells tab hides**, matching the character sheet exactly: lost
   spells, burned-out wand charges, broken wands, and anything **stashed** or
   **unidentified** — an unknown stick doesn't advertise what it casts.
