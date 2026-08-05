@@ -193,22 +193,57 @@ export async function rollMishapTable(tier, actor, classSlug) {
   // A TableResult's display text lives on `name`/`description`. Never read
   // `.text` (or `._source.text`) here — the removed-in-v15 deprecation shim
   // fires on this Foundry version.
-  const drawn = (draw.results ?? [])
-    .map(r => r.name || r.description)
-    .filter(Boolean);
+  //
+  // Result text is CONTENT, and it is NOT plain: the system's own mishap
+  // tables store real markup in `description` with an empty `name` — e.g.
+  // `<b>Explosion!</b> You take [[/r 1d8]] damage`. Escaping it printed the
+  // tags at the player verbatim (`<b>Explosion!</b>`).
+  //
+  // The per-field split mirrors core's own result template
+  // (templates/sheets/roll-table/result-details.hbs): `name` is rendered
+  // escaped (`{{result.name}}`) and only `description` is enriched
+  // (`{{{result.description}}}`). So markup in a `name` still cannot inject.
+  //
+  // `secrets: false` because a chat card is ONE stored HTML blob shared by
+  // every reader — enriching with the roller's ownership would publish
+  // GM-only secret blocks to the table. v14 REMOVES those sections rather
+  // than hiding them (foundry.mjs:35233), so a secret-only row enriches to
+  // nothing; the `.filter(Boolean)` below drops it instead of leaving a
+  // blank line in the card.
+  //
+  // Settled per result, as core does (foundry.mjs:58295): a bad `@UUID[…]`
+  // in a world table rejects enrichment, and one broken row must degrade to
+  // nothing rather than take the whole card down with it.
+  //
+  // This is not a hole: the values carrying untrusted input are the
+  // interpolated NAMES below, and those are still escaped. Table content is
+  // authored by the GM or shipped by the system — exactly what core renders
+  // unescaped in its own table card.
+  const settled = await Promise.allSettled((draw.results ?? []).map(async r => {
+    if (r.name) return esc(r.name);
+    if (!r.description) return "";
+    return foundry.applications.ux.TextEditor.implementation
+      .enrichHTML(String(r.description), { relativeTo: r, secrets: false });
+  }));
+  const drawn = [];
+  for (const outcome of settled) {
+    if (outcome.status === "rejected") {
+      console.warn(`${MODULE_ID} | mishap result could not be enriched; dropping that row`,
+        outcome.reason);
+      continue;
+    }
+    const html = String(outcome.value ?? "").trim();
+    if (html) drawn.push(html);
+  }
 
-  // Escape every interpolated value: the flavor line puts actor/table names
-  // into the card's HTML, and the drawn text is table content. Note: esc()
-  // flattens inline-roll syntax ([[/r 1d6]]) in result text — unreachable
-  // for the system and suite mishap tables (plain text only), but user world
-  // tables could hit it; deliberate tradeoff, consistent with the prayer roll.
+  // The flavor line still interpolates actor/table names into the card's HTML.
   const flavor = game.i18n.format(actor ? "SDE.mishap.rolled" : "SDE.mishap.rolledNoActor", {
     name: esc(actor?.name),
     tier: esc(tier),
     tableName: esc(tableDoc.name),
   });
-  const content = [flavor, ...drawn.map(text => esc(text))]
-    .map(part => `<p>${part}</p>`).join("");
+  const content = [`<p>${flavor}</p>`,
+    ...drawn.map(html => `<div class="sde-mishap-result">${html}</div>`)].join("");
 
   const messageData = { content };
   // Set the speaker from the actor when there is one; otherwise the message
