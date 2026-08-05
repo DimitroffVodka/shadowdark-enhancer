@@ -52,6 +52,11 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Starting renown from CHA** | on | Sets a new player character's renown to their Charisma modifier, once. If the character was made before their abilities were rolled, the seed waits for the first Charisma change. It never touches a character whose renown is already non-zero or who already has a renown log entry, so it cannot overwrite a score you have been playing with. See [Renown](Renown.md). |
 | **Renown on level-up** | on | Gives a player character a point of renown each time their level goes up. Reaching level 1 is excluded, because character creation writes that value. Every other renown trigger is a judgement call and stays on the **Renown** dialog. See [Renown](Renown.md). |
 
+### PDF Export
+
+| Setting | Default | What it does |
+|---|---|---|
+
 ### Encounters
 
 | Setting | Default | What it does |
