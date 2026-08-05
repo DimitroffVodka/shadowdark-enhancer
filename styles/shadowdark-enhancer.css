@@ -9852,3 +9852,11 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-downtime-card .sde-dt-open-btn:hover {
   background: #fff !important;
 }
+
+/* Spell-mishap chat card. Each drawn result is enriched table HTML, so the
+   wrapper must be a block that can legally contain the <p> some descriptions
+   already carry — and must supply the margin those bare ones lack, so a
+   `<p>…</p>` result and a bare `<b>…</b>` one sit the same distance apart. */
+.sde-mishap-result { margin: 0.5em 0; }
+.sde-mishap-result > p:first-child { margin-top: 0; }
+.sde-mishap-result > p:last-child  { margin-bottom: 0; }
