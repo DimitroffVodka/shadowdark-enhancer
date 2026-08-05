@@ -75,10 +75,10 @@
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
 | `initiative-manager.mjs` | 128 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
-| `movement-tracker.mjs` | 780 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
+| `movement-tracker.mjs` | 790 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 509 | Per-combatant hover action HUD. |
-| `movement-lock-core.mjs` | 43 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — in combat, only a non-current combatant is blocked; out of combat, only once every crawl member has rolled and a turn-holder exists. GMs and non-members are never blocked. |
+| `movement-lock-core.mjs` | 43 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — blocks only a non-current combatant of a started combat, matched by (sceneId, tokenId). GMs, non-combatants, non-positional updates, and everything out of combat pass through. |
 
 ### 3.4 `scripts/crawl-bar/`
 
