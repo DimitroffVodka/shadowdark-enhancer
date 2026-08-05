@@ -34,6 +34,15 @@ data/
 # Claude Code per-project state (session/cache — never commit)
 .claude/
 
+# Repowise's local index (wiki.db + WAL/SHM, the *.pkl parse/duplication caches,
+# knowledge-graph.json, sessions/sessions.db). Machine-local and rebuildable, and
+# the sqlite WAL/SHM files are live handles — committing them is meaningless and
+# they are large and constantly rewritten. This ignores only the LOCAL cache; the
+# Repowise PR review comments come from the server-side integration and are
+# unaffected. Added after a `git add -A` during a conflict resolution swept all
+# ten files into a commit.
+.repowise/
+
 # Playwright MCP scratch output
 .playwright-mcp/
 

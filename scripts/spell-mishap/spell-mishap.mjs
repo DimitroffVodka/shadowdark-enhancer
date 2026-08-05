@@ -21,6 +21,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
+import { esc } from "../shared/esc.mjs";
 
 /**
  * Class slugs as they appear in `actor.system.spellcasting.classes` — the
@@ -172,24 +173,51 @@ async function detectMishap(message) {
 }
 
 /**
- * Roll the mishap table and post the result.
+ * Roll the mishap table and post the result as ONE card.
+ *
+ * The old code posted two messages — the table's own draw card plus a separate
+ * flavor line. The no-actor flavor branch below is defensive totality: this
+ * function is exported, so its contract must hold on its own. In production it
+ * is only called from init()'s hook through detectMishap, which returns null
+ * when the actor is missing — so a null actor never actually arrives. It is
+ * not a fix for an observed defect.
  */
-async function rollMishapTable(tier, actor, classSlug) {
+export async function rollMishapTable(tier, actor, classSlug) {
   const tableDoc = await findMishapTable(classSlug, tier);
   if (!tableDoc) return;
 
-  await tableDoc.draw({ displayChat: true });
+  // Draw silently, then fold the flavor line and the drawn result into ONE
+  // card.
+  const draw = await tableDoc.draw({ displayChat: false });
 
-  if (actor) {
-    await ChatMessage.create({
-      content: game.i18n.format("SDE.mishap.rolled", {
-        name: actor.name,
-        tier,
-        tableName: tableDoc.name,
-      }),
-      speaker: ChatMessage.getSpeaker({ actor }),
-    });
-  }
+  // A TableResult's display text lives on `name`/`description`. Never read
+  // `.text` (or `._source.text`) here — the removed-in-v15 deprecation shim
+  // fires on this Foundry version.
+  const drawn = (draw.results ?? [])
+    .map(r => r.name || r.description)
+    .filter(Boolean);
+
+  // Escape every interpolated value: the flavor line puts actor/table names
+  // into the card's HTML, and the drawn text is table content. Note: esc()
+  // flattens inline-roll syntax ([[/r 1d6]]) in result text — unreachable
+  // for the system and suite mishap tables (plain text only), but user world
+  // tables could hit it; deliberate tradeoff, consistent with the prayer roll.
+  const flavor = game.i18n.format(actor ? "SDE.mishap.rolled" : "SDE.mishap.rolledNoActor", {
+    name: esc(actor?.name),
+    tier: esc(tier),
+    tableName: esc(tableDoc.name),
+  });
+  const content = [flavor, ...drawn.map(text => esc(text))]
+    .map(part => `<p>${part}</p>`).join("");
+
+  const messageData = { content };
+  // Set the speaker from the actor when there is one; otherwise the message
+  // posts under the current user.
+  if (actor) messageData.speaker = ChatMessage.getSpeaker({ actor });
+  // Attach the evaluated draw roll so Dice So Nice still animates it.
+  if (draw.roll) messageData.rolls = [draw.roll];
+  ChatMessage.applyRollMode(messageData, game.settings.get("core", "rollMode"));
+  await ChatMessage.create(messageData);
 }
 
 export function init() {

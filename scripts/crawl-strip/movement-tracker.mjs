@@ -439,12 +439,22 @@ export const MovementTracker = {
     const members = CrawlState.members ?? [];
     const oocMemberCount = members.length;
     const oocRolledCount = members.filter(id => hasOocRoll(CrawlState.oocInitiative, id)).length;
+    // Identify the combatant by (sceneId, tokenId) — the pair core itself uses
+    // (foundry.mjs:51928). Embedded ids are only unique within their parent
+    // scene, so a duplicated scene carries tokens with the SAME _id as the
+    // original: matching on tokenId alone would lock a player's token on the
+    // copy while combat runs on the original, with no combat visible to them.
+    // Legitimately off-scene combatants still match, because their recorded
+    // sceneId is their own scene.
+    const sceneId = doc.parent?.id;
     if (shouldBlockMovement({
       enabled: game.settings.get(MODULE_ID, "lockMovementOutOfTurn"),
       combatActive: !!combat?.started,
       isGM: game.user?.isGM ?? false,
-      isCombatant: combat?.combatants?.some((c) => c.tokenId === doc.id) ?? false,
-      isCurrentCombatant: combat?.combatant?.tokenId === doc.id,
+      isCombatant: combat?.combatants?.some(
+        (c) => c.tokenId === doc.id && c.sceneId === sceneId) ?? false,
+      isCurrentCombatant: combat?.combatant?.tokenId === doc.id
+        && combat?.combatant?.sceneId === sceneId,
       movesPosition: changes.x !== undefined || changes.y !== undefined,
       oocMemberCount,
       oocRolledCount,

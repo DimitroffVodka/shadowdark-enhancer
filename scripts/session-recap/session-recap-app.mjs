@@ -15,6 +15,7 @@ import {
   recapRow as carousingRecapRow, carousingSubtotal, tierLine,
 } from "./carousing-feed-core.mjs";
 import { esc } from "../shared/esc.mjs";
+import { copyText } from "../shared/clipboard.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -318,8 +319,11 @@ export class SessionRecapApp extends HandlebarsApplicationMixin(ApplicationV2) {
       await game.clipboard.copyPlainText(text);
       ui.notifications.info("Session recap copied to clipboard!");
     } catch {
-      await navigator.clipboard.writeText(text);
-      ui.notifications.info("Session recap copied to clipboard!");
+      // Fall back to the shared helper — navigator.clipboard is undefined on
+      // insecure origins, so it in turn falls back to a hidden textarea copy.
+      const ok = await copyText(text);
+      if (ok) ui.notifications.info("Session recap copied to clipboard!");
+      else ui.notifications.error("Could not copy session recap — clipboard unavailable.");
     }
   }
 

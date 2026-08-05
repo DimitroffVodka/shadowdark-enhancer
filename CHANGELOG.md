@@ -88,6 +88,13 @@
   old listener alive until it does.
 
 ### Fixed
+- **A card's action menu stopped opening once the strip redrew underneath it.**
+  The menu panel is a child of the strip, so any redraw — an item update, a
+  combat turn, a character taking damage — deleted the panel while the code went
+  on believing it was still open for that character. Hovering the same card then
+  did nothing at all; the menu came back only after hovering some *other* card
+  first, which reads as the strip having randomly stopped working. It now
+  notices the panel is gone and rebuilds it.
 - **Saving a session threw away its downtime and renown.** The archive kept eight
   of the recap's arrays and silently dropped the rest, so a session you saved at
   the end of the night reopened from **History** with no downtime attempts and no
@@ -122,6 +129,20 @@
   are unchanged, and no other slot accepts free text.
 
 ### Added
+- **Wands and scrolls now cast from the crawl strip.** The strip's **Spells** tab
+  listed only memorised spells, so a wand or a scroll — the way most of the party
+  gets to cast anything — meant opening the sheet. Both now appear there: a wand
+  lists every spell it holds, a scroll the one it carries. Each row is named for
+  the *spell* and carries a small wand or scroll icon, with the item's own name in
+  the tooltip, so `Fireball` off a wand reads apart from `Fireball` off a scroll.
+  Clicking casts through the system's own `castSpell` with the item attached, so
+  its rules still apply: the scroll is spent, a wand can break on a critical
+  failure, and a non-caster may use both *if* the GM has ticked that character's
+  **Allow all magic items** box. The tab follows the character sheet's own rule
+  (`canUseMagicItems`), so a plain non-caster does not get one — the system would
+  refuse the cast. What the character sheet hides, the strip hides — lost
+  spells, burned-out wand charges, broken wands, and anything stashed or
+  unidentified.
 - **Carousing now lands in the Session Recap.** Shadowdark Extras runs carousing;
   this module never did, so a night at the tavern was the one downtime activity
   that left no trace in the session log. Its results are now mirrored into a

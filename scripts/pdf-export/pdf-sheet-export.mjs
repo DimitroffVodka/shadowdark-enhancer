@@ -328,6 +328,22 @@ export async function fillActorPdf(actor) {
 
 /* ------------------------------------------------------------------- save */
 
+/** Export a character sheet as a filled PDF. `showSaveFilePicker` when the
+ * browser can offer a native "Save As"; otherwise `saveAs()` from the
+ * vendored FileSaver.js (loaded via module.json `scripts`).
+ *
+ * WHY THE BLOB PATH LOOKS LIKE THIS (do not re-derive):
+ * - `showSaveFilePicker` is secure-context-only, so a plain-HTTP game always
+ *   takes this path.
+ * - FileSaver.js's `saveAs(blob, name)` is the mechanism sheet-export and
+ *   every other Foundry export module uses, and the only one empirically
+ *   proven in the user's production Firefox — the hand-rolled anchor
+ *   equivalent failed there while FileSaver never did. Do not replace it
+ *   with a bespoke anchor/revoke implementation again; the 40 s revoke
+ *   inside FileSaver owns the blob lifecycle.
+ * - The saved filename comes from the `download` attribute FileSaver sets
+ *   internally, so the clean `<Name> - Shadowdark.pdf` survives.
+ */
 export async function exportActorToPdf(actor) {
   if (!actor) return;
   ui.notifications?.info(`Exporting ${actor.name} to PDF…`);
@@ -336,22 +352,10 @@ export async function exportActorToPdf(actor) {
     const safe = actor.name.replace(/[\s\\/:*?"<>|]+/g, "_").replace(/^_+|_+$/g, "") || "character";
     const filename = `${safe} - Shadowdark.pdf`;
 
-    const download = () => {
-      const blob = new Blob([bytes], { type: "application/pdf" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      ui.notifications?.info(`Downloaded ${filename}`);
-    };
-
-    // Native "Save As" (Electron / Chromium / Edge). On anything other than the
-    // user cancelling — SecurityError in a cross-origin iframe, expired user
-    // activation — fall through to the plain download rather than hard-failing.
+    // Tier 1 — native "Save As" (Electron / Chromium / Edge). On anything
+    // other than the user cancelling — SecurityError in a cross-origin
+    // iframe, expired user activation — fall through to the FileSaver
+    // download rather than hard-failing.
     if (typeof window.showSaveFilePicker === "function") {
       try {
         const handle = await window.showSaveFilePicker({
@@ -368,7 +372,22 @@ export async function exportActorToPdf(actor) {
         console.warn(`${MODULE_ID} | PDF export: save picker failed, downloading instead`, err);
       }
     }
-    download();
+
+    // Plain browser download (FileSaver.js): the insecure-origin path.
+    // `saveAs` is a bare global from the classic `scripts` entry in module.json,
+    // so it can be absent in ways this module can't see coming — a hand-made
+    // zip missing lib/, a CSP blocking the classic script, a future Foundry
+    // dropping non-module scripts. Without this guard the ReferenceError is
+    // caught below and reported as a generic "PDF export failed", which sends
+    // whoever debugs it looking at the PDF code instead of the missing file.
+    // No anchor fallback here on purpose: a hand-rolled anchor was tried and
+    // silently failed in production Firefox (see the note above the function).
+    if (typeof saveAs !== "function") {
+      throw new Error("FileSaver.js did not load — reinstall the module, or check "
+        + "the browser console for a blocked script (scripts/pdf-export/lib/FileSaver.min.js).");
+    }
+    saveAs(new Blob([bytes], { type: "application/pdf" }), filename);
+    ui.notifications?.info(`Downloaded ${filename}`);
   } catch (err) {
     console.error(`${MODULE_ID} | PDF export failed`, err);
     ui.notifications?.error(`PDF export failed: ${err.message}`);
