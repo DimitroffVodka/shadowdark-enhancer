@@ -364,6 +364,40 @@ function stampFilename(name, date = new Date()) {
   return `${name} - ${stamp}.pdf`;
 }
 
+/** Create every path segment of the export folder in turn. v14's
+ * FilePicker.createDirectory is NON-RECURSIVE (mkdirSync without
+ * recursive:true) and rejects when the parent is missing — a single call
+ * for "assets/shadowdark-enhancer/exports" dies with ENOENT unless
+ * "assets/shadowdark-enhancer" already exists on disk (which is exactly
+ * why tier 2 silently fell through to the browser download on every fresh
+ * install). Walking the segments makes ANY configured folder work from a
+ * bare Data/.
+ *
+ * Per-segment failures are still swallowed — the common case genuinely is
+ * "already exists" — but the swallow is NARROW: only EEXIST and the
+ * designed non-admin denials stay silent; anything else (a missing parent
+ * mid-walk, a path that escapes Data/, …) is a real configuration problem
+ * and gets logged instead of hidden. The UPLOAD's own result remains the
+ * success signal either way.
+ */
+async function ensureUploadDir(dir) {
+  let cur = "";
+  for (const part of String(dir).split("/").filter(Boolean)) {
+    cur = cur ? `${cur}/${part}` : part;
+    try {
+      await FilePicker.createDirectory("data", cur);
+    } catch (err) {
+      const msg = String(err?.message ?? err);
+      const expected = msg.includes("EEXIST")                    // already exists
+        || msg.includes("may not create directories")           // non-admin user
+        || msg.includes("do not have permission to browse");    // no FILES_BROWSE
+      if (!expected) {
+        console.warn(`${MODULE_ID} | PDF export: could not ensure folder segment "${cur}"`, err);
+      }
+    }
+  }
+}
+
 /**
  * Tier 2 fallback: save the PDF into Foundry's own user-data folder via the
  * normal server upload endpoint. That is an ordinary HTTP POST — it needs no
@@ -379,9 +413,7 @@ async function uploadPdfToServer(bytes, filename) {
   try {
     const exportDir = (game.settings.get(MODULE_ID, "pdfExportFolder") || DEFAULT_PDF_EXPORT_DIR)
       .replace(/\/+$/, "");
-    // createDirectory rejects when the folder already exists — that is the
-    // common case, not an error.
-    try { await FilePicker.createDirectory("data", exportDir); } catch { /* exists */ }
+    await ensureUploadDir(exportDir);
     const blob = new Blob([bytes], { type: "application/pdf" });
     const file = new File([blob], filename, { type: "application/pdf" });
     const result = await FilePicker.upload("data", exportDir, file, {}, { notify: false });

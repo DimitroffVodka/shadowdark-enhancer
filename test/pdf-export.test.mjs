@@ -337,7 +337,7 @@ test("template field-contract: every produced id exists in the manifest; all 16 
  * active. By default FilePicker.upload is DENIED (returns false, exactly
  * what Foundry v14 does for a user without FILES_UPLOAD) so the blob tier
  * runs; pass `upload` to make the server tier succeed. */
-function installExportHarness({ upload = async () => false, exportFolder = null, saveFilePicker = false } = {}) {
+function installExportHarness({ upload = async () => false, exportFolder = null, saveFilePicker = false, createDir = async () => {} } = {}) {
   const templateBytes = fs.readFileSync(fileURLToPath(
     new URL("../assets/pdf/shadowdark-character-sheet.pdf", import.meta.url)));
   const pdfLibUrl = new URL(
@@ -352,9 +352,10 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
     anchor: null,        // the <a> handed to document.createElement
     appendedToBody: false,
     uploads: [],         // { source, dir, file } server-upload attempts
-    createdDirs: [],     // FilePicker.createDirectory targets
+    createdDirs: [],     // FilePicker.createDirectory targets, in order
     chatMessages: [],    // ChatMessage.create payloads
     pickerOptions: null, // showSaveFilePicker options, when exercised
+    warns: [],           // console.warn payloads while the harness is active
   };
 
   const prev = {
@@ -368,6 +369,7 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
     game: globalThis.game,
     FilePicker: globalThis.FilePicker,
     ChatMessage: globalThis.ChatMessage,
+    consoleWarn: console.warn,
     createObjectURL: URL.createObjectURL,
     revokeObjectURL: URL.revokeObjectURL,
   };
@@ -410,7 +412,10 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
     },
   };
   globalThis.FilePicker = {
-    createDirectory: async (source, target) => { capture.createdDirs.push(target); },
+    createDirectory: async (source, target) => {
+      capture.createdDirs.push(target);
+      await createDir(source, target);
+    },
     upload: async (source, dir, file) => {
       capture.uploads.push({ source, dir, file });
       return upload(source, dir, file);
@@ -420,6 +425,7 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
     getSpeaker: () => ({ id: "speaker" }),
     create: async (data) => { capture.chatMessages.push(data); return data; },
   };
+  console.warn = (...args) => { capture.warns.push(args.map(String).join(" ")); };
   globalThis.document = {
     body: {
       appendChild(el) { el.isConnected = true; capture.appendedToBody = true; },
@@ -467,6 +473,7 @@ function installExportHarness({ upload = async () => false, exportFolder = null,
       globalThis.game = prev.game;
       globalThis.FilePicker = prev.FilePicker;
       globalThis.ChatMessage = prev.ChatMessage;
+      console.warn = prev.consoleWarn;
       URL.createObjectURL = prev.createObjectURL;
       URL.revokeObjectURL = prev.revokeObjectURL;
     },
@@ -572,8 +579,9 @@ test("server-upload tier is used when showSaveFilePicker is absent, with a downl
   try {
     await exportActorToPdf(makeActor());
     assert.equal(h.capture.uploads.length, 1, "server upload attempted");
-    assert.deepEqual(h.capture.createdDirs, ["assets/shadowdark-enhancer/exports"],
-      "export folder ensured before uploading");
+    assert.deepEqual(h.capture.createdDirs,
+      ["assets", "assets/shadowdark-enhancer", "assets/shadowdark-enhancer/exports"],
+      "export folder ensured one segment at a time before uploading");
     assert.equal(h.capture.createdUrls.length, 0,
       "no blob URL created — the server tier succeeded");
     assert.equal(h.capture.chatMessages.length, 1, "save card posted");
@@ -642,6 +650,56 @@ test("tier 1 save picker keeps the clean, undated filename", async () => {
       "native save dialog proposes the clean name, not a timestamped one");
     assert.equal(h.capture.uploads.length, 0, "picker path returns without uploading");
     assert.equal(h.capture.createdUrls.length, 0, "picker path returns without a blob");
+  } finally { h.restore(); }
+});
+
+/* --------------------------------------------------------------------- *
+ * Export-folder directory walk (issue #17, third round).
+ *
+ * v14's FilePicker.createDirectory is NON-RECURSIVE and rejects when the
+ * parent is missing — a single call for "assets/shadowdark-enhancer/exports"
+ * dies with ENOENT unless "assets/shadowdark-enhancer" already exists. That
+ * is why tier 2 silently fell through to the browser download on every
+ * fresh install. These tests pin the per-segment walk and the narrowed
+ * swallow.
+ * --------------------------------------------------------------------- */
+
+test("multi-segment export folder is ensured one segment at a time, in order", async () => {
+  const h = installExportHarness({
+    exportFolder: "assets/shadowdark-enhancer/exports",
+    upload: async (_s, _d, file) => ({ path: `assets/shadowdark-enhancer/exports/${encodeURIComponent(file.name)}` }),
+  });
+  try {
+    await exportActorToPdf(makeActor());
+    assert.deepEqual(h.capture.createdDirs,
+      ["assets", "assets/shadowdark-enhancer", "assets/shadowdark-enhancer/exports"],
+      "every path segment is created in order — a single leaf-only call fails on a bare Data/");
+    assert.equal(h.capture.uploads.length, 1, "upload still attempted after the dirs are ensured");
+  } finally { h.restore(); }
+});
+
+test("createDirectory failures: EEXIST and permission denials stay silent, unexpected ones are logged", async () => {
+  const h = installExportHarness({
+    exportFolder: "assets/deep/nested/exports",
+    createDir: async (_s, target) => {
+      // EEXIST = already exists — the common case, must stay silent.
+      if (target === "assets/deep/nested") throw new Error("EEXIST: file already exists, mkdir '...'");
+      // A non-admin denial — the designed fall-to-tier-3 path, also silent.
+      if (target === "assets/deep/nested/exports") throw new Error("You may not create directories in this location");
+      // A missing parent mid-walk is a real problem — must be logged.
+      if (target === "assets/deep") throw new Error("ENOENT: no such file or directory, mkdir '...'");
+    },
+    upload: async (_s, _d, file) => ({ path: `assets/deep/nested/exports/${encodeURIComponent(file.name)}` }),
+  });
+  try {
+    await exportActorToPdf(makeActor());
+    assert.deepEqual(h.capture.createdDirs,
+      ["assets", "assets/deep", "assets/deep/nested", "assets/deep/nested/exports"],
+      "every segment is still attempted even when earlier ones fail");
+    assert.equal(h.capture.warns.length, 1, "only the genuinely unexpected ENOENT is logged");
+    assert.match(h.capture.warns[0], /assets\/deep/, "the warning names the failing segment");
+    assert.doesNotMatch(h.capture.warns[0], /EEXIST|may not create directories/);
+    assert.equal(h.capture.uploads.length, 1, "the upload still runs — its result, not the dir walk, decides success");
   } finally { h.restore(); }
 });
 
