@@ -51,7 +51,7 @@ const WIZARD_TIER_1_2 = "Wizard Mishap Tier 1-2";
  * display name — they differ on purpose, so hostile names can be tested for
  * escaping without breaking resolution.
  */
-function harness({ drawResults = [], roll = null, rollMode = "roll", tableName = WIZARD_TIER_1_2, innerTable = null } = {}) {
+function harness({ enrich = (html) => html, drawResults = [], roll = null, rollMode = "roll", tableName = WIZARD_TIER_1_2, innerTable = null } = {}) {
   const cards = [];
   const enriched = [];
   const draws = [];
@@ -84,7 +84,7 @@ function harness({ drawResults = [], roll = null, rollMode = "roll", tableName =
   // the input verbatim so the assertions below show exactly what reaches chat.
   globalThis.foundry = {
     applications: { ux: { TextEditor: { implementation: {
-      async enrichHTML(html) { enriched.push(html); return html; },
+      async enrichHTML(html) { enriched.push(html); return enrich(html); },
     } } } },
   };
 
@@ -295,18 +295,62 @@ const SYSTEM_SHAPED = [
   { name: "", description: "<b>Explosion!</b> You take [[/r 1d8]] damage" },
 ];
 
-test("result markup is enriched, not escaped — bold and inline rolls survive", async () => {
+test("description markup reaches the enricher and is NOT escaped", async () => {
   const { cards, enriched } = harness({ drawResults: SYSTEM_SHAPED });
 
   await rollMishapTable(1, VELLA, "wizard");
 
-  const content = cards[0].content;
-  assert.ok(content.includes("<strong>Devastation!</strong>"), `bold was mangled: ${content}`);
-  assert.ok(content.includes("<b>Explosion!</b>"), `bold was mangled: ${content}`);
-  assert.ok(content.includes("[[/r 1d8]]"), `inline roll was mangled: ${content}`);
-  assert.ok(!content.includes("&lt;b&gt;"), `tags were escaped: ${content}`);
-  // Every result went through the enricher, which is what makes [[/r]] live.
-  assert.equal(enriched.length, 2, "each drawn result is enriched exactly once");
+  // What this suite can actually prove with a stubbed enricher:
+  //  (a) every description was handed to the enricher VERBATIM, and
+  //  (b) nothing was escaped on the way into the card.
+  // It deliberately does NOT assert that `[[/r 1d8]]` survives in the card —
+  // real enrichHTML REPLACES it with an <a class="inline-roll roll"> anchor,
+  // so asserting the raw syntax would pin behaviour that production never has.
+  assert.deepEqual(enriched, SYSTEM_SHAPED.map(r => r.description),
+    "each description is enriched verbatim, in order");
+  assert.ok(!cards[0].content.includes("&lt;b&gt;"), `tags were escaped: ${cards[0].content}`);
+  assert.ok(!cards[0].content.includes("&lt;strong&gt;"), cards[0].content);
+});
+
+test("a name-bearing result is ESCAPED, matching core's own template", async () => {
+  // core renders {{result.name}} (escaped) and {{{result.description}}} (raw),
+  // so markup in a name must not become live HTML.
+  const { cards, enriched } = harness({ drawResults: [{ name: XSS, description: "" }] });
+
+  await rollMishapTable(1, VELLA, "wizard");
+
+  assert.ok(!/<img|<script/i.test(cards[0].content), `raw tag survived: ${cards[0].content}`);
+  assert.ok(cards[0].content.includes("&lt;img src=x onerror=alert(1)&gt;"), cards[0].content);
+  assert.deepEqual(enriched, [], "a name is escaped, never enriched");
+});
+
+test("a result that enriches to nothing leaves no blank row", async () => {
+  // v14 REMOVES secret sections under `secrets:false`, so such a row comes
+  // back empty — it must vanish, not render as an empty styled div.
+  const { cards } = harness({ drawResults: [
+    { name: "", description: "<section class=\"secret\">gm only</section>" },
+    { name: "", description: "<b>Visible</b> effect" },
+  ], enrich: html => (html.includes("secret") ? "" : html) });
+
+  await rollMishapTable(1, VELLA, "wizard");
+
+  const blocks = [...cards[0].content.matchAll(/<div class="sde-mishap-result">/g)];
+  assert.equal(blocks.length, 1, `one visible row expected: ${cards[0].content}`);
+  assert.ok(cards[0].content.includes("<b>Visible</b> effect"), cards[0].content);
+});
+
+test("one unenrichable row degrades to nothing and the card still posts", async () => {
+  // core wraps per-result enrichment in Promise.allSettled for exactly this.
+  const { cards } = harness({ drawResults: [
+    { name: "", description: "BOOM" },
+    { name: "", description: "<b>Survivor</b>" },
+  ], enrich: html => { if (html === "BOOM") throw new Error("bad @UUID"); return html; } });
+
+  await rollMishapTable(1, VELLA, "wizard");
+
+  assert.equal(cards.length, 1, "a broken row must not take the card down");
+  assert.ok(cards[0].content.includes("<b>Survivor</b>"), cards[0].content);
+  assert.ok(!cards[0].content.includes("BOOM"), cards[0].content);
 });
 
 test("an already-<p>-wrapped description is not nested inside another <p>", async () => {

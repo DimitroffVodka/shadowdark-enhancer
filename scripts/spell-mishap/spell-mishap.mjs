@@ -197,21 +197,43 @@ export async function rollMishapTable(tier, actor, classSlug) {
   // Result text is CONTENT, and it is NOT plain: the system's own mishap
   // tables store real markup in `description` with an empty `name` — e.g.
   // `<b>Explosion!</b> You take [[/r 1d8]] damage`. Escaping it printed the
-  // tags at the player verbatim (`<b>Explosion!</b>`). Enrich it the way
-  // core's own table card does (TableResult#getHTML → enrichHTML) so bold
-  // survives and [[/r ...]] stays a real inline roll button. `secrets: false`
-  // because a chat card is read by everyone, not just the result's owner.
+  // tags at the player verbatim (`<b>Explosion!</b>`).
   //
-  // This is not a hole: the values that carry untrusted input are the
+  // The per-field split mirrors core's own result template
+  // (templates/sheets/roll-table/result-details.hbs): `name` is rendered
+  // escaped (`{{result.name}}`) and only `description` is enriched
+  // (`{{{result.description}}}`). So markup in a `name` still cannot inject.
+  //
+  // `secrets: false` because a chat card is ONE stored HTML blob shared by
+  // every reader — enriching with the roller's ownership would publish
+  // GM-only secret blocks to the table. v14 REMOVES those sections rather
+  // than hiding them (foundry.mjs:35233), so a secret-only row enriches to
+  // nothing; the `.filter(Boolean)` below drops it instead of leaving a
+  // blank line in the card.
+  //
+  // Settled per result, as core does (foundry.mjs:58295): a bad `@UUID[…]`
+  // in a world table rejects enrichment, and one broken row must degrade to
+  // nothing rather than take the whole card down with it.
+  //
+  // This is not a hole: the values carrying untrusted input are the
   // interpolated NAMES below, and those are still escaped. Table content is
   // authored by the GM or shipped by the system — exactly what core renders
   // unescaped in its own table card.
+  const settled = await Promise.allSettled((draw.results ?? []).map(async r => {
+    if (r.name) return esc(r.name);
+    if (!r.description) return "";
+    return foundry.applications.ux.TextEditor.implementation
+      .enrichHTML(String(r.description), { relativeTo: r, secrets: false });
+  }));
   const drawn = [];
-  for (const r of draw.results ?? []) {
-    const raw = r.name || r.description;
-    if (!raw) continue;
-    drawn.push(await foundry.applications.ux.TextEditor.implementation
-      .enrichHTML(String(raw), { relativeTo: r, secrets: false }));
+  for (const outcome of settled) {
+    if (outcome.status === "rejected") {
+      console.warn(`${MODULE_ID} | mishap result could not be enriched; dropping that row`,
+        outcome.reason);
+      continue;
+    }
+    const html = String(outcome.value ?? "").trim();
+    if (html) drawn.push(html);
   }
 
   // The flavor line still interpolates actor/table names into the card's HTML.
