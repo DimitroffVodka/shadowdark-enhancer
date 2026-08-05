@@ -78,7 +78,7 @@
 | `movement-tracker.mjs` | 780 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 509 | Per-combatant hover action HUD. |
-| `movement-lock-core.mjs` | 43 | **TODO: describe** |
+| `movement-lock-core.mjs` | 43 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — in combat, only a non-current combatant is blocked; out of combat, only once every crawl member has rolled and a turn-holder exists. GMs and non-members are never blocked. |
 
 ### 3.4 `scripts/crawl-bar/`
 
