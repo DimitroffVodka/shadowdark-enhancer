@@ -14,6 +14,7 @@
  * (that enriches notes into a live document, a system-side XSS sink).
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { esc } from "../shared/esc.mjs";
 
 const TEMPLATE_PATH = `modules/${MODULE_ID}/assets/pdf/shadowdark-character-sheet.pdf`;
 const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min.js`;
@@ -27,6 +28,12 @@ const PDFLIB_PATH = `modules/${MODULE_ID}/scripts/pdf-export/lib/pdf-lib.esm.min
 // PR #18 introduced by deleting the revoke entirely), which a GM exporting
 // a whole party would accumulate.
 const BLOB_REVOKE_FALLBACK_MS = 10 * 60 * 1000;
+
+// Where the server-upload fallback saves exported PDFs, when the GM has not
+// configured a different folder (game setting `pdfExportFolder`). Relative
+// to the Foundry user data folder; lives OUTSIDE the module dir so module
+// updates never wipe it and Foundry never warns about module-dir writes.
+const DEFAULT_PDF_EXPORT_DIR = "assets/shadowdark-enhancer/exports";
 
 let _pdflib = null;
 /** Lazy-load the vendored pdf-lib ESM bundle (only when the user exports). */
@@ -338,6 +345,57 @@ export async function fillActorPdf(actor) {
 
 /* ------------------------------------------------------------------- save */
 
+/**
+ * Tier 2 fallback: save the PDF into Foundry's own user-data folder via the
+ * normal server upload endpoint. That is an ordinary HTTP POST — it needs no
+ * secure context, so it works on the plain-HTTP LAN origins most Foundry
+ * tables actually play on, and the filename is whatever we pass. Returns
+ * true on success; false when the upload cannot happen (no FILES_UPLOAD
+ * permission, an existing file with the same name, …) so the caller falls
+ * through to the blob tier. FilePicker.upload does NOT throw on a denied
+ * upload — it shows a notification (suppressed here) and returns false.
+ */
+async function uploadPdfToServer(bytes, filename) {
+  try {
+    const exportDir = (game.settings.get(MODULE_ID, "pdfExportFolder") || DEFAULT_PDF_EXPORT_DIR)
+      .replace(/\/+$/, "");
+    // createDirectory rejects when the folder already exists — that is the
+    // common case, not an error.
+    try { await FilePicker.createDirectory("data", exportDir); } catch { /* exists */ }
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const file = new File([blob], filename, { type: "application/pdf" });
+    const result = await FilePicker.upload("data", exportDir, file, {}, { notify: false });
+    if (!result || !result.path) return false;
+    offerUploadedPdf(result.path, filename);
+    return true;
+  } catch (err) {
+    console.warn(`${MODULE_ID} | PDF export: server upload failed, downloading instead`, err);
+    return false;
+  }
+}
+
+/** Tell the user where the server copy landed, and give them a clickable
+ * download link. `result.path` is a normal same-origin HTTP URL, so a plain
+ * `<a download>` performs a regular GET and downloads with the right
+ * filename on any origin (no blob, no secure context). Whispered chat card
+ * rather than a toast — the module's UX convention, and a party export
+ * shouldn't spam the table. */
+function offerUploadedPdf(path, filename) {
+  let prettyPath;
+  try { prettyPath = decodeURIComponent(path); } catch { prettyPath = path; }
+  const link = `<a href="${esc(path)}" download="${esc(filename)}">`
+    + `${esc(game.i18n.format("SDE.pdfExport.download", { name: filename }))}</a>`;
+  const content = `<div class="sde-pdf-export-card">`
+    + `<h4>${esc(game.i18n.localize("SDE.pdfExport.cardTitle"))}</h4>`
+    + `<p>${esc(game.i18n.format("SDE.pdfExport.savedTo", { path: prettyPath }))}</p>`
+    + `<p>${link}</p></div>`;
+  ChatMessage.create({ speaker: ChatMessage.getSpeaker(), whisper: [game.user.id], content })
+    .catch((e) => {
+      console.warn(`${MODULE_ID} | PDF export: save card failed`, e);
+      ui.notifications?.info(`Saved ${filename}`);
+    });
+}
+
 export async function exportActorToPdf(actor) {
   if (!actor) return;
   ui.notifications?.info(`Exporting ${actor.name} to PDF…`);
@@ -346,7 +404,10 @@ export async function exportActorToPdf(actor) {
     const safe = actor.name.replace(/[\s\\/:*?"<>|]+/g, "_").replace(/^_+|_+$/g, "") || "character";
     const filename = `${safe} - Shadowdark.pdf`;
 
-    const download = () => {
+    /** Tier 3 — last resort: plain browser download of the blob. Only used
+     * when there is no native save picker (insecure origin) AND the server
+     * upload could not happen (no FILES_UPLOAD permission). */
+    const blobDownload = () => {
       const blob = new Blob([bytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -382,9 +443,10 @@ export async function exportActorToPdf(actor) {
       ui.notifications?.info(`Downloaded ${filename}`);
     };
 
-    // Native "Save As" (Electron / Chromium / Edge). On anything other than the
-    // user cancelling — SecurityError in a cross-origin iframe, expired user
-    // activation — fall through to the plain download rather than hard-failing.
+    // Tier 1 — native "Save As" (Electron / Chromium / Edge). On anything
+    // other than the user cancelling — SecurityError in a cross-origin
+    // iframe, expired user activation — fall through to the tiers below
+    // rather than hard-failing.
     if (typeof window.showSaveFilePicker === "function") {
       try {
         const handle = await window.showSaveFilePicker({
@@ -398,10 +460,15 @@ export async function exportActorToPdf(actor) {
         return;
       } catch (err) {
         if (err.name === "AbortError") return; // user cancelled
-        console.warn(`${MODULE_ID} | PDF export: save picker failed, downloading instead`, err);
+        console.warn(`${MODULE_ID} | PDF export: save picker failed, trying server upload`, err);
       }
     }
-    download();
+
+    // Tier 2 — server upload (no secure context needed; requires
+    // FILES_UPLOAD, which players may not have — then tier 3 takes over).
+    if (await uploadPdfToServer(bytes, filename)) return;
+
+    blobDownload();
   } catch (err) {
     console.error(`${MODULE_ID} | PDF export failed`, err);
     ui.notifications?.error(`PDF export failed: ${err.message}`);

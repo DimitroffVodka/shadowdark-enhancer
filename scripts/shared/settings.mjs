@@ -352,6 +352,21 @@ export function registerSettings() {
     default: true,
   });
 
+  // Where the PDF export's server-upload fallback saves sheets when the
+  // browser cannot show a native save dialog (plain-HTTP Foundry). Relative
+  // to the Foundry user data folder, outside the module dir. The exported
+  // file is also offered as a clickable download link in a whispered chat
+  // card. Players without FILES_UPLOAD skip this tier and get a direct
+  // browser download instead.
+  game.settings.register(MODULE_ID, "pdfExportFolder", {
+    name: "SDE.settings.pdfExportFolder.name",
+    hint: "SDE.settings.pdfExportFolder.hint",
+    scope: "world",
+    config: true,
+    type: String,
+    default: "assets/shadowdark-enhancer/exports",
+  });
+
   // Per-source downtime outcome text, unlocked by the GM from their own book.
   // Keyed by source slug ("cs6", "western-reaches") → the unlock record built by
   // downtime-core.buildUnlockRecord. The module ships the SKELETON only (slot

@@ -10,7 +10,7 @@ All settings are **world-scoped**. They are the GM's, not per-player.
 
 ## Settings you can see
 
-**Configure Settings → Shadowdark Enhancer.** These are the 26 settings with a
+**Configure Settings → Shadowdark Enhancer.** These are the 27 settings with a
 config entry, plus two GM-only menus (*Edit Guidelines Table*, *Manage Extra
 Gear*) that open their own editor windows.
 
@@ -50,6 +50,12 @@ See [Movement Budgets](Movement-Budgets.md).
 |---|---|---|
 | **Starting renown from CHA** | on | Sets a new player character's renown to their Charisma modifier, once. If the character was made before their abilities were rolled, the seed waits for the first Charisma change. It never touches a character whose renown is already non-zero or who already has a renown log entry, so it cannot overwrite a score you have been playing with. See [Renown](Renown.md). |
 | **Renown on level-up** | on | Gives a player character a point of renown each time their level goes up. Reaching level 1 is excluded, because character creation writes that value. Every other renown trigger is a judgement call and stays on the **Renown** dialog. See [Renown](Renown.md). |
+
+### PDF Export
+
+| Setting | Default | What it does |
+|---|---|---|
+| **PDF export folder** | `assets/shadowdark-enhancer/exports` | Where the PDF export fallback saves character sheets when the browser cannot show a native save dialog (Foundry over plain HTTP). Relative to the Foundry user data folder, outside the module folder. The saved file is also offered as a clickable download link in a whispered chat card. Players without the upload permission get a direct browser download instead. |
 
 ### Encounters
 
