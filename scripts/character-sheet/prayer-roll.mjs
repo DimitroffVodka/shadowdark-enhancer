@@ -7,6 +7,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { esc } from "../shared/esc.mjs";
 
 const PRAYER_ICON = `modules/${MODULE_ID}/icons/game-icons/prayer.svg`;
 
@@ -106,7 +107,7 @@ export function init() {
   });
 }
 
-async function rollPrayerTable(table, actor, deityName) {
+export async function rollPrayerTable(table, actor, deityName) {
   let rollTable;
   if (table.pack) {
     // Compendium table — import temporarily or draw from pack
@@ -119,13 +120,55 @@ async function rollPrayerTable(table, actor, deityName) {
 
   if (!rollTable) return;
 
-  await rollTable.draw({ displayChat: true });
+  // Draw silently, then fold the flavor line and the drawn result into ONE
+  // card — the old code posted two messages (the table's own card plus this
+  // flavor line).
+  const draw = await rollTable.draw({ displayChat: false });
 
-  await ChatMessage.create({
-    content: game.i18n.format("SDE.prayerRoll.rolled", {
-      name: actor.name,
-      deity: deityName,
-    }),
-    speaker: ChatMessage.getSpeaker({ actor }),
+  // COMPOUND TABLES: the module's own 8 WR deity prayer generators are
+  // `{kind: "compound"}` (see table-shapes.mjs) — one table whose columns are
+  // each rolled and concatenated. installCompoundRollTable() wraps
+  // RollTable#draw for them, and its `displayChat: false` branch returns
+  // `{roll: null, results: [], sde: {compound: true, combined, detail}}`: the
+  // prayer text is on `sde.combined` and `results` is ALWAYS empty. Reading
+  // only `results` posts the flavor line with the prayer silently missing —
+  // and findPrayerTable() resolves "{Deity} Prayers", so that is the primary
+  // path for every PC worshipping a WR god, not an edge case.
+  //
+  // Otherwise: a TableResult's display text lives on `name`/`description`.
+  // Never read `.text` (or `._source.text`) here — the removed-in-v15
+  // deprecation shim fires on this Foundry version.
+  const drawn = draw.sde?.compound
+    ? [draw.sde.combined].filter(Boolean)
+    : (draw.results ?? [])
+      .map(r => r.name || r.description)
+      .filter(Boolean);
+
+  // Escape both sides: the flavor line interpolates actor/deity names into
+  // the card's HTML, and the drawn text is table content. Note: esc() flattens
+  // inline-roll syntax ([[/r 1d6]]) in result text — unreachable for the
+  // imported prayer tables (plain names only), but user world tables could hit
+  // it; deliberate tradeoff.
+  const flavor = game.i18n.format("SDE.prayerRoll.rolled", {
+    name: esc(actor.name),
+    deity: esc(deityName),
   });
+  const content = [flavor, ...drawn.map(text => esc(text))]
+    .map(part => `<p>${part}</p>`).join("");
+
+  const messageData = {
+    content,
+    speaker: ChatMessage.getSpeaker({ actor }),
+  };
+  // Attach the evaluated draw roll so Dice So Nice still animates it. Compound
+  // draws have no single roll to attach (each column is rolled and discarded,
+  // only the face survives on sde.detail) — that matches what those tables
+  // already did on their own card, so nothing is lost here.
+  if (draw.roll) messageData.rolls = [draw.roll];
+  // v14 live-verified: the deprecated `core.rollMode` getter returns null (it
+  // does not merely warn), so the effective mode is `core.messageMode` reached
+  // through applyRollMode(null)'s fallback chain, not a value read here. Works
+  // today; must migrate to messageMode/applyMode before v16 removes the shim.
+  ChatMessage.applyRollMode(messageData, game.settings.get("core", "rollMode"));
+  await ChatMessage.create(messageData);
 }
