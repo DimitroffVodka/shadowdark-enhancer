@@ -78,7 +78,7 @@
 | `movement-tracker.mjs` | 713 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 509 | Per-combatant hover action HUD. |
-| `crawl-turn-core.mjs` | 100 | **TODO: describe** |
+| `crawl-turn-core.mjs` | 100 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` / `canAdvanceOocTurn()` (owner of the current turn-holder, non-GM, order active) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
 
 ### 3.4 `scripts/crawl-bar/`
 
