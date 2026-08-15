@@ -16,8 +16,6 @@
 
 ---
 
-Run a crawl without opening a single character sheet.
-
 It began as one **Crawl Strip** pinned to the top of the canvas: marching order,
 initiative, and live HP / Movement / Luck for the whole party. Everything since
 has been the rest of what a table needs mid-session, so there are now random
