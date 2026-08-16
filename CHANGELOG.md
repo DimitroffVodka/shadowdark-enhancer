@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.14.0] — 2026-08-16
 
 ### Security
 - **Any player could act as the GM, on any character, in nine more handlers.**
