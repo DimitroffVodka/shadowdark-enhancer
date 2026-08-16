@@ -27,6 +27,28 @@ own code license. Supporting the artists is encouraged at their
 | Greybanner Coliseum | [Greybanner Coliseum](https://2minutetabletop.com/product/greybanner-coliseum/) |
 | Tournament Ring (day, night) | [Tournament Ring](https://2minutetabletop.com/product/tournament-ring/) |
 
+The map name in this table is the 2-Minute Tabletop PRODUCT. In the module's own
+picker each map is named for the Cursed Scroll 2 venue it stands in for, so the
+GM reads "Large Arena" where this table reads "Greybanner Coliseum"; the product
+name is kept on each option's tooltip so this table stays findable from the app.
+
+Greybanner Coliseum is the one map whose pixels were changed: it is re-encoded
+from 1925×1400 to 1936×1408 — the same 1.375 aspect ratio, a 0.57% uniform
+upscale — because its 44×32 grid needs a whole-pixel cell that Foundry can
+store. The artwork is otherwise untouched.
+
+## Tavern Cellar scene art (`assets/scenes/tavern-cellar/`)
+
+The two floors of the bundled Tavern Cellar scene — `vault-floor.webp` and
+`pit-floor.webp` — are also **[2-Minute Tabletop](https://2minutetabletop.com)**
+dungeon tiles by **Ross McConnell** under the same
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) terms, from
+[Dungeon Vault](https://2minutetabletop.com/product/dungeon-vault/) and
+[Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/).
+They are re-encoded to WebP (lossy, quality 86) with their transparency kept, and
+the lower floor is padded with a transparent one-square margin so the two tiles
+line up as stacked levels. The artwork itself is unchanged.
+
 These products are not affiliated with Shadowdark Enhancer or The Arcane Library.
 
 ## Character Builder — ancestry portraits (`assets/ancestries/`)

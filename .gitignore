@@ -54,3 +54,11 @@ docs/*
 !docs/API.md
 !docs/FILE-INVENTORY.md
 !docs/agents/
+
+# Original 2-Minute Tabletop downloads kept beside the bundled arena maps.
+# The module ships the re-encoded .webp; these are the untouched source .jpg/.png
+# a GM downloaded from the product pages. Ignored so `git add -A` cannot sweep
+# multi-megabyte originals into the module, which ships the WebP only.
+assets/scenes/arena/*.jpg
+assets/scenes/arena/*.jpeg
+assets/scenes/arena/*.png

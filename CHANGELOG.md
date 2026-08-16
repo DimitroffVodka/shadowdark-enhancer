@@ -243,11 +243,15 @@
   and the pg. 39 footnote star come off, and `Wyvern (chained)` looks for
   *Wyvern* while keeping *chained* as a note. A creature you don't own stays
   listed and marked, and Place puts down the rest.
-- **The Thraxis Arena, as a scene.** A **Thraxis Arena** button builds CS2's own
-  arena — a bloodstained granite ring on desert sand, ringed by eleven torches at
-  night, on a 5 ft grid — and reuses it every time after, so the map you dressed
-  is the map you get back. The book prints no battle map, so this one is drawn
-  from its description. Any other scene works just as well.
+- **An arena, as a scene.** An **Arena map…** button offers eleven bundled
+  battle maps — Greybanner Arena and Coliseum, an arena of Earth, a choked
+  courtyard, a fantasy stadium, a tournament ring, a dungeon fighting pit, most
+  in a day and a night version — and builds the one you pick as a scene: the map
+  on a grid sized to its own printed squares at 5 ft, darkened for a night bout.
+  Each map is its own scene and is reused every time after, so the map you
+  dressed is the map you get back. The maps are 2-Minute Tabletop's, used under
+  CC BY-NC 4.0 (see CREDITS.md); the book prints no battle map of its own. Any
+  other scene works just as well.
 - **A pit fight now survives closing the window.** The bout is stored in the
   world rather than held in the window, so you can set the offer up, close it to
   run the combat on the map, and come back afterwards to the same stakes, venue,
