@@ -42,13 +42,23 @@ store. The artwork is otherwise untouched.
 ## Tavern Cellar scene art (`assets/scenes/tavern-cellar/`)
 
 The Tavern Cellar is the library's one multi-level map, so its art sits outside
-`assets/scenes/arena/`: one image per floor rather than one per map. Both floors —
-`vault-floor.webp` and `pit-floor.webp` — are **[2-Minute Tabletop](https://2minutetabletop.com)**
-dungeon tiles by **Ross McConnell** under the same
-[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) terms, from
-[Dungeon Vault](https://2minutetabletop.com/product/dungeon-vault/) and
-[Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/).
-They are re-encoded to WebP (lossy, quality 86) with their transparency kept, and
+`assets/scenes/arena/`: one image per floor rather than one per map. Both floors
+are **[2-Minute Tabletop](https://2minutetabletop.com)** dungeon tiles by
+**Ross McConnell**, licensed
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) — but they come
+from two different products, so each is credited to its own:
+
+| File | Floor | Product |
+|---|---|---|
+| `vault-floor.webp` | lower, 0–20 ft | [Dungeon Vault](https://2minutetabletop.com/product/dungeon-vault/) (2018 • Vol 4) |
+| `pit-floor.webp` | upper, 20–40 ft | [Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/) (2017 • Vol 3) |
+
+Both are multi-tile packages — Dungeon Vault prints across two pages and Dungeon
+Fighting Pit across four — so one tile from each is a normal use of them rather
+than a whole product. `dungeon-fighting-pit.webp` in the arena folder is a
+different tile from that same Dungeon Fighting Pit package.
+
+Both are re-encoded to WebP (lossy, quality 86) with their transparency kept, and
 the lower floor is padded with a transparent one-square margin so the two tiles
 line up as stacked levels. The artwork itself is unchanged.
 
