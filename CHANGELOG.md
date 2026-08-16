@@ -208,6 +208,65 @@
   two cannot disagree — a change that failed to apply leaves no row behind. Each
   character keeps its last 50 changes, since the log lives on the actor document.
   `renown.history(actor)` and `renown.historyByPlayer()` on the API.
+- **Pit fighting, from Cursed Scroll 2.** A new **Pit Fighting** entry in the
+  Crawl Bar's **Forge & Loot** menu sets a bout up in the book's order — the
+  offer first, then the secret twist, and only then who steps up: roll the venue,
+  roll the stakes against the **party's** average level, say whether it's a solo
+  or group bout, settle the danger, draw the foe, and check for a twist. Each
+  line can be rolled on its own or picked instead. The stakes go against the
+  whole party because the offer exists before anyone volunteers; a fractional
+  average rounds to nearest and shows you the unrounded figure beside it.
+  **The danger level is yours** — the book gives the GM the stakes *and* the
+  venue and then leaves the call, so the dropdown arrives pre-set to what the
+  stakes suggest and changing it redraws the foe from the encounter table that now
+  applies. **The twist stays hidden** until you press Reveal, including when it
+  turns out to be nothing: a hidden line that always meant trouble would tell the
+  table something. The one twist with a mechanical consequence — a donor raising
+  the stakes — moves the *prize* table without making the fight deadlier, since
+  the fighters accepted on the danger you already set. Afterwards, mark it won or
+  lost, roll the prize for the tier actually fought for, and apply the fame, which
+  goes through the same single renown write path as everything else. Documented in
+  [docs/wiki/Pit-Fighting.md](docs/wiki/Pit-Fighting.md).
+  The descriptions all come from **your own book**: venues, twists, prizes and
+  foes are read out of the fourteen CS2 tables you import, and a table you haven't
+  imported yet is **named in the window** with a link to the importer rather than
+  filled in with wording of ours. CS2 prints no renown value for a bout, so the
+  default is a point for a win and nothing for a loss, for you to change —
+  deliberately not scaled by stakes, which would read as a rule that isn't there.
+  Lethality is not automated: the danger level picks an encounter table, and what
+  happens when a fighter drops stays a ruling at your table.
+- **Pit fight foes go on the map.** The drawn encounter row is now read as
+  creatures rather than left as a line of text, and a **Place** button drops them
+  on the current scene one per click, walking the row in order and naming what
+  the next click will drop. Names are matched the way CS2 writes them against the
+  way Shadowdark files them — `Gt. centipede` finds *Centipede, Giant*, counts
+  and the pg. 39 footnote star come off, and `Wyvern (chained)` looks for
+  *Wyvern* while keeping *chained* as a note. A creature you don't own stays
+  listed and marked, and Place puts down the rest.
+- **The Thraxis Arena, as a scene.** A **Thraxis Arena** button builds CS2's own
+  arena — a bloodstained granite ring on desert sand, ringed by eleven torches at
+  night, on a 5 ft grid — and reuses it every time after, so the map you dressed
+  is the map you get back. The book prints no battle map, so this one is drawn
+  from its description. Any other scene works just as well.
+- **A pit fight now survives closing the window.** The bout is stored in the
+  world rather than held in the window, so you can set the offer up, close it to
+  run the combat on the map, and come back afterwards to the same stakes, venue,
+  foe and fighters, with the prize still to roll. Previously closing the window
+  threw the whole bout away — and since the reveal card carries only the twist,
+  there was nothing left anywhere to say what the fight had been for. Only *New
+  offer* discards it.
+- **The census can see arena monsters now.** CS2's encounter tables are
+  three-column creature grids typed `other`, so the monster census skipped them
+  before reading a row, and their cells (`Rookie*`, `Canyon ape*`) are shapes its
+  name scanner could not match. It now recognises creature matrices from the
+  table manifest and reads their columns by position, so **Rookie**, **Hero** and
+  **Canyon Ape** are reported under their source until you import them. Row text
+  is also read from a result's `name` as well as its description, which is where
+  authored tables actually keep it.
+- **The Forge & Loot button says what is behind it.** Its tooltip still named the
+  original three tools, so the five added since — Party XP, Downtime, Pit
+  Fighting, Renown and Session Recap — were listed nowhere until you opened the
+  menu. It names all eight.
 - **Renown, the fame track.** The number was already on the character sheet —
   the system owns `system.renown` — but nothing read it. It now means something.
   A new **Renown** entry in the Crawl Bar's **Forge & Loot** menu opens a GM

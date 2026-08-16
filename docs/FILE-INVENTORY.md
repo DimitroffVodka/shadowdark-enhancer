@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-730 tracked files · ~99,500 lines of code/markup across scripts+templates+styles+test.
+744 tracked files · ~103,400 lines of code/markup across scripts+templates+styles+test.
 `v0.13.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 700 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 714 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 
@@ -56,7 +56,7 @@
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
-| `settings.mjs` | 387 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 405 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -64,6 +64,7 @@
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
 | `gm-relay.mjs` | 317 | The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept. |
+| `token-placement.mjs` | 236 | Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token. |
 | `clipboard.mjs` | 46 | `copyText()` — clipboard write that survives insecure origins, where `navigator.clipboard` is undefined; falls back to a hidden textarea + `execCommand`, restores focus, and never throws. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
@@ -79,14 +80,14 @@
 | `movement-tracker.mjs` | 806 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |
 | `movement-calc.mjs` | 88 | Pure per-segment feet-moved math. |
 | `npc-action-menu.mjs` | 630 | Per-combatant hover action HUD. |
-| `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` / `canAdvanceOocTurn()` (owner of the current turn-holder, non-GM, order active) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
-| `movement-lock-core.mjs` | 78 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — in combat, only a non-current combatant is blocked; out of combat, only once every crawl member has rolled and a turn-holder exists. GMs and non-members are never blocked. |
+| `crawl-turn-core.mjs` | 121 | Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules. |
+| `movement-lock-core.mjs` | 78 | Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — blocks only a non-current combatant of a started combat, matched by (sceneId, tokenId). GMs, non-combatants, non-positional updates, and everything out of combat pass through. |
 
 ### 3.4 `scripts/crawl-bar/`
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 617 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 621 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -174,19 +175,19 @@
 | File | Lines | Description |
 |---|---:|---|
 | `importer-hub-app.mjs` | 855 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1384 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-paste.mjs` | 1406 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 832 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 949 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-manage.mjs` | 971 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 537 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 589 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `pdf-text-extract.mjs` | 584 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1394 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1415 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1002 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 737 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1073 | Class unit → real documents in dependency order. |
@@ -196,14 +197,14 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 460 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3087 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `tables/table-shapes.mjs` | 480 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `tables/table-importer.mjs` | 3257 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-shapes.mjs` | 549 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 297 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 528 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
 | `tables/table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
-| `tables/table-folders.mjs` | 139 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
+| `tables/table-folders.mjs` | 179 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
 | `tables/table-enrich.mjs` | 164 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
 | `tables/core-table-groups.mjs` | 251 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
@@ -213,7 +214,7 @@
 | `monsters/monster-importer.mjs` | 226 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 378 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
-| `monsters/monster-census-live.mjs` | 378 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
+| `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
@@ -321,6 +322,18 @@ Ships the skeleton only (activity names, slot labels, DCs, paid flags, renown/XP
 | `renown-award-dialog.mjs` | 238 | The GM's award / dock DialogV2. Party roster (renown, band, meaning, bonus) on top, then character + change + reason with the book's triggers as suggestions, then the collapsed per-player **Renown log** (native `<details>`, since DialogV2 does not re-render its content), plus a "Start at CHA mod" seed that forces past both the setting and the once-only rule. GM-only; every write goes through `Renown.award`. |
 
 The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This folder adds the band ladder, the single logged write path every renown change goes through, and the GM's award dialog. Band thresholds and bonus numbers are mechanics; the one-line band meanings are the module's own wording, not the book's.
+
+### 3.20 `scripts/pit-fighting/` — Cursed Scroll 2 pit fighting bouts
+
+| File | Lines | Description |
+|---|---:|---|
+| `pit-fighting-core.mjs` | 290 | Pure bout set-up: the stakes ladder (APL + 1d6 → 2-5 / 6-10 / 11-13 / 14+), `averagePartyLevel` (rounds half up, ignores unreadable levels rather than counting them as level 0), the 2d6 venue rows, the 2d6 twist bands as machine-readable effects (`extra-danger` and its 1d4 sub-roll, `none`, `stakes-up-1`, `boon`), the three danger levels, `encounterTableName` (High and Epic share one encounter tier, so four stakes tiers map to three table tiers) and `buildBout`. `suggestedDanger` derives from the stakes only — the book hands the GM the venue too and then says the GM decides, and no venue risk rating exists to read. Rolls no dice and holds no text. Foundry-free, node-tested. |
+| `foe-resolver-core.mjs` | 180 | Pure reader for a drawn CS2 encounter row (`"2 hero* \| 2 lion \| 30' deep pits"`). `parseFoeCell` strips a leading count (kept as a STRING because one cell is `2d4`), the pg. 39 footnote star, a trailing parenthetical that is a stage direction rather than part of the name (`Wyvern (chained)`), and the book's `Gt.` abbreviation; it singularises only when a count made the plural. `nameCandidates` adds the system's inverted `Family, Variant` form, which is what resolves `Gt. centipede` to *Centipede, Giant* without a lookup table. `parseFoeRow` reads creatures by COLUMN POSITION so the complication is never mistaken for a monster. Shared with the monster census, so the census and the Place button agree on what a row names. Foundry-free, node-tested. |
+| `arena-layout.mjs` | 97 | **Generated** by `tools/arena/build-thraxis-arena.py` — do not hand-edit. The map size, grid, slab radius and the eleven torch positions the arena map was PAINTED with. The scene builder puts an AmbientLight on each, so lights and painted torches cannot drift apart; that coupling is the whole reason the generator emits a module instead of the coordinates being typed by hand. |
+| `arena-scene.mjs` | 175 | Builds CS2 pg. 23's Thraxis Arena as a playable scene: the generated map on a 5 ft grid, night darkness, and a torch ring built from `ARENA_TORCHES`. Idempotent — matched on its own flag first so a rename survives, so pressing the button again returns the map the GM already dressed. VIEWED, never activated: activating would drag every connected player onto the map. **v14 note:** the background lives on the new `Level` embedded document (`scene.levels[].background.src`); `Scene#background` is a read-only v13 shim, and writing the old shape is discarded silently by schema cleaning, leaving a grey scene and no error. |
+| `pit-fighting-app.mjs` | 998 | The bout roller: the `sde-pit-fighting` ApplicationV2 plus the `PitFighting` logic object. Picks the fighters (their count decides solo vs group, their average level sets the stakes), rolls venue / stakes / twist, offers the danger level as an override that redraws the foe from the newly selected encounter table, holds the twist back until Reveal, draws the prize, and awards the fame through `Renown.award`. `findBoutTable` resolves tables by book name and tolerates the suite's `Source - Name` prefix; a table that is missing is NAMED in the window with a link to the importer, never substituted with text of its own. Reads TableResult `name \|\| description` — never `text`, which still fires the v13 deprecation getter. GM-only. |
+
+Structure and thresholds only. Venue descriptions, twist details, what each stakes tier is fought for and the foes themselves all live in the RollTables you import from your own book — this folder holds dice ranges and mechanics, the same class of bare numbers as the reaction bands. The book leaves the danger level and the foe to the GM, so the module suggests and never decides.
 <!-- inventory:scripts:end -->
 ---
 

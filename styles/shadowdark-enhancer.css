@@ -3586,6 +3586,190 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-renown-band { opacity: 0.8; font-size: 12px; }
 .sde-renown-card-foot { font-style: italic; opacity: 0.8; font-size: 12px; }
 
+/* ─── Pit fighting — the bout roller (CS2 pgs 20–24) ──────────────────────── */
+
+.sde-pit .sde-pit-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  margin: 10px 0 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--sde-bar-border, #555);
+}
+
+.sde-pit-members { list-style: none; margin: 0; padding: 0; }
+.sde-pit-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}
+.sde-pit-member label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.sde-pit-member-name { font-weight: 600; }
+.sde-pit-member-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted, #b0b0b0);
+}
+.sde-pit-lvl { font-weight: 700; }
+.sde-pit-ren i { color: var(--sde-bar-accent, #c9aa58); }
+
+/* The bout itself: a label / die total / text grid, so the numbers line up
+   down the left and the imported text gets all the remaining width. */
+.sde-pit-bout { margin-top: 8px; }
+.sde-pit-row {
+  display: grid;
+  grid-template-columns: 4.5em 2em 1fr;
+  /* `start`, not `center`: a row that has drawn its table text is two or three
+     lines tall, and centering floats the label and the die total down beside
+     the TEXT instead of beside the controls that produced it. Each keeps a
+     control-height box of its own so it still sits on the first line. */
+  align-items: start;
+  gap: 8px;
+  padding: 4px 0;
+  border-top: 1px solid rgb(255 255 255 / 6%);
+}
+/* 2.3em is the tallest control on the line (a select). In em so it tracks the
+   user's Foundry font scale instead of pinning to one zoom level. */
+.sde-pit-label, .sde-pit-roll-total {
+  display: flex;
+  align-items: center;
+  min-height: 2.3em;
+}
+.sde-pit-label { font-weight: 700; }
+.sde-pit-roll-total {
+  justify-content: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+/* Rows that are derived rather than rolled keep the column but not the weight. */
+.sde-pit-no-die { font-weight: 400; opacity: 0.6; font-size: 13px; }
+/* Roll and "or pick…" belong on ONE line — a button on one row and its own
+   dropdown on the next reads as two separate controls. Flex keeps them paired
+   and lets the select take the slack; anything block-level in here (the drawn
+   table text, the hidden-twist note) breaks to its own full-width line. */
+.sde-pit-text {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.sde-pit-text select {
+  flex: 1 1 8em;
+  min-width: 0;
+  max-width: 20em;
+}
+.sde-pit-text > div { flex: 1 0 100%; }
+.sde-pit-text em { opacity: 0.75; font-size: 12px; }
+.sde-pit-raised { color: var(--sde-bar-accent, #c9aa58); font-style: italic; }
+.sde-pit-apl {
+  margin-left: 6px;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted, #b0b0b0);
+}
+
+/* A twist nobody has been told about yet. */
+.sde-pit-hidden {
+  font-style: italic;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted, #b0b0b0);
+}
+
+.sde-pit-missing {
+  margin: 8px 0;
+  padding: 6px 8px;
+  border-left: 3px solid var(--sde-bar-hit, #a33);
+  background: rgb(0 0 0 / 12%);
+  font-size: 12px;
+}
+.sde-pit-missing p { margin: 0 0 4px; }
+.sde-pit-missing ul { margin: 0 0 6px; padding-left: 18px; }
+
+.sde-pit-outcome { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.sde-pit-fame { margin: 6px 0; }
+.sde-pit-fame label { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+.sde-pit-fame input { width: 5em; }
+
+.sde-pit-footer { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.sde-pit-roll, .sde-pit-apply { flex: 1; font-weight: 700; }
+.sde-pit-mini { flex: 0 0 auto; font-size: 12px; padding: 2px 8px; }
+/* The selected outcome has to be obvious — it decides what Apply does. */
+.sde-pit-mini.sde-pit-on {
+  border-color: var(--sde-bar-accent, #c9aa58);
+  box-shadow: inset 0 0 0 1px var(--sde-bar-accent, #c9aa58);
+  font-weight: 700;
+}
+
+/* Chat cards: the bout summary, and the twist reveal. */
+.sde-pit-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+.sde-pit-card-body { padding: 4px 0; font-size: 13px; }
+.sde-pit-card-body div { padding: 1px 0; }
+.sde-pit-win .sde-pit-card-head i { color: var(--sde-bar-miss, #4c9a4c); }
+.sde-pit-loss .sde-pit-card-head i { color: var(--sde-bar-hit, #a33); }
+/* Renown the award refused. Reads as a problem, not as a result. */
+.sde-pit-card-warn { color: var(--sde-bar-hit, #a33); font-style: italic; }
+
+/* Text drawn from an imported table, under the control that produced it. The
+   controls are the GM's; this line is what the table actually said. */
+.sde-pit-drawn {
+  margin-top: 3px;
+  padding-left: 2px;
+  border-left: 2px solid var(--sde-bar-border, #555);
+  padding-inline-start: 6px;
+}
+.sde-pit-declined {
+  border-left: 3px solid var(--sde-bar-hit, #a33);
+  padding-left: 8px;
+}
+/* The drawn row read as creatures. This sits UNDER the row's own text rather
+   than replacing it: the text is what the book said, the list is what can be
+   put on the table, and a GM needs to see the first to trust the second. A
+   creature with no matching monster stays in the list, dimmed and marked —
+   dropping it silently would read as the row having named fewer foes. */
+.sde-pit-foes {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0 0 0 8px;
+  font-size: 12px;
+}
+.sde-pit-foe {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 1px 0;
+}
+.sde-pit-foe > i { font-size: 10px; color: var(--sde-bar-miss, #4c9a4c); }
+.sde-pit-foe-count { font-weight: 700; }
+.sde-pit-foe-name { font-weight: 600; }
+.sde-pit-foe-note { opacity: 0.75; }
+.sde-pit-foe-missing { opacity: 0.6; }
+.sde-pit-foe-missing > i { color: var(--sde-bar-border, #555); }
+.sde-pit-foe-why { font-style: italic; opacity: 0.8; }
+/* The window's paragraphs of guidance. They are read once and then in the way,
+   so they stay small and quiet rather than competing with the controls. The
+   declined notice is exempt: it reports a decision, not advice, and muting it
+   grey would hide the one line that says why there is no bout. */
+.sde-pit > p.notes:not(.sde-pit-declined) {
+  margin: 4px 0 6px;
+  font-size: 12px;
+  color: var(--sde-bar-text-muted, #b0b0b0);
+}
+
+/* Foundry remembers a dragged window size, and this one has three columns plus a
+   select per row. Measured: at 200px the text column is 38px and every dropdown
+   clips to unreadable. A floor is cheaper than making the rows reflow. */
+#sde-pit-fighting { min-width: 420px; }
+
 /* Encounter chat card — the renown / double-1s note under the facets. */
 .sde-chat-facet-note {
   display: flex;

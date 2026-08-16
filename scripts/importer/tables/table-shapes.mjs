@@ -84,6 +84,34 @@ const MATRIX = (caption, size = 4) => ({ kind: "matrix", caption, size, cols: "l
 // text); the parser strips the repeated caption/header + page footers.
 const LONGTABLE = (caption, size = 100) => ({ kind: "longtable", caption, size, cols: "1" });
 
+// A whole FEATURE unlocked in one press: several captioned tables spread over a
+// page range, each carrying its own shape. `members` is [{ name, shape,
+// formula? }] — `name` is the final table name (the source prefix is added by
+// the importer, as for any other unlock) and `formula` overrides the die the
+// page prints when the printed one is unrollable (see the Stakes member below).
+//
+// `pageModes` is what makes a suite more than a loop: [{ pages, cols }] tells
+// the PDF grab which extraction mode each page needs. Every other shape grabs
+// under ONE mode, which is fine for one table on one page — but CS2's pit
+// suite prints two-column set-up pages (21, 24) beside single-column encounter
+// grids (22-23), and either mode alone shreds the other half.
+const SUITE = (members, pageModes) => ({ kind: "suite", members, pageModes });
+
+// Like SECTION, but for a captioned table whose rows are BANDS ("2-4", "14+")
+// printed around a vertically centered die face, so a cell's text wraps both
+// above and below its own face. See parseBandedSlice in table-importer.
+const BANDED = (caption, size) => ({ kind: "banded", cols: "auto", caption, ...(size ? { size } : {}) });
+
+// One of the six CS2 pit-fight encounter tables: a captioned "dN Creature 1 /
+// Creature 2 / Complication" grid, rolled column by column and cartesian-
+// expanded at commit (6³ = 216 and 8³ = 512, both under the 2,000-row cap).
+// Layout extraction keeps the three columns on one padded line for the aligned
+// x-position split; the caption bound keeps each table off its page-mates.
+const PIT_ENCOUNTER = (caption, size) => ({
+  kind: "compound", split: "grid", cols: 3, size, caption, extractCols: "layout",
+  labels: ["Creature 1", "Creature 2", "Complication"],
+});
+
 // The expanded ten-row Carousing Event printed identically in WR (pg 236) and
 // CS6 (pg 28): Total Cost / Example Event / Bonus, keyed by cost, one line per
 // row. `rowStart`/`colLast` anchor the row on the cost and peel the trailing
@@ -230,6 +258,47 @@ export const CONTENT_ENTRIES = [
     { kind: "compound", split: "grid", cols: 4, size: 20, labels: ["Male", "Female", "Surname", "Title"],
       caption: "NORD NAMES", extractCols: "1", reflow: ["cap", "cap", "\\s"] },
     ["Nord Names"]),
+  // CS2's pit-fighting suite (pgs 20-24) — FOURTEEN tables behind one Unlock,
+  // because they are one feature and half of them are useless alone. Without
+  // this the generic recognizer returned a single 9-row 1d13 table with
+  // overlapping ranges: it cannot know a five-page grab holds fourteen tables
+  // with their own dice, and the "overlaps" were the Stakes bands (2-5/6-10/
+  // 11-13/14+) colliding with the Twist bands (2-5/6-9/10-11/12).
+  //
+  // Page 20 is prose (the rules for running a bout) and holds no table, so the
+  // grab starts at 21 even though the citation reads 20-24 — the reader still
+  // wants page 20.
+  _entry("cs2/pit-fighting", "CS2", "Pit Fighting", SUITE([
+    // Page 21, left column: the three set-up tables.
+    { name: "Venue", shape: BANDED("VENUE") },
+    // The page prints "APL + 1d6", which is not a rollable formula (the APL is
+    // the party's, and the window computes it). The table is a reference band
+    // list, so it takes a 1d14 placeholder — 14 being the lowest total that
+    // reaches the open-ended Epic band. Face 1 is genuinely unreachable (APL is
+    // at least 1 and 1d6 at least 1), so the parser's note about it is true.
+    { name: "Stakes", shape: BANDED("STAKES", 14) },
+    { name: "Twist", shape: BANDED("TWIST") },
+    // Page 21, right column: what each stakes tier is fought for. Same captions
+    // as the Core Rulebook's gambling tables, which is why they are matched by
+    // an exact caption inside a CS2-scoped entry and never by name alone.
+    { name: "Low Stakes", shape: BANDED("LOW STAKES", 4) },
+    { name: "Mid Stakes", shape: BANDED("MID STAKES", 4) },
+    { name: "High Stakes", shape: BANDED("HIGH STAKES", 4) },
+    { name: "Epic Stakes", shape: BANDED("EPIC STAKES", 4) },
+    // Pages 22-23: three solo tables, then three group ones. The group mid and
+    // high/epic tables are d8; every other one is d6.
+    { name: "Low Stakes Pit Fight (solo)", shape: PIT_ENCOUNTER("LOW STAKES PIT FIGHT (SOLO)", 6) },
+    { name: "Mid Stakes Pit Fight (solo)", shape: PIT_ENCOUNTER("MID STAKES PIT FIGHT (SOLO)", 6) },
+    { name: "High/epic Stakes Pit Fight (solo)", shape: PIT_ENCOUNTER("HIGH/EPIC STAKES PIT FIGHT (SOLO)", 6) },
+    { name: "Low Stakes Pit Fight (group)", shape: PIT_ENCOUNTER("LOW STAKES PIT FIGHT (GROUP)", 6) },
+    { name: "Mid Stakes Pit Fight (group)", shape: PIT_ENCOUNTER("MID STAKES PIT FIGHT (GROUP)", 8) },
+    { name: "High/epic Stakes Pit Fight (group)", shape: PIT_ENCOUNTER("HIGH/EPIC STAKES PIT FIGHT (GROUP)", 8) },
+    // Page 24, right column: the Thraxis Arena's crowd, rolled per bout.
+    { name: "Tonight's Crowd", shape: BANDED("TONIGHT'S CROWD", 8) },
+  ], [
+    { pages: "21,24", cols: "auto" },
+    { pages: "22-23", cols: "layout" },
+  ])),
   _entry("cs2/enduring-wounds", "CS2", "Cursed Scroll 2 p26: Enduring Wounds",
     // 2-col auto extraction shears each row's text off mid-sentence; the
     // single-column section slice keeps "1 Heart Attack. Pass a DC 15 …" whole.

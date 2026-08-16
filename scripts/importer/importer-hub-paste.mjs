@@ -816,7 +816,29 @@ class HubPasteMethods {
           this._importGenerators = bucket.generators ?? [];
           this._importTables = bucket.tables ?? [];
           this._importChar = []; this._importSkipped = [];
-          this._applyImportSeed();
+          if (shape.kind === "suite") {
+            // A suite already named every member from its own recipe, so the
+            // seed name ("Pit Fighting") must NOT be stamped over the first
+            // table — that is exactly what turned fourteen tables into one
+            // called "Cursed Scroll 2 - Pit Fighting". Apply only the shared
+            // "Source - Name" convention, and list any member the paste didn't
+            // contain rather than quietly importing 13 of 14.
+            const srcLabel = CHAR_SOURCES[seed?.src]?.label;
+            if (srcLabel) {
+              for (const pt of [...this._importTables, ...this._importGenerators]) {
+                pt.name = sourcedTableName(srcLabel, pt.name);
+              }
+            }
+            for (const miss of bucket.missing ?? []) {
+              this._importSkipped.push({ name: miss, reason: "not found in the pasted pages — use “Grab text” to pull the whole cited range" });
+            }
+            if (bucket.missing?.length) {
+              const total = bucket.missing.length + this._importTables.length + this._importGenerators.length;
+              ui.notifications.warn(`${bucket.missing.length} of ${total} tables in this unlock weren't found — see Skipped.`);
+            }
+          } else {
+            this._applyImportSeed();
+          }
           if (!this._importGenerators.length && !this._importTables.length) {
             ui.notifications.warn("Shape parse produced nothing — check the pasted section.");
           }

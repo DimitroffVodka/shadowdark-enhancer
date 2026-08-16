@@ -384,4 +384,22 @@ export function registerSettings() {
     type: Object,
     default: {},
   });
+
+  // The pit fight currently on. Internal — the Pit Fighting window owns it.
+  //
+  // Persisted rather than held on the app instance because a bout OUTLIVES the
+  // window by design: the GM sets the offer up, closes the window to run the
+  // fight on the canvas, and comes back a while later for the prize and the
+  // fame. Keeping it in memory meant closing the window silently destroyed the
+  // stakes and the drawn text, with nothing anywhere to recover them from.
+  //
+  // The DRAWN TEXT is stored, not just the dice. Venue and foe come off random
+  // table draws, so re-deriving a bout from its totals would hand back a
+  // different fight.
+  game.settings.register(MODULE_ID, "pitFightingBout", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
+  });
 }

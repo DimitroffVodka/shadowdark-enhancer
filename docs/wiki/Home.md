@@ -37,6 +37,7 @@ Tools you use while a session is running.
 | [Party XP](Party-XP.md) | Awarding XP to the whole party, Shadowdark treasure-XP rules |
 | [Downtime](Downtime.md) | Between-crawl activities, the DC step-down ladder, per-attempt costs, unlocked from your own book |
 | [Renown](Renown.md) | The fame track, its four bands, the reaction-roll bonus, awarding and docking it |
+| [Pit Fighting](Pit-Fighting.md) | CS2 bouts: venue, stakes off the party's average level, a danger call that's yours, a hidden twist |
 | [Session Recap](Session-Recap.md) | Automatic session log (loot, XP, combats, rolls, kills) with a Discord export |
 
 ## Building content

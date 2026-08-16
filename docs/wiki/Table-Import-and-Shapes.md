@@ -24,17 +24,48 @@ knows about.
 
 ## Shapes
 
-**128 tables** currently carry a recipe. Each recipe names a shape kind:
+**129 tables** currently carry a recipe. Each recipe names a shape kind:
 
 | Kind | For |
 |---|---|
 | `section` | An ordinary single-column table under a caption |
+| `banded` | A captioned table whose rows are bands (`2-4`, `14+`) printed around a vertically centred die face |
 | `gridcol` | One column of a captioned multi-column grid |
 | `compound` + `split: "prayer"` | The Western Reaches god prayer generators: roll `3d6`, one die per column, combine |
 | `compound` + `split: "grid"` | Mix-and-match generators: Traps, Hazards, Secrets, name generators |
 | `lookup` | Wrapped-cell lookups like the Core *Carousing* tables, indexed by cost or die |
 | `matrix` | A `dN, dN` cross-reference matrix (Interesting Customer, Personality Trait) |
 | `longtable` | Long single-column tables (up to ~100 rows) |
+| `suite` | A whole feature unlocked in one press: several captioned tables across a page range, each with its own shape |
+
+### `banded` — when the die face sits in the middle of its own cell
+
+A table cell taller than one line prints its die face *vertically centred*
+against the cell, so the extracted text comes out as wrap, wrap, **face**, wrap,
+wrap — not face-first. Attaching a face-less line to the nearest die face gets
+this wrong the moment two cells wrap back to back. Cursed Scroll 2's *Twist*
+table is the reproduction: `(armor, weapon, spell)` prints one line above the
+`6-9` face and two lines below the `2-5` face, and it belongs to `2-5`.
+
+The `banded` parser splits the block into one run of lines per face such that
+each run is centred on its face — the same rule the typesetter used. It is exact
+rather than heuristic, and it reads bands (`2-4`, `14+`) rather than assuming one
+row per die value. Reach for it whenever a table's rows are ranges and its cells
+wrap.
+
+### `suite` — one Unlock, many tables
+
+A `suite` recipe lists members as `{ name, shape }` and runs each member's shape
+over the same pasted text. Members are caption-bound, so they can share a paste
+that holds all of them, and a member that finds nothing is reported **by name**
+rather than dropped — "13 of 14 imported" has to be visible or the missing one is
+discovered mid-session.
+
+A suite also carries `pageModes`, which is what makes it more than a loop. Every
+other recipe grabs its pages under one extraction mode, which is fine for one
+table on one page. Cursed Scroll 2's pit-fighting suite prints two-column set-up
+pages (21, 24) beside single-column encounter grids (22-23), and either mode
+alone shreds the other half — so `pageModes` gives each page range its own.
 
 Some recipes also carry a **`reflow`** hint. A "reflowed" paste is one where the
 PDF copy came out single-spaced with the column structure gone. The hint tells

@@ -37,7 +37,7 @@ import {
 } from "./char-content/char-content-manifest.mjs";
 import { coreGroupsFor } from "./tables/core-table-groups.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
-import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES } from "./tables/table-folders.mjs";
+import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES } from "./tables/table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
 import { findMonsterPack } from "./monsters/monster-pack.mjs";
@@ -302,19 +302,71 @@ function buildRollTables(charEntries, tablesPresent) {
 
 /**
  * Gameplay top-level branch, sub-grouped by source — the books' Gameplay-chapter
- * mechanics tables (carousing, enduring wounds, traps & hazards, boons).
+ * mechanics tables (carousing, enduring wounds, traps & hazards, boons), plus one
+ * branch grouped by FEATURE rather than source: pit fighting.
  * Same entry shape/flow as Roll Tables; membership = GAMEPLAY_TABLES.
  */
 function buildGameplay(charEntries, tablesPresent) {
   const recs = charEntries.filter((e) =>
     e.type === "Table" && GAMEPLAY_TABLES.has(_norm(e.name)) && !MISHAP_TABLES.has(_norm(e.name)));
-  const sources = [...new Set(recs.map((r) => r.src))];
+
+  // Pit fighting is one feature spread over 14 tables that are unlocked together,
+  // so it gets a named branch instead of 14 more rows in the Cursed Scroll #2
+  // leaf. Split FIRST, so the source grouping below cannot also list them.
+  const pit = recs.filter((r) => PIT_FIGHTING_TABLES.has(_norm(r.name)));
+  const rest = recs.filter((r) => !PIT_FIGHTING_TABLES.has(_norm(r.name)));
+
+  const sources = [...new Set(rest.map((r) => r.src))];
   const children = sources.map((src) =>
     src === "CORE"
       ? buildCoreRulebook("gameplay", tablesPresent)
       : leaf(`gameplay/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-chess-knight",
-          recs.filter((r) => r.src === src), "charSeedPaste"));
+          rest.filter((r) => r.src === src), "charSeedPaste"));
+
+  if (pit.length) children.push(buildPitFighting(pit));
+
   return branch("gameplay", "Gameplay", "fa-dice-d20", children);
+}
+
+/**
+ * Pit fighting as ONE unlock row, not fourteen.
+ *
+ * The suite is a single feature and its tables are printed across one run of
+ * pages, so unlocking them one at a time is fourteen presses of the same button.
+ * This mirrors the Downtime node: counts only, one `Unlock`, and the page range
+ * on the row so `_seedGenericUnlock` grabs pgs 20–24 in a single extract — the
+ * `Table` type routes it to the tables workspace, where one Parse yields the lot.
+ *
+ * The individual table names stay in PIT_FIGHTING_TABLES because the PRESENCE
+ * count is still per-table; it is only the UI that collapses.
+ *
+ * @param {Array<{name:string, present:boolean, pages?:string}>} pit
+ */
+function buildPitFighting(pit) {
+  const have = pit.filter((p) => p.present).length;
+  const total = pit.length;
+
+  // The printed run. Taken from the rows rather than hardcoded so a manifest page
+  // correction cannot leave this citation stale.
+  const pages = pit.map((p) => String(p.pages ?? "").match(/\d+/g) ?? [])
+    .flat().map(Number).filter(Number.isFinite);
+  const cite = pages.length ? `${Math.min(...pages)}-${Math.max(...pages)}` : "20-24";
+
+  return branch("gameplay/pit-fighting", "Pit Fighting", "fa-hand-fist", [], {
+    have: have === total ? 1 : 0,
+    locked: have === total ? 0 : 1,
+    entries: [{
+      name: "Pit Fighting",
+      present: have === total,
+      seedAction: "charSeedPaste",
+      type: "Table",
+      src: "CS2",
+      pages: cite,
+      importLabel: "Unlock",
+      countNote: `Unlocked (${have}/${total})`,
+      stateNote: have ? `Partial (${have}/${total})` : "Locked",
+    }],
+  });
 }
 
 /**
