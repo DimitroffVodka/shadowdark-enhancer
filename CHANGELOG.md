@@ -243,15 +243,26 @@
   and the pg. 39 footnote star come off, and `Wyvern (chained)` looks for
   *Wyvern* while keeping *chained* as a note. A creature you don't own stays
   listed and marked, and Place puts down the rest.
-- **An arena, as a scene.** An **Arena map…** button offers eleven bundled
-  battle maps — Greybanner Arena and Coliseum, an arena of Earth, a choked
-  courtyard, a fantasy stadium, a tournament ring, a dungeon fighting pit, most
-  in a day and a night version — and builds the one you pick as a scene: the map
-  on a grid sized to its own printed squares at 5 ft, darkened for a night bout.
-  Each map is its own scene and is reused every time after, so the map you
-  dressed is the map you get back. The maps are 2-Minute Tabletop's, used under
-  CC BY-NC 4.0 (see CREDITS.md); the book prints no battle map of its own. Any
-  other scene works just as well.
+- **An arena, as a scene — and it knows which venue you rolled.** An **Arena
+  map…** button offers eleven bundled battle maps and builds the one you pick as
+  a scene: the map on a grid sized to its own printed squares at 5 ft, darkened
+  for a night bout. The maps offered *first* are the ones matching the venue you
+  just rolled, under a heading carrying that venue's own text — roll a *luxurious
+  private arena owned by a noble* and the private arenas sit at the top, already
+  selected. Every other map stays right beneath under **Other maps**: the book is
+  explicit that any scene of your own works exactly as well, so a venue you
+  overrode must not lock away the map you actually want. Maps are named for the
+  venue they stand in for rather than the product they were sold as, so the list
+  reads *Large Arena* where the shop reads *Greybanner Coliseum*; the product
+  name is on each option's tooltip. Each map is its own scene and is reused every
+  time after, so the map you dressed is the map you get back. The maps are
+  2-Minute Tabletop's, used under CC BY-NC 4.0 (see CREDITS.md); the book prints
+  no battle map of its own.
+- **A two-level Tavern Cellar for the shadiest venue.** The lowest venue row is a
+  *shady back alley or tavern cellar at night*, so the cellar ships as a real
+  one: a vault floor, and twenty feet above it a fighting pit whose opening looks
+  down into the vault below. It uses Foundry v14's native scene levels, so a
+  token takes the stair between floors instead of being moved by hand.
 - **A pit fight now survives closing the window.** The bout is stored in the
   world rather than held in the window, so you can set the offer up, close it to
   run the combat on the map, and come back afterwards to the same stakes, venue,

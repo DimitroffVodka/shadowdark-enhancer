@@ -94,15 +94,38 @@ reading `2d4 rival crawlers | 2 canyon ape` still gets the apes down. Rival
 crawlers are a rival adventuring party rather than a monster, so they never
 resolve anywhere, by design.
 
-**Choosing a map.** *Arena map…* lets you pick one of the module's eleven
-bundled battle maps — Greybanner Arena or Coliseum, an arena of Earth, a choked
-courtyard, a dungeon fighting pit, a Fantasy Stadium, a Tournament Ring, each of
-the day/night variants by 2-Minute Tabletop (CC BY-NC 4.0; see CREDITS) — and opens
-it as a scene, drawn the first time you ask and reused afterwards. Press the same
-map again next session and you get the one you dressed, not a second copy. Each
-scene is laid out at night on a grid sized to that map's printed squares, and
-Place drops foes on whatever you're looking at. Any other scene works exactly as
-well.
+**Choosing a map.** *Arena map…* opens one of the module's eleven bundled battle
+maps (2-Minute Tabletop, CC BY-NC 4.0; see CREDITS) as a scene — drawn the first
+time you ask and reused afterwards. Press the same map again next session and you
+get the one you dressed, not a second copy. Each scene is laid out at night on a
+grid sized to that map's printed squares, and Place drops foes on whatever you're
+looking at.
+
+The list follows the venue you rolled. The maps that suit it come first, under a
+heading showing that venue's own text, with the first already selected:
+
+| Venue you rolled | Offered first |
+|---|---|
+| Shady back alley or tavern cellar at night | Back Alley (day, night), Small Arena |
+| Cage fight, small arena | Small Arena |
+| Open-air, large arena | Large Arena, Open-Air Arena: Greybanner, Open-Air Arena: Desert (day, night) |
+| Luxurious private arena owned by a noble | Private Arena (day, night) |
+| Glorious coliseum | Glorious Coliseum (day, night) |
+
+Everything else is still there, immediately below under **Other maps** — the
+venue *reorders* the list, it never shuts an option out of it. The book says any
+scene of your own works exactly as well, so a venue you overrode should never put
+the map you want out of reach.
+
+Maps are named for the venue they stand in for, not the 2-Minute Tabletop product
+they were sold as: you'll see *Large Arena* where the shop lists *Greybanner
+Coliseum*. Hover an option for the product name, which is what CREDITS lists.
+
+**The Tavern Cellar.** The lowest venue row names a cellar, so one ships built:
+two floors on Foundry v14's native scene levels — a vault at 0–20 ft and a
+fighting pit above it at 20–40 ft, the pit's opening looking down into the vault.
+Walk a token onto the stair and Foundry offers to move it between floors, so
+there is no dragging tokens between two separate scenes.
 
 ---
 
