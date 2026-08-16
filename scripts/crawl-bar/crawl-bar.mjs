@@ -135,7 +135,7 @@ export const CrawlBar = {
         <button class="sde-bar-btn" data-action="encounter" title="Left-click: open Encounter Roller · Right-click: menu">
           ${ICONS.encounter} Encounter
         </button>
-        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop">
+        <button class="sde-bar-btn" data-action="loot" title="Loot Generator · Magic Item Forge · Merchant Shop · Party XP · Downtime · Pit Fighting · Renown · Session Recap">
           ${ICONS.forge} Forge &amp; Loot
         </button>
         <button class="sde-bar-btn" data-action="rollTables" title="Importer — paste a PDF dump; manage tables &amp; monsters">

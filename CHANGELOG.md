@@ -263,6 +263,10 @@
   **Canyon Ape** are reported under their source until you import them. Row text
   is also read from a result's `name` as well as its description, which is where
   authored tables actually keep it.
+- **The Forge & Loot button says what is behind it.** Its tooltip still named the
+  original three tools, so the five added since — Party XP, Downtime, Pit
+  Fighting, Renown and Session Recap — were listed nowhere until you opened the
+  menu. It names all eight.
 - **Renown, the fame track.** The number was already on the character sheet —
   the system owns `system.renown` — but nothing read it. It now means something.
   A new **Renown** entry in the Crawl Bar's **Forge & Loot** menu opens a GM
