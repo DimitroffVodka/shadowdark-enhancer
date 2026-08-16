@@ -8,7 +8,9 @@ Shadowdark RPG © 2023 The Arcane Library, LLC.
 
 ## Pit-fighting arena battle maps (`assets/scenes/arena/`)
 
-The twelve arena battle maps bundled for the pit-fighting screen are by
+Eleven of the pit-fighting screen's twelve battle maps live in this folder — the
+twelfth is the multi-level Tavern Cellar, whose art is one image per floor and is
+credited in its own section below. All of them are by
 **[2-Minute Tabletop](https://2minutetabletop.com)** and licensed under
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Maps were
 downloaded from the linked product pages and re-encoded to WebP (lossy, quality
