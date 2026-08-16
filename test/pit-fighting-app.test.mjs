@@ -293,6 +293,37 @@ test("a picked twist keeps its own detail die when one is supplied", async () =>
   assert.equal(pinned.twistSub, 1, "a supplied detail die is kept, not rerolled");
 });
 
+test("rerolling the twist keeps the drawn foe pinned", async () => {
+  ROLLS = { "2d6": [9] };
+  let foeDraws = 0;
+  const foeTable = makeTable("Low Stakes Pit Fight (solo)", [row(1, 6, "first foe")]);
+  foeTable.draw = async () => {
+    foeDraws++;
+    return { results: [{ name: foeDraws === 1 ? "first foe" : "different foe" }] };
+  };
+
+  const { PitFightingApp } = await load({
+    packTables: [
+      makeTable("Venue", [row(2, 12, "a cellar")]),
+      makeTable("Twist", [row(6, 9, "nothing")]),
+      foeTable,
+    ],
+    actors: [{ id: "a1", type: "Player", name: "Troana", system: { level: { value: 1 } } }],
+  });
+
+  const app = new PitFightingApp();
+  app._venueTotal = 4;
+  app._stakesTotal = 3;
+  app._twistTotal = 7;
+  await app._refresh();
+  assert.equal(app._setUp.foeText, "first foe");
+
+  await app._onRollTwist();
+
+  assert.equal(foeDraws, 1, "a twist change must not draw a new encounter row");
+  assert.equal(app._setUp.foeText, "first foe");
+});
+
 test("a row that carries only a description still reads", async () => {
   // v14 maps a legacy `text` field onto `description`. Reading `_source.text`
   // would fire the deprecation getter, so neither is touched.

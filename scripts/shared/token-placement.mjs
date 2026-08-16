@@ -154,6 +154,7 @@ export async function placeTokensByClick(queue) {
     let doneForEntry = 0; // how many of it are down
     let placed = 0;
     let active = true;
+    let busy = false;       // a second click cannot race the scene write below
 
     const current = () => plan[index];
 
@@ -174,7 +175,7 @@ export async function placeTokensByClick(queue) {
     };
 
     const onClick = async (event) => {
-      if (!active || event.button !== 0) return;
+      if (!active || busy || event.button !== 0) return;
 
       // Ignore anything that is not the board — sidebar, chat, our own window.
       const insideCanvas =
@@ -200,7 +201,12 @@ export async function placeTokensByClick(queue) {
 
       const td = { ...entry.source, x: snapped.x, y: snapped.y, actorId: entry.actor.id };
       delete td._id; // Foundry assigns a fresh id per token
-      await canvas.scene.createEmbeddedDocuments("Token", [td]);
+      busy = true;
+      try {
+        await canvas.scene.createEmbeddedDocuments("Token", [td]);
+      } finally {
+        busy = false;
+      }
 
       placed++;
       doneForEntry++;

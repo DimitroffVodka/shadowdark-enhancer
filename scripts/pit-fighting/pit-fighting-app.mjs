@@ -208,11 +208,13 @@ export const PitFighting = {
    * @param {number}  [args.stakesTotal]  supply to skip APL + 1d6
    * @param {number}  [args.twistTotal]   supply to skip the 2d6
    * @param {number}  [args.twistSub]     supply to skip the twist's own 1d4
+   * @param {object}  [args.foeCache]     prior setup whose encounter row can be reused
    * @returns {Promise<object>} the bout, plus the drawn text and any missing tables
    */
   async setUpBout({
     danger = null, group = false,
     venueTotal = null, stakesTotal = null, twistTotal = null, twistSub = null,
+    foeCache = null,
   } = {}) {
     const { apl, mean, counted } = this.partyApl();
 
@@ -229,7 +231,7 @@ export const PitFighting = {
       ? (twistSub ?? await _total(bout.twist.subRoll))
       : null;
 
-    const text = await this._drawFor(bout);
+    const text = await this._drawFor(bout, foeCache);
 
     return { bout, aplDetail: { apl, mean, counted }, twistSub: sub, ...text };
   },
@@ -239,7 +241,7 @@ export const PitFighting = {
    * report by name any table that isn't there. Nothing is invented in its place:
    * a missing Venue table leaves the venue blank and names itself in the window.
    */
-  async _drawFor(bout) {
+  async _drawFor(bout, foeCache = null) {
     const missing = [];
 
     const venueTable = await findBoutTable(SETUP_TABLES.venue);
@@ -252,14 +254,22 @@ export const PitFighting = {
     const foeTable = await findBoutTable(foeName);
     if (!foeTable) missing.push(foeName);
 
+    const reuseFoe = foeTable
+      && foeCache?.bout?.encounterTable === bout.encounterTable
+      && typeof foeCache.foeText === "string"
+      && foeCache.foes;
+
     // The raw row is what gets PARSED; the shortened one is what gets SHOWN.
-    const foeRow = await _drawOne(foeTable);
+    // A refresh may change venue, stakes or twist without changing the encounter
+    // table. In that case the row already shown is the one the GM rolled, so do
+    // not silently ask the table for a new foe.
+    const foeRow = reuseFoe ? null : await _drawOne(foeTable);
 
     return {
       venueText: await _rowFor(venueTable, bout.venue.total),
       twistText: bout.twist ? await _rowFor(twistTable, bout.twist.total) : "",
-      foeText: _displayRow(foeRow),
-      foes: await this.resolveFoes(foeRow),
+      foeText: reuseFoe ? foeCache.foeText : _displayRow(foeRow),
+      foes: reuseFoe ? foeCache.foes : await this.resolveFoes(foeRow),
       missing,
     };
   },
@@ -724,6 +734,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
       stakesTotal: this._stakesTotal,
       twistTotal: this._twistTotal,
       twistSub: this._twistSub,
+      foeCache: this._setUp,
     });
     // Pin the twist and its detail die so later refreshes cannot reroll them.
     this._twistTotal = this._setUp.bout.twist?.total ?? this._twistTotal;
