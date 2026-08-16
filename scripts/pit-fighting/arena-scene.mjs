@@ -68,6 +68,67 @@ export function findArenaScene(mapId) {
 }
 
 /**
+ * The `levels` array a map wants at Scene.create time.
+ *
+ * One level for an ordinary map, one per floor for a multi-level one. Elevation
+ * is set here; see-through and the stair are wired afterwards, because both need
+ * level ids that do not exist until the scene has been created.
+ */
+function _levelsFor(map) {
+  if (!map.floors?.length) {
+    return [{ name: "Level", background: { src: map.image } }];
+  }
+  return map.floors.map((f, i) => ({
+    name: f.name,
+    elevation: { bottom: f.bottom, top: f.top },
+    // Black rather than Foundry's default grey: an opening in a floor should
+    // read as a drop into the dark, not as a hole in the canvas.
+    background: { src: f.image, color: "#000000" },
+    sort: i,
+  }));
+}
+
+/**
+ * Second pass over a freshly created multi-level scene.
+ *
+ * Two things can only happen once level ids exist:
+ *
+ *  - **Seeing down.** Foundry draws each level on its own, so the pit's opening
+ *    shows the background colour rather than the vault below until the upper
+ *    level lists the lower one in `visibility.levels`.
+ *  - **The stair.** A `changeLevel` region derives its destination by
+ *    elimination — it offers every level it is assigned to EXCEPT the one the
+ *    token is standing on. A region listing a single level therefore offers
+ *    nothing and fails silently, so the region must span both floors, and its
+ *    elevation must cover both bands or a token on the lower floor is never
+ *    inside it to begin with.
+ */
+async function _wireFloors(scene, map) {
+  const levels = scene.levels.contents
+    .sort((a, b) => a.elevation.bottom - b.elevation.bottom);
+
+  const updates = [];
+  map.floors.forEach((f, i) => {
+    if (!f.seesBelow || i === 0) return;
+    updates.push({ _id: levels[i].id, "visibility.levels": [levels[i - 1].id] });
+  });
+  if (updates.length) await scene.updateEmbeddedDocuments("Level", updates);
+
+  if (!map.stair?.length) return;
+  await scene.createEmbeddedDocuments("Region", [{
+    name: "Cellar Stair",
+    shapes: [{ type: "polygon", points: map.stair }],
+    // Spans every floor, so the walk works in both directions.
+    elevation: { bottom: levels[0].elevation.bottom, top: levels.at(-1).elevation.top },
+    levels: levels.map((l) => l.id),
+    // "walk" only: a token that is flying or being displaced should not be
+    // asked whether it meant to take the stairs. Displacement never triggers
+    // this behaviour at all, which is Foundry's own rule, not ours.
+    behaviors: [{ type: "changeLevel", system: { movementActions: ["walk"] } }],
+  }]);
+}
+
+/**
  * Make an arena scene for a map, or hand back the one that is already there.
  *
  * @param {object} [options]
@@ -107,10 +168,7 @@ export async function createArenaScene({ mapId = DEFAULT_ARENA_MAP_ID, view = tr
     // over level 0 — so the old shape looks like it works right up until you
     // write it, at which point schema cleaning discards it silently, with no
     // error and a scene that renders grey. Verified against 14.365.
-    levels: [{
-      name: "Level",
-      background: { src: map.image },
-    }],
+    levels: _levelsFor(map),
     grid: {
       type: CONST.GRID_TYPES.SQUARE,
       // Each map's own cell size, so tokens snap to its printed grid.
@@ -134,6 +192,10 @@ export async function createArenaScene({ mapId = DEFAULT_ARENA_MAP_ID, view = tr
   });
 
   if (!scene) return null;
+
+  // A multi-level map needs a second pass: level ids do not exist until the
+  // scene does, and both see-through and the stair region are keyed by them.
+  if (map.floors?.length) await _wireFloors(scene, map);
 
   // Foundry only makes a thumbnail on its own for scenes created through the
   // sidebar, so a programmatic one shows a blank card in the Scenes tab.

@@ -244,7 +244,7 @@
   *Wyvern* while keeping *chained* as a note. A creature you don't own stays
   listed and marked, and Place puts down the rest.
 - **An arena, as a scene — and it knows which venue you rolled.** An **Arena
-  map…** button offers eleven bundled battle maps and builds the one you pick as
+  map…** button offers twelve bundled battle maps and builds the one you pick as
   a scene: the map on a grid sized to its own printed squares at 5 ft, darkened
   for a night bout. The maps offered *first* are the ones matching the venue you
   just rolled, under a heading carrying that venue's own text — roll a *luxurious
@@ -259,10 +259,14 @@
   2-Minute Tabletop's, used under CC BY-NC 4.0 (see CREDITS.md); the book prints
   no battle map of its own.
 - **A two-level Tavern Cellar for the shadiest venue.** The lowest venue row is a
-  *shady back alley or tavern cellar at night*, so the cellar ships as a real
-  one: a vault floor, and twenty feet above it a fighting pit whose opening looks
-  down into the vault below. It uses Foundry v14's native scene levels, so a
-  token takes the stair between floors instead of being moved by hand.
+  *shady back alley or tavern cellar at night*, and the cellar half of that had
+  no map — so it is on the list now like any other: pick it and you get a vault
+  floor with, twenty feet above it, a fighting pit whose opening looks down into
+  the vault below rather than onto blank colour. It is built on Foundry v14's
+  native scene levels, with a *Cellar Stair* region spanning both floors, so
+  walking a token onto the stair has Foundry offer to move it between them
+  instead of you dragging it between two separate scenes. (Only on a **walked**
+  move — a displaced or ruler-dragged token passes straight through.)
 - **A pit fight now survives closing the window.** The bout is stored in the
   world rather than held in the window, so you can set the offer up, close it to
   run the combat on the map, and come back afterwards to the same stakes, venue,

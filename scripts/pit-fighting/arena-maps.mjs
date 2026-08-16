@@ -2,7 +2,7 @@
  * The arena map library — one battle map per entry for the pit-fighting bout.
  *
  * This replaces the module's single AI-drawn Thraxis Arena (tools/arena and
- * arena-layout.mjs, both removed) with eleven real battle maps from
+ * arena-layout.mjs, both removed) with twelve real battle maps from
  * 2-Minute Tabletop. The GM picks a map to open for a bout; each map becomes
  * its own idempotent scene (see arena-scene.mjs).
  *
@@ -28,10 +28,31 @@ import { MODULE_ID } from "../shared/module-id.mjs";
  * @property {number} height   image height, px — the scene height
  * @property {number} grid     px per grid square, aligned to the printed grid
  * @property {number} feetPerSquare  Shadowdark distance per square (5)
+ * @property {ArenaFloor[]} [floors]  present ONLY on a multi-level map. When it is
+ *                                    there the scene is built with one Foundry v14
+ *                                    `Level` per entry instead of a single level,
+ *                                    and `image` is the topmost floor (what the
+ *                                    thumbnail and picker show).
+ * @property {number[]} [stair]  flat x,y polygon for a `changeLevel` region joining
+ *                               the floors, in image pixels. Meaningless without
+ *                               `floors`.
+ *
+ * @typedef {object} ArenaFloor
+ * @property {string} name    the level's name, e.g. "Floor 1"
+ * @property {string} image   this floor's background
+ * @property {number} bottom  lower elevation bound, ft
+ * @property {number} top     upper elevation bound, ft
+ * @property {boolean} [seesBelow]  render the floor beneath this one through its
+ *                                  transparency. Foundry draws levels independently
+ *                                  by default, so an opening in an upper floor shows
+ *                                  the background colour, not the room below.
  */
 
 /** `modules/<id>/assets/scenes/arena/<name>.webp` */
 const _img = (name) => `modules/${MODULE_ID}/assets/scenes/arena/${name}.webp`;
+
+/** `modules/<id>/assets/scenes/tavern-cellar/<name>.webp` */
+const _cellar = (name) => `modules/${MODULE_ID}/assets/scenes/tavern-cellar/${name}.webp`;
 
 /**
  * The library, ordered by CS2 Venue row (1→5), each day variant next to its
@@ -87,6 +108,34 @@ export const ARENA_MAPS = [
     image: _img("tournament-ring-tourney-night"),
     width: 1584, height: 1152,
     grid: 72, feetPerSquare: 5,
+  },
+  {
+    // Row 1 names "a shady back alley OR TAVERN CELLAR at night", and the cellar
+    // half of that had no map. This is the one multi-level entry: the vault the
+    // fight is watched from, and the pit floor above it with an opening looking
+    // down. Two floors rather than two scenes, because the whole point is being
+    // able to see — and fall — between them.
+    id: "tavern-cellar",
+    label: "Dungeon Vault",
+    venueLabel: "Tavern Cellar",
+    venueRows: [1],
+    source: "https://2minutetabletop.com/product/dungeon-vault/",
+    // The picker and the thumbnail show the floor the fight happens on.
+    image: _cellar("pit-floor"),
+    width: 1540, height: 1120,
+    // These tiles carry NO printed grid, so 70px is a judgement, not a
+    // measurement: autocorrelation finds only plank and flagstone texture
+    // (+0.35 at best, against +0.86 for a genuinely gridded map). It is settled
+    // by architecture instead — at 70px the outer wall is exactly one square
+    // thick and the stair one square wide, the usual 5 ft. At 140px both would
+    // be 2.5 ft. Sibling products can differ: Dungeon Fighting Pit measures 140.
+    grid: 70, feetPerSquare: 5,
+    floors: [
+      { name: "Floor 1", image: _cellar("vault-floor"), bottom: 0, top: 20 },
+      { name: "Floor 2", image: _cellar("pit-floor"), bottom: 20, top: 40, seesBelow: true },
+    ],
+    // The stair down the west wall, traced off the art.
+    stair: [347, 681, 481, 678, 479, 702, 419, 771, 323, 774, 350, 683],
   },
   {
     id: "dungeon-fighting-pit",

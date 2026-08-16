@@ -1,5 +1,5 @@
 /**
- * Arena map library — the eleven bundled battle maps (2-Minute Tabletop) and
+ * Arena map library — the twelve bundled battle maps (2-Minute Tabletop) and
  * the scene-name helper.
  *
  * What this pins:
@@ -41,7 +41,7 @@ describe("arena map library integrity", () => {
     for (const m of ARENA_MAPS) {
       assert.ok(m.id && m.id === m.id.toLowerCase(), `id ${m.id}`);
       assert.ok(m.label?.length, `label ${m.id}`);
-      assert.ok(m.image?.startsWith("modules/shadowdark-enhancer/assets/scenes/arena/"), `image ${m.id}`);
+      assert.ok(m.image?.startsWith("modules/shadowdark-enhancer/assets/scenes/"), `image ${m.id}`);
       assert.ok(m.width > 0 && m.height > 0, `dims ${m.id}`);
       assert.ok(m.grid > 0, `grid ${m.id}`);
       assert.ok(m.feetPerSquare > 0, `feet ${m.id}`);
@@ -102,6 +102,70 @@ describe("arena map library integrity", () => {
   test("every image file exists on disk", () => {
     for (const m of ARENA_MAPS) {
       assert.ok(existsSync(`${REPO}${m.image.slice(ASSET_PREFIX.length)}`), `file ${m.id} (${m.image})`);
+    }
+  });
+});
+
+/**
+ * The Tavern Cellar is the one entry the scene builder treats differently, and
+ * the docs promise it by name. These pin the shape the builder reads — a floor
+ * missing its image, or elevation bands that do not meet, would produce a scene
+ * that looks built and cannot be walked between.
+ */
+describe("multi-level maps", () => {
+  const multi = ARENA_MAPS.filter((m) => m.floors?.length);
+
+  test("the documented Tavern Cellar is actually in the library", () => {
+    const cellar = getArenaMap("tavern-cellar");
+    assert.ok(cellar, "tavern-cellar is missing; CHANGELOG, README and the wiki all promise it");
+    assert.equal(cellar.floors?.length, 2);
+    assert.ok(cellar.venueRows.includes(1), "the cellar must answer venue row 1");
+  });
+
+  test("every floor is well-formed and its art exists", () => {
+    for (const m of multi) {
+      for (const f of m.floors) {
+        assert.ok(f.name?.length, `${m.id}: floor name`);
+        assert.ok(f.image?.startsWith("modules/shadowdark-enhancer/assets/scenes/"), `${m.id}: ${f.name} image`);
+        assert.ok(existsSync(`${REPO}${f.image.slice(ASSET_PREFIX.length)}`), `${m.id}: ${f.name} file missing`);
+        assert.ok(Number.isFinite(f.bottom) && Number.isFinite(f.top), `${m.id}: ${f.name} elevation`);
+        assert.ok(f.top > f.bottom, `${m.id}: ${f.name} is inside out`);
+      }
+    }
+  });
+
+  test("floors stack without a gap or an overlap", () => {
+    for (const m of multi) {
+      const sorted = [...m.floors].sort((a, b) => a.bottom - b.bottom);
+      for (let i = 1; i < sorted.length; i++) {
+        assert.equal(sorted[i].bottom, sorted[i - 1].top,
+          `${m.id}: ${sorted[i - 1].name} ends at ${sorted[i - 1].top} but ${sorted[i].name} starts at ${sorted[i].bottom}`);
+      }
+    }
+  });
+
+  test("the map's own image is one of its floors", () => {
+    for (const m of multi) {
+      assert.ok(m.floors.some((f) => f.image === m.image),
+        `${m.id}: the thumbnail image is not any floor's background`);
+    }
+  });
+
+  /**
+   * A changeLevel region offers every level it is assigned to EXCEPT the one the
+   * token stands on, so a stair is only useful where there are at least two
+   * floors to choose between — and a polygon needs 3+ points to enclose an area.
+   */
+  test("a stair is a real polygon on a map with somewhere to go", () => {
+    for (const m of multi) {
+      if (!m.stair) continue;
+      assert.ok(m.floors.length >= 2, `${m.id}: a stair needs two floors`);
+      assert.equal(m.stair.length % 2, 0, `${m.id}: stair points must be x,y pairs`);
+      assert.ok(m.stair.length >= 6, `${m.id}: a polygon needs at least 3 points`);
+      for (let i = 0; i < m.stair.length; i += 2) {
+        assert.ok(m.stair[i] >= 0 && m.stair[i] <= m.width, `${m.id}: stair x out of bounds`);
+        assert.ok(m.stair[i + 1] >= 0 && m.stair[i + 1] <= m.height, `${m.id}: stair y out of bounds`);
+      }
     }
   });
 });

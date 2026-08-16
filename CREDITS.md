@@ -8,7 +8,7 @@ Shadowdark RPG © 2023 The Arcane Library, LLC.
 
 ## Pit-fighting arena battle maps (`assets/scenes/arena/`)
 
-The eleven arena battle maps bundled for the pit-fighting screen are by
+The twelve arena battle maps bundled for the pit-fighting screen are by
 **[2-Minute Tabletop](https://2minutetabletop.com)** and licensed under
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Maps were
 downloaded from the linked product pages and re-encoded to WebP (lossy, quality
@@ -39,8 +39,9 @@ store. The artwork is otherwise untouched.
 
 ## Tavern Cellar scene art (`assets/scenes/tavern-cellar/`)
 
-The two floors of the bundled Tavern Cellar scene — `vault-floor.webp` and
-`pit-floor.webp` — are also **[2-Minute Tabletop](https://2minutetabletop.com)**
+The Tavern Cellar is the library's one multi-level map, so its art sits outside
+`assets/scenes/arena/`: one image per floor rather than one per map. Both floors —
+`vault-floor.webp` and `pit-floor.webp` — are **[2-Minute Tabletop](https://2minutetabletop.com)**
 dungeon tiles by **Ross McConnell** under the same
 [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) terms, from
 [Dungeon Vault](https://2minutetabletop.com/product/dungeon-vault/) and
