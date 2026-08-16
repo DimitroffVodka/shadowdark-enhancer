@@ -19,20 +19,28 @@ designation is a licensing boundary of these assets, separate from the module's
 own code license. Supporting the artists is encouraged at their
 [Patreon](https://www.patreon.com/2minutetabletop).
 
-| Map | Product / source |
-|---|---|
-| Arena of Earth (day, night) | [Arena of Earth](https://2minutetabletop.com/product/arena-of-earth/) |
-| Choked Courtyard (day, night) | [Choked Courtyard](https://2minutetabletop.com/product/choked-courtyard/) |
-| Dungeon Fighting Pit | [Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/) |
-| Fantasy Stadium (day, night) | [Fantasy Stadium](https://2minutetabletop.com/product/fantasy-stadium/) |
-| Greybanner Arena | [Greybanner Arena](https://2minutetabletop.com/product/greybanner-arena/) |
-| Greybanner Coliseum | [Greybanner Coliseum](https://2minutetabletop.com/product/greybanner-coliseum/) |
-| Tournament Ring (day, night) | [Tournament Ring](https://2minutetabletop.com/product/tournament-ring/) |
+The module's picker names each map for the Cursed Scroll 2 venue it stands in
+for, not for the product it was sold as — so the first column is what you see
+in Foundry, and the second is what to buy or credit.
 
-The map name in this table is the 2-Minute Tabletop PRODUCT. In the module's own
-picker each map is named for the Cursed Scroll 2 venue it stands in for, so the
-GM reads "Large Arena" where this table reads "Greybanner Coliseum"; the product
-name is kept on each option's tooltip so this table stays findable from the app.
+| Shown in the picker as | Product / source |
+|---|---|
+| Back Alley (day, night) | [Tournament Ring](https://2minutetabletop.com/product/tournament-ring/) |
+| Small Arena | [Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/) |
+| Large Arena | [Greybanner Coliseum](https://2minutetabletop.com/product/greybanner-coliseum/) |
+| Open-Air Arena: Greybanner | [Greybanner Arena](https://2minutetabletop.com/product/greybanner-arena/) |
+| Open-Air Arena: Desert (day, night) | [Arena of Earth](https://2minutetabletop.com/product/arena-of-earth/) |
+| Private Arena (day, night) | [Choked Courtyard](https://2minutetabletop.com/product/choked-courtyard/) |
+| Glorious Coliseum (day, night) | [Fantasy Stadium](https://2minutetabletop.com/product/fantasy-stadium/) |
+
+The twelfth map, **Tavern Cellar**, is the multi-level one; its two floors come
+from two further products and are credited in their own section below.
+
+Each option in the picker also carries its product name as hover text, but that
+is a convenience and not the route this table depends on: a `title` on an
+`<option>` is shown by Firefox and frequently not by Chromium, because the
+dropdown is drawn by the platform rather than the page. The column above is the
+reliable lookup.
 
 Greybanner Coliseum is the one map whose pixels were changed: it is re-encoded
 from 1925×1400 to 1936×1408 — the same 1.375 aspect ratio, a 0.57% uniform

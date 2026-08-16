@@ -253,8 +253,8 @@
   explicit that any scene of your own works exactly as well, so a venue you
   overrode must not lock away the map you actually want. Maps are named for the
   venue they stand in for rather than the product they were sold as, so the list
-  reads *Large Arena* where the shop reads *Greybanner Coliseum*; the product
-  name is on each option's tooltip. Each map is its own scene and is reused every
+  reads *Large Arena* where the shop reads *Greybanner Coliseum*, and CREDITS.md
+  lists the two side by side. Each map is its own scene and is reused every
   time after, so the map you dressed is the map you get back. The maps are
   2-Minute Tabletop's, used under CC BY-NC 4.0 (see CREDITS.md); the book prints
   no battle map of its own.
