@@ -56,6 +56,20 @@ describe("arena map library integrity", () => {
     }
   });
 
+  /**
+   * Foundry's `grid.size` is a NumberField with `integer: true` and `min: 20`,
+   * so a fractional cell is ROUNDED ON WRITE with no error. Greybanner Coliseum
+   * shipped as 43.75 and silently became 44, putting the lattice a quarter of a
+   * square off the painted grid. Divisibility alone does not catch that — 43.75
+   * divides 1925 exactly — so the integer-ness is asserted separately.
+   */
+  test("every grid is an integer Foundry can actually store", () => {
+    for (const m of ARENA_MAPS) {
+      assert.ok(Number.isInteger(m.grid), `${m.id}: grid ${m.grid} is fractional; Foundry rounds it on write`);
+      assert.ok(m.grid >= 20, `${m.id}: grid ${m.grid} is below Foundry's minimum of 20`);
+    }
+  });
+
   test("every image file exists on disk", () => {
     for (const m of ARENA_MAPS) {
       assert.ok(existsSync(`${REPO}${m.image.slice(ASSET_PREFIX.length)}`), `file ${m.id} (${m.image})`);

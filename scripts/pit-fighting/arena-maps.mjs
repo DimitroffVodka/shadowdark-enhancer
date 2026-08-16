@@ -35,8 +35,14 @@ const _img = (name) => `modules/${MODULE_ID}/assets/scenes/arena/${name}.webp`;
  *  - 72px for the 72-DPI maps (32×42, 20×32, 22×16) whose cell is exactly 72.
  *  - 70px for the 44×32 maps (Fantasy Stadium, Greybanner Arena) where 3080/44
  *    and 2240/32 are both exactly 70.
- *  - 43.75 for Greybanner Coliseum (44×32 at 1925×1400): not a whole number of
- *    pixels, but that is what the printed grid needs, and Foundry accepts it.
+ *  - 44px for Greybanner Coliseum. Its 44×32 grid over the shipped 1925×1400
+ *    wants a cell of 43.75, and Foundry WILL NOT STORE THAT: `grid.size` is a
+ *    NumberField with `integer: true`, so 43.75 is rounded to 44 on write with
+ *    no error, leaving 43.75×31.82 squares and a lattice that drifts a quarter
+ *    of a square off the painted one. The image is therefore re-encoded to
+ *    1936×1408 — the same 1.375 aspect ratio, a 0.57% uniform upscale — which
+ *    is exactly 44×32 cells of 44px. Keep the pixels a whole multiple of an
+ *    INTEGER grid; `test/arena-maps.test.mjs` enforces it.
  *  - Dungeon Fighting Pit (1960×1960) carries no grid count in its filename;
  *    70px is chosen because 1960 is a whole number of 70px cells (28 squares).
  *    VISUALLY VERIFY this map once it is viewable in-world and correct if wrong.
@@ -111,8 +117,8 @@ export const ARENA_MAPS = [
     label: "Greybanner Coliseum (day)",
     source: "https://2minutetabletop.com/product/greybanner-coliseum/",
     image: _img("greybanner-coliseum-day"),
-    width: 1925, height: 1400,
-    grid: 43.75, feetPerSquare: 5,
+    width: 1936, height: 1408,
+    grid: 44, feetPerSquare: 5,
   },
   {
     id: "tournament-ring-tourney-day",
