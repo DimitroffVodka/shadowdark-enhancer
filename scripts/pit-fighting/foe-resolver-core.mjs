@@ -91,14 +91,26 @@ export function parseFoeCell(cell) {
   //    "Giant. frog" and resolved to nothing.
   s = s.replace(/\bgt\.(?=\s|$)/i, "Giant").replace(/\bgt\b(?!\.)/i, "Giant");
 
-  // 5. Singularise, but ONLY when a count made the plural. Without that guard a
-  //    creature whose name genuinely ends in "s" loses its last letter.
-  if (countMatch && /s$/i.test(s) && !/ss$/i.test(s)) s = s.replace(/s$/i, "");
+  const written = s.replace(/\s+/g, " ").trim();
+  if (!written) return null;
 
-  const name = s.replace(/\s+/g, " ").trim();
-  if (!name) return null;
+  // 5. Singularise, but ONLY when the count actually MADE a plural. `countMatch`
+  //    alone is not that test: a count of ONE made no plural, and Shadowdark
+  //    files eleven monsters whose names end in a single s — Rhinoceros,
+  //    Pegasus, Cyclops, Tyrannosaurus — so stripping it asks the index for a
+  //    creature that has never existed and the foe silently fails to resolve.
+  //
+  //    Even on a genuine plural the guess can be wrong, because "2 cyclops" is
+  //    already plural and "cyclop" is nothing. Singularising is a guess either
+  //    way, so the written form is KEPT as a fallback candidate rather than
+  //    thrown away — the lookup tries both and a wrong guess costs nothing.
+  const countIsPlural = countIsDice || Number(count) > 1;
+  const name = countIsPlural && /s$/i.test(written) && !/ss$/i.test(written)
+    ? written.replace(/s$/i, "")
+    : written;
+  const aliases = name === written ? [] : [written];
 
-  return { raw, count, countIsDice, note, name, starred };
+  return { raw, count, countIsDice, countIsPlural, note, name, aliases, starred };
 }
 
 /**

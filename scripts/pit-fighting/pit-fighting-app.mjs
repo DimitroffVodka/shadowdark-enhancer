@@ -132,17 +132,31 @@ async function _rowFor(table, total) {
 /**
  * Draw one random row, without posting the system's own card.
  *
- * The encounter tables are three columns joined by " | ", and the book leaves a
- * cell empty with an em dash when a bout has no second creature or no
- * complication. Printing those through gives "Soldier | — | —", which is three
- * columns of nothing said out loud — so empty cells are dropped from the line.
+ * Returns the row EXACTLY as the table holds it, empty cells and all. The
+ * shortening belongs to `_displayRow` and must not happen here: `parseFoeRow`
+ * tells a complication from a creature by COUNTING columns, so handing it a row
+ * with the empty cell already removed turns "2 hero | — | 30' deep pits" into
+ * two columns, which reads as two creatures and puts the hazard in the foe list.
  */
 async function _drawOne(table) {
   if (!table) return "";
   const draw = await table.draw({ displayChat: false });
-  const text = _resultText(draw?.results?.[0]);
-  if (!text.includes("|")) return text;
-  return text.split("|").map((c) => c.trim())
+  return _resultText(draw?.results?.[0]);
+}
+
+/**
+ * The row as a human should read it.
+ *
+ * The encounter tables are three columns joined by " | ", and the book leaves a
+ * cell empty with an em dash when a bout has no second creature or no
+ * complication. Printing those through gives "Soldier | — | —", which is three
+ * columns of nothing said out loud — so empty cells are dropped for DISPLAY,
+ * and only for display.
+ */
+function _displayRow(text) {
+  const s = String(text ?? "");
+  if (!s.includes("|")) return s;
+  return s.split("|").map((c) => c.trim())
     .filter((c) => c && !/^[-–—]+$/.test(c))
     .join(" | ");
 }
@@ -238,13 +252,14 @@ export const PitFighting = {
     const foeTable = await findBoutTable(foeName);
     if (!foeTable) missing.push(foeName);
 
-    const foeText = await _drawOne(foeTable);
+    // The raw row is what gets PARSED; the shortened one is what gets SHOWN.
+    const foeRow = await _drawOne(foeTable);
 
     return {
       venueText: await _rowFor(venueTable, bout.venue.total),
       twistText: bout.twist ? await _rowFor(twistTable, bout.twist.total) : "",
-      foeText,
-      foes: await this.resolveFoes(foeText),
+      foeText: _displayRow(foeRow),
+      foes: await this.resolveFoes(foeRow),
       missing,
     };
   },
@@ -288,8 +303,13 @@ export const PitFighting = {
     const resolved = [];
     for (const creature of creatures) {
       let hit = null;
-      for (const candidate of nameCandidates(creature.name)) {
-        hit = byName.get(normalizeMonsterName(candidate)) ?? null;
+      // The singular first, then the form the book actually wrote. Both are
+      // tried because singularising a counted name is a guess (see parseFoeCell).
+      for (const form of [creature.name, ...(creature.aliases ?? [])]) {
+        for (const candidate of nameCandidates(form)) {
+          hit = byName.get(normalizeMonsterName(candidate)) ?? null;
+          if (hit) break;
+        }
         if (hit) break;
       }
       resolved.push({
@@ -343,7 +363,8 @@ export const PitFighting = {
   async drawPrize(stakesTable) {
     const table = await findBoutTable(stakesTable);
     if (!table) return { text: "", missing: stakesTable };
-    return { text: await _drawOne(table), missing: null };
+    // A prize is read, never parsed, so it takes the display form.
+    return { text: _displayRow(await _drawOne(table)), missing: null };
   },
 
   /**

@@ -73,6 +73,27 @@ describe("counts", () => {
   test("a double-s plural is left alone even with a count", () => {
     assert.equal(parseFoeCell("3 cuirass").name, "cuirass");
   });
+
+  test("a count of ONE made no plural, so the name keeps its s", () => {
+    // Shadowdark files eleven monsters whose names end in a single s —
+    // Rhinoceros, Pegasus, Cyclops, Tyrannosaurus among them. A count of 1 did
+    // not make that s, so stripping it asks the index for a monster that has
+    // never existed and the foe silently fails to resolve.
+    assert.equal(parseFoeCell("1 rhinoceros").name, "rhinoceros");
+    assert.equal(parseFoeCell("1 pegasus").name, "pegasus");
+    assert.equal(parseFoeCell("1 violet fungus").name, "violet fungus");
+  });
+
+  test("a plural count keeps the written form as a fallback", () => {
+    // Even on a REAL plural the guess can be wrong: "2 cyclops" is already
+    // plural, and "cyclop" is not a monster. Singularising is a guess, so both
+    // forms are offered to the lookup rather than betting the draw on one.
+    const c = parseFoeCell("2 cyclops");
+    assert.ok(
+      [c.name, ...(c.aliases ?? [])].includes("cyclops"),
+      "the as-written form must survive as a resolution candidate",
+    );
+  });
 });
 
 describe("the pg. 39 footnote star", () => {

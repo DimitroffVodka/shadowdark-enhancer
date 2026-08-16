@@ -168,6 +168,33 @@ test("a bout reads the row the dice landed on, not a fresh draw", async () => {
   assert.deepEqual(s.missing, []);
 });
 
+test("an empty Creature 2 does not turn the complication into a foe", async () => {
+  // CS2 leaves Creature 2 as an em dash on half its rows, and the module expands
+  // these tables cartesian — so a quarter to a third of the rows a GM can
+  // actually draw look like this one. Dropping the empty cell for DISPLAY is
+  // right; parsing the shortened line is not, because the row reader decides
+  // what the last column means by COUNTING columns. Two columns reads as "all
+  // creatures", and the hazard becomes a monster nobody can place.
+  ROLLS = { "2d6": [4, 7], "1d6": [2] };
+  const { PitFighting } = await load({
+    packTables: [
+      makeTable("Cursed Scroll #2 - Venue", [row(2, 4, "a cellar")]),
+      makeTable("Twist", [row(6, 9, "nothing")]),
+      makeTable("Low Stakes Pit Fight (solo)", [row(1, 6, "2 hero | — | 30' deep pits")]),
+    ],
+    actors: [{ id: "a1", type: "Player", name: "Troana", system: { level: { value: 1 } } }],
+  });
+
+  const s = await PitFighting.setUpBout({});
+
+  assert.equal(s.foeText, "2 hero | 30' deep pits", "the empty cell is still dropped for display");
+  assert.deepEqual(
+    s.foes.creatures.map((c) => c.name), ["hero"],
+    "the complication must not be read as a creature",
+  );
+  assert.equal(s.foes.complication, "30' deep pits", "and it is still reported as the complication");
+});
+
 test("a table that is not imported is named, and nothing is invented for it", async () => {
   ROLLS = { "2d6": [7, 7], "1d6": [3] };
   const { PitFighting } = await load({
