@@ -27,9 +27,17 @@ const ARENA_FLAG_KEY = "arenaMap";
 
 const SCENE_PREFIX = "Arena:";
 
-/** The scene name for a map, e.g. "Arena: Greybanner Arena". */
+/**
+ * The scene name for a map, e.g. "Arena: Large Arena".
+ *
+ * Named for the VENUE it stands in for, not the 2-Minute Tabletop product it was
+ * sold as: a GM reading the sidebar mid-bout is looking for the venue they just
+ * rolled, and "Greybanner Coliseum" is not a row on the Venue table. Falls back
+ * to `label` so `findArenaScene`'s by-name lookup — which passes a bare id — and
+ * any entry without a venue label still resolve.
+ */
 export function arenaSceneName(map) {
-  return `${SCENE_PREFIX} ${map.label}`;
+  return `${SCENE_PREFIX} ${map.venueLabel ?? map.label}`;
 }
 
 /**

@@ -38,6 +38,7 @@ import {
   averagePartyLevel,
   buildBout,
   suggestedRenown,
+  venueRowFor,
 } from "./pit-fighting-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -838,25 +839,55 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * Let the GM pick which arena map to open, then bring it up.
    *
-   * The bout is already free-form about the map — "Any other scene works
-   * exactly as well" — so this just hands the GM the module's bundled arenas
-   * and lets them choose. Scene creation is per-map idempotent, so picking a
-   * map that is already dressed returns that scene rather than a fresh copy.
+   * The rolled Venue leads: its maps sit in the first optgroup, headed by the
+   * venue's own imported text, and the rest follow under "Other maps". It
+   * REORDERS rather than filters, because CS2 is explicit that the map is the
+   * GM's own — "any other scene works exactly as well" — and a venue the GM
+   * overrode should not lock away the map they actually want.
+   *
+   * Maps are named for the venue they stand in for, not the 2-Minute Tabletop
+   * product they were sold as; the product name rides along as the option's
+   * tooltip so the CREDITS entry is still findable.
+   *
+   * Scene creation is per-map idempotent, so picking a map that is already
+   * dressed returns that scene rather than a fresh copy.
    */
   async _onOpenArena() {
-    const [{ createArenaScene }, { ARENA_MAPS, DEFAULT_ARENA_MAP_ID }] =
+    const [{ createArenaScene }, { ARENA_MAPS, DEFAULT_ARENA_MAP_ID, mapsForVenueRow }] =
       await Promise.all([import("./arena-scene.mjs"), import("./arena-maps.mjs")]);
     const { DialogV2 } = foundry.applications.api;
 
-    const options = ARENA_MAPS.map((m) => (
-      `<option value="${esc(m.id)}"${m.id === DEFAULT_ARENA_MAP_ID ? " selected" : ""}>${esc(m.label)}</option>`
-    )).join("");
+    // The row from the built bout when there is one, else straight off the 2d6
+    // the GM has rolled or chosen, so the picker follows a venue that is set
+    // before the stakes are.
+    const row = this._setUp?.bout?.venue?.row
+      ?? (this._venueTotal !== null ? venueRowFor(this._venueTotal).row : null);
+    const { suited, other } = mapsForVenueRow(row);
+
+    const name = (m) => esc(m.venueLabel ?? m.label);
+    const opt = (m, selected) =>
+      `<option value="${esc(m.id)}" title="${esc(m.label)}"${selected ? " selected" : ""}>${name(m)}</option>`;
+
+    // Default to the venue's first map; with no venue rolled, the library default.
+    const preselect = suited[0]?.id ?? DEFAULT_ARENA_MAP_ID;
+    const venueText = this._setUp?.venueText;
+    const suitedHeading = venueText ? `This venue — ${venueText}` : "This venue";
+
+    const groups = [];
+    if (suited.length) {
+      groups.push(`<optgroup label="${esc(suitedHeading)}">`
+        + suited.map((m) => opt(m, m.id === preselect)).join("") + `</optgroup>`);
+      groups.push(`<optgroup label="Other maps">`
+        + other.map((m) => opt(m, false)).join("") + `</optgroup>`);
+    } else {
+      groups.push(other.map((m) => opt(m, m.id === preselect)).join(""));
+    }
 
     const mapId = await DialogV2.prompt({
       window: { title: "Arena" },
       content: `<div class="form-group">
           <label>Choose a battle map</label>
-          <select name="mapId" autofocus>${options}</select>
+          <select name="mapId" autofocus>${groups.join("")}</select>
         </div>`,
       ok: { label: "Open", callback: (_ev, button) => button.form.elements.mapId.value },
       rejectClose: true,
@@ -866,7 +897,7 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const result = await createArenaScene({ mapId, view: true });
     if (result?.created) {
       const map = ARENA_MAPS.find((m) => m.id === result.mapId);
-      ui.notifications?.info(`Created the ${map?.label ?? result.mapId} arena scene.`);
+      ui.notifications?.info(`Created the ${map?.venueLabel ?? map?.label ?? result.mapId} arena scene.`);
     }
   }
 

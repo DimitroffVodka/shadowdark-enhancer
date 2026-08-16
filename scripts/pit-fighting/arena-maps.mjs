@@ -17,7 +17,12 @@ import { MODULE_ID } from "../shared/module-id.mjs";
  *
  * @typedef {object} ArenaMap
  * @property {string} id       stable slug; doubles as the scene flag and name suffix
- * @property {string} label    human name shown in the picker and scene name
+ * @property {string} label    the 2-Minute Tabletop PRODUCT name, for CREDITS cross-ref
+ * @property {string} venueLabel  what the GM sees: the CS2 venue this map stands in
+ *                                for, not the product it was sold as
+ * @property {number[]} venueRows  the CS2 Venue rows (1-5) this map suits; a map may
+ *                                 serve more than one, and the picker offers the
+ *                                 rolled row's maps first
  * @property {string} source   2-Minute Tabletop product/source URL for CREDITS cross-ref
  * @property {number} width    image width, px — the scene width
  * @property {number} height   image height, px — the scene height
@@ -29,7 +34,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 const _img = (name) => `modules/${MODULE_ID}/assets/scenes/arena/${name}.webp`;
 
 /**
- * The library, in display order (each day variant next to its night twin).
+ * The library, ordered by CS2 Venue row (1→5), each day variant next to its
+ * night twin. That order is what the picker falls back to before a venue has
+ * been rolled, so the list reads down the venue table rather than alphabetically
+ * by the product each map was sold as.
  *
  * Grid sizes:
  *  - 72px for the 72-DPI maps (32×42, 20×32, 22×16) whose cell is exactly 72.
@@ -49,80 +57,10 @@ const _img = (name) => `modules/${MODULE_ID}/assets/scenes/arena/${name}.webp`;
  */
 export const ARENA_MAPS = [
   {
-    id: "arena-of-earth-desert-day",
-    label: "Arena of Earth: Desert (day)",
-    source: "https://2minutetabletop.com/product/arena-of-earth/",
-    image: _img("arena-of-earth-desert-day"),
-    width: 2304, height: 3024,
-    grid: 72, feetPerSquare: 5,
-  },
-  {
-    id: "arena-of-earth-desert-night",
-    label: "Arena of Earth: Desert (night)",
-    source: "https://2minutetabletop.com/product/arena-of-earth/",
-    image: _img("arena-of-earth-desert-night"),
-    width: 2304, height: 3024,
-    grid: 72, feetPerSquare: 5,
-  },
-  {
-    id: "choked-courtyard-gloomy-day",
-    label: "Choked Courtyard: Gloomy (day)",
-    source: "https://2minutetabletop.com/product/choked-courtyard/",
-    image: _img("choked-courtyard-gloomy-day"),
-    width: 1440, height: 2304,
-    grid: 72, feetPerSquare: 5,
-  },
-  {
-    id: "choked-courtyard-gloomy-night",
-    label: "Choked Courtyard: Gloomy (night)",
-    source: "https://2minutetabletop.com/product/choked-courtyard/",
-    image: _img("choked-courtyard-gloomy-night"),
-    width: 1440, height: 2304,
-    grid: 72, feetPerSquare: 5,
-  },
-  {
-    id: "dungeon-fighting-pit",
-    label: "Dungeon Fighting Pit",
-    source: "https://2minutetabletop.com/product/dungeon-fighting-pit/",
-    image: _img("dungeon-fighting-pit"),
-    width: 1960, height: 1960,
-    grid: 70, feetPerSquare: 5,
-  },
-  {
-    id: "fantasy-stadium-arid-clash-day",
-    label: "Fantasy Stadium: Arid Clash (day)",
-    source: "https://2minutetabletop.com/product/fantasy-stadium/",
-    image: _img("fantasy-stadium-arid-clash-day"),
-    width: 3080, height: 2240,
-    grid: 70, feetPerSquare: 5,
-  },
-  {
-    id: "fantasy-stadium-arid-clash-night",
-    label: "Fantasy Stadium: Arid Clash (night)",
-    source: "https://2minutetabletop.com/product/fantasy-stadium/",
-    image: _img("fantasy-stadium-arid-clash-night"),
-    width: 3080, height: 2240,
-    grid: 70, feetPerSquare: 5,
-  },
-  {
-    id: "greybanner-arena",
-    label: "Greybanner Arena",
-    source: "https://2minutetabletop.com/product/greybanner-arena/",
-    image: _img("greybanner-arena"),
-    width: 3080, height: 2240,
-    grid: 70, feetPerSquare: 5,
-  },
-  {
-    id: "greybanner-coliseum-day",
-    label: "Greybanner Coliseum (day)",
-    source: "https://2minutetabletop.com/product/greybanner-coliseum/",
-    image: _img("greybanner-coliseum-day"),
-    width: 1936, height: 1408,
-    grid: 44, feetPerSquare: 5,
-  },
-  {
     id: "tournament-ring-tourney-day",
     label: "Tournament Ring: Tourney (day)",
+    venueLabel: "Back Alley (day)",
+    venueRows: [1],
     source: "https://2minutetabletop.com/product/tournament-ring/",
     image: _img("tournament-ring-tourney-day"),
     width: 1584, height: 1152,
@@ -131,12 +69,124 @@ export const ARENA_MAPS = [
   {
     id: "tournament-ring-tourney-night",
     label: "Tournament Ring: Tourney (night)",
+    venueLabel: "Back Alley (night)",
+    venueRows: [1],
     source: "https://2minutetabletop.com/product/tournament-ring/",
     image: _img("tournament-ring-tourney-night"),
     width: 1584, height: 1152,
     grid: 72, feetPerSquare: 5,
   },
+  {
+    id: "dungeon-fighting-pit",
+    label: "Dungeon Fighting Pit",
+    venueLabel: "Small Arena",
+    // An underground pit reads as the cage fight of row 2, but it is also the
+    // closest thing in the library to row 1's cellar, so it serves both.
+    venueRows: [2, 1],
+    source: "https://2minutetabletop.com/product/dungeon-fighting-pit/",
+    image: _img("dungeon-fighting-pit"),
+    width: 1960, height: 1960,
+    grid: 70, feetPerSquare: 5,
+  },
+  {
+    id: "greybanner-coliseum-day",
+    label: "Greybanner Coliseum (day)",
+    venueLabel: "Large Arena",
+    venueRows: [3],
+    source: "https://2minutetabletop.com/product/greybanner-coliseum/",
+    image: _img("greybanner-coliseum-day"),
+    width: 1936, height: 1408,
+    grid: 44, feetPerSquare: 5,
+  },
+  {
+    id: "greybanner-arena",
+    label: "Greybanner Arena",
+    venueLabel: "Open-Air Arena: Greybanner",
+    venueRows: [3],
+    source: "https://2minutetabletop.com/product/greybanner-arena/",
+    image: _img("greybanner-arena"),
+    width: 3080, height: 2240,
+    grid: 70, feetPerSquare: 5,
+  },
+  {
+    id: "arena-of-earth-desert-day",
+    label: "Arena of Earth: Desert (day)",
+    venueLabel: "Open-Air Arena: Desert (day)",
+    venueRows: [3],
+    source: "https://2minutetabletop.com/product/arena-of-earth/",
+    image: _img("arena-of-earth-desert-day"),
+    width: 2304, height: 3024,
+    grid: 72, feetPerSquare: 5,
+  },
+  {
+    id: "arena-of-earth-desert-night",
+    label: "Arena of Earth: Desert (night)",
+    venueLabel: "Open-Air Arena: Desert (night)",
+    venueRows: [3],
+    source: "https://2minutetabletop.com/product/arena-of-earth/",
+    image: _img("arena-of-earth-desert-night"),
+    width: 2304, height: 3024,
+    grid: 72, feetPerSquare: 5,
+  },
+  {
+    id: "choked-courtyard-gloomy-day",
+    label: "Choked Courtyard: Gloomy (day)",
+    venueLabel: "Private Arena (day)",
+    venueRows: [4],
+    source: "https://2minutetabletop.com/product/choked-courtyard/",
+    image: _img("choked-courtyard-gloomy-day"),
+    width: 1440, height: 2304,
+    grid: 72, feetPerSquare: 5,
+  },
+  {
+    id: "choked-courtyard-gloomy-night",
+    label: "Choked Courtyard: Gloomy (night)",
+    venueLabel: "Private Arena (night)",
+    venueRows: [4],
+    source: "https://2minutetabletop.com/product/choked-courtyard/",
+    image: _img("choked-courtyard-gloomy-night"),
+    width: 1440, height: 2304,
+    grid: 72, feetPerSquare: 5,
+  },
+  {
+    id: "fantasy-stadium-arid-clash-day",
+    label: "Fantasy Stadium: Arid Clash (day)",
+    venueLabel: "Glorious Coliseum (day)",
+    venueRows: [5],
+    source: "https://2minutetabletop.com/product/fantasy-stadium/",
+    image: _img("fantasy-stadium-arid-clash-day"),
+    width: 3080, height: 2240,
+    grid: 70, feetPerSquare: 5,
+  },
+  {
+    id: "fantasy-stadium-arid-clash-night",
+    label: "Fantasy Stadium: Arid Clash (night)",
+    venueLabel: "Glorious Coliseum (night)",
+    venueRows: [5],
+    source: "https://2minutetabletop.com/product/fantasy-stadium/",
+    image: _img("fantasy-stadium-arid-clash-night"),
+    width: 3080, height: 2240,
+    grid: 70, feetPerSquare: 5,
+  },
 ];
+
+/**
+ * The maps that suit a Venue row, in library order, with the rest after them.
+ *
+ * Never FILTERS: CS2 is explicit that the map is the GM's own ("any other scene
+ * works exactly as well"), so a rolled venue reorders the picker rather than
+ * shutting options out of it. `row` may be null when no venue has been rolled
+ * yet, in which case the library order stands.
+ *
+ * @param {number|null} row  a CS2 Venue row, 1-5
+ * @returns {{suited: ArenaMap[], other: ArenaMap[]}}
+ */
+export function mapsForVenueRow(row) {
+  if (!row) return { suited: [], other: [...ARENA_MAPS] };
+  const suited = ARENA_MAPS.filter((m) => m.venueRows.includes(row));
+  const other = ARENA_MAPS.filter((m) => !m.venueRows.includes(row));
+  return { suited, other };
+}
 
 /**
  * The default map the picker opens to — the closest thematic match to the

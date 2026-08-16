@@ -23,7 +23,9 @@ import {
   ARENA_MAPS,
   DEFAULT_ARENA_MAP_ID,
   getArenaMap,
+  mapsForVenueRow,
 } from "../scripts/pit-fighting/arena-maps.mjs";
+import { VENUE_ROWS } from "../scripts/pit-fighting/pit-fighting-core.mjs";
 import { arenaSceneName } from "../scripts/pit-fighting/arena-scene.mjs";
 
 // Repo root is one level up from this test file's directory.
@@ -44,7 +46,34 @@ describe("arena map library integrity", () => {
       assert.ok(m.grid > 0, `grid ${m.id}`);
       assert.ok(m.feetPerSquare > 0, `feet ${m.id}`);
       assert.ok(m.source?.startsWith("https://"), `source ${m.id}`);
+      assert.ok(m.venueLabel?.length, `venueLabel ${m.id}`);
+      assert.ok(Array.isArray(m.venueRows) && m.venueRows.length, `venueRows ${m.id}`);
     }
+  });
+
+  /**
+   * The picker leads with the rolled venue's maps, so a row with nothing tagged
+   * to it would silently fall back to the flat library and quietly lose the
+   * feature for that venue. Every row the Venue table can roll must be covered.
+   */
+  test("every venue row has at least one map, and no row is invented", () => {
+    const valid = new Set(VENUE_ROWS.map((r) => r.row));
+    for (const m of ARENA_MAPS) {
+      for (const r of m.venueRows) {
+        assert.ok(valid.has(r), `${m.id}: venue row ${r} is not a row on the Venue table`);
+      }
+    }
+    for (const r of valid) {
+      assert.ok(
+        ARENA_MAPS.some((m) => m.venueRows.includes(r)),
+        `venue row ${r} has no map; the picker would fall back to the flat library`,
+      );
+    }
+  });
+
+  test("venue labels are unique, so the picker never shows two identical rows", () => {
+    const labels = ARENA_MAPS.map((m) => m.venueLabel);
+    assert.equal(new Set(labels).size, labels.length);
   });
 
   test("the grid is a whole number of the image's pixels on at least one axis", () => {
@@ -88,8 +117,41 @@ describe("arena map lookup", () => {
   });
 });
 
+describe("mapsForVenueRow", () => {
+  test("puts the row's maps first and keeps every other map available", () => {
+    for (const { row } of VENUE_ROWS) {
+      const { suited, other } = mapsForVenueRow(row);
+      assert.ok(suited.length, `row ${row} has no suited map`);
+      assert.ok(suited.every((m) => m.venueRows.includes(row)), `row ${row} suited`);
+      assert.ok(other.every((m) => !m.venueRows.includes(row)), `row ${row} other`);
+      // Reorders, never filters — CS2 lets the GM use any map they like.
+      assert.equal(suited.length + other.length, ARENA_MAPS.length, `row ${row} total`);
+    }
+  });
+
+  test("with no venue rolled, the whole library stands in its own order", () => {
+    const { suited, other } = mapsForVenueRow(null);
+    assert.equal(suited.length, 0);
+    assert.deepEqual(other.map((m) => m.id), ARENA_MAPS.map((m) => m.id));
+  });
+});
+
 describe("arenaSceneName", () => {
-  test("derives from the map label", () => {
+  test("names the scene for the venue, not the product it was sold as", () => {
+    assert.equal(
+      arenaSceneName({ label: "Greybanner Coliseum (day)", venueLabel: "Large Arena" }),
+      "Arena: Large Arena",
+    );
+  });
+
+  // findArenaScene's by-name fallback passes a bare `{label: mapId}`, so the
+  // label path has to keep working for entries with no venue label at all.
+  test("falls back to the label when there is no venue label", () => {
     assert.equal(arenaSceneName({ label: "Greybanner Arena" }), "Arena: Greybanner Arena");
+  });
+
+  test("every library entry yields a distinct scene name", () => {
+    const names = ARENA_MAPS.map((m) => arenaSceneName(m));
+    assert.equal(new Set(names).size, names.length);
   });
 });
