@@ -1,20 +1,18 @@
 /**
- * The Thraxis Arena as a playable scene (Cursed Scroll 2, pg. 23).
+ * An arena map, as a playable scene.
  *
- * CS2 describes the arena in prose and prints no battle map, so the map is drawn
- * from that description by tools/arena/build-thraxis-arena.py rather than
- * reproduced from the book: a broad slab of striated granite raised out of the
- * desert sand, worn smooth and bloodsoaked, ringed by torches driven into the
- * sand, with the crowd watching from the dark beyond.
+ * The module no longer draws its own arena (the AI-generated Thraxis Arena and
+ * its generator are gone). Instead the GM picks from the bundled 2-Minute
+ * Tabletop battle maps (see arena-maps.mjs); each becomes a scene of its own:
+ * the map on a grid sized to its printed squares, night darkness for the bout,
+ * and — unlike the drawn arena — no synthetic torch lights, because these maps
+ * bring their own painted lighting.
  *
- * The lights are built from ARENA_TORCHES, the same list the map was painted
- * with, so a light lands on every torch that was drawn. That coupling is the
- * whole reason the generator emits arena-layout.mjs instead of the positions
- * being typed here.
- *
- * IDEMPOTENT. Making the arena twice gives you the arena, not two of them: a GM
- * who presses the button again next session wants the map they already dressed,
- * with their walls and their tokens, not a fresh copy beside it.
+ * IDEMPOTENT, per map. Making the Greybanner Arena twice gives you the arena,
+ * not two of them: a GM who presses the same button again next session wants
+ * the map they already dressed, with their walls and their tokens, not a fresh
+ * copy beside it. Different maps are different scenes, each flagged by its own
+ * id.
  *
  * The scene is VIEWED, never activated. Activating pulls every connected player
  * onto the map, which is not something a GM setting a bout up should trigger by
@@ -22,108 +20,146 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import {
-  ARENA_GRID,
-  ARENA_FEET_PER_SQUARE,
-  ARENA_SIZE,
-  ARENA_TORCHES,
-} from "./arena-layout.mjs";
+import { DEFAULT_ARENA_MAP_ID, getArenaMap } from "./arena-maps.mjs";
 
-/** What the scene is called, and the flag that identifies ours. */
-export const ARENA_SCENE_NAME = "Thraxis Arena";
-const ARENA_FLAG = "thraxisArena";
+/** The per-map flag namespace key: which scene holds which map. */
+const ARENA_FLAG_KEY = "arenaMap";
 
-const BACKGROUND = `modules/${MODULE_ID}/assets/scenes/thraxis-arena.webp`;
+const SCENE_PREFIX = "Arena:";
 
 /**
- * Torch reach, in feet: a Shadowdark torch, which lights near.
+ * The scene name for a map, e.g. "Arena: Large Arena".
  *
- * The ring stands about 35 ft from the middle, so 30 ft of dim light does not
- * quite span the slab from one side — the very centre sits outside every
- * torch's radius and stays dark. That is deliberate, and it is the book's
- * lighting rather than a convenience: fighters carry the bout into and out of
- * the light, and the middle of the ring is the worst-lit ground on it.
+ * Named for the VENUE it stands in for, not the 2-Minute Tabletop product it was
+ * sold as: a GM reading the sidebar mid-bout is looking for the venue they just
+ * rolled, and "Greybanner Coliseum" is not a row on the Venue table. Falls back
+ * to `label` for any entry that carries no venue label.
  *
- * Raising these to cover the centre works, but eleven overlapping 45 ft pools
- * wash into one flat sheet of light and the individual torches stop reading as
- * sources at all.
+ * Takes a MAP, never a bare `{label: id}`. Handing it an id produces
+ * "Arena: greybanner-coliseum-day", which no scene is ever called.
  */
-const TORCH_BRIGHT = 15;
-const TORCH_DIM = 30;
-
-/**
- * The arena scene, if this world already has it.
- *
- * Matched on our own flag first so a GM's rename survives, then on the name for
- * scenes made before the flag existed or imported from elsewhere.
- *
- * @returns {Scene|null}
- */
-export function findArenaScene() {
-  return game.scenes.find((s) => s.getFlag(MODULE_ID, ARENA_FLAG))
-    ?? game.scenes.getName(ARENA_SCENE_NAME)
-    ?? null;
+export function arenaSceneName(map) {
+  return `${SCENE_PREFIX} ${map.venueLabel ?? map.label}`;
 }
 
 /**
- * The AmbientLight sources for the torch ring.
+ * The arena scene for a map, if this world already has it.
  *
- * Placed on the FLAME, not on the base of the stake. The torches lean and stand
- * about 3 ft tall, so lighting from `x`/`y` emits from the wrong end — closer to
- * a torch lying in the sand than one burning above it.
+ * Matched on our own flag first so a GM's rename survives — a scene is *the*
+ * scene for its map id wherever it has been renamed to — then on the derived
+ * name, which is what catches a scene imported from elsewhere or one that has
+ * lost its flag.
+ *
+ * The name arm resolves the map before deriving the name. It used to pass
+ * `{label: mapId}` straight through, which asked for "Arena: dungeon-fighting-pit"
+ * — a slug no scene has ever been called — so the fallback could never match
+ * anything and the picker would build a second copy beside a scene that was
+ * already there.
+ *
+ * @param {string} mapId
+ * @returns {Scene|null}
  */
-function _torchLights() {
-  return ARENA_TORCHES.map((t) => ({
-    x: t.flameX ?? t.x,
-    y: t.flameY ?? t.y,
-    rotation: 0,
-    walls: true,
-    vision: false,
-    config: {
-      // Light COLOUR is a tint over the map, not a paint job. At 0.35 of a
-      // strong orange the eleven torches between them turned grey granite into
-      // tan wood and washed the bloodstains out entirely — the map stopped
-      // being the map. A pale flame at low intensity keeps the warmth and lets
-      // the stone read as stone.
-      alpha: 0.18,
-      angle: 360,
-      bright: TORCH_BRIGHT,
-      dim: TORCH_DIM,
-      color: "#ffcf99",
-      coloration: 1,
-      luminosity: 0.5,
-      attenuation: 0.6,
-      animation: { type: "torch", speed: 2, intensity: 3, reverse: false },
-      darkness: { min: 0, max: 1 },
-    },
+export function findArenaScene(mapId) {
+  const byFlag = game.scenes.find((s) => s.getFlag(MODULE_ID, ARENA_FLAG_KEY) === mapId);
+  if (byFlag) return byFlag;
+
+  const map = getArenaMap(mapId);
+  return (map ? game.scenes.getName(arenaSceneName(map)) : null) ?? null;
+}
+
+/**
+ * The `levels` array a map wants at Scene.create time.
+ *
+ * One level for an ordinary map, one per floor for a multi-level one. Elevation
+ * is set here; see-through and the stair are wired afterwards, because both need
+ * level ids that do not exist until the scene has been created.
+ */
+function _levelsFor(map) {
+  if (!map.floors?.length) {
+    return [{ name: "Level", background: { src: map.image } }];
+  }
+  return map.floors.map((f, i) => ({
+    name: f.name,
+    elevation: { bottom: f.bottom, top: f.top },
+    // Black rather than Foundry's default grey: an opening in a floor should
+    // read as a drop into the dark, not as a hole in the canvas.
+    background: { src: f.image, color: "#000000" },
+    sort: i,
   }));
 }
 
 /**
- * Make the arena scene, or hand back the one that is already here.
+ * Second pass over a freshly created multi-level scene.
+ *
+ * Two things can only happen once level ids exist:
+ *
+ *  - **Seeing down.** Foundry draws each level on its own, so the pit's opening
+ *    shows the background colour rather than the vault below until the upper
+ *    level lists the lower one in `visibility.levels`.
+ *  - **The stair.** A `changeLevel` region derives its destination by
+ *    elimination — it offers every level it is assigned to EXCEPT the one the
+ *    token is standing on. A region listing a single level therefore offers
+ *    nothing and fails silently, so the region must span both floors, and its
+ *    elevation must cover both bands or a token on the lower floor is never
+ *    inside it to begin with.
+ */
+async function _wireFloors(scene, map) {
+  const levels = scene.levels.contents
+    .sort((a, b) => a.elevation.bottom - b.elevation.bottom);
+
+  const updates = [];
+  map.floors.forEach((f, i) => {
+    if (!f.seesBelow || i === 0) return;
+    updates.push({ _id: levels[i].id, "visibility.levels": [levels[i - 1].id] });
+  });
+  if (updates.length) await scene.updateEmbeddedDocuments("Level", updates);
+
+  if (!map.stair?.length) return;
+  await scene.createEmbeddedDocuments("Region", [{
+    name: "Cellar Stair",
+    shapes: [{ type: "polygon", points: map.stair }],
+    // Spans every floor, so the walk works in both directions.
+    elevation: { bottom: levels[0].elevation.bottom, top: levels.at(-1).elevation.top },
+    levels: levels.map((l) => l.id),
+    // "walk" only: a token that is flying or being displaced should not be
+    // asked whether it meant to take the stairs. Displacement never triggers
+    // this behaviour at all, which is Foundry's own rule, not ours.
+    behaviors: [{ type: "changeLevel", system: { movementActions: ["walk"] } }],
+  }]);
+}
+
+/**
+ * Make an arena scene for a map, or hand back the one that is already there.
  *
  * @param {object} [options]
- * @param {boolean} [options.view]  bring it up for this GM afterwards
- * @returns {Promise<{scene:Scene, created:boolean}|null>}
+ * @param {string} [options.mapId]         library id; defaults to the default map
+ * @param {boolean} [options.view]         bring it up for this GM afterwards
+ * @returns {Promise<{scene:Scene, created:boolean, mapId:string}|null>} null if the map is unknown
  */
-export async function createArenaScene({ view = true } = {}) {
+export async function createArenaScene({ mapId = DEFAULT_ARENA_MAP_ID, view = true } = {}) {
   if (!game.user?.isGM) {
-    ui.notifications?.warn("Only a GM can create the arena scene.");
+    ui.notifications?.warn("Only a GM can create an arena scene.");
     return null;
   }
 
-  const existing = findArenaScene();
+  const map = getArenaMap(mapId);
+  if (!map) {
+    ui.notifications?.warn(`Unknown arena map: ${mapId}`);
+    return null;
+  }
+
+  const existing = findArenaScene(map.id);
   if (existing) {
     if (view) await existing.view();
-    return { scene: existing, created: false };
+    return { scene: existing, created: false, mapId: map.id };
   }
 
   const scene = await Scene.create({
-    name: ARENA_SCENE_NAME,
-    width: ARENA_SIZE,
-    height: ARENA_SIZE,
-    // The map already fades to dark at its own edges, so the usual quarter-map
-    // of grey padding around it is wasted screen.
+    name: arenaSceneName(map),
+    width: map.width,
+    height: map.height,
+    // These maps fade out at their own edges, so even the small default of
+    // quarter-map padding is mostly wasted screen.
     padding: 0.05,
     // THE MAP GOES ON A LEVEL, NOT ON THE SCENE. Foundry v14 moved the
     // background onto its new SceneLevel embedded document
@@ -132,34 +168,34 @@ export async function createArenaScene({ view = true } = {}) {
     // over level 0 — so the old shape looks like it works right up until you
     // write it, at which point schema cleaning discards it silently, with no
     // error and a scene that renders grey. Verified against 14.365.
-    levels: [{
-      name: "Level",
-      background: { src: BACKGROUND },
-    }],
+    levels: _levelsFor(map),
     grid: {
       type: CONST.GRID_TYPES.SQUARE,
-      size: ARENA_GRID,
-      distance: ARENA_FEET_PER_SQUARE,
+      // Each map's own cell size, so tokens snap to its printed grid.
+      size: map.grid,
+      distance: map.feetPerSquare,
       units: "ft",
-      // Drawn faintly rather than hidden: fighters need to count squares, but a
-      // hard lattice over a hand-drawn stone slab looks like graph paper.
+      // Faint rather than hidden: fighters need to count squares, but a hard
+      // lattice over a painted map looks like graph paper.
       alpha: 0.12,
       color: "#000000",
     },
     tokenVision: true,
     environment: {
-      // Bouts take place at night. Not full dark — the torch ring is what the
-      // fight is lit by, and at darkness 1 the sand beyond reads as void
-      // rather than as desert. Pulled back from 0.85 so the map's own painted
-      // shading carries the night instead of the lights having to fight it.
+      // Bouts take place at night. The 2-Minute Tabletop maps carry their own
+      // day or night lighting in the art, so global darkening stays restrained:
+      // enough to read as night, not enough to wash out the map's painted light.
       darknessLevel: 0.75,
       globalLight: { enabled: false },
     },
-    lights: _torchLights(),
-    flags: { [MODULE_ID]: { [ARENA_FLAG]: true } },
+    flags: { [MODULE_ID]: { [ARENA_FLAG_KEY]: map.id } },
   });
 
   if (!scene) return null;
+
+  // A multi-level map needs a second pass: level ids do not exist until the
+  // scene does, and both see-through and the stair region are keyed by them.
+  if (map.floors?.length) await _wireFloors(scene, map);
 
   // Foundry only makes a thumbnail on its own for scenes created through the
   // sidebar, so a programmatic one shows a blank card in the Scenes tab.
@@ -171,5 +207,5 @@ export async function createArenaScene({ view = true } = {}) {
   }
 
   if (view) await scene.view();
-  return { scene, created: true };
+  return { scene, created: true, mapId: map.id };
 }

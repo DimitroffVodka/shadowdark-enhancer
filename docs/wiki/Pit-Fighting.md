@@ -26,7 +26,7 @@ The roller reads six of them:
 CS2 prints two more that the roller doesn't consult. **Stakes** is a range-to-tier
 lookup, and those bands are plain numbers the module already knows, so it rolls
 your average level + 1d6 and reads the tier itself. **Tonight's Crowd** is colour
-for the Thraxis Arena; import it and roll it yourself when you want it.
+for the arena's crowd; import it and roll it yourself when you want it.
 
 You don't have to import anything before you start. Whatever's missing, the window
 lists by name with a button through to the importer, and leaves that line blank
@@ -94,13 +94,50 @@ reading `2d4 rival crawlers | 2 canyon ape` still gets the apes down. Rival
 crawlers are a rival adventuring party rather than a monster, so they never
 resolve anywhere, by design.
 
-**Thraxis Arena** opens CS2's own arena as a scene, drawing it the first time you
-ask and reusing it afterwards — press it again next session and you get the map
-you dressed, not a second copy. It's a granite ring on desert sand at night, lit
-by a ring of torches, sized so a *near* move crosses less than half of it. The
-book prints no battle map, so this one is drawn from its description rather than
-copied. Any other scene works exactly as well: Place drops foes on whatever
-you're looking at.
+**Choosing a map.** *Arena map…* opens one of the module's twelve bundled battle
+maps (2-Minute Tabletop, CC BY-NC 4.0; see CREDITS) as a scene — drawn the first
+time you ask and reused afterwards. Press the same map again next session and you
+get the one you dressed, not a second copy. Each scene is laid out at night on a
+grid sized to that map's printed squares, and Place drops foes on whatever you're
+looking at.
+
+The list follows the venue you rolled. The maps that suit it come first, under a
+heading showing that venue's own text, with the first already selected:
+
+| Venue you rolled | Offered first |
+|---|---|
+| Shady back alley or tavern cellar at night | Back Alley (day, night), **Tavern Cellar**, Small Arena |
+| Cage fight, small arena | Small Arena |
+| Open-air, large arena | Large Arena, Open-Air Arena: Greybanner, Open-Air Arena: Desert (day, night) |
+| Luxurious private arena owned by a noble | Private Arena (day, night) |
+| Glorious coliseum | Glorious Coliseum (day, night) |
+
+Everything else is still there, immediately below under **Other maps** — the
+venue *reorders* the list, it never shuts an option out of it. The book says any
+scene of your own works exactly as well, so a venue you overrode should never put
+the map you want out of reach.
+
+Maps are named for the venue they stand in for, not the 2-Minute Tabletop product
+they were sold as: you'll see *Large Arena* where the shop lists *Greybanner
+Coliseum*. [CREDITS](../../CREDITS.md) lists both side by side, so you can go
+from the name in the picker to the product to buy or credit. Some browsers also
+show the product name as hover text on an option — Firefox does, Chrome usually
+does not, since the dropdown is drawn by your operating system rather than by
+Foundry.
+
+**The Tavern Cellar.** The lowest venue row names a cellar, so one is built like
+any other map on the list — pick it and you get two floors on Foundry v14's
+native scene levels: a vault at 0–20 ft and a fighting pit above it at 20–40 ft,
+the pit's opening looking down into the vault below rather than onto blank
+colour. A *Cellar Stair* region spans both floors, so walking a token onto the
+stair has Foundry offer to move it up or down; there is no dragging tokens
+between two separate scenes.
+
+Two caveats worth knowing. Foundry only offers the change on a **walked** move —
+a token being displaced, or dragged with the ruler, passes straight through. And
+like every other map here it is idempotent: dress it with your own walls and
+lighting, and picking *Tavern Cellar* again next session returns the scene you
+dressed, not a fresh copy.
 
 ---
 

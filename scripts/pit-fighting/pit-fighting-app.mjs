@@ -38,6 +38,7 @@ import {
   averagePartyLevel,
   buildBout,
   suggestedRenown,
+  venueRowFor,
 } from "./pit-fighting-core.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -836,18 +837,72 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Bring up the Thraxis Arena, making it the first time it is asked for.
+   * Let the GM pick which arena map to open, then bring it up.
    *
-   * CS2's own arena, and the map the module draws — a GM whose venue roll says
-   * "open-air, large arena" has somewhere to put the fight without going to
-   * find a map. Any other scene works exactly as well; Place drops foes on
-   * whatever is in front of you.
+   * The rolled Venue leads: its maps sit in the first optgroup, headed by the
+   * venue's own imported text, and the rest follow under "Other maps". It
+   * REORDERS rather than filters, because CS2 is explicit that the map is the
+   * GM's own — "any other scene works exactly as well" — and a venue the GM
+   * overrode should not lock away the map they actually want.
+   *
+   * Maps are named for the venue they stand in for, not the 2-Minute Tabletop
+   * product they were sold as; the product name rides along as the option's
+   * tooltip so the CREDITS entry is still findable.
+   *
+   * Scene creation is per-map idempotent, so picking a map that is already
+   * dressed returns that scene rather than a fresh copy.
    */
   async _onOpenArena() {
-    const { createArenaScene } = await import("./arena-scene.mjs");
-    const result = await createArenaScene({ view: true });
+    const [{ createArenaScene }, { ARENA_MAPS, DEFAULT_ARENA_MAP_ID, mapsForVenueRow }] =
+      await Promise.all([import("./arena-scene.mjs"), import("./arena-maps.mjs")]);
+    const { DialogV2 } = foundry.applications.api;
+
+    // The row from the built bout when there is one, else straight off the 2d6
+    // the GM has rolled or chosen, so the picker follows a venue that is set
+    // before the stakes are.
+    const row = this._setUp?.bout?.venue?.row
+      ?? (this._venueTotal !== null ? venueRowFor(this._venueTotal).row : null);
+    const { suited, other } = mapsForVenueRow(row);
+
+    const name = (m) => esc(m.venueLabel ?? m.label);
+    const opt = (m, selected) =>
+      `<option value="${esc(m.id)}" title="${esc(m.label)}"${selected ? " selected" : ""}>${name(m)}</option>`;
+
+    // Default to the venue's first map; with no venue rolled, the library default.
+    const preselect = suited[0]?.id ?? DEFAULT_ARENA_MAP_ID;
+    const venueText = this._setUp?.venueText;
+    const suitedHeading = venueText ? `This venue — ${venueText}` : "This venue";
+
+    const groups = [];
+    if (suited.length) {
+      groups.push(`<optgroup label="${esc(suitedHeading)}">`
+        + suited.map((m) => opt(m, m.id === preselect)).join("") + `</optgroup>`);
+      groups.push(`<optgroup label="Other maps">`
+        + other.map((m) => opt(m, false)).join("") + `</optgroup>`);
+    } else {
+      groups.push(other.map((m) => opt(m, m.id === preselect)).join(""));
+    }
+
+    const mapId = await DialogV2.prompt({
+      window: { title: "Arena" },
+      content: `<div class="form-group">
+          <label>Choose a battle map</label>
+          <select name="mapId" autofocus>${groups.join("")}</select>
+        </div>`,
+      ok: { label: "Open", callback: (_ev, button) => button.form.elements.mapId.value },
+      // Dismissing the picker is a decision, not an error. `rejectClose: true`
+      // made X / Escape / click-outside REJECT, and nothing here caught it, so
+      // every cancelled pick logged an unhandled rejection and the guard below
+      // was dead — it could only ever see a resolved value. Every other DialogV2
+      // in the module resolves on close; this one is no different.
+      rejectClose: false,
+    });
+    if (!mapId) return;
+
+    const result = await createArenaScene({ mapId, view: true });
     if (result?.created) {
-      ui.notifications?.info("Created the Thraxis Arena scene.");
+      const map = ARENA_MAPS.find((m) => m.id === result.mapId);
+      ui.notifications?.info(`Created the ${map?.venueLabel ?? map?.label ?? result.mapId} arena scene.`);
     }
   }
 

@@ -6,6 +6,72 @@ Shadowdark Enhancer is an independent product published under the Shadowdark
 RPG Third-Party License and is not affiliated with The Arcane Library, LLC.
 Shadowdark RPG © 2023 The Arcane Library, LLC.
 
+## Pit-fighting arena battle maps (`assets/scenes/arena/`)
+
+Eleven of the pit-fighting screen's twelve battle maps live in this folder — the
+twelfth is the multi-level Tavern Cellar, whose art is one image per floor and is
+credited in its own section below. All of them are by
+**[2-Minute Tabletop](https://2minutetabletop.com)** and licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Maps were
+downloaded from the linked product pages and re-encoded to WebP (lossy, quality
+86) for the module; the artwork is unchanged. Their **non-commercial**
+designation is a licensing boundary of these assets, separate from the module's
+own code license. Supporting the artists is encouraged at their
+[Patreon](https://www.patreon.com/2minutetabletop).
+
+The module's picker names each map for the Cursed Scroll 2 venue it stands in
+for, not for the product it was sold as — so the first column is what you see
+in Foundry, and the second is what to buy or credit.
+
+| Shown in the picker as | Product / source |
+|---|---|
+| Back Alley (day, night) | [Tournament Ring](https://2minutetabletop.com/product/tournament-ring/) |
+| Small Arena | [Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/) |
+| Large Arena | [Greybanner Coliseum](https://2minutetabletop.com/product/greybanner-coliseum/) |
+| Open-Air Arena: Greybanner | [Greybanner Arena](https://2minutetabletop.com/product/greybanner-arena/) |
+| Open-Air Arena: Desert (day, night) | [Arena of Earth](https://2minutetabletop.com/product/arena-of-earth/) |
+| Private Arena (day, night) | [Choked Courtyard](https://2minutetabletop.com/product/choked-courtyard/) |
+| Glorious Coliseum (day, night) | [Fantasy Stadium](https://2minutetabletop.com/product/fantasy-stadium/) |
+
+The twelfth map, **Tavern Cellar**, is the multi-level one; its two floors come
+from two further products and are credited in their own section below.
+
+Each option in the picker also carries its product name as hover text, but that
+is a convenience and not the route this table depends on: a `title` on an
+`<option>` is shown by Firefox and frequently not by Chromium, because the
+dropdown is drawn by the platform rather than the page. The column above is the
+reliable lookup.
+
+Greybanner Coliseum is the one map whose pixels were changed: it is re-encoded
+from 1925×1400 to 1936×1408 — the same 1.375 aspect ratio, a 0.57% uniform
+upscale — because its 44×32 grid needs a whole-pixel cell that Foundry can
+store. The artwork is otherwise untouched.
+
+## Tavern Cellar scene art (`assets/scenes/tavern-cellar/`)
+
+The Tavern Cellar is the library's one multi-level map, so its art sits outside
+`assets/scenes/arena/`: one image per floor rather than one per map. Both floors
+are **[2-Minute Tabletop](https://2minutetabletop.com)** dungeon tiles by
+**Ross McConnell**, licensed
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/) — but they come
+from two different products, so each is credited to its own:
+
+| File | Floor | Product |
+|---|---|---|
+| `vault-floor.webp` | lower, 0–20 ft | [Dungeon Vault](https://2minutetabletop.com/product/dungeon-vault/) (2018 • Vol 4) |
+| `pit-floor.webp` | upper, 20–40 ft | [Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/) (2017 • Vol 3) |
+
+Both are multi-tile packages — Dungeon Vault prints across two pages and Dungeon
+Fighting Pit across four — so one tile from each is a normal use of them rather
+than a whole product. `dungeon-fighting-pit.webp` in the arena folder is a
+different tile from that same Dungeon Fighting Pit package.
+
+Both are re-encoded to WebP (lossy, quality 86) with their transparency kept, and
+the lower floor is padded with a transparent one-square margin so the two tiles
+line up as stacked levels. The artwork itself is unchanged.
+
+These products are not affiliated with Shadowdark Enhancer or The Arcane Library.
+
 ## Character Builder — ancestry portraits (`assets/ancestries/`)
 
 Black-and-white ancestry portraits (Dwarf, Elf, Goblin, Half-Orc, Kobold; Elf
