@@ -616,12 +616,25 @@ const api = game.shadowdarkEnhancer;
 await api.pitFighting.open();          // the bout roller window
 
 // Headless set-up. Rolls Venue (2d6), Stakes (APL + 1d6) and the Twist (2d6),
-// picks the encounter table, and reads what it can out of the imported tables.
+// picks the encounter table, draws the foe, and reads what it can out of the
+// imported tables.
+//
+// NOTE there is no `fighterIds` here, and that is the whole point of the order:
+// the bout is an OFFER, and it exists before anyone agrees to fight it. The
+// stakes roll uses the PARTY's average level (`PitFighting.party()`), not the
+// volunteers', so nobody needs to be chosen yet. Fighters accept afterwards, in
+// the window; `awardFame` is where ids are finally named.
 const s = await api.pitFighting.setUpBout({
-  fighterIds: ["abc123", "def456"],    // who enters the pit
-  danger: null,                        // null follows the suggestion
+  danger: null,        // null takes the level the stakes suggest
+  group: false,        // solo or group bout — picks the encounter table
+  // Every roll can be supplied instead, which is how "or choose" is served by
+  // the same code path. Omit one and it is rolled.
+  venueTotal: null,    // 2d6
+  stakesTotal: null,   // APL + 1d6
+  twistTotal: null,    // 2d6
+  twistSub: null,      // the extra die a twist may call for
 });
-// → { bout, aplDetail, fighters, twistSub, venueText, twistText, foeText, missing }
+// → { bout, aplDetail, twistSub, venueText, twistText, foeText, foes, missing }
 
 // Award the fame. One Renown.award per fighter, so each is logged and announced
 // by that single write path.
