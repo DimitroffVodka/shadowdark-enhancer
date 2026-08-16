@@ -51,9 +51,21 @@ const _img = (name) => `modules/${MODULE_ID}/assets/scenes/arena/${name}.webp`;
  *    1936×1408 — the same 1.375 aspect ratio, a 0.57% uniform upscale — which
  *    is exactly 44×32 cells of 44px. Keep the pixels a whole multiple of an
  *    INTEGER grid; `test/arena-maps.test.mjs` enforces it.
- *  - Dungeon Fighting Pit (1960×1960) carries no grid count in its filename;
- *    70px is chosen because 1960 is a whole number of 70px cells (28 squares).
- *    VISUALLY VERIFY this map once it is viewable in-world and correct if wrong.
+ *  - 140px for Dungeon Fighting Pit (1960×1960 = 14×14 squares). Its filename
+ *    carries no grid count, and it originally shipped at 70px purely because
+ *    1960 divides by 70 — a guess, flagged in this comment as "VISUALLY VERIFY"
+ *    and never verified. It was wrong by a factor of two.
+ *
+ *    MEASURED, not eyeballed: autocorrelating the edge-energy profile of the
+ *    image scores +0.494 (x) / +0.577 (y) at 140px and +0.020 / −0.006 at 70px,
+ *    against +0.86 (Greybanner Coliseum), +0.47/+0.61 (Fantasy Stadium) and
+ *    +0.36/+0.30 (Tournament Ring) at their own declared grids. 70px was not a
+ *    weak match, it was no match at all.
+ *
+ *    A grid twice too fine halves every token and doubles every counted
+ *    distance, so treat "the division is whole" as a necessary condition and
+ *    never a sufficient one: 1960 divides by 70, 40, 56 and 98 too. Measure the
+ *    art before adding a map whose filename does not state its grid.
  */
 export const ARENA_MAPS = [
   {
@@ -86,7 +98,7 @@ export const ARENA_MAPS = [
     source: "https://2minutetabletop.com/product/dungeon-fighting-pit/",
     image: _img("dungeon-fighting-pit"),
     width: 1960, height: 1960,
-    grid: 70, feetPerSquare: 5,
+    grid: 140, feetPerSquare: 5,
   },
   {
     id: "greybanner-coliseum-day",

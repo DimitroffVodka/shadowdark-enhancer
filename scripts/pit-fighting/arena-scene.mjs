@@ -20,7 +20,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { getArenaMap } from "./arena-maps.mjs";
+import { DEFAULT_ARENA_MAP_ID, getArenaMap } from "./arena-maps.mjs";
 
 /** The per-map flag namespace key: which scene holds which map. */
 const ARENA_FLAG_KEY = "arenaMap";
@@ -33,8 +33,10 @@ const SCENE_PREFIX = "Arena:";
  * Named for the VENUE it stands in for, not the 2-Minute Tabletop product it was
  * sold as: a GM reading the sidebar mid-bout is looking for the venue they just
  * rolled, and "Greybanner Coliseum" is not a row on the Venue table. Falls back
- * to `label` so `findArenaScene`'s by-name lookup — which passes a bare id — and
- * any entry without a venue label still resolve.
+ * to `label` for any entry that carries no venue label.
+ *
+ * Takes a MAP, never a bare `{label: id}`. Handing it an id produces
+ * "Arena: greybanner-coliseum-day", which no scene is ever called.
  */
 export function arenaSceneName(map) {
   return `${SCENE_PREFIX} ${map.venueLabel ?? map.label}`;
@@ -45,15 +47,24 @@ export function arenaSceneName(map) {
  *
  * Matched on our own flag first so a GM's rename survives — a scene is *the*
  * scene for its map id wherever it has been renamed to — then on the derived
- * name for scenes imported from elsewhere.
+ * name, which is what catches a scene imported from elsewhere or one that has
+ * lost its flag.
+ *
+ * The name arm resolves the map before deriving the name. It used to pass
+ * `{label: mapId}` straight through, which asked for "Arena: dungeon-fighting-pit"
+ * — a slug no scene has ever been called — so the fallback could never match
+ * anything and the picker would build a second copy beside a scene that was
+ * already there.
  *
  * @param {string} mapId
  * @returns {Scene|null}
  */
 export function findArenaScene(mapId) {
-  return game.scenes.find((s) => s.getFlag(MODULE_ID, ARENA_FLAG_KEY) === mapId)
-    ?? game.scenes.getName(arenaSceneName({ label: mapId }))
-    ?? null;
+  const byFlag = game.scenes.find((s) => s.getFlag(MODULE_ID, ARENA_FLAG_KEY) === mapId);
+  if (byFlag) return byFlag;
+
+  const map = getArenaMap(mapId);
+  return (map ? game.scenes.getName(arenaSceneName(map)) : null) ?? null;
 }
 
 /**
@@ -64,7 +75,7 @@ export function findArenaScene(mapId) {
  * @param {boolean} [options.view]         bring it up for this GM afterwards
  * @returns {Promise<{scene:Scene, created:boolean, mapId:string}|null>} null if the map is unknown
  */
-export async function createArenaScene({ mapId, view = true } = {}) {
+export async function createArenaScene({ mapId = DEFAULT_ARENA_MAP_ID, view = true } = {}) {
   if (!game.user?.isGM) {
     ui.notifications?.warn("Only a GM can create an arena scene.");
     return null;

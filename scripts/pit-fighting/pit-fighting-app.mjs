@@ -890,7 +890,12 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
           <select name="mapId" autofocus>${groups.join("")}</select>
         </div>`,
       ok: { label: "Open", callback: (_ev, button) => button.form.elements.mapId.value },
-      rejectClose: true,
+      // Dismissing the picker is a decision, not an error. `rejectClose: true`
+      // made X / Escape / click-outside REJECT, and nothing here caught it, so
+      // every cancelled pick logged an unhandled rejection and the guard below
+      // was dead — it could only ever see a resolved value. Every other DialogV2
+      // in the module resolves on close; this one is no different.
+      rejectClose: false,
     });
     if (!mapId) return;
 

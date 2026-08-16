@@ -144,10 +144,20 @@ describe("arenaSceneName", () => {
     );
   });
 
-  // findArenaScene's by-name fallback passes a bare `{label: mapId}`, so the
-  // label path has to keep working for entries with no venue label at all.
+  // Kept for entries that carry no venue label. NOT for findArenaScene, which
+  // now resolves the map first — it used to hand this function a bare
+  // `{label: mapId}`, which asked for "Arena: dungeon-fighting-pit" and matched
+  // nothing.
   test("falls back to the label when there is no venue label", () => {
     assert.equal(arenaSceneName({ label: "Greybanner Arena" }), "Arena: Greybanner Arena");
+  });
+
+  // Every id is a slug; no scene is named after one. If a derived name ever
+  // equals a bare id again, the by-name lookup has regressed to matching nothing.
+  test("no derived name is just a map id", () => {
+    for (const m of ARENA_MAPS) {
+      assert.notEqual(arenaSceneName(m), `Arena: ${m.id}`, `${m.id}: name is the slug`);
+    }
   });
 
   test("every library entry yields a distinct scene name", () => {
