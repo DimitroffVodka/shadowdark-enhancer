@@ -6,6 +6,29 @@ Shadowdark Enhancer is an independent product published under the Shadowdark
 RPG Third-Party License and is not affiliated with The Arcane Library, LLC.
 Shadowdark RPG © 2023 The Arcane Library, LLC.
 
+## Pit-fighting arena battle maps (`assets/scenes/arena/`)
+
+The eleven arena battle maps bundled for the pit-fighting screen are by
+**[2-Minute Tabletop](https://2minutetabletop.com)** and licensed under
+[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Maps were
+downloaded from the linked product pages and re-encoded to WebP (lossy, quality
+86) for the module; the artwork is unchanged. Their **non-commercial**
+designation is a licensing boundary of these assets, separate from the module's
+own code license. Supporting the artists is encouraged at their
+[Patreon](https://www.patreon.com/2minutetabletop).
+
+| Map | Product / source |
+|---|---|
+| Arena of Earth (day, night) | [Arena of Earth](https://2minutetabletop.com/product/arena-of-earth/) |
+| Choked Courtyard (day, night) | [Choked Courtyard](https://2minutetabletop.com/product/choked-courtyard/) |
+| Dungeon Fighting Pit | [Dungeon Fighting Pit](https://2minutetabletop.com/product/dungeon-fighting-pit/) |
+| Fantasy Stadium (day, night) | [Fantasy Stadium](https://2minutetabletop.com/product/fantasy-stadium/) |
+| Greybanner Arena | [Greybanner Arena](https://2minutetabletop.com/product/greybanner-arena/) |
+| Greybanner Coliseum | [Greybanner Coliseum](https://2minutetabletop.com/product/greybanner-coliseum/) |
+| Tournament Ring (day, night) | [Tournament Ring](https://2minutetabletop.com/product/tournament-ring/) |
+
+These products are not affiliated with Shadowdark Enhancer or The Arcane Library.
+
 ## Character Builder — ancestry portraits (`assets/ancestries/`)
 
 Black-and-white ancestry portraits (Dwarf, Elf, Goblin, Half-Orc, Kobold; Elf

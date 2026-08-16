@@ -836,18 +836,37 @@ export class PitFightingApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   /**
-   * Bring up the Thraxis Arena, making it the first time it is asked for.
+   * Let the GM pick which arena map to open, then bring it up.
    *
-   * CS2's own arena, and the map the module draws — a GM whose venue roll says
-   * "open-air, large arena" has somewhere to put the fight without going to
-   * find a map. Any other scene works exactly as well; Place drops foes on
-   * whatever is in front of you.
+   * The bout is already free-form about the map — "Any other scene works
+   * exactly as well" — so this just hands the GM the module's bundled arenas
+   * and lets them choose. Scene creation is per-map idempotent, so picking a
+   * map that is already dressed returns that scene rather than a fresh copy.
    */
   async _onOpenArena() {
-    const { createArenaScene } = await import("./arena-scene.mjs");
-    const result = await createArenaScene({ view: true });
+    const [{ createArenaScene }, { ARENA_MAPS, DEFAULT_ARENA_MAP_ID }] =
+      await Promise.all([import("./arena-scene.mjs"), import("./arena-maps.mjs")]);
+    const { DialogV2 } = foundry.applications.api;
+
+    const options = ARENA_MAPS.map((m) => (
+      `<option value="${esc(m.id)}"${m.id === DEFAULT_ARENA_MAP_ID ? " selected" : ""}>${esc(m.label)}</option>`
+    )).join("");
+
+    const mapId = await DialogV2.prompt({
+      window: { title: "Arena" },
+      content: `<div class="form-group">
+          <label>Choose a battle map</label>
+          <select name="mapId" autofocus>${options}</select>
+        </div>`,
+      ok: { label: "Open", callback: (_ev, button) => button.form.elements.mapId.value },
+      rejectClose: true,
+    });
+    if (!mapId) return;
+
+    const result = await createArenaScene({ mapId, view: true });
     if (result?.created) {
-      ui.notifications?.info("Created the Thraxis Arena scene.");
+      const map = ARENA_MAPS.find((m) => m.id === result.mapId);
+      ui.notifications?.info(`Created the ${map?.label ?? result.mapId} arena scene.`);
     }
   }
 

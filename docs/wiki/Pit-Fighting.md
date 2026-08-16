@@ -26,7 +26,7 @@ The roller reads six of them:
 CS2 prints two more that the roller doesn't consult. **Stakes** is a range-to-tier
 lookup, and those bands are plain numbers the module already knows, so it rolls
 your average level + 1d6 and reads the tier itself. **Tonight's Crowd** is colour
-for the Thraxis Arena; import it and roll it yourself when you want it.
+for the arena's crowd; import it and roll it yourself when you want it.
 
 You don't have to import anything before you start. Whatever's missing, the window
 lists by name with a button through to the importer, and leaves that line blank
@@ -94,13 +94,15 @@ reading `2d4 rival crawlers | 2 canyon ape` still gets the apes down. Rival
 crawlers are a rival adventuring party rather than a monster, so they never
 resolve anywhere, by design.
 
-**Thraxis Arena** opens CS2's own arena as a scene, drawing it the first time you
-ask and reusing it afterwards — press it again next session and you get the map
-you dressed, not a second copy. It's a granite ring on desert sand at night, lit
-by a ring of torches, sized so a *near* move crosses less than half of it. The
-book prints no battle map, so this one is drawn from its description rather than
-copied. Any other scene works exactly as well: Place drops foes on whatever
-you're looking at.
+**Choosing a map.** *Arena map…* lets you pick one of the module's eleven
+bundled battle maps — Greybanner Arena or Coliseum, an arena of Earth, a choked
+courtyard, a dungeon fighting pit, a Fantasy Stadium, a Tournament Ring, each of
+the day/night variants by 2-Minute Tabletop (CC BY-NC 4.0; see CREDITS) — and opens
+it as a scene, drawn the first time you ask and reused afterwards. Press the same
+map again next session and you get the one you dressed, not a second copy. Each
+scene is laid out at night on a grid sized to that map's printed squares, and
+Place drops foes on whatever you're looking at. Any other scene works exactly as
+well.
 
 ---
 
