@@ -88,6 +88,26 @@ session tracking for free without a second button to remember.
 **Next Round** advances the crawl round counter and resets every member's
 out-of-combat movement budget. See [Movement Budgets](Movement-Budgets.md).
 
+### Rolling initiative for the whole party
+
+Each card carries its own d20, and out of combat the GM gets one more: a **dice
+button above the round number** on the left of the strip, in the same column as
+**Next Round**. One click rolls out-of-combat initiative for **every member who
+hasn't rolled yet** — one chat card each, in the system's own roll style, using
+that character's DEX modifier and initiative bonus exactly as the per-card dice
+does. Members who already have a number are skipped, so it is safe to press
+after a latecomer joins the roster.
+
+| | |
+|---|---|
+| **Who sees it** | The GM only. Players roll their own card's d20. |
+| **When it appears** | In crawl mode, while at least one member still owes a roll |
+| **When it goes** | The moment the last member has rolled — there is nothing left for it to do, the same reason each card's d20 gives way to its rolled number |
+| **How to get it back** | **Reset Initiative** (right-click **Add Tokens** on the bar), which clears the order and restores every card's dice |
+
+Clicking it twice does not roll anyone twice: a second click while the batch is
+still landing is refused rather than queued.
+
 ---
 
 ## The party cards

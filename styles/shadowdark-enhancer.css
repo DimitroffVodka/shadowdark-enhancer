@@ -559,6 +559,11 @@ body.theme-light .sde-bar-start-btn:hover {
 /* ── Crawl turn controls (advanceable turn counter, GM-only) ──────────────── */
 
 .sde-strip-crawl-controls { gap: 3px; }
+/* Roll-all initiative dice, above the round number. Deliberately a plain
+   .sde-strip-cbtn — it takes the column's colours and the alternate skin's
+   overrides for free; only the glyph is a size up, so the d20 reads as a die
+   next to the chevrons rather than as another arrow. */
+.sde-strip-rollall-btn { font-size: 13px; }
 .sde-strip-crawl-turn {
   font-size: 18px;
   font-weight: 800;

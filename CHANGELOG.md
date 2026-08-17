@@ -1,5 +1,24 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Roll out-of-combat initiative for the whole party in one click.** Starting a
+  crawl round meant clicking each card's d20 in turn, and with five or six
+  members that is five or six clicks to reach a state the strip only acts on
+  once *everybody* has rolled. The GM now gets a dice button above the round
+  number, in the same column as **Next Round**, that rolls for every member who
+  hasn't rolled yet — one chat card each, through the same system roll path and
+  the same `1d20 + DEX + initiative bonus` as the per-card dice, so the totals
+  are indistinguishable from rolling them one at a time. Members who already
+  have a number are skipped, which makes it safe to press again after a
+  latecomer joins the roster. It is GM-only (a player rolls their own card), it
+  appears only while somebody still owes a roll, and it leaves as the last roll
+  lands — the same reason each card's dice gives way to its rolled number.
+  **Reset Initiative** brings it back with the cards' own dice. A second click
+  arriving while the batch is still landing is refused rather than queued, so a
+  double-click cannot roll anyone twice.
+
 ## [0.14.0] — 2026-08-16
 
 ### Security
@@ -143,6 +162,60 @@
   refuse the cast. What the character sheet hides, the strip hides — lost
   spells, burned-out wand charges, broken wands, and anything stashed or
   unidentified.
+- **Out-of-combat initiative now holds a turn, not just an order.** A rolled
+  order sorted the crawl strip's cards and stopped there, so the party knew the
+  order and then tracked whose go it was out loud. The strip keeps the turn
+  itself now: once *every* member of the crawl roster has rolled, the order goes
+  live, the top of it takes the turn, and that character's card lights up with
+  the same highlight combat mode uses — the strip reads the same either side of
+  an encounter. A partial order is not an order. Nothing engages until the last
+  member has rolled, so a party mid-roll is never half in a turn structure and a
+  member who hasn't rolled is treated the way a token outside a combat is. The
+  turn is kept against the character rather than the token, so it survives a
+  scene change exactly as the order does, and it is cleared by **Reset
+  Initiative** (right-click **Add Tokens** on the bar) and at both ends of a
+  crawl.
+- **The player whose turn it is can advance it.** Only the GM could move the
+  table on, in combat and out, which made every player's turn end with a request
+  across the table. An arrow now sits beside the crawl round number on the strip,
+  and in combat beside the round badge. A player sees it only while the turn
+  belongs to a character they own; a GM always sees it and may advance for
+  anyone. The button is a filter on what to *show*, never the decision: a
+  player's click travels to the GM as an authenticated Foundry query, and the GM
+  re-reads the current holder from its own state and re-checks ownership before
+  anything moves, so a message naming somebody else's turn is refused. A player
+  may never advance across a round boundary — the last combatant's advance, or a
+  turn order that would roll into the next round, is answered with *"The GM
+  advances the next round."* — because rolling the round is a GM control that
+  fires wandering-monster checks and movement refills. Refusals say which one
+  they are (*"It isn't your turn."*, *"No combat is in progress."*, *"No
+  initiative order is rolled yet."*) rather than failing quietly. An advance
+  already in flight disables the button, and the GM client refuses a second
+  advance of the same turn while one is still landing, so a double-click — or a
+  player's relayed request arriving just as the GM clicks — still moves the
+  table exactly one turn.
+- **A full cycle of the party rolls the crawl round.** Advancing past the last
+  character in the order wraps back to the top, and that wrap *is* the round: it
+  advances the crawl clock, refills every member's movement budget and runs the
+  wandering-monster check, the same as pressing **Next Round**. A one-character
+  order rolls the round on every advance, since that character's turn ending is
+  the whole cycle. Establishing the turn at the top of a fresh order is not a
+  wrap and costs nothing. The crawl clock is called a **Round** everywhere now —
+  the bar badge reads `Crawl · Round 3` — because a character's turn and the
+  crawl's own clock were both called a turn, and with the party now taking turns
+  inside a round the two needed different names.
+- **Lock movement out of turn**, an opt-in setting, **off** by default. On, a
+  player may only move the token whose turn it is: in combat, the current
+  combatant; out of combat, the holder of the rolled initiative order. GMs are
+  never locked, tokens outside the combat or off the crawl roster are never
+  locked, and updates that don't change position — vision, light, elevation
+  alone, flags — are never touched. Out of combat the lock needs a complete
+  order and a live holder before it engages, and it fails *open* without them: no
+  order and no holder mean no turn to enforce, and a lock that freezes the whole
+  table because its own state is half-written is indistinguishable from a broken
+  module. That does mean a member who never rolls keeps the lock off for
+  everybody, which is a deliberate trade — the missing roll is visible on the
+  strip as an unrolled card, where a silently frozen party is not.
 - **Carousing now lands in the Session Recap.** Shadowdark Extras runs carousing;
   this module never did, so a night at the tavern was the one downtime activity
   that left no trace in the session log. Its results are now mirrored into a

@@ -72,6 +72,26 @@ export function cardTurnState({ inCombat, isCurrent, oocOrderActive, isOocHolder
 }
 
 /**
+ * Does the crawl badge carry the roll-all initiative dice?
+ *
+ * Rolling for the whole roster is a GM action, and it is worth offering only
+ * while somebody still owes a roll: `InitiativeManager.rollOocForAll` skips
+ * members who have already rolled, so on a complete order the button could do
+ * nothing at all — the same reason each card's own dice gives way to its
+ * rolled number. An empty roster has nobody to roll for. Combat never asks:
+ * the crawl badge isn't rendered there.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.isGM
+ * @param {number}  facts.memberCount    Size of the crawl roster.
+ * @param {boolean} facts.orderComplete  Every member has rolled (`oocOrderComplete`).
+ * @returns {boolean}
+ */
+export function showOocRollAll({ isGM, memberCount = 0, orderComplete = false } = {}) {
+  return Boolean(isGM) && memberCount > 0 && !orderComplete;
+}
+
+/**
  * In-flight turn-advance locks on the GM client, keyed
  * `${combat.id}:${combat.round}:${combat.turn}`.
  *
@@ -761,8 +781,17 @@ export const CrawlStrip = {
     const oocAdvanceBtn = (game.user.isGM || playerMayAdvance)
       ? `<button class="sde-strip-cbtn" data-action="nextOocTurn" title="${game.i18n.localize("SDE.crawlStrip.nextOocTurn")}"${this._turnAdvanceInFlight ? " disabled" : ""}>${ICONS.nextOocTurn}</button>`
       : "";
+    // Roll-all dice, above the round number (showOocRollAll holds the rule).
+    const oocRollAllBtn = showOocRollAll({
+      isGM: game.user.isGM,
+      memberCount: state.members?.length ?? 0,
+      orderComplete: oocOrderComplete(state),
+    })
+      ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="${game.i18n.localize("SDE.crawlStrip.rollAllOocInit")}">${ICONS.diceD20}</button>`
+      : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
+           ${oocRollAllBtn}
            <div class="sde-strip-crawl-turn" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
            <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="${game.i18n.localize("SDE.crawlStrip.nextCrawlRound")}">${ICONS.nextRound}</button>
            ${oocAdvanceBtn}
@@ -1284,6 +1313,26 @@ export const CrawlStrip = {
     });
 
     if (!game.user.isGM) return;
+
+    // Roll out-of-combat initiative for the whole roster. Held under the same
+    // in-memory advance lock as the turn controls, keyed separately: the rolls
+    // run one at a time and each lands its total through a chat-message hook,
+    // so a second click arriving mid-batch would read a stale "who still needs
+    // to roll" list and roll somebody twice. The lock refuses it outright; the
+    // disabled attribute is only what the GM sees while it runs.
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="rollAllOocInit"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        btn.disabled = true;
+        try {
+          const { InitiativeManager } = await import("./initiative-manager.mjs");
+          await withAdvanceLock("ooc:rollAll", () => InitiativeManager.rollOocForAll());
+        } finally {
+          btn.disabled = false;
+          this.queueRender();
+        }
+      });
+    });
 
     // Crawl turn advance — strip parity with the Crawl Bar's "Next Turn".
     this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextCrawlTurn"]').forEach(btn => {

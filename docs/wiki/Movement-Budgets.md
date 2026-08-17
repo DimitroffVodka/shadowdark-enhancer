@@ -63,6 +63,7 @@ An unrecognised or missing value also falls back to the combat default.
 | Event | Effect |
 |---|---|
 | **Next Round** on the crawl bar | Every crawl member's budget refills |
+| A full cycle of the out-of-combat initiative order | The wrap rolls the crawl round, so every member's budget refills |
 | **Combat round or turn change** | Each combatant gets a fresh budget |
 | **Rollback** | The token's budget is restored along with its position |
 
@@ -74,19 +75,33 @@ An unrecognised or missing value also falls back to the combat default.
 |---|---|---|
 | Enforce out-of-combat movement budget | **off** | Crawl moves beyond the budget are refused before they commit |
 | Enforce combat movement budget | **off** | Combat moves beyond the remaining movement are refused |
-| Lock movement out of turn | **off** | During a combat, only the current combatant's token may move; every other combatant's move is refused |
+| Lock movement out of turn | **off** | Only the token whose turn it is may move; every other player's move is refused |
 
 Combat enforcement is off by default on purpose, because Shadowdark combat
 traditionally runs on player honesty and not on hard limits.
 
 Unlike the distance-based refusals above, **Lock movement out of turn** is not
-about how far a token moves — it refuses *any* positional move by a combatant
-whose turn it isn't. GMs are never locked, and neither are tokens that aren't
-combatants in the running combat, so scenery and GM-placed tokens keep moving
-freely.
+about how far a token moves — it refuses *any* positional move by a player whose
+turn it isn't. It has two regimes, one per mode:
 
-When a move is refused you get a warning naming the actor and the feet remaining
-(`Sneaky Pete: only 15ft remaining.`), the token does not move, and its budget is
+| Mode | Only this token may move |
+|---|---|
+| **In combat** | The current combatant |
+| **During a crawl** | The holder of the [out-of-combat initiative order](Crawl-Strip-and-Crawl-Bar.md), once every crawl member has rolled |
+
+GMs are never locked, and neither are tokens outside the running combat or off
+the crawl roster, so scenery and GM-placed tokens keep moving freely. Out of
+combat the lock waits for a *complete* order: until every member has rolled
+there is no order to enforce, and ordinary exploration is untouched.
+
+> **A member who never rolls keeps the lock off for the whole party.** That is
+> deliberate — a lock that half-freezes a party mid-roll looks like a broken
+> module. The strip shows you who: their card still carries the blue d20 instead
+> of a rolled number.
+
+When a distance refusal fires you get a warning naming the actor and the feet
+remaining (`Sneaky Pete: only 15ft remaining.`); an out-of-turn refusal says
+`It's not your turn.` Either way the token does not move and its budget is
 untouched.
 
 > **With enforcement off, remaining movement can go negative.** This is
