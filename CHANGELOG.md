@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.15.0] — 2026-08-17
 
 ### Added
 - **The Crawl Order tab is now the combat tracker, for a party out of combat.**
