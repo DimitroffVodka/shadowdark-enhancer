@@ -263,7 +263,7 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     // domain (canvas-bound); not this harness's subject.
     shadowdarkEnhancer: { encounter: { check: async () => { encounterChecks.push(1); } } },
   };
-  const { CrawlStrip, cardTurnState } = await import("../scripts/crawl-strip/crawl-strip.mjs");
+  const { CrawlStrip, cardTurnState, showOocRollAll, showOocAdvance } = await import("../scripts/crawl-strip/crawl-strip.mjs");
   const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
   const { MovementTracker } = await import("../scripts/crawl-strip/movement-tracker.mjs");
@@ -280,6 +280,8 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     gmAdvance: (c) => CrawlStrip._gmAdvanceTurn(c),
     CrawlState,
     cardTurnState,
+    showOocRollAll,
+    showOocAdvance,
     encounterChecks,
     advanced: advanced ?? [],
   };
@@ -719,6 +721,44 @@ test("cardTurnState: with no active order every card stays active — nothing ch
   assert.deepEqual(cts({ inCombat: false, isCurrent: false, oocOrderActive: false, isOocHolder: true }),
     { isActivePhase: true, isTurn: false }, "a stray pointer with no active order changes nothing");
   assert.deepEqual(cts(), { isActivePhase: true, isTurn: false }, "missing facts default to no order");
+});
+
+// ─── Roll-all initiative dice on the crawl badge ───────────────────────────
+
+test("showOocRollAll: the GM gets the dice while anybody still owes a roll", async () => {
+  const { showOocRollAll: show } = await gmClientHarness({});
+  assert.equal(show({ isGM: true, memberCount: 4, orderComplete: false }), true,
+    "nobody has rolled: the whole roster is worth one click");
+  assert.equal(show({ isGM: true, memberCount: 4, orderComplete: true }), false,
+    "a complete order leaves rollOocForAll nothing to do — no dead button");
+  assert.equal(show({ isGM: true, memberCount: 0, orderComplete: false }), false,
+    "an empty roster has nobody to roll for");
+});
+
+test("showOocAdvance: no live order, no arrow — for anybody", async () => {
+  const { showOocAdvance: show } = await gmClientHarness({});
+  assert.equal(show({ isGM: true, oocOrderActive: false, ownsHolder: false }), false,
+    "a GM before the party has rolled would click a control that cannot advance anything");
+  assert.equal(show({ isGM: true, oocOrderActive: false, ownsHolder: true }), false,
+    "a stale holder without an active order is still no order");
+  assert.equal(show(), false, "missing facts hide the arrow");
+});
+
+test("showOocAdvance: with a live order the GM always gets it, a player only for their own turn", async () => {
+  const { showOocAdvance: show } = await gmClientHarness({});
+  assert.equal(show({ isGM: true, oocOrderActive: true, ownsHolder: false }), true,
+    "the GM may advance for whoever holds the turn");
+  assert.equal(show({ isGM: false, oocOrderActive: true, ownsHolder: true }), true,
+    "the holder's own player advances their turn");
+  assert.equal(show({ isGM: false, oocOrderActive: true, ownsHolder: false }), false,
+    "a player who does not own the holder gets no arrow (the GM re-checks this on the relay)");
+});
+
+test("showOocRollAll: a player never gets it, and missing facts hide it", async () => {
+  const { showOocRollAll: show } = await gmClientHarness({});
+  assert.equal(show({ isGM: false, memberCount: 4, orderComplete: false }), false,
+    "rolling for the party is a GM action; a player has their own card's dice");
+  assert.equal(show(), false, "missing facts hide the button rather than offering a no-op");
 });
 
 // ─── OOC wrap → crawl round advance (issue #14 part 2 follow-up) ────────────

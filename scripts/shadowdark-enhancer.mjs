@@ -9,6 +9,7 @@ import { ICONS } from "./shared/icons.mjs";
 import { registerSettings } from "./shared/settings.mjs";
 import { CrawlState } from "./crawl-strip/crawl-state.mjs";
 import { CrawlStrip } from "./crawl-strip/crawl-strip.mjs";
+import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracker.mjs";
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
@@ -67,7 +68,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "76155c2b459c";
+const STYLESHEET_REV = "c65ceb6a5e88";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -145,6 +146,10 @@ Hooks.once("init", () => {
   ItemDrops.registerSettings();
   Renown.registerSettings();
   MonsterTokenArt.register();
+  // Out-of-combat tracker as a sidebar tab, beside Combat. Must run in init:
+  // Game#initializeUI constructs CONFIG.ui entries during setup, and anything
+  // registered after that pass never gets an instance.
+  registerCrawlTracker();
   // "Export to PDF" header button on owned Shadowdark player sheets.
   PdfSheetExport.register();
   // Char-builder art gallery: registered on every client, but only ever executed on
@@ -586,6 +591,10 @@ Hooks.once("ready", () => {
     }
   })();
   CrawlState.init();
+  // The sidebar rendered during setup, before the line above read the saved
+  // crawl state, so the tracker tab's rail button is still hidden on a world
+  // reloaded mid-crawl. Re-evaluate it now that the state is real.
+  refreshTracker();
   registerHiddenSync();
   // Seed the char-builder Name/Trinket table sources from the legacy boolean
   // settings (one-shot, GM-only). Fire-and-forget — errors log inside.

@@ -217,6 +217,46 @@ export function nextCrawlTurn(state) {
 }
 
 /**
+ * Step the crawl round back one, for a GM correcting a mis-click (the combat
+ * tracker's Previous Round). Floors at 0 and no-ops there.
+ *
+ * Deliberately counter-shaped rather than a true undo: the forward move also
+ * refills movement budgets and rolls a wandering-monster check, and neither
+ * un-happens. Stepping back re-runs neither, so the number matches the table's
+ * count of rounds without inventing a rewind the rest of the module cannot
+ * honour.
+ */
+export function previousCrawlTurn(state) {
+  if (state.mode !== "crawl" || state.crawlTurn <= 0) return { state, changed: false };
+  return { state: { ...state, crawlTurn: state.crawlTurn - 1 }, changed: true };
+}
+
+/**
+ * Step the out-of-combat turn back one member, wrapping past the first back to
+ * the last — the mirror of `advanceOocTurn`, for the same reason the combat
+ * tracker has a Previous Turn.
+ *
+ * `wrappedBack: true` reports that the pointer crossed the top of the order
+ * backwards, which is the reverse of a completed cycle; the Foundry-coupled
+ * wrapper steps the crawl round back on it, so advance-then-back returns both
+ * the holder AND the round to where they were.
+ */
+export function previousOocTurn(state) {
+  if (state.mode !== "crawl") return { state, changed: false, wrappedBack: false };
+  const order = orderedMembers(state);
+  if (order.length === 0) return { state, changed: false, wrappedBack: false };
+  const idx = state.oocTurn ? order.indexOf(state.oocTurn) : -1;
+  // No holder: step back from the top of the order, i.e. onto the last member.
+  const fromIdx = idx >= 0 ? idx : 0;
+  const prevIdx = (fromIdx - 1 + order.length) % order.length;
+  const oocTurn = order[prevIdx];
+  const selfCycle = order.length === 1 && oocTurn === state.oocTurn;
+  const wrappedBack = idx >= 0 && (order.length === 1 || fromIdx === 0);
+  if (selfCycle) return { state, changed: false, wrappedBack };
+  return { state: { ...state, oocTurn }, changed: true, wrappedBack };
+}
+
+/**
  * Set (or overwrite) one actor's out-of-crawl initiative entry. The turn is
  * established the moment the order becomes COMPLETE (every crawl member has
  * rolled): the highest roller leads. During formation (partial order) there

@@ -15,6 +15,8 @@ import {
   setOocInitiative,
   ensureOocTurn,
   advanceOocTurn,
+  previousOocTurn,
+  previousCrawlTurn,
   clearOocInitiative,
   hasOocRoll,
   oocOrderComplete,
@@ -415,6 +417,45 @@ test("advanceOocTurn: a single-member order cycles back to itself — a complete
   assert.equal(r.state.oocTurn, "A", "the pointer cannot move");
   assert.equal(r.changed, false, "no state change — the round advance is the wrapper's job");
   assert.equal(r.wrapped, true, "a single-member cycle is a full round: the member's turn ends and the round rolls over");
+});
+
+test("previousOocTurn: steps back through the order", () => {
+  const r = previousOocTurn(orderedState({ oocTurn: "B" })); // order: A(10), B(5)
+  assert.equal(r.changed, true);
+  assert.equal(r.state.oocTurn, "A");
+  assert.equal(r.wrappedBack, false, "stepping back inside the order is not a round boundary");
+});
+
+test("previousOocTurn: stepping back past the top wraps to the last and reports it", () => {
+  const r = previousOocTurn(orderedState({ oocTurn: "A" }));
+  assert.equal(r.state.oocTurn, "B", "wraps to the bottom of the order");
+  assert.equal(r.wrappedBack, true, "the wrapper steps the crawl round back on this");
+});
+
+test("previousOocTurn: undoes an advance exactly", () => {
+  const start = orderedState({ oocTurn: "A" });
+  const forward = advanceOocTurn(start);
+  const back = previousOocTurn(forward.state);
+  assert.equal(back.state.oocTurn, start.oocTurn, "holder restored");
+  assert.equal(forward.wrapped, false);
+  assert.equal(back.wrappedBack, false, "neither crossed the boundary, so the round is untouched both ways");
+});
+
+test("previousOocTurn: no order, no move", () => {
+  const empty = { ...defaultCrawlState(), mode: "crawl", members: ["A"], oocInitiative: {}, oocTurn: null };
+  const r = previousOocTurn(empty);
+  assert.equal(r.changed, false);
+  assert.equal(r.wrappedBack, false);
+  assert.equal(previousOocTurn({ ...orderedState({ oocTurn: "A" }), mode: "combat" }).changed, false,
+    "the out-of-combat order is dormant during combat");
+});
+
+test("previousCrawlTurn: steps the round back and floors at zero", () => {
+  const at3 = { ...defaultCrawlState(), mode: "crawl", crawlTurn: 3 };
+  assert.equal(previousCrawlTurn(at3).state.crawlTurn, 2);
+  const at0 = { ...defaultCrawlState(), mode: "crawl", crawlTurn: 0 };
+  assert.equal(previousCrawlTurn(at0).changed, false, "round 0 has nothing behind it");
+  assert.equal(previousCrawlTurn({ ...at3, mode: "off" }).changed, false, "no crawl, no counter");
 });
 
 test("advanceOocTurn: reports wrapped on the last→first transition", () => {

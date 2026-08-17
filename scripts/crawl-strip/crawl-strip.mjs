@@ -72,6 +72,47 @@ export function cardTurnState({ inCombat, isCurrent, oocOrderActive, isOocHolder
 }
 
 /**
+ * Does the crawl badge carry the roll-all initiative dice?
+ *
+ * Rolling for the whole roster is a GM action, and it is worth offering only
+ * while somebody still owes a roll: `InitiativeManager.rollOocForAll` skips
+ * members who have already rolled, so on a complete order the button could do
+ * nothing at all — the same reason each card's own dice gives way to its
+ * rolled number. An empty roster has nobody to roll for. Combat never asks:
+ * the crawl badge isn't rendered there.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.isGM
+ * @param {number}  facts.memberCount    Size of the crawl roster.
+ * @param {boolean} facts.orderComplete  Every member has rolled (`oocOrderComplete`).
+ * @returns {boolean}
+ */
+export function showOocRollAll({ isGM, memberCount = 0, orderComplete = false } = {}) {
+  return Boolean(isGM) && memberCount > 0 && !orderComplete;
+}
+
+/**
+ * Does the crawl badge carry the out-of-combat advance arrow?
+ *
+ * Nobody gets it without a live order. `advanceOocTurn` no-ops on an empty or
+ * incomplete one, so before the party has rolled the arrow is a control that
+ * cannot do anything — it rendered unconditionally for the GM until this rule
+ * existed, which read as a broken button rather than an unavailable one. A
+ * player additionally has to own the CURRENT holder; the GM may advance for
+ * whoever holds the turn.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.isGM
+ * @param {boolean} facts.oocOrderActive  Crawl mode, every member rolled, a holder exists.
+ * @param {boolean} facts.ownsHolder      The requester owns the current turn-holder's actor.
+ * @returns {boolean}
+ */
+export function showOocAdvance({ isGM, oocOrderActive, ownsHolder } = {}) {
+  if (!oocOrderActive) return false;
+  return Boolean(isGM) || Boolean(ownsHolder);
+}
+
+/**
  * In-flight turn-advance locks on the GM client, keyed
  * `${combat.id}:${combat.round}:${combat.turn}`.
  *
@@ -121,6 +162,50 @@ async function withAdvanceLock(key, fn) {
     _advanceLocks.delete(key);
   }
 }
+
+/**
+ * The three out-of-combat order controls, in one place.
+ *
+ * Two views offer them now — the strip's crawl badge and the sidebar tracker
+ * tab — and the interesting parts (which lock key, GM-local versus relayed,
+ * who is allowed) must not drift between them. Each function is the path the
+ * strip already used; only the call site moved. The caller owns its own button
+ * state; these report whether the work ran so a caller can leave a control
+ * disabled or re-enable it.
+ */
+export const OocControls = {
+  /**
+   * Roll for every roster member who still owes a roll (GM).
+   * @returns {Promise<boolean>} false when refused (not a GM, or a batch is already running).
+   */
+  async rollAll() {
+    if (!game.user.isGM) return false;
+    const { InitiativeManager } = await import("./initiative-manager.mjs");
+    return withAdvanceLock("ooc:rollAll", () => InitiativeManager.rollOocForAll());
+  },
+
+  /**
+   * Advance the order one member: locally for a GM, through the authenticated
+   * relay for the holder's own player (the GM re-verifies ownership there).
+   * @returns {Promise<boolean>} false when a GM advance was refused by the lock.
+   */
+  async advance() {
+    if (game.user.isGM) return withAdvanceLock("ooc", () => CrawlState.advanceOocTurn());
+    await relayToGM(OOC_TURN_QUERY, { action: "ooc:nextTurn" },
+      { label: "out-of-combat turn advances" });
+    return true;
+  },
+
+  /**
+   * Clear every roll and the turn pointer (GM) — the bar's Reset Initiative.
+   * @returns {Promise<boolean>} false when the requester is not a GM.
+   */
+  async reset() {
+    if (!game.user.isGM) return false;
+    await CrawlState.clearOocInitiative();
+    return true;
+  },
+};
 
 export const CrawlStrip = {
 
@@ -748,21 +833,31 @@ export const CrawlStrip = {
     // read-only counter. Advancing goes through CrawlState.nextCrawlTurn(),
     // which commits + broadcasts state and captures fresh movement anchors.
     //
-    // Out-of-combat turn order (issue #14 part 2): the order is in effect
-    // only in crawl mode, once EVERY crawl member has rolled AND someone
-    // holds the turn — an incomplete order is not an order, so the advance
-    // button appears exactly when the movement lock engages (and no dead
-    // buttons exist for a partial order, a holderless order, or during
-    // combat). A player only ever sees the advance when the CURRENT holder
-    // is an actor they own; the GM re-verifies that ownership on the far
-    // side of the relay (handleOocAdvanceQuery).
+    // Out-of-combat turn order (issue #14 part 2): the order is in effect only
+    // in crawl mode, once EVERY crawl member has rolled AND someone holds the
+    // turn — an incomplete order is not an order. showOocAdvance holds the
+    // rule; a player additionally needs to own the CURRENT holder, which the
+    // GM re-verifies on the far side of the relay (handleOocAdvanceQuery).
     const oocHolderId = oocOrderActive ? state.oocTurn : null;
     const playerMayAdvance = !!oocHolderId && !!game.actors.get(oocHolderId)?.isOwner;
-    const oocAdvanceBtn = (game.user.isGM || playerMayAdvance)
+    const oocAdvanceBtn = showOocAdvance({
+      isGM: game.user.isGM,
+      oocOrderActive,
+      ownsHolder: playerMayAdvance,
+    })
       ? `<button class="sde-strip-cbtn" data-action="nextOocTurn" title="${game.i18n.localize("SDE.crawlStrip.nextOocTurn")}"${this._turnAdvanceInFlight ? " disabled" : ""}>${ICONS.nextOocTurn}</button>`
+      : "";
+    // Roll-all dice, above the round number (showOocRollAll holds the rule).
+    const oocRollAllBtn = showOocRollAll({
+      isGM: game.user.isGM,
+      memberCount: state.members?.length ?? 0,
+      orderComplete: oocOrderComplete(state),
+    })
+      ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="Roll initiative for everyone who hasn't rolled">${ICONS.diceD20}</button>`
       : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
+           ${oocRollAllBtn}
            <div class="sde-strip-crawl-turn" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
            <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="${game.i18n.localize("SDE.crawlStrip.nextCrawlRound")}">${ICONS.nextRound}</button>
            ${oocAdvanceBtn}
@@ -1259,23 +1354,21 @@ export const CrawlStrip = {
     });
 
     // Out-of-combat turn advance — the current OoC turn-holder (or any GM)
-    // advances the rolled initiative order. GMs advance locally under the
-    // same in-memory lock (two tabs produce one advance); players relay
-    // through the authenticated GM channel (handleOocAdvanceQuery), which
-    // re-verifies ownership of the CURRENT holder before advancing.
+    // advances the rolled initiative order (OocControls.advance holds the GM
+    // -local vs relayed decision). A player's relay is slow enough to double-
+    // click through, so the strip disables its own button for the round trip.
     this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextOocTurn"]').forEach(btn => {
       btn.addEventListener("click", async ev => {
         ev.stopPropagation();
         if (game.user.isGM) {
-          await withAdvanceLock("ooc", () => CrawlState.advanceOocTurn());
+          await OocControls.advance();
           return;
         }
         if (this._turnAdvanceInFlight) return;
         this._turnAdvanceInFlight = true;
         btn.disabled = true;
         try {
-          await relayToGM(OOC_TURN_QUERY, { action: "ooc:nextTurn" },
-            { label: "out-of-combat turn advances" });
+          await OocControls.advance();
         } finally {
           this._turnAdvanceInFlight = false;
           this.queueRender(); // re-render re-enables the button
@@ -1284,6 +1377,25 @@ export const CrawlStrip = {
     });
 
     if (!game.user.isGM) return;
+
+    // Roll out-of-combat initiative for the whole roster. OocControls.rollAll
+    // holds it under the advance lock, keyed separately: the rolls run one at
+    // a time and each lands its total through a chat-message hook, so a second
+    // click arriving mid-batch would read a stale "who still needs to roll"
+    // list and roll somebody twice. The disabled attribute is only what the GM
+    // sees while it runs.
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="rollAllOocInit"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        btn.disabled = true;
+        try {
+          await OocControls.rollAll();
+        } finally {
+          btn.disabled = false;
+          this.queueRender();
+        }
+      });
+    });
 
     // Crawl turn advance — strip parity with the Crawl Bar's "Next Turn".
     this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextCrawlTurn"]').forEach(btn => {

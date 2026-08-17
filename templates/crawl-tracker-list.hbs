@@ -1,0 +1,40 @@
+{{!-- Crawl Order rows — the combat tracker's own row markup, so `.combatant`,
+      `.combatant.active`, `.token-image`, `.token-name` and `.token-initiative`
+      pick up core's styling. The holder carries `active`, exactly as the
+      current combatant does. --}}
+<ol class="combat-tracker plain">
+  {{#each rows}}
+  <li class="combatant {{this.css}}" data-actor-id="{{this.actorId}}" data-action="trackerSelect">
+
+    <img class="token-image" src="{{this.img}}" alt="{{this.name}}" loading="lazy">
+
+    <div class="token-name">
+      <strong class="name">{{this.name}}</strong>
+      <div class="combatant-controls">
+        {{#if this.canPan}}
+        <button type="button" class="inline-control combatant-control icon fa-solid fa-arrows-to-eye"
+                data-action="trackerPan" data-actor-id="{{this.actorId}}" data-tooltip
+                aria-label="Pan to token"></button>
+        {{/if}}
+      </div>
+    </div>
+
+    <div class="token-initiative">
+      {{#if this.hasInitiative}}
+      <input type="text" class="initiative-input" inputmode="numeric" pattern="^[+=\-]?\d*"
+             value="{{this.initiative}}" data-actor-id="{{this.actorId}}"
+             aria-label="Out-of-combat initiative"
+             {{#unless @root.isGM}}readonly{{/unless}}>
+      {{else if this.canRoll}}
+      <button type="button" class="combatant-control roll" data-action="trackerRollOne"
+              data-actor-id="{{this.actorId}}" data-tooltip
+              aria-label="Roll out-of-combat initiative"
+              style="--initiative-icon: url('{{@root.initiativeIcon.icon}}'); --initiative-icon-hover: url('{{@root.initiativeIcon.hover}}');"></button>
+      {{else}}
+      <span class="sde-tracker-pending" data-tooltip aria-label="Hasn't rolled yet">—</span>
+      {{/if}}
+    </div>
+
+  </li>
+  {{/each}}
+</ol>

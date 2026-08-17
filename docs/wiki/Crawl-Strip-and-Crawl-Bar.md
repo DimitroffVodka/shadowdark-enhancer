@@ -88,6 +88,59 @@ session tracking for free without a second button to remember.
 **Next Round** advances the crawl round counter and resets every member's
 out-of-combat movement budget. See [Movement Budgets](Movement-Budgets.md).
 
+### Rolling initiative for the whole party
+
+Each card carries its own d20, and out of combat the GM gets one more: a **dice
+button above the round number** on the left of the strip, in the same column as
+**Next Round**. One click rolls out-of-combat initiative for **every member who
+hasn't rolled yet** — one chat card each, in the system's own roll style, using
+that character's DEX modifier and initiative bonus exactly as the per-card dice
+does. Members who already have a number are skipped, so it is safe to press
+after a latecomer joins the roster.
+
+| | |
+|---|---|
+| **Who sees it** | The GM only. Players roll their own card's d20. |
+| **When it appears** | In crawl mode, while at least one member still owes a roll |
+| **When it goes** | The moment the last member has rolled — there is nothing left for it to do, the same reason each card's d20 gives way to its rolled number |
+| **How to get it back** | **Reset Initiative** (right-click **Add Tokens** on the bar), which clears the order and restores every card's dice |
+
+Clicking it twice does not roll anyone twice: a second click while the batch is
+still landing is refused rather than queued.
+
+### The Crawl Order sidebar tab
+
+The same order also lives in Foundry's own sidebar, one icon below **Combat**:
+a **Crawl Order** tab that is the combat tracker's twin for a party out of
+combat. It wears core's own tracker markup, so the rows, the highlight on
+whoever holds the turn, and the d20 roll button are the ones you already know
+from Combat — and it follows Foundry's theme without a second skin to maintain.
+
+| | |
+|---|---|
+| **Where** | The sidebar rail, directly under the Combat tab |
+| **When** | Only while a crawl is running. End the crawl and the icon goes with it; if you were looking at the tab, the sidebar falls back to Chat |
+| **Header** | Roll-for-everyone (the group icon), the round title, and Reset Initiative |
+| **Rows** | Portrait, name, and either the initiative — editable by the GM, exactly as in Combat — or a **d20 button** to roll it. A member nobody may roll for yet shows a dash |
+| **Footer** | ⏮ previous round · ← previous turn · **End Crawl** · → next turn · ⏭ next round. A player sees a single **End Turn** button instead, and only while the turn is theirs |
+| **Popout** | Right-click the rail icon for a floating copy, exactly as with Combat |
+
+Clicking a row selects that character's token; a player gets a pan-to control
+on their own row.
+
+Two deliberate differences from Combat, both because a crawl round is not an
+initiative round:
+
+- **Next round** is the crawl bar's **Next Round** — it refills movement budgets
+  and rolls the wandering-monster check. Advancing the *turn* past the last
+  character does the same thing, since a full cycle of the party is a round.
+- **Previous round** only moves the counter back. It does not un-refill
+  movement or un-roll an encounter check, so use it to correct a mis-click
+  rather than to rewind play.
+
+It is a view onto the same state, not a second tracker: rolling from the strip
+updates the tab, and advancing from the tab moves the strip's highlight.
+
 ---
 
 ## The party cards
