@@ -853,7 +853,7 @@ export const CrawlStrip = {
       memberCount: state.members?.length ?? 0,
       orderComplete: oocOrderComplete(state),
     })
-      ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="${game.i18n.localize("SDE.crawlStrip.rollAllOocInit")}">${ICONS.diceD20}</button>`
+      ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="Roll initiative for everyone who hasn't rolled">${ICONS.diceD20}</button>`
       : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">

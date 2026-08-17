@@ -14,7 +14,7 @@
         {{#if this.canPan}}
         <button type="button" class="inline-control combatant-control icon fa-solid fa-arrows-to-eye"
                 data-action="trackerPan" data-actor-id="{{this.actorId}}" data-tooltip
-                aria-label="{{localize 'SDE.tracker.panTo'}}"></button>
+                aria-label="Pan to token"></button>
         {{/if}}
       </div>
     </div>
@@ -23,15 +23,15 @@
       {{#if this.hasInitiative}}
       <input type="text" class="initiative-input" inputmode="numeric" pattern="^[+=\-]?\d*"
              value="{{this.initiative}}" data-actor-id="{{this.actorId}}"
-             aria-label="{{localize 'SDE.tracker.initiative'}}"
+             aria-label="Out-of-combat initiative"
              {{#unless @root.isGM}}readonly{{/unless}}>
       {{else if this.canRoll}}
       <button type="button" class="combatant-control roll" data-action="trackerRollOne"
               data-actor-id="{{this.actorId}}" data-tooltip
-              aria-label="{{localize 'SDE.tracker.rollOne'}}"
+              aria-label="Roll out-of-combat initiative"
               style="--initiative-icon: url('{{@root.initiativeIcon.icon}}'); --initiative-icon-hover: url('{{@root.initiativeIcon.hover}}');"></button>
       {{else}}
-      <span class="sde-tracker-pending" data-tooltip aria-label="{{localize 'SDE.tracker.unrolled'}}">—</span>
+      <span class="sde-tracker-pending" data-tooltip aria-label="Hasn't rolled yet">—</span>
       {{/if}}
     </div>
 

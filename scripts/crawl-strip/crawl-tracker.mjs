@@ -50,7 +50,7 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     // row markup — IS how this tab matches the combat tracker, rather than a
     // copied stylesheet that drifts on the next Foundry release.
     classes: ["combat-sidebar", "sde-tracker-tab"],
-    window: { title: "SDE.tracker.title", icon: "fa-solid fa-person-hiking" },
+    window: { title: "Crawl Order", icon: "fa-solid fa-person-hiking" },
     actions: {
       trackerRollAll:   CrawlTrackerTab.prototype._onRollAll,
       trackerRollOne:   CrawlTrackerTab.prototype._onRollOne,
@@ -111,14 +111,13 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     const holderId = state.oocTurn;
     const isGM = game.user.isGM;
     const orderActive = oocOrderComplete(state) && !!holderId;
+    const ownsHolder = !!holderId && !!game.actors.get(holderId)?.isOwner;
 
     context.isGM = isGM;
     context.round = state.crawlTurn;
     // Mirrors COMBAT.Round / COMBAT.NotStarted: a crawl with no order rolled is
     // the out-of-combat equivalent of an encounter nobody has rolled for.
-    context.title = orderActive
-      ? game.i18n.format("SDE.tracker.round", { round: state.crawlTurn })
-      : game.i18n.localize("SDE.tracker.notStarted");
+    context.title = orderActive ? `Crawl Round ${state.crawlTurn}` : "No Initiative Rolled";
     // The d20 art the combat tracker rolls with, so the two roll buttons are
     // the same button.
     context.initiativeIcon = CONFIG.Combat.initiativeIcon;
@@ -129,14 +128,17 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
       const hasInitiative = row.initiative !== null;
       return {
         ...row,
-        name: actor?.name ?? game.i18n.localize("SDE.tracker.unknownMember"),
+        name: actor?.name ?? "(missing character)",
         img: actor?.img ?? "icons/svg/mystery-man.svg",
         hasInitiative,
         // `active` is core's own current-turn class — the holder gets combat's
         // highlight rather than a lookalike.
         css: row.isHolder ? "active" : "",
         canRoll: rowRollable({ isGM, isOwner, hasInitiative }),
-        canPan: !isGM && isOwner,
+        // Every row, not just their own: the combat tracker gives a player the
+        // pan control on every combatant, and a crawl roster is all party
+        // members anyway.
+        canPan: !isGM,
       };
     });
 
@@ -146,19 +148,10 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
         memberCount: state.members.length,
         orderComplete: oocOrderComplete(state),
       }),
-      advance: showOocAdvance({
-        isGM,
-        oocOrderActive: orderActive,
-        ownsHolder: !!holderId && !!game.actors.get(holderId)?.isOwner,
-      }),
+      advance: showOocAdvance({ isGM, oocOrderActive: orderActive, ownsHolder }),
       reset: showOocReset({ isGM, rolledCount }),
     };
-    context.footer = trackerFooter({
-      isGM,
-      orderActive,
-      ownsHolder: !!holderId && !!game.actors.get(holderId)?.isOwner,
-      round: state.crawlTurn,
-    });
+    context.footer = trackerFooter({ isGM, orderActive, ownsHolder, round: state.crawlTurn });
     context.empty = rows.length === 0;
     return context;
   }
@@ -197,18 +190,18 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     await this._withBusy(target, () => OocControls.advance());
   }
 
-  /**
-   * Next round — the crawl bar's Next Round, which is a round of the crawl
-   * clock rather than of the initiative order: it refills movement budgets and
-   * runs the wandering-monster check. GM-only, and deliberately available
-   * before anyone has rolled, exactly as on the bar.
-   */
   /** Step the turn back one holder (GM) — combat's Previous Turn. */
   async _onPrevious(_event, target) {
     if (!game.user.isGM) return;
     await this._withBusy(target, () => CrawlState.previousOocTurn());
   }
 
+  /**
+   * Next round — the crawl bar's Next Round, which is a round of the crawl
+   * clock rather than of the initiative order: it refills movement budgets and
+   * runs the wandering-monster check. GM-only, and deliberately available
+   * before anyone has rolled, exactly as on the bar.
+   */
   async _onNextRound(_event, target) {
     if (!game.user.isGM) return;
     await this._withBusy(target, () => CrawlState.nextCrawlTurn());
@@ -322,8 +315,10 @@ export function registerCrawlTracker() {
 
     CONFIG.ui[TRACKER_TAB_ID] = CrawlTrackerTab;
 
+    // Core runs the tooltip through `localize`, which returns a non-key
+    // unchanged — so a plain English label is safe here, per CONTRIBUTING.md.
     const def = {
-      tooltip: "SDE.tracker.title",
+      tooltip: "Crawl Order",
       icon: "fa-solid fa-person-hiking",
     };
     const rebuilt = {};
