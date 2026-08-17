@@ -108,6 +108,23 @@ after a latecomer joins the roster.
 Clicking it twice does not roll anyone twice: a second click while the batch is
 still landing is refused rather than queued.
 
+### The Crawl Order sidebar tab
+
+The same order also lives in Foundry's own sidebar, one icon below **Combat**:
+a **Crawl Order** tab holding the rolled order as a list — portrait, name and
+initiative, with the current turn-holder outlined in the accent colour and
+anyone who still owes a roll dimmed with a `—` in place of a number.
+
+| | |
+|---|---|
+| **Where** | The sidebar rail, directly under the Combat tab |
+| **When** | Only while a crawl is running. End the crawl and the icon goes with it; if you were looking at the tab, the sidebar falls back to Chat |
+| **Controls** | The same three the strip has, in the tab header: roll for everyone unrolled, advance the turn, reset initiative. Each appears under the same rules as on the strip, so a player sees the advance only on their own turn |
+| **Popout** | Right-click the rail icon for a floating copy, exactly as with Combat |
+
+It is a view onto the same state, not a second tracker: rolling from the strip
+updates the tab, and advancing from the tab moves the strip's highlight.
+
 ---
 
 ## The party cards

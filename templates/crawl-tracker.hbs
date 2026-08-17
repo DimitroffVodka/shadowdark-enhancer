@@ -1,0 +1,51 @@
+{{!-- Out-of-combat tracker (sidebar tab): the rolled crawl order.
+      One root element per part is a HandlebarsApplicationMixin requirement —
+      a header + list at the top level fails to render at all. --}}
+<div class="sde-tracker">
+<header class="sde-tracker-header">
+  <span class="sde-tracker-round">{{localize "SDE.crawlStrip.crawlRound"}} {{round}}</span>
+  {{#if anyControl}}
+  <div class="sde-tracker-controls">
+    {{#if controls.rollAll}}
+    <button type="button" class="sde-tracker-btn" data-action="trackerRollAll"
+            data-tooltip="{{localize 'SDE.crawlStrip.rollAllOocInit'}}"
+            aria-label="{{localize 'SDE.crawlStrip.rollAllOocInit'}}">
+      <i class="fas fa-dice-d20"></i>
+    </button>
+    {{/if}}
+    {{#if controls.advance}}
+    <button type="button" class="sde-tracker-btn" data-action="trackerAdvance"
+            data-tooltip="{{localize 'SDE.crawlStrip.nextOocTurn'}}"
+            aria-label="{{localize 'SDE.crawlStrip.nextOocTurn'}}">
+      <i class="fas fa-forward"></i>
+    </button>
+    {{/if}}
+    {{#if controls.reset}}
+    <button type="button" class="sde-tracker-btn" data-action="trackerReset"
+            data-tooltip="{{localize 'SDE.tracker.reset'}}"
+            aria-label="{{localize 'SDE.tracker.reset'}}">
+      <i class="fas fa-rotate-left"></i>
+    </button>
+    {{/if}}
+  </div>
+  {{/if}}
+</header>
+
+{{#if empty}}
+<p class="sde-tracker-empty">{{localize "SDE.tracker.empty"}}</p>
+{{else}}
+<ol class="sde-tracker-list">
+  {{#each rows}}
+  <li class="sde-tracker-row{{#if this.isHolder}} sde-tracker-holder{{/if}}{{#if this.unrolled}} sde-tracker-unrolled{{/if}}"
+      data-actor-id="{{this.actorId}}">
+    <img class="sde-tracker-portrait" src="{{this.img}}" alt="" loading="lazy">
+    <span class="sde-tracker-name">{{this.name}}</span>
+    <span class="sde-tracker-init"
+          data-tooltip="{{#if this.unrolled}}{{localize 'SDE.tracker.unrolled'}}{{else}}{{localize 'SDE.tracker.initiative'}}{{/if}}">
+      {{this.initLabel}}
+    </span>
+  </li>
+  {{/each}}
+</ol>
+{{/if}}
+</div>

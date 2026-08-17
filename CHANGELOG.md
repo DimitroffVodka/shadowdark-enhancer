@@ -3,6 +3,23 @@
 ## [Unreleased]
 
 ### Added
+- **The out-of-combat order now has a sidebar tab of its own, under Combat.**
+  Foundry tracks turn order in the sidebar and has nothing there for a party
+  moving out of combat, so the rolled order only ever existed on the crawl
+  strip — fine while you are looking at the map, less so when the strip is
+  behind a window or you simply expect turn order to live where turn order
+  lives. A **Crawl Order** tab now sits one icon below **Combat**, listing the
+  order as portrait, name and initiative: the current turn-holder outlined in
+  the accent colour, anyone who still owes a roll dimmed with a `—` where their
+  number will go, so it is obvious at a glance who is holding the round up. Its
+  header carries the same three controls as the strip — roll for everyone
+  unrolled, advance the turn, reset initiative — under the same rules, so a
+  player sees the advance only on their own turn and the GM's controls appear
+  only when they would do something. Right-click the icon for a floating copy,
+  as with any core tab. The tab exists only while a crawl is running: end the
+  crawl and the icon goes too, handing the sidebar back to Chat if you were
+  looking at it. It is a second view, not a second tracker — rolling on the
+  strip fills the tab, advancing in the tab moves the strip's highlight.
 - **Roll out-of-combat initiative for the whole party in one click.** Starting a
   crawl round meant clicking each card's d20 in turn, and with five or six
   members that is five or six clicks to reach a state the strip only acts on

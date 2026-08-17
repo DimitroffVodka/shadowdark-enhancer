@@ -163,6 +163,50 @@ async function withAdvanceLock(key, fn) {
   }
 }
 
+/**
+ * The three out-of-combat order controls, in one place.
+ *
+ * Two views offer them now — the strip's crawl badge and the sidebar tracker
+ * tab — and the interesting parts (which lock key, GM-local versus relayed,
+ * who is allowed) must not drift between them. Each function is the path the
+ * strip already used; only the call site moved. The caller owns its own button
+ * state; these report whether the work ran so a caller can leave a control
+ * disabled or re-enable it.
+ */
+export const OocControls = {
+  /**
+   * Roll for every roster member who still owes a roll (GM).
+   * @returns {Promise<boolean>} false when refused (not a GM, or a batch is already running).
+   */
+  async rollAll() {
+    if (!game.user.isGM) return false;
+    const { InitiativeManager } = await import("./initiative-manager.mjs");
+    return withAdvanceLock("ooc:rollAll", () => InitiativeManager.rollOocForAll());
+  },
+
+  /**
+   * Advance the order one member: locally for a GM, through the authenticated
+   * relay for the holder's own player (the GM re-verifies ownership there).
+   * @returns {Promise<boolean>} false when a GM advance was refused by the lock.
+   */
+  async advance() {
+    if (game.user.isGM) return withAdvanceLock("ooc", () => CrawlState.advanceOocTurn());
+    await relayToGM(OOC_TURN_QUERY, { action: "ooc:nextTurn" },
+      { label: "out-of-combat turn advances" });
+    return true;
+  },
+
+  /**
+   * Clear every roll and the turn pointer (GM) — the bar's Reset Initiative.
+   * @returns {Promise<boolean>} false when the requester is not a GM.
+   */
+  async reset() {
+    if (!game.user.isGM) return false;
+    await CrawlState.clearOocInitiative();
+    return true;
+  },
+};
+
 export const CrawlStrip = {
 
   _el:             null,
@@ -1310,23 +1354,21 @@ export const CrawlStrip = {
     });
 
     // Out-of-combat turn advance — the current OoC turn-holder (or any GM)
-    // advances the rolled initiative order. GMs advance locally under the
-    // same in-memory lock (two tabs produce one advance); players relay
-    // through the authenticated GM channel (handleOocAdvanceQuery), which
-    // re-verifies ownership of the CURRENT holder before advancing.
+    // advances the rolled initiative order (OocControls.advance holds the GM
+    // -local vs relayed decision). A player's relay is slow enough to double-
+    // click through, so the strip disables its own button for the round trip.
     this._el.querySelectorAll('.sde-strip-cbtn[data-action="nextOocTurn"]').forEach(btn => {
       btn.addEventListener("click", async ev => {
         ev.stopPropagation();
         if (game.user.isGM) {
-          await withAdvanceLock("ooc", () => CrawlState.advanceOocTurn());
+          await OocControls.advance();
           return;
         }
         if (this._turnAdvanceInFlight) return;
         this._turnAdvanceInFlight = true;
         btn.disabled = true;
         try {
-          await relayToGM(OOC_TURN_QUERY, { action: "ooc:nextTurn" },
-            { label: "out-of-combat turn advances" });
+          await OocControls.advance();
         } finally {
           this._turnAdvanceInFlight = false;
           this.queueRender(); // re-render re-enables the button
@@ -1336,19 +1378,18 @@ export const CrawlStrip = {
 
     if (!game.user.isGM) return;
 
-    // Roll out-of-combat initiative for the whole roster. Held under the same
-    // in-memory advance lock as the turn controls, keyed separately: the rolls
-    // run one at a time and each lands its total through a chat-message hook,
-    // so a second click arriving mid-batch would read a stale "who still needs
-    // to roll" list and roll somebody twice. The lock refuses it outright; the
-    // disabled attribute is only what the GM sees while it runs.
+    // Roll out-of-combat initiative for the whole roster. OocControls.rollAll
+    // holds it under the advance lock, keyed separately: the rolls run one at
+    // a time and each lands its total through a chat-message hook, so a second
+    // click arriving mid-batch would read a stale "who still needs to roll"
+    // list and roll somebody twice. The disabled attribute is only what the GM
+    // sees while it runs.
     this._el.querySelectorAll('.sde-strip-cbtn[data-action="rollAllOocInit"]').forEach(btn => {
       btn.addEventListener("click", async ev => {
         ev.stopPropagation();
         btn.disabled = true;
         try {
-          const { InitiativeManager } = await import("./initiative-manager.mjs");
-          await withAdvanceLock("ooc:rollAll", () => InitiativeManager.rollOocForAll());
+          await OocControls.rollAll();
         } finally {
           btn.disabled = false;
           this.queueRender();
