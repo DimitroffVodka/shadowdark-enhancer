@@ -3,6 +3,23 @@
 ## [Unreleased]
 
 ### Added
+- **The Crawl Order tab is now the combat tracker, for a party out of combat.**
+  It was a plain list with three buttons; it is now the same tool your table
+  already knows. The rows are core's own tracker rows — portrait, name, and an
+  initiative box the GM can type into — so a member with no roll yet offers the
+  **same d20 button** the combat tracker does, and the character holding the
+  turn gets combat's own highlight rather than a lookalike. The footer is
+  combat's too: **previous round · previous turn · End Crawl · next turn · next
+  round**, with a player seeing a single **End Turn** button while the turn is
+  theirs. Clicking a row selects that character's token. Two of those controls
+  are new to the module: stepping the turn *back* (which steps the crawl round
+  back with it when it crosses the top of the order, so an accidental advance
+  undoes cleanly) and stepping the crawl round back on its own — a counter
+  correction only, which deliberately does not un-refill movement or un-roll an
+  encounter check, because neither of those can be taken back. Matching the look
+  is not a copied stylesheet: the tab wears core's `combat-sidebar` class and
+  renders core's markup, so it inherits Foundry's tracker styling and any theme
+  applied to it.
 - **The out-of-combat order now has a sidebar tab of its own, under Combat.**
   Foundry tracks turn order in the sidebar and has nothing there for a party
   moving out of combat, so the rolled order only ever existed on the crawl

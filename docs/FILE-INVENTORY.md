@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-760 tracked files · ~104,500 lines of code/markup across scripts+templates+styles+test.
+762 tracked files · ~104,800 lines of code/markup across scripts+templates+styles+test.
 `v0.14.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -72,11 +72,11 @@
 | File | Lines | Description |
 |---|---:|---|
 | `crawl-strip.mjs` | 1587 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 417 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
-| `crawl-state-core.mjs` | 281 | Pure reducer/normalizer behind crawl-state. Node-testable. |
+| `crawl-state.mjs` | 443 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-state-core.mjs` | 321 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
-| `crawl-tracker.mjs` | 217 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
-| `crawl-tracker-core.mjs` | 60 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged) and `showOocReset()`. Node-testable. |
+| `crawl-tracker.mjs` | 341 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
+| `crawl-tracker-core.mjs` | 111 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged) and `showOocReset()`. Node-testable. |
 | `initiative-manager.mjs` | 133 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
 | `movement-tracker.mjs` | 806 | Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints). |

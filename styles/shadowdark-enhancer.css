@@ -574,102 +574,21 @@ body.theme-light .sde-bar-start-btn:hover {
 
 /* ── Out-of-combat tracker (sidebar tab) ──────────────────────────────────── */
 
-/* The tab section wraps one part, and that part must be a single root element
-   (HandlebarsApplicationMixin refuses to render otherwise), so `.sde-tracker`
-   is the real column and the section only scrolls it. */
-.sde-tracker-tab { overflow: hidden auto; }
+/* The tab wears core's `combat-sidebar` class and renders core's own tracker
+   markup, so the layout, the row chrome, the active-turn highlight and the d20
+   roll button all come from Foundry's stylesheet. Only what core has no
+   counterpart for lives here. */
 
-.sde-tracker {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 6px;
-}
-
-.sde-tracker-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--sde-bar-border, rgba(255,255,255,0.15));
-}
-
-.sde-tracker-round {
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--sde-bar-accent, #c9aa58);
-}
-
-.sde-tracker-controls { display: flex; gap: 4px; }
-
-.sde-tracker-btn {
+/* A member nobody can roll for yet (a player looking at someone else's card)
+   still needs to read as "no number yet" rather than as an empty cell. Sized
+   to the initiative input it stands in for, so rows do not jump as the order
+   fills in. */
+.sde-tracker-tab .token-initiative .sde-tracker-pending {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.sde-tracker-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.sde-tracker-row {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) max-content;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 5px;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* The holder reads like the strip's active card: accent border + glow, so the
-   two views agree on what "it is this character's turn" looks like. */
-.sde-tracker-holder {
-  border-color: var(--sde-bar-accent, #c9aa58);
-  box-shadow: 0 0 6px rgba(201, 170, 88, 0.35);
-}
-
-/* Still owed: dimmed rather than hidden — who is holding the round up is the
-   thing a GM opens this tab to find out. */
-.sde-tracker-unrolled { opacity: 0.65; }
-
-.sde-tracker-portrait {
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 3px;
-  object-fit: cover;
-}
-
-.sde-tracker-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sde-tracker-init {
-  min-width: 22px;
-  text-align: center;
-  font-weight: 700;
-  color: var(--sde-bar-accent, #c9aa58);
-}
-
-.sde-tracker-empty {
-  margin: 8px 4px;
-  opacity: 0.8;
-  font-style: italic;
+  min-width: 2.5rem;
+  opacity: 0.55;
 }
 
 /* ── Activate / End Turn button on card ───────────────────────────────────── */

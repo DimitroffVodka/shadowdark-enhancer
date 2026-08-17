@@ -3,7 +3,9 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildTrackerRows, showOocReset } from "../scripts/crawl-strip/crawl-tracker-core.mjs";
+import {
+  buildTrackerRows, showOocReset, rowRollable, trackerFooter,
+} from "../scripts/crawl-strip/crawl-tracker-core.mjs";
 
 const rolls = (map) => Object.fromEntries(Object.entries(map).map(([k, v]) => [k, { roll: v, advantage: 0 }]));
 
@@ -61,6 +63,42 @@ test("degenerate state yields no rows rather than throwing", () => {
   assert.deepEqual(buildTrackerRows(), []);
   assert.deepEqual(buildTrackerRows({ members: [null, "", 7] }), []);
   assert.deepEqual(buildTrackerRows({ members: ["a"] }).map(r => r.initiative), [null]);
+});
+
+test("rowRollable: the owner or the GM rolls, and only before a number exists", () => {
+  assert.equal(rowRollable({ isGM: false, isOwner: true, hasInitiative: false }), true,
+    "a player rolls their own character, as in the combat tracker");
+  assert.equal(rowRollable({ isGM: true, isOwner: false, hasInitiative: false }), true,
+    "the GM rolls for anyone");
+  assert.equal(rowRollable({ isGM: false, isOwner: false, hasInitiative: false }), false,
+    "somebody else's character is not yours to roll");
+  assert.equal(rowRollable({ isGM: true, isOwner: true, hasInitiative: true }), false,
+    "a rolled row shows its number instead — not even the GM re-rolls from here");
+  assert.equal(rowRollable(), false);
+});
+
+test("trackerFooter: the GM gets the turn controls, a player only on their own turn", () => {
+  assert.deepEqual(trackerFooter({ isGM: true, orderActive: false, ownsHolder: false, round: 0 }),
+    { gm: true, playerTurn: false, canAdvance: false, canStepBackRound: false },
+    "a GM keeps the footer before anyone rolls; the turn controls are merely disabled");
+  assert.deepEqual(trackerFooter({ isGM: true, orderActive: true, ownsHolder: false, round: 2 }),
+    { gm: true, playerTurn: false, canAdvance: true, canStepBackRound: true });
+  assert.deepEqual(trackerFooter({ isGM: false, orderActive: true, ownsHolder: true, round: 2 }),
+    { gm: false, playerTurn: true, canAdvance: true, canStepBackRound: false },
+    "the holder's player gets the big End Turn button, never the round controls");
+  assert.deepEqual(trackerFooter({ isGM: false, orderActive: true, ownsHolder: false, round: 2 }),
+    { gm: false, playerTurn: false, canAdvance: true, canStepBackRound: false },
+    "a player waiting their turn gets no footer controls at all");
+  assert.deepEqual(trackerFooter({ isGM: false, orderActive: false, ownsHolder: true }),
+    { gm: false, playerTurn: false, canAdvance: false, canStepBackRound: false },
+    "no live order, no player footer — the holder flag is stale");
+  assert.deepEqual(trackerFooter(),
+    { gm: false, playerTurn: false, canAdvance: false, canStepBackRound: false });
+});
+
+test("trackerFooter: round 0 has nothing to step back to", () => {
+  assert.equal(trackerFooter({ isGM: true, orderActive: true, ownsHolder: false, round: 0 }).canStepBackRound, false);
+  assert.equal(trackerFooter({ isGM: true, orderActive: true, ownsHolder: false, round: 1 }).canStepBackRound, true);
 });
 
 test("showOocReset: GM only, and only with something to clear", () => {

@@ -32,7 +32,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 import { OocControls, showOocRollAll, showOocAdvance } from "./crawl-strip.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
-import { buildTrackerRows, showOocReset } from "./crawl-tracker-core.mjs";
+import { buildTrackerRows, showOocReset, rowRollable, trackerFooter } from "./crawl-tracker-core.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -45,20 +45,31 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
   static tabName = TRACKER_TAB_ID;
 
   static DEFAULT_OPTIONS = {
-    classes: ["sde-tracker-tab"],
+    // `combat-sidebar` is not decoration: core's tracker styling is scoped to
+    // that class (42 of its 51 combat rules), so wearing it — plus core's own
+    // row markup — IS how this tab matches the combat tracker, rather than a
+    // copied stylesheet that drifts on the next Foundry release.
+    classes: ["combat-sidebar", "sde-tracker-tab"],
     window: { title: "SDE.tracker.title", icon: "fa-solid fa-person-hiking" },
     actions: {
-      trackerRollAll: CrawlTrackerTab.prototype._onRollAll,
-      trackerAdvance: CrawlTrackerTab.prototype._onAdvance,
-      trackerReset:   CrawlTrackerTab.prototype._onReset,
+      trackerRollAll:   CrawlTrackerTab.prototype._onRollAll,
+      trackerRollOne:   CrawlTrackerTab.prototype._onRollOne,
+      trackerAdvance:       CrawlTrackerTab.prototype._onAdvance,
+      trackerPrevious:      CrawlTrackerTab.prototype._onPrevious,
+      trackerNextRound:     CrawlTrackerTab.prototype._onNextRound,
+      trackerPreviousRound: CrawlTrackerTab.prototype._onPreviousRound,
+      trackerReset:     CrawlTrackerTab.prototype._onReset,
+      trackerEndCrawl:  CrawlTrackerTab.prototype._onEndCrawl,
+      trackerSelect:    CrawlTrackerTab.prototype._onSelect,
+      trackerPan:       CrawlTrackerTab.prototype._onPan,
     },
   };
 
+  // Three parts, named and ordered as the combat tracker's own.
   static PARTS = {
-    body: {
-      template: `modules/${MODULE_ID}/templates/crawl-tracker.hbs`,
-      scrollable: [""],
-    },
+    header:  { template: `modules/${MODULE_ID}/templates/crawl-tracker-header.hbs` },
+    tracker: { template: `modules/${MODULE_ID}/templates/crawl-tracker-list.hbs`, scrollable: [""] },
+    footer:  { template: `modules/${MODULE_ID}/templates/crawl-tracker-footer.hbs` },
   };
 
   /**
@@ -98,34 +109,56 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     });
     const rolledCount = rows.filter(r => r.initiative !== null).length;
     const holderId = state.oocTurn;
+    const isGM = game.user.isGM;
+    const orderActive = oocOrderComplete(state) && !!holderId;
 
+    context.isGM = isGM;
     context.round = state.crawlTurn;
+    // Mirrors COMBAT.Round / COMBAT.NotStarted: a crawl with no order rolled is
+    // the out-of-combat equivalent of an encounter nobody has rolled for.
+    context.title = orderActive
+      ? game.i18n.format("SDE.tracker.round", { round: state.crawlTurn })
+      : game.i18n.localize("SDE.tracker.notStarted");
+    // The d20 art the combat tracker rolls with, so the two roll buttons are
+    // the same button.
+    context.initiativeIcon = CONFIG.Combat.initiativeIcon;
+
     context.rows = rows.map(row => {
       const actor = game.actors.get(row.actorId);
+      const isOwner = !!actor?.isOwner;
+      const hasInitiative = row.initiative !== null;
       return {
         ...row,
         name: actor?.name ?? game.i18n.localize("SDE.tracker.unknownMember"),
         img: actor?.img ?? "icons/svg/mystery-man.svg",
-        // The template cannot branch on `initiative` directly: Handlebars
-        // treats a rolled 0 as absent, so the label is resolved here.
-        initLabel: row.initiative === null ? "—" : String(row.initiative),
-        unrolled: row.initiative === null,
+        hasInitiative,
+        // `active` is core's own current-turn class — the holder gets combat's
+        // highlight rather than a lookalike.
+        css: row.isHolder ? "active" : "",
+        canRoll: rowRollable({ isGM, isOwner, hasInitiative }),
+        canPan: !isGM && isOwner,
       };
     });
+
     context.controls = {
       rollAll: showOocRollAll({
-        isGM: game.user.isGM,
+        isGM,
         memberCount: state.members.length,
         orderComplete: oocOrderComplete(state),
       }),
       advance: showOocAdvance({
-        isGM: game.user.isGM,
-        oocOrderActive: oocOrderComplete(state) && !!holderId,
+        isGM,
+        oocOrderActive: orderActive,
         ownsHolder: !!holderId && !!game.actors.get(holderId)?.isOwner,
       }),
-      reset: showOocReset({ isGM: game.user.isGM, rolledCount }),
+      reset: showOocReset({ isGM, rolledCount }),
     };
-    context.anyControl = context.controls.rollAll || context.controls.advance || context.controls.reset;
+    context.footer = trackerFooter({
+      isGM,
+      orderActive,
+      ownsHolder: !!holderId && !!game.actors.get(holderId)?.isOwner,
+      round: state.crawlTurn,
+    });
     context.empty = rows.length === 0;
     return context;
   }
@@ -150,12 +183,103 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     await this._withBusy(target, () => OocControls.rollAll());
   }
 
+  /** One row's d20 — the same roll the strip's card dice makes. */
+  async _onRollOne(_event, target) {
+    const actorId = target?.dataset?.actorId;
+    if (!actorId || CrawlState.oocInitiative[actorId]) return;
+    await this._withBusy(target, async () => {
+      const { InitiativeManager } = await import("./initiative-manager.mjs");
+      await InitiativeManager.rollOocForActor(actorId);
+    });
+  }
+
   async _onAdvance(_event, target) {
     await this._withBusy(target, () => OocControls.advance());
   }
 
+  /**
+   * Next round — the crawl bar's Next Round, which is a round of the crawl
+   * clock rather than of the initiative order: it refills movement budgets and
+   * runs the wandering-monster check. GM-only, and deliberately available
+   * before anyone has rolled, exactly as on the bar.
+   */
+  /** Step the turn back one holder (GM) — combat's Previous Turn. */
+  async _onPrevious(_event, target) {
+    if (!game.user.isGM) return;
+    await this._withBusy(target, () => CrawlState.previousOocTurn());
+  }
+
+  async _onNextRound(_event, target) {
+    if (!game.user.isGM) return;
+    await this._withBusy(target, () => CrawlState.nextCrawlTurn());
+  }
+
+  /** Step the crawl round back (GM) — corrects the counter, replays nothing. */
+  async _onPreviousRound(_event, target) {
+    if (!game.user.isGM) return;
+    await this._withBusy(target, () => CrawlState.previousCrawlTurn());
+  }
+
   async _onReset(_event, target) {
     await this._withBusy(target, () => OocControls.reset());
+  }
+
+  /** End Crawl, behind the same confirmation the crawl bar's End button uses. */
+  async _onEndCrawl(_event, _target) {
+    if (!game.user.isGM) return;
+    const confirm = foundry.applications.api.DialogV2?.confirm;
+    const ok = confirm
+      ? await foundry.applications.api.DialogV2.confirm({
+        window: { title: "End Crawl" },
+        content: "<p>End crawl mode?</p>",
+        rejectClose: false,
+      })
+      : true;
+    if (ok) await CrawlState.endCrawl();
+  }
+
+  /**
+   * Clicking a row selects that character's token on the current scene, the way
+   * clicking a combatant does. Silent when the member has no token here — a
+   * crawl roster follows the party across scenes, so an absent token is
+   * ordinary rather than an error.
+   */
+  async _onSelect(_event, target) {
+    const token = this._tokenFor(target?.dataset?.actorId);
+    if (!token) return;
+    if (token.isOwner) token.control({ releaseOthers: true });
+  }
+
+  /** Pan to the row's token without selecting it (core's player-side control). */
+  async _onPan(event, target) {
+    event?.stopPropagation();
+    const token = this._tokenFor(target?.dataset?.actorId);
+    if (token) await canvas.animatePan({ x: token.center.x, y: token.center.y, duration: 250 });
+  }
+
+  /** This member's token on the scene being viewed, if it has one. */
+  _tokenFor(actorId) {
+    if (!actorId || !canvas?.ready) return null;
+    return canvas.tokens?.placeables?.find(t => t.actor?.id === actorId) ?? null;
+  }
+
+  /** @inheritDoc */
+  _attachPartListeners(partId, element, options) {
+    super._attachPartListeners(partId, element, options);
+    if (partId !== "tracker" || !game.user.isGM) return;
+    // Typed initiative, as in the combat tracker. A blank or unparseable entry
+    // re-renders back to the stored value rather than writing NaN.
+    for (const input of element.querySelectorAll(".initiative-input")) {
+      input.addEventListener("change", async ev => {
+        const actorId = ev.currentTarget.dataset.actorId;
+        const value = Number(ev.currentTarget.value);
+        if (!actorId || !Number.isFinite(value)) return this.render();
+        await CrawlState.setOocInitiative(actorId, {
+          roll: value,
+          advantage: CrawlState.oocInitiative[actorId]?.advantage ?? 0,
+        });
+      });
+    }
   }
 }
 

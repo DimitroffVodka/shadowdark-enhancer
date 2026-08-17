@@ -58,3 +58,54 @@ export function buildTrackerRows({ members = [], oocInitiative = {}, oocTurn = n
 export function showOocReset({ isGM, rolledCount = 0 } = {}) {
   return Boolean(isGM) && rolledCount > 0;
 }
+
+/**
+ * Does this row offer its own initiative d20?
+ *
+ * The combat tracker shows a per-combatant roll button to whoever owns the
+ * combatant, and swaps it for the number once rolled. Same rule here, with the
+ * GM standing in for everyone — it is the same rule the strip's card dice
+ * already uses, so the two views agree on who may roll for whom.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.isGM
+ * @param {boolean} facts.isOwner         The requester owns this row's actor.
+ * @param {boolean} facts.hasInitiative   This row already has a roll.
+ * @returns {boolean}
+ */
+export function rowRollable({ isGM, isOwner, hasInitiative } = {}) {
+  if (hasInitiative) return false;
+  return Boolean(isGM) || Boolean(isOwner);
+}
+
+/**
+ * Which footer does this user get?
+ *
+ * Mirrors the combat tracker's footer, which gives the GM the turn/round
+ * controls and gives a player a single large "end my turn" button while it is
+ * their turn — and nothing at all otherwise.
+ *
+ * `canAdvance` is separate from who sees the footer: a GM keeps the round
+ * controls before anyone has rolled (a crawl round is not gated on initiative,
+ * exactly as on the crawl bar) but advancing the *turn* is meaningless without
+ * a live order, so that one control is disabled rather than hidden — the
+ * layout stays put as the order fills in.
+ *
+ * `canStepBackRound` is round 0's guard: the counter floors there, so the
+ * Previous Round control has nothing to do on a crawl that has not moved.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.isGM
+ * @param {boolean} facts.orderActive  Every member rolled and somebody holds the turn.
+ * @param {boolean} facts.ownsHolder   The requester owns the current turn-holder.
+ * @param {number}  [facts.round]      The crawl round counter.
+ * @returns {{gm: boolean, playerTurn: boolean, canAdvance: boolean, canStepBackRound: boolean}}
+ */
+export function trackerFooter({ isGM, orderActive, ownsHolder, round = 0 } = {}) {
+  return {
+    gm: Boolean(isGM),
+    playerTurn: !isGM && Boolean(orderActive) && Boolean(ownsHolder),
+    canAdvance: Boolean(orderActive),
+    canStepBackRound: Boolean(isGM) && Number(round) > 0,
+  };
+}

@@ -1,0 +1,33 @@
+{{!-- Crawl Order header. Deliberately the combat tracker's own markup and
+      class names (templates/sidebar/tabs/combat/header.hbs): core's sidebar CSS
+      is scoped to `.combat-sidebar`, which this tab carries, so mirroring the
+      structure means mirroring the look with no copied styles to drift. --}}
+<header class="combat-tracker-header">
+  <div class="encounter-controls combat">
+
+    <div class="control-buttons left flexrow">
+      {{#if controls.rollAll}}
+      <button type="button" class="inline-control combat-control icon fa-solid fa-users"
+              data-action="trackerRollAll" data-tooltip
+              aria-label="{{localize 'SDE.crawlStrip.rollAllOocInit'}}"></button>
+      {{else}}
+      <div class="spacer"></div>
+      {{/if}}
+      <div class="spacer"></div>
+    </div>
+
+    <strong class="encounter-title">{{title}}</strong>
+
+    <div class="control-buttons right flexrow">
+      <div class="spacer"></div>
+      {{#if controls.reset}}
+      <button type="button" class="inline-control combat-control icon fa-solid fa-rotate-left"
+              data-action="trackerReset" data-tooltip
+              aria-label="{{localize 'SDE.tracker.reset'}}"></button>
+      {{else}}
+      <div class="spacer"></div>
+      {{/if}}
+    </div>
+
+  </div>
+</header>

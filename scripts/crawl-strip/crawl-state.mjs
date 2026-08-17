@@ -12,6 +12,8 @@ import {
   removeMember    as _removeMember,
   clearMembers    as _clearMembers,
   nextCrawlTurn   as _nextCrawlTurn,
+  previousCrawlTurn as _previousCrawlTurn,
+  previousOocTurn   as _previousOocTurn,
   setOocInitiative   as _setOocInitiative,
   ensureOocTurn      as _ensureOocTurn,
   advanceOocTurn     as _advanceOocTurn,
@@ -286,6 +288,18 @@ export const CrawlState = {
     await game.shadowdarkEnhancer.encounter.check();
   },
 
+  /**
+   * Step the crawl round back one (GM). Unlike nextCrawlTurn this captures no
+   * movement anchors and runs no wandering-monster check: the counter is being
+   * corrected, not replayed backwards.
+   */
+  async previousCrawlTurn() {
+    if (!game.user.isGM) return;
+    const { state, changed } = _previousCrawlTurn(this._state);
+    if (!changed) return;
+    await this._commit(state);
+  },
+
   async setOocInitiative(actorId, entry) {
     if (!game.user.isGM) return;
     const { state } = _setOocInitiative(this._state, actorId, entry);
@@ -324,6 +338,18 @@ export const CrawlState = {
     const { state, changed, wrapped } = _advanceOocTurn(this._state);
     if (changed) await this._commit(state);
     if (wrapped) await this.nextCrawlTurn();
+  },
+
+  /**
+   * Step the out-of-combat turn back one member (GM). Crossing the top of the
+   * order backwards steps the crawl round back with it, so advance-then-back
+   * lands exactly where it started.
+   */
+  async previousOocTurn() {
+    if (!game.user.isGM) return;
+    const { state, changed, wrappedBack } = _previousOocTurn(this._state);
+    if (changed) await this._commit(state);
+    if (wrappedBack) await this.previousCrawlTurn();
   },
 
   async clearOocInitiative() {

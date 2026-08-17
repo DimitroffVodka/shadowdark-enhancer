@@ -111,16 +111,32 @@ still landing is refused rather than queued.
 ### The Crawl Order sidebar tab
 
 The same order also lives in Foundry's own sidebar, one icon below **Combat**:
-a **Crawl Order** tab holding the rolled order as a list — portrait, name and
-initiative, with the current turn-holder outlined in the accent colour and
-anyone who still owes a roll dimmed with a `—` in place of a number.
+a **Crawl Order** tab that is the combat tracker's twin for a party out of
+combat. It wears core's own tracker markup, so the rows, the highlight on
+whoever holds the turn, and the d20 roll button are the ones you already know
+from Combat — and it follows Foundry's theme without a second skin to maintain.
 
 | | |
 |---|---|
 | **Where** | The sidebar rail, directly under the Combat tab |
 | **When** | Only while a crawl is running. End the crawl and the icon goes with it; if you were looking at the tab, the sidebar falls back to Chat |
-| **Controls** | The same three the strip has, in the tab header: roll for everyone unrolled, advance the turn, reset initiative. Each appears under the same rules as on the strip, so a player sees the advance only on their own turn |
+| **Header** | Roll-for-everyone (the group icon), the round title, and Reset Initiative |
+| **Rows** | Portrait, name, and either the initiative — editable by the GM, exactly as in Combat — or a **d20 button** to roll it. A member nobody may roll for yet shows a dash |
+| **Footer** | ⏮ previous round · ← previous turn · **End Crawl** · → next turn · ⏭ next round. A player sees a single **End Turn** button instead, and only while the turn is theirs |
 | **Popout** | Right-click the rail icon for a floating copy, exactly as with Combat |
+
+Clicking a row selects that character's token; a player gets a pan-to control
+on their own row.
+
+Two deliberate differences from Combat, both because a crawl round is not an
+initiative round:
+
+- **Next round** is the crawl bar's **Next Round** — it refills movement budgets
+  and rolls the wandering-monster check. Advancing the *turn* past the last
+  character does the same thing, since a full cycle of the party is a round.
+- **Previous round** only moves the counter back. It does not un-refill
+  movement or un-roll an encounter check, so use it to correct a mis-click
+  rather than to rewind play.
 
 It is a view onto the same state, not a second tracker: rolling from the strip
 updates the tab, and advancing from the tab moves the strip's highlight.

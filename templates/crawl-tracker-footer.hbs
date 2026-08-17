@@ -1,0 +1,30 @@
+{{!-- Crawl Order footer — the combat tracker's footer, control for control. --}}
+<nav class="combat-controls" data-tooltip-direction="UP">
+  {{#if footer.gm}}
+
+  <button type="button" class="inline-control combat-control icon fa-solid fa-backward-step"
+          data-action="trackerPreviousRound" {{#unless footer.canStepBackRound}}disabled{{/unless}}
+          data-tooltip aria-label="{{localize 'SDE.tracker.previousRound'}}"></button>
+  <button type="button" class="inline-control combat-control icon fa-solid fa-arrow-left"
+          data-action="trackerPrevious" {{#unless footer.canAdvance}}disabled{{/unless}}
+          data-tooltip aria-label="{{localize 'SDE.tracker.previousTurn'}}"></button>
+  <button type="button" class="combat-control combat-control-lg" data-action="trackerEndCrawl">
+    <i class="fa-solid fa-xmark" inert></i>
+    <span>{{localize "SDE.tracker.endCrawl"}}</span>
+  </button>
+  <button type="button" class="inline-control combat-control icon fa-solid fa-arrow-right"
+          data-action="trackerAdvance" {{#unless footer.canAdvance}}disabled{{/unless}}
+          data-tooltip aria-label="{{localize 'SDE.tracker.nextTurn'}}"></button>
+  <button type="button" class="inline-control combat-control icon fa-solid fa-forward-step"
+          data-action="trackerNextRound" data-tooltip
+          aria-label="{{localize 'SDE.tracker.nextRound'}}"></button>
+
+  {{else if footer.playerTurn}}
+
+  <button type="button" class="combat-control combat-control-lg" data-action="trackerAdvance">
+    <i class="fa-solid fa-check" inert></i>
+    <span>{{localize "SDE.tracker.endTurn"}}</span>
+  </button>
+
+  {{/if}}
+</nav>
