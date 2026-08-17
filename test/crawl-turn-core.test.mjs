@@ -263,7 +263,7 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     // domain (canvas-bound); not this harness's subject.
     shadowdarkEnhancer: { encounter: { check: async () => { encounterChecks.push(1); } } },
   };
-  const { CrawlStrip, cardTurnState, showOocRollAll } = await import("../scripts/crawl-strip/crawl-strip.mjs");
+  const { CrawlStrip, cardTurnState, showOocRollAll, showOocAdvance } = await import("../scripts/crawl-strip/crawl-strip.mjs");
   const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
   const { MovementTracker } = await import("../scripts/crawl-strip/movement-tracker.mjs");
@@ -281,6 +281,7 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     CrawlState,
     cardTurnState,
     showOocRollAll,
+    showOocAdvance,
     encounterChecks,
     advanced: advanced ?? [],
   };
@@ -732,6 +733,25 @@ test("showOocRollAll: the GM gets the dice while anybody still owes a roll", asy
     "a complete order leaves rollOocForAll nothing to do — no dead button");
   assert.equal(show({ isGM: true, memberCount: 0, orderComplete: false }), false,
     "an empty roster has nobody to roll for");
+});
+
+test("showOocAdvance: no live order, no arrow — for anybody", async () => {
+  const { showOocAdvance: show } = await gmClientHarness({});
+  assert.equal(show({ isGM: true, oocOrderActive: false, ownsHolder: false }), false,
+    "a GM before the party has rolled would click a control that cannot advance anything");
+  assert.equal(show({ isGM: true, oocOrderActive: false, ownsHolder: true }), false,
+    "a stale holder without an active order is still no order");
+  assert.equal(show(), false, "missing facts hide the arrow");
+});
+
+test("showOocAdvance: with a live order the GM always gets it, a player only for their own turn", async () => {
+  const { showOocAdvance: show } = await gmClientHarness({});
+  assert.equal(show({ isGM: true, oocOrderActive: true, ownsHolder: false }), true,
+    "the GM may advance for whoever holds the turn");
+  assert.equal(show({ isGM: false, oocOrderActive: true, ownsHolder: true }), true,
+    "the holder's own player advances their turn");
+  assert.equal(show({ isGM: false, oocOrderActive: true, ownsHolder: false }), false,
+    "a player who does not own the holder gets no arrow (the GM re-checks this on the relay)");
 });
 
 test("showOocRollAll: a player never gets it, and missing facts hide it", async () => {

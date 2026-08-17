@@ -19,6 +19,17 @@
   arriving while the batch is still landing is refused rather than queued, so a
   double-click cannot roll anyone twice.
 
+### Fixed
+- **The GM's out-of-combat advance arrow was a dead button before the party had
+  rolled.** It sat in the crawl badge from the moment a crawl started, but there
+  is nothing to advance until every member has an initiative — clicking it did
+  nothing, gave no reason, and read as a broken control rather than an
+  unavailable one. It now appears only once the order is live: every member
+  rolled, and somebody holding the turn. That is the same condition the movement
+  lock engages on, so the arrow and the lock arrive together. The player side is
+  unchanged — a player still sees it only while the turn belongs to a character
+  they own, and the GM still re-checks that ownership when the request lands.
+
 ## [0.14.0] — 2026-08-16
 
 ### Security

@@ -92,6 +92,27 @@ export function showOocRollAll({ isGM, memberCount = 0, orderComplete = false } 
 }
 
 /**
+ * Does the crawl badge carry the out-of-combat advance arrow?
+ *
+ * Nobody gets it without a live order. `advanceOocTurn` no-ops on an empty or
+ * incomplete one, so before the party has rolled the arrow is a control that
+ * cannot do anything — it rendered unconditionally for the GM until this rule
+ * existed, which read as a broken button rather than an unavailable one. A
+ * player additionally has to own the CURRENT holder; the GM may advance for
+ * whoever holds the turn.
+ *
+ * @param {object}  facts
+ * @param {boolean} facts.isGM
+ * @param {boolean} facts.oocOrderActive  Crawl mode, every member rolled, a holder exists.
+ * @param {boolean} facts.ownsHolder      The requester owns the current turn-holder's actor.
+ * @returns {boolean}
+ */
+export function showOocAdvance({ isGM, oocOrderActive, ownsHolder } = {}) {
+  if (!oocOrderActive) return false;
+  return Boolean(isGM) || Boolean(ownsHolder);
+}
+
+/**
  * In-flight turn-advance locks on the GM client, keyed
  * `${combat.id}:${combat.round}:${combat.turn}`.
  *
@@ -768,17 +789,18 @@ export const CrawlStrip = {
     // read-only counter. Advancing goes through CrawlState.nextCrawlTurn(),
     // which commits + broadcasts state and captures fresh movement anchors.
     //
-    // Out-of-combat turn order (issue #14 part 2): the order is in effect
-    // only in crawl mode, once EVERY crawl member has rolled AND someone
-    // holds the turn — an incomplete order is not an order, so the advance
-    // button appears exactly when the movement lock engages (and no dead
-    // buttons exist for a partial order, a holderless order, or during
-    // combat). A player only ever sees the advance when the CURRENT holder
-    // is an actor they own; the GM re-verifies that ownership on the far
-    // side of the relay (handleOocAdvanceQuery).
+    // Out-of-combat turn order (issue #14 part 2): the order is in effect only
+    // in crawl mode, once EVERY crawl member has rolled AND someone holds the
+    // turn — an incomplete order is not an order. showOocAdvance holds the
+    // rule; a player additionally needs to own the CURRENT holder, which the
+    // GM re-verifies on the far side of the relay (handleOocAdvanceQuery).
     const oocHolderId = oocOrderActive ? state.oocTurn : null;
     const playerMayAdvance = !!oocHolderId && !!game.actors.get(oocHolderId)?.isOwner;
-    const oocAdvanceBtn = (game.user.isGM || playerMayAdvance)
+    const oocAdvanceBtn = showOocAdvance({
+      isGM: game.user.isGM,
+      oocOrderActive,
+      ownsHolder: playerMayAdvance,
+    })
       ? `<button class="sde-strip-cbtn" data-action="nextOocTurn" title="${game.i18n.localize("SDE.crawlStrip.nextOocTurn")}"${this._turnAdvanceInFlight ? " disabled" : ""}>${ICONS.nextOocTurn}</button>`
       : "";
     // Roll-all dice, above the round number (showOocRollAll holds the rule).
