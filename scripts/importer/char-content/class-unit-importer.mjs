@@ -167,7 +167,7 @@ async function _ensureItem(pack, data, folderPath, report) {
   return { uuid: doc.uuid, name: doc.name, reused: false };
 }
 
-function _talentData(name, description, sourceTitle, { talentClass = "level", effects = [] } = {}) {
+function _talentData(name, description, sourceTitle, { talentClass = "level", effects = [], flags = null } = {}) {
   return {
     name, type: "Talent", img: effects[0]?.img ?? "icons/sundries/documents/document-torn-diagram-tan.webp",
     system: {
@@ -179,7 +179,10 @@ function _talentData(name, description, sourceTitle, { talentClass = "level", ef
       name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
       system: { changes: e.changes ?? [] },
     })),
-    flags: { [MODULE_ID]: { imported: true } },
+    // Overlay-supplied flags ride in the module's own scope, so runtime features
+    // can find a talent by capability instead of by name (e.g. the Delver's
+    // Scavenger, which scripts/scavenger/ automates).
+    flags: { [MODULE_ID]: { imported: true, ...(flags ?? {}) } },
   };
 }
 
@@ -247,7 +250,7 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
   if (authored) {
     const made = await _ensureItem(pack,
       _talentData(authored.name, `<p>${label}</p>`, sourceTitle,
-        { talentClass: authored.talentClass ?? "level", effects: authored.effects ?? [] }),
+        { talentClass: authored.talentClass ?? "level", effects: authored.effects ?? [], flags: authored.flags }),
       ["Level", className], report);
     return made.uuid;
   }
@@ -390,7 +393,7 @@ async function buildExtraTables(parsed, { tablesPack, talentsPack, sourceTitle, 
          
         const made = await _ensureItem(talentsPack,
           _talentData(name, `<p>${escapeHtml(desc || name)}</p>`, sourceTitle,
-            { talentClass: authored?.talentClass ?? "class", effects: authored?.effects ?? [] }),
+            { talentClass: authored?.talentClass ?? "class", effects: authored?.effects ?? [], flags: authored?.flags }),
           ["Class", className], report);
         results.push({ type: "document", documentUuid: made.uuid, range: [r.lo, r.hi] });
       }
@@ -470,7 +473,7 @@ async function buildClassTalentTable(parsed, { talentsPack, tablesPack, sysTalen
       const desc = `<p>${escapeHtml(row.text)}. Roll on @UUID[${ref.uuid}]{${ref.name}}.</p>`;
       const made = await _ensureItem(talentsPack,
         _talentData(talentName, desc, sourceTitle,
-          { talentClass: authored?.talentClass ?? "level", effects: authored?.effects ?? [] }),
+          { talentClass: authored?.talentClass ?? "level", effects: authored?.effects ?? [], flags: authored?.flags }),
         ["Level", parsed.name], report);
       rowResults.push({ range, uuids: [made.uuid] });
       allOptionUuids.add(made.uuid);
@@ -631,7 +634,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       : null;
     const made = await _ensureItem(talentsPack,
       _talentData(f.name, f.description, sourceTitle,
-        { talentClass: wired?.talentClass ?? "class", effects: wired?.effects ?? [] }),
+        { talentClass: wired?.talentClass ?? "class", effects: wired?.effects ?? [], flags: wired?.flags }),
       ["Class", parsed.name], report);
     featureUuids.push(made.uuid);
   }

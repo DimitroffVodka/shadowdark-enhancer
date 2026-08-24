@@ -15,9 +15,13 @@
  * at import time; weapon items ship stats only, no description.
  *
  * Shapes:
- *   features:    { "<Feature Name>": { talentClass?, effects? } } — matched
- *                case-insensitively against parsed feature names
- *   rowTalents:  { "<lo>" | "<lo>-<hi>": [{ name, talentClass?, effects? }] }
+ *   features:    { "<Feature Name>": { talentClass?, effects?, flags? } } —
+ *                matched case-insensitively against parsed feature names
+ *   flags:       merged into the created Talent's `flags[MODULE_ID]`, so a
+ *                runtime feature can find it by capability instead of by name
+ *                (Delver Scavenger → scripts/scavenger/). Mechanics only, same
+ *                content contract as everything else here.
+ *   rowTalents:  { "<lo>" | "<lo>-<hi>": [{ name, talentClass?, effects?, flags? }] }
  *                — a QUEUE per row: options that resolve to system talents
  *                take those; remaining options consume these entries in order
  *   classAbilities: [{ name, group?, ability?, dc?, limitedUses?, uses?,
@@ -60,6 +64,11 @@ export const CLASS_OVERLAYS = {
   delver: {
     source: "WR", pages: "38",
     features: {
+      // Scavenger has no SD change key — its d6-on-last-use is automated by
+      // scripts/scavenger/, which finds the talent by this flag. (It falls back
+      // to the talent NAME, so worlds that imported the Delver before this flag
+      // existed keep working without a re-import.)
+      "Scavenger": { flags: { scavenger: { role: "base" } } },
       "Trusty Gear": {
         effects: [{
           name: "Trusty Gear",
@@ -77,7 +86,10 @@ export const CLASS_OVERLAYS = {
           changes: [{ key: "system.slots", value: 2, type: "add", phase: "initial" }],
         }],
       }],
-      "10-11": [{ name: "Master Scavenger" }],
+      // "Add one more point to your Scavenger success range" — 5-6 → 4-6, and a
+      // second copy → 3-6, which is where the book's own table stops it ("reroll
+      // 10-11 if Scavenger success range is 3-6").
+      "10-11": [{ name: "Master Scavenger", flags: { scavenger: { role: "boost" } } }],
     },
   },
 

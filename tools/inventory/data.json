@@ -126,7 +126,9 @@
     "3.1": [
       "scripts/shadowdark-enhancer.mjs",
       "scripts/luck-reroll/luck-reroll.mjs",
-      "scripts/spell-mishap/spell-mishap.mjs"
+      "scripts/spell-mishap/spell-mishap.mjs",
+      "scripts/scavenger/scavenger-core.mjs",
+      "scripts/scavenger/scavenger.mjs"
     ],
     "3.2": [
       "scripts/shared/module-id.mjs",
@@ -519,6 +521,8 @@
     "scripts/character-sheet/prayer-roll.mjs": "Prayer icon beside the sheet's Deity header; rolls that deity's `<Deity> Prayers` table (world first, then compendiums).",
     "scripts/luck-reroll/luck-reroll.mjs": "Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap.",
     "scripts/spell-mishap/spell-mishap.mjs": "Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt.",
+    "scripts/scavenger/scavenger-core.mjs": "Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls.",
+    "scripts/scavenger/scavenger.mjs": "Foundry wiring for Scavenger: pre-hooks snapshot the quantity and a restore copy, post-hooks roll the d6, post the card, and hand back one use — refuelling and unlighting a restored light source.",
     "scripts/shared/gm-relay.mjs": "The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept.",
     "scripts/downtime/downtime-skeleton.mjs": "Shipped downtime metadata: 25 slots across four activities with names, compressed labels, DCs, paid flags, keyword matchers and renown/XP deltas. Carries no rules text.",
     "scripts/downtime/downtime-parser.mjs": "Parses a pasted downtime page into per-slot outcome text; segment-scoped DC + keyword matching with a rescue pass for column-interleaved PDF copies. Unmatched lines are reported back, never guessed at.",

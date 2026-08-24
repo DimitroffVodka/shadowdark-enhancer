@@ -45,6 +45,31 @@ See [Movement Budgets](Movement-Budgets.md).
 |---|---|---|
 | **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate mishap table for the casting class: Wizard Mishap for wizards and necromancers, Diabolical Mishap for witches. Divine casters (Priest, Green Knight, Seer) are exempt and simply lose the spell per RAW. Wand and scroll casts use the spell behind them, not the wand. |
 
+### Scavenger
+
+Automates the Delver's **Scavenger** talent: *when you expend the last of a
+consumable item, roll a d6; on a 5 or 6 you regain one use of that item.*
+
+It fires on the last of a stack going to zero, and on the item being consumed
+outright — a potion drunk from the sheet, or a torch the light tracker burns
+out. A **stack** thrown away in one go does not count, because nothing was
+expended down to its last use. Gear, potions and scrolls are watched; wands are
+not. The d6 rolls itself and posts a chat card showing the face, the success
+range and the outcome; on a success the item comes back at one use, and a
+restored light source comes back unlit with a full burn time.
+
+**Master Scavenger** widens the range: one copy makes it 4-6, a second makes it
+3-6, which is where the Delver talent table stops it.
+
+The talent is recognised by the flag the [Class Importer](Class-and-Spell-Importers.md)
+stamps on it, and by name for characters built before that flag existed — so
+Delvers already in your world work without a re-import.
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Automate the Delver's Scavenger** | on | Master switch for everything above. Off, the talent stays on the sheet as rules text and nothing rolls itself. |
+| **Scavenger covers ammunition** | on | Whether spending your last arrow or bolt can trigger Scavenger. Ammunition decrements on every ranged attack, so this fires far more often than gear does — turn it off to keep Scavenger to torches, oil, rations and the like. |
+
 ### Renown
 
 | Setting | Default | What it does |

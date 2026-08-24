@@ -393,6 +393,11 @@
   "SDE.settings.spellMishapAutoRoll.name": "Auto-roll spell mishap tables",
   "SDE.settings.spellMishapAutoRoll.hint": "If on, a natural 1 on a failed spellcasting check automatically rolls the appropriate Wizard Mishap table.",
 
+  "SDE.settings.scavengerAutomate.name": "Automate the Delver's Scavenger",
+  "SDE.settings.scavengerAutomate.hint": "If on, a character with the Scavenger talent who expends the last of a consumable automatically rolls the talent's d6 and gets the use back on a success. Master Scavenger widens the success range from 5-6 to 4-6, and a second copy to 3-6. Watches gear, potions and scrolls; wands are never watched.",
+  "SDE.settings.scavengerWatchAmmo.name": "Scavenger covers ammunition",
+  "SDE.settings.scavengerWatchAmmo.hint": "If on, spending your last arrow or bolt can trigger Scavenger too. Ammunition decrements on every ranged attack, so this fires far more often than gear does — turn it off to keep Scavenger to torches, oil, rations and the like.",
+
   "SDE.settings.renownOnCreate.name": "Starting renown from CHA",
   "SDE.settings.renownOnCreate.hint": "If on, a new player character's renown is set to their Charisma modifier, once. If the character was made before their abilities were rolled, the seed waits for the first Charisma change. It never touches a character whose renown is already non-zero or who already has a renown log entry, so it cannot overwrite a score you have been playing with.",
   "SDE.settings.renownOnLevelUp.name": "Renown on level-up",

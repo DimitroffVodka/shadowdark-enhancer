@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-764 tracked files · ~106,000 lines of code/markup across scripts+templates+styles+test.
+767 tracked files · ~106,500 lines of code/markup across scripts+templates+styles+test.
 `v0.15.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,9 +46,11 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 725 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 727 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
+| `scavenger/scavenger-core.mjs` | 163 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
+| `scavenger/scavenger.mjs` | 179 | Foundry wiring for Scavenger: pre-hooks snapshot the quantity and a restore copy, post-hooks roll the d6, post the card, and hand back one use — refuelling and unlighting a restored light source. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -56,7 +58,7 @@
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
-| `settings.mjs` | 405 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 426 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -194,8 +196,8 @@
 | `char-content/char-content-manifest.mjs` | 1477 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1020 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1099 | Class unit → real documents in dependency order. |
-| `char-content/class-overlays.mjs` | 220 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
+| `char-content/class-unit-importer.mjs` | 1102 | Class unit → real documents in dependency order. |
+| `char-content/class-overlays.mjs` | 232 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
