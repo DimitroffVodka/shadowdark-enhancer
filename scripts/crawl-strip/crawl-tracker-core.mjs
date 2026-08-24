@@ -109,3 +109,30 @@ export function trackerFooter({ isGM, orderActive, ownsHolder, round = 0 } = {})
     canStepBackRound: Boolean(isGM) && Number(round) > 0,
   };
 }
+
+/**
+ * Read a typed initiative box, the way the combat tracker reads its own.
+ *
+ * The emptiness check has to come FIRST, and cannot be folded into the numeric
+ * one: `Number("")` and `Number("   ")` are both 0, not NaN. A GM who selects a
+ * value and hits delete means "I did not mean that number", but a plain
+ * `Number.isFinite` gate reads their empty box as a deliberate initiative of 0
+ * — which is a real, storable roll. It sorts that member last and counts them
+ * as having rolled, so the order can go "complete" with a member the GM was
+ * halfway through clearing, and nothing in the tab can unset it again.
+ *
+ * Blank is therefore "no change", not "zero": the caller re-renders the stored
+ * value back into the box. There is no unset here because there is nowhere in
+ * the tracker to express one.
+ *
+ * @param {string} raw  The input element's value.
+ * @returns {{ok: true, value: number}|{ok: false}}  `ok:false` means leave the
+ *                                                   stored value alone.
+ */
+export function parseInitiativeInput(raw) {
+  if (typeof raw !== "string" && typeof raw !== "number") return { ok: false };
+  const trimmed = String(raw).trim();
+  if (trimmed === "") return { ok: false };
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? { ok: true, value } : { ok: false };
+}
