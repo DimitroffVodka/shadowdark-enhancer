@@ -77,6 +77,24 @@ is dropped from the strip (but stays in the combat tracker, so end-of-combat
 loot and the session recap still count it). Healing it above 0 HP, or
 clearing the defeated marker, brings the card back. PC cards always stay.
 
+**Their turns are skipped automatically.** A combatant with no card can't be
+shown as the current turn, so the module advances straight past it — otherwise
+the strip would dim every card and light none, reading as nobody's turn. The
+rule is exactly the one above: if it gets no card, it gets no turn. That
+includes an enemy that dies partway through its own turn. Downed PCs keep both
+their card and their turn.
+
+If *every* remaining combatant is dead there is nowhere to advance to, so the
+pointer stays put rather than rolling rounds forever.
+
+This is separate from Foundry's own **Skip Defeated** combat-tracker setting,
+and leaving that off is fine. Skip Defeated only knows the tracker's defeated
+marker, and Shadowdark sets that marker in one place — when damage is applied
+through the system. Drop an enemy to 0 by editing its sheet, dragging its HP
+bar, or letting an effect do it, and the marker is either missing or a moment
+behind. The strip's rule reads HP, so the card and the turn go at the same
+instant either way.
+
 ## Starting and ending a crawl
 
 **Start** begins a crawl session. This also begins (or continues) a
@@ -260,6 +278,19 @@ since the card needs a token to report movement against.
 It died. NPCs at 0 HP (or marked defeated in the tracker) are removed from
 the strip on purpose. The combatant is still in the combat tracker, so heal it
 above 0 HP or clear its defeated marker and the card returns.
+
+**The combat tracker jumped a turn (or several) on its own.**
+It skipped combatants the strip doesn't render — dead enemies. That is the
+auto-skip described under [In combat mode](#in-combat-mode); it fires whenever
+the turn pointer lands on one, including right after the killing blow. Step
+back with the strip's **Previous Turn** button if you want the turn anyway.
+
+**No card is lit and it looks like nobody's turn.**
+The turn pointer is on a combatant with no card and the skip didn't run. It
+only runs for the GM (specifically the active GM), so on a player's screen the
+pointer will catch up a moment later. If it persists for the GM too, every
+remaining combatant is dead — the skip has nowhere to advance to and stops on
+purpose. End the encounter, or heal/undefeat someone.
 
 **Two party strips are showing.**
 `shadowdark-crawl-helper` is still enabled. Disable it. See

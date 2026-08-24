@@ -18,6 +18,7 @@ import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mj
 import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
+import { combatantEntry, isHiddenFromStrip } from "./turn-skip-core.mjs";
 import {
   buildTabStripHTML,
   bindActionMenuEvents,
@@ -605,9 +606,10 @@ export const CrawlStrip = {
       const isPlayer = actor.type === "Player";
       // Dead enemies drop off the strip but stay in the combat tracker — the
       // tracker is the end-of-combat ledger (loot drops and the session recap
-      // read defeated combatants from it). Same death test as those readers.
-      const hp = actor.system?.attributes?.hp?.value ?? actor.system?.hp?.value ?? 1;
-      if (!isPlayer && (c.defeated || hp <= 0)) continue;
+      // read defeated combatants from it). The test lives in turn-skip-core so
+      // the auto-skip in turn-skip.mjs drops exactly the turns dropped here: a
+      // combatant with no card must never be able to hold the turn pointer.
+      if (isHiddenFromStrip(combatantEntry(c))) continue;
       heroes.push({
         id:        `combatant-${c.id}`,
         name:      tokenDoc?.name ?? actor.name,

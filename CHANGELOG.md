@@ -159,6 +159,22 @@
   did nothing at all; the menu came back only after hovering some *other* card
   first, which reads as the strip having randomly stopped working. It now
   notices the panel is gone and rebuilds it.
+- **A dead enemy's turn stalled the crawl strip on nobody.** The strip drops
+  defeated enemies while leaving them in the combat tracker (the tracker is what
+  end-of-combat loot and the session recap read), so when the turn pointer landed
+  on one, every card dimmed and none lit — it read as nobody's turn until the GM
+  worked out they had to click past a corpse they could no longer see. Those
+  turns now skip themselves, on exactly the rule that hides the card: no card, no
+  turn. It fires whether the enemy was already dead or dies partway through its
+  own turn, and PCs are never skipped — a downed PC keeps its card and its turn.
+  Foundry's own **Skip Defeated** setting is not a substitute: it only knows the
+  tracker's defeated marker, and Shadowdark 4.x stamps that from one place,
+  `applyDamage`. An enemy dropped to 0 HP by a sheet edit or an effect gets no
+  marker at all on a plain install, and where a companion module restores the
+  old auto-marking it arrives a beat late and only on the GM client that made
+  the change — so the skip reads HP, which is already true when the card
+  disappears. If *every* remaining combatant is dead the pointer stays put
+  rather than rolling rounds forever.
 - **Saving a session threw away its downtime and renown.** The archive kept eight
   of the recap's arrays and silently dropped the rest, so a session you saved at
   the end of the night reopened from **History** with no downtime attempts and no

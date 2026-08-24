@@ -150,6 +150,8 @@
       "scripts/crawl-strip/crawl-tracker-core.mjs",
       "scripts/crawl-strip/initiative-manager.mjs",
       "scripts/crawl-strip/hidden-sync.mjs",
+      "scripts/crawl-strip/turn-skip.mjs",
+      "scripts/crawl-strip/turn-skip-core.mjs",
       "scripts/crawl-strip/movement-tracker.mjs",
       "scripts/crawl-strip/movement-calc.mjs",
       "scripts/crawl-strip/npc-action-menu.mjs"
@@ -369,6 +371,8 @@
     "scripts/crawl-strip/crawl-tracker-core.mjs": "Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as \"no change\" rather than the initiative of 0 that `Number(\"\")` yields. Node-testable.",
     "scripts/crawl-strip/initiative-manager.mjs": "Combat/initiative state machine glue for the strip.",
     "scripts/crawl-strip/hidden-sync.mjs": "Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only.",
+    "scripts/crawl-strip/turn-skip.mjs": "Auto-advances past combatants the strip renders no card for (dead enemies). Active-GM gated.",
+    "scripts/crawl-strip/turn-skip-core.mjs": "Pure strip-visibility test shared by the strip and the auto-skip, so the two can't drift.",
     "scripts/crawl-strip/movement-tracker.mjs": "Crawl-mode movement budget enforcement + turn-start rollback (`displace` waypoints).",
     "scripts/crawl-strip/movement-calc.mjs": "Pure per-segment feet-moved math.",
     "scripts/crawl-strip/npc-action-menu.mjs": "Per-combatant hover action HUD.",

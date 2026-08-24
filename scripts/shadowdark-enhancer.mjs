@@ -15,6 +15,7 @@ import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
+import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
 import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { migrateEncounterSources } from "./encounter/encounter-sources.mjs";
@@ -596,6 +597,7 @@ Hooks.once("ready", () => {
   // reloaded mid-crawl. Re-evaluate it now that the state is real.
   refreshTracker();
   registerHiddenSync();
+  registerTurnSkip();
   // Seed the char-builder Name/Trinket table sources from the legacy boolean
   // settings (one-shot, GM-only). Fire-and-forget — errors log inside.
   ClassAbilityUses.init();
