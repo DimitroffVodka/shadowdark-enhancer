@@ -32,7 +32,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "./crawl-state.mjs";
 import { OocControls, showOocRollAll, showOocAdvance } from "./crawl-strip.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
-import { buildTrackerRows, showOocReset, rowRollable, trackerFooter } from "./crawl-tracker-core.mjs";
+import {
+  buildTrackerRows, showOocReset, rowRollable, trackerFooter, parseInitiativeInput,
+} from "./crawl-tracker-core.mjs";
 
 const { HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -261,14 +263,16 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
     super._attachPartListeners(partId, element, options);
     if (partId !== "tracker" || !game.user.isGM) return;
     // Typed initiative, as in the combat tracker. A blank or unparseable entry
-    // re-renders back to the stored value rather than writing NaN.
+    // re-renders the stored value back into the box rather than writing NaN —
+    // or, before parseInitiativeInput owned the emptiness check, writing the 0
+    // that `Number("")` quietly produces.
     for (const input of element.querySelectorAll(".initiative-input")) {
       input.addEventListener("change", async ev => {
         const actorId = ev.currentTarget.dataset.actorId;
-        const value = Number(ev.currentTarget.value);
-        if (!actorId || !Number.isFinite(value)) return this.render();
+        const parsed = parseInitiativeInput(ev.currentTarget.value);
+        if (!actorId || !parsed.ok) return this.render();
         await CrawlState.setOocInitiative(actorId, {
-          roll: value,
+          roll: parsed.value,
           advantage: CrawlState.oocInitiative[actorId]?.advantage ?? 0,
         });
       });

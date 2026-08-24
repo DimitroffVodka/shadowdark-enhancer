@@ -4,7 +4,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildTrackerRows, showOocReset, rowRollable, trackerFooter,
+  buildTrackerRows, showOocReset, rowRollable, trackerFooter, parseInitiativeInput,
 } from "../scripts/crawl-strip/crawl-tracker-core.mjs";
 
 const rolls = (map) => Object.fromEntries(Object.entries(map).map(([k, v]) => [k, { roll: v, advantage: 0 }]));
@@ -106,4 +106,39 @@ test("showOocReset: GM only, and only with something to clear", () => {
   assert.equal(showOocReset({ isGM: true, rolledCount: 0 }), false, "nothing rolled, nothing to reset");
   assert.equal(showOocReset({ isGM: false, rolledCount: 6 }), false, "players do not reset the party's order");
   assert.equal(showOocReset(), false);
+});
+
+// ─── Typed initiative ───────────────────────────────────────────────────────
+
+test("REGRESSION: a cleared initiative box is not an initiative of 0", () => {
+  // `Number("")` is 0, not NaN, so a `Number.isFinite` gate accepted a blanked
+  // field as a deliberate roll of zero. That is a real, storable initiative: it
+  // sorted the member last, counted them as having rolled — so the order could
+  // go "complete" behind the GM's back — and no control in the tracker could
+  // unset it again.
+  assert.deepEqual(parseInitiativeInput(""), { ok: false });
+  assert.deepEqual(parseInitiativeInput("   "), { ok: false }, "whitespace is still blank");
+  assert.deepEqual(parseInitiativeInput("\t\n"), { ok: false });
+});
+
+test("a real zero typed on purpose is still stored", () => {
+  // The fix must not cost the GM the ability to type a genuine 0 — Shadowdark
+  // initiative is DEX-based and a low enough modifier reaches it.
+  assert.deepEqual(parseInitiativeInput("0"), { ok: true, value: 0 });
+  assert.deepEqual(parseInitiativeInput(" 0 "), { ok: true, value: 0 });
+});
+
+test("ordinary and negative values parse", () => {
+  assert.deepEqual(parseInitiativeInput("17"), { ok: true, value: 17 });
+  assert.deepEqual(parseInitiativeInput(" 12 "), { ok: true, value: 12 });
+  assert.deepEqual(parseInitiativeInput("-2"), { ok: true, value: -2 }, "a DEX penalty can go below zero");
+  assert.deepEqual(parseInitiativeInput("8.5"), { ok: true, value: 8.5 });
+});
+
+test("unparseable entries leave the stored value alone", () => {
+  assert.deepEqual(parseInitiativeInput("high"), { ok: false });
+  assert.deepEqual(parseInitiativeInput("1d20"), { ok: false });
+  assert.deepEqual(parseInitiativeInput("Infinity"), { ok: false }, "finite rolls only");
+  assert.deepEqual(parseInitiativeInput(undefined), { ok: false });
+  assert.deepEqual(parseInitiativeInput(null), { ok: false });
 });

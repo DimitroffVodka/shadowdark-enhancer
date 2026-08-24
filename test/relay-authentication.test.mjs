@@ -327,7 +327,7 @@ test("EXPLOIT: a second GM addressed directly must not run the action a second t
 
   let gave = 0;
   const real = CrawlStrip._giveLuckToken;
-  CrawlStrip._giveLuckToken = async () => { gave += 1; };
+  CrawlStrip._giveLuckToken = async () => { gave += 1; return { ok: true }; };
   try {
     const reply = await CrawlStrip.handleLuckQuery(
       { action: "luck:give", giverId: mine.id, receiverId: other.id }, PLAYER,
@@ -348,7 +348,7 @@ test("the designated GM still serves the very same request", async () => {
 
   let gave = 0;
   const real = CrawlStrip._giveLuckToken;
-  CrawlStrip._giveLuckToken = async () => { gave += 1; };
+  CrawlStrip._giveLuckToken = async () => { gave += 1; return { ok: true }; };
   try {
     const reply = await CrawlStrip.handleLuckQuery(
       { action: "luck:give", giverId: mine.id, receiverId: other.id }, PLAYER,
@@ -374,4 +374,130 @@ test("the gate is shared, so every feature's query entry point inherits it", asy
   assert.match(reply.error, /primary GM/);
   assert.equal(created.actors.length, 0, "no duplicate world Actor");
   assert.equal(created.tokens.length, 0, "no duplicate Scene Token");
+});
+
+
+// ─── Luck: owning the giver is not enough — it must be a PC ─────────────────
+
+/**
+ * Stand the designated GM up in a world where the requesting player owns a
+ * familiar as well as a PC. Owning an NPC is ordinary in Shadowdark: familiars,
+ * mounts, hirelings and summons are all NPC actors handed to a player, so
+ * `authorizeActorFor` without a type gate says yes to every one of them.
+ *
+ * @param {object} [luck]  Starting luck for the two PCs.
+ */
+async function luckHarness({ giverHasToken = true } = {}) {
+  const { CrawlStrip } = await nonActiveGmHarness();
+  globalThis.game.user = GM;                       // be the client that serves
+  globalThis.game.users.activeGM = GM;
+  globalThis.game.settings = { get: () => true, set: async () => {} };  // pulp mode
+  globalThis.game.i18n = { format: (k, d) => `${k}:${d.giver}->${d.receiver}`, localize: (k) => k };
+
+  const updates = [];
+  const chat = [];
+  globalThis.ChatMessage = { create: async (m) => { chat.push(m); return m; }, getSpeaker: () => ({}) };
+
+  const actor = ({ id, name, type, ownerId, luck, spends }) => ({
+    id, name, type,
+    system: {
+      luck,
+      // ONLY the Player data model defines this (PlayerSD.mjs:1172). On an NPC
+      // the optional call yields `undefined`, which is precisely why a `=== false`
+      // refusal let the mint through.
+      ...(type === "Player" ? { useLuckToken: async () => spends } : {}),
+    },
+    async update(u) { updates.push({ id, ...u }); },
+    testUserPermission(user, permission) {
+      const level = user.isGM ? OWNER : (user.id === ownerId ? OWNER : 0);
+      return level >= (permission === "OWNER" ? OWNER : 0);
+    },
+  });
+
+  const actors = {
+    // A familiar the player legitimately owns, with no luck data at all.
+    npc1: actor({ id: "npc1", name: "Vella's Familiar", type: "NPC", ownerId: PLAYER.id, luck: {} }),
+    pc1: actor({
+      id: "pc1", name: "Vella", type: "Player", ownerId: PLAYER.id,
+      luck: { remaining: giverHasToken ? 1 : 0 }, spends: giverHasToken,
+    }),
+    pc2: actor({ id: "pc2", name: "Tobin", type: "Player", ownerId: OTHER_PLAYER.id, luck: { remaining: 0 } }),
+  };
+  globalThis.game.actors = { get: (id) => actors[id] ?? null };
+
+  const realQueue = CrawlStrip.queueRender;
+  CrawlStrip.queueRender = () => {};
+  return { CrawlStrip, updates, chat, restore: () => { CrawlStrip.queueRender = realQueue; } };
+}
+
+test("EXPLOIT: an owned NPC cannot be used to mint luck tokens", async () => {
+  // The player owns the familiar, so the ownership half of the gate passes
+  // honestly. Everything downstream assumed a PC: `useLuckToken` does not exist
+  // on an NPC, so the spend returned `undefined`, sailed past a `=== false`
+  // refusal, and the receiver was credited from a giver that lost nothing —
+  // repeatable for as long as the player cared to send it.
+  const { CrawlStrip, updates, chat, restore } = await luckHarness();
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: "npc1", receiverId: "pc2" }, PLAYER,
+    );
+
+    assert.equal(reply.ok, false, "an NPC giver must be refused");
+    assert.equal(updates.length, 0, "and no luck may be written to anyone");
+    assert.equal(chat.length, 0, "and no gift may be announced");
+  } finally {
+    restore();
+  }
+});
+
+test("EXPLOIT: an NPC receiver is refused too", async () => {
+  // The other end of the same hole: crediting an NPC writes `system.luck` onto
+  // a data model that has no such field.
+  const { CrawlStrip, updates, restore } = await luckHarness();
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: "pc1", receiverId: "npc1" }, PLAYER,
+    );
+
+    assert.equal(reply.ok, false, "an NPC receiver must be refused");
+    assert.equal(updates.length, 0, "nothing spent, nothing credited");
+  } finally {
+    restore();
+  }
+});
+
+test("a PC-to-PC gift still goes through", async () => {
+  // The gate must reject the exploit, not the feature.
+  const { CrawlStrip, updates, chat, restore } = await luckHarness();
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: "pc1", receiverId: "pc2" }, PLAYER,
+    );
+
+    assert.equal(reply.ok, true);
+    assert.deepEqual(updates, [{ id: "pc2", "system.luck.remaining": 1 }]);
+    assert.equal(chat.length, 1, "and the table is told");
+  } finally {
+    restore();
+  }
+});
+
+test("a refusal from the transfer reaches the player, not just the GM", async () => {
+  // `_giveLuckToken` runs on the GM's client for a relayed give. It used to
+  // raise its refusals as notifications and return nothing, so the query
+  // answered `{ok: true}` regardless: `relayToGM` stayed silent and the player
+  // who pressed the button watched their token not move, with no explanation
+  // on their screen. The sentence has to travel back with the reply.
+  const { CrawlStrip, updates, restore } = await luckHarness({ giverHasToken: false });
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: "pc1", receiverId: "pc2" }, PLAYER,
+    );
+
+    assert.equal(reply.ok, false, "a give that spent nothing is not a success");
+    assert.match(reply.error, /no luck token to give/);
+    assert.equal(updates.length, 0, "and the receiver is not credited");
+  } finally {
+    restore();
+  }
 });

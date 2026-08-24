@@ -294,14 +294,26 @@ export const CrawlStrip = {
     if (refusal) return refusal;
     if (data?.action !== "luck:give") return { ok: false, error: "Unknown luck action." };
 
-    // Only someone who owns the GIVER may give from it.
-    const auth = authorizeActorFor(data.giverId, user);
+    // Only someone who owns the GIVER may give from it — and both ends must be
+    // Player actors. Players routinely own NPCs (familiars, mounts, hirelings),
+    // and an NPC's data model has no `useLuckToken`, so without the type gate
+    // the spend below is `undefined` rather than a refusal: the giver loses
+    // nothing, the receiver is credited anyway, and the request can be repeated
+    // without limit. The strip's own UI only ever offers Player actors, so this
+    // costs the feature nothing — it closes the network-facing door the UI
+    // never opened.
+    const auth = authorizeActorFor(data.giverId, user, { type: "Player" });
     if (!auth.ok) return auth;
     const receiver = game.actors.get(data.receiverId);
-    if (!receiver) return { ok: false, error: "That character no longer exists." };
+    if (!receiver || receiver.type !== "Player") {
+      return { ok: false, error: "That character no longer exists." };
+    }
 
-    await this._giveLuckToken(auth.actor, receiver);
-    return { ok: true };
+    // Hand the transfer's own refusals back to the requester. They used to be
+    // raised as notifications inside `_giveLuckToken`, which runs on the GM's
+    // client for a relayed give — so the GM saw "X has no luck token to give"
+    // and the player who pressed the button saw nothing at all.
+    return this._giveLuckToken(auth.actor, receiver);
   },
 
   /**
@@ -1521,7 +1533,9 @@ export const CrawlStrip = {
    */
   async _executeGive(giver, receiver) {
     if (game.user.isGM) {
-      await this._giveLuckToken(giver, receiver);
+      // Acting directly, so this client is the one that has to say why not.
+      const result = await this._giveLuckToken(giver, receiver);
+      if (result?.error) ui.notifications?.warn(result.error);
     } else {
       await relayToGM(LUCK_QUERY, {
         action: "luck:give",
@@ -1533,6 +1547,13 @@ export const CrawlStrip = {
 
   /**
    * Transfer one luck token from giver to receiver. Both are Player actors.
+   *
+   * Reports its outcome rather than raising it, because this runs on the GM's
+   * client for a relayed give: the caller decides where the sentence belongs.
+   * `relayToGM` shows it to the player who asked; `_executeGive` shows it to a
+   * GM acting directly.
+   *
+   * @returns {Promise<{ok: boolean, error?: string}>}
    */
   async _giveLuckToken(giver, receiver) {
     const pulp = game.settings.get("shadowdark", "usePulpMode") === true;
@@ -1542,17 +1563,18 @@ export const CrawlStrip = {
     // it has nowhere to put a second — refuse before anyone spends anything
     // rather than bank an unspendable one (see _addLuckToken).
     if (!pulp && rSystem.luck?.available) {
-      ui.notifications?.warn(`${receiver.name} already has a luck token.`);
-      return;
+      return { ok: false, error: `${receiver.name} already has a luck token.` };
     }
 
     // Spend from giver (use the system method so classic/pulp are handled
-    // correctly). It returns false when there was nothing to spend — crediting
-    // the receiver anyway would mint a token out of nothing.
+    // correctly). It returns true when it spent and false when there was
+    // nothing to spend (PlayerSD.mjs:1196-1199) — and `undefined` when the
+    // giver's data model has no such method at all, which is every actor type
+    // but Player. Only a truthy result is a real debit; crediting the receiver
+    // on either falsy answer would mint a token out of nothing.
     const spent = await giver.system?.useLuckToken?.(false);
-    if (spent === false) {
-      ui.notifications?.warn(`${giver.name} has no luck token to give.`);
-      return;
+    if (!spent) {
+      return { ok: false, error: `${giver.name} has no luck token to give.` };
     }
 
     const update = pulp
@@ -1570,6 +1592,7 @@ export const CrawlStrip = {
     });
 
     this.queueRender();
+    return { ok: true };
   },
 
   /**
