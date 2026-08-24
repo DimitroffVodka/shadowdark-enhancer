@@ -13,6 +13,7 @@ import { registerCrawlTracker, refreshTracker } from "./crawl-strip/crawl-tracke
 import { init as luckRerollInit } from "./luck-reroll/luck-reroll.mjs";
 import { init as spellMishapInit } from "./spell-mishap/spell-mishap.mjs";
 import { init as prayerRollInit } from "./character-sheet/prayer-roll.mjs";
+import { init as scavengerInit } from "./scavenger/scavenger.mjs";
 import { CrawlBar }      from "./crawl-bar/crawl-bar.mjs";
 import { registerHiddenSync } from "./crawl-strip/hidden-sync.mjs";
 import { registerTurnSkip } from "./crawl-strip/turn-skip.mjs";
@@ -69,7 +70,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "c65ceb6a5e88";
+const STYLESHEET_REV = "e719a1c119d6";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -606,6 +607,7 @@ Hooks.once("ready", () => {
   luckRerollInit();
   spellMishapInit();
   prayerRollInit();
+  scavengerInit();
   CrawlBar.init();
   // If the GM enabled the monster compendium-art overlay, inject it now so every
   // monster drag carries the referenced art (all clients; GM-only settings write).

@@ -361,6 +361,27 @@ export function registerSettings() {
     default: true,
   });
 
+  game.settings.register(MODULE_ID, "scavengerAutomate", {
+    name: "SDE.settings.scavengerAutomate.name",
+    hint: "SDE.settings.scavengerAutomate.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
+  // Split out because ammunition decrements on every ranged attack, so it fires
+  // far more often than the gear cases — a table that finds it noisy can drop
+  // just this half without turning the talent off.
+  game.settings.register(MODULE_ID, "scavengerWatchAmmo", {
+    name: "SDE.settings.scavengerWatchAmmo.name",
+    hint: "SDE.settings.scavengerWatchAmmo.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
   // Per-source downtime outcome text, unlocked by the GM from their own book.
   // Keyed by source slug ("cs6", "western-reaches") → the unlock record built by
   // downtime-core.buildUnlockRecord. The module ships the SKELETON only (slot

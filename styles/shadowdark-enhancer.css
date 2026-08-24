@@ -9206,6 +9206,12 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-ci-previewrow { margin-bottom: 3px; }
 .sde-ci-featlist { margin: 4px 0 0; padding-left: 1.1rem; }
 .sde-ci-featlist li { margin-bottom: 2px; }
+/* A feature's own paragraphs/bullets (the Delver's Trailblazer list) render as
+   structure here, not a flattened run-on — tightened against core's 1rem list
+   margins so the preview stays compact. */
+.sde-ci-featlist li > ul, .sde-ci-featlist li > ol { margin: 2px 0 0; padding-left: 1.1rem; }
+.sde-ci-featlist li > ul > li { list-style: disc; margin-bottom: 0; }
+.sde-ci-featlist li > p { margin: 3px 0 0; }
 .sde-ci-stage-done { background: #e5efd8; border: 1px solid #7fa350; border-radius: 4px; padding: 8px 12px; }
 .sde-ci-donerow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .sde-ci-donetext { display: flex; align-items: center; gap: 10px; }

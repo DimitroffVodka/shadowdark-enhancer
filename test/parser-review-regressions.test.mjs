@@ -228,3 +228,89 @@ test("stray page number guard: a legitimate wide RANGE row is never dropped (Cod
   assert.ok(pt.rows.some((r) => r.min === 81 && r.max === 200), "the 81-200 range row is intact");
   assert.ok(!pt.warnings.some((w) => /page-number/.test(w)), "a span is not mistaken for a page cite");
 });
+
+// ── Two-column page furniture stranded between the columns ──────────────────
+//
+// A d100 table printed in two columns repeats its caption and "dN Details"
+// header above column two, and whatever the page prints in that gap sits
+// between the columns. Every WR ancestry Trinket page puts an aside there.
+// Stripping the caption and header leaves that aside looking exactly like a
+// wrapped row, so it folded onto column one's last row (user-reported
+// 2026-08-24: "49-50 Goat hair blanket PCs may start with one trinket; it is
+// free to carry."). Fixture text is invented — no book content.
+
+const twoColumnPage = (gap) => [
+  "d100 Details",
+  "1-2 Alpha bauble",
+  "3-4 Beta charm",
+  "5-6 Gamma relic",
+  ...gap,
+  "GIZMO TRINKET",
+  "d100 Details",
+  "7-8 Delta token",
+  "9-10 Epsilon idol",
+].join("\n");
+
+test("an aside stranded between two columns is not folded onto the last row", async () => {
+  const { stripSeedNoise } = await import("../scripts/importer/tables/table-importer.mjs");
+  const text = twoColumnPage(["PCs may start with one trinket; it is free to carry."]);
+  const { text: cleaned } = stripSeedNoise(text, { name: "Gizmo Trinket", pages: "19" });
+  const [pt] = parseTables(cleaned);
+  assert.equal(pt.rows.length, 5, "every row survives");
+  assert.equal(pt.rows[2].text, "Gamma relic", "column one's last row keeps only its own text");
+  assert.ok(!pt.rows.some((r) => /PCs may start/.test(r.text)), "the aside is gone");
+  // Column two still follows on cleanly.
+  assert.deepEqual(pt.rows.map((r) => `${r.min}-${r.max}`),
+    ["1-2", "3-4", "5-6", "7-8", "9-10"]);
+});
+
+test("…but a genuinely wrapped row in that same position is kept", async () => {
+  const { stripSeedNoise } = await import("../scripts/importer/tables/table-importer.mjs");
+  // A wrap tail resumes mid-phrase — uncapitalized, unpunctuated — which is
+  // what separates it from an aside. Dropping it would silently lose data.
+  const text = twoColumnPage(["carved from river driftwood"]);
+  const { text: cleaned } = stripSeedNoise(text, { name: "Gizmo Trinket", pages: "19" });
+  const [pt] = parseTables(cleaned);
+  assert.equal(pt.rows.length, 5);
+  assert.equal(pt.rows[2].text, "Gamma relic carved from river driftwood");
+});
+
+test("…and a sentence that is NOT preceded by a die row is left alone", async () => {
+  const { stripSeedNoise } = await import("../scripts/importer/tables/table-importer.mjs");
+  // A usage instruction above the first row is the table's description, not
+  // furniture — parseSingleDieBlock deliberately keeps it (review #10).
+  const text = ["Roll once each morning.", "d100 Details", "1-2 Alpha bauble", "3-4 Beta charm"].join("\n");
+  const { text: cleaned } = stripSeedNoise(text, { name: "Gizmo Trinket", pages: "19" });
+  assert.match(cleaned, /Roll once each morning\./);
+});
+
+test("…and a sentence above a bare PAGE NUMBER is left alone", async () => {
+  // Review finding, 2026-08-24: the orphan drop was wired to every stripped
+  // line, page footers included. A page number is the bottom of the page, where
+  // the line above is ordinary table text — not the two-column gap an aside
+  // prints in — so running the drop there deleted real content. `stripSeedNoise`
+  // runs on EVERY seeded import, so this was not trinket-specific.
+  const { stripSeedNoise } = await import("../scripts/importer/tables/table-importer.mjs");
+  const text = [
+    "d100 Details",
+    "1-2 Alpha bauble",
+    "3-4 Beta charm",
+    "Treat a rolled duplicate as the next entry down.",
+    "19",
+  ].join("\n");
+  const { text: cleaned, dropped, asides } = stripSeedNoise(text, { name: "Gizmo Trinket", pages: "19" });
+  assert.match(cleaned, /Treat a rolled duplicate as the next entry down\./);
+  assert.deepEqual(asides, [], "nothing was treated as a stranded aside");
+  assert.equal(dropped, 2, "only the header and the page number go");
+});
+
+test("a dropped aside is REPORTED, not swallowed", async () => {
+  // The caption-stranded drop is the one judgement call in the sweep: extraction
+  // can break a row exactly at a sentence boundary, and such a tail is
+  // indistinguishable from an aside. It is surfaced so a GM can paste it back.
+  const { stripSeedNoise } = await import("../scripts/importer/tables/table-importer.mjs");
+  const { asides } = stripSeedNoise(
+    twoColumnPage(["PCs may start with one trinket; it is free to carry."]),
+    { name: "Gizmo Trinket", pages: "19" });
+  assert.deepEqual(asides, ["PCs may start with one trinket; it is free to carry."]);
+});

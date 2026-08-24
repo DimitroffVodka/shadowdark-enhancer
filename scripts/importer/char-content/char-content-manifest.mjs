@@ -762,8 +762,19 @@ export function tableNameMatches(raw, want, src) {
     if (!src || !qualifier || qualifier === src) return true;
   }
   if (anc) {
+    // Ancestry name tables import as "Character Names: <Source> <Ancestry>"
+    // (sourcedTableName). The qualifier has to be a book we KNOW: matching on
+    // "ends with the ancestry" alone let ANY third-party table ending in that
+    // word satisfy the row — Unnatural Selection ships "Character Names: Shadow
+    // Elf" and "… Forest Elf", so WR's Elf Names read as already imported and
+    // the manage tree opened someone else's d20 table (user-reported
+    // 2026-08-24). A bare "Character Names: Elf" (the core system table) must
+    // not satisfy a WR gap either — that is what `rest !== anc` covers.
     const rest = n.match(/^character names:\s*(.+)$/)?.[1]?.trim();
-    if (rest && rest !== anc && rest.endsWith(` ${anc}`)) return true;
+    if (rest && rest !== anc && rest.endsWith(` ${anc}`)) {
+      const qualifier = charSourceKey(rest.slice(0, rest.length - anc.length).trim());
+      if (qualifier && (!src || qualifier === src)) return true;
+    }
   }
   return false;
 }
@@ -1149,15 +1160,41 @@ function _blockTail(lines, from) {
   return "";
 }
 
+/** The ancestry for a block that captions the table in TWO pieces instead of one:
+ *  a WR ancestry page prints the ancestry name as the page's own caption ("DWARF")
+ *  and heads the table with a bare "NAMES", so identifyAncestryTable — which wants
+ *  a single "DWARF NAMES" line — finds nothing. Gated on the NAMES caption being
+ *  present so a Trinket block can't borrow an ancestry it doesn't head. */
+function _ancestryFromSplitCaption(block) {
+  const norm = (s) => s.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
+  const caps = String(block).split("\n").map((l) => l.trim())
+    .filter((l) => /^[A-Z][A-Z' -]{2,40}$/.test(l));
+  if (!caps.some((l) => /^NAMES$/i.test(l))) return "";
+  for (const cap of caps) {
+    const hit = ANCESTRY_TABLES.find((t) => /\bnames$/i.test(t.name)
+      && norm(t.name) === `${norm(cap)} names`);
+    if (hit) return hit.name.replace(/\s+Names$/i, "");
+  }
+  return "";
+}
+
 /** The canonical table name for a name-part table whose ancestry was borrowed
  *  from a sibling "<Ancestry> Names/Trinket(s)" caption in the block (e.g.
  *  "HALFLING TRINKET" → "Character Names: Western Reaches Halfling", via
- *  sourcedTableName). Ancestry Names tables are always WR content, so it mirrors
- *  the WR naming the hub's identify path stamps. "" when no caption. */
+ *  sourcedTableName), or from a split "DWARF" + "NAMES" page caption. Ancestry
+ *  Names tables are always WR content, so it mirrors the WR naming the hub's
+ *  identify path stamps. "" when no caption. */
 function _nameFromBlock(block) {
   const id = identifyAncestryTable(block);
-  if (!id) return "";
-  const ancestry = id.name.replace(/\s+(Names|Trinkets)$/i, "").trim();
+  // Singular "Trinket" is the canonical ANCESTRY_TABLES spelling — a plural-only
+  // strip left "Goblin Trinket" intact, so the borrowed name came out
+  // "Goblin Trinket Names", which sourcedTableName can't match to an ancestry
+  // and therefore renders as "Western Reaches - Goblin Trinket Names" instead of
+  // "Character Names: …" — i.e. invisible to the sheet's Random Name dropdown.
+  const ancestry = id
+    ? id.name.replace(/\s+(Names?|Trinkets?)$/i, "").trim()
+    : _ancestryFromSplitCaption(block);
+  if (!ancestry) return "";
   return sourcedTableName(CHAR_SOURCES.WR.label, `${ancestry} Names`);
 }
 
@@ -1236,6 +1273,31 @@ export function expandNamePartTables(text) {
           tables.push(_expandNameParts(nm, p1, p2));
           continue;
         }
+      }
+    }
+
+    // ── Format C: the module's OWN PDF extraction of a WR ancestry page. The
+    // layout engine joins x-adjacent items, so the two column labels arrive as
+    // one "Part 1 Part 2" line and each row as one "Den- -dor" line, while the
+    // d10 face column is stranded up in the prose it interleaves with. A wants
+    // "d10 Part 1 Part 2", B wants lone "Part N" labels — neither fires, so the
+    // page fell through to the generic parser, which read the prose-glued die
+    // faces as a 6-row d10 table ("value 3 has no row", user-reported). ──
+    const ci = lines.findIndex((l) => /^part\s*1\s+part\s*2$/i.test(l));
+    if (ci !== -1) {
+      // Rows are "<prefix>- -<suffix>". The hyphen convention is what makes this
+      // safe to claim — a plain two-token line is any old two-column table.
+      const p1 = [], p2 = [];
+      let lastIdx = ci;
+      for (let i = ci + 1; i < lines.length && p1.length < 10; i++) {
+        const m = lines[i].match(/^(\S+-)\s+(-\S+)$/);
+        if (m) { p1.push(m[1]); p2.push(m[2]); lastIdx = i; }
+      }
+      if (p1.length === 10) {
+        tables.push(_expandNameParts(_nameFromBlock(block), p1, p2));
+        const rest = _blockTail(lines, lastIdx);
+        if (rest.trim()) keptBlocks.push(rest);
+        continue;
       }
     }
 

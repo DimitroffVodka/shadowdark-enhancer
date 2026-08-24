@@ -167,7 +167,7 @@ async function _ensureItem(pack, data, folderPath, report) {
   return { uuid: doc.uuid, name: doc.name, reused: false };
 }
 
-function _talentData(name, description, sourceTitle, { talentClass = "level", effects = [] } = {}) {
+function _talentData(name, description, sourceTitle, { talentClass = "level", effects = [], flags = null } = {}) {
   return {
     name, type: "Talent", img: effects[0]?.img ?? "icons/sundries/documents/document-torn-diagram-tan.webp",
     system: {
@@ -179,7 +179,10 @@ function _talentData(name, description, sourceTitle, { talentClass = "level", ef
       name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
       system: { changes: e.changes ?? [] },
     })),
-    flags: { [MODULE_ID]: { imported: true } },
+    // Overlay-supplied flags ride in the module's own scope, so runtime features
+    // can find a talent by capability instead of by name (e.g. the Delver's
+    // Scavenger, which scripts/scavenger/ automates).
+    flags: { [MODULE_ID]: { imported: true, ...(flags ?? {}) } },
   };
 }
 
@@ -247,7 +250,7 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
   if (authored) {
     const made = await _ensureItem(pack,
       _talentData(authored.name, `<p>${label}</p>`, sourceTitle,
-        { talentClass: authored.talentClass ?? "level", effects: authored.effects ?? [] }),
+        { talentClass: authored.talentClass ?? "level", effects: authored.effects ?? [], flags: authored.flags }),
       ["Level", className], report);
     return made.uuid;
   }
@@ -280,18 +283,34 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
  * whether its effect maps to a REAL, mechanically-wired Talent item, or is only
  * free text that would import as a description-only talent needing hand-wiring.
  * Reuses the exact matcher (`_fuzzyFind`) and indexes (`shadowdark.talents` +
- * the suite Talents pack) the commit path uses in `_resolveOutcome`, so the
- * preview badge and the committed RollTable (document-link vs text result) can't
- * disagree. Never creates anything.
+ * the suite Talents pack) the commit path uses in `_resolveOutcome`, and
+ * simulates the same per-row overlay queue, so the preview badge and the
+ * committed RollTable agree for every row resolved through `_resolveOutcome`.
+ * Never creates anything.
  *
- * `via`: "system" (a shadowdark.talents doc with working AEs), "suite" (an
- * already-imported suite Talent), "authored" (a spellcasting-check bonus the
- * commit authors an AE for), or null (would import description-only).
+ * ONE KNOWN GAP: a row that references an EXTRA table ("Gain a Corruption
+ * talent") is resolved by a different branch of `buildClassTalentTable`, which
+ * links the table through a Talent this classifier cannot see — it has no
+ * knowledge of `extraTableRefs`. Such a row badges "text only" while committing
+ * a real (description-only) Talent that points at a working RollTable. The badge
+ * is not wrong about the MECHANICS — that Talent carries no effect either — but
+ * it under-reports what commit builds. Pre-dates the overlay wiring.
  *
- * @param {Array<{text?:string, options?:string[], kind?:string}>} rows
+ * `via`: "system" (a shadowdark.talents doc with working AEs), "overlay" (the
+ * class overlay authors this row's AE — e.g. the Delver's Deep Pockets), "suite"
+ * (an already-imported suite Talent), "authored" (a spellcasting-check bonus the
+ * commit authors an AE for), "overlay-text" (the overlay NAMES the outcome but
+ * ships no effect, so it still imports description-only — Master Scavenger), or
+ * null (a plain description-only talent built from the row text).
+ *
+ * Pass the row's class overlay or the badge under-reports: rows whose mechanics
+ * come from `rowTalents` (the paste can't carry them) read as bare text.
+ *
+ * @param {Array<{text?:string, options?:string[], kind?:string, lo?:number, hi?:number}>} rows
+ * @param {object|null} overlay  overlayFor(className) — its `rowTalents` queues
  * @returns {Promise<Array<{wired:boolean, via:string|null, match:string|null}>>}
  */
-export async function classifyTalentRows(rows = []) {
+export async function classifyTalentRows(rows = [], overlay = null) {
   const sysTalents = _systemIndex("Item", "shadowdark.talents");
   let suiteIdx = [];
   try {
@@ -304,17 +323,36 @@ export async function classifyTalentRows(rows = []) {
   } catch (_e) { /* no suite yet — system talents still classify */ }
 
   return (rows ?? []).map((r) => {
-    const labels = [r?.text, ...(Array.isArray(r?.options) ? r.options : [])]
+    // Resolve exactly the labels the commit path resolves: a choice row's
+    // OPTIONS, not its joined text. Anything else and the simulated queue
+    // drifts from the queue `buildClassTalentTable` actually consumes.
+    const labels = (r?.kind === "choice" ? (r?.options ?? []) : [r?.text])
       .map((s) => String(s ?? "").trim()).filter(Boolean);
+    // A "grand" row (row 12's "choose a talent") never reaches _resolveOutcome,
+    // so it must not consume the overlay queue either.
+    const rangeKey = r?.lo === r?.hi ? String(r?.lo) : `${r?.lo}-${r?.hi}`;
+    const queue = r?.kind === "grand" ? [] : [...(overlay?.rowTalents?.[rangeKey] ?? [])];
+    let named = null;   // overlay-named but effect-less — a real doc, still inert
+
     for (const label of labels) {
       const sys = _fuzzyFind(sysTalents, label);
       if (sys) return { wired: true, via: "system", match: sys.name };
+      // Mirrors _resolveOutcome: options the system can't cover consume the
+      // overlay's authored queue in order.
+      const authored = queue.shift() ?? null;
+      if (authored) {
+        if (authored.effects?.length) return { wired: true, via: "overlay", match: authored.name };
+        named ??= authored.name;
+        continue;
+      }
       const suite = suiteIdx.length ? _fuzzyFind(suiteIdx, label) : null;
       if (suite) return { wired: true, via: "suite", match: suite.name };
       if (/([+-]\d+)\b(?=[\s\S]*\bspellcasting\s+checks?\b)/i.test(label))
         return { wired: true, via: "authored", match: "Spellcasting Check Bonus" };
     }
-    return { wired: false, via: null, match: null };
+    return named
+      ? { wired: false, via: "overlay-text", match: named }
+      : { wired: false, via: null, match: null };
   });
 }
 
@@ -364,7 +402,7 @@ async function buildExtraTables(parsed, { tablesPack, talentsPack, sourceTitle, 
          
         const made = await _ensureItem(talentsPack,
           _talentData(name, `<p>${escapeHtml(desc || name)}</p>`, sourceTitle,
-            { talentClass: authored?.talentClass ?? "class", effects: authored?.effects ?? [] }),
+            { talentClass: authored?.talentClass ?? "class", effects: authored?.effects ?? [], flags: authored?.flags }),
           ["Class", className], report);
         results.push({ type: "document", documentUuid: made.uuid, range: [r.lo, r.hi] });
       }
@@ -444,7 +482,7 @@ async function buildClassTalentTable(parsed, { talentsPack, tablesPack, sysTalen
       const desc = `<p>${escapeHtml(row.text)}. Roll on @UUID[${ref.uuid}]{${ref.name}}.</p>`;
       const made = await _ensureItem(talentsPack,
         _talentData(talentName, desc, sourceTitle,
-          { talentClass: authored?.talentClass ?? "level", effects: authored?.effects ?? [] }),
+          { talentClass: authored?.talentClass ?? "level", effects: authored?.effects ?? [], flags: authored?.flags }),
         ["Level", parsed.name], report);
       rowResults.push({ range, uuids: [made.uuid] });
       allOptionUuids.add(made.uuid);
@@ -605,7 +643,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       : null;
     const made = await _ensureItem(talentsPack,
       _talentData(f.name, f.description, sourceTitle,
-        { talentClass: wired?.talentClass ?? "class", effects: wired?.effects ?? [] }),
+        { talentClass: wired?.talentClass ?? "class", effects: wired?.effects ?? [], flags: wired?.flags }),
       ["Class", parsed.name], report);
     featureUuids.push(made.uuid);
   }

@@ -31,6 +31,23 @@ const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western R
 
 const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 
+/** Structural tags the parser's `toHtml` emits — the only ones the feature
+ *  preview renders. */
+const _KEEP_TAGS = /^<\/?(?:p|ul|ol|li|em|strong|br)\s*\/?>$/i;
+
+/**
+ * Feature description as it will actually import: the parser escapes every word
+ * of pasted text before wrapping it, so the only markup here is its own list and
+ * paragraph structure — keep that, drop anything else. Flattening it instead
+ * (the old `_strip`) turned the Delver's bulleted Trailblazer list into a
+ * run-on, which reads as a broken import even though the words are right.
+ * The leading <p> is unwrapped so the text flows after the bold feature name.
+ */
+const _featureHtml = (h) => String(h ?? "")
+  .replace(/<[^>]+>/g, (t) => (_KEEP_TAGS.test(t) ? t : " "))
+  .replace(/^\s*<p>([\s\S]*?)<\/p>\s*/i, "$1")
+  .trim();
+
 export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-class-importer",
@@ -112,11 +129,15 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // Per-row talent wiring (issue #4): does each talent-table row map to a real,
     // mechanically-wired Talent item, or would it import as description-only text?
     // Reuses the commit-path matcher so the badge and the committed table agree.
+    // The overlay must go with it — a row whose AE the overlay authors (the
+    // Delver's "2 gear slots" → Deep Pockets) is wired, and the badge said
+    // "text only" until it was passed.
+    const overlay = overlayFor(this._className || p?.name || this._seedClassName || "");
     let talentWiring = [];
     if (this._talentTable?.rows?.length) {
       try {
         const { classifyTalentRows } = await import("./class-unit-importer.mjs");
-        talentWiring = await classifyTalentRows(this._talentTable.rows);
+        talentWiring = await classifyTalentRows(this._talentTable.rows, overlay);
       } catch (_e) { talentWiring = []; }
     }
     const wiredCount = talentWiring.filter((w) => w?.wired).length;
@@ -132,7 +153,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     const bodyPreview = p ? {
       name: p.name,
       hp: p.hitPoints,
-      features: p.features.map((f) => ({ name: f.name, text: _strip(f.description) })),
+      features: p.features.map((f) => ({ name: f.name, html: _featureHtml(f.description) })),
       weapons: [p.allWeapons && "all weapons", p.allMeleeWeapons && "all melee", p.allRangedWeapons && "all ranged", ...p.weaponNames].filter(Boolean).join(", "),
       armor: [p.allArmor && "all armor", ...p.armorNames].filter(Boolean).join(", "),
       isCaster: !!p.spellcasting,

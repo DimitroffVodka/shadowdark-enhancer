@@ -303,13 +303,62 @@ export function stripSeedNoise(text, { name = "", pages = "", size = 100 } = {})
   const footers = new Set(String(pages).split(/[-,]/).map((p) => p.trim()).filter(Boolean));
   const isHdr = (l) => /^\d{0,2}d\d{1,3}\b/i.test(l) && /\b(details?|results?|effects?|outcomes?)\b/i.test(l);
   const out = [];
+  const asides = [];
   let dropped = 0;
   for (const raw of String(text).split(/\r?\n/)) {
     const l = raw.trim();
-    if (l && (wants.has(strip(l)) || isHdr(l) || (/^\d{1,3}$/.test(l) && (footers.has(l) || Number(l) > size)))) { dropped++; continue; }
+    if (!l) { out.push(raw); continue; }
+    const isCaption = wants.has(strip(l)) || isHdr(l);
+    const isFooter = /^\d{1,3}$/.test(l) && (footers.has(l) || Number(l) > size);
+    if (isCaption || isFooter) {
+      // ONLY a repeated caption/header strands an aside above it — that is the
+      // two-column gap the aside prints in. A bare page number is the bottom of
+      // the page, where the line above is ordinary table text, so running the
+      // orphan drop there deletes real content (reviewed 2026-08-24).
+      if (isCaption) { const gone = _dropOrphanAside(out); if (gone) { asides.push(gone); dropped++; } }
+      dropped++; continue;
+    }
     out.push(raw);
   }
-  return { text: out.join("\n"), dropped };
+  return { text: out.join("\n"), dropped, asides };
+}
+
+/**
+ * A table printed in two columns repeats its caption and "dN Details" header
+ * above the second column, and whatever the page prints in that gap sits
+ * between the two — for every WR ancestry Trinket table, an aside reading
+ * "PCs may start with one trinket; it is free to carry." Once the caption and
+ * header are stripped, that line is indistinguishable from a wrapped row and
+ * folds onto the last row of column one ("49-50 Goat hair blanket PCs may start
+ * with one trinket; it is free to carry.", user-reported 2026-08-24).
+ *
+ * Called ONLY as a caption/header line is dropped — never for a bare page
+ * number, where the line above is ordinary table text rather than a stranded
+ * aside. Two conditions keep a genuinely wrapped row safe: the line must read as
+ * a WHOLE sentence (a wrap tail resumes mid-phrase, uncapitalized and
+ * unpunctuated), and it must sit immediately after a real die row.
+ *
+ * KNOWN LIMIT, accepted deliberately: extraction can break a long row exactly at
+ * a sentence boundary, and such a tail is indistinguishable from an aside —
+ * same position, same shape, no data-side discriminator. That is why the caller
+ * REPORTS what this removed instead of dropping it silently; a GM who sees real
+ * table text named in the strip note can paste it back.
+ *
+ * @param {string[]} out  lines kept so far; mutated in place
+ * @returns {string|null} the dropped line, or null when nothing was dropped
+ */
+function _dropOrphanAside(out) {
+  let i = out.length - 1;
+  while (i >= 0 && !out[i].trim()) i--;
+  if (i < 0) return null;
+  const line = out[i].trim();
+  if (parseLeadingRange(line)) return null;                    // a row of its own
+  if (!/^[A-Z]/.test(line) || !/[.!?]$/.test(line)) return null;
+  let j = i - 1;
+  while (j >= 0 && !out[j].trim()) j--;
+  if (j < 0 || !parseLeadingRange(out[j].trim())) return null;  // not after a row
+  out.splice(i, 1);
+  return line;
 }
 
 /** Remove only bare page-number lines cited by the active unlock. */

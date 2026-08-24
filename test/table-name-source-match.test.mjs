@@ -67,3 +67,44 @@ test("a name only one book prints keeps the permissive match", () => {
   assert.ok(tableNameMatches("Carousing Benefit", "Carousing Benefit", "WR"));
   assert.ok(tableNameMatches("Western Reaches - Carousing Benefit", "Carousing Benefit", "WR"));
 });
+
+// ─── Ancestry name tables: "Character Names: <Source> <Ancestry>" ───
+//
+// These import under a different convention (the ancestry sheet's Random Name
+// Table dropdown only lists tables matching /Character\s+Names/i), so they get
+// their own branch in the matcher. That branch used to accept any name ENDING
+// in the ancestry, with no check on what came before it — and a world with a
+// third-party ancestry module in it is full of those.
+
+test("a third-party 'Character Names: … <Ancestry>' does NOT satisfy a book's row", () => {
+  // Unnatural Selection ships these. "Shadow Elf" ends in "Elf", so WR's Elf
+  // Names row read as imported and the manage tree opened its d20 table
+  // (user-reported 2026-08-24).
+  assert.equal(tableNameMatches("Character Names: Shadow Elf", "Elf Names", "WR"), false);
+  assert.equal(tableNameMatches("Character Names: Forest Elf", "Elf Names", "WR"), false);
+  assert.equal(tableNameMatches("Character Names: Slime Folk", "Folk Names", "WR"), false);
+});
+
+test("…nor does the core system's unqualified 'Character Names: <Ancestry>'", () => {
+  assert.equal(tableNameMatches("Character Names: Elf", "Elf Names", "WR"), false);
+  assert.equal(tableNameMatches("Character Names: Dwarf", "Dwarf Names", "WR"), false);
+});
+
+test("the real source-qualified import still satisfies its row", () => {
+  assert.ok(tableNameMatches("Character Names: Western Reaches Elf", "Elf Names", "WR"));
+  assert.ok(tableNameMatches("Character Names: Western Reaches Dwarf", "Dwarf Names", "WR"));
+  assert.ok(tableNameMatches("Character Names: Western Reaches Half-Elf", "Half-Elf Names", "WR"));
+  // …and to a caller that didn't say which source it wanted.
+  assert.ok(tableNameMatches("Character Names: Western Reaches Elf", "Elf Names"));
+});
+
+test("a qualified copy from ANOTHER book doesn't satisfy this book's row", () => {
+  assert.equal(tableNameMatches("Character Names: Cursed Scroll 3 Elf", "Elf Names", "WR"), false);
+});
+
+test("one ancestry never satisfies another's row", () => {
+  // "Western Reaches Half-Elf" ends in "Elf"; the qualifier check ("western
+  // reaches half" is not a book) is what rejects it.
+  assert.equal(tableNameMatches("Character Names: Western Reaches Half-Elf", "Elf Names", "WR"), false);
+  assert.equal(tableNameMatches("Character Names: Western Reaches Elf", "Dwarf Names", "WR"), false);
+});
