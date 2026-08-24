@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-762 tracked files · ~105,700 lines of code/markup across scripts+templates+styles+test.
+764 tracked files · ~106,000 lines of code/markup across scripts+templates+styles+test.
 `v0.15.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -192,9 +192,9 @@
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1477 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
-| `char-content/class-parser.mjs` | 1002 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
-| `char-content/class-importer-app.mjs` | 737 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1073 | Class unit → real documents in dependency order. |
+| `char-content/class-parser.mjs` | 1020 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
+| `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
+| `char-content/class-unit-importer.mjs` | 1099 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 220 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |

@@ -80,7 +80,7 @@
       <div class="sde-ci-previewrow"><strong>Armor:</strong> {{bodyPreview.armor}}</div>
       <div class="sde-ci-previewrow"><strong>Features ({{bodyPreview.features.length}}):</strong></div>
       <ul class="sde-ci-featlist">
-        {{#each bodyPreview.features as |f|}}<li><strong>{{f.name}}.</strong> {{f.text}}</li>{{/each}}
+        {{#each bodyPreview.features as |f|}}<li><strong>{{f.name}}.</strong> {{{f.html}}}</li>{{/each}}
       </ul>
       {{#if detectedTables.length}}
       <div class="sde-ci-detected">
@@ -122,7 +122,7 @@
             {{#if r.wired}}
             <span class="sde-ci-wired sde-ci-wired-on" title="Backed by a real Talent item: {{r.wiredMatch}} ({{r.wiredVia}})"><i class="fas fa-link"></i> real talent</span>
             {{else}}
-            <span class="sde-ci-wired sde-ci-wired-off" title="No matching Talent item — imports as description-only text; wire its effect by hand"><i class="fas fa-link-slash"></i> text only</span>
+            <span class="sde-ci-wired sde-ci-wired-off" title="{{#if r.wiredMatch}}Imports as “{{r.wiredMatch}}”, but that Talent carries no effect — wire it by hand{{else}}No matching Talent item — imports as description-only text; wire its effect by hand{{/if}}"><i class="fas fa-link-slash"></i> text only</span>
             {{/if}}
           </td>
           <td class="sde-cu-rowdel"><button type="button" data-action="ciTalentDel" class="sde-cu-btn sde-cu-btn-del" title="Delete row"><i class="fas fa-trash"></i></button></td>

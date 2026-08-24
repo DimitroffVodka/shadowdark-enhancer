@@ -284,14 +284,21 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
  * preview badge and the committed RollTable (document-link vs text result) can't
  * disagree. Never creates anything.
  *
- * `via`: "system" (a shadowdark.talents doc with working AEs), "suite" (an
- * already-imported suite Talent), "authored" (a spellcasting-check bonus the
- * commit authors an AE for), or null (would import description-only).
+ * `via`: "system" (a shadowdark.talents doc with working AEs), "overlay" (the
+ * class overlay authors this row's AE — e.g. the Delver's Deep Pockets), "suite"
+ * (an already-imported suite Talent), "authored" (a spellcasting-check bonus the
+ * commit authors an AE for), "overlay-text" (the overlay NAMES the outcome but
+ * ships no effect, so it still imports description-only — Master Scavenger), or
+ * null (a plain description-only talent built from the row text).
  *
- * @param {Array<{text?:string, options?:string[], kind?:string}>} rows
+ * Pass the row's class overlay or the badge under-reports: rows whose mechanics
+ * come from `rowTalents` (the paste can't carry them) read as bare text.
+ *
+ * @param {Array<{text?:string, options?:string[], kind?:string, lo?:number, hi?:number}>} rows
+ * @param {object|null} overlay  overlayFor(className) — its `rowTalents` queues
  * @returns {Promise<Array<{wired:boolean, via:string|null, match:string|null}>>}
  */
-export async function classifyTalentRows(rows = []) {
+export async function classifyTalentRows(rows = [], overlay = null) {
   const sysTalents = _systemIndex("Item", "shadowdark.talents");
   let suiteIdx = [];
   try {
@@ -304,17 +311,36 @@ export async function classifyTalentRows(rows = []) {
   } catch (_e) { /* no suite yet — system talents still classify */ }
 
   return (rows ?? []).map((r) => {
-    const labels = [r?.text, ...(Array.isArray(r?.options) ? r.options : [])]
+    // Resolve exactly the labels the commit path resolves: a choice row's
+    // OPTIONS, not its joined text. Anything else and the simulated queue
+    // drifts from the queue `buildClassTalentTable` actually consumes.
+    const labels = (r?.kind === "choice" ? (r?.options ?? []) : [r?.text])
       .map((s) => String(s ?? "").trim()).filter(Boolean);
+    // A "grand" row (row 12's "choose a talent") never reaches _resolveOutcome,
+    // so it must not consume the overlay queue either.
+    const rangeKey = r?.lo === r?.hi ? String(r?.lo) : `${r?.lo}-${r?.hi}`;
+    const queue = r?.kind === "grand" ? [] : [...(overlay?.rowTalents?.[rangeKey] ?? [])];
+    let named = null;   // overlay-named but effect-less — a real doc, still inert
+
     for (const label of labels) {
       const sys = _fuzzyFind(sysTalents, label);
       if (sys) return { wired: true, via: "system", match: sys.name };
+      // Mirrors _resolveOutcome: options the system can't cover consume the
+      // overlay's authored queue in order.
+      const authored = queue.shift() ?? null;
+      if (authored) {
+        if (authored.effects?.length) return { wired: true, via: "overlay", match: authored.name };
+        named ??= authored.name;
+        continue;
+      }
       const suite = suiteIdx.length ? _fuzzyFind(suiteIdx, label) : null;
       if (suite) return { wired: true, via: "suite", match: suite.name };
       if (/([+-]\d+)\b(?=[\s\S]*\bspellcasting\s+checks?\b)/i.test(label))
         return { wired: true, via: "authored", match: "Spellcasting Check Bonus" };
     }
-    return { wired: false, via: null, match: null };
+    return named
+      ? { wired: false, via: "overlay-text", match: named }
+      : { wired: false, via: null, match: null };
   });
 }
 

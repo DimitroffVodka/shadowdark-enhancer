@@ -805,6 +805,24 @@ export function parseClassSection(text) {
   const name = _displayCase(lines[0]).replace(/\s+Class$/i, "").trim();
   if (!name || name.length > 40) return null;
 
+  // Every book page prints the class's own name as a running header ("Delver
+  // Class"). extractPdfText emits it mid-column, wherever the header sits in
+  // the page's flow — between two features on WR p38, straight after the Hit
+  // Points line on p63. It is title-case prose, so CAPS_CAP never capped it and
+  // FEATURE_RE never claimed it: it glued onto the preceding feature's text (7
+  // of the 9 WR classes) or fell into the class flavor (the other 2). It
+  // carries no content, so drop every copy before the table finders and the
+  // walk can see it. Line 0 is the name itself and stays. WR p42 prints the
+  // header twice on one extracted line ("Duelist ClassDuelist Class"), hence
+  // the repeat group.
+  // An ALL-CAPS copy is left alone: CAPS_CAP already treats it as a caption
+  // that ends the feature list, and quietly removing it instead would change
+  // where every following line lands.
+  const RUNNING_HEAD = new RegExp(
+    `^(?:${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s+class)?\\s*)+$`, "i");
+  for (let i = lines.length - 1; i > 0; i--)
+    if (RUNNING_HEAD.test(lines[i]) && !CAPS_CAP.test(lines[i])) lines.splice(i, 1);
+
   // Table + titles first — their lines are excluded from the walk below so
   // column-copied range runs and title bands never pollute feature text.
   const tbl = _findTalentTable(lines);
