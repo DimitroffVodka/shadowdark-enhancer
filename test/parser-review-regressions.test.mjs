@@ -283,3 +283,34 @@ test("…and a sentence that is NOT preceded by a die row is left alone", async 
   const { text: cleaned } = stripSeedNoise(text, { name: "Gizmo Trinket", pages: "19" });
   assert.match(cleaned, /Roll once each morning\./);
 });
+
+test("…and a sentence above a bare PAGE NUMBER is left alone", async () => {
+  // Review finding, 2026-08-24: the orphan drop was wired to every stripped
+  // line, page footers included. A page number is the bottom of the page, where
+  // the line above is ordinary table text — not the two-column gap an aside
+  // prints in — so running the drop there deleted real content. `stripSeedNoise`
+  // runs on EVERY seeded import, so this was not trinket-specific.
+  const { stripSeedNoise } = await import("../scripts/importer/tables/table-importer.mjs");
+  const text = [
+    "d100 Details",
+    "1-2 Alpha bauble",
+    "3-4 Beta charm",
+    "Treat a rolled duplicate as the next entry down.",
+    "19",
+  ].join("\n");
+  const { text: cleaned, dropped, asides } = stripSeedNoise(text, { name: "Gizmo Trinket", pages: "19" });
+  assert.match(cleaned, /Treat a rolled duplicate as the next entry down\./);
+  assert.deepEqual(asides, [], "nothing was treated as a stranded aside");
+  assert.equal(dropped, 2, "only the header and the page number go");
+});
+
+test("a dropped aside is REPORTED, not swallowed", async () => {
+  // The caption-stranded drop is the one judgement call in the sweep: extraction
+  // can break a row exactly at a sentence boundary, and such a tail is
+  // indistinguishable from an aside. It is surfaced so a GM can paste it back.
+  const { stripSeedNoise } = await import("../scripts/importer/tables/table-importer.mjs");
+  const { asides } = stripSeedNoise(
+    twoColumnPage(["PCs may start with one trinket; it is free to carry."]),
+    { name: "Gizmo Trinket", pages: "19" });
+  assert.deepEqual(asides, ["PCs may start with one trinket; it is free to carry."]);
+});

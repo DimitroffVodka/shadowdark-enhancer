@@ -99,6 +99,14 @@ export function scavengerProfile(talents = [], moduleId = "shadowdark-enhancer")
  *      expend "the last" of anything, so this must NOT trigger. Deliberately
  *      the one case a naive "item vanished" check gets wrong.
  *
+ * ACCEPTED IMPRECISION: shape 2 cannot tell "consumed" from "removed". Selling,
+ * gifting or dropping your last torch deletes it at quantity 1 exactly as
+ * burning it does, so Scavenger may hand back an item you got rid of on purpose.
+ * Shadowdark carries no consumption-vs-removal signal — the transfer paths run
+ * through the same `deleteEmbeddedDocuments` with no distinguishing option — so
+ * any discriminator would be a guess about intent. Documented in the wiki rather
+ * than guessed at; the GM can delete the returned item.
+ *
  * @param {object} p
  * @param {string} p.type          item type ("Basic", "Potion", …)
  * @param {boolean} p.isAmmunition `system.isAmmunition`

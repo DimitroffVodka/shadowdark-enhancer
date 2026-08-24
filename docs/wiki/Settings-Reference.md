@@ -59,7 +59,15 @@ range and the outcome; on a success the item comes back at one use, and a
 restored light source comes back unlit with a full burn time.
 
 **Master Scavenger** widens the range: one copy makes it 4-6, a second makes it
-3-6, which is where the Delver talent table stops it.
+3-6, which is where the Delver talent table stops it. A Delver already at 3-6
+who rolls 10-11 again should reroll, per the table's own header — that is a
+level-up call and stays with the GM.
+
+One rough edge worth knowing: Shadowdark records no difference between using a
+consumable up and getting rid of one. Selling, gifting or dropping your *last*
+torch looks identical to burning it, so Scavenger can roll and hand it back. It
+is uncommon, it is obvious when it happens, and deleting the returned item is
+the fix — but it is why the setting below exists.
 
 The talent is recognised by the flag the [Class Importer](Class-and-Spell-Importers.md)
 stamps on it, and by name for characters built before that flag existed — so

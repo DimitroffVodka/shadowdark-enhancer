@@ -23,6 +23,7 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { esc } from "../shared/esc.mjs";
 import {
   classifyExpenditure,
   responsibleUserId,
@@ -93,10 +94,13 @@ async function _resolve(actor, { name, type, deleted, snapshot, itemId }, boosts
   const roll = await new Roll("1d6").evaluate();
   const success = roll.total >= low;
 
+  // Item names are user-editable free text and land in chat HTML — escape them
+  // rather than trusting whatever a player typed on their sheet.
+  const safe = esc(name);
   await roll.toMessage({
     speaker: ChatMessage.getSpeaker({ actor }),
-    flavor: `<strong>Scavenger</strong> — ${name} (last use spent, success on ${successRangeLabel(boosts)})`
-      + `<br>${success ? `Recovered one use of <strong>${name}</strong>.` : "Nothing left to salvage."}`,
+    flavor: `<strong>Scavenger</strong> — ${safe} (last use spent, success on ${successRangeLabel(boosts)})`
+      + `<br>${success ? `Recovered one use of <strong>${safe}</strong>.` : "Nothing left to salvage."}`,
   });
 
   if (!success) return;

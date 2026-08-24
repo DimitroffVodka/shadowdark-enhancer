@@ -986,6 +986,13 @@ class HubPasteMethods {
         if (reparsed.length) {
           tables = reparsed;
           seedNoiseNote = `Stripped ${res.dropped} seed/caption/header line(s) before parsing.`;
+          // Captions, headers and page numbers are unambiguous noise; a line
+          // stranded above a repeated caption is a JUDGEMENT call that can, in
+          // principle, eat a row that wrapped at a sentence boundary. Name it so
+          // a GM can paste it back instead of never learning it went.
+          if (res.asides?.length)
+            seedNoiseNote += ` Also dropped a line stranded above a repeated caption — ${
+              res.asides.map((a) => `"${a}"`).join(", ")}. If that is table text, paste it back.`;
         }
       }
     }

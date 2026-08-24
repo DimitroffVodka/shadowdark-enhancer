@@ -283,9 +283,18 @@ async function _resolveOutcome(label, { pack, sysTalents, sourceTitle, className
  * whether its effect maps to a REAL, mechanically-wired Talent item, or is only
  * free text that would import as a description-only talent needing hand-wiring.
  * Reuses the exact matcher (`_fuzzyFind`) and indexes (`shadowdark.talents` +
- * the suite Talents pack) the commit path uses in `_resolveOutcome`, so the
- * preview badge and the committed RollTable (document-link vs text result) can't
- * disagree. Never creates anything.
+ * the suite Talents pack) the commit path uses in `_resolveOutcome`, and
+ * simulates the same per-row overlay queue, so the preview badge and the
+ * committed RollTable agree for every row resolved through `_resolveOutcome`.
+ * Never creates anything.
+ *
+ * ONE KNOWN GAP: a row that references an EXTRA table ("Gain a Corruption
+ * talent") is resolved by a different branch of `buildClassTalentTable`, which
+ * links the table through a Talent this classifier cannot see — it has no
+ * knowledge of `extraTableRefs`. Such a row badges "text only" while committing
+ * a real (description-only) Talent that points at a working RollTable. The badge
+ * is not wrong about the MECHANICS — that Talent carries no effect either — but
+ * it under-reports what commit builds. Pre-dates the overlay wiring.
  *
  * `via`: "system" (a shadowdark.talents doc with working AEs), "overlay" (the
  * class overlay authors this row's AE — e.g. the Delver's Deep Pockets), "suite"
