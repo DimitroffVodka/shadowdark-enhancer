@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-759 tracked files · ~105,000 lines of code/markup across scripts+templates+styles+test.
+759 tracked files · ~105,100 lines of code/markup across scripts+templates+styles+test.
 `v0.15.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -71,7 +71,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-strip.mjs` | 1610 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
+| `crawl-strip.mjs` | 1615 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
 | `crawl-state.mjs` | 443 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
 | `crawl-state-core.mjs` | 321 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |

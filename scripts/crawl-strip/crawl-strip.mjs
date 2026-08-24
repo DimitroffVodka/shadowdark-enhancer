@@ -304,9 +304,14 @@ export const CrawlStrip = {
     // never opened.
     const auth = authorizeActorFor(data.giverId, user, { type: "Player" });
     if (!auth.ok) return auth;
+    // Two different refusals: a receiver that is gone reads as gone, and one
+    // that is merely not a PC says so. Worth separating now that these
+    // sentences reach the player who pressed the button rather than dying in a
+    // notification on the GM's screen.
     const receiver = game.actors.get(data.receiverId);
-    if (!receiver || receiver.type !== "Player") {
-      return { ok: false, error: "That character no longer exists." };
+    if (!receiver) return { ok: false, error: "That character no longer exists." };
+    if (receiver.type !== "Player") {
+      return { ok: false, error: "Luck tokens can only be given to a player character." };
     }
 
     // Hand the transfer's own refusals back to the requester. They used to be

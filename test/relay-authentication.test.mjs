@@ -385,13 +385,24 @@ test("the gate is shared, so every feature's query entry point inherits it", asy
  * mounts, hirelings and summons are all NPC actors handed to a player, so
  * `authorizeActorFor` without a type gate says yes to every one of them.
  *
- * @param {object} [luck]  Starting luck for the two PCs.
+ * The two luck modes are genuinely different code paths — pulp banks a counter
+ * (`system.luck.remaining`), classic flips one boolean (`system.luck.available`)
+ * and refuses a receiver already holding it — so `pulp` is a parameter rather
+ * than a hardcoded setting. Both are now security-sensitive surface.
+ *
+ * @param {object}  [options]
+ * @param {boolean} [options.giverHasToken]     Can the PC giver actually spend?
+ * @param {boolean} [options.pulp]              Pulp mode (counter) vs classic (boolean).
+ * @param {boolean} [options.receiverHasToken]  Classic only: receiver already holds one.
  */
-async function luckHarness({ giverHasToken = true } = {}) {
+async function luckHarness({ giverHasToken = true, pulp = true, receiverHasToken = false } = {}) {
   const { CrawlStrip } = await nonActiveGmHarness();
   globalThis.game.user = GM;                       // be the client that serves
   globalThis.game.users.activeGM = GM;
-  globalThis.game.settings = { get: () => true, set: async () => {} };  // pulp mode
+  globalThis.game.settings = {
+    get: (_scope, key) => (key === "usePulpMode" ? pulp : true),
+    set: async () => {},
+  };
   globalThis.game.i18n = { format: (k, d) => `${k}:${d.giver}->${d.receiver}`, localize: (k) => k };
 
   const updates = [];
@@ -419,9 +430,13 @@ async function luckHarness({ giverHasToken = true } = {}) {
     npc1: actor({ id: "npc1", name: "Vella's Familiar", type: "NPC", ownerId: PLAYER.id, luck: {} }),
     pc1: actor({
       id: "pc1", name: "Vella", type: "Player", ownerId: PLAYER.id,
-      luck: { remaining: giverHasToken ? 1 : 0 }, spends: giverHasToken,
+      luck: { remaining: giverHasToken ? 1 : 0, available: giverHasToken },
+      spends: giverHasToken,
     }),
-    pc2: actor({ id: "pc2", name: "Tobin", type: "Player", ownerId: OTHER_PLAYER.id, luck: { remaining: 0 } }),
+    pc2: actor({
+      id: "pc2", name: "Tobin", type: "Player", ownerId: OTHER_PLAYER.id,
+      luck: { remaining: 0, available: receiverHasToken },
+    }),
   };
   globalThis.game.actors = { get: (id) => actors[id] ?? null };
 
@@ -460,6 +475,9 @@ test("EXPLOIT: an NPC receiver is refused too", async () => {
     );
 
     assert.equal(reply.ok, false, "an NPC receiver must be refused");
+    // And it must say WHY. "No longer exists" was both false and useless once
+    // these sentences started reaching the player.
+    assert.match(reply.error, /only be given to a player character/);
     assert.equal(updates.length, 0, "nothing spent, nothing credited");
   } finally {
     restore();
@@ -477,6 +495,58 @@ test("a PC-to-PC gift still goes through", async () => {
     assert.equal(reply.ok, true);
     assert.deepEqual(updates, [{ id: "pc2", "system.luck.remaining": 1 }]);
     assert.equal(chat.length, 1, "and the table is told");
+  } finally {
+    restore();
+  }
+});
+
+test("classic mode: the gift flips the receiver's boolean, not a counter", async () => {
+  // Classic is the DEFAULT luck mode and took a different branch through
+  // `_giveLuckToken` than pulp — it was the untested half of a transfer the
+  // type gate now guards, so it gets the same cover.
+  const { CrawlStrip, updates, restore } = await luckHarness({ pulp: false });
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: "pc1", receiverId: "pc2" }, PLAYER,
+    );
+
+    assert.equal(reply.ok, true);
+    assert.deepEqual(updates, [{ id: "pc2", "system.luck.available": true }]);
+  } finally {
+    restore();
+  }
+});
+
+test("classic mode: a receiver already holding a token is refused before anyone spends", async () => {
+  // One boolean token per PC, so a receiver already holding it has nowhere to
+  // put a second. Refusing AFTER the debit would destroy the giver's token, so
+  // the order of these two checks is the point of the test.
+  const { CrawlStrip, updates, chat, restore } = await luckHarness({ pulp: false, receiverHasToken: true });
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: "pc1", receiverId: "pc2" }, PLAYER,
+    );
+
+    assert.equal(reply.ok, false);
+    assert.match(reply.error, /already has a luck token/);
+    assert.equal(updates.length, 0, "nobody is debited for a gift that cannot land");
+    assert.equal(chat.length, 0);
+  } finally {
+    restore();
+  }
+});
+
+test("EXPLOIT: the NPC mint is closed in classic mode too", async () => {
+  // The `undefined` spend is a property of the NPC data model, not of the luck
+  // mode, so the hole existed on both branches.
+  const { CrawlStrip, updates, restore } = await luckHarness({ pulp: false });
+  try {
+    const reply = await CrawlStrip.handleLuckQuery(
+      { action: "luck:give", giverId: "npc1", receiverId: "pc2" }, PLAYER,
+    );
+
+    assert.equal(reply.ok, false);
+    assert.equal(updates.length, 0, "no boolean flipped from nothing");
   } finally {
     restore();
   }
