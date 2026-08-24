@@ -152,6 +152,55 @@
   old listener alive until it does.
 
 ### Fixed
+- **Unlocking an ancestry's names imported six rows of prose instead of a
+  hundred names.** Every Western Reaches ancestry — Dwarf, Elf, Goblin,
+  Half-Elf, Half-Orc, Halfling, Human, Kobold — unlocked into a broken card
+  flagging *"values 3, 6-8 have no row"*. Those pages print the names table's
+  `d10` column down the middle of two columns of prose, so a straight read of
+  the page interleaves them: four of the ten faces come out glued to a sentence
+  (`ORIGINS 3`) and only the six bare ones survive as rows. The names themselves
+  were never read at all. The importer expands these tables from their two
+  syllable columns — 10 prefixes × 10 suffixes = a d100 of whole names — but it
+  only recognised the two shapes a **clipboard** copy produces, and the module's
+  own page reader emits a third: both column labels joined onto one `Part 1
+  Part 2` line, and each row joined into `Den- -dor`. That shape is now
+  recognised, so an unlock claims the whole block — the stranded die faces
+  included, which is what stops the prose table being minted beside the real
+  one — and yields the full hundred: *Dendor, Dengrim, Denror…*
+- **Every ancestry's Trinket table ended result 49-50 with a line from the
+  page.** Rolling a 49 or 50 gave you *"Goat hair blanket PCs may start with one
+  trinket; it is free to carry."* Those tables print in two columns, and the
+  book sets that aside in the gap between them — so it lands between column
+  one's last row and column two's first. The importer strips the caption and the
+  repeated `d100 Details` header that mark the column break, and once those are
+  gone the aside is indistinguishable from a row that wrapped onto a second
+  line, so it folded onto the row above. A line stranded in that gap is now
+  dropped with the header it belongs to. A genuinely wrapped row is still
+  joined: a wrap resumes mid-phrase, uncapitalized and unpunctuated, where an
+  aside is a whole sentence.
+- **Another module's name tables made an ancestry look already imported.** With
+  a third-party ancestry module installed, *Elf Names* showed up pre-imported
+  and pointed at **Character Names: Shadow Elf** — a d20 table from *Unnatural
+  Selection* — so the row could never be unlocked and opening it gave you
+  someone else's names. Ancestry name tables import under their own convention,
+  *"Character Names: `<Source>` `<Ancestry>`"*, and the check for one only asked
+  whether an existing table's name **ended** with the ancestry. Nothing looked at
+  what came before it, and a world with extra ancestry content in it is full of
+  names that end in *Elf*. The part before the ancestry now has to name a book
+  the module actually knows — and, when the check is asking on behalf of a
+  specific book, *that* book. This also fixes a quieter case with no third-party
+  module involved: *Half-Elf* ends in *Elf*, so importing Half-Elf's names used
+  to tick Elf's row off too.
+- **An ancestry's names took the wrong name when pasted with its trinkets.** A
+  names table borrows its ancestry from a neighbouring caption, but only ever
+  matched the plural *"Trinkets"*, while the caption the books actually print is
+  singular. The result was a table called *"Western Reaches - Goblin Trinket
+  Names"* — which the ancestry sheet's **Random Name Table** dropdown does not
+  list, because it only shows tables named *"Character Names: …"*. Both
+  spellings now resolve, as does a page that splits the caption in two (a
+  `DWARF` heading at the top and a bare `NAMES` above the table), so the table
+  arrives as *"Character Names: Western Reaches Goblin"* and shows up in the
+  dropdown.
 - **A card's action menu stopped opening once the strip redrew underneath it.**
   The menu panel is a child of the strip, so any redraw — an item update, a
   combat turn, a character taking damage — deleted the panel while the code went

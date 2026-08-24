@@ -306,10 +306,43 @@ export function stripSeedNoise(text, { name = "", pages = "", size = 100 } = {})
   let dropped = 0;
   for (const raw of String(text).split(/\r?\n/)) {
     const l = raw.trim();
-    if (l && (wants.has(strip(l)) || isHdr(l) || (/^\d{1,3}$/.test(l) && (footers.has(l) || Number(l) > size)))) { dropped++; continue; }
+    if (l && (wants.has(strip(l)) || isHdr(l) || (/^\d{1,3}$/.test(l) && (footers.has(l) || Number(l) > size)))) {
+      dropped += _dropOrphanAside(out);
+      dropped++; continue;
+    }
     out.push(raw);
   }
   return { text: out.join("\n"), dropped };
+}
+
+/**
+ * A table printed in two columns repeats its caption and "dN Details" header
+ * above the second column, and whatever the page prints in that gap sits
+ * between the two — for every WR ancestry Trinket table, an aside reading
+ * "PCs may start with one trinket; it is free to carry." Once the caption and
+ * header are stripped, that line is indistinguishable from a wrapped row and
+ * folds onto the last row of column one ("49-50 Goat hair blanket PCs may start
+ * with one trinket; it is free to carry.", user-reported 2026-08-24).
+ *
+ * Called as each caption/header line is dropped, to also drop a line stranded
+ * directly above it. Two conditions keep a genuinely wrapped row safe: the line
+ * must read as a WHOLE sentence (a wrap tail resumes mid-phrase, uncapitalized
+ * and unpunctuated), and it must sit immediately after a real die row.
+ * @param {string[]} out  lines kept so far; mutated in place
+ * @returns {number} how many lines were dropped (0 or 1)
+ */
+function _dropOrphanAside(out) {
+  let i = out.length - 1;
+  while (i >= 0 && !out[i].trim()) i--;
+  if (i < 0) return 0;
+  const line = out[i].trim();
+  if (parseLeadingRange(line)) return 0;                    // a row of its own
+  if (!/^[A-Z]/.test(line) || !/[.!?]$/.test(line)) return 0;
+  let j = i - 1;
+  while (j >= 0 && !out[j].trim()) j--;
+  if (j < 0 || !parseLeadingRange(out[j].trim())) return 0;  // not after a row
+  out.splice(i, 1);
+  return 1;
 }
 
 /** Remove only bare page-number lines cited by the active unlock. */
