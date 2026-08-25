@@ -78,6 +78,72 @@ Delvers already in your world work without a re-import.
 | **Automate the Delver's Scavenger** | on | Master switch for everything above. Off, the talent stays on the sheet as rules text and nothing rolls itself. |
 | **Scavenger covers ammunition** | on | Whether spending your last arrow or bolt can trigger Scavenger. Ammunition decrements on every ranged attack, so this fires far more often than gear does — turn it off to keep Scavenger to torches, oil, rations and the like. |
 
+### Parry
+
+Automates the Duelist's **Parry**: *once per day, an attack of your choice that
+would hit you misses instead.*
+
+Parry is a reaction to a hit you have already seen, so it is a button rather
+than anything automatic. When an attack lands on a character who has the
+ability, a **Parry this attack** button appears on that attack's chat card for
+the character's player and for the GM. Using it spends one of the day's uses,
+posts a short card saying the attack missed, and strikes the damage total
+through on the original card so nobody applies it out of habit.
+
+If the GM has *already* applied the damage, it is given back — and given back
+properly. Shadowdark clamps HP at zero, so a Duelist on 3 HP hit for 7 loses
+three points, not seven; Parry restores the three that actually left. If the hit
+had dropped them, the downed state goes too: the defeated marker and the
+unconscious condition are cleared, while anything that was true *before* the
+blow (already prone, already defeated) is left exactly as it was.
+
+Requires the system's **Enable Targeting** setting, since that is what tells the
+attack roll whose AC it was rolling against. Without a target on the roll there
+is no "you" for the attack to have hit, and no button appears.
+
+The ability is recognised by the flag the [Class Importer](Class-and-Spell-Importers.md)
+stamps on it, and by name for characters built before that flag existed — so
+Duelists already in your world work without a re-import.
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Automate the Duelist's Parry** | on | Master switch. Off, no button appears and Parry stays on the sheet as rules text with a use counter the player spends by hand. |
+
+### Taunt
+
+Automates the Duelist's **Taunt**: *when an enemy misses you with an attack, you
+have advantage on attacks against that enemy next round.*
+
+An enemy that misses a character with the talent hands them advantage against
+that enemy, **until the end of their next turn**, and a short card says so. When
+they attack that enemy the advantage is applied to the roll and the reason is
+printed on the roll card, so nobody has to remember it or argue about where it
+came from. It is not spent by attacking — it lasts the full duration, however
+many attacks that covers — and it applies to *that* enemy only, not to its
+friends.
+
+Two rulings are baked in, both of which you can turn off with the setting below
+if your table reads them differently:
+
+- Advantage and disadvantage **cancel**, per the core rules. A Duelist who is
+  also at disadvantage rolls normally rather than having the disadvantage
+  quietly replaced.
+- A blow turned aside by **Parry** counts as a miss, because the talent says the
+  attack *misses instead* — so a parry arms Taunt.
+
+"Until the end of your next turn" is measured against the combat's own turn
+order. A miss during your *own* turn does not burn the duration on the turn you
+are already in — your next turn is the one after it. Out of combat, the
+advantage lasts until the end of the first turn you finish once combat begins,
+and any leftover is cleared when a combat ends.
+
+The talent is recognised by the flag the [Class Importer](Class-and-Spell-Importers.md)
+stamps on it, and by name for characters built before that flag existed.
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Automate the Duelist's Taunt** | on | Master switch. Off, nothing is tracked and the talent stays on the sheet as rules text. |
+
 ### Renown
 
 | Setting | Default | What it does |

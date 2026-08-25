@@ -44,6 +44,16 @@ const CAPS_CAP    = /^[A-Z' -]{4,}$/;                       // any all-caps capt
 const FLAVOR_LINE = /^["“”]|^[-–—]\s?[A-Z]|[!?.]["”]$/;
 const FEATURE_RE  = /^([A-Z][A-Za-z'’ -]{0,39})\.\s+(\S.*)$/;
 const BULLET      = /^[•-]\s+/;
+// A page's running header, on a line of its own: "Duelist Class", "Monk of
+// Yag-Kesh Class", or the doubled "Duelist ClassDuelist Class" a column copy
+// emits. Captures the class name — the header is the one place it still appears
+// when the heading itself isn't line 0. Case-sensitive so an ALL-CAPS caption
+// ("DUELIST CLASS") stays with CAPS_CAP, which handles captions differently.
+// The name group is LAZY: greedy, "Duelist ClassDuelist Class" captures
+// "Duelist ClassDuelist" (the second copy's "ClassDuelist" reads as another
+// word of the name) instead of the "Duelist" the repeat group is there to find.
+const RUNNING_HEAD_ANY =
+  /^([A-Z][A-Za-z'’-]*(?:\s+(?:of|the|and|[A-Z][A-Za-z'’-]*)){0,3}?)\s+Class(?:\1\s+Class)*$/;
 
 /**
  * Choice-at-creation feature names the char-builder ALREADY wires — mirror of
@@ -198,7 +208,14 @@ export function detectClassAbility(text) {
   // The rule: requires a roll OR limited uses per day.
   const hasSignal = sawCheck || limitedUses;
   if (!hasSignal && !groupParent) return null;
-  return { ability: ability || "", dc: dc ?? 10, uses, limitedUses, usesRule, loseOnFailure, groupParent };
+  // A DC is only ever consulted when there's a stat to roll: the system gates
+  // the whole check on `system.ability` being set (PlayerSD _generateAbilityConfig
+  // — with no stat it posts a card and never builds a mainRoll). So default a
+  // missing DC to 10 ONLY for a detected check whose DC the book left unprinted;
+  // an ability that just spends a use (the Duelist's Parry, "once per day, an
+  // attack that would hit you misses instead") gets 0, the schema's own "unset",
+  // instead of a phantom DC 10 sitting on its sheet next to an empty stat.
+  return { ability: ability || "", dc: dc ?? (ability ? 10 : 0), uses, limitedUses, usesRule, loseOnFailure, groupParent };
 }
 
 // ─── Talent-row choice detection ─────────────────────────────────────────────
@@ -802,7 +819,23 @@ export function parseClassSection(text) {
   if (!lines.some((l) => HEADER_KEY.test(l) && /hit/i.test(l))) return null;
 
   const warnings = [];
-  const name = _displayCase(lines[0]).replace(/\s+Class$/i, "").trim();
+  // The class name out of a running-header line ("Duelist Class", or the doubled
+  // "Duelist ClassDuelist Class" one column copy emits) — "" for anything else.
+  // ALL-CAPS copies are excluded on purpose (see the sweep below).
+  const _headName = (l) => (CAPS_CAP.test(l) ? "" : l.match(RUNNING_HEAD_ANY)?.[1] ?? "");
+  let name = _displayCase(_headName(lines[0]) || lines[0]).replace(/\s+Class$/i, "").trim();
+  // The heading is normally line 0 — but extractPdfText emits the running header
+  // wherever the page's column flow puts it, and on the Duelist page (WR p42 /
+  // CS6 p15) that is mid-column, below "misses instead.". Line 0 is then the
+  // FIRST LINE OF THE FLAVOR, which was being eaten as the class name — leaving
+  // the name-keyed sweep below unable to match the real header, so it glued onto
+  // Parry ("…misses instead. Duelist ClassDuelist Class"). Recover the name from
+  // the header instead and restore it at the top, where the walk (which starts at
+  // line 1) expects the heading and the rest of the flavor survives.
+  if (!_isFeatureName(name)) {
+    const fromHeader = lines.map(_headName).find(Boolean);
+    if (fromHeader) { name = _displayCase(fromHeader); lines.unshift(name); }
+  }
   if (!name || name.length > 40) return null;
 
   // Every book page prints the class's own name as a running header ("Delver
@@ -815,13 +848,17 @@ export function parseClassSection(text) {
   // walk can see it. Line 0 is the name itself and stays. WR p42 prints the
   // header twice on one extracted line ("Duelist ClassDuelist Class"), hence
   // the repeat group.
+  // RUNNING_HEAD_ANY is the belt to that braces: it drops a "<Name> Class" line
+  // on its own shape alone, so a paste whose heading never made it to line 0
+  // still loses its headers even when `name` was resolved some other way.
   // An ALL-CAPS copy is left alone: CAPS_CAP already treats it as a caption
   // that ends the feature list, and quietly removing it instead would change
   // where every following line lands.
   const RUNNING_HEAD = new RegExp(
     `^(?:${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s+class)?\\s*)+$`, "i");
   for (let i = lines.length - 1; i > 0; i--)
-    if (RUNNING_HEAD.test(lines[i]) && !CAPS_CAP.test(lines[i])) lines.splice(i, 1);
+    if ((RUNNING_HEAD.test(lines[i]) || RUNNING_HEAD_ANY.test(lines[i])) && !CAPS_CAP.test(lines[i]))
+      lines.splice(i, 1);
 
   // Table + titles first — their lines are excluded from the walk below so
   // column-copied range runs and title bands never pollute feature text.
@@ -850,6 +887,14 @@ export function parseClassSection(text) {
     if (DIE_ONLY.test(line) || /^effects?$/i.test(line)) continue;   // sheared table-header strays
     if (TALENTS_CAP.test(line)) continue;                       // caption w/o parsed rows
     if (TITLES_CAP.test(line)) break;                           // unparsed titles follow
+    // Every class page closes with a flavor quote and its attribution. Both are
+    // plain prose, and the talent-table caption that sits above them is already
+    // in the skip set, so nothing capped the last feature: it was still open
+    // when the quote arrived and swallowed it (Duelist "Taunt" ended "…next
+    // round. “Have I told you about the time I defeated a baron…"). Rules text
+    // never OPENS with a quote mark, so treat that as the page's sign-off: close
+    // the feature and drop the rest. A later feature reopens the walk.
+    if (/^["“”]/.test(line)) { if (cur) { features.push(cur); cur = null; } trailing = true; continue; }
     const m = line.match(HEADER_KEY);
     if (m) {
       trailing = false;
@@ -934,7 +979,9 @@ export function parseClassSection(text) {
       classAbility = { ability: ca.ability, dc: ca.dc, limitedUses: ca.limitedUses,
         uses: ca.uses ?? { available: 0, max: 0 }, usesRule: ca.usesRule ?? null, loseOnFailure: ca.loseOnFailure };
       const usesLabel = ca.usesRule?.type === "level" ? "level/day" : (ca.limitedUses ? `${ca.uses.max}/day` : "");
-      const bits = [ca.ability ? ca.ability.toUpperCase() : "", ca.dc != null ? `DC ${ca.dc}` : "",
+      // DC only reads as a fact when something rolls against it (see
+      // detectClassAbility) — "DC 0" on a uses-only ability would be noise.
+      const bits = [ca.ability ? ca.ability.toUpperCase() : "", ca.dc ? `DC ${ca.dc}` : "",
         usesLabel].filter(Boolean).join(" ");
       warnings.push(`"${f.name}" looks like an activated Class Ability — imported as BOTH a Talent (feature text) and a Class Ability (group "${name}"${bits ? `, ${bits}` : ""}). Review the detected mechanics before commit.`);
     }

@@ -99,6 +99,86 @@ test("an ALL-CAPS copy still caps the feature list, as it always did", () => {
   assert.doesNotMatch(featureNamed(parsed, "Grovekeeper").description, /weapon stat line/);
 });
 
+/**
+ * The heading isn't always line 0. `extractPdfText` emits the running header
+ * wherever the page's column flow puts it, and on the Duelist page (WR p42 /
+ * CS6 p15) that is mid-column — so the extract OPENS with the flavor and the
+ * class name appears nowhere else but the header. The parser used to take line
+ * 0 as the name, which meant (a) the class imported as "Spinning swordsmen and
+ * fast-", (b) the flavor lost its first line, and (c) the header sweep above,
+ * keyed on that bogus name, could not match the real header — so it glued onto
+ * the feature above it ("…misses instead. Duelist ClassDuelist Class", the
+ * reported bug). Same headless shape, invented text.
+ */
+const HEADLESS = `Stalwart guardians of the wild
+groves, sworn to the old oaks.
+Weapons: All melee weapons, longbow
+Armor: All armor and shields
+Hit Points: 1d10 per level`;
+
+test("a header printed mid-column names the class when line 0 is the flavor", () => {
+  const parsed = parseClassSection([HEADLESS, GROVEKEEPER, "Warden Class", STORMCALL].join("\n"));
+  assert.equal(parsed.name, "Warden");
+  // The flavor keeps BOTH lines — line 0 is no longer eaten as the name.
+  assert.match(parsed.flavor, /Stalwart guardians of the wild groves, sworn to the old oaks\./);
+  assert.doesNotMatch(parsed.flavor, /Warden Class/);
+  assert.doesNotMatch(featureNamed(parsed, "Grovekeeper").description, /Warden Class/);
+});
+
+test("the doubled mid-column header — the exact reported shape — names the class", () => {
+  const parsed = parseClassSection([HEADLESS, GROVEKEEPER, "Warden ClassWarden Class", STORMCALL].join("\n"));
+  assert.equal(parsed.name, "Warden");
+  assert.match(featureNamed(parsed, "Grovekeeper").description, /nearest grove lies\.<\/p>$/);
+});
+
+test("a multi-word class name survives the trip through the header", () => {
+  const parsed = parseClassSection([HEADLESS, GROVEKEEPER, "Grove Warden Class", STORMCALL].join("\n"));
+  assert.equal(parsed.name, "Grove Warden");
+});
+
+test("a header line is dropped on its shape alone, however the name was resolved", () => {
+  // The name comes from line 0 here, so the name-keyed sweep is looking for
+  // "Warden" — the generic pass is what drops a header that doesn't match it.
+  const parsed = parseClassSection([HEAD, GROVEKEEPER, "Grove Warden Class", STORMCALL].join("\n"));
+  assert.equal(parsed.name, "Warden");
+  assert.doesNotMatch(featureNamed(parsed, "Grovekeeper").description, /Grove Warden/);
+});
+
+/**
+ * Every class page signs off with a flavor quote and its attribution. Both are
+ * plain prose and the talent-table caption above them is already in the walk's
+ * skip set, so nothing capped the last feature: it stayed open and swallowed the
+ * sign-off (Duelist "Taunt", Necromancer "River of Death", Roustabout
+ * "Surprising Guts" all shipped with a chunk of quote on the end).
+ */
+const SIGNOFF = ['"Have I told you about the oak that talked back?"',
+  "-Reginald Merrymay, human warden"];
+
+test("the page's closing quote does not glue onto the last feature", () => {
+  const parsed = parseClassSection([HEAD, GROVEKEEPER, STORMCALL, ...SIGNOFF].join("\n"));
+  assert.deepEqual(parsed.features.map((f) => f.name), ["Grovekeeper", "Stormcall"]);
+  assert.match(featureNamed(parsed, "Stormcall").description, /soaks the field\.<\/p>$/);
+  assert.doesNotMatch(featureNamed(parsed, "Stormcall").description, /oak that talked back|Merrymay/);
+});
+
+test("the closing quote does not land in the class flavor either", () => {
+  const parsed = parseClassSection([HEAD, GROVEKEEPER, ...SIGNOFF].join("\n"));
+  assert.doesNotMatch(parsed.flavor, /oak that talked back|Merrymay/);
+  assert.match(parsed.flavor, /stalwart guardian/);
+});
+
+test("a bulleted line inside a feature is not mistaken for the attribution", () => {
+  // The sign-off cap keys on the QUOTE mark only. A dash rule would be tempting
+  // (the attribution starts with one) but "- Gain…" is how features print their
+  // bullet lists, and eating those would silently truncate the rules text.
+  const parsed = parseClassSection([HEAD,
+    "Grovekeeper. Choose one boon each dawn:", "- Gain advantage on one check.",
+    "- Regain one use of a spent item.", STORMCALL].join("\n"));
+  const d = featureNamed(parsed, "Grovekeeper").description;
+  assert.match(d, /Gain advantage on one check/);
+  assert.match(d, /Regain one use of a spent item/);
+});
+
 test("the talent table is untouched by the header sweep", () => {
   const body = [HEAD, GROVEKEEPER, "Warden Class",
     "WARDEN TALENTS", "2d6 Effect",

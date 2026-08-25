@@ -106,6 +106,14 @@ scan_block 'Hooks.on("deleteRegion" (cascade already fires deleteMeasuredTemplat
 scan_block "context menu name:/condition: (use label:/visible: in v14)" \
   'menuItems\.push\(\s*\{\s*name:|menuItems\.push\(\s*\{\s*[^}]*condition:' "${mjs_paths[@]}"
 
+# A roll config's targetUuid is normally a TokenDocument uuid, but not always —
+# an Actor uuid resolves to an Actor, whose `.actor` is undefined. Reaching for
+# `.actor` straight off a targetUuid resolution silently yields null, and the
+# caller then does nothing at all: found live when a parry spent its once-a-day
+# use and gave back no damage. Resolve through a helper that handles both.
+scan_block "(await fromUuid(targetUuid)).actor (handle Actor uuids too)" \
+  'fromUuid\((config\.)?targetUuid[^)]*\)[^;]*\)\?\.actor' "${mjs_paths[@]}"
+
 # Content contract: shipped wiring files (class overlays) must carry NO book
 # prose — any string literal of 8+ words is expression, not wiring. The paste
 # supplies the text; overlays ship only SDE-authored mechanics.
