@@ -32,7 +32,14 @@
  *                of the parent feature named by `fromParent`. Overlay entries
  *                win field-by-field over an auto-detected same-name ability.
  *   items:       WR-only gear the class references — created before the
- *                class so its wield list resolves ({ name, type, img, system })
+ *                class so its wield list resolves ({ name, type, img, system }).
+ *                `granted: true` (use the _natural factory) marks the ones every
+ *                member of the class HAS rather than buys: a natural weapon like
+ *                the Wyrdling's Pseudopod. Those, and ONLY those, go onto the
+ *                class as grantedItems for the char-builder to embed at
+ *                creation. Priced book gear (the Duelist's Rapier and Falchion,
+ *                the Paladin's Lance) is stocked here so the wield list and the
+ *                merchant know its stats — it is not a freebie.
  *   weaponNames / armorNames: wield-list overrides for grants the text
  *                states as categories ("all swords", "strikes")
  *   classFlags:  merged into the class's module flags (e.g. fixedDeity)
@@ -59,6 +66,11 @@ const _weapon = (name, img, system) => ({
     slots: { free_carry: 0, per_slot: 1, slots_used: 1 },
     ...system },
 });
+
+/** A weapon the class IS rather than carries — the Wyrdling's Pseudopod, the
+ *  Monk's Strike. Marked `granted`, so the char-builder puts one on every member
+ *  at creation. Priced book gear uses `_weapon` and stays something to buy. */
+const _natural = (name, img, system) => ({ ..._weapon(name, img, system), granted: true });
 
 export const CLASS_OVERLAYS = {
   delver: {
@@ -95,6 +107,17 @@ export const CLASS_OVERLAYS = {
 
   duelist: {
     source: "WR", pages: "42",
+    // Parry is auto-detected from the paste as a 1/day ability; this only adds
+    // the flag scripts/parry/ finds it by, so the automation isn't name-locked
+    // (it still falls back to the name for worlds imported before the flag).
+    // Every other field is left to the detector — see the classAbilities merge.
+    classAbilities: [{ name: "Parry", flags: { parry: { role: "base" } } }],
+    features: {
+      // Taunt has no roll and no uses — it is a standing condition on being
+      // missed, so it stays a plain Talent. The flag is how scripts/taunt/
+      // recognises it without depending on the name.
+      "Taunt": { flags: { taunt: { role: "base" } } },
+    },
     rowTalents: {
       "2": [{ name: "All Attacks Miss (1/Day)" }],
       "3-6": [{ name: "+1 Parry Use Per Day" }],
@@ -147,7 +170,7 @@ export const CLASS_OVERLAYS = {
       "10-11": [{ name: "Additional Sun on the Water Use" }],
     },
     items: [
-      _weapon("Strike", "icons/skills/melee/unarmed-punch-fist.webp",
+      _natural("Strike", "icons/skills/melee/unarmed-punch-fist.webp",
         { type: "melee", damage: { oneHanded: "d8", twoHanded: "d8" }, properties: [_TWOHANDED], magicItem: true }),
     ],
     weaponNames: ["Staff", "Strike"],
@@ -218,7 +241,7 @@ export const CLASS_OVERLAYS = {
       },
     },
     items: [
-      _weapon("Pseudopod", "icons/creatures/slimes/slime-movement-dripping-pseudopods-green.webp",
+      _natural("Pseudopod", "icons/creatures/slimes/slime-movement-dripping-pseudopods-green.webp",
         { type: "melee", damage: { oneHanded: "d6", twoHanded: "d6" }, range: "near", properties: [_FINESSE, _THROWN] }),
     ],
     weaponNames: ["Club", "Crossbow", "Dagger", "Pseudopod", "Shortbow", "Shortsword", "Spear"],

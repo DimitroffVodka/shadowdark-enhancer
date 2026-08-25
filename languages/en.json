@@ -398,6 +398,23 @@
   "SDE.settings.scavengerWatchAmmo.name": "Scavenger covers ammunition",
   "SDE.settings.scavengerWatchAmmo.hint": "If on, spending your last arrow or bolt can trigger Scavenger too. Ammunition decrements on every ranged attack, so this fires far more often than gear does — turn it off to keep Scavenger to torches, oil, rations and the like.",
 
+  "SDE.settings.parryAutomate.name": "Automate the Duelist's Parry",
+  "SDE.settings.parryAutomate.hint": "If on, an attack that hits a character with the Parry ability shows them a Parry button on the chat card. Using it spends one of the day's uses and makes the attack miss — including giving back damage the GM has already applied, along with the downed state if the hit had dropped them.",
+
+  "SDE.parry.button": "Parry this attack",
+  "SDE.parry.announce": "{name} parries — the attack misses instead.",
+  "SDE.parry.parriedBy": "Parried by {name} — this attack missed.",
+  "SDE.parry.reversed": "{hp} HP restored.",
+  "SDE.parry.checkHp": "Damage had already been applied — check their HP.",
+  "SDE.parry.unknownDamage": "{name} parried, but this card's damage was applied before the parry could be tracked — check their HP by hand.",
+
+  "SDE.settings.tauntAutomate.name": "Automate the Duelist's Taunt",
+  "SDE.settings.tauntAutomate.hint": "If on, an enemy that misses a character with the Taunt talent hands that character advantage on attacks against it, until the end of their next turn. The advantage is applied to the roll automatically and the reason is printed on the roll card.",
+
+  "SDE.taunt.armed": "{name} has advantage against {enemy} until the end of their next turn.",
+  "SDE.taunt.applied": "Taunt: advantage against {enemy}.",
+  "SDE.taunt.cancelled": "Taunt: advantage against {enemy}, cancelled by disadvantage.",
+
   "SDE.settings.renownOnCreate.name": "Starting renown from CHA",
   "SDE.settings.renownOnCreate.hint": "If on, a new player character's renown is set to their Charisma modifier, once. If the character was made before their abilities were rolled, the seed waits for the first Charisma change. It never touches a character whose renown is already non-zero or who already has a renown log entry, so it cannot overwrite a score you have been playing with.",
   "SDE.settings.renownOnLevelUp.name": "Renown on level-up",

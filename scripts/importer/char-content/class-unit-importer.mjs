@@ -196,7 +196,7 @@ function _talentData(name, description, sourceTitle, { talentClass = "level", ef
  */
 function _classAbilityData(name, description, sourceTitle, {
   group = "", ability = "", dc = 10, limitedUses = false, uses = null,
-  loseOnFailure = true, usesRule = null, effects = [],
+  loseOnFailure = true, usesRule = null, effects = [], flags = null,
 } = {}) {
   const pool = uses ?? { available: 0, max: 0 };
   const rule = usesRule ?? (limitedUses && Number(pool.max) > 0 ? { type: "base", base: Number(pool.max) } : null);
@@ -212,7 +212,10 @@ function _classAbilityData(name, description, sourceTitle, {
       name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
       system: { changes: e.changes ?? [] },
     })),
-    flags: { [MODULE_ID]: { imported: true, ...(rule ? { usesRule: rule } : {}) } },
+    // Overlay-supplied flags ride in the module's own scope so a runtime feature
+    // finds the ability by capability rather than by name — the Duelist's Parry
+    // is located this way by scripts/parry/, same as the Delver's Scavenger.
+    flags: { [MODULE_ID]: { imported: true, ...(rule ? { usesRule: rule } : {}), ...(flags ?? {}) } },
   };
 }
 
@@ -619,7 +622,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       })),
       flags: { [MODULE_ID]: { imported: true } },
     }, String(it.folder ?? "Gear/Weapons").split("/"), report);
-    ourGear.push({ name: it.name, uuid: made.uuid });
+    ourGear.push({ name: it.name, uuid: made.uuid, granted: it.granted === true });
   }
 
   // ── 0.5. Named extra tables (Wyrdling CORRUPTION, …) + talent-table docs.
@@ -669,11 +672,17 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       name: ca.name, description,
       group: ca.group ?? prev.group ?? parsed.name,
       ability: ca.ability ?? prev.ability ?? "",
-      dc: ca.dc ?? prev.dc ?? 10,
+      // Same rule as the detector: a DC is only consulted when there's a stat to
+      // roll, so an overlay ability that just spends a use gets 0, not a
+      // phantom 10 on its sheet.
+      dc: ca.dc ?? prev.dc ?? ((ca.ability ?? prev.ability) ? 10 : 0),
+      flags: ca.flags ?? prev.flags ?? null,
       limitedUses: ca.limitedUses ?? prev.limitedUses ?? false,
       uses: ca.uses ?? prev.uses ?? null,
       loseOnFailure: ca.loseOnFailure ?? prev.loseOnFailure ?? true,
-      usesRule: ca.usesRule ?? null,
+      // Carry the detected rule forward like every other field here: an overlay
+      // entry that only adds a flag must not strip a level-scaled use pool.
+      usesRule: ca.usesRule ?? prev.usesRule ?? null,
       effects: ca.effects ?? [],
     });
   }
@@ -802,14 +811,18 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       source: { title: sourceTitle },
     },
     // classFlags: SDE-original class metadata (e.g. fixedDeity → DeityStep pin).
-    // grantedItems: overlay-shipped natural weapons/gear (the Wyrdling's
-    // Pseudopod) the char-builder embeds on every member at creation — distinct
-    // from the proficiency-only weapons the player buys.
+    // grantedItems: overlay-shipped NATURAL weapons (the Wyrdling's Pseudopod,
+    // the Monk's Strike) the char-builder embeds on every member at creation.
+    // Only the entries the overlay marks `granted` qualify: the rest of
+    // overlay.items is priced book gear stocked so the wield list and the
+    // merchant know its stats, and granting it handed every new Duelist a free
+    // Rapier and Falchion (8 gp and 12 gp) at creation.
     // borrowedSpellList: the Wizard-variant nickname this class casts ("druid")
     // — tagBorrowedSpellLists() reads it to stamp the class onto that variant's
     // spells (own-list caster; no lender uuid on spellcasting.class).
     flags: { [MODULE_ID]: { imported: true, ...(overlay?.classFlags ?? {}),
-      ...(ourGear.length ? { grantedItems: ourGear.map((g) => g.uuid) } : {}),
+      ...(ourGear.some((g) => g.granted)
+        ? { grantedItems: ourGear.filter((g) => g.granted).map((g) => g.uuid) } : {}),
       ...(variantList ? { borrowedSpellList: variantList } : {}) } },
   };
   // Body-only re-import must NOT clobber supplement-owned fields. Stage 1 builds
@@ -1106,6 +1119,88 @@ export async function tagBorrowedSpellLists() {
   return updates.length;
 }
 
+/**
+ * Which of a class's `grantedItems` are really grants (pure half of the sweep
+ * below). An overlay ships two kinds of item: natural weapons every member of
+ * the class HAS (`granted`), and priced book gear stocked only so the wield list
+ * and the merchant know its stats. Both used to land in grantedItems, so the
+ * char-builder handed every new Duelist a free Rapier and Falchion.
+ *
+ * Drops the entries the overlay names as gear; anything the overlay doesn't
+ * mention is LEFT ALONE, so a hand-edited grant list survives the sweep.
+ *
+ * @param {Array<{uuid: string, name: string}>} current  the class's grant list
+ * @param {object|null} overlay  overlayFor(className)
+ * @returns {string[]} the uuids to keep
+ */
+function keptGrantUuids(current, overlay) {
+  const bought = new Set((overlay?.items ?? [])
+    .filter((i) => i.granted !== true)
+    .map((i) => String(i.name).toLowerCase()));
+  if (!bought.size) return current.map((g) => g.uuid);
+  return current.filter((g) => !bought.has(String(g.name ?? "").toLowerCase())).map((g) => g.uuid);
+}
+
+/**
+ * Self-heal for classes imported before grants and gear were told apart: strip
+ * the priced overlay gear back out of their `grantedItems`, so the char-builder
+ * stops issuing it at creation. Covers every Item pack plus world items.
+ *
+ * Idempotent and silent when there's nothing to do; a fresh import already
+ * writes the right list. Callers notify on > 0.
+ *
+ * @returns {Promise<number>} classes corrected
+ */
+export async function pruneBoughtGearGrants() {
+  const { overlayFor } = await import("./class-overlays.mjs");
+  const nameOf = async (uuid) => (await fromUuid(uuid).catch(() => null))?.name ?? "";
+
+  /** The corrected list, or null when this class needs no change. */
+  const correction = async (className, flags) => {
+    const cur = flags?.[MODULE_ID]?.grantedItems;
+    if (!Array.isArray(cur) || !cur.length) return null;
+    const overlay = overlayFor(className);
+    if (!overlay?.items?.length) return null;          // nothing known about this class
+    const keep = keptGrantUuids(
+      await Promise.all(cur.map(async (uuid) => ({ uuid, name: await nameOf(uuid) }))), overlay);
+    return keep.length === cur.length ? null : keep;
+  };
+  // An emptied list is REMOVED, not left as []: that is what a fresh import
+  // writes, so the two paths leave the flag in the same shape.
+  const patch = (_id, keep) => (keep.length
+    ? { _id, [`flags.${MODULE_ID}.grantedItems`]: keep }
+    : { _id, [`flags.${MODULE_ID}.-=grantedItems`]: null });
+
+  let fixed = 0;
+  for (const pack of game.packs.filter((p) => p.documentName === "Item")) {
+    let idx;
+    try { idx = await pack.getIndex({ fields: ["type", `flags.${MODULE_ID}.grantedItems`] }); } catch { continue; }
+    const updates = [];
+    for (const e of idx) {
+      if (e.type !== "Class") continue;
+      const keep = await correction(e.name, e.flags);
+      if (keep) updates.push(patch(e._id, keep));
+    }
+    if (!updates.length) continue;
+    if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
+    await Item.updateDocuments(updates, { pack: pack.collection });
+    fixed += updates.length;
+  }
+  const worldUpdates = [];
+  for (const i of game.items) {
+    if (i.type !== "Class") continue;
+    const keep = await correction(i.name, i.flags);
+    if (keep) worldUpdates.push(patch(i.id, keep));
+  }
+  if (worldUpdates.length) { await Item.updateDocuments(worldUpdates); fixed += worldUpdates.length; }
+
+  if (fixed) {
+    console.log(`${MODULE_ID} | pruneBoughtGearGrants: ${fixed} class(es) no longer grant purchasable gear`);
+    Hooks.callAll(`${MODULE_ID}.contentUnlocked`);
+  }
+  return fixed;
+}
+
 // ─── Internal exports for tests (pure helpers only) ──────────────────────────
 
-export const _internals = { _deepEq, _subsetEq, _staleFields, _effectShape, classifySpellWiring, borrowedTagsForSpell };
+export const _internals = { _deepEq, _subsetEq, _staleFields, _effectShape, classifySpellWiring, borrowedTagsForSpell, keptGrantUuids };

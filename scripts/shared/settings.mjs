@@ -370,6 +370,24 @@ export function registerSettings() {
     default: true,
   });
 
+  game.settings.register(MODULE_ID, "parryAutomate", {
+    name: "SDE.settings.parryAutomate.name",
+    hint: "SDE.settings.parryAutomate.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
+  game.settings.register(MODULE_ID, "tauntAutomate", {
+    name: "SDE.settings.tauntAutomate.name",
+    hint: "SDE.settings.tauntAutomate.hint",
+    scope: "world",
+    config: true,
+    type: Boolean,
+    default: true,
+  });
+
   // Split out because ammunition decrements on every ranged attack, so it fires
   // far more often than the gear cases — a table that finds it noisy can drop
   // just this half without turning the talent off.
