@@ -22,6 +22,21 @@
   or gifting your last torch can also pay out.
 
 ### Fixed
+- **Monster token art never applied on a server the module was installed on.**
+  Applying token art reported success — *"Applied token art to 213/244
+  monsters"* — while a server error appeared alongside it and no art changed.
+  The generated art mapping was written to the module's `data/` folder, which
+  ships in no release, and Foundry does not create a missing upload target: it
+  raises an error and reports failure *without throwing*, so the module carried
+  on, switched the compendium overlay on, and pointed it at a file that had
+  never been written. The directory is now created first, a failed write is
+  treated as a failure rather than announced as a success, and the mapping has
+  moved to the module's `storage/` folder — the one directory a module update
+  preserves. Previously the mapping was wiped by every update, so token art
+  silently reverted until someone thought to re-run Apply; existing mappings
+  are migrated to the new location automatically on load. **This changes the
+  manifest, so relaunch the world** (a browser reload is not enough) and, if
+  your art had stopped applying, run Apply once more.
 - **Importing a class glued the page's own header into a feature's rules
   text.** Every Delver's Scavenger read *"…you regain one use of that item.
   Delver Class"*, and it was not just the Delver: all nine Western Reaches

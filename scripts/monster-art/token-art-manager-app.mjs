@@ -388,7 +388,16 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   static async _onApply() {
     const cat = this._catalog ?? (this._catalog = await TokenArtCatalog.build());
     const { tables, stats } = TokenArtCatalog.resolve(cat);
-    await MonsterTokenArt.applyResolvedMapping(tables);
+    // Only claim success once the mapping is actually on disk — a failed write
+    // leaves the compendium overlay pointing at nothing, and a green "applied"
+    // toast over a red server error is how this went unnoticed on live servers.
+    try {
+      await MonsterTokenArt.applyResolvedMapping(tables);
+    } catch (e) {
+      console.error(`${MODULE_ID} | applying token art failed:`, e);
+      ui.notifications.error(`Could not apply token art: ${e.message}`);
+      return;
+    }
     const per = Object.entries(stats.perSource).map(([s, n]) => `${n} ${s.replace(/-tokens.*|-monster.*|dnd-/g, "").replace(/-/g, " ").trim()}`).join(", ");
     ui.notifications.info(`Applied token art to ${stats.mapped}/${stats.total} monsters (${per}). Every drag now uses your picks.`);
     this.render({ parts: ["body"] });

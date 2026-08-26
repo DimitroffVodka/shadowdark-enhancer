@@ -31,6 +31,13 @@ package-lock.json
 #     formulas, and parsing structure — no rules text — so it stays local.
 data/
 
+# Foundry's persistent-storage folder (manifest: persistentStorage). Written at
+# runtime and deliberately preserved across module updates — this is where the
+# generated monster-art mapping now lives. Same reason as data/: install-specific,
+# never committed. Foundry's installer creates it; the module creates it too when
+# the install is manual or symlinked.
+storage/
+
 # Claude Code per-project state (session/cache — never commit)
 .claude/
 

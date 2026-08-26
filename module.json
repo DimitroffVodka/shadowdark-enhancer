@@ -6,6 +6,7 @@
   "authors": [
     { "name": "DimitroffVodka", "flags": {} }
   ],
+  "persistentStorage": true,
   "compatibility": {
     "minimum": "13",
     "verified": "14.365"

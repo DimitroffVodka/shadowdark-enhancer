@@ -93,10 +93,71 @@ export class MonsterTokenArt {
     "scarab swarm": ["swarm beetles", "swarm insects", "beetle swarm"],
   };
 
-  /** Relative path (under Data) of the generated compendium-art mapping. */
-  static get MAPPING_DIR() { return `modules/${MODULE_ID}/data`; }
+  /**
+   * Relative path (under Data) of the generated compendium-art mapping.
+   *
+   * Lives in the module's `storage/` folder, which is the ONLY directory a
+   * package update preserves — with `"persistentStorage": true` in the manifest
+   * the installer deletes every other entry in the module folder and re-extracts
+   * over it. The mapping used to live in `data/`, so every module update silently
+   * wiped it: the file vanished, `initCompendiumArt` found nothing and stayed
+   * inert, and token art quietly reverted until someone re-ran Apply.
+   */
+  static get MAPPING_DIR() { return `modules/${MODULE_ID}/storage`; }
   static get MAPPING_FILE() { return "monster-art-mapping.json"; }
   static get MAPPING_PATH() { return `${this.MAPPING_DIR}/${this.MAPPING_FILE}`; }
+
+  /** Former location, migrated from on first load. Wiped by module updates. */
+  static get LEGACY_MAPPING_DIR() { return `modules/${MODULE_ID}/data`; }
+  static get LEGACY_MAPPING_PATH() { return `${this.LEGACY_MAPPING_DIR}/${this.MAPPING_FILE}`; }
+
+  /**
+   * Write the mapping table to MAPPING_PATH.
+   *
+   * The directory is created first because FilePicker.upload does NOT create it:
+   * it posts a server error and resolves `false` *without throwing*. Left
+   * unchecked that produced a mapping flag pointing at a 404 — the tool reported
+   * success, the setting flipped on, and no token art ever changed. The
+   * installer only mkdirs `storage/` when it installs a package, so a manually
+   * placed or symlinked module still needs this.
+   * @param {object} table  per-pack mapping to serialize
+   * @returns {Promise<void>} rejects if the mapping could not be written
+   */
+  static async _writeMapping(table) {
+    const FP = this.FilePickerCls;
+    try { await FP.createDirectory("data", this.MAPPING_DIR); } catch (_e) { /* already exists */ }
+    const file = new File([JSON.stringify(table, null, 2)], this.MAPPING_FILE, { type: "application/json" });
+    // Deliberately plain upload() rather than uploadPersistent(): the latter
+    // throws unless the manifest's persistentStorage flag is already in memory,
+    // and manifest edits only land on a world relaunch — so on the very first
+    // load after updating, uploadPersistent would fail. Writing to the same
+    // storage/ path directly behaves identically and survives that window.
+    const result = await FP.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
+    // upload() resolves `false`/undefined on a server-side failure — the red
+    // toast it raises is the only other signal, so treat a falsy path as fatal.
+    if (!result?.path) throw new Error(`Could not write ${this.MAPPING_PATH} — the server rejected the upload.`);
+  }
+
+  /**
+   * Move a pre-0.15.1 mapping from `data/` to `storage/`, once. Existing worlds
+   * have a working mapping in the old spot; without this their art would drop
+   * on the update that introduces the new path — the exact failure the move is
+   * meant to prevent.
+   * @returns {Promise<boolean>} whether a legacy mapping was migrated
+   */
+  static async _migrateLegacyMapping() {
+    try {
+      const res = await fetch(foundry.utils.getRoute(this.LEGACY_MAPPING_PATH));
+      if (!res.ok) return false;
+      const table = await res.json();
+      if (!table || typeof table !== "object") return false;
+      await this._writeMapping(table);
+      console.log(`${MODULE_ID} | migrated monster art mapping to ${this.MAPPING_PATH}`);
+      return true;
+    } catch (_e) {
+      return false;   // no legacy file, or unreadable — nothing to migrate
+    }
+  }
 
   /**
    * Actor compendia the art overlay covers: the base system bestiary plus the
@@ -161,8 +222,7 @@ export class MonsterTokenArt {
     const keys = Object.keys(mapping ?? {});
     const perPack = keys.length > 0 && keys.every((k) => game.packs.get(k));
     const packMapping = perPack ? mapping : { "shadowdark.monsters": mapping ?? {} };
-    const file = new File([JSON.stringify(packMapping, null, 2)], this.MAPPING_FILE, { type: "application/json" });
-    await this.FilePickerCls.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
+    await this._writeMapping(packMapping);
     await game.settings.set(MODULE_ID, "tokenArtCompendium", true);
     await this._injectMapping();
     const count = Object.values(packMapping).reduce((n, t) => n + Object.keys(t).length, 0);
@@ -178,8 +238,11 @@ export class MonsterTokenArt {
     try {
       if (!game.settings.get(MODULE_ID, "tokenArtCompendium")) return;
       const dir = await this.FilePickerCls.browse("data", this.MAPPING_DIR).catch(() => null);
-      const has = dir?.files?.some((f) => f.endsWith(this.MAPPING_FILE));
-      if (!has) return;                 // enabled but file gone (e.g. module update) — stay inert
+      let has = dir?.files?.some((f) => f.endsWith(this.MAPPING_FILE));
+      // Nothing in storage/ — a world that last wrote its mapping to the old
+      // data/ path. Adopt it rather than silently losing the art.
+      if (!has && game.user.isGM) has = await this._migrateLegacyMapping();
+      if (!has) return;                 // enabled but no mapping anywhere — stay inert
       await this._injectMapping();
     } catch (e) {
       console.error(`${MODULE_ID} | initCompendiumArt failed:`, e);
@@ -259,8 +322,7 @@ export class MonsterTokenArt {
       if (Object.keys(table).length) mapping[packId] = table;
     }
 
-    const file = new File([JSON.stringify(mapping, null, 2)], this.MAPPING_FILE, { type: "application/json" });
-    await this.FilePickerCls.upload("data", this.MAPPING_DIR, file, {}, { notify: false });
+    await this._writeMapping(mapping);
     await game.settings.set(MODULE_ID, "tokenArtCompendium", true);
     await this._injectMapping();
 
@@ -616,7 +678,14 @@ export class MonsterTokenArt {
       </div>`;
 
     const runCompendium = async () => {
-      const r = await this.generateCompendiumMapping();
+      let r;
+      try {
+        r = await this.generateCompendiumMapping();
+      } catch (e) {
+        console.error(`${MODULE_ID} | generateCompendiumMapping failed:`, e);
+        ui.notifications.error(`Could not apply compendium art: ${e.message}`);
+        return true;
+      }
       if (r && !r.missing) {
         ui.notifications.info(`Compendium art on: ${r.mapped}/${r.total} monsters skinned automatically on every drag. ${r.missing} kept their art.`);
       }
