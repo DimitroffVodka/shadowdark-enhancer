@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.15.1] — 2026-08-26
 
 ### Added
 - **The Delver's Scavenger talent now rolls itself.** *"When you expend the
@@ -22,6 +22,39 @@
   or gifting your last torch can also pay out.
 
 ### Fixed
+- **A player could mint luck tokens through an owned NPC.** The luck relay
+  authorised the giver by ownership alone, and players routinely own NPCs —
+  familiars, mounts, hirelings. An NPC data model has no `useLuckToken`, so the
+  optional call returned `undefined` rather than `false` and sailed straight
+  past the refusal written to stop exactly this: the giver lost nothing, the
+  receiver was credited anyway, and the query answered *ok* every time it was
+  sent. Both ends are now gated on a Player actor, and any falsy spend counts as
+  a refusal. Those refusals also never reached the player who pressed the
+  button — they were raised on the GM's client for a relayed give, so the GM
+  read *"X has no luck token to give"* while the player saw nothing. The
+  sentence now goes to whoever asked.
+- **Blanking a GM initiative box wrote a permanent 0.** `Number("")` is 0, not
+  NaN, so the finite-number gate read a cleared field as a deliberate zero — a
+  real, storable initiative that sorted the member last, counted them as having
+  rolled, and could not be unset from anywhere in the tab. Emptiness is now
+  checked before coercion: blank means "no change", and the stored value is
+  re-rendered.
+- **A dead enemy's turn stalled the crawl strip on nobody.** The strip drops
+  defeated enemies while leaving them in the combat tracker (the tracker is what
+  end-of-combat loot and the session recap read), so when the turn pointer landed
+  on one, every card dimmed and none lit — it read as nobody's turn until the GM
+  worked out they had to click past a corpse they could no longer see. Those
+  turns now skip themselves, on exactly the rule that hides the card: no card, no
+  turn. It fires whether the enemy was already dead or dies partway through its
+  own turn, and PCs are never skipped — a downed PC keeps its card and its turn.
+  Foundry's own **Skip Defeated** setting is not a substitute: it only knows the
+  tracker's defeated marker, and Shadowdark 4.x stamps that from one place,
+  `applyDamage`. An enemy dropped to 0 HP by a sheet edit or an effect gets no
+  marker at all on a plain install, and where a companion module restores the
+  old auto-marking it arrives a beat late and only on the GM client that made
+  the change — so the skip reads HP, which is already true when the card
+  disappears. If *every* remaining combatant is dead the pointer stays put
+  rather than rolling rounds forever.
 - **Monster token art never applied on a server the module was installed on.**
   Applying token art reported success — *"Applied token art to 213/244
   monsters"* — while a server error appeared alongside it and no art changed.
@@ -277,22 +310,6 @@
   did nothing at all; the menu came back only after hovering some *other* card
   first, which reads as the strip having randomly stopped working. It now
   notices the panel is gone and rebuilds it.
-- **A dead enemy's turn stalled the crawl strip on nobody.** The strip drops
-  defeated enemies while leaving them in the combat tracker (the tracker is what
-  end-of-combat loot and the session recap read), so when the turn pointer landed
-  on one, every card dimmed and none lit — it read as nobody's turn until the GM
-  worked out they had to click past a corpse they could no longer see. Those
-  turns now skip themselves, on exactly the rule that hides the card: no card, no
-  turn. It fires whether the enemy was already dead or dies partway through its
-  own turn, and PCs are never skipped — a downed PC keeps its card and its turn.
-  Foundry's own **Skip Defeated** setting is not a substitute: it only knows the
-  tracker's defeated marker, and Shadowdark 4.x stamps that from one place,
-  `applyDamage`. An enemy dropped to 0 HP by a sheet edit or an effect gets no
-  marker at all on a plain install, and where a companion module restores the
-  old auto-marking it arrives a beat late and only on the GM client that made
-  the change — so the skip reads HP, which is already true when the card
-  disappears. If *every* remaining combatant is dead the pointer stays put
-  rather than rolling rounds forever.
 - **Saving a session threw away its downtime and renown.** The archive kept eight
   of the recap's arrays and silently dropped the rest, so a session you saved at
   the end of the night reopened from **History** with no downtime attempts and no
