@@ -66,8 +66,8 @@ import {
   clampSteps,
   abilityChipFor,
   recordDowntimeSafe,
-  MARTIAL_TIER_LABELS,
   CASTER_LIST_LABELS,
+  martialTierBuckets,
 } from "./downtime-session.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -510,39 +510,18 @@ export class DowntimeApp extends HandlebarsApplicationMixin(ApplicationV2) {
     let buckets = [{ key: null, label: null, enabled: true, reason: null, slots: allSlots }];
 
     if (gate?.kind === "hitDie") {
-      const tiers = gate.tiers ?? Object.values(gate.map ?? {});
-      const detected = facts.martialTier ?? null;
-      const viewing = tiers.includes(this._martialTier) ? this._martialTier : detected;
-      if (!detected) {
-        // Never guess a tier: show them all, dead, and say why.
-        gateNote = `Showing every tier — ${facts.classError ?? "couldn't read class hit die"}.`;
-        gateBlocked = true;
-      }
-      tierPicker = {
-        options: [...new Set(tiers)].map(t => ({
-          key: t,
-          label: MARTIAL_TIER_LABELS[t] ?? t,
-          selected: t === viewing,
-          detected: t === detected,
-        })),
-      };
-      const shown = viewing ?? detected;
-      const tierSlots = allSlots.filter(s => !s.tier || s.tier === shown);
-      // Legality comes from the SAME slotAllowed() the GM validates picks with,
-      // asked about a representative row of the tier on display — so the button
-      // state and the server's answer can't drift. A GM may train any tier.
-      const tierLegal = tierSlots.length
-        ? slotAllowed(activity, tierSlots[0], { facts, casterList: activeCasterList })
-        : false;
-      buckets = [{
-        key: shown,
-        label: null,
-        enabled: !gateBlocked && (!!game.user.isGM || tierLegal),
-        reason: (!gateBlocked && !game.user.isGM && !tierLegal)
-          ? `${actor?.name ?? "This character"} trains at ${MARTIAL_TIER_LABELS[detected] ?? detected}.`
-          : null,
-        slots: tierSlots,
-      }];
+      // Delegated like every other resolution rule: the window renders the tier
+      // gate from the same helper the GM validates a pick with. An unreadable
+      // hit die yields all three tiers, dead — never an empty bucket, which
+      // would drop the activity at the `!groups.length` check below.
+      const tier = martialTierBuckets(activity, {
+        facts,
+        casterList: activeCasterList,
+        isGM: !!game.user.isGM,
+        viewingTier: this._martialTier,
+        actorName: actor?.name ?? null,
+      });
+      ({ buckets, tierPicker, gateNote, gateBlocked } = tier);
     } else if (gate?.kind === "spellcaster") {
       if (!actor?.system?.isSpellCaster) return null;
       const lists = gate.lists ?? ["arcane", "divine"];
