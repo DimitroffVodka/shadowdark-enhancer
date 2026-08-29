@@ -1,5 +1,28 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **A column-check warning now names the word it is worried about, and stops
+  crying wolf over centred headings.** Grabbing text from a PDF warns when the
+  column split may have moved a word between columns — but it only ever said
+  *how many* words, so "cuts through 1 word" on a four-page bestiary grab meant
+  proofreading four pages to find out which. The warning now quotes the words
+  themselves (up to three, then a trailing "…"), so checking it is one search in
+  the paste box.
+
+  It also fires far less often. Page furniture — a section title, a running
+  header, a folio, an ornament — crosses a perfectly good gutter all the time
+  and lands in one column harmlessly, and the warning used to recognise it by
+  its being alone on its baseline. A centred title loses that signature the
+  moment PDF.js hands it over as several runs, which letter-spaced display type
+  usually does: every run is narrow, so the one sitting over the gutter scored
+  as a stolen body word. Furniture is now judged by its whole row — ink that
+  never leaves the middle half of the page is furniture however many pieces it
+  arrives in — while a word on a real two-column line still warns, by name.
+  Caught on a Cursed Scroll 2 bestiary grab (pgs. 40-43), which raised two
+  one-item warnings that named nothing to look at.
+
 ## [0.15.1] — 2026-08-26
 
 ### Added
