@@ -1,5 +1,32 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **The Western Reaches siege weapons import again.** *Importer Hub → Manage →
+  Vehicles → Siege Weapons* warned that the page's gutter cut through a word and
+  then reported "No siege weapons found", for every one of the four weapons —
+  nothing could be imported at all. Two things were wrong, and both are fixed.
+  The grab read p119 in column-aware mode, but the SIEGE WEAPONS table is printed
+  **full width** on a two-column page, so the column split ran straight down the
+  middle of the table and handed the parser a transposed jumble — the same thing
+  the Basic Gear / Weapons / Armor unlocks already avoid by reading their wide
+  price tables as a single column. The page is now read **twice**, once per
+  column mode: the table comes off the single-column read, and the Blast /
+  Exploding rule text off the column-aware one, so neither is reconstructed from
+  a shape that mangles it. (The paste box therefore holds p119 once per mode, and
+  a "Column check" warning there now refers to the rules text rather than the
+  table.) The parser was the other half: it accepted exactly two layouts and gave
+  up whole when either was off by a cell, so a blank Properties column, a
+  differently-punctuated *Crossbow (heavy)*, or one word the gutter pushed across
+  cost all four weapons rather than one. It now reads a row whole, one cell per
+  line, or split across the gutter — pairing the split halves on the column they
+  meet at, so a stray cell costs at most its own row — and takes the name however
+  the printing punctuates it. When a row still can't be read, the rest import and
+  the message names the one that didn't, instead of reporting nothing found; and
+  when *nothing* parses, it says whether the page had the weapon names on it at
+  all, which separates a bad page cite from a bad column split.
+
 ## [0.15.1] — 2026-08-26
 
 ### Added

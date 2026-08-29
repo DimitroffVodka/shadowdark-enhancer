@@ -136,6 +136,17 @@ the **Blast** / **Exploding** weapon properties, created as real Property items
 property. The import also creates a **Siege Weapon Ammunition** item (1 gp per
 piece, 2 gear slots).
 
+One Unlock press does the whole table — all four weapons and the ammunition — so it
+doesn't matter which of the four rows you press. The grab pulls p119 **twice**, once
+per column mode, because the page prints a full-width table above two columns of
+rules text and no single mode reads both: the stat table is taken from the
+single-column read, the Blast/Exploding rule text from the column-aware one. That is
+why the paste box holds the page once per mode, and why the "Column check" warning
+can still appear — it refers to the rules text, not to the table. The parser then
+reads the rows whatever shape they arrive in (whole rows, one cell per line, or a
+table the page gutter cut in half), and if a row still doesn't come through it
+imports the rest and names the one it missed rather than silently importing nothing.
+
 To arm a boat, open its **Weapons** tab and **drag a siege weapon from the
 compendium** onto it. Only siege weapons live on that tab. Ordinary weapons carried
 aboard stay in **Cargo**. Dropping any weapon onto the Weapons tab mounts it as a

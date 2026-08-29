@@ -776,8 +776,22 @@ class HubManageMethods {
     // grids, and one mode for the whole grab shreds half of them. Each declared
     // range is extracted on its own and the results are concatenated; the
     // caption-bound member shapes don't care what order they arrive in.
+    //
+    // A SIEGE WEAPONS unlock needs BOTH modes over the ONE page. Its stat table
+    // is printed full width on a two-column page, so "auto" locks onto the page
+    // gutter (WR p119: x=206) and cuts every row in half — the same transposed
+    // jumble the Basic/Weapon/Armor unlocks pin "1" to avoid, and the reason the
+    // grab used to hand the parser a table it could not read. But "1" is wrong
+    // for the rest of the page: with no gutter, the two prose columns share
+    // baselines and weld into single lines, which would store the neighbouring
+    // column's words inside the Blast/Exploding rule text. So grab the page
+    // twice — the parser takes the rows off the "1" pass and the rule text off
+    // whichever pass reads as whole sentences.
+    const siegePages = pdfPages.length ? pdfPages : [target.page];
     const passes = (shp?.kind === "suite" && shp.pageModes?.length)
       ? shp.pageModes.map((m) => ({ pages: toPdfPages(m.pages), columns: m.cols || "auto" }))
+      : seed?.type === "SiegeWeapon"
+      ? [{ pages: siegePages, columns: "1" }, { pages: siegePages, columns: "auto" }]
       : [{ pages: pdfPages.length ? pdfPages : [target.page], columns }];
 
     const chunks = [];
@@ -802,10 +816,16 @@ class HubManageMethods {
     const base = this._importText.replace(/\s*$/, "");
     this._importText = base ? `${base}\n${grabbed}\n` : `${grabbed}\n`;
     this.render();
-    const pageCount = passes.reduce((n, p) => n + p.pages.length, 0);
-    ui.notifications.info(pageCount > 1
-      ? `Pulled ${pageCount} pages into the paste box — review, then Parse.`
-      : `Pulled page ${target.page} into the paste box — review, then Parse.`);
+    // DISTINCT pages: a siege grab reads ONE page under two column modes, so
+    // counting passes would report "2 pages" for a single page — and say plainly
+    // that the box holds the page twice, or it just reads as a duplication bug.
+    const pageCount = new Set(passes.flatMap((p) => p.pages)).size;
+    ui.notifications.info(
+      pageCount === 1 && passes.length > 1
+        ? `Pulled page ${target.page} in ${passes.length} column modes — the box holds it once per mode. Review, then Parse.`
+        : pageCount > 1
+          ? `Pulled ${pageCount} pages into the paste box — review, then Parse.`
+          : `Pulled page ${target.page} into the paste box — review, then Parse.`);
   }
 
   /**
