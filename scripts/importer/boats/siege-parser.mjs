@@ -23,7 +23,6 @@
  *
  * Exports:
  *   SIEGE_SOURCE / SIEGE_MANIFEST  — names + WR p119 cite
- *   parseSiegeWeapons(text)        — table → drafts (pure, node-tested)
  *   parseSiegeTable(text)          — the same parse + why it came up short
  */
 
@@ -219,11 +218,19 @@ function scanStackedRows(lines) {
  * and a bare `<cells>` half, each in row order.
  *
  * Halves are grouped by the cell the split falls on and paired within a group,
- * rather than zipped as two flat lists. One straddling cell (the "gutter cuts
- * through a word" warning the grab raises) moves ONE row's boundary; a flat zip
- * then mismatches by one and drops all four weapons, while grouping pairs that
- * row on its own boundary and keeps the rest. A seeded title line — a bare name
- * with no cells — falls out the same way instead of unbalancing the zip.
+ * rather than zipped as two flat lists. A cell the gutter RELOCATES (the split
+ * lands a column earlier for one row) moves that row's boundary alone: a flat
+ * zip mismatches by one and drops all four weapons, while grouping pairs that
+ * row on its own boundary and keeps the rest. A seeded title line is dropped by
+ * name, since a name heads only one row of the table.
+ *
+ * A cell the gutter CORRUPTS is a different thing and is NOT recovered here.
+ * "333 gp" arriving as "3 33gp" stops that line reading as a head at all, and
+ * nothing left in the text says which tail it had been aligned with — pairing
+ * the survivors by position would silently hand one weapon another's stats,
+ * which is the failure mode this whole file is arranged to avoid. The group is
+ * dropped and diagnose() tells the GM the split ran through the table and to
+ * re-grab the page. Pinned in siege-parser.test.mjs.
  */
 function scanSplitRows(lines) {
   const heads = [];
@@ -244,7 +251,14 @@ function scanSplitRows(lines) {
   }
   const rows = [];
   for (const at of new Set(heads.map((h) => h.at))) {
-    const H = heads.filter((h) => h.at === at);
+    // A name can only head one row of the table, so a repeat is the seeded
+    // title line, not a fifth weapon. Grouping alone sorts that out whenever
+    // the split leaves a cell on the head (the title, carrying none, lands in
+    // its own group and finds no tails) — but when the split falls at the name
+    // column every head carries none either, title included, and the extra
+    // name unbalanced the whole group into being dropped.
+    const seen = new Set();
+    const H = heads.filter((h) => h.at === at && !seen.has(h.name) && seen.add(h.name));
     const T = tails.filter((t) => t.at === at);
     if (!T.length || H.length !== T.length) continue;
     H.forEach((h, i) => rows.push({ name: h.name, ...h.values, ...T[i].values }));
@@ -379,7 +393,7 @@ function namesMentioned(lines) {
 function diagnose(parsed, missing, mentioned) {
   if (!parsed.length) {
     return mentioned.length
-      ? `Siege weapons: found ${mentioned.length} name${mentioned.length === 1 ? "" : "s"} (${mentioned.join("; ")}) but no complete stat row, so the column split most likely ran through the table. Re-grab p119, or paste its rows (Weapon · Cost · Type · Range · Damage · Properties).`
+      ? `Siege weapons: found ${mentioned.length} name${mentioned.length === 1 ? "" : "s"} (${mentioned.join("; ")}) but no complete stat row, so the column split most likely ran through the table. Re-grab p119 with Open PDF (cites assume the V1 printing — another printing's front matter shifts every page), or paste its rows (Weapon · Cost · Type · Range · Damage · Properties).`
       : "No siege weapons found — paste the Western Reaches p119 SIEGE WEAPONS table. If you grabbed it from your PDF, open the page (Open PDF) and check it really is the SIEGE WEAPONS page: cites assume the V1 printing, and another printing's front matter shifts every page.";
   }
   return missing.length
@@ -422,11 +436,3 @@ export function parseSiegeTable(text) {
   };
 }
 
-/**
- * Parse the WR siege-weapons table into Weapon drafts + one ammunition item.
- * @param {string} text
- * @returns {Array<object>} weapon drafts followed by the ammunition draft
- */
-export function parseSiegeWeapons(text) {
-  return parseSiegeTable(text).drafts;
-}

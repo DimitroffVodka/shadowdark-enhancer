@@ -787,12 +787,14 @@ class HubManageMethods {
     // column's words inside the Blast/Exploding rule text. So grab the page
     // twice — the parser takes the rows off the "1" pass and the rule text off
     // whichever pass reads as whole sentences.
-    const siegePages = pdfPages.length ? pdfPages : [target.page];
+    // The pages this grab covers — the explicit range if the GM gave one, else
+    // the unlock's own cited page. Every pass below reads the same set.
+    const grabPages = pdfPages.length ? pdfPages : [target.page];
     const passes = (shp?.kind === "suite" && shp.pageModes?.length)
       ? shp.pageModes.map((m) => ({ pages: toPdfPages(m.pages), columns: m.cols || "auto" }))
       : seed?.type === "SiegeWeapon"
-      ? [{ pages: siegePages, columns: "1" }, { pages: siegePages, columns: "auto" }]
-      : [{ pages: pdfPages.length ? pdfPages : [target.page], columns }];
+      ? [{ pages: grabPages, columns: "1" }, { pages: grabPages, columns: "auto" }]
+      : [{ pages: grabPages, columns }];
 
     const chunks = [];
     for (const pass of passes) {
