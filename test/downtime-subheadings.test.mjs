@@ -19,7 +19,7 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 
-import { parseDowntimeText } from "../scripts/downtime/downtime-parser.mjs";
+import { parseDowntimeText, looksLikeDowntimePage } from "../scripts/downtime/downtime-parser.mjs";
 import { warningLines } from "../scripts/downtime/downtime-warnings.mjs";
 
 const keys = (r) => Object.keys(r.filled);
@@ -166,5 +166,48 @@ Spellcasters of any stripe
     const quiet = warningLines(r).filter((l) => l.info).map((l) => l.text);
     assert.deepEqual(quiet, [], `unexpected info-level notes: ${quiet.join(" | ")}`);
     assert.equal(warningLines(r).every((l) => !/^Parser note:/.test(l.text)), true);
+  });
+});
+
+describe("recognizing a downtime page under Auto-detect", () => {
+  // Auto-detect sorts monsters, items, spells and tables. Downtime is none of
+  // those, but "not a recognizer" left the item recognizer free to claim the DC
+  // bullets and offer to mint a Basic item out of a book page — which is what a
+  // GM actually hit. Auto now asks this first.
+
+  test("fires on a page carrying an activity heading and DC lines", () => {
+    const r = looksLikeDowntimePage(
+      "SPIRITUALISM\nWIS Check\n• DC 9: Sweep the church steps.\n• DC 12: A week of drills.",
+    );
+    assert.equal(r.isDowntime, true);
+    assert.deepEqual(r.activities, ["spiritualism"]);
+    assert.equal(r.bullets, 2);
+  });
+
+  test("names every activity it saw, for the message that tells the GM what to switch to", () => {
+    const r = looksLikeDowntimePage(
+      "SPIRITUALISM\n• DC 9: a.\nSKULDUGGERY\n• DC 12: b.\nMARTIAL TRAINING\n• DC 15: c.\nMAGICAL RESEARCH\n• DC 18: d.",
+    );
+    assert.deepEqual(r.activities.sort(), ["magicalResearch", "martialTraining", "skulduggery", "spiritualism"].sort());
+  });
+
+  for (const [what, text] of [
+    ["an item list", "Longsword 9 gp 1 slot\nShortbow 6 gp 1 slot"],
+    ["a monster statblock", "GOBLIN\nAC 12, HP 5, ATK 1 spear +1 (1d6)"],
+    ["a table that happens to print DCs", "WILDERNESS HAZARDS\n1. DC 12: a rockfall\n2. DC 15: a bog"],
+    ["an activity heading with no DC lines", "SPIRITUALISM\nMeditation, prayer, self-reflection."],
+    ["a single DC line under a heading", "SPIRITUALISM\n• DC 9: Sweep the church steps."],
+    ["nothing at all", ""],
+  ]) {
+    test(`does not fire on ${what}`, () => {
+      // A false positive refuses somebody's real paste, so the bar is both a
+      // pinned ALL-CAPS activity name AND at least two DC bullets.
+      assert.equal(looksLikeDowntimePage(text).isDowntime, false);
+    });
+  }
+
+  test("survives a null or undefined paste", () => {
+    assert.equal(looksLikeDowntimePage(undefined).isDowntime, false);
+    assert.equal(looksLikeDowntimePage(null).isDowntime, false);
   });
 });

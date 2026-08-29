@@ -108,8 +108,13 @@ One note is worth reading properly. Cursed Scroll 6 names the **City Guard**
 where the Western Reaches says **authorities**, so a warning about the wrong name
 usually means the paste came from the other book.
 
-> **Auto-detect will not find a downtime page.** The type has to be picked, or
-> seeded for you. Left on **Auto-detect**, a downtime paste lands in **Skipped**.
+> **Auto-detect will not unlock a downtime page.** The type has to be picked, or
+> seeded for you — unlocking needs a book chosen, which Auto has no way to ask
+> for. It does recognise one, though: paste a downtime page under **Auto-detect**
+> and it says so, naming the activities and DC lines it saw, and telling you to
+> switch **Importing** to **Downtime**. The page lands in **Skipped** and nothing
+> is created from it. Before that it was the item recognizer that claimed those
+> DC lines, and the Hub offered to mint a Basic item out of a book page.
 
 ### From the Manage tree
 
