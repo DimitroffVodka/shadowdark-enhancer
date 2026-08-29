@@ -557,6 +557,7 @@ Hooks.on("quenchReady", async (quench) => {
     ["../test/quench/merchant-transaction.batch.mjs", "registerMerchantTransactionBatch"],
     ["../test/quench/movement-rollback.batch.mjs",    "registerMovementRollbackBatch"],
     ["../test/quench/creator-update.batch.mjs",       "registerCreatorUpdateBatch"],
+    ["../test/quench/gear-currency.batch.mjs",        "registerGearCurrencyBatch"],
   ];
   for (const [path, fn] of batches) {
     try {

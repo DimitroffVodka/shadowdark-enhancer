@@ -40,6 +40,7 @@ import { contentIdForName } from "./tables/table-shapes.mjs";
 import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES } from "./tables/table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
+import { isCurrencyName } from "./items/item-parser.mjs";
 import { findMonsterPack } from "./monsters/monster-pack.mjs";
 import { sourceFolderName, findSuitePack } from "../shared/compendium-suite.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -443,14 +444,23 @@ export const _testBuildMonsters = buildMonsters;
  * Items top-level branch, grouped by type (Magic Items = Potion+Scroll+Wand).
  * Each leaf enumerates already-imported items of that type (from sde-items)
  * plus importable manifest gear (char-builder gear the system doesn't ship).
+ *
+ * Currency rows (Coin, Gem) never appear under Basic Gear. They sit in the book's Basic Gear
+ * table but aren't gear, the parsers no longer make items of them, and an
+ * earlier import that did leaves copies behind — this keeps those out of the
+ * gear list too, so `Items > Basic Gear` reads as equipment only.
  */
 function buildItems(charEntries, itemRecords) {
-  const typeLeaf = (id, label, icon, types) => {
+  const typeLeaf = (id, label, icon, types, { dropCurrency = false } = {}) => {
     // Imported items of these types (deduped by name).
     const seenName = new Set();
     const present = [];
     for (const r of itemRecords) {
       if (!types.includes(r.type)) continue;
+      // Only on the Basic Gear leaf. A Weapon, Armor or Magic Item a GM named
+      // "Gem" is a real thing they made and must stay visible; the currency
+      // rows this hides are Basic-type rows the book's gear table prints.
+      if (dropCurrency && isCurrencyName(r.name)) continue;
       const k = _norm(r.name);
       if (seenName.has(k)) continue;
       for (const v of nameVariants(r.name)) seenName.add(v);   // qty/comma variants flip aliases
@@ -462,12 +472,15 @@ function buildItems(charEntries, itemRecords) {
       .map((e) => ({ name: e.name, present: false, type: e.type, src: e.src, pages: e.pages }));
     return leaf(id, label, icon, [...present, ...importable], "charSeedPaste");
   };
-  const basic = typeLeaf("items/basic", "Basic Gear", "fa-box-open", ["Basic"]);
+  const basic = typeLeaf("items/basic", "Basic Gear", "fa-box-open", ["Basic"], { dropCurrency: true });
   const armor = typeLeaf("items/armor", "Armor", "fa-shield-halved", ["Armor"]);
   const weapons = typeLeaf("items/weapons", "Weapons", "fa-gavel", ["Weapon"]);
   const magic = typeLeaf("items/magic", "Magic Items", "fa-hat-wizard", ["Potion", "Scroll", "Wand"]);
   return branch("items", "Items", "fa-gem", [basic, armor, weapons, magic]);
 }
+
+/** Pure test seam for the type-bucketed Items leaves. */
+export const _testBuildItems = buildItems;
 
 /**
  * Compose the full Manage tree from the live censuses. Returns the array of the

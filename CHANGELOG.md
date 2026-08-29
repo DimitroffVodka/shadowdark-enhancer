@@ -28,6 +28,32 @@
   each under its own heading, all of it dead, with a note naming the reason. The
   **Training tier** dropdown stays hidden while that is true, since every tier is
   already on the page and the gate is shut for the GM as well.
+- **The Western Reaches siege weapons import again.** *Importer Hub → Manage →
+  Vehicles → Siege Weapons* warned that the page's gutter cut through a word and
+  then reported "No siege weapons found", for every one of the four weapons —
+  nothing could be imported at all. Two things were wrong, and both are fixed.
+  The grab read p119 in column-aware mode, but the SIEGE WEAPONS table is printed
+  **full width** on a two-column page, so the column split ran straight down the
+  middle of the table and handed the parser a transposed jumble — the same thing
+  the Basic Gear / Weapons / Armor unlocks already avoid by reading their wide
+  price tables as a single column. The page is now read **twice**, once per
+  column mode: the table comes off the single-column read, and the Blast /
+  Exploding rule text off the column-aware one, so neither is reconstructed from
+  a shape that mangles it. (The paste box therefore holds p119 once per mode, and
+  a "Column check" warning there now refers to the rules text rather than the
+  table.) The parser was the other half: it accepted exactly two layouts and gave
+  up whole when either was off by a cell, so a blank Properties column, a
+  differently-punctuated *Crossbow (heavy)*, or one word the gutter pushed across
+  cost all four weapons rather than one. It now reads a row whole, one cell per
+  line, or split across the gutter — pairing the split halves on the column they
+  meet at, so a stray cell costs at most its own row — and takes the name however
+  the printing punctuates it. When a row still can't be read, the rest import and
+  the message names the one that didn't, instead of reporting nothing found; and
+  when *nothing* parses, it says whether the page had the weapon names on it at
+  all, which separates a bad page cite from a bad column split — and, for the
+  bad-cite case, points at the printing rather than at a page-offset control,
+  which the Source PDFs library does not have (offsets are a constant in code,
+  and only the Core Rulebook carries one).
 - **A weapon's book-only properties no longer arrive as a note to self.** The
   Western Reaches weapon and armour tables print property codes core Shadowdark
   ships no property for — *Charge*, *Devastating* and *Mounted* on the Lance,
@@ -109,6 +135,20 @@
   either spelling now counts as present. And when the extracted pages hold no
   statblock, the importer says so and names the pages to grab instead of quietly
   creating the wrong kind of document.
+- **Importing the Basic Gear table no longer mints a Coin and a Gem.** Both sit
+  in the book's gear table next to real equipment, so the importer took them for
+  gear and created them as items — worth `0 gp`, because the table prices them
+  *Varies*. They then lived in `Manage > Items > Basic Gear` permanently, two
+  rows of currency in a list of equipment. Neither is a thing a character buys:
+  a coin is money and a gem is treasure, and what either is worth is whatever
+  the GM says at the time. Both are now refused wherever a gear table is read —
+  the paste box, the Item Builder's guided gear stage, and the cost-table join —
+  and they are listed under **Skipped** with the reason, rather than dropped
+  without a word. `Manage > Items > Basic Gear` also stops listing them, so a
+  world that got them from an earlier import shows equipment only; the items
+  themselves are left in `sde-items` for you to delete, because nothing here
+  deletes your documents. Names that merely start the same way — a coin purse, a
+  gemstone dust — are unaffected: the rule matches the row's name cell exactly.
 
 ## [0.15.1] — 2026-08-26
 

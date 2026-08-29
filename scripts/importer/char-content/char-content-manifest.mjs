@@ -400,8 +400,12 @@ const MANIFEST = {
       "Warrior", "Witchborn", "Witness",
     ],
     // Keep this list to useful non-system gear only. Bolas, Spear-thrower and
-    // Stave duplicate system weapons; Flask or bottle and Gem are intentionally
-    // not offered as importer unlocks.
+    // Stave duplicate system weapons; Flask or bottle is intentionally not
+    // offered as an importer unlock. The table's Coin and Gem rows are currency
+    // rather than gear, and every reader that turns a gear table into items
+    // refuses them rather than merely leaving them off this list — the paste
+    // box, the Item Builder's gear stage, and the cost-table join. See
+    // isCurrencyName in items/item-parser.mjs.
     Basic: [
       "Ball Bearing", "Candle", "Charcoal, jar", "Flash Seed",
       "Glow paste, jar", "Holy water, flask", "Lantern Hook", "Miner's putty, jar",
