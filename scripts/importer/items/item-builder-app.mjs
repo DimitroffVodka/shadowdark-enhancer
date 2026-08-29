@@ -90,7 +90,8 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _descText = "";
   // Working set — the combined items. Each row is a FULL gear draft (name,
   // cost, slots, and for Weapon/Armor: damage/range/wtype or ac/baseArmor,
-  // propNames + resolved properties) plus description ("" until stage ②) and
+  // propNames + resolved properties, unmappedProps for the WR-only codes that
+  // become a description note) plus description ("" until stage ②) and
   // warnings[] (shown as a review flag on the row).
   _items = [];
   // Stray lines stage ① refused to mint as items ({ text, reason }).
