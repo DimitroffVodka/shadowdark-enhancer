@@ -280,6 +280,15 @@ copying from your PDF reader. It is column-aware.
 Messy PDF tables need a parsing recipe. See
 [Table Import & Shapes](Table-Import-and-Shapes.md).
 
+**Coin and Gem didn't import with the rest of the gear table.**
+On purpose. Both are currency, not equipment — the gear table prints them with
+a *Varies* cost because their worth is whatever you say — so the importer never
+makes items of them and `Manage > Items > Basic Gear` never lists them. They
+appear in **Skipped** with that reason so you can see they were seen. Track
+coin on the character sheet's purse and a gem as treasure or loot instead.
+An older import that already created them leaves the items in `sde-items`;
+delete them from the compendium if you don't want them.
+
 **The Manage tree still shows a gap after I imported it.**
 The census matches on name and source folder. Confirm the source label you
 committed with matches the book. Importing a CS1 monster under a blank source
