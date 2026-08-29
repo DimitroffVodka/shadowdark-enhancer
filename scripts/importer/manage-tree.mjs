@@ -40,6 +40,7 @@ import { contentIdForName } from "./tables/table-shapes.mjs";
 import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES } from "./tables/table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
+import { isNonGearRow } from "./items/item-parser.mjs";
 import { findMonsterPack } from "./monsters/monster-pack.mjs";
 import { sourceFolderName, findSuitePack } from "../shared/compendium-suite.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -439,6 +440,11 @@ export const _testBuildMonsters = buildMonsters;
  * Items top-level branch, grouped by type (Magic Items = Potion+Scroll+Wand).
  * Each leaf enumerates already-imported items of that type (from sde-items)
  * plus importable manifest gear (char-builder gear the system doesn't ship).
+ *
+ * Currency rows (Coin, Gem) never appear. They sit in the book's Basic Gear
+ * table but aren't gear, the parsers no longer make items of them, and an
+ * earlier import that did leaves copies behind — this keeps those out of the
+ * gear list too, so `Items > Basic Gear` reads as equipment only.
  */
 function buildItems(charEntries, itemRecords) {
   const typeLeaf = (id, label, icon, types) => {
@@ -447,6 +453,7 @@ function buildItems(charEntries, itemRecords) {
     const present = [];
     for (const r of itemRecords) {
       if (!types.includes(r.type)) continue;
+      if (isNonGearRow(r.name)) continue;              // currency, not gear
       const k = _norm(r.name);
       if (seenName.has(k)) continue;
       for (const v of nameVariants(r.name)) seenName.add(v);   // qty/comma variants flip aliases
@@ -464,6 +471,9 @@ function buildItems(charEntries, itemRecords) {
   const magic = typeLeaf("items/magic", "Magic Items", "fa-hat-wizard", ["Potion", "Scroll", "Wand"]);
   return branch("items", "Items", "fa-gem", [basic, armor, weapons, magic]);
 }
+
+/** Pure test seam for the type-bucketed Items leaves. */
+export const _testBuildItems = buildItems;
 
 /**
  * Compose the full Manage tree from the live censuses. Returns the array of the

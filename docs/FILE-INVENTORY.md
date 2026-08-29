@@ -193,12 +193,12 @@
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 589 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 599 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `pdf-text-extract.mjs` | 584 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1477 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1479 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1067 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1222 | Class unit → real documents in dependency order. |
@@ -230,12 +230,12 @@
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 42 | Shared pack-identity leaf so importer and linker agree. |
-| `items/item-parser.mjs` | 450 | Generic item recognizer (name/cost/slots). Pure. |
+| `items/item-parser.mjs` | 495 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 535 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
-| `items/gear-join.mjs` | 244 | Joins split cost-table + description layouts into one item. Pure. |
+| `items/gear-join.mjs` | 247 | Joins split cost-table + description layouts into one item. Pure. |
 | `items/item-importer.mjs` | 805 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 395 | Guided multi-stage equipment-section workspace. |
-| `items/item-builder-gear.mjs` | 121 | Pure stage-①/③ logic for the Item Builder. |
+| `items/item-builder-gear.mjs` | 125 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
 | `tables/table-manifest.mjs` | 210 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
