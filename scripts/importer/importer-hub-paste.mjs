@@ -24,7 +24,7 @@ import { revalidateTalentBandWarnings } from "./char-content/class-parser.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
-import { parseDowntimeText } from "../downtime/downtime-parser.mjs";
+import { parseDowntimeText, looksLikeDowntimePage } from "../downtime/downtime-parser.mjs";
 import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
 
 class HubPasteMethods {
@@ -979,6 +979,31 @@ class HubPasteMethods {
     }
 
     if (type === "auto") {
+      // A downtime page reaches Auto looking enough like a list of things that
+      // the item recognizer claims its DC bullets and offers to mint a Basic
+      // item out of a book page. Downtime unlocks a world setting instead, and
+      // needs a book chosen, so Auto cannot do it — but it can say so rather
+      // than quietly building the wrong thing. Reported live, 2026-08-29.
+      const sniff = looksLikeDowntimePage(effectiveText);
+      if (sniff.isDowntime) {
+        const named = sniff.activities.length;
+        this._importSkipped = [{
+          name: "Downtime page",
+          reason: `recognized ${named} downtime ${named === 1 ? "activity" : "activities"} and `
+            + `${sniff.bullets} DC lines. Auto-detect can't unlock downtime — set Importing to `
+            + `"Downtime", pick the Book, then Parse again.`,
+        }];
+        this._importMonsters = [];
+        this._importItems = [];
+        this._importSpells = [];
+        this._importTables = [];
+        this._importGenerators = [];
+        this._importChar = [];
+        this._downtimeParse = null;
+        ui.notifications.warn('That looks like a downtime page. Set Importing to "Downtime" and pick the book, then Parse again.');
+        this.render();
+        return;
+      }
       // Sort a mixed dump across every recognizer.
       const seg = segmentDump(effectiveText);
       monsters = seg.monsters.map((chunk) => parseStatblock(chunk));

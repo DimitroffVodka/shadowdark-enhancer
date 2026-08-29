@@ -84,6 +84,44 @@ function tierKey(raw) {
 }
 
 /**
+ * Does this paste look like a downtime page?
+ *
+ * The Importer's Auto-detect sorts monsters, items, spells and tables; downtime
+ * is deliberately not one of its recognizers, because a downtime page unlocks a
+ * world setting rather than minting documents. But "not a recognizer" is not the
+ * same as "left alone": the item recognizer would claim the DC bullets and offer
+ * to create a Basic item out of a book page, which is what a GM actually hit.
+ *
+ * So Auto asks this first. Deliberately narrow, because a false positive would
+ * refuse somebody's real item paste: it wants a printed ALL-CAPS activity name
+ * — SPIRITUALISM, SKULDUGGERY, MARTIAL TRAINING, MAGICAL RESEARCH, matched
+ * against the same pinned header set the parser files segments by — AND at
+ * least two "DC n:" bullets. Nothing else in the suite's paste vocabulary
+ * carries both.
+ *
+ * Pure: no Foundry globals.
+ *
+ * @param {string} text Raw paste.
+ * @returns {{isDowntime: boolean, activities: string[], bullets: number}}
+ */
+export function looksLikeDowntimePage(text) {
+  const activities = new Set();
+  let bullets = 0;
+  for (const rawLine of String(text ?? "").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const key = ACTIVITY_BY_HEADER[line.toUpperCase()];
+    if (key) activities.add(key);
+    else if (BULLET_RE.test(line)) bullets += 1;
+  }
+  return {
+    isDowntime: activities.size >= 1 && bullets >= 2,
+    activities: [...activities],
+    bullets,
+  };
+}
+
+/**
  * @param {string} text Raw paste from the user's book page.
  * @param {{source: string}} opts Source slug: "cs6" or "western-reaches".
  * @returns {{filled: object, unmatchedBullets: object[], unfilledSlots: string[], warnings: object[]}}

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Added
+- **Auto-detect now recognises a downtime page instead of offering to build an
+  item out of it.** Auto sorts monsters, items, spells and tables; downtime is
+  none of those, because unlocking it needs a book chosen and writes a world
+  setting rather than creating documents. But being absent from the sorter did
+  not mean being left alone — the item recognizer claimed the `DC 9:` lines and
+  the Hub offered to create a **Basic** item out of a page of the book. Auto now
+  checks first, and a page carrying a printed activity heading (SPIRITUALISM,
+  SKULDUGGERY, MARTIAL TRAINING, MAGICAL RESEARCH) together with at least two DC
+  lines is reported rather than parsed: a notification and a Skipped entry naming
+  what it saw, and telling you to set **Importing** to **Downtime** and pick the
+  book. Nothing is created. The bar is deliberately high — an item list, a
+  statblock, or a table that happens to print DCs are all left alone.
+
 ### Fixed
 - **Martial Training no longer vanishes from the Downtime window.** When a
   character's class hit die couldn't be read — a level 0 character who hasn't
