@@ -3,6 +3,17 @@
 ## [Unreleased]
 
 ### Fixed
+- **Martial Training no longer vanishes from the Downtime window.** When a
+  character's class hit die couldn't be read — a level 0 character who hasn't
+  picked a class yet, or a class item that won't load — the whole activity
+  quietly disappeared instead of showing. The window was narrowing the list to
+  "the character's tier", and with no tier to narrow to it matched nothing;
+  Martial Training is the only activity where *every* entry belongs to a tier,
+  so nothing was left to draw and the section was dropped. It now does what the
+  book does and what the wiki always described: all three tiers show at once,
+  each under its own heading, all of it dead, with a note naming the reason. The
+  **Training tier** dropdown stays hidden while that is true, since every tier is
+  already on the page and the gate is shut for the GM as well.
 - **Importing the Basic Gear table no longer mints a Coin and a Gem.** Both sit
   in the book's gear table next to real equipment, so the importer took them for
   gear and created them as items — worth `0 gp`, because the table prices them
