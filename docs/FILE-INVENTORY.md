@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-780 tracked files · ~108,900 lines of code/markup across scripts+templates+styles+test.
+776 tracked files · ~108,900 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
