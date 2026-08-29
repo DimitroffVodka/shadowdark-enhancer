@@ -7,7 +7,7 @@
 // already made). Fixtures are invented, per the no-book-content rule.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { itemRecognizer, isNonGearRow } from "../scripts/importer/items/item-parser.mjs";
+import { itemRecognizer, isCurrencyName } from "../scripts/importer/items/item-parser.mjs";
 import { parseCostTable } from "../scripts/importer/items/gear-join.mjs";
 import { _testBuildItems } from "../scripts/importer/manage-tree.mjs";
 import { parseGearTable } from "../scripts/importer/items/item-builder-gear.mjs";
@@ -40,10 +40,10 @@ test("a priced currency row is refused too, and near-miss names still import", (
   assert.deepEqual(skipped.map((s) => s.name), ["Coins", "Gems"]);
 });
 
-test("isNonGearRow matches only the bare currency names", () => {
-  for (const n of ["Coin", "coins", "Gem", " gems "]) assert.equal(isNonGearRow(n), true, n);
+test("isCurrencyName matches only the bare currency names", () => {
+  for (const n of ["Coin", "coins", "Gem", " gems "]) assert.equal(isCurrencyName(n), true, n);
   for (const n of ["Coin purse", "Gemstone dust", "Gem cutter's kit", "", null]) {
-    assert.equal(isNonGearRow(n), false, String(n));
+    assert.equal(isCurrencyName(n), false, String(n));
   }
 });
 
@@ -77,4 +77,50 @@ test("Items > Basic Gear hides currency an older import already created", () => 
   assert.deepEqual(basic.entries.map((e) => e.name), ["Candle", "Ball Bearing", "Coin Purse"]);
   assert.equal(basic.have, 2);
   assert.equal(basic.locked, 1);
+});
+
+test("a Magic Item the GM named Gem is still listed", () => {
+  // The hide belongs to Basic Gear, where the book's currency rows land. It sat
+  // in the shared leaf builder instead, so a Weapon, Armor or Magic Item a GM
+  // legitimately named "Gem" or "Coin" vanished from Manage with no trace.
+  const itemRecords = [
+    { name: "Gem", type: "Basic" },     // the book's currency row: hidden
+    { name: "Gem", type: "Potion" },    // a magic gem the GM made: shown
+    { name: "Coin", type: "Weapon" },   // an oddly-named weapon: shown
+  ];
+  const items = _testBuildItems([], itemRecords);
+  const leafOf = (id) => items.children.find((c) => c.id === id);
+  assert.deepEqual(leafOf("items/basic").entries.map((e) => e.name), []);
+  assert.deepEqual(leafOf("items/magic").entries.map((e) => e.name), ["Gem"]);
+  assert.deepEqual(leafOf("items/weapons").entries.map((e) => e.name), ["Coin"]);
+});
+
+test("a currency row arriving alone is refused too, and reported", () => {
+  // The rule used to live INSIDE the "this block is a gear list" branch, so it
+  // only ever saw rows that arrived with company. A currency row pasted on its
+  // own, or one a blank line stranded in a block of its own, walked straight
+  // past it and minted the very item the rule exists to refuse — silently,
+  // since nothing was added to Skipped either.
+  const cases = [
+    ["a priced currency row on its own", "Coin 5 gp 1"],
+    ["a Varies currency row on its own", "Coin Varies 100"],
+    ["gear, then a currency row past a blank line",
+      "Ball bearing 1 gp 1\nLantern hook 2 gp 1\n\nGem Varies 1"],
+  ];
+  for (const [label, paste] of cases) {
+    const { claimed, skipped } = itemRecognizer.claim(paste, { force: true });
+    const names = itemRecognizer.parse(claimed, { force: true }).map((r) => r.draft.name);
+    assert.ok(!names.some((n) => isCurrencyName(n)),
+      `${label}: currency became an item — ${JSON.stringify(names)}`);
+    assert.ok(skipped.length >= 1, `${label}: the refusal must be reported, not dropped`);
+    assert.match(skipped.map((s) => s.reason).join(" "), /currency, not gear/, label);
+  }
+});
+
+test("refusing currency alone doesn't cost the gear beside it", () => {
+  const { claimed } = itemRecognizer.claim(
+    "Ball bearing 1 gp 1\nLantern hook 2 gp 1\n\nGem Varies 1", { force: true },
+  );
+  const names = itemRecognizer.parse(claimed, { force: true }).map((r) => r.draft.name);
+  assert.deepEqual(names.sort(), ["Ball Bearing", "Lantern Hook"]);
 });

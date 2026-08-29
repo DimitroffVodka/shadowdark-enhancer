@@ -22,7 +22,10 @@ const _norm  = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").
  * Parse a price/stat table paste into working rows for the builder.
  * @param {string} text
  * @param {"Basic"|"Weapon"|"Armor"} gearType
- * @param {{ onDrop?: (text: string, reason: string) => void }} [opts]
+ * @param {{ onDrop?: (label: string, reason: string) => void }} [opts]
+ *   `label` is whatever identifies the dropped row in the builder's list: the
+ *   raw row text for a row the parser couldn't read, and the name cell for a
+ *   currency row, which is refused on its name alone.
  * @returns {object[]} rows — full draft fields + description:"" + warnings[]
  */
 export function parseGearTable(text, gearType, { onDrop } = {}) {

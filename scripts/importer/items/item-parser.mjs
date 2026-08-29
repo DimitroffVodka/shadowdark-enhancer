@@ -58,8 +58,13 @@ const NON_GEAR_ROW_REASON =
  * @param {string} name  the row's name cell (not the whole row)
  * @returns {boolean}
  */
-export function isNonGearRow(name) {
+export function isCurrencyName(name) {
   return NON_GEAR_ROW_RE.test(String(name ?? "").trim());
+}
+
+/** A whole block's name cell, read off its first non-empty line. */
+function _blockName(block) {
+  return String(block).split("\n").map((l) => l.trim()).find(Boolean) ?? "";
 }
 
 /** A gear row's NAME cell — everything before its cost (`5 gp` / `Varies`). */
@@ -386,7 +391,7 @@ function _forceBlocks(rawText) {
   // promise that nothing vanishes silently.
   const keep = (line) => {
     const name = _rowName(line);
-    if (!isNonGearRow(name)) return true;
+    if (!isCurrencyName(name)) return true;
     skipped.push({ name, reason: NON_GEAR_ROW_REASON });
     return false;
   };
@@ -406,7 +411,11 @@ function _forceBlocks(rawText) {
       // the row permanently locked), so emit it with a 0-cost token and let the
       // description pass supply the value rules — unless it is currency.
       out.push(...lines.filter(_isVariesRow).filter(keep).map((l) => l.replace(VARIES_RE, "0 gp")));
-    } else {
+    } else if (keep(_blockName(block))) {
+      // Not a gear list — but a currency row still isn't gear when it arrives
+      // alone. One pasted on its own, or one a blank line left in a block of
+      // its own, used to walk straight through here and mint the very item the
+      // rule above exists to refuse — and silently, since nothing reported it.
       out.push(block);
     }
   }

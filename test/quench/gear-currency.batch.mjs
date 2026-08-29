@@ -3,7 +3,7 @@
  *
  * The Basic Gear table lists Coin and Gem next to real equipment. Both price
  * "Varies", so the importer used to mint them as 0 gp items that then sat in
- * `Manage > Items > Basic Gear` forever. The pure rule (isNonGearRow) is
+ * `Manage > Items > Basic Gear` forever. The pure rule (isCurrencyName) is
  * covered by test/gear-currency-rows.test.mjs; what only a live world can
  * prove is the two Foundry-bound halves:
  *
@@ -23,7 +23,7 @@
  * ships in the release zip.
  */
 import { MODULE_ID } from "../../scripts/shared/module-id.mjs";
-import { itemRecognizer } from "../../scripts/importer/items/item-parser.mjs";
+import { itemRecognizer, isCurrencyName } from "../../scripts/importer/items/item-parser.mjs";
 import { createItems } from "../../scripts/importer/items/item-importer.mjs";
 import { buildManageTree } from "../../scripts/importer/manage-tree.mjs";
 import { findSuitePack } from "../../scripts/shared/compendium-suite.mjs";
@@ -122,7 +122,7 @@ export function registerGearCurrencyBatch(quench) {
         const leaf = await basicGearLeaf();
         const bare = leaf.entries
           .map((e) => e.name)
-          .filter((n) => /^(?:coins?|gems?)$/i.test(String(n).trim()));
+          .filter((n) => isCurrencyName(n));
         assert.deepEqual(bare, [], `currency rows are back in Basic Gear: ${bare.join(", ")}`);
       });
     });
@@ -159,7 +159,7 @@ export function registerGearCurrencyBatch(quench) {
         const committed = [...out.created, ...out.replaced].map((c) => c.name);
         assert.equal(out.created.length, 2, `expected the two gear rows, got: ${committed.join(", ")}`);
         for (const n of committed) {
-          assert.notMatch(String(n).trim(), /^(?:coins?|gems?)$/i, `currency reached the pack as "${n}"`);
+          assert.ok(!isCurrencyName(n), `currency reached the pack as "${n}"`);
         }
         const doc = await fromUuid(out.created[0].uuid);
         assert.isTrue(doc.flags?.[MODULE_ID]?.imported === true, "imported flag missing");
