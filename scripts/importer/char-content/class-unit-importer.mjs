@@ -1167,9 +1167,14 @@ export async function pruneBoughtGearGrants() {
   };
   // An emptied list is REMOVED, not left as []: that is what a fresh import
   // writes, so the two paths leave the flag in the same shape.
+  //
+  // `ForcedDeletion` rather than the `-=key` prefix: v14 still honours the
+  // prefix but logs a deprecation every time this sweep empties a flag, and it
+  // is slated for removal. Live-verified on 14.367 — the flag comes back
+  // undefined and the warning is gone.
   const patch = (_id, keep) => (keep.length
     ? { _id, [`flags.${MODULE_ID}.grantedItems`]: keep }
-    : { _id, [`flags.${MODULE_ID}.-=grantedItems`]: null });
+    : { _id, [`flags.${MODULE_ID}.grantedItems`]: new foundry.data.operators.ForcedDeletion() });
 
   let fixed = 0;
   for (const pack of game.packs.filter((p) => p.documentName === "Item")) {
