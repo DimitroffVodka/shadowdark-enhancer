@@ -220,8 +220,12 @@ one, which is the point: house rules and one-off rulings happen. For a player th
 foreign tier's buttons are dead, with the reason on hover naming their own tier,
 so browsing never turns into taking.
 
-When the class hit die can't be read at all, the module still refuses to guess.
-Every tier shows, all of it dead, with the note saying why.
+When the class hit die can't be read at all — a level 0 character with no class
+yet, or a class item that won't load — the module still refuses to guess. All
+three tiers show at once, each under its own heading, all of it dead, with the
+note saying why. The **Training tier** dropdown is not drawn in that case: every
+tier is already on the page, and the gate is shut for the GM too, so a control
+offering a way past it would be promising something the roll would refuse.
 
 A **Roll with** dropdown picks the ability. It offers INT, STR and DEX with each
 modifier shown, and starts on whichever is highest.
