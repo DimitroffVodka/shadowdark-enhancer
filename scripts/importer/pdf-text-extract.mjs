@@ -23,6 +23,8 @@
  *   parsePageRange(spec, max)      — "12", "12-14", "12,16,20-22" → [numbers]
  */
 
+import { collapse } from "./pdf-text-utils.mjs";
+
 /** Cached ESM import of Foundry's bundled PDF.js (loaded once per session). */
 let _pdfjs = null;
 /** path → Promise<PDFDocumentProxy>, so a 100 MB book is parsed once per session. */
@@ -234,6 +236,101 @@ function _rowSplit(its, cut) {
  *  and is EXPECTED to cross a gutter; anything narrower is body text. */
 const FULL_WIDTH_FRAC = 0.25;
 
+/** A row whose ink stays inside this central share of the page is CENTRED PAGE
+ *  FURNITURE — a section title, a running header, a folio, an ornament — not a
+ *  line of two-column body text, which always reaches one column's outer edge. */
+const CENTRE_BAND_FRAC = 0.5;
+
+/** How many of the flagged items a warning quotes back before it says "…". */
+const RISK_SAMPLES = 3;
+
+/** Longest a quoted sample runs before it is elided, the "…" included. */
+const SAMPLE_CHARS = 24;
+
+/**
+ * Quote the flagged items' own text, so a warning names what to look at.
+ *
+ * "cuts through 1 word" sends the user to proofread a whole page; the same
+ * warning quoting the word is one search in the paste box. The text is the
+ * user's own PDF read back to them — nothing is stored and nothing is bundled.
+ *
+ * Plain text on purpose: Foundry escapes notification messages itself (v12+),
+ * so pre-escaping here would surface "&amp;" to the reader.
+ *
+ * @param {Array} items  the items a check flagged
+ * @returns {string} a parenthesised list of quoted words, or "" when none of
+ *   the flagged items carry text
+ */
+function _riskSample(items) {
+  // Count the items that CARRY text, not the raw input: a flagged item with no
+  // string of its own can never be quoted, so counting it would promise a
+  // sample the list does not go on to show.
+  const texts = items.map((i) => collapse(i.str)).filter(Boolean);
+  const shown = texts
+    .slice(0, RISK_SAMPLES)
+    // trimEnd so a cut that lands on a space doesn't read as "word …".
+    .map((s) => `"${s.length > SAMPLE_CHARS ? `${s.slice(0, SAMPLE_CHARS - 1).trimEnd()}…` : s}"`);
+  if (!shown.length) return "";
+  return ` (${shown.join(", ")}${texts.length > RISK_SAMPLES ? ", …" : ""})`;
+}
+
+/** The quantised baseline an item sits on — rounded so a row survives the
+ *  sub-point y jitter of superscripts and mixed font sizes. */
+const _rowKey = (it) => Math.round(it.transform[5] / 4);
+
+/** Per-baseline item count and ink extent: `key → {n, min, max}`. */
+function _inkRows(its) {
+  const rows = new Map();
+  for (const i of its) {
+    const k = _rowKey(i);
+    const x1 = i.transform[4];
+    const x2 = x1 + (i.width || 0);
+    const row = rows.get(k) ?? { n: 0, min: x1, max: x2 };
+    row.n++;
+    row.min = Math.min(row.min, x1);
+    row.max = Math.max(row.max, x2);
+    rows.set(k, row);
+  }
+  return rows;
+}
+
+/**
+ * Build the "this item is body text" test for one page.
+ *
+ * Body text is narrow enough not to be a full-width element AND sits on a row
+ * of two-column text rather than on centred page furniture — a section title,
+ * a running header, a folio, an ornament. Furniture crosses a perfectly good
+ * gutter all the time and lands in one column harmlessly, so warning about it
+ * would only teach the user to ignore the warning.
+ *
+ * Furniture is judged by its whole ROW, not by counting items on it. Counting
+ * reads "alone on its baseline" as the signature of furniture, which a centred
+ * title loses the moment PDF.js emits it as several runs — letter-spaced
+ * display type usually does, and every run is narrow, so the one sitting over
+ * the gutter scored as a body word. A row whose ink never leaves the page's
+ * central band is furniture however many runs it arrives in.
+ *
+ * @param {Array} its  text items
+ * @param {number} W   page width
+ * @returns {(it:object) => boolean}
+ */
+function _bodyTextTest(its, W) {
+  const wide = W * FULL_WIDTH_FRAC;
+  // The page's central band. Two-column body text always reaches out of it —
+  // a left-column line starts at the left margin, a right-column line ends at
+  // the right one — while centred furniture never does.
+  const bandLo = (W * (1 - CENTRE_BAND_FRAC)) / 2;
+  const bandHi = W - bandLo;
+  const rows = _inkRows(its);
+  return (i) => {
+    const row = rows.get(_rowKey(i));
+    // `row` is always found for an item of this page; guarded so a caller
+    // passing a foreign item gets `false` rather than a throw.
+    return !!row && (i.width || 0) < wide && row.n > 1
+      && (row.min < bandLo || row.max > bandHi);
+  };
+}
+
 /**
  * Risk flags for a chosen gutter, so a silent mis-split becomes a visible one.
  *
@@ -249,21 +346,7 @@ const FULL_WIDTH_FRAC = 0.25;
 function gutterRisks(its, W, splitX) {
   if (splitX == null || !its.length) return [];
   const out = [];
-  const wide = W * FULL_WIDTH_FRAC;
-
-  // How many items share each baseline, so we can tell a word inside a LINE of
-  // text from page furniture sitting alone on its own row.
-  const rowSize = new Map();
-  for (const i of its) {
-    const k = Math.round(i.transform[5] / 4);
-    rowSize.set(k, (rowSize.get(k) ?? 0) + 1);
-  }
-  /** Body text: narrow enough not to be a full-width element, and part of a
-   *  line rather than a lone centred heading, page number or ornament — those
-   *  cross a perfectly good gutter all the time and land in one column
-   *  harmlessly, so warning about them would only teach the user to ignore
-   *  the warning. */
-  const isBody = (i) => (i.width || 0) < wide && rowSize.get(Math.round(i.transform[5] / 4)) > 1;
+  const isBody = _bodyTextTest(its, W);
 
   // A body word whose BOX straddles the cut is a word the split runs through:
   // it lands in one column whole, and it is the wrong one half the time. This
@@ -274,7 +357,8 @@ function gutterRisks(its, W, splitX) {
   });
   if (straddlers.length) {
     out.push(`gutter at x=${Math.round(splitX)} cuts through ${straddlers.length} `
-      + `word${straddlers.length === 1 ? "" : "s"} — one column may have borrowed text from the other`);
+      + `word${straddlers.length === 1 ? "" : "s"}${_riskSample(straddlers)}`
+      + " — one column may have borrowed text from the other");
   }
 
   // A body item centred on the cut is a coin-flip assignment even when nothing
@@ -284,7 +368,7 @@ function gutterRisks(its, W, splitX) {
     && Math.abs(i.transform[4] + (i.width || 0) / 2 - splitX) < grazing);
   if (near.length && !straddlers.length) {
     out.push(`gutter at x=${Math.round(splitX)} runs within a glyph of ${near.length} `
-      + `item${near.length === 1 ? "" : "s"} — check the column split`);
+      + `item${near.length === 1 ? "" : "s"}${_riskSample(near)} — check the column split`);
   }
 
   // Far off the midline usually means the detector locked onto a margin or a
