@@ -3,6 +3,41 @@
 ## [0.15.1] — 2026-08-26
 
 ### Added
+- **The Duelist's Taunt now remembers itself.** *"When an enemy misses you with
+  an attack, you have advantage on attacks against that enemy next round."* A
+  talent nobody remembers mid-fight, because it depends on something that
+  happened on somebody else's turn. Now an enemy that misses a character with
+  Taunt hands them advantage against **that** enemy — not its friends — until
+  the end of their next turn, and a short card says so when it arms. When they
+  attack that enemy the advantage is on the roll, with the reason printed on the
+  roll card, so it never has to be remembered or argued about. Attacking does not
+  use it up; it lasts the full duration. Two rulings are baked in and both follow
+  the rules as written: advantage and disadvantage **cancel**, so a Duelist who
+  is also at disadvantage rolls normally rather than having the disadvantage
+  quietly replaced; and a blow turned aside by **Parry** counts as a miss, since
+  the talent says the attack *misses instead* — so parrying arms Taunt. The
+  duration is measured against the combat's own turn order, and a miss during
+  your *own* turn doesn't burn the duration on the turn you are already in.
+  Duelists already in your world are recognised without a re-import. One
+  setting, **Automate the Duelist's Taunt**, turns it off.
+- **The Duelist's Parry is now a button, not a note on the sheet.** *"Once per
+  day, an attack of your choice that would hit you misses instead."* Because you
+  choose *after* seeing the blow land, this could never be automatic — so when
+  an attack hits a character who has the ability, a **Parry this attack** button
+  appears on that attack's card for their player and for the GM. Using it spends
+  one of the day's uses, announces that the attack missed, and strikes the
+  damage total through on the original card so nobody applies it out of habit.
+  If the GM was quicker than the player and the damage has already landed, it is
+  given back — and given back correctly. Shadowdark clamps HP at zero, so a
+  Duelist on 3 HP hit for 7 lost three points and not seven; Parry returns the
+  three that actually left, rather than handing them a profit. A hit that
+  dropped them also takes the downed state with it: the defeated marker and the
+  unconscious condition are cleared, while anything true *before* the blow —
+  already prone, already defeated — is left exactly as it was. Needs the
+  system's **Enable Targeting** setting, which is what tells an attack roll
+  whose AC it was rolling against; without a target there is no "you" for the
+  attack to have hit. Duelists already in your world are recognised without a
+  re-import. One setting, **Automate the Duelist's Parry**, turns it off.
 - **The Delver's Scavenger talent now rolls itself.** *"When you expend the
   last of a consumable item you've carried since your last rest, roll a d6. On
   a 5 or 6, you regain one use of that item."* Until now that arrived as rules
@@ -81,7 +116,37 @@
   land in the class's flavor text instead (Roustabout, Wyrdling). It is
   title-case prose, so it read as an ordinary sentence rather than as a caption.
   The header is now dropped wherever it appears; parsing is otherwise
-  unchanged, byte for byte, across all nine classes.
+  unchanged, byte for byte, across all nine classes. The sweep needed the class
+  name to find the header, though, and one page does not hand it over: on the
+  Duelist page (Western Reaches pg 42, reprinted in City of Masks pg 15) the
+  header prints in the middle of a column, so a copied page *starts* with the
+  flavor. Pasting one into the Importer Hub named the class "Spinning swordsmen
+  and fast-", dropped that line from its flavor, and left Parry reading *"…that
+  would hit you misses instead. Duelist ClassDuelist Class"*. The name now comes
+  out of the header itself when the heading isn't the first line, and a header is
+  recognised by its shape whichever way the name was resolved — so a bare page
+  paste imports the same as one started from an Unlock button.
+- **Class features ended with the page's parting quote.** The last feature on a
+  class page ran on into the flavour quote printed at the bottom — the Duelist's
+  Taunt closed with *"Have I told you about the time I defeated a baron…"*, the
+  Roustabout's Surprising Guts with *"I knew I should have stayed home today!"*,
+  and the Necromancer's River of Death with a half-swallowed *"The dead don'"*.
+  The quote and its attribution are ordinary prose, and the talents caption that
+  sits between them and the feature had already been claimed by the talent
+  table, so nothing marked the end of the rules text. A line that opens with a
+  quote mark now closes the feature list, which is where the page ends anyway.
+- **Every new Duelist rolled up holding a free Rapier and Falchion.** Character
+  creation issued both, 20 gp of swords, before the player had spent a copper.
+  Some classes come with a weapon that is part of the character — the Wyrdling's
+  Pseudopod, the Monk of Yag-Kesh's Strike — and the module ships those so they
+  land on the sheet at creation. It also ships stat lines for the Western
+  Reaches weapons a class can wield, purely so the wield list and the merchant
+  know what a Rapier is; those had been going out as gifts too, which also
+  handed the Paladin a Lance and the Necromancer a Stave. The two kinds are now
+  told apart: natural weapons are still granted, priced gear goes on the shelf
+  to be bought. Classes already imported are corrected on the next world load,
+  with no re-import — an existing character keeps whatever is on their sheet,
+  since by now they may well have paid for it.
 - **The class importer said "text only" for talents it was about to wire.** A
   talent-table row whose mechanics the module supplies rather than the book —
   the Delver's *"You gain 2 gear slots and an additional Trusty Gear"*, which

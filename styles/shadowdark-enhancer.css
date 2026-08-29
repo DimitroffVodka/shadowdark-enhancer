@@ -9890,3 +9890,43 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-mishap-result { margin: 0.5em 0; }
 .sde-mishap-result > p:first-child { margin-top: 0; }
 .sde-mishap-result > p:last-child  { margin-bottom: 0; }
+
+/* ── Duelist Parry ────────────────────────────────────────────────────────
+   The button rides on the SYSTEM's attack card, so the same !important note
+   the downtime button carries applies: core's comma-list chat button rules
+   out-specify anything class-based here and paint it dark-on-dark. */
+.sde-parry-bar {
+  margin-top: 0.4em;
+  padding-top: 0.4em;
+  border-top: 1px solid rgba(128, 128, 128, 0.35);
+}
+.sde-parry-bar .sde-parry-btn {
+  width: 100%;
+  padding: 0.25em 0.5em;
+  background: #f0f0f0 !important;
+  color: #111 !important;
+  font-weight: 700 !important;
+  border: 1px solid #c9c9c9 !important;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.sde-parry-bar .sde-parry-btn:hover:not(:disabled) { background: #fff !important; }
+.sde-parry-bar .sde-parry-btn:disabled { opacity: 0.6; cursor: default; }
+
+/* A parried card has to READ as a miss at a glance — the damage total is still
+   printed on it and a GM skimming chat must not apply it by reflex. */
+.sde-parried .dice-total,
+.sde-parried .damage-total { text-decoration: line-through; opacity: 0.55; }
+.sde-parry-note {
+  margin-top: 0.4em;
+  font-style: italic;
+  font-size: 0.95em;
+  color: #6fb86f;
+}
+.sde-parry-note .sde-parry-undone { opacity: 0.85; }
+.sde-parry-card { font-weight: 600; }
+body.theme-light .sde-parry-note { color: #2e6b2e; }
+
+/* Taunt: the arming card, and the "why did that roll have advantage" line the
+   roll card prints from config.messages. */
+.sde-taunt-card { font-weight: 600; }

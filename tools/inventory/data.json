@@ -128,11 +128,16 @@
       "scripts/luck-reroll/luck-reroll.mjs",
       "scripts/spell-mishap/spell-mishap.mjs",
       "scripts/scavenger/scavenger-core.mjs",
-      "scripts/scavenger/scavenger.mjs"
+      "scripts/scavenger/scavenger.mjs",
+      "scripts/parry/parry-core.mjs",
+      "scripts/parry/parry.mjs",
+      "scripts/taunt/taunt-core.mjs",
+      "scripts/taunt/taunt.mjs"
     ],
     "3.2": [
       "scripts/shared/module-id.mjs",
       "scripts/shared/source-keys.mjs",
+      "scripts/shared/attack-card.mjs",
       "scripts/shared/settings.mjs",
       "scripts/shared/icons.mjs",
       "scripts/shared/compendium-suite.mjs",
@@ -548,6 +553,11 @@
     "scripts/shared/token-placement.mjs": "Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token.",
     "scripts/crawl-strip/crawl-turn-core.mjs": "Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules.",
     "scripts/crawl-strip/movement-lock-core.mjs": "Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — blocks only a non-current combatant of a started combat, matched by (sceneId, tokenId). GMs, non-combatants, non-positional updates, and everything out of combat pass through.",
-    "scripts/shared/clipboard.mjs": "`copyText()` — clipboard write that survives insecure origins, where `navigator.clipboard` is undefined; falls back to a hidden textarea + `execCommand`, restores focus, and never throws."
+    "scripts/shared/clipboard.mjs": "`copyText()` — clipboard write that survives insecure origins, where `navigator.clipboard` is undefined; falls back to a hidden textarea + `execCommand`, restores focus, and never throws.",
+    "scripts/parry/parry-core.mjs": "Pure Duelist Parry rules: what the system's clamped `applyDamage` actually removes (so a reversal gives back the clamped delta, not the printed damage), whether an attack is parryable, and which parts of a downed state this hit caused.",
+    "scripts/parry/parry.mjs": "Parry button on an attack card that hit: spends the 1/day use, makes the attack miss, and reverses damage the GM already applied — HP, defeated flag and downed conditions. Player clicks go through the authenticated gm-relay.",
+    "scripts/taunt/taunt-core.mjs": "Pure Duelist Taunt rules: round+turn as one ordinal, the \"end of your NEXT turn\" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit).",
+    "scripts/taunt/taunt.mjs": "Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends.",
+    "scripts/shared/attack-card.mjs": "Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently)."
   }
 }

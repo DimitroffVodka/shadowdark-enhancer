@@ -46,3 +46,33 @@ test("available never goes negative and never exceeds max", () => {
   const r = computeAbilityUses({ type: "base", base: 0 }, { boostCount: 0, oldMax: 3, oldAvail: 3 });
   assert.deepEqual(r, { max: 0, available: 0 });
 });
+
+// ─── Detected DC: only meaningful when something rolls ──────────────────────
+// The system gates a Class Ability's check on `system.ability` being set — with
+// no stat it posts a card and never builds a roll (PlayerSD _generateAbilityConfig).
+// So a DC only belongs on an ability that actually rolls; the Duelist's Parry
+// ("Once per day, an attack of your choice that would hit you misses instead")
+// spends a use and rolls nothing, and used to import carrying a phantom DC 10.
+// Fixture text is invented.
+test("detectClassAbility: a uses-only ability gets no DC", async () => {
+  const { detectClassAbility } = await import("../scripts/importer/char-content/class-parser.mjs");
+  const ca = detectClassAbility("Once per day, an attack of your choice that would hit you misses instead.");
+  assert.equal(ca.ability, "", "nothing to roll");
+  assert.equal(ca.dc, 0, "0 is the schema's own unset, not a phantom DC");
+  assert.equal(ca.limitedUses, true);
+  assert.deepEqual(ca.uses, { available: 1, max: 1 });
+});
+
+test("detectClassAbility: a stat check with no printed DC still defaults to 10", async () => {
+  const { detectClassAbility } = await import("../scripts/importer/char-content/class-parser.mjs");
+  const ca = detectClassAbility("You may make a Charisma check to steady the crowd.");
+  assert.equal(ca.ability, "cha");
+  assert.equal(ca.dc, 10, "a real check needs some DC to roll against");
+});
+
+test("detectClassAbility: an explicit DC is kept verbatim", async () => {
+  const { detectClassAbility } = await import("../scripts/importer/char-content/class-parser.mjs");
+  assert.equal(detectClassAbility("You may make a DC 15 CHA check.").dc, 15);
+  // A bare DC with no stat is still an explicit number — not overridden by 0.
+  assert.equal(detectClassAbility("Make a DC 12 check to hold your footing.").dc, 12);
+});
