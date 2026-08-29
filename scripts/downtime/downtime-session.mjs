@@ -280,6 +280,90 @@ export const CASTER_LIST_LABELS = {
 };
 
 /**
+ * Martial training's tier gate, resolved into the shape the window renders:
+ * the visible slot buckets, the tier dropdown, and the note explaining a
+ * closed gate.
+ *
+ * Lives here rather than in the window because the two answers must agree: a
+ * bucket is live only when `slotAllowed` — the same function the GM validates
+ * an incoming pick with — says the tier is legal.
+ *
+ * The unreadable-hit-die case is the one that matters. Martial training is the
+ * only activity whose every slot carries a tier, so narrowing to a tier of
+ * `null` selects NOTHING, and an activity with no rows is dropped from the
+ * window entirely. That silently hid the whole activity from classless (level
+ * 0) characters and from any actor whose class item wouldn't load. The book
+ * shows every tier, so the module does too: all three, all dead, with the
+ * reason stated. No picker in that case — every tier is already on screen, and
+ * `slotAllowed` refuses an unreadable hit die for a GM as well, so a control
+ * offering a way out would be lying about a gate that is closed for everyone.
+ *
+ * Pure: no Foundry globals. `isGM` and the actor's name are passed in.
+ *
+ * @param {object} activity              The skeleton's martial-training activity.
+ * @param {object} opts
+ * @param {object} opts.facts            classFacts() result (martialTier, classError).
+ * @param {?string} opts.casterList      Active caster list, for slotAllowed's signature.
+ * @param {boolean} [opts.isGM]          A GM may train a tier that isn't the character's.
+ * @param {?string} [opts.viewingTier]   Tier the user picked in the dropdown, or null.
+ * @param {?string} [opts.actorName]     Name used in the wrong-tier reason.
+ * @returns {{buckets: object[], tierPicker: ?object, gateNote: ?string, gateBlocked: boolean}}
+ */
+export function martialTierBuckets(activity, {
+  facts, casterList, isGM = false, viewingTier = null, actorName = null,
+} = {}) {
+  const gate = activity?.gate ?? null;
+  const tiers = [...new Set(gate?.tiers ?? Object.values(gate?.map ?? {}))];
+  const allSlots = activity?.slots ?? [];
+  const detected = facts?.martialTier ?? null;
+  const slotsForTier = (tier) => allSlots.filter(s => !s.tier || s.tier === tier);
+  const tierLabel = (t) => MARTIAL_TIER_LABELS[t] ?? t;
+
+  if (!detected) {
+    return {
+      gateBlocked: true,
+      gateNote: `Showing every tier — ${facts?.classError ?? "couldn't read class hit die"}.`,
+      tierPicker: null,
+      buckets: tiers.map(t => ({
+        key: t,
+        label: tierLabel(t),
+        enabled: false,
+        reason: null,
+        slots: slotsForTier(t),
+      })),
+    };
+  }
+
+  const viewing = tiers.includes(viewingTier) ? viewingTier : detected;
+  const slots = slotsForTier(viewing);
+  const tierLegal = slots.length
+    ? slotAllowed(activity, slots[0], { facts, casterList })
+    : false;
+
+  return {
+    gateBlocked: false,
+    gateNote: null,
+    tierPicker: {
+      options: tiers.map(t => ({
+        key: t,
+        label: tierLabel(t),
+        selected: t === viewing,
+        detected: t === detected,
+      })),
+    },
+    buckets: [{
+      key: viewing,
+      label: null,
+      enabled: isGM || tierLegal,
+      reason: (!isGM && !tierLegal)
+        ? `${actorName ?? "This character"} trains at ${tierLabel(detected)}.`
+        : null,
+      slots,
+    }],
+  };
+}
+
+/**
  * Clamp a manual step adjustment to the ladder. `nextStepsOnFailure` caps at
  * ladderIndex(dc) — the DC can never fall below the bottom rung — so a GM's
  * hand-set value obeys exactly the same bound.
