@@ -59,6 +59,8 @@ test("body armor: bare number >= 10 is AC base, dex attribute defaulted, L code"
 test("Mount (M) code has no core property → flagged, not applied", () => {
   const { draft, warnings } = one("Barding\n30 gp\n2\n11\nM", "Armor");
   assert.deepEqual(draft.propNames, []);
+  // The book label rides along so the importer can name it in the description.
+  assert.deepEqual(draft.unmappedProps, ["Mount"]);
   assert.equal(warnings.length, 1);
   assert.match(warnings[0], /Mount.*\(M\).*no core Shadowdark property/);
 });
@@ -287,6 +289,7 @@ test("weapon stat-row table: rows parse; header, footer, and title drop", () => 
   assert.equal(byName["Zweihander"].draft.slots.slots_used, 2);
   // "-" props → none, and a clean row carries no warnings.
   assert.deepEqual(byName["Longknife"].draft.propNames, []);
+  assert.deepEqual(byName["Longknife"].draft.unmappedProps, []);
   assert.deepEqual(byName["Longknife"].draft.damage, { oneHanded: "d8", twoHanded: "" });
   assert.deepEqual(byName["Longknife"].warnings, []);
   assert.deepEqual(dropped.map((d) => d.text), ["Weapons", "Weapon Cost Type Range Damage Properties", "110"]);
@@ -304,6 +307,9 @@ test("weapon stat row: WR-only codes (C/D/M/O/Sn) flag with their book label", (
   assert.ok(recs[0].warnings.some((w) => /Devastating.*\(D\)/.test(w)));
   assert.ok(recs[0].warnings.some((w) => /Mounted.*\(M\)/.test(w)));
   assert.ok(recs[1].warnings.some((w) => /Obsidian.*\(O\)/.test(w)));
+  // Left off the item, but kept by label for the description note.
+  assert.deepEqual(recs[0].draft.unmappedProps, ["Charge", "Devastating", "Mounted"]);
+  assert.deepEqual(recs[1].draft.unmappedProps, ["Obsidian"]);
 });
 
 test("weapon stat row: a dash cost (unarmed strikes) parses with a cost review flag", () => {

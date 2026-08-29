@@ -796,6 +796,54 @@ class HubPasteMethods {
       return;
     }
 
+    // Mounts (WR pp.116-117) → mount-type actors. Parsed here beside boats and
+    // siege weapons because a mount unlock is an ACTOR unlock: letting it fall
+    // through to the generic pipeline below ran it as a seeded TABLE unlock
+    // (every unlock carries `_charSeed`), which renamed whatever the spread's
+    // MOUNTS summary table parsed into "Western Reaches - Donkey" and committed
+    // a roll table where the GM asked for an actor.
+    if (this._importSeed?.type === "Mount") {
+      const { selectMountDrafts } = await import("./boats/mount-parser.mjs");
+      const want = this._importSeed.name;
+      const pages = this._importSeed.page || "116-117";
+      const { monsters: chunks, skipped: sk } = splitStatblocks(
+        stripPageFooterLines(text, this._importSeed.page));
+      const drafts = chunks.map((chunk) => parseStatblock(chunk));
+      // The grab covers the whole two-page spread, but the unlock is ONE content
+      // identity: keep its statblock and review the rest, so a single missing
+      // mount never creates the other fourteen as duplicate actors.
+      const selected = selectMountDrafts(drafts, want);
+      // Create it under the CATALOG's name, not the book's heading. The book
+      // prints "WAR HORSE" where the manifest says "Horse, War", and the actor's
+      // name is the census's identity: persisting the heading leaves the row
+      // locked forever, still offering an Import its own duplicate check then
+      // refuses. The GM asked for this name, so this is also what they expect.
+      for (const entry of selected) entry.draft.name = want;
+      this._importMonsters = selected;
+      this._importItems = []; this._importSpells = []; this._importTables = [];
+      this._importGenerators = []; this._importChar = []; this._importBoats = [];
+      this._shapeFailNote = null;
+      this._importSkipped = [
+        ...(sk ?? []),
+        ...drafts.filter((d) => !selected.includes(d)).map((d) => ({
+          name: d.draft.name, reason: `dropped — this unlock expects only "${want}"`,
+        })),
+      ];
+      if (!selected.length) {
+        this._importSkipped.unshift({
+          name: want,
+          reason: drafts.length
+            ? "not among the statblocks on the extracted pages"
+            : "no statblock (AC…LV) found in the extracted pages",
+        });
+        ui.notifications.warn(drafts.length
+          ? `"${want}" wasn't among the ${drafts.length} statblock${drafts.length === 1 ? "" : "s"} on the pasted pages — check the heading spelling, or re-grab WR pg ${pages}.`
+          : `No mount statblocks found — paste the Western Reaches mounts pages (pg ${pages}), stat lines (AC…LV) included.`);
+      }
+      this.render();
+      return;
+    }
+
     // Keep shape captions/die headers, but remove cited bare PDF page footers
     // before they can masquerade as out-of-range die rows.
     const shapeText = seed?._charSeed ? stripPageFooterLines(text, seed.page) : text;
@@ -1007,8 +1055,14 @@ class HubPasteMethods {
 
     // Seeded unlock (one expected table): keep the best-matching table only,
     // stamp the expected name on it, and shunt everything else — OCR junk
-    // fragments included — to the Skipped list instead of the preview.
-    if (this._importSeed?._charSeed && (type === "tables" || type === "auto") && (nameTables.length || tables.length)) {
+    // fragments included — to the Skipped list instead of the preview. TABLE
+    // unlocks only: an actor/vehicle/gear unlock carries `_charSeed` too, and
+    // stamping the mount's name onto the biggest table parsed off its page is
+    // exactly how a mount unlock became a roll table. Those types return above;
+    // the guard keeps the invariant stated where the rule is applied.
+    const seedWantsOneTable = this._importSeed?._charSeed
+      && !["Mount", "Boat", "SiegeWeapon", "Basic", "Weapon", "Armor"].includes(this._importSeed.type);
+    if (seedWantsOneTable && (type === "tables" || type === "auto") && (nameTables.length || tables.length)) {
       const want = this._importSeed.name;
       let keep;
       if (nameTables.length) {
@@ -1124,21 +1178,6 @@ class HubPasteMethods {
       const { fresh, duplicates } = await partitionSystemDuplicates(items);
       items = fresh;
       if (duplicates.length) skipped = [...skipped, ...duplicates];
-    }
-
-    // A Mount unlock grabs the full two-page WR mount spread, but represents
-    // one selected content identity. Keep only that draft so importing a single
-    // missing mount never creates the other fourteen as duplicate mount actors.
-    if (this._importSeed?.type === "Mount" && monsters.length) {
-      const { selectMountDrafts } = await import("./boats/mount-parser.mjs");
-      const selected = selectMountDrafts(monsters, this._importSeed.name);
-      if (!selected.length) {
-        skipped = [...skipped, {
-          name: this._importSeed.name,
-          reason: "selected mount was not found in the extracted page range",
-        }];
-      }
-      monsters = selected;
     }
 
     // A seeded item unlock ("Import Ball Bearing") grabs the whole equipment

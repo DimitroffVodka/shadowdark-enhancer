@@ -7,7 +7,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { parseGearTable, mergeGearRows, assembleCreateDrafts, gearStatsLabel, sourceTitleSlug } from "../scripts/importer/items/item-builder-gear.mjs";
-import { buildItemData } from "../scripts/importer/items/item-importer.mjs";
+import { buildItemData, withPropertyNote, preservedDescription } from "../scripts/importer/items/item-importer.mjs";
 
 const TWO_WEAPONS = [
   "Bastard sword, 10 gp, 1 slot, d8/d10, close, V",
@@ -108,4 +108,96 @@ test("gearStatsLabel summarizes weapon and armor rows for the review table", () 
   const [shield] = parseGearTable("Round shield, 10 gp, 1 slot, +2, C, S", "Armor");
   assert.equal(gearStatsLabel(shield, "Armor"), "AC +2 · Occupies One Hand, Sundering");
   assert.equal(gearStatsLabel({ name: "Rope" }, "Basic"), "");
+});
+
+// ── WR-only property codes (the Lance's Charge/Devastating/Mounted) ──────────
+// Core Shadowdark ships no Property item for them, so they can't be stamped on
+// system.properties; the import writes them into the description instead of
+// asking the GM to remember a flagged warning.
+
+const WR_LANCE = "Lance 15 gp M C 1d12 C, D, M, 3 slots";
+
+test("WR-only weapon codes reach the item as a description note, not as nothing", () => {
+  const rows = parseGearTable(WR_LANCE, "Weapon");
+  assert.equal(rows.length, 1);
+  assert.deepEqual(rows[0].propNames, []);
+  assert.deepEqual(rows[0].unmappedProps, ["Charge", "Devastating", "Mounted"]);
+  assert.equal(rows[0].slots.slots_used, 3);
+  const data = buildItemData(assembleCreateDrafts(mergeGearRows([], rows), "Weapon")[0]);
+  assert.equal(data.type, "Weapon");
+  assert.deepEqual(data.system.damage, { oneHanded: "d12", twoHanded: "" });   // no 2H code in the row
+  assert.equal(
+    data.system.description,
+    "<p><em>Properties with no core Shadowdark equivalent: Charge, Devastating, Mounted.</em></p>",
+  );
+});
+
+test("a matched description keeps its text and gains the note, once", () => {
+  const rows = mergeGearRows([], parseGearTable(WR_LANCE, "Weapon"));
+  rows[0].description = "<p>Couched for the charge.</p>";        // stage ② matched
+  const draft = assembleCreateDrafts(rows, "Weapon")[0];
+  const once = buildItemData(draft).system.description;
+  assert.match(once, /^<p>Couched for the charge\.<\/p><p><em>Properties with no core/);
+  // Re-import (the same draft round-tripped) must not stack a second note.
+  assert.equal(buildItemData({ ...draft, description: once }).system.description, once);
+});
+
+test("a weapon with no unmapped codes keeps the plain description", () => {
+  const rows = parseGearTable("Longknife 9 gp M C 1d8 -", "Weapon");
+  assert.deepEqual(rows[0].unmappedProps, []);
+  assert.equal(buildItemData(assembleCreateDrafts(rows, "Weapon")[0]).system.description, "<p></p>");
+  assert.equal(withPropertyNote("<p>Plain.</p>", []), "<p>Plain.</p>");
+  assert.equal(withPropertyNote("", []), "<p></p>");
+});
+
+test("armor's Mount code notes in the singular", () => {
+  const rows = parseGearTable("Barding 30 gp 2 11 M", "Armor");
+  assert.deepEqual(rows[0].unmappedProps, ["Mount"]);
+  assert.equal(
+    buildItemData(assembleCreateDrafts(rows, "Armor")[0]).system.description,
+    "<p><em>Property with no core Shadowdark equivalent: Mount.</em></p>",
+  );
+});
+
+test("replace keeps the GM's description and re-stamps the property note", () => {
+  const fresh = withPropertyNote("<p></p>", ["Charge", "Devastating", "Mounted"]);
+  // Curated text + a stale note from an earlier import: text kept, note refreshed.
+  const curated = `<p>A knight's lance.</p>${withPropertyNote("<p></p>", ["Charge"])}`;
+  assert.equal(preservedDescription(curated, fresh), `<p>A knight's lance.</p>${fresh}`);
+  // Freshly typed text wins — it is the GM-facing prose — but the note is
+  // importer metadata, not prose. A paste that lost the property column is not
+  // evidence the weapon lost the property, so the stored note rides across.
+  assert.equal(preservedDescription(curated, "<p>Newly typed.</p>"),
+    `<p>Newly typed.</p>${withPropertyNote("<p></p>", ["Charge"])}`);
+  // ...and that is stable: feeding the result back in changes nothing further.
+  const once = preservedDescription(curated, "<p>Newly typed.</p>");
+  assert.equal(preservedDescription(once, "<p>Newly typed.</p>"), once);
+  // With no stored note there is nothing to rescue, so the incoming stands.
+  assert.equal(preservedDescription("<p>Curated.</p>", "<p>Newly typed.</p>"), null);
+  // Nothing to preserve when the existing description is only ever what the
+  // importer wrote.
+  assert.equal(preservedDescription(fresh, fresh), null);
+  assert.equal(preservedDescription("<p></p>", fresh), null);
+  // The pre-existing rule still holds: a placeholder never overwrites curation.
+  assert.equal(preservedDescription("<p>Kept.</p>", "<p></p>"), "<p>Kept.</p>");
+});
+
+test("a stacked note collapses instead of growing on every re-import", () => {
+  // cleanImportHtml fails closed by escaping the whole description when
+  // Foundry's cleaner is unavailable; an escaped note stops matching, so the
+  // next import stamps a second one on top. A non-global strip then only ever
+  // removed the first, and the pile grew by one per import, forever.
+  const note = withPropertyNote("<p></p>", ["Charge"]);
+  const doubled = `<p>A knight's lance.</p>${note}${note}`;
+  assert.equal(withPropertyNote(doubled, ["Charge"]), `<p>A knight's lance.</p>${note}`);
+  assert.equal(withPropertyNote(doubled, []), "<p>A knight's lance.</p>");
+});
+
+test("dropping the note reads the same with or without prose beside it", () => {
+  // The empty-labels path used to answer two ways: a note sitting alone was
+  // kept, a note beside prose was stripped — the same event ("this paste
+  // carried no property column") with opposite outcomes.
+  const note = withPropertyNote("<p></p>", ["Charge"]);
+  assert.equal(withPropertyNote(note, []), "<p></p>");
+  assert.equal(withPropertyNote(`<p>Body.</p>${note}`, []), "<p>Body.</p>");
 });

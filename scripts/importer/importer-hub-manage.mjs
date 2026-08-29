@@ -551,7 +551,12 @@ class HubManageMethods {
       Class: "classes", Ancestry: "ancestries",
       Table: "tables",
       Boat: "boats",
-      Mount: "auto",
+      // Mounts are creatures: the WR spread prints statblocks, so the unlock
+      // parses as monsters. "auto" sent them through the generic dump/table
+      // pipeline, which treats every seeded unlock as a one-TABLE unlock and
+      // committed the page's summary table as a roll table named after the
+      // mount instead of creating the actor (_onHubParse has the mount branch).
+      Mount: "monsters",
       SiegeWeapon: "items",
     })[type] ?? "auto";
     // Background roll tables bundle-unlock: one paste creates both the d100

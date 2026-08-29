@@ -40,6 +40,87 @@
   bad-cite case, points at the printing rather than at a page-offset control,
   which the Source PDFs library does not have (offsets are a constant in code,
   and only the Core Rulebook carries one).
+- **A weapon's book-only properties no longer arrive as a note to self.** The
+  Western Reaches weapon and armour tables print property codes core Shadowdark
+  ships no property for — *Charge*, *Devastating* and *Mounted* on the Lance,
+  *Obsidian* on the obsidian weapons, *Sniper* on the blowpipe, *Mount* on
+  barding. There is nothing to attach them to, so the importer left them off and
+  flagged each one with *"note it in the description"* — and then didn't. The
+  Lance committed as a plain 15 gp d12 pole, and the three properties that make
+  it a lance survived only for as long as the GM remembered to type them in by
+  hand. They are now written into the item's description as it commits —
+  *"Properties with no core Shadowdark equivalent: Charge, Devastating,
+  Mounted."* — property labels only, because the rules text stays in the book you
+  own. Re-importing the same weapon refreshes that one line and leaves a
+  description you wrote yourself exactly as it was. The **Paladin's Lance** is
+  stocked by the class import rather than pasted as a table row, and it now
+  arrives the same way — importing the Paladin again updates an existing Lance
+  in place, so a world that already has one gets the line without a re-import of
+  anything else. That same pass stopped a quieter loss: re-importing a class used
+  to blank any description a GM had written on its stocked gear (the Duelist's
+  Rapier and Falchion, the Necromancer's Stave), because the overlay ships stats
+  and no text. Those descriptions are now left alone.
+- **A downtime paste no longer loses Martial Training and Magical Research to a
+  missing period.** Paste all four activities and only the first two would
+  appear — not because anything was missing, but because those two are the only
+  ones that need a *sub*-heading above their DC lines, and the parser demanded
+  one exact shape. A tier line printed `d8+ INT, STR, or DEX Check` instead of
+  `d8+.`, or a subsection line reading `INT or CHA Spellcasters:` with a colon,
+  left the segment unopened; every line beneath it then had nowhere to go, both
+  activities stayed empty, and an activity with no entries isn't drawn. The
+  matchers now take the punctuation a real page carries — a missing period, a
+  trailing colon, ALL CAPS — while still refusing to mistake a wrapped line of
+  outcome text (`…no larger than d6 max`) for a tier heading.
+- **A paste that can't be placed now says so loudly.** The parser's
+  "couldn't place this line" notes had no prose written for them, so they
+  rendered in the quiet style meant for the two-column recovery notes: a paste
+  that silently dropped two whole activities read no worse than a clean one.
+  They are now full-voiced problems that name the activity and the exact line
+  the paste is missing, and repeats collapse — one note per activity that failed
+  to open, not one per line it swallowed.
+- **A column-check warning now names the word it is worried about, and stops
+  crying wolf over centred headings.** Grabbing text from a PDF warns when the
+  column split may have moved a word between columns — but it only ever said
+  *how many* words, so "cuts through 1 word" on a four-page bestiary grab meant
+  proofreading four pages to find out which. The warning now quotes the words
+  themselves (up to three, then a trailing "…"), so checking it is one search in
+  the paste box.
+
+  It also fires far less often. Page furniture — a section title, a running
+  header, a folio, an ornament — crosses a perfectly good gutter all the time
+  and lands in one column harmlessly, and the warning used to recognise it by
+  its being alone on its baseline. A centred title loses that signature the
+  moment PDF.js hands it over as several runs, which letter-spaced display type
+  usually does: every run is narrow, so the one sitting over the gutter scored
+  as a stolen body word. Furniture is now judged by its whole row — ink that
+  never leaves the middle half of the page is furniture however many pieces it
+  arrives in — while a word on a real two-column line still warns, by name.
+  Caught on a Cursed Scroll 2 bestiary grab (pgs. 40-43), which raised two
+  one-item warnings that named nothing to look at.
+- **Importing a mount created a roll table instead of a mount.** *Importer Hub →
+  Manage → Monsters → Mounts* offered an **Import** button for each of the seven
+  Western Reaches mounts the system doesn't ship, and pressing it produced a
+  **Roll Table** named after the mount — never the actor. The unlock was handed
+  to the generic content-unlock route, which parses "auto" and treats every
+  seeded unlock as a request for exactly ONE table: it kept whatever table the
+  MOUNTS spread parsed into, stamped the mount's name on it, and sent that to the
+  table commit, while the statblocks the GM actually wanted were left with
+  nothing to create. A mount unlock is an *actor* unlock, so it now parses the
+  pages as statblocks — beside the boats and siege-weapon unlocks, which always
+  had their own parse — and the one-table rule no longer applies to actor,
+  vehicle or gear unlocks at all. The unlocked mount's statblock is kept and the
+  rest of the spread goes to **Skipped**, so importing one missing mount still
+  can't mint the other fourteen as duplicates. The book prints the mounts by
+  their natural names ("WAR HORSE") while the catalog lists them index-style
+  ("Horse, War"), which used to mean the selected statblock matched nothing at
+  all; both spellings are now understood. The mount is created under the
+  catalog's name — the one on the button the GM pressed — because the actor's
+  name is what the Mounts list reconciles against, and a mount filed under the
+  book's heading would have stayed listed as missing, still offering an Import
+  its own duplicate check then refused. A mount already in your world under
+  either spelling now counts as present. And when the extracted pages hold no
+  statblock, the importer says so and names the pages to grab instead of quietly
+  creating the wrong kind of document.
 
 ## [0.15.1] — 2026-08-26
 

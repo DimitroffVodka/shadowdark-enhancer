@@ -95,6 +95,29 @@ cargo slot use.
 
 ---
 
+## Importing the Western Reaches mounts
+
+Seven *Western Reaches* mounts aren't in the system's bestiary (Camel (silver),
+Donkey, Horse (prized), Horse (war), Pony, Scrag, Scrag (war)); the other eight
+listed on pp.116-117 already ship as `shadowdark.monsters` and are left alone.
+
+**Importer Hub → Manage → Monsters → Mounts** lists all fifteen and reconciles
+them against your world. Each one you don't have shows an **Import** button cited
+to *WR pg 116-117*. Pressing it grabs those pages from *your own* WR PDF (no
+stats are bundled), parses the **statblocks** on them, and previews the one you
+asked for — the rest of the spread goes to **Skipped**, so unlocking a single
+mount never creates the other fourteen. Commit files it into the **`sde-actors`
+compendium** as a **Mount** actor: the full NPC statblock, in the sheet with the
+Riders / Inventory / Mount tabs.
+
+The catalog lists mounts index-style (*Horse, War*) while the book prints them
+naturally (*WAR HORSE*). Either spelling matches, so the right statblock is kept
+whichever way your PDF extracts, and the actor is created under the catalog name
+— the one on the button you pressed. A mount already in your world under either
+spelling counts as present and shows no Import button.
+
+---
+
 ## Importing the Western Reaches boats
 
 The eight boats from the *Western Reaches* Player's Guide (p118: Canoe, Galleon,
@@ -191,6 +214,17 @@ They are separate limits by design. Passengers use HP-derived capacity, cargo
 uses gear slots.
 
 ---
+
+**The mounts Import button says "No mount statblocks found".**
+The extracted pages held no `AC … LV` stat line — usually an unuploaded or badly
+extracting WR PDF. Paste pp.116-117 into the box yourself, stat lines included.
+If it instead reports that the mount *wasn't among* the statblocks it found, the
+heading on your copy is spelled differently: edit the paste, or import it as a
+plain monster and rename.
+
+**An imported mount is a Roll Table, not an actor.**
+Fixed after 0.15.1. A mount unlock created before that landed as a roll table
+named after the mount — delete it and import again.
 
 **The boats Import button says "No boats found — paste the table".**
 The importer couldn't read your Western Reaches PDF (not uploaded, or the page
