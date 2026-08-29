@@ -155,6 +155,16 @@ PDF copy artifacts: headers, footers, interleaved columns. If you have
 registered a source PDF, use the hub's **Grab text** instead of copying from
 your PDF reader. It is column-aware and produces reading order.
 
+### An imported weapon is missing one of its properties
+
+Western Reaches prints property codes the core system has no entry for —
+*Charge*, *Devastating* and *Mounted* on the Lance, *Obsidian*, *Sniper*,
+*Mount* on barding. There is nothing to attach, so the import lists them in the
+item's **description** and flags each one in the preview. Add the rules text
+from your own book if you want it on the sheet; a later re-import keeps what you
+wrote and only refreshes that one line. See
+[Importer Hub](Importer-Hub.md#after-a-commit-automatically).
+
 ### A table parsed into nonsense
 
 It needs a parsing recipe, or has the wrong one. See

@@ -39,7 +39,10 @@
  * `draft.propNames` holds resolved Shadowdark property NAMES; a Foundry-bound
  * resolver (item-importer.resolveGearProperties) turns those into the
  * DocumentUUID array the data model stores. Unknown/unmapped codes are flagged
- * for review, never silently dropped.
+ * for review, never silently dropped: a WR-only code core Shadowdark has no
+ * Property item for (the Lance's Charge/Devastating/Mounted) also lands on
+ * `draft.unmappedProps` as its book LABEL, which buildItemData writes into the
+ * item's description — the column is on the sheet either way.
  *
  * WR PROPERTY LETTER-CODE LEGEND (Player's Guide to the Western Reaches):
  *   Carried (C)     → Occupies One Hand      [armor]
@@ -307,10 +310,14 @@ function asCodeTokens(field) {
 
 /**
  * Decode a property field (codes or full names) into Shadowdark property names.
- * @returns {{ names: string[], warnings: string[] }}
+ * `unmapped` carries the BOOK LABEL of every real code core Shadowdark has no
+ * Property item for — left off the item, and written into its description at
+ * commit rather than lost.
+ * @returns {{ names: string[], unmapped: string[], warnings: string[] }}
  */
 function decodeProps(field, kind) {
   const names = [];
+  const unmapped = [];
   const warnings = [];
   const codeMap = kind === "Armor" ? WR_ARMOR_CODES : WR_WEAPON_CODES;
 
@@ -327,12 +334,13 @@ function decodeProps(field, kind) {
       if (name === null) {
         const labels = kind === "Armor" ? WR_CODE_LABELS : WR_WEAPON_LABELS;
         const label = labels[key] ?? key;
-        warnings.push(`Property "${label}" (${key}) has no core Shadowdark property — left off; note it in the description.`);
+        unmapped.push(label);
+        warnings.push(`Property "${label}" (${key}) has no core Shadowdark property — left off; noted in the description.`);
         continue;
       }
       names.push(name);
     }
-    return { names, warnings };
+    return { names, unmapped, warnings };
   }
 
   // Full names, comma-separated.
@@ -340,7 +348,7 @@ function decodeProps(field, kind) {
     if (KNOWN_PROP_NAMES.has(part.toLowerCase())) names.push(titleCase(part));
     else warnings.push(`Unrecognized property "${part}" — left off; add it in the sheet if needed.`);
   }
-  return { names, warnings };
+  return { names, unmapped, warnings };
 }
 
 /** Parse a damage field ("d8", "2d6", "d8/d10", "d10 (two-handed)") → {oneHanded,twoHanded}. */
@@ -371,6 +379,7 @@ function parseArmorRecord(lines) {
   let cost = null, base = 0, modifier = 0, slots = null, material = "";
   let acAttr = null;   // null = unstated; "dex" / "" when the source is explicit
   const propNames = [];
+  const unmappedProps = [];
 
   for (const field of fields.slice(1)) {
     const f = collapse(field);
@@ -393,7 +402,7 @@ function parseArmorRecord(lines) {
     const codes = asCodeTokens(f);
     if (codes || /[,/]/.test(f) || KNOWN_PROP_NAMES.has(f.toLowerCase())) {
       const dec = decodeProps(f, "Armor");
-      propNames.push(...dec.names); warnings.push(...dec.warnings);
+      propNames.push(...dec.names); unmappedProps.push(...dec.unmapped); warnings.push(...dec.warnings);
       continue;
     }
     // A lone word that isn't a code/number/cost → material (mithral, etc.).
@@ -429,6 +438,7 @@ function parseArmorRecord(lines) {
     baseArmor,
     ...(altNames.length ? { altNames } : {}),
     propNames,
+    unmappedProps,
     description: "<p></p>",
   };
   return { draft, warnings };
@@ -441,6 +451,7 @@ function parseWeaponRecord(lines) {
   const nameRaw = collapse(fields[0] ?? "").replace(/,\s*$/, "");
   let cost = null, slots = null, range = "", wtype = "", damage = null;
   const propNames = [];
+  const unmappedProps = [];
   const rest = fields.slice(1);
 
   // Decode properties first so parseDamage knows about two-handed-only weapons.
@@ -463,7 +474,7 @@ function parseWeaponRecord(lines) {
 
   for (const pf of propFields) {
     const dec = decodeProps(pf, "Weapon");
-    propNames.push(...dec.names); warnings.push(...dec.warnings);
+    propNames.push(...dec.names); unmappedProps.push(...dec.unmapped); warnings.push(...dec.warnings);
   }
   const twoHandedOnly = propNames.includes("Two-Handed") && !propNames.includes("Versatile");
   for (const o of other) {
@@ -490,6 +501,7 @@ function parseWeaponRecord(lines) {
     damage: damage ?? { oneHanded: "", twoHanded: "" },
     range, wtype,
     propNames,
+    unmappedProps,
     description: "<p></p>",
   };
   return { draft, warnings };

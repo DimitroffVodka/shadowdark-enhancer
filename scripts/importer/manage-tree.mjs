@@ -52,7 +52,7 @@ import {
 import { readStored } from "../downtime/downtime-core.mjs";
 import { BOAT_MANIFEST } from "./boats/boat-parser.mjs";
 import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
-import { MOUNT_MANIFEST } from "./boats/mount-parser.mjs";
+import { MOUNT_MANIFEST, mountNameKeys } from "./boats/mount-parser.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -423,9 +423,13 @@ function buildMonsters(monsterRows, actorRecords) {
 
   // Mounts are content identities, not source identities. A matching actor in
   // any imported source (and either NPC or custom Mount form) satisfies the row.
-  const actorNames = new Set(actorRecords.map((r) => _norm(r.name)));
+  // Matched on every spelling of the name (mountNameKeys), because the books
+  // print "WAR HORSE" where the manifest indexes "Horse, War" — an exact-name
+  // check leaves such an actor unreconciled and its row locked for good.
+  const actorKeys = new Set(actorRecords.flatMap((r) => [...mountNameKeys(r.name)]));
   const mountRecords = MOUNT_MANIFEST.map((m) => ({
-    name: m.name, present: actorNames.has(_norm(m.name)),
+    name: m.name,
+    present: [...mountNameKeys(m.name)].some((key) => actorKeys.has(key)),
     type: "Mount", src: m.src, pages: m.pages,
   }));
   children.push(leaf("monsters/mounts", "Mounts", "fa-horse", mountRecords, "charSeedPaste", true));

@@ -144,6 +144,13 @@ options are *— none —*, *Core Rulebook*, *Cursed Scroll 1–6*, and
   inline roll counts, swept automatically after each commit.
 - **Spell ↔ class linking.** Spells find their caster class whichever was
   imported first.
+- **Book-only weapon and armour properties.** A property code the core system
+  has no entry for — the Lance's *Charge*, *Devastating* and *Mounted*, an
+  obsidian weapon's *Obsidian*, barding's *Mount* — can't be attached to the
+  item, so it is named in the item's **description** instead: *“Properties with
+  no core Shadowdark equivalent: Charge, Devastating, Mounted.”* The preview
+  flags each one as it parses. Re-importing refreshes that line without
+  disturbing a description you wrote yourself.
 
 There are no manual maintenance buttons to press. This is deliberate: the fix
 belongs in the import flow, not in a repair tool you have to remember.

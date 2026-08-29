@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-778 tracked files · ~109,100 lines of code/markup across scripts+templates+styles+test.
+782 tracked files · ~110,100 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -73,6 +73,7 @@
 | `gm-relay.mjs` | 317 | The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept. |
 | `token-placement.mjs` | 236 | Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token. |
 | `clipboard.mjs` | 46 | `copyText()` — clipboard write that survives insecure origins, where `navigator.clipboard` is undefined; falls back to a hidden textarea + `execCommand`, restores focus, and never throws. |
+| `property-note.mjs` | 108 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
@@ -186,23 +187,23 @@
 | File | Lines | Description |
 |---|---:|---|
 | `importer-hub-app.mjs` | 855 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1413 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-paste.mjs` | 1452 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 832 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 971 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-manage.mjs` | 976 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 599 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
-| `pdf-text-extract.mjs` | 584 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `manage-tree.mjs` | 603 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `pdf-text-extract.mjs` | 668 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1479 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1067 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1222 | Class unit → real documents in dependency order. |
-| `char-content/class-overlays.mjs` | 255 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
+| `char-content/class-unit-importer.mjs` | 1244 | Class unit → real documents in dependency order. |
+| `char-content/class-overlays.mjs` | 264 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
@@ -231,16 +232,16 @@
 | `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 42 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 499 | Generic item recognizer (name/cost/slots). Pure. |
-| `items/gear-parser.mjs` | 535 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
+| `items/gear-parser.mjs` | 547 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/gear-join.mjs` | 247 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 805 | Drafts → Items in `sde-items`, foldered by source. |
-| `items/item-builder-app.mjs` | 395 | Guided multi-stage equipment-section workspace. |
-| `items/item-builder-gear.mjs` | 125 | Pure stage-①/③ logic for the Item Builder. |
+| `items/item-importer.mjs` | 813 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-builder-app.mjs` | 396 | Guided multi-stage equipment-section workspace. |
+| `items/item-builder-gear.mjs` | 130 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
 | `tables/table-manifest.mjs` | 210 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
 | `tables/table-manifest-data.mjs` | 335 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
-| `boats/mount-parser.mjs` | 32 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
+| `boats/mount-parser.mjs` | 55 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
 | `boats/mount-importer.mjs` | 79 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
 | `boats/boat-parser.mjs` | 155 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
 | `boats/boat-importer.mjs` | 49 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
@@ -312,13 +313,13 @@
 | File | Lines | Description |
 |---|---:|---|
 | `downtime-skeleton.mjs` | 196 | Shipped downtime metadata: 25 slots across four activities with names, compressed labels, DCs, paid flags, keyword matchers and renown/XP deltas. Carries no rules text. |
-| `downtime-parser.mjs` | 291 | Parses a pasted downtime page into per-slot outcome text; segment-scoped DC + keyword matching with a rescue pass for column-interleaved PDF copies. Unmatched lines are reported back, never guessed at. |
+| `downtime-parser.mjs` | 329 | Parses a pasted downtime page into per-slot outcome text; segment-scoped DC + keyword matching with a rescue pass for column-interleaved PDF copies. Unmatched lines are reported back, never guessed at. |
 | `downtime-core.mjs` | 208 | Pure downtime rules math: the DC step-down ladder, per-attempt cost by source, the martial-training hit-die tier and caster-list gates, and the stored unlock record shape. |
 | `downtime-effects-core.mjs` | 262 | Pure decision layer for downtime outcomes: the slot-to-plan table (auto / choice / narrative), the per-weapon martial-training limit counters and damage-die ladder, the one-shot extortion math, and the XP level-up threshold. Ships item names only, no rules text. |
 | `downtime-effects.mjs` | 788 | Applies a successful downtime outcome for real — renown, XP, weapon-training Active Effects, damage-die steps, fabricated scrolls/wands/potions, spell trades, advantage reminders and the merchant extortion flag. Enumerates the concrete choices first; GM-side execution only. |
 | `downtime-log-core.mjs` | 199 | Pure downtime-log formatting: the recap headline row, the escaped journal `<li>`, and the newest-first grouping that splices a row under its `data-sde-day` heading. Shared by the recap window, the Discord export and the journal so all three phrase an attempt identically. |
 | `downtime-log.mjs` | 183 | `recordDowntime(entry)` — one call, two sinks: the Session Recap's Downtime section and a persistent flagged "Downtime Log" world JournalEntry appended under a heading per real-world day. Queued read-modify-write; never throws outward. GM-side only. |
-| `downtime-warnings.mjs` | 87 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
+| `downtime-warnings.mjs` | 144 | Shared prose for the downtime parser's warning codes; splits info notes (a two-column paste always emits them) from real problems, so every unlock surface reports a parse identically. |
 | `downtime-app.mjs` | 1374 | The `sde-downtime` ApplicationV2 in three modes: GM solo (pay-before-roll attempts, renown / XP apply buttons), the GM session control panel (picks overview, lock/release, roll-for), and the player view (own actors only, choose then roll). Locked books render as a title-only card; unlocking happens in the Importer Hub. |
 | `downtime-session.mjs` | 1068 | Table-wide downtime session: world-setting state model, the authenticated downtime query protocol (the raw socket carries only the payload-free re-read nudge), and the GM-authoritative handlers that recompute DC, cost and gating from the skeleton, derive the requester from the server-supplied sender, and spend a per-attempt roll token so a roll settles once. Players pick and roll; the GM settles. |
 

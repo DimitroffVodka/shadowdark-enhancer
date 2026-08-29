@@ -81,8 +81,9 @@ export function sourceTitleSlug(label) {
 /**
  * Assemble the create-ready drafts for ItemImporter.createItems, carrying the
  * type-appropriate mechanics through (this is the pass-through `_onCreate` was
- * missing). `properties` (resolved UUIDs) rides along when present;
- * `sourceTitle` stamps `system.source.title` for char-builder gating.
+ * missing). `properties` (resolved UUIDs) rides along when present, as does
+ * `unmappedProps` — the WR-only property labels buildItemData appends to the
+ * description; `sourceTitle` stamps `system.source.title` for char-builder gating.
  */
 export function assembleCreateDrafts(rows, gearType, { sourceTitle = "" } = {}) {
   return rows.map((it) => ({
@@ -96,12 +97,16 @@ export function assembleCreateDrafts(rows, gearType, { sourceTitle = "" } = {}) 
       damage: it.damage ?? { oneHanded: "", twoHanded: "" },
       range: it.range || "close",
       wtype: it.wtype || "melee",
-      propNames: it.propNames ?? [],
     } : {}),
     ...(gearType === "Armor" ? {
       ac: it.ac ?? { base: 0, modifier: 0, attribute: "" },
       baseArmor: it.baseArmor ?? "",
+    } : {}),
+    // Both stat-carrying types read the same two property lists; kept in one
+    // place so a change to either can't land on only one of them.
+    ...(gearType === "Weapon" || gearType === "Armor" ? {
       propNames: it.propNames ?? [],
+      unmappedProps: it.unmappedProps ?? [],
     } : {}),
     ...(Array.isArray(it.properties) ? { properties: it.properties } : {}),
     ...(sourceTitle ? { source: { title: sourceTitle } } : {}),
