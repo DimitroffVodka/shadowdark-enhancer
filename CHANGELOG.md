@@ -14,6 +14,30 @@
   each under its own heading, all of it dead, with a note naming the reason. The
   **Training tier** dropdown stays hidden while that is true, since every tier is
   already on the page and the gate is shut for the GM as well.
+- **Importing a mount created a roll table instead of a mount.** *Importer Hub →
+  Manage → Monsters → Mounts* offered an **Import** button for each of the seven
+  Western Reaches mounts the system doesn't ship, and pressing it produced a
+  **Roll Table** named after the mount — never the actor. The unlock was handed
+  to the generic content-unlock route, which parses "auto" and treats every
+  seeded unlock as a request for exactly ONE table: it kept whatever table the
+  MOUNTS spread parsed into, stamped the mount's name on it, and sent that to the
+  table commit, while the statblocks the GM actually wanted were left with
+  nothing to create. A mount unlock is an *actor* unlock, so it now parses the
+  pages as statblocks — beside the boats and siege-weapon unlocks, which always
+  had their own parse — and the one-table rule no longer applies to actor,
+  vehicle or gear unlocks at all. The unlocked mount's statblock is kept and the
+  rest of the spread goes to **Skipped**, so importing one missing mount still
+  can't mint the other fourteen as duplicates. The book prints the mounts by
+  their natural names ("WAR HORSE") while the catalog lists them index-style
+  ("Horse, War"), which used to mean the selected statblock matched nothing at
+  all; both spellings are now understood. The mount is created under the
+  catalog's name — the one on the button the GM pressed — because the actor's
+  name is what the Mounts list reconciles against, and a mount filed under the
+  book's heading would have stayed listed as missing, still offering an Import
+  its own duplicate check then refused. A mount already in your world under
+  either spelling now counts as present. And when the extracted pages hold no
+  statblock, the importer says so and names the pages to grab instead of quietly
+  creating the wrong kind of document.
 
 ## [0.15.1] — 2026-08-26
 
