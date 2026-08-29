@@ -31,8 +31,12 @@ const _norm = (value) => String(value ?? "").toLowerCase().replace(/\s+/g, " ").
  * above the stat line prints the name naturally, "WAR HORSE". Matching on the
  * literal string alone drops the statblock the GM asked for, which is how a
  * mount unlock ended up with nothing to create.
+ *
+ * Shared with the Manage-tree census (manage-tree.mjs), so a mount already in
+ * the world under the book's heading reconciles against its manifest row rather
+ * than sitting locked with an Import button it can never satisfy.
  */
-function nameKeys(value) {
+export function mountNameKeys(value) {
   const base = _norm(value);
   if (!base) return new Set();
   const keys = new Set([base, base.replace(/,/g, "").replace(/\s+/g, " ").trim()]);
@@ -44,8 +48,8 @@ function nameKeys(value) {
 
 /** Keep only the mount selected by a Manage-tree unlock from a full page grab. */
 export function selectMountDrafts(parsed, selectedName) {
-  const wanted = nameKeys(selectedName);
+  const wanted = mountNameKeys(selectedName);
   if (!wanted.size) return [];
   return (parsed ?? []).filter((entry) =>
-    [...nameKeys(entry?.draft?.name)].some((key) => wanted.has(key)));
+    [...mountNameKeys(entry?.draft?.name)].some((key) => wanted.has(key)));
 }

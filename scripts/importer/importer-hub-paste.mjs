@@ -805,6 +805,12 @@ class HubPasteMethods {
       // identity: keep its statblock and review the rest, so a single missing
       // mount never creates the other fourteen as duplicate actors.
       const selected = selectMountDrafts(drafts, want);
+      // Create it under the CATALOG's name, not the book's heading. The book
+      // prints "WAR HORSE" where the manifest says "Horse, War", and the actor's
+      // name is the census's identity: persisting the heading leaves the row
+      // locked forever, still offering an Import its own duplicate check then
+      // refuses. The GM asked for this name, so this is also what they expect.
+      for (const entry of selected) entry.draft.name = want;
       this._importMonsters = selected;
       this._importItems = []; this._importSpells = []; this._importTables = [];
       this._importGenerators = []; this._importChar = []; this._importBoats = [];

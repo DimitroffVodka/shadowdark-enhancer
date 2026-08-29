@@ -30,7 +30,12 @@
   can't mint the other fourteen as duplicates. The book prints the mounts by
   their natural names ("WAR HORSE") while the catalog lists them index-style
   ("Horse, War"), which used to mean the selected statblock matched nothing at
-  all; both spellings are now understood. And when the extracted pages hold no
+  all; both spellings are now understood. The mount is created under the
+  catalog's name — the one on the button the GM pressed — because the actor's
+  name is what the Mounts list reconciles against, and a mount filed under the
+  book's heading would have stayed listed as missing, still offering an Import
+  its own duplicate check then refused. A mount already in your world under
+  either spelling now counts as present. And when the extracted pages hold no
   statblock, the importer says so and names the pages to grab instead of quietly
   creating the wrong kind of document.
 

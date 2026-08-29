@@ -112,7 +112,9 @@ Riders / Inventory / Mount tabs.
 
 The catalog lists mounts index-style (*Horse, War*) while the book prints them
 naturally (*WAR HORSE*). Either spelling matches, so the right statblock is kept
-whichever way your PDF extracts.
+whichever way your PDF extracts, and the actor is created under the catalog name
+— the one on the button you pressed. A mount already in your world under either
+spelling counts as present and shows no Import button.
 
 ---
 

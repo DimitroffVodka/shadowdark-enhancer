@@ -19,6 +19,15 @@ import { readFileSync } from "node:fs";
 import { selectMountDrafts } from "../scripts/importer/boats/mount-parser.mjs";
 import { splitStatblocks, parseStatblock } from "../scripts/importer/monsters/statblock-parser.mjs";
 
+// Source-contract patterns: ImporterHubApp is bound to Foundry's ApplicationV2
+// runtime, so the routing is pinned by reading the source rather than calling
+// it. They match raw text, so say so when they miss — a reformat of
+// _onHubParse should read as "update this pattern", not "the branch is gone".
+const MOUNT_BRANCH_RE = /if \(this\._importSeed\?\.type === "Mount"\) \{(?<body>[\s\S]*?)\n {4}\}/;
+const BRANCH_HINT =
+  "mount parse branch not found in _onHubParse — if the branch was reformatted or "
+  + "re-indented, update MOUNT_BRANCH_RE rather than assuming the routing is gone";
+
 const pasteSource = readFileSync(
   new URL("../scripts/importer/importer-hub-paste.mjs", import.meta.url), "utf8");
 const manageSource = readFileSync(
@@ -86,14 +95,22 @@ describe("mount unlock routing", () => {
   });
 
   test("_onHubParse parses mounts as statblocks and clears the table buckets", () => {
-    const branch = pasteSource.match(
-      /if \(this\._importSeed\?\.type === "Mount"\) \{(?<body>[\s\S]*?)\n {4}\}/)?.groups?.body;
-    assert.ok(branch, "mount parse branch not found");
+    const branch = pasteSource.match(MOUNT_BRANCH_RE)?.groups?.body;
+    assert.ok(branch, BRANCH_HINT);
     assert.match(branch, /splitStatblocks\(/);
     assert.match(branch, /selectMountDrafts\(/);
     assert.match(branch, /this\._importTables = \[\]/);
     assert.match(branch, /this\._importGenerators = \[\]/);
     assert.match(branch, /return;/);
+  });
+
+  test("the mount branch creates under the catalog name, not the book's heading", () => {
+    // The actor's name is the census's identity (manage-tree buildMonsters), so
+    // persisting "War Horse" for a "Horse, War" unlock leaves the row locked
+    // forever — Import still offered, retry skipped as a duplicate.
+    const branch = pasteSource.match(MOUNT_BRANCH_RE)?.groups?.body;
+    assert.ok(branch, BRANCH_HINT);
+    assert.match(branch, /for \(const entry of selected\) entry\.draft\.name = want;/);
   });
 
   test("the mount branch runs before the generic auto/table pipeline", () => {
