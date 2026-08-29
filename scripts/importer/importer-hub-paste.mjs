@@ -776,13 +776,21 @@ class HubPasteMethods {
     // shared item preview + commit (importType stays "items"; only the parse is
     // special-cased). Detected by the unlock seed type.
     if (this._importSeed?.type === "SiegeWeapon") {
-      const { parseSiegeWeapons } = await import("./boats/siege-parser.mjs");
-      this._importItems = parseSiegeWeapons(text).map((draft) => ({ draft, warnings: [] }));
+      const { parseSiegeTable } = await import("./boats/siege-parser.mjs");
+      // The parser reports WHY a parse came up short — which names it saw, and
+      // whether the page cite or the column split is the likelier culprit. We
+      // can't see the GM's book, so a bare "nothing found" leaves them nowhere.
+      const report = parseSiegeTable(text);
+      this._importItems = report.drafts.map((draft) => ({ draft, warnings: [] }));
       this._importMonsters = []; this._importSpells = []; this._importTables = [];
       this._importGenerators = []; this._importChar = []; this._importBoats = [];
       this._importSkipped = []; this._shapeFailNote = null;
-      if (!this._importItems.length) {
-        ui.notifications.warn("No siege weapons found — paste the Western Reaches p119 SIEGE WEAPONS table.");
+      if (report.note) {
+        ui.notifications.warn(report.note);
+        // A toast is gone by the time they read the preview, and "3 of 4" is
+        // exactly what they need in front of them at Create. Park it on the
+        // first row too, where the preview already renders item warnings.
+        this._importItems[0]?.warnings.push(report.note);
       }
       this.render();
       return;
