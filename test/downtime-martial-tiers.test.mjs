@@ -69,6 +69,19 @@ describe("unreadable hit die", () => {
     assert.doesNotMatch(r.gateNote, /undefined|null/);
   });
 
+  test("a tier browsed before the gate closed is ignored, not narrowed to", () => {
+    // The dropdown is gone, so a stale `_martialTier` from an earlier actor
+    // must not quietly re-narrow the list — that is the empty-bucket shape the
+    // whole fix exists to prevent, and it would hide the other two tiers.
+    const stale = martialTierBuckets(MARTIAL, {
+      facts: unreadable("no class is set on this character"),
+      casterList: null,
+      viewingTier: "d4",
+    });
+    assert.deepEqual(stale.buckets.map((b) => b.key), TIERS);
+    assert.equal(stale.tierPicker, null);
+  });
+
   test("no tier picker: every tier is already shown, and the gate is shut for a GM too", () => {
     assert.equal(blocked.tierPicker, null);
     const asGm = martialTierBuckets(MARTIAL, {
