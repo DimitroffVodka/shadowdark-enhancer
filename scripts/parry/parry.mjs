@@ -29,10 +29,10 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { relayToGM, authorizeActorFor, refuseQuery } from "../shared/gm-relay.mjs";
+import { relayToGM, authorizeActorFor, refuseQuery, isActiveGM } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
 import { canParry, reversalPlan, defeatStatusesFor } from "./parry-core.mjs";
-import { cardHit, targetActorOf, attackerActorOf } from "../shared/attack-card.mjs";
+import { cardHit, isAttackCard, targetActorOf, attackerActorOf } from "../shared/attack-card.mjs";
 
 /** The one authenticated player→GM channel for parries. */
 export const PARRY_QUERY = `${MODULE_ID}.parry`;
@@ -52,6 +52,19 @@ const _pending = new Map();
 
 /** A snapshot whose update never arrived (cancelled re-apply dialog) must not settle later. */
 const PENDING_TTL_MS = 30000;
+
+/**
+ * Message ids with a parry mid-flight.
+ *
+ * The "already parried" guard reads a flag that is only written at the END of
+ * the handler, five awaits later. Both a GM's own click and a player's relayed
+ * one run this handler on the SAME client, so without a marker held across
+ * those awaits two callers can both find the flag absent, both read the same
+ * damage snapshot, and both hand the HP back — a Duelist healed twice for one
+ * blow. In-memory is enough: the only way to reach the handler is through this
+ * client (`refuseQuery` sends every relay to the active GM).
+ */
+const _inFlight = new Set();
 
 let _installed = false;
 let _originalOnApplyDamage = null;
@@ -130,6 +143,10 @@ export const Parry = {
     try {
       const config = message.flags?.shadowdark?.rollConfig;
       if (!config) return;
+      // Only attacks are parryable, so only attacks are worth snapshotting —
+      // and a spell's apply must not evict the pending snapshot of a real hit
+      // on the same target.
+      if (!isAttackCard(message)) return;
       let actor = null;
       if (btn?.dataset?.target === "target" && config.targetUuid) {
         // Resolve through the SAME helper the button and the GM handler use.
@@ -189,6 +206,10 @@ export const Parry = {
     const parried = message.flags?.[MODULE_ID]?.parry;
     if (parried) return this._decorateParried(html, parried);
 
+    // "an ATTACK of your choice that would hit you" — a spell cast at the
+    // Duelist carries a targetUuid too, and its success is the caster's check
+    // against the spell DC, not a swing at anyone's AC.
+    if (!isAttackCard(message)) return;
     const config = message.flags?.shadowdark?.rollConfig;
     if (!config?.targetUuid) return;
 
@@ -219,7 +240,14 @@ export const Parry = {
       const request = { action: "parry", messageId: message.id, actorId: actor.id };
       // A refused parry must hand the button back — otherwise the one use the
       // player still has looks spent.
-      if (game.user.isGM) {
+      //
+      // `isActiveGM`, not `isGM`: a SECOND GM taking the local branch would run
+      // the whole parry on their own client, where `Hooks.callAll` stays — and
+      // Taunt's listener is gated to the active GM, so no client both receives
+      // the "parried" hook and is allowed to act on it. The parry would land and
+      // the taunt it should arm would never appear. Relaying puts the work on
+      // the one client that can finish it; `authorizeActorFor` passes any GM.
+      if (isActiveGM()) {
         const reply = await Parry._handleParry(request);
         if (!reply?.ok) { btn.disabled = false; if (reply?.error) ui.notifications?.warn(reply.error); }
       } else if (!await relayToGM(PARRY_QUERY, request, { label: RELAY_LABEL })) {
@@ -232,6 +260,25 @@ export const Parry = {
   _decorateParried(html, parried) {
     const root = html.querySelector(".message-content") ?? html;
     root.classList.add("sde-parried");
+
+    // Take the apply-damage controls away, not just the printed total.
+    //
+    // Striking the number through is cosmetic: the system's `<a class=
+    // "apply-damage" data-action="apply-damage">` (roll-card.hbs:55,
+    // roll.hbs:11) still carries its click handler, and it is GM-visible on
+    // every card. Worse, `_handleParry` unsets `shadowdark.damageApplied`, and
+    // that flag is the ONLY thing that makes `_onApplyDamage` ask "re-apply?"
+    // (ChatMessageSD.mjs:92) — so a stray click would silently deal the damage
+    // of an attack that, by then, missed. There is no taking it back either:
+    // the card already carries a `parry` flag, so it cannot be parried twice.
+    //
+    // Removing the anchor removes its listener with it. `_applyVisibilityRules`
+    // fills these in from an async callback that may still be pending, but it
+    // only writes `a.innerHTML` on a node it already holds — writing into a
+    // detached one is harmless.
+    html.querySelectorAll('.apply-damage, [data-action="apply-damage"]')
+      .forEach((el) => el.remove());
+
     const note = document.createElement("div");
     note.className = "sde-parry-note";
     const undone = parried.unknown
@@ -253,14 +300,31 @@ export const Parry = {
     return { ok: false, error: "Unknown parry action." };
   },
 
+  /** One parry per card at a time; the work is in `_resolveParry`. */
+  async _handleParry(request, user = game.user) {
+    const { messageId } = request ?? {};
+    if (!messageId) return { ok: false, error: "That attack card is gone." };
+    if (_inFlight.has(messageId)) return { ok: false, error: "That parry is already being resolved." };
+    _inFlight.add(messageId);
+    try {
+      return await this._resolveParry(request, user);
+    } finally {
+      _inFlight.delete(messageId);
+    }
+  },
+
   /**
    * Spend the use, undo the hit. Re-decides everything from documents — the
    * request carries ids and nothing else.
    */
-  async _handleParry({ messageId, actorId }, user = game.user) {
+  async _resolveParry({ messageId, actorId }, user = game.user) {
     const message = game.messages.get(messageId);
     if (!message) return { ok: false, error: "That attack card is gone." };
     if (message.flags?.[MODULE_ID]?.parry) return { ok: false, error: "That attack was already parried." };
+    // Re-asked here rather than trusted from the click: a client decides what
+    // to SHOW, never what is true, and a stale or hand-made request could name
+    // a spell card.
+    if (!isAttackCard(message)) return { ok: false, error: "That roll wasn't an attack." };
 
     const auth = authorizeActorFor(actorId, user);
     if (!auth.ok) return auth;
@@ -317,9 +381,16 @@ export const Parry = {
     // A parried attack "misses instead" — announce it so anything keyed on a
     // miss (the Duelist's own Taunt) can react, without this file knowing who
     // is listening.
+    //
+    // UUIDs, because ids do not survive unlinked tokens: every goblin stamped
+    // from one stat block shares an id, and a listener keying on that would arm
+    // against all of them. `target` rather than `actor` for the defender — it is
+    // the same character (checked above) named the way the roll config will name
+    // it when they next swing.
     const attacker = await attackerActorOf(message);
     Hooks.callAll(`${MODULE_ID}.parried`, {
-      actorId: actor.id, attackerId: attacker?.id ?? null, messageId: message.id, reversed,
+      actorUuid: target.uuid, attackerUuid: attacker?.uuid ?? null,
+      messageId: message.id, reversed,
     });
 
     await ChatMessage.create({

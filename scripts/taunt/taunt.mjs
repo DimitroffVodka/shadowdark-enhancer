@@ -13,7 +13,8 @@
  *          reason is pushed into `config.messages` where the roll card prints it.
  *   EXPIRE `updateCombat` — `Combat#previous` names the turn that just ended
  *          (core's own way of asking; foundry.mjs:50639). When that turn belongs
- *          to the holder and started after the taunt was armed, it is over.
+ *          to the holder, ran in the combat the taunt was armed in, and started
+ *          after it was armed, it is over.
  *
  * The taunt lives as a flag on the holder's actor, so it survives a reload and
  * every client can read it. Only the active GM writes it — arming happens from a
@@ -24,7 +25,9 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { isActiveGM } from "../shared/gm-relay.mjs";
 import { esc } from "../shared/esc.mjs";
-import { cardHit, targetActorOf, attackerActorOf, actorFromUuidSync } from "../shared/attack-card.mjs";
+import {
+  cardHit, isAttackCard, targetActorOf, attackerActorOf, actorFromUuid, actorFromUuidSync,
+} from "../shared/attack-card.mjs";
 import { turnSeq, shouldExpire, mergeAdvantage, armsTaunt, tauntApplies } from "./taunt-core.mjs";
 
 /** Talent name to fall back on when nothing carries the flag (pre-flag worlds). */
@@ -52,13 +55,22 @@ export function tauntOn(actor) {
   return actor?.flags?.[MODULE_ID]?.taunt ?? null;
 }
 
-/** Where the given actor's combat currently stands, or null outside combat. */
+/**
+ * Where the given actor's combat currently stands, or null outside combat.
+ *
+ * The attack card names no combat, so with two encounters running at once this
+ * has to choose. `game.combat` — the one the table is actually looking at — is
+ * tried first; the blow was almost certainly struck there, and "whichever
+ * `game.combats` happens to yield first" is not an answer. An unlinked token is
+ * matched by token id, which settles it outright for the common case.
+ */
 function _combatPosition(actor) {
-  for (const combat of game.combats ?? []) {
-    if (!combat.started) continue;
-    const inIt = combat.combatants.some((c) => (actor.isToken
-      ? c.tokenId === actor.token?.id : c.actorId === actor.id));
-    if (inIt) return { combatId: combat.id, seq: turnSeq({ round: combat.round, turn: combat.turn }) };
+  const isThem = (c) => (actor.isToken ? c.tokenId === actor.token?.id : c.actorId === actor.id);
+  for (const combat of [game.combat, ...(game.combats ?? [])]) {
+    if (!combat?.started) continue;
+    if (combat.combatants.some(isThem)) {
+      return { combatId: combat.id, seq: turnSeq({ round: combat.round, turn: combat.turn }) };
+    }
   }
   return null;
 }
@@ -84,6 +96,9 @@ export const Taunt = {
   async _onAttackCard(message) {
     if (!_enabled() || !isActiveGM()) return;
     try {
+      // "misses you with an ATTACK" — a botched spell aimed at the Duelist is
+      // not one, and the system stamps a targetUuid on that card too.
+      if (!isAttackCard(message)) return;
       const config = message?.flags?.shadowdark?.rollConfig;
       if (!config?.targetUuid || !config?.actorUuid) return;
       const defender = await targetActorOf(message);
@@ -93,8 +108,8 @@ export const Taunt = {
         isHit: cardHit(message),
         parried: false,
         defenderHasTaunt: !!findTauntTalent(defender),
-        attackerId: attacker.id,
-        defenderId: defender.id,
+        attackerUuid: attacker.uuid,
+        defenderUuid: defender.uuid,
       });
       if (!verdict.ok) return;
       await this.arm(defender, attacker);
@@ -103,16 +118,22 @@ export const Taunt = {
     }
   },
 
-  /** A Parry turned a hit into a miss — the rules text says that IS a miss. */
-  async _onParried({ actorId, attackerId } = {}) {
+  /**
+   * A Parry turned a hit into a miss — the rules text says that IS a miss.
+   *
+   * Resolved through the same uuid helper the card path uses, not
+   * `game.actors.get`: an id names the base actor, which for an unlinked token
+   * is the wrong document to read a talent off and the wrong one to flag.
+   */
+  async _onParried({ actorUuid, attackerUuid } = {}) {
     if (!_enabled() || !isActiveGM()) return;
-    const defender = game.actors.get(actorId);
-    const attacker = attackerId ? game.actors.get(attackerId) : null;
+    const defender = await actorFromUuid(actorUuid);
+    const attacker = await actorFromUuid(attackerUuid);
     if (!defender || !attacker) return;
     const verdict = armsTaunt({
       isHit: true, parried: true,
       defenderHasTaunt: !!findTauntTalent(defender),
-      attackerId: attacker.id, defenderId: defender.id,
+      attackerUuid: attacker.uuid, defenderUuid: defender.uuid,
     });
     if (!verdict.ok) return;
     await this.arm(defender, attacker);
@@ -123,12 +144,13 @@ export const Taunt = {
    *
    * A second miss from the SAME enemy just refreshes the clock. A miss from a
    * different one replaces it: the talent grants advantage against "that
-   * enemy", singular.
+   * enemy", singular — and "that enemy" is a uuid, so the goblin that swung is
+   * not its two identical friends. See armsTaunt.
    */
   async arm(defender, attacker) {
     const pos = _combatPosition(defender);
     await defender.setFlag(MODULE_ID, "taunt", {
-      enemyId: attacker.id,
+      enemyUuid: attacker.uuid,
       enemyName: attacker.name,
       combatId: pos?.combatId ?? null,
       armedAt: pos?.seq ?? null,
@@ -160,8 +182,10 @@ export const Taunt = {
       const attacker = actorFromUuidSync(config.actorUuid);
       const taunt = tauntOn(attacker);
       if (!taunt) return;
+      // `config.targetUuid` names a TokenDocument; `actorFromUuidSync` walks it
+      // to the actor, whose uuid is the token-scoped one the taunt recorded.
       const target = actorFromUuidSync(config.targetUuid);
-      if (!tauntApplies(taunt, target?.id)) return;
+      if (!tauntApplies(taunt, target?.uuid)) return;
 
       const before = Number(config.mainRoll.advantage) || 0;
       const next = mergeAdvantage(before);
@@ -192,6 +216,12 @@ export const Taunt = {
       const actor = combat.combatants.get(prev.combatantId)?.actor;
       const taunt = tauntOn(actor);
       if (!taunt) return;
+      // `armedAt` is an ordinal within ONE initiative order, so comparing it to
+      // a turn that ended somewhere else is meaningless — a linked actor in two
+      // started combats would otherwise have its taunt cut short by the other
+      // encounter's clock. A taunt armed outside combat carries no combatId and
+      // no armedAt, and dies on the first turn its holder finishes anywhere.
+      if (taunt.combatId && taunt.combatId !== combat.id) return;
       if (!shouldExpire({ armedAt: taunt.armedAt, endedSeq: turnSeq(prev) })) return;
       await this.clear(actor);
     } catch (err) {
@@ -203,8 +233,12 @@ export const Taunt = {
   async _onCombatEnd(combat) {
     if (!_enabled() || !isActiveGM()) return;
     for (const c of combat?.combatants ?? []) {
-      const actor = c.actor;
-      if (tauntOn(actor)) await this.clear(actor).catch(() => {});
+      const taunt = tauntOn(c.actor);
+      if (!taunt) continue;
+      // Deleting one encounter must not disarm a taunt that belongs to another
+      // one the same character is still fighting in.
+      if (taunt.combatId && taunt.combatId !== combat.id) continue;
+      await this.clear(c.actor).catch(() => {});
     }
   },
 

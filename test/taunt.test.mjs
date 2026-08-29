@@ -91,9 +91,15 @@ test("disadvantage CANCELS to a normal roll, it is not overwritten", () => {
 
 // ─── armsTaunt ─────────────────────────────────────────────────────────────
 
+// Two unlinked goblins stamped from ONE stat block: same trailing actor id,
+// different token. This is the shape `.id` cannot tell apart.
+const GOBLIN_A = "Scene.cave.Token.aaa.Actor.goblin";
+const GOBLIN_B = "Scene.cave.Token.bbb.Actor.goblin";
+const DUELIST = "Actor.duelist";
+
 const MISS = {
   isHit: false, parried: false, defenderHasTaunt: true,
-  attackerId: "goblin", defenderId: "duelist",
+  attackerUuid: GOBLIN_A, defenderUuid: DUELIST,
 };
 
 test("a miss on a Taunt holder arms it", () => {
@@ -114,28 +120,47 @@ test("no talent, no taunt", () => {
 });
 
 test("you cannot taunt yourself", () => {
-  assert.deepEqual(armsTaunt({ ...MISS, attackerId: "duelist" }),
+  assert.deepEqual(armsTaunt({ ...MISS, attackerUuid: DUELIST }),
     { ok: false, reason: "self" });
 });
 
 test("an attack with nobody on one end of it is ignored", () => {
-  assert.equal(armsTaunt({ ...MISS, attackerId: null }).reason, "no-combatants");
-  assert.equal(armsTaunt({ ...MISS, defenderId: null }).reason, "no-combatants");
+  assert.equal(armsTaunt({ ...MISS, attackerUuid: null }).reason, "no-combatants");
+  assert.equal(armsTaunt({ ...MISS, defenderUuid: null }).reason, "no-combatants");
   assert.equal(armsTaunt().ok, false);
+});
+
+test("two tokens off one stat block are two different enemies", () => {
+  // They share an actor id — only the uuid keeps them apart, which is why the
+  // taunt is keyed on one. Both directions are real attacks, not "self".
+  assert.equal(armsTaunt({ ...MISS, attackerUuid: GOBLIN_A, defenderUuid: GOBLIN_B }).ok, true);
 });
 
 // ─── tauntApplies: that enemy, and only that enemy ─────────────────────────
 
 test("the advantage applies to the enemy that missed", () => {
-  assert.equal(tauntApplies({ enemyId: "goblin" }, "goblin"), true);
+  assert.equal(tauntApplies({ enemyUuid: GOBLIN_A }, GOBLIN_A), true);
 });
 
 test("it does not spill onto the goblin's friends", () => {
-  assert.equal(tauntApplies({ enemyId: "goblin" }, "orc"), false);
+  assert.equal(tauntApplies({ enemyUuid: GOBLIN_A }, "Actor.orc"), false);
+});
+
+test("nor onto its IDENTICAL friends — the ones sharing its actor id", () => {
+  // The whole reason the taunt stores a uuid. Keyed by id these are one goblin,
+  // and a miss from the first would hand out advantage against the whole pack.
+  assert.equal(tauntApplies({ enemyUuid: GOBLIN_A }, GOBLIN_B), false);
 });
 
 test("no taunt, or no target, applies to nothing", () => {
-  assert.equal(tauntApplies(null, "goblin"), false);
-  assert.equal(tauntApplies({ enemyId: "goblin" }, null), false);
-  assert.equal(tauntApplies({}, "goblin"), false);
+  assert.equal(tauntApplies(null, GOBLIN_A), false);
+  assert.equal(tauntApplies({ enemyUuid: GOBLIN_A }, null), false);
+  assert.equal(tauntApplies({}, GOBLIN_A), false);
+});
+
+test("a taunt stored by an older build simply never applies", () => {
+  // `enemyId` and no `enemyUuid`: it expires on the holder's next turn as
+  // usual. Falling back to the id would put the pack bug straight back.
+  assert.equal(tauntApplies({ enemyId: "goblin" }, GOBLIN_A), false);
+  assert.equal(tauntApplies({ enemyId: "goblin" }, "goblin"), false);
 });

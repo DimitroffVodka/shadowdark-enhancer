@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-767 tracked files · ~106,700 lines of code/markup across scripts+templates+styles+test.
+775 tracked files · ~108,500 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,11 +46,15 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 727 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 747 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
 | `scavenger/scavenger.mjs` | 183 | Foundry wiring for Scavenger: pre-hooks snapshot the quantity and a restore copy, post-hooks roll the d6, post the card, and hand back one use — refuelling and unlighting a restored light source. |
+| `parry/parry-core.mjs` | 112 | Pure Duelist Parry rules: what the system's clamped `applyDamage` actually removes (so a reversal gives back the clamped delta, not the printed damage), whether an attack is parryable, and which parts of a downed state this hit caused. |
+| `parry/parry.mjs` | 441 | Parry button on an attack card that hit: spends the 1/day use, makes the attack miss, and reverses damage the GM already applied — HP, defeated flag and downed conditions. Player clicks go through the authenticated gm-relay. |
+| `taunt/taunt-core.mjs` | 118 | Pure Duelist Taunt rules: round+turn as one ordinal, the "end of your NEXT turn" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit). |
+| `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -58,7 +62,8 @@
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
-| `settings.mjs` | 426 | All `game.settings.register` calls + migration-safe defaults. |
+| `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
+| `settings.mjs` | 444 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -194,10 +199,10 @@
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1477 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
-| `char-content/class-parser.mjs` | 1020 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
+| `char-content/class-parser.mjs` | 1067 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1111 | Class unit → real documents in dependency order. |
-| `char-content/class-overlays.mjs` | 232 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
+| `char-content/class-unit-importer.mjs` | 1217 | Class unit → real documents in dependency order. |
+| `char-content/class-overlays.mjs` | 255 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |

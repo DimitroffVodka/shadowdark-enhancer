@@ -72,22 +72,28 @@ export function mergeAdvantage(current = 0) {
 /**
  * Does this attack card arm a taunt?
  *
+ * UUIDS, NOT IDS — the whole talent hangs on telling one enemy from another,
+ * and `.id` cannot. Every unlinked token stamped from one NPC gets a synthetic
+ * actor carrying the BASE actor's `_id`, so the three goblins in the doorway
+ * share an id and differ only by uuid (`Scene.x.Token.y.Actor.z`). Keyed by id,
+ * a miss from the first goblin hands the Duelist advantage against all three.
+ *
  * @param {object} facts
  * @param {boolean} facts.isHit         did the attack land
  * @param {boolean} facts.parried       was it turned by Parry (a hit made into a miss)
  * @param {boolean} facts.defenderHasTaunt
- * @param {?string} facts.attackerId
- * @param {?string} facts.defenderId
+ * @param {?string} facts.attackerUuid
+ * @param {?string} facts.defenderUuid
  * @returns {{ok: boolean, reason: string}}
  */
 export function armsTaunt({
   isHit = false, parried = false, defenderHasTaunt = false,
-  attackerId = null, defenderId = null,
+  attackerUuid = null, defenderUuid = null,
 } = {}) {
   if (!defenderHasTaunt) return { ok: false, reason: "no-talent" };
-  if (!attackerId || !defenderId) return { ok: false, reason: "no-combatants" };
+  if (!attackerUuid || !defenderUuid) return { ok: false, reason: "no-combatants" };
   // Nobody taunts themselves into advantage against themselves.
-  if (attackerId === defenderId) return { ok: false, reason: "self" };
+  if (attackerUuid === defenderUuid) return { ok: false, reason: "self" };
   // A parried attack "misses instead" — by the rules text it is a miss, and a
   // miss is exactly what Taunt keys on.
   if (isHit && !parried) return { ok: false, reason: "hit" };
@@ -97,11 +103,16 @@ export function armsTaunt({
 /**
  * Does an armed taunt apply to the attack about to be rolled?
  *
+ * A taunt stored by an older build carries `enemyId` and no `enemyUuid`; it
+ * simply never applies and expires on the holder's next turn as usual. One
+ * round of a buff, once, is the right price for not resurrecting the
+ * all-goblins-are-one-goblin bug through a fallback.
+ *
  * @param {?object} taunt        the holder's stored taunt
- * @param {?string} targetId     actor id the attack is aimed at
+ * @param {?string} targetUuid   actor uuid the attack is aimed at
  * @returns {boolean}
  */
-export function tauntApplies(taunt, targetId) {
-  if (!taunt?.enemyId || !targetId) return false;
-  return taunt.enemyId === targetId;
+export function tauntApplies(taunt, targetUuid) {
+  if (!taunt?.enemyUuid || !targetUuid) return false;
+  return taunt.enemyUuid === targetUuid;
 }

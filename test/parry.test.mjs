@@ -21,7 +21,7 @@ import assert from "node:assert/strict";
 import {
   damageOutcome, canParry, reversalPlan, defeatStatusesFor,
 } from "../scripts/parry/parry-core.mjs";
-import { rollHit } from "../scripts/shared/attack-card.mjs";
+import { rollHit, isAttackCard } from "../scripts/shared/attack-card.mjs";
 
 // ─── damageOutcome: the clamp is the point ──────────────────────────────────
 
@@ -71,6 +71,36 @@ test("no DC means no hit to parry — an untargeted swing", () => {
   // RollSD.success is null with no DC; there is no "you" it hit.
   assert.equal(rollHit({ success: null }), false);
   assert.equal(rollHit({}), false);
+});
+
+// ─── isAttackCard: a targeted spell is not a swing ──────────────────────────
+//
+// `setRollTarget` stamps targetUuid onto ANY roll made with a token targeted,
+// so a spell card carries the same target the Duelist's Parry looks for. Its
+// `success` is the caster's check against the spell's DC — read as an attack, a
+// fumbled spell is a "miss" that arms Taunt and a good one is a "hit" that
+// offers Parry. `config.type` is the system's own label for the roll.
+
+const card = (type) => ({ flags: { shadowdark: { rollConfig: { type, targetUuid: "Scene.a.Token.b" } } } });
+
+test("a weapon attack is an attack card", () => {
+  assert.equal(isAttackCard(card("attack")), true);
+});
+
+test("a targeted spell is NOT, however well it went", () => {
+  assert.equal(isAttackCard(card("spell")), false);
+});
+
+test("nor is an ability or a stat check", () => {
+  assert.equal(isAttackCard(card("ability")), false);
+  assert.equal(isAttackCard(card("check")), false);
+});
+
+test("a card with no roll config at all is not an attack", () => {
+  assert.equal(isAttackCard({ flags: { shadowdark: {} } }), false);
+  assert.equal(isAttackCard({}), false);
+  assert.equal(isAttackCard(null), false);
+  assert.equal(isAttackCard(card("")), false);
 });
 
 // ─── canParry ───────────────────────────────────────────────────────────────

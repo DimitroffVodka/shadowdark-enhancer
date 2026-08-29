@@ -1182,9 +1182,20 @@ export async function pruneBoughtGearGrants() {
       if (keep) updates.push(patch(e._id, keep));
     }
     if (!updates.length) continue;
-    if (pack.locked) { try { await pack.configure({ locked: false }); } catch (_) {} }
-    await Item.updateDocuments(updates, { pack: pack.collection });
-    fixed += updates.length;
+    // Borrow the lock, hand it back. A sweep that runs on world load must not
+    // leave a user's (or a module's) pack writable behind them — "nothing
+    // changes silently" covers the pack's own settings, not just its documents.
+    // If the unlock itself fails there is nothing to restore and nothing to do.
+    const wasLocked = pack.locked;
+    if (wasLocked) {
+      try { await pack.configure({ locked: false }); } catch (_) { continue; }
+    }
+    try {
+      await Item.updateDocuments(updates, { pack: pack.collection });
+      fixed += updates.length;
+    } finally {
+      if (wasLocked) await pack.configure({ locked: true }).catch(() => {});
+    }
   }
   const worldUpdates = [];
   for (const i of game.items) {

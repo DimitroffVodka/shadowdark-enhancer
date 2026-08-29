@@ -558,6 +558,6 @@
     "scripts/parry/parry.mjs": "Parry button on an attack card that hit: spends the 1/day use, makes the attack miss, and reverses damage the GM already applied — HP, defeated flag and downed conditions. Player clicks go through the authenticated gm-relay.",
     "scripts/taunt/taunt-core.mjs": "Pure Duelist Taunt rules: round+turn as one ordinal, the \"end of your NEXT turn\" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit).",
     "scripts/taunt/taunt.mjs": "Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends.",
-    "scripts/shared/attack-card.mjs": "Reading a Shadowdark attack card — did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently)."
+    "scripts/shared/attack-card.mjs": "Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently)."
   }
 }

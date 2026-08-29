@@ -2,11 +2,11 @@
  * Shadowdark Enhancer — reading a Shadowdark attack card
  *
  * Two features now react to attacks — the Duelist's Parry (a hit on you) and
- * Taunt (a miss on you) — and both need the same three answers: did it land,
- * who was it aimed at, who swung. Those live here rather than in either
- * feature, because the last time two copies of "who was this aimed at"
- * disagreed, a parry spent its once-a-day use and silently gave back nothing
- * (see the resolver note in parry.mjs).
+ * Taunt (a miss on you) — and both need the same four answers: was it an attack
+ * at all, did it land, who was it aimed at, who swung. Those live here rather
+ * than in either feature, because the last time two copies of "who was this
+ * aimed at" disagreed, a parry spent its once-a-day use and silently gave back
+ * nothing (see the resolver note in parry.mjs).
  *
  * What makes any of this possible: with the system's targeting setting on,
  * `setRollTarget` (dice.mjs) stamps `targetUuid` onto the roll config and feeds
@@ -35,6 +35,26 @@ export function rollHit({ success = null, criticalSuccess = false, criticalFailu
 /** The card's main roll, however the system labelled it. */
 export function mainRollOf(message) {
   return message?.getRoll?.("main") ?? message?.rolls?.[0] ?? null;
+}
+
+/**
+ * Is this card a weapon attack at all?
+ *
+ * MUST be asked before `cardHit`, and it is the reason this file exists rather
+ * than two copies of the same reading. `setRollTarget` stamps `targetUuid` onto
+ * ANY roll made with a token targeted — a spell cast goes through it too
+ * (PlayerSD.castSpell, NpcSD.castNPCSpell). But a spell's `success` is the
+ * CASTING CHECK against the spell's own DC: `_generateSpellConfig` assigns
+ * `mainRoll.dc = spell.system.dc` outright, overwriting the target AC that
+ * `setRollTarget` left there. Read as an attack, a fumbled Magic Missile is a
+ * miss that arms Taunt and a successful one is a hit that offers Parry.
+ *
+ * The system labels the roll for us — `config.type` is set by the config
+ * generators and is one of "attack", "spell", "check" or "ability" (PlayerSD
+ * 408/431, NpcSD 214/249) — so this is a lookup, not a guess.
+ */
+export function isAttackCard(message) {
+  return message?.flags?.shadowdark?.rollConfig?.type === "attack";
 }
 
 /** Did the card's attack land? False for a card with no roll at all. */
