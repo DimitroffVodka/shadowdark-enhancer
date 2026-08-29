@@ -248,10 +248,14 @@ test("names with no stat rows blame the column split, not the page cite", () => 
 });
 
 test("a page with none of the names points at the page cite", () => {
+  // Cites assume the V1 printing and PAGE_OFFSETS has no WR entry, so a GM who
+  // uploaded another printing lands on the wrong page — and there is no offset
+  // control to send them to, so the message must not invent one.
   const report = parseSiegeTable("Some other page, all prose, no table.");
   assert.deepEqual(report.drafts, []);
   assert.deepEqual(report.mentioned, []);
-  assert.match(report.note, /page offset/i);
+  assert.match(report.note, /printing/i);
+  assert.doesNotMatch(report.note, /sets the page offset/i);
 });
 
 test("the whole-sentence reading of a property wins over a welded one", () => {

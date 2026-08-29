@@ -380,7 +380,7 @@ function diagnose(parsed, missing, mentioned) {
   if (!parsed.length) {
     return mentioned.length
       ? `Siege weapons: found ${mentioned.length} name${mentioned.length === 1 ? "" : "s"} (${mentioned.join("; ")}) but no complete stat row, so the column split most likely ran through the table. Re-grab p119, or paste its rows (Weapon · Cost · Type · Range · Damage · Properties).`
-      : "No siege weapons found — paste the Western Reaches p119 SIEGE WEAPONS table. If you grabbed it from your PDF, check that p119 lands on the SIEGE WEAPONS page (Source PDFs sets the page offset).";
+      : "No siege weapons found — paste the Western Reaches p119 SIEGE WEAPONS table. If you grabbed it from your PDF, open the page (Open PDF) and check it really is the SIEGE WEAPONS page: cites assume the V1 printing, and another printing's front matter shifts every page.";
   }
   return missing.length
     ? `Siege weapons: read ${parsed.length} of ${NAMES.length} — no stat row for ${missing.join("; ")}. Check that row against the page before Create.`

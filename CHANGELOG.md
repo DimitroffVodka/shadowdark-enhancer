@@ -25,7 +25,10 @@
   the printing punctuates it. When a row still can't be read, the rest import and
   the message names the one that didn't, instead of reporting nothing found; and
   when *nothing* parses, it says whether the page had the weapon names on it at
-  all, which separates a bad page cite from a bad column split.
+  all, which separates a bad page cite from a bad column split — and, for the
+  bad-cite case, points at the printing rather than at a page-offset control,
+  which the Source PDFs library does not have (offsets are a constant in code,
+  and only the Core Rulebook carries one).
 
 ## [0.15.1] — 2026-08-26
 
