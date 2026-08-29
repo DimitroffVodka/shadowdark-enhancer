@@ -67,6 +67,13 @@ function _rowName(line) {
   return String(line).split(/\d+\s*(?:gp|sp|cp)\b|\bvaries\b/i)[0].replace(/[,\s]+$/, "").trim();
 }
 
+/** The gear table's "cost is whatever it is worth" cell. */
+const VARIES_RE = /\bvaries\b/i;
+
+/** A price-less `Name … Varies …` row: gear the GM has to price by hand. */
+const _isVariesRow = (line) =>
+  !COST_RE.test(line) && VARIES_RE.test(line) && /^[A-Za-z]/.test(line.trim());
+
 // ─── Type inference ───────────────────────────────────────────────────────────
 
 /**
@@ -398,10 +405,7 @@ function _forceBlocks(rawText) {
       // A price-less "Varies" row is still real gear (E2E D7: dropping them left
       // the row permanently locked), so emit it with a 0-cost token and let the
       // description pass supply the value rules — unless it is currency.
-      for (const l of lines) {
-        if (!COST_RE.test(l) && /\bvaries\b/i.test(l) && /^[A-Za-z]/.test(l.trim()) && keep(l))
-          out.push(l.replace(/\bvaries\b/i, "0 gp"));
-      }
+      out.push(...lines.filter(_isVariesRow).filter(keep).map((l) => l.replace(VARIES_RE, "0 gp")));
     } else {
       out.push(block);
     }

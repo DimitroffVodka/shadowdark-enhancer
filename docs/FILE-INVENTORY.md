@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-776 tracked files · ~108,700 lines of code/markup across scripts+templates+styles+test.
+777 tracked files · ~108,900 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -230,7 +230,7 @@
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 42 | Shared pack-identity leaf so importer and linker agree. |
-| `items/item-parser.mjs` | 495 | Generic item recognizer (name/cost/slots). Pure. |
+| `items/item-parser.mjs` | 499 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 535 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/gear-join.mjs` | 247 | Joins split cost-table + description layouts into one item. Pure. |
 | `items/item-importer.mjs` | 805 | Drafts → Items in `sde-items`, foldered by source. |
