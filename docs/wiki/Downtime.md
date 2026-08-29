@@ -73,6 +73,21 @@ box stays empty and you paste the pages yourself. By hand it is four steps:
 3. Paste the pages from your own copy, then **Parse**.
 4. Press **Unlock outcomes**. That button only appears once something matched.
 
+**Paste the whole spread in one go, headings and all.** The commit replaces that
+book's stored text rather than topping it up, so anything left out re-locks. Two
+activities also need a *sub*-heading above their DC lines, and without it none of
+their entries can be placed:
+
+| Activity | The line it needs |
+|---|---|
+| Martial Training | a tier line — `d4. INT, STR, or DEX Check` (one per tier) |
+| Magical Research | a subsection line — `INT or CHA Spellcasters`, `WIS or CHA Spellcasters` |
+
+Ordinary punctuation is fine — a missing period, a trailing colon, ALL CAPS. If a
+sub-heading is missing altogether the preview says so by name, naming the line to
+add. Spiritualism and Skulduggery need only their ALL-CAPS heading and a check
+line, which is why a paste that drops the two above still looks half-successful.
+
 The preview reports `Matched 25 of 25 slots.` with a tick when a paste lands
 cleanly, and a warning triangle with a smaller number when it doesn't. The commit
 confirms in a notification, for example

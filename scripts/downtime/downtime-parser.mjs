@@ -22,11 +22,41 @@ import {
 } from "./downtime-skeleton.mjs";
 
 const BULLET_RE = /^[•*-]?\s*DC\s+(\d{1,2})(\*?)\s*:\s*(.*)$/i;
-const CHECK_RE = /^(STR|DEX|CON|INT|WIS|CHA)\s+Check$/i;
-// The books print tier and check on one line ("d4. INT, STR, or DEX Check"),
-// so this must not look ahead for a separate check line.
-const TIER_RE = /^(d4|d6|d8\+?)\./i;
-const CASTER_RE = /^(INT|WIS)\s+or\s+CHA\s+Spellcasters$/i;
+
+/* ── Sub-heading matchers ───────────────────────────────────────────────────
+ * These decide which SEGMENT a bullet lands in, and a segment that never opens
+ * takes its whole activity down with it: every bullet resolves to nothing, the
+ * slots stay empty, and the window drops an activity that has no rows.
+ *
+ * That failure is lopsided. Spiritualism and Skulduggery need only their
+ * ALL-CAPS header plus a check line, so they survive nearly any paste; martial
+ * training and magical research each need a SUB-heading as well. Which is why
+ * an otherwise complete paste could come back holding exactly Spiritualism and
+ * Skulduggery, with no error to explain it — the strictness below was the whole
+ * difference. Reported live, 2026-08-29.
+ *
+ * So each matcher now tolerates the punctuation a real page (or a PDF copy of
+ * one) actually carries — a trailing colon, a missing period — while still
+ * refusing to swallow a wrapped line of outcome text.
+ */
+
+/** Trailing punctuation a printed sub-heading may carry. */
+const TRAILING = String.raw`\s*[.:;]?\s*`;
+
+const CHECK_RE = new RegExp(String.raw`^(STR|DEX|CON|INT|WIS|CHA)\s+Check${TRAILING}$`, "i");
+const CASTER_RE = new RegExp(String.raw`^(INT|WIS)\s+or\s+CHA\s+Spellcasters?${TRAILING}$`, "i");
+
+/**
+ * The books print tier and check on one line ("d4. INT, STR, or DEX Check"), so
+ * this must not look ahead for a separate check line.
+ *
+ * Two shapes, because making the period optional on its own would let a wrapped
+ * bullet open a tier — "New weapon (d6 max)" can easily wrap onto a line
+ * starting `d6`. So: the tier token followed by punctuation, OR a period-less
+ * line that names its own check.
+ */
+const TIER_RE = /^(d4|d6|d8\+?)(?:\s*[.:—–-]|\s+\S[^\n]*\bcheck\s*[.:]?\s*$)/i;
+
 const PAGE_RE = /^\d{1,4}$/;
 
 /** Join continuation lines, re-gluing a word broken across a line by a hyphen. */

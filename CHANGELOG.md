@@ -14,6 +14,24 @@
   each under its own heading, all of it dead, with a note naming the reason. The
   **Training tier** dropdown stays hidden while that is true, since every tier is
   already on the page and the gate is shut for the GM as well.
+- **A downtime paste no longer loses Martial Training and Magical Research to a
+  missing period.** Paste all four activities and only the first two would
+  appear — not because anything was missing, but because those two are the only
+  ones that need a *sub*-heading above their DC lines, and the parser demanded
+  one exact shape. A tier line printed `d8+ INT, STR, or DEX Check` instead of
+  `d8+.`, or a subsection line reading `INT or CHA Spellcasters:` with a colon,
+  left the segment unopened; every line beneath it then had nowhere to go, both
+  activities stayed empty, and an activity with no entries isn't drawn. The
+  matchers now take the punctuation a real page carries — a missing period, a
+  trailing colon, ALL CAPS — while still refusing to mistake a wrapped line of
+  outcome text (`…no larger than d6 max`) for a tier heading.
+- **A paste that can't be placed now says so loudly.** The parser's
+  "couldn't place this line" notes had no prose written for them, so they
+  rendered in the quiet style meant for the two-column recovery notes: a paste
+  that silently dropped two whole activities read no worse than a clean one.
+  They are now full-voiced problems that name the activity and the exact line
+  the paste is missing, and repeats collapse — one note per activity that failed
+  to open, not one per line it swallowed.
 
 ## [0.15.1] — 2026-08-26
 

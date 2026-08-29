@@ -14,6 +14,7 @@
  */
 
 import { slotByKey } from "./downtime-core.mjs";
+import { DOWNTIME_SKELETON } from "./downtime-skeleton.mjs";
 
 /** Slot key → its printed label, for warning prose. */
 export function slotLabel(key) {
@@ -23,6 +24,25 @@ export function slotLabel(key) {
     return key;
   }
 }
+
+/** Activity key → its printed name ("martialTraining" → "Martial Training"). */
+export function activityLabel(key) {
+  const found = (DOWNTIME_SKELETON?.activities ?? []).find((a) => a.key === key);
+  return found?.name ?? key ?? "This activity";
+}
+
+/**
+ * What a given activity needs ABOVE its bullets before they can be filed.
+ *
+ * Only these two carry a sub-heading, and they are exactly the two that go
+ * missing when a paste lacks one — so the note names the line to look for
+ * rather than leaving the GM to infer it.
+ */
+const SUBHEADING_HINT = {
+  martialTraining: 'a tier line — "d4. INT, STR, or DEX Check"',
+  magicalResearch: 'a subsection line — "INT or CHA Spellcasters"',
+  skulduggery: 'a check line — "CHA Check" or "DEX Check"',
+};
 
 /**
  * Human-readable text for the parser's warning codes, keyed to the codes
@@ -61,6 +81,32 @@ export const WARNING_TEXT = {
     info: false,
     text: (w) => `Only ${w.filled} of ${w.expected} slots matched. The rest stay locked until you paste them.`,
   },
+
+  /* The four below are the parser's "couldn't place this line" codes. They used
+   * to fall through to the `Parser note: <code>` default, which renders as a
+   * quiet info line — so a paste that dropped two whole activities looked no
+   * noisier than a clean one. They are real problems and now say so. */
+
+  "unresolved-segment": {
+    info: false,
+    text: (w) => {
+      const hint = SUBHEADING_HINT[w.activity];
+      return `"${activityLabel(w.activity)}": lines arrived with no sub-heading to file them under, so none of them matched.`
+        + (hint ? ` The paste needs ${hint} above its DC lines.` : "");
+    },
+  },
+  "missing-activity-header": {
+    info: false,
+    text: () => "Lines arrived before any activity heading, so none of them matched. Paste the ALL-CAPS activity name (SPIRITUALISM, SKULDUGGERY, MARTIAL TRAINING, MAGICAL RESEARCH) above its own lines.",
+  },
+  "keyword-miss": {
+    info: false,
+    text: (w) => `A DC ${w.dc} line under "${w.segmentId}" matched no entry there — its wording differs from the one this book prints. Left unmatched rather than guessed at.`,
+  },
+  "dc-not-in-segment": {
+    info: false,
+    text: (w) => `"${w.segmentId}" has no DC ${w.dc} entry, so that line was left unmatched. Check it sits under the heading it belongs to.`,
+  },
 };
 
 /** Turn a warning object from the parser into {text, info} for a preview. */
@@ -81,7 +127,12 @@ export function warningText(w) {
  * @returns {Array<{text: string, info: boolean}>}
  */
 export function warningLines(parseResult) {
+  // The place-this-line codes fire once per BULLET, so a whole activity that
+  // failed to open would repeat one sentence fifteen times. Identical text is
+  // one problem however many lines it swallowed; collapse it.
+  const seen = new Set();
   return (parseResult?.warnings ?? [])
     .map(warningText)
+    .filter(({ text }) => (seen.has(text) ? false : (seen.add(text), true)))
     .sort((a, b) => Number(a.info) - Number(b.info));
 }
