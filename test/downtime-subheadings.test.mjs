@@ -51,6 +51,38 @@ describe("martial tier lines", () => {
     assert.deepEqual(keys(r), ["d4-new-weapon"]);
     assert.match(r.filled["d4-new-weapon"], /d6 max, and drill with it\.$/);
   });
+
+  test("a wrapped bullet does not open a tier on a dash either", () => {
+    // The comma form above was the only pinned shape, but a wrapped outcome
+    // line reaches the parser hyphenated or em-dashed just as easily, and a
+    // dash used to count as tier punctuation — so each of these opened a tier
+    // without naming a check and re-homed every bullet below it.
+    for (const wrap of [
+      "d6-max weapon, and drill with it.",
+      "d6 - the heaviest blade you can lift.",
+      "d8 – a wrapped line of outcome text.",
+      "d8+ — another wrapped line of outcome text.",
+    ]) {
+      const r = parseDowntimeText(
+        "MARTIAL TRAINING\nd4. INT, STR, or DEX Check\n" +
+        `• DC 18*: Take up a new weapon of modest heft, no larger than\n${wrap}`,
+        { source: "cs6" },
+      );
+      assert.deepEqual(keys(r), ["d4-new-weapon"], `"${wrap}" must not open a tier`);
+      assert.ok(r.filled["d4-new-weapon"].endsWith(wrap),
+        `"${wrap}" belongs to the bullet above it: ${r.filled["d4-new-weapon"]}`);
+    }
+  });
+
+  test("a real tier heading still opens on a dash when it names its check", () => {
+    // Dropping the dash from the punctuation shape must not cost a page that
+    // genuinely separates that way — the check on the same line carries it.
+    const r = parseDowntimeText(
+      tierPaste("d8+ — INT, STR, or DEX Check"),
+      { source: "cs6" },
+    );
+    assert.deepEqual(keys(r), ["d8-new-armor-weapon"]);
+  });
 });
 
 describe("caster and check lines", () => {

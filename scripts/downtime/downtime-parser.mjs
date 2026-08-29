@@ -41,10 +41,10 @@ const BULLET_RE = /^[•*-]?\s*DC\s+(\d{1,2})(\*?)\s*:\s*(.*)$/i;
  */
 
 /** Trailing punctuation a printed sub-heading may carry. */
-const TRAILING = String.raw`\s*[.:;]?\s*`;
+const TRAILING_PUNCT = String.raw`\s*[.:;]?\s*`;
 
-const CHECK_RE = new RegExp(String.raw`^(STR|DEX|CON|INT|WIS|CHA)\s+Check${TRAILING}$`, "i");
-const CASTER_RE = new RegExp(String.raw`^(INT|WIS)\s+or\s+CHA\s+Spellcasters?${TRAILING}$`, "i");
+const CHECK_RE = new RegExp(String.raw`^(STR|DEX|CON|INT|WIS|CHA)\s+Check${TRAILING_PUNCT}$`, "i");
+const CASTER_RE = new RegExp(String.raw`^(INT|WIS)\s+or\s+CHA\s+Spellcasters?${TRAILING_PUNCT}$`, "i");
 
 /**
  * The books print tier and check on one line ("d4. INT, STR, or DEX Check"), so
@@ -54,8 +54,16 @@ const CASTER_RE = new RegExp(String.raw`^(INT|WIS)\s+or\s+CHA\s+Spellcasters?${T
  * bullet open a tier — "New weapon (d6 max)" can easily wrap onto a line
  * starting `d6`. So: the tier token followed by punctuation, OR a period-less
  * line that names its own check.
+ *
+ * "Punctuation" here is a period or a colon ONLY. A dash cannot join that set:
+ * a wrapped outcome line reaches the parser as "d6-max weapon, and drill with
+ * it." or "d6 - the heaviest blade you can lift.", and either one opening a
+ * tier moves every following bullet into the wrong one — silently, which is
+ * the exact failure this guard exists to prevent. A page that really does
+ * separate with a dash still opens its tier through the second shape, because
+ * a genuine tier heading names its check on the same line.
  */
-const TIER_RE = /^(d4|d6|d8\+?)(?:\s*[.:—–-]|\s+\S[^\n]*\bcheck\s*[.:]?\s*$)/i;
+const TIER_RE = /^(d4|d6|d8\+?)(?:\s*[.:]|\s+\S[^\n]*\bcheck\s*[.:]?\s*$)/i;
 
 const PAGE_RE = /^\d{1,4}$/;
 

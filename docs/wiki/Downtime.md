@@ -82,11 +82,12 @@ their entries can be placed:
 |---|---|
 | Martial Training | a tier line — `d4. INT, STR, or DEX Check` (one per tier) |
 | Magical Research | a subsection line — `INT or CHA Spellcasters`, `WIS or CHA Spellcasters` |
+| Skulduggery | a check line — `CHA Check` or `DEX Check`, which tells its two halves apart |
 
 Ordinary punctuation is fine — a missing period, a trailing colon, ALL CAPS. If a
 sub-heading is missing altogether the preview says so by name, naming the line to
-add. Spiritualism and Skulduggery need only their ALL-CAPS heading and a check
-line, which is why a paste that drops the two above still looks half-successful.
+add. Spiritualism needs only its ALL-CAPS heading, which is why a paste that
+drops the lines above still looks half-successful.
 
 The preview reports `Matched 25 of 25 slots.` with a tick when a paste lands
 cleanly, and a warning triangle with a smaller number when it doesn't. The commit
@@ -591,6 +592,21 @@ coins, renown, XP, items and effects it wrote exactly as they are.
 ---
 
 ## Troubleshooting
+
+**"<Activity>": lines arrived with no sub-heading to file them under, so none
+of them matched.**
+The paste reached that activity's DC lines without the line that files them.
+Martial Training needs a tier line (`d4. INT, STR, or DEX Check`), Magical
+Research a subsection line (`INT or CHA Spellcasters`), Skulduggery a check line
+(`CHA Check` / `DEX Check`) — the note names the missing one. Copy the spread
+again including that line: the commit **replaces** the book's stored text rather
+than topping it up, so anything left out of the new paste re-locks.
+
+A tier line opens a tier only when it carries a period or a colon (`d4.`, `d4:`)
+or names its check on the same line. A bullet that merely *wraps* onto a line
+starting with a die size — `d6 max, and drill with it.` — stays part of the
+bullet above it, which is why an outcome line beginning `d6-` is not mistaken
+for a heading.
 
 **"Downtime is a GM tool."**
 The window is GM-only. It debits purses and writes to sheets, so it is not

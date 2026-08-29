@@ -26,7 +26,7 @@ export function slotLabel(key) {
 }
 
 /** Activity key → its printed name ("martialTraining" → "Martial Training"). */
-export function activityLabel(key) {
+function activityLabel(key) {
   const found = (DOWNTIME_SKELETON?.activities ?? []).find((a) => a.key === key);
   return found?.name ?? key ?? "This activity";
 }
@@ -34,9 +34,11 @@ export function activityLabel(key) {
 /**
  * What a given activity needs ABOVE its bullets before they can be filed.
  *
- * Only these two carry a sub-heading, and they are exactly the two that go
- * missing when a paste lacks one — so the note names the line to look for
- * rather than leaving the GM to infer it.
+ * Each of these needs a line of its own above the bullets, and they are the
+ * activities that go missing when a paste lacks one — so the note names the
+ * line to look for rather than leaving the GM to infer it. Martial Training
+ * and Magical Research need a true sub-heading; Skulduggery needs the check
+ * line that tells its CHA half from its DEX half.
  */
 const SUBHEADING_HINT = {
   martialTraining: 'a tier line — "d4. INT, STR, or DEX Check"',
@@ -133,6 +135,10 @@ export function warningLines(parseResult) {
   const seen = new Set();
   return (parseResult?.warnings ?? [])
     .map(warningText)
-    .filter(({ text }) => (seen.has(text) ? false : (seen.add(text), true)))
+    .filter(({ text }) => {
+      if (seen.has(text)) return false;
+      seen.add(text);
+      return true;
+    })
     .sort((a, b) => Number(a.info) - Number(b.info));
 }
