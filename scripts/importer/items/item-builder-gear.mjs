@@ -93,12 +93,14 @@ export function assembleCreateDrafts(rows, gearType, { sourceTitle = "" } = {}) 
       damage: it.damage ?? { oneHanded: "", twoHanded: "" },
       range: it.range || "close",
       wtype: it.wtype || "melee",
-      propNames: it.propNames ?? [],
-      unmappedProps: it.unmappedProps ?? [],
     } : {}),
     ...(gearType === "Armor" ? {
       ac: it.ac ?? { base: 0, modifier: 0, attribute: "" },
       baseArmor: it.baseArmor ?? "",
+    } : {}),
+    // Both stat-carrying types read the same two property lists; kept in one
+    // place so a change to either can't land on only one of them.
+    ...(gearType === "Weapon" || gearType === "Armor" ? {
       propNames: it.propNames ?? [],
       unmappedProps: it.unmappedProps ?? [],
     } : {}),

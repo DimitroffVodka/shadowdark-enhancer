@@ -164,11 +164,40 @@ test("replace keeps the GM's description and re-stamps the property note", () =>
   // Curated text + a stale note from an earlier import: text kept, note refreshed.
   const curated = `<p>A knight's lance.</p>${withPropertyNote("<p></p>", ["Charge"])}`;
   assert.equal(preservedDescription(curated, fresh), `<p>A knight's lance.</p>${fresh}`);
-  // Nothing to preserve when the incoming description is real content, or when
-  // the existing one is only ever what the importer wrote.
-  assert.equal(preservedDescription(curated, "<p>Newly typed.</p>"), null);
+  // Freshly typed text wins — it is the GM-facing prose — but the note is
+  // importer metadata, not prose. A paste that lost the property column is not
+  // evidence the weapon lost the property, so the stored note rides across.
+  assert.equal(preservedDescription(curated, "<p>Newly typed.</p>"),
+    `<p>Newly typed.</p>${withPropertyNote("<p></p>", ["Charge"])}`);
+  // ...and that is stable: feeding the result back in changes nothing further.
+  const once = preservedDescription(curated, "<p>Newly typed.</p>");
+  assert.equal(preservedDescription(once, "<p>Newly typed.</p>"), once);
+  // With no stored note there is nothing to rescue, so the incoming stands.
+  assert.equal(preservedDescription("<p>Curated.</p>", "<p>Newly typed.</p>"), null);
+  // Nothing to preserve when the existing description is only ever what the
+  // importer wrote.
   assert.equal(preservedDescription(fresh, fresh), null);
   assert.equal(preservedDescription("<p></p>", fresh), null);
   // The pre-existing rule still holds: a placeholder never overwrites curation.
   assert.equal(preservedDescription("<p>Kept.</p>", "<p></p>"), "<p>Kept.</p>");
+});
+
+test("a stacked note collapses instead of growing on every re-import", () => {
+  // cleanImportHtml fails closed by escaping the whole description when
+  // Foundry's cleaner is unavailable; an escaped note stops matching, so the
+  // next import stamps a second one on top. A non-global strip then only ever
+  // removed the first, and the pile grew by one per import, forever.
+  const note = withPropertyNote("<p></p>", ["Charge"]);
+  const doubled = `<p>A knight's lance.</p>${note}${note}`;
+  assert.equal(withPropertyNote(doubled, ["Charge"]), `<p>A knight's lance.</p>${note}`);
+  assert.equal(withPropertyNote(doubled, []), "<p>A knight's lance.</p>");
+});
+
+test("dropping the note reads the same with or without prose beside it", () => {
+  // The empty-labels path used to answer two ways: a note sitting alone was
+  // kept, a note beside prose was stripped — the same event ("this paste
+  // carried no property column") with opposite outcomes.
+  const note = withPropertyNote("<p></p>", ["Charge"]);
+  assert.equal(withPropertyNote(note, []), "<p></p>");
+  assert.equal(withPropertyNote(`<p>Body.</p>${note}`, []), "<p>Body.</p>");
 });

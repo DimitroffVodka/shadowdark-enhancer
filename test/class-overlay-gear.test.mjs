@@ -24,7 +24,11 @@ const { _staleFields } = _internals;
 const LANCE = overlayFor("Paladin").items.find((i) => i.name === "Lance");
 const NOTE  = "<p><em>Properties with no core Shadowdark equivalent: Charge, Devastating, Mounted.</em></p>";
 
-/** What the class importer writes for one overlay item (mirrors createClassUnit). */
+/**
+ * What the class importer writes for one overlay item (mirrors createClassUnit).
+ * The "" branch is deliberate there and pinned below — see the comment beside
+ * the description in createClassUnit before changing either side.
+ */
 const overlayDescription = (it) =>
   (it.unmappedProps?.length ? withPropertyNote("", it.unmappedProps) : "");
 

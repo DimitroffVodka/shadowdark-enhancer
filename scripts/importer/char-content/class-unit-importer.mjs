@@ -29,6 +29,7 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { escapeHtml } from "../pdf-text-utils.mjs";
 import { SPELL_LIST_VARIANTS } from "./char-content-manifest.mjs";
 import { classGateBlockers, supplementGateBlockers } from "./class-quality-gate.mjs";
+import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
@@ -158,7 +159,6 @@ async function _ensureItem(pack, data, folderPath, report, { keepCuratedDescript
   if (existing) {
     const doc = await pack.getDocument(existing._id);
     if (keepCuratedDescription && data.system) {
-      const { preservedDescription } = await import("../items/item-importer.mjs");
       const kept = preservedDescription(doc.system?.description, data.system.description);
       if (kept !== null) data.system.description = kept;
     }
@@ -625,13 +625,16 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   // any of it carries is the property note for codes core Shadowdark has no
   // Property item for (the Lance's Charge/Devastating/Mounted), written by the
   // same helper the gear importer uses so both paths read identically. ──
-  const { withPropertyNote } = await import("../items/item-importer.mjs");
   const ourGear = [];
   for (const it of overlay?.items ?? []) {
     const made = await _ensureItem(itemsPack, {
       name: it.name, type: it.type, img: it.img,
       system: {
         ...it.system,
+        // Deliberately "" rather than the "<p></p>" placeholder the gear path
+        // writes: overlay gear carrying no book-only codes must stay
+        // byte-identical to what earlier imports stored, or every one of them
+        // reports as updated on the next import. Pinned in class-overlay-gear.
         description: it.unmappedProps?.length ? withPropertyNote("", it.unmappedProps) : "",
         source: { title: sourceTitle },
       },
