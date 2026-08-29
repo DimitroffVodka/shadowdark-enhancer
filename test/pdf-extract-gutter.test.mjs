@@ -239,3 +239,39 @@ test("extraction pins keep their exact contracts", () => {
   assert.equal(detectGutter([span(10, 20, 5)], W, "2"), W / 2,
     '"2" falls back to the midline on a near-empty page');
 });
+
+test("gutterRisks: the near-miss warning names its items too", () => {
+  // The straddle warning and this one are the two halves of the same fix, and
+  // this is the half the live CS2 p40 grab actually raised — it must quote the
+  // text as well, or that page still names nothing to look at.
+  const its = [];
+  for (let i = 0; i < 18; i++) its.push(span(36, 195, 600 - i * 14, `L${i}`));
+  for (let i = 0; i < 18; i++) its.push(span(225, 384, 600 - i * 14, `R${i}`));
+  // A narrow body run that stops ON the cut: its centre sits within a glyph of
+  // the gutter, but its box never crosses it, so only the near check can fire.
+  const grazed = its.concat([span(204, 210, 530, "GRAZED")]);
+  const warns = gutterRisks(grazed, W, 210);
+  assert.ok(!warns.some((w) => /cuts through/.test(w)),
+    `nothing straddles this cut: ${warns.join(" | ")}`);
+  assert.match(warns.find((w) => /runs within a glyph/.test(w)) ?? "",
+    /runs within a glyph of 1 item \("GRAZED"\)/, warns.join(" | "));
+});
+
+test("gutterRisks: the trailing … promises only words it can actually show", () => {
+  // The count that decides the "…" must be the flagged items that CARRY text,
+  // not the raw flagged list: a straddler PDF.js hands over with no string of
+  // its own can never be quoted, so counting it advertises a fourth word the
+  // reader then goes looking for and cannot find.
+  const its = [];
+  for (let i = 0; i < 18; i++) its.push(span(36, 195, 600 - i * 14, `L${i}`));
+  for (let i = 0; i < 18; i++) its.push(span(225, 384, 600 - i * 14, `R${i}`));
+  const four = its.concat([
+    span(200, 216, 530, "alpha"), span(201, 217, 516, ""),
+    span(202, 218, 502, "   "), span(203, 219, 488, "beta"),
+  ]);
+  const [warn] = gutterRisks(four, W, 210);
+  assert.match(warn, /cuts through 4 words/, warn);
+  assert.match(warn, /\("alpha", "beta"\)/, `both quotable words should show: ${warn}`);
+  assert.ok(!warn.includes(", …"),
+    `only two of the four carry text, so nothing is being held back: ${warn}`);
+});

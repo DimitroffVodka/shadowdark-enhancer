@@ -23,6 +23,8 @@
  *   parsePageRange(spec, max)      — "12", "12-14", "12,16,20-22" → [numbers]
  */
 
+import { collapse } from "./pdf-text-utils.mjs";
+
 /** Cached ESM import of Foundry's bundled PDF.js (loaded once per session). */
 let _pdfjs = null;
 /** path → Promise<PDFDocumentProxy>, so a 100 MB book is parsed once per session. */
@@ -242,6 +244,9 @@ const CENTRE_BAND_FRAC = 0.5;
 /** How many of the flagged items a warning quotes back before it says "…". */
 const RISK_SAMPLES = 3;
 
+/** Longest a quoted sample runs before it is elided, the "…" included. */
+const SAMPLE_CHARS = 24;
+
 /**
  * Quote the flagged items' own text, so a warning names what to look at.
  *
@@ -257,14 +262,16 @@ const RISK_SAMPLES = 3;
  *   the flagged items carry text
  */
 function _riskSample(items) {
-  const shown = items
-    .map((i) => String(i.str ?? "").replace(/\s+/g, " ").trim())
-    .filter(Boolean)
+  // Count the items that CARRY text, not the raw input: a flagged item with no
+  // string of its own can never be quoted, so counting it would promise a
+  // sample the list does not go on to show.
+  const texts = items.map((i) => collapse(i.str)).filter(Boolean);
+  const shown = texts
     .slice(0, RISK_SAMPLES)
     // trimEnd so a cut that lands on a space doesn't read as "word …".
-    .map((s) => `"${s.length > 24 ? `${s.slice(0, 23).trimEnd()}…` : s}"`);
+    .map((s) => `"${s.length > SAMPLE_CHARS ? `${s.slice(0, SAMPLE_CHARS - 1).trimEnd()}…` : s}"`);
   if (!shown.length) return "";
-  return ` (${shown.join(", ")}${items.length > RISK_SAMPLES ? ", …" : ""})`;
+  return ` (${shown.join(", ")}${texts.length > RISK_SAMPLES ? ", …" : ""})`;
 }
 
 /** The quantised baseline an item sits on — rounded so a row survives the
