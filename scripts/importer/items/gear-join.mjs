@@ -31,6 +31,7 @@
  */
 
 import { titleCaseName } from "../monsters/statblock-parser.mjs";
+import { isCurrencyName } from "./item-parser.mjs";
 import { parseValue, pickTreasureIcon } from "../../loot/loot-pack.mjs";
 import { textToHtml } from "../pdf-text-utils.mjs";
 
@@ -90,7 +91,8 @@ function parseQuantity(qty, name) {
 /**
  * Parse the cost table into spine rows. Any line without a cost cell (section
  * titles like "Basic Gear", the "Item Cost Quantity…" header) is skipped —
- * never guessed into an item.
+ * never guessed into an item. So are the table's currency rows (Coin, Gem):
+ * they carry a cost cell but aren't gear (see isCurrencyName).
  * @param {string} text
  * @returns {{ rows: object[], warnings: string[] }}
  */
@@ -106,6 +108,7 @@ export function parseCostTable(text) {
     const nameRaw = line.slice(0, m.index).replace(/[,\s]+$/, "").trim();
     const name = titleCaseName(nameRaw);
     if (!name) continue;
+    if (isCurrencyName(name)) continue;   // currency, not gear
 
     const costRaw = m[1];
     let cost = { gp: 0, sp: 0, cp: 0 };

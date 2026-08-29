@@ -121,6 +121,20 @@
   either spelling now counts as present. And when the extracted pages hold no
   statblock, the importer says so and names the pages to grab instead of quietly
   creating the wrong kind of document.
+- **Importing the Basic Gear table no longer mints a Coin and a Gem.** Both sit
+  in the book's gear table next to real equipment, so the importer took them for
+  gear and created them as items — worth `0 gp`, because the table prices them
+  *Varies*. They then lived in `Manage > Items > Basic Gear` permanently, two
+  rows of currency in a list of equipment. Neither is a thing a character buys:
+  a coin is money and a gem is treasure, and what either is worth is whatever
+  the GM says at the time. Both are now refused wherever a gear table is read —
+  the paste box, the Item Builder's guided gear stage, and the cost-table join —
+  and they are listed under **Skipped** with the reason, rather than dropped
+  without a word. `Manage > Items > Basic Gear` also stops listing them, so a
+  world that got them from an earlier import shows equipment only; the items
+  themselves are left in `sde-items` for you to delete, because nothing here
+  deletes your documents. Names that merely start the same way — a coin purse, a
+  gemstone dust — are unaffected: the rule matches the row's name cell exactly.
 
 ## [0.15.1] — 2026-08-26
 
