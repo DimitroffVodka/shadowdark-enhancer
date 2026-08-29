@@ -257,15 +257,71 @@ const RISK_SAMPLES = 3;
  *   the flagged items carry text
  */
 function _riskSample(items) {
-  const shown = [];
-  for (const i of items) {
-    if (shown.length >= RISK_SAMPLES) break;
-    const s = String(i.str ?? "").replace(/\s+/g, " ").trim();
+  const shown = items
+    .map((i) => String(i.str ?? "").replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .slice(0, RISK_SAMPLES)
     // trimEnd so a cut that lands on a space doesn't read as "word …".
-    if (s) shown.push(`"${s.length > 24 ? `${s.slice(0, 23).trimEnd()}…` : s}"`);
-  }
+    .map((s) => `"${s.length > 24 ? `${s.slice(0, 23).trimEnd()}…` : s}"`);
   if (!shown.length) return "";
   return ` (${shown.join(", ")}${items.length > RISK_SAMPLES ? ", …" : ""})`;
+}
+
+/** The quantised baseline an item sits on — rounded so a row survives the
+ *  sub-point y jitter of superscripts and mixed font sizes. */
+const _rowKey = (it) => Math.round(it.transform[5] / 4);
+
+/** Per-baseline item count and ink extent: `key → {n, min, max}`. */
+function _inkRows(its) {
+  const rows = new Map();
+  for (const i of its) {
+    const k = _rowKey(i);
+    const x1 = i.transform[4];
+    const x2 = x1 + (i.width || 0);
+    const row = rows.get(k) ?? { n: 0, min: x1, max: x2 };
+    row.n++;
+    row.min = Math.min(row.min, x1);
+    row.max = Math.max(row.max, x2);
+    rows.set(k, row);
+  }
+  return rows;
+}
+
+/**
+ * Build the "this item is body text" test for one page.
+ *
+ * Body text is narrow enough not to be a full-width element AND sits on a row
+ * of two-column text rather than on centred page furniture — a section title,
+ * a running header, a folio, an ornament. Furniture crosses a perfectly good
+ * gutter all the time and lands in one column harmlessly, so warning about it
+ * would only teach the user to ignore the warning.
+ *
+ * Furniture is judged by its whole ROW, not by counting items on it. Counting
+ * reads "alone on its baseline" as the signature of furniture, which a centred
+ * title loses the moment PDF.js emits it as several runs — letter-spaced
+ * display type usually does, and every run is narrow, so the one sitting over
+ * the gutter scored as a body word. A row whose ink never leaves the page's
+ * central band is furniture however many runs it arrives in.
+ *
+ * @param {Array} its  text items
+ * @param {number} W   page width
+ * @returns {(it:object) => boolean}
+ */
+function _bodyTextTest(its, W) {
+  const wide = W * FULL_WIDTH_FRAC;
+  // The page's central band. Two-column body text always reaches out of it —
+  // a left-column line starts at the left margin, a right-column line ends at
+  // the right one — while centred furniture never does.
+  const bandLo = (W * (1 - CENTRE_BAND_FRAC)) / 2;
+  const bandHi = W - bandLo;
+  const rows = _inkRows(its);
+  return (i) => {
+    const row = rows.get(_rowKey(i));
+    // `row` is always found for an item of this page; guarded so a caller
+    // passing a foreign item gets `false` rather than a throw.
+    return !!row && (i.width || 0) < wide && row.n > 1
+      && (row.min < bandLo || row.max > bandHi);
+  };
 }
 
 /**
@@ -283,43 +339,7 @@ function _riskSample(items) {
 function gutterRisks(its, W, splitX) {
   if (splitX == null || !its.length) return [];
   const out = [];
-  const wide = W * FULL_WIDTH_FRAC;
-
-  // How many items share each baseline, and how far that baseline's ink
-  // reaches, so we can tell a word inside a LINE of text from page furniture.
-  const rows = new Map();
-  for (const i of its) {
-    const k = Math.round(i.transform[5] / 4);
-    const x1 = i.transform[4];
-    const x2 = x1 + (i.width || 0);
-    const row = rows.get(k);
-    if (row) { row.n++; row.min = Math.min(row.min, x1); row.max = Math.max(row.max, x2); }
-    else rows.set(k, { n: 1, min: x1, max: x2 });
-  }
-  // The page's central half. Two-column body text always reaches out of it —
-  // a left-column line starts at the left margin, a right-column line ends at
-  // the right one — while centred furniture never does.
-  const bandLo = (W * (1 - CENTRE_BAND_FRAC)) / 2;
-  const bandHi = W - bandLo;
-  /** Body text: narrow enough not to be a full-width element, and part of a
-   *  two-column LINE rather than a centred heading, running header, page
-   *  number or ornament — those cross a perfectly good gutter all the time and
-   *  land in one column harmlessly, so warning about them would only teach the
-   *  user to ignore the warning.
-   *
-   *  Furniture is judged by its whole ROW, not by counting items on it. The
-   *  row-count test alone reads "alone on its baseline" as the signature of
-   *  furniture, which a centred title loses the moment PDF.js emits it as
-   *  several runs — letter-spaced display type usually does, and every run is
-   *  narrow, so the one over the gutter scored as a body word. A row whose ink
-   *  never leaves the page's central band is furniture however many runs it
-   *  arrives in. */
-  const isBody = (i) => {
-    if ((i.width || 0) >= wide) return false;
-    const row = rows.get(Math.round(i.transform[5] / 4));
-    if (!row || row.n < 2) return false;
-    return row.min < bandLo || row.max > bandHi;
-  };
+  const isBody = _bodyTextTest(its, W);
 
   // A body word whose BOX straddles the cut is a word the split runs through:
   // it lands in one column whole, and it is the wrong one half the time. This
