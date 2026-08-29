@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-775 tracked files · ~108,600 lines of code/markup across scripts+templates+styles+test.
+775 tracked files · ~108,700 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -231,11 +231,11 @@
 | `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 42 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 450 | Generic item recognizer (name/cost/slots). Pure. |
-| `items/gear-parser.mjs` | 535 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
+| `items/gear-parser.mjs` | 547 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/gear-join.mjs` | 244 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 805 | Drafts → Items in `sde-items`, foldered by source. |
-| `items/item-builder-app.mjs` | 395 | Guided multi-stage equipment-section workspace. |
-| `items/item-builder-gear.mjs` | 121 | Pure stage-①/③ logic for the Item Builder. |
+| `items/item-importer.mjs` | 865 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-builder-app.mjs` | 396 | Guided multi-stage equipment-section workspace. |
+| `items/item-builder-gear.mjs` | 124 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
 | `tables/table-manifest.mjs` | 210 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |

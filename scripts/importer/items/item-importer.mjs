@@ -22,6 +22,65 @@ import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml, SUITE_PACKS } from "../../shared/compendium-suite.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
 
+// ─── Western Reaches property note (pure) ────────────────────────────────────
+
+/**
+ * The auto-note paragraph, matched so it is replaced rather than stacked on a
+ * re-import and recognized as importer-generated (not GM curation) at replace
+ * time. Kept in one place because both readers must agree on its shape.
+ */
+const PROPERTY_NOTE_RE = /<p><em>Propert(?:y|ies) with no core Shadowdark equivalent:[^<]*<\/em><\/p>/i;
+
+/**
+ * Append the "no core Shadowdark property" note to a gear description.
+ *
+ * The Western Reaches tables print property codes the core system ships no
+ * Property item for — the Lance's Charge / Devastating / Mounted, the obsidian
+ * weapons' Obsidian, barding's Mount. gear-parser leaves those off
+ * `system.properties` (there is nothing to point at) and records their book
+ * labels on `draft.unmappedProps`; this writes them into the description so the
+ * weapon's own stat line survives the import instead of asking the GM to
+ * remember it. LABELS ONLY — no rules text, which stays in the GM's book.
+ *
+ * Idempotent: an existing note is replaced, so a re-import never stacks two.
+ * @param {string} description  the description HTML the draft carries
+ * @param {string[]} labels     book labels of the properties left off
+ * @returns {string} description HTML to store
+ */
+export function withPropertyNote(description, labels = []) {
+  const desc = String(description ?? "").trim();
+  const names = [...new Set((labels ?? [])
+    .map((l) => String(l ?? "").replace(/[<>&]/g, "").trim())
+    .filter(Boolean))];
+  const body = desc.replace(PROPERTY_NOTE_RE, "").trim();
+  const kept = body === "<p></p>" ? "" : body;
+  if (!names.length) return kept || desc || "<p></p>";
+  const lead = names.length === 1 ? "Property" : "Properties";
+  return `${kept}<p><em>${lead} with no core Shadowdark equivalent: ${names.join(", ")}.</em></p>`;
+}
+
+/**
+ * Which description survives a REPLACE. The GM's own text always wins over an
+ * importer default, but the property note is re-stamped onto it so a re-import
+ * doesn't silently drop the WR property line it wrote last time. Returns null
+ * when the incoming description stands as-is.
+ * @param {string} oldHtml  the existing document's description
+ * @param {string} newHtml  the description the fresh parse produced
+ * @returns {string|null}
+ */
+export function preservedDescription(oldHtml, newHtml) {
+  const oldDesc = String(oldHtml ?? "").trim();
+  const newDesc = String(newHtml ?? "").trim();
+  // "Importer-generated" = the placeholder, or nothing but our own note.
+  const isAuto = (h) => { const s = h.replace(PROPERTY_NOTE_RE, "").trim(); return !s || s === "<p></p>"; };
+  if (!oldDesc || isAuto(oldDesc) || !isAuto(newDesc)) return null;
+  const note = newDesc.match(PROPERTY_NOTE_RE)?.[0] ?? "";
+  // No incoming note (a plain re-import): the stored description stands byte for
+  // byte, stale note included — a paste that lost the property column is not
+  // evidence the weapon lost the property.
+  return note ? `${oldDesc.replace(PROPERTY_NOTE_RE, "").trim()}${note}` : oldHtml;
+}
+
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
 
 /**
@@ -181,7 +240,9 @@ export function buildItemData(draft) {
 
   // Shared PhysicalItemSD fields (cost/slots/quantity) every gear type carries.
   const physical = {
-    description: draft.description ?? "<p></p>",
+    // Weapon/Armor drafts from gear-parser carry the WR-only property codes the
+    // core system has no Property item for; they land in the description.
+    description: withPropertyNote(draft.description ?? "<p></p>", draft.unmappedProps),
     cost:   { gp: draft.cost?.gp ?? 0, sp: draft.cost?.sp ?? 0, cp: draft.cost?.cp ?? 0 },
     slots:  {
       free_carry: draft.slots?.free_carry ?? 0,
@@ -515,12 +576,11 @@ function _preserveCuratedFields(payload, existingDoc) {
   const old = existingDoc.system ?? {};
 
   // Description: keep the existing one if it has real content and the new one
-  // is the default `<p></p>` or empty.
-  const oldDesc = String(old.description ?? "").trim();
-  const newDesc = String(src.description ?? "").trim();
-  if (oldDesc && oldDesc !== "<p></p>" && (!newDesc || newDesc === "<p></p>")) {
-    if (payload.system) payload.system.description = old.description;
-  }
+  // is importer-generated — the default `<p></p>`, or nothing but the WR
+  // property note (which is re-stamped onto the kept text, so a re-import
+  // updates that line instead of dropping it).
+  const kept = preservedDescription(old.description, src.description);
+  if (kept !== null && payload.system) payload.system.description = kept;
 
   // Icon: keep the existing curated icon if the new one is auto-picked.
   // Don't overwrite a hand-picked icon with pickTreasureIcon's default.
