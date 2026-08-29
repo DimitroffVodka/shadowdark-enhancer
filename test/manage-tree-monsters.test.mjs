@@ -38,6 +38,29 @@ test("Monsters tree keeps curated bestiaries and reconciles mounts across source
   );
 });
 
+test("a mount imported under the book's own heading still reconciles", () => {
+  // The books print "WAR HORSE" where the manifest indexes "Horse, War". An
+  // exact-name census left such an actor unreconciled: the row stayed locked,
+  // kept offering Import, and the retry was skipped as a duplicate.
+  const tree = _testBuildMonsters([], [
+    actor("War Horse", "Western Reaches"),
+    actor("Silver Camel", "Western Reaches"),
+  ]);
+  const mounts = tree.children.at(-1);
+  assert.deepEqual(
+    mounts.entries.filter((entry) => entry.present).map((entry) => entry.name),
+    ["Camel, Silver", "Horse, War"],
+  );
+  assert.equal(mounts.locked, 5);
+});
+
+test("a same-stem mount doesn't satisfy another mount's row", () => {
+  const tree = _testBuildMonsters([], [actor("Camel", "Core")]);
+  const mounts = tree.children.at(-1);
+  assert.equal(mounts.entries.find((entry) => entry.name === "Camel, Silver").present, false);
+  assert.equal(mounts.locked, 7);
+});
+
 test("a mount unlock keeps only its selected draft from the full WR spread", () => {
   const parsed = ["Camel", "Horse, Prized", "Horse, War"].map((name) => ({
     draft: { name }, warnings: [],
