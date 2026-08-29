@@ -36,6 +36,49 @@ export const COST_RE = /(\d+)\s*(gp|sp|cp)\b/i;
 /** Slots pattern — `N slots` or `N slot`. */
 const SLOTS_RE = /(\d+)\s*slots?\b/i;
 
+/**
+ * Gear-table rows that are CURRENCY, not gear. The Basic Gear table lists Coin
+ * and Gem alongside real equipment, but neither is a thing a character buys —
+ * both print a "Varies" cost because their worth is whatever the GM says, so
+ * importing them mints a 0 gp "Gem" item no manifest asks for and leaves it
+ * sitting in `Importer > Items > Basic Gear` forever. The char-content manifest
+ * already declines to offer them as unlocks (char-content-manifest.mjs); this
+ * is the same rule on the paste path, shared with the gear-table join and the
+ * Manage tree. Matched against the row's NAME cell alone, so "Coin purse" and
+ * "Gemstone dust" still import.
+ */
+const NON_GEAR_ROW_RE = /^(?:coins?|gems?)$/i;
+
+/** Why a currency row was left out — shown verbatim in the Skipped list. */
+const NON_GEAR_ROW_REASON =
+  "currency, not gear — the gear table prints it with a \"Varies\" cost because its worth is whatever the GM says. Track it as coins or treasure instead.";
+
+/**
+ * True when a gear row's name is currency rather than an importable item.
+ * @param {string} name  the row's name cell (not the whole row)
+ * @returns {boolean}
+ */
+export function isCurrencyName(name) {
+  return NON_GEAR_ROW_RE.test(String(name ?? "").trim());
+}
+
+/** A whole block's name cell, read off its first non-empty line. */
+function _blockName(block) {
+  return String(block).split("\n").map((l) => l.trim()).find(Boolean) ?? "";
+}
+
+/** A gear row's NAME cell — everything before its cost (`5 gp` / `Varies`). */
+function _rowName(line) {
+  return String(line).split(/\d+\s*(?:gp|sp|cp)\b|\bvaries\b/i)[0].replace(/[,\s]+$/, "").trim();
+}
+
+/** The gear table's "cost is whatever it is worth" cell. */
+const VARIES_RE = /\bvaries\b/i;
+
+/** A price-less `Name … Varies …` row: gear the GM has to price by hand. */
+const _isVariesRow = (line) =>
+  !COST_RE.test(line) && VARIES_RE.test(line) && /^[A-Za-z]/.test(line.trim());
+
 // ─── Type inference ───────────────────────────────────────────────────────────
 
 /**
@@ -278,10 +321,12 @@ export const itemRecognizer = {
    * @returns {{ claimed: string[], remainder: string, skipped?: {name,reason}[] }}
    */
   claim(rawText, { force = false } = {}) {
-    const blocks = force ? _forceBlocks(rawText) : splitRawBlocks(rawText);
+    const { blocks, skipped: rowSkips } = force
+      ? _forceBlocks(rawText)
+      : { blocks: splitRawBlocks(rawText), skipped: [] };
     const claimed = [];
     const remainderBlocks = [];
-    const skipped = [];
+    const skipped = [...rowSkips];
 
     for (const block of blocks) {
       // Force mode: a block still carrying many prices after splitting is a
@@ -334,9 +379,22 @@ export const itemRecognizer = {
  * consecutive lines with no blank gap, which blank-line splitting would fuse
  * into one wrong item. Multi-line items (a name line + a description/cost line)
  * are left intact because their non-cost lines fail the every-line test.
+ *
+ * @returns {{ blocks: string[], skipped: {name:string, reason:string}[] }}
+ *   `skipped` carries the currency rows (Coin, Gem) this refuses to make items of.
  */
 function _forceBlocks(rawText) {
   const out = [];
+  const skipped = [];
+  // A currency row never becomes an item, whatever its cost cell says — but it
+  // is REPORTED, not dropped on the floor, because the Skipped list is the
+  // promise that nothing vanishes silently.
+  const keep = (line) => {
+    const name = _rowName(line);
+    if (!isCurrencyName(name)) return true;
+    skipped.push({ name, reason: NON_GEAR_ROW_REASON });
+    return false;
+  };
   for (const block of splitRawBlocks(rawText)) {
     if (RIDER_KW.test(block)) { out.push(block); continue; }   // magic item — keep whole
     const lines = block.split("\n").map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
@@ -344,24 +402,24 @@ function _forceBlocks(rawText) {
     // A gear list / table: 2+ rows that each pair a name with a cost on the SAME
     // line — a clean single-column extraction of the Basic Gear / Weapons grid
     // ("Ball bearing 1 gp 1"), or a hand list. Emit each priced row as its own
-    // item; the ALL-CAPS caption ("BASIC GEAR"), the "Item Cost Quantity Slot"
-    // column header, and price-less rows (Coin/Gem "Varies") carry no cost token
-    // so they're naturally dropped — they'd need a manual cost anyway. This is
-    // what lets the WR gear table import as ~26 items instead of one blob.
+    // item; the ALL-CAPS caption ("BASIC GEAR") and the "Item Cost Quantity
+    // Slot" column header carry no cost token, so they're naturally dropped.
+    // This is what lets the WR gear table import as ~26 items instead of one blob.
     if (priced.length >= 2) {
-      out.push(...priced);
-      // "Varies"-cost rows (Coin, Gem) are real gear the manifest expects —
-      // dropping them left "Gem" permanently locked (E2E D7). Emit them with a
-      // 0-cost token; the description pass supplies the value rules.
-      for (const l of lines) {
-        if (!COST_RE.test(l) && /\bvaries\b/i.test(l) && /^[A-Za-z]/.test(l.trim()))
-          out.push(l.replace(/\bvaries\b/i, "0 gp"));
-      }
-    } else {
+      out.push(...priced.filter(keep));
+      // A price-less "Varies" row is still real gear (E2E D7: dropping them left
+      // the row permanently locked), so emit it with a 0-cost token and let the
+      // description pass supply the value rules — unless it is currency.
+      out.push(...lines.filter(_isVariesRow).filter(keep).map((l) => l.replace(VARIES_RE, "0 gp")));
+    } else if (keep(_blockName(block))) {
+      // Not a gear list — but a currency row still isn't gear when it arrives
+      // alone. One pasted on its own, or one a blank line left in a block of
+      // its own, used to walk straight through here and mint the very item the
+      // rule above exists to refuse — and silently, since nothing reported it.
       out.push(block);
     }
   }
-  return out;
+  return { blocks: out, skipped };
 }
 
 /** First non-empty line of a block, trimmed — a readable label for a skip. */

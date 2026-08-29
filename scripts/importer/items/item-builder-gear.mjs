@@ -22,7 +22,10 @@ const _norm  = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").
  * Parse a price/stat table paste into working rows for the builder.
  * @param {string} text
  * @param {"Basic"|"Weapon"|"Armor"} gearType
- * @param {{ onDrop?: (text: string, reason: string) => void }} [opts]
+ * @param {{ onDrop?: (label: string, reason: string) => void }} [opts]
+ *   `label` is whatever identifies the dropped row in the builder's list: the
+ *   raw row text for a row the parser couldn't read, and the name cell for a
+ *   currency row, which is refused on its name alone.
  * @returns {object[]} rows — full draft fields + description:"" + warnings[]
  */
 export function parseGearTable(text, gearType, { onDrop } = {}) {
@@ -33,7 +36,11 @@ export function parseGearTable(text, gearType, { onDrop } = {}) {
       warnings: warnings ?? [],
     }));
   }
-  const { claimed } = itemRecognizer.claim(text, { force: true });
+  const { claimed, skipped } = itemRecognizer.claim(text, { force: true });
+  // Rows the recognizer refused (currency rows like Coin/Gem, a multi-column
+  // grid it can't split) travel out through onDrop, so the builder reports them
+  // the same way the Weapon/Armor path reports its own drops.
+  for (const s of skipped ?? []) onDrop?.(s.name, s.reason);
   return itemRecognizer.parse(claimed, { force: true }).map(({ draft, warnings }) => ({
     name: draft.name,
     cost: draft.cost,
