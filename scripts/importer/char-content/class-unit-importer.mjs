@@ -141,9 +141,15 @@ function _staleFields(docObj, data) {
  * Same-name/type docs are diffed against the corrected payload: identical →
  * reused; different → updated IN PLACE (UUID + inbound links survive) so a
  * corrected re-import never silently retains stale content (review #12).
+ *
+ * `keepCuratedDescription` inverts that for the ONE case where the import does
+ * not own the text: overlay gear ships no book prose, only a generated property
+ * note, so a description the GM has written on the Lance is theirs to keep and
+ * the note is re-stamped onto it. Everything else here is pasted book text,
+ * where the corrected paste must win.
  * → {uuid, name, reused, updated?}
  */
-async function _ensureItem(pack, data, folderPath, report) {
+async function _ensureItem(pack, data, folderPath, report, { keepCuratedDescription = false } = {}) {
   const { ensureFolderPath, cleanImportHtml, replaceDocument } = await import("../../shared/compendium-suite.mjs");
   // Commit choke point: sanitize persisted HTML (review #1).
   if (data.system?.description) data.system.description = cleanImportHtml(data.system.description);
@@ -151,6 +157,11 @@ async function _ensureItem(pack, data, folderPath, report) {
   const existing = idx.find((e) => e.name === data.name && e.type === data.type);
   if (existing) {
     const doc = await pack.getDocument(existing._id);
+    if (keepCuratedDescription && data.system) {
+      const { preservedDescription } = await import("../items/item-importer.mjs");
+      const kept = preservedDescription(doc.system?.description, data.system.description);
+      if (kept !== null) data.system.description = kept;
+    }
     const fields = _staleFields(doc.toObject(), data);
     if (!fields.length) {
       report.reused.push({ name: data.name, type: data.type, uuid: doc.uuid });
@@ -609,19 +620,27 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   const report = { created: [], reused: [], updated: [], systemReuse: [], warnings: [...(parsed.warnings ?? [])] };
   const sysTalents = _systemIndex("Item", "shadowdark.talents");
 
-  // ── 0. WR-only gear the class references (overlay-shipped stat lines,
-  // no descriptions) — created first so the wield list resolves. ──
+  // ── 0. WR-only gear the class references (overlay-shipped stat lines, no
+  // book text) — created first so the wield list resolves. The only description
+  // any of it carries is the property note for codes core Shadowdark has no
+  // Property item for (the Lance's Charge/Devastating/Mounted), written by the
+  // same helper the gear importer uses so both paths read identically. ──
+  const { withPropertyNote } = await import("../items/item-importer.mjs");
   const ourGear = [];
   for (const it of overlay?.items ?? []) {
     const made = await _ensureItem(itemsPack, {
       name: it.name, type: it.type, img: it.img,
-      system: { ...it.system, description: "", source: { title: sourceTitle } },
+      system: {
+        ...it.system,
+        description: it.unmappedProps?.length ? withPropertyNote("", it.unmappedProps) : "",
+        source: { title: sourceTitle },
+      },
       effects: (it.effects ?? []).map((e) => ({
         name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
         system: { changes: e.changes ?? [] },
       })),
       flags: { [MODULE_ID]: { imported: true } },
-    }, String(it.folder ?? "Gear/Weapons").split("/"), report);
+    }, String(it.folder ?? "Gear/Weapons").split("/"), report, { keepCuratedDescription: true });
     ourGear.push({ name: it.name, uuid: made.uuid, granted: it.granted === true });
   }
 

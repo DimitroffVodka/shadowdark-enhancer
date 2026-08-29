@@ -15,7 +15,14 @@
   *"Properties with no core Shadowdark equivalent: Charge, Devastating,
   Mounted."* — property labels only, because the rules text stays in the book you
   own. Re-importing the same weapon refreshes that one line and leaves a
-  description you wrote yourself exactly as it was.
+  description you wrote yourself exactly as it was. The **Paladin's Lance** is
+  stocked by the class import rather than pasted as a table row, and it now
+  arrives the same way — importing the Paladin again updates an existing Lance
+  in place, so a world that already has one gets the line without a re-import of
+  anything else. That same pass stopped a quieter loss: re-importing a class used
+  to blank any description a GM had written on its stocked gear (the Duelist's
+  Rapier and Falchion, the Necromancer's Stave), because the overlay ships stats
+  and no text. Those descriptions are now left alone.
 
 ## [0.15.1] — 2026-08-26
 

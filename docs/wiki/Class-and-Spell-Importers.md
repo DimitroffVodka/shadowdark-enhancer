@@ -114,6 +114,15 @@ which leaves `isSpellCaster` false and the level-up dialog offering no spells.
 Paste the Spellcasting paragraph into stage 1 separately, or check that the class
 item ends up with its spellcasting talent.
 
+**The Paladin's Lance has no Charge, Devastating or Mounted property.**
+Core Shadowdark ships no property for those, so there is nothing to attach. The
+class import stocks the Lance with its stats and names the three in the item's
+**description** instead — the same line the [Importer
+Hub](Importer-Hub.md#after-a-commit-automatically) writes for a pasted weapon
+table. Add the rules text from your own book if you want it on the sheet: a
+later class re-import keeps a description you wrote and only refreshes that one
+line.
+
 **A class's talent table doesn't roll from the sheet.**
 The table name must match `<Class> Talent` or `<Talent> Table`, **or** the talent
 description must carry an `@UUID` link to it. Which pack the table lives in does
