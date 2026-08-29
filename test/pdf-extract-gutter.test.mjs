@@ -134,6 +134,53 @@ test("gutterRisks: the old ragged-edge cut is flagged, the correct one is not", 
     "the detected gutter is clean and must not cry wolf");
 });
 
+test("gutterRisks names the words it flags", () => {
+  // "cuts through 1 word" makes the reader proofread a whole page; the word
+  // itself makes it one search in the paste box. Live-caught on a CS2 bestiary
+  // grab (p40/p43), where two one-item warnings named nothing to look at.
+  const its = cs6Page26();
+  const [warn] = gutterRisks(its, W, 172);
+  assert.match(warn, /cuts through 3 words \("w8", "w14", "w37"\)/, warn);
+});
+
+test("gutterRisks: the quoted sample is capped in length and in count", () => {
+  const its = [];
+  for (let i = 0; i < 18; i++) its.push(span(36, 195, 600 - i * 14, `L${i}`));
+  for (let i = 0; i < 18; i++) its.push(span(225, 384, 600 - i * 14, `R${i}`));
+  const four = its.concat([
+    span(200, 216, 530, "a placeholder run long enough to be cut short"),
+    span(201, 217, 516, "beta"), span(202, 218, 502, "gamma"), span(203, 219, 488, "delta"),
+  ]);
+  const [warn] = gutterRisks(four, W, 210);
+  assert.match(warn, /cuts through 4 words/, warn);
+  assert.match(warn, /"a placeholder run long…"/, "a long run must be truncated");
+  assert.match(warn, /, …\)/, "beyond three flagged words the list must trail off");
+  assert.ok(!warn.includes("delta"), `only three words should be quoted: ${warn}`);
+});
+
+test("gutterRisks: a centred title split into runs is not read as body text", () => {
+  // PDF.js emits letter-spaced display type as several runs, so a centred
+  // heading loses the "alone on its baseline" signature that used to mark page
+  // furniture — and the run sitting over the gutter scored as a body word.
+  // A heading crosses a perfectly good gutter and lands in one column whole.
+  const two = [];
+  for (let i = 0; i < 18; i++) two.push(span(36, 195, 600 - i * 14, `L${i}`));
+  for (let i = 0; i < 18; i++) two.push(span(225, 384, 600 - i * 14, `R${i}`));
+  assert.deepEqual(gutterRisks(two, W, 210), [], "the bare two-column page is clean");
+
+  const titled = two.concat([
+    span(150, 180, 630, "T1"), span(186, 214, 630, "T2"), span(220, 270, 630, "T3"),
+  ]);
+  assert.deepEqual(gutterRisks(titled, W, 210), [],
+    "a centred title's middle run is furniture, not a word the split stole");
+
+  // The control: the same geometry, but the straddling word belongs to a row
+  // of two-column body text — that one must still warn, by name.
+  const bled = two.concat([span(200, 216, 530, "BLED")]);
+  const [warn] = gutterRisks(bled, W, 210);
+  assert.match(warn, /cuts through 1 word \("BLED"\)/, warn);
+});
+
 test("gutterRisks: a cut far off the page midline is flagged", () => {
   const its = cs6Page26();
   // 0.15W clear of centre, chosen to sit in white space so only the
@@ -191,4 +238,40 @@ test("extraction pins keep their exact contracts", () => {
   assert.equal(typeof detectGutter(single, W, "2"), "number", '"2" never returns null');
   assert.equal(detectGutter([span(10, 20, 5)], W, "2"), W / 2,
     '"2" falls back to the midline on a near-empty page');
+});
+
+test("gutterRisks: the near-miss warning names its items too", () => {
+  // The straddle warning and this one are the two halves of the same fix, and
+  // this is the half the live CS2 p40 grab actually raised — it must quote the
+  // text as well, or that page still names nothing to look at.
+  const its = [];
+  for (let i = 0; i < 18; i++) its.push(span(36, 195, 600 - i * 14, `L${i}`));
+  for (let i = 0; i < 18; i++) its.push(span(225, 384, 600 - i * 14, `R${i}`));
+  // A narrow body run that stops ON the cut: its centre sits within a glyph of
+  // the gutter, but its box never crosses it, so only the near check can fire.
+  const grazed = its.concat([span(204, 210, 530, "GRAZED")]);
+  const warns = gutterRisks(grazed, W, 210);
+  assert.ok(!warns.some((w) => /cuts through/.test(w)),
+    `nothing straddles this cut: ${warns.join(" | ")}`);
+  assert.match(warns.find((w) => /runs within a glyph/.test(w)) ?? "",
+    /runs within a glyph of 1 item \("GRAZED"\)/, warns.join(" | "));
+});
+
+test("gutterRisks: the trailing … promises only words it can actually show", () => {
+  // The count that decides the "…" must be the flagged items that CARRY text,
+  // not the raw flagged list: a straddler PDF.js hands over with no string of
+  // its own can never be quoted, so counting it advertises a fourth word the
+  // reader then goes looking for and cannot find.
+  const its = [];
+  for (let i = 0; i < 18; i++) its.push(span(36, 195, 600 - i * 14, `L${i}`));
+  for (let i = 0; i < 18; i++) its.push(span(225, 384, 600 - i * 14, `R${i}`));
+  const four = its.concat([
+    span(200, 216, 530, "alpha"), span(201, 217, 516, ""),
+    span(202, 218, 502, "   "), span(203, 219, 488, "beta"),
+  ]);
+  const [warn] = gutterRisks(four, W, 210);
+  assert.match(warn, /cuts through 4 words/, warn);
+  assert.match(warn, /\("alpha", "beta"\)/, `both quotable words should show: ${warn}`);
+  assert.ok(!warn.includes(", …"),
+    `only two of the four carry text, so nothing is being held back: ${warn}`);
 });
