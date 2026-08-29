@@ -14,6 +14,26 @@
   each under its own heading, all of it dead, with a note naming the reason. The
   **Training tier** dropdown stays hidden while that is true, since every tier is
   already on the page and the gate is shut for the GM as well.
+- **A weapon's book-only properties no longer arrive as a note to self.** The
+  Western Reaches weapon and armour tables print property codes core Shadowdark
+  ships no property for — *Charge*, *Devastating* and *Mounted* on the Lance,
+  *Obsidian* on the obsidian weapons, *Sniper* on the blowpipe, *Mount* on
+  barding. There is nothing to attach them to, so the importer left them off and
+  flagged each one with *"note it in the description"* — and then didn't. The
+  Lance committed as a plain 15 gp d12 pole, and the three properties that make
+  it a lance survived only for as long as the GM remembered to type them in by
+  hand. They are now written into the item's description as it commits —
+  *"Properties with no core Shadowdark equivalent: Charge, Devastating,
+  Mounted."* — property labels only, because the rules text stays in the book you
+  own. Re-importing the same weapon refreshes that one line and leaves a
+  description you wrote yourself exactly as it was. The **Paladin's Lance** is
+  stocked by the class import rather than pasted as a table row, and it now
+  arrives the same way — importing the Paladin again updates an existing Lance
+  in place, so a world that already has one gets the line without a re-import of
+  anything else. That same pass stopped a quieter loss: re-importing a class used
+  to blank any description a GM had written on its stocked gear (the Duelist's
+  Rapier and Falchion, the Necromancer's Stave), because the overlay ships stats
+  and no text. Those descriptions are now left alone.
 - **A downtime paste no longer loses Martial Training and Magical Research to a
   missing period.** Paste all four activities and only the first two would
   appear — not because anything was missing, but because those two are the only

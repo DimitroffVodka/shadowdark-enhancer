@@ -15,12 +15,19 @@
  *   createItems(drafts, opts)          — Foundry-bound batch commit
  *   relinkSpellsToClasses()            — Foundry-bound spell↔class retro-link sweep
  *   ItemImporter = { buildItemData, createItem, createItems }
+ *   withPropertyNote / preservedDescription — re-exported from
+ *                                        shared/property-note.mjs (pure)
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { pickTreasureIcon } from "../../loot/loot-pack.mjs";
 import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml, SUITE_PACKS } from "../../shared/compendium-suite.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
+import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
+
+// Re-exported so the gear importer stays the one door callers already know;
+// the helpers themselves are Foundry-free and live in shared/.
+export { withPropertyNote, preservedDescription };
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
 
@@ -181,7 +188,9 @@ export function buildItemData(draft) {
 
   // Shared PhysicalItemSD fields (cost/slots/quantity) every gear type carries.
   const physical = {
-    description: draft.description ?? "<p></p>",
+    // Weapon/Armor drafts from gear-parser carry the WR-only property codes the
+    // core system has no Property item for; they land in the description.
+    description: withPropertyNote(draft.description ?? "<p></p>", draft.unmappedProps),
     cost:   { gp: draft.cost?.gp ?? 0, sp: draft.cost?.sp ?? 0, cp: draft.cost?.cp ?? 0 },
     slots:  {
       free_carry: draft.slots?.free_carry ?? 0,
@@ -515,12 +524,11 @@ function _preserveCuratedFields(payload, existingDoc) {
   const old = existingDoc.system ?? {};
 
   // Description: keep the existing one if it has real content and the new one
-  // is the default `<p></p>` or empty.
-  const oldDesc = String(old.description ?? "").trim();
-  const newDesc = String(src.description ?? "").trim();
-  if (oldDesc && oldDesc !== "<p></p>" && (!newDesc || newDesc === "<p></p>")) {
-    if (payload.system) payload.system.description = old.description;
-  }
+  // is importer-generated — the default `<p></p>`, or nothing but the WR
+  // property note (which is re-stamped onto the kept text, so a re-import
+  // updates that line instead of dropping it).
+  const kept = preservedDescription(old.description, src.description);
+  if (kept !== null && payload.system) payload.system.description = kept;
 
   // Icon: keep the existing curated icon if the new one is auto-picked.
   // Don't overwrite a hand-picked icon with pickTreasureIcon's default.
