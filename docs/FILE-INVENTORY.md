@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-798 tracked files · ~114,900 lines of code/markup across scripts+templates+styles+test.
+798 tracked files · ~115,000 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -205,7 +205,7 @@
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1481 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
-| `char-content/class-parser.mjs` | 1085 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
+| `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1244 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 264 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
@@ -214,7 +214,7 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 460 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3319 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-importer.mjs` | 3330 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
 | `tables/table-shapes.mjs` | 549 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 297 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 528 | "Set up ALL tables" window — dashboard + import view. |
@@ -244,7 +244,7 @@
 | `items/item-builder-gear.mjs` | 133 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
-| `tables/table-manifest.mjs` | 210 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
+| `tables/table-manifest.mjs` | 235 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
 | `tables/table-manifest-data.mjs` | 335 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
 | `boats/mount-parser.mjs` | 55 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
 | `boats/mount-importer.mjs` | 79 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
