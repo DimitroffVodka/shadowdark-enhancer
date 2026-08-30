@@ -9,8 +9,15 @@
  * GM-only. Ships ZERO book content — the GM provides the item text; these
  * items live only in the GM's local world compendium.
  *
+ * Art on re-import is governed by explicit provenance (A3, shared/art-provenance.mjs),
+ * not by the shape of the image path: default, untouched-imported and curated
+ * images upgrade, GM-custom art survives, and generated artifacts in the
+ * managed Items pack stay replace-always.
+ *
  * Exports:
  *   buildItemData(draft) → itemData   — pure, Foundry-free, node-testable
+ *   defaultItemImg(doc)                — the module's default pick (pure)
+ *   preserveCuratedFields(payload, existing, opts) — replace-time curation (pure)
  *   createItem(draft, opts)            — Foundry-bound single-item commit
  *   createItems(drafts, opts)          — Foundry-bound batch commit
  *   relinkSpellsToClasses()            — Foundry-bound spell↔class retro-link sweep
@@ -24,12 +31,75 @@ import { pickShikashiSpellIcon } from "./shikashi-icons.mjs";
 import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolderPath, replaceDocument, cleanImportHtml, SUITE_PACKS } from "../../shared/compendium-suite.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
 import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
+import { ART_STATES, UPGRADEABLE_ART_STATES, artProvenance, decideImportArt, isGeneratedManagedItem, MANAGED_ITEMS_PACK } from "../../shared/art-provenance.mjs";
 
 // Re-exported so the gear importer stays the one door callers already know;
 // the helpers themselves are Foundry-free and live in shared/.
 export { withPropertyNote, preservedDescription };
 
+// ─── Default art (A3) ────────────────────────────────────────────────────────
+
+/**
+ * The image this module picks for an item type when the draft brings none.
+ * Keyed by Foundry item type, so the same table answers both at build time and
+ * at replace time (where only the stored document's type and name are known).
+ */
+const TYPE_DEFAULT_IMG = {
+  Background: "icons/environment/people/commoner.webp",
+  Talent:     "icons/sundries/documents/document-torn-diagram-tan.webp",
+  Ancestry:   "icons/environment/people/group.webp",
+  Class:      "icons/skills/trades/academics-book-study-runes.webp",
+};
+
+/**
+ * The image THIS module would write for a draft or stored document that brings
+ * no art of its own. Pure and deterministic — the same name and type always
+ * produce the same path, which is what makes the legacy classification in
+ * art-provenance decidable: an unmarked document wearing exactly this image is
+ * one we picked, and anything else is the GM's.
+ *
+ * @param {{name?: string, type?: string}} doc  a parser draft or a stored Item
+ * @returns {string} an image path, never blank
+ */
+export function defaultItemImg(doc) {
+  const name = doc?.name ?? "Unnamed Item";
+  if (doc?.type === "Spell") return pickShikashiSpellIcon(name);
+  return TYPE_DEFAULT_IMG[doc?.type] ?? pickTreasureIcon(name);
+}
+
+/**
+ * The provenance stamp for an image this module is about to write. The state
+ * follows the image's ORIGIN: a draft carrying its own image is `imported`,
+ * one we picked for it is `default`, and a resolver that deliberately chose it
+ * (A4's curated maps) says so with `draft.artState = "curated"`. A draft can
+ * never declare `custom` — only a human's edit produces that state, and only
+ * the replace path can observe it.
+ */
+function _artStampFor(draft, img) {
+  const declared = String(draft?.artState ?? "");
+  const state = UPGRADEABLE_ART_STATES.includes(declared)
+    ? declared
+    : (draft?.img ? ART_STATES.IMPORTED : ART_STATES.DEFAULT);
+  return artProvenance(state, img);
+}
+
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
+
+/**
+ * Convert a parser draft into a system-faithful Shadowdark Item creation
+ * payload, stamped with its art provenance (A3) so a later re-import can tell
+ * the image we wrote from one the GM has since replaced.
+ *
+ * @param {object} draft  from item-parser.mjs (parseItem output)
+ * @returns {object}  Foundry Item creation payload
+ */
+export function buildItemData(draft) {
+  const data = _buildItemShape(draft);
+  const flags = data.flags ?? (data.flags = {});
+  const own = flags[MODULE_ID] ?? (flags[MODULE_ID] = {});
+  own.art = _artStampFor(draft, data.img);
+  return data;
+}
 
 /**
  * Convert a parser draft into a system-faithful Shadowdark Item creation payload.
@@ -54,7 +124,7 @@ export { withPropertyNote, preservedDescription };
  * @param {object} draft  from item-parser.mjs (parseItem output)
  * @returns {object}  Foundry Item creation payload
  */
-export function buildItemData(draft) {
+function _buildItemShape(draft) {
   const name = draft.name ?? "Unnamed Item";
 
   // ── Spell path — explicit type:"Spell" from the spell parser. Mirrors the
@@ -67,7 +137,7 @@ export function buildItemData(draft) {
     return {
       name,
       type: "Spell",
-      img: draft.img || pickShikashiSpellIcon(name),
+      img: draft.img || defaultItemImg(draft),
       system: {
         class: Array.isArray(draft.class) ? draft.class : [],
         tier: Number.isFinite(tier) ? tier : 1,
@@ -104,7 +174,7 @@ export function buildItemData(draft) {
   // live shadowdark.* pack documents (FVTT 14 / SD 4.x). ──
   if (draft.type === "Background") {
     return {
-      name, type: "Background", img: draft.img || "icons/environment/people/commoner.webp",
+      name, type: "Background", img: draft.img || defaultItemImg(draft),
       system: {
         description: draft.description ?? "<p></p>",
         source: { title: draft.sourceTitle ?? "" },
@@ -114,7 +184,7 @@ export function buildItemData(draft) {
   }
   if (draft.type === "Talent") {
     return {
-      name, type: "Talent", img: draft.img || "icons/sundries/documents/document-torn-diagram-tan.webp",
+      name, type: "Talent", img: draft.img || defaultItemImg(draft),
       system: {
         description: draft.description ?? "<p></p>",
         level: 1,
@@ -129,7 +199,7 @@ export function buildItemData(draft) {
   if (draft.type === "Ancestry") {
     const lang = draft.languages ?? {};
     return {
-      name, type: "Ancestry", img: draft.img || "icons/environment/people/group.webp",
+      name, type: "Ancestry", img: draft.img || defaultItemImg(draft),
       system: {
         description: draft.description ?? "<p></p>",
         languages: {
@@ -150,7 +220,7 @@ export function buildItemData(draft) {
   }
   if (draft.type === "Class") {
     return {
-      name, type: "Class", img: draft.img || "icons/skills/trades/academics-book-study-runes.webp",
+      name, type: "Class", img: draft.img || defaultItemImg(draft),
       system: {
         description: draft.description ?? "<p></p>",
         hitPoints: draft.hitPoints || "d6",
@@ -165,7 +235,7 @@ export function buildItemData(draft) {
     };
   }
 
-  const img = draft.img || pickTreasureIcon(name);
+  const img = draft.img || defaultItemImg(draft);
 
   // Determine if this is a magic item by checking riders
   const riders = draft.riders ?? {};
@@ -289,7 +359,7 @@ async function _propertyIndex() {
   // (world.shadowdark-enhancer--items → Weapon Properties folder). These are
   // Property-type items the GM curated — they resolve the same way as system
   // properties so weapons/armor reference them by UUID.
-  const sdeItems = game.packs?.get("world.shadowdark-enhancer--items");
+  const sdeItems = game.packs?.get(MANAGED_ITEMS_PACK);
   if (sdeItems) {
     for (const doc of await sdeItems.getDocuments()) {
       if (doc.type !== "Property") continue;
@@ -397,9 +467,13 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
       if (old) {
         // Preserve curated fields from the canonical pack: if the GM has
         // hand-edited descriptions, icons, or properties, don't overwrite
-        // them with parser-generated defaults.
+        // them with parser-generated defaults. Generated artifacts inside the
+        // managed Items pack are the structural exception (A7/D6) — they are
+        // authoritative and replaced wholesale.
         const payload = buildPayload();
-        _preserveCuratedFields(payload, old);
+        preserveCuratedFields(payload, old, {
+          generatedArtifact: isGeneratedManagedItem(old, pack.collection),
+        });
         const { doc, mode } = await replaceDocument(old, payload, pack);
         return { uuid: doc.uuid, name: doc.name, status: "replaced", mode };
       }
@@ -516,12 +590,43 @@ const TYPE_TO_PACK_ID = {
  * When replacing an existing item, preserve fields the GM has manually curated
  * (description, icon, properties) so a re-import doesn't overwrite hand-edited
  * work with parser-generated defaults. A curated description is one that isn't
- * the placeholder `<p></p>` or a purely auto-generated string; a curated icon
- * is one that differs from the auto-picked treasure icon.
+ * the placeholder `<p></p>` or a purely auto-generated string.
+ *
+ * The icon decision is A3's: it reads the stored document's art PROVENANCE
+ * rather than the shape of the incoming path. The old rule asked whether the
+ * incoming image looked like a default (`startsWith("icons/")`), which was the
+ * wrong document and the wrong question — this module's own bundled Shikashi
+ * defaults live under `modules/shadowdark-enhancer/assets/`, so they failed the
+ * test and quietly overwrote hand-picked art, while a deliberately curated
+ * `icons/...` pick could never be upgraded because it looked like a default.
+ *
+ * `generatedArtifact` marks the structural exception: generated artifacts in
+ * the managed Items pack are authoritative and replace-always (A7/D6), so
+ * nothing on them is preserved here.
+ *
+ * @param {object} payload       the creation payload about to be written
+ * @param {object} existingDoc   the stored document being replaced
+ * @param {{generatedArtifact?: boolean}} [opts]
  */
-function _preserveCuratedFields(payload, existingDoc) {
+export function preserveCuratedFields(payload, existingDoc, { generatedArtifact = false } = {}) {
   const src = payload.system ?? {};
   const old = existingDoc.system ?? {};
+
+  // Art (A3). Decided first and unconditionally, because the generated-artifact
+  // branch has to be reachable even when nothing else is preserved.
+  const art = decideImportArt({
+    incomingImg: payload.img,
+    incomingState: payload.flags?.[MODULE_ID]?.art?.state,
+    existing: existingDoc,
+    moduleDefaultImg: defaultItemImg(existingDoc),
+    generatedArtifact,
+  });
+  payload.img = art.img;
+  const flags = payload.flags ?? (payload.flags = {});
+  const own = flags[MODULE_ID] ?? (flags[MODULE_ID] = {});
+  own.art = art.provenance;
+
+  if (generatedArtifact) return;
 
   // Description: keep the existing one if it has real content and the new one
   // is importer-generated — the default `<p></p>`, or nothing but the WR
@@ -529,16 +634,6 @@ function _preserveCuratedFields(payload, existingDoc) {
   // updates that line instead of dropping it).
   const kept = preservedDescription(old.description, src.description);
   if (kept !== null && payload.system) payload.system.description = kept;
-
-  // Icon: keep the existing curated icon if the new one is auto-picked.
-  // Don't overwrite a hand-picked icon with pickTreasureIcon's default.
-  if (existingDoc.img && existingDoc.img !== payload.img) {
-    const newIsDefault = payload.img && (
-      payload.img.startsWith("icons/") ||
-      payload.img.includes("default")
-    );
-    if (newIsDefault) payload.img = existingDoc.img;
-  }
 
   // Properties: if the existing item already has resolved property UUIDs and
   // the new draft has none (or fewer), keep the existing ones.
@@ -810,4 +905,4 @@ export async function partitionSystemDuplicates(items) {
   return { fresh, duplicates };
 }
 
-export const ItemImporter = { buildItemData, createItem, createItems, relinkSpellsToClasses, spellFolderNames, talentFolderNames, systemItemNameIndex, partitionSystemDuplicates, normalizeItemName, resolveGearProperties, resolveGearPropertiesAll };
+export const ItemImporter = { buildItemData, createItem, createItems, relinkSpellsToClasses, spellFolderNames, talentFolderNames, systemItemNameIndex, partitionSystemDuplicates, normalizeItemName, resolveGearProperties, resolveGearPropertiesAll, defaultItemImg, preserveCuratedFields };
