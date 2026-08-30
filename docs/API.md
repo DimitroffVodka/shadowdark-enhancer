@@ -197,9 +197,10 @@ older actors is left untouched.
 ## `monsterSpells`
 
 The Monster Spell Library copies embedded monster `Spell` items into the GM-only
-**Shadowdark Enhancer — Monster Spells** world compendium. Source Actors keep their
-embedded spells. Attaching a library entry in Monster Creator creates another
-embedded copy on the destination NPC; it never creates a live compendium link.
+**Shadowdark Enhancer — Items** world compendium under `Monster Spells / <source>`.
+Source Actors keep their embedded spells. Attaching a library entry in Monster
+Creator creates another embedded copy on the destination NPC; it never creates a
+live compendium link.
 
 ```js
 const sources = api.monsterSpells.listSources();
@@ -215,18 +216,26 @@ const preview = await api.monsterSpells.preview({
 await api.monsterSpells.refresh(); // Build/Refresh Monster Spells
 ```
 
-Refreshes reconcile by provenance rather than by spell name. On each world
-activation, the primary active GM automatically reconciles Shadowdark Core; a
-successful Importer Hub monster create/replace reconciles the managed Enhancer
-Actor source. Automatic syncs queue behind an in-progress refresh. The
-interactive refresh remains available for reviewed recovery. Identical spell
-definitions consolidate with all source monsters recorded. Automatically
-maintained entries use `Spell Name - Monster Name`; same-name definitions that
-differ remain separate and add tier/source detail when needed. Generated entries
-with curated edits preserve both their content and edited name and are marked as
-conflicts; stale entries are
-reported but never deleted. Validation warnings report suspicious DC, dice,
-duration, and damage-formula mismatches without rewriting source content.
+Refreshes reconcile by provenance rather than by spell name. Generated copies
+are filed into `Shadowdark Enhancer — Items / Monster Spells / <source>`. Worlds
+with content in the legacy `world.shadowdark-enhancer--monster-spells` pack are
+automatically migrated on activation by the primary GM: generated copies are
+consolidated, hand-authored GM items move to `Monster Spells / Other Sources`,
+existing edits and art are preserved, and the retired pack is left
+empty-but-present for one release. Re-running the migration or refresh is safe
+and idempotent.
+
+On each world activation, the primary active GM automatically reconciles
+Shadowdark Core; a successful Importer Hub monster create/replace reconciles the
+managed Enhancer Actor source. Automatic syncs queue behind an in-progress
+refresh. The interactive refresh remains available for reviewed recovery.
+Identical spell definitions consolidate with all source monsters recorded.
+Automatically maintained entries use `Spell Name - Monster Name`; same-name
+definitions that differ remain separate and add tier/source detail when needed.
+Generated entries with curated edits preserve both their content and edited name
+and are marked as conflicts; stale entries are reported but never deleted.
+Validation warnings report suspicious DC, dice, duration, and damage-formula
+mismatches without rewriting source content.
 
 ## `monsterCreator` / `forge`
 

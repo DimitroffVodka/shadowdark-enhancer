@@ -26,19 +26,28 @@ remove the module and your content stays readable and usable.
 
 Packs are **world compendiums**, created on demand. Nothing exists until
 something needs it. They live in the sidebar under a **Shadowdark Enhancer**
-folder. The export/import bundle includes the Monster Spell pack as well, so
-curated generated entries and conflict state survive a world migration.
+folder. The export/import bundle includes all suite packs, so curated items,
+generated entries, and conflict state survive a world migration.
 
 ### Suite packs
 
 | Pack id | Type | Label | Holds |
 |---|---|---|---|
 | `sde-actors` | Actor | Shadowdark Enhancer — Actors | Imported monsters |
-| `sde-items` | Item | Shadowdark Enhancer — Items | Imported items, spells, gear |
-| `shadowdark-enhancer--monster-spells` | Item | Shadowdark Enhancer — Monster Spells | Generated copies of embedded monster spells (GM-only) |
+| `sde-items` | Item | Shadowdark Enhancer — Items | Imported items, spells, gear, and generated Monster Spells |
 | `sde-tables` | RollTable | Shadowdark Enhancer — Roll Tables | Imported tables |
 | `sde-journal` | JournalEntry | Shadowdark Enhancer — Journals | *(structural)* |
 | `sde-scenes` | Scene | Shadowdark Enhancer — Scenes | *(structural)* |
+
+> **Monster Spells pack consolidation:** In earlier releases, generated monster
+> spells were written to a separate `world.shadowdark-enhancer--monster-spells`
+> compendium. Generated monster spells now live inside `sde-items` under
+> `Monster Spells / <source>`. Any existing content in the legacy pack is
+> automatically migrated into `sde-items` on activation by the primary GM
+> (moving hand-authored GM content to `Monster Spells / Other Sources` and
+> preserving curated edits and art). The retired pack is emptied and remains
+> present for one release before being removed, avoiding broken external
+> references. Re-running the migration is safe and idempotent.
 
 ### Character Options packs
 
