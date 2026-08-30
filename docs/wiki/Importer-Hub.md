@@ -199,6 +199,51 @@ Character content committed here is stamped with a `system.source.title` slug
 (e.g. `western-reaches`), because the character builder filters what it offers on
 exactly that field. Import a Western Reaches class and it shows up in the builder.
 
+### Import everything
+
+Once your books are uploaded under **Source PDFs**, you do not have to press
+Import → Parse → Create two hundred times. The tree's toolbar carries an
+**Import everything (N)** button, and opening any folder puts an **Import all N
+in <folder>** button at the top of it — the same run, scoped to that branch.
+
+It changes nothing about *how* content is imported. It presses the same buttons
+you would: it seeds each unlock, grabs the cited pages out of your own PDF,
+parses them, and commits the preview — entry by entry, through the same parsers
+and the same commit paths, including the workspaces that own their own flow
+(Class Importer, Spell Importer, Item Builder). What it adds is that it does
+them in order, without you.
+
+**What it will not do**, because nobody is watching it:
+
+- **It never overwrites and never deletes.** Every name conflict answers "keep
+  what's already there", so a second run over the same library creates nothing
+  and duplicates nothing. Re-running it is safe.
+- **It never commits something broken.** A table or generator that fails the
+  quality check is left in the preview, not written. A class that fails its
+  quality check is skipped and named in the report.
+- **It never guesses at content you don't have.** A row with no linked source
+  PDF, no page citation, or no automated route is reported for you to do by
+  hand — never silently skipped.
+
+**Before it runs** it tells you how many entries it will import, split by which
+workspace drives each one, and how many rows it can't do unattended. Rows that
+one press unlocks together — a whole bestiary spread, the eight boats on WR
+p118, a gear price table — count as one entry, so the number is the work, not
+the row count.
+
+**While it runs** a progress bar shows the entry in flight, with a **Stop**
+button that ends the run after the current entry finishes. Toasts are collected
+rather than stacking hundreds deep.
+
+**When it finishes** you get a report grouped by outcome: *Imported*, *Nothing
+to import*, *Needs your attention*, *Not run (cancelled)*, and *Import these by
+hand* — each row with the reason. That report is the thing to read; the summary
+toast is just the headline.
+
+Content it imported flips from gap to have in the tree straight away — the
+censuses are rebuilt once at the end of the run rather than after every entry,
+so a long batch doesn't spend its time re-scanning your packs.
+
 ---
 
 ## The Tools menu
@@ -288,6 +333,23 @@ appear in **Skipped** with that reason so you can see they were seen. Track
 coin on the character sheet's purse and a gem as treasure or loot instead.
 An older import that already created them leaves the items in `sde-items`;
 delete them from the compendium if you don't want them.
+
+**Import everything imported almost nothing.**
+It only runs entries it can actually read from a book you uploaded. Open the
+report's *Import these by hand* group — if it says a PDF isn't linked, add that
+book under **Tools → Source PDFs** and run it again. Rows with no page citation
+(item census gaps) are always hand-pastes.
+
+**Import everything skipped things it already imported.**
+That is the design. Every conflict answers "keep what's there", so nothing you
+already have is replaced or duplicated. Those rows show up under *Nothing to
+import*.
+
+**An entry came back as "needs your attention".**
+Its parse failed a quality check, so nothing was written. The report names the
+reason. Open that entry's own **Import** button and finish it by hand — the
+batch deliberately won't force a broken table or a half-parsed class into your
+packs.
 
 **The Manage tree still shows a gap after I imported it.**
 The census matches on name and source folder. Confirm the source label you

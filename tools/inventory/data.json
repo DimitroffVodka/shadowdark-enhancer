@@ -231,11 +231,13 @@
       "scripts/importer/importer-hub-paste.mjs",
       "scripts/importer/importer-hub-commit.mjs",
       "scripts/importer/importer-hub-manage.mjs",
+      "scripts/importer/importer-hub-batch.mjs",
       "scripts/importer/importer-hub-shared.mjs",
       "scripts/importer/importer-hub-maintenance.mjs",
       "scripts/importer/dump-segmenter.mjs",
       "scripts/importer/bundle-io.mjs",
       "scripts/importer/manage-tree.mjs",
+      "scripts/importer/batch-import.mjs",
       "scripts/importer/pdf-text-extract.mjs",
       "scripts/importer/pdf-text-utils.mjs",
       "scripts/importer/source-pdf-registry.mjs",
@@ -559,6 +561,8 @@
     "scripts/taunt/taunt-core.mjs": "Pure Duelist Taunt rules: round+turn as one ordinal, the \"end of your NEXT turn\" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit).",
     "scripts/taunt/taunt.mjs": "Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends.",
     "scripts/shared/attack-card.mjs": "Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently).",
-    "scripts/shared/property-note.mjs": "Stamps and preserves the \"no core Shadowdark property\" note on imported gear (pure)."
+    "scripts/shared/property-note.mjs": "Stamps and preserves the \"no core Shadowdark property\" note on imported gear (pure).",
+    "scripts/importer/importer-hub-batch.mjs": "Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended.",
+    "scripts/importer/batch-import.mjs": "Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report."
   }
 }

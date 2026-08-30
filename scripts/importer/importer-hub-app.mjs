@@ -33,6 +33,7 @@ import { SOURCE_SUGGESTIONS, BOOK_SOURCES, FORMAT_EXAMPLES, flaggedRowNames, war
 import { installHubPaste } from "./importer-hub-paste.mjs";
 import { installHubCommit } from "./importer-hub-commit.mjs";
 import { installHubManage } from "./importer-hub-manage.mjs";
+import { installHubBatch } from "./importer-hub-batch.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -95,6 +96,9 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       manageFilter:           function (...args) { return this._onManageFilter(...args); },
       manageExpandAll:        function (...args) { return this._onManageExpandAll(...args); },
       manageCollapseAll:      function (...args) { return this._onManageCollapseAll(...args); },
+      // Batch ("Import everything" / a folder's "Import all") — see importer-hub-batch.mjs
+      batchImport:            function (...args) { return this._onBatchImport(...args); },
+      batchCancel:            function (...args) { return this._onBatchCancel(...args); },
       charSeedPaste:          function (...args) { return this._onCharSeedPaste(...args); },
       downtimeSeedPaste:      function (...args) { return this._onDowntimeSeedPaste(...args); },
       spellListSeed:          function (...args) { return this._onSpellListSeed(...args); },
@@ -187,6 +191,25 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _manageExpandedNodes = new Set();
   /** Manage tree row filter: "all" | "locked" (still importable) | "imported". */
   _manageFilter = "all";
+
+  // ── Batch import ("Import everything") ─────────────────────────────────────
+  /**
+   * Live progress of a running batch, or null when nothing is running.
+   * Shape: { total, done, cancelled, label, current }. Read by the template to
+   * draw the progress strip; set to null in the runner's `finally`.
+   * @type {object|null}
+   */
+  _batchState = null;
+  /**
+   * Pre-answers for the commit dialogs while a batch runs (see
+   * importer-hub-batch.mjs and the conflict/gate helpers in
+   * importer-hub-commit.mjs). Null outside a run, so a GM's own clicks always
+   * get the real dialogs.
+   * @type {object|null}
+   */
+  _batchAuto = null;
+  /** Toasts captured during a batch run, cleared per job. @type {Array|null} */
+  _batchNotices = null;
 
   // ── Monsters-tab census cache ─────────────────────────────────────────────
   /**
@@ -734,10 +757,24 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // Filtered to nothing is an ANSWER ("nothing left to unlock"), not an
         // error — the template says so rather than showing a blank panel.
         filterEmpty: this._manageFilter !== "all" && tree.length === 0,
+        // Total still-locked rows across the WHOLE tree — the count on the
+        // "Import everything" button, so it reads as a job size before it runs.
+        // Read off the unfiltered cache: the "Imported" filter prunes locked
+        // branches away, and the button's scope is the library, not the view.
+        lockedTotal: (this._manageTreeCache ?? [])
+          .reduce((sum, node) => sum + (node.locked ?? 0), 0),
       };
     }
 
-    return { importData, manageExpanded: this._manageExpanded, manage };
+    // Batch progress strip: rendered from the runner's live state, so the run
+    // stays visible (and cancellable) through every re-render it triggers.
+    const batch = this._batchState ? {
+      ...this._batchState,
+      percent: this._batchState.total
+        ? Math.round((this._batchState.done / this._batchState.total) * 100) : 0,
+    } : null;
+
+    return { importData, manageExpanded: this._manageExpanded, manage, batch };
   }
 
   // ── Render wiring ─────────────────────────────────────────────────────────
@@ -836,14 +873,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 }
 
-// The hub is one ApplicationV2 split across four files (2026-07): this shell
-// (lifecycle, context, singleton, caches' fields) + paste/commit/manage method
-// packs installed onto the class here. Actions in DEFAULT_OPTIONS late-bind
+// The hub is one ApplicationV2 split across five files (2026-07): this shell
+// (lifecycle, context, singleton, caches' fields) + paste/commit/manage/batch
+// method packs installed onto the class here. Actions in DEFAULT_OPTIONS late-bind
 // through `this` so the split methods resolve at click time, not at class
 // definition time.
 installHubPaste(ImporterHubApp);
 installHubCommit(ImporterHubApp);
 installHubManage(ImporterHubApp);
+installHubBatch(ImporterHubApp);
 
 /**
  * Back-compat entry-point API for Task 2 / shadowdark-enhancer.mjs wiring.
