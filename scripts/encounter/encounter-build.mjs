@@ -251,15 +251,14 @@ export const EncounterBuild = {
         baseResult.type = CONST.TABLE_RESULT_TYPES.TEXT;
       } else if (s.uuid) {
         // Monster entry — store the document reference so encounter
-        // result parsing can resolve the actor via the standard fields.
-        const parsed = foundry.utils.parseUuid?.(s.uuid) ?? null;
+        // result parsing can resolve the actor via the standard field.
+        // documentUuid is the v13 canonical form; the documentCollection /
+        // documentId pair this used to split the uuid into are deprecation
+        // getters that Foundry removes in v15. Storing the uuid whole also
+        // drops the parseUuid round-trip, which silently wrote a DOCUMENT
+        // result with NO reference at all whenever parsing failed.
         baseResult.type = CONST.TABLE_RESULT_TYPES.DOCUMENT;
-        if (parsed?.collection) {
-          baseResult.documentCollection = parsed.collection.collection ?? parsed.collection;
-        }
-        if (parsed?.id || parsed?.documentId) {
-          baseResult.documentId = parsed.id ?? parsed.documentId;
-        }
+        baseResult.documentUuid = s.uuid;
       }
 
       // Stash the appearing formula as a flag — preview + result rolling
