@@ -123,9 +123,22 @@ Ordered by how much permission they need:
 Art is optional. Leave it and the system defaults stand.
 
 The gallery folders are set by **Character Builder — portrait/token art folders**
-(comma-separated). It defaults to the module's own bundled portrait art, so it
-works with nothing else installed. Add your own folders (e.g. Tokenizer's save
-locations) to the list. Missing folders are skipped. Blank disables the gallery.
+(comma-separated). It defaults to the module's own bundled portrait art
+(`assets/portraits, assets/ancestries`), so it works with nothing else installed.
+Add your own folders (e.g. Tokenizer's save locations) to the list.
+
+When the gallery is enabled, character portraits from the optional **Pathfinder
+Tokens: Character Gallery** module (`modules/pf2e-tokens-characters/assets/portraits`)
+are automatically discovered and merged into the picker if installed.
+
+- **Blank disables the gallery:** Leaving the setting blank remains the explicit
+  switch to disable the curated gallery entirely.
+- **Permissionless player access:** Players do not need `FILES_BROWSE` permissions.
+  The browse runs on the active GM's client via the `shadowdark-enhancer.browseArt` query,
+  returning the pre-filtered image list.
+- **Safe absence fallback:** Missing folders or an unreadable/absent Pathfinder
+  module directory are caught and skipped silently without dropping custom or
+  bundled gallery results.
 
 **Finish** commits through the system's own creation path: ancestry, class,
 background and deity are stored as references, while talents, abilities, spells
@@ -146,6 +159,14 @@ without a close-and-reopen.
 
 Imported character content is gated on its `system.source.title` slug, which the
 importer stamps at commit. See [Class & Spell Importers](Class-and-Spell-Importers.md).
+
+---
+
+## Attribution
+
+### Pathfinder Tokens: Character Gallery
+
+Artwork and portraits from *Pathfinder Tokens: Character Gallery* are copyright © Paizo Inc. Used under license in Foundry VTT. Token ring integration and portrait selection are enabled automatically when the module is installed.
 
 ---
 
