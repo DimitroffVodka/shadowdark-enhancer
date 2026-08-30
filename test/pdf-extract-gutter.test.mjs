@@ -181,6 +181,51 @@ test("gutterRisks: a centred title split into runs is not read as body text", ()
   assert.match(warn, /cuts through 1 word \("BLED"\)/, warn);
 });
 
+test("gutterRisks: a recognised lower full-width band is not checked against the prose gutter", () => {
+  // WR p118's BOATS table is below two prose columns. layoutPageItems already
+  // keeps that band whole; warning geometry must make the same distinction or
+  // every AC cell that happens to overhang the prose gutter becomes an advisory.
+  const upper = [];
+  for (let i = 0; i < 8; i++) {
+    upper.push(span(36, 190, 500 - i * 14, `L${i}`));
+    upper.push(span(230, 384, 493 - i * 14, `R${i}`));
+  }
+  const lower = [
+    { ...span(185, 231, 200, "TABLE"), height: 13 },
+    span(40, 230, 180, "LOWER-ONE"),
+    span(40, 230, 165, "LOWER-TWO"),
+    span(196, 212, 180, "LOWER-CELL"),
+  ];
+  const its = upper.concat(lower);
+  const band = _internals._findFullWidthLowerBand(its, W);
+  assert.ok(band, "the fixture must reproduce a lower full-width band");
+  assert.deepEqual(gutterRisks(its, W, Math.round(band.gutter)), []);
+  assert.ok(gutterRisks(its, W, Math.round(band.gutter), { layoutMode: "2" }).length,
+    "a forced two-column layout must still warn about the lower band");
+});
+
+test("gutterRisks: a sub-point box overhang with a safe centre is not a warning", () => {
+  // WR p119's Type header ends 0.408 points beyond the detected cut at
+  // 205.56872, but its centre is 12 points to the left. This is PDF glyph-box
+  // precision, not a word cut. A centred body item remains a visible control.
+  const its = [];
+  for (let i = 0; i < 8; i++) {
+    its.push(span(36, 190, 500 - i * 14, `L${i}`));
+    its.push(span(230, 384, 493 - i * 14, `R${i}`));
+  }
+  its.push(span(40, 75, 200, "HEADER-LEFT"));
+  its.push(span(180.927, 205.977, 200, "HEADER"));
+  its.push(span(230, 270, 200, "HEADER-RIGHT"));
+  assert.deepEqual(gutterRisks(its, W, 205.56872), []);
+
+  const [warn] = gutterRisks(its.concat([
+    span(40, 75, 180, "CONTROL-LEFT"),
+    span(200, 220, 180, "CORRUPT"),
+    span(230, 270, 180, "CONTROL-RIGHT"),
+  ]), W, 205.56872);
+  assert.match(warn, /cuts through 1 word \("CORRUPT"\)/, warn);
+});
+
 test("gutterRisks: a cut far off the page midline is flagged", () => {
   const its = cs6Page26();
   // 0.15W clear of centre, chosen to sit in white space so only the

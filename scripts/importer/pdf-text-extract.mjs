@@ -331,6 +331,29 @@ function _bodyTextTest(its, W) {
   };
 }
 
+/** A PDF text box can overhang a gutter by a sub-point from glyph metrics even
+ * when its centre is safely in the column on that side. */
+const GUTTER_OVERHANG_TOLERANCE = 1;
+
+/** Rounded page-level gutters still match the layout detector within a point. */
+const GUTTER_MATCH_TOLERANCE = 1;
+
+/**
+ * Items whose boxes are meaningful evidence for a column split.
+ *
+ * `layoutPageItems` already treats a detected lower full-width band as one
+ * column. Keep the same band out of the warning pass too: otherwise a table's
+ * cell boxes are judged against the prose gutter that the layout deliberately
+ * did not apply to them. Only match the exact layout gutter (within rounding
+ * tolerance), so a caller that supplies a genuinely different cut still gets
+ * the warning.
+ */
+function _gutterRiskItems(its, W, splitX) {
+  const band = _findFullWidthLowerBand(its, W);
+  if (!band || Math.abs(splitX - band.gutter) > GUTTER_MATCH_TOLERANCE) return its;
+  return its.filter((i) => i.transform[5] > band.boundaryY);
+}
+
 /**
  * Risk flags for a chosen gutter, so a silent mis-split becomes a visible one.
  *
@@ -341,19 +364,31 @@ function _bodyTextTest(its, W) {
  * @param {Array} its       text items
  * @param {number} W        page width
  * @param {number|null} splitX  the chosen gutter (null = single column)
+ * @param {{layoutMode?:string}} [opts]  layout mode used to choose the cut
  * @returns {string[]} human-readable warnings (empty when the cut looks clean)
  */
-function gutterRisks(its, W, splitX) {
+function gutterRisks(its, W, splitX, { layoutMode = "auto" } = {}) {
   if (splitX == null || !its.length) return [];
   const out = [];
-  const isBody = _bodyTextTest(its, W);
+  const riskIts = layoutMode === "auto" ? _gutterRiskItems(its, W, splitX) : its;
+  const isBody = _bodyTextTest(riskIts, W);
 
   // A body word whose BOX straddles the cut is a word the split runs through:
   // it lands in one column whole, and it is the wrong one half the time. This
   // is the CS6 p26 signature — at the bad x=172 cut three body words straddle.
-  const straddlers = its.filter((i) => {
+  // A sub-point overhang is different: Type on WR p119 ends 0.408 points into
+  // the gutter while its centre sits 12 points into the left column. Its box is
+  // wider than a glyph, but the split is not running through the word. Keep a
+  // centred item as a risk even when its overhang is small; that remains a
+  // genuine coin-flip assignment.
+  const straddlers = riskIts.filter((i) => {
     const x1 = i.transform[4];
-    return isBody(i) && x1 < splitX && x1 + (i.width || 0) > splitX;
+    const x2 = x1 + (i.width || 0);
+    const centerDistance = Math.abs((x1 + x2) / 2 - splitX);
+    const overhang = Math.min(splitX - x1, x2 - splitX);
+    const benignOverhang = overhang <= GUTTER_OVERHANG_TOLERANCE
+      && centerDistance >= (x2 - x1) / 4;
+    return isBody(i) && x1 < splitX && x2 > splitX && !benignOverhang;
   });
   if (straddlers.length) {
     out.push(`gutter at x=${Math.round(splitX)} cuts through ${straddlers.length} `
@@ -364,7 +399,7 @@ function gutterRisks(its, W, splitX) {
   // A body item centred on the cut is a coin-flip assignment even when nothing
   // straddles: a hair's difference in the detected gutter would move it.
   const grazing = Math.max(2, W * 0.01);
-  const near = its.filter((i) => isBody(i)
+  const near = riskIts.filter((i) => isBody(i)
     && Math.abs(i.transform[4] + (i.width || 0) / 2 - splitX) < grazing);
   if (near.length && !straddlers.length) {
     out.push(`gutter at x=${Math.round(splitX)} runs within a glyph of ${near.length} `
@@ -573,7 +608,7 @@ async function extractPageLines(page, mode, { cropTablePrefix = false } = {}) {
   return {
     gutter: gutter == null ? null : Math.round(gutter),
     lines,
-    warnings: gutterRisks(its, vp.width, gutter),
+    warnings: gutterRisks(its, vp.width, gutter, { layoutMode: mode }),
   };
 }
 
@@ -635,6 +670,7 @@ export const _internals = {
   columnLines,
   layoutPageItems,
   _findFullWidthLowerBand,
+  _gutterRiskItems,
   _yLineGroups,
   _cropTablePrefix,
   PRICED_ROW_RE,
