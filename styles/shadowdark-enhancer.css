@@ -8335,7 +8335,36 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 .sde-veh-wpn-btn:hover { background: rgba(0, 0, 0, 0.12); }
 
-.sde-veh-tab-content[data-tab-content="description"] textarea { width: 100% !important; resize: vertical; }
+.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea {
+  width: 100% !important;
+  resize: vertical;
+  color: #191813;
+  background: #f4f0e8;
+  border: 1px solid rgba(25, 24, 19, 0.45);
+  --input-background-color: #f4f0e8;
+  --input-border-color: rgba(25, 24, 19, 0.45);
+  --input-text-color: #191813;
+  --input-placeholder-color: #6c5c48;
+  --input-focus-outline-color: #7a5a1e;
+}
+.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:hover {
+  border-color: rgba(25, 24, 19, 0.7);
+}
+.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:focus {
+  border-color: #7a5a1e;
+  outline: 2px solid #7a5a1e;
+  outline-offset: -2px;
+  box-shadow: 0 0 0 1px rgba(122, 90, 30, 0.25);
+}
+.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea::placeholder {
+  color: #6c5c48;
+  opacity: 1;
+}
+.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:read-only,
+.sde-boat-sheet .sde-veh-tab-content[data-tab-content="description"] textarea:disabled {
+  color: #191813;
+  background: #f4f0e8;
+}
 
 /* ==========================================================================
    Character Builder (sde-char-builder) — Vagabond layout, Shadowdark theme
