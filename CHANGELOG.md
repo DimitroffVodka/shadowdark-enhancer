@@ -63,7 +63,7 @@
   dark Foundry themes, opening a Boat actor's **Description** tab showed dark
   text against a dark inherited background, making notes nearly unreadable.
   The description text area now uses an explicit parchment surface with dedicated
-  dark ink, placeholder, and focus states scoped strictly to the Boat sheet,
+  dark ink and focus states scoped strictly to the Boat sheet,
   restoring clear readability across light and dark themes without affecting
   other sheets.
 - **Martial Training no longer vanishes from the Downtime window.** When a

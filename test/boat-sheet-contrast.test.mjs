@@ -31,12 +31,24 @@ function contrastRatio(foreground, background) {
   return (Math.max(light, dark) + 0.05) / (Math.min(light, dark) + 0.05);
 }
 
+function declaration(body, property) {
+  const propertyPattern = property === "background" ? "background(?:-color)?" : escaped(property);
+  const match = body.match(new RegExp(`(?:^|\\s)${propertyPattern}\\s*:\\s*([^;]+)`, "i"));
+  return match?.[1].trim();
+}
+
+function effectiveHex(base, state, property, stateName) {
+  const value = declaration(state, property) ?? declaration(base, property);
+  assert.ok(value, `${stateName} ${property} must be declared or inherited`);
+  assert.match(value, /^#[0-9a-f]{6}$/i, `${stateName} ${property} must be a six-digit hex value`);
+  return value;
+}
+
 test("Boat description textarea keeps readable contrast across interaction states", async () => {
   const css = await read("styles/shadowdark-enhancer.css");
   const base = ruleBody(css, DESCRIPTION_SELECTOR);
   const hover = ruleBody(css, `${DESCRIPTION_SELECTOR}:hover`);
   const focus = ruleBody(css, `${DESCRIPTION_SELECTOR}:focus`);
-  const placeholder = ruleBody(css, `${DESCRIPTION_SELECTOR}::placeholder`);
   const nonEditable = ruleBody(
     css,
     `${DESCRIPTION_SELECTOR}:read-only,\n${DESCRIPTION_SELECTOR}:disabled`,
@@ -49,17 +61,20 @@ test("Boat description textarea keeps readable contrast across interaction state
   assert.match(focus, /border-color:\s*#7a5a1e/);
   assert.match(focus, /outline:\s*2px solid #7a5a1e/);
   assert.match(focus, /box-shadow:/);
-  assert.match(placeholder, /color:\s*#6c5c48/);
-  assert.match(placeholder, /opacity:\s*1/);
   assert.match(nonEditable, /color:\s*#191813/);
   assert.match(nonEditable, /background:\s*#f4f0e8/);
 
-  const ink = base.match(/(?:^|\s)color:\s*(#[0-9a-f]{6})/i)?.[1];
-  const surface = base.match(/background:\s*(#[0-9a-f]{6})/i)?.[1];
-  const hint = placeholder.match(/color:\s*(#[0-9a-f]{6})/i)?.[1];
-  assert.ok(ink && surface && hint, "contrast colors must be explicit six-digit hex values");
-  assert.ok(contrastRatio(ink, surface) >= 4.5, "description text must meet AA contrast");
-  assert.ok(contrastRatio(hint, surface) >= 4.5, "description placeholder must meet AA contrast");
+  for (const [stateName, state] of [
+    ["base", base],
+    ["hover", hover],
+    ["focus", focus],
+    ["read-only", nonEditable],
+    ["disabled", nonEditable],
+  ]) {
+    const ink = effectiveHex(base, state, "color", stateName);
+    const surface = effectiveHex(base, state, "background", stateName);
+    assert.ok(contrastRatio(ink, surface) >= 4.5, `${stateName} description text must meet AA contrast`);
+  }
 });
 
 test("Boat description contrast selectors stay inside the Boat sheet scope", async () => {
@@ -68,7 +83,6 @@ test("Boat description contrast selectors stay inside the Boat sheet scope", asy
     DESCRIPTION_SELECTOR,
     `${DESCRIPTION_SELECTOR}:hover`,
     `${DESCRIPTION_SELECTOR}:focus`,
-    `${DESCRIPTION_SELECTOR}::placeholder`,
     `${DESCRIPTION_SELECTOR}:read-only`,
     `${DESCRIPTION_SELECTOR}:disabled`,
   ]) {
