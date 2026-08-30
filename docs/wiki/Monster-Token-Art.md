@@ -122,6 +122,26 @@ The overlay skins the module's own imported-monster pack (`sde-actors`) alongsid
 through the [Importer Hub](Importer-Hub.md) can carry token art just like the
 base bestiary.
 
+- **Full census representation**: Every managed imported NPC is listed in the
+  Token Art Manager, even when installed art sources provide zero automatic
+  suggestions or name matches.
+- **Browse and manual picks**: Rows with zero automatic options still expose
+  **Browse**, allowing you to pick from any installed token across your
+  sources. Manual picks persist across sessions and apply cleanly to compendium
+  art.
+- **Same-name monster provenance**: When a monster name exists in both Core and
+  an imported pack (e.g. Core and imported *Goblin*), both appear as separate
+  provenance rows keyed by pack and document ID, allowing independent art picks.
+- **Placed-token resolution**: Re-skinning placed scene tokens by name
+  (`resolveByName`) resolves same-name clashes with a Core-first tiebreak,
+  falling back to the imported pick when Core has no art configured.
+- **Non-monster exclusions**: Non-NPC managed actors in `sde-actors` (such as
+  Western Reaches boats or mounts) are strictly excluded from manager rows.
+
+*(Note: Enumerating all imported NPCs provides complete manager coverage and
+manual pick access; it does not change automatic suggestion quality, add new
+Pathfinder sources, or alter the world/Core monster census.)*
+
 ### Presentation is inherited
 
 Dynamic ring settings and fill scale come from the source, so large art fills its
