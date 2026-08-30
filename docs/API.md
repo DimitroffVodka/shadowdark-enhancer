@@ -158,8 +158,11 @@ hand is normally unnecessary.
 
 All GM-only. The bundle is one self-contained JSON of every managed
 compendium pack (documents keep their `_id`s; legacy references are remapped
-at export). `apply` skips documents that already exist — idempotent, never
-overwrites.
+at export). Pre-consolidation (format-1) bundles containing a legacy
+`packs.monsterSpells` payload are automatically restored into `sde-items` under
+the `Monster Spells / <source>` hierarchy, with explicit failure reporting
+rather than silent omission. `apply` skips documents that already exist —
+idempotent, never overwrites.
 
 ```js
 const bundle = await api.bundle.build();   // object (no download)
@@ -222,8 +225,9 @@ with content in the legacy `world.shadowdark-enhancer--monster-spells` pack are
 automatically migrated on activation by the primary GM: generated copies are
 consolidated, hand-authored GM items move to `Monster Spells / Other Sources`,
 existing edits and art are preserved, and the retired pack is left
-empty-but-present for one release. Re-running the migration or refresh is safe
-and idempotent.
+empty-but-present for one release as a visible deprecation and compatibility
+shell (moved documents receive new IDs in `sde-items`, so legacy document UUIDs
+do not resolve). Re-running the migration or refresh is safe and idempotent.
 
 On each world activation, the primary active GM automatically reconciles
 Shadowdark Core; a successful Importer Hub monster create/replace reconciles the

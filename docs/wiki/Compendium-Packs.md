@@ -42,12 +42,16 @@ generated entries, and conflict state survive a world migration.
 > **Monster Spells pack consolidation:** In earlier releases, generated monster
 > spells were written to a separate `world.shadowdark-enhancer--monster-spells`
 > compendium. Generated monster spells now live inside `sde-items` under
-> `Monster Spells / <source>`. Any existing content in the legacy pack is
+> `Monster Spells / <source>` (e.g. `Monster Spells / Shadowdark Core`,
+> `Monster Spells / Cursed Scroll 3`). Any existing content in the legacy pack is
 > automatically migrated into `sde-items` on activation by the primary GM
 > (moving hand-authored GM content to `Monster Spells / Other Sources` and
 > preserving curated edits and art). The retired pack is emptied and remains
-> present for one release before being removed, avoiding broken external
-> references. Re-running the migration is safe and idempotent.
+> present for one release as a visible deprecation and compatibility shell
+> before being removed. Because migrated documents receive new IDs inside
+> `sde-items`, individual legacy `@UUID` references do not resolve and should be
+> repointed to their counterparts in the Items pack. Re-running the migration is
+> safe and idempotent.
 
 ### Character Options packs
 
@@ -114,7 +118,10 @@ handled explicitly in the code.
 Use the [Importer Hub](Importer-Hub.md)'s **bundle export/import** (Tools menu).
 It writes the whole suite as one JSON file. On import it validates, **skips
 anything that already exists, and never overwrites**, so it is a way to seed a
-new world, not to sync two worlds.
+new world, not to sync two worlds. Pre-consolidation (format-1) bundles with a
+legacy `packs.monsterSpells` payload are automatically restored into `sde-items`
+under the `Monster Spells / <source>` folder hierarchy, reporting explicit
+failure on errors rather than silently omitting documents.
 
 Because pack ids are reconstructed from labels, a bundle imported into a fresh
 world keeps all its internal links intact.

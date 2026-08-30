@@ -4,7 +4,7 @@ The Monster Spell Library makes monster-only spells searchable in Monster Creato
 
 ## Quick use
 
-1. Activate Shadowdark Enhancer or load the world as the primary GM. The module automatically syncs Shadowdark Core monster spells into **Shadowdark Enhancer — Items** under **Monster Spells / CORE** (or the respective source folder).
+1. Activate Shadowdark Enhancer or load the world as the primary GM. The module automatically syncs Shadowdark Core monster spells into **Shadowdark Enhancer — Items** under **Monster Spells / Shadowdark Core** (or the respective source folder).
 2. Import monsters through **Importer Hub** as usual. Importer Hub automatically syncs their embedded spells into the same library after the monsters are created or replaced.
 3. Open the **Shadowdark Enhancer — Items** compendium and navigate to the **Monster Spells** folder to browse the generated library. Every entry uses **Spell Name - Monster Name**, such as **Blast - Mage**.
 4. Open **Monster Creator**, expand **Spellcasting**, and choose **Monster Spells** in the source filter.
@@ -26,7 +26,7 @@ Source Actors keep their embedded spells. The library is a reusable collection o
 
 Each generated spell records the source Actor UUID, embedded Item ID, source pack and versions, a content fingerprint, and every monster that supplied an identical definition.
 
-Generated spells live in `Shadowdark Enhancer — Items / Monster Spells / <source>`. Any existing world containing the legacy `world.shadowdark-enhancer--monster-spells` compendium is automatically migrated on activation by the primary GM: generated copies are consolidated, hand-authored GM content is moved to `Monster Spells / Other Sources`, existing curated edits and custom art are preserved, and the legacy pack is emptied while remaining present for one release. Re-running the migration or refresh is safe and idempotent.
+Generated spells live in `Shadowdark Enhancer — Items / Monster Spells / <source>`. Any existing world containing the legacy `world.shadowdark-enhancer--monster-spells` compendium is automatically migrated on activation by the primary GM: generated copies are consolidated, hand-authored GM content is moved to `Monster Spells / Other Sources`, existing curated edits and custom art are preserved, and the legacy pack is emptied while remaining present for one release as a visible deprecation and compatibility shell (moved documents receive new IDs in `sde-items`, so legacy document `@UUID` references do not resolve). Re-running the migration or refresh is safe and idempotent.
 
 Refresh matches by that provenance rather than by name. Identical definitions consolidate. Same-name definitions with different data remain distinct. Untouched generated entries update when their source changes. Curated edits become conflicts and are preserved. Entries no longer found in the selected source scan are reported as stale and are not deleted. User-created Items are ignored.
 
