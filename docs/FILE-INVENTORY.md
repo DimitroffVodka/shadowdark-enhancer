@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-802 tracked files · ~116,100 lines of code/markup across scripts+templates+styles+test.
+803 tracked files · ~116,700 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -127,7 +127,7 @@
 | `core-monster-spell-icons.mjs` | 107 | Curated Foundry-native icon mapping for generated Core and Cursed Scroll monster spells. |
 | `monster-spell-library-core.mjs` | 496 | Pure extraction, validation, identity, materialization, and refresh reconciliation for embedded monster spells. |
 | `monster-spell-library.mjs` | 499 | Foundry adapter for GM-controlled Monster Spell Library preview, build, and refresh. |
-| `monster-spell-pack-migration.mjs` | 349 | One-way consolidation of the retired world.shadowdark-enhancer--monster-spells pack into the managed Items pack, verified before the legacy pack is emptied. |
+| `monster-spell-pack-migration.mjs` | 460 | One-way consolidation of the retired world.shadowdark-enhancer--monster-spells pack into the managed Items pack, verified before the legacy pack is emptied. |
 | `spell-index.mjs` | 249 | Lightweight Spell index (compendium indices, not documents). |
 | `npc-moves.mjs` | 16 | Canonical NPC movement keys with a pre-config fallback. |
 | `npc-statblock.mjs` | 125 | Builds the formatted `system.notes` statblock HTML. |
@@ -198,7 +198,7 @@
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
-| `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
+| `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 606 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 237 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 668 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |

@@ -61,6 +61,14 @@ export const LEGACY_MONSTER_SPELL_PACK = {
 };
 
 /**
+ * The key a pre-A1 suite bundle stores its Monster Spells payload under.
+ * `SUITE_PACKS` doubles as the bundle import schema, so dropping the descriptor
+ * also dropped this key from the restore loop — see
+ * restoreLegacyMonsterSpellBundle.
+ */
+export const LEGACY_BUNDLE_PACK_KEY = "monsterSpells";
+
+/**
  * Locate the legacy Monster Spells pack, or undefined when this world never had
  * one (a fresh install, or one already cleaned up).
  * @param {object} [options]
@@ -201,6 +209,137 @@ async function loadAllDocuments(pack) {
   return [...(await pack.getDocuments() ?? [])].map(plainDocument);
 }
 
+/**
+ * Create every planned move in the target pack, then confirm each one landed by
+ * RE-READING the pack rather than trusting the create result. Shared by the live
+ * pack migration and the legacy-bundle restore so both obey one contract: a
+ * document is only ever treated as safely relocated once it is visible in the
+ * target under its own libraryId or migration marker.
+ *
+ * @returns {Promise<{isVerified: (operation: object) => boolean, created: number}>}
+ */
+async function writeAndVerifyMoves(plan, {
+  targetPack,
+  ensureFolderPath,
+  ItemClass,
+  legacyCollection,
+  loadDocuments,
+}) {
+  const folderIds = new Map();
+  const folderFor = async document => {
+    const path = monsterSpellMigrationFolderPath(document);
+    const key = path.join(" / ");
+    if (!folderIds.has(key)) folderIds.set(key, await ensureFolderPath(targetPack, path));
+    return folderIds.get(key);
+  };
+
+  const payloads = [];
+  for (const operation of plan.move) {
+    payloads.push(buildMonsterSpellMigrationPayload(operation.document, {
+      folder: await folderFor(operation.document),
+      legacyCollection,
+      sourceId: operation.sourceId,
+    }));
+  }
+  if (payloads.length) {
+    await ItemClass.createDocuments(payloads, { pack: targetPack.collection });
+  }
+
+  const verified = new Set();
+  for (const document of await loadDocuments(targetPack)) {
+    const { libraryKey, migrationKey } = monsterSpellMigrationIdentity(document);
+    if (libraryKey) verified.add(libraryKey);
+    if (migrationKey) verified.add(migrationKey);
+  }
+  return {
+    created: payloads.length,
+    isVerified: operation => [operation.migrationKey, operation.libraryKey]
+      .some(key => key && verified.has(key)),
+  };
+}
+
+/**
+ * Restore a PRE-A1 suite bundle's `packs.monsterSpells` payload (#54 follow-up).
+ *
+ * `SUITE_PACKS` doubles as the bundle import schema, so retiring the descriptor
+ * also removed the key from applyBundle's restore loop: a format-1 bundle
+ * exported before the consolidation still validates, but its Monster Spells were
+ * never read — a GM could be told a restore succeeded while every generated and
+ * curated spell in that backup was dropped on the floor.
+ *
+ * The payload is routed into the Items pack through the SAME planner, folder
+ * rules, marker, and verification the live migration uses, so a bundle restore
+ * and a live migration of the same world converge instead of duplicating: both
+ * stamp `{from: <legacy collection>, sourceId: <legacy _id>}`, and the ids in a
+ * bundle are the ids the live pack had.
+ *
+ * Deliberately does NOT create the retired pack — the documents only ever land
+ * in the managed Items pack — and deletes nothing.
+ *
+ * @param {{docs?: object[], folders?: object[], slug?: string}} payload
+ * @returns {Promise<{examined: number, created: number, skippedExisting: number,
+ *   failures: number, unaccounted: number, targetCollection: string,
+ *   legacyCollection: string}>}
+ */
+export async function restoreLegacyMonsterSpellBundle(payload, {
+  ensureTargetPack = ensureMonsterSpellPack,
+  ensureFolderPath = ensureSuiteFolderPath,
+  loadDocuments = loadAllDocuments,
+  ItemClass = globalThis.Item,
+  invalidate = defaultInvalidate,
+} = {}) {
+  const documents = [...(payload?.docs ?? [])].map(plainDocument);
+  const legacyCollection = payload?.slug
+    ? `world.${String(payload.slug).replace(/^world\./, "")}`
+    : LEGACY_MONSTER_SPELL_PACK.collection;
+  const empty = {
+    examined: documents.length,
+    created: 0,
+    skippedExisting: 0,
+    failures: 0,
+    unaccounted: 0,
+    legacyCollection,
+    targetCollection: "",
+  };
+  if (!documents.length) return empty;
+
+  const targetPack = await ensureTargetPack();
+  if (!targetPack || !ItemClass?.createDocuments) {
+    // Nothing could be written. Report every document as a failure rather than
+    // letting the restore claim success — this payload has no other home.
+    return { ...empty, failures: documents.length };
+  }
+
+  const plan = planMonsterSpellPackMigration(
+    documents,
+    await loadDocuments(targetPack),
+    { legacyCollection },
+  );
+  const { isVerified } = await writeAndVerifyMoves(plan, {
+    targetPack, ensureFolderPath, ItemClass, legacyCollection, loadDocuments,
+  });
+
+  const created = plan.move.filter(isVerified).length;
+  const skippedExisting = plan.alreadyPresent.filter(isVerified).length;
+  // Every document is accounted for exactly once: written, already there, or
+  // failed. The invariant is asserted rather than assumed so a future change
+  // cannot reintroduce a silent drop.
+  const failures = plan.examined - created - skippedExisting;
+  await invalidate(targetPack.collection);
+
+  const result = {
+    examined: plan.examined,
+    created,
+    skippedExisting,
+    failures,
+    unaccounted: plan.examined - (created + skippedExisting + failures),
+    legacyCollection,
+    targetCollection: String(targetPack.collection ?? ""),
+  };
+  console.log(`${MODULE_ID} | legacy Monster Spells bundle payload restored into ${result.targetCollection}:`, result);
+  return result;
+}
+
 async function defaultInvalidate() {
   const { SpellIndex } = await import("./spell-index.mjs");
   SpellIndex.invalidate();
@@ -284,37 +423,9 @@ export async function migrateMonsterSpellPack({
     { legacyCollection },
   );
 
-  const folderIds = new Map();
-  const folderFor = async document => {
-    const path = monsterSpellMigrationFolderPath(document);
-    const key = path.join(" / ");
-    if (!folderIds.has(key)) folderIds.set(key, await ensureFolderPath(targetPack, path));
-    return folderIds.get(key);
-  };
-
-  const payloads = [];
-  for (const operation of plan.move) {
-    payloads.push(buildMonsterSpellMigrationPayload(operation.document, {
-      folder: await folderFor(operation.document),
-      legacyCollection,
-      sourceId: operation.sourceId,
-    }));
-  }
-  if (payloads.length) {
-    await ItemClass.createDocuments(payloads, { pack: targetPack.collection });
-  }
-
-  // Verify against the pack itself rather than trusting the create result: the
-  // legacy originals are about to be deleted, and this is the last chance to
-  // find out that a write silently did not land.
-  const verified = new Set();
-  for (const document of await loadDocuments(targetPack)) {
-    const { libraryKey, migrationKey } = monsterSpellMigrationIdentity(document);
-    if (libraryKey) verified.add(libraryKey);
-    if (migrationKey) verified.add(migrationKey);
-  }
-  const isVerified = operation => [operation.migrationKey, operation.libraryKey]
-    .some(key => key && verified.has(key));
+  const { isVerified } = await writeAndVerifyMoves(plan, {
+    targetPack, ensureFolderPath, ItemClass, legacyCollection, loadDocuments,
+  });
 
   const deletable = [...plan.move, ...plan.alreadyPresent]
     .filter(operation => operation.sourceId && isVerified(operation))

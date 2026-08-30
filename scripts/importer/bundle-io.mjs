@@ -22,10 +22,18 @@
  * node-tested; Foundry-bound functions dynamic-import their dependencies.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { LEGACY_BUNDLE_PACK_KEY } from "../monster-creator/monster-spell-pack-migration.mjs";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-/** Bundle format version — bump on breaking shape changes. */
+/**
+ * Bundle format version — bump on breaking shape changes.
+ *
+ * Deliberately still 1 after the #54 Monster Spells consolidation: a bundle
+ * exported before it is still fully restorable, so rejecting it would destroy
+ * backups rather than protect them. The retired `packs.monsterSpells` payload is
+ * consumed by an explicit compatibility path in applyBundle.
+ */
 export const BUNDLE_FORMAT = 1;
 
 /** Compendium reference pattern inside serialized docs (world packs only). */
@@ -308,6 +316,53 @@ export async function applyBundle(bundle) {
     report.created += tally.created;
     report.skippedExisting += tally.skippedExisting;
     report.failures += tally.failures;
+  }
+
+  // Pre-A1 bundles carry a `packs.monsterSpells` payload for the retired world
+  // pack (#54). SUITE_PACKS no longer describes it, so the loop above cannot see
+  // it — without this, a format-1 backup restores with ok:true while every
+  // Monster Spell in it is silently dropped. Runs AFTER the loop so collisions
+  // are checked against the Items pack this same restore just populated. Routed
+  // through the live migration's planner, folders, marker, and verification; the
+  // retired pack itself is never recreated.
+  const legacyPayload = bundle.packs?.[LEGACY_BUNDLE_PACK_KEY];
+  if (legacyPayload?.docs?.length) {
+    const { restoreLegacyMonsterSpellBundle } =
+      await import("../monster-creator/monster-spell-pack-migration.mjs");
+    try {
+      const restored = await restoreLegacyMonsterSpellBundle(legacyPayload);
+      report.packs[LEGACY_BUNDLE_PACK_KEY] = {
+        created: restored.created,
+        skippedExisting: restored.skippedExisting,
+        failures: restored.failures,
+        legacy: true,
+        restoredInto: restored.targetCollection,
+      };
+      report.created += restored.created;
+      report.skippedExisting += restored.skippedExisting;
+      report.failures += restored.failures;
+      if (restored.failures || restored.unaccounted) {
+        // A dropped legacy document has nowhere else to come from — the pack it
+        // belonged to does not exist in this world. Never call that a success.
+        report.ok = false;
+        report.errors = [
+          ...(report.errors ?? []),
+          `${restored.failures + restored.unaccounted} of ${restored.examined} legacy Monster Spell document(s) could not be restored into ${restored.targetCollection || "the Items pack"}`,
+        ];
+      }
+    } catch (err) {
+      console.error(`${MODULE_ID} | bundle import: legacy Monster Spells payload failed:`, err);
+      const count = legacyPayload.docs.length;
+      report.packs[LEGACY_BUNDLE_PACK_KEY] = {
+        created: 0, skippedExisting: 0, failures: count, legacy: true,
+      };
+      report.failures += count;
+      report.ok = false;
+      report.errors = [
+        ...(report.errors ?? []),
+        `legacy Monster Spell payload failed to restore: ${err.message}`,
+      ];
+    }
   }
 
   // Fresh indices so imported content resolves immediately (mirrors A-03/12-01).
