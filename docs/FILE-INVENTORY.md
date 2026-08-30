@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-798 tracked files · ~115,000 lines of code/markup across scripts+templates+styles+test.
+799 tracked files · ~115,100 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -108,7 +108,7 @@
 | `encounter-roller-app.mjs` | 1431 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
 | `encounter-check.mjs` | 80 | The d6 random-encounter check + chat post. |
 | `encounter-result.mjs` | 41 | Distance / Activity / Reaction RAW lookups. |
-| `encounter-build.mjs` | 286 | Build-a-table data layer (slots, die formats, save to RollTable). |
+| `encounter-build.mjs` | 285 | Build-a-table data layer (slots, die formats, save to RollTable). |
 | `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
 | `npc-index.mjs` | 260 | NPC actors → compact browse row model. |
 | `encounter-sources.mjs` | 56 | Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll). |
