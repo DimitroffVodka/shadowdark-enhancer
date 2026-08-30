@@ -532,7 +532,15 @@ function _findTalentTable(lines) {
       // real page number still falls through to the stray branch.
       const face = /^(\d{1,2})$/.exec(lines[j + 1] ?? "");
       const n = face ? Number(face[1]) : NaN;
-      if (face && n === rows[rows.length - 1].hi + 1 && (!bounds || n <= bounds.max)) {
+      // The face is only a real row when its effect text CONTINUES past it —
+      // that split is the whole signature. A trailing page number has nothing
+      // after it, so an in-range footer that happens to be the tiling successor
+      // still falls through to the stray branch above.
+      const cont = lines[j + 2] ?? "";
+      const continues = !!cont.trim() && !/^\d{1,3}$/.test(cont) && !ROW_START.test(cont)
+        && !FLAVOR_LINE.test(cont) && !_isFeatureHeader(cont)
+        && !TITLES_CAP.test(cont) && !CAPS_CAP.test(cont);
+      if (face && continues && n === rows[rows.length - 1].hi + 1 && (!bounds || n <= bounds.max)) {
         rows.push({ lo: n, hi: n, text: lines[j] });
         skip.add(j); skip.add(j + 1);
         j++;                                               // consume the face line too

@@ -245,3 +245,27 @@ test("a trailing page number is still discarded, not adopted as a band", () => {
     "the page number did not become a sixth band"
   );
 });
+
+// Review hardening: an in-range footer digit that HAPPENS to be the tiling
+// successor must not be promoted to a band. The face is only real when its
+// effect text continues past it — a page number has nothing after it.
+test("an in-range page number that continues the tiling is still not a band", () => {
+  const text = [
+    HEADER,
+    "ROUSTABOUT TALENTS",
+    "2d6 Effect",
+    "2 +1 to any stat and roll another talent",
+    "3-6 Gain the ability to wield a new weapon or armor",
+    "7-9 +1 to any two stats (they can’t be the same)",
+    "10-11 Roll an extra hit points die this level",
+    "12",                       // in-range, == 11 + 1, but nothing follows it
+  ].join("\n");
+
+  const p = parseClassSection(text);
+  const bands = p.talentTable.rows.map((r) => [r.lo, r.hi]);
+  assert.deepEqual(bands, [[2, 2], [3, 6], [7, 9], [10, 11]], "no phantom 12 band invented");
+  assert.ok(
+    p.warnings.some((w) => /BLOCKER/i.test(w)),
+    "an genuinely incomplete table still trips the tiling BLOCKER rather than being papered over",
+  );
+});
