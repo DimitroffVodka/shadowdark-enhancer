@@ -403,6 +403,20 @@ export class TokenArtCatalog {
    *   { sources: [{id,label,kind,credit,count}], byMonster: [{id,name,options:[{source,token,portrait,tokenObj}]}] }
    * `options` order follows the source-priority order.
    */
+  static _monsterEntries(index, pack) {
+    // `getIndex()` is normally an Array, but a Collection-shaped fixture (or a
+    // future Foundry adapter) exposes the entries under `.contents`. Keep the
+    // census boundary here so every managed pack contributes each NPC once,
+    // while boats/mounts and other non-monster Actors stay out of the art rows.
+    const entries = Array.isArray(index) ? index : (index?.contents ?? []);
+    const seen = new Set();
+    return entries.flatMap((e) => {
+      if (!e?._id || !e.name || (e.type && String(e.type).toUpperCase() !== "NPC") || seen.has(e._id)) return [];
+      seen.add(e._id);
+      return [{ id: e._id, name: e.name, pack }];
+    });
+  }
+
   static async build() {
     // Every covered pack: the base bestiary + the importer's managed pack (once
     // it exists). Each monster carries its pack so resolve() can key art per pack.
@@ -411,10 +425,7 @@ export class TokenArtCatalog {
     const monsters = [];
     for (const packId of packIds) {
       const index = await game.packs.get(packId).getIndex();
-      for (const e of index) {
-        if (e.type && e.type !== "NPC") continue;   // skip non-monster docs in mixed packs
-        monsters.push({ id: e._id, name: e.name, pack: packId });
-      }
+      monsters.push(...this._monsterEntries(index, packId));
     }
     if (!monsters.length) return { sources: [], byMonster: [] };
 
@@ -600,7 +611,15 @@ export class TokenArtCatalog {
     const byName = new Map();
     for (const m of catalog.byMonster) {
       const art = byId[m.id];
-      if (art) byName.set(m.name, { portrait: art.actor, tokenObj: art.token });
+      if (!art) continue;
+      // A placed world Actor is name-addressed, so it cannot carry the pack id
+      // that distinguishes two catalog rows with the same name. Keep the Core
+      // choice when both sources are present, matching MonsterLinker's
+      // Core-first contract; an imported row still wins when Core has no art.
+      const current = byName.get(m.name);
+      if (!current || m.pack === "shadowdark.monsters") {
+        byName.set(m.name, { portrait: art.actor, tokenObj: art.token });
+      }
     }
     return byName;
   }
