@@ -1,10 +1,15 @@
 /**
  * Shadowdark Enhancer — Managed Compendium Suite foundation.
  *
- * Find-or-create layer for the six managed world packs (sde-actors, sde-items,
- * sde-tables, sde-journal, sde-scenes, and the generated Monster Spells pack),
- * grouped under a "Shadowdark Enhancer"
+ * Find-or-create layer for the five managed world packs (sde-actors, sde-items,
+ * sde-tables, sde-journal, sde-scenes), grouped under a "Shadowdark Enhancer"
  * sidebar compendium folder, with per-source folders inside each pack.
+ *
+ * Generated Monster Spells are NOT a pack of their own: they live in sde-items
+ * under the "Monster Spells" folder tree. The separate
+ * `world.shadowdark-enhancer--monster-spells` pack this module used to create is
+ * consolidated away by monster-spell-pack-migration.mjs and is deliberately
+ * absent from SUITE_PACKS, so no world creates it again.
  *
  * Detection is label-based per the verified v14 contract: world-compendium
  * flags don't round-trip through metadata.flags, so metadata.label is the
@@ -27,8 +32,7 @@ export const SUITE_PACKS = [
   { key: "items",   id: "sde-items",   type: "Item",         label: "Shadowdark Enhancer — Items"       },
   { key: "tables",  id: "sde-tables",  type: "RollTable",    label: "Shadowdark Enhancer — Roll Tables" },
   { key: "journal", id: "sde-journal", type: "JournalEntry", label: "Shadowdark Enhancer — Journals"    },
-  { key: "scenes",        id: "sde-scenes",                          type: "Scene",        label: "Shadowdark Enhancer — Scenes"         },
-  { key: "monsterSpells", id: "shadowdark-enhancer--monster-spells", type: "Item",         label: "Shadowdark Enhancer — Monster Spells" },
+  { key: "scenes",  id: "sde-scenes", type: "Scene",        label: "Shadowdark Enhancer — Scenes"      },
   // Character-Options packs. These are world compendiums whose LABELS slugify to
   // their collection ids (Classes→world.classes, "Class Abilties"→
   // world.class-abilties, …), so a fresh world recreates the identical
@@ -113,18 +117,28 @@ export function packOwnership(packId) {
  * Locate a managed world pack by its descriptor id or key.
  * Match criteria (label is the durable fallback per v14 contract):
  *   p.metadata.packageType === "world"
- *   AND (p.collection ends with the pack id  OR  p.metadata.label === descriptor.label)
+ *   AND (p.collection is `<package>.<pack id>`  OR  p.metadata.label === descriptor.label)
+ *
+ * The suffix test is deliberately dot-qualified. An unanchored `endsWith(id)`
+ * matches any collection that merely ENDS in the id, and the retired
+ * `world.shadowdark-enhancer--monster-spells` pack (left empty-but-present by
+ * the #54 consolidation) ends in "spells" — so findSuitePack("spells") returned
+ * it as the Character-Options Spells pack, `world.spells` was never created, and
+ * imported class spells were written into a pack scheduled for removal.
+ * Verified live in `abletodestroy` 2026-08-30.
  * @param {string} idOrKey  e.g. "sde-actors" or "actors"
+ * @param {object} [options]
+ * @param {object} [options.game]  game reference; defaults to the global. Only
+ *   passed by callers that are unit-tested without a global `game`.
  * @returns {CompendiumCollection|undefined}
  */
-export function findSuitePack(idOrKey) {
+export function findSuitePack(idOrKey, { game: gameRef = globalThis.game } = {}) {
   const desc = SUITE_PACKS.find((d) => d.id === idOrKey || d.key === idOrKey);
   if (!desc) return undefined;
-  return game.packs.find(
+  return [...(gameRef?.packs ?? [])].find(
     (p) =>
       p.metadata?.packageType === "world" &&
       (p.collection?.endsWith(`.${desc.id}`) ||
-       p.collection?.endsWith(`${desc.id}`) ||
        p.metadata?.label === desc.label)
   );
 }

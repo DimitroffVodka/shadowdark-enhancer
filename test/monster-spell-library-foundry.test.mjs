@@ -58,12 +58,12 @@ test("source discovery includes core monsters and the managed Enhancer Actors pa
   assert.deepEqual(sources.map(source => source.version), ["4.0.6", "0.15.1"]);
 });
 
-test("target pack is dedicated, player-hidden, and placed in the SDE compendium folder", async () => {
+test("the target pack is the managed Items pack, ensured through the shared suite layer", async () => {
   let descriptor;
   let placedPack;
-  const target = { collection: "world.shadowdark-enhancer--monster-spells" };
+  const target = { collection: "world.sde-items" };
   const pack = await ensureMonsterSpellPack({
-    ensureWorldPack: async value => {
+    ensurePack: async value => {
       descriptor = value;
       return target;
     },
@@ -72,12 +72,13 @@ test("target pack is dedicated, player-hidden, and placed in the SDE compendium 
 
   assert.equal(pack, target);
   assert.equal(placedPack, target);
+  // The suite descriptor, not a private one: ownership, unlocking, and folder
+  // placement stay identical to every other consumer of the Items pack.
   assert.deepEqual(descriptor, {
-    key: "monsterSpells",
-    collection: "world.shadowdark-enhancer--monster-spells",
-    label: "Shadowdark Enhancer — Monster Spells",
-    documentName: "Item",
-    ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "OWNER" },
+    key: "items",
+    id: "sde-items",
+    type: "Item",
+    label: "Shadowdark Enhancer — Items",
   });
 });
 
@@ -106,16 +107,17 @@ test("suite placement creates the SDE compendium folder and moves the pack into 
   assert.deepEqual(configureCalls, [{ folder: "sde-folder" }]);
 });
 
-test("the Monster Spell pack participates in managed-suite backup and restore", () => {
-  assert.deepEqual(
-    SUITE_PACKS.find(descriptor => descriptor.key === "monsterSpells"),
-    {
-      key: "monsterSpells",
-      id: "shadowdark-enhancer--monster-spells",
-      type: "Item",
-      label: "Shadowdark Enhancer — Monster Spells",
-    },
-  );
+test("Monster Spells ride the Items pack through managed-suite backup and restore", () => {
+  // #54: there is no separate Monster Spells descriptor any more, so no world
+  // re-creates that pack — the generated library is backed up and restored as
+  // part of sde-items like every other generated Item.
+  assert.equal(SUITE_PACKS.some(descriptor => descriptor.key === "monsterSpells"), false);
+  assert.deepEqual(SUITE_PACKS.find(descriptor => descriptor.key === "items"), {
+    key: "items",
+    id: "sde-items",
+    type: "Item",
+    label: "Shadowdark Enhancer — Items",
+  });
 });
 
 test("automatic sync refreshes only the requested source as the primary GM", async () => {
@@ -300,9 +302,12 @@ test("public preview filters selected source ids and compares the current target
   ]);
   const packs = [core, enhancer];
   packs.get = id => packs.find(candidate => candidate.collection === id);
+  // The target is discovered as the managed Items pack, by the same
+  // label-or-collection rule the rest of the suite uses.
   const targetPack = {
-    collection: "world.shadowdark-enhancer--monster-spells",
+    collection: "world.sde-items",
     documentName: "Item",
+    metadata: { packageType: "world", label: "Shadowdark Enhancer — Items" },
     getDocuments: async () => [],
   };
   packs.push(targetPack);

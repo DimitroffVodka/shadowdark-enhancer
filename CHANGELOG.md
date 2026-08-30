@@ -38,6 +38,26 @@
   book. Nothing is created. The bar is deliberately high — an item list, a
   statblock, or a table that happens to print DCs are all left alone.
 
+### Changed
+- **Monster Spells now live in the managed Items pack.** Generated copies of
+  monster-only spells are now filed into `Shadowdark Enhancer — Items` under
+  `Monster Spells / <source>` (e.g. `Monster Spells / Shadowdark Core`,
+  `Monster Spells / Cursed Scroll 3`) instead of auto-creating a dedicated
+  `world.shadowdark-enhancer--monster-spells` compendium. On world activation as
+  the primary GM, existing content in the legacy pack is migrated automatically
+  into `sde-items` before the legacy pack is emptied. Hand-authored GM items in
+  the legacy pack are moved verbatim into `Monster Spells / Other Sources`.
+  Existing edits and custom artwork are preserved, and a migration marker
+  prevents duplicate items on partial runs. The legacy pack remains present but
+  empty for one release as a visible deprecation and compatibility shell;
+  because moved documents receive new IDs inside `sde-items`, legacy document
+  UUID references do not resolve and should be repointed to their target
+  counterparts. Pre-A1 suite backups containing `packs.monsterSpells` payloads
+  are automatically restored into the managed Items / Monster Spells folder
+  hierarchy during bundle import, reporting explicit errors rather than
+  silently omitting legacy documents. Migration, restore, and refresh sweeps
+  are safe and idempotent on re-run.
+
 ### Fixed
 - **Martial Training no longer vanishes from the Downtime window.** When a
   character's class hit die couldn't be read — a level 0 character who hasn't
