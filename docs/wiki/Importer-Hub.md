@@ -321,6 +321,14 @@ Usually a PDF copy artifact: page headers, footers, or column interleaving mixed
 into the text. If you registered a source PDF, use **Grab text** instead of
 copying from your PDF reader. It is column-aware.
 
+**I received a "Column check" warning during text extraction.**
+Extraction warnings are advisory notices alerting you when a detected column cut
+might straddle body words or sit unusually close to text. The layout engine
+automatically protects lower full-width tables and handles minor font glyph
+metric overhangs without warning, but if a warning does appear, compare the
+extracted text in the preview against the PDF page before committing to confirm no
+words were transposed across columns.
+
 **A table parsed into nonsense rows.**
 Messy PDF tables need a parsing recipe. See
 [Table Import & Shapes](Table-Import-and-Shapes.md).

@@ -155,6 +155,18 @@ PDF copy artifacts: headers, footers, interleaved columns. If you have
 registered a source PDF, use the hub's **Grab text** instead of copying from
 your PDF reader. It is column-aware and produces reading order.
 
+### I received a "Column check" warning when grabbing text from a PDF
+
+Column check notices are **advisories**, not hard errors. They indicate that the
+page's detected two-column split boundary came close to or straddled text boxes,
+meaning words might have been assigned to the wrong column.
+
+The extractor automatically accounts for full-width lower tables and sub-point
+glyph boundary overhangs so clean pages don't raise false alarms. If a warning
+does fire (for instance, on an unusual or tightly packed multi-column page),
+check the paste box or preview to make sure text from one column didn't bleed
+into another before committing.
+
 ### An imported weapon is missing one of its properties
 
 Western Reaches prints property codes the core system has no entry for —
