@@ -71,12 +71,10 @@ export const LootCatalog = {
       }
       const uuid = await _resolveUuid(text, items);
       if (uuid) {
-        const p = foundry.utils.parseUuid(uuid);
-        newResults.push({
-          ...base, type: DOC,
-          documentCollection: p.collection?.collection ?? p.collection,
-          documentId: p.id ?? p.documentId,
-        });
+        // Write the v13 canonical field. documentCollection/documentId are
+        // deprecation getters (removed in v15) — see resultUuid() in
+        // loot-generator.mjs, and the importer's own create path.
+        newResults.push({ ...base, type: DOC, documentUuid: uuid });
         summary.linked++;
       } else {
         newResults.push({ ...base, type: TEXT, name: text });
@@ -89,7 +87,7 @@ export const LootCatalog = {
     // dirtied content-identical tables (live-caught, 12-01 checkpoint).
     const keyOf = (o) => [
       String(o.range), o.weight ?? 1, o.type,
-      o.type === DOC ? `${o.documentCollection ?? ""}.${o.documentId ?? ""}` : (o.name ?? o.description ?? ""),
+      o.type === DOC ? (o.documentUuid ?? "") : (o.name ?? o.description ?? ""),
     ].join("|");
     const current = table.results.map(r => keyOf(r.toObject())).sort().join("\n");
     const desired = newResults.map(keyOf).sort().join("\n");

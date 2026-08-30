@@ -91,3 +91,106 @@ test("qualifyTableName prefixes the book, once", () => {
   assert.equal(qualifyTableName("Homebrew", "Carousing Event"), "Homebrew - Carousing Event");
   assert.equal(qualifyTableName("", "Carousing Event"), "Carousing Event");
 });
+
+// ── the index the guard reads from ──────────────────────────────────────────
+// The cross-book guard reads flags off a PACK INDEX entry, and a pack index only
+// carries the fields MANIFEST_INDEX_FIELDS names. `source` was missing, so
+// `theirs` was permanently undefined, `theirs && mine && theirs !== mine` was
+// never true, and the qualification below it was unreachable — CS6's and WR's
+// "Carousing Event" collided with Core's instead of being filed under their own
+// book. The flag list and the flags the guard reads must not drift apart again.
+
+import { readFileSync } from "node:fs";
+import { MANIFEST_INDEX_FIELDS } from "../scripts/importer/tables/table-importer.mjs";
+
+test("the conflict index fetches manifestId AND source", () => {
+  assert.ok(
+    MANIFEST_INDEX_FIELDS.includes("flags.shadowdark-enhancer.manifestId"),
+    "manifestId is how a renamed owned table is still matched",
+  );
+  assert.ok(
+    MANIFEST_INDEX_FIELDS.includes("flags.shadowdark-enhancer.source"),
+    "source is what the cross-book guard compares — without it the guard is dead code",
+  );
+});
+
+test("every module flag the commit guard reads is fetched by the index", () => {
+  const src = readFileSync(
+    new URL("../scripts/importer/tables/table-importer.mjs", import.meta.url), "utf8",
+  );
+  // e.g. existing.flags?.["shadowdark-enhancer"]?.source
+  const read = [...src.matchAll(/existing\.flags\?\.\["shadowdark-enhancer"\]\?\.(\w+)/g)]
+    .map((m) => m[1]);
+  assert.ok(read.length, "the guard still reads at least one module flag off the index entry");
+  const missing = [...new Set(read)]
+    .filter((k) => !MANIFEST_INDEX_FIELDS.includes(`flags.shadowdark-enhancer.${k}`));
+  assert.deepEqual(
+    missing, [],
+    `read off the pack index but never fetched into it: ${missing.join(", ")}`,
+  );
+});
+
+// ── the seed → draft wiring ─────────────────────────────────────────────────
+// The guard above can only fire if the draft reaching the commit carries the
+// book it came from. _applyImportSeed stamps name/formula/folderPath/manifestId
+// but never stamped `source`, and it returns early for _charSeed — which every
+// Manage-tree unlock is — while the "Source - Name" prefixing at the top of
+// _onHubParse also skips _charSeed. So a seeded row reached the commit with
+// source:null and no branch was ever going to set it.
+
+test("_applyImportSeed stamps the seed's book before any early return", () => {
+  const src = readFileSync(
+    new URL("../scripts/importer/importer-hub-paste.mjs", import.meta.url), "utf8",
+  );
+  // Anchor on the METHOD DEFINITION, not the earlier `this._applyImportSeed()`
+  // call site.
+  const start = src.search(/^\s*_applyImportSeed\(\)\s*\{/m);
+  assert.ok(start > 0, "_applyImportSeed is still defined");
+  const body = src.slice(start, start + 2000);
+
+  const stamp = body.search(/t\.source\s*\?\?=\s*seed\.src/);
+  assert.ok(stamp > 0, "the draft's source is stamped from the seed's src");
+
+  const charSeedReturn = body.search(/if\s*\(\s*seed\._charSeed\s*\)\s*return/);
+  assert.ok(charSeedReturn > 0, "the _charSeed early return still exists");
+  assert.ok(
+    stamp < charSeedReturn,
+    "source must be stamped BEFORE the _charSeed return — every Manage-tree unlock is a _charSeed",
+  );
+});
+
+// ── create-side naming vs census probe ──────────────────────────────────────
+// Review finding: qualifying only on an exact-name CONFLICT left the first copy
+// of a contested name bare — into an empty pack, or when the only copy present
+// was already qualified (so no exact-name match, so no conflict). A bare
+// contested name is rejected outright by tableNameMatches, so that copy's Manage
+// row stays locked and re-importable forever. The create side must qualify on
+// "this name is printed by several books", not on "something is in the way".
+
+import { tableNameMatches } from "../scripts/importer/char-content/char-content-manifest.mjs";
+import { isSharedTableName } from "../scripts/importer/tables/table-manifest.mjs";
+
+test("isSharedTableName flags only names several books print", () => {
+  assert.ok(isSharedTableName("Carousing Event"), "Core, CS6 and WR all print it");
+  assert.ok(isSharedTableName("Carousing Outcome"));
+  assert.equal(isSharedTableName("TREASURE 0-3"), false, "one book only — stays bare");
+  assert.equal(isSharedTableName(""), false);
+  assert.equal(isSharedTableName(null), false);
+});
+
+test("a qualified shared name satisfies its own book's census row; a bare one never does", () => {
+  for (const src of ["CORE", "CS6", "WR"]) {
+    for (const bare of ["Carousing Event", "Carousing Outcome"]) {
+      assert.ok(isSharedTableName(bare), `${bare} is contested`);
+      const qualified = qualifyTableName(src, bare);
+      assert.ok(
+        tableNameMatches(qualified, bare, src),
+        `"${qualified}" must satisfy the ${src} row — otherwise it imports forever`,
+      );
+      assert.equal(
+        tableNameMatches(bare, bare, src), false,
+        "a bare contested copy must not satisfy any book's row",
+      );
+    }
+  }
+});

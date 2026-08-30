@@ -159,6 +159,31 @@ export function importNameFor(entry) {
   return _importNames.get(entry.id) ?? entry.name;
 }
 
+let _sharedNames = null;
+/**
+ * Is this bare table name printed by MORE THAN ONE book?
+ *
+ * Such a name has to be created qualified whether or not another book's copy is
+ * already in the pack: the census probe (tableNameMatches) rejects a bare
+ * contested name outright, so a bare copy leaves its Manage row locked and
+ * eligible for import forever. Qualifying only when an exact-name row already
+ * exists misses the first copy into an empty pack, and any book that arrives
+ * when the only copy present is already qualified.
+ */
+export function isSharedTableName(name) {
+  const want = String(name ?? "").trim().toLowerCase();
+  if (!want) return false;
+  if (!_sharedNames) {
+    const counts = new Map();
+    for (const e of TABLE_MANIFEST) {
+      const k = String(e.name ?? "").trim().toLowerCase();
+      if (k) counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    _sharedNames = new Set([...counts].filter(([, c]) => c > 1).map(([k]) => k));
+  }
+  return _sharedNames.has(want);
+}
+
 /** Distinct categories, in first-seen order. */
 export function categories() {
   return [...new Set(TABLE_MANIFEST.map(e => e.category))];
