@@ -158,3 +158,39 @@ test("_applyImportSeed stamps the seed's book before any early return", () => {
     "source must be stamped BEFORE the _charSeed return — every Manage-tree unlock is a _charSeed",
   );
 });
+
+// ── create-side naming vs census probe ──────────────────────────────────────
+// Review finding: qualifying only on an exact-name CONFLICT left the first copy
+// of a contested name bare — into an empty pack, or when the only copy present
+// was already qualified (so no exact-name match, so no conflict). A bare
+// contested name is rejected outright by tableNameMatches, so that copy's Manage
+// row stays locked and re-importable forever. The create side must qualify on
+// "this name is printed by several books", not on "something is in the way".
+
+import { tableNameMatches } from "../scripts/importer/char-content/char-content-manifest.mjs";
+import { isSharedTableName } from "../scripts/importer/tables/table-manifest.mjs";
+
+test("isSharedTableName flags only names several books print", () => {
+  assert.ok(isSharedTableName("Carousing Event"), "Core, CS6 and WR all print it");
+  assert.ok(isSharedTableName("Carousing Outcome"));
+  assert.equal(isSharedTableName("TREASURE 0-3"), false, "one book only — stays bare");
+  assert.equal(isSharedTableName(""), false);
+  assert.equal(isSharedTableName(null), false);
+});
+
+test("a qualified shared name satisfies its own book's census row; a bare one never does", () => {
+  for (const src of ["CORE", "CS6", "WR"]) {
+    for (const bare of ["Carousing Event", "Carousing Outcome"]) {
+      assert.ok(isSharedTableName(bare), `${bare} is contested`);
+      const qualified = qualifyTableName(src, bare);
+      assert.ok(
+        tableNameMatches(qualified, bare, src),
+        `"${qualified}" must satisfy the ${src} row — otherwise it imports forever`,
+      );
+      assert.equal(
+        tableNameMatches(bare, bare, src), false,
+        "a bare contested copy must not satisfy any book's row",
+      );
+    }
+  }
+});

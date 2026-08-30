@@ -27,7 +27,7 @@
 // never mistaken for a row token.
 import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
 import { splitRawBlocks } from "../pdf-text-utils.mjs";
-import { columnManifestId } from "./table-manifest.mjs";
+import { columnManifestId, isSharedTableName } from "./table-manifest.mjs";
 import { sourceKey as _sourceKey, sourceLabel as _sourceLabel } from "../../shared/source-keys.mjs";
 
 // Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
@@ -2664,13 +2664,24 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   // window the GM came from.
   const incomingSrc = pt.source
     ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
+  // A name printed by several books must say which book it is even when NOTHING
+  // it could collide with is here yet. The census probe (tableNameMatches)
+  // rejects a bare contested name outright, so a bare copy leaves its Manage row
+  // locked and re-importable forever. Qualifying only on an exact-name conflict
+  // missed the first copy into an empty pack, and any book arriving when the one
+  // copy present is already qualified (no exact-name match, so no conflict).
+  const shared = !!incomingSrc && isSharedTableName(data.name);
+  // Still qualify a name only ONE book prints when the row sitting on it belongs
+  // to a different book — that keeps the original cross-book guard intact.
+  let otherBook = false;
   if (existing && incomingSrc) {
     const theirs = _sourceKey(existing.flags?.["shadowdark-enhancer"]?.source);
     const mine = _sourceKey(incomingSrc);
-    if (theirs && mine && theirs !== mine) {
-      data.name = qualifyTableName(incomingSrc, data.name);
-      existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
-    }
+    otherBook = !!(theirs && mine && theirs !== mine);
+  }
+  if (shared || otherBook) {
+    data.name = qualifyTableName(incomingSrc, data.name);   // idempotent
+    existing = findExistingByManifestOrName(packIndex, pt.manifestId, data.name);
   }
   let replaceTarget = null;
   if (existing) {
