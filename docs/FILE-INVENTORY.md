@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-784 tracked files · ~110,800 lines of code/markup across scripts+templates+styles+test.
+793 tracked files · ~113,000 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 748 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 761 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -65,7 +65,7 @@
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 444 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
-| `compendium-suite.mjs` | 350 | Find-or-create layer for the five managed packs (`sde-actors/items/tables/journal/scenes`); 38 importers. |
+| `compendium-suite.mjs` | 352 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
@@ -117,14 +117,16 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `encounter-creator.mjs` | 1878 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
+| `encounter-creator.mjs` | 1912 | Monster Creator — multi-section NPC authoring tool mounted in the roller. |
 | `action-templates.mjs` | 126 | Quick-pick NPC attack/action catalog (FA6 Free glyphs only). |
 | `feature-templates.mjs` | 83 | Quick-pick NPC feature catalog. |
 | `monster-effect-runtime.mjs` | 540 | Provenance-backed effect overlay engine for the Creator draft. |
 | `monster-mechanical-adapters.mjs` | 330 | Sole authority for what mechanics a generator result actually applies. |
 | `monster-mutator.mjs` | 139 | Clone an existing NPC and apply imported matrix results. |
 | `monster-table-runtime.mjs` | 578 | Reads the GM's own imported Core matrix tables to drive the Generator/Mutator. |
-| `spell-index.mjs` | 190 | Lightweight Spell index (compendium indices, not documents). |
+| `monster-spell-library-core.mjs` | 468 | Pure extraction, validation, identity, materialization, and refresh reconciliation for embedded monster spells. |
+| `monster-spell-library.mjs` | 402 | Foundry adapter for GM-controlled Monster Spell Library preview, build, and refresh. |
+| `spell-index.mjs` | 249 | Lightweight Spell index (compendium indices, not documents). |
 | `npc-moves.mjs` | 16 | Canonical NPC movement keys with a pre-config fallback. |
 | `npc-statblock.mjs` | 125 | Builds the formatted `system.notes` statblock HTML. |
 | `level-guidelines-app.mjs` | 220 | GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like. |
@@ -230,7 +232,7 @@
 | `monsters/monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 124 | Table encounter text → clickable `@UUID` monster links. |
-| `monsters/monster-pack.mjs` | 42 | Shared pack-identity leaf so importer and linker agree. |
+| `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 508 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 547 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/gear-join.mjs` | 247 | Joins split cost-table + description layouts into one item. Pure. |

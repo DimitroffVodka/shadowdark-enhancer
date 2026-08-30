@@ -5308,6 +5308,21 @@ body.theme-light .sde-hub-monsters-row td {
   text-align: center;
   line-height: 18px;
 }
+.sde-spell-library-build {
+  margin-left: auto;
+  padding: 3px 7px;
+  background: var(--sde-bar-bg-alt);
+  color: var(--sde-bar-text);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.sde-spell-library-build:hover,
+.sde-spell-library-build:focus-visible {
+  border-color: var(--sde-bar-accent);
+  color: var(--sde-bar-text-bright);
+}
 
 /* Attached-spell chips */
 .sde-spell-chips {
@@ -5384,8 +5399,10 @@ body.theme-light .sde-hub-monsters-row td {
   padding: 5px 10px;
   border-radius: 2px;
 }
-.sde-spell-tier {
-  flex: 0 0 auto;
+.sde-spell-tier,
+.sde-spell-source {
+  flex: 0 1 auto;
+  min-width: 110px;
   background: var(--sde-bar-input-bg);
   color: var(--sde-bar-text);
   border: 1px solid var(--sde-bar-border);
@@ -5394,6 +5411,7 @@ body.theme-light .sde-hub-monsters-row td {
   padding: 5px 8px;
   border-radius: 2px;
 }
+.sde-spell-tier { min-width: 86px; }
 
 /* Results list */
 .sde-spell-results {
@@ -5411,7 +5429,7 @@ body.theme-light .sde-hub-monsters-row td {
 }
 .sde-spell-result {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  grid-template-columns: auto minmax(90px, 1fr) auto auto auto auto auto;
   align-items: center;
   gap: 8px;
   padding: 4px 6px;
@@ -5443,10 +5461,40 @@ body.theme-light .sde-hub-monsters-row td {
   color: var(--sde-bar-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  max-width: 90px;
+  max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.sde-spell-variant {
+  color: var(--sde-bar-accent);
+  font-size: 12px;
+}
+.sde-spell-conflict {
+  color: var(--sde-bar-mut-conflict);
+  font-size: 12px;
+}
+.sde-spell-warning {
+  color: var(--sde-bar-warn);
+  font-size: 12px;
+}
+.sde-spell-open-source {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--sde-bar-text-muted);
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.sde-spell-open-source:hover,
+.sde-spell-open-source:focus-visible {
+  color: var(--sde-bar-text-bright);
+  border-color: var(--sde-bar-accent);
 }
 .sde-spell-add {
   flex: 0 0 auto;

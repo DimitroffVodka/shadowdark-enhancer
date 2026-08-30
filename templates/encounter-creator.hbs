@@ -765,6 +765,11 @@
           {{#if spellPicker.selectedCount}}
             <span class="sde-spell-count" aria-label="{{spellPicker.selectedCount}} spells attached">{{spellPicker.selectedCount}}</span>
           {{/if}}
+          {{#if spellPicker.canBuildLibrary}}
+            <button type="button" class="sde-spell-library-build" data-action="creatorMonsterSpellsBuild" title="Build or refresh the local Monster Spells library">
+              <i class="fas fa-rotate"></i> Monster Spells
+            </button>
+          {{/if}}
         </div>
 
         {{#if spellPicker.selectedCount}}
@@ -784,6 +789,11 @@
 
         <div class="sde-spell-search-row">
           <input type="text" data-spell-search class="sde-spell-search" placeholder="Search spells…" value="{{spellPicker.search}}" aria-label="Search spells by name">
+          <select data-spell-source class="sde-spell-source" aria-label="Filter spells by source">
+            {{#each spellPicker.sourceOptions}}
+              <option value="{{this.value}}" {{#if (eq this.value ../spellPicker.source)}}selected{{/if}}>{{this.label}}</option>
+            {{/each}}
+          </select>
           <select data-spell-tier class="sde-spell-tier" aria-label="Filter spells by tier">
             <option value="" {{#unless spellPicker.tier}}selected{{/unless}}>All tiers</option>
             {{#each spellPicker.tierOptions}}
@@ -792,30 +802,40 @@
           </select>
         </div>
 
-        {{#if spellPicker.hasQuery}}
-          {{#if spellPicker.resultCount}}
-            <ul class="sde-spell-results">
-              {{#each spellPicker.results}}
-                <li class="sde-spell-result {{#if this.added}}is-added{{/if}}">
-                  <img class="sde-spell-result-img" src="{{this.img}}" alt="" width="24" height="24" loading="lazy" decoding="async">
-                  <span class="sde-spell-result-name" title="{{this.name}}">{{this.name}}</span>
-                  <span class="sde-spell-result-meta">{{this.tierLabel}}{{#if this.rangeLabel}} • {{this.rangeLabel}}{{/if}}</span>
-                  <span class="sde-spell-result-source" title="{{this.sourceLabel}}">{{this.sourceLabel}}</span>
-                  <button type="button" class="sde-spell-add" data-action="creatorSpellAdd" data-uuid="{{this.uuid}}"
-                          {{#if this.added}}disabled aria-label="{{this.name}} already attached"{{else}}aria-label="Attach {{this.name}}"{{/if}}>
-                    <i class="fas {{#if this.added}}fa-check{{else}}fa-plus{{/if}}"></i>
+        {{#if spellPicker.resultCount}}
+          <ul class="sde-spell-results">
+            {{#each spellPicker.results}}
+              <li class="sde-spell-result {{#if this.added}}is-added{{/if}}">
+                <img class="sde-spell-result-img" src="{{this.img}}" alt="" width="24" height="24" loading="lazy" decoding="async">
+                <span class="sde-spell-result-name" title="{{this.name}}">{{this.name}}</span>
+                <span class="sde-spell-result-meta">{{this.tierLabel}}{{#if this.rangeLabel}} • {{this.rangeLabel}}{{/if}}</span>
+                <span class="sde-spell-result-source" title="{{this.sourceLabel}}">{{this.sourceLabel}}</span>
+                {{#if this.variant}}
+                  <i class="fas fa-code-branch sde-spell-variant" title="Distinct same-name variant"></i>
+                {{/if}}
+                {{#if this.conflict}}
+                  <i class="fas fa-pen-to-square sde-spell-conflict" title="This generated spell has curated edits; refresh preserved it"></i>
+                {{/if}}
+                {{#if this.warningCount}}
+                  <i class="fas fa-triangle-exclamation sde-spell-warning" title="{{this.warningCount}} validation warning(s)"></i>
+                {{/if}}
+                {{#if this.sourceActorUuid}}
+                  <button type="button" class="sde-spell-open-source" data-action="creatorSpellOpenSource" data-uuid="{{this.sourceActorUuid}}" aria-label="Open source monster for {{this.name}}" title="Open source monster">
+                    <i class="fas fa-arrow-up-right-from-square"></i>
                   </button>
-                </li>
-              {{/each}}
-            </ul>
-            {{#if spellPicker.capped}}
-              <p class="sde-spell-hint">Showing first 40 matches — refine your search to narrow it.</p>
-            {{/if}}
-          {{else}}
-            <p class="sde-spell-empty">No spells match.</p>
+                {{/if}}
+                <button type="button" class="sde-spell-add" data-action="creatorSpellAdd" data-uuid="{{this.uuid}}"
+                        {{#if this.added}}disabled aria-label="{{this.name}} already attached"{{else}}aria-label="Attach {{this.name}}"{{/if}}>
+                  <i class="fas {{#if this.added}}fa-check{{else}}fa-plus{{/if}}"></i>
+                </button>
+              </li>
+            {{/each}}
+          </ul>
+          {{#if spellPicker.capped}}
+            <p class="sde-spell-hint">Showing first 40 of {{spellPicker.resultTotal}} matches — refine your filters to narrow it.</p>
           {{/if}}
         {{else}}
-          <p class="sde-spell-hint">Type to search the Spell compendiums, then click <i class="fas fa-plus"></i> to attach a rollable spell.</p>
+          <p class="sde-spell-empty">No spells match.</p>
         {{/if}}
       </div>
     </div>

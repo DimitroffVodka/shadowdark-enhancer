@@ -43,6 +43,7 @@ import {
 } from "./level-guidelines.mjs";
 import { buildNpcNotes, extractFlavor } from "./npc-statblock.mjs";
 import { titleCaseName } from "../importer/monsters/statblock-parser.mjs";
+import { normalizeMonsterSpellAttachment } from "./monster-spell-library-core.mjs";
 
 const { renderTemplate } = foundry.applications.handlebars;
 
@@ -134,6 +135,8 @@ export class MonsterCreatorApp {
     creatorAddFeatureQuickPick: MonsterCreatorApp.prototype._onAddFeatureQuickPick,
     creatorSpellAdd:            MonsterCreatorApp.prototype._onSpellAdd,
     creatorSpellRemove:         MonsterCreatorApp.prototype._onSpellRemove,
+    creatorSpellOpenSource:     MonsterCreatorApp.prototype._onSpellOpenSource,
+    creatorMonsterSpellsBuild:  MonsterCreatorApp.prototype._onMonsterSpellsBuild,
     creatorToggleLoader:        MonsterCreatorApp.prototype._onToggleLoader,
     creatorBulkImport:          MonsterCreatorApp.prototype._onBulkImport,
     creatorLoaderPick:          MonsterCreatorApp.prototype._onLoaderPick,
@@ -202,11 +205,11 @@ export class MonsterCreatorApp {
     ]) {
       Hooks.on(hook, () => this._onTablesChanged());
     }
-    // Spell picker state (survives renders). The picker only queries the
-    // Spell compendiums while there's a search term or tier filter set, so
-    // an empty section doesn't load hundreds of spells.
+    // Spell picker state (survives renders). Opening Spellcasting loads the
+    // lightweight indices so the list can be browsed without entering a query.
     this._spellSearch = "";
     this._spellTier   = null;   // null = all tiers
+    this._spellSource = "";    // empty = all sources
 
     // Text-input focus stashes for cursor preservation across renders.
     this._focused = {};  // { fieldName: {selectionStart} }
@@ -363,24 +366,27 @@ export class MonsterCreatorApp {
     // exactly one valid table; otherwise it shows actionable diagnostics.
     const mutations = this._buildMutationsContext(await this._getMutStates());
 
-    // Spell picker — only queries the compendiums while the Spellcasting
-    // section is open AND a search/tier filter is active. Results cap at
-    // 40 rows; already-attached spells are flagged so their + turns into
-    // a disabled check. Selected spells (draft.spells) render as chips
-    // regardless of query so the user always sees what's attached.
+    // Spell picker — load lightweight indices whenever Spellcasting is open so
+    // entries can be browsed without typing first. Results cap at 40 rows;
+    // already-attached spells are flagged so their + turns into a disabled
+    // check. Selected spells always render as chips.
     const draftSpells = this._draft.spells ?? [];
     const selectedSpellUuids = new Set(draftSpells.map(s => s.uuid));
     const spellQuery = this._spellSearch.trim();
-    const spellHasQuery = !!spellQuery || this._spellTier != null;
     let spellResults = [];
-    if (this._sectionOpen.spellcasting && spellHasQuery) {
+    let spellResultTotal = 0;
+    let spellSourceOptions = [{ value: "", label: "All spell sources" }];
+    if (this._sectionOpen.spellcasting) {
       const { SpellIndex } = await import("./spell-index.mjs");
       const all = await SpellIndex.loadAll();
+      spellSourceOptions = SpellIndex.sourceOptions(all);
       const filtered = SpellIndex.filter(all, {
         search: spellQuery,
         tier:   this._spellTier,
+        source: this._spellSource,
       });
       SpellIndex.sort(filtered, { column: "tier", ascending: true });
+      spellResultTotal = filtered.length;
       spellResults = filtered.slice(0, 40).map(r => ({
         ...r,
         added: selectedSpellUuids.has(r.uuid),
@@ -389,11 +395,14 @@ export class MonsterCreatorApp {
     const spellPicker = {
       search:        this._spellSearch,
       tier:          this._spellTier,
+      source:        this._spellSource,
+      sourceOptions: spellSourceOptions,
       tierOptions:   [1, 2, 3, 4, 5],
       results:       spellResults,
       resultCount:   spellResults.length,
-      capped:        spellResults.length >= 40,
-      hasQuery:      spellHasQuery,
+      resultTotal:   spellResultTotal,
+      capped:        spellResultTotal > 40,
+      canBuildLibrary: game.user?.isGM === true,
       selected:      draftSpells.map(s => ({
         uuid:      s.uuid,
         name:      s.name,
@@ -552,6 +561,14 @@ export class MonsterCreatorApp {
     if (tier) {
       tier.addEventListener("change", ev => {
         this._spellTier = ev.target.value === "" ? null : Number(ev.target.value);
+        this.render();
+      });
+    }
+
+    const source = this._mountHost.querySelector("select[data-spell-source]");
+    if (source) {
+      source.addEventListener("change", ev => {
+        this._spellSource = ev.target.value;
         this.render();
       });
     }
@@ -852,7 +869,7 @@ export class MonsterCreatorApp {
       ui.notifications.warn("That spell could not be loaded.");
       return;
     }
-    const source = doc.toObject();
+    const source = normalizeMonsterSpellAttachment(doc.toObject());
     delete source._id;
     this._draft.spells.push({
       uuid,
@@ -868,6 +885,23 @@ export class MonsterCreatorApp {
     const uuid = target.dataset.uuid;
     this._draft.spells = (this._draft.spells ?? []).filter(s => s.uuid !== uuid);
     this.render();
+  }
+
+  async _onSpellOpenSource(event, target) {
+    const uuid = target.dataset.uuid;
+    if (!uuid) return;
+    const actor = await fromUuid(uuid);
+    if (!actor) {
+      ui.notifications.warn("The source monster could not be loaded.");
+      return;
+    }
+    actor.sheet?.render(true);
+  }
+
+  async _onMonsterSpellsBuild() {
+    const { runMonsterSpellLibraryRefresh } = await import("./monster-spell-library.mjs");
+    const result = await runMonsterSpellLibraryRefresh();
+    if (result) await this.render();
   }
 
   async _onPickImg() {

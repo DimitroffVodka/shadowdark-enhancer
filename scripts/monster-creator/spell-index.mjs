@@ -64,13 +64,32 @@ export const SpellIndex = {
    * @param {number|null} [opts.tier]
    * @returns {Array<object>}
    */
-  filter(rows, { search = "", tier = null } = {}) {
+  filter(rows, { search = "", tier = null, source = "" } = {}) {
     const needle = String(search ?? "").trim().toLowerCase();
     return rows.filter(r => {
       if (needle && !String(r.name ?? "").toLowerCase().includes(needle)) return false;
       if (tier != null && Number(r.tier) !== Number(tier)) return false;
+      if (source && r.sourceId !== source) return false;
       return true;
     });
+  },
+
+  sourceOptions(rows) {
+    const byId = new Map();
+    for (const row of rows) {
+      const value = String(row?.sourceId ?? "");
+      if (!value || byId.has(value)) continue;
+      byId.set(value, {
+        value,
+        label: value === "monster-spells" ? "Monster Spells" : String(row?.sourceLabel ?? value),
+      });
+    }
+    const options = [...byId.values()].sort((left, right) => {
+      if (left.value === "monster-spells") return -1;
+      if (right.value === "monster-spells") return 1;
+      return left.label.localeCompare(right.label);
+    });
+    return [{ value: "", label: "All spell sources" }, ...options];
   },
 
   /**
@@ -121,6 +140,7 @@ export const SpellIndex = {
         tier: item.system?.tier,
         range: item.system?.range,
         duration: item.system?.duration,
+        sourceId: "world",
         sourceLabel: "World Items",
       }));
     }
@@ -134,11 +154,19 @@ export const SpellIndex = {
     // `name`, `img`, and `_id` are always indexed; the system.* fields
     // must be requested explicitly.
     const index = await pack.getIndex({
-      fields: ["system.tier", "system.range", "system.duration"],
+      fields: [
+        "system.tier",
+        "system.range",
+        "system.duration",
+        "flags.shadowdark-enhancer.monsterSpell",
+      ],
     });
     const rows = [];
     for (const entry of index) {
       if (entry.type !== "Spell") continue;
+      const provenance = entry.flags?.["shadowdark-enhancer"]?.monsterSpell;
+      const isMonsterSpell = provenance?.generated === true;
+      const primarySource = provenance?.sources?.[0] ?? {};
       rows.push(_makeRow({
         uuid: entry.uuid ?? pack.getUuid?.(entry._id) ?? `Compendium.${packId}.Item.${entry._id}`,
         name: entry.name,
@@ -146,14 +174,38 @@ export const SpellIndex = {
         tier: entry.system?.tier,
         range: entry.system?.range,
         duration: entry.system?.duration,
-        sourceLabel: label ?? pack.metadata.label,
+        sourceId: isMonsterSpell ? "monster-spells" : packId,
+        sourceLabel: isMonsterSpell
+          ? `Monster Spell — ${primarySource.actorName || "Unknown Source"}`
+          : (label ?? pack.metadata.label),
+        isMonsterSpell,
+        sourceActorUuid: primarySource.actorUuid ?? "",
+        sourceCount: provenance?.sources?.length ?? 0,
+        variant: provenance?.variant === true,
+        conflict: provenance?.conflict === true,
+        warningCount: provenance?.warnings?.length ?? 0,
       }));
     }
     return rows;
   },
 };
 
-function _makeRow({ uuid, name, img, tier, range, duration, sourceLabel }) {
+function _makeRow({
+  uuid,
+  name,
+  img,
+  tier,
+  range,
+  duration,
+  sourceId,
+  sourceLabel,
+  isMonsterSpell = false,
+  sourceActorUuid = "",
+  sourceCount = 0,
+  variant = false,
+  conflict = false,
+  warningCount = 0,
+}) {
   const tierNum = Number(tier);
   const rangeLabel = _configLabel("SPELL_RANGES", range);
   const durationLabel = _durationLabel(duration);
@@ -167,7 +219,14 @@ function _makeRow({ uuid, name, img, tier, range, duration, sourceLabel }) {
     rangeLabel,
     durationLabel,
     metaLabel: [rangeLabel, durationLabel].filter(Boolean).join(" • "),
+    sourceId: sourceId ?? "",
     sourceLabel: sourceLabel ?? "",
+    isMonsterSpell,
+    sourceActorUuid,
+    sourceCount,
+    variant,
+    conflict,
+    warningCount,
   };
 }
 

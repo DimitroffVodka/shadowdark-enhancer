@@ -11,7 +11,6 @@
  * during the transition period (D-06: old pack retired, never deleted).
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { findSuitePack } from "../../shared/compendium-suite.mjs";
 
 /** Legacy pack label — kept for backward-compat detection of the retired pack (D-06). */
 export const MONSTER_PACK_LABEL = "Shadowdark Enhancer — Imported Monsters";
@@ -27,14 +26,21 @@ export const SDE_ACTORS_LABEL = "Shadowdark Enhancer — Actors";
  * so the legacy pack remains resolvable until the user retires it manually (D-06).
  *
  * Detection is label-based per the v14 contract (flags don't round-trip).
+ * @param {object} [options]
+ * @param {Game} [options.game] Foundry game instance; injectable for consumers/tests.
  * @returns {CompendiumCollection|undefined}
  */
-export function findMonsterPack() {
+export function findMonsterPack({ game: gameRef = globalThis.game } = {}) {
+  const packs = [...(gameRef?.packs ?? [])];
   // Suite pack first (canonical post-migration, D-03).
-  const suitePack = findSuitePack("sde-actors");
+  const suitePack = packs.find((p) =>
+    p.documentName === "Actor" &&
+    p.metadata?.packageType === "world" &&
+    p.metadata?.label === SDE_ACTORS_LABEL
+  );
   if (suitePack) return suitePack;
   // Legacy fallback: flag or label match on the old "Imported Monsters" pack.
-  return game.packs.find((p) =>
+  return packs.find((p) =>
     p.documentName === "Actor" &&
     p.metadata?.packageType === "world" &&
     (p.getFlag?.(MODULE_ID, "monsterPack") === true || p.metadata?.label === MONSTER_PACK_LABEL)

@@ -1,8 +1,9 @@
 /**
  * Shadowdark Enhancer — Managed Compendium Suite foundation.
  *
- * Find-or-create layer for the five world packs (sde-actors, sde-items,
- * sde-tables, sde-journal, sde-scenes), grouped under a "Shadowdark Enhancer"
+ * Find-or-create layer for the six managed world packs (sde-actors, sde-items,
+ * sde-tables, sde-journal, sde-scenes, and the generated Monster Spells pack),
+ * grouped under a "Shadowdark Enhancer"
  * sidebar compendium folder, with per-source folders inside each pack.
  *
  * Detection is label-based per the verified v14 contract: world-compendium
@@ -17,7 +18,7 @@ import { MODULE_ID } from "./module-id.mjs";
 // ─── Pack descriptors ────────────────────────────────────────────────────────
 
 /**
- * The five managed world packs. Ids are stable across worlds; labels are
+ * The managed world packs. Ids are stable across worlds; labels are
  * the detection signal (flags don't round-trip in v14).
  * @type {Array<{key: string, id: string, type: string, label: string}>}
  */
@@ -26,7 +27,8 @@ export const SUITE_PACKS = [
   { key: "items",   id: "sde-items",   type: "Item",         label: "Shadowdark Enhancer — Items"       },
   { key: "tables",  id: "sde-tables",  type: "RollTable",    label: "Shadowdark Enhancer — Roll Tables" },
   { key: "journal", id: "sde-journal", type: "JournalEntry", label: "Shadowdark Enhancer — Journals"    },
-  { key: "scenes",  id: "sde-scenes",  type: "Scene",        label: "Shadowdark Enhancer — Scenes"      },
+  { key: "scenes",        id: "sde-scenes",                          type: "Scene",        label: "Shadowdark Enhancer — Scenes"         },
+  { key: "monsterSpells", id: "shadowdark-enhancer--monster-spells", type: "Item",         label: "Shadowdark Enhancer — Monster Spells" },
   // Character-Options packs. These are world compendiums whose LABELS slugify to
   // their collection ids (Classes→world.classes, "Class Abilties"→
   // world.class-abilties, …), so a fresh world recreates the identical
@@ -160,7 +162,7 @@ export async function ensurePack(descriptor) {
 
 /**
  * Find-or-create the "Shadowdark Enhancer" sidebar compendium folder; find-or-create
- * all five packs inside it; return a map of CompendiumCollections.
+ * all managed packs inside it; return a map of CompendiumCollections.
  *
  * GM-gate at top (mirrors createMonster pattern — T-09-01).
  *

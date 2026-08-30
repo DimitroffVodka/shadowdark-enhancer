@@ -23,6 +23,11 @@ import { MovementTracker } from "./crawl-strip/movement-tracker.mjs";
 import { EncounterCheck } from "./encounter/encounter-check.mjs";
 import { migrateEncounterSources } from "./encounter/encounter-sources.mjs";
 import { MonsterCreator } from "./monster-creator/encounter-creator.mjs";
+import {
+  listMonsterSpellSources,
+  previewMonsterSpellLibrary,
+  runMonsterSpellLibraryRefresh,
+} from "./monster-creator/monster-spell-library.mjs";
 import { createMutatedActor } from "./monster-creator/monster-mutator.mjs";
 import { registerQuickAdjustHUD } from "./monster-creator/quick-adjust-app.mjs";
 import { catalog as monsterTableCatalog } from "./monster-creator/monster-table-runtime.mjs";
@@ -72,7 +77,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "48664488fd04";
+const STYLESHEET_REV = "475fdc0547b0";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -284,7 +289,7 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    apiVersion: "1.1.0",
+    apiVersion: "1.2.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -352,6 +357,14 @@ Hooks.once("init", () => {
     },
     monsterCreator: {
       open: () => MonsterCreator.open(),
+    },
+    // Locally generated, GM-only copies of embedded monster Spell items. Source
+    // Actors keep their embedded copies; attaching from the Creator makes a new
+    // embedded copy on the destination NPC.
+    monsterSpells: {
+      listSources: () => listMonsterSpellSources({ game }),
+      preview: (opts) => previewMonsterSpellLibrary({ ...(opts ?? {}), game }),
+      refresh: (opts) => runMonsterSpellLibraryRefresh({ ...(opts ?? {}), game }),
     },
     // Monster token/portrait art — re-skin Shadowdark NPCs with art referenced
     // (never copied) from a locally-installed art module, default the licensed

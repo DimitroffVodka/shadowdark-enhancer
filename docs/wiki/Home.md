@@ -50,6 +50,7 @@ Tools you use in prep, between sessions.
 | [Class & Spell Importers](Class-and-Spell-Importers.md) | The two dedicated workspaces for the hardest content types |
 | [Table Import & Shapes](Table-Import-and-Shapes.md) | How messy PDF tables are parsed deterministically, and how to add a recipe |
 | [Monster Creator](Monster-Creator.md) | Author a Shadowdark NPC from scratch, or remix an existing one |
+| [Monster Spell Library](Monster-Spell-Library.md) | Copy embedded monster spells into a searchable GM library, with source links and safe refreshes |
 | [Monster Level Guidelines](Monster-Level-Guidelines.md) | What a level-N monster should look like: the editable table, and the token button that re-levels a creature |
 | [Monster Token Art](Monster-Token-Art.md) | Re-skin the bestiary using art you already own, referenced and never copied |
 | [Magic Item Forge](Magic-Item-Forge.md) | Roll or hand-build magic items, including from your own imported Core tables |

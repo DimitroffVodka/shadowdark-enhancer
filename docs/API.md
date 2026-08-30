@@ -2,20 +2,20 @@
 
 A versioned, public API for other modules and macros to drive Shadowdark
 Enhancer's importer, linker, encounter, loot, table, bundle, monster-art,
-merchant, party-XP, session-recap, and character-builder features.
+monster-spell-library, merchant, party-XP, session-recap, and character-builder features.
 
 **Namespaces:** [`import`](#import--universal-dump-segmentation) ·
 [`items`](#items--bulk-items-importer) · [`monsters`](#monsters--bulk-monster-importer) ·
 [`linker`](#linker--name--compendium-resolution) · [`encounter`](#encounter) ·
 [`loot`](#loot) · [`tables`](#tables) · [`bundle`](#bundle--suite-export--import) ·
 [`mutator`](#mutator) · [`monsterCreator`](#monstercreator--forge) ·
-[`forge`](#monstercreator--forge) · [`tokenArt`](#tokenart--monster-compendium-art) ·
+[`monsterSpells`](#monsterspells) · [`forge`](#monstercreator--forge) · [`tokenArt`](#tokenart--monster-compendium-art) ·
 [`merchant`](#merchant--shop-window--transaction-log) ·
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats)
 
-**API version:** `1.1.0` (semver — additive changes bump the minor version,
+**API version:** `1.2.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -193,6 +193,34 @@ New actors record provenance **version 2** under `flags["shadowdark-enhancer"].m
 — stable references only (`manifestId`, `tableUuid`, `resultId`, `range`, plus
 `baseUuid`/`baseName`/`createdAt`), never source prose. Version-1 provenance on
 older actors is left untouched.
+
+## `monsterSpells`
+
+The Monster Spell Library copies embedded monster `Spell` items into the GM-only
+**Shadowdark Enhancer — Monster Spells** world compendium. Source Actors keep their
+embedded spells. Attaching a library entry in Monster Creator creates another
+embedded copy on the destination NPC; it never creates a live compendium link.
+
+```js
+const sources = api.monsterSpells.listSources();
+// [{ id, label, version, pack }, ...]
+
+// Read-only: scan selected sources and compare them with the current library.
+const preview = await api.monsterSpells.preview({
+  sourceIds: ["shadowdark.monsters", "world.shadowdark-enhancer--actors"],
+});
+// preview.operations → { create, update, unchanged, conflict, stale }
+
+// GM-only interactive flow: choose sources, review the dry-run, then write.
+await api.monsterSpells.refresh(); // Build/Refresh Monster Spells
+```
+
+Refreshes reconcile by provenance rather than by spell name. Identical spell
+definitions consolidate with all source monsters recorded. Same-name definitions
+that differ remain separate and receive source-qualified names. Generated entries
+with curated edits are preserved and marked as conflicts; stale entries are
+reported but never deleted. Validation warnings report suspicious DC, dice,
+duration, and damage-formula mismatches without rewriting source content.
 
 ## `monsterCreator` / `forge`
 
@@ -677,7 +705,7 @@ list, so a headless caller sees the same gaps the window shows.
   (direct `scripts/**/*.mjs` exports) may change without notice.
 - `apiVersion` was introduced at `1.0.0`; earlier releases (≤ v0.3.0)
   exposed the same core namespaces without a version field.
-- All 16 namespaces on `game.shadowdarkEnhancer` are now documented. The
+- All public namespaces on `game.shadowdarkEnhancer` are documented. The
   `tokenArt`, `merchant`, `partyXp` and `recap` sections describe surface that
   already shipped — documenting them is **not** an additive API change and does
   not bump `apiVersion`.
