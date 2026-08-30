@@ -19,6 +19,21 @@
 
   {{#if node.expanded}}
   <div class="sde-mtree-children">
+    {{!-- Per-folder batch: the same runner as "Import everything", scoped to
+          this node. Inside the opened folder rather than on its row — a button
+          in the row would sit inside the expand hitbox, and would push the
+          have/locked chips out of line with every sibling that has nothing
+          left to import. @root reaches past the {{#each}} item context. --}}
+    {{#if node.locked}}
+    <p class="sde-mtree-batchrow">
+      <button type="button" class="sde-mtree-unlock sde-mtree-batchbtn"
+              data-action="batchImport" data-node-id="{{node.id}}" data-label="{{node.label}}"
+              {{#if @root.batch}}disabled{{/if}}
+              title="Import everything still locked in “{{node.label}}” — grabs, parses and creates each entry from your own uploaded books">
+        <i class="fas fa-wand-magic-sparkles"></i> Import all {{node.locked}} in {{node.label}}
+      </button>
+    </p>
+    {{/if}}
     {{#if node.placeholder}}
     <p class="sde-mtree-note"><i class="fas fa-circle-info"></i> {{node.note}}</p>
     {{/if}}

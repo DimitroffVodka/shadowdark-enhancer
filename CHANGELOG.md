@@ -3,6 +3,28 @@
 ## [Unreleased]
 
 ### Added
+- **Import everything.** *Importer Hub → Manage* now carries an **Import
+  everything (N)** button, and opening any folder puts an **Import all N in
+  \<folder\>** button at the top of it — the same run, scoped to that branch. It automates the loop rather than
+  changing it: for each locked row it seeds the unlock, grabs the cited pages out
+  of *your own* uploaded PDF, parses them and commits the preview, through the
+  same parsers and the same commit paths you'd drive by hand — the Class
+  Importer, Spell Importer and Item Builder included. Rows that one press already
+  unlocks together (a whole bestiary spread, the eight WR boats, a gear price
+  table) count as one entry, so the run does the work once instead of per row.
+  Because nobody is watching it, it holds three lines: **nothing is overwritten**
+  — every name conflict answers "keep what's there", so a second run creates
+  nothing and duplicates nothing; **nothing broken is committed** — a table or
+  class that fails its quality check is left alone and named in the report; and
+  **every row is accounted for** — a row with no linked PDF, no page cite or no
+  automated route is reported with the reason rather than dropped. You get a
+  count and a per-workspace breakdown before it starts, a progress bar with a
+  **Stop** button while it runs (it finishes the current entry, then stops), and
+  a report grouped by outcome at the end: *Imported*, *Nothing to import*, *Needs
+  your attention*, *Not run*, *Import these by hand*. Toasts are collected during
+  the run instead of stacking hundreds deep — each entry's own warning lands on
+  its row in the report. The censuses rebuild once at the end rather than after
+  every entry, so a long run doesn't spend its time re-scanning your packs.
 - **Auto-detect now recognises a downtime page instead of offering to build an
   item out of it.** Auto sorts monsters, items, spells and tables; downtime is
   none of those, because unlocking it needs a book chosen and writes a world

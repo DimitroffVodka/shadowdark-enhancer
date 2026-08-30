@@ -31,6 +31,10 @@ class HubCommitMethods {
   /** Conflict dialog for monster name collisions (rename/replace/skip). */
   _monsterConflictDialog() {
     return async (name) => {
+      // An unattended batch run pre-answers this (importer-hub-batch.mjs):
+      // "skip" keeps what's already in the library, so a second run over the
+      // same books creates nothing and duplicates nothing.
+      if (this._batchAuto) return this._batchAuto.conflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
         window: { title: "Monster Already Exists" },
@@ -49,6 +53,9 @@ class HubCommitMethods {
   /** Conflict dialog for table name collisions (rename/replace/cancel). */
   _tableConflictDialog() {
     return async (name) => {
+      // Batch run: "cancel" skips THIS table and the commit loop carries on to
+      // the next one — tables have no "skip" action, and cancel is its shape.
+      if (this._batchAuto) return this._batchAuto.tableConflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
         window: { title: "Table Already Exists" },
@@ -67,6 +74,7 @@ class HubCommitMethods {
   /** Conflict dialog for item name collisions (rename/replace/skip). */
   _itemConflictDialog() {
     return async (name) => {
+      if (this._batchAuto) return this._batchAuto.conflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
         window: { title: "Item Already Exists" },
@@ -236,6 +244,9 @@ class HubCommitMethods {
    * @returns {Promise<"replace"|"cancel">}
    */
   async _downtimeDowngradeDialog(label, existingCount, newCount) {
+    // Batch run: keep the richer existing unlock — an unattended pass must
+    // never re-lock outcomes the GM already has.
+    if (this._batchAuto) return this._batchAuto.downtimeDowngrade === "replace" ? "replace" : "cancel";
     const safe = foundry.utils.escapeHTML(label);
     const choice = await foundry.applications.api.DialogV2.wait({
       window: { title: "Downtime Already Unlocked" },
@@ -309,6 +320,9 @@ class HubCommitMethods {
    * "commit-all", or "cancel" (incl. ESC/close).
    */
   async _importQualityGate(kindLabel, flagged) {
+    // Batch run: "commit-clean" — a draft with blockers is NEVER written
+    // unreviewed, it stays in the preview and the report names it.
+    if (this._batchAuto) return this._batchAuto.quality;
     const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const items = flagged.map(({ draft, blockers }) =>
       `<li><strong>${esc(draft.name ?? "(untitled)")}</strong><ul style="margin:0.2em 0 0.4em 1.1em;">${blockers.map((b) => `<li>${esc(b.message)}</li>`).join("")}</ul></li>`).join("");

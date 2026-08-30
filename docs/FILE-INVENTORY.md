@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-793 tracked files · ~113,000 lines of code/markup across scripts+templates+styles+test.
+797 tracked files · ~114,300 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -188,15 +188,17 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 855 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-app.mjs` | 893 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1485 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
-| `importer-hub-commit.mjs` | 832 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-commit.mjs` | 846 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
 | `importer-hub-manage.mjs` | 998 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-batch.mjs` | 581 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 351 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 606 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `batch-import.mjs` | 237 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 668 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |

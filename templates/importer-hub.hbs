@@ -855,8 +855,32 @@
             <button type="button" class="sde-mtree-toolbtn" data-action="manageCollapseAll" title="Collapse everything">
               <i class="fas fa-angles-up"></i> Collapse all
             </button>
+            {{#if manage.lockedTotal}}
+            <button type="button" class="sde-mtree-toolbtn sde-mtree-batchbtn" data-action="batchImport"
+                    {{#if batch}}disabled{{/if}}
+                    title="Run every unlock in this list for you — grab, parse and create, reading from your own uploaded books. Nothing already imported is touched.">
+              <i class="fas fa-wand-magic-sparkles"></i> Import everything ({{manage.lockedTotal}})
+            </button>
+            {{/if}}
           </div>
         </div>
+
+        {{!-- Batch run progress — live while "Import everything" is running --}}
+        {{#if batch}}
+        <div class="sde-mtree-batchbar" role="status" aria-live="polite">
+          <div class="sde-mtree-batchbar-track">
+            <div class="sde-mtree-batchbar-fill" style="width: {{batch.percent}}%"></div>
+          </div>
+          <span class="sde-mtree-batchbar-text">
+            {{#if batch.cancelled}}Stopping…{{else}}Importing{{/if}}
+            {{batch.done}} / {{batch.total}}{{#if batch.current}} — {{batch.current}}{{/if}}
+          </span>
+          <button type="button" class="sde-mtree-toolbtn" data-action="batchCancel"
+                  {{#if batch.cancelled}}disabled{{/if}} title="Stop after the current entry finishes">
+            <i class="fas fa-stop"></i> Stop
+          </button>
+        </div>
+        {{/if}}
         {{#if manage.filterEmpty}}
         <p class="sde-import-empty sde-mtree-filter-empty">
           {{#if manage.filterLocked}}<i class="fas fa-circle-check"></i> Nothing left to unlock — everything in this list is imported.
