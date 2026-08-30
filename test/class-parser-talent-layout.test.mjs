@@ -179,3 +179,69 @@ test("multiple titled effects in one column-copy table are all preserved", () =>
   );
   assert.ok(p.spellcasting, "post-table Spellcasting still captured");
 });
+
+// ── Vertically-centred die face (WR Roustabout, book pg 63) ──────────────────
+// The "12" cell is centred against a TWO-line effect, so pdf.js emits the face
+// BETWEEN the halves. The bare face read as a page-footer stray and both halves
+// were appended to the 10-11 band, so the table came back with four bands that
+// don't tile 2..12 and the class was held back by the quality gate.
+test("a die face centred between its own wrapped effect lines starts its own row", () => {
+  const text = [
+    HEADER,
+    "ROUSTABOUT TALENTS",
+    "2d6 Effect",
+    "2 +1 to any stat and roll another talent",
+    "3-6 Gain the ability to wield a new weapon or armor",
+    "7-9 +1 to any two stats (they can’t be the same)",
+    "10-11 Roll an extra hit points die this level",
+    "Learn any spell of a tier equal to half your level rounded",
+    "12",
+    "down (min. 1). Cast it using that class's spellcasting stat",
+  ].join("\n");
+
+  const p = parseClassSection(text);
+  assert.ok(p.talentTable, "talentTable is not null");
+  assert.equal(p.talentTable.formula, "2d6");
+  assert.deepEqual(
+    p.talentTable.rows.map((r) => [r.lo, r.hi]),
+    [[2, 2], [3, 6], [7, 9], [10, 11], [12, 12]],
+    "five bands tiling 2..12"
+  );
+  assert.equal(
+    p.talentTable.rows[4].text,
+    "Learn any spell of a tier equal to half your level rounded down (min. 1). "
+      + "Cast it using that class's spellcasting stat",
+    "both halves of the wrapped effect rejoin on the 12 band"
+  );
+  assert.equal(
+    p.talentTable.rows[3].text,
+    "Roll an extra hit points die this level",
+    "the 10-11 band no longer swallows the next row's text"
+  );
+  assert.ok(
+    !p.warnings.some((w) => /BLOCKER/i.test(w)),
+    `no BLOCKER, got: ${p.warnings.filter((w) => /BLOCKER/i.test(w)).join(" | ")}`
+  );
+});
+
+// The guard must stay narrow: a real page-footer number is not a band.
+test("a trailing page number is still discarded, not adopted as a band", () => {
+  const text = [
+    HEADER,
+    "ROUSTABOUT TALENTS",
+    "2d6 Effect",
+    "2 +1 to any stat and roll another talent",
+    "3-6 Gain the ability to wield a new weapon or armor",
+    "7-9 +1 to any two stats (they can’t be the same)",
+    "10-11 Roll an extra hit points die this level",
+    "12 Choose a talent, or +2 points to distribute to stats.",
+    "63",
+  ].join("\n");
+
+  const p = parseClassSection(text);
+  assert.deepEqual(
+    p.talentTable.rows.map((r) => [r.lo, r.hi]),
+    [[2, 2], [3, 6], [7, 9], [10, 11], [12, 12]],
+    "the page number did not become a sixth band"
+  );
+});

@@ -514,6 +514,7 @@ function _findTalentTable(lines) {
 
   // ── Row-major layout: ranged rows ("2  Gain Weapon Mastery …") ──
   const rows = [];
+  const bounds = _dieBounds(formula);
   for (; j < lines.length; j++) {
     if (TITLES_CAP.test(lines[j]) || CAPS_CAP.test(lines[j])) break;
     if (/^effects?\b/i.test(lines[j]) || /^\d{1,3}$/.test(lines[j])) { skip.add(j); continue; }   // header / page-footer stray
@@ -521,7 +522,24 @@ function _findTalentTable(lines) {
     if (_isFeatureHeader(lines[j])) break;                 // a feature resumes — table over
     const rm = lines[j].match(ROW_START);
     if (rm) { rows.push({ lo: Number(rm[1]), hi: Number(rm[2] ?? rm[1]), text: rm[3] }); skip.add(j); }
-    else if (rows.length) { rows[rows.length - 1].text += " " + lines[j]; skip.add(j); }   // wrapped row
+    else if (rows.length) {
+      // A die face whose cell is vertically centred against TWO-line effect text
+      // extracts between the halves — "…rounded" / "12" / "down (min. 1)…". The
+      // bare face then reads as a page-footer stray (dropped above) and both
+      // halves land on the previous band, leaving the table one band short and
+      // tripping the tiling BLOCKER (WR Roustabout, 2d6, no 12). Adopt the face
+      // as its own row only when it CONTINUES the tiling and fits the die, so a
+      // real page number still falls through to the stray branch.
+      const face = /^(\d{1,2})$/.exec(lines[j + 1] ?? "");
+      const n = face ? Number(face[1]) : NaN;
+      if (face && n === rows[rows.length - 1].hi + 1 && (!bounds || n <= bounds.max)) {
+        rows.push({ lo: n, hi: n, text: lines[j] });
+        skip.add(j); skip.add(j + 1);
+        j++;                                               // consume the face line too
+        continue;
+      }
+      rows[rows.length - 1].text += " " + lines[j]; skip.add(j);   // wrapped row
+    }
   }
   return rows.length ? _validateTalentBands({ skip, formula, rows, warnings: [] }) : null;
 }
