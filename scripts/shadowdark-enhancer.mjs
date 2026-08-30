@@ -29,6 +29,7 @@ import {
   runMonsterSpellLibraryRefresh,
   syncMonsterSpellLibrary,
 } from "./monster-creator/monster-spell-library.mjs";
+import { migrateMonsterSpellPack } from "./monster-creator/monster-spell-pack-migration.mjs";
 import { createMutatedActor } from "./monster-creator/monster-mutator.mjs";
 import { registerQuickAdjustHUD } from "./monster-creator/quick-adjust-app.mjs";
 import { catalog as monsterTableCatalog } from "./monster-creator/monster-table-runtime.mjs";
@@ -673,11 +674,21 @@ Hooks.once("ready", () => {
       console.error(`${MODULE_ID} | encounter-source migration failed:`, err);
     }
   }
-  // Core monster spells are generated into the managed world library on every
+  // Core monster spells are generated into the managed Items pack on every
   // activation. The sync is idempotent and writes only from the primary active
   // GM, so player clients and secondary GMs remain read-only.
   if (game.user.isGM) {
     setTimeout(async () => {
+      // Consolidation first (#54): worlds that ran an older build still hold the
+      // separate world.shadowdark-enhancer--monster-spells pack. Its content has
+      // to reach the Items pack BEFORE the sync reads that pack, or the sync
+      // sees no existing entries and generates a second copy of everything.
+      // Both are no-ops once the legacy pack is gone or already empty.
+      try {
+        await migrateMonsterSpellPack({ game });
+      } catch (err) {
+        console.error(`${MODULE_ID} | Monster Spell pack consolidation failed:`, err);
+      }
       try {
         await syncMonsterSpellLibrary({ game, sourceIds: ["shadowdark.monsters"] });
       } catch (err) {

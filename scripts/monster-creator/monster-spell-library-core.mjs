@@ -25,12 +25,23 @@ function fnv1a32(text) {
   return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
+/**
+ * Library bookkeeping flags, stripped before any content comparison.
+ *
+ * `monsterSpell` is the provenance block. `monsterSpellMigration` is the marker
+ * the #54 pack consolidation stamps on a moved copy. NEITHER is GM content, and
+ * leaving either in would make the materialized fingerprint of a document
+ * disagree with the fingerprint stored inside it — which the planner reads as
+ * "a GM edited this" and permanently downgrades to a curated conflict.
+ */
+const LIBRARY_FLAG_KEYS = ["monsterSpell", "monsterSpellMigration"];
+
 function withoutLibraryFlags(value) {
   const flags = stableValue(value ?? {});
-  if (flags?.[MODULE_ID]?.monsterSpell) {
-    delete flags[MODULE_ID].monsterSpell;
-    if (!Object.keys(flags[MODULE_ID]).length) delete flags[MODULE_ID];
-  }
+  const moduleFlags = flags?.[MODULE_ID];
+  if (!moduleFlags) return flags;
+  for (const key of LIBRARY_FLAG_KEYS) delete moduleFlags[key];
+  if (!Object.keys(moduleFlags).length) delete flags[MODULE_ID];
   return flags;
 }
 

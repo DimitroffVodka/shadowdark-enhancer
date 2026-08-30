@@ -5,18 +5,28 @@ import {
 } from "./monster-spell-library-core.mjs";
 import {
   ensureFolderPath as ensureSuiteFolderPath,
+  ensurePack as ensureSuitePack,
   ensurePackInSuite,
+  findSuitePack,
+  SUITE_PACKS,
 } from "../shared/compendium-suite.mjs";
 import { findMonsterPack, SDE_ACTORS_LABEL } from "../importer/monsters/monster-pack.mjs";
 
 const MODULE_ID = "shadowdark-enhancer";
-const MONSTER_SPELL_PACK = {
-  key: "monsterSpells",
-  collection: "world.shadowdark-enhancer--monster-spells",
-  label: "Shadowdark Enhancer — Monster Spells",
-  documentName: "Item",
-  ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "OWNER" },
-};
+
+/**
+ * Generated Monster Spells live in the managed Items pack, not in a pack of
+ * their own (#54). The dedicated `world.shadowdark-enhancer--monster-spells`
+ * pack earlier releases created is migrated into this folder tree by
+ * monster-spell-pack-migration.mjs.
+ */
+export const MONSTER_SPELL_TARGET_PACK_KEY = "sde-items";
+
+/** Top-level folder inside the Items pack that holds every generated copy. */
+export const MONSTER_SPELL_FOLDER = "Monster Spells";
+
+/** Folder used for entries whose source label cannot be determined. */
+export const MONSTER_SPELL_FALLBACK_SOURCE_FOLDER = "Other Sources";
 
 const SOURCE_DESCRIPTORS = [
   { id: "shadowdark.monsters", label: "Shadowdark Core" },
@@ -30,31 +40,29 @@ function findPack(packs, collection) {
   return [...(packs ?? [])].find(pack => pack?.collection === collection);
 }
 
-async function ensureWorldPack(descriptor) {
-  let pack = findPack(globalThis.game?.packs, descriptor.collection)
-    ?? [...(globalThis.game?.packs ?? [])].find(
-      candidate => candidate?.metadata?.packageType === "world"
-        && candidate?.metadata?.label === descriptor.label,
-    );
-  if (!pack) {
-    const CollectionClass = globalThis.foundry?.documents?.collections?.CompendiumCollection
-      ?? globalThis.CompendiumCollection;
-    pack = await CollectionClass.createCompendium({
-      label: descriptor.label,
-      type: descriptor.documentName,
-      packageType: "world",
-    });
-  }
-  if (pack.locked) await pack.configure({ locked: false });
-  await pack.configure({ ownership: descriptor.ownership });
-  return pack;
+/**
+ * The managed Items pack, if it already exists in this world. Returns undefined
+ * rather than creating it — read paths (preview, sync) must not create packs.
+ * @param {object} [options]
+ * @param {object} [options.game]
+ * @returns {CompendiumCollection|undefined}
+ */
+export function findMonsterSpellTargetPack({ game = globalThis.game } = {}) {
+  return findSuitePack(MONSTER_SPELL_TARGET_PACK_KEY, { game });
 }
 
+/**
+ * Find-or-create the managed Items pack that holds the generated library.
+ * Ownership, unlocking, and sidebar-folder placement all come from the shared
+ * suite layer, so Monster Spells inherit exactly the Items pack's contract.
+ * @returns {Promise<CompendiumCollection>}
+ */
 export async function ensureMonsterSpellPack({
-  ensureWorldPack: ensure = ensureWorldPack,
+  ensurePack: ensure = ensureSuitePack,
   placeInSuite = ensurePackInSuite,
 } = {}) {
-  const pack = await ensure(MONSTER_SPELL_PACK);
+  const descriptor = SUITE_PACKS.find(entry => entry.id === MONSTER_SPELL_TARGET_PACK_KEY);
+  const pack = await ensure(descriptor);
   await placeInSuite(pack);
   return pack;
 }
@@ -135,14 +143,27 @@ export async function scanMonsterSpellSources(sources = listMonsterSpellSources(
   };
 }
 
+/**
+ * Read the target pack's Spell documents. The target is now the shared Items
+ * pack, which in an import-heavy world also holds hundreds of weapons, armour,
+ * and treasure — none of which can ever be a library entry. The `type` query is
+ * the documented v14 filter (CompendiumCollection#getDocuments); a pack double
+ * or an older core that ignores it simply returns everything, which the planner
+ * already tolerates.
+ * @param {CompendiumCollection} pack
+ * @returns {Promise<object[]>}
+ */
+async function loadTargetSpells(pack) {
+  const documents = await pack.getDocuments({ type: "Spell" });
+  return [...(documents ?? [])].map(plainDocument);
+}
+
 export async function prepareMonsterSpellRefresh({
   sources = listMonsterSpellSources(),
   targetPack = null,
 } = {}) {
   const scan = await scanMonsterSpellSources(sources);
-  const existing = targetPack
-    ? (await targetPack.getDocuments()).map(plainDocument)
-    : [];
+  const existing = targetPack ? await loadTargetSpells(targetPack) : [];
   const plan = planMonsterSpellRefresh(scan.entries, existing, {
     refreshedSourcePacks: sources.map(source => source.id),
   });
@@ -179,7 +200,7 @@ export async function previewMonsterSpellLibrary({
     ? available.filter(source => sourceIds.includes(source.id))
     : available;
   const resolvedTarget = targetPack === undefined
-    ? findPack(game?.packs, MONSTER_SPELL_PACK.collection)
+    ? findMonsterSpellTargetPack({ game })
     : targetPack;
   return prepareMonsterSpellRefresh({ sources: selected, targetPack: resolvedTarget });
 }
@@ -200,9 +221,14 @@ export async function applyMonsterSpellRefresh(preview, {
 
   const folderIds = new Map();
   const folderFor = async entry => {
-    const sourceLabel = String(entry?.sources?.[0]?.sourceLabel ?? "Other Sources") || "Other Sources";
+    const sourceLabel = String(
+      entry?.sources?.[0]?.sourceLabel ?? MONSTER_SPELL_FALLBACK_SOURCE_FOLDER,
+    ) || MONSTER_SPELL_FALLBACK_SOURCE_FOLDER;
     if (!folderIds.has(sourceLabel)) {
-      folderIds.set(sourceLabel, await ensureFolderPath(targetPack, ["Monster Spells", sourceLabel]));
+      folderIds.set(
+        sourceLabel,
+        await ensureFolderPath(targetPack, [MONSTER_SPELL_FOLDER, sourceLabel]),
+      );
     }
     return folderIds.get(sourceLabel);
   };
@@ -390,7 +416,7 @@ export async function syncMonsterSpellLibrary({
   await acquireRefreshLock();
   try {
     const resolvedTarget = targetPack === undefined
-      ? findPack(game?.packs, MONSTER_SPELL_PACK.collection)
+      ? findMonsterSpellTargetPack({ game })
       : targetPack;
     const preview = await prepareRefresh({ sources: selected, targetPack: resolvedTarget });
     return await applyRefresh(preview, { game });
@@ -448,7 +474,7 @@ export async function runMonsterSpellLibraryRefresh({
     const selectedSources = await chooseSources(sources);
     if (!selectedSources?.length) return null;
     const resolvedTarget = targetPack === undefined
-      ? findPack(game?.packs, MONSTER_SPELL_PACK.collection)
+      ? findMonsterSpellTargetPack({ game })
       : targetPack;
     const preview = await prepareMonsterSpellRefresh({ sources: selectedSources, targetPack: resolvedTarget });
     if (!await confirm(preview)) return null;
