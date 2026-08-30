@@ -2,6 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  CORE_MONSTER_SPELL_ICONS,
+  CURSED_SCROLL_MONSTER_SPELL_ICONS,
+  resolveCoreMonsterSpellIcon,
+  resolveMonsterSpellIcon,
+} from "../scripts/monster-creator/core-monster-spell-icons.mjs";
+import {
   collectMonsterSpells,
   legacyMonsterSpellMaterializedFingerprint,
   materializeMonsterSpell,
@@ -28,6 +34,61 @@ function actor(name, uuid, spells) {
   };
 }
 
+test("Core Monster Spells use curated base Foundry icons without changing imported spells", () => {
+  const iconMap = { Blast: "icons/magic/fire/projectile-fireball-smoke-orange.webp" };
+  const item = { name: "Blast", img: "icons/svg/book.svg" };
+
+  assert.equal(
+    resolveCoreMonsterSpellIcon(item, { sourcePack: "shadowdark.monsters" }, iconMap),
+    iconMap.Blast,
+  );
+  assert.equal(
+    resolveCoreMonsterSpellIcon(item, { sourcePack: "world.sde-actors" }, iconMap),
+    "icons/svg/book.svg",
+  );
+  assert.ok(Object.keys(CORE_MONSTER_SPELL_ICONS).length >= 60);
+  assert.ok(Object.values(CORE_MONSTER_SPELL_ICONS).every(icon => icon.startsWith("icons/")));
+
+  const [collected] = collectMonsterSpells([
+    actor("Mage", "Compendium.shadowdark.monsters.Actor.mage", [
+      { name: "Arcane Armor", img: "icons/svg/book.svg" },
+    ]),
+  ]);
+  assert.equal(collected.data.img, CORE_MONSTER_SPELL_ICONS["Arcane Armor"]);
+});
+
+test("Cursed Scroll Monster Spells use source-scoped curated icons", () => {
+  const icon = "icons/magic/death/hand-withered-gray.webp";
+  const sourceIcons = { "cursed scroll 5::impale": icon };
+  const item = { name: "Impale", img: "icons/svg/book.svg" };
+
+  assert.equal(
+    resolveMonsterSpellIcon(item, {
+      sourcePack: "world.shadowdark-enhancer--actors",
+      sourceLabel: "Cursed Scroll 5",
+    }, { sourceIcons }),
+    icon,
+  );
+  assert.equal(
+    resolveMonsterSpellIcon(item, {
+      sourcePack: "world.shadowdark-enhancer--actors",
+      sourceLabel: "Cursed Scroll 4",
+    }, { sourceIcons }),
+    "icons/svg/book.svg",
+  );
+  assert.equal(Object.keys(CURSED_SCROLL_MONSTER_SPELL_ICONS).length, 13);
+  assert.ok(Object.values(CURSED_SCROLL_MONSTER_SPELL_ICONS)
+    .every(value => value.startsWith("icons/")));
+
+  const imported = actor("Dremir", "Compendium.world.shadowdark-enhancer--actors.Actor.dremir", [
+    { name: "Impale", img: "icons/svg/book.svg" },
+  ]);
+  imported.sourcePack = "world.shadowdark-enhancer--actors";
+  imported.sourceLabel = "Cursed Scroll 5";
+  const [collected] = collectMonsterSpells([imported]);
+  assert.equal(collected.data.img, CURSED_SCROLL_MONSTER_SPELL_ICONS["cursed scroll 5::impale"]);
+});
+
 test("identical embedded spells become one library entry with every source", () => {
   const entries = collectMonsterSpells([
     actor("Sphinx", "Compendium.shadowdark.monsters.Actor.sphinx", [
@@ -39,7 +100,7 @@ test("identical embedded spells become one library entry with every source", () 
   ]);
 
   assert.equal(entries.length, 1);
-  assert.equal(entries[0].name, "Gate");
+  assert.equal(entries[0].name, "Gate - Rathgamnon");
   assert.equal(entries[0].sources.length, 2);
   assert.deepEqual(entries[0].sources.map(source => source.actorName), ["Rathgamnon", "Sphinx"]);
   assert.match(entries[0].fingerprint, /^fnv1a32:[0-9a-f]{8}$/);
@@ -55,7 +116,7 @@ test("same-name variants remain distinct and receive source-qualified names", ()
     ]),
   ]);
 
-  assert.deepEqual(entries.map(entry => entry.name), ["Blast — Mage", "Blast — Mordanticus"]);
+  assert.deepEqual(entries.map(entry => entry.name), ["Blast - Mage", "Blast - Mordanticus"]);
   assert.ok(entries.every(entry => entry.originalName === "Blast"));
   assert.ok(entries.every(entry => entry.variant === true));
   assert.notEqual(entries[0].fingerprint, entries[1].fingerprint);
@@ -70,8 +131,8 @@ test("same-name variants from one Actor receive unique tier-qualified names", ()
   ]);
 
   assert.deepEqual(entries.map(entry => entry.name), [
-    "Blast — Mage (Tier 1)",
-    "Blast — Mage (Tier 2)",
+    "Blast - Mage (Tier 1)",
+    "Blast - Mage (Tier 2)",
   ]);
 });
 
@@ -147,7 +208,7 @@ test("refresh plan creates materialized spells with deterministic provenance fla
   assert.equal(plan.create.length, 1);
   assert.equal(plan.update.length, 0);
   assert.equal(materialized.folder, "folder-core");
-  assert.equal(materialized.name, "Arcane Armor");
+  assert.equal(materialized.name, "Arcane Armor - Mage");
   assert.equal(provenance.generated, true);
   assert.equal(provenance.sourceFingerprint, entry.fingerprint);
   assert.equal(provenance.sources[0].actorUuid, "Compendium.shadowdark.monsters.Actor.mage");
@@ -312,6 +373,21 @@ test("refresh plan reports missing generated entries as stale and ignores user-c
   assert.equal(plan.stale[0].document._id, "generated-1");
 });
 
+test("a partial refresh does not mark entries from unselected sources stale", () => {
+  const imported = actor("Dremir", "Compendium.world.shadowdark-enhancer--actors.Actor.dremir", [
+    { name: "Impale", system: { tier: 1, description: "<p>Impale.</p>" } },
+  ]);
+  imported.sourcePack = "world.shadowdark-enhancer--actors";
+  const [entry] = collectMonsterSpells([imported]);
+  const generated = { _id: "generated-imported", ...materializeMonsterSpell(entry) };
+
+  const plan = planMonsterSpellRefresh([], [generated], {
+    refreshedSourcePacks: ["shadowdark.monsters"],
+  });
+
+  assert.equal(plan.stale.length, 0);
+});
+
 test("materialization preserves source flags while adding library provenance", () => {
   const [entry] = collectMonsterSpells([
     actor("Mage", "Compendium.shadowdark.monsters.Actor.mage", [
@@ -342,7 +418,7 @@ test("attaching a generated variant restores its original name and removes libra
 
   const attached = normalizeMonsterSpellAttachment(generated);
 
-  assert.equal(generated.name, "Blast — Mage");
+  assert.equal(generated.name, "Blast - Mage");
   assert.equal(attached.name, "Blast");
   assert.equal(attached.flags.custom.mode, "kept");
   assert.equal(attached.flags["shadowdark-enhancer"]?.monsterSpell, undefined);

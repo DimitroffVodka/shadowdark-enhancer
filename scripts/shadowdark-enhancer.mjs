@@ -27,6 +27,7 @@ import {
   listMonsterSpellSources,
   previewMonsterSpellLibrary,
   runMonsterSpellLibraryRefresh,
+  syncMonsterSpellLibrary,
 } from "./monster-creator/monster-spell-library.mjs";
 import { createMutatedActor } from "./monster-creator/monster-mutator.mjs";
 import { registerQuickAdjustHUD } from "./monster-creator/quick-adjust-app.mjs";
@@ -672,13 +673,20 @@ Hooks.once("ready", () => {
       console.error(`${MODULE_ID} | encounter-source migration failed:`, err);
     }
   }
-  // When the module version changes, quietly bring already-imported monsters up
-  // to fresh-import fidelity (icons, casing, spell items, art) — the retired
-  // Maintenance → "Backfill monsters" button, now automatic. Idempotent and
-  // non-destructive; deferred so it never delays ready; silent unless it
-  // actually upgraded something. Version stamp only advances on success, so a
-  // failed sweep retries next load.
+  // Core monster spells are generated into the managed world library on every
+  // activation. The sync is idempotent and writes only from the primary active
+  // GM, so player clients and secondary GMs remain read-only.
   if (game.user.isGM) {
+    setTimeout(async () => {
+      try {
+        await syncMonsterSpellLibrary({ game, sourceIds: ["shadowdark.monsters"] });
+      } catch (err) {
+        console.error(`${MODULE_ID} | automatic Core Monster Spell sync failed:`, err);
+      }
+    }, 1000);
+
+    // When the module version changes, quietly bring already-imported monsters
+    // up to fresh-import fidelity. The version stamp advances only on success.
     const cur = String(game.modules.get(MODULE_ID)?.version ?? "");
     if (cur && game.settings.get(MODULE_ID, "backfillVersion") !== cur) {
       setTimeout(async () => {

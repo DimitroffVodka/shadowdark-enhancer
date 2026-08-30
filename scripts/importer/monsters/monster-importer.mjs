@@ -11,6 +11,7 @@
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
 import { draftToActorData } from "../../monster-creator/encounter-creator.mjs";
+import { syncImportedMonsterSpells } from "../../monster-creator/monster-spell-library.mjs";
 import { MonsterLinker } from "./monster-linker.mjs";
 import { MONSTER_PACK_LABEL, findMonsterPack } from "./monster-pack.mjs";
 import { replaceDocument, cleanImportHtml } from "../../shared/compendium-suite.mjs";
@@ -217,6 +218,11 @@ export async function createMonsters(drafts, { source = "", onConflict } = {}) {
     // name; the debounced sweep upgrades those rows to real @UUID links.
     const { TableEnricher } = await import("../tables/table-enrich.mjs");
     TableEnricher.scheduleRelinkSweep();
+    try {
+      await syncImportedMonsterSpells(out);
+    } catch (err) {
+      console.error(`${MODULE_ID} | imported Monster Spell sync failed:`, err);
+    }
   }
   return out;
 }

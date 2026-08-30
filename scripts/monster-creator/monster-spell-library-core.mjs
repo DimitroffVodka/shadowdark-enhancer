@@ -1,3 +1,5 @@
+import { resolveMonsterSpellIcon } from "./core-monster-spell-icons.mjs";
+
 const MODULE_ID = "shadowdark-enhancer";
 
 function stableValue(value) {
@@ -312,8 +314,8 @@ export function planMonsterSpellRefresh(entries = [], existingDocuments = [], {
         const actorNamesCollide = desiredActor === retainedActor;
         const qualify = (originalName, source) => {
           const actorName = source?.actorName || "Unknown Source";
-          if (!actorNamesCollide) return `${originalName} — ${actorName}`;
-          return `${originalName} — ${actorName} (${source?.sourceLabel || source?.sourcePack || "Source"})`;
+          if (!actorNamesCollide) return `${originalName} - ${actorName}`;
+          return `${originalName} - ${actorName} (${source?.sourceLabel || source?.sourcePack || "Source"})`;
         };
         entry = {
           ...entry,
@@ -361,10 +363,18 @@ export function planMonsterSpellRefresh(entries = [], existingDocuments = [], {
     }
     matchedIds.add(existing.provenance.libraryId);
 
+    const mergedSources = mergeSourceRefs(
+      entry.sources,
+      existing.provenance.sources,
+      refreshedPacks,
+    );
     entry = {
       ...entry,
       libraryId: existing.provenance.libraryId,
-      sources: mergeSourceRefs(entry.sources, existing.provenance.sources, refreshedPacks),
+      sources: mergedSources,
+      name: entry.variant
+        ? entry.name
+        : `${entry.originalName} - ${mergedSources[0]?.actorName || "Unknown Source"}`,
     };
     data = materializeMonsterSpell(entry);
     provenance = data.flags[MODULE_ID].monsterSpell;
@@ -387,7 +397,13 @@ export function planMonsterSpellRefresh(entries = [], existingDocuments = [], {
   }
 
   for (const [libraryId, existing] of existingById) {
-    if (!matchedIds.has(libraryId)) plan.stale.push(existing);
+    if (matchedIds.has(libraryId)) continue;
+    const existingSources = existing.provenance.sources ?? [];
+    if (refreshedPacks.size
+      && !existingSources.some(source => refreshedPacks.has(source.sourcePack))) {
+      continue;
+    }
+    plan.stale.push(existing);
   }
   return plan;
 }
@@ -406,7 +422,10 @@ export function collectMonsterSpells(actors = []) {
           name: content.name,
           originalName: content.name,
           fingerprint,
-          data: content,
+          data: {
+            ...content,
+            img: resolveMonsterSpellIcon(item, actor),
+          },
           sources: [],
           warnings: validateMonsterSpell(content),
         };
@@ -435,9 +454,7 @@ export function collectMonsterSpells(actors = []) {
     return {
       ...entry,
       variant,
-      name: variant
-        ? `${entry.originalName} — ${entry.sources[0]?.actorName || "Unknown Source"}`
-        : entry.originalName,
+      name: `${entry.originalName} - ${entry.sources[0]?.actorName || "Unknown Source"}`,
     };
   });
   const displayCounts = new Map();

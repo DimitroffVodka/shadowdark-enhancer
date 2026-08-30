@@ -9,8 +9,13 @@ import {
   previewMonsterSpellLibrary,
   runMonsterSpellLibraryRefresh,
   scanMonsterSpellSources,
+  syncImportedMonsterSpells,
+  syncMonsterSpellLibrary,
 } from "../scripts/monster-creator/monster-spell-library.mjs";
-import { SUITE_PACKS } from "../scripts/shared/compendium-suite.mjs";
+import {
+  ensurePackInSuite,
+  SUITE_PACKS,
+} from "../scripts/shared/compendium-suite.mjs";
 
 function pack(collection, label, documents = []) {
   return {
@@ -53,17 +58,20 @@ test("source discovery includes core monsters and the managed Enhancer Actors pa
   assert.deepEqual(sources.map(source => source.version), ["4.0.6", "0.15.1"]);
 });
 
-test("target pack is dedicated to monster spells and hidden from players", async () => {
+test("target pack is dedicated, player-hidden, and placed in the SDE compendium folder", async () => {
   let descriptor;
+  let placedPack;
   const target = { collection: "world.shadowdark-enhancer--monster-spells" };
   const pack = await ensureMonsterSpellPack({
     ensureWorldPack: async value => {
       descriptor = value;
       return target;
     },
+    placeInSuite: async value => { placedPack = value; },
   });
 
   assert.equal(pack, target);
+  assert.equal(placedPack, target);
   assert.deepEqual(descriptor, {
     key: "monsterSpells",
     collection: "world.shadowdark-enhancer--monster-spells",
@@ -71,6 +79,31 @@ test("target pack is dedicated to monster spells and hidden from players", async
     documentName: "Item",
     ownership: { PLAYER: "NONE", TRUSTED: "NONE", ASSISTANT: "OWNER" },
   });
+});
+
+test("suite placement creates the SDE compendium folder and moves the pack into it", async () => {
+  const folders = [];
+  const configureCalls = [];
+  const target = {
+    folder: null,
+    configure: async data => { configureCalls.push(data); },
+  };
+  const FolderClass = {
+    create: async data => {
+      assert.deepEqual(data, { name: "Shadowdark Enhancer", type: "Compendium" });
+      const folder = { id: "sde-folder", name: data.name, type: data.type };
+      folders.push(folder);
+      return folder;
+    },
+  };
+
+  const result = await ensurePackInSuite(target, {
+    game: { user: { isGM: true }, folders },
+    FolderClass,
+  });
+
+  assert.equal(result, target);
+  assert.deepEqual(configureCalls, [{ folder: "sde-folder" }]);
 });
 
 test("the Monster Spell pack participates in managed-suite backup and restore", () => {
@@ -83,6 +116,110 @@ test("the Monster Spell pack participates in managed-suite backup and restore", 
       label: "Shadowdark Enhancer — Monster Spells",
     },
   );
+});
+
+test("automatic sync refreshes only the requested source as the primary GM", async () => {
+  const core = { id: "shadowdark.monsters", pack: pack("shadowdark.monsters", "Core") };
+  const managed = { id: "world.sde-actors", pack: pack("world.sde-actors", "SDE") };
+  const prepared = [];
+  const applied = [];
+  const game = {
+    user: { id: "gm", isGM: true },
+    users: { activeGM: { id: "gm" } },
+  };
+
+  const result = await syncMonsterSpellLibrary({
+    game,
+    sourceIds: ["shadowdark.monsters"],
+    listSources: () => [core, managed],
+    prepareRefresh: async ({ sources }) => {
+      prepared.push(sources.map(source => source.id));
+      return { plan: { create: [], update: [], metadataUpdate: [], unchanged: [], conflict: [], stale: [] } };
+    },
+    applyRefresh: async preview => {
+      applied.push(preview);
+      return { created: 0, updated: 0 };
+    },
+  });
+
+  assert.deepEqual(prepared, [["shadowdark.monsters"]]);
+  assert.equal(applied.length, 1);
+  assert.deepEqual(result, { created: 0, updated: 0 });
+});
+
+test("automatic sync queues an imported-monster refresh behind an in-flight sync", async () => {
+  const game = {
+    user: { id: "gm", isGM: true },
+    users: { activeGM: { id: "gm" } },
+  };
+  const source = { id: "shadowdark.monsters" };
+  let releaseFirst;
+  let enteredFirst;
+  const firstHeld = new Promise(resolve => { releaseFirst = resolve; });
+  const firstEntered = new Promise(resolve => { enteredFirst = resolve; });
+  const order = [];
+  const preview = { plan: { create: [], update: [], metadataUpdate: [], unchanged: [], conflict: [], stale: [] } };
+
+  const first = syncMonsterSpellLibrary({
+    game,
+    listSources: () => [source],
+    prepareRefresh: async () => {
+      order.push("first-start");
+      enteredFirst();
+      await firstHeld;
+      return preview;
+    },
+    applyRefresh: async () => {
+      order.push("first-apply");
+      return { sync: "first" };
+    },
+  });
+  await firstEntered;
+
+  const second = syncMonsterSpellLibrary({
+    game,
+    listSources: () => [source],
+    prepareRefresh: async () => {
+      order.push("second-start");
+      return preview;
+    },
+    applyRefresh: async () => {
+      order.push("second-apply");
+      return { sync: "second" };
+    },
+  });
+
+  await Promise.resolve();
+  assert.deepEqual(order, ["first-start"]);
+  releaseFirst();
+
+  assert.deepEqual(await first, { sync: "first" });
+  assert.deepEqual(await second, { sync: "second" });
+  assert.deepEqual(order, ["first-start", "first-apply", "second-start", "second-apply"]);
+});
+
+test("import sync refreshes the managed Actor source only after monsters changed", async () => {
+  const calls = [];
+  const game = {};
+  const listSources = () => [
+    { id: "shadowdark.monsters" },
+    { id: "world.sde-actors" },
+  ];
+  const sync = async options => { calls.push(options); return { created: 2 }; };
+
+  const result = await syncImportedMonsterSpells(
+    { created: [{ name: "Mage" }], replaced: [] },
+    { game, listSources, sync },
+  );
+  const skipped = await syncImportedMonsterSpells(
+    { created: [], replaced: [] },
+    { game, listSources, sync },
+  );
+
+  assert.deepEqual(result, { created: 2 });
+  assert.equal(skipped, null);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].sourceIds, ["world.sde-actors"]);
 });
 
 test("source scan extracts embedded spells with source labels and a summary", async () => {
@@ -111,7 +248,7 @@ test("source scan extracts embedded spells with source labels and a summary", as
 
   const scan = await scanMonsterSpellSources(listMonsterSpellSources({ game }));
 
-  assert.deepEqual(scan.entries.map(entry => entry.name), ["Blast", "Impale"]);
+  assert.deepEqual(scan.entries.map(entry => entry.name), ["Blast - Mage", "Impale - Dremir"]);
   assert.equal(scan.entries[0].sources[0].sourceLabel, "Shadowdark Core");
   assert.equal(scan.entries[1].sources[0].sourceLabel, "Cursed Scroll 5");
   assert.equal(scan.entries[1].sources[0].sourceVersion, "4.0.6");

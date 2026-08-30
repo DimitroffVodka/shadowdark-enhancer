@@ -3,7 +3,10 @@ import {
   materializeMonsterSpell,
   planMonsterSpellRefresh,
 } from "./monster-spell-library-core.mjs";
-import { ensureFolderPath as ensureSuiteFolderPath } from "../shared/compendium-suite.mjs";
+import {
+  ensureFolderPath as ensureSuiteFolderPath,
+  ensurePackInSuite,
+} from "../shared/compendium-suite.mjs";
 import { findMonsterPack, SDE_ACTORS_LABEL } from "../importer/monsters/monster-pack.mjs";
 
 const MODULE_ID = "shadowdark-enhancer";
@@ -49,8 +52,11 @@ async function ensureWorldPack(descriptor) {
 
 export async function ensureMonsterSpellPack({
   ensureWorldPack: ensure = ensureWorldPack,
+  placeInSuite = ensurePackInSuite,
 } = {}) {
-  return ensure(MONSTER_SPELL_PACK);
+  const pack = await ensure(MONSTER_SPELL_PACK);
+  await placeInSuite(pack);
+  return pack;
 }
 
 export function listMonsterSpellSources({ game = globalThis.game } = {}) {
@@ -344,6 +350,72 @@ async function confirmRefreshDialog(preview) {
 }
 
 let refreshInProgress = false;
+const refreshWaiters = [];
+
+function tryAcquireRefreshLock() {
+  if (refreshInProgress) return false;
+  refreshInProgress = true;
+  return true;
+}
+
+async function acquireRefreshLock() {
+  if (tryAcquireRefreshLock()) return;
+  await new Promise(resolve => refreshWaiters.push(resolve));
+  return acquireRefreshLock();
+}
+
+function releaseRefreshLock() {
+  refreshInProgress = false;
+  refreshWaiters.shift()?.();
+}
+
+export async function syncMonsterSpellLibrary({
+  game = globalThis.game,
+  sourceIds = null,
+  targetPack = undefined,
+  listSources = listMonsterSpellSources,
+  prepareRefresh = prepareMonsterSpellRefresh,
+  applyRefresh = applyMonsterSpellRefresh,
+} = {}) {
+  if (!game?.user?.isGM) return null;
+  const activeGm = game?.users?.activeGM;
+  if (activeGm && activeGm.id !== game.user.id) return null;
+
+  const available = listSources({ game });
+  const selected = Array.isArray(sourceIds)
+    ? available.filter(source => sourceIds.includes(source.id))
+    : available;
+  if (!selected.length) return null;
+
+  await acquireRefreshLock();
+  try {
+    const resolvedTarget = targetPack === undefined
+      ? findPack(game?.packs, MONSTER_SPELL_PACK.collection)
+      : targetPack;
+    const preview = await prepareRefresh({ sources: selected, targetPack: resolvedTarget });
+    return await applyRefresh(preview, { game });
+  } finally {
+    releaseRefreshLock();
+  }
+}
+
+export async function syncImportedMonsterSpells(importResult, {
+  game = globalThis.game,
+  listSources = listMonsterSpellSources,
+  sync = syncMonsterSpellLibrary,
+} = {}) {
+  const changed = [
+    ...(importResult?.created ?? []),
+    ...(importResult?.replaced ?? []),
+  ];
+  if (!changed.length) return null;
+
+  const sourceIds = listSources({ game })
+    .map(source => source.id)
+    .filter(id => id !== "shadowdark.monsters");
+  if (!sourceIds.length) return null;
+  return sync({ game, sourceIds });
+}
 
 export async function runMonsterSpellLibraryRefresh({
   game = globalThis.game,
@@ -364,11 +436,10 @@ export async function runMonsterSpellLibraryRefresh({
     );
     return null;
   }
-  if (refreshInProgress) {
+  if (!tryAcquireRefreshLock()) {
     globalThis.ui?.notifications?.warn("A Monster Spell Library refresh is already in progress.");
     return null;
   }
-  refreshInProgress = true;
   try {
     if (!sources.length) {
       globalThis.ui?.notifications?.warn("No supported monster Actor compendiums are installed.");
@@ -397,6 +468,6 @@ export async function runMonsterSpellLibraryRefresh({
     );
     return result;
   } finally {
-    refreshInProgress = false;
+    releaseRefreshLock();
   }
 }

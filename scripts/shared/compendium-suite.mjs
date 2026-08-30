@@ -160,6 +160,29 @@ export async function ensurePack(descriptor) {
   return pack;
 }
 
+export async function ensurePackInSuite(pack, {
+  game: gameRef = globalThis.game,
+  FolderClass = globalThis.Folder,
+} = {}) {
+  if (!gameRef?.user?.isGM || !pack) return pack;
+
+  let suiteFolder = gameRef.folders?.find?.(
+    folder => folder.type === "Compendium" && folder.name === SUITE_FOLDER_LABEL,
+  );
+  if (!suiteFolder) {
+    suiteFolder = await FolderClass.create({
+      name: SUITE_FOLDER_LABEL,
+      type: "Compendium",
+    });
+  }
+
+  const currentFolderId = pack.folder?.id ?? pack.folder ?? null;
+  if (suiteFolder && currentFolderId !== suiteFolder.id) {
+    await pack.configure({ folder: suiteFolder.id });
+  }
+  return pack;
+}
+
 /**
  * Find-or-create the "Shadowdark Enhancer" sidebar compendium folder; find-or-create
  * all managed packs inside it; return a map of CompendiumCollections.

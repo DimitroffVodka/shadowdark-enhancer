@@ -215,10 +215,16 @@ const preview = await api.monsterSpells.preview({
 await api.monsterSpells.refresh(); // Build/Refresh Monster Spells
 ```
 
-Refreshes reconcile by provenance rather than by spell name. Identical spell
-definitions consolidate with all source monsters recorded. Same-name definitions
-that differ remain separate and receive source-qualified names. Generated entries
-with curated edits are preserved and marked as conflicts; stale entries are
+Refreshes reconcile by provenance rather than by spell name. On each world
+activation, the primary active GM automatically reconciles Shadowdark Core; a
+successful Importer Hub monster create/replace reconciles the managed Enhancer
+Actor source. Automatic syncs queue behind an in-progress refresh. The
+interactive refresh remains available for reviewed recovery. Identical spell
+definitions consolidate with all source monsters recorded. Automatically
+maintained entries use `Spell Name - Monster Name`; same-name definitions that
+differ remain separate and add tier/source detail when needed. Generated entries
+with curated edits preserve both their content and edited name and are marked as
+conflicts; stale entries are
 reported but never deleted. Validation warnings report suspicious DC, dice,
 duration, and damage-formula mismatches without rewriting source content.
 

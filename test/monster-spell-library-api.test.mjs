@@ -19,6 +19,19 @@ test("the public API exposes Monster Spell Library preview, refresh, and source 
   assert.match(docs, /Build\/Refresh Monster Spells/);
 });
 
+test("ready schedules a primary-GM Core Monster Spell synchronization", async () => {
+  const entry = await read("scripts/shadowdark-enhancer.mjs");
+  assert.match(
+    entry,
+    /syncMonsterSpellLibrary\(\{\s*game,\s*sourceIds:\s*\["shadowdark\.monsters"\]\s*\}\)/,
+  );
+});
+
+test("Monster Importer syncs generated spells after creating or replacing monsters", async () => {
+  const importer = await read("scripts/importer/monsters/monster-importer.mjs");
+  assert.match(importer, /await syncImportedMonsterSpells\(out\)/);
+});
+
 test("the public Monster Spell API cannot replace the live game authority", async () => {
   const entry = await read("scripts/shadowdark-enhancer.mjs");
   assert.match(entry, /preview:\s*\(opts\)\s*=>\s*previewMonsterSpellLibrary\(\{\s*\.\.\.\(opts \?\? \{\}\),\s*game\s*\}\)/);

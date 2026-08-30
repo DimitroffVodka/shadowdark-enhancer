@@ -13,6 +13,11 @@ test("Monster Spell Library has a linked quick-use guide with reconciliation det
   assert.match(guide, /^# Monster Spell Library$/m);
   assert.match(guide, /^## Quick use$/m);
   assert.match(guide, /Build \/ Refresh/);
+  assert.match(guide, /automatically syncs Shadowdark Core/i);
+  assert.match(guide, /Importer Hub automatically syncs/i);
+  assert.match(guide, /Spell Name - Monster Name/);
+  assert.match(guide, /Foundry-native icons/);
+  assert.match(guide, /Cursed Scrolls 3, 4, and 5/);
   assert.match(guide, /Source Actors keep their embedded spells/);
   assert.match(guide, /<details>/);
   assert.match(guide, /curated edits/i);
