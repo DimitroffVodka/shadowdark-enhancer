@@ -3091,8 +3091,21 @@ export function dedupExactTables(drafts) {
   return out;
 }
 
-/** Pack-index field list needed for stable-manifest conflict lookup. */
-export const MANIFEST_INDEX_FIELDS = ["flags.shadowdark-enhancer.manifestId"];
+/**
+ * Pack-index field list needed for stable-manifest conflict lookup.
+ *
+ * `source` is NOT optional. The commit's cross-book guard reads
+ * `existing.flags["shadowdark-enhancer"].source` off an entry from THIS index;
+ * a pack index only carries the fields named here, so leaving `source` out made
+ * that flag permanently undefined and the whole "file the newcomer under its own
+ * book" branch unreachable. Seventeen table names are printed by more than one
+ * book, so the visible effect was that CS6's and Western Reaches' "Carousing
+ * Event" collided with Core's instead of being qualified.
+ */
+export const MANIFEST_INDEX_FIELDS = [
+  "flags.shadowdark-enhancer.manifestId",
+  "flags.shadowdark-enhancer.source",
+];
 
 /**
  * Find a module-owned table in a pack index by its EXACT

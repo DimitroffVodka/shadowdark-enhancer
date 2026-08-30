@@ -1258,6 +1258,17 @@ class HubPasteMethods {
   _applyImportSeed() {
     const seed = this._importSeed;
     if (!seed || !this._importTables?.length) return;
+    // The BOOK an unlock came from is identity every branch below needs and none
+    // of them set. The commit reads `pt.source` to decide whether a same-named
+    // table belongs to ANOTHER book (and stamps the source flag from it), so a
+    // draft that reaches it with source:null can never be qualified: seventeen
+    // table names are printed by more than one book, and CS6's / Western Reaches'
+    // "Carousing Event" silently collided with whichever book imported the name
+    // first. Stamp it BEFORE the per-shape returns below — including the
+    // _charSeed one, whose branch skips the "Source - Name" prefixing at the top
+    // of _onHubParse too, so nothing else was ever going to set it. `??=` keeps a
+    // source the parser worked out for itself.
+    if (seed.src) for (const t of this._importTables) t.source ??= seed.src;
     // Character-content seeds set their own identity in _onHubParse
     // ("Source - Name" convention + category) — don't clobber it here.
     if (seed._charSeed) return;
