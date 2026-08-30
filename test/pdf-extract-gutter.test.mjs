@@ -226,6 +226,24 @@ test("gutterRisks: a sub-point box overhang with a safe centre is not a warning"
   assert.match(warn, /cuts through 1 word \("CORRUPT"\)/, warn);
 });
 
+test("gutterRisks: an ambiguous sub-point straddler remains a named warning", () => {
+  // An overhang at the tolerance boundary is still ambiguous when the item's
+  // centre is within one quarter of its width from the cut. Keep this control
+  // visible so the safe-centre exception cannot mask a genuinely split word.
+  const cut = 205.56872;
+  const its = [];
+  for (let i = 0; i < 8; i++) {
+    its.push(span(36, 190, 500 - i * 14, `L${i}`));
+    its.push(span(230, 384, 493 - i * 14, `R${i}`));
+  }
+  its.push(span(40, 75, 200, "CONTROL-LEFT"));
+  its.push(span(cut - 1, cut + 1, 200, "AMBIGUOUS"));
+  its.push(span(230, 270, 200, "CONTROL-RIGHT"));
+
+  const [warn] = gutterRisks(its, W, cut);
+  assert.match(warn, /cuts through 1 word \("AMBIGUOUS"\)/, warn);
+});
+
 test("gutterRisks: a cut far off the page midline is flagged", () => {
   const its = cs6Page26();
   // 0.15W clear of centre, chosen to sit in white space so only the
