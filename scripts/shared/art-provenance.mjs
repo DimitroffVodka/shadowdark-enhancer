@@ -47,6 +47,13 @@
  * never from a path shape or a name. A3 only consumes this boundary;
  * stamping `generated` is the generating pipeline's job.
  *
+ * The boundary recognizes exactly ONE marker, `flags[MODULE_ID].generated`,
+ * and never infers the policy from another pipeline's bookkeeping. Other
+ * generators in this module have their own, incompatible reconciliation
+ * contracts — the Monster Spell library preserves hand-edited generated spells
+ * as curated conflicts — and since A1 their documents share this pack. See
+ * `isGeneratedArtifact` below.
+ *
  * Foundry-free and node-testable: every export takes plain documents/objects.
  *
  * Exports:
@@ -173,16 +180,28 @@ export function isArtUpgradeable(document, opts) {
 }
 
 /**
- * The flag half of the generated-artifact boundary: a document this module
- * generated rather than imported. Recognizes the shared
- * `flags[MODULE_ID].generated` marker and the Monster Spell library's existing
- * per-feature marker.
+ * The flag half of the generated-artifact boundary: a document the A7/D6
+ * generated-treasure pipeline owns, marked `flags[MODULE_ID].generated`.
+ *
+ * ONE marker, deliberately. "Generated" is not a single policy in this module,
+ * and treating it as one loses data. The Monster Spell library also generates
+ * documents, and stamps `flags[MODULE_ID].monsterSpell.generated` — but its
+ * contract is the OPPOSITE of replace-always: a hand-edited generated spell is
+ * reported as a curated conflict and PRESERVED, never overwritten
+ * (`monster-spell-library-core.mjs` planMonsterSpellRefresh, and the promise
+ * `docs/wiki/Monster-Spell-Library.md` makes to the GM). Since A1 those spells
+ * live in this very pack, so recognizing that marker here would let an
+ * ordinary item-importer name collision bypass every preservation rule and
+ * silently replace a spell the GM had curated.
+ *
+ * A pipeline that wants generic replace-always opts in with the explicit
+ * marker. It is never inferred from another pipeline's bookkeeping.
+ *
  * @param {object} document
  * @returns {boolean}
  */
 export function isGeneratedArtifact(document) {
-  const flags = document?.flags?.[MODULE_ID];
-  return flags?.generated === true || flags?.monsterSpell?.generated === true;
+  return document?.flags?.[MODULE_ID]?.generated === true;
 }
 
 /**

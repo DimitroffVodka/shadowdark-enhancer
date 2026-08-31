@@ -151,11 +151,9 @@ test("preserving GM art settles the verdict — the next import needs no legacy 
 
 test("the generated boundary is structural: managed pack AND an explicit flag", () => {
   const generated = { img: GM_ART, flags: { [MODULE_ID]: { generated: true } } };
-  const monsterSpell = { img: GM_ART, flags: { [MODULE_ID]: { monsterSpell: { generated: true } } } };
   const plain = { img: GM_ART, flags: { [MODULE_ID]: { imported: true } } };
 
   assert.equal(isGeneratedArtifact(generated), true);
-  assert.equal(isGeneratedArtifact(monsterSpell), true);
   assert.equal(isGeneratedArtifact(plain), false);
   assert.equal(isGeneratedArtifact({}), false);
 
@@ -165,6 +163,86 @@ test("the generated boundary is structural: managed pack AND an explicit flag", 
   assert.equal(isGeneratedManagedItem(generated, "world.talents"), false);
   assert.equal(isGeneratedManagedItem(plain, MANAGED_ITEMS_PACK), false);
   assert.equal(isGeneratedManagedItem(generated, undefined), false);
+});
+
+test("REGRESSION: a Monster Spell's generated marker is NOT generic replace-always", () => {
+  // "Generated" is not one policy. The Monster Spell library stamps
+  // flags[MODULE_ID].monsterSpell.generated, and its contract is the OPPOSITE
+  // of A7/D6's: a hand-edited generated spell is a curated CONFLICT and is
+  // preserved (planMonsterSpellRefresh; docs/wiki/Monster-Spell-Library.md).
+  // Since A1 those spells live in world.shadowdark-enhancer--items, so reading
+  // that marker as replace-always would let an ordinary item-importer name
+  // collision silently overwrite a spell the GM had curated.
+  const curatedSpell = {
+    name: "Blast - Mage", type: "Spell", img: GM_ART,
+    flags: { [MODULE_ID]: { monsterSpell: { generated: true, libraryId: "lib-1" } } },
+  };
+  assert.equal(isGeneratedArtifact(curatedSpell), false);
+  assert.equal(isGeneratedManagedItem(curatedSpell, MANAGED_ITEMS_PACK), false);
+
+  // ...so it is governed by ordinary provenance, and its art survives.
+  const decided = decideImportArt({
+    incomingImg: SHIKASHI_DAGGER,
+    existing: curatedSpell,
+    moduleDefaultImg: defaultItemImg(curatedSpell),
+    generatedArtifact: isGeneratedManagedItem(curatedSpell, MANAGED_ITEMS_PACK),
+  });
+  assert.equal(decided.preserved, true);
+  assert.equal(decided.img, GM_ART);
+});
+
+test("REGRESSION: a curated Monster Spell runs the full preservation path, not the bypass", () => {
+  // The full replace path, exactly as createItem drives it: the boundary is
+  // computed from the stored document, so nothing here may skip preservation.
+  const stored = {
+    name: "Blast - Mage", type: "Spell", img: GM_ART,
+    flags: { [MODULE_ID]: { monsterSpell: { generated: true, libraryId: "lib-1" } } },
+    system: { description: "<p>My curated 3d6 version.</p>", properties: ["Compendium.x.Item.KEPT"] },
+  };
+  const payload = buildItemData({ name: "Blast - Mage", type: "Spell", tier: 3 });
+  payload.system.properties = [];
+  preserveCuratedFields(payload, stored, {
+    generatedArtifact: isGeneratedManagedItem(stored, MANAGED_ITEMS_PACK),
+  });
+
+  assert.equal(payload.img, GM_ART, "curated art survives");
+  assert.equal(payload.flags[MODULE_ID].art.state, ART_STATES.CUSTOM);
+  assert.deepEqual(payload.system.properties, ["Compendium.x.Item.KEPT"], "curated properties survive");
+
+  // The description is decided by preservedDescription, a contract A3 does not
+  // touch — and it does NOT survive here. buildItemData's Spell path falls back
+  // to `description = name`, so the incoming `<p>Blast - Mage</p>` reads as real
+  // prose rather than an importer placeholder and wins. Pinned deliberately:
+  // this is a pre-existing item-importer hazard on the Spell path, unchanged by
+  // A3 and unrelated to the generated boundary, and it should be fixed where it
+  // lives rather than papered over here.
+  assert.equal(payload.system.description, "<p>Blast - Mage</p>");
+});
+
+test("the explicit A7/D6 marker in the protected Items pack IS still replace-always", () => {
+  // The other half of the contract: opting in explicitly still works, and only
+  // inside the protected pack.
+  const stored = {
+    name: "Murgazi Wine", type: "Basic", img: GM_ART,
+    flags: { [MODULE_ID]: { generated: true } },
+    system: { description: "<p>A hand-written tasting note.</p>" },
+  };
+  assert.equal(isGeneratedManagedItem(stored, MANAGED_ITEMS_PACK), true);
+
+  const payload = buildItemData({ name: "Murgazi Wine", type: "Basic" });
+  preserveCuratedFields(payload, stored, {
+    generatedArtifact: isGeneratedManagedItem(stored, MANAGED_ITEMS_PACK),
+  });
+  assert.equal(payload.img, defaultItemImg({ name: "Murgazi Wine", type: "Basic" }));
+  assert.equal(payload.system.description, "<p></p>");
+
+  // The same document outside the protected pack falls back to preservation.
+  const outside = buildItemData({ name: "Murgazi Wine", type: "Basic" });
+  preserveCuratedFields(outside, stored, {
+    generatedArtifact: isGeneratedManagedItem(stored, "world.talents"),
+  });
+  assert.equal(outside.img, GM_ART);
+  assert.equal(outside.system.description, "<p>A hand-written tasting note.</p>");
 });
 
 test("a generated artifact is replace-always — even hand-edited art loses", () => {
