@@ -207,21 +207,38 @@
   ships no property for — *Charge*, *Devastating* and *Mounted* on the Lance,
   *Obsidian* on the obsidian weapons, *Sniper* on the blowpipe, *Mount* on
   barding. There is nothing to attach them to, so the importer left them off and
-  flagged each one with *"note it in the description"* — and then didn't. The
-  Lance committed as a plain 15 gp d12 pole, and the three properties that make
-  it a lance survived only for as long as the GM remembered to type them in by
-  hand. They are now written into the item's description as it commits —
-  *"Properties with no core Shadowdark equivalent: Charge, Devastating,
-  Mounted."* — property labels only, because the rules text stays in the book you
-  own. Re-importing the same weapon refreshes that one line and leaves a
-  description you wrote yourself exactly as it was. The **Paladin's Lance** is
-  stocked by the class import rather than pasted as a table row, and it now
-  arrives the same way — importing the Paladin again updates an existing Lance
-  in place, so a world that already has one gets the line without a re-import of
-  anything else. That same pass stopped a quieter loss: re-importing a class used
-  to blank any description a GM had written on its stocked gear (the Duelist's
-  Rapier and Falchion, the Necromancer's Stave), because the overlay ships stats
-  and no text. Those descriptions are now left alone.
+  flagged each one with *"note it in the description"* — and then didn't. Those
+  three Lance codes are now **canonical managed Property UUIDs** rather than a
+  label in the description: pasting the WR weapon table (direct **Importer Hub** → Items commit or **Item Builder → Weapons**) and the **Paladin** class overlay
+  converge on the same materializer and write the same three `Property` documents
+  (`Charge`/`Devastating`/`Mounted`) into the managed Items pack at
+  `Western Reaches / Weapon Properties`. The Lance's own `system.properties` carries
+  those three UUIDs after `Two-Handed`, with no description-paragraph fallback for
+  that name. Rerunning either path reuses the same folder and Property identities
+  without creating duplicate Properties or folders, and a Property-create failure
+  is visible and fail-closed — the preparation notifies and no owning Item is
+  committed with a partial `system.properties` list (the marker stays for a direct
+  retry). Weapon codes outside that exact WR Lance triple — *Obsidian*,
+  *Sniper*, *Charge* on any non-Lance weapon/barding, and the existing
+  Paladin-overlap checks — remain visible-only fallbacks and still appear as
+  *"Properties with no core Shadowdark equivalent: …"* when those codes are
+  pasted. The Lance's existing **Two-Handed** handling is unchanged; the three
+  are additive alongside it. The book's rules text for those properties stays in
+  the GM's book (labels only on the document). Re-importing the same WR Lance
+  via either path refreshes the membership to those UUIDs without disturbing a
+  description you wrote yourself — the property paragraphs now describe only the
+  non-materialized remainder — and only an exact `Lance` name materializes the
+  three (nearest-neighbour rows such as *War lance* keep the labelled fallback and
+  do not mint Properties). The **Paladin's Lance** is stocked by the class import
+  rather than pasted as a table row; importing the Paladin again updates an
+  existing Lance in place, so a world that already has one gets the UUIDs without
+  a re-import of anything else. That same pass stopped a quieter loss: re-importing
+  a class used to blank any description a GM had written on its stocked gear (the
+  Duelist's Rapier and Falchion, the Necromancer's Stave), because the overlay
+  ships stats and no text. Those descriptions are now left alone.
+  *No pack id, existing Item migration, API, or setting changed — a world that
+  already committed a WR Lance receives the canonical Properties only on a fresh
+  commit through either path.*
 - **A downtime paste no longer loses Martial Training and Magical Research to a
   missing period.** Paste all four activities and only the first two would
   appear — not because anything was missing, but because those two are the only

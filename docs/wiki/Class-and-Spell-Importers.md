@@ -133,14 +133,7 @@ which leaves `isSpellCaster` false and the level-up dialog offering no spells.
 Paste the Spellcasting paragraph into stage 1 separately, or check that the class
 item ends up with its spellcasting talent.
 
-**The Paladin's Lance has no Charge, Devastating or Mounted property.**
-Core Shadowdark ships no property for those, so there is nothing to attach. The
-class import stocks the Lance with its stats and names the three in the item's
-**description** instead — the same line the [Importer
-Hub](Importer-Hub.md#after-a-commit-automatically) writes for a pasted weapon
-table. Add the rules text from your own book if you want it on the sheet: a
-later class re-import keeps a description you wrote and only refreshes that one
-line.
+**The Paladin's Lance has no Charge, Devastating or Mounted property attached by the system — they are canonical managed Properties.** Core Shadowdark ships no property for that WR triple, so the class overlay stocks the Lance and **materializes** `Charge`/`Devastating`/`Mounted` as managed `Property` documents (and UUIDs) in `Western Reaches / Weapon Properties` via the shared `wr-property-importer` seam used by the direct **Importer Hub** paths — the same direct pipeline and the same three UUIDs (see [Importer Hub — After a commit](Importer-Hub.md#after-a-commit-automatically)). The Lance's `system.properties` then lists those three after `Two-Handed`, so all three roads converge on the same documents. A later Paladin re-import reuses those identities and refreshes membership without disturbing a description you wrote; only an exact `Lance` name materializes the WR triple for that overlay, and non-Lance `Charge` (or *Obsidian*/*Sniper*) stays a visible description fallback when pasted as a table row. The **rules text** for each property stays in the GM's book (labels only on the document). A Property-create failure is visible and fail-closed — the preparation notifies and no stocked overlay Item is written until its three UUIDs are available — and a retry materializes the missing Properties without duplicating them.
 
 **A class's talent table doesn't roll from the sheet.**
 The table name must match `<Class> Talent` or `<Talent> Table`, **or** the talent
