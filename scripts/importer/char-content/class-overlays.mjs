@@ -39,13 +39,11 @@
  *                class as grantedItems for the char-builder to embed at
  *                creation. Priced book gear (the Duelist's Rapier and Falchion,
  *                the Paladin's Lance) is stocked here so the wield list and the
- *                merchant know its stats — it is not a freebie. `unmappedProps`
- *                lists the BOOK LABELS of that weapon's properties core
- *                Shadowdark ships no Property item for (the Lance's Charge,
- *                Devastating, Mounted): they cannot go in `system.properties`,
- *                so the importer names them in the item's description, the same
- *                one-line note the gear importer writes. Labels only — the
- *                rules text stays in the book, same as everything else here.
+ *                merchant know its stats — it is not a freebie. `customProperties`
+ *                names the three managed WR Property docs the class importer
+ *                materializes for the Lance's Charge, Devastating, and Mounted
+ *                codes. Labels only — the rules text stays in the book, same as
+ *                everything else here.
  *   weaponNames / armorNames: wield-list overrides for grants the text
  *                states as categories ("all swords", "strikes")
  *   classFlags:  merged into the class's module flags (e.g. fixedDeity)
@@ -207,9 +205,10 @@ export const CLASS_OVERLAYS = {
       { ..._weapon("Lance", "icons/skills/melee/strike-polearm-light-orange.webp",
         { type: "melee", damage: { oneHanded: "", twoHanded: "d12" }, properties: [_TWOHANDED], cost: { gp: 15, sp: 0, cp: 0 },
           slots: { free_carry: 0, per_slot: 1, slots_used: 3 } }),
-        // Book codes C, D, M. Core Shadowdark has no Property item to point at,
-        // so these ride into the description instead of `properties`.
-        unmappedProps: ["Charge", "Devastating", "Mounted"] },
+        // Book codes C, D, M. Core Shadowdark has no Property item for them;
+        // the shared WR seam creates/reuses the managed docs and appends their
+        // UUIDs to these core properties at class-import commit.
+        customProperties: ["Charge", "Devastating", "Mounted"] },
     ],
     weaponNames: ["Bastard Sword", "Dagger", "Greatsword", "Javelin", "Lance", "Longsword", "Shortsword"],
   },

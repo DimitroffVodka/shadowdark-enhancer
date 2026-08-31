@@ -39,10 +39,10 @@
  * `draft.propNames` holds resolved Shadowdark property NAMES; a Foundry-bound
  * resolver (item-importer.resolveGearProperties) turns those into the
  * DocumentUUID array the data model stores. Unknown/unmapped codes are flagged
- * for review, never silently dropped: a WR-only code core Shadowdark has no
- * Property item for (the Lance's Charge/Devastating/Mounted) also lands on
- * `draft.unmappedProps` as its book LABEL, which buildItemData writes into the
- * item's description — the column is on the sheet either way.
+ * for review, never silently dropped. The three evidenced WR Lance codes
+ * (Charge/Devastating/Mounted) land on `draft.lanceProperties` for commit-time
+ * materialization; genuinely unsupported codes (for example Obsidian/Sniper)
+ * remain on `draft.unmappedProps` as book LABELS for the description note.
  *
  * WR PROPERTY LETTER-CODE LEGEND (Player's Guide to the Western Reaches):
  *   Carried (C)     → Occupies One Hand      [armor]
@@ -50,7 +50,10 @@
  *   Loud (L)        → Disadvantage/Stealth    [armor]
  *   Restrictive (R) → Disadvantage/Swim       [armor]
  *   Sundering (S)   → Sundering               [armor & weapon — type-filtered]
- *   Mount (M)       → (no core SD property — flagged)
+ *   Mount (M)       → (no core SD property — flagged) [armor]
+ *   Charge (C)      → managed WR Property [Lance weapon]
+ *   Devastating (D) → managed WR Property [Lance weapon]
+ *   Mounted (M)     → managed WR Property [Lance weapon]
  */
 
 import { collapse } from "../pdf-text-utils.mjs";
@@ -102,16 +105,22 @@ export const WR_WEAPON_CODES = {
   S: "Sundering",
   R: "Returning",
   B: "Breakable",
-  // WR-only weapon codes with no core Shadowdark property — flagged with
-  // their book label (live weapon table p110-111), never applied silently.
-  C: null,    // Charge
-  D: null,    // Devastating
-  M: null,    // Mounted
+  // WR-only weapon codes with no core Shadowdark property. B5 materializes the
+  // three evidenced Lance codes as managed Property items at commit; the other
+  // two remain visible-only fallback labels below.
+  C: null,    // Charge — materialized by B5
+  D: null,    // Devastating — materialized by B5
+  M: null,    // Mounted — materialized by B5
   O: null,    // Obsidian
   Sn: null,   // Sniper
 };
-/** Weapon-side labels for null-mapped codes (armor labels live in WR_CODE_LABELS). */
+/** Weapon-side labels for WR codes with no core Property (armor labels live in WR_CODE_LABELS). */
 export const WR_WEAPON_LABELS = { C: "Charge", D: "Devastating", M: "Mounted", O: "Obsidian", Sn: "Sniper" };
+/** The only WR weapon codes allowed to become managed custom Properties. */
+export const WR_WEAPON_CUSTOM_CODES = { C: "Charge", D: "Devastating", M: "Mounted" };
+const WR_WEAPON_CUSTOM_CODE_BY_LABEL = Object.fromEntries(
+  Object.entries(WR_WEAPON_CUSTOM_CODES).map(([code, label]) => [label, code]),
+);
 
 /** Full property names we recognize verbatim (so pastes can spell them out). */
 const KNOWN_PROP_NAMES = new Set([
@@ -310,13 +319,15 @@ function asCodeTokens(field) {
 
 /**
  * Decode a property field (codes or full names) into Shadowdark property names.
- * `unmapped` carries the BOOK LABEL of every real code core Shadowdark has no
- * Property item for — left off the item, and written into its description at
- * commit rather than lost.
- * @returns {{ names: string[], unmapped: string[], warnings: string[] }}
+ * `custom` carries the three evidenced WR Lance names for commit-time
+ * materialization; `unmapped` carries the BOOK LABEL of every other real code
+ * core Shadowdark has no Property item for — left off the item, and written into
+ * its description at commit rather than lost.
+ * @returns {{ names: string[], custom: string[], unmapped: string[], warnings: string[] }}
  */
 function decodeProps(field, kind) {
   const names = [];
+  const custom = [];
   const unmapped = [];
   const warnings = [];
   const codeMap = kind === "Armor" ? WR_ARMOR_CODES : WR_WEAPON_CODES;
@@ -332,6 +343,11 @@ function decodeProps(field, kind) {
       }
       const name = codeMap[key];
       if (name === null) {
+        const customLabel = kind === "Weapon" ? WR_WEAPON_CUSTOM_CODES[key] : undefined;
+        if (customLabel) {
+          custom.push(customLabel);
+          continue;
+        }
         const labels = kind === "Armor" ? WR_CODE_LABELS : WR_WEAPON_LABELS;
         const label = labels[key] ?? key;
         unmapped.push(label);
@@ -340,7 +356,7 @@ function decodeProps(field, kind) {
       }
       names.push(name);
     }
-    return { names, unmapped, warnings };
+    return { names, custom, unmapped, warnings };
   }
 
   // Full names, comma-separated.
@@ -348,7 +364,7 @@ function decodeProps(field, kind) {
     if (KNOWN_PROP_NAMES.has(part.toLowerCase())) names.push(titleCase(part));
     else warnings.push(`Unrecognized property "${part}" — left off; add it in the sheet if needed.`);
   }
-  return { names, unmapped, warnings };
+  return { names, custom, unmapped, warnings };
 }
 
 /** Parse a damage field ("d8", "2d6", "d8/d10", "d10 (two-handed)") → {oneHanded,twoHanded}. */
@@ -451,6 +467,7 @@ function parseWeaponRecord(lines) {
   const nameRaw = collapse(fields[0] ?? "").replace(/,\s*$/, "");
   let cost = null, slots = null, range = "", wtype = "", damage = null;
   const propNames = [];
+  const lanceProperties = [];
   const unmappedProps = [];
   const rest = fields.slice(1);
 
@@ -474,7 +491,19 @@ function parseWeaponRecord(lines) {
 
   for (const pf of propFields) {
     const dec = decodeProps(pf, "Weapon");
-    propNames.push(...dec.names); unmappedProps.push(...dec.unmapped); warnings.push(...dec.warnings);
+    propNames.push(...dec.names); lanceProperties.push(...dec.custom);
+    unmappedProps.push(...dec.unmapped); warnings.push(...dec.warnings);
+  }
+  // B5 is intentionally scoped to the evidenced WR Lance row. If another
+  // weapon-shaped paste carries one of these codes, keep it visible as an
+  // unmapped warning rather than silently granting it a Lance-only Property.
+  if (!/^lance$/i.test(nameRaw.trim()) && lanceProperties.length) {
+    for (const label of lanceProperties) {
+      const code = WR_WEAPON_CUSTOM_CODE_BY_LABEL[label] ?? label;
+      unmappedProps.push(label);
+      warnings.push(`Property "${label}" (${code}) has no core Shadowdark property — left off; noted in the description.`);
+    }
+    lanceProperties.length = 0;
   }
   const twoHandedOnly = propNames.includes("Two-Handed") && !propNames.includes("Versatile");
   for (const o of other) {
@@ -501,6 +530,7 @@ function parseWeaponRecord(lines) {
     damage: damage ?? { oneHanded: "", twoHanded: "" },
     range, wtype,
     propNames,
+    ...(lanceProperties.length ? { lanceProperties: [...new Set(lanceProperties)] } : {}),
     unmappedProps,
     description: "<p></p>",
   };

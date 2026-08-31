@@ -85,8 +85,10 @@ export function sourceTitleSlug(label) {
  * Assemble the create-ready drafts for ItemImporter.createItems, carrying the
  * type-appropriate mechanics through (this is the pass-through `_onCreate` was
  * missing). `properties` (resolved UUIDs) rides along when present, as does
- * `unmappedProps` — the WR-only property labels buildItemData appends to the
- * description; `sourceTitle` stamps `system.source.title` for char-builder gating.
+ * `unmappedProps` — unsupported WR property labels buildItemData appends to the
+ * description; `lanceProperties` — the three evidenced Lance names the commit
+ * prepass materializes; `sourceTitle` stamps `system.source.title` for
+ * char-builder gating.
  */
 export function assembleCreateDrafts(rows, gearType, { sourceTitle = "" } = {}) {
   return rows.map((it) => ({
@@ -111,6 +113,8 @@ export function assembleCreateDrafts(rows, gearType, { sourceTitle = "" } = {}) 
       propNames: it.propNames ?? [],
       unmappedProps: it.unmappedProps ?? [],
     } : {}),
+    ...(gearType === "Weapon" && Array.isArray(it.lanceProperties) && it.lanceProperties.length
+      ? { lanceProperties: [...it.lanceProperties] } : {}),
     ...(Array.isArray(it.properties) ? { properties: it.properties } : {}),
     ...(sourceTitle ? { source: { title: sourceTitle } } : {}),
   }));

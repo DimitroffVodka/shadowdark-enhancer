@@ -203,7 +203,7 @@
 |---|---:|---|
 | `importer-hub-app.mjs` | 893 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1526 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
-| `importer-hub-commit.mjs` | 861 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-commit.mjs` | 872 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
 | `importer-hub-manage.mjs` | 998 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 668 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
@@ -219,8 +219,8 @@
 | `char-content/char-content-manifest.mjs` | 1481 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1409 | Class unit → real documents in dependency order. |
-| `char-content/class-overlays.mjs` | 264 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
+| `char-content/class-unit-importer.mjs` | 1415 | Class unit → real documents in dependency order. |
+| `char-content/class-overlays.mjs` | 263 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |

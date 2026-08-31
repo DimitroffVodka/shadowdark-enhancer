@@ -321,8 +321,9 @@ function _buildItemShape(draft) {
 
   // Shared PhysicalItemSD fields (cost/slots/quantity) every gear type carries.
   const physical = {
-    // Weapon/Armor drafts from gear-parser carry the WR-only property codes the
-    // core system has no Property item for; they land in the description.
+    // Weapon/Armor drafts from gear-parser carry any genuinely unsupported WR
+    // property labels; they land in the description. The three evidenced Lance
+    // codes are materialized into real Property UUIDs before this choke point.
     description: withPropertyNote(draft.description ?? "<p></p>", draft.unmappedProps),
     cost:   { gp: draft.cost?.gp ?? 0, sp: draft.cost?.sp ?? 0, cp: draft.cost?.cp ?? 0 },
     slots:  {
