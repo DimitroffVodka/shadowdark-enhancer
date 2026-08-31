@@ -204,11 +204,13 @@ class HubBatchMethods {
     // Only the Mount spread route expands one job into per-name outcomes. Keep
     // the original job denominator (and separate blocked suffix) for boats,
     // ordinary monsters, and every other route's page-level bulk semantics.
+    // The report's entries include planner-blocked rows; they remain in the
+    // report, but belong only in the separate skipped suffix below.
     const mountBulk = results.some((result) =>
       result?.job?.route === ROUTE.HUB
       && result.job.entry?.type === "Mount"
       && Array.isArray(result.entries));
-    const entryTotal = mountBulk ? summary.entries : summary.jobs;
+    const entryTotal = mountBulk ? summary.entries - summary.blocked : summary.jobs;
     ui.notifications.info(
       `Batch import: ${summary.documents} document${summary.documents === 1 ? "" : "s"} created across `
       + `${summary.created} of ${entryTotal} entr${entryTotal === 1 ? "y" : "ies"}`

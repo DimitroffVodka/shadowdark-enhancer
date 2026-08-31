@@ -255,6 +255,31 @@ test("Mount bulk toasts use the explicit per-name denominator", async () => {
   assert.equal(reports[0].entries, 2);
 });
 
+test("Mount bulk toasts exclude planner-blocked rows from the denominator", async () => {
+  const { messages, reports } = await runBatchForToast(
+    {
+      route: ROUTE.HUB,
+      entry: { name: "Donkey", type: "Mount" },
+      label: "Mounts",
+    },
+    {
+      status: "created", created: 1,
+      entries: [
+        { name: "Donkey", status: "created", created: 1 },
+        { name: "Pony", status: "failed", created: 0 },
+      ],
+    },
+    [{ entry: { name: "Missing Mount", type: "Mount" }, reason: "PDF isn't linked" }],
+  );
+  assert.deepEqual(messages, ["Batch import: 1 document created across 1 of 2 entries, 1 failed, 1 skipped."]);
+  assert.equal(reports[0].entries, 3, "the report still includes the blocked row");
+  assert.equal(reports[0].blocked, 1);
+  assert.deepEqual(
+    reports[0].lines.filter((line) => line.status === "blocked"),
+    [{ status: "blocked", name: "Missing Mount", note: "PDF isn't linked" }],
+  );
+});
+
 test("non-Mount batch toasts keep job denominators and separate blocked rows", async () => {
   const cases = [
     {
