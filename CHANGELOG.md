@@ -144,16 +144,16 @@
   lower full-width bands from the prose gutter check and tolerates sub-point overhangs
   for words centered cleanly in their column, eliminating false alarms while preserving
   visible warnings for genuine column-split text corruption.
-- **Every managed imported monster now appears in Token Art Manager.** Imported
-  NPCs in the managed bestiary pack (`sde-actors`), such as Cursed Scroll or
-  Western Reaches monsters unlocked via the Importer Hub, are now listed in
-  Token Art Manager even when installed art sources provide zero automatic
-  suggestions. Rows with zero options still expose **Browse**, allowing GMs to
-  select and persist manual picks from installed tokens. Core and imported
-  monsters sharing a name appear as separate provenance-tagged rows with
-  independent picks, while placed-token resolution (`resolveByName`) keeps the
-  Core-first tiebreak for name-matched scene tokens. Non-NPC managed actors
-  (such as boats and mounts) remain excluded from the token art catalog.
+- **Token Art Manager imported-monster census and placed-token resolution hardened.**
+  Managed imported NPCs in `sde-actors` (e.g. Cursed Scroll and Western Reaches
+  monsters) have their catalog census ingestion hardened to handle both Array
+  and Collection-shaped index payloads, case-insensitive NPC type checks, and
+  per-pack ID deduplication, ensuring non-NPC actors (boats/mounts) remain
+  cleanly excluded. Same-name Core and imported monsters remain distinct
+  provenance-tagged rows with independent picks and Browse access for
+  zero-suggestion rows. Placed-token resolution by name (`resolveByName`)
+  retains Core-first precedence when both rows have art while correctly falling
+  back to an imported pick when Core has no configured art.
 - **Martial Training no longer vanishes from the Downtime window.** When a
   character's class hit die couldn't be read — a level 0 character who hasn't
   picked a class yet, or a class item that won't load — the whole activity
