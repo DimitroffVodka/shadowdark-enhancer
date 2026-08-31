@@ -76,37 +76,86 @@ export function stripPrice(text) {
  */
 export { curatedNameKey as lootNameKey };
 
+/** Trailing sentence punctuation a book row carries but a name never does. */
+const _TRAILING_PUNCT = /[\s.,;:!?]+$/;
+
+/**
+ * The text a row is resolved BY: price, "each" and sentence punctuation
+ * removed, applied repeatedly until it stops changing.
+ *
+ * The loop is what makes the order of those strips irrelevant. `stripPrice`'s
+ * price pattern is `$`-anchored, so it cannot see a price that something else
+ * is sitting behind — `"Dagger (1 gp)."` and `"Dagger (1 gp) each"` both defeat
+ * a single pass, and both are ordinary book wording. Running to a fixed point
+ * resolves them at the EXACT tier instead of leaning on the alias fold.
+ *
+ * Match-only. `stripPrice` remains the name-shaped answer for fabrication.
+ */
+export function matchQuery(text) {
+  let s = String(text ?? "");
+  for (let pass = 0; pass < 4; pass += 1) {
+    const before = s;
+    s = stripPrice(s.replace(_TRAILING_PUNCT, ""));
+    if (s === before) break;
+  }
+  return s.trim();
+}
+
 /** Words whose trailing `s` is part of the word, not a plural. */
 const _NOT_PLURAL = /(?:ss|us|is|ous)$/;
 
-/** Singular of ONE word. Deliberately small: English, not a stemmer. */
-function _singularizeWord(word) {
-  if (word.length <= 3 || _NOT_PLURAL.test(word)) return word;
-  if (word.endsWith("ies")) return `${word.slice(0, -3)}y`;
-  if (/(?:ch|sh|x|z|s)es$/.test(word)) return word.slice(0, -2);
-  return word.endsWith("s") ? word.slice(0, -1) : word;
+/**
+ * Every singular this word could plausibly be, itself included.
+ *
+ * A SET rather than one answer, because English does not have one: "axes" is
+ * the plural of both "axe" and "ax", and the `(ch|sh|x|z|s)es → -2` rule that
+ * correctly gives "torches" → "torch" gives "axes" → "ax" and loses the
+ * installed `Axe`. Offering both and letting the index decide keeps the rule
+ * simple; if a world really does own both spellings, they collide on lookup and
+ * the ambiguity refusal — not the stemmer — is what protects the caller.
+ */
+function _singularCandidates(word) {
+  const out = [word];
+  if (word.length > 3 && !_NOT_PLURAL.test(word)) {
+    if (word.endsWith("ies")) out.push(`${word.slice(0, -3)}y`);
+    if (/(?:ch|sh|x|z|s)es$/.test(word)) out.push(word.slice(0, -2));  // torches → torch
+    if (word.endsWith("s")) out.push(word.slice(0, -1));               // axes → axe, daggers → dagger
+  }
+  return [...new Set(out)];
 }
 
 /**
- * The alias-tier key: the same name with the decorations that carry no
- * identity folded away.
+ * The alias-tier keys: the same name with the decorations that carry no
+ * identity folded away, once per plausible singular of its final word.
  *
  * Each fold is anchored — a LEADING article or count, a TRAILING parenthetical
- * or comma, the FINAL word's plural. None of them can shorten the phrase to one
- * of its interior words, which is the whole point: "unopened bottle of
+ * or punctuation, the FINAL word's plural. None of them can shorten the phrase
+ * to one of its interior words, which is the whole point: "unopened bottle of
  * exceptionally potent murgazi wine" folds to itself, never to "bottle".
+ *
+ * The trailing strips also run to a fixed point, so `"rope (60 ft)."` loses the
+ * period, then the parenthetical, rather than only the one it reaches first.
  */
-export function lootAliasKey(text) {
+export function lootAliasKeys(text) {
   let s = curatedNameKey(text);
-  if (!s) return "";
-  s = s.replace(/^(?:an?|the)\s+/, "");        // "A dagger"      → "dagger"
-  s = s.replace(/^\d+\s+/, "");                 // "2 daggers"     → "daggers"
-  s = s.replace(/\s*\([^)]*\)$/, "").trim();    // "rope (60 ft)"  → "rope"
-  s = s.replace(/[,;.]+$/, "").trim();
-  if (!s) return "";
+  if (!s) return [];
+  s = s.replace(/^(?:an?|the)\s+/, "");         // "A dagger"     → "dagger"
+  s = s.replace(/^\d+\s+/, "");                 // "2 daggers"    → "daggers"
+  for (let pass = 0; pass < 4; pass += 1) {
+    const before = s;
+    s = s.replace(/[,;.:!?]+$/, "").replace(/\s*\([^)]*\)$/, "").trim();
+    if (s === before) break;
+  }
+  if (!s) return [];
   const words = s.split(" ");
-  words[words.length - 1] = _singularizeWord(words[words.length - 1]);
-  return words.join(" ");
+  const last = words[words.length - 1];
+  return _singularCandidates(last).map((w) => [...words.slice(0, -1), w].join(" "));
+}
+
+/** The canonical alias key — the singular fold used by older callers. */
+export function lootAliasKey(text) {
+  const keys = lootAliasKeys(text);
+  return keys[keys.length - 1] ?? "";
 }
 
 function _push(map, key, entry) {
@@ -142,7 +191,10 @@ export function buildLootNameIndex(items) {
   for (const item of items ?? []) {
     const name = item?.name ?? "";
     _push(exact, curatedNameKey(name), item);
-    _push(alias, lootAliasKey(name), item);
+    // Under EVERY candidate, so the fold matches in both directions: a row
+    // saying "Axes" finds the installed `Axe`, and a row saying "Axe" finds an
+    // installed `Axes`. The exact tier still answers first when it can.
+    for (const key of lootAliasKeys(name)) _push(alias, key, item);
   }
   return { exact, alias };
 }
@@ -159,7 +211,7 @@ const _isIndex = (v) => !!v && v.exact instanceof Map && v.alias instanceof Map;
  *            query:string, candidates?:Array<{uuid,name}>}}
  */
 export function resolveLootItem(text, items) {
-  const query = stripPrice(text);
+  const query = matchQuery(text);
   const out = (status, extra = {}) => ({ status, query, ...extra });
   if (!query) return out(LOOT_MATCH.UNRESOLVED);
 
@@ -171,7 +223,10 @@ export function resolveLootItem(text, items) {
   }
   if (exact.length > 1) return out(LOOT_MATCH.AMBIGUOUS, { candidates: exact.map(_summary) });
 
-  const alias = _distinct(index.alias.get(lootAliasKey(query)));
+  // Every candidate fold, pooled: hits from different candidates are still one
+  // answer when they name the same item, and two distinct items across the pool
+  // are ambiguous exactly as they would be under one key.
+  const alias = _distinct(lootAliasKeys(query).flatMap((k) => index.alias.get(k) ?? []));
   if (alias.length === 1) {
     return out(LOOT_MATCH.ALIAS, { uuid: alias[0].uuid, name: alias[0].name, matched: query });
   }

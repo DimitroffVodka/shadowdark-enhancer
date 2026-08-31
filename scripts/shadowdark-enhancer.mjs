@@ -297,7 +297,8 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    apiVersion: "1.2.0",
+    // 1.3.0 — additive: loot.resolve and the loot.generated.* namespace (A7).
+    apiVersion: "1.3.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -447,20 +448,20 @@ Hooks.once("init", () => {
       // applies it. GM-only. See shared/generated-items.mjs.
       generated: {
         identity: (source, name) => generatedItemId(source, name),
-        plan: async (desired, opts = {}) => {
+        plan: async (desired, { source = "" } = {}) => {
           const pack = findSuitePack("sde-items");
           if (!pack) return null;
           return planGeneratedItems({
             desired,
             existing: (await pack.getDocuments()).map((d) => d.toObject()),
             packCollection: pack.collection,
-            ...opts,
+            source,
           });
         },
-        reconcile: async (desired, opts = {}) => {
+        reconcile: async (desired, { source = "" } = {}) => {
           if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can reconcile generated items."); return null; }
           const pack = await ensureLootPack();
-          return pack ? reconcileGeneratedItems(pack, desired, opts) : null;
+          return pack ? reconcileGeneratedItems(pack, desired, { source }) : null;
         },
       },
     },

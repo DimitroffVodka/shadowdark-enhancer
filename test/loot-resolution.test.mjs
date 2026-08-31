@@ -7,14 +7,14 @@
  * outcomes — exact, alias, ambiguous, and the false positives that must now be
  * refused — plus the callers that read the result.
  */
-import { test, describe } from "node:test";
+import { test, describe, before, after } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  LOOT_MATCH, stripPrice, lootNameKey, lootAliasKey,
+  LOOT_MATCH, stripPrice, matchQuery, lootNameKey, lootAliasKey, lootAliasKeys,
   buildLootNameIndex, resolveLootItem, isResolvedLootMatch,
 } from "../scripts/loot/loot-resolution.mjs";
-import { findLink } from "../scripts/loot/loot-linker.mjs";
+import { findLink, buildItemIndex, invalidate } from "../scripts/loot/loot-linker.mjs";
 import { classifyEntry } from "../scripts/loot/loot-pack.mjs";
 
 /** A slice of the system gear pack shaped like `buildItemIndex` output. */
@@ -89,14 +89,17 @@ describe("loot resolution — exact tier", () => {
     assert.equal(resolveLootItem("DAGGER", GEAR).status, LOOT_MATCH.EXACT);
   });
 
-  test("a price stripPrice cannot reach still resolves, one tier down", () => {
-    // `stripPrice` only removes "each" when it is the LAST thing on the row, so
-    // "… (1 gp) each" keeps its price. Moved verbatim from loot-pack, quirk
-    // included, because its output is a fabricated Item's NAME. The alias tier
-    // drops the trailing parenthetical and the row still lands.
-    const hit = resolveLootItem("Dagger (1 gp) each", GEAR);
-    assert.equal(hit.status, LOOT_MATCH.ALIAS);
-    assert.equal(hit.name, "Dagger");
+  test("a price stripPrice cannot reach in one pass still resolves EXACTLY", () => {
+    // `stripPrice`'s price pattern is $-anchored, so a single pass cannot see a
+    // price with "each" or a full stop behind it — both ordinary book wording.
+    // `matchQuery` runs the strips to a fixed point so these land on the exact
+    // tier; `stripPrice` itself stays byte-identical for fabricated names.
+    for (const row of ["Dagger (1 gp) each", "Dagger (1 gp).", "Dagger (1 gp) each.", "Dagger."]) {
+      assert.equal(matchQuery(row), "Dagger", row);
+      const hit = resolveLootItem(row, GEAR);
+      assert.equal(hit.status, LOOT_MATCH.EXACT, row);
+      assert.equal(hit.name, "Dagger", row);
+    }
   });
 
   test("a multi-word name with punctuation resolves exactly", () => {
@@ -141,9 +144,18 @@ describe("loot resolution — alias tier", () => {
     }
   });
 
-  test("the fold is anchored — it can never shorten to an interior word", () => {
-    assert.equal(lootAliasKey("Unopened bottle of exceptionally potent Murgazi wines"),
-      "unopened bottle of exceptionally potent murgazi wine");
+  test("the legacy single-key helper still returns the singular alias", () => {
+    assert.equal(lootAliasKey("Axes"), "axe");
+    assert.equal(lootAliasKey("2 daggers"), "dagger");
+  });
+
+  test("the fold is anchored — no candidate can shorten to an interior word", () => {
+    const keys = lootAliasKeys("Unopened bottle of exceptionally potent Murgazi wines");
+    assert.deepEqual(keys, [
+      "unopened bottle of exceptionally potent murgazi wines",
+      "unopened bottle of exceptionally potent murgazi wine",
+    ]);
+    for (const k of keys) assert.match(k, /^unopened bottle of exceptionally potent murgazi wines?$/);
   });
 });
 
@@ -217,5 +229,91 @@ describe("loot resolution — plumbing", () => {
 
   test("coins still classify as coins, before any name matching", () => {
     assert.equal(classifyEntry("120 gp in a rotted sack", GEAR).action, "coin");
+  });
+});
+
+/**
+ * The focused suites above hand `resolveLootItem` a raw array, which bypasses
+ * the candidate set every real consumer actually gets. These go through the
+ * production `buildItemIndex` — the layer that used to drop three-character
+ * gear before the resolver ever saw it, so even an EXACT `Axe` query missed.
+ */
+describe("loot resolution — through the production item index", () => {
+  const packEntry = (name, type = "Basic") => ({ _id: name.toLowerCase().replace(/\W+/g, ""), name, type });
+  const fakePack = (collection, packageType, entries) => ({
+    collection, documentName: "Item", packageType,
+    metadata: { packageType },
+    getIndex: async () => entries.map((e) => ({ ...e, uuid: `Compendium.${collection}.Item.${e._id}` })),
+  });
+
+  const SYSTEM = fakePack("shadowdark.gear", "system", [
+    packEntry("Axe", "Weapon"), packEntry("Net"), packEntry("Bottle"), packEntry("Flask"),
+    packEntry("Dagger", "Weapon"), packEntry("Torch"), packEntry("Rope, 60'"),
+    packEntry("Oil, Flask"), packEntry("Ration"),
+  ]);
+  const WORLD = fakePack("world.shadowdark-enhancer--items", "world", [
+    packEntry("Wagon"), packEntry("Ball Bearing"),
+    packEntry("Dagger", "Weapon"),                    // same name as system — system must win
+  ]);
+
+  let index;
+  before(async () => {
+    globalThis.game = { packs: [WORLD, SYSTEM] };     // world listed first on purpose
+    invalidate();
+    index = await buildItemIndex();
+  });
+  after(() => { invalidate(); delete globalThis.game; });
+
+  const via = (row) => resolveLootItem(row, index);
+
+  test("three-character gear is in the index and resolves EXACTLY", () => {
+    // The regression the review reproduced: MIN_NAME_LEN = 4 dropped both.
+    for (const [row, want] of [["Axe", "Axe"], ["Net", "Net"], ["axe (5 gp)", "Axe"], ["Net.", "Net"]]) {
+      const hit = via(row);
+      assert.equal(hit.status, LOOT_MATCH.EXACT, `${row} → ${hit.status}`);
+      assert.equal(hit.name, want, row);
+    }
+  });
+
+  test("Axes resolves to Axe, not to the stemmer's 'ax'", () => {
+    const hit = via("Axes (10 gp)");
+    assert.equal(hit.status, LOOT_MATCH.ALIAS);
+    assert.equal(hit.name, "Axe");
+  });
+
+  test("a price suffix behind sentence punctuation still resolves", () => {
+    for (const row of ["Dagger (1 gp).", "Dagger (1 gp) each.", "Rope, 60' (5 gp)."]) {
+      assert.ok(["exact", "alias"].includes(via(row).status), `${row} → ${via(row).status}`);
+    }
+  });
+
+  test("the #58 refusals survive the widened index", () => {
+    for (const row of [
+      "Unopened bottle of exceptionally potent Murgazi wine (25 gp)",
+      "A flask of exceptionally fine oil (5 gp)",
+      "Coil of tarred rope taken from a wreck",
+      "An axe-shaped birthmark on a dead man's shoulder",
+    ]) {
+      assert.equal(via(row).status, LOOT_MATCH.UNRESOLVED, row);
+      assert.equal(findLink(row, index), null, row);
+    }
+  });
+
+  test("system-first dedup still wins for a same-named world item", () => {
+    assert.match(via("Dagger").uuid, /^Compendium\.shadowdark\.gear\./);
+  });
+
+  test("world-only items still resolve, exact and alias", () => {
+    assert.equal(via("Wagon").status, LOOT_MATCH.EXACT);
+    assert.equal(via("Ball Bearings").name, "Ball Bearing");
+  });
+
+  test("blank-named pack entries are excluded without a length floor", async () => {
+    globalThis.game = { packs: [fakePack("world.x", "world", [
+      packEntry("Axe", "Weapon"), { _id: "blank", name: "   ", type: "Basic" },
+    ])] };
+    invalidate();
+    const idx = await buildItemIndex();
+    assert.deepEqual(idx.map((e) => e.name), ["Axe"]);
   });
 });

@@ -21,11 +21,6 @@
 import { resolveLootItem, isResolvedLootMatch } from "./loot-resolution.mjs";
 
 const LOOT_TYPES = new Set(["Weapon", "Armor", "Potion", "Basic"]);
-// Candidate-set floor, unchanged by A7. It was load-bearing for the old
-// containment matcher (a three-letter name matched half the table); it is now
-// only a decision about which items are candidates at all, so it stays where it
-// was rather than quietly widening the index this ticket does not own.
-const MIN_NAME_LEN = 4;
 
 // Session cache for the prepared item list (longest-name-first).
 let _itemCache = null;
@@ -73,8 +68,8 @@ export function findLink(text, items) {
 
 /**
  * Load + prepare the candidate item list from every installed Item pack,
- * filtered to loot types and min length, deduped by name (system packs first,
- * then world/module packs including sde-items), longest-first.
+ * filtered to loot types, deduped by name (system packs first, then
+ * world/module packs including sde-items), longest-first.
  * Session-cached.
  *
  * System-first ordering (D3 / A-06): `orderPacksSystemFirst` puts packs with
@@ -98,7 +93,11 @@ export async function buildItemIndex() {
     for (const entry of index) {
       if (!LOOT_TYPES.has(entry.type)) continue;
       const name = entry.name ?? "";
-      if (name.length < MIN_NAME_LEN) continue;
+      // Only a real name is required. The old three-character floor existed to
+      // stop the containment matcher finding a short name inside a long row;
+      // with containment gone it bought nothing and cost recall, dropping the
+      // installed `Axe` and `Net` so even an EXACT query for them missed.
+      if (!name.trim()) continue;
       const nameLower = name.toLowerCase();
       if (byName.has(nameLower)) continue; // first pack wins (system beats sde-items)
       const uuid = entry.uuid ?? `Compendium.${pack.collection}.Item.${entry._id}`;

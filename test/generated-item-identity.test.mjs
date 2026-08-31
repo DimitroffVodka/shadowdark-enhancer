@@ -251,6 +251,41 @@ describe("generated reconciliation — create, update, rerun", () => {
     assert.equal(out.update.length, 0);
   });
 
+  test("a non-empty ActiveEffect round-trip is a no-op despite embedded defaults", () => {
+    const desired = definition("Glow", {
+      effects: [{
+        name: "Glow",
+        changes: [{ key: "system.light.dim", mode: 2, value: "10" }],
+      }],
+    });
+    const [created] = plan([desired], []).create;
+    const roundTripped = stored(created.payload);
+    // Foundry gives the embedded effect and its change their own ids, moves
+    // changes under `system`, migrates mode 2 to type "add", and coerces the
+    // JSON string value to a number. It also fills fields the definition never
+    // declared.
+    roundTripped.effects = [{
+      _id: "effect-1",
+      name: "Glow",
+      system: { changes: [{
+        _id: "change-1",
+        key: "system.light.dim",
+        type: "add",
+        value: 10,
+        priority: 20,
+      }] },
+      img: "icons/svg/aura.svg",
+      disabled: false,
+      transfer: false,
+      origin: "Compendium.world.shadowdark-enhancer--items.Item.doc-1",
+      flags: {},
+    }];
+
+    const out = plan([desired], [roundTripped]);
+    assert.equal(out.unchanged.length, 1);
+    assert.equal(out.update.length, 0, "DataModel defaults must not churn effect ids");
+  });
+
   test("a partial rerun completes the set without touching what is already right", () => {
     const first = plan(defs, []).create;
     const half = [stored(first[0].payload, "doc-0")];     // only one landed
@@ -316,6 +351,49 @@ describe("generated reconciliation — refusals", () => {
     assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.DUPLICATE_DOCUMENT);
     assert.equal(out.refused[0].documentId, "doc-1");
     assert.equal(out.unchanged.length, 1, "the first still reconciles");
+  });
+
+  test("the deterministic FNV collision refuses an id/key mismatch", () => {
+    // These two canonical keys are a known fnv1a32 collision found by the Sol
+    // review's deterministic probe. The key beside the hash is the discriminator.
+    const first = definition("Relic-18x52cd-7y12pa");
+    const second = definition("Relic-1kmpd4e-s103qg");
+    const firstPayload = stampGeneratedItem(first, { source: "CS1" });
+    const secondPayload = stampGeneratedItem(second, { source: "CS1" });
+    assert.equal(
+      firstPayload.flags[MODULE_ID].generatedItem.id,
+      secondPayload.flags[MODULE_ID].generatedItem.id,
+    );
+    assert.notEqual(
+      firstPayload.flags[MODULE_ID].generatedItem.key,
+      secondPayload.flags[MODULE_ID].generatedItem.key,
+    );
+
+    const out = plan([second], [stored(firstPayload, "collision-doc")]);
+    assert.equal(out.update.length, 0);
+    assert.equal(out.create.length, 0);
+    assert.equal(out.refused.length, 1);
+    assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.IDENTITY_COLLISION);
+    assert.equal(out.refused[0].id, "fnv1a32:1c759bf0");
+    assert.equal(out.refused[0].storedKey, "cs1:relic-18x52cd-7y12pa");
+    assert.equal(out.refused[0].desiredKey, "cs1:relic-1kmpd4e-s103qg");
+  });
+
+  test("a generated marker without its canonical key is not trusted by id alone", () => {
+    const payload = stampGeneratedItem(definition("Carved Bone"), { source: "CS1" });
+    const legacy = stored({
+      ...payload,
+      flags: {
+        ...payload.flags,
+        [MODULE_ID]: {
+          ...payload.flags[MODULE_ID],
+          generatedItem: { ...payload.flags[MODULE_ID].generatedItem, key: "" },
+        },
+      },
+    });
+    const out = plan([definition("Carved Bone")], [legacy]);
+    assert.equal(out.update.length, 0);
+    assert.equal(out.refused[0].reason, GENERATED_ITEM_REFUSALS.IDENTITY_COLLISION);
   });
 
   test("an ordinary imported Item in the pack keeps A3 provenance, untouched", () => {
