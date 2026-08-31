@@ -2,13 +2,13 @@
  * Shadowdark Enhancer — the "no core Shadowdark property" note (pure).
  *
  * The Western Reaches tables print property codes the core system ships no
- * Property item for — the Lance's Charge / Devastating / Mounted, the obsidian
- * weapons' Obsidian, barding's Mount. The parsers leave those off
- * `system.properties` (there is nothing to point at) and record their book
- * labels on `draft.unmappedProps`; these two helpers write them into the
- * description so the weapon's own stat line survives an import instead of
- * asking the GM to remember it. LABELS ONLY — no rules text, which stays in
- * the GM's book.
+ * Property item for — the obsidian weapons' Obsidian, Sniper, and barding's
+ * Mount. The parsers leave those off `system.properties` (there is nothing to
+ * point at) and record their book labels on `draft.unmappedProps`; these two
+ * helpers write them into the description so the weapon's own stat line
+ * survives an import instead of asking the GM to remember it. The Lance's
+ * Charge / Devastating / Mounted are handled separately by B5's managed custom
+ * Property seam. LABELS ONLY — no rules text, which stays in the GM's book.
  *
  * Foundry-free on purpose, and here rather than in item-importer.mjs because
  * both the gear importer and the class-overlay importer need them: that pair

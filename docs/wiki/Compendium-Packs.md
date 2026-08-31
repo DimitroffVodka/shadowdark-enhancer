@@ -166,10 +166,7 @@ folder sits beside it.
 Specialized sub-folders are created under their respective source roots when
 needed:
 - **`Monster Spells / <source>`** inside `sde-items` for generated monster spells.
-- **`Western Reaches / Weapon Properties`** inside `sde-items` for imported siege
-  weapon properties (*Blast* and *Exploding*). Legacy root properties are moved
-  into this folder in place on re-import without changing document UUIDs. Ordinary
-  weapons and gear remain in their standard folder locations.
+- **`Western Reaches / Weapon Properties`** inside `sde-items` for canonical Western Reaches weapon Property items — siege *Blast*/*Exploding* and the WR **Lance** triple *Charge*/*Devastating*/*Mounted* (B2/B5 `wr-property-importer` seam). Legacy root properties are moved into this folder in place on re-import without changing document UUIDs. Ordinary weapons and gear remain in their standard folder locations; only an exact `Lance` name materializes the WR triple.
 
 ## Link resolution
 

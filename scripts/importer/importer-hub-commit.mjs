@@ -155,6 +155,13 @@ class HubCommitMethods {
       const { prepareSiegeProperties } = await import("./boats/siege-importer.mjs");
       if (!(await prepareSiegeProperties(drafts))) return;
     }
+    // The Paladin's Lance carries three WR-only properties absent from the
+    // system pack. Materialize/reuse their canonical Property docs before the
+    // weapon itself is created, just like the siege-property path above.
+    if (drafts.some((d) => d.lanceProperties?.length)) {
+      const { prepareLanceProperties } = await import("./items/wr-property-importer.mjs");
+      if (!(await prepareLanceProperties(drafts))) return;
+    }
     const { ItemImporter } = await import("./items/item-importer.mjs");
     const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
     if (!result) return;
@@ -609,6 +616,10 @@ class HubCommitMethods {
       if (drafts.some((d) => d.siegeProperties?.length)) {
         const { prepareSiegeProperties } = await import("./boats/siege-importer.mjs");
         if (!(await prepareSiegeProperties(drafts))) return;
+      }
+      if (drafts.some((d) => d.lanceProperties?.length)) {
+        const { prepareLanceProperties } = await import("./items/wr-property-importer.mjs");
+        if (!(await prepareLanceProperties(drafts))) return;
       }
       const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
       if (result) {

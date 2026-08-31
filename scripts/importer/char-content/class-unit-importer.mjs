@@ -36,7 +36,8 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { escapeHtml } from "../pdf-text-utils.mjs";
 import { SPELL_LIST_VARIANTS } from "./char-content-manifest.mjs";
 import { classGateBlockers, supplementGateBlockers } from "./class-quality-gate.mjs";
-import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
+import { preservedDescription } from "../../shared/property-note.mjs";
+import { prepareLanceProperties } from "../items/wr-property-importer.mjs";
 import {
   ART_STATES, artProvenance, readArtProvenance, normalizeArtPath,
   decideImportArt, isGeneratedManagedItem,
@@ -267,10 +268,9 @@ async function _backfillArtWitness(doc, docObj, data) {
  * corrected re-import never silently retains stale content (review #12).
  *
  * `keepCuratedDescription` inverts that for the ONE case where the import does
- * not own the text: overlay gear ships no book prose, only a generated property
- * note, so a description the GM has written on the Lance is theirs to keep and
- * the note is re-stamped onto it. Everything else here is pasted book text,
- * where the corrected paste must win.
+ * not own the text: overlay gear ships no book prose, so a description the GM
+ * has written on the Lance is theirs to keep. Everything else here is pasted
+ * book text, where the corrected paste must win.
  *
  * ART, unlike text, is never the paste's to correct (A3b). This is also the
  * commit choke point for the provenance witness: every image written from here
@@ -772,21 +772,27 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   const sysTalents = _systemIndex("Item", "shadowdark.talents");
 
   // ── 0. WR-only gear the class references (overlay-shipped stat lines, no
-  // book text) — created first so the wield list resolves. The only description
-  // any of it carries is the property note for codes core Shadowdark has no
-  // Property item for (the Lance's Charge/Devastating/Mounted), written by the
-  // same helper the gear importer uses so both paths read identically. ──
+  // book text) — created first so the wield list resolves. The Lance's C/D/M
+  // marker is prepared through the same managed-Property seam as direct gear,
+  // so both import roads resolve the same three UUIDs. ──
+  const overlayGear = (overlay?.items ?? []).map((it) => ({
+    lanceProperties: it.customProperties,
+    properties: Array.isArray(it.system?.properties) ? [...it.system.properties] : it.system?.properties,
+  }));
+  if (!(await prepareLanceProperties(overlayGear, { pack: itemsPack }))) return null;
+
   const ourGear = [];
-  for (const it of overlay?.items ?? []) {
+  for (const [index, it] of (overlay?.items ?? []).entries()) {
+    const prepared = overlayGear[index];
     const made = await _ensureItem(itemsPack, {
       name: it.name, type: it.type, img: it.img,
       system: {
         ...it.system,
+        ...(Array.isArray(prepared?.properties) ? { properties: prepared.properties } : {}),
         // Deliberately "" rather than the "<p></p>" placeholder the gear path
-        // writes: overlay gear carrying no book-only codes must stay
-        // byte-identical to what earlier imports stored, or every one of them
-        // reports as updated on the next import. Pinned in class-overlay-gear.
-        description: it.unmappedProps?.length ? withPropertyNote("", it.unmappedProps) : "",
+        // writes: overlay gear carries no book prose, so every non-Lance weapon
+        // stays byte-identical to what earlier imports stored.
+        description: "",
         source: { title: sourceTitle },
       },
       effects: (it.effects ?? []).map((e) => ({

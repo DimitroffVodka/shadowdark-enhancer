@@ -111,34 +111,32 @@ test("gearStatsLabel summarizes weapon and armor rows for the review table", () 
 });
 
 // ── WR-only property codes (the Lance's Charge/Devastating/Mounted) ──────────
-// Core Shadowdark ships no Property item for them, so they can't be stamped on
-// system.properties; the import writes them into the description instead of
-// asking the GM to remember a flagged warning.
+// Core Shadowdark ships no Property item for them; B5 carries the three names
+// through the builder so the commit prepass can materialize managed Properties.
 
 const WR_LANCE = "Lance 15 gp M C 1d12 C, D, M, 3 slots";
 
-test("WR-only weapon codes reach the item as a description note, not as nothing", () => {
+test("WR-only weapon codes reach the create draft as custom property names", () => {
   const rows = parseGearTable(WR_LANCE, "Weapon");
   assert.equal(rows.length, 1);
   assert.deepEqual(rows[0].propNames, []);
-  assert.deepEqual(rows[0].unmappedProps, ["Charge", "Devastating", "Mounted"]);
+  assert.deepEqual(rows[0].lanceProperties, ["Charge", "Devastating", "Mounted"]);
+  assert.deepEqual(rows[0].unmappedProps, []);
   assert.equal(rows[0].slots.slots_used, 3);
   const data = buildItemData(assembleCreateDrafts(mergeGearRows([], rows), "Weapon")[0]);
   assert.equal(data.type, "Weapon");
   assert.deepEqual(data.system.damage, { oneHanded: "d12", twoHanded: "" });   // no 2H code in the row
-  assert.equal(
-    data.system.description,
-    "<p><em>Properties with no core Shadowdark equivalent: Charge, Devastating, Mounted.</em></p>",
-  );
+  assert.equal(data.system.description, "<p></p>");
 });
 
-test("a matched description keeps its text and gains the note, once", () => {
+test("a matched description keeps its text while the custom marker survives", () => {
   const rows = mergeGearRows([], parseGearTable(WR_LANCE, "Weapon"));
   rows[0].description = "<p>Couched for the charge.</p>";        // stage ② matched
   const draft = assembleCreateDrafts(rows, "Weapon")[0];
   const once = buildItemData(draft).system.description;
-  assert.match(once, /^<p>Couched for the charge\.<\/p><p><em>Properties with no core/);
-  // Re-import (the same draft round-tripped) must not stack a second note.
+  assert.equal(once, "<p>Couched for the charge.</p>");
+  assert.deepEqual(draft.lanceProperties, ["Charge", "Devastating", "Mounted"]);
+  // Re-import (the same draft round-tripped) keeps the hand-edited text.
   assert.equal(buildItemData({ ...draft, description: once }).system.description, once);
 });
 

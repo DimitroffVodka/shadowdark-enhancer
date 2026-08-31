@@ -350,6 +350,10 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // (that rebuild was pre-push-review blocker #1). system.source.title gets
     // the same slug the char-content commits stamp (char-builder gating).
     const drafts = assembleCreateDrafts(this._items, this._gearType, { sourceTitle: sourceTitleSlug(source) });
+    if (drafts.some((d) => d.lanceProperties?.length)) {
+      const { prepareLanceProperties } = await import("./wr-property-importer.mjs");
+      if (!(await prepareLanceProperties(drafts))) return;
+    }
     const result = await ItemImporter.createItems(drafts, { source, onConflict: () => "replace" });
     if (!result) return;
     this._lastReport = { created: result.created.length, replaced: (result.replaced ?? []).length, skipped: (result.skipped ?? []).length };

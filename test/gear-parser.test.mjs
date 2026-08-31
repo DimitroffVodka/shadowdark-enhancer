@@ -5,7 +5,7 @@
 // values — no book content ships in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseGear, WR_ARMOR_CODES, WR_WEAPON_CODES } from "../scripts/importer/items/gear-parser.mjs";
+import { parseGear, WR_ARMOR_CODES, WR_WEAPON_CODES, WR_WEAPON_CUSTOM_CODES } from "../scripts/importer/items/gear-parser.mjs";
 import { buildItemData } from "../scripts/importer/items/item-importer.mjs";
 
 // Single-record helper — asserts the paste produced EXACTLY one record, so a
@@ -133,6 +133,7 @@ test("legend maps are the documented WR codes", () => {
   assert.equal(WR_ARMOR_CODES.S, "Sundering");
   assert.equal(WR_ARMOR_CODES.M, null);
   assert.equal(WR_WEAPON_CODES["2H"], "Two-Handed");
+  assert.deepEqual(WR_WEAPON_CUSTOM_CODES, { C: "Charge", D: "Devastating", M: "Mounted" });
 });
 
 // ── Record splitting: runs of inline rows (pre-push review blockers, 2026-07-14) ──
@@ -295,20 +296,21 @@ test("weapon stat-row table: rows parse; header, footer, and title drop", () => 
   assert.deepEqual(dropped.map((d) => d.text), ["Weapons", "Weapon Cost Type Range Damage Properties", "110"]);
 });
 
-test("weapon stat row: WR-only codes (C/D/M/O/Sn) flag with their book label", () => {
+test("weapon stat row: Lance C/D/M become custom names while O/Sn stay visible-only", () => {
   const recs = parseGear([
-    "War lance 15 gp M C 1d12 C, D, M, 3 slots",
+    "Lance 15 gp M C 1d12 C, D, M, 3 slots",
     "Obsidian club 5 cp M C 1d4 O",
   ].join("\n"), "Weapon");
   assert.equal(recs.length, 2);
   assert.deepEqual(recs[0].draft.propNames, []);
   assert.equal(recs[0].draft.slots.slots_used, 3);
-  assert.ok(recs[0].warnings.some((w) => /Charge.*\(C\)/.test(w)));
-  assert.ok(recs[0].warnings.some((w) => /Devastating.*\(D\)/.test(w)));
-  assert.ok(recs[0].warnings.some((w) => /Mounted.*\(M\)/.test(w)));
+  // B5's three evidenced Lance codes are known custom Properties, not parser
+  // warnings. They are materialized at commit and preserve their table order.
+  assert.deepEqual(recs[0].draft.lanceProperties, ["Charge", "Devastating", "Mounted"]);
+  assert.deepEqual(recs[0].draft.unmappedProps, []);
+  assert.deepEqual(recs[0].warnings, []);
   assert.ok(recs[1].warnings.some((w) => /Obsidian.*\(O\)/.test(w)));
-  // Left off the item, but kept by label for the description note.
-  assert.deepEqual(recs[0].draft.unmappedProps, ["Charge", "Devastating", "Mounted"]);
+  // Genuinely unsupported WR codes remain visible and are still left off.
   assert.deepEqual(recs[1].draft.unmappedProps, ["Obsidian"]);
 });
 
