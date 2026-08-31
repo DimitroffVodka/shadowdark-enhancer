@@ -1,6 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { TokenArtCatalog } from "./token-art-catalog.mjs";
+import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -22,6 +23,9 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     actions: {
       sourceUp: TokenArtManagerApp._onSourceMove,
       sourceDown: TokenArtManagerApp._onSourceMove,
+      folderAdd: TokenArtManagerApp._onFolderAdd,
+      folderEdit: TokenArtManagerApp._onFolderEdit,
+      folderRemove: TokenArtManagerApp._onFolderRemove,
       choose: TokenArtManagerApp._onChoose,
       clearRow: TokenArtManagerApp._onClearRow,
       browse: TokenArtManagerApp._onBrowse,
@@ -54,14 +58,29 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   async close(opts) { TokenArtManagerApp._instance = null; return super.close(opts); }
 
-  _state() { return game.settings.get(MODULE_ID, "tokenArtManager") ?? { priority: [], overrides: {}, picks: {} }; }
+  _state() {
+    return normalizeTokenArtManagerState(game.settings.get(MODULE_ID, "tokenArtManager"));
+  }
   async _saveState(patch) {
     // Shallow top-level replace — every caller passes the complete `priority`
     // array or `overrides` object. A recursive mergeObject would *keep* keys
     // absent from the patch (performDeletions defaults to false), so clearing
     // an override or resetting all would silently no-op.
     const cur = this._state();
-    await game.settings.set(MODULE_ID, "tokenArtManager", { ...cur, ...patch });
+    const next = normalizeTokenArtManagerState({ ...cur, ...patch });
+    await game.settings.set(MODULE_ID, "tokenArtManager", next);
+    return next;
+  }
+
+  /** Remember exact files selected through a manual Browse folder. The list is
+   * intentionally file-level, not another broad root prefix: a former folder
+   * can be edited/removed without making arbitrary GM art replaceable. */
+  static _rememberManagedPaths(state, paths = []) {
+    const remembered = new Set(Array.isArray(state.managedPaths) ? state.managedPaths : []);
+    for (const path of paths) {
+      if (typeof path === "string" && path.trim()) remembered.add(path.trim());
+    }
+    return [...remembered];
   }
 
   async _prepareContext() {
@@ -72,6 +91,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const picks = state.picks ?? {};
     const order = TokenArtCatalog.resolvePriority(cat.sources.map((s) => s.id));
     const sourceById = Object.fromEntries(cat.sources.map((s) => [s.id, s]));
+    const folderById = Object.fromEntries(state.folders.map((folder) => [tokenArtFolderSourceId(folder), folder]));
     const orderedSources = order.map((id) => sourceById[id]).filter(Boolean);
 
     // resolved choice + per-source tally
@@ -82,7 +102,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     // CS/WR monsters), which get only a "Browse…" affordance. The search box +
     // conflicts toggle filter the DOM client-side (no re-render) so typing never
     // loses focus.
-    const srcLabel = (id) => sourceById[id]?.label ?? id;
+    const srcLabel = (id) => sourceById[id]?.label ?? folderById[id]?.label ?? id;
     const rows = [];
     for (const m of cat.byMonster) {
       const chosen = res.chosen[m.id];
@@ -115,6 +135,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         isLast: i === orderedSources.length - 1,
       })),
       rows,
+      folders: state.folders,
       stats: res.stats,
       enabled,
       filter: this._filter,
@@ -221,6 +242,113 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   // ---- actions --------------------------------------------------------------
+  /** Probe a user-entered data folder without letting FilePicker failures
+   * escape into the manager or browser. An empty folder is readable and is
+   * accepted; _browseTree will find images in any child directories later. */
+  static async _probeFolder(path) {
+    try {
+      const result = await MonsterTokenArt.FilePickerCls.browse("data", path);
+      return !!result && (Array.isArray(result.files) || Array.isArray(result.dirs));
+    } catch (error) {
+      console.debug(`${MODULE_ID} | token art: folder is not readable "${path}":`, error?.message ?? error);
+      return false;
+    }
+  }
+
+  /** Add or edit one named Browse folder. The dialog only writes after a
+   * successful local FilePicker probe, so a typo cannot poison the setting. */
+  static async _editFolder(index = null) {
+    if (!game.user.isGM) return false;
+    const state = this._state();
+    const parsedIndex = Number.isInteger(index) ? index : Number.parseInt(index, 10);
+    const editing = Number.isInteger(parsedIndex) && parsedIndex >= 0 ? state.folders[parsedIndex] : null;
+    const DialogV2 = foundry.applications?.api?.DialogV2;
+    if (!DialogV2?.prompt) {
+      ui.notifications.error("Token Art Manager needs Foundry's dialog API to edit Browse folders.");
+      return false;
+    }
+    const esc = foundry.utils.escapeHTML;
+    const result = await DialogV2.prompt({
+      window: { title: editing ? "Edit Token Art Browse Folder" : "Add Token Art Browse Folder" },
+      content: `<div class="sde-tam-folder-form">
+        <label>Label<input type="text" name="label" value="${esc(editing?.label ?? "")}" maxlength="120" autofocus></label>
+        <label>Data folder path<input type="text" name="path" value="${esc(editing?.path ?? "")}" placeholder="modules/my-token-pack/tokens" spellcheck="false"></label>
+        <p class="notes">Enter a folder under Foundry's Data directory. Images in child folders are included when you Browse.</p>
+      </div>`,
+      ok: {
+        label: "Save",
+        callback: (_event, button) => ({
+          label: button.form.elements.label.value,
+          path: button.form.elements.path.value,
+        }),
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!result) return false;
+
+    const label = String(result.label ?? "").trim();
+    const path = String(result.path ?? "").trim();
+    if (!label || !path) {
+      ui.notifications.warn("A Browse folder needs both a label and a data folder path.");
+      return false;
+    }
+    const folders = state.folders.map((folder) => ({ ...folder }));
+    const duplicate = folders.findIndex((folder, i) => i !== parsedIndex && folder.path === path);
+    if (duplicate >= 0) {
+      ui.notifications.warn(`That data folder is already listed as “${folders[duplicate].label}”.`);
+      return false;
+    }
+    if (!(await TokenArtManagerApp._probeFolder(path))) {
+      ui.notifications.error(`Could not read the Browse folder “${path}”. Check the path and your file permissions.`);
+      return false;
+    }
+
+    if (editing) folders[parsedIndex] = { ...editing, label, path };
+    else folders.push({ label, path });
+    const source = editing ? tokenArtFolderSourceId(editing) : null;
+    const oldPickPaths = source
+      ? Object.values(state.picks).flatMap((pick) => pick?.source === source ? manualFolderPickPaths(pick) : [])
+      : [];
+    await this._saveState({ folders, managedPaths: TokenArtManagerApp._rememberManagedPaths(state, oldPickPaths) });
+    // Both catalogs are disk-backed and must not retain a removed/edited root.
+    this._catalog = null;
+    this._library = null;
+    await this.render({ parts: ["body"] });
+    ui.notifications.info(`${editing ? "Updated" : "Added"} Browse folder “${label}”.`);
+    return true;
+  }
+
+  static async _onFolderAdd() { return TokenArtManagerApp._editFolder.call(this); }
+
+  static async _onFolderEdit(_event, target) {
+    return TokenArtManagerApp._editFolder.call(this, Number.parseInt(target.dataset.folder, 10));
+  }
+
+  static async _onFolderRemove(_event, target) {
+    if (!game.user.isGM) return false;
+    const index = Number.parseInt(target.dataset.folder, 10);
+    const state = this._state();
+    const folder = state.folders[index];
+    if (!folder) return false;
+    const DialogV2 = foundry.applications?.api?.DialogV2;
+    if (!DialogV2?.confirm) return false;
+    const confirmed = await DialogV2.confirm({
+      window: { title: "Remove Token Art Browse Folder" },
+      content: `<p>Remove the Browse folder <strong>${foundry.utils.escapeHTML(folder.label)}</strong>?</p>`,
+      rejectClose: false,
+    }).catch(() => false);
+    if (!confirmed) return false;
+    const folders = state.folders.filter((_entry, i) => i !== index);
+    const oldSource = tokenArtFolderSourceId(folder);
+    const oldPickPaths = Object.values(state.picks).flatMap((pick) => pick?.source === oldSource ? manualFolderPickPaths(pick) : []);
+    await this._saveState({ folders, managedPaths: TokenArtManagerApp._rememberManagedPaths(state, oldPickPaths) });
+    this._catalog = null;
+    this._library = null;
+    await this.render({ parts: ["body"] });
+    ui.notifications.info(`Removed Browse folder “${folder.label}”.`);
+    return true;
+  }
+
   static async _onSourceMove(event, target) {
     const id = target.dataset.source;
     const dir = target.dataset.action === "sourceUp" ? -1 : 1;
@@ -250,9 +378,10 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const st = this._state();
     const overrides = foundry.utils.deepClone(st.overrides ?? {});
     const picks = foundry.utils.deepClone(st.picks ?? {});
+    const clearedPickPaths = manualFolderPickPaths(picks[id]);
     delete overrides[id];   // clear both a source override and a hand-picked image
     delete picks[id];
-    await this._saveState({ overrides, picks });
+    await this._saveState({ overrides, picks, managedPaths: TokenArtManagerApp._rememberManagedPaths(st, clearedPickPaths) });
     this.render({ parts: ["body"] });
   }
 
@@ -362,19 +491,22 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   /** Commit a hand-picked image (grid thumbnail click) as the monster's art. */
   async _pickImage(monsterId, entry) {
-    const picks = foundry.utils.deepClone(this._state().picks ?? {});
+    const state = this._state();
+    const picks = foundry.utils.deepClone(state.picks ?? {});
+    const priorPickPaths = manualFolderPickPaths(picks[monsterId]);
     picks[monsterId] = {
       source: entry.source, file: entry.file,
       token: entry.token, portrait: entry.portrait, tokenObj: entry.tokenObj,
     };
-    await this._saveState({ picks });
+    const selectedPaths = [entry.token, entry.portrait];
+    await this._saveState({ picks, managedPaths: TokenArtManagerApp._rememberManagedPaths(state, [...priorPickPaths, ...selectedPaths]) });
     const overlay = this.element?.querySelector(".sde-tam-browser");
     if (overlay) overlay.hidden = true;
     this.render({ parts: ["body"] });
   }
 
   static async _onResetAll() {
-    await this._saveState({ overrides: {}, picks: {} });
+    await this._saveState({ overrides: {}, picks: {}, managedPaths: [] });
     this.render({ parts: ["body"] });
   }
 
@@ -411,6 +543,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const r = await MonsterTokenArt.applyResolvedToPlaced(byName, {
       scene: true, actors: true, portraits: true,
       extraPrefixes: TokenArtCatalog.managedArtPrefixes(),
+      extraPaths: TokenArtCatalog.managedArtPaths(),
     });
     if (r && !r.missing) {
       ui.notifications.info(`Re-skinned ${r.tokens} placed tokens, ${r.portraits} portraits (${r.kept} kept, ${r.skipped.length} unmatched).`);

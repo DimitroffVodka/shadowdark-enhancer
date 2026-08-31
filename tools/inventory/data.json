@@ -342,7 +342,8 @@
     "3.15": [
       "scripts/monster-art/monster-token-art.mjs",
       "scripts/monster-art/token-art-catalog.mjs",
-      "scripts/monster-art/token-art-manager-app.mjs"
+      "scripts/monster-art/token-art-manager-app.mjs",
+      "scripts/monster-art/token-art-manager-state.mjs"
     ],
     "3.16": [
       "scripts/pdf-export/pdf-sheet-export.mjs"
@@ -532,6 +533,7 @@
     "scripts/monster-art/monster-token-art.mjs": "Applies licensed art to monsters **by path reference**, never bundled.",
     "scripts/monster-art/token-art-catalog.mjs": "Name→art matching catalog.",
     "scripts/monster-art/token-art-manager-app.mjs": "GM window to review/apply matches.",
+    "scripts/monster-art/token-art-manager-state.mjs": "Normalizes the persistent Token Art Manager state and named Browse folders.",
     "scripts/pdf-export/pdf-sheet-export.mjs": "\"Export to PDF\" header button; fills the bundled form-fillable sheet from SD data-model getters.",
     "scripts/encounter/encounter-sources.mjs": "Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll).",
     "scripts/monster-creator/level-guidelines-app.mjs": "GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like.",
