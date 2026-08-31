@@ -46,9 +46,10 @@
     snapshot and cleanup of replacement orphans are attempted and verified.
     When restoration succeeds, original source rows survive intact for retry;
     if restoration fails, the result reports `restored: false` with
-    `rollbackErrors` and warns the GM that manual recovery may be required
-    before retry. Unmapped rows, non-managed packs, or write failures remain
-    plain text with source text preserved.
+    `rollbackErrors`, cannot guarantee final row/source preservation, and warns
+    the GM that manual recovery may be required before retry. Unmapped rows,
+    non-managed packs, unavailable table writers, or write failures where
+    restoration succeeds remain plain text with source text preserved.
 - **Pathfinder Character Gallery portraits in Character Builder.** When the
   curated portrait gallery is enabled, character portraits from *Pathfinder
   Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)
