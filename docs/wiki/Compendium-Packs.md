@@ -29,6 +29,17 @@ something needs it. They live in the sidebar under a **Shadowdark Enhancer**
 folder. The export/import bundle includes all suite packs, so curated items,
 generated entries, and conflict state survive a world migration.
 
+### Generated Artifacts and Replace-Always Boundary
+
+Documents created by the module's generation and creation pipelines inside the
+managed Items pack (`world.shadowdark-enhancer--items` / `sde-items`) carry an
+explicit generated marker (`flags["shadowdark-enhancer"].generated = true` or
+`flags["shadowdark-enhancer"].monsterSpell.generated = true`). Under the
+structural replace-always contract (A7/D6), these generated artifacts are authoritative:
+re-running their generator replaces the document in full, including art and
+properties. Generated items outside the managed pack or ordinary imported items
+obey standard provenance preservation rules instead.
+
 ### Suite packs
 
 | Pack id | Type | Label | Holds |
