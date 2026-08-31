@@ -39,6 +39,7 @@ isn't listed. Recognised out of the box:
 | **Monster Manual** | `modules/dnd-monster-manual`, including its dynamic ring and per-token scale |
 | **Player's Handbook** | `modules/dnd-players-handbook` |
 | **Pathfinder: Monster Core** | `modules/pf2e-tokens-monster-core` |
+| **Pathfinder: Character Gallery** | `modules/pf2e-tokens-characters`, including token, portrait, and subject art with mapped scale and dynamic ring support |
 | **Any other `pf2e-tokens-*` module** | Auto-added, including the pf2e **iconic** PC/companion portraits |
 | **Forgotten Adventures** | `systems/dnd5e/tokens`, the set bundled with the dnd5e system |
 | **Community Tokens** | `modules/shadowdark-community-tokens` |
@@ -161,26 +162,14 @@ The overlay skins the module's own imported-monster pack (`sde-actors`) alongsid
 through the [Importer Hub](Importer-Hub.md) can carry token art just like the
 base bestiary.
 
-- **Census and manager representation**: Every managed imported NPC is listed
-  in the Token Art Manager, even when installed art sources provide zero
-  automatic suggestions or name matches.
-- **Browse and manual picks**: Rows with zero automatic options still expose
-  **Browse**, allowing you to pick from any installed token across your
-  sources. Manual picks persist across sessions and apply cleanly to compendium
-  art.
-- **Same-name monster provenance**: When a monster name exists in both Core and
-  an imported pack (e.g. Core and imported *Goblin*), both appear as separate
-  provenance rows keyed by pack and document ID, allowing independent art picks.
-- **Placed-token resolution**: Re-skinning placed scene tokens by name
-  (`resolveByName`) resolves same-name clashes with a Core-first tiebreak when
-  both have art, falling back to the imported pick when Core has no art
-  configured.
-- **Non-monster exclusions**: Non-NPC managed actors in `sde-actors` (such as
-  Western Reaches boats or mounts) are strictly excluded from manager rows.
+- **Census and Actor types**: The managed Enhancer Actor pack (`world.shadowdark-enhancer--actors` / `sde-actors`) admits imported NPCs and mount documents (`Mount` and `shadowdark-enhancer.mount`) into the Token Art Manager catalog and compendium mapping. Boats, Core mounts, loose world Actors, source packs, and third-party packs remain strictly excluded.
+- **Curated imported art (F4)**: Token Art Manager's **Apply** applies 16 exact, source-qualified reviewed art picks for managed imported NPCs and mounts (such as Western Reaches mounts and Cursed Scroll creatures). Curated paths carry `origin: "curated"` and are recorded in the manager's `managedPaths` witness ledger.
+- **Reviewed-unmatched rows stay Browse-only**: The remaining 63 reviewed imported identities remain Browse-visible and are deliberately left unmapped by default—even if installed sources provide fuzzy candidate matches (for example, generic `bat.webp` is suppressed for *Tar Bat* and *Void Bat*). No fuzzy inference or bare-name guessing is performed on reviewed imported rows.
+- **Precedence**: Later manual GM picks and explicit source overrides always take precedence over curated picks. A reviewed-unmatched or unavailable-path row escapes suppression only via a concrete manual pick or an explicit source override that actually has a valid option present in that row; an invalid or missing override suppresses automatic fallback and will not fall through to fuzzy art.
+- **Same-name monster isolation**: CS2 and WR same-name creatures (such as CS2 and WR *Horse, War*) are tracked with distinct source-qualified identities (`<SRC>:<name>`) and document IDs, ensuring independent art mapping and zero cross-book collisions.
+- **Placed-token resolution**: Re-skinning placed scene tokens by name (`resolveByName`) resolves same-name clashes with a Core-first tiebreak when both have art, falling back to the imported pick when Core has no art configured.
 
-*(Note: Enumerating all imported NPCs provides complete manager coverage and
-manual pick access; it does not change automatic suggestion quality, add new
-Pathfinder sources, or alter the world/Core monster census.)*
+*(Note on Pathfinder art: Sources referencing *Pathfinder Tokens: Character Gallery* carry the approved attribution: "Portrait, token, and subject artwork from the Pathfinder Tokens: Character Gallery." Art is referenced by path from locally installed modules and is never copied or bundled.)*
 
 ### Presentation is inherited
 

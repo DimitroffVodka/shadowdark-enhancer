@@ -106,7 +106,7 @@ Composed D1+D2+D3+D4+D5+D6, weapons, armor, Basic Gear, and the CS3 Sea Wolf Plu
 
 | Pack id | Type | Label | Holds |
 |---|---|---|---|
-| `sde-actors` | Actor | Shadowdark Enhancer — Actors | Imported monsters |
+| `sde-actors` | Actor | Shadowdark Enhancer — Actors | Imported monsters and mounts |
 | `sde-items` | Item | Shadowdark Enhancer — Items | Imported items, spells, gear, generated Monster Spells, and generated Sea Wolf Plunder, Dead Bandit Loot, and Diabolical Treasure treasure items |
 | `sde-tables` | RollTable | Shadowdark Enhancer — Roll Tables | Imported tables |
 | `sde-journal` | JournalEntry | Shadowdark Enhancer — Journals | *(structural)* |

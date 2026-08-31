@@ -260,18 +260,16 @@ Stored as settings because that is where world-scoped state lives in Foundry.
 | `shopInventory` · `shopLog` · `savedShopConfigs` · `shopAvailableToPlayers` · `shopAvailabilityData` · `gambleOptions` · `shopDefaultApplied` | Merchant shop state |
 | `tokenArtCompendium` | Whether the compendium-art overlay is on |
 | `lootSetupSeen` | Whether the first-run loot nudge has been shown |
-| `backfillVersion` | Last module version whose monster backfill ran in this world |
+| `backfillVersion` | Last module version whose legacy monster backfill ran in this world |
+| `enricherBackfillVersion` | Last module version whose missing-only monster text enricher backfill completed in the managed Actors pack (E2) |
+| `creatureTypeBackfillVersion` | Last module version whose missing-only reviewed creature taxonomy pass completed in the managed Actors pack (E3) |
 | `monsterSpellSyncVersion` | Last module version whose automatic Monster Spell Library refresh completed in this world |
 | `downtimeContent` | The downtime outcome text you unlocked, per source book. Written by the Importer's **Downtime** import type, read by the [Downtime](Downtime.md) window |
 | `downtimeSession` | The live downtime session: which book, whether picks are still open, and each character's chosen activity and settled result |
 | `uniqueFeatureTableUuid` | The bound unique-feature table |
 
-> **`backfillVersion` and `monsterSpellSyncVersion` are the ones worth knowing about.**
-> Clearing `backfillVersion` makes the automatic monster backfill re-run on the next
-> world load. That sweep is idempotent and non-destructive, so re-running it is safe
-> if you suspect imported monsters are stale. Similarly, clearing `monsterSpellSyncVersion`
-> forces the automatic Monster Spell refresh to re-run from Core and the managed
-> Actors pack on the next world load.
+> **`backfillVersion`, `enricherBackfillVersion`, `creatureTypeBackfillVersion`, and `monsterSpellSyncVersion` are internal version stamps.**
+> These world settings gate automatic, active-GM update sweeps. `backfillVersion` tracks the legacy property/spell cleanup pass; `enricherBackfillVersion` gates the contextual text enrichment backfill for monster notes and attacks in `sde-actors`; `creatureTypeBackfillVersion` gates the missing-only source-qualified creature taxonomy pass for managed NPCs and mounts; and `monsterSpellSyncVersion` gates the automatic Monster Spell Library refresh. Each sweep runs only for the single active GM, is idempotent, preserves existing and custom data, and only advances its stamp after a complete successful run so that any partial failure is cleanly retried on the next world load.
 
 ---
 
