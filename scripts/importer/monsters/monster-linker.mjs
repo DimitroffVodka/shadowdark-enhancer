@@ -15,7 +15,7 @@
 
 import { findMonsterPack } from "./monster-pack.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
-import { enrichDice } from "../../shared/contextual-enricher.mjs";
+import { enrichContextualText, enrichDice } from "../../shared/contextual-enricher.mjs";
 
 const MONSTER_PACK = "shadowdark.monsters";
 
@@ -75,9 +75,24 @@ export function embedLinks(text, index) {
   return out;
 }
 
-/** Full Ruins-style enrichment: inline dice rolls + monster @UUID links. */
-export function enrichEncounterText(text, index) {
-  return embedLinks(convertDice(text), index);
+/**
+ * Full Ruins-style enrichment: contextual checks/dice + monster @UUID links.
+ *
+ * The optional context is used by table/environment and monster callers that
+ * need A5's context-sensitive check/request syntax. With no context this
+ * preserves the legacy encounter path: dice + monster links only.
+ *
+ * @param {string} text
+ * @param {Array<{name:string, uuid:string}>} index
+ * @param {{context?: "table"|"environment"|"monster"}} [options]
+ */
+export function enrichEncounterText(text, index, options) {
+  const hasContext = options != null
+    && Object.prototype.hasOwnProperty.call(options, "context");
+  const enriched = hasContext
+    ? enrichContextualText(text, { context: options.context })
+    : convertDice(text);
+  return embedLinks(enriched, index);
 }
 
 export const MonsterLinker = {

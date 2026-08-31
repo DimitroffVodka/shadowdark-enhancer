@@ -29,7 +29,9 @@ import {
   enrichContextualText,
   enrichDice,
 } from "../scripts/shared/contextual-enricher.mjs";
-import { convertDice, enrichEncounterText } from "../scripts/importer/monsters/monster-linker.mjs";
+import { convertDice, enrichEncounterText, MonsterLinker } from "../scripts/importer/monsters/monster-linker.mjs";
+import { isArcticSeaEncounterTable, TableEnricher } from "../scripts/importer/tables/table-enrich.mjs";
+import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 
 /** The system's own enricher pattern — copied, not imported (it lives in the system). */
 const SYSTEM_ENRICHER = /\[\[(?<command>check|request)\s(?<dc>\d+)\s(?<stat>\w{3})\]\]/g;
@@ -273,5 +275,129 @@ describe("A5 — the composed encounter enrichment still holds", () => {
   test("a link label containing dice survives the composition", () => {
     const labelled = "@UUID[Compendium.shadowdark.monsters.troll]{2d4 Ice Trolls} appear";
     assert.equal(enrichEncounterText(labelled, index), labelled);
+  });
+
+  test("an explicitly supplied context remains A5-validated", () => {
+    assert.throws(
+      () => enrichEncounterText("DC 15 DEX", index, { context: "not-a-context" }),
+      TypeError,
+    );
+  });
+});
+
+describe("E1 — Arctic Sea table enrichment", () => {
+  const monsterIndex = [{ name: "Ice Troll", uuid: "Compendium.shadowdark.monsters.troll" }];
+
+  test("the table selector is narrow and recognizes seeded and legacy copies", () => {
+    assert.equal(isArcticSeaEncounterTable({
+      name: "Anything GM-named",
+      flags: { [MODULE_ID]: { manifestId: "cs3-arctic-sea-encounters" } },
+    }), true);
+    assert.equal(isArcticSeaEncounterTable({
+      name: "Cursed Scroll 3 p26: Arctic Sea Encounters",
+      flags: { [MODULE_ID]: { source: "CS3" } },
+    }), true);
+    assert.equal(isArcticSeaEncounterTable({ name: "Arctic Sea Encounters" }), true);
+    assert.equal(isArcticSeaEncounterTable({
+      name: "Core - Arctic Sea Encounters",
+      flags: { [MODULE_ID]: { source: "core" } },
+    }), false);
+    assert.equal(isArcticSeaEncounterTable({
+      name: "Cursed Scroll 3 p26: Arctic Sea Encounters",
+      flags: { [MODULE_ID]: { source: "CS6" } },
+    }), false);
+    assert.equal(isArcticSeaEncounterTable({ name: "Arctic Encounters" }), false);
+  });
+
+  test("the complete 50-row source fixture preserves prose, links, and markup at a fixed point", async () => {
+    const sourceRows = Array.from({ length: 50 }, (_, i) => ({
+      id: `row-${i + 1}`,
+      name: i === 31
+        ? "A sudden storm hails frozen ice; DC 15 DEX or 2d4 damage"
+        : i === 7
+          ? "An existing @UUID[Compendium.shadowdark.monsters.troll]{Ice Troll} watches; DC 12 CON or 1d6 damage."
+          : i === 15
+            ? '<p class="encounter-row">A frozen wake; DC 10 WIS or 1d4 damage.</p>'
+            : i === 23
+              ? "A warded floe; [[check 11 str]] or [[/r 1d8]] damage."
+              : `Complete source row ${i + 1}: drifting ice and ${i % 2 ? "1d6" : "2d4"} cold damage.`,
+      description: "",
+    }));
+    assert.equal(sourceRows.length, 50, "the fixture must cover every source row");
+
+    const updates = [];
+    const rows = sourceRows.map((row) => ({
+      id: row.id,
+      toObject() { return { name: row.name, description: row.description }; },
+    }));
+    const table = {
+      name: "Cursed Scroll 3 p26: Arctic Sea Encounters",
+      flags: { [MODULE_ID]: { manifestId: "cs3-arctic-sea-encounters", source: "cs3" } },
+      results: { contents: rows, size: rows.length },
+      async updateEmbeddedDocuments(type, batch) {
+        assert.equal(type, "TableResult");
+        updates.push(batch);
+        for (const patch of batch) {
+          const row = sourceRows.find((candidate) => candidate.id === patch._id);
+          row.name = patch.name;
+          row.description = patch.description;
+        }
+      },
+    };
+
+    const oldGame = globalThis.game;
+    const originalBuildIndex = MonsterLinker.buildIndex;
+    globalThis.game = { user: { isGM: true } };
+    MonsterLinker.buildIndex = async () => monsterIndex;
+    try {
+      const first = await TableEnricher.enrichEncounters(table);
+      assert.equal(first.rows, 50);
+      assert.equal(first.updated, 50);
+      assert.equal(updates.length, 1);
+      assert.match(sourceRows[31].description, /\[\[check 15 dex\]\] or \[\[\/r 2d4\]\]/);
+      assert.match(sourceRows[7].description, /@UUID\[Compendium\.shadowdark\.monsters\.troll\]\{Ice Troll\}/);
+      assert.match(sourceRows[15].description, /^<p class="encounter-row">/);
+      assert.equal(sourceRows[23].description, "A warded floe; [[check 11 str]] or [[/r 1d8]] damage.");
+      for (const [i, row] of sourceRows.entries()) {
+        assert.match(row.description, new RegExp(`(?:Complete source row ${i + 1}|sudden storm|existing|frozen wake|warded floe|encounter-row)`));
+      }
+
+      const firstBytes = sourceRows.map((row) => row.description);
+      const second = await TableEnricher.enrichEncounters(table);
+      assert.equal(second.updated, 0, "a rerun must not write any row");
+      assert.equal(updates.length, 1, "a fixed-point rerun must not call updateEmbeddedDocuments");
+      assert.deepEqual(sourceRows.map((row) => row.description), firstBytes);
+    } finally {
+      MonsterLinker.buildIndex = originalBuildIndex;
+      if (oldGame === undefined) delete globalThis.game;
+      else globalThis.game = oldGame;
+    }
+  });
+
+  test("an unrelated encounter table keeps the legacy dice-only route", async () => {
+    const row = { id: "core-row", name: "Core encounter: DC 15 DEX or 2d4 damage", description: "" };
+    const updates = [];
+    const table = {
+      name: "Arctic Encounters",
+      flags: { [MODULE_ID]: { manifestId: "core-arctic-encounters", source: "core" } },
+      results: { contents: [{ id: row.id, toObject: () => ({ ...row }) }], size: 1 },
+      async updateEmbeddedDocuments(_type, batch) {
+        updates.push(batch);
+        Object.assign(row, batch[0]);
+      },
+    };
+    const oldGame = globalThis.game;
+    const originalBuildIndex = MonsterLinker.buildIndex;
+    globalThis.game = { user: { isGM: true } };
+    MonsterLinker.buildIndex = async () => [];
+    try {
+      await TableEnricher.enrichEncounters(table);
+      assert.equal(row.description, "Core encounter: DC 15 DEX or [[/r 2d4]] damage");
+      assert.equal(updates.length, 1);
+    } finally {
+      MonsterLinker.buildIndex = originalBuildIndex;
+      if (oldGame === undefined) delete globalThis.game;
+      else globalThis.game = oldGame;
+    }
   });
 });

@@ -14,8 +14,27 @@
 import { MonsterLinker, enrichEncounterText } from "../monsters/monster-linker.mjs";
 import { LootCatalog } from "../../loot/loot-catalog.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
+import { sourceKey } from "../../shared/source-keys.mjs";
 
 const resultText = (r) => { const s = r.toObject(); return s.name || s.description || ""; };
+const ARCTIC_SEA_MANIFEST_ID = "cs3-arctic-sea-encounters";
+const ARCTIC_SEA_NAME = /(?:^|(?:\s-\s|:\s*))arctic sea encounters$/i;
+
+/**
+ * True only for the CS3 Arctic Sea table. The manifest id is authoritative for
+ * newly imported rows; the name fallback keeps older/hand-created copies on
+ * the same table-specific path without enabling checks on unrelated tables.
+ *
+ * @param {object|null|undefined} table
+ * @returns {boolean}
+ */
+export function isArcticSeaEncounterTable(table) {
+  const flags = table?.flags?.[MODULE_ID] ?? {};
+  if (flags.manifestId === ARCTIC_SEA_MANIFEST_ID) return true;
+  const name = String(table?.name ?? "").trim();
+  if (!ARCTIC_SEA_NAME.test(name)) return false;
+  return !flags.source || sourceKey(flags.source) === "cs3";
+}
 
 /**
  * Infer a table's enrichment kind from descriptive text fragments (category,
@@ -42,11 +61,13 @@ export const TableEnricher = {
   async enrichEncounters(table) {
     if (!game.user?.isGM || !table) return { rows: 0, linked: 0, updated: 0 };
     const index = await MonsterLinker.buildIndex();
+    const contextual = isArcticSeaEncounterTable(table);
     const updates = [];
     let linked = 0;
     for (const r of table.results.contents) {
       const src = r.toObject();
-      const enriched = enrichEncounterText(resultText(r), index);
+      const enriched = enrichEncounterText(resultText(r), index,
+        contextual ? { context: "table" } : undefined);
       linked += (enriched.match(/@UUID\[/g) || []).length;
       if (src.description !== enriched || src.name) {
         updates.push({ _id: r.id, description: enriched, name: "" });
