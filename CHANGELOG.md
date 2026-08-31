@@ -50,6 +50,29 @@
     the GM that manual recovery may be required before retry. Unmapped rows,
     non-managed packs, unavailable table writers, or write failures where
     restoration succeeds remain plain text with source text preserved.
+
+- **Contextual checks and rolls for Arctic Sea Encounters (E1).** Importing or
+  enriching the *Cursed Scroll 3* Arctic Sea Encounters table now runs contextual
+  check and dice enrichment (A5) alongside existing `@UUID` monster linking.
+  Difficulty class expressions (e.g. `DC 15 DEX`) are transformed into actionable
+  `[[check 15 dex]]` controls, and bare dice expressions (e.g. `2d4`) become
+  `[[/r 2d4]]` inline rolls. Table recognition is strict via `isArcticSeaEncounterTable`:
+  authoritatively matching manifest ID `cs3-arctic-sea-encounters`, with a fallback
+  for exact name suffix `Arctic Sea Encounters` when the module source flag is
+  absent (legacy / hand-created copies) or canonicalizes to `cs3`. Lookalikes
+  with explicit non-CS3 source stamps (such as Core or CS6) and distinct tables
+  (like Core `Arctic Encounters`) are rejected. Enrichment applies across all
+  production table consumers: fresh single import (`createTable`), Importer Hub
+  multi-table create/replace (`TableImporter.commitTableBundle`), the public API
+  (`game.shadowdarkEnhancer.tables.enrich`), manual relink sweeps
+  (`game.shadowdarkEnhancer.tables.relinkAll`), and debounced sweeps scheduled
+  after monster/item import batches (`scheduleRelinkSweep`). The 50-row table
+  (covering 1–100) preserves existing HTML markup, monster links, and prose;
+  rerunning on already enriched tables is idempotent (`updated: 0` without
+  embedded document updates). Unrelated encounter tables keep their legacy
+  behavior (`convertDice` and `@UUID` links only), leaving their DC expressions
+  as unmodified prose. A5 reserves GM-facing `[[request]]` syntax for monster-context
+  callers; E1 supplies only `{ context: "table" }` and does not alter monster statblocks.
 - **Pathfinder Character Gallery portraits in Character Builder.** When the
   curated portrait gallery is enabled, character portraits from *Pathfinder
   Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)
