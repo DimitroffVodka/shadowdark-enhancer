@@ -1,6 +1,6 @@
 # Monster Token Art
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Re-skin the Shadowdark bestiary with token art you already own, **referenced by
 path, never copied or bundled**.
@@ -245,4 +245,4 @@ picks.
 
 ---
 
-**Related:** [Monster Creator](Monster-Creator.md) · [Compendium Packs](Compendium-Packs.md) · [CREDITS.md](../../CREDITS.md)
+**Related:** [Monster Creator](Monster-Creator.md) · [Compendium Packs](Compendium-Packs.md) · [CREDITS.md](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md)

@@ -119,7 +119,7 @@ the map you want out of reach.
 
 Maps are named for the venue they stand in for, not the 2-Minute Tabletop product
 they were sold as: you'll see *Large Arena* where the shop lists *Greybanner
-Coliseum*. [CREDITS](../../CREDITS.md) lists both side by side, so you can go
+Coliseum*. [CREDITS](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md) lists both side by side, so you can go
 from the name in the picker to the product to buy or credit. Some browsers also
 show the product name as hover text on an option — Firefox does, Chrome usually
 does not, since the dropdown is drawn by your operating system rather than by

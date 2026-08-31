@@ -1,6 +1,6 @@
 # Table Import & Shapes
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Published tables are laid out for a printed page, not for a parser. This page
 explains how the module turns a messy PDF copy into a correct RollTable, and how
@@ -234,7 +234,7 @@ tables like *Cursed Scroll 3* p68 *Sea Wolf Plunder From Distant Lands* (D4),
 linking routes to a dedicated materializer that mints the 20 managed Items in
 `sde-items` under `Cursed Scroll 3 / Treasure` with curated icons and links them
 while preserving full priced display text on TableResults; coin entries and
-unmapped rows stay plain text. See [Loot & Treasure — How loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution), [Sea Wolf Plunder materialization](Loot-and-Treasure.md#sea-wolf-plunder-materialization-d4), and [API `loot.resolve`](../API.md#loot).
+unmapped rows stay plain text. See [Loot & Treasure — How loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution), [Sea Wolf Plunder materialization](Loot-and-Treasure.md#sea-wolf-plunder-materialization-d4), and [API `loot.resolve`](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot).
 
 ### Contextual check enrichment for Arctic Sea encounters (E1)
 

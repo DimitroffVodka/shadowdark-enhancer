@@ -6,7 +6,7 @@ const ROOT = new URL("../", import.meta.url);
 const read = path => readFile(new URL(path, ROOT), "utf8");
 
 test("Monster Spell Library has a linked quick-use guide with reconciliation details", async () => {
-  const home = await read("docs/wiki/Home.md");
+  const home = await read("docs/wiki/index.md");
   assert.match(home, /\[Monster Spell Library\]\(Monster-Spell-Library\.md\)/);
 
   const guide = await read("docs/wiki/Monster-Spell-Library.md");

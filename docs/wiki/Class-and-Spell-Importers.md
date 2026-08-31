@@ -1,6 +1,6 @@
 # Class & Spell Importers
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Classes and spells are the two hardest content types to import, so each gets its
 own workspace instead of sharing the generic paste box.

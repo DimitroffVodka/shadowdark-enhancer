@@ -1,6 +1,6 @@
 # Merchant Shop
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 A GM-run shop that opens for every player at once. Players buy and sell against
 their own `system.coins`, and every transaction is logged.

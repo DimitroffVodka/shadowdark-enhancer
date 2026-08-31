@@ -1,6 +1,6 @@
 # Movement Budgets
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Per-turn movement allowances, a coloured ruler while you drag, optional refusal
 of over-budget moves, and a one-click rollback to where a token started its turn.

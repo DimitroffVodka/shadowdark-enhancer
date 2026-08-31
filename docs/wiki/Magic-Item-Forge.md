@@ -1,6 +1,6 @@
 # Magic Item Forge
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Roll or hand-build a magic item and create it as a real Foundry item.
 

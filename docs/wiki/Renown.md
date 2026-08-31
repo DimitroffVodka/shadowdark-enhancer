@@ -1,6 +1,6 @@
 # Renown
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Renown is how well known a character is — fame or infamy, from a Western Reaches
 rule (p233). The Shadowdark system already stores the number on the player sheet;

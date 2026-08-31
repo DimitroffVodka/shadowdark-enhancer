@@ -1,6 +1,6 @@
 # Party XP
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Award XP to the whole party in one click, following Shadowdark's treasure-XP
 rule.

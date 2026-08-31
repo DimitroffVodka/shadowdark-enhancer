@@ -1,6 +1,6 @@
 # Crawl Strip & Crawl Bar
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 The always-on party display pinned to the top of the canvas, and the control bar
 every other tool launches from. This is the part of the module you look at all

@@ -8,7 +8,7 @@
 [![System](https://img.shields.io/badge/Shadowdark-v3.6.2%2B-brightgreen)](https://foundryvtt.com/packages/shadowdark)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
-[Install](#install) · [Features](#what-it-does) · [**Full documentation →**](docs/wiki/Home.md)
+[Install](#install) · [Features](#what-it-does) · [**Full documentation →**](https://dimitroffvodka.github.io/shadowdark-enhancer/)
 
 </div>
 
@@ -138,7 +138,7 @@ Full reference: **[docs/API.md](docs/API.md)**.
 
 ## Documentation
 
-**[📖 The wiki](docs/wiki/Home.md)**: a manual page per feature, with settings,
+**[📖 The wiki](https://dimitroffvodka.github.io/shadowdark-enhancer/)**: a manual page per feature, with settings,
 walkthroughs and troubleshooting.
 
 | | |

@@ -1,6 +1,6 @@
 # Settings Reference
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Every setting the module registers, its real default, and what it actually does.
 

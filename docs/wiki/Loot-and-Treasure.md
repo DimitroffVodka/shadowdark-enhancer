@@ -1,6 +1,6 @@
 # Loot & Treasure
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Generate a hoard for a party level, then let the party sort it out: post it as
 a chat card players race to claim, or drop the whole result on the map as
@@ -123,7 +123,7 @@ keeps its text and can be fabricated or linked by hand.
 
 **Foundry and module packs, system-first.** Candidate Items are loaded from every installed Item pack, filtered to the four loot types (`Weapon`, `Armor`, `Potion`, `Basic`), deduped by lower-cased name with **system packs first** then world/module packs (including `world.shadowdark-enhancer--items`). On a same-name clash a system Item wins — imports fill gaps. The index is session-cached (cleared by `game.shadowdarkEnhancer.linker.invalidate()` after bulk compendium changes or by the importer itself).
 
-For callers: the six internal `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, table-hub preview, importer-hub paste preview) keep the `null`-or-`{uuid,name,matched}` shape and treat `ambiguous` the same as `unresolved` (no link). The public `game.shadowdarkEnhancer.loot.resolve(text)` return adds `status`, `query`, and for `ambiguous` the `candidates: [{uuid,name}]` list — see [API](../API.md#loot).
+For callers: the six internal `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, table-hub preview, importer-hub paste preview) keep the `null`-or-`{uuid,name,matched}` shape and treat `ambiguous` the same as `unresolved` (no link). The public `game.shadowdarkEnhancer.loot.resolve(text)` return adds `status`, `query`, and for `ambiguous` the `candidates: [{uuid,name}]` list — see [API](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot).
 
 ---
 
@@ -152,7 +152,7 @@ When a RollTable is recognized as *Sea Wolf Plunder From Distant Lands* (*Cursed
 * **Replace-always reruns:** Generated items carry `flags["shadowdark-enhancer"].generated = true` and `generatedItem` identity `cs3:<normalized item name>`. On successful or unchanged reruns, reconciliation provides stable-identity convergence without duplicating items (attempting in-place update, with create-then-delete fallback reporting any failed delete on the next plan for GM cleanup). If a row collides with a generated Monster Spell, it is refused and the spell is preserved. System compendiums (`shadowdark.gear`) are never mutated.
 * **Safe TableResult writes & rollback:** TableResult updates are performed in place under stable IDs on Foundry v13/v14 (or create-before-delete on legacy adapters). Original source rows are snapshotted before writing; if an embedded write fails, restoration of the snapshot and cleanup of replacement orphans are attempted and verified. When restoration succeeds, original source rows survive intact for retry; if restoration fails, the result reports `restored: false` with `rollbackErrors`, cannot guarantee source preservation, and warns the GM that manual recovery may be required before retry. Unmapped rows, non-managed packs, unavailable table writers, or write failures where restoration succeeds remain `TEXT` with source phrases preserved.
 
-**Programmatic access** (see [API](../API.md#loot)):
+**Programmatic access** (see [API](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot)):
 
 * `game.shadowdarkEnhancer.loot.generated.identity(source, name)` — synchronous `fnv1a32:…` (`fnv1a32:573d24a5` for `CS1` + `Carved Bone`) or `""` for a blank half.
 * `game.shadowdarkEnhancer.loot.generated.plan(desired, {source})` — pure, no-write (`item.source` → `{source}` → flag source); `create` / `update` with `definitionMoved`/`documentMoved` / `unchanged` / `refused` + `boundary`; outside the managed pack every definition is `out-of-boundary`; `plan` returns `null` when `findSuitePack("sde-items")` cannot find a pack.

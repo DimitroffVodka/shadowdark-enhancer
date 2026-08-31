@@ -1,6 +1,6 @@
 # Monster Level Guidelines & Quick Adjust
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 What *should* a level-8 Shadowdark monster look like? This page covers the
 answer the module ships, the editor where you change it, and the token button
