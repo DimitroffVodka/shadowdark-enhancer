@@ -247,9 +247,9 @@
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 131 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
-| `items/item-parser.mjs` | 508 | Generic item recognizer (name/cost/slots). Pure. |
+| `items/item-parser.mjs` | 493 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 547 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
-| `items/gear-join.mjs` | 247 | Joins split cost-table + description layouts into one item. Pure. |
+| `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
 | `items/item-importer.mjs` | 1008 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 396 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 133 | Pure stage-①/③ logic for the Item Builder. |
@@ -263,6 +263,7 @@
 | `boats/boat-importer.mjs` | 49 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
 | `boats/siege-parser.mjs` | 438 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
 | `boats/siege-importer.mjs` | 151 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
+| `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
 
 ### 3.13 `scripts/actors/` — Mount & Boat sub-types
 

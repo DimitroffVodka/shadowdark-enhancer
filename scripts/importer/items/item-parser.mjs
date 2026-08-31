@@ -22,6 +22,7 @@
 import { titleCaseName } from "../monsters/statblock-parser.mjs";
 import { parseValue, pickTreasureIcon } from "../../loot/loot-pack.mjs";
 import { escapeHtml, textToHtml, splitRawBlocks, collapse } from "../pdf-text-utils.mjs";
+import { findRecordStarts, stripPageFurniture } from "./record-boundary.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
@@ -448,13 +449,19 @@ function _looksLikeTableDump(block) {
  * Split a pasted "descriptions" blob — the book's `Name. flavor/rules text…`
  * section that sits apart from the price table — into per-item descriptions,
  * anchored on a KNOWN item-name list (from the already-imported items). Anchoring
- * on real names is what makes this robust: a description's own sentences end in
- * periods too, so a blind "Capitalised word ." split would shred them. A header
- * is a known name at the start of the text or just after a sentence/line break,
- * followed by a period; the description runs to the next header. Longest names
- * win (so "Rope, morzo silk" beats "Rope"), and overlapping shorter matches are
- * dropped. Returns [{ name, description }] in reading order; `name` is the exact
- * known-list spelling so the caller can match it straight back to its item.
+ * on real names is what makes ASSIGNMENT robust: a description's own sentences
+ * end in periods too, so a blind "Capitalised word ." split would shred them.
+ * Longest names win (so "Rope, morzo silk" beats "Rope"). Returns
+ * [{ name, description }] in reading order; `name` is the exact known-list
+ * spelling so the caller can match it straight back to its item.
+ *
+ * Assignment and BOUNDARIES are two different questions, and conflating them
+ * was #69: a body used to run to the next ANCHORED name, so a real record the
+ * name list did not cover (a currency row the importer refuses, a header
+ * spelled differently from its table row, a variant two rows share) never
+ * closed the record above it and was swallowed by it. record-boundary.mjs owns
+ * where records end; only named records are RETURNED, but an unnamed one still
+ * ends the record before it. Page furniture is excised from every body.
  *
  * @param {string} text
  * @param {string[]} names   known item names to anchor on
@@ -464,36 +471,14 @@ export function splitDescriptionsByNames(text, names) {
   const clean = String(text ?? "").replace(/\r\n?/g, "\n");
   const uniq = [...new Set((names ?? []).map((n) => String(n ?? "").trim()).filter(Boolean))];
   if (!clean.trim() || !uniq.length) return [];
-  // Longest names first so a multi-word name anchors before its shorter prefix.
-  uniq.sort((a, b) => b.length - a.length);
 
-  const anchors = [];
-  for (const name of uniq) {
-    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    // Header = start-of-text or after a period/newline, the name, then a period.
-    const re = new RegExp(`(^|[.\\n]\\s*)(${esc})\\.`, "gi");
-    let m;
-    while ((m = re.exec(clean)) !== null) {
-      anchors.push({ name, start: m.index + m[1].length, bodyStart: re.lastIndex });
-      re.lastIndex = m.index + m[1].length + 1;   // allow overlapping scans
-    }
-  }
-  if (!anchors.length) return [];
-  // Earliest first; at a tie prefer the longer name. Then drop any anchor that
-  // starts inside an already-claimed header (a shorter name nested in a longer).
-  anchors.sort((a, b) => a.start - b.start || b.name.length - a.name.length);
-  const picked = [];
-  let claimedTo = -1;
-  for (const a of anchors) {
-    if (a.start < claimedTo) continue;
-    picked.push(a);
-    claimedTo = a.bodyStart;
-  }
+  const starts = findRecordStarts(clean, { knownNames: uniq });
   const out = [];
-  for (let i = 0; i < picked.length; i++) {
-    const end = i + 1 < picked.length ? picked[i + 1].start : clean.length;
-    const description = collapse(clean.slice(picked[i].bodyStart, end));
-    if (description) out.push({ name: picked[i].name, description });
+  for (let i = 0; i < starts.length; i++) {
+    if (starts[i].kind !== "known") continue;   // ends the record above it, but has no item
+    const end = i + 1 < starts.length ? starts[i + 1].start : clean.length;
+    const description = collapse(stripPageFurniture(clean.slice(starts[i].bodyStart, end)));
+    if (description) out.push({ name: starts[i].name, description });
   }
   return out;
 }

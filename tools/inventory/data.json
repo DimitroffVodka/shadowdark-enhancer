@@ -497,6 +497,7 @@
     "scripts/importer/items/item-parser.mjs": "Generic item recognizer (name/cost/slots). Pure.",
     "scripts/importer/items/gear-parser.mjs": "Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure.",
     "scripts/importer/items/gear-join.mjs": "Joins split cost-table + description layouts into one item. Pure.",
+    "scripts/importer/items/record-boundary.mjs": "Where one pasted description record ends and the next begins. Pure.",
     "scripts/importer/items/item-importer.mjs": "Drafts → Items in `sde-items`, foldered by source.",
     "scripts/importer/items/item-builder-app.mjs": "Guided multi-stage equipment-section workspace.",
     "scripts/importer/items/item-builder-gear.mjs": "Pure stage-①/③ logic for the Item Builder.",
