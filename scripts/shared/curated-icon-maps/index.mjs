@@ -65,6 +65,7 @@
 //   import "./armor-icons.mjs";
 //   import "./gear-icons.mjs";
 //   import "./treasure-icons.mjs";
+import "./armor-icons.mjs";
 import "./weapon-icons.mjs";
 
 export { curatedIconRegistry, auditCuratedIconRegistry } from "../curated-icons.mjs";
