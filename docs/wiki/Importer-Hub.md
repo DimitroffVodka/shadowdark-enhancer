@@ -138,6 +138,8 @@ options are *— none —*, *Core Rulebook*, *Cursed Scroll 1–6*, and
 > newcomer*. Choosing *replace* keeps the same document UUID so existing links
 > stay valid, and choosing *skip* leaves the existing document byte-identical.
 
+A generated Monster Spell is the one name where **Replace** doesn't replace. The spell is recognised by its `monsterSpell.generated` marker wherever it lives — not by which pack it sits in — so an ordinary item import that lands on the same name has its **Replace existing** downgraded to **Keep both**: the spell stays, your import is kept beside it under a free name, and a warning names the protected document — `"…" is a generated Monster Spell and was not replaced — the imported item was kept as "…". Delete the Monster Spell yourself if you meant to replace it.` The commit report adds `N kept beside a Monster Spell` to its `N created [, N updated][, N replaced][, N skipped]` line. The dialog's three choices are unchanged; only this one class of document takes the downgrade.
+
 ### After a commit, automatically
 
 - **Table re-linking.** Imported tables get `@UUID` monster/item links and

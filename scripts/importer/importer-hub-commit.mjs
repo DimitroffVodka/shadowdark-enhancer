@@ -92,14 +92,20 @@ class HubCommitMethods {
 
   /**
    * Shared commit-report line: "N created[, N updated][, N replaced][, N
-   * skipped]" — the single formatter for every per-type commit notification
-   * (was copy-pasted per handler; review 2026-07-11 maintainability).
+   * skipped][, N kept beside a Monster Spell]" — the single formatter for every
+   * per-type commit notification (was copy-pasted per handler; review
+   * 2026-07-11 maintainability).
+   *
+   * The last part is A8/#93: a Replace that landed on a generated Monster Spell
+   * was turned into a Keep-both. Each one already raised its own named warning;
+   * this makes the count visible in the summary the GM reads either way.
    */
   static _commitSummary(result) {
     const parts = [`${result.created.length} created`];
     if (result.updated?.length) parts.push(`${result.updated.length} updated`);
     if (result.replaced?.length) parts.push(`${result.replaced.length} replaced`);
     if (result.skipped?.length) parts.push(`${result.skipped.length} skipped`);
+    if (result.collisions?.length) parts.push(`${result.collisions.length} kept beside a Monster Spell`);
     return parts.join(", ");
   }
 

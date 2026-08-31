@@ -32,6 +32,7 @@ import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolde
 import { LootLinker } from "../../loot/loot-linker.mjs";
 import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
 import { ART_STATES, UPGRADEABLE_ART_STATES, artProvenance, decideImportArt, isGeneratedManagedItem, MANAGED_ITEMS_PACK } from "../../shared/art-provenance.mjs";
+import { isGeneratedMonsterSpell } from "../../shared/module-flags.mjs";
 import { curatedArtFor } from "../../shared/curated-icons.mjs";
 
 // Re-exported so the gear importer stays the one door callers already know;
@@ -521,12 +522,29 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
     },
   });
 
+  let collision = null;
   if (existing) {
     const choice = onConflict ? await onConflict(itemData.name) : "rename";
     if (choice === "skip") return { name: itemData.name, status: "skipped" };
     if (choice === "replace") {
       const old = await pack.getDocument(existing._id).catch(() => null);
-      if (old) {
+      if (old && isGeneratedMonsterSpell(old)) {
+        // A8/#93 — the one conflict this pipeline is not allowed to resolve.
+        // Since A1 the generated Monster Spell library shares this pack, and a
+        // generated spell is not ours to overwrite: its curated text and art
+        // belong to the GM, and its `monsterSpell.libraryId` is the only handle
+        // its own planner has on it. Downgrade to the dialog's own default,
+        // "Keep both" — the GM's import still lands, under a free name, and
+        // nothing is destroyed on either side.
+        collision = {
+          kind: "monster-spell",
+          protectedName: old.name ?? itemData.name,
+          protectedUuid: old.uuid ?? "",
+          renamedTo: _uniqueName(index, itemData.name),
+        };
+        _warnMonsterSpellCollision(collision);
+        itemData.name = collision.renamedTo;
+      } else if (old) {
         // Preserve curated fields from the canonical pack: if the GM has
         // hand-edited descriptions, icons, or properties, don't overwrite
         // them with parser-generated defaults. Generated artifacts inside the
@@ -546,7 +564,21 @@ export async function createItem(draft, { pack, folder = null, source = "", onCo
   }
 
   const item = await Item.create(buildPayload(), { pack: pack.collection });
-  return { uuid: item.uuid, name: item.name, status: "created" };
+  return { uuid: item.uuid, name: item.name, status: "created", ...(collision ? { collision } : {}) };
+}
+
+/**
+ * Tell the GM, by name, which document was protected and what happened to their
+ * import instead. A silent refusal is the same failure as a silent overwrite —
+ * the GM asked for a replacement and did not get one, and the reason (this is a
+ * generated library document) is not visible from the item list.
+ * @param {{protectedName: string, renamedTo: string}} collision
+ */
+function _warnMonsterSpellCollision({ protectedName, renamedTo }) {
+  const message = `"${protectedName}" is a generated Monster Spell and was not replaced — `
+    + `the imported item was kept as "${renamedTo}". Delete the Monster Spell yourself if you meant to replace it.`;
+  globalThis.ui?.notifications?.warn(message);
+  console.warn(`${MODULE_ID} | ${message}`);
 }
 
 /**
@@ -691,10 +723,13 @@ export function preserveCuratedFields(payload, existingDoc, { generatedArtifact 
   if (generatedArtifact) return;
 
   // Description: keep the existing one if it has real content and the new one
-  // is importer-generated — the default `<p></p>`, or nothing but the WR
-  // property note (which is re-stamped onto the kept text, so a re-import
-  // updates that line instead of dropping it).
-  const kept = preservedDescription(old.description, src.description);
+  // is importer-generated — the default `<p></p>`, the Spell path's
+  // `<p>{name}</p>` fallback, or nothing but the WR property note (which is
+  // re-stamped onto the kept text, so a re-import updates that line instead of
+  // dropping it).
+  const kept = preservedDescription(old.description, src.description, {
+    name: payload.name ?? existingDoc.name,
+  });
   if (kept !== null && payload.system) payload.system.description = kept;
 
   // Properties: if the existing item already has resolved property UUIDs and
@@ -788,7 +823,9 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
     (byPack.get(id) ?? byPack.set(id, []).get(id)).push(d);
   }
 
-  const out = { created: [], replaced: [], skipped: [], total: drafts.length };
+  // `collisions` carries the A8 protected-collision rows so the commit report
+  // can say what the per-item notification already said, in one place.
+  const out = { created: [], replaced: [], skipped: [], collisions: [], total: drafts.length };
   for (const [packId, group] of byPack) {
     const pack = await _packForType(group[0].type);
     if (!pack) { console.error(`${MODULE_ID} | createItems: pack for "${packId}" not found`); continue; }
@@ -806,6 +843,7 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
       else folder = await _gearFolderId(pack, draft, sourceFolder, source);
       const r = await createItem(draft, { pack, folder, source, onConflict });
       if (!r) continue;
+      if (r.collision) out.collisions.push(r.collision);
       if (r.status === "skipped") out.skipped.push(r.name);
       else if (r.status === "replaced") out.replaced.push({ name: r.name, uuid: r.uuid });
       else out.created.push({ name: r.name, uuid: r.uuid });

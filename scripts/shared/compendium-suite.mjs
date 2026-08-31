@@ -19,6 +19,7 @@
  * Foundry-free so node:test can import them directly.
  */
 import { MODULE_ID } from "./module-id.mjs";
+import { replacementFlags } from "./module-flags.mjs";
 
 // ─── Pack descriptors ────────────────────────────────────────────────────────
 
@@ -327,6 +328,17 @@ export async function ensureFolderPath(pack, names) {
  *     (packs allow duplicate names), delete the original only after the
  *     create succeeded. Any create failure leaves the original untouched.
  *
+ * `flags` is the ONE field the wholesale rule is wrong for (A8/#93). A payload
+ * carries the bookkeeping of the pipeline that built it and is silent about
+ * every other pipeline's — so replacing the object outright deletes blocks the
+ * import was never in a position to have an opinion on, up to and including the
+ * `monsterSpell.libraryId` that makes a generated spell visible to its planner.
+ * `replacementFlags` re-merges this module's namespace: declared keys win,
+ * undeclared ones survive. It answers for each branch separately, because the
+ * two are not symmetric — an update that omits `flags` leaves the stored object
+ * alone, while a recreate DELETES the original and must therefore carry those
+ * blocks itself. Both branches end at the same document either way.
+ *
  * @param {Document} oldDoc   Existing compendium document being replaced.
  * @param {object} payload    Create-shaped data (may include `items`/`results`).
  * @param {CompendiumCollection} pack
@@ -336,7 +348,9 @@ export async function ensureFolderPath(pack, names) {
 export async function replaceDocument(oldDoc, payload, pack) {
   const EMBEDDED = { Actor: ["items", "Item"], RollTable: ["results", "TableResult"], Item: ["effects", "ActiveEffect"] };
   const [field, embeddedName] = EMBEDDED[oldDoc.documentName] ?? [null, null];
-  const docData = { ...payload };
+  const flags = replacementFlags(payload?.flags, oldDoc?.flags);
+  const createData = flags.create ? { ...payload, flags: flags.create } : payload;
+  const docData = { ...payload, ...(flags.update ? { flags: flags.update } : {}) };
   delete docData._id;
   const rows = field ? (docData[field] ?? []) : [];
   if (field) delete docData[field];
@@ -356,7 +370,7 @@ export async function replaceDocument(oldDoc, payload, pack) {
   }
 
   const cls = oldDoc.constructor;
-  const created = await cls.create(payload, { pack: pack.collection });
+  const created = await cls.create(createData, { pack: pack.collection });
   if (!created) throw new Error(`replacement create for "${payload?.name}" returned nothing — original kept`);
   await oldDoc.delete();
   return { doc: created, mode: "recreated" };
