@@ -156,6 +156,13 @@ options are *— none —*, *Core Rulebook*, *Cursed Scroll 1–6*, and
   Legacy unmarked items are classified conservatively (`default` if matching the module's default today or blank; otherwise `custom`).
   Generated artifacts in `sde-items` (`world.shadowdark-enhancer--items`) remain governed by the replace-always contract (A7/D6).
   *Note:* This provenance system governs `item-importer` only. Class content re-import art is tracked separately as a known issue (GitHub #89 / A3b), and monster/token art is managed via Monster Token Art (B9/F4/N6).
+- **Siege weapon property foldering.** When importing Western Reaches siege
+  weapons (via dedicated Items commit or *Import everything* / *Commit All*),
+  the materialized *Blast* and *Exploding* weapon property items are filed
+  under `Western Reaches / Weapon Properties` in the managed Items pack.
+  Pre-existing same-name property documents at the pack root are moved into
+  the folder in place, keeping their UUIDs, rule text, and GM edits intact
+  while avoiding duplicate folders or items on re-import.
 - **Book-only weapon and armour properties.** A property code the core system
   has no entry for — the Lance's *Charge*, *Devastating* and *Mounted*, an
   obsidian weapon's *Obsidian*, barding's *Mount* — can't be attached to the
