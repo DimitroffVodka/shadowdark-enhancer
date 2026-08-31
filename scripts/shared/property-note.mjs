@@ -41,10 +41,40 @@ const PROPERTY_NOTE_RE = /<p><em>Propert(?:y|ies) with no core Shadowdark equiva
  */
 const PROPERTY_NOTE_ALL = new RegExp(PROPERTY_NOTE_RE.source, "gi");
 
-/** Nothing but our own note, or the empty placeholder: importer-generated. */
-const isAutoDescription = (html) => {
+/**
+ * The importer's OTHER generated description: the document's own name.
+ *
+ * `buildItemData`'s Spell path has no placeholder to fall back to — a spell
+ * with no description reads badly as `<p></p>` — so it writes the name:
+ * `description = draft.description || name`, wrapped as `<p>{name}</p>`. That
+ * is importer output, not prose, and reading it as prose is how a paste with no
+ * description column overwrote curated spell text (A8/#93).
+ *
+ * Recognized case-insensitively and in both shapes the builder can emit (the
+ * wrapped paragraph and the bare string). A description that merely CONTAINS
+ * the name, or carries a second paragraph, is prose and stays prose — hence the
+ * markup guard on the inner text.
+ *
+ * @param {string} html   a note-stripped description
+ * @param {string} name   the document's name
+ */
+const isNameEcho = (html, name) => {
+  const label = String(name ?? "").trim();
+  if (!label) return false;
+  const body = String(html ?? "").trim();
+  const inner = body.replace(/^<p>([\s\S]*)<\/p>$/i, "$1").trim();
+  if (!inner || /[<>]/.test(inner)) return false;
+  return inner.toLocaleLowerCase() === label.toLocaleLowerCase();
+};
+
+/**
+ * Nothing but our own note, the empty placeholder, or the document's own name:
+ * importer-generated.
+ */
+const isAutoDescription = (html, name = "") => {
   const rest = String(html ?? "").replace(PROPERTY_NOTE_ALL, "").trim();
-  return !rest || rest === "<p></p>";
+  if (!rest || rest === "<p></p>") return true;
+  return isNameEcho(rest, name);
 };
 
 /**
@@ -81,11 +111,17 @@ export function withPropertyNote(description, labels = []) {
  * property column is not evidence the weapon lost the property, whether the
  * incoming description is the bare placeholder or freshly typed text.
  *
+ * `name` lets both sides be measured against the document they describe, so the
+ * builder's `<p>{name}</p>` spell fallback counts as importer output on the way
+ * in AND as nothing worth keeping on the way out. Optional and additive: with
+ * no name, classification is exactly what it was before A8.
+ *
  * @param {string} oldHtml  the existing document's description
  * @param {string} newHtml  the description the fresh parse produced
+ * @param {{name?: string}} [opts]  the document's name, for the echo test
  * @returns {string|null} the description to store, or null to keep the incoming one
  */
-export function preservedDescription(oldHtml, newHtml) {
+export function preservedDescription(oldHtml, newHtml, { name = "" } = {}) {
   const oldDesc = String(oldHtml ?? "").trim();
   const newDesc = String(newHtml ?? "").trim();
   if (!oldDesc) return null;
@@ -94,14 +130,14 @@ export function preservedDescription(oldHtml, newHtml) {
 
   // The fresh parse carries real prose: it wins. Only the note is rescued, and
   // only when this paste didn't bring one of its own.
-  if (!isAutoDescription(newDesc)) {
+  if (!isAutoDescription(newDesc, name)) {
     if (newNote || !oldNote) return null;
     return `${newDesc.replace(PROPERTY_NOTE_ALL, "").trim()}${oldNote}`;
   }
 
   // Incoming is importer-generated. Curated text stands; a stored default has
   // nothing worth keeping.
-  if (isAutoDescription(oldDesc)) return null;
+  if (isAutoDescription(oldDesc, name)) return null;
   // No incoming note (a plain re-import): the stored description stands byte
   // for byte, stale note included.
   return newNote ? `${oldDesc.replace(PROPERTY_NOTE_ALL, "").trim()}${newNote}` : oldHtml;

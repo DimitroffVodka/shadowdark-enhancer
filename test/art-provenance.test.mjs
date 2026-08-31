@@ -25,6 +25,7 @@ import {
   isGeneratedArtifact,
   isGeneratedManagedItem,
 } from "../scripts/shared/art-provenance.mjs";
+import { isGeneratedMonsterSpell } from "../scripts/shared/module-flags.mjs";
 import { buildItemData, defaultItemImg, preserveCuratedFields } from "../scripts/importer/items/item-importer.mjs";
 
 const GM_ART = "worlds/abletodestroy/art/silver-dagger.webp";
@@ -210,13 +211,17 @@ test("REGRESSION: a curated Monster Spell runs the full preservation path, not t
   assert.deepEqual(payload.system.properties, ["Compendium.x.Item.KEPT"], "curated properties survive");
 
   // The description is decided by preservedDescription, a contract A3 does not
-  // touch — and it does NOT survive here. buildItemData's Spell path falls back
-  // to `description = name`, so the incoming `<p>Blast - Mage</p>` reads as real
-  // prose rather than an importer placeholder and wins. Pinned deliberately:
-  // this is a pre-existing item-importer hazard on the Spell path, unchanged by
-  // A3 and unrelated to the generated boundary, and it should be fixed where it
-  // lives rather than papered over here.
-  assert.equal(payload.system.description, "<p>Blast - Mage</p>");
+  // touch. A3 pinned the hazard here rather than papering over it: buildItemData's
+  // Spell path falls back to `description = name`, and the incoming
+  // `<p>Blast - Mage</p>` used to read as real prose and win. A8/#93 fixed it
+  // where it lives — the name echo is now classified as importer output, so
+  // curated text survives on this path too.
+  assert.equal(payload.system.description, "<p>My curated 3d6 version.</p>");
+
+  // And an ordinary import can no longer reach this path against a generated
+  // Monster Spell at all — createItem turns the collision away (see
+  // test/monster-spell-import-collision.test.mjs).
+  assert.equal(isGeneratedMonsterSpell(stored), true);
 });
 
 test("the explicit A7/D6 marker in the protected Items pack IS still replace-always", () => {

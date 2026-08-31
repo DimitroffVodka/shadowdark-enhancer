@@ -159,7 +159,7 @@ async function _ensureItem(pack, data, folderPath, report, { keepCuratedDescript
   if (existing) {
     const doc = await pack.getDocument(existing._id);
     if (keepCuratedDescription && data.system) {
-      const kept = preservedDescription(doc.system?.description, data.system.description);
+      const kept = preservedDescription(doc.system?.description, data.system.description, { name: data.name });
       if (kept !== null) data.system.description = kept;
     }
     const fields = _staleFields(doc.toObject(), data);
