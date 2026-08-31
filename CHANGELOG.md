@@ -259,9 +259,16 @@
   nothing to create. A mount unlock is an *actor* unlock, so it now parses the
   pages as statblocks — beside the boats and siege-weapon unlocks, which always
   had their own parse — and the one-table rule no longer applies to actor,
-  vehicle or gear unlocks at all. The unlocked mount's statblock is kept and the
-  rest of the spread goes to **Skipped**, so importing one missing mount still
-  can't mint the other fourteen as duplicates. The book prints the mounts by
+  vehicle or gear unlocks alone. A single **Import** click keeps that one
+  mount's statblock and sends the rest of the spread to **Skipped**, so
+  importing one missing mount still can't mint the other fourteen as duplicates;
+  **Import everything** instead batches every *selected* Western Reaches mount
+  together — one `WR pp.116–117` spread read, one mount parse, one commit
+  through the same importer — and the run report lists each requested mount by
+  name as **Imported**, **Nothing to import** (already in your library), or
+  **Needs your attention** (not among the statblocks on those pages), so a
+  partial parse or a rerun can no longer hide as a single successful entry. The
+  book prints the mounts by
   their natural names ("WAR HORSE") while the catalog lists them index-style
   ("Horse, War"), which used to mean the selected statblock matched nothing at
   all; both spellings are now understood. The mount is created under the

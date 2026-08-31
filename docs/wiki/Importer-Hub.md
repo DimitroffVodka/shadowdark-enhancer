@@ -248,7 +248,10 @@ them in order, without you.
 workspace drives each one, and how many rows it can't do unattended. Rows that
 one press unlocks together — a whole bestiary spread, the eight boats on WR
 p118, a gear price table — count as one entry, so the number is the work, not
-the row count.
+the row count. Every *selected* Western Reaches mount (WR pp.116–117) is
+likewise one entry: the spread is grabbed once and every requested mount is
+parsed and committed through the same Mount importer, rather than once per
+mount.
 
 **While it runs** a progress bar shows the entry in flight, with a **Stop**
 button that ends the run after the current entry finishes. Toasts are collected
@@ -257,7 +260,11 @@ rather than stacking hundreds deep.
 **When it finishes** you get a report grouped by outcome: *Imported*, *Nothing
 to import*, *Needs your attention*, *Not run (cancelled)*, and *Import these by
 hand* — each row with the reason. That report is the thing to read; the summary
-toast is just the headline.
+toast is just the headline. A mounts batch expands the single WR spread job into
+one line **per requested mount** — *created*, *already in your library*, or
+*not among the statblocks on those pages* — so a partial parse or a rerun no
+longer reports as a single success. The batch toast's denominator counts
+**requested entries** (mount names), not jobs.
 
 Content it imported flips from gap to have in the tree straight away — the
 censuses are rebuilt once at the end of the run rather than after every entry,
