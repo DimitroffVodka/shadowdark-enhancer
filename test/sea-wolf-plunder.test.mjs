@@ -76,24 +76,63 @@ function rowObject(text, index) {
   };
 }
 
-function makeTable(texts = SOURCE_ROWS, flags = { source: "CS3", manifestId: "cs3-sea-wolf-plunder-from-distant-lands" }) {
+function makeTable(
+  texts = SOURCE_ROWS,
+  flags = { source: "CS3", manifestId: "cs3-sea-wolf-plunder-from-distant-lands" },
+  { supportsUpdate = true, failCreates = 0 } = {},
+) {
   const table = {
     name: "Sea Wolf Plunder From Distant Lands",
     flags: { [MODULE_ID]: { ...flags } },
     results: texts.map(rowObject),
     deleted: 0,
     created: 0,
+    updated: 0,
+    createAttempts: 0,
+    failCreates,
     async deleteEmbeddedDocuments(_name, ids) {
       this.deleted += ids.length ? 1 : 0;
-      this.results = [];
+      const removed = new Set(ids);
+      this.results = this.results.filter((row) => !removed.has(row.id));
     },
     async createEmbeddedDocuments(_name, rows) {
+      this.createAttempts += 1;
+      if (this.failCreates > 0) {
+        this.failCreates -= 1;
+        throw new Error("forced TableResult create failure");
+      }
       this.created += 1;
-      this.results = rows.map((row, index) => rowObject(row.name ?? row.description ?? "", index)
-        && { ...row, id: `row-${index + 1}`, toObject() { return { ...this }; } });
+      const nextId = this.results.length + 1;
+      this.results.push(...rows.map((row, index) => ({
+        ...row,
+        id: `row-${nextId + index}`,
+        toObject() { return { ...this }; },
+      })));
     },
   };
+  if (supportsUpdate) {
+    table.updateEmbeddedDocuments = async (_name, updates) => {
+      table.updated += 1;
+      const byId = new Map(updates.map((update) => [update._id, update]));
+      table.results = table.results.map((row) => {
+        const update = byId.get(row.id);
+        if (!update) return row;
+        const next = { ...row, ...update, id: row.id };
+        delete next._id;
+        next.toObject = function toObject() { return { ...this }; };
+        return next;
+      });
+    };
+  }
   return table;
+}
+
+function plainResultSnapshot(table) {
+  return table.results.map((row) => {
+    const out = row.toObject();
+    delete out.toObject;
+    return JSON.parse(JSON.stringify(out));
+  });
 }
 
 function itemDocument(payload, id) {
@@ -192,6 +231,10 @@ describe("Sea Wolf table identity and generated materialization", () => {
   test("the exact table is recognized, while other CS3 tables are not", () => {
     assert.equal(isSeaWolfPlunderTable({ name: "Sea Wolf Plunder From Distant Lands", flags: { [MODULE_ID]: { source: "CS3" } } }), true);
     assert.equal(seaWolfPlunderSource({ name: "Cursed Scroll 3 p68: Sea Wolf Plunder From Distant Lands" }), "cs3");
+    assert.equal(seaWolfPlunderSource({ name: "Cursed Scroll 1 p68: Sea Wolf Plunder From Distant Lands" }), null);
+    assert.equal(seaWolfPlunderSource({ name: "Cursed Scroll 2 p68: Sea Wolf Plunder From Distant Lands" }), null);
+    assert.equal(isSeaWolfPlunderTable({ name: "CS1 p68: Sea Wolf Plunder From Distant Lands" }), false);
+    assert.equal(isSeaWolfPlunderTable({ name: "CS2 p68: Sea Wolf Plunder From Distant Lands" }), false);
     assert.equal(isSeaWolfPlunderTable({ name: "Sea Wolf Plunder From Distant Lands", flags: { [MODULE_ID]: { source: "CS2" } } }), false);
     assert.equal(isSeaWolfPlunderTable({ name: "CS3 Random Encounters", flags: { [MODULE_ID]: { source: "CS3" } } }), false);
   });
@@ -211,8 +254,11 @@ describe("Sea Wolf table identity and generated materialization", () => {
     assert.equal(out.unresolved, 0);
     assert.equal(out.created, 20);
     assert.equal(pack.docs.length, 20);
-    assert.equal(table.created, 1);
+    assert.equal(table.updated, 1, "same-sized writes update TableResults in place");
+    assert.equal(table.created, 0);
+    assert.equal(table.deleted, 0);
     assert.deepEqual(table.results.map((row) => row.name), SOURCE_ROWS);
+    assert.deepEqual(table.results.map((row) => row.id), SOURCE_ROWS.map((_row, index) => `row-${index + 1}`));
     assert.ok(table.results.every((row) => row.type === 1 && row.documentUuid?.startsWith(`Compendium.${MANAGED_ITEMS_PACK}.Item.`)));
     assert.deepEqual(pack.docs.map((doc) => doc.name), SEA_WOLF_PLUNDER_ROWS.map((row) => row.name));
     assert.ok(pack.docs.every((doc) => doc.flags[MODULE_ID].generated === true));
@@ -239,7 +285,9 @@ describe("Sea Wolf table identity and generated materialization", () => {
     assert.equal(second.unchanged, true);
     assert.equal(adapter.calls, before);
     assert.equal(pack.docs.length, 20);
-    assert.equal(table.created, 1);
+    assert.equal(table.updated, 1);
+    assert.equal(table.created, 0);
+    assert.equal(table.deleted, 0);
   });
 
   test("an owned-name ambiguity remains TEXT and does not take over the Item", async () => {
@@ -286,6 +334,42 @@ describe("Sea Wolf table identity and generated materialization", () => {
     assert.equal(retry.failures.length, 0);
     assert.ok(table.results.every((row) => row.type === 1));
     assert.equal(pack.docs.length, 20);
+  });
+
+  test("a TableResult create failure after the old delete point restores priced source rows", async () => {
+    // An adapter without updateEmbeddedDocuments exercises the compatibility
+    // writer.  The create is forced to fail where the old implementation had
+    // already deleted the source rows; the new writer creates first and then
+    // proves the original rows survived before returning the failure.
+    const table = makeTable([SOURCE_ROWS[0]], undefined, { supportsUpdate: false, failCreates: 1 });
+    const original = plainResultSnapshot(table);
+    const pack = fakePack();
+    const adapter = createAdapter(pack);
+    const first = await materializeSeaWolfPlunder(table, {
+      ensurePack: async () => pack,
+      ensureFolder: async () => "folder-cs3-treasure",
+      adapter,
+    });
+
+    assert.equal(first.linked, 0);
+    assert.equal(first.failures[0].reason, "table-write-failed");
+    assert.equal(first.failures[0].restored, true);
+    assert.deepEqual(plainResultSnapshot(table), original);
+    assert.equal(table.deleted, 0, "the source rows were never deleted before create succeeded");
+    assert.equal(pack.docs.length, 1, "the generated Item remains available for a retry");
+
+    table.failCreates = 0;
+    const retry = await materializeSeaWolfPlunder(table, {
+      ensurePack: async () => pack,
+      ensureFolder: async () => "folder-cs3-treasure",
+      adapter,
+    });
+    assert.equal(retry.linked, 1);
+    assert.equal(retry.failures.length, 0);
+    assert.equal(table.results.length, 1);
+    assert.equal(table.results[0].type, 1);
+    assert.equal(table.results[0].name, SOURCE_ROWS[0]);
+    assert.equal(pack.docs.length, 1);
   });
 
   test("a non-managed pack is refused before any create or table write", async () => {

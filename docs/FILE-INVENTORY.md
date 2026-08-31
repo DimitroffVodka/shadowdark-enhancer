@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-838 tracked files · ~128,500 lines of code/markup across scripts+templates+styles+test.
+838 tracked files · ~128,800 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -161,7 +161,7 @@
 | `loot-catalog.mjs` | 119 | Rewrites loot tables so entries become DOCUMENT results, routing the exact Sea Wolf Plunder table through its source-qualified generated-item materializer. |
 | `loot-linker.mjs` | 118 | Loot row text → confident compendium item link. |
 | `loot-pack.mjs` | 163 | Classify/fabricate treasure entries + world "Loot" pack ops. |
-| `sea-wolf-plunder.mjs` | 392 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and leaves ambiguous, unavailable, or failed rows as raw TEXT while preserving their prices. |
+| `sea-wolf-plunder.mjs` | 566 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and leaves ambiguous, unavailable, or failed rows as raw TEXT while preserving their prices. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
 | `treasure-data.mjs` | 15 | Level → tier band boundaries. |
 | `item-drops.mjs` | 690 | Drag items to canvas as pickup tokens; TokenHUD pickup; light sources burn. |

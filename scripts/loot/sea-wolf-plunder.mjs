@@ -43,10 +43,10 @@ function readFlags(table) {
 function tableNameKey(name) {
   const raw = curatedNameKey(name);
   // Older freeform imports sometimes kept the source/page prefix.  Strip only
-  // the known CS3 prefix so another CS3 table cannot become a Sea Wolf table by
-  // sharing one word such as "plunder".
-  const withoutPage = raw.replace(/^.*?\bp\.?\s*68\s*:\s*/i, "");
-  return withoutPage.replace(/^(?:cs3|cursed scroll 3)\s*[-:：]\s*/i, "");
+  // the recognized CS3 prefix so a CS1/CS2 table cannot become a Sea Wolf table
+  // merely because it shares the same page number and words.
+  const withoutPage = raw.replace(/^(?:cs3|cursed scroll #?3)\s+p\.?\s*68\s*:\s*/i, "");
+  return withoutPage.replace(/^(?:cs3|cursed scroll #?3)\s*[-:：]\s*/i, "");
 }
 
 /** The canonical source for a recognized Sea Wolf table, or null. */
@@ -164,12 +164,43 @@ function toObject(value) {
   return typeof value?.toObject === "function" ? value.toObject() : { ...(value ?? {}) };
 }
 
-function resultBase(result) {
-  const out = toObject(result);
+function cloneValue(value) {
+  if (globalThis.foundry?.utils?.deepClone) return globalThis.foundry.utils.deepClone(value);
+  return JSON.parse(JSON.stringify(value, (_key, nested) => (
+    typeof nested === "function" ? undefined : nested
+  )));
+}
+
+function resultId(result) {
+  const object = toObject(result);
+  return result?.id ?? object._id ?? null;
+}
+
+function resultSnapshot(result) {
+  const out = cloneValue(toObject(result));
+  const id = resultId(result);
+  if (id && !out._id) out._id = id;
+  return out;
+}
+
+function resultPayload(result) {
+  const out = resultSnapshot(result);
   delete out._id;
+  delete out.id;
   if (out.weight == null) out.weight = 1;
   out.drawn = false;
   return out;
+}
+
+function resultRestorePayload(result) {
+  const out = cloneValue(result);
+  out._id = resultId(result);
+  delete out.id;
+  return out;
+}
+
+function resultBase(result) {
+  return resultPayload(result);
 }
 
 function resultKey(result) {
@@ -182,6 +213,139 @@ function resultKey(result) {
     object.documentUuid ?? "",
     object.drawn ?? false,
   ]);
+}
+
+function embeddedMethod(table, name) {
+  const method = table?.[name];
+  return typeof method === "function" ? method.bind(table) : null;
+}
+
+function resultIds(results) {
+  return results.map(resultId).filter(Boolean);
+}
+
+function sameIdSet(left, right) {
+  const a = new Set(left), b = new Set(right);
+  return a.size === b.size && [...a].every((id) => b.has(id));
+}
+
+/**
+ * Put a table back exactly enough to keep its source rows retryable after a
+ * failed embedded-document operation.  TableResult IDs are part of the
+ * snapshot so an in-place update can preserve inbound references; if a failed
+ * delete removed one, the create path receives that same `_id` back.
+ */
+async function restoreTableResults(table, snapshots, methods) {
+  const errors = [];
+  const originalIds = resultIds(snapshots);
+  const originalSet = new Set(originalIds);
+  const currentRows = () => asArray(table?.results);
+  const currentIds = () => resultIds(currentRows());
+
+  const currentSet = new Set(currentIds());
+  const missing = snapshots.filter((snapshot) => !currentSet.has(resultId(snapshot)));
+  if (missing.length) {
+    if (!methods.create) errors.push("createEmbeddedDocuments unavailable for restoration");
+    else {
+      try {
+        await methods.create("TableResult", missing.map(resultRestorePayload));
+      } catch (error) {
+        errors.push(`restore-create: ${String(error?.message ?? error)}`);
+      }
+    }
+  }
+
+  const present = new Set(currentIds());
+  const updates = snapshots
+    .filter((snapshot) => present.has(resultId(snapshot)))
+    .map(resultRestorePayload);
+  if (updates.length && methods.update) {
+    try {
+      await methods.update("TableResult", updates);
+    } catch (error) {
+      errors.push(`restore-update: ${String(error?.message ?? error)}`);
+    }
+  }
+
+  const extras = currentIds().filter((id) => !originalSet.has(id));
+  if (extras.length) {
+    if (!methods.delete) errors.push("deleteEmbeddedDocuments unavailable for restoration");
+    else {
+      try {
+        await methods.delete("TableResult", extras);
+      } catch (error) {
+        errors.push(`restore-delete: ${String(error?.message ?? error)}`);
+      }
+    }
+  }
+
+  const finalRows = currentRows();
+  const sourceMatches = sameIdSet(resultIds(finalRows), originalIds)
+    && finalRows.length === snapshots.length
+    && finalRows.map(resultKey).sort().join("\n") === snapshots.map(resultKey).sort().join("\n");
+  // The fallback writer never changes an existing row before a failure.  This
+  // final comparison therefore decides whether a no-update adapter still kept
+  // the complete source snapshot intact after cleanup.
+  if (!methods.update && !sourceMatches) errors.push("updateEmbeddedDocuments unavailable for restoration");
+  const restored = errors.length === 0 && sourceMatches;
+  return { restored, errors };
+}
+
+/**
+ * Synchronize TableResults without deleting source rows before the replacement
+ * exists.  Foundry's normal path updates shared rows in place, creates any
+ * additional rows, then deletes surplus rows last.  An older adapter without
+ * update support uses create-before-delete.  Either path snapshots and rolls
+ * back every partial operation, so a failed create cannot strand an empty
+ * source table.
+ */
+async function writeTableResultsSafely(table, originalResults, nextResults) {
+  const snapshots = originalResults.map(resultSnapshot);
+  const oldIds = resultIds(snapshots);
+  if (oldIds.length !== snapshots.length) {
+    throw new Error("TableResult ids unavailable for safe synchronization");
+  }
+
+  const methods = {
+    update: embeddedMethod(table, "updateEmbeddedDocuments"),
+    create: embeddedMethod(table, "createEmbeddedDocuments"),
+    delete: embeddedMethod(table, "deleteEmbeddedDocuments"),
+  };
+  const shared = Math.min(snapshots.length, nextResults.length);
+
+  try {
+    if (methods.update) {
+      if (shared) {
+        const updates = nextResults.slice(0, shared).map((result, index) => ({
+          _id: oldIds[index],
+          ...resultPayload(result),
+        }));
+        await methods.update("TableResult", updates);
+      }
+      if (nextResults.length > shared) {
+        if (!methods.create) throw new Error("createEmbeddedDocuments unavailable for additional rows");
+        await methods.create("TableResult", nextResults.slice(shared).map(resultPayload));
+      }
+      if (snapshots.length > nextResults.length) {
+        if (!methods.delete) throw new Error("deleteEmbeddedDocuments unavailable for surplus rows");
+        await methods.delete("TableResult", oldIds.slice(nextResults.length));
+      }
+      return;
+    }
+
+    // Compatibility adapters may not expose updateEmbeddedDocuments.  Create
+    // first so a create failure leaves every original source row untouched.
+    if (!methods.create || !methods.delete) {
+      throw new Error("safe TableResult adapter requires create and delete methods");
+    }
+    await methods.create("TableResult", nextResults.map(resultPayload));
+    await methods.delete("TableResult", oldIds);
+  } catch (error) {
+    const rollback = await restoreTableResults(table, snapshots, methods);
+    const failure = new Error(String(error?.message ?? error));
+    failure.rollback = rollback;
+    throw failure;
+  }
 }
 
 function documentUuid(doc, pack) {
@@ -367,26 +531,36 @@ export async function materializeSeaWolfPlunder(table, {
   summary.unchanged = current === next;
   if (summary.unchanged) return summary;
 
-  if (typeof table?.deleteEmbeddedDocuments !== "function" || typeof table?.createEmbeddedDocuments !== "function") {
+  const hasTableWriter = typeof table?.updateEmbeddedDocuments === "function"
+    || (typeof table?.deleteEmbeddedDocuments === "function" && typeof table?.createEmbeddedDocuments === "function");
+  if (!hasTableWriter) {
     const reason = "table-write-failed";
     summary.failures.push({ reason, error: "RollTable embedded-document methods unavailable" });
     for (const entry of linkedEntries) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
-    notify("Sea Wolf Plunder: RollTable results could not be written; source text was left untouched.");
+    notify("Sea Wolf Plunder: no safe RollTable writer was available; no write was attempted and source text remains available for retry.");
     return summary;
   }
   try {
-    const ids = results.map((result) => result?.id ?? toObject(result)._id).filter(Boolean);
-    await table.deleteEmbeddedDocuments("TableResult", ids);
-    await table.createEmbeddedDocuments("TableResult", nextResults);
+    await writeTableResultsSafely(table, results, nextResults);
   } catch (error) {
     const reason = "table-write-failed";
-    summary.failures.push({ reason, error: String(error?.message ?? error) });
+    const restored = error?.rollback?.restored === true;
+    summary.failures.push({
+      reason,
+      error: String(error?.message ?? error),
+      restored,
+      rollbackErrors: error?.rollback?.errors ?? [],
+    });
     for (const entry of linkedEntries) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
     summary.unresolved += linkedEntries.length;
     summary.linked = 0;
-    notify("Sea Wolf Plunder: RollTable results could not be written; source text was left untouched.");
+    if (restored) {
+      notify("Sea Wolf Plunder: RollTable write failed; original source rows were restored and remain available for retry.");
+    } else {
+      notify("Sea Wolf Plunder: RollTable write and automatic restoration failed; source rows may require recovery before retry.");
+    }
   }
   return summary;
 }
