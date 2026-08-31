@@ -333,6 +333,26 @@ describe("Diabolical Treasure parsing and Item shape", () => {
     assert.equal(parseDiabolicalTreasureResult("a carved bone replica"), null);
     assert.equal(parseDiabolicalTreasureResult("Carved bone | revised feature").row.name, "Carved bone");
     assert.equal(parseDiabolicalTreasureResult("1-20 Carved bone | revised feature").row.name, "Carved bone");
+    assert.equal(parseDiabolicalTreasureResult({
+      id: "unresolved",
+      type: 0,
+      range: [1, 1],
+      name: "Carved bone",
+    }), null, "a bare canonical TEXT row is not source evidence");
+    assert.equal(parseDiabolicalTreasureResult({
+      id: "linked",
+      type: 1,
+      range: [1, 1],
+      name: "Carved bone",
+      documentUuid: `Compendium.${MANAGED_ITEMS_PACK}.Item.generated-carved-bone`,
+    }).row.name, "Carved bone");
+    assert.equal(parseDiabolicalTreasureResult({
+      id: "foreign-link",
+      type: 1,
+      range: [1, 1],
+      name: "Carved bone",
+      documentUuid: "Compendium.shadowdark.gear.Item.system-carved-bone",
+    }), null, "a foreign document link is not D6 source evidence");
     assert.equal(buildDiabolicalTreasureItem("Carved bone | feature", { source: "CS3" }).reason, "wrong-source");
     assert.equal(buildDiabolicalTreasureItem("Unlisted relic | feature").reason, "unmapped-row");
   });
@@ -420,9 +440,67 @@ describe("Diabolical Treasure identity and materialization", () => {
     assert.equal(out.unresolved, 1);
     assert.ok(out.unresolvedRows.some((row) => row.reason === "name-collision" && row.text.includes(SOURCE_ROWS[0].name)));
     assert.equal(table.results[0].type, 0);
-    assert.equal(table.results[0].name, SOURCE_ROWS[0].name);
+    assert.equal(table.results[0].name, `${SOURCE_ROWS[0].name} | ${SOURCE_ROWS[0].feature}`);
     assert.equal(pack.docs[0].img, "foreign.webp");
     assert.equal(pack.docs.length, 20);
+  });
+
+  test("an incomplete census preserves raw evidence across production-path reruns", async () => {
+    const incompleteRows = [
+      ...SOURCE_ROWS.slice(0, -1).map((row, index) => sourceResult(row.name, row.feature, index)),
+      sourceResult("Unlisted relic", "Unknown feature", SOURCE_ROWS.length - 1),
+    ];
+    const table = makeTable(incompleteRows);
+    const original = plainResultSnapshot(table);
+    const originalFormula = table.formula;
+    const pack = fakePack();
+    const adapter = createAdapter(pack);
+    let ensurePackCalls = 0;
+    let ensureFolderCalls = 0;
+    let reconcileCalls = 0;
+    const options = {
+      ensurePack: async () => { ensurePackCalls += 1; return pack; },
+      ensureFolder: async () => { ensureFolderCalls += 1; return "folder-cs1-treasure"; },
+      reconcile: async () => {
+        reconcileCalls += 1;
+        throw new Error("incomplete census must fail before reconciliation");
+      },
+      adapter,
+      notify: () => {},
+    };
+
+    const first = await materializeDiabolicalTreasure(table, options);
+    assert.equal(first.failures[0].reason, "incomplete-census");
+    assert.equal(first.created, 0);
+    assert.equal(first.unresolved, incompleteRows.length);
+    assert.equal(ensurePackCalls, 0);
+    assert.equal(ensureFolderCalls, 0);
+    assert.equal(reconcileCalls, 0);
+    assert.equal(adapter.calls, 0);
+    assert.deepEqual(plainResultSnapshot(table), original);
+    assert.equal(table.formula, originalFormula);
+    assert.equal(table.updated, 0);
+    assert.equal(table.created, 0);
+    assert.equal(table.deleted, 0);
+    assert.equal(pack.docs.length, 0);
+    assert.ok(first.unresolvedRows.some((row) => row.text === "Unlisted relic | Unknown feature"));
+
+    const second = await materializeDiabolicalTreasure(table, options);
+    assert.equal(second.failures[0].reason, "incomplete-census");
+    assert.equal(second.created, 0);
+    assert.equal(ensurePackCalls, 0);
+    assert.equal(ensureFolderCalls, 0);
+    assert.equal(reconcileCalls, 0);
+    assert.equal(adapter.calls, 0);
+    assert.deepEqual(plainResultSnapshot(table), original);
+    assert.equal(table.formula, originalFormula);
+    assert.equal(table.updated, 0);
+    assert.equal(table.created, 0);
+    assert.equal(table.deleted, 0);
+    assert.equal(table.results.length, incompleteRows.length);
+    assert.equal(table.results.some((row) => row.name === "Brain in a jar"), false);
+    assert.ok(table.results.some((row) => row.name === "Unlisted relic | Unknown feature"));
+    assert.equal(pack.docs.length, 0);
   });
 
   test("a rerun that loses an owned target clears its stale TableResult link", async () => {
@@ -452,7 +530,7 @@ describe("Diabolical Treasure identity and materialization", () => {
     assert.equal(first.created, 19);
     assert.equal(first.failures.filter((failure) => failure.reason === "create-failed").length, 1);
     assert.equal(table.results[0].type, 0);
-    assert.equal(table.results[0].name, SOURCE_ROWS[0].name);
+    assert.equal(table.results[0].name, `${SOURCE_ROWS[0].name} | ${SOURCE_ROWS[0].feature}`);
 
     const retry = await materializeDiabolicalTreasure(table, materializeOptions(pack, createAdapter(pack)));
     assert.equal(retry.created, 1);
@@ -463,8 +541,7 @@ describe("Diabolical Treasure identity and materialization", () => {
   });
 
   test("partial TableResult update rolls back the source snapshot", async () => {
-    const row = SOURCE_ROWS[0];
-    const table = makeTable([sourceResult(row.name, row.feature, 0)], {
+    const table = makeTable(SOURCE_ROWS.map((sourceRow, index) => sourceResult(sourceRow.name, sourceRow.feature, index)), {
       source: "CS1", manifestId: DIABOLICAL_TREASURE_CONTENT_ID,
     }, {
       failUpdates: 1,
@@ -477,11 +554,11 @@ describe("Diabolical Treasure identity and materialization", () => {
     assert.equal(out.failures[0].reason, "table-write-failed");
     assert.equal(out.failures[0].restored, true);
     assert.deepEqual(plainResultSnapshot(table), original);
-    assert.equal(pack.docs.length, 1, "the one resolved Item write is independently retryable");
+    assert.equal(pack.docs.length, 20, "generated Item writes remain independently retryable");
   });
 
   test("compatibility create-before-delete rollback preserves all source rows", async () => {
-    const table = makeTable(sourceRows().slice(0, 1).map((row, index) => sourceResult(row.name, row.feature, index)),
+    const table = makeTable(SOURCE_ROWS.map((row, index) => sourceResult(row.name, row.feature, index)),
       undefined, { supportsUpdate: false, failDeletes: 1 });
     const original = plainResultSnapshot(table);
     const pack = fakePack();
@@ -490,8 +567,8 @@ describe("Diabolical Treasure identity and materialization", () => {
     assert.equal(out.failures[0].reason, "table-write-failed");
     assert.equal(out.failures[0].restored, true);
     assert.deepEqual(plainResultSnapshot(table), original);
-    assert.equal(table.results.length, 1);
-    assert.equal(pack.docs.length, 1);
+    assert.equal(table.results.length, 20);
+    assert.equal(pack.docs.length, 20);
   });
 
   test("a non-managed pack is refused before folder, reconcile, or table writes", async () => {

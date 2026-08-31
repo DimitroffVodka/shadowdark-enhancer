@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-864 tracked files · ~134,400 lines of code/markup across scripts+templates+styles+test.
+854 tracked files · ~132,700 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -161,7 +161,7 @@
 | `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
 | `loot-table-tag.mjs` | 80 | Sidebar context-menu "Mark as Loot Table" toggle. |
 | `loot-catalog.mjs` | 129 | Rewrites loot tables so entries become DOCUMENT results, routing the exact Sea Wolf Plunder, Dead Bandit Loot, and Diabolical Treasure tables through their source-qualified generated-item materializers before the generic resolver. |
-| `diabolical-treasure.mjs` | 748 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
+| `diabolical-treasure.mjs` | 876 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
 | `loot-linker.mjs` | 118 | Loot row text → confident compendium item link. |
 | `loot-pack.mjs` | 163 | Classify/fabricate treasure entries + world "Loot" pack ops. |
 | `dead-bandit-loot.mjs` | 595 | D5/#58's exact CS2 Dead Bandit Loot seam: matches only the published 20 source rows, gives each canonical Item its visible feature remainder and curated A3 provenance, preserves the raw (optionally priced) TableResult, and reports unresolved, ambiguous, rerun, pack-boundary, and safe-writer failures. |

@@ -130,8 +130,48 @@ function stripEmbeddedPrice(text) {
     .trim();
 }
 
+function typedTableResult(value) {
+  if (!value || typeof value !== "object") return null;
+  const object = typeof value.toObject === "function" ? value.toObject() : value;
+  if (!object || typeof object !== "object") return null;
+  const typed = Object.hasOwn(object, "type")
+    || Object.hasOwn(object, "range")
+    || Object.hasOwn(object, "documentUuid");
+  return typed ? object : null;
+}
+
+function isDocumentResultType(type) {
+  const documentType = globalThis.CONST?.TABLE_RESULT_TYPES?.DOCUMENT ?? 1;
+  return type === documentType || type === "document";
+}
+
+function isManagedDocumentResult(value) {
+  const object = typedTableResult(value);
+  if (!object || !isDocumentResultType(object.type)) return false;
+  return String(object.documentUuid ?? "").startsWith(`Compendium.${MANAGED_ITEMS_PACK}.Item.`);
+}
+
+function sourceFeatureEvidence(raw, row) {
+  const withoutRoll = stripLeadingRoll(raw);
+  const pieces = withoutRoll.split(/\s*\|\s*/);
+  const itemPart = stripEmbeddedPrice(pieces.shift() ?? "");
+  if (curatedNameKey(itemPart) === curatedNameKey(row.name)) {
+    return pieces.join(" | ").trim().length > 0;
+  }
+
+  const reflowed = curatedNameKey(withoutRoll);
+  const nameKey = curatedNameKey(row.name);
+  if (reflowed === nameKey || !reflowed.startsWith(`${nameKey} `)) return false;
+  const rest = withoutRoll.slice(row.name.length)
+    .replace(/^\s*(?:[|:–—-]|with\s+feature\s+of)\s*/i, "")
+    .trim();
+  return rest.length > 0;
+}
+
 function parsedFromRowObject(value) {
   if (!value || typeof value !== "object" || !value.name) return null;
+  const typed = typedTableResult(value);
+  if (typed && !isManagedDocumentResult(typed)) return null;
   const row = ROW_BY_KEY.get(curatedNameKey(value.name));
   if (!row) return null;
   return { row, feature: String(value.feature ?? row.feature).trim() || row.feature, raw: value.raw ?? "" };
@@ -147,6 +187,11 @@ export function parseDiabolicalTreasureResult(value) {
   if (fromObject) return fromObject;
 
   const raw = diabolicalResultText(value);
+  const typed = typedTableResult(value);
+  if (typed) {
+    const bareRow = ROW_BY_KEY.get(curatedNameKey(stripEmbeddedPrice(stripLeadingRoll(raw))));
+    if (bareRow && !sourceFeatureEvidence(raw, bareRow)) return null;
+  }
   const withoutRoll = stripLeadingRoll(raw);
   const pieces = withoutRoll.split(/\s*\|\s*/);
   const itemPart = stripEmbeddedPrice(pieces.shift() ?? "");
@@ -244,6 +289,55 @@ function canonicalResultText(row) {
   return row.name;
 }
 
+function censusRowEvidence(value) {
+  const typed = typedTableResult(value);
+  if (typed && isManagedDocumentResult(typed)) {
+    const row = ROW_BY_KEY.get(curatedNameKey(typed.name));
+    return row ? { row, kind: "linked" } : null;
+  }
+
+  const parsed = parseDiabolicalTreasureResult(value);
+  if (!parsed || !sourceFeatureEvidence(diabolicalResultText(value), parsed.row)) return null;
+  return { row: parsed.row, kind: "source" };
+}
+
+function isLinkedDiabolicalTreasureCensus(rows) {
+  const list = Array.from(rows ?? []);
+  if (list.length !== 20) return false;
+  return list.every((value) => {
+    const typed = typedTableResult(value);
+    return isManagedDocumentResult(typed)
+      && ROW_BY_KEY.has(curatedNameKey(typed.name));
+  });
+}
+
+/**
+ * Only a complete source census or an already-linked D6 result set may be
+ * reduced to the fixed twenty-row table.  In particular, a bare canonical
+ * TEXT row is not source evidence: it may be the unresolved placeholder from
+ * an earlier failed pass and must remain untouched for a later retry.
+ */
+export function isCompleteDiabolicalTreasureCensus(rows) {
+  const list = Array.from(rows ?? []);
+  if (list.length !== 20 && list.length !== 400) return false;
+
+  const evidence = list.map(censusRowEvidence);
+  if (evidence.some((candidate) => !candidate)) return false;
+
+  const counts = new Map();
+  for (const candidate of evidence) {
+    const key = curatedNameKey(candidate.row.name);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  if (counts.size !== DIABOLICAL_TREASURE_ROWS.length) return false;
+  for (const row of DIABOLICAL_TREASURE_ROWS) {
+    const expected = list.length === 20 ? 1 : 20;
+    if (counts.get(curatedNameKey(row.name)) !== expected) return false;
+  }
+  return true;
+}
+
 /**
  * Classify a table's rows before any pack write.  A 20×20 imported compound
  * contains each reviewed Item and Feature many times; one canonical entry is
@@ -259,6 +353,21 @@ export function buildDiabolicalTreasureDefinitions(rows, { source = DIABOLICAL_T
     text: diabolicalResultText(result),
     parsed: parseDiabolicalTreasureResult(result),
   }));
+  if (!isCompleteDiabolicalTreasureCensus(list)) {
+    const unresolved = parsed.map((candidate) => ({
+      ...candidate,
+      status: "unresolved",
+      reason: "incomplete-census",
+    }));
+    return {
+      entries: [],
+      desired: [],
+      resolved: [],
+      unresolved,
+      unknown: unresolved.filter((candidate) => !candidate.parsed),
+      censusComplete: false,
+    };
+  }
   const byKey = new Map();
   for (const candidate of parsed) {
     const key = curatedNameKey(candidate.parsed?.row?.name);
@@ -324,6 +433,7 @@ export function buildDiabolicalTreasureDefinitions(rows, { source = DIABOLICAL_T
     resolved: entries.filter((entry) => entry.status === "resolved"),
     unresolved,
     unknown,
+    censusComplete: true,
   };
 }
 
@@ -589,8 +699,16 @@ export async function materializeDiabolicalTreasure(table, {
   if (!source) return null;
 
   const results = asArray(table?.results);
+  const linkedInput = isLinkedDiabolicalTreasureCensus(results);
   const definitions = buildDiabolicalTreasureDefinitions(results, { source });
   const summary = summaryFor(definitions, source);
+  summary.tableRows = results.length;
+  if (!definitions.censusComplete) {
+    const reason = "incomplete-census";
+    summary.failures.push({ reason, error: "D6 requires the complete reviewed source census before reduction" });
+    notify("Diabolical Treasure: incomplete source census; original rows were preserved for retry.");
+    return summary;
+  }
   const DOC = globalThis.CONST?.TABLE_RESULT_TYPES?.DOCUMENT ?? 1;
   const TEXT = globalThis.CONST?.TABLE_RESULT_TYPES?.TEXT ?? 0;
 
@@ -652,6 +770,16 @@ export async function materializeDiabolicalTreasure(table, {
   const blocked = new Map();
   for (const refusal of reconciliation?.plan?.refused ?? []) blocked.set(refusal.id, refusal.reason);
   for (const failure of reconciliation?.failures ?? []) blocked.set(failure.id, failure.reason);
+  if (blocked.size && !linkedInput) {
+    for (const entry of definitions.resolved) {
+      const id = generatedItemId(source, entry.name);
+      const reason = blocked.get(id);
+      if (reason) summary.unresolvedRows.push(unresolvedRecord(entry, reason));
+    }
+    summary.unresolved += blocked.size;
+    notify("Diabolical Treasure: generated Item reconciliation was incomplete; original rows were preserved for retry.");
+    return summary;
+  }
 
   let docs;
   try {
