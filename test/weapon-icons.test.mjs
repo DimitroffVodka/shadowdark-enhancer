@@ -1,11 +1,11 @@
 // D1 — N3's complete weapon map and its A3/A4 application contract.
 //
-// The path gate deliberately reads the installed Foundry public icon tree. A
-// Set assembled from the map would only prove that the map repeats itself, not
-// that the reviewed assets exist.
+// When available, the path gate deliberately reads the installed Foundry public
+// icon tree. A Set assembled from the map would only prove that the map repeats
+// itself, not that the reviewed assets exist.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
@@ -25,7 +25,9 @@ import { buildItemData, defaultItemImg, preserveCuratedFields } from "../scripts
 import "../scripts/shared/curated-icon-maps/index.mjs";
 import { WEAPON_ICONS } from "../scripts/shared/curated-icon-maps/weapon-icons.mjs";
 
-const FOUNDRY_ICON_ROOT = path.resolve("/home/patricks/FoundryV14/public/icons");
+const LOCAL_FOUNDRY_ICON_ROOT = "/home/patricks/FoundryV14/public/icons";
+const configuredIconRoot = String(process.env.SHADOWDARK_ENHANCER_FOUNDRY_ICON_ROOT ?? "").trim();
+const FOUNDRY_ICON_ROOT = path.resolve(configuredIconRoot || LOCAL_FOUNDRY_ICON_ROOT);
 
 /** Build an inventory in the same `icons/...` namespace used by the map. */
 function foundryIconInventory(dir, prefix = "icons", out = new Set()) {
@@ -38,8 +40,22 @@ function foundryIconInventory(dir, prefix = "icons", out = new Set()) {
   return out;
 }
 
-const FOUNDRY_ICONS = foundryIconInventory(FOUNDRY_ICON_ROOT);
-const pathExists = (iconPath) => FOUNDRY_ICONS.has(iconPath);
+function loadFoundryIconInventory(root) {
+  try {
+    if (!statSync(root).isDirectory()) return null;
+    return foundryIconInventory(root);
+  } catch {
+    return null;
+  }
+}
+
+// The resolver/audit tests remain pure everywhere. Only the two assertions
+// that need an on-disk inventory skip when this optional directory is absent.
+const FOUNDRY_ICONS = loadFoundryIconInventory(FOUNDRY_ICON_ROOT);
+const INVENTORY_SKIP_REASON = FOUNDRY_ICONS === null
+  ? `Foundry icon directory unavailable: ${FOUNDRY_ICON_ROOT}`
+  : false;
+const pathExists = (iconPath) => FOUNDRY_ICONS?.has(iconPath) ?? false;
 
 const EXPECTED_WEAPON_KEYS = [
   "bastard sword",
@@ -96,11 +112,10 @@ function restoreLiveMaps(maps) {
   }
 }
 
-test("N3 weapon map is discovered with the exact 37-row census and real paths", () => {
+test("N3 weapon map is discovered with the exact 37-row census and structural audit", () => {
   const registry = buildCuratedIconRegistry([WEAPON_ICONS]);
-  const report = auditCuratedIconRegistry(registry, { pathExists });
+  const report = auditCuratedIconRegistry(registry);
 
-  assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
   assert.equal(WEAPON_ICONS.space, CURATED_KEY_SPACES.BARE);
   assert.equal(WEAPON_ICONS.entries.size, 37);
   assert.deepEqual(sorted(WEAPON_ICONS.entries.keys()), sorted(EXPECTED_WEAPON_KEYS));
@@ -120,7 +135,16 @@ test("N3 weapon map is discovered with the exact 37-row census and real paths", 
   }
 });
 
-test("the real inventory rejects a valid-looking absent weapon path", () => {
+test("N3 weapon paths pass the real Foundry inventory gate when available", { skip: INVENTORY_SKIP_REASON }, () => {
+  assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
+  const registry = buildCuratedIconRegistry([WEAPON_ICONS]);
+  const report = auditCuratedIconRegistry(registry, { pathExists });
+
+  assert.equal(report.total, 37);
+  assert.deepEqual(report.problems, []);
+});
+
+test("the real inventory rejects a valid-looking absent weapon path when available", { skip: INVENTORY_SKIP_REASON }, () => {
   const missingPath = "icons/weapons/swords/d1-valid-looking-but-absent-20260830.webp";
   assert.equal(pathExists(missingPath), false, "the negative fixture must not exist in Foundry");
 
