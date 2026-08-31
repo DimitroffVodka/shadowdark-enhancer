@@ -63,10 +63,12 @@
  *
  * Map construction is TOTAL. A duplicate key, a blank name or a path that is
  * not a native `icons/**.webp` never throws — the offending row is dropped and
- * written to `problems`, which `auditCuratedIconRegistry` aggregates and the
- * test gate asserts empty. Throwing at module load would take the whole module
- * down over an icon; dropping the row degrades exactly one item to its fallback
- * while leaving the failure visible and mechanically checkable.
+ * written to `problems`, which `auditCuratedIconRegistry` aggregates. The audit
+ * can additionally check accepted paths through a caller-injected existence
+ * predicate; D1-D6's category gates supply that predicate from the real Foundry
+ * icon inventory. Throwing at module load would take the whole module down over
+ * an icon; dropping the row degrades exactly one item to its fallback while
+ * leaving the failure visible and mechanically checkable.
  *
  * Exports:
  *   CURATED_KEY_SPACES
@@ -80,7 +82,7 @@
  *   resolveCuratedIcon(query, registry)   — the lookup; null when unmatched
  *   curatedArtFor(query, registry)        — lookup + its A3 provenance state
  *   isCuratedApplyTarget(packCollection)  — the base-system write guard
- *   auditCuratedIconRegistry(registry)    — coverage/drift report
+ *   auditCuratedIconRegistry(registry, o) — coverage/drift report
  */
 import { sourceKey } from "./source-keys.mjs";
 import { ART_STATES } from "./art-provenance.mjs";
@@ -98,11 +100,12 @@ const SPACES = new Set(Object.values(CURATED_KEY_SPACES));
 /**
  * A reviewed curated path is a native Foundry `icons/…webp`.
  *
- * This is N3's curation rule, enforced: every pick must exist in the standard
- * Foundry asset tree, so the module never ships a mapping to art it does not
- * control and cannot guarantee is installed. A row failing this is dropped —
- * a missing texture renders as a broken image on the GM's sheet, which is
- * worse than the generic icon it would otherwise have kept.
+ * This is the syntactic half of N3's curation rule. The registry audit enforces
+ * actual existence when its consumer supplies the real Foundry icon inventory
+ * as `pathExists`; keeping that dependency outside this module is what leaves
+ * the resolver pure and Node-testable. A syntactically invalid row is dropped —
+ * a broken image on the GM's sheet is worse than the generic icon it would
+ * otherwise have kept.
  */
 const CURATED_PATH_RE = /^icons\/[^\s]+\.webp$/;
 
@@ -413,17 +416,46 @@ export function isCuratedApplyTarget(packCollection) {
 /**
  * Coverage and drift report for a registry.
  *
- * `problems` empty is the contract; anything in it is a data bug that dropped a
- * reviewed pick. `crossSpaceNames` is informational, NOT a problem: a treasure
- * name that also exists as gear resolves correctly (qualified wins), and
- * counting them is how a future overlap gets noticed rather than feared.
+ * `problems` empty is the contract. Structural problems are carried from map
+ * construction; when `pathExists` is supplied, every accepted syntactically
+ * valid row is also checked and a missing asset becomes a stable `missing-path`
+ * problem. The resolver never performs I/O itself, so D1-D6's owned-category
+ * tests MUST inject a synchronous predicate backed by the real Foundry icon
+ * inventory while separately asserting their exact census and expected names.
+ * Omitting it deliberately leaves the report structural-only for callers that
+ * do not own an asset inventory.
+ *
+ * `crossSpaceNames` is informational, NOT a problem: a treasure name that also
+ * exists as gear resolves correctly (qualified wins), and counting them is how
+ * a future overlap gets noticed rather than feared.
  *
  * @param {ReturnType<typeof buildCuratedIconRegistry>} [registry]
+ * @param {{pathExists?: (path: string) => boolean}} [opts]
  * @returns {{total: number, bare: number, sourced: number, perMap: object[], problems: Array, crossSpaceNames: string[]}}
  */
-export function auditCuratedIconRegistry(registry = curatedIconRegistry()) {
+export function auditCuratedIconRegistry(registry = curatedIconRegistry(), { pathExists } = {}) {
   const bare = registry.bare ?? new Map();
   const sourced = registry.sourced ?? new Map();
+  const problems = [...(registry.problems ?? [])];
+
+  if (typeof pathExists === "function") {
+    // Walk the maps in merge order and check only each space's accepted winner.
+    // A cross-map duplicate already has its own problem and is not a live row.
+    const accepted = {
+      [CURATED_KEY_SPACES.BARE]: new Set(),
+      [CURATED_KEY_SPACES.SOURCED]: new Set(),
+    };
+    for (const map of registry.maps ?? []) {
+      const seen = accepted[map.space] ?? accepted[CURATED_KEY_SPACES.BARE];
+      for (const [key, path] of map.entries ?? []) {
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (!pathExists(path)) {
+          problems.push(_problem(map.label, "missing-path", `${key} → ${JSON.stringify(path)}`));
+        }
+      }
+    }
+  }
 
   // Deduped: the same name qualified by three books is ONE name that overlaps
   // the bare space, not three findings.
@@ -439,7 +471,7 @@ export function auditCuratedIconRegistry(registry = curatedIconRegistry()) {
     bare: bare.size,
     sourced: sourced.size,
     perMap: (registry.maps ?? []).map((m) => ({ label: m.label, space: m.space, entries: m.entries.size })),
-    problems: registry.problems ?? [],
+    problems,
     crossSpaceNames,
   };
 }

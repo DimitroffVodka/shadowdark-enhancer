@@ -33,16 +33,24 @@
  * ── What the maps must satisfy ───────────────────────────────────────────────
  *
  * Enforced mechanically by `defineCuratedIconMap` and reported by
- * `auditCuratedIconRegistry`; a row that breaks one of these is dropped and the
- * item keeps its fallback art rather than getting a wrong or broken icon:
+ * `auditCuratedIconRegistry`; a row that breaks a structural rule is dropped
+ * and the item keeps its fallback art rather than getting a wrong or broken
+ * icon:
  *
- *   • Every path is a native Foundry `icons/**.webp` that exists on disk.
+ *   • Every path has native Foundry `icons/**.webp` syntax.
  *   • Keys are DERIVED from the display name — never hand-written alongside it.
  *   • Bare-space names are globally distinct across ALL bare maps: weapons,
  *     armor and basic gear share one key space, so two maps claiming one name
  *     is a cross-map collision the audit fails on.
  *   • Treasure rows are qualified by book, because their names are book prose
  *     and two Cursed Scrolls may print the same phrase.
+ *
+ * Actual existence is the second gate because this pure module does not own a
+ * Foundry installation. Each D1-D6 category test must load the real Foundry
+ * icon inventory, pass `pathExists: (path) => foundryIcons.has(path)` to the
+ * audit, assert `problems` is empty, and separately assert its exact row census
+ * and expected normalized names. A syntactically valid typo then reports the
+ * stable `missing-path` problem instead of passing as reviewed art.
  *
  * No map is registered yet. Until one is, every lookup returns `null`, every
  * caller keeps the art it already chose, and nothing in the module's behaviour

@@ -267,6 +267,32 @@ test("a clean registry reports no problems, which is the drift gate", () => {
   assert.deepEqual(report.problems, []);
 });
 
+test("the D1-D6 coverage gate accepts a valid path present in the supplied Foundry inventory", () => {
+  const registry = buildCuratedIconRegistry([
+    defineCuratedIconMap("weapons", { "Bastard sword": BLADE }),
+  ]);
+  const foundryIcons = new Set([BLADE]);
+  const report = auditCuratedIconRegistry(registry, { pathExists: (path) => foundryIcons.has(path) });
+
+  assert.equal(report.total, 1, "the owning consumer separately asserts its exact census");
+  assert.deepEqual(report.problems, []);
+});
+
+test("the D1-D6 coverage gate reports a valid-looking path missing from the supplied Foundry inventory", () => {
+  const missing = "icons/weapons/swords/valid-but-absent.webp";
+  const registry = buildCuratedIconRegistry([
+    defineCuratedIconMap("weapons", { "Bastard sword": missing }),
+  ]);
+  const foundryIcons = new Set([BLADE]);
+  const report = auditCuratedIconRegistry(registry, { pathExists: (path) => foundryIcons.has(path) });
+
+  assert.deepEqual(report.problems, [{
+    map: "weapons",
+    kind: "missing-path",
+    detail: `bastard sword → ${JSON.stringify(missing)}`,
+  }]);
+});
+
 test("a name living in both spaces is reported as informational, not a problem", () => {
   // Qualified-wins makes this resolvable, so it is counted rather than failed.
   const bare = defineCuratedIconMap("b", { "Cracked mirror": BLADE }, { space: CURATED_KEY_SPACES.BARE });
