@@ -15,7 +15,7 @@ monster-spell-library, merchant, party-XP, session-recap, and character-builder 
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats)
 
-**API version:** `1.2.0` (semver — additive changes bump the minor version,
+**API version:** `1.3.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -122,6 +122,70 @@ await api.loot.generateHoard(5, 2);
 // Rewrite loot RollTables so rows are real compendium items:
 await api.loot.linkTables();        // all loot tables (or pass one table)
 api.loot.open(); api.loot.openSetup();
+
+// Resolve one loot row's text to a compendium Item — exact/alias only (A7).
+// Returns the whole decision, so an ambiguous row is distinguishable from an
+// unmatched one. Async because it builds the Item index from installed packs.
+const hit = await api.loot.resolve("Dagger (1 gp)");
+// → { status: "exact", query: "Dagger", uuid, name, matched }   // exact/alias carry a link
+//   { status: "alias",  ... }  // alias tier: article/count, trailing parenthetical, final-word plural all folded (anchored only)
+await api.loot.resolve("Unopened bottle of exceptionally potent Murgazi wine (25 gp)");
+// → { status: "unresolved", query: "…" }                        // generic containers are refused — not a containment search
+await api.loot.resolve("3 bolts (2 gp)"); // when both "Bolt" and "Bolts" exist
+// → { status: "ambiguous", query: "3 bolts", candidates: [{uuid,name},…] }
+await api.loot.resolve("Bolts"); // exact tier wins first, so just "Bolts" resolves as "exact"
+```
+
+`resolve` is **whole-name and anchored**. It tries the priced-row-as-a-name `exact` tier first (case/spacing/curly-quote folded, trailing sentence punctuation and `each` stripped to a fixed point — `Dagger (1 gp).` is still exact), then anchored `alias` normalizations at the start, end, or final word — these can compose, e.g. `2 daggers (steel)` folds count, parenthetical, and plural together — each remaining anchored, none ever becoming containment. Nothing else matches: interior-word containment (`Murgazi wine` → `Bottle`, `flask of oil` → `Flask`) is structurally unreachable, and a row that lands on more than one distinct Item at the same tier is `ambiguous` and also resolves to nothing (two plausible answers is not a confident match, and picking one by index order would be the containment bug again). The **candidate index is system-first** (built by `LootLinker.buildItemIndex`): system Item packs come before world/module packs (including `world.shadowdark-enhancer--items`), so on a same-name clash a system Item wins — imports fill gaps. The index is session-cached; call `api.linker.invalidate()` after bulk compendium changes. `api.loot.resolve` reads the same session cache as `loot.linkTables()` and the six `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, table-hub preview, importer-hub paste preview), which all share the `exact`/`alias`-confident `null`-or-link shape; `resolve` is the caller that needs to distinguish `ambiguous` from `unresolved`.
+
+### `loot.generated` — stable identity and replace-always reconciliation
+
+Generated treasure Items (D4–D6) live only in `world.shadowdark-enhancer--items` and are identified by **`flags[\"shadowdark-enhancer\"].generated === true` plus a stored bookkeeping block — both halves required**. Their identity is `source + canonical name` (FNV-1a/32 `id` plus a `key = \"<canonical source>:<normalized name>\"`; source via `sourceKey`, name via `curatedNameKey`). Renaming a definition creates a **new identity** — the old Item is not deleted. Outside that pack or without that flag, ordinary imported Items still obey A3 provenance; a name collision with a generated Monster Spell (`flags[MODULE_ID].monsterSpell.generated`, which shares this pack since A1) is a **preserve-on-conflict** refusal, not a takeover, and is reported as `name-collision` with `monsterSpell: true`.
+
+```js
+// Pure, synchronous. "" when either half is missing or blank.
+const id = api.loot.generated.identity("CS1", "Carved Bone");
+// → "fnv1a32:573d24a5" | ""
+
+// Pure, no-write — the whole rerun decision for a definition set (A7).
+// Source precedence per definition: `item.source` → `{source}` → `flags[MODULE_ID].source`.
+const plan = await api.loot.generated.plan(desired, { source: "CS1" });
+// → { pack: "world.shadowdark-enhancer--items", boundary: true,
+//     create: [{id,name,payload}], update: [{id,name,payload,documentId,definitionMoved,documentMoved}],
+//     unchanged: [{id,name,payload,documentId}],
+//     refused: [{reason,name,id?,documentId?,storedKey?,desiredKey?,duplicateKey?,monsterSpell?}], boundary }
+// refused[].reason is one of: "out-of-boundary" | "no-identity" | "duplicate-definition"
+//   | "duplicate-document" | "name-collision" | "identity-collision" (32-bit id hit, discriminated by key)
+// update[].definitionMoved / documentMoved are the two witnesses: the stored fingerprint
+// vs the definition's fingerprint, and the stored document projected onto the declared
+// shape vs the desired content. Either true triggers an update. Unchanged means both false.
+// ActiveEffects: `priority` omitted in the definition means Foundry's default 20; an
+// explicit `priority` is authoritative. Undeclared top-level flag namespaces (e.g. SDX
+// alignment) are carried forward; `folder` is placement and is left alone; unchanged
+// non-empty effects do not churn embedded ids. A plan outside the managed pack sets
+// `boundary: false`, writes nothing, and refuses every definition as `out-of-boundary`.
+
+// Apply it. GM-only; reads live pack docs, plans again, writes sequentially.
+// Pack lifecycle: missing pack is provisioned via `ensureLootPack()` (then reconciled),
+// an empty pack reconciles and creates, only a non-GM returns `null` with a warning;
+// `plan` returns `null` when no pack exists for a pure preview.
+// Returns the plan plus write counts; failures are reported, not swallowed.
+const result = await api.loot.generated.reconcile(desired, { source: "CS1" });
+// → { plan, created, updated, unchanged, refused, failures: [{reason,id,name,documentId,error}] }
+// failures[].reason is one of: "create-failed" (Item.create returned falsey) |
+//   "missing-target" (target vanished between plan and apply) |
+//   "update-failed" (throwing replace). Each also carries `error: string|null`.
+const plan2 = await api.loot.generated.plan(desired, { source: "CS1" });
+// When `findSuitePack("sde-items")` cannot find a pack, `plan` returns `null`
+// (a pure preview has no pack to preview). Only a non-GM `reconcile` also
+// returns `null`; a missing `reconcile` pack is provisioned, an empty one creates.
+// The operation is sequential and RETRYABLE, not transactional: a failed create
+// is retried as a create next run, a missing target is re-planned, and a throwing
+// update is reported while the rest of the batch continues. One case is not
+// self-healing: if the update falls back to create-then-delete and the delete
+// fails, the pack holds two documents with one identity; the next plan reports
+// it as `duplicate-document` for GM cleanup rather than healing it.
+// A notification aggregates refused + failed names when either is non-empty.
 ```
 
 ## `tables`
@@ -729,8 +793,12 @@ list, so a headless caller sees the same gaps the window shows.
   `tokenArt`, `merchant`, `partyXp` and `recap` sections describe surface that
   already shipped — documenting them is **not** an additive API change and does
   not bump `apiVersion`.
+- `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
+  The version policy is additive: new namespaces bump the minor version; breaking
+  shapes would bump the major.
 - Anything that creates or modifies documents is **GM-only** and follows the
-  never-overwrite, never-delete contract. Player-initiated actions that need a
+  never-overwrite, never-delete contract — **except** generated Items in
+  `world.shadowdark-enhancer--items` with `flags[\"shadowdark-enhancer\"].generated === true`, which are **replace-always**: a rerun replaces the whole document (art and properties included) at the same identity. That boundary is structural and explicit; ordinary imported Items and a generated Monster Spell (`flags[MODULE_ID].monsterSpell.generated`, same pack since A1, opposite preserve-on-conflict contract) are not overwritten. Player-initiated actions that need a
   write (loot claims, merchant transactions, item drops, luck-token gifts,
   movement rollback, downtime picks, character creation without create
   permission) are relayed to the **active GM** — see the trust model below.

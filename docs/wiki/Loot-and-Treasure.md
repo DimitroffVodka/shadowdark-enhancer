@@ -102,6 +102,51 @@ straight to that actor: items created, coins added, no card.
 
 ---
 
+## How loot rows become Items — precise resolution
+
+A loot table row is prose with a price — `Unopened bottle of exceptionally potent Murgazi wine (25 gp)` — not a bare name. The module resolves that
+row to a compendium Item in **two whole-name tiers** and refuses everything
+else. This is deliberate: a false positive (`Murgazi wine` → the 1 gp system
+`Bottle`) silently hands the player the wrong object, while an unresolved row
+keeps its text and can be fabricated or linked by hand.
+
+| Outcome | Meaning | Carries a link? |
+|---|---|---|
+| `exact` | the priced row, stripped, **is** the Item's name (case/spacing/curly-quote folded) | yes |
+| `alias` | it is that name modulo anchored normalizations — a leading article or count, a trailing non-price parenthetical, or the **final word's** plural — which may **compose** (e.g. `2 daggers (steel)`) | yes |
+| `ambiguous` | more than one distinct Item answers at the same tier (e.g. `3 bolts (2 gp)` when installed `Bolt` + `Bolts` both match that tier) | no — resolves to nothing |
+| `unresolved` | no Item answers at either tier | no |
+
+**Anchored, composable folds.** Each alias normalization is at the start, the end, or the last word — none can shorten the phrase to an interior word, and multiple can apply together. `Unopened bottle of exceptionally potent Murgazi wine` folds to itself, never to `Bottle`; `a flask of exceptionally fine oil` never becomes `Flask`; `2 daggers (steel)` reaches `dagger` via count + parenthetical + plural together. **Loose containment is refused** by design (D4 out of scope) and interior-word hits are structurally unreachable.
+
+**Short names and punctuation are handled.** Installed three-character names (`Axe`, `Net`) resolve at `exact`; price punctuation and `each` are stripped to a fixed point, so `Dagger (1 gp).` is still `exact` and price-plus-punctuation does not need the alias tier. When a priced row itself is coin-like (`Gem shard (10 gp) each`), `classifyEntry` may route it as coin rather than a fabricated Item — **`each` still strips at the resolver**, but an unresolved text row is not guaranteed to fabricate (coins stay text by tier-specific classification).
+
+**Foundry and module packs, system-first.** Candidate Items are loaded from every installed Item pack, filtered to the four loot types (`Weapon`, `Armor`, `Potion`, `Basic`), deduped by lower-cased name with **system packs first** then world/module packs (including `world.shadowdark-enhancer--items`). On a same-name clash a system Item wins — imports fill gaps. The index is session-cached (cleared by `game.shadowdarkEnhancer.linker.invalidate()` after bulk compendium changes or by the importer itself).
+
+For callers: the six internal `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, table-hub preview, importer-hub paste preview) keep the `null`-or-`{uuid,name,matched}` shape and treat `ambiguous` the same as `unresolved` (no link). The public `game.shadowdarkEnhancer.loot.resolve(text)` return adds `status`, `query`, and for `ambiguous` the `candidates: [{uuid,name}]` list — see [API](../API.md#loot).
+
+---
+
+## Generated treasure Items — stable identity and replace-always reruns
+
+Treasure pipelines (future D4–D6) that generate Items write only into the **managed Items pack** `world.shadowdark-enhancer--items` (`sde-items`). Inside that pack, a document with **`flags[\"shadowdark-enhancer\"].generated === true` plus a stored `generatedItem` block** is **replace-always**: a rerun replaces the whole document at the same identity — hand edits, including art, are intentionally replaced. That boundary is **structural**: both halves required (`world.shadowdark-enhancer--items` **and** the top-level flag), never inferred from an image path, a folder, a fuzzy name, or document id.
+
+* **Identity is `source + canonical name`.** `FNV-1a/32` over `<canonical source>:<normalized name>` (source via `sourceKey`, name via `curatedNameKey`). Renaming the definition creates a **new identity** — the old Item is not deleted (removing a definition is not a deletion). Blank source or blank name produces no identity.
+* **A name collision is a refusal, not a takeover.** Since A1, generated Monster Spells share this pack (`flags[MODULE_ID].monsterSpell.generated`), and their contract is the **opposite** — hand-edited spells are **preserved** as curated conflicts (see [Monster Spell Library](Monster-Spell-Library.md)). A generated treasure definition that would take such a name is refused as `name-collision` with `monsterSpell: true`; the spell is left alone.
+* **Ordinary imported Items are not affected.** Outside the pack, or without the top-level generated flag, A3 provenance governs and nothing is replace-always.
+* **`folder` is placement, not content.** A rerun does not move the document; the GM's folder choice is left alone.
+* **Other packages' flag namespaces survive.** An authoritative rerun restates undeclared top-level flag blocks from the stored document onto the update payload, so e.g. `shadowdark-extras` alignment is preserved through both the in-place and create-then-delete replacement paths. Declared namespaces still win.
+* **Unchanged non-empty effects do not churn ids.** Stored ActiveEffects are projected through the Foundry v14 `system.changes` / string-type / JSON-value / default-`priority: 20` canonicalization, so a rerun with nothing changed is `unchanged` with stable embedded ids. An explicit `priority` in the definition is authoritative; omission means `20`.
+* **Duplicate / collision rows are reported, not healed.** A 32-bit id hit where the stored `key` differs, or duplicate definitions/documents sharing one id, are returned as `identity-collision` / `duplicate-*` refusals. A pack that somehow holds two documents with one identity is reported as `duplicate-document` on the next plan.
+
+**Programmatic access** (see [API](../API.md#loot)):
+
+* `game.shadowdarkEnhancer.loot.generated.identity(source, name)` — synchronous `fnv1a32:…` (`fnv1a32:573d24a5` for `CS1` + `Carved Bone`) or `""` for a blank half.
+* `game.shadowdarkEnhancer.loot.generated.plan(desired, {source})` — pure, no-write (`item.source` → `{source}` → flag source); `create` / `update` with `definitionMoved`/`documentMoved` / `unchanged` / `refused` + `boundary`; outside the managed pack every definition is `out-of-boundary`; `plan` returns `null` when `findSuitePack("sde-items")` cannot find a pack.
+* `game.shadowdarkEnhancer.loot.generated.reconcile(desired, {source})` — GM-only, sequential and **retryable, not transactional**: failed creates, missing targets, and throwing updates are returned in `failures` (`create-failed` / `missing-target` / `update-failed`, each with `error: string|null`) and the rest of the batch continues; a later rerun retries them. One exception is not self-healing: a create-then-delete update whose **delete fails** leaves two documents with one identity, reported next time as `duplicate-document` for GM cleanup. A notification aggregates refused + failed names. An empty pack reconciles and creates; a missing pack is provisioned via `ensureLootPack()`; only a non-GM `reconcile` returns `null`.
+
+---
+
 ## Loot drops on combat end
 
 **Off by default.** Turn on **Loot drops on combat end** in the module

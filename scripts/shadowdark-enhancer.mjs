@@ -59,6 +59,9 @@ import { ItemImporter } from "./importer/items/item-importer.mjs";
 import "./shared/curated-icon-maps/index.mjs";
 import { MonsterLinker } from "./importer/monsters/monster-linker.mjs";
 import { LootLinker } from "./loot/loot-linker.mjs";
+import { ensureLootPack } from "./loot/loot-pack.mjs";
+import { findSuitePack } from "./shared/compendium-suite.mjs";
+import { generatedItemId, planGeneratedItems, reconcileGeneratedItems } from "./shared/generated-items.mjs";
 import { buildBundle, exportBundle, applyBundle } from "./importer/bundle-io.mjs";
 import { MerchantShop } from "./merchant/merchant-shop.mjs";
 import { PartyXP } from "./party-xp/party-xp.mjs";
@@ -294,7 +297,8 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    apiVersion: "1.2.0",
+    // 1.3.0 — additive: loot.resolve and the loot.generated.* namespace (A7).
+    apiVersion: "1.3.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -435,6 +439,31 @@ Hooks.once("init", () => {
         : LootCatalog.linkLootTables(),
       open: async () => (await import("./loot/loot-generator-app.mjs")).LootGeneratorApp.open(),
       openSetup: async () => (await import("./loot/loot-setup-app.mjs")).LootSetupApp.open(),
+      // Resolve one loot-row text against every installed Item pack (A7).
+      // Exact/alias only; returns the reason, so an ambiguous row is
+      // distinguishable from an unmatched one. See loot-resolution.mjs.
+      resolve: async (text) => LootLinker.resolveLootItem(text, await LootLinker.buildItemIndex()),
+      // Stable identity + replace-always reconciliation for generated Items in
+      // the managed Items pack. `plan` is pure and writes nothing; `reconcile`
+      // applies it. GM-only. See shared/generated-items.mjs.
+      generated: {
+        identity: (source, name) => generatedItemId(source, name),
+        plan: async (desired, { source = "" } = {}) => {
+          const pack = findSuitePack("sde-items");
+          if (!pack) return null;
+          return planGeneratedItems({
+            desired,
+            existing: (await pack.getDocuments()).map((d) => d.toObject()),
+            packCollection: pack.collection,
+            source,
+          });
+        },
+        reconcile: async (desired, { source = "" } = {}) => {
+          if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can reconcile generated items."); return null; }
+          const pack = await ensureLootPack();
+          return pack ? reconcileGeneratedItems(pack, desired, { source }) : null;
+        },
+      },
     },
     forge: {
       open: async () => (await import("./magic-forge/magic-forge-app.mjs")).MagicForgeApp.open(),
