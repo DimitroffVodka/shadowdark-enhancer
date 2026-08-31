@@ -152,6 +152,19 @@ test("resolveByName keeps Core art ahead of a same-name imported row", () => {
   assert.equal(TokenArtCatalog.resolveByName(c).get("Goblin").tokenObj.texture.src, "tok/core");
 });
 
+test("resolveByName lets imported art fill a same-name Core row with no options", () => {
+  SETTINGS = { priority: ["src-a"], overrides: {}, picks: {} };
+  const rows = [
+    { id: "core", name: "Goblin", pack: "shadowdark.monsters", options: [] },
+    { id: "imported", name: "Goblin", pack: "world.sde-actors", options: [opt("src-a", "imported")] },
+  ];
+  for (const byMonster of [rows, [...rows].reverse()]) {
+    const byName = TokenArtCatalog.resolveByName(cat(byMonster, [{ id: "src-a" }]));
+    assert.equal(byName.get("Goblin").tokenObj.texture.src, "tok/imported");
+    assert.equal(byName.get("Goblin").portrait, "port/imported");
+  }
+});
+
 test("manager context keeps same-name imported rows and Browse-ready zero matches", async () => {
   const state = {
     priority: ["src-a"],
