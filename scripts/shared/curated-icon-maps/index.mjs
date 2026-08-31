@@ -52,9 +52,11 @@
  * and expected normalized names. A syntactically valid typo then reports the
  * stable `missing-path` problem instead of passing as reviewed art.
  *
- * No map is registered yet. Until one is, every lookup returns `null`, every
- * caller keeps the art it already chose, and nothing in the module's behaviour
- * or its A3 provenance classification changes.
+ * Production maps are registered below as they land. Callers that load only
+ * the resolver (without this discovery index) still see an empty registry:
+ * every lookup returns `null`, every caller keeps the art it already chose,
+ * and nothing in the module's behaviour or A3 provenance classification
+ * changes.
  */
 
 // ── Registered maps ──────────────────────────────────────────────────────────
@@ -63,6 +65,6 @@
 //   import "./armor-icons.mjs";
 //   import "./gear-icons.mjs";
 //   import "./treasure-icons.mjs";
-//   import "./weapon-icons.mjs";
+import "./weapon-icons.mjs";
 
 export { curatedIconRegistry, auditCuratedIconRegistry } from "../curated-icons.mjs";
