@@ -30,6 +30,7 @@ import {
   DIABOLICAL_TREASURE_TABLE_NAME,
   buildDiabolicalTreasureDefinitions,
   buildDiabolicalTreasureItem,
+  isCompleteDiabolicalTreasureCensus,
   isDiabolicalTreasureTable,
   materializeDiabolicalTreasure,
   parseDiabolicalTreasureResult,
@@ -227,6 +228,61 @@ function materializeOptions(pack, adapter, table = null) {
   };
 }
 
+function foreignDocumentRows() {
+  return SOURCE_ROWS.map((row, index) => tableResult({
+    id: `foreign-result-${index}`,
+    range: [index + 1, index + 1],
+    weight: 1,
+    drawn: false,
+    type: 1,
+    name: row.name,
+    documentUuid: `Compendium.shadowdark.gear.Item.foreign-${index}`,
+  }));
+}
+
+async function assertRejectedWithoutWrites(rows) {
+  const table = makeTable(rows);
+  const original = plainResultSnapshot(table);
+  const originalFormula = table.formula;
+  const pack = fakePack();
+  const adapter = createAdapter(pack);
+  let ensurePackCalls = 0;
+  let ensureFolderCalls = 0;
+  let reconcileCalls = 0;
+  const options = {
+    ensurePack: async () => { ensurePackCalls += 1; return pack; },
+    ensureFolder: async () => { ensureFolderCalls += 1; return "folder-cs1-treasure"; },
+    reconcile: async () => {
+      reconcileCalls += 1;
+      throw new Error("incomplete census must fail before reconciliation");
+    },
+    adapter,
+    notify: () => {},
+  };
+
+  const outputs = [
+    await materializeDiabolicalTreasure(table, options),
+    await materializeDiabolicalTreasure(table, options),
+  ];
+  for (const out of outputs) {
+    assert.equal(out.failures[0].reason, "incomplete-census");
+    assert.equal(out.created, 0);
+    assert.equal(out.updated, 0);
+    assert.equal(out.unresolved, rows.length);
+  }
+  assert.equal(ensurePackCalls, 0);
+  assert.equal(ensureFolderCalls, 0);
+  assert.equal(reconcileCalls, 0);
+  assert.equal(adapter.calls, 0);
+  assert.deepEqual(plainResultSnapshot(table), original);
+  assert.equal(table.formula, originalFormula);
+  assert.equal(table.results.length, rows.length);
+  assert.equal(table.updated, 0);
+  assert.equal(table.created, 0);
+  assert.equal(table.deleted, 0);
+  assert.equal(pack.docs.length, 0);
+}
+
 test("the N3 §5.2 map is exactly twenty sourced rows and passes the real path gate", { skip: INVENTORY_SKIP_REASON }, () => {
   assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry inventory");
   assert.equal(DIABOLICAL_TREASURE_ICONS.label, "diabolical-treasure");
@@ -372,6 +428,36 @@ describe("Diabolical Treasure identity and materialization", () => {
       flags: { [MODULE_ID]: { source: "CS2" } },
     }), null);
     assert.equal(isDiabolicalTreasureTable({ name: "CS1 Random Encounters", flags: { [MODULE_ID]: { source: "CS1" } } }), false);
+  });
+
+  test("twenty canonical TEXT pairs with cross-wired features are rejected twice", async () => {
+    const rows = SOURCE_ROWS.map((row, index) => sourceResult(
+      row.name,
+      SOURCE_ROWS[(index + 1) % SOURCE_ROWS.length].feature,
+      index,
+    ));
+    assert.equal(isCompleteDiabolicalTreasureCensus(rows), false);
+    await assertRejectedWithoutWrites(rows);
+  });
+
+  test("a 400-cell census with a bogus pair is rejected twice", async () => {
+    const rows = sourceRows();
+    rows[0] = sourceResult(SOURCE_ROWS[0].name, SOURCE_ROWS[1].feature, 0);
+    assert.equal(isCompleteDiabolicalTreasureCensus(rows), false);
+    await assertRejectedWithoutWrites(rows);
+  });
+
+  test("twenty foreign Shadowdark Gear DOCUMENT links are rejected twice", async () => {
+    const rows = foreignDocumentRows();
+    assert.equal(isCompleteDiabolicalTreasureCensus(rows), false);
+    await assertRejectedWithoutWrites(rows);
+  });
+
+  test("complete reviewed 20-row and 400-cell censuses remain valid", () => {
+    assert.equal(isCompleteDiabolicalTreasureCensus(
+      SOURCE_ROWS.map((row, index) => sourceResult(row.name, row.feature, index)),
+    ), true);
+    assert.equal(isCompleteDiabolicalTreasureCensus(sourceRows()), true);
   });
 
   test("first materialization creates exactly twenty managed Items and linked name-only results", async () => {

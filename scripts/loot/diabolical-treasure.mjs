@@ -74,6 +74,12 @@ export const DIABOLICAL_TREASURE_ROWS = Object.freeze(
 );
 
 const ROW_BY_KEY = new Map(DIABOLICAL_TREASURE_ROWS.map((row) => [curatedNameKey(row.name), row]));
+const FEATURE_BY_KEY = new Map(DIABOLICAL_TREASURE_ROWS.map((row) => [curatedNameKey(row.feature), row.feature]));
+const REVIEWED_PAIR_KEYS = new Set(DIABOLICAL_TREASURE_ROWS.flatMap((item) => (
+  DIABOLICAL_TREASURE_ROWS.map((feature) => (
+    `${curatedNameKey(item.name)}\u0000${curatedNameKey(feature.feature)}`
+  ))
+)));
 const ROWS_BY_LONGEST_NAME = [...DIABOLICAL_TREASURE_ROWS]
   .sort((a, b) => curatedNameKey(b.name).length - curatedNameKey(a.name).length);
 
@@ -188,6 +194,7 @@ export function parseDiabolicalTreasureResult(value) {
 
   const raw = diabolicalResultText(value);
   const typed = typedTableResult(value);
+  if (typed && isDocumentResultType(typed.type) && !isManagedDocumentResult(typed)) return null;
   if (typed) {
     const bareRow = ROW_BY_KEY.get(curatedNameKey(stripEmbeddedPrice(stripLeadingRoll(raw))));
     if (bareRow && !sourceFeatureEvidence(raw, bareRow)) return null;
@@ -295,10 +302,17 @@ function censusRowEvidence(value) {
     const row = ROW_BY_KEY.get(curatedNameKey(typed.name));
     return row ? { row, kind: "linked" } : null;
   }
+  if (typed && isDocumentResultType(typed.type)) return null;
 
-  const parsed = parseDiabolicalTreasureResult(value);
-  if (!parsed || !sourceFeatureEvidence(diabolicalResultText(value), parsed.row)) return null;
-  return { row: parsed.row, kind: "source" };
+  // Parse the source text as text, not through the permissive row-object
+  // convenience shape.  The latter is useful for pure builders, but it must
+  // never let a caller-supplied canonical name stand in for the feature cell.
+  const raw = diabolicalResultText(value);
+  const parsed = parseDiabolicalTreasureResult(raw);
+  const featureKey = curatedNameKey(parsed?.feature);
+  if (!parsed || !sourceFeatureEvidence(raw, parsed.row)
+    || !FEATURE_BY_KEY.has(featureKey)) return null;
+  return { row: parsed.row, feature: FEATURE_BY_KEY.get(featureKey), kind: "source" };
 }
 
 function isLinkedDiabolicalTreasureCensus(rows) {
@@ -335,7 +349,22 @@ export function isCompleteDiabolicalTreasureCensus(rows) {
     const expected = list.length === 20 ? 1 : 20;
     if (counts.get(curatedNameKey(row.name)) !== expected) return false;
   }
-  return true;
+
+  if (list.length === 20) {
+    const linked = evidence.every((candidate) => candidate.kind === "linked");
+    if (linked) return true;
+    if (evidence.some((candidate) => candidate.kind !== "source")) return false;
+    return evidence.every((candidate) => (
+      curatedNameKey(candidate.feature) === curatedNameKey(candidate.row.feature)
+    ));
+  }
+
+  if (evidence.some((candidate) => candidate.kind !== "source")) return false;
+  const pairs = new Set(evidence.map((candidate) => (
+    `${curatedNameKey(candidate.row.name)}\u0000${curatedNameKey(candidate.feature)}`
+  )));
+  return pairs.size === REVIEWED_PAIR_KEYS.size
+    && [...pairs].every((pair) => REVIEWED_PAIR_KEYS.has(pair));
 }
 
 /**
