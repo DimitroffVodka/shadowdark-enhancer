@@ -19,6 +19,27 @@ function hub(state = {}) {
   });
 }
 
+async function runBatchForToast(job, result, blocked = []) {
+  const previousUi = globalThis.ui;
+  const messages = [];
+  const reports = [];
+  globalThis.ui = { notifications: { info: (message) => messages.push(message) } };
+  const h = hub();
+  h.render = async () => {};
+  h._batchCaptureNotifications = () => () => {};
+  h._runBatchJob = async () => result;
+  h._batchReportDialog = async (summary) => { reports.push(summary); };
+  h._invalidateManageTree = () => {};
+  h._onHubClear = () => {};
+  try {
+    await h._runBatch({ jobs: [job], blocked }, "test scope");
+    return { messages, reports };
+  } finally {
+    if (previousUi === undefined) delete globalThis.ui;
+    else globalThis.ui = previousUi;
+  }
+}
+
 test("a row with no page citation can't run unattended", () => {
   const h = hub();
   assert.match(
@@ -213,4 +234,51 @@ test("a rerun reports every already-present Mount instead of a false batch succe
     { name: "Donkey", status: "nothing", created: 0 },
     { name: "Pony", status: "nothing", created: 0 },
   ]);
+});
+
+test("Mount bulk toasts use the explicit per-name denominator", async () => {
+  const { messages, reports } = await runBatchForToast(
+    {
+      route: ROUTE.HUB,
+      entry: { name: "Donkey", type: "Mount" },
+      label: "Mounts",
+    },
+    {
+      status: "created", created: 1,
+      entries: [
+        { name: "Donkey", status: "created", created: 1 },
+        { name: "Pony", status: "failed", created: 0 },
+      ],
+    },
+  );
+  assert.deepEqual(messages, ["Batch import: 1 document created across 1 of 2 entries, 1 failed."]);
+  assert.equal(reports[0].entries, 2);
+});
+
+test("non-Mount batch toasts keep job denominators and separate blocked rows", async () => {
+  const cases = [
+    {
+      route: ROUTE.HUB, type: "Boat", name: "Boats",
+      result: { status: "created", created: 8 },
+      blocked: [{ entry: { name: "Uncited Boat" }, reason: "no page citation" }],
+      expected: "Batch import: 8 documents created across 1 of 1 entry, 1 skipped.",
+    },
+    {
+      route: ROUTE.HUB, type: "Actor", name: "Monsters",
+      result: { status: "created", created: 14 }, blocked: [],
+      expected: "Batch import: 14 documents created across 1 of 1 entry.",
+    },
+    {
+      route: ROUTE.SPELLS, type: "Spell", name: "Spell list",
+      result: { status: "nothing", created: 0 }, blocked: [],
+      expected: "Batch import: 0 documents created across 0 of 1 entry.",
+    },
+  ];
+  for (const item of cases) {
+    const { messages } = await runBatchForToast(
+      { route: item.route, entry: { name: item.name, type: item.type }, label: item.name },
+      item.result, item.blocked,
+    );
+    assert.deepEqual(messages, [item.expected], item.type);
+  }
 });

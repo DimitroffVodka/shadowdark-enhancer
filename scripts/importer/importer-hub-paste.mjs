@@ -837,6 +837,13 @@ class HubPasteMethods {
           matchedNames.add(owner);
         }
       }
+      const missingRequested = batchNames
+        ? requestedNames.filter((name) => !matchedNames.has(name)).map((name) => ({
+          name, reason: drafts.length
+            ? "not among the statblocks on the extracted pages"
+            : "no statblock (AC…LV) found in the extracted pages",
+        }))
+        : [];
       this._importMonsters = selected;
       this._importItems = []; this._importSpells = []; this._importTables = [];
       this._importGenerators = []; this._importChar = []; this._importBoats = [];
@@ -846,15 +853,9 @@ class HubPasteMethods {
         ...drafts.filter((d) => !selected.includes(d)).map((d) => ({
           name: d.draft.name, reason: `dropped — this unlock expects only "${want}"`,
         })),
-        ...requestedNames.filter((name) => !matchedNames.has(name)).map((name) => ({
-          name, reason: drafts.length
-            ? "not among the statblocks on the extracted pages"
-            : "no statblock (AC…LV) found in the extracted pages",
-        })),
+        ...missingRequested,
       ];
       if (!selected.length) {
-        // Batch entries already have one missing-name row above; keep the
-        // legacy single-unlock warning row only on the individual route.
         if (!batchNames) this._importSkipped.unshift({
           name: want,
           reason: drafts.length

@@ -113,6 +113,13 @@ describe("mount unlock routing", () => {
     assert.match(branch, /for \(const entry of selected\) entry\.draft\.name = want;/);
   });
 
+  test("missing-name skip rows are batch-only; an individual miss keeps one row", () => {
+    const branch = pasteSource.match(MOUNT_BRANCH_RE)?.groups?.body;
+    assert.ok(branch, BRANCH_HINT);
+    assert.match(branch, /const missingRequested = batchNames/);
+    assert.match(branch, /if \(!batchNames\) this\._importSkipped\.unshift\(/);
+  });
+
   test("the mount branch runs before the generic auto/table pipeline", () => {
     const mountAt = pasteSource.indexOf('if (this._importSeed?.type === "Mount")');
     const keeperAt = pasteSource.indexOf("const seedWantsOneTable");
