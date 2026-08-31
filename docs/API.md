@@ -219,7 +219,7 @@ await api.tables.openSpellImporter();     // dedicated Spell Importer workspace
 
 await api.tables.enrich(uuid, "encounter"); // one table → monster links + inline dice
                                            // (+ contextual checks on CS3 Arctic Sea)
-await api.tables.relinkAll();              // GM-only sweep: EVERY pack table
+await api.tables.relinkAll();              // GM-only sweep: managed sde-tables
                                            // re-linked to imported monsters/items
                                            // (idempotent, link-preserving)
 ```
@@ -228,10 +228,9 @@ await api.tables.relinkAll();              // GM-only sweep: EVERY pack table
 been a single tabless view since the 0.11.x rework — `tab` is accepted and
 ignored. A `seed` still forces the paste box's type, source and contents.
 
-Encounter table enrichment (`api.tables.enrich(uuid, "encounter")` and `api.tables.relinkAll()`) transforms bare dice to `[[/r ...]]` rolls and links recognized monster names to `@UUID` compendium references. For the *Cursed Scroll 3* Arctic Sea Encounters table (recognized by manifest ID `cs3-arctic-sea-encounters` or its CS3-scoped name), it additionally transforms DC expressions (`DC 15 DEX`) into clickable `[[check 15 dex]]` controls. Unrelated encounter tables leave DC expressions as unmodified prose. Re-running enrichment on an already enriched table is idempotent (`updated: 0`).
+Encounter table enrichment (`api.tables.enrich(uuid, "encounter")` and `api.tables.relinkAll()`) transforms bare dice to `[[/r ...]]` rolls and links recognized monster names to `@UUID` compendium references. `relinkAll` sweeps the managed Roll Tables pack (`world.shadowdark-enhancer--tables` / `sde-tables`), enriching tables inferred as encounter or treasure while skipping other table shapes. For the *Cursed Scroll 3* Arctic Sea Encounters table (recognized by manifest ID `cs3-arctic-sea-encounters` or its CS3-scoped name), it additionally transforms DC expressions (`DC 15 DEX`) into clickable `[[check 15 dex]]` controls. Unrelated encounter tables leave DC expressions as unmodified prose. Re-running enrichment on an already enriched table is idempotent (`updated: 0`).
 
-`relinkAll` also runs automatically after every import commit, so calling it by
-hand is normally unnecessary.
+The same pack sweep is debounced and scheduled automatically after successful monster and item import batches, so calling `relinkAll` by hand is normally unnecessary.
 
 ## `bundle` — suite export / import
 

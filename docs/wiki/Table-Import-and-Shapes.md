@@ -245,7 +245,7 @@ The enricher uses a strict selector (`isArcticSeaEncounterTable`):
 - Admits tables with the exact name suffix `Arctic Sea Encounters` when the module source flag is absent (legacy or hand-created copies) or canonicalizes to `cs3`.
 - Rejects explicit non-CS3 source stamps (such as Core or CS6 lookalikes) and distinct tables like Core `Arctic Encounters`.
 
-All encounter table paths — single table import (`createTable`), bundle import/replacement (`applyBundle`), public `game.shadowdarkEnhancer.tables.enrich(uuid, "encounter")`, manual `relinkAll()`, and debounced sweeps scheduled after monster/item imports — converge on this selector. The complete 50-row table (covering 1–100) is idempotent on re-run (`updated: 0` without writing embedded documents). Unrelated encounter tables keep their legacy behavior (`convertDice` and `@UUID` links only), leaving their DC expressions as unmodified prose.
+All encounter table paths — single table import (`createTable`), Importer Hub multi-table create/replace (`TableImporter.commitTableBundle`), public `game.shadowdarkEnhancer.tables.enrich(uuid, "encounter")`, manual `relinkAll()`, and debounced sweeps scheduled after monster/item import batches — converge on this selector. Whole-suite backup restore (`applyBundle`) preserves existing documents without re-enrichment. The complete 50-row table (covering 1–100) is idempotent on re-run (`updated: 0` without writing embedded documents). Unrelated encounter tables keep their legacy behavior (`convertDice` and `@UUID` links only), leaving their DC expressions as unmodified prose.
 
 ---
 
