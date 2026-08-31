@@ -113,9 +113,15 @@ them against your world. Each one you don't have shows an **Import** button cite
 to *WR pg 116-117*. Pressing it grabs those pages from *your own* WR PDF (no
 stats are bundled), parses the **statblocks** on them, and previews the one you
 asked for — the rest of the spread goes to **Skipped**, so unlocking a single
-mount never creates the other fourteen. Commit files it into the **`sde-actors`
-compendium** as a **Mount** actor: the full NPC statblock, in the sheet with the
-Riders / Inventory / Mount tabs.
+mount never creates the other fourteen. Commit files it into the **`sde-actors` compendium** inside the direct
+**`Mounts`** folder as a **Mount** actor: the full NPC statblock, in the sheet
+with the Riders / Inventory / Mount tabs. Both a single **Import** and the
+**Import everything** / **Import all N in Mounts** batch use the same `Mounts`
+folder; reimporting reuses the folder and the existing Actor (case-insensitive
+name match is skipped), a per-mount failure leaves that name missing and
+retryable without duplicating the successes, and Boats and ordinary monsters
+keep their existing source-folder placement. Already-imported Mounts are not
+moved.
 
 The catalog lists mounts index-style (*Horse, War*) while the book prints them
 naturally (*WAR HORSE*). Either spelling matches, so the right statblock is kept
