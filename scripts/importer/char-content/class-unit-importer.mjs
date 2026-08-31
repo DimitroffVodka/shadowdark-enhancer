@@ -23,6 +23,13 @@
  * duplicated. Identical content is reused as-is; content that DIFFERS from
  * the corrected import is updated in place (UUID-preserving, review #12) and
  * reported under report.updated with the changed field labels.
+ *
+ * ART IS THE ONE EXCEPTION to "the corrected paste wins" (A3b). The paste owns
+ * the words and the wiring; it has no opinion about the icon a GM picked for a
+ * Talent months ago. Every image this file writes is stamped with A3's shared
+ * provenance witness, and on re-import that witness — not the shape of the path
+ * — decides whether the image is ours to upgrade or theirs to keep. See
+ * shared/art-provenance.mjs; the decision is made once, in `_ensureItem`.
  */
 
 import { MODULE_ID } from "../../shared/module-id.mjs";
@@ -30,8 +37,29 @@ import { escapeHtml } from "../pdf-text-utils.mjs";
 import { SPELL_LIST_VARIANTS } from "./char-content-manifest.mjs";
 import { classGateBlockers, supplementGateBlockers } from "./class-quality-gate.mjs";
 import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
+import {
+  ART_STATES, artProvenance, readArtProvenance, normalizeArtPath,
+  decideImportArt, isGeneratedManagedItem,
+} from "../../shared/art-provenance.mjs";
 
 const _norm = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * The image this module writes for a class-content document that brings no art
+ * of its own — the class importer's whole "default picker", by document type.
+ *
+ * Class content has no name-keyed icon map (A4's maps are gear and treasure, and
+ * are deliberately NOT applied here). A Talent or Class Ability wears its
+ * overlay effect's icon when the overlay wires one, and this type default
+ * otherwise; a Class item always wears the same book icon. Keeping the paths in
+ * one frozen table is what makes A3's legacy classification decidable: an
+ * unmarked document wearing exactly one of these is one we picked.
+ */
+const CLASS_CONTENT_DEFAULT_IMG = Object.freeze({
+  "Talent": "icons/sundries/documents/document-torn-diagram-tan.webp",
+  "Class Ability": "icons/sundries/documents/document-torn-diagram-tan.webp",
+  "Class": "icons/skills/trades/academics-book-study-runes.webp",
+});
 
 /** Find a system pack document by fuzzy name. Returns {uuid, name} or null. */
 function _fuzzyFind(index, wanted) {
@@ -119,6 +147,14 @@ function _subsetEq(dataVal, docVal) {
  * — see _subsetEq); schema defaults and fields the import doesn't own never
  * count as stale. Folder is deliberately ignored (the user may have refiled
  * the doc).
+ *
+ * `img` is compared AFTER the art decision has settled it (`_ensureItem`), so a
+ * GM-picked icon the import agreed to keep is not a difference — the payload is
+ * carrying the GM's own path by then. The art WITNESS beside it is excluded
+ * outright: it is bookkeeping about the image, not content the import owns, and
+ * counting it would report every pre-provenance document in the world as stale
+ * on the first re-import after the upgrade.
+ *
  * @param {object} docObj  doc.toObject()
  * @param {object} data    create-shaped import payload
  * @returns {string[]} dotted field labels, empty = identical
@@ -131,10 +167,57 @@ function _staleFields(docObj, data) {
     if (!_subsetEq(v, docSys[k])) fields.push(`system.${k}`);
   }
   if (!_deepEq(_effectShape(data.effects), _effectShape(docObj.effects))) fields.push("effects");
-  const df = data.flags?.[MODULE_ID] ?? {};
+  const { art: _artWitness, ...df } = data.flags?.[MODULE_ID] ?? {};
   const of = docObj.flags?.[MODULE_ID] ?? {};
   if (!_subsetEq(df, of)) fields.push("flags");
   return fields;
+}
+
+/** Write an art witness into a create-shaped payload, without disturbing the rest. */
+function _stampArt(data, provenance) {
+  data.flags = { ...(data.flags ?? {}) };
+  data.flags[MODULE_ID] = { ...(data.flags[MODULE_ID] ?? {}), art: provenance };
+  return data;
+}
+
+/**
+ * The art decision for one class-content document being re-imported (A3b),
+ * expressed entirely in A3's shared model — no second flag, no path heuristic.
+ *
+ * The only thing this adds is the answer A3 asks each caller for:
+ * `moduleDefaultImg`, "the image this module's default picker would produce for
+ * that document today". For class content that is a set of two, because the
+ * picker reads the class overlay as well as the type table:
+ *
+ *   • the type default, worn by a document the overlay wires no art onto
+ *   • the image THIS import is carrying, worn by a document whose art we wrote
+ *     and nobody has touched since
+ *
+ * A stored image matching either is one we wrote, so it stays upgradeable.
+ * Matching the second costs nothing either way — keeping it and writing it are
+ * the same bytes — but it records the image as ours, which is what keeps
+ * untouched overlay art eligible for a later refresh instead of freezing it.
+ * Matching neither is the GM's, whatever the path looks like, and survives.
+ *
+ * Marked documents never reach any of that: their own witness answers.
+ *
+ * @param {object} data            create-shaped import payload (declares its state)
+ * @param {object} docObj          the stored document, doc.toObject()
+ * @param {string} [packCollection] the pack it lives in, for the A7/D6 boundary
+ * @returns {{img: string, provenance: object, preserved: boolean, reason: string}}
+ */
+function _classArtDecision(data, docObj, packCollection = "") {
+  const storedImg = normalizeArtPath(docObj?.img);
+  const candidates = [CLASS_CONTENT_DEFAULT_IMG[data?.type], data?.img];
+  return decideImportArt({
+    incomingImg: data?.img,
+    incomingState: readArtProvenance(data)?.state ?? ART_STATES.DEFAULT,
+    existing: docObj,
+    // "" when neither candidate matches — classifyArt then reads the stored
+    // image as one we cannot account for, which is exactly right.
+    moduleDefaultImg: candidates.find((c) => c && normalizeArtPath(c) === storedImg) ?? "",
+    generatedArtifact: isGeneratedManagedItem(docObj, packCollection),
+  });
 }
 
 /**
@@ -148,26 +231,42 @@ function _staleFields(docObj, data) {
  * note, so a description the GM has written on the Lance is theirs to keep and
  * the note is re-stamped onto it. Everything else here is pasted book text,
  * where the corrected paste must win.
+ *
+ * ART, unlike text, is never the paste's to correct (A3b). This is also the
+ * commit choke point for the provenance witness: every image written from here
+ * carries one, so the NEXT import can tell our picture from the GM's. The
+ * decision is settled before the staleness diff runs — otherwise a GM-only icon
+ * difference reports as stale `img` and the replacement payload overwrites the
+ * very art the decision just chose to keep.
  * → {uuid, name, reused, updated?}
  */
 async function _ensureItem(pack, data, folderPath, report, { keepCuratedDescription = false } = {}) {
   const { ensureFolderPath, cleanImportHtml, replaceDocument } = await import("../../shared/compendium-suite.mjs");
   // Commit choke point: sanitize persisted HTML (review #1).
   if (data.system?.description) data.system.description = cleanImportHtml(data.system.description);
+  // A payload that names no state (the cloned Spellcasting enabler) is stamped
+  // `default` — upgradeable, which is what this path did before provenance.
+  if (data.img != null && !readArtProvenance(data)) _stampArt(data, artProvenance(ART_STATES.DEFAULT, data.img));
   const idx = await pack.getIndex({ fields: ["type"] });
   const existing = idx.find((e) => e.name === data.name && e.type === data.type);
   if (existing) {
     const doc = await pack.getDocument(existing._id);
+    const docObj = doc.toObject();
     if (keepCuratedDescription && data.system) {
       const kept = preservedDescription(doc.system?.description, data.system.description, { name: data.name });
       if (kept !== null) data.system.description = kept;
     }
-    const fields = _staleFields(doc.toObject(), data);
+    if (data.img != null) {
+      const art = _classArtDecision(data, docObj, pack.collection);
+      data.img = art.img;
+      _stampArt(data, art.provenance);
+    }
+    const fields = _staleFields(docObj, data);
     if (!fields.length) {
       report.reused.push({ name: data.name, type: data.type, uuid: doc.uuid });
       return { uuid: doc.uuid, name: data.name, reused: true };
     }
-    const payload = { ...data, folder: doc.toObject().folder ?? null };
+    const payload = { ...data, folder: docObj.folder ?? null };
     const { doc: updated } = await replaceDocument(doc, payload, pack);
     (report.updated ??= []).push({ name: data.name, type: data.type, uuid: updated.uuid, fields });
     return { uuid: updated.uuid, name: data.name, reused: true, updated: true };
@@ -179,8 +278,13 @@ async function _ensureItem(pack, data, folderPath, report, { keepCuratedDescript
 }
 
 function _talentData(name, description, sourceTitle, { talentClass = "level", effects = [], flags = null } = {}) {
+  // Overlay-wired art is a deliberate module pick (`curated`); the bare type
+  // default is the automatic one. Both are upgradeable — the state records
+  // where the picture came from, which is what the next import asks.
+  const img = effects[0]?.img ?? CLASS_CONTENT_DEFAULT_IMG.Talent;
+  const art = artProvenance(effects[0]?.img ? ART_STATES.CURATED : ART_STATES.DEFAULT, img);
   return {
-    name, type: "Talent", img: effects[0]?.img ?? "icons/sundries/documents/document-torn-diagram-tan.webp",
+    name, type: "Talent", img,
     system: {
       description, level: 1, talentClass,
       source: { title: sourceTitle ?? "" },
@@ -193,7 +297,9 @@ function _talentData(name, description, sourceTitle, { talentClass = "level", ef
     // Overlay-supplied flags ride in the module's own scope, so runtime features
     // can find a talent by capability instead of by name (e.g. the Delver's
     // Scavenger, which scripts/scavenger/ automates).
-    flags: { [MODULE_ID]: { imported: true, ...(flags ?? {}) } },
+    // `art` last: the witness records what this import actually wrote, and is
+    // not an overlay-authorable field.
+    flags: { [MODULE_ID]: { imported: true, ...(flags ?? {}), art } },
   };
 }
 
@@ -211,8 +317,10 @@ function _classAbilityData(name, description, sourceTitle, {
 } = {}) {
   const pool = uses ?? { available: 0, max: 0 };
   const rule = usesRule ?? (limitedUses && Number(pool.max) > 0 ? { type: "base", base: Number(pool.max) } : null);
+  const img = effects[0]?.img ?? CLASS_CONTENT_DEFAULT_IMG["Class Ability"];
+  const art = artProvenance(effects[0]?.img ? ART_STATES.CURATED : ART_STATES.DEFAULT, img);
   return {
-    name, type: "Class Ability", img: effects[0]?.img ?? "icons/sundries/documents/document-torn-diagram-tan.webp",
+    name, type: "Class Ability", img,
     system: {
       description, group, ability, dc,
       limitedUses, loseOnFailure, lost: false,
@@ -226,7 +334,7 @@ function _classAbilityData(name, description, sourceTitle, {
     // Overlay-supplied flags ride in the module's own scope so a runtime feature
     // finds the ability by capability rather than by name — the Duelist's Parry
     // is located this way by scripts/parry/, same as the Delver's Scavenger.
-    flags: { [MODULE_ID]: { imported: true, ...(rule ? { usesRule: rule } : {}), ...(flags ?? {}) } },
+    flags: { [MODULE_ID]: { imported: true, ...(rule ? { usesRule: rule } : {}), ...(flags ?? {}), art } },
   };
 }
 
@@ -642,7 +750,10 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
         name: e.name, img: e.img, transfer: e.transfer !== false, type: "base",
         system: { changes: e.changes ?? [] },
       })),
-      flags: { [MODULE_ID]: { imported: true } },
+      // Overlay gear ships its own reviewed icon — a deliberate module pick, so
+      // `curated`: upgradeable when the overlay's art moves, and never able to
+      // displace an icon the GM has since chosen for the Lance.
+      flags: { [MODULE_ID]: { imported: true, art: artProvenance(ART_STATES.CURATED, it.img) } },
     }, String(it.folder ?? "Gear/Weapons").split("/"), report, { keepCuratedDescription: true });
     ourGear.push({ name: it.name, uuid: made.uuid, granted: it.granted === true });
   }
@@ -789,7 +900,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   }
 
   const classData = {
-    name: parsed.name, type: "Class", img: "icons/skills/trades/academics-book-study-runes.webp",
+    name: parsed.name, type: "Class", img: CLASS_CONTENT_DEFAULT_IMG.Class,
     system: {
       // Flavor only — matches the system convention (e.g. Wizard's description is
       // just the intro paragraph). The features are separate Talent items in
@@ -845,7 +956,10 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
     flags: { [MODULE_ID]: { imported: true, ...(overlay?.classFlags ?? {}),
       ...(ourGear.some((g) => g.granted)
         ? { grantedItems: ourGear.filter((g) => g.granted).map((g) => g.uuid) } : {}),
-      ...(variantList ? { borrowedSpellList: variantList } : {}) } },
+      ...(variantList ? { borrowedSpellList: variantList } : {}),
+      // The Class item's icon is a fixed automatic pick, so `default` — a GM who
+      // replaces it keeps it, and a later change to the constant still lands.
+      art: artProvenance(ART_STATES.DEFAULT, CLASS_CONTENT_DEFAULT_IMG.Class) } },
   };
   // Body-only re-import must NOT clobber supplement-owned fields. Stage 1 builds
   // classTalentTable/titles/spellsknown EMPTY (they arrive in Stage 2), and
@@ -1241,4 +1355,7 @@ export async function pruneBoughtGearGrants() {
 
 // ─── Internal exports for tests (pure helpers only) ──────────────────────────
 
-export const _internals = { _deepEq, _subsetEq, _staleFields, _effectShape, classifySpellWiring, borrowedTagsForSpell, keptGrantUuids };
+export const _internals = {
+  _deepEq, _subsetEq, _staleFields, _effectShape, classifySpellWiring, borrowedTagsForSpell, keptGrantUuids,
+  _classArtDecision, _stampArt, _talentData, _classAbilityData, CLASS_CONTENT_DEFAULT_IMG,
+};
