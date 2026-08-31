@@ -144,6 +144,18 @@ options are *— none —*, *Core Rulebook*, *Cursed Scroll 1–6*, and
   inline roll counts, swept automatically after each commit.
 - **Spell ↔ class linking.** Spells find their caster class whichever was
   imported first.
+- **Item art provenance.** When replacing an existing item, art is preserved or
+  upgraded according to explicit provenance (`flags["shadowdark-enhancer"].art`)
+  rather than image path heuristics:
+  - `default`: The module's default pick (e.g. type fallback, treasure/spell icon). Upgradeable on re-import.
+  - `imported`: The image from the source text draft, untouched since import. Upgradeable on re-import.
+  - `curated`: A deliberate module-curated icon pick. Upgradeable on re-import.
+  - `custom`: Art edited or replaced by the GM. Preserved and never overwritten on re-import.
+
+  Any divergence between the stored item's image and the recorded witness path is treated as `custom`.
+  Legacy unmarked items are classified conservatively (`default` if matching the module's default today or blank; otherwise `custom`).
+  Generated artifacts in `sde-items` (`world.shadowdark-enhancer--items`) remain governed by the replace-always contract (A7/D6).
+  *Note:* This provenance system governs `item-importer` only. Class content re-import art is tracked separately as a known issue (GitHub #89 / A3b), and monster/token art is managed via Monster Token Art (B9/F4/N6).
 - **Book-only weapon and armour properties.** A property code the core system
   has no entry for — the Lance's *Charge*, *Devastating* and *Mounted*, an
   obsidian weapon's *Obsidian*, barding's *Mount* — can't be attached to the

@@ -15,6 +15,26 @@
   switch to disable the gallery entirely. If the Pathfinder module is not
   installed or its directory is unreadable, it is silently skipped without
   affecting custom or bundled gallery images.
+- **Explicit art provenance for imported items.** Item art on re-import is now
+  governed by an explicit provenance stamp (`default`, `imported`, `curated`,
+  `custom`) rather than guessing from the image path string. The previous
+  heuristic (`img.startsWith("icons/")`) failed in both directions: bundled
+  defaults under `modules/shadowdark-enhancer/assets/icons/shikashi/` failed the
+  check and overwrote hand-picked GM art on re-import, while deliberate curated
+  `icons/...` picks looked like defaults and could never be upgraded.
+  Every image written by the item importer is now stamped with its state and the
+  exact path written; if the stored path still matches the witness on re-import,
+  upgradeable states (`default`, `imported`, `curated`) can be upgraded by new
+  defaults or curated icon maps, while any user modification diverges from the
+  witness and is classified as `custom` (preserved and never overwritten).
+  Legacy unmarked items are classified deterministically and conservatively (matching
+  the module's default pick today or blank is `default`, everything else is `custom`
+  and preserved). Generated artifacts in the managed Items pack
+  (`world.shadowdark-enhancer--items`) are governed by the structural replace-always
+  contract (A7/D6) and remain authoritative.
+  *Note:* This provenance mechanism governs `item-importer` only. Class-content
+  re-import art replacement is tracked separately under GitHub #89 (A3b), and
+  monster/token art is handled by Monster Token Art / Token Art Manager (B9/F4/N6).
 - **Import everything.** *Importer Hub → Manage* now carries an **Import
   everything (N)** button, and opening any folder puts an **Import all N in
   \<folder\>** button at the top of it — the same run, scoped to that branch. It automates the loop rather than
