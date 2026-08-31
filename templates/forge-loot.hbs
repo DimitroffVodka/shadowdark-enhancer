@@ -1,0 +1,156 @@
+<div class="sde-forge-loot" data-phase="{{phase}}">
+  <header class="sde-forge-loot-head">
+    <div>
+      <h2><i class="fas fa-hammer"></i> Forge &amp; Loot</h2>
+      <p class="notes">Choose a generator, inspect its complete seeded proposal, then approve it. Preview and cancel never write to the world.</p>
+    </div>
+    <div class="sde-forge-loot-seed" title="The planner seed; reroll changes it deliberately">
+      <span>Seed</span> <code>{{seed}}</code>{{#if rerollCount}} <span>(reroll {{rerollCount}})</span>{{/if}}
+    </div>
+  </header>
+
+  <section class="sde-forge-loot-generators" aria-label="Choose a generator">
+    {{#each generators as |g|}}
+      <button type="button" class="sde-forge-loot-generator {{#if g.selected}}selected{{/if}}"
+        data-action="selectGenerator" data-generator="{{g.id}}" aria-pressed="{{g.selected}}">
+        <span class="sde-forge-loot-generator-icon"><i class="fas {{g.icon}}"></i></span>
+        <span class="sde-forge-loot-generator-copy">
+          <strong>{{g.label}}</strong>
+          {{#if g.description}}<small>{{g.description}}</small>{{/if}}
+        </span>
+      </button>
+    {{/each}}
+  </section>
+
+  {{#if hasGenerator}}
+    <section class="sde-forge-loot-inputs" aria-label="Generator inputs">
+      <div class="sde-forge-loot-section-head">
+        <div>
+          <h3>{{generatorLabel}}</h3>
+          {{#if generatorDescription}}<p class="notes">{{generatorDescription}}</p>{{/if}}
+        </div>
+        <span class="sde-forge-loot-phase">{{phase}}</span>
+      </div>
+
+      {{#if fields.length}}
+        <div class="sde-forge-loot-fields">
+          {{#each fields as |field|}}
+            <label class="sde-forge-loot-field {{#if field.isCheckbox}}checkbox{{/if}}">
+              {{#if field.label}}<span class="sde-forge-loot-label">{{field.label}}{{#if field.required}} <em>*</em>{{/if}}</span>{{/if}}
+              {{#if field.hint}}<small>{{field.hint}}</small>{{/if}}
+              {{#if field.isTextarea}}
+                <textarea data-forge-input="{{field.key}}" placeholder="{{field.placeholder}}" {{#if field.required}}required{{/if}}>{{field.value}}</textarea>
+              {{else if field.isSelect}}
+                <select data-forge-input="{{field.key}}" {{#if field.required}}required{{/if}}>
+                  {{#each field.options as |option|}}<option value="{{option.value}}" {{#if option.selected}}selected{{/if}}>{{option.label}}</option>{{/each}}
+                </select>
+              {{else if field.isCheckbox}}
+                <input type="checkbox" data-forge-input="{{field.key}}" {{#if field.checked}}checked{{/if}}>
+              {{else}}
+                <input type="{{field.type}}" data-forge-input="{{field.key}}" value="{{field.value}}" placeholder="{{field.placeholder}}" {{#if field.required}}required{{/if}}>
+              {{/if}}
+            </label>
+          {{/each}}
+        </div>
+      {{else}}
+        <p class="notes">This generator has no additional inputs. Its adapter supplies the planning rules and source snapshot.</p>
+      {{/if}}
+
+      <div class="sde-forge-loot-actions">
+        <button type="button" class="sde-forge-loot-preview-btn" data-action="generatePreview" {{#unless canPreview}}disabled{{/unless}}>
+          <i class="fas fa-dice-d20"></i> Generate Preview
+        </button>
+        <button type="button" class="sde-forge-loot-reroll-btn" data-action="reroll" {{#unless canReroll}}disabled{{/unless}}>
+          <i class="fas fa-arrows-rotate"></i> Reroll
+        </button>
+        <button type="button" class="sde-forge-loot-cancel-btn" data-action="cancel" {{#unless canCancel}}disabled{{/unless}}>
+          <i class="fas fa-xmark"></i> Cancel
+        </button>
+      </div>
+    </section>
+  {{else}}
+    <p class="sde-forge-loot-empty notes">Choose a generator to begin. Nothing is planned until you request a preview.</p>
+  {{/if}}
+
+  {{#if statusMessage}}<p class="sde-forge-loot-status" role="status">{{statusMessage}}</p>{{/if}}
+
+  {{#if isDisabled}}
+    <section class="sde-forge-loot-report disabled" role="status" aria-label="Generator disabled">
+      <h3><i class="fas fa-ban"></i> Generator disabled</h3>
+      {{#unless diagnostics.missing.length}}<p>This generator is not ready to run. Resolve its readiness report, then try again.</p>{{/unless}}
+    </section>
+  {{/if}}
+
+  {{#if diagnostics.missing.length}}
+    <section class="sde-forge-loot-report blocking" aria-label="Missing inputs">
+      <h3><i class="fas fa-circle-exclamation"></i> Missing or blocking inputs</h3>
+      <ul>{{#each diagnostics.missing as |item|}}<li><strong>{{item.code}}</strong>: {{item.message}}{{#if item.evidence}} <small>{{item.evidence}}</small>{{/if}}</li>{{/each}}</ul>
+    </section>
+  {{/if}}
+
+  {{#if diagnostics.exclusions.length}}
+    <section class="sde-forge-loot-report exclusions" aria-label="Exclusions">
+      <h3><i class="fas fa-filter"></i> Excluded results</h3>
+      <ul>{{#each diagnostics.exclusions as |item|}}<li><strong>{{item.code}}</strong>: {{item.message}}{{#if item.evidence}} <small>{{item.evidence}}</small>{{/if}}</li>{{/each}}</ul>
+    </section>
+  {{/if}}
+
+  {{#if diagnostics.warnings.length}}
+    <section class="sde-forge-loot-report warnings" aria-label="Warnings">
+      <h3><i class="fas fa-triangle-exclamation"></i> Warnings</h3>
+      <ul>{{#each diagnostics.warnings as |item|}}<li><strong>{{item.code}}</strong>: {{item.message}}{{#if item.evidence}} <small>{{item.evidence}}</small>{{/if}}</li>{{/each}}</ul>
+    </section>
+  {{/if}}
+
+  {{#if error}}
+    <section class="sde-forge-loot-report error" role="alert" aria-label="Forge and Loot error">
+      <h3><i class="fas fa-bug"></i> {{error.code}}</h3>
+      <p>{{error.message}}</p>
+      {{#if error.evidence}}<small>{{error.evidence}}</small>{{/if}}
+    </section>
+  {{/if}}
+
+  {{#if hasPreview}}
+    <section class="sde-forge-loot-preview" aria-label="Immutable preview">
+      <div class="sde-forge-loot-preview-head">
+        <div>
+          <h3><i class="fas fa-eye"></i> {{preview.title}}</h3>
+          {{#if preview.summary}}<p>{{preview.summary}}</p>{{/if}}
+        </div>
+        <span class="sde-forge-loot-preview-lock"><i class="fas fa-lock"></i> Immutable</span>
+      </div>
+      {{#each preview.sections as |section|}}
+        <section class="sde-forge-loot-preview-section">
+          {{#if section.title}}<h4>{{section.title}}</h4>{{/if}}
+          {{#if section.rows.length}}
+            <dl>{{#each section.rows as |row|}}<div><dt>{{row.label}}</dt><dd>{{row.value}}</dd></div>{{/each}}</dl>
+          {{/if}}
+          {{#if section.items.length}}
+            <ul>{{#each section.items as |item|}}<li>{{item.label}} {{#if item.detail}}<small>{{item.detail}}</small>{{/if}}</li>{{/each}}</ul>
+          {{/if}}
+        </section>
+      {{/each}}
+      {{#if preview.members.length}}
+        <section class="sde-forge-loot-preview-members">
+          <h4>Members</h4>
+          <ul>{{#each preview.members as |member|}}<li><strong>{{member.name}}</strong>{{#if member.detail}} — {{member.detail}}{{/if}}</li>{{/each}}</ul>
+        </section>
+      {{/if}}
+      <div class="sde-forge-loot-approve-row">
+        <button type="button" class="sde-forge-loot-approve" data-action="approve" {{#unless canApprove}}disabled{{/unless}}>
+          <i class="fas fa-check"></i> Approve &amp; Create
+        </button>
+      </div>
+    </section>
+  {{else if isCommitted}}
+    <section class="sde-forge-loot-committed" role="status"><i class="fas fa-circle-check"></i> The approved preview was consumed once. Generate another preview for a new result.</section>
+  {{else if isCancelled}}
+    <section class="sde-forge-loot-cancelled" role="status"><i class="fas fa-ban"></i> Cancelled — nothing was written.</section>
+  {{else}}
+    <section class="sde-forge-loot-no-preview"><i class="fas fa-hourglass-start"></i> No preview yet. Generate one to inspect the proposal.</section>
+  {{/if}}
+
+  <footer class="sde-forge-loot-footer">
+    <button type="button" class="sde-forge-loot-reset" data-action="reset"><i class="fas fa-rotate-left"></i> Start over</button>
+  </footer>
+</div>

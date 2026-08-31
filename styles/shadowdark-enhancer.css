@@ -10069,3 +10069,140 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 /* Taunt: the arming card, and the "why did that roll have advantage" line the
    roll card prints from config.messages. */
 .sde-taunt-card { font-weight: 600; }
+
+/* ── Forge & Loot preview shell (G4) ───────────────────────────────────────
+   The generator owns its data shape and rules; these styles only make the
+   shared selection/report/preview boundary readable in either Foundry theme. */
+.sde-forge-loot {
+  --sde-fl-surface: var(--sde-bar-surface-1, #1a1a1a);
+  --sde-fl-surface-2: var(--sde-bar-surface-2, #242424);
+  --sde-fl-border: var(--sde-bar-border, #555);
+  --sde-fl-text: var(--sde-bar-text, #f0f0f0);
+  --sde-fl-muted: var(--sde-bar-text-muted, #9a9a9a);
+  --sde-fl-accent: var(--sde-bar-accent, #c9a54a);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  color: var(--sde-fl-text);
+  overflow: auto;
+  max-height: 90vh;
+}
+.sde-forge-loot > * { flex: 0 0 auto; }
+.sde-forge-loot-head,
+.sde-forge-loot-section-head,
+.sde-forge-loot-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sde-forge-loot h2,
+.sde-forge-loot h3,
+.sde-forge-loot h4 { margin: 0; }
+.sde-forge-loot h2 { font-size: 1.05rem; color: var(--sde-fl-accent); }
+.sde-forge-loot h3 { font-size: 0.9rem; color: var(--sde-fl-accent); }
+.sde-forge-loot h4 { font-size: 0.8rem; color: var(--sde-fl-text); }
+.sde-forge-loot .notes { margin: 3px 0 0; color: var(--sde-fl-muted); font-size: 0.78rem; }
+.sde-forge-loot-seed {
+  flex: 0 0 auto;
+  color: var(--sde-fl-muted);
+  font-size: 0.7rem;
+  text-align: right;
+}
+.sde-forge-loot-seed code { color: var(--sde-fl-text); overflow-wrap: anywhere; }
+.sde-forge-loot-generators { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.sde-forge-loot-generator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  text-align: left;
+  border: 1px solid var(--sde-fl-border);
+  border-radius: 4px;
+  background: var(--sde-fl-surface-2);
+  color: var(--sde-fl-text);
+  cursor: pointer;
+}
+.sde-forge-loot-generator:hover { border-color: var(--sde-fl-accent); filter: brightness(1.1); }
+.sde-forge-loot-generator.selected { border-color: var(--sde-fl-accent); box-shadow: 0 0 0 1px var(--sde-fl-accent) inset; }
+.sde-forge-loot-generator-icon { flex: 0 0 1.5rem; color: var(--sde-fl-accent); text-align: center; }
+.sde-forge-loot-generator-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sde-forge-loot-generator-copy strong { font-size: 0.83rem; }
+.sde-forge-loot-generator-copy small { color: var(--sde-fl-muted); line-height: 1.25; }
+.sde-forge-loot-inputs,
+.sde-forge-loot-preview,
+.sde-forge-loot-report {
+  padding: 9px;
+  border: 1px solid var(--sde-fl-border);
+  border-radius: 4px;
+  background: var(--sde-fl-surface);
+}
+.sde-forge-loot-phase,
+.sde-forge-loot-preview-lock {
+  flex: 0 0 auto;
+  color: var(--sde-fl-muted);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sde-forge-loot-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.sde-forge-loot-field { display: flex; flex-direction: column; gap: 3px; min-width: 0; font-size: 0.8rem; }
+.sde-forge-loot-field.checkbox { flex-direction: row; align-items: center; }
+.sde-forge-loot-field small { color: var(--sde-fl-muted); font-size: 0.7rem; }
+.sde-forge-loot-label { color: var(--sde-fl-text); font-weight: 600; }
+.sde-forge-loot-label em { color: #e08a8a; font-style: normal; }
+.sde-forge-loot-actions,
+.sde-forge-loot-approve-row { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.sde-forge-loot-actions button,
+.sde-forge-loot-approve-row button,
+.sde-forge-loot-footer button { width: auto; cursor: pointer; }
+.sde-forge-loot-preview-btn,
+.sde-forge-loot-approve { background: var(--sde-fl-accent) !important; color: #1a160b !important; font-weight: 700; }
+.sde-forge-loot-reroll-btn { background: transparent; color: var(--sde-fl-text); }
+.sde-forge-loot-cancel-btn,
+.sde-forge-loot-reset { background: transparent; color: var(--sde-fl-muted); }
+.sde-forge-loot-actions button:hover:not(:disabled),
+.sde-forge-loot-approve-row button:hover:not(:disabled),
+.sde-forge-loot-footer button:hover:not(:disabled) { filter: brightness(1.13); }
+.sde-forge-loot-actions button:disabled,
+.sde-forge-loot-approve-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+.sde-forge-loot-status,
+.sde-forge-loot-empty,
+.sde-forge-loot-no-preview,
+.sde-forge-loot-committed,
+.sde-forge-loot-cancelled { margin: 0; padding: 7px 9px; color: var(--sde-fl-muted); font-size: 0.78rem; }
+.sde-forge-loot-committed { color: #7fd18b; }
+.sde-forge-loot-cancelled { color: var(--sde-fl-muted); }
+.sde-forge-loot-report h3 { margin-bottom: 5px; }
+.sde-forge-loot-report ul { margin: 0; padding-left: 1.1rem; font-size: 0.77rem; }
+.sde-forge-loot-report li + li { margin-top: 3px; }
+.sde-forge-loot-report small { color: var(--sde-fl-muted); }
+.sde-forge-loot-report.blocking { border-left: 3px solid #e08a8a; }
+.sde-forge-loot-report.exclusions { border-left: 3px solid #d3af63; }
+.sde-forge-loot-report.warnings { border-left: 3px solid #d3af63; }
+.sde-forge-loot-report.disabled { border-left: 3px solid var(--sde-fl-muted); }
+.sde-forge-loot-report.disabled p { margin: 0; font-size: 0.8rem; }
+.sde-forge-loot-report.error { border-left: 3px solid #e08a8a; color: #f0c4c4; }
+.sde-forge-loot-report.error p { margin: 0; font-size: 0.8rem; }
+.sde-forge-loot-preview-head { border-bottom: 1px solid var(--sde-fl-border); padding-bottom: 7px; }
+.sde-forge-loot-preview-head p { margin: 3px 0 0; color: var(--sde-fl-muted); font-size: 0.78rem; }
+.sde-forge-loot-preview-section { margin-top: 8px; }
+.sde-forge-loot-preview-section dl { margin: 4px 0 0; }
+.sde-forge-loot-preview-section dl > div { display: grid; grid-template-columns: minmax(7rem, 35%) minmax(0, 1fr); gap: 8px; padding: 2px 0; font-size: 0.78rem; border-bottom: 1px dotted rgba(128, 128, 128, 0.25); }
+.sde-forge-loot-preview-section dt { color: var(--sde-fl-muted); }
+.sde-forge-loot-preview-section dd { margin: 0; overflow-wrap: anywhere; }
+.sde-forge-loot-preview-section ul,
+.sde-forge-loot-preview-members ul { margin: 4px 0 0; padding-left: 1.1rem; font-size: 0.78rem; }
+.sde-forge-loot-preview-section li + li,
+.sde-forge-loot-preview-members li + li { margin-top: 3px; }
+.sde-forge-loot-preview-section li small { color: var(--sde-fl-muted); }
+.sde-forge-loot-footer { display: flex; justify-content: flex-end; }
+
+@media (max-width: 600px) {
+  .sde-forge-loot-generators,
+  .sde-forge-loot-fields { grid-template-columns: 1fr; }
+  .sde-forge-loot-head { flex-direction: column; }
+  .sde-forge-loot-seed { text-align: left; }
+}

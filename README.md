@@ -132,7 +132,7 @@ Hooks.once("shadowdarkEnhancer.ready", (api) => {
 
 Namespaces: `import` · `items` · `monsters` · `linker` · `encounter` · `loot` ·
 `tables` · `bundle` · `mutator` · `monsterCreator` · `tokenArt` · `forge` ·
-`charBuilder` · `merchant` · `partyXp` · `recap` · `downtime`
+`forgeLoot` · `charBuilder` · `merchant` · `partyXp` · `recap` · `downtime`
 
 Full reference: **[docs/API.md](docs/API.md)**.
 

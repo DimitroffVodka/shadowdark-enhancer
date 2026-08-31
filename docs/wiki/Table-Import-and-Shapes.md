@@ -156,6 +156,16 @@ Tables that are prone to collision get a `Source - Name` prefix when filed into
 `sde-tables` (the same convention the name tables use). This is safe because
 lookups match on the table's manifest-id flag, not its display name.
 
+## Core Adventure Generator grouping
+
+The Manage tree files the two adventure-name tables — **Adventure Generator**
+and **Adventuring Site Name** — together under the **Adventure Generator**
+group. **NPC Qualities**, **Party Name**, **Renown**, **Secret**, and
+**Wealth** are deliberately **not** filed under that group: they keep their
+own stable manifest/shape identities, stay individually resolvable by the
+supporting-table registry the future Forge & Loot generators read, and a
+reimport of the Core tables does not restore the old grouping.
+
 ## When a table has no recipe
 
 You get generic parsing. For a clean single-column table that is usually fine.

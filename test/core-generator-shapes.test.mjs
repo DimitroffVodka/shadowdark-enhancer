@@ -27,8 +27,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { parseByShape, stripPageFooterLines } from "../scripts/importer/tables/table-importer.mjs";
-import { resolveShape } from "../scripts/importer/tables/table-shapes.mjs";
+import { contentIdForName, resolveShape } from "../scripts/importer/tables/table-shapes.mjs";
 import { CORE_TABLE_GROUPS } from "../scripts/importer/tables/core-table-groups.mjs";
+import { resolveTableFolderPath } from "../scripts/importer/tables/table-folders.mjs";
+import { findExistingByManifestOrName } from "../scripts/importer/tables/table-importer.mjs";
+import { findById, importNameFor } from "../scripts/importer/tables/table-manifest.mjs";
 
 // The seven generator entries, with the caption each one is bound to.
 const GENERATORS = [
@@ -56,6 +59,65 @@ const cellsOf = (g, size = 4) => {
   const cols = g.compound?.columns ?? g.columns ?? [];
   return Array.from({ length: size }, (_, i) => cols.map((c) => c.rows?.[i]?.text ?? ""));
 };
+
+const SUPPORTING_TABLES = [
+  { name: "NPC Qualities", manifestId: "core-npc-qualities", contentId: "core/npc-qualities", folder: ["Game Master", "NPC"] },
+  { name: "Party Name", manifestId: "core-party-name", contentId: "core/party-name", folder: ["Game Master", "Rival Crawlers"] },
+  { name: "Renown", manifestId: "core-renown", contentId: "core/renown", folder: ["Game Master", "Rival Crawlers"] },
+  { name: "Secret", manifestId: "core-secret", contentId: "core/secret", folder: ["Game Master", "Rival Crawlers"] },
+  // Core prints Wealth twice; G1's target is the Rival Crawlers copy on p126.
+  { name: "Wealth", manifestId: "core-wealth-rival-crawlers", contentId: "core/wealth", folder: ["Game Master", "Rival Crawlers"] },
+];
+
+test("Adventure Generator groups only its two adventure-name tables", () => {
+  const group = CORE_TABLE_GROUPS.find((g) => g.key === "adventure");
+  assert.ok(group, "the Adventure Generator group remains present");
+  assert.deepEqual(group.tables.map((t) => t.name), [
+    "Adventure Generator", "Adventuring Site Name",
+  ]);
+
+  const grouped = new Set(CORE_TABLE_GROUPS.flatMap((g) => g.tables.map((t) => t.name)));
+  assert.deepEqual(
+    SUPPORTING_TABLES.filter(({ name }) => grouped.has(name)), [],
+    "NPC/Rival supporting tables are not members of any Core group",
+  );
+});
+
+test("unfiled supporting tables keep G8 shape identities and rerun destinations", () => {
+  for (const spec of SUPPORTING_TABLES) {
+    const manifest = findById(spec.manifestId);
+    assert.ok(manifest, `${spec.manifestId}: manifest identity remains present`);
+    assert.equal(manifest.source, "core", `${spec.name}: remains a Core table`);
+    assert.equal(contentIdForName(spec.name, "CORE"), spec.contentId, `${spec.name}: G8 lookup id remains stable`);
+    assert.ok(resolveShape({ contentId: spec.contentId }), `${spec.name}: shape remains resolvable by id`);
+
+    // A fresh Manage-seed import no longer resolves to Adventure Generator.
+    const sourceRoot = resolveTableFolderPath({ name: spec.name, source: "Core Rulebook" });
+    assert.deepEqual(sourceRoot, ["Roll Tables", "Core Rulebook"], `${spec.name}: no stale group path`);
+
+    // A dashboard seed carries its old category/sub-folder metadata. Repeated
+    // imports retain that explicit non-Adventure destination rather than
+    // restoring the removed group.
+    const rerun = resolveTableFolderPath({
+      name: importNameFor(manifest), source: "Core Rulebook", folderPath: spec.folder,
+    });
+    assert.deepEqual(rerun, spec.folder, `${spec.name}: rerun destination is stable`);
+    assert.ok(!rerun.includes("Adventure Generator"), `${spec.name}: rerun does not restore old group`);
+
+    // Replacement is selected by the stable manifest id, even after a GM
+    // renames the document; grouping changes must never create a second copy.
+    const existing = {
+      _id: `stable-${spec.manifestId}`,
+      name: `GM renamed ${spec.name}`,
+      flags: { "shadowdark-enhancer": { manifestId: spec.manifestId } },
+    };
+    assert.equal(
+      findExistingByManifestOrName([existing], spec.manifestId, spec.name)?._id,
+      existing._id,
+      `${spec.name}: rerun finds the existing document by identity`,
+    );
+  }
+});
 
 test("seeded shape input strips only cited bare page-footer lines", () => {
   const text = [
@@ -138,10 +200,12 @@ test("page cites point at the page the table is actually printed on", () => {
   for (const g of CORE_TABLE_GROUPS) for (const t of g.tables ?? []) pages.set(t.name, t.page);
   assert.equal(pages.get("Adventure Generator"), 122);
   assert.equal(pages.get("Adventuring Site Name"), 123);
-  assert.equal(pages.get("NPC Qualities"), 125);
-  assert.equal(pages.get("Party Name"), 127);
+  for (const { name } of SUPPORTING_TABLES) assert.equal(pages.has(name), false, `${name}: no longer grouped here`);
+  assert.equal(findById("core-npc-qualities")?.page, 125);
+  assert.equal(findById("core-party-name")?.page, 127);
   // The Rival Crawlers tables genuinely share p126 — Party Name must not.
-  for (const n of ["Renown", "Secret", "Wealth"]) assert.equal(pages.get(n), 126);
+  for (const id of ["core-renown", "core-secret", "core-wealth-rival-crawlers"])
+    assert.equal(findById(id)?.page, 126);
 });
 
 // A synthetic page mimicking the real stacked layout: a captioned generator with

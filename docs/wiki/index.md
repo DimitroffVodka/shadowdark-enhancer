@@ -54,6 +54,7 @@ Tools you use in prep, between sessions.
 | [Monster Level Guidelines](Monster-Level-Guidelines.md) | What a level-N monster should look like: the editable table, and the token button that re-levels a creature |
 | [Monster Token Art](Monster-Token-Art.md) | Re-skin the bestiary using art you already own, referenced and never copied |
 | [Magic Item Forge](Magic-Item-Forge.md) | Roll or hand-build magic items, including from your own imported Core tables |
+| [Forge & Loot](Forge-and-Loot.md) | The shared preview-first shell for the future NPC and Rival Crawler generators — host, preview and approve boundary only in this release |
 
 ## Characters
 

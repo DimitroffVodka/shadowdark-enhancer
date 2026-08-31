@@ -54,7 +54,7 @@ const definition = (name = "Carved Bone") => ({
 describe("A7 public API — nested surface", () => {
   test("bumps the additive API minor and nests resolver/generated operations", async () => {
     const { api, loot, generated } = nestedApiObjects(await readEntry());
-    assert.match(api, /apiVersion:\s*["']1\.3\.0["']/);
+    assert.match(api, /apiVersion:\s*["']1\.4\.0["']/);
     assert.match(loot, /resolve:\s*async\s*\(/);
     assert.match(generated, /identity:\s*\(/);
     assert.match(generated, /plan:\s*async\s*\(desired,\s*\{\s*source\s*=\s*""/);

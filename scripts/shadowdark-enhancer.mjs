@@ -85,7 +85,7 @@ import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "0a9288566bbf";
+const STYLESHEET_REV = "4c7a54a7eb49";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -297,8 +297,8 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.3.0 — additive: loot.resolve and the loot.generated.* namespace (A7).
-    apiVersion: "1.3.0",
+    // 1.4.0 — additive: Forge & Loot preview shell namespace (G4).
+    apiVersion: "1.4.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -464,6 +464,12 @@ Hooks.once("init", () => {
           return pack ? reconcileGeneratedItems(pack, desired, { source }) : null;
         },
       },
+    },
+    // Shared preview-first shell for the future NPC and Rival Crawlers
+    // generators. Generator rules and document writes stay behind its adapter
+    // seam; opening the shell alone performs no persistence.
+    forgeLoot: {
+      open: async (opts = {}) => (await import("./forge-loot/forge-loot-app.mjs")).ForgeLootApp.open(opts),
     },
     forge: {
       open: async () => (await import("./magic-forge/magic-forge-app.mjs")).MagicForgeApp.open(),

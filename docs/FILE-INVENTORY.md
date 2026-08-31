@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-852 tracked files · ~132,900 lines of code/markup across scripts+templates+styles+test.
+860 tracked files · ~136,500 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 803 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 809 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -55,6 +55,10 @@
 | `parry/parry.mjs` | 441 | Parry button on an attack card that hit: spends the 1/day use, makes the attack miss, and reverses damage the GM already applied — HP, defeated flag and downed conditions. Player clicks go through the authenticated gm-relay. |
 | `taunt/taunt-core.mjs` | 118 | Pure Duelist Taunt rules: round+turn as one ordinal, the "end of your NEXT turn" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit). |
 | `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
+| `forge-loot/class-idiom.mjs` | 1248 | Foundry-free G6a class-idiom and legal-choice layer: derives explainable ability signals from imported class/talent metadata, resolves every supported Character Builder choice through snapshots and an injected RNG, preserves exact talent-count and class-permission parity, and returns a stable value/signals/fallback or enumerated unsupported result without class-name branches. |
+| `forge-loot/forge-loot-core.mjs` | 856 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
+| `forge-loot/forge-loot-rng.mjs` | 80 | Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods. |
+| `forge-loot/forge-loot-app.mjs` | 251 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -111,7 +115,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 621 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 630 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -242,7 +246,7 @@
 | `tables/table-folders.mjs` | 179 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
 | `tables/table-enrich.mjs` | 185 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
-| `tables/core-table-groups.mjs` | 251 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
+| `tables/core-table-groups.mjs` | 248 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |
 | `monsters/statblock-parser.mjs` | 516 | Monster statblock dump → draft objects. Pure. |
