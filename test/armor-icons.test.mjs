@@ -6,7 +6,7 @@
 // tree that N3 used, so a valid-looking but absent path fails as missing-path.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
@@ -62,24 +62,46 @@ const ALIAS_PAIRS = Object.freeze([
   ["Round shield, mithral", "Mithral Round Shield"],
 ]);
 
-// N3's authoritative inventory is the Foundry installation, not the map. This
-// deliberately performs a filesystem check per accepted path rather than
-// constructing a Set from EXPECTED_ROWS or ARMOR_ICONS.
-const FOUNDRY_PUBLIC = "/home/patricks/FoundryV14/public";
-const FOUNDRY_ICONS = path.join(FOUNDRY_PUBLIC, "icons");
+// N3's authoritative inventory is the Foundry installation, not the map. The
+// local path is the default; CI and other checkouts may point at an equivalent direct `icons/` root explicitly.
+const LOCAL_FOUNDRY_ICON_ROOT = "/home/patricks/FoundryV14/public/icons";
+const configuredIconRoot = String(process.env.SHADOWDARK_ENHANCER_FOUNDRY_ICON_ROOT ?? "").trim();
+const FOUNDRY_ICON_ROOT = path.resolve(configuredIconRoot || LOCAL_FOUNDRY_ICON_ROOT);
 
-function realFoundryIconExists(assetPath) {
-  const relative = String(assetPath ?? "");
-  if (!relative.startsWith("icons/") || relative.includes("..")) return false;
-  return existsSync(path.join(FOUNDRY_PUBLIC, relative));
+/** Build an inventory in the same `icons/...` namespace used by the map. */
+function foundryIconInventory(dir, prefix = "icons", out = new Set()) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    const relative = `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) foundryIconInventory(full, relative, out);
+    else if (entry.isFile() && entry.name.endsWith(".webp")) out.add(relative);
+  }
+  return out;
 }
+
+function loadFoundryIconInventory(root) {
+  try {
+    if (!statSync(root).isDirectory()) return null;
+    return foundryIconInventory(root);
+  } catch {
+    return null;
+  }
+}
+
+// Census, structural, provenance, fallback, and alias tests stay mandatory.
+// Only on-disk inventory checks skip when this optional directory is absent or cannot be recursively read.
+const FOUNDRY_ICONS = loadFoundryIconInventory(FOUNDRY_ICON_ROOT);
+const INVENTORY_SKIP_REASON = FOUNDRY_ICONS === null
+  ? `Foundry icon directory unavailable: ${FOUNDRY_ICON_ROOT}`
+  : false;
+const pathExists = (assetPath) => FOUNDRY_ICONS?.has(assetPath) ?? false;
 
 function auditedAgainstFoundry(registry) {
   let calls = 0;
   const report = auditCuratedIconRegistry(registry, {
     pathExists: (assetPath) => {
       calls++;
-      return realFoundryIconExists(assetPath);
+      return pathExists(assetPath);
     },
   });
   return { report, calls };
@@ -96,7 +118,6 @@ function reimportArmor(draft, existing) {
 }
 
 test("the armor map is discovered and owns exactly the N3 13-row census", () => {
-  assert.equal(existsSync(FOUNDRY_ICONS), true, "N3's authoritative Foundry icon inventory is required");
   assert.equal(ARMOR_ICONS.label, "armor");
   assert.equal(ARMOR_ICONS.space, CURATED_KEY_SPACES.BARE);
   assert.equal(ARMOR_ICONS.problems.length, 0);
@@ -128,7 +149,19 @@ test("the nine canonical armors stay distinct while four mithral aliases share t
   }
 });
 
-test("the A4 audit covers every armor row against the real Foundry icon inventory", () => {
+test("the A4 structural audit covers every armor row", () => {
+  const registry = buildCuratedIconRegistry([ARMOR_ICONS]);
+  const report = auditCuratedIconRegistry(registry);
+
+  assert.equal(report.total, 13);
+  assert.equal(report.bare, 13);
+  assert.equal(report.sourced, 0, "armor keys are source-agnostic");
+  assert.deepEqual(report.perMap, [{ label: "armor", space: CURATED_KEY_SPACES.BARE, entries: 13 }]);
+  assert.deepEqual(report.problems, []);
+});
+
+test("the A4 audit covers every armor row against the real Foundry icon inventory", { skip: INVENTORY_SKIP_REASON }, () => {
+  assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
   const registry = buildCuratedIconRegistry([ARMOR_ICONS]);
   const { report, calls } = auditedAgainstFoundry(registry);
 
@@ -140,9 +173,9 @@ test("the A4 audit covers every armor row against the real Foundry icon inventor
   assert.equal(calls, 13, "the existence predicate was applied to every accepted armor row");
 });
 
-test("a valid-looking absent armor path is reported as missing-path by the real inventory gate", () => {
-  const missing = "icons/equipment/chest/d2-armor-icons-definitely-absent.webp";
-  assert.equal(realFoundryIconExists(missing), false, "the missing-path fixture must stay absent from Foundry");
+test("a valid-looking absent armor path is reported as missing-path by the real inventory gate", { skip: INVENTORY_SKIP_REASON }, () => {
+  const missing = "icons/equipment/chest/d2-armor-icons-definitely-absent-20260830.webp";
+  assert.equal(pathExists(missing), false, "the missing-path fixture must stay absent from Foundry");
   const broken = defineCuratedIconMap("armor-missing-path", {
     ...EXPECTED_ROWS,
     "D2 missing-path fixture": missing,
