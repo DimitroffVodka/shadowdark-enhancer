@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-810 tracked files · ~119,600 lines of code/markup across scripts+templates+styles+test.
+813 tracked files · ~120,700 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 770 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 774 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -62,6 +62,8 @@
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
+| `curated-icons.mjs` | 477 | The one curated-icon resolver (A4), pure and Foundry-free. Six issue paths want a reviewed Foundry-native icon for an item this module imported or generated; rather than each growing its own name matching (as `core-monster-spell-icons.mjs` did for Monster Spells), they share this. TWO KEY SPACES, and the split is structural rather than stylistic: weapons, armor and basic gear key on `normalize(name)` alone, because `defaultItemImg` — the module's single automatic art-choice channel — cannot know which book a draft came from (source is a commit-time batch option threaded through `createItems`, reaching the document only afterwards as a flag), so a source-qualified gear key would be unresolvable at the one place gear art is chosen; treasure keys are `<sourceId>:<normalize(name)>` via `sourceKey`, because its names are book prose two Cursed Scrolls could both print. Map keys are DERIVED from display names, never hand-written beside them — the reviewed source spec drifted exactly that way — and map construction is TOTAL: a duplicate key, blank name or path that is not a native `icons/**.webp` drops that row into `problems` and leaves the item on its fallback, because throwing at load would take the module down over an icon. `auditCuratedIconRegistry` aggregates those for the test gate. Registration is BY IMPORT (`registerCuratedIconMap`) so the tickets owning the rows never edit one shared list. `isCuratedApplyTarget` is a `world.` allowlist, not a denylist: `LootLinker` resolves rows system-pack-first by design, so a plunder row's uuid routinely points into `shadowdark.gear`, and a materializer applying art to whatever it just resolved would edit the base system compendium. Unmatched returns null — never a guess, because a wrong curated icon looks deliberate. |
+| `curated-icon-maps/index.mjs` | 68 | Discovery point for the curated-icon maps (A4). The resolver ships no data; each reviewed map lives here as its own module, publishes itself with `registerCuratedIconMap` at import time, and becomes reachable when this index side-effect-imports it. Loaded once from the module entry point so every consumer sees the same registry regardless of load order. A ticket adding a map creates ONE file and appends ONE import line, so two tickets never collide on a shared array literal. Carries the worked example and the four invariants the audit enforces: native `icons/**.webp` paths, keys derived from display names, bare-space names globally distinct across the weapon/armor/gear maps, and treasure rows qualified by book. Registers nothing until a map ships — until then every lookup returns null and no image or provenance classification changes. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 455 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
@@ -242,7 +244,7 @@
 | `items/item-parser.mjs` | 508 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 547 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/gear-join.mjs` | 247 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 908 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-importer.mjs` | 970 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 396 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 133 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |

@@ -32,6 +32,7 @@ import { findSuitePack, ensureSuite, ensurePack, ensureSourceFolder, ensureFolde
 import { LootLinker } from "../../loot/loot-linker.mjs";
 import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
 import { ART_STATES, UPGRADEABLE_ART_STATES, artProvenance, decideImportArt, isGeneratedManagedItem, MANAGED_ITEMS_PACK } from "../../shared/art-provenance.mjs";
+import { curatedArtFor } from "../../shared/curated-icons.mjs";
 
 // Re-exported so the gear importer stays the one door callers already know;
 // the helpers themselves are Foundry-free and live in shared/.
@@ -52,35 +53,96 @@ const TYPE_DEFAULT_IMG = {
 };
 
 /**
+ * The image this module writes for a document that brings none, AND where that
+ * image came from.
+ *
+ * Origin travels with the path because the two answers must never disagree.
+ * A3 distinguishes a reviewed module pick (`curated`) from an automatic one
+ * (`default`), and the only place that can tell them apart is here, where the
+ * choice is actually made. Deciding the path in one function and re-deriving
+ * its provenance in another is how a stamp starts lying about the document.
+ *
+ * The order is deliberate:
+ *
+ *   1. Spells have their own curated channel (`pickShikashiSpellIcon` and
+ *      `core-monster-spell-icons`), so the item maps never see them.
+ *   2. Types with an explicit default (Background/Talent/Ancestry/Class) keep
+ *      it. The item maps are keyed by name alone and are name-distinct only
+ *      among THEMSELVES — a Talent that happens to share a name with a piece
+ *      of gear must not inherit its icon.
+ *   3. A4's curated maps: the reviewed, semantic-category pick.
+ *   4. `pickTreasureIcon`'s broad keyword chain: the net beneath everything.
+ *
+ * Steps 3 and 4 are what "semantic category before broad fallback" means at
+ * runtime — a reviewed pick from the matching `icons/weapons/…` folder first,
+ * the keyword guess only when no reviewed pick exists.
+ *
+ * No source is available here — the book is a commit-time batch option — so
+ * only the source-agnostic key space is reachable. That is by design: treasure
+ * art is keyed by book and belongs to the materializers that know which table
+ * they are draining.
+ *
+ * @param {{name?: string, type?: string}} doc
+ * @returns {{img: string, state: string}}
+ */
+function _automaticArt(doc) {
+  const name = doc?.name ?? "Unnamed Item";
+  if (doc?.type === "Spell") return { img: pickShikashiSpellIcon(name), state: ART_STATES.DEFAULT };
+
+  const typeDefault = TYPE_DEFAULT_IMG[doc?.type];
+  if (typeDefault) return { img: typeDefault, state: ART_STATES.DEFAULT };
+
+  const curated = curatedArtFor({ name });
+  if (curated) return { img: curated.img, state: curated.artState };
+
+  return { img: pickTreasureIcon(name), state: ART_STATES.DEFAULT };
+}
+
+/**
  * The image THIS module would write for a draft or stored document that brings
  * no art of its own. Pure and deterministic — the same name and type always
  * produce the same path, which is what makes the legacy classification in
  * art-provenance decidable: an unmarked document wearing exactly this image is
  * one we picked, and anything else is the GM's.
  *
+ * A registered curated map participates in that classification: once a map
+ * ships, a legacy unmarked document wearing the map's current path classifies
+ * as `default` — the module's pick — and stays upgradeable, rather than being
+ * frozen as the GM's. That is the intended direction, and it means map CONTENT
+ * moves legacy classification: removing a row later reclassifies such a
+ * document as `custom`, which is the safe way for it to move.
+ *
  * @param {{name?: string, type?: string}} doc  a parser draft or a stored Item
  * @returns {string} an image path, never blank
  */
 export function defaultItemImg(doc) {
-  const name = doc?.name ?? "Unnamed Item";
-  if (doc?.type === "Spell") return pickShikashiSpellIcon(name);
-  return TYPE_DEFAULT_IMG[doc?.type] ?? pickTreasureIcon(name);
+  return _automaticArt(doc).img;
 }
 
 /**
  * The provenance stamp for an image this module is about to write. The state
- * follows the image's ORIGIN: a draft carrying its own image is `imported`,
- * one we picked for it is `default`, and a resolver that deliberately chose it
- * (A4's curated maps) says so with `draft.artState = "curated"`. A draft can
- * never declare `custom` — only a human's edit produces that state, and only
- * the replace path can observe it.
+ * follows the image's ORIGIN:
+ *
+ *   • a consumer that deliberately chose the art says so with `draft.artState`
+ *   • a draft carrying its own image is `imported`
+ *   • an image we picked reports where WE got it: a hit in A4's curated maps
+ *     is `curated`, the type default and the keyword chain are `default`
+ *
+ * That last distinction is the whole point of A3 having a `curated` state at
+ * all — it is defined as "a deliberate module icon pick (A4)", and a reviewed
+ * map hit is exactly that, whether a consumer asked for it by name or the
+ * shared seam resolved it. Stamping such an image `default` would record the
+ * wrong origin; both states are upgradeable, so nothing about preservation
+ * changes, but the document would no longer say where its art came from.
+ *
+ * A draft can never declare `custom` — only a human's edit produces that state,
+ * and only the replace path can observe it.
  */
 function _artStampFor(draft, img) {
   const declared = String(draft?.artState ?? "");
-  const state = UPGRADEABLE_ART_STATES.includes(declared)
-    ? declared
-    : (draft?.img ? ART_STATES.IMPORTED : ART_STATES.DEFAULT);
-  return artProvenance(state, img);
+  if (UPGRADEABLE_ART_STATES.includes(declared)) return artProvenance(declared, img);
+  if (draft?.img) return artProvenance(ART_STATES.IMPORTED, img);
+  return artProvenance(_automaticArt(draft).state, img);
 }
 
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
