@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- **Forge & Loot preview shell (G4/#80).** A GM-only shared shell now selects
+  future NPC/Rival generators and presents deterministic seeded, immutable
+  previews with explicit reroll, cancel, warning/error, source-drift, active-GM,
+  and single-approval boundaries. Generator rules and world-document writes
+  remain deferred to the later G5/G7 adapters; the preview path itself writes
+  nothing.
 - **Sea Wolf Plunder Items and curated treasure art (D4/#57).** RollTables
   recognized as the *Cursed Scroll 3* (p68) table *Sea Wolf Plunder From Distant
   Lands* now materialize their 20 published treasure results as real, draggable

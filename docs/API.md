@@ -2,20 +2,21 @@
 
 A versioned, public API for other modules and macros to drive Shadowdark
 Enhancer's importer, linker, encounter, loot, table, bundle, monster-art,
-monster-spell-library, merchant, party-XP, session-recap, and character-builder features.
+monster-spell-library, merchant, party-XP, session-recap, character-builder,
+and Forge & Loot features.
 
 **Namespaces:** [`import`](#import--universal-dump-segmentation) ·
 [`items`](#items--bulk-items-importer) · [`monsters`](#monsters--bulk-monster-importer) ·
 [`linker`](#linker--name--compendium-resolution) · [`encounter`](#encounter) ·
 [`loot`](#loot) · [`tables`](#tables) · [`bundle`](#bundle--suite-export--import) ·
 [`mutator`](#mutator) · [`monsterCreator`](#monstercreator--forge) ·
-[`monsterSpells`](#monsterspells) · [`forge`](#monstercreator--forge) · [`tokenArt`](#tokenart--monster-compendium-art) ·
+[`monsterSpells`](#monsterspells) · [`forge`](#monstercreator--forge) · [`forgeLoot`](#forgeloot--preview-first-generator-shell) · [`tokenArt`](#tokenart--monster-compendium-art) ·
 [`merchant`](#merchant--shop-window--transaction-log) ·
 [`partyXp`](#partyxp--party-xp-awards) · [`recap`](#recap--session-recap) ·
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats)
 
-**API version:** `1.3.0` (semver — additive changes bump the minor version,
+**API version:** `1.4.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -351,6 +352,20 @@ selections are re-validated against the live pack immediately before creation
 and fail closed. No persistent raw-prose API is exposed. Manual forging is
 unchanged. Potion / Utility / Scroll / Wand Core-table automation is out of
 scope for Phase 1.
+
+## `forgeLoot` — preview-first generator shell
+
+Opens the shared GM-only Forge & Loot shell. It selects a future generator,
+produces an immutable seeded preview, and keeps all persistence behind the
+generator's commit adapter. Preview, reroll, and cancel do not write; approval
+rechecks the active GM/source snapshot and consumes the exact preview once.
+NPC and Rival Crawler rules are supplied by later generator packages.
+
+```js
+await api.forgeLoot.open();
+// Optional: choose the adapter and seed when opening.
+await api.forgeLoot.open({ generator: "npc", seed: "session-01" });
+```
 
 ## `tokenArt` — monster compendium art
 
@@ -818,6 +833,8 @@ list, so a headless caller sees the same gaps the window shows.
   already shipped — documenting them is **not** an additive API change and does
   not bump `apiVersion`.
 - `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
+- `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
+  document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking
   shapes would bump the major.
 - Anything that creates or modifies documents is **GM-only** and follows the

@@ -435,6 +435,10 @@ export const CrawlBar = {
     menu.id = "sde-loot-context-menu";
     menu.className = "sde-bar-context-menu";
     menu.innerHTML = `
+      <div class="sde-menu-item sde-menu-btn" data-loot-action="forgeLoot" role="menuitem" tabindex="0">
+        <i class="fas fa-hammer"></i> Forge &amp; Loot
+      </div>
+      <div class="sde-menu-divider"></div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="lootGen" role="menuitem" tabindex="0">
         <i class="fas fa-coins"></i> Loot Generator
       </div>
@@ -483,6 +487,11 @@ export const CrawlBar = {
       e.stopPropagation();
       const target = e.target.closest("[data-loot-action]");
       if (!target) return;
+      if (target.dataset.lootAction === "forgeLoot") {
+        import("../forge-loot/forge-loot-app.mjs")
+          .then(({ ForgeLootApp }) => ForgeLootApp.open())
+          .catch((error) => ui.notifications?.error(`Forge & Loot could not open: ${error.message}`));
+      }
       if (target.dataset.lootAction === "lootGen") game.shadowdarkEnhancer.loot.open();
       if (target.dataset.lootAction === "magicForge") game.shadowdarkEnhancer.forge.open();
       if (target.dataset.lootAction === "merchant") game.shadowdarkEnhancer.merchant.openLocally();
