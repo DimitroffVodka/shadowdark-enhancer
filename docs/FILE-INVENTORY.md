@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-819 tracked files · ~121,700 lines of code/markup across scripts+templates+styles+test.
+821 tracked files · ~122,400 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -70,7 +70,7 @@
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 455 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
-| `compendium-suite.mjs` | 389 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
+| `compendium-suite.mjs` | 401 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
@@ -79,7 +79,8 @@
 | `token-placement.mjs` | 236 | Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token. |
 | `art-provenance.mjs` | 262 | Explicit art provenance for imported Items (pure), replacing the old `img.startsWith("icons/")` guess. Every image the module writes is stamped `flags[MODULE_ID].art = {state, img}`, so the next import compares the stored image against the path it actually wrote: still equal means the recorded state stands (`default` / `imported` / `curated`, all upgradeable), and any divergence is `custom` — the GM's, and never overwritten. The guess it replaces was wrong in both directions: this module's own bundled Shikashi defaults live under `modules/shadowdark-enhancer/assets/` and so failed the `icons/` test and erased hand-picked art, while a deliberate curated `icons/...` pick looked like a default and could never be upgraded. Legacy unmarked documents are classified deterministically and conservatively — an image byte-identical to the module's default pick for that name and type today (or no image at all) is `default`, everything else is `custom` — and the first re-import stamps the verdict so it never drifts. Also carries the structural generated-artifact boundary (`isGeneratedManagedItem`): the explicit `flags[MODULE_ID].generated` marker PLUS membership of the managed Items pack, the one case that stays replace-always, art included (A7/D6). Exactly ONE marker, deliberately — "generated" is not a single policy here. The Monster Spell library also generates documents but preserves hand-edited ones as curated conflicts, and since A1 they share this pack, so recognising its `monsterSpell.generated` bookkeeping would let an ordinary name collision overwrite a spell the GM had curated. Foundry-free, node-tested. |
 | `clipboard.mjs` | 46 | `copyText()` — clipboard write that survives insecure origins, where `navigator.clipboard` is undefined; falls back to a hidden textarea + `execCommand`, restores focus, and never throws. |
-| `property-note.mjs` | 108 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). |
+| `module-flags.mjs` | 96 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
+| `property-note.mjs` | 144 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
 
 ### 3.3 `scripts/crawl-strip/` — the top strip + movement + combat sync
 
@@ -199,7 +200,7 @@
 |---|---:|---|
 | `importer-hub-app.mjs` | 893 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
 | `importer-hub-paste.mjs` | 1526 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
-| `importer-hub-commit.mjs` | 855 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-commit.mjs` | 861 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
 | `importer-hub-manage.mjs` | 998 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 668 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
@@ -247,7 +248,7 @@
 | `items/item-parser.mjs` | 508 | Generic item recognizer (name/cost/slots). Pure. |
 | `items/gear-parser.mjs` | 547 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/gear-join.mjs` | 247 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 970 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-importer.mjs` | 1008 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 396 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 133 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
