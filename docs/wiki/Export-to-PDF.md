@@ -1,6 +1,6 @@
 # Export to PDF
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Fill a real, form-fillable Shadowdark character sheet PDF from an actor.
 
@@ -92,4 +92,4 @@ full spell list won't fit the printed sheet.
 
 ---
 
-**Related:** [Character Builder](Character-Builder.md) · [CREDITS.md](../../CREDITS.md)
+**Related:** [Character Builder](Character-Builder.md) · [CREDITS.md](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md)

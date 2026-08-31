@@ -3,7 +3,7 @@
 A GM companion suite for [Shadowdark RPG](https://www.thearcanelibrary.com/pages/shadowdark)
 on Foundry VTT.
 
-This wiki is the full manual. The [README](../../README.md) is the short pitch,
+This wiki is the full manual. The [README](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/README.md) is the short pitch,
 and everything below is the detail.
 
 ---
@@ -70,7 +70,7 @@ Tools you use in prep, between sessions.
 | [Settings Reference](Settings-Reference.md) | Every setting, its default, and what it actually does |
 | [Compendium Packs](Compendium-Packs.md) | `sde-actors` / `sde-items` / `sde-tables`, and the content contract |
 | [Troubleshooting](Troubleshooting.md) | Symptoms, causes, fixes |
-| [API for developers](../API.md) | `game.shadowdarkEnhancer`, the public, versioned surface |
+| [API for developers](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md) | `game.shadowdarkEnhancer`, the public, versioned surface |
 
 ---
 
@@ -91,5 +91,5 @@ same content is idempotent. See [Compendium Packs](Compendium-Packs.md).
 ## Getting help
 
 - **Bugs and feature requests:** [GitHub issues](https://github.com/DimitroffVodka/shadowdark-enhancer/issues)
-- **Release history:** [CHANGELOG.md](../../CHANGELOG.md)
-- **Credits and third-party assets:** [CREDITS.md](../../CREDITS.md)
+- **Release history:** [CHANGELOG.md](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CHANGELOG.md)
+- **Credits and third-party assets:** [CREDITS.md](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md)

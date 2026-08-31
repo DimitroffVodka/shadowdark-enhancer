@@ -1,6 +1,6 @@
 # Random Encounters
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 The `1d6` encounter check, and a four-tab Encounter Roller for turning a hit into
 creatures standing on the map.

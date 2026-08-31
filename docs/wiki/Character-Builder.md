@@ -1,6 +1,6 @@
 # Character Builder
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 A guided, ordered character-creation wizard, a step-by-step replacement for the
 system's all-random generator. It builds a **complete level-1 character**,

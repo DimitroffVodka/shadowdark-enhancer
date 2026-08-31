@@ -1,6 +1,6 @@
 # Session Recap
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 A session log that fills itself in while you play, and exports to Discord as
 markdown.

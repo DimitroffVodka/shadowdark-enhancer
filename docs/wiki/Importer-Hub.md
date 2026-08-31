@@ -1,6 +1,6 @@
 # Importer Hub
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 The single front door for getting Shadowdark content into your world. Paste text
 from your own PDF, see what it parsed into, fix anything wrong in place, and

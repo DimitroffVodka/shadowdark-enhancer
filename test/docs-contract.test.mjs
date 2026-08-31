@@ -211,12 +211,12 @@ describe("docs contract — links and images", () => {
     }
     const orphans = fs
       .readdirSync(WIKI)
-      .filter((f) => f.endsWith(".md") && f !== "Home.md")
+      .filter((f) => f.endsWith(".md") && f !== "index.md")
       .filter((f) => !linked.has(f));
     assert.deepEqual(
       orphans,
       [],
-      `wiki pages nothing links to (add them to Home.md):\n  ${orphans.join("\n  ")}`,
+      `wiki pages nothing links to (add them to index.md):\n  ${orphans.join("\n  ")}`,
     );
   });
 });

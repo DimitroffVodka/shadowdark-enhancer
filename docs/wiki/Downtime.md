@@ -1,6 +1,6 @@
 # Downtime
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 What the party does between crawls. Pick a character, pick an activity, pay for
 it, roll the check, read the result.

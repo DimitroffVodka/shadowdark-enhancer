@@ -1,6 +1,6 @@
 # Troubleshooting
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Symptoms, causes, and fixes. Each feature page also has its own troubleshooting
 section. This page covers what spans features.

@@ -1,6 +1,6 @@
 # Compendium Packs
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Where the module keeps content it creates, and the rules it follows about your
 data.
@@ -227,4 +227,4 @@ nothing is going to remove it for you, and nothing will object if you do.
 
 ---
 
-**Related:** [Importer Hub](Importer-Hub.md) · [Monster Token Art](Monster-Token-Art.md) · [API](../API.md)
+**Related:** [Importer Hub](Importer-Hub.md) · [Monster Token Art](Monster-Token-Art.md) · [API](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md)

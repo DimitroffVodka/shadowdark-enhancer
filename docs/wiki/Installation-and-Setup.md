@@ -1,6 +1,6 @@
 # Installation & Setup
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 ---
 

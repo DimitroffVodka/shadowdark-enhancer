@@ -1,6 +1,6 @@
 # Monster Creator
 
-[← Wiki home](Home.md)
+[← Wiki home](index.md)
 
 Build a Shadowdark creature from scratch, remix an existing one, or roll a new
 one on your own imported Core Rulebook generator tables, then save it as a real
