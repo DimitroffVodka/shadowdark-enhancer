@@ -10,9 +10,21 @@
  * before world/module packs (including sde-items). Because `byName` deduplication
  * keeps the FIRST occurrence, a system item beats an sde-items import of the same
  * name — imports fill gaps, system wins on clash.
+ *
+ * The MATCH itself lives in `loot-resolution.mjs` (A7). It used to be a
+ * containment regex here, which is how "Unopened bottle of … Murgazi wine"
+ * resolved to the plain system `Bottle` (#58). `findLink` keeps its shape for
+ * the six call sites that read `{uuid,name,matched}`; callers that need to tell
+ * an ambiguous row from an unmatched one call `resolveLootItem` directly.
  */
 
+import { resolveLootItem, isResolvedLootMatch } from "./loot-resolution.mjs";
+
 const LOOT_TYPES = new Set(["Weapon", "Armor", "Potion", "Basic"]);
+// Candidate-set floor, unchanged by A7. It was load-bearing for the old
+// containment matcher (a three-letter name matched half the table); it is now
+// only a decision about which items are candidates at all, so it stays where it
+// was rather than quietly widening the index this ticket does not own.
 const MIN_NAME_LEN = 4;
 
 // Session cache for the prepared item list (longest-name-first).
@@ -42,31 +54,21 @@ export function orderPacksSystemFirst(packsLike) {
   return [...system, ...rest];
 }
 
-/** Escape a string for safe use inside a RegExp. */
-export function escapeRegExp(s) {
-  return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 /**
  * Find a confident compendium-item link for a result entry.
+ *
+ * Confident means exact or alias (`loot-resolution.mjs`). An ambiguous row —
+ * two distinct items answering to the same folded name — is NOT a link and
+ * returns null, same as no match at all.
+ *
  * @param {string} text   the row's result text (book wording + price)
  * @param {Array<{uuid,name,nameLower}>} items  candidate items
  * @returns {{uuid:string,name:string,matched:string}|null}
  */
 export function findLink(text, items) {
-  const hay = String(text ?? "");
-  if (!hay) return null;
-  // Longest name first so multi-word names beat their substrings. Copy +
-  // sort defensively in case the caller passed an unsorted list.
-  const ordered = [...items].sort((a, b) => (b.nameLower?.length ?? 0) - (a.nameLower?.length ?? 0));
-  for (const item of ordered) {
-    const nl = item.nameLower ?? String(item.name ?? "").toLowerCase();
-    if (nl.length < MIN_NAME_LEN) continue;
-    const re = new RegExp("\\b" + escapeRegExp(nl) + "s?\\b", "i");
-    const m = re.exec(hay);
-    if (m) return { uuid: item.uuid, name: item.name, matched: m[0] };
-  }
-  return null;
+  const hit = resolveLootItem(text, items);
+  if (!isResolvedLootMatch(hit)) return null;
+  return { uuid: hit.uuid, name: hit.name, matched: hit.matched };
 }
 
 /**
@@ -112,4 +114,6 @@ export function invalidate() {
   _itemCache = null;
 }
 
-export const LootLinker = { buildItemIndex, findLink, invalidate, orderPacksSystemFirst };
+export const LootLinker = {
+  buildItemIndex, findLink, invalidate, orderPacksSystemFirst, resolveLootItem,
+};

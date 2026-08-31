@@ -8,6 +8,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { LootLinker } from "./loot-linker.mjs";
+import { stripPrice } from "./loot-resolution.mjs";
 import { findSuitePack, ensureSuite, ensureSourceFolder } from "../shared/compendium-suite.mjs";
 import { pickShikashiIcon, shikashiIcon } from "../importer/items/shikashi-icons.mjs";
 
@@ -54,13 +55,14 @@ export function isDeferredType(text) {
   return /spell scroll|magic wand|\bwand\b|\+\d|magic\s+(?:armor|weapon)/i.test(String(text ?? ""));
 }
 
-/** Remove the trailing `(… gp …)` price suffix and a trailing "each". */
-export function stripPrice(text) {
-  return String(text ?? "")
-    .replace(/\s*\([^)]*\b\d+\s*(?:gp|sp|cp)\b[^)]*\)\s*$/i, "")
-    .replace(/\s+each$/i, "")
-    .trim();
-}
+/**
+ * Remove the trailing `(… gp …)` price suffix and a trailing "each".
+ *
+ * Defined in `loot-resolution.mjs` since A7, because the resolver has to strip
+ * the price before it can compare a row to a name. Re-exported here unchanged
+ * so the five existing call sites keep their import.
+ */
+export { stripPrice };
 
 /**
  * Best-guess icon for a treasure item by keyword in its name. The bundled
