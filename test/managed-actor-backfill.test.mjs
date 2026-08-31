@@ -240,6 +240,25 @@ test("an empty payload counts as skipped rather than a write", async () => {
   assert.deepEqual(actors[0].writes, []);
 });
 
+test("nullish payload members are valid no-ops", async () => {
+  const actors = [actorDouble({ id: "a1", name: "Goblin" }), actorDouble({ id: "a2", name: "Kobold" })];
+  const game = makeGame();
+
+  const outcome = await runManagedActorBackfill({
+    ...baseOpts,
+    game,
+    findPack: () => managedPack(actors),
+    transform: actor => actor.id === "a1"
+      ? { update: null, itemUpdates: undefined }
+      : { update: undefined, itemUpdates: null },
+  });
+
+  assert.equal(outcome.status, "completed");
+  assert.deepEqual(outcome.skipped.map(({ id }) => id), ["a1", "a2"]);
+  assert.deepEqual(actors.flatMap(actor => actor.writes), []);
+  assert.deepEqual(game.writes, [[SETTING, MODULE_VERSION]]);
+});
+
 test("embedded item updates are applied through the actor, not the pack", async () => {
   const actors = [actorDouble({ id: "a1", name: "Goblin" })];
   const game = makeGame();
@@ -292,6 +311,48 @@ test("select narrows what the runner offers the transform", async () => {
   assert.equal(outcome.total, 1);
   assert.deepEqual(spy.seen, ["a1"]);
   assert.deepEqual(actors[1].writes, []);
+});
+
+test("a selector exception fails the sorted selection prepass with no writes", async () => {
+  const actors = [
+    actorDouble({ id: "z", name: "Zulu" }),
+    actorDouble({ id: "m", name: "Middle" }),
+    actorDouble({ id: "a", name: "Alpha" }),
+  ];
+  const game = makeGame();
+  const boom = new Error("selector cannot inspect this Actor");
+  const selected = [];
+  const transformed = [];
+
+  const outcome = await runManagedActorBackfill({
+    ...baseOpts,
+    game,
+    findPack: () => managedPack(actors),
+    select: actor => {
+      selected.push(actor.id);
+      if (actor.id === "m" || actor.id === "z") throw boom;
+      return false;
+    },
+    transform: actor => {
+      transformed.push(actor.id);
+      return { update: { touched: true } };
+    },
+  });
+
+  assert.equal(outcome.status, "failed");
+  assert.equal(outcome.stage, "selection");
+  assert.equal(outcome.total, 2, "failed documents are the reported candidates");
+  assert.deepEqual(outcome.applied, []);
+  assert.deepEqual(outcome.skipped, []);
+  assert.deepEqual(outcome.failed.map(({ id, name, reason, message }) => ({ id, name, reason, message })), [
+    { id: "m", name: "Middle", reason: "select-threw", message: boom.message },
+    { id: "z", name: "Zulu", reason: "select-threw", message: boom.message },
+  ]);
+  assert.deepEqual(outcome.failed.map(failure => failure.error), [boom, boom]);
+  assert.deepEqual(selected, ["a", "m", "z"], "selection is deterministic before any transform can write");
+  assert.deepEqual(transformed, [], "a selector failure aborts before the transform phase");
+  assert.deepEqual(actors.flatMap(actor => actor.writes), []);
+  assert.deepEqual(game.writes, [], "a selector failure never advances the setting stamp");
 });
 
 // ─── Nothing to run against ────────────────────────────────────────────────
@@ -537,6 +598,48 @@ test("a payload that is not an object fails that document without writing", asyn
   assert.equal(outcome.status, "failed");
   assert.deepEqual(outcome.failed.map(o => o.reason), ["invalid-payload"]);
   assert.deepEqual(actors[0].writes, []);
+});
+
+test("an array update member is invalid even when it is empty", async () => {
+  const actors = [actorDouble({ id: "a1", name: "Goblin" })];
+  const game = makeGame();
+
+  const outcome = await runManagedActorBackfill({
+    ...baseOpts,
+    game,
+    log: silent,
+    findPack: () => managedPack(actors),
+    transform: () => ({ update: [] }),
+  });
+
+  assert.equal(outcome.status, "failed");
+  assert.equal(outcome.stage, "documents");
+  assert.deepEqual(outcome.failed.map(({ id, name, reason }) => ({ id, name, reason })), [
+    { id: "a1", name: "Goblin", reason: "invalid-payload" },
+  ]);
+  assert.deepEqual(actors[0].writes, []);
+  assert.deepEqual(game.writes, [], "invalid nested payloads leave the gate retryable");
+});
+
+test("a non-array itemUpdates member is invalid even when it is empty", async () => {
+  const actors = [actorDouble({ id: "a1", name: "Goblin" })];
+  const game = makeGame();
+
+  const outcome = await runManagedActorBackfill({
+    ...baseOpts,
+    game,
+    log: silent,
+    findPack: () => managedPack(actors),
+    transform: () => ({ itemUpdates: {} }),
+  });
+
+  assert.equal(outcome.status, "failed");
+  assert.equal(outcome.stage, "documents");
+  assert.deepEqual(outcome.failed.map(({ id, name, reason }) => ({ id, name, reason })), [
+    { id: "a1", name: "Goblin", reason: "invalid-payload" },
+  ]);
+  assert.deepEqual(actors[0].writes, []);
+  assert.deepEqual(game.writes, [], "invalid nested payloads leave the gate retryable");
 });
 
 test("a stamp write that fails is reported and leaves the run retryable", async () => {

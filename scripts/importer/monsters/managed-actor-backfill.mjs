@@ -111,6 +111,25 @@ async function applyPayload(actor, payload) {
 }
 
 /**
+ * Validate the two payload members owned by the runner before either write is
+ * attempted. Nullish members and their empty values are intentional no-ops;
+ * any other shape is a consumer error that must keep the version gate open.
+ */
+function payloadValidationError(payload) {
+  const update = payload.update;
+  if (update !== null && update !== undefined && (typeof update !== "object" || Array.isArray(update))) {
+    return "transform returned an invalid update member, expected a non-array object or a nullish value";
+  }
+
+  const itemUpdates = payload.itemUpdates;
+  if (itemUpdates !== null && itemUpdates !== undefined && !Array.isArray(itemUpdates)) {
+    return "transform returned an invalid itemUpdates member, expected an array or a nullish value";
+  }
+
+  return null;
+}
+
+/**
  * Run one missing-only backfill over the managed Enhancer Actors pack.
  *
  * @param {object} options
@@ -123,9 +142,11 @@ async function applyPayload(actor, payload) {
  * @param {(actor: object) => (object|null|Promise<object|null>)} options.transform
  *   Missing-only, idempotent per-document policy. Return a falsy value (or an
  *   empty payload) when the document already has what this backfill provides,
- *   otherwise `{ update?, itemUpdates?, detail? }`. `update` is passed to
- *   `Actor#update`, `itemUpdates` to `Actor#updateEmbeddedDocuments("Item", …)`,
- *   and `detail` is carried into the applied outcome for reporting.
+ *   otherwise `{ update?, itemUpdates?, detail? }`. When present, `update` must
+ *   be a non-array object and `itemUpdates` must be an array; nullish members,
+ *   `{}`, and `[]` are valid no-ops. Valid `update` is passed to `Actor#update`,
+ *   `itemUpdates` to `Actor#updateEmbeddedDocuments("Item", …)`, and `detail`
+ *   is carried into the applied outcome for reporting.
  * @param {(actor: object) => boolean} [options.select] which pack documents this
  *   backfill is about; everything else is never offered to the transform.
  * @param {Function} [options.findPack] managed-pack lookup, injectable for tests.
@@ -191,13 +212,32 @@ export async function runManagedActorBackfill({
   // by the time it resolves. Re-check before the first write rather than after.
   if (!isActiveGm(game)) return skipped(id, "superseded", { version });
 
-  const actors = inSweepOrder((documents ?? []).filter(doc => {
+  const actors = [];
+  const selectionFailures = [];
+  for (const doc of inSweepOrder(documents ?? [])) {
     try {
-      return select(doc);
-    } catch (_) {
-      return false;
+      if (select(doc)) actors.push(doc);
+    } catch (err) {
+      const where = outcomeOf(doc);
+      log?.error?.(`${MODULE_ID} | ${id} backfill selector failed for ${where.name || where.uuid}:`, err);
+      selectionFailures.push({
+        ...where,
+        reason: "select-threw",
+        message: String(err?.message ?? err),
+        error: err,
+      });
     }
-  }));
+  }
+  // Selection is a prepass: a selector failure is reported before any
+  // transform or document write, so an affected Actor cannot disappear from a
+  // run that nevertheless advances the consumer's stamp.
+  if (selectionFailures.length > 0) {
+    return {
+      status: "failed", stage: "selection", id, version,
+      total: actors.length + selectionFailures.length,
+      applied: [], skipped: [], failed: selectionFailures, stamped: false,
+    };
+  }
   // Same reasoning as `no-pack`: an empty pack has nothing to have completed.
   if (actors.length === 0) return skipped(id, "no-actors", { version });
 
@@ -224,6 +264,13 @@ export async function runManagedActorBackfill({
       const message = `transform returned ${Array.isArray(payload) ? "an array" : typeof payload}, expected an object or a falsy value`;
       log?.error?.(`${MODULE_ID} | ${id} backfill failed for ${where.name || where.uuid}: ${message}`);
       failed.push({ ...where, reason: "invalid-payload", message, error: null });
+      continue;
+    }
+
+    const payloadError = payloadValidationError(payload);
+    if (payloadError) {
+      log?.error?.(`${MODULE_ID} | ${id} backfill failed for ${where.name || where.uuid}: ${payloadError}`);
+      failed.push({ ...where, reason: "invalid-payload", message: payloadError, error: null });
       continue;
     }
 
