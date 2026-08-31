@@ -214,17 +214,25 @@ the cap a token went. A floor at zero would hide it.
 
 ## After updating the module
 
-Two things run automatically once, on the next world load, for the single active
-GM:
+Three things run automatically on the next world load for the single active GM:
 
 1. **Monster backfill.** Brings already-imported monsters up to current import
-   fidelity (icons, casing, spell items, art). Deferred 5 seconds, idempotent,
-   silent unless it actually changed something. The version stamp only advances
-   on success, so a failed sweep retries next load.
-2. **Spell↔class relink.** Runs on every load, updates or no updates.
+   fidelity (icons, casing, spell items, art). Runs once per module version
+   stamp (`backfillVersion`). Deferred 5 seconds, idempotent, silent unless it
+   actually changed something. The version stamp only advances on success, so a
+   failed sweep retries next load.
+2. **Monster Spell update gate.** Consolidates the retired legacy Monster Spells
+   pack on every activation, and refreshes the Monster Spell Library from
+   Shadowdark Core and the managed Enhancer Actors pack once per module version
+   stamp (`monsterSpellSyncVersion`). The stamp advances only after a complete
+   successful refresh. If consolidation fails while the retired pack still holds
+   unmigrated content, the automatic refresh is deferred to protect curated legacy
+   content and raises a warning notification once per session pointing to manual
+   **Build / Refresh**.
+3. **Spell↔class relink.** Runs on every load, updates or no updates.
 
-Neither deletes anything. To force the backfill again, clear the
-`backfillVersion` setting.
+None of these delete your content. To force the backfill or monster spell refresh
+again, clear the `backfillVersion` or `monsterSpellSyncVersion` world setting.
 
 ---
 
