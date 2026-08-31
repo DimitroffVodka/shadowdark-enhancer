@@ -169,8 +169,8 @@ A generated Monster Spell is the one name where **Replace** doesn't replace. The
   **Import everything** / **Import all N in Mounts** batch) are filed into one
   stable direct `Mounts` folder inside the managed Actors pack
   (`world.shadowdark-enhancer--actors` / `sde-actors`). The folder is created
-  once and reused on reruns; concurrent creation is shared so a missing folder
-  cannot become duplicate `Mounts` folders. A rerun skips an existing
+  once and reused on reruns; concurrent calls on the same client share the
+  in-flight create. A rerun skips an existing
   case-insensitive same-name Actor and creates nothing new, a per-mount failure
   leaves that name missing and retryable without duplicating the successes, and
   Boats and ordinary monsters keep their existing source-folder placement.

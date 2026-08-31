@@ -294,9 +294,8 @@
   individually or together via **Import everything** / **Import all N in Mounts**,
   every newly imported Mount Actor is placed in one direct `Mounts` folder inside
   the managed Actors pack (`world.shadowdark-enhancer--actors` / `sde-actors`),
-  rather than under a source folder. The folder is created once and reused;
-  concurrent creation is shared so a missing folder cannot become duplicate
-  `Mounts` folders. Reimporting reuses the folder and skips an existing
+  rather than under a source folder. The folder is created once and reused; concurrent calls on the same client
+  share the in-flight create. Reimporting reuses the folder and skips an existing
   case-insensitive same-name Mount without replacing or moving it; a per-mount
   failure leaves that name missing and retryable without duplicating the
   successes. Boats and ordinary monsters keep their existing source-folder
