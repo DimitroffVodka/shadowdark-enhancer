@@ -80,6 +80,7 @@ import { ClassAbilityUses } from "./char-builder/class-ability-uses.mjs";
 import { MonsterTokenArt } from "./monster-art/monster-token-art.mjs";
 import { TokenArtCatalog } from "./monster-art/token-art-catalog.mjs";
 import { PdfSheetExport } from "./pdf-export/pdf-sheet-export.mjs";
+import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs";
 
 // Foundry can retain a module stylesheet across reloads while fetching fresh
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
@@ -151,6 +152,10 @@ Hooks.once("i18nInit", () => {
 Hooks.once("init", () => {
   ensureFreshStylesheet();
   console.log(`${MODULE_ID} | init`);
+  // Keep the derived Rival class table in step with class imports.  The
+  // listener is GM-gated and debounced; ClassIndex.invalidate() itself stays a
+  // synchronous cache operation with a fire-and-forget notification.
+  initRivalClassTable({ game });
   registerSettings();
   // Register Western Reaches as an official source tag for items, so it appears
   // in the Source dropdown alongside the system's built-in books.

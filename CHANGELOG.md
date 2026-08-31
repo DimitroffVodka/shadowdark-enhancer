@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- **Derived Rival Crawler Classes table (G2/#79).** The managed `sde-tables`
+  pack now maintains a deterministic, Core-wins class RollTable from the G3
+  readiness report. Level-0 entries and ineligible classes stay out, an empty
+  eligible set remains a stable zero-row table, and hand-edited rows are
+  replaced on regeneration with a warning.
 - **Forge & Loot preview shell (G4/#80).** A GM-only shared shell now selects
   future NPC/Rival generators and presents deterministic seeded, immutable
   previews with explicit reroll, cancel, warning/error, source-drift, active-GM,

@@ -16,6 +16,7 @@ import {
   canApprovePreview,
   canGeneratePreview,
 } from "./forge-loot-core.mjs";
+import { ensureRivalClassTableFresh } from "./rival-class-table-adapter.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -90,6 +91,11 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications?.warn("Only a GM can use Forge & Loot.");
       return null;
     }
+    // A class import can change eligibility without opening the tool.  Refresh
+    // the derived table in the background before a Rival plan can consume it;
+    // the adapter coalesces this with any invalidation refresh already running.
+    void ensureRivalClassTableFresh({ game }).catch((error) =>
+      console.error("shadowdark-enhancer | Rival class table freshness check failed:", error));
     if (!this._instance) {
       this._instance = new ForgeLootApp({
         controller: controller ?? new ForgeLootController({
@@ -202,7 +208,12 @@ export class ForgeLootApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   _onGeneratePreview() {
-    const work = this._controller.preview();
+    // Recheck immediately before a Rival planner consumes the derived table;
+    // opening the window performs the same coalesced check in the background.
+    const freshness = this.state.generator === "rival"
+      ? ensureRivalClassTableFresh({ game })
+      : Promise.resolve();
+    const work = freshness.then(() => this._controller.preview());
     this.render();
     return work.finally(() => this.render());
   }
