@@ -12,6 +12,7 @@ import { isCoinEntry, stripPrice } from "./loot-pack.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { isSeaWolfPlunderTable, materializeSeaWolfPlunder } from "./sea-wolf-plunder.mjs";
 import { isDeadBanditLootTable, materializeDeadBanditLoot } from "./dead-bandit-loot.mjs";
+import { isDiabolicalTreasureTable, materializeDiabolicalTreasure } from "./diabolical-treasure.mjs";
 
 // Pre-migration fallback only — catalog lookups prefer the sde-items suite pack (A-07).
 const LOOT_PACK = "world.loot";
@@ -55,6 +56,10 @@ export const LootCatalog = {
     // exact source-qualified path so generic Bottle/Flask containment cannot
     // claim them.
     if (isDeadBanditLootTable(table)) return materializeDeadBanditLoot(table);
+    // Diabolical Treasure has the same source-qualified generated-Item
+    // boundary.  Keep it ahead of the general linker so a system-pack Item
+    // with the same name can never satisfy a CS1 result.
+    if (isDiabolicalTreasureTable(table)) return materializeDiabolicalTreasure(table);
     const items = await LootLinker.buildItemIndex();
     const DOC = CONST.TABLE_RESULT_TYPES.DOCUMENT;
     const TEXT = CONST.TABLE_RESULT_TYPES.TEXT;
