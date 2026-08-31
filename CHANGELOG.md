@@ -15,6 +15,7 @@
   fallback for ancestry/alignment), tolerates GM renames, and reports missing,
   foreign, or duplicate roles without loose-name substitution. Table Hub
   matrix import remains the sole creation path.
+- **Pure Player advancement planning (G6b/#83).** A Foundry-free engine now advances a complete level-one Player plan through levels 2–6 with injected deterministic dice, HP/talent/spell progression, G6a-owned choices, bounded duplicate and follow-up recursion handling, replacement-effect materialization, and diagnostic history. It returns no committable Actor data when a source, roll, choice, or spell quota cannot be completed; the G7 generator/commit adapter remains the persistence seam.
 - **Forge & Loot preview shell (G4/#80).** A GM-only shared shell now selects
   future NPC/Rival generators and presents deterministic seeded, immutable
   previews with explicit reroll, cancel, warning/error, source-drift, active-GM,
