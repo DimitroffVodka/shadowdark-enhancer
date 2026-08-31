@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-823 tracked files · ~123,500 lines of code/markup across scripts+templates+styles+test.
+828 tracked files · ~124,700 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -243,6 +243,7 @@
 | `monsters/monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
 | `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
+| `monsters/managed-actor-backfill.mjs` | 258 | Reusable active-GM, version-gated backfill lifecycle over the managed Actors pack; consumers supply the missing-only transform. |
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 131 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
