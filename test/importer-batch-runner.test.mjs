@@ -124,3 +124,93 @@ test("capture is a no-op when there is no notifications object to wrap", () => {
   restore();
   assert.equal(h._batchNotices, null);
 });
+
+test("a bulk Mount job dispatches to the Mount-specific batch path", async () => {
+  const h = hub();
+  const job = {
+    route: ROUTE.HUB,
+    entry: { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    covers: [
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+      { name: "Pony", type: "Mount", src: "WR", pages: "116-117" },
+    ],
+  };
+  let dispatched = null;
+  h._batchRunMounts = async (seen) => {
+    dispatched = seen;
+    return { status: "created", created: 2 };
+  };
+
+  const result = await h._batchRunHub(job);
+  assert.strictEqual(dispatched, job);
+  assert.deepEqual(result, { status: "created", created: 2 });
+});
+
+test("the Mount batch path reports each requested name when parsing is partial", async () => {
+  const h = hub();
+  const job = {
+    entry: { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    covers: [
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+      { name: "Pony", type: "Mount", src: "WR", pages: "116-117" },
+      // A duplicate row must not make the same name parse or report twice.
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    ],
+  };
+  h._onHubClear = () => {};
+  h._seedGenericUnlock = async ({ name }) => {
+    h._importSeed = { name, type: "Mount" };
+    h._importText = `${name}\nAC 11, HP 5, ATK 1 kick +1 (1d4), MV near, LV 1`;
+  };
+  h.render = async () => {};
+  h._onHubParse = async () => {
+    h._importMonsters = [{ draft: { name: "Donkey" } }];
+    h._importSkipped = [{ name: "Pony", reason: "not among the statblocks" }];
+  };
+  h._onHubCommitMonsters = async () => {
+    h._importMonsters = [];
+    return { created: ["Donkey"], skipped: [] };
+  };
+
+  const result = await h._batchRunMounts(job);
+  assert.deepEqual(result.entries, [
+    { name: "Donkey", status: "created", created: 1, note: "created" },
+    { name: "Pony", status: "failed", created: 0, note: "not among the statblocks" },
+  ]);
+  assert.equal(result.status, "created");
+  assert.equal(result.created, 1);
+  assert.deepEqual(h._importSeed._batchMountNames, ["Donkey", "Pony"]);
+});
+
+test("a rerun reports every already-present Mount instead of a false batch success", async () => {
+  const h = hub();
+  const job = {
+    entry: { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    covers: [
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+      { name: "Pony", type: "Mount", src: "WR", pages: "116-117" },
+    ],
+  };
+  h._onHubClear = () => {};
+  h._seedGenericUnlock = async ({ name }) => {
+    h._importSeed = { name, type: "Mount" };
+    h._importText = `${name}\nAC 11, HP 5, ATK 1 kick +1 (1d4), MV near, LV 1`;
+  };
+  h.render = async () => {};
+  h._onHubParse = async () => {
+    h._importMonsters = [{ draft: { name: "Donkey" } }, { draft: { name: "Pony" } }];
+    h._importSkipped = [];
+  };
+  h._onHubCommitMonsters = async () => {
+    h._importMonsters = [];
+    return { created: [], skipped: ["Donkey", "Pony"] };
+  };
+
+  const result = await h._batchRunMounts(job);
+  assert.equal(result.status, "nothing");
+  assert.equal(result.created, 0);
+  assert.deepEqual(result.entries.map(({ name, status, created }) => ({ name, status, created })), [
+    { name: "Donkey", status: "nothing", created: 0 },
+    { name: "Pony", status: "nothing", created: 0 },
+  ]);
+});

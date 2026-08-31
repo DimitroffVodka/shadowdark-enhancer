@@ -81,11 +81,13 @@ export function routeForEntry(entry) {
  * The bulk unit a row belongs to. Rows sharing a key are unlocked by ONE press,
  * so the batch runs the key once and credits every row it covers.
  *
- * Per-row keys (a page holds many things but the unlock keeps exactly one):
- * a Mount unlock selects its own statblock off the shared WR spread, and a
+ * Per-row keys (a page holds many things but the unlock keeps exactly one): a
  * seeded TABLE unlock keeps the single best-matching table (see the
- * `seedWantsOneTable` path in _onHubParse). Everything else is a page-level
- * grab whose parse claims the whole spread.
+ * `seedWantsOneTable` path in _onHubParse). Mounts are the exception: the
+ * batch-only Mount path carries every selected name into the existing
+ * statblock parser, so one WR spread is read once and committed through the
+ * Mount importer as a unit. Everything else is a page-level grab whose parse
+ * claims the whole spread.
  */
 export function jobKeyForEntry(entry, route = routeForEntry(entry)) {
   const src = entry?.src ?? "";
@@ -97,11 +99,17 @@ export function jobKeyForEntry(entry, route = routeForEntry(entry)) {
     case ROUTE.CLASS:    return `class:${entry?.name ?? ""}`;
     case ROUTE.GEAR:     return `gear:${src}:${type}`;
     case ROUTE.HUB:
+      // All selected Mounts live on the same WR spread and the batch runner
+      // carries the covered names into the Mount parse branch. Keep Mounts on
+      // their own key: sharing the ordinary Actor key would feed a Mount seed
+      // through the monster/bestiary path, while a name key would re-grab the
+      // same two pages once per mount.
+      if (type === "Mount") return `mount:${src}:${pages}`;
       // A monster/boat/siege grab parses every statblock or row on the page.
       if (type === "Actor" || type === "Boat" || type === "SiegeWeapon") {
         return `${type.toLowerCase()}:${src}:${pages}`;
       }
-      // Mounts and seeded tables keep one identity per unlock.
+      // Seeded tables keep one identity per unlock.
       return `entry:${src}:${type}:${(entry?.name ?? "").toLowerCase()}`;
     default:
       return `unroutable:${src}:${type}:${(entry?.name ?? "").toLowerCase()}`;
@@ -205,19 +213,36 @@ function unroutableReason(entry) {
 /**
  * Fold per-job results into report counts and lines.
  * A result is `{ job, status, note, created }` where status is one of
- * "created" | "nothing" | "failed" | "cancelled".
+ * "created" | "nothing" | "failed" | "cancelled". A bulk route may also
+ * provide `entries`, one such outcome per covered row; those are flattened for
+ * the report so a job-level success cannot hide a skipped or missing entry.
  * @param {Array<object>} results
  * @param {Array<object>} [blocked]  planner-blocked rows, folded into `skipped`
  */
 export function summarizeBatch(results, blocked = []) {
   const buckets = { created: [], nothing: [], failed: [], cancelled: [] };
   let documents = 0;
+  let entries = 0;
+  const detailsFor = (result) => {
+    if (!Array.isArray(result?.entries) || !result.entries.length) return [result];
+    return result.entries.map((entry) => ({
+      ...result,
+      ...entry,
+      created: entry.created ?? (entry.status === "created" ? 1 : 0),
+      job: { ...(result.job ?? {}), label: entry.name ?? result.job?.label ?? "" },
+    }));
+  };
   for (const r of results ?? []) {
-    (buckets[r.status] ?? buckets.failed).push(r);
-    documents += Number(r.created) || 0;
+    for (const detail of detailsFor(r)) {
+      entries++;
+      (buckets[detail.status] ?? buckets.failed).push(detail);
+      documents += Number(detail.created) || 0;
+    }
   }
+  entries += (blocked ?? []).length;
   return {
     jobs: (results ?? []).length,
+    entries,
     documents,
     created: buckets.created.length,
     nothing: buckets.nothing.length,

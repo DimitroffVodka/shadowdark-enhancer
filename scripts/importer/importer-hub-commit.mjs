@@ -218,6 +218,7 @@ class HubCommitMethods {
     this._importMonsters = [];
     this._invalidateMonstersCache();
     this.render();
+    return result;
   }
 
   /** Commit: create all pending boats into the sde-actors compendium. GM-gated. */
