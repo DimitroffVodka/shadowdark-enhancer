@@ -15,6 +15,7 @@
 
 import { findMonsterPack } from "./monster-pack.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
+import { enrichDice } from "../../shared/contextual-enricher.mjs";
 
 const MONSTER_PACK = "shadowdark.monsters";
 
@@ -22,11 +23,17 @@ export function escapeRegex(s) {
   return String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Wrap bare dice tokens ("2d20") in an inline roll ("[[/r 2d20]]"). Leaves
- *  already-wrapped rolls and lone die sizes ("d6" with no count) alone. */
-export function convertDice(text) {
-  return String(text ?? "").replace(/(?<!\[\[\/r\s)\b(\d+d\d+(?:[*x]\d+)?)\b/gi, "[[/r $1]]");
-}
+/**
+ * Wrap bare dice tokens ("2d20") in an inline roll ("[[/r 2d20]]"). Leaves
+ * already-wrapped rolls and lone die sizes ("d6" with no count) alone.
+ *
+ * Delegates to the A5 contextual enricher, which is the single owner of inline
+ * roll syntax and of what counts as already-enriched markup. The local copy
+ * this replaces guarded only the exact `[[/r ` prefix, so it double-wrapped the
+ * second term of `[[/r 2d4+1d6]]` and rewrote dice inside an existing link
+ * label; the shared rule masks those spans instead.
+ */
+export const convertDice = enrichDice;
 
 /**
  * Embed `@UUID` links for every index name found in the text. Matches whole
