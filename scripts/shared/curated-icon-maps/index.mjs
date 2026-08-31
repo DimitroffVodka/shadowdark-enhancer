@@ -65,6 +65,8 @@
 //   import "./gear-icons.mjs";
 //   import "./treasure-icons.mjs";
 import "./armor-icons.mjs";
+import "./dead-bandit-loot-icons.mjs";
+import "./diabolical-treasure-icons.mjs";
 import "./gear-icons.mjs";
 import "./sea-wolf-plunder-icons.mjs";
 import "./weapon-icons.mjs";

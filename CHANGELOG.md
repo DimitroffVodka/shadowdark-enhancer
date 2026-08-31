@@ -51,6 +51,91 @@
     non-managed packs, unavailable table writers, or write failures where
     restoration succeeds remain plain text with source text preserved.
 
+- **Dead Bandit Loot Items and curated treasure art (D5/#58).** RollTables
+  recognized as the *Cursed Scroll 2* (p68) table *In a Dead Bandit's Hand, You
+  Find...* now materialize their 20 published treasure results as real,
+  draggable Items in the managed Items pack (`world.shadowdark-enhancer--items`)
+  under `Cursed Scroll 2 / Treasure`.
+  - **Source-gated table recognition:** An explicit non-CS2 source flag (e.g.
+    `source: "cs1"` or `"cs3"`) always vetoes and rejects. After that veto, an
+    exact supported manifest ID (`cs2/in-a-dead-bandits-hand`,
+    `cs2-in-a-dead-bandits-hand`, `cs2-in-a-dead-bandits-hand-you-find`,
+    `cs2-in-a-dead-bandit-s-hand-you-find`) is accepted; otherwise the exact
+    normalized table name `In a Dead Bandit's Hand, You Find...` is required
+    (which may be bare without a source flag, or carry a recognized `CS2` /
+    `Cursed Scroll 2` page or separator prefix). Arbitrary tables carrying only
+    `source: "cs2"` with other names and sourceless or explicit CS1/CS3-prefixed
+    legacy names are refused.
+  - **Canonical names with visible features:** Each generated Item's name is the
+    exact reviewed canonical base name (e.g. `Cursed eye token`, `Burlap bag`),
+    never the feature-bearing phrase, and its source feature remainder is
+    visible in the Item description (e.g. `DISADV on next check or attack roll`).
+  - **Exact raw source TableResult display:** TableResults retain the complete
+    published source phrase as their display name while linking via
+    `documentUuid` to the generated Item; original row IDs and ranges are
+    preserved (in-place updates on Foundry v13/v14, create-before-delete on
+    legacy adapters). **No source prices exist** in these 20 CS2 rows — the
+    parser only strips an anchored optional terminal currency parenthetical, and
+    since none of the rows carry one, no price is invented; interior `gp` prose
+    stays as description text.
+  - **Curated art & provenance:** The 20 reviewed N3 §5.3 treasure icons are
+    registered in `scripts/shared/curated-icon-maps/dead-bandit-loot-icons.mjs`
+    as the sourced-space `cs2` map, stamped `curated` under A3/A4 provenance,
+    and audited against the Foundry icon inventory.
+  - **Generated identity & replace-always rerun (A7):** Materialized items carry
+    the explicit `flags["shadowdark-enhancer"].generated = true` flag and
+    `generatedItem` identity `cs2:<normalized canonical name>`. Successful or
+    unchanged reruns converge at the stable identity without duplicating items.
+    Name collisions with generated Monster Spells are refused and preserved
+    (`monsterSpell: true`). System compendiums (`shadowdark.gear`) are never
+    mutated.
+  - **Safe RollTable synchronization & retryability:** The same snapshot-restore
+    safe writer as D4 keeps original source rows for retry and reports
+    `restored: false` with `rollbackErrors` — never a guarantee of preservation —
+    when automatic restoration itself fails. Unmapped rows, non-managed packs,
+    and unavailable writers remain plain text with source phrases preserved.
+
+- **Diabolical Treasure Items behind identification (D6/#59).** RollTables
+  recognized as the *Cursed Scroll 1* (p68) *Diabolical Treasure* table reduce
+  the book's cartesian 20×20 Item/Feature generator to **20 paired results** as
+  generated Basic magicItem+treasure Items in the managed Items pack
+  (`world.shadowdark-enhancer--items`) under `Cursed Scroll 1 / Treasure`.
+  - **Source-gated recognition & exact census:** An explicit non-CS1 source flag
+    (e.g. `source: "cs2"` or `"cs3"`) always vetoes. After that veto, an exact
+    supported manifest ID (`cs1/diabolical-treasure`, `cs1-diabolical-treasure`)
+    or the exact normalized table name `Diabolical Treasure` is accepted.
+    Materialization consumes **only the reviewed 20-row census** (each reviewed
+    Item paired with its own exact reviewed Feature), the complete 400-cell
+    Item×Feature census, or twenty already-linked managed document links.
+    Incomplete, cross-wired, or foreign DOCUMENT rows — including a bare
+    canonical `TEXT` placeholder from a failed pass — **fail closed before any
+    downstream write** and cannot self-authorize on rerun: original raw rows are
+    preserved for retry.
+  - **Identification-gated feature text:** Items are created with
+    `identification.identified = false`; the physical name and top-level
+    description are public, and the exact source feature lives only in
+    `identification.description`, revealed when the GM identifies the item.
+  - **Name-only 1d20 TableResults:** The table's formula is reduced from the
+    cartesian `1d400` to `1d20` with 20 name-only rows, each linking to its
+    generated Item by `documentUuid`; feature text never appears in a
+    TableResult name, and original TableResult IDs are preserved.
+  - **Curated art & provenance:** The 20 reviewed N3 §5.2 treasure icons are
+    registered in `scripts/shared/curated-icon-maps/diabolical-treasure-icons.mjs`
+    as the sourced-space `cs1` map, stamped `curated` under A3/A4 provenance,
+    and audited against the Foundry icon inventory.
+  - **A7 replace-always reruns repair hand edits at the same identity:**
+    Generated items carry `flags["shadowdark-enhancer"].generated = true` and
+    `generatedItem` identity `cs1:<normalized canonical name>`; a rerun replaces
+    the document in place at the same identity, so a hand-edit (including art)
+    is repaired, not duplicated. Name collisions with generated Monster Spells
+    are refused and preserved. System compendiums (`shadowdark.gear`) are never
+    mutated.
+  - **Safe writer & rollback status explicit:** TableResult updates and the
+    `1d400 → 1d20` formula reduction run through the snapshot-restore safe
+    writer, with the summary reporting `restored: true|false` and
+    `rollbackErrors` — never a silent guarantee of preservation on
+    `restored: false`.
+
 - **Contextual checks and rolls for Arctic Sea Encounters (E1).** Importing or
   enriching the *Cursed Scroll 3* Arctic Sea Encounters table now runs contextual
   check and dice enrichment (A5) alongside existing `@UUID` monster linking.
