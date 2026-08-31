@@ -24,7 +24,8 @@
  *
  * Exports:
  *   moduleFlags(document)            — this module's flag block, or {}
- *   preservedModuleFlags(payloadFlags, existingFlags) — the flags to write
+ *   preservedModuleFlags(payloadFlags, existingFlags) — the merge rule
+ *   replacementFlags(payloadFlags, existingFlags) — what each branch writes
  *   monsterSpellProvenance(document) — the library's provenance block, or null
  *   isGeneratedMonsterSpell(document) — is this a document the library owns?
  */
@@ -63,6 +64,35 @@ export function preservedModuleFlags(payloadFlags, existingFlags) {
     ...payloadFlags,
     [MODULE_ID]: { ...existingOwn, ...(isObject(payloadOwn) ? payloadOwn : {}) },
   };
+}
+
+/**
+ * What each branch of a replacement must write to end up with the same
+ * document — the guarantee `replaceDocument` makes.
+ *
+ * The two branches are NOT symmetric, because one keeps the original and the
+ * other destroys it:
+ *
+ *   • UPDATE keeps the document. A payload that declares no flags simply omits
+ *     the key, and the stored object is never touched — already the right
+ *     answer, and writing one would invent bookkeeping no import asked for.
+ *   • RECREATE deletes the original after creating its replacement. Nothing is
+ *     left to inherit from, so anything the replacement does not CARRY is gone.
+ *     A flagless payload must therefore reproduce the stored flags whole —
+ *     exactly what the update branch leaves in place.
+ *
+ * Missing that asymmetry is how a forced in-place failure or a type mismatch
+ * quietly recreated a Monster Spell without its `libraryId`.
+ *
+ * @param {object|undefined} payloadFlags
+ * @param {object|undefined} existingFlags
+ * @returns {{update: object|null, create: object|null}} null means "write no
+ *   flags key at all" on that branch
+ */
+export function replacementFlags(payloadFlags, existingFlags) {
+  const merged = preservedModuleFlags(payloadFlags, existingFlags);
+  if (isObject(payloadFlags)) return { update: merged, create: merged ?? payloadFlags };
+  return { update: null, create: isObject(existingFlags) ? { ...existingFlags } : null };
 }
 
 /**

@@ -19,7 +19,7 @@
  * Foundry-free so node:test can import them directly.
  */
 import { MODULE_ID } from "./module-id.mjs";
-import { preservedModuleFlags } from "./module-flags.mjs";
+import { replacementFlags } from "./module-flags.mjs";
 
 // ─── Pack descriptors ────────────────────────────────────────────────────────
 
@@ -333,9 +333,11 @@ export async function ensureFolderPath(pack, names) {
  * every other pipeline's — so replacing the object outright deletes blocks the
  * import was never in a position to have an opinion on, up to and including the
  * `monsterSpell.libraryId` that makes a generated spell visible to its planner.
- * `preservedModuleFlags` re-merges this module's namespace: declared keys win,
- * undeclared ones survive. Both branches write the same merged flags, so an
- * in-place update and a recreate produce the same document.
+ * `replacementFlags` re-merges this module's namespace: declared keys win,
+ * undeclared ones survive. It answers for each branch separately, because the
+ * two are not symmetric — an update that omits `flags` leaves the stored object
+ * alone, while a recreate DELETES the original and must therefore carry those
+ * blocks itself. Both branches end at the same document either way.
  *
  * @param {Document} oldDoc   Existing compendium document being replaced.
  * @param {object} payload    Create-shaped data (may include `items`/`results`).
@@ -346,9 +348,9 @@ export async function ensureFolderPath(pack, names) {
 export async function replaceDocument(oldDoc, payload, pack) {
   const EMBEDDED = { Actor: ["items", "Item"], RollTable: ["results", "TableResult"], Item: ["effects", "ActiveEffect"] };
   const [field, embeddedName] = EMBEDDED[oldDoc.documentName] ?? [null, null];
-  const preservedFlags = preservedModuleFlags(payload?.flags, oldDoc?.flags);
-  const createData = preservedFlags ? { ...payload, flags: preservedFlags } : payload;
-  const docData = { ...createData };
+  const flags = replacementFlags(payload?.flags, oldDoc?.flags);
+  const createData = flags.create ? { ...payload, flags: flags.create } : payload;
+  const docData = { ...payload, ...(flags.update ? { flags: flags.update } : {}) };
   delete docData._id;
   const rows = field ? (docData[field] ?? []) : [];
   if (field) delete docData[field];

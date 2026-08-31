@@ -28,6 +28,7 @@ import {
   isGeneratedMonsterSpell,
   monsterSpellProvenance,
   preservedModuleFlags,
+  replacementFlags,
 } from "../scripts/shared/module-flags.mjs";
 import { replaceDocument } from "../scripts/shared/compendium-suite.mjs";
 import { createItem, createItems, preserveCuratedFields, buildItemData } from "../scripts/importer/items/item-importer.mjs";
@@ -77,6 +78,50 @@ test("prose that merely mentions the name is still prose", () => {
 test("the name echo does not swallow a multi-paragraph description", () => {
   const incoming = "<p>Fireball</p><p>Deals 3d6 damage.</p>";
   assert.equal(preservedDescription(CURATED_TEXT, incoming, { name: "Fireball" }), null);
+});
+
+test("REGRESSION: a name the sanitizer escaped still reads as a name echo", () => {
+  // createItem sanitizes before this runs, and Foundry's cleanHTML returns
+  // `body.innerHTML` — so a text ampersand comes back as `&amp;` while the
+  // document's NAME is still raw. Comparing the two directly misclassified the
+  // fallback as prose and curated text lost.
+  assert.equal(
+    preservedDescription(CURATED_TEXT, "<p>Sword &amp; Shield</p>", { name: "Sword & Shield" }),
+    CURATED_TEXT,
+  );
+  assert.equal(
+    preservedDescription(CURATED_TEXT, "Sword &amp; Shield", { name: "Sword & Shield" }),
+    CURATED_TEXT,
+    "the bare-name form is escaped the same way",
+  );
+  assert.equal(
+    preservedDescription(CURATED_TEXT, "<p>Rope, 60&#39;</p>", { name: "Rope, 60'" }),
+    CURATED_TEXT,
+    "numeric references decode too",
+  );
+  assert.equal(
+    preservedDescription(CURATED_TEXT, "<p>Cloak&nbsp;of Elvenkind</p>", { name: "Cloak of Elvenkind" }),
+    CURATED_TEXT,
+    "a non-breaking space is still a space",
+  );
+  // Both sides are normalized, so a name that itself carries an entity matches.
+  assert.equal(
+    preservedDescription(CURATED_TEXT, "<p>Sword &amp; Shield</p>", { name: "Sword &amp; Shield" }),
+    CURATED_TEXT,
+  );
+});
+
+test("decoding entities does not weaken the markup guard", () => {
+  // Escaped markup decodes to text that is NOT the name, so it stays prose.
+  assert.equal(
+    preservedDescription(CURATED_TEXT, "<p>&lt;b&gt;Sword &amp; Shield&lt;/b&gt;</p>", { name: "Sword & Shield" }),
+    null,
+  );
+  // And real markup is still rejected before any decoding happens.
+  assert.equal(
+    preservedDescription(CURATED_TEXT, "<p>Sword &amp; Shield</p><p>Deals d8.</p>", { name: "Sword & Shield" }),
+    null,
+  );
 });
 
 test("without a name the classification is exactly what it was before", () => {
@@ -139,6 +184,26 @@ test("a payload that drops our namespace entirely still keeps the module block",
   const merged = preservedModuleFlags({ "shadowdark-extras": { alignment: "chaotic" } }, monsterSpellFlags());
   assert.deepEqual(merged[MODULE_ID], monsterSpellFlags()[MODULE_ID]);
   assert.deepEqual(merged["shadowdark-extras"], { alignment: "chaotic" });
+});
+
+test("the two replacement branches are answered separately", () => {
+  // An update keeps the document, so omitting flags is already correct. A
+  // recreate destroys it, so the same payload must carry them.
+  const flagless = replacementFlags(undefined, monsterSpellFlags());
+  assert.equal(flagless.update, null, "the update writes no flags key");
+  assert.deepEqual(flagless.create, monsterSpellFlags(), "the recreate carries the stored flags whole");
+
+  const declared = replacementFlags({ [MODULE_ID]: { imported: true } }, monsterSpellFlags());
+  assert.deepEqual(declared.update, declared.create, "a declaring payload writes the same flags either way");
+  assert.equal(declared.update[MODULE_ID].imported, true);
+  assert.deepEqual(declared.update[MODULE_ID].monsterSpell, monsterSpellFlags()[MODULE_ID].monsterSpell);
+
+  const nothing = replacementFlags(undefined, undefined);
+  assert.deepEqual(nothing, { update: null, create: null });
+
+  // The recreate payload is a copy, never the stored object itself.
+  const stored = monsterSpellFlags();
+  assert.notEqual(replacementFlags(undefined, stored).create, stored);
 });
 
 test("the generated-Monster-Spell marker is read structurally", () => {
@@ -234,6 +299,51 @@ test("a payload with no flags at all leaves the stored flags alone", async () =>
   await replaceDocument(old, { name: "Fireball - Goblin Shaman", type: "Spell" }, fakePack);
   assert.equal("flags" in old.updateCalls[0].data, false,
     "no flags key means the update never touches flags");
+});
+
+test("REGRESSION: a flagless payload that RECREATES must carry the stored flags itself", async () => {
+  // The in-place branch can leave the stored flags alone because the document
+  // survives. The recreate branch cannot: the original is DELETED, so anything
+  // the replacement does not carry is gone. Omitting flags from both branches
+  // silently destroyed monsterSpell.libraryId on every forced fallback.
+  FakeItem.created = [];
+  const old = storedSpell({ updateFails: true });
+  const { mode } = await replaceDocument(old, { name: "Fireball - Goblin Shaman", type: "Spell" }, fakePack);
+
+  assert.equal(mode, "recreated");
+  assert.equal(old.deleted, true, "the original really is gone");
+  const written = FakeItem.created[0].payload.flags;
+  assert.deepEqual(written[MODULE_ID].monsterSpell, monsterSpellFlags()[MODULE_ID].monsterSpell);
+});
+
+test("a type mismatch recreates with the stored flags too", async () => {
+  // The other door into the recreate branch: no update is even attempted.
+  FakeItem.created = [];
+  const old = storedSpell({ flags: { ...monsterSpellFlags(), "shadowdark-extras": { alignment: "chaotic" } } });
+  const { mode } = await replaceDocument(old, { name: "Fireball - Goblin Shaman", type: "Basic" }, fakePack);
+
+  assert.equal(mode, "recreated");
+  assert.equal(old.updateCalls, undefined, "no in-place update was attempted");
+  const written = FakeItem.created[0].payload.flags;
+  assert.deepEqual(written[MODULE_ID].monsterSpell, monsterSpellFlags()[MODULE_ID].monsterSpell);
+  assert.deepEqual(written["shadowdark-extras"], { alignment: "chaotic" },
+    "a flagless payload reproduces the stored flags whole, exactly as the in-place branch leaves them");
+});
+
+test("both branches agree on the flags they write", async () => {
+  // The guarantee replaceDocument documents: an in-place update and a recreate
+  // must produce the same document. Run the same payload down both.
+  const payload = { name: "Fireball - Goblin Shaman", type: "Spell",
+    flags: { [MODULE_ID]: { imported: true, source: "wr" } } };
+
+  const updated = storedSpell();
+  await replaceDocument(updated, payload, fakePack);
+
+  FakeItem.created = [];
+  const recreated = storedSpell({ updateFails: true });
+  await replaceDocument(recreated, payload, fakePack);
+
+  assert.deepEqual(updated.updateCalls[0].data.flags, FakeItem.created[0].payload.flags);
 });
 
 // ─── 4. The Foundry-bound entry point ────────────────────────────────────────
