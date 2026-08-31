@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-835 tracked files · ~127,800 lines of code/markup across scripts+templates+styles+test.
+837 tracked files · ~128,200 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -250,11 +250,12 @@
 | `monsters/monster-linker.mjs` | 131 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
 | `items/item-parser.mjs` | 493 | Generic item recognizer (name/cost/slots). Pure. |
-| `items/gear-parser.mjs` | 547 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
+| `items/gear-parser.mjs` | 577 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
+| `items/wr-property-importer.mjs` | 202 | Foundry-bound shared materializer for canonical Western Reaches Weapon Properties (siege Blast/Exploding and Lance Charge/Devastating/Mounted), with root migration, idempotent reuse and fail-closed preparation. |
 | `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 1008 | Drafts → Items in `sde-items`, foldered by source. |
-| `items/item-builder-app.mjs` | 396 | Guided multi-stage equipment-section workspace. |
-| `items/item-builder-gear.mjs` | 133 | Pure stage-①/③ logic for the Item Builder. |
+| `items/item-importer.mjs` | 1009 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-builder-app.mjs` | 400 | Guided multi-stage equipment-section workspace. |
+| `items/item-builder-gear.mjs` | 137 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
 | `tables/table-manifest.mjs` | 235 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
@@ -264,7 +265,7 @@
 | `boats/boat-parser.mjs` | 155 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
 | `boats/boat-importer.mjs` | 49 | Boat drafts → `shadowdark-enhancer.boat` actors in `sde-actors`. |
 | `boats/siege-parser.mjs` | 438 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
-| `boats/siege-importer.mjs` | 151 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
+| `boats/siege-importer.mjs` | 44 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
 
 ### 3.13 `scripts/actors/` — Mount & Boat sub-types

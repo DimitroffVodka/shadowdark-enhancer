@@ -212,15 +212,11 @@
   label in the description: pasting the WR weapon table (direct **Importer Hub** → Items commit or **Item Builder → Weapons**) and the **Paladin** class overlay
   converge on the same materializer and write the same three `Property` documents
   (`Charge`/`Devastating`/`Mounted`) into the managed Items pack at
-  `Western Reaches / Weapon Properties`. The Lance's own `system.properties` carries
-  those three UUIDs after `Two-Handed`, with no description-paragraph fallback for
-  that name. Rerunning either path reuses the same folder and Property identities
+  `Western Reaches / Weapon Properties`. The **Paladin's Lance** carries `Two-Handed` (seeded by the overlay and live-proved to survive alongside the three); direct parsing and Item Builder paste of the WR weapon table start `propNames` empty and the materializer appends only the three WR Lance UUIDs, so no `Two-Handed` is synthesized on those roads. No description-paragraph fallback is left for `Lance` on any of the three roads. Rerunning either path reuses the same folder and Property identities
   without creating duplicate Properties or folders, and a Property-create failure
   is visible and fail-closed — the preparation notifies and no owning Item is
   committed with a partial `system.properties` list (the marker stays for a direct
-  retry). Weapon codes outside that exact WR Lance triple — *Obsidian*,
-  *Sniper*, *Charge* on any non-Lance weapon/barding, and the existing
-  Paladin-overlap checks — remain visible-only fallbacks and still appear as
+  retry). Property codes outside that exact WR Lance triple — *Obsidian*/*Sniper* on WR weapons, `Charge` on any non-Lance weapon, and barding `Mount` (armor `C` is the core property `Occupies One Hand`, not a fallback) — remain visible-only fallbacks and still appear as
   *"Properties with no core Shadowdark equivalent: …"* when those codes are
   pasted. The Lance's existing **Two-Handed** handling is unchanged; the three
   are additive alongside it. The book's rules text for those properties stays in
