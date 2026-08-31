@@ -229,8 +229,12 @@ highlighted, not the whole card.
 When the Importer Hub's **Table** preview enriches a RollTable with Item links
 (the RollTable catalog, Table Hub preview, and paste-preview paths), rows that
 resolve as `ambiguous` or `unresolved` are deliberately left without a `@UUID` —
-they remain plain text rather than a wrong link. See [Loot & Treasure — How
-loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution) and [API `loot.resolve`](../API.md#loot).
+they remain plain text rather than a wrong link. For specialized source-qualified
+tables like *Cursed Scroll 3* p68 *Sea Wolf Plunder From Distant Lands* (D4),
+linking routes to a dedicated materializer that mints the 20 managed Items in
+`sde-items` under `Cursed Scroll 3 / Treasure` with curated icons and links them
+while preserving full priced display text on TableResults; coin entries and
+unmapped rows stay plain text. See [Loot & Treasure — How loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution), [Sea Wolf Plunder materialization](Loot-and-Treasure.md#sea-wolf-plunder-materialization-d4), and [API `loot.resolve`](../API.md#loot).
 
 ---
 

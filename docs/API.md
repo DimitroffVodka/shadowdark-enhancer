@@ -121,6 +121,9 @@ api.encounter.getThreshold(); api.encounter.setThreshold(3);
 await api.loot.generateHoard(5, 2);
 // Rewrite loot RollTables so rows are real compendium items:
 await api.loot.linkTables();        // all loot tables (or pass one table)
+// (Note: Recognized CS3 Sea Wolf Plunder tables route through the dedicated
+//  Sea Wolf materializer before the general system-first index, minting 20
+//  generated Items in sde-items and preserving full priced TableResult display names.)
 api.loot.open(); api.loot.openSetup();
 
 // Resolve one loot row's text to a compendium Item — exact/alias only (A7).
@@ -140,7 +143,16 @@ await api.loot.resolve("Bolts"); // exact tier wins first, so just "Bolts" resol
 
 ### `loot.generated` — stable identity and replace-always reconciliation
 
-Generated treasure Items (D4–D6) live only in `world.shadowdark-enhancer--items` and are identified by **`flags[\"shadowdark-enhancer\"].generated === true` plus a stored bookkeeping block — both halves required**. Their identity is `source + canonical name` (FNV-1a/32 `id` plus a `key = \"<canonical source>:<normalized name>\"`; source via `sourceKey`, name via `curatedNameKey`). Renaming a definition creates a **new identity** — the old Item is not deleted. Outside that pack or without that flag, ordinary imported Items still obey A3 provenance; a name collision with a generated Monster Spell (`flags[MODULE_ID].monsterSpell.generated`, which shares this pack since A1) is a **preserve-on-conflict** refusal, not a takeover, and is reported as `name-collision` with `monsterSpell: true`.
+Generated treasure Items (starting with Sea Wolf Plunder in D4) live only in
+`world.shadowdark-enhancer--items` and are identified by **`flags[\"shadowdark-enhancer\"].generated === true`
+plus a stored bookkeeping block — both halves required**. Their identity is
+`source + canonical name` (FNV-1a/32 `id` plus a `key = \"<canonical source>:<normalized name>\"`;
+source via `sourceKey`, name via `curatedNameKey`). Renaming a definition
+creates a **new identity** — the old Item is not deleted. Outside that pack or
+without that flag, ordinary imported Items still obey A3 provenance; a name
+collision with a generated Monster Spell (`flags[MODULE_ID].monsterSpell.generated`,
+which shares this pack since A1) is a **preserve-on-conflict** refusal, not a
+takeover, and is reported as `name-collision` with `monsterSpell: true`.
 
 ```js
 // Pure, synchronous. "" when either half is missing or blank.

@@ -129,7 +129,9 @@ For callers: the six internal `findLink` consumers (merchant shop, treasure clas
 
 ## Generated treasure Items — stable identity and replace-always reruns
 
-Treasure pipelines (future D4–D6) that generate Items write only into the **managed Items pack** `world.shadowdark-enhancer--items` (`sde-items`). Inside that pack, a document with **`flags[\"shadowdark-enhancer\"].generated === true` plus a stored `generatedItem` block** is **replace-always**: a rerun replaces the whole document at the same identity — hand edits, including art, are intentionally replaced. That boundary is **structural**: both halves required (`world.shadowdark-enhancer--items` **and** the top-level flag), never inferred from an image path, a folder, a fuzzy name, or document id.
+Treasure pipelines (starting with Sea Wolf Plunder in D4) that generate Items
+write only into the **managed Items pack** `world.shadowdark-enhancer--items`
+(`sde-items`). Inside that pack, a document with **`flags[\"shadowdark-enhancer\"].generated === true` plus a stored `generatedItem` block** is **replace-always**: a rerun replaces the whole document at the same identity — hand edits, including art, are intentionally replaced. That boundary is **structural**: both halves required (`world.shadowdark-enhancer--items` **and** the top-level flag), never inferred from an image path, a folder, a fuzzy name, or document id.
 
 * **Identity is `source + canonical name`.** `FNV-1a/32` over `<canonical source>:<normalized name>` (source via `sourceKey`, name via `curatedNameKey`). Renaming the definition creates a **new identity** — the old Item is not deleted (removing a definition is not a deletion). Blank source or blank name produces no identity.
 * **A name collision is a refusal, not a takeover.** Since A1, generated Monster Spells share this pack (`flags[MODULE_ID].monsterSpell.generated`), and their contract is the **opposite** — hand-edited spells are **preserved** as curated conflicts (see [Monster Spell Library](Monster-Spell-Library.md)). A generated treasure definition that would take such a name is refused as `name-collision` with `monsterSpell: true`; the spell is left alone.
@@ -138,6 +140,17 @@ Treasure pipelines (future D4–D6) that generate Items write only into the **ma
 * **Other packages' flag namespaces survive.** An authoritative rerun restates undeclared top-level flag blocks from the stored document onto the update payload, so e.g. `shadowdark-extras` alignment is preserved through both the in-place and create-then-delete replacement paths. Declared namespaces still win.
 * **Unchanged non-empty effects do not churn ids.** Stored ActiveEffects are projected through the Foundry v14 `system.changes` / string-type / JSON-value / default-`priority: 20` canonicalization, so a rerun with nothing changed is `unchanged` with stable embedded ids. An explicit `priority` in the definition is authoritative; omission means `20`.
 * **Duplicate / collision rows are reported, not healed.** A 32-bit id hit where the stored `key` differs, or duplicate definitions/documents sharing one id, are returned as `identity-collision` / `duplicate-*` refusals. A pack that somehow holds two documents with one identity is reported as `duplicate-document` on the next plan.
+
+### Sea Wolf Plunder materialization (D4)
+
+When a RollTable is recognized as *Sea Wolf Plunder From Distant Lands* (*Cursed Scroll 3* p68), table linking (`LootCatalog.linkTableItems` or `api.loot.linkTables()`) routes it through the dedicated Sea Wolf materializer (`scripts/loot/sea-wolf-plunder.mjs`) instead of generic system-first search:
+
+* **Source-gated recognition:** Recognized via `flags["shadowdark-enhancer"].manifestId` (`cs3-sea-wolf-plunder`, `cs3/sea-wolf-plunder`, `cs3-sea-wolf-plunder-from-distant-lands`), `flags["shadowdark-enhancer"].source === "cs3"`, or table name `Sea Wolf Plunder From Distant Lands`. Legacy name normalization strips only recognized `CS3` / `Cursed Scroll 3` page and separator prefixes; non-CS3 tables (such as `CS1`/`CS2`) are explicitly refused.
+* **20 managed Items:** Materializes the 20 published item phrases into `world.shadowdark-enhancer--items` under `Cursed Scroll 3 / Treasure`.
+* **Priced display preserved:** Generated Item names strip only the terminal parenthesized gold value (e.g. `A wavy, silver dagger with a crescent moon pommel`), but the RollTable's `TableResult` retains the full published phrase with price as its display `name` (`A wavy, silver dagger with a crescent moon pommel (75 gp)`) while referencing the item's `documentUuid`. Coin rows remain `TEXT` results with their source text intact.
+* **Curated art & provenance:** Items receive their reviewed N3 §5.1 icons from `scripts/shared/curated-icon-maps/sea-wolf-plunder-icons.mjs` (the sourced-space `cs3` curated map) and are stamped `curated` under A3/A4 provenance.
+* **Replace-always reruns:** Generated items carry `flags["shadowdark-enhancer"].generated = true` and `generatedItem` identity `cs3:<normalized item name>`. Rerunning reconciliation updates documents in place without duplication. If a row collides with a generated Monster Spell, it is refused and the spell is preserved. System compendiums (`shadowdark.gear`) are never mutated.
+* **Safe TableResult writes & rollback:** TableResult updates are performed in place under stable IDs on Foundry v13/v14 (or create-before-delete on legacy adapters). Original source rows are snapshotted before writing; if an embedded write fails, the snapshot is restored and replacement orphans are cleaned up, leaving source rows intact for retry. Unmapped rows or failed operations remain `TEXT` with source phrases preserved.
 
 **Programmatic access** (see [API](../API.md#loot)):
 
