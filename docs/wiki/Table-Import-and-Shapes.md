@@ -236,6 +236,17 @@ linking routes to a dedicated materializer that mints the 20 managed Items in
 while preserving full priced display text on TableResults; coin entries and
 unmapped rows stay plain text. See [Loot & Treasure — How loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution), [Sea Wolf Plunder materialization](Loot-and-Treasure.md#sea-wolf-plunder-materialization-d4), and [API `loot.resolve`](../API.md#loot).
 
+### Contextual check enrichment for Arctic Sea encounters (E1)
+
+When importing or enriching the *Cursed Scroll 3* Arctic Sea Encounters table, the table enricher applies contextual check and dice enrichment (A5). Difficulty class expressions (`DC 15 DEX`) are transformed into clickable `[[check 15 dex]]` buttons and bare dice expressions (`2d4`) become inline rolls (`[[/r 2d4]]`), alongside `@UUID` monster links.
+
+The enricher uses a strict selector (`isArcticSeaEncounterTable`):
+- Authoritatively matches tables carrying `flags["shadowdark-enhancer"].manifestId === "cs3-arctic-sea-encounters"`.
+- Admits tables with the exact name suffix `Arctic Sea Encounters` when the module source flag is absent (legacy or hand-created copies) or canonicalizes to `cs3`.
+- Rejects explicit non-CS3 source stamps (such as Core or CS6 lookalikes) and distinct tables like Core `Arctic Encounters`.
+
+All encounter table paths — single table import (`createTable`), bundle import/replacement (`applyBundle`), public `game.shadowdarkEnhancer.tables.enrich(uuid, "encounter")`, manual `relinkAll()`, and debounced sweeps scheduled after monster/item imports — converge on this selector. The complete 50-row table (covering 1–100) is idempotent on re-run (`updated: 0` without writing embedded documents). Unrelated encounter tables keep their legacy behavior (`convertDice` and `@UUID` links only), leaving their DC expressions as unmodified prose.
+
 ---
 
 **Related:** [Importer Hub](Importer-Hub.md) · [Class & Spell Importers](Class-and-Spell-Importers.md) · [Loot & Treasure](Loot-and-Treasure.md)

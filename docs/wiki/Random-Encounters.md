@@ -125,6 +125,12 @@ Rows that are **flavour-only** (an environmental result with no creature) are
 recognised as such. They get an *Environmental Result* card with a Post button
 and no Place button, because there is nothing to place.
 
+### Contextual check and roll enrichment (Arctic Sea)
+
+Encounter tables imported through the module are automatically enriched with `@UUID` monster links and inline dice rolls (`[[/r ...]]`). When importing or relinking the *Cursed Scroll 3* Arctic Sea Encounters table, the contextual enricher (A5) additionally converts printed check prose (e.g. `DC 15 DEX`) into clickable `[[check 15 dex]]` controls.
+
+When an encounter result containing a check is posted to chat, clicking the `[[check]]` control rolls an immediate ability check for the selected token or actor. Bare damage or count dice (e.g. `2d4`) become clickable `[[/r 2d4]]` inline rolls. Unrelated encounter tables leave DC expressions as prose, and monster statblocks use GM-facing `[[request]]` syntax instead.
+
 ### 2. Build Table
 
 Build an encounter table by hand. Choose a die (`1d4`, `1d6`, `1d8`, `1d10`,

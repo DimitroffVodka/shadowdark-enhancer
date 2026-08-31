@@ -217,7 +217,8 @@ await api.tables.openHub();               // the Importer Hub (one scrolling vie
 await api.tables.openClassImporter();     // dedicated Class Importer workspace
 await api.tables.openSpellImporter();     // dedicated Spell Importer workspace
 
-await api.tables.enrich(uuid, "encounter"); // one table → monster links
+await api.tables.enrich(uuid, "encounter"); // one table → monster links + inline dice
+                                           // (+ contextual checks on CS3 Arctic Sea)
 await api.tables.relinkAll();              // GM-only sweep: EVERY pack table
                                            // re-linked to imported monsters/items
                                            // (idempotent, link-preserving)
@@ -226,6 +227,8 @@ await api.tables.relinkAll();              // GM-only sweep: EVERY pack table
 `openHub(tab, seed)` keeps its legacy signature for back-compat, but the hub has
 been a single tabless view since the 0.11.x rework — `tab` is accepted and
 ignored. A `seed` still forces the paste box's type, source and contents.
+
+Encounter table enrichment (`api.tables.enrich(uuid, "encounter")` and `api.tables.relinkAll()`) transforms bare dice to `[[/r ...]]` rolls and links recognized monster names to `@UUID` compendium references. For the *Cursed Scroll 3* Arctic Sea Encounters table (recognized by manifest ID `cs3-arctic-sea-encounters` or its CS3-scoped name), it additionally transforms DC expressions (`DC 15 DEX`) into clickable `[[check 15 dex]]` controls. Unrelated encounter tables leave DC expressions as unmodified prose. Re-running enrichment on an already enriched table is idempotent (`updated: 0`).
 
 `relinkAll` also runs automatically after every import commit, so calling it by
 hand is normally unnecessary.
