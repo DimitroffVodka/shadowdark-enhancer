@@ -21,6 +21,8 @@ Source Actors keep their embedded spells. The library is a reusable collection o
 - A pencil icon marks a generated entry with curated edits. Refresh preserves that entry instead of overwriting it.
 - A warning triangle marks suspicious source data, such as a stated DC that disagrees with tier + 10, bare dice in prose, a prose duration that disagrees with the structured duration, or damage dice with no formula. Validation reports these problems; it never silently rewrites the source spell.
 
+A generated spell is protected wherever it lives — the check is the `monsterSpell.generated` marker on the document, not which pack it sits in. An ordinary item import that lands on the same name won't overwrite it: picking **Replace existing** in the conflict dialog is downgraded to **Keep both**, so your import is kept under a free name and a warning names the protected spell. If you do want it gone, delete the generated spell yourself and re-import. The library refresh still resolves by `libraryId`, so a hand-edited spell survives as a preserved curated conflict — a single-document dry run reports `0 added, 0 updated, 1 curated conflict preserved` for that one document (66 generated Monster Spells in the live check, 96 managed Items total).
+
 <details>
 <summary>How refresh and reconciliation work</summary>
 

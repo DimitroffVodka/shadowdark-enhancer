@@ -116,6 +116,9 @@
   are safe and idempotent on re-run.
 
 ### Fixed
+- **An ordinary item import that says Replace no longer replaces a generated Monster Spell.** Where the pasted item's name matches a generated Monster Spell, choosing **Replace existing** no longer overwrites the library document — the spell is kept in place, the import lands beside it under a free name, and a warning names the protected document and the name the import was kept as.
+- **A permitted item replacement no longer erases module-owned flag blocks the import never declared.** Updating a compendium document now preserves this module's own flag blocks a replacement payload did not mention. Losing `monsterSpell.libraryId` made the planner miss the original on the next library refresh and generate a duplicate beside it.
+- **An importer-generated description that only echoes the document's name no longer displaces curated prose.** A Spell paste that arrives with no description fills as `<p>{name}</p>` — that placeholder now counts as importer output on the way in and as nothing worth keeping on the way out, so hand-written spell text is no longer overwritten by a name-echo re-import.
 - **Western Reaches siege weapon properties now live in their own dedicated folder.**
   When importing siege weapons (*Western Reaches* p119), the generated *Blast* and
   *Exploding* weapon property items are now filed cleanly into `Shadowdark Enhancer — Items`
