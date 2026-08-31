@@ -730,7 +730,7 @@ Hooks.once("ready", () => {
     // Keep a completion promise so the E2 text pass cannot race this legacy
     // full-fidelity worker: that worker rebuilds system.notes and embedded Items
     // from a draft and could otherwise put plain text back after E2 enriched it.
-    let legacyBackfillDone = Promise.resolve();
+    let legacyBackfillDone = Promise.resolve(true);
     const cur = String(game.modules.get(MODULE_ID)?.version ?? "");
     if (cur && game.settings.get(MODULE_ID, "backfillVersion") !== cur) {
       legacyBackfillDone = new Promise((resolve) => {
@@ -741,7 +741,9 @@ Hooks.once("ready", () => {
           // concurrently. Checked at fire time, not at `ready` — activeGM can
           // differ five seconds later.
           if (game.users.activeGM?.id !== game.user.id) {
-            resolve();
+            // Nothing was attempted on this client. That is a legitimate no-op;
+            // E2 has its own active-GM gate and may make the same decision.
+            resolve(true);
             return;
           }
           try {
@@ -751,10 +753,14 @@ Hooks.once("ready", () => {
               ui.notifications.info(`Shadowdark Enhancer: ${result.changed.length} imported monster(s) upgraded to current import fidelity.`);
             }
             await game.settings.set(MODULE_ID, "backfillVersion", cur);
+            resolve(true);
           } catch (err) {
             console.error(`${MODULE_ID} | auto-backfill after update failed:`, err);
-          } finally {
-            resolve();
+            // Preserve the failure for the dependent E2 consumer. Its
+            // missing-only pass must wait for the legacy worker to be healthy;
+            // otherwise the next activation's legacy rebuild can erase E2's
+            // markup while E2's own stamp falsely says it is current.
+            resolve(false);
           }
         }, 5000);
       });
@@ -764,10 +770,9 @@ Hooks.once("ready", () => {
     // consumer owns its independent stamp and transform policy. Awaiting the
     // legacy worker above keeps its full draft rebuild from racing these writes.
     setTimeout(async () => {
-      await legacyBackfillDone;
       try {
-        const { runMonsterTextBackfill } = await import("./importer/monsters/monster-text-backfill.mjs");
-        const result = await runMonsterTextBackfill({ game });
+        const { runMonsterTextBackfillAfterLegacy } = await import("./importer/monsters/monster-text-backfill.mjs");
+        const result = await runMonsterTextBackfillAfterLegacy({ game, legacyBackfillDone });
         if (result?.status === "completed" && result.applied?.length) {
           ui.notifications.info(`Shadowdark Enhancer: enriched monster text for ${result.applied.length} imported monster(s).`);
         } else if (result?.status === "failed") {

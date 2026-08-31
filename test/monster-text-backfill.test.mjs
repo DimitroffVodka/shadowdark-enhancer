@@ -16,6 +16,7 @@ import {
   MONSTER_TEXT_BACKFILL_ID,
   MONSTER_TEXT_BACKFILL_VERSION_SETTING,
   runMonsterTextBackfill,
+  runMonsterTextBackfillAfterLegacy,
   transformMonsterText,
 } from "../scripts/importer/monsters/monster-text-backfill.mjs";
 
@@ -231,6 +232,40 @@ test("the E2 consumer passes its own stamp, NPC selector, transform, and managed
   assert.equal(received.transform, transformMonsterText);
 });
 
+test("legacy failure defers E2 without a stamp, while legacy success permits the consumer", async () => {
+  let calls = 0;
+  const failedGame = makeGame({
+    actors: [actorDouble({ id: "failed", name: "Deferred Beast", notes: RAW_NOTES, items: [RAW_ATTACK] })],
+  });
+  const failed = await runMonsterTextBackfillAfterLegacy({
+    game: failedGame,
+    legacyBackfillDone: Promise.resolve(false),
+    log: { error() {} },
+    runBackfill: async () => {
+      calls++;
+      return { status: "completed" };
+    },
+  });
+
+  assert.equal(failed.status, "skipped");
+  assert.equal(failed.reason, "legacy-failed");
+  assert.equal(failed.stamped, false);
+  assert.equal(calls, 0, "E2/A6 was not invoked after a legacy failure");
+  assert.deepEqual(failedGame.writes, [], "legacy failure cannot stamp E2");
+
+  const succeedingActor = actorDouble({ id: "success", name: "Permitted Beast", notes: RAW_NOTES, items: [RAW_ATTACK] });
+  const succeedingGame = makeGame({ actors: [succeedingActor] });
+  const succeeded = await runMonsterTextBackfillAfterLegacy({
+    game: succeedingGame,
+    legacyBackfillDone: Promise.resolve(true),
+    log: { error() {} },
+  });
+
+  assert.equal(succeeded.status, "completed");
+  assert.equal(succeeded.applied[0].name, "Permitted Beast");
+  assert.deepEqual(succeedingGame.writes, [[SETTING, MODULE_VERSION]], "E2 stamps after legacy success");
+});
+
 test("A6 applies only selected NPCs, reports deterministic outcomes, and a cleared-stamp rerun writes no document twice", async () => {
   const raw = actorDouble({ id: "raw", name: "Raw Beast", notes: RAW_NOTES, items: [RAW_ATTACK, RAW_SPECIAL] });
   const complete = actorDouble({
@@ -320,8 +355,10 @@ test("Core/source packs and world Actors are a hard non-target boundary", async 
 test("startup wires E2 after the legacy worker promise and keeps the consumer dynamic", async () => {
   const source = await readFile(new URL("../scripts/shadowdark-enhancer.mjs", import.meta.url), "utf8");
 
-  assert.match(source, /let legacyBackfillDone = Promise\.resolve\(\);/);
-  assert.match(source, /await legacyBackfillDone;/);
+  assert.match(source, /let legacyBackfillDone = Promise\.resolve\(true\);/);
+  assert.match(source, /resolve\(true\);/);
+  assert.match(source, /resolve\(false\);/);
+  assert.doesNotMatch(source, /finally \{\s*resolve\(\);/);
   assert.match(source, /import\("\.\/importer\/monsters\/monster-text-backfill\.mjs"\)/);
-  assert.match(source, /runMonsterTextBackfill\(\{ game \}\)/);
+  assert.match(source, /runMonsterTextBackfillAfterLegacy\(\{ game, legacyBackfillDone \}\)/);
 });

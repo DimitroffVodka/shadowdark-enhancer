@@ -22,6 +22,25 @@ export const MONSTER_TEXT_BACKFILL_VERSION_SETTING = "enricherBackfillVersion";
 /** Stable id echoed in A6 reports and startup logs. */
 export const MONSTER_TEXT_BACKFILL_ID = "monster-text";
 
+/**
+ * Return the A6-shaped no-op used when the legacy full-fidelity worker failed.
+ * E2 must leave its own gate open so the next activation retries both workers
+ * in order rather than claiming that the dependent pass completed.
+ */
+function legacyBackfillSkipped(error = null) {
+  return {
+    status: "skipped",
+    reason: "legacy-failed",
+    id: MONSTER_TEXT_BACKFILL_ID,
+    total: 0,
+    applied: [],
+    skipped: [],
+    failed: [],
+    stamped: false,
+    ...(error ? { error } : {}),
+  };
+}
+
 /** Monster item kinds whose descriptions are authored as stat-block prose. */
 const MONSTER_TEXT_ITEM_TYPES = new Set([
   "NPC Attack",
@@ -137,4 +156,32 @@ export async function runMonsterTextBackfill({
   };
   if (findPack) options.findPack = findPack;
   return runBackfill(options);
+}
+
+/**
+ * Run E2 only after the legacy full-fidelity worker has completed successfully
+ * or made a legitimate no-op decision. A6 remains the owner of E2's active-GM,
+ * managed-pack, version, document, and stamp lifecycle once this dependency is
+ * clear.
+ *
+ * @param {object} [options]
+ * @param {Promise<boolean>} [options.legacyBackfillDone] false/rejection means
+ *   the legacy worker failed; true (or the default) permits E2 to proceed.
+ * @returns {Promise<object>} an A6 result, or an unstamped dependency skip
+ */
+export async function runMonsterTextBackfillAfterLegacy({
+  legacyBackfillDone = Promise.resolve(true),
+  log = console,
+  ...options
+} = {}) {
+  try {
+    if ((await legacyBackfillDone) === false) {
+      log?.error?.(`${MONSTER_TEXT_BACKFILL_ID} backfill deferred: legacy monster backfill did not complete`);
+      return legacyBackfillSkipped();
+    }
+  } catch (error) {
+    log?.error?.(`${MONSTER_TEXT_BACKFILL_ID} backfill deferred: legacy monster backfill rejected`, error);
+    return legacyBackfillSkipped(error);
+  }
+  return runMonsterTextBackfill({ ...options, log });
 }
