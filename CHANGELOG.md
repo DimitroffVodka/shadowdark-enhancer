@@ -66,6 +66,19 @@
   dark ink and focus states scoped strictly to the Boat sheet,
   restoring clear readability across light and dark themes without affecting
   other sheets.
+- **Gutter warnings no longer cry wolf over lower full-width tables or sub-point glyph margins.**
+  PDF extraction warns when a chosen two-column gutter might slice through body text,
+  advising you to check the extracted preview before importing. But on mixed-layout pages
+  where two prose columns sit above a full-width table (such as the *Western Reaches*
+  boats table on p118), the warning pass was evaluating the wide lower table against
+  the prose gutter above it, falsely reporting that column cuts ran through table cells
+  that the layout already handled as a single wide block. Similarly, tight table column
+  headers (like *Type* on *Western Reaches* p119) could overhang the detected split
+  boundary by a fraction of a point due to font glyph metrics even when the word's
+  center was safely positioned within its column. The warning detector now excludes
+  lower full-width bands from the prose gutter check and tolerates sub-point overhangs
+  for words centered cleanly in their column, eliminating false alarms while preserving
+  visible warnings for genuine column-split text corruption.
 - **Martial Training no longer vanishes from the Downtime window.** When a
   character's class hit die couldn't be read — a level 0 character who hasn't
   picked a class yet, or a class item that won't load — the whole activity
