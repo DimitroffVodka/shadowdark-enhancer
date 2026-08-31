@@ -32,9 +32,7 @@
   and preserved). Generated artifacts in the managed Items pack
   (`world.shadowdark-enhancer--items`) are governed by the structural replace-always
   contract (A7/D6) and remain authoritative.
-  *Note:* This provenance mechanism governs `item-importer` only. Class-content
-  re-import art replacement is tracked separately under GitHub #89 (A3b), and
-  monster/token art is handled by Monster Token Art / Token Art Manager (B9/F4/N6).
+  *Note:* This provenance mechanism now governs `item-importer` and class-content re-imports (`Class`, `Talent`, `Class Ability`, and overlay `Item` art via `scripts/importer/char-content/class-unit-importer.mjs` reusing the same `flags["shadowdark-enhancer"].art` witness). Monster/token art remains handled by Monster Token Art / Token Art Manager (B9/F4/N6).
 - **Import everything.** *Importer Hub → Manage* now carries an **Import
   everything (N)** button, and opening any folder puts an **Import all N in
   \<folder\>** button at the top of it — the same run, scoped to that branch. It automates the loop rather than
