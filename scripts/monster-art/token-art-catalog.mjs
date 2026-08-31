@@ -1,6 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
-import { normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
+import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
 
 /**
  * Token Art Catalog — discovers every art source that can skin the
@@ -658,5 +658,21 @@ export class TokenArtCatalog {
       game.settings.get(MODULE_ID, "tokenArtManager")
     ).folders) prefixes.add(folder.path.endsWith("/") ? folder.path : `${folder.path}/`);
     return [...prefixes];
+  }
+
+  /**
+   * Exact manager-owned paths remembered from Browse picks. Unlike a prefix,
+   * each entry matches one concrete token/portrait file, so a removed or
+   * renamed folder cannot make a previously placed manager image look like GM
+   * custom art, and an unrelated file under the same broad-looking root stays
+   * protected.
+   */
+  static managedArtPaths() {
+    const state = normalizeTokenArtManagerState(game.settings.get(MODULE_ID, "tokenArtManager"));
+    const paths = new Set(state.managedPaths);
+    for (const pick of Object.values(state.picks)) {
+      for (const path of manualFolderPickPaths(pick)) paths.add(path);
+    }
+    return [...paths];
   }
 }

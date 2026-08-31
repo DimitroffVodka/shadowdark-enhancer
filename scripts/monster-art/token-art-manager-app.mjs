@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { TokenArtCatalog } from "./token-art-catalog.mjs";
-import { normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
+import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -70,6 +70,17 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const next = normalizeTokenArtManagerState({ ...cur, ...patch });
     await game.settings.set(MODULE_ID, "tokenArtManager", next);
     return next;
+  }
+
+  /** Remember exact files selected through a manual Browse folder. The list is
+   * intentionally file-level, not another broad root prefix: a former folder
+   * can be edited/removed without making arbitrary GM art replaceable. */
+  static _rememberManagedPaths(state, paths = []) {
+    const remembered = new Set(Array.isArray(state.managedPaths) ? state.managedPaths : []);
+    for (const path of paths) {
+      if (typeof path === "string" && path.trim()) remembered.add(path.trim());
+    }
+    return [...remembered];
   }
 
   async _prepareContext() {
@@ -294,7 +305,11 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
     if (editing) folders[parsedIndex] = { ...editing, label, path };
     else folders.push({ label, path });
-    await this._saveState({ folders });
+    const source = editing ? tokenArtFolderSourceId(editing) : null;
+    const oldPickPaths = source
+      ? Object.values(state.picks).flatMap((pick) => pick?.source === source ? manualFolderPickPaths(pick) : [])
+      : [];
+    await this._saveState({ folders, managedPaths: TokenArtManagerApp._rememberManagedPaths(state, oldPickPaths) });
     // Both catalogs are disk-backed and must not retain a removed/edited root.
     this._catalog = null;
     this._library = null;
@@ -324,7 +339,9 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     }).catch(() => false);
     if (!confirmed) return false;
     const folders = state.folders.filter((_entry, i) => i !== index);
-    await this._saveState({ folders });
+    const oldSource = tokenArtFolderSourceId(folder);
+    const oldPickPaths = Object.values(state.picks).flatMap((pick) => pick?.source === oldSource ? manualFolderPickPaths(pick) : []);
+    await this._saveState({ folders, managedPaths: TokenArtManagerApp._rememberManagedPaths(state, oldPickPaths) });
     this._catalog = null;
     this._library = null;
     await this.render({ parts: ["body"] });
@@ -361,9 +378,10 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const st = this._state();
     const overrides = foundry.utils.deepClone(st.overrides ?? {});
     const picks = foundry.utils.deepClone(st.picks ?? {});
+    const clearedPickPaths = manualFolderPickPaths(picks[id]);
     delete overrides[id];   // clear both a source override and a hand-picked image
     delete picks[id];
-    await this._saveState({ overrides, picks });
+    await this._saveState({ overrides, picks, managedPaths: TokenArtManagerApp._rememberManagedPaths(st, clearedPickPaths) });
     this.render({ parts: ["body"] });
   }
 
@@ -473,19 +491,22 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   /** Commit a hand-picked image (grid thumbnail click) as the monster's art. */
   async _pickImage(monsterId, entry) {
-    const picks = foundry.utils.deepClone(this._state().picks ?? {});
+    const state = this._state();
+    const picks = foundry.utils.deepClone(state.picks ?? {});
+    const priorPickPaths = manualFolderPickPaths(picks[monsterId]);
     picks[monsterId] = {
       source: entry.source, file: entry.file,
       token: entry.token, portrait: entry.portrait, tokenObj: entry.tokenObj,
     };
-    await this._saveState({ picks });
+    const selectedPaths = [entry.token, entry.portrait];
+    await this._saveState({ picks, managedPaths: TokenArtManagerApp._rememberManagedPaths(state, [...priorPickPaths, ...selectedPaths]) });
     const overlay = this.element?.querySelector(".sde-tam-browser");
     if (overlay) overlay.hidden = true;
     this.render({ parts: ["body"] });
   }
 
   static async _onResetAll() {
-    await this._saveState({ overrides: {}, picks: {} });
+    await this._saveState({ overrides: {}, picks: {}, managedPaths: [] });
     this.render({ parts: ["body"] });
   }
 
@@ -522,6 +543,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const r = await MonsterTokenArt.applyResolvedToPlaced(byName, {
       scene: true, actors: true, portraits: true,
       extraPrefixes: TokenArtCatalog.managedArtPrefixes(),
+      extraPaths: TokenArtCatalog.managedArtPaths(),
     });
     if (r && !r.missing) {
       ui.notifications.info(`Re-skinned ${r.tokens} placed tokens, ${r.portraits} portraits (${r.kept} kept, ${r.skipped.length} unmatched).`);

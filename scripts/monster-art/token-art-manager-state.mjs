@@ -3,13 +3,35 @@
  *
  * The setting started life as `{ priority, overrides, picks }`. Keep that
  * shape usable for existing worlds while adding the optional named Browse
- * folders. The top-level spread is intentional: a future version may add a
- * field we do not know about yet, and a read/write round-trip must not erase
- * it. Folder records get the same treatment so a future folder-level field
- * can survive an older manager opening the setting.
+ * folders. `managedPaths` is a deliberately narrow ownership witness: exact
+ * token/portrait paths selected through the manager remain replaceable after a
+ * folder is edited, removed, or a later pick replaces the current record. The
+ * top-level spread is intentional: a future version may add a field we do not
+ * know about yet, and a read/write round-trip must not erase it. Folder records
+ * get the same treatment so a future folder-level field can survive an older
+ * manager opening the setting.
  */
 
 const isRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+
+const nonBlankStrings = (value) => Array.isArray(value)
+  ? [...new Set(value.filter((entry) => typeof entry === "string" && entry.trim()).map((entry) => entry.trim()))]
+  : [];
+
+/**
+ * Return the concrete image paths carried by a manual-folder pick. Older F1
+ * picks have no separate witness field, so the source id is the ownership
+ * marker and these already-persisted paths are enough to migrate them when a
+ * folder is edited or removed. Arbitrary `source: "custom"` picks are never
+ * promoted to manager-owned paths.
+ *
+ * @param {unknown} pick persisted pick record
+ * @returns {string[]} exact token/portrait paths
+ */
+export function manualFolderPickPaths(pick) {
+  if (!isRecord(pick) || typeof pick.source !== "string" || !pick.source.startsWith("manual-folder:")) return [];
+  return nonBlankStrings([pick.token, pick.portrait]);
+}
 
 /**
  * Return a safe, detached Token Art Manager setting value.
@@ -40,6 +62,7 @@ export function normalizeTokenArtManagerState(value) {
     overrides: isRecord(raw.overrides) ? { ...raw.overrides } : {},
     picks: isRecord(raw.picks) ? { ...raw.picks } : {},
     folders,
+    managedPaths: nonBlankStrings(raw.managedPaths),
   };
 }
 

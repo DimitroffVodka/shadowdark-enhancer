@@ -200,14 +200,15 @@ export class MonsterTokenArt {
     // Token Art Manager state: source priority order + per-monster overrides +
     // hand-picked images + named manual Browse folders ({ priority: [sourceId],
     // overrides: { monsterId: sourceId }, picks: { monsterId: { source, file,
-    // token, portrait, tokenObj } }, folders: [{ label, path }] }). Managed by
-    // the manager app, not the settings UI. The normalizer is additive so old
-    // worlds and future fields survive the setting round-trip.
+    // token, portrait, tokenObj } }, folders: [{ label, path }], managedPaths:
+    // [exactTokenOrPortraitPath] }). Managed by the manager app, not the
+    // settings UI. The normalizer is additive so old worlds and future fields
+    // survive the setting round-trip.
     game.settings.register(MODULE_ID, "tokenArtManager", {
       scope: "world",
       config: false,
       type: Object,
-      default: normalizeTokenArtManagerState({ priority: [], overrides: {}, picks: {}, folders: [] }),
+      default: normalizeTokenArtManagerState({ priority: [], overrides: {}, picks: {}, folders: [], managedPaths: [] }),
     });
   }
 
@@ -561,12 +562,14 @@ export class MonsterTokenArt {
    * @param {object} [opts]
    * @param {string[]} [opts.extraPrefixes]  additional art-source path prefixes to
    *   treat as replaceable, so a placed token can switch between managed sources.
+   * @param {string[]} [opts.extraPaths]  exact manager-owned token/portrait paths
+   *   to treat as replaceable after their source folder is edited or removed.
    * @param {boolean} [opts.fuzzyFallback=true]  for a placed actor whose (renamed/
    *   homebrew) name isn't in the catalog, fall back to the single-source fuzzy
    *   matcher `apply()` uses — so re-skin is a SUPERSET of the legacy path, never
    *   a regression (e.g. a "Skeleton Warrior" world actor still gets skeleton art).
    */
-  static async applyResolvedToPlaced(byName, { scene = true, actors = true, portraits = true, dryRun = false, extraPrefixes = [], fuzzyFallback = true } = {}) {
+  static async applyResolvedToPlaced(byName, { scene = true, actors = true, portraits = true, dryRun = false, extraPrefixes = [], extraPaths = [], fuzzyFallback = true } = {}) {
     if (!game.user.isGM) { ui.notifications.warn("Only the GM can apply monster token art."); return null; }
     if (!byName || !byName.size) return { tokens: 0, portraits: 0, kept: 0, skipped: [], missing: true };
 
@@ -587,7 +590,8 @@ export class MonsterTokenArt {
     };
 
     const resolveFn = async (name) => byName.get(name) ?? norm.get(this._norm(name)) ?? fallback(name);
-    const replaceable = (src) => this._isReplaceable(src) || extraPrefixes.some((p) => src?.startsWith(p));
+    const exactPaths = new Set(extraPaths);
+    const replaceable = (src) => this._isReplaceable(src) || extraPrefixes.some((p) => src?.startsWith(p)) || exactPaths.has(src);
     return this._skinPlaced({ scene, actors, portraits, dryRun }, resolveFn, replaceable);
   }
 

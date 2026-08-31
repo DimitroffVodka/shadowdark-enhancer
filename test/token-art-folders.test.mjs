@@ -80,6 +80,7 @@ test("normalizer adds folders without dropping old or future setting fields", ()
       { label: "", path: "ignored" },
       { label: "Ignored", path: "" },
     ],
+    managedPaths: [],
     future,
   });
 
@@ -88,6 +89,7 @@ test("normalizer adds folders without dropping old or future setting fields", ()
     overrides: { goblin: "source-a" },
     picks: { goblin: { file: "goblin.webp" } },
     folders: [{ label: "My Tokens", path: "custom/tokens/", futureFolderKey: true }],
+    managedPaths: [],
     future,
   });
 });
@@ -95,11 +97,21 @@ test("normalizer adds folders without dropping old or future setting fields", ()
 test("old manager state receives an empty folders list and remains detached", () => {
   const old = { priority: ["source-a"], overrides: {}, picks: {}, future: { keep: true } };
   const normalized = normalizeTokenArtManagerState(old);
-  assert.deepEqual(normalized, { ...old, folders: [] });
+  assert.deepEqual(normalized, { ...old, folders: [], managedPaths: [] });
   assert.notEqual(normalized.priority, old.priority);
   assert.notEqual(normalized.overrides, old.overrides);
   assert.notEqual(normalized.picks, old.picks);
   assert.equal(old.folders, undefined);
+});
+
+test("normalizer is idempotent for exact ownership witnesses", () => {
+  const state = normalizeTokenArtManagerState({
+    folders: [{ label: "Old", path: "old/tokens" }],
+    managedPaths: [" old/tokens/goblin.webp ", "old/tokens/goblin.webp", ""],
+    future: { keep: true },
+  });
+  assert.deepEqual(normalizeTokenArtManagerState(state), state);
+  assert.deepEqual(state.managedPaths, ["old/tokens/goblin.webp"]);
 });
 
 test("buildLibrary includes named folders as Browse-only sources", async () => {
@@ -176,6 +188,7 @@ test("manager save normalizes while preserving priority, picks, overrides, and u
     picks: { goblin: { file: "goblin.webp" } },
     future: { keep: true },
     folders: [{ label: "My Tokens", path: "custom/tokens" }],
+    managedPaths: [],
   });
   assert.deepEqual(setting, saved);
 });
@@ -201,6 +214,7 @@ test("GM folder UI validates add, edit, and remove without touching other state"
   assert.deepEqual(setting.overrides, { goblin: "source-a" });
   assert.deepEqual(setting.picks, { goblin: { file: "goblin.webp" } });
   assert.deepEqual(setting.future, { keep: true });
+  assert.deepEqual(setting.managedPaths, []);
   assert.equal(app._catalog, null);
   assert.equal(app._library, null);
 
@@ -225,4 +239,85 @@ test("non-GMs cannot mutate named Browse folders", async () => {
   assert.deepEqual(setting.folders, [{ label: "Keep", path: "custom/tokens" }]);
   assert.equal(await TokenArtManagerApp._onFolderRemove.call(app, null, { dataset: { folder: "0" } }), false);
   assert.deepEqual(setting.folders, [{ label: "Keep", path: "custom/tokens" }]);
+});
+
+test("edit/remove retain exact manual ownership for Re-skin while arbitrary art stays protected", async () => {
+  const oldPath = "old/tokens/goblin.webp";
+  const newPath = "new/tokens/goblin.webp";
+  configure({
+    folders: [{ label: "Old", path: "old/tokens" }],
+    picks: {
+      goblin: {
+        source: tokenArtFolderSourceId({ path: "old/tokens" }),
+        file: "goblin.webp",
+        token: oldPath,
+        portrait: oldPath,
+        tokenObj: { texture: { src: oldPath } },
+      },
+    },
+  });
+  browseResults.set("new/tokens", { files: [newPath], dirs: [] });
+  const app = Object.create(TokenArtManagerApp.prototype);
+  app.render = async () => {};
+
+  promptResult = { label: "New", path: "new/tokens" };
+  assert.equal(await TokenArtManagerApp._onFolderEdit.call(app, null, { dataset: { folder: "0" } }), true);
+  assert.deepEqual(setting.managedPaths, [oldPath]);
+
+  await app._pickImage("goblin", {
+    source: tokenArtFolderSourceId({ path: "new/tokens" }),
+    file: "goblin.webp",
+    token: newPath,
+    portrait: newPath,
+    tokenObj: { texture: { src: newPath } },
+  });
+  assert.deepEqual(setting.managedPaths, [oldPath, newPath]);
+
+  confirmResult = true;
+  assert.equal(await TokenArtManagerApp._onFolderRemove.call(app, null, { dataset: { folder: "0" } }), true);
+  assert.deepEqual(setting.folders, []);
+  assert.deepEqual(setting.managedPaths, [oldPath, newPath]);
+  assert.deepEqual(TokenArtCatalog.managedArtPrefixes().filter((path) => path.includes("old/tokens") || path.includes("new/tokens")), []);
+  assert.deepEqual(TokenArtCatalog.managedArtPaths(), [oldPath, newPath]);
+
+  const updates = [];
+  const token = {
+    actor: { name: "Goblin", type: "NPC" },
+    texture: { src: oldPath },
+    ring: {},
+    update: async (update) => updates.push(update),
+  };
+  globalThis.game.scenes = { active: { tokens: [token] } };
+  globalThis.game.actors = [];
+  const replacement = new Map([[
+    "Goblin",
+    { tokenObj: { texture: { src: newPath } }, portrait: newPath },
+  ]]);
+  const managed = await MonsterTokenArt.applyResolvedToPlaced(replacement, {
+    actors: false,
+    portraits: false,
+    extraPrefixes: TokenArtCatalog.managedArtPrefixes(),
+    extraPaths: TokenArtCatalog.managedArtPaths(),
+    fuzzyFallback: false,
+  });
+  assert.equal(managed.tokens, 1);
+  assert.equal(updates[0].texture.src, newPath);
+
+  const custom = {
+    actor: { name: "Goblin", type: "NPC" },
+    texture: { src: "old/tokens/handmade.webp" },
+    ring: {},
+    update: async (update) => updates.push(update),
+  };
+  globalThis.game.scenes = { active: { tokens: [custom] } };
+  const kept = await MonsterTokenArt.applyResolvedToPlaced(replacement, {
+    actors: false,
+    portraits: false,
+    extraPrefixes: TokenArtCatalog.managedArtPrefixes(),
+    extraPaths: TokenArtCatalog.managedArtPaths(),
+    fuzzyFallback: false,
+  });
+  assert.equal(kept.tokens, 0);
+  assert.equal(kept.kept, 1);
+  assert.equal(updates.length, 1);
 });
