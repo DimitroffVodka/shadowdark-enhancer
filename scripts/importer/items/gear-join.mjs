@@ -34,6 +34,7 @@ import { titleCaseName } from "../monsters/statblock-parser.mjs";
 import { isCurrencyName } from "./item-parser.mjs";
 import { parseValue, pickTreasureIcon } from "../../loot/loot-pack.mjs";
 import { textToHtml } from "../pdf-text-utils.mjs";
+import { isRecordStartLine, isNameShapedPhrase, stripPageFurniture } from "./record-boundary.mjs";
 
 // ─── Normalizer ────────────────────────────────────────────────────────────
 
@@ -201,12 +202,19 @@ export function joinGear(costText, descText) {
     usedC.add(p.c); usedH.add(p.h); matchOf.set(p.c, p.h);
   }
 
-  // Each matched paragraph runs from its header line to the next MATCHED
-  // header line — false headers (capitalized full sentences) never cut a body.
-  const chosen = [...matchOf.values()].map(h => h.i).sort((a, b) => a - b);
+  // Each matched paragraph runs from its header line to the next RECORD START
+  // — the matched headers, plus any header the spine never claimed (#69: a
+  // description with no cost row, like the currency the table prints, used to
+  // be swallowed by the row above it). record-boundary.mjs owns that call, so
+  // false headers (capitalized full sentences) still never cut a body.
+  const matchedLines = new Set([...matchOf.values()].map(h => h.i));
+  const knownNames = rows.map(c => c.name);
+  const starts = lines
+    .map((line, i) => (matchedLines.has(i) || isRecordStartLine(line, { knownNames }) ? i : -1))
+    .filter(i => i >= 0);
   const bodyFor = (h) => {
-    const end = chosen.find(x => x > h.i) ?? lines.length;
-    const seg = flattenDesc(lines.slice(h.i, end).join("\n"));
+    const end = starts.find(x => x > h.i) ?? lines.length;
+    const seg = flattenDesc(stripPageFurniture(lines.slice(h.i, end).join("\n")));
     const cut = seg.indexOf("."); // strip the leading "Header." so the body doesn't repeat the name
     return (cut !== -1 ? seg.slice(cut + 1) : seg).trim();
   };
@@ -233,10 +241,12 @@ export function joinGear(costText, descText) {
     };
   });
 
-  // Orphan paragraphs the spine didn't cover — name-shaped only (≤ 4 tokens),
-  // so capitalized full-sentence "headers" don't spam the review list.
+  // Orphan paragraphs the spine didn't cover — name-shaped only, so
+  // capitalized full-sentence "headers" don't spam the review list. Same
+  // shape test the boundary rule uses, so a start that CUT a body is exactly
+  // one the review list REPORTS: nothing is absorbed and nothing is lost.
   const unclaimedDescriptions = headers
-    .filter(h => !usedH.has(h) && h.tset.length <= 4 && h.phrase.length <= 40)
+    .filter(h => !usedH.has(h) && isNameShapedPhrase(h.phrase))
     .map(h => ({ phrase: h.phrase, tokens: h.tset }));
 
   return { drafts, unclaimedDescriptions, warnings };
