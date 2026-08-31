@@ -183,7 +183,7 @@ test("Sea Wolf map is exactly the twenty sourced N3 §5.1 rows", () => {
 test("A4 discovery registers the Sea Wolf sourced map without changing bare maps", () => {
   const registry = curatedIconRegistry();
   assert.ok(registry.maps.includes(SEA_WOLF_PLUNDER_ICONS));
-  assert.equal(registry.sourced.size, 20);
+  assert.equal(registry.sourced.size, 40, "D4 remains 20 rows while the composed registry also includes D5");
   assert.equal(registry.bare.size, 94);
   assert.equal(resolveCuratedIcon({ name: SEA_WOLF_PLUNDER_ROWS[0].name, source: "Cursed Scroll #3" }), SEA_WOLF_PLUNDER_ROWS[0].img);
   assert.equal(resolveCuratedIcon({ name: SEA_WOLF_PLUNDER_ROWS[0].name, source: "CS2" }), null);

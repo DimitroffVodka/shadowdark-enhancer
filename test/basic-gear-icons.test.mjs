@@ -207,9 +207,9 @@ test("the composed discovery registry keeps exactly 94 collision-free bare rows"
 
   assert.equal(ARMOR_ICONS.entries.size + BASIC_GEAR_ICONS.entries.size + WEAPON_ICONS.entries.size, 94);
   assert.equal(expectedKeys.size, 94, "D1-D3 maps must not claim the same normalized bare key");
-  assert.equal(report.total, 114, "94 bare D1-D3 rows plus 20 sourced D4 rows");
+  assert.equal(report.total, 134, "94 bare D1-D3 rows plus 20 sourced D4 and 20 sourced D5 rows");
   assert.equal(report.bare, 94);
-  assert.equal(report.sourced, 20);
+  assert.equal(report.sourced, 40);
   assert.deepEqual(report.problems, []);
   assert.deepEqual(report.crossSpaceNames, []);
   assert.deepEqual([...registry.bare.keys()].sort(), [...expectedKeys].sort());
@@ -218,6 +218,7 @@ test("the composed discovery registry keeps exactly 94 collision-free bare rows"
     [
       { label: "armor", space: "bare", entries: 13 },
       { label: "basic-gear", space: "bare", entries: 44 },
+      { label: "dead-bandit-loot", space: "sourced", entries: 20 },
       { label: "sea-wolf-plunder", space: "sourced", entries: 20 },
       { label: "weapons", space: "bare", entries: 37 },
     ],
@@ -228,7 +229,7 @@ test("the composed registry resolves every curated row against the real Foundry 
   assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
   const report = auditCuratedIconRegistry(curatedIconRegistry(), { pathExists });
 
-  assert.equal(report.total, 114);
+  assert.equal(report.total, 134);
   assert.deepEqual(report.problems, []);
 });
 

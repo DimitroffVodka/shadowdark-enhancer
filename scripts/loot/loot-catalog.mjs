@@ -11,6 +11,7 @@ import { LootLinker } from "./loot-linker.mjs";
 import { isCoinEntry, stripPrice } from "./loot-pack.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { isSeaWolfPlunderTable, materializeSeaWolfPlunder } from "./sea-wolf-plunder.mjs";
+import { isDeadBanditLootTable, materializeDeadBanditLoot } from "./dead-bandit-loot.mjs";
 
 // Pre-migration fallback only — catalog lookups prefer the sde-items suite pack (A-07).
 const LOOT_PACK = "world.loot";
@@ -50,6 +51,10 @@ export const LootCatalog = {
     // before the general system-pack-first index: a same-named Item in
     // shadowdark.gear is never an authorized target for this table.
     if (isSeaWolfPlunderTable(table)) return materializeSeaWolfPlunder(table);
+    // Dead Bandit rows are feature-bearing source phrases.  Keep them on the
+    // exact source-qualified path so generic Bottle/Flask containment cannot
+    // claim them.
+    if (isDeadBanditLootTable(table)) return materializeDeadBanditLoot(table);
     const items = await LootLinker.buildItemIndex();
     const DOC = CONST.TABLE_RESULT_TYPES.DOCUMENT;
     const TEXT = CONST.TABLE_RESULT_TYPES.TEXT;
