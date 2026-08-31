@@ -194,10 +194,15 @@ function _stampArt(data, provenance) {
  *     and nobody has touched since
  *
  * A stored image matching either is one we wrote, so it stays upgradeable.
- * Matching the second costs nothing either way — keeping it and writing it are
- * the same bytes — but it records the image as ours, which is what keeps
- * untouched overlay art eligible for a later refresh instead of freezing it.
+ * Matching the second costs nothing in the image itself — keeping it and
+ * writing it are the same bytes — but it lets us record the image as ours.
  * Matching neither is the GM's, whatever the path looks like, and survives.
+ *
+ * The second candidate MOVES with the overlay, so this answer is only stable
+ * once it has been written down: `_ensureItem` persists it even when nothing
+ * else about the document is stale (`_backfillArtWitness`). Skip that and an
+ * untouched overlay image freezes as the GM's the moment the overlay's art
+ * changes — the exact refresh this candidate exists to protect.
  *
  * Marked documents never reach any of that: their own witness answers.
  *
@@ -218,6 +223,41 @@ function _classArtDecision(data, docObj, packCollection = "") {
     moduleDefaultImg: candidates.find((c) => c && normalizeArtPath(c) === storedImg) ?? "",
     generatedArtifact: isGeneratedManagedItem(docObj, packCollection),
   });
+}
+
+/**
+ * Record the art verdict on a PRE-PROVENANCE document that the import found
+ * otherwise identical to itself.
+ *
+ * Without this the verdict only ever exists in memory. The witness is excluded
+ * from the staleness diff — correctly, it is not content — so a document with
+ * nothing else to update is reused and stays unmarked. That looks harmless and
+ * is not, because one of the two legacy candidates is the image the CURRENT
+ * import carries: the next time the overlay's art moves, that same untouched
+ * image matches neither the type default nor the new incoming icon, and A3
+ * classifies it as the GM's and freezes it. Deciding "this image is ours" is
+ * only worth anything if the answer outlives the import that worked it out.
+ *
+ * The verdict is written whatever it says. A stored `custom` is the same
+ * bargain in the other direction: it stops a GM's own path from ever being
+ * mistaken for module art because a future overlay happened to move onto it.
+ *
+ * Bookkeeping only — a targeted flag write, never a replacement, so content,
+ * `_stats` and every other pipeline's flags are untouched and the import still
+ * reports the document as reused.
+ */
+async function _backfillArtWitness(doc, docObj, data) {
+  if (readArtProvenance(docObj)) return;            // already witnessed
+  const stamp = readArtProvenance(data);
+  if (!stamp) return;                               // nothing decided (no incoming img)
+  try {
+    await doc.update({ [`flags.${MODULE_ID}.art`]: stamp });
+  } catch (err) {
+    // A locked or otherwise unwritable pack must not fail an import that had
+    // nothing to change: the document simply stays unmarked, exactly as it was
+    // before A3b, and the next import decides again.
+    console.warn(`${MODULE_ID} | could not record art provenance on "${doc.name}":`, err);
+  }
 }
 
 /**
@@ -263,6 +303,9 @@ async function _ensureItem(pack, data, folderPath, report, { keepCuratedDescript
     }
     const fields = _staleFields(docObj, data);
     if (!fields.length) {
+      // Identical content still owes the document its art verdict — see
+      // _backfillArtWitness. Bookkeeping, so this is still a reuse.
+      await _backfillArtWitness(doc, docObj, data);
       report.reused.push({ name: data.name, type: data.type, uuid: doc.uuid });
       return { uuid: doc.uuid, name: data.name, reused: true };
     }
@@ -1353,9 +1396,14 @@ export async function pruneBoughtGearGrants() {
   return fixed;
 }
 
-// ─── Internal exports for tests (pure helpers only) ──────────────────────────
+// ─── Internal exports for tests ──────────────────────────────────────────────
+// Pure helpers, plus `_ensureItem`: the commit choke point itself, where the art
+// verdict is decided AND persisted. Some of that contract (a witness written
+// onto a document with no stale content) is only observable by driving the
+// choke point against a pack, so it is reachable here rather than re-derived.
 
 export const _internals = {
   _deepEq, _subsetEq, _staleFields, _effectShape, classifySpellWiring, borrowedTagsForSpell, keptGrantUuids,
   _classArtDecision, _stampArt, _talentData, _classAbilityData, CLASS_CONTENT_DEFAULT_IMG,
+  _ensureItem,
 };

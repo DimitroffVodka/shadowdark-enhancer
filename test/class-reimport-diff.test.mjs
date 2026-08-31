@@ -14,6 +14,7 @@ import { _internals } from "../scripts/importer/char-content/class-unit-importer
 const {
   _deepEq, _subsetEq, _staleFields, _effectShape,
   _classArtDecision, _talentData, _classAbilityData, CLASS_CONTENT_DEFAULT_IMG,
+  _ensureItem,
 } = _internals;
 
 const MOD = "shadowdark-enhancer";
@@ -218,6 +219,159 @@ test("A3b: the generated-artifact boundary stays structural", () => {
   // open this door (A8).
   const spell = stored(GM_ART, { monsterSpell: { generated: true, libraryId: "x" } });
   assert.equal(_classArtDecision(data, spell, MANAGED_ITEMS_PACK).preserved, true);
+});
+
+// ─── A3b: the witness must actually be WRITTEN at the commit choke point ─────
+//
+// The decision above is only half the contract. One of the two legacy
+// candidates is the image the CURRENT import carries, so it moves with the
+// overlay — an answer that is right today and wrong after the next overlay
+// revision unless it was written down. These drive `_ensureItem` against a
+// pack, because "was it persisted?" is not observable from the pure decision.
+
+/** A stored compendium document, minimally but honestly. */
+function storedDoc({ _id = "doc-1", name, type = "Talent", img, flags = {}, description }) {
+  const state = { _id, name, type, img, flags, system: { description, level: 1, talentClass: "class",
+    source: { title: "wr" }, lost: false }, effects: [], folder: null };
+  return {
+    ...state,
+    uuid: `Compendium.world.talents.Item.${_id}`,
+    updateCalls: [],
+    toObject() { return foundryClone(this); },
+    async update(data, options) {
+      this.updateCalls.push({ data, options });
+      for (const [path, value] of Object.entries(data)) {
+        const keys = path.split(".");
+        // Foundry treats the module id as ONE key even though it contains no
+        // dot; splitting on "." is exactly how it expands these paths.
+        let node = this;
+        for (const k of keys.slice(0, -1)) node = (node[k] ??= {});
+        node[keys.at(-1)] = value;
+      }
+      return this;
+    },
+    getEmbeddedCollection() { return []; },
+    async deleteEmbeddedDocuments() {},
+    async createEmbeddedDocuments() {},
+  };
+}
+
+const foundryClone = (o) => JSON.parse(JSON.stringify({
+  _id: o._id, name: o.name, type: o.type, img: o.img, flags: o.flags,
+  system: o.system, effects: o.effects, folder: o.folder,
+}));
+
+/** Install the globals `_ensureItem` reaches through; returns a restore fn. */
+function fakePack(docs) {
+  const saved = new Map();
+  for (const key of ["game", "ui", "Item", "Folder", "foundry"]) {
+    saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+  }
+  globalThis.game = { user: { isGM: true } };
+  globalThis.ui = { notifications: { warn() {}, info() {}, error() {} } };
+  globalThis.Item = { async create(data) { const d = storedDoc({ ...data, _id: `new-${docs.length}` }); docs.push(d); return d; } };
+  globalThis.Folder = { async create(data) { return { id: "folder-1", name: data.name, folder: null }; } };
+  // Identity sanitizer: the real one escapes markup when Foundry is absent,
+  // which would make every description read as stale and hide the art result.
+  globalThis.foundry = { utils: { cleanHTML: (s) => s } };
+  const pack = {
+    collection: "world.talents", documentName: "Item", locked: false, folders: [],
+    async getIndex() { return docs.map((d) => ({ _id: d._id, name: d.name, type: d.type })); },
+    async getDocument(id) { return docs.find((d) => d._id === id) ?? null; },
+  };
+  return { pack, restore() {
+    for (const [k, d] of saved) { if (d) Object.defineProperty(globalThis, k, d); else delete globalThis[k]; }
+  } };
+}
+
+const newReport = () => ({ created: [], reused: [], updated: [], systemReuse: [], warnings: [] });
+
+/** The payload one overlay-wired feature Talent imports as, as createClassUnit builds it. */
+const wiredPayload = (effectImg) => _talentData("Deep Pockets", "<p>Book text.</p>", "wr", {
+  talentClass: "class",
+  effects: [{ name: "Buff", img: effectImg, transfer: true, changes: [{ key: "system.bonuses.x", value: "1", type: "add" }] }],
+});
+
+test("A3b: an unchanged legacy import PERSISTS the witness, and the next overlay revision then upgrades", async () => {
+  // A pre-provenance world: the talent wears the overlay art of its day and
+  // carries no witness. Its content is otherwise exactly what the import builds.
+  const legacy = storedDoc({ name: "Deep Pockets", img: OVERLAY_ART, description: "<p>Book text.</p>",
+    flags: { [MOD]: { imported: true } } });
+  legacy.effects = wiredPayload(OVERLAY_ART).effects;
+  const docs = [legacy];
+  const { pack, restore } = fakePack(docs);
+  try {
+    // 1. Re-import with NOTHING changed. Reused — and yet the verdict lands.
+    const report1 = newReport();
+    const first = await _ensureItem(pack, wiredPayload(OVERLAY_ART), ["Class", "X"], report1);
+    assert.equal(first.reused, true);
+    assert.equal(first.updated, undefined, "no content changed, so this is not an update");
+    assert.equal(report1.updated.length, 0);
+    assert.equal(report1.reused.length, 1);
+    assert.deepEqual(legacy.flags[MOD].art, art("curated", OVERLAY_ART),
+      "the verdict is written down, not just computed");
+    assert.equal(legacy.img, OVERLAY_ART, "the image itself is untouched");
+    assert.equal(legacy.updateCalls.length, 1, "one targeted flag write, not a replacement");
+    assert.deepEqual(Object.keys(legacy.updateCalls[0].data), [`flags.${MOD}.art`]);
+    assert.equal(legacy.flags[MOD].imported, true, "other bookkeeping survives the write");
+
+    // 2. The overlay's art moves. The witness — not the moving candidate — is
+    //    what now answers, so the untouched image upgrades instead of freezing.
+    const report2 = newReport();
+    const second = await _ensureItem(pack, wiredPayload(NEW_OVERLAY_ART), ["Class", "X"], report2);
+    assert.equal(second.updated, true);
+    assert.ok(report2.updated[0].fields.includes("img"));
+    assert.equal(legacy.img, NEW_OVERLAY_ART, "untouched module-curated art refreshed");
+    assert.deepEqual(legacy.flags[MOD].art, art("curated", NEW_OVERLAY_ART));
+  } finally { restore(); }
+});
+
+test("A3b: WITHOUT that persistence the same document would have frozen", async () => {
+  // The counterfactual the review named: skip the unchanged import, so the
+  // document is still unmarked when the overlay's art moves. Both candidates
+  // now miss, and A3 correctly-but-uselessly calls the old overlay art the
+  // GM's. This pins WHY the backfill exists.
+  const unmarked = { img: OVERLAY_ART, flags: { [MOD]: { imported: true } } };
+  const decision = _classArtDecision(wiredPayload(NEW_OVERLAY_ART), unmarked);
+  assert.equal(decision.preserved, true);
+  assert.equal(decision.img, OVERLAY_ART, "frozen — the exact NO-GO finding");
+});
+
+test("A3b: the backfill writes the GM's verdict too, and never writes twice", async () => {
+  // A legacy document wearing the GM's own art gets `custom` recorded, so a
+  // future overlay that happens to move onto that path cannot claim it.
+  const gm = storedDoc({ name: "Deep Pockets", img: GM_ART, description: "<p>Book text.</p>",
+    flags: { [MOD]: { imported: true } } });
+  gm.effects = wiredPayload(OVERLAY_ART).effects;
+  const { pack, restore } = fakePack([gm]);
+  try {
+    await _ensureItem(pack, wiredPayload(OVERLAY_ART), ["Class", "X"], newReport());
+    assert.deepEqual(gm.flags[MOD].art, art("custom", GM_ART));
+    assert.equal(gm.img, GM_ART, "the GM's image is still theirs");
+    assert.equal(gm.updateCalls.length, 1);
+
+    // Already witnessed: a second identical import writes nothing at all.
+    await _ensureItem(pack, wiredPayload(OVERLAY_ART), ["Class", "X"], newReport());
+    assert.equal(gm.updateCalls.length, 1, "no repeat write once the verdict is recorded");
+  } finally { restore(); }
+});
+
+test("A3b: an unwritable pack degrades to pre-A3b behaviour instead of failing the import", async () => {
+  const legacy = storedDoc({ name: "Deep Pockets", img: OVERLAY_ART, description: "<p>Book text.</p>",
+    flags: { [MOD]: { imported: true } } });
+  legacy.effects = wiredPayload(OVERLAY_ART).effects;
+  const attempts = [];
+  legacy.update = async (data) => { attempts.push(data); throw new Error("pack is locked"); };
+  const { pack, restore } = fakePack([legacy]);
+  try {
+    const report = newReport();
+    const made = await _ensureItem(pack, wiredPayload(OVERLAY_ART), ["Class", "X"], report);
+    assert.equal(attempts.length, 1, "the write WAS attempted — not skipped");
+    assert.deepEqual(Object.keys(attempts[0]), [`flags.${MOD}.art`]);
+    assert.equal(made.reused, true, "the import still succeeds");
+    assert.equal(report.reused.length, 1);
+    assert.equal(legacy.flags[MOD].art, undefined, "simply unmarked, as before A3b");
+  } finally { restore(); }
 });
 
 test("A3b: the art stamp is bookkeeping, never a stale field", () => {
