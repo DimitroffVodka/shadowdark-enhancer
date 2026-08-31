@@ -229,17 +229,18 @@ empty-but-present for one release as a visible deprecation and compatibility
 shell (moved documents receive new IDs in `sde-items`, so legacy document UUIDs
 do not resolve). Re-running the migration or refresh is safe and idempotent.
 
-On each world activation, the primary active GM automatically reconciles
-Shadowdark Core; a successful Importer Hub monster create/replace reconciles the
-managed Enhancer Actor source. Automatic syncs queue behind an in-progress
-refresh. The interactive refresh remains available for reviewed recovery.
-Identical spell definitions consolidate with all source monsters recorded.
-Automatically maintained entries use `Spell Name - Monster Name`; same-name
-definitions that differ remain separate and add tier/source detail when needed.
-Generated entries with curated edits preserve both their content and edited name
-and are marked as conflicts; stale entries are reported but never deleted.
-Validation warnings report suspicious DC, dice, duration, and damage-formula
-mismatches without rewriting source content.
+On each world activation, the single active GM automatically checks the
+version-gated refresh (`monsterSpellSyncVersion`) and reconciles Shadowdark Core
+and the managed Enhancer Actor source once per module version; a successful
+Importer Hub monster create/replace reconciles the managed Enhancer Actor source.
+Automatic syncs queue behind an in-progress refresh. The interactive refresh
+remains available for reviewed recovery. Identical spell definitions consolidate
+with all source monsters recorded. Automatically maintained entries use `Spell
+Name - Monster Name`; same-name definitions that differ remain separate and add
+tier/source detail when needed. Generated entries with curated edits preserve both
+their content and edited name and are marked as conflicts; stale entries are
+reported but never deleted. Validation warnings report suspicious DC, dice,
+duration, and damage-formula mismatches without rewriting source content.
 
 ## `monsterCreator` / `forge`
 

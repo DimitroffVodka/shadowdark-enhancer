@@ -316,6 +316,17 @@ export function registerSettings() {
     scope: "world", config: false, type: String, default: "",
   });
 
+  // Last module version whose automatic Monster Spell library refresh completed
+  // in this world (#54/#75). Empty means it has never run. The refresh is
+  // skipped entirely while this equals the running module version, and the stamp
+  // advances only after a complete successful refresh — so a failed run is
+  // retried on the next activation rather than being remembered as done.
+  // Clearing it forces exactly one more automatic run; the manual
+  // Build / Refresh action stays available either way.
+  game.settings.register(MODULE_ID, "monsterSpellSyncVersion", {
+    scope: "world", config: false, type: String, default: "",
+  });
+
   game.settings.register(MODULE_ID, "encounterRollGMOnly", {
     name: "SDE.settings.encounterRollGMOnly.name",
     hint: "SDE.settings.encounterRollGMOnly.hint",

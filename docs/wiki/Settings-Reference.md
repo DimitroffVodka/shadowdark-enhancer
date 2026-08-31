@@ -261,14 +261,17 @@ Stored as settings because that is where world-scoped state lives in Foundry.
 | `tokenArtCompendium` | Whether the compendium-art overlay is on |
 | `lootSetupSeen` | Whether the first-run loot nudge has been shown |
 | `backfillVersion` | Last module version whose monster backfill ran in this world |
+| `monsterSpellSyncVersion` | Last module version whose automatic Monster Spell Library refresh completed in this world |
 | `downtimeContent` | The downtime outcome text you unlocked, per source book. Written by the Importer's **Downtime** import type, read by the [Downtime](Downtime.md) window |
 | `downtimeSession` | The live downtime session: which book, whether picks are still open, and each character's chosen activity and settled result |
 | `uniqueFeatureTableUuid` | The bound unique-feature table |
 
-> **`backfillVersion` is the one worth knowing about.** Clearing it makes the
-> automatic monster backfill re-run on the next world load. That sweep is
-> idempotent and non-destructive, so re-running it is safe if you suspect
-> imported monsters are stale.
+> **`backfillVersion` and `monsterSpellSyncVersion` are the ones worth knowing about.**
+> Clearing `backfillVersion` makes the automatic monster backfill re-run on the next
+> world load. That sweep is idempotent and non-destructive, so re-running it is safe
+> if you suspect imported monsters are stale. Similarly, clearing `monsterSpellSyncVersion`
+> forces the automatic Monster Spell refresh to re-run from Core and the managed
+> Actors pack on the next world load.
 
 ---
 

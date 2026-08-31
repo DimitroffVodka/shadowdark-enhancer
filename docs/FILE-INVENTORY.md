@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-807 tracked files · ~117,900 lines of code/markup across scripts+templates+styles+test.
+809 tracked files · ~118,700 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 780 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 770 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -63,7 +63,7 @@
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 444 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 455 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 389 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -129,6 +129,7 @@
 | `monster-spell-library-core.mjs` | 496 | Pure extraction, validation, identity, materialization, and refresh reconciliation for embedded monster spells. |
 | `monster-spell-library.mjs` | 499 | Foundry adapter for GM-controlled Monster Spell Library preview, build, and refresh. |
 | `monster-spell-pack-migration.mjs` | 460 | One-way consolidation of the retired world.shadowdark-enhancer--monster-spells pack into the managed Items pack, verified before the legacy pack is emptied. |
+| `monster-spell-update-gate.mjs` | 255 | The automatic Monster Spell startup worker: legacy consolidation every activation, Core + managed Enhancer Actors refresh once per module version, active GM checked at fire time, version stamp advanced only after a complete successful refresh, and the refresh deferred with a warning while a failed consolidation leaves content in the retired pack. |
 | `spell-index.mjs` | 249 | Lightweight Spell index (compendium indices, not documents). |
 | `npc-moves.mjs` | 16 | Canonical NPC movement keys with a pre-config fallback. |
 | `npc-statblock.mjs` | 125 | Builds the formatted `system.notes` statblock HTML. |
