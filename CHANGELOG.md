@@ -290,6 +290,17 @@
   either spelling now counts as present. And when the extracted pages hold no
   statblock, the importer says so and names the pages to grab instead of quietly
   creating the wrong kind of document.
+- **Imported Mounts now file into a stable `Mounts` folder.** Whether imported
+  individually or together via **Import everything** / **Import all N in Mounts**,
+  every newly imported Mount Actor is placed in one direct `Mounts` folder inside
+  the managed Actors pack (`world.shadowdark-enhancer--actors` / `sde-actors`),
+  rather than under a source folder. The folder is created once and reused; concurrent calls on the same client
+  share the in-flight create. Reimporting reuses the folder and skips an existing
+  case-insensitive same-name Mount without replacing or moving it; a per-mount
+  failure leaves that name missing and retryable without duplicating the
+  successes. Boats and ordinary monsters keep their existing source-folder
+  placement. Already-imported Mounts are not moved. No new API, setting, or
+  pack/selection contract.
 - **Importing the Basic Gear table no longer mints a Coin and a Gem.** Both sit
   in the book's gear table next to real equipment, so the importer took them for
   gear and created them as items — worth `0 gp`, because the table prices them
