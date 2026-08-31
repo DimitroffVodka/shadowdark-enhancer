@@ -55,7 +55,7 @@ import { parseItem } from "./importer/items/item-parser.mjs";
 import { ItemImporter } from "./importer/items/item-importer.mjs";
 // Curated-icon maps register themselves on import (A4). Loaded here, once and
 // unconditionally, so every consumer sees the same registry regardless of which
-// of them happens to be reached first. Registers nothing until a map ships.
+// of them happens to be reached first. Each map module owns its data rows.
 import "./shared/curated-icon-maps/index.mjs";
 import { MonsterLinker } from "./importer/monsters/monster-linker.mjs";
 import { LootLinker } from "./loot/loot-linker.mjs";
