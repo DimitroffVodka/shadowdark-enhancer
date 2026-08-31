@@ -196,7 +196,7 @@ test("A4 discovery registration exposes Basic Gear through the live registry", (
   assert.equal(registry.bare.get("traveler's lamp"), "icons/sundries/lights/lantern-bullseye-signal-copper.webp");
 });
 
-test("the composed D1-D3 discovery registry has exactly 94 collision-free bare rows", () => {
+test("the composed discovery registry keeps exactly 94 collision-free bare rows", () => {
   const registry = curatedIconRegistry();
   const report = auditCuratedIconRegistry(registry);
   const expectedKeys = new Set([
@@ -207,9 +207,9 @@ test("the composed D1-D3 discovery registry has exactly 94 collision-free bare r
 
   assert.equal(ARMOR_ICONS.entries.size + BASIC_GEAR_ICONS.entries.size + WEAPON_ICONS.entries.size, 94);
   assert.equal(expectedKeys.size, 94, "D1-D3 maps must not claim the same normalized bare key");
-  assert.equal(report.total, 94);
+  assert.equal(report.total, 114, "94 bare D1-D3 rows plus 20 sourced D4 rows");
   assert.equal(report.bare, 94);
-  assert.equal(report.sourced, 0);
+  assert.equal(report.sourced, 20);
   assert.deepEqual(report.problems, []);
   assert.deepEqual(report.crossSpaceNames, []);
   assert.deepEqual([...registry.bare.keys()].sort(), [...expectedKeys].sort());
@@ -218,16 +218,17 @@ test("the composed D1-D3 discovery registry has exactly 94 collision-free bare r
     [
       { label: "armor", space: "bare", entries: 13 },
       { label: "basic-gear", space: "bare", entries: 44 },
+      { label: "sea-wolf-plunder", space: "sourced", entries: 20 },
       { label: "weapons", space: "bare", entries: 37 },
     ],
   );
 });
 
-test("the composed D1-D3 registry resolves all 94 rows against the real Foundry inventory", { skip: INVENTORY_SKIP_REASON }, () => {
+test("the composed registry resolves every curated row against the real Foundry inventory", { skip: INVENTORY_SKIP_REASON }, () => {
   assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
   const report = auditCuratedIconRegistry(curatedIconRegistry(), { pathExists });
 
-  assert.equal(report.total, 94);
+  assert.equal(report.total, 114);
   assert.deepEqual(report.problems, []);
 });
 
