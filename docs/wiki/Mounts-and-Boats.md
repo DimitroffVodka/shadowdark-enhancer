@@ -39,7 +39,7 @@ occupant machinery works without changing the system's data model.
 
 ## Boat
 
-A party-like container with four tabs:
+A party-like container with five tabs:
 
 | Tab | Contents |
 |---|---|
@@ -47,7 +47,7 @@ A party-like container with four tabs:
 | **Passengers & Crew** | Occupants. Drop actors onto it, and each row has a **role** selector (Passenger / Captain / Gunner / Crew) |
 | **Cargo** | Inventory, tracked against cargo slots |
 | **Weapons** | Mounted siege weapons, dragged from a compendium (up to 2). Each has **Attack** / **Damage** roll buttons |
-| **Description** | Free text |
+| **Description** | Free text notes and vessel background, styled on a high-contrast parchment surface for readability across light and dark themes |
 
 ### Crew roles
 
@@ -92,6 +92,13 @@ Overview carries helpers for a vessel taking on water: **begin sinking**,
 Passengers don't use cargo slots. They are limited by the vessel's **HP-derived
 capacity** instead, and the sheet reports the remaining headroom separately from
 cargo slot use.
+
+### Description
+
+The **Description** tab provides a free-form notes area for vessel lore, port
+history, and GM tracking. It is rendered on a dedicated light parchment surface
+with high-contrast dark ink to ensure readability across light and dark Foundry
+UI themes.
 
 ---
 

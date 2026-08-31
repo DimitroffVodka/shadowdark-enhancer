@@ -59,6 +59,13 @@
   are safe and idempotent on re-run.
 
 ### Fixed
+- **Boat sheet description text has readable contrast across all themes.** On
+  dark Foundry themes, opening a Boat actor's **Description** tab showed dark
+  text against a dark inherited background, making notes nearly unreadable.
+  The description text area now uses an explicit parchment surface with dedicated
+  dark ink and focus states scoped strictly to the Boat sheet,
+  restoring clear readability across light and dark themes without affecting
+  other sheets.
 - **Martial Training no longer vanishes from the Downtime window.** When a
   character's class hit die couldn't be read — a level 0 character who hasn't
   picked a class yet, or a class item that won't load — the whole activity
