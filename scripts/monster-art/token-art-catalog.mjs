@@ -1,5 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
+import { normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
 
 /**
  * Token Art Catalog — discovers every art source that can skin the
@@ -481,11 +482,24 @@ export class TokenArtCatalog {
   static async buildLibrary() {
     const configured = Object.entries(this.LIBRARY_DIRS).map(([id, cfg]) => ({ id, ...cfg }));
     const autos = await this._discoverPf2eTokenModules();
-    const sources = [...configured, ...autos];
+    // Named folders are deliberately Browse-only. They never enter
+    // discoverSources(), build(), or _sourceArt(), so adding a folder cannot
+    // silently introduce automatic name matching or change Apply's defaults.
+    const manualFolders = normalizeTokenArtManagerState(
+      game.settings.get(MODULE_ID, "tokenArtManager")
+    ).folders.map((folder) => ({
+      id: tokenArtFolderSourceId(folder),
+      label: folder.label,
+      root: folder.path,
+      kind: "manual-folder",
+    }));
+    const installed = [...configured, ...autos];
     // Known-priority sources first; browser-only extras (iconics, extra token
-    // modules) append in discovery order.
-    const priority = this.resolvePriority(sources.map((s) => s.id));
-    sources.sort((a, b) => priority.indexOf(a.id) - priority.indexOf(b.id));
+    // modules) append in discovery order. Manual folders append in the order
+    // the GM configured them and are not part of source priority.
+    const priority = this.resolvePriority(installed.map((s) => s.id));
+    installed.sort((a, b) => priority.indexOf(a.id) - priority.indexOf(b.id));
+    const sources = [...installed, ...manualFolders];
 
     const out = [];
     for (const s of sources) {
@@ -545,7 +559,9 @@ export class TokenArtCatalog {
   /** Merge the saved priority with any newly-discovered source ids (defaults
    *  slot known sources first, unknown ones append). */
   static resolvePriority(discoveredIds) {
-    const saved = game.settings.get(MODULE_ID, "tokenArtManager")?.priority ?? [];
+    const saved = normalizeTokenArtManagerState(
+      game.settings.get(MODULE_ID, "tokenArtManager")
+    ).priority;
     const ordered = [];
     for (const id of saved) if (discoveredIds.includes(id) && !ordered.includes(id)) ordered.push(id);
     for (const id of this.DEFAULT_PRIORITY) if (discoveredIds.includes(id) && !ordered.includes(id)) ordered.push(id);
@@ -562,7 +578,7 @@ export class TokenArtCatalog {
    * Returns { tables, chosen: {id:source|"__manual__"}, stats }.
    */
   static resolve(catalog) {
-    const state = game.settings.get(MODULE_ID, "tokenArtManager") ?? {};
+    const state = normalizeTokenArtManagerState(game.settings.get(MODULE_ID, "tokenArtManager"));
     const overrides = state.overrides ?? {};
     const picks = state.picks ?? {};
     // Rank options by the CURRENT priority rather than trusting the catalog's
@@ -635,6 +651,12 @@ export class TokenArtCatalog {
     for (const s of this.FOLDER_SOURCES) if (s.tokenDir) prefixes.add(`modules/${s.id}/`);
     for (const s of this.FILEMAP_SOURCES) if (s.tokenRoot) prefixes.add(s.tokenRoot);
     for (const [id, cfg] of Object.entries(this.MAPPING_FOLDERS)) if (cfg.tokenDir) prefixes.add(`modules/${id}/`);
+    // A manual Browse pick is manager-owned art too. Include its configured
+    // roots so Re-skin placed can switch between managed sources while still
+    // leaving arbitrary hand-authored paths untouched.
+    for (const folder of normalizeTokenArtManagerState(
+      game.settings.get(MODULE_ID, "tokenArtManager")
+    ).folders) prefixes.add(folder.path.endsWith("/") ? folder.path : `${folder.path}/`);
     return [...prefixes];
   }
 }

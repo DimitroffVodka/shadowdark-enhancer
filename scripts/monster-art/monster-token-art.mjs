@@ -1,5 +1,6 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findMonsterPack } from "../importer/monsters/monster-pack.mjs";
+import { normalizeTokenArtManagerState } from "./token-art-manager-state.mjs";
 
 /**
  * Monster Token Art — re-skin Shadowdark NPC tokens/portraits with art from a
@@ -197,14 +198,16 @@ export class MonsterTokenArt {
       default: false,
     });
     // Token Art Manager state: source priority order + per-monster overrides +
-    // hand-picked images ({ priority: [sourceId], overrides: { monsterId: sourceId },
-    // picks: { monsterId: { source, file, token, portrait, tokenObj } } }). Managed
-    // by the manager app, not the settings UI.
+    // hand-picked images + named manual Browse folders ({ priority: [sourceId],
+    // overrides: { monsterId: sourceId }, picks: { monsterId: { source, file,
+    // token, portrait, tokenObj } }, folders: [{ label, path }] }). Managed by
+    // the manager app, not the settings UI. The normalizer is additive so old
+    // worlds and future fields survive the setting round-trip.
     game.settings.register(MODULE_ID, "tokenArtManager", {
       scope: "world",
       config: false,
       type: Object,
-      default: { priority: [], overrides: {}, picks: {} },
+      default: normalizeTokenArtManagerState({ priority: [], overrides: {}, picks: {}, folders: [] }),
     });
   }
 

@@ -1,6 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { TokenArtCatalog } from "./token-art-catalog.mjs";
+import { normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -22,6 +23,9 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     actions: {
       sourceUp: TokenArtManagerApp._onSourceMove,
       sourceDown: TokenArtManagerApp._onSourceMove,
+      folderAdd: TokenArtManagerApp._onFolderAdd,
+      folderEdit: TokenArtManagerApp._onFolderEdit,
+      folderRemove: TokenArtManagerApp._onFolderRemove,
       choose: TokenArtManagerApp._onChoose,
       clearRow: TokenArtManagerApp._onClearRow,
       browse: TokenArtManagerApp._onBrowse,
@@ -54,14 +58,18 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   async close(opts) { TokenArtManagerApp._instance = null; return super.close(opts); }
 
-  _state() { return game.settings.get(MODULE_ID, "tokenArtManager") ?? { priority: [], overrides: {}, picks: {} }; }
+  _state() {
+    return normalizeTokenArtManagerState(game.settings.get(MODULE_ID, "tokenArtManager"));
+  }
   async _saveState(patch) {
     // Shallow top-level replace — every caller passes the complete `priority`
     // array or `overrides` object. A recursive mergeObject would *keep* keys
     // absent from the patch (performDeletions defaults to false), so clearing
     // an override or resetting all would silently no-op.
     const cur = this._state();
-    await game.settings.set(MODULE_ID, "tokenArtManager", { ...cur, ...patch });
+    const next = normalizeTokenArtManagerState({ ...cur, ...patch });
+    await game.settings.set(MODULE_ID, "tokenArtManager", next);
+    return next;
   }
 
   async _prepareContext() {
@@ -72,6 +80,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const picks = state.picks ?? {};
     const order = TokenArtCatalog.resolvePriority(cat.sources.map((s) => s.id));
     const sourceById = Object.fromEntries(cat.sources.map((s) => [s.id, s]));
+    const folderById = Object.fromEntries(state.folders.map((folder) => [tokenArtFolderSourceId(folder), folder]));
     const orderedSources = order.map((id) => sourceById[id]).filter(Boolean);
 
     // resolved choice + per-source tally
@@ -82,7 +91,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     // CS/WR monsters), which get only a "Browse…" affordance. The search box +
     // conflicts toggle filter the DOM client-side (no re-render) so typing never
     // loses focus.
-    const srcLabel = (id) => sourceById[id]?.label ?? id;
+    const srcLabel = (id) => sourceById[id]?.label ?? folderById[id]?.label ?? id;
     const rows = [];
     for (const m of cat.byMonster) {
       const chosen = res.chosen[m.id];
@@ -115,6 +124,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         isLast: i === orderedSources.length - 1,
       })),
       rows,
+      folders: state.folders,
       stats: res.stats,
       enabled,
       filter: this._filter,
@@ -221,6 +231,107 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   // ---- actions --------------------------------------------------------------
+  /** Probe a user-entered data folder without letting FilePicker failures
+   * escape into the manager or browser. An empty folder is readable and is
+   * accepted; _browseTree will find images in any child directories later. */
+  static async _probeFolder(path) {
+    try {
+      const result = await MonsterTokenArt.FilePickerCls.browse("data", path);
+      return !!result && (Array.isArray(result.files) || Array.isArray(result.dirs));
+    } catch (error) {
+      console.debug(`${MODULE_ID} | token art: folder is not readable "${path}":`, error?.message ?? error);
+      return false;
+    }
+  }
+
+  /** Add or edit one named Browse folder. The dialog only writes after a
+   * successful local FilePicker probe, so a typo cannot poison the setting. */
+  static async _editFolder(index = null) {
+    if (!game.user.isGM) return false;
+    const state = this._state();
+    const parsedIndex = Number.isInteger(index) ? index : Number.parseInt(index, 10);
+    const editing = Number.isInteger(parsedIndex) && parsedIndex >= 0 ? state.folders[parsedIndex] : null;
+    const DialogV2 = foundry.applications?.api?.DialogV2;
+    if (!DialogV2?.prompt) {
+      ui.notifications.error("Token Art Manager needs Foundry's dialog API to edit Browse folders.");
+      return false;
+    }
+    const esc = foundry.utils.escapeHTML;
+    const result = await DialogV2.prompt({
+      window: { title: editing ? "Edit Token Art Browse Folder" : "Add Token Art Browse Folder" },
+      content: `<div class="sde-tam-folder-form">
+        <label>Label<input type="text" name="label" value="${esc(editing?.label ?? "")}" maxlength="120" autofocus></label>
+        <label>Data folder path<input type="text" name="path" value="${esc(editing?.path ?? "")}" placeholder="modules/my-token-pack/tokens" spellcheck="false"></label>
+        <p class="notes">Enter a folder under Foundry's Data directory. Images in child folders are included when you Browse.</p>
+      </div>`,
+      ok: {
+        label: "Save",
+        callback: (_event, button) => ({
+          label: button.form.elements.label.value,
+          path: button.form.elements.path.value,
+        }),
+      },
+      rejectClose: false,
+    }).catch(() => null);
+    if (!result) return false;
+
+    const label = String(result.label ?? "").trim();
+    const path = String(result.path ?? "").trim();
+    if (!label || !path) {
+      ui.notifications.warn("A Browse folder needs both a label and a data folder path.");
+      return false;
+    }
+    const folders = state.folders.map((folder) => ({ ...folder }));
+    const duplicate = folders.findIndex((folder, i) => i !== parsedIndex && folder.path === path);
+    if (duplicate >= 0) {
+      ui.notifications.warn(`That data folder is already listed as “${folders[duplicate].label}”.`);
+      return false;
+    }
+    if (!(await TokenArtManagerApp._probeFolder(path))) {
+      ui.notifications.error(`Could not read the Browse folder “${path}”. Check the path and your file permissions.`);
+      return false;
+    }
+
+    if (editing) folders[parsedIndex] = { ...editing, label, path };
+    else folders.push({ label, path });
+    await this._saveState({ folders });
+    // Both catalogs are disk-backed and must not retain a removed/edited root.
+    this._catalog = null;
+    this._library = null;
+    await this.render({ parts: ["body"] });
+    ui.notifications.info(`${editing ? "Updated" : "Added"} Browse folder “${label}”.`);
+    return true;
+  }
+
+  static async _onFolderAdd() { return TokenArtManagerApp._editFolder.call(this); }
+
+  static async _onFolderEdit(_event, target) {
+    return TokenArtManagerApp._editFolder.call(this, Number.parseInt(target.dataset.folder, 10));
+  }
+
+  static async _onFolderRemove(_event, target) {
+    if (!game.user.isGM) return false;
+    const index = Number.parseInt(target.dataset.folder, 10);
+    const state = this._state();
+    const folder = state.folders[index];
+    if (!folder) return false;
+    const DialogV2 = foundry.applications?.api?.DialogV2;
+    if (!DialogV2?.confirm) return false;
+    const confirmed = await DialogV2.confirm({
+      window: { title: "Remove Token Art Browse Folder" },
+      content: `<p>Remove the Browse folder <strong>${foundry.utils.escapeHTML(folder.label)}</strong>?</p>`,
+      rejectClose: false,
+    }).catch(() => false);
+    if (!confirmed) return false;
+    const folders = state.folders.filter((_entry, i) => i !== index);
+    await this._saveState({ folders });
+    this._catalog = null;
+    this._library = null;
+    await this.render({ parts: ["body"] });
+    ui.notifications.info(`Removed Browse folder “${folder.label}”.`);
+    return true;
+  }
+
   static async _onSourceMove(event, target) {
     const id = target.dataset.source;
     const dir = target.dataset.action === "sourceUp" ? -1 : 1;

@@ -29,6 +29,23 @@
     </div>
   </header>
 
+  <div class="sde-tam-folders">
+    <div class="sde-tam-folders-head">
+      <div class="sde-tam-sources-title">Manual Browse folders <span class="sde-tam-dim">(Browse-only; never used for automatic matching)</span></div>
+      <button type="button" data-action="folderAdd" class="sde-tam-folder-add"><i class="fa-solid fa-plus"></i> Add folder</button>
+    </div>
+    {{#each folders}}
+    <div class="sde-tam-folder" data-folder="{{@index}}">
+      <div class="sde-tam-folder-name">{{label}}</div>
+      <code class="sde-tam-folder-path">{{path}}</code>
+      <button type="button" data-action="folderEdit" data-folder="{{@index}}" title="Edit folder"><i class="fa-solid fa-pen"></i></button>
+      <button type="button" data-action="folderRemove" data-folder="{{@index}}" title="Remove folder"><i class="fa-solid fa-trash"></i></button>
+    </div>
+    {{else}}
+    <div class="sde-tam-folder-empty">No manual folders yet. Add a token-art folder to make it available in Browse.</div>
+    {{/each}}
+  </div>
+
   <div class="sde-tam-sources">
     <div class="sde-tam-sources-title">Source priority <span class="sde-tam-dim">(highest wins where a monster has art in more than one)</span></div>
     {{#each sources}}
