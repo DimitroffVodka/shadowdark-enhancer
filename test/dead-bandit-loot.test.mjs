@@ -245,7 +245,7 @@ test("Dead Bandit map is exactly twenty sourced rows with the reviewed paths", (
 test("A4 discovery registers Dead Bandit art in the CS2 sourced space", () => {
   const registry = curatedIconRegistry();
   assert.ok(registry.maps.includes(DEAD_BANDIT_LOOT_ICONS));
-  assert.equal(registry.sourced.size, 40);
+  assert.equal(registry.sourced.size, 60);
   assert.equal(registry.bare.size, 94);
   assert.equal(resolveCuratedIcon({ name: "Unopened bottle of exceptionally potent Murgazi wine", source: "CS2" }), DEAD_BANDIT_LOOT_ROWS[9].img);
   assert.equal(resolveCuratedIcon({ name: "Unopened bottle of exceptionally potent Murgazi wine", source: "CS3" }), null);
@@ -264,9 +264,9 @@ test("the Dead Bandit map passes the real Foundry icon path gate", { skip: INVEN
 
 test("all composed curated maps remain collision-free after D5", () => {
   const report = auditCuratedIconRegistry(curatedIconRegistry());
-  assert.equal(report.total, 134);
+  assert.equal(report.total, 154);
   assert.equal(report.bare, 94);
-  assert.equal(report.sourced, 40);
+  assert.equal(report.sourced, 60);
   assert.deepEqual(report.problems, []);
   assert.deepEqual(report.crossSpaceNames, []);
 });

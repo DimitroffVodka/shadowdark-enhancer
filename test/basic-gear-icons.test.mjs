@@ -230,7 +230,7 @@ test("the composed registry resolves every curated row against the real Foundry 
   assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
   const report = auditCuratedIconRegistry(curatedIconRegistry(), { pathExists });
 
-  assert.equal(report.total, 134);
+  assert.equal(report.total, 154);
   assert.deepEqual(report.problems, []);
 });
 
