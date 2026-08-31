@@ -19,12 +19,13 @@ test("the public API exposes Monster Spell Library preview, refresh, and source 
   assert.match(docs, /Build\/Refresh Monster Spells/);
 });
 
-test("ready schedules a primary-GM Core Monster Spell synchronization", async () => {
+test("ready schedules the GM-only Monster Spell update gate, not a per-activation sync", async () => {
   const entry = await read("scripts/shadowdark-enhancer.mjs");
-  assert.match(
-    entry,
-    /syncMonsterSpellLibrary\(\{\s*game,\s*sourceIds:\s*\["shadowdark\.monsters"\]\s*\}\)/,
-  );
+  assert.match(entry, /runMonsterSpellUpdateGate\(\{\s*game\s*\}\)/);
+  // The entry point must not reach past the gate and start a refresh of its own:
+  // that is what made the library rebuild on every activation (#75).
+  assert.doesNotMatch(entry, /syncMonsterSpellLibrary\(/);
+  assert.doesNotMatch(entry, /migrateMonsterSpellPack\(/);
 });
 
 test("Monster Importer syncs generated spells after creating or replacing monsters", async () => {
