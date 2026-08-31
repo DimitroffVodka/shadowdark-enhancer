@@ -113,6 +113,14 @@ matters, because the Manage tree's census is keyed on the short form. An import
 filed under the wrong label will show as a gap forever while a duplicate all-caps
 folder sits beside it.
 
+Specialized sub-folders are created under their respective source roots when
+needed:
+- **`Monster Spells / <source>`** inside `sde-items` for generated monster spells.
+- **`Western Reaches / Weapon Properties`** inside `sde-items` for imported siege
+  weapon properties (*Blast* and *Exploding*). Legacy root properties are moved
+  into this folder in place on re-import without changing document UUIDs. Ordinary
+  weapons and gear remain in their standard folder locations.
+
 ## Link resolution
 
 `@UUID` links resolve to the **system's own `shadowdark.*` packs first**, and

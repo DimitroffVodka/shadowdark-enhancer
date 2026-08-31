@@ -146,8 +146,8 @@ class HubCommitMethods {
     // Siege weapons carry Blast/Exploding — not in the core properties pack.
     // Materialize them as Property items + stamp UUIDs before the create.
     if (drafts.some((d) => d.siegeProperties?.length)) {
-      const { resolveSiegeProperties } = await import("./boats/siege-importer.mjs");
-      await resolveSiegeProperties(drafts);
+      const { prepareSiegeProperties } = await import("./boats/siege-importer.mjs");
+      if (!(await prepareSiegeProperties(drafts))) return;
     }
     const { ItemImporter } = await import("./items/item-importer.mjs");
     const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
@@ -595,6 +595,14 @@ class HubCommitMethods {
     if (hasItems) {
       const { ItemImporter } = await import("./items/item-importer.mjs");
       const drafts = this._importItems.map((p) => p.draft);
+      // Keep Commit All (used by Import everything) on the same siege-property
+      // preparation path as the dedicated Items commit. Otherwise the weapon
+      // drafts still commit, but their Blast/Exploding Property items are never
+      // materialized or foldered.
+      if (drafts.some((d) => d.siegeProperties?.length)) {
+        const { prepareSiegeProperties } = await import("./boats/siege-importer.mjs");
+        if (!(await prepareSiegeProperties(drafts))) return;
+      }
       const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
       if (result) {
         parts.push(`items: ${ImporterHubApp._commitSummary(result)}`);

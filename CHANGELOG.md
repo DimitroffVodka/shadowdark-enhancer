@@ -113,6 +113,17 @@
   are safe and idempotent on re-run.
 
 ### Fixed
+- **Western Reaches siege weapon properties now live in their own dedicated folder.**
+  When importing siege weapons (*Western Reaches* p119), the generated *Blast* and
+  *Exploding* weapon property items are now filed cleanly into `Shadowdark Enhancer — Items`
+  under `Western Reaches / Weapon Properties` instead of landing loose at pack root.
+  Both individual Items commit and batch *Import everything* / *Commit All* share this
+  preparation prepass so property items are always properly materialized and foldered.
+  On re-import or when updating an existing library, legacy same-name property documents
+  at the pack root are moved into the folder in place, preserving their document UUIDs,
+  system descriptions, and GM edits without creating duplicate folders or duplicate
+  items. Ordinary weapon items and unrelated gear continue to follow their existing folder
+  locations.
 - **Boat sheet description text has readable contrast across all themes.** On
   dark Foundry themes, opening a Boat actor's **Description** tab showed dark
   text against a dark inherited background, making notes nearly unreadable.
