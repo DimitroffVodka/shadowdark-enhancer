@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-810 tracked files · ~119,100 lines of code/markup across scripts+templates+styles+test.
+810 tracked files · ~119,300 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -301,7 +301,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `monster-token-art.mjs` | 726 | Applies licensed art to monsters **by path reference**, never bundled. |
-| `token-art-catalog.mjs` | 621 | Name→art matching catalog. |
+| `token-art-catalog.mjs` | 640 | Name→art matching catalog. |
 | `token-art-manager-app.mjs` | 427 | GM window to review/apply matches. |
 
 ### 3.16 `scripts/pdf-export/`

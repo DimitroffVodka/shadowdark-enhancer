@@ -144,6 +144,16 @@
   lower full-width bands from the prose gutter check and tolerates sub-point overhangs
   for words centered cleanly in their column, eliminating false alarms while preserving
   visible warnings for genuine column-split text corruption.
+- **Token Art Manager imported-monster census and placed-token resolution hardened.**
+  Managed imported NPCs in `sde-actors` (e.g. Cursed Scroll and Western Reaches
+  monsters) have their catalog census ingestion hardened to handle both Array
+  and Collection-shaped index payloads, case-insensitive NPC type checks, and
+  per-pack ID deduplication, ensuring non-NPC actors (boats/mounts) remain
+  cleanly excluded. Same-name Core and imported monsters remain distinct
+  provenance-tagged rows with independent picks and Browse access for
+  zero-suggestion rows. Placed-token resolution by name (`resolveByName`)
+  uses Core-first precedence when both rows have art while correctly falling
+  back to an imported pick when Core has no configured art.
 - **Martial Training no longer vanishes from the Downtime window.** When a
   character's class hit die couldn't be read — a level 0 character who hasn't
   picked a class yet, or a class item that won't load — the whole activity

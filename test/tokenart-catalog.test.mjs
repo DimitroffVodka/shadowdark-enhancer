@@ -13,9 +13,22 @@ globalThis.game = {
   scenes: { active: null },
 };
 globalThis.ui = { notifications: { warn() {}, info() {}, error() {} } };
+globalThis.foundry = {
+  applications: {
+    api: {
+      ApplicationV2: class {},
+      HandlebarsApplicationMixin: (Base) => class extends Base {},
+    },
+  },
+  utils: {
+    deepClone: (value) => structuredClone(value),
+    escapeHTML: (value) => String(value ?? ""),
+  },
+};
 
 const { TokenArtCatalog } = await import("../scripts/monster-art/token-art-catalog.mjs");
 const { MonsterTokenArt } = await import("../scripts/monster-art/monster-token-art.mjs");
+const { TokenArtManagerApp } = await import("../scripts/monster-art/token-art-manager-app.mjs");
 
 // --- helpers ---------------------------------------------------------------
 const opt = (source, tag) => ({
@@ -71,6 +84,55 @@ test("reorder sorts each monster's options into priority order", () => {
   assert.deepEqual(c.byMonster[0].options.map((o) => o.source), ["src-a", "src-b"]);
 });
 
+test("the managed-pack census keeps one NPC row per id and skips non-monsters", () => {
+  const rows = TokenArtCatalog._monsterEntries([
+    { _id: "boat", name: "Canoe", type: "shadowdark-enhancer.boat" },
+    { _id: "core", name: "Goblin", type: "NPC" },
+    { _id: "core", name: "Goblin", type: "NPC" },
+    { _id: "imported", name: "Goblin", type: "npc" },
+  ], "world.sde-actors");
+  assert.deepEqual(rows, [
+    { id: "core", name: "Goblin", pack: "world.sde-actors" },
+    { id: "imported", name: "Goblin", pack: "world.sde-actors" },
+  ]);
+});
+
+test("build preserves Core/imported provenance and zero-option imported rows", async () => {
+  const original = {
+    presentPacks: MonsterTokenArt.presentPacks,
+    discoverSources: TokenArtCatalog.discoverSources,
+    sourceArt: TokenArtCatalog._sourceArt,
+    packs: globalThis.game.packs,
+  };
+  const packs = {
+    "shadowdark.monsters": { getIndex: async () => [{ _id: "core-goblin", name: "Goblin", type: "NPC" }] },
+    "world.sde-actors": { getIndex: async () => [
+      { _id: "imported-goblin", name: "Goblin", type: "NPC" },
+      { _id: "imported-moth", name: "Ashen Moth", type: "NPC" },
+      { _id: "boat", name: "Canoe", type: "shadowdark-enhancer.boat" },
+    ] },
+  };
+  MonsterTokenArt.presentPacks = () => Object.keys(packs);
+  TokenArtCatalog.discoverSources = async () => [{ id: "src-a", label: "Source A", kind: "folder" }];
+  TokenArtCatalog._sourceArt = async (_source, monsters) => Object.fromEntries(
+    monsters.filter((m) => m.name === "Goblin").map((m) => [m.id, opt("src-a", m.id)])
+  );
+  globalThis.game.packs = { get: (id) => packs[id] };
+  try {
+    const built = await TokenArtCatalog.build();
+    assert.deepEqual(built.byMonster.map((m) => ({ id: m.id, name: m.name, pack: m.pack, options: m.options.length })), [
+      { id: "imported-moth", name: "Ashen Moth", pack: "world.sde-actors", options: 0 },
+      { id: "core-goblin", name: "Goblin", pack: "shadowdark.monsters", options: 1 },
+      { id: "imported-goblin", name: "Goblin", pack: "world.sde-actors", options: 1 },
+    ]);
+  } finally {
+    MonsterTokenArt.presentPacks = original.presentPacks;
+    TokenArtCatalog.discoverSources = original.discoverSources;
+    TokenArtCatalog._sourceArt = original.sourceArt;
+    globalThis.game.packs = original.packs;
+  }
+});
+
 // --- resolveByName(): name → chosen art for re-skinning placed tokens ------
 test("resolveByName maps monster names to the chosen art", () => {
   SETTINGS = { priority: ["src-a", "src-b"], overrides: {} };
@@ -79,6 +141,79 @@ test("resolveByName maps monster names to the chosen art", () => {
   assert.deepEqual([...byName.keys()], ["Goblin"]);
   assert.equal(byName.get("Goblin").tokenObj.texture.src, "tok/src-a");
   assert.equal(byName.get("Goblin").portrait, "port/src-a");
+});
+
+test("resolveByName keeps Core art ahead of a same-name imported row", () => {
+  SETTINGS = { priority: ["src-b", "src-a"], overrides: {}, picks: {} };
+  const c = cat([
+    { id: "core", name: "Goblin", pack: "shadowdark.monsters", options: [opt("src-a", "core")] },
+    { id: "imported", name: "Goblin", pack: "world.sde-actors", options: [opt("src-b", "imported")] },
+  ], [{ id: "src-a" }, { id: "src-b" }]);
+  assert.equal(TokenArtCatalog.resolveByName(c).get("Goblin").tokenObj.texture.src, "tok/core");
+});
+
+test("resolveByName lets imported art fill a same-name Core row with no options", () => {
+  SETTINGS = { priority: ["src-a"], overrides: {}, picks: {} };
+  const rows = [
+    { id: "core", name: "Goblin", pack: "shadowdark.monsters", options: [] },
+    { id: "imported", name: "Goblin", pack: "world.sde-actors", options: [opt("src-a", "imported")] },
+  ];
+  for (const byMonster of [rows, [...rows].reverse()]) {
+    const byName = TokenArtCatalog.resolveByName(cat(byMonster, [{ id: "src-a" }]));
+    assert.equal(byName.get("Goblin").tokenObj.texture.src, "tok/imported");
+    assert.equal(byName.get("Goblin").portrait, "port/imported");
+  }
+});
+
+test("manager context keeps same-name imported rows and Browse-ready zero matches", async () => {
+  const state = {
+    priority: ["src-a"],
+    overrides: {},
+    picks: {
+      "imported-moth": {
+        source: "src-a", file: "moth.webp", token: "tokens/moth.webp",
+        portrait: "portraits/moth.webp", tokenObj: { texture: { src: "tokens/moth.webp" } },
+      },
+    },
+  };
+  SETTINGS = state;
+  const app = Object.create(TokenArtManagerApp.prototype);
+  app._catalog = {
+    sources: [{ id: "src-a", label: "Source A" }],
+    byMonster: [
+      { id: "core-goblin", name: "Goblin", pack: "shadowdark.monsters", options: [opt("src-a", "core")] },
+      { id: "imported-goblin", name: "Goblin", pack: "world.sde-actors", options: [] },
+      { id: "imported-moth", name: "Ashen Moth", pack: "world.sde-actors", options: [] },
+    ],
+  };
+  const context = await app._prepareContext();
+  assert.equal(context.rows.length, 3);
+  assert.deepEqual(context.rows.filter((r) => r.name === "Goblin").map((r) => ({ id: r.id, imported: r.imported })), [
+    { id: "core-goblin", imported: false },
+    { id: "imported-goblin", imported: true },
+  ]);
+  const zero = context.rows.find((r) => r.id === "imported-goblin");
+  assert.equal(zero.hasOptions, false);
+  assert.deepEqual(context.rows.find((r) => r.id === "imported-moth").pick, {
+    thumb: "tokens/moth.webp", label: "Source A", file: "moth.webp",
+  });
+});
+
+test("manager can save a manual pick for a zero-option imported row", async () => {
+  const state = { priority: [], overrides: {}, picks: {} };
+  const app = Object.create(TokenArtManagerApp.prototype);
+  app._state = () => state;
+  let saved;
+  app._saveState = async (patch) => { saved = patch; };
+  app.render = () => {};
+  await app._pickImage("imported-moth", {
+    source: "src-a", file: "moth.webp", token: "tokens/moth.webp",
+    portrait: "portraits/moth.webp", tokenObj: { texture: { src: "tokens/moth.webp" } },
+  });
+  assert.deepEqual(saved.picks["imported-moth"], {
+    source: "src-a", file: "moth.webp", token: "tokens/moth.webp",
+    portrait: "portraits/moth.webp", tokenObj: { texture: { src: "tokens/moth.webp" } },
+  });
 });
 
 // --- managedArtPrefixes(): replaceable art-source dirs ----------------------
