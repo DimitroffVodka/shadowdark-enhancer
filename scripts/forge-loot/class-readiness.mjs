@@ -436,11 +436,14 @@ function spellcastingInfo(snapshot, item, system) {
   const spellcasting = system.spellcasting ?? field(snapshot, item, "spellcasting") ?? null;
   const grid = spellcasting?.spellsknown ?? field(snapshot, item, "spellsknown", "spellGrid");
   const hasGrid = spellcasting != null && OWN.call(spellcasting, "spellsknown") || grid !== undefined;
+  const hasNonEmptyGrid = Array.isArray(grid)
+    ? grid.length > 0
+    : isObject(grid) && Object.keys(grid).length > 0;
   const sentinel = String(spellcasting?.class ?? "").trim() === "__not_spellcaster__";
   const ability = String(spellcasting?.ability ?? field(snapshot, item, "castingAbility") ?? "").trim();
   const declared = snapshot.isCaster === true || (!sentinel && (ability !== "" || spellcasting?.class !== undefined || hasGrid));
-  const malformedSentinel = sentinel && (snapshot.isCaster === true || ability !== "" || hasGrid);
-  return { spellcasting, grid, hasGrid, sentinel, ability, declared, malformedSentinel };
+  const malformedSentinel = sentinel && (snapshot.isCaster === true || ability !== "" || hasNonEmptyGrid);
+  return { spellcasting, grid, hasGrid, hasNonEmptyGrid, sentinel, ability, declared, malformedSentinel };
 }
 
 function gridRow(grid, level) {

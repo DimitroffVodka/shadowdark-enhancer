@@ -279,6 +279,22 @@ test("caster grids require ability and every level 1–6 tier, while a real non-
   assert.equal(nonCaster.eligible, true);
 });
 
+test("Foundry's schema-default empty spell grid keeps a sentinel non-caster eligible", () => {
+  const record = assessClassReadiness(validClass({ system: {
+    spellcasting: { ability: "", class: "__not_spellcaster__", spellsknown: {} },
+  } }));
+  assert.equal(record.eligible, true);
+  assert.equal(record.blockers.some((issue) => issue.code === READINESS_CODES.CASTER_SENTINEL), false);
+});
+
+test("a non-empty spell grid still blocks contradictory sentinel metadata", () => {
+  const record = assessClassReadiness(validClass({ system: {
+    spellcasting: { ability: "", class: "__not_spellcaster__", spellsknown: levelGrid() },
+  } }));
+  assert.equal(hasCode(record, READINESS_CODES.CASTER_SENTINEL), true);
+  assert.equal(record.eligible, false);
+});
+
 test("reachable REPLACEME effects use G6a choice vocabulary and unknown modal codes fail closed", () => {
   const replacement = (name) => ({ name, changes: [{ key: "system.roll.bonus.REPLACEME", value: 1 }] });
   const unknownEffect = assessClassReadiness(validClass({ talentDocs: [

@@ -217,7 +217,7 @@ function validRange(range) {
 
 function rowsForTotal(table, total) {
   if (!Array.isArray(table?.rows)) return null;
-  const matched = [];
+  const covering = [];
   for (const [rowIndex, row] of table.rows.entries()) {
     if (!validRange(row?.range)) return { invalid: true, rowIndex, range: row?.range };
     const low = Number(row.range[0]);
@@ -226,10 +226,21 @@ function rowsForTotal(table, total) {
       if (!Array.isArray(row.optionIds) || !row.optionIds.length) {
         return { invalid: true, rowIndex, range: row.range, reason: "empty-option-ids" };
       }
-      matched.push(...row.optionIds.map((id) => String(id ?? "")));
+      covering.push({
+        rowIndex,
+        range: [low, high],
+        optionIds: row.optionIds.map((id) => String(id ?? "")),
+      });
     }
   }
-  return { optionIds: matched };
+  if (covering.length > 1) {
+    return {
+      invalid: true,
+      reason: "overlapping-rows",
+      rows: covering.map(({ rowIndex, range }) => ({ rowIndex, range })),
+    };
+  }
+  return { optionIds: covering[0]?.optionIds ?? [] };
 }
 
 function replacementEntries(value) {
@@ -511,7 +522,14 @@ function rollTalentFromTable(state, tableId, level, stage = "talent-table") {
         ok: false,
         code: FAILURE.UNCOVERED,
         stage,
-        evidence: { tableId, total: rolled.total, range: rows?.range, rowIndex: rows?.rowIndex, reason: rows?.reason ?? "no-covering-row" },
+        evidence: {
+          tableId,
+          total: rolled.total,
+          range: rows?.range,
+          rowIndex: rows?.rowIndex,
+          ...(rows?.rows ? { rows: rows.rows } : {}),
+          reason: rows?.reason ?? "no-covering-row",
+        },
         attempts: [...attempts, { attempt, total: rolled.total, dice: rolled.dice }],
       };
     }

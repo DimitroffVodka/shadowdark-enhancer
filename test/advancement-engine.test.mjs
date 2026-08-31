@@ -340,6 +340,50 @@ test("invalid formulas, uncovered ranges, missing tables, and targets are tagged
   assert.equal(target.code, "invalid-target-level");
 });
 
+test("overlapping logical rows fail closed while one normalized choice row remains valid", () => {
+  const overlap = advanceMemberPlan({
+    levelOnePlan: plan(),
+    targetLevel: 3,
+    source: source({
+      tables: {
+        "table:class": table("table:class", "1d1", ["talent:a"], {
+          rows: [
+            { range: [1, 1], optionIds: ["talent:a"] },
+            { range: [1, 1], optionIds: ["talent:b"] },
+          ],
+        }),
+      },
+      items: [item("talent:a", "A"), item("talent:b", "B")],
+    }),
+    rng: sequence([0, 0]),
+  });
+  assert.equal(overlap.status, "failed");
+  assert.equal(overlap.code, "uncovered-roll");
+  assert.equal(Object.hasOwn(overlap, "actorData"), false);
+  assert.equal(overlap.evidence.reason, "overlapping-rows");
+  assert.deepEqual(overlap.evidence.rows, [
+    { rowIndex: 0, range: [1, 1] },
+    { rowIndex: 1, range: [1, 1] },
+  ]);
+
+  const choice = advanceMemberPlan({
+    levelOnePlan: plan(),
+    targetLevel: 3,
+    source: source({
+      tables: {
+        "table:class": table("table:class", "1d1", ["talent:a", "talent:b"], {
+          rows: [{ range: [1, 1], optionIds: ["talent:a", "talent:b"] }],
+        }),
+      },
+      items: [item("talent:a", "A"), item("talent:b", "B")],
+    }),
+    rng: sequence([0, 0]),
+  });
+  assert.equal(choice.status, "complete");
+  assert.equal(choice.history.at(-1).talents.length, 1);
+  assert.equal(Object.hasOwn(choice, "actorData"), true);
+});
+
 test("the same input and stream produce byte-equivalent output", () => {
   const make = () => advanceMemberPlan({
     levelOnePlan: plan(),
