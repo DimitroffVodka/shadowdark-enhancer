@@ -2,6 +2,10 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
 
+const PF_CHARACTER_GALLERY_ID = "pf2e-tokens-characters";
+const PF_CHARACTER_GALLERY_LABEL = "Pathfinder: Character Gallery";
+const PF_CHARACTER_GALLERY_CREDIT = "<em>Portrait, token, and subject artwork from the Pathfinder Tokens: Character Gallery.</em>";
+
 /**
  * Token Art Catalog — discovers every art source that can skin the
  * `shadowdark.monsters` compendium and builds a per-monster options model.
@@ -40,6 +44,18 @@ export class TokenArtCatalog {
       subjectDir: "modules/dnd-players-handbook/assets/subjects",
       tokenMapping: "modules/dnd-players-handbook/token-mapping.json",
     },
+    {
+      // Pathfinder Tokens: Character Gallery is optional and may be installed
+      // while inactive. Static assets remain browseable in that state, so the
+      // disk probe below intentionally does not inspect module.active.
+      id: PF_CHARACTER_GALLERY_ID,
+      label: PF_CHARACTER_GALLERY_LABEL,
+      tokenDir: "modules/pf2e-tokens-characters/assets/tokens",
+      portraitDir: "modules/pf2e-tokens-characters/assets/portraits",
+      subjectDir: "modules/pf2e-tokens-characters/assets/subjects",
+      tokenMapping: "modules/pf2e-tokens-characters/data/compendium-map.json",
+      credit: PF_CHARACTER_GALLERY_CREDIT,
+    },
   ];
 
   /**
@@ -65,6 +81,7 @@ export class TokenArtCatalog {
     "dnd-monster-manual",
     "dnd-players-handbook",
     "pf2e-tokens-monster-core",
+    PF_CHARACTER_GALLERY_ID,
     "dnd5e-fa",
     "shadowdark-community-tokens",
   ];
@@ -137,6 +154,15 @@ export class TokenArtCatalog {
       defaultScale: 1.45,
       subjectScale: 1.26,
     },
+    [PF_CHARACTER_GALLERY_ID]: {
+      label: PF_CHARACTER_GALLERY_LABEL,
+      root: "modules/pf2e-tokens-characters/assets/tokens",
+      present: ["modules/pf2e-tokens-characters/data/compendium-map.json"],
+      subjectDir: "modules/pf2e-tokens-characters/assets/subjects",
+      defaultScale: 1.0,
+      subjectScale: 1.0,
+      credit: PF_CHARACTER_GALLERY_CREDIT,
+    },
     "pf2e-tokens-monster-core": {
       label: "Pathfinder: Monster Core",
       root: "modules/pf2e-tokens-monster-core/assets/tokens",
@@ -179,7 +205,9 @@ export class TokenArtCatalog {
     }
     // Folder sources present on disk.
     for (const fs of this.FOLDER_SOURCES) {
-      const ok = await MonsterTokenArt.FilePickerCls.browse("data", fs.tokenDir).then((b) => b.files.length > 0).catch(() => false);
+      const ok = await MonsterTokenArt.FilePickerCls.browse("data", fs.tokenDir)
+        .then((b) => Array.isArray(b?.files) && b.files.length > 0)
+        .catch(() => false);
       if (ok) sources.push({ ...fs, kind: "folder" });
     }
     // File-map sources (disk folder tree, no shadowdark map, matched by filename).
@@ -197,7 +225,8 @@ export class TokenArtCatalog {
     const found = new Map();
     let res;
     try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (_e) { return found; }
-    for (const f of res.files ?? []) {
+    for (const f of Array.isArray(res?.files) ? res.files : []) {
+      if (typeof f !== "string") continue;
       if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
       const base = f.split("/").pop();
       if (!found.has(base)) found.set(base, f);
@@ -211,12 +240,14 @@ export class TokenArtCatalog {
     const walk = async (dir) => {
       let res;
       try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (_e) { return; }
-      for (const f of res.files ?? []) {
+      for (const f of Array.isArray(res?.files) ? res.files : []) {
+        if (typeof f !== "string") continue;
         if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
         const base = f.split("/").pop();
         if (!found.has(base)) found.set(base, f);
       }
-      for (const d of res.dirs ?? []) {
+      for (const d of Array.isArray(res?.dirs) ? res.dirs : []) {
+        if (typeof d !== "string") continue;
         if (skipDir && d.split("/").pop() === skipDir) continue;
         await walk(d);
       }
@@ -289,15 +320,19 @@ export class TokenArtCatalog {
       let json;
       try { json = await foundry.utils.fetchJsonWithTimeout(p); }
       catch (_e) { continue; }
+      if (!json || typeof json !== "object" || Array.isArray(json)) continue;
       for (const docs of Object.values(json)) {
+        if (!docs || typeof docs !== "object" || Array.isArray(docs)) continue;
         for (const v of Object.values(docs)) {
-          const src = v?.token?.texture?.src;
+          const texture = v?.token?.texture;
+          const src = typeof texture?.src === "string" ? texture.src : null;
           if (!src) continue;
           const file = src.split("/").pop();
-          if (out.has(file)) continue;
-          const tokenObj = { texture: v.token.texture };
-          if (v.token.ring) tokenObj.ring = v.token.ring;
-          out.set(file, { tokenObj, portrait: v.actor ?? src });
+          if (!file || out.has(file)) continue;
+          const tokenObj = { texture };
+          if (v.token.ring && typeof v.token.ring === "object") tokenObj.ring = v.token.ring;
+          const portrait = typeof v.actor === "string" ? v.actor : src;
+          out.set(file, { tokenObj, portrait });
         }
       }
     }
