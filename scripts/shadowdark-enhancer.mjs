@@ -782,6 +782,23 @@ Hooks.once("ready", () => {
         console.error(`${MODULE_ID} | automatic monster text backfill failed:`, err);
       }
     }, 5000);
+    // E3: persist the reviewed source/name creature taxonomy on managed
+    // imported NPCs and Mounts. A6 owns the active-GM/version/pack lifecycle;
+    // SDX is optional and is consulted only through its runtime map, so an
+    // absent SDX install is a clean SDE-only run.
+    setTimeout(async () => {
+      try {
+        const { runCreatureTypeBackfill } = await import("./importer/monsters/creature-type-backfill.mjs");
+        const result = await runCreatureTypeBackfill({ game });
+        if (result?.status === "completed" && result.counts?.applied) {
+          ui.notifications.info(`Shadowdark Enhancer: assigned creature types to ${result.counts.applied} imported Actor(s).`);
+        } else if (result?.status === "failed") {
+          console.error(`${MODULE_ID} | automatic creature-type backfill did not complete:`, result);
+        }
+      } catch (err) {
+        console.error(`${MODULE_ID} | automatic creature-type backfill failed:`, err);
+      }
+    }, 5000);
     // Spell↔class self-heal, EVERY load (index-scan cheap, idempotent, silent
     // when there's nothing to do): spells imported before their caster class
     // existed link up as soon as both are present, whichever was created first.

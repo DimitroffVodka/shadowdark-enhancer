@@ -9,6 +9,14 @@
   and single-approval boundaries. Generator rules and world-document writes
   remain deferred to the later G5/G7 adapters; the preview path itself writes
   nothing.
+
+- **Reviewed creature-type backfill (E3/#86).** Existing managed imported NPC
+  and Mount Actors now receive missing source-scoped N4 creature taxonomy flags;
+  optional Shadowdark Extras compatibility flags are added only when its
+  current runtime name map has no classification. Existing SDE/SDX values and
+  runtime classifications are preserved, and the pass is version-gated,
+  idempotent, and retryable after partial failures.
+
 - **Sea Wolf Plunder Items and curated treasure art (D4/#57).** RollTables
   recognized as the *Cursed Scroll 3* (p68) table *Sea Wolf Plunder From Distant
   Lands* now materialize their 20 published treasure results as real, draggable
