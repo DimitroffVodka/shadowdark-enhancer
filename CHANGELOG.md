@@ -152,7 +152,7 @@
   cleanly excluded. Same-name Core and imported monsters remain distinct
   provenance-tagged rows with independent picks and Browse access for
   zero-suggestion rows. Placed-token resolution by name (`resolveByName`)
-  retains Core-first precedence when both rows have art while correctly falling
+  uses Core-first precedence when both rows have art while correctly falling
   back to an imported pick when Core has no configured art.
 - **Martial Training no longer vanishes from the Downtime window.** When a
   character's class hit die couldn't be read — a level 0 character who hasn't
