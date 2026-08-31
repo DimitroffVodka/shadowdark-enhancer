@@ -3,6 +3,18 @@
 ## [Unreleased]
 
 ### Added
+- **Pathfinder Character Gallery portraits in Character Builder.** When the
+  curated portrait gallery is enabled, character portraits from *Pathfinder
+  Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)
+  are now automatically discovered and merged into the portrait picker on the
+  **Preview** step. Players need no file permissions (`FILES_BROWSE`):
+  browsing executes on the active GM's client via the
+  `shadowdark-enhancer.browseArt` query and returns the filtered image list.
+  The gallery setting (**Portrait/token art folders**) continues to allow
+  custom comma-separated folders, and leaving it blank remains the explicit
+  switch to disable the gallery entirely. If the Pathfinder module is not
+  installed or its directory is unreadable, it is silently skipped without
+  affecting custom or bundled gallery images.
 - **Import everything.** *Importer Hub → Manage* now carries an **Import
   everything (N)** button, and opening any folder puts an **Import all N in
   \<folder\>** button at the top of it — the same run, scoped to that branch. It automates the loop rather than

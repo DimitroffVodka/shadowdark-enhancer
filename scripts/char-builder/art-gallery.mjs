@@ -22,6 +22,8 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 export const ART_QUERY = `${MODULE_ID}.browseArt`;
 
 const SETTING = "charBuilderArtFolder";
+/** Optional portrait source shipped by Pathfinder Tokens: Character Gallery. */
+export const PF_CHARACTER_ART_FOLDER = "modules/pf2e-tokens-characters/assets/portraits";
 const FilePickerImpl = () => foundry.applications.apps.FilePicker.implementation;
 
 const isImage = (path) => {
@@ -40,7 +42,13 @@ export function galleryFolders() {
   let raw = "";
   try { raw = String(game.settings.get(MODULE_ID, SETTING) ?? ""); }
   catch (_e) { return []; }   // setting not registered yet
-  return raw.split(/[,\n;]/).map((f) => f.trim().replace(/\/+$/, "")).filter(Boolean);
+  const configured = raw.split(/[,\n;]/).map((f) => f.trim().replace(/\/+$/, "")).filter(Boolean);
+  // Keep a blank setting as the explicit "gallery off" switch. When the
+  // gallery is enabled, the optional PF source is additive and is probed by
+  // browseLocal's per-folder try/catch, so absent/inactive/unreadable modules
+  // do not affect configured custom folders.
+  if (!configured.length) return [];
+  return [...new Set([...configured, PF_CHARACTER_ART_FOLDER])];
 }
 
 /** Human-readable folder list, for the "nothing here" warning. */
