@@ -8,21 +8,24 @@
   Lands* now materialize their 20 published treasure results as real, draggable
   Items in the managed Items pack (`world.shadowdark-enhancer--items`) under
   `Cursed Scroll 3 / Treasure`.
-  - **Source-gated table recognition:** Recognized via
-    `flags["shadowdark-enhancer"].manifestId` (`cs3-sea-wolf-plunder`,
-    `cs3/sea-wolf-plunder`, `cs3-sea-wolf-plunder-from-distant-lands`), source
-    flag `cs3`, or table name `Sea Wolf Plunder From Distant Lands`. Legacy
-    name normalization strips only recognized `CS3` / `Cursed Scroll 3` page and
-    separator prefixes; non-CS3 tables (such as `CS1`/`CS2`) are explicitly
-    refused.
+  - **Source-gated table recognition:** An explicit non-CS3 source flag (e.g.
+    `source: "cs1"` or `"cs2"`) always vetoes and rejects. After that veto, an
+    exact supported manifest ID (`cs3-sea-wolf-plunder`,
+    `cs3/sea-wolf-plunder`, `cs3-sea-wolf-plunder-from-distant-lands`) is
+    accepted; otherwise the exact normalized table name `Sea Wolf Plunder From
+    Distant Lands` is required (which may be bare without a source flag, or
+    carry a recognized `CS3` / `Cursed Scroll 3` page or separator prefix).
+    Arbitrary tables carrying only `source: "cs3"` with other names and
+    sourceless or explicit CS1/CS2-prefixed legacy names are refused.
   - **Item naming and full priced TableResult display:** Generated Items are
     minted with only the terminal parenthesized gp value removed from their
-    name (e.g. `A wavy, silver dagger with a crescent moon pommel`), while
-    TableResults retain the complete original published phrase including price
-    (e.g. `A wavy, silver dagger with a crescent moon pommel (75 gp)`) as their
-    display name and link via `documentUuid` to the generated Item. Coin entries
-    (e.g. `A coffer of gold coins stamped with a dead emperor (100 gp)`) remain
-    `TEXT` results with source text intact.
+    name (e.g. `A wavy, silver dagger with a crescent moon pommel` or
+    `A coffer of gold coins stamped with a dead emperor`), while TableResults
+    retain the complete original published phrase including price (e.g.
+    `A wavy, silver dagger with a crescent moon pommel (75 gp)`) as their
+    display name and link via `documentUuid` to the generated Item. True
+    currency-only rows (such as `100 gp`) remain `TEXT` results with source
+    text intact.
   - **Curated art & provenance:** The 20 reviewed N3 §5.1 treasure icons are
     registered in `scripts/shared/curated-icon-maps/sea-wolf-plunder-icons.mjs`
     as the first sourced-space map (`cs3`), stamped `curated` under A3/A4
@@ -30,18 +33,22 @@
   - **Generated identity & replace-always rerun (A7):** Materialized items carry
     the explicit `flags["shadowdark-enhancer"].generated = true` flag and
     `generatedItem` bookkeeping block keyed to `cs3:<normalized item name>` with
-    an FNV-1a/32 id. Rerunning reconciliation updates items in place without
-    duplication. Name collisions with generated Monster Spells are refused and
-    preserved (`monsterSpell: true`). System compendiums (`shadowdark.gear`) are
-    never mutated.
+    an FNV-1a/32 id. On successful or unchanged reruns, reconciliation provides
+    stable-identity convergence without duplicating items (attempting in-place
+    update, with create-then-delete fallback reporting any failed delete on the
+    next plan for GM cleanup). Name collisions with generated Monster Spells are
+    refused and preserved (`monsterSpell: true`). System compendiums
+    (`shadowdark.gear`) are never mutated.
   - **Safe RollTable synchronization & retryability:** Updates existing
     TableResults in place under stable IDs on supported Foundry (or creates
     replacements before deleting on legacy adapters). Source rows are
-    snapshotted prior to writing, and any caught write error triggers automatic
-    restoration of the snapshot and cleanup of orphan replacements, preserving
-    source text for retry rather than stranding an empty table. Unmapped rows,
-    non-managed packs, or write failures remain plain text with source text
-    intact.
+    snapshotted prior to writing; if an embedded write fails, restoration of the
+    snapshot and cleanup of replacement orphans are attempted and verified.
+    When restoration succeeds, original source rows survive intact for retry;
+    if restoration fails, the result reports `restored: false` with
+    `rollbackErrors` and warns the GM that manual recovery may be required
+    before retry. Unmapped rows, non-managed packs, or write failures remain
+    plain text with source text preserved.
 - **Pathfinder Character Gallery portraits in Character Builder.** When the
   curated portrait gallery is enabled, character portraits from *Pathfinder
   Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)
