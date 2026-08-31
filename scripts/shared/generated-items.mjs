@@ -130,11 +130,13 @@ function stableValue(value) {
 const stableStringify = (value) => JSON.stringify(stableValue(value));
 
 // Foundry v14 stores ActiveEffect changes in `effect.system.changes`, migrates
-// the old numeric `mode` to a string `type`, and JSON-coerces primitive values.
-// Generated definitions still arrive in the convenient top-level `changes`
-// shape (and older definitions may use numeric mode), so fingerprints and
-// projections must compare one canonical representation rather than the raw
-// pre- and post-DataModel shapes.
+// the old numeric `mode` to a string `type`, JSON-coerces primitive values, and
+// treats an omitted `priority` as 20. Generated definitions still arrive in
+// the convenient top-level `changes` shape (and older definitions may use
+// numeric mode), so fingerprints and projections must compare one canonical
+// representation rather than the raw pre- and post-DataModel shapes. Priority
+// is always materialized in that representation: an omitted desired priority
+// means Foundry's default, while an explicit value remains authoritative.
 const ACTIVE_EFFECT_CHANGE_TYPES = Object.freeze({
   0: "custom",
   1: "multiply",
@@ -143,6 +145,7 @@ const ACTIVE_EFFECT_CHANGE_TYPES = Object.freeze({
   4: "upgrade",
   5: "override",
 });
+const ACTIVE_EFFECT_DEFAULT_PRIORITY = 20;
 
 function normalizeEffectValue(value) {
   if (typeof value !== "string" || !value) return value;
@@ -165,6 +168,9 @@ function normalizeEffectChange(change) {
   if (!type && Number.isInteger(source.mode)) type = ACTIVE_EFFECT_CHANGE_TYPES[source.mode] ?? `custom.${source.mode}`;
   if (type) normalized.type = type;
   if (Object.hasOwn(source, "value")) normalized.value = normalizeEffectValue(source.value);
+  normalized.priority = Object.hasOwn(source, "priority")
+    ? normalizeEffectValue(source.priority)
+    : ACTIVE_EFFECT_DEFAULT_PRIORITY;
   return normalized;
 }
 

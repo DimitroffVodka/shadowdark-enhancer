@@ -286,6 +286,78 @@ describe("generated reconciliation — create, update, rerun", () => {
     assert.equal(out.update.length, 0, "DataModel defaults must not churn effect ids");
   });
 
+  test("an omitted ActiveEffect priority treats Foundry's default 20 as unchanged", () => {
+    const desired = definition("Priority Default", {
+      effects: [{
+        name: "Priority Default Effect",
+        changes: [{ key: "system.light.dim", type: "add", value: 1 }],
+      }],
+    });
+    const [created] = plan([desired], []).create;
+    const roundTripped = stored(created.payload);
+    roundTripped.effects = [{
+      _id: "effect-priority-default",
+      name: "Priority Default Effect",
+      system: { changes: [{
+        _id: "change-priority-default",
+        key: "system.light.dim",
+        type: "add",
+        value: 1,
+      }] },
+    }];
+
+    const out = plan([desired], [roundTripped]);
+    assert.equal(out.unchanged.length, 1);
+    assert.equal(out.update.length, 0);
+  });
+
+  test("an explicitly declared ActiveEffect priority is authoritative", () => {
+    const desired = definition("Priority Authoritative", {
+      effects: [{
+        name: "Priority Authoritative Effect",
+        changes: [{ key: "system.light.dim", type: "add", value: 1, priority: 10 }],
+      }],
+    });
+    const [created] = plan([desired], []).create;
+    const roundTripped = stored(created.payload);
+    roundTripped.effects = [{
+      _id: "effect-priority-authoritative",
+      name: "Priority Authoritative Effect",
+      system: { changes: [{
+        _id: "change-priority-authoritative",
+        key: "system.light.dim",
+        type: "add",
+        value: 1,
+        priority: 20,
+      }] },
+    }];
+
+    const out = plan([desired], [roundTripped]);
+    assert.equal(out.update.length, 1);
+    assert.equal(out.update[0].documentMoved, true);
+    assert.equal(out.unchanged.length, 0);
+  });
+
+  test("changing an explicit ActiveEffect priority moves the definition", () => {
+    const initial = definition("Priority Revision", {
+      effects: [{
+        name: "Priority Revision Effect",
+        changes: [{ key: "system.light.dim", type: "add", value: 1, priority: 10 }],
+      }],
+    });
+    const [created] = plan([initial], []).create;
+    const revised = definition("Priority Revision", {
+      effects: [{
+        name: "Priority Revision Effect",
+        changes: [{ key: "system.light.dim", type: "add", value: 1, priority: 15 }],
+      }],
+    });
+
+    const out = plan([revised], [stored(created.payload)]);
+    assert.equal(out.update.length, 1);
+    assert.equal(out.update[0].definitionMoved, true);
+  });
+
   test("a partial rerun completes the set without touching what is already right", () => {
     const first = plan(defs, []).create;
     const half = [stored(first[0].payload, "doc-0")];     // only one landed
