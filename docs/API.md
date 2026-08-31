@@ -395,7 +395,7 @@ await api.tokenArt.applyResolved(plan.tables);
 
 // Full cross-source file library — every token file, not just name matches.
 // Powers the manual image browser for monsters nothing matched. Includes
-// auto-discovered modules and GM-configured manual Browse folders (kind: "manual-folder").
+// auto-discovered modules and GM-configured manual Browse folders (source: "manual-folder:<path>").
 const lib = await api.tokenArt.library();
 // → [{ source, label, file, token, portrait, tokenObj }]  (priority order, then manual folders)
 
@@ -413,8 +413,8 @@ are Browse-only: they appear in `library()` for manual picking, but are excluded
 from `catalog()` and automatic matching (`resolve()`). When re-skinning placed
 tokens, the manager combines broad prefixes for active sources with exact
 manager-owned file path witnesses (`managedPaths`), allowing previously picked
-art to transition across folder edits/removals while protecting custom art under
-the same paths.
+art to transition across folder edits/removals while protecting custom art at
+other paths under former roots.
 
 ## `merchant` — shop window & transaction log
 

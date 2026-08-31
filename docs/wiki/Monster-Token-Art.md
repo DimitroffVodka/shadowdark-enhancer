@@ -96,7 +96,7 @@ under Foundry's `Data/` directory as named Browse folders.
   and enter the data folder path (e.g. `modules/my-token-pack/tokens` or
   `worlds/my-world/tokens`).
 - **Validation**: Folder paths are checked for readability via Foundry's
-  `FilePicker` before saving. Blank inputs, duplicate folder paths, and unreadable
+  `FilePicker` before saving. Blank inputs, exact duplicate paths, and unreadable
   directories are rejected with an explanatory notification, preventing typos from
   persisting invalid state. Non-GMs cannot add, edit, or remove folders.
 - **Browse-only behavior**: Manual folders appear as distinct named source
@@ -234,11 +234,14 @@ The path must be a readable folder under Foundry's `Data` directory accessible t
 Foundry's FilePicker. Check for typos and verify directory permissions on the host.
 
 **Tokens from a removed or edited manual folder didn't update on Re-skin.**
-Re-skinning placed tokens checks the module's exact-path witness ledger for art
-previously assigned through the manager. If a token was hand-assigned outside the
-manager or if you ran **Reset picks** (which clears the witness ledger), the token
-is treated as custom art and preserved. Use the Token Art Manager to pick art and
-apply it, or edit the token directly.
+Re-skinning placed tokens checks active built-in/configured source prefixes and the
+module's exact-path witness ledger for art previously assigned through the manager.
+If a token's image is outside all active source prefixes and outside the exact
+witness ledger (for example, art hand-assigned outside the manager, or art whose
+historical witness was cleared by **Reset picks** after its source folder was
+removed), it is treated as custom art and preserved. Placed tokens using images
+under currently active source roots remain managed and replaceable even after Reset
+picks.
 
 ---
 
