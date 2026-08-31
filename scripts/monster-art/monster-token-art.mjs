@@ -200,7 +200,7 @@ export class MonsterTokenArt {
     // Token Art Manager state: source priority order + per-monster overrides +
     // hand-picked images + named manual Browse folders ({ priority: [sourceId],
     // overrides: { monsterId: sourceId }, picks: { monsterId: { source, file,
-    // token, portrait, tokenObj } }, folders: [{ label, path }], managedPaths:
+    // token, portrait, tokenObj, origin? } }, folders: [{ label, path }], managedPaths:
     // [exactTokenOrPortraitPath] }). Managed by the manager app, not the
     // settings UI. The normalizer is additive so old worlds and future fields
     // survive the setting round-trip.

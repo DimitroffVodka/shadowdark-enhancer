@@ -213,6 +213,14 @@
     missing or unreadable on disk survive world reloads safely without raising
     console errors, contribute zero Browse entries until available, and remain
     editable/removable in the manager UI. All state persists across reloads.
+- **Curated imported-monster token art (F4/#87).** Token Art Manager's **Apply**
+  now seeds N6's 16 exact, source-qualified reviewed art picks for managed
+  imported NPCs through the existing per-document pick and per-pack mapping
+  machinery. Later GM Browser picks and explicit source overrides are preserved;
+  curated paths carry an ownership origin and exact `managedPaths` witnesses.
+  N6's 63 unmatched rows remain unchanged and Browse-enabled. The curation path
+  performs no fuzzy or bare-name inference and never touches Core, source, or
+  world Actors; it references installed art paths without bundling files.
 - **Pathfinder Character Gallery portraits in Character Builder.** When the
   curated portrait gallery is enabled, character portraits from *Pathfinder
   Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)

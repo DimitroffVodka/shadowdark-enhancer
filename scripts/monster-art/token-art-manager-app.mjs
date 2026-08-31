@@ -367,9 +367,15 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
 
   static async _onChoose(event, target) {
     const { monster, source } = target.dataset;
-    const overrides = foundry.utils.deepClone(this._state().overrides ?? {});
+    const state = this._state();
+    const overrides = foundry.utils.deepClone(state.overrides ?? {});
+    const picks = foundry.utils.deepClone(state.picks ?? {});
+    // A source thumbnail clicked after F4 is a later GM decision. Remove only
+    // the curated pick we seeded; legacy/browser picks remain authoritative and
+    // continue to win through TokenArtCatalog.resolve().
+    if (picks[monster]?.origin === "curated") delete picks[monster];
     overrides[monster] = source;
-    await this._saveState({ overrides });
+    await this._saveState({ overrides, picks });
     this.render({ parts: ["body"] });
   }
 
@@ -518,20 +524,30 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   }
 
   static async _onApply() {
-    const cat = this._catalog ?? (this._catalog = await TokenArtCatalog.build());
-    const { tables, stats } = TokenArtCatalog.resolve(cat);
     // Only claim success once the mapping is actually on disk — a failed write
     // leaves the compendium overlay pointing at nothing, and a green "applied"
     // toast over a red server error is how this went unnoticed on live servers.
     try {
+      // Seed N6's reviewed imported rows through the same per-document pick
+      // state used by Browse. This runs before resolve() so later GM picks and
+      // explicit source overrides retain precedence, while zero-option rows
+      // still remain visible with Browse.
+      const curated = await TokenArtCatalog.applyCuratedImportedArt({ library: this._library ?? undefined });
+      // The curation pass re-reads the managed pack (including Actors imported
+      // after this window was opened). Rebuild the index-shaped catalog before
+      // producing the per-pack overlay so a newly imported row cannot miss the
+      // pick that was just prepared.
+      if (curated?.status === "completed") this._catalog = null;
+      const cat = this._catalog ?? (this._catalog = await TokenArtCatalog.build());
+      const { tables, stats } = TokenArtCatalog.resolve(cat);
       await MonsterTokenArt.applyResolvedMapping(tables);
+      const per = Object.entries(stats.perSource).map(([s, n]) => `${n} ${s.replace(/-tokens.*|-monster.*|dnd-/g, "").replace(/-/g, " ").trim()}`).join(", ");
+      ui.notifications.info(`Applied token art to ${stats.mapped}/${stats.total} monsters (${per}). Every drag now uses your picks.`);
     } catch (e) {
       console.error(`${MODULE_ID} | applying token art failed:`, e);
       ui.notifications.error(`Could not apply token art: ${e.message}`);
       return;
     }
-    const per = Object.entries(stats.perSource).map(([s, n]) => `${n} ${s.replace(/-tokens.*|-monster.*|dnd-/g, "").replace(/-/g, " ").trim()}`).join(", ");
-    ui.notifications.info(`Applied token art to ${stats.mapped}/${stats.total} monsters (${per}). Every drag now uses your picks.`);
     this.render({ parts: ["body"] });
   }
 

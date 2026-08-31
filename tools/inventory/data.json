@@ -351,6 +351,7 @@
       "scripts/char-builder/steps/stats-step.mjs"
     ],
     "3.15": [
+      "scripts/monster-art/imported-monster-art.mjs",
       "scripts/monster-art/monster-token-art.mjs",
       "scripts/monster-art/token-art-catalog.mjs",
       "scripts/monster-art/token-art-manager-app.mjs",
@@ -548,6 +549,7 @@
     "scripts/char-builder/class-ability-uses.mjs": "Per-day/roll uses for Class Ability items.",
     "scripts/char-builder/gear-editor-app.mjs": "`ExtraGearEditor` sub-window.",
     "scripts/monster-art/monster-token-art.mjs": "Applies licensed art to monsters **by path reference**, never bundled.",
+    "scripts/monster-art/imported-monster-art.mjs": "N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse.",
     "scripts/monster-art/token-art-catalog.mjs": "Name→art matching catalog.",
     "scripts/monster-art/token-art-manager-app.mjs": "GM window to review/apply matches.",
     "scripts/monster-art/token-art-manager-state.mjs": "Normalizes the persistent Token Art Manager state and named Browse folders.",
