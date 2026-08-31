@@ -237,7 +237,7 @@ searching Configure Settings.
 | **Loot tier tables** | *(empty)* | Loot Generator → **Set up loot tables** |
 | **Loot picker tables** | *(empty)* | Loot Setup window |
 | **Magic forge table overrides** | *(empty)* | Magic Item Forge |
-| **Token art priority / overrides / picks** | *(empty)* | The Monster Art manager |
+| **Token art priority / overrides / picks / folders** | *(empty)* | The Monster Art manager |
 
 Set one from a script if you need to:
 

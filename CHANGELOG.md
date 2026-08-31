@@ -73,6 +73,47 @@
   behavior (`convertDice` and `@UUID` links only), leaving their DC expressions
   as unmodified prose. A5 reserves GM-facing `[[request]]` syntax for monster-context
   callers; E1 supplies only `{ context: "table" }` and does not alter monster statblocks.
+- **Named manual Browse folders in Token Art Manager (F1/#50).** GMs can now
+  register custom local data folder paths (such as `modules/my-token-pack/tokens`
+  or directories under Foundry's `Data/`) with human-readable labels in the
+  Token Art Manager (**Actors sidebar → Monster Art**).
+  - **Add, edit, and remove workflows with path validation:** The GM can add,
+    rename, edit paths, or remove manual folders directly in the manager
+    header. Folder input requires both a label and a data folder path, rejects
+    exact-duplicate paths, and validates folder readability locally via
+    Foundry's `FilePicker` before persisting (unreadable or invalid paths surface
+    an explicit notification and leave settings untouched). Non-GMs cannot mutate
+    folders.
+  - **Browse-only contribution:** Configured manual folders contribute labeled
+    image groups to the **Browse** modal library (`tokenArtFolderSourceId`) and
+    are strictly excluded from automatic catalog discovery (`discoverSources`),
+    automatic name matching, fuzzy matching, and source priority ordering.
+  - **Backwards-compatible normalization:** State normalization
+    (`normalizeTokenArtManagerState`) ensures existing world settings seamlessly
+    receive default `folders: []` and `managedPaths: []` while preserving
+    existing `priority`, `overrides`, `picks`, and unknown top-level or
+    folder-level metadata across read/write cycles.
+  - **Pick preservation and exact ownership witness ledger (`managedPaths`):**
+    Removing or editing a manual folder preserves previously picked concrete
+    token and portrait file paths. To support subsequent placed token updates,
+    the manager maintains an exact-path witness ledger in `managedPaths`
+    recording specific token/portrait files selected through manual folders
+    across folder edits, removals, row clearing, and pick replacements.
+  - **Re-skin placed token ownership boundaries:** When re-skinning placed
+    scene tokens (**Re-skin placed**), the replacement predicate combines broad
+    prefixes for active module/folder sources (`TokenArtCatalog.managedArtPrefixes()`)
+    with exact historical file witnesses (`TokenArtCatalog.managedArtPaths()`).
+    This ensures previously placed manager-owned art can transition to newly
+    configured art even if its source folder was edited or deleted, while
+    strictly protecting arbitrary GM custom art located under former or sibling
+    folder paths (`old/tokens/handmade.webp`).
+  - **Reset All lifecycle:** Clicking **Reset picks** (`_onResetAll`) clears
+    `overrides`, `picks`, and resets `managedPaths` to `[]`, fully relinquishing
+    all historical ownership witnesses.
+  - **Missing root safety & persistence:** Configured folders that become
+    missing or unreadable on disk survive world reloads safely without raising
+    console errors, contribute zero Browse entries until available, and remain
+    editable/removable in the manager UI. All state persists across reloads.
 - **Pathfinder Character Gallery portraits in Character Builder.** When the
   curated portrait gallery is enabled, character portraits from *Pathfinder
   Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)

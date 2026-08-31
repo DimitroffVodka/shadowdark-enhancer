@@ -394,9 +394,10 @@ const plan = api.tokenArt.resolveCatalog(cat);
 await api.tokenArt.applyResolved(plan.tables);
 
 // Full cross-source file library — every token file, not just name matches.
-// Powers the manual image browser for monsters nothing matched.
+// Powers the manual image browser for monsters nothing matched. Includes
+// auto-discovered modules and GM-configured manual Browse folders (kind: "manual-folder").
 const lib = await api.tokenArt.library();
-// → [{ source, label, file, token, portrait, tokenObj }]  (priority order, then A→Z)
+// → [{ source, label, file, token, portrait, tokenObj }]  (priority order, then manual folders)
 
 // Pure single-source match, no writes:
 const sets = await api.tokenArt.buildFileSets(source);
@@ -407,7 +408,13 @@ api.tokenArt.resolve("Brain Eater", sets, source, 0.5);
 Matching tries a source's own Shadowdark map, then exact name, then **semantic
 aliases** (Shadowdark renames several D&D creatures — *Brain Eater* also tries
 *Mind Flayer* / *Illithid*), then fuzzy match above `minScore`. A hand-picked
-per-monster override always beats source priority.
+per-monster override always beats source priority. Named manual Browse folders
+are Browse-only: they appear in `library()` for manual picking, but are excluded
+from `catalog()` and automatic matching (`resolve()`). When re-skinning placed
+tokens, the manager combines broad prefixes for active sources with exact
+manager-owned file path witnesses (`managedPaths`), allowing previously picked
+art to transition across folder edits/removals while protecting custom art under
+the same paths.
 
 ## `merchant` — shop window & transaction log
 

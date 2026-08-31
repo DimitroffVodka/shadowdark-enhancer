@@ -86,6 +86,45 @@ Shadowdark-original creatures with no D&D counterpart are pinned to Community ar
 Every monster row can be overridden individually. A hand-picked image **always
 beats source priority**.
 
+### Manual Browse folders
+
+In addition to auto-discovered modules, GMs can register custom token directories
+under Foundry's `Data/` directory as named Browse folders.
+
+- **Adding a folder**: In the **Manual Browse folders** section at the top of the
+  manager, click **Add folder**, give it a human-readable label (e.g. `My Token Pack`),
+  and enter the data folder path (e.g. `modules/my-token-pack/tokens` or
+  `worlds/my-world/tokens`).
+- **Validation**: Folder paths are checked for readability via Foundry's
+  `FilePicker` before saving. Blank inputs, duplicate folder paths, and unreadable
+  directories are rejected with an explanatory notification, preventing typos from
+  persisting invalid state. Non-GMs cannot add, edit, or remove folders.
+- **Browse-only behavior**: Manual folders appear as distinct named source
+  sections in the **Browse** modal for manual selection on any monster. They
+  **never** participate in automatic name matching, fuzzy matching, or source
+  priority ordering — adding a manual folder will never silently override
+  automatic catalog suggestions or change default compendium mapping results.
+- **Pick retention & folder lifecycle**: Editing a folder's label or path, or
+  removing the folder altogether, keeps previously saved concrete monster picks
+  intact.
+- **Placed token Re-skinning and exact ownership witnesses**: When you click
+  **Re-skin placed**, the manager updates placed tokens whose art matches active
+  built-in/folder source prefixes or exact historical file paths tracked in the
+  `managedPaths` witness ledger. If you pick art from a manual folder and later
+  edit the folder path, remove the folder, or change the pick, the previously
+  placed image remains recognized as manager-owned and can be replaced on
+  subsequent Re-skins. At the same time, because historical witnesses are tracked
+  at exact file granularity rather than broad prefixes, arbitrary custom art
+  placed under former or sibling directories (e.g. `custom/tokens/handmade.webp`)
+  remains strictly protected and will never be overwritten.
+- **Reset picks**: Clicking **Reset picks** clears all per-monster overrides,
+  manual picks, and resets the `managedPaths` witness ledger, returning placed-art
+  recognition to active configured sources.
+- **Missing or offline folders**: If a configured manual folder path cannot be
+  read on disk (e.g. an unmounted asset path or deleted folder), it is safely
+  skipped during Browse without throwing errors or console warnings, and remains
+  visible in the manager so you can edit its path or remove it.
+
 ### The image browser
 
 <!-- TODO screenshot: images/token-art-browser.png — The token image browser
@@ -189,6 +228,17 @@ artwork.
 **Imported monsters have no art.**
 Confirm they landed in `sde-actors` (the module's pack) and not as loose
 world actors. See [Compendium Packs](Compendium-Packs.md).
+
+**A manual Browse folder shows an error when adding.**
+The path must be a readable folder under Foundry's `Data` directory accessible to
+Foundry's FilePicker. Check for typos and verify directory permissions on the host.
+
+**Tokens from a removed or edited manual folder didn't update on Re-skin.**
+Re-skinning placed tokens checks the module's exact-path witness ledger for art
+previously assigned through the manager. If a token was hand-assigned outside the
+manager or if you ran **Reset picks** (which clears the witness ledger), the token
+is treated as custom art and preserved. Use the Token Art Manager to pick art and
+apply it, or edit the token directly.
 
 ---
 
