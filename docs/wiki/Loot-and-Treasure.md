@@ -113,13 +113,13 @@ keeps its text and can be fabricated or linked by hand.
 | Outcome | Meaning | Carries a link? |
 |---|---|---|
 | `exact` | the priced row, stripped, **is** the Item's name (case/spacing/curly-quote folded) | yes |
-| `alias` | it is that name modulo **one** anchored fold: a leading article or count, a trailing non-price parenthetical, or the **final word's** plural | yes |
-| `ambiguous` | more than one distinct Item answers at the same tier (e.g. installed `Bolt` + `Bolts` both match `Bolts`) | no — resolves to nothing |
+| `alias` | it is that name modulo anchored normalizations — a leading article or count, a trailing non-price parenthetical, or the **final word's** plural — which may **compose** (e.g. `2 daggers (steel)`) | yes |
+| `ambiguous` | more than one distinct Item answers at the same tier (e.g. `3 bolts (2 gp)` when installed `Bolt` + `Bolts` both match that tier) | no — resolves to nothing |
 | `unresolved` | no Item answers at either tier | no |
 
-**Anchored only.** Each alias fold is at the start, the end, or the last word — none can shorten the phrase to an interior word. `Unopened bottle of exceptionally potent Murgazi wine` folds to itself, never to `Bottle`; `a flask of exceptionally fine oil` never becomes `Flask`. **Loose containment is refused** by design (D4 out of scope) and interior-word hits are structurally unreachable.
+**Anchored, composable folds.** Each alias normalization is at the start, the end, or the last word — none can shorten the phrase to an interior word, and multiple can apply together. `Unopened bottle of exceptionally potent Murgazi wine` folds to itself, never to `Bottle`; `a flask of exceptionally fine oil` never becomes `Flask`; `2 daggers (steel)` reaches `dagger` via count + parenthetical + plural together. **Loose containment is refused** by design (D4 out of scope) and interior-word hits are structurally unreachable.
 
-**Short names and punctuation are handled.** Installed three-character names (`Axe`, `Net`) resolve at `exact`; price punctuation and `each` are stripped to a fixed point, so `Dagger (1 gp).` is still `exact` and price-plus-punctuation does not need the alias tier. **Generic `each` treasure is not fabricated as an Item** — it stays text that the delivery paths keep as-is.
+**Short names and punctuation are handled.** Installed three-character names (`Axe`, `Net`) resolve at `exact`; price punctuation and `each` are stripped to a fixed point, so `Dagger (1 gp).` is still `exact` and price-plus-punctuation does not need the alias tier. When a priced row itself is coin-like (`Gem shard (10 gp) each`), `classifyEntry` may route it as coin rather than a fabricated Item — **`each` still strips at the resolver**, but an unresolved text row is not guaranteed to fabricate (coins stay text by tier-specific classification).
 
 **Foundry and module packs, system-first.** Candidate Items are loaded from every installed Item pack, filtered to the four loot types (`Weapon`, `Armor`, `Potion`, `Basic`), deduped by lower-cased name with **system packs first** then world/module packs (including `world.shadowdark-enhancer--items`). On a same-name clash a system Item wins — imports fill gaps. The index is session-cached (cleared by `game.shadowdarkEnhancer.linker.invalidate()` after bulk compendium changes or by the importer itself).
 
@@ -141,9 +141,9 @@ Treasure pipelines (future D4–D6) that generate Items write only into the **ma
 
 **Programmatic access** (see [API](../API.md#loot)):
 
-* `game.shadowdarkEnhancer.loot.generated.identity(source, name)` — synchronous `fnv1a32:…` or `""` for a blank half.
-* `game.shadowdarkEnhancer.loot.generated.plan(desired, {source})` — pure, no-write rerun decision (`create` / `update` with `definitionMoved`/`documentMoved` witnesses / `unchanged` / `refused` + `boundary` flag; outside the managed pack every definition is `out-of-boundary`).
-* `game.shadowdarkEnhancer.loot.generated.reconcile(desired, {source})` — GM-only, sequential and **retryable, not transactional**: failed creates, missing targets, and throwing updates are returned in `failures` (`create-failed` / `missing-target` / `update-failed`, each with `error: string|null`) and the rest of the batch continues; a later rerun retries them. One exception is not self-healing: a create-then-delete update whose **delete fails** leaves two documents with one identity, reported next time as `duplicate-document` for GM cleanup. A notification aggregates refused + failed names. Non-GM or an absent `world.shadowdark-enhancer--items` pack returns `null`.
+* `game.shadowdarkEnhancer.loot.generated.identity(source, name)` — synchronous `fnv1a32:…` (`fnv1a32:573d24a5` for `CS1` + `Carved Bone`) or `""` for a blank half.
+* `game.shadowdarkEnhancer.loot.generated.plan(desired, {source})` — pure, no-write (`item.source` → `{source}` → flag source); `create` / `update` with `definitionMoved`/`documentMoved` / `unchanged` / `refused` + `boundary`; outside the managed pack every definition is `out-of-boundary`; `plan` returns `null` when `findSuitePack("sde-items")` cannot find a pack.
+* `game.shadowdarkEnhancer.loot.generated.reconcile(desired, {source})` — GM-only, sequential and **retryable, not transactional**: failed creates, missing targets, and throwing updates are returned in `failures` (`create-failed` / `missing-target` / `update-failed`, each with `error: string|null`) and the rest of the batch continues; a later rerun retries them. One exception is not self-healing: a create-then-delete update whose **delete fails** leaves two documents with one identity, reported next time as `duplicate-document` for GM cleanup. A notification aggregates refused + failed names. An empty pack reconciles and creates; a missing pack is provisioned via `ensureLootPack()`; only a non-GM `reconcile` returns `null`.
 
 ---
 

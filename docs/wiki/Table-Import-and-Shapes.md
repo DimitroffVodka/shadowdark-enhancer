@@ -224,6 +224,14 @@ edit the range back in the preview before committing.
 Hover the review tag. The reason is in the tooltip, and the specific row is
 highlighted, not the whole card.
 
+### Ambiguous/unresolved loot rows stay unlinked (A7)
+
+When the Importer Hub's **Table** preview enriches a RollTable with Item links
+(the RollTable catalog, Table Hub preview, and paste-preview paths), rows that
+resolve as `ambiguous` or `unresolved` are deliberately left without a `@UUID` —
+they remain plain text rather than a wrong link. See [Loot & Treasure — How
+loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution) and [API `loot.resolve`](../API.md#loot).
+
 ---
 
-**Related:** [Importer Hub](Importer-Hub.md) · [Class & Spell Importers](Class-and-Spell-Importers.md)
+**Related:** [Importer Hub](Importer-Hub.md) · [Class & Spell Importers](Class-and-Spell-Importers.md) · [Loot & Treasure](Loot-and-Treasure.md)

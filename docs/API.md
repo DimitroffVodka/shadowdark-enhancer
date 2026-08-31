@@ -131,11 +131,12 @@ const hit = await api.loot.resolve("Dagger (1 gp)");
 //   { status: "alias",  ... }  // alias tier: article/count, trailing parenthetical, final-word plural all folded (anchored only)
 await api.loot.resolve("Unopened bottle of exceptionally potent Murgazi wine (25 gp)");
 // → { status: "unresolved", query: "…" }                        // generic containers are refused — not a containment search
-await api.loot.resolve("Bolts"); // when both \"Bolt\" and \"Bolts\" exist
-// → { status: "ambiguous", query: "Bolts", candidates: [{uuid,name},…] }
+await api.loot.resolve("3 bolts (2 gp)"); // when both "Bolt" and "Bolts" exist
+// → { status: "ambiguous", query: "3 bolts", candidates: [{uuid,name},…] }
+await api.loot.resolve("Bolts"); // exact tier wins first, so just "Bolts" resolves as "exact"
 ```
 
-`resolve` is **whole-name and anchored**. It tries the priced-row-as-a-name `exact` tier first (case/spacing/curly-quote folded, trailing sentence punctuation and `each` stripped to a fixed point — `Dagger (1 gp).` is still exact), then a strictly anchored `alias` tier (a leading article or count, a trailing non-price parenthetical, and the *final* word's plural). Nothing else matches: interior-word containment (`Murgazi wine` → `Bottle`, `flask of oil` → `Flask`) is structurally unreachable, and a row that lands on more than one distinct Item at the same tier is `ambiguous` and also resolves to nothing (two plausible answers is not a confident match, and picking one by index order would be the containment bug again). The **candidate index is system-first** (built by `LootLinker.buildItemIndex`): system Item packs come before world/module packs (including `world.shadowdark-enhancer--items`), so on a same-name clash a system Item wins — imports fill gaps. The index is session-cached; call `api.linker.invalidate()` after bulk compendium changes. `api.loot.resolve` reads the same session cache as `loot.linkTables()` and the six `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, table-hub preview, importer-hub paste preview), which all share the `exact`/`alias`-confident `null`-or-link shape; `resolve` is the caller that needs to distinguish `ambiguous` from `unresolved`.
+`resolve` is **whole-name and anchored**. It tries the priced-row-as-a-name `exact` tier first (case/spacing/curly-quote folded, trailing sentence punctuation and `each` stripped to a fixed point — `Dagger (1 gp).` is still exact), then anchored `alias` normalizations at the start, end, or final word — these can compose, e.g. `2 daggers (steel)` folds count, parenthetical, and plural together — each remaining anchored, none ever becoming containment. Nothing else matches: interior-word containment (`Murgazi wine` → `Bottle`, `flask of oil` → `Flask`) is structurally unreachable, and a row that lands on more than one distinct Item at the same tier is `ambiguous` and also resolves to nothing (two plausible answers is not a confident match, and picking one by index order would be the containment bug again). The **candidate index is system-first** (built by `LootLinker.buildItemIndex`): system Item packs come before world/module packs (including `world.shadowdark-enhancer--items`), so on a same-name clash a system Item wins — imports fill gaps. The index is session-cached; call `api.linker.invalidate()` after bulk compendium changes. `api.loot.resolve` reads the same session cache as `loot.linkTables()` and the six `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, table-hub preview, importer-hub paste preview), which all share the `exact`/`alias`-confident `null`-or-link shape; `resolve` is the caller that needs to distinguish `ambiguous` from `unresolved`.
 
 ### `loot.generated` — stable identity and replace-always reconciliation
 
@@ -144,11 +145,10 @@ Generated treasure Items (D4–D6) live only in `world.shadowdark-enhancer--item
 ```js
 // Pure, synchronous. "" when either half is missing or blank.
 const id = api.loot.generated.identity("CS1", "Carved Bone");
-// → "fnv1a32:8a2810bf" | ""
+// → "fnv1a32:573d24a5" | ""
 
 // Pure, no-write — the whole rerun decision for a definition set (A7).
-// `source` is the fallback for definitions that carry no per-item source;
-// each definition may also carry its own `source` or `flags[MODULE_ID].source`.
+// Source precedence per definition: `item.source` → `{source}` → `flags[MODULE_ID].source`.
 const plan = await api.loot.generated.plan(desired, { source: "CS1" });
 // → { pack: "world.shadowdark-enhancer--items", boundary: true,
 //     create: [{id,name,payload}], update: [{id,name,payload,documentId,definitionMoved,documentMoved}],
@@ -166,13 +166,19 @@ const plan = await api.loot.generated.plan(desired, { source: "CS1" });
 // `boundary: false`, writes nothing, and refuses every definition as `out-of-boundary`.
 
 // Apply it. GM-only; reads live pack docs, plans again, writes sequentially.
+// Pack lifecycle: missing pack is provisioned via `ensureLootPack()` (then reconciled),
+// an empty pack reconciles and creates, only a non-GM returns `null` with a warning;
+// `plan` returns `null` when no pack exists for a pure preview.
 // Returns the plan plus write counts; failures are reported, not swallowed.
 const result = await api.loot.generated.reconcile(desired, { source: "CS1" });
 // → { plan, created, updated, unchanged, refused, failures: [{reason,id,name,documentId,error}] }
 // failures[].reason is one of: "create-failed" (Item.create returned falsey) |
 //   "missing-target" (target vanished between plan and apply) |
 //   "update-failed" (throwing replace). Each also carries `error: string|null`.
-// Non-GM and missing/empty managed pack both return `null` with a warning.
+const plan2 = await api.loot.generated.plan(desired, { source: "CS1" });
+// When `findSuitePack("sde-items")` cannot find a pack, `plan` returns `null`
+// (a pure preview has no pack to preview). Only a non-GM `reconcile` also
+// returns `null`; a missing `reconcile` pack is provisioned, an empty one creates.
 // The operation is sequential and RETRYABLE, not transactional: a failed create
 // is retried as a create next run, a missing target is re-planned, and a throwing
 // update is reported while the rest of the batch continues. One case is not
