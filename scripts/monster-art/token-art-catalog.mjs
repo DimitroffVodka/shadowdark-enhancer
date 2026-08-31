@@ -6,7 +6,9 @@ import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
 import {
   CURATED_IMPORTED_MONSTER_ART,
+  CURATED_IMPORTED_MONSTER_ART_STATUS,
   curatedImportedMonsterArtFor,
+  importedMonsterArtDisposition,
   importedMonsterArtKey,
   planCuratedImportedMonsterArt,
 } from "./imported-monster-art.mjs";
@@ -453,18 +455,52 @@ export class TokenArtCatalog {
    *   { sources: [{id,label,kind,credit,count}], byMonster: [{id,name,options:[{source,token,portrait,tokenObj}]}] }
    * `options` order follows the source-priority order.
    */
-  static _monsterEntries(index, pack) {
+  static _monsterEntries(index, pack, { includeManagedTypes = false } = {}) {
     // `getIndex()` is normally an Array, but a Collection-shaped fixture (or a
     // future Foundry adapter) exposes the entries under `.contents`. Keep the
-    // census boundary here so every managed pack contributes each NPC once,
-    // while boats/mounts and other non-monster Actors stay out of the art rows.
+    // census boundary here so every covered pack contributes each allowed Actor
+    // once. The optional managed-import boundary admits Mount forms only when
+    // the caller has already proved the pack is one of our world packs.
     const entries = Array.isArray(index) ? index : (index?.contents ?? []);
     const seen = new Set();
     return entries.flatMap((e) => {
-      if (!e?._id || !e.name || (e.type && String(e.type).toUpperCase() !== "NPC") || seen.has(e._id)) return [];
+      const type = String(e?.type ?? "").trim().toLowerCase();
+      const allowed = !type || type === "npc"
+        || (includeManagedTypes && (type === "mount" || type === `${MODULE_ID}.mount`));
+      if (!e?._id || !e.name || !allowed || seen.has(e._id)) return [];
       seen.add(e._id);
       return [{ id: e._id, name: e.name, pack }];
     });
+  }
+
+  /**
+   * Carry N6's final curation decision alongside a managed imported row. The
+   * ordinary options remain intact for Browse and deliberate source choices;
+   * `resolve()` uses this status only to decide whether an automatic fallback
+   * is allowed. A curated row is available only when both reviewed paths are
+   * represented by one exact catalog option. If that option disappears while a
+   * fuzzy alternative remains, the row becomes Browse-only until the GM picks.
+   */
+  static _curatedImportedArtStatus(monster, options) {
+    if (!monster?.managedImported) return null;
+    const key = importedMonsterArtKey(monster.source, monster.name);
+    const disposition = importedMonsterArtDisposition(monster.source, monster.name);
+    if (!key || !disposition) return null;
+    if (disposition === CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED) {
+      return { key, status: CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED };
+    }
+
+    const row = curatedImportedMonsterArtFor(monster.source, monster.name);
+    const exact = (options ?? []).some((entry) =>
+      entry?.source === row?.source
+      && entry?.token === row?.token
+      && entry?.portrait === row?.portrait);
+    return {
+      key,
+      status: exact
+        ? CURATED_IMPORTED_MONSTER_ART_STATUS.CURATED
+        : CURATED_IMPORTED_MONSTER_ART_STATUS.PATH_UNAVAILABLE,
+    };
   }
 
   /**
@@ -483,13 +519,15 @@ export class TokenArtCatalog {
     const indexEntries = entries.map((document) => document?._id
       ? document
       : { ...document, _id: document?.id });
-    const rows = this._monsterEntries(indexEntries, pack.collection);
+    const rows = this._monsterEntries(indexEntries, pack.collection, {
+      includeManagedTypes: isManagedActorPack(pack),
+    });
     const byId = new Map(entries.map((document) => [String(document?._id ?? document?.id ?? ""), document]));
 
     return rows.map((row) => {
       const document = byId.get(String(row.id));
       const source = effectiveSource(document) ?? document?.folder?.name ?? null;
-      return { ...row, source, document };
+      return { ...row, source, document, managedImported: true };
     });
   }
 
@@ -649,8 +687,20 @@ export class TokenArtCatalog {
     if (!packIds.length) return { sources: [], byMonster: [] };
     const monsters = [];
     for (const packId of packIds) {
-      const index = await game.packs.get(packId).getIndex();
-      monsters.push(...this._monsterEntries(index, packId));
+      const pack = game.packs.get(packId);
+      const managed = isManagedActorPack(pack);
+      if (packId !== "shadowdark.monsters" && !managed) continue;
+      if (managed && typeof pack?.getDocuments === "function") {
+        // The managed pack is the only covered source whose full Actor shape is
+        // needed: source flags identify N6 rows, and Mount forms are real
+        // imported Actors even though their type is not NPC. Core remains an
+        // index-only NPC census, and `isManagedActorPack` keeps third-party
+        // packs outside this wider boundary.
+        monsters.push(...await this._managedImportedMonsterRecords(pack));
+      } else {
+        const index = await pack.getIndex();
+        monsters.push(...this._monsterEntries(index, packId));
+      }
     }
     if (!monsters.length) return { sources: [], byMonster: [] };
 
@@ -660,12 +710,19 @@ export class TokenArtCatalog {
     for (const s of discovered) s._art = await this._sourceArt(s, monsters);
 
     const byMonster = monsters
-      .map((m) => ({
-        id: m.id,
-        name: m.name,
-        pack: m.pack,
-        options: discovered.filter((s) => s._art[m.id]).map((s) => ({ source: s.id, ...s._art[m.id] })),
-      }))
+      .map((m) => {
+        const options = discovered
+          .filter((s) => s._art[m.id])
+          .map((s) => ({ source: s.id, ...s._art[m.id] }));
+        const curatedImportedArt = this._curatedImportedArtStatus(m, options);
+        return {
+          id: m.id,
+          name: m.name,
+          pack: m.pack,
+          options,
+          ...(curatedImportedArt ? { curatedImportedArt } : {}),
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const sources = discovered.map((s) => ({
@@ -815,6 +872,7 @@ export class TokenArtCatalog {
     const perSource = {};
     for (const m of catalog.byMonster) {
       const pack = m.pack ?? "shadowdark.monsters";
+      const options = m.options ?? [];
       // 1) Hand-picked image — a specific file, not a source name-match. Works
       //    for monsters with zero options (imported CS/WR monsters).
       const manual = picks[m.id];
@@ -825,12 +883,28 @@ export class TokenArtCatalog {
         perSource[sk] = (perSource[sk] ?? 0) + 1;
         continue;
       }
-      if (!m.options.length) continue;
+      if (!options.length) continue;
+
+      // N6's reviewed-unmatched and path-unavailable rows stay in the catalog
+      // so Browse can still show every option, but ordinary automatic matching
+      // must not turn a rejected fuzzy candidate (e.g. generic bat.webp) into a
+      // persisted mapping. A deliberate GM override is the sole exception: it
+      // must name an option that is actually present, never silently fall back
+      // to a different fuzzy source.
+      const curatedStatus = m.curatedImportedArt?.status;
+      const autoExcluded = curatedStatus === CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED
+        || curatedStatus === CURATED_IMPORTED_MONSTER_ART_STATUS.PATH_UNAVAILABLE;
+      const overrideSource = overrides[m.id];
+      const overridePick = overrideSource
+        ? options.find((o) => o.source === overrideSource)
+        : null;
+      if (autoExcluded && !overridePick) continue;
+
       // 2) explicit override; else a Community pin (loose foreign match); else priority.
-      const wantSrc = overrides[m.id]
-        || (this.COMMUNITY_PINS.has(m.name) ? this.COMMUNITY_SOURCE : null);
-      const best = m.options.reduce((a, b) => (rank(b.source) < rank(a.source) ? b : a));
-      const pick = (wantSrc && m.options.find((o) => o.source === wantSrc)) || best;
+      const wantSrc = overrideSource
+        || (autoExcluded ? null : (this.COMMUNITY_PINS.has(m.name) ? this.COMMUNITY_SOURCE : null));
+      const best = options.reduce((a, b) => (rank(b.source) < rank(a.source) ? b : a));
+      const pick = overridePick || (wantSrc && options.find((o) => o.source === wantSrc)) || best;
       (tables[pack] ??= {})[m.id] = { actor: pick.portrait, token: pick.tokenObj };
       chosen[m.id] = pick.source;
       perSource[pick.source] = (perSource[pick.source] ?? 0) + 1;

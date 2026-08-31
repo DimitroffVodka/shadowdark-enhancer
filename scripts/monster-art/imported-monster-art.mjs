@@ -158,6 +158,106 @@ export const IMPORTED_MONSTER_ART = Object.freeze(
   Object.fromEntries(IMPORTED_MONSTER_ART_ROWS.map((row) => [row.key, row])),
 );
 
+/**
+ * N6's reviewed rows for which no installed art was defensible. These are
+ * deliberately data, rather than an accidental "everything not picked"
+ * fallback: an actor added from a source/name that N6 has not audited remains
+ * eligible for the ordinary catalog until a curator reviews it. The final
+ * catalog carries this exact set as Browse-only exclusions.
+ */
+const REVIEWED_UNMATCHED_KEYS = [
+  "CS1:bittermold",
+  "CS1:bogthorn",
+  "CS1:dralech",
+  "CS1:gordock breeg",
+  "CS1:hexling",
+  "CS1:howler",
+  "CS1:ichor ooze",
+  "CS1:marrow fiend",
+  "CS1:mugdulblub",
+  "CS1:mutant catfish",
+  "CS1:plogrina bittermold",
+  "CS1:skrell",
+  "CS1:tar bat",
+  "CS1:the willowman",
+  "CS2:camel, silver",
+  "CS2:canyon ape",
+  "CS2:donkey",
+  "CS2:dunefiend",
+  "CS2:dust devil",
+  "CS2:hero, gladiator",
+  "CS2:mirage",
+  "CS2:ras-godai",
+  "CS2:rookie, pit-fighter",
+  "CS2:scrag",
+  "CS2:scrag, war",
+  "CS2:siruul",
+  "CS2:the scourge",
+  "CS3:drake, greater",
+  "CS3:drake, lesser",
+  "CS3:draugr",
+  "CS3:dverg",
+  "CS3:nord",
+  "CS3:oracle",
+  "CS3:orca",
+  "CS3:sea nymph",
+  "CS3:troll, deep",
+  "CS3:valkyrie",
+  "CS4:blue dart frog",
+  "CS4:catfish, giant",
+  "CS4:cobra statue",
+  "CS4:condor, dire",
+  "CS4:death slug",
+  "CS4:jaguar king",
+  "CS4:javelina",
+  "CS4:javelina, diseased",
+  "CS4:kawitzek",
+  "CS4:skandrill",
+  "CS4:skandrill, rex",
+  "CS4:stone shaman",
+  "CS4:stone warrior",
+  "CS4:void bat",
+  "CS4:void being",
+  "CS5:bezelak",
+  "CS5:dremir",
+  "CS5:librarian of leng",
+  "CS5:morzo moth",
+  "CS5:nuln",
+  "CS5:wendel",
+  "WR:camel, silver",
+  "WR:donkey",
+  "WR:horse, prized",
+  "WR:scrag",
+  "WR:scrag, war",
+];
+
+/** Detached N6 reviewed-unmatched keys for audits and catalog consumers. */
+export const IMPORTED_MONSTER_ART_UNMATCHED_KEYS = Object.freeze(REVIEWED_UNMATCHED_KEYS);
+const REVIEWED_UNMATCHED = new Set(REVIEWED_UNMATCHED_KEYS);
+
+/** Final-catalog status for an imported monster before exact-path validation. */
+export const CURATED_IMPORTED_MONSTER_ART_STATUS = Object.freeze({
+  CURATED: "curated",
+  UNMATCHED: "unmatched",
+  PATH_UNAVAILABLE: "path-unavailable",
+});
+
+/**
+ * Return N6's reviewed disposition for one source/name identity. Unknown
+ * identities deliberately return null so adding an uncurated import does not
+ * silently turn the whole ordinary catalog into Browse-only rows.
+ *
+ * @param {unknown} source imported book/source
+ * @param {unknown} name monster display name
+ * @returns {"curated"|"unmatched"|null}
+ */
+export function importedMonsterArtDisposition(source, name) {
+  const key = importedMonsterArtKey(source, name);
+  if (!key) return null;
+  if (IMPORTED_MONSTER_ART[key]) return CURATED_IMPORTED_MONSTER_ART_STATUS.CURATED;
+  return REVIEWED_UNMATCHED.has(key) ? CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED : null;
+}
+
 // Descriptive aliases keep the map discoverable to callers without creating a
 // second mutable data set.
 export const CURATED_IMPORTED_MONSTER_ART = IMPORTED_MONSTER_ART;

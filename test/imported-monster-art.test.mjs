@@ -5,8 +5,10 @@ import {
   CURATED_IMPORTED_MONSTER_ART_ORIGIN,
   IMPORTED_MONSTER_ART,
   IMPORTED_MONSTER_ART_ROWS,
+  IMPORTED_MONSTER_ART_UNMATCHED_KEYS,
   curatedImportedMonsterArtFor,
   importedMonsterArtKey,
+  importedMonsterArtDisposition,
   planCuratedImportedMonsterArt,
 } from "../scripts/monster-art/imported-monster-art.mjs";
 
@@ -22,6 +24,11 @@ test("F4 carries exactly the 16 N6 source-aware picks", () => {
   assert.equal(curatedImportedMonsterArtFor("CS4", "Basilisk Hatchling")?.source, "shadowdark-community-tokens");
   assert.equal(curatedImportedMonsterArtFor("CS2", "Tar Bat"), null);
   assert.equal(curatedImportedMonsterArtFor("CS2", "Horse"), null, "no bare-name fallback");
+  assert.equal(IMPORTED_MONSTER_ART_UNMATCHED_KEYS.length, 63);
+  assert.equal(new Set(IMPORTED_MONSTER_ART_UNMATCHED_KEYS).size, 63);
+  assert.equal(importedMonsterArtDisposition("CS1", "Tar Bat"), "unmatched");
+  assert.equal(importedMonsterArtDisposition("CS3", "Sea Serpent"), "curated");
+  assert.equal(importedMonsterArtDisposition("CS1", "Unreviewed Import"), null);
 });
 const row = (key) => IMPORTED_MONSTER_ART[key];
 const candidate = (key) => {

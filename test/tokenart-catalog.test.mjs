@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
+import { IMPORTED_MONSTER_ART } from "../scripts/monster-art/imported-monster-art.mjs";
+
 // TokenArtCatalog.resolve()/resolvePriority read game.settings, and
 // applyResolvedToPlaced reads game.user/scenes/actors. Stub those globals
 // BEFORE importing (dynamic import runs after these assignments) so the pure
@@ -35,6 +37,12 @@ const opt = (source, tag) => ({
   source,
   portrait: `port/${tag ?? source}`,
   tokenObj: { texture: { src: `tok/${tag ?? source}` } },
+});
+const pathOpt = (source, token, portrait = token) => ({
+  source,
+  token,
+  portrait,
+  tokenObj: { texture: { src: token } },
 });
 const cat = (byMonster, sources) => ({
   sources: sources ?? [{ id: "src-a" }, { id: "src-b" }],
@@ -77,6 +85,72 @@ test("resolve: a Community pin overrides priority when a Community option exists
   assert.equal(TokenArtCatalog.resolve(noCommunity).chosen.m1, "dnd-monster-manual");
 });
 
+test("resolve leaves an N6 reviewed-unmatched Tar Bat Browse-only despite generic bat.webp", () => {
+  SETTINGS = { priority: ["dnd-monster-manual"], overrides: {}, picks: {} };
+  const genericBat = pathOpt(
+    "dnd-monster-manual",
+    "modules/dnd-monster-manual/assets/tokens/bat.webp",
+  );
+  const c = cat([
+    {
+      id: "tar-bat",
+      name: "Tar Bat",
+      pack: "world.sde-actors",
+      managedImported: true,
+      curatedImportedArt: { key: "CS1:tar bat", status: "unmatched" },
+      options: [genericBat],
+    },
+  ], [{ id: "dnd-monster-manual" }]);
+
+  const resolved = TokenArtCatalog.resolve(c);
+  assert.equal(resolved.tables["world.sde-actors"], undefined);
+  assert.equal(resolved.stats.mapped, 0);
+  assert.equal(c.byMonster[0].options.length, 1, "Browse still sees the generic option");
+});
+
+test("resolve suppresses a missing reviewed path but allows a manual pick or explicit override", () => {
+  const fuzzy = pathOpt(
+    "dnd-monster-manual",
+    "modules/dnd-monster-manual/assets/tokens/sea-serpent.webp",
+  );
+  const c = cat([
+    {
+      id: "sea-serpent",
+      name: "Sea Serpent",
+      pack: "world.sde-actors",
+      managedImported: true,
+      curatedImportedArt: { key: "CS3:sea serpent", status: "path-unavailable" },
+      options: [fuzzy],
+    },
+  ], [{ id: "dnd-monster-manual" }]);
+
+  SETTINGS = { priority: ["dnd-monster-manual"], overrides: {}, picks: {} };
+  assert.equal(TokenArtCatalog.resolve(c).tables["world.sde-actors"], undefined);
+
+  SETTINGS = {
+    priority: ["dnd-monster-manual"],
+    overrides: { "sea-serpent": "dnd-monster-manual" },
+    picks: {},
+  };
+  assert.equal(TokenArtCatalog.resolve(c).chosen["sea-serpent"], "dnd-monster-manual");
+
+  SETTINGS = {
+    priority: ["dnd-monster-manual"],
+    overrides: {},
+    picks: {
+      "sea-serpent": {
+        source: "manual-folder:gm",
+        token: "gm/sea.webp",
+        portrait: "gm/sea.webp",
+        tokenObj: { texture: { src: "gm/sea.webp" } },
+      },
+    },
+  };
+  const manual = TokenArtCatalog.resolve(c);
+  assert.equal(manual.chosen["sea-serpent"], "__manual__");
+  assert.equal(manual.tables["world.sde-actors"]["sea-serpent"].actor, "gm/sea.webp");
+});
+
 // --- reorder(): display order follows priority -----------------------------
 test("reorder sorts each monster's options into priority order", () => {
   const c = cat([{ id: "m1", name: "X", options: [opt("src-b"), opt("src-a")] }]);
@@ -97,6 +171,29 @@ test("the managed-pack census keeps one NPC row per id and skips non-monsters", 
   ]);
 });
 
+test("managed imported census includes both mount forms but never boats or Core mounts", () => {
+  const entries = [
+    { _id: "npc", name: "Goblin", type: "NPC" },
+    { _id: "mount", name: "Horse", type: "Mount" },
+    { _id: "namespaced-mount", name: "Horse, War", type: "shadowdark-enhancer.mount" },
+    { _id: "boat", name: "Canoe", type: "shadowdark-enhancer.boat" },
+  ];
+  assert.deepEqual(
+    TokenArtCatalog._monsterEntries(entries, "world.sde-actors", { includeManagedTypes: true })
+      .map(({ id, name }) => ({ id, name })),
+    [
+      { id: "npc", name: "Goblin" },
+      { id: "mount", name: "Horse" },
+      { id: "namespaced-mount", name: "Horse, War" },
+    ],
+  );
+  assert.deepEqual(
+    TokenArtCatalog._monsterEntries(entries, "shadowdark.monsters").map(({ id }) => id),
+    ["npc"],
+    "Core remains NPC-only even when the wider managed type option is available",
+  );
+});
+
 test("build preserves Core/imported provenance and zero-option imported rows", async () => {
   const original = {
     presentPacks: MonsterTokenArt.presentPacks,
@@ -106,11 +203,15 @@ test("build preserves Core/imported provenance and zero-option imported rows", a
   };
   const packs = {
     "shadowdark.monsters": { getIndex: async () => [{ _id: "core-goblin", name: "Goblin", type: "NPC" }] },
-    "world.sde-actors": { getIndex: async () => [
-      { _id: "imported-goblin", name: "Goblin", type: "NPC" },
-      { _id: "imported-moth", name: "Ashen Moth", type: "NPC" },
-      { _id: "boat", name: "Canoe", type: "shadowdark-enhancer.boat" },
-    ] },
+    "world.sde-actors": {
+      documentName: "Actor",
+      metadata: { packageType: "world", label: "Shadowdark Enhancer — Actors" },
+      getIndex: async () => [
+        { _id: "imported-goblin", name: "Goblin", type: "NPC" },
+        { _id: "imported-moth", name: "Ashen Moth", type: "NPC" },
+        { _id: "boat", name: "Canoe", type: "shadowdark-enhancer.boat" },
+      ],
+    },
   };
   MonsterTokenArt.presentPacks = () => Object.keys(packs);
   TokenArtCatalog.discoverSources = async () => [{ id: "src-a", label: "Source A", kind: "folder" }];
@@ -130,6 +231,139 @@ test("build preserves Core/imported provenance and zero-option imported rows", a
     TokenArtCatalog.discoverSources = original.discoverSources;
     TokenArtCatalog._sourceArt = original.sourceArt;
     globalThis.game.packs = original.packs;
+  }
+});
+
+test("final catalog maps namespaced managed mounts, isolates CS2/WR names, and keeps unmatched mounts browsable", async () => {
+  const original = {
+    presentPacks: MonsterTokenArt.presentPacks,
+    discoverSources: TokenArtCatalog.discoverSources,
+    sourceArt: TokenArtCatalog._sourceArt,
+    packs: globalThis.game.packs,
+    settings: SETTINGS,
+  };
+  const core = {
+    getIndex: async () => [
+      { _id: "core-horse", name: "Horse", type: "NPC" },
+      { _id: "core-mount", name: "Horse, War", type: "Mount" },
+    ],
+  };
+  const managedActors = [
+    {
+      _id: "cs2-war", name: "Horse, War", type: "NPC",
+      flags: { "shadowdark-enhancer": { source: "CS2" } },
+    },
+    {
+      _id: "wr-war", name: "Horse, War", type: "shadowdark-enhancer.mount",
+      flags: { "shadowdark-enhancer": { source: "WR" } },
+    },
+    {
+      _id: "wr-camel", name: "Camel", type: "Mount",
+      flags: { "shadowdark-enhancer": { source: "WR" } },
+    },
+    {
+      _id: "wr-donkey", name: "Donkey", type: "shadowdark-enhancer.mount",
+      flags: { "shadowdark-enhancer": { source: "WR" } },
+    },
+    {
+      _id: "cs1-tar", name: "Tar Bat", type: "NPC",
+      flags: { "shadowdark-enhancer": { source: "CS1" } },
+    },
+    {
+      _id: "boat", name: "Donkey", type: "shadowdark-enhancer.boat",
+      flags: { "shadowdark-enhancer": { source: "WR" } },
+    },
+  ];
+  const thirdParty = {
+    collection: "world.other-actors",
+    documentName: "Actor",
+    metadata: { packageType: "world", label: "Other Actors" },
+    getDocuments: async () => [{
+      _id: "third-party", name: "Horse, War", type: "shadowdark-enhancer.mount",
+      flags: { "shadowdark-enhancer": { source: "WR" } },
+    }],
+    getIndex: async () => [],
+  };
+  const managed = {
+    collection: "world.sde-actors",
+    documentName: "Actor",
+    metadata: { packageType: "world", label: "Shadowdark Enhancer — Actors" },
+    getDocuments: async () => managedActors,
+    getIndex: async () => managedActors,
+  };
+  const packs = {
+    "shadowdark.monsters": core,
+    "world.sde-actors": managed,
+    "world.other-actors": thirdParty,
+  };
+  const exact = (id) => {
+    const selected = IMPORTED_MONSTER_ART[id];
+    return {
+      token: selected.token,
+      portrait: selected.portrait,
+      tokenObj: { texture: { src: selected.token } },
+    };
+  };
+
+  MonsterTokenArt.presentPacks = () => Object.keys(packs);
+  TokenArtCatalog.discoverSources = async () => [
+    { id: "pf2e-tokens-monster-core", label: "Pathfinder", kind: "mapping" },
+    { id: "shadowdark-community-tokens", label: "Community", kind: "mapping" },
+    { id: "dnd-monster-manual", label: "Monster Manual", kind: "folder" },
+  ];
+  TokenArtCatalog._sourceArt = async (source, monsters) => {
+    const art = {};
+    for (const monster of monsters) {
+      if (monster.id === "cs2-war" && source.id === "pf2e-tokens-monster-core") art[monster.id] = exact("CS2:horse, war");
+      if (monster.id === "wr-war" && source.id === "pf2e-tokens-monster-core") art[monster.id] = exact("WR:horse, war");
+      if (monster.id === "wr-camel" && source.id === "shadowdark-community-tokens") art[monster.id] = exact("WR:camel");
+      if (monster.id === "wr-donkey" && source.id === "dnd-monster-manual") art[monster.id] = pathOpt(
+        source.id,
+        "modules/dnd-monster-manual/assets/tokens/horse.webp",
+      );
+      if (monster.id === "cs1-tar" && source.id === "dnd-monster-manual") art[monster.id] = pathOpt(
+        source.id,
+        "modules/dnd-monster-manual/assets/tokens/bat.webp",
+      );
+    }
+    return art;
+  };
+  globalThis.game.packs = { get: (id) => packs[id] };
+  SETTINGS = {
+    priority: ["pf2e-tokens-monster-core", "shadowdark-community-tokens", "dnd-monster-manual"],
+    overrides: {},
+    picks: {},
+  };
+
+  try {
+    const built = await TokenArtCatalog.build();
+    const horseWars = built.byMonster.filter((monster) => monster.name === "Horse, War");
+    assert.deepEqual(horseWars.map((monster) => monster.id).sort(), ["cs2-war", "wr-war"]);
+    assert.equal(built.byMonster.some((monster) => monster.id === "core-mount"), false, "Core mounts remain outside the catalog");
+    assert.equal(built.byMonster.some((monster) => monster.id === "boat"), false, "boats remain outside the catalog");
+    assert.equal(built.byMonster.some((monster) => monster.id === "third-party"), false, "third-party packs remain outside the catalog");
+
+    const resolved = TokenArtCatalog.resolve(built);
+    assert.ok(resolved.tables["world.sde-actors"]?.["cs2-war"]);
+    assert.ok(resolved.tables["world.sde-actors"]?.["wr-war"], "namespaced WR mount reaches final mapping");
+    assert.ok(resolved.tables["world.sde-actors"]?.["wr-camel"], "generic Mount reaches final mapping");
+    assert.equal(resolved.tables["world.sde-actors"]?.["wr-donkey"], undefined, "reviewed-unmatched mount stays unmapped");
+    assert.equal(resolved.tables["world.sde-actors"]?.["cs1-tar"], undefined, "reviewed-unmatched NPC stays unmapped");
+
+    const app = Object.create(TokenArtManagerApp.prototype);
+    app._catalog = built;
+    app._filter = "";
+    app._conflictsOnly = false;
+    const context = await app._prepareContext();
+    const unmatchedMount = context.rows.find((row) => row.id === "wr-donkey");
+    assert.equal(unmatchedMount.imported, true);
+    assert.equal(unmatchedMount.hasOptions, true, "unmatched mount options remain visible to Browse");
+  } finally {
+    MonsterTokenArt.presentPacks = original.presentPacks;
+    TokenArtCatalog.discoverSources = original.discoverSources;
+    TokenArtCatalog._sourceArt = original.sourceArt;
+    globalThis.game.packs = original.packs;
+    SETTINGS = original.settings;
   }
 });
 
