@@ -355,15 +355,19 @@ scope for Phase 1.
 
 ## `forgeLoot` — preview-first generator shell
 
-Opens the shared GM-only Forge & Loot shell. It selects a future generator,
-produces an immutable seeded preview, and keeps all persistence behind the
-generator's commit adapter. Preview, reroll, and cancel do not write; approval
-rechecks the active GM/source snapshot and consumes the exact preview once.
-NPC and Rival Crawler rules are supplied by later generator packages.
+Opens the shared GM-only Forge & Loot shell. The shell **hosts previews
+supplied by a registered generator adapter**: it presents the adapter's
+immutable seeded preview and keeps all persistence behind the adapter's commit
+boundary. The shell itself does not generate NPCs or write world documents.
+Preview, reroll, and cancel do not write; approval rechecks the active
+GM/source snapshot and consumes the exact preview once. NPC and Rival Crawler
+rules are supplied by later generator packages — today the `npc` and `rival`
+adapters are disabled placeholders.
 
 ```js
 await api.forgeLoot.open();
-// Optional: choose the adapter and seed when opening.
+// Choose the adapter and seed when opening (rules arrive in later generator
+// packages; the current npc/rival adapters are disabled placeholders).
 await api.forgeLoot.open({ generator: "npc", seed: "session-01" });
 ```
 
