@@ -5,8 +5,8 @@
 // real Foundry public icon tree rather than a Set assembled from the map.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import path from "node:path";
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 import {
   ART_STATES,
@@ -27,16 +27,37 @@ import { buildItemData, defaultItemImg, preserveCuratedFields } from "../scripts
 import { BASIC_GEAR_ICONS } from "../scripts/shared/curated-icon-maps/gear-icons.mjs";
 import "../scripts/shared/curated-icon-maps/index.mjs";
 
-const FOUNDRY_PUBLIC = "/home/patricks/FoundryV14/public";
+const LOCAL_FOUNDRY_ICON_ROOT = "/home/patricks/FoundryV14/public/icons";
+const configuredIconRoot = String(process.env.SHADOWDARK_ENHANCER_FOUNDRY_ICON_ROOT ?? "").trim();
+const FOUNDRY_ICON_ROOT = path.resolve(configuredIconRoot || LOCAL_FOUNDRY_ICON_ROOT);
 
-// This predicate is deliberately backed by the authoritative Foundry tree on
-// disk. It is not a Set made from the rows under test, so a typo can only pass
-// if Foundry actually contains that asset.
-const foundryIconExists = (path) => {
-  const relative = String(path ?? "");
-  return relative.startsWith("icons/")
-    && existsSync(resolve(FOUNDRY_PUBLIC, relative));
-};
+/** Build an inventory in the same `icons/...` namespace used by the map. */
+function foundryIconInventory(dir, prefix = "icons", out = new Set()) {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    const relative = `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) foundryIconInventory(full, relative, out);
+    else if (entry.isFile() && entry.name.endsWith(".webp")) out.add(relative);
+  }
+  return out;
+}
+
+function loadFoundryIconInventory(root) {
+  try {
+    if (!statSync(root).isDirectory()) return null;
+    return foundryIconInventory(root);
+  } catch {
+    return null;
+  }
+}
+
+// The resolver/audit tests remain pure everywhere. Only the two assertions
+// that need an on-disk inventory skip when this optional directory is absent.
+const FOUNDRY_ICONS = loadFoundryIconInventory(FOUNDRY_ICON_ROOT);
+const INVENTORY_SKIP_REASON = FOUNDRY_ICONS === null
+  ? `Foundry icon directory unavailable: ${FOUNDRY_ICON_ROOT}`
+  : false;
+const pathExists = (iconPath) => FOUNDRY_ICONS?.has(iconPath) ?? false;
 
 const EXPECTED_KEYS = [
   "arrows",
@@ -165,7 +186,7 @@ test("quantity and spelling variants remain aliases, not extra canonical gear", 
 test("A4 discovery registration exposes Basic Gear through the live registry", () => {
   const registry = curatedIconRegistry();
   assert.match(
-    readFileSync(resolve("scripts/shared/curated-icon-maps/index.mjs"), "utf8"),
+    readFileSync(path.resolve("scripts/shared/curated-icon-maps/index.mjs"), "utf8"),
     /import ["']\.\/gear-icons\.mjs["'];/,
   );
   assert.ok(registry.maps.includes(BASIC_GEAR_ICONS));
@@ -183,9 +204,10 @@ test("Basic Gear names are source-agnostic bare-space lookups", () => {
   }
 });
 
-test("A4 audit covers all 44 rows against the real Foundry icon inventory", () => {
+test("A4 audit covers all 44 rows against the real Foundry icon inventory", { skip: INVENTORY_SKIP_REASON }, () => {
+  assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
   const registry = buildCuratedIconRegistry([BASIC_GEAR_ICONS]);
-  const report = auditCuratedIconRegistry(registry, { pathExists: foundryIconExists });
+  const report = auditCuratedIconRegistry(registry, { pathExists });
 
   assert.equal(report.total, 44);
   assert.equal(report.bare, 44);
@@ -198,15 +220,15 @@ test("A4 audit covers all 44 rows against the real Foundry icon inventory", () =
   );
 });
 
-test("A4 audit reports a valid-looking but absent path as missing-path", () => {
+test("A4 audit reports a valid-looking but absent path as missing-path", { skip: INVENTORY_SKIP_REASON }, () => {
   const missingPath = "icons/__d3_missing_asset_probe__/valid-looking.webp";
-  assert.equal(foundryIconExists(missingPath), false);
+  assert.equal(pathExists(missingPath), false);
   const broken = defineCuratedIconMap("basic-gear-missing-probe", {
     "Missing Basic Gear": missingPath,
   }, { space: CURATED_KEY_SPACES.BARE });
   const report = auditCuratedIconRegistry(
     buildCuratedIconRegistry([BASIC_GEAR_ICONS, broken]),
-    { pathExists: foundryIconExists },
+    { pathExists },
   );
 
   assert.ok(report.problems.some((problem) =>
