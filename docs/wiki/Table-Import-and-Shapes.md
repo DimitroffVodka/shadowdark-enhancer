@@ -231,10 +231,20 @@ When the Importer Hub's **Table** preview enriches a RollTable with Item links
 resolve as `ambiguous` or `unresolved` are deliberately left without a `@UUID` —
 they remain plain text rather than a wrong link. For specialized source-qualified
 tables like *Cursed Scroll 3* p68 *Sea Wolf Plunder From Distant Lands* (D4),
+*Cursed Scroll 2* p68 *In a Dead Bandit's Hand, You Find...* (D5), and *Cursed
+Scroll 1* p68 *Diabolical Treasure* (D6),
 linking routes to a dedicated materializer that mints the 20 managed Items in
-`sde-items` under `Cursed Scroll 3 / Treasure` with curated icons and links them
-while preserving full priced display text on TableResults; coin entries and
-unmapped rows stay plain text. See [Loot & Treasure — How loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution), [Sea Wolf Plunder materialization](Loot-and-Treasure.md#sea-wolf-plunder-materialization-d4), and [API `loot.resolve`](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot).
+`sde-items` under `Cursed Scroll 3 / Treasure` (D4), `Cursed Scroll 2 / Treasure`
+(D5), or `Cursed Scroll 1 / Treasure` (D6) with curated icons and links them
+while preserving exact source phrasing: D4/D5 keep the full priced (D4) or raw
+(D5) source phrase as the TableResult display, and D6 reduces the cartesian
+20×20 generator to 20 name-only `1d20` results whose feature text stays behind
+Item identification; coin entries and unmapped rows stay plain text. See
+[Loot & Treasure — How loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution),
+[Sea Wolf Plunder materialization](Loot-and-Treasure.md#sea-wolf-plunder-materialization-d4),
+[Dead Bandit Loot materialization](Loot-and-Treasure.md#dead-bandit-loot-materialization-d5),
+[Diabolical Treasure materialization](Loot-and-Treasure.md#diabolical-treasure-materialization-d6),
+and [API `loot.resolve`](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot).
 
 ### Contextual check enrichment for Arctic Sea encounters (E1)
 

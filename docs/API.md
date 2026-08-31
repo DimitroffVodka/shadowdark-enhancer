@@ -121,9 +121,12 @@ api.encounter.getThreshold(); api.encounter.setThreshold(3);
 await api.loot.generateHoard(5, 2);
 // Rewrite loot RollTables so rows are real compendium items:
 await api.loot.linkTables();        // all loot tables (or pass one table)
-// (Note: Recognized CS3 Sea Wolf Plunder tables route through the dedicated
-//  Sea Wolf materializer before the general system-first index, minting 20
-//  generated Items in sde-items and preserving full priced TableResult display names.)
+// (Note: Recognized source-qualified treasure tables route through their
+//  dedicated materializers before the general system-first index — CS3 Sea Wolf
+//  Plunder (D4) and CS2 Dead Bandit Loot (D5) mint 20 generated Items each in
+//  sde-items and preserve the full source phrase as the TableResult display;
+//  CS1 Diabolical Treasure (D6) mints 20 identification-gated Items and reduces
+//  the cartesian 20×20 generator to 20 name-only 1d20 results.)
 api.loot.open(); api.loot.openSetup();
 
 // Resolve one loot row's text to a compendium Item — exact/alias only (A7).
