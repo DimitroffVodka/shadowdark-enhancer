@@ -24,7 +24,9 @@ import {
   resolveCuratedIcon,
 } from "../scripts/shared/curated-icons.mjs";
 import { buildItemData, defaultItemImg, preserveCuratedFields } from "../scripts/importer/items/item-importer.mjs";
+import { ARMOR_ICONS } from "../scripts/shared/curated-icon-maps/armor-icons.mjs";
 import { BASIC_GEAR_ICONS } from "../scripts/shared/curated-icon-maps/gear-icons.mjs";
+import { WEAPON_ICONS } from "../scripts/shared/curated-icon-maps/weapon-icons.mjs";
 import "../scripts/shared/curated-icon-maps/index.mjs";
 
 const LOCAL_FOUNDRY_ICON_ROOT = "/home/patricks/FoundryV14/public/icons";
@@ -192,6 +194,41 @@ test("A4 discovery registration exposes Basic Gear through the live registry", (
   assert.ok(registry.maps.includes(BASIC_GEAR_ICONS));
   assert.equal(registry.bare.get("arrows"), "icons/weapons/ammunition/arrows-broadhead-white.webp");
   assert.equal(registry.bare.get("traveler's lamp"), "icons/sundries/lights/lantern-bullseye-signal-copper.webp");
+});
+
+test("the composed D1-D3 discovery registry has exactly 94 collision-free bare rows", () => {
+  const registry = curatedIconRegistry();
+  const report = auditCuratedIconRegistry(registry);
+  const expectedKeys = new Set([
+    ...ARMOR_ICONS.entries.keys(),
+    ...BASIC_GEAR_ICONS.entries.keys(),
+    ...WEAPON_ICONS.entries.keys(),
+  ]);
+
+  assert.equal(ARMOR_ICONS.entries.size + BASIC_GEAR_ICONS.entries.size + WEAPON_ICONS.entries.size, 94);
+  assert.equal(expectedKeys.size, 94, "D1-D3 maps must not claim the same normalized bare key");
+  assert.equal(report.total, 94);
+  assert.equal(report.bare, 94);
+  assert.equal(report.sourced, 0);
+  assert.deepEqual(report.problems, []);
+  assert.deepEqual(report.crossSpaceNames, []);
+  assert.deepEqual([...registry.bare.keys()].sort(), [...expectedKeys].sort());
+  assert.deepEqual(
+    [...report.perMap].sort((a, b) => a.label.localeCompare(b.label)),
+    [
+      { label: "armor", space: "bare", entries: 13 },
+      { label: "basic-gear", space: "bare", entries: 44 },
+      { label: "weapons", space: "bare", entries: 37 },
+    ],
+  );
+});
+
+test("the composed D1-D3 registry resolves all 94 rows against the real Foundry inventory", { skip: INVENTORY_SKIP_REASON }, () => {
+  assert.ok(FOUNDRY_ICONS.size > 1_000, "the path predicate must use the real Foundry icon inventory");
+  const report = auditCuratedIconRegistry(curatedIconRegistry(), { pathExists });
+
+  assert.equal(report.total, 94);
+  assert.deepEqual(report.problems, []);
 });
 
 test("Basic Gear names are source-agnostic bare-space lookups", () => {
