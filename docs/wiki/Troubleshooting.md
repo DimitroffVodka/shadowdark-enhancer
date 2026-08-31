@@ -225,10 +225,15 @@ Three things run automatically on the next world load for the single active GM:
    pack on every activation, and refreshes the Monster Spell Library from
    Shadowdark Core and the managed Enhancer Actors pack once per module version
    stamp (`monsterSpellSyncVersion`). The stamp advances only after a complete
-   successful refresh. If consolidation fails while the retired pack still holds
-   unmigrated content, the automatic refresh is deferred to protect curated legacy
-   content and raises a warning notification once per session pointing to manual
-   **Build / Refresh**.
+   successful refresh. If consolidation fails — either throwing or returning
+   `status: \"incomplete\"` when created copies could not be verified and the
+   originals were kept for a later retry — it defers with the same bound:
+   while the retired pack still holds unmigrated content (or cannot be read,
+   handled as populated), the automatic refresh is deferred to protect
+   verbatim curated legacy content, raises the warning notification once per
+   session pointing to manual **Build / Refresh** (leaving the stamp unchanged to
+   retry next activation); if the retired pack is absent or already empty, the
+   same failure is logged without blocking the refresh.
 3. **Spell↔class relink.** Runs on every load, updates or no updates.
 
 None of these delete your content. To force the backfill or monster spell refresh

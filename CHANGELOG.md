@@ -81,13 +81,18 @@
 - **Legacy Monster Spell consolidation and update gate failure handling.**
   Consolidation of the retired `world.shadowdark-enhancer--monster-spells` pack
   continues to run on every world activation as a safety net. If consolidation
-  throws while the retired pack still holds unmigrated documents, the automatic
-  refresh is deferred to prevent generated copies from replacing curated legacy
-  spells, and a warning notification is surfaced once per session directing the
-  GM to the manual **Build / Refresh** workflow. If the retired compendium is
-  absent or already empty, consolidation errors do not block the version-gated
-  refresh. Manual **Build / Refresh** remains available at all times and does not
-  consult or modify the version stamp.
+  fails — either throwing or returning `status: \"incomplete\"` when created
+  copies could not be verified and A1 deliberately kept the originals in the
+  retired pack for a later retry — the automatic refresh is deferred to prevent
+  generated copies from replacing curated legacy spells. The bound is the
+  retired pack's state: if it still holds unmigrated documents (or cannot be read,
+  which the gate treats as populated), the automatic refresh is deferred, a warning
+  notification is surfaced once per session directing the GM to the manual
+  **Build / Refresh** workflow, and the version stamp is left unchanged to retry
+  next activation. If the retired compendium is absent or already empty, the same
+  consolidation failure does not block the version-gated refresh. Manual
+  **Build / Refresh** remains available at all times and does not consult or modify
+  the version stamp.
 - **Monster Spells now live in the managed Items pack.** Generated copies of
   monster-only spells are now filed into `Shadowdark Enhancer — Items` under
   `Monster Spells / <source>` (e.g. `Monster Spells / Shadowdark Core`,
