@@ -810,15 +810,40 @@ class HubPasteMethods {
         stripPageFooterLines(text, this._importSeed.page));
       const drafts = chunks.map((chunk) => parseStatblock(chunk));
       // The grab covers the whole two-page spread, but the unlock is ONE content
-      // identity: keep its statblock and review the rest, so a single missing
-      // mount never creates the other fourteen as duplicate actors.
-      const selected = selectMountDrafts(drafts, want);
+      // identity: an individual unlock keeps its one statblock; the batch-only
+      // seed carries the selected names so one spread can satisfy every locked
+      // Mount in that batch without re-grabbing it once per row.
+      const batchNames = Array.isArray(this._importSeed?._batchMountNames)
+        ? [...new Set(this._importSeed._batchMountNames.map((name) => String(name ?? "").trim()).filter(Boolean))]
+        : null;
+      const requestedNames = batchNames ?? [want];
+      const ownerFor = (entry) => requestedNames.find((name) =>
+        selectMountDrafts([entry], name).length) ?? null;
+      const selected = drafts.filter((entry) => ownerFor(entry));
+      const matchedNames = new Set();
       // Create it under the CATALOG's name, not the book's heading. The book
       // prints "WAR HORSE" where the manifest says "Horse, War", and the actor's
       // name is the census's identity: persisting the heading leaves the row
       // locked forever, still offering an Import its own duplicate check then
       // refuses. The GM asked for this name, so this is also what they expect.
-      for (const entry of selected) entry.draft.name = want;
+      if (!batchNames) {
+        for (const entry of selected) entry.draft.name = want;
+        for (const entry of selected) matchedNames.add(entry.draft.name);
+      } else {
+        for (const entry of selected) {
+          const owner = ownerFor(entry);
+          if (!owner) continue;
+          entry.draft.name = owner;
+          matchedNames.add(owner);
+        }
+      }
+      const missingRequested = batchNames
+        ? requestedNames.filter((name) => !matchedNames.has(name)).map((name) => ({
+          name, reason: drafts.length
+            ? "not among the statblocks on the extracted pages"
+            : "no statblock (AC…LV) found in the extracted pages",
+        }))
+        : [];
       this._importMonsters = selected;
       this._importItems = []; this._importSpells = []; this._importTables = [];
       this._importGenerators = []; this._importChar = []; this._importBoats = [];
@@ -828,9 +853,10 @@ class HubPasteMethods {
         ...drafts.filter((d) => !selected.includes(d)).map((d) => ({
           name: d.draft.name, reason: `dropped — this unlock expects only "${want}"`,
         })),
+        ...missingRequested,
       ];
       if (!selected.length) {
-        this._importSkipped.unshift({
+        if (!batchNames) this._importSkipped.unshift({
           name: want,
           reason: drafts.length
             ? "not among the statblocks on the extracted pages"
@@ -839,6 +865,10 @@ class HubPasteMethods {
         ui.notifications.warn(drafts.length
           ? `"${want}" wasn't among the ${drafts.length} statblock${drafts.length === 1 ? "" : "s"} on the pasted pages — check the heading spelling, or re-grab WR pg ${pages}.`
           : `No mount statblocks found — paste the Western Reaches mounts pages (pg ${pages}), stat lines (AC…LV) included.`);
+      } else if (matchedNames.size < requestedNames.length) {
+        const missing = requestedNames.filter((name) => !matchedNames.has(name));
+        ui.notifications.warn(
+          `${missing.length} requested mount${missing.length === 1 ? "" : "s"} wasn't found among the statblocks on the pasted pages: ${missing.join(", ")}.`);
       }
       this.render();
       return;

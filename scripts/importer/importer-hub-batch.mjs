@@ -201,9 +201,19 @@ class HubBatchMethods {
     }
 
     const summary = summarizeBatch(results, plan.blocked);
+    // Only the Mount spread route expands one job into per-name outcomes. Keep
+    // the original job denominator (and separate blocked suffix) for boats,
+    // ordinary monsters, and every other route's page-level bulk semantics.
+    // The report's entries include planner-blocked rows; they remain in the
+    // report, but belong only in the separate skipped suffix below.
+    const mountBulk = results.some((result) =>
+      result?.job?.route === ROUTE.HUB
+      && result.job.entry?.type === "Mount"
+      && Array.isArray(result.entries));
+    const entryTotal = mountBulk ? summary.entries - summary.blocked : summary.jobs;
     ui.notifications.info(
       `Batch import: ${summary.documents} document${summary.documents === 1 ? "" : "s"} created across `
-      + `${summary.created} of ${summary.jobs} entr${summary.jobs === 1 ? "y" : "ies"}`
+      + `${summary.created} of ${entryTotal} entr${entryTotal === 1 ? "y" : "ies"}`
       + `${summary.failed ? `, ${summary.failed} failed` : ""}`
       + `${summary.blocked ? `, ${summary.blocked} skipped` : ""}.`);
     await this._batchReportDialog(summary, scopeLabel);
@@ -224,6 +234,83 @@ class HubBatchMethods {
   // ── Route: the hub's own paste box ─────────────────────────────────────────
 
   /**
+   * Import every selected Mount from one shared WR spread. The ordinary Mount
+   * unlock remains a one-name parse; this batch-only seed tells that same parse
+   * branch which names this job is responsible for, so the supported Mount
+   * importer receives the whole selected set in one commit.
+   */
+  async _batchRunMounts(job) {
+    const requested = (job.covers?.length ? job.covers : [job.entry])
+      .filter((entry) => entry?.name);
+    const names = [...new Set(requested
+      .map((entry) => String(entry.name ?? "").trim()).filter(Boolean))];
+    const first = requested[0] ?? job.entry;
+    if (!names.length || !first?.name) {
+      return { status: "failed", created: 0, note: "the Mount batch had no selected entries" };
+    }
+
+    this._onHubClear();
+    await this._seedGenericUnlock({
+      name: first.name, src: first.src, type: first.type,
+      contentId: first.contentId, page: first.pages,
+    });
+    // The parser keeps one name for a normal click. This private batch marker
+    // widens only this run to the names already covered by the stable job key;
+    // it never changes the individual Import button's behavior.
+    if (this._importSeed) this._importSeed._batchMountNames = names;
+    await this.render();
+
+    const noTextNote = this._batchFirstProblem()
+      ?? "the source PDF gave no selectable text for those pages";
+    if (!this._batchGrabbedBody(first.name)) {
+      return {
+        status: "nothing", created: 0,
+        entries: names.map((name) => ({ name, status: "nothing", created: 0, note: noTextNote })),
+        note: noTextNote,
+      };
+    }
+
+    await this._onHubParse();
+    const parsedNames = new Set(this._importMonsters.map((entry) => entry?.draft?.name));
+    const skippedByName = new Map();
+    for (const skipped of this._importSkipped ?? []) {
+      if (names.includes(skipped?.name)) skippedByName.set(skipped.name, skipped.reason);
+    }
+
+    let report = null;
+    if (this._importMonsters.length) report = await this._onHubCommitMonsters();
+    const resultName = (value) => typeof value === "string" ? value : value?.name;
+    const createdNames = new Set((report?.created ?? []).map(resultName));
+    const replacedNames = new Set((report?.replaced ?? []).map(resultName));
+    const skippedNames = new Set((report?.skipped ?? []).map(resultName));
+    const entries = names.map((name) => {
+      if (!parsedNames.has(name)) {
+        return {
+          name, status: "failed", created: 0,
+          note: skippedByName.get(name) ?? "not among the statblocks on the extracted pages",
+        };
+      }
+      if (createdNames.has(name) || replacedNames.has(name)) {
+        return {
+          name, status: "created", created: 1,
+          note: replacedNames.has(name) ? "replaced" : "created",
+        };
+      }
+      if (skippedNames.has(name)) {
+        return { name, status: "nothing", created: 0, note: "already in your library" };
+      }
+      return { name, status: "failed", created: 0, note: "the Mount importer did not report a result" };
+    });
+    const created = entries.filter((entry) => entry.status === "created").length;
+    const status = created ? "created"
+      : entries.some((entry) => entry.status === "failed") ? "failed" : "nothing";
+    return {
+      status, created, entries,
+      note: `${created} of ${names.length} mount${names.length === 1 ? "" : "s"} created`,
+    };
+  }
+
+  /**
    * Seed → grab → Parse → Create through the hub itself. The seeding is the
    * existing per-row handler (so the shape dispatch, page-offset expansion and
    * column-mode ladder are byte-identical to a click), and the commit is
@@ -231,6 +318,7 @@ class HubBatchMethods {
    */
   async _batchRunHub(job) {
     const entry = job.entry;
+    if (entry.type === "Mount") return this._batchRunMounts(job);
     this._onHubClear();
     if (entry.seedAction === "monsterSeedPaste") {
       await this._onMonsterSeedPaste(null, { dataset: {
@@ -578,4 +666,3 @@ class HubBatchMethods {
 export function installHubBatch(cls) {
   installMethods(cls, HubBatchMethods);
 }
-

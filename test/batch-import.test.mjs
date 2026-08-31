@@ -59,18 +59,36 @@ test("rows unlocked by one press collapse into a single job", () => {
   assert.equal(plan.lockedCount, 7);
 });
 
-test("unlocks that keep one identity per press stay separate jobs", () => {
-  // A mount unlock selects its own statblock off the shared WR spread, and a
-  // seeded table unlock keeps the single best-matching table — collapsing
-  // either would import one row and mark the rest done.
+test("Mounts sharing a spread batch together while seeded tables stay separate", () => {
+  // A normal Mount unlock selects its own statblock, but the batch-only Mount
+  // route carries every covered name into that same parser. Seeded tables still
+  // keep one identity per unlock — collapsing either table would mark the rest
+  // done without importing them.
   const mounts = ["Donkey", "Horse, War"].map((name) =>
     entry({ name, type: "Mount", src: "WR", pages: "116-117" }));
   const tables = ["Dwarf Trinket", "Elf Trinket"].map((name) =>
     entry({ name, type: "Table", src: "WR", pages: "20" }));
 
   const plan = planBatch([leaf("wr", "Western Reaches", [...mounts, ...tables])]);
-  assert.equal(plan.jobs.length, 4);
-  assert.ok(plan.jobs.every((j) => j.covers.length === 1));
+  assert.equal(plan.jobs.length, 3);
+  assert.deepEqual(plan.jobs.map((j) => j.covers.length), [2, 1, 1]);
+  assert.equal(plan.jobs[0].key, "mount:WR:116-117");
+});
+
+test("Mount bulk routing stays distinct from Boat and ordinary monster spreads", () => {
+  const mounts = ["Donkey", "Pony"].map((name) =>
+    entry({ name, type: "Mount", src: "WR", pages: "116-117" }));
+  const boats = ["Canoe", "Longship"].map((name) =>
+    entry({ name, type: "Boat", src: "WR", pages: "118" }));
+  const monsters = ["Zombie", "Ghoul"].map((name) =>
+    entry({ name, seedAction: "monsterSeedPaste", type: "Actor", src: "CS1", pages: "46-48" }));
+
+  const plan = planBatch([leaf("mixed", "Mixed", [...mounts, ...boats, ...monsters])]);
+  assert.deepEqual(plan.jobs.map((job) => job.key), [
+    "mount:WR:116-117", "boat:WR:118", "actor:CS1:46-48",
+  ]);
+  assert.deepEqual(plan.jobs.map((job) => job.covers.length), [2, 2, 2]);
+  assert.ok(plan.jobs.every((job) => job.route === ROUTE.HUB));
 });
 
 test("same-named entries from different books are different jobs", () => {
@@ -154,6 +172,26 @@ test("summarizeBatch buckets outcomes and totals the documents created", () => {
   // Every row reaches the report, blocked ones included.
   assert.equal(summary.lines.length, 6);
   assert.deepEqual(summary.lines.at(-1), { status: "blocked", name: "Torch", note: "no page citation" });
+});
+
+test("summarizeBatch expands a bulk job into explicit per-entry outcomes", () => {
+  const job = { label: "Donkey", key: "mount:WR:116-117", route: ROUTE.HUB };
+  const summary = summarizeBatch([{
+    job, status: "created", created: 2,
+    entries: [
+      { name: "Donkey", status: "created", created: 1, note: "created" },
+      { name: "Horse, War", status: "nothing", created: 0, note: "already in your library" },
+      { name: "Pony", status: "failed", created: 0, note: "not among the statblocks" },
+    ],
+  }]);
+
+  assert.equal(summary.jobs, 1);
+  assert.equal(summary.entries, 3);
+  assert.equal(summary.documents, 1);
+  assert.deepEqual(
+    [summary.created, summary.nothing, summary.failed, summary.cancelled, summary.blocked],
+    [1, 1, 1, 0, 0]);
+  assert.deepEqual(summary.lines.map((line) => line.name), ["Donkey", "Horse, War", "Pony"]);
 });
 
 test("an unknown result status is counted as a failure, not dropped", () => {

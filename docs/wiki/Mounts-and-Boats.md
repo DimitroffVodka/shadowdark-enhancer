@@ -123,6 +123,17 @@ whichever way your PDF extracts, and the actor is created under the catalog name
 — the one on the button you pressed. A mount already in your world under either
 spelling counts as present and shows no Import button.
 
+**Import everything.** Opening **Import everything** (or **Import all N in Mounts**
+scoped to the `Monsters → Mounts` folder) batches every *selected* mount
+together: one `WR pp.116–117` spread read, one parse, one commit through the
+same importer that the single **Import** button uses. It does not change what
+an individual Import does — a single press still keeps its one statblock and
+sends the rest of the spread to **Skipped**. The batch simply carries all the
+covered names into that branch at once, and reports each requested mount by name
+as *created*, *already in your library*, or *not among the statblocks*, so a
+partial or repeated run cannot hide as an all-successful job. Boats and ordinary
+monsters keep their own existing bulk semantics and are unchanged.
+
 ---
 
 ## Importing the Western Reaches boats

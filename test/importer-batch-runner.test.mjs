@@ -19,6 +19,27 @@ function hub(state = {}) {
   });
 }
 
+async function runBatchForToast(job, result, blocked = []) {
+  const previousUi = globalThis.ui;
+  const messages = [];
+  const reports = [];
+  globalThis.ui = { notifications: { info: (message) => messages.push(message) } };
+  const h = hub();
+  h.render = async () => {};
+  h._batchCaptureNotifications = () => () => {};
+  h._runBatchJob = async () => result;
+  h._batchReportDialog = async (summary) => { reports.push(summary); };
+  h._invalidateManageTree = () => {};
+  h._onHubClear = () => {};
+  try {
+    await h._runBatch({ jobs: [job], blocked }, "test scope");
+    return { messages, reports };
+  } finally {
+    if (previousUi === undefined) delete globalThis.ui;
+    else globalThis.ui = previousUi;
+  }
+}
+
 test("a row with no page citation can't run unattended", () => {
   const h = hub();
   assert.match(
@@ -123,4 +144,166 @@ test("capture is a no-op when there is no notifications object to wrap", () => {
   assert.deepEqual(h._batchNotices, []);
   restore();
   assert.equal(h._batchNotices, null);
+});
+
+test("a bulk Mount job dispatches to the Mount-specific batch path", async () => {
+  const h = hub();
+  const job = {
+    route: ROUTE.HUB,
+    entry: { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    covers: [
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+      { name: "Pony", type: "Mount", src: "WR", pages: "116-117" },
+    ],
+  };
+  let dispatched = null;
+  h._batchRunMounts = async (seen) => {
+    dispatched = seen;
+    return { status: "created", created: 2 };
+  };
+
+  const result = await h._batchRunHub(job);
+  assert.strictEqual(dispatched, job);
+  assert.deepEqual(result, { status: "created", created: 2 });
+});
+
+test("the Mount batch path reports each requested name when parsing is partial", async () => {
+  const h = hub();
+  const job = {
+    entry: { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    covers: [
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+      { name: "Pony", type: "Mount", src: "WR", pages: "116-117" },
+      // A duplicate row must not make the same name parse or report twice.
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    ],
+  };
+  h._onHubClear = () => {};
+  h._seedGenericUnlock = async ({ name }) => {
+    h._importSeed = { name, type: "Mount" };
+    h._importText = `${name}\nAC 11, HP 5, ATK 1 kick +1 (1d4), MV near, LV 1`;
+  };
+  h.render = async () => {};
+  h._onHubParse = async () => {
+    h._importMonsters = [{ draft: { name: "Donkey" } }];
+    h._importSkipped = [{ name: "Pony", reason: "not among the statblocks" }];
+  };
+  h._onHubCommitMonsters = async () => {
+    h._importMonsters = [];
+    return { created: ["Donkey"], skipped: [] };
+  };
+
+  const result = await h._batchRunMounts(job);
+  assert.deepEqual(result.entries, [
+    { name: "Donkey", status: "created", created: 1, note: "created" },
+    { name: "Pony", status: "failed", created: 0, note: "not among the statblocks" },
+  ]);
+  assert.equal(result.status, "created");
+  assert.equal(result.created, 1);
+  assert.deepEqual(h._importSeed._batchMountNames, ["Donkey", "Pony"]);
+});
+
+test("a rerun reports every already-present Mount instead of a false batch success", async () => {
+  const h = hub();
+  const job = {
+    entry: { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+    covers: [
+      { name: "Donkey", type: "Mount", src: "WR", pages: "116-117" },
+      { name: "Pony", type: "Mount", src: "WR", pages: "116-117" },
+    ],
+  };
+  h._onHubClear = () => {};
+  h._seedGenericUnlock = async ({ name }) => {
+    h._importSeed = { name, type: "Mount" };
+    h._importText = `${name}\nAC 11, HP 5, ATK 1 kick +1 (1d4), MV near, LV 1`;
+  };
+  h.render = async () => {};
+  h._onHubParse = async () => {
+    h._importMonsters = [{ draft: { name: "Donkey" } }, { draft: { name: "Pony" } }];
+    h._importSkipped = [];
+  };
+  h._onHubCommitMonsters = async () => {
+    h._importMonsters = [];
+    return { created: [], skipped: ["Donkey", "Pony"] };
+  };
+
+  const result = await h._batchRunMounts(job);
+  assert.equal(result.status, "nothing");
+  assert.equal(result.created, 0);
+  assert.deepEqual(result.entries.map(({ name, status, created }) => ({ name, status, created })), [
+    { name: "Donkey", status: "nothing", created: 0 },
+    { name: "Pony", status: "nothing", created: 0 },
+  ]);
+});
+
+test("Mount bulk toasts use the explicit per-name denominator", async () => {
+  const { messages, reports } = await runBatchForToast(
+    {
+      route: ROUTE.HUB,
+      entry: { name: "Donkey", type: "Mount" },
+      label: "Mounts",
+    },
+    {
+      status: "created", created: 1,
+      entries: [
+        { name: "Donkey", status: "created", created: 1 },
+        { name: "Pony", status: "failed", created: 0 },
+      ],
+    },
+  );
+  assert.deepEqual(messages, ["Batch import: 1 document created across 1 of 2 entries, 1 failed."]);
+  assert.equal(reports[0].entries, 2);
+});
+
+test("Mount bulk toasts exclude planner-blocked rows from the denominator", async () => {
+  const { messages, reports } = await runBatchForToast(
+    {
+      route: ROUTE.HUB,
+      entry: { name: "Donkey", type: "Mount" },
+      label: "Mounts",
+    },
+    {
+      status: "created", created: 1,
+      entries: [
+        { name: "Donkey", status: "created", created: 1 },
+        { name: "Pony", status: "failed", created: 0 },
+      ],
+    },
+    [{ entry: { name: "Missing Mount", type: "Mount" }, reason: "PDF isn't linked" }],
+  );
+  assert.deepEqual(messages, ["Batch import: 1 document created across 1 of 2 entries, 1 failed, 1 skipped."]);
+  assert.equal(reports[0].entries, 3, "the report still includes the blocked row");
+  assert.equal(reports[0].blocked, 1);
+  assert.deepEqual(
+    reports[0].lines.filter((line) => line.status === "blocked"),
+    [{ status: "blocked", name: "Missing Mount", note: "PDF isn't linked" }],
+  );
+});
+
+test("non-Mount batch toasts keep job denominators and separate blocked rows", async () => {
+  const cases = [
+    {
+      route: ROUTE.HUB, type: "Boat", name: "Boats",
+      result: { status: "created", created: 8 },
+      blocked: [{ entry: { name: "Uncited Boat" }, reason: "no page citation" }],
+      expected: "Batch import: 8 documents created across 1 of 1 entry, 1 skipped.",
+    },
+    {
+      route: ROUTE.HUB, type: "Actor", name: "Monsters",
+      result: { status: "created", created: 14 }, blocked: [],
+      expected: "Batch import: 14 documents created across 1 of 1 entry.",
+    },
+    {
+      route: ROUTE.SPELLS, type: "Spell", name: "Spell list",
+      result: { status: "nothing", created: 0 }, blocked: [],
+      expected: "Batch import: 0 documents created across 0 of 1 entry.",
+    },
+  ];
+  for (const item of cases) {
+    const { messages } = await runBatchForToast(
+      { route: item.route, entry: { name: item.name, type: item.type }, label: item.name },
+      item.result, item.blocked,
+    );
+    assert.deepEqual(messages, [item.expected], item.type);
+  }
 });
