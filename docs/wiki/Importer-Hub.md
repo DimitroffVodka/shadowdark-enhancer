@@ -151,7 +151,7 @@ options are *— none —*, *Core Rulebook*, *Cursed Scroll 1–6*, and
   - `imported`: The image from the source text draft, untouched since import. Upgradeable on re-import.
   - `curated`: A deliberate module-curated icon pick. Upgradeable on re-import.
   - `custom`: Art edited or replaced by the GM. Preserved and never overwritten on re-import.
-  
+
   Any divergence between the stored item's image and the recorded witness path is treated as `custom`.
   Legacy unmarked items are classified conservatively (`default` if matching the module's default today or blank; otherwise `custom`).
   Generated artifacts in `sde-items` (`world.shadowdark-enhancer--items`) remain governed by the replace-always contract (A7/D6).
