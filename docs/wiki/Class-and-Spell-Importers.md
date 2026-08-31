@@ -107,6 +107,20 @@ The importer does this for you when it recognises the pattern.
 
 ## Troubleshooting
 
+**Re-importing a class overwrote the icon I picked for a Talent.**
+It no longer does. The Class Importer reuses A3's art-provenance witness
+(`flags["shadowdark-enhancer"].art`) for every `Class`, `Talent`,
+`Class Ability`, and overlay `Item` it writes. An icon you changed is
+classified `custom` and preserved; an untouched module-curated icon remains
+upgradeable on re-import. If the class and content otherwise match the paste,
+the provenance witness is backfilled even when nothing else is stale, so a
+later overlay-art revision still refreshes untouched module art. Corrected
+descriptions and effects remain importer-owned and are applied normally; a
+re-import with a corrected description still lands the text while keeping
+your GM-selected icons on any art you changed. Managed `Items`-pack
+artifacts with `monsterSpell.generated` remain on their structural
+replace-always contract. Verified in `test/class-reimport-diff.test.mjs`.
+
 **An imported caster class came in as a non-caster.**
 The Spellcasting paragraph was printed *after* the talents box in your book, so
 the parser glued it into the talent table and never saw the enabler talent,
