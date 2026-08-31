@@ -377,6 +377,9 @@ coin on the character sheet's purse and a gem as treasure or loot instead.
 An older import that already created them leaves the items in `sde-items`;
 delete them from the compendium if you don't want them.
 
+**A Basic Gear item's description contains the next item's text.**
+That was the pre-C1 boundary bug: a `Name. body…` description used to end at the next *anchored* header, so any real record start the anchor list didn't cover — a refused currency row, `Oil flask.` vs the table row `Oil, flask`, a shared `Rope` variant, or a page-footer number between records — was swallowed by the item above it. Descriptions now end at the next *record start* even when that start is unassigned (`record-boundary.mjs`): a known name plus period (any length, at text start / after a period / after a newline) or a line-initial, capitalised, ≤44-char, ≤3-word lead-in that isn't a sentence opener; bare numeric page-furniture lines (e.g. `108`) are excised rather than treated as a boundary. Trailing prose (`Has a shutter to hide the light.`), wrapped sentences, and lowercase mentions like `iron spikes.` stay with their own record. The fix is parser-only — already-imported Items that bled keep that text until you re-import the Basic Gear descriptions. Two held-out assignment gaps are separate follow-ups outside this rule and still reproduce: a description headed `Oil flask.` is not assigned to `Oil, flask` (name-shape mismatch), and a plain `Rope.` paragraph is left unassigned as ambiguous when both `Rope, 60'` and `Rope, morzo silk` are present (the `Rope, morzo silk.` header still assigns to its exact owner).
+
 **Import everything imported almost nothing.**
 It only runs entries it can actually read from a book you uploaded. Open the
 report's *Import these by hand* group — if it says a PDF isn't linked, add that
