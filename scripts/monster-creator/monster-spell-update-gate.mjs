@@ -57,6 +57,21 @@ function warnDeferredRefresh(notifications) {
 }
 
 /**
+ * A consolidation can fail WITHOUT throwing. `migrateMonsterSpellPack` returns
+ * `status: "incomplete"` when it created copies it could not then verify in the
+ * target: it deliberately keeps those originals in the retired pack so a later
+ * run can retry them (monster-spell-pack-migration.mjs, and the A1 adapter test
+ * "an original whose copy cannot be verified is kept and the run stays
+ * retryable"). That is the same half-moved state a throw leaves behind, and it
+ * has to reach the same deferral — a resolved value is not a success.
+ * @param {object} migration the resolved consolidation result
+ * @returns {boolean}
+ */
+function consolidationIncomplete(migration) {
+  return String(migration?.status ?? "") === "incomplete";
+}
+
+/**
  * Does the retired pack still hold documents that a failed consolidation could
  * have left half-moved? Reads the index rather than the documents: this runs on
  * an error path where the answer only decides whether to defer.
@@ -114,8 +129,14 @@ export function automaticMonsterSpellSourceIds({
  *    and paying that on every load bought nothing once the content stopped
  *    changing between activations.
  *
- * A consolidation that throws defers the refresh — but only while the legacy
- * pack still holds documents. The two operations preserve different things:
+ * A FAILED consolidation defers the refresh — but only while the legacy pack
+ * still holds documents. Failure means either of A1's two shapes: a throw, or a
+ * resolved `status: "incomplete"`, which is A1 reporting that it kept originals
+ * it could not verify so a later run can retry them. Both leave the same
+ * half-moved pack, so both take the same branch; treating only the throw as
+ * failure was the defect this gate shipped with.
+ *
+ * The two operations preserve different things:
  * consolidation moves legacy documents VERBATIM, curated GM edits included,
  * while the refresh regenerates entries from their source Actors. Refreshing on
  * top of a half-moved pack therefore lets a generated copy occupy the identity a
@@ -163,15 +184,36 @@ export async function runMonsterSpellUpdateGate({
 
   let migration = null;
   let migrationError = null;
+  let failureReason = null;
   try {
     migration = await migrate({ game });
+    if (consolidationIncomplete(migration)) {
+      failureReason = "consolidation-incomplete";
+      log?.error?.(
+        `${MODULE_ID} | Monster Spell pack consolidation could not verify every move`
+        + ` and kept ${migration?.remaining ?? "some"} document(s) in the retired pack:`,
+        migration,
+      );
+    }
   } catch (err) {
     migrationError = err;
+    failureReason = "consolidation-threw";
     log?.error?.(`${MODULE_ID} | Monster Spell pack consolidation failed:`, err);
-    if (await legacyPackHoldsDocuments({ game, findLegacyPack })) {
-      const warned = warnDeferredRefresh(notifications);
-      return { status: "failed", stage: "migration", legacyPopulated: true, warned, error: err };
-    }
+  }
+  // One bounded rule for both failure modes: refuse to refresh only while the
+  // retired pack still holds content the refresh could regenerate over.
+  if (failureReason && await legacyPackHoldsDocuments({ game, findLegacyPack })) {
+    const warned = warnDeferredRefresh(notifications);
+    return {
+      status: "failed",
+      stage: "migration",
+      reason: failureReason,
+      legacyPopulated: true,
+      warned,
+      migration,
+      migrationError,
+      error: migrationError,
+    };
   }
 
   const version = String(game?.modules?.get?.(MODULE_ID)?.version ?? "");

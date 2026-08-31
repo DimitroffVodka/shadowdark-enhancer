@@ -204,6 +204,130 @@ test("a failed consolidation defers the refresh while the retired pack still hol
   assert.deepEqual(game.writes, [[MONSTER_SPELL_SYNC_VERSION_SETTING, MODULE_VERSION]]);
 });
 
+/**
+ * A1's real partial-failure result — `migrateMonsterSpellPack` resolves with
+ * this (it does NOT throw) when it created copies it could not verify in the
+ * target, and keeps those originals in the retired pack so a later run retries
+ * them. Shape copied from monster-spell-pack-migration.mjs; the A1 adapter test
+ * "an original whose copy cannot be verified is kept and the run stays
+ * retryable" produces exactly this status/remaining pair.
+ */
+function incompleteMigration({ examined = 2, deleted = 1, remaining = 1 } = {}) {
+  return {
+    status: "incomplete",
+    legacyCollection: "world.shadowdark-enhancer--monster-spells",
+    targetCollection: "world.sde-items",
+    examined,
+    moved: examined,
+    alreadyPresent: 0,
+    deleted,
+    remaining,
+    foldersRemoved: 0,
+  };
+}
+
+test("a consolidation that RETURNS incomplete defers exactly like one that throws", async () => {
+  // The A2 blocker: `incomplete` resolves normally, so a gate that only watches
+  // the catch refreshes over originals A1 deliberately kept for a retry, and
+  // stamps the version — letting the next consolidation delete the curated
+  // original as "already present".
+  resetMonsterSpellUpdateGateSession();
+  const game = makeGame();
+  const warns = [];
+  const spy = recorder({ migrate: incompleteMigration() });
+  const deps = {
+    game,
+    migrate: spy.migrate,
+    sync: spy.sync,
+    findLegacyPack: () => legacyPack(["retained-curated-spell"]),
+    notifications: { warn: message => warns.push(message) },
+    log: silent,
+  };
+
+  const first = await runMonsterSpellUpdateGate(deps);
+  const second = await runMonsterSpellUpdateGate(deps);
+
+  assert.equal(first.status, "failed");
+  assert.equal(first.stage, "migration");
+  assert.equal(first.reason, "consolidation-incomplete");
+  assert.equal(first.legacyPopulated, true);
+  assert.equal(first.migration.remaining, 1, "the A1 result travels with the outcome");
+  assert.equal(first.migrationError, null, "nothing threw — this is a returned failure");
+  assert.equal(second.status, "failed", "it keeps deferring until the retry succeeds");
+
+  assert.equal(spy.calls.sync.length, 0, "zero refreshes");
+  assert.deepEqual(game.writes, [], "zero setting writes");
+  assert.equal(first.warned, true);
+  assert.equal(second.warned, false);
+  assert.equal(warns.length, 1, "warned once per session, not once per activation");
+
+  // A later activation whose consolidation completes refreshes and stamps.
+  const retry = recorder({ migrate: { status: "migrated", moved: 1, remaining: 0 } });
+  const third = await runMonsterSpellUpdateGate({
+    game, migrate: retry.migrate, sync: retry.sync, log: silent,
+  });
+  assert.equal(third.status, "synced");
+  assert.equal(retry.calls.sync.length, 1);
+  assert.deepEqual(game.writes, [[MONSTER_SPELL_SYNC_VERSION_SETTING, MODULE_VERSION]]);
+});
+
+test("a returned incomplete over an already-empty retired pack may still continue", async () => {
+  // The bounded rule is the pack state, not the failure shape: with nothing left
+  // in the retired pack there is no verbatim original for a refresh to regenerate
+  // over, so the same `incomplete` result must not strand the library.
+  const game = makeGame();
+  const spy = recorder({ migrate: incompleteMigration({ examined: 1, deleted: 1, remaining: 0 }) });
+
+  const outcome = await runMonsterSpellUpdateGate({
+    game, migrate: spy.migrate, sync: spy.sync, findLegacyPack: () => legacyPack([]), log: silent,
+  });
+
+  assert.equal(outcome.status, "synced");
+  assert.equal(spy.calls.sync.length, 1);
+  assert.deepEqual(game.writes, [[MONSTER_SPELL_SYNC_VERSION_SETTING, MODULE_VERSION]]);
+});
+
+test("a returned incomplete with an unreadable retired pack defers", async () => {
+  const game = makeGame();
+  const spy = recorder({ migrate: incompleteMigration() });
+
+  const outcome = await runMonsterSpellUpdateGate({
+    game,
+    migrate: spy.migrate,
+    sync: spy.sync,
+    findLegacyPack: () => ({ async getIndex() { throw new Error("index unavailable"); } }),
+    notifications: { warn() {} },
+    log: silent,
+  });
+
+  assert.equal(outcome.status, "failed");
+  assert.equal(outcome.reason, "consolidation-incomplete");
+  assert.equal(spy.calls.sync.length, 0);
+  assert.deepEqual(game.writes, []);
+});
+
+test("a completed consolidation is not mistaken for a failure", async () => {
+  // The guard keys on "incomplete" exactly; `migrated`, `empty` and `absent` are
+  // successes even though they also resolve with a status string.
+  for (const migration of [
+    { status: "migrated", moved: 4, remaining: 0 },
+    { status: "empty", examined: 0 },
+    { status: "absent", moved: 0 },
+  ]) {
+    const game = makeGame();
+    const spy = recorder({ migrate: migration });
+    const outcome = await runMonsterSpellUpdateGate({
+      game,
+      migrate: spy.migrate,
+      sync: spy.sync,
+      findLegacyPack: () => legacyPack(["something-unrelated"]),
+      log: silent,
+    });
+    assert.equal(outcome.status, "synced", `${migration.status} must not defer`);
+    assert.equal(spy.calls.sync.length, 1);
+  }
+});
+
 test("a failed consolidation over an EMPTY retired pack does not block the refresh", async () => {
   const game = makeGame();
   const spy = recorder({ migrate: new Error("legacy pack locked") });
