@@ -165,7 +165,12 @@ class HubBatchMethods {
         // than failing each remaining entry on a null element. Compared against
         // `false` on purpose: ApplicationV2's `rendered` is a real boolean, and
         // `!this.rendered` would also fire on anything that doesn't define it.
-        if (this.rendered === false) this._batchState.cancelled = true;
+        // `rendered` alone is not enough: ApplicationV2 can report rendered
+        // while `element` is already null, and every route reads the element.
+        // Checking both makes the run end cleanly here, which is what the
+        // comment above always intended, instead of the next entry dying on a
+        // DOM TypeError.
+        if (this.rendered === false || !this.element) this._batchState.cancelled = true;
         if (this._batchState.cancelled) {
           results.push({ job, status: "cancelled", note: "stopped before this entry ran", created: 0 });
           continue;

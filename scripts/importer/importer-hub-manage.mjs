@@ -734,8 +734,12 @@ class HubManageMethods {
       ui.notifications.warn("No source PDF is linked for this entry, or it has no page cite. Use “Source PDFs” to upload the book.");
       return;
     }
-    // Preserve any live edits in the box before we append to it.
-    const ta = this.element.querySelector("textarea[data-import-text]");
+    // Preserve any live edits in the box before we append to it. Optional on
+    // `element`, not just on the textarea: a batch run drives this method
+    // without a rendered window, and `this.element` is null then. No window
+    // means no live edits to preserve, so skipping is the correct behaviour —
+    // it used to throw and fail the entry with a DOM TypeError instead.
+    const ta = this.element?.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
 
     // A page cite may be a RANGE ("74-77", the WR d100 background list). Expand
