@@ -16,6 +16,8 @@
  *     formula:     string,   // "1d100", inferred from dN header / max range
  *     replacement: boolean,  // default true
  *     bestEffort:  boolean,  // true for auto-split multi-column tables (later task)
+ *     source?:     string,   // known book/source provenance (never inferred from folderPath)
+ *     manifestId?: string,   // known catalog identity; matrix children may refine it per column
  *     rows:        Array<{ min: number, max: number, text: string }>,
  *     warnings:    string[], // non-blocking gap/overlap/formula notes
  *   }
@@ -822,11 +824,33 @@ function parseBlock(blockLines) {
   return [parseSingleDieBlock(title, die, dataLines)];
 }
 
-/** Public: parse pasted text into an array of ParsedTable. */
-export function parseTables(text) {
+/**
+ * Copy identity that the parser cannot infer onto newly-created drafts. Keep
+ * this deliberately narrow: source and manifestId are provenance, while the
+ * parser must remain the authority for rows, names, and formulas.
+ * @param {object[]} tables
+ * @param {{source?: string, manifestId?: string}} [provenance]
+ * @returns {object[]}
+ */
+function _inheritTableProvenance(tables, provenance) {
+  const fields = {};
+  if (provenance?.source != null) fields.source = provenance.source;
+  if (provenance?.manifestId != null) fields.manifestId = provenance.manifestId;
+  if (!Object.keys(fields).length) return tables;
+  return tables.map((table) => ({ ...table, ...fields }));
+}
+
+/**
+ * Parse pasted text into an array of ParsedTable.
+ * @param {string} text
+ * @param {{source?: string, manifestId?: string}} [provenance]
+ *   Known identity carried by the caller. Parsing cannot discover a book from
+ *   table text, so this metadata is copied onto every resulting draft.
+ */
+export function parseTables(text, provenance) {
   const out = [];
   for (const block of splitBlocks(text)) out.push(...parseBlock(block));
-  return out.filter(pt => pt.rows.length);
+  return _inheritTableProvenance(out.filter(pt => pt.rows.length), provenance);
 }
 
 // ── Compound generators ─────────────────────────────────────────────────────
@@ -2503,6 +2527,17 @@ function _categoryLabel(pt) {
 }
 
 /**
+ * Read source provenance from a draft without deriving it from filing data.
+ * `folderPath[0]` is a destination chosen by the GM — often "Game Master" —
+ * not evidence of authorship. A missing source therefore stays missing so it
+ * cannot masquerade as a real source to source-qualified consumers. Existing
+ * persisted flags are untouched; this only governs newly-built payloads.
+ */
+function _sourceFromDraft(pt) {
+  return pt?.source ?? null;
+}
+
+/**
  * Create a RollTable from a reviewed ParsedTable and file it into the sde-tables
  * managed pack (pack-native, REQ-30 / D-08). Conflict-checks against the pack
  * index; creates per-source folders INSIDE the pack via ensureSourceFolder.
@@ -2662,8 +2697,7 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   // and there was no way to keep both. File the newcomer under its own book
   // instead — this sits at the commit, so every import path gets it, whichever
   // window the GM came from.
-  const incomingSrc = pt.source
-    ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
+  const incomingSrc = _sourceFromDraft(pt);
   // A name printed by several books must say which book it is even when NOTHING
   // it could collide with is here yet. The census probe (tableNameMatches)
   // rejects a bare contested name outright, so a bare copy leaves its Manage row
@@ -2703,8 +2737,7 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   const { resolveTableFolderPath } = await import("./table-folders.mjs");
   const folderId = await _ensureFolderPath(pack, resolveTableFolderPath({ ...pt, name: data.name }));
   // Source id still stamps the source FLAG below (hub/migration grouping).
-  const sourceId = pt.source
-    ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
+  const sourceId = _sourceFromDraft(pt);
 
   data.folder = folderId ?? null;
   data.flags = {
@@ -2937,11 +2970,20 @@ function _parseSplitPlaneMatrix(text, columns, widths) {
   }));
 }
 
-export function parseMatrixByColumns(text, columns, widths) {
+/**
+ * Split a known matrix into per-column drafts, carrying known identity through
+ * the split boundary.
+ * @param {string} text
+ * @param {string[]} columns
+ * @param {number[][]} [widths]
+ * @param {{source?: string, manifestId?: string}} [provenance]
+ * @returns {Array<object>}
+ */
+export function parseMatrixByColumns(text, columns, widths, provenance) {
   // Column-major / split-plane layout first (returns null when not applicable,
   // so row-major behavior below is preserved exactly).
   const splitPlane = _parseSplitPlaneMatrix(text, columns, widths);
-  if (splitPlane) return splitPlane;
+  if (splitPlane) return _inheritTableProvenance(splitPlane, provenance);
 
   const N = columns.length;
   const cols = columns.map(() => []);
@@ -2988,10 +3030,10 @@ export function parseMatrixByColumns(text, columns, widths) {
     for (let i = 0; i < N; i++) cols[i].push({ min, max, text: cells[i] ?? "" });
   }
   const formula = `1d${Math.max(1, maxRange)}`;
-  return columns.map((col, i) => ({
+  return _inheritTableProvenance(columns.map((col, i) => ({
     name: col, formula, replacement: true, bestEffort: true,
     rows: cols[i], warnings: i === 0 ? warnings : [],
-  }));
+  })), provenance);
 }
 
 /**
@@ -3013,8 +3055,7 @@ export async function buildResolvedTableData(pt, pack) {
   const { ensureFolderPath: _ensureFolderPath } = await import("../../shared/compendium-suite.mjs");
   const { resolveTableFolderPath } = await import("./table-folders.mjs");
   const folderId = await _ensureFolderPath(pack, resolveTableFolderPath({ ...pt, name: data.name }));
-  const sourceId = pt.source
-    ?? ((Array.isArray(pt.folderPath) && pt.folderPath.length) ? pt.folderPath[0] : null);
+  const sourceId = _sourceFromDraft(pt);
   data.folder = folderId ?? null;
   data.flags = {
     ...(data.flags ?? {}),

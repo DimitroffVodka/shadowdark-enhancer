@@ -18,6 +18,7 @@ import { TableImporter } from "./table-importer.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
 import { findById, formulaFromDie, isMatrix, columnManifestId, importNameFor } from "./table-manifest.mjs";
+import { charSourceKey } from "../../shared/source-keys.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -304,7 +305,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /**
    * Seed the in-window Import tab for a missing (or row-count-mismatched)
-   * table: its name, formula, folder, and manifestId are pre-filled so the GM
+   * table: its name, formula, folder, source, and manifestId are pre-filled so the GM
    * only has to paste the rows. (Replaces the old cross-window bridge.)
    */
   async _onImportMissing(event, target) {
@@ -321,6 +322,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       category: entry.category || null,
       folderLabel: entry.sub || entry.category || null,
       manifestId: entry.id,
+      src: charSourceKey(entry.source) ?? entry.source ?? null,
       matrix: isMatrix(entry),
       columns: entry.columns ?? null,
       widths: entry.widths ?? null,
@@ -375,7 +377,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /**
    * When seeded from a Dashboard "Import" click, force the first parsed table's
-   * identity to the manifest's — name/formula/folder + manifestId — so it lands
+   * identity to the manifest's — name/formula/folder/source + manifestId — so it lands
    * correctly and the Dashboard matches it EXACTLY after Create. Matrix and grid
    * entries re-split the paste by their known columns/widths.
    */
@@ -383,9 +385,15 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const seed = this._importSeed;
     if (!seed || !this._importParsed?.length) return;
     const folderPath = [seed.category, seed.folderLabel].filter(Boolean);
+    const provenance = {
+      source: this._importParsed[0]?.source ?? seed.src,
+      manifestId: this._importParsed[0]?.manifestId ?? seed.manifestId,
+    };
 
     if (seed.grid && Array.isArray(seed.columns) && seed.columns.length) {
-      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
+      const split = TableImporter.parseMatrixByColumns(
+        this._importText, seed.columns, seed.widths, provenance,
+      );
       const nRows = Math.max(0, ...split.map(c => c.rows.length));
       const rows = [];
       let n = 1;
@@ -398,7 +406,9 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (rows.length) {
         const merged = {
           name: seed.name, formula: `1d${rows.length}`, replacement: true,
-          bestEffort: true, warnings: split[0]?.warnings ?? [], rows, manifestId: seed.manifestId ?? null,
+          bestEffort: true, warnings: split[0]?.warnings ?? [], rows,
+          ...(provenance.manifestId != null ? { manifestId: provenance.manifestId } : {}),
+          ...(provenance.source != null ? { source: provenance.source } : {}),
         };
         if (folderPath.length) merged.folderPath = folderPath;
         else { merged.category = CUSTOM_ID; merged.customLabel = seed.folderLabel; }
@@ -408,7 +418,9 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
 
     if (seed.matrix && Array.isArray(seed.columns) && seed.columns.length) {
-      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
+      const split = TableImporter.parseMatrixByColumns(
+        this._importText, seed.columns, seed.widths, provenance,
+      );
       split.forEach((t, i) => {
         t.name = `${seed.name} - ${seed.columns[i]}`;
         if (seed.folderLabel) { t.category = CUSTOM_ID; t.customLabel = seed.folderLabel; }
@@ -425,6 +437,7 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (seed.folderLabel) { t0.category = CUSTOM_ID; t0.customLabel = seed.folderLabel; }
     if (folderPath.length) t0.folderPath = folderPath;
     t0.manifestId = seed.manifestId ?? null;
+    t0.source ??= seed.src;
   }
 
   /** Link each Loot row's text to a compendium Item where a confident match exists. */
