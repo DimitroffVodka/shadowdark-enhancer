@@ -3,6 +3,13 @@
 ## [Unreleased]
 
 ### Added
+- **Class automation readiness report (G3/#78).** An internal, read-only audit
+  evaluates Core and importer-managed Class documents for character-generation
+  and Rival readiness. Diagnostic reports produce stable blocker and warning
+  evidence with a bounded defect queue and perform no document repairs or Actor
+  writes. Empty schema-default spell grids with all null or blank nested cells
+  are recognized as non-caster defaults, while meaningful leaves, non-empty
+  casting ability, or explicit caster markers provide caster evidence.
 - **Derived Rival Crawler Classes table (G2/#79).** The managed `sde-tables`
   pack now maintains a deterministic, Core-wins class RollTable from the G3
   readiness report. Level-0 entries and ineligible classes stay out, an empty
