@@ -111,7 +111,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 630 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 631 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
@@ -387,7 +387,7 @@ Structure and thresholds only. Venue descriptions, twist details, what each stak
 | `class-readiness.mjs` | 760 | Foundry-free G3 class automation-readiness evaluator, stable blocker/warning vocabulary, G6a mappings, and bounded importer defect queue. |
 | `class-readiness-adapter.mjs` | 301 | Read-only Foundry adapter that inventories Core and importer-managed Classes, resolves talent evidence, invokes the existing via classifier, and feeds the pure readiness report. |
 | `forge-loot-app.mjs` | 262 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
-| `forge-loot-core.mjs` | 858 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
+| `forge-loot-core.mjs` | 833 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
 | `forge-loot-rng.mjs` | 80 | Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods. |
 | `rival-class-table.mjs` | 243 | Foundry-free G2 policy for selecting eligible Core/importer-managed classes with Level-0 filtering and Core-wins canonical deduplication, then building deterministic equal-probability RollTable payloads with replacement warning and content fingerprint. |
 | `rival-class-table-adapter.mjs` | 418 | Foundry adapter for the generated Rival Crawler Classes table: flag-only managed-pack lookup, GM-gated create/replace reconciliation with manual-edit warnings, source freshness checks, and debounced ClassIndex invalidation wiring. |

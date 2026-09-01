@@ -434,11 +434,12 @@ export const CrawlBar = {
     const menu = document.createElement("div");
     menu.id = "sde-loot-context-menu";
     menu.className = "sde-bar-context-menu";
+    // Forge & Loot is deliberately absent from this menu: every generator it
+    // hosts is still a placeholder, so the entry opened a window whose only
+    // buttons refuse.  Restore this item in the same change that registers a
+    // working generator — it stays reachable meanwhile via
+    // game.shadowdarkEnhancer.forgeLoot.open() for development.
     menu.innerHTML = `
-      <div class="sde-menu-item sde-menu-btn" data-loot-action="forgeLoot" role="menuitem" tabindex="0">
-        <i class="fas fa-hammer"></i> Forge &amp; Loot
-      </div>
-      <div class="sde-menu-divider"></div>
       <div class="sde-menu-item sde-menu-btn" data-loot-action="lootGen" role="menuitem" tabindex="0">
         <i class="fas fa-coins"></i> Loot Generator
       </div>

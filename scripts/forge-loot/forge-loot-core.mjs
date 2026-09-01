@@ -468,40 +468,15 @@ export function isPreviewImmutable(state) {
   return !!state?.preview && Object.isFrozen(state.preview);
 }
 
-function defaultUnavailableAdapter(id, label, description) {
-  return {
-    id,
-    label,
-    description,
-    fields: [],
-    async plan() {
-      return {
-        preview: null,
-        blocked: true,
-        disabled: true,
-        missing: [{ code: "generator-not-ready", message: `${label} is not available in this shell yet.` }],
-      };
-    },
-    async commit() {
-      throw new Error(`${label} has no commit adapter yet.`);
-    },
-  };
-}
-
-// Only generators with a real adapter belong in this list.  A placeholder here
-// renders as a live button in the picker and reads as a shipped feature, so an
-// unimplemented generator advertises itself and then refuses — which is exactly
-// how Rival Crawlers came to be visible while unusable.  `registerGenerator()`
-// is how a generator appears once it actually works; until then it stays out of
-// the UI entirely.  GENERATOR_IDS.RIVAL and its label remain defined so the
-// shelved implementation can re-register itself without a vocabulary change.
-export const DEFAULT_GENERATOR_ADAPTERS = Object.freeze([
-  defaultUnavailableAdapter(
-    GENERATOR_IDS.NPC,
-    GENERATOR_LABELS[GENERATOR_IDS.NPC],
-    "A lightweight, preview-first ordinary NPC generator.",
-  ),
-]);
+// Empty on purpose, and there is no longer a factory for "unavailable"
+// placeholder adapters.  A placeholder rendered as a live button in the picker
+// and read as a shipped feature, so an unimplemented generator advertised
+// itself and then refused — which is how Rival Crawlers came to be visible
+// while unusable.  A generator enters the UI only through registerGenerator(),
+// once it has a real adapter.  GENERATOR_IDS and GENERATOR_LABELS still carry
+// both ids so a shelved implementation can re-register without a vocabulary
+// change.
+export const DEFAULT_GENERATOR_ADAPTERS = Object.freeze([]);
 
 function normalizeAdapter(adapter) {
   if (!isObject(adapter)) throw new TypeError("Forge & Loot generator adapter must be an object.");
