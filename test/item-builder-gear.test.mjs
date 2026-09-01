@@ -6,7 +6,14 @@
 // NAME → UUID resolution is Foundry-bound and live-verified, not here.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseGearTable, mergeGearRows, assembleCreateDrafts, gearStatsLabel, sourceTitleSlug } from "../scripts/importer/items/item-builder-gear.mjs";
+import {
+  parseGearTable,
+  mergeGearRows,
+  assembleCreateDrafts,
+  gearStatsLabel,
+  sourceTitleSlug,
+  matchGearDescriptions,
+} from "../scripts/importer/items/item-builder-gear.mjs";
 import { buildItemData, withPropertyNote, preservedDescription } from "../scripts/importer/items/item-importer.mjs";
 
 const TWO_WEAPONS = [
@@ -67,6 +74,118 @@ test("Basic path still goes through the generic recognizer and builds Basic item
   assert.equal(data.type, "Basic");
   assert.equal(data.system.treasure, false);
   assert.equal("damage" in data.system, false);
+});
+
+test("Basic table parsing excises page footers without dropping numeric gear", () => {
+  const noFooterItems = [
+    "106",
+    "106\n108",
+    "106\n\nTorch 5 sp 1",
+    "Torch 5 sp 1\n\n106",
+    "106\nPole, 10-foot\t5 sp\t2",
+  ];
+  for (const text of noFooterItems) {
+    const dropped = [];
+    const rows = parseGearTable(text, "Basic", {
+      onDrop: (label, reason) => dropped.push({ label, reason }),
+    });
+    assert.ok(!rows.some((row) => /^\d{1,4}$/.test(row.name)), JSON.stringify(text));
+    assert.equal(dropped.length, 0, `${text}: page furniture is silent`);
+  }
+
+  // The adjacent-footer shapes were already safe; keep them as controls while
+  // fixing the blank-block/page-start shapes above.
+  assert.deepEqual(
+    parseGearTable("Pole, 10-foot 5 sp 2\nRations (3 days) 5 sp 1\n106", "Basic")
+      .map((row) => row.name),
+    ["Pole, 10-Foot", "Rations (3 Days)"],
+  );
+  assert.deepEqual(
+    parseGearTable("Torch\t5 sp\t1\n106\nBASIC GEAR\nRope, 60’\t1 gp\t1", "Basic")
+      .map((row) => row.name),
+    ["Torch", "Rope, 60'"],
+  );
+
+  // Digits in a real row are content, not page furniture.
+  assert.deepEqual(
+    parseGearTable("20-foot pole 5 sp 1", "Basic").map((row) => row.name),
+    ["20-Foot Pole"],
+  );
+});
+
+test("description matching aliases Oil flask to Oil, flask and closes Net first", () => {
+  const items = [
+    { name: "Net", description: "" },
+    { name: "Oil, flask", description: "" },
+  ];
+  const { assignments } = matchGearDescriptions(items, [
+    "Net. A snared creature may cut free.",
+    "Oil flask. One flask covers a close area.",
+  ].join("\n"));
+  const net = assignments.find((entry) => entry.item === items[0]);
+  const oil = assignments.find((entry) => entry.item === items[1]);
+  assert.ok(net);
+  assert.match(net.description, /snared creature may cut free/);
+  assert.doesNotMatch(net.description, /covers a close area/);
+  assert.ok(oil);
+  assert.equal(oil.sourceName, "Oil flask");
+  assert.match(oil.description, /covers a close area/);
+});
+
+test("an Oil flask assignment alias is refused when another item owns that claim", () => {
+  const oilComma = { name: "Oil, flask", description: "" };
+  const oilPlain = { name: "Oil flask", description: "" };
+  const { assignments, refusedAliases } = matchGearDescriptions(
+    [oilComma, oilPlain],
+    "Oil flask. The plain-spelled item owns this exact header.",
+  );
+  assert.deepEqual(refusedAliases, ["Oil flask"]);
+  assert.equal(assignments.find((entry) => entry.item === oilComma), undefined);
+  assert.equal(assignments.find((entry) => entry.item === oilPlain)?.sourceName, "Oil flask");
+});
+
+test("plain Rope belongs to the base 60-foot row while exact morzo silk stays separate", () => {
+  const base = { name: "Rope, 60'", description: "" };
+  const morzo = { name: "Rope, morzo silk", description: "" };
+  const text = [
+    "Rope. Braided hemp, sixty feet long.",
+    "Rope, morzo silk. A pencil-thin silk rope.",
+  ].join("\n");
+  const { assignments } = matchGearDescriptions([base, morzo], text);
+  assert.equal(assignments.length, 2);
+  assert.match(assignments.find((entry) => entry.item === base).description, /Braided hemp/);
+  assert.match(assignments.find((entry) => entry.item === morzo).description, /pencil-thin/);
+  assert.equal(new Set(assignments.map((entry) => entry.item)).size, 2,
+    "one paragraph must not be assigned to both rope rows");
+
+  // The owner is a source-data rule, not whichever row happened to be first.
+  const reversed = matchGearDescriptions([morzo, base], text).assignments;
+  assert.match(reversed.find((entry) => entry.item === base).description, /Braided hemp/);
+  assert.match(reversed.find((entry) => entry.item === morzo).description, /pencil-thin/);
+});
+
+test("a genuinely unbreakable shared variant remains unassigned", () => {
+  const items = [
+    { name: "Cord, 40'", description: "" },
+    { name: "Cord, spider silk", description: "" },
+  ];
+  const { assignments } = matchGearDescriptions(items, "Cord. A length of cord.");
+  assert.equal(assignments.length, 0);
+});
+
+test("description matching is idempotent and does not create duplicate ownership", () => {
+  const items = [
+    { name: "Rope, 60'", description: "" },
+    { name: "Rope, morzo silk", description: "" },
+  ];
+  const text = "Rope. Base rope.\nRope. Repeated base prose.\nRope, morzo silk. Exact silk rope.";
+  const once = matchGearDescriptions(items, text);
+  const twice = matchGearDescriptions(items, text);
+  assert.deepEqual(
+    twice.assignments.map(({ item, sourceName, description }) => ({ item: item.name, sourceName, description })),
+    once.assignments.map(({ item, sourceName, description }) => ({ item: item.name, sourceName, description })),
+  );
+  assert.equal(new Set(twice.assignments.map((entry) => entry.item)).size, twice.assignments.length);
 });
 
 test("folded armor rows carry pre-fold altNames through to the builder rows", () => {

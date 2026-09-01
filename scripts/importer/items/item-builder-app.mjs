@@ -24,8 +24,15 @@
  * created Weapon/Armor items are mechanically real, not descriptive shells
  * (2026-07-14 pre-push review, blocker #1).
  */
-import { splitDescriptionsByNames } from "./item-parser.mjs";
-import { parseGearTable, mergeGearRows, assembleCreateDrafts, gearStatsLabel, sourceTitleSlug } from "./item-builder-gear.mjs";
+import {
+  parseGearTable,
+  mergeGearRows,
+  assembleCreateDrafts,
+  gearStatsLabel,
+  sourceTitleSlug,
+  descriptionAnchorNames,
+  matchGearDescriptions,
+} from "./item-builder-gear.mjs";
 import { ItemImporter } from "./item-importer.mjs";
 import { sourcePdfTarget, sourcePdfHref } from "../source-pdf-registry.mjs";
 import { CHAR_SOURCES } from "../char-content/char-content-manifest.mjs";
@@ -60,7 +67,6 @@ const GEAR_PAGES = {
 };
 
 const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-const _norm  = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -286,39 +292,19 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
    *  description headers are bare nouns ("Candle.", "Tallow.") while the
    *  table rows carry suffixes ("Candle (3)", "Tallow, Jar"). */
   _descAnchorNames(name) {
-    const full = String(name ?? "").trim();
-    const noQty = full.replace(/\s*\([^)]*\)\s*$/, "").trim();
-    const noComma = noQty.split(",")[0].trim();
-    return [...new Set([full, noQty, noComma].filter(Boolean))];
+    return descriptionAnchorNames(name);
   }
 
   _onMatchDesc() {
     if (!this._items.length) { ui.notifications?.warn("Parse the table first (step 1) — descriptions match to those items by name."); return; }
-    // Exact names claim their key outright; variants only fill free keys, and
-    // a variant two items share ("Rope" from both ropes) is dropped as
-    // ambiguous rather than mis-assigned.
-    const claim = new Map();   // _norm(anchor) → item | null (ambiguous)
-    const exact = new Set();
-    for (const it of this._items) { const k = _norm(it.name); claim.set(k, it); exact.add(k); }
-    for (const it of this._items) {
-      // altNames carry a folded row's pre-fold spellings ("Shield, mithral",
-      // "Shield") so the book's bare-noun headers still anchor.
-      for (const v of [...this._descAnchorNames(it.name), ...(it.altNames ?? [])]) {
-        const k = _norm(v);
-        if (!k || exact.has(k)) continue;                   // exact names win outright
-        if (!claim.has(k)) claim.set(k, it);
-        else if (claim.get(k) !== it) claim.set(k, null);   // shared variant → ambiguous
-      }
-    }
-    const anchorNames = this._items
-      .flatMap((it) => [...this._descAnchorNames(it.name), ...(it.altNames ?? [])])
-      .filter((v) => claim.get(_norm(v)) != null);
-    const entries = splitDescriptionsByNames(this._descText, anchorNames);
+    const { assignments } = matchGearDescriptions(this._items, this._descText, {
+      // The explicit aliases are Basic Gear source spellings. Weapon/Armor
+      // matching keeps the historical exact/variant behavior only.
+      aliases: this._gearType === "Basic" ? undefined : [],
+    });
     let matched = 0;
-    for (const e of entries) {
-      const it = claim.get(_norm(e.name));
-      if (!it) continue;
-      it.description = `<p>${_escape(e.description)}</p>`;
+    for (const { item, description } of assignments) {
+      item.description = `<p>${_escape(description)}</p>`;
       matched++;
     }
     const missing = this._items.length - this._items.filter((i) => _strip(i.description)).length;

@@ -62,7 +62,7 @@ const HEADER_RE = new RegExp(`^([A-Z][^.]{0,${MAX_HEADER_LEAD}})\\.(?:\\s|$)`);
  * A page-footer / running-header line: a bare number, optionally fenced by
  * punctuation ("108", "— 42 —"). Anything with a letter in it is content.
  */
-const PAGE_FURNITURE_RE = /^[^A-Za-z0-9]*\d{1,4}[^A-Za-z0-9]*$/;
+export const PAGE_FURNITURE_RE = /^[^A-Za-z0-9]*\d{1,4}[^A-Za-z0-9]*$/;
 
 /**
  * Words that open a sentence but never open an item name. Checked against the
