@@ -432,18 +432,28 @@ function choiceMessage(g6aCode, evidence) {
   return `G6a returned unsupported choice code ${g6aCode || "(missing)"}${kind}; unattended generation cannot resolve it.`;
 }
 
+function gridHasMeaningfulLeaf(value, seen = new Set()) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim() !== "";
+  if (!isObject(value)) return true;
+  if (seen.has(value)) return false;
+  seen.add(value);
+  const entries = Array.isArray(value) ? value : Object.values(value);
+  const meaningful = entries.some((entry) => gridHasMeaningfulLeaf(entry, seen));
+  seen.delete(value);
+  return meaningful;
+}
+
 function spellcastingInfo(snapshot, item, system) {
   const spellcasting = system.spellcasting ?? field(snapshot, item, "spellcasting") ?? null;
   const grid = spellcasting?.spellsknown ?? field(snapshot, item, "spellsknown", "spellGrid");
   const hasGrid = spellcasting != null && OWN.call(spellcasting, "spellsknown") || grid !== undefined;
-  const hasNonEmptyGrid = Array.isArray(grid)
-    ? grid.length > 0
-    : isObject(grid) && Object.keys(grid).length > 0;
+  const hasMeaningfulGrid = gridHasMeaningfulLeaf(grid);
   const sentinel = String(spellcasting?.class ?? "").trim() === "__not_spellcaster__";
   const ability = String(spellcasting?.ability ?? field(snapshot, item, "castingAbility") ?? "").trim();
   const declared = snapshot.isCaster === true || (!sentinel && (ability !== "" || spellcasting?.class !== undefined || hasGrid));
-  const malformedSentinel = sentinel && (snapshot.isCaster === true || ability !== "" || hasNonEmptyGrid);
-  return { spellcasting, grid, hasGrid, hasNonEmptyGrid, sentinel, ability, declared, malformedSentinel };
+  const malformedSentinel = sentinel && (snapshot.isCaster === true || ability !== "" || hasMeaningfulGrid);
+  return { spellcasting, grid, hasGrid, hasMeaningfulGrid, sentinel, ability, declared, malformedSentinel };
 }
 
 function gridRow(grid, level) {

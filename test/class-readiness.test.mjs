@@ -45,6 +45,13 @@ const levelGrid = (change = {}) => Object.fromEntries(
   }),
 );
 
+const schemaDefaultSpellGrid = () => Object.fromEntries(
+  Array.from({ length: 10 }, (_, index) => [
+    String(index + 1),
+    Object.fromEntries(Array.from({ length: 5 }, (_, tier) => [String(tier + 1), null])),
+  ]),
+);
+
 const validClass = (extra = {}) => {
   const base = {
     uuid: "Compendium.fixture.classes.synthetic",
@@ -287,9 +294,26 @@ test("Foundry's schema-default empty spell grid keeps a sentinel non-caster elig
   assert.equal(record.blockers.some((issue) => issue.code === READINESS_CODES.CASTER_SENTINEL), false);
 });
 
-test("a non-empty spell grid still blocks contradictory sentinel metadata", () => {
+test("a real-shaped all-null Fighter spell grid has no caster evidence", () => {
+  const fighter = assessClassReadiness(validClass({
+    name: "Fighter",
+    system: {
+      spellcasting: {
+        ability: "",
+        class: "__not_spellcaster__",
+        spellsknown: schemaDefaultSpellGrid(),
+      },
+    },
+  }));
+  assert.equal(fighter.eligible, true);
+  assert.equal(hasCode(fighter, READINESS_CODES.CASTER_SENTINEL), false);
+});
+
+test("a meaningful spell grid including numeric zero blocks contradictory sentinel metadata", () => {
+  const grid = schemaDefaultSpellGrid();
+  grid["1"]["1"] = 0;
   const record = assessClassReadiness(validClass({ system: {
-    spellcasting: { ability: "", class: "__not_spellcaster__", spellsknown: levelGrid() },
+    spellcasting: { ability: "", class: "__not_spellcaster__", spellsknown: grid },
   } }));
   assert.equal(hasCode(record, READINESS_CODES.CASTER_SENTINEL), true);
   assert.equal(record.eligible, false);
