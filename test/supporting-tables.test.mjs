@@ -230,3 +230,22 @@ test("seeds route matrix roles through the existing Table Hub creation path", ()
   assert.equal(seed.expectedImportName, "Rival Crawlers: Signature Tactics - Lawful");
   assert.equal(buildSupportingTableSeed("identifier").requestedDie, "4d4");
 });
+
+test("#136 an uncovered roll refuses instead of substituting a neighbouring row", () => {
+  // Gapped 1d6: declared ranges cover only 1-4. Samples .67 and .83 both roll a
+  // 5; the old array-index fallback returned R3 for one and R4 for the other.
+  const table = { formula: "1d6", results: [
+    { range: [1, 1], text: "R1" }, { range: [2, 2], text: "R2" },
+    { range: [3, 3], text: "R3" }, { range: [4, 4], text: "R4" },
+  ] };
+  for (const sample of [0.67, 0.83, 0.99]) {
+    assert.throws(() => pickSupportingTableResult(table, () => sample), /does not cover rolled result/);
+  }
+  // Covered rolls still resolve, and weighted ranges keep their weight.
+  assert.equal(pickSupportingTableResult(table, () => 0.0).text, "R1");
+  assert.equal(pickSupportingTableResult(table, () => 0.5).text, "R4");
+  const covered = { formula: "1d6", results: [
+    { range: [1, 3], text: "Lawful" }, { range: [4, 5], text: "Neutral" }, { range: [6, 6], text: "Chaotic" },
+  ] };
+  assert.equal(pickSupportingTableResult(covered, () => 0.99).text, "Chaotic");
+});

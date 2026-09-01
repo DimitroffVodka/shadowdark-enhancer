@@ -1,0 +1,60 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "spell": "Summon Spiders",
+      "icon": "icons/creatures/invertebrates/spider-striped-web-red.webp",
+      "visualRationale": "Visibly portrays a large, predatory red-and-black spider actively crawling across a glowing violet web with conjuration wisps, perfectly conveying a drow priestess conjuring giant loyal spiders."
+    },
+    {
+      "spell": "Thunderclap",
+      "icon": "icons/magic/sonic/explosion-shock-wave-teal.webp",
+      "visualRationale": "Visibly shows a central concussive detonation emitting violent, intersecting shockwave rings and pressure lines blasting outwards in all directions, matching a powerful sonic wave throwing nearby creatures back."
+    },
+    {
+      "spell": "Time Bend",
+      "icon": "icons/magic/time/clock-spinning-gold-pink.webp",
+      "visualRationale": "Visibly displays a golden clock dial with rapidly spinning, blurring hands surrounded by warping magenta temporal energy streaks, depicting the localized bending and distortion of time to freeze a target."
+    },
+    {
+      "spell": "Time Stop",
+      "icon": "icons/magic/time/clock-stopwatch-white-blue.webp",
+      "visualRationale": "Visibly features a stark glowing white stopwatch frozen in place amid static floating motes on a deep blue stasis background, capturing the complete halting and suspension of universal time."
+    },
+    {
+      "spell": "True Name",
+      "icon": "icons/sundries/scrolls/scroll-symbol-eye-blue.webp",
+      "visualRationale": "Visibly shows an unfurled parchment scroll bearing an all-seeing occult eye above inscribed runic characters and letters, cleanly illustrating the revelation and deciphering of a target creature's hidden True Name."
+    },
+    {
+      "spell": "Unmake",
+      "icon": "icons/magic/unholy/strike-body-explode-disintegrate.webp",
+      "visualRationale": "Visibly depicts the silhouette of a humanoid body dissolving and disintegrating into crumbling fragments and ash amidst a radiant purple aura, capturing the complete unmaking and destruction of matter."
+    },
+    {
+      "spell": "Venom",
+      "icon": "icons/creatures/reptiles/snake-fangs-bite-green-yellow.webp",
+      "visualRationale": "Visibly shows an aggressive green serpent striking with open jaws, prominent white venom-dripping fangs, and a red tongue against toxic green plumes, directly matching a Viperian wizard casting venomous ranged damage."
+    },
+    {
+      "spell": "Void Step",
+      "icon": "icons/skills/movement/portal-silhouette-pink.webp",
+      "visualRationale": "Visibly portrays a luminous humanoid silhouette leaping across the empty dark void into a swirling violet interdimensional portal, perfectly representing long-distance planar/astral teleportation."
+    },
+    {
+      "spell": "Web",
+      "icon": "icons/creatures/webs/web-spider-caught-hand-purple.webp",
+      "visualRationale": "Visibly illustrates an outstretched purple hand firmly entangled and trapped across a spreading web of thick white spider silk, directly matching the immobilizing restraint of the Web spell."
+    },
+    {
+      "spell": "Whispers",
+      "icon": "icons/magic/control/mouth-smile-deception-purple.webp",
+      "visualRationale": "Visibly depicts a shadowy face with smiling dark purple lips whispering insidious suggestions in the dark, capturing the deceptive murmurs and lowered spell resistance caused by a naga's whispers."
+    },
+    {
+      "spell": "Wither",
+      "icon": "icons/magic/death/hand-withered-gray.webp",
+      "visualRationale": "Visibly displays an emaciated, desiccated grey withered hand with claw-like fingers emerging from the darkness, epitomizing the life-draining necrotic rot and decay radiated by a lich."
+    }
+  ]
+}

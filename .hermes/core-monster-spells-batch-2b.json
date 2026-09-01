@@ -1,0 +1,44 @@
+[
+  {
+    "spell": "Flight",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Fly double near for 5 rounds.</p>"
+  },
+  {
+    "spell": "Float",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Fly double near for 5 rounds.</p>"
+  },
+  {
+    "spell": "Fool's Gold",
+    "monster": "Leprechaun",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Close. One small object or small group of similar objects. Turn objects into silver or gold pieces. Lasts 1 day.</p>"
+  },
+  {
+    "spell": "Gate",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Open a portal at a point within near to another location on any plane. Lasts [[/r 1d6]] rounds or until dismissed.</p>"
+  },
+  {
+    "spell": "Healing Touch",
+    "monster": "Acolyte",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Heal one creature within close for [[/r 1d4]] HP.</p>"
+  },
+  {
+    "spell": "Hellfrost",
+    "monster": "Oni",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>All within near-sized cube extending from oni [[/r 3d6]] damage.</p>"
+  }
+]

@@ -456,6 +456,12 @@ export async function backfillTargets({
     return { dryRun, total: 0, changed: [], unchanged: [], failed: [], totals: _zeroTotals() };
   }
 
+  // pack.getDocuments() promises no ordering, so changed/unchanged/failed — and
+  // the retry report built from them — varied run to run over the same pack.
+  // Reuses the managed runner's ordering rather than defining a second one.
+  const { inSweepOrder } = await import("./managed-actor-backfill.mjs");
+  actors = inSweepOrder(actors);
+
   const changed = [];
   const unchanged = [];
   const failed = [];

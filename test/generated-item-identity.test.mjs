@@ -485,3 +485,19 @@ describe("generated reconciliation — refusals", () => {
     }).preserved, true);
   });
 });
+
+test("#131 an empty top-level changes mirror does not erase populated system.changes", () => {
+  const change = { key: "system.attributes.hp.max", mode: 2, value: "1", priority: 20 };
+  const item = (effect) => ({ name: "T", type: "Talent", system: {}, effects: [effect] });
+
+  // Foundry materializes `changes: []` beside a populated `system.changes`.
+  // Taking the empty mirror fingerprinted the Item as having no changes, so a
+  // stored Item compared unequal to itself on reimport.
+  const mirrored = generatedItemFingerprint(item({ changes: [], system: { changes: [change] } }));
+  const canonical = generatedItemFingerprint(item({ changes: [change], system: {} }));
+  assert.equal(mirrored, canonical, "an empty mirror must not change the fingerprint");
+
+  // Genuinely empty on both sides stays distinct from populated.
+  const empty = generatedItemFingerprint(item({ changes: [], system: { changes: [] } }));
+  assert.notEqual(empty, canonical);
+});

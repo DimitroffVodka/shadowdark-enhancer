@@ -1,0 +1,41 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "source": "Cursed Scroll 5",
+      "spell": "Absorb",
+      "icon": "icons/magic/defensive/barrier-shield-dome-blue-purple.webp",
+      "visualRationale": "Visibly shows a glowing ethereal forcefield dome emitting a radiant purple-blue atmospheric corona and absorbing energy sparkles against a dark void, matching the Librarian of Leng's occult force barrier that absorbs and halves incoming damage."
+    },
+    {
+      "source": "Cursed Scroll 5",
+      "spell": "Eye of the Master",
+      "icon": "icons/magic/perception/eye-tendrils-web-purple.webp",
+      "visualRationale": "Visibly shows a disembodied supernatural eyeball with an otherworldly purple pupil radiating undulating violet shadows and eldritch tendrils, depicting the master's supernatural eye manifesting at far range."
+    },
+    {
+      "source": "Cursed Scroll 5",
+      "spell": "Invoke Fear",
+      "icon": "icons/magic/control/fear-fright-monster-grin-purple-blue.webp",
+      "visualRationale": "Visibly shows a menacing shadowy demonic countenance emerging from violet darkness with glowing cyan eyes and a terrifying jagged grin, cleanly portraying the horrifying psychic aura of fear that keeps nearby foes away."
+    },
+    {
+      "source": "Cursed Scroll 5",
+      "spell": "Mind Pierce",
+      "icon": "icons/magic/unholy/beam-ringed-impact-purple.webp",
+      "visualRationale": "Visibly shows a needle-thin violet-white psychic lance piercing through concentric purple wave rings and detonating in a blinding flash of white light, capturing the psychic penetration that deals damage and blinds a distant target."
+    },
+    {
+      "source": "Cursed Scroll 5",
+      "spell": "Impale",
+      "icon": "icons/skills/ranged/projectile-strike-impale-gray.webp",
+      "visualRationale": "Visibly shows a humanoid target silhouette violently pierced and impaled through the chest by a flying jagged projectile spike, directly representing Dremir's ranged impalement strike."
+    },
+    {
+      "source": "Cursed Scroll 5",
+      "spell": "Slow",
+      "icon": "icons/magic/time/hourglass-tilted-glowing-gold.webp",
+      "visualRationale": "Visibly shows a glowing golden hourglass with grains of sand trickling slowly between bulbs amidst radiant magical sparks, capturing time dilation and reducing target movement speed to half."
+    }
+  ]
+}

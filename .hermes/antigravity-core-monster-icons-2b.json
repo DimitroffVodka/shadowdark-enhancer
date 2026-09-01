@@ -1,0 +1,35 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "spell": "Flight",
+      "icon": "icons/commodities/biological/wing-lizard-purple.webp",
+      "visualRationale": "A tattered, necrotic purple draconic wing with exposed bone joints and decayed webbing set against a deep violet void, perfectly capturing a Lich taking unnatural magical flight."
+    },
+    {
+      "spell": "Float",
+      "icon": "icons/skills/movement/feet-winged-boots-glowing-yellow.webp",
+      "visualRationale": "A radiant golden boot adorned with soaring wings and streaming speed motes, brilliantly representing an Archmage's luminous transmutation spell granting swift aerial levitation and flight."
+    },
+    {
+      "spell": "Fool's Gold",
+      "icon": "icons/commodities/currency/coins-assorted-mix-copper-silver-gold.webp",
+      "visualRationale": "A scattered pile of gleaming gold, silver, and copper coins with rough minted engravings against a dark surface, directly depicting objects magically transformed into temporary gold and silver currency."
+    },
+    {
+      "spell": "Gate",
+      "icon": "icons/environment/wilderness/portal.webp",
+      "visualRationale": "An ancient stone ring archway opening a glowing cyan planar gateway to another dimension amidst a grassy landscape, vividly capturing Rathgamnon opening an interdimensional planar gate."
+    },
+    {
+      "spell": "Healing Touch",
+      "icon": "icons/magic/life/heart-hand-gold-green.webp",
+      "visualRationale": "An outstretched hand channeling restorative vital energy into a floating golden heart amidst radiant emerald rays, perfectly depicting an acolyte's life-giving healing touch."
+    },
+    {
+      "spell": "Hellfrost",
+      "icon": "icons/magic/water/barrier-ice-wall-explosion.webp",
+      "visualRationale": "An erupting circle of sharp jagged ice spikes blasting outwards with flying frost shards and falling snowflakes against radiant blue burst rays, embodying the explosive freezing burst of an Oni's Hellfrost."
+    }
+  ]
+}

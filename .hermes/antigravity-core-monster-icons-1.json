@@ -1,0 +1,70 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "spell": "Abjure",
+      "icon": "icons/magic/defensive/shield-barrier-deflect-gold.webp",
+      "visualRationale": "Visibly shows a radiant golden aegis with a central blue jewel deflecting and reflecting incoming rays of hostile magical energy, matching Rathgamnon's golden abjurative ward to end hostile magical effects."
+    },
+    {
+      "spell": "Abolish",
+      "icon": "icons/magic/light/beam-strike-orange-gold.webp",
+      "visualRationale": "Visibly shows an overwhelming, blinding golden-orange solar beam striking down from above, capturing the devastating high-tier 5d8 radiant unmaking ray at far range."
+    },
+    {
+      "spell": "Absorb",
+      "icon": "icons/magic/unholy/strike-body-life-soul-purple.webp",
+      "visualRationale": "Visibly shows a flayed humanoid figure arched backward in torment as wisps of glowing purple soul and spell essence are siphoned from their chest, matching Mordanticus the Flayed and the spell-draining effect."
+    },
+    {
+      "spell": "Agony",
+      "icon": "icons/skills/wounds/injury-pain-body-orange.webp",
+      "visualRationale": "Visibly shows a humanoid figure doubled backward in acute bodily agony with jagged orange-red pain bursts radiating from their spine, depicting severe direct torment (3d8 damage)."
+    },
+    {
+      "spell": "Anchor",
+      "icon": "icons/equipment/neck/pendant-gold-anchor.webp",
+      "visualRationale": "Visibly shows a solid, gleaming golden anchor glowing against a dark background, directly representing Rathgamnon anchoring and binding targets with golden runic magic."
+    },
+    {
+      "spell": "Anoint",
+      "icon": "icons/weapons/swords/sword-gold-holy.webp",
+      "visualRationale": "Visibly shows an ornate golden longsword backed by angelic wings and radiant white rays of holy light, clearly portraying a weapon blessed and consecrated into a +2 magical version."
+    },
+    {
+      "spell": "Arcane Armor",
+      "icon": "icons/magic/defensive/shield-barrier-glowing-triangle-blue.webp",
+      "visualRationale": "Visibly shows a midnight shield emblazoned with a glowing triangular arcane rune and surrounded by a radiant blue warding aura, embodying a Mage's protective AC 16 force shield."
+    },
+    {
+      "spell": "Banish",
+      "icon": "icons/skills/movement/portal-silhouette-pink.webp",
+      "visualRationale": "Visibly shows a humanoid silhouette pulled upward along a light beam into an open swirling violet planar rift, capturing extradimensional creatures being cast out and returned to their home planes."
+    },
+    {
+      "spell": "Barkskin",
+      "icon": "icons/magic/nature/hand-weapon-wood-bark-brown.webp",
+      "visualRationale": "Visibly shows a humanoid hand and arm encased in thick, striated brown living tree bark bearing a glowing druidic eye, capturing the natural bark armor transformation."
+    },
+    {
+      "spell": "Beguile",
+      "icon": "icons/magic/control/hypnosis-mesmerism-eye.webp",
+      "visualRationale": "Visibly shows a wide-open eye with a swirling purple spiral pupil emitting hypnotic waves, directly depicting the stupefying and mesmerizing focus charm."
+    },
+    {
+      "spell": "Bind",
+      "icon": "icons/magic/control/debuff-energy-hold-pink.webp",
+      "visualRationale": "Visibly shows a humanoid figure immobilized and constricted by swirling magenta energy bands around their body, cleanly illustrating humanoid paralysis."
+    },
+    {
+      "spell": "Blast",
+      "icon": "icons/magic/light/projectile-smoke-blue.webp",
+      "visualRationale": "Visibly shows a concentrated, luminous cyan-blue arcane projectile hurtling forward with a sparkling energy trail, representing a focused single-target 2d6 damage missile."
+    },
+    {
+      "spell": "Bug Brain",
+      "icon": "icons/creatures/invertebrates/tick-cross-glowing-purple.webp",
+      "visualRationale": "Visibly shows a bloated insect parasite glowing with a sinister violet cross and dark mystic aura, perfectly evoking a shamanic bug hex that reduces target INT to 1."
+    }
+  ]
+}

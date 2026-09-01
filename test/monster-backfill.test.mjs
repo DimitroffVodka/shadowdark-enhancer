@@ -361,7 +361,9 @@ test("write rejection has a distinct reason and retry applies only the still-mis
   const second = await runPack(game, [failing, succeeding]);
   assert.deepEqual(second.failed, []);
   assert.deepEqual(second.changed, []);
-  assert.deepEqual(second.unchanged.map(({ actor }) => actor), ["Locked Monster", "Good Monster"]);
+  // Sweep order is name-then-id, so "Good Monster" precedes "Locked Monster"
+  // regardless of the order the pack handed them back.
+  assert.deepEqual(second.unchanged.map(({ actor }) => actor), ["Good Monster", "Locked Monster"]);
   assert.deepEqual(failing.writes.map(([kind]) => kind), ["updateEmbeddedDocuments", "updateEmbeddedDocuments"]);
   assert.deepEqual(succeeding.writes.map(([kind]) => kind), ["updateEmbeddedDocuments"]);
 });

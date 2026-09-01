@@ -74,7 +74,7 @@ function outcomeOf(actor) {
  * documents in the same positions and a diff of two runs is meaningful.
  * `getDocuments()` makes no ordering promise.
  */
-function inSweepOrder(actors) {
+export function inSweepOrder(actors) {
   return [...actors].sort((a, b) => {
     const an = String(a?.name ?? "").toLowerCase();
     const bn = String(b?.name ?? "").toLowerCase();

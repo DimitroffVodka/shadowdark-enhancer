@@ -1,0 +1,40 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "spell": "Cancel",
+      "icon": "icons/magic/defensive/barrier-shield-dome-deflect-teal.webp",
+      "visualRationale": "Visibly shows an incoming hostile magical beam striking an arcane energy barrier and shattering in a fountain of deflected cyan-blue energy shards, depicting a Mage casting Cancel to dissipate and end an active spell."
+    },
+    {
+      "spell": "Conjure Flames",
+      "icon": "icons/magic/fire/flame-burning-hand-orange.webp",
+      "visualRationale": "Visibly shows an outstretched primal hand summoning a bright leaf-shaped living flame hovering above the palm against a dark backdrop, capturing a Druid conjuring magical fire to strike a distant target."
+    },
+    {
+      "spell": "Death Bolt",
+      "icon": "icons/magic/death/projectile-skull-fire-green.webp",
+      "visualRationale": "Visibly shows an agonizing spectral skull engulfed in virulent green flames hurtling forward as a high-speed lethal projectile bolt, capturing an Archmage casting a devastating instant-death spell."
+    },
+    {
+      "spell": "Deathtouch",
+      "icon": "icons/magic/death/hand-undead-skeleton-fire-green.webp",
+      "visualRationale": "Visibly shows an outstretched bony skeletal hand clawing forward amidst swirling plumes of toxic green necromantic flame, directly illustrating a Cultist channeling deadly necrotic power into a close-quarters touch attack."
+    },
+    {
+      "spell": "Enervate",
+      "icon": "icons/magic/control/hypnosis-mesmerism-swirl.webp",
+      "visualRationale": "Visibly shows an intense vortex of swirling violet hypnotic energy radiating mental distortion waves, portraying an Archmage focusing an enervating psionic field to leave the target stupefied."
+    },
+    {
+      "spell": "Fade",
+      "icon": "icons/magic/perception/shadow-stealth-eyes-purple.webp",
+      "visualRationale": "Visibly shows a masked shadowy visage cloaked in deep violet night with glowing white eyes receding into obscurity, portraying an Oni fading into the shadows to become invisible."
+    },
+    {
+      "spell": "Fireblast",
+      "icon": "icons/magic/fire/explosion-fireball-large-orange.webp",
+      "visualRationale": "Visibly shows a massive radial firestorm explosion detonating outward with blinding white-hot incandescent shockwaves and flying embers, capturing an Archmage unleashing a high-tier blast filling an entire near-sized cube."
+    }
+  ]
+}

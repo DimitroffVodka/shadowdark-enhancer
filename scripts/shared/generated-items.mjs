@@ -177,9 +177,13 @@ function normalizeEffectChange(change) {
 function normalizeEffect(effect) {
   const source = isObject(effect) ? effect : {};
   const system = isObject(source.system) ? source.system : {};
-  const changes = Array.isArray(source.changes)
-    ? source.changes
-    : Array.isArray(system.changes) ? system.changes : null;
+  // Prefer whichever mirror actually carries changes. Foundry materializes an
+  // empty top-level `changes: []` beside a populated `system.changes`, and
+  // taking the empty one fingerprinted the Item as having no changes at all —
+  // so a stored Item compared unequal to itself on reimport.
+  const changes = [source.changes, system.changes].find((c) => Array.isArray(c) && c.length)
+    ?? (Array.isArray(source.changes) ? source.changes
+      : Array.isArray(system.changes) ? system.changes : null);
   const normalized = {};
 
   for (const key of Object.keys(source)) {

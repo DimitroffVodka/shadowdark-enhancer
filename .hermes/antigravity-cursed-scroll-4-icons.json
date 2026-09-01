@@ -1,0 +1,23 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "source": "Cursed Scroll 4",
+      "spell": "Whirlpool",
+      "icon": "icons/magic/water/vortex-water-whirlpool.webp",
+      "visualRationale": "Visibly shows a bright azure, frothing funnel-shaped maelstrom vortex swirling dynamically down into a deep oceanic abyss, directly matching Kawitzek reshaping and swirling water into a powerful whirlpool."
+    },
+    {
+      "source": "Cursed Scroll 4",
+      "spell": "Daze",
+      "icon": "icons/magic/control/hypnosis-mesmerism-swirl.webp",
+      "visualRationale": "Visibly shows a disorienting lavender and violet spiral funnel cloud swirling inward against a radiating background, capturing the dizzying hypnotic trance that stuns a target helplessly."
+    },
+    {
+      "source": "Cursed Scroll 4",
+      "spell": "Death Touch",
+      "icon": "icons/magic/unholy/strike-hand-glow-pink.webp",
+      "visualRationale": "Visibly shows an outstretched open hand and fingertips emitting a dark violet and magenta necrotic aura with glowing contact energy, capturing a close-range touch attack delivering lethal unholy damage."
+    }
+  ]
+}

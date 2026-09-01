@@ -1,0 +1,93 @@
+[
+  {
+    "spell": "Abjure",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Self. End any hostile magical effects affecting Rathgamnon.</p>"
+  },
+  {
+    "spell": "Abolish",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>One target in far takes [[/r 5d8]] damage.</p>"
+  },
+  {
+    "spell": "Absorb",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Near, one target. Target loses the ability to cast one random spell until completing a rest, and Mordanticus regains a lost spell of the same tier or less.</p>"
+  },
+  {
+    "spell": "Agony",
+    "monster": "Naga",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>One target in near takes [[/r 3d8]] damage.</p>"
+  },
+  {
+    "spell": "Anchor",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>One target in far [[check 18 str]] or bound and anchored by chains of golden runes for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Anoint",
+    "monster": "Priest",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Close. One weapon or armor becomes a magic +2 version for 10 rounds.</p>"
+  },
+  {
+    "spell": "Arcane Armor",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>AC 16 for [[/r 2d4]] rounds.</p>"
+  },
+  {
+    "spell": "Banish",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>All extradimensional creatures within near [[check 15 cha]] or sent back to their home planes.</p>"
+  },
+  {
+    "spell": "Barkskin",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>AC becomes 15 for 5 rounds.</p>"
+  },
+  {
+    "spell": "Beguile",
+    "monster": "Apprentice",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Focus. One target in near of LV 2 or less is stupefied for the duration.</p>"
+  },
+  {
+    "spell": "Bind",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One humanoid in far paralyzed [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Blast",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Far, one target. [[/r 2d6]] damage.</p>"
+  },
+  {
+    "spell": "Bug Brain",
+    "monster": "Goblin, Shaman",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Near range, one target. Target's INT drops to 1 for [[/r 1d4]] rounds.</p>"
+  }
+]

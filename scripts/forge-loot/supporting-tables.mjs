@@ -750,8 +750,17 @@ export function pickSupportingTableResult(tableOrState, rng = Math.random) {
   const low = domain?.[0] ?? (ranges.length ? Math.min(...ranges.map((row) => row.range[0])) : 1);
   const high = domain?.[1] ?? (ranges.length ? Math.max(...ranges.map((row) => row.range[1])) : rows.length);
   const roll = low + Math.floor(sample * (high - low + 1));
-  const selected = ranges.find((row) => roll >= row.range[0] && roll <= row.range[1])
-    ?? rows[Math.min(rows.length - 1, Math.floor(sample * rows.length))];
+  const selected = ranges.find((row) => roll >= row.range[0] && roll <= row.range[1]);
+  // Fail closed. The old fallback picked by array position, so an uncovered
+  // roll returned a neighbouring row — and two different samples landing on the
+  // same uncovered roll returned DIFFERENT rows. A caller could not tell a
+  // rolled result from a substituted one, and the substitution ends up
+  // persisted on an Actor.
+  if (!selected) {
+    throw new Error(
+      `Supporting table does not cover rolled result ${roll} (domain ${low}-${high}).`,
+    );
+  }
   return {
     ...selected,
     manifestId: tableOrState?.manifestId ?? descriptor?.manifestId ?? null,
