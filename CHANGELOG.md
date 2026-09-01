@@ -16,6 +16,11 @@
   no explanation. Preserved on the `rival-crawlers-shelved` branch.
 
 ### Added
+- **Character Builder stat methods (#151).** GMs can now choose a fixed Standard
+  Array (`15, 14, 13, 12, 10, 8`) or a 27-point Point Buy (scores 8–15) in the
+  existing ability-method setting. Standard Array reuses the assignment pool;
+  Point Buy shows each score's cumulative cost and live remaining budget.
+
 - **CS3 Nord Names shape (C2/#55).** The Nord source grid now imports four
   standalone d20 component tables plus separate Male × Surname × Title and
   Female × Surname × Title generators; the prior four-column document is left

@@ -71,11 +71,32 @@ export const ABILITY_INFO = {
  * Stat-generation methods. The GM picks ONE via the `charBuilderStatMethod`
  * world setting; players don't choose the method in the builder.
  * - `formula`       per-ability dice expression (rolled six times).
+ * - `fixed`         six-value pool used by a fixed assignment method.
  * - `assign`        false = results go down the line (STR→CHA); true = the
  *                   player assigns the rolled dice to abilities.
+ * - `pointBuy`      scores are adjusted against the point-buy budget.
  * - `rerollUnder14` offer a full-array reroll when no score reaches 14
  *                   (Shadowdark core rule for the 3d6 method).
  */
+export const STANDARD_ARRAY = Object.freeze([15, 14, 13, 12, 10, 8]);
+
+export const POINT_BUY_BUDGET = 27;
+export const POINT_BUY_MIN = 8;
+export const POINT_BUY_MAX = 15;
+export const POINT_BUY_COSTS = Object.freeze({
+  8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9,
+});
+
+/** Return the cumulative point-buy cost for a legal score, or null otherwise. */
+export function pointBuyCost(score) {
+  return Number.isInteger(score) ? POINT_BUY_COSTS[score] ?? null : null;
+}
+
+/** Sum cumulative point-buy costs across the six ability values. */
+export function pointBuySpent(values = {}) {
+  return ABILITY_ORDER.reduce((spent, key) => spent + (pointBuyCost(Number(values[key])) ?? 0), 0);
+}
+
 export const STAT_METHODS = {
   "3d6-down": {
     label: "SDE.charBuilder.stats.method.3d6Down",
@@ -96,6 +117,14 @@ export const STAT_METHODS = {
   "4d6h3-assign": {
     label: "SDE.charBuilder.stats.method.4d6Assign",
     formula: "4d6kh3", assign: true, rerollUnder14: false,
+  },
+  "standard-array": {
+    label: "SDE.charBuilder.stats.method.standardArray",
+    fixed: STANDARD_ARRAY, assign: true, rerollUnder14: false,
+  },
+  "point-buy": {
+    label: "SDE.charBuilder.stats.method.pointBuy",
+    pointBuy: true, assign: false, rerollUnder14: false,
   },
 };
 

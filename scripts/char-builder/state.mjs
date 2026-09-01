@@ -1,4 +1,8 @@
-import { ABILITY_ORDER, DEFAULT_STAT_METHOD } from "./constants.mjs";
+import {
+  ABILITY_ORDER, DEFAULT_STAT_METHOD,
+  STAT_METHODS,
+  POINT_BUY_MIN,
+} from "./constants.mjs";
 
 /**
  * Empty art slot — the shape `CharBuilderState.art` always carries. Two plain
@@ -19,6 +23,7 @@ export const emptyArt = () => ({
  */
 export class CharBuilderState {
   constructor({ level0 = false, statMethod = DEFAULT_STAT_METHOD } = {}) {
+    const method = STAT_METHODS[statMethod];
     /** Level-0 "funnel" build (no class, rolled gear) vs a level-1 character. */
     this.level0 = level0;
 
@@ -36,8 +41,10 @@ export class CharBuilderState {
     // --- Abilities ----------------------------------------------------------
     this.stats = {
       method: statMethod,     // key into STAT_METHODS (GM-dictated)
-      pool: [],               // the six rolled results, empty until rolled
-      values: Object.fromEntries(ABILITY_ORDER.map((k) => [k, 0])),
+      pool: method?.fixed ? [...method.fixed] : [], // rolled or fixed assignment values
+      values: Object.fromEntries(ABILITY_ORDER.map((k) => [
+        k, method?.pointBuy ? POINT_BUY_MIN : 0,
+      ])),
       assignment: Object.fromEntries(ABILITY_ORDER.map((k) => [k, null])),
     };
 

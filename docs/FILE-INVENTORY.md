@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-908 tracked files · ~146,400 lines of code/markup across scripts+templates+styles+test.
+908 tracked files · ~146,600 lines of code/markup across scripts+templates+styles+test.
 `v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -71,7 +71,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 470 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 472 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 417 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -292,9 +292,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `char-builder-app.mjs` | 276 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
-| `state.mjs` | 63 | `CharBuilderState` — the in-progress character. |
-| `constants.mjs` | 137 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
+| `char-builder-app.mjs` | 277 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
+| `state.mjs` | 70 | `CharBuilderState` — the in-progress character. |
+| `constants.mjs` | 166 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 286 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
@@ -315,7 +315,7 @@
 | `steps/languages-step.mjs` | 131 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
 | `steps/preview-step.mjs` | 270 | Step — Preview. Final character-sheet preview before creation. |
-| `steps/stats-step.mjs` | 271 | Step — Abilities. Roll or assign the six ability scores. |
+| `steps/stats-step.mjs` | 362 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`
 

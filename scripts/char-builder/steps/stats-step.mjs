@@ -1,7 +1,8 @@
 import { BaseStep } from "./base-step.mjs";
 import {
   ABILITY_ORDER, ABILITY_LABELS, ABILITY_INFO,
-  STAT_METHODS, modLabel, builderDiceAnimation,
+  STAT_METHODS, POINT_BUY_BUDGET, POINT_BUY_MIN, POINT_BUY_MAX,
+  pointBuyCost, pointBuySpent, modLabel, builderDiceAnimation,
 } from "../constants.mjs";
 
 /**
@@ -10,7 +11,9 @@ import {
  * The generation method is GM-dictated (world setting `charBuilderStatMethod`)
  * and shown read-only — players don't pick it. Every Roll / Reroll / Random
  * posts a chat card (audit trail). For "assign" methods the rolled dice are
- * shown as a visible pool and placed by clicking a die, then a stat.
+ * shown as a visible pool and placed by clicking a die, then a stat. Fixed
+ * arrays use the same pool/assignment path without rolling; point buy adjusts
+ * each ability directly against its budget.
  */
 export class StatsStep extends BaseStep {
   constructor(app) {
@@ -23,18 +26,31 @@ export class StatsStep extends BaseStep {
   get icon() { return "fa-solid fa-dice-d6"; }
   get partial() { return "sde-cb-stats"; }
 
-  isComplete() { return ABILITY_ORDER.every((k) => this.state.stats.values[k] > 0); }
+  isComplete() {
+    if (this.isPointBuy) {
+      return ABILITY_ORDER.every((k) => {
+        const score = this.state.stats.values[k];
+        return Number.isInteger(score) && score >= POINT_BUY_MIN && score <= POINT_BUY_MAX;
+      }) && pointBuySpent(this.state.stats.values) <= POINT_BUY_BUDGET;
+    }
+    return ABILITY_ORDER.every((k) => this.state.stats.values[k] > 0);
+  }
   get method() { return STAT_METHODS[this.state.stats.method] ?? STAT_METHODS["3d6-reroll"]; }
   get isAssign() { return !!this.method.assign; }
+  get isFixed() { return Array.isArray(this.method.fixed); }
+  get isPointBuy() { return !!this.method.pointBuy; }
 
   async prepareContext() {
     const st = this.state.stats;
     const m = this.method;
+    if (this.isFixed) this._ensureFixedPool();
+    if (this.isPointBuy) this._ensurePointBuy();
     const pool = st.pool ?? [];
-    const rolled = pool.length === ABILITY_ORDER.length;
+    const rolled = this.isFixed || pool.length === ABILITY_ORDER.length;
     const maxRoll = rolled ? Math.max(...pool) : 0;
     const assign = this.isAssign;
     const usedIdx = new Set(Object.values(st.assignment).filter((v) => v !== null && v !== undefined));
+    const spent = this.isPointBuy ? pointBuySpent(st.values) : 0;
 
     const abilities = ABILITY_ORDER.map((k) => ({
       key: k,
@@ -43,6 +59,10 @@ export class StatsStep extends BaseStep {
       mod: modLabel(st.values[k]),
       empty: !(st.values[k] > 0),
       isAssign: assign,
+      pointBuy: this.isPointBuy,
+      pointBuyCost: this.isPointBuy ? pointBuyCost(st.values[k]) : null,
+      canIncrease: this._canAdjustPointBuy(k, 1),
+      canDecrease: this._canAdjustPointBuy(k, -1),
       info: ABILITY_INFO[k],   // description shown directly beneath the tile
     }));
 
@@ -53,24 +73,41 @@ export class StatsStep extends BaseStep {
     return {
       methodLabel: game.i18n.localize(m.label),
       isAssign: assign,
+      isFixed: this.isFixed,
+      isPointBuy: this.isPointBuy,
       rolled,
       total: rolled ? pool.reduce((a, b) => a + b, 0) : 0,
+      spent,
+      remaining: this.isPointBuy ? POINT_BUY_BUDGET - spent : 0,
+      pointBuyBudget: POINT_BUY_BUDGET,
+      pointBuyMin: POINT_BUY_MIN,
+      pointBuyMax: POINT_BUY_MAX,
       abilities,
       poolChips,
       showReroll: !!m.rerollUnder14,
       canReroll: !!m.rerollUnder14 && rolled && maxRoll < 14,
+      showReset: this.isFixed || this.isPointBuy || rolled,
       complete: this.isComplete(),
     };
   }
 
-  supportsRandom() { return true; }
+  supportsRandom() { return !this.isPointBuy; }
 
   async randomize() {
+    if (this.isPointBuy) {
+      this._resetRoll();
+      return;
+    }
+    if (this.isFixed) {
+      this._ensureFixedPool();
+      ABILITY_ORDER.forEach((k, i) => this._assign(k, i));
+      return;
+    }
     await this._roll("random");
     if (this.isAssign) ABILITY_ORDER.forEach((k, i) => this._assign(k, i));
   }
 
-  async handleAction(action) {
+  async handleAction(action, _event, target) {
     switch (action) {
       case "cb-roll-stats":
         await this._roll("roll");
@@ -81,9 +118,54 @@ export class StatsStep extends BaseStep {
       case "cb-reset-stats":
         this._resetRoll();
         return true;
+      case "cb-point-buy-increase":
+        return this._adjustPointBuy(target?.dataset?.ability, 1);
+      case "cb-point-buy-decrease":
+        return this._adjustPointBuy(target?.dataset?.ability, -1);
       default:
         return false;
     }
+  }
+
+  /** Put the configured fixed array into the existing assignment pool. */
+  _ensureFixedPool() {
+    const st = this.state.stats;
+    const fixed = this.method.fixed;
+    if (st.pool?.length === fixed.length && st.pool.every((value, i) => value === fixed[i])) return;
+    st.pool = [...fixed];
+    st.values = Object.fromEntries(ABILITY_ORDER.map((k) => [k, 0]));
+    st.assignment = Object.fromEntries(ABILITY_ORDER.map((k) => [k, null]));
+  }
+
+  /** Initialize point buy without disturbing an already valid in-progress spread. */
+  _ensurePointBuy() {
+    const st = this.state.stats;
+    const valid = ABILITY_ORDER.every((k) => {
+      const score = st.values[k];
+      return Number.isInteger(score) && score >= POINT_BUY_MIN && score <= POINT_BUY_MAX;
+    }) && pointBuySpent(st.values) <= POINT_BUY_BUDGET;
+    if (valid && !Object.values(st.assignment ?? {}).some((value) => value !== null && value !== undefined)) return;
+    st.pool = [];
+    st.values = Object.fromEntries(ABILITY_ORDER.map((k) => [k, POINT_BUY_MIN]));
+    st.assignment = Object.fromEntries(ABILITY_ORDER.map((k) => [k, null]));
+  }
+
+  /** Whether a one-point point-buy adjustment would leave a legal spread. */
+  _canAdjustPointBuy(abil, delta) {
+    if (!this.isPointBuy || !ABILITY_ORDER.includes(abil) || !Number.isInteger(delta) || Math.abs(delta) !== 1) return false;
+    const current = this.state.stats.values[abil];
+    const next = current + delta;
+    const currentCost = pointBuyCost(current);
+    const nextCost = pointBuyCost(next);
+    if (currentCost === null || nextCost === null) return false;
+    return pointBuySpent(this.state.stats.values) - currentCost + nextCost <= POINT_BUY_BUDGET;
+  }
+
+  /** Apply one point-buy increment/decrement, returning false when refused. */
+  _adjustPointBuy(abil, delta) {
+    if (!this._canAdjustPointBuy(abil, delta)) return false;
+    this.state.stats.values[abil] += delta;
+    return true;
   }
 
   onRender(root) {
@@ -191,6 +273,7 @@ export class StatsStep extends BaseStep {
   }
 
   async _roll(actionKey = "roll") {
+    if (this.isFixed || this.isPointBuy) return;
     const m = this.method;
     const rolls = [];
     for (let i = 0; i < ABILITY_ORDER.length; i++) {
@@ -248,9 +331,17 @@ export class StatsStep extends BaseStep {
 
   _resetRoll() {
     const st = this.state.stats;
-    st.pool = [];
     this._picked = null;
-    st.values = Object.fromEntries(ABILITY_ORDER.map((k) => [k, 0]));
+    if (this.isFixed) {
+      this._ensureFixedPool();
+      st.values = Object.fromEntries(ABILITY_ORDER.map((k) => [k, 0]));
+    } else if (this.isPointBuy) {
+      st.pool = [];
+      st.values = Object.fromEntries(ABILITY_ORDER.map((k) => [k, POINT_BUY_MIN]));
+    } else {
+      st.pool = [];
+      st.values = Object.fromEntries(ABILITY_ORDER.map((k) => [k, 0]));
+    }
     st.assignment = Object.fromEntries(ABILITY_ORDER.map((k) => [k, null]));
   }
 
