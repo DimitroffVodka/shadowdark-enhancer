@@ -800,7 +800,7 @@ export function tableNameMatches(raw, want, src) {
  * Scan every Item compendium + the world Items directory + every RollTable once.
  * Shared by the flat-entry census and (via it) the per-source rollup so a single
  * pass serves both.
- * @returns {Promise<{present:Set<string>, presentNames:Set<string>, tablesPresent:Set<string>}>}
+ * @returns {Promise<{present:Set<string>, presentNames:Set<string>, tablesPresent:Set<string>, tablesByManifestId:Set<string>}>}
  */
 export async function gatherPresence() {
   const present = new Set();        // "type:name"
@@ -817,18 +817,24 @@ export async function gatherPresence() {
   // theirs — so collect both and let the flag win in _tableHave.
   const tablesPresent = new Set(game.tables.map((t) => _norm(t.name)));
   const tablesBySource = new Set();
-  const stamp = (name, srcFlag) => {
+  const tablesByManifestId = new Set();
+  const stamp = (name, srcFlag, manifestId) => {
     const key = charSourceKey(srcFlag);
     if (key) tablesBySource.add(`${key}|${_norm(_tableProbeName(name))}`);
+    if (manifestId) tablesByManifestId.add(manifestId);
   };
-  for (const t of game.tables) stamp(t.name, t.getFlag?.(MODULE_ID, "source"));
+  for (const t of game.tables) stamp(
+    t.name, t.getFlag?.(MODULE_ID, "source"), t.getFlag?.(MODULE_ID, "manifestId"),
+  );
   for (const pack of game.packs.filter((p) => p.documentName === "RollTable")) {
-    for (const e of await pack.getIndex({ fields: [`flags.${MODULE_ID}.source`] })) {
+    for (const e of await pack.getIndex({ fields: [
+      `flags.${MODULE_ID}.source`, `flags.${MODULE_ID}.manifestId`,
+    ] })) {
       tablesPresent.add(_norm(e.name));
-      stamp(e.name, e.flags?.[MODULE_ID]?.source);
+      stamp(e.name, e.flags?.[MODULE_ID]?.source, e.flags?.[MODULE_ID]?.manifestId);
     }
   }
-  return { present, presentNames, tablesPresent, tablesBySource };
+  return { present, presentNames, tablesPresent, tablesBySource, tablesByManifestId };
 }
 
 /**

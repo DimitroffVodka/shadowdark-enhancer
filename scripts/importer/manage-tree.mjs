@@ -37,6 +37,7 @@ import {
 } from "./char-content/char-content-manifest.mjs";
 import { coreGroupsFor } from "./tables/core-table-groups.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
+import { columnManifestId, findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES } from "./tables/table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
@@ -250,12 +251,22 @@ function buildSpells(spellListCensus, mishapsNode = null) {
  * hasTable's suffix match, so a sub-table flips to "imported" the moment its
  * own table exists — no rep-probe indirection, no "in bundle" rows.
  */
-function coreGroupLeaf(g, tablesPresent) {
+function coreGroupLeaf(g, tablesPresent, tablesByManifestId) {
   const entries = g.tables.map((t) => {
-    const present = hasTable(tablesPresent, t.name);
+    const manifest = t.manifestId ? findById(t.manifestId) : null;
+    const importName = manifest ? importNameFor(manifest) : t.name;
+    const childIds = manifest && isMatrix(manifest)
+      ? manifest.columns.map((column) => columnManifestId(manifest.id, column)) : [];
+    const presentById = (t.manifestId && tablesByManifestId?.has(t.manifestId))
+      || (childIds.length > 0 && childIds.every((id) => tablesByManifestId?.has(id)));
+    const presentByName = childIds.length
+      ? childIds.every((id, index) => hasTable(tablesPresent, `${importName} - ${manifest.columns[index]}`))
+      : hasTable(tablesPresent, importName);
+    const present = !!(presentById || presentByName);
     return {
       name: t.name, present, seedAction: "charSeedPaste",
       type: "Table", src: "CORE", pages: String(t.page),
+      manifestId: t.manifestId,
       contentId: contentIdForName(t.name, "CORE") ?? undefined,
     };
   });
@@ -272,8 +283,8 @@ function coreGroupLeaf(g, tablesPresent) {
  * a branch of per-group leaves; each leaf lists its sub-tables, each of which
  * is unlocked and present-checked independently (see coreGroupLeaf).
  */
-function buildCoreRulebook(section, tablesPresent) {
-  const children = coreGroupsFor(section).map((g) => coreGroupLeaf(g, tablesPresent));
+function buildCoreRulebook(section, tablesPresent, tablesByManifestId) {
+  const children = coreGroupsFor(section).map((g) => coreGroupLeaf(g, tablesPresent, tablesByManifestId));
   return branch(`${section}/CORE`, CHAR_SOURCES.CORE.label, "fa-book", children);
 }
 
@@ -286,7 +297,7 @@ function buildCoreRulebook(section, tablesPresent) {
  * a flat leaf; the Core Rulebook renders per-bundle sub-branches (see
  * buildCoreRulebook). Unlock rows seed the same charSeedPaste flow.
  */
-function buildRollTables(charEntries, tablesPresent) {
+function buildRollTables(charEntries, tablesPresent, tablesByManifestId) {
   const ancestryTableNames = new Set(ANCESTRY_TABLES.map((t) => _norm(t.name)));
   const tableRecs = charEntries.filter((e) =>
     e.type === "Table" && !ancestryTableNames.has(_norm(e.name))
@@ -295,7 +306,7 @@ function buildRollTables(charEntries, tablesPresent) {
   const sources = [...new Set(tableRecs.map((r) => r.src))];
   const children = sources.map((src) =>
     src === "CORE"
-      ? buildCoreRulebook("rolltables", tablesPresent)
+      ? buildCoreRulebook("rolltables", tablesPresent, tablesByManifestId)
       : leaf(`tables/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-dice",
           tableRecs.filter((r) => r.src === src), "charSeedPaste"));
   return branch("tables", "Roll Tables", "fa-table-list", children);
@@ -307,7 +318,7 @@ function buildRollTables(charEntries, tablesPresent) {
  * branch grouped by FEATURE rather than source: pit fighting.
  * Same entry shape/flow as Roll Tables; membership = GAMEPLAY_TABLES.
  */
-function buildGameplay(charEntries, tablesPresent) {
+function buildGameplay(charEntries, tablesPresent, tablesByManifestId) {
   const recs = charEntries.filter((e) =>
     e.type === "Table" && GAMEPLAY_TABLES.has(_norm(e.name)) && !MISHAP_TABLES.has(_norm(e.name)));
 
@@ -320,7 +331,7 @@ function buildGameplay(charEntries, tablesPresent) {
   const sources = [...new Set(rest.map((r) => r.src))];
   const children = sources.map((src) =>
     src === "CORE"
-      ? buildCoreRulebook("gameplay", tablesPresent)
+      ? buildCoreRulebook("gameplay", tablesPresent, tablesByManifestId)
       : leaf(`gameplay/${src}`, CHAR_SOURCES[src]?.label ?? src, "fa-chess-knight",
           rest.filter((r) => r.src === src), "charSeedPaste"));
 
@@ -596,8 +607,8 @@ export async function buildManageTree() {
   return [
     buildCharContent(charEntries),
     buildSpells(spellListCensus, mishapsNode),
-    buildGameplay(charEntries, presence.tablesPresent),
-    buildRollTables(charEntries, presence.tablesPresent),
+    buildGameplay(charEntries, presence.tablesPresent, presence.tablesByManifestId),
+    buildRollTables(charEntries, presence.tablesPresent, presence.tablesByManifestId),
     buildMonsters(monsterRows, actorRecords),
     buildItems(charEntries, itemRecords),
     buildVehicles(boatNames, itemNames),

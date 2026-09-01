@@ -15,6 +15,7 @@ import { CHAR_SOURCES, BACKGROUND_TABLES, tableNameMatches, nameVariants } from 
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
+import { findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
@@ -458,6 +459,7 @@ class HubManageMethods {
     const name = target.dataset.name ?? "";
     const type = target.dataset.type ?? "";
     const src = target.dataset.src ?? "";
+    const manifestId = target.dataset.manifestId ?? "";
     if (!name) return;
     // Spells go to their own Class → Tier → Alignment workspace.
     if (type === "Spell") {
@@ -528,7 +530,7 @@ class HubManageMethods {
     // paste box + one-press extract via the shared helper (also used by external
     // callers like the Loot Setup treasure-library Unlock buttons).
     await this._seedGenericUnlock({
-      name, src, type,
+      name, src, type, manifestId,
       contentId: target.dataset.contentId,
       page: target.dataset.pages,
     });
@@ -541,8 +543,11 @@ class HubManageMethods {
    * so both drive an identical seed + auto-grab flow. Spell/Class/Gear unlocks
    * still route to their own workspaces in _onCharSeedPaste before reaching here.
    */
-  async _seedGenericUnlock({ name, src = "", type = "Table", contentId = null, page = null } = {}) {
+  async _seedGenericUnlock({ name, src = "", type = "Table", contentId = null, page = null, manifestId = null } = {}) {
     if (!name) return;
+    const manifest = manifestId ? findById(manifestId) : null;
+    const importName = manifest ? importNameFor(manifest) : null;
+    const seedName = importName || name;
     const importType = ({
       Spell: "spells",
       Basic: "items", Weapon: "items", Armor: "items",
@@ -566,15 +571,22 @@ class HubManageMethods {
       && BACKGROUND_TABLES.has(name.toLowerCase().replace(/\s+/g, " ").trim());
     // Trailing newline so the seeded name reads as a title line and the GM's
     // pasted section lands on the line AFTER it (review: unlock line break).
-    this._importText = `${name}\n`;
+    this._importText = `${seedName}\n`;
     this._importSeed = {
-      name,
+      name: seedName,
+      importName: importName || undefined,
       src,
       type,
+      manifestId: manifest?.id ?? manifestId ?? undefined,
       // Persistent content id (PDF-import review §09 rec #2): prefer the id the
       // manage-tree stamped, else derive it from the name via the registry's
       // reverse index. Drives collision-free shape dispatch in _onHubParse.
-      contentId: contentId || contentIdForName(name, src) || undefined,
+      contentId: contentId || (manifest && contentIdForName(manifest.name, src))
+        || contentIdForName(seedName, src) || undefined,
+      matrix: manifest ? isMatrix(manifest) : undefined,
+      columns: manifest?.columns ?? undefined,
+      widths: manifest?.widths ?? undefined,
+      grid: manifest ? !!manifest.grid : undefined,
       page: page || undefined,
       book: CHAR_SOURCES[src]?.book || src || undefined,
       _charSeed: true,
@@ -600,7 +612,7 @@ class HubManageMethods {
       await this._onGrabPdfText();
     } else {
       const href = sourcePdfHref(src, this._importSeed.page);
-      if (href) this._showSourcePdf(href, `${name}${this._importSeed.page ? ` — p.${this._importSeed.page}` : ""}`);
+      if (href) this._showSourcePdf(href, `${seedName}${this._importSeed.page ? ` — p.${this._importSeed.page}` : ""}`);
     }
   }
 
