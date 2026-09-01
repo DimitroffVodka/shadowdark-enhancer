@@ -1,6 +1,19 @@
 # Changelog
 
-## [Unreleased]
+## [0.16.0] — 2026-09-01
+
+### Removed
+- **Forge & Loot is hidden until a generator works.** Both generators it hosted
+  were placeholders that rendered as live buttons in the picker and refused when
+  clicked, so the menu advertised a tool with nothing behind it. The crawl-bar
+  entry, the default adapter list, and the `defaultUnavailableAdapter` factory
+  that produced the placeholders are all removed — a generator now reaches the UI
+  only through `registerGenerator()`, once it has a real adapter. The tool stays
+  reachable at `game.shadowdarkEnhancer.forgeLoot.open()` for development.
+- **The Rival Crawler party generator (G7/#84) was reverted off `master`.** It
+  required 24 supporting tables that no importer group offers, so in a world
+  without imported classes and supporting tables it was permanently disabled with
+  no explanation. Preserved on the `rival-crawlers-shelved` branch.
 
 ### Added
 - **CS3 Nord Names shape (C2/#55).** The Nord source grid now imports four
@@ -386,6 +399,30 @@
 - **Public API minor version to `1.3.0` for the additive loot surface (A7).** New namespaces `game.shadowdarkEnhancer.loot.resolve` and `game.shadowdarkEnhancer.loot.generated.{identity,plan,reconcile}` bump the minor per the existing version policy (`docs/API.md:18-19` — additive bumps minor, breaking bumps major). The generated-artifact replace-always contract is now carved out explicitly from the docs' blanket \"never-overwrite, never-delete\" stability statement (it governs `world.shadowdark-enhancer--items` with `flags[\"shadowdark-enhancer\"].generated === true`). Earlier releases (≤ v0.3.0) had no `apiVersion`; `1.0.0` introduced it.
 
 ### Fixed
+- **An uncovered roll is refused instead of substituting a row (#136).**
+  `pickSupportingTableResult` fell back to array-index selection when a roll
+  landed outside every declared range, so a gapped `1d6` covering 1–4 returned a
+  neighbouring row — and two samples landing on the same uncovered roll returned
+  *different* rows. A caller could not distinguish a rolled result from a
+  substituted one, and the substitution ended up persisted on an Actor. The
+  picker now refuses with the rolled value and the table's domain. Covered rolls
+  and weighted ranges are unchanged.
+- **An empty mirrored `changes` array no longer erases a populated
+  `system.changes` (#131).** `normalizeEffect` took the top-level array whenever
+  it was an array, and Foundry materializes an empty one beside a populated
+  `system.changes`. The Item fingerprinted as having no changes and compared
+  unequal to itself on reimport. It now prefers whichever mirror carries changes.
+- **The legacy backfill sweep visits Actors in a stable order (#132).** It read
+  `pack.getDocuments()`, whose order is unspecified, so the changed/unchanged/
+  failed lists and the retry report varied between runs over the same pack. It
+  now reuses the managed runner's `inSweepOrder` (lowercased name, then id)
+  rather than defining a second ordering.
+- **Class talent rows are labelled by name when `text` is empty.** A v14
+  `TableResult` serialises `text` as an empty string rather than omitting it, and
+  `""` is not nullish — so the nullish fallback handed the classifier a blank
+  label for every row. Every talent row reported as unwired, which excluded all
+  16 Core classes from class-readiness eligibility despite their rows being
+  ordinary document results pointing at real Talent Items.
 - **Table source provenance preserved across matrix splits (#134).** A table's
   `source` provenance and `manifestId` now survive the matrix-split parse path.
   Previously, splitting a parsed table into per-column children produced drafts
