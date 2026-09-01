@@ -53,11 +53,13 @@ In addition to imported PDF tables, the managed Roll Tables pack
 maintained by the module:
 
 - **Derived Rival Classes Table (G2):** Stored under
-  `flags["shadowdark-enhancer"].forgeLoot.rivalClassTable === true`, this table
-  is generated and kept in sync with the read-only G3 Class readiness report.
-  Same-name collisions resolve with Core precedence before winner eligibility;
-  Level-0 entries and ineligible classes stay out. If no eligible classes exist,
-  a stable zero-row `1d1` table is maintained. On regeneration, its compendium
+  `flags["shadowdark-enhancer"].forgeLoot.rivalClassTable` (with current
+  payloads stamping `rivalClassTable.generated === true` and bookkeeping metadata
+  while the reader tolerates legacy boolean markers), this table is generated
+  and kept in sync with the read-only G3 Class readiness report. Same-name
+  collisions resolve with Core precedence before winner eligibility; Level-0
+  entries and ineligible classes stay out. If no eligible classes exist, a
+  stable zero-row `1d1` table is maintained. On regeneration, its compendium
   document identity is preserved, and any manual row or range edits are
   replaced with a visible warning.
 - **Supporting Table Manifest Stamps (G8):** Supporting roll tables for NPC
