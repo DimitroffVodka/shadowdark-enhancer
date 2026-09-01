@@ -120,10 +120,17 @@ function resultRows(tableDocument) {
     // Foundry v14 stores a TableResult's visible text in `name`; the importer
     // classifier consumes parser-shaped `text`.  Keep both so the evidence
     // remains source-faithful while the classifier sees the same label.
+    //
+    // Fall back on falsiness, NOT `??`.  A v14 TableResult serialises `text` as
+    // an empty string rather than omitting it, and "" is not nullish — so `??`
+    // stops there and every row reaches the classifier with a blank label.
+    // That silently marked every row `via:null`, which excluded all 16 Core
+    // classes from Rival Crawlers even though their talent rows are ordinary
+    // document results pointing at real Talent Items.
     const range = Array.isArray(row.range) ? row.range : [];
     return {
       ...row,
-      text: row.text ?? row.name ?? row.description ?? "",
+      text: row.text || row.name || row.description || "",
       ...(row.lo === undefined && range.length ? { lo: range[0] } : {}),
       ...(row.hi === undefined && range.length > 1 ? { hi: range[1] } : {}),
     };

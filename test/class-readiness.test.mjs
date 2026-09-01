@@ -531,3 +531,43 @@ test("the adapter's report API is exported from the stable pure module boundary"
   assert.equal(typeof READINESS_CODES.QUALITY_GATE, "string");
   assert.deepEqual(issueCodes(assessClassReadiness(validClass())), []);
 });
+
+test("a TableResult serialized with an empty text field still labels rows by name", async () => {
+  // Foundry serializes TableResult.text as "" rather than omitting it. Fixtures
+  // elsewhere in this file omit the field entirely, so a nullish fallback looks
+  // correct under test while blanking every label against real data — which
+  // marked every row via:null and excluded every Core class.
+  const rawRows = [
+    { type: "document", text: "", name: "Weapon Mastery", description: "",
+      documentUuid: "Item.wm", range: [2, 2], weight: 1 },
+  ];
+  const labels = [];
+  const coreClass = {
+    uuid: "Compendium.shadowdark.classes.Item.emptytext",
+    name: "Empty Text Class",
+    type: "Class",
+    system: {
+      hitPoints: "d8",
+      classTalentTable: "table-emptytext",
+      spellcasting: { ability: "", class: "__not_spellcaster__" },
+    },
+  };
+  const corePack = {
+    collection: "shadowdark.classes",
+    metadata: { packageType: "system", label: "Shadowdark Classes" },
+    async getDocuments() { return [coreClass]; },
+  };
+  await collectClassReadiness({
+    game: { packs: new Map([[corePack.collection, corePack]]) },
+    fromUuid: async (uuid) => {
+      if (uuid === "table-emptytext") return { uuid, formula: "2d6", results: rawRows };
+      return { uuid, name: uuid, type: "Talent", effects: [] };
+    },
+    classifyTalentRows: async (rows) => {
+      labels.push(...rows.map((row) => row.text));
+      return rows.map((row) => ({ wired: true, via: "system", match: row.text }));
+    },
+    overlayFor: () => null,
+  });
+  assert.deepEqual(labels, ["Weapon Mastery"], "empty text must fall through to name");
+});
