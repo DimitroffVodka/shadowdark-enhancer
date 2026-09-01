@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-905 tracked files · ~145,600 lines of code/markup across scripts+templates+styles+test.
+907 tracked files · ~145,700 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -262,7 +262,7 @@
 | `items/gear-parser.mjs` | 577 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/wr-property-importer.mjs` | 202 | Foundry-bound shared materializer for canonical Western Reaches Weapon Properties (siege Blast/Exploding and Lance Charge/Devastating/Mounted), with root migration, idempotent reuse and fail-closed preparation. |
 | `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 1009 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-importer.mjs` | 1039 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 386 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 298 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |

@@ -146,6 +146,23 @@ function _artStampFor(draft, img) {
   return artProvenance(_automaticArt(draft).state, img);
 }
 
+// Shadowdark's Basic Gear rows that need more than the generic physical-item
+// defaults. Keys use normalizeItemName's punctuation-folded form.
+const BASIC_GEAR_MECHANICS = {
+  candle: {
+    light: {
+      active: false,
+      hasBeenUsed: false,
+      isSource: true,
+      longevityMins: 20,
+      remainingSecs: 1200,
+      template: "torch",
+    },
+    slots: { per_slot: 3 },
+  },
+  "miner s putty jar": { slots: { slots_used: 3 } },
+};
+
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
 
 /**
@@ -318,6 +335,9 @@ function _buildItemShape(draft) {
   const sdType = GEAR_TYPES.has(draft.type)
     ? draft.type
     : (hasMagicRiders ? ({ weapon: "Weapon", armor: "Armor" })[lc] ?? "Basic" : "Basic");
+  const basicMechanics = sdType === "Basic"
+    ? BASIC_GEAR_MECHANICS[normalizeItemName(name)]
+    : undefined;
 
   // Shared PhysicalItemSD fields (cost/slots/quantity) every gear type carries.
   const physical = {
@@ -330,6 +350,7 @@ function _buildItemShape(draft) {
       free_carry: draft.slots?.free_carry ?? 0,
       per_slot:   draft.slots?.per_slot   ?? 1,
       slots_used: draft.slots?.slots_used ?? 1,
+      ...(basicMechanics?.slots ?? {}),
     },
     quantity: 1,
     // Armor/Weapon carry properties as an array of Property-item UUIDs; the gear
@@ -392,6 +413,7 @@ function _buildItemShape(draft) {
     img,
     system: {
       ...physical,
+      ...(basicMechanics?.light ? { light: { ...basicMechanics.light } } : {}),
       ...(sdType === "Basic" ? { treasure: !!draft.treasure } : {}),
     },
     flags: { [MODULE_ID]: { imported: true } },
@@ -947,20 +969,28 @@ export async function relinkSpellsToClasses(deps = {}) {
  *  and armor both live in `gear` (no separate packs). */
 const SYSTEM_ITEM_PACKS = ["shadowdark.gear", "shadowdark.magic-items"];
 
+// Basic Gear calls the system's Flask/Bottle entry "Flask or bottle". Keep
+// this source-specific synonym explicit; other comma clauses remain distinct.
+const SYSTEM_ITEM_ALIASES = {
+  "flask or bottle": "flask",
+};
+
 /**
  * Normalize an item name for system-duplicate matching: drop parenthetical
  * quantities ("Arrows (20)", "Caltrops (One Bag)"), fold case and punctuation.
  * Deliberately does NOT strip trailing comma clauses — "Rope, 60'" must stay
- * distinct from "Rope, Morzo Silk", and "Flask or bottle" from "Flask".
+ * distinct from "Rope, Morzo Silk". Explicit source aliases are resolved
+ * after this normalization.
  * @param {string} s
  * @returns {string}
  */
 export function normalizeItemName(s) {
-  return String(s ?? "")
+  const normalized = String(s ?? "")
     .toLowerCase()
     .replace(/\([^)]*\)/g, " ")     // "(20)", "(One Bag)"
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+  return SYSTEM_ITEM_ALIASES[normalized] ?? normalized;
 }
 
 /**
