@@ -17,9 +17,6 @@ import {
   canGeneratePreview,
 } from "./forge-loot-core.mjs";
 import { ensureRivalClassTableFresh } from "./rival-class-table-adapter.mjs";
-import { createRivalPartyAdapter } from "./rival-party-adapter.mjs";
-
-ForgeLootGenerators.register(createRivalPartyAdapter());
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
