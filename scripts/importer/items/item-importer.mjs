@@ -34,6 +34,7 @@ import { withPropertyNote, preservedDescription } from "../../shared/property-no
 import { ART_STATES, UPGRADEABLE_ART_STATES, artProvenance, decideImportArt, isGeneratedManagedItem, MANAGED_ITEMS_PACK } from "../../shared/art-provenance.mjs";
 import { isGeneratedMonsterSpell } from "../../shared/module-flags.mjs";
 import { curatedArtFor } from "../../shared/curated-icons.mjs";
+import { sourceTitleSlug } from "./item-builder-gear.mjs";
 
 // Re-exported so the gear importer stays the one door callers already know;
 // the helpers themselves are Foundry-free and live in shared/.
@@ -864,6 +865,15 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
       if (draft.type === "Spell") folder = await spellFolderId(pack, draft);
       else if (draft.type === "Talent") folder = await talentFolderId(pack, draft);
       else folder = await _gearFolderId(pack, draft, sourceFolder, source);
+      // buildItemData writes `system.source.title` from the draft, so a draft
+      // that arrived without one produced an Item with no book on its sheet —
+      // 77 of 115 imported Items in a real world. The run already knows which
+      // book it is importing, so fall back to it rather than leaving the field
+      // blank. An explicit draft value still wins.
+      if (!draft.sourceTitle && !draft.source?.title && source) {
+        const slug = sourceTitleSlug(source);
+        if (slug) draft.sourceTitle = slug;
+      }
       const r = await createItem(draft, { pack, folder, source, onConflict });
       if (!r) continue;
       if (r.collision) out.collisions.push(r.collision);

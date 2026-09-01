@@ -161,9 +161,9 @@
 | `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
 | `loot-table-tag.mjs` | 80 | Sidebar context-menu "Mark as Loot Table" toggle. |
 | `loot-catalog.mjs` | 129 | Rewrites loot tables so entries become DOCUMENT results, routing the exact Sea Wolf Plunder, Dead Bandit Loot, and Diabolical Treasure tables through their source-qualified generated-item materializers before the generic resolver. |
-| `diabolical-treasure.mjs` | 905 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
+| `diabolical-treasure.mjs` | 909 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
 | `loot-linker.mjs` | 118 | Loot row text → confident compendium item link. |
-| `loot-pack.mjs` | 163 | Classify/fabricate treasure entries + world "Loot" pack ops. |
+| `loot-pack.mjs` | 171 | Classify/fabricate treasure entries + world "Loot" pack ops. |
 | `dead-bandit-loot.mjs` | 595 | D5/#58's exact CS2 Dead Bandit Loot seam: matches only the published 20 source rows, gives each canonical Item its visible feature remainder and curated A3 provenance, preserves the raw (optionally priced) TableResult, and reports unresolved, ambiguous, rerun, pack-boundary, and safe-writer failures. |
 | `sea-wolf-plunder.mjs` | 566 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and keeps row-level unresolved, ambiguous, or reconciliation failures as raw TEXT with their priced source phrase. A TableResult write failure is a separate outcome: source preservation is guaranteed only when snapshot restoration reports `restored: true`; `restored: false` may require manual recovery. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
@@ -262,7 +262,7 @@
 | `items/gear-parser.mjs` | 577 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/wr-property-importer.mjs` | 202 | Foundry-bound shared materializer for canonical Western Reaches Weapon Properties (siege Blast/Exploding and Lance Charge/Devastating/Mounted), with root migration, idempotent reuse and fail-closed preparation. |
 | `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 1039 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-importer.mjs` | 1049 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 386 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 298 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |

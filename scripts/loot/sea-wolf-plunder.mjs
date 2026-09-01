@@ -111,7 +111,7 @@ export function buildSeaWolfPlunderItem(text, { source = SEA_WOLF_PLUNDER_SOURCE
     return { status: "unresolved", reason: "unmapped-art", text: raw, name: row.name };
   }
 
-  const itemData = fabricateTreasureItem({ name: row.name, value: parseValue(raw) });
+  const itemData = fabricateTreasureItem({ name: row.name, value: parseValue(raw), source: sourceId });
   itemData.img = art.img;
   itemData.flags = {
     ...(itemData.flags ?? {}),
