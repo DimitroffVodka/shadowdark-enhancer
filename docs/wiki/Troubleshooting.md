@@ -182,6 +182,14 @@ wrote and only refreshes that one line. See
 It needs a parsing recipe, or has the wrong one. See
 [Table Import & Shapes](Table-Import-and-Shapes.md).
 
+### An imported table is attributed to "Game Master" instead of its book
+
+Older imports of matrix-split tables (such as multi-column generator tables) did not pass the book's source metadata to split child drafts, causing the import writer to fall back to the destination folder ("Game Master") as the table's source.
+
+New parses and newly built payloads now preserve source provenance and manifest IDs across matrix splits, and the fallback to folder path has been removed: unknown provenance is left absent rather than guessed from the filing folder.
+
+**Existing tables are not automatically rewritten or migrated.** If you have an existing table in `sde-tables` that was stored with `source: "Game Master"` and you want it attributed to its sourcebook, re-import that table through the Table Hub with **Replace existing** selected. Tables already stored with no source or with `source: "Game Master"` continue to resolve exactly as they did before until explicitly re-imported.
+
 ### A numeric page footer was pasted with a Basic Gear table
 
 The Item Builder strips page furniture (such as bare numeric running headers or page footers) from the input before recognizing gear rows. Furniture lines are excised silently rather than reported as dropped rows because they are layout artifacts rather than content requiring GM attention. Legitimate gear rows that contain numbers (such as `20-foot pole` or `Pole, 10-foot`) are recognized normally.

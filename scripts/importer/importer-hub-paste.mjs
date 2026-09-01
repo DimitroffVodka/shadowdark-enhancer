@@ -1282,7 +1282,7 @@ class HubPasteMethods {
 
   /**
    * Apply the import seed from a Tables-tab per-row Import click.
-   * Forces the first parsed table's identity to the manifest entry.
+   * Forces the first parsed table's identity (including source) to the manifest entry.
    * Ported directly from RollTablesApp._applyImportSeed.
    */
   _applyImportSeed() {
@@ -1299,6 +1299,10 @@ class HubPasteMethods {
     // of _onHubParse too, so nothing else was ever going to set it. `??=` keeps a
     // source the parser worked out for itself.
     if (seed.src) for (const t of this._importTables) t.source ??= seed.src;
+    const provenance = {
+      source: this._importTables[0]?.source ?? seed.src,
+      manifestId: this._importTables[0]?.manifestId ?? seed.manifestId,
+    };
     // Character-content seeds set their own identity in _onHubParse
     // ("Source - Name" convention + category) — don't clobber it here.
     if (seed._charSeed) return;
@@ -1309,7 +1313,9 @@ class HubPasteMethods {
     const folderPath = [seed.category, seed.folderLabel].filter(Boolean);
 
     if (seed.grid && Array.isArray(seed.columns) && seed.columns.length) {
-      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
+      const split = TableImporter.parseMatrixByColumns(
+        this._importText, seed.columns, seed.widths, provenance,
+      );
       const nRows = Math.max(0, ...split.map(c => c.rows.length));
       const rows = [];
       let n = 1;
@@ -1322,7 +1328,9 @@ class HubPasteMethods {
       if (rows.length) {
         const merged = {
           name: seed.name, formula: `1d${rows.length}`, replacement: true,
-          bestEffort: true, warnings: split[0]?.warnings ?? [], rows, manifestId: seed.manifestId ?? null,
+          bestEffort: true, warnings: split[0]?.warnings ?? [], rows,
+          ...(provenance.manifestId != null ? { manifestId: provenance.manifestId } : {}),
+          ...(provenance.source != null ? { source: provenance.source } : {}),
         };
         if (folderPath.length) merged.folderPath = folderPath;
         else { merged.category = CUSTOM_ID; merged.customLabel = seed.folderLabel; }
@@ -1332,7 +1340,9 @@ class HubPasteMethods {
     }
 
     if (seed.matrix && Array.isArray(seed.columns) && seed.columns.length) {
-      const split = TableImporter.parseMatrixByColumns(this._importText, seed.columns, seed.widths);
+      const split = TableImporter.parseMatrixByColumns(
+        this._importText, seed.columns, seed.widths, provenance,
+      );
       split.forEach((t, i) => {
         t.name = `${seed.name} - ${seed.columns[i]}`;
         if (seed.folderLabel) { t.category = CUSTOM_ID; t.customLabel = seed.folderLabel; }
@@ -1349,6 +1359,7 @@ class HubPasteMethods {
     if (seed.folderLabel) { t0.category = CUSTOM_ID; t0.customLabel = seed.folderLabel; }
     if (folderPath.length) t0.folderPath = folderPath;
     t0.manifestId = seed.manifestId ?? null;
+    t0.source ??= seed.src;
   }
 
   /** Link each Loot row's text to a compendium Item. Ported from RollTablesApp. */
