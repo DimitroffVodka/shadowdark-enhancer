@@ -20,7 +20,7 @@ const MODULE_ID = "shadowdark-enhancer";
  * pack earlier releases created is migrated into this folder tree by
  * monster-spell-pack-migration.mjs.
  */
-export const MONSTER_SPELL_TARGET_PACK_KEY = "sde-items";
+export const MONSTER_SPELL_TARGET_PACK_KEY = "sde-monster-spells";
 
 /** Top-level folder inside the Items pack that holds every generated copy. */
 export const MONSTER_SPELL_FOLDER = "Monster Spells";

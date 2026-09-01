@@ -302,7 +302,7 @@ function bundleWorld() {
     async getDocuments() { return this.documents; },
     async configure() {},
   }));
-  const itemsPack = packs.find(pack => pack.collection === "world.sde-items");
+  const libraryPack = packs.find(pack => pack.collection === "world.sde-monster-spells");
   let nextId = 0;
   const previous = {
     game: globalThis.game, Item: globalThis.Item, Folder: globalThis.Folder, ui: globalThis.ui,
@@ -330,7 +330,7 @@ function bundleWorld() {
     async createDocuments(data, options) {
       const made = data.map(entry => ({ ...entry, _id: `created-${nextId += 1}` }));
       created.push({ data, options });
-      if (options?.pack === itemsPack.collection) itemsPack.documents.push(...made);
+      if (options?.pack === libraryPack.collection) libraryPack.documents.push(...made);
       return made;
     },
     async create(data, options) { return (await this.createDocuments([data], options))[0]; },
@@ -339,7 +339,7 @@ function bundleWorld() {
   globalThis.ui = { notifications: { warn() {}, info() {}, error() {} } };
   return {
     created,
-    itemsPack,
+    libraryPack,
     restore() { Object.assign(globalThis, previous); },
   };
 }
@@ -362,17 +362,22 @@ test("applyBundle consumes a pre-A1 Monster Spells payload instead of silently d
       skippedExisting: 0,
       failures: 0,
       legacy: true,
-      restoredInto: "world.sde-items",
+      restoredInto: "world.sde-monster-spells",
     });
     assert.equal(report.created, 2);
     assert.equal(report.failures, 0);
-    assert.equal(world.itemsPack.documents.length, 2);
+    assert.equal(world.libraryPack.documents.length, 2);
     assert.equal(
-      world.itemsPack.documents[0].flags["shadowdark-enhancer"].monsterSpellMigration.from,
+      world.libraryPack.documents[0].flags["shadowdark-enhancer"].monsterSpellMigration.from,
       LEGACY,
     );
-    // The retired pack must not come back as a side effect of restoring it.
-    assert.equal(globalThis.game.packs.some(p => p.collection.includes("monster-spells")), false);
+    // The Monster Spells pack is a managed pack again (#147), so the legacy
+    // payload restores into it rather than into Items. What must still hold is
+    // that applyBundle does not CREATE a pack as a side effect — the fixture's
+    // createCompendium throws, so reaching this line already proves it.
+    assert.equal(
+      globalThis.game.packs.filter(p => p.collection.includes("monster-spells")).length, 1,
+      "exactly the managed pack, never a second one conjured by the restore");
   } finally {
     world.restore();
   }
@@ -392,7 +397,7 @@ test("applyBundle re-run with the same legacy bundle creates no duplicates", asy
     assert.equal(second.ok, true);
     assert.equal(second.packs[LEGACY_BUNDLE_PACK_KEY].created, 0);
     assert.equal(second.packs[LEGACY_BUNDLE_PACK_KEY].skippedExisting, 1);
-    assert.equal(world.itemsPack.documents.length, 1);
+    assert.equal(world.libraryPack.documents.length, 1);
   } finally {
     world.restore();
   }

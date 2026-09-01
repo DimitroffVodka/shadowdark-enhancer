@@ -34,6 +34,20 @@ export const SUITE_PACKS = [
   { key: "tables",  id: "sde-tables",  type: "RollTable",    label: "Shadowdark Enhancer — Roll Tables" },
   { key: "journal", id: "sde-journal", type: "JournalEntry", label: "Shadowdark Enhancer — Journals"    },
   { key: "scenes",  id: "sde-scenes", type: "Scene",        label: "Shadowdark Enhancer — Scenes"      },
+  // Generated Monster Spells hold their own pack rather than a folder inside
+  // Items. #74 consolidated them into sde-items and retired this descriptor,
+  // which left a compendium literally named "Monster Spells" sitting empty —
+  // the obvious place to look, reporting the feature as broken. Neither the
+  // library nor that consolidation ever shipped, so restoring this costs no
+  // migration; it only changes where new generation writes.
+  //
+  // The label slugifies to `shadowdark-enhancer--monster-spells`, the same
+  // collection the retired pack already occupies, so a world that has the empty
+  // one adopts it rather than growing a second. It ends in `--monster-spells`,
+  // not `.spells`, so the dot-qualified suffix test below still resolves
+  // findSuitePack("spells") to the Character-Options Spells pack — the exact
+  // ambiguity documented at the top of this file.
+  { key: "monster-spells", id: "sde-monster-spells", type: "Item", label: "Shadowdark Enhancer — Monster Spells" },
   // Character-Options packs. These are world compendiums whose LABELS slugify to
   // their collection ids (Classes→world.classes, "Class Abilties"→
   // world.class-abilties, …), so a fresh world recreates the identical
