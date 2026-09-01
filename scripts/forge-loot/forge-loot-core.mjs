@@ -488,16 +488,18 @@ function defaultUnavailableAdapter(id, label, description) {
   };
 }
 
+// Only generators with a real adapter belong in this list.  A placeholder here
+// renders as a live button in the picker and reads as a shipped feature, so an
+// unimplemented generator advertises itself and then refuses — which is exactly
+// how Rival Crawlers came to be visible while unusable.  `registerGenerator()`
+// is how a generator appears once it actually works; until then it stays out of
+// the UI entirely.  GENERATOR_IDS.RIVAL and its label remain defined so the
+// shelved implementation can re-register itself without a vocabulary change.
 export const DEFAULT_GENERATOR_ADAPTERS = Object.freeze([
   defaultUnavailableAdapter(
     GENERATOR_IDS.NPC,
     GENERATOR_LABELS[GENERATOR_IDS.NPC],
     "A lightweight, preview-first ordinary NPC generator.",
-  ),
-  defaultUnavailableAdapter(
-    GENERATOR_IDS.RIVAL,
-    GENERATOR_LABELS[GENERATOR_IDS.RIVAL],
-    "A preview-first party of full Rival Crawler characters.",
   ),
 ]);
 
