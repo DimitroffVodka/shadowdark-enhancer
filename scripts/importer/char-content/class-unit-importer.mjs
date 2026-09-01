@@ -1163,19 +1163,23 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
     { tablesPack, talentsPack, sourceTitle: srcTitle, overlay, source, report, ensureFolderPath });
 
   const update = {};
+  let tableUuid = CLASS_TALENT_TABLE_ABSENT;
   if (sup.talentTable) {
     const parsedLike = { name: cls.name, talentTable: sup.talentTable };
-    const tableUuid = await buildClassTalentTable(parsedLike, {
+    tableUuid = await buildClassTalentTable(parsedLike, {
       talentsPack, tablesPack, sysTalents, sourceTitle: srcTitle, source, overlay, report, ensureFolderPath, extraTableRefs,
     });
-    if (tableUuid !== CLASS_TALENT_TABLE_ABSENT) update["system.classTalentTable"] = tableUuid;
+    if (tableUuid !== CLASS_TALENT_TABLE_ABSENT
+      && _canonicalClassTalentTable(cls.system?.classTalentTable) !== tableUuid)
+      update["system.classTalentTable"] = tableUuid;
   }
-  if (sup.titles?.length) {
-    update["system.titles"] = sup.titles.map((t) => ({
-      from: Number(t.from) || 1, to: Number(t.to) || Number(t.from) || 1,
-      lawful: t.lawful ?? "", chaotic: t.chaotic ?? "", neutral: t.neutral ?? "",
-    }));
-  }
+  const titleShape = (t) => ({
+    from: Number(t.from) || 1, to: Number(t.to) || Number(t.from) || 1,
+    lawful: t.lawful ?? "", chaotic: t.chaotic ?? "", neutral: t.neutral ?? "",
+  });
+  const titleData = sup.titles?.length ? sup.titles.map(titleShape) : null;
+  if (titleData && !_deepEq(titleData, (cls.system?.titles ?? []).map(titleShape)))
+    update["system.titles"] = titleData;
   if (sup.spellsKnown?.length) {
     // The NON-caster + SPELLS KNOWN blocker is enforced above (fail-closed);
     // reaching here means either the class is a caster or the user overrode.
@@ -1201,7 +1205,7 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
   }
 
   report.classUuid = cls.uuid;
-  report.tableUuid = _canonicalClassTalentTable(update["system.classTalentTable"]);
+  report.tableUuid = _canonicalClassTalentTable(tableUuid);
   return report;
 }
 
