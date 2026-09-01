@@ -165,9 +165,19 @@ export async function gatherSpellListCensus() {
   for (const pack of game.packs.filter((p) => p.documentName === "Item")) {
     let idx;
     try { idx = await pack.getIndex({ fields }); } catch { continue; }
+    // CLASSES are collected from every pack — a spell's class link legitimately
+    // points at the system's own Wizard or Priest.
+    //
+    // SPELLS are counted from WORLD packs only. This census answers "did this
+    // module import that list", and a spell shipped by the system or another
+    // module is not evidence that it did. Counting them meant one Wizard-Chaotic
+    // spell in shadowdark-extras ("Chaos Orb") marked the whole 16-spell
+    // Sorcerer list as present, so the batch importer skipped it — the same
+    // false-present that hid the Necromancer list.
+    const isWorldPack = pack.metadata?.packageType === "world";
     for (const e of idx) {
       if (e.type === "Class") classNameByUuid.set(e.uuid, e.name);
-      else if (e.type === "Spell") spells.push(e);
+      else if (e.type === "Spell" && isWorldPack) spells.push(e);
     }
   }
   for (const i of game.items) {
@@ -183,9 +193,20 @@ export async function gatherSpellListCensus() {
       // Class + alignment only — no source gate — so the shared Wizard-variant
       // lists count for their CS and WR rows alike (see the doc comment).
       if ((align || "") !== (l.alignment || "")) continue;
-      const classOk = l.casterClass === "Necromancer"
-        ? (clsNames.includes("Necromancer") || clsNames.length === 0)
-        : clsNames.includes(l.casterClass);
+      // Match on the class link alone. A spell with NO class link used to count
+      // toward Necromancer, so that a list imported before its class existed
+      // still showed as present — but the fallback matched EVERY classless
+      // Spell in EVERY Item pack, including the generated Monster Spell library,
+      // which carries no class by design. In a fresh world that reported 77
+      // Necromancer spells against 62 total, so the batch importer skipped the
+      // list as "already in your library" and no Necromancer spell was ever
+      // imported: the fallback caused the failure it was meant to prevent.
+      //
+      // An unlinked Spell is not evidence the list is imported — it is evidence
+      // something imported badly, and reporting it as present is what hides
+      // that. The class is imported before its spell lists, so the case the
+      // fallback covered does not arise on the batch path.
+      const classOk = clsNames.includes(l.casterClass);
       if (classOk) counts.set(l.key, counts.get(l.key) + 1);
     }
   }
