@@ -38,6 +38,60 @@ function _isHtml(s) {
 /** Regex matching "(XXX Spell)" or "(XXX Spells)" NPC Feature names (mirrors monster-importer.mjs). */
 const SPELL_TAG = /\((?:int|wis|cha)\s+spell[s]?\)/i;
 
+/**
+ * Preserve the original thrown value while giving the batch worker a stable
+ * way to distinguish the two failure phases it can report. Errors from a
+ * Foundry adapter are normally extensible, but a wrapped copy keeps the
+ * accounting deterministic even when a caller throws a primitive or a frozen
+ * object.
+ *
+ * @param {unknown} error
+ * @param {"transform-threw"|"write-failed"} reason
+ * @returns {Error|object}
+ */
+function _tagFailure(error, reason) {
+  if (error && (typeof error === "object" || typeof error === "function")) {
+    try {
+      Object.defineProperty(error, "backfillReason", {
+        configurable: true,
+        value: reason,
+      });
+      return error;
+    } catch (_) {
+      // Fall through to a wrapper when the thrown value is non-extensible.
+    }
+  }
+
+  const wrapped = new Error(String(error));
+  wrapped.cause = error;
+  Object.defineProperty(wrapped, "backfillReason", {
+    configurable: true,
+    value: reason,
+  });
+  return wrapped;
+}
+
+/**
+ * Reduce a tagged (or injected) error to the stable vocabulary shared with
+ * managed-actor-backfill.mjs. Unknown errors are transform failures: all
+ * untagged exceptions originate before the legacy writer's phase boundary.
+ *
+ * @param {unknown} error
+ * @returns {"transform-threw"|"write-failed"}
+ */
+function _failureReason(error) {
+  return error?.backfillReason === "write-failed" ? "write-failed" : "transform-threw";
+}
+
+/** Run one Foundry write while preserving its phase for the batch report. */
+async function _writeBackfillStep(write) {
+  try {
+    return await write();
+  } catch (err) {
+    throw _tagFailure(err, "write-failed");
+  }
+}
+
 // ─── Pure change-detection helper ──────────────────────────────────────────
 //
 // No Foundry globals; importable in node:test without Foundry running.
@@ -149,13 +203,19 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
   // ── Round-trip pipeline (SAME order as createMonster) ──────────────────────
   // Dynamic imports keep the Foundry-bound modules from loading at parse time,
   // which lets detectChanges be imported pure by node:test suites.
-  const { actorToDraft, draftToActorData } = await import("../../monster-creator/encounter-creator.mjs");
-  const { resolveSpellFeatures, resolveDraftArt } = await import("./monster-importer.mjs");
+  let actorData;
+  let items;
+  try {
+    const { actorToDraft, draftToActorData } = await import("../../monster-creator/encounter-creator.mjs");
+    const { resolveSpellFeatures, resolveDraftArt } = await import("./monster-importer.mjs");
 
-  const draft = await actorToDraft(actor);          // async; strips HTML → plain draft
-  await resolveSpellFeatures(draft);                // (XXX Spell) features → draft.spells
-  await resolveDraftArt(draft);                     // fill placeholder img/tokenSrc
-  const { actorData, items } = draftToActorData(draft); // pure choke point (D5)
+    const draft = await actorToDraft(actor);          // async; strips HTML → plain draft
+    await resolveSpellFeatures(draft);                // (XXX Spell) features → draft.spells
+    await resolveDraftArt(draft);                     // fill placeholder img/tokenSrc
+    ({ actorData, items } = draftToActorData(draft)); // pure choke point (D5)
+  } catch (err) {
+    throw _tagFailure(err, "transform-threw");
+  }
 
   // ── Detect what changed ────────────────────────────────────────────────────
   const { changed, tally } = detectChanges(actor, actorData, items);
@@ -168,14 +228,17 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
   // Build a targeted update that touches ONLY the keys actorData owns.
   // GM-owned fields (folder, ownership, flags, sort, etc.) are untouched.
   const actorUpdate = {};
-  if (!_isPlaceholder(actorData.img)) actorUpdate.img = actorData.img;
-  if (!_isPlaceholder(actorData.prototypeToken?.texture?.src)) {
+  if (!_isPlaceholder(actorData.img) && actor.img !== actorData.img) actorUpdate.img = actorData.img;
+  if (!_isPlaceholder(actorData.prototypeToken?.texture?.src)
+      && actor.prototypeToken?.texture?.src !== actorData.prototypeToken.texture.src) {
     actorUpdate["prototypeToken.texture.src"] = actorData.prototypeToken.texture.src;
   }
-  if (actorData.system?.notes !== undefined) actorUpdate["system.notes"] = actorData.system.notes;
+  if (actorData.system?.notes !== undefined && actor.system?.notes !== actorData.system.notes) {
+    actorUpdate["system.notes"] = actorData.system.notes;
+  }
 
   if (Object.keys(actorUpdate).length > 0) {
-    await actor.update(actorUpdate);
+    await _writeBackfillStep(() => actor.update(actorUpdate));
   }
 
   // ── Apply embedded items ───────────────────────────────────────────────────
@@ -252,13 +315,13 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
 
   // Apply in order: in-place desc updates first, then delete+recreate.
   if (descUpdates.length > 0) {
-    await actor.updateEmbeddedDocuments("Item", descUpdates);
+    await _writeBackfillStep(() => actor.updateEmbeddedDocuments("Item", descUpdates));
   }
   if (idsToDelete.length > 0) {
-    await actor.deleteEmbeddedDocuments("Item", idsToDelete);
+    await _writeBackfillStep(() => actor.deleteEmbeddedDocuments("Item", idsToDelete));
   }
   if (toCreate.length > 0) {
-    await actor.createEmbeddedDocuments("Item", toCreate);
+    await _writeBackfillStep(() => actor.createEmbeddedDocuments("Item", toCreate));
   }
 
   return { actor: actor.name, uuid: actor.uuid, changed: true, tally, dryRun: false };
@@ -276,7 +339,7 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
  *   actorUuids?: string[],
  *   dryRun?: boolean
  * }} [opts]
- * @returns {Promise<{dryRun:boolean, total:number, changed:object[], unchanged:object[], totals:object}|null>}
+ * @returns {Promise<{dryRun:boolean, total:number, changed:object[], unchanged:object[], failed:object[], totals:object}|null>}
  */
 export async function backfillTargets({
   scope,
@@ -298,14 +361,14 @@ export async function backfillTargets({
     const pack = packCollection ?? findMonsterPack();
     if (!pack) {
       ui.notifications?.warn("No imported-monsters compendium found. Import some monsters first.");
-      return { dryRun, total: 0, changed: [], unchanged: [], totals: _zeroTotals() };
+      return { dryRun, total: 0, changed: [], unchanged: [], failed: [], totals: _zeroTotals() };
     }
     const docs = await pack.getDocuments();
     actors = docs.filter((d) => d.type === "NPC");
   } else if (scope === "folder") {
     if (!folderId) {
       ui.notifications?.warn("backfillTargets: scope 'folder' requires a folderId.");
-      return { dryRun, total: 0, changed: [], unchanged: [], totals: _zeroTotals() };
+      return { dryRun, total: 0, changed: [], unchanged: [], failed: [], totals: _zeroTotals() };
     }
     actors = game.actors.filter(
       (a) => a.type === "NPC" && (a.folder?.id === folderId || a.folderId === folderId)
@@ -313,25 +376,39 @@ export async function backfillTargets({
   } else if (scope === "selection") {
     if (!Array.isArray(actorUuids) || actorUuids.length === 0) {
       ui.notifications?.warn("backfillTargets: scope 'selection' requires actorUuids[].");
-      return { dryRun, total: 0, changed: [], unchanged: [], totals: _zeroTotals() };
+      return { dryRun, total: 0, changed: [], unchanged: [], failed: [], totals: _zeroTotals() };
     }
     const resolved = await Promise.all(actorUuids.map((u) => fromUuid(u).catch(() => null)));
     actors = resolved.filter((a) => a && a.type === "NPC");
   } else {
     ui.notifications?.warn(`backfillTargets: unknown scope "${scope}". Use "pack", "folder", or "selection".`);
-    return { dryRun, total: 0, changed: [], unchanged: [], totals: _zeroTotals() };
+    return { dryRun, total: 0, changed: [], unchanged: [], failed: [], totals: _zeroTotals() };
   }
 
   if (actors.length === 0) {
-    return { dryRun, total: 0, changed: [], unchanged: [], totals: _zeroTotals() };
+    return { dryRun, total: 0, changed: [], unchanged: [], failed: [], totals: _zeroTotals() };
   }
 
   const changed = [];
   const unchanged = [];
+  const failed = [];
   const totals = _zeroTotals();
 
   for (const actor of actors) {
-    const result = await backfillActor(actor, { dryRun });
+    let result;
+    try {
+      result = await backfillActor(actor, { dryRun });
+    } catch (err) {
+      failed.push({
+        id: actor?.id ?? "",
+        uuid: actor?.uuid ?? "",
+        name: actor?.name ?? "",
+        reason: _failureReason(err),
+        message: String(err?.message ?? err),
+        error: err,
+      });
+      continue;
+    }
     if (!result) continue;
     if (result.changed) {
       changed.push(result);
@@ -347,7 +424,7 @@ export async function backfillTargets({
     MonsterLinker.invalidate();
   }
 
-  return { dryRun, total: actors.length, changed, unchanged, totals };
+  return { dryRun, total: actors.length, changed, unchanged, failed, totals };
 }
 
 function _zeroTotals() {

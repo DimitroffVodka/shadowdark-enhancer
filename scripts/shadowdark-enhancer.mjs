@@ -754,6 +754,11 @@ Hooks.once("ready", () => {
           try {
             const { backfillTargets } = await import("./importer/monsters/monster-backfill.mjs");
             const result = await backfillTargets({ scope: "pack", dryRun: false });
+            if (!result || result.failed?.length) {
+              console.error(`${MODULE_ID} | auto-backfill did not complete:`, result);
+              resolve(false);
+              return;
+            }
             if (result?.changed?.length) {
               ui.notifications.info(`Shadowdark Enhancer: ${result.changed.length} imported monster(s) upgraded to current import fidelity.`);
             }
