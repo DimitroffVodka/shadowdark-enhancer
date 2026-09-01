@@ -1,0 +1,471 @@
+[
+  {
+    "spell": "Abjure",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Self. End any hostile magical effects affecting Rathgamnon.</p>"
+  },
+  {
+    "spell": "Abolish",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>One target in far takes [[/r 5d8]] damage.</p>"
+  },
+  {
+    "spell": "Absorb",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Near, one target. Target loses the ability to cast one random spell until completing a rest, and Mordanticus regains a lost spell of the same tier or less.</p>"
+  },
+  {
+    "spell": "Agony",
+    "monster": "Naga",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>One target in near takes [[/r 3d8]] damage.</p>"
+  },
+  {
+    "spell": "Anchor",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>One target in far [[check 18 str]] or bound and anchored by chains of golden runes for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Anoint",
+    "monster": "Priest",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Close. One weapon or armor becomes a magic +2 version for 10 rounds.</p>"
+  },
+  {
+    "spell": "Arcane Armor",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>AC 16 for [[/r 2d4]] rounds.</p>"
+  },
+  {
+    "spell": "Banish",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>All extradimensional creatures within near [[check 15 cha]] or sent back to their home planes.</p>"
+  },
+  {
+    "spell": "Barkskin",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>AC becomes 15 for 5 rounds.</p>"
+  },
+  {
+    "spell": "Beguile",
+    "monster": "Apprentice",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Focus. One target in near of LV 2 or less is stupefied for the duration.</p>"
+  },
+  {
+    "spell": "Bind",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One humanoid in far paralyzed [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Blast",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Far, one target. [[/r 2d6]] damage.</p>"
+  },
+  {
+    "spell": "Blast",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>One creature in near takes [[/r 5d8]] damage.</p>"
+  },
+  {
+    "spell": "Bug Brain",
+    "monster": "Goblin, Shaman",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Near range, one target. Target's INT drops to 1 for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Cancel",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>End one spell affecting a target within near.</p>"
+  },
+  {
+    "spell": "Conjure Flames",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target in far takes [[/r 2d6]] damage.</p>"
+  },
+  {
+    "spell": "Death Bolt",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>One target of LV 9 or less within near [[check 15 con]] or go to 0 HP.</p>"
+  },
+  {
+    "spell": "Deathtouch",
+    "monster": "Cultist",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>[[/r 2d4]] damage to one creature within close.</p>"
+  },
+  {
+    "spell": "Enervate",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Focus. One target within near is stupefied for the duration.</p>"
+  },
+  {
+    "spell": "Fade",
+    "monster": "Oni",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Self. Become invisible for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Fireblast",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>[[/r 4d6]] damage to all within a near-sized cube within far.</p>"
+  },
+  {
+    "spell": "Flight",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Fly double near for 5 rounds.</p>"
+  },
+  {
+    "spell": "Float",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Fly double near for 5 rounds.</p>"
+  },
+  {
+    "spell": "Fool's Gold",
+    "monster": "Leprechaun",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Close. One small object or small group of similar objects. Turn objects into silver or gold pieces. Lasts 1 day.</p>"
+  },
+  {
+    "spell": "Gate",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Open a portal at a point within near to another location on any plane. Lasts [[/r 1d6]] rounds or until dismissed.</p>"
+  },
+  {
+    "spell": "Gate",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Open a portal at a point within near to another location on any plane. Lasts [[/r 1d6]] rounds or until dismissed.</p>"
+  },
+  {
+    "spell": "Healing Touch",
+    "monster": "Acolyte",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Heal one creature within close for [[/r 1d4]] HP.</p>"
+  },
+  {
+    "spell": "Healing Touch",
+    "monster": "Priest",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Heal one creature within close for [[/r 2d4]] HP.</p>"
+  },
+  {
+    "spell": "Hellfrost",
+    "monster": "Oni",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>All within near-sized cube extending from oni [[/r 3d6]] damage.</p>"
+  },
+  {
+    "spell": "Hiss",
+    "monster": "Viperian, Wizard",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>End one spell within far.</p>"
+  },
+  {
+    "spell": "Holy Flame",
+    "monster": "Priest",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Self. Weapons ignite in magic flames and deal an additional [[/r 1d6]] damage for 5 rounds.</p>"
+  },
+  {
+    "spell": "Hypnotize",
+    "monster": "Naga",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Focus. One target in near range who can see naga is helplessly stupefied for duration.</p>"
+  },
+  {
+    "spell": "Illusion",
+    "monster": "Leprechaun",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Create a convincing visual and/ or auditory illusion within near. Lasts until dismissed.</p>"
+  },
+  {
+    "spell": "Imbue",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Staff becomes a +3 magic weapon for 10 rounds.</p>"
+  },
+  {
+    "spell": "Invisibility",
+    "monster": "Leprechaun",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Self. Become invisible for [[/r 2d4]] rounds.</p>"
+  },
+  {
+    "spell": "Levitate",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Close. Focus. Hover near for duration, vertical movement only.</p>"
+  },
+  {
+    "spell": "Magic Bolt",
+    "monster": "Apprentice",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>[[/r 1d4]] damage to one target within far.</p>"
+  },
+  {
+    "spell": "Mist",
+    "monster": "Oni",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Self. Turn into mist that can fly double near. Lasts [[/r 2d4]] rounds.</p>"
+  },
+  {
+    "spell": "Mithralskin",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>AC becomes 18 for 5 rounds.</p>"
+  },
+  {
+    "spell": "Null",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Hostile spells targeting lich are DC 18 to cast. Lasts [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Omens",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Self. ADV on all actions for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Phase",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Self. Teleport up to one mile.</p>"
+  },
+  {
+    "spell": "Portent",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Lasts [[/r 2d4]] rounds. One target in near has advantage or disadvantage on all attack rolls and checks.</p>"
+  },
+  {
+    "spell": "Rebuke",
+    "monster": "Priest",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Focus. Chaotic creatures cannot attack priest or come within near range for duration.</p>"
+  },
+  {
+    "spell": "Riddle",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target in far [[check 15 int]] or stupefied [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Scorpion Sting",
+    "monster": "Kobold, Sorcerer",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Near range, one target. [[/r 1d6]] damage and target has DISADV on next attack roll or check.</p>"
+  },
+  {
+    "spell": "Shadow Leap",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Teleport up to 100 miles.</p>"
+  },
+  {
+    "spell": "Sigil of Doom",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>One target of LV 9 or less within near [[check 15 con]] or go to 0 HP.</p>"
+  },
+  {
+    "spell": "Skitter",
+    "monster": "Goblin, Shaman",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Self. Climb like a spider for 5 rounds.</p>"
+  },
+  {
+    "spell": "Snare",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Focus. One humanoid target within near paralyzed for duration.</p>"
+  },
+  {
+    "spell": "Snuff",
+    "monster": "Drow, Priestess",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Extinguish all light sources (even magical) within near.</p>"
+  },
+  {
+    "spell": "Spider Swarm",
+    "monster": "Kobold, Sorcerer",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>A spider swarm appears within near. Stays [[/r 1d4]] rounds. Follows sorcerer's commands.</p>"
+  },
+  {
+    "spell": "Stink Bomb",
+    "monster": "Goblin, Shaman",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target within far [[/r 2d4]] damage and [[check 12 con]] or DISADV on next check/attack.</p>"
+  },
+  {
+    "spell": "Summon Bear",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Summon a loyal brown bear that appears within near. It stays for 5 rounds.</p>"
+  },
+  {
+    "spell": "Summon Cobra",
+    "monster": "Viperian, Wizard",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Summon [[/r 1d4]] loyal cobras that appear within near. They leave in [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Summon Spiders",
+    "monster": "Drow, Priestess",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Summon [[/r 2d4]] loyal giant spiders that appear within near. They stay for 5 rounds.</p>"
+  },
+  {
+    "spell": "Thunderclap",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Fills a near-sized cube extending from druid. Creatures within are thrown [[/r 2d20]] feet in a random direction.</p>"
+  },
+  {
+    "spell": "Time Bend",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>One target in near frozen in time for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Time Stop",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>Self. Time freezes for everyone except Rathgamnon for [[/r 1d4]] rounds. Everything that occurs during the time freeze happens simultaneously when the spell ends.</p>"
+  },
+  {
+    "spell": "True Name",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>Near. Learn the True Name of target.</p>"
+  },
+  {
+    "spell": "Unmake",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>One target in far takes [[/r 3d8]] damage.</p>"
+  },
+  {
+    "spell": "Venom",
+    "monster": "Viperian, Wizard",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target in far takes [[/r 2d8]] damage.</p>"
+  },
+  {
+    "spell": "Void Step",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>Teleport up to 100 miles.</p>"
+  },
+  {
+    "spell": "Web",
+    "monster": "Drow, Priestess",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>A near-sized cube of webs within far immobilizes all inside it for 5 rounds. [[check 15 str]] on turn to break free.</p>"
+  },
+  {
+    "spell": "Whispers",
+    "monster": "Naga",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Hostile spells cast on one target in near are DC 9 for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Whispers",
+    "monster": "Viperian, Wizard",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Focus. All enemies within near of viperian wizard have DISADV on spellcasting checks for the duration.</p>"
+  },
+  {
+    "spell": "Wither",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>[[/r 4d8]] damage to enemies within a near-sized cube centered on lich.</p>"
+  }
+]

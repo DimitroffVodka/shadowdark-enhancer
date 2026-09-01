@@ -1,0 +1,92 @@
+[
+  {
+    "spell": "Flight",
+    "candidates": [
+      "icons/magic/control/buff-flight-wings-red.webp",
+      "icons/magic/control/buff-flight-wings-blue.webp",
+      "icons/magic/control/buff-flight-wings-purple.webp",
+      "icons/magic/control/buff-flight-wings-runes-red.webp",
+      "icons/magic/control/buff-flight-wings-runes-blue.webp",
+      "icons/magic/control/buff-flight-wings-runes-purple.webp",
+      "icons/magic/control/buff-flight-wings-runes-blue-white.webp",
+      "icons/magic/control/buff-flight-wings-runes-red-yellow.webp",
+      "icons/magic/control/buff-flight-wings-runes-purple-orange.webp",
+      "icons/equipment/head/hat-flight-goggles.webp"
+    ]
+  },
+  {
+    "spell": "Float",
+    "candidates": [
+      "icons/equipment/head/hat-flight-goggles.webp",
+      "icons/magic/water/bubbles-air-water-blue.webp",
+      "icons/magic/water/bubbles-air-water-pink.webp",
+      "icons/magic/control/buff-flight-wings-red.webp",
+      "icons/magic/water/bubbles-air-water-light.webp",
+      "icons/magic/control/buff-flight-wings-blue.webp",
+      "icons/creatures/birds/birds-flock-fly-yellow.webp",
+      "icons/magic/control/buff-flight-wings-purple.webp",
+      "icons/magic/control/buff-flight-wings-runes-red.webp",
+      "icons/magic/control/buff-flight-wings-runes-blue.webp"
+    ]
+  },
+  {
+    "spell": "Fool's Gold",
+    "candidates": [
+      "icons/commodities/treasure/goblet-coins-gold.webp",
+      "icons/commodities/currency/coins-gold-stacked-x.webp",
+      "icons/commodities/currency/coins-plain-stack-gold-yellow.webp",
+      "icons/containers/bags/coinpouch-gold-red.webp",
+      "icons/commodities/treasure/brooch-gold-ruby.webp",
+      "icons/commodities/treasure/token-gold-cross.webp",
+      "icons/commodities/treasure/brooch-gold-green.webp",
+      "icons/commodities/treasure/metal-gold-yellow.webp",
+      "icons/commodities/treasure/token-gold-gem-red.webp",
+      "icons/commodities/treasure/brooch-gold-eye-green.webp"
+    ]
+  },
+  {
+    "spell": "Gate",
+    "candidates": [
+      "icons/magic/movement/portal-vortex-orange.webp",
+      "icons/magic/air/wind-vortex-swirl-red.webp",
+      "icons/magic/air/wind-vortex-swirl-blue.webp",
+      "icons/magic/air/wind-vortex-swirl-purple.webp",
+      "icons/magic/air/wind-vortex-swirl-blue-purple.webp",
+      "icons/commodities/currency/coin-plain-portal-gold.webp",
+      "icons/magic/fire/orb-vortex.webp",
+      "icons/environment/wilderness/portal.webp",
+      "icons/environment/settlement/city-gate.webp",
+      "icons/magic/water/vortex-water-whirlpool.webp"
+    ]
+  },
+  {
+    "spell": "Healing Touch",
+    "candidates": [
+      "icons/magic/life/heart-hand-gold-green.webp",
+      "icons/magic/life/heart-hand-gold-green-light.webp",
+      "icons/tools/hand/wrench-mechanical-heal-blue.webp",
+      "icons/tools/hand/saw-hand-skill.webp",
+      "icons/magic/light/orb-hand-green.webp",
+      "icons/magic/light/orbs-hand-gray.webp",
+      "icons/magic/nature/leaf-hand-green.webp",
+      "icons/tools/fishing/net-hand-white.webp",
+      "icons/tools/instruments/drum-hand-tan.webp",
+      "icons/commodities/bones/bones-hand-tan.webp"
+    ]
+  },
+  {
+    "spell": "Hellfrost",
+    "candidates": [
+      "icons/magic/water/snowflake-ice-blue-white.webp",
+      "icons/magic/water/snowflake-ice-blue.webp",
+      "icons/magic/light/beams-explosion-blue.webp",
+      "icons/weapons/axes/axe-double-ice-blue.webp",
+      "icons/weapons/polearms/trident-ice-blue.webp",
+      "icons/weapons/ammunition/bullet-ice-blue.webp",
+      "icons/magic/light/explosion-star-blue-large.webp",
+      "icons/magic/light/explosion-star-blue-small.webp",
+      "icons/magic/water/projectile-ice-chunk-blue.webp",
+      "icons/magic/water/projectiles-ice-explosion.webp"
+    ]
+  }
+]

@@ -1,0 +1,79 @@
+[
+  {
+    "spell": "Summon Spiders",
+    "monster": "Drow, Priestess",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Summon [[/r 2d4]] loyal giant spiders that appear within near. They stay for 5 rounds.</p>"
+  },
+  {
+    "spell": "Thunderclap",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Fills a near-sized cube extending from druid. Creatures within are thrown [[/r 2d20]] feet in a random direction.</p>"
+  },
+  {
+    "spell": "Time Bend",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>One target in near frozen in time for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Time Stop",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>Self. Time freezes for everyone except Rathgamnon for [[/r 1d4]] rounds. Everything that occurs during the time freeze happens simultaneously when the spell ends.</p>"
+  },
+  {
+    "spell": "True Name",
+    "monster": "Mordanticus the Flayed",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>Near. Learn the True Name of target.</p>"
+  },
+  {
+    "spell": "Unmake",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>One target in far takes [[/r 3d8]] damage.</p>"
+  },
+  {
+    "spell": "Venom",
+    "monster": "Viperian, Wizard",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target in far takes [[/r 2d8]] damage.</p>"
+  },
+  {
+    "spell": "Void Step",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>Teleport up to 100 miles.</p>"
+  },
+  {
+    "spell": "Web",
+    "monster": "Drow, Priestess",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>A near-sized cube of webs within far immobilizes all inside it for 5 rounds. [[check 15 str]] on turn to break free.</p>"
+  },
+  {
+    "spell": "Whispers",
+    "monster": "Naga",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Hostile spells cast on one target in near are DC 9 for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Wither",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>[[/r 4d8]] damage to enemies within a near-sized cube centered on lich.</p>"
+  }
+]

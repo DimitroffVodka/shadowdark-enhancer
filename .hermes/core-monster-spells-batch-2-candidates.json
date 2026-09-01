@@ -1,0 +1,197 @@
+[
+  {
+    "spell": "Cancel",
+    "candidates": [
+      "icons/magic/light/beam-deflect-path-yellow.webp",
+      "icons/magic/light/beam-impact-deflect-teal.webp",
+      "icons/magic/defensive/shield-barrier-deflect-gold.webp",
+      "icons/magic/defensive/shield-barrier-deflect-teal.webp",
+      "icons/magic/defensive/barrier-shield-dome-deflect-blue.webp",
+      "icons/magic/defensive/barrier-shield-dome-deflect-teal.webp",
+      "icons/skills/movement/arrow-upward-blue.webp",
+      "icons/skills/movement/arrow-upward-white.webp",
+      "icons/skills/movement/arrow-upward-yellow.webp",
+      "icons/equipment/shield/wardoor-wooden-boss-brown.webp"
+    ]
+  },
+  {
+    "spell": "Conjure Flames",
+    "candidates": [
+      "icons/magic/fire/explosion-flame-blue.webp",
+      "icons/magic/fire/barrier-wall-flame-ring-blue.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-red.webp",
+      "icons/magic/fire/barrier-wall-flame-ring-yellow.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-blue.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-teal.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-green.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-orange.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-purple.webp",
+      "icons/magic/fire/explosion-flame-lightning-strike.webp"
+    ]
+  },
+  {
+    "spell": "Death Bolt",
+    "candidates": [
+      "icons/magic/fire/projectile-bolt-zigzag-orange.webp",
+      "icons/weapons/guns/rifle-bolt-action.webp",
+      "icons/commodities/cloth/cloth-bolt-tan.webp",
+      "icons/commodities/cloth/cloth-bolt-gold.webp",
+      "icons/commodities/cloth/cloth-bolt-grey.webp",
+      "icons/commodities/cloth/cloth-bolt-pink.webp",
+      "icons/commodities/cloth/ribbon-bolt-red.webp",
+      "icons/commodities/cloth/cloth-bolt-green.webp",
+      "icons/commodities/cloth/ribbon-bolt-blue.webp",
+      "icons/commodities/cloth/cloth-bolt-purple.webp"
+    ]
+  },
+  {
+    "spell": "Deathtouch",
+    "candidates": [
+      "icons/magic/unholy/strike-hand-glow-pink.webp",
+      "icons/tools/hand/saw-hand-skill.webp",
+      "icons/magic/light/orb-hand-green.webp",
+      "icons/magic/light/orbs-hand-gray.webp",
+      "icons/magic/nature/leaf-hand-green.webp",
+      "icons/tools/fishing/net-hand-white.webp",
+      "icons/magic/death/hand-withered-gray.webp",
+      "icons/tools/instruments/drum-hand-tan.webp",
+      "icons/commodities/bones/bones-hand-tan.webp",
+      "icons/magic/life/heart-hand-gold-green.webp"
+    ]
+  },
+  {
+    "spell": "Enervate",
+    "candidates": [
+      "icons/weapons/sickles/hand-sickle.webp",
+      "icons/weapons/sickles/sickle-kama.webp",
+      "icons/tools/hand/sickle-steel-grey.webp",
+      "icons/weapons/sickles/sickle-curved.webp",
+      "icons/magic/control/debuff-chains-red.webp",
+      "icons/magic/control/debuff-chains-blue.webp",
+      "icons/magic/control/debuff-chains-green.webp",
+      "icons/tools/hand/sickle-worn-steel-grey.webp",
+      "icons/weapons/sickles/scythe-bone-green.webp",
+      "icons/weapons/sickles/sickle-worn-white.webp"
+    ]
+  },
+  {
+    "spell": "Fade",
+    "candidates": [
+      "icons/magic/perception/silhouette-stealth-shadow.webp",
+      "icons/magic/air/air-smoke-casting.webp",
+      "icons/magic/light/orbs-smoke-pink.webp",
+      "icons/magic/air/fog-gas-smoke-gray.webp",
+      "icons/magic/air/fog-gas-smoke-brown.webp",
+      "icons/magic/air/fog-gas-smoke-green.webp",
+      "icons/magic/air/fog-gas-smoke-orange.webp",
+      "icons/magic/air/fog-gas-smoke-purple.webp",
+      "icons/magic/fire/orbs-silhouette-sun.webp",
+      "icons/magic/unholy/energy-smoke-pink.webp"
+    ]
+  },
+  {
+    "spell": "Fireblast",
+    "candidates": [
+      "icons/magic/fire/explosion-flame-blue.webp",
+      "icons/magic/fire/explosion-flame-lightning-strike.webp",
+      "icons/magic/fire/barrier-wall-flame-ring-blue.webp",
+      "icons/magic/fire/barrier-wall-explosion-orange.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-red.webp",
+      "icons/magic/fire/barrier-wall-flame-ring-yellow.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-blue.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-teal.webp",
+      "icons/magic/fire/barrier-shield-explosion-yellow.webp",
+      "icons/magic/fire/dagger-rune-enchant-flame-green.webp"
+    ]
+  },
+  {
+    "spell": "Flight",
+    "candidates": [
+      "icons/magic/control/buff-flight-wings-red.webp",
+      "icons/magic/control/buff-flight-wings-blue.webp",
+      "icons/magic/control/buff-flight-wings-purple.webp",
+      "icons/magic/control/buff-flight-wings-runes-red.webp",
+      "icons/magic/control/buff-flight-wings-runes-blue.webp",
+      "icons/magic/control/buff-flight-wings-runes-purple.webp",
+      "icons/magic/control/buff-flight-wings-runes-blue-white.webp",
+      "icons/magic/control/buff-flight-wings-runes-red-yellow.webp",
+      "icons/magic/control/buff-flight-wings-runes-purple-orange.webp",
+      "icons/equipment/head/hat-flight-goggles.webp"
+    ]
+  },
+  {
+    "spell": "Float",
+    "candidates": [
+      "icons/equipment/head/hat-flight-goggles.webp",
+      "icons/magic/water/bubbles-air-water-blue.webp",
+      "icons/magic/water/bubbles-air-water-pink.webp",
+      "icons/magic/control/buff-flight-wings-red.webp",
+      "icons/magic/water/bubbles-air-water-light.webp",
+      "icons/magic/control/buff-flight-wings-blue.webp",
+      "icons/creatures/birds/birds-flock-fly-yellow.webp",
+      "icons/magic/control/buff-flight-wings-purple.webp",
+      "icons/magic/control/buff-flight-wings-runes-red.webp",
+      "icons/magic/control/buff-flight-wings-runes-blue.webp"
+    ]
+  },
+  {
+    "spell": "Fool's Gold",
+    "candidates": [
+      "icons/commodities/treasure/goblet-coins-gold.webp",
+      "icons/commodities/currency/coins-gold-stacked-x.webp",
+      "icons/commodities/currency/coins-plain-stack-gold-yellow.webp",
+      "icons/containers/bags/coinpouch-gold-red.webp",
+      "icons/commodities/treasure/brooch-gold-ruby.webp",
+      "icons/commodities/treasure/token-gold-cross.webp",
+      "icons/commodities/treasure/brooch-gold-green.webp",
+      "icons/commodities/treasure/metal-gold-yellow.webp",
+      "icons/commodities/treasure/token-gold-gem-red.webp",
+      "icons/commodities/treasure/brooch-gold-eye-green.webp"
+    ]
+  },
+  {
+    "spell": "Gate",
+    "candidates": [
+      "icons/magic/movement/portal-vortex-orange.webp",
+      "icons/magic/air/wind-vortex-swirl-red.webp",
+      "icons/magic/air/wind-vortex-swirl-blue.webp",
+      "icons/magic/air/wind-vortex-swirl-purple.webp",
+      "icons/magic/air/wind-vortex-swirl-blue-purple.webp",
+      "icons/commodities/currency/coin-plain-portal-gold.webp",
+      "icons/magic/fire/orb-vortex.webp",
+      "icons/environment/wilderness/portal.webp",
+      "icons/environment/settlement/city-gate.webp",
+      "icons/magic/water/vortex-water-whirlpool.webp"
+    ]
+  },
+  {
+    "spell": "Healing Touch",
+    "candidates": [
+      "icons/magic/life/heart-hand-gold-green.webp",
+      "icons/magic/life/heart-hand-gold-green-light.webp",
+      "icons/tools/hand/wrench-mechanical-heal-blue.webp",
+      "icons/tools/hand/saw-hand-skill.webp",
+      "icons/magic/light/orb-hand-green.webp",
+      "icons/magic/light/orbs-hand-gray.webp",
+      "icons/magic/nature/leaf-hand-green.webp",
+      "icons/tools/fishing/net-hand-white.webp",
+      "icons/tools/instruments/drum-hand-tan.webp",
+      "icons/commodities/bones/bones-hand-tan.webp"
+    ]
+  },
+  {
+    "spell": "Hellfrost",
+    "candidates": [
+      "icons/magic/water/snowflake-ice-blue-white.webp",
+      "icons/magic/water/snowflake-ice-blue.webp",
+      "icons/magic/light/beams-explosion-blue.webp",
+      "icons/weapons/axes/axe-double-ice-blue.webp",
+      "icons/weapons/polearms/trident-ice-blue.webp",
+      "icons/weapons/ammunition/bullet-ice-blue.webp",
+      "icons/magic/light/explosion-star-blue-large.webp",
+      "icons/magic/light/explosion-star-blue-small.webp",
+      "icons/magic/water/projectile-ice-chunk-blue.webp",
+      "icons/magic/water/projectiles-ice-explosion.webp"
+    ]
+  }
+]

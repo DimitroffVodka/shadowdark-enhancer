@@ -1,0 +1,93 @@
+[
+  {
+    "spell": "Cancel",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>End one spell affecting a target within near.</p>"
+  },
+  {
+    "spell": "Conjure Flames",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target in far takes [[/r 2d6]] damage.</p>"
+  },
+  {
+    "spell": "Death Bolt",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>One target of LV 9 or less within near [[check 15 con]] or go to 0 HP.</p>"
+  },
+  {
+    "spell": "Deathtouch",
+    "monster": "Cultist",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>[[/r 2d4]] damage to one creature within close.</p>"
+  },
+  {
+    "spell": "Enervate",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Focus. One target within near is stupefied for the duration.</p>"
+  },
+  {
+    "spell": "Fade",
+    "monster": "Oni",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Self. Become invisible for [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Fireblast",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>[[/r 4d6]] damage to all within a near-sized cube within far.</p>"
+  },
+  {
+    "spell": "Flight",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Fly double near for 5 rounds.</p>"
+  },
+  {
+    "spell": "Float",
+    "monster": "Archmage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Fly double near for 5 rounds.</p>"
+  },
+  {
+    "spell": "Fool's Gold",
+    "monster": "Leprechaun",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Close. One small object or small group of similar objects. Turn objects into silver or gold pieces. Lasts 1 day.</p>"
+  },
+  {
+    "spell": "Gate",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Open a portal at a point within near to another location on any plane. Lasts [[/r 1d6]] rounds or until dismissed.</p>"
+  },
+  {
+    "spell": "Healing Touch",
+    "monster": "Acolyte",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Heal one creature within close for [[/r 1d4]] HP.</p>"
+  },
+  {
+    "spell": "Hellfrost",
+    "monster": "Oni",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>All within near-sized cube extending from oni [[/r 3d6]] damage.</p>"
+  }
+]

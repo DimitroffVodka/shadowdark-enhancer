@@ -1,0 +1,29 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "source": "Cursed Scroll 3",
+      "spell": "Berserk",
+      "icon": "icons/magic/control/buff-strength-muscle-damage-orange.webp",
+      "visualRationale": "Visibly shows a muscular arm and clenched fist flexing against an explosive, radiating golden-orange power burst aura, clearly depicting physical empowerment and a melee damage buff (+1d4 on attacks) for nearby allies."
+    },
+    {
+      "source": "Cursed Scroll 3",
+      "spell": "Fate",
+      "icon": "icons/magic/control/energy-stream-link-spiral-orange.webp",
+      "visualRationale": "Visibly shows a mystical figure manipulating a glowing, intertwined spiral thread of golden energy linked to another humanoid engulfed in radiant aura, capturing the twisting of a creature's golden threads of fate and severing their luck tokens."
+    },
+    {
+      "source": "Cursed Scroll 3",
+      "spell": "Mjolnir",
+      "icon": "icons/skills/melee/strike-hammer-destructive-blue.webp",
+      "visualRationale": "Visibly shows a massive warhammer striking downward with tremendous force, creating a luminous electric-blue shockwave impact and shattering debris, perfectly portraying the lightning-like 2d6 hammer strike."
+    },
+    {
+      "source": "Cursed Scroll 3",
+      "spell": "Strike Blind",
+      "icon": "icons/creatures/eyes/humanoid-single-blind.webp",
+      "visualRationale": "Visibly shows a clouded, milky-white pupil-less eye veiled within bruised violet eyelids, cleanly depicting a target suffering from acute magical blindness."
+    }
+  ]
+}

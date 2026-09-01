@@ -1,0 +1,35 @@
+{
+  "model": "Gemini 3.7 Flash (High)",
+  "mappings": [
+    {
+      "spell": "Flight",
+      "icon": "icons/magic/control/buff-flight-wings-runes-blue.webp",
+      "visualRationale": "Glowing azure winged sigil centered within an arcane circular runic transmutation ring with radiant light beams, clearly conveying a magical flight buff."
+    },
+    {
+      "spell": "Float",
+      "icon": "icons/magic/water/bubbles-air-water-blue.webp",
+      "visualRationale": "Luminous translucent blue buoyant spheres floating upwards in an airy atmosphere with soft highlights, capturing gentle weightlessness and floating levitation."
+    },
+    {
+      "spell": "Fool's Gold",
+      "icon": "icons/commodities/currency/coins-plain-stack-gold-yellow.webp",
+      "visualRationale": "Stacks of plain, unminted imitation gold coins resting on a wooden surface, perfectly depicting manufactured or illusory fake gold."
+    },
+    {
+      "spell": "Gate",
+      "icon": "icons/magic/movement/portal-vortex-orange.webp",
+      "visualRationale": "Swirling planar vortex glowing in brilliant orange and gold opening into a dark portal void with energetic tendrils stretching inward, depicting an interdimensional gateway."
+    },
+    {
+      "spell": "Healing Touch",
+      "icon": "icons/magic/life/heart-hand-gold-green-light.webp",
+      "visualRationale": "Open palm reaching upward beneath a radiant golden heart surrounded by glowing verdant and golden restorative light rays, depicting healing energy channeled through the hand."
+    },
+    {
+      "spell": "Hellfrost",
+      "icon": "icons/magic/water/projectiles-ice-explosion.webp",
+      "visualRationale": "Explosive frost nova erupting outward from a swirling freezing vortex, blasting shards of glacial ice and radiant sub-zero light beams in all directions."
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+[
+  {
+    "spell": "Portent",
+    "monster": "Rathgamnon",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Lasts [[/r 2d4]] rounds. One target in near has advantage or disadvantage on all attack rolls and checks.</p>"
+  },
+  {
+    "spell": "Rebuke",
+    "monster": "Priest",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Focus. Chaotic creatures cannot attack priest or come within near range for duration.</p>"
+  },
+  {
+    "spell": "Riddle",
+    "monster": "Sphinx",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target in far [[check 15 int]] or stupefied [[/r 1d4]] rounds.</p>"
+  },
+  {
+    "spell": "Scorpion Sting",
+    "monster": "Kobold, Sorcerer",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 1,
+    "description": "<p>Near range, one target. [[/r 1d6]] damage and target has DISADV on next attack roll or check.</p>"
+  },
+  {
+    "spell": "Shadow Leap",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Teleport up to 100 miles.</p>"
+  },
+  {
+    "spell": "Sigil of Doom",
+    "monster": "Lich",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 5,
+    "description": "<p>One target of LV 9 or less within near [[check 15 con]] or go to 0 HP.</p>"
+  },
+  {
+    "spell": "Skitter",
+    "monster": "Goblin, Shaman",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Self. Climb like a spider for 5 rounds.</p>"
+  },
+  {
+    "spell": "Snare",
+    "monster": "Mage",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Focus. One humanoid target within near paralyzed for duration.</p>"
+  },
+  {
+    "spell": "Snuff",
+    "monster": "Drow, Priestess",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>Extinguish all light sources (even magical) within near.</p>"
+  },
+  {
+    "spell": "Spider Swarm",
+    "monster": "Kobold, Sorcerer",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>A spider swarm appears within near. Stays [[/r 1d4]] rounds. Follows sorcerer's commands.</p>"
+  },
+  {
+    "spell": "Stink Bomb",
+    "monster": "Goblin, Shaman",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 2,
+    "description": "<p>One target within far [[/r 2d4]] damage and [[check 12 con]] or DISADV on next check/attack.</p>"
+  },
+  {
+    "spell": "Summon Bear",
+    "monster": "Druid",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 4,
+    "description": "<p>Summon a loyal brown bear that appears within near. It stays for 5 rounds.</p>"
+  },
+  {
+    "spell": "Summon Cobra",
+    "monster": "Viperian, Wizard",
+    "current": "icons/magic/symbols/runes-star-magenta.webp",
+    "tier": 3,
+    "description": "<p>Summon [[/r 1d4]] loyal cobras that appear within near. They leave in [[/r 1d4]] rounds.</p>"
+  }
+]
