@@ -381,6 +381,25 @@
 - **Public API minor version to `1.3.0` for the additive loot surface (A7).** New namespaces `game.shadowdarkEnhancer.loot.resolve` and `game.shadowdarkEnhancer.loot.generated.{identity,plan,reconcile}` bump the minor per the existing version policy (`docs/API.md:18-19` — additive bumps minor, breaking bumps major). The generated-artifact replace-always contract is now carved out explicitly from the docs' blanket \"never-overwrite, never-delete\" stability statement (it governs `world.shadowdark-enhancer--items` with `flags[\"shadowdark-enhancer\"].generated === true`). Earlier releases (≤ v0.3.0) had no `apiVersion`; `1.0.0` introduced it.
 
 ### Fixed
+- **Table source provenance preserved across matrix splits (#134).** A table's
+  `source` provenance and `manifestId` now survive the matrix-split parse path.
+  Previously, splitting a parsed table into per-column children produced drafts
+  carrying neither `source` nor `manifestId`, causing tables authored as `CORE`
+  to be persisted as `Game Master`. Split children now inherit the provenance
+  of the draft they were split from, both singleton and matrix hub paths stamp
+  the seeded source, and per-column manifest IDs are retained.
+  - **No folder-path guessing:** When table provenance is unknown, it is now
+    left absent rather than guessed. The previous resolver fallback to the first
+    folder-path segment (`folderPath[0]`) is removed: a folder path is the GM's
+    filing destination, not authorship, and is frequently literally "Game
+    Master" — so the old fallback made an unknown source indistinguishable from a
+    genuinely GM-authored table.
+  - **Backward compatibility:** This affects newly parsed and newly built payloads,
+    and explicit future reimports. There is no load-time rewrite and no migration.
+    Existing persisted tables carrying `source: "Game Master"` remain exactly as
+    stored and continue to resolve as before, and existing tables with no source
+    also behave exactly as before. An explicit GM re-import over an existing table
+    is an intentional write, not a silent reclassification.
 - **Basic Gear table page footers no longer create stray Items (C1a/#108).**
   A numeric page footer pasted along with a Basic Gear table is no longer parsed
   as an Item. The input stage excises page furniture before force-mode row

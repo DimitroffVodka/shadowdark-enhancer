@@ -189,6 +189,15 @@ The managed pack also holds the derived **Rival Classes** RollTable (G2),
 which is generated and kept in sync with the G3 Class readiness report under
 `flags["shadowdark-enhancer"].forgeLoot.rivalClassTable`.
 
+### Table source provenance and matrix splits
+
+When tables are imported through the Table Hub into `sde-tables`, source provenance and catalog manifest identity are carried across the parsing and splitting boundaries:
+
+- **Matrix split inheritance:** Splitting a multi-column matrix table (such as *Signature Tactics*) into per-column child drafts preserves the parent draft's source provenance and catalog identity. Split children inherit the pre-split draft's `source` and `manifestId`, after which per-column manifest IDs are stamped.
+- **Hub path seeding:** Both singleton table parsing and matrix hub paths stamp the seeded source (e.g. `CORE`, `CS1`–`CS6`, `WR`).
+- **No folder-path guessing:** When table provenance is unknown, it is left absent rather than guessed. The importer does not fall back to the first folder-path segment (`folderPath[0]`) to infer authorship: a folder path is a filing destination chosen by the GM (and is frequently literally "Game Master"), so deriving source from a folder path made an unknown source indistinguishable from a genuinely GM-authored table.
+- **Backward compatibility:** This change governs newly parsed drafts, newly built payloads, and explicit future re-imports. There is no load-time rewrite and no migration. Tables already stored in the world or packs with `source: "Game Master"` remain exactly as stored and continue to resolve under existing behavior, and tables already stored with no source also behave exactly as before. Re-importing over an existing table with **Replace existing** is an intentional write, not a silent reclassification.
+
 ## When a table has no recipe
 
 You get generic parsing. For a clean single-column table that is usually fine.
