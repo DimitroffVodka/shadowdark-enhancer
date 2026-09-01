@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-878 tracked files · ~145,500 lines of code/markup across scripts+templates+styles+test.
+883 tracked files · ~148,200 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -386,12 +386,14 @@ Structure and thresholds only. Venue descriptions, twist details, what each stak
 | `advancement-engine.mjs` | 936 | Foundry-free G6b advancement engine: clones a complete level-one Player plan, rolls HP and bounded level-3/5 talent graphs through G6a, fills caster spell-grid deltas, resolves every supported replacement effect, records duplicate/recursion caps and level history, and returns a deterministic complete plan or diagnostic failure without persistence. |
 | `class-readiness.mjs` | 760 | Foundry-free G3 class automation-readiness evaluator, stable blocker/warning vocabulary, G6a mappings, and bounded importer defect queue. |
 | `class-readiness-adapter.mjs` | 294 | Read-only Foundry adapter that inventories Core and importer-managed Classes, resolves talent evidence, invokes the existing via classifier, and feeds the pure readiness report. |
-| `forge-loot-app.mjs` | 262 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
+| `forge-loot-app.mjs` | 265 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
 | `forge-loot-core.mjs` | 856 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
 | `forge-loot-rng.mjs` | 80 | Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods. |
 | `rival-class-table.mjs` | 243 | Foundry-free G2 policy for selecting eligible Core/importer-managed classes with Level-0 filtering and Core-wins canonical deduplication, then building deterministic equal-probability RollTable payloads with replacement warning and content fingerprint. |
 | `rival-class-table-adapter.mjs` | 418 | Foundry adapter for the generated Rival Crawler Classes table: flag-only managed-pack lookup, GM-gated create/replace reconciliation with manual-edit warnings, source freshness checks, and debounced ClassIndex invalidation wiring. |
 | `supporting-tables.mjs` | 791 | Foundry-free G8 logical-role registry for NPC/Rival supporting tables: exact manifest/source identities, ancestry/alignment dynamic child resolution, Signature Tactics matrix identities, pure row selection, and a read-only managed-pack adapter that fails closed on missing, foreign, duplicate, or name-only tables. |
+| `rival-party-adapter.mjs` | 764 | Foundry adapter for G7 Rival Crawler parties: captures semantic class and supporting-table snapshots, discloses the SDX-gated commit target, and transactionally creates either a linked SDX Party actor or a folder-backed Player party with rollback. |
+| `rival-party-planner.mjs` | 817 | Foundry-free G7 planner and assembler: validates class-source health and strict supporting-table coverage, rolls a seeded immutable party preview, resolves unattended level-one builds through G6a, and advances complete Player plans through G6b. |
 
 The report and idiom seams are pure data policy. Foundry adapters must translate documents into snapshots and keep reads separate from later generator/commit work.
 <!-- inventory:scripts:end -->
