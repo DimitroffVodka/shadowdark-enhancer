@@ -947,20 +947,28 @@ export async function relinkSpellsToClasses(deps = {}) {
  *  and armor both live in `gear` (no separate packs). */
 const SYSTEM_ITEM_PACKS = ["shadowdark.gear", "shadowdark.magic-items"];
 
+// Basic Gear calls the system's Flask/Bottle entry "Flask or bottle". Keep
+// this source-specific synonym explicit; other comma clauses remain distinct.
+const SYSTEM_ITEM_ALIASES = {
+  "flask or bottle": "flask",
+};
+
 /**
  * Normalize an item name for system-duplicate matching: drop parenthetical
  * quantities ("Arrows (20)", "Caltrops (One Bag)"), fold case and punctuation.
  * Deliberately does NOT strip trailing comma clauses — "Rope, 60'" must stay
- * distinct from "Rope, Morzo Silk", and "Flask or bottle" from "Flask".
+ * distinct from "Rope, Morzo Silk". Explicit source aliases are resolved
+ * after this normalization.
  * @param {string} s
  * @returns {string}
  */
 export function normalizeItemName(s) {
-  return String(s ?? "")
+  const normalized = String(s ?? "")
     .toLowerCase()
     .replace(/\([^)]*\)/g, " ")     // "(20)", "(One Bag)"
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+  return SYSTEM_ITEM_ALIASES[normalized] ?? normalized;
 }
 
 /**
