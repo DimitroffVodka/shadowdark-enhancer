@@ -46,15 +46,20 @@ const SPELL_TAG = /\((?:int|wis|cha)\s+spell[s]?\)/i;
  * object.
  *
  * @param {unknown} error
- * @param {"transform-threw"|"write-failed"} reason
+ * @param {"transform-threw"|"write-failed"|"compensation-failed"} reason
+ * @param {{mutated?: boolean}} [options]
  * @returns {Error|object}
  */
-function _tagFailure(error, reason) {
+function _tagFailure(error, reason, { mutated = false } = {}) {
   if (error && (typeof error === "object" || typeof error === "function")) {
     try {
       Object.defineProperty(error, "backfillReason", {
         configurable: true,
         value: reason,
+      });
+      Object.defineProperty(error, "backfillMutated", {
+        configurable: true,
+        value: Boolean(error.backfillMutated || mutated),
       });
       return error;
     } catch (_) {
@@ -68,6 +73,10 @@ function _tagFailure(error, reason) {
     configurable: true,
     value: reason,
   });
+  Object.defineProperty(wrapped, "backfillMutated", {
+    configurable: true,
+    value: Boolean(mutated),
+  });
   return wrapped;
 }
 
@@ -77,10 +86,12 @@ function _tagFailure(error, reason) {
  * untagged exceptions originate before the legacy writer's phase boundary.
  *
  * @param {unknown} error
- * @returns {"transform-threw"|"write-failed"}
+ * @returns {"transform-threw"|"write-failed"|"compensation-failed"}
  */
 function _failureReason(error) {
-  return error?.backfillReason === "write-failed" ? "write-failed" : "transform-threw";
+  if (error?.backfillReason === "write-failed") return "write-failed";
+  if (error?.backfillReason === "compensation-failed") return "compensation-failed";
+  return "transform-threw";
 }
 
 /** Run one Foundry write while preserving its phase for the batch report. */
@@ -90,6 +101,24 @@ async function _writeBackfillStep(write) {
   } catch (err) {
     throw _tagFailure(err, "write-failed");
   }
+}
+
+/**
+ * Snapshot an embedded Item in the shape accepted by createEmbeddedDocuments.
+ * Foundry Documents expose `_id` in `toObject()` but plain test doubles often
+ * also expose the convenience `id` getter; remove only that getter so a failed
+ * replacement can restore the original document identity and data.
+ *
+ * @param {object} item
+ * @returns {object}
+ */
+function _snapshotItem(item) {
+  const source = typeof item?.toObject === "function" ? item.toObject() : item;
+  const clone = typeof globalThis.foundry?.utils?.deepClone === "function"
+    ? globalThis.foundry.utils.deepClone(source)
+    : structuredClone(source);
+  if (clone && typeof clone === "object") delete clone.id;
+  return clone;
 }
 
 // ─── Pure change-detection helper ──────────────────────────────────────────
@@ -224,6 +253,17 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
     return { actor: actor.name, uuid: actor.uuid, changed, tally, dryRun };
   }
 
+  let mutated = false;
+  const commit = async (write) => {
+    try {
+      const result = await _writeBackfillStep(write);
+      mutated = true;
+      return result;
+    } catch (err) {
+      throw _tagFailure(err, _failureReason(err), { mutated });
+    }
+  };
+
   // ── Apply actor-level fields ───────────────────────────────────────────────
   // Build a targeted update that touches ONLY the keys actorData owns.
   // GM-owned fields (folder, ownership, flags, sort, etc.) are untouched.
@@ -238,7 +278,7 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
   }
 
   if (Object.keys(actorUpdate).length > 0) {
-    await _writeBackfillStep(() => actor.update(actorUpdate));
+    await commit(() => actor.update(actorUpdate));
   }
 
   // ── Apply embedded items ───────────────────────────────────────────────────
@@ -313,15 +353,42 @@ export async function backfillActor(actor, { dryRun = false } = {}) {
     }
   }
 
+  // Keep a create-shaped copy of every item that the destructive step removes.
+  // If creation rejects after deletion, restoring this snapshot lets the next
+  // run see the source item again instead of mistaking permanent loss for a
+  // fixed point. The compensation is deliberately bounded to this replacement
+  // boundary; the rest of the backfill remains non-transactional.
+  const deletedItemData = currentItems
+    .filter((item) => idsToDelete.includes(item.id))
+    .map(_snapshotItem);
+
   // Apply in order: in-place desc updates first, then delete+recreate.
   if (descUpdates.length > 0) {
-    await _writeBackfillStep(() => actor.updateEmbeddedDocuments("Item", descUpdates));
+    await commit(() => actor.updateEmbeddedDocuments("Item", descUpdates));
   }
   if (idsToDelete.length > 0) {
-    await _writeBackfillStep(() => actor.deleteEmbeddedDocuments("Item", idsToDelete));
-  }
-  if (toCreate.length > 0) {
-    await _writeBackfillStep(() => actor.createEmbeddedDocuments("Item", toCreate));
+    await commit(() => actor.deleteEmbeddedDocuments("Item", idsToDelete));
+    if (toCreate.length > 0) {
+      try {
+        await commit(() => actor.createEmbeddedDocuments("Item", toCreate));
+      } catch (err) {
+        if (deletedItemData.length === 0) throw err;
+        try {
+          await commit(() => actor.createEmbeddedDocuments("Item", deletedItemData, { keepId: true }));
+        } catch (restoreErr) {
+          const residual = _tagFailure(
+            new Error(`structural replacement compensation failed: ${String(restoreErr?.message ?? restoreErr)}`),
+            "compensation-failed",
+            { mutated: true },
+          );
+          residual.cause = { createError: err, restoreError: restoreErr };
+          throw residual;
+        }
+        throw err;
+      }
+    }
+  } else if (toCreate.length > 0) {
+    await commit(() => actor.createEmbeddedDocuments("Item", toCreate));
   }
 
   return { actor: actor.name, uuid: actor.uuid, changed: true, tally, dryRun: false };
@@ -393,12 +460,14 @@ export async function backfillTargets({
   const unchanged = [];
   const failed = [];
   const totals = _zeroTotals();
+  let mutated = false;
 
   for (const actor of actors) {
     let result;
     try {
       result = await backfillActor(actor, { dryRun });
     } catch (err) {
+      mutated ||= err?.backfillMutated === true;
       failed.push({
         id: actor?.id ?? "",
         uuid: actor?.uuid ?? "",
@@ -419,7 +488,7 @@ export async function backfillTargets({
   }
 
   // After a committed batch, invalidate the linker cache once (mirrors createMonsters).
-  if (!dryRun && changed.length > 0) {
+  if (!dryRun && (changed.length > 0 || mutated)) {
     const { MonsterLinker } = await import("./monster-linker.mjs");
     MonsterLinker.invalidate();
   }

@@ -754,7 +754,7 @@ Hooks.once("ready", () => {
           try {
             const { backfillTargets } = await import("./importer/monsters/monster-backfill.mjs");
             const result = await backfillTargets({ scope: "pack", dryRun: false });
-            if (!result || result.failed?.length) {
+            if (!result || !Array.isArray(result.failed) || result.failed.length > 0) {
               console.error(`${MODULE_ID} | auto-backfill did not complete:`, result);
               resolve(false);
               return;

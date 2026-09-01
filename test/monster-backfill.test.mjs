@@ -75,8 +75,11 @@ function actorDouble({
   id,
   name = id,
   notes = STATS_NOTES,
+  items: initialItems,
   malformed = false,
   failEmbeddedTimes = 0,
+  failCreateTimes = 0,
+  failCreateMessage = "embedded item store is temporarily locked",
 } = {}) {
   const actor = {
     id,
@@ -99,16 +102,19 @@ function actorDouble({
       spellcasting: { ability: "", bonus: 0, attacks: 0 },
       notes,
     },
-    items: malformed ? null : [{
+    items: initialItems ?? (malformed ? null : [{
       id: `${id}-feature`,
       _id: `${id}-feature`,
       type: "NPC Feature",
       name: "Feature",
       img: "icons/creatures/abilities/dragon-breath-purple.webp",
       system: { description: "Plain feature text" },
-    }],
+    }]),
     writes: [],
     failEmbeddedTimes,
+    failCreateTimes,
+    failCreateMessage,
+    createCount: 0,
     async update(data) {
       this.writes.push(["update", structuredClone(data)]);
       for (const [path, value] of Object.entries(data)) setPath(this, path, value);
@@ -133,20 +139,50 @@ function actorDouble({
     async deleteEmbeddedDocuments(type, ids) {
       assert.equal(type, "Item");
       this.writes.push(["deleteEmbeddedDocuments", structuredClone(ids)]);
-      this.items = this.items.filter(item => !ids.includes(item.id));
+      this.items = this.items.filter(item => !ids.includes(item.id) && !ids.includes(item._id));
       return ids;
     },
-    async createEmbeddedDocuments(type, documents) {
+    async createEmbeddedDocuments(type, documents, { keepId = false } = {}) {
       assert.equal(type, "Item");
-      this.writes.push(["createEmbeddedDocuments", structuredClone(documents)]);
-      this.items.push(...documents.map((document, index) => ({
-        ...structuredClone(document),
-        id: `${this.id}-created-${index}`,
-      })));
+      this.writes.push(["createEmbeddedDocuments", structuredClone(documents), { keepId }]);
+      if (this.failCreateTimes > 0) {
+        this.failCreateTimes--;
+        throw new Error(this.failCreateMessage);
+      }
+      const batch = this.createCount++;
+      this.items.push(...documents.map((document, index) => {
+        const created = structuredClone(document);
+        const id = keepId && created._id
+          ? created._id
+          : `${this.id}-created-${batch}-${index}`;
+        if (!keepId) delete created._id;
+        created.id = id;
+        created._id = id;
+        created.uuid = `Compendium.world.shadowdark-enhancer--actors.Actor.${this.id}.Item.${id}`;
+        return created;
+      }));
       return documents;
     },
   };
   return actor;
+}
+
+function structuralAttack(id = "old") {
+  return {
+    id,
+    _id: id,
+    uuid: `Compendium.world.shadowdark-enhancer--actors.Actor.a.Item.${id}`,
+    type: "NPC Attack",
+    name: "claw",
+    img: "icons/svg/mystery-man.svg",
+    system: {
+      attack: { num: 1 },
+      bonuses: { attackBonus: 0 },
+      damage: { value: "1d4", special: "" },
+      ranges: [],
+      description: "",
+    },
+  };
 }
 
 function managedPack(actors) {
@@ -330,6 +366,97 @@ test("write rejection has a distinct reason and retry applies only the still-mis
   assert.deepEqual(succeeding.writes.map(([kind]) => kind), ["updateEmbeddedDocuments"]);
 });
 
+test("a failed structural create restores the source Item, keeps the Actor failed, and invalidates each mutating run once", async () => {
+  const sourceItem = structuralAttack();
+  const actor = actorDouble({
+    id: "a",
+    name: "Structural",
+    items: [sourceItem],
+    failCreateTimes: 1,
+    failCreateMessage: "create failed after delete",
+  });
+  const game = makeGame();
+
+  const result = await withLinkerSpy(async getInvalidations => {
+    const first = await runPack(game, [actor]);
+    assert.deepEqual(first.changed, []);
+    assert.deepEqual(first.unchanged, []);
+    assert.deepEqual(first.failed.map(({ id, uuid, name, reason, message }) => ({
+      id, uuid, name, reason, message,
+    })), [{
+      id: "a",
+      uuid: actor.uuid,
+      name: "Structural",
+      reason: "write-failed",
+      message: "create failed after delete",
+    }]);
+
+    assert.equal(actor.items.length, 1, "the source Item survives the failed replacement");
+    const restored = structuredClone(actor.items[0]);
+    delete restored.id;
+    const expected = structuredClone(sourceItem);
+    delete expected.id;
+    assert.deepEqual(restored, expected, "the compensation restores the pre-run Item data");
+    assert.equal(actor.items[0].id, sourceItem.id, "keepId preserves the source Item id");
+    assert.equal(actor.items[0]._id, sourceItem._id, "keepId preserves the source Item _id");
+    assert.equal(actor.items[0].uuid, sourceItem.uuid, "keepId preserves the source Item UUID");
+    assert.deepEqual(actor.writes.map(([kind]) => kind), [
+      "update", "deleteEmbeddedDocuments", "createEmbeddedDocuments", "createEmbeddedDocuments",
+    ]);
+    assert.deepEqual(actor.writes.at(-1)[1][0], restored, "the second create is the source snapshot");
+    assert.deepEqual(actor.writes.at(-1)[2], { keepId: true }, "compensation opts into identity preservation");
+    assert.equal(actor.items[0].id, actor.writes.at(-1)[1][0]._id, "the restored document id comes from its _id");
+    assert.equal(getInvalidations(), 1, "the delete plus compensation counts as one invalidation");
+
+    const retry = await runPack(game, [actor]);
+    assert.deepEqual(retry.failed, []);
+    assert.deepEqual(retry.changed.map(({ actor: name }) => name), ["Structural"]);
+    assert.equal(actor.items.length, 1);
+    assert.equal(actor.items[0].name, "Claw");
+    assert.equal(actor.items[0].img, "icons/skills/melee/weapons-crossed-swords-yellow.webp");
+    assert.equal(getInvalidations(), 2, "a successful retry invalidates once more");
+
+    const writesAfterRetry = actor.writes.length;
+    const third = await runPack(game, [actor]);
+    assert.deepEqual(third.failed, []);
+    assert.deepEqual(third.changed, []);
+    assert.deepEqual(third.unchanged.map(({ actor: name }) => name), ["Structural"]);
+    assert.equal(actor.writes.length, writesAfterRetry, "the fixed point performs no further writes");
+    assert.equal(getInvalidations(), 2, "the no-op run does not invalidate");
+
+    return { first, retry, third };
+  });
+
+  assert.equal(result.first.failed.length, 1);
+  assert.equal(result.retry.changed.length, 1);
+  assert.equal(result.third.unchanged.length, 1);
+});
+
+test("a failed structural compensation stays failed with a distinct residual reason", async () => {
+  const actor = actorDouble({
+    id: "residual",
+    name: "Residual",
+    items: [structuralAttack()],
+    failCreateTimes: 2,
+    failCreateMessage: "restore failed after delete",
+  });
+  const game = makeGame();
+
+  const outcome = await withLinkerSpy(async getInvalidations => {
+    const result = await runPack(game, [actor]);
+    assert.deepEqual(result.changed, []);
+    assert.deepEqual(result.unchanged, []);
+    assert.equal(result.failed.length, 1);
+    assert.equal(result.failed[0].reason, "compensation-failed");
+    assert.match(result.failed[0].message, /restore failed after delete/);
+    assert.equal(actor.items.length, 0, "the residual loss is visible rather than misreported as unchanged");
+    assert.equal(getInvalidations(), 1, "the destructive delete still invalidates once");
+    return result;
+  });
+
+  assert.equal(outcome.failed.length, 1);
+});
+
 test("complete success has an empty failed list, while dryRun never writes or invalidates", async () => {
   const completeGame = makeGame();
   const complete = await runPack(completeGame, [actorDouble({ id: "complete", name: "Complete Monster" })]);
@@ -371,7 +498,7 @@ test("startup leaves backfillVersion open on failed legacy results and releases 
   assert.ok(call >= 0, "startup invokes the legacy pack sweep");
   assert.ok(stamp > call, "startup stamp remains in the success path");
   const block = source.slice(call, stamp);
-  assert.match(block, /if \(!result \|\| result\.failed\?\.length\) \{/);
+  assert.match(block, /if \(!result \|\| !Array\.isArray\(result\.failed\) \|\| result\.failed\.length > 0\) \{/);
   assert.match(block, /console\.error\([^\n]*auto-backfill did not complete/);
   assert.match(block, /resolve\(false\);/);
   assert.ok(source.indexOf("resolve(false)", call) < stamp);
