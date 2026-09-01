@@ -9,7 +9,8 @@
  */
 import test from "node:test";
 import assert from "node:assert/strict";
-import { _internals } from "../scripts/importer/char-content/class-unit-importer.mjs";
+import { mergeClassSupplement, _internals } from "../scripts/importer/char-content/class-unit-importer.mjs";
+import { SUITE_PACKS } from "../scripts/shared/compendium-suite.mjs";
 
 const {
   _deepEq, _subsetEq, _staleFields, _effectShape,
@@ -349,6 +350,221 @@ function fakePack(docs) {
 }
 
 const newReport = () => ({ created: [], reused: [], updated: [], systemReuse: [], warnings: [] });
+
+const STAGE2_CLASS_UUID = "Compendium.world.classes.Item.roundtrip-class";
+const STAGE2_TABLE_UUID = "Compendium.world.shadowdark-enhancer--roll-tables.RollTable.class-talents";
+const STAGE2_TITLES = [
+  { from: 1, to: 2, lawful: "Explorer", chaotic: "Intruder", neutral: "Investigator" },
+  { from: 3, to: 4, lawful: "Pathfinder", chaotic: "Raider", neutral: "Scout" },
+];
+
+const clone = (value) => JSON.parse(JSON.stringify(value));
+
+/** Apply the casts and key order a Foundry Class DataModel gives these fields. */
+const foundryRoundTripTitles = (titles) => titles.map((t) => ({
+  chaotic: String(t.chaotic ?? ""),
+  from: Number(t.from),
+  lawful: String(t.lawful ?? ""),
+  neutral: String(t.neutral ?? ""),
+  to: Number(t.to),
+}));
+
+const foundryRoundTripResults = (results) => results.map((r, i) => ({
+  _id: `result-${i + 1}`,
+  id: `result-${i + 1}`,
+  type: r.type,
+  name: r.name ?? "",
+  documentUuid: r.documentUuid ?? null,
+  range: [Number(r.range?.[0] ?? 0), Number(r.range?.[1] ?? 0)],
+}));
+
+function stage2Pack({ descriptor, folder, docs = [], folders = [] }) {
+  return {
+    collection: `world.${descriptor.id}`,
+    documentName: descriptor.type,
+    metadata: { packageType: "world", label: descriptor.label },
+    locked: false,
+    folder,
+    folders,
+    async configure() {},
+    async getIndex() {
+      return docs.map((d) => ({
+        _id: d._id, name: d.name, type: d.type, uuid: d.uuid, flags: d.flags,
+      }));
+    },
+    async getDocument(id) { return docs.find((d) => d._id === id) ?? null; },
+  };
+}
+
+function stage2ClassDocument() {
+  const classDoc = {
+    _id: "roundtrip-class",
+    id: "roundtrip-class",
+    uuid: STAGE2_CLASS_UUID,
+    name: "Roundtrip Class",
+    type: "Class",
+    documentName: "Item",
+    system: { classTalentTable: null, titles: [], spellcasting: { class: "wizard" } },
+    flags: {},
+    updateCalls: [],
+    toObject() { return clone(this); },
+    async update(data, options) {
+      this.updateCalls.push({ data: clone(data), options });
+      if (data["system.classTalentTable"] !== undefined)
+        this.system.classTalentTable = data["system.classTalentTable"] || null;
+      if (data["system.titles"] !== undefined)
+        this.system.titles = foundryRoundTripTitles(data["system.titles"]);
+      if (data["system.spellcasting.spellsknown"] !== undefined)
+        this.system.spellcasting.spellsknown = clone(data["system.spellcasting.spellsknown"]);
+      return this;
+    },
+  };
+  return classDoc;
+}
+
+/**
+ * A local Foundry-shaped world for the stage-2 commit path. The first merge
+ * writes through `classDoc.update`, which casts/reorders the stored values;
+ * the second merge reads that round-tripped document back through `fromUuid`.
+ */
+function fakeStage2World() {
+  const saved = new Map();
+  for (const key of ["game", "ui", "Folder", "Item", "RollTable", "foundry", "fromUuid", "Hooks", "CompendiumCollection"]) {
+    saved.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+  }
+
+  const classDoc = stage2ClassDocument();
+  const tableDocs = [];
+  const suiteFolder = { id: "suite-folder", type: "Compendium", name: "Shadowdark Enhancer" };
+  const charFolder = { id: "char-folder", type: "Compendium", name: "Character Options", folder: suiteFolder };
+  const classTalentsFolder = { id: "class-talents-folder", name: "Class Talents", folder: null };
+  const packs = SUITE_PACKS.map((descriptor) => stage2Pack({
+    descriptor,
+    folder: descriptor.charOption ? charFolder.id : suiteFolder.id,
+    docs: descriptor.key === "classes" ? [classDoc] : descriptor.key === "tables" ? tableDocs : [],
+    folders: descriptor.key === "tables" ? [classTalentsFolder] : [],
+  }));
+  const systemTalentPack = {
+    collection: "shadowdark.talents", documentName: "Item", index: [],
+    async getIndex() { return this.index; },
+  };
+  const systemTablePack = {
+    collection: "shadowdark.rollable-tables", documentName: "RollTable",
+    index: [{ name: "Distribute to Stats", uuid: "Compendium.shadowdark.rollable-tables.RollTable.distribute" }],
+    async getIndex() { return this.index; },
+  };
+
+  globalThis.game = {
+    user: { isGM: true },
+    folders: [suiteFolder, charFolder],
+    packs: [...packs, systemTalentPack, systemTablePack],
+    items: [],
+  };
+  globalThis.ui = { notifications: { warn() {}, info() {}, error() {} } };
+  globalThis.Folder = { async create() { throw new Error("unexpected folder create"); } };
+  globalThis.Item = {
+    async create() { throw new Error("unexpected Item create"); },
+    async updateDocuments() { throw new Error("unexpected Item update"); },
+  };
+  globalThis.Hooks = { callAll() {} };
+  globalThis.foundry = {
+    utils: { cleanHTML: (s) => s },
+    documents: { collections: { CompendiumCollection: { async createCompendium() { throw new Error("unexpected pack create"); } } } },
+  };
+  globalThis.CompendiumCollection = { async createCompendium() { throw new Error("unexpected pack create"); } };
+  globalThis.fromUuid = async (uuid) => uuid === STAGE2_CLASS_UUID ? classDoc : null;
+  globalThis.RollTable = {
+    async create(data) {
+      const id = `class-talents-${tableDocs.length + 1}`;
+      const table = {
+        _id: id,
+        id,
+        uuid: STAGE2_TABLE_UUID,
+        name: data.name,
+        formula: data.formula,
+        folder: data.folder ?? null,
+        description: data.description ?? "",
+        flags: clone(data.flags ?? {}),
+        results: foundryRoundTripResults(data.results ?? []),
+        updateCalls: [],
+        toObject() {
+          return {
+            _id: this._id, name: this.name, formula: this.formula, folder: this.folder,
+            description: this.description, flags: clone(this.flags), results: clone(this.results),
+          };
+        },
+        async update(update, options) {
+          this.updateCalls.push({ data: clone(update), options });
+          Object.assign(this, update);
+        },
+        getEmbeddedCollection() { return this.results; },
+        async deleteEmbeddedDocuments(_type, ids) {
+          this.results = this.results.filter((r) => !ids.includes(r.id));
+        },
+        async createEmbeddedDocuments(_type, rows) {
+          this.results = foundryRoundTripResults(rows);
+        },
+      };
+      tableDocs.push(table);
+      return table;
+    },
+  };
+
+  const supplement = (overrides = {}) => ({
+    talentTable: { formula: "1d1", rows: [{ lo: 1, hi: 1, text: "Choose any talent", kind: "grand" }] },
+    titles: clone(STAGE2_TITLES), spellsKnown: [], extraTables: [], warnings: [], ...overrides,
+  });
+  const restore = () => {
+    for (const [key, descriptor] of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  };
+  return { classDoc, tableDocs, supplement, restore };
+}
+
+test("#144: stage-2 supplement round trip converges and preserves partial fields", async () => {
+  const world = fakeStage2World();
+  try {
+    const firstSupplement = world.supplement();
+    const first = await mergeClassSupplement(STAGE2_CLASS_UUID, firstSupplement, { sourceTitle: "Test" });
+    assert.equal(first.updated.filter((d) => d.type === "Class").length, 1);
+    assert.deepEqual(first.updated.find((d) => d.type === "Class").fields,
+      ["system.classTalentTable", "system.titles"]);
+    assert.equal(world.classDoc.updateCalls.length, 1);
+    assert.notEqual(JSON.stringify(firstSupplement.titles), JSON.stringify(world.classDoc.system.titles),
+      "the stored fixture must be the Foundry-shaped round trip, not the raw supplement payload");
+
+    const second = await mergeClassSupplement(STAGE2_CLASS_UUID, firstSupplement, { sourceTitle: "Test" });
+    assert.equal(world.classDoc.updateCalls.length, 1, "the unchanged second attach is a no-op");
+    assert.equal(second.updated.length, 0, "the unchanged second attach reports nothing updated");
+    assert.equal(world.tableDocs.length, 1, "the unchanged second attach reuses the RollTable");
+
+    const titleEdit = world.supplement({ titles: [{ ...STAGE2_TITLES[0], lawful: "Wayfinder" }, STAGE2_TITLES[1]] });
+    const tableBeforeTitleEdit = world.classDoc.system.classTalentTable;
+    const titleUpdate = await mergeClassSupplement(STAGE2_CLASS_UUID, titleEdit, { sourceTitle: "Test" });
+    assert.deepEqual(titleUpdate.updated.find((d) => d.type === "Class").fields, ["system.titles"]);
+    assert.equal(world.classDoc.updateCalls.length, 2);
+    assert.equal(world.classDoc.system.classTalentTable, tableBeforeTitleEdit);
+    assert.equal(Object.hasOwn(world.classDoc.updateCalls.at(-1).data, "system.classTalentTable"), false,
+      "a title-only attach leaves the table field untouched");
+
+    const tableEdit = world.supplement({ titles: [], talentTable: {
+      formula: "1d2", rows: [{ lo: 1, hi: 2, text: "Choose a different talent", kind: "grand" }],
+    } });
+    const titlesBeforeTableEdit = clone(world.classDoc.system.titles);
+    const tableUpdate = await mergeClassSupplement(STAGE2_CLASS_UUID, tableEdit, { sourceTitle: "Test" });
+    assert.ok(tableUpdate.updated.some((d) => d.type === "RollTable"), "a changed table is still written");
+    assert.equal(world.tableDocs[0].formula, "1d2");
+    assert.deepEqual(world.classDoc.system.titles, titlesBeforeTableEdit,
+      "a table-only attach leaves the titles field untouched");
+    assert.equal(world.classDoc.updateCalls.length, 2, "a table-only attach does not rewrite the Class");
+
+    const absent = world.supplement({ titles: [], talentTable: { formula: "1d1", rows: [] } });
+    await mergeClassSupplement(STAGE2_CLASS_UUID, absent, { sourceTitle: "Test" });
+    assert.equal(world.classDoc.updateCalls.length, 2, "an absent table remains a no-touch partial merge");
+  } finally { world.restore(); }
+});
 
 /** The payload one overlay-wired feature Talent imports as, as createClassUnit builds it. */
 const wiredPayload = (effectImg) => _talentData("Deep Pockets", "<p>Book text.</p>", "wr", {
