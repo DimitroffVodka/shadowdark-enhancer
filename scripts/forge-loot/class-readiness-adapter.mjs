@@ -117,20 +117,23 @@ function resultRows(tableDocument) {
   const normalized = results.map((result) => {
     const row = toObject(result) ?? result;
     if (!isObject(row)) return row;
-    // Foundry v14 stores a TableResult's visible text in `name`; the importer
-    // classifier consumes parser-shaped `text`.  Keep both so the evidence
-    // remains source-faithful while the classifier sees the same label.
+    // A TableResult's visible label is `name`; `description` is a separate
+    // field.  The importer classifier consumes a parser-shaped `text`, so it is
+    // synthesised here — the evidence keeps the source fields untouched.
     //
-    // Fall back on falsiness, NOT `??`.  A v14 TableResult serialises `text` as
-    // an empty string rather than omitting it, and "" is not nullish — so `??`
-    // stops there and every row reaches the classifier with a blank label.
-    // That silently marked every row `via:null`, which excluded all 16 Core
-    // classes from Rival Crawlers even though their talent rows are ordinary
-    // document results pointing at real Talent Items.
+    // Never read `row.text`.  It is not a persisted key: Foundry defines it as
+    // a deprecated accessor that logs a compatibility warning on EVERY access
+    // and is removed in v15.  Reading it first produced 718 warnings in a
+    // two-hour session — one per talent row per readiness pass — which buried
+    // real errors in the console, and would return undefined on v15.
+    //
+    // Order matters: `name` carries the label and `description` is usually
+    // blank, so `name` is checked first.  Falsy fallback, not `??`, because a
+    // blank `description` is "" rather than nullish.
     const range = Array.isArray(row.range) ? row.range : [];
     return {
       ...row,
-      text: row.text || row.name || row.description || "",
+      text: row.name || row.description || "",
       ...(row.lo === undefined && range.length ? { lo: range[0] } : {}),
       ...(row.hi === undefined && range.length > 1 ? { hi: range[1] } : {}),
     };
