@@ -236,6 +236,14 @@ export const CONTENT_ENTRIES = [
   _entry("core/renown", "CORE", "Renown", SECTION("RENOWN", "auto")),
   _entry("core/secret", "CORE", "Secret", SECTION("SECRET", "auto")),
   _entry("core/wealth", "CORE", "Wealth", SECTION("WEALTH", "auto")),
+  // A single table that SHARES a page needs its own section shape to be cut out
+  // of its page-mates; one that sits alone parses without help, and a matrix is
+  // sliced by the manifest seed path. Age (p124, beside ANCESTRY/ALIGNMENT/
+  // WEALTH) and Occupation (p125, beside NPC QUALITIES) are the two single
+  // page-sharers that had no shape, so a batch import reported them as
+  // "nothing to import" while every page-mate around them succeeded.
+  _entry("core/age", "CORE", "Age", SECTION("AGE", "auto")),
+  _entry("core/occupation", "CORE", "Occupation", SECTION("OCCUPATION", "auto")),
   // Core Rulebook magic-item + patron ATTRIBUTE tables: small single-die tables
   // stacked under their own ALL-CAPS caption on shared pages (Benefit/Curse
   // pairs, Item Flaw/Virtue, patron Oaths/Blessings). Section-sliced; the
