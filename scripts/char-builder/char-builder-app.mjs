@@ -80,6 +80,8 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       "cb-roll-stats": ShadowdarkCharBuilder._onStepAction,
       "cb-reroll-stats": ShadowdarkCharBuilder._onStepAction,
       "cb-reset-stats": ShadowdarkCharBuilder._onStepAction,
+      "cb-point-buy-increase": ShadowdarkCharBuilder._onStepAction,
+      "cb-point-buy-decrease": ShadowdarkCharBuilder._onStepAction,
       "cb-roll-hp": ShadowdarkCharBuilder._onStepAction,
       "cb-max-hp": ShadowdarkCharBuilder._onStepAction,
       "cb-roll-gold": ShadowdarkCharBuilder._onStepAction,
@@ -273,4 +275,3 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
     return ShadowdarkCharBuilder._instance.render(true);
   }
 }
-

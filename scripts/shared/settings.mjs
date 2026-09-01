@@ -89,6 +89,8 @@ export function registerSettings() {
       "3d6-assign": "SDE.charBuilder.stats.method.3d6Assign",
       "4d6h3-down": "SDE.charBuilder.stats.method.4d6Down",
       "4d6h3-assign": "SDE.charBuilder.stats.method.4d6Assign",
+      "standard-array": "SDE.charBuilder.stats.method.standardArray",
+      "point-buy": "SDE.charBuilder.stats.method.pointBuy",
     },
     default: "3d6-reroll",
   });

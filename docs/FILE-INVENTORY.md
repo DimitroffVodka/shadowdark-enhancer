@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-908 tracked files · ~146,600 lines of code/markup across scripts+templates+styles+test.
+909 tracked files · ~146,700 lines of code/markup across scripts+templates+styles+test.
 `v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -71,7 +71,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 470 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 472 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 417 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -208,21 +208,21 @@
 | File | Lines | Description |
 |---|---:|---|
 | `importer-hub-app.mjs` | 893 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1545 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-paste.mjs` | 1537 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 872 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 1014 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-manage.mjs` | 1002 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
 | `importer-hub-batch.mjs` | 673 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 617 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 606 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 262 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 704 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1500 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1494 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 788 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1448 | Class unit → real documents in dependency order. |
@@ -232,17 +232,17 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 460 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3422 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-importer.mjs` | 3398 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
 | `tables/table-shapes.mjs` | 576 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 297 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 541 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
 | `tables/table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
-| `tables/table-folders.mjs` | 206 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
+| `tables/table-folders.mjs` | 179 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
 | `tables/table-enrich.mjs` | 217 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
-| `tables/core-table-groups.mjs` | 277 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
+| `tables/core-table-groups.mjs` | 248 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |
 | `monsters/statblock-parser.mjs` | 516 | Monster statblock dump → draft objects. Pure. |
@@ -292,9 +292,9 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `char-builder-app.mjs` | 276 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
-| `state.mjs` | 63 | `CharBuilderState` — the in-progress character. |
-| `constants.mjs` | 137 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
+| `char-builder-app.mjs` | 277 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
+| `state.mjs` | 70 | `CharBuilderState` — the in-progress character. |
+| `constants.mjs` | 166 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 286 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
@@ -315,7 +315,7 @@
 | `steps/languages-step.mjs` | 131 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
 | `steps/preview-step.mjs` | 270 | Step — Preview. Final character-sheet preview before creation. |
-| `steps/stats-step.mjs` | 271 | Step — Abilities. Roll or assign the six ability scores. |
+| `steps/stats-step.mjs` | 362 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`
 
