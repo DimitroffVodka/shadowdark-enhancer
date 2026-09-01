@@ -381,6 +381,40 @@
 - **Public API minor version to `1.3.0` for the additive loot surface (A7).** New namespaces `game.shadowdarkEnhancer.loot.resolve` and `game.shadowdarkEnhancer.loot.generated.{identity,plan,reconcile}` bump the minor per the existing version policy (`docs/API.md:18-19` — additive bumps minor, breaking bumps major). The generated-artifact replace-always contract is now carved out explicitly from the docs' blanket \"never-overwrite, never-delete\" stability statement (it governs `world.shadowdark-enhancer--items` with `flags[\"shadowdark-enhancer\"].generated === true`). Earlier releases (≤ v0.3.0) had no `apiVersion`; `1.0.0` introduced it.
 
 ### Fixed
+- **Class-content reimport churn from mirrored ActiveEffect changes resolved (A3c/#104).**
+  Class-content Items (`Talent`, `Class Ability`, and overlay items) are no longer
+  replaced on every reimport when Shadowdark exposes one stored ActiveEffect change
+  through both `changes` and `system.changes`. Live Foundry persists both mirror
+  representations; reimport comparison now normalizes `changes` and `system.changes`
+  separately and treats them as one logical list only when both populated lists are
+  equal. When the lists differ, both are retained so real extra or corrected changes
+  still register. The comparison does not deduplicate, ensuring intentional duplicate
+  changes and change ordering remain significant differences. Unchanged overlay-wired
+  class content is reused on repeat import; live verification confirmed an
+  overlay-wired Talent with explicit overlay art retained its exact Item and effect
+  IDs and modified timestamp.
+- **Class reimport churn on absent talent tables resolved (A3d/#105).**
+  Classes without a talent table are no longer replaced on every reimport. The
+  canonical absent value is now `null` across payload construction, merge paths,
+  and stale-field comparison, matching the value round-tripped by Shadowdark's
+  `DocumentUUIDField`. Real talent-table UUID additions and updates continue to
+  be detected and applied normally, while unchanged classes with absent talent
+  tables persist with `null` and are reused on repeat import under their existing
+  document IDs and timestamps.
+- **Per-Actor failure isolation and retry safety for startup legacy monster backfill (A6a/#111).**
+  The startup managed-Actor sweep (`backfillTargets` over `world.shadowdark-enhancer--actors`)
+  now isolates failures per Actor. A malformed Actor or transient write error no
+  longer aborts the entire batch: the sweep continues, records the failed Actor in
+  a `failed` list with a stable identity and machine-readable reason (`transform-threw`,
+  `write-failed`, or `compensation-failed`), and attempts the remaining Actors in
+  the pack. The startup `backfillVersion` setting advances only when a run completes
+  with zero failures, ensuring a reported Actor failure leaves the gate open for
+  subsequent retries. Structural embedded Item replacements that fail after deletion
+  are compensated by restoring the source Item snapshot with its exact identity
+  (`keepId: true`) and data intact; when restoration succeeds, the source Item is
+  preserved so a retry can apply the missing work and reach a clean no-op.
+  `MonsterLinker.invalidate()` fires once whenever any document changes or partial
+  mutations occur (and never during dry runs).
 - **Loot false positives are refused and short/punctuated exact names resolve (A7).** The new A7 resolver fixes #58 (`Unopened bottle of exceptionally potent Murgazi wine` → `Bottle`, `A flask of exceptionally fine oil` → `Flask`, etc.) by whole-name/anchored tiers rather than containment; `Axe`/`Net` now resolve at `exact`, and `Dagger (1 gp).` / `Dagger (1 gp) each` resolve at `exact` via fixed-point punctuation/`each`/price stripping. An unresolved priced row keeps its own name and price when fabricated.
 - **Generated reruns now preserve undeclared third-party flag namespaces, report failures for retry, and respect explicit effect priority defaults (A7).** Foreign top-level flag namespaces (e.g. `shadowdark-extras` alignment) survive both replacement branches; adapter failures are now reported for safe retry (`create-failed`/`missing-target`/`update-failed` in `failures[]` with `error`); a create-then-delete delete failure that leaves a duplicate is reported next plan as `duplicate-document` for GM cleanup rather than healed; non-empty ActiveEffects are stable (no churn on unchanged reruns) and a stored `priority: 20` default is treated as unchanged when the definition omits it, while an explicit `priority` remains authoritative. All five frozen-review gaps (foreign flags, short/punctuated names, effect churn, hash+key collision check, and API version) are closed; see the A7 docs entries above.
 - **An ordinary item import that says Replace no longer replaces a generated Monster Spell.** Where the pasted item's name matches a generated Monster Spell, choosing **Replace existing** no longer overwrites the library document — the spell is kept in place, the import lands beside it under a free name, and a warning names the protected document and the name the import was kept as.
