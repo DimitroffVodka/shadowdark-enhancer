@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-908 tracked files · ~146,200 lines of code/markup across scripts+templates+styles+test.
+908 tracked files · ~146,300 lines of code/markup across scripts+templates+styles+test.
 `v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -241,7 +241,7 @@
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
 | `tables/table-folders.mjs` | 179 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
-| `tables/table-enrich.mjs` | 185 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
+| `tables/table-enrich.mjs` | 217 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
 | `tables/core-table-groups.mjs` | 248 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |

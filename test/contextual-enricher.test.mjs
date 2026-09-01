@@ -401,3 +401,45 @@ describe("E1 — Arctic Sea table enrichment", () => {
     }
   });
 });
+
+test("two concurrent treasure enrichments of one table run the catalog once", async () => {
+  // Three paths reach enrichTreasure and none coordinate: _autoEnrich on table
+  // commit, sweepPack after an item/monster import, and the manual button. Two
+  // overlapping passes each read a pack with none of the items present, both
+  // plan the full create set, and both create it — 12 duplicate generated Items
+  // in a 32ms burst is how this was found.
+  const previousGame = globalThis.game;
+  globalThis.game = { user: { isGM: true } };
+  const mod = await import("../scripts/importer/tables/table-enrich.mjs");
+  const { LootCatalog } = await import("../scripts/loot/loot-catalog.mjs");
+  const originalLink = LootCatalog.linkTableItems;
+
+  let started = 0;
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  LootCatalog.linkTableItems = async () => { started++; await gate; return { created: 1 }; };
+
+  try {
+    const table = { uuid: "Compendium.world.sde-tables.RollTable.dupe", id: "dupe" };
+    const a = mod.TableEnricher.enrichTreasure(table);
+    const b = mod.TableEnricher.enrichTreasure(table);
+    release();
+    const [ra, rb] = await Promise.all([a, b]);
+
+    assert.equal(started, 1, "the catalog must run once for two overlapping calls");
+    assert.deepEqual(ra, rb, "the second caller gets a real result, not a dropped call");
+
+    // A later, non-overlapping enrichment of the same table still runs.
+    const c = await mod.TableEnricher.enrichTreasure(table);
+    assert.equal(started, 2, "the guard must not permanently block the table");
+    assert.deepEqual(c, { created: 1 });
+
+    // A different table is never blocked by another table's run.
+    const other = { uuid: "Compendium.world.sde-tables.RollTable.other", id: "other" };
+    await mod.TableEnricher.enrichTreasure(other);
+    assert.equal(started, 3, "the guard is per table, not global");
+  } finally {
+    LootCatalog.linkTableItems = originalLink;
+    if (previousGame === undefined) delete globalThis.game; else globalThis.game = previousGame;
+  }
+});
