@@ -381,6 +381,28 @@
 - **Public API minor version to `1.3.0` for the additive loot surface (A7).** New namespaces `game.shadowdarkEnhancer.loot.resolve` and `game.shadowdarkEnhancer.loot.generated.{identity,plan,reconcile}` bump the minor per the existing version policy (`docs/API.md:18-19` — additive bumps minor, breaking bumps major). The generated-artifact replace-always contract is now carved out explicitly from the docs' blanket \"never-overwrite, never-delete\" stability statement (it governs `world.shadowdark-enhancer--items` with `flags[\"shadowdark-enhancer\"].generated === true`). Earlier releases (≤ v0.3.0) had no `apiVersion`; `1.0.0` introduced it.
 
 ### Fixed
+- **Basic Gear table page footers no longer create stray Items (C1a/#108).**
+  A numeric page footer pasted along with a Basic Gear table is no longer parsed
+  as an Item. The input stage excises page furniture before force-mode row
+  recognition, reusing the module's existing page-furniture concept rather than
+  introducing a page-number-specific rule. Legitimate gear rows containing
+  numbers (e.g. `20-foot pole` or `Pole, 10-foot`) remain unaffected. Excised
+  furniture is filtered silently rather than reported as a dropped row, since it
+  is layout artifact rather than content for GM review.
+- **Basic Gear description header `Oil flask.` matches `Oil, flask` (C1b/#109).**
+  The book's `Oil flask.` description header now assigns to exactly the
+  `Oil, flask` Item via a collision-audited assignment alias. The alias is
+  admitted only when its canonical target row is unique and unambiguous; if
+  another row could also claim the folded name (such as an explicit `Oil flask`
+  item), the alias is refused rather than preferred. Record boundaries remain
+  unchanged and the preceding `Net` record does not absorb the paragraph.
+- **Deterministic ownership for plain `Rope.` gear descriptions (C1c/#110).**
+  The plain `Rope.` header now deterministically resolves to the base `Rope, 60'`
+  row because the alternative row explicitly names its material (`Rope, morzo silk`).
+  This resolution is derived from source data rather than row order (holding with
+  the rows reversed). The exact `Rope, morzo silk.` paragraph retains its own
+  item, no paragraph is assigned twice, genuinely ambiguous ties are refused
+  rather than guessed, and repeat matching is idempotent.
 - **Class-content reimport churn from mirrored ActiveEffect changes resolved (A3c/#104).**
   Class-content Items (`Talent`, `Class Ability`, and overlay items) are no longer
   replaced on every reimport when Shadowdark exposes one stored ActiveEffect change
