@@ -256,11 +256,18 @@ const MANIFEST = {
     ],
   },
   CS3: {
-    // Midnight Sun: Nord Names is a 4d20 compound (parent + Male/Female/
-    // Surname/Title); Arctic Sea Encounters + the back-cover Sea Wolf Plunder.
-    // Its 12 monsters are tracked through the live monster census.
+    // Midnight Sun: the Nord source grid is exposed as four standalone
+    // components by the Roll Tables matrix entry, plus two gender-specific
+    // generators here. The old four-column RollTable is deliberately not
+    // listed: an already-imported copy remains in place for GM deletion.
+    // Arctic Sea Encounters + the back-cover Sea Wolf Plunder remain below.
     Table: [
-      "Cursed Scroll 3 p16: Nord Names",
+      "Cursed Scroll 3 p16: Nord Male Names",
+      "Cursed Scroll 3 p16: Nord Female Names",
+      "Cursed Scroll 3 p16: Nord Surnames",
+      "Cursed Scroll 3 p16: Nord Titles",
+      "Cursed Scroll 3 p16: Nord Male Name Generator",
+      "Cursed Scroll 3 p16: Nord Female Name Generator",
       "Cursed Scroll 3 p26: Arctic Sea Encounters",
       "Sea Wolf Plunder From Distant Lands",
     ],
@@ -563,6 +570,12 @@ const TABLE_PAGES = {
     "Necromancer Mishap 4-5": "187",
   },
   CS3: {
+    "Cursed Scroll 3 p16: Nord Male Names": "16",
+    "Cursed Scroll 3 p16: Nord Female Names": "16",
+    "Cursed Scroll 3 p16: Nord Surnames": "16",
+    "Cursed Scroll 3 p16: Nord Titles": "16",
+    "Cursed Scroll 3 p16: Nord Male Name Generator": "16",
+    "Cursed Scroll 3 p16: Nord Female Name Generator": "16",
     // The d100 sea-encounter longtable spans pp.26-27 (p26's rows end at
     // 44-45); a single-page cite imported only half the table (E2E D4).
     "Cursed Scroll 3 p26: Arctic Sea Encounters": "26-27",

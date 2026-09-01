@@ -24,7 +24,7 @@ knows about.
 
 ## Shapes
 
-**129 tables** currently carry a recipe. Each recipe names a shape kind:
+**131 tables** currently carry a recipe. Each recipe names a shape kind:
 
 | Kind | For |
 |---|---|
@@ -127,6 +127,12 @@ A compound generator (`roll 3d6, take one result per column, combine`) isn't a
 single rollable table. At commit time the module **cartesian-expands** it into a
 flat table where every combination is its own row, so it becomes something you
 can actually roll in Foundry.
+
+When a printed grid shares source columns between generators, a compound shape
+may add `columns: ["Label", "Other Label"]`. The parser reads the full declared
+grid, then keeps those labels in the listed order; omitting `columns` preserves
+the ordinary all-columns behavior. CS3 Nord Names uses this to keep Male and
+Female given names in separate generators while sharing Surname and Title.
 
 There is a **Cartesian (expand)** button to flatten a compound generator on
 demand. Two different caps apply: **automatic** expansion at commit is capped at

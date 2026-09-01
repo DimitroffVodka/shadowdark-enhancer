@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- **CS3 Nord Names shape (C2/#55).** The Nord source grid now imports four
+  standalone d20 component tables plus separate Male × Surname × Title and
+  Female × Surname × Title generators; the prior four-column document is left
+  untouched for GM cleanup.
+
 - **Class automation readiness report (G3/#78).** An internal, read-only audit
   evaluates Core and importer-managed Class documents for character-generation
   and Rival readiness. Diagnostic reports produce stable blocker and warning
