@@ -146,6 +146,23 @@ function _artStampFor(draft, img) {
   return artProvenance(_automaticArt(draft).state, img);
 }
 
+// Shadowdark's Basic Gear rows that need more than the generic physical-item
+// defaults. Keys use normalizeItemName's punctuation-folded form.
+const BASIC_GEAR_MECHANICS = {
+  candle: {
+    light: {
+      active: false,
+      hasBeenUsed: false,
+      isSource: true,
+      longevityMins: 20,
+      remainingSecs: 1200,
+      template: "torch",
+    },
+    slots: { per_slot: 3 },
+  },
+  "miner s putty jar": { slots: { slots_used: 3 } },
+};
+
 // ─── Pure construction choke point (A-03) ────────────────────────────────────
 
 /**
@@ -318,6 +335,9 @@ function _buildItemShape(draft) {
   const sdType = GEAR_TYPES.has(draft.type)
     ? draft.type
     : (hasMagicRiders ? ({ weapon: "Weapon", armor: "Armor" })[lc] ?? "Basic" : "Basic");
+  const basicMechanics = sdType === "Basic"
+    ? BASIC_GEAR_MECHANICS[normalizeItemName(name)]
+    : undefined;
 
   // Shared PhysicalItemSD fields (cost/slots/quantity) every gear type carries.
   const physical = {
@@ -330,6 +350,7 @@ function _buildItemShape(draft) {
       free_carry: draft.slots?.free_carry ?? 0,
       per_slot:   draft.slots?.per_slot   ?? 1,
       slots_used: draft.slots?.slots_used ?? 1,
+      ...(basicMechanics?.slots ?? {}),
     },
     quantity: 1,
     // Armor/Weapon carry properties as an array of Property-item UUIDs; the gear
@@ -392,6 +413,7 @@ function _buildItemShape(draft) {
     img,
     system: {
       ...physical,
+      ...(basicMechanics?.light ? { light: { ...basicMechanics.light } } : {}),
       ...(sdType === "Basic" ? { treasure: !!draft.treasure } : {}),
     },
     flags: { [MODULE_ID]: { imported: true } },
