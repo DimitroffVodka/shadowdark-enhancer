@@ -110,7 +110,7 @@ Several sweeps and handlers are deliberately restricted to the **single active
 GM** (`game.users.activeGM`), so two GMs online don't both write:
 
 - session recap recording
-- the monster backfill and the spell↔class relink sweep
+- the monster backfills (legacy, text enricher, and creature taxonomy) and the spell↔class relink sweep
 - hook reactions that write world state
 
 Player actions are addressed to the active GM directly, so exactly one client

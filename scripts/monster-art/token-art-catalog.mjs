@@ -1,6 +1,21 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { effectiveSource } from "../importer/monsters/actor-migration.mjs";
+import { findMonsterPack } from "../importer/monsters/monster-pack.mjs";
+import { isManagedActorPack } from "../importer/monsters/managed-actor-backfill.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
+import {
+  CURATED_IMPORTED_MONSTER_ART,
+  CURATED_IMPORTED_MONSTER_ART_STATUS,
+  curatedImportedMonsterArtFor,
+  importedMonsterArtDisposition,
+  importedMonsterArtKey,
+  planCuratedImportedMonsterArt,
+} from "./imported-monster-art.mjs";
+
+const PF_CHARACTER_GALLERY_ID = "pf2e-tokens-characters";
+const PF_CHARACTER_GALLERY_LABEL = "Pathfinder: Character Gallery";
+const PF_CHARACTER_GALLERY_CREDIT = "<em>Portrait, token, and subject artwork from the Pathfinder Tokens: Character Gallery.</em>";
 
 /**
  * Token Art Catalog — discovers every art source that can skin the
@@ -18,6 +33,11 @@ import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSou
  * Nothing is copied: every path references files already on disk.
  */
 export class TokenArtCatalog {
+  /** F4's exact source-aware map, exposed for the manager and pure callers. */
+  static CURATED_IMPORTED_MONSTER_ART = CURATED_IMPORTED_MONSTER_ART;
+  static importedMonsterArtKey = importedMonsterArtKey;
+  static curatedImportedMonsterArtFor = curatedImportedMonsterArtFor;
+
   /** Art modules that ship no shadowdark compendium map (matched by name). */
   static FOLDER_SOURCES = [
     {
@@ -39,6 +59,18 @@ export class TokenArtCatalog {
       portraitDir: "modules/dnd-players-handbook/assets/portraits",
       subjectDir: "modules/dnd-players-handbook/assets/subjects",
       tokenMapping: "modules/dnd-players-handbook/token-mapping.json",
+    },
+    {
+      // Pathfinder Tokens: Character Gallery is optional and may be installed
+      // while inactive. Static assets remain browseable in that state, so the
+      // disk probe below intentionally does not inspect module.active.
+      id: PF_CHARACTER_GALLERY_ID,
+      label: PF_CHARACTER_GALLERY_LABEL,
+      tokenDir: "modules/pf2e-tokens-characters/assets/tokens",
+      portraitDir: "modules/pf2e-tokens-characters/assets/portraits",
+      subjectDir: "modules/pf2e-tokens-characters/assets/subjects",
+      tokenMapping: "modules/pf2e-tokens-characters/data/compendium-map.json",
+      credit: PF_CHARACTER_GALLERY_CREDIT,
     },
   ];
 
@@ -65,6 +97,7 @@ export class TokenArtCatalog {
     "dnd-monster-manual",
     "dnd-players-handbook",
     "pf2e-tokens-monster-core",
+    PF_CHARACTER_GALLERY_ID,
     "dnd5e-fa",
     "shadowdark-community-tokens",
   ];
@@ -137,6 +170,15 @@ export class TokenArtCatalog {
       defaultScale: 1.45,
       subjectScale: 1.26,
     },
+    [PF_CHARACTER_GALLERY_ID]: {
+      label: PF_CHARACTER_GALLERY_LABEL,
+      root: "modules/pf2e-tokens-characters/assets/tokens",
+      present: ["modules/pf2e-tokens-characters/data/compendium-map.json"],
+      subjectDir: "modules/pf2e-tokens-characters/assets/subjects",
+      defaultScale: 1.0,
+      subjectScale: 1.0,
+      credit: PF_CHARACTER_GALLERY_CREDIT,
+    },
     "pf2e-tokens-monster-core": {
       label: "Pathfinder: Monster Core",
       root: "modules/pf2e-tokens-monster-core/assets/tokens",
@@ -179,7 +221,9 @@ export class TokenArtCatalog {
     }
     // Folder sources present on disk.
     for (const fs of this.FOLDER_SOURCES) {
-      const ok = await MonsterTokenArt.FilePickerCls.browse("data", fs.tokenDir).then((b) => b.files.length > 0).catch(() => false);
+      const ok = await MonsterTokenArt.FilePickerCls.browse("data", fs.tokenDir)
+        .then((b) => Array.isArray(b?.files) && b.files.length > 0)
+        .catch(() => false);
       if (ok) sources.push({ ...fs, kind: "folder" });
     }
     // File-map sources (disk folder tree, no shadowdark map, matched by filename).
@@ -197,7 +241,8 @@ export class TokenArtCatalog {
     const found = new Map();
     let res;
     try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (_e) { return found; }
-    for (const f of res.files ?? []) {
+    for (const f of Array.isArray(res?.files) ? res.files : []) {
+      if (typeof f !== "string") continue;
       if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
       const base = f.split("/").pop();
       if (!found.has(base)) found.set(base, f);
@@ -211,12 +256,14 @@ export class TokenArtCatalog {
     const walk = async (dir) => {
       let res;
       try { res = await MonsterTokenArt.FilePickerCls.browse("data", dir); } catch (_e) { return; }
-      for (const f of res.files ?? []) {
+      for (const f of Array.isArray(res?.files) ? res.files : []) {
+        if (typeof f !== "string") continue;
         if (!/\.(webp|png|jpg|jpeg)$/i.test(f)) continue;
         const base = f.split("/").pop();
         if (!found.has(base)) found.set(base, f);
       }
-      for (const d of res.dirs ?? []) {
+      for (const d of Array.isArray(res?.dirs) ? res.dirs : []) {
+        if (typeof d !== "string") continue;
         if (skipDir && d.split("/").pop() === skipDir) continue;
         await walk(d);
       }
@@ -289,15 +336,19 @@ export class TokenArtCatalog {
       let json;
       try { json = await foundry.utils.fetchJsonWithTimeout(p); }
       catch (_e) { continue; }
+      if (!json || typeof json !== "object" || Array.isArray(json)) continue;
       for (const docs of Object.values(json)) {
+        if (!docs || typeof docs !== "object" || Array.isArray(docs)) continue;
         for (const v of Object.values(docs)) {
-          const src = v?.token?.texture?.src;
+          const texture = v?.token?.texture;
+          const src = typeof texture?.src === "string" ? texture.src : null;
           if (!src) continue;
           const file = src.split("/").pop();
-          if (out.has(file)) continue;
-          const tokenObj = { texture: v.token.texture };
-          if (v.token.ring) tokenObj.ring = v.token.ring;
-          out.set(file, { tokenObj, portrait: v.actor ?? src });
+          if (!file || out.has(file)) continue;
+          const tokenObj = { texture };
+          if (v.token.ring && typeof v.token.ring === "object") tokenObj.ring = v.token.ring;
+          const portrait = typeof v.actor === "string" ? v.actor : src;
+          out.set(file, { tokenObj, portrait });
         }
       }
     }
@@ -404,18 +455,229 @@ export class TokenArtCatalog {
    *   { sources: [{id,label,kind,credit,count}], byMonster: [{id,name,options:[{source,token,portrait,tokenObj}]}] }
    * `options` order follows the source-priority order.
    */
-  static _monsterEntries(index, pack) {
+  static _monsterEntries(index, pack, { includeManagedTypes = false } = {}) {
     // `getIndex()` is normally an Array, but a Collection-shaped fixture (or a
     // future Foundry adapter) exposes the entries under `.contents`. Keep the
-    // census boundary here so every managed pack contributes each NPC once,
-    // while boats/mounts and other non-monster Actors stay out of the art rows.
+    // census boundary here so every covered pack contributes each allowed Actor
+    // once. The optional managed-import boundary admits Mount forms only when
+    // the caller has already proved the pack is one of our world packs.
     const entries = Array.isArray(index) ? index : (index?.contents ?? []);
     const seen = new Set();
     return entries.flatMap((e) => {
-      if (!e?._id || !e.name || (e.type && String(e.type).toUpperCase() !== "NPC") || seen.has(e._id)) return [];
+      const type = String(e?.type ?? "").trim().toLowerCase();
+      const allowed = !type || type === "npc"
+        || (includeManagedTypes && (type === "mount" || type === `${MODULE_ID}.mount`));
+      if (!e?._id || !e.name || !allowed || seen.has(e._id)) return [];
       seen.add(e._id);
       return [{ id: e._id, name: e.name, pack }];
     });
+  }
+
+  /**
+   * Carry N6's final curation decision alongside a managed imported row. The
+   * ordinary options remain intact for Browse and deliberate source choices;
+   * `resolve()` uses this status only to decide whether an automatic fallback
+   * is allowed. A curated row is available only when both reviewed paths are
+   * represented by one exact catalog option. If that option disappears while a
+   * fuzzy alternative remains, the row becomes Browse-only until the GM picks.
+   */
+  static _curatedImportedArtStatus(monster, options) {
+    if (!monster?.managedImported) return null;
+    const key = importedMonsterArtKey(monster.source, monster.name);
+    const disposition = importedMonsterArtDisposition(monster.source, monster.name);
+    if (!key || !disposition) return null;
+    if (disposition === CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED) {
+      return { key, status: CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED };
+    }
+
+    const row = curatedImportedMonsterArtFor(monster.source, monster.name);
+    const exact = (options ?? []).some((entry) =>
+      entry?.source === row?.source
+      && entry?.token === row?.token
+      && entry?.portrait === row?.portrait);
+    return {
+      key,
+      status: exact
+        ? CURATED_IMPORTED_MONSTER_ART_STATUS.CURATED
+        : CURATED_IMPORTED_MONSTER_ART_STATUS.PATH_UNAVAILABLE,
+    };
+  }
+
+  /**
+   * Load the managed imported NPCs with their source-bearing documents intact.
+   * The public catalog intentionally stays an index-shaped `{id,name,pack}`
+   * model, while F4 needs the full Actor to read `effectiveSource()` and must
+   * not infer source from a Core/world row or a bare name.
+   */
+  static async _managedImportedMonsterRecords(pack) {
+    let documents;
+    if (typeof pack?.getDocuments === "function") documents = await pack.getDocuments();
+    else if (typeof pack?.getIndex === "function") documents = await pack.getIndex();
+    else documents = [];
+
+    const entries = Array.isArray(documents) ? documents : (documents?.contents ?? []);
+    const indexEntries = entries.map((document) => document?._id
+      ? document
+      : { ...document, _id: document?.id });
+    const rows = this._monsterEntries(indexEntries, pack.collection, {
+      includeManagedTypes: isManagedActorPack(pack),
+    });
+    const byId = new Map(entries.map((document) => [String(document?._id ?? document?.id ?? ""), document]));
+
+    return rows.map((row) => {
+      const document = byId.get(String(row.id));
+      const source = effectiveSource(document) ?? document?.folder?.name ?? null;
+      return { ...row, source, document, managedImported: true };
+    });
+  }
+
+  /** Whether one exact data-root path was returned by a FilePicker browse. */
+  static _listedExactPath(result, path) {
+    const wanted = String(path ?? "");
+    const file = wanted.split("/").pop();
+    return !!file && (result?.files ?? []).some((candidate) => {
+      const value = String(candidate ?? "");
+      return value === wanted || value === file;
+    });
+  }
+
+  /**
+   * FilePicker fallback for a curated path which is not represented by the
+   * browser's basename map (Community Tokens has token/portrait siblings with
+   * the same basename). Exact parent-directory browsing keeps that case
+   * source-safe and avoids constructing a path from a fuzzy match.
+   */
+  static async _hasExactCuratedPath(path) {
+    const wanted = String(path ?? "");
+    const slash = wanted.lastIndexOf("/");
+    const FP = globalThis.foundry?.applications?.apps?.FilePicker?.implementation
+      ?? globalThis.FilePicker;
+    if (slash < 1 || !FP?.browse) return false;
+    try {
+      const result = await FP.browse("data", wanted.slice(0, slash));
+      return this._listedExactPath(result, wanted);
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  /**
+   * Resolve one N6 row by exact source + token + portrait paths. `library` is
+   * normally the disk-backed buildLibrary result; its entries already came
+   * from FilePicker and therefore validate both paths. A direct browse handles
+   * a same-basename token/portrait pair that buildLibrary's basename map can
+   * only retain one of.
+   */
+  static async _resolveCuratedImportedMonsterArt(row, library, pathExists) {
+    const exact = (library ?? []).find((entry) =>
+      entry?.source === row.source && entry.token === row.token && entry.portrait === row.portrait);
+    const validate = async (path, fromLibrary = false) => {
+      if (typeof pathExists === "function") return !!(await pathExists(path));
+      return fromLibrary || await this._hasExactCuratedPath(path);
+    };
+    if (exact && await validate(row.token, true) && await validate(row.portrait, true)) return exact;
+
+    const tokenExists = await validate(row.token);
+    const portraitExists = row.portrait === row.token
+      ? tokenExists
+      : await validate(row.portrait);
+    if (!tokenExists || !portraitExists) return null;
+
+    // Reuse presentation discovered for the exact token when available. If the
+    // source has no presentation map, curatedMonsterPick supplies a flat object.
+    const sameToken = (library ?? []).find((entry) =>
+      entry?.source === row.source && entry.token === row.token);
+    return {
+      source: row.source,
+      file: row.token.split("/").pop(),
+      token: row.token,
+      portrait: row.portrait,
+      tokenObj: sameToken?.tokenObj,
+    };
+  }
+
+  /**
+   * Apply N6's exact curated rows to the manager's existing per-document pick
+   * store. This is the only F4 write preparation step: `resolve()` and
+   * `applyResolvedMapping()` remain the single mapping/injection machinery.
+   *
+   * Existing Browser picks (including legacy picks without an origin marker) and
+   * explicit source overrides are authoritative. A prior F4 pick is marked
+   * `origin: "curated"`, so a later run may refresh it when the reviewed path
+   * changes while still removing it if its installed files have disappeared.
+   *
+   * @param {object} [opts]
+   * @param {object} [opts.pack] injected managed pack for tests
+   * @param {Array} [opts.library] exact disk-backed library for tests
+   * @param {Function} [opts.pathExists] optional exact path validator
+   * @param {object} [opts.map] injected source-aware map
+   * @returns {Promise<object|null>}
+   */
+  static async applyCuratedImportedArt({ pack: suppliedPack = null, library: suppliedLibrary = null, pathExists = null, map = CURATED_IMPORTED_MONSTER_ART } = {}) {
+    if (!globalThis.game?.user?.isGM) {
+      globalThis.ui?.notifications?.warn?.("Only the GM can apply curated monster art.");
+      return null;
+    }
+
+    const pack = suppliedPack ?? findMonsterPack({ game: globalThis.game });
+    if (!pack) return { status: "skipped", reason: "no-pack", total: 0, applied: [], preserved: [], unmatched: [], removed: [], changed: false };
+    if (!isManagedActorPack(pack)) {
+      return { status: "skipped", reason: "unmanaged-pack", pack: pack.collection, total: 0, applied: [], preserved: [], unmatched: [], removed: [], changed: false };
+    }
+
+    let records;
+    try {
+      records = await this._managedImportedMonsterRecords(pack);
+    } catch (error) {
+      return { status: "failed", reason: "pack-unreadable", pack: pack.collection, total: 0, applied: [], preserved: [], unmatched: [], removed: [], changed: false, error };
+    }
+    if (!records.length) {
+      return { status: "skipped", reason: "no-actors", pack: pack.collection, total: 0, applied: [], preserved: [], unmatched: [], removed: [], changed: false };
+    }
+
+    let library;
+    try {
+      library = suppliedLibrary ?? await this.buildLibrary();
+    } catch (error) {
+      return { status: "failed", reason: "library-unreadable", pack: pack.collection, total: records.length, applied: [], preserved: [], unmatched: [], removed: [], changed: false, error };
+    }
+    const candidates = new Map();
+    for (const row of Object.values(map ?? {})) {
+      const key = row.key ?? importedMonsterArtKey(row.book, row.name);
+      if (!key) continue;
+      let candidate = null;
+      try {
+        candidate = await this._resolveCuratedImportedMonsterArt(row, library, pathExists);
+      } catch (_error) {
+        // A single stale/unreadable reviewed path is an unmatched row, not a
+        // reason to abort the rest of the managed-pack curation pass.
+      }
+      candidates.set(key, candidate);
+    }
+
+    const state = normalizeTokenArtManagerState(globalThis.game.settings.get(MODULE_ID, "tokenArtManager"));
+    const plan = planCuratedImportedMonsterArt(records, {
+      picks: state.picks,
+      overrides: state.overrides,
+      managedPaths: state.managedPaths,
+      candidates,
+      map,
+    });
+    if (plan.changed) {
+      const next = normalizeTokenArtManagerState({
+        ...state,
+        picks: plan.picks,
+        managedPaths: plan.managedPaths,
+      });
+      await globalThis.game.settings.set(MODULE_ID, "tokenArtManager", next);
+    }
+    return {
+      status: "completed",
+      pack: pack.collection,
+      total: records.length,
+      mapped: plan.applied.length + plan.preserved.filter((entry) => entry.reason === "already-curated").length,
+      ...plan,
+    };
   }
 
   static async build() {
@@ -425,8 +687,20 @@ export class TokenArtCatalog {
     if (!packIds.length) return { sources: [], byMonster: [] };
     const monsters = [];
     for (const packId of packIds) {
-      const index = await game.packs.get(packId).getIndex();
-      monsters.push(...this._monsterEntries(index, packId));
+      const pack = game.packs.get(packId);
+      const managed = isManagedActorPack(pack);
+      if (packId !== "shadowdark.monsters" && !managed) continue;
+      if (managed && typeof pack?.getDocuments === "function") {
+        // The managed pack is the only covered source whose full Actor shape is
+        // needed: source flags identify N6 rows, and Mount forms are real
+        // imported Actors even though their type is not NPC. Core remains an
+        // index-only NPC census, and `isManagedActorPack` keeps third-party
+        // packs outside this wider boundary.
+        monsters.push(...await this._managedImportedMonsterRecords(pack));
+      } else {
+        const index = await pack.getIndex();
+        monsters.push(...this._monsterEntries(index, packId));
+      }
     }
     if (!monsters.length) return { sources: [], byMonster: [] };
 
@@ -436,12 +710,19 @@ export class TokenArtCatalog {
     for (const s of discovered) s._art = await this._sourceArt(s, monsters);
 
     const byMonster = monsters
-      .map((m) => ({
-        id: m.id,
-        name: m.name,
-        pack: m.pack,
-        options: discovered.filter((s) => s._art[m.id]).map((s) => ({ source: s.id, ...s._art[m.id] })),
-      }))
+      .map((m) => {
+        const options = discovered
+          .filter((s) => s._art[m.id])
+          .map((s) => ({ source: s.id, ...s._art[m.id] }));
+        const curatedImportedArt = this._curatedImportedArtStatus(m, options);
+        return {
+          id: m.id,
+          name: m.name,
+          pack: m.pack,
+          options,
+          ...(curatedImportedArt ? { curatedImportedArt } : {}),
+        };
+      })
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const sources = discovered.map((s) => ({
@@ -591,6 +872,7 @@ export class TokenArtCatalog {
     const perSource = {};
     for (const m of catalog.byMonster) {
       const pack = m.pack ?? "shadowdark.monsters";
+      const options = m.options ?? [];
       // 1) Hand-picked image — a specific file, not a source name-match. Works
       //    for monsters with zero options (imported CS/WR monsters).
       const manual = picks[m.id];
@@ -601,12 +883,28 @@ export class TokenArtCatalog {
         perSource[sk] = (perSource[sk] ?? 0) + 1;
         continue;
       }
-      if (!m.options.length) continue;
+      if (!options.length) continue;
+
+      // N6's reviewed-unmatched and path-unavailable rows stay in the catalog
+      // so Browse can still show every option, but ordinary automatic matching
+      // must not turn a rejected fuzzy candidate (e.g. generic bat.webp) into a
+      // persisted mapping. A deliberate GM override is the sole exception: it
+      // must name an option that is actually present, never silently fall back
+      // to a different fuzzy source.
+      const curatedStatus = m.curatedImportedArt?.status;
+      const autoExcluded = curatedStatus === CURATED_IMPORTED_MONSTER_ART_STATUS.UNMATCHED
+        || curatedStatus === CURATED_IMPORTED_MONSTER_ART_STATUS.PATH_UNAVAILABLE;
+      const overrideSource = overrides[m.id];
+      const overridePick = overrideSource
+        ? options.find((o) => o.source === overrideSource)
+        : null;
+      if (autoExcluded && !overridePick) continue;
+
       // 2) explicit override; else a Community pin (loose foreign match); else priority.
-      const wantSrc = overrides[m.id]
-        || (this.COMMUNITY_PINS.has(m.name) ? this.COMMUNITY_SOURCE : null);
-      const best = m.options.reduce((a, b) => (rank(b.source) < rank(a.source) ? b : a));
-      const pick = (wantSrc && m.options.find((o) => o.source === wantSrc)) || best;
+      const wantSrc = overrideSource
+        || (autoExcluded ? null : (this.COMMUNITY_PINS.has(m.name) ? this.COMMUNITY_SOURCE : null));
+      const best = options.reduce((a, b) => (rank(b.source) < rank(a.source) ? b : a));
+      const pick = overridePick || (wantSrc && options.find((o) => o.source === wantSrc)) || best;
       (tables[pack] ??= {})[m.id] = { actor: pick.portrait, token: pick.tokenObj };
       chosen[m.id] = pick.source;
       perSource[pick.source] = (perSource[pick.source] ?? 0) + 1;

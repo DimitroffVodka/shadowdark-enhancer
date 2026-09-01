@@ -316,6 +316,21 @@ export function registerSettings() {
     scope: "world", config: false, type: String, default: "",
   });
 
+  // Last module version whose missing-only monster text enricher backfill
+  // completed in the managed Enhancer Actors pack. This is E2's consumer-owned
+  // gate; it is deliberately separate from the legacy full-fidelity
+  // `backfillVersion` worker and from E3's creature-type stamp.
+  game.settings.register(MODULE_ID, "enricherBackfillVersion", {
+    scope: "world", config: false, type: String, default: "",
+  });
+
+  // Last module version whose missing-only reviewed creature taxonomy pass
+  // completed in the managed Enhancer Actors pack. E3 owns this stamp
+  // independently from the legacy fidelity and E2 text backfills.
+  game.settings.register(MODULE_ID, "creatureTypeBackfillVersion", {
+    scope: "world", config: false, type: String, default: "",
+  });
+
   // Last module version whose automatic Monster Spell library refresh completed
   // in this world (#54/#75). Empty means it has never run. The refresh is
   // skipped entirely while this equals the running module version, and the stamp

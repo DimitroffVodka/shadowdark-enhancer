@@ -9,6 +9,22 @@
   and single-approval boundaries. Generator rules and world-document writes
   remain deferred to the later G5/G7 adapters; the preview path itself writes
   nothing.
+
+- **Reviewed creature-type backfill (E3/#86).** Existing managed imported NPC
+  and Mount Actors now receive missing source-scoped N4 creature taxonomy flags;
+  optional Shadowdark Extras compatibility flags are added only when its
+  current runtime name map has no classification. Existing SDE/SDX values and
+  runtime classifications are preserved, and the pass is version-gated,
+  idempotent, and retryable after partial failures.
+
+- **Monster text enricher backfill (E2/#85).** An automatic, active-GM, one-time
+  backfill on module update scans existing imported NPCs in the managed Actors
+  pack (`world.shadowdark-enhancer--actors`) and runs missing-only contextual
+  text enrichment over monster notes and embedded attack/feature descriptions.
+  The pass is version-gated via `enricherBackfillVersion`, does not alter
+  unmanaged or world actors, preserves existing text, runs after the legacy
+  monster backfill, and defers without stamping if the legacy pass fails.
+
 - **Sea Wolf Plunder Items and curated treasure art (D4/#57).** RollTables
   recognized as the *Cursed Scroll 3* (p68) table *Sea Wolf Plunder From Distant
   Lands* now materialize their 20 published treasure results as real, draggable
@@ -205,6 +221,22 @@
     missing or unreadable on disk survive world reloads safely without raising
     console errors, contribute zero Browse entries until available, and remain
     editable/removable in the manager UI. All state persists across reloads.
+- **Curated imported-monster token art (F4/#87).** Token Art Manager's **Apply**
+  now seeds N6's 16 exact, source-qualified reviewed art picks for managed
+  imported NPCs and mounts (`Mount` and `shadowdark-enhancer.mount`) through the
+  existing per-document pick and per-pack mapping machinery. Later GM Browser
+  picks and explicit source overrides are preserved; curated paths carry an
+  ownership origin and exact `managedPaths` witnesses. N6's 63 unmatched rows
+  remain unchanged and Browse-enabled. The curation path performs no fuzzy or
+  bare-name inference and never touches Core, source, or world Actors; it
+  references installed art paths without bundling files.
+- **Pathfinder Character Gallery source in Token Art Manager (F2/#51).**
+  *Pathfinder Tokens: Character Gallery* (`modules/pf2e-tokens-characters`) is
+  now auto-discovered as a built-in token and portrait source in Token Art
+  Manager with approved Paizo attribution (*“Portrait, token, and subject artwork
+  from the Pathfinder Tokens: Character Gallery.”*), mapped scale, and dynamic
+  ring presentation. Safe fallback handling ensures absent or unreadable
+  directories are skipped without console errors.
 - **Pathfinder Character Gallery portraits in Character Builder.** When the
   curated portrait gallery is enabled, character portraits from *Pathfinder
   Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)

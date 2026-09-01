@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-860 tracked files · ~136,500 lines of code/markup across scripts+templates+styles+test.
+868 tracked files · ~139,200 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 809 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 860 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -75,7 +75,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 455 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 470 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 403 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -256,6 +256,9 @@
 | `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/managed-actor-backfill.mjs` | 305 | Reusable active-GM, version-gated backfill lifecycle over the managed Actors pack; consumers supply the missing-only transform. |
+| `monsters/monster-text-backfill.mjs` | 187 | E2 missing-only monster-context `[[request]]` and inline-roll backfill over managed NPC Actor text; owns its consumer version gate. |
+| `monsters/creature-type-map-data.mjs` | 97 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
+| `monsters/creature-type-backfill.mjs` | 239 | E3 missing-only N4 creature-type flags over managed NPC/Mount Actors, with optional SDX runtime-map gap mirroring and outcome counts. |
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 146 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
@@ -322,9 +325,10 @@
 
 | File | Lines | Description |
 |---|---:|---|
+| `imported-monster-art.mjs` | 438 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 733 | Applies licensed art to monsters **by path reference**, never bundled. |
-| `token-art-catalog.mjs` | 678 | Name→art matching catalog. |
-| `token-art-manager-app.mjs` | 560 | GM window to review/apply matches. |
+| `token-art-catalog.mjs` | 976 | Name→art matching catalog. |
+| `token-art-manager-app.mjs` | 576 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
 ### 3.16 `scripts/pdf-export/`

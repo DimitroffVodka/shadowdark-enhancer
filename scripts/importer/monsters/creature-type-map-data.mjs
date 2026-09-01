@@ -1,0 +1,97 @@
+/**
+ * Shadowdark Enhancer — reviewed imported-monster creature taxonomy (N4).
+ *
+ * Keys are deliberately source-scoped: a normalized name is not globally
+ * unique (for example, `scrag` appears in both CS2 and Western Reaches).
+ * Keep this file data-only so the reviewed decisions can be audited separately
+ * from E3's persistence policy.
+ */
+
+export const CREATURE_TYPE_MAP = Object.freeze({
+  "CS1:bittermold": "Humanoid",
+  "CS1:bogthorn": "Plant",
+  "CS1:dralech": "Monstrosity",
+  "CS1:gordock breeg": "Humanoid",
+  "CS1:hexling": "Undead",
+  "CS1:howler": "Humanoid",
+  "CS1:ichor ooze": "Ooze",
+  "CS1:marrow fiend": "Monstrosity",
+  "CS1:mugdulblub": "Ooze",
+  "CS1:mutant catfish": "Monstrosity",
+  "CS1:plogrina bittermold": "Humanoid",
+  "CS1:skrell": "Dinosaur",
+  "CS1:tar bat": "Monstrosity",
+  "CS1:the willowman": "Monstrosity",
+
+  "CS2:camel, silver": "Animal",
+  "CS2:canyon ape": "Animal",
+  "CS2:donkey": "Animal",
+  "CS2:dunefiend": "Fiend",
+  "CS2:dust devil": "Elemental",
+  "CS2:hero, gladiator": "Humanoid",
+  "CS2:horse, war": "Animal",
+  "CS2:mirage": "Fiend",
+  "CS2:ras-godai": "Humanoid",
+  "CS2:rookie, pit-fighter": "Humanoid",
+  "CS2:scrag": "Monstrosity",
+  "CS2:scrag, war": "Monstrosity",
+  "CS2:siruul": "Humanoid",
+  "CS2:the scourge": "Dragon",
+
+  "CS3:drake, greater": "Dragon",
+  "CS3:drake, lesser": "Dragon",
+  "CS3:draugr": "Undead",
+  "CS3:dverg": "Humanoid",
+  "CS3:nord": "Humanoid",
+  "CS3:oracle": "Humanoid",
+  "CS3:orca": "Animal",
+  "CS3:sea nymph": "Fey",
+  "CS3:sea serpent": "Monstrosity",
+  "CS3:troll, deep": "Monstrosity",
+  "CS3:valkyrie": "Celestial",
+  "CS3:werebear": "Monstrosity",
+
+  "CS4:anaconda, giant": "Animal",
+  "CS4:ant, giant": "Insect",
+  "CS4:basilisk hatchling": "Monstrosity",
+  "CS4:blue dart frog": "Animal",
+  "CS4:catfish, giant": "Animal",
+  "CS4:cobra statue": "Construct",
+  "CS4:condor, dire": "Monstrosity",
+  "CS4:death slug": "Monstrosity",
+  "CS4:jaguar king": "Humanoid",
+  "CS4:javelina": "Animal",
+  "CS4:javelina, diseased": "Undead",
+  "CS4:kawitzek": "Monstrosity",
+  "CS4:skandrill": "Monstrosity",
+  "CS4:skandrill, rex": "Monstrosity",
+  "CS4:stone shaman": "Humanoid",
+  "CS4:stone warrior": "Humanoid",
+  "CS4:void bat": "Aberration",
+  "CS4:void being": "Undead",
+
+  "CS5:bezelak": "Monstrosity",
+  "CS5:dremir": "Humanoid",
+  "CS5:librarian of leng": "Fiend",
+  "CS5:morzo moth": "Insect",
+  "CS5:nuln": "Humanoid",
+  "CS5:wendel": "Monstrosity",
+
+  "WR:camel, silver": "Animal",
+  "WR:donkey": "Animal",
+  "WR:horse, prized": "Animal",
+  "WR:horse, war": "Animal",
+  "WR:pony": "Animal",
+  "WR:scrag": "Monstrosity",
+  "WR:scrag, war": "Monstrosity",
+  "WR:camel": "Animal",
+  "WR:elephant": "Animal",
+  "WR:griffon": "Monstrosity",
+  "WR:hippogriff": "Monstrosity",
+  "WR:horse": "Animal",
+  "WR:moose": "Animal",
+  "WR:pegasus": "Celestial",
+  "WR:worg": "Monstrosity",
+});
+
+export default CREATURE_TYPE_MAP;

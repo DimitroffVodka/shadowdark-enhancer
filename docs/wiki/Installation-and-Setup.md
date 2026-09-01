@@ -43,7 +43,7 @@ All of this is automatic and GM-only. You do not have to do anything.
 | **Default merchants seeded** | Two saved merchants: *Base* (core system gear) and *Western Reaches* (base + enhancer items). Idempotent, and the WR merchant fills in once its item pack exists. See [Merchant Shop](Merchant-Shop.md). |
 | **Loot setup nudge** | If fewer than four treasure-tier tables are bound, you get a one-time notification pointing you at the Loot Generator's **Set up loot tables**. Shown once per world. See [Loot & Treasure](Loot-and-Treasure.md). |
 | **Spell ↔ class re-link** | A cheap index scan that links imported spells to their caster class, whichever was imported first. Runs every load, silent when there is nothing to do. |
-| **Monster backfill after an update** | When the module version changes, already-imported monsters are quietly brought up to current import fidelity (icons, casing, spell items, art). Deferred 5 s, idempotent, non-destructive, and only the single active GM runs it. |
+| **Monster backfills after an update** | When the module version changes, already-imported monsters and mounts in the managed pack (`sde-actors`) are quietly brought up to current fidelity: legacy property/spell cleanup (`backfillVersion`), missing-only contextual text enrichment for notes and attacks (`enricherBackfillVersion`, deferred if legacy backfill fails), and source-qualified creature taxonomy flags (`creatureTypeBackfillVersion`, preserving existing SDE/SDX classifications). Deferred, idempotent, non-destructive, and executed only by the single active GM. |
 
 Compendium packs are **not** created until something needs them. The first
 import creates them on demand. See [Compendium Packs](Compendium-Packs.md).

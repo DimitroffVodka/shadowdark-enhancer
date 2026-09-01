@@ -429,10 +429,17 @@ api.tokenArt.resolve("Brain Eater", sets, source, 0.5);
 
 Matching tries a source's own Shadowdark map, then exact name, then **semantic
 aliases** (Shadowdark renames several D&D creatures — *Brain Eater* also tries
-*Mind Flayer* / *Illithid*), then fuzzy match above `minScore`. A hand-picked
-per-monster override always beats source priority. Named manual Browse folders
-are Browse-only: they appear in `library()` for manual picking, but are excluded
-from `catalog()` and automatic matching (`resolve()`). When re-skinning placed
+*Mind Flayer* / *Illithid*), then fuzzy match above `minScore`. Auto-discovered
+built-in sources include *Monster Manual*, *Player's Handbook*, *Pathfinder: Monster Core*,
+*Pathfinder: Character Gallery* (`modules/pf2e-tokens-characters`, carrying approved
+attribution *"Portrait, token, and subject artwork from the Pathfinder Tokens: Character Gallery"*),
+and *Community Tokens*. The catalog includes managed imported NPCs and mounts
+(`world.shadowdark-enhancer--actors`), where 16 exact reviewed picks receive curated art
+(`origin: "curated"`) while 63 reviewed-unmatched identities suppress automatic fuzzy mapping.
+A hand-picked per-monster override or valid explicit source override always beats source priority
+(an invalid or missing override suppresses automatic fallback and never falls through to fuzzy art).
+Named manual Browse folders are Browse-only: they appear in `library()` for manual picking, but are
+excluded from `catalog()` and automatic matching (`resolve()`). When re-skinning placed
 tokens, the manager combines broad prefixes for active sources with exact
 manager-owned file path witnesses (`managedPaths`), allowing previously picked
 art to transition across folder edits/removals while protecting custom art at

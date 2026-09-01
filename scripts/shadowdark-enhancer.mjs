@@ -727,27 +727,78 @@ Hooks.once("ready", () => {
 
     // When the module version changes, quietly bring already-imported monsters
     // up to fresh-import fidelity. The version stamp advances only on success.
+    // Keep a completion promise so the E2 text pass cannot race this legacy
+    // full-fidelity worker: that worker rebuilds system.notes and embedded Items
+    // from a draft and could otherwise put plain text back after E2 enriched it.
+    let legacyBackfillDone = Promise.resolve(true);
     const cur = String(game.modules.get(MODULE_ID)?.version ?? "");
     if (cur && game.settings.get(MODULE_ID, "backfillVersion") !== cur) {
-      setTimeout(async () => {
-        // Guard to the SINGLE active GM (game.users.activeGM), same as the
-        // spell↔class sweep below: this writes to a compendium pack and then
-        // stamps a world setting, so several GMs online would otherwise run it
-        // concurrently. Checked at fire time, not at `ready` — activeGM can
-        // differ five seconds later.
-        if (game.users.activeGM?.id !== game.user.id) return;
-        try {
-          const { backfillTargets } = await import("./importer/monsters/monster-backfill.mjs");
-          const result = await backfillTargets({ scope: "pack", dryRun: false });
-          if (result?.changed?.length) {
-            ui.notifications.info(`Shadowdark Enhancer: ${result.changed.length} imported monster(s) upgraded to current import fidelity.`);
+      legacyBackfillDone = new Promise((resolve) => {
+        setTimeout(async () => {
+          // Guard to the SINGLE active GM (game.users.activeGM), same as the
+          // spell↔class sweep below: this writes to a compendium pack and then
+          // stamps a world setting, so several GMs online would otherwise run it
+          // concurrently. Checked at fire time, not at `ready` — activeGM can
+          // differ five seconds later.
+          if (game.users.activeGM?.id !== game.user.id) {
+            // Nothing was attempted on this client. That is a legitimate no-op;
+            // E2 has its own active-GM gate and may make the same decision.
+            resolve(true);
+            return;
           }
-          await game.settings.set(MODULE_ID, "backfillVersion", cur);
-        } catch (err) {
-          console.error(`${MODULE_ID} | auto-backfill after update failed:`, err);
-        }
-      }, 5000);
+          try {
+            const { backfillTargets } = await import("./importer/monsters/monster-backfill.mjs");
+            const result = await backfillTargets({ scope: "pack", dryRun: false });
+            if (result?.changed?.length) {
+              ui.notifications.info(`Shadowdark Enhancer: ${result.changed.length} imported monster(s) upgraded to current import fidelity.`);
+            }
+            await game.settings.set(MODULE_ID, "backfillVersion", cur);
+            resolve(true);
+          } catch (err) {
+            console.error(`${MODULE_ID} | auto-backfill after update failed:`, err);
+            // Preserve the failure for the dependent E2 consumer. Its
+            // missing-only pass must wait for the legacy worker to be healthy;
+            // otherwise the next activation's legacy rebuild can erase E2's
+            // markup while E2's own stamp falsely says it is current.
+            resolve(false);
+          }
+        }, 5000);
+      });
     }
+    // E2: fill only missing monster-context markup in managed Enhancer Actors.
+    // A6 owns the active-GM/version gate and per-document retry report; this
+    // consumer owns its independent stamp and transform policy. Awaiting the
+    // legacy worker above keeps its full draft rebuild from racing these writes.
+    setTimeout(async () => {
+      try {
+        const { runMonsterTextBackfillAfterLegacy } = await import("./importer/monsters/monster-text-backfill.mjs");
+        const result = await runMonsterTextBackfillAfterLegacy({ game, legacyBackfillDone });
+        if (result?.status === "completed" && result.applied?.length) {
+          ui.notifications.info(`Shadowdark Enhancer: enriched monster text for ${result.applied.length} imported monster(s).`);
+        } else if (result?.status === "failed") {
+          console.error(`${MODULE_ID} | automatic monster text backfill did not complete:`, result);
+        }
+      } catch (err) {
+        console.error(`${MODULE_ID} | automatic monster text backfill failed:`, err);
+      }
+    }, 5000);
+    // E3: persist the reviewed source/name creature taxonomy on managed
+    // imported NPCs and Mounts. A6 owns the active-GM/version/pack lifecycle;
+    // SDX is optional and is consulted only through its runtime map, so an
+    // absent SDX install is a clean SDE-only run.
+    setTimeout(async () => {
+      try {
+        const { runCreatureTypeBackfill } = await import("./importer/monsters/creature-type-backfill.mjs");
+        const result = await runCreatureTypeBackfill({ game });
+        if (result?.status === "completed" && result.counts?.applied) {
+          ui.notifications.info(`Shadowdark Enhancer: assigned creature types to ${result.counts.applied} imported Actor(s).`);
+        } else if (result?.status === "failed") {
+          console.error(`${MODULE_ID} | automatic creature-type backfill did not complete:`, result);
+        }
+      } catch (err) {
+        console.error(`${MODULE_ID} | automatic creature-type backfill failed:`, err);
+      }
+    }, 5000);
     // Spell↔class self-heal, EVERY load (index-scan cheap, idempotent, silent
     // when there's nothing to do): spells imported before their caster class
     // existed link up as soon as both are present, whichever was created first.
