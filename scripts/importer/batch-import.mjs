@@ -110,7 +110,7 @@ export function jobKeyForEntry(entry, route = routeForEntry(entry)) {
         return `${type.toLowerCase()}:${src}:${pages}`;
       }
       // Seeded tables keep one identity per unlock.
-      return `entry:${src}:${type}:${(entry?.name ?? "").toLowerCase()}`;
+      return `entry:${src}:${type}:${entry?.manifestId || (entry?.name ?? "").toLowerCase()}`;
     default:
       return `unroutable:${src}:${type}:${(entry?.name ?? "").toLowerCase()}`;
   }

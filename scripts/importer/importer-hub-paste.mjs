@@ -1150,7 +1150,8 @@ class HubPasteMethods {
       // already carry a complete, unique name (e.g. "Western Reach Backgrounds")
       // — don't prefix them or it doubles the source and forks a duplicate.
       const srcLabel = CHAR_SOURCES[this._importSeed.src]?.label;
-      keep.name = (srcLabel && !this._importSeed._bgBundle) ? sourcedTableName(srcLabel, want) : want;
+      keep.name = this._importSeed.importName
+        || ((srcLabel && !this._importSeed._bgBundle) ? sourcedTableName(srcLabel, want) : want);
       if (seedNoiseNote) (keep.warnings ??= []).push(seedNoiseNote);
       if (this._shapeFailNote) { (keep.warnings ??= []).push(this._shapeFailNote); this._shapeFailNote = null; }
       // Category drives the system-mirroring compendium folder.
@@ -1287,7 +1288,8 @@ class HubPasteMethods {
    */
   _applyImportSeed() {
     const seed = this._importSeed;
-    if (!seed || !this._importTables?.length) return;
+    const drafts = [...(this._importTables ?? []), ...(this._importGenerators ?? [])];
+    if (!seed || !drafts.length) return;
     // The BOOK an unlock came from is identity every branch below needs and none
     // of them set. The commit reads `pt.source` to decide whether a same-named
     // table belongs to ANOTHER book (and stamps the source flag from it), so a
@@ -1298,14 +1300,18 @@ class HubPasteMethods {
     // _charSeed one, whose branch skips the "Source - Name" prefixing at the top
     // of _onHubParse too, so nothing else was ever going to set it. `??=` keeps a
     // source the parser worked out for itself.
-    if (seed.src) for (const t of this._importTables) t.source ??= seed.src;
+    if (seed.src) for (const t of drafts) t.source ??= seed.src;
+    if (seed.manifestId) for (const t of drafts) t.manifestId ??= seed.manifestId;
     const provenance = {
-      source: this._importTables[0]?.source ?? seed.src,
-      manifestId: this._importTables[0]?.manifestId ?? seed.manifestId,
+      source: drafts[0]?.source ?? seed.src,
+      manifestId: drafts[0]?.manifestId ?? seed.manifestId,
     };
     // Character-content seeds set their own identity in _onHubParse
     // ("Source - Name" convention + category) — don't clobber it here.
-    if (seed._charSeed) return;
+    if (seed._charSeed && (seed.matrix || seed.grid)) {
+      // Manifest-backed matrix/grid seeds need the same split path as the
+      // Roll Tables hub so every child keeps a distinct manifest identity.
+    } else if (seed._charSeed) return;
     // A magic base-recipe BUNDLE seed carries several separate tables; identity
     // is stamped at commit by the bundle path (_magicBundlePlan →
     // matchBundleTables), so leave the parsed drafts untouched here.
@@ -1316,6 +1322,7 @@ class HubPasteMethods {
       const split = TableImporter.parseMatrixByColumns(
         this._importText, seed.columns, seed.widths, provenance,
       );
+      this._importGenerators = [];
       const nRows = Math.max(0, ...split.map(c => c.rows.length));
       const rows = [];
       let n = 1;
@@ -1343,6 +1350,7 @@ class HubPasteMethods {
       const split = TableImporter.parseMatrixByColumns(
         this._importText, seed.columns, seed.widths, provenance,
       );
+      this._importGenerators = [];
       split.forEach((t, i) => {
         t.name = `${seed.name} - ${seed.columns[i]}`;
         if (seed.folderLabel) { t.category = CUSTOM_ID; t.customLabel = seed.folderLabel; }

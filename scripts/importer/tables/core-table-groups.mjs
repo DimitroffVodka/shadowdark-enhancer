@@ -62,6 +62,35 @@ export const CORE_TABLE_GROUPS = [
     ],
   },
   {
+    unit: "core-npcs", section: "rolltables", key: "npcs",
+    header: "NPCs", icon: "fa-user",
+    rep: "Core PDF p124: Age", startPage: 120,
+    pasteHint: "NPC tables (Core pg 124–125, 129)",
+    tables: [
+      { name: "Age", page: 124, manifestId: "core-age" },
+      // Wealth appears again in Rival Crawlers; manifestId keeps these two
+      // otherwise-identical captions distinct for seeds and folder routing.
+      { name: "Wealth", page: 124, manifestId: "core-wealth-npc" },
+      { name: "NPC Qualities", page: 125, manifestId: "core-npc-qualities" },
+      { name: "Occupation", page: 125, manifestId: "core-occupation" },
+      { name: "Identifier", page: 129, manifestId: "core-identifier" },
+    ],
+  },
+  {
+    unit: "core-rival-crawlers", section: "rolltables", key: "rival-crawlers",
+    header: "Rival Crawlers", icon: "fa-users",
+    rep: "Core PDF p126: Renown", startPage: 122,
+    pasteHint: "Rival Crawler tables (Core pg 126–127)",
+    tables: [
+      { name: "Renown", page: 126, manifestId: "core-renown" },
+      { name: "Secret", page: 126, manifestId: "core-secret" },
+      // Core prints Wealth twice; this is the Rival Crawlers copy.
+      { name: "Wealth", page: 126, manifestId: "core-wealth-rival-crawlers" },
+      { name: "Party Name", page: 127, manifestId: "core-party-name" },
+      { name: "Signature Tactics", page: 127, manifestId: "core-signature-tactics" },
+    ],
+  },
+  {
     unit: "core-tavern", section: "rolltables", key: "tavern",
     header: "Taverns, Food & Drink", icon: "fa-beer-mug-empty",
     rep: "Core PDF p137: Drinks", startPage: 132,

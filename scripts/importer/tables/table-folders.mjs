@@ -20,6 +20,7 @@
  */
 import { CUSTOM_ID } from "./table-categories.mjs";
 import { CORE_TABLE_GROUPS } from "./core-table-groups.mjs";
+import { columnManifestId, findById, importNameFor, isMatrix } from "./table-manifest.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -101,17 +102,43 @@ export const PATRON_TABLES = new Set([
 ].map(_norm));
 
 // name (normalized) → { section, header } for every core-group member table.
+// Manifest identity is authoritative when a seeded import carries it. Names
+// remain as a fallback for old/unseeded drafts, but a bare duplicate name is
+// deliberately marked ambiguous rather than silently assigned to the last
+// group that happened to register it.
+const _coreByManifestId = new Map();
 const _coreByName = new Map();
+const registerCoreName = (name, group) => {
+  const key = _norm(name);
+  if (!key) return;
+  if (!_coreByName.has(key)) { _coreByName.set(key, group); return; }
+  if (_coreByName.get(key) !== group) _coreByName.set(key, null);
+};
 for (const g of CORE_TABLE_GROUPS) {
-  for (const t of g.tables) _coreByName.set(_norm(t.name), { section: g.section, header: g.header });
+  const group = { section: g.section, header: g.header };
+  for (const t of g.tables) {
+    registerCoreName(t.name, group);
+    const entry = t.manifestId ? findById(t.manifestId) : null;
+    if (t.manifestId) _coreByManifestId.set(t.manifestId, group);
+    if (!entry) continue;
+    registerCoreName(importNameFor(entry), group);
+    if (isMatrix(entry)) {
+      for (const column of entry.columns) {
+        _coreByManifestId.set(columnManifestId(entry.id, column), group);
+        registerCoreName(`${importNameFor(entry)} - ${column}`, group);
+      }
+    }
+  }
 }
 
 /** Match a table name against the core groups, tolerating the "Source - Name"
  *  and "Core PDF pN: Name" import-prefix conventions. */
-function coreGroupFor(name) {
+function coreGroupFor(name, manifestId) {
+  if (manifestId && _coreByManifestId.has(manifestId)) return _coreByManifestId.get(manifestId);
   const n = _norm(name);
   if (_coreByName.has(n)) return _coreByName.get(n);
   for (const [key, val] of _coreByName) {
+    if (!val) continue;
     if (n.endsWith(`- ${key}`) || n.endsWith(`: ${key}`)) return val;
   }
   return null;
@@ -146,7 +173,7 @@ export function resolveTableFolderPath(pt) {
     return [String(pt.customLabel).trim()];
   }
   // 2. Known Core Rulebook table → its Manage-tree group.
-  const g = coreGroupFor(name);
+  const g = coreGroupFor(name, pt?.manifestId);
   if (g) return [g.section === "gameplay" ? "Gameplay" : "Roll Tables", "Core Rulebook", g.header];
   // 3. Gods & patrons.
   if (_inSet(PATRON_TABLES, name)) return ["Character Content", "Patrons & Deities"];

@@ -99,6 +99,17 @@ test("same-named entries from different books are different jobs", () => {
   assert.equal(plan.jobs.length, 2);
 });
 
+test("same-named Core entries with different manifest identities are different jobs", () => {
+  const plan = planBatch([leaf("core", "Core Rulebook", [
+    entry({ name: "Wealth", src: "CORE", pages: "124", manifestId: "core-wealth-npc" }),
+    entry({ name: "Wealth", src: "CORE", pages: "126", manifestId: "core-wealth-rival-crawlers" }),
+  ])]);
+  assert.equal(plan.jobs.length, 2);
+  assert.deepEqual(plan.jobs.map((job) => job.entry.manifestId), [
+    "core-wealth-npc", "core-wealth-rival-crawlers",
+  ]);
+});
+
 test("already-imported rows are never planned", () => {
   const plan = planBatch([leaf("t", "Tables", [
     entry({ name: "Done", present: true }),

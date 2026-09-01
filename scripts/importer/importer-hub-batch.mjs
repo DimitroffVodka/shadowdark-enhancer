@@ -257,7 +257,7 @@ class HubBatchMethods {
     this._onHubClear();
     await this._seedGenericUnlock({
       name: first.name, src: first.src, type: first.type,
-      contentId: first.contentId, page: first.pages,
+      contentId: first.contentId, page: first.pages, manifestId: first.manifestId,
     });
     // The parser keeps one name for a normal click. This private batch marker
     // widens only this run to the names already covered by the stable job key;
@@ -332,7 +332,7 @@ class HubBatchMethods {
     } else {
       await this._seedGenericUnlock({
         name: entry.name, src: entry.src, type: entry.type,
-        contentId: entry.contentId, page: entry.pages,
+        contentId: entry.contentId, page: entry.pages, manifestId: entry.manifestId,
       });
     }
     // _onGrabPdfText fires its render WITHOUT awaiting, so the textarea on
@@ -344,7 +344,7 @@ class HubBatchMethods {
     // not the signal — what matters is whether the GRAB added anything under
     // it. Without this a failed extraction parses the bare name and reports
     // "nothing recognized" instead of "your PDF had no text on that page".
-    if (!this._batchGrabbedBody(entry.name)) {
+    if (!this._batchGrabbedBody(this._importSeed?.name ?? entry.name)) {
       return {
         status: "nothing", created: 0,
         note: this._batchFirstProblem() ?? "the source PDF gave no selectable text for those pages",
