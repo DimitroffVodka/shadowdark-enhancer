@@ -325,6 +325,10 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
         else if (f === "lawful") band.lawful = v.trim();
         else if (f === "chaotic") band.chaotic = v.trim();
         else if (f === "neutral") band.neutral = v.trim();
+        // A filled-in band clears its own review flag, so the warning goes away
+        // as it is fixed rather than only at commit time. Mirrors the talent
+        // rows' _refreshTalentWarnings() call below.
+        this._refreshTitleWarnings();
       });
     });
 
@@ -463,6 +467,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // Re-derive band warnings from the (possibly hand-edited) live talent table
     // so the gate never blocks on parse-time band issues already fixed here.
     this._refreshTalentWarnings();
+    this._refreshTitleWarnings();
     const gateIssues = classGateIssues({
       warnings: this._bodyParsed.warnings,
       hasTalentTable: !!this._talentTable?.rows?.length,
@@ -516,6 +521,31 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   _refreshTalentWarnings() {
     if (this._bodyParsed)
       this._bodyParsed.warnings = revalidateTalentBandWarnings(this._talentTable, this._bodyParsed.warnings);
+  }
+
+  /**
+   * Drop title-split warnings whose band the GM has since filled in.
+   *
+   * The parse-time warning says "edit in the preview", but nothing re-read the
+   * preview — so a band the GM had already corrected still blocked the commit,
+   * with no way to clear it. A band is resolved once all three alignment cells
+   * are non-empty; that is the whole condition the parser failed to satisfy.
+   *
+   * Legitimately identical cells resolve too: a book row that prints the same
+   * title for all three alignments is exactly the case the splitter cannot
+   * infer, and it is the GM's to state.
+   */
+  _refreshTitleWarnings() {
+    if (!this._titleWarnings?.length) return;
+    const filled = new Set(
+      (this._titles ?? [])
+        .filter((t) => [t.lawful, t.chaotic, t.neutral].every((c) => String(c ?? "").trim()))
+        .map((t) => t.from),
+    );
+    this._titleWarnings = this._titleWarnings.filter((w) => {
+      const m = String(w).match(/row\s+(\d+)/i);
+      return !(m && filled.has(Number(m[1])));
+    });
   }
   _onTalentAdd() {
     if (!this._talentTable) this._talentTable = { formula: "2d6", rows: [], replacement: true };
