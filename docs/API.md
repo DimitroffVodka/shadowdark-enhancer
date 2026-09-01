@@ -371,6 +371,37 @@ await api.forgeLoot.open();
 await api.forgeLoot.open({ generator: "npc", seed: "session-01" });
 ```
 
+### Internal foundation seams
+
+The Forge & Loot subsystem relies on internal, pure, and read-only helper
+modules under `scripts/forge-loot/`. These modules do not expose public API
+namespaces, do not write Actor documents to Foundry, and follow strict
+boundaries:
+
+- **Class readiness audit (`class-readiness.mjs`, G3):** Read-only audit of
+  Core and imported Class documents against character-generation rules.
+  Evaluates talent tables, hit dice, spellcasting metadata, and choices into
+  stable blocker and warning diagnostics with a bounded defect queue.
+  Schema-default empty spell grids (where all nested cells are null/blank) are
+  recognized as non-caster defaults, while meaningful leaves, casting ability,
+  or explicit caster flags serve as caster evidence.
+- **Managed Rival Classes table (`rival-class-table.mjs`, G2):** Derives and
+  maintains a single flag-identified RollTable in `sde-tables` from the G3
+  report. Core precedence applies before eligibility on same-name collisions;
+  ineligible classes are excluded; manual row edits are replaced with a warning.
+- **Supporting-table registry (`supporting-tables.mjs`, G8):** Internal
+  manifest-stamped registry resolving NPC and Rival table inputs, including the
+  three Signature Tactics alignment children. Tolerates GM renames, fails
+  closed on missing/foreign/duplicate/loose-name candidates, and allows exact
+  Core UUID fallback only for ancestry and alignment. Table Hub remains the
+  creation path.
+- **Advancement planning engine (`advancement-engine.mjs`, G6b):** Pure
+  deterministic planner advancing complete level-1 Player plans through
+  levels 2–6 with injected RNG, G6a choice resolution, bounded duplicate and
+  recursion handling, and replacement-effect materialization. Tagged failures
+  return no committable Actor data; it writes no Foundry documents and serves
+  as an input seam for future G7 party assembly.
+
 ## `tokenArt` — monster compendium art
 
 Re-skins Shadowdark NPCs with art **referenced by path** from art modules already

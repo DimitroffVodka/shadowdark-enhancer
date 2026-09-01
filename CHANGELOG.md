@@ -3,6 +3,26 @@
 ## [Unreleased]
 
 ### Added
+- **Class automation readiness report (G3/#78).** An internal, read-only audit
+  evaluates Core and importer-managed Class documents for character-generation
+  and Rival readiness. Diagnostic reports produce stable blocker and warning
+  evidence with a bounded defect queue and perform no document repairs or Actor
+  writes. Empty schema-default spell grids with all null or blank nested cells
+  are recognized as non-caster defaults, while meaningful leaves, non-empty
+  casting ability, or explicit caster markers provide caster evidence.
+- **Derived Rival Crawler Classes table (G2/#79).** The managed `sde-tables`
+  pack now maintains a deterministic, Core-wins class RollTable from the G3
+  readiness report. Level-0 entries and ineligible classes stay out, an empty
+  eligible set remains a stable zero-row table, and hand-edited rows are
+  replaced on regeneration with a warning.
+- **Forge & Loot supporting-table registry (G8/#81).** Added one internal,
+  manifest-backed logical-role registry for NPC and Rival inputs, including the
+  three exact managed Signature Tactics identities. Resolution reads stamped
+  identities from the managed Roll Tables pack (with exact Core system-table
+  fallback for ancestry/alignment), tolerates GM renames, and reports missing,
+  foreign, or duplicate roles without loose-name substitution. Table Hub
+  matrix import remains the sole creation path.
+- **Pure Player advancement planning (G6b/#83).** A Foundry-free engine now advances a complete level-one Player plan through levels 2–6 with injected deterministic dice, HP/talent/spell progression, G6a-owned choices, bounded duplicate and follow-up recursion handling, replacement-effect materialization, and diagnostic history. It returns no committable Actor data when a source, roll, choice, or spell quota cannot be completed; the G7 generator/commit adapter remains the persistence seam.
 - **Forge & Loot preview shell (G4/#80).** A GM-only shared shell now selects
   future NPC/Rival generators and presents deterministic seeded, immutable
   previews with explicit reroll, cancel, warning/error, source-drift, active-GM,

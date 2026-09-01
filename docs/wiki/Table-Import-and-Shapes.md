@@ -166,6 +166,29 @@ own stable manifest/shape identities, stay individually resolvable by the
 supporting-table registry the future Forge & Loot generators read, and a
 reimport of the Core tables does not restore the old grouping.
 
+## Supporting tables and manifest stamps
+
+Tables imported through the Table Hub into `sde-tables` receive durable
+manifest and source stamps in `flags["shadowdark-enhancer"]`. The internal
+supporting-table registry (`scripts/forge-loot/supporting-tables.mjs`, G8) reads
+these stamps to resolve inputs for NPC and Rival generators — including the three
+Signature Tactics alignment sub-tables (`core-signature-tactics:lawful`,
+`core-signature-tactics:neutral`, `core-signature-tactics:chaotic`):
+
+- **Rename survival:** Lookups check stamped manifest identifiers rather than
+  transient table display names, so GM table renames do not break generator
+  resolution.
+- **Fail-closed resolution:** Missing, foreign (unstamped), duplicate, or
+  loose-name-only matches fail visibly with error diagnostics rather than guessing
+  or silently substituting unrelated tables.
+- **Core system fallbacks:** Only Ancestry and Alignment fall back to exact Core
+  system compendium UUIDs (`shadowdark.ancestries`, `shadowdark.alignments`).
+  All other generator inputs resolve from the managed `sde-tables` pack.
+
+The managed pack also holds the derived **Rival Classes** RollTable (G2),
+which is generated and kept in sync with the G3 Class readiness report under
+`flags["shadowdark-enhancer"].forgeLoot.rivalClassTable`.
+
 ## When a table has no recipe
 
 You get generic parsing. For a clean single-column table that is usually fine.

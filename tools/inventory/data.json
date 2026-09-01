@@ -120,6 +120,12 @@
       "dir": "scripts/pit-fighting",
       "title": "`scripts/pit-fighting/` — Cursed Scroll 2 pit fighting bouts",
       "note": "Structure and thresholds only. Venue descriptions, twist details, what each stakes tier is fought for and the foes themselves all live in the RollTables you import from your own book — this folder holds dice ranges and mechanics, the same class of bare numbers as the reaction bands. The book leaves the danger level and the foe to the GM, so the module suggests and never decides."
+    },
+    {
+      "id": "3.21",
+      "dir": "scripts/forge-loot",
+      "title": "`scripts/forge-loot/` — pure Forge & Loot policy",
+      "note": "The report and idiom seams are pure data policy. Foundry adapters must translate documents into snapshots and keep reads separate from later generator/commit work."
     }
   ],
   "order": {
@@ -132,11 +138,7 @@
       "scripts/parry/parry-core.mjs",
       "scripts/parry/parry.mjs",
       "scripts/taunt/taunt-core.mjs",
-      "scripts/taunt/taunt.mjs",
-      "scripts/forge-loot/class-idiom.mjs",
-      "scripts/forge-loot/forge-loot-core.mjs",
-      "scripts/forge-loot/forge-loot-rng.mjs",
-      "scripts/forge-loot/forge-loot-app.mjs"
+      "scripts/taunt/taunt.mjs"
     ],
     "3.2": [
       "scripts/shared/module-id.mjs",
@@ -386,6 +388,18 @@
       "scripts/pit-fighting/arena-maps.mjs",
       "scripts/pit-fighting/arena-scene.mjs",
       "scripts/pit-fighting/pit-fighting-app.mjs"
+    ],
+    "3.21": [
+      "scripts/forge-loot/class-idiom.mjs",
+      "scripts/forge-loot/advancement-engine.mjs",
+      "scripts/forge-loot/class-readiness.mjs",
+      "scripts/forge-loot/class-readiness-adapter.mjs",
+      "scripts/forge-loot/forge-loot-app.mjs",
+      "scripts/forge-loot/forge-loot-core.mjs",
+      "scripts/forge-loot/forge-loot-rng.mjs",
+      "scripts/forge-loot/rival-class-table.mjs",
+      "scripts/forge-loot/rival-class-table-adapter.mjs",
+      "scripts/forge-loot/supporting-tables.mjs"
     ]
   },
   "descriptions": {
@@ -599,13 +613,19 @@
     "scripts/pdf-export/lib/FileSaver.min.js": "Vendored FileSaver.js (MIT, © 2015 Eli Grey) — the blob-download mechanism every browser honours, used when `showSaveFilePicker` is unavailable (i.e. anything but Chromium on a secure context).",
     "scripts/pit-fighting/pit-fighting-core.mjs": "Pure bout set-up: the stakes ladder (APL + 1d6 → 2-5 / 6-10 / 11-13 / 14+), `averagePartyLevel` (rounds half up, ignores unreadable levels rather than counting them as level 0), the 2d6 venue rows, the 2d6 twist bands as machine-readable effects (`extra-danger` and its 1d4 sub-roll, `none`, `stakes-up-1`, `boon`), the three danger levels, `encounterTableName` (High and Epic share one encounter tier, so four stakes tiers map to three table tiers) and `buildBout`. `suggestedDanger` derives from the stakes only — the book hands the GM the venue too and then says the GM decides, and no venue risk rating exists to read. Rolls no dice and holds no text. Foundry-free, node-tested.",
     "scripts/pit-fighting/pit-fighting-app.mjs": "The bout roller: the `sde-pit-fighting` ApplicationV2 plus the `PitFighting` logic object. Picks the fighters (their count decides solo vs group, their average level sets the stakes), rolls venue / stakes / twist, offers the danger level as an override that redraws the foe from the newly selected encounter table, holds the twist back until Reveal, draws the prize, and awards the fame through `Renown.award`. `findBoutTable` resolves tables by book name and tolerates the suite's `Source - Name` prefix; a table that is missing is NAMED in the window with a link to the importer, never substituted with text of its own. Reads TableResult `name || description` — never `text`, which still fires the v13 deprecation getter. GM-only.",
+    "scripts/forge-loot/class-readiness.mjs": "Foundry-free G3 class automation-readiness evaluator, stable blocker/warning vocabulary, G6a mappings, and bounded importer defect queue.",
+    "scripts/forge-loot/class-readiness-adapter.mjs": "Read-only Foundry adapter that inventories Core and importer-managed Classes, resolves talent evidence, invokes the existing via classifier, and feeds the pure readiness report.",
     "scripts/pit-fighting/foe-resolver-core.mjs": "Pure reader for a drawn CS2 encounter row (`\"2 hero* | 2 lion | 30' deep pits\"`). `parseFoeCell` strips a leading count (kept as a STRING because one cell is `2d4`), the pg. 39 footnote star, a trailing parenthetical that is a stage direction rather than part of the name (`Wyvern (chained)`), and the book's `Gt.` abbreviation; it singularises only when a count made the plural. `nameCandidates` adds the system's inverted `Family, Variant` form, which is what resolves `Gt. centipede` to *Centipede, Giant* without a lookup table. `parseFoeRow` reads creatures by COLUMN POSITION so the complication is never mistaken for a monster. Shared with the monster census, so the census and the Place button agree on what a row names. Foundry-free, node-tested.",
     "scripts/pit-fighting/arena-maps.mjs": "The arena map library: the twelve bundled 2-Minute Tabletop battle maps (CC BY-NC 4.0; see CREDITS), ordered by the CS2 Venue row each stands in for. Every entry carries its id, the 2MT product `label`, the `venueLabel` the GM actually reads, the `venueRows` it suits, an image path, pixel width/height and a per-map grid aligned to the printed squares (72px / 70px / 44px) at 5 ft a square. Grids must be INTEGERS: Foundry's `grid.size` is a NumberField with `integer: true`, so a fractional cell is rounded on write with no error — Greybanner Coliseum shipped as 43.75, silently became 44 and drifted a quarter-square off its own art, and is now re-encoded to 1936x1408 for a whole 44px cell. `getArenaMap(id)` looks one up, `mapsForVenueRow(row)` splits the library into the rolled venue's maps and the rest (it reorders, never filters), and `DEFAULT_ARENA_MAP_ID` names the fallback. Plain data, no Foundry dependency.",
     "scripts/pit-fighting/arena-scene.mjs": "Builds any of the module's arena maps as a playable scene: the map on a grid sized to its own printed squares, night darkness, and — unlike the old drawn arena — no synthetic torch lights, because these maps bring their own painted lighting. Per-map idempotent: a scene is matched on the `arenaMap` flag with its map id first so a rename survives, so pressing the same map again returns the one the GM already dressed. VIEWED, never activated: activating would drag every connected player onto the map. **v14 note:** the background lives on the new `Level` embedded document (`scene.levels[].background.src`); `Scene#background` is a read-only v13 shim, and writing the old shape is discarded silently by schema cleaning, leaving a grey scene and no error.",
     "scripts/forge-loot/class-idiom.mjs": "Foundry-free G6a class-idiom and legal-choice layer: derives explainable ability signals from imported class/talent metadata, resolves every supported Character Builder choice through snapshots and an injected RNG, preserves exact talent-count and class-permission parity, and returns a stable value/signals/fallback or enumerated unsupported result without class-name branches.",
+    "scripts/forge-loot/advancement-engine.mjs": "Foundry-free G6b advancement engine: clones a complete level-one Player plan, rolls HP and bounded level-3/5 talent graphs through G6a, fills caster spell-grid deltas, resolves every supported replacement effect, records duplicate/recursion caps and level history, and returns a deterministic complete plan or diagnostic failure without persistence.",
     "scripts/forge-loot/forge-loot-core.mjs": "Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes.",
     "scripts/forge-loot/forge-loot-rng.mjs": "Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods.",
     "scripts/forge-loot/forge-loot-app.mjs": "The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract.",
+    "scripts/forge-loot/rival-class-table.mjs": "Foundry-free G2 policy for selecting eligible Core/importer-managed classes with Level-0 filtering and Core-wins canonical deduplication, then building deterministic equal-probability RollTable payloads with replacement warning and content fingerprint.",
+    "scripts/forge-loot/rival-class-table-adapter.mjs": "Foundry adapter for the generated Rival Crawler Classes table: flag-only managed-pack lookup, GM-gated create/replace reconciliation with manual-edit warnings, source freshness checks, and debounced ClassIndex invalidation wiring.",
+    "scripts/forge-loot/supporting-tables.mjs": "Foundry-free G8 logical-role registry for NPC/Rival supporting tables: exact manifest/source identities, ancestry/alignment dynamic child resolution, Signature Tactics matrix identities, pure row selection, and a read-only managed-pack adapter that fails closed on missing, foreign, duplicate, or name-only tables.",
     "scripts/shared/token-placement.mjs": "Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token.",
     "scripts/crawl-strip/crawl-turn-core.mjs": "Pure turn-advance authorization for the crawl strip: `canAdvanceTurn()` (a GM always may; a player only when they own the current combatant and the advance would not roll the round) and `nextTurnWouldRollRound()`, mirroring `Combat#nextTurn`'s real wrap rules.",
     "scripts/crawl-strip/movement-lock-core.mjs": "Pure `shouldBlockMovement()` gate for the out-of-turn movement lock — blocks only a non-current combatant of a started combat, matched by (sceneId, tokenId). GMs, non-combatants, non-positional updates, and everything out of combat pass through.",

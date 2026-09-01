@@ -17,6 +17,9 @@
 /** @type {Map<string,{uuid:string,name:string}>|null} lowercased name → class */
 let _index = null;
 
+/** Hook emitted synchronously after the class-resolution cache is cleared. */
+export const CLASS_INDEX_INVALIDATED_HOOK = "shadowdarkEnhancer.classIndexInvalidated";
+
 export const ClassIndex = {
   /** Build (or reuse) the name→class map across packs + world items. */
   async buildIndex() {
@@ -63,7 +66,17 @@ export const ClassIndex = {
   },
 
   /** Drop the cache (call after creating/importing Class items). */
-  invalidate() { _index = null; },
+  invalidate() {
+    _index = null;
+    // The cache reset remains synchronous and non-throwing.  The generated
+    // Rival class table listens to this notification and deliberately starts
+    // its async work fire-and-forget, so a listener failure can never break a
+    // spell import's class-resolution path.
+    try {
+      if (typeof globalThis.Hooks?.callAll === "function")
+        globalThis.Hooks.callAll(CLASS_INDEX_INVALIDATED_HOOK);
+    } catch (_error) { /* observers must not change invalidate semantics */ }
+  },
 };
 
 /**

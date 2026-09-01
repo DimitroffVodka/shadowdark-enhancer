@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-868 tracked files · ~139,200 lines of code/markup across scripts+templates+styles+test.
+878 tracked files · ~144,200 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 860 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 865 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -55,10 +55,6 @@
 | `parry/parry.mjs` | 441 | Parry button on an attack card that hit: spends the 1/day use, makes the attack miss, and reverses damage the GM already applied — HP, defeated flag and downed conditions. Player clicks go through the authenticated gm-relay. |
 | `taunt/taunt-core.mjs` | 118 | Pure Duelist Taunt rules: round+turn as one ordinal, the "end of your NEXT turn" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit). |
 | `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
-| `forge-loot/class-idiom.mjs` | 1248 | Foundry-free G6a class-idiom and legal-choice layer: derives explainable ability signals from imported class/talent metadata, resolves every supported Character Builder choice through snapshots and an injected RNG, preserves exact talent-count and class-permission parity, and returns a stable value/signals/fallback or enumerated unsupported result without class-name branches. |
-| `forge-loot/forge-loot-core.mjs` | 856 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
-| `forge-loot/forge-loot-rng.mjs` | 80 | Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods. |
-| `forge-loot/forge-loot-app.mjs` | 251 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -232,7 +228,7 @@
 | `char-content/class-unit-importer.mjs` | 1415 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 263 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
-| `char-content/class-index.mjs` | 85 | Class name → system Class item UUID. |
+| `char-content/class-index.mjs` | 98 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 460 | Spell workspace organized by class / tier / alignment. |
@@ -381,6 +377,23 @@ The number itself is the SYSTEM's field (`system.renown` on PlayerSD). This fold
 | `pit-fighting-app.mjs` | 1053 | The bout roller: the `sde-pit-fighting` ApplicationV2 plus the `PitFighting` logic object. Picks the fighters (their count decides solo vs group, their average level sets the stakes), rolls venue / stakes / twist, offers the danger level as an override that redraws the foe from the newly selected encounter table, holds the twist back until Reveal, draws the prize, and awards the fame through `Renown.award`. `findBoutTable` resolves tables by book name and tolerates the suite's `Source - Name` prefix; a table that is missing is NAMED in the window with a link to the importer, never substituted with text of its own. Reads TableResult `name \|\| description` — never `text`, which still fires the v13 deprecation getter. GM-only. |
 
 Structure and thresholds only. Venue descriptions, twist details, what each stakes tier is fought for and the foes themselves all live in the RollTables you import from your own book — this folder holds dice ranges and mechanics, the same class of bare numbers as the reaction bands. The book leaves the danger level and the foe to the GM, so the module suggests and never decides.
+
+### 3.21 `scripts/forge-loot/` — pure Forge & Loot policy
+
+| File | Lines | Description |
+|---|---:|---|
+| `class-idiom.mjs` | 1248 | Foundry-free G6a class-idiom and legal-choice layer: derives explainable ability signals from imported class/talent metadata, resolves every supported Character Builder choice through snapshots and an injected RNG, preserves exact talent-count and class-permission parity, and returns a stable value/signals/fallback or enumerated unsupported result without class-name branches. |
+| `advancement-engine.mjs` | 936 | Foundry-free G6b advancement engine: clones a complete level-one Player plan, rolls HP and bounded level-3/5 talent graphs through G6a, fills caster spell-grid deltas, resolves every supported replacement effect, records duplicate/recursion caps and level history, and returns a deterministic complete plan or diagnostic failure without persistence. |
+| `class-readiness.mjs` | 760 | Foundry-free G3 class automation-readiness evaluator, stable blocker/warning vocabulary, G6a mappings, and bounded importer defect queue. |
+| `class-readiness-adapter.mjs` | 294 | Read-only Foundry adapter that inventories Core and importer-managed Classes, resolves talent evidence, invokes the existing via classifier, and feeds the pure readiness report. |
+| `forge-loot-app.mjs` | 262 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
+| `forge-loot-core.mjs` | 856 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
+| `forge-loot-rng.mjs` | 80 | Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods. |
+| `rival-class-table.mjs` | 243 | Foundry-free G2 policy for selecting eligible Core/importer-managed classes with Level-0 filtering and Core-wins canonical deduplication, then building deterministic equal-probability RollTable payloads with replacement warning and content fingerprint. |
+| `rival-class-table-adapter.mjs` | 418 | Foundry adapter for the generated Rival Crawler Classes table: flag-only managed-pack lookup, GM-gated create/replace reconciliation with manual-edit warnings, source freshness checks, and debounced ClassIndex invalidation wiring. |
+| `supporting-tables.mjs` | 791 | Foundry-free G8 logical-role registry for NPC/Rival supporting tables: exact manifest/source identities, ancestry/alignment dynamic child resolution, Signature Tactics matrix identities, pure row selection, and a read-only managed-pack adapter that fails closed on missing, foreign, duplicate, or name-only tables. |
+
+The report and idiom seams are pure data policy. Foundry adapters must translate documents into snapshots and keep reads separate from later generator/commit work.
 <!-- inventory:scripts:end -->
 ---
 
