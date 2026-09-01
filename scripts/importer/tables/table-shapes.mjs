@@ -23,6 +23,10 @@
  *   { kind:"lookup", cols, size, labels }
  *     — one roll → one row read across `cols` columns, cells joined by " | "
  *       (e.g. Carousing Outcome d14 Outcome|Benefit).
+ *
+ * Compound grid shapes may also carry `columns: string[]` to select a named
+ * subset of their declared `labels`, in that order. Without it, every declared
+ * column is consumed exactly as before.
  */
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
@@ -70,6 +74,25 @@ const SECTION = (caption, cols = "1", size) => ({ kind: "section", cols, ...(cap
 // `col` is the 0-based column index, `ncols` the total; parsed single-column
 // (the grid sits under one caption) — see parseGridColumn in table-importer.
 const GRIDCOL = (caption, col, ncols, cols = "1") => ({ kind: "gridcol", caption, col, ncols, cols });
+
+const NORD_LABELS = ["Male", "Female", "Surname", "Title"];
+const NORD_TABLE_SHAPES = [
+  { name: "Nord Male Names", shape: GRIDCOL("NORD NAMES", 0, 4) },
+  { name: "Nord Female Names", shape: GRIDCOL("NORD NAMES", 1, 4) },
+  { name: "Nord Surnames", shape: GRIDCOL("NORD NAMES", 2, 4) },
+  { name: "Nord Titles", shape: GRIDCOL("NORD NAMES", 3, 4) },
+];
+const NORD_GENERATOR_SHAPES = [
+  { name: "Nord Male Name Generator", columns: ["Male", "Surname", "Title"] },
+  { name: "Nord Female Name Generator", columns: ["Female", "Surname", "Title"] },
+].map(({ name, columns }) => ({
+  name,
+  shape: {
+    kind: "compound", split: "grid", cols: NORD_LABELS.length, size: 20,
+    labels: NORD_LABELS, columns, caption: "NORD NAMES", extractCols: "1",
+    reflow: ["cap", "cap", "\\s"],
+  },
+}));
 
 // One roll produces several labeled counts (e.g. "Benefit: 1; Curse: 0").
 const LABELED_SECTION = (caption, labels) => ({ kind: "labeled-section", caption, labels, cols: "auto" });
@@ -248,16 +271,20 @@ export const CONTENT_ENTRIES = [
   _entry("wr/yag-kesh-boons", "WR", "Yag-Kesh Boons", SECTION("YAG-KESH BOONS")),
   // CS3 tables the generic parser mangled (E2E D4): Arctic Sea Encounters is a
   // 2-page d100 longtable (pp.26-27 — same pattern as the CORE encounter
-  // tables); Nord Names is a d20 × 4-column name grid, not a single-die list.
+  // tables); Nord Names is a d20 × 4-column name grid whose source columns are
+  // also exposed as four standalone tables and two gender-specific generators.
   _entry("cs3/arctic-sea-encounters", "CS3", "Cursed Scroll 3 p26: Arctic Sea Encounters",
     LONGTABLE("ARCTIC SEA ENCOUNTERS"), ["Arctic Sea Encounters"]),
   _entry("cs3/nord-names", "CS3", "Cursed Scroll 3 p16: Nord Names",
-    // Male/Female/Surname are always single words; Title is the remainder
-    // (may open lowercase: "the Eagle"), so reflow boundaries beat positional
-    // slicing (layout mode chopped "Asger" → "sger").
-    { kind: "compound", split: "grid", cols: 4, size: 20, labels: ["Male", "Female", "Surname", "Title"],
-      caption: "NORD NAMES", extractCols: "1", reflow: ["cap", "cap", "\\s"] },
+    SUITE([
+      ...NORD_TABLE_SHAPES,
+      ...NORD_GENERATOR_SHAPES,
+    ], [{ pages: "16", cols: "1" }]),
     ["Nord Names"]),
+  ...NORD_TABLE_SHAPES.map(({ name, shape }) =>
+    _entry(`cs3/${_slug(name)}`, "CS3", name, shape)),
+  ...NORD_GENERATOR_SHAPES.map(({ name, shape }) =>
+    _entry(`cs3/${_slug(name)}`, "CS3", name, shape)),
   // CS2's pit-fighting suite (pgs 20-24) — FOURTEEN tables behind one Unlock,
   // because they are one feature and half of them are useless alone. Without
   // this the generic recognizer returned a single 9-row 1d13 table with

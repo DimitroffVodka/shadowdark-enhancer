@@ -1622,6 +1622,32 @@ function parseGridReflow(text, { name = "", cols = 2, size, labels, reflow } = {
   return _buildGridTable(grouped, { name, cols, size, labels });
 }
 
+/**
+ * Restrict a parsed compound grid to the named columns a shape declares. The
+ * source grid is still parsed at its full width so non-contiguous columns (for
+ * example Male/Surname/Title) retain their real boundaries. An absent subset
+ * leaves the parsed result untouched.
+ */
+function selectCompoundColumns(pt, labels, subset) {
+  if (!Array.isArray(subset)) return pt;
+  if (!subset.length || !Array.isArray(labels)) return null;
+  const norm = (value) => String(value ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  const indexes = subset.map((wanted) => labels.findIndex((label) => norm(label) === norm(wanted)));
+  if (indexes.some((index) => index < 0) || !Array.isArray(pt?.columns)) return null;
+  const columns = indexes.map((index) => pt.columns[index]);
+  if (columns.some((column) => !column)) return null;
+  pt.columns = columns;
+  if (pt.compound) {
+    pt.compound.columns = columns;
+    pt.compound.separator = " ";
+  }
+  pt.separator = " ";
+  const size = Math.max(0, ...columns.flatMap((column) =>
+    (column.rows ?? []).map((row) => row.max ?? 0)));
+  if (size) pt.formula = `${columns.length}d${size}`;
+  return pt;
+}
+
 /** Simple per-line lookup parse: one row per line. This is the path for a
  *  REFLOWED paste (copied from a PDF viewer — one row per line, single-spaced,
  *  no column alignment). When the shape names the last column's start keyword
@@ -2352,7 +2378,8 @@ export function parseByShape(text, shape, { name = "" } = {}) {
       if (name) g.name = name;
       return g;
     })();
-    let candidates = [viaReflow, viaAligned, viaGenerators].filter(Boolean);
+    const subset = (g) => selectCompoundColumns(g, shape.labels, shape.columns);
+    let candidates = [viaReflow, viaAligned, viaGenerators].map(subset).filter(Boolean);
     if (!candidates.length) return null;
     // The declared size is authoritative, and best-filled alone will happily
     // buy an extra row with page furniture: CS2 pg 22 footers its last grid
