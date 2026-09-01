@@ -233,7 +233,7 @@
 | `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 460 | Spell workspace organized by class / tier / alignment. |
 | `tables/table-importer.mjs` | 3422 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `tables/table-shapes.mjs` | 584 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `tables/table-shapes.mjs` | 590 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 297 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 541 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
@@ -314,7 +314,7 @@
 | `steps/hp-step.mjs` | 123 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 131 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
-| `steps/preview-step.mjs` | 270 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/preview-step.mjs` | 299 | Step — Preview. Final character-sheet preview before creation. |
 | `steps/stats-step.mjs` | 362 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`

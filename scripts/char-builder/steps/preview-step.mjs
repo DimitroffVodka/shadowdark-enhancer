@@ -122,7 +122,11 @@ export class PreviewStep extends BaseStep {
     // A GM-curated gallery proxies the browse through the GM's client, so it gives
     // a permission-less player a way to pick art without opening the data dir.
     const canPickFiles = canBrowse || galleryEnabled();
+    // Offered alongside the file picker, not instead of it — a GM has
+    // FILES_BROWSE and would otherwise never be shown the gallery at all.
+    const canGallery = galleryEnabled();
     return {
+      canGallery,
       portrait: art.portrait,
       token: art.token,
       // The portrait thumb falls back to bundled art, then to a generic icon;
@@ -221,6 +225,27 @@ export class PreviewStep extends BaseStep {
 
   /** Pick an image for one slot: the real FilePicker with FILES_BROWSE, else the
    * GM-proxied curated gallery. */
+  /**
+   * Pick from the curated gallery, whatever the caller's file permission.
+   *
+   * The gallery used to be reachable ONLY as a fallback for a player without
+   * FILES_BROWSE: `_onPickArt` branched on the permission and a GM always got
+   * the raw FilePicker instead. So the person most likely to have installed a
+   * portrait pack — the GM — could never see the gallery those packs feed, and
+   * reasonably concluded the feature was missing. It is a source of art, not a
+   * consolation prize for restricted users.
+   */
+  async _onPickGallery(slot) {
+    if (!galleryEnabled()) {
+      ui.notifications.warn(game.i18n.localize("SDE.charBuilder.art.noGallery"));
+      return;
+    }
+    const picked = await pickGalleryArt(this.state.art[slot]);
+    if (!picked) return;
+    this.state.art[slot] = picked;
+    this.app.render();
+  }
+
   async _onPickArt(slot) {
     const st = this.state;
     const apply = (path) => {
@@ -254,6 +279,10 @@ export class PreviewStep extends BaseStep {
       case "cb-art-token":
         await this._onPickArt(action === "cb-art-portrait" ? "portrait" : "token");
         return false;    // the FilePicker / gallery callback re-renders on pick
+      case "cb-gallery-portrait":
+      case "cb-gallery-token":
+        await this._onPickGallery(action === "cb-gallery-portrait" ? "portrait" : "token");
+        return false;    // the gallery callback re-renders on pick
       case "cb-art-suggest":
         this._onUseSuggested();
         return true;

@@ -243,7 +243,13 @@ export const CONTENT_ENTRIES = [
   // page-sharers that had no shape, so a batch import reported them as
   // "nothing to import" while every page-mate around them succeeded.
   _entry("core/age", "CORE", "Age", SECTION("AGE", "auto")),
-  _entry("core/occupation", "CORE", "Occupation", SECTION("OCCUPATION", "auto")),
+  // OCCUPATION prints "d4, d4" — a cross-reference matrix, not a list. Column 1
+  // sits ABOVE the whole NPC QUALITIES block on p125 and columns 2-4 below it,
+  // so no single captioned slice can see all sixteen entries; MATRIX bins cells
+  // by their x-positions and flattens the grid to the 1d16 the manifest
+  // declares. A SECTION shape read only the bottom fragment and produced a
+  // four-row 1d4 table.
+  _entry("core/occupation", "CORE", "Occupation", MATRIX("OCCUPATION", 4)),
   // Core Rulebook magic-item + patron ATTRIBUTE tables: small single-die tables
   // stacked under their own ALL-CAPS caption on shared pages (Benefit/Curse
   // pairs, Item Flaw/Virtue, patron Oaths/Blessings). Section-sliced; the
