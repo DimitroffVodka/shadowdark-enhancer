@@ -182,6 +182,14 @@ wrote and only refreshes that one line. See
 It needs a parsing recipe, or has the wrong one. See
 [Table Import & Shapes](Table-Import-and-Shapes.md).
 
+### A numeric page footer was pasted with a Basic Gear table
+
+The Item Builder strips page furniture (such as bare numeric running headers or page footers) from the input before recognizing gear rows. Furniture lines are excised silently rather than reported as dropped rows because they are layout artifacts rather than content requiring GM attention. Legitimate gear rows that contain numbers (such as `20-foot pole` or `Pole, 10-foot`) are recognized normally.
+
+### A Basic Gear description remained unassigned after matching
+
+Description headers are matched to parsed gear items through exact names, canonical prefixes, and collision-audited assignment aliases (`Oil flask.` matches `Oil, flask`, and plain `Rope.` matches `Rope, 60'` because `Rope, morzo silk` names its material). If a description paragraph has a genuinely ambiguous header that could belong to multiple distinct unaliased rows or if a collision is detected, the matcher refuses the ambiguous assignment rather than guessing. Any unclaimed paragraphs remain in the description input box for GM review.
+
 ### The startup monster backfill reported incomplete or retried on world load
 
 The startup sweep over the managed Actors pack (`world.shadowdark-enhancer--actors`) runs with per-Actor failure isolation. If an individual Actor encounters an error during the upgrade (such as malformed data or a transient write rejection), the error is isolated: the sweep records the specific Actor and machine-readable reason (such as `transform-threw` or `write-failed`) and continues attempting the remaining Actors in the pack.

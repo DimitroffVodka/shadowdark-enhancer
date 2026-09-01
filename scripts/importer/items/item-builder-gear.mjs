@@ -13,10 +13,166 @@
  * (item-importer.resolveGearPropertiesAll) and runs on these same rows.
  */
 import { parseGear } from "./gear-parser.mjs";
-import { itemRecognizer } from "./item-parser.mjs";
+import { itemRecognizer, splitDescriptionsByNames } from "./item-parser.mjs";
+import { stripPageFurniture } from "./record-boundary.mjs";
 
 const _strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 const _norm  = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+// Claim keys fold punctuation; literal keys retain it so a source alias such
+// as "Oil flask" can be audited against the distinct row spelling "Oil, flask".
+const _literalNorm = (s) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * Assignment aliases for the Basic Gear descriptions page. These are source
+ * spellings, not looser matching rules: each target is admitted only when its
+ * canonical row is unique and every other row claiming the alias is one of
+ * the explicitly audited source variants below.
+ *
+ * The plain "Rope." header is the base 60-foot rope row. The other row names
+ * its material ("Rope, morzo silk"), so the source data breaks that apparent
+ * tie without relying on array order or substring containment. An unexpected
+ * third rope variant remains refused rather than inheriting this policy.
+ */
+export const BASIC_GEAR_DESCRIPTION_ASSIGNMENT_ALIASES = Object.freeze([
+  Object.freeze({ alias: "Oil flask", target: "Oil, flask", allowedOwners: ["Oil, flask"] }),
+  Object.freeze({
+    alias: "Rope",
+    target: "Rope, 60'",
+    allowedOwners: ["Rope, 60'", "Rope, morzo silk"],
+  }),
+]);
+
+/**
+ * Anchor variants for one table row: the full name, the name without a
+ * trailing quantity, and the part before a container comma. The book's
+ * description headers use these bare/source spellings ("Candle.", "Tallow.",
+ * and so on) while the table rows carry suffixes.
+ * @param {string} name
+ * @returns {string[]}
+ */
+export function descriptionAnchorNames(name) {
+  const full = String(name ?? "").trim();
+  const noQty = full.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const noComma = noQty.split(",")[0].trim();
+  return [...new Set([full, noQty, noComma].filter(Boolean))];
+}
+
+function addOwner(ownersByKey, key, item) {
+  if (!key) return;
+  if (!ownersByKey.has(key)) ownersByKey.set(key, new Set());
+  ownersByKey.get(key).add(item);
+}
+
+function addClaim(claim, key, item) {
+  if (!key) return;
+  if (!claim.has(key)) claim.set(key, item);
+  else if (claim.get(key) !== item) claim.set(key, null);
+}
+
+function addLiteralClaim(claim, key, item) {
+  if (!key) return;
+  if (!claim.has(key)) claim.set(key, item);
+  else if (claim.get(key) !== item) claim.set(key, null);
+}
+
+/**
+ * Match the Item Builder's description paste to already-parsed rows. This is
+ * the pure seam behind _onMatchDesc: boundaries still belong to
+ * splitDescriptionsByNames, while this function owns explicit assignment,
+ * collision refusal, and one-to-one ownership.
+ *
+ * @param {object[]} items
+ * @param {string} text
+ * @param {{ aliases?: Array<{alias:string,target:string,allowedOwners?:string[]}> }} [options]
+ * @returns {{ assignments: Array<{item:object,sourceName:string,description:string}>,
+ *   entries: Array<{name:string,description:string}>, anchorNames:string[], refusedAliases:string[] }}
+ */
+export function matchGearDescriptions(items, text, { aliases = BASIC_GEAR_DESCRIPTION_ASSIGNMENT_ALIASES } = {}) {
+  const rows = Array.isArray(items) ? items : [];
+  const canonical = new Map();       // normalized canonical name -> item/null
+  const canonicalLiterals = new Map(); // exact canonical spelling -> item/null
+  const ownersByKey = new Map();     // normalized phrase -> every row claiming it
+  const literalClaims = new Map();   // source spelling -> item/null
+
+  for (const item of rows) {
+    const canonicalKey = _norm(item?.name);
+    addClaim(canonical, canonicalKey, item);
+    addLiteralClaim(canonicalLiterals, _literalNorm(item?.name), item);
+    addOwner(ownersByKey, canonicalKey, item);
+    addLiteralClaim(literalClaims, _literalNorm(item?.name), item);
+    for (const phrase of [...descriptionAnchorNames(item?.name), ...(item?.altNames ?? [])]) {
+      addOwner(ownersByKey, _norm(phrase), item);
+      addLiteralClaim(literalClaims, _literalNorm(phrase), item);
+    }
+  }
+
+  // Exact canonical names win over variants, but a normalized collision among
+  // canonical rows is refused rather than silently selecting the last row.
+  const claim = new Map(canonical);
+  for (const item of rows) {
+    for (const phrase of [...descriptionAnchorNames(item?.name), ...(item?.altNames ?? [])]) {
+      const key = _norm(phrase);
+      if (!key || canonical.has(key)) continue;
+      addClaim(claim, key, item);
+    }
+  }
+
+  const refusedAliases = [];
+  const acceptedAliases = [];
+  for (const alias of aliases ?? []) {
+    const aliasText = String(alias?.alias ?? "").trim();
+    const aliasKey = _norm(aliasText);
+    const target = canonicalLiterals.get(_literalNorm(alias?.target));
+    const existingLiteral = literalClaims.get(_literalNorm(aliasText));
+    const owners = ownersByKey.get(aliasKey) ?? new Set();
+    const allowed = new Set((alias?.allowedOwners ?? [alias?.target])
+      .map(_literalNorm).filter(Boolean));
+    const auditedOwners = owners.has(target)
+      && [...owners].every((owner) => allowed.has(_literalNorm(owner?.name)));
+    const literalCollision = literalClaims.has(_literalNorm(aliasText))
+      && existingLiteral !== target
+      && !auditedOwners;
+    const collision = !target || literalCollision || !auditedOwners;
+    if (collision) {
+      if (target && aliasText) refusedAliases.push(aliasText);
+      continue;
+    }
+    // An explicit, data-backed alias may resolve a known shared variant (the
+    // plain Rope case), but only after the collision audit above passes.
+    claim.set(aliasKey, target);
+    literalClaims.set(_literalNorm(aliasText), target);
+    acceptedAliases.push(aliasText);
+  }
+
+  const ownerFor = (phrase) => {
+    const literalKey = _literalNorm(phrase);
+    if (literalClaims.has(literalKey)) return literalClaims.get(literalKey);
+    return claim.get(_norm(phrase)) ?? null;
+  };
+  const anchorNames = [];
+  const seenAnchors = new Set();
+  const addAnchor = (phrase) => {
+    const value = String(phrase ?? "").trim();
+    if (!value || seenAnchors.has(value) || !ownerFor(value)) return;
+    seenAnchors.add(value);
+    anchorNames.push(value);
+  };
+  for (const item of rows) {
+    for (const phrase of [...descriptionAnchorNames(item?.name), ...(item?.altNames ?? [])]) addAnchor(phrase);
+  }
+  for (const alias of acceptedAliases) addAnchor(alias);
+
+  const entries = splitDescriptionsByNames(text, anchorNames);
+  const assignments = [];
+  const assignedItems = new Set();
+  for (const entry of entries) {
+    const item = ownerFor(entry.name);
+    if (!item || assignedItems.has(item)) continue;
+    assignedItems.add(item);
+    assignments.push({ item, sourceName: entry.name, description: entry.description });
+  }
+  return { assignments, entries, anchorNames, refusedAliases };
+}
 
 /**
  * Parse a price/stat table paste into working rows for the builder.
@@ -36,7 +192,12 @@ export function parseGearTable(text, gearType, { onDrop } = {}) {
       warnings: warnings ?? [],
     }));
   }
-  const { claimed, skipped } = itemRecognizer.claim(text, { force: true });
+  // A Basic Gear paste can arrive with a page footer in its own blank-line
+  // block. Force mode quite properly treats every remaining block as an item,
+  // so remove page furniture at this input seam first. It is furniture, not a
+  // dropped row the GM should review; record-boundary.mjs owns the predicate
+  // used here and by the description path.
+  const { claimed, skipped } = itemRecognizer.claim(stripPageFurniture(text), { force: true });
   // Rows the recognizer refused (currency rows like Coin/Gem, a multi-column
   // grid it can't split) travel out through onDrop, so the builder reports them
   // the same way the Weapon/Armor path reports its own drops.
