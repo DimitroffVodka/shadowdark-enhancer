@@ -108,19 +108,45 @@ const LEGACY_MODE_TO_TYPE = {
   0: "custom", 1: "multiply", 2: "add", 3: "downgrade", 4: "upgrade", 5: "override",
 };
 
+/** The absent value Shadowdark's DocumentUUIDField round-trips for this field. */
+const CLASS_TALENT_TABLE_ABSENT = null;
+
+/** Canonicalize the one field whose schema has a meaningful empty value. */
+function _canonicalClassTalentTable(value) {
+  return value === "" || value === null || value === undefined
+    ? CLASS_TALENT_TABLE_ABSENT : value;
+}
+
+/** Normalize one embedded ActiveEffect change list. */
+function _changeShape(changes) {
+  return (changes ?? []).map((c) => ({
+    key: c.key ?? "",
+    type: c.type ?? LEGACY_MODE_TO_TYPE[Number(c.mode ?? 2)] ?? "add",
+    value: String(c.value ?? ""),
+  }));
+}
+
 /** Comparable shape for embedded ActiveEffects (core `changes` or SD `system.changes`).
  *  Normalizes on the v14 string `type`; legacy numeric `mode` values (pre-v14
- *  authored data, old world docs) map through LEGACY_MODE_TO_TYPE. */
+ *  authored data, old world docs) map through LEGACY_MODE_TO_TYPE.
+ *
+ * Shadowdark currently surfaces the same stored list through both properties.
+ * Normalize each property separately, then select one only when both populated
+ * lists are equal (the mirror case). If they differ, retain both lists so a real
+ * extra/corrected change remains visible. This deliberately does not deduplicate:
+ * duplicates and order within either representation remain meaningful. */
 function _effectShape(list) {
   return (list ?? []).map((e) => ({
     name: e.name ?? "",
     img: e.img ?? null,
     transfer: e.transfer !== false,
-    changes: [...(e.changes ?? []), ...(e.system?.changes ?? [])].map((c) => ({
-      key: c.key ?? "",
-      type: c.type ?? LEGACY_MODE_TO_TYPE[Number(c.mode ?? 2)] ?? "add",
-      value: String(c.value ?? ""),
-    })),
+    changes: (() => {
+      const core = _changeShape(e.changes);
+      const system = _changeShape(e.system?.changes);
+      if (!core.length) return system;
+      if (!system.length) return core;
+      return _deepEq(core, system) ? system : [...core, ...system];
+    })(),
   }));
 }
 
@@ -165,7 +191,9 @@ function _staleFields(docObj, data) {
   if (data.img != null && data.img !== docObj.img) fields.push("img");
   const docSys = docObj.system ?? {};
   for (const [k, v] of Object.entries(data.system ?? {})) {
-    if (!_subsetEq(v, docSys[k])) fields.push(`system.${k}`);
+    const dataValue = k === "classTalentTable" ? _canonicalClassTalentTable(v) : v;
+    const docValue = k === "classTalentTable" ? _canonicalClassTalentTable(docSys[k]) : docSys[k];
+    if (!_subsetEq(dataValue, docValue)) fields.push(`system.${k}`);
   }
   if (!_deepEq(_effectShape(data.effects), _effectShape(docObj.effects))) fields.push("effects");
   const { art: _artWitness, ...df } = data.flags?.[MODULE_ID] ?? {};
@@ -670,7 +698,7 @@ async function buildClassTalentTable(parsed, { talentsPack, tablesPack, sysTalen
   }
 
   // ── Class-talent RollTable (same-range multi-results for choices) ──
-  let tableUuid = "";
+  let tableUuid = CLASS_TALENT_TABLE_ABSENT;
   if (parsed.talentTable && rowResults.length) {
     // The class sheet's "Class Talents Table" dropdown lists RollTables whose
     // name matches /class\s+talents/i (probed from CompendiumsSD
@@ -813,7 +841,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
 
   // ── 1+3. Talent-table outcome docs + class-talent RollTable ──
   // Outcome Talents → Talents pack (Level/<class>); table → Tables pack.
-  const tableUuid = bodyOnly ? "" : await buildClassTalentTable(parsed, {
+  const tableUuid = bodyOnly ? CLASS_TALENT_TABLE_ABSENT : await buildClassTalentTable(parsed, {
     talentsPack, tablesPack, sysTalents, sourceTitle, source, overlay, report, ensureFolderPath, extraTableRefs,
   });
   if (bodyOnly && (parsed.talentTable || parsed.titles?.length || parsed.spellsKnown?.length || parsed.extraTables?.length))
@@ -967,7 +995,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       languages: classLanguages,
       talents: featureUuids,
       talentChoiceCount: 0,
-      classTalentTable: tableUuid,
+      classTalentTable: _canonicalClassTalentTable(tableUuid),
       classAbilities: classAbilityUuids, talentChoices: [],
       patron: { required: false, startingBoons: 0 },
       spellcasting: {
@@ -1020,7 +1048,8 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
       .find((e) => e.name === classData.name && e.type === "Class");
     const existing = prior ? (await classesPack.getDocument(prior._id))?.toObject() : null;
     if (existing) {
-      if (existing.system?.classTalentTable) classData.system.classTalentTable = existing.system.classTalentTable;
+      if (existing.system?.classTalentTable)
+        classData.system.classTalentTable = _canonicalClassTalentTable(existing.system.classTalentTable);
       if (existing.system?.titles?.length) classData.system.titles = existing.system.titles;
       const priorKnown = existing.system?.spellcasting?.spellsknown;
       // Only when the body still describes a caster — don't strand a spells-known
@@ -1082,7 +1111,7 @@ export async function createClassUnit(parsed, { source = "", sourceTitle = "", o
   }
 
   report.classUuid = madeClass.uuid;
-  report.tableUuid = tableUuid;
+  report.tableUuid = _canonicalClassTalentTable(tableUuid);
   return report;
 }
 
@@ -1139,7 +1168,7 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
     const tableUuid = await buildClassTalentTable(parsedLike, {
       talentsPack, tablesPack, sysTalents, sourceTitle: srcTitle, source, overlay, report, ensureFolderPath, extraTableRefs,
     });
-    if (tableUuid) update["system.classTalentTable"] = tableUuid;
+    if (tableUuid !== CLASS_TALENT_TABLE_ABSENT) update["system.classTalentTable"] = tableUuid;
   }
   if (sup.titles?.length) {
     update["system.titles"] = sup.titles.map((t) => ({
@@ -1172,7 +1201,7 @@ export async function mergeClassSupplement(targetClassUuid, sup, { source = "", 
   }
 
   report.classUuid = cls.uuid;
-  report.tableUuid = update["system.classTalentTable"] ?? "";
+  report.tableUuid = _canonicalClassTalentTable(update["system.classTalentTable"]);
   return report;
 }
 
@@ -1411,5 +1440,5 @@ export async function pruneBoughtGearGrants() {
 export const _internals = {
   _deepEq, _subsetEq, _staleFields, _effectShape, classifySpellWiring, borrowedTagsForSpell, keptGrantUuids,
   _classArtDecision, _stampArt, _talentData, _classAbilityData, CLASS_CONTENT_DEFAULT_IMG,
-  _ensureItem,
+  _ensureItem, _canonicalClassTalentTable,
 };

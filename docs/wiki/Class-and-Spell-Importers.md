@@ -107,6 +107,12 @@ The importer does this for you when it recognises the pattern.
 
 ## Troubleshooting
 
+**Re-importing a class replaces unchanged talents or class abilities with ActiveEffects.**
+It no longer does. Shadowdark persists and exposes stored ActiveEffect changes across both `changes` and `system.changes`. The Class Importer's comparison normalizes each representation separately and treats them as one logical list only when both populated lists are equal (the true mirror case), preventing unchanged class-content Items from being marked stale and replaced on repeat import. When core and system changes differ, both are retained so real extra or corrected changes still register. The comparison does not deduplicate, so an effect legitimately carrying the same change twice is still a difference, and order still matters. Unchanged overlay-wired class content is reused on repeat import; live verification confirmed an overlay-wired Talent with explicit overlay art retained its exact Item and effect IDs and modified timestamp.
+
+**Re-importing a class with no talent table replaces the class document every time.**
+It no longer does. Classes with no talent table use `null` as their canonical absent value across payload construction and comparison, matching what Shadowdark's `DocumentUUIDField` round-trips. The comparison recognizes `null` and incoming blank references as equivalent for `classTalentTable` alone, preventing unnecessary class replacement while ensuring real talent-table UUID additions and updates still apply.
+
 **Re-importing a class overwrote the icon I picked for a Talent.**
 It no longer does. The Class Importer reuses A3's art-provenance witness
 (`flags["shadowdark-enhancer"].art`) for every `Class`, `Talent`,

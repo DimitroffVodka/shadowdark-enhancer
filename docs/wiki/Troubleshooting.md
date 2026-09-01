@@ -182,6 +182,12 @@ wrote and only refreshes that one line. See
 It needs a parsing recipe, or has the wrong one. See
 [Table Import & Shapes](Table-Import-and-Shapes.md).
 
+### The startup monster backfill reported incomplete or retried on world load
+
+The startup sweep over the managed Actors pack (`world.shadowdark-enhancer--actors`) runs with per-Actor failure isolation. If an individual Actor encounters an error during the upgrade (such as malformed data or a transient write rejection), the error is isolated: the sweep records the specific Actor and machine-readable reason (such as `transform-threw` or `write-failed`) and continues attempting the remaining Actors in the pack.
+
+When a batch contains failures, the module's `backfillVersion` setting is not advanced as complete, leaving the gate open so that the next startup or world reload can retry the uncompleted work. If a structural embedded Item replacement fails mid-write after deletion, the sweep attempts compensation by restoring the source Item snapshot with its exact identity and data intact. When restoration succeeds, original Item data survives for retry; if restoration itself fails, the Actor is reported as `compensation-failed` and manual GM recovery may be required before retry. (The backfill is sequential and retryable rather than a general transaction across all write phases; compensation is bounded to the structural replacement step).
+
 ---
 
 ## Combat and movement

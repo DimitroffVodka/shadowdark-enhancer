@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-878 tracked files · ~144,200 lines of code/markup across scripts+templates+styles+test.
+879 tracked files · ~145,000 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 865 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 870 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -225,7 +225,7 @@
 | `char-content/char-content-manifest.mjs` | 1481 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1415 | Class unit → real documents in dependency order. |
+| `char-content/class-unit-importer.mjs` | 1444 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 263 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 98 | Class name → system Class item UUID. |
@@ -250,7 +250,7 @@
 | `monsters/monster-importer-app.mjs` | 378 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
 | `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
-| `monsters/monster-backfill.mjs` | 359 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
+| `monsters/monster-backfill.mjs` | 505 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/managed-actor-backfill.mjs` | 305 | Reusable active-GM, version-gated backfill lifecycle over the managed Actors pack; consumers supply the missing-only transform. |
 | `monsters/monster-text-backfill.mjs` | 187 | E2 missing-only monster-context `[[request]]` and inline-roll backfill over managed NPC Actor text; owns its consumer version gate. |
 | `monsters/creature-type-map-data.mjs` | 97 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
