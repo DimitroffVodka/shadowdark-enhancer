@@ -14,7 +14,7 @@ import { _internals } from "../scripts/importer/char-content/class-unit-importer
 const {
   _deepEq, _subsetEq, _staleFields, _effectShape,
   _classArtDecision, _talentData, _classAbilityData, CLASS_CONTENT_DEFAULT_IMG,
-  _ensureItem,
+  _ensureItem, _canonicalClassTalentTable,
 } = _internals;
 
 const MOD = "shadowdark-enhancer";
@@ -107,10 +107,74 @@ test("_staleFields: corrected description / titles / effects are detected", () =
   assert.ok(fields.includes("effects"));
 });
 
-test("_effectShape: core changes and SD system.changes normalize identically", () => {
+test("_effectShape: core-only, system-only, and mirrored changes are one logical list", () => {
   const core = [{ name: "E", transfer: true, changes: [{ key: "k", mode: 2, value: 1 }] }];
-  const sd = [{ name: "E", system: { changes: [{ key: "k", value: "1" }] } }];
-  assert.ok(_deepEq(_effectShape(core), _effectShape(sd)), "mode default 2 + value stringified");
+  const sd = [{ name: "E", system: { changes: [{ key: "k", type: "add", value: "1" }] } }];
+  const mirrored = [{ name: "E", transfer: true,
+    changes: [{ key: "k", mode: 2, value: 1 }],
+    system: { changes: [{ key: "k", type: "add", value: "1" }] } }];
+  assert.ok(_deepEq(_effectShape(core), _effectShape(sd)), "legacy mode + value stringified");
+  assert.ok(_deepEq(_effectShape(core), _effectShape(mirrored)), "mirrors do not double the logical change");
+});
+
+test("A3c: non-identical core/system lists remain meaningfully different", () => {
+  const system = [{ name: "E", system: { changes: [{ key: "k", type: "add", value: "1" }] } }];
+  const staleCore = [{ name: "E", changes: [{ key: "other", type: "add", value: "1" }],
+    system: { changes: [{ key: "k", type: "add", value: "1" }] } }];
+  assert.deepEqual(_staleFields({ effects: staleCore, system: {}, flags: {} },
+    { effects: system, system: {}, flags: {} }), ["effects"],
+    "only equal core/system lists are a mirror");
+});
+
+test("A3c: a genuinely distinct effect change remains stale", () => {
+  const oldChange = { key: "system.bonuses.x", type: "add", value: "1" };
+  const newChange = { key: "system.bonuses.y", type: "add", value: "1" };
+  const doc = { effects: [{ name: "E", changes: [oldChange] }], system: {}, flags: {} };
+  const data = { effects: [{ name: "E", changes: [newChange] }], system: {}, flags: {} };
+  assert.deepEqual(_staleFields(doc, data), ["effects"]);
+});
+
+test("A3c: an intentional duplicate within one representation remains stale", () => {
+  const change = { key: "system.bonuses.x", type: "add", value: "1" };
+  const doc = { effects: [{ name: "E", changes: [change, change] }], system: {}, flags: {} };
+  const data = { effects: [{ name: "E", changes: [change] }], system: {}, flags: {} };
+  assert.deepEqual(_staleFields(doc, data), ["effects"]);
+});
+
+test("A3c: effect change order remains significant", () => {
+  const first = { key: "system.bonuses.x", type: "add", value: "1" };
+  const second = { key: "system.bonuses.y", type: "add", value: "1" };
+  const doc = { effects: [{ name: "E", changes: [second, first] }], system: {}, flags: {} };
+  const data = { effects: [{ name: "E", changes: [first, second] }], system: {}, flags: {} };
+  assert.deepEqual(_staleFields(doc, data), ["effects"]);
+});
+
+test("A3c: editing an existing effect change remains updateable", () => {
+  const doc = { effects: [{ name: "E", changes: [{ key: "k", type: "add", value: "1" }] }], system: {}, flags: {} };
+  const data = { effects: [{ name: "E", changes: [{ key: "k", type: "add", value: "2" }] }], system: {}, flags: {} };
+  assert.deepEqual(_staleFields(doc, data), ["effects"]);
+});
+
+test("A3d: absent class talent table canonicalizes empty payload against stored null", () => {
+  const data = { system: { classTalentTable: "" }, effects: [], flags: {} };
+  const doc = { system: { classTalentTable: null }, effects: [], flags: {} };
+  assert.equal(_canonicalClassTalentTable(""), null);
+  assert.equal(_canonicalClassTalentTable(undefined), null);
+  assert.deepEqual(_staleFields(doc, data), []);
+});
+
+test("A3d: canonical class talent table preserves UUID changes and other empty values", () => {
+  const uuid = "Compendium.world.tables.Item.class-talents";
+  const same = { system: { classTalentTable: uuid }, effects: [], flags: {} };
+  const doc = { system: { classTalentTable: uuid }, effects: [], flags: {} };
+  assert.deepEqual(_staleFields(doc, same), []);
+  assert.deepEqual(_staleFields(doc, { ...same, system: { classTalentTable: "Compendium.world.tables.Item.other" } }),
+    ["system.classTalentTable"]);
+
+  const emptyData = { system: { unrelatedField: "" }, effects: [], flags: {} };
+  const emptyDoc = { system: { unrelatedField: null }, effects: [], flags: {} };
+  assert.deepEqual(_staleFields(emptyDoc, emptyData), ["system.unrelatedField"],
+    "only classTalentTable gets its field-specific absent-value contract");
 });
 
 // ─── A3b: class-content art provenance ───────────────────────────────────────
@@ -290,6 +354,32 @@ const newReport = () => ({ created: [], reused: [], updated: [], systemReuse: []
 const wiredPayload = (effectImg) => _talentData("Deep Pockets", "<p>Book text.</p>", "wr", {
   talentClass: "class",
   effects: [{ name: "Buff", img: effectImg, transfer: true, changes: [{ key: "system.bonuses.x", value: "1", type: "add" }] }],
+});
+
+test("A3c: an unchanged overlay-wired Talent with mirrored effects is reused", async () => {
+  const data = wiredPayload(OVERLAY_ART);
+  const legacy = storedDoc({ name: "Deep Pockets", img: OVERLAY_ART, description: "<p>Book text.</p>",
+    flags: { [MOD]: { imported: true } } });
+  legacy.effects = data.effects.map((effect) => ({
+    ...effect,
+    changes: effect.system.changes,
+    system: { changes: effect.system.changes },
+  }));
+  const { pack, restore } = fakePack([legacy]);
+  try {
+    const report = newReport();
+    const result = await _ensureItem(pack, data, ["Class", "X"], report);
+    assert.equal(result.reused, true);
+    assert.equal(result.updated, undefined);
+    assert.equal(report.updated.length, 0, "a mirror must not force replacement");
+    assert.equal(report.reused.length, 1);
+
+    const repeatReport = newReport();
+    const repeat = await _ensureItem(pack, data, ["Class", "X"], repeatReport);
+    assert.equal(repeat.reused, true, "the same mirrored Talent stays reusable on repeat import");
+    assert.equal(repeat.updated, undefined);
+    assert.equal(repeatReport.updated.length, 0);
+  } finally { restore(); }
 });
 
 test("A3b: an unchanged legacy import PERSISTS the witness, and the next overlay revision then upgrades", async () => {

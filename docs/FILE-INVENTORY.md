@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-878 tracked files · ~144,200 lines of code/markup across scripts+templates+styles+test.
+878 tracked files · ~144,300 lines of code/markup across scripts+templates+styles+test.
 `v0.15.1` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -225,7 +225,7 @@
 | `char-content/char-content-manifest.mjs` | 1481 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1415 | Class unit → real documents in dependency order. |
+| `char-content/class-unit-importer.mjs` | 1444 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 263 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 98 | Class name → system Class item UUID. |
