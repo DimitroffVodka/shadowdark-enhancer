@@ -13,8 +13,8 @@ import {
 } from "../scripts/monster-art/imported-monster-art.mjs";
 
 test("F4 carries the source-aware picks and the reviewed-unmatched remainder", () => {
-  assert.equal(IMPORTED_MONSTER_ART_ROWS.length, 72);
-  assert.equal(Object.keys(IMPORTED_MONSTER_ART).length, 72);
+  assert.equal(IMPORTED_MONSTER_ART_ROWS.length, 73);
+  assert.equal(Object.keys(IMPORTED_MONSTER_ART).length, 73);
   assert.equal(importedMonsterArtKey("Cursed Scroll #2", "Horse,   War"), "CS2:horse, war");
   assert.equal(importedMonsterArtKey("Western Reaches", "Horse, War"), "WR:horse, war");
   assert.notEqual(
@@ -24,8 +24,8 @@ test("F4 carries the source-aware picks and the reviewed-unmatched remainder", (
   assert.equal(curatedImportedMonsterArtFor("CS4", "Basilisk Hatchling")?.source, "shadowdark-community-tokens");
   assert.equal(curatedImportedMonsterArtFor("CS2", "Tar Bat"), null);
   assert.equal(curatedImportedMonsterArtFor("CS2", "Horse"), null, "no bare-name fallback");
-  assert.equal(IMPORTED_MONSTER_ART_UNMATCHED_KEYS.length, 11);
-  assert.equal(new Set(IMPORTED_MONSTER_ART_UNMATCHED_KEYS).size, 11);
+  assert.equal(IMPORTED_MONSTER_ART_UNMATCHED_KEYS.length, 10);
+  assert.equal(new Set(IMPORTED_MONSTER_ART_UNMATCHED_KEYS).size, 10);
   // No key may be both curated and reviewed-unmatched: disposition checks the
   // curated map first, so an overlap would silently mask a stale row.
   assert.deepEqual(

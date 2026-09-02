@@ -436,6 +436,16 @@ const ROWS = [
     token: "modules/shadowdark-community-tokens/artwork/tokens/horse.webp",
     portrait: "modules/shadowdark-community-tokens/artwork/portraits/horse.webp",
   },
+  {
+    // FilePicker.browse returns PERCENT-ENCODED paths, so the library's
+    // canonical form carries %20 for the space. The row must match that byte
+    // for byte or _curatedImportedArtStatus never sees an exact option and the
+    // row is inert. The decoded form loads fine in a browser, which is exactly
+    // what makes this easy to get wrong.
+    book: "CS4", name: "Catfish, Giant", source: "too-many-tokens-dnd",
+    token: "modules/too-many-tokens-dnd/Aboleth/AbolethCatifish%20(1).webp",
+    portrait: "modules/too-many-tokens-dnd/Aboleth/AbolethCatifish%20(1).webp",
+  },
 ];
 
 /** Detached, frozen rows with the derived key exposed for audits and callers. */
@@ -461,7 +471,6 @@ const REVIEWED_UNMATCHED_KEYS = [
   "CS1:plogrina bittermold",
   "CS2:hero, gladiator",
   "CS2:rookie, pit-fighter",
-  "CS4:catfish, giant",
   "CS4:death slug",
   "CS4:stone shaman",
   "CS5:wendel",

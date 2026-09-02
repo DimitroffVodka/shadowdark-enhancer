@@ -248,6 +248,16 @@ export class TokenArtCatalog {
     // one string. `mapping.json` covers both; _loadPresentMaps keys by
     // basename, and it is what pairs each token with its portrait (without it
     // `portrait` silently falls back to the token path).
+    // 16,000 images in 383 per-creature folders, several variants each
+    // ("Aarakocra/AarakocraArcticTern (1).webp"). Browser-only, like the
+    // iconics: it ships no shadowdark map, and a set this size would otherwise
+    // dominate automatic name matching. Note _browseTree keys by BASENAME, and
+    // these filenames already carry their creature ("AbolethCatifish"), so the
+    // folder is not needed to tell two variants apart.
+    "too-many-tokens-dnd": {
+      label: "Too Many Tokens (DnD)",
+      root: "modules/too-many-tokens-dnd",
+    },
     "shadowdark-community-tokens": {
       label: "Shadowdark Community Tokens",
       root: "modules/shadowdark-community-tokens/artwork/tokens",
