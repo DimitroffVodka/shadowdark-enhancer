@@ -18,16 +18,26 @@ DimitroffVodka <dimitroffvodka@gmail.com> FlimtotheFlam <dimitroffvodka@gmail.co
 DimitroffVodka <dimitroffvodka@gmail.com> Dimitroffvodka <dimitroffvodka@gmail.com>
 
 # ── Assistants ───────────────────────────────────────────────────────────────
-# DELIBERATELY NOT folded into the human above. 33 commits have Claude as the
-# git author rather than as a co-author trailer, and those were genuinely
-# written by it — displaying them as a person's work would be a false claim
-# about who wrote the code, which is the opposite of what a mailmap is for.
-#
-# What this does collapse is the fifteen model-name variants that accumulated
-# in Co-Authored-By trailers (Opus 4.6/4.7/4.8/5, Fable 5, Sonnet 4.6, the 1M
-# context suffixes) into one entry, so `git shortlog --group=trailer:co-authored-by`
-# reports Claude once instead of fifteen times.
+# Collapses the fifteen model-name variants that accumulated in Co-Authored-By
+# trailers (Opus 4.6/4.7/4.8/5, Fable 5, Sonnet 4.6, the 1M context suffixes)
+# into one entry, so `git shortlog --group=trailer:co-authored-by` reports
+# Claude once instead of fifteen times.
 Claude <noreply@anthropic.com> <noreply@anthropic.com>
+
+# 33 commits carry Claude as the git AUTHOR rather than as a co-author trailer,
+# from sessions where the tool committed under its own identity. At the repo
+# owner's direction these display as his work, so `git shortlog` reports one
+# author for the project rather than two.
+#
+# KNOWN SIDE EFFECT, and it is unavoidable with a mailmap: 36 trailers read
+# exactly `Claude <noreply@anthropic.com>`, byte-identical to those author
+# lines, and git cannot tell an author field from a trailer when both hold the
+# same string. So co-author grouping now lists DimitroffVodka 37 times —
+# self-co-authorship, which is nonsense but harmless, and confined to
+# `--group=trailer:co-authored-by`. Removing the artifact would mean rewriting
+# 33 commits' author fields and force-pushing, which is a far larger change
+# than the display problem warrants.
+DimitroffVodka <dimitroffvodka@gmail.com> Claude <noreply@anthropic.com>
 
 # The other assistants keep their own identities — separate vendors, separate
 # emails, and nothing to normalise.
