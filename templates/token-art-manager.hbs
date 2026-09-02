@@ -46,8 +46,10 @@
     {{/each}}
   </div>
 
-  <div class="sde-tam-sources">
-    <div class="sde-tam-sources-title">Source priority <span class="sde-tam-dim">(highest wins where a monster has art in more than one)</span></div>
+  <details class="sde-tam-sources" {{#if sourcesOpen}}open{{/if}}>
+    <summary class="sde-tam-sources-title">Source priority
+      <span class="sde-tam-dim">· {{sourceCount}} sources · highest wins where a monster has art in more than one</span>
+    </summary>
     {{#each sources}}
     <div class="sde-tam-source">
       <div class="sde-tam-rank">
@@ -61,7 +63,7 @@
       <div class="sde-tam-source-used" title="Monsters currently using this source">{{used}}</div>
     </div>
     {{/each}}
-  </div>
+  </details>
 
   <div class="sde-tam-toolbar">
     <input type="text" name="filter" placeholder="Filter monsters…" value="{{filter}}" autocomplete="off">

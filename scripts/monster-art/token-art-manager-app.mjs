@@ -47,6 +47,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   _library = null;   // full cross-source token library for the image browser (lazy)
   _thumbPx = 56;     // image-browser thumbnail size (zoom slider)
   _collapsedSources = new Set();   // image-browser source groups collapsed by the user
+  _sourcesCollapsed = false;       // the Source priority panel, folded away by the user
   _filter = "";
   _conflictsOnly = false;
 
@@ -135,6 +136,10 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         isFirst: i === 0,
         isLast: i === orderedSources.length - 1,
       })),
+      sourceCount: orderedSources.length,
+      // Collapsed state is app state, not DOM state: the body re-renders on
+      // every reorder, and a bare <details> would spring back open each time.
+      sourcesOpen: !this._sourcesCollapsed,
       rows,
       folders: state.folders,
       stats: res.stats,
@@ -176,6 +181,17 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       conflicts._sdeWired = true;
       conflicts.addEventListener("change", () => { this._conflictsOnly = conflicts.checked; this._applyFilter(); });
     }
+    // Remember whether the Source priority panel is folded. `<details>` gives
+    // the disclosure for free, but its open state dies with the markup, and
+    // this body re-renders on every reorder — so record it and let
+    // _prepareContext put it back. No re-render on toggle: the browser has
+    // already done the work.
+    const sources = root.querySelector("details.sde-tam-sources");
+    if (sources && !sources._sdeWired) {
+      sources._sdeWired = true;
+      sources.addEventListener("toggle", () => { this._sourcesCollapsed = !sources.open; });
+    }
+
     // Hover-enlarge on the MAIN list too, not only inside Browse. The per-source
     // option thumbnails are where the actual comparison happens — you are
     // choosing between four candidates for one monster — and at that size they

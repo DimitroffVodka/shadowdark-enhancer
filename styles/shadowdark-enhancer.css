@@ -9373,7 +9373,14 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-folder-form .notes { margin: 0; }
 
 .sde-tam-sources { padding: 6px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-sources-title { font-weight: 600; margin-bottom: 4px; }
+/* A <summary>, so it carries the disclosure triangle and is keyboard-operable
+   without any of it being written here. `list-style: revert` restores the
+   marker that Foundry's reset strips. */
+.sde-tam-sources-title { font-weight: 600; margin-bottom: 4px; cursor: pointer; list-style: revert; user-select: none; }
+.sde-tam-sources-title:hover { color: var(--sde-gold, #c9aa58); }
+/* Closed, the panel is one line: drop the padding that assumed a list under it. */
+.sde-tam-sources:not([open]) { padding-bottom: 6px; }
+.sde-tam-sources:not([open]) .sde-tam-sources-title { margin-bottom: 0; }
 .sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
 .sde-tam-rank { display: flex; flex-direction: column; gap: 1px; }
 .sde-tam-rank button { width: 20px; height: 13px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 11px; }
