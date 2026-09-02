@@ -238,9 +238,25 @@ export class TokenArtCatalog {
       scaleMap: "systems/dnd5e/json/fa-token-mapping.json",
       defaultScale: 1.5,
     },
+    // Rooted at each TOKEN directory, not at the module root. The root walks
+    // `artwork/` and `monster24/`, each holding a `portraits/` beside its
+    // `tokens/`, and _browseTree keys by basename with first-wins — so
+    // `portraits/aboleth.webp` beat `tokens/aboleth.webp` and the browser
+    // offered a portrait wherever a token belonged, for all 493 rows.
+    //
+    // Two entries because the pack ships two independent trees and `root` is
+    // one string. `mapping.json` covers both; _loadPresentMaps keys by
+    // basename, and it is what pairs each token with its portrait (without it
+    // `portrait` silently falls back to the token path).
     "shadowdark-community-tokens": {
       label: "Shadowdark Community Tokens",
-      root: "modules/shadowdark-community-tokens",
+      root: "modules/shadowdark-community-tokens/artwork/tokens",
+      present: ["modules/shadowdark-community-tokens/mapping.json"],
+    },
+    "shadowdark-community-tokens-monster24": {
+      label: "Shadowdark Community Tokens (Monster 2024)",
+      root: "modules/shadowdark-community-tokens/monster24/tokens",
+      present: ["modules/shadowdark-community-tokens/mapping.json"],
     },
     // pf2e game SYSTEM: ships no monster tokens — only the 59 iconic PC /
     // companion portraits (Amiri, Ezren, Droogami…). Browser-only (never a

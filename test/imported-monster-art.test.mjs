@@ -12,9 +12,9 @@ import {
   planCuratedImportedMonsterArt,
 } from "../scripts/monster-art/imported-monster-art.mjs";
 
-test("F4 carries exactly the 16 N6 source-aware picks", () => {
-  assert.equal(IMPORTED_MONSTER_ART_ROWS.length, 16);
-  assert.equal(Object.keys(IMPORTED_MONSTER_ART).length, 16);
+test("F4 carries the source-aware picks and the reviewed-unmatched remainder", () => {
+  assert.equal(IMPORTED_MONSTER_ART_ROWS.length, 72);
+  assert.equal(Object.keys(IMPORTED_MONSTER_ART).length, 72);
   assert.equal(importedMonsterArtKey("Cursed Scroll #2", "Horse,   War"), "CS2:horse, war");
   assert.equal(importedMonsterArtKey("Western Reaches", "Horse, War"), "WR:horse, war");
   assert.notEqual(
@@ -24,9 +24,15 @@ test("F4 carries exactly the 16 N6 source-aware picks", () => {
   assert.equal(curatedImportedMonsterArtFor("CS4", "Basilisk Hatchling")?.source, "shadowdark-community-tokens");
   assert.equal(curatedImportedMonsterArtFor("CS2", "Tar Bat"), null);
   assert.equal(curatedImportedMonsterArtFor("CS2", "Horse"), null, "no bare-name fallback");
-  assert.equal(IMPORTED_MONSTER_ART_UNMATCHED_KEYS.length, 63);
-  assert.equal(new Set(IMPORTED_MONSTER_ART_UNMATCHED_KEYS).size, 63);
-  assert.equal(importedMonsterArtDisposition("CS1", "Tar Bat"), "unmatched");
+  assert.equal(IMPORTED_MONSTER_ART_UNMATCHED_KEYS.length, 11);
+  assert.equal(new Set(IMPORTED_MONSTER_ART_UNMATCHED_KEYS).size, 11);
+  // No key may be both curated and reviewed-unmatched: disposition checks the
+  // curated map first, so an overlap would silently mask a stale row.
+  assert.deepEqual(
+    IMPORTED_MONSTER_ART_UNMATCHED_KEYS.filter((k) => IMPORTED_MONSTER_ART[k]), [],
+  );
+  assert.equal(importedMonsterArtDisposition("CS5", "Wendel"), "unmatched");
+  assert.equal(importedMonsterArtDisposition("CS1", "Tar Bat"), "curated");
   assert.equal(importedMonsterArtDisposition("CS3", "Sea Serpent"), "curated");
   assert.equal(importedMonsterArtDisposition("CS1", "Unreviewed Import"), null);
 });
@@ -47,8 +53,8 @@ test("the pure F4 plan applies exact rows, preserves GM picks, and leaves unmatc
     { id: "cs2-war", name: "Horse, War", source: "Cursed Scroll #2" },
     { id: "wr-war", name: "Horse, War", source: "wr" },
     { id: "wr-camel", name: "Camel", source: "Western Reaches" },
-    { id: "cs1-tar", name: "Tar Bat", source: "CS1" },
-    { id: "cs2-donkey", name: "Donkey", source: "CS2" },
+    { id: "cs5-wendel", name: "Wendel", source: "CS5" },
+    { id: "cs4-slug", name: "Death Slug", source: "CS4" },
   ];
   const manual = { source: "manual-folder:gm", file: "tar.webp", token: "gm/tar.webp", portrait: "gm/tar.webp", tokenObj: { texture: { src: "gm/tar.webp" } } };
   const plan = planCuratedImportedMonsterArt(records, {
@@ -67,8 +73,8 @@ test("the pure F4 plan applies exact rows, preserves GM picks, and leaves unmatc
   assert.equal(plan.picks["cs2-war"].token, row("CS2:horse, war").token);
   assert.equal(plan.picks["wr-war"], undefined, "an explicit GM override blocks curation");
   assert.deepEqual(plan.picks["wr-camel"], manual, "a later/legacy Browser pick survives");
-  assert.equal(plan.unmatched.find((entry) => entry.id === "cs1-tar")?.reason, "unmatched");
-  assert.equal(plan.unmatched.find((entry) => entry.id === "cs2-donkey")?.reason, "unmatched");
+  assert.equal(plan.unmatched.find((entry) => entry.id === "cs5-wendel")?.reason, "unmatched");
+  assert.equal(plan.unmatched.find((entry) => entry.id === "cs4-slug")?.reason, "unmatched");
   assert.deepEqual(plan.managedPaths, ["gm/tar.webp", row("CS2:horse, war").token, row("CS2:horse, war").portrait]);
 });
 
@@ -140,8 +146,8 @@ test("the Foundry adapter only seeds managed imported rows and handles zero-opti
     managedActor({ id: "wr-war", name: "Horse, War", source: "Western Reaches" }),
     managedActor({ id: "wr-camel", name: "Camel", source: "WR" }),
     managedActor({ id: "cs3-sea", name: "Sea Serpent", source: "CS3" }),
-    managedActor({ id: "cs1-tar", name: "Tar Bat", source: "CS1" }),
-    managedActor({ id: "cs2-donkey", name: "Donkey", source: "CS2" }),
+    managedActor({ id: "cs5-wendel", name: "Wendel", source: "CS5" }),
+    managedActor({ id: "cs4-slug", name: "Death Slug", source: "CS4" }),
     managedActor({ id: "boat", name: "Boat", source: "WR", type: "shadowdark-enhancer.boat" }),
   ];
   const pack = {
@@ -168,6 +174,8 @@ test("the Foundry adapter only seeds managed imported rows and handles zero-opti
   assert.equal(first.status, "completed");
   assert.equal(first.total, 6, "only managed NPCs enter the census");
   assert.equal(first.applied.length, 2, "CS2 and WR Horse, War are distinct source-aware rows");
+  // The other four census rows are a manual pick, an override, and two
+  // reviewed-unmatched creatures — none of which the curated seed may touch.
   assert.equal(setting.picks["cs2-war"].token, row("CS2:horse, war").token);
   assert.equal(setting.picks["wr-war"].token, row("WR:horse, war").token);
   assert.deepEqual(setting.picks["cs3-sea"], manual, "legacy/manual pick survives");

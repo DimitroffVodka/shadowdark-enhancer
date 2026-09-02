@@ -144,6 +144,298 @@ const ROWS = [
     token: "modules/shadowdark-community-tokens/artwork/tokens/worg.webp",
     portrait: "modules/shadowdark-community-tokens/artwork/portraits/worg.webp",
   },
+
+  // ── Cursed Scroll + Western Reaches creatures (2026-09-01) ──────────────
+  // Chosen per creature from its statblock DESCRIPTION, not its name: most of
+  // these are Shadowdark originals (Bezelak, Bogthorn, Dralech, Skandrill)
+  // with no equivalent in any installed pack, so the name matches nothing and
+  // the prose is the only signal. Every token/portrait pair below is an exact
+  // buildLibrary option — _curatedImportedArtStatus requires that, and a row
+  // whose paths are not offered by the library is inert rather than wrong.
+  //
+  // Two creatures are deliberately absent: Death Slug and Wendel are slugs,
+  // and 24,000 catalogued images contain no slug. An unmatched row leaves the
+  // placeholder, which reads as unfinished; a wrong row reads as done.
+  {
+    book: "CS1", name: "Bittermold", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/tassargoi.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/tassargoi.webp",
+  },
+  {
+    book: "CS1", name: "Bogthorn", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/archer-bush.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/archer-bush.webp",
+  },
+  {
+    book: "CS1", name: "Dralech", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/boneguard.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/boneguard.webp",
+  },
+  {
+    book: "CS1", name: "Gordock Breeg", source: "pf2e-tokens-characters",
+    token: "modules/pf2e-tokens-characters/assets/tokens/pc-halfling-ambusher.webp",
+    portrait: "modules/pf2e-tokens-characters/assets/tokens/pc-halfling-ambusher.webp",
+  },
+  {
+    book: "CS1", name: "Hexling", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/death-shroud.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/death-shroud.webp",
+  },
+  {
+    book: "CS1", name: "Howler", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/goblin-gnawling.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/goblin-gnawling.webp",
+  },
+  {
+    book: "CS1", name: "Ichor Ooze", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/ooze-marrow.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/ooze-marrow.webp",
+  },
+  {
+    book: "CS1", name: "Marrow Fiend", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/bloody-bones.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/bloody-bones.webp",
+  },
+  {
+    book: "CS1", name: "Mugdulblub", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/chaos-tumor.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/tokens/chaos-tumor.webp",
+  },
+  {
+    book: "CS1", name: "Mutant Catfish", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/mireclaw.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/mireclaw.webp",
+  },
+  {
+    book: "CS1", name: "Plogrina B.", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/slime-cadaver.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/slime-cadaver.webp",
+  },
+  {
+    book: "CS1", name: "Skrell", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/cragbeak.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/cragbeak.webp",
+  },
+  {
+    book: "CS1", name: "Tar Bat", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/giant-eel-bat.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/giant-eel-bat.webp",
+  },
+  {
+    book: "CS1", name: "The Willowman", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/the-unfleshed.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/the-unfleshed.webp",
+  },
+  {
+    book: "CS2", name: "Camel, Silver", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/camel.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/camel.webp",
+  },
+  {
+    book: "CS2", name: "Canyon Ape", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/dire-baboon.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/dire-baboon.webp",
+  },
+  {
+    book: "CS2", name: "Donkey", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/mule.webp",
+    portrait: "modules/dnd-monster-manual/assets/portraits/mule-small.webp",
+  },
+  {
+    book: "CS2", name: "Dunefiend", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/golem-clay.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/golem-clay.webp",
+  },
+  {
+    book: "CS2", name: "Dust Devil", source: "pf2e-tokens-monster-core",
+    token: "modules/pf2e-tokens-monster-core/assets/tokens/elemental-air-living-whirlwind.webp",
+    portrait: "modules/pf2e-tokens-monster-core/assets/portraits/elemental-air-living-whirlwind.webp",
+  },
+  {
+    book: "CS2", name: "Hero", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/gladiator.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/gladiator.webp",
+  },
+  {
+    book: "CS2", name: "Mirage", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/specter.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/specter.webp",
+  },
+  {
+    book: "CS2", name: "Ras-Godai", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/assassin.webp",
+    portrait: "modules/dnd-monster-manual/assets/portraits/assassin.webp",
+  },
+  {
+    book: "CS2", name: "Rookie", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/thug.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/thug.webp",
+  },
+  {
+    book: "CS2", name: "Scrag", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/giant-lizard.webp",
+    portrait: "modules/dnd-monster-manual/assets/portraits/giant-lizard.webp",
+  },
+  {
+    book: "CS2", name: "Scrag, War", source: "dnd5e-fa",
+    token: "systems/dnd5e/tokens/beast/GiantLizard.webp",
+    portrait: "systems/dnd5e/tokens/beast/GiantLizard.webp",
+  },
+  {
+    book: "CS2", name: "Siruul", source: "pf2e-tokens-characters",
+    token: "modules/pf2e-tokens-characters/assets/tokens/pc-aiuvarin-nomad.webp",
+    portrait: "modules/pf2e-tokens-characters/assets/tokens/pc-aiuvarin-nomad.webp",
+  },
+  {
+    book: "CS2", name: "The Scourge", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/adult-blue-dragon.webp",
+    portrait: "modules/dnd-monster-manual/assets/portraits/adult-blue-dragon.webp",
+  },
+  {
+    book: "CS3", name: "Drake, Greater", source: "pf2e-tokens-monster-core",
+    token: "modules/pf2e-tokens-monster-core/assets/tokens/drake-flame.webp",
+    portrait: "modules/pf2e-tokens-monster-core/assets/portraits/drake-flame.webp",
+  },
+  {
+    book: "CS3", name: "Drake, Lesser", source: "pf2e-tokens-monster-core",
+    token: "modules/pf2e-tokens-monster-core/assets/tokens/drake-desert.webp",
+    portrait: "modules/pf2e-tokens-monster-core/assets/portraits/drake-desert.webp",
+  },
+  {
+    book: "CS3", name: "Draugr", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/gjenganger.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/gjenganger.webp",
+  },
+  {
+    book: "CS3", name: "Dverg", source: "pf2e-tokens-monster-core",
+    token: "modules/pf2e-tokens-monster-core/assets/tokens/dwarf-warrior.webp",
+    portrait: "modules/pf2e-tokens-monster-core/assets/portraits/dwarf-warrior.webp",
+  },
+  {
+    book: "CS3", name: "Nord", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/berserker.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/berserker.webp",
+  },
+  {
+    book: "CS3", name: "Oracle", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/the-ten-eyed-oracle.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/the-ten-eyed-oracle.webp",
+  },
+  {
+    book: "CS3", name: "Orca", source: "pf2e-tokens-monster-core",
+    token: "modules/pf2e-tokens-monster-core/assets/tokens/dolphin-orca.webp",
+    portrait: "modules/pf2e-tokens-monster-core/assets/portraits/dolphin-orca.webp",
+  },
+  {
+    book: "CS3", name: "Sea Nymph", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/siren.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/siren.webp",
+  },
+  {
+    book: "CS3", name: "Troll, Deep", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/troll-night.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/troll-night.webp",
+  },
+  {
+    book: "CS3", name: "Valkyrie", source: "pf2e-tokens-characters",
+    token: "modules/pf2e-tokens-characters/assets/tokens/valkyrie-kin-elf.webp",
+    portrait: "modules/pf2e-tokens-characters/assets/tokens/valkyrie-kin-elf.webp",
+  },
+  {
+    book: "CS4", name: "Basilisk Cultists Stone Shaman", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/cultist-fanatic-01.webp",
+    portrait: "modules/dnd-monster-manual/assets/tokens/cultist-fanatic-01.webp",
+  },
+  {
+    book: "CS4", name: "Blue Dart Frog", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/carnivorous-frog.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/carnivorous-frog.webp",
+  },
+  {
+    book: "CS4", name: "Cobra Statue", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/snake-cobra.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/snake-cobra.webp",
+  },
+  {
+    book: "CS4", name: "Condor, Dire", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/vulture.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/vulture.webp",
+  },
+  {
+    book: "CS4", name: "Jaguar King", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/werejaguar.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/werejaguar.webp",
+  },
+  {
+    book: "CS4", name: "Javelina", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/boar.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/boar.webp",
+  },
+  {
+    book: "CS4", name: "Javelina, Diseased", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/devil-swine.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/devil-swine.webp",
+  },
+  {
+    book: "CS4", name: "Kawitzek", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/dragon-turtle.webp",
+    portrait: "modules/dnd-monster-manual/assets/journal-art/dragon-turtle.webp",
+  },
+  {
+    book: "CS4", name: "Skandrill", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/anzu.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/anzu.webp",
+  },
+  {
+    book: "CS4", name: "Skandrill, Rex", source: "pf2e-tokens-monster-core",
+    token: "modules/pf2e-tokens-monster-core/assets/tokens/dinosaur-deinonychus.webp",
+    portrait: "modules/pf2e-tokens-monster-core/assets/portraits/dinosaur-deinonychus.webp",
+  },
+  {
+    book: "CS4", name: "Stone Warrior", source: "dnd-monster-manual",
+    token: "modules/dnd-monster-manual/assets/tokens/cultist.webp",
+    portrait: "modules/dnd-monster-manual/assets/journal-art/cultists.webp",
+  },
+  {
+    book: "CS4", name: "Void Bat", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/vampire-bat.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/vampire-bat.webp",
+  },
+  {
+    book: "CS4", name: "Void Being", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/shadow.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/shadow.webp",
+  },
+  {
+    book: "CS5", name: "Bezelak", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/tsathoggan.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/tsathoggan.webp",
+  },
+  {
+    book: "CS5", name: "Dremir", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/gauntlings.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/gauntlings.webp",
+  },
+  {
+    book: "CS5", name: "Librarian of Leng", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/masked-magi.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/masked-magi.webp",
+  },
+  {
+    book: "CS5", name: "Morzo Moth", source: "shadowdark-community-tokens-monster24",
+    token: "modules/shadowdark-community-tokens/monster24/tokens/slimemoth.webp",
+    portrait: "modules/shadowdark-community-tokens/monster24/portraits/slimemoth.webp",
+  },
+  {
+    book: "CS5", name: "Nuln", source: "pf2e-tokens-npc-core",
+    token: "modules/pf2e-tokens-npc-core/assets/tokens/miner.webp",
+    portrait: "modules/pf2e-tokens-npc-core/assets/tokens/miner.webp",
+  },
+  {
+    book: "WR", name: "Horse, Prized", source: "shadowdark-community-tokens",
+    token: "modules/shadowdark-community-tokens/artwork/tokens/horse.webp",
+    portrait: "modules/shadowdark-community-tokens/artwork/portraits/horse.webp",
+  },
 ];
 
 /** Detached, frozen rows with the derived key exposed for audits and callers. */
@@ -166,67 +458,15 @@ export const IMPORTED_MONSTER_ART = Object.freeze(
  * catalog carries this exact set as Browse-only exclusions.
  */
 const REVIEWED_UNMATCHED_KEYS = [
-  "CS1:bittermold",
-  "CS1:bogthorn",
-  "CS1:dralech",
-  "CS1:gordock breeg",
-  "CS1:hexling",
-  "CS1:howler",
-  "CS1:ichor ooze",
-  "CS1:marrow fiend",
-  "CS1:mugdulblub",
-  "CS1:mutant catfish",
   "CS1:plogrina bittermold",
-  "CS1:skrell",
-  "CS1:tar bat",
-  "CS1:the willowman",
-  "CS2:camel, silver",
-  "CS2:canyon ape",
-  "CS2:donkey",
-  "CS2:dunefiend",
-  "CS2:dust devil",
   "CS2:hero, gladiator",
-  "CS2:mirage",
-  "CS2:ras-godai",
   "CS2:rookie, pit-fighter",
-  "CS2:scrag",
-  "CS2:scrag, war",
-  "CS2:siruul",
-  "CS2:the scourge",
-  "CS3:drake, greater",
-  "CS3:drake, lesser",
-  "CS3:draugr",
-  "CS3:dverg",
-  "CS3:nord",
-  "CS3:oracle",
-  "CS3:orca",
-  "CS3:sea nymph",
-  "CS3:troll, deep",
-  "CS3:valkyrie",
-  "CS4:blue dart frog",
   "CS4:catfish, giant",
-  "CS4:cobra statue",
-  "CS4:condor, dire",
   "CS4:death slug",
-  "CS4:jaguar king",
-  "CS4:javelina",
-  "CS4:javelina, diseased",
-  "CS4:kawitzek",
-  "CS4:skandrill",
-  "CS4:skandrill, rex",
   "CS4:stone shaman",
-  "CS4:stone warrior",
-  "CS4:void bat",
-  "CS4:void being",
-  "CS5:bezelak",
-  "CS5:dremir",
-  "CS5:librarian of leng",
-  "CS5:morzo moth",
-  "CS5:nuln",
   "CS5:wendel",
   "WR:camel, silver",
   "WR:donkey",
-  "WR:horse, prized",
   "WR:scrag",
   "WR:scrag, war",
 ];
