@@ -1,215 +1,210 @@
 # Pit Fighting
 
-Cursed Scroll 2's pit fights, set up in the book's own order. Roll a venue, roll
-the stakes against the fighters' average level, settle how dangerous it is, draw
-the foe, and check for a twist you keep to yourself until the fight is on.
+[← Wiki home](index.md)
 
-Open it from the Crawl Bar's **Forge & Loot** menu → **Pit Fighting**. GM only.
+Run Cursed Scroll 2's pit fights in the book's intended order: roll the venue,
+determine the stakes against party level, choose the danger level, draw the foe,
+and manage a secret twist until the bout begins.
+
+Open it from the Crawl Bar's **Forge & Loot** menu → **Pit Fighting** (GM only).
 
 ---
 
 ## Before you start: import the tables
 
-The roller holds the dice and the thresholds. Everything you can *read* — what
-the venue is, what the twist turns out to be, what a tier is fought for, which
-creatures you face — lives in RollTables you import from your own copy of CS2,
-the same as the rest of [the importer's sealed content](Importer-Hub.md).
+The pit fight roller provides the dice logic and threshold math. All narrative
+text—venues, twists, stake descriptions, prize tables, and monster rosters—is
+read directly from RollTables you import from your copy of Cursed Scroll 2 via
+the [Importer Hub](Importer-Hub.md).
 
-The roller reads six of them:
+The roller looks for six table sets:
 
-- **Venue** and **Twist** — read at the row your 2d6 landed on
-- the six **Pit Fight** encounter tables (solo and group, at each danger tier) —
-  one of which is drawn from, whichever the danger level selects
-- the four prize tables (**Low**, **Mid**, **High** and **Epic Stakes**) — drawn
-  when you roll for the prize
+- **Venue** and **Twist** (2d6 tables)
+- **Pit Fight encounters:** Solo and group encounter tables across three danger
+  tiers (6 tables total)
+- **Prize tables:** Low, Mid, High, and Epic Stakes (4 tables total)
 
-CS2 prints two more that the roller doesn't consult. **Stakes** is a range-to-tier
-lookup, and those bands are plain numbers the module already knows, so it rolls
-your average level + 1d6 and reads the tier itself. **Tonight's Crowd** is colour
-for the arena's crowd; import it and roll it yourself when you want it.
+CS2 also prints **Stakes** and **Tonight's Crowd**. The module calculates stakes
+thresholds mathematically (`Party APL + 1d6`), so importing that lookup table is
+optional. **Tonight's Crowd** provides flavor text you can roll manually.
 
-You don't have to import anything before you start. Whatever's missing, the window
-lists by name with a button through to the importer, and leaves that line blank
-rather than making something up. A bout with no Venue table still rolls — you just
-get the die total and the row number instead of the description.
+If any tables are missing, the window lists them with direct links to the
+importer. You can still roll without imported tables; missing text simply falls
+back to raw die rolls and row numbers.
 
 ---
 
 ## Setting up a bout
 
-The window follows the book's own order: **the offer** first, then the secret
-twist, and only then who steps up. The offer exists before anyone volunteers,
-which is why the stakes are rolled against the **whole party's** average level —
-shown at the top as *Party APL*. If that average isn't a whole number it rounds
-to nearest and prints the unrounded figure beside it, so you can see what
-happened.
+### The offer & party level
 
-**Roll the whole offer** rolls everything at once. Each line can also be rolled
-on its own, or picked from its dropdown instead:
+The bout window builds the offer before individual fighters volunteer:
 
-| Line | Dice | What it decides |
+1. **Party APL:** The roller calculates the average player level across your
+   entire active party (displayed with unrounded numbers for reference).
+2. **Roll the whole offer:** Rolls venue, stakes, foe, and twist in one click.
+   You can also roll or select individual elements separately.
+
+| Element | Dice | What it determines |
 |---|---|---|
-| Venue | 2d6 | Where the fight happens |
-| Stakes | Party APL + 1d6 | What it's worth: Low, Mid, High or Epic |
-| Size | — | Solo or group, which picks the encounter table |
-| Danger | — | How dangerous, which picks the tier |
-| Foe | table | Who they face — **Draw** redraws it |
-| Twist | 2d6 | Whether something goes sideways — kept hidden |
+| **Venue** | 2d6 | The fighting arena |
+| **Stakes** | Party APL + 1d6 | Value tier: Low, Mid, High, or Epic |
+| **Size** | Toggle | Solo or Group bout (selects encounter table) |
+| **Danger** | Selector | Danger tier (pre-set to stakes suggestion) |
+| **Foe** | Table draw | Opponents faced (click **Draw** to redraw) |
+| **Twist** | 2d6 | Secret complication (kept hidden until revealed) |
 
-**Size** is a button, not a consequence. Solo and group are separate tables in
-the book, and the offer is made before you know how many will take it, so you
-say which kind of bout is on the bill.
+### Stakes, size, and danger
 
-**Danger** is the one thing the module won't decide for you. The book gives you
-the stakes and the venue and then leaves the call to the GM, so the dropdown
-arrives pre-set to what the stakes suggest and you change it if the venue argues
-otherwise — a back-alley cellar and a noble's private arena can pay the same and
-be nothing alike. Changing it picks a different encounter table, so the foe is
-redrawn from the one that now applies.
+- **Size (Solo vs Group):** Toggle this button to pick between CS2's solo and
+  group encounter tables.
+- **Danger tier:** The dropdown suggests a danger level based on stakes, but you
+  can change it to fit your narrative. Choosing a different tier redraws the foe
+  from that tier's table.
 
-Then the fighters answer, under **Who steps up** — tick whoever accepts and press
-**Accept the bout**, or **Decline**. Declining is recorded rather than swallowed:
-CS2 notes that fighters who break their word risk losing future offers, so the
-refusal stays on screen against the bout.
+### Who steps up (accepting or declining)
+
+Under **Who steps up**, check the boxes for each character entering the ring:
+
+- Click **Accept the bout** to commit the fighters.
+- Click **Decline** if they refuse. The refusal is recorded on screen because
+  CS2 rules note that refusing bouts may impact future invitations.
 
 ---
 
 ## Putting it on the table
 
-The foe is drawn as a row of the book's own text — two creatures and a
-complication, like `2 hero* | 2 lion | 30' deep pits`. Underneath it the window
-lists what that row actually names, with a tick against each creature it can
-find in your compendium.
+### Resolving and placing foes
 
-**Place** then drops them on the current scene, one per click, walking the list
-in order — two Heroes, then two Lions — with the notification naming what the
-next click will drop. Escape stops the rest; whatever you already placed stays.
+The drawn foe displays CS2's raw text (for example,
+`2 hero* | 2 lion | 30' deep pits`) and matches creatures against your
+installed compendium packs.
 
-Names are matched the way the book writes them, which is not the way Shadowdark
-files them. `Gt. centipede` finds **Centipede, Giant**; `2 hero*` drops the
-pg. 39 footnote star and the count; `Wyvern (chained)` looks for **Wyvern** and
-keeps *chained* as a note beside it. Anything it can't find stays in the list,
-dimmed and marked *not in your compendium*, and Place simply skips it — a row
-reading `2d4 rival crawlers | 2 canyon ape` still gets the apes down. Rival
-crawlers are a rival adventuring party rather than a monster, so they never
-resolve anywhere, by design.
+1. Review the creature list below the foe description. Matched creatures show a
+   green checkmark.
+2. Click **Place** to drop tokens directly onto your active scene.
+3. Click on the canvas to place each creature in sequence. Notifications announce
+   what the next click will place.
+4. Press `Escape` at any time to cancel remaining placements.
 
-**Choosing a map.** *Arena map…* opens one of the module's twelve bundled battle
-maps (2-Minute Tabletop, CC BY-NC 4.0; see CREDITS) as a scene — drawn the first
-time you ask and reused afterwards. Press the same map again next session and you
-get the one you dressed, not a second copy. Each scene is laid out at night on a
-grid sized to that map's printed squares, and Place drops foes on whatever you're
-looking at.
+Name matching accommodates CS2 abbreviations automatically (such as `Gt. centipede`
+matching **Centipede, Giant** and `2 hero*` stripping footnotes and counts).
+Rival adventuring parties (such as `2d4 rival crawlers`) are narrative NPCs and
+are skipped by automated token placement.
 
-The list follows the venue you rolled. The maps that suit it come first, under a
-heading showing that venue's own text, with the first already selected:
+### Choosing an arena battle map
 
-| Venue you rolled | Offered first |
+Click **Arena map…** to open one of twelve bundled battle maps (2-Minute Tabletop,
+CC BY-NC 4.0; see CREDITS) created as dedicated scenes in your world.
+
+The map picker prioritizes maps matching your rolled venue:
+
+| Rolled Venue | Recommended Maps |
 |---|---|
-| Shady back alley or tavern cellar at night | Back Alley (day, night), **Tavern Cellar**, Small Arena |
+| Shady back alley or tavern cellar | Back Alley (Day/Night), **Tavern Cellar**, Small Arena |
 | Cage fight, small arena | Small Arena |
-| Open-air, large arena | Large Arena, Open-Air Arena: Greybanner, Open-Air Arena: Desert (day, night) |
-| Luxurious private arena owned by a noble | Private Arena (day, night) |
-| Glorious coliseum | Glorious Coliseum (day, night) |
+| Open-air, large arena | Large Arena, Open-Air Arena: Greybanner, Desert (Day/Night) |
+| Luxurious private arena | Private Arena (Day/Night) |
+| Glorious coliseum | Glorious Coliseum (Day/Night) |
 
-Everything else is still there, immediately below under **Other maps** — the
-venue *reorders* the list, it never shuts an option out of it. The book says any
-scene of your own works exactly as well, so a venue you overrode should never put
-the map you want out of reach.
+Other maps remain selectable under **Other maps**.
 
-Maps are named for the venue they stand in for, not the 2-Minute Tabletop product
-they were sold as: you'll see *Large Arena* where the shop lists *Greybanner
-Coliseum*. [CREDITS](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/CREDITS.md) lists both side by side, so you can go
-from the name in the picker to the product to buy or credit. Some browsers also
-show the product name as hover text on an option — Firefox does, Chrome usually
-does not, since the dropdown is drawn by your operating system rather than by
-Foundry.
+Re-selecting a previously opened arena map loads your existing, customized scene
+rather than duplicating it.
 
-**The Tavern Cellar.** The lowest venue row names a cellar, so one is built like
-any other map on the list — pick it and you get two floors on Foundry v14's
-native scene levels: a vault at 0–20 ft and a fighting pit above it at 20–40 ft,
-the pit's opening looking down into the vault below rather than onto blank
-colour. A *Cellar Stair* region spans both floors, so walking a token onto the
-stair has Foundry offer to move it up or down; there is no dragging tokens
-between two separate scenes.
+### The Tavern Cellar (multi-level pit)
 
-Two caveats worth knowing. Foundry only offers the change on a **walked** move —
-a token being displaced, or dragged with the ruler, passes straight through. And
-like every other map here it is idempotent: dress it with your own walls and
-lighting, and picking *Tavern Cellar* again next session returns the scene you
-dressed, not a fresh copy.
+Selecting **Tavern Cellar** creates a two-level scene using Foundry scene
+levels:
+
+- **Vault level:** 0–20 ft elevation.
+- **Fighting pit:** 20–40 ft elevation, with a central opening looking down
+  into the vault below.
+- **Cellar Stair region:** Spans both levels. Walking a token into the stair
+  prompts Foundry's native level transition without switching scenes.
+
+Foundry triggers region transitions on standard token moves; teleporting or
+dragging tokens across the canvas bypasses the trigger.
 
 ---
 
-## The twist
+## The secret twist
 
-The twist is rolled during set-up and stays hidden. The window tells you it's
-there and nothing else reaches chat, including when the answer is *nothing
-happens* — if the hidden line always meant trouble, hiding it would tell the
-table something.
+### Keeping it hidden
 
-Press **Reveal** when it comes out mid-bout and it posts to chat. One band asks
-for a second d4 to pick its detail; that's already rolled and comes along with
-the reveal.
+The twist is rolled during setup and kept hidden from chat, even when the outcome
+is *nothing happens*. This prevents players from deducing whether a surprise is
+waiting.
 
-One band has a mechanical effect the roller applies for you: a donor raising the
-stakes a step. That moves the **prize** table up — it does not make the fight
-more dangerous. You set the danger and the fighters agreed to it before anyone
-mentioned a donor.
+### Revealing and mechanical effects
 
----
-
-## Afterwards
-
-Mark the bout **Won** or **Lost**, and roll the prize table for the tier that was
-actually fought for (raised, if the twist raised it).
-
-**Renown each** is how much fame every fighter takes away. CS2 says pit fighting
-earns treasure, experience and fame, and never says how much fame — so the
-default is one point for a win and nothing for a loss, and you should change it
-when the fight deserves it. It isn't scaled by stakes on purpose: a ladder would
-look like a rule, and there isn't one in the book.
-
-**Apply the result** posts a summary card and puts the renown through the same
-single write path everything else uses, so each change is logged to the
-[Session Recap](Session-Recap.md) and announced like any other — see
-[Renown](Renown.md).
-
-XP and treasure aren't awarded here. Use [Party XP](Party-XP.md) for the
-experience and the prize row for what they carried out.
+- Click **Reveal** to post the twist to chat when the moment arrives.
+- If the twist requires a sub-roll (such as rolling 1d4 for details), it is
+  pre-rolled and included automatically.
+- **Donor twists:** If a twist raises the stakes, the roller automatically
+  steps up the **prize table** tier without altering the agreed combat danger.
 
 ---
 
-## Things worth knowing
+## Resolving the fight & rewards
 
-**Lethality is yours to set.** The book ties how deadly a bout is to the venue
-and the stakes — fights to half HP, to a knockout, occasionally to the death —
-and killing humanoids is forbidden in most public venues. None of that is
-automated. The danger level is a label the roller uses to pick an encounter
-table; what happens when a fighter drops is a ruling at your table.
+### Outcome & prize tables
 
-**The arena monsters are on page 39.** Three of the creatures the encounter
-tables name — **Rookie**, **Hero** and **Canyon Ape** — are printed in CS2 itself
-rather than in the core rules, marked with a `*` in the tables. Import them from
-your own book like any other stat block; until you do, the importer's monster
-census lists them under their source as gaps, and the bout window marks them
-*not in your compendium* and places the rest.
+Once the combat concludes:
 
-**Rerolling.** *New offer* clears everything and starts again. Changing the
-danger keeps the same dice and only redraws the foe, and **Draw** redraws the foe
-alone.
+1. Mark the bout **Won** or **Lost**.
+2. Roll the **Prize table** button for the final stakes tier.
 
-**The bout survives the fight.** Close the window, run the combat, reopen it an
-hour later and the offer is still there — the stakes, the venue, the drawn foe,
-who accepted, and the prize still to roll. The bout is stored in the world, not
-in the window, because closing the window to get at the map is part of running a
-pit fight, not the end of one. Only **New offer** throws it away.
+### Renown awards
+
+CS2 awards fame for pit fights without fixing a strict number. The roller
+defaults to:
+
+- **+1 Renown each** for a victory.
+- **0 Renown** for a defeat.
+
+You can adjust the **Renown each** field to match the fight's significance.
+
+### Applying the result
+
+Click **Apply the result** to:
+
+- Post a summary card to chat.
+- Award renown to participating characters through the module's single write path.
+- Log renown awards directly to the [Session Recap](Session-Recap.md).
+
+Award XP and physical loot separately using [Party XP](Party-XP.md) and standard
+item distribution.
+
+---
+
+## Rules & rulings at the table
+
+### Setting lethality
+
+CS2 links lethality to venue and stakes (such as fights to half HP, knockouts, or
+rare bouts to the death). Lethality is left to GM adjudication; the roller tracks
+encounters and rewards without forcing death saves.
+
+### CS2 arena monsters (page 39)
+
+Three arena creatures—**Rookie**, **Hero**, and **Canyon Ape**—are published in
+Cursed Scroll 2 (page 39) rather than the core rules. Import their stat blocks via
+the [Importer Hub](Importer-Hub.md) to enable automatic token placement.
+
+### State persistence & rerolls
+
+- **Bouts survive window closure:** You can close the pit fighting window, run
+  the entire battle on the canvas, and reopen it later. The active bout, stakes,
+  and volunteer status remain stored in world state.
+- **New offer:** Clears the active bout and generates a fresh setup.
+- **Draw:** Redraws only the monster encounter without altering venue or stakes.
 
 ---
 
 ## See also
 
-- [Renown](Renown.md) — where the fame goes
-- [Downtime](Downtime.md) — the book files pit fighting under downtime activities
-- [Importer Hub](Importer-Hub.md) — importing the fourteen tables
-- [Random Encounters](Random-Encounters.md) — the encounter roller, a separate tool
+- [Renown](Renown.md) — How fame awards and status bands function
+- [Downtime](Downtime.md) — Downtime activities and inter-crawl options
+- [Importer Hub](Importer-Hub.md) — Importing tables and monster stat blocks
+- [Random Encounters](Random-Encounters.md) — Wilderness and dungeon wandering checks

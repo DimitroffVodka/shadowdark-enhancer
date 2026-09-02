@@ -2,9 +2,8 @@
 
 [← Wiki home](index.md)
 
-The always-on party display pinned to the top of the canvas, and the control bar
-every other tool launches from. This is the part of the module you look at all
-session.
+The always-on party display pinned to the top of your canvas, and the control
+bar that launches the rest of the suite.
 
 ![The Crawl Strip during a crawl, showing four party members and the GM card](images/crawl-strip.png)
 
@@ -12,25 +11,28 @@ session.
 
 ## What it does
 
-The **Crawl Strip** is a row of cards, one per party member, showing live HP,
-movement, Luck, AC and active effects without opening a single sheet. The
-**Crawl Bar** underneath it changes shape depending on whether you are crawling
-or fighting, and holds the launchers for the rest of the suite.
+The **Crawl Strip** is a horizontal row of cards—one per party member—showing
+live HP, movement budgets, Luck tokens, AC, and active status effects without
+opening a character sheet.
 
-There are two modes, and the strip switches between them automatically:
+The **Crawl Bar** sits directly underneath, changing controls based on whether
+you are exploring or in combat.
 
-| Mode | Cards shown | Ordering |
+The strip switches modes automatically:
+
+| Mode | Cards shown | Order |
 |---|---|---|
-| **Crawl** (out of combat) | The crawl roster: party members you added | Out-of-combat initiative, once rolled |
-| **Combat** | One card per combatant | Foundry's initiative order, live from the tracker |
+| **Crawl** (out of combat) | Party members added to the roster | Out-of-combat initiative order |
+| **Combat** | All active combatants | Foundry initiative tracker order |
 
-The module respects the Shadowdark system's *Clockwise Initiative* setting
-automatically. You do not configure ordering twice.
+The module honors the Shadowdark system's *Clockwise Initiative* setting
+automatically.
 
 ## Opening it
 
-You don't. The strip and bar install themselves at world load and stay put.
-The strip hides itself when there is nothing to show.
+You do not need to open it manually. The strip and bar install themselves when
+your world loads and stay pinned to the top of the canvas. The strip hides
+itself when there are no active members to show.
 
 ---
 
@@ -42,21 +44,21 @@ The strip hides itself when there is nothing to show.
 
 | Control | Left-click | Right-click |
 |---|---|---|
-| **Crawl · Round #** | *(badge: the current crawl round)* | — |
-| **Next Round** | Advance the crawl round. Refills every member's movement budget. | — |
-| **Add Tokens** | Add the selected tokens to the crawl roster | **Reset Initiative**, clearing all out-of-combat initiative rolls |
-| **Combat** | Start a combat encounter from the current state | — |
-| **Encounter** | Open the [Encounter Roller](Random-Encounters.md) | Encounter menu: run a check, set the threshold, see/clear the active table |
-| **Forge & Loot** | Menu (same on either click): [Forge & Loot](Forge-and-Loot.md) · [Loot Generator](Loot-and-Treasure.md) · [Magic Item Forge](Magic-Item-Forge.md) · [Merchant Shop](Merchant-Shop.md) · [Party XP](Party-XP.md) · [Downtime](Downtime.md) · [Renown](Renown.md) · [Session Recap](Session-Recap.md) | Same menu |
-| **Importer** | Open the [Importer Hub](Importer-Hub.md) | — |
-| **Start / End** | Begin or end the crawl session | — |
+| **Crawl · Round #** | Shows current crawl round | — |
+| **Next Round** | Advances round and refills movement budgets | — |
+| **Add Tokens** | Adds selected tokens to crawl roster | **Reset Initiative** (clears roll order) |
+| **Combat** | Starts a combat encounter from current state | — |
+| **Encounter** | Opens [Encounter Roller](Random-Encounters.md) | Encounter menu (check, threshold, table) |
+| **Forge & Loot** | Opens tools menu ([Forge & Loot](Forge-and-Loot.md), [Shop](Merchant-Shop.md), [XP](Party-XP.md), [Downtime](Downtime.md), [Renown](Renown.md)) | Same menu |
+| **Importer** | Opens [Importer Hub](Importer-Hub.md) | — |
+| **Start / End** | Starts or ends the crawl session | — |
 
-You can also **drag a RollTable from the sidebar onto the Encounter button** to
-make it the active encounter table.
+You can also **drag a RollTable from the sidebar directly onto the Encounter
+button** to set it as your active random encounter table.
 
-> **Add Tokens only adds Player actors to the crawl roster.** Select NPC tokens
-> and they are skipped with a notice. Membership is keyed by **actor id, not
-> token id**, so a member stays on the strip when you switch scenes.
+> **Add Tokens adds only Player actors to the crawl roster.** Selected NPC
+> tokens are ignored with a notice. Membership is stored by **actor ID**, so
+> characters remain on the strip when switching scenes.
 
 ### In combat mode
 
@@ -64,100 +66,68 @@ make it the active encounter table.
 
 | Control | What it does |
 |---|---|
-| **Begin Encounter** / **End Encounter** | Start or end the combat round structure |
-| **Add Tokens** | Add the selected tokens to the combat tracker |
-| **Delete Encounter** | Delete the combat encounter *without* running the end-of-combat flow |
+| **Begin / End Encounter** | Starts or ends combat round structure |
+| **Add Tokens** | Adds selected tokens to combat tracker |
+| **Delete Encounter** | Deletes combat encounter without running end-of-combat flow |
 
-The strip switches to one card per combatant, in initiative order:
+In combat, the strip displays one card per combatant in initiative order:
 
 ![The crawl strip in combat mode](images/crawl-strip-combat.png)
 
-Dead enemies don't get a card: an NPC that is marked defeated or sits at 0 HP
-is dropped from the strip (but stays in the combat tracker, so end-of-combat
-loot and the session recap still count it). Healing it above 0 HP, or
-clearing the defeated marker, brings the card back. PC cards always stay.
+- **Dead enemies leave the strip:** Defeated NPCs and monsters dropped to 0 HP
+  are removed from the strip automatically. They remain in the combat tracker so
+  loot generators and session recaps can still count them. Healing an enemy
+  above 0 HP returns its card.
+- **Downed PCs stay on the strip:** Player characters at 0 HP remain visible
+  with a skull badge.
+- **Dead turns are skipped automatically:** When an enemy dies, the module
+  skips their turn in the tracker automatically to keep combat moving.
 
-**Their turns are skipped automatically.** A combatant with no card can't be
-shown as the current turn, so the module advances straight past it — otherwise
-the strip would dim every card and light none, reading as nobody's turn. The
-rule is exactly the one above: if it gets no card, it gets no turn. That
-includes an enemy that dies partway through its own turn. Downed PCs keep both
-their card and their turn.
-
-If *every* remaining combatant is dead there is nowhere to advance to, so the
-pointer stays put rather than rolling rounds forever.
-
-This is separate from Foundry's own **Skip Defeated** combat-tracker setting,
-and leaving that off is fine. Skip Defeated only knows the tracker's defeated
-marker, and Shadowdark sets that marker in one place — when damage is applied
-through the system. Drop an enemy to 0 by editing its sheet, dragging its HP
-bar, or letting an effect do it, and the marker is either missing or a moment
-behind. The strip's rule reads HP, so the card and the turn go at the same
-instant either way.
+---
 
 ## Starting and ending a crawl
 
-**Start** begins a crawl session. This also begins (or continues) a
-[Session Recap](Session-Recap.md). The recap is tied to the crawl, so you get
-session tracking for free without a second button to remember.
+- **Start:** Begins a crawl session and starts (or resumes) a
+  [Session Recap](Session-Recap.md).
+- **End:** Ends the crawl and prompts you to save, pause, or discard the recap.
+- **Next Round:** Advances the round counter and refills out-of-combat movement
+  budgets. See [Movement Budgets](Movement-Budgets.md).
 
-**End** ends the crawl and offers to save, pause, or discard the recap.
+### Rolling party initiative
 
-**Next Round** advances the crawl round counter and resets every member's
-out-of-combat movement budget. See [Movement Budgets](Movement-Budgets.md).
+Each card displays a d20 button when initiative is unrolled.
 
-### Rolling initiative for the whole party
+In crawl mode, GMs get a **group dice button** above the round number on the
+left of the strip. One click rolls out-of-combat initiative for **all members
+who have not rolled yet**. Characters who already rolled are skipped.
 
-Each card carries its own d20, and out of combat the GM gets one more: a **dice
-button above the round number** on the left of the strip, in the same column as
-**Next Round**. One click rolls out-of-combat initiative for **every member who
-hasn't rolled yet** — one chat card each, in the system's own roll style, using
-that character's DEX modifier and initiative bonus exactly as the per-card dice
-does. Members who already have a number are skipped, so it is safe to press
-after a latecomer joins the roster.
-
-| | |
+| Detail | Behavior |
 |---|---|
-| **Who sees it** | The GM only. Players roll their own card's d20. |
-| **When it appears** | In crawl mode, while at least one member still owes a roll |
-| **When it goes** | The moment the last member has rolled — there is nothing left for it to do, the same reason each card's d20 gives way to its rolled number |
-| **How to get it back** | **Reset Initiative** (right-click **Add Tokens** on the bar), which clears the order and restores every card's dice |
-
-Clicking it twice does not roll anyone twice: a second click while the batch is
-still landing is refused rather than queued.
+| **Visibility** | GM only. Players roll using their own card's d20 button. |
+| **When shown** | In crawl mode while at least one member still owes a roll. |
+| **When hidden** | Hides once all roster members have rolled. |
+| **Resetting** | Right-click **Add Tokens** on the bar (**Reset Initiative**) to clear rolls. |
 
 ### The Crawl Order sidebar tab
 
-The same order also lives in Foundry's own sidebar, one icon below **Combat**:
-a **Crawl Order** tab that is the combat tracker's twin for a party out of
-combat. It wears core's own tracker markup, so the rows, the highlight on
-whoever holds the turn, and the d20 roll button are the ones you already know
-from Combat — and it follows Foundry's theme without a second skin to maintain.
+During a crawl, a **Crawl Order** tab appears in Foundry's sidebar directly
+beneath the Combat tracker icon. It functions like an out-of-combat turn
+tracker:
 
-| | |
+| Section | Content |
 |---|---|
-| **Where** | The sidebar rail, directly under the Combat tab |
-| **When** | Only while a crawl is running. End the crawl and the icon goes with it; if you were looking at the tab, the sidebar falls back to Chat |
-| **Header** | Roll-for-everyone (the group icon), the round title, and Reset Initiative |
-| **Rows** | Portrait, name, and either the initiative — editable by the GM, exactly as in Combat — or a **d20 button** to roll it. A member nobody may roll for yet shows a dash |
-| **Footer** | ⏮ previous round · ← previous turn · **End Crawl** · → next turn · ⏭ next round. A player sees a single **End Turn** button instead, and only while the turn is theirs |
-| **Popout** | Right-click the rail icon for a floating copy, exactly as with Combat |
+| **Header** | Group roll button, round title, and Reset Initiative |
+| **Rows** | Portrait, name, and initiative value or roll button |
+| **Footer** | Turn and round controls (players see a single **End Turn** button) |
+| **Popout** | Right-click sidebar icon for a floating window |
 
-Clicking a row selects that character's token; a player gets a pan-to control
-on their own row.
+Clicking a row selects that token; players get a pan-to control on their row.
 
-Two deliberate differences from Combat, both because a crawl round is not an
-initiative round:
+Differences from combat:
 
-- **Next round** is the crawl bar's **Next Round** — it refills movement budgets
-  and rolls the wandering-monster check. Advancing the *turn* past the last
-  character does the same thing, since a full cycle of the party is a round.
-- **Previous round** only moves the counter back. It does not un-refill
-  movement or un-roll an encounter check, so use it to correct a mis-click
-  rather than to rewind play.
-
-It is a view onto the same state, not a second tracker: rolling from the strip
-updates the tab, and advancing from the tab moves the strip's highlight.
+- **Next round** advances the crawl round, rolls wandering encounter checks,
+  and refills movement budgets.
+- **Previous round** adjusts the round counter back without reverting rolls.
 
 ---
 
@@ -165,157 +135,99 @@ updates the tab, and advancing from the tab moves the strip's highlight.
 
 ![A single crawl strip card](images/crawl-strip-card.png)
 
-Each card renders, from the actor's live data:
+Each card displays live actor data:
 
 | Element | Detail |
 |---|---|
-| **Portrait & name** | From the actor |
-| **HP bar** | `attributes.hp.value / max`, with the numbers written on the bar. Colour bands: **ok** > 75%, **mid** ≤ 75%, **low** ≤ 50%, **critical** ≤ 25%, **dead** at 0 or below |
-| **AC** | Shown as `AC n` when the actor has one |
-| **Luck pill** | PCs only. **Left-click** to spend a Luck token (posts to chat). **Right-click** (GM only) to grant a token. **Left-click another PC's pill** to offer one of your own Luck tokens to them. Greys out at zero. |
-| **Movement pill** | `remaining / budget ft`. Turns **red when over budget**, greys out when exhausted. NPCs in combat show this without a Luck pill, since NPCs don't carry Luck. |
-| **Active effects** | A row of effect icons. Hover for the label and remaining duration |
-| **Light source** | PC cards only, in both modes. Click to toggle the actor's light source. It reuses the system character sheet's own toggle. |
-| **Initiative** | A **d20 button** when nothing is rolled yet, then the rolled **value badge** once it is. Works in both combat and out-of-combat. |
-| **Current turn** | The active combatant's card is outlined in the accent colour. In combat only that card is lit, the rest are dimmed |
-| **Skull** | Marks a defeated PC. (Defeated NPCs don't show a skull. They leave the strip entirely, see above.) |
+| **Portrait & name** | Drawn from the actor document |
+| **HP bar** | Current/Max HP with color bands (Green >75%, Yellow ≤75%, Orange ≤50%, Red ≤25%, Black ≤0) |
+| **AC** | Displayed as `AC n` |
+| **Luck pill** | PCs only. Left-click to spend. Right-click (GM) to grant. Click another PC's pill to gift Luck. |
+| **Movement pill** | `remaining / budget ft`. Turns red when over budget. |
+| **Active effects** | Icons for current effects with hover tooltips for duration |
+| **Light source** | PC cards: click to toggle character light source |
+| **Initiative** | d20 button when unrolled; badge showing result once rolled |
+| **Current turn** | Active combatant card is outlined in accent color; others dim |
+| **Skull** | Marks a downed PC (0 HP) |
 | **Eye-slash** | Marks a combatant hidden from players |
 
 ### The GM card
 
-The strip carries a **Game Master** card. The GM can **click its
-portrait to change the image** (opens a FilePicker), or set it in
-**Configure Settings → Game Master avatar**. Leave it blank for the default
-cowled icon.
+The strip includes a **Game Master** card. Click its portrait to open a file
+picker and set your avatar, or configure it under **Configure Settings → Game
+Master avatar**.
 
 ### The Merchant Shop button
 
-In crawl mode the **PARTY** plate down the left of the roster carries a shop
-button beneath the word. One click opens the
-[Merchant Shop](Merchant-Shop.md). The GM always sees it, and players see it
-only while the shop is available to them.
+In crawl mode, the **PARTY** plate on the left includes a shop button. Click it
+to open [Merchant Shop](Merchant-Shop.md). This button disappears in combat.
 
-**It disappears in combat.** Shopping isn't a combat action, and the strip is
-the initiative board there. It returns when the encounter ends.
+### Activating turns (GM)
 
-### The activate button (GM, in combat)
-
-In combat, each card carries a GM-only button that **activates that combatant's
-turn**, or ends it if it is already active. Useful when initiative order needs
-overriding at the table.
+In combat, each card includes a GM-only button to activate or end that
+combatant's turn manually.
 
 ---
 
 ## The action menu
 
-Cards you own carry a **tab strip below the card**, in crawl mode as well as
-combat. Hovering a tab opens a floating panel built from that actor's own items,
-laid out in Shadowdark stat-block order. Players get this on their own
-characters, so they can cast and attack without opening a sheet.
+Cards you own display an action tab strip underneath. Hovering a tab opens a
+panel organized in Shadowdark stat-block layout so players can act without
+opening their sheets:
 
-The tabs differ by actor type, and a tab only appears if the actor has anything
-to put in it:
-
-| Actor | Tabs | Contents |
+| Actor type | Tabs available | Contents |
 |---|---|---|
-| **NPC** | Actions · Abilities | `NPC Attack` / `NPC Special Attack` · `NPC Feature` |
-| **PC** | Weapons · Spells · Abilities | **Equipped** weapons · `Spell` items, plus `Wand` and `Scroll` spells · `Class Ability` items |
+| **NPC** | Actions · Abilities | Attacks, special attacks, and features |
+| **PC** | Weapons · Spells · Abilities | Equipped weapons, spells/wands/scrolls, and class abilities |
 
-- **Weapons and attacks** show damage inline (e.g. `Claws  2d6 piercing`), with a
-  small icon distinguishing melee from ranged. A thrown weapon appears twice:
-  once as itself, once as a `(thrown)` variant. Clicking rolls through the
-  system's own `rollAttack`, falling back to opening the item sheet.
-- **Spells** are the memorised ones plus anything castable off an item. A wand
-  lists each spell it holds; a scroll lists the one it carries. Those rows are
-  named for the *spell* and marked with a small wand or scroll icon, with the
-  item's own name in the tooltip — so `Fireball` off a Wand of Wonder and
-  `Fireball` off a scroll are told apart at a glance. Clicking casts through
-  the system's `castSpell` with the item attached, so the normal rules apply:
-  the scroll is spent, and a wand can break on a critical failure. A
-  non-caster may use a wand or scroll only when the GM has ticked that
-  character's **Allow all magic items** box — Shadowdark refuses the cast
-  otherwise. The Spells tab follows the same rule the character sheet uses, so
-  it appears for spellcasters, and for anyone else only with that box ticked.
-- **What the Spells tab hides**, matching the character sheet exactly: lost
-  spells, burned-out wand charges, broken wands, and anything **stashed** or
-  **unidentified** — an unknown stick doesn't advertise what it casts.
-- **Abilities and features** open the item sheet for the description. Talents
-  are deliberately excluded. They are passive, not actions.
+- **Weapons & attacks:** Shows damage inline with melee/ranged icons. Click to
+  roll using standard system attack rolls.
+- **Spells:** Lists memorized spells, wands, and scrolls. Wand charges and
+  scroll consumption follow system rules.
+- **Hidden items:** The menu automatically hides lost spells, spent wand
+  charges, broken wands, and stashed or unidentified items.
+- **Abilities & features:** Click to open the item sheet for full rules text.
 
-> **Spend Luck** is the Luck pill on the card itself, not a menu entry.
-> **Rollback to turn start** is a button on Foundry's **token HUD** (right-click
-> the token), not on the strip. See [Movement Budgets](Movement-Budgets.md).
+---
 
 ## Hidden combatants
 
-The module keeps `token.hidden` and `combatant.hidden` **synced in both
-directions**, which Foundry does not do on its own. Adding a hidden token to
-combat normally produces a *visible* combatant. Two things follow:
+The module automatically synchronizes `token.hidden` and `combatant.hidden`:
 
-- A combatant hidden either way stays suppressed from players through Foundry's
-  own visibility rules.
-- Hidden combatants' initiative rolls are **not** posted to players. Foundry
-  rolls them as a private GM roll, but the roll message itself still shows
-  players a "someone rolled something" placeholder, which gives away that an
-  unseen combatant exists. The module drops those messages for players entirely.
-
-There is **no setting** for this. It is always on.
+- Tokens hidden on the canvas produce hidden tracker combatants.
+- Initiative rolls for hidden combatants are suppressed entirely from player
+  chat, avoiding spoiler roll notifications.
 
 ---
 
 ## Troubleshooting
 
-**The strip is empty in crawl mode.**
-The crawl roster is opt-in. Select your player tokens and click **Add Tokens**.
-Only actors of type `Player` are added.
+**The strip is empty in crawl mode.**  
+Select your player tokens on the canvas and click **Add Tokens** on the crawl
+bar. Only `Player` actors are added.
 
-**A player's card vanished when I changed scenes.**
-It shouldn't. Membership is stored by actor id, not token id. If a card is
-missing, the actor has no token placed on the current scene. That is expected,
-since the card needs a token to report movement against.
+**A player card disappeared after changing scenes.**  
+Cards require an active token on the current scene to calculate movement
+budgets. Place the player's token on the scene.
 
-**An enemy disappeared from the strip mid-fight.**
-It died. NPCs at 0 HP (or marked defeated in the tracker) are removed from
-the strip on purpose. The combatant is still in the combat tracker, so heal it
-above 0 HP or clear its defeated marker and the card returns.
+**An enemy disappeared from the strip during combat.**  
+Monsters and NPCs at 0 HP or marked defeated leave the strip automatically.
+Healing them or clearing the defeated marker brings them back.
 
-**The combat tracker jumped a turn (or several) on its own.**
-It skipped combatants the strip doesn't render — dead enemies. That is the
-auto-skip described under [In combat mode](#in-combat-mode); it fires whenever
-the turn pointer lands on one, including right after the killing blow. Step
-back with the strip's **Previous Turn** button if you want the turn anyway.
+**The combat tracker jumped past a turn automatically.**  
+The module automatically advances past dead combatants. Use the strip's
+**Previous Turn** button if you need to take an action on that turn.
 
-**No card is lit and it looks like nobody's turn.**
-The turn pointer is on a combatant with no card and the skip didn't run. It
-only runs for the GM (specifically the active GM), so on a player's screen the
-pointer will catch up a moment later. If it persists for the GM too, every
-remaining combatant is dead — the skip has nowhere to advance to and stops on
-purpose. End the encounter, or heal/undefeat someone.
+**No card is highlighted and it looks like nobody's turn.**  
+The active turn pointer landed on a defeated combatant. On GM screens, this
+advances automatically. If all enemies are dead, end the combat encounter.
 
-**Two party strips are showing.**
-`shadowdark-crawl-helper` is still enabled. Disable it. See
-[Installation & Setup](Installation-and-Setup.md).
+**Two party strips appear on screen.**  
+Disable the legacy `shadowdark-crawl-helper` module in your world.
 
-**Initiative order looks wrong at the start of round 1.**
-Foundry re-sorts `combat.turns` as initiative comes in, but keeps the turn
-pointer where it was. The module watches for this and, once every combatant in
-round 1 has an initiative, snaps the pointer back to the top of the order. If
-you see it mid-settle, it will correct itself.
-
-**Clicking a Luck pip does nothing.**
-The pill is only clickable when the character actually has Luck tokens left, and
-only on PCs. A greyed pill means zero remaining.
-
-**Granting or giving a Luck token says the character already has one.**
-Outside Pulp mode, Shadowdark tracks a single Luck token per character as a
-yes/no flag, so there is nowhere to put a second and one banked anyway could
-never be spent. In classic mode both the GM's right-click grant and a player's
-give are refused when the receiver already holds their token. Turn on Pulp mode
-if your table wants Luck to stack.
-
-**The strip renders unstyled / as plain blocks.**
-Your browser is serving a cached copy of the module stylesheet. Hard-reload with
-`Ctrl+Shift+R`.
+**Clicking a Luck pill does nothing.**  
+The character has 0 Luck tokens remaining, or the world is in classic mode where
+Luck caps at 1.
 
 ---
 

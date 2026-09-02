@@ -100,7 +100,7 @@ Every value is editable. Buttons:
 
 | Button | What it does |
 |---|---|
-| **Recalculate** | Rebuilds the whole table from every NPC installed in this world: all Actor compendiums plus world actors. Needs at least 10 monsters. Fills the form, and you still press **Save**. |
+| **Recalculate** | Rebuilds the table from all NPCs across world and Actor compendiums (requires 10+ monsters). Fills the form; click **Save** to apply. |
 | **Reset** | Discards your edits and restores the shipped table. Asks first. |
 | **Export** | Saves the table as JSON. |
 | **Import** | Loads an exported JSON file. It is validated before anything is replaced. |

@@ -97,8 +97,9 @@ the benefit text is descriptive, so add an Active Effect by hand if you want it
 to apply.
 
 **The window's content runs off-screen.**
-Fixed in v0.11.x, where the Forge root scrolls. If you still see it, hard-reload
-with `Ctrl+Shift+R`. Your browser is serving a cached stylesheet.
+The Forge root window is scrollable. If content extends off-screen, hard-reload
+your client with `Ctrl+Shift+R` to ensure your browser has loaded the latest
+stylesheet.
 
 **Create does nothing.**
 Creation is fail-closed. Something required is missing. Check that a base type

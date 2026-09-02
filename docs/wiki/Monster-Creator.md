@@ -52,8 +52,10 @@ Undead
 
 ### Spells
 
-Attach spells with a debounced compendium search and a tier filter. Matches
-appear as removable chips.
+Attach spells with a debounced compendium search and a tier filter. Filter by
+system spells or browse extracted monster abilities from the
+[Monster Spell Library](Monster-Spell-Library.md). Matches appear as removable
+chips.
 
 ### Art
 
@@ -229,4 +231,7 @@ correct. Untick nothing and change the level to see them move.
 
 ---
 
-**Related:** [Monster Level Guidelines](Monster-Level-Guidelines.md) · [Random Encounters](Random-Encounters.md) · [Monster Token Art](Monster-Token-Art.md) · [Importer Hub](Importer-Hub.md)
+**Related:** [Monster Level Guidelines](Monster-Level-Guidelines.md) ·
+[Monster Spell Library](Monster-Spell-Library.md) ·
+[Random Encounters](Random-Encounters.md) ·
+[Monster Token Art](Monster-Token-Art.md) · [Importer Hub](Importer-Hub.md)
