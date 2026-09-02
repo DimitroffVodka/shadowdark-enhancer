@@ -466,9 +466,15 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
     </button>`;
   }).join("");
 
+  // The label sits in a <span>. Something in this dialog's cascade owns the font
+  // of every <button> — a bare `<button>` here renders in the Old Newspaper
+  // flavor serif while an identical `<div>` takes the rule's Montserrat, and it
+  // survives `!important`, so it is not an author declaration we can out-rank.
+  // Styling a child element steps around it without giving up button semantics,
+  // which is the same shape the gallery tiles already use for their captions.
   const chip = (group, tags, label, on = false) =>
     `<button type="button" class="sde-cb-chip${on ? " active" : ""}" aria-pressed="${on}"
-      data-group="${esc(group)}" data-tags="${esc(tags.join(" "))}">${esc(label)}</button>`;
+      data-group="${esc(group)}" data-tags="${esc(tags.join(" "))}"><span>${esc(label)}</span></button>`;
 
   // `<details>` gives collapsible groups with no JS and no state to track —
   // the browser owns open/closed. Ancestry leads and stays open; the long
@@ -497,7 +503,7 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
           <input type="search" class="sde-cb-gallery-search" placeholder="${esc(L("SDE.charBuilder.art.gallerySearch"))}">
           <p class="sde-cb-gallery-count"></p>
           <button type="button" class="sde-cb-gallery-reset">
-            <i class="fa-solid fa-arrow-rotate-left"></i> ${esc(L("SDE.charBuilder.art.galleryReset"))}
+            <i class="fa-solid fa-arrow-rotate-left"></i><span>${esc(L("SDE.charBuilder.art.galleryReset"))}</span>
           </button>
         </div>
         <div class="sde-cb-gallery-side-scroll">${ancestryGroup}${facetGroups}</div>
