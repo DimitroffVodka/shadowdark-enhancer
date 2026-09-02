@@ -47,7 +47,9 @@ globalThis.game = {
 };
 
 const {
+  ANCESTRY_TAGS,
   ART_QUERY,
+  ancestryKey,
   PF_CHARACTER_ART_FOLDER,
   datasheetEntries,
   galleryEntries,
@@ -235,4 +237,27 @@ test("an undescribed file still carries a readable label and empty facets", asyn
   assert.equal(entry.label, "half elf ranger");
   assert.deepEqual(entry.tags, {});
   assert.equal(entry.thumb, entry.src, "with no thumbnail the full image is the thumb");
+});
+
+// ─── Curated ancestry filter ─────────────────────────────────────────────────
+
+test("Shadowdark ancestry names fold to their tag keys", () => {
+  assert.equal(ancestryKey("Half-Elf"), "halfelf");
+  assert.equal(ancestryKey("half elf"), "halfelf");
+  assert.equal(ancestryKey("Half-Orc"), "halforc");
+  assert.equal(ancestryKey(null), "");
+});
+
+test("the half-ancestries accept Pathfinder's own names for them", () => {
+  // Matching only "elf"/"orc" would drop every portrait tagged as specifically
+  // half-ancestry, which are the closest matches there are.
+  assert.deepEqual(ANCESTRY_TAGS.halfelf.tags, ["aiuvarin", "elf"]);
+  assert.deepEqual(ANCESTRY_TAGS.halforc.tags, ["dromaar", "orc"]);
+  assert.deepEqual(Object.keys(ANCESTRY_TAGS).sort(), [
+    "dwarf", "elf", "goblin", "halfelf", "halfling", "halforc", "human", "kobold",
+  ]);
+  // "halfling" is not a half-ancestry — a label derived from the key spelled it
+  // "Half-Ling" in the live dialog, so the labels are written out, not computed.
+  assert.equal(ANCESTRY_TAGS.halfling.label, "Halfling");
+  assert.equal(ANCESTRY_TAGS.halfelf.label, "Half-Elf");
 });

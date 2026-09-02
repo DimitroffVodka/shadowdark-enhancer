@@ -235,11 +235,63 @@ export async function galleryEntries(slot = "portrait") {
   return entries.sort((a, b) => a.label.localeCompare(b.label));
 }
 
-/** Facet group → its sorted distinct values, across the entries that have any. */
+/**
+ * Shadowdark ancestry → the datasheet `ancestry` tags that portray it.
+ *
+ * The raw tag list runs to a hundred values, nearly all of them Pathfinder
+ * ancestries with no Shadowdark equivalent, which is not a filter so much as a
+ * second wall of choices. This is the curated list: the eight ancestries a
+ * character can actually be, each mapped to every tag that depicts one.
+ *
+ * The two-tag rows are the ones worth knowing about. Pathfinder renamed its
+ * half-ancestries — a half-elf is an `aiuvarin` and a half-orc a `dromaar` —
+ * so matching only "elf" and "orc" would silently drop the 54 portraits that
+ * are specifically of half-ancestry characters, which are the best matches of
+ * all. Both spellings are accepted.
+ *
+ * Anything outside this list (gnome, tengu, a homebrew ancestry) stays
+ * reachable by typing it into the search box, which reads the tags too.
+ */
+export const ANCESTRY_TAGS = {
+  dwarf:    { label: "Dwarf",     tags: ["dwarf"] },
+  elf:      { label: "Elf",       tags: ["elf"] },
+  goblin:   { label: "Goblin",    tags: ["goblin"] },
+  halfelf:  { label: "Half-Elf",  tags: ["aiuvarin", "elf"] },
+  halfling: { label: "Halfling",  tags: ["halfling"] },
+  halforc:  { label: "Half-Orc",  tags: ["dromaar", "orc"] },
+  human:    { label: "Human",     tags: ["human"] },
+  kobold:   { label: "Kobold",    tags: ["kobold"] },
+};
+
+/** Fold an ancestry name to its ANCESTRY_TAGS key ("Half-Elf"/"Half Elf" → halfelf). */
+export const ancestryKey = (name) => String(name ?? "").toLowerCase().replace(/[^a-z]/g, "");
+
+/**
+ * The curated ancestry options for a set of entries: every mapped ancestry that
+ * actually has art, with its count. An ancestry no installed module depicts is
+ * left out rather than offered as a filter that yields nothing.
+ */
+function ancestryOptions(entries) {
+  return Object.entries(ANCESTRY_TAGS)
+    .map(([key, { label, tags }]) => ({
+      key,
+      tags,
+      label,
+      count: entries.filter((e) => (e.tags.ancestry ?? []).some((v) => tags.includes(v))).length,
+    }))
+    .filter((o) => o.count > 0)
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+/**
+ * Facet group → its sorted distinct values, across the entries that have any.
+ * `ancestry` is excluded: the curated ancestry control above replaces it.
+ */
 function galleryFacets(entries) {
   const facets = new Map();
   for (const entry of entries) {
     for (const [group, values] of Object.entries(entry.tags)) {
+      if (group === "ancestry") continue;
       const set = facets.get(group) ?? new Set();
       for (const v of values) set.add(v);
       facets.set(group, set);
@@ -257,6 +309,7 @@ function galleryFacets(entries) {
 function installGalleryFilter(root, onCount) {
   const grid = root.querySelector(".sde-cb-gallery");
   const search = root.querySelector(".sde-cb-gallery-search");
+  const ancestry = root.querySelector(".sde-cb-gallery-ancestry");
   const selects = [...root.querySelectorAll("[data-facet]")];
   const tiles = [...grid.querySelectorAll(".sde-cb-gallery-item")];
 
@@ -265,10 +318,14 @@ function installGalleryFilter(root, onCount) {
     const wanted = selects
       .filter((s) => s.value)
       .map((s) => `${s.dataset.facet}:${s.value}`);
+    // One ancestry can be depicted by several tags (a half-elf is an aiuvarin
+    // OR an elf), so this one control is an ANY test, not an all test.
+    const anyOf = (ancestry?.selectedOptions?.[0]?.dataset.tags ?? "").split(" ").filter(Boolean);
     let shown = 0;
     for (const tile of tiles) {
       const hit = (!needle || tile.dataset.search.includes(needle))
-        && wanted.every((w) => tile.dataset.tags.includes(` ${w} `));
+        && wanted.every((w) => tile.dataset.tags.includes(` ${w} `))
+        && (!anyOf.length || anyOf.some((t) => tile.dataset.tags.includes(` ancestry:${t} `)));
       tile.hidden = !hit;
       if (hit) shown++;
     }
@@ -276,6 +333,7 @@ function installGalleryFilter(root, onCount) {
   };
 
   search?.addEventListener("input", apply);
+  ancestry?.addEventListener("change", apply);
   for (const s of selects) s.addEventListener("change", apply);
   apply();
 }
@@ -284,10 +342,14 @@ function installGalleryFilter(root, onCount) {
  * Show the gallery and resolve to the chosen image path, or null if the player
  * cancelled / closed the dialog / the folder yielded nothing.
  *
+ * Opens filtered to the build's own ancestry when the art supports it — a
+ * dwarf's player wants the 75 dwarves, not all 1,952 pictures — and the
+ * ancestry control drops back to "Any" in one click.
+ *
  * @param {string|null} current  Currently-selected path, highlighted in the grid.
- * @param {{slot?: "portrait"|"token"}} [options]
+ * @param {{slot?: "portrait"|"token", ancestry?: string|null}} [options]
  */
-export async function pickGalleryArt(current = null, { slot = "portrait" } = {}) {
+export async function pickGalleryArt(current = null, { slot = "portrait", ancestry = null } = {}) {
   const entries = await galleryEntries(slot);
   if (!entries.length) {
     ui.notifications.warn(game.i18n.format("SDE.charBuilder.art.galleryEmpty", { folder: galleryFolderLabel() }));
@@ -297,6 +359,10 @@ export async function pickGalleryArt(current = null, { slot = "portrait" } = {})
   const esc = foundry.utils.escapeHTML;
   const L = (k) => game.i18n.localize(k);
   const facets = galleryFacets(entries);
+  const ancestries = ancestryOptions(entries);
+  // Only preselect an ancestry that has art; otherwise the gallery would open
+  // on an empty grid and read as broken.
+  const preselect = ancestries.find((o) => o.key === ancestryKey(ancestry))?.key ?? "";
 
   const items = entries.map((e) => {
     // Padded on both sides so a facet match is a whole-token test: "elf" must
@@ -319,9 +385,18 @@ export async function pickGalleryArt(current = null, { slot = "portrait" } = {})
       ${values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}
     </select>`).join("");
 
+  const ancestrySelect = ancestries.length ? `
+    <select class="sde-cb-gallery-ancestry" aria-label="${esc(L("SDE.charBuilder.step.ancestry"))}">
+      <option value="" data-tags="">${esc(L("SDE.charBuilder.art.galleryAnyAncestry"))}</option>
+      ${ancestries.map((o) => `
+        <option value="${esc(o.key)}" data-tags="${esc(o.tags.join(" "))}"${o.key === preselect ? " selected" : ""}
+          >${esc(o.label)} (${o.count})</option>`).join("")}
+    </select>` : "";
+
   const content = `
     <div class="sde-cb-gallery-bar">
       <input type="search" class="sde-cb-gallery-search" placeholder="${esc(L("SDE.charBuilder.art.gallerySearch"))}">
+      ${ancestrySelect}
       ${selects}
       <span class="sde-cb-gallery-count"></span>
     </div>
