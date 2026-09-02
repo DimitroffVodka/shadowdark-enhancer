@@ -264,3 +264,38 @@ test("the half-ancestries accept Pathfinder's own names for them", () => {
   assert.equal(ANCESTRY_TAGS.halfling.label, "Halfling");
   assert.equal(ANCESTRY_TAGS.halfelf.label, "Half-Elf");
 });
+
+// ─── Matched pairs ───────────────────────────────────────────────────────────
+//
+// A gallery entry is a character, not a loose image: one pick has to be able to
+// dress both slots, so every entry carries BOTH paths whichever slot asked.
+
+test("an entry carries both slots' art, whichever slot it was built for", async () => {
+  configure();
+  withDatasheet([ROW]);
+
+  for (const slot of ["portrait", "token"]) {
+    const [e] = await datasheetEntries(slot);
+    assert.equal(e.portrait, ROW.art.portrait, `${slot}: portrait path`);
+    assert.equal(e.token, ROW.art.token, `${slot}: token path`);
+    assert.equal(e.src, slot === "token" ? ROW.art.token : ROW.art.portrait, `${slot}: src`);
+  }
+});
+
+test("a row with one image serves it as both slots rather than dropping out", async () => {
+  configure();
+  withDatasheet([{ label: "Portrait Only", art: { portrait: `${PF_FOLDER}/only.webp` } }]);
+
+  const [e] = await datasheetEntries("token");
+  assert.equal(e.portrait, `${PF_FOLDER}/only.webp`);
+  assert.equal(e.token, `${PF_FOLDER}/only.webp`);
+});
+
+test("a loose folder file reports itself as both slots", async () => {
+  configure();
+  browseResults.set("custom/portraits", { files: ["custom/portraits/kyra.webp"] });
+
+  const [e] = await galleryEntries("portrait");
+  assert.equal(e.portrait, "custom/portraits/kyra.webp");
+  assert.equal(e.token, "custom/portraits/kyra.webp");
+});

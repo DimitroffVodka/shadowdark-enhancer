@@ -298,7 +298,7 @@
 | `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 286 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
-| `art-gallery.mjs` | 547 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
+| `art-gallery.mjs` | 566 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 112 | Per-day/roll uses for Class Ability items. |
 | `gear-editor-app.mjs` | 152 | `ExtraGearEditor` sub-window. |
 | `steps/base-step.mjs` | 54 | Base class for character-builder wizard steps (shared lifecycle, render and validation). |
@@ -314,7 +314,7 @@
 | `steps/hp-step.mjs` | 123 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 131 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
-| `steps/preview-step.mjs` | 301 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/preview-step.mjs` | 318 | Step — Preview. Final character-sheet preview before creation. |
 | `steps/stats-step.mjs` | 362 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`

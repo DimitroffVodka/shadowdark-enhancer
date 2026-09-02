@@ -244,8 +244,25 @@ export class PreviewStep extends BaseStep {
       slot, ancestry: this.state.ancestry?.name,
     });
     if (!picked) return;
-    this.state.art[slot] = picked;
+    this._applyGalleryPick(picked);
     this.app.render();
+  }
+
+  /**
+   * One pick dresses BOTH slots from the same artwork.
+   *
+   * The gallery's entries are characters, not loose images: each carries a
+   * portrait and its matching token. Choosing a portrait and then hunting the
+   * same character down again under "Token from gallery…" is busywork with an
+   * obvious wrong answer waiting at the end of it (a mismatched pair). So the
+   * gallery always sets a matched pair, and mixing art from two characters is
+   * done through the file picker or "From URL…" — the paths that take one image
+   * because that is all they have.
+   */
+  _applyGalleryPick({ portrait, token }) {
+    const art = this.state.art;
+    if (portrait) art.portrait = portrait;
+    if (token) art.token = token;
   }
 
   async _onPickArt(slot) {
@@ -262,7 +279,7 @@ export class PreviewStep extends BaseStep {
         return;
       }
       const picked = await pickGalleryArt(st.art[slot], { slot, ancestry: st.ancestry?.name });
-      if (picked) apply(picked);
+      if (picked) { this._applyGalleryPick(picked); this.app.render(); }
       return;
     }
 

@@ -159,6 +159,8 @@ const fileLabel = (p) => String(p).split("/").pop().replace(/\.\w+$/, "").replac
  * One pickable image, plus whatever is known about it.
  * @typedef {object} GalleryEntry
  * @property {string} src    the path applied to the chosen slot
+ * @property {string} portrait  this artwork's portrait image
+ * @property {string} token     this artwork's token image
  * @property {string} thumb  a lighter image for the grid (falls back to `src`)
  * @property {string} label  display name
  * @property {string} source book/module the art came from, or ""
@@ -189,9 +191,11 @@ export async function datasheetEntries(slot = "portrait") {
     for (const row of await readDatasheet(path)) {
       const art = row?.art ?? {};
       const paths = [art.portrait, art.token, art.thumb, art.subject].filter(Boolean).map(String);
-      const src = slot === "token"
-        ? (art.token ?? art.portrait)
-        : (art.portrait ?? art.token);
+      // Each slot falls back to the other, so a row that ships only one image
+      // still fills both rather than dropping out of the gallery.
+      const portrait = art.portrait ?? art.token;
+      const token = art.token ?? art.portrait;
+      const src = slot === "token" ? token : portrait;
       if (!src) continue;
       const tags = {};
       for (const [group, values] of Object.entries(row?.tags ?? {})) {
@@ -200,6 +204,8 @@ export async function datasheetEntries(slot = "portrait") {
       }
       out.push({
         src: String(src),
+        portrait: String(portrait),
+        token: String(token),
         thumb: String(art.thumb ?? src),
         // Trimmed: a stray leading space in a third-party sheet otherwise sorts
         // that row to the very top of the grid, ahead of every "A".
@@ -230,7 +236,11 @@ export async function galleryEntries(slot = "portrait") {
   const entries = [...described];
   for (const file of await listGalleryArt()) {
     if (covered.has(file)) continue;
-    entries.push({ src: file, thumb: file, label: fileLabel(file), source: "", tags: {}, art: [file] });
+    // A loose file is the only image it has, so it serves as both slots.
+    entries.push({
+      src: file, portrait: file, token: file, thumb: file,
+      label: fileLabel(file), source: "", tags: {}, art: [file],
+    });
   }
   return entries.sort((a, b) => a.label.localeCompare(b.label));
 }
@@ -426,8 +436,12 @@ function installGalleryPeek(root) {
 }
 
 /**
- * Show the gallery and resolve to the chosen image path, or null if the player
+ * Show the gallery and resolve to the chosen artwork, or null if the player
  * cancelled / closed the dialog / the folder yielded nothing.
+ *
+ * Resolves the whole matched PAIR — `{src, portrait, token}` — not just the one
+ * image the slot asked for, so the caller can dress both slots from one pick.
+ * A loose folder file has no pair, so it reports itself as both.
  *
  * Opens filtered to the build's own ancestry when the art supports it — a
  * dwarf's player wants the 75 dwarves, not all 1,952 pictures — and the
@@ -460,6 +474,7 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
     return `
     <button type="button" class="sde-cb-gallery-item${e.src === current ? " active" : ""}"
       data-action="gallery-pick" data-src="${esc(e.src)}"
+      data-portrait="${esc(e.portrait)}" data-token="${esc(e.token)}"
       data-search="${esc(search)}" data-tags="${esc(tags)}"
       title="${esc(e.source ? `${e.label} — ${e.source}` : e.label)}">
       <img src="${esc(e.thumb)}" alt="" loading="lazy"><span>${esc(e.label)}</span>
@@ -524,7 +539,11 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
       buttons: [{ action: "cancel", label: L("SDE.charBuilder.art.galleryCancel"), icon: "fa-solid fa-xmark" }],
       actions: {
         "gallery-pick": (_event, target) => {
-          resolve(target.dataset.src);
+          resolve({
+            src: target.dataset.src,
+            portrait: target.dataset.portrait,
+            token: target.dataset.token,
+          });
           dlg.close();
         },
       },
