@@ -48,6 +48,14 @@
             <i class="fa-solid fa-chess-pawn"></i> {{localize "SDE.charBuilder.art.pickToken"}}
           </button>
           {{/if}}
+          {{#if step.art.canGallery}}
+          <button type="button" class="sde-cb-btn" data-action="cb-gallery-portrait">
+            <i class="fa-solid fa-images"></i> {{localize "SDE.charBuilder.art.galleryPortrait"}}
+          </button>
+          <button type="button" class="sde-cb-btn" data-action="cb-gallery-token">
+            <i class="fa-solid fa-images"></i> {{localize "SDE.charBuilder.art.galleryToken"}}
+          </button>
+          {{/if}}
           <button type="button" class="sde-cb-btn" data-action="cb-art-url">
             <i class="fa-solid fa-link"></i> {{localize "SDE.charBuilder.art.fromUrl"}}
           </button>

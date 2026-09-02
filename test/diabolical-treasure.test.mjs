@@ -672,3 +672,33 @@ describe("Diabolical Treasure identity and materialization", () => {
     assert.ok(table.results.every((row) => row.type === 0 && row.name.includes("|")));
   });
 });
+
+test("#146 generated treasure carries its book in system.source.title", async () => {
+  const { fabricateTreasureItem } = await import("../scripts/loot/loot-pack.mjs");
+  const { generatedItemFingerprint } = await import("../scripts/shared/generated-items.mjs");
+
+  // The field the Shadowdark item sheet renders, in the slug form the gear and
+  // char-content paths already write — not the module's own `cs1` flag spelling.
+  const cs1 = fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 }, source: "cs1" });
+  assert.deepEqual(cs1.system.source, { title: "cursed-scroll-1" });
+
+  const wr = fabricateTreasureItem({ name: "Sai", value: { gp: 1 }, source: "Western Reaches" });
+  assert.deepEqual(wr.system.source, { title: "western-reaches" });
+
+  // No source declared means no invented attribution — the key stays absent
+  // rather than being written blank.
+  const none = fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 } });
+  assert.ok(!("source" in none.system), "an unknown book must not be stamped");
+
+  // The fingerprint covers the whole system object, so adding this field makes
+  // existing generated Items read as changed ONCE. It must then converge: a
+  // definition and a stored document that both carry the field must match, or
+  // every reconcile would rewrite all 45 generated Items forever.
+  const before = generatedItemFingerprint(
+    fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 } }));
+  const after = generatedItemFingerprint(cs1);
+  assert.notEqual(before, after, "adding the field is a real change, seen once");
+  assert.equal(after, generatedItemFingerprint(
+    fabricateTreasureItem({ name: "Carved bone", value: { gp: 1 }, source: "cs1" })),
+  "two identical definitions must fingerprint the same, so it converges");
+});

@@ -2,8 +2,8 @@
 
 [← Wiki home](index.md)
 
-Classes and spells are the two hardest content types to import, so each gets its
-own workspace instead of sharing the generic paste box.
+Classes and spells are the two most structured content types to import, so each
+gets its own dedicated workspace instead of sharing the generic paste box.
 
 ---
 
@@ -11,50 +11,48 @@ own workspace instead of sharing the generic paste box.
 
 ![The Class Importer workspace](images/class-importer.png)
 
-A class is not one block of text. It is a writeup, a talent table, a titles
-table, a spells-known table, and sometimes extra tables, printed on different
-pages, sometimes in a different appendix entirely.
+A class is rarely a single block of text in a rulebook. It is a main writeup,
+a talent table, a titles table, a spells-known progression, and sometimes
+extra tables printed across multiple pages or appendices.
 
-The workspace pins the class you're building at the top and gives you a paste
-zone per part.
+The workspace pins the class you are building at the top and provides
+dedicated paste zones for each component.
 
-### Stage 1: the writeup
+### Stage 1: The writeup
 
-Paste the class's main text. This gives you the class item itself: hit die,
-weapons and armour, level-1 features, and the talents that come with them.
+Paste the main class text here. This generates the core Class item: hit die,
+armor and weapon proficiencies, level 1 features, and initial talent references.
 
-### Stage 2: the parts
+### Stage 2: The parts
 
-Separate paste zones for:
+Paste secondary sections into their respective zones:
 
 | Part | What it is |
 |---|---|
-| **Talent table** | The class's `2d6` talent table |
-| **Titles** | The level-title band table, usually printed in a separate appendix, in columns, sliced per class. Editable in a band editor. |
-| **Spells known** | Per-tier spells-known counts, for casters |
-| **Extra tables** | Anything else the class references |
+| **Talent table** | The class's `2d6` talent roll table. |
+| **Titles** | Level-and-title bands, often printed in an appendix across columns. Editable in the band editor. |
+| **Spells known** | Per-tier spells-known counts for spellcasting classes. |
+| **Extra tables** | Any supplementary roll tables referenced by class features. |
 
-**Any paste is routed to the right slot automatically.** You don't have to tell
-it which zone you're filling.
-
-> **Re-importing the writeup no longer erases attached tables.** This was a real
-> bug. The workspace keeps the parts you've already attached when you re-paste
-> stage 1.
+Pastes route to the appropriate slot automatically based on content layout.
+Re-importing or updating stage 1 keeps any parts you already attached.
 
 ### What a finished class needs
 
-For a class to work end-to-end in the [Character Builder](Character-Builder.md):
+For a class to work seamlessly in the [Character Builder](Character-Builder.md),
+ensure it has:
 
-- the class item, with its level-1 features
-- talents as real Talent items, referenced from `system.talents[]`
-- activated or grouped powers (things with a roll, a DC, and per-day uses) as
-  **Class Ability** items in `system.classAbilities[]`, and the importer detects
-  which is which and wires both
-- a talent RollTable resolvable by name (`<Class> Talent`, or `<Talent> Table`)
-  **or** linked by `@UUID` from the talent description
+- The core **Class** item with its level 1 features.
+- Talents linked as **Talent** items in `system.talents[]`.
+- Activated or limited-use abilities (features requiring rolls, DCs, or daily
+  uses) wired as **Class Ability** items in `system.classAbilities[]`. The
+  importer distinguishes and routes both types.
+- A talent RollTable named according to convention (`<Class> Talent` or
+  `<Talent> Table`), or explicitly linked via an `@UUID` in the talent
+  description.
 
-A bare name in a talent description does not resolve. It needs the table name
-convention or an explicit link.
+Bare table names without standard conventions or explicit `@UUID` links will
+not resolve from the character sheet.
 
 ---
 
@@ -62,102 +60,101 @@ convention or an explicit link.
 
 ![The Spell Importer workspace](images/spell-importer.png)
 
-Spells import organised by **Class → Tier → Alignment**.
+Spells import structured by **Class → Tier → Alignment**.
 
-The alignment axis matters because of how Shadowdark models spell lists: *druid
-spells are Wizard spells with Neutral alignment*. The importer writes the
-alignment flag that the character builder's spell picker filters on, so the right
-spells reach the right casters.
+The alignment axis is essential for Shadowdark spell lists (for example, Druid
+spells are modeled as Neutral Wizard spells). The importer sets the alignment
+flag that the character builder's spell picker uses to filter available spells.
 
 ### Where spells are filed
 
-Imported spells land one folder level deep:
+Imported spells are filed one folder level deep:
 
 ```
 Spells / <Class> (<Variant>)
 ```
 
-with Wizard variants being **Druid**, **Mage**, and **Sorcerer**. There are no
-per-tier folders, because tier is a field, not a folder.
+Wizard variants include **Druid**, **Mage**, and **Sorcerer**. Tiers are
+stored as document fields rather than sub-folders.
+
+### Curated spell icons
+
+Imported spells receive reviewed, Foundry-native icons matched to the visual
+description of each spell rather than relying on a single generic casting hand.
+The mapping lives in `scripts/shared/curated-icon-maps/spell-icons.mjs`.
+
+If a spell does not match a curated entry, the importer selects an icon based
+on keywords in the spell description. If you assign custom art to any spell,
+your choice is preserved on future re-imports.
 
 ### Own-list casters vs borrowed-list casters
 
-Homebrew and Western Reaches casters divide into two kinds, and which one you
-have decides how the class gets slugged.
+Supported and homebrew spellcasters fall into two categories:
 
-**Own-list casters** have their own spell list. They link up automatically. The
-spell↔class relink sweep runs on class import, on world load, and after each
-commit, so it doesn't matter which you import first.
+- **Own-list casters** have their own distinct spell list. Spells and classes
+  link automatically during import, on world load, or after commit sweeps.
+- **Borrowed-list casters** cast from another class's list (such as a Green
+  Knight casting Druid spells). Do not give the borrower the lender's class slug;
+  doing so would assign them the entire lender list and casting stat.
 
-**Borrowed-list casters** (a class that casts from another class's list, like the
-Green Knight casting druid spells) must **not** be given the lender's class slug.
-The system's spellbook has no alignment filter, so slugging a Green Knight as
-`wizard` hands them the entire Wizard list (~108 spells) and the wrong casting
-stat.
+To configure borrowed-list casters correctly:
 
-The correct shape is:
+1. Give the class its own slug (e.g. `green-knight`).
+2. Leave the spell's `class` field empty.
+3. Tag the specific borrowed spells to the borrowing class.
 
-- give the class its **own slug** (`green-knight`),
-- leave the spells' `class` field empty,
-- **tag the specific borrowed spells** to the borrowing class.
-
-The importer does this for you when it recognises the pattern.
+The importer handles this structure automatically when it detects borrowed lists.
 
 ---
 
 ## Troubleshooting
 
-**Re-importing a class replaces unchanged talents or class abilities with ActiveEffects.**
-It no longer does. Shadowdark persists and exposes stored ActiveEffect changes across both `changes` and `system.changes`. The Class Importer's comparison normalizes each representation separately and treats them as one logical list only when both populated lists are equal (the true mirror case), preventing unchanged class-content Items from being marked stale and replaced on repeat import. When core and system changes differ, both are retained so real extra or corrected changes still register. The comparison does not deduplicate, so an effect legitimately carrying the same change twice is still a difference, and order still matters. Unchanged overlay-wired class content is reused on repeat import; live verification confirmed an overlay-wired Talent with explicit overlay art retained its exact Item and effect IDs and modified timestamp.
+**Re-importing a class replaces unchanged talents or abilities with ActiveEffects.**  
+The importer normalizes core and system changes separately, treating them as
+identical when both lists match. Unchanged items retain their existing
+document IDs, timestamps, and effects.
 
-**Re-importing a class with no talent table replaces the class document every time.**
-It no longer does. Classes with no talent table use `null` as their canonical absent value across payload construction and comparison, matching what Shadowdark's `DocumentUUIDField` round-trips. The comparison recognizes `null` and incoming blank references as equivalent for `classTalentTable` alone, preventing unnecessary class replacement while ensuring real talent-table UUID additions and updates still apply.
+**Re-importing a class with no talent table replaces the class document every time.**  
+Classes without talent tables store `null` as their canonical empty value,
+matching Foundry field round-trips. Blank references and `null` values compare
+as equal, avoiding redundant document updates.
 
-**Re-importing a class overwrote the icon I picked for a Talent.**
-It no longer does. The Class Importer reuses A3's art-provenance witness
-(`flags["shadowdark-enhancer"].art`) for every `Class`, `Talent`,
-`Class Ability`, and overlay `Item` it writes. An icon you changed is
-classified `custom` and preserved; an untouched module-curated icon remains
-upgradeable on re-import. If the class and content otherwise match the paste,
-the provenance witness is backfilled even when nothing else is stale, so a
-later overlay-art revision still refreshes untouched module art. Corrected
-descriptions and effects remain importer-owned and are applied normally; a
-re-import with a corrected description still lands the text while keeping
-your GM-selected icons on any art you changed. A top-level
-`flags["shadowdark-enhancer"].generated === true` document in the managed
-Items pack (`world.shadowdark-enhancer--items`) is the generic
-replace-always case (A7/D6, `isGeneratedManagedItem` in
-`scripts/shared/art-provenance.mjs`); nested
-`flags["shadowdark-enhancer"].monsterSpell.generated` retains its separate
-curated-conflict and ordinary-import collision-protection contract and does
-not open that boundary. Verified in `test/class-reimport-diff.test.mjs`.
+**Re-importing a class overwrote the icon I picked for a Talent.**  
+The Class Importer tracks art provenance for all `Class`, `Talent`,
+`Class Ability`, and overlay `Item` documents. Custom icons you assign are
+marked `custom` and never overwritten, while untouched module-curated icons
+upgrade when updated maps ship. Corrected descriptions update normally while
+preserving your chosen icons.
 
-**An imported caster class came in as a non-caster.**
-The Spellcasting paragraph was printed *after* the talents box in your book, so
-the parser glued it into the talent table and never saw the enabler talent,
-which leaves `isSpellCaster` false and the level-up dialog offering no spells.
-Paste the Spellcasting paragraph into stage 1 separately, or check that the class
-item ends up with its spellcasting talent.
+**An imported caster class came in as a non-caster.**  
+If the Spellcasting heading appeared after the talents table in your PDF, the
+parser may have bundled it into the talent table. Paste the Spellcasting
+paragraph into Stage 1 on its own — that is what marks the class as a caster.
 
-**The Paladin's Lance has no Charge, Devastating or Mounted property attached by the system — they are canonical managed Properties.** Core Shadowdark ships no property for that WR triple, so the class overlay stocks the Lance and **materializes** `Charge`/`Devastating`/`Mounted` as managed `Property` documents (and UUIDs) in `Western Reaches / Weapon Properties` via the shared `wr-property-importer` seam used by the direct **Importer Hub** paths — the same direct pipeline and the same three UUIDs (see [Importer Hub — After a commit](Importer-Hub.md#after-a-commit-automatically)). The Lance's `system.properties` then lists those three after `Two-Handed`, so all three roads converge on the same documents. A later Paladin re-import reuses those identities and refreshes membership without disturbing a description you wrote; only an exact `Lance` name materializes the WR triple for that overlay, and non-Lance `Charge` (or *Obsidian*/*Sniper*) stays a visible description fallback when pasted as a table row. The **rules text** for each property stays in the GM's book (labels only on the document). A Property-create failure is visible and fail-closed — the preparation notifies and no stocked overlay Item is written until its three UUIDs are available — and a retry materializes the missing Properties without duplicating them.
+**The Paladin's Lance is missing Charge, Devastating, or Mounted properties.**  
+Core Shadowdark has no built-in entries for that Western Reaches property
+triple. The class overlay materializes canonical `Property` items under
+`Western Reaches / Weapon Properties` in the managed items pack, linking them
+to the Lance. Rules text remains in your book; only standard labels appear on
+the item. Re-imports safely reuse existing property documents.
 
-**A class's talent table doesn't roll from the sheet.**
-The table name must match `<Class> Talent` or `<Talent> Table`, **or** the talent
-description must carry an `@UUID` link to it. Which pack the table lives in does
-not matter. A bare name in the description never resolves.
+**A class's talent table doesn't roll from the sheet.**  
+The table must be named `<Class> Talent` or `<Talent> Table`, or the talent
+description must contain an explicit `@UUID` link to the table. Pack location
+does not matter.
 
-**The character builder doesn't offer my imported class.**
-The builder gates on `system.source.title`. Confirm the class was committed with
-a source label. An unlabelled import files under *Custom* and may not match your
-builder's source filters.
+**The character builder doesn't offer my imported class.**  
+The builder filters classes by `system.source.title`. Ensure you committed the
+class with the correct source label (such as `western-reaches`). Unlabeled
+imports default to `Custom`.
 
-**A borrowed-list caster got the wrong spells or the wrong casting stat.**
-It was slugged as the lending class. See the section above. It needs its own
-slug plus per-spell tagging.
+**A borrowed-list caster got the wrong spells or casting stat.**  
+The class was assigned the lender's slug instead of its own. Use the class's
+unique slug and tag individual borrowed spells instead.
 
-**Spells imported before the class exists.**
-That's fine. The relink sweep runs on every world load and links them as soon as
-both sides are present.
+**Spells were imported before the class exists.**  
+This is fully supported. The automatic relink sweep runs on world load and
+whenever imports finish, connecting spells and classes as soon as both exist.
 
 ---
 

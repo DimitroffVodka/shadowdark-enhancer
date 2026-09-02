@@ -2,10 +2,10 @@
 
 [← Wiki home](index.md)
 
-A guided, ordered character-creation wizard, a step-by-step replacement for the
-system's all-random generator. It builds a **complete level-1 character**,
-including rolled hit points and the chosen class talent, so the sheet never
-re-prompts you with the system's level-up dialog afterwards.
+A guided, ordered character-creation wizard designed as a step-by-step
+alternative to the system's random generator. It creates a **complete level-1
+character**—including rolled hit points and chosen class talents—so the sheet
+never re-prompts you with level-up popups afterwards.
 
 ![The Character Builder](images/char-builder.png)
 
@@ -15,150 +15,149 @@ re-prompts you with the system's level-up dialog afterwards.
 
 | Route | How |
 |---|---|
-| **Actors sidebar** | The **Character Builder** button in the header. **Every user sees it**, players included |
+| **Actors sidebar** | Click **Character Builder** in the sidebar header. Visible to all users. |
 | **API** | `game.shadowdarkEnhancer.charBuilder.open()` |
-| **Build onto an existing sheet** | `game.shadowdarkEnhancer.charBuilder.open({ actor })` |
+| **Build onto existing sheet** | `game.shadowdarkEnhancer.charBuilder.open({ actor })` |
 
-**Players can use it.** A player without actor-create permission is handed off to
-the GM over the system socket automatically. They don't need to ask.
+**Players can build characters freely.** If a player lacks actor-creation
+permissions, the builder transparently hands off document creation to the GM
+over system sockets.
 
 ---
 
 ## The seven steps
 
-Freely navigable. Jump between them in any order. Each carries a completion
-check mark, every section that can be randomised has a **Random** button, and the
-first step offers **full random** for a one-click character.
+You can navigate freely between steps in any order. Each step displays a
+completion checkmark once satisfied. Any section with rollable elements includes
+a **Random** button, and the first step provides a **Full Random** button for a
+one-click character.
 
 ### 1. Abilities
 
-**The generation method is GM-dictated.** It is a world setting, shown read-only
-to players, who cannot change it in the builder.
+**The generation method is GM-dictated.** You configure it as a world setting;
+players see your chosen method in the builder and cannot change it.
 
 | Method | What it does |
 |---|---|
-| `3d6` down the line | Straight down, no choices |
-| **`3d6`, reroll if none ≥ 14** | The core-rules full-array reroll. **Default.** |
-| `3d6`, assign as you like | Roll a visible pool, place each die |
-| `4d6` drop lowest, down the line | |
-| `4d6` drop lowest, assign as you like | |
+| `3d6` down the line | Rolls straight down (STR through CHA) with no reordering. |
+| **`3d6`, reroll if none ≥ 14** | Core rules full-array reroll when no stat hits 14. **Default.** |
+| `3d6`, assign as you like | Rolls a visible 6-die pool for you to place into stats. |
+| `4d6` drop lowest, down the line | Rolls 4d6 drop lowest down the line. |
+| `4d6` drop lowest, assign as you like | Rolls 4d6 drop lowest into a visible pool to assign. |
+| **Standard Array** | Fixed pool `15, 14, 13, 12, 10, 8` to assign as you like. |
+| **Point Buy** | 27-point budget across scores 8–15 (costs: 8:0, 9:1, 10:2, 11:3, 12:4, 13:5, 14:7, 15:9). |
 
-Assign methods roll a **visible dice pool**. Click a die, then click a stat to
-place it.
+For assignment methods (and Standard Array), click a value in the pool and
+then click the target ability score to place it.
 
-**Every roll posts a chat card** as an audit trail, so nobody has to take a
-player's word for a 17. The 3D Dice So Nice animation is off by default and can
-be turned on separately. The audit card posts either way.
+Point Buy starts every score at 8 and allows adjusting abilities between 8 and
+15 within the 27-point total budget.
 
-The step also carries a plain-language reference for what each ability actually
-does in Shadowdark.
+**Every roll posts an audit card to chat** so rolls remain transparent. The 3D
+Dice So Nice animation is optional and toggled in settings; the chat audit card
+posts either way.
+
+The step also includes a quick reference explaining what each ability does in
+Shadowdark.
 
 ### 2. Ancestry
 
-A list/detail browser with bundled portrait art, sourced live from every
-installed compendium.
+Browse ancestries live from all installed compendiums, complete with portrait art.
 
-- Multi-talent ancestries (Elf, for example) present their talent choice right
-  on the step.
-- **Name** and **Trinket** each offer three routes: pick from the ancestry's roll
-  table, roll it, or type your own.
+- Multi-talent ancestries (like Elf) let you pick your talent directly here.
+- **Name** and **Trinket** fields let you pick from roll tables, roll
+  randomly, or type custom entries.
 
 ### 3. Origins
 
-Background, Alignment, and Deity on one step. The Deity random pick is
-**weighted toward your chosen alignment**.
+Select Background, Alignment, and Deity on a single screen. The random Deity
+selector is automatically **weighted toward your chosen alignment**.
 
 ### 4. Class
 
-The heaviest step, because creation owes you a lot:
+This step configures class progression details:
 
-- The class's level-1 features, shown up front
-- The **`2d6` class talent table roll**, posted to chat
-- **Talent effect choices** (Weapon Mastery weapon, Armor Mastery, spell
-  advantage) made **inline**, instead of through the system's pop-up dialog
-- **Bonus creation rolls**: the Human *Ambitious* extra talent, *Black Lotus*,
-  patron boons
-- **Patron selection**, where the class wants one
-- A per-tier **spell picker** that enforces the class's spells-known counts
-- **Language choices**: fixed languages, plus choose-N picks from the common,
-  rare, and select pools
+- Level-1 features shown up front
+- The **`2d6` class talent table roll**, logged to chat
+- **Talent choices** (such as Weapon Mastery, Armor Mastery, or spell
+  advantage) selected **inline** rather than via popups
+- **Bonus rolls**: Human *Ambitious* talent, *Black Lotus*, and patron boons
+- **Patron selection** for classes that require one
+- Per-tier **spell picker** enforcing class spells-known limits
+- **Language selection**: fixed languages plus choose-N pools
 
 ### 5. HP & Gold
 
-Roll the class hit die with Constitution applied. Talent HP bonuses (Dwarf
-*Stout*, for instance) are handled **without double-counting**.
+Roll your class hit die with Constitution modifiers applied automatically.
+Talent HP bonuses (such as Dwarf *Stout*) are included **without double-counting**.
 
 | Setting | Effect |
 |---|---|
-| Max Level-1 HP | Sets HP to hit-die maximum + CON instead of rolling |
-| Fixed starting gold (gp) | A flat amount. `0` rolls the standard `2d6 × 5 gp` |
+| Max Level-1 HP | Sets starting HP to hit-die maximum + CON instead of rolling. |
+| Fixed starting gold (gp) | Flat starting gold. Set to `0` to roll the standard `2d6 × 5 gp`. |
 
 ### 6. Gear
 
-A shop: browse Armor, Weapons, and Basic gear from every installed pack. Items
-your class **can't use are flagged**. The cart is tracked against both your
-starting gold and your carry slots, and its cost is deducted from your starting
-coins on creation.
+A starting equipment shop browsing Weapons, Armor, and Basic gear across all
+installed packs. Items your class **cannot use are flagged**. The cart tracks
+against your starting gold and carry slots, deducting spent coins on finish.
 
-GMs can grant **extra gear** beyond the curated starting stock (magic items,
-potions, anything) via **Configure Settings → Character Builder — extra gear →
-Manage Extra Gear**. Extra weapons and armour still respect each class's usable
-list.
+GMs can grant **extra starting gear** (such as magic items or potions) via
+**Configure Settings → Character Builder — extra gear → Manage Extra Gear**.
 
 ### 7. Preview
 
-A read-only summary of every choice, plus an **Artwork** card.
+Review a summary of all your character choices and set artwork.
 
-#### Four ways to set art
+#### Setting character art
 
-Ordered by how much permission they need:
+Ordered by required permissions:
 
 | Route | Permission needed |
 |---|---|
-| **Use Suggested Art**, the bundled class/ancestry portrait, one click | **None** |
-| **From URL…**, paste a link to any image | **None**, and no GM required |
-| **Curated gallery**, pick from a GM-nominated folder | **None**. The browse runs on the GM's client |
-| **File browser**, the normal Foundry picker | `FILES_BROWSE` |
+| **Use Suggested Art** (bundled portrait) | **None** |
+| **From URL…** (paste image link) | **None** (no GM required) |
+| **Portrait / Token from gallery** | **None** (proxied through GM) |
+| **File browser** (Foundry picker) | `FILES_BROWSE` |
 
-Art is optional. Leave it and the system defaults stand.
+Art is optional. Leaving it blank uses system defaults.
 
-The gallery folders are set by **Character Builder — portrait/token art folders**
-(comma-separated). It defaults to the module's own bundled portrait art
-(`assets/portraits, assets/ancestries`), so it works with nothing else installed.
-Add your own folders (e.g. Tokenizer's save locations) to the list.
+#### The artwork gallery
 
-When the gallery is enabled, character portraits from the optional **Pathfinder
-Tokens: Character Gallery** module (`modules/pf2e-tokens-characters/assets/portraits`)
-are automatically discovered and merged into the picker if installed.
+- **Reachable for everyone:** Dedicated **Portrait from gallery** and
+  **Token from gallery** buttons sit on the Preview step for all users.
+  Players without file permissions route through the gallery automatically.
+- **Matched pairs and autofill:** Gallery entries represent characters with
+  matching portraits and tokens. Picking an artwork fills both portrait and
+  token if the other slot is empty. If a slot already holds art, picking only
+  updates that slot, preserving deliberate mismatches. Clicking **Reset art**
+  clears both slots.
+- **Search and facet filters:** A left sidebar provides a search box and
+  collapsible tag filters (multi-select: ANY within a group, ALL across groups).
+- **Ancestry filtering:** The gallery opens pre-filtered to the character's
+  chosen ancestry. Half-ancestries list exact matches before parent ancestries.
+- **Hover preview:** Hovering any tile opens an enlarged floating preview.
+- **Datasheet convention:** The gallery reads `flags.galleryDatasheets` manifests
+  from **any** active module that publishes them. No specific module is
+  required; without one, it browses the configured image folders directly.
 
-- **Blank disables the gallery:** Leaving the setting blank remains the explicit
-  switch to disable the curated gallery entirely.
-- **Permissionless player access:** Players do not need `FILES_BROWSE` permissions.
-  The browse runs on the active GM's client via the `shadowdark-enhancer.browseArt` query,
-  returning the pre-filtered image list.
-- **Safe absence fallback:** Missing folders or an unreadable/absent Pathfinder
-  module directory are caught and skipped silently without dropping custom or
-  bundled gallery results.
+Gallery folders are set via **Character Builder — portrait/token art folders**
+(defaults to `assets/portraits, assets/ancestries`).
 
-**Finish** commits through the system's own creation path: ancestry, class,
-background and deity are stored as references, while talents, abilities, spells
-and gear are embedded as real items.
+Clicking **Finish** commits the character through the system's creation path:
+ancestry, class, background, and deity are stored as references, while talents,
+spells, and items are embedded directly onto the sheet.
 
 ---
 
 ## Content discovery
 
-Name, Trinket, Background, and Deity rolls draw from installed roll tables
-**automatically**. The builder discovers any table named for a known ancestry
-(Names / Trinkets) or a Background / Deity table. **There is no setting to
-configure.** Imported Western Reaches or homebrew tables just work.
+Ancestry Names, Trinkets, Backgrounds, and Deities discover roll tables
+**automatically** by matching table names. Imported Western Reaches or
+homebrew tables work immediately without extra configuration.
 
-The builder also refreshes **live** when the [Importer Hub](Importer-Hub.md)
-unlocks new content. Import a class while the builder is open and it appears
-without a close-and-reopen.
-
-Imported character content is gated on its `system.source.title` slug, which the
-importer stamps at commit. See [Class & Spell Importers](Class-and-Spell-Importers.md).
+The builder also updates **live** when you import new content through the
+[Importer Hub](Importer-Hub.md).
 
 ---
 
@@ -166,50 +165,39 @@ importer stamps at commit. See [Class & Spell Importers](Class-and-Spell-Importe
 
 ### Pathfinder Tokens: Character Gallery
 
-Artwork and portraits from *Pathfinder Tokens: Character Gallery* are copyright © Paizo Inc. Used under license in Foundry VTT. Token ring integration and portrait selection are enabled automatically when the module is installed.
+Artwork and portraits from *Pathfinder Tokens: Character Gallery* are copyright
+© Paizo Inc. Used under license in Foundry VTT. Token ring integration and
+portrait selection enable automatically when installed.
 
 ---
 
 ## Troubleshooting
 
-**A player can't change the ability method.**
-Correct. It is GM-dictated. Change it in **Configure Settings → Character
-Builder — ability roll method**.
+**A player cannot change the ability generation method.**
+The method is GM-dictated. Change it in **Configure Settings → Character Builder — ability roll method**.
 
-**An imported class doesn't appear.**
-The builder filters on `system.source.title`. Confirm the class was committed
-with a source label instead of landing under *Custom*.
+**An imported class does not appear.**
+The builder filters on `system.source.title`. Ensure the class was committed
+with a valid source label rather than under *Custom*.
 
 **An imported caster class offers no spells.**
-It probably imported as a non-caster. Its Spellcasting paragraph got glued into
-the talent table. See
-[Class & Spell Importers](Class-and-Spell-Importers.md#troubleshooting).
+The class may have imported as a non-caster because its spellcasting text was
+merged into the talent table. See [Class & Spell Importers](Class-and-Spell-Importers.md#troubleshooting).
 
-**A player has no gallery art to choose from.**
-Either the art-folder setting is blank, or the configured folders don't exist.
-Missing folders are skipped silently.
+**Players see no gallery art.**
+Verify the art-folder setting is populated and that target folders exist on disk.
 
-**A player gets a file-permission error picking art.**
-They used the file browser route, which needs `FILES_BROWSE`. Point them at
-**Use Suggested Art**, **From URL…**, or the curated gallery. None of those
-require any file permission.
+**A player receives a file-permission error.**
+They used the raw file browser button. Direct them to **Portrait from gallery**,
+**Use Suggested Art**, or **From URL…**, none of which require file permissions.
 
-**The sheet still prompts a level-up dialog after finishing.**
-It shouldn't. The builder rolls HP and picks the class talent up front precisely
-to avoid that. If it happens, the class item is likely missing its level-1
-features.
+**The sheet prompts for level-up after creation.**
+The builder handles level-1 talent and HP choices. If this happens, ensure the
+class item contains its proper level-1 feature links.
 
 **Dwarf Stout gave too much HP.**
-Talent HP bonuses are applied once, deliberately. If you see double-counting,
-[report it](https://github.com/DimitroffVodka/shadowdark-enhancer/issues).
-
-**A player without create permission clicked Finish and nothing happened.**
-The request is relayed to the GM over the socket. A GM must be connected.
-
-**The system's "Searching Distant Lands…" spinner is stuck.**
-A known system-side issue where an item sheet's data preparation throws and the
-loading dialog is never closed, most often right after importing a class. The
-module installs a guard that closes it and logs the underlying error.
+Talent HP bonuses apply once automatically. If double-counting occurs, please
+[report it on GitHub](https://github.com/DimitroffVodka/shadowdark-enhancer/issues).
 
 ---
 

@@ -34,22 +34,53 @@ export const SUITE_PACKS = [
   { key: "tables",  id: "sde-tables",  type: "RollTable",    label: "Shadowdark Enhancer — Roll Tables" },
   { key: "journal", id: "sde-journal", type: "JournalEntry", label: "Shadowdark Enhancer — Journals"    },
   { key: "scenes",  id: "sde-scenes", type: "Scene",        label: "Shadowdark Enhancer — Scenes"      },
+  // Generated Monster Spells hold their own pack rather than a folder inside
+  // Items. #74 consolidated them into sde-items and retired this descriptor,
+  // which left a compendium literally named "Monster Spells" sitting empty —
+  // the obvious place to look, reporting the feature as broken. Neither the
+  // library nor that consolidation ever shipped, so restoring this costs no
+  // migration; it only changes where new generation writes.
+  //
+  // The label slugifies to `shadowdark-enhancer--monster-spells`, the same
+  // collection the retired pack already occupies, so a world that has the empty
+  // one adopts it rather than growing a second. It ends in `--monster-spells`,
+  // not `.spells`, so the dot-qualified suffix test below still resolves
+  // findSuitePack("spells") to the Character-Options Spells pack — the exact
+  // ambiguity documented at the top of this file.
+  { key: "monster-spells", id: "sde-monster-spells", type: "Item", label: "Shadowdark Enhancer — Monster Spells" },
   // Character-Options packs. These are world compendiums whose LABELS slugify to
   // their collection ids (Classes→world.classes, "Class Abilties"→
   // world.class-abilties, …), so a fresh world recreates the identical
   // `world.<slug>` collection on import — keeping every cross-pack `@UUID`
   // reference (class→talent, spell→class, table→doc, ancestry→talent) valid.
-  // Empty structural packs (Languages, Patrons and Deities) are carried so the
-  // imported suite mirrors the source exactly.
   { key: "classes",        id: "classes",             type: "Item", label: "Classes",             charOption: true },
   { key: "talents",        id: "talents",             type: "Item", label: "Talents",             charOption: true },
   { key: "classAbilities", id: "class-abilties",      type: "Item", label: "Class Abilties",      charOption: true },
   { key: "spells",         id: "spells",              type: "Item", label: "Spells",              charOption: true },
   { key: "backgrounds",    id: "background",          type: "Item", label: "Background",          charOption: true },
   { key: "ancestries",     id: "ancestries",          type: "Item", label: "Ancestries",          charOption: true },
-  { key: "languages",      id: "languages",           type: "Item", label: "Languages",           charOption: true },
-  { key: "patronsDeities", id: "patrons-and-deities", type: "Item", label: "Patrons and Deities", charOption: true },
 ];
+
+/**
+ * Packs this module used to create and no longer does.
+ *
+ * Both were carried purely so an imported suite mirrored its source's pack
+ * list, and both stayed empty forever because nothing here writes the item
+ * type they were named for:
+ *
+ *   - `patrons-and-deities` — the gods and patrons this module imports are ROLL
+ *     TABLES (prayer generators, boon tables), filed under `Character Content >
+ *     Patrons & Deities` in the tables pack. Never Deity/Patron Items.
+ *   - `languages` — a character's languages are UUID references to the system's
+ *     own Language items. Nothing ever creates one here.
+ *
+ * An empty compendium in the first place a GM looks reports the feature as
+ * missing — the same trap #74's retired Monster Spells pack sprang, from the
+ * other side.
+ *
+ * Retired only when still EMPTY: a GM who put something in one keeps it.
+ */
+const RETIRED_PACKS = ["patrons-and-deities", "languages"];
 
 /** Sidebar compendium folder label for the entire suite. */
 export const SUITE_FOLDER_LABEL = "Shadowdark Enhancer";
@@ -249,6 +280,21 @@ export async function ensureSuite() {
       } catch (_) {}
     }
     packs[desc.key] = pack;
+  }
+
+  for (const id of RETIRED_PACKS) {
+    // Same world-scoped, dot-qualified lookup findSuitePack uses — by iteration,
+    // not `game.packs.get`, so it holds for a retired descriptor.
+    const pack = [...(game.packs ?? [])].find(
+      (p) => p.metadata?.packageType === "world" && p.collection?.endsWith(`.${id}`)
+    );
+    if (!pack || typeof pack.deleteCompendium !== "function") continue;
+    try {
+      if ((await pack.getIndex()).size) continue;
+      await pack.deleteCompendium();
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not retire empty pack ${id}:`, err);
+    }
   }
 
   // Keyed by descriptor key — includes the original actors/items/tables/journal/

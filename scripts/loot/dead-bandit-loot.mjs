@@ -156,7 +156,7 @@ export function buildDeadBanditLootItem(text, { source = DEAD_BANDIT_LOOT_SOURCE
   }
 
   const value = terminalPrice(raw);
-  const itemData = fabricateTreasureItem({ name: canonical.name, value });
+  const itemData = fabricateTreasureItem({ name: canonical.name, value, source: sourceId });
   itemData.system.description = htmlFeature(row.feature);
   itemData.img = art.img;
   itemData.flags = {

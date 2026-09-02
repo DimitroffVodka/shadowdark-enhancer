@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { installHoverPeek } from "../shared/hover-peek.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { TokenArtCatalog } from "./token-art-catalog.mjs";
 import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
@@ -46,6 +47,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   _library = null;   // full cross-source token library for the image browser (lazy)
   _thumbPx = 56;     // image-browser thumbnail size (zoom slider)
   _collapsedSources = new Set();   // image-browser source groups collapsed by the user
+  _collapsedPanels = new Set();    // `data-remember` keys of panels the user folded away
   _filter = "";
   _conflictsOnly = false;
 
@@ -134,6 +136,14 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         isFirst: i === 0,
         isLast: i === orderedSources.length - 1,
       })),
+      sourceCount: orderedSources.length,
+      // Collapsed state is app state, not DOM state: the body re-renders on
+      // every reorder, and a bare <details> would spring back open each time.
+      // Optional chaining because the context builder is exercised against a
+      // plain object in tests, where class field initialisers never ran. A
+      // missing set means nothing was folded, which is the right default.
+      sourcesOpen: !this._collapsedPanels?.has("sources"),
+      blurbOpen: !this._collapsedPanels?.has("blurb"),
       rows,
       folders: state.folders,
       stats: res.stats,
@@ -175,6 +185,38 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       conflicts._sdeWired = true;
       conflicts.addEventListener("change", () => { this._conflictsOnly = conflicts.checked; this._applyFilter(); });
     }
+    this._wireSourceDrag(root);
+
+    // Remember which foldable panels are closed. `<details>` gives the
+    // disclosure for free, but its open state dies with the markup and this
+    // body re-renders on every reorder — so record it and let _prepareContext
+    // put it back. No re-render on toggle: the browser has already done the
+    // work. One loop rather than a block per panel, since the second one
+    // arrived within the hour of the first.
+    for (const panel of root.querySelectorAll("details[data-remember]")) {
+      if (panel._sdeWired) continue;
+      panel._sdeWired = true;
+      const key = panel.dataset.remember;
+      panel.addEventListener("toggle", () => {
+        if (panel.open) this._collapsedPanels.delete(key);
+        else this._collapsedPanels.add(key);
+      });
+    }
+
+    // Hover-enlarge on the MAIN list too, not only inside Browse. The per-source
+    // option thumbnails are where the actual comparison happens — you are
+    // choosing between four candidates for one monster — and at that size they
+    // are unreadable. Re-installed on every render because the list markup is
+    // rebuilt; the teardown drops the previous listeners and element.
+    this._listPeekOff?.();
+    this._listPeekOff = installHoverPeek(root, {
+      grid: ".sde-tam-list",
+      item: ".sde-tam-opt",
+      src: (tile) => tile.querySelector("img")?.getAttribute("src") ?? null,
+      width: 340,
+      anchor: root,
+    });
+
     // Image browser overlay: search filter + click-to-pick (delegated). Wired
     // once; the overlay markup persists across body re-renders.
     const overlay = root.querySelector(".sde-tam-browser");
@@ -228,6 +270,24 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         }
       });
       bgrid?.addEventListener("mouseleave", () => { if (status) status.innerHTML = idle; });
+      // Hover-enlarge, the same component the character builder's gallery uses.
+      // The status line names the art; this shows it. Thumbnails here go down to
+      // 40px, so the case for it is stronger than in the gallery.
+      //
+      // Anchored to the WINDOW, not the hovered tile. Beside the tile the
+      // preview chases the pointer across a six-column grid, which reads as
+      // erratic and can land off screen when the window sits near a screen
+      // edge; pinned to the window it appears in the same place every time.
+      this._peekOff?.();
+      this._peekOff = installHoverPeek(overlay, {
+        grid: ".sde-tam-browser-grid",
+        item: ".sde-tam-browse-opt",
+        // The grid draws the same file at thumbnail size, so the preview is the
+        // same path shown large — there is no separate full-size asset here.
+        src: (tile) => tile.querySelector("img")?.getAttribute("src") ?? null,
+        width: 340,
+        anchor: root,
+      });
       overlay.addEventListener("keydown", (ev) => {
         if (ev.key === "Escape") { overlay.hidden = true; return; }
         if (!ev.ctrlKey) return;
@@ -349,6 +409,78 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     return true;
   }
 
+  /**
+   * Drag a source to reorder the priority list.
+   *
+   * Native HTML5 drag and drop, not a library and not Foundry's DragDrop: the
+   * whole interaction is one list reordering itself, and `draggable` plus three
+   * listeners covers it. The caret buttons stay — dragging is unavailable to
+   * anyone working by keyboard, and they are the accessible path — but they are
+   * no longer the ONLY way to move a row, which is what made an eight-source
+   * list tedious.
+   *
+   * The new order is read from the DOM rather than recomputed, because the
+   * rendered order IS the priority order; that keeps this independent of the
+   * cached catalog and of how far the list has drifted from it.
+   */
+  _wireSourceDrag(root) {
+    const list = root.querySelector("details.sde-tam-sources");
+    if (!list || list._sdeDrag) return;
+    list._sdeDrag = true;
+    const rows = () => [...list.querySelectorAll(".sde-tam-source")];
+    const clear = () => { for (const el of rows()) el.classList.remove("is-dragging", "drop-before", "drop-after"); };
+    let dragId = null;
+
+    list.addEventListener("dragstart", (event) => {
+      const row = event.target.closest?.(".sde-tam-source");
+      if (!row) return;
+      dragId = row.dataset.source;
+      row.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      // Firefox refuses to start a drag with no payload, whatever the payload is.
+      event.dataTransfer.setData("text/plain", dragId);
+    });
+
+    list.addEventListener("dragover", (event) => {
+      const row = event.target.closest?.(".sde-tam-source");
+      if (!dragId || !row || row.dataset.source === dragId) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      const box = row.getBoundingClientRect();
+      const after = event.clientY > box.top + box.height / 2;
+      for (const el of rows()) el.classList.remove("drop-before", "drop-after");
+      row.classList.add(after ? "drop-after" : "drop-before");
+    });
+
+    list.addEventListener("drop", async (event) => {
+      const row = event.target.closest?.(".sde-tam-source");
+      if (!dragId || !row || row.dataset.source === dragId) { clear(); dragId = null; return; }
+      event.preventDefault();
+      const box = row.getBoundingClientRect();
+      const after = event.clientY > box.top + box.height / 2;
+      const order = rows().map((el) => el.dataset.source).filter(Boolean);
+      const from = order.indexOf(dragId);
+      if (from < 0) { clear(); dragId = null; return; }
+      order.splice(from, 1);
+      const to = order.indexOf(row.dataset.source) + (after ? 1 : 0);
+      order.splice(to, 0, dragId);
+      clear();
+      dragId = null;
+      await this._applySourceOrder(order);
+    });
+
+    list.addEventListener("dragend", () => { clear(); dragId = null; });
+  }
+
+  /** Persist a source order and show it without waiting for a rebuild. */
+  async _applySourceOrder(order) {
+    await this._saveState({ priority: order });
+    // Re-sort the cached catalog so resolve()/display reflect the new priority
+    // immediately — otherwise the change only shows after a close/reopen.
+    if (this._catalog) TokenArtCatalog.reorder(this._catalog, order);
+    this.render({ parts: ["body"] });
+  }
+
   static async _onSourceMove(event, target) {
     const id = target.dataset.source;
     const dir = target.dataset.action === "sourceUp" ? -1 : 1;
@@ -358,11 +490,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const j = i + dir;
     if (i < 0 || j < 0 || j >= order.length) return;
     [order[i], order[j]] = [order[j], order[i]];
-    await this._saveState({ priority: order });
-    // Re-sort the cached catalog so resolve()/display reflect the new priority
-    // immediately — otherwise the change only shows after a close/reopen rebuild.
-    TokenArtCatalog.reorder(cat, order);
-    this.render({ parts: ["body"] });
+    await this._applySourceOrder(order);
   }
 
   static async _onChoose(event, target) {

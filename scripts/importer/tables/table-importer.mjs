@@ -29,7 +29,7 @@
 // never mistaken for a row token.
 import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
 import { splitRawBlocks } from "../pdf-text-utils.mjs";
-import { columnManifestId, isSharedTableName } from "./table-manifest.mjs";
+import { columnManifestId, findById, isSharedTableName } from "./table-manifest.mjs";
 import { sourceKey as _sourceKey, sourceLabel as _sourceLabel } from "../../shared/source-keys.mjs";
 
 // Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
@@ -2997,6 +2997,27 @@ function _parseSplitPlaneMatrix(text, columns, widths) {
   }));
 }
 
+/** Restrict a manifest-backed multi-column split to its captioned page section. */
+function _manifestMatrixSection(text, manifestId) {
+  const parentId = String(manifestId ?? "").split(":", 1)[0];
+  const entry = findById(parentId);
+  if (!(entry?.matrix || entry?.grid) || !entry.name) return text;
+  const caption = entry.name.split(":").at(-1).trim().toUpperCase().replace(/\s+/g, " ");
+  if (!caption) return text;
+  const lines = String(text ?? "").split(/\r?\n/);
+  const isCaption = (line) => isSectionCaption(line) && line.trim().toUpperCase().replace(/\s+/g, " ") === caption;
+  const starts = lines.flatMap((line, index) => isCaption(line) ? [index] : []);
+  if (!starts.length) return text;
+  const start = starts.find((index) => {
+    let next = index + 1;
+    while (next < lines.length && !lines[next].trim()) next++;
+    return !!parseDieHeader(lines[next]);
+  }) ?? starts[0];
+  let end = start + 1;
+  while (end < lines.length && !isSectionCaption(lines[end])) end++;
+  return lines.slice(start, end).join("\n");
+}
+
 /**
  * Split a known matrix into per-column drafts, carrying known identity through
  * the split boundary.
@@ -3004,9 +3025,12 @@ function _parseSplitPlaneMatrix(text, columns, widths) {
  * @param {string[]} columns
  * @param {number[][]} [widths]
  * @param {{source?: string, manifestId?: string}} [provenance]
+ *   A manifest matrix id also bounds a whole-page paste to that matrix's
+ *   captioned section before rows are split.
  * @returns {Array<object>}
  */
 export function parseMatrixByColumns(text, columns, widths, provenance) {
+  text = _manifestMatrixSection(text, provenance?.manifestId);
   // Column-major / split-plane layout first (returns null when not applicable,
   // so row-major behavior below is preserved exactly).
   const splitPlane = _parseSplitPlaneMatrix(text, columns, widths);

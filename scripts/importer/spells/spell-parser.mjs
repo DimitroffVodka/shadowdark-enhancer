@@ -29,6 +29,7 @@
 
 import { titleCaseName } from "../monsters/statblock-parser.mjs";
 import { textToHtml, splitRawBlocks, collapse } from "../pdf-text-utils.mjs";
+import { isPageFurnitureLine } from "../items/record-boundary.mjs";
 
 // ─── Anchor constants ─────────────────────────────────────────────────────────
 
@@ -121,8 +122,13 @@ function mapDuration(raw, warnings) {
  */
 export function parseSpell(blockText) {
   const warnings = [];
+  // Page furniture is excised, never used as a boundary — a footer between two
+  // spells must not land in the description above it, and one interrupting a
+  // spell that continues onto the next page must not split it. Same rule, same
+  // helper, as the gear descriptions in #69.
   const rawLines = String(blockText ?? "").replace(/\r\n?/g, "\n").split("\n")
-    .map((l) => l.replace(/\s+$/, "")).filter((l) => l.trim() !== "");
+    .map((l) => l.replace(/\s+$/, ""))
+    .filter((l) => l.trim() !== "" && !isPageFurnitureLine(l));
   if (!rawLines.length) return null;
 
   // Locate the meta lines (order-tolerant), tracking each line's index so the

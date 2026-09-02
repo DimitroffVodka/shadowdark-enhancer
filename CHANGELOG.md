@@ -1,676 +1,179 @@
 # Changelog
 
-## [Unreleased]
+## [0.16.0] — 2026-09-02
+
+Two things in this release you will feel immediately. You can import a whole
+book without clicking through it entry by entry, and the content you import
+arrives with pictures on it. Everything else is the importer getting quieter —
+about ninety fixes, most of them things that only ever went wrong once you had
+a real library in your world.
 
 ### Added
-- **CS3 Nord Names shape (C2/#55).** The Nord source grid now imports four
-  standalone d20 component tables plus separate Male × Surname × Title and
-  Female × Surname × Title generators; the prior four-column document is left
-  untouched for GM cleanup.
 
-- **Class automation readiness report (G3/#78).** An internal, read-only audit
-  evaluates Core and importer-managed Class documents for character-generation
-  and Rival readiness. Diagnostic reports produce stable blocker and warning
-  evidence with a bounded defect queue and perform no document repairs or Actor
-  writes. Empty schema-default spell grids with all null or blank nested cells
-  are recognized as non-caster defaults, while meaningful leaves, non-empty
-  casting ability, or explicit caster markers provide caster evidence.
-- **Derived Rival Crawler Classes table (G2/#79).** The managed `sde-tables`
-  pack now maintains a deterministic, Core-wins class RollTable from the G3
-  readiness report. Level-0 entries and ineligible classes stay out, an empty
-  eligible set remains a stable zero-row table, and hand-edited rows are
-  replaced on regeneration with a warning.
-- **Forge & Loot supporting-table registry (G8/#81).** Added one internal,
-  manifest-backed logical-role registry for NPC and Rival inputs, including the
-  three exact managed Signature Tactics identities. Resolution reads stamped
-  identities from the managed Roll Tables pack (with exact Core system-table
-  fallback for ancestry/alignment), tolerates GM renames, and reports missing,
-  foreign, or duplicate roles without loose-name substitution. Table Hub
-  matrix import remains the sole creation path.
-- **Pure Player advancement planning (G6b/#83).** A Foundry-free engine now advances a complete level-one Player plan through levels 2–6 with injected deterministic dice, HP/talent/spell progression, G6a-owned choices, bounded duplicate and follow-up recursion handling, replacement-effect materialization, and diagnostic history. It returns no committable Actor data when a source, roll, choice, or spell quota cannot be completed; the G7 generator/commit adapter remains the persistence seam.
-- **Forge & Loot preview shell (G4/#80).** A GM-only shared shell now selects
-  future NPC/Rival generators and presents deterministic seeded, immutable
-  previews with explicit reroll, cancel, warning/error, source-drift, active-GM,
-  and single-approval boundaries. Generator rules and world-document writes
-  remain deferred to the later G5/G7 adapters; the preview path itself writes
-  nothing.
+#### Import everything
 
-- **Reviewed creature-type backfill (E3/#86).** Existing managed imported NPC
-  and Mount Actors now receive missing source-scoped N4 creature taxonomy flags;
-  optional Shadowdark Extras compatibility flags are added only when its
-  current runtime name map has no classification. Existing SDE/SDX values and
-  runtime classifications are preserved, and the pass is version-gated,
-  idempotent, and retryable after partial failures.
+There is a button on the Manage tree that imports the lot. Point the module at
+your PDFs, press it, and go do something else. Every folder has its own
+**Import all** if you would rather take one book at a time.
 
-- **Monster text enricher backfill (E2/#85).** An automatic, active-GM, one-time
-  backfill on module update scans existing imported NPCs in the managed Actors
-  pack (`world.shadowdark-enhancer--actors`) and runs missing-only contextual
-  text enrichment over monster notes and embedded attack/feature descriptions.
-  The pass is version-gated via `enricherBackfillVersion`, does not alter
-  unmanaged or world actors, preserves existing text, runs after the legacy
-  monster backfill, and defers without stamping if the legacy pass fails.
+It does exactly what you would do by hand — find the cited pages, pull the
+text, parse it, check it, commit it — and then tells you what it could not
+manage. That report is the point. A row with no PDF behind it, or a class whose
+parse came out wrong, ends up on a list with a reason attached.
 
-- **Sea Wolf Plunder Items and curated treasure art (D4/#57).** RollTables
-  recognized as the *Cursed Scroll 3* (p68) table *Sea Wolf Plunder From Distant
-  Lands* now materialize their 20 published treasure results as real, draggable
-  Items in the managed Items pack (`world.shadowdark-enhancer--items`) under
-  `Cursed Scroll 3 / Treasure`.
-  - **Source-gated table recognition:** An explicit non-CS3 source flag (e.g.
-    `source: "cs1"` or `"cs2"`) always vetoes and rejects. After that veto, an
-    exact supported manifest ID (`cs3-sea-wolf-plunder`,
-    `cs3/sea-wolf-plunder`, `cs3-sea-wolf-plunder-from-distant-lands`) is
-    accepted; otherwise the exact normalized table name `Sea Wolf Plunder From
-    Distant Lands` is required (which may be bare without a source flag, or
-    carry a recognized `CS3` / `Cursed Scroll 3` page or separator prefix).
-    Arbitrary tables carrying only `source: "cs3"` with other names and
-    sourceless or explicit CS1/CS2-prefixed legacy names are refused.
-  - **Item naming and full priced TableResult display:** Generated Items are
-    minted with only the terminal parenthesized gp value removed from their
-    name (e.g. `A wavy, silver dagger with a crescent moon pommel` or
-    `A coffer of gold coins stamped with a dead emperor`), while TableResults
-    retain the complete original published phrase including price (e.g.
-    `A wavy, silver dagger with a crescent moon pommel (75 gp)`) as their
-    display name and link via `documentUuid` to the generated Item. True
-    currency-only rows (such as `100 gp`) remain `TEXT` results with source
-    text intact.
-  - **Curated art & provenance:** The 20 reviewed N3 §5.1 treasure icons are
-    registered in `scripts/shared/curated-icon-maps/sea-wolf-plunder-icons.mjs`
-    as the first sourced-space map (`cs3`), stamped `curated` under A3/A4
-    provenance, and audited against the Foundry icon inventory.
-  - **Generated identity & replace-always rerun (A7):** Materialized items carry
-    the explicit `flags["shadowdark-enhancer"].generated = true` flag and
-    `generatedItem` bookkeeping block keyed to `cs3:<normalized item name>` with
-    an FNV-1a/32 id. On successful or unchanged reruns, reconciliation provides
-    stable-identity convergence without duplicating items (attempting in-place
-    update, with create-then-delete fallback reporting any failed delete on the
-    next plan for GM cleanup). Name collisions with generated Monster Spells are
-    refused and preserved (`monsterSpell: true`). System compendiums
-    (`shadowdark.gear`) are never mutated.
-  - **Safe RollTable synchronization & retryability:** Updates existing
-    TableResults in place under stable IDs on supported Foundry (or creates
-    replacements before deleting on legacy adapters). Source rows are
-    snapshotted prior to writing; if an embedded write fails, restoration of the
-    snapshot and cleanup of replacement orphans are attempted and verified.
-    When restoration succeeds, original source rows survive intact for retry;
-    if restoration fails, the result reports `restored: false` with
-    `rollbackErrors`, cannot guarantee final row/source preservation, and warns
-    the GM that manual recovery may be required before retry. Unmapped rows,
-    non-managed packs, unavailable table writers, or write failures where
-    restoration succeeds remain plain text with source text preserved.
+Three promises, since you are not watching it work:
 
-- **Dead Bandit Loot Items and curated treasure art (D5/#58).** RollTables
-  recognized as the *Cursed Scroll 2* (p68) table *In a Dead Bandit's Hand, You
-  Find...* now materialize their 20 published treasure results as real,
-  draggable Items in the managed Items pack (`world.shadowdark-enhancer--items`)
-  under `Cursed Scroll 2 / Treasure`.
-  - **Source-gated table recognition:** An explicit non-CS2 source flag (e.g.
-    `source: "cs1"` or `"cs3"`) always vetoes and rejects. After that veto, an
-    exact supported manifest ID (`cs2/in-a-dead-bandits-hand`,
-    `cs2-in-a-dead-bandits-hand`, `cs2-in-a-dead-bandits-hand-you-find`,
-    `cs2-in-a-dead-bandit-s-hand-you-find`) is accepted; otherwise the exact
-    normalized table name `In a Dead Bandit's Hand, You Find...` is required
-    (which may be bare without a source flag, or carry a recognized `CS2` /
-    `Cursed Scroll 2` page or separator prefix). Arbitrary tables carrying only
-    `source: "cs2"` with other names and sourceless or explicit CS1/CS3-prefixed
-    legacy names are refused.
-  - **Canonical names with visible features:** Each generated Item's name is the
-    exact reviewed canonical base name (e.g. `Cursed eye token`, `Burlap bag`),
-    never the feature-bearing phrase, and its source feature remainder is
-    visible in the Item description (e.g. `DISADV on next check or attack roll`).
-  - **Exact raw source TableResult display:** TableResults retain the complete
-    published source phrase as their display name while linking via
-    `documentUuid` to the generated Item; original row IDs and ranges are
-    preserved (in-place updates on Foundry v13/v14, create-before-delete on
-    legacy adapters). **No source prices exist** in these 20 CS2 rows — the
-    parser only strips an anchored optional terminal currency parenthetical, and
-    since none of the rows carry one, no price is invented; interior `gp` prose
-    stays as description text.
-  - **Curated art & provenance:** The 20 reviewed N3 §5.3 treasure icons are
-    registered in `scripts/shared/curated-icon-maps/dead-bandit-loot-icons.mjs`
-    as the sourced-space `cs2` map, stamped `curated` under A3/A4 provenance,
-    and audited against the Foundry icon inventory.
-  - **Generated identity & replace-always rerun (A7):** Materialized items carry
-    the explicit `flags["shadowdark-enhancer"].generated = true` flag and
-    `generatedItem` identity `cs2:<normalized canonical name>`. Successful or
-    unchanged reruns converge at the stable identity without duplicating items.
-    Name collisions with generated Monster Spells are refused and preserved
-    (`monsterSpell: true`). System compendiums (`shadowdark.gear`) are never
-    mutated.
-  - **Safe RollTable synchronization & retryability:** The same snapshot-restore
-    safe writer as D4 keeps original source rows for retry and reports
-    `restored: false` with `rollbackErrors` — never a guarantee of preservation —
-    when automatic restoration itself fails. Unmapped rows, non-managed packs,
-    and unavailable writers remain plain text with source phrases preserved.
+- **It never overwrites anything.** Every name collision keeps what you already
+  have, so running it twice over the same library creates nothing the second
+  time.
+- **It never commits a bad parse.** A class that fails its quality check stays
+  in the preview for you to look at rather than going into your packs broken.
+- **Nothing vanishes quietly.** Every row it skipped is on the report.
 
-- **Diabolical Treasure Items behind identification (D6/#59).** RollTables
-  recognized as the *Cursed Scroll 1* (p68) *Diabolical Treasure* table reduce
-  the book's cartesian 20×20 Item/Feature generator to **20 paired results** as
-  generated Basic magicItem+treasure Items in the managed Items pack
-  (`world.shadowdark-enhancer--items`) under `Cursed Scroll 1 / Treasure`.
-  - **Source-gated recognition & exact census:** An explicit non-CS1 source flag
-    (e.g. `source: "cs2"` or `"cs3"`) always vetoes. After that veto, an exact
-    supported manifest ID (`cs1/diabolical-treasure`, `cs1-diabolical-treasure`)
-    or the exact normalized table name `Diabolical Treasure` is accepted.
-    Materialization consumes **only the reviewed 20-row census** (each reviewed
-    Item paired with its own exact reviewed Feature), the complete 400-cell
-    Item×Feature census, or twenty already-linked managed document links.
-    Incomplete, cross-wired, or foreign DOCUMENT rows — including a bare
-    canonical `TEXT` placeholder from a failed pass — **fail closed before any
-    downstream write** and cannot self-authorize on rerun: original raw rows are
-    preserved for retry.
-  - **Identification-gated feature text:** Items are created with
-    `identification.identified = false`; the physical name and top-level
-    description are public, and the exact source feature lives only in
-    `identification.description`, revealed when the GM identifies the item.
-  - **Name-only 1d20 TableResults:** The table's formula is reduced from the
-    cartesian `1d400` to `1d20` with 20 name-only rows, each linking to its
-    generated Item by `documentUuid`; feature text never appears in a
-    TableResult name, and original TableResult IDs are preserved.
-  - **Curated art & provenance:** The 20 reviewed N3 §5.2 treasure icons are
-    registered in `scripts/shared/curated-icon-maps/diabolical-treasure-icons.mjs`
-    as the sourced-space `cs1` map, stamped `curated` under A3/A4 provenance,
-    and audited against the Foundry icon inventory.
-  - **A7 replace-always reruns repair hand edits at the same identity:**
-    Generated items carry `flags["shadowdark-enhancer"].generated = true` and
-    `generatedItem` identity `cs1:<normalized canonical name>`; a rerun replaces
-    the document in place at the same identity, so a hand-edit (including art)
-    is repaired, not duplicated. Name collisions with generated Monster Spells
-    are refused and preserved. System compendiums (`shadowdark.gear`) are never
-    mutated.
-  - **Safe writer & rollback status explicit:** TableResult updates and the
-    `1d400 → 1d20` formula reduction run through the snapshot-restore safe
-    writer, with the summary reporting `restored: true|false` and
-    `rollbackErrors` — never a silent guarantee of preservation on
-    `restored: false`.
+#### Pictures for your imported content
 
-- **Contextual checks and rolls for Arctic Sea Encounters (E1).** Importing or
-  enriching the *Cursed Scroll 3* Arctic Sea Encounters table now runs contextual
-  check and dice enrichment (A5) alongside existing `@UUID` monster linking.
-  Difficulty class expressions (e.g. `DC 15 DEX`) are transformed into actionable
-  `[[check 15 dex]]` controls, and bare dice expressions (e.g. `2d4`) become
-  `[[/r 2d4]]` inline rolls. Table recognition is strict via `isArcticSeaEncounterTable`:
-  authoritatively matching manifest ID `cs3-arctic-sea-encounters`, with a fallback
-  for exact name suffix `Arctic Sea Encounters` when the module source flag is
-  absent (legacy / hand-created copies) or canonicalizes to `cs3`. Lookalikes
-  with explicit non-CS3 source stamps (such as Core or CS6) and distinct tables
-  (like Core `Arctic Encounters`) are rejected. Enrichment applies across all
-  production table consumers: fresh single import (`createTable`), Importer Hub
-  multi-table create/replace (`TableImporter.commitTableBundle`), the public API
-  (`game.shadowdarkEnhancer.tables.enrich`), manual relink sweeps
-  (`game.shadowdarkEnhancer.tables.relinkAll`), and debounced sweeps scheduled
-  after monster/item import batches (`scheduleRelinkSweep`). The 50-row table
-  (covering 1–100) preserves existing HTML markup, monster links, and prose;
-  rerunning on already enriched tables is idempotent (`updated: 0` without
-  embedded document updates). Unrelated encounter tables keep their legacy
-  behavior (`convertDice` and `@UUID` links only), leaving their DC expressions
-  as unmodified prose. A5 reserves GM-facing `[[request]]` syntax for monster-context
-  callers; E1 supplies only `{ context: "table" }` and does not alter monster statblocks.
-- **Named manual Browse folders in Token Art Manager (F1/#50).** GMs can now
-  register custom local data folder paths (such as `modules/my-token-pack/tokens`
-  or directories under Foundry's `Data/`) with human-readable labels in the
-  Token Art Manager (**Actors sidebar → Monster Art**).
-  - **Add, edit, and remove workflows with path validation:** The GM can add,
-    rename, edit paths, or remove manual folders directly in the manager
-    header. Folder input requires both a label and a data folder path, rejects
-    exact-duplicate paths, and validates folder readability locally via
-    Foundry's `FilePicker` before persisting (unreadable or invalid paths surface
-    an explicit notification and leave settings untouched). Non-GMs cannot mutate
-    folders.
-  - **Browse-only contribution:** Configured manual folders contribute labeled
-    image groups to the **Browse** modal library (`tokenArtFolderSourceId`) and
-    are strictly excluded from automatic catalog discovery (`discoverSources`),
-    automatic name matching, fuzzy matching, and source priority ordering.
-  - **Backwards-compatible normalization:** State normalization
-    (`normalizeTokenArtManagerState`) ensures existing world settings seamlessly
-    receive default `folders: []` and `managedPaths: []` while preserving
-    existing `priority`, `overrides`, `picks`, and unknown top-level or
-    folder-level metadata across read/write cycles.
-  - **Pick preservation and exact ownership witness ledger (`managedPaths`):**
-    Removing or editing a manual folder preserves previously picked concrete
-    token and portrait file paths. To support subsequent placed token updates,
-    the manager maintains an exact-path witness ledger in `managedPaths`
-    recording specific token/portrait files selected through manual folders
-    across folder edits, removals, row clearing, and pick replacements.
-  - **Re-skin placed token ownership boundaries:** When re-skinning placed
-    scene tokens (**Re-skin placed**), the replacement predicate combines broad
-    prefixes for active module/folder sources (`TokenArtCatalog.managedArtPrefixes()`)
-    with exact historical file witnesses (`TokenArtCatalog.managedArtPaths()`).
-    This ensures previously placed manager-owned art can transition to newly
-    configured art even if its source folder was edited or deleted, while
-    strictly protecting arbitrary GM custom art located under former or sibling
-    folder paths (`old/tokens/handmade.webp`).
-  - **Reset All lifecycle:** Clicking **Reset picks** (`_onResetAll`) clears
-    `overrides`, `picks`, and resets `managedPaths` to `[]`, fully relinquishing
-    all historical ownership witnesses.
-  - **Missing root safety & persistence:** Configured folders that become
-    missing or unreadable on disk survive world reloads safely without raising
-    console errors, contribute zero Browse entries until available, and remain
-    editable/removable in the manager UI. All state persists across reloads.
-- **Curated imported-monster token art (F4/#87).** Token Art Manager's **Apply**
-  now seeds N6's 16 exact, source-qualified reviewed art picks for managed
-  imported NPCs and mounts (`Mount` and `shadowdark-enhancer.mount`) through the
-  existing per-document pick and per-pack mapping machinery. Later GM Browser
-  picks and explicit source overrides are preserved; curated paths carry an
-  ownership origin and exact `managedPaths` witnesses. N6's 63 unmatched rows
-  remain unchanged and Browse-enabled. The curation path performs no fuzzy or
-  bare-name inference and never touches Core, source, or world Actors; it
-  references installed art paths without bundling files.
-- **Pathfinder Character Gallery source in Token Art Manager (F2/#51).**
-  *Pathfinder Tokens: Character Gallery* (`modules/pf2e-tokens-characters`) is
-  now auto-discovered as a built-in token and portrait source in Token Art
-  Manager with approved Paizo attribution (*“Portrait, token, and subject artwork
-  from the Pathfinder Tokens: Character Gallery.”*), mapped scale, and dynamic
-  ring presentation. Safe fallback handling ensures absent or unreadable
-  directories are skipped without console errors.
-- **Pathfinder Character Gallery portraits in Character Builder.** When the
-  curated portrait gallery is enabled, character portraits from *Pathfinder
-  Tokens: Character Gallery* (`modules/pf2e-tokens-characters/assets/portraits`)
-  are now automatically discovered and merged into the portrait picker on the
-  **Preview** step. Players need no file permissions (`FILES_BROWSE`):
-  browsing executes on the active GM's client via the
-  `shadowdark-enhancer.browseArt` query and returns the filtered image list.
-  The gallery setting (**Portrait/token art folders**) continues to allow
-  custom comma-separated folders, and leaving it blank remains the explicit
-  switch to disable the gallery entirely. If the Pathfinder module is not
-  installed or its directory is unreadable, it is silently skipped without
-  affecting custom or bundled gallery images.
-- **Explicit art provenance for imported items.** Item art on re-import is now
-  governed by an explicit provenance stamp (`default`, `imported`, `curated`,
-  `custom`) rather than guessing from the image path string. The previous
-  heuristic (`img.startsWith("icons/")`) failed in both directions: bundled
-  defaults under `modules/shadowdark-enhancer/assets/icons/shikashi/` failed the
-  check and overwrote hand-picked GM art on re-import, while deliberate curated
-  `icons/...` picks looked like defaults and could never be upgraded.
-  Every image written by the item importer is now stamped with its state and the
-  exact path written; if the stored path still matches the witness on re-import,
-  upgradeable states (`default`, `imported`, `curated`) can be upgraded by new
-  defaults or curated icon maps, while any user modification diverges from the
-  witness and is classified as `custom` (preserved and never overwritten).
-  Legacy unmarked items are classified deterministically and conservatively (matching
-  the module's default pick today or blank is `default`, everything else is `custom`
-  and preserved). Generated artifacts in the managed Items pack
-  (`world.shadowdark-enhancer--items`) are governed by the structural replace-always
-  contract (A7/D6) and remain authoritative.
-  *Note:* This provenance mechanism now governs `item-importer` and class-content re-imports (`Class`, `Talent`, `Class Ability`, and overlay `Item` art via `scripts/importer/char-content/class-unit-importer.mjs` reusing the same `flags["shadowdark-enhancer"].art` witness). Monster/token art remains handled by Monster Token Art / Token Art Manager (B9/F4/N6).
-- **Import everything.** *Importer Hub → Manage* now carries an **Import
-  everything (N)** button, and opening any folder puts an **Import all N in
-  \<folder\>** button at the top of it — the same run, scoped to that branch. It automates the loop rather than
-  changing it: for each locked row it seeds the unlock, grabs the cited pages out
-  of *your own* uploaded PDF, parses them and commits the preview, through the
-  same parsers and the same commit paths you'd drive by hand — the Class
-  Importer, Spell Importer and Item Builder included. Rows that one press already
-  unlocks together (a whole bestiary spread, the eight WR boats, a gear price
-  table) count as one entry, so the run does the work once instead of per row.
-  Because nobody is watching it, it holds three lines: **nothing is overwritten**
-  — every name conflict answers "keep what's there", so a second run creates
-  nothing and duplicates nothing; **nothing broken is committed** — a table or
-  class that fails its quality check is left alone and named in the report; and
-  **every row is accounted for** — a row with no linked PDF, no page cite or no
-  automated route is reported with the reason rather than dropped. You get a
-  count and a per-workspace breakdown before it starts, a progress bar with a
-  **Stop** button while it runs (it finishes the current entry, then stops), and
-  a report grouped by outcome at the end: *Imported*, *Nothing to import*, *Needs
-  your attention*, *Not run*, *Import these by hand*. Toasts are collected during
-  the run instead of stacking hundreds deep — each entry's own warning lands on
-  its row in the report. The censuses rebuild once at the end rather than after
-  every entry, so a long run doesn't spend its time re-scanning your packs.
-- **Auto-detect now recognises a downtime page instead of offering to build an
-  item out of it.** Auto sorts monsters, items, spells and tables; downtime is
-  none of those, because unlocking it needs a book chosen and writes a world
-  setting rather than creating documents. But being absent from the sorter did
-  not mean being left alone — the item recognizer claimed the `DC 9:` lines and
-  the Hub offered to create a **Basic** item out of a page of the book. Auto now
-  checks first, and a page carrying a printed activity heading (SPIRITUALISM,
-  SKULDUGGERY, MARTIAL TRAINING, MAGICAL RESEARCH) together with at least two DC
-  lines is reported rather than parsed: a notification and a Skipped entry naming
-  what it saw, and telling you to set **Importing** to **Downtime** and pick the
-  book. Nothing is created. The bar is deliberately high — an item list, a
-  statblock, or a table that happens to print DCs are all left alone.
-- **Curated weapon icons for 37 Core and Western Reaches weapons.** Imported weapons filed into the managed Items pack (`world.shadowdark-enhancer--items`) that match one of 37 reviewed names now receive a Foundry-native `icons/...webp` icon on creation, selected from the matching `icons/weapons/...` or `icons/skills/melee/...` folder and vetted against the real Foundry icon tree. The map is source-agnostic (`Bastard Sword` resolves the same regardless of which supported book printed it) and is registered through A4's discovery seam (`scripts/shared/curated-icon-maps/weapon-icons.mjs`), consulted in `buildItemData` ahead of the generic fallback. Fresh imports with no art, items carrying the module default, untouched imported images, and prior curated picks are upgradeable on re-import; a later map revision upgrades an untouched curated pick, while any GM-edited image diverges from its witness and is classified as `custom` and never overwritten. Unmapped weapon names keep the existing generic/type default, and no document in the Shadowdark system compendium (`shadowdark.gear`) or other system pack is mutated — the resolver's `world.` allowlist refuses those targets. Armor, Basic Gear, and treasure keep their existing fallback art in this D1 changeset; other category maps activate only when their owning D-tickets ship. Intentional semantic selections where weapon art had no distinct match include `Lance` → `icons/skills/melee/strike-polearm-light-orange.webp`, `Morningstar` → `icons/skills/melee/strike-morningstar-gray.webp`, and `Strikes` → `icons/skills/melee/unarmed-punch-fist-blue.webp`.
-- **Curated armor icons for 9 canonical armors + 4 mithral spelling aliases (13 rows).** Imported armor filed into the managed Items pack (`world.shadowdark-enhancer--items`) that matches one of 13 reviewed armor display names now receives a Foundry-native `icons/...webp` icon on creation, selected from the matching `icons/equipment/...` or `icons/commodities/...` folder and vetted against the real Foundry icon tree. The map is source-agnostic (`curatedNameKey(finalDocument.name)` alone → `leather armor`, `mithral chainmail`; `Chainmail, mithral` and `Mithral Chainmail` resolve to the same reviewed path) and is registered through A4's discovery seam (`scripts/shared/curated-icon-maps/armor-icons.mjs`), consulted in `buildItemData` ahead of the generic fallback via `_automaticArt` → `curatedArtFor({name})` and stamped `curated`. Covers the N3 armor census: 9 canonical names — `Leather armor`, `Chainmail`, `Mithral Chainmail`, `Plate mail`, `Mithral Plate Mail`, `Shield`, `Mithral Shield`, `Round shield`, `Mithral Round Shield` — plus 4 deliberate source-spelling aliases that share the reviewed path without inflating canonical inventory: `Chainmail, mithral` ↔ `Mithral Chainmail` → `icons/equipment/chest/breastplate-banded-steel-grey.webp`, `Plate mail, mithral` ↔ `Mithral Plate Mail` → `icons/equipment/chest/breastplate-cuirass-steel-blue.webp`, `Shield, mithral` ↔ `Mithral Shield` → `icons/equipment/shield/heater-crystal-blue.webp`, `Round shield, mithral` ↔ `Mithral Round Shield` → `icons/equipment/shield/round-wooden-boss-steel-yellow-blue.webp` (remaining canonical paths: `Leather armor` → `icons/equipment/chest/breastplate-layered-leather-brown.webp`, `Chainmail` → `icons/commodities/metal/mail-chain-steel.webp`, `Plate mail` → `icons/equipment/chest/breastplate-layered-steel.webp`, `Shield` → `icons/equipment/shield/heater-steel-gray.webp`, `Round shield` → `icons/equipment/shield/shield-round-boss-wood-brown.webp`). Fresh imports with no art, items carrying the module default, untouched imported images, and prior `curated` picks are upgradeable on re-import; a later armor-map revision upgrades an untouched curated pick, while any GM-edited image diverges from its witness and is classified as `custom` and never overwritten. Enabling the map does not reclassify an already stored `imported` Item; its stored classification stands until the image itself changes. Unmapped armor names keep the existing generic/type default, and no document in the Shadowdark system compendium (`shadowdark.gear`) or other system pack is mutated — the resolver's `world.` allowlist refuses those targets, so `shadowdark.gear` remains byte-stable. Basic Gear and treasure keep their existing fallback art in this D2 changeset; other category maps activate only when their owning D-tickets ship.
-- **Curated Basic Gear icons for 37 canonical names plus 7 quantity/spelling aliases (44 rows).** Imported Basic Gear in the managed Items pack now resolves through `scripts/shared/curated-icon-maps/gear-icons.mjs` before the generic fallback. Keys are source-agnostic final names, with deliberate aliases for `Arrows (20)`, `Caltrops (one bag)`, `Candle (3)`, `Crossbow bolts (20)`, `Iron spikes (10)`, `Rope, morzo silk`, and `Rations (3)` sharing their canonical icon paths. Matches are stamped `curated`; untouched `default`, `imported`, or earlier `curated` art can upgrade, while GM-custom art is preserved and unmapped names keep `default` fallback art. The composed D1+D2+D3 registry is now mechanically audited as one collision-free bare-key space: 94 rows (37 weapons + 13 armor + 44 Basic Gear), zero sourced rows or registry problems, with all reviewed paths checked against the real Foundry icon tree when available. System compendiums remain outside the write boundary. Treasure art remains unchanged in this D3 changeset and activates only with its owning D4–D6 tickets.
+Import a spell list today and you get 107 spells wearing the same grey
+casting-hand. Every one of them now has art picked for what the spell actually
+does — which matters more than it sounds, because the names are no help at all.
+First Gate puts a creature to sleep, Second Gate silences one, Third Gate reads
+its memories.
 
-- **Loot rows now resolve by exact/anchored alias — precise, not containment (A7).** A loot RollTable row (`Unopened bottle of exceptionally potent Murgazi wine (25 gp)`) is prose, not a name, and the old resolver asked whether the row *contained* any known Item name as a word (`\\b<name>s?\\b`, longest first). Every generic container/material in the system gear pack was a landmine: that row resolved to the real `Compendium.shadowdark.gear.Item.bGrhQMkhE2qwjL4j` (`Bottle`, #58), and 25 gp vintage became a 1 gp empty bottle; similarly `A flask of exceptionally fine oil` → `Flask`, `Bolt of fine silk` → `Bolt`. The replacement resolves the row **as a name in two anchored tiers** and refuses everything else (D4 loose-generic fallback is out of scope). **Exact**: the priced row, stripped, *is* the Item's name (case/spacing/curly-quote folded, trailing sentence punctuation and `each` stripped to a fixed point, so `Dagger (1 gp).` is still exact). **Alias**: anchored normalizations — a leading article or count, a trailing non-price parenthetical, or the final word's plural (with multi-plural candidates, e.g. `Axes` → `axe` + `ax`) — which may compose, e.g. `2 daggers (steel)` reaches `dagger`. Anything else is `unresolved`; a tier that lands on two distinct Items is `ambiguous` (e.g. `3 bolts (2 gp)` when both `Bolt` and `Bolts` are installed — `Bolts` alone resolves at `exact` — also no link, and picking one by index would be the containment bug with extra steps). Alias normalizations are anchored and can compose, never shortening the phrase to an interior word, so generic containment is structurally unreachable. **Short exact names resolve** (`Axe`, `Net`, three characters — the old `MIN_NAME_LEN = 4` floor was removed when containment went away), and **price-plus-punctuation to a fixed point** prevents price wording from leaking into the alias layer. Candidate Items are those filtered to the four loot types (`Weapon`, `Armor`, `Potion`, `Basic`), deduped **system-first** (`LootLinker.buildItemIndex` visits `packageType === \"system\"` packs before world/module packs including `sde-items`, so a system `Bottle` beats a same-named import) and session-cached (`api.linker.invalidate()` after bulk pack changes). The six existing `findLink` call sites (merchant shop, treasure classification, loot generator, RollTable catalog, Table Hub preview, Importer Hub paste preview) retain their `{uuid,name,matched}`/`null` shape — `ambiguous` is treated as no link there — while the new `game.shadowdarkEnhancer.loot.resolve(text)` return adds `status` (`exact`|`alias`|`ambiguous`|`unresolved`), `query`, and for `ambiguous` the `candidates` list. See `docs/API.md` and `docs/wiki/Loot-and-Treasure.md`.
-- **Generated Item identity and replace-always reconciliation are now explicit (A7/D6).** Generating pipelines (future D4-D6 treasure) write only into the **structural** managed Items pack `world.shadowdark-enhancer--items` (`MANAGED_ITEMS_PACK`). A document inside that pack with **`flags[\"shadowdark-enhancer\"].generated === true` plus a stored `generatedItem: {id, source, key, fingerprint}` block is **replace-always**: a rerun replaces the whole document at the same stable identity — hand edits, including art, are intentionally replaced (`art-provenance` marks this as the generated-artifact exception to the usual never-overwrite rule). Both halves are required; the boundary is never inferred from an image path, folder, document id, fuzzy name, or another pipeline's bookkeeping. **`monsterSpell.generated` is a different marker with the opposite contract** (A8, `module-flags.mjs`): a hand-edited generated Monster Spell in the same pack is a curated conflict and is **preserved**, never taken over — a treasure definition that would take such a name is **refused** as `name-collision` with `monsterSpell: true`. Ordinary imported Items outside the pack or without the top-level flag still obey A3 provenance. **Identity is `source + canonical name`**: `generatedItemKey(source,name)` → `\"<canonical source>:<normalized name>\"` (source via `sourceKey`, name via `curatedNameKey`) and `generatedItemId` = `fnv1a32(key)` (`fnv1a32:573d24a5` for `CS1` + `Carved Bone`); a blank half produces no identity (`\"\"`). Art/price/prose/folder/document id do not determine identity, and a **renamed definition creates a new identity** — the old Item is not deleted (removing a definition never deletes the old document). Reconciliation is **replace-always but not write-always** via a two-witness comparison: the stored `fingerprint` versus the definition's versus the stored document projected onto the declared shape — either witness true triggers an `update`; both false is `unchanged` with **stable non-empty ActiveEffect ids** (Foundry v14 `system.changes` / string-type / JSON-value / default-`priority: 20` canonicalization; an omitted `priority` means 20, an explicit value is authoritative). **`folder` is placement and is left alone; undeclared top-level flag namespaces (e.g. `shadowdark-extras` alignment) are carried forward** onto the update payload through both the in-place and create-then-delete replacement paths while declared namespaces still win. Duplicate / collision rows are **reported, not healed**: a 32-bit id hit where the stored `key` differs, or duplicate definitions/documents sharing one id, are `identity-collision` / `duplicate-*` refusals (the fixed `fnv1a32:1c759bf0` collision `cs1:relic-18x52cd-7y12pa` vs `cs1:relic-1kmpd4e-s103qg` is the pinned regression); a pack holding two documents with one identity is reported as `duplicate-document` on the next plan. **Public API at `game.shadowdarkEnhancer.loot.generated` (apiVersion `1.3.0`, additive minor):** `identity(source,name)` (sync, blank-safe); `plan(desired,{source})` (async, pure, no-write, GM or not — returns `{pack,boundary,create,update,unchanged,refused}` with `update[].{definitionMoved,documentMoved}` witnesses and `refused[].reason` in `out-of-boundary`|`no-identity`|`duplicate-definition`|`duplicate-document`|`name-collision`|`identity-collision`); `reconcile(desired,{source})` (async, **GM-only**, sequential and **retryable, not transactional** — failed creates (`create-failed`), missing targets (`missing-target`), and throwing updates (`update-failed`, each with `error: string|null`) are returned in `failures[]` while the rest of the batch continues; a later rerun retries them; one case is **not self-healing** and must require GM cleanup — a create-then-delete update whose delete fails leaves two documents with one identity, reported next run as `duplicate-document`; a notification aggregates refused + failed names; `plan` returns `null` when no pack exists for a pure preview, while `reconcile` provisions a missing pack via `ensureLootPack()` (and creates in an empty one) and only a non-GM `reconcile` returns `null`). See `docs/API.md` and `docs/wiki/Loot-and-Treasure.md`; not D4-D6 content, not fuzzy matching, not world-Item authority, and not Monster Spell replace-always.
+The same goes for the rest of it: 37 weapons, 13 armours, 44 pieces of basic
+gear, and 60 treasure rows across three Cursed Scrolls.
+
+Art you chose yourself is left alone, permanently. The module marks its own
+picks as its own, and only ever replaces those.
+
+#### Token art for imported monsters
+
+73 reviewed picks covering the creatures you import from the Cursed Scrolls and
+Western Reaches. These were matched by reading each creature's description
+rather than its name, because Shadowdark's own inventions — Bezelak, Bogthorn,
+Dralech, Skandrill — look like nothing in any token pack when you go by name.
+
+A few are deliberately left grey. Death Slug and Wendel are slugs, and there is
+no slug art in any pack anyone has published. A wrong token would look finished;
+the placeholder at least looks unfinished.
+
+#### The Character Builder's art gallery
+
+There are now **Portrait from gallery** and **Token from gallery** buttons on
+the Preview step, and everyone can see them. Before this, the gallery only
+appeared for players who *lacked* file permissions — so the GM, who is the most
+likely person to have bought a portrait pack, never got offered it.
+
+- It opens showing your ancestry, with the closest matches first. Pick a
+  half-elf and you see the portraits drawn as half-elves before the elven ones.
+- A sidebar with a search box and filter chips, so a thousand pictures narrow to
+  a dozen.
+- Drag the window bigger. Hover a picture to see it properly.
+- One pick dresses both the portrait and the token from the same character. If
+  you have deliberately mixed two, that survives — it only fills the slot you
+  left empty.
+
+Any module can feed this gallery by publishing a `flags.galleryDatasheets`
+manifest. Nothing is required — with none installed you browse the folders you
+configured, as before.
+
+#### Rolling characters without rolling
+
+Standard Array and Point Buy, sitting beside the existing methods in the same
+setting — so whichever you pick still applies to the whole table.
+
+Standard Array hands out `15, 14, 13, 12, 10, 8` to place where you like. Point
+Buy gives you 27 points and scores from 8 to 15, showing what each step costs
+and what you have left as you spend it.
+
+#### Token Art Manager
+
+- **Drag a source to reorder it.** Eight sources and a pair of 13-pixel arrows
+  was not a good trade.
+- **Hover any thumbnail** — on the monster list or in Browse — to see it big
+  enough to judge.
+- **Three more art packs recognised:** Pathfinder NPC Core, Shadowdark Community
+  Tokens, and Too Many Tokens. The art only has to be on disk; the module does
+  not have to be switched on.
+- **The source list and the help text fold away**, and stay folded.
+
+#### And the rest
+
+- **Monster Spells have their own compendium again** instead of a folder buried
+  in Items, and the automatic refresh runs once per upgrade rather than every
+  time you load the world.
+- **Parry and Taunt work on their own** for the Duelist.
+- **Treasure tables produce real items** — Sea Wolf Plunder, Dead Bandit Loot,
+  and Diabolical Treasure, that last one still hidden until identified.
+- **Mounts and boats import as actors** with their own sheets.
+- **Cursed Scroll 3's Nord names** come in as four usable tables and two name
+  generators instead of one four-column lump.
+- **Point the Token Art Manager at your own folders**, not just at modules.
+- **Imported monster text gets its checks and rolls made clickable.**
+- **Every imported item remembers which book it came from.**
 
 ### Changed
-- **Core Adventure Generator grouping corrected (G1/#76).** In the Importer
-  Manage tree, the **Adventure Generator** group now contains only the two
-  adventure-name tables — **Adventure Generator** and **Adventuring Site
-  Name**. **NPC Qualities**, **Party Name**, **Renown**, **Secret**, and
-  **Wealth** are no longer filed under it; they keep their own stable
-  manifest/shape identities, remain individually resolvable by the supporting
-  table registry the future Forge & Loot generators read, and reimporting the
-  Core tables does not restore the old grouping.
-- **Monster Spell Library automatic refresh is now gated by module version.**
-  On world activation, the active GM checks the world setting
-  `monsterSpellSyncVersion`. When it matches the current module version, the
-  automatic refresh is skipped completely. On a fresh version or when the stamp
-  is cleared, the active GM automatically refreshes monster spells from
-  Shadowdark Core and the managed Enhancer Actors pack (`sde-actors`), advancing
-  the stamp only when the refresh succeeds.
-- **Legacy Monster Spell consolidation and update gate failure handling.**
-  Consolidation of the retired `world.shadowdark-enhancer--monster-spells` pack
-  continues to run on every world activation as a safety net. If consolidation
-  fails — either throwing or returning `status: \"incomplete\"` when created
-  copies could not be verified and A1 deliberately kept the originals in the
-  retired pack for a later retry — the automatic refresh is deferred to prevent
-  generated copies from replacing curated legacy spells. The bound is the
-  retired pack's state: if it still holds unmigrated documents (or cannot be read,
-  which the gate treats as populated), the automatic refresh is deferred, a warning
-  notification is surfaced once per session directing the GM to the manual
-  **Build / Refresh** workflow, and the version stamp is left unchanged to retry
-  next activation. If the retired compendium is absent or already empty, the same
-  consolidation failure does not block the version-gated refresh. Manual
-  **Build / Refresh** remains available at all times and does not consult or modify
-  the version stamp.
-- **Monster Spells now live in the managed Items pack.** Generated copies of
-  monster-only spells are now filed into `Shadowdark Enhancer — Items` under
-  `Monster Spells / <source>` (e.g. `Monster Spells / Shadowdark Core`,
-  `Monster Spells / Cursed Scroll 3`) instead of auto-creating a dedicated
-  `world.shadowdark-enhancer--monster-spells` compendium. On world activation as
-  the primary GM, existing content in the legacy pack is migrated automatically
-  into `sde-items` before the legacy pack is emptied. Hand-authored GM items in
-  the legacy pack are moved verbatim into `Monster Spells / Other Sources`.
-  Existing edits and custom artwork are preserved, and a migration marker
-  prevents duplicate items on partial runs. The legacy pack remains present but
-  empty for one release as a visible deprecation and compatibility shell;
-  because moved documents receive new IDs inside `sde-items`, legacy document
-  UUID references do not resolve and should be repointed to their target
-  counterparts. Pre-A1 suite backups containing `packs.monsterSpells` payloads
-  are automatically restored into the managed Items / Monster Spells folder
-  hierarchy during bundle import, reporting explicit errors rather than
-  silently omitting legacy documents. Migration, restore, and refresh sweeps
-  are safe and idempotent on re-run.
 
-- **Public API minor version to `1.3.0` for the additive loot surface (A7).** New namespaces `game.shadowdarkEnhancer.loot.resolve` and `game.shadowdarkEnhancer.loot.generated.{identity,plan,reconcile}` bump the minor per the existing version policy (`docs/API.md:18-19` — additive bumps minor, breaking bumps major). The generated-artifact replace-always contract is now carved out explicitly from the docs' blanket \"never-overwrite, never-delete\" stability statement (it governs `world.shadowdark-enhancer--items` with `flags[\"shadowdark-enhancer\"].generated === true`). Earlier releases (≤ v0.3.0) had no `apiVersion`; `1.0.0` introduced it.
+- Monster Spells moved out of the Items pack. Existing ones migrate when you
+  load the world, and your edits come with them.
+- A loot row is matched as a name now, not by looking for a name inside it. A
+  25 gp bottle of wine used to resolve to the system's 1 gp empty bottle.
+- Public API is `1.3.0` — `loot.resolve` and `loot.generated` were added.
+- The Core Adventure Generator's tables sit in the right group in the importer.
 
 ### Fixed
-- **Table source provenance preserved across matrix splits (#134).** A table's
-  `source` provenance and `manifestId` now survive the matrix-split parse path.
-  Previously, splitting a parsed table into per-column children produced drafts
-  carrying neither `source` nor `manifestId`, causing tables authored as `CORE`
-  to be persisted as `Game Master`. Split children now inherit the provenance
-  of the draft they were split from, both singleton and matrix hub paths stamp
-  the seeded source, and per-column manifest IDs are retained.
-  - **No folder-path guessing:** When table provenance is unknown, it is now
-    left absent rather than guessed. The previous resolver fallback to the first
-    folder-path segment (`folderPath[0]`) is removed: a folder path is the GM's
-    filing destination, not authorship, and is frequently literally "Game
-    Master" — so the old fallback made an unknown source indistinguishable from a
-    genuinely GM-authored table.
-  - **Backward compatibility:** This affects newly parsed and newly built payloads,
-    and explicit future reimports. There is no load-time rewrite and no migration.
-    Existing persisted tables carrying `source: "Game Master"` remain exactly as
-    stored and continue to resolve as before, and existing tables with no source
-    also behave exactly as before. An explicit GM re-import over an existing table
-    is an intentional write, not a silent reclassification.
-- **Basic Gear table page footers no longer create stray Items (C1a/#108).**
-  A numeric page footer pasted along with a Basic Gear table is no longer parsed
-  as an Item. The input stage excises page furniture before force-mode row
-  recognition, reusing the module's existing page-furniture concept rather than
-  introducing a page-number-specific rule. Legitimate gear rows containing
-  numbers (e.g. `20-foot pole` or `Pole, 10-foot`) remain unaffected. Excised
-  furniture is filtered silently rather than reported as a dropped row, since it
-  is layout artifact rather than content for GM review.
-- **Basic Gear description header `Oil flask.` matches `Oil, flask` (C1b/#109).**
-  The book's `Oil flask.` description header now assigns to exactly the
-  `Oil, flask` Item via a collision-audited assignment alias. The alias is
-  admitted only when its canonical target row is unique and unambiguous; if
-  another row could also claim the folded name (such as an explicit `Oil flask`
-  item), the alias is refused rather than preferred. Record boundaries remain
-  unchanged and the preceding `Net` record does not absorb the paragraph.
-- **Deterministic ownership for plain `Rope.` gear descriptions (C1c/#110).**
-  The plain `Rope.` header now deterministically resolves to the base `Rope, 60'`
-  row because the alternative row explicitly names its material (`Rope, morzo silk`).
-  This resolution is derived from source data rather than row order (holding with
-  the rows reversed). The exact `Rope, morzo silk.` paragraph retains its own
-  item, no paragraph is assigned twice, genuinely ambiguous ties are refused
-  rather than guessed, and repeat matching is idempotent.
-- **Class-content reimport churn from mirrored ActiveEffect changes resolved (A3c/#104).**
-  Class-content Items (`Talent`, `Class Ability`, and overlay items) are no longer
-  replaced on every reimport when Shadowdark exposes one stored ActiveEffect change
-  through both `changes` and `system.changes`. Live Foundry persists both mirror
-  representations; reimport comparison now normalizes `changes` and `system.changes`
-  separately and treats them as one logical list only when both populated lists are
-  equal. When the lists differ, both are retained so real extra or corrected changes
-  still register. The comparison does not deduplicate, ensuring intentional duplicate
-  changes and change ordering remain significant differences. Unchanged overlay-wired
-  class content is reused on repeat import; live verification confirmed an
-  overlay-wired Talent with explicit overlay art retained its exact Item and effect
-  IDs and modified timestamp.
-- **Class reimport churn on absent talent tables resolved (A3d/#105).**
-  Classes without a talent table are no longer replaced on every reimport. The
-  canonical absent value is now `null` across payload construction, merge paths,
-  and stale-field comparison, matching the value round-tripped by Shadowdark's
-  `DocumentUUIDField`. Real talent-table UUID additions and updates continue to
-  be detected and applied normally, while unchanged classes with absent talent
-  tables persist with `null` and are reused on repeat import under their existing
-  document IDs and timestamps.
-- **Per-Actor failure isolation and retry safety for startup legacy monster backfill (A6a/#111).**
-  The startup managed-Actor sweep (`backfillTargets` over `world.shadowdark-enhancer--actors`)
-  now isolates failures per Actor. A malformed Actor or transient write error no
-  longer aborts the entire batch: the sweep continues, records the failed Actor in
-  a `failed` list with a stable identity and machine-readable reason (`transform-threw`,
-  `write-failed`, or `compensation-failed`), and attempts the remaining Actors in
-  the pack. The startup `backfillVersion` setting advances only when a run completes
-  with zero failures, ensuring a reported Actor failure leaves the gate open for
-  subsequent retries. Structural embedded Item replacements that fail after deletion
-  are compensated by restoring the source Item snapshot with its exact identity
-  (`keepId: true`) and data intact; when restoration succeeds, the source Item is
-  preserved so a retry can apply the missing work and reach a clean no-op.
-  `MonsterLinker.invalidate()` fires once whenever any document changes or partial
-  mutations occur (and never during dry runs).
-- **Loot false positives are refused and short/punctuated exact names resolve (A7).** The new A7 resolver fixes #58 (`Unopened bottle of exceptionally potent Murgazi wine` → `Bottle`, `A flask of exceptionally fine oil` → `Flask`, etc.) by whole-name/anchored tiers rather than containment; `Axe`/`Net` now resolve at `exact`, and `Dagger (1 gp).` / `Dagger (1 gp) each` resolve at `exact` via fixed-point punctuation/`each`/price stripping. An unresolved priced row keeps its own name and price when fabricated.
-- **Generated reruns now preserve undeclared third-party flag namespaces, report failures for retry, and respect explicit effect priority defaults (A7).** Foreign top-level flag namespaces (e.g. `shadowdark-extras` alignment) survive both replacement branches; adapter failures are now reported for safe retry (`create-failed`/`missing-target`/`update-failed` in `failures[]` with `error`); a create-then-delete delete failure that leaves a duplicate is reported next plan as `duplicate-document` for GM cleanup rather than healed; non-empty ActiveEffects are stable (no churn on unchanged reruns) and a stored `priority: 20` default is treated as unchanged when the definition omits it, while an explicit `priority` remains authoritative. All five frozen-review gaps (foreign flags, short/punctuated names, effect churn, hash+key collision check, and API version) are closed; see the A7 docs entries above.
-- **An ordinary item import that says Replace no longer replaces a generated Monster Spell.** Where the pasted item's name matches a generated Monster Spell, choosing **Replace existing** no longer overwrites the library document — the spell is kept in place, the import lands beside it under a free name, and a warning names the protected document and the name the import was kept as.
-- **A permitted item replacement no longer erases module-owned flag blocks the import never declared.** Updating a compendium document now preserves this module's own flag blocks a replacement payload did not mention. Losing `monsterSpell.libraryId` made the planner miss the original on the next library refresh and generate a duplicate beside it.
-- **An importer-generated description that only echoes the document's name no longer displaces curated prose.** A Spell paste that arrives with no description fills as `<p>{name}</p>` — that placeholder now counts as importer output on the way in and as nothing worth keeping on the way out, so hand-written spell text is no longer overwritten by a name-echo re-import.
-- **Western Reaches siege weapon properties now live in their own dedicated folder.**
-  When importing siege weapons (*Western Reaches* p119), the generated *Blast* and
-  *Exploding* weapon property items are now filed cleanly into `Shadowdark Enhancer — Items`
-  under `Western Reaches / Weapon Properties` instead of landing loose at pack root.
-  Both individual Items commit and batch *Import everything* / *Commit All* share this
-  preparation prepass so property items are always properly materialized and foldered.
-  On re-import or when updating an existing library, legacy same-name property documents
-  at the pack root are moved into the folder in place, preserving their document UUIDs,
-  system descriptions, and GM edits without creating duplicate folders or duplicate
-  items. Ordinary weapon items and unrelated gear continue to follow their existing folder
-  locations.
-- **Boat sheet description text has readable contrast across all themes.** On
-  dark Foundry themes, opening a Boat actor's **Description** tab showed dark
-  text against a dark inherited background, making notes nearly unreadable.
-  The description text area now uses an explicit parchment surface with dedicated
-  dark ink and focus states scoped strictly to the Boat sheet,
-  restoring clear readability across light and dark themes without affecting
-  other sheets.
-- **Gutter warnings no longer cry wolf over lower full-width tables or sub-point glyph margins.**
-  PDF extraction warns when a chosen two-column gutter might slice through body text,
-  advising you to check the extracted preview before importing. But on mixed-layout pages
-  where two prose columns sit above a full-width table (such as the *Western Reaches*
-  boats table on p118), the warning pass was evaluating the wide lower table against
-  the prose gutter above it, falsely reporting that column cuts ran through table cells
-  that the layout already handled as a single wide block. Similarly, tight table column
-  headers (like *Type* on *Western Reaches* p119) could overhang the detected split
-  boundary by a fraction of a point due to font glyph metrics even when the word's
-  center was safely positioned within its column. The warning detector now excludes
-  lower full-width bands from the prose gutter check and tolerates sub-point overhangs
-  for words centered cleanly in their column, eliminating false alarms while preserving
-  visible warnings for genuine column-split text corruption.
-- **Token Art Manager imported-monster census and placed-token resolution hardened.**
-  Managed imported NPCs in `sde-actors` (e.g. Cursed Scroll and Western Reaches
-  monsters) have their catalog census ingestion hardened to handle both Array
-  and Collection-shaped index payloads, case-insensitive NPC type checks, and
-  per-pack ID deduplication, ensuring non-NPC actors (boats/mounts) remain
-  cleanly excluded. Same-name Core and imported monsters remain distinct
-  provenance-tagged rows with independent picks and Browse access for
-  zero-suggestion rows. Placed-token resolution by name (`resolveByName`)
-  uses Core-first precedence when both rows have art while correctly falling
-  back to an imported pick when Core has no configured art.
-- **Martial Training no longer vanishes from the Downtime window.** When a
-  character's class hit die couldn't be read — a level 0 character who hasn't
-  picked a class yet, or a class item that won't load — the whole activity
-  quietly disappeared instead of showing. The window was narrowing the list to
-  "the character's tier", and with no tier to narrow to it matched nothing;
-  Martial Training is the only activity where *every* entry belongs to a tier,
-  so nothing was left to draw and the section was dropped. It now does what the
-  book does and what the wiki always described: all three tiers show at once,
-  each under its own heading, all of it dead, with a note naming the reason. The
-  **Training tier** dropdown stays hidden while that is true, since every tier is
-  already on the page and the gate is shut for the GM as well.
-- **The Western Reaches siege weapons import again.** *Importer Hub → Manage →
-  Vehicles → Siege Weapons* warned that the page's gutter cut through a word and
-  then reported "No siege weapons found", for every one of the four weapons —
-  nothing could be imported at all. Two things were wrong, and both are fixed.
-  The grab read p119 in column-aware mode, but the SIEGE WEAPONS table is printed
-  **full width** on a two-column page, so the column split ran straight down the
-  middle of the table and handed the parser a transposed jumble — the same thing
-  the Basic Gear / Weapons / Armor unlocks already avoid by reading their wide
-  price tables as a single column. The page is now read **twice**, once per
-  column mode: the table comes off the single-column read, and the Blast /
-  Exploding rule text off the column-aware one, so neither is reconstructed from
-  a shape that mangles it. (The paste box therefore holds p119 once per mode, and
-  a "Column check" warning there now refers to the rules text rather than the
-  table.) The parser was the other half: it accepted exactly two layouts and gave
-  up whole when either was off by a cell, so a blank Properties column, a
-  differently-punctuated *Crossbow (heavy)*, or one word the gutter pushed across
-  cost all four weapons rather than one. It now reads a row whole, one cell per
-  line, or split across the gutter — pairing the split halves on the column they
-  meet at, so a stray cell costs at most its own row — and takes the name however
-  the printing punctuates it. When a row still can't be read, the rest import and
-  the message names the one that didn't, instead of reporting nothing found; and
-  when *nothing* parses, it says whether the page had the weapon names on it at
-  all, which separates a bad page cite from a bad column split — and, for the
-  bad-cite case, points at the printing rather than at a page-offset control,
-  which the Source PDFs library does not have (offsets are a constant in code,
-  and only the Core Rulebook carries one).
-- **A weapon's book-only properties no longer arrive as a note to self.** The
-  Western Reaches weapon and armour tables print property codes core Shadowdark
-  ships no property for — *Charge*, *Devastating* and *Mounted* on the Lance,
-  *Obsidian* on the obsidian weapons, *Sniper* on the blowpipe, *Mount* on
-  barding. There is nothing to attach them to, so the importer left them off and
-  flagged each one with *"note it in the description"* — and then didn't. Those
-  three Lance codes are now **canonical managed Property UUIDs** rather than a
-  label in the description: pasting the WR weapon table (direct **Importer Hub** → Items commit or **Item Builder → Weapons**) and the **Paladin** class overlay
-  converge on the same materializer and write the same three `Property` documents
-  (`Charge`/`Devastating`/`Mounted`) into the managed Items pack at
-  `Western Reaches / Weapon Properties`. The **Paladin's Lance** carries `Two-Handed` (seeded by the overlay and live-proved to survive alongside the three); direct parsing and Item Builder paste of the WR weapon table start `propNames` empty and the materializer appends only the three WR Lance UUIDs, so no `Two-Handed` is synthesized on those roads. No description-paragraph fallback is left for `Lance` on any of the three roads. Rerunning either path reuses the same folder and Property identities
-  without creating duplicate Properties or folders, and a Property-create failure
-  is visible and fail-closed — the preparation notifies and no owning Item is
-  committed with a partial `system.properties` list (the marker stays for a direct
-  retry). Property codes outside that exact WR Lance triple — *Obsidian*/*Sniper* on WR weapons, `Charge` on any non-Lance weapon, and barding `Mount` (armor `C` is the core property `Occupies One Hand`, not a fallback) — remain visible-only fallbacks and still appear as
-  *"Properties with no core Shadowdark equivalent: …"* when those codes are
-  pasted. The Lance's existing **Two-Handed** handling is unchanged; the three
-  are additive alongside it. The book's rules text for those properties stays in
-  the GM's book (labels only on the document). Re-importing the same WR Lance
-  via either path refreshes the membership to those UUIDs without disturbing a
-  description you wrote yourself — the property paragraphs now describe only the
-  non-materialized remainder — and only an exact `Lance` name materializes the
-  three (nearest-neighbour rows such as *War lance* keep the labelled fallback and
-  do not mint Properties). The **Paladin's Lance** is stocked by the class import
-  rather than pasted as a table row; importing the Paladin again updates an
-  existing Lance in place, so a world that already has one gets the UUIDs without
-  a re-import of anything else. That same pass stopped a quieter loss: re-importing
-  a class used to blank any description a GM had written on its stocked gear (the
-  Duelist's Rapier and Falchion, the Necromancer's Stave), because the overlay
-  ships stats and no text. Those descriptions are now left alone.
-  *No pack id, existing Item migration, API, or setting changed — a world that
-  already committed a WR Lance receives the canonical Properties only on a fresh
-  commit through either path.*
-- **A downtime paste no longer loses Martial Training and Magical Research to a
-  missing period.** Paste all four activities and only the first two would
-  appear — not because anything was missing, but because those two are the only
-  ones that need a *sub*-heading above their DC lines, and the parser demanded
-  one exact shape. A tier line printed `d8+ INT, STR, or DEX Check` instead of
-  `d8+.`, or a subsection line reading `INT or CHA Spellcasters:` with a colon,
-  left the segment unopened; every line beneath it then had nowhere to go, both
-  activities stayed empty, and an activity with no entries isn't drawn. The
-  matchers now take the punctuation a real page carries — a missing period, a
-  trailing colon, ALL CAPS — while still refusing to mistake a wrapped line of
-  outcome text (`…no larger than d6 max`) for a tier heading.
-- **A paste that can't be placed now says so loudly.** The parser's
-  "couldn't place this line" notes had no prose written for them, so they
-  rendered in the quiet style meant for the two-column recovery notes: a paste
-  that silently dropped two whole activities read no worse than a clean one.
-  They are now full-voiced problems that name the activity and the exact line
-  the paste is missing, and repeats collapse — one note per activity that failed
-  to open, not one per line it swallowed.
-- **A column-check warning now names the word it is worried about, and stops
-  crying wolf over centred headings.** Grabbing text from a PDF warns when the
-  column split may have moved a word between columns — but it only ever said
-  *how many* words, so "cuts through 1 word" on a four-page bestiary grab meant
-  proofreading four pages to find out which. The warning now quotes the words
-  themselves (up to three, then a trailing "…"), so checking it is one search in
-  the paste box.
 
-  It also fires far less often. Page furniture — a section title, a running
-  header, a folio, an ornament — crosses a perfectly good gutter all the time
-  and lands in one column harmlessly, and the warning used to recognise it by
-  its being alone on its baseline. A centred title loses that signature the
-  moment PDF.js hands it over as several runs, which letter-spaced display type
-  usually does: every run is narrow, so the one sitting over the gutter scored
-  as a stolen body word. Furniture is now judged by its whole row — ink that
-  never leaves the middle half of the page is furniture however many pieces it
-  arrives in — while a word on a real two-column line still warns, by name.
-  Caught on a Cursed Scroll 2 bestiary grab (pgs. 40-43), which raised two
-  one-item warnings that named nothing to look at.
-- **Importing a mount created a roll table instead of a mount.** *Importer Hub →
-  Manage → Monsters → Mounts* offered an **Import** button for each of the seven
-  Western Reaches mounts the system doesn't ship, and pressing it produced a
-  **Roll Table** named after the mount — never the actor. The unlock was handed
-  to the generic content-unlock route, which parses "auto" and treats every
-  seeded unlock as a request for exactly ONE table: it kept whatever table the
-  MOUNTS spread parsed into, stamped the mount's name on it, and sent that to the
-  table commit, while the statblocks the GM actually wanted were left with
-  nothing to create. A mount unlock is an *actor* unlock, so it now parses the
-  pages as statblocks — beside the boats and siege-weapon unlocks, which always
-  had their own parse — and the one-table rule no longer applies to actor,
-  vehicle or gear unlocks alone. A single **Import** click keeps that one
-  mount's statblock and sends the rest of the spread to **Skipped**, so
-  importing one missing mount still can't mint the other fourteen as duplicates;
-  **Import everything** instead batches every *selected* Western Reaches mount
-  together — one `WR pp.116–117` spread read, one mount parse, one commit
-  through the same importer — and the run report lists each requested mount by
-  name as **Imported**, **Nothing to import** (already in your library), or
-  **Needs your attention** (not among the statblocks on those pages), so a
-  partial parse or a rerun can no longer hide as a single successful entry. The
-  book prints the mounts by
-  their natural names ("WAR HORSE") while the catalog lists them index-style
-  ("Horse, War"), which used to mean the selected statblock matched nothing at
-  all; both spellings are now understood. The mount is created under the
-  catalog's name — the one on the button the GM pressed — because the actor's
-  name is what the Mounts list reconciles against, and a mount filed under the
-  book's heading would have stayed listed as missing, still offering an Import
-  its own duplicate check then refused. A mount already in your world under
-  either spelling now counts as present. And when the extracted pages hold no
-  statblock, the importer says so and names the pages to grab instead of quietly
-  creating the wrong kind of document.
-- **Imported Mounts now file into a stable `Mounts` folder.** Whether imported
-  individually or together via **Import everything** / **Import all N in Mounts**,
-  every newly imported Mount Actor is placed in one direct `Mounts` folder inside
-  the managed Actors pack (`world.shadowdark-enhancer--actors` / `sde-actors`),
-  rather than under a source folder. The folder is created once and reused; concurrent calls on the same client
-  share the in-flight create. Reimporting reuses the folder and skips an existing
-  case-insensitive same-name Mount without replacing or moving it; a per-mount
-  failure leaves that name missing and retryable without duplicating the
-  successes. Boats and ordinary monsters keep their existing source-folder
-  placement. Already-imported Mounts are not moved. No new API, setting, or
-  pack/selection contract.
-- **Importing the Basic Gear table no longer mints a Coin and a Gem.** Both sit
-  in the book's gear table next to real equipment, so the importer took them for
-  gear and created them as items — worth `0 gp`, because the table prices them
-  *Varies*. They then lived in `Manage > Items > Basic Gear` permanently, two
-  rows of currency in a list of equipment. Neither is a thing a character buys:
-  a coin is money and a gem is treasure, and what either is worth is whatever
-  the GM says at the time. Both are now refused wherever a gear table is read —
-  the paste box, the Item Builder's guided gear stage, and the cost-table join —
-  and they are listed under **Skipped** with the reason, rather than dropped
-  without a word. `Manage > Items > Basic Gear` also stops listing them, so a
-  world that got them from an earlier import shows equipment only; the items
-  themselves are left in `sde-items` for you to delete, because nothing here
-  deletes your documents. Names that merely start the same way — a coin purse, a
-  gemstone dust — are unaffected: the rule matches the row's name cell exactly.
-- **Basic Gear descriptions no longer swallow the next item's text.** Descriptions pasted as `Name. body…` blocks previously ended at the next *anchored* header, so any real record start the anchor list didn't cover was swallowed by the item above it — a refused currency row (Coin/Gem), a header spelled differently from its table row (`Oil flask.` vs `Oil, flask`), or a name two rows share (`Rope` from `Rope, 60'` / `Rope, morzo silk`). Page-furniture lines (a bare number optionally fenced by punctuation, e.g. `108` or `— 42 —`) are not record starts; before the fix they could be retained as garbage inside a captured description, and C1 now excises them without splitting a record that continues across the page — the actual following header (known or generic) is what ends the prior body. On the active Item Builder path (`splitDescriptionsByNames` → `findRecordStarts`) the shared `record-boundary` rule now ends a known description at the next record start even when that start is unassigned — a known name plus period (any length on this path, matched at the text start, after a period, or after a newline so two records on one line still split there) or a line-initial, capitalised, at-most-44-character, at-most-three-word lead-in that is not a sentence opener — so assignment and boundary detection are separate steps and the affected Basic Gear records no longer fuse. Trailing and multiline prose (`Has a shutter to hide the light.`, wrapped sentences, and lowercase mentions like `iron spikes.` that used to cut Caltrops) stays with its own record. This is a parser-only fix — existing Items that imported with bled text keep that text until you re-import the Basic Gear descriptions; nothing is migrated automatically. `Oil, flask` (header `Oil flask.`) and the plain `Rope.` header remain deliberately unassigned on the current anchor rules and are tracked separately, and pasting a table page with its footer number can still mint a spurious numeric row in the table path — both are separate follow-ups outside this boundary fix.
+**Importer**
+
+- The last spell on a page range no longer eats the pages after it (#155).
+- Age and Occupation import with the right shape — Occupation is a `d4, d4` grid.
+- The importer stops reporting spell lists as imported when they are not.
+- Re-importing a class stops rewriting its talent table and titles with the same values.
+- Fixing a title band in the preview no longer blocks Create.
+- A gear description ends where the next item starts (#69).
+- Flask and Bottle are skipped as system duplicates; Candle and Miner's Putty get their real mechanics.
+- A currency row is refused even when it turns up on its own.
+- Weapon properties in a description stop stacking up on re-import.
+- Two books printing the same table name no longer collide.
+- Siege weapons read the right page, and a seeded title line stops costing them rows.
+- Two treasure enrichments of one table at once no longer double it.
+- NPC and Rival Crawler support tables are importable again.
+- Closing the window mid-batch stops the run instead of throwing errors at it.
+- A batch closes the workspaces it opened, instead of leaving three stacked over the report.
+
+**Character Builder**
+
+- The gallery buttons do something when clicked — they rendered and did nothing.
+- The gallery sidebar is legible; it was inheriting a serif from outside the builder.
+- The search box stays put while the filters scroll.
+
+**Token art**
+
+- Reviewed art shows as reviewed, rather than reporting itself unavailable.
+- The Werebear picks up the portrait that actually exists.
+- The hover preview stays in one place instead of chasing the pointer off screen.
+- The manager's header stops squeezing its own text into a narrow column.
+- Monster backfill is safe to re-run and works through actors in a fixed order (#132).
+- Encounters and loot tables reference documents the way Foundry v14 expects.
+
+**Elsewhere**
+
+- 718 deprecation warnings a session are gone (#148).
+- An uncovered roll is refused instead of quietly returning a neighbouring row (#136).
+- An empty effect list stops wiping a populated one.
+- Boat sheets are readable.
+- Importing an older bundle keeps its Monster Spells instead of dropping them.
+
+### Removed
+
+- **Forge & Loot is hidden.** Both its generators were placeholders that looked
+  like working buttons and refused when clicked. Still reachable from the
+  console at `game.shadowdarkEnhancer.forgeLoot.open()`.
+- **The Rival Crawler party generator is gone for now.** It needed 24 supporting
+  tables that no importer group offered, so in most worlds it sat permanently
+  disabled without explaining why. Kept on the `rival-crawlers-shelved` branch.
+- **Two empty compendiums retired.** Nothing ever wrote to `patrons-and-deities`
+  or `languages` — gods and patrons arrive as roll tables, and languages point
+  at the system's own. An empty one is removed when you load the world; one you
+  have put something in is left alone.
 
 ## [0.15.1] — 2026-08-26
 

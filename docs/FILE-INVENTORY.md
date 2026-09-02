@@ -1,8 +1,8 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-908 tracked files · ~145,900 lines of code/markup across scripts+templates+styles+test.
-`v0.15.1` in both `module.json` and `package.json`.
+915 tracked files · ~148,800 lines of code/markup across scripts+templates+styles+test.
+`v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
 
@@ -63,7 +63,7 @@
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
 | `curated-icons.mjs` | 477 | The one curated-icon resolver (A4), pure and Foundry-free. Six issue paths want a reviewed Foundry-native icon for an item this module imported or generated; rather than each growing its own name matching (as `core-monster-spell-icons.mjs` did for Monster Spells), they share this. TWO KEY SPACES, and the split is structural rather than stylistic: weapons, armor and basic gear key on `normalize(name)` alone, because `defaultItemImg` — the module's single automatic art-choice channel — cannot know which book a draft came from (source is a commit-time batch option threaded through `createItems`, reaching the document only afterwards as a flag), so a source-qualified gear key would be unresolvable at the one place gear art is chosen; treasure keys are `<sourceId>:<normalize(name)>` via `sourceKey`, because its names are book prose two Cursed Scrolls could both print. Map keys are DERIVED from display names, never hand-written beside them — the reviewed source spec drifted exactly that way — and map construction is TOTAL: a duplicate key, blank name or path that is not a native `icons/**.webp` drops that row into `problems` and leaves the item on its fallback, because throwing at load would take the module down over an icon. `auditCuratedIconRegistry` aggregates those for the test gate. Registration is BY IMPORT (`registerCuratedIconMap`) so the tickets owning the rows never edit one shared list. `isCuratedApplyTarget` is a `world.` allowlist, not a denylist: `LootLinker` resolves rows system-pack-first by design, so a plunder row's uuid routinely points into `shadowdark.gear`, and a materializer applying art to whatever it just resolved would edit the base system compendium. Unmatched returns null — never a guess, because a wrong curated icon looks deliberate. |
-| `curated-icon-maps/index.mjs` | 74 | Discovery point for the curated-icon maps (A4). Each reviewed map lives beside this file as its own module, publishes itself with `registerCuratedIconMap` at import time, and becomes reachable when this index side-effect-imports it. Loaded once from the module entry point so every consumer sees the same registry regardless of load order. A ticket adding a map creates ONE file and appends ONE import line, so two tickets never collide on a shared array literal. Carries the worked example and the four invariants the audit enforces: native `icons/**.webp` paths, keys derived from display names, bare-space names globally distinct across the weapon/armor/gear maps, and treasure rows qualified by book. The D1 weapon, D2 armor, D3 Basic Gear, D4 Sea Wolf Plunder, D5 Dead Bandit Loot, and D6 Diabolical Treasure maps are the active production registrations; an uncovered category remains on null lookup and its prior fallback/provenance behaviour. |
+| `curated-icon-maps/index.mjs` | 78 | Discovery point for the curated-icon maps (A4). Each reviewed map lives beside this file as its own module, publishes itself with `registerCuratedIconMap` at import time, and becomes reachable when this index side-effect-imports it. Loaded once from the module entry point so every consumer sees the same registry regardless of load order. A ticket adding a map creates ONE file and appends ONE import line, so two tickets never collide on a shared array literal. Carries the worked example and the four invariants the audit enforces: native `icons/**.webp` paths, keys derived from display names, bare-space names globally distinct across the weapon/armor/gear maps, and treasure rows qualified by book. The D1 weapon, D2 armor, D3 Basic Gear, D4 Sea Wolf Plunder, D5 Dead Bandit Loot, and D6 Diabolical Treasure maps are the active production registrations; an uncovered category remains on null lookup and its prior fallback/provenance behaviour. |
 | `curated-icon-maps/armor-icons.mjs` | 26 | The reviewed N3 armor map (D2): nine canonical armor names plus four deliberate mithral source-spelling aliases, registered through A4's bare normalized-name key space. Each alias shares its canonical armor's Foundry-native icon; category tests audit all 13 accepted rows against the real public/icons inventory and exercise A3 upgrade/preservation provenance. |
 | `curated-icon-maps/dead-bandit-loot-icons.mjs` | 39 | The N3 §5.3/D5 Dead Bandit loot map: exactly 20 CS2 p68 source-qualified canonical Item names and reviewed native Foundry `icons/**.webp` paths. Feature prose and optional terminal prices stay on the source TableResult rather than entering the art key. |
 | `curated-icon-maps/diabolical-treasure-icons.mjs` | 38 | The N3 §5.2/D6 Diabolical Treasure map: exactly 20 CS1 p68 source-qualified Item names and reviewed native Foundry `icons/**.webp` paths, registered through A4; feature text stays with the D6 materializer rather than the art key. |
@@ -71,9 +71,9 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 470 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 472 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
-| `compendium-suite.mjs` | 403 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
+| `compendium-suite.mjs` | 449 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
@@ -83,7 +83,9 @@
 | `art-provenance.mjs` | 262 | Explicit art provenance for imported Items (pure), replacing the old `img.startsWith("icons/")` guess. Every image the module writes is stamped `flags[MODULE_ID].art = {state, img}`, so the next import compares the stored image against the path it actually wrote: still equal means the recorded state stands (`default` / `imported` / `curated`, all upgradeable), and any divergence is `custom` — the GM's, and never overwritten. The guess it replaces was wrong in both directions: this module's own bundled Shikashi defaults live under `modules/shadowdark-enhancer/assets/` and so failed the `icons/` test and erased hand-picked art, while a deliberate curated `icons/...` pick looked like a default and could never be upgraded. Legacy unmarked documents are classified deterministically and conservatively — an image byte-identical to the module's default pick for that name and type today (or no image at all) is `default`, everything else is `custom` — and the first re-import stamps the verdict so it never drifts. Also carries the structural generated-artifact boundary (`isGeneratedManagedItem`): the explicit `flags[MODULE_ID].generated` marker PLUS membership of the managed Items pack, the one case that stays replace-always, art included (A7/D6). Exactly ONE marker, deliberately — "generated" is not a single policy here. The Monster Spell library also generates documents but preserves hand-edited ones as curated conflicts, and since A1 they share this pack, so recognising its `monsterSpell.generated` bookkeeping would let an ordinary name collision overwrite a spell the GM had curated. Foundry-free, node-tested. |
 | `clipboard.mjs` | 46 | `copyText()` — clipboard write that survives insecure origins, where `navigator.clipboard` is undefined; falls back to a hidden textarea + `execCommand`, restores focus, and never throws. |
 | `contextual-enricher.mjs` | 193 | The one contextual check/request/roll enricher (A5), pure and Foundry-free. #56 wants an Arctic Sea row's "DC 15 DEX or 2d4 damage" to become a clickable check; #61 wants the identical prose in a monster's stat block to become a GM-side REQUEST instead. Same characters, different button — so the syntax CANNOT be inferred from the text, and this module refuses to try: the caller states a context (`table`/`environment`/`monster`) and an unknown or missing one throws rather than defaulting, because the failure this seam exists to prevent is one syntax silently serving every context. `table` and `environment` share a command today and stay separate names so a later divergence is a one-line change here rather than a caller-side edit. Emitted forms are dictated by the system's own enricher (`systems/shadowdark/src/enrichers.mjs`, `\[\[(check\|request)\s(\d+)\s(\w{3})\]\]`): exactly one space between tokens and a THREE-letter ability key, so "DC 15 Dexterity" must emit `dex` and any spacing variation is dead markup that renders as literal text. Enrichment is a FIXED POINT, and that is why it is a character mask rather than a chain of `String.replace` calls: `[[…]]` macros, `@UUID[…]{…}` labels and HTML tags are masked off before any rule runs, so a second pass returns the same bytes and no rule can rewrite the inside of another's markup — the mask also makes the rules mutually exclusive, so rule ORDER is a policy statement (checks are the more specific reading and win) instead of an accident of replacement order. Conservative by design: only a fully determined expression converts, so a bare "DC 15" or "DC 15 damage" stays prose; nothing is ever deleted or reordered, only wrapped. `enrichDice` is the dice half alone, and `monster-linker.convertDice` delegates to it rather than keeping a second copy — the local rule it replaces guarded only the exact `[[/r ` prefix, so it double-wrapped the second term of `[[/r 2d4+1d6]]` and rewrote dice inside an existing link label. |
+| `curated-icon-maps/spell-icons.mjs` | 102 | Reviewed Foundry-native icons for the 77 imported spells that all shared one generic casting hand, keyed by spell name and chosen from each spell's description. Defined, not registered: resolved through a spell-only registry so a spell never inherits an item map's art. |
 | `generated-items.mjs` | 647 | Stable identity and replace-always reconciliation for generated managed Items (A7/#57-#59) — the PRODUCER half of the boundary `art-provenance.mjs` defined and left unowned. The invariant is structural and both halves are required: a document is replace-always iff it lives in `world.shadowdark-enhancer--items` AND carries `flags[MODULE_ID].generated === true`. Neither is inferred — not from an image path, a name, a folder, or another pipeline's bookkeeping — and `planGeneratedItems` refuses outright for any other pack rather than reconciling something it has no authority over, which is what stands between an authoritative rerun and editing the system gear compendium. Identity is `flags[MODULE_ID].generatedItem = {id, source, key, fingerprint}` where `id` is FNV-1a/32 over `<canonical source>:<normalized name>`: derived from the definition, so it is identical on every machine and stable across a rerun that changes art, price or prose, and deliberately NOT the world-local document id, the image path (the thing A3 was written to stop reading) or a fuzzy name (the thing #58 was about). Reconciliation indexes on `id` but writes only when the stored canonical `key` also matches; a hash/key mismatch is an `identity-collision` refusal, not a wrong-target update. `name` appears only in the REFUSAL path, where a name already held by a document we do not own — since A1 that can be a generated Monster Spell, whose `monsterSpell.generated` marker means PRESERVE, the opposite thing — is reported, never taken over. Replace-always but not write-always: a rerun is `unchanged` only when the definition has not moved since we last wrote it AND no declared field has been edited since, so hand edits including art are replaced while an idle rerun writes nothing. The two-witness test is what makes a hand edit visible, and the stored document is PROJECTED onto the declared shape recursively — including non-empty ActiveEffects — before comparison so Foundry's own DataModel defaults and embedded ids are not read as an edit. `folder` is excluded — placement is the GM's. Updates carry forward undeclared top-level third-party flag namespaces through both replacement branches. Pure above the divider; the applier below reports create/update/missing-target failures, while a failed recreate deletion remains a visible duplicate requiring GM cleanup (retryable, not transactional). |
+| `hover-peek.mjs` | 94 | Hover-to-enlarge for an image grid: one reusable fixed-position preview that flips away from the viewport edge and never takes the pointer. Shared by the character builder's art gallery and the Token Art Manager's image browser, which cannot scale a tile in place because their grids scroll. |
 | `module-flags.mjs` | 126 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
 | `property-note.mjs` | 194 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
 
@@ -161,9 +163,9 @@
 | `loot-table-catalog.mjs` | 312 | Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only). |
 | `loot-table-tag.mjs` | 80 | Sidebar context-menu "Mark as Loot Table" toggle. |
 | `loot-catalog.mjs` | 129 | Rewrites loot tables so entries become DOCUMENT results, routing the exact Sea Wolf Plunder, Dead Bandit Loot, and Diabolical Treasure tables through their source-qualified generated-item materializers before the generic resolver. |
-| `diabolical-treasure.mjs` | 905 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
+| `diabolical-treasure.mjs` | 909 | D6/#59's exact CS1 Diabolical Treasure seam: reduces the source's 20×20 Item/Feature expansion to 20 source-qualified Basic/Magic/Treasure/Unidentified Items, puts physical wording on the unidentified face and feature text behind identification, stamps curated art plus A7 replace-always identity, and keeps collisions, failures, and unsafe table writes visible and retryable. |
 | `loot-linker.mjs` | 118 | Loot row text → confident compendium item link. |
-| `loot-pack.mjs` | 163 | Classify/fabricate treasure entries + world "Loot" pack ops. |
+| `loot-pack.mjs` | 171 | Classify/fabricate treasure entries + world "Loot" pack ops. |
 | `dead-bandit-loot.mjs` | 595 | D5/#58's exact CS2 Dead Bandit Loot seam: matches only the published 20 source rows, gives each canonical Item its visible feature remainder and curated A3 provenance, preserves the raw (optionally priced) TableResult, and reports unresolved, ambiguous, rerun, pack-boundary, and safe-writer failures. |
 | `sea-wolf-plunder.mjs` | 566 | D4/#57's exact CS3 Sea Wolf Plunder seam: recognizes only the manifest/content identity or exact table name, strips only a terminal `(N gp)` for the generated Item name, stamps curated art plus A7 source-qualified generated identity, and keeps row-level unresolved, ambiguous, or reconciliation failures as raw TEXT with their priced source phrase. A TableResult write failure is a separate outcome: source preservation is guaranteed only when snapshot restoration reports `restored: true`; `restored: false` may require manual recovery. |
 | `subroll.mjs` | 95 | Resolve "Meteorite 1d4: 1. lute…" table rows to the object rolled. |
@@ -208,41 +210,41 @@
 | File | Lines | Description |
 |---|---:|---|
 | `importer-hub-app.mjs` | 893 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1537 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-paste.mjs` | 1545 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
 | `importer-hub-commit.mjs` | 872 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 998 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
-| `importer-hub-batch.mjs` | 668 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
+| `importer-hub-manage.mjs` | 1014 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-batch.mjs` | 699 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
 | `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 242 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 606 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 617 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 262 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 704 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
-| `pdf-text-utils.mjs` | 140 | Shared PDF-text helpers + the HTML-safety contract. |
+| `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1494 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1521 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
-| `char-content/class-importer-app.mjs` | 758 | Purpose-built single-view class workspace. |
-| `char-content/class-unit-importer.mjs` | 1444 | Class unit → real documents in dependency order. |
+| `char-content/class-importer-app.mjs` | 788 | Purpose-built single-view class workspace. |
+| `char-content/class-unit-importer.mjs` | 1448 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 263 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 98 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
-| `spells/spell-parser.mjs` | 284 | Spell blocks → Spell drafts. Pure. |
-| `spells/spell-importer-app.mjs` | 460 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3398 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `tables/table-shapes.mjs` | 576 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
+| `spells/spell-importer-app.mjs` | 465 | Spell workspace organized by class / tier / alignment. |
+| `tables/table-importer.mjs` | 3422 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-shapes.mjs` | 590 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
 | `tables/table-hub.mjs` | 297 | Reconciles the shipped manifest against the live world (system / imported / missing). |
 | `tables/table-hub-app.mjs` | 541 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
 | `tables/table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
-| `tables/table-folders.mjs` | 179 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
+| `tables/table-folders.mjs` | 206 | Single source of truth for where a table files in `sde-tables` — **owns the Gameplay vs Roll Tables split**. |
 | `tables/table-categories.mjs` | 65 | Table-type taxonomy + classifier. |
-| `tables/table-enrich.mjs` | 185 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
-| `tables/core-table-groups.mjs` | 248 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
+| `tables/table-enrich.mjs` | 217 | Brings imported tables to "Ruin Encounters" standard; owns the debounced auto-relink sweep. |
+| `tables/core-table-groups.mjs` | 277 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |
 | `monsters/statblock-parser.mjs` | 516 | Monster statblock dump → draft objects. Pure. |
@@ -262,7 +264,7 @@
 | `items/gear-parser.mjs` | 577 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/wr-property-importer.mjs` | 202 | Foundry-bound shared materializer for canonical Western Reaches Weapon Properties (siege Blast/Exploding and Lance Charge/Devastating/Mounted), with root migration, idempotent reuse and fail-closed preparation. |
 | `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 1039 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-importer.mjs` | 1068 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 386 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 298 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
@@ -292,13 +294,13 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `char-builder-app.mjs` | 276 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
-| `state.mjs` | 63 | `CharBuilderState` — the in-progress character. |
-| `constants.mjs` | 137 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
+| `char-builder-app.mjs` | 279 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
+| `state.mjs` | 70 | `CharBuilderState` — the in-progress character. |
+| `constants.mjs` | 166 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 286 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
-| `art-gallery.mjs` | 170 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
+| `art-gallery.mjs` | 525 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 112 | Per-day/roll uses for Class Ability items. |
 | `gear-editor-app.mjs` | 152 | `ExtraGearEditor` sub-window. |
 | `steps/base-step.mjs` | 54 | Base class for character-builder wizard steps (shared lifecycle, render and validation). |
@@ -314,17 +316,17 @@
 | `steps/hp-step.mjs` | 123 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 131 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
-| `steps/preview-step.mjs` | 270 | Step — Preview. Final character-sheet preview before creation. |
-| `steps/stats-step.mjs` | 271 | Step — Abilities. Roll or assign the six ability scores. |
+| `steps/preview-step.mjs` | 324 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/stats-step.mjs` | 362 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`
 
 | File | Lines | Description |
 |---|---:|---|
-| `imported-monster-art.mjs` | 438 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
+| `imported-monster-art.mjs` | 693 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 733 | Applies licensed art to monsters **by path reference**, never bundled. |
-| `token-art-catalog.mjs` | 976 | Name→art matching catalog. |
-| `token-art-manager-app.mjs` | 576 | GM window to review/apply matches. |
+| `token-art-catalog.mjs` | 1104 | Name→art matching catalog. |
+| `token-art-manager-app.mjs` | 704 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
 ### 3.16 `scripts/pdf-export/`
@@ -385,12 +387,12 @@ Structure and thresholds only. Venue descriptions, twist details, what each stak
 | `class-idiom.mjs` | 1248 | Foundry-free G6a class-idiom and legal-choice layer: derives explainable ability signals from imported class/talent metadata, resolves every supported Character Builder choice through snapshots and an injected RNG, preserves exact talent-count and class-permission parity, and returns a stable value/signals/fallback or enumerated unsupported result without class-name branches. |
 | `advancement-engine.mjs` | 936 | Foundry-free G6b advancement engine: clones a complete level-one Player plan, rolls HP and bounded level-3/5 talent graphs through G6a, fills caster spell-grid deltas, resolves every supported replacement effect, records duplicate/recursion caps and level history, and returns a deterministic complete plan or diagnostic failure without persistence. |
 | `class-readiness.mjs` | 760 | Foundry-free G3 class automation-readiness evaluator, stable blocker/warning vocabulary, G6a mappings, and bounded importer defect queue. |
-| `class-readiness-adapter.mjs` | 301 | Read-only Foundry adapter that inventories Core and importer-managed Classes, resolves talent evidence, invokes the existing via classifier, and feeds the pure readiness report. |
+| `class-readiness-adapter.mjs` | 304 | Read-only Foundry adapter that inventories Core and importer-managed Classes, resolves talent evidence, invokes the existing via classifier, and feeds the pure readiness report. |
 | `forge-loot-app.mjs` | 262 | The `sde-forge-loot` ApplicationV2 shell: generator selection, declared adapter inputs, preview/report rendering, and thin Generate Preview/Reroll/Cancel/Approve controls. It contains no NPC or Rival Crawler rules and delegates all persistence to the core adapter contract. |
 | `forge-loot-core.mjs` | 833 | Foundry-free G4 state machine and adapter boundary for the shared Forge & Loot tool: deterministic seeds, immutable previews, explicit reroll/cancel/approve transitions, missing/exclusion/warning diagnostics, active-GM/source-drift gates, and a synchronous in-flight commit guard. G5/G7 supply generator rules and sole commit adapters; this file performs no world writes. |
 | `forge-loot-rng.mjs` | 80 | Foundry-free deterministic mulberry32-style PRNG for Forge & Loot. A fresh seeded function is created for each preview lifecycle, with helpers for bounded integers and snapshot picks; commit adapters receive no RNG and planners never call Foundry RollTable methods. |
-| `rival-class-table.mjs` | 243 | Foundry-free G2 policy for selecting eligible Core/importer-managed classes with Level-0 filtering and Core-wins canonical deduplication, then building deterministic equal-probability RollTable payloads with replacement warning and content fingerprint. |
-| `rival-class-table-adapter.mjs` | 418 | Foundry adapter for the generated Rival Crawler Classes table: flag-only managed-pack lookup, GM-gated create/replace reconciliation with manual-edit warnings, source freshness checks, and debounced ClassIndex invalidation wiring. |
+| `rival-class-table.mjs` | 252 | Foundry-free G2 policy for selecting eligible Core/importer-managed classes with Level-0 filtering and Core-wins canonical deduplication, then building deterministic equal-probability RollTable payloads with replacement warning and content fingerprint. |
+| `rival-class-table-adapter.mjs` | 437 | Foundry adapter for the generated Rival Crawler Classes table: flag-only managed-pack lookup, GM-gated create/replace reconciliation with manual-edit warnings, source freshness checks, and debounced ClassIndex invalidation wiring. |
 | `supporting-tables.mjs` | 800 | Foundry-free G8 logical-role registry for NPC/Rival supporting tables: exact manifest/source identities, ancestry/alignment dynamic child resolution, Signature Tactics matrix identities, pure row selection, and a read-only managed-pack adapter that fails closed on missing, foreign, duplicate, or name-only tables. |
 
 The report and idiom seams are pure data policy. Foundry adapters must translate documents into snapshots and keep reads separate from later generator/commit work.

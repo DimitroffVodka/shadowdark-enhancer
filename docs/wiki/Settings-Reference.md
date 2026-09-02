@@ -4,25 +4,25 @@
 
 Every setting the module registers, its real default, and what it actually does.
 
-All settings are **world-scoped**. They are the GM's, not per-player.
+All settings are **world-scoped**. They are configured by the GM for the whole world.
 
 ---
 
 ## Settings you can see
 
-**Configure Settings → Shadowdark Enhancer.** These are the 26 settings with a
-config entry, plus two GM-only menus (*Edit Guidelines Table*, *Manage Extra
-Gear*) that open their own editor windows.
+Go to **Configure Settings → Shadowdark Enhancer**. These are the 26 configurable
+settings, plus two GM-only menus (*Edit Guidelines Table*, *Manage Extra Gear*)
+that open their own editor windows.
 
 ### Movement
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Combat movement default (ft)** | `30` | Default movement budget per combatant turn. The token's ruler turns red past this from the turn-start position. |
-| **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl round. Reset on **Next Round**. |
-| **Enforce out-of-combat movement budget** | **off** | On: refuse moves that exceed the crawl budget. Off: still colours red, but lets the move commit. |
-| **Enforce combat movement budget** | **off** | On: refuse combat moves beyond the remaining movement. Off by default, since Shadowdark combat traditionally relies on player honesty. |
-| **Lock movement out of turn** | **off** | On: players can only move a token when it is that token's turn — the current combatant in combat, the holder of the rolled initiative order during a crawl (once every member has rolled). GMs, tokens outside the combat, and tokens off the crawl roster are never locked. |
+| **Combat movement default (ft)** | `30` | Default movement budget per combatant turn. Rulers turn red past this from turn start. |
+| **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl round. Resets on **Next Round**. |
+| **Enforce out-of-combat movement budget** | **off** | On: refuses moves exceeding crawl budget. Off: flags red, but allows move. |
+| **Enforce combat movement budget** | **off** | On: refuses combat moves past remaining movement. Off relies on player honesty. |
+| **Lock movement out of turn** | **off** | Restricts player moves to active turns (in combat or ordered crawl). GMs and unrostered tokens are never locked. |
 
 See [Movement Budgets](Movement-Budgets.md).
 
@@ -30,179 +30,127 @@ See [Movement Budgets](Movement-Budgets.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Game Master avatar** | *(blank)* | Image on the GM card. Blank uses the default cowled icon. You can also click the GM card's portrait in the strip. |
-| **Warn when shadowdark-crawl-helper is enabled** | on | Load-time notice if Crawl Helper is active. Non-blocking. |
+| **Game Master avatar** | *(blank)* | Image on the GM card. Blank uses the cowled icon. Click the portrait to change. |
+| **Warn when shadowdark-crawl-helper is enabled** | on | Non-blocking notice at world load if Crawl Helper is active. |
 
 ### Luck Reroll
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Prevent Luck rerolls on natural 1s** | on | When on, Luck tokens cannot be used to reroll attack rolls, checks, or saves that resulted in a natural 1. |
+| **Prevent Luck rerolls on natural 1s** | on | Prevents spending Luck tokens to reroll natural 1 attack rolls, checks, or saves. |
 
 ### Spell Mishaps
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Auto-roll spell mishap tables** | on | When a spellcasting check results in a natural 1 and fails to meet the spell DC, automatically roll the tier-appropriate mishap table for the casting class: Wizard Mishap for wizards and necromancers, Diabolical Mishap for witches. Divine casters (Priest, Green Knight, Seer) are exempt and simply lose the spell per RAW. Wand and scroll casts use the spell behind them, not the wand. |
+| **Auto-roll spell mishap tables** | on | Automatically rolls mishap tables on natural 1 spell fumbles (Wizard or Diabolical). Divine casters lose the spell per RAW. |
 
 ### Scavenger
 
 Automates the Delver's **Scavenger** talent: *when you expend the last of a
 consumable item, roll a d6; on a 5 or 6 you regain one use of that item.*
 
-It fires on the last of a stack going to zero, and on the item being consumed
-outright — a potion drunk from the sheet, or a torch the light tracker burns
-out. A **stack** thrown away in one go does not count, because nothing was
-expended down to its last use. Gear, potions and scrolls are watched; wands are
-not. The d6 rolls itself and posts a chat card showing the face, the success
-range and the outcome; on a success the item comes back at one use, and a
-restored light source comes back unlit with a full burn time.
+It fires when the last item in a stack reaches zero, or when an item is consumed
+directly (such as drinking a potion or a torch burning out). Discarding a whole
+stack does not trigger it. Gear, potions, and scrolls are tracked; wands are
+not. The `1d6` rolls automatically and posts a chat card. On success, the item
+returns with one use (restored lights return unlit with full burn duration).
 
-**Master Scavenger** widens the range: one copy makes it 4-6, a second makes it
-3-6, which is where the Delver talent table stops it. A Delver already at 3-6
-who rolls 10-11 again should reroll, per the table's own header — that is a
-level-up call and stays with the GM.
+**Master Scavenger** widens the range: one copy improves it to 4–6, a second to
+3–6, where the Delver talent table caps it.
 
-One rough edge worth knowing: Shadowdark records no difference between using a
-consumable up and getting rid of one. Selling, gifting or dropping your *last*
-torch looks identical to burning it, so Scavenger can roll and hand it back. It
-is uncommon, it is obvious when it happens, and deleting the returned item is
-the fix — but it is why the setting below exists.
+Shadowdark makes no distinction between using up a consumable and discarding or
+selling it. If a Delver sells or drops their last torch, Scavenger may trigger.
+If that happens, deleting the returned item resolves it.
 
-The talent is recognised by the flag the [Class Importer](Class-and-Spell-Importers.md)
-stamps on it, and by name for characters built before that flag existed — so
-Delvers already in your world work without a re-import.
+The talent is detected by the flag stamped by the [Class Importer](Class-and-Spell-Importers.md),
+or by name fallback for existing characters.
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Automate the Delver's Scavenger** | on | Master switch for everything above. Off, the talent stays on the sheet as rules text and nothing rolls itself. |
-| **Scavenger covers ammunition** | on | Whether spending your last arrow or bolt can trigger Scavenger. Ammunition decrements on every ranged attack, so this fires far more often than gear does — turn it off to keep Scavenger to torches, oil, rations and the like. |
+| **Automate the Delver's Scavenger** | on | Master toggle. Off leaves the talent as plain text. |
+| **Scavenger covers ammunition** | on | Allows spending your last arrow or bolt to trigger Scavenger. Turn off to restrict to gear. |
 
 ### Parry
 
 Automates the Duelist's **Parry**: *once per day, an attack of your choice that
 would hit you misses instead.*
 
-Parry is a reaction to a hit you have already seen, so it is a button rather
-than anything automatic. When an attack lands on a character who has the
-ability, a **Parry this attack** button appears on that attack's chat card for
-the character's player and for the GM. Using it spends one of the day's uses,
-posts a short card saying the attack missed, strikes the damage total through on
-the original card, and takes that card's **apply damage** controls away — the
-blow never landed, so there is nothing left to apply out of habit.
+When an attack lands on a Duelist, a **Parry this attack** button appears on the
+chat card for the player and GM. Using it consumes a daily use, strikes through
+damage on the original card, and removes damage application buttons.
 
-If the GM has *already* applied the damage, it is given back — and given back
-properly. Shadowdark clamps HP at zero, so a Duelist on 3 HP hit for 7 loses
-three points, not seven; Parry restores the three that actually left. If the hit
-had dropped them, the downed state goes too: the defeated marker and the
-unconscious condition are cleared, while anything that was true *before* the
-blow (already prone, already defeated) is left exactly as it was.
+If the GM already applied the damage, Parry refunds the actual lost HP (taking
+into account the 0 HP floor) and clears unconscious or defeated conditions
+caused by that strike.
 
-Requires the system's **Enable Targeting** setting, since that is what tells the
-attack roll whose AC it was rolling against. Without a target on the roll there
-is no "you" for the attack to have hit, and no button appears.
-
-Weapon attacks only. A spell cast at your Duelist also names them as its target,
-but the roll behind it is the caster's spellcasting check against the spell's own
-DC — it is not an attack against anyone's AC, and Parry does not offer itself
-against one.
-
-The ability is recognised by the flag the [Class Importer](Class-and-Spell-Importers.md)
-stamps on it, and by name for characters built before that flag existed — so
-Duelists already in your world work without a re-import.
+Requires the system's **Enable Targeting** setting so the attack roll knows
+which token AC it targeted. Spells targeting a Duelist use caster DCs rather than
+weapon attack rolls, so Parry does not trigger on spells.
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Automate the Duelist's Parry** | on | Master switch. Off, no button appears and Parry stays on the sheet as rules text with a use counter the player spends by hand. |
+| **Automate the Duelist's Parry** | on | Master switch for the reaction button and automatic HP refunds. |
 
 ### Taunt
 
 Automates the Duelist's **Taunt**: *when an enemy misses you with an attack, you
 have advantage on attacks against that enemy next round.*
 
-An enemy that misses a character with the talent hands them advantage against
-that enemy, **until the end of their next turn**, and a short card says so. When
-they attack that enemy the advantage is applied to the roll and the reason is
-printed on the roll card, so nobody has to remember it or argue about where it
-came from. It is not spent by attacking — it lasts the full duration, however
-many attacks that covers — and it applies to *that* enemy only, not to its
-friends. "That enemy" means the individual token that swung, so a miss from one
-goblin gives you nothing against the two identical goblins beside it.
+When an enemy misses a character with Taunt, that character gains advantage
+against that specific token until the end of their next turn. A chat card logs
+the effect, and attack rolls against that target apply advantage automatically.
+Taunt applies only against the specific attacker, not allied enemies.
 
-Weapon attacks only, for the same reason Parry is: a spell cast at you and
-fumbled is not an enemy missing you with an attack, so it arms nothing.
-
-Two rulings are baked in. Neither has a switch of its own — the setting below is
-a master switch that turns Taunt off altogether — so a table that reads them
-differently runs the talent by hand:
-
-- Advantage and disadvantage **cancel**, per the core rules. A Duelist who is
-  also at disadvantage rolls normally rather than having the disadvantage
-  quietly replaced.
-- A blow turned aside by **Parry** counts as a miss, because the talent says the
-  attack *misses instead* — so a parry arms Taunt.
-
-"Until the end of your next turn" is measured against the combat's own turn
-order — the one the taunt was armed in. A miss during your *own* turn does not
-burn the duration on the turn you are already in: your next turn is the one
-after it. With a second encounter running alongside, its turns and its ending do
-not touch a taunt armed in the first. Out of combat, the advantage lasts until
-the end of the first turn you finish once combat begins, and any leftover is
-cleared when a combat ends.
-
-The talent is recognised by the flag the [Class Importer](Class-and-Spell-Importers.md)
-stamps on it, and by name for characters built before that flag existed.
+Two rules interactions are built in:
+- Advantage and disadvantage cancel out normally per core rules.
+- Attacks turned aside by **Parry** count as misses and arm Taunt.
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Automate the Duelist's Taunt** | on | Master switch. Off, nothing is tracked and the talent stays on the sheet as rules text. |
+| **Automate the Duelist's Taunt** | on | Master switch for tracking and applying Taunt advantage. |
 
 ### Renown
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Starting renown from CHA** | on | Sets a new player character's renown to their Charisma modifier, once. If the character was made before their abilities were rolled, the seed waits for the first Charisma change. It never touches a character whose renown is already non-zero or who already has a renown log entry, so it cannot overwrite a score you have been playing with. See [Renown](Renown.md). |
-| **Renown on level-up** | on | Gives a player character a point of renown each time their level goes up. Reaching level 1 is excluded, because character creation writes that value. Every other renown trigger is a judgement call and stays on the **Renown** dialog. See [Renown](Renown.md). |
-
-### PDF Export
-
-| Setting | Default | What it does |
-|---|---|---|
+| **Starting renown from CHA** | on | Seeds new PC renown from CHA modifier once; never touches non-zero or logged renown. See [Renown](Renown.md). |
+| **Renown on level-up** | on | Awards 1 renown on level-up (levels 2+). Manual awards stay on the Renown dialog. See [Renown](Renown.md). |
 
 ### Encounters
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Roll Encounters as GM-only** | on | Whisper check results and roller cards to the GM. |
-| **Pause game on encounter** | on | Auto-pause when a check hits. |
-| **Auto-roll active table on hit** | on | Draw from the active table automatically on a hit. |
+| **Roll Encounters as GM-only** | on | Whispers encounter rolls and roller cards to GM only. |
+| **Pause game on encounter** | on | Automatically pauses game when an encounter check hits. |
+| **Auto-roll active table on hit** | on | Draws from active encounter table automatically on a hit. |
 
-> **The encounter threshold is not here.** Set it on the Crawl Bar by
-> right-clicking **Encounter**. See [Random Encounters](Random-Encounters.md).
+> **The encounter threshold is set on the Crawl Bar.** Right-click **Encounter**
+> on the bar to adjust it. See [Random Encounters](Random-Encounters.md).
 
 ### Loot & XP
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Loot drops on combat end** | off | When a combat ends, defeated NPCs have a chance to roll their loot table and post a shared claim card to chat. Per-NPC overrides via the **Loot** button in the NPC sheet header. |
-| **Loot drop mode** | `Per defeated NPC` | **Per defeated NPC**: every defeated monster rolls its own chance and can post its own card. **Per encounter (one card)**: one chance roll and at most one card for the whole combat, at the highest-level defeated NPC's level (its per-NPC overrides apply). |
-| **Loot drop chance (%)** | `50` | Chance to drop loot when combat ends (per NPC or per encounter, depending on the mode). |
-| **Item Drops** | on | Let players drag items from inventory onto the canvas as pickup-able tokens. Light sources are handled by the system and are never dropped this way. |
-| **Treasure XP threshold — normal (gp)** | `10` | Minimum gold value for generated treasure to grant normal treasure XP. |
-| **Treasure XP threshold — fabulous (gp)** | `150` | Minimum value to count as fabulous (higher XP). |
-| **Magic item unique-feature chance (%)** | `100` | Percent chance a generated magic item gains a unique feature. `100` = always. |
+| **Loot drops on combat end** | off | Defeated NPCs roll loot tables and post shared claim cards to chat. Overridden via NPC sheet header. |
+| **Loot drop mode** | `Per defeated NPC` | **Per defeated NPC**: each rolls separately. **Per encounter**: one pooled roll at highest NPC level. |
+| **Loot drop chance (%)** | `50` | Drop percentage chance on combat end (mode-dependent). |
+| **Item Drops** | on | Allows dragging items from sheets onto the canvas as pickup tokens. |
+| **Treasure XP threshold — normal (gp)** | `10` | Minimum gold value for treasure to grant normal XP. |
+| **Treasure XP threshold — fabulous (gp)** | `150` | Minimum gold value for treasure to count as fabulous XP. |
+| **Magic item unique-feature chance (%)** | `100` | Percent chance generated magic items gain unique features. |
 
 ### Monster art
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Monster token-art source module** | `dnd-monster-manual` | Module id whose `assets/tokens` and `assets/portraits` supply monster art. The module must be **installed** under `Data/modules` but does **not** need to be enabled, since art is referenced from disk, never copied. |
+| **Monster token-art source module** | `dnd-monster-manual` | Installed module ID providing token and portrait assets. Referenced directly from disk without copying. |
 
 ### Monsters
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Monster level guidelines** *(menu)* | *(shipped table)* | GM-only editor, **Edit Guidelines Table**. What a monster of each level is expected to have: AC, HP, attacks, ability-modifier band, Talent DC. Drives the Monster Creator's **Level Baseline** section and the token **Adjust monster level** button. Your edits are stored as a sparse diff, so untouched rows still track future module updates. **Recalculate** rebuilds it from the monsters installed in your world. |
+| **Monster level guidelines** *(menu)* | *(shipped table)* | GM-only editor (**Edit Guidelines Table**) defining baseline stats per level. Stored as a sparse diff. |
 
 See [Monster Level Guidelines](Monster-Level-Guidelines.md).
 
@@ -210,12 +158,12 @@ See [Monster Level Guidelines](Monster-Level-Guidelines.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated. Players roll with whatever is set here and cannot change it. Options: *3d6 Down the Line* · *3d6, Reroll if None ≥ 14* · *3d6, Assign as You Like* · *4d6 Drop Lowest, Down the Line* · *4d6 Drop Lowest, Assign as You Like*. |
-| **Portrait/token art folders** | the module's own `assets/portraits, assets/ancestries` | Comma-separated folders offered to players as a gallery on the Preview step. **The browse runs on the GM's client**, so players need no file permissions and see only these folders. When enabled, installed portraits from *Pathfinder Tokens: Character Gallery* are automatically included. Add your own (e.g. Tokenizer's save locations). Missing folders are skipped. Blank disables it. |
-| **Animate dice (Dice So Nice)** | off | Play the 3D animation for ability, HP, and gold rolls. **The audit chat card posts either way**, and this only adds the dice. |
-| **Max Level-1 HP** | off | Set Level-1 HP to hit-die maximum + CON instead of rolling. |
-| **Fixed starting gold (gp)** | `0` | A fixed amount. `0` rolls the standard `2d6 × 5 gp`. |
-| **Extra gear** *(menu)* | *(empty)* | GM-only picker, **Manage Extra Gear**. Grants the builder's shop items beyond its curated starting stock. Extra weapons and armour still respect each class's usable list. |
+| **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated method (3d6 down/assign/reroll, 4d6k3 down/assign, Standard Array, Point Buy). |
+| **Portrait/token art folders** | `assets/portraits, assets/ancestries` | Comma-separated paths for the Preview gallery. Proxied through GM; discovers datasheet manifests. |
+| **Animate dice (Dice So Nice)** | off | Plays 3D dice roll animations for builder rolls. Chat audit card posts either way. |
+| **Max Level-1 HP** | off | Sets Level-1 HP to maximum hit die + CON instead of rolling. |
+| **Fixed starting gold (gp)** | `0` | Flat starting gold amount. `0` rolls standard `2d6 × 5 gp`. |
+| **Extra gear** *(menu)* | *(empty)* | GM-only picker (**Manage Extra Gear**) adding custom items to the starting shop. |
 
 See [Character Builder](Character-Builder.md).
 
@@ -223,23 +171,22 @@ See [Character Builder](Character-Builder.md).
 
 ## Settings edited elsewhere
 
-These are real settings, but they are **not in the settings window**. They are
-edited through the feature's own UI, which is why you won't find them by
-searching Configure Settings.
+These settings are edited through their feature interfaces rather than the
+main settings menu:
 
 | Setting | Default | Edited in |
 |---|---|---|
-| **Merchant Sell Ratio (%)** | `50` (range 0–100, step 5) | The Merchant Shop window |
-| **Merchant Shop Name** | `The Merchant` | The Merchant Shop window |
+| **Merchant Sell Ratio (%)** | `50` | Merchant Shop window |
+| **Merchant Shop Name** | `The Merchant` | Merchant Shop window |
 | **Encounter threshold** | `1` | Crawl Bar → right-click **Encounter** |
-| **Active encounter table** | *(none)* | Crawl Bar → drag a table onto **Encounter**, or the roller's **Set as Active** |
-| **Encounter sources** | `["world", "shadowdark.bestiary"]`, **stale on Shadowdark 4.x**, whose pack is `shadowdark.monsters`. See [Random Encounters](Random-Encounters.md#where-encounters-draw-npcs-from) | API only (see below) |
+| **Active encounter table** | *(none)* | Crawl Bar → drag table onto **Encounter** |
+| **Encounter sources** | `["world", "shadowdark.bestiary"]` | Scripting API (use `shadowdark.monsters` on 4.x) |
 | **Loot tier tables** | *(empty)* | Loot Generator → **Set up loot tables** |
 | **Loot picker tables** | *(empty)* | Loot Setup window |
 | **Magic forge table overrides** | *(empty)* | Magic Item Forge |
-| **Token art priority / overrides / picks / folders** | *(empty)* | The Monster Art manager |
+| **Token art priority / overrides / picks** | *(empty)* | Monster Art manager |
 
-Set one from a script if you need to:
+To update encounter sources via script:
 
 ```js
 game.settings.set("shadowdark-enhancer", "encounterSources", ["world", "shadowdark.monsters"]);
@@ -249,44 +196,41 @@ game.settings.set("shadowdark-enhancer", "encounterSources", ["world", "shadowda
 
 ## Internal state
 
-Stored as settings because that is where world-scoped state lives in Foundry.
-**Don't edit these by hand.** They are written and read by the module.
+Stored as world settings for persistence. **Do not edit these manually.**
 
 | Key | Holds |
 |---|---|
-| `crawlState` | The crawl state machine: mode, turn counter, roster, out-of-combat initiative |
-| `sessionRecap` | The live session recap |
-| `sessionHistory` | Saved past sessions |
-| `shopInventory` · `shopLog` · `savedShopConfigs` · `shopAvailableToPlayers` · `shopAvailabilityData` · `gambleOptions` · `shopDefaultApplied` | Merchant shop state |
-| `tokenArtCompendium` | Whether the compendium-art overlay is on |
-| `lootSetupSeen` | Whether the first-run loot nudge has been shown |
-| `backfillVersion` | Last module version whose legacy monster backfill ran in this world |
-| `enricherBackfillVersion` | Last module version whose missing-only monster text enricher backfill completed in the managed Actors pack (E2) |
-| `creatureTypeBackfillVersion` | Last module version whose missing-only reviewed creature taxonomy pass completed in the managed Actors pack (E3) |
-| `monsterSpellSyncVersion` | Last module version whose automatic Monster Spell Library refresh completed in this world |
-| `downtimeContent` | The downtime outcome text you unlocked, per source book. Written by the Importer's **Downtime** import type, read by the [Downtime](Downtime.md) window |
-| `downtimeSession` | The live downtime session: which book, whether picks are still open, and each character's chosen activity and settled result |
-| `uniqueFeatureTableUuid` | The bound unique-feature table |
+| `crawlState` | Crawl state machine (mode, turn counter, roster, out-of-combat order) |
+| `sessionRecap` | Live session recap log |
+| `sessionHistory` | Saved past session recaps |
+| `shopInventory` · `shopLog` · `savedShopConfigs` · `shopAvailableToPlayers` · `shopAvailabilityData` · `gambleOptions` · `shopDefaultApplied` | Merchant shop state and player permissions |
+| `tokenArtCompendium` | Active state of the compendium art overlay |
+| `lootSetupSeen` | Flag marking whether the first-run loot nudge was shown |
+| `backfillVersion` | Version stamp for legacy monster backfill |
+| `enricherBackfillVersion` | Version stamp for monster text enricher pass in `sde-actors` |
+| `creatureTypeBackfillVersion` | Version stamp for monster taxonomy flags |
+| `monsterSpellSyncVersion` | Version stamp for Monster Spell Library refresh |
+| `downtimeContent` | Unlocked downtime outcome text per book |
+| `downtimeSession` | Live downtime session state |
+| `uniqueFeatureTableUuid` | Bound UUID for unique magic item features |
 
-> **`backfillVersion`, `enricherBackfillVersion`, `creatureTypeBackfillVersion`, and `monsterSpellSyncVersion` are internal version stamps.**
-> These world settings gate automatic, active-GM update sweeps. `backfillVersion` tracks the legacy property/spell cleanup pass; `enricherBackfillVersion` gates the contextual text enrichment backfill for monster notes and attacks in `sde-actors`; `creatureTypeBackfillVersion` gates the missing-only source-qualified creature taxonomy pass for managed NPCs and mounts; and `monsterSpellSyncVersion` gates the automatic Monster Spell Library refresh. Each sweep runs only for the single active GM, is idempotent, preserves existing and custom data, and only advances its stamp after a complete successful run so that any partial failure is cleanly retried on the next world load.
+> **Version stamps (`backfillVersion`, `enricherBackfillVersion`, `creatureTypeBackfillVersion`, `monsterSpellSyncVersion`):**
+> These world settings gate automated, active-GM maintenance sweeps on startup.
+> Each sweep is idempotent, preserves existing and custom data, and only
+> advances its stamp after a complete successful run. Partial failures retry
+> automatically on the next world load.
 
 ---
 
 ## Notes
 
-- **Everything is world scope.** There are no client-scoped settings, so a player
-  cannot change any of this for themselves.
-- **`gambleOptions` ships disabled.** Its default sources referenced a loot
-  generator this module has no equivalent for. GMs can enable and configure
-  Gamble themselves from the shop's Manage tab, picking from any world or
-  compendium roll table.
-- **`shopDefaultApplied`** latches the one-time load of the shipped
-  "The Merchant - Base" stock into a new world's shop. Clearing it makes that
-  load happen again on the next world load, but only if the shop is empty at
-  the time, so it will not overwrite a shop you have stocked yourself.
-- Ancestry Name/Trinket and Background/Deity tables are **auto-discovered**, not
-  configured. There is deliberately no setting.
+- **All settings are world-scoped.** Players cannot alter module settings.
+- **`gambleOptions` ships disabled.** Configure and enable Gamble from the
+  shop's Manage tab.
+- **`shopDefaultApplied`** records the initial load of *The Merchant - Base*
+  stock into a new world.
+- Ancestry Name/Trinket and Background/Deity tables are **auto-discovered**
+  from world and compendium tables by name.
 
 ---
 

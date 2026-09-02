@@ -17,6 +17,14 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { sourceKey } from "../../shared/source-keys.mjs";
 
 const resultText = (r) => { const s = r.toObject(); return s.name || s.description || ""; };
+
+/**
+ * Treasure enrichments in flight, keyed by table uuid. Concurrent callers share
+ * one run — see `enrichTreasure`. Entries delete themselves on settle, so a
+ * later enrichment of the same table still runs normally.
+ */
+const _treasureRuns = new Map();
+
 const ARCTIC_SEA_MANIFEST_ID = "cs3-arctic-sea-encounters";
 const ARCTIC_SEA_NAME = /(?:^|(?:\s-\s|:\s*))arctic sea encounters$/i;
 
@@ -77,10 +85,34 @@ export const TableEnricher = {
     return { rows: table.results.size, linked, updated: updates.length };
   },
 
-  /** Enrich one treasure RollTable into real items via the loot catalog. */
+  /**
+   * Enrich one treasure RollTable into real items via the loot catalog.
+   *
+   * Concurrent calls for the SAME table are coalesced onto one run. Three paths
+   * reach here and none of them coordinate: `_autoEnrich` fires the moment a
+   * table is committed, `sweepPack` re-enriches every treasure table after an
+   * item or monster import, and `enrich` is the manual button. A batch import
+   * that creates a treasure table and imports items fires two of them at once.
+   *
+   * Materialization reads the pack, plans, then creates. Two passes that both
+   * read before either writes each see none of the items present, both plan the
+   * full create set, and both create it — 12 duplicate generated Items in one
+   * 32ms burst, which is how this was found. Deduplicating here rather than
+   * inside the reconciler keeps the fix at the point every caller shares.
+   *
+   * The second caller receives the first call's promise, so it still gets a
+   * real result instead of being silently dropped.
+   */
   async enrichTreasure(table) {
     if (!game.user?.isGM || !table) return null;
-    return LootCatalog.linkTableItems(table);
+    const key = table.uuid ?? table.id ?? null;
+    if (!key) return LootCatalog.linkTableItems(table);
+    const inFlight = _treasureRuns.get(key);
+    if (inFlight) return inFlight;
+    const run = (async () => LootCatalog.linkTableItems(table))()
+      .finally(() => { _treasureRuns.delete(key); });
+    _treasureRuns.set(key, run);
+    return run;
   },
 
   /** Enrich a single table by uuid + kind ("encounter" | "treasure"). */

@@ -72,6 +72,48 @@ export class TokenArtCatalog {
       tokenMapping: "modules/pf2e-tokens-characters/data/compendium-map.json",
       credit: PF_CHARACTER_GALLERY_CREDIT,
     },
+    {
+      // Paizo's NPC set — the humanoid counterpart to Monster Core, and the
+      // source of most townsfolk/soldier/cultist art. Its image-mapping.json is
+      // the same `{pack: {id: {token: {texture}}}}` shape _loadPresentation
+      // already walks, so scale and ring carry over.
+      id: "pf2e-tokens-npc-core",
+      label: "Pathfinder Tokens: NPC Core",
+      tokenDir: "modules/pf2e-tokens-npc-core/assets/tokens",
+      portraitDir: "modules/pf2e-tokens-npc-core/assets/portraits",
+      subjectDir: "modules/pf2e-tokens-npc-core/assets/subjects",
+      tokenMapping: "modules/pf2e-tokens-npc-core/image-mapping.json",
+      credit: "<em>Token artwork by Paizo.</em>",
+    },
+    // The community pack ships TWO independent trees, so it gets two entries
+    // rather than one — every consumer interpolates a single `tokenDir` into a
+    // path, and teaching them all to take a list to save one object here would
+    // be the tail wagging the dog.
+    //
+    // Worth knowing WHY folder entries are needed at all: this pack also ships
+    // a `shadowdark.monsters` compendium-art mapping, which discoverSources
+    // would pick up on its own — but only by walking `game.modules`, and
+    // Foundry never registers this module because its manifest caps
+    // compatibility at v13. The folder probe below reads the disk instead, so
+    // it works whether or not the module is registered or active.
+    {
+      id: "shadowdark-community-tokens",
+      label: "Shadowdark Community Tokens",
+      tokenDir: "modules/shadowdark-community-tokens/artwork/tokens",
+      portraitDir: "modules/shadowdark-community-tokens/artwork/portraits",
+      tokenMapping: "modules/shadowdark-community-tokens/mapping.json",
+      credit: "<em>Token artwork by the Shadowdark community.</em>",
+    },
+    {
+      id: "shadowdark-community-tokens-monster24",
+      label: "Shadowdark Community Tokens (Monster 2024)",
+      tokenDir: "modules/shadowdark-community-tokens/monster24/tokens",
+      portraitDir: "modules/shadowdark-community-tokens/monster24/portraits",
+      // One mapping file covers both trees: _loadPresentation keys by filename,
+      // not by directory.
+      tokenMapping: "modules/shadowdark-community-tokens/mapping.json",
+      credit: "<em>Token artwork by the Shadowdark community.</em>",
+    },
   ];
 
   /**
@@ -97,9 +139,11 @@ export class TokenArtCatalog {
     "dnd-monster-manual",
     "dnd-players-handbook",
     "pf2e-tokens-monster-core",
+    "pf2e-tokens-npc-core",
     PF_CHARACTER_GALLERY_ID,
     "dnd5e-fa",
     "shadowdark-community-tokens",
+    "shadowdark-community-tokens-monster24",
   ];
 
   /**
@@ -194,9 +238,35 @@ export class TokenArtCatalog {
       scaleMap: "systems/dnd5e/json/fa-token-mapping.json",
       defaultScale: 1.5,
     },
+    // Rooted at each TOKEN directory, not at the module root. The root walks
+    // `artwork/` and `monster24/`, each holding a `portraits/` beside its
+    // `tokens/`, and _browseTree keys by basename with first-wins — so
+    // `portraits/aboleth.webp` beat `tokens/aboleth.webp` and the browser
+    // offered a portrait wherever a token belonged, for all 493 rows.
+    //
+    // Two entries because the pack ships two independent trees and `root` is
+    // one string. `mapping.json` covers both; _loadPresentMaps keys by
+    // basename, and it is what pairs each token with its portrait (without it
+    // `portrait` silently falls back to the token path).
+    // 16,000 images in 383 per-creature folders, several variants each
+    // ("Aarakocra/AarakocraArcticTern (1).webp"). Browser-only, like the
+    // iconics: it ships no shadowdark map, and a set this size would otherwise
+    // dominate automatic name matching. Note _browseTree keys by BASENAME, and
+    // these filenames already carry their creature ("AbolethCatifish"), so the
+    // folder is not needed to tell two variants apart.
+    "too-many-tokens-dnd": {
+      label: "Too Many Tokens (DnD)",
+      root: "modules/too-many-tokens-dnd",
+    },
     "shadowdark-community-tokens": {
       label: "Shadowdark Community Tokens",
-      root: "modules/shadowdark-community-tokens",
+      root: "modules/shadowdark-community-tokens/artwork/tokens",
+      present: ["modules/shadowdark-community-tokens/mapping.json"],
+    },
+    "shadowdark-community-tokens-monster24": {
+      label: "Shadowdark Community Tokens (Monster 2024)",
+      root: "modules/shadowdark-community-tokens/monster24/tokens",
+      present: ["modules/shadowdark-community-tokens/mapping.json"],
     },
     // pf2e game SYSTEM: ships no monster tokens — only the 59 iconic PC /
     // companion portraits (Amiri, Ezren, Droogami…). Browser-only (never a
@@ -680,6 +750,42 @@ export class TokenArtCatalog {
     };
   }
 
+  /**
+   * Monster id → the reviewed row as a ready-made option, for every managed
+   * monster whose curated row resolves against the installed library.
+   *
+   * The library is built ONCE and only when at least one monster actually has a
+   * reviewed row — `build()` renders the manager, and a full disk browse is not
+   * something to spend on a world that has imported nothing. A row that no
+   * longer resolves (source uninstalled, path moved) simply yields no option,
+   * which leaves the status at `path-unavailable` exactly as before.
+   *
+   * @param {Array<{id: string, name: string, source?: string, managedImported?: boolean}>} monsters
+   * @returns {Promise<Map<string, object>>}
+   */
+  static async _curatedImportedArtOptions(monsters) {
+    const wanted = [];
+    for (const m of monsters ?? []) {
+      if (!m?.managedImported) continue;
+      const row = curatedImportedMonsterArtFor(m.source, m.name);
+      if (row) wanted.push([m.id, row]);
+    }
+    if (!wanted.length) return new Map();
+
+    let library;
+    try { library = await this.buildLibrary(); }
+    catch (_error) { return new Map(); }   // no library → no injected options
+
+    const out = new Map();
+    for (const [id, row] of wanted) {
+      let resolved = null;
+      try { resolved = await this._resolveCuratedImportedMonsterArt(row, library, null); }
+      catch (_error) { /* one stale row must not empty the rest */ }
+      if (resolved) out.set(id, resolved);
+    }
+    return out;
+  }
+
   static async build() {
     // Every covered pack: the base bestiary + the importer's managed pack (once
     // it exists). Each monster carries its pack so resolve() can key art per pack.
@@ -709,11 +815,33 @@ export class TokenArtCatalog {
     discovered.sort((a, b) => priority.indexOf(a.id) - priority.indexOf(b.id));
     for (const s of discovered) s._art = await this._sourceArt(s, monsters);
 
+    const curatedOptions = await this._curatedImportedArtOptions(monsters);
+
     const byMonster = monsters
       .map((m) => {
         const options = discovered
           .filter((s) => s._art[m.id])
           .map((s) => ({ source: s.id, ...s._art[m.id] }));
+        // A reviewed row enters the option list on its own evidence. Options are
+        // otherwise built by NAME matching, so a Shadowdark original — Bezelak,
+        // Bogthorn, Bittermold — has none, and the curated status could never be
+        // reached for exactly the creatures the reviewed map exists to cover: 55
+        // of 66 sat at `path-unavailable` with an empty row while the apply path
+        // resolved all of them happily against the library.
+        const injected = curatedOptions.get(m.id);
+        if (injected) {
+          // SUPERSEDES a same-source/same-token option rather than deferring to
+          // it. The two disagree on the portrait for at least one source: name
+          // matching pairs from the source's `portraitDir`, while the library
+          // pairs from the source's own token map, and the Monster Manual's map
+          // names `journal-art/` where the folder is `portraits/`. Same token,
+          // different portrait, and the status test needs all three to match —
+          // so skipping on source+token left Werebear `path-unavailable` while
+          // its art sat right there in the list.
+          const dup = options.findIndex((o) => o.source === injected.source && o.token === injected.token);
+          if (dup >= 0) options.splice(dup, 1);
+          options.unshift(injected);
+        }
         const curatedImportedArt = this._curatedImportedArtStatus(m, options);
         return {
           id: m.id,

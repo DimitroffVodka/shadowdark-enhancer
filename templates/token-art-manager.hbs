@@ -1,13 +1,14 @@
 <section class="sde-tam">
 
   <header class="sde-tam-head">
-    <div class="sde-tam-blurb">
+    <details class="sde-tam-blurb" data-remember="blurb" {{#if blurbOpen}}open{{/if}}>
+      <summary class="sde-tam-blurb-title">How this works</summary>
       Choose which installed art source skins each monster. The order below sets the
       default; click a thumbnail to override a single monster, or <strong>Browse</strong> to
       hand-pick any token from every source (needed for monsters with no automatic match).
       <strong>Apply</strong> makes every future monster drag use your picks (nothing is copied —
       art is referenced from disk).
-    </div>
+    </details>
     <div class="sde-tam-actions">
       <button type="button" data-action="apply" class="sde-tam-apply">
         <i class="fa-solid fa-wand-magic-sparkles"></i> Apply{{#if enabled}} (update){{/if}}
@@ -46,10 +47,13 @@
     {{/each}}
   </div>
 
-  <div class="sde-tam-sources">
-    <div class="sde-tam-sources-title">Source priority <span class="sde-tam-dim">(highest wins where a monster has art in more than one)</span></div>
+  <details class="sde-tam-sources" data-remember="sources" {{#if sourcesOpen}}open{{/if}}>
+    <summary class="sde-tam-sources-title">Source priority
+      <span class="sde-tam-dim">· {{sourceCount}} sources · highest wins where a monster has art in more than one</span>
+    </summary>
     {{#each sources}}
-    <div class="sde-tam-source">
+    <div class="sde-tam-source" draggable="true" data-source="{{id}}" title="Drag to reorder">
+      <i class="fa-solid fa-grip-vertical sde-tam-grip" aria-hidden="true"></i>
       <div class="sde-tam-rank">
         <button type="button" data-action="sourceUp" data-source="{{id}}" {{#if isFirst}}disabled{{/if}} title="Higher priority"><i class="fa-solid fa-caret-up"></i></button>
         <button type="button" data-action="sourceDown" data-source="{{id}}" {{#if isLast}}disabled{{/if}} title="Lower priority"><i class="fa-solid fa-caret-down"></i></button>
@@ -61,7 +65,7 @@
       <div class="sde-tam-source-used" title="Monsters currently using this source">{{used}}</div>
     </div>
     {{/each}}
-  </div>
+  </details>
 
   <div class="sde-tam-toolbar">
     <input type="text" name="filter" placeholder="Filter monsters…" value="{{filter}}" autocomplete="off">

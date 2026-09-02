@@ -22,8 +22,8 @@ to a single character when you want to.
 
 ## Setup: bind your treasure tables
 
-**The module ships no treasure tables.** They are book content, so you supply them.
-Until you bind some, the generator has nothing to draw from, and you get a
+**The module ships no treasure tables.** They are book content, so you supply
+them. Until you bind some, the generator has nothing to draw from, and you get a
 one-time nudge at world load saying so.
 
 Open the generator and click **Set up loot tables**. There are four tiers:
@@ -58,10 +58,10 @@ how to deliver the result.
 | **Drop Coins…** | Drop a coin pile onto the canvas for anyone to pick up |
 
 The dropdown lists **curated loot/treasure tables from both world and
-compendium**, and to add another you right-click any table in the sidebar and
-choose **Mark as Loot Table**.
+compendium**. To add another, right-click any table in the sidebar and choose
+**Mark as Loot Table**.
 
-A hoard yields coins (gp / sp / cp) and items, every result in the history has
+A hoard yields coins (gp / sp / cp) and items. Every result in the history has
 its own delivery controls, and **you are never forced to pick a player**. The
 **Give** dropdown defaults to **Party (claim in chat)**, so the whole party
 decides who takes what.
@@ -84,16 +84,18 @@ Post the hoard to chat and **the first player to click Claim takes it**.
   `system.coins`.
 - **First claim wins.** Claims are processed by exactly one GM client, and a
   claim in flight is locked before the write, so two players clicking at the same
-  instant can't both walk away with the sword.
+  instant cannot both walk away with the sword.
 
 ### Drop on the ground
 
 **Drop on Ground** puts the whole result on the canvas instead: every item
 becomes a pickup-able token and the coins a pile, clustered at your controlled
-token (else the view centre). Players walk over and grab what they want from
-the token HUD's pick-up button, so loot division happens in the fiction, not in
-a dialog. It's the same token-HUD pickup players already use for **Drop
-Coins…** piles and for items they drag onto the map themselves.
+token (or the viewport centre).
+
+Players walk over and grab what they want from the token HUD's pick-up button, so
+loot division happens in the fiction rather than in a dialog. This uses the same
+token-HUD pickup players already use for **Drop Coins…** piles and for items they
+drag onto the map themselves.
 
 ### Direct delivery
 
@@ -104,187 +106,284 @@ straight to that actor: items created, coins added, no card.
 
 ## How loot rows become Items — precise resolution
 
-A loot table row is prose with a price — `Unopened bottle of exceptionally potent Murgazi wine (25 gp)` — not a bare name. The module resolves that
-row to a compendium Item in **two whole-name tiers** and refuses everything
-else. This is deliberate: a false positive (`Murgazi wine` → the 1 gp system
-`Bottle`) silently hands the player the wrong object, while an unresolved row
-keeps its text and can be fabricated or linked by hand.
+A loot table row is usually prose with a price—such as `Unopened bottle of
+exceptionally potent Murgazi wine (25 gp)`—not a bare item name. The module
+resolves that row to a compendium Item in **two whole-name tiers** and refuses
+everything else.
+
+This strict matching is deliberate: a false positive (mapping `Murgazi wine` to
+the 1 gp system `Bottle`) silently hands the player the wrong object, while an
+unresolved row keeps its full text and can be fabricated or linked by hand.
 
 | Outcome | Meaning | Carries a link? |
 |---|---|---|
-| `exact` | the priced row, stripped, **is** the Item's name (case/spacing/curly-quote folded) | yes |
-| `alias` | it is that name modulo anchored normalizations — a leading article or count, a trailing non-price parenthetical, or the **final word's** plural — which may **compose** (e.g. `2 daggers (steel)`) | yes |
-| `ambiguous` | more than one distinct Item answers at the same tier (e.g. `3 bolts (2 gp)` when installed `Bolt` + `Bolts` both match that tier) | no — resolves to nothing |
-| `unresolved` | no Item answers at either tier | no |
+| `exact` | Stripped of prices, the row **is** the Item's name (case/spacing/quote-folded) | Yes |
+| `alias` | Matches the name modulo anchored normalizations (leading counts/articles, trailing parentheticals, or plural endings) | Yes |
+| `ambiguous` | More than one distinct Item matches at the same tier (e.g. `3 bolts (2 gp)` matching both `Bolt` and `Bolts`) | No (resolves to nothing) |
+| `unresolved` | No Item matches at either tier | No |
 
-**Anchored, composable folds.** Each alias normalization is at the start, the end, or the last word — none can shorten the phrase to an interior word, and multiple can apply together. `Unopened bottle of exceptionally potent Murgazi wine` folds to itself, never to `Bottle`; `a flask of exceptionally fine oil` never becomes `Flask`; `2 daggers (steel)` reaches `dagger` via count + parenthetical + plural together. **Loose containment is refused** by design (D4 out of scope) and interior-word hits are structurally unreachable.
+### Anchored, composable folds
 
-**Short names and punctuation are handled.** Installed three-character names (`Axe`, `Net`) resolve at `exact`; price punctuation and `each` are stripped to a fixed point, so `Dagger (1 gp).` is still `exact` and price-plus-punctuation does not need the alias tier. When a priced row itself is coin-like (`Gem shard (10 gp) each`), `classifyEntry` may route it as coin rather than a fabricated Item — **`each` still strips at the resolver**, but an unresolved text row is not guaranteed to fabricate (coins stay text by tier-specific classification).
+Alias normalization operates strictly at the start, the end, or the final word
+of a phrase. It never shortens a phrase to an arbitrary interior word. Multiple
+rules can apply together:
 
-**Foundry and module packs, system-first.** Candidate Items are loaded from every installed Item pack, filtered to the four loot types (`Weapon`, `Armor`, `Potion`, `Basic`), deduped by lower-cased name with **system packs first** then world/module packs (including `world.shadowdark-enhancer--items`). On a same-name clash a system Item wins — imports fill gaps. The index is session-cached (cleared by `game.shadowdarkEnhancer.linker.invalidate()` after bulk compendium changes or by the importer itself).
+* `Unopened bottle of exceptionally potent Murgazi wine` folds to itself, never
+  to `Bottle`.
+* `a flask of exceptionally fine oil` never matches `Flask`.
+* `2 daggers (steel)` resolves to `dagger` via count + parenthetical + plural
+  normalizations working together.
+* **Loose containment is refused** by design, preventing unintended matches on
+  generic sub-words.
 
-For callers: the six internal `findLink` consumers (merchant shop, treasure classification, loot generator, roll-table catalog, table-hub preview, importer-hub paste preview) keep the `null`-or-`{uuid,name,matched}` shape and treat `ambiguous` the same as `unresolved` (no link). The public `game.shadowdarkEnhancer.loot.resolve(text)` return adds `status`, `query`, and for `ambiguous` the `candidates: [{uuid,name}]` list — see [API](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot).
+### Short names and punctuation
+
+Three-character item names (`Axe`, `Net`) resolve cleanly at the `exact` tier.
+Price notations, punctuation, and trailing qualifiers like `each` are stripped to
+a fixed point before matching:
+
+* `Dagger (1 gp).` resolves as an `exact` match to `Dagger`.
+* For coin-like phrases (`Gem shard (10 gp) each`), the resolver strips `each`
+  cleanly, but classification may route the result as currency rather than
+  minting a fabricated item.
+
+### Compendium loading order
+
+Candidate Items are loaded from all installed Item packs, filtered to the four
+loot types (`Weapon`, `Armor`, `Potion`, `Basic`), and deduped by lowercase
+name:
+
+1. **System compendiums first** (`shadowdark.gear`, etc.)
+2. **World and module packs next** (including `sde-items`)
+
+If names collide, the system compendium entry takes precedence; module imports
+fill in the gaps. The index is cached per session and invalidated automatically
+after bulk compendium imports or via `game.shadowdarkEnhancer.linker.invalidate()`.
+
+For API callers, `game.shadowdarkEnhancer.loot.resolve(text)` returns the
+detailed resolution status, query string, and candidate list for ambiguous
+matches. See the [API documentation](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot).
 
 ---
 
 ## Generated treasure Items — stable identity and replace-always reruns
 
-Treasure pipelines (starting with Sea Wolf Plunder in D4) that generate Items
-write only into the **managed Items pack** `world.shadowdark-enhancer--items`
-(`sde-items`). Inside that pack, a document with **`flags[\"shadowdark-enhancer\"].generated === true` plus a stored `generatedItem` block** is **replace-always**: a rerun replaces the whole document at the same identity — hand edits, including art, are intentionally replaced. That boundary is **structural**: both halves required (`world.shadowdark-enhancer--items` **and** the top-level flag), never inferred from an image path, a folder, a fuzzy name, or document id.
+Certain specialized treasure tables generate custom Items into the **managed
+Items pack** (`world.shadowdark-enhancer--items` / `sde-items`).
 
-* **Identity is `source + canonical name`.** `FNV-1a/32` over `<canonical source>:<normalized name>` (source via `sourceKey`, name via `curatedNameKey`). Renaming the definition creates a **new identity** — the old Item is not deleted (removing a definition is not a deletion). Blank source or blank name produces no identity.
-* **A name collision is a refusal, not a takeover.** Since A1, generated Monster Spells share this pack (`flags[MODULE_ID].monsterSpell.generated`), and their contract is the **opposite** — hand-edited spells are **preserved** as curated conflicts (see [Monster Spell Library](Monster-Spell-Library.md)). A generated treasure definition that would take such a name is refused as `name-collision` with `monsterSpell: true`; the spell is left alone.
-* **Ordinary imported Items are not affected.** Outside the pack, or without the top-level generated flag, A3 provenance governs and nothing is replace-always.
-* **`folder` is placement, not content.** A rerun does not move the document; the GM's folder choice is left alone.
-* **Other packages' flag namespaces survive.** An authoritative rerun restates undeclared top-level flag blocks from the stored document onto the update payload, so e.g. `shadowdark-extras` alignment is preserved through both the in-place and create-then-delete replacement paths. Declared namespaces still win.
-* **Unchanged non-empty effects do not churn ids.** Stored ActiveEffects are projected through the Foundry v14 `system.changes` / string-type / JSON-value / default-`priority: 20` canonicalization, so a rerun with nothing changed is `unchanged` with stable embedded ids. An explicit `priority` in the definition is authoritative; omission means `20`.
-* **Duplicate / collision rows are reported, not healed.** A 32-bit id hit where the stored `key` differs, or duplicate definitions/documents sharing one id, are returned as `identity-collision` / `duplicate-*` refusals. A pack that somehow holds two documents with one identity is reported as `duplicate-document` on the next plan.
+Inside this pack, any document flagged with `flags["shadowdark-enhancer"].generated = true`
+and a stored `generatedItem` block follows a **replace-always** contract:
+re-running the generator replaces the document in place under the same identity.
 
-### Sea Wolf Plunder materialization (D4)
+* **Stable identity:** Identity is computed as `FNV-1a/32` hash of `<source>:<normalized name>`.
+  Renaming an item in the source table assigns it a new identity; it does not delete
+  the previous item.
+* **Monster spell collision protection:** Generated Monster Spells share the
+  same pack but use a preservation model (hand edits are kept as curated
+  conflicts). If a generated treasure item collides with a generated monster
+  spell, the treasure generation is refused as a `name-collision` and the spell
+  is preserved intact.
+* **Standard imports unaffected:** Items outside the managed pack or lacking the
+  `generated` flag are governed by standard provenance rules and are never
+  overwritten automatically.
+* **Folder preservation:** Re-running generation updates content but leaves the
+  document in whichever folder you moved it to.
+* **Third-party flags preserved:** Unrecognized top-level flag blocks (such as
+  `shadowdark-extras` alignment data) are carried over onto the updated document
+  during reruns.
+* **ActiveEffect stability:** Embedded ActiveEffects are canonicalized so reruns
+  without changes maintain stable effect IDs without unnecessary churn.
+* **Collision reporting:** Hash collisions or duplicate document IDs in the pack
+  are reported as refusals during planning rather than silently corrupted.
 
-When a RollTable is recognized as *Sea Wolf Plunder From Distant Lands* (*Cursed Scroll 3* p68), table linking (`LootCatalog.linkTableItems` or `api.loot.linkTables()`) routes it through the dedicated Sea Wolf materializer (`scripts/loot/sea-wolf-plunder.mjs`) instead of generic system-first search:
+---
 
-* **Source-gated recognition:** An explicit non-CS3 source flag (e.g. `source: "cs1"` or `"cs2"`) always vetoes and rejects. After that veto, an exact supported manifest ID (`cs3-sea-wolf-plunder`, `cs3/sea-wolf-plunder`, `cs3-sea-wolf-plunder-from-distant-lands`) is accepted; otherwise the exact normalized table name `Sea Wolf Plunder From Distant Lands` is required (which may be bare without a source flag, or carry a recognized `CS3` / `Cursed Scroll 3` page or separator prefix). Arbitrary tables carrying only `source: "cs3"` with other names and sourceless or explicit CS1/CS2-prefixed legacy names are refused.
-* **20 managed Items:** Materializes the 20 published item phrases into `world.shadowdark-enhancer--items` under `Cursed Scroll 3 / Treasure`.
-* **Priced display preserved:** Generated Item names strip only the terminal parenthesized gold value (e.g. `A wavy, silver dagger with a crescent moon pommel` or `A coffer of gold coins stamped with a dead emperor`), but the RollTable's `TableResult` retains the full published phrase with price as its display `name` (`A wavy, silver dagger with a crescent moon pommel (75 gp)`) while referencing the item's `documentUuid`. True currency-only rows (such as `100 gp`) remain `TEXT` results with source text intact.
-* **Curated art & provenance:** Items receive their reviewed N3 §5.1 icons from `scripts/shared/curated-icon-maps/sea-wolf-plunder-icons.mjs` (the sourced-space `cs3` curated map) and are stamped `curated` under A3/A4 provenance.
-* **Replace-always reruns:** Generated items carry `flags["shadowdark-enhancer"].generated = true` and `generatedItem` identity `cs3:<normalized item name>`. On successful or unchanged reruns, reconciliation provides stable-identity convergence without duplicating items (attempting in-place update, with create-then-delete fallback reporting any failed delete on the next plan for GM cleanup). If a row collides with a generated Monster Spell, it is refused and the spell is preserved. System compendiums (`shadowdark.gear`) are never mutated.
-* **Safe TableResult writes & rollback:** TableResult updates are performed in place under stable IDs on Foundry v13/v14 (or create-before-delete on legacy adapters). Original source rows are snapshotted before writing; if an embedded write fails, restoration of the snapshot and cleanup of replacement orphans are attempted and verified. When restoration succeeds, original source rows survive intact for retry; if restoration fails, the result reports `restored: false` with `rollbackErrors`, cannot guarantee source preservation, and warns the GM that manual recovery may be required before retry. Unmapped rows, non-managed packs, unavailable table writers, or write failures where restoration succeeds remain `TEXT` with source phrases preserved.
+### Sea Wolf Plunder materialization
 
-### Dead Bandit Loot materialization (D5)
+When you link or import the *Sea Wolf Plunder From Distant Lands* table (*Cursed
+Scroll 3* p68), the loot catalog routes it through the dedicated Sea Wolf
+materializer (`scripts/loot/sea-wolf-plunder.mjs`):
 
-When a RollTable is recognized as *In a Dead Bandit's Hand, You Find...* (*Cursed Scroll 2* p68), table linking (`LootCatalog.linkTableItems` or `api.loot.linkTables()`) routes it through the dedicated Dead Bandit materializer (`scripts/loot/dead-bandit-loot.mjs`) **before the general system-first index**, minting 20 generated Items in `sde-items` and preserving the full source phrase as the linked TableResult display:
+* **Source recognition:** Requires table manifest ID `cs3/sea-wolf-plunder` (or
+  normalized name *Sea Wolf Plunder From Distant Lands* with CS3 source tagging).
+  Tables tagged with other sources (like CS1 or CS2) are rejected.
+* **20 managed Items:** Materializes the 20 published items into `sde-items`
+  under the `Cursed Scroll 3 / Treasure` folder.
+* **Preserved display:** Item names strip the trailing gold value (e.g., `A wavy,
+  silver dagger with a crescent moon pommel`), while the RollTable's
+  `TableResult` retains the full published phrase with price (`(75 gp)`) and
+  links to the item's `documentUuid`. Pure currency rows (`100 gp`) remain plain
+  text results.
+* **Curated artwork:** Items receive reviewed icons from the CS3 curated map.
+* **Safe updates and rollback:** Table rows update in place under stable IDs.
+  Source rows are snapshotted before writing; if an error occurs, the snapshot
+  is restored and replacement orphans are cleaned up.
 
-* **Source-gated recognition:** An explicit non-CS2 source flag (e.g. `source: "cs1"` or `"cs3"`) always vetoes and rejects. After that veto, an exact supported manifest ID (`cs2/in-a-dead-bandits-hand`, `cs2-in-a-dead-bandits-hand`, `cs2-in-a-dead-bandits-hand-you-find`, `cs2-in-a-dead-bandit-s-hand-you-find`) is accepted; otherwise the exact normalized table name `In a Dead Bandit's Hand, You Find...` is required (which may be bare without a source flag, or carry a recognized `CS2` / `Cursed Scroll 2` page or separator prefix). Arbitrary tables carrying only `source: "cs2"` with other names and sourceless or explicit CS1/CS3-prefixed legacy names are refused.
-* **Exact 20-row materialization:** The 20 exact CS2 source rows (canonical Item name + feature remainder, N3 §5.3) are materialized into `world.shadowdark-enhancer--items` under `Cursed Scroll 2 / Treasure`. Each generated Item's **name is the canonical base name** (`Cursed eye token`, `Burlap bag`, …) — never the feature-bearing phrase — and its **feature remainder is visible in the Item description** (e.g. `DISADV on next check or attack roll`, `tied shut with an angry cobra inside`).
-* **Exact raw source TableResult display:** The RollTable's `TableResult` retains the complete published source phrase as its display `name` (e.g. `Cursed eye token; DISADV on next check or attack roll`) while referencing the item's `documentUuid`. **Original row IDs and ranges are preserved** — rows are updated in place under their stable IDs (or created before deletion on legacy adapters), never deleted before replacements exist.
-* **No source prices exist:** The canonical CS2 source rows carry **no currency parenthetical** — the parser only strips an *anchored optional* terminal currency parenthetical if one were present, and since none of the 20 rows have one, no price is invented and the display text is the full unpriced source phrase. Interior `gp` prose (e.g. `1-2. 20 gp, 3-4. scarab beetle swarm`) stays as description text.
-* **Curated art & provenance:** Items receive their reviewed N3 §5.3 icons from `scripts/shared/curated-icon-maps/dead-bandit-loot-icons.mjs` (the sourced-space `cs2` curated map) and are stamped `curated` under A3/A4 provenance.
-* **Replace-always reruns:** Generated items carry `flags["shadowdark-enhancer"].generated = true` and `generatedItem` identity `cs2:<normalized item name>`. On successful or unchanged reruns, reconciliation provides stable-identity convergence without duplicating items. Name collisions with generated Monster Spells are refused and the spell preserved. System compendiums (`shadowdark.gear`) are never mutated; only `world.shadowdark-enhancer--items` is a write target.
-* **Safe TableResult writes & rollback:** TableResult updates are performed in place under stable IDs on Foundry v13/v14 (or create-before-delete on legacy adapters). Original source rows are snapshotted before writing; if an embedded write fails, restoration of the snapshot and cleanup of replacement orphans are attempted and verified. When restoration succeeds, original source rows survive intact for retry; if restoration fails, the result reports `restored: false` with `rollbackErrors`, cannot guarantee source preservation, and warns the GM that manual recovery may be required before retry. Unmapped rows, non-managed packs, unavailable table writers, or write failures where restoration succeeds remain `TEXT` with source phrases preserved.
+---
 
-### Diabolical Treasure materialization (D6)
+### Dead Bandit Loot materialization
 
-When a RollTable is recognized as *Diabolical Treasure* (*Cursed Scroll 1* p68), table linking routes it through the dedicated Diabolical Treasure materializer (`scripts/loot/diabolical-treasure.mjs`) **before the general system-first index**. CS1 prints a 20×20 Item/Feature generator; the materializer reduces it to the **20 paired results** as generated Items in `sde-items`, leaving the source 400-cell table out of the picture:
+When linking *In a Dead Bandit's Hand, You Find...* (*Cursed Scroll 2* p68), the
+dedicated materializer (`scripts/loot/dead-bandit-loot.mjs`) generates 20
+custom items in `sde-items`:
 
-* **Source-gated recognition:** An explicit non-CS1 source flag (e.g. `source: "cs2"` or `"cs3"`) always vetoes and rejects. After that veto, an exact supported manifest ID (`cs1/diabolical-treasure`, `cs1-diabolical-treasure`) is accepted; otherwise the exact normalized table name `Diabolical Treasure` is required (which may be bare without a source flag, or carry a recognized `CS1` / `Cursed Scroll 1` page or separator prefix). Sourceless or explicit CS2/CS3-prefixed tables with the same words are refused.
-* **Exactly the reviewed CS1 census:** Materialization consumes **only the reviewed 20-row census** (each reviewed Item paired with its own exact reviewed Feature) or the complete 400-cell Item×Feature census, or twenty already-linked managed document links. Nothing else is accepted: an **incomplete, cross-wired, or foreign DOCUMENT** set of rows — including a bare canonical `TEXT` placeholder from a prior failed pass — **fails closed before any downstream write** (no pack, folder, reconciliation, or TableResult mutation) and **cannot self-authorize on rerun**: the original raw rows are preserved for retry rather than rewritten.
-* **20 Basic magicItem + treasure Items:** Each reviewed pair becomes one authoritative generated Item (`type: Basic`, `system.magicItem: true`, `system.treasure: true`) in `world.shadowdark-enhancer--items` under `Cursed Scroll 1 / Treasure`, materialized in N3 §5.2 order.
-* **Identification-gated feature text:** Items are created with **`identification.identified = false`**. The physical name and top-level description are **public** and name the object; the exact source **feature lives only in `identification.description`** and is revealed when the GM identifies the item. The TableResult therefore shows a **name-only result** (`Carved bone`, `Eyeball`, …) — feature text never appears in a TableResult name.
-* **Name-only 1d20 TableResults:** The table's formula is reduced from the cartesian `1d400` to `1d20`, with 20 name-only rows each linking to its generated Item by `documentUuid`. Original TableResult IDs are preserved in place (or create-before-delete on legacy adapters).
-* **Curated art & provenance:** Items receive their reviewed N3 §5.2 icons from `scripts/shared/curated-icon-maps/diabolical-treasure-icons.mjs` (the sourced-space `cs1` curated map) and are stamped `curated` under A3/A4 provenance.
-* **A7 replace-always reruns repair hand edits at the same identity:** Generated items carry `flags["shadowdark-enhancer"].generated = true` and `generatedItem` identity `cs1:<normalized item name>`. A rerun replaces the document **in place at the same identity**, so a hand-edit (including art) is repaired on the next run, not duplicated. Name collisions with generated Monster Spells are refused and the spell preserved. System compendiums (`shadowdark.gear`) are never mutated; only `world.shadowdark-enhancer--items` is a write target.
-* **Safe writer & rollback status explicit:** TableResult updates and the `1d400 → 1d20` formula reduction run through the same snapshot-restore safe writer; a partial failure attempts restoration (including the original formula) and the summary reports `restored: true|false` with `rollbackErrors` when restoration fails — never a silent guarantee of source preservation on `restored: false`.
+* **Source recognition:** Requires manifest ID `cs2/in-a-dead-bandits-hand` or
+  the exact table title with CS2 source tagging.
+* **Canonical item names and feature text:** Generated Items use their canonical
+  base name (`Cursed eye token`, `Burlap bag`), while the special feature or
+  hazard is placed directly into the Item description (`DISADV on next check or
+  attack roll`, `tied shut with an angry cobra inside`).
+* **Raw TableResult display:** The RollTable's `TableResult` displays the
+  complete source phrase while referencing the item's UUID.
+* **No artificial prices:** Since the published CS2 table has no gold values,
+  none are invented. Interior currency mentions remain in the item description.
+* **Curated artwork:** Items receive reviewed icons from the CS2 curated map.
+* **Safe writes and rollback:** Rows are snapshotted before update and restored
+  if any error occurs during writing.
 
-**Programmatic access** (see [API](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot)):
+---
 
-* `game.shadowdarkEnhancer.loot.generated.identity(source, name)` — synchronous `fnv1a32:…` (`fnv1a32:573d24a5` for `CS1` + `Carved Bone`) or `""` for a blank half.
-* `game.shadowdarkEnhancer.loot.generated.plan(desired, {source})` — pure, no-write (`item.source` → `{source}` → flag source); `create` / `update` with `definitionMoved`/`documentMoved` / `unchanged` / `refused` + `boundary`; outside the managed pack every definition is `out-of-boundary`; `plan` returns `null` when `findSuitePack("sde-items")` cannot find a pack.
-* `game.shadowdarkEnhancer.loot.generated.reconcile(desired, {source})` — GM-only, sequential and **retryable, not transactional**: failed creates, missing targets, and throwing updates are returned in `failures` (`create-failed` / `missing-target` / `update-failed`, each with `error: string|null`) and the rest of the batch continues; a later rerun retries them. One exception is not self-healing: a create-then-delete update whose **delete fails** leaves two documents with one identity, reported next time as `duplicate-document` for GM cleanup. A notification aggregates refused + failed names. An empty pack reconciles and creates; a missing pack is provisioned via `ensureLootPack()`; only a non-GM `reconcile` returns `null`.
+### Diabolical Treasure materialization
+
+When linking *Diabolical Treasure* (*Cursed Scroll 1* p68), the materializer
+(`scripts/loot/diabolical-treasure.mjs`) converts the published 20×20
+Item/Feature matrix into 20 paired generated Items:
+
+* **Source recognition:** Requires manifest ID `cs1/diabolical-treasure` or the
+  exact table name with CS1 source tagging.
+* **Census validation:** Requires the reviewed 20-row census (or the complete
+  400-cell census). Incomplete or miswired table rows fail closed before any
+  writes occur.
+* **Magic items with hidden features:** Creates 20 Basic items flagged as magic
+  items and treasure (`system.magicItem: true`, `system.treasure: true`) under
+  `Cursed Scroll 1 / Treasure`.
+* **Identification gating:** Items are created with `identification.identified =
+  false`. The base name and physical description are public, while the magical
+  feature resides in `identification.description` and is revealed when you
+  identify the item.
+* **1d20 TableResults:** The RollTable formula is converted from `1d400` to
+  `1d20`, with 20 name-only rows linking to the generated Items by UUID.
+* **Curated artwork:** Items receive reviewed icons from the CS1 curated map.
+* **Safe rollback:** TableResult updates and formula reductions run through the
+  snapshot-restore safety layer.
+
+---
+
+### Programmatic access
+
+Developers and macros can access the generator API directly:
+
+* `game.shadowdarkEnhancer.loot.generated.identity(source, name)`: Returns the
+  deterministic `fnv1a32:...` identity string.
+* `game.shadowdarkEnhancer.loot.generated.plan(desired, { source })`: Generates a
+  read-only reconciliation plan reporting creates, updates, and refusals without
+  writing to the database.
+* `game.shadowdarkEnhancer.loot.generated.reconcile(desired, { source })`:
+  Executes the reconciliation plan (GM-only), creating or updating documents in
+  the managed Items pack.
 
 ---
 
 ## Loot drops on combat end
 
-**Off by default.** Turn on **Loot drops on combat end** in the module
-settings if you want it. When a combat ends, each **defeated NPC** rolls
-percentile dice against the **Loot drop chance (%)** setting (default `50`).
-On a success it rolls a loot table (the treasure tier table for its level,
-unless you picked a specific table for it) and posts the result as the same
-claimable chat card the generator uses, one card per monster that dropped.
-Only the active GM client processes the drops, so a second logged-in GM
-account never doubles the cards.
+**Off by default.** Turn on **Loot drops on combat end** in module settings if
+you want defeated enemies to drop hoards automatically.
 
-**Per-NPC control:** while the feature is on, every NPC sheet gets a GM-only
-**Loot** button in its header. It opens a small dialog with two fields, a
-loot-table pick and a drop-chance override, where blank fields fall back to the
-world settings and a chance of `0` means that monster never drops.
+When combat ends:
+1. Each **defeated NPC** rolls percentile dice against **Loot drop chance (%)**
+   (default `50%`).
+2. On a success, it rolls on the treasure table corresponding to its level tier
+   (or a custom table assigned to that NPC).
+3. The result is posted to chat as a claimable card. Only the active GM client
+   processes drops to prevent duplicate cards.
 
-**One card per fight instead:** set **Loot drop mode** to
-**Per encounter (one card)**. The whole combat then makes a single chance
-roll and posts at most one card, generated at the **highest-level defeated
-NPC's** level. That NPC's per-NPC table/chance overrides still apply,
-so a boss with a custom loot table drops from *its* table. The card's
-source line lists the defeated monsters.
+### Per-NPC loot overrides
 
-You can also **drop a coin pile onto the canvas** as a token. Any character can
-walk up and take it from the **token HUD**. This is the low-ceremony option when
-you don't want a chat card.
+With combat loot drops enabled, every NPC sheet displays a GM-only **Loot**
+button in its header. Clicking it opens a configuration dialog where you can:
+
+* Select a specific loot table for that monster.
+* Set a custom drop chance percentage (set to `0%` to ensure the monster never
+  drops loot).
+* Leave fields blank to inherit world defaults.
+
+### Per-encounter loot mode
+
+If you prefer a single consolidated drop card per battle:
+
+1. Set **Loot drop mode** to **Per encounter (one card)**.
+2. The entire encounter makes a single drop check.
+3. On a hit, a single card is generated using the level of the **highest-level
+   defeated NPC**. That NPC's custom loot table settings still apply.
+
+You can also use the **Drop Coins…** button to drop a coin pile directly onto
+the canvas as a token. Characters can pick up coins using the token HUD without
+generating a chat card.
 
 ---
 
 ## Treasure XP
 
-Generated treasure carries a value, and that value maps onto XP through two
-thresholds:
+Generated treasure includes gold values that feed into the XP award system:
 
 | Setting | Default | Meaning |
 |---|---|---|
-| Treasure XP threshold — normal (gp) | `10` | Minimum gold value to grant normal treasure XP |
-| Treasure XP threshold — fabulous (gp) | `150` | Minimum value to count as fabulous (higher XP) |
+| Treasure XP threshold — normal (gp) | `10` | Minimum gold value required to award normal treasure XP |
+| Treasure XP threshold — fabulous (gp) | `150` | Minimum gold value to count as fabulous treasure (higher XP) |
 
-The resulting value feeds [Party XP](Party-XP.md), where you can drag a loot item
-in and award its XP to the whole party.
+These values integrate with [Party XP](Party-XP.md), where you can drag a
+claimed loot item directly into the XP award window.
 
 ---
 
 ## Troubleshooting
 
-**"Your GM's Foundry tab needs a reload before loot claims can land."**
-(Or *…before item drops and pickups can land.*) Claiming, dropping and picking
-up all happen on the **active GM's** client, and that tab has been open since
-before the module was updated, so it is running code that doesn't know about the
-action. The module pings the GM and compares versions before sending, so a claim
-warns instead of doing nothing at all; the claim button is handed back rather
-than left greyed out. Have the GM reload their tab. See
-[Troubleshooting](Troubleshooting.md#a-player-action-does-nothing-and-no-error-appears).
+**"Your GM's Foundry tab needs a reload before loot claims can land."**  
+(Or *…before item drops and pickups can land.*) Claiming, dropping, and picking
+up loot all execute on the active GM's client. If the GM's tab has been open
+since before a module update, it may be running outdated handler code. Have the
+GM reload their browser tab (`Ctrl+Shift+R`).
 
-**Monsters never drop loot when combat ends.**
-Loot drops are **off by default**. Turn on **Loot drops on combat end** in the
-module settings, check **Loot drop chance (%)** isn't `0`, and make sure a
-treasure table is bound for the monster's level tier (or pick a table for that
-NPC via the **Loot** button on its sheet).
+**Monsters never drop loot when combat ends.**  
+Loot drops are off by default. Enable **Loot drops on combat end** in module
+settings, verify that **Loot drop chance (%)** is greater than `0`, and ensure
+treasure tables are bound to each level tier in **Set up loot tables**.
 
-**Generating produces coins but no items.**
-No treasure table is bound for that party level's tier, or the bound table has no
-item links. Run **Set up loot tables**.
+**Generating produces coins but no items.**  
+No table is bound for that level tier, or the bound table contains no item links.
+Click **Set up loot tables** in the Loot Generator to bind valid tables.
 
-**A table is bound but rolls produce plain text, not items.**
-The table's rows aren't linked to compendium items. Tables imported through the
-[Importer Hub](Importer-Hub.md) are auto-enriched with `@UUID` links. A
-hand-built table needs the links added.
+**A table is bound but rolls produce plain text instead of items.**  
+The table's rows are not linked to compendium items with `@UUID` links. Tables
+imported via the [Importer Hub](Importer-Hub.md) are linked automatically.
+Hand-authored tables must have `@UUID` links added to their results.
 
-A row that prints a whole family of objects at once (`Meteorite 1d4: 1. lute,
-2. viol, 3. harp, 4. flute`) is a special case and needs no links: the die is
-rolled and you get the one it picked, as a real treasure item (*Meteorite harp*).
-A comma before the die makes the option a property instead of the noun, matching
-how the books print it: `Mithral Bottle, 1d4: 1. wine…` gives *Mithral Bottle
-(wine)*.
+*Note on sub-tables:* Rows defining item choices in prose (such as `Meteorite
+1d4: 1. lute, 2. viol, 3. harp, 4. flute`) are evaluated dynamically and mint a
+real item (*Meteorite harp*) without requiring pre-existing links.
 
-**Two players both claimed the same item.**
-They shouldn't be able to. Claims are serialised on a single GM client with an
-in-flight lock. If you can reproduce it,
-[report it](https://github.com/DimitroffVodka/shadowdark-enhancer/issues).
+**Two players both claimed the same item.**  
+Claims are serialized on the active GM client with an in-flight lock, preventing
+duplicate claims. If you encounter a duplicate claim, please report it on the
+issue tracker.
 
-**A player clicked Claim and nothing happened.**
-Claims are relayed to the active GM. If no GM is connected, nothing processes the
-request. Check that a GM is online.
+**A player clicked Claim and nothing happened.**  
+Loot claims are processed by the GM client. If no GM is currently connected to
+the world, claims cannot be resolved.
 
-**Coins went to the wrong character.**
-Coin assignment is a GM choice on the card, separate from item claims. Pick the
-character before assigning.
+**Coins were assigned to the wrong character.**  
+Coin assignment is a separate GM control on the claim card. Select the desired
+character from the dropdown before clicking Assign.
 
-**Dragging an item onto the map leaves a second, larger image next to the pickup token.**
-That extra image is a *Tile* dropped by another module. Monk's Active Tiles has
-a "drop item creates a tile" option that fires on the same drop, and the enhancer
-now claims item drops before that runs, so only the pickup token appears. Reload
-your client (Ctrl+Shift+R) after updating. Monk's tile behaviour still applies to
-drop types the enhancer doesn't handle.
+**Dragging an item onto the map creates an unwanted extra image.**  
+If you use Monk's Active Tile Triggers, its "drop item creates a tile" feature
+may trigger on the same canvas drop. Shadowdark Enhancer intercepts item drops to
+create pickup tokens. Reload your browser (`Ctrl+Shift+R`) after updating.
 
-**The "set up your loot tables" notice keeps appearing.**
-It shouldn't. It fires once per world and only when fewer than four tiers are
-bound. Once you bind tables and it has shown once, it stays quiet.
+**The "set up your loot tables" notice keeps appearing.**  
+This prompt appears once per world when fewer than four treasure tiers are
+bound. Once you have opened Loot Setup or dismissed the prompt, it will remain
+silent.
 
 ---
 

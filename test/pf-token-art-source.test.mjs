@@ -120,8 +120,16 @@ test("registers only the verified Character Gallery roots, priority slot, and cr
     subjectScale: 1.0,
     credit: PF_CREDIT,
   });
-  assert.ok(TokenArtCatalog.DEFAULT_PRIORITY.indexOf(PF_ID) > TokenArtCatalog.DEFAULT_PRIORITY.indexOf("pf2e-tokens-monster-core"));
-  assert.equal(TokenArtCatalog.DEFAULT_PRIORITY.indexOf(PF_ID), 3);
+  // Relative order is the contract; the absolute slot was not. It read `=== 3`
+  // and broke the moment a source was added ahead of it, which says nothing
+  // about whether the ordering is still right. Both Pathfinder creature sets
+  // rank above the Character Gallery (they are creature art, this is PC art),
+  // and the broad fallbacks rank below it.
+  const at = (id) => TokenArtCatalog.DEFAULT_PRIORITY.indexOf(id);
+  assert.ok(at(PF_ID) > at("pf2e-tokens-monster-core"));
+  assert.ok(at(PF_ID) > at("pf2e-tokens-npc-core"));
+  assert.ok(at(PF_ID) < at("dnd5e-fa"));
+  assert.ok(at(PF_ID) < at("shadowdark-community-tokens"));
 });
 
 test("discovers the optional source when its token root is present", async () => {

@@ -3,7 +3,7 @@
 [← Wiki home](index.md)
 
 Re-skin the Shadowdark bestiary with token art you already own, **referenced by
-path, never copied or bundled**.
+file path, never copied or bundled**.
 
 ![The Monster Art manager](images/token-art-manager.png)
 
@@ -11,51 +11,57 @@ path, never copied or bundled**.
 
 ## The licensing position, up front
 
-This tool **redistributes nothing**. It writes a mapping that points Foundry at
-image files already sitting in your `Data/modules` folder. If you don't own an
-art pack, it doesn't appear in the list and nothing about it is shipped in this
-module.
+This tool **redistributes nothing**. It writes a configuration mapping that
+points Foundry at image files already sitting in your `Data/modules` folder. If
+you do not own an art pack, it does not appear in your source list and nothing
+about it is shipped in this module.
 
-That also means the art follows your install, not your world. A player who
-doesn't have the art module sees the default images.
-
-## Opening it
-
-**Actors sidebar → Monster Art** (GM only), or:
-
-```js
-game.shadowdarkEnhancer.tokenArt.openManager();
-```
+Because art is referenced by local path rather than hosted on the server, art
+follows your install. Any connected player who does not have the corresponding
+art module installed will see default images instead.
 
 ---
 
-## Sources
+## Opening the manager
 
-Sources are **auto-discovered from what is installed**. A source you don't have
-isn't listed. Recognised out of the box:
+Open the manager through either method (GM-only):
+
+* **Actors sidebar:** Click the **Monster Art** button at the top of the sidebar.
+* **API:** Run `game.shadowdarkEnhancer.tokenArt.openManager()`.
+
+---
+
+## Supported art sources
+
+Sources are **auto-discovered from what you have installed**. Any pack not
+present on disk is omitted from the list. Recognized sources include:
 
 | Source | Where it looks |
 |---|---|
-| **Monster Manual** | `modules/dnd-monster-manual`, including its dynamic ring and per-token scale |
-| **Player's Handbook** | `modules/dnd-players-handbook` |
+| **Monster Manual** | `modules/dnd-monster-manual` (includes dynamic rings and per-token scale) |
+| **Player's Handbook** | `modules/dnd-players-handbook` (PC and humanoid NPC art) |
 | **Pathfinder: Monster Core** | `modules/pf2e-tokens-monster-core` |
-| **Pathfinder: Character Gallery** | `modules/pf2e-tokens-characters`, including token, portrait, and subject art with mapped scale and dynamic ring support |
-| **Any other `pf2e-tokens-*` module** | Auto-added, including the pf2e **iconic** PC/companion portraits |
-| **Forgotten Adventures** | `systems/dnd5e/tokens`, the set bundled with the dnd5e system |
-| **Community Tokens** | `modules/shadowdark-community-tokens` |
+| **Pathfinder Tokens: NPC Core** | `modules/pf2e-tokens-npc-core` (townsfolk, soldiers, cultists with scale and dynamic rings) |
+| **Pathfinder: Character Gallery** | `modules/pf2e-tokens-characters` (token, portrait, and subject art with scale and rings) |
+| **Shadowdark Community Tokens** | `modules/shadowdark-community-tokens` (both `artwork/` and `monster24/` trees) |
+| **Too Many Tokens** | `modules/too-many-tokens-dnd` (16,000+ token images available in Browse) |
+| **Forgotten Adventures** | `systems/dnd5e/tokens` (bundled with the dnd5e system) |
+| **Any other `pf2e-tokens-*` pack** | Auto-detected, including iconic PC and companion portraits |
 
-The art module needs to be **installed**, not necessarily **enabled**. Art is
-read from disk.
+*Note:* Art modules only need to be **installed on disk**, not necessarily
+enabled in the world's Manage Modules list.
+
+---
 
 ## How art gets matched
 
-In order:
+When evaluating candidate art for a monster, the matcher checks in this order:
 
-1. **A source's own mapping file**, when it ships one keyed to Shadowdark.
-2. **Exact name match** against the source's token files.
-3. **Semantic aliases.** Shadowdark renames several D&D creatures to avoid IP.
-   The matcher tries the D&D name too, so any source carrying the original
-   matches:
+1. **A source's own mapping file**, when the pack includes a compendium art map
+   specifically keyed to Shadowdark.
+2. **Exact name match** against filenames in the source's token directory.
+3. **Semantic aliases:** Shadowdark renames several classic fantasy creatures to
+   avoid trademarked terms. The matcher checks both names:
 
    | Shadowdark | Also tried |
    |---|---|
@@ -69,168 +75,174 @@ In order:
    | Angel Principi / Domini / Archangel | Deva / Planetar / Solar |
    | Peasant · Soldier | Commoner · Veteran |
 
-   Plus snake and swarm naming variants across packs.
-4. **Fuzzy match**, with a configurable minimum score.
+   *(Snake and swarm naming variations across packs are also resolved.)*
 
-Shadowdark-original creatures with no D&D counterpart are pinned to Community art.
+4. **Fuzzy matching:** Matches similar names above a configurable similarity
+   threshold.
+
+Shadowdark-original creatures without D&D counterparts are pinned to Community
+art where available.
 
 ---
 
-## Using it
+## Using the manager
 
 ### Source priority
 
-**Drag the sources into the order you want.** The first source with a match wins.
+**Drag rows to reorder your sources.** The topmost source with a valid match
+wins. The small caret buttons remain available for clicking or keyboard
+navigation.
 
-### Per-monster override
+The **Source priority** panel and the **How this works** intro blurb both fold
+away into collapsible `<details>` panels. The manager remembers whether you left
+them open or closed across re-renders.
 
-Every monster row can be overridden individually. A hand-picked image **always
-beats source priority**.
+### Per-monster overrides
+
+Every monster row can be customized individually. A manual pick **always beats
+source priority**.
+
+### Hover preview
+
+Hovering any thumbnail on the main monster list or inside the Browse modal pops
+up an enlarged 340px preview anchored to the window, making it easy to compare
+candidate art at a glance.
 
 ### Manual Browse folders
 
-In addition to auto-discovered modules, GMs can register custom token directories
-under Foundry's `Data/` directory as named Browse folders.
+In addition to auto-discovered modules, you can register custom token
+directories under Foundry's `Data/` directory as named Browse folders:
 
-- **Adding a folder**: In the **Manual Browse folders** section at the top of the
-  manager, click **Add folder**, give it a human-readable label (e.g. `My Token Pack`),
-  and enter the data folder path (e.g. `modules/my-token-pack/tokens` or
-  `worlds/my-world/tokens`).
-- **Validation**: Folder paths are checked for readability via Foundry's
-  `FilePicker` before saving. Blank inputs, exact duplicate paths, and unreadable
-  directories are rejected with an explanatory notification, preventing typos from
-  persisting invalid state. Non-GMs cannot add, edit, or remove folders.
-- **Browse-only behavior**: Manual folders appear as distinct named source
-  sections in the **Browse** modal for manual selection on any monster. They
-  **never** participate in automatic name matching, fuzzy matching, or source
-  priority ordering — adding a manual folder will never silently override
-  automatic catalog suggestions or change default compendium mapping results.
-- **Pick retention & folder lifecycle**: Editing a folder's label or path, or
-  removing the folder altogether, keeps previously saved concrete monster picks
-  intact.
-- **Placed token Re-skinning and exact ownership witnesses**: When you click
-  **Re-skin placed**, the manager updates placed tokens whose art matches active
-  built-in/folder source prefixes or exact historical file paths tracked in the
-  `managedPaths` witness ledger. If you pick art from a manual folder and later
-  edit the folder path, remove the folder, or change the pick, the previously
-  placed image remains recognized as manager-owned and can be replaced on
-  subsequent Re-skins. At the same time, because historical witnesses are tracked
-  at exact file granularity rather than broad prefixes, arbitrary custom art
-  placed under former or sibling directories (e.g. `custom/tokens/handmade.webp`)
-  remains strictly protected and will never be overwritten.
-- **Reset picks**: Clicking **Reset picks** clears all per-monster overrides,
-  manual picks, and resets the `managedPaths` witness ledger, returning placed-art
-  recognition to active configured sources.
-- **Missing or offline folders**: If a configured manual folder path cannot be
-  read on disk (e.g. an unmounted asset path or deleted folder), it is safely
-  skipped during Browse without throwing errors or console warnings, and remains
-  visible in the manager so you can edit its path or remove it.
+* **Adding a folder:** In the **Manual Browse folders** section, click **Add
+  folder**, provide a label (e.g. `My Token Pack`), and enter the path (e.g.
+  `modules/my-token-pack/tokens` or `worlds/my-world/tokens`).
+* **Validation:** Paths are validated via Foundry's `FilePicker` before saving.
+  Blank inputs, duplicates, and unreadable paths are rejected with a warning.
+* **Browse-only behavior:** Manual folders appear as dedicated source sections
+  in the **Browse** modal. They never participate in automatic or fuzzy
+  matching, so adding a folder will never silently disrupt your compendium
+  defaults.
+* **Pick retention:** Editing or removing a manual folder retains any concrete
+  picks you already assigned to monsters.
+* **Placed token tracking:** When you click **Re-skin placed**, the manager
+  updates tokens matching active source roots or tracked in the exact-path
+  `managedPaths` witness ledger. Hand-assigned art in sibling directories remains
+  protected from accidental overwrites.
+* **Missing folders:** If a folder is temporarily unmounted or missing on disk,
+  it is skipped safely during Browse without console errors.
 
 ### The image browser
 
-<!-- TODO screenshot: images/token-art-browser.png — The token image browser
-     How: Monster Art -> Browse on any monster; screenshot the image grid. -->
+Clicking **Browse** on any monster opens a searchable visual grid of all
+installed tokens across your sources (often thousands of images):
 
-**Browse** on any monster opens a searchable grid of *every* installed token
-across all sources, typically 2,000+ files. It is:
+* Grouped by source with sticky headers
+* Zoomable via slider, `Ctrl`+scroll, or `Ctrl` `+`/`-` (`Ctrl 0` to reset)
+* Filterable as you type
 
-- **grouped by source** with sticky headers,
-- **zoomable**: slider, `Ctrl`+scroll, `Ctrl` `+`/`-`, `Ctrl 0` to reset,
-- **filterable as you type**.
-
-This is how you skin a monster whose name matches nothing.
-
-### Applying
+### Applying your changes
 
 | Button | Effect |
 |---|---|
-| **Apply** | Write the mapping and inject it at runtime, with **no world relaunch needed**. Every future monster drag uses your picks. |
-| **Re-skin placed** | Update tokens already on your scenes |
-| **Reset picks** | Clear your per-monster overrides |
+| **Apply** | Writes the mapping and injects it at runtime with **no world reload needed**. All future monster spawns use your picks. |
+| **Re-skin placed** | Updates existing NPC tokens already placed on your scenes. |
+| **Reset picks** | Clears your manual per-monster overrides and restores automatic priority matching. |
 
-To turn the overlay off entirely and restore the system's default art, use the
-API: `game.shadowdarkEnhancer.tokenArt.restoreCompendium()`.
-
-The source list shows, per source, how many tokens it **has** and how many
-monsters it is currently **winning**, so you can see at a glance what
-re-ordering would change.
-
-### Imported monsters get art too
-
-The overlay skins the module's own imported-monster pack (`sde-actors`) alongside
-`shadowdark.monsters`, so Cursed Scroll and Western Reaches monsters you import
-through the [Importer Hub](Importer-Hub.md) can carry token art just like the
-base bestiary.
-
-- **Census and Actor types**: The managed Enhancer Actor pack (`world.shadowdark-enhancer--actors` / `sde-actors`) admits imported NPCs and mount documents (`Mount` and `shadowdark-enhancer.mount`) into the Token Art Manager catalog and compendium mapping. Boats, Core mounts, loose world Actors, source packs, and third-party packs remain strictly excluded.
-- **Curated imported art (F4)**: Token Art Manager's **Apply** applies 16 exact, source-qualified reviewed art picks for managed imported NPCs and mounts (such as Western Reaches mounts and Cursed Scroll creatures). Curated paths carry `origin: "curated"` and are recorded in the manager's `managedPaths` witness ledger.
-- **Reviewed-unmatched rows stay Browse-only**: The remaining 63 reviewed imported identities remain Browse-visible and are deliberately left unmapped by default—even if installed sources provide fuzzy candidate matches (for example, generic `bat.webp` is suppressed for *Tar Bat* and *Void Bat*). No fuzzy inference or bare-name guessing is performed on reviewed imported rows.
-- **Precedence**: Later manual GM picks and explicit source overrides always take precedence over curated picks. A reviewed-unmatched or unavailable-path row escapes suppression only via a concrete manual pick or an explicit source override that actually has a valid option present in that row; an invalid or missing override suppresses automatic fallback and will not fall through to fuzzy art.
-- **Same-name monster isolation**: CS2 and WR same-name creatures (such as CS2 and WR *Horse, War*) are tracked with distinct source-qualified identities (`<SRC>:<name>`) and document IDs, ensuring independent art mapping and zero cross-book collisions.
-- **Placed-token resolution**: Re-skinning placed scene tokens by name (`resolveByName`) resolves same-name clashes with a Core-first tiebreak when both have art, falling back to the imported pick when Core has no art configured.
-
-*(Note on Pathfinder art: Sources referencing *Pathfinder Tokens: Character Gallery* carry the approved attribution: "Portrait, token, and subject artwork from the Pathfinder Tokens: Character Gallery." Art is referenced by path from locally installed modules and is never copied or bundled.)*
-
-### Presentation is inherited
-
-Dynamic ring settings and fill scale come from the source, so large art fills its
-footprint and flat art sits correctly. You don't hand-tune scale per monster.
+To disable the art overlay completely and restore the system defaults, run:
+`game.shadowdarkEnhancer.tokenArt.restoreCompendium()`.
 
 ---
 
-## Scripting it
+## Imported monsters and mounts
+
+The art overlay covers the module's managed actor compendium (`sde-actors`)
+alongside `shadowdark.monsters`, so creatures imported from *Cursed Scroll* and
+*Western Reaches* through the [Importer Hub](Importer-Hub.md) receive token art
+identically to the core bestiary:
+
+* **Supported actor types:** The manager includes imported NPCs and Mount
+  documents from `sde-actors`. Loose world actors, boats, and core mounts are
+  excluded.
+* **Curated art picks:** The manager ships 73 exact reviewed art mappings for
+  imported creatures and mounts (such as Giant Catfish and Western Reaches
+  mounts).
+* **Unmatched creatures stay Browse-only:** Certain creatures are deliberately
+  left unmapped when no suitable art exists. For example, *Death Slug* and
+  *Wendel* are slugs, and no slug art exists in any catalogued pack. They remain
+  visible in Browse for you to assign custom art by hand, but the module avoids
+  making bare-name guesses on their behalf.
+* **Book isolation:** Same-name monsters across books (such as CS2 and WR *Horse,
+  War*) are tracked under unique source IDs (`<SRC>:<name>`) so their art
+  mappings never collide.
+* **Placed-token resolution:** When re-skinning placed tokens by name, clashes
+  resolve with a Core-first tiebreak when both have art, falling back to the
+  imported version if Core has no art configured.
+
+*(Pathfinder attribution: Sources referencing Pathfinder Tokens: Character
+Gallery carry the approved credit: "Portrait, token, and subject artwork from the
+Pathfinder Tokens: Character Gallery.")*
+
+---
+
+## Presentation and token scale
+
+Dynamic ring settings, subject coordinates, and token fill scale are inherited
+directly from the source art pack. Large creatures fill their grid footprint and
+flat tokens sit correctly without needing manual scale adjustments.
+
+---
+
+## Scripting and macros
 
 ```js
 const art = game.shadowdarkEnhancer.tokenArt;
 
-await art.openManager();          // the full manager window
-await art.applyToCompendium();    // generate + inject the overlay
-await art.apply({ scene, actors, portraits, dryRun, minScore });  // re-skin placed tokens
-art.resolve(name, sets, source, minScore);   // pure match → { token, portrait, score } | null
-await art.restoreCompendium();    // turn the overlay back off
-```
+// Open the manager window
+await art.openManager();
 
-`dryRun` reports what *would* change without writing anything. Worth running
-first on a big world.
+// Generate and inject the runtime overlay
+await art.applyToCompendium();
+
+// Re-skin placed tokens on scenes
+await art.apply({ scene, actors, portraits, dryRun: false, minScore: 0.7 });
+
+// Match a monster name programmatically
+const match = art.resolve(name, sets, source, minScore);
+
+// Restore default system compendium art
+await art.restoreCompendium();
+```
 
 ---
 
 ## Troubleshooting
 
-**A source I own isn't listed.**
+**A source I own is not listed.**  
 The module must be installed under `Data/modules` with the expected folder
-layout. Check that its `assets/tokens` folder exists.
+structure (such as an `assets/tokens` directory). Verify the folder exists on
+disk.
 
-**Art didn't change after Apply.**
-Apply injects at runtime, so no relaunch is needed, but already-placed tokens
-keep their existing image until you click **Re-skin placed tokens**.
+**Art did not update after clicking Apply.**  
+`Apply` updates compendium definitions and future actor drops immediately.
+Tokens already placed on active scenes require clicking **Re-skin placed**.
 
-**A monster matched the wrong creature.**
-Fuzzy matching is doing its best on a name that isn't distinctive. Use **Browse**
-to pick the right image by hand. The override wins permanently.
+**A monster matched the wrong artwork.**  
+Fuzzy matching may find a close match on non-distinctive names. Click **Browse**
+on that monster row to select the correct token by hand. Your override is saved
+permanently.
 
-**Players see the default art.**
-They don't have the art module installed. Art is referenced by path, so each
-client needs the files locally. This is a consequence of not redistributing
-artwork.
+**Players see default artwork instead of custom tokens.**  
+Players do not have the art module installed locally. Because art is referenced
+by path rather than redistributed, all clients need local access to the asset
+files.
 
-**Imported monsters have no art.**
-Confirm they landed in `sde-actors` (the module's pack) and not as loose
-world actors. See [Compendium Packs](Compendium-Packs.md).
+**Imported monsters have no art.**  
+Ensure the imported monsters reside in `sde-actors` (the module's managed pack)
+rather than as unlinked world actors.
 
-**A manual Browse folder shows an error when adding.**
-The path must be a readable folder under Foundry's `Data` directory accessible to
-Foundry's FilePicker. Check for typos and verify directory permissions on the host.
-
-**Tokens from a removed or edited manual folder didn't update on Re-skin.**
-Re-skinning placed tokens checks active built-in/configured source prefixes and the
-module's exact-path witness ledger for art previously assigned through the manager.
-If a token's image is outside all active source prefixes and outside the exact
-witness ledger (for example, art hand-assigned outside the manager, or art whose
-historical witness was cleared by **Reset picks** after its source folder was
-removed), it is treated as custom art and preserved. Placed tokens using images
-under currently active source roots remain managed and replaceable even after Reset
-picks.
+**A manual Browse folder displays an error when adding.**  
+The path must point to a valid, readable folder under Foundry's `Data` directory.
+Check for spelling errors and verify file permissions on your host.
 
 ---
 

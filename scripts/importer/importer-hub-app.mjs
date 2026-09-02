@@ -309,7 +309,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * e.g. the Loot Setup treasure-library Unlock buttons. Mirrors the Manage
    * tree's charSeedPaste flow (name title line + one-press PDF extraction) so
    * every unlock entry point shares one seeding path.
-   * @param {{name:string, src?:string, type?:string, contentId?:string|null, page?:string|null}} seed
+   * @param {{name:string, src?:string, type?:string, contentId?:string|null, page?:string|null, manifestId?:string|null}} seed
    */
   static async openContentUnlock(seed) {
     const inst = this.open();

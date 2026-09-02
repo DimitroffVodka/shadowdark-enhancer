@@ -2,7 +2,7 @@
 
 [← Wiki home](index.md)
 
-Two Actor sub-types with dedicated sheets, for the *Western Reaches* mounts,
+Two Actor sub-types with dedicated sheets, for *Western Reaches* mounts,
 warband units, boats, and siege vehicles.
 
 ![The Boat sheet](images/boat-sheet.png)
@@ -11,67 +11,62 @@ warband units, boats, and siege vehicles.
 
 ## Creating one
 
-**Actors sidebar → Create Actor**, then pick **Mount** or **Boat** from the type
-list. They register at world load alongside the system's own types.
+Go to **Actors sidebar → Create Actor**, then choose **Mount** or **Boat** from
+the type dropdown. They register at world load alongside core types.
 
-> **A `module.json` change needs a world relaunch, not a browser reload.** If the
-> types don't appear after updating the module, relaunch the world.
+> **Manifest changes require a world relaunch, not a browser reload.** If the
+> actor types do not appear after updating the module, relaunch the world.
 
 ---
 
 ## Mount
 
-The Mount type **reuses the Shadowdark system's own NPC data model and sheet**.
-A mount is a creature, so its Abilities, Description, and Effects tabs are
-**pixel-identical to a native NPC**, and NPC Attacks, Features, and Spells plug
-straight in.
+The Mount type **reuses the Shadowdark system's NPC data model and sheet**.
+Because a mount is a creature, its Abilities, Description, and Effects tabs are
+**pixel-identical to a native NPC**, accepting standard Attacks, Features, and
+Spells.
 
-On top of that it adds three tabs:
+On top of the standard sheet, Mount adds three tabs:
 
 | Tab | Contents |
 |---|---|
-| **Riders** | Party-style occupants. Drop actors onto it |
-| **Inventory** | Physical items only. Attacks, features and spells stay on their own tabs |
-| **Mount** | The mount-rule fields |
+| **Riders** | Party-style occupants. Drag and drop actors here. |
+| **Inventory** | Physical gear. Attacks, features, and spells stay on their own tabs. |
+| **Mount** | Dedicated mount-rule fields. |
 
-Occupants and the mount-rule fields live in the actor's **flags**, so the shared
-occupant machinery works without changing the system's data model.
+Occupants and mount fields live in actor **flags**, keeping full compatibility
+with the core system data model.
+
+---
 
 ## Boat
 
-A party-like container with five tabs:
+A party-like vehicle container featuring five tabs:
 
 | Tab | Contents |
 |---|---|
-| **Overview** | Vessel stats (HP / AC / Movement / Cost / Passengers down the left rail), the **Command** roster, properties, and the sinking countdown |
-| **Passengers & Crew** | Occupants. Drop actors onto it, and each row has a **role** selector (Passenger / Captain / Gunner / Crew) |
-| **Cargo** | Inventory, tracked against cargo slots |
-| **Weapons** | Mounted siege weapons, dragged from a compendium (up to 2). Each has **Attack** / **Damage** roll buttons |
-| **Description** | Free text notes and vessel background, styled on a high-contrast parchment surface for readability across light and dark themes |
+| **Overview** | Vessel stats (HP, AC, Speed, Cost, Capacity), Command roster, and sinking tracker. |
+| **Passengers & Crew** | Occupant roster with role selectors (Passenger, Captain, Gunner, Crew). |
+| **Cargo** | Inventory tracked against cargo slots. |
+| **Weapons** | Mounted siege weapons (up to 2) with inline roll buttons. |
+| **Description** | Free-form notes rendered on high-contrast parchment. |
 
 ### Crew roles
 
-Give each occupant a role on the **Passengers & Crew** tab. The choice shows as a
-badge (⚓ Captain, 🎯 Gunner) and drives the boat's actions:
+Assign each occupant a role on the **Passengers & Crew** tab. The role displays
+as a badge (⚓ Captain, 🎯 Gunner) and enables vehicle actions:
 
-- **Captain.** Controls the ship. The Overview's **Command** box shows the captain
-  and a **Right the ship (CS3)** button. Note this is an *optional* **Cursed Scroll
-  3** rule, not Western Reaches. WR boats *sink* (1d4 rounds at 0 HP) instead of
-  capsizing, and have no righting check. Kept as a labelled CS3 tool: righting a
-  capsized vessel is a **DC 20 STR** check rolled with the captain's STR, and a Sea
-  Wolf captain (the **Seafarer** feature, advantage on navigating/crewing checks)
-  rolls it with advantage automatically.
-- **Gunner.** Controls the siege weapons. When you fire a weapon on the Weapons
-  tab, the assigned gunner is pre-selected as the operator. A boat can employ **up
-  to two** siege weapons (trebuchets on galleons only), so up to two gunners.
-- **Crew.** A trained hand working the vessel.
+- **Captain:** Controls the vessel. The Overview Command box displays the
+  captain and a **Right the ship (CS3)** button. (Righting a capsized vessel is
+  an optional Cursed Scroll 3 rule using DC 20 STR; Sea Wolf captains roll with
+  advantage automatically).
+- **Gunner:** Operates siege weapons. Firing a weapon on the Weapons tab
+  pre-selects the assigned gunner.
+- **Crew:** Trained hands operating the vessel.
 
-**Crew count.** WR's *Crew (C)* property means a boat *can't move without 4+
-trained crew aboard*. The **Crew aboard** total on the Overview counts every
-occupant assigned a working role, plus the **Hired crew** number for abstract NPC
-hands you don't add as passengers. **Captain, Gunner, and Crew all count.** Only
-plain Passengers don't. A boat below its crew requirement shows a "not enough crew"
-warning.
+**Crew requirements:** WR's *Crew (C)* property requires 4+ trained crew to
+move. The **Crew aboard** counter tallies Captains, Gunners, Crew, and the
+**Hired crew** field. Plain Passengers do not count toward crew requirements.
 
 ### Boat types
 
@@ -79,186 +74,120 @@ Canoe · Galleon · Junk · Longboat · Raft · Rowboat · Sailboat · Sloop · 
 
 ### Siege weapons
 
-Up to **two** siege weapons (trebuchets on galleons only), mounted on the **Weapons**
-tab. Drag them from a compendium, and see the siege-weapon import section below.
+Mount up to **two** siege weapons (trebuchets restricted to galleons) on the
+**Weapons** tab by dragging them from a compendium.
 
-### The sinking countdown
+### Sinking countdown
 
-Overview carries helpers for a vessel taking on water: **begin sinking**,
-**advance the countdown**, **stop sinking**, and a **sink chance** roll.
+The Overview tab provides controls for taking on water: **begin sinking**,
+**advance countdown**, **stop sinking**, and **sink chance** rolls.
 
 ### Capacity
 
-Passengers don't use cargo slots. They are limited by the vessel's **HP-derived
-capacity** instead, and the sheet reports the remaining headroom separately from
-cargo slot use.
+Passengers do not consume cargo slots. They are tracked against the vessel's
+**HP-derived passenger capacity**, reported separately from cargo slot limits.
 
 ### Description
 
-The **Description** tab provides a free-form notes area for vessel lore, port
-history, and GM tracking. It is rendered on a dedicated light parchment surface
-with high-contrast dark ink to ensure readability across light and dark Foundry
-UI themes.
+The **Description** tab provides a notes area for vessel lore and port history,
+styled on high-contrast parchment for light and dark theme readability.
 
 ---
 
-## Importing the Western Reaches mounts
+## Importing Western Reaches mounts
 
-Seven *Western Reaches* mounts aren't in the system's bestiary (Camel (silver),
-Donkey, Horse (prized), Horse (war), Pony, Scrag, Scrag (war)); the other eight
-listed on pp.116-117 already ship as `shadowdark.monsters` and are left alone.
+Seven *Western Reaches* mounts are not in the core bestiary: Camel (silver),
+Donkey, Horse (prized), Horse (war), Pony, Scrag, and Scrag (war). The other
+eight on pp. 116–117 ship in `shadowdark.monsters`.
 
-**Importer Hub → Manage → Monsters → Mounts** lists all fifteen and reconciles
-them against your world. Each one you don't have shows an **Import** button cited
-to *WR pg 116-117*. Pressing it grabs those pages from *your own* WR PDF (no
-stats are bundled), parses the **statblocks** on them, and previews the one you
-asked for — the rest of the spread goes to **Skipped**, so unlocking a single
-mount never creates the other fourteen. Commit files it into the **`sde-actors` compendium** inside the direct
-**`Mounts`** folder as a **Mount** actor: the full NPC statblock, in the sheet
-with the Riders / Inventory / Mount tabs. Both a single **Import** and the
-**Import everything** / **Import all N in Mounts** batch use the same `Mounts`
-folder; reimporting reuses the folder and the existing Actor (case-insensitive
-name match is skipped), a per-mount failure leaves that name missing and
-retryable without duplicating the successes, and Boats and ordinary monsters
-keep their existing source-folder placement. Already-imported Mounts are not
-moved.
+Open **Importer Hub → Manage → Monsters → Mounts** to see the full catalog.
+Unimported mounts show an **Import** button (cited to *WR pp. 116–117*).
 
-The catalog lists mounts index-style (*Horse, War*) while the book prints them
-naturally (*WAR HORSE*). Either spelling matches, so the right statblock is kept
-whichever way your PDF extracts, and the actor is created under the catalog name
-— the one on the button you pressed. A mount already in your world under either
-spelling counts as present and shows no Import button.
+Clicking Import extracts those pages from your own uploaded WR PDF, parses the
+statblocks, and previews the requested mount. Committing saves it directly into
+the **`sde-actors` compendium** under the **`Mounts`** folder as a **Mount**
+actor with full statblock and custom tabs.
 
-**Import everything.** Opening **Import everything** (or **Import all N in Mounts**
-scoped to the `Monsters → Mounts` folder) batches every *selected* mount
-together: one `WR pp.116–117` spread read, one parse, one commit through the
-same importer that the single **Import** button uses. It does not change what
-an individual Import does — a single press still keeps its one statblock and
-sends the rest of the spread to **Skipped**. The batch simply carries all the
-covered names into that branch at once, and reports each requested mount by name
-as *created*, *already in your library*, or *not among the statblocks*, so a
-partial or repeated run cannot hide as an all-successful job. Boats and ordinary
-monsters keep their own existing bulk semantics and are unchanged.
+Mount names match both catalog style (*Horse, War*) and book style (*WAR HORSE*).
+Mounts already in your library are skipped automatically.
+
+**Bulk import:** Click **Import everything** (or **Import all N in Mounts**) to
+process the entire spread in one go. The batch reports each mount as created,
+already present, or skipped.
 
 ---
 
-## Importing the Western Reaches boats
+## Importing Western Reaches boats
 
-The eight boats from the *Western Reaches* Player's Guide (p118: Canoe, Galleon,
-Junk, Longboat, Raft, Rowboat, Sailboat, Sloop) can be imported as ready-made
-Boat actors instead of typing each one in.
+The eight boats from the *Western Reaches* Player's Guide (p. 118: Canoe, Galleon,
+Junk, Longboat, Raft, Rowboat, Sailboat, Sloop) import as ready-made Boat actors.
 
-They import through the **same paste → preview → commit flow as monsters and
-items**, and, like every other unlock in this suite, **no stats are bundled**.
-The importer reads the boats table from *your own* Western Reaches PDF (falling
-back to a paste box if the page can't be read), parses all eight, previews them,
-and on commit files them as Boat actors into the **`sde-actors` compendium**
-(skipping any you already have).
+Like all unlocks, no stats are bundled. The importer parses the table from your
+own PDF (or a pasted text snippet) and commits Boat actors into `sde-actors`.
 
-**Three ways to start it. All open the same importer preview:**
+**Three ways to open the boat importer:**
 
-- **Importer Hub → Manage → Vehicles → Boats.** Each boat you don't yet own
-  shows an **Import** button (cited to *WR pg 118*). It grabs the page and drops
-  the whole table into the paste box, ready to commit.
-- **`game.shadowdarkEnhancer.actors.importBoats()`**. The macro-friendly entry.
-- **Manually.** Set the type selector to **Boats**, paste the p118 table
-  yourself, and hit **Create boats**.
+- **Importer Hub → Manage → Vehicles → Boats:** Click **Import** on any unowned
+  boat to grab the page table.
+- **API:** Run `game.shadowdarkEnhancer.actors.importBoats()`.
+- **Manual Paste:** In Importer Hub, set type to **Boats**, paste the table, and
+  click **Create boats**.
 
-Each imported boat carries its full stat line: HP, AC, speed, cargo slots, crew
-requirement, the Crew/Fast/Row-Galley/Unseaworthy/Weapons properties, and its
-**purchase cost** (shown in the **Cost** box on the Overview left rail).
-
-A boat's **Weapons** property means it *can employ up to two siege weapons*
-(trebuchets on galleons only). You mount them yourself on the Weapons tab. Nothing
-comes pre-armed.
+Imported boats include full stat lines: HP, AC, speed, cargo slots, crew
+requirements, properties, and purchase costs.
 
 ### Siege weapons
 
 The four *Western Reaches* siege weapons (Ballista, Catapult, Crossbow (heavy),
-Trebuchet) from p119 import the same way, as Shadowdark **Weapon** items in the
-`sde-items` compendium: **Importer Hub → Manage → Vehicles → Siege Weapons**, cited
-to *WR pg 119*. Each carries its damage, range, cost, and 30-gear-slot bulk, plus
-the **Blast** / **Exploding** weapon properties, created as real Property items
-(with the rule text read off the page) so they list on the weapon like any other
-property. The import also creates a **Siege Weapon Ammunition** item (1 gp per
-piece, 2 gear slots).
+Trebuchet) from p. 119 import into `sde-items` under **Importer Hub → Manage →
+Vehicles → Siege Weapons**.
 
-One Unlock press does the whole table — all four weapons and the ammunition — so it
-doesn't matter which of the four rows you press. The grab pulls p119 **twice**, once
-per column mode, because the page prints a full-width table above two columns of
-rules text and no single mode reads both: the stat table is taken from the
-single-column read, the Blast/Exploding rule text from the column-aware one. That is
-why the paste box holds the page once per mode, and why the "Column check" warning
-can still appear — it refers to the rules text, not to the table. The parser then
-reads the rows whatever shape they arrive in (whole rows, one cell per line, or a
-table the page gutter cut in half), and if a row still doesn't come through it
-imports the rest and names the one it missed rather than silently importing nothing.
+Each weapon includes damage, range, cost, 30-slot bulk, and **Blast** /
+**Exploding** properties (created as native Property items), along with
+**Siege Weapon Ammunition** (1 gp, 2 slots).
 
-To arm a boat, open its **Weapons** tab and **drag a siege weapon from the
-compendium** onto it. Only siege weapons live on that tab. Ordinary weapons carried
-aboard stay in **Cargo**. Dropping any weapon onto the Weapons tab mounts it as a
-siege weapon (so home-brew works too), while non-weapons are turned away. WR's mount
-limits are enforced softly. Up to **two** siege weapons, **trebuchets on galleons
-only**, and a **Weapons** property to mount: break one and you'll get a heads-up
-warning, but the GM has the final say, so nothing is hard-blocked. A **crew member
-operates** each weapon, so add the actor to the **Passengers & Crew** tab first.
-Each mounted weapon then has an **Attack** button and a **Damage** button:
+To arm a boat, open its **Weapons** tab and drag a siege weapon from the
+compendium onto the sheet.
 
-- **Attack** opens a small dialog: pick the operating crew member (skipped when
-  only one is aboard) and a roll mode, **Normal / Advantage / Disadvantage
-  (untrained)**. It rolls `1d20 +` that actor's Shadowdark ranged attack bonus
-  (their DEX modifier, plus any attack bonuses they carry), spoken as the crew
-  member. This follows the designer's ruling that *the operator uses their ranged
-  attack bonus*. The untrained **Disadvantage** option is Kelsey's own house rule
-  for anyone not proficient in all weapons (a Fighter fires normally, and a
-  sneaking Thief's advantage would cancel the disadvantage into a flat roll).
-- **Damage** rolls the weapon's own die, including multi-die formulas like a
-  trebuchet's `5d6`.
+Each mounted weapon includes **Attack** and **Damage** buttons:
+- **Attack:** Selects the operator and roll mode (**Normal / Advantage /
+  Disadvantage (untrained)**). Rolls `1d20 +` the operator's ranged attack bonus.
+- **Damage:** Rolls the weapon's damage dice (e.g. `5d6` for trebuchet).
 
 ---
 
 ## Troubleshooting
 
-**Mount and Boat aren't in the Create Actor list.**
-Relaunch the world. Actor sub-types are declared in `module.json`, and manifest
-changes need a server-side relaunch. A browser reload isn't enough.
+**Mount and Boat are missing from the Create Actor list.**
+Relaunch your world. Manifest sub-types require a server restart rather than a
+browser reload.
 
-**A dropped actor didn't become an occupant.**
-Drop it onto the **Riders** (mount) or **Passengers & Crew** (boat) tab
-specifically, not the Overview tab.
+**A dropped actor did not become an occupant.**
+Drop the actor token or sheet directly onto the **Riders** (mount) or
+**Passengers & Crew** (boat) tab rather than the Overview tab.
 
 **The mount sheet looks like a plain NPC sheet.**
-That's intentional for the shared tabs. The extra Riders / Inventory / Mount tabs
-should be alongside them. If they're missing, the system's NPC sheet class
-wasn't available when the module registered, which points at a load-order
-problem worth reporting.
+The extra Riders, Inventory, and Mount tabs appear alongside standard NPC tabs.
+If missing, check for module load conflicts.
 
 **Cargo slots and passenger capacity disagree.**
-They are separate limits by design. Passengers use HP-derived capacity, cargo
-uses gear slots.
+These are separate limits. Passengers track against HP capacity; cargo tracks
+against inventory slots.
 
----
+**The mount import says "No mount statblocks found".**
+The extracted PDF page lacked valid `AC … LV` stat lines. Paste pp. 116–117
+manually into the text box.
 
-**The mounts Import button says "No mount statblocks found".**
-The extracted pages held no `AC … LV` stat line — usually an unuploaded or badly
-extracting WR PDF. Paste pp.116-117 into the box yourself, stat lines included.
-If it instead reports that the mount *wasn't among* the statblocks it found, the
-heading on your copy is spelled differently: edit the paste, or import it as a
-plain monster and rename.
+**An imported mount is stored as a Roll Table instead of an Actor.**
+Delete the legacy roll table and re-import the mount from the Importer Hub.
 
-**An imported mount is a Roll Table, not an actor.**
-Fixed after 0.15.1. A mount unlock created before that landed as a roll table
-named after the mount — delete it and import again.
+**The boat import says "No boats found — paste the table".**
+The PDF extractor could not parse the table cleanly. Paste the p. 118 **BOATS**
+table directly into the input box.
 
-**The boats Import button says "No boats found — paste the table".**
-The importer couldn't read your Western Reaches PDF (not uploaded, or the page
-text didn't extract cleanly). Paste the p118 **BOATS** table into the box it
-offers, since the parser handles the book's split-column layout. Or upload your
-WR PDF via the Importer Hub's source-PDF library first.
-
-**An imported boat wasn't created.**
-A boat whose name already exists is skipped (the suite never overwrites). Delete
-or rename the existing one first if you want a fresh import.
+**An imported boat was not created.**
+If a boat with that name already exists in your library, the importer skips it to
+prevent overwriting. Rename or delete the existing actor to re-import.
 
 ---
 

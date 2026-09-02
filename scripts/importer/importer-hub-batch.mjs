@@ -165,7 +165,12 @@ class HubBatchMethods {
         // than failing each remaining entry on a null element. Compared against
         // `false` on purpose: ApplicationV2's `rendered` is a real boolean, and
         // `!this.rendered` would also fire on anything that doesn't define it.
-        if (this.rendered === false) this._batchState.cancelled = true;
+        // `rendered` alone is not enough: ApplicationV2 can report rendered
+        // while `element` is already null, and every route reads the element.
+        // Checking both makes the run end cleanly here, which is what the
+        // comment above always intended, instead of the next entry dying on a
+        // DOM TypeError.
+        if (this.rendered === false || !this.element) this._batchState.cancelled = true;
         if (this._batchState.cancelled) {
           results.push({ job, status: "cancelled", note: "stopped before this entry ran", created: 0 });
           continue;
@@ -190,6 +195,7 @@ class HubBatchMethods {
       restoreNotifications();
       this._batchAuto = null;
       this._batchState = null;
+      await this._batchCloseApps();
       // The run created content, so every census the tree is built from is
       // stale. Rebuild once at the end rather than after each job — a census
       // pass per entry would cost more than the imports themselves.
@@ -217,6 +223,31 @@ class HubBatchMethods {
       + `${summary.failed ? `, ${summary.failed} failed` : ""}`
       + `${summary.blocked ? `, ${summary.blocked} skipped` : ""}.`);
     await this._batchReportDialog(summary, scopeLabel);
+  }
+
+  /**
+   * Open a helper workspace for a route, remembering it so the run can close it.
+   *
+   * The Spell Importer / Class Importer / Item Builder are singletons the batch
+   * drives headlessly — `.open()` renders them. Left behind, a whole-library run
+   * ends with three windows stacked over the report, each frozen on whatever
+   * entry it processed last. Only what THIS run opened is tracked, so a window
+   * the GM already had up stays up.
+   */
+  _batchOpen(AppClass) {
+    const opened = AppClass._instance?.rendered !== true;
+    const app = AppClass.open();
+    if (opened && app) (this._batchApps ??= new Set()).add(app);
+    return app;
+  }
+
+  /** Close every helper workspace this run opened. */
+  async _batchCloseApps() {
+    const apps = this._batchApps;
+    this._batchApps = null;
+    for (const app of apps ?? []) {
+      try { await app.close(); } catch (_e) { /* a closed window is not an error */ }
+    }
   }
 
   /** Dispatch one job to the workspace its route names. */
@@ -252,7 +283,7 @@ class HubBatchMethods {
     this._onHubClear();
     await this._seedGenericUnlock({
       name: first.name, src: first.src, type: first.type,
-      contentId: first.contentId, page: first.pages,
+      contentId: first.contentId, page: first.pages, manifestId: first.manifestId,
     });
     // The parser keeps one name for a normal click. This private batch marker
     // widens only this run to the names already covered by the stable job key;
@@ -327,7 +358,7 @@ class HubBatchMethods {
     } else {
       await this._seedGenericUnlock({
         name: entry.name, src: entry.src, type: entry.type,
-        contentId: entry.contentId, page: entry.pages,
+        contentId: entry.contentId, page: entry.pages, manifestId: entry.manifestId,
       });
     }
     // _onGrabPdfText fires its render WITHOUT awaiting, so the textarea on
@@ -339,7 +370,7 @@ class HubBatchMethods {
     // not the signal — what matters is whether the GRAB added anything under
     // it. Without this a failed extraction parses the bare name and reports
     // "nothing recognized" instead of "your PDF had no text on that page".
-    if (!this._batchGrabbedBody(entry.name)) {
+    if (!this._batchGrabbedBody(this._importSeed?.name ?? entry.name)) {
       return {
         status: "nothing", created: 0,
         note: this._batchFirstProblem() ?? "the source PDF gave no selectable text for those pages",
@@ -426,7 +457,7 @@ class HubBatchMethods {
    *  conflict-skips, so a re-run over an imported list creates nothing. */
   async _batchRunSpells(job) {
     const { SpellImporterApp } = await import("./spells/spell-importer-app.mjs");
-    const app = SpellImporterApp.open();
+    const app = this._batchOpen(SpellImporterApp);
     app._reset();
     app._onSelectList(job.entry.listKey, { openPdf: false });
     // _autoGrabList pulls the writeup pages AND parses them, returning whether
@@ -459,7 +490,7 @@ class HubBatchMethods {
     const entry = job.entry;
     const { ClassImporterApp } = await import("./char-content/class-importer-app.mjs");
     const { classGateIssues } = await import("./char-content/class-quality-gate.mjs");
-    const app = ClassImporterApp.open();
+    const app = this._batchOpen(ClassImporterApp);
     app._reset();
     if (entry.src) app._source = CHAR_SOURCES[entry.src]?.label ?? entry.src;
     app._seedClassName = entry.name;
@@ -504,7 +535,7 @@ class HubBatchMethods {
   async _batchRunGear(job) {
     const entry = job.entry;
     const { ItemBuilderApp } = await import("./items/item-builder-app.mjs");
-    const app = ItemBuilderApp.open();
+    const app = this._batchOpen(ItemBuilderApp);
     app._reset();
     app._gearType = entry.type;
     if (entry.src) app._source = CHAR_SOURCES[entry.src]?.label ?? entry.src;

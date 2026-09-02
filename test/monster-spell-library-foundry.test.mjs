@@ -58,10 +58,10 @@ test("source discovery includes core monsters and the managed Enhancer Actors pa
   assert.deepEqual(sources.map(source => source.version), ["4.0.6", "0.15.1"]);
 });
 
-test("the target pack is the managed Items pack, ensured through the shared suite layer", async () => {
+test("the target pack is the dedicated Monster Spells pack, ensured through the shared suite layer", async () => {
   let descriptor;
   let placedPack;
-  const target = { collection: "world.sde-items" };
+  const target = { collection: "world.shadowdark-enhancer--monster-spells" };
   const pack = await ensureMonsterSpellPack({
     ensurePack: async value => {
       descriptor = value;
@@ -73,13 +73,36 @@ test("the target pack is the managed Items pack, ensured through the shared suit
   assert.equal(pack, target);
   assert.equal(placedPack, target);
   // The suite descriptor, not a private one: ownership, unlocking, and folder
-  // placement stay identical to every other consumer of the Items pack.
+  // placement stay identical to every other managed pack.
   assert.deepEqual(descriptor, {
-    key: "items",
-    id: "sde-items",
+    key: "monster-spells",
+    id: "sde-monster-spells",
     type: "Item",
-    label: "Shadowdark Enhancer — Items",
+    label: "Shadowdark Enhancer — Monster Spells",
   });
+  // The label slugifies onto the collection the retired pack already occupies,
+  // so a world holding the empty one adopts it instead of growing a second.
+  assert.equal(target.collection, "world.shadowdark-enhancer--monster-spells");
+});
+
+test("restoring the pack does not make findSuitePack(\"spells\") ambiguous", async () => {
+  // The retired pack's name ending in "spells" once made findSuitePack("spells")
+  // return it, so world.spells was never created and imported class spells were
+  // written into a pack scheduled for removal (compendium-suite.mjs:125,
+  // verified live 2026-08-30). The dot-qualified suffix test fixed that; this
+  // pins it while the pack is present AND populated, which is the state that
+  // reintroduces the ambiguity.
+  const { findSuitePack } = await import("../scripts/shared/compendium-suite.mjs");
+  const packs = [
+    { collection: "world.shadowdark-enhancer--monster-spells", metadata: { packageType: "world", label: "Shadowdark Enhancer — Monster Spells" } },
+    { collection: "world.spells", metadata: { packageType: "world", label: "Spells" } },
+  ];
+  const game = { packs };
+  assert.equal(findSuitePack("spells", { game })?.collection, "world.spells",
+    "the Character-Options Spells pack must win");
+  assert.equal(findSuitePack("sde-monster-spells", { game })?.collection,
+    "world.shadowdark-enhancer--monster-spells",
+    "and the monster-spell pack resolves by its own key");
 });
 
 test("suite placement creates the SDE compendium folder and moves the pack into it", async () => {
@@ -302,12 +325,12 @@ test("public preview filters selected source ids and compares the current target
   ]);
   const packs = [core, enhancer];
   packs.get = id => packs.find(candidate => candidate.collection === id);
-  // The target is discovered as the managed Items pack, by the same
+  // The target is discovered as the dedicated Monster Spells pack, by the same
   // label-or-collection rule the rest of the suite uses.
   const targetPack = {
-    collection: "world.sde-items",
+    collection: "world.shadowdark-enhancer--monster-spells",
     documentName: "Item",
-    metadata: { packageType: "world", label: "Shadowdark Enhancer — Items" },
+    metadata: { packageType: "world", label: "Shadowdark Enhancer — Monster Spells" },
     getDocuments: async () => [],
   };
   packs.push(targetPack);

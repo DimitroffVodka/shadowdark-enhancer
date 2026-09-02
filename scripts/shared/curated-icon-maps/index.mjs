@@ -70,5 +70,9 @@ import "./diabolical-treasure-icons.mjs";
 import "./gear-icons.mjs";
 import "./sea-wolf-plunder-icons.mjs";
 import "./weapon-icons.mjs";
+// NOT registered here on purpose: `spell-icons.mjs` is resolved through its own
+// registry in item-importer, because "a spell never takes an item map's icon"
+// is an invariant this shared bare space cannot express — a spell named `Web`
+// would otherwise inherit the weapon map's blade.
 
 export { curatedIconRegistry, auditCuratedIconRegistry } from "../curated-icons.mjs";

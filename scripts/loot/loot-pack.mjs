@@ -11,6 +11,7 @@ import { LootLinker } from "./loot-linker.mjs";
 import { stripPrice } from "./loot-resolution.mjs";
 import { findSuitePack, ensureSuite, ensureSourceFolder } from "../shared/compendium-suite.mjs";
 import { pickShikashiIcon, shikashiIcon } from "../importer/items/shikashi-icons.mjs";
+import { sourceTitleSlug } from "../importer/items/item-builder-gear.mjs";
 
 // Foundry core icons (all verified to exist) for treasure categories.
 const ICONS = {
@@ -96,9 +97,15 @@ export function pickTreasureIcon(text) {
 }
 
 /** Build a Shadowdark "Basic" treasure Item from a name + parsed value. */
-export function fabricateTreasureItem({ name, value, needsRefinement = false }) {
+export function fabricateTreasureItem({ name, value, needsRefinement = false, source = "" }) {
   const sde = { fromTreasureTable: true };
   if (needsRefinement) sde.needsRefinement = true;
+  // `system.source.title` is the field the Shadowdark item sheet renders, and it
+  // takes the same slug the char-content and gear paths already write
+  // ("cursed-scroll-1", "western-reaches") — not the module's own `cs1` /
+  // "Western Reaches" spellings. Without it a generated Item shows no book at
+  // all, which is how every generated treasure item ended up unattributed.
+  const title = sourceTitleSlug(source);
   return {
     name,
     type: "Basic",
@@ -108,6 +115,7 @@ export function fabricateTreasureItem({ name, value, needsRefinement = false }) 
       slots: { free_carry: 0, per_slot: 1, slots_used: 1 },
       treasure: true,
       quantity: 1,
+      ...(title ? { source: { title } } : {}),
     },
     flags: { [MODULE_ID]: sde },
   };

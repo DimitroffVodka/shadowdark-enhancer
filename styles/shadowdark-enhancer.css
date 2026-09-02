@@ -8369,7 +8369,16 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
    ========================================================================== */
 .sde-char-builder .window-content { padding: 0; }
 
-.sde-cb {
+/* The gallery dialog joins this scope because it is a SEPARATE top-level
+   DialogV2, not a descendant of `.sde-cb` — so every `--sd-*` / `--cb-*` token
+   was unset inside it, every `var()` that used one was invalid at computed-value
+   time, and the properties silently inherited instead. That is why its sidebar
+   came out in the flavor serif at whatever size it inherited, ignoring the font,
+   colour and spacing the rules asked for. It takes the tokens and the base
+   font/colour, but not the layout below, which belongs to the builder's own
+   full-height shell. */
+.sde-cb,
+.sde-cb-gallery-dialog {
   /* Printed-rulebook book palette (black on white, engraved-silver frames).
      These --sd-* tokens + the .sd-band mixin below are shared by ALL tabs. */
   --sd-page:#000; --sd-panel:#0d0d0d; --sd-quote-inner:#1a1a1a;
@@ -8398,11 +8407,7 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   --cb-muted:var(--sd-text-muted);
   --cb-ink:var(--sd-page);
 
-  display: flex;
-  flex-direction: column;
-  height: 100%;
   min-height: 0;
-  background: var(--sd-page);
   color: var(--sd-text-body);
   font-family: var(--sd-font-body);
 
@@ -8411,6 +8416,15 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
      <select> face inherits near-black text, under core dark the option popup
      paints white behind this app's inherited white text. Pin the scheme. */
   color-scheme: dark;
+}
+
+/* The builder's own full-height shell. Kept off the gallery dialog, which is a
+   floating window core already sizes and positions for us. */
+.sde-cb {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--sd-page);
 }
 
 .sde-cb select {
@@ -8809,16 +8823,106 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   color: var(--cb-muted); margin: 2px 0 0;
 }
 
-/* ---- Preview tab: GM-curated art gallery dialog ---- */
+/* ---- Preview tab: GM-curated art gallery dialog ----
+   Search and filters live in a left sidebar, mirroring the Character Gallery
+   module's own browser: a wrapping bar of dropdowns across the top pushed the
+   grid down and still only allowed one value per group. */
+.sde-cb-gallery-layout {
+  display: flex; gap: var(--sd-s8); flex: 1 1 auto; min-height: 0;
+}
+.sde-cb-gallery-side {
+  flex: 0 0 220px; display: flex; flex-direction: column; gap: var(--sd-s4);
+  min-height: 0; padding-right: var(--sd-s4);
+  border-right: 1px solid var(--cb-border);
+}
+/* The search box, count and Reset stay put while the tag groups scroll under
+   them — so the scroll lives on the inner wrapper, not on the aside. With
+   `overflow-y` on the aside itself the whole sidebar scrolled as one and the
+   search box left the screen the moment every group was expanded. */
+.sde-cb-gallery-side-top {
+  flex: 0 0 auto; display: flex; flex-direction: column; gap: var(--sd-s4);
+}
+.sde-cb-gallery-side-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--sd-s4);
+}
+/* Sized for reading, not for cramming. The first pass ran 11px chips under a
+   12px uppercase letter-spaced heading, which is a display treatment applied to
+   what is really a long list of small words — it read as decoration and was
+   hard to scan. Plain sentence case at body size instead. */
+.sde-cb-gallery-count {
+  font-family: var(--sd-font-body); font-size: 12px; color: var(--cb-muted); margin: 0;
+}
+/* Text inside these buttons is styled on a child <span>, never on the <button>.
+   Something in this dialog's cascade owns every <button>'s font: a bare
+   `<button>` renders in the Old Newspaper flavor serif while an identical
+   `<div>` takes Montserrat from the same rule, and it survives `!important` on
+   a more specific selector — so it is not an author declaration that can be
+   out-ranked. Enumerating every sheet, layer block and adoptedStyleSheets never
+   turned it up. The gallery tiles already put their captions in a span for the
+   same reason; the sidebar now does too. */
+.sde-cb-gallery-reset { padding: 3px var(--sd-s4); }
+.sde-cb-gallery-reset > span { font-family: var(--sd-font-body); font-size: 13px; }
+.sde-cb-gallery-group { flex: 0 0 auto; }
+.sde-cb-gallery-group > summary {
+  cursor: pointer; list-style: revert;
+  font-family: var(--sd-font-head); font-size: 14px;
+  color: var(--cb-text); padding: 3px 0;
+}
+.sde-cb-chips { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px 0 var(--sd-s4); }
+.sde-cb-gallery-side .sde-cb-chip {
+  flex: 0 0 auto; width: auto; height: auto; min-height: 0; line-height: 1.35;
+  padding: 3px 8px; background: var(--cb-panel-2); color: var(--cb-text);
+  border: 1px solid var(--cb-border); border-radius: 11px; cursor: pointer;
+}
+/* The readable part — see the note above on why this is on the span. */
+.sde-cb-gallery-side .sde-cb-chip > span {
+  font-family: var(--sd-font-body); font-size: 13px; line-height: 1.35;
+}
+.sde-cb-gallery-side .sde-cb-chip:hover { border-color: var(--cb-accent, #b8a06a); }
+.sde-cb-gallery-side .sde-cb-chip.active {
+  background: var(--cb-accent, #b8a06a); border-color: var(--cb-accent, #b8a06a); color: #14110d;
+}
 .sde-cb-gallery {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-  gap: var(--sd-s8); max-height: 400px; overflow-y: auto; padding: 2px;
+  gap: var(--sd-s8); overflow-y: auto; padding: 2px;
+  /* Rows size to a tile, not to the container: without this the single row of a
+     filtered-down result stretches to the full scroll height. */
+  grid-auto-rows: min-content; align-content: start;
 }
-.sde-cb-gallery-item {
+/* The grid takes whatever height the window has left and scrolls inside it, so
+   dragging the resize handle actually shows more art. Core already makes the
+   dialog's own wrappers flex columns; each one needs `min-height: 0` or its
+   default `auto` minimum refuses to shrink and the grid overflows the window
+   instead of scrolling. The bar keeps its natural height above it. */
+.sde-cb-gallery-dialog .dialog-content,
+.sde-cb-gallery-dialog .dialog-form { flex: 1 1 auto; min-height: 0; }
+.sde-cb-gallery-dialog .sde-cb-gallery { flex: 1 1 auto; min-height: 0; min-width: 0; }
+/* Two classes deep on purpose. Core styles buttons through `.application button`
+   (0,1,1), which outranks a lone `.sde-cb-gallery-item` (0,1,0) and pinned every
+   tile to the 32px control height — so 92px images overflowed their own button
+   and the grid rendered as one smashed-together stack of overlapping art. */
+.sde-cb-gallery .sde-cb-gallery-item {
   display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 4px; width: auto; height: auto; line-height: normal;
+  padding: 4px; width: auto; height: auto; min-height: 0; line-height: normal;
   background: none; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
 }
+.sde-cb-gallery .sde-cb-gallery-item[hidden] { display: none; }
+/* Hover-enlarge (shared/hover-peek.mjs) — used by the character builder's art
+   gallery and the Token Art Manager's image browser.
+   Two things here are load-bearing:
+   • `pointer-events: none`, or the preview lands under the cursor, steals the
+     hover from the tile beneath it, and the two flicker against each other.
+   • literal colour fallbacks, because this renders inside standalone dialogs
+     that are NOT descendants of a `--cb-*` token scope. */
+.sde-hover-peek {
+  position: fixed; z-index: 1000; pointer-events: none;
+  width: 320px;                      /* JS overrides per caller */
+  max-height: 70vh; object-fit: contain;
+  background: var(--cb-panel, #14110d); border: 1px solid var(--cb-accent, #b8a06a);
+  border-radius: 4px; box-shadow: 0 8px 28px rgb(0 0 0 / 60%);
+}
+.sde-hover-peek[hidden] { display: none; }
 .sde-cb-gallery-item:hover { border-color: var(--cb-accent, #b8a06a); background: var(--cb-panel-2); }
 .sde-cb-gallery-item.active { border-color: var(--cb-accent, #b8a06a); background: var(--cb-panel-2); }
 .sde-cb-gallery-item img {
@@ -9065,6 +9169,29 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   color:var(--sd-text); font-size:15px; margin-left:var(--sd-s4);
 }
 
+/* --- point-buy budget + controls ---------------------------------------- */
+.sde-cb-stats .sde-cb-point-buy-summary{
+  display:inline-block; margin:0 auto var(--sd-s12); padding:var(--sd-s8) var(--sd-s20);
+  font-family:var(--sd-font-body); font-size:12px; text-transform:uppercase;
+  letter-spacing:.06em; color:var(--sd-text-muted);
+}
+.sde-cb-stats .sde-cb-point-buy-summary b{
+  font-family:var(--sd-font-mono); font-size:16px; color:var(--sd-text);
+}
+.sde-cb-stats .sde-cb-point-buy-controls{
+  display:flex; align-items:center; justify-content:center; gap:var(--sd-s4);
+  width:100%; margin-top:var(--sd-s4); color:var(--sd-text-muted);
+  font-family:var(--sd-font-mono); font-size:10px;
+}
+.sde-cb-stats .sde-cb-point-buy-controls button{
+  width:22px; height:22px; padding:0; color:var(--sd-text); background:var(--sd-page);
+  border:1px solid var(--sd-frame); border-radius:var(--sd-radius); cursor:pointer;
+  font-family:var(--sd-font-mono); font-size:16px; line-height:18px;
+}
+.sde-cb-stats .sde-cb-point-buy-controls button:hover{ background:var(--sd-panel); }
+.sde-cb-stats .sde-cb-point-buy-controls button[disabled]{ opacity:.3; cursor:default; }
+.sde-cb-stats .sde-cb-point-buy-controls span{ white-space:nowrap; }
+
 /* --- hint lines (italic serif aside) ------------------------------------- */
 .sde-cb-stats .sde-cb-hint{
   font-family:var(--sd-font-flavor); font-style:italic; font-size:13px;
@@ -9224,9 +9351,18 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* ---- Token Art Manager (monster-art) ---------------------------------- */
 .sde-token-art-manager .window-content { padding: 0; }
 .sde-tam { display: flex; flex-direction: column; height: 100%; gap: 0; }
-.sde-tam-head { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-blurb { font-size: 12px; line-height: 1.35; flex: 1; opacity: 0.9; }
-.sde-tam-actions { display: flex; gap: 6px; flex-shrink: 0; }
+/* Stacked, not side by side. Five nowrap buttons demanded ~520px of a 720px
+   window, so the blurb was squeezed into a ~180px column twelve lines tall and
+   the space beside the buttons sat empty. Full width it is three lines, and the
+   button row wraps instead of starving the text. */
+.sde-tam-head { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
+.sde-tam-blurb { font-size: 12px; line-height: 1.35; opacity: 0.9; }
+/* Four lines you read once. `list-style: revert` restores the disclosure marker
+   Foundry's reset strips; closed, the header is the summary line alone. */
+.sde-tam-blurb-title { cursor: pointer; list-style: revert; user-select: none; font-weight: 600; opacity: 0.85; }
+.sde-tam-blurb-title:hover { color: var(--sde-gold, #c9aa58); }
+.sde-tam-blurb[open] .sde-tam-blurb-title { margin-bottom: 4px; }
+.sde-tam-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .sde-tam-actions button { white-space: nowrap; }
 .sde-tam-apply { font-weight: 600; }
 .sde-tam-dim { opacity: 0.6; font-weight: 400; font-size: 11px; }
@@ -9246,10 +9382,26 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 .sde-tam-folder-form .notes { margin: 0; }
 
 .sde-tam-sources { padding: 6px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
-.sde-tam-sources-title { font-weight: 600; margin-bottom: 4px; }
-.sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+/* A <summary>, so it carries the disclosure triangle and is keyboard-operable
+   without any of it being written here. `list-style: revert` restores the
+   marker that Foundry's reset strips. */
+.sde-tam-sources-title { font-weight: 600; margin-bottom: 4px; cursor: pointer; list-style: revert; user-select: none; }
+.sde-tam-sources-title:hover { color: var(--sde-gold, #c9aa58); }
+/* Closed, the panel is one line: drop the padding that assumed a list under it. */
+.sde-tam-sources:not([open]) { padding-bottom: 6px; }
+.sde-tam-sources:not([open]) .sde-tam-sources-title { margin-bottom: 0; }
+/* Draggable rows. The carets remain for keyboard use; dragging is the fast
+   path, and the row is the drag handle so there is no 13px target to hit. */
+.sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: grab; border-radius: 3px; }
+.sde-tam-source:hover { background: rgba(201,170,88,0.08); }
+.sde-tam-source.is-dragging { opacity: 0.4; cursor: grabbing; }
+.sde-tam-source.drop-before { box-shadow: inset 0 2px 0 var(--sde-gold, #c9aa58); }
+.sde-tam-source.drop-after { box-shadow: inset 0 -2px 0 var(--sde-gold, #c9aa58); }
+.sde-tam-grip { flex: 0 0 auto; opacity: 0.35; font-size: 11px; }
+.sde-tam-source:hover .sde-tam-grip { opacity: 0.8; color: var(--sde-gold, #c9aa58); }
 .sde-tam-rank { display: flex; flex-direction: column; gap: 1px; }
-.sde-tam-rank button { width: 20px; height: 13px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 11px; }
+/* Was 20x13 — too small to hit reliably, which is what drag now solves. */
+.sde-tam-rank button { width: 22px; height: 16px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 12px; }
 .sde-tam-rank button:hover:not(:disabled) { opacity: 1; color: var(--sde-gold, #c9aa58); }
 .sde-tam-rank button:disabled { opacity: 0.2; cursor: default; }
 .sde-tam-source-name { flex: 1; font-weight: 600; }

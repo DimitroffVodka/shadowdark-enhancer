@@ -21,6 +21,7 @@ import { sourceKey } from "../shared/source-keys.mjs";
 import { ensureFolderPath } from "../shared/compendium-suite.mjs";
 import { textToHtml } from "../importer/pdf-text-utils.mjs";
 import { ensureLootPack, parseValue } from "./loot-pack.mjs";
+import { sourceTitleSlug } from "../importer/items/item-builder-gear.mjs";
 import {
   DIABOLICAL_TREASURE_ICONS,
   DIABOLICAL_TREASURE_ROWS as ICON_ROWS,
@@ -273,6 +274,9 @@ export function buildDiabolicalTreasureItem(value, { source = DIABOLICAL_TREASUR
         name: row.name,
         description: identifiedDescription,
       },
+      // Same slug the shared fabricator and the gear paths write — the field
+      // the item sheet renders, not the module's own `cs1` flag spelling.
+      ...(sourceTitleSlug(sourceId) ? { source: { title: sourceTitleSlug(sourceId) } } : {}),
     },
     flags: {
       [MODULE_ID]: {

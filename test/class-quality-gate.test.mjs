@@ -108,3 +108,45 @@ test("classGateIssues aggregates table, BLOCKER, and title-split issues in order
     "Titles row 9-10: couldn't split into Lawful/Chaotic/Neutral",
   ]);
 });
+
+/**
+ * A title band the GM fixed in the preview must stop gating the commit.
+ *
+ * The parse-time warning literally says "edit in the preview", but nothing
+ * re-read the preview, so a corrected band blocked Create with no way to clear
+ * it. Basilisk Warrior hits this: its 1-2 row prints the same title for all
+ * three alignments, which the splitter cannot infer.
+ *
+ * Exercises the same predicate the app applies in _refreshTitleWarnings.
+ */
+test("a title band filled in by hand stops gating the commit", async () => {
+  const src = await import("node:fs/promises");
+  const app = await src.readFile(
+    new URL("../scripts/importer/char-content/class-importer-app.mjs", import.meta.url), "utf8");
+
+  assert.match(app, /_refreshTitleWarnings\(\)\s*\{/,
+    "the app must re-derive title warnings from the live bands");
+  assert.match(app, /this\._refreshTalentWarnings\(\);\s*\n\s*this\._refreshTitleWarnings\(\);/,
+    "both refreshes must run before the gate is computed");
+
+  // The predicate itself: a band is resolved once all three cells are filled.
+  const resolved = (t) => [t.lawful, t.chaotic, t.neutral].every((c) => String(c ?? "").trim());
+  const bands = [
+    { from: 1, lawful: "Stone Warrior", chaotic: "Stone Warrior", neutral: "Stone Warrior" },
+    { from: 3, lawful: "Strong", chaotic: "Stone Sharp", neutral: "Stone Silent Stone" },
+    { from: 5, lawful: "Protector", chaotic: "", neutral: "Watcher" },
+  ];
+  const filled = new Set(bands.filter(resolved).map((t) => t.from));
+  const warnings = [
+    `Titles row 1-2: couldn't split "Stone Warrior Stone Warrior Stone Warrior" into Lawful/Chaotic/Neutral — edit in the preview.`,
+    `Titles row 5-6: couldn't split "Protector Watcher" into Lawful/Chaotic/Neutral — edit in the preview.`,
+  ];
+  const remaining = warnings.filter((w) => {
+    const m = String(w).match(/row\s+(\d+)/i);
+    return !(m && filled.has(Number(m[1])));
+  });
+
+  assert.equal(remaining.length, 1, "the corrected band clears, the still-blank one does not");
+  assert.match(remaining[0], /row 5-6/,
+    "identical titles across all three alignments are a legitimate fix, not an unresolved split");
+});

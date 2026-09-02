@@ -127,9 +127,18 @@ and no Place button, because there is nothing to place.
 
 ### Contextual check and roll enrichment (Arctic Sea)
 
-Encounter tables imported through the module are automatically enriched with `@UUID` monster links and inline dice rolls (`[[/r ...]]`). When importing or relinking the *Cursed Scroll 3* Arctic Sea Encounters table, the contextual enricher (A5) additionally converts printed check prose (e.g. `DC 15 DEX`) into clickable `[[check 15 dex]]` controls.
+Encounter tables imported through the module are automatically enriched with
+`@UUID` monster links and inline dice rolls (`[[/r ...]]`).
 
-When an encounter result containing a check is posted to chat, clicking the `[[check]]` control rolls an immediate ability check for the GM's single controlled token, or a player's assigned character. Bare damage or count dice (e.g. `2d4`) become clickable `[[/r 2d4]]` inline rolls. Unrelated encounter tables leave DC expressions as unmodified prose. A5 reserves GM-facing `[[request]]` syntax for monster-context callers; E1 supplies only table context and does not alter monster statblocks.
+When importing or relinking the *Cursed Scroll 3* Arctic Sea Encounters table,
+the importer additionally converts printed ability check requirements (such as
+`DC 15 DEX`) into clickable `[[check 15 dex]]` buttons.
+
+When an encounter result with a check is posted to chat, clicking the
+`[[check]]` button rolls an immediate ability check for your controlled token (or
+a player's assigned character). Bare damage or count dice (like `2d4`) become
+clickable `[[/r 2d4]]` inline rolls. Unrelated encounter tables keep their DC
+notations as unmodified prose.
 
 ### 2. Build Table
 

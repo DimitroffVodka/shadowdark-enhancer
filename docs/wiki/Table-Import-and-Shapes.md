@@ -2,219 +2,190 @@
 
 [← Wiki home](index.md)
 
-Published tables are laid out for a printed page, not for a parser. This page
-explains how the module turns a messy PDF copy into a correct RollTable, and how
-to teach it a table it doesn't know yet.
+Published tables are designed for a printed page, not a parser. This guide
+explains how the module transforms raw PDF text into clean, rollable
+Foundry RollTables, and how you can add recipes for new tables.
 
 ---
 
 ## The problem
 
-Copy a table out of a PDF and you get, depending on the table:
+Copying a table straight out of a PDF often produces formatting chaos:
 
-- three columns interleaved into one stream of text
-- cells wrapped across several lines
-- the die column vertically centred against a multi-line cell
-- an all-caps section caption mashed between stacked columns
-- a "roll each column and combine" generator that isn't really one table at all
+- Multi-column tables interleaved into a single continuous stream of text.
+- Text cells wrapped across multiple lines.
+- Die roll numbers vertically centered beside multi-line cell text.
+- All-caps section headings spliced into the middle of table columns.
+- Multi-column roll-and-combine generators that are actually several distinct
+  tables.
 
-Row-oriented parsing collapses all of that into nonsense. So instead of guessing,
-the module carries a **parsing recipe per table**, a *shape*, for the tables it
-knows about.
+Simple row-by-row parsing cannot handle these variations. Instead of guessing,
+the module uses a **parsing recipe per table** (called a *shape*) for all
+supported books.
+
+---
 
 ## Shapes
 
-**131 tables** currently carry a recipe. Each recipe names a shape kind:
+**133 tables** currently carry a recipe. Each recipe specifies a shape kind:
 
 | Kind | For |
 |---|---|
-| `section` | An ordinary single-column table under a caption |
-| `banded` | A captioned table whose rows are bands (`2-4`, `14+`) printed around a vertically centred die face |
-| `gridcol` | One column of a captioned multi-column grid |
-| `compound` + `split: "prayer"` | The Western Reaches god prayer generators: roll `3d6`, one die per column, combine |
-| `compound` + `split: "grid"` | Mix-and-match generators: Traps, Hazards, Secrets, name generators |
-| `lookup` | Wrapped-cell lookups like the Core *Carousing* tables, indexed by cost or die |
-| `matrix` | A `dN, dN` cross-reference matrix (Interesting Customer, Personality Trait) |
-| `longtable` | Long single-column tables (up to ~100 rows) |
-| `suite` | A whole feature unlocked in one press: several captioned tables across a page range, each with its own shape |
+| `section` | Standard single-column table beneath a section header. |
+| `banded` | Captioned table whose rows are ranges (`2-4`, `14+`) centered vertically beside the die face. |
+| `gridcol` | A single column extracted from a multi-column grid. |
+| `compound` + `split: "prayer"` | Western Reaches deity prayer generators (roll `3d6`, one die per column, combine). |
+| `compound` + `split: "grid"` | Mix-and-match generators (Traps, Hazards, Secrets, names). |
+| `lookup` | Wrapped-cell lookups like Core *Carousing* tables, indexed by cost or die result. |
+| `matrix` | A `dN, dN` cross-reference grid (e.g. Interesting Customer, Personality Trait). |
+| `longtable` | Extended single-column tables (up to ~100 rows). |
+| `suite` | Multi-table features unlocked in a single action across a page range. |
 
-### `banded` — when the die face sits in the middle of its own cell
+### `banded` — when the die face sits in the middle of its cell
 
-A table cell taller than one line prints its die face *vertically centred*
-against the cell, so the extracted text comes out as wrap, wrap, **face**, wrap,
-wrap — not face-first. Attaching a face-less line to the nearest die face gets
-this wrong the moment two cells wrap back to back. Cursed Scroll 2's *Twist*
-table is the reproduction: `(armor, weapon, spell)` prints one line above the
-`6-9` face and two lines below the `2-5` face, and it belongs to `2-5`.
+When a table cell spans several lines, typesetters often place the die roll
+vertically centered in the row. Raw text extraction extracts this as
+*text wrap*, *text wrap*, **die number**, *text wrap*.
 
-The `banded` parser splits the block into one run of lines per face such that
-each run is centred on its face — the same rule the typesetter used. It is exact
-rather than heuristic, and it reads bands (`2-4`, `14+`) rather than assuming one
-row per die value. Reach for it whenever a table's rows are ranges and its cells
-wrap.
+Attaching lines to the nearest number fails when multiple wrapped cells
+sit next to each other. The `banded` parser groups lines so each entry is
+centered on its die roll, matching how the page was typeset. It also parses
+bands (`2-4`, `14+`) accurately.
 
-### `suite` — one Unlock, many tables
+### `suite` — one unlock, multiple tables
 
-A `suite` recipe lists members as `{ name, shape }` and runs each member's shape
-over the same pasted text. Members are caption-bound, so they can share a paste
-that holds all of them, and a member that finds nothing is reported **by name**
-rather than dropped — "13 of 14 imported" has to be visible or the missing one is
-discovered mid-session.
+A `suite` recipe lists individual tables as `{ name, shape }` and parses each
+from the same shared text paste. Missing entries are reported by name rather
+than quietly omitted.
 
-A suite also carries `pageModes`, which is what makes it more than a loop. Every
-other recipe grabs its pages under one extraction mode, which is fine for one
-table on one page. Cursed Scroll 2's pit-fighting suite prints two-column set-up
-pages (21, 24) beside single-column encounter grids (22-23), and either mode
-alone shreds the other half — so `pageModes` gives each page range its own.
+Suites also define `pageModes` to give different page ranges their own
+extraction settings. For example, a two-column setup page can be extracted
+differently from an adjacent full-width encounter grid.
 
-Some recipes also carry a **`reflow`** hint. A "reflowed" paste is one where the
-PDF copy came out single-spaced with the column structure gone. The hint tells
-the parser where cell boundaries fall: a capitalisation change, a dice
-expression, or an explicit pattern like *"the/a/an" starting a new cell*.
+### Reflow and column hints
 
-A recipe may also pin **`extractCols`**, which decides how **Grab text** pulls
-the page out of the PDF before any parsing happens. The default, `auto`, detects
-the page's column gutter. But on a page that prints two prose columns *above* a
-full-width table (Core *Traps* p114, *Hazards* p115), that gutter belongs to the
-prose, and applying it to the table slices the table in half: the first column
-arrives as one die-numbered block and the rest as a second, detached block. Pin
-`"layout"` there, which pads every cell to its true x-position so all columns
-stay on one line. Pin `"1"` for a table that needs each row glued onto a single
-line. Pin `"2mid"` for a two-column page whose gutter detection lands in the
-wrong place: it skips detection and splits at the page midline instead. No recipe
-currently needs it — detection measures where the page's ink actually is, which
-reads a ragged column edge correctly — so reach for it only if you meet a page
-that still comes out mis-split. Getting this wrong is rarely
-subtle. Cells come out shredded into single words, because the fallback splitter
-is left guessing at whitespace.
+Some recipes include extra tuning options:
 
-Every Core d20 × 3-column generator page has this shape (*Tavern* p136, *Shop*
-p139, *Adventure* p122, *Adventuring Site Name* p123, *NPC Qualities* p125,
-*Party Name* p127, *Magic Item Idea* p283), so all seven pin `"layout"` too.
+- **`reflow`**: Used when PDF copy-paste loses all column spacing. Hints tell
+  the parser where cell boundaries start (e.g., capital letters, dice
+  expressions, or leading articles like *a/an/the*).
+- **`extractCols`**: Configures how **Grab text** extracts the page from the PDF.
+  The default (`auto`) detects column gutters.
+  - Pin `\"layout\"` for pages with two prose columns above a full-width table
+    (e.g., Core *Traps* p114, *Hazards* p115) so the table is not split in half.
+  - Pin `\"1\"` for tables requiring each row on a single line.
+  - Pin `\"2mid\"` if column detection misplaces the gutter, forcing a midline
+    split.
 
-## A caption bound is not optional on a shared page
+All seven Core `d20 × 3-column` generator pages (*Tavern*, *Shop*, *Adventure*,
+*Adventuring Site Name*, *NPC Qualities*, *Party Name*, *Magic Item Idea*)
+pin `\"layout\"`.
 
-Most of those generator pages stack a **second** die table below the generator:
-`SHOP GENERATOR` over `INTERESTING CUSTOMER`, `NPC QUALITIES` over `OCCUPATION`,
-`PARTY NAME` over `SIGNATURE TACTICS`. A grid recipe runs three split strategies
-and keeps the best-filled result, and the page-mate's table can win that vote
-outright: *Shop Generator* parsed **60/60 cells with zero warnings**, entirely
-from the `INTERESTING CUSTOMER` matrix below it.
+---
 
-So on any shared page, set **`caption`** to the table's own all-caps heading. The
-parser slices to that block first and votes only within it.
+## Captions on shared pages
 
-> **A clean score is not evidence you read the right table.** Filled-cell counts
-> and warning counts tell you a parse was *self-consistent*, not that it came
-> from the table you asked for. Always read the actual rows back, and check the
-> last row as well as the first.
+Many generator pages stack a secondary table below the main generator:
+`SHOP GENERATOR` over `INTERESTING CUSTOMER`, or `PARTY NAME` over
+`SIGNATURE TACTICS`.
 
-Two failure modes only the rows reveal:
+Setting **`caption`** to the table's exact heading constrains the parser to that
+specific block so it does not mistakenly parse the neighboring table.
 
-- **A page cite one page short** still parses clean, off the wrong table. Three
-  of these entries had exactly that (`Adventuring Site Name` cited p122 when the
-  table is on p123, `NPC Qualities` p124 → p125, `Party Name` p126 → p127). Each
-  returned a confident full-marks parse of its neighbour.
-- **A page-bottom pull quote** gets glued onto the final row. Core pages close
-  with a designer quote and attribution printed directly under the table with no
-  blank line, and neither line carries a die face, so the wrap grouper files both
-  onto the last row. The parser now stops at that trailer, but it is the kind of
-  damage that shows up *only* in row 20.
+> **A clean parse score does not prove you read the right table.** Always review
+> the preview rows — especially the first and last row — to confirm the right
+> content was captured.
+
+Watch out for two common edge cases:
+
+- **Page citations off by one page:** A neighboring table may parse cleanly
+  with zero warnings while belonging to a completely different generator.
+- **Bottom pull quotes:** Quotes at the foot of a page can get attached to the
+  final table row if they lack a blank line separator.
+
+---
 
 ## Compound tables and cartesian expansion
 
-A compound generator (`roll 3d6, take one result per column, combine`) isn't a
-single rollable table. At commit time the module **cartesian-expands** it into a
-flat table where every combination is its own row, so it becomes something you
-can actually roll in Foundry.
+Compound generators (*roll 3d6, take one result per column, combine*) are
+not native Foundry roll tables. When committed, the module
+**cartesian-expands** them into a single flat table where every combination
+is its own distinct rollable row.
 
-When a printed grid shares source columns between generators, a compound shape
-may add `columns: ["Label", "Other Label"]`. The parser reads the full declared
-grid, then keeps those labels in the listed order; omitting `columns` preserves
-the ordinary all-columns behavior. CS3 Nord Names uses this to keep Male and
-Female given names in separate generators while sharing Surname and Title.
+For shared grids, a compound recipe can restrict columns with
+`columns: [\"Col A\", \"Col B\"]` to keep generators distinct.
 
-There is a **Cartesian (expand)** button to flatten a compound generator on
-demand. Two different caps apply: **automatic** expansion at commit is capped at
-**2,000 rows** (so a huge auto-detected compound can't silently commit as an
-unusable table), while an **explicit** Cartesian request via the button allows
-up to **25,000 rows**.
+You can also click the **Cartesian (expand)** button in the preview:
+
+- **Automatic expansion** on commit is capped at **2,000 rows** to avoid
+  creating unwieldy tables accidentally.
+- **Explicit expansion** via the button supports up to **25,000 rows**.
+
+---
 
 ## Automatic range repair
 
-Source PDFs contain real typos in their die ranges. When two consecutive rows
-**share a start value** and the later one extends further, the module repairs the
-overlap and **tells you it did**:
+PDF source text occasionally contains printed errors in die ranges (such as two
+consecutive rows sharing a start value). When detected, the parser repairs the
+overlap automatically and flags the change in the preview:
 
 ```
 Auto-fixed: row 4 range 21-24 → 23-24 (shared start with row 3).
 ```
 
-(That example is a real typo in the Western Reaches Dwarf Trinket table.)
+You can review and adjust any corrected ranges in the preview before saving.
 
-The extractor itself stays faithful to the page. It does not silently normalise
-what it reads. Repairs are surfaced as warnings on the preview so you can check
-them against the book.
+---
 
-## Table naming
+## Table naming and folders
 
-Tables that are prone to collision get a `Source - Name` prefix when filed into
-`sde-tables` (the same convention the name tables use). This is safe because
-lookups match on the table's manifest-id flag, not its display name.
+Tables prone to name collisions receive a `Source - Name` prefix in `sde-tables`.
+Lookups match on internal manifest IDs rather than display names, so you can
+rename tables in your world without breaking lookups.
 
-## Core Adventure Generator grouping
+In the Manage tree:
+- **Adventure Generator** and **Adventuring Site Name** are grouped under the
+  **Adventure Generator** folder.
+- **NPC Qualities**, **Party Name**, **Renown**, **Secret**, and **Wealth**
+  maintain distinct identities for supporting generator registries.
 
-The Manage tree files the two adventure-name tables — **Adventure Generator**
-and **Adventuring Site Name** — together under the **Adventure Generator**
-group. **NPC Qualities**, **Party Name**, **Renown**, **Secret**, and
-**Wealth** are deliberately **not** filed under that group: they keep their
-own stable manifest/shape identities, stay individually resolvable by the
-supporting-table registry the future Forge & Loot generators read, and a
-reimport of the Core tables does not restore the old grouping.
+---
 
 ## Supporting tables and manifest stamps
 
-Tables imported through the Table Hub into `sde-tables` receive durable
-manifest and source stamps in `flags["shadowdark-enhancer"]`. The internal
-supporting-table registry (`scripts/forge-loot/supporting-tables.mjs`, G8) reads
-these stamps to resolve inputs for NPC and Rival generators — including the three
-Signature Tactics alignment sub-tables (`core-signature-tactics:lawful`,
-`core-signature-tactics:neutral`, `core-signature-tactics:chaotic`):
+Tables imported into `sde-tables` receive manifest and source stamps in
+`flags[\"shadowdark-enhancer\"]`. The supporting-table registry uses these
+stamps to identify tables:
 
-- **Rename survival:** Lookups check stamped manifest identifiers rather than
-  transient table display names, so GM table renames do not break generator
-  resolution.
-- **Fail-closed resolution:** Missing, foreign (unstamped), duplicate, or
-  loose-name-only matches fail visibly with error diagnostics rather than guessing
-  or silently substituting unrelated tables.
-- **Core system fallbacks:** Only Ancestry and Alignment fall back to exact Core
-  system compendium UUIDs (`shadowdark.ancestries`, `shadowdark.alignments`).
-  All other generator inputs resolve from the managed `sde-tables` pack.
+- **Renames survive:** Renaming a table in Foundry does not break lookups
+  because identification relies on stamped flags rather than display names.
+- **Fail-closed resolution:** Missing, unstamped, or duplicate tables report
+  clear diagnostics rather than guessing or substituting wrong tables.
+- **Core system fallbacks:** Ancestry and Alignment fall back to core system
+  UUIDs (`shadowdark.ancestries`, `shadowdark.alignments`), while all other
+  tables resolve from `sde-tables`.
+- **Derived Rival Classes Table:** Maintained in `sde-tables` and synced from
+  class readiness data.
 
-The managed pack also holds the derived **Rival Classes** RollTable (G2),
-which is generated and kept in sync with the G3 Class readiness report under
-`flags["shadowdark-enhancer"].forgeLoot.rivalClassTable`.
+### Source provenance and matrix splits
 
-### Table source provenance and matrix splits
+When matrix tables (like *Signature Tactics*) split into per-column tables:
 
-When tables are imported through the Table Hub into `sde-tables`, source provenance and catalog manifest identity are carried across the parsing and splitting boundaries:
+- Child tables inherit the parent's `source` and base `manifestId` before
+  receiving column-specific stamps.
+- Singleton and matrix import paths stamp the seeded source (`CORE`, `CS1`–`CS6`,
+  `WR`).
+- Unknown sources are left empty rather than inferred from folder names,
+  preserving the distinction between book content and GM-authored tables.
+- Existing world tables are never silently rewritten or reclassified.
 
-- **Matrix split inheritance:** Splitting a multi-column matrix table (such as *Signature Tactics*) into per-column child drafts preserves the parent draft's source provenance and catalog identity. Split children inherit the pre-split draft's `source` and `manifestId`, after which per-column manifest IDs are stamped.
-- **Hub path seeding:** Both singleton table parsing and matrix hub paths stamp the seeded source (e.g. `CORE`, `CS1`–`CS6`, `WR`).
-- **No folder-path guessing:** When table provenance is unknown, it is left absent rather than guessed. The importer does not fall back to the first folder-path segment (`folderPath[0]`) to infer authorship: a folder path is a filing destination chosen by the GM (and is frequently literally "Game Master"), so deriving source from a folder path made an unknown source indistinguishable from a genuinely GM-authored table.
-- **Backward compatibility:** This change governs newly parsed drafts, newly built payloads, and explicit future re-imports. There is no load-time rewrite and no migration. Tables already stored in the world or packs with `source: "Game Master"` remain exactly as stored and continue to resolve under existing behavior, and tables already stored with no source also behave exactly as before. Re-importing over an existing table with **Replace existing** is an intentional write, not a silent reclassification.
+---
 
-## When a table has no recipe
+## Adding a custom recipe
 
-You get generic parsing. For a clean single-column table that is usually fine.
-For anything with columns, expect to fix rows in the preview before committing,
-or add a recipe.
-
-## Adding a recipe
-
-Recipes live in `scripts/importer/tables/table-shapes.mjs` as entries in
-`CONTENT_ENTRIES`. Each entry pairs a content id (`source/slugged-name`) with a
-shape descriptor:
+Recipes live in `scripts/importer/tables/table-shapes.mjs` within
+`CONTENT_ENTRIES`. Each entry pairs a content identifier (`source/slugged-name`)
+with a shape definition:
 
 ```js
 _entry("wr/gede-prayers", "WR", "Gede Prayers", PRAYER(6)),
@@ -224,86 +195,63 @@ _entry("core/traps", "CORE", "Traps",
     labels: ["Trap", "Trigger", "Damage or Effect"],
     extractCols: "layout", reflow: ["cap", "dice"] }),
 
-// A d20 generator sharing its page with another die table: GEN3 pins
-// extractCols "layout" and binds the caption in one place.
 _entry("core/shop-generator", "CORE", "Shop Generator",
   GEN3("SHOP GENERATOR", ["Name 1", "Name 2", "Known For"])),
 ```
 
-Start by pasting the table and seeing what generic parsing does to it, then pick
-the kind that matches its printed layout and set `cols`, `size`, and `labels` to
-match the page. Test by re-pasting through the real shape path, never through
-generic table parsing, which will give you a different (and misleadingly clean)
-result.
+When building a new recipe:
 
-Before you call a recipe done, confirm the page cite against the book, dump
-**every** row instead of the first, and check whether anything else is printed
-on that page. A recipe that scores well can still be reading the wrong table.
+1. Paste the table text into the importer to see what generic parsing produces.
+2. Select the shape kind matching the printed layout and configure `cols`,
+   `size`, and `labels`.
+3. Test by pasting through the recipe path.
+4. Verify all rows against the physical book.
 
 ---
 
 ## Troubleshooting
 
-**A table parsed into one long column of mush.**
-It has columns and no recipe, or the wrong recipe. Check whether the table is in
-`CONTENT_ENTRIES`. If it is, its `cols` count probably doesn't match your paste.
+**A table parsed into one long column of mush.**  
+The table has columns but no recipe (or an incorrect `cols` count). Check
+`CONTENT_ENTRIES` in `table-shapes.mjs`.
 
-**Every cell is offset by one row.**
-Classic vertically-centred die column against multi-line cells. This needs the
-`lookup` kind, which indexes rows by their die or cost value instead of by
-position.
+**Every cell is offset by one row.**  
+A multi-line cell had a vertically centered die roll. Use the `lookup` shape
+kind, which indexes rows by die or cost values rather than row position.
 
-**A compound generator committed as three separate tables.**
-It wasn't recognised as compound. Force the type to `tables` and confirm the
-recipe's `split` is set.
+**A compound generator committed as three separate tables.**  
+The table was not recognized as compound. Set the type to `tables` and ensure
+the recipe specifies a `split` strategy.
 
-**The expanded table is enormous / got truncated.**
-Automatic expansion at commit is capped at 2,000 rows. The explicit **Cartesian
-(expand)** button allows up to 25,000 and warns instead of truncating when a
-generator would exceed that. Anything bigger is better left compound and rolled
-column by column.
+**The expanded table is enormous or was truncated.**  
+Automatic commit expansion caps at 2,000 rows. The **Cartesian (expand)** button
+permits up to 25,000 rows. For larger sets, consider rolling columns separately.
 
-**I got an "Auto-fixed" warning I don't agree with.**
-Check the row against your book. The repair only fires on a genuine overlap
-(two rows sharing a start value), but if your book really does print it that way,
-edit the range back in the preview before committing.
+**An "Auto-fixed" warning appeared.**  
+Two consecutive rows shared a start value. Check your book; if the printed
+source intended that range, edit the row in the preview before committing.
 
-**A row is flagged for review and I don't know why.**
-Hover the review tag. The reason is in the tooltip, and the specific row is
-highlighted, not the whole card.
+**A row is flagged for review.**  
+Hover over the *review* tag to see the exact reason in the tooltip.
 
-### Ambiguous/unresolved loot rows stay unlinked (A7)
+### Unresolved loot rows remain unlinked
 
-When the Importer Hub's **Table** preview enriches a RollTable with Item links
-(the RollTable catalog, Table Hub preview, and paste-preview paths), rows that
-resolve as `ambiguous` or `unresolved` are deliberately left without a `@UUID` —
-they remain plain text rather than a wrong link. For specialized source-qualified
-tables like *Cursed Scroll 3* p68 *Sea Wolf Plunder From Distant Lands* (D4),
-*Cursed Scroll 2* p68 *In a Dead Bandit's Hand, You Find...* (D5), and *Cursed
-Scroll 1* p68 *Diabolical Treasure* (D6),
-linking routes to a dedicated materializer that mints the 20 managed Items in
-`sde-items` under `Cursed Scroll 3 / Treasure` (D4), `Cursed Scroll 2 / Treasure`
-(D5), or `Cursed Scroll 1 / Treasure` (D6) with curated icons and links them
-while preserving exact source phrasing: D4/D5 keep the full priced (D4) or raw
-(D5) source phrase as the TableResult display, and D6 reduces the cartesian
-20×20 generator to 20 name-only `1d20` results whose feature text stays behind
-Item identification; coin entries and unmapped rows stay plain text. See
-[Loot & Treasure — How loot rows become Items](Loot-and-Treasure.md#how-loot-rows-become-items-precise-resolution),
-[Sea Wolf Plunder materialization](Loot-and-Treasure.md#sea-wolf-plunder-materialization-d4),
-[Dead Bandit Loot materialization](Loot-and-Treasure.md#dead-bandit-loot-materialization-d5),
-[Diabolical Treasure materialization](Loot-and-Treasure.md#diabolical-treasure-materialization-d6),
-and [API `loot.resolve`](https://github.com/DimitroffVodka/shadowdark-enhancer/blob/master/docs/API.md#loot).
+When table rows reference items, rows resolving as `ambiguous` or `unresolved`
+remain plain text rather than creating broken `@UUID` links.
 
-### Contextual check enrichment for Arctic Sea encounters (E1)
+Specialized treasure tables — *Cursed Scroll 3* Sea Wolf Plunder, *Cursed
+Scroll 2* Dead Bandit Loot, and *Cursed Scroll 1* Diabolical Treasure — route
+through dedicated materializers in `sde-items` with curated icons and exact
+source phrasing. Currency entries and unmapped rows remain clean plain text.
+See [Loot & Treasure](Loot-and-Treasure.md).
 
-When importing or enriching the *Cursed Scroll 3* Arctic Sea Encounters table, the table enricher applies contextual check and dice enrichment (A5). Difficulty class expressions (`DC 15 DEX`) are transformed into clickable `[[check 15 dex]]` buttons and bare dice expressions (`2d4`) become inline rolls (`[[/r 2d4]]`), alongside `@UUID` monster links.
+### Arctic Sea encounter checks and dice
 
-The enricher uses a strict selector (`isArcticSeaEncounterTable`):
-- Authoritatively matches tables carrying `flags["shadowdark-enhancer"].manifestId === "cs3-arctic-sea-encounters"`.
-- Admits tables with the exact name suffix `Arctic Sea Encounters` when the module source flag is absent (legacy or hand-created copies) or canonicalizes to `cs3`.
-- Rejects explicit non-CS3 source stamps (such as Core or CS6 lookalikes) and distinct tables like Core `Arctic Encounters`.
-
-All encounter table paths — single table import (`createTable`), Importer Hub multi-table create/replace (`TableImporter.commitTableBundle`), public `game.shadowdarkEnhancer.tables.enrich(uuid, "encounter")`, manual `relinkAll()`, and debounced sweeps scheduled after monster/item import batches — converge on this selector. Whole-suite backup restore (`applyBundle`) preserves existing documents without re-enrichment. The complete 50-row table (covering 1–100) is idempotent on re-run (`updated: 0` without writing embedded documents). Unrelated encounter tables keep their legacy behavior (`convertDice` and `@UUID` links only), leaving their DC expressions as unmodified prose.
+When importing the *Cursed Scroll 3* Arctic Sea Encounters table, DC expressions
+(such as `DC 15 DEX`) become interactive `[[check 15 dex]]` buttons and dice
+formulas (`2d4`) become clickable inline rolls (`[[/r 2d4]]`), alongside
+`@UUID` monster links. Re-importing the table is idempotent and will not
+duplicate entries.
 
 ---
 

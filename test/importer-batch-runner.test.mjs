@@ -13,6 +13,10 @@ function hub(state = {}) {
   class FakeHub {}
   installHubBatch(FakeHub);
   return Object.assign(new FakeHub(), {
+    // A rendered ApplicationV2 always has an element, and the batch loop now
+    // stops when it does not — so the double has to carry one or every job
+    // reads as "the window closed". Tests that care override it explicitly.
+    element: { querySelector: () => null, querySelectorAll: () => [] },
     _importText: "", _importMonsters: [], _importItems: [], _importSpells: [],
     _importTables: [], _importGenerators: [], _importChar: [], _importBoats: [],
     _batchNotices: null, ...state,
@@ -306,4 +310,33 @@ test("non-Mount batch toasts keep job denominators and separate blocked rows", a
     );
     assert.deepEqual(messages, [item.expected], item.type);
   }
+});
+
+test("a null element ends the run cleanly instead of failing entries on a DOM error", async () => {
+  // ApplicationV2 can report `rendered` true while `element` is already null.
+  // Every route reads the element, so the batch must stop rather than let the
+  // next entry die with "can't access property querySelector, this.element is
+  // null" — which is exactly how a 6-entry CS3 Nord import lost its last table.
+  const previousUi = globalThis.ui;
+  globalThis.ui = { notifications: { info() {}, warn() {} } };
+  const h = hub();
+  h.rendered = true;
+  h.element = null;
+  h.render = async () => {};
+  h._batchCaptureNotifications = () => () => {};
+  h._invalidateManageTree = () => {};
+  h._onHubClear = () => {};
+  let ran = 0;
+  h._runBatchJob = async () => { ran++; return { status: "ok", created: 1 }; };
+  const summaries = [];
+  h._batchReportDialog = async (summary) => { summaries.push(summary); };
+  try {
+    await h._runBatch({ jobs: [{ label: "A" }, { label: "B" }], blocked: [] }, "scope");
+  } finally {
+    if (previousUi === undefined) delete globalThis.ui; else globalThis.ui = previousUi;
+  }
+  assert.equal(ran, 0, "no job may run without an element to read");
+  const rows = summaries.flatMap(s => s?.rows ?? s?.results ?? []);
+  assert.ok(rows.every(r => r.status !== "failed"),
+    "a missing element is a clean stop, never a failed entry");
 });

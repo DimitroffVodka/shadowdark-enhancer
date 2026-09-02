@@ -33,7 +33,16 @@ import { LootLinker } from "../../loot/loot-linker.mjs";
 import { withPropertyNote, preservedDescription } from "../../shared/property-note.mjs";
 import { ART_STATES, UPGRADEABLE_ART_STATES, artProvenance, decideImportArt, isGeneratedManagedItem, MANAGED_ITEMS_PACK } from "../../shared/art-provenance.mjs";
 import { isGeneratedMonsterSpell } from "../../shared/module-flags.mjs";
-import { curatedArtFor } from "../../shared/curated-icons.mjs";
+import { buildCuratedIconRegistry, curatedArtFor } from "../../shared/curated-icons.mjs";
+import { SPELL_ICONS } from "../../shared/curated-icon-maps/spell-icons.mjs";
+
+/**
+ * Spells resolve against their own registry rather than the shared bare space,
+ * the same isolation the sourced treasure maps get from being book-qualified.
+ * Built once: the map is a frozen literal, so there is nothing to invalidate.
+ */
+const SPELL_ICON_REGISTRY = buildCuratedIconRegistry([SPELL_ICONS]);
+import { sourceTitleSlug } from "./item-builder-gear.mjs";
 
 // Re-exported so the gear importer stays the one door callers already know;
 // the helpers themselves are Foundry-free and live in shared/.
@@ -65,8 +74,10 @@ const TYPE_DEFAULT_IMG = {
  *
  * The order is deliberate:
  *
- *   1. Spells have their own curated channel (`pickShikashiSpellIcon` and
- *      `core-monster-spell-icons`), so the item maps never see them.
+ *   1. Spells consult the reviewed `spells` map first, then fall back to their
+ *      own keyword channel (`pickShikashiSpellIcon`). They are checked ahead of
+ *      everything else so the item maps never see a spell name — the reviewed
+ *      spell rows are the only bare-space rows allowed to match one.
  *   2. Types with an explicit default (Background/Talent/Ancestry/Class) keep
  *      it. The item maps are keyed by name alone and are name-distinct only
  *      among THEMSELVES — a Talent that happens to share a name with a piece
@@ -88,7 +99,15 @@ const TYPE_DEFAULT_IMG = {
  */
 function _automaticArt(doc) {
   const name = doc?.name ?? "Unnamed Item";
-  if (doc?.type === "Spell") return { img: pickShikashiSpellIcon(name), state: ART_STATES.DEFAULT };
+  if (doc?.type === "Spell") {
+    // Resolved against a SPELL-ONLY registry, never the shared bare space: a
+    // spell named `Web` must not inherit the weapon map's blade. A reviewed row
+    // beats the keyword picker and carries `curated`, so A3 can tell a
+    // considered pick from the generic casting hand 77 of them wore.
+    const reviewed = curatedArtFor({ name }, SPELL_ICON_REGISTRY);
+    if (reviewed) return { img: reviewed.img, state: reviewed.artState };
+    return { img: pickShikashiSpellIcon(name), state: ART_STATES.DEFAULT };
+  }
 
   const typeDefault = TYPE_DEFAULT_IMG[doc?.type];
   if (typeDefault) return { img: typeDefault, state: ART_STATES.DEFAULT };
@@ -696,9 +715,10 @@ const TYPE_TO_PACK_ID = {
   Background: "background",
   Class:      "classes",
   Spell:      "spells",
-  Deity:      "patrons-and-deities",
-  Patron:     "patrons-and-deities",
-  Language:   "languages",
+  // No Deity/Patron/Language rows: the gods and patrons this module imports are
+  // ROLL TABLES, and languages are UUID references to the system's own items.
+  // Nothing ever built one of those Items, so the two packs they routed to were
+  // retired empty — see RETIRED_PACKS in compendium-suite.
 };
 
 // ─── Replace-time curation preservation ──────────────────────────────────────
@@ -864,6 +884,15 @@ export async function createItems(drafts, { source = "", onConflict } = {}) {
       if (draft.type === "Spell") folder = await spellFolderId(pack, draft);
       else if (draft.type === "Talent") folder = await talentFolderId(pack, draft);
       else folder = await _gearFolderId(pack, draft, sourceFolder, source);
+      // buildItemData writes `system.source.title` from the draft, so a draft
+      // that arrived without one produced an Item with no book on its sheet —
+      // 77 of 115 imported Items in a real world. The run already knows which
+      // book it is importing, so fall back to it rather than leaving the field
+      // blank. An explicit draft value still wins.
+      if (!draft.sourceTitle && !draft.source?.title && source) {
+        const slug = sourceTitleSlug(source);
+        if (slug) draft.sourceTitle = slug;
+      }
       const r = await createItem(draft, { pack, folder, source, onConflict });
       if (!r) continue;
       if (r.collision) out.collisions.push(r.collision);
