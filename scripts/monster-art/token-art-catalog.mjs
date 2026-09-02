@@ -72,6 +72,48 @@ export class TokenArtCatalog {
       tokenMapping: "modules/pf2e-tokens-characters/data/compendium-map.json",
       credit: PF_CHARACTER_GALLERY_CREDIT,
     },
+    {
+      // Paizo's NPC set — the humanoid counterpart to Monster Core, and the
+      // source of most townsfolk/soldier/cultist art. Its image-mapping.json is
+      // the same `{pack: {id: {token: {texture}}}}` shape _loadPresentation
+      // already walks, so scale and ring carry over.
+      id: "pf2e-tokens-npc-core",
+      label: "Pathfinder Tokens: NPC Core",
+      tokenDir: "modules/pf2e-tokens-npc-core/assets/tokens",
+      portraitDir: "modules/pf2e-tokens-npc-core/assets/portraits",
+      subjectDir: "modules/pf2e-tokens-npc-core/assets/subjects",
+      tokenMapping: "modules/pf2e-tokens-npc-core/image-mapping.json",
+      credit: "<em>Token artwork by Paizo.</em>",
+    },
+    // The community pack ships TWO independent trees, so it gets two entries
+    // rather than one — every consumer interpolates a single `tokenDir` into a
+    // path, and teaching them all to take a list to save one object here would
+    // be the tail wagging the dog.
+    //
+    // Worth knowing WHY folder entries are needed at all: this pack also ships
+    // a `shadowdark.monsters` compendium-art mapping, which discoverSources
+    // would pick up on its own — but only by walking `game.modules`, and
+    // Foundry never registers this module because its manifest caps
+    // compatibility at v13. The folder probe below reads the disk instead, so
+    // it works whether or not the module is registered or active.
+    {
+      id: "shadowdark-community-tokens",
+      label: "Shadowdark Community Tokens",
+      tokenDir: "modules/shadowdark-community-tokens/artwork/tokens",
+      portraitDir: "modules/shadowdark-community-tokens/artwork/portraits",
+      tokenMapping: "modules/shadowdark-community-tokens/mapping.json",
+      credit: "<em>Token artwork by the Shadowdark community.</em>",
+    },
+    {
+      id: "shadowdark-community-tokens-monster24",
+      label: "Shadowdark Community Tokens (Monster 2024)",
+      tokenDir: "modules/shadowdark-community-tokens/monster24/tokens",
+      portraitDir: "modules/shadowdark-community-tokens/monster24/portraits",
+      // One mapping file covers both trees: _loadPresentation keys by filename,
+      // not by directory.
+      tokenMapping: "modules/shadowdark-community-tokens/mapping.json",
+      credit: "<em>Token artwork by the Shadowdark community.</em>",
+    },
   ];
 
   /**
@@ -97,9 +139,11 @@ export class TokenArtCatalog {
     "dnd-monster-manual",
     "dnd-players-handbook",
     "pf2e-tokens-monster-core",
+    "pf2e-tokens-npc-core",
     PF_CHARACTER_GALLERY_ID,
     "dnd5e-fa",
     "shadowdark-community-tokens",
+    "shadowdark-community-tokens-monster24",
   ];
 
   /**
