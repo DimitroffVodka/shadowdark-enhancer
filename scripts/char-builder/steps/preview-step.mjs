@@ -244,25 +244,31 @@ export class PreviewStep extends BaseStep {
       slot, ancestry: this.state.ancestry?.name,
     });
     if (!picked) return;
-    this._applyGalleryPick(picked);
+    this._applyGalleryPick(slot, picked);
     this.app.render();
   }
 
   /**
-   * One pick dresses BOTH slots from the same artwork.
+   * One pick fills the slot asked for, and the other one ONLY if it is empty.
    *
    * The gallery's entries are characters, not loose images: each carries a
    * portrait and its matching token. Choosing a portrait and then hunting the
    * same character down again under "Token from gallery…" is busywork with an
-   * obvious wrong answer waiting at the end of it (a mismatched pair). So the
-   * gallery always sets a matched pair, and mixing art from two characters is
-   * done through the file picker or "From URL…" — the paths that take one image
-   * because that is all they have.
+   * obvious wrong answer waiting at the end of it, so the first pick dresses
+   * both.
+   *
+   * But filling the other slot every time makes a deliberate mismatch
+   * impossible — picking a token to go with an already-chosen portrait would
+   * silently replace that portrait too. So the auto-fill is a convenience for
+   * the empty case only; once a slot holds art, only a pick aimed at that slot
+   * changes it. "Reset art" empties both, which makes pairing available again.
    */
-  _applyGalleryPick({ portrait, token }) {
+  _applyGalleryPick(slot, { portrait, token }) {
     const art = this.state.art;
-    if (portrait) art.portrait = portrait;
-    if (token) art.token = token;
+    const pair = { portrait, token };
+    const other = slot === "portrait" ? "token" : "portrait";
+    if (pair[slot]) art[slot] = pair[slot];
+    if (!art[other] && pair[other]) art[other] = pair[other];
   }
 
   async _onPickArt(slot) {
@@ -279,7 +285,7 @@ export class PreviewStep extends BaseStep {
         return;
       }
       const picked = await pickGalleryArt(st.art[slot], { slot, ancestry: st.ancestry?.name });
-      if (picked) { this._applyGalleryPick(picked); this.app.render(); }
+      if (picked) { this._applyGalleryPick(slot, picked); this.app.render(); }
       return;
     }
 
