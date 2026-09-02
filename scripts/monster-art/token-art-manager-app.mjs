@@ -47,7 +47,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
   _library = null;   // full cross-source token library for the image browser (lazy)
   _thumbPx = 56;     // image-browser thumbnail size (zoom slider)
   _collapsedSources = new Set();   // image-browser source groups collapsed by the user
-  _sourcesCollapsed = false;       // the Source priority panel, folded away by the user
+  _collapsedPanels = new Set();    // `data-remember` keys of panels the user folded away
   _filter = "";
   _conflictsOnly = false;
 
@@ -139,7 +139,11 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       sourceCount: orderedSources.length,
       // Collapsed state is app state, not DOM state: the body re-renders on
       // every reorder, and a bare <details> would spring back open each time.
-      sourcesOpen: !this._sourcesCollapsed,
+      // Optional chaining because the context builder is exercised against a
+      // plain object in tests, where class field initialisers never ran. A
+      // missing set means nothing was folded, which is the right default.
+      sourcesOpen: !this._collapsedPanels?.has("sources"),
+      blurbOpen: !this._collapsedPanels?.has("blurb"),
       rows,
       folders: state.folders,
       stats: res.stats,
@@ -183,15 +187,20 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     }
     this._wireSourceDrag(root);
 
-    // Remember whether the Source priority panel is folded. `<details>` gives
-    // the disclosure for free, but its open state dies with the markup, and
-    // this body re-renders on every reorder — so record it and let
-    // _prepareContext put it back. No re-render on toggle: the browser has
-    // already done the work.
-    const sources = root.querySelector("details.sde-tam-sources");
-    if (sources && !sources._sdeWired) {
-      sources._sdeWired = true;
-      sources.addEventListener("toggle", () => { this._sourcesCollapsed = !sources.open; });
+    // Remember which foldable panels are closed. `<details>` gives the
+    // disclosure for free, but its open state dies with the markup and this
+    // body re-renders on every reorder — so record it and let _prepareContext
+    // put it back. No re-render on toggle: the browser has already done the
+    // work. One loop rather than a block per panel, since the second one
+    // arrived within the hour of the first.
+    for (const panel of root.querySelectorAll("details[data-remember]")) {
+      if (panel._sdeWired) continue;
+      panel._sdeWired = true;
+      const key = panel.dataset.remember;
+      panel.addEventListener("toggle", () => {
+        if (panel.open) this._collapsedPanels.delete(key);
+        else this._collapsedPanels.add(key);
+      });
     }
 
     // Hover-enlarge on the MAIN list too, not only inside Browse. The per-source

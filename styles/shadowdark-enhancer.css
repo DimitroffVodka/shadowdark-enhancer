@@ -9357,6 +9357,11 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
    button row wraps instead of starving the text. */
 .sde-tam-head { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--color-border-light-2, #666); }
 .sde-tam-blurb { font-size: 12px; line-height: 1.35; opacity: 0.9; }
+/* Four lines you read once. `list-style: revert` restores the disclosure marker
+   Foundry's reset strips; closed, the header is the summary line alone. */
+.sde-tam-blurb-title { cursor: pointer; list-style: revert; user-select: none; font-weight: 600; opacity: 0.85; }
+.sde-tam-blurb-title:hover { color: var(--sde-gold, #c9aa58); }
+.sde-tam-blurb[open] .sde-tam-blurb-title { margin-bottom: 4px; }
 .sde-tam-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .sde-tam-actions button { white-space: nowrap; }
 .sde-tam-apply { font-weight: 600; }
