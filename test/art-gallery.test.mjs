@@ -251,6 +251,9 @@ test("Shadowdark ancestry names fold to their tag keys", () => {
 test("the half-ancestries accept Pathfinder's own names for them", () => {
   // Matching only "elf"/"orc" would drop every portrait tagged as specifically
   // half-ancestry, which are the closest matches there are.
+  // Order matters, not just membership: the filter promotes the FIRST tag to the
+  // front of the grid, so the exact half-ancestry art leads and the borrowed
+  // elf/orc art follows. Swapping these silently buries the best matches.
   assert.deepEqual(ANCESTRY_TAGS.halfelf.tags, ["aiuvarin", "elf"]);
   assert.deepEqual(ANCESTRY_TAGS.halforc.tags, ["dromaar", "orc"]);
   assert.deepEqual(Object.keys(ANCESTRY_TAGS).sort(), [

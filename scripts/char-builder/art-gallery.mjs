@@ -251,6 +251,10 @@ export async function galleryEntries(slot = "portrait") {
  *
  * Anything outside this list (gnome, tengu, a homebrew ancestry) stays
  * reachable by typing it into the search box, which reads the tags too.
+ *
+ * TAG ORDER IS LOAD-BEARING: the first tag is the exact one, and the filter
+ * promotes it to the front of the grid. Half-Elf shows all 107, but the 30
+ * portraits actually drawn as half-elves come first.
  */
 export const ANCESTRY_TAGS = {
   dwarf:    { label: "Dwarf",     tags: ["dwarf"] },
@@ -321,6 +325,12 @@ function installGalleryFilter(root, onCount) {
     // One ancestry can be depicted by several tags (a half-elf is an aiuvarin
     // OR an elf), so this one control is an ANY test, not an all test.
     const anyOf = (ancestry?.selectedOptions?.[0]?.dataset.tags ?? "").split(" ").filter(Boolean);
+    // A derived ancestry lists its EXACT matches first: a half-elf's 30 aiuvarin
+    // portraits ahead of the 77 general elf ones it also borrows. ANCESTRY_TAGS
+    // puts the specific tag first, so that is the one to promote. Done with CSS
+    // `order` rather than by moving nodes — same-order items keep document
+    // order, so each group stays alphabetical and nothing reflows the grid.
+    const primary = anyOf.length > 1 ? anyOf[0] : null;
     let shown = 0;
     for (const tile of tiles) {
       const hit = (!needle || tile.dataset.search.includes(needle))
@@ -328,6 +338,8 @@ function installGalleryFilter(root, onCount) {
         && (!anyOf.length || anyOf.some((t) => tile.dataset.tags.includes(` ancestry:${t} `)));
       tile.hidden = !hit;
       if (hit) shown++;
+      const order = primary && tile.dataset.tags.includes(` ancestry:${primary} `) ? "-1" : "";
+      if (tile.style.order !== order) tile.style.order = order;
     }
     onCount(shown, tiles.length);
   };
