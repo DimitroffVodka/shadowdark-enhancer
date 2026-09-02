@@ -8818,12 +8818,19 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 .sde-cb-gallery-side {
   flex: 0 0 200px; display: flex; flex-direction: column; gap: var(--sd-s4);
-  overflow-y: auto; min-height: 0; padding-right: var(--sd-s4);
+  min-height: 0; padding-right: var(--sd-s4);
   border-right: 1px solid var(--cb-border);
 }
-/* The search box and count stay put while the tag groups scroll under them. */
+/* The search box, count and Reset stay put while the tag groups scroll under
+   them — so the scroll lives on the inner wrapper, not on the aside. With
+   `overflow-y` on the aside itself the whole sidebar scrolled as one and the
+   search box left the screen the moment every group was expanded. */
 .sde-cb-gallery-side-top {
   flex: 0 0 auto; display: flex; flex-direction: column; gap: var(--sd-s4);
+}
+.sde-cb-gallery-side-scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--sd-s4);
 }
 .sde-cb-gallery-count {
   font-family: var(--sd-font-body); font-size: 11px; color: var(--cb-muted); margin: 0;

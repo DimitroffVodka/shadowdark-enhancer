@@ -500,7 +500,7 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
             <i class="fa-solid fa-arrow-rotate-left"></i> ${esc(L("SDE.charBuilder.art.galleryReset"))}
           </button>
         </div>
-        ${ancestryGroup}${facetGroups}
+        <div class="sde-cb-gallery-side-scroll">${ancestryGroup}${facetGroups}</div>
       </aside>
       <div class="sde-cb-gallery">${items}</div>
     </div>`;
