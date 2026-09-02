@@ -1,0 +1,33 @@
+# Canonical identities for `git log`, `git shortlog` and `git blame`.
+#
+# This file only changes how names DISPLAY. It rewrites no commits, moves no
+# history, and GitHub's contributor graph ignores it entirely — that graph keys
+# off the author email, so merging the two accounts there means adding
+# FlimtotheFlam@gmail.com to the DimitroffVodka GitHub account, not editing
+# anything here.
+#
+# Format: <canonical name> <canonical email> [<old name>] <old email>
+
+# ── One person, four git identities ──────────────────────────────────────────
+# 709 commits went in as FlimtotheFlam, 226 + 78 as two spellings of
+# Dimitroffvodka, and 25 more as FlimtotheFlam wearing the other email. Same
+# author throughout; only the git config differed at the time.
+DimitroffVodka <dimitroffvodka@gmail.com> <FlimtotheFlam@gmail.com>
+DimitroffVodka <dimitroffvodka@gmail.com> <DimitroffVodka@gmail.com>
+DimitroffVodka <dimitroffvodka@gmail.com> FlimtotheFlam <dimitroffvodka@gmail.com>
+DimitroffVodka <dimitroffvodka@gmail.com> Dimitroffvodka <dimitroffvodka@gmail.com>
+
+# ── Assistants ───────────────────────────────────────────────────────────────
+# DELIBERATELY NOT folded into the human above. 33 commits have Claude as the
+# git author rather than as a co-author trailer, and those were genuinely
+# written by it — displaying them as a person's work would be a false claim
+# about who wrote the code, which is the opposite of what a mailmap is for.
+#
+# What this does collapse is the fifteen model-name variants that accumulated
+# in Co-Authored-By trailers (Opus 4.6/4.7/4.8/5, Fable 5, Sonnet 4.6, the 1M
+# context suffixes) into one entry, so `git shortlog --group=trailer:co-authored-by`
+# reports Claude once instead of fifteen times.
+Claude <noreply@anthropic.com> <noreply@anthropic.com>
+
+# The other assistants keep their own identities — separate vendors, separate
+# emails, and nothing to normalise.
