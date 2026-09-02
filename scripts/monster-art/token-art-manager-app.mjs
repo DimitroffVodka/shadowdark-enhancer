@@ -176,6 +176,20 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       conflicts._sdeWired = true;
       conflicts.addEventListener("change", () => { this._conflictsOnly = conflicts.checked; this._applyFilter(); });
     }
+    // Hover-enlarge on the MAIN list too, not only inside Browse. The per-source
+    // option thumbnails are where the actual comparison happens — you are
+    // choosing between four candidates for one monster — and at that size they
+    // are unreadable. Re-installed on every render because the list markup is
+    // rebuilt; the teardown drops the previous listeners and element.
+    this._listPeekOff?.();
+    this._listPeekOff = installHoverPeek(root, {
+      grid: ".sde-tam-list",
+      item: ".sde-tam-opt",
+      src: (tile) => tile.querySelector("img")?.getAttribute("src") ?? null,
+      width: 340,
+      anchor: root,
+    });
+
     // Image browser overlay: search filter + click-to-pick (delegated). Wired
     // once; the overlay markup persists across body re-renders.
     const overlay = root.querySelector(".sde-tam-browser");
@@ -232,6 +246,11 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       // Hover-enlarge, the same component the character builder's gallery uses.
       // The status line names the art; this shows it. Thumbnails here go down to
       // 40px, so the case for it is stronger than in the gallery.
+      //
+      // Anchored to the WINDOW, not the hovered tile. Beside the tile the
+      // preview chases the pointer across a six-column grid, which reads as
+      // erratic and can land off screen when the window sits near a screen
+      // edge; pinned to the window it appears in the same place every time.
       this._peekOff?.();
       this._peekOff = installHoverPeek(overlay, {
         grid: ".sde-tam-browser-grid",
@@ -240,6 +259,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         // same path shown large — there is no separate full-size asset here.
         src: (tile) => tile.querySelector("img")?.getAttribute("src") ?? null,
         width: 340,
+        anchor: root,
       });
       overlay.addEventListener("keydown", (ev) => {
         if (ev.key === "Escape") { overlay.hidden = true; return; }

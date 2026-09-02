@@ -28,11 +28,15 @@
  * @param {(tile: HTMLElement) => string|null} opts.src  the FULL-SIZE image for a
  *   tile — deliberately not the thumbnail the grid draws, which is the whole point
  * @param {number} [opts.width]  preview width in px
+ * @param {HTMLElement|string} [opts.anchor]  what the preview sits beside. Default
+ *   is the hovered tile; pass the app window (or a selector for it) to pin the
+ *   preview to ONE place instead of letting it chase the pointer around a grid.
  * @returns {() => void} teardown, for a caller whose grid outlives one render
  */
-export function installHoverPeek(root, { grid: gridSel, item: itemSel, src, width = 320 } = {}) {
+export function installHoverPeek(root, { grid: gridSel, item: itemSel, src, width = 320, anchor } = {}) {
   const grid = root?.querySelector?.(gridSel);
   if (!grid || typeof src !== "function") return () => {};
+  const anchorEl = typeof anchor === "string" ? (root.closest?.(anchor) ?? root.querySelector?.(anchor)) : anchor;
 
   const peek = document.createElement("img");
   peek.className = "sde-hover-peek";
@@ -41,13 +45,25 @@ export function installHoverPeek(root, { grid: gridSel, item: itemSel, src, widt
   peek.style.width = `${width}px`;
   root.append(peek);
 
+  /**
+   * Beside the anchor, flipped to whichever side has room, and clamped inside
+   * the viewport as a last resort.
+   *
+   * The final clamp is the part that matters: the first version only chose a
+   * side and trusted the arithmetic, so a window near the screen edge could put
+   * the preview where nothing was visible. Now it can be pushed back on screen
+   * even when neither side fits, overlapping the window rather than vanishing.
+   */
   const place = (tile) => {
-    const box = tile.getBoundingClientRect();
+    const box = (anchorEl ?? tile).getBoundingClientRect();
     const w = peek.offsetWidth || width;
     const h = peek.offsetHeight || width;
     const right = box.right + 12;
-    peek.style.left = `${right + w > window.innerWidth ? Math.max(4, box.left - w - 12) : right}px`;
-    peek.style.top = `${Math.min(Math.max(4, box.top + box.height / 2 - h / 2), window.innerHeight - h - 4)}px`;
+    const left = box.left - w - 12;
+    const x = right + w <= window.innerWidth ? right : (left >= 0 ? left : null);
+    peek.style.left = `${Math.min(Math.max(4, x ?? (window.innerWidth - w - 4)), Math.max(4, window.innerWidth - w - 4))}px`;
+    const y = anchorEl ? box.top : box.top + box.height / 2 - h / 2;
+    peek.style.top = `${Math.min(Math.max(4, y), Math.max(4, window.innerHeight - h - 4))}px`;
   };
 
   const onOver = (event) => {
