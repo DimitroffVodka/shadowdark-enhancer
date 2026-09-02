@@ -145,7 +145,7 @@ tables in sequence).
 
 ---
 
-## After a commit, automatically
+## What happens after you commit
 
 - **Table link sweeps:** Roll table results are automatically enriched with
   `@UUID` links to monsters and items, and dice expressions become inline rolls.
