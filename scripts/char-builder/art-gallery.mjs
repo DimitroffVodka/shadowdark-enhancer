@@ -404,7 +404,9 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
 
   return new Promise((resolve) => {
     const dlg = new foundry.applications.api.DialogV2({
-      window: { title: L("SDE.charBuilder.art.galleryTitle"), icon: "fa-solid fa-images" },
+      // Resizable: 1,900 tiles at 92px is a lot of scrolling in a fixed 620px
+      // box, and how much of a wall of art fits on screen is the user's call.
+      window: { title: L("SDE.charBuilder.art.galleryTitle"), icon: "fa-solid fa-images", resizable: true },
       classes: ["shadowdark", "sde-cb-gallery-dialog"],
       position: { width: 720, height: 620 },
       content,
