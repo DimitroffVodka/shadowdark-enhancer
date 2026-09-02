@@ -8846,6 +8846,15 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   background: none; border: 1px solid transparent; border-radius: 4px; cursor: pointer;
 }
 .sde-cb-gallery .sde-cb-gallery-item[hidden] { display: none; }
+/* Hover preview. `pointer-events: none` is load-bearing: without it the preview
+   sits under the cursor, steals the hover from the tile, and the pair flickers. */
+.sde-cb-gallery-peek {
+  position: fixed; z-index: 1000; pointer-events: none;
+  width: 320px; max-height: 70vh; object-fit: contain;
+  background: var(--cb-panel, #14110d); border: 1px solid var(--cb-accent, #b8a06a);
+  border-radius: 4px; box-shadow: 0 8px 28px rgb(0 0 0 / 60%);
+}
+.sde-cb-gallery-peek[hidden] { display: none; }
 .sde-cb-gallery-item:hover { border-color: var(--cb-accent, #b8a06a); background: var(--cb-panel-2); }
 .sde-cb-gallery-item.active { border-color: var(--cb-accent, #b8a06a); background: var(--cb-panel-2); }
 .sde-cb-gallery-item img {
