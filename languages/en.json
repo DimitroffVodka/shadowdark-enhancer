@@ -111,6 +111,9 @@
   "SDE.charBuilder.art.urlInvalid": "That doesn't look like a valid image URL.",
   "SDE.charBuilder.art.galleryTitle": "Choose Artwork",
   "SDE.charBuilder.art.galleryCancel": "Cancel",
+  "SDE.charBuilder.art.gallerySearch": "Search artwork…",
+  "SDE.charBuilder.art.galleryAnyFacet": "Any {facet}",
+  "SDE.charBuilder.art.galleryCount": "{shown} of {total}",
   "SDE.charBuilder.art.galleryEmpty": "No images found in the gallery folders ({folder}). Ask your GM to check the Character Builder art folder setting.",
   "SDE.charBuilder.art.galleryNoGm": "No GM is online, so the art gallery cannot be loaded. Try again when your GM connects.",
 

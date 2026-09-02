@@ -49,6 +49,8 @@ globalThis.game = {
 const {
   ART_QUERY,
   PF_CHARACTER_ART_FOLDER,
+  datasheetEntries,
+  galleryEntries,
   galleryFolders,
   listGalleryArt,
   registerArtGalleryQuery,
@@ -137,4 +139,100 @@ test("the registered GM query returns custom and PF files with PF absence tolera
 
   assert.deepEqual(result.files, ["custom/portraits/keep.webp"]);
   assert.deepEqual(result.folders, ["custom/portraits", PF_FOLDER]);
+});
+
+// ─── Datasheets ──────────────────────────────────────────────────────────────
+//
+// A module may publish a manifest ABOUT its art (label, per-slot paths, tag
+// groups) through `flags.galleryDatasheets`. That metadata is what makes a
+// 1,200-image folder searchable, so these cover the two things that go wrong
+// silently: the token slot handing back a portrait, and the same character
+// appearing twice because the folder browse also found its raw file.
+
+const SHEET = "modules/pf/data/datasheet.json";
+const ROW = {
+  label: "Aldori Swordlord",
+  source: "Lost Omens Character Guide",
+  art: {
+    portrait: `${PF_FOLDER}/aldori-swordlord.webp`,
+    token: "modules/pf/assets/tokens/aldori-swordlord.webp",
+    thumb: "modules/pf/assets/thumbnails/aldori-swordlord.webp",
+  },
+  tags: { ancestry: ["human"], family: ["warrior", "affluent"] },
+};
+
+/** Declare `sheets` on a fake module list and serve `body` from fetch. */
+function withDatasheet(body, { active = true } = {}) {
+  globalThis.game.modules = [{ active, flags: { galleryDatasheets: { "character-gallery": { sheet: SHEET } } } }];
+  globalThis.fetch = async (path) => (path === SHEET
+    ? { ok: true, json: async () => body }
+    : { ok: false, status: 404, json: async () => [] });
+}
+
+test.afterEach(() => {
+  delete globalThis.game.modules;
+  delete globalThis.fetch;
+});
+
+test("a datasheet row becomes a tagged entry, and the token slot gets the TOKEN art", async () => {
+  configure();
+  withDatasheet([ROW]);
+
+  const [portrait] = await datasheetEntries("portrait");
+  assert.equal(portrait.src, ROW.art.portrait);
+  assert.equal(portrait.thumb, ROW.art.thumb);
+  assert.equal(portrait.label, "Aldori Swordlord");
+  assert.deepEqual(portrait.tags, { ancestry: ["human"], family: ["warrior", "affluent"] });
+
+  const [token] = await datasheetEntries("token");
+  assert.equal(token.src, ROW.art.token, "the token slot must not hand back a portrait");
+});
+
+test("a row missing the requested slot falls back rather than vanishing", async () => {
+  configure();
+  withDatasheet([{ label: "Portrait Only", art: { portrait: `${PF_FOLDER}/only.webp` } }]);
+
+  const [token] = await datasheetEntries("token");
+  assert.equal(token.src, `${PF_FOLDER}/only.webp`);
+});
+
+test("an inactive module's datasheet is not read", async () => {
+  configure();
+  withDatasheet([ROW], { active: false });
+
+  assert.deepEqual(await datasheetEntries("portrait"), []);
+});
+
+test("an unreadable datasheet degrades to the plain folder browse", async () => {
+  configure();
+  globalThis.game.modules = [{ active: true, flags: { galleryDatasheets: { g: { sheet: SHEET } } } }];
+  globalThis.fetch = async () => { throw new Error("offline"); };
+  browseResults.set("custom/portraits", { files: ["custom/portraits/keep.webp"] });
+
+  const entries = await galleryEntries("portrait");
+  assert.deepEqual(entries.map((e) => e.src), ["custom/portraits/keep.webp"]);
+});
+
+test("a described entry suppresses the browsed copy of every path it owns", async () => {
+  configure();
+  withDatasheet([ROW]);
+  // The folder browse finds the same character's raw portrait file. Without
+  // path coverage the token slot would list Aldori twice — once described, once
+  // as a bare filename.
+  browseResults.set(PF_FOLDER, { files: [ROW.art.portrait] });
+  browseResults.set("custom/portraits", { files: ["custom/portraits/zzz-own.webp"] });
+
+  const entries = await galleryEntries("token");
+  assert.deepEqual(entries.map((e) => e.label), ["Aldori Swordlord", "zzz own"]);
+  assert.deepEqual(entries.map((e) => e.src), [ROW.art.token, "custom/portraits/zzz-own.webp"]);
+});
+
+test("an undescribed file still carries a readable label and empty facets", async () => {
+  configure();
+  browseResults.set("custom/portraits", { files: ["custom/portraits/half_elf-ranger.webp"] });
+
+  const [entry] = await galleryEntries("portrait");
+  assert.equal(entry.label, "half elf ranger");
+  assert.deepEqual(entry.tags, {});
+  assert.equal(entry.thumb, entry.src, "with no thumbnail the full image is the thumb");
 });

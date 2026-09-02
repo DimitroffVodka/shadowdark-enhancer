@@ -240,7 +240,7 @@ export class PreviewStep extends BaseStep {
       ui.notifications.warn(game.i18n.localize("SDE.charBuilder.art.noGallery"));
       return;
     }
-    const picked = await pickGalleryArt(this.state.art[slot]);
+    const picked = await pickGalleryArt(this.state.art[slot], { slot });
     if (!picked) return;
     this.state.art[slot] = picked;
     this.app.render();
@@ -259,7 +259,7 @@ export class PreviewStep extends BaseStep {
         ui.notifications.warn(game.i18n.localize("SDE.charBuilder.art.noBrowse"));
         return;
       }
-      const picked = await pickGalleryArt(st.art[slot]);
+      const picked = await pickGalleryArt(st.art[slot], { slot });
       if (picked) apply(picked);
       return;
     }
