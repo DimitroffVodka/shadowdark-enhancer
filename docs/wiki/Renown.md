@@ -10,9 +10,6 @@ provides the band ladder that gives that number mechanical meaning, a single
 auditable write path for awards and penalties, and a reaction roll modifier for
 when the party encounters someone who might recognize them.
 
-<!-- TODO screenshot: images/renown.png — the Renown dialog, roster on top
-     How: Crawl Bar → right-click Forge & Loot → Renown, with 3+ party PCs whose
-     renown values land in different bands. -->
 
 ---
 

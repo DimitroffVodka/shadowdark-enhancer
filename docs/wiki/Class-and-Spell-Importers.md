@@ -129,8 +129,7 @@ preserving your chosen icons.
 **An imported caster class came in as a non-caster.**  
 If the Spellcasting heading appeared after the talents table in your PDF, the
 parser may have bundled it into the talent table. Paste the Spellcasting
-paragraph into Stage 1 directly to ensure the enabler talent is recognized
-and `isSpellCaster` is set.
+paragraph into Stage 1 on its own — that is what marks the class as a caster.
 
 **The Paladin's Lance is missing Charge, Devastating, or Mounted properties.**  
 Core Shadowdark has no built-in entries for that Western Reaches property

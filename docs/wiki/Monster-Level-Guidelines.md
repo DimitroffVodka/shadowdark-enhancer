@@ -6,9 +6,6 @@ What *should* a level-8 Shadowdark monster look like? This page covers the
 answer the module ships, the editor where you change it, and the token button
 that re-levels a creature in two clicks.
 
-<!-- TODO screenshot: images/quick-adjust.png — The Quick Adjust panel on an Ogre token
-     How: select an NPC token -> token HUD -> the scales icon in the right column.
-     Set the target level two above the creature's own so the preview shows deltas. -->
 
 ---
 
@@ -81,8 +78,6 @@ is still whatever you set.
 **Configure Settings → Shadowdark Enhancer → Monster level guidelines →
 Edit Guidelines Table.** GM-only.
 
-<!-- TODO screenshot: images/level-guidelines.png — The Monster Level Guidelines editor
-     How: Configure Settings -> Shadowdark Enhancer -> Edit Guidelines Table. -->
 
 One editable row per level, 0–19 plus 30 (levels 20–29 are interpolated on
 demand):

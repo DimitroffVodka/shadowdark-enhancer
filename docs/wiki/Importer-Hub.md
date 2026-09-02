@@ -130,7 +130,6 @@ Parsed entries appear in an editable preview card.
 - **Inline review tags:** Any line the parser is uncertain about is highlighted
   with an inline *review* tag; hover over it to view the explanation.
 
-<!-- TODO screenshot: images/importer-preview-flagged.png — Preview with flagged row -->
 
 ### 4. Commit
 
@@ -224,13 +223,11 @@ confirm no words crossed column boundaries before committing.
 Intended behavior. Currency belongs in character purses or loot rather than as
 inventory items, so the importer logs them as skipped.
 
-**A Basic Gear description contains text from the next item.**  
-The item boundary parser separates records at known item headers and capitalization
-boundaries, stripping page numbers without breaking multi-page descriptions.
-
-**Spell descriptions swallowed subsequent mishap tables or text.**  
-Spell boundaries cleanly end at page breaks (`joinPageTexts`), ensuring the
-final spell on a page does not swallow following tables or pages.
+**A description has run on into the next entry.**  
+Re-import it. Both gear and spell descriptions used to run past their own entry
+— gear into the next item, and the last spell on a page into whatever followed
+it, which could be several pages of tables. Both are fixed, so a fresh import
+of the same pages gives you clean text.
 
 **Import everything imported nothing.**  
 Confirm that your book PDFs are registered under **Tools → Source PDFs**. Check

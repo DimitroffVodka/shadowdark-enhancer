@@ -5,8 +5,6 @@
 Track per-turn movement distances with a dynamic colored ruler, optionally
 enforce movement caps, and roll back accidental token moves with one click.
 
-<!-- TODO screenshot: images/movement-ruler.png — The movement ruler showing an over-budget move in red
-     How: Start a crawl, drag a party token past its budget; screenshot the red ruler. -->
 
 ---
 
