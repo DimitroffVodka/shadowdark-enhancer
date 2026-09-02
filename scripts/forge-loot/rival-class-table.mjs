@@ -16,6 +16,15 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { valueFingerprint } from "./forge-loot-core.mjs";
 
 export const RIVAL_CLASS_TABLE_NAME = "Rival Crawler Classes";
+
+/**
+ * Where the generated table files inside the tables pack. The same path
+ * resolveTableFolderPath gives the Core Rulebook's own Rival Crawler tables
+ * (`Roll Tables > Core Rulebook > Rival Crawlers`), so the derived table sits
+ * with the book tables it is rolled alongside instead of loose at the root —
+ * which is where it landed, as the pack's only unfiled document.
+ */
+export const RIVAL_CLASS_TABLE_FOLDER = ["Roll Tables", "Core Rulebook", "Rival Crawlers"];
 export const RIVAL_CLASS_TABLE_KEY = "forgeLoot.rivalClassTable";
 export const RIVAL_CLASS_TABLE_VERSION = 1;
 

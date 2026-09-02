@@ -9,6 +9,7 @@
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
+  ensureFolderPath,
   ensureSuite,
   findSuitePack,
   replaceDocument,
@@ -17,6 +18,7 @@ import { collectClassReadiness } from "./class-readiness-adapter.mjs";
 import { valueFingerprint } from "./forge-loot-core.mjs";
 import { CLASS_INDEX_INVALIDATED_HOOK as CLASS_INDEX_HOOK } from "../importer/char-content/class-index.mjs";
 import {
+  RIVAL_CLASS_TABLE_FOLDER,
   RIVAL_CLASS_TABLE_WARNING,
   buildRivalClassTablePayload,
   isRivalClassTable,
@@ -167,9 +169,22 @@ function sourceFingerprintPayload(payload, sourceFingerprint) {
   };
 }
 
-function writeData(payload, existing) {
-  const folder = existing?.folder?.id ?? existing?.folder ?? null;
+function writeData(payload, existing, fallbackFolder = null) {
+  const folder = existing?.folder?.id ?? existing?.folder ?? fallbackFolder ?? null;
   return folder == null ? { ...payload } : { ...payload, folder };
+}
+
+/**
+ * The pack folder the generated table belongs in, resolved only when this call
+ * is about to write. Ensuring it up front would create the three-deep path on
+ * every hook fire, including the `unchanged` result that is the common case.
+ * Returns null for the pure-fake packs the unit tests supply (no folder API),
+ * which leaves the table unfiled exactly as before.
+ */
+async function rivalFolderId(pack) {
+  if (typeof pack?.folders?.find !== "function") return null;
+  try { return await ensureFolderPath(pack, RIVAL_CLASS_TABLE_FOLDER); }
+  catch (_error) { return null; }
 }
 
 function notifyManualEdit(message, notify = null) {
@@ -257,7 +272,9 @@ export async function regenerateRivalClassTable({
 
   if (!existing) {
     try {
-      const document = await createRollTable(writeData(payload), pack, RollTableClass);
+      const document = await createRollTable(
+        writeData(payload, null, await rivalFolderId(pack)), pack, RollTableClass,
+      );
       return resultSummary({
         status: "created", rowCount: winners.length, document,
         uuid: document?.uuid ?? null,
@@ -282,8 +299,10 @@ export async function regenerateRivalClassTable({
 
   const replacedManualEdits = !marker?.fingerprint || marker.fingerprint !== currentFingerprint;
   try {
+    // A table created before this filed itself has folder null; the fallback
+    // moves it home on the first content update rather than stranding it.
     const { doc: document, mode } = await replaceDocument(
-      existing, writeData(payload, existing), pack,
+      existing, writeData(payload, existing, await rivalFolderId(pack)), pack,
     );
     if (replacedManualEdits) notifyManualEdit(RIVAL_CLASS_TABLE_WARNING, notify);
     return resultSummary({

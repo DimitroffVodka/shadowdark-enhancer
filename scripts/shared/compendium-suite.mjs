@@ -53,8 +53,7 @@ export const SUITE_PACKS = [
   // world.class-abilties, …), so a fresh world recreates the identical
   // `world.<slug>` collection on import — keeping every cross-pack `@UUID`
   // reference (class→talent, spell→class, table→doc, ancestry→talent) valid.
-  // Empty structural packs (Languages, Patrons and Deities) are carried so the
-  // imported suite mirrors the source exactly.
+  // Languages is carried empty so the imported suite mirrors the source exactly.
   { key: "classes",        id: "classes",             type: "Item", label: "Classes",             charOption: true },
   { key: "talents",        id: "talents",             type: "Item", label: "Talents",             charOption: true },
   { key: "classAbilities", id: "class-abilties",      type: "Item", label: "Class Abilties",      charOption: true },
@@ -62,8 +61,21 @@ export const SUITE_PACKS = [
   { key: "backgrounds",    id: "background",          type: "Item", label: "Background",          charOption: true },
   { key: "ancestries",     id: "ancestries",          type: "Item", label: "Ancestries",          charOption: true },
   { key: "languages",      id: "languages",           type: "Item", label: "Languages",           charOption: true },
-  { key: "patronsDeities", id: "patrons-and-deities", type: "Item", label: "Patrons and Deities", charOption: true },
 ];
+
+/**
+ * Packs this module used to create and no longer does.
+ *
+ * `patrons-and-deities` mirrored the system pack of the same name, but nothing
+ * in this module ever wrote a Deity or Patron ITEM — the imported gods and
+ * patrons are ROLL TABLES, and they file under `Character Content > Patrons &
+ * Deities` in the tables pack. So the compendium sat permanently empty in the
+ * one place a GM would look for them, reporting the feature as missing (the
+ * same trap #74's retired Monster Spells pack sprang, from the other side).
+ *
+ * Retired only when still EMPTY: a GM who put something in one keeps it.
+ */
+const RETIRED_PACKS = ["patrons-and-deities"];
 
 /** Sidebar compendium folder label for the entire suite. */
 export const SUITE_FOLDER_LABEL = "Shadowdark Enhancer";
@@ -263,6 +275,21 @@ export async function ensureSuite() {
       } catch (_) {}
     }
     packs[desc.key] = pack;
+  }
+
+  for (const id of RETIRED_PACKS) {
+    // Same world-scoped, dot-qualified lookup findSuitePack uses — by iteration,
+    // not `game.packs.get`, so it holds for a retired descriptor.
+    const pack = [...(game.packs ?? [])].find(
+      (p) => p.metadata?.packageType === "world" && p.collection?.endsWith(`.${id}`)
+    );
+    if (!pack || typeof pack.deleteCompendium !== "function") continue;
+    try {
+      if ((await pack.getIndex()).size) continue;
+      await pack.deleteCompendium();
+    } catch (err) {
+      console.warn(`${MODULE_ID} | could not retire empty pack ${id}:`, err);
+    }
   }
 
   // Keyed by descriptor key — includes the original actors/items/tables/journal/

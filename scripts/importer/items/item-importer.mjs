@@ -697,8 +697,9 @@ const TYPE_TO_PACK_ID = {
   Background: "background",
   Class:      "classes",
   Spell:      "spells",
-  Deity:      "patrons-and-deities",
-  Patron:     "patrons-and-deities",
+  // No Deity/Patron row: the gods and patrons this module imports are ROLL
+  // TABLES (prayer generators, boon tables), never Items, so the pack they
+  // used to route to was retired empty. See RETIRED_PACKS in compendium-suite.
   Language:   "languages",
 };
 

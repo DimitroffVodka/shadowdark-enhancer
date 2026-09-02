@@ -166,16 +166,21 @@ grouping:
 | `background` | Background |
 | `ancestries` | Ancestries |
 | `languages` | Languages |
-| `patrons-and-deities` | Patrons and Deities |
 
 > **The odd ids and the `Class Abilties` spelling are deliberate.** These packs'
 > **labels slugify to their collection ids** (`Classes` → `world.classes`), so
 > importing a bundle into a fresh world recreates the identical `world.<slug>`
 > collection. That keeps every cross-pack `@UUID` reference valid:
 > class → talent, spell → class, table → document, ancestry → talent. Renaming
-> them to fix the typo would break links in every exported bundle. Two packs
-> (Languages, Patrons and Deities) are carried empty purely so an imported suite
-> mirrors its source exactly.
+> them to fix the typo would break links in every exported bundle. Languages is
+> carried empty purely so an imported suite mirrors its source exactly.
+
+> **`patrons-and-deities` was retired in v0.16.0.** Nothing here ever wrote a
+> Deity or Patron *item* — the gods and patrons this module imports are roll
+> tables, filed under `Character Content > Patrons & Deities` in the Roll Tables
+> pack. The compendium therefore sat permanently empty in the first place a GM
+> would look, reporting the feature as missing. An existing copy is deleted on
+> the next world load **only if it is still empty**.
 
 ## Source folders
 
