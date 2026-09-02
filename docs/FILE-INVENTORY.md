@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-910 tracked files · ~147,800 lines of code/markup across scripts+templates+styles+test.
+910 tracked files · ~147,900 lines of code/markup across scripts+templates+styles+test.
 `v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -63,7 +63,7 @@
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
 | `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
 | `curated-icons.mjs` | 477 | The one curated-icon resolver (A4), pure and Foundry-free. Six issue paths want a reviewed Foundry-native icon for an item this module imported or generated; rather than each growing its own name matching (as `core-monster-spell-icons.mjs` did for Monster Spells), they share this. TWO KEY SPACES, and the split is structural rather than stylistic: weapons, armor and basic gear key on `normalize(name)` alone, because `defaultItemImg` — the module's single automatic art-choice channel — cannot know which book a draft came from (source is a commit-time batch option threaded through `createItems`, reaching the document only afterwards as a flag), so a source-qualified gear key would be unresolvable at the one place gear art is chosen; treasure keys are `<sourceId>:<normalize(name)>` via `sourceKey`, because its names are book prose two Cursed Scrolls could both print. Map keys are DERIVED from display names, never hand-written beside them — the reviewed source spec drifted exactly that way — and map construction is TOTAL: a duplicate key, blank name or path that is not a native `icons/**.webp` drops that row into `problems` and leaves the item on its fallback, because throwing at load would take the module down over an icon. `auditCuratedIconRegistry` aggregates those for the test gate. Registration is BY IMPORT (`registerCuratedIconMap`) so the tickets owning the rows never edit one shared list. `isCuratedApplyTarget` is a `world.` allowlist, not a denylist: `LootLinker` resolves rows system-pack-first by design, so a plunder row's uuid routinely points into `shadowdark.gear`, and a materializer applying art to whatever it just resolved would edit the base system compendium. Unmatched returns null — never a guess, because a wrong curated icon looks deliberate. |
-| `curated-icon-maps/index.mjs` | 74 | Discovery point for the curated-icon maps (A4). Each reviewed map lives beside this file as its own module, publishes itself with `registerCuratedIconMap` at import time, and becomes reachable when this index side-effect-imports it. Loaded once from the module entry point so every consumer sees the same registry regardless of load order. A ticket adding a map creates ONE file and appends ONE import line, so two tickets never collide on a shared array literal. Carries the worked example and the four invariants the audit enforces: native `icons/**.webp` paths, keys derived from display names, bare-space names globally distinct across the weapon/armor/gear maps, and treasure rows qualified by book. The D1 weapon, D2 armor, D3 Basic Gear, D4 Sea Wolf Plunder, D5 Dead Bandit Loot, and D6 Diabolical Treasure maps are the active production registrations; an uncovered category remains on null lookup and its prior fallback/provenance behaviour. |
+| `curated-icon-maps/index.mjs` | 78 | Discovery point for the curated-icon maps (A4). Each reviewed map lives beside this file as its own module, publishes itself with `registerCuratedIconMap` at import time, and becomes reachable when this index side-effect-imports it. Loaded once from the module entry point so every consumer sees the same registry regardless of load order. A ticket adding a map creates ONE file and appends ONE import line, so two tickets never collide on a shared array literal. Carries the worked example and the four invariants the audit enforces: native `icons/**.webp` paths, keys derived from display names, bare-space names globally distinct across the weapon/armor/gear maps, and treasure rows qualified by book. The D1 weapon, D2 armor, D3 Basic Gear, D4 Sea Wolf Plunder, D5 Dead Bandit Loot, and D6 Diabolical Treasure maps are the active production registrations; an uncovered category remains on null lookup and its prior fallback/provenance behaviour. |
 | `curated-icon-maps/armor-icons.mjs` | 26 | The reviewed N3 armor map (D2): nine canonical armor names plus four deliberate mithral source-spelling aliases, registered through A4's bare normalized-name key space. Each alias shares its canonical armor's Foundry-native icon; category tests audit all 13 accepted rows against the real public/icons inventory and exercise A3 upgrade/preservation provenance. |
 | `curated-icon-maps/dead-bandit-loot-icons.mjs` | 39 | The N3 §5.3/D5 Dead Bandit loot map: exactly 20 CS2 p68 source-qualified canonical Item names and reviewed native Foundry `icons/**.webp` paths. Feature prose and optional terminal prices stay on the source TableResult rather than entering the art key. |
 | `curated-icon-maps/diabolical-treasure-icons.mjs` | 38 | The N3 §5.2/D6 Diabolical Treasure map: exactly 20 CS1 p68 source-qualified Item names and reviewed native Foundry `icons/**.webp` paths, registered through A4; feature text stays with the D6 materializer rather than the art key. |
@@ -262,7 +262,7 @@
 | `items/gear-parser.mjs` | 577 | Real Weapon/Armor stat parser (WR letter codes, treasure flags). Pure. |
 | `items/wr-property-importer.mjs` | 202 | Foundry-bound shared materializer for canonical Western Reaches Weapon Properties (siege Blast/Exploding and Lance Charge/Devastating/Mounted), with root migration, idempotent reuse and fail-closed preparation. |
 | `items/gear-join.mjs` | 257 | Joins split cost-table + description layouts into one item. Pure. |
-| `items/item-importer.mjs` | 1050 | Drafts → Items in `sde-items`, foldered by source. |
+| `items/item-importer.mjs` | 1068 | Drafts → Items in `sde-items`, foldered by source. |
 | `items/item-builder-app.mjs` | 386 | Guided multi-stage equipment-section workspace. |
 | `items/item-builder-gear.mjs` | 298 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
@@ -314,7 +314,7 @@
 | `steps/hp-step.mjs` | 123 | Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1). |
 | `steps/languages-step.mjs` | 131 | Step — Languages (runs after Class, so ancestry and class both contribute). |
 | `steps/origins-step.mjs` | 63 | Step — Origins: Background + Alignment + Deity on one tab. |
-| `steps/preview-step.mjs` | 318 | Step — Preview. Final character-sheet preview before creation. |
+| `steps/preview-step.mjs` | 324 | Step — Preview. Final character-sheet preview before creation. |
 | `steps/stats-step.mjs` | 362 | Step — Abilities. Roll or assign the six ability scores. |
 
 ### 3.15 `scripts/monster-art/`
