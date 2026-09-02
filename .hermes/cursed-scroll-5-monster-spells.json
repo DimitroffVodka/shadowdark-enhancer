@@ -1,8 +1,0 @@
-[
-  {"source":"Cursed Scroll 5","actor":"Librarian of Leng","spell":"Absorb","tier":2,"description":"Create an absorptive force barrier that halves incoming damage."},
-  {"source":"Cursed Scroll 5","actor":"Librarian of Leng","spell":"Eye of the Master","tier":1,"description":"Target one creature at far range with the master's supernatural eye."},
-  {"source":"Cursed Scroll 5","actor":"Librarian of Leng","spell":"Invoke Fear","tier":1,"description":"Prevent one nearby creature from moving close to the caster."},
-  {"source":"Cursed Scroll 5","actor":"Librarian of Leng","spell":"Mind Pierce","tier":1,"description":"Psychically pierce a distant creature, dealing damage and blinding it."},
-  {"source":"Cursed Scroll 5","actor":"Dremir","spell":"Impale","tier":1,"description":"Impale a distant target for damage."},
-  {"source":"Cursed Scroll 5","actor":"Dremir","spell":"Slow","tier":1,"description":"A nearby target moves at half speed for several rounds."}
-]
