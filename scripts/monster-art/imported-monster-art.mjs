@@ -75,9 +75,15 @@ const ROWS = [
     portrait: "modules/pf2e-tokens-monster-core/assets/portraits/sea-serpent.webp",
   },
   {
+    // `journal-art/`, not `portraits/`. Both files exist, but the Monster
+    // Manual's own token-mapping.json — which buildLibrary loads as this
+    // source's `present` map — names the journal-art copy, so that is the
+    // portrait the library offers. A row naming the other one is INERT: the
+    // token matched, the portrait did not, and _curatedImportedArtStatus needs
+    // both. It was the only row of the original sixteen that never applied.
     book: "CS3", name: "Werebear", source: "dnd-monster-manual",
     token: "modules/dnd-monster-manual/assets/tokens/werebear.webp",
-    portrait: "modules/dnd-monster-manual/assets/portraits/werebear.webp",
+    portrait: "modules/dnd-monster-manual/assets/journal-art/werebear.webp",
   },
   {
     book: "CS4", name: "Anaconda, Giant", source: "pf2e-tokens-monster-core",
