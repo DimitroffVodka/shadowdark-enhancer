@@ -19,9 +19,22 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 export const INVENTORY_MD = path.join(ROOT, "docs", "FILE-INVENTORY.md");
 export const DATA_JSON = path.join(ROOT, "tools", "inventory", "data.json");
 
-/** Tracked files (optionally matching a git pathspec), repo-relative, posix. */
+/**
+ * Files git would carry (optionally matching a pathspec), repo-relative, posix.
+ *
+ * `--others --exclude-standard` includes files that are NOT yet tracked but are
+ * not ignored either — the state a new file is in for the few seconds between
+ * writing it and `git add`. Without it there is a trap this repo fell into
+ * three times in one evening: run `npm run inventory`, commit the new module
+ * alongside the inventory, and the inventory it just wrote is already stale,
+ * because at generation time the file was invisible. `inventory:check` passes
+ * locally and CI fails on the pushed commit.
+ *
+ * `--deduplicate` because a path can be reported by more than one of these.
+ */
 export function trackedFiles(pathspec) {
-  const args = ["ls-files", ...(pathspec ? [pathspec] : [])];
+  const args = ["ls-files", "--cached", "--others", "--exclude-standard", "--deduplicate",
+    ...(pathspec ? [pathspec] : [])];
   return execFileSync("git", args, { cwd: ROOT, encoding: "utf8" })
     .split("\n")
     .filter(Boolean);
