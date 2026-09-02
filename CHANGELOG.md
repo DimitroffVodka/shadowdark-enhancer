@@ -2,168 +2,178 @@
 
 ## [0.16.0] — 2026-09-02
 
-The headline is art. Imported spells, monsters, mounts and characters arrive
-with pictures instead of placeholders, and the two places you pick art — the
-Character Builder's gallery and the Token Art Manager — were rebuilt around
-actually browsing thousands of images. Underneath that, the importer absorbed most of this release's
-bug fixes.
+Two things in this release you will feel immediately. You can import a whole
+book without clicking through it entry by entry, and the content you import
+arrives with pictures on it. Everything else is the importer getting quieter —
+about ninety fixes, most of them things that only ever went wrong once you had
+a real library in your world.
 
 ### Added
 
 #### Import everything
 
-*Importer Hub → Manage* has an **Import everything** button, and every folder
-in the tree has an **Import all N**. It drives the same unlock → grab → parse →
-create steps you would click yourself, in the same order, and hands back a
-report naming every row it could not do and why.
+There is a button on the Manage tree that imports the lot. Point the module at
+your PDFs, press it, and go do something else. Every folder has its own
+**Import all** if you would rather take one book at a time.
 
-Three rules it holds to, because nobody is watching it: nothing is overwritten
-(every conflict answers "keep what's there"), nothing broken is committed (a
-class that fails its quality gate is skipped and reported), and every row is
-accounted for. A row with no source PDF or no page citation is reported, never
-silently dropped.
+It does exactly what you would do by hand — find the cited pages, pull the
+text, parse it, check it, commit it — and then tells you what it could not
+manage. That report is the point. A row with no PDF behind it, or a class whose
+parse came out wrong, ends up on a list with a reason attached.
 
-#### The Character Builder's artwork gallery
+Three promises, since you are not watching it work:
 
-The Preview step has **Portrait from gallery** and **Token from gallery**
-buttons for everyone. Previously the gallery was only reachable as a fallback
-for players without file permissions, which meant the GM — the person most
-likely to have installed a portrait pack — could never see it.
+- **It never overwrites anything.** Every name collision keeps what you already
+  have, so running it twice over the same library creates nothing the second
+  time.
+- **It never commits a bad parse.** A class that fails its quality check stays
+  in the preview for you to look at rather than going into your packs broken.
+- **Nothing vanishes quietly.** Every row it skipped is on the report.
 
-- A left sidebar with a search box and multi-select tag chips. Chips combine
-  the way you would expect: any within a group, all across groups.
-- It opens filtered to the ancestry you picked, with the exact matches first.
-  A half-elf sees the portraits drawn as half-elves before the elven ones.
-- The window resizes, the grid scrolls inside it, and hovering a tile shows it
-  large.
-- One pick dresses both slots from the same character, filling the *other* slot
-  only when it is empty — so if you deliberately mix a portrait and a token,
-  that survives.
+#### Pictures for your imported content
 
-The gallery reads `flags.galleryDatasheets` from any module that publishes one.
-That is a convention rather than an integration: no module is required, and a
-world without one falls back to browsing the folders you configured.
+Import a spell list today and you get 107 spells wearing the same grey
+casting-hand. Every one of them now has art picked for what the spell actually
+does — which matters more than it sounds, because the names are no help at all.
+First Gate puts a creature to sleep, Second Gate silences one, Third Gate reads
+its memories.
 
-#### Standard Array and Point Buy (#151)
+The same goes for the rest of it: 37 weapons, 13 armours, 44 pieces of basic
+gear, and 60 treasure rows across three Cursed Scrolls.
 
-Two more ability methods in the existing setting, so they stay GM-dictated like
-the others. Standard Array is `15, 14, 13, 12, 10, 8`, assigned freely. Point
-Buy gives 27 points across scores 8–15, showing each score's cumulative cost
-and the budget you have left as you spend it.
+Art you chose yourself is left alone, permanently. The module marks its own
+picks as its own, and only ever replaces those.
+
+#### Token art for imported monsters
+
+73 reviewed picks covering the creatures you import from the Cursed Scrolls and
+Western Reaches. These were matched by reading each creature's description
+rather than its name, because Shadowdark's own inventions — Bezelak, Bogthorn,
+Dralech, Skandrill — look like nothing in any token pack when you go by name.
+
+A few are deliberately left grey. Death Slug and Wendel are slugs, and there is
+no slug art in any pack anyone has published. A wrong token would look finished;
+the placeholder at least looks unfinished.
+
+#### The Character Builder's art gallery
+
+There are now **Portrait from gallery** and **Token from gallery** buttons on
+the Preview step, and everyone can see them. Before this, the gallery only
+appeared for players who *lacked* file permissions — so the GM, who is the most
+likely person to have bought a portrait pack, never got offered it.
+
+- It opens showing your ancestry, with the closest matches first. Pick a
+  half-elf and you see the portraits drawn as half-elves before the elven ones.
+- A sidebar with a search box and filter chips, so a thousand pictures narrow to
+  a dozen.
+- Drag the window bigger. Hover a picture to see it properly.
+- One pick dresses both the portrait and the token from the same character. If
+  you have deliberately mixed two, that survives — it only fills the slot you
+  left empty.
+
+Any module can feed this gallery by publishing a `flags.galleryDatasheets`
+manifest. Nothing is required — with none installed you browse the folders you
+configured, as before.
+
+#### Rolling characters without rolling
+
+Standard Array and Point Buy, sitting beside the existing methods in the same
+setting — so whichever you pick still applies to the whole table.
+
+Standard Array hands out `15, 14, 13, 12, 10, 8` to place where you like. Point
+Buy gives you 27 points and scores from 8 to 15, showing what each step costs
+and what you have left as you spend it.
 
 #### Token Art Manager
 
-- **Three more art sources catalogued:** Pathfinder NPC Core, Shadowdark
-  Community Tokens, and Too Many Tokens. Art only has to be present on disk —
-  a module does not have to be enabled.
-- **Drag a row to reorder source priority.** The caret buttons remain for
-  keyboard use; they are no longer the only way to move a source down eight
-  places.
-- **Hover any thumbnail to enlarge it**, on the main list and inside Browse.
-- **The Source priority panel and the intro text fold away** and stay folded.
-- **73 reviewed art picks** for the creatures imported from Cursed Scroll and
-  Western Reaches. These were chosen from each creature's description rather
-  than its name, because most of them — Bezelak, Bogthorn, Dralech — match
-  nothing by name in any pack. A handful are deliberately left unmatched: there
-  is no slug art anywhere, so Death Slug and Wendel keep the placeholder rather
-  than get something wrong.
+- **Drag a source to reorder it.** Eight sources and a pair of 13-pixel arrows
+  was not a good trade.
+- **Hover any thumbnail** — on the monster list or in Browse — to see it big
+  enough to judge.
+- **Three more art packs recognised:** Pathfinder NPC Core, Shadowdark Community
+  Tokens, and Too Many Tokens. The art only has to be on disk; the module does
+  not have to be switched on.
+- **The source list and the help text fold away**, and stay folded.
 
-#### Curated icons
+#### And the rest
 
-Imported items and spells get Foundry-native icons chosen per name instead of a
-generic type default: 37 weapons, 13 armors, 44 basic gear entries, 60 treasure
-rows across three Cursed Scrolls, and 77 spells.
-
-The spell map is the clearest case — in a fully imported world, 77 of 107
-spells wore the same casting-hand image. Icons were picked from each spell's
-description rather than its name, since the names frequently do not describe
-the effect.
-
-Your own art is safe. Anything you assign by hand is stamped `custom` and never
-overwritten; the module's own picks upgrade on re-import when a map improves.
-
-#### Elsewhere
-
-- **Monster Spell Library** has its own compendium again instead of a folder
-  inside Items, and its automatic refresh is gated on the module version so it
-  runs once per upgrade rather than every load.
-- **Parry and Taunt** are automated for the Duelist.
-- **Treasure tables become real items** for Sea Wolf Plunder, Dead Bandit Loot
-  and Diabolical Treasure, the last kept behind identification.
-- **Mounts and boats import as actors**, with their own sheets.
-- **Cursed Scroll 3 Nord names** import as four component tables plus male and
-  female generators, instead of one four-column document.
-- **Named Browse folders** in the Token Art Manager, for token directories that
-  are not modules.
-- **Contextual checks and rolls** are enriched into imported monster text.
-- **Every managed item records its book** in `system.source.title`.
+- **Monster Spells have their own compendium again** instead of a folder buried
+  in Items, and the automatic refresh runs once per upgrade rather than every
+  time you load the world.
+- **Parry and Taunt work on their own** for the Duelist.
+- **Treasure tables produce real items** — Sea Wolf Plunder, Dead Bandit Loot,
+  and Diabolical Treasure, that last one still hidden until identified.
+- **Mounts and boats import as actors** with their own sheets.
+- **Cursed Scroll 3's Nord names** come in as four usable tables and two name
+  generators instead of one four-column lump.
+- **Point the Token Art Manager at your own folders**, not just at modules.
+- **Imported monster text gets its checks and rolls made clickable.**
+- **Every imported item remembers which book it came from.**
 
 ### Changed
 
-- Monster Spells moved out of the Items pack into their own compendium, and
-  existing copies migrate on world load with your edits preserved.
-- Loot rows resolve by exact or anchored alias rather than by containment. A
-  25 gp bottle of wine no longer resolves to the system's 1 gp empty `Bottle`.
-- Public API is `1.3.0` — additive: `loot.resolve` and `loot.generated`.
-- The Core Adventure Generator's supporting tables are grouped correctly in the
-  importer tree.
+- Monster Spells moved out of the Items pack. Existing ones migrate when you
+  load the world, and your edits come with them.
+- A loot row is matched as a name now, not by looking for a name inside it. A
+  25 gp bottle of wine used to resolve to the system's 1 gp empty bottle.
+- Public API is `1.3.0` — `loot.resolve` and `loot.generated` were added.
+- The Core Adventure Generator's tables sit in the right group in the importer.
 
 ### Fixed
 
 **Importer**
 
-- The last spell on a grabbed page range no longer swallows the pages after it (#155).
-- Age and Occupation import with their real shapes; Occupation is a `d4, d4` matrix.
-- The spell-list census no longer reports lists as imported when they are not.
-- Class re-import stops rewriting the talent table and titles with identical values.
-- A title band fixed in the preview no longer blocks Create.
-- Gear descriptions end at the next record start instead of running on (#69).
+- The last spell on a page range no longer eats the pages after it (#155).
+- Age and Occupation import with the right shape — Occupation is a `d4, d4` grid.
+- The importer stops reporting spell lists as imported when they are not.
+- Re-importing a class stops rewriting its talent table and titles with the same values.
+- Fixing a title band in the preview no longer blocks Create.
+- A gear description ends where the next item starts (#69).
 - Flask and Bottle are skipped as system duplicates; Candle and Miner's Putty get their real mechanics.
-- A currency row is refused even when it arrives alone.
-- Weapon properties written into descriptions survive a re-import instead of stacking.
-- Shared table names are qualified on creation rather than on collision.
-- Siege weapons read the p119 table; a seeded title line no longer costs it rows.
-- Concurrent treasure enrichment of one table is coalesced instead of doubling it.
-- NPC and Rival Crawler support tables are importable again after a grouping regression.
-- A batch run whose window was closed stops instead of throwing.
-- The batch closes the Spell Importer, Class Importer and Item Builder windows it opened.
+- A currency row is refused even when it turns up on its own.
+- Weapon properties in a description stop stacking up on re-import.
+- Two books printing the same table name no longer collide.
+- Siege weapons read the right page, and a seeded title line stops costing them rows.
+- Two treasure enrichments of one table at once no longer double it.
+- NPC and Rival Crawler support tables are importable again.
+- Closing the window mid-batch stops the run instead of throwing errors at it.
+- A batch closes the workspaces it opened, instead of leaving three stacked over the report.
 
 **Character Builder**
 
-- The gallery buttons were registered as actions — they rendered and did nothing.
-- The gallery sidebar is readable: it now inherits the builder's fonts and colours.
-- The search box stays pinned while the tag groups scroll.
+- The gallery buttons do something when clicked — they rendered and did nothing.
+- The gallery sidebar is legible; it was inheriting a serif from outside the builder.
+- The search box stays put while the filters scroll.
 
-**Token art and monsters**
+**Token art**
 
-- Curated art rows resolve as options, so reviewed art shows as curated rather than unavailable.
-- The Werebear row points at the portrait the library actually offers.
-- The hover preview is anchored to the window rather than chasing the pointer.
-- The manager header no longer squeezes its own intro text into a narrow column.
-- Legacy monster backfill is retry-safe and visits actors in a stable order (#132).
-- Encounter monsters and loot table results reference `documentUuid`, not removed id fields.
+- Reviewed art shows as reviewed, rather than reporting itself unavailable.
+- The Werebear picks up the portrait that actually exists.
+- The hover preview stays in one place instead of chasing the pointer off screen.
+- The manager's header stops squeezing its own text into a narrow column.
+- Monster backfill is safe to re-run and works through actors in a fixed order (#132).
+- Encounters and loot tables reference documents the way Foundry v14 expects.
 
 **Elsewhere**
 
-- The module no longer reads the deprecated `TableResult#text`, which flooded the console with 718 warnings (#148).
-- An uncovered roll is refused instead of substituting a neighbouring row (#136).
-- An empty mirrored `changes` array no longer erases a populated one.
-- Boat sheet descriptions have readable contrast.
-- Bundle import restores older Monster Spells payloads instead of dropping them.
+- 718 deprecation warnings a session are gone (#148).
+- An uncovered roll is refused instead of quietly returning a neighbouring row (#136).
+- An empty effect list stops wiping a populated one.
+- Boat sheets are readable.
+- Importing an older bundle keeps its Monster Spells instead of dropping them.
 
 ### Removed
 
-- **Forge & Loot is hidden.** Both generators it hosted were placeholders that
-  rendered as live buttons and refused when clicked. It remains reachable at
-  `game.shadowdarkEnhancer.forgeLoot.open()` for development.
-- **The Rival Crawler party generator was reverted.** It required 24 supporting
-  tables no importer group offered, so it was permanently disabled with no
-  explanation in any world that had not imported them. Preserved on the
-  `rival-crawlers-shelved` branch.
-- **The `patrons-and-deities` and `languages` packs are retired.** Nothing ever
-  wrote to them — gods and patrons import as roll tables, and languages link to
-  the system's own items. An empty copy is deleted on world load; one with
-  content in it is left alone.
+- **Forge & Loot is hidden.** Both its generators were placeholders that looked
+  like working buttons and refused when clicked. Still reachable from the
+  console at `game.shadowdarkEnhancer.forgeLoot.open()`.
+- **The Rival Crawler party generator is gone for now.** It needed 24 supporting
+  tables that no importer group offered, so in most worlds it sat permanently
+  disabled without explaining why. Kept on the `rival-crawlers-shelved` branch.
+- **Two empty compendiums retired.** Nothing ever wrote to `patrons-and-deities`
+  or `languages` — gods and patrons arrive as roll tables, and languages point
+  at the system's own. An empty one is removed when you load the world; one you
+  have put something in is left alone.
 
 ## [0.15.1] — 2026-08-26
 

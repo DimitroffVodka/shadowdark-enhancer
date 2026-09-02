@@ -150,7 +150,7 @@ native items for these, the importer places them into the item's
 **description** and notes them in the preview.
 
 You can paste rule text into the description; re-imports preserve your edits.
-See [Importer Hub](Importer-Hub.md#after-a-commit-automatically).
+See [Importer Hub](Importer-Hub.md#what-happens-after-you-commit).
 
 ### A table parsed into nonsense
 
