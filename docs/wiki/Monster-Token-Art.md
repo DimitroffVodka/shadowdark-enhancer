@@ -39,10 +39,12 @@ isn't listed. Recognised out of the box:
 | **Monster Manual** | `modules/dnd-monster-manual`, including its dynamic ring and per-token scale |
 | **Player's Handbook** | `modules/dnd-players-handbook` |
 | **Pathfinder: Monster Core** | `modules/pf2e-tokens-monster-core` |
+| **Pathfinder Tokens: NPC Core** | `modules/pf2e-tokens-npc-core`, humanoid townsfolk/soldier/cultist art with mapped scale and dynamic ring support |
 | **Pathfinder: Character Gallery** | `modules/pf2e-tokens-characters`, including token, portrait, and subject art with mapped scale and dynamic ring support |
-| **Any other `pf2e-tokens-*` module** | Auto-added, including the pf2e **iconic** PC/companion portraits |
+| **Shadowdark Community Tokens** | `modules/shadowdark-community-tokens`, including both `artwork/` and `monster24/` token trees |
+| **Too Many Tokens** | `modules/too-many-tokens-dnd`, 16,000+ token images available in Browse |
 | **Forgotten Adventures** | `systems/dnd5e/tokens`, the set bundled with the dnd5e system |
-| **Community Tokens** | `modules/shadowdark-community-tokens` |
+| **Any other `pf2e-tokens-*` module** | Auto-added, including the pf2e **iconic** PC/companion portraits |
 
 The art module needs to be **installed**, not necessarily **enabled**. Art is
 read from disk.
@@ -81,6 +83,11 @@ Shadowdark-original creatures with no D&D counterpart are pinned to Community ar
 ### Source priority
 
 **Drag the sources into the order you want.** The first source with a match wins.
+The caret buttons remain available for keyboard reordering.
+
+Both the **Source priority** panel and the **How this works** intro blurb fold
+away into collapsible `<details>` panels and remember their open or closed state
+across re-renders.
 
 ### Per-monster override
 
@@ -132,13 +139,20 @@ under Foundry's `Data/` directory as named Browse folders.
      How: Monster Art -> Browse on any monster; screenshot the image grid. -->
 
 **Browse** on any monster opens a searchable grid of *every* installed token
-across all sources, typically 2,000+ files. It is:
+across all sources, typically 2,000+ files (or 19,000+ with large packs like Too
+Many Tokens). It is:
 
 - **grouped by source** with sticky headers,
 - **zoomable**: slider, `Ctrl`+scroll, `Ctrl` `+`/`-`, `Ctrl 0` to reset,
 - **filterable as you type**.
 
 This is how you skin a monster whose name matches nothing.
+
+### Hover preview
+
+Hovering any token thumbnail on the main monster list or in Browse pops up an
+enlarged 340px preview anchored to the window and clamped into the viewport,
+making it easy to compare candidate art at a glance.
 
 ### Applying
 
@@ -163,8 +177,8 @@ through the [Importer Hub](Importer-Hub.md) can carry token art just like the
 base bestiary.
 
 - **Census and Actor types**: The managed Enhancer Actor pack (`world.shadowdark-enhancer--actors` / `sde-actors`) admits imported NPCs and mount documents (`Mount` and `shadowdark-enhancer.mount`) into the Token Art Manager catalog and compendium mapping. Boats, Core mounts, loose world Actors, source packs, and third-party packs remain strictly excluded.
-- **Curated imported art (F4)**: Token Art Manager's **Apply** applies 16 exact, source-qualified reviewed art picks for managed imported NPCs and mounts (such as Western Reaches mounts and Cursed Scroll creatures). Curated paths carry `origin: "curated"` and are recorded in the manager's `managedPaths` witness ledger.
-- **Reviewed-unmatched rows stay Browse-only**: The remaining 63 reviewed imported identities remain Browse-visible and are deliberately left unmapped by default—even if installed sources provide fuzzy candidate matches (for example, generic `bat.webp` is suppressed for *Tar Bat* and *Void Bat*). No fuzzy inference or bare-name guessing is performed on reviewed imported rows.
+- **Curated imported art**: Token Art Manager's **Apply** applies 73 exact, source-qualified reviewed art picks for managed imported NPCs and mounts (such as Western Reaches mounts, Cursed Scroll creatures, and Catfish, Giant). Curated paths carry `origin: "curated"` and are recorded in the manager's `managedPaths` witness ledger.
+- **Reviewed-unmatched rows stay Browse-only**: 10 reviewed imported identities are deliberately left unmapped — *Death Slug* and *Wendel*, for instance, are slugs, and no slug art exists in any catalogued source. They stay visible in Browse so you can pick something yourself, and no bare-name guess is made on their behalf.
 - **Precedence**: Later manual GM picks and explicit source overrides always take precedence over curated picks. A reviewed-unmatched or unavailable-path row escapes suppression only via a concrete manual pick or an explicit source override that actually has a valid option present in that row; an invalid or missing override suppresses automatic fallback and will not fall through to fuzzy art.
 - **Same-name monster isolation**: CS2 and WR same-name creatures (such as CS2 and WR *Horse, War*) are tracked with distinct source-qualified identities (`<SRC>:<name>`) and document IDs, ensuring independent art mapping and zero cross-book collisions.
 - **Placed-token resolution**: Re-skinning placed scene tokens by name (`resolveByName`) resolves same-name clashes with a Core-first tiebreak when both have art, falling back to the imported pick when Core has no art configured.

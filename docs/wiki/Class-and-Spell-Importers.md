@@ -80,6 +80,13 @@ Spells / <Class> (<Variant>)
 with Wizard variants being **Druid**, **Mage**, and **Sorcerer**. There are no
 per-tier folders, because tier is a field, not a folder.
 
+### Curated spell icons
+
+Imported spells receive reviewed per-spell Foundry-native icons instead of one
+shared casting hand, chosen from each spell's description rather than its name
+(the map is `scripts/shared/curated-icon-maps/spell-icons.mjs`). Unmapped spells
+fall through to keyword-based icon selection.
+
 ### Own-list casters vs borrowed-list casters
 
 Homebrew and Western Reaches casters divide into two kinds, and which one you

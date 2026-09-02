@@ -42,9 +42,12 @@ to players, who cannot change it in the builder.
 | `3d6`, assign as you like | Roll a visible pool, place each die |
 | `4d6` drop lowest, down the line | |
 | `4d6` drop lowest, assign as you like | |
+| **Standard Array** | Fixed pool `15, 14, 13, 12, 10, 8`, assign as you like |
+| **Point Buy** | 27 points to spend across scores 8–15 (costs: 8:0, 9:1, 10:2, 11:3, 12:4, 13:5, 14:7, 15:9) |
 
-Assign methods roll a **visible dice pool**. Click a die, then click a stat to
-place it.
+Assign methods roll a **visible dice pool** (or provide the fixed standard array). Click a die or value, then click a stat to place it.
+
+Point Buy starts each score at 8 and lets you adjust abilities up to 15 within the 27-point budget.
 
 **Every roll posts a chat card** as an audit trail, so nobody has to take a
 player's word for a 17. The 3D Dice So Nice animation is off by default and can
@@ -109,7 +112,7 @@ list.
 
 A read-only summary of every choice, plus an **Artwork** card.
 
-#### Four ways to set art
+#### Ways to set art
 
 Ordered by how much permission they need:
 
@@ -117,28 +120,25 @@ Ordered by how much permission they need:
 |---|---|
 | **Use Suggested Art**, the bundled class/ancestry portrait, one click | **None** |
 | **From URL…**, paste a link to any image | **None**, and no GM required |
-| **Curated gallery**, pick from a GM-nominated folder | **None**. The browse runs on the GM's client |
+| **Portrait from gallery / Token from gallery**, pick from the artwork browser | **None**. The browse runs on the GM's client |
 | **File browser**, the normal Foundry picker | `FILES_BROWSE` |
 
 Art is optional. Leave it and the system defaults stand.
 
+#### The artwork gallery
+
+- **Reachable for everyone:** Two dedicated buttons — **Portrait from gallery** and **Token from gallery** — sit on the Preview step for everyone, alongside the standard file browser. Players without file permissions are also routed to the gallery automatically.
+- **Matched pairs and empty-slot autofill:** Each gallery entry represents a character with a matching portrait and token. Picking an artwork fills both portrait and token from that artwork automatically if the other slot is empty. If a slot already holds art, picking art updates only that slot and preserves your deliberate mismatch. Clicking **Reset art** empties both, making paired selection available again.
+- **Search and facet filters:** A 220px left sidebar pins the search box and result count above collapsible tag groups. Tag chips support multi-select filtering: **ANY** within a tag group, and **ALL** across groups (e.g. Kobold + Dwarf combined with Category chips).
+- **Ancestry-aware default:** The gallery opens pre-filtered to the character's chosen ancestry. Derived ancestries (such as Half-Elf or Half-Orc) list exact half-ancestry artwork first before related parent ancestry art.
+- **Resizable window and hover preview:** The dialog window is resizable, with the grid scrolling inside it. Hovering any tile enlarges it into a 320px floating preview beside the grid.
+- **Datasheet convention:** The gallery reads `flags.galleryDatasheets` manifests from **any** active module that publishes one. This is a convention, not a hard integration: no specific module is required, and a world without datasheets falls back to plain folder browsing of the configured directories.
+
 The gallery folders are set by **Character Builder — portrait/token art folders**
 (comma-separated). It defaults to the module's own bundled portrait art
 (`assets/portraits, assets/ancestries`), so it works with nothing else installed.
-Add your own folders (e.g. Tokenizer's save locations) to the list.
-
-When the gallery is enabled, character portraits from the optional **Pathfinder
-Tokens: Character Gallery** module (`modules/pf2e-tokens-characters/assets/portraits`)
-are automatically discovered and merged into the picker if installed.
-
-- **Blank disables the gallery:** Leaving the setting blank remains the explicit
-  switch to disable the curated gallery entirely.
-- **Permissionless player access:** Players do not need `FILES_BROWSE` permissions.
-  The browse runs on the active GM's client via the `shadowdark-enhancer.browseArt` query,
-  returning the pre-filtered image list.
-- **Safe absence fallback:** Missing folders or an unreadable/absent Pathfinder
-  module directory are caught and skipped silently without dropping custom or
-  bundled gallery results.
+Add your own folders (e.g. Tokenizer's save locations) to the list. Leaving the
+setting blank disables the gallery entirely.
 
 **Finish** commits through the system's own creation path: ancestry, class,
 background and deity are stored as references, while talents, abilities, spells

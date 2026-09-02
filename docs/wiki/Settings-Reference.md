@@ -210,8 +210,8 @@ See [Monster Level Guidelines](Monster-Level-Guidelines.md).
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated. Players roll with whatever is set here and cannot change it. Options: *3d6 Down the Line* · *3d6, Reroll if None ≥ 14* · *3d6, Assign as You Like* · *4d6 Drop Lowest, Down the Line* · *4d6 Drop Lowest, Assign as You Like*. |
-| **Portrait/token art folders** | the module's own `assets/portraits, assets/ancestries` | Comma-separated folders offered to players as a gallery on the Preview step. **The browse runs on the GM's client**, so players need no file permissions and see only these folders. When enabled, installed portraits from *Pathfinder Tokens: Character Gallery* are automatically included. Add your own (e.g. Tokenizer's save locations). Missing folders are skipped. Blank disables it. |
+| **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated. Players roll with whatever is set here and cannot change it. Options: *3d6 Down the Line* · *3d6, Reroll if None ≥ 14* · *3d6, Assign as You Like* · *4d6 Drop Lowest, Down the Line* · *4d6 Drop Lowest, Assign as You Like* · *Standard Array* (15, 14, 13, 12, 10, 8) · *Point Buy* (27 points, scores 8–15). |
+| **Portrait/token art folders** | the module's own `assets/portraits, assets/ancestries` | Comma-separated folders offered to players as a gallery on the Preview step. **The browse runs on the GM's client**, so players need no file permissions and see only these folders. When enabled, gallery datasheets from any module publishing `flags.galleryDatasheets` (such as *Pathfinder Tokens: Character Gallery*) are automatically discovered. Add your own (e.g. Tokenizer's save locations). Missing folders are skipped. Blank disables it. |
 | **Animate dice (Dice So Nice)** | off | Play the 3D animation for ability, HP, and gold rolls. **The audit chat card posts either way**, and this only adds the dice. |
 | **Max Level-1 HP** | off | Set Level-1 HP to hit-die maximum + CON instead of rolling. |
 | **Fixed starting gold (gp)** | `0` | A fixed amount. `0` rolls the standard `2d6 × 5 gp`. |
