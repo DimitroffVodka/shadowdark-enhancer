@@ -181,6 +181,8 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
       conflicts._sdeWired = true;
       conflicts.addEventListener("change", () => { this._conflictsOnly = conflicts.checked; this._applyFilter(); });
     }
+    this._wireSourceDrag(root);
+
     // Remember whether the Source priority panel is folded. `<details>` gives
     // the disclosure for free, but its open state dies with the markup, and
     // this body re-renders on every reorder — so record it and let
@@ -398,6 +400,78 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     return true;
   }
 
+  /**
+   * Drag a source to reorder the priority list.
+   *
+   * Native HTML5 drag and drop, not a library and not Foundry's DragDrop: the
+   * whole interaction is one list reordering itself, and `draggable` plus three
+   * listeners covers it. The caret buttons stay — dragging is unavailable to
+   * anyone working by keyboard, and they are the accessible path — but they are
+   * no longer the ONLY way to move a row, which is what made an eight-source
+   * list tedious.
+   *
+   * The new order is read from the DOM rather than recomputed, because the
+   * rendered order IS the priority order; that keeps this independent of the
+   * cached catalog and of how far the list has drifted from it.
+   */
+  _wireSourceDrag(root) {
+    const list = root.querySelector("details.sde-tam-sources");
+    if (!list || list._sdeDrag) return;
+    list._sdeDrag = true;
+    const rows = () => [...list.querySelectorAll(".sde-tam-source")];
+    const clear = () => { for (const el of rows()) el.classList.remove("is-dragging", "drop-before", "drop-after"); };
+    let dragId = null;
+
+    list.addEventListener("dragstart", (event) => {
+      const row = event.target.closest?.(".sde-tam-source");
+      if (!row) return;
+      dragId = row.dataset.source;
+      row.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      // Firefox refuses to start a drag with no payload, whatever the payload is.
+      event.dataTransfer.setData("text/plain", dragId);
+    });
+
+    list.addEventListener("dragover", (event) => {
+      const row = event.target.closest?.(".sde-tam-source");
+      if (!dragId || !row || row.dataset.source === dragId) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+      const box = row.getBoundingClientRect();
+      const after = event.clientY > box.top + box.height / 2;
+      for (const el of rows()) el.classList.remove("drop-before", "drop-after");
+      row.classList.add(after ? "drop-after" : "drop-before");
+    });
+
+    list.addEventListener("drop", async (event) => {
+      const row = event.target.closest?.(".sde-tam-source");
+      if (!dragId || !row || row.dataset.source === dragId) { clear(); dragId = null; return; }
+      event.preventDefault();
+      const box = row.getBoundingClientRect();
+      const after = event.clientY > box.top + box.height / 2;
+      const order = rows().map((el) => el.dataset.source).filter(Boolean);
+      const from = order.indexOf(dragId);
+      if (from < 0) { clear(); dragId = null; return; }
+      order.splice(from, 1);
+      const to = order.indexOf(row.dataset.source) + (after ? 1 : 0);
+      order.splice(to, 0, dragId);
+      clear();
+      dragId = null;
+      await this._applySourceOrder(order);
+    });
+
+    list.addEventListener("dragend", () => { clear(); dragId = null; });
+  }
+
+  /** Persist a source order and show it without waiting for a rebuild. */
+  async _applySourceOrder(order) {
+    await this._saveState({ priority: order });
+    // Re-sort the cached catalog so resolve()/display reflect the new priority
+    // immediately — otherwise the change only shows after a close/reopen.
+    if (this._catalog) TokenArtCatalog.reorder(this._catalog, order);
+    this.render({ parts: ["body"] });
+  }
+
   static async _onSourceMove(event, target) {
     const id = target.dataset.source;
     const dir = target.dataset.action === "sourceUp" ? -1 : 1;
@@ -407,11 +481,7 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
     const j = i + dir;
     if (i < 0 || j < 0 || j >= order.length) return;
     [order[i], order[j]] = [order[j], order[i]];
-    await this._saveState({ priority: order });
-    // Re-sort the cached catalog so resolve()/display reflect the new priority
-    // immediately — otherwise the change only shows after a close/reopen rebuild.
-    TokenArtCatalog.reorder(cat, order);
-    this.render({ parts: ["body"] });
+    await this._applySourceOrder(order);
   }
 
   static async _onChoose(event, target) {

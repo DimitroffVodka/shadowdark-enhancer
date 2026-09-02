@@ -9381,9 +9381,18 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 /* Closed, the panel is one line: drop the padding that assumed a list under it. */
 .sde-tam-sources:not([open]) { padding-bottom: 6px; }
 .sde-tam-sources:not([open]) .sde-tam-sources-title { margin-bottom: 0; }
-.sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 1px 0; }
+/* Draggable rows. The carets remain for keyboard use; dragging is the fast
+   path, and the row is the drag handle so there is no 13px target to hit. */
+.sde-tam-source { display: flex; align-items: center; gap: 8px; padding: 2px 0; cursor: grab; border-radius: 3px; }
+.sde-tam-source:hover { background: rgba(201,170,88,0.08); }
+.sde-tam-source.is-dragging { opacity: 0.4; cursor: grabbing; }
+.sde-tam-source.drop-before { box-shadow: inset 0 2px 0 var(--sde-gold, #c9aa58); }
+.sde-tam-source.drop-after { box-shadow: inset 0 -2px 0 var(--sde-gold, #c9aa58); }
+.sde-tam-grip { flex: 0 0 auto; opacity: 0.35; font-size: 11px; }
+.sde-tam-source:hover .sde-tam-grip { opacity: 0.8; color: var(--sde-gold, #c9aa58); }
 .sde-tam-rank { display: flex; flex-direction: column; gap: 1px; }
-.sde-tam-rank button { width: 20px; height: 13px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 11px; }
+/* Was 20x13 — too small to hit reliably, which is what drag now solves. */
+.sde-tam-rank button { width: 22px; height: 16px; min-height: 0; flex: 0 0 auto; line-height: 1; padding: 0; margin: 0; border: none; background: transparent; cursor: pointer; opacity: 0.75; font-size: 12px; }
 .sde-tam-rank button:hover:not(:disabled) { opacity: 1; color: var(--sde-gold, #c9aa58); }
 .sde-tam-rank button:disabled { opacity: 0.2; cursor: default; }
 .sde-tam-source-name { flex: 1; font-weight: 600; }

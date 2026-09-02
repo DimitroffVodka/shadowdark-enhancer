@@ -51,7 +51,8 @@
       <span class="sde-tam-dim">· {{sourceCount}} sources · highest wins where a monster has art in more than one</span>
     </summary>
     {{#each sources}}
-    <div class="sde-tam-source">
+    <div class="sde-tam-source" draggable="true" data-source="{{id}}" title="Drag to reorder">
+      <i class="fa-solid fa-grip-vertical sde-tam-grip" aria-hidden="true"></i>
       <div class="sde-tam-rank">
         <button type="button" data-action="sourceUp" data-source="{{id}}" {{#if isFirst}}disabled{{/if}} title="Higher priority"><i class="fa-solid fa-caret-up"></i></button>
         <button type="button" data-action="sourceDown" data-source="{{id}}" {{#if isLast}}disabled{{/if}} title="Lower priority"><i class="fa-solid fa-caret-down"></i></button>
