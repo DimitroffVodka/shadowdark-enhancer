@@ -292,7 +292,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `char-builder-app.mjs` | 277 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
+| `char-builder-app.mjs` | 279 | `ShadowdarkCharBuilder` ApplicationV2 shell; drives the step lifecycle. |
 | `state.mjs` | 70 | `CharBuilderState` — the in-progress character. |
 | `constants.mjs` | 166 | Shared constants; hands off to the system's `CharacterGeneratorSD`. |
 | `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |

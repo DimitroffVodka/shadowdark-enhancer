@@ -87,6 +87,8 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
       "cb-roll-gold": ShadowdarkCharBuilder._onStepAction,
       "cb-art-portrait": ShadowdarkCharBuilder._onStepAction,
       "cb-art-token": ShadowdarkCharBuilder._onStepAction,
+      "cb-gallery-portrait": ShadowdarkCharBuilder._onStepAction,
+      "cb-gallery-token": ShadowdarkCharBuilder._onStepAction,
       "cb-art-suggest": ShadowdarkCharBuilder._onStepAction,
       "cb-art-url": ShadowdarkCharBuilder._onStepAction,
       "cb-art-clear": ShadowdarkCharBuilder._onStepAction,
