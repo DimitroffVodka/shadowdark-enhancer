@@ -16,6 +16,7 @@
  * the workspace UI + state.
  */
 import { spellRecognizer } from "./spell-parser.mjs";
+import { joinPageTexts } from "../pdf-text-utils.mjs";
 import { SPELL_LISTS, CHAR_SOURCES, spellListWriteupRange } from "../char-content/char-content-manifest.mjs";
 import { sourcePdfHref } from "../source-pdf-registry.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
@@ -258,7 +259,11 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       }
       kept.push(pageText);
     }
-    const text = kept.join("\n").trim();
+    // Through the shared joiner, never a hand-rolled one: this path rebuilds the
+    // text from `pages[].lines` to trim the window, and joining with a single
+    // "\n" erased the page boundary splitRawBlocks splits on — leaving the last
+    // spell on the last page with nothing to end it (#155).
+    const text = joinPageTexts(kept);
     if (!text) return false;
 
     const base = (this._pasteText || "").replace(/\s*$/, "");

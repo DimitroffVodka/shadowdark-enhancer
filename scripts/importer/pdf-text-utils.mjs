@@ -124,6 +124,23 @@ export function dehyphenateWrappedWords(s) {
  * @param {string} rawText
  * @returns {string[]}
  */
+/**
+ * Join per-page texts the way extractPdfText builds its own `.text`: a BLANK
+ * line between pages.
+ *
+ * Any caller that rebuilds text from `pages[].lines` — to trim a grabbed window,
+ * say — must join through here. A single "\n" erases the page boundary, which is
+ * exactly the boundary splitRawBlocks splits on, and the last record on the last
+ * page then has nothing to end it: #155 glued four pages of mishap tables onto
+ * the last spell's description because of one missing newline.
+ *
+ * @param {string[]} pageTexts
+ * @returns {string}
+ */
+export function joinPageTexts(pageTexts) {
+  return (pageTexts ?? []).map((t) => String(t ?? "")).join("\n\n").trim();
+}
+
 export function splitRawBlocks(rawText) {
   const lines = normalizeText(String(rawText ?? "").replace(/\r\n?/g, "\n")).split("\n");
   const blocks = [];
