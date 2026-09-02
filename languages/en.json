@@ -114,6 +114,7 @@
   "SDE.charBuilder.art.gallerySearch": "Search artwork…",
   "SDE.charBuilder.art.galleryAnyFacet": "Any {facet}",
   "SDE.charBuilder.art.galleryAnyAncestry": "Any ancestry",
+  "SDE.charBuilder.art.galleryReset": "Reset filters",
   "SDE.charBuilder.art.galleryCount": "{shown} of {total}",
   "SDE.charBuilder.art.galleryEmpty": "No images found in the gallery folders ({folder}). Ask your GM to check the Character Builder art folder setting.",
   "SDE.charBuilder.art.galleryNoGm": "No GM is online, so the art gallery cannot be loaded. Try again when your GM connects.",

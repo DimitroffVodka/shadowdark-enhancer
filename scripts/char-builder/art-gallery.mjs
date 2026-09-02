@@ -309,33 +309,50 @@ function galleryFacets(entries) {
     .sort(([a], [b]) => a.localeCompare(b));
 }
 
-/** Wire the search box and facet selects to show/hide tiles. Pure DOM, no re-render. */
+/**
+ * Wire the sidebar to show/hide tiles. Pure DOM, no re-render.
+ *
+ * Chips are multi-select, and the two levels combine the way a facet browser is
+ * expected to: ANY within a group (humanoid OR beast), ALL across groups
+ * (humanoid AND sword). One delegated listener on the sidebar rather than one
+ * per chip.
+ */
 function installGalleryFilter(root, onCount) {
+  const side = root.querySelector(".sde-cb-gallery-side");
   const grid = root.querySelector(".sde-cb-gallery");
   const search = root.querySelector(".sde-cb-gallery-search");
-  const ancestry = root.querySelector(".sde-cb-gallery-ancestry");
-  const selects = [...root.querySelectorAll("[data-facet]")];
+  const chips = [...side.querySelectorAll(".sde-cb-chip")];
   const tiles = [...grid.querySelectorAll(".sde-cb-gallery-item")];
 
   const apply = () => {
     const needle = (search?.value ?? "").trim().toLowerCase();
-    const wanted = selects
-      .filter((s) => s.value)
-      .map((s) => `${s.dataset.facet}:${s.value}`);
-    // One ancestry can be depicted by several tags (a half-elf is an aiuvarin
-    // OR an elf), so this one control is an ANY test, not an all test.
-    const anyOf = (ancestry?.selectedOptions?.[0]?.dataset.tags ?? "").split(" ").filter(Boolean);
-    // A derived ancestry lists its EXACT matches first: a half-elf's 30 aiuvarin
-    // portraits ahead of the 77 general elf ones it also borrows. ANCESTRY_TAGS
-    // puts the specific tag first, so that is the one to promote. Done with CSS
-    // `order` rather than by moving nodes — same-order items keep document
-    // order, so each group stays alphabetical and nothing reflows the grid.
-    const primary = anyOf.length > 1 ? anyOf[0] : null;
+    // group → the union of every active chip's tags in that group.
+    const active = new Map();
+    for (const chip of chips) {
+      if (!chip.classList.contains("active")) continue;
+      const group = chip.dataset.group;
+      const tags = active.get(group) ?? [];
+      tags.push(...chip.dataset.tags.split(" ").filter(Boolean));
+      active.set(group, tags);
+    }
+    // A derived ancestry lists its EXACT matches first: a half-elf's 32 aiuvarin
+    // portraits ahead of the 75 general elf ones it also borrows. ANCESTRY_TAGS
+    // puts the specific tag first, so that is the one to promote — but only when
+    // exactly one ancestry is picked, since two selections have no single
+    // "exact". Done with CSS `order` rather than by moving nodes: same-order
+    // items keep document order, so each group stays alphabetical.
+    const picked = chips.filter((c) => c.classList.contains("active") && c.dataset.group === "ancestry");
+    const primary = picked.length === 1 && picked[0].dataset.tags.includes(" ")
+      ? picked[0].dataset.tags.split(" ")[0] : null;
+
     let shown = 0;
     for (const tile of tiles) {
-      const hit = (!needle || tile.dataset.search.includes(needle))
-        && wanted.every((w) => tile.dataset.tags.includes(` ${w} `))
-        && (!anyOf.length || anyOf.some((t) => tile.dataset.tags.includes(` ancestry:${t} `)));
+      let hit = !needle || tile.dataset.search.includes(needle);
+      if (hit) {
+        for (const [group, tags] of active) {
+          if (!tags.some((t) => tile.dataset.tags.includes(` ${group}:${t} `))) { hit = false; break; }
+        }
+      }
       tile.hidden = !hit;
       if (hit) shown++;
       const order = primary && tile.dataset.tags.includes(` ancestry:${primary} `) ? "-1" : "";
@@ -345,8 +362,20 @@ function installGalleryFilter(root, onCount) {
   };
 
   search?.addEventListener("input", apply);
-  ancestry?.addEventListener("change", apply);
-  for (const s of selects) s.addEventListener("change", apply);
+  side.addEventListener("click", (event) => {
+    const chip = event.target.closest?.(".sde-cb-chip");
+    if (chip) {
+      chip.classList.toggle("active");
+      chip.setAttribute("aria-pressed", chip.classList.contains("active") ? "true" : "false");
+      apply();
+      return;
+    }
+    if (event.target.closest?.(".sde-cb-gallery-reset")) {
+      for (const c of chips) { c.classList.remove("active"); c.setAttribute("aria-pressed", "false"); }
+      if (search) search.value = "";
+      apply();
+    }
+  });
   apply();
 }
 
@@ -437,28 +466,44 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
     </button>`;
   }).join("");
 
-  const selects = facets.map(([group, values]) => `
-    <select data-facet="${esc(group)}" aria-label="${esc(group)}">
-      <option value="">${esc(game.i18n.format("SDE.charBuilder.art.galleryAnyFacet", { facet: group }))}</option>
-      ${values.map((v) => `<option value="${esc(v)}">${esc(v)}</option>`).join("")}
-    </select>`).join("");
+  const chip = (group, tags, label, on = false) =>
+    `<button type="button" class="sde-cb-chip${on ? " active" : ""}" aria-pressed="${on}"
+      data-group="${esc(group)}" data-tags="${esc(tags.join(" "))}">${esc(label)}</button>`;
 
-  const ancestrySelect = ancestries.length ? `
-    <select class="sde-cb-gallery-ancestry" aria-label="${esc(L("SDE.charBuilder.step.ancestry"))}">
-      <option value="" data-tags="">${esc(L("SDE.charBuilder.art.galleryAnyAncestry"))}</option>
-      ${ancestries.map((o) => `
-        <option value="${esc(o.key)}" data-tags="${esc(o.tags.join(" "))}"${o.key === preselect ? " selected" : ""}
-          >${esc(o.label)} (${o.count})</option>`).join("")}
-    </select>` : "";
+  // `<details>` gives collapsible groups with no JS and no state to track —
+  // the browser owns open/closed. Ancestry leads and stays open; the long
+  // third-party groups start collapsed so the sidebar opens readable.
+  const group = (name, label, body, open) => `
+    <details class="sde-cb-gallery-group" data-group="${esc(name)}"${open ? " open" : ""}>
+      <summary>${esc(label)}</summary>
+      <div class="sde-cb-chips">${body}</div>
+    </details>`;
+
+  const ancestryGroup = ancestries.length ? group("ancestry", L("SDE.charBuilder.step.ancestry"),
+    ancestries.map((o) => chip("ancestry", o.tags, `${o.label} (${o.count})`, o.key === preselect)).join(""),
+    true) : "";
+
+  const facetGroups = facets.map(([name, values]) => group(
+    name,
+    name.replace(/^./, (c) => c.toUpperCase()),
+    values.map((v) => chip(name, [v], v)).join(""),
+    false,
+  )).join("");
 
   const content = `
-    <div class="sde-cb-gallery-bar">
-      <input type="search" class="sde-cb-gallery-search" placeholder="${esc(L("SDE.charBuilder.art.gallerySearch"))}">
-      ${ancestrySelect}
-      ${selects}
-      <span class="sde-cb-gallery-count"></span>
-    </div>
-    <div class="sde-cb-gallery">${items}</div>`;
+    <div class="sde-cb-gallery-layout">
+      <aside class="sde-cb-gallery-side">
+        <div class="sde-cb-gallery-side-top">
+          <input type="search" class="sde-cb-gallery-search" placeholder="${esc(L("SDE.charBuilder.art.gallerySearch"))}">
+          <p class="sde-cb-gallery-count"></p>
+          <button type="button" class="sde-cb-gallery-reset">
+            <i class="fa-solid fa-arrow-rotate-left"></i> ${esc(L("SDE.charBuilder.art.galleryReset"))}
+          </button>
+        </div>
+        ${ancestryGroup}${facetGroups}
+      </aside>
+      <div class="sde-cb-gallery">${items}</div>
+    </div>`;
 
   return new Promise((resolve) => {
     const dlg = new foundry.applications.api.DialogV2({
@@ -466,7 +511,9 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
       // box, and how much of a wall of art fits on screen is the user's call.
       window: { title: L("SDE.charBuilder.art.galleryTitle"), icon: "fa-solid fa-images", resizable: true },
       classes: ["shadowdark", "sde-cb-gallery-dialog"],
-      position: { width: 720, height: 620 },
+      // Wider than the old top-bar layout: the sidebar takes a fixed 200px and
+      // the grid needs its five columns back.
+      position: { width: 920, height: 660 },
       content,
       buttons: [{ action: "cancel", label: L("SDE.charBuilder.art.galleryCancel"), icon: "fa-solid fa-xmark" }],
       actions: {
