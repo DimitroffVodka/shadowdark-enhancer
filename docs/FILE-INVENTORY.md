@@ -73,7 +73,7 @@
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 472 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
-| `compendium-suite.mjs` | 444 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
+| `compendium-suite.mjs` | 449 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |

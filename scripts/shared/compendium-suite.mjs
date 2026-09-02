@@ -53,29 +53,34 @@ export const SUITE_PACKS = [
   // world.class-abilties, …), so a fresh world recreates the identical
   // `world.<slug>` collection on import — keeping every cross-pack `@UUID`
   // reference (class→talent, spell→class, table→doc, ancestry→talent) valid.
-  // Languages is carried empty so the imported suite mirrors the source exactly.
   { key: "classes",        id: "classes",             type: "Item", label: "Classes",             charOption: true },
   { key: "talents",        id: "talents",             type: "Item", label: "Talents",             charOption: true },
   { key: "classAbilities", id: "class-abilties",      type: "Item", label: "Class Abilties",      charOption: true },
   { key: "spells",         id: "spells",              type: "Item", label: "Spells",              charOption: true },
   { key: "backgrounds",    id: "background",          type: "Item", label: "Background",          charOption: true },
   { key: "ancestries",     id: "ancestries",          type: "Item", label: "Ancestries",          charOption: true },
-  { key: "languages",      id: "languages",           type: "Item", label: "Languages",           charOption: true },
 ];
 
 /**
  * Packs this module used to create and no longer does.
  *
- * `patrons-and-deities` mirrored the system pack of the same name, but nothing
- * in this module ever wrote a Deity or Patron ITEM — the imported gods and
- * patrons are ROLL TABLES, and they file under `Character Content > Patrons &
- * Deities` in the tables pack. So the compendium sat permanently empty in the
- * one place a GM would look for them, reporting the feature as missing (the
- * same trap #74's retired Monster Spells pack sprang, from the other side).
+ * Both were carried purely so an imported suite mirrored its source's pack
+ * list, and both stayed empty forever because nothing here writes the item
+ * type they were named for:
+ *
+ *   - `patrons-and-deities` — the gods and patrons this module imports are ROLL
+ *     TABLES (prayer generators, boon tables), filed under `Character Content >
+ *     Patrons & Deities` in the tables pack. Never Deity/Patron Items.
+ *   - `languages` — a character's languages are UUID references to the system's
+ *     own Language items. Nothing ever creates one here.
+ *
+ * An empty compendium in the first place a GM looks reports the feature as
+ * missing — the same trap #74's retired Monster Spells pack sprang, from the
+ * other side.
  *
  * Retired only when still EMPTY: a GM who put something in one keeps it.
  */
-const RETIRED_PACKS = ["patrons-and-deities"];
+const RETIRED_PACKS = ["patrons-and-deities", "languages"];
 
 /** Sidebar compendium folder label for the entire suite. */
 export const SUITE_FOLDER_LABEL = "Shadowdark Enhancer";
