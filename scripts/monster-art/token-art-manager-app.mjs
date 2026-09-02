@@ -1,4 +1,5 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { installHoverPeek } from "../shared/hover-peek.mjs";
 import { MonsterTokenArt } from "./monster-token-art.mjs";
 import { TokenArtCatalog } from "./token-art-catalog.mjs";
 import { manualFolderPickPaths, normalizeTokenArtManagerState, tokenArtFolderSourceId } from "./token-art-manager-state.mjs";
@@ -228,6 +229,18 @@ export class TokenArtManagerApp extends HandlebarsApplicationMixin(ApplicationV2
         }
       });
       bgrid?.addEventListener("mouseleave", () => { if (status) status.innerHTML = idle; });
+      // Hover-enlarge, the same component the character builder's gallery uses.
+      // The status line names the art; this shows it. Thumbnails here go down to
+      // 40px, so the case for it is stronger than in the gallery.
+      this._peekOff?.();
+      this._peekOff = installHoverPeek(overlay, {
+        grid: ".sde-tam-browser-grid",
+        item: ".sde-tam-browse-opt",
+        // The grid draws the same file at thumbnail size, so the preview is the
+        // same path shown large — there is no separate full-size asset here.
+        src: (tile) => tile.querySelector("img")?.getAttribute("src") ?? null,
+        width: 340,
+      });
       overlay.addEventListener("keydown", (ev) => {
         if (ev.key === "Escape") { overlay.hidden = true; return; }
         if (!ev.ctrlKey) return;

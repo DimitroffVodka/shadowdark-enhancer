@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-912 tracked files · ~148,100 lines of code/markup across scripts+templates+styles+test.
+913 tracked files · ~148,200 lines of code/markup across scripts+templates+styles+test.
 `v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -299,7 +299,7 @@
 | `data.mjs` | 255 | Thin wrappers over the system's compendium loaders. |
 | `commit.mjs` | 286 | `commitCharacter` — final actor creation + `coinsAfterGear`. |
 | `art.mjs` | 77 | Ancestry/class NAME → local portrait manifest. |
-| `art-gallery.mjs` | 566 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
+| `art-gallery.mjs` | 525 | GM-curated portrait gallery (avoids granting players `FILES_BROWSE`). |
 | `class-ability-uses.mjs` | 112 | Per-day/roll uses for Class Ability items. |
 | `gear-editor-app.mjs` | 152 | `ExtraGearEditor` sub-window. |
 | `steps/base-step.mjs` | 54 | Base class for character-builder wizard steps (shared lifecycle, render and validation). |
@@ -325,7 +325,7 @@
 | `imported-monster-art.mjs` | 438 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 733 | Applies licensed art to monsters **by path reference**, never bundled. |
 | `token-art-catalog.mjs` | 976 | Name→art matching catalog. |
-| `token-art-manager-app.mjs` | 576 | GM window to review/apply matches. |
+| `token-art-manager-app.mjs` | 589 | GM window to review/apply matches. |
 | `token-art-manager-state.mjs` | 79 | Normalizes the persistent Token Art Manager state and named Browse folders. |
 
 ### 3.16 `scripts/pdf-export/`

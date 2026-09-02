@@ -17,6 +17,7 @@
  * arbitrary path.
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { installHoverPeek } from "../shared/hover-peek.mjs";
 
 /** Query name, namespaced per Foundry's convention. */
 export const ART_QUERY = `${MODULE_ID}.browseArt`;
@@ -390,52 +391,6 @@ function installGalleryFilter(root, onCount) {
 }
 
 /**
- * Enlarge the hovered tile into a floating preview.
- *
- * At 92px a portrait is enough to scan by, not enough to choose by. The tile
- * itself can't simply grow: the grid scrolls, so anything scaled past its cell
- * is clipped by the scroll container. So the preview is one reusable element
- * positioned over everything, showing the FULL image rather than the thumbnail
- * the grid uses, and it never takes the pointer — hover stays on the tile
- * underneath, so moving the mouse straight onto the preview can't flicker.
- *
- * One delegated listener on the grid, not 1,900 per-tile ones.
- */
-function installGalleryPeek(root) {
-  const grid = root.querySelector(".sde-cb-gallery");
-  const peek = document.createElement("img");
-  peek.className = "sde-cb-gallery-peek";
-  peek.alt = "";
-  peek.hidden = true;
-  root.append(peek);
-
-  const place = (tile) => {
-    const box = tile.getBoundingClientRect();
-    const w = peek.offsetWidth || 320;
-    const h = peek.offsetHeight || 320;
-    // Beside the tile, flipping to its left when the right edge would run off.
-    const right = box.right + 12;
-    peek.style.left = `${right + w > window.innerWidth ? Math.max(4, box.left - w - 12) : right}px`;
-    peek.style.top = `${Math.min(Math.max(4, box.top + box.height / 2 - h / 2), window.innerHeight - h - 4)}px`;
-  };
-
-  grid.addEventListener("pointerover", (event) => {
-    const tile = event.target.closest?.(".sde-cb-gallery-item");
-    if (!tile || tile.dataset.src === peek.dataset.src) return;
-    peek.dataset.src = tile.dataset.src;
-    peek.src = tile.dataset.src;
-    peek.hidden = false;
-    place(tile);
-    // The natural size is unknown until the image loads, so place it again once
-    // the real height exists or the first frame sits off-centre.
-    peek.onload = () => place(tile);
-  });
-  const hide = () => { peek.hidden = true; peek.dataset.src = ""; };
-  grid.addEventListener("pointerleave", hide);
-  grid.addEventListener("scroll", hide);
-}
-
-/**
  * Show the gallery and resolve to the chosen artwork, or null if the player
  * cancelled / closed the dialog / the folder yielded nothing.
  *
@@ -560,7 +515,11 @@ export async function pickGalleryArt(current = null, { slot = "portrait", ancest
       installGalleryFilter(root, (shown, total) => {
         if (count) count.textContent = game.i18n.format("SDE.charBuilder.art.galleryCount", { shown, total });
       });
-      installGalleryPeek(root);
+      installHoverPeek(root, {
+        grid: ".sde-cb-gallery",
+        item: ".sde-cb-gallery-item",
+        src: (tile) => tile.dataset.src,
+      });
     });
   });
 }
