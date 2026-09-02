@@ -750,6 +750,42 @@ export class TokenArtCatalog {
     };
   }
 
+  /**
+   * Monster id → the reviewed row as a ready-made option, for every managed
+   * monster whose curated row resolves against the installed library.
+   *
+   * The library is built ONCE and only when at least one monster actually has a
+   * reviewed row — `build()` renders the manager, and a full disk browse is not
+   * something to spend on a world that has imported nothing. A row that no
+   * longer resolves (source uninstalled, path moved) simply yields no option,
+   * which leaves the status at `path-unavailable` exactly as before.
+   *
+   * @param {Array<{id: string, name: string, source?: string, managedImported?: boolean}>} monsters
+   * @returns {Promise<Map<string, object>>}
+   */
+  static async _curatedImportedArtOptions(monsters) {
+    const wanted = [];
+    for (const m of monsters ?? []) {
+      if (!m?.managedImported) continue;
+      const row = curatedImportedMonsterArtFor(m.source, m.name);
+      if (row) wanted.push([m.id, row]);
+    }
+    if (!wanted.length) return new Map();
+
+    let library;
+    try { library = await this.buildLibrary(); }
+    catch (_error) { return new Map(); }   // no library → no injected options
+
+    const out = new Map();
+    for (const [id, row] of wanted) {
+      let resolved = null;
+      try { resolved = await this._resolveCuratedImportedMonsterArt(row, library, null); }
+      catch (_error) { /* one stale row must not empty the rest */ }
+      if (resolved) out.set(id, resolved);
+    }
+    return out;
+  }
+
   static async build() {
     // Every covered pack: the base bestiary + the importer's managed pack (once
     // it exists). Each monster carries its pack so resolve() can key art per pack.
@@ -779,11 +815,33 @@ export class TokenArtCatalog {
     discovered.sort((a, b) => priority.indexOf(a.id) - priority.indexOf(b.id));
     for (const s of discovered) s._art = await this._sourceArt(s, monsters);
 
+    const curatedOptions = await this._curatedImportedArtOptions(monsters);
+
     const byMonster = monsters
       .map((m) => {
         const options = discovered
           .filter((s) => s._art[m.id])
           .map((s) => ({ source: s.id, ...s._art[m.id] }));
+        // A reviewed row enters the option list on its own evidence. Options are
+        // otherwise built by NAME matching, so a Shadowdark original — Bezelak,
+        // Bogthorn, Bittermold — has none, and the curated status could never be
+        // reached for exactly the creatures the reviewed map exists to cover: 55
+        // of 66 sat at `path-unavailable` with an empty row while the apply path
+        // resolved all of them happily against the library.
+        const injected = curatedOptions.get(m.id);
+        if (injected) {
+          // SUPERSEDES a same-source/same-token option rather than deferring to
+          // it. The two disagree on the portrait for at least one source: name
+          // matching pairs from the source's `portraitDir`, while the library
+          // pairs from the source's own token map, and the Monster Manual's map
+          // names `journal-art/` where the folder is `portraits/`. Same token,
+          // different portrait, and the status test needs all three to match —
+          // so skipping on source+token left Werebear `path-unavailable` while
+          // its art sat right there in the list.
+          const dup = options.findIndex((o) => o.source === injected.source && o.token === injected.token);
+          if (dup >= 0) options.splice(dup, 1);
+          options.unshift(injected);
+        }
         const curatedImportedArt = this._curatedImportedArtStatus(m, options);
         return {
           id: m.id,
