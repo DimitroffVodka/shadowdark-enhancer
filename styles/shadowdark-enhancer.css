@@ -5806,6 +5806,11 @@ body.theme-light .sde-hub-monsters-row td {
   gap: 0.5rem;
   align-items: center;
 }
+/* Sits apart from Parse / Clear / Create all: it acts on the whole library, not
+   on what is currently pasted into this window. */
+.sde-mimport-spell-library {
+  margin-left: auto;
+}
 .sde-import-primary {
   background: var(--sde-bar-accent);
   color: var(--sde-bar-on-accent);

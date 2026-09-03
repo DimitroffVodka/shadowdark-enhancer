@@ -57,6 +57,7 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
       mimportRemoveAttack:   MonsterImporterApp.prototype._onRemoveAttack,
       mimportAddFeature:     MonsterImporterApp.prototype._onAddFeature,
       mimportRemoveFeature:  MonsterImporterApp.prototype._onRemoveFeature,
+      mimportSpellLibrary:   MonsterImporterApp.prototype._onSpellLibrary,
     },
   };
 
@@ -288,6 +289,21 @@ export class MonsterImporterApp extends HandlebarsApplicationMixin(ApplicationV2
     if (!draft || !Number.isFinite(fIdx)) return;
     draft.features.splice(fIdx, 1);
     this.render();
+  }
+
+  /**
+   * Build / refresh the Monster Spell library.
+   *
+   * Importing a spellcasting monster embeds its spells on the actor; turning
+   * those into browsable, rollable Spell items is a second step, and this window
+   * is where a GM is standing when it becomes relevant. Same action as the
+   * Monster Creator's button and the settings-menu entry — all three call the
+   * one dialog flow, which is idempotent, so a redundant run costs a preview.
+   */
+  async _onSpellLibrary() {
+    const { runMonsterSpellLibraryRefresh } =
+      await import("../../monster-creator/monster-spell-library.mjs");
+    await runMonsterSpellLibraryRefresh();
   }
 
   /** Resolve the monster draft for a clicked control via its [data-monster-idx] ancestor. */

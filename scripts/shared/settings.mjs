@@ -4,6 +4,28 @@ import { LevelGuidelinesEditor } from "../monster-creator/level-guidelines-app.m
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 
+/**
+ * Settings-menu entry for Build / Refresh Monster Spells.
+ *
+ * The refresh is a dialog flow (choose sources → preview → confirm), not a
+ * window, so this class has no UI of its own. `registerMenu` demands an
+ * Application *class* and Foundry only ever does `new type().render(true)` with
+ * it, so overriding render is the whole shim.
+ *
+ * It exists because the only other way to reach the refresh was a button inside
+ * the Monster Creator's Spellcasting section — three levels deep in an app you
+ * would only open to build a monster, which is not where you go when the
+ * library is stale.
+ */
+class MonsterSpellLibraryMenu extends foundry.applications.api.ApplicationV2 {
+  async render() {
+    const { runMonsterSpellLibraryRefresh } =
+      await import("../monster-creator/monster-spell-library.mjs");
+    await runMonsterSpellLibraryRefresh();
+    return this;
+  }
+}
+
 export function registerSettings() {
   game.settings.register(MODULE_ID, "combatMovementDefault", {
     name: "SDE.settings.combatMovementDefault.name",
@@ -194,6 +216,19 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {},
+  });
+
+  // GM-only entry point (Configure Settings → this module) for the Monster Spell
+  // Library refresh. No paired `register` — the library's state lives in the
+  // compendium, not in a setting; `monsterSpellSyncVersion` (registered further
+  // down) only stamps the automatic run.
+  game.settings.registerMenu(MODULE_ID, "monsterSpellLibraryMenu", {
+    name: "SDE.settings.monsterSpellLibrary.name",
+    hint: "SDE.settings.monsterSpellLibrary.hint",
+    label: "SDE.settings.monsterSpellLibrary.label",
+    icon: "fa-solid fa-book-sparkles",
+    type: MonsterSpellLibraryMenu,
+    restricted: true,
   });
 
   // GM-only editor (Configure Settings → this module) for the table above.

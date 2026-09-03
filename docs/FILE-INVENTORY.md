@@ -71,7 +71,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 472 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 507 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 84 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 449 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -249,7 +249,7 @@
 | `tables/hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |
 | `monsters/statblock-parser.mjs` | 516 | Monster statblock dump → draft objects. Pure. |
 | `monsters/monster-importer.mjs` | 232 | Drafts → NPC actors in `sde-actors`. |
-| `monsters/monster-importer-app.mjs` | 378 | Paste dump → per-monster preview/edit grid → create. |
+| `monsters/monster-importer-app.mjs` | 394 | Paste dump → per-monster preview/edit grid → create. |
 | `monsters/monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
 | `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 511 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |

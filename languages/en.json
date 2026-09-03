@@ -339,6 +339,9 @@
   "SDE.settings.uniqueFeatureChance.name": "Magic item unique-feature chance (%)",
   "SDE.settings.uniqueFeatureChance.hint": "Percent chance that a generated magic item gains a unique feature. 100 = always.",
 
+  "SDE.settings.monsterSpellLibrary.name": "Monster Spell library",
+  "SDE.settings.monsterSpellLibrary.hint": "Generate a rollable Spell item for every spell embedded in your monsters, filed under Monster Spells in this module's compendium. Run it after importing monsters or installing new monster content.",
+  "SDE.settings.monsterSpellLibrary.label": "Build / Refresh Library",
   "SDE.settings.levelGuidelines.name": "Monster level guidelines",
   "SDE.settings.levelGuidelines.hint": "The expected AC, HP, attacks and ability modifiers for each monster level. Drives the Monster Creator's Level Baseline and the token quick-adjust.",
   "SDE.settings.levelGuidelines.label": "Edit Guidelines Table",
