@@ -406,13 +406,26 @@ export async function migrateMonsterSpellPack({
   if (!legacyPack) return { status: "absent", moved: 0, deleted: 0 };
 
   const legacyCollection = String(legacyPack.collection ?? LEGACY_MONSTER_SPELL_PACK.collection);
+
   const legacyDocuments = await loadDocuments(legacyPack);
   if (!legacyDocuments.length) {
     return { status: "empty", legacyCollection, examined: 0, moved: 0, deleted: 0 };
   }
 
+  // The retired pack IS the target in every world that ever ran an older build:
+  // its label is the one `SUITE_PACKS.sde-monster-spells` adopts (see the note at
+  // compendium-suite.mjs), so findSuitePack resolves both to the same pack. Left
+  // unguarded, the planner then sees every generated spell as "already present in
+  // the target" — because it is looking at itself — verifies it, and deletes the
+  // whole library, one activation after the refresh built it. Same pack means
+  // there is nothing to consolidate.
   const targetPack = await ensureTargetPack();
   if (!targetPack) throw new Error("Shadowdark Enhancer Items compendium is unavailable.");
+  const targetCollection = String(targetPack.collection ?? "");
+  if (targetCollection && targetCollection === legacyCollection) {
+    return { status: "same-pack", legacyCollection, targetCollection, examined: 0, moved: 0, deleted: 0 };
+  }
+
   if (!ItemClass?.createDocuments || !ItemClass?.deleteDocuments) {
     throw new Error("Foundry Item document class is unavailable.");
   }
@@ -447,7 +460,7 @@ export async function migrateMonsterSpellPack({
   const result = {
     status: unverified ? "incomplete" : "migrated",
     legacyCollection,
-    targetCollection: String(targetPack.collection ?? ""),
+    targetCollection,
     examined: plan.examined,
     moved: plan.move.length,
     alreadyPresent: plan.alreadyPresent.length,

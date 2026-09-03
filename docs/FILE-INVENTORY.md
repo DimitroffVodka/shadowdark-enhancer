@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-890 tracked files · ~148,800 lines of code/markup across scripts+templates+styles+test.
+890 tracked files · ~148,900 lines of code/markup across scripts+templates+styles+test.
 `v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -141,7 +141,7 @@
 | `core-monster-spell-icons.mjs` | 107 | Curated Foundry-native icon mapping for generated Core and Cursed Scroll monster spells. |
 | `monster-spell-library-core.mjs` | 496 | Pure extraction, validation, identity, materialization, and refresh reconciliation for embedded monster spells. |
 | `monster-spell-library.mjs` | 499 | Foundry adapter for GM-controlled Monster Spell Library preview, build, and refresh. |
-| `monster-spell-pack-migration.mjs` | 460 | One-way consolidation of the retired world.shadowdark-enhancer--monster-spells pack into the managed Items pack, verified before the legacy pack is emptied. |
+| `monster-spell-pack-migration.mjs` | 473 | One-way consolidation of the retired world.shadowdark-enhancer--monster-spells pack into the managed Items pack, verified before the legacy pack is emptied. |
 | `monster-spell-update-gate.mjs` | 255 | The automatic Monster Spell startup worker: legacy consolidation every activation, Core + managed Enhancer Actors refresh once per module version, active GM checked at fire time, version stamp advanced only after a complete successful refresh, and the refresh deferred with a warning while a failed consolidation leaves content in the retired pack. |
 | `spell-index.mjs` | 249 | Lightweight Spell index (compendium indices, not documents). |
 | `npc-moves.mjs` | 16 | Canonical NPC movement keys with a pre-config fallback. |

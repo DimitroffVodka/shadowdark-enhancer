@@ -371,3 +371,21 @@ test("only the single active GM migrates", async () => {
   assert.equal(stage.calls.creates.length, 0);
   assert.equal(stage.legacy.documents.length, 1);
 });
+
+test("a world whose retired pack IS the target keeps its library instead of deleting it", async () => {
+  // findSuitePack("sde-monster-spells") matches on LABEL, and the retired pack
+  // carries exactly that label — so in every world that ever ran an older build
+  // the legacy pack and the target pack are one pack. The planner then reads the
+  // library as "already present in the target" (it is looking at itself),
+  // verifies it, and deletes all of it, one activation after the refresh built
+  // it. Reproduced live: sync stamp at 0.16.0 with an empty pack.
+  const w = world({ legacyDocuments: [generated("a", "lib-a"), generated("b", "lib-b")] });
+  const result = await migrateMonsterSpellPack({
+    ...w.deps(),
+    ensureTargetPack: async () => w.legacy,
+  });
+
+  assert.equal(result.status, "same-pack");
+  assert.equal(w.calls.deletes.length, 0);
+  assert.equal(w.legacy.documents.length, 2);
+});
