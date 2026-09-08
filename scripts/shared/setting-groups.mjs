@@ -81,6 +81,7 @@ export const SETTING_GROUPS = [
         "lootDropEnabled",
         "lootDropMode",
         "lootDropChance",
+        { menu: "monsterLoot", icon: "fa-solid fa-skull" },
         "itemDropsEnabled",
         "xpThresholdNormal",
         "xpThresholdFabulous",

@@ -16,12 +16,12 @@ export const LootDrops = {
   init() {
     Hooks.on("deleteCombat", (combat) => this._onCombatEnd(combat));
 
-    // Per-NPC drop config: a GM-only Loot button in the NPC sheet header,
-    // shown only while the feature is enabled (no residue when it's off).
+    // Per-NPC drop config: a GM-only Loot button in the NPC sheet header. Shown
+    // whether or not drops are enabled, so a bestiary can be set up first; the
+    // Monster Loot Overrides window (Loot & XP settings) lists every NPC at once.
     Hooks.on("getActorSheetHeaderButtons", (sheet, buttons) => {
       const actor = sheet.actor;
       if (!game.user.isGM || actor?.type !== "NPC") return;
-      if (!game.settings.get(MODULE_ID, "lootDropEnabled")) return;
       buttons.unshift({
         class: "sde-loot-drops-config",
         icon: "fas fa-coins",
@@ -164,16 +164,24 @@ export const LootDrops = {
       rejectClose: false,
     }).catch(() => null);
     if (!choice || choice === "cancel") return;
+    await this.setOverrides(actor, choice);
+    ui.notifications.info(`Loot drops updated for ${actor.name}.`);
+  },
 
-    if (choice.table) await actor.setFlag(MODULE_ID, "lootTable", choice.table);
+  /**
+   * Write one NPC's overrides: `table` (RollTable uuid, blank = the tier table
+   * for its level) and `chance` (0–100 as a string, blank = the world setting).
+   * Shared by the sheet-header dialog and the Monster Loot Overrides window.
+   */
+  async setOverrides(actor, { table = "", chance = "" } = {}) {
+    if (table) await actor.setFlag(MODULE_ID, "lootTable", table);
     else await actor.unsetFlag(MODULE_ID, "lootTable");
 
-    const n = Number(choice.chance);
-    if (choice.chance !== "" && Number.isFinite(n)) {
+    const n = Number(chance);
+    if (String(chance).trim() !== "" && Number.isFinite(n)) {
       await actor.setFlag(MODULE_ID, "lootDropChance", Math.max(0, Math.min(100, Math.round(n))));
     } else {
       await actor.unsetFlag(MODULE_ID, "lootDropChance");
     }
-    ui.notifications.info(`Loot drops updated for ${actor.name}.`);
   },
 };

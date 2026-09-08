@@ -1,0 +1,73 @@
+<div class="sde-ml">
+<style>
+/* Embedded rather than in the module stylesheet — Foundry caches module CSS
+   aggressively and a settings window must render correctly on first open.
+   Unlayered so these win over the core cascade. Theme-neutral gray alphas. */
+.sde-monster-loot .window-content { padding: 0; }
+.sde-monster-loot .sde-ml { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.sde-monster-loot .sde-ml-head { flex: 0 0 auto; padding: 10px 14px 8px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid rgba(127, 127, 127, 0.28); }
+.sde-monster-loot .sde-ml-intro { margin: 0; font-size: 12px; line-height: 1.45; opacity: 0.85; }
+.sde-monster-loot .sde-ml-tools { display: flex; align-items: center; gap: 10px; }
+.sde-monster-loot .sde-ml-tools input[type="search"] { flex: 1 1 auto; }
+.sde-monster-loot .sde-ml-count { font-size: 12px; opacity: 0.7; white-space: nowrap; }
+.sde-monster-loot .sde-ml-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.sde-monster-loot table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.sde-monster-loot thead th {
+  position: sticky; top: 0; z-index: 1; background: rgba(127, 127, 127, 0.22);
+  padding: 5px 8px; text-align: left; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+}
+.sde-monster-loot tbody td { padding: 4px 8px; border-top: 1px solid rgba(127, 127, 127, 0.18); vertical-align: middle; }
+.sde-monster-loot tbody tr:hover { background: rgba(127, 127, 127, 0.1); }
+.sde-monster-loot tr.overridden td:first-child { font-weight: 700; }
+.sde-monster-loot tr.overridden td:first-child::before { content: "\25CF"; margin-right: 6px; font-size: 9px; opacity: 0.8; }
+.sde-monster-loot td.lvl { width: 3em; text-align: center; opacity: 0.8; }
+.sde-monster-loot td.tbl select { width: 100%; }
+.sde-monster-loot td.chance { width: 7em; }
+.sde-monster-loot td.chance input { width: 100%; }
+.sde-monster-loot a[data-action="openSheet"] { cursor: pointer; }
+.sde-monster-loot tr[hidden] { display: none; }
+.sde-monster-loot .sde-ml-empty { padding: 24px; text-align: center; opacity: 0.7; }
+</style>
+<div class="sde-ml-head">
+  <p class="sde-ml-intro">
+    {{localize "SDE.monsterLoot.intro"}}
+    {{#if dropsOn}}{{#if perEncounter}}{{localize "SDE.monsterLoot.perEncounter"}}{{else}}{{localize "SDE.monsterLoot.perNpc"}}{{/if}}{{else}}<b>{{localize "SDE.monsterLoot.dropsOff"}}</b>{{/if}}
+  </p>
+  <div class="sde-ml-tools">
+    <input type="search" data-ml-filter placeholder="{{localize 'SDE.monsterLoot.filter'}}" autocomplete="off">
+    <span class="sde-ml-count">{{rows.length}} {{localize "SDE.monsterLoot.monsters"}}</span>
+  </div>
+</div>
+<div class="sde-ml-list">
+{{#if rows.length}}
+<table>
+  <thead><tr>
+    <th>{{localize "SDE.monsterLoot.colMonster"}}</th>
+    <th>{{localize "SDE.monsterLoot.colLevel"}}</th>
+    <th>{{localize "SDE.monsterLoot.colTable"}}</th>
+    <th>{{localize "SDE.monsterLoot.colChance"}}</th>
+  </tr></thead>
+  <tbody>
+  {{#each rows as |row|}}
+    <tr data-actor-id="{{row.id}}" data-name="{{row.nameKey}}" class="{{#if row.overridden}}overridden{{/if}}">
+      <td><a data-action="openSheet">{{row.name}}</a></td>
+      <td class="lvl">{{row.level}}</td>
+      <td class="tbl">
+        <select name="table">
+          <option value="">{{row.defaultLabel}}</option>
+          {{#if row.missingTable}}<option value="{{row.table}}" selected>{{row.missingTable}}</option>{{/if}}
+          {{#each @root.tables as |t|}}
+          <option value="{{t.uuid}}" {{#if (eq t.uuid row.table)}}selected{{/if}}>{{t.name}}</option>
+          {{/each}}
+        </select>
+      </td>
+      <td class="chance"><input type="number" name="chance" min="0" max="100" step="1" value="{{row.chance}}" placeholder="{{@root.worldChance}}%"></td>
+    </tr>
+  {{/each}}
+  </tbody>
+</table>
+{{else}}
+<p class="sde-ml-empty">{{localize "SDE.monsterLoot.empty"}}</p>
+{{/if}}
+</div>
+</div>

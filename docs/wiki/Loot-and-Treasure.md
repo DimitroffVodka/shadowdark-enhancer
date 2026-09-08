@@ -299,13 +299,18 @@ When combat ends:
 
 ### Per-NPC loot overrides
 
-With combat loot drops enabled, every NPC sheet displays a GM-only **Loot**
-button in its header. Clicking it opens a configuration dialog where you can:
+Every NPC sheet shows a GM-only **Loot** button in its header, whether or not
+combat drops are on. Clicking it opens a dialog where you can:
 
 * Select a specific loot table for that monster.
 * Set a custom drop chance percentage (set to `0%` to ensure the monster never
   drops loot).
 * Leave fields blank to inherit world defaults.
+
+To review the whole bestiary at once, open **Configure Settings → Shadowdark
+Enhancer → Loot & XP → Review Monsters**. Every world NPC is listed with its
+level, loot table and drop chance; edits save as you make them, and a dot marks
+the monsters that override the world defaults.
 
 ### Per-encounter loot mode
 
@@ -324,15 +329,18 @@ generating a chat card.
 
 ## Treasure XP
 
-Generated treasure includes gold values that feed into the XP award system:
+Generated treasure carries a suggested XP value (nothing is awarded on its own;
+the GM awards it from the Party XP window):
 
 | Setting | Default | Meaning |
 |---|---|---|
 | Treasure XP threshold — normal (gp) | `10` | Minimum gold value required to award normal treasure XP |
 | Treasure XP threshold — fabulous (gp) | `150` | Minimum gold value to count as fabulous treasure (higher XP) |
 
-These values integrate with [Party XP](Party-XP.md), where you can drag a
-claimed loot item directly into the XP award window.
+Drag a claimed loot item into [Party XP](Party-XP.md) and the suggested value
+appears there for the GM to award or change. Magic items count as fabulous (3 XP)
+regardless of gold value; a +3 or better item counts as legendary (10 XP). To
+ignore treasure XP, simply never award it — the thresholds only label loot.
 
 ---
 

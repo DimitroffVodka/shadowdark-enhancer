@@ -1,3 +1,4 @@
+| **Monster loot overrides** *(menu)* | — | GM-only list (**Review Monsters**) of every world NPC with its loot table and drop chance, editable inline. |
 | **Lock HP rolls** | on | Hides Roll Again, Take Max and Random for players once Level-1 HP is rolled. GMs are never locked. |
 | **Lock gold rolls** | on | Hides Roll Again and Random for players once starting gold is rolled. GMs are never locked and keep the manual gp box. |
 | **Lock ability rolls** | on | Hides Roll Again, Reset and Random for players once abilities are rolled. The 3d6 under-14 reroll stays. GMs are never locked. |
@@ -160,8 +161,8 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Loot drop mode** | `Per defeated NPC` | **Per defeated NPC**: each rolls separately. **Per encounter**: one pooled roll at highest NPC level. |
 | **Loot drop chance (%)** | `50` | Drop percentage chance on combat end (mode-dependent). |
 | **Item Drops** | on | Allows dragging items from sheets onto the canvas as pickup tokens. |
-| **Treasure XP threshold — normal (gp)** | `10` | Minimum gold value for treasure to grant normal XP. |
-| **Treasure XP threshold — fabulous (gp)** | `150` | Minimum gold value for treasure to count as fabulous XP. |
+| **Treasure XP threshold — normal (gp)** | `10` | Loot worth at least this much is suggested as 1 XP when dragged into Party XP. Nothing is awarded automatically. |
+| **Treasure XP threshold — fabulous (gp)** | `150` | Loot worth at least this much is suggested as 3 XP in Party XP. Magic items count as fabulous regardless of value. |
 | **Magic item unique-feature chance (%)** | `100` | Percent chance generated magic items gain unique features. |
 
 ### Encounters

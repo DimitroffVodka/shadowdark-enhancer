@@ -463,6 +463,7 @@
     "scripts/loot/loot-generator.mjs": "RollTable → structured loot batch (documents, coins, flavor).",
     "scripts/loot/loot-delivery.mjs": "Shared claimable chat card; first-claim-wins, GM-authoritative over an authenticated relay query.",
     "scripts/loot/loot-drops.mjs": "Auto-drop loot on NPC defeat at combat end.",
+    "scripts/loot/monster-loot-review-app.mjs": "Monster Loot Overrides window: every world NPC with its loot table and drop chance, edited inline via LootDrops.setOverrides. Opened from the Loot & XP settings pop-out.",
     "scripts/loot/loot-setup-app.mjs": "Browsable Loot & Treasure library; rows unlock from the GM's own PDF.",
     "scripts/loot/loot-value.mjs": "gp value → Shadowdark XP quality tiers.",
     "scripts/loot/loot-table-catalog.mjs": "Loot/treasure table catalog + classifier across Core, CS1–6, WR (metadata only).",

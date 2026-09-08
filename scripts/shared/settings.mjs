@@ -2,6 +2,7 @@ import { MODULE_ID } from "./module-id.mjs";
 import { ExtraGearEditor } from "../char-builder/gear-editor-app.mjs";
 import { LevelGuidelinesEditor } from "../monster-creator/level-guidelines-app.mjs";
 import { registerSettingGroups } from "./settings-group-menu.mjs";
+import { MonsterLootReviewApp } from "../loot/monster-loot-review-app.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 
@@ -519,5 +520,6 @@ export function registerSettings() {
     charBuilderExtraGear: ExtraGearEditor,
     monsterSpellLibrary: MonsterSpellLibraryMenu,
     levelGuidelines: LevelGuidelinesEditor,
+    monsterLoot: MonsterLootReviewApp,
   });
 }
