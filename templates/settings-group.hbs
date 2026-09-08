@@ -35,17 +35,25 @@
 .sde-settings-group .sde-sg-folder > button { flex: 0 0 auto; width: auto; }
 .sde-settings-group .sde-sg-folder-add { align-self: flex-start; width: auto; }
 
-/* Sub-groups (Duelist, Delver, Renown) are section headers, not boxes. */
-.sde-settings-group fieldset { border: 0; padding: 0; margin: 14px 0 0; }
-.sde-settings-group legend {
-  padding: 0 0 2px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7;
+/* Sub-groups (Duelist, Delver, Renown…) are collapsible and start closed, so a
+   long list of classes stays a short list of headers. */
+.sde-settings-group details { margin: 6px 0 0; border-top: 1px solid rgba(127, 127, 127, 0.28); }
+.sde-settings-group summary {
+  padding: 8px 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  opacity: 0.75; cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px;
 }
+.sde-settings-group summary::-webkit-details-marker { display: none; }
+.sde-settings-group summary::before {
+  content: "\25B8"; display: inline-block; width: 1em; font-size: 12px; transition: transform 0.15s;
+}
+.sde-settings-group details[open] > summary::before { transform: rotate(90deg); }
+.sde-settings-group summary + .form-group { border-top: 0; }
 
 .sde-settings-group .form-footer { flex: 0 0 auto; margin: 0; padding: 8px 16px; border-top: 1px solid rgba(127, 127, 127, 0.28); }
 </style>
 <div class="sde-sg-scroll">
 {{#each sections as |section|}}
-{{#if section.label}}<fieldset><legend>{{localize section.label}}</legend>{{/if}}
+{{#if section.label}}<details><summary>{{localize section.label}}</summary>{{/if}}
 {{#each section.entries as |entry|}}
 {{#if entry.menu}}
 <div class="form-group">
@@ -80,7 +88,7 @@
 {{formGroup entry.field value=entry.value input=entry.input rootId=@root.rootId localize=true}}
 {{/if}}
 {{/each}}
-{{#if section.label}}</fieldset>{{/if}}
+{{#if section.label}}</details>{{/if}}
 {{/each}}
 </div>
 <footer class="form-footer">

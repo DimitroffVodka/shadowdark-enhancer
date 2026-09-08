@@ -79,7 +79,7 @@ export const ItemDrops = {
   registerSettings() {
     game.settings.register(MODULE_ID, "itemDropsEnabled", {
       name: "Item Drops",
-      hint: "Allow players to drag items from inventory onto the canvas as pickup-able tokens. Light sources are handled by the Shadowdark system and are never dropped this way.",
+      hint: "Let players drag items from a sheet onto the map as a pickup token.",
       scope: "world",
       config: false,
       type: Boolean,

@@ -45,8 +45,9 @@ See [Monster Level Guidelines](Monster-Level-Guidelines.md).
 
 ### PC Automation
 
-Automation for player-character rules. The pop-out keeps the Duelist, Delver
-and renown switches under their own headings.
+Automation for player-character rules. The pop-out keeps each class and the
+renown switches under their own collapsible headings, closed by default, so the
+list stays short as classes are added.
 
 #### Spell Mishaps
 
