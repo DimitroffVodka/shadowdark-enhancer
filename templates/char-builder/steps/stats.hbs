@@ -22,12 +22,12 @@
     </p>
 
     <div class="sde-cb-stats-bar">
-      {{#unless step.isFixed}}{{#unless step.isPointBuy}}
+      {{#unless step.isFixed}}{{#unless step.isPointBuy}}{{#unless step.rollLocked}}
       <button type="button" class="sde-cb-btn dice" data-action="cb-roll-stats">
         <i class="fa-solid fa-dice"></i>
         {{#if step.rolled}}{{localize "SDE.charBuilder.stats.rollAgain"}}{{else}}{{localize "SDE.charBuilder.stats.roll"}}{{/if}}
       </button>
-      {{/unless}}{{/unless}}
+      {{/unless}}{{/unless}}{{/unless}}
       {{#unless step.isFixed}}{{#unless step.isPointBuy}}
       {{#if step.showReroll}}
       <button type="button" class="sde-cb-btn warn" data-action="cb-reroll-stats" {{#unless step.canReroll}}disabled{{/unless}}>
@@ -44,6 +44,8 @@
 
     {{#if step.canReroll}}
     <p class="sde-cb-hint warn"><i class="fa-solid fa-triangle-exclamation"></i> {{localize "SDE.charBuilder.stats.rerollEligible"}}</p>
+    {{else if step.rollLocked}}
+    <p class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</p>
     {{/if}}
 
     {{#if step.isAssign}}{{#if step.rolled}}

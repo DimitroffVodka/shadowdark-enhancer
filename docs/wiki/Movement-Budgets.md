@@ -77,7 +77,7 @@ Movement budgets refill automatically upon these triggers:
 
 ## Enforcement settings
 
-Configure strict movement rules under **Configure Settings → Shadowdark Enhancer**:
+Configure strict movement rules under **Configure Settings → Shadowdark Enhancer → Movement**:
 
 | Setting | Default | When enabled |
 |---|---|---|

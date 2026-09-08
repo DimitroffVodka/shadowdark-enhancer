@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./module-id.mjs";
 import { ExtraGearEditor } from "../char-builder/gear-editor-app.mjs";
 import { LevelGuidelinesEditor } from "../monster-creator/level-guidelines-app.mjs";
+import { registerSettingGroups } from "./settings-group-menu.mjs";
 import { defaultCrawlState } from "../crawl-strip/crawl-state-core.mjs";
 import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
 
@@ -8,9 +9,9 @@ import { DEFAULT_ENCOUNTER_SOURCES } from "../encounter/encounter-sources.mjs";
  * Settings-menu entry for Build / Refresh Monster Spells.
  *
  * The refresh is a dialog flow (choose sources → preview → confirm), not a
- * window, so this class has no UI of its own. `registerMenu` demands an
- * Application *class* and Foundry only ever does `new type().render(true)` with
- * it, so overriding render is the whole shim.
+ * window, so this class has no UI of its own. The Monsters pop-out only ever
+ * does `new type().render(true)` with a menu class, so overriding render is
+ * the whole shim.
  *
  * It exists because the only other way to reach the refresh was a button inside
  * the Monster Creator's Spellcasting section — three levels deep in an app you
@@ -31,7 +32,7 @@ export function registerSettings() {
     name: "SDE.settings.combatMovementDefault.name",
     hint: "SDE.settings.combatMovementDefault.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Number,
     default: 30,
   });
@@ -40,7 +41,7 @@ export function registerSettings() {
     name: "SDE.settings.oocMovementBudget.name",
     hint: "SDE.settings.oocMovementBudget.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Number,
     default: 90,
   });
@@ -49,7 +50,7 @@ export function registerSettings() {
     name: "SDE.settings.oocEnforceBudget.name",
     hint: "SDE.settings.oocEnforceBudget.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
   });
@@ -58,7 +59,7 @@ export function registerSettings() {
     name: "SDE.settings.combatEnforceBudget.name",
     hint: "SDE.settings.combatEnforceBudget.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
   });
@@ -67,22 +68,22 @@ export function registerSettings() {
     name: "SDE.settings.lockMovementOutOfTurn.name",
     hint: "SDE.settings.lockMovementOutOfTurn.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
   });
 
   // Portrait shown on the synthetic "Game Master" card in the crawl strip.
-  // Empty = the default cowled/mystery icon. The GM can also set this by
-  // clicking the GM card's portrait in the strip (opens a FilePicker).
+  // Defaults to the bundled GM portrait; empty = a plain cowled icon. The GM can
+  // also set this by clicking the GM card's portrait in the strip (a FilePicker).
   game.settings.register(MODULE_ID, "gmAvatarImage", {
     name: "SDE.settings.gmAvatarImage.name",
     hint: "SDE.settings.gmAvatarImage.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     filePicker: "imagevideo",
-    default: "",
+    default: `modules/${MODULE_ID}/assets/gm-avatar.jpg`,
     onChange: () => {
       import("../crawl-strip/crawl-strip.mjs").then(({ CrawlStrip }) => CrawlStrip.queueRender());
     },
@@ -92,7 +93,7 @@ export function registerSettings() {
     name: "SDE.settings.warnIfCrawlHelperEnabled.name",
     hint: "SDE.settings.warnIfCrawlHelperEnabled.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -103,7 +104,7 @@ export function registerSettings() {
     name: "SDE.settings.charBuilderStatMethod.name",
     hint: "SDE.settings.charBuilderStatMethod.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     choices: {
       "3d6-down": "SDE.charBuilder.stats.method.3d6Down",
@@ -117,6 +118,43 @@ export function registerSettings() {
     default: "3d6-reroll",
   });
 
+  // GM locks on the builder's dice. Once a player has rolled, the buttons that
+  // would roll again are gone; the 3d6 method's under-14 reroll and the book's
+  // "reroll a duplicate" rule stay. GMs are never locked. Client-side only —
+  // the audit chat cards remain the real guard.
+  game.settings.register(MODULE_ID, "charBuilderLockStatRolls", {
+    name: "SDE.settings.charBuilderLockStatRolls.name",
+    hint: "SDE.settings.charBuilderLockStatRolls.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+  game.settings.register(MODULE_ID, "charBuilderLockTalentRolls", {
+    name: "SDE.settings.charBuilderLockTalentRolls.name",
+    hint: "SDE.settings.charBuilderLockTalentRolls.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+  game.settings.register(MODULE_ID, "charBuilderLockGoldRolls", {
+    name: "SDE.settings.charBuilderLockGoldRolls.name",
+    hint: "SDE.settings.charBuilderLockGoldRolls.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+  game.settings.register(MODULE_ID, "charBuilderLockHpRolls", {
+    name: "SDE.settings.charBuilderLockHpRolls.name",
+    hint: "SDE.settings.charBuilderLockHpRolls.hint",
+    scope: "world",
+    config: false,
+    type: Boolean,
+    default: true,
+  });
+
   // Folders of portrait/token art the character builder offers players in a gallery,
   // comma-separated. Empty = feature off. The browse runs on the GM's client, so
   // players need neither FILES_BROWSE nor FILES_UPLOAD, and only these folders are
@@ -126,8 +164,9 @@ export function registerSettings() {
     name: "SDE.settings.charBuilderArtFolder.name",
     hint: "SDE.settings.charBuilderArtFolder.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
+    filePicker: "folder",
     // Ship self-contained: the module's own bundled art (a dedicated portraits
     // folder plus the ancestry portraits) so the gallery is populated out
     // of the box with no dependency on Tokenizer or any other module. A GM can
@@ -143,7 +182,7 @@ export function registerSettings() {
     name: "SDE.settings.charBuilderDiceSoNice.name",
     hint: "SDE.settings.charBuilderDiceSoNice.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
   });
@@ -153,7 +192,7 @@ export function registerSettings() {
     name: "SDE.settings.charBuilderMaxLevel1HP.name",
     hint: "SDE.settings.charBuilderMaxLevel1HP.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
   });
@@ -163,7 +202,7 @@ export function registerSettings() {
     name: "SDE.settings.charBuilderStartingGold.name",
     hint: "SDE.settings.charBuilderStartingGold.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Number,
     default: 0,
   });
@@ -171,24 +210,15 @@ export function registerSettings() {
   // GM-curated extra gear for the builder's shop. Holds an array of item UUIDs
   // the GM has granted beyond the curated starting stock (SHOP_STOCK in
   // gear-step.mjs) — magic items, potions, and anything else. Edited in the
-  // "Extra Gear" picker window (registerMenu below). Changing it fires the
-  // builder's content-unlock hook so any open builder refreshes its shop.
+  // "Extra Gear" picker window (Character Builder pop-out → Manage Extra Gear).
+  // Changing it fires the builder's content-unlock hook so any open builder
+  // refreshes its shop.
   game.settings.register(MODULE_ID, "charBuilderExtraGear", {
     scope: "world",
     config: false,
     type: Array,
     default: [],
     onChange: () => Hooks.callAll(`${MODULE_ID}.contentUnlocked`),
-  });
-
-  // GM-only picker (Configure Settings → this module) to manage the above list.
-  game.settings.registerMenu(MODULE_ID, "charBuilderExtraGearMenu", {
-    name: "SDE.settings.charBuilderExtraGear.name",
-    hint: "SDE.settings.charBuilderExtraGear.hint",
-    label: "SDE.settings.charBuilderExtraGear.label",
-    icon: "fa-solid fa-toolbox",
-    type: ExtraGearEditor,
-    restricted: true,
   });
 
   // Ancestry Names/Trinkets and Background/Deity tables are auto-discovered from
@@ -216,29 +246,6 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {},
-  });
-
-  // GM-only entry point (Configure Settings → this module) for the Monster Spell
-  // Library refresh. No paired `register` — the library's state lives in the
-  // compendium, not in a setting; `monsterSpellSyncVersion` (registered further
-  // down) only stamps the automatic run.
-  game.settings.registerMenu(MODULE_ID, "monsterSpellLibraryMenu", {
-    name: "SDE.settings.monsterSpellLibrary.name",
-    hint: "SDE.settings.monsterSpellLibrary.hint",
-    label: "SDE.settings.monsterSpellLibrary.label",
-    icon: "fa-solid fa-book-sparkles",
-    type: MonsterSpellLibraryMenu,
-    restricted: true,
-  });
-
-  // GM-only editor (Configure Settings → this module) for the table above.
-  game.settings.registerMenu(MODULE_ID, "levelGuidelinesMenu", {
-    name: "SDE.settings.levelGuidelines.name",
-    hint: "SDE.settings.levelGuidelines.hint",
-    label: "SDE.settings.levelGuidelines.label",
-    icon: "fa-solid fa-scale-balanced",
-    type: LevelGuidelinesEditor,
-    restricted: true,
   });
 
   // Default is sourced from encounter-sources.mjs so it can't drift from the
@@ -292,7 +299,7 @@ export function registerSettings() {
     name: "SDE.settings.lootDropEnabled.name",
     hint: "SDE.settings.lootDropEnabled.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: false,
   });
@@ -301,7 +308,7 @@ export function registerSettings() {
     name: "SDE.settings.lootDropMode.name",
     hint: "SDE.settings.lootDropMode.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: String,
     choices: {
       npc: "SDE.settings.lootDropMode.npc",
@@ -314,7 +321,7 @@ export function registerSettings() {
     name: "SDE.settings.lootDropChance.name",
     hint: "SDE.settings.lootDropChance.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Number,
     range: { min: 0, max: 100, step: 5 },
     default: 50,
@@ -323,17 +330,17 @@ export function registerSettings() {
   game.settings.register(MODULE_ID, "xpThresholdNormal", {
     name: "SDE.settings.xpThresholdNormal.name",
     hint: "SDE.settings.xpThresholdNormal.hint",
-    scope: "world", config: true, type: Number, default: 10,
+    scope: "world", config: false, type: Number, default: 10,
   });
   game.settings.register(MODULE_ID, "xpThresholdFabulous", {
     name: "SDE.settings.xpThresholdFabulous.name",
     hint: "SDE.settings.xpThresholdFabulous.hint",
-    scope: "world", config: true, type: Number, default: 150,
+    scope: "world", config: false, type: Number, default: 150,
   });
   game.settings.register(MODULE_ID, "uniqueFeatureChance", {
     name: "SDE.settings.uniqueFeatureChance.name",
     hint: "SDE.settings.uniqueFeatureChance.hint",
-    scope: "world", config: true, type: Number, default: 100,
+    scope: "world", config: false, type: Number, default: 100,
   });
   game.settings.register(MODULE_ID, "uniqueFeatureTableUuid", {
     scope: "world", config: false, type: String, default: "",
@@ -383,7 +390,7 @@ export function registerSettings() {
     name: "SDE.settings.encounterRollGMOnly.name",
     hint: "SDE.settings.encounterRollGMOnly.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -392,7 +399,7 @@ export function registerSettings() {
     name: "SDE.settings.pauseOnEncounter.name",
     hint: "SDE.settings.pauseOnEncounter.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -401,7 +408,7 @@ export function registerSettings() {
     name: "SDE.settings.autoRollActiveTable.name",
     hint: "SDE.settings.autoRollActiveTable.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -410,7 +417,7 @@ export function registerSettings() {
     name: "SDE.settings.luckRerollPreventNat1.name",
     hint: "SDE.settings.luckRerollPreventNat1.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -419,7 +426,7 @@ export function registerSettings() {
     name: "SDE.settings.spellMishapAutoRoll.name",
     hint: "SDE.settings.spellMishapAutoRoll.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -428,7 +435,7 @@ export function registerSettings() {
     name: "SDE.settings.scavengerAutomate.name",
     hint: "SDE.settings.scavengerAutomate.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -437,7 +444,7 @@ export function registerSettings() {
     name: "SDE.settings.parryAutomate.name",
     hint: "SDE.settings.parryAutomate.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -446,7 +453,7 @@ export function registerSettings() {
     name: "SDE.settings.tauntAutomate.name",
     hint: "SDE.settings.tauntAutomate.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -458,7 +465,7 @@ export function registerSettings() {
     name: "SDE.settings.scavengerWatchAmmo.name",
     hint: "SDE.settings.scavengerWatchAmmo.hint",
     scope: "world",
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });
@@ -503,5 +510,14 @@ export function registerSettings() {
     config: false,
     type: Object,
     default: {},
+  });
+
+  // Feature pop-outs (Configure Settings → this module). Every setting listed
+  // in SETTING_GROUPS is registered with `config: false` — here or in its
+  // feature file — and rendered inside its group's window instead.
+  registerSettingGroups({
+    charBuilderExtraGear: ExtraGearEditor,
+    monsterSpellLibrary: MonsterSpellLibraryMenu,
+    levelGuidelines: LevelGuidelinesEditor,
   });
 }

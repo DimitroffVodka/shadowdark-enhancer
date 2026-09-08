@@ -30,7 +30,7 @@ Shadowdark RAW default and is labelled as such.
 ### What happens on a hit
 
 Three things, each individually toggleable in
-**Configure Settings → Shadowdark Enhancer**:
+**Configure Settings → Shadowdark Enhancer → Encounters**:
 
 | Setting | Default | Effect |
 |---|---|---|

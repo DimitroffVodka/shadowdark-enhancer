@@ -1,3 +1,5 @@
+import { MODULE_ID } from "../../shared/module-id.mjs";
+
 /**
  * Base class for character-builder steps.
  *
@@ -14,6 +16,14 @@ export class BaseStep {
 
   /** Shared builder state. */
   get state() { return this.app.builderState; }
+
+  /**
+   * Whether a GM lock setting binds this user. GMs are never locked; an
+   * unregistered setting (node tests) reads as unlocked.
+   */
+  lockedBy(settingKey) {
+    try { return !game.user?.isGM && !!game.settings.get(MODULE_ID, settingKey); } catch (_e) { return false; }
+  }
 
   /** Drop any cached compendium-derived content so a re-render re-reads it
    *  (called when the importer unlocks new content). Override to clear caches. */

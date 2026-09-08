@@ -57,6 +57,11 @@ Point Buy starts every score at 8 and allows adjusting abilities between 8 and
 Dice So Nice animation is optional and toggled in settings; the chat audit card
 posts either way.
 
+**Players get one roll by default.** With *Lock ability rolls* on, a player who
+has rolled loses Roll Again, Reset and Random; only the `3d6` method's reroll
+when no score reaches 14 remains. GMs are never locked, and closing the builder
+still starts fresh, so the chat audit cards stay the record of what was rolled.
+
 The step also includes a quick reference explaining what each ability does in
 Shadowdark.
 
@@ -79,6 +84,10 @@ This step configures class progression details:
 
 - Level-1 features shown up front
 - The **`2d6` class talent table roll**, logged to chat
+- With *Lock talent rolls* on (the default), players get one roll on the talent
+  table and on each bonus table. Only duplicates the rules require rerolling can
+  be rerolled, and switching class and back restores the earlier rolls rather
+  than granting new ones.
 - **Talent choices** (such as Weapon Mastery, Armor Mastery, or spell
   advantage) selected **inline** rather than via popups
 - **Bonus rolls**: Human *Ambitious* talent, *Black Lotus*, and patron boons
@@ -87,6 +96,12 @@ This step configures class progression details:
 - **Language selection**: fixed languages plus choose-N pools
 
 ### 5. HP & Gold
+
+**HP and gold are one roll each for players by default.** With *Lock HP rolls*
+and *Lock gold rolls* on, a player who has rolled loses Roll Again, Take Max and
+Random for that step, and switching class and back restores the earlier HP
+rather than granting a new roll. The manual gp box is GM-only in any case, and a
+fixed starting-gold setting replaces the gold roll for everyone.
 
 Roll your class hit die with Constitution modifiers applied automatically.
 Talent HP bonuses (such as Dwarf *Stout*) are included **without double-counting**.
@@ -103,7 +118,7 @@ installed packs. Items your class **cannot use are flagged**. The cart tracks
 against your starting gold and carry slots, deducting spent coins on finish.
 
 GMs can grant **extra starting gear** (such as magic items or potions) via
-**Configure Settings → Character Builder — extra gear → Manage Extra Gear**.
+**Configure Settings → Shadowdark Enhancer → Character Builder → Manage Extra Gear**.
 
 ### 7. Preview
 
@@ -141,8 +156,9 @@ Art is optional. Leaving it blank uses system defaults.
   from **any** active module that publishes them. No specific module is
   required; without one, it browses the configured image folders directly.
 
-Gallery folders are set via **Character Builder — portrait/token art folders**
-(defaults to `assets/portraits, assets/ancestries`).
+Gallery folders are set under **Configure Settings → Shadowdark Enhancer → Character
+Builder → Portrait/token art folders**, one folder per row picked with Foundry's
+folder browser (defaults to `assets/portraits, assets/ancestries`).
 
 Clicking **Finish** commits the character through the system's creation path:
 ancestry, class, background, and deity are stored as references, while talents,
@@ -174,7 +190,7 @@ portrait selection enable automatically when installed.
 ## Troubleshooting
 
 **A player cannot change the ability generation method.**
-The method is GM-dictated. Change it in **Configure Settings → Character Builder — ability roll method**.
+The method is GM-dictated. Change it in **Configure Settings → Shadowdark Enhancer → Character Builder → Ability roll method**.
 
 **An imported class does not appear.**
 The builder filters on `system.source.title`. Ensure the class was committed

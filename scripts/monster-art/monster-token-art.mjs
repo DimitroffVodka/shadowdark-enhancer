@@ -25,7 +25,7 @@ export class MonsterTokenArt {
 
   /** Default art source (a locally-installed module id) + its asset layout. */
   static get SOURCE() {
-    const id = game.settings.get(MODULE_ID, "tokenArtSource") || "dnd-monster-manual";
+    const id = "dnd-monster-manual";
     return {
       id,
       tokenDir: `modules/${id}/assets/tokens`,
@@ -181,14 +181,6 @@ export class MonsterTokenArt {
   static presentPacks() { return this.coveredPackIds().filter((id) => game.packs.get(id)); }
 
   static register() {
-    game.settings.register(MODULE_ID, "tokenArtSource", {
-      name: "SDE.settings.tokenArtSource.name",
-      hint: "SDE.settings.tokenArtSource.hint",
-      scope: "world",
-      config: true,
-      type: String,
-      default: "dnd-monster-manual",
-    });
     // Whether the module injects its generated compendium-art mapping on load
     // (so every monster drag gets the art). Toggled by the tool, not the UI.
     game.settings.register(MODULE_ID, "tokenArtCompendium", {

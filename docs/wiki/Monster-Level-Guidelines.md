@@ -75,7 +75,7 @@ is still whatever you set.
 
 ## The guidelines table
 
-**Configure Settings → Shadowdark Enhancer → Monster level guidelines →
+**Configure Settings → Shadowdark Enhancer → Monsters → Monster level guidelines →
 Edit Guidelines Table.** GM-only.
 
 

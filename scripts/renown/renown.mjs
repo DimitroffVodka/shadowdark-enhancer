@@ -137,7 +137,7 @@ export const Renown = {
       name: "SDE.settings.renownOnLevelUp.name",
       hint: "SDE.settings.renownOnLevelUp.hint",
       scope: "world",
-      config: true,
+      config: false,
       type: Boolean,
       default: true,
     });
@@ -146,7 +146,7 @@ export const Renown = {
       name: "SDE.settings.renownOnCreate.name",
       hint: "SDE.settings.renownOnCreate.hint",
       scope: "world",
-      config: true,
+      config: false,
       type: Boolean,
       default: true,
     });

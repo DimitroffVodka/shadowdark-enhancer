@@ -120,9 +120,13 @@
       <div class="sde-cb-subpanel">
         <div class="sde-cb-subpanel-head">
           <span class="sde-cb-panel-title">{{localize "SDE.charBuilder.class.talent"}}</span>
+          {{#if step.talent.canRoll}}
           <button type="button" class="sde-cb-btn dice sm" data-cb-roll-talent>
             <i class="fa-solid fa-dice"></i> {{#if step.talent.rolled}}{{localize "SDE.charBuilder.class.rerollTalent"}}{{else}}{{localize "SDE.charBuilder.class.rollTalent"}}{{/if}}
           </button>
+          {{else}}
+          <span class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>
+          {{/if}}
         </div>
 
         {{#if step.talent.table}}

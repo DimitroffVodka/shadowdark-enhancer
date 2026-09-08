@@ -431,7 +431,7 @@ await api.tokenArt.apply({
   minScore: 0.5,     // fuzzy-match floor
 });
 // → { tokens, portraits, kept, skipped: [...] }
-//   plus `missing: true` when the configured source module isn't installed
+//   plus `missing: true` when dnd-monster-manual isn't installed
 ```
 
 ### Catalog and matching

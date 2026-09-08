@@ -1,3 +1,7 @@
+| **Lock HP rolls** | on | Hides Roll Again, Take Max and Random for players once Level-1 HP is rolled. GMs are never locked. |
+| **Lock gold rolls** | on | Hides Roll Again and Random for players once starting gold is rolled. GMs are never locked and keep the manual gp box. |
+| **Lock ability rolls** | on | Hides Roll Again, Reset and Random for players once abilities are rolled. The 3d6 under-14 reroll stays. GMs are never locked. |
+| **Lock talent rolls** | on | Hides Reroll for players once a class or bonus talent is rolled. Duplicates the rules say to reroll stay rerollable. GMs are never locked. |
 # Settings Reference
 
 [← Wiki home](index.md)
@@ -10,42 +14,92 @@ All settings are **world-scoped**. They are configured by the GM for the whole w
 
 ## Settings you can see
 
-Go to **Configure Settings → Shadowdark Enhancer**. These are the 26 configurable
-settings, plus two GM-only menus (*Edit Guidelines Table*, *Manage Extra Gear*)
-that open their own editor windows.
+Go to **Configure Settings → Shadowdark Enhancer**. Every setting lives in one of seven
+pop-out windows, one per feature, each opened by its own **Configure** button:
+Character Builder, Monsters, PC Automation, Movement, Crawl Strip, Encounters,
+and Loot & XP.
 
-### Movement
-
-| Setting | Default | What it does |
-|---|---|---|
-| **Combat movement default (ft)** | `30` | Default movement budget per combatant turn. Rulers turn red past this from turn start. |
-| **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl round. Resets on **Next Round**. |
-| **Enforce out-of-combat movement budget** | **off** | On: refuses moves exceeding crawl budget. Off: flags red, but allows move. |
-| **Enforce combat movement budget** | **off** | On: refuses combat moves past remaining movement. Off relies on player honesty. |
-| **Lock movement out of turn** | **off** | Restricts player moves to active turns (in combat or ordered crawl). GMs and unrostered tokens are never locked. |
-
-See [Movement Budgets](Movement-Budgets.md).
-
-### Crawl strip
+### Character Builder
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Game Master avatar** | *(blank)* | Image on the GM card. Blank uses the cowled icon. Click the portrait to change. |
-| **Warn when shadowdark-crawl-helper is enabled** | on | Non-blocking notice at world load if Crawl Helper is active. |
+| **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated method (3d6 down/assign/reroll, 4d6k3 down/assign, Standard Array, Point Buy). |
+| **Portrait/token art folders** | `assets/portraits, assets/ancestries` | Folders offered as the Preview gallery, picked with Foundry's folder browser. Browsed through the GM; discovers datasheet manifests. |
+| **Animate dice (Dice So Nice)** | off | Plays 3D dice roll animations for builder rolls. Chat audit card posts either way. |
+| **Max Level-1 HP** | off | Sets Level-1 HP to maximum hit die + CON instead of rolling. |
+| **Fixed starting gold (gp)** | `0` | Flat starting gold amount. `0` rolls standard `2d6 × 5 gp`. |
+| **Extra gear** *(menu)* | *(empty)* | GM-only picker (**Manage Extra Gear**) adding custom items to the starting shop. |
 
-### Luck Reroll
+See [Character Builder](Character-Builder.md).
+
+---
+
+### Monsters
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Prevent Luck rerolls on natural 1s** | on | Prevents spending Luck tokens to reroll natural 1 attack rolls, checks, or saves. |
+| **Monster Spell library** *(menu)* | *(compendium)* | GM-only (**Build / Refresh Library**) generating a rollable Spell item for every spell embedded in your monsters, filed under Monster Spells in the module's compendium. |
+| **Monster level guidelines** *(menu)* | *(shipped table)* | GM-only editor (**Edit Guidelines Table**) defining baseline stats per level. Stored as a sparse diff. |
 
-### Spell Mishaps
+See [Monster Level Guidelines](Monster-Level-Guidelines.md).
+
+### PC Automation
+
+Automation for player-character rules. The pop-out keeps the Duelist, Delver
+and renown switches under their own headings.
+
+#### Spell Mishaps
 
 | Setting | Default | What it does |
 |---|---|---|
 | **Auto-roll spell mishap tables** | on | Automatically rolls mishap tables on natural 1 spell fumbles (Wizard or Diabolical). Divine casters lose the spell per RAW. |
 
-### Scavenger
+#### Luck Reroll
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Prevent Luck rerolls on natural 1s** | on | Prevents spending Luck tokens to reroll natural 1 attack rolls, checks, or saves. |
+
+#### Duelist — Taunt
+
+Automates the Duelist's **Taunt**: *when an enemy misses you with an attack, you
+have advantage on attacks against that enemy next round.*
+
+When an enemy misses a character with Taunt, that character gains advantage
+against that specific token until the end of their next turn. A chat card logs
+the effect, and attack rolls against that target apply advantage automatically.
+Taunt applies only against the specific attacker, not allied enemies.
+
+Two rules interactions are built in:
+- Advantage and disadvantage cancel out normally per core rules.
+- Attacks turned aside by **Parry** count as misses and arm Taunt.
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Automate the Duelist's Taunt** | on | Master switch for tracking and applying Taunt advantage. |
+
+#### Duelist — Parry
+
+Automates the Duelist's **Parry**: *once per day, an attack of your choice that
+would hit you misses instead.*
+
+When an attack lands on a Duelist, a **Parry this attack** button appears on the
+chat card for the player and GM. Using it consumes a daily use, strikes through
+damage on the original card, and removes damage application buttons.
+
+If the GM already applied the damage, Parry refunds the actual lost HP (taking
+into account the 0 HP floor) and clears unconscious or defeated conditions
+caused by that strike.
+
+Requires the system's **Enable Targeting** setting so the attack roll knows
+which token AC it targeted. Spells targeting a Duelist use caster DCs rather than
+weapon attack rolls, so Parry does not trigger on spells.
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Automate the Duelist's Parry** | on | Master switch for the reaction button and automatic HP refunds. |
+
+#### Delver — Scavenger
 
 Automates the Delver's **Scavenger** talent: *when you expend the last of a
 consumable item, roll a d6; on a 5 or 6 you regain one use of that item.*
@@ -71,62 +125,31 @@ or by name fallback for existing characters.
 | **Automate the Delver's Scavenger** | on | Master toggle. Off leaves the talent as plain text. |
 | **Scavenger covers ammunition** | on | Allows spending your last arrow or bolt to trigger Scavenger. Turn off to restrict to gear. |
 
-### Parry
-
-Automates the Duelist's **Parry**: *once per day, an attack of your choice that
-would hit you misses instead.*
-
-When an attack lands on a Duelist, a **Parry this attack** button appears on the
-chat card for the player and GM. Using it consumes a daily use, strikes through
-damage on the original card, and removes damage application buttons.
-
-If the GM already applied the damage, Parry refunds the actual lost HP (taking
-into account the 0 HP floor) and clears unconscious or defeated conditions
-caused by that strike.
-
-Requires the system's **Enable Targeting** setting so the attack roll knows
-which token AC it targeted. Spells targeting a Duelist use caster DCs rather than
-weapon attack rolls, so Parry does not trigger on spells.
-
-| Setting | Default | What it does |
-|---|---|---|
-| **Automate the Duelist's Parry** | on | Master switch for the reaction button and automatic HP refunds. |
-
-### Taunt
-
-Automates the Duelist's **Taunt**: *when an enemy misses you with an attack, you
-have advantage on attacks against that enemy next round.*
-
-When an enemy misses a character with Taunt, that character gains advantage
-against that specific token until the end of their next turn. A chat card logs
-the effect, and attack rolls against that target apply advantage automatically.
-Taunt applies only against the specific attacker, not allied enemies.
-
-Two rules interactions are built in:
-- Advantage and disadvantage cancel out normally per core rules.
-- Attacks turned aside by **Parry** count as misses and arm Taunt.
-
-| Setting | Default | What it does |
-|---|---|---|
-| **Automate the Duelist's Taunt** | on | Master switch for tracking and applying Taunt advantage. |
-
-### Renown
+#### Renown
 
 | Setting | Default | What it does |
 |---|---|---|
 | **Starting renown from CHA** | on | Seeds new PC renown from CHA modifier once; never touches non-zero or logged renown. See [Renown](Renown.md). |
 | **Renown on level-up** | on | Awards 1 renown on level-up (levels 2+). Manual awards stay on the Renown dialog. See [Renown](Renown.md). |
 
-### Encounters
+### Movement
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Roll Encounters as GM-only** | on | Whispers encounter rolls and roller cards to GM only. |
-| **Pause game on encounter** | on | Automatically pauses game when an encounter check hits. |
-| **Auto-roll active table on hit** | on | Draws from active encounter table automatically on a hit. |
+| **Combat movement default (ft)** | `30` | Default movement budget per combatant turn. Rulers turn red past this from turn start. |
+| **Out-of-combat movement budget (ft)** | `90` | Default budget per crawl round. Resets on **Next Round**. |
+| **Enforce out-of-combat movement budget** | **off** | On: refuses moves exceeding crawl budget. Off: flags red, but allows move. |
+| **Enforce combat movement budget** | **off** | On: refuses combat moves past remaining movement. Off relies on player honesty. |
+| **Lock movement out of turn** | **off** | Restricts player moves to active turns (in combat or ordered crawl). GMs and unrostered tokens are never locked. |
 
-> **The encounter threshold is set on the Crawl Bar.** Right-click **Encounter**
-> on the bar to adjust it. See [Random Encounters](Random-Encounters.md).
+See [Movement Budgets](Movement-Budgets.md).
+
+### Crawl Strip
+
+| Setting | Default | What it does |
+|---|---|---|
+| **Game Master avatar** | `assets/gm-avatar.jpg` (bundled) | Portrait on the Game Master card in the crawl strip. Blank shows a plain cowled icon; click the card's portrait in the strip to change it. |
+| **Warn when shadowdark-crawl-helper is enabled** | on | Non-blocking notice at world load if Crawl Helper is active. |
 
 ### Loot & XP
 
@@ -140,34 +163,16 @@ Two rules interactions are built in:
 | **Treasure XP threshold — fabulous (gp)** | `150` | Minimum gold value for treasure to count as fabulous XP. |
 | **Magic item unique-feature chance (%)** | `100` | Percent chance generated magic items gain unique features. |
 
-### Monster art
+### Encounters
 
 | Setting | Default | What it does |
 |---|---|---|
-| **Monster token-art source module** | `dnd-monster-manual` | Installed module ID providing token and portrait assets. Referenced directly from disk without copying. |
+| **Roll Encounters as GM-only** | on | Whispers encounter rolls and roller cards to GM only. |
+| **Pause game on encounter** | on | Automatically pauses game when an encounter check hits. |
+| **Auto-roll active table on hit** | on | Draws from active encounter table automatically on a hit. |
 
-### Monsters
-
-| Setting | Default | What it does |
-|---|---|---|
-| **Monster level guidelines** *(menu)* | *(shipped table)* | GM-only editor (**Edit Guidelines Table**) defining baseline stats per level. Stored as a sparse diff. |
-
-See [Monster Level Guidelines](Monster-Level-Guidelines.md).
-
-### Character Builder
-
-| Setting | Default | What it does |
-|---|---|---|
-| **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated method (3d6 down/assign/reroll, 4d6k3 down/assign, Standard Array, Point Buy). |
-| **Portrait/token art folders** | `assets/portraits, assets/ancestries` | Comma-separated paths for the Preview gallery. Proxied through GM; discovers datasheet manifests. |
-| **Animate dice (Dice So Nice)** | off | Plays 3D dice roll animations for builder rolls. Chat audit card posts either way. |
-| **Max Level-1 HP** | off | Sets Level-1 HP to maximum hit die + CON instead of rolling. |
-| **Fixed starting gold (gp)** | `0` | Flat starting gold amount. `0` rolls standard `2d6 × 5 gp`. |
-| **Extra gear** *(menu)* | *(empty)* | GM-only picker (**Manage Extra Gear**) adding custom items to the starting shop. |
-
-See [Character Builder](Character-Builder.md).
-
----
+> **The encounter threshold is set on the Crawl Bar.** Right-click **Encounter**
+> on the bar to adjust it. See [Random Encounters](Random-Encounters.md).
 
 ## Settings edited elsewhere
 

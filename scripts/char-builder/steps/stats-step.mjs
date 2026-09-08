@@ -40,6 +40,16 @@ export class StatsStep extends BaseStep {
   get isFixed() { return Array.isArray(this.method.fixed); }
   get isPointBuy() { return !!this.method.pointBuy; }
 
+  /**
+   * GM lock: once a player has rolled, Roll Again / Reset / Random are gone.
+   * The 3d6 method's under-14 reroll is a rule, not a reroll, and stays.
+   */
+  get rollLocked() {
+    return !this.isFixed && !this.isPointBuy
+      && (this.state.stats.pool ?? []).length === ABILITY_ORDER.length
+      && this.lockedBy("charBuilderLockStatRolls");
+  }
+
   async prepareContext() {
     const st = this.state.stats;
     const m = this.method;
@@ -86,14 +96,16 @@ export class StatsStep extends BaseStep {
       poolChips,
       showReroll: !!m.rerollUnder14,
       canReroll: !!m.rerollUnder14 && rolled && maxRoll < 14,
-      showReset: this.isFixed || this.isPointBuy || rolled,
+      showReset: (this.isFixed || this.isPointBuy || rolled) && !this.rollLocked,
+      rollLocked: this.rollLocked,
       complete: this.isComplete(),
     };
   }
 
-  supportsRandom() { return !this.isPointBuy; }
+  supportsRandom() { return !this.isPointBuy && !this.rollLocked; }
 
   async randomize() {
+    if (this.rollLocked) return;
     if (this.isPointBuy) {
       this._resetRoll();
       return;
@@ -110,12 +122,14 @@ export class StatsStep extends BaseStep {
   async handleAction(action, _event, target) {
     switch (action) {
       case "cb-roll-stats":
+        if (this.rollLocked) return false;
         await this._roll("roll");
         return true;
       case "cb-reroll-stats":
         await this._roll("reroll");
         return true;
       case "cb-reset-stats":
+        if (this.rollLocked) return false;
         this._resetRoll();
         return true;
       case "cb-point-buy-increase":

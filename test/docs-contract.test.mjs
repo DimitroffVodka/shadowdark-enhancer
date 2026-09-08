@@ -21,6 +21,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  GROUPED_MENU_KEYS, GROUPED_SETTING_KEYS, SETTING_GROUPS,
+} from "../scripts/shared/setting-groups.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const WIKI = path.join(ROOT, "docs", "wiki");
@@ -56,6 +59,9 @@ function objectAt(src, start) {
   return "";
 }
 
+/** Settings that render inside a feature pop-out rather than the main list. */
+const GROUPED = new Set(GROUPED_SETTING_KEYS);
+
 /** All `game.settings.register(MODULE_ID, "key", {...})` calls. */
 function registeredSettings() {
   const found = [];
@@ -71,7 +77,9 @@ function registeredSettings() {
       found.push({
         key: m[1],
         file: path.relative(ROOT, f),
-        config: /\bconfig:\s*true\b/.test(body),
+        // Grouped settings are `config: false` — they render in a feature
+        // pop-out, not the main list — but are just as visible to the GM.
+        config: /\bconfig:\s*true\b/.test(body) || GROUPED.has(m[1]),
         literalName: nameLit && !nameLit[1].startsWith("SDE.") ? nameLit[1] : null,
         hasLiteralHint: /\bhint:\s*"(?!SDE\.)[^"]*"/.test(body),
       });
@@ -230,7 +238,7 @@ describe("docs contract — settings", () => {
     // settings assertion vacuously pass.
     assert.ok(settings.length >= 40, `expected 40+ registered settings, found ${settings.length}`);
     const keys = settings.map((s) => s.key);
-    for (const k of ["combatMovementDefault", "charBuilderArtFolder", "shopSellRatio", "tokenArtSource"]) {
+    for (const k of ["combatMovementDefault", "charBuilderArtFolder", "shopSellRatio", "tokenArtCompendium"]) {
       assert.ok(keys.includes(k), `parser missed a known setting: ${k}`);
     }
   });
@@ -276,8 +284,28 @@ describe("docs contract — settings", () => {
     );
   });
 
+  test("setting groups list real settings and carry their own strings", () => {
+    const keys = new Set(settings.map((s) => s.key));
+    const unknown = GROUPED_SETTING_KEYS.filter((k) => !keys.has(k));
+    assert.deepEqual(unknown, [], `setting-groups.mjs lists settings nobody registers: ${unknown.join(", ")}`);
+    assert.equal(new Set(GROUPED_SETTING_KEYS).size, GROUPED_SETTING_KEYS.length, "a setting sits in two groups");
+    const missing = [];
+    const need = (k) => { if (!i18n[k]) missing.push(k); };
+    for (const g of SETTING_GROUPS) {
+      for (const part of ["name", "hint", "label"]) need(`SDE.settings.${g.key}.${part}`);
+      for (const s of g.sections) if (s.label) need(s.label);
+    }
+    for (const m of GROUPED_MENU_KEYS) {
+      for (const part of ["name", "hint", "label"]) need(`SDE.settings.${m}.${part}`);
+    }
+    assert.deepEqual(missing, [], `en.json lacks strings the pop-outs render:\n  ${missing.join("\n  ")}`);
+  });
+
   test("no orphaned SDE.settings.* strings in en.json", () => {
-    const known = new Set([...settings.map((s) => s.key), ...registeredMenus()]);
+    const known = new Set([
+      ...settings.map((s) => s.key), ...registeredMenus(),
+      ...SETTING_GROUPS.map((g) => g.key), ...GROUPED_MENU_KEYS,
+    ]);
     // A menu is registered under its own key but conventionally labelled with
     // the key of the setting it edits, so accept both spellings.
     for (const k of [...known]) known.add(k.replace(/Menu$/, ""));

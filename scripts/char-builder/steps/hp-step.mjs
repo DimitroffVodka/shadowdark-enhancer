@@ -5,7 +5,8 @@ import { abilityMod, builderDiceAnimation } from "../constants.mjs";
 /**
  * Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1).
  * The GM setting `charBuilderMaxLevel1HP` forces the die maximum instead of a
- * roll; a Take-Max button is always available. Rolls post a chat card.
+ * roll; the Take-Max button exists only while it is on. Rolls post a chat card.
+ * With `charBuilderLockHpRolls` on, a player's first roll is their only one.
  * Requires a class (for the hit die).
  */
 export class HpStep extends BaseStep {
@@ -15,6 +16,9 @@ export class HpStep extends BaseStep {
   get partial() { return "sde-cb-hp"; }
 
   isComplete() { return this.state.hp.max > 0; }
+
+  /** GM lock: a player whose HP is settled (rolled or maxed) rolls no more. */
+  get rollLocked() { return this.state.hp.max > 0 && this.lockedBy("charBuilderLockHpRolls"); }
 
   /** Class hit die string — system classes use "d8", third-party ones "1d8". */
   get hitDie() { return this.state.class?.item?.system?.hitPoints || null; }
@@ -60,19 +64,20 @@ export class HpStep extends BaseStep {
       hpBonus: mods.bonus || null,
       advantage: mods.advantage,
       maxSetting: this.maxSetting,
+      rollLocked: this.rollLocked,
       hp: this.state.hp.max || null,
       rolled: this.state.hp.rolled,
       complete: this.isComplete(),
     };
   }
 
-  supportsRandom() { return !!this.hitDie; }
-  async randomize() { await this._roll(); }
+  supportsRandom() { return !!this.hitDie && !this.rollLocked; }
+  async randomize() { if (!this.rollLocked) await this._roll(); }
 
   async handleAction(action) {
     switch (action) {
-      case "cb-roll-hp": await this._roll(); return true;
-      case "cb-max-hp": await this._max(); return true;
+      case "cb-roll-hp": if (this.rollLocked) return false; await this._roll(); return true;
+      case "cb-max-hp": if (!this.maxSetting || this.rollLocked) return false; await this._max(); return true;
       default: return false;
     }
   }

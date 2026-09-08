@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import * as constants from "../scripts/char-builder/constants.mjs";
 import { CharBuilderState } from "../scripts/char-builder/state.mjs";
 import { StatsStep } from "../scripts/char-builder/steps/stats-step.mjs";
+import { GoldStep } from "../scripts/char-builder/steps/gold-step.mjs";
+import { HpStep } from "../scripts/char-builder/steps/hp-step.mjs";
 
 const {
   ABILITY_ORDER,
@@ -169,4 +171,96 @@ test("point-buy buttons route through the stats step", async () => {
   assert.equal(await step.handleAction("cb-point-buy-decrease", null, target), true);
   assert.equal(step.state.stats.values.wis, 8);
   assert.equal(await step.handleAction("cb-point-buy-increase", null, { dataset: { ability: "nope" } }), false);
+});
+
+test("the GM lock removes every way for a player to roll abilities again", async () => {
+  globalThis.game.user = { isGM: false };
+  globalThis.game.settings = { get: (_ns, key) => key === "charBuilderLockStatRolls" };
+  try {
+    const step = stepFor("3d6-down");
+    step.state.stats.pool = [10, 11, 12, 13, 9, 8];
+    assert.equal(step.rollLocked, true);
+    const ctx = await step.prepareContext();
+    assert.equal(ctx.rollLocked, true);
+    assert.equal(ctx.showReset, false);
+    assert.equal(step.supportsRandom(), false);
+    // Rolling needs the Roll global, which is absent here: the guards must
+    // return before any of these paths reach it.
+    assert.equal(await step.handleAction("cb-roll-stats"), false);
+    assert.equal(await step.handleAction("cb-reset-stats"), false);
+    await step.randomize();
+    assert.deepEqual(step.state.stats.pool, [10, 11, 12, 13, 9, 8]);
+
+    // The 3d6 method's own under-14 reroll is a rule, not a reroll — it stays.
+    const under14 = stepFor("3d6-reroll");
+    under14.state.stats.pool = [10, 11, 12, 13, 9, 8];
+    const ctx14 = await under14.prepareContext();
+    assert.equal(ctx14.rollLocked, true);
+    assert.equal(ctx14.canReroll, true);
+
+    globalThis.game.user.isGM = true;
+    assert.equal(step.rollLocked, false, "GMs are never locked");
+    globalThis.game.user.isGM = false;
+    step.state.stats.pool = [];
+    assert.equal(step.rollLocked, false, "nothing to lock before the first roll");
+  } finally {
+    delete globalThis.game.user;
+    delete globalThis.game.settings;
+  }
+});
+
+test("the GM lock removes every way for a player to roll gold again", async () => {
+  globalThis.game.user = { isGM: false };
+  globalThis.game.settings = { get: (_ns, key) => (key === "charBuilderLockGoldRolls" ? true : 0) };
+  try {
+    const builderState = new CharBuilderState({ statMethod: "3d6-down" });
+    const step = new GoldStep({ builderState, render: async () => {} });
+    assert.equal(step.rollLocked, false, "nothing to lock before the first roll");
+    step.state.coins.gp = 35;
+    step.state.goldRolled = true;
+    assert.equal(step.rollLocked, true);
+    const ctx = await step.prepareContext();
+    assert.equal(ctx.rollLocked, true);
+    assert.equal(ctx.canEdit, false, "the manual box is GM-only");
+    assert.equal(step.supportsRandom(), false);
+    // Rolling needs the Roll global, which is absent here: the guards must
+    // return before either path reaches it.
+    assert.equal(await step.handleAction("cb-roll-gold"), false);
+    await step.randomize();
+    assert.equal(step.state.coins.gp, 35);
+    globalThis.game.user.isGM = true;
+    assert.equal(step.rollLocked, false, "GMs are never locked");
+    assert.equal((await step.prepareContext()).canEdit, true);
+  } finally {
+    delete globalThis.game.user;
+    delete globalThis.game.settings;
+  }
+});
+
+test("the GM lock removes every way for a player to roll HP again", async () => {
+  globalThis.game.user = { isGM: false };
+  globalThis.game.settings = { get: (_ns, key) => key === "charBuilderLockHpRolls" };
+  try {
+    const builderState = new CharBuilderState({ statMethod: "3d6-down" });
+    builderState.class = { uuid: "x", name: "Fighter", item: { system: { hitPoints: "d8" } } };
+    const step = new HpStep({ builderState, render: async () => {} });
+    assert.equal(step.rollLocked, false, "nothing to lock before the first roll");
+    assert.equal(step.supportsRandom(), true);
+    step.state.hp = { max: 7, rolled: 7 };
+    assert.equal(step.rollLocked, true);
+    const ctx = await step.prepareContext();
+    assert.equal(ctx.rollLocked, true);
+    assert.equal(step.supportsRandom(), false);
+    // Rolling needs the Roll global, which is absent here: the guards must
+    // return before any of these paths reaches it.
+    assert.equal(await step.handleAction("cb-roll-hp"), false);
+    assert.equal(await step.handleAction("cb-max-hp"), false);
+    await step.randomize();
+    assert.equal(step.state.hp.max, 7);
+    globalThis.game.user.isGM = true;
+    assert.equal(step.rollLocked, false, "GMs are never locked");
+  } finally {
+    delete globalThis.game.user;
+    delete globalThis.game.settings;
+  }
 });

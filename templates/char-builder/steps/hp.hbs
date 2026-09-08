@@ -7,12 +7,18 @@
   </p>
 
   <div class="sde-cb-stats-btns">
+    {{#if step.rollLocked}}
+    <span class="sde-cb-hint"><i class="fa-solid fa-lock"></i> {{localize "SDE.charBuilder.lockedRoll"}}</span>
+    {{else}}
     <button type="button" class="sde-cb-btn dice" data-action="cb-roll-hp">
       <i class="fa-solid fa-dice"></i> {{#if step.hp}}{{localize "SDE.charBuilder.hp.rollAgain"}}{{else}}{{localize "SDE.charBuilder.hp.roll"}}{{/if}}
     </button>
+    {{#if step.maxSetting}}
     <button type="button" class="sde-cb-btn" data-action="cb-max-hp">
       <i class="fa-solid fa-heart"></i> {{localize "SDE.charBuilder.hp.max"}}
     </button>
+    {{/if}}
+    {{/if}}
   </div>
 
   <div class="sde-cb-big-number">

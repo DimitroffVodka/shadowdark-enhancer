@@ -75,6 +75,7 @@ export class ClassStep extends ListStep {
     this._expandedSpells = new Set();   // uuids with the preview open
     this._spellDetail = new Map();      // uuid → { description, tier, range, duration } (enriched once)
     this._talentDescCache = new Map();  // uuid → enriched description HTML (bonus-roll results)
+    this._lastClassUuid = null;         // class whose rolls state.talentMemo last snapshotted
     // Language choice lives on this tab (ancestry + class both contribute once
     // a class is picked) — delegate to the retained LanguagesStep, which keeps
     // its combo-keyed cache, need-counts and state._sync logic.
@@ -105,18 +106,19 @@ export class ClassStep extends ListStep {
     // (the DeityStep fixedDeity pin reads state.class.item.flags).
     const doc = await fromUuid(item.uuid).catch(() => null);
     if (doc) this.state.class.item = doc;
-    // Class-dependent choices reset when the class changes.
-    this.state.classTalents = [];
-    this.state.classTalentRoll = null;
-    this.state.bonusRolls = [];
-    this.state.talentChoices = {};
+    // Class-dependent choices reset when the class changes — but a class's own
+    // rolls are remembered, so switching away and back is not a free reroll.
+    const memo = (this.state.talentMemo ??= {});
+    if (this._lastClassUuid) memo[this._lastClassUuid] = structuredClone(this._talentSlice());
+    this._lastClassUuid = item.uuid;
+    Object.assign(this.state, structuredClone(memo[item.uuid]
+      ?? { classTalents: [], classTalentRoll: null, bonusRolls: [], talentChoices: {}, hp: { max: 0, rolled: null } }));
     this._bonusCache = null;
     this._pendingChoiceKeys = null;
     this.state.spells = [];
     this.state.patron = null;
-    // HP was rolled from the old class's hit die; languages may include the
-    // old class's fixed/chosen picks — both must be redone for the new class.
-    this.state.hp = { max: 0, rolled: null };
+    // HP came from the old class's hit die (it is part of the memo above);
+    // languages may include the old class's fixed/chosen picks — redone here.
     this.state.languages = [];
     this.state.languageChoices = { common: [], rare: [], select: [] };
     // Warm the language cache for the new combo so isComplete() (sync) can
@@ -266,35 +268,45 @@ export class ClassStep extends ListStep {
     return html;
   }
 
+  /**
+   * A dedupe roll (all Corruption rolls: the level-1 feature + any "Gain a/Two
+   * Corruption Talents" follow-ups) whose result collides with another roll on
+   * the same table.
+   */
+  _isDuplicateBonus(src, sources) {
+    if (!src.dedupe) return false;
+    const mine = this._bonusEntry(src.key)?.chosenUuid;
+    if (!mine) return false;
+    return sources.filter((s) => s.dedupe && s.tableUuid === src.tableUuid
+      && this._bonusEntry(s.key)?.chosenUuid === mine).length > 1;
+  }
+
+  /**
+   * A duplicate must be rerolled (the book's rule) whatever the GM lock says.
+   * Otherwise the lock is final; unlocked, ordinary bonus rolls and the fixed
+   * level-1 table roll (talent-…, the Wyrdling's Corruption) reroll freely
+   * while follow-up dedupe rolls keep the book's "reroll duplicates only" rule.
+   */
+  _canRerollBonus(src, duplicate) {
+    if (duplicate) return true;
+    if (this.talentLocked) return false;
+    return !src.dedupe || src.key.startsWith("talent-");
+  }
+
   /** Template context for the extra creation rolls. */
   async _bonusContext(item) {
     const sources = await this._bonusSources(item);
-    // Dedupe rolls that share a table (all Corruption rolls: the level-1 feature
-    // + any "Gain a/Two Corruption Talents" follow-ups) may only be rerolled
-    // when the result is a DUPLICATE of another such roll. Tally results per
-    // table so each entry can tell whether it collides.
-    const perTable = new Map(); // tableUuid → [chosenUuid, …]
-    for (const s of sources) {
-      if (!s.dedupe) continue;
-      const uuid = this._bonusEntry(s.key)?.chosenUuid;
-      if (uuid) perTable.set(s.tableUuid, [...(perTable.get(s.tableUuid) || []), uuid]);
-    }
     return Promise.all(sources.map(async (s) => {
       const e = this._bonusEntry(s.key);
       const chosenUuid = e?.chosenUuid ?? null;
-      const duplicate = !!(s.dedupe && chosenUuid
-        && (perTable.get(s.tableUuid) || []).filter((u) => u === chosenUuid).length > 1);
+      const duplicate = this._isDuplicateBonus(s, sources);
       return {
         key: s.key,
         label: s.label,
         tableName: s.tableName,
         rolled: !!e,
         duplicate,
-        // Free reroll for ordinary bonus rolls and for the fixed level-1 table
-        // roll (talent-…, the Wyrdling's Corruption — rerolls like the class
-        // talent table). Follow-up dedupe rolls ("Gain a/Two Corruption
-        // Talents") keep the book's "reroll duplicates only" lock.
-        canReroll: !s.dedupe || duplicate || s.key.startsWith("talent-"),
+        canReroll: this._canRerollBonus(s, duplicate),
         total: e?.total ?? null,
         needsChoice: (e?.options?.length ?? 0) > 1,
         options: (e?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === e?.chosenUuid })),
@@ -361,6 +373,7 @@ export class ClassStep extends ListStep {
       hasTable: !!item.system.classTalentTable,
       table: (await this._classInfo(item)).table,
       rolled: !!roll,
+      canRoll: !roll || !this.talentLocked,
       total: roll?.total ?? null,
       needsChoice: (roll?.options?.length ?? 0) > 1,
       options: (roll?.options || []).map((o) => ({ uuid: o.uuid, name: o.name, selected: o.uuid === chosen })),
@@ -445,6 +458,15 @@ export class ClassStep extends ListStep {
 
   // ---- Talent roll ---------------------------------------------------------
 
+  /** GM lock: a player gets one roll per talent table (duplicates excepted). */
+  get talentLocked() { return this.lockedBy("charBuilderLockTalentRolls"); }
+
+  /** The state slice a class's rolls live in (memoised across class switches). */
+  _talentSlice() {
+    const { classTalents, classTalentRoll, bonusRolls, talentChoices, hp } = this.state;
+    return { classTalents, classTalentRoll, bonusRolls, talentChoices, hp };
+  }
+
   /** Roll a table and structurally extract the outcome: linked Item rows in
    *  the rolled range are the options (several = a choice); text rows beside
    *  them are headers; text-only ranges surface as textResult. */
@@ -476,6 +498,7 @@ export class ClassStep extends ListStep {
     const item = this.selected?.item;
     const tableUuid = item?.system?.classTalentTable;
     if (!tableUuid) return;
+    if (this.state.classTalentRoll && this.talentLocked) return;
     const table = await fromUuid(tableUuid);
     if (!table?.roll) return;
 
@@ -632,8 +655,10 @@ export class ClassStep extends ListStep {
   async rollBonus(key, { silent = false } = {}) {
     const item = this.selected?.item;
     if (!item) return;
-    const src = (await this._bonusSources(item)).find((s) => s.key === key);
+    const sources = await this._bonusSources(item);
+    const src = sources.find((s) => s.key === key);
     if (!src) return;
+    if (this._bonusEntry(key) && !this._canRerollBonus(src, this._isDuplicateBonus(src, sources))) return;
     const table = await fromUuid(src.tableUuid).catch(() => null);
     if (!table?.roll) return;
     const { roll, total, options, textResult } = await this._rollOnTable(table);

@@ -4,8 +4,9 @@ import { builderDiceAnimation } from "../constants.mjs";
 
 /**
  * Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting
- * (`charBuilderStartingGold` > 0). A manual field allows any amount. Rolls post
- * a chat card.
+ * (`charBuilderStartingGold` > 0). A GM-only manual field allows any amount.
+ * Rolls post a chat card; with `charBuilderLockGoldRolls` on, a player's first
+ * roll is their only one.
  */
 export class GoldStep extends BaseStep {
   get id() { return "gold"; }
@@ -14,6 +15,9 @@ export class GoldStep extends BaseStep {
   get partial() { return "sde-cb-gold"; }
 
   isComplete() { return this.state.goldRolled; }
+
+  /** GM lock: a player who has rolled (or been handed a fixed amount) rolls no more. */
+  get rollLocked() { return !!this.state.goldRolled && this.lockedBy("charBuilderLockGoldRolls"); }
 
   get fixed() {
     try { return Number(game.settings.get(MODULE_ID, "charBuilderStartingGold")) || 0; } catch (_e) { return 0; }
@@ -28,17 +32,23 @@ export class GoldStep extends BaseStep {
     }
     return {
       fixed: fixed > 0 ? fixed : null,
+      canEdit: !!game.user?.isGM,   // the manual gp box is a GM override, never a player's
+      rollLocked: this.rollLocked,
       gp: this.state.coins.gp,
       rolled: this.state.goldRolled,
       complete: this.isComplete(),
     };
   }
 
-  supportsRandom() { return this.fixed <= 0; }
-  async randomize() { await this._roll(); }
+  supportsRandom() { return this.fixed <= 0 && !this.rollLocked; }
+  async randomize() { if (!this.rollLocked) await this._roll(); }
 
   async handleAction(action) {
-    if (action === "cb-roll-gold") { await this._roll(); return true; }
+    if (action === "cb-roll-gold") {
+      if (this.rollLocked) return false;
+      await this._roll();
+      return true;
+    }
     return false;
   }
 
@@ -68,6 +78,7 @@ export class GoldStep extends BaseStep {
   }
 
   onRender(root) {
+    if (!game.user?.isGM) return;
     root.querySelector("[data-cb-gold-input]")?.addEventListener("change", async (ev) => {
       this.state.coins.gp = Math.max(0, Math.floor(Number(ev.target.value) || 0));
       this.state.goldRolled = true;

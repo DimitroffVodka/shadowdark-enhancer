@@ -154,8 +154,8 @@ Each card displays live actor data:
 ### The GM card
 
 The strip includes a **Game Master** card. Click its portrait to open a file
-picker and set your avatar, or configure it under **Configure Settings → Game
-Master avatar**.
+picker and set your avatar, or configure it under **Configure Settings → Shadowdark Enhancer → Crawl Strip →
+Game Master avatar**.
 
 ### The Merchant Shop button
 

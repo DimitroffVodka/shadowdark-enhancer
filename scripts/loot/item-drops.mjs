@@ -81,7 +81,7 @@ export const ItemDrops = {
       name: "Item Drops",
       hint: "Allow players to drag items from inventory onto the canvas as pickup-able tokens. Light sources are handled by the Shadowdark system and are never dropped this way.",
       scope: "world",
-      config: true,
+      config: false,
       type: Boolean,
       default: true,
     });
