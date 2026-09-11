@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.16.3] — 2026-09-11
+
+### Changed
+- **One upload serves every world.** **Upload & link** now stores a book in
+  `Data/assets/` under its standard filename, the shared folder every world
+  already checks, instead of the current world's own folder. From then on
+  every world on that server links it with no upload of its own. Books
+  uploaded the old way keep working in the world that holds them; to share
+  one, upload it once more from any world.
+
 ## [0.16.2] — 2026-09-11
 
 ### Fixed
