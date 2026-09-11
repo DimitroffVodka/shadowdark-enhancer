@@ -196,12 +196,12 @@ Register uploaded PDF files for Core, Western Reaches, and Cursed Scrolls 1–6.
   bundled PDF.js.
 - **Custom & homebrew books:** Select **➕ Another book…** to register
   third-party supplements or adventure modules.
-- **One copy can serve every world.** Put your PDFs in `Data/assets/` under
-  the filenames the Source PDFs window shows for each book, and every world
-  links them on its own (the row reads "default path"). **Upload & link**
-  instead stores a copy in that world's `source-pdfs` folder, so it is per
-  world. Hosts that keep uploads in an asset library (The Forge, S3) put the
-  file there. Nothing is sent anywhere else.
+- **One copy serves every world.** **Upload & link** stores the book in
+  `Data/assets/` on your server under its standard filename, and every world
+  there links it on its own (the row reads "default path"). Files you place
+  in that folder yourself under the same names work the same way. Hosts that
+  keep uploads in an asset library (The Forge, S3) put the file there instead.
+  Nothing is sent anywhere else.
 
 ### Bundle export / import
 

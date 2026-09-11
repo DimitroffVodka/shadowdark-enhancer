@@ -95,10 +95,12 @@ export function titlePageFor(className) {
   return null;
 }
 
-/** Per-world upload target — packaged module dirs are read-only. */
-function uploadDir() {
-  return `worlds/${game.world.id}/source-pdfs`;
-}
+/**
+ * Shared upload target: the world-agnostic assets/ folder SOURCE_PDFS points
+ * into, so one upload links a book in every world on this server. (Not the
+ * module dir — packaged module dirs are read-only.)
+ */
+const SHARED_DIR = "assets";
 
 /** The active v13+ FilePicker implementation (falls back to the classic global). */
 function filePicker() {
@@ -256,19 +258,23 @@ export async function registerSourcePdf(src, filePath, label) {
 }
 
 /**
- * Upload a user-picked PDF File to the per-world source-pdfs folder and link it
- * to `src` in the library journal. Returns the stored path.
+ * Upload a user-picked PDF File to the shared assets/ folder and link it to
+ * `src` in this world's library journal. A known book is stored under its
+ * SOURCE_PDFS filename, so every other world on the server links it through
+ * the static fallback without an upload of its own; a custom book keeps its
+ * own name (no fallback could find it anyway). Returns the stored path.
  * @param {string} src  CHAR_SOURCES key, or a `custom:` key from customSourceKey
  * @param {File} file   the picked PDF
  * @param {string} [label] display name, for a custom key
  * @returns {Promise<string>} stored path
  */
 export async function uploadSourcePdf(src, file, label) {
-  const dir = uploadDir();
+  const name = SOURCE_PDFS[src]?.split("/").pop() ?? file.name;
+  const upload = name === file.name ? file : new File([file], name, { type: file.type });
   const FP = filePicker();
-  try { await FP.createDirectory("data", dir); } catch (_e) { /* already exists */ }
-  const result = await FP.upload("data", dir, file, {}, { notify: false });
-  const path = result?.path ?? `${dir}/${file.name}`;
+  try { await FP.createDirectory("data", SHARED_DIR); } catch (_e) { /* already exists */ }
+  const result = await FP.upload("data", SHARED_DIR, upload, {}, { notify: false });
+  const path = result?.path ?? `${SHARED_DIR}/${name}`;
   await registerSourcePdf(src, path, label);
   return path;
 }

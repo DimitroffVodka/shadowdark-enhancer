@@ -164,9 +164,9 @@ export async function manageSourcePdfs(app) {
     position: { width: 620 },
     content: `
       <p>Upload your own PDFs of the Shadowdark books. Each is linked to a source so the
-      importer's <em>Open PDF</em> buttons jump straight to the cited page. Files stay in your
-      world (<code>worlds/${foundry.utils.escapeHTML(game.world.id)}/source-pdfs</code>) — nothing
-      leaves your machine.</p>
+      importer's <em>Open PDF</em> buttons jump straight to the cited page. Files go to
+      <code>assets/</code> on this server, where every world finds them — nothing leaves
+      your machine.</p>
       <p class="sde-srcpdf-tip"><i class="fas fa-hand-pointer"></i>
       <strong>Double-click a linked book</strong> to open it in Foundry's PDF viewer.</p>
       <ul class="sde-srcpdf-list">${statusList}</ul>

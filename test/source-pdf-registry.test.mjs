@@ -21,7 +21,7 @@ const stubGlobals = ({ journal = undefined, fetchOk = false } = {}) => {
   };
 };
 
-const { listSourcePdfs, sourcePdfHref } = await import("../scripts/importer/source-pdf-registry.mjs");
+const { listSourcePdfs, sourcePdfHref, uploadSourcePdf } = await import("../scripts/importer/source-pdf-registry.mjs");
 const { fileRoute } = await import("../scripts/shared/file-route.mjs");
 
 test("clean install: fallback paths verify against the server, dead ones are NOT linked", async () => {
@@ -79,4 +79,29 @@ test("an absolute upload URL (The Forge, S3) reaches the viewer and extractor un
     assert.ok(!href.includes(encodeURIComponent("/https://")), href);
     assert.equal(fileRoute("worlds/w/source-pdfs/wr.pdf"), "/worlds/w/source-pdfs/wr.pdf");
   } finally { restore(); }
+});
+
+test("Upload & link stores a known book in the shared assets/ folder under its default name", async () => {
+  const calls = [];
+  const created = [];
+  const journal = {
+    pages: [],
+    createEmbeddedDocuments: async (_type, data) => { created.push(...data); return data; },
+  };
+  const restore = stubGlobals({
+    journal: { find: (fn) => (fn({ getFlag: (_m, k) => k === "sourcePdfLibrary" }) ? journal : null), getName: () => null },
+  });
+  globalThis.FilePicker = {
+    createDirectory: async (...a) => { calls.push(["mkdir", ...a]); },
+    upload: async (source, dir, file) => { calls.push(["upload", source, dir, file.name]); return { path: `${dir}/${file.name}` }; },
+  };
+  try {
+    const path = await uploadSourcePdf("CS1", new File(["x"], "my scan.pdf", { type: "application/pdf" }));
+    assert.equal(path, "assets/Cursed Scroll 1 - Diablerie V4-3.pdf");      // default name, shared folder
+    assert.deepEqual(calls, [["mkdir", "data", "assets"], ["upload", "data", "assets", "Cursed Scroll 1 - Diablerie V4-3.pdf"]]);
+    assert.equal(created[0].src, path);                                       // and registered here too
+    // A custom book has no default name to take.
+    const custom = await uploadSourcePdf("custom:my-adventure", new File(["x"], "My Adventure.pdf"), "My Adventure");
+    assert.equal(custom, "assets/My Adventure.pdf");
+  } finally { delete globalThis.FilePicker; restore(); }
 });
