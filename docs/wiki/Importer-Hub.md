@@ -196,7 +196,9 @@ Register uploaded PDF files for Core, Western Reaches, and Cursed Scrolls 1–6.
   bundled PDF.js.
 - **Custom & homebrew books:** Select **➕ Another book…** to register
   third-party supplements or adventure modules.
-- All PDF files remain local to your world on your server.
+- PDF files stay where your Foundry stores uploads: the world's `source-pdfs`
+  folder on a self-hosted server, or your host's asset library (The Forge, S3).
+  Nothing is sent anywhere else.
 
 ### Bundle export / import
 

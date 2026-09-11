@@ -21,7 +21,8 @@ const stubGlobals = ({ journal = undefined, fetchOk = false } = {}) => {
   };
 };
 
-const { listSourcePdfs } = await import("../scripts/importer/source-pdf-registry.mjs");
+const { listSourcePdfs, sourcePdfHref } = await import("../scripts/importer/source-pdf-registry.mjs");
+const { fileRoute } = await import("../scripts/shared/file-route.mjs");
 
 test("clean install: fallback paths verify against the server, dead ones are NOT linked", async () => {
   const restore = stubGlobals({ journal: undefined, fetchOk: false });   // no journal, no files
@@ -60,5 +61,22 @@ test("a journal-registered upload reports origin 'journal' and wins over the fal
     assert.equal(wr.origin, "journal");
     assert.equal(wr.file, "worlds/w/source-pdfs/wr.pdf");
     assert.equal(wr.linked, true);
+  } finally { restore(); }
+});
+
+test("an absolute upload URL (The Forge, S3) reaches the viewer and extractor untouched", async () => {
+  // getRoute() would turn this into "/https://…", a dead path on the game server.
+  const src = "https://assets.forge-vtt.com/u1/worlds/w/source-pdfs/wr.pdf";
+  const page = { type: "pdf", src, getFlag: (_m, k) => (k === "sourceKey" ? "WR" : undefined) };
+  const journal = {
+    find: (fn) => (fn({ getFlag: (_m, k) => k === "sourcePdfLibrary" }) ? { pages: [page] } : null),
+    getName: () => null,
+  };
+  const restore = stubGlobals({ journal });
+  try {
+    const href = sourcePdfHref("WR", "72");
+    assert.ok(href.includes(`file=${encodeURIComponent(src)}`), href);
+    assert.ok(!href.includes(encodeURIComponent("/https://")), href);
+    assert.equal(fileRoute("worlds/w/source-pdfs/wr.pdf"), "/worlds/w/source-pdfs/wr.pdf");
   } finally { restore(); }
 });

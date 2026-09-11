@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-896 tracked files · ~149,700 lines of code/markup across scripts+templates+styles+test.
+897 tracked files · ~149,700 lines of code/markup across scripts+templates+styles+test.
 `v0.16.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -78,6 +78,7 @@
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
 | `esc.mjs` | 16 | HTML-escape helper for safe `innerHTML` interpolation. |
+| `file-route.mjs` | 16 | Routes a stored file path for fetching; leaves absolute upload URLs (The Forge, S3) untouched instead of handing them to getRoute. |
 | `gm-relay.mjs` | 317 | The one authenticated relay channel, both directions. Rides Foundry's user-query transport, where the SERVER stamps the sender from the authenticated socket, so an identity check can no longer be defeated by a payload naming a GM. Owns the shared ownership gate (`authorizeActorFor` / `authorizeActorRequest`), the GM-side entry guard (`refuseQuery`), the player-side `queryActiveGM` / `relayToGM`, and `notifyPlayers` for a GM→players push that the receiver can verify. A query the GM's build cannot answer is itself the stale-tab signal, so the old forgeable ping/pong handshake is gone while its wording (`evaluateHandshake` / `handshakeWarning`) is kept. |
 | `token-placement.mjs` | 236 | Click-to-place token placement over a QUEUE of different creatures — a pit-fight row can name two creatures with their own counts, so the loop walks a queue and the notification names what the next click will drop. `worldActorFor` imports a compendium actor once and reuses it by name+type (with a one-shot art repair on copies imported before a community-tokens mapping loaded), `tokenSourceFor` picks the best non-placeholder texture, and `placeTokensByClick` runs the cancellable capture-phase `pointerdown` loop, snapping to the grid. Every actor and texture is resolved BEFORE the first click, so no await sits between a click and its token. |
 | `art-provenance.mjs` | 262 | Explicit art provenance for imported Items (pure), replacing the old `img.startsWith("icons/")` guess. Every image the module writes is stamped `flags[MODULE_ID].art = {state, img}`, so the next import compares the stored image against the path it actually wrote: still equal means the recorded state stands (`default` / `imported` / `curated`, all upgradeable), and any divergence is `custom` — the GM's, and never overwritten. The guess it replaces was wrong in both directions: this module's own bundled Shikashi defaults live under `modules/shadowdark-enhancer/assets/` and so failed the `icons/` test and erased hand-picked art, while a deliberate curated `icons/...` pick looked like a default and could never be upgraded. Legacy unmarked documents are classified deterministically and conservatively — an image byte-identical to the module's default pick for that name and type today (or no image at all) is `default`, everything else is `custom` — and the first re-import stamps the verdict so it never drifts. Also carries the structural generated-artifact boundary (`isGeneratedManagedItem`): the explicit `flags[MODULE_ID].generated` marker PLUS membership of the managed Items pack, the one case that stays replace-always, art included (A7/D6). Exactly ONE marker, deliberately — "generated" is not a single policy here. The Monster Spell library also generates documents but preserves hand-edited ones as curated conflicts, and since A1 they share this pack, so recognising its `monsterSpell.generated` bookkeeping would let an ordinary name collision overwrite a spell the GM had curated. Foundry-free, node-tested. |
@@ -223,9 +224,9 @@
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 617 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 262 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
-| `pdf-text-extract.mjs` | 704 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 705 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
-| `source-pdf-registry.mjs` | 273 | Content source → the user's own uploaded PDF, for page deep-links. |
+| `source-pdf-registry.mjs` | 274 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
 | `char-content/char-content-manifest.mjs` | 1521 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |

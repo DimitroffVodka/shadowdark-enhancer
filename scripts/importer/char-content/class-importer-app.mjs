@@ -694,7 +694,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       writeupText = writeup.text;
     } catch (err) {
       console.error("Shadowdark Enhancer | class PDF grab failed", err);
-      ui.notifications?.error("Couldn't read text from that PDF page — see the console.");
+      ui.notifications?.error(`Couldn't read text from that PDF page — ${err?.message || err} (details in the console).`);
       return;
     }
     if (!writeupText) { ui.notifications?.warn(`Page ${target.page} has no selectable text.`); return; }

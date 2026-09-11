@@ -24,6 +24,7 @@
  */
 
 import { collapse } from "./pdf-text-utils.mjs";
+import { fileRoute } from "../shared/file-route.mjs";
 
 /** Cached ESM import of Foundry's bundled PDF.js (loaded once per session). */
 let _pdfjs = null;
@@ -42,7 +43,7 @@ async function _lib() {
 
 /** Open (and cache) a PDF document for a served file path. */
 async function _openDoc(filePath) {
-  const route = foundry.utils.getRoute(filePath);
+  const route = fileRoute(filePath);
   if (_docCache.has(route)) return _docCache.get(route);
   const p = _lib().then((pdfjs) => pdfjs.getDocument(route).promise);
   _docCache.set(route, p);

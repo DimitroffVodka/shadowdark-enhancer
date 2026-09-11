@@ -142,6 +142,22 @@ crossed column boundaries.
 The extractor handles full-width lower tables automatically. If a warning
 appears on a dense page, review the preview text before committing.
 
+### Grab text fails with "Couldn't read text from that PDF"
+
+The notice ends with the reason the browser gave, and the console holds the
+full error. Two reasons are common:
+
+- **Missing PDF.** The registered path no longer points at a file. Re-upload
+  the book under **Tools → Source PDFs**.
+- **NetworkError** or **Failed to fetch.** The browser refused to load the
+  file from where it is stored. Versions up to 0.16.0 rewrote absolute upload
+  URLs (The Forge asset library, S3) into a path on the game server, so the
+  grab could not reach the file on those hosts even though Foundry's own PDF
+  viewer opened it. Update the module. If it persists, the host serving the
+  PDF is not allowing cross-origin reads.
+
+Copy-pasting from the PDF viewer keeps working either way.
+
 ### An imported weapon is missing one of its properties
 
 Western Reaches includes custom property codes (*Charge*, *Devastating*,

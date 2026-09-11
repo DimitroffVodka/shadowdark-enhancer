@@ -825,7 +825,7 @@ class HubManageMethods {
         result = await extractPdfText(target.file, { pages: pass.pages, columns: pass.columns });
       } catch (err) {
         console.error("Shadowdark Enhancer | PDF text extraction failed", err);
-        ui.notifications.error("Couldn't read text from that PDF page — see the console.");
+        ui.notifications.error(`Couldn't read text from that PDF page — ${err?.message || err} (details in the console).`);
         return;
       }
       if (result.text) chunks.push(result.text);
@@ -933,7 +933,7 @@ class HubManageMethods {
       result = await extractPdfText(file, { pages, columns: picked.cols });
     } catch (err) {
       console.error("Shadowdark Enhancer | PDF text extraction failed", err);
-      ui.notifications.error("Couldn't read text from that PDF — see the console.");
+      ui.notifications.error(`Couldn't read text from that PDF — ${err?.message || err} (details in the console).`);
       return;
     }
     if (!result.text) {

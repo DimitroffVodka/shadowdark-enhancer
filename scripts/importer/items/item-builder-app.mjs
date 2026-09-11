@@ -364,7 +364,7 @@ export class ItemBuilderApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return result.text;
     } catch (err) {
       console.error(`${MODULE_ID} | Item Builder — PDF grab failed`, err);
-      ui.notifications?.error("Couldn't read text from that PDF page — see the console.");
+      ui.notifications?.error(`Couldn't read text from that PDF page — ${err?.message || err} (details in the console).`);
       return null;
     }
   }

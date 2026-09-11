@@ -26,6 +26,7 @@
  */
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CHAR_SOURCES, SOURCE_PDFS } from "./char-content/char-content-manifest.mjs";
+import { fileRoute } from "../shared/file-route.mjs";
 
 const JOURNAL_NAME = "Shadowdark Source PDFs";
 const LIB_FLAG = "sourcePdfLibrary";   // marks the library JournalEntry
@@ -155,7 +156,7 @@ export function sourcePdfHref(src, pages) {
   // Shift the printed cite to the PDF's own page numbering (see PAGE_OFFSETS).
   const pdfPage = page + (PAGE_OFFSETS[src] ?? 0);
   const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
-  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}#page=${pdfPage}`;
+  return `${viewer}?file=${encodeURIComponent(fileRoute(file))}#page=${pdfPage}`;
 }
 
 /**
@@ -169,7 +170,7 @@ export function sourcePdfBookHref(src) {
   const file = resolveSourcePdf(src);
   if (!file) return null;
   const viewer = foundry.utils.getRoute("scripts/pdfjs/web/viewer.html");
-  return `${viewer}?file=${encodeURIComponent(foundry.utils.getRoute(file))}`;
+  return `${viewer}?file=${encodeURIComponent(fileRoute(file))}`;
 }
 
 /**
@@ -191,7 +192,7 @@ export function sourcePdfTarget(src, pages) {
 /** Does a served file actually exist? HEAD against its route; false on any error. */
 async function _fileExists(path) {
   try {
-    const r = await fetch(foundry.utils.getRoute(path), { method: "HEAD" });
+    const r = await fetch(fileRoute(path), { method: "HEAD" });
     return r.ok;
   } catch {
     return false;

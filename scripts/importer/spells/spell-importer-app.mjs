@@ -358,7 +358,7 @@ export class SpellImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
       res = await extractPdfText(file, { pages, columns: picked.cols });
     } catch (err) {
       console.error("Shadowdark Enhancer | spell PDF grab failed", err);
-      ui.notifications?.error("Couldn't read text from that PDF — see the console.");
+      ui.notifications?.error(`Couldn't read text from that PDF — ${err?.message || err} (details in the console).`);
       return;
     }
     if (!res.text) { ui.notifications?.warn("Those pages have no selectable text."); return; }
