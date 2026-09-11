@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.16.2] — 2026-09-11
+
+### Fixed
+- **Grab text works alongside Shadowdark PDF Importer.** That module loads an
+  older PDF.js into the page, and Foundry's own PDF.js would rather use it
+  than start a worker of its own. With both modules active every grab failed
+  with `The API version "4.0.379" does not match the Worker version
+  "2.16.105"`, while the viewer, which runs in its own frame, kept working.
+  The grab now starts its own worker and hands it to every document it opens,
+  so the two modules no longer share anything. The Troubleshooting page names
+  the message and the workaround for older versions.
+
 ## [0.16.1] — 2026-09-11
 
 ### Fixed
