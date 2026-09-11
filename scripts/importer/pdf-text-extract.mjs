@@ -28,15 +28,31 @@ import { fileRoute } from "../shared/file-route.mjs";
 
 /** Cached ESM import of Foundry's bundled PDF.js (loaded once per session). */
 let _pdfjs = null;
+/** Our own PDFWorker, bound to a Worker we spawned (see _lib). */
+let _worker = null;
+/** Rejects if that Worker never comes up; raced against every document open. */
+let _workerFailed = null;
 /** path → Promise<PDFDocumentProxy>, so a 100 MB book is parsed once per session. */
 const _docCache = new Map();
 
-/** Load (and cache) Foundry's bundled PDF.js, wiring its worker. */
+/** Load (and cache) Foundry's bundled PDF.js and spawn the worker it will use. */
 async function _lib() {
   if (_pdfjs) return _pdfjs;
-  const base = "scripts/pdfjs/build/pdf.mjs";
-  const pdfjs = await import(foundry.utils.getRoute(base));
-  pdfjs.GlobalWorkerOptions.workerSrc = foundry.utils.getRoute("scripts/pdfjs/build/pdf.worker.mjs");
+  const pdfjs = await import(foundry.utils.getRoute("scripts/pdfjs/build/pdf.mjs"));
+  // Spawn the worker ourselves and hand it to every getDocument(). Left to its
+  // defaults, pdf.js looks for a main-thread handler on globalThis.pdfjsWorker
+  // BEFORE spawning a real worker — and another module that runs its own,
+  // older pdf.js in the page leaves exactly that behind (shadowdark-pdf-importer
+  // 1.0.0 parks a 2.16 worker there). Foundry's 4.0 API then talks to it and
+  // every book fails with "The API version … does not match the Worker
+  // version" (issue #160). An explicit port skips that lookup entirely, and we
+  // no longer touch GlobalWorkerOptions, so nothing we do can break them either.
+  const port = new Worker(foundry.utils.getRoute("scripts/pdfjs/build/pdf.worker.mjs"), { type: "module" });
+  _workerFailed = new Promise((_resolve, reject) => {
+    port.addEventListener("error", (e) => reject(new Error(`PDF worker failed to load: ${e.message || "see the console"}`)));
+  });
+  _workerFailed.catch(() => {});   // observed only through the race in _openDoc
+  _worker = new pdfjs.PDFWorker({ name: "shadowdark-enhancer", port });
   _pdfjs = pdfjs;
   return pdfjs;
 }
@@ -45,7 +61,10 @@ async function _lib() {
 async function _openDoc(filePath) {
   const route = fileRoute(filePath);
   if (_docCache.has(route)) return _docCache.get(route);
-  const p = _lib().then((pdfjs) => pdfjs.getDocument(route).promise);
+  const p = _lib().then((pdfjs) => Promise.race([
+    pdfjs.getDocument({ url: route, worker: _worker }).promise,
+    _workerFailed,
+  ]));
   _docCache.set(route, p);
   try {
     return await p;

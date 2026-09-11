@@ -155,6 +155,12 @@ full error. Two reasons are common:
   grab could not reach the file on those hosts even though Foundry's own PDF
   viewer opened it. Update the module. If it persists, the host serving the
   PDF is not allowing cross-origin reads.
+- **The API version "4.0.379" does not match the Worker version "2.16.105".**
+  Another module has loaded an older PDF.js into the page; Shadowdark PDF
+  Importer 1.0.0 does this on load. Versions up to 0.16.1 picked that up in
+  place of Foundry's own worker. Update the module: from 0.16.2 the grab runs a
+  worker of its own and the two coexist. On an older version, disable that
+  module while you import.
 
 Copy-pasting from the PDF viewer keeps working either way.
 

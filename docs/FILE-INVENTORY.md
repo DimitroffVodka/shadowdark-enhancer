@@ -224,7 +224,7 @@
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 617 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 262 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
-| `pdf-text-extract.mjs` | 705 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 724 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 274 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
