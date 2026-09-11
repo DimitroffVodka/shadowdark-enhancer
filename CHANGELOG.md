@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.16.1] — 2026-09-11
+
+### Fixed
+- **Grab text works when your uploads live in an asset library.** On The Forge,
+  and on any Foundry that keeps uploads in S3, a registered PDF is a full web
+  address rather than a folder on the game server. The grab took that address
+  and asked the game server for it, so every book failed with an
+  `UnknownErrorException` while Foundry's own viewer opened the same files
+  without complaint. The address now goes through untouched, the way the viewer
+  already treated it. Nothing changes for a self-hosted server with plain
+  paths.
+- **A failed grab says why.** The error notice used to end in "see the
+  console", and the console entry it pointed at was collapsed by default. It
+  now ends with the browser's own reason — a missing file, a fetch it refused —
+  so the cause is on screen without a console dig. A matching entry in the
+  Troubleshooting page explains the two common reasons.
+
 ## [0.16.0] — 2026-09-02
 
 Two things in this release you will feel immediately. You can import a whole
