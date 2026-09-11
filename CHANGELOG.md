@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.16.4] — 2026-09-11
+
+### Changed
+- **No automatic import is offered for a book that isn't there.** The hub
+  used to treat the eight standard books as linked whenever their default
+  path was known, whether or not the file existed, so on a server without
+  the PDFs every row offered an import that failed at the fetch. It now
+  checks first. **Import everything** and each folder's **Import all** count
+  only rows with a linked PDF and a page citation, and step aside for a note
+  pointing at **Tools → Source PDFs** when nothing can run. The per-row
+  **Import** button stays, since it opens the paste box for importing by
+  hand.
+
 ## [0.16.3] — 2026-09-11
 
 ### Changed
