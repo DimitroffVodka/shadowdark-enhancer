@@ -12,8 +12,9 @@
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monsters/monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./items/item-census-live.mjs";
 import { CHAR_SOURCES, BACKGROUND_TABLES, tableNameMatches, nameVariants } from "./char-content/char-content-manifest.mjs";
-import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
+import { listSourcePdfs, sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { buildManageTree } from "./manage-tree.mjs";
+import { planBatch } from "./batch-import.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
@@ -217,6 +218,10 @@ class HubManageMethods {
    */
   async _prepareManageTree() {
     if (!this._manageTreeCache) {
+      // Ask "which books are actually there?" before anything below asks —
+      // resolveSourcePdf drops a default the HEAD check found missing, and the
+      // tree's Grab gates and batch counts all read through it.
+      await listSourcePdfs().catch(() => {});
       this._manageTreeCache = await buildManageTree().catch((err) => {
         console.error("shadowdark-enhancer | buildManageTree failed:", err);
         return [];
@@ -230,6 +235,12 @@ class HubManageMethods {
     const wanted = (e) => this._manageFilter === "locked" ? !e.present
       : this._manageFilter === "imported" ? !!e.present
       : true;
+    // Rows a folder's "Import all" can actually run: the same plan the click
+    // makes, over the unfiltered cache (the button's scope is the library).
+    // Rows without a linked PDF or a page cite are not offered, only reported.
+    const runnable = (node) => planBatch(this._manageTreeCache ?? [], {
+      rootId: node.id, canRun: (e, r) => this._batchCanRun(e, r),
+    }).jobs.reduce((n, job) => n + job.covers.length, 0);
     const shape = (node, depth) => {
       const entries = (node.entries ?? []).filter(wanted);
       const children = (node.children ?? []).map((c) => shape(c, depth + 1)).filter(Boolean);
@@ -238,6 +249,7 @@ class HubManageMethods {
         ...node, depth, entries, children,
         expandable: children.length > 0 || entries.length > 0,
         expanded: this._manageExpandedNodes.has(node.id),
+        runnable: node.locked ? runnable(node) : 0,
       };
     };
     return this._manageTreeCache.map((n) => shape(n, 0)).filter(Boolean);

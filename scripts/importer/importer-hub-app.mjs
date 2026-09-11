@@ -34,6 +34,7 @@ import { installHubPaste } from "./importer-hub-paste.mjs";
 import { installHubCommit } from "./importer-hub-commit.mjs";
 import { installHubManage } from "./importer-hub-manage.mjs";
 import { installHubBatch } from "./importer-hub-batch.mjs";
+import { planBatch } from "./batch-import.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -763,6 +764,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         // branches away, and the button's scope is the library, not the view.
         lockedTotal: (this._manageTreeCache ?? [])
           .reduce((sum, node) => sum + (node.locked ?? 0), 0),
+        // Rows the batch can actually run — linked PDF and a page cite. The
+        // button shows this number and is not offered when it is zero.
+        runnableTotal: planBatch(this._manageTreeCache ?? [], { canRun: (e, r) => this._batchCanRun(e, r) })
+          .jobs.reduce((sum, job) => sum + job.covers.length, 0),
       };
     }
 

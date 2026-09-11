@@ -237,6 +237,7 @@ export async function manageSourcePdfs(app) {
     ui.notifications.error("Upload failed — see console.");
     return;
   }
+  app._invalidateManageTree?.();   // the new link changes what the tree can run
   app.render();
   return manageSourcePdfs(app);   // reopen with refreshed status for the next book
 }

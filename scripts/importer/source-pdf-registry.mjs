@@ -102,6 +102,13 @@ export function titlePageFor(className) {
  */
 const SHARED_DIR = "assets";
 
+/**
+ * Static fallback paths the HEAD check has answered: path → exists. A path not
+ * yet checked is trusted, so callers that run before any check behave as they
+ * always did; the Importer Hub checks before it builds its tree.
+ */
+const _fallbackExists = new Map();
+
 /** The active v13+ FilePicker implementation (falls back to the classic global). */
 function filePicker() {
   return foundry.applications?.apps?.FilePicker?.implementation ?? globalThis.FilePicker;
@@ -143,7 +150,11 @@ export function resolveSourcePdf(src) {
       if (p.type === "pdf" && p.src && p.getFlag(MODULE_ID, KEY_FLAG) === src) return p.src;
     }
   }
-  return SOURCE_PDFS[src] ?? null;
+  // A default the HEAD check found missing is no link. Every Grab / Import gate
+  // routes through here, and an import offered on a file that is not there only
+  // fails later, at fetch time, with nothing the GM can do about it.
+  const fallback = SOURCE_PDFS[src] ?? null;
+  return fallback && _fallbackExists.get(fallback) !== false ? fallback : null;
 }
 
 /**
@@ -195,8 +206,10 @@ export function sourcePdfTarget(src, pages) {
 async function _fileExists(path) {
   try {
     const r = await fetch(fileRoute(path), { method: "HEAD" });
+    _fallbackExists.set(path, r.ok);
     return r.ok;
   } catch {
+    _fallbackExists.set(path, false);
     return false;
   }
 }

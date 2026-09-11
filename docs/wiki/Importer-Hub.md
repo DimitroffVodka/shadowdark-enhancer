@@ -234,9 +234,10 @@ Re-import it. Both gear and spell descriptions used to run past their own entry
 it, which could be several pages of tables. Both are fixed, so a fresh import
 of the same pages gives you clean text.
 
-**Import everything imported nothing.**  
-Confirm that your book PDFs are registered under **Tools → Source PDFs**. Check
-the report's *Import these by hand* section for entries requiring manual pastes.
+**Import everything is missing, or its number is lower than the locked count.**  
+It only counts rows whose book has a linked PDF and a page citation. Link the
+book under **Tools → Source PDFs** and those rows join the count. The report's
+*Import these by hand* section lists the rest.
 
 **Re-importing created duplicate documents.**  
 Check the conflict dialog selection. The default *Rename newcomer* creates a

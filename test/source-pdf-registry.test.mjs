@@ -21,7 +21,7 @@ const stubGlobals = ({ journal = undefined, fetchOk = false } = {}) => {
   };
 };
 
-const { listSourcePdfs, sourcePdfHref, uploadSourcePdf } = await import("../scripts/importer/source-pdf-registry.mjs");
+const { listSourcePdfs, sourcePdfHref, sourcePdfTarget, resolveSourcePdf, uploadSourcePdf } = await import("../scripts/importer/source-pdf-registry.mjs");
 const { fileRoute } = await import("../scripts/shared/file-route.mjs");
 
 test("clean install: fallback paths verify against the server, dead ones are NOT linked", async () => {
@@ -104,4 +104,20 @@ test("Upload & link stores a known book in the shared assets/ folder under its d
     const custom = await uploadSourcePdf("custom:my-adventure", new File(["x"], "My Adventure.pdf"), "My Adventure");
     assert.equal(custom, "assets/My Adventure.pdf");
   } finally { delete globalThis.FilePicker; restore(); }
+});
+
+test("a default path the HEAD check found missing is no link, and comes back once the file exists", async () => {
+  let restore = stubGlobals({ journal: undefined, fetchOk: false });
+  try {
+    await listSourcePdfs();                                   // the check that runs before the hub's tree
+    assert.equal(resolveSourcePdf("WR"), null);
+    assert.equal(sourcePdfTarget("WR", "72"), null);          // so no Grab / batch job is offered
+    assert.equal(sourcePdfHref("WR", "72"), null);
+  } finally { restore(); }
+  restore = stubGlobals({ journal: undefined, fetchOk: true });
+  try {
+    await listSourcePdfs();
+    assert.equal(resolveSourcePdf("WR"), "assets/Player_s_Guide_to_the_Western_Reaches_V1.pdf");
+    assert.ok(sourcePdfTarget("WR", "72"));
+  } finally { restore(); }
 });

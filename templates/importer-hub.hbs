@@ -855,12 +855,16 @@
             <button type="button" class="sde-mtree-toolbtn" data-action="manageCollapseAll" title="Collapse everything">
               <i class="fas fa-angles-up"></i> Collapse all
             </button>
-            {{#if manage.lockedTotal}}
+            {{#if manage.runnableTotal}}
             <button type="button" class="sde-mtree-toolbtn sde-mtree-batchbtn" data-action="batchImport"
                     {{#if batch}}disabled{{/if}}
                     title="Run every unlock in this list for you — grab, parse and create, reading from your own uploaded books. Nothing already imported is touched.">
-              <i class="fas fa-wand-magic-sparkles"></i> Import everything ({{manage.lockedTotal}})
+              <i class="fas fa-wand-magic-sparkles"></i> Import everything ({{manage.runnableTotal}})
             </button>
+            {{else if manage.lockedTotal}}
+            <span class="sde-mtree-batchnote" title="Rows whose book has no linked PDF, or no page citation, can only be imported by hand.">
+              <i class="fas fa-file-pdf"></i> Link your books under Tools → Source PDFs to import them automatically.
+            </span>
             {{/if}}
           </div>
         </div>
