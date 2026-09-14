@@ -122,6 +122,10 @@ This step configures class progression details:
   chosen level*—a level-3 wizard picks the level-3 counts
 - **Language selection**: fixed languages plus choose-N pools
 
+The class list hides a `<Class> (Legacy)` entry once the current edition of that
+class is in your packs. Importing the Western Reaches **Bard** therefore replaces
+the system's **Bard (Legacy)** in this list rather than sitting beside it.
+
 ### 5. HP & Gold
 
 **HP and gold are one roll each for players by default.** With *Lock HP rolls*

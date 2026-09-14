@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-899 tracked files · ~150,300 lines of code/markup across scripts+templates+styles+test.
+900 tracked files · ~150,400 lines of code/markup across scripts+templates+styles+test.
 `v0.16.4` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -228,11 +228,11 @@
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 293 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1521 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
-| `char-content/class-parser.mjs` | 1093 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
+| `char-content/char-content-manifest.mjs` | 1529 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 788 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1448 | Class unit → real documents in dependency order. |
-| `char-content/class-overlays.mjs` | 263 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
+| `char-content/class-overlays.mjs` | 280 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |
 | `char-content/class-index.mjs` | 98 | Class name → system Class item UUID. |
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
@@ -312,7 +312,7 @@
 | `steps/alignment-step.mjs` | 68 | Step — Alignment. Three choice cards (Lawful / Neutral / Chaotic). |
 | `steps/ancestry-step.mjs` | 233 | Step — Ancestry. List/detail pick contributing ancestry talents and languages. |
 | `steps/background-step.mjs` | 40 | Step — Background. A simple list/detail pick. |
-| `steps/class-step.mjs` | 887 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
+| `steps/class-step.mjs` | 896 | Step — Class. List/detail pick; parses the class writeup, talent table and spellcasting. |
 | `steps/deity-step.mjs` | 77 | Step — Deity. Optional list/detail pick showing the deity's detail. |
 | `steps/gear-step.mjs` | 321 | Step — Gear. A shop: browse purchasable equipment and buy against starting gold. |
 | `steps/gold-step.mjs` | 88 | Step — Gold. Roll 2d6×5 gp, or use the GM's fixed starting-gold setting. |

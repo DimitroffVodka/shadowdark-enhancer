@@ -328,13 +328,18 @@ const MANIFEST = {
       "Carousing Event",
       "Carousing Outcome", "Carousing Outcome - Benefit", "Carousing Outcome - Mishap",
     ],
-    // CS6 introduced the Duelist (also in WR) — dual-source unlock. (Bard is the
-    // system's "Bard (Legacy)", so it is not listed here.)
+    // CS6 introduced the Duelist (also in WR) — dual-source unlock. The Bard is
+    // listed under WR only: CS6 pg 12 and WR pg 34 print the same class, and a
+    // dual listing would double its census row for no gain (#157).
     Class: ["Duelist"],
   },
   WR: {
+    // "Bard" is the WR/CS6 print (Fascinate, Inspire, Magical Dabbler). The
+    // system's own "Bard (Legacy)" is an older edition of the class — different
+    // talent bands, "Presence" in place of "Fascinate" — so it does NOT satisfy
+    // this row, and the char-builder hides it once this Bard is imported (#157).
     Class: [
-      "Delver", "Duelist", "Green Knight", "Kyzian Archer", "Monk of Yag-Kesh",
+      "Bard", "Delver", "Duelist", "Green Knight", "Kyzian Archer", "Monk of Yag-Kesh",
       "Necromancer", "Paladin", "Roustabout", "Wyrdling",
     ],
     Ancestry: ["Half-Elf"],
@@ -379,9 +384,11 @@ const MANIFEST = {
     ],
     Talent: [
       "+1 Parry Use Per Day", "+1 to Any Stat and Roll Again", "+1 to Any Two Stats",
-      "+1 to Named Blade Attacks and Damage", "+1 to Pseudopod Attacks and Damage",
+      "+1 to Fascinate Rolls", "+1 to Named Blade Attacks and Damage",
+      "+1 to Pseudopod Attacks and Damage", "+2 to Group Carousing Event Rolls",
       "Abominable Hunger", "Adaptable", "Additional Hawk Eye Use",
-      "Additional Sun on the Water Use", "All Attacks Miss (1/Day)", "Chivalric Oath",
+      "Additional Sun on the Water Use", "Advantage on Downtime Checks",
+      "All Attacks Miss (1/Day)", "Chivalric Oath",
       "Corruption", "Creepy Stillness", "Cutting Remark", "Death Sense", "Deep Pockets",
       "Dorsal Hump", "Double Movement Speed", "Evolution", "Extra Hit Points Die",
       "Eye of Yag-Kesh", "Fish Eyes", "Fish Gills", "Fist of the Moon God",
@@ -540,6 +547,7 @@ export function sourcedTableName(sourceLabel, baseName) {
 const ITEM_PAGES = {
   WR: {
     "Half-Elf": "24",
+    "Bard": "34",
     "Delver": "38", "Duelist": "42", "Green Knight": "44", "Kyzian Archer": "49",
     "Monk of Yag-Kesh": "50", "Necromancer": "52", "Paladin": "54",
     "Roustabout": "63", "Wyrdling": "72",

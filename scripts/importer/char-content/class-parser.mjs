@@ -42,7 +42,13 @@ const CAPS_CAP    = /^[A-Z' -]{4,}$/;                       // any all-caps capt
 // …?" / -Reginald Merrymay, human duelist). Effects never open with a quote,
 // never end sentence-then-quote, and never start with a dash-attribution.
 const FLAVOR_LINE = /^["“”]|^[-–—]\s?[A-Z]|[!?.]["”]$/;
-const FEATURE_RE  = /^([A-Z][A-Za-z'’ -]{0,39})\.\s+(\S.*)$/;
+// The trailing group is the book's parenthetical QUALIFIER on a feature name —
+// the Bard's "Fascinate (Focus). Make a DC 12 CHA check…" (WR pg 34 / CS6 pg 12).
+// Without it the name failed the char class, FEATURE_RE never claimed the line,
+// and the class's signature ability vanished from the import with no warning.
+const FEATURE_RE  = /^([A-Z][A-Za-z'’ -]{0,39}(?:\s*\([A-Za-z][A-Za-z'’ -]{0,18}\))?)\.\s+(\S.*)$/;
+/** Strip a feature name's parenthetical qualifier: "Fascinate (Focus)" → "Fascinate". */
+const _bareFeatureName = (s) => String(s ?? "").replace(/\s*\([A-Za-z][A-Za-z'’ -]{0,18}\)$/, "").trim();
 const BULLET      = /^[•-]\s+/;
 // A page's running header, on a line of its own: "Duelist Class", "Monk of
 // Yag-Kesh Class", or the doubled "Duelist ClassDuelist Class" a column copy
@@ -68,7 +74,8 @@ const WIRED_CHOICE_FEATURES = new Set([
 
 /** "Weapon Mastery." / "Eye of Yag-Kesh." — Title-Case-ish, ≤5 words, no commas. */
 const _SMALL_WORDS = new Set(["of", "the", "and", "a", "an", "to", "in", "on", "for", "with"]);
-function _isFeatureName(s) {
+function _isFeatureName(raw) {
+  const s = _bareFeatureName(raw);   // "Fascinate (Focus)" is named "Fascinate"
   if (!s || s.length > 40 || s.includes(",")) return false;
   const words = s.split(/\s+/);
   if (words.length > 5) return false;

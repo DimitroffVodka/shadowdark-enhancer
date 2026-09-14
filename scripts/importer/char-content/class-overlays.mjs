@@ -77,6 +77,23 @@ const _weapon = (name, img, system) => ({
 const _natural = (name, img, system) => ({ ..._weapon(name, img, system), granted: true });
 
 export const CLASS_OVERLAYS = {
+  // The WESTERN REACHES Bard (pg 34) — not the system's "Bard (Legacy)", which
+  // is an older edition of the class (its talent bands and "Presence" ability
+  // don't match this page). Fascinate and its DC/uses are auto-detected from the
+  // paste as a Class Ability, and the wield lists are named gear the parse
+  // resolves on its own, so this overlay only names the three talent outcomes
+  // the book leaves unnamed. CS6 pg 12 prints the same class (#157).
+  bard: {
+    source: "WR", pages: "34",
+    rowTalents: {
+      "2": [{ name: "Advantage on Downtime Checks" }],
+      // 3-6 is a CHOICE: "+1 to melee and ranged attacks" is the system's own
+      // talent, so the queue's single entry falls to the second option.
+      "3-6": [{ name: "+1 to Fascinate Rolls" }],
+      "10-11": [{ name: "+2 to Group Carousing Event Rolls" }],
+    },
+  },
+
   delver: {
     source: "WR", pages: "38",
     features: {

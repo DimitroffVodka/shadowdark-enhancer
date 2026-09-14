@@ -54,6 +54,15 @@ ensure it has:
 Bare table names without standard conventions or explicit `@UUID` links will
 not resolve from the character sheet.
 
+### The Bard
+
+The **Bard** is offered as an unlockable Western Reaches class (pg 34; Cursed
+Scroll 6 pg 12 prints the same class). The system's own **Bard (Legacy)** is an
+older edition — different talent bands, *Presence* where this one has
+*Fascinate* — so it does not satisfy the unlock. Once you import the Bard, the
+[Character Builder](Character-Builder.md) hides **Bard (Legacy)** so the two
+never offer themselves side by side.
+
 ---
 
 ## The Spell Importer
