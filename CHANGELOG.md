@@ -1,5 +1,25 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Build characters above level 1.** A **Level** dropdown (1–10) in the
+  Character Builder's footer sets the level the character is created at, and
+  everything level-dependent follows it. Hit points roll one class hit die per
+  level in a single roll — the Constitution modifier lands on the first die
+  (minimum 1 total) and each later level adds its die raw, matching the core
+  rules and the system's own level-up; Dwarf *Stout* advantage applies to every
+  die, the **Max Level-1 HP** setting maxes every die, and the individual
+  results are listed under the total and in the chat card. The class step adds
+  one talent-table roll for each odd level reached (3, 5, 7, 9) alongside the
+  level-1 roll, using the same roll/reroll/choice UI and the same *Lock talent
+  rolls* rule. Spellcasters pick their class's spells-known counts **for that
+  level** instead of level 1's. Changing the level mid-build re-scopes the work
+  already done rather than corrupting it: talent rolls above the new level are
+  dropped, surplus spells are trimmed per tier, HP is cleared for a fresh roll,
+  and **Create Character** stays blocked until the outstanding rolls are made.
+  Level-0 funnel builds are unaffected. (#159)
+
 ## [0.16.4] — 2026-09-11
 
 ### Changed

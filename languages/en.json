@@ -206,6 +206,8 @@
   "SDE.charBuilder.chooseOption": "— Choose —",
 
   "SDE.charBuilder.nav.dismiss": "Dismiss",
+  "SDE.charBuilder.level": "Level",
+  "SDE.charBuilder.levelHint": "Build the character at this level — one hit die per level, a talent roll at each odd level, and that level's spells known.",
   "SDE.charBuilder.nav.random": "Random",
   "SDE.charBuilder.nav.fullRandom": "Full Random Character",
   "SDE.charBuilder.searchPlaceholder": "Search…",
@@ -261,6 +263,7 @@
   "SDE.charBuilder.class.asksOnCreate": "choice at creation",
   "SDE.charBuilder.class.asksOnCreateHint": "This talent asks for its choice (weapon, stat, …) when the character is created.",
   "SDE.charBuilder.class.talentChoices": "Talent Choices",
+  "SDE.charBuilder.class.levelTalent": "Talent (level {level})",
   "SDE.charBuilder.class.choiceNeeded": "Pick an option to complete this step",
   "SDE.charBuilder.class.spellRange": "Range",
   "SDE.charBuilder.class.spellDuration": "Duration",
@@ -331,6 +334,7 @@
   "SDE.charBuilder.hp.unit": "HP",
   "SDE.charBuilder.hp.card": "Hit Points",
   "SDE.charBuilder.hp.needClass": "Choose a class first — hit points come from its hit die.",
+  "SDE.charBuilder.hp.perLevel": "one die per level, CON on the first",
 
   "SDE.charBuilder.gold.formula": "Starting gold",
   "SDE.charBuilder.gold.fixed": "Starting gold",

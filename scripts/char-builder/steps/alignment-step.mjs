@@ -26,10 +26,10 @@ export class AlignmentStep extends BaseStep {
   // CONFIG.SHADOWDARK.ALIGNMENTS holds raw i18n keys — localize before display.
   _label(k) { return game.i18n.localize(CONFIG.SHADOWDARK?.ALIGNMENTS?.[k] ?? k); }
 
-  /** Level-1 title for the chosen class at the given alignment, if any. */
+  /** Class title for the build level at the given alignment, if any. */
   _titleFor(alignment) {
     const titles = this.state.class?.item?.system?.titles || [];
-    const level = this.state.level0 ? 0 : 1;
+    const level = this.state.level0 ? 0 : (this.state.level || 1);
     const t = titles.find((x) => level >= x.from && level <= x.to) || titles[0];
     return t ? (t[alignment] || null) : null;
   }

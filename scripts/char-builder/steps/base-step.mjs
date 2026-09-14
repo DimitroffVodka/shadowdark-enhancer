@@ -29,6 +29,10 @@ export class BaseStep {
    *  (called when the importer unlocks new content). Override to clear caches. */
   invalidateContentCache() {}
 
+  /** Re-scope this step after the target character level changed. Override
+   *  where the level drives cached, level-dependent requirements. */
+  async onLevelChange() {}
+
   /** Unique step id, also used as a tab key. Override. */
   get id() { return "base"; }
 

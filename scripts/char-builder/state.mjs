@@ -24,8 +24,10 @@ export const emptyArt = () => ({
 export class CharBuilderState {
   constructor({ level0 = false, statMethod = DEFAULT_STAT_METHOD } = {}) {
     const method = STAT_METHODS[statMethod];
-    /** Level-0 "funnel" build (no class, rolled gear) vs a level-1 character. */
+    /** Level-0 "funnel" build (no class, rolled gear) vs a levelled character. */
     this.level0 = level0;
+    /** Target character level (1–MAX_CHAR_LEVEL). Ignored for level-0 builds. */
+    this.level = 1;
 
     this.name = "";
     this.trinket = "";
@@ -68,4 +70,79 @@ export class CharBuilderState {
     this.languages = [];        // all known language UUIDs (fixed + chosen)
     this.languageChoices = { common: [], rare: [], select: [] }; // chosen UUIDs per pool
   }
+}
+
+/**
+ * Levels ABOVE 1 at which the class tables grant a talent roll (3, 5, 7, 9 —
+ * the odd ones; core rules pg 39 "Talent Roll", and the system's own
+ * `LevelUpSD` gate `targetLevel % 2 !== 0`).
+ *
+ * Level 1's roll lives in `state.classTalentRoll`; these extras ride the
+ * class step's existing bonus-roll machinery, one entry each.
+ */
+export function extraTalentLevels(level) {
+  const out = [];
+  for (let l = 3; l <= (Number(level) || 1); l += 2) out.push(l);
+  return out;
+}
+
+/** Bonus-roll key for the class-talent roll gained at `level`. */
+export const levelTalentKey = (level) => `level-talent-${level}`;
+
+/** The level a `level-talent-N` key belongs to, or null for any other key. */
+function levelOfTalentKey(key) {
+  const m = /^level-talent-(\d+)$/.exec(String(key));
+  return m ? Number(m[1]) : null;
+}
+
+/** Drop the level-talent rolls granted above `level`; leave every other roll. */
+function trimTalentRolls(slice, level) {
+  slice.bonusRolls = (slice.bonusRolls ?? []).filter((b) => {
+    const l = levelOfTalentKey(b.key);
+    return l === null || l <= level;
+  });
+}
+
+/** Keep the first `spellsKnown[tier]` picks of each tier, drop the surplus. */
+function trimSpells(state, spellsKnown) {
+  const seen = {};
+  state.spells = (state.spells ?? []).filter((s) => {
+    seen[s.tier] = (seen[s.tier] ?? 0) + 1;
+    return seen[s.tier] <= (Number(spellsKnown[s.tier]) || 0);
+  });
+}
+
+/**
+ * Re-scope an in-progress build to a new target level — the "chose 5, set the
+ * character up, actually wanted 3" path. Pure (no Foundry globals) so it is
+ * testable on its own.
+ *
+ * HP resets outright: it is one aggregate number, going UP needs fresh dice
+ * anyway, and a half-rolled HP total is worse than an obviously-missing one.
+ * Talent rolls and spells are TRIMMED rather than reset — a level-talent roll
+ * is keyed by the level that granted it, so dropping the ones above the new
+ * level is unambiguous and leaves the player's lower-level rolls alone.
+ *
+ * The per-class `talentMemo` snapshots get the same treatment, or switching to
+ * another class and back would restore the level-5 rolls this just dropped.
+ *
+ * @param {CharBuilderState} state
+ * @param {number} level        new target level
+ * @param {object|null} spellsKnown  the class's `spellsknown[level]` row
+ *                                   ({tier: count}); null leaves spells alone.
+ */
+export function applyLevelChange(state, level, spellsKnown = null) {
+  // ponytail: dropped rolls are discarded, not parked by level, so a player
+  // bound by `charBuilderLockHpRolls` / `charBuilderLockTalentRolls` can farm
+  // rerolls by cycling the level. Park them in a level-keyed memo (the way
+  // `talentMemo` parks them per class) if that turns out to matter at a table.
+  state.level = level;
+  state.hp = { max: 0, rolled: null };
+  trimTalentRolls(state, level);
+  for (const memo of Object.values(state.talentMemo ?? {})) {
+    memo.hp = { max: 0, rolled: null };
+    trimTalentRolls(memo, level);
+  }
+  if (spellsKnown) trimSpells(state, spellsKnown);
+  return state;
 }

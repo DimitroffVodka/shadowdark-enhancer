@@ -130,6 +130,27 @@ export const STAT_METHODS = {
 
 export const DEFAULT_STAT_METHOD = "3d6-reroll";
 
+/** Highest level the builder offers — the Shadowdark class tables stop at 10. */
+export const MAX_CHAR_LEVEL = 10;
+
+/**
+ * Max HP from the per-level hit-die results, in CORE-RULES order.
+ *
+ * Creation (pg 14): "Hit points equal to one roll of their class's hit points
+ * die + their Constitution modifier (minimum 1 total)".
+ * Every level after (pg 39, "Increased HP"): "Roll your class's hit points die
+ * and add it to your maximum HP" — no CON modifier, which is exactly what the
+ * system's own `LevelUpSD` does (it applies CON only when targetLevel === 1).
+ *
+ * So CON lands once, on the first die, and only that first subtotal is floored
+ * at 1. Talent HP bonuses (Dwarf Stout +2) are added by the caller.
+ */
+export function hpFromDice(dice, conMod) {
+  return (dice || []).reduce(
+    (sum, d, i) => sum + (i === 0 ? Math.max(1, d + (conMod || 0)) : d), 0,
+  );
+}
+
 /**
  * Shadowdark ability modifier: floor((value - 10) / 2). A 3..18 score maps to
  * -4..+4 naturally, so no explicit clamp is needed. Returns null when unset.

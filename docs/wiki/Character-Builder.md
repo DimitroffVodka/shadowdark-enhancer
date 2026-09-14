@@ -3,9 +3,10 @@
 [← Wiki home](index.md)
 
 A guided, ordered character-creation wizard designed as a step-by-step
-alternative to the system's random generator. It creates a **complete level-1
+alternative to the system's random generator. It creates a **complete
 character**—including rolled hit points and chosen class talents—so the sheet
-never re-prompts you with level-up popups afterwards.
+never re-prompts you with level-up popups afterwards. Pick any level from
+**1 to 10** in the footer and it builds the character finished at that level.
 
 ![The Character Builder](images/char-builder.png)
 
@@ -22,6 +23,29 @@ never re-prompts you with level-up popups afterwards.
 **Players can build characters freely.** If a player lacks actor-creation
 permissions, the builder transparently hands off document creation to the GM
 over system sockets.
+
+---
+
+## Choosing the level
+
+The **Level** dropdown in the footer (1–10) sets the level the character is
+built at. Everything level-dependent follows it:
+
+| At level *N* | What you get |
+|---|---|
+| Hit points | *N* hit dice, rolled together |
+| Class talents | One roll per odd level reached: 1, 3, 5, 7, 9 |
+| Spells known | The class's spells-known counts for level *N* |
+
+**Changing your mind is safe.** Drop the level back down—say from 5 to 3—and the
+build is re-scoped on the spot: the talent rolls the higher levels granted are
+dropped, surplus spells are trimmed to the new per-tier allowance, and HP is
+cleared so you re-roll the right number of dice. Raise it again and the rolls you
+already made are kept; the new ones are simply listed as still outstanding, and
+**Create Character** stays blocked until they are made. Nothing carries a stale
+level-5 value into a level-3 character.
+
+A level-0 funnel build has no level picker.
 
 ---
 
@@ -83,7 +107,9 @@ selector is automatically **weighted toward your chosen alignment**.
 This step configures class progression details:
 
 - Level-1 features shown up front
-- The **`2d6` class talent table roll**, logged to chat
+- The **`2d6` class talent table roll**, logged to chat. Above level 1 you get
+  one further roll per odd level reached (3, 5, 7, 9), listed under **Additional
+  Creation Rolls** and rolled the same way.
 - With *Lock talent rolls* on (the default), players get one roll on the talent
   table and on each bonus table. Only duplicates the rules require rerolling can
   be rerolled, and switching class and back restores the earlier rolls rather
@@ -92,7 +118,8 @@ This step configures class progression details:
   advantage) selected **inline** rather than via popups
 - **Bonus rolls**: Human *Ambitious* talent, *Black Lotus*, and patron boons
 - **Patron selection** for classes that require one
-- Per-tier **spell picker** enforcing class spells-known limits
+- Per-tier **spell picker** enforcing the class's spells-known limits *for the
+  chosen level*—a level-3 wizard picks the level-3 counts
 - **Language selection**: fixed languages plus choose-N pools
 
 ### 5. HP & Gold
@@ -103,12 +130,16 @@ Random for that step, and switching class and back restores the earlier HP
 rather than granting a new roll. The manual gp box is GM-only in any case, and a
 fixed starting-gold setting replaces the gold roll for everyone.
 
-Roll your class hit die with Constitution modifiers applied automatically.
-Talent HP bonuses (such as Dwarf *Stout*) are included **without double-counting**.
+Roll **one class hit die per level** with the Constitution modifier applied
+automatically. Following the core rules, CON is added to the **first** die only
+(minimum 1 total, pg 14); every later level adds its die raw (pg 39), which is
+what the system's own level-up does. Dwarf *Stout* advantage applies to **each**
+die, and its HP bonus is included **without double-counting**. Above level 1 the
+individual dice are shown under the total and in the chat card.
 
 | Setting | Effect |
 |---|---|
-| Max Level-1 HP | Sets starting HP to hit-die maximum + CON instead of rolling. |
+| Max Level-1 HP | Sets HP to the hit-die maximum + CON instead of rolling. Above level 1, every die is maxed. |
 | Fixed starting gold (gp) | Flat starting gold. Set to `0` to roll the standard `2d6 × 5 gp`. |
 
 ### 6. Gear
@@ -208,8 +239,8 @@ They used the raw file browser button. Direct them to **Portrait from gallery**,
 **Use Suggested Art**, or **From URL…**, none of which require file permissions.
 
 **The sheet prompts for level-up after creation.**
-The builder handles level-1 talent and HP choices. If this happens, ensure the
-class item contains its proper level-1 feature links.
+The builder handles every level's talent and HP choices. If this happens, ensure
+the class item contains its proper level-1 feature links.
 
 **Dwarf Stout gave too much HP.**
 Talent HP bonuses apply once automatically. If double-counting occurs, please
