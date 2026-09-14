@@ -3,6 +3,7 @@ import { LanguagesStep } from "./languages-step.mjs";
 import { classArt } from "../art.mjs";
 import { enrich, resultText, findTableByName, talentDescription } from "../data.mjs";
 import { builderDiceAnimation, EXTRA_CLASS_TALENT_ROLL_UUIDS } from "../constants.mjs";
+import { extraTalentLevels, levelTalentKey } from "../state.mjs";
 
 /** Rulebook-style description: enrich, then unwrap ONLY the first paragraph so
  *  its text flows after the bold name, leaving any further paragraphs as real
@@ -57,12 +58,13 @@ function choosableEffect(doc) {
 /**
  * Step — Class.
  *
- * List/detail/aside pick, plus the class's level-1 choices in the detail column:
+ * List/detail/aside pick, plus the class's choices in the detail column:
  *   • Talent — ROLLED on the class's 2d6 talent table (per the user's rule);
  *     if the rolled range offers a "Choose 1", the options are shown to pick.
  *     Effect choices (Weapon Mastery weapon, +2 stat) are applied at commit via
  *     the system's `createItemWithEffect`.
- *   • Spells — spellcasting classes choose `spellsknown[1]` spells per tier.
+ *   • Spells — spellcasting classes choose `spellsknown[level]` spells per tier
+ *     (the cumulative count known at the level being built).
  *   • Patron — patron-required classes (e.g. Warlock) pick a patron.
  */
 export class ClassStep extends ListStep {
@@ -132,13 +134,31 @@ export class ClassStep extends ListStep {
     await this._bonusSources(item);
   }
 
+  /** Character level being built — level-0 funnel builds pick no class at all. */
+  get buildLevel() { return this.state.level0 ? 1 : (this.state.level || 1); }
+
+  /** The class's `spellsknown` row for the build level: {tier: cumulative count}. */
+  _spellsKnown(item) {
+    return item?.system?.spellcasting?.spellsknown?.[this.buildLevel] || {};
+  }
+
+  /** Re-scope to a changed target level: the bonus-roll sources carry one entry
+   *  per odd level, so their cache must go (and recompute, which also prunes
+   *  `state.bonusRolls`) before the sync `isComplete()` reads it again. */
+  async onLevelChange() {
+    this._bonusCache = null;
+    this._pendingChoiceKeys = null;
+    const item = this.selected?.item;
+    if (item) await this._bonusSources(item);
+  }
+
   /** Complete once patron / spells-known / bonus-roll / language requirements are met. */
   isComplete() {
     const item = this.selected?.item;
     if (!this.selected?.uuid || !item) return false;
     if (item.system.patron?.required && !this.state.patron?.uuid) return false;
     if (this._isCaster(item)) {
-      const known = item.system.spellcasting.spellsknown?.[1] || {};
+      const known = this._spellsKnown(item);
       const need = Object.values(known).reduce((a, b) => a + (Number(b) || 0), 0);
       if ((this.state.spells?.length || 0) < need) return false;
     }
@@ -385,9 +405,9 @@ export class ClassStep extends ListStep {
   async _spellContext(item) {
     if (!this._isCaster(item)) return { caster: false };
     const sc = item.system.spellcasting;
-    const known = sc.spellsknown?.[1] || {};
-    // Casters with NO spells due at level 1 (Green Knight, Knight of St.
-    // Ydris — spells arrive on level-up) get no picker at all.
+    const known = this._spellsKnown(item);
+    // Casters with NO spells due yet (Green Knight, Knight of St. Ydris — their
+    // spells arrive at a later level) get no picker at all.
     const due = Object.values(known).reduce((a, b) => a + (Number(b) || 0), 0);
     if (!due) return { caster: false };
     const classUuid = this._spellClassUuid(item);
@@ -539,7 +559,7 @@ export class ClassStep extends ListStep {
     const spell = (this._spellCache[`${classUuid}|${align}`] || []).find((s) => s.uuid === uuid);
     if (!spell) return;
     const tier = spell.system.tier;
-    const count = item.system.spellcasting.spellsknown?.[1]?.[tier] || 0;
+    const count = Number(this._spellsKnown(item)[tier]) || 0;
     if (this.state.spells.filter((s) => s.tier === tier).length >= count) return; // tier full
     this.state.spells.push({ uuid, name: spell.name, tier });
   }
@@ -552,7 +572,8 @@ export class ClassStep extends ListStep {
   }
 
   // ---- Bonus creation rolls --------------------------------------------------
-  // Extra table rolls due at level 1 beyond the standard class-talent roll:
+  // Extra table rolls due beyond the standard level-1 class-talent roll:
+  //  • one more class-talent roll per odd level above 1 (a level-N build),
   //  • fixed class talents that point at a RollTable ("Black Lotus",
   //    "Corruption" via the "<Class> <Talent>" naming convention),
   //  • an ancestry talent granting an extra class-talent roll (Human
@@ -580,6 +601,8 @@ export class ClassStep extends ListStep {
       // Rolled class talent(s) can themselves grant a follow-up table roll, so
       // the sources must recompute when the rolled talent changes.
       (this.state.classTalents || []).map((t) => t.uuid).join(","),
+      // Building above level 1 adds one class-talent roll per odd level.
+      this.buildLevel,
     ].join("|");
     if (this._bonusCache?.key === comboKey) return this._bonusCache.sources;
 
@@ -612,6 +635,21 @@ export class ClassStep extends ListStep {
           tableUuid: table.uuid,
           tableName: table.name,
           dedupe: true,
+        });
+      }
+    }
+
+    // One class-talent roll per odd level above 1 (core rules pg 39 "Talent
+    // Roll"; the class tables list 1/3/5/7/9). Level 1's roll is the step's own
+    // `classTalentRoll` — these ride the bonus-roll machinery, so roll, reroll,
+    // choice, GM lock and commit all work unchanged.
+    if (item.system.classTalentTable) {
+      for (const lvl of extraTalentLevels(this.buildLevel)) {
+        sources.push({
+          key: levelTalentKey(lvl),
+          label: game.i18n.format("SDE.charBuilder.class.levelTalent", { level: lvl }),
+          tableUuid: item.system.classTalentTable,
+          tableName: null,
         });
       }
     }
@@ -778,7 +816,7 @@ export class ClassStep extends ListStep {
     if (!item) return;
     if (item.system.classTalentTable) await this.rollTalent();
     if (this._isCaster(item)) {
-      const known = item.system.spellcasting.spellsknown?.[1] || {};
+      const known = this._spellsKnown(item);
       const all = await this._loadSpells(this._spellClassUuid(item));
       this.state.spells = [];
       for (const tier of [1, 2, 3, 4, 5]) {

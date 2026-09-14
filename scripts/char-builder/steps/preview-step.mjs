@@ -83,6 +83,7 @@ export class PreviewStep extends BaseStep {
       trinket: st.trinket || null,
       patron: st.patron?.name ?? null,
       abilities,
+      level: st.level0 ? 0 : (st.level || 1),
       hp: st.hp.max || null,
       goldRolled: st.goldRolled ? `${st.coins.gp} gp` : null,
       coinsAfter: fmtCoins(coins),

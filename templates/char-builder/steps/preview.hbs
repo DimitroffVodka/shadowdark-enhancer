@@ -92,6 +92,7 @@
           <div class="ab"><span class="k">{{key}}</span><span class="v">{{value}}</span><span class="m">{{mod}}</span></div>
           {{/each}}
         </div>
+        <p><b>{{localize "SDE.charBuilder.level"}}:</b> {{step.level}}</p>
         <p><b>{{localize "SDE.charBuilder.step.hp"}}:</b> {{#if step.hp}}{{step.hp}}{{else}}—{{/if}}</p>
         <p><b>{{localize "SDE.charBuilder.step.gold"}}:</b> {{#if step.goldRolled}}{{step.goldRolled}}{{else}}—{{/if}}
           {{#if step.gear.length}}<span class="after">→ {{step.coinsAfter}} {{localize "SDE.charBuilder.preview.afterGear"}}</span>{{/if}}</p>

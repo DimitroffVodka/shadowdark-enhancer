@@ -27,7 +27,7 @@ and Loot & XP.
 | **Ability roll method** | `3d6, Reroll if None ≥ 14` | GM-dictated method (3d6 down/assign/reroll, 4d6k3 down/assign, Standard Array, Point Buy). |
 | **Portrait/token art folders** | `assets/portraits, assets/ancestries` | Folders offered as the Preview gallery, picked with Foundry's folder browser. Browsed through the GM; discovers datasheet manifests. |
 | **Animate dice (Dice So Nice)** | off | Plays 3D dice roll animations for builder rolls. Chat audit card posts either way. |
-| **Max Level-1 HP** | off | Sets Level-1 HP to maximum hit die + CON instead of rolling. |
+| **Max Level-1 HP** | off | Sets HP to maximum hit die + CON instead of rolling. Above level 1, every level's die is maxed. |
 | **Fixed starting gold (gp)** | `0` | Flat starting gold amount. `0` rolls standard `2d6 × 5 gp`. |
 | **Extra gear** *(menu)* | *(empty)* | GM-only picker (**Manage Extra Gear**) adding custom items to the starting shop. |
 

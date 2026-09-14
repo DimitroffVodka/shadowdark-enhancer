@@ -9356,6 +9356,9 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
   padding: 10px 12px; background: var(--cb-ink); border-top: 1px solid var(--cb-border);
 }
 .sde-cb-footer-left, .sde-cb-footer-right { display: flex; gap: 8px; }
+.sde-cb-level { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.sde-cb-level span { opacity: 0.75; text-transform: uppercase; letter-spacing: 0.04em; }
+.sde-cb-level select { width: auto; height: 26px; padding: 0 4px; }
 
 /* --- Ability-roll chat card ---------------------------------------------- */
 .sde-cb-rollcard { border: 1px solid #3a3428; border-radius: 5px; padding: 6px 8px; }

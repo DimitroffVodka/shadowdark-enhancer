@@ -1,7 +1,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { invalidateConfiguredTables } from "./data.mjs";
-import { CharBuilderState } from "./state.mjs";
-import { DEFAULT_STAT_METHOD } from "./constants.mjs";
+import { CharBuilderState, applyLevelChange } from "./state.mjs";
+import { DEFAULT_STAT_METHOD, MAX_CHAR_LEVEL } from "./constants.mjs";
 import { commitCharacter } from "./commit.mjs";
 import { StatsStep } from "./steps/stats-step.mjs";
 import { AncestryStep } from "./steps/ancestry-step.mjs";
@@ -159,12 +159,38 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
         supportsRandom: step.supportsRandom?.() ?? false,
         showFullRandom: this.stepIndex === 0,
         allComplete: this.steps.every((s) => s.isComplete()),
+        // Target level picker — a level-0 funnel build has no level to choose.
+        level: this.builderState.level0 ? null : {
+          value: this.builderState.level,
+          options: Array.from({ length: MAX_CHAR_LEVEL }, (_, i) => ({
+            value: i + 1, selected: i + 1 === this.builderState.level,
+          })),
+        },
       },
     };
   }
 
   _onRender(_context, _options) {
     this.activeStep.onRender(this.element);
+    this.element.querySelector("[data-cb-level]")
+      ?.addEventListener("change", (ev) => this._setLevel(Number(ev.target.value)));
+  }
+
+  /**
+   * Change the target level mid-build. Everything level-dependent that was
+   * already settled is re-scoped by `applyLevelChange` (HP dropped, talent
+   * rolls and spells trimmed to the new level) and the steps drop their
+   * level-keyed caches — so dialing 5 back down to 3 leaves a build that is
+   * consistent, and Finish stays blocked until the new requirements are met.
+   */
+  async _setLevel(level) {
+    const st = this.builderState;
+    if (st.level0) return;
+    if (!Number.isInteger(level) || level < 1 || level > MAX_CHAR_LEVEL || level === st.level) return;
+    const known = st.class?.item?.system?.spellcasting?.spellsknown?.[level] ?? null;
+    applyLevelChange(st, level, known);
+    for (const step of this.steps) await step.onLevelChange();
+    await this.render();
   }
 
   // --- Navigation -----------------------------------------------------------
@@ -230,6 +256,7 @@ export class ShadowdarkCharBuilder extends HandlebarsApplicationMixin(Applicatio
         + (replacingItems ? `<p class="warn">${esc(game.i18n.format("SDE.charBuilder.commit.replaceItems", { count: actor.items.size }))}</p>` : "")
       : "";
     const summary = `<div class="sde-cb-confirm"><p class="name">${esc(st.name || actor?.name || L("SDE.charBuilder.defaultName"))}</p>${notice}<ul>`
+      + (st.level0 ? "" : row("SDE.charBuilder.level", st.level))
       + row("SDE.charBuilder.step.ancestry", st.ancestry?.name || "—")
       + row("SDE.charBuilder.step.class", st.class?.name || "—")
       + row("SDE.charBuilder.step.background", st.background?.name || "—")

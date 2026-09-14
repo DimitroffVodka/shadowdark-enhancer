@@ -11,8 +11,9 @@ import { MODULE_ID } from "../shared/module-id.mjs";
  * `shadowdark.effects.createItemWithEffect` so their effect choices (Weapon
  * Mastery weapon, +2 stat, …) are honoured, exactly like the native generator.
  *
- * Unlike the generator we build a COMPLETE level-1 character (HP + rolled talent
- * already chosen), so we do NOT set the `showLevelUp` flag — no re-prompt.
+ * Unlike the generator we build a COMPLETE character at the chosen level (every
+ * level's HP die, talent roll and spells already settled), so we do NOT set the
+ * `showLevelUp` flag — no re-prompt.
  *
  * When `actor` is supplied (the builder was launched from an existing Player
  * sheet), the character is written back onto THAT actor — system data updated,
@@ -38,7 +39,9 @@ export async function commitCharacter(state, actor = null) {
     type: "Player",
     system: {
       abilities,
-      level: { value: 1, xp: 0 },
+      // The builder settles every level's HP, talent rolls and spells up front,
+      // so the character is finished AT that level and starts it on 0 XP.
+      level: { value: state.level0 ? 1 : (state.level || 1), xp: 0 },
       alignment: state.alignment || "neutral",
       ancestry: state.ancestry?.uuid || "",
       class: state.class?.uuid || "",

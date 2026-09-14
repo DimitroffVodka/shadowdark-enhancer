@@ -22,6 +22,16 @@
       <button type="button" class="sde-cb-btn ghost" data-action="cb-dismiss">
         <i class="fa-solid fa-circle-xmark"></i> {{localize "SDE.charBuilder.nav.dismiss"}}
       </button>
+      {{#if nav.level}}
+      <label class="sde-cb-level" title="{{localize 'SDE.charBuilder.levelHint'}}">
+        <span>{{localize "SDE.charBuilder.level"}}</span>
+        <select data-cb-level>
+          {{#each nav.level.options}}
+          <option value="{{value}}"{{#if selected}} selected{{/if}}>{{value}}</option>
+          {{/each}}
+        </select>
+      </label>
+      {{/if}}
       {{#if nav.showFullRandom}}
       <button type="button" class="sde-cb-btn danger" data-action="cb-full-random">
         <i class="fa-solid fa-bolt"></i> {{localize "SDE.charBuilder.nav.fullRandom"}}

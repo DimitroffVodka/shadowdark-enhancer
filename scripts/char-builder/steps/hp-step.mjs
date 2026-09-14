@@ -1,13 +1,16 @@
 import { BaseStep } from "./base-step.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { abilityMod, builderDiceAnimation } from "../constants.mjs";
+import { abilityMod, builderDiceAnimation, hpFromDice } from "../constants.mjs";
 
 /**
- * Step — Hit Points. Level-1 HP = class hit die + CON modifier (minimum 1).
+ * Step — Hit Points. One hit die per character level: the first die takes the
+ * CON modifier (minimum 1 total), every later one is added raw — see
+ * `hpFromDice` for the rule text this mirrors.
+ *
  * The GM setting `charBuilderMaxLevel1HP` forces the die maximum instead of a
- * roll; the Take-Max button exists only while it is on. Rolls post a chat card.
- * With `charBuilderLockHpRolls` on, a player's first roll is their only one.
- * Requires a class (for the hit die).
+ * roll (every die, at any level); the Take-Max button exists only while it is
+ * on. Rolls post a chat card. With `charBuilderLockHpRolls` on, a player's
+ * first roll is their only one. Requires a class (for the hit die).
  */
 export class HpStep extends BaseStep {
   get id() { return "hp"; }
@@ -29,6 +32,8 @@ export class HpStep extends BaseStep {
     return m ? Math.max(1, Number(m[1]) || 1) * Number(m[2]) : 0;
   }
   get conMod() { return abilityMod(this.state.stats.values.con) ?? 0; }
+  /** Hit dice to roll = character level (a level-0 funnel build rolls one). */
+  get level() { return this.state.level0 ? 1 : (this.state.level || 1); }
 
   /** HP modifiers granted by the chosen ancestry talents, read structurally
    *  from their ActiveEffects (Dwarf "Stout": +2 max HP and advantage on HP
@@ -67,6 +72,10 @@ export class HpStep extends BaseStep {
       rollLocked: this.rollLocked,
       hp: this.state.hp.max || null,
       rolled: this.state.hp.rolled,
+      level: this.level,
+      multiLevel: this.level > 1,
+      // "5, 3, 7" — the individual hit dice behind the total (Handlebars can't join).
+      diceLabel: (this.state.hp.dice?.length ?? 0) > 1 ? this.state.hp.dice.join(", ") : null,
       complete: this.isComplete(),
     };
   }
@@ -86,32 +95,40 @@ export class HpStep extends BaseStep {
     if (!this.hitDie) return;
     if (this.maxSetting) return this._max();
     const mods = await this._hpModifiers();
-    // Advantage (Dwarf Stout): roll the hit die twice, keep the highest.
+    // Advantage (Dwarf Stout): roll the hit die twice, keep the highest — for
+    // EACH level's die, not just the first.
     const m = String(this.hitDie).match(/^(\d*)\s*d\s*(\d+)/i);
     const faces = m ? Number(m[2]) : 0;
-    const formula = mods.advantage && faces ? `2d${faces}kh1` : this.dieFormula;
-    const roll = await new Roll(formula).evaluate();
-    const total = Math.max(1, roll.total + this.conMod) + mods.bonus;
-    // `bonus` is granted by a talent effect that re-applies on the actor — the
-    // commit writes base HP without it to avoid double-counting.
-    this.state.hp = { max: total, rolled: roll.total, bonus: mods.bonus };
-    await this._card(roll, total, mods.advantage ? "adv" : "roll");
+    const term = mods.advantage && faces ? `2d${faces}kh1` : this.dieFormula;
+    // One Roll with a term per level, so the chat card animates once and each
+    // die's kept result is readable off `roll.dice`.
+    const roll = await new Roll(Array(this.level).fill(term).join(" + ")).evaluate();
+    await this._settle(roll.dice.map((d) => d.total), mods, roll, mods.advantage ? "adv" : "roll");
   }
 
   async _max() {
     if (!this.hitDie) return;
     const mods = await this._hpModifiers();
-    const total = Math.max(1, this.dieMax + this.conMod) + mods.bonus;
-    this.state.hp = { max: total, rolled: this.dieMax, bonus: mods.bonus };
-    await this._card(null, total, "max");
+    await this._settle(Array(this.level).fill(this.dieMax), mods, null, "max");
   }
 
-  async _card(roll, total, kind) {
+  /** Fold the per-level dice into max HP, store them, and post the chat card. */
+  async _settle(dice, mods, roll, kind) {
+    const total = hpFromDice(dice, this.conMod) + mods.bonus;
+    // `bonus` is granted by a talent effect that re-applies on the actor — the
+    // commit writes base HP without it to avoid double-counting. `rolled` stays
+    // the dice sum (its old meaning at level 1); `dice` holds the breakdown.
+    this.state.hp = { max: total, rolled: dice.reduce((a, b) => a + b, 0), bonus: mods.bonus, dice };
+    await this._card(dice, total, kind, roll);
+  }
+
+  async _card(dice, total, kind, roll) {
     const cm = this.conMod;
     const tag = kind === "max" ? ` (${game.i18n.localize("SDE.charBuilder.hp.maxTag")})`
       : kind === "adv" ? ` (${game.i18n.localize("SDE.charBuilder.hp.advTag")})` : "";
+    const dieLine = dice.length > 1 ? `${this.hitDie}: ${dice.join(", ")}` : `${this.hitDie}`;
     const content = `<div class="sde-cb-rollcard"><h4>${game.i18n.localize("SDE.charBuilder.hp.card")}</h4>`
-      + `<div class="method">${this.hitDie} + CON ${cm >= 0 ? `+${cm}` : cm} → <b>${total} HP</b>${tag}</div></div>`;
+      + `<div class="method">${dieLine} + CON ${cm >= 0 ? `+${cm}` : cm} → <b>${total} HP</b>${tag}</div></div>`;
     const animate = builderDiceAnimation();
     try {
       await ChatMessage.create({
