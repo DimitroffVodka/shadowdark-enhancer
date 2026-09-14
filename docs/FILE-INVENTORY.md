@@ -2,7 +2,7 @@
 
 <!-- inventory:stats:start -->
 900 tracked files · ~150,400 lines of code/markup across scripts+templates+styles+test.
-`v0.16.4` in both `module.json` and `package.json`.
+`v0.17.0` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
 

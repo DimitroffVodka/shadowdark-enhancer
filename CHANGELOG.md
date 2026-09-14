@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.17.0] — 2026-09-14
 
 ### Added
 - **Search the Manage tree.** The review tree's toolbar has a search box
