@@ -192,6 +192,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _manageExpandedNodes = new Set();
   /** Manage tree row filter: "all" | "locked" (still importable) | "imported". */
   _manageFilter = "all";
+  /** Free-text Manage-tree search (name / book / page), "" when not searching. */
+  _manageSearch = "";
+  /** Focus + caret retention for the search box across its own re-renders. */
+  _manageSearchFocused = false;
+  _manageSearchCursor = 0;
 
   // ── Batch import ("Import everything") ─────────────────────────────────────
   /**
@@ -755,9 +760,12 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
         filterAll: this._manageFilter === "all",
         filterLocked: this._manageFilter === "locked",
         filterImported: this._manageFilter === "imported",
-        // Filtered to nothing is an ANSWER ("nothing left to unlock"), not an
-        // error — the template says so rather than showing a blank panel.
-        filterEmpty: this._manageFilter !== "all" && tree.length === 0,
+        search: this._manageSearch,
+        searching: !!this._manageSearch.trim(),
+        // Filtered (or searched) to nothing is an ANSWER ("nothing left to
+        // unlock"), not an error — the template says so rather than showing a
+        // blank panel.
+        filterEmpty: (this._manageFilter !== "all" || !!this._manageSearch.trim()) && tree.length === 0,
         // Total still-locked rows across the WHOLE tree — the count on the
         // "Import everything" button, so it reads as a job size before it runs.
         // Read off the unfiltered cache: the "Imported" filter prunes locked
@@ -800,6 +808,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._wireHubClassRowEdits();
     this._wireHubToolsMenu();
     this._wireManageTreeOpen();
+    this._wireManageSearch();
 
     // Manage strip: prepare its census lazily the first time it's expanded, so
     // opening the importer never triggers a world scan.

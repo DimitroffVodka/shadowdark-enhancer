@@ -171,6 +171,11 @@ A collapsible panel comparing what each supported book contains against what is
 currently in your world packs.
 
 - Filter by **All**, **Still locked**, or **Imported**.
+- **Search…** narrows the tree to rows whose name, book, or page cite matches
+  what you type, and opens the folders holding them so the hits are visible
+  without clicking. A folder's own name matches too, so searching *Ancestries*
+  returns that whole branch. The filter still applies alongside the search;
+  clear the box to get the full tree back.
 - Every missing row has an **Import** button that pre-seeds the paste box with
   the correct book, type, and title.
 - The **Downtime** node tracks unlocked book tables in world settings, displaying

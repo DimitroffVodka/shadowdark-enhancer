@@ -2096,6 +2096,21 @@ select[data-downtime-source].sde-hub-import-source-input {
 }
 .sde-mtree-filterbtn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
 .sde-mtree-filter-empty { margin: 8px 0; }
+/* Free-text search, sized like the buttons it sits between. */
+.sde-mtree-search {
+  background: transparent;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 3px;
+  color: var(--sde-bar-text);
+  font-size: 0.74rem;
+  padding: 2px 8px;
+  width: 11em;
+  height: auto;
+  flex: 0 0 auto;
+  margin-right: 6px;
+}
+.sde-mtree-search::placeholder { color: var(--sde-bar-text-muted); }
+.sde-mtree-search:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
 .sde-mtree-toolbtn:focus-visible { outline: 2px solid var(--sde-bar-accent); outline-offset: 1px; }
 
 body.theme-light .sde-mtree-node.depth-2 > .sde-mtree-row .sde-mtree-label,

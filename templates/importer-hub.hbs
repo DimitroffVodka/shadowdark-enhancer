@@ -849,6 +849,9 @@
                       data-action="manageFilter" data-filter="imported" title="Only what's already in your library">
                 <i class="fas fa-circle-check"></i> Imported</button>
             </div>
+            <input type="search" class="sde-mtree-search" data-manage-search value="{{manage.search}}"
+                   placeholder="Search…" aria-label="Search the import library"
+                   title="Filter the tree by name, book or page — matching folders open on their own">
             <button type="button" class="sde-mtree-toolbtn" data-action="manageExpandAll" title="Expand every folder">
               <i class="fas fa-angles-down"></i> Expand all
             </button>
@@ -887,7 +890,8 @@
         {{/if}}
         {{#if manage.filterEmpty}}
         <p class="sde-import-empty sde-mtree-filter-empty">
-          {{#if manage.filterLocked}}<i class="fas fa-circle-check"></i> Nothing left to unlock — everything in this list is imported.
+          {{#if manage.searching}}<i class="fas fa-magnifying-glass"></i> Nothing matches “{{manage.search}}”{{#unless manage.filterAll}} under this filter{{/unless}} — clear the search to see the whole library.
+          {{else if manage.filterLocked}}<i class="fas fa-circle-check"></i> Nothing left to unlock — everything in this list is imported.
           {{else}}<i class="fas fa-file-import"></i> Nothing imported yet — switch to <strong>Still locked</strong> to see what's available.{{/if}}
         </p>
         {{/if}}

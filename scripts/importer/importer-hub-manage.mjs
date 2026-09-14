@@ -30,6 +30,49 @@ import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../
  */
 const DOWNTIME_PDF_KEYS = { "cs6": "CS6", "western-reaches": "WR" };
 
+/**
+ * Shape a built Manage tree for ONE render: apply the All/Locked/Imported
+ * filter and the free-text search, prune branches left with nothing, and stamp
+ * depth + expand state. Pure — it never touches the cached tree or the app's
+ * expand set, so switching filters or typing never re-runs a census.
+ *
+ * A folder whose own label matches the query keeps everything under it (search
+ * "Ancestries" and you get the branch, not just rows with that word in them).
+ * While a query is live every surviving node renders expanded, so hits are
+ * visible without clicking; the GM's own expand state is left alone.
+ *
+ * @param {Array} nodes           top-level nodes from buildManageTree()
+ * @param {object} opts
+ * @param {"all"|"locked"|"imported"} [opts.filter]
+ * @param {string} [opts.query]   free-text search over entry name / src / pages
+ * @param {Set<string>} [opts.expanded] node ids the GM has opened
+ * @param {(node:object)=>number} [opts.runnable] rows a folder's "Import all" can run
+ * @returns {Array}
+ */
+export function filterManageTree(nodes, { filter = "all", query = "", expanded = new Set(), runnable = () => 0 } = {}) {
+  const q = String(query || "").trim().toLowerCase();
+  const wanted = (e) => filter === "locked" ? !e.present
+    : filter === "imported" ? !!e.present
+    : true;
+  const hit = (s) => String(s ?? "").toLowerCase().includes(q);
+  const shape = (node, depth, underHit) => {
+    const selfHit = !!q && hit(node.label);
+    const inBranch = underHit || selfHit;
+    const entries = (node.entries ?? []).filter((e) =>
+      wanted(e) && (!q || inBranch || hit(e.name) || hit(e.src) || hit(e.pages)));
+    const children = (node.children ?? []).map((c) => shape(c, depth + 1, inBranch)).filter(Boolean);
+    const empty = !entries.length && !children.length;
+    if (empty && (q ? !selfHit : filter !== "all")) return null;
+    return {
+      ...node, depth, entries, children,
+      expandable: children.length > 0 || entries.length > 0,
+      expanded: q ? true : expanded.has(node.id),
+      runnable: node.locked ? runnable(node) : 0,
+    };
+  };
+  return (nodes ?? []).map((n) => shape(n, 0, false)).filter(Boolean);
+}
+
 class HubManageMethods {
 
   /**
@@ -103,6 +146,33 @@ class HubManageMethods {
     this.element.querySelectorAll(".sde-mtree-entry.is-present[data-name]").forEach((li) => {
       li.addEventListener("dblclick", () => this._openManageEntry({ ...li.dataset }));
     });
+  }
+
+  /**
+   * Manage-tree search box. The hub re-renders on every state change, so the
+   * input is re-created under us: stash the query and caret on each keystroke,
+   * debounce the re-render, and put focus back where it was afterwards. The
+   * blur handler only forgets the focus when the input is still CONNECTED — a
+   * re-render detaches the focused node, and treating that as "the GM clicked
+   * away" would drop the caret mid-word.
+   */
+  _wireManageSearch() {
+    const input = this.element.querySelector("input[data-manage-search]");
+    if (!input) return;
+    if (this._manageSearchFocused) {
+      input.focus();
+      const pos = this._manageSearchCursor ?? input.value.length;
+      try { input.setSelectionRange(pos, pos); } catch (_) { /* unsupported on some inputs */ }
+    }
+    let t = null;
+    input.addEventListener("input", (ev) => {
+      this._manageSearchFocused = true;
+      this._manageSearchCursor = ev.target.selectionStart;
+      this._manageSearch = ev.target.value;
+      clearTimeout(t);
+      t = setTimeout(() => this.render(), 150);
+    });
+    input.addEventListener("blur", () => { if (input.isConnected) this._manageSearchFocused = false; });
   }
 
   /**
@@ -228,31 +298,22 @@ class HubManageMethods {
       });
     }
     // "What do I still need?" is the question this tree exists to answer, so it
-    // can be narrowed to just the locked rows (or just the imported ones). The
-    // filter shapes a COPY per render — the cache stays whole, so switching
-    // filters never re-runs a census. Branches left with nothing are pruned,
-    // otherwise filtering leaves a tree of empty folders to click through.
-    const wanted = (e) => this._manageFilter === "locked" ? !e.present
-      : this._manageFilter === "imported" ? !!e.present
-      : true;
+    // can be narrowed to just the locked rows (or just the imported ones), and
+    // searched by name. filterManageTree shapes a COPY per render — the cache
+    // stays whole, so switching filters or typing never re-runs a census.
+    //
     // Rows a folder's "Import all" can actually run: the same plan the click
-    // makes, over the unfiltered cache (the button's scope is the library).
+    // makes, over the UNFILTERED cache (the button's scope is the library).
     // Rows without a linked PDF or a page cite are not offered, only reported.
     const runnable = (node) => planBatch(this._manageTreeCache ?? [], {
       rootId: node.id, canRun: (e, r) => this._batchCanRun(e, r),
     }).jobs.reduce((n, job) => n + job.covers.length, 0);
-    const shape = (node, depth) => {
-      const entries = (node.entries ?? []).filter(wanted);
-      const children = (node.children ?? []).map((c) => shape(c, depth + 1)).filter(Boolean);
-      if (this._manageFilter !== "all" && !entries.length && !children.length) return null;
-      return {
-        ...node, depth, entries, children,
-        expandable: children.length > 0 || entries.length > 0,
-        expanded: this._manageExpandedNodes.has(node.id),
-        runnable: node.locked ? runnable(node) : 0,
-      };
-    };
-    return this._manageTreeCache.map((n) => shape(n, 0)).filter(Boolean);
+    return filterManageTree(this._manageTreeCache, {
+      filter: this._manageFilter,
+      query: this._manageSearch,
+      expanded: this._manageExpandedNodes,
+      runnable,
+    });
   }
 
   /** Invalidate the built Manage tree (content changed). */

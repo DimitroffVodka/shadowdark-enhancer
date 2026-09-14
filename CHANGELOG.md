@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Search the Manage tree.** The review tree's toolbar has a search box
+  beside the All / Still locked / Imported filter. Type a name, a book, or a
+  page cite and the tree narrows to the rows that match, opening the folders
+  that hold them so the hits are on screen without a click. A folder's own
+  name matches too, so searching *Ancestries* gives you the whole branch. The
+  filter still applies alongside it, and the **Import everything** and
+  **Import all** counts stay the whole library's, not the view's.
+
 ## [0.16.4] — 2026-09-11
 
 ### Changed
