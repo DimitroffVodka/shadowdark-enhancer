@@ -95,9 +95,18 @@ export class ClassStep extends ListStep {
   get showPortraitInList() { return true; }
 
   async loadItems() {
-    return Array.from(await shadowdark.compendiums.classes())
+    const all = Array.from(await shadowdark.compendiums.classes())
       .filter((c) => !c.name.toLowerCase().includes("level 0"))
       .sort((a, b) => a.name.localeCompare(b.name));
+    // A "<X> (Legacy)" class is the system's older print of <X>; once the
+    // current edition is imported (the WR Bard, #157) both would offer
+    // themselves side by side. Keyed on the name alone, so it covers any
+    // legacy/current pair without naming one.
+    const names = new Set(all.map((c) => c.name.toLowerCase()));
+    return all.filter((c) => {
+      const bare = c.name.toLowerCase().replace(/\s*\(legacy\)$/, "");
+      return bare === c.name.toLowerCase() || !names.has(bare);
+    });
   }
 
   async _onSelect(item) {

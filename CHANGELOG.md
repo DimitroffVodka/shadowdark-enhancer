@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **The Bard is an unlockable Western Reaches class** (pg 34). The system
+  ships a **Bard (Legacy)** — an older edition of the class, with different
+  talent bands and *Presence* where this one has *Fascinate* — so the two are
+  not the same character option. Import the Bard and the Character Builder
+  hides **Bard (Legacy)**, keeping one Bard on the list rather than two. The
+  rule is general: a `<Class> (Legacy)` entry steps aside whenever the current
+  edition of that class is in your packs.
+
+### Fixed
+- **A class feature whose name carries a qualifier in brackets is no longer
+  dropped.** The Bard's *Fascinate (Focus)* was the one that showed it: the
+  paste parser recognised a feature header only without the brackets, so the
+  class imported with its signature ability missing and nothing said so.
+
 ## [0.16.4] — 2026-09-11
 
 ### Changed
