@@ -17,7 +17,8 @@ import assert from "node:assert/strict";
 import { parseClassSection } from "../scripts/importer/char-content/class-parser.mjs";
 import { ClassStep } from "../scripts/char-builder/steps/class-step.mjs";
 import { CLASS_OVERLAYS } from "../scripts/importer/char-content/class-overlays.mjs";
-import { MANIFEST_CLASSES } from "../scripts/importer/char-content/char-content-manifest.mjs";
+import { MANIFEST_CLASSES, classGrabPages } from "../scripts/importer/char-content/char-content-manifest.mjs";
+import { titlePageFor } from "../scripts/importer/source-pdf-registry.mjs";
 
 const classPaste = (featureHeader) => [
   "Warden Class",
@@ -72,6 +73,24 @@ test("the Bard is an unlockable class with a WR page cite and overlay-named rows
     .talentTable.rows.map((r) => (r.lo === r.hi ? String(r.lo) : `${r.lo}-${r.hi}`)));
   for (const band of Object.keys(overlay.rowTalents))
     assert.ok(bands.has(band), `overlay band ${band} is a real 2d6 talent band`);
+});
+
+test("a dual-source class grabs the page of the book it is imported from", () => {
+  const { bard, duelist, wyrdling } = CLASS_OVERLAYS;
+  assert.equal(classGrabPages("WR", "Bard", bard), "34");
+  assert.equal(classGrabPages("CS6", "Bard", bard), "12");
+  assert.equal(classGrabPages("CS6", "Duelist", duelist), "15");
+  // The overlay range wins for its own source (the Wyrdling table spills to p73)…
+  assert.equal(classGrabPages("WR", "Wyrdling", wyrdling), "72-73");
+  // …but never leaks onto another book's PDF.
+  assert.equal(classGrabPages("CS5", "Wyrdling", wyrdling), "12");
+  assert.equal(classGrabPages("CS6", "Wyrdling", wyrdling), "72-73", "no CS6 cite: fall back to the overlay");
+  // …and the titles appendix follows the book as well.
+  assert.equal(titlePageFor("Bard", "CS6"), 16);
+  assert.equal(titlePageFor("Duelist", "CS6"), 16);
+  assert.equal(titlePageFor("Delver", "CS5"), 14);
+  assert.equal(titlePageFor("Bard"), 82, "WR stays the default");
+  assert.equal(titlePageFor("Bard", "CS5"), null);
 });
 
 test("loadItems hides '<X> (Legacy)' only when '<X>' is also present", async () => {

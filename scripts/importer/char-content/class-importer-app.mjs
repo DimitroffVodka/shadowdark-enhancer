@@ -21,7 +21,7 @@
 import { parseClassSection, parseClassSupplement, sliceSpellsKnown, revalidateTalentBandWarnings } from "./class-parser.mjs";
 import { overlayFor } from "./class-overlays.mjs";
 import { sourcePdfHref, titlePageFor } from "../source-pdf-registry.mjs";
-import { CHAR_SOURCES } from "./char-content-manifest.mjs";
+import { CHAR_SOURCES, classGrabPages } from "./char-content-manifest.mjs";
 import { MODULE_ID } from "../../shared/module-id.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -184,8 +184,8 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // click surface the writeup PDF link before anything is pasted.
     const name = this._className || p?.name || this._seedClassName || "";
     const srcKey = this._sourceKey();
-    const writeupPage = overlayFor(name)?.pages ?? null;
-    const titlesPage = titlePageFor(name);
+    const writeupPage = classGrabPages(this._sourceKey(), name, overlayFor(name));
+    const titlesPage = titlePageFor(name, this._sourceKey() ?? "WR");
     const writeupPdf = (srcKey && writeupPage) ? sourcePdfHref(srcKey, writeupPage) : null;
     const titlesPdf = (srcKey && titlesPage) ? sourcePdfHref(srcKey, titlesPage) : null;
 
@@ -671,7 +671,8 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
   async _onGrabPdf() {
     const name = this._className || this._bodyName || this._seedClassName || "";
     const srcKey = this._sourceKey();
-    const page = overlayFor(name)?.pages;
+    // Per-SOURCE page: a Cursed Scroll reprint of a WR class sits on its own page.
+    const page = classGrabPages(srcKey, name, overlayFor(name));
     const { sourcePdfTarget } = await import("../source-pdf-registry.mjs");
     const target = (srcKey && page) ? sourcePdfTarget(srcKey, page) : null;
     if (!target) {
@@ -708,7 +709,7 @@ export class ClassImporterApp extends HandlebarsApplicationMixin(ApplicationV2) 
     // Sliced to this class and appended, so one Preview parses the writeup, the
     // talent table, AND the titles together.
     let titlesText = "";
-    const titlesTarget = srcKey ? sourcePdfTarget(srcKey, titlePageFor(name)) : null;
+    const titlesTarget = srcKey ? sourcePdfTarget(srcKey, titlePageFor(name, srcKey)) : null;
     if (titlesTarget) {
       try {
         const raw = (await extractPdfText(titlesTarget.file, { pages: [titlesTarget.page], columns: "layout" })).text;

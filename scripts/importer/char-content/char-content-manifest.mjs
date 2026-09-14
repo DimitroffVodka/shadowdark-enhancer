@@ -328,10 +328,10 @@ const MANIFEST = {
       "Carousing Event",
       "Carousing Outcome", "Carousing Outcome - Benefit", "Carousing Outcome - Mishap",
     ],
-    // CS6 introduced the Duelist (also in WR) — dual-source unlock. The Bard is
-    // listed under WR only: CS6 pg 12 and WR pg 34 print the same class, and a
-    // dual listing would double its census row for no gain (#157).
-    Class: ["Duelist"],
+    // CS6 introduced the Bard (pg 12) and the Duelist (pg 15); both are reprinted
+    // in WR — dual-source unlocks like CS5's Delver and Wyrdling. The class
+    // census is source-blind, so importing from either book satisfies both rows.
+    Class: ["Bard", "Duelist"],
   },
   WR: {
     // "Bard" is the WR/CS6 print (Fascinate, Inspire, Magical Dabbler). The
@@ -554,8 +554,20 @@ const ITEM_PAGES = {
   },
   // Cursed-Scroll reprints of the dual-source classes (alternate page cites).
   CS5: { "Delver": "10", "Wyrdling": "12" },
-  CS6: { "Duelist": "15" },
+  CS6: { "Bard": "12", "Duelist": "15" },
 };
+
+/**
+ * Page(s) to grab a class writeup from in source `src`. The overlay's range
+ * wins when it was authored for that source (it may span an extra page for a
+ * spill-over table); otherwise the per-source cite above. Without this a
+ * Cursed Scroll grab of a dual-source class read the WESTERN REACHES page
+ * number off the scroll's PDF (#157).
+ */
+export function classGrabPages(src, name, overlay = null) {
+  if (overlay?.source === src && overlay.pages) return overlay.pages;
+  return ITEM_PAGES[src]?.[name] ?? overlay?.pages ?? null;
+}
 
 /** Section-level page cites by document type (user-supplied 2026-07-06):
  *  WR Basic Gear pg 106, Weapons pg 110, Armor pg 112, Backgrounds pg 74.

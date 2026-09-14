@@ -56,8 +56,9 @@ not resolve from the character sheet.
 
 ### The Bard
 
-The **Bard** is offered as an unlockable Western Reaches class (pg 34; Cursed
-Scroll 6 pg 12 prints the same class). The system's own **Bard (Legacy)** is an
+The **Bard** is an unlockable class from either the Western Reaches (pg 34) or
+Cursed Scroll 6 (pg 12) — import it from whichever book you own; the two print
+the same class. The system's own **Bard (Legacy)** is an
 older edition — different talent bands, *Presence* where this one has
 *Fascinate* — so it does not satisfy the unlock. Once you import the Bard, the
 [Character Builder](Character-Builder.md) hides **Bard (Legacy)** so the two

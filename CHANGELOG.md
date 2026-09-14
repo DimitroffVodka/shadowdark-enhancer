@@ -26,7 +26,8 @@
   dropped, surplus spells are trimmed per tier, HP is cleared for a fresh roll,
   and **Create Character** stays blocked until the outstanding rolls are made.
   Level-0 funnel builds are unaffected. (#159)
-- **The Bard is an unlockable Western Reaches class** (pg 34). The system
+- **The Bard is an unlockable class** — from the *Western Reaches* (pg 34) or
+  *Cursed Scroll 6* (pg 12), whichever book you own. The system
   ships a **Bard (Legacy)** — an older edition of the class, with different
   talent bands and *Presence* where this one has *Fascinate* — so the two are
   not the same character option. Import the Bard and the Character Builder
@@ -35,6 +36,12 @@
   edition of that class is in your packs. (#157)
 
 ### Fixed
+- **Importing a dual-source class from a Cursed Scroll grabbed the wrong page.**
+  The one-press grab took the class's *Western Reaches* page number and read it
+  off the scroll's PDF, so a Delver or Wyrdling from CS5, or a Duelist from CS6,
+  pulled an unrelated page into the workspace, and the titles table was only
+  ever looked up in the *Western Reaches* appendix. Each book now grabs its own
+  writeup and titles pages (CS5 pg 14, CS6 pg 16).
 - **A class feature whose name carries a qualifier in brackets is no longer
   dropped.** The Bard's *Fascinate (Focus)* was the one that showed it: the
   paste parser recognised a feature header only without the brackets, so the

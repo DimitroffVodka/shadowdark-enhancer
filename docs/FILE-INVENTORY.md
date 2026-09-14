@@ -226,11 +226,11 @@
 | `batch-import.mjs` | 262 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
 | `pdf-text-extract.mjs` | 724 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
-| `source-pdf-registry.mjs` | 293 | Content source → the user's own uploaded PDF, for page deep-links. |
+| `source-pdf-registry.mjs` | 300 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1529 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1541 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
-| `char-content/class-importer-app.mjs` | 788 | Purpose-built single-view class workspace. |
+| `char-content/class-importer-app.mjs` | 789 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1448 | Class unit → real documents in dependency order. |
 | `char-content/class-overlays.mjs` | 280 | SDE-original automation not derivable from book text (ActiveEffects, invented names). |
 | `char-content/class-quality-gate.mjs` | 113 | The one place computing blocking class-import issues + override dialog. |

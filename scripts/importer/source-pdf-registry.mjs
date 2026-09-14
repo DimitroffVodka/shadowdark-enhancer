@@ -87,10 +87,17 @@ export const WR_TITLE_PAGES = {
   "Witch": 89, "Wyrdling": 89,
 };
 
-/** The WR titles-appendix page for a class name (case/space-insensitive), or null. */
-export function titlePageFor(className) {
+/** The Cursed Scrolls print the titles of their reprinted classes on one appendix page too. */
+const TITLE_PAGES = {
+  WR: WR_TITLE_PAGES,
+  CS5: { "Delver": 14, "Wyrdling": 14 },
+  CS6: { "Bard": 16, "Duelist": 16 },
+};
+
+/** The titles-appendix page for a class name in source `src` (case/space-insensitive), or null. */
+export function titlePageFor(className, src = "WR") {
   const want = String(className ?? "").toLowerCase().replace(/\s+/g, " ").trim();
-  for (const [name, page] of Object.entries(WR_TITLE_PAGES))
+  for (const [name, page] of Object.entries(TITLE_PAGES[src] ?? {}))
     if (name.toLowerCase() === want) return page;
   return null;
 }

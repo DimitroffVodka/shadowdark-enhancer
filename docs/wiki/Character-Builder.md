@@ -123,8 +123,9 @@ This step configures class progression details:
 - **Language selection**: fixed languages plus choose-N pools
 
 The class list hides a `<Class> (Legacy)` entry once the current edition of that
-class is in your packs. Importing the Western Reaches **Bard** therefore replaces
-the system's **Bard (Legacy)** in this list rather than sitting beside it.
+class is in your packs. Importing the **Bard** (from the Western Reaches or
+Cursed Scroll 6) therefore replaces the system's **Bard (Legacy)** in this list
+rather than sitting beside it.
 
 ### 5. HP & Gold
 
