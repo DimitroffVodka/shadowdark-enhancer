@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.17.1] — 2026-09-15
 
 ### Added
 - **Players manage their own Luck tokens on the Crawl Strip.** Right-clicking
