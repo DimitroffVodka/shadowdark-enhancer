@@ -741,11 +741,15 @@ export const CrawlStrip = {
       let pills = "";
       if (data) {
         if (m.type === "player") {
-          // Luck pill is clickable → spends a luck token via actor.system.useLuckToken().
-          // Only attach the data-action when there's actually a token to spend.
-          // Always include data-actor-id so the GM can right-click to add a token even at zero.
-          const luckClickable = data.luck > 0 ? `data-action="spendLuck" role="button" tabindex="0" aria-label="Spend a Luck Token"` : "";
-          const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : (game.user.isGM ? "No Luck Tokens — right-click to add one" : "No Luck Tokens");
+          // Luck pill: on a PC you own, click spends (actor.system.useLuckToken())
+          // and right-click adds one; on anyone else's, either click gives them
+          // one of yours. data-action only when there's a token to spend;
+          // data-actor-id always, so an empty pill still takes a right-click.
+          const ownsLuck = !!game.actors.get(m.actorId)?.isOwner;
+          const luckTitle = !ownsLuck ? "Click or right-click to give one of your Luck Tokens"
+            : data.luck > 0 ? "Click to spend a Luck Token, right-click to add one"
+            : "No Luck Tokens — right-click to add one";
+          const luckClickable = data.luck > 0 ? `data-action="spendLuck" role="button" tabindex="0" aria-label="${luckTitle}"` : "";
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${luckClass}" data-actor-id="${m.actorId ?? ""}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
@@ -1304,8 +1308,10 @@ export const CrawlStrip = {
       });
     }
 
-    // Luck pill right-click → GM adds a luck token (delegated on the strip so
-    // it survives re-renders). Matches on data-actor-id so empty pills work too.
+    // Luck pill right-click → add a luck token to a PC you own (a GM owns them
+    // all), or give one of yours to someone else's, as a left-click does (#162).
+    // Delegated on the strip so it survives re-renders. Matches on
+    // data-actor-id so empty pills work too.
     // Bound once via a flag — _bindEvents runs on every render, and addEventListener
     // on the persistent strip element would otherwise stack duplicate listeners.
     if (!this._contextmenuBound) {
@@ -1315,10 +1321,11 @@ export const CrawlStrip = {
         if (!luckBtn) return;
         ev.preventDefault();
         ev.stopPropagation();
-        if (!game.user.isGM) return;
         const actorId = luckBtn.dataset.actorId;
         const actor = actorId ? game.actors.get(actorId) : null;
-        if (actor) await this._addLuckToken(actor);
+        if (!actor) return;
+        if (actor.isOwner) await this._addLuckToken(actor);
+        else await this._offerGiveLuck(actor);
       });
     }
 
@@ -1444,7 +1451,7 @@ export const CrawlStrip = {
   },
 
   /**
-   * Add a luck token to an actor (GM right-click on the Luck pill).
+   * Add a luck token to an actor (right-click on the Luck pill by its owner or the GM).
    * Respects Pulp/Classic mode just like the display logic in _extractData.
    */
   async _addLuckToken(actor) {

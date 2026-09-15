@@ -142,7 +142,7 @@ Each card displays live actor data:
 | **Portrait & name** | Drawn from the actor document |
 | **HP bar** | Current/Max HP with color bands (Green >75%, Yellow ≤75%, Orange ≤50%, Red ≤25%, Black ≤0) |
 | **AC** | Displayed as `AC n` |
-| **Luck pill** | PCs only. Left-click to spend. Right-click (GM) to grant. Click another PC's pill to gift Luck. |
+| **Luck pill** | PCs only. On your own PC: left-click spends a token, right-click adds one (the GM can do both on any PC). On another player's PC: left- or right-click gives them one of yours. Each posts a chat card. |
 | **Movement pill** | `remaining / budget ft`. Turns red when over budget. |
 | **Active effects** | Icons for current effects with hover tooltips for duration |
 | **Light source** | PC cards: click to toggle character light source |

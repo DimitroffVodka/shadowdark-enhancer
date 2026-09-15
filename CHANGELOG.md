@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Players manage their own Luck tokens on the Crawl Strip.** Right-clicking
+  the Luck pill on your own character adds a token. Until now only the GM
+  could do that. Left-click still spends one. Left- or right-clicking another
+  player's pill gives them one of yours. Every change posts a chat card, so
+  the table sees each token added, spent, or passed. (#162)
+
 ## [0.17.0] — 2026-09-14
 
 ### Added
