@@ -14,6 +14,12 @@
   now see only the HP bar on a hostile (or Secret) NPC's card. Its HP numbers,
   AC, and movement pill are hidden. The GM still sees everything. (#163)
 
+### Fixed
+- **A lit torch stays bright on every Crawl Strip card.** The flame used to
+  fade with the rest of the card whenever it wasn't that character's turn, so
+  you couldn't tell at a glance who had a light burning. The card still dims,
+  but a lit flame now shows at full strength. (#164)
+
 ## [0.17.0] — 2026-09-14
 
 ### Added

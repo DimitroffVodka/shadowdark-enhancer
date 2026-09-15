@@ -748,7 +748,11 @@ body.theme-light .sde-chat-dis { color: #a33326; }
   transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
   box-shadow: 1px 1px 4px var(--sde-bar-shadow-md);
 }
-.sde-strip-member.sde-strip-dim { opacity: 0.4; filter: saturate(0.4); }
+/* Dim / defeated / hidden fade the card's children, not the card: a child can't
+   undo its parent's opacity, and a lit flame must read at full strength on
+   every card so the table can see who carries light (#164). The dim rule ties
+   the later defeated/hidden portrait filters on specificity, so those win. */
+.sde-strip-member.sde-strip-dim > :not(.sde-strip-light-lit) { opacity: 0.4; filter: saturate(0.4); }
 
 .sde-strip-member.sde-strip-active.sde-strip-type-player,
 .sde-strip-member.sde-strip-active.sde-strip-type-gm {
@@ -761,12 +765,12 @@ body.theme-light .sde-chat-dis { color: #a33326; }
 }
 
 /* Defeated */
-.sde-strip-member.sde-strip-defeated { opacity: 0.4; }
+.sde-strip-member.sde-strip-defeated:not(.sde-strip-is-turn) > :not(.sde-strip-light-lit) { opacity: 0.4; }
 .sde-strip-member.sde-strip-defeated .sde-strip-portrait { filter: grayscale(80%); }
 
 /* Hidden-from-players card — GM-only. Dimmed with a dashed outline + eye-slash
    badge so the GM can tell at a glance which cards the party can't see. */
-.sde-strip-member.sde-strip-hidden { opacity: 0.6; }
+.sde-strip-member.sde-strip-hidden:not(.sde-strip-is-turn) > :not(.sde-strip-light-lit) { opacity: 0.6; }
 .sde-strip-member.sde-strip-hidden .sde-strip-portrait { filter: grayscale(45%) brightness(0.8); }
 .sde-strip-member.sde-strip-hidden { outline: 1px dashed rgba(120,170,255,0.6); outline-offset: -2px; }
 .sde-strip-hidden-icon {
