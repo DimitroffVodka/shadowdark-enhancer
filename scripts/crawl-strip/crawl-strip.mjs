@@ -19,6 +19,7 @@ import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
 import { combatantEntry, isHiddenFromStrip } from "./turn-skip-core.mjs";
+import { showOocReset } from "./crawl-tracker-core.mjs";
 import {
   buildTabStripHTML,
   bindActionMenuEvents,
@@ -884,12 +885,27 @@ export const CrawlStrip = {
     })
       ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="Roll initiative for everyone who hasn't rolled">${ICONS.diceD20}</button>`
       : "";
+    // GM-only, like the rest of the badge (#165). Previous turn sits above the
+    // round number, where combat's Previous Turn sits, and needs a live order
+    // just as the advance does. Reset Initiative was otherwise only reachable
+    // by right-clicking Add Tokens on the bar; showOocReset is the sidebar
+    // tracker's rule, so the two views offer it at the same moments.
+    const oocPrevBtn = oocOrderActive
+      ? `<button class="sde-strip-cbtn" data-action="prevOocTurn" title="${game.i18n.localize("SDE.crawlStrip.prevOocTurn")}">${ICONS.prevOocTurn}</button>`
+      : "";
+    const rolledCount = (state.members ?? [])
+      .filter(id => typeof state.oocInitiative?.[id]?.roll === "number").length;
+    const oocResetBtn = showOocReset({ isGM: game.user.isGM, rolledCount })
+      ? `<button class="sde-strip-cbtn" data-action="resetOocInit" title="${game.i18n.localize("SDE.crawlStrip.resetOocInit")}">${ICONS.resetOocInit}</button>`
+      : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
            ${oocRollAllBtn}
+           ${oocPrevBtn}
            <div class="sde-strip-crawl-turn" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
            <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="${game.i18n.localize("SDE.crawlStrip.nextCrawlRound")}">${ICONS.nextRound}</button>
            ${oocAdvanceBtn}
+           ${oocResetBtn}
          </div>`
       : `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
            <div class="sde-strip-turn-num" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
@@ -1434,6 +1450,21 @@ export const CrawlStrip = {
       btn.addEventListener("click", async ev => {
         ev.stopPropagation();
         await CrawlState.nextCrawlTurn();
+      });
+    });
+
+    // Out-of-combat Previous Turn and Reset Initiative (#165) — the same calls
+    // the sidebar tracker's footer and header make.
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="prevOocTurn"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        await CrawlState.previousOocTurn();
+      });
+    });
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="resetOocInit"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        await OocControls.reset();
       });
     });
 

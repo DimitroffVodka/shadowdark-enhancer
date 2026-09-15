@@ -8,6 +8,12 @@
   could do that. Left-click still spends one. Left- or right-clicking another
   player's pill gives them one of yours. Every change posts a chat card, so
   the table sees each token added, spent, or passed. (#162)
+- **Previous turn and Reset Initiative on the Crawl Strip.** Out of combat, the
+  GM's round column on the left of the strip now has a back button above the
+  round number that hands the turn back to the previous player, like Previous
+  Turn in combat. It appears once everyone has rolled. A reset button at the
+  bottom of the column clears everyone's initiative. Until now that was only
+  reachable by right-clicking Add Tokens on the bar. (#165)
 
 ### Changed
 - **Hostile NPCs keep their numbers to themselves on the Crawl Strip.** Players

@@ -67,6 +67,8 @@
   "SDE.crawlStrip.turnAdvanceInProgress": "A turn advance is already in progress.",
   "SDE.crawlStrip.oocTurnAdvanceNoOrder": "No initiative order is rolled yet.",
   "SDE.crawlStrip.nextOocTurn": "Next player's turn",
+  "SDE.crawlStrip.prevOocTurn": "Previous player's turn",
+  "SDE.crawlStrip.resetOocInit": "Reset initiative",
   "SDE.crawlStrip.currentTurn": "Current turn",
   "SDE.crawlStrip.crawlRound": "Crawl Round",
   "SDE.crawlStrip.nextCrawlRound": "Next Round",

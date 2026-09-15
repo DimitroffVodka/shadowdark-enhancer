@@ -75,6 +75,9 @@ export const ICONS = {
   // out-of-combat initiative advance must not look like the crawl-turn
   // button sitting next to it.
   nextOocTurn: `<i class="fas fa-forward"></i>`,
+  prevOocTurn: `<i class="fas fa-backward"></i>`,
+  // The sidebar Crawl Order tab's Reset Initiative glyph.
+  resetOocInit: `<i class="fas fa-rotate-left"></i>`,
 
   // ── Movement ─────────────────────────────────────────────────────────────
   rollbackMove: `<i class="fas fa-rotate-left"></i>`,

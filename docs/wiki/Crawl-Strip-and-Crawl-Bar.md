@@ -106,7 +106,12 @@ who have not rolled yet**. Characters who already rolled are skipped.
 | **Visibility** | GM only. Players roll using their own card's d20 button. |
 | **When shown** | In crawl mode while at least one member still owes a roll. |
 | **When hidden** | Hides once all roster members have rolled. |
-| **Resetting** | Right-click **Add Tokens** on the bar (**Reset Initiative**) to clear rolls. |
+| **Resetting** | Click **Reset Initiative** (↺) at the bottom of the same column to clear rolls. Right-clicking **Add Tokens** on the bar does the same. |
+
+Once everyone has rolled, the GM's column also gets **Previous player's
+turn** (⏪) above the round number and **Next player's turn** (⏩) below it,
+like Previous Turn and Next Turn in combat. Stepping back past the top of the
+order steps the crawl round back too.
 
 ### The Crawl Order sidebar tab
 
