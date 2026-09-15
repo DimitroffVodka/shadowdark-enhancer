@@ -19,6 +19,7 @@ import { computeLightState, isLightItem } from "./crawl-lights-core.mjs";
 import { canAdvanceTurn, canAdvanceOocTurn, nextTurnWouldRollRound } from "./crawl-turn-core.mjs";
 import { oocOrderComplete } from "./crawl-state-core.mjs";
 import { combatantEntry, isHiddenFromStrip } from "./turn-skip-core.mjs";
+import { showOocReset } from "./crawl-tracker-core.mjs";
 import {
   buildTabStripHTML,
   bindActionMenuEvents,
@@ -695,6 +696,12 @@ export const CrawlStrip = {
         : (m.tokenId ? combatantMap.get(m.tokenId) : null);
       const isDefeated = combatant?.defeated ?? false;
 
+      // A player sees a hostile (or secret) NPC's HP bar but none of its
+      // numbers — no HP, AC, or movement (#163). Disposition is read off the
+      // combatant's token too: canvas.tokens only holds the viewed scene's.
+      const concealStats = !game.user.isGM && m.type === "npc"
+        && (tokenDoc ?? combatant?.token)?.disposition <= CONST.TOKEN_DISPOSITIONS.HOSTILE;
+
       // Visibility:
       //   - Players NEVER see a hidden token/combatant — it stays off their
       //     strip until the GM reveals it (no name/HP/presence leak).
@@ -731,7 +738,7 @@ export const CrawlStrip = {
         : (data?.moveExhausted ? "sde-strip-pill-empty" : "");
 
       // AC sub-line — rendered right under the name to keep the pill row uncrowded.
-      const acLine = (data && data.ac != null)
+      const acLine = (data && data.ac != null && !concealStats)
         ? `<div class="sde-strip-ac-line" title="Armor Class">AC ${data.ac}</div>`
         : "";
 
@@ -741,17 +748,21 @@ export const CrawlStrip = {
       let pills = "";
       if (data) {
         if (m.type === "player") {
-          // Luck pill is clickable → spends a luck token via actor.system.useLuckToken().
-          // Only attach the data-action when there's actually a token to spend.
-          // Always include data-actor-id so the GM can right-click to add a token even at zero.
-          const luckClickable = data.luck > 0 ? `data-action="spendLuck" role="button" tabindex="0" aria-label="Spend a Luck Token"` : "";
-          const luckTitle = data.luck > 0 ? "Click to spend a Luck Token" : (game.user.isGM ? "No Luck Tokens — right-click to add one" : "No Luck Tokens");
+          // Luck pill: on a PC you own, click spends (actor.system.useLuckToken())
+          // and right-click adds one; on anyone else's, either click gives them
+          // one of yours. data-action only when there's a token to spend;
+          // data-actor-id always, so an empty pill still takes a right-click.
+          const ownsLuck = !!game.actors.get(m.actorId)?.isOwner;
+          const luckTitle = !ownsLuck ? "Click or right-click to give one of your Luck Tokens"
+            : data.luck > 0 ? "Click to spend a Luck Token, right-click to add one"
+            : "No Luck Tokens — right-click to add one";
+          const luckClickable = data.luck > 0 ? `data-action="spendLuck" role="button" tabindex="0" aria-label="${luckTitle}"` : "";
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${luckClass}" data-actor-id="${m.actorId ?? ""}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
         </div>`;
-        } else if (m.type === "npc" && inCombat) {
+        } else if (m.type === "npc" && inCombat && !concealStats) {
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
@@ -797,7 +808,7 @@ export const CrawlStrip = {
             <div class="sde-strip-bottom">
               <div class="sde-strip-hp-bar-wrap">
                 <div class="sde-strip-hp-bar ${hpClass}" style="width:${hpPct}%"></div>
-                <span class="sde-strip-hp-label">${data ? `${data.hp}/${data.hpMax}` : ""}</span>
+                <span class="sde-strip-hp-label">${data && !concealStats ? `${data.hp}/${data.hpMax}` : ""}</span>
               </div>
               ${pills}
             </div>
@@ -874,12 +885,27 @@ export const CrawlStrip = {
     })
       ? `<button class="sde-strip-cbtn sde-strip-rollall-btn" data-action="rollAllOocInit" title="Roll initiative for everyone who hasn't rolled">${ICONS.diceD20}</button>`
       : "";
+    // GM-only, like the rest of the badge (#165). Previous turn sits above the
+    // round number, where combat's Previous Turn sits, and needs a live order
+    // just as the advance does. Reset Initiative was otherwise only reachable
+    // by right-clicking Add Tokens on the bar; showOocReset is the sidebar
+    // tracker's rule, so the two views offer it at the same moments.
+    const oocPrevBtn = oocOrderActive
+      ? `<button class="sde-strip-cbtn" data-action="prevOocTurn" title="${game.i18n.localize("SDE.crawlStrip.prevOocTurn")}">${ICONS.prevOocTurn}</button>`
+      : "";
+    const rolledCount = (state.members ?? [])
+      .filter(id => typeof state.oocInitiative?.[id]?.roll === "number").length;
+    const oocResetBtn = showOocReset({ isGM: game.user.isGM, rolledCount })
+      ? `<button class="sde-strip-cbtn" data-action="resetOocInit" title="${game.i18n.localize("SDE.crawlStrip.resetOocInit")}">${ICONS.resetOocInit}</button>`
+      : "";
     const crawlBadge = game.user.isGM
       ? `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
            ${oocRollAllBtn}
+           ${oocPrevBtn}
            <div class="sde-strip-crawl-turn" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
            <button class="sde-strip-cbtn" data-action="nextCrawlTurn" title="${game.i18n.localize("SDE.crawlStrip.nextCrawlRound")}">${ICONS.nextRound}</button>
            ${oocAdvanceBtn}
+           ${oocResetBtn}
          </div>`
       : `<div class="sde-strip-combat-controls sde-strip-crawl-controls">
            <div class="sde-strip-turn-num" title="${game.i18n.localize("SDE.crawlStrip.crawlRound")}">${state.crawlTurn}</div>
@@ -1304,8 +1330,10 @@ export const CrawlStrip = {
       });
     }
 
-    // Luck pill right-click → GM adds a luck token (delegated on the strip so
-    // it survives re-renders). Matches on data-actor-id so empty pills work too.
+    // Luck pill right-click → add a luck token to a PC you own (a GM owns them
+    // all), or give one of yours to someone else's, as a left-click does (#162).
+    // Delegated on the strip so it survives re-renders. Matches on
+    // data-actor-id so empty pills work too.
     // Bound once via a flag — _bindEvents runs on every render, and addEventListener
     // on the persistent strip element would otherwise stack duplicate listeners.
     if (!this._contextmenuBound) {
@@ -1315,10 +1343,11 @@ export const CrawlStrip = {
         if (!luckBtn) return;
         ev.preventDefault();
         ev.stopPropagation();
-        if (!game.user.isGM) return;
         const actorId = luckBtn.dataset.actorId;
         const actor = actorId ? game.actors.get(actorId) : null;
-        if (actor) await this._addLuckToken(actor);
+        if (!actor) return;
+        if (actor.isOwner) await this._addLuckToken(actor);
+        else await this._offerGiveLuck(actor);
       });
     }
 
@@ -1424,6 +1453,21 @@ export const CrawlStrip = {
       });
     });
 
+    // Out-of-combat Previous Turn and Reset Initiative (#165) — the same calls
+    // the sidebar tracker's footer and header make.
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="prevOocTurn"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        await CrawlState.previousOocTurn();
+      });
+    });
+    this._el.querySelectorAll('.sde-strip-cbtn[data-action="resetOocInit"]').forEach(btn => {
+      btn.addEventListener("click", async ev => {
+        ev.stopPropagation();
+        await OocControls.reset();
+      });
+    });
+
     // Activate / end-turn buttons — bridge to the combat tracker's native buttons
     this._el.querySelectorAll(".sde-strip-activate-btn").forEach(btn => {
       btn.addEventListener("click", async ev => {
@@ -1444,7 +1488,7 @@ export const CrawlStrip = {
   },
 
   /**
-   * Add a luck token to an actor (GM right-click on the Luck pill).
+   * Add a luck token to an actor (right-click on the Luck pill by its owner or the GM).
    * Respects Pulp/Classic mode just like the display logic in _extractData.
    */
   async _addLuckToken(actor) {

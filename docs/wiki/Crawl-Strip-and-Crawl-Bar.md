@@ -106,7 +106,12 @@ who have not rolled yet**. Characters who already rolled are skipped.
 | **Visibility** | GM only. Players roll using their own card's d20 button. |
 | **When shown** | In crawl mode while at least one member still owes a roll. |
 | **When hidden** | Hides once all roster members have rolled. |
-| **Resetting** | Right-click **Add Tokens** on the bar (**Reset Initiative**) to clear rolls. |
+| **Resetting** | Click **Reset Initiative** (↺) at the bottom of the same column to clear rolls. Right-clicking **Add Tokens** on the bar does the same. |
+
+Once everyone has rolled, the GM's column also gets **Previous player's
+turn** (⏪) above the round number and **Next player's turn** (⏩) below it,
+like Previous Turn and Next Turn in combat. Stepping back past the top of the
+order steps the crawl round back too.
 
 ### The Crawl Order sidebar tab
 
@@ -142,7 +147,7 @@ Each card displays live actor data:
 | **Portrait & name** | Drawn from the actor document |
 | **HP bar** | Current/Max HP with color bands (Green >75%, Yellow ≤75%, Orange ≤50%, Red ≤25%, Black ≤0) |
 | **AC** | Displayed as `AC n` |
-| **Luck pill** | PCs only. Left-click to spend. Right-click (GM) to grant. Click another PC's pill to gift Luck. |
+| **Luck pill** | PCs only. On your own PC: left-click spends a token, right-click adds one (the GM can do both on any PC). On another player's PC: left- or right-click gives them one of yours. Each posts a chat card. |
 | **Movement pill** | `remaining / budget ft`. Turns red when over budget. |
 | **Active effects** | Icons for current effects with hover tooltips for duration |
 | **Light source** | PC cards: click to toggle character light source |
@@ -150,6 +155,10 @@ Each card displays live actor data:
 | **Current turn** | Active combatant card is outlined in accent color; others dim |
 | **Skull** | Marks a downed PC (0 HP) |
 | **Eye-slash** | Marks a combatant hidden from players |
+
+Players see only the HP bar on a hostile NPC's card: no HP numbers, no AC, and
+no movement pill. The same applies to an NPC whose token disposition is
+**Secret**. The GM always sees the full card.
 
 ### The GM card
 

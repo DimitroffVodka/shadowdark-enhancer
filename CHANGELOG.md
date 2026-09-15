@@ -1,5 +1,31 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Players manage their own Luck tokens on the Crawl Strip.** Right-clicking
+  the Luck pill on your own character adds a token. Until now only the GM
+  could do that. Left-click still spends one. Left- or right-clicking another
+  player's pill gives them one of yours. Every change posts a chat card, so
+  the table sees each token added, spent, or passed. (#162)
+- **Previous turn and Reset Initiative on the Crawl Strip.** Out of combat, the
+  GM's round column on the left of the strip now has a back button above the
+  round number that hands the turn back to the previous player, like Previous
+  Turn in combat. It appears once everyone has rolled. A reset button at the
+  bottom of the column clears everyone's initiative. Until now that was only
+  reachable by right-clicking Add Tokens on the bar. (#165)
+
+### Changed
+- **Hostile NPCs keep their numbers to themselves on the Crawl Strip.** Players
+  now see only the HP bar on a hostile (or Secret) NPC's card. Its HP numbers,
+  AC, and movement pill are hidden. The GM still sees everything. (#163)
+
+### Fixed
+- **A lit torch stays bright on every Crawl Strip card.** The flame used to
+  fade with the rest of the card whenever it wasn't that character's turn, so
+  you couldn't tell at a glance who had a light burning. The card still dims,
+  but a lit flame now shows at full strength. (#164)
+
 ## [0.17.0] — 2026-09-14
 
 ### Added
