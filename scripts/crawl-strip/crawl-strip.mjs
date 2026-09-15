@@ -695,6 +695,12 @@ export const CrawlStrip = {
         : (m.tokenId ? combatantMap.get(m.tokenId) : null);
       const isDefeated = combatant?.defeated ?? false;
 
+      // A player sees a hostile (or secret) NPC's HP bar but none of its
+      // numbers — no HP, AC, or movement (#163). Disposition is read off the
+      // combatant's token too: canvas.tokens only holds the viewed scene's.
+      const concealStats = !game.user.isGM && m.type === "npc"
+        && (tokenDoc ?? combatant?.token)?.disposition <= CONST.TOKEN_DISPOSITIONS.HOSTILE;
+
       // Visibility:
       //   - Players NEVER see a hidden token/combatant — it stays off their
       //     strip until the GM reveals it (no name/HP/presence leak).
@@ -731,7 +737,7 @@ export const CrawlStrip = {
         : (data?.moveExhausted ? "sde-strip-pill-empty" : "");
 
       // AC sub-line — rendered right under the name to keep the pill row uncrowded.
-      const acLine = (data && data.ac != null)
+      const acLine = (data && data.ac != null && !concealStats)
         ? `<div class="sde-strip-ac-line" title="Armor Class">AC ${data.ac}</div>`
         : "";
 
@@ -755,7 +761,7 @@ export const CrawlStrip = {
           <div class="sde-strip-pill ${luckClass}" data-actor-id="${m.actorId ?? ""}" ${luckClickable} title="${luckTitle}">${ICONS.shamrock}${data.luck}</div>
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
         </div>`;
-        } else if (m.type === "npc" && inCombat) {
+        } else if (m.type === "npc" && inCombat && !concealStats) {
           pills = `
         <div class="sde-strip-pills">
           <div class="sde-strip-pill ${moveClass}">${ICONS.walking}${data.moveRemaining}/${data.activeSpeed}ft</div>
@@ -801,7 +807,7 @@ export const CrawlStrip = {
             <div class="sde-strip-bottom">
               <div class="sde-strip-hp-bar-wrap">
                 <div class="sde-strip-hp-bar ${hpClass}" style="width:${hpPct}%"></div>
-                <span class="sde-strip-hp-label">${data ? `${data.hp}/${data.hpMax}` : ""}</span>
+                <span class="sde-strip-hp-label">${data && !concealStats ? `${data.hp}/${data.hpMax}` : ""}</span>
               </div>
               ${pills}
             </div>

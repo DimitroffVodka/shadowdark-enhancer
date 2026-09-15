@@ -9,6 +9,11 @@
   player's pill gives them one of yours. Every change posts a chat card, so
   the table sees each token added, spent, or passed. (#162)
 
+### Changed
+- **Hostile NPCs keep their numbers to themselves on the Crawl Strip.** Players
+  now see only the HP bar on a hostile (or Secret) NPC's card. Its HP numbers,
+  AC, and movement pill are hidden. The GM still sees everything. (#163)
+
 ## [0.17.0] — 2026-09-14
 
 ### Added

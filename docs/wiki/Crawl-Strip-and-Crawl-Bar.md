@@ -151,6 +151,10 @@ Each card displays live actor data:
 | **Skull** | Marks a downed PC (0 HP) |
 | **Eye-slash** | Marks a combatant hidden from players |
 
+Players see only the HP bar on a hostile NPC's card: no HP numbers, no AC, and
+no movement pill. The same applies to an NPC whose token disposition is
+**Secret**. The GM always sees the full card.
+
 ### The GM card
 
 The strip includes a **Game Master** card. Click its portrait to open a file
