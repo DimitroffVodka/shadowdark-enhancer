@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.17.2] — 2026-09-16
 
 ### Fixed
 - **Western Reaches patrons reach the Character Builder.** Importing a WR
