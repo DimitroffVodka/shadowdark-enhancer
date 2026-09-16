@@ -38,7 +38,7 @@ import {
 import { coreGroupsFor } from "./tables/core-table-groups.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { columnManifestId, findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
-import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES } from "./tables/table-folders.mjs";
+import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES, SYSTEM_PATRON_TABLES } from "./tables/table-folders.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
 import { isCurrencyName } from "./items/item-parser.mjs";
@@ -172,14 +172,14 @@ function buildCharContent(charEntries) {
   };
 
   // Patrons & Deities: a branch split into Boons and Prayers. The six
-  // "Patron Boons: X" entries ship in the core Shadowdark system already, so
-  // they're dropped from the importer list entirely (user request) — only the
-  // WR "<God> Boons" tables and the god prayer generators remain.
+  // "Patron Boons: X" entries that ship in the core Shadowdark system are
+  // dropped from the importer list entirely (user request) — the eleven WR
+  // "Patron Boons: X" tables (#167) and the god prayer generators remain.
   const patronRecords = charEntries.filter((e) =>
-    e.type === "Table" && PATRON_TABLES.has(_norm(e.name)) && !/^patron boons:/i.test(e.name));
-  const boonRecs = patronRecords.filter((e) => /\bboons$/i.test(e.name));
+    e.type === "Table" && PATRON_TABLES.has(_norm(e.name)) && !SYSTEM_PATRON_TABLES.has(_norm(e.name)));
+  const boonRecs = patronRecords.filter((e) => /\bboons\b/i.test(e.name));
   const prayerRecs = patronRecords.filter((e) => /\bprayers$/i.test(e.name));
-  const otherPatron = patronRecords.filter((e) => !/\b(boons|prayers)$/i.test(e.name));
+  const otherPatron = patronRecords.filter((e) => !/\b(boons|prayers)\b/i.test(e.name));
   const patrons = branch("char/patrons", "Patrons & Deities", "fa-hands-praying", [
     leaf("char/patrons/boons", "Boons", "fa-gift", [...boonRecs, ...otherPatron], "charSeedPaste", true),
     leaf("char/patrons/prayers", "Prayers", "fa-hands-praying", prayerRecs, "charSeedPaste", true),

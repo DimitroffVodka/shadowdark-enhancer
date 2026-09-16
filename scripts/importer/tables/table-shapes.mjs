@@ -272,17 +272,17 @@ export const CONTENT_ENTRIES = [
   // prose (the next caption terminates the slice). Without these entries the
   // generic parser chopped the god's lore prose into fake sequential rows
   // (E2E 2026-07-13 defect D1). Captions verified against the WR PDF.
-  _entry("wr/freya-boons", "WR", "Freya Boons", SECTION("FREYA BOONS")),
-  _entry("wr/krraktanamak-boons", "WR", "Krraktanamak Boons", SECTION("KRRAKTANAMAK BOONS")),
-  _entry("wr/loki-boons", "WR", "Loki Boons", SECTION("LOKI BOONS")),
-  _entry("wr/molek-boons", "WR", "Molek Boons", SECTION("MOLEK BOONS")),
-  _entry("wr/oatali-boons", "WR", "Oatali Boons", SECTION("OATALI BOONS")),
-  _entry("wr/obe-ixx-boons", "WR", "Obe-Ixx Boons", SECTION("OBE-IXX BOONS")),
-  _entry("wr/odin-boons", "WR", "Odin Boons", SECTION("ODIN BOONS")),
-  _entry("wr/oros-boons", "WR", "Oros Boons", SECTION("OROS BOONS")),
-  _entry("wr/rathgamnon-boons", "WR", "Rathgamnon Boons", SECTION("RATHGAMNON BOONS")),
-  _entry("wr/saint-ydris-boons", "WR", "Saint Ydris Boons", SECTION("SAINT YDRIS BOONS")),
-  _entry("wr/yag-kesh-boons", "WR", "Yag-Kesh Boons", SECTION("YAG-KESH BOONS")),
+  _entry("wr/freya-boons", "WR", "Patron Boons: Freya", SECTION("FREYA BOONS"), ["Freya Boons"]),
+  _entry("wr/krraktanamak-boons", "WR", "Patron Boons: Krraktanamak", SECTION("KRRAKTANAMAK BOONS"), ["Krraktanamak Boons"]),
+  _entry("wr/loki-boons", "WR", "Patron Boons: Loki", SECTION("LOKI BOONS"), ["Loki Boons"]),
+  _entry("wr/molek-boons", "WR", "Patron Boons: Molek", SECTION("MOLEK BOONS"), ["Molek Boons"]),
+  _entry("wr/oatali-boons", "WR", "Patron Boons: Oatali", SECTION("OATALI BOONS"), ["Oatali Boons"]),
+  _entry("wr/obe-ixx-boons", "WR", "Patron Boons: Obe-Ixx", SECTION("OBE-IXX BOONS"), ["Obe-Ixx Boons"]),
+  _entry("wr/odin-boons", "WR", "Patron Boons: Odin", SECTION("ODIN BOONS"), ["Odin Boons"]),
+  _entry("wr/oros-boons", "WR", "Patron Boons: Oros", SECTION("OROS BOONS"), ["Oros Boons"]),
+  _entry("wr/rathgamnon-boons", "WR", "Patron Boons: Rathgamnon", SECTION("RATHGAMNON BOONS"), ["Rathgamnon Boons"]),
+  _entry("wr/saint-ydris-boons", "WR", "Patron Boons: Saint Ydris", SECTION("SAINT YDRIS BOONS"), ["Saint Ydris Boons"]),
+  _entry("wr/yag-kesh-boons", "WR", "Patron Boons: Yag-Kesh", SECTION("YAG-KESH BOONS"), ["Yag-Kesh Boons"]),
   // CS3 tables the generic parser mangled (E2E D4): Arctic Sea Encounters is a
   // 2-page d100 longtable (pp.26-27 — same pattern as the CORE encounter
   // tables); Nord Names is a d20 × 4-column name grid whose source columns are

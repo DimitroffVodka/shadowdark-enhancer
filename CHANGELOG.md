@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Western Reaches patrons reach the Character Builder.** Importing a WR
+  patron's boon table now also creates the Patron Item that the builder, the
+  system's character generator, and the system's level-up all look for, in a
+  `Patrons and Deities` pack under Character Options. The eleven WR tables use
+  the system's `Patron Boons: <name>` naming so the system's Patron sheet
+  lists them too. Worlds that imported the tables before this release are
+  renamed and linked on the GM's next load. The eight WR gods already ship as
+  system Deity Items, so nothing changed there. (#167)
+- **Patron descriptions.** The Patron Item takes the patron's blurb printed
+  above the boon table as its description, the same shape as the system's
+  own Patron Items. For worlds that imported the tables before this, **Tools
+  → Fill patron descriptions** reads each patron's page from your linked
+  Western Reaches PDF and fills the empty ones. A description you edited by
+  hand is never overwritten. (#167)
+
 ## [0.17.1] — 2026-09-15
 
 ### Added

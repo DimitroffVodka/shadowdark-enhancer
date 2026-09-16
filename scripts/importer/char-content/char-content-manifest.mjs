@@ -350,8 +350,9 @@ const MANIFEST = {
     // see compound-table.mjs); boon tables are 2d6 in the SYSTEM's format —
     // document-linked Talent items (world.talents "Patron Boons" folder +
     // reused shadowdark.talents), "Choose 1" text rows on multi-option bands,
-    // band 12 = options + the system's Distribute to Stats table. Each patron
-    // also has a Patron item (system.boonTable) in world.patrons-and-deities.
+    // band 12 = options + the system's Distribute to Stats table. Importing a
+    // boon table also creates the patron's Patron Item (system.boonTable) in
+    // world.patrons-and-deities, which is what the Character Builder lists (#167).
     // WR revised 5 of the 6 CS1-reprint patrons, so those have WR-version
     // "X Boons" tables here; KYTHEROS is unrevised — the system's
     // "Patron Boons: Kytheros" already matches WR band-for-band, so it stays a
@@ -366,11 +367,12 @@ const MANIFEST = {
       "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
       "Ord Prayers", "Memnon Prayers", "Shune the Vile Prayers",
       "Ramlaat Prayers", "The Lost Prayers",
-      // Patrons — WR boon tables (WR pp.207-223)
-      "Freya Boons", "Krraktanamak Boons", "Loki Boons",
-      "Molek Boons", "Oatali Boons", "Obe-Ixx Boons",
-      "Odin Boons", "Oros Boons", "Rathgamnon Boons", "Saint Ydris Boons",
-      "Yag-Kesh Boons",
+      // Patrons — WR boon tables (WR pp.207-223), named the system's way so the
+      // system's Patron sheet dropdown finds them (#167)
+      "Patron Boons: Freya", "Patron Boons: Krraktanamak", "Patron Boons: Loki",
+      "Patron Boons: Molek", "Patron Boons: Oatali", "Patron Boons: Obe-Ixx",
+      "Patron Boons: Odin", "Patron Boons: Oros", "Patron Boons: Rathgamnon",
+      "Patron Boons: Saint Ydris", "Patron Boons: Yag-Kesh",
       // Six patrons already ship as SYSTEM tables (shadowdark.rollable-tables)
       // — census-matched by the system name, linked, never duplicated
       // (user req 2026-07-11).
@@ -579,6 +581,11 @@ const TYPE_PAGES = {
 };
 
 /** Page cites for named Table entries (whose page isn't embedded in the name). */
+/** Printed page cite for a manifest table in a source book, or null. */
+export function tablePagesFor(src, name) {
+  return TABLE_PAGES[src]?.[name] ?? null;
+}
+
 const TABLE_PAGES = {
   WR: {
     // d100 background list spans pp.74-77 (Desert…Secrets terrain groups). The
@@ -590,15 +597,14 @@ const TABLE_PAGES = {
     "Madeera the Covenant Prayers": "191", "Saint Terragnis Prayers": "193",
     "Gede Prayers": "195", "Ord Prayers": "197", "Memnon Prayers": "199",
     "Shune the Vile Prayers": "201", "Ramlaat Prayers": "203", "The Lost Prayers": "205",
-    // Patrons — boon tables (six system-shipped patrons keep their system
-    // "Patron Boons: X" names; see MANIFEST note)
-    "Patron Boons: Almazzat": "207", "Freya Boons": "208", "Krraktanamak Boons": "209",
-    "Patron Boons: Kytheros": "210", "Loki Boons": "211", "Molek Boons": "212",
-    "Patron Boons: Mugdulblub": "213", "Oatali Boons": "214", "Obe-Ixx Boons": "215",
-    "Odin Boons": "216", "Oros Boons": "217", "Rathgamnon Boons": "218",
-    "Saint Ydris Boons": "219", "Patron Boons: Shune the Vile": "220",
+    // Patrons — boon tables, all under the system's "Patron Boons: X" name
+    "Patron Boons: Almazzat": "207", "Patron Boons: Freya": "208", "Patron Boons: Krraktanamak": "209",
+    "Patron Boons: Kytheros": "210", "Patron Boons: Loki": "211", "Patron Boons: Molek": "212",
+    "Patron Boons: Mugdulblub": "213", "Patron Boons: Oatali": "214", "Patron Boons: Obe-Ixx": "215",
+    "Patron Boons: Odin": "216", "Patron Boons: Oros": "217", "Patron Boons: Rathgamnon": "218",
+    "Patron Boons: Saint Ydris": "219", "Patron Boons: Shune the Vile": "220",
     "Patron Boons: Titania": "221", "Patron Boons: The Willowman": "222",
-    "Yag-Kesh Boons": "223",
+    "Patron Boons: Yag-Kesh": "223",
     // Multi-page d100 carousing longtables (captions BENEFIT/MISHAP; verified
     // against the PDF — Bastions starts p246).
     // Cost/Example Event/Bonus lookup, then the d8+bonus outcome (rows 1-25).

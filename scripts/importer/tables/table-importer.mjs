@@ -31,6 +31,7 @@ import { classify, labelFor, CUSTOM_ID } from "./table-categories.mjs";
 import { splitRawBlocks } from "../pdf-text-utils.mjs";
 import { columnManifestId, findById, isSharedTableName } from "./table-manifest.mjs";
 import { sourceKey as _sourceKey, sourceLabel as _sourceLabel } from "../../shared/source-keys.mjs";
+import { ensurePatronItem, patronBlurbFromPage, patronNameFromTable } from "./patron-items.mjs";
 
 // Trailing "+" (e.g. "14+" = the top row of a d14 table) is accepted and
 // treated as the plain number — the shape's size caps the die, so "14+" is row 14.
@@ -2311,6 +2312,10 @@ export function parseByShape(text, shape, { name = "" } = {}) {
   }
   if (shape.kind === "section") {
     const pt = parseSectionSlice(text, { name, caption: shape.caption, size: shape.size });
+    // A WR patron page prints the patron's blurb above the boon table; it
+    // becomes the Patron Item's description at commit (#167).
+    const patron = pt && patronNameFromTable(name);
+    if (patron) pt.patronDescription = patronBlurbFromPage(text, patron);
     return pt ? { tables: [pt] } : null;
   }
   if (shape.kind === "banded") {
@@ -2801,6 +2806,11 @@ export async function createTable(pt, { onConflict, allowInvalid = false } = {})
   // enriching would rewrite that hint with @UUID links.
   if (!pt.isCompound) await _autoEnrich(table, pt);
   await applyTableStructureSeed(table);
+  // A WR patron boon table also gets its Patron Item, described by the blurb
+  // parseByShape read off the page (#167). Never fails the table import — the
+  // backfill at ready retries the link.
+  await ensurePatronItem(table, { description: pt.patronDescription ?? "" })
+    .catch((err) => console.warn(`shadowdark-enhancer | ensurePatronItem(${table?.name}):`, err));
   return table;
 }
 

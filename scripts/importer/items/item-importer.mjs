@@ -715,10 +715,10 @@ const TYPE_TO_PACK_ID = {
   Background: "background",
   Class:      "classes",
   Spell:      "spells",
-  // No Deity/Patron/Language rows: the gods and patrons this module imports are
-  // ROLL TABLES, and languages are UUID references to the system's own items.
-  // Nothing ever built one of those Items, so the two packs they routed to were
-  // retired empty — see RETIRED_PACKS in compendium-suite.
+  Patron:     "patrons-and-deities",
+  // No Deity/Language rows: the WR gods ship as system Deity Items already, and
+  // languages are UUID references to the system's own items. Patron Items are
+  // built from the imported boon tables (#167, patron-items.mjs).
 };
 
 // ─── Replace-time curation preservation ──────────────────────────────────────

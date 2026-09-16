@@ -730,6 +730,21 @@ Hooks.once("ready", () => {
       });
     }, 1000);
 
+    // #167: worlds that imported WR patron boon tables before 0.18 hold them
+    // under the old "<God> Boons" name and have no Patron Items. Rename to the
+    // system's "Patron Boons: <God>" and create the Items. Idempotent and cheap
+    // (one index read when nothing is imported), so no version stamp.
+    setTimeout(async () => {
+      if (game.users.activeGM?.id !== game.user.id) return;
+      try {
+        const { backfillPatronItems } = await import("./importer/tables/patron-items.mjs");
+        const r = await backfillPatronItems();
+        if (r.renamed || r.linked) console.log(`${MODULE_ID} | patrons: renamed ${r.renamed} boon table(s), linked ${r.linked} Patron Item(s)`);
+      } catch (err) {
+        console.error(`${MODULE_ID} | patron backfill failed:`, err);
+      }
+    }, 1500);
+
     // When the module version changes, quietly bring already-imported monsters
     // up to fresh-import fidelity. The version stamp advances only on success.
     // Keep a completion promise so the E2 text pass cannot race this legacy

@@ -932,7 +932,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Western Reaches",
 "formula": "1d100"
 },
-"Freya Boons": {
+"Patron Boons: Freya": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1073,7 +1073,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Western Reaches",
 "formula": "1d100"
 },
-"Krraktanamak Boons": {
+"Patron Boons: Krraktanamak": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1114,7 +1114,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 }
 ]
 },
-"Loki Boons": {
+"Patron Boons: Loki": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1149,7 +1149,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Gods & Patrons",
 "formula": "1d216"
 },
-"Molek Boons": {
+"Patron Boons: Molek": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1294,7 +1294,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Character Background",
 "formula": "1d20"
 },
-"Oatali Boons": {
+"Patron Boons: Oatali": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1321,7 +1321,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 }
 ]
 },
-"Obe-Ixx Boons": {
+"Patron Boons: Obe-Ixx": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1334,7 +1334,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 }
 ]
 },
-"Odin Boons": {
+"Patron Boons: Odin": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1379,7 +1379,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Gods & Patrons",
 "formula": "1d216"
 },
-"Oros Boons": {
+"Patron Boons: Oros": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1417,7 +1417,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Custom",
 "formula": "1d10"
 },
-"Rathgamnon Boons": {
+"Patron Boons: Rathgamnon": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -1455,7 +1455,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Gods & Patrons",
 "formula": "1d216"
 },
-"Saint Ydris Boons": {
+"Patron Boons: Saint Ydris": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [
@@ -2069,7 +2069,7 @@ export const TABLE_STRUCTURE_SEEDS = {
 "folder": "Names",
 "formula": "1d100"
 },
-"Yag-Kesh Boons": {
+"Patron Boons: Yag-Kesh": {
 "folder": "Gods & Patrons",
 "formula": "2d6",
 "links": [

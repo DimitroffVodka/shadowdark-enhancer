@@ -117,7 +117,9 @@ This step configures class progression details:
 - **Talent choices** (such as Weapon Mastery, Armor Mastery, or spell
   advantage) selected **inline** rather than via popups
 - **Bonus rolls**: Human *Ambitious* talent, *Black Lotus*, and patron boons
-- **Patron selection** for classes that require one
+- **Patron selection** for classes that require one. The six Cursed Scroll 1
+  patrons come from the system; a Western Reaches patron appears once its boon
+  table is imported from the Manage tree
 - Per-tier **spell picker** enforcing the class's spells-known limits *for the
   chosen level*—a level-3 wizard picks the level-3 counts
 - **Language selection**: fixed languages plus choose-N pools

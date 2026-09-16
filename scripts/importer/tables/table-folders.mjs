@@ -79,27 +79,37 @@ export const GAMEPLAY_TABLES = new Set([
   ...PIT_FIGHTING_TABLES,
 ]);
 
-/** Manifest table names that belong under Character Content → Patrons & Deities:
- *  the 8 god prayer generators (3d6 compounds) + the 17 patron boon tables.
- *  Six patrons (Almazzat, Kytheros, Mugdulblub, Shune the Vile, The Willowman,
- *  Titania) already ship as SYSTEM tables ("Patron Boons: X" in
- *  shadowdark.rollable-tables) — those keep the system name so the census
- *  resolves them present without a re-import (user req 2026-07-11). Kept in
- *  sync with the WR Gods & Patrons block in char-content-manifest.mjs. */
-export const PATRON_TABLES = new Set([
-  // Gods — prayer generators
-  "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
-  "Ord Prayers", "Memnon Prayers", "Shune the Vile Prayers",
-  "Ramlaat Prayers", "The Lost Prayers",
-  // Patrons — WR boon tables (WR-revised, no system copy)
-  "Freya Boons", "Krraktanamak Boons", "Loki Boons",
-  "Molek Boons", "Oatali Boons", "Obe-Ixx Boons",
-  "Odin Boons", "Oros Boons", "Rathgamnon Boons", "Saint Ydris Boons",
-  "Yag-Kesh Boons",
-  // Patrons already in the SYSTEM pack — linked, never duplicated
+/** WR patrons (pp.208-223) whose boon tables this module imports — the ones the
+ *  system does NOT ship. Each import yields a "Patron Boons: <name>" table (the
+ *  system's naming, so the system's own Patron sheet dropdown finds it) and a
+ *  Patron Item linked to it (#167, patron-items.mjs). */
+export const WR_PATRONS = [
+  "Freya", "Krraktanamak", "Loki", "Molek", "Oatali", "Obe-Ixx",
+  "Odin", "Oros", "Rathgamnon", "Saint Ydris", "Yag-Kesh",
+];
+
+/** The six patrons that ship in the SYSTEM (Patron Items + "Patron Boons: X"
+ *  tables in shadowdark.rollable-tables) — linked, never duplicated, and never
+ *  offered as importer rows (user req 2026-07-11). Normalized. */
+export const SYSTEM_PATRON_TABLES = new Set([
   "Patron Boons: Almazzat", "Patron Boons: Kytheros", "Patron Boons: Mugdulblub",
   "Patron Boons: Shune the Vile", "Patron Boons: The Willowman", "Patron Boons: Titania",
 ].map(_norm));
+
+/** Manifest table names that belong under Character Content → Patrons & Deities:
+ *  the 8 god prayer generators (3d6 compounds) + the 17 patron boon tables.
+ *  Kept in sync with the WR Gods & Patrons block in char-content-manifest.mjs. */
+export const PATRON_TABLES = new Set([
+  ...[
+    // Gods — prayer generators
+    "Madeera the Covenant Prayers", "Saint Terragnis Prayers", "Gede Prayers",
+    "Ord Prayers", "Memnon Prayers", "Shune the Vile Prayers",
+    "Ramlaat Prayers", "The Lost Prayers",
+    // Patrons — WR boon tables (WR-revised, no system copy)
+    ...WR_PATRONS.map((p) => `Patron Boons: ${p}`),
+  ].map(_norm),
+  ...SYSTEM_PATRON_TABLES,
+]);
 
 // name (normalized) → { section, header } for every core-group member table.
 // Manifest identity is authoritative when a seeded import carries it. Names

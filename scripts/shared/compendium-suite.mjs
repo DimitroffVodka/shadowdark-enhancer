@@ -59,20 +59,25 @@ export const SUITE_PACKS = [
   { key: "spells",         id: "spells",              type: "Item", label: "Spells",              charOption: true },
   { key: "backgrounds",    id: "background",          type: "Item", label: "Background",          charOption: true },
   { key: "ancestries",     id: "ancestries",          type: "Item", label: "Ancestries",          charOption: true },
+  // Patron Items for the imported WR boon tables (#167). The label slugifies to
+  // the same `patrons-and-deities` collection the retired pack used, so a world
+  // that still has the empty one adopts it. Filled by patron-items.mjs.
+  { key: "patrons",        id: "patrons-and-deities", type: "Item", label: "Patrons and Deities", charOption: true },
 ];
 
 /**
  * Packs this module used to create and no longer does.
  *
- * Both were carried purely so an imported suite mirrored its source's pack
- * list, and both stayed empty forever because nothing here writes the item
- * type they were named for:
+ * `languages` was carried purely so an imported suite mirrored its source's
+ * pack list, and stayed empty forever: a character's languages are UUID
+ * references to the system's own Language items, nothing ever creates one here.
  *
- *   - `patrons-and-deities` — the gods and patrons this module imports are ROLL
- *     TABLES (prayer generators, boon tables), filed under `Character Content >
- *     Patrons & Deities` in the tables pack. Never Deity/Patron Items.
- *   - `languages` — a character's languages are UUID references to the system's
- *     own Language items. Nothing ever creates one here.
+ * `patrons-and-deities` sat here too until #167. It was retired because nothing
+ * wrote a Patron Item, which described the gap rather than justified it: the
+ * Character Builder (and the system's own generator and level-up) only see
+ * Patron ITEMS in compendium packs, so the imported WR boon tables were
+ * unreachable for a Warlock. It is back in SUITE_PACKS; patron-items.mjs fills
+ * it from the boon tables.
  *
  * An empty compendium in the first place a GM looks reports the feature as
  * missing — the same trap #74's retired Monster Spells pack sprang, from the
@@ -80,7 +85,7 @@ export const SUITE_PACKS = [
  *
  * Retired only when still EMPTY: a GM who put something in one keeps it.
  */
-const RETIRED_PACKS = ["patrons-and-deities", "languages"];
+const RETIRED_PACKS = ["languages"];
 
 /** Sidebar compendium folder label for the entire suite. */
 export const SUITE_FOLDER_LABEL = "Shadowdark Enhancer";

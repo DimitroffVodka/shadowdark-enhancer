@@ -139,16 +139,28 @@ system's grouping:
 | `spells` | Spells |
 | `background` | Background |
 | `ancestries` | Ancestries |
+| `patrons-and-deities` | Patrons and Deities |
 
 The collection labels and IDs (including the `Class Abilties` spelling) are
 deliberately fixed because pack labels slugify to collection IDs
 (`Classes` → `world.classes`). This ensures cross-pack `@UUID` links (such as
 class → talent and spell → class) survive bundle exports across worlds.
 
-The unused `patrons-and-deities` and `languages` packs have been retired. Gods
-and patrons are imported as roll tables in `sde-tables` under
-`Character Content > Patrons & Deities`, while languages link directly to the
-core system's items. Any empty legacy copies in your world are removed on load.
+`patrons-and-deities` holds a Patron Item for each Western Reaches patron whose
+boon table you import (Freya, Loki, Odin, and the rest of pp. 208-223). Import
+the boon table from `Character Content > Patrons & Deities` in the Manage tree
+and the Patron Item is created alongside it, linked to the table, so a Warlock
+can pick it in the Character Builder and the system's level-up rolls boons from
+it. The tables use the system's `Patron Boons: <name>` naming, so the system's
+own Patron sheet lists them too. The Item's description is the patron's blurb
+printed above the boon table. The six Cursed Scroll 1 patrons ship in the
+system and are never duplicated. Worlds that imported boon tables before this
+pack existed are renamed and linked on the GM's next load; **Tools → Fill
+patron descriptions** in the Importer Hub then reads the blurbs from your
+linked Western Reaches PDF.
+
+The unused `languages` pack has been retired: languages link directly to the
+core system's items. An empty legacy copy in your world is removed on load.
 
 ---
 
