@@ -1,6 +1,6 @@
 {
   "name": "shadowdark-enhancer",
-  "version": "0.17.2",
+  "version": "0.17.3",
   "private": true,
   "description": "A GM companion suite for Shadowdark RPG on Foundry VTT.",
   "type": "module",

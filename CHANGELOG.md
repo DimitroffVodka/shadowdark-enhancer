@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.17.3] — 2026-09-16
 
 ### Changed
 - **Fill patron descriptions moved out of Tools.** It now sits where the
