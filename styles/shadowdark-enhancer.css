@@ -8388,6 +8388,22 @@ body.theme-light .sde-strip-combat-controls { background: #f4f1ec !important; }
 }
 
 /* ==========================================================================
+   AppV2 window frame under the system's `.shadowdark` scope
+   ========================================================================== */
+/* Foundry imports the system stylesheet into the `system` cascade layer and
+   ours after it; for `!important` declarations earlier layers win, so the
+   system's `.shadowdark button { font-family: "Old Newspaper Font" !important }`
+   cannot be out-ranked on the <button> — it turns the AppV2 header controls
+   (the ⋮ and ✕, which are icon-class <button>s) into missing-glyph boxes in
+   every window of ours that carries the `shadowdark` class. The glyph is drawn
+   by ::before, which only INHERITS that family, so a plain declaration on the
+   pseudo-element wins. `--fa-style-family-classic` is Font Awesome's own token
+   (6 Pro on Foundry 13, 7 Pro on 14). */
+.application.shadowdark .window-header .header-control::before {
+  font-family: var(--fa-style-family-classic, "Font Awesome 6 Pro");
+}
+
+/* ==========================================================================
    Character Builder (sde-char-builder) — Vagabond layout, Shadowdark theme
    Black + gold.
    ========================================================================== */
