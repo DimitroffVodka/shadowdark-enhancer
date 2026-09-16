@@ -68,6 +68,8 @@ export function filterManageTree(nodes, { filter = "all", query = "", expanded =
       expandable: children.length > 0 || entries.length > 0,
       expanded: q ? true : expanded.has(node.id),
       runnable: node.locked ? runnable(node) : 0,
+      // Imported patron rows still offering "Fill description" (#167).
+      fillable: entries.filter((e) => e.fillDesc).length,
     };
   };
   return (nodes ?? []).map((n) => shape(n, 0, false)).filter(Boolean);
@@ -319,6 +321,20 @@ class HubManageMethods {
   /** Invalidate the built Manage tree (content changed). */
   _invalidateManageTree() {
     this._manageTreeCache = null;
+  }
+
+  /**
+   * "Fill description" on a Patrons & Deities row, or "Fill all" on the Boons
+   * folder: read the patron's page from the linked Western Reaches PDF into
+   * the Patron Item's empty description (#167). The button shows only while
+   * the description is missing, so the tree is rebuilt afterwards.
+   */
+  async _onPatronFillDescription(event, target) {
+    const { fillPatronDescriptions, patronNameFromTable } = await import("./tables/patron-items.mjs");
+    const patron = target?.dataset?.name ? patronNameFromTable(target.dataset.name) : null;
+    await fillPatronDescriptions(patron ? { only: [patron] } : {});
+    this._invalidateManageTree();
+    await this.render();
   }
 
   /** Invalidate the character-content caches (kept as the commit-flow entry point). */

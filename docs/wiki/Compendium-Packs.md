@@ -155,9 +155,9 @@ it. The tables use the system's `Patron Boons: <name>` naming, so the system's
 own Patron sheet lists them too. The Item's description is the patron's blurb
 printed above the boon table. The six Cursed Scroll 1 patrons ship in the
 system and are never duplicated. Worlds that imported boon tables before this
-pack existed are renamed and linked on the GM's next load; **Tools → Fill
-patron descriptions** in the Importer Hub then reads the blurbs from your
-linked Western Reaches PDF.
+pack existed are renamed and linked on the GM's next load; a **Fill
+description** button on each such patron's row in the Manage tree then reads
+the blurb from your linked Western Reaches PDF.
 
 The unused `languages` pack has been retired: languages link directly to the
 core system's items. An empty legacy copy in your world is removed on load.

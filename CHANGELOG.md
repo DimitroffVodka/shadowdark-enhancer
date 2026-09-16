@@ -1,5 +1,21 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- **Fill patron descriptions moved out of Tools.** It now sits where the
+  patrons are: an imported Western Reaches patron whose Item has no
+  description shows **Fill description** on its row in the Manage tree, and
+  the Boons folder shows **Fill all N descriptions**. The buttons appear only
+  while a description is missing and the Western Reaches PDF is linked. (#167)
+
+### Fixed
+- **Window header icons.** The ⋮ and ✕ controls at the top right of the
+  Character Builder (and the other Enhancer windows styled with the system's
+  `shadowdark` class) rendered as missing-glyph boxes: the system's button
+  font rule reached Foundry's icon buttons. The icon font is restored on the
+  glyph itself.
+
 ## [0.17.2] — 2026-09-16
 
 ### Fixed

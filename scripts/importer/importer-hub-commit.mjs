@@ -709,14 +709,6 @@ class HubCommitMethods {
     const { manageSourcePdfs } = await import("./importer-hub-maintenance.mjs");
     return manageSourcePdfs(this);
   }
-
-  /** Tools → Fill patron descriptions (#167): read each imported WR patron's
-   *  page from the linked PDF into its Patron Item's empty description. */
-  async _onFillPatronDescriptions() {
-    const { fillPatronDescriptions } = await import("./tables/patron-items.mjs");
-    return fillPatronDescriptions();
-  }
-
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
   async _onHubCommitChar() {
     if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import content."); return; }

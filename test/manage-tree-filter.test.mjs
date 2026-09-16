@@ -60,3 +60,13 @@ test("no query and no filter leaves the tree whole and unmutated", () => {
   assert.deepEqual(names(out), ["Kobold", "Elf", "Urchin"]);
   assert.deepEqual(source, tree());
 });
+
+test("fillable counts the imported patron rows still offering Fill description", () => {
+  const nodes = [{ id: "char/patrons/boons", label: "Boons", locked: 1, entries: [
+    { name: "Patron Boons: Freya", present: true, fillDesc: true },
+    { name: "Patron Boons: Loki", present: true, fillDesc: false },
+    { name: "Patron Boons: Odin", present: false },
+  ] }];
+  assert.equal(filterManageTree(nodes)[0].fillable, 1);
+  assert.equal(filterManageTree(nodes, { filter: "locked" })[0].fillable, 0);
+});

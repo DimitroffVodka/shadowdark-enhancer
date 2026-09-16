@@ -39,6 +39,8 @@ import { coreGroupsFor } from "./tables/core-table-groups.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { columnManifestId, findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES, SYSTEM_PATRON_TABLES } from "./tables/table-folders.mjs";
+import { patronNameFromTable, patronsMissingDescription } from "./tables/patron-items.mjs";
+import { resolveSourcePdf } from "./source-pdf-registry.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
 import { isCurrencyName } from "./items/item-parser.mjs";
@@ -94,6 +96,7 @@ function leaf(id, label, icon, records, seedAction, alpha = false) {
   const entries = sortEntries(records.map((r) => ({
     name: r.name,
     present: !!r.present,
+    fillDesc: !!r.fillDesc,
     seedAction,
     type: r.type ?? "",
     src: r.src ?? "",
@@ -120,7 +123,7 @@ function branch(id, label, icon, children, extra = {}) {
 }
 
 /** Character Content branch (Ancestries / Backgrounds / Classes / Patrons). */
-function buildCharContent(charEntries) {
+function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
   const ofType = (t) => charEntries.filter((e) => e.type === t);
 
   // Ancestries: a branch with three sub-folders so the ~17 tables don't sit in
@@ -177,7 +180,14 @@ function buildCharContent(charEntries) {
   // "Patron Boons: X" tables (#167) and the god prayer generators remain.
   const patronRecords = charEntries.filter((e) =>
     e.type === "Table" && PATRON_TABLES.has(_norm(e.name)) && !SYSTEM_PATRON_TABLES.has(_norm(e.name)));
-  const boonRecs = patronRecords.filter((e) => /\bboons\b/i.test(e.name));
+  // An imported WR patron whose Item still has no description (a world that
+  // imported before 0.17.2) gets a "Fill description" button on its row —
+  // only while the WR PDF is linked, since that is where the blurb comes from.
+  let canFill = false;
+  try { canFill = !!resolveSourcePdf("WR"); } catch (_) { canFill = false; }
+  const boonRecs = patronRecords.filter((e) => /\bboons\b/i.test(e.name)).map((e) => ({
+    ...e, fillDesc: canFill && !!e.present && patronsNeedDesc.has(patronNameFromTable(e.name)),
+  }));
   const prayerRecs = patronRecords.filter((e) => /\bprayers$/i.test(e.name));
   const otherPatron = patronRecords.filter((e) => !/\b(boons|prayers)\b/i.test(e.name));
   const patrons = branch("char/patrons", "Patrons & Deities", "fa-hands-praying", [
@@ -594,7 +604,7 @@ export const _testBuildDowntime = buildDowntime;
 
 export async function buildManageTree() {
   const presence = await gatherPresence();
-  const [charEntries, monsterRows, actorRecords, itemRecords, spellListCensus, boatNames, itemNames] = await Promise.all([
+  const [charEntries, monsterRows, actorRecords, itemRecords, spellListCensus, boatNames, itemNames, patronsNeedDesc] = await Promise.all([
     gatherCharContentEntries(presence),
     gatherCensus().catch((err) => { console.error("shadowdark-enhancer | monster census failed:", err); return []; }),
     liveActorRecords().catch((err) => { console.error("shadowdark-enhancer | actor records failed:", err); return []; }),
@@ -602,10 +612,11 @@ export async function buildManageTree() {
     gatherSpellListCensus().catch((err) => { console.error("shadowdark-enhancer | spell-list census failed:", err); return new Map(); }),
     gatherBoatNames().catch(() => new Set()),
     gatherItemNames().catch(() => new Set()),
+    patronsMissingDescription().catch(() => new Set()),
   ]);
   const mishapsNode = buildMishaps(charEntries, presence.tablesPresent);
   return [
-    buildCharContent(charEntries),
+    buildCharContent(charEntries, patronsNeedDesc),
     buildSpells(spellListCensus, mishapsNode),
     buildGameplay(charEntries, presence.tablesPresent, presence.tablesByManifestId),
     buildRollTables(charEntries, presence.tablesPresent, presence.tablesByManifestId),

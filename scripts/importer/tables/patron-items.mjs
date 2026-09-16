@@ -163,12 +163,28 @@ export async function backfillPatronItems() {
 }
 
 /**
- * Hub Tools action: read each imported WR patron's page out of the linked
- * Western Reaches PDF and fill the Patron Items that still have no
- * description (or only the module's own). One click for a world that
- * imported its boon tables before descriptions were captured at import.
+ * WR patrons whose Patron Item exists but still has no description — a world
+ * that imported before 0.17.2. The Manage tree offers "Fill description" on
+ * exactly those rows, and the button goes away once the text is in.
  */
-export async function fillPatronDescriptions() {
+export async function patronsMissingDescription() {
+  const out = new Set();
+  const { findSuitePack } = await import("../../shared/compendium-suite.mjs");
+  const pack = findSuitePack("patrons-and-deities");
+  if (!pack) return out;
+  for (const e of await pack.getIndex({ fields: ["type", "system.description"] })) {
+    if (e.type === "Patron" && WR_PATRONS.includes(e.name) && BLANK.test(e.system?.description ?? "")) out.add(e.name);
+  }
+  return out;
+}
+
+/**
+ * Manage-tree action ("Fill description" on a patron row, "Fill all" on the
+ * Boons folder): read each imported WR patron's page out of the linked
+ * Western Reaches PDF and fill the Patron Items that still have no
+ * description (or only the module's own). `only` narrows it to named patrons.
+ */
+export async function fillPatronDescriptions({ only = null } = {}) {
   const { sourcePdfTarget } = await import("../source-pdf-registry.mjs");
   const { findSuitePack } = await import("../../shared/compendium-suite.mjs");
   const tables = findSuitePack("sde-tables");
@@ -183,7 +199,7 @@ export async function fillPatronDescriptions() {
   const tIdx = await tables.getIndex();
   const out = { filled: 0, kept: 0, missing: 0 };
   let announced = false;
-  for (const patron of WR_PATRONS) {
+  for (const patron of only ? WR_PATRONS.filter((p) => only.includes(p)) : WR_PATRONS) {
     const tableName = patronBoonTableName(patron);
     const t = tIdx.find((e) => e.name === tableName);
     if (!t || !pIdx.some((e) => e.type === "Patron" && e.name === patron)) { out.missing++; continue; }

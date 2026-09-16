@@ -34,6 +34,15 @@
       </button>
     </p>
     {{/if}}
+    {{#if node.fillable}}
+    <p class="sde-mtree-batchrow">
+      <button type="button" class="sde-mtree-unlock sde-mtree-batchbtn"
+              data-action="patronFillDescription" data-node-id="{{node.id}}"
+              title="Read each imported patron's page from your linked Western Reaches PDF and fill in every Patron Item in “{{node.label}}” that has no description yet">
+        <i class="fas fa-file-lines"></i> Fill all {{node.fillable}} descriptions in {{node.label}}
+      </button>
+    </p>
+    {{/if}}
     {{#if node.placeholder}}
     <p class="sde-mtree-note"><i class="fas fa-circle-info"></i> {{node.note}}</p>
     {{/if}}
@@ -51,6 +60,14 @@
         {{#if e.pages}}<span class="sde-mtree-entry-pg" title="Page in the source book">{{#if e.src}}{{e.src}} {{/if}}pg {{e.pages}}{{#if e.pagesAlt}} or {{e.pagesAlt}}{{/if}}</span>{{/if}}
         {{#if e.present}}
         <span class="sde-mtree-entry-tag">{{#if e.countNote}}{{e.countNote}}{{else}}imported{{/if}}</span>
+        {{!-- A Western Reaches patron imported before its description was
+              captured: fill it from the linked PDF. Gone once filled. --}}
+        {{#if e.fillDesc}}
+          <button type="button" class="sde-mtree-unlock" data-action="patronFillDescription" data-name="{{e.name}}"
+                  title="Read this patron's page from your linked Western Reaches PDF and fill in the Patron Item's description">
+            <i class="fas fa-file-lines"></i> Fill description
+          </button>
+        {{/if}}
         {{else}}
           {{!-- State for rows that are partly filled rather than simply absent
                 (downtime: "Partial (21/25)" / "Locked"). Counts only. --}}

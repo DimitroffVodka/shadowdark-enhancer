@@ -79,7 +79,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitGenerators:    function (...args) { return this._onHubCommitGenerators(...args); },
       hubCommitAll:           function (...args) { return this._onHubCommitAll(...args); },
       // Bundle export/import
-      hubFillPatronDescriptions: function (...args) { return this._onFillPatronDescriptions(...args); },
+      patronFillDescription:  function (...args) { return this._onPatronFillDescription(...args); },
       hubExportBundle:        function (...args) { return this._onExportBundle(...args); },
       hubImportBundle:        function (...args) { return this._onImportBundle(...args); },
       // Source PDF library

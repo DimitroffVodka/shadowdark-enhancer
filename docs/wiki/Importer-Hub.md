@@ -178,6 +178,11 @@ currently in your world packs.
   clear the box to get the full tree back.
 - Every missing row has an **Import** button that pre-seeds the paste box with
   the correct book, type, and title.
+- An imported Western Reaches patron whose Patron Item has no description yet
+  (imported before 0.17.2) shows **Fill description**, and its folder shows
+  **Fill all N descriptions**. Both read the patron's page from your linked
+  Western Reaches PDF; a description you wrote by hand is left alone. The
+  buttons disappear once the descriptions are filled.
 - The **Downtime** node tracks unlocked book tables in world settings, displaying
   `Unlocked (25/25)`, `Partial`, or `Locked`.
 
@@ -207,15 +212,6 @@ Register uploaded PDF files for Core, Western Reaches, and Cursed Scrolls 1–6.
   in that folder yourself under the same names work the same way. Hosts that
   keep uploads in an asset library (The Forge, S3) put the file there instead.
   Nothing is sent anywhere else.
-
-### Fill patron descriptions
-
-Importing a Western Reaches patron's boon table creates its Patron Item with
-the patron's blurb from the page as the description. If you imported the
-tables before that was captured, **Tools → Fill patron descriptions** reads
-each imported patron's page from your linked Western Reaches PDF and fills
-the Patron Items that still have no description. A description you edited by
-hand is left alone. Needs the Western Reaches book under **Source PDFs**.
 
 ### Bundle export / import
 
