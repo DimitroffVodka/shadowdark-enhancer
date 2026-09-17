@@ -14,6 +14,7 @@ import { MAGIC_SET_DEFS, matchBundleTables } from "../magic-forge/magic-table-ru
 import { resolveSpellClass, ClassIndex } from "./char-content/class-index.mjs";
 import { MonsterImporter } from "./monsters/monster-importer.mjs";
 import { BoatImporter } from "./boats/boat-importer.mjs";
+import { commitHexDrafts } from "./hex/hex-commit.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
@@ -246,6 +247,29 @@ class HubCommitMethods {
     if (report.skipped.length) bits.push(`${report.skipped.length} already present`);
     ui.notifications.info(`Boats: ${bits.join(", ") || "nothing to do"} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
     this._importBoats = [];
+    this._invalidateManageTree?.();
+    this.render();
+  }
+
+  /**
+   * Commit: hex-key drafts → JournalEntry pages in the sde-journal pack, one
+   * entry per crawl inside the source folder (hex-commit.mjs). GM-gated like
+   * every commit. Deliberately NOT part of Commit All: a hex key is a whole
+   * crawl the GM files on purpose, and its entry name is read from the strip.
+   */
+  async _onHubCommitHexes() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can create hex pages."); return; }
+    if (!this._importHexes.length) { ui.notifications.warn("No hex pages to create."); return; }
+    const source = this._importSource.trim();
+    const titleInput = this.element?.querySelector?.("input[data-hex-title]");
+    const crawlTitle = String(titleInput?.value ?? this._importHexTitle ?? "").trim();
+    const report = await commitHexDrafts(this._importHexes, { source, crawlTitle });
+    const bits = [];
+    if (report.created.length) bits.push(`${report.created.length} created`);
+    if (report.updated.length) bits.push(`${report.updated.length} updated`);
+    if (report.collisions.length) bits.push(`${report.collisions.length} duplicate id${report.collisions.length === 1 ? "" : "s"} skipped`);
+    ui.notifications.info(`Hex pages: ${bits.join(", ") || "nothing to do"} → Journals${source ? ` / ${source}` : ""}.`);
+    if (report.entryUuid) { this._importHexes = []; this._importHexTitle = ""; }
     this._invalidateManageTree?.();
     this.render();
   }

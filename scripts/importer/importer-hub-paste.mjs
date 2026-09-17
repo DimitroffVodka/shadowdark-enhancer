@@ -14,6 +14,7 @@ import { LootLinker } from "../loot/loot-linker.mjs";
 import { CUSTOM_ID } from "./tables/table-categories.mjs";
 import { columnManifestId } from "./tables/table-manifest.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
+import { detectCrawlTitle } from "./tables/hex-parser.mjs";
 import { parseStatblock, splitStatblocks } from "./monsters/statblock-parser.mjs";
 import { itemRecognizer } from "./items/item-parser.mjs";
 import { parseGear } from "./items/gear-parser.mjs";
@@ -742,7 +743,7 @@ class HubPasteMethods {
       // ambiguous.
       const parsedAll = TableImporter.parseStackedTables(text);
       this._importTables = TableImporter.dedupExactTables(parsedAll);
-      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
       this._importGenerators = []; this._importChar = []; this._importSkipped = [];
       this._shapeFailNote = null;
       const dropped = parsedAll.length - this._importTables.length;
@@ -898,7 +899,7 @@ class HubPasteMethods {
         this._shapeFailNote = bucket ? null
           : `BLOCKER: "${seed?.name ?? "this entry"}" has a registered ${shape.kind} shape that did not match the pasted text — the result below is a generic best-effort parse; verify it against the book before Create.`;
         if (bucket) {
-          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
+          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
           this._importGenerators = bucket.generators ?? [];
           this._importTables = bucket.tables ?? [];
           this._importChar = []; this._importSkipped = [];
@@ -945,7 +946,7 @@ class HubPasteMethods {
       if (shape) {
         const bucket = TableImporter.parseByShape(shapeText, shape, { name: seed?.name || "" });
         if (bucket) {
-          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
+          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
           this._importGenerators = bucket.generators ?? [];
           this._importTables = bucket.tables ?? [];
           this._importChar = []; this._importSkipped = [];
@@ -964,7 +965,7 @@ class HubPasteMethods {
     // return early — the table/char pipeline below doesn't apply.
     if (type === "generators") {
       this._importGenerators = parseGenerators(text, this._importGenSpec);
-      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!this._importGenerators.length) {
         ui.notifications.warn("No compound generator recognized — need a die header (e.g. d6) and 2+ column labels (e.g. Detail 1, Detail 2…).");
@@ -991,7 +992,7 @@ class HubPasteMethods {
         kept.push(g);
       }
       this._importGenerators = kept;
-      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!kept.length) {
         ui.notifications.warn("Nothing to expand — need a die header (e.g. d6) and 2+ columns (insert | between them), and ≤ 25,000 total rows.");
@@ -1000,7 +1001,7 @@ class HubPasteMethods {
       return;
     }
 
-    let monsters = [], items = [], spells = [], tables = [], skipped = [];
+    let monsters = [], items = [], spells = [], tables = [], skipped = [], hexes = [], hexTitle = "";
 
     // 2d10 name-part tables (ancestry Names) expand to d100 before anything
     // else sees the text, in both auto and tables modes.
@@ -1037,6 +1038,7 @@ class HubPasteMethods {
         this._importTables = [];
         this._importGenerators = [];
         this._importChar = [];
+        this._importHexes = [];
         this._downtimeParse = null;
         ui.notifications.warn('That looks like a downtime page. Set Importing to "Downtime" and pick the book, then Parse again.');
         this.render();
@@ -1049,6 +1051,10 @@ class HubPasteMethods {
       spells   = seg.spells ?? [];
       tables   = seg.tables ?? [];
       skipped  = [...(seg.skipped ?? [])];
+      // Hex-key runs (hex-parser) only surface in auto mode: a hex key is a
+      // whole crawl, never something a GM forces a type onto.
+      hexes    = seg.hexes ?? [];
+      hexTitle = hexes.length ? detectCrawlTitle(effectiveText) : "";
     } else if (type === "monsters") {
       const { monsters: chunks, skipped: sk } = splitStatblocks(text);
       monsters = chunks.map((chunk) => parseStatblock(chunk));
@@ -1247,11 +1253,13 @@ class HubPasteMethods {
     this._importTables   = tables;
     this._importGenerators = [];
     this._importSkipped  = skipped;
+    this._importHexes    = hexes;
+    this._importHexTitle = hexTitle;
 
     this._applyImportSeed();
     await this._linkLootTables();
 
-    if (!monsters.length && !items.length && !spells.length && !tables.length && !this._importChar.length) {
+    if (!monsters.length && !items.length && !spells.length && !tables.length && !hexes.length && !this._importChar.length) {
       ui.notifications.warn("Nothing recognized — try a different import type or review the Skipped section.");
     }
     this.render();
@@ -1270,6 +1278,8 @@ class HubPasteMethods {
   _onHubClear() {
     this._importText = "";
     this._downtimeParse = null;
+    this._importHexes = [];
+    this._importHexTitle = "";
     this._importMonsters = [];
     this._importItems = [];
     this._importSpells = [];

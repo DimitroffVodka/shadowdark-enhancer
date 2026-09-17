@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Hex key pages.** A pasted hex key (numbered entries such as `1403 Serengal`,
+  three or more in a run) now shows a **Hex key** strip in the Importer Hub.
+  **Create hex pages** files one journal page per hex into the Journals pack
+  under your source, in a journal entry named after the crawl. References to
+  other hexes in the same paste become links; re-pasting the same crawl updates
+  its pages in place. Phase 0 of the hex-map plan (#169).
+
 ## [0.17.3] — 2026-09-16
 
 ### Changed

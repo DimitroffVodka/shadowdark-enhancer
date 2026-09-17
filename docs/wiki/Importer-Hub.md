@@ -142,6 +142,15 @@ tables in sequence).
   standard item import shares a name with an existing generated monster spell,
   *Replace* is automatically downgraded to *Keep both* with an explanatory
   warning.
+- **Hex keys:** A pasted hex key (numbered entries such as `1403 Serengal`,
+  three or more in a run) shows a **Hex key** strip with its own **Create hex
+  pages** button. It files one journal page per hex into the Journals pack
+  under your source, inside a journal entry named after the crawl. The name is
+  prefilled from the heading above the first hex; edit it before committing.
+  References to other hexes in the same paste (`hex 1403`, `(1403)`) become
+  links. Re-pasting the same crawl updates its pages in place and never deletes
+  pages that are missing from the new paste. Hex keys are not part of Commit
+  All.
 
 ---
 

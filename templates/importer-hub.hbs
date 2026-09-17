@@ -664,6 +664,41 @@
   </section>
   {{/if}}
 
+  {{!-- ── Hex key preview ──────────────────────────────────────────────── --}}
+  {{#if importData.hasHexes}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-map-location-dot"></i> Hex key ({{importData.hexes.length}})</span>
+      <button type="button" data-action="hubCommitHexes" class="sde-import-primary sde-hub-import-secbtn">
+        <i class="fas fa-book-open"></i> Create hex pages
+      </button>
+    </div>
+    <div class="sde-hub-import-sourcebar">
+      <label for="sde-hub-hex-title"><i class="fas fa-map"></i> Crawl</label>
+      <input type="text" id="sde-hub-hex-title" data-hex-title class="sde-hub-import-source-input"
+             value="{{importData.hexTitle}}" placeholder="Journal entry name, e.g. the region or map title"
+             aria-label="Hex key journal entry name">
+    </div>
+    <p class="sde-hub-import-srcnote">
+      One journal page per hex, filed under <strong>{{#if importData.source}}{{importData.source}}{{else}}Custom{{/if}}</strong>
+      in the Journals pack. References to other hexes in this paste become links; re-pasting the same crawl updates its pages.
+    </p>
+    <div class="sde-import-preview">
+      <table class="sde-import-hexes">
+        <thead><tr><th>Hex</th><th>Name</th><th>Lines</th><th></th></tr></thead>
+        <tbody>
+          {{#each importData.hexes as |h|}}
+          <tr{{#if h.warn}} class="sde-mimport-warn-row"{{/if}}>
+            <td>{{h.num}}</td><td>{{h.name}}</td><td>{{h.lines}}</td>
+            <td>{{#each h.warnings as |w|}}<span class="sde-import-flag">{{w}}</span>{{/each}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {{/if}}
+
   {{!-- ── Tables preview ───────────────────────────────────────────────── --}}
   {{#if importData.hasTables}}
   <section class="sde-hub-import-section">
