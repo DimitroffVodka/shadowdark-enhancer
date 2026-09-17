@@ -15,6 +15,7 @@ import { CUSTOM_ID } from "./tables/table-categories.mjs";
 import { columnManifestId } from "./tables/table-manifest.mjs";
 import { segmentDump } from "./dump-segmenter.mjs";
 import { detectCrawlTitle } from "./tables/hex-parser.mjs";
+import { splitSummaryRows } from "./hex/hex-summary.mjs";
 import { parseStatblock, splitStatblocks } from "./monsters/statblock-parser.mjs";
 import { itemRecognizer } from "./items/item-parser.mjs";
 import { parseGear } from "./items/gear-parser.mjs";
@@ -743,7 +744,7 @@ class HubPasteMethods {
       // ambiguous.
       const parsedAll = TableImporter.parseStackedTables(text);
       this._importTables = TableImporter.dedupExactTables(parsedAll);
-      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
       this._importGenerators = []; this._importChar = []; this._importSkipped = [];
       this._shapeFailNote = null;
       const dropped = parsedAll.length - this._importTables.length;
@@ -899,7 +900,7 @@ class HubPasteMethods {
         this._shapeFailNote = bucket ? null
           : `BLOCKER: "${seed?.name ?? "this entry"}" has a registered ${shape.kind} shape that did not match the pasted text — the result below is a generic best-effort parse; verify it against the book before Create.`;
         if (bucket) {
-          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
+          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
           this._importGenerators = bucket.generators ?? [];
           this._importTables = bucket.tables ?? [];
           this._importChar = []; this._importSkipped = [];
@@ -946,7 +947,7 @@ class HubPasteMethods {
       if (shape) {
         const bucket = TableImporter.parseByShape(shapeText, shape, { name: seed?.name || "" });
         if (bucket) {
-          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
+          this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
           this._importGenerators = bucket.generators ?? [];
           this._importTables = bucket.tables ?? [];
           this._importChar = []; this._importSkipped = [];
@@ -965,7 +966,7 @@ class HubPasteMethods {
     // return early — the table/char pipeline below doesn't apply.
     if (type === "generators") {
       this._importGenerators = parseGenerators(text, this._importGenSpec);
-      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!this._importGenerators.length) {
         ui.notifications.warn("No compound generator recognized — need a die header (e.g. d6) and 2+ column labels (e.g. Detail 1, Detail 2…).");
@@ -992,7 +993,7 @@ class HubPasteMethods {
         kept.push(g);
       }
       this._importGenerators = kept;
-      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = [];
+      this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!kept.length) {
         ui.notifications.warn("Nothing to expand — need a die header (e.g. d6) and 2+ columns (insert | between them), and ≤ 25,000 total rows.");
@@ -1001,7 +1002,7 @@ class HubPasteMethods {
       return;
     }
 
-    let monsters = [], items = [], spells = [], tables = [], skipped = [], hexes = [], hexTitle = "";
+    let monsters = [], items = [], spells = [], tables = [], skipped = [], hexes = [], hexTitle = "", hexSummary = [];
 
     // 2d10 name-part tables (ancestry Names) expand to d100 before anything
     // else sees the text, in both auto and tables modes.
@@ -1039,11 +1040,18 @@ class HubPasteMethods {
         this._importGenerators = [];
         this._importChar = [];
         this._importHexes = [];
+        this._importHexSummary = [];
         this._downtimeParse = null;
         ui.notifications.warn('That looks like a downtime page. Set Importing to "Downtime" and pick the book, then Parse again.');
         this.render();
         return;
       }
+      // Keyed summary-table rows (number, region, terrain, name) come out first,
+      // so the hexcrawl recognizer never sees a 200-line table as one anchored
+      // block. They are filed on the crawl entry at commit (hex-commit).
+      const summary = splitSummaryRows(effectiveText);
+      hexSummary = summary.rows;
+      if (hexSummary.length) effectiveText = summary.remainder;
       // Sort a mixed dump across every recognizer.
       const seg = segmentDump(effectiveText);
       monsters = seg.monsters.map((chunk) => parseStatblock(chunk));
@@ -1255,11 +1263,12 @@ class HubPasteMethods {
     this._importSkipped  = skipped;
     this._importHexes    = hexes;
     this._importHexTitle = hexTitle;
+    this._importHexSummary = hexSummary;
 
     this._applyImportSeed();
     await this._linkLootTables();
 
-    if (!monsters.length && !items.length && !spells.length && !tables.length && !hexes.length && !this._importChar.length) {
+    if (!monsters.length && !items.length && !spells.length && !tables.length && !hexes.length && !hexSummary.length && !this._importChar.length) {
       ui.notifications.warn("Nothing recognized — try a different import type or review the Skipped section.");
     }
     this.render();
@@ -1280,6 +1289,8 @@ class HubPasteMethods {
     this._downtimeParse = null;
     this._importHexes = [];
     this._importHexTitle = "";
+    this._importHexSummary = [];
+    this._lastHexCrawl = null;
     this._importMonsters = [];
     this._importItems = [];
     this._importSpells = [];

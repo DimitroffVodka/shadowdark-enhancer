@@ -7,7 +7,7 @@ Consumer side: [shadowdark-extras#141](https://github.com/DimitroffVodka/shadowd
 (Hexer JSON as a second producer). Probe numbers and dead ends are in the project
 worklog entries of 2026-09-17.
 
-Status: Phase 0 implemented and live-checked 2026-09-17 (branch hex-map/phase-0); Phases 1 to 4 not started. Written 2026-09-17.
+Status: Phases 0 and 1 implemented and live-checked 2026-09-17 (branch hex-map/phase-0); Phases 2 to 4 not started. Written 2026-09-17.
 
 ---
 

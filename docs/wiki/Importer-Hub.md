@@ -151,6 +151,20 @@ tables in sequence).
   links. Re-pasting the same crawl updates its pages in place and never deletes
   pages that are missing from the new paste. Hex keys are not part of Commit
   All.
+- **Keyed summary table:** The keyed-location table some books print ahead of
+  the entries (one line per hex: number, region, terrain, name) is recognised
+  in the same paste or on its own. Its rows are kept out of the page parser and
+  filed on the crawl's journal entry at commit, where they carry each hex's
+  region, terrain and settlement size. When grabbing that table from a PDF,
+  pick **Single column** in the extractor: **Auto-detect** sees the wide table
+  as two columns and separates the names from their rows.
+- **Hex crawl hand-off:** After a hex-key commit the hub shows **Hex pages
+  filed** with a **Download dataset** button, or **Send to Extras** when
+  Shadowdark Extras exposes its hexcrawl builder. Either way the module builds
+  one dataset from the filed pages and keyed rows: the keyed hexes with their
+  descriptions, terrain regions, and river and road hex lists, using published
+  hex numbers only. The download is a JSON file built from your own book text;
+  nothing ships with the module.
 
 ---
 

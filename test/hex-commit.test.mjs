@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { hexcrawlRecognizer, rewriteHexPlaceholders } from "../scripts/importer/tables/hex-parser.mjs";
-import { planHexCommit, hexPagePayload, hexPageName, defaultCrawlTitle, HEX_FLAG } from "../scripts/importer/hex/hex-commit.mjs";
+import { planHexCommit, hexPagePayload, hexPageName, defaultCrawlTitle, mergeKeyedRows, HEX_FLAG } from "../scripts/importer/hex/hex-commit.mjs";
 
 // All fixture text is invented (D1) — no book content.
 
@@ -74,4 +74,12 @@ test("names: page name trims and tolerates a missing title; default crawl title 
   assert.equal(hexPageName({ hexId: " 0101 ", name: " Mill " }), "0101 Mill");
   assert.equal(defaultCrawlTitle("wr"), "Western Reaches Hex Key");
   assert.equal(defaultCrawlTitle(""), "Custom Hex Key");
+});
+
+test("mergeKeyedRows: incoming wins by number, line numbers drop, output sorted", () => {
+  const existing = [{ num: "0203", name: "Old Fen", zone: "A", line: 9 }, { num: "0101", name: "Mill", zone: "A", line: 1 }];
+  const incoming = [{ num: "203", name: "Fen of Sighs", zone: "B", line: 4 }, { num: "0304", name: "Tower", zone: "B", line: 5 }];
+  const merged = mergeKeyedRows(existing, incoming);
+  assert.deepEqual(merged.map((r) => [r.num, r.name, r.zone]), [["0101", "Mill", "A"], ["203", "Fen of Sighs", "B"], ["0304", "Tower", "B"]]);
+  assert.ok(merged.every((r) => !("line" in r)));
 });

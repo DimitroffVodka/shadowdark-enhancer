@@ -9,6 +9,13 @@
   under your source, in a journal entry named after the crawl. References to
   other hexes in the same paste become links; re-pasting the same crawl updates
   its pages in place. Phase 0 of the hex-map plan (#169).
+- **Keyed summary rows and the Extras hand-off.** A pasted keyed-location
+  table (number, region, terrain, name) is recognised alongside the hex
+  entries, kept out of the page parser, and filed on the crawl's journal
+  entry at commit. After a commit the hub offers **Download dataset** (or
+  **Send to Extras** once Shadowdark Extras exposes its hexcrawl builder):
+  the crawl's keyed hexes, terrain regions and river/road networks as one JSON
+  dataset, built from your own book text. Phase 1 of the hex-map plan (#169).
 
 ## [0.17.3] — 2026-09-16
 

@@ -652,6 +652,9 @@
     "scripts/shared/curated-icon-maps/spell-icons.mjs": "Reviewed Foundry-native icons for the 77 imported spells that all shared one generic casting hand, keyed by spell name and chosen from each spell's description. Defined, not registered: resolved through a spell-only registry so a spell never inherits an item map's art.",
     "scripts/shared/hover-peek.mjs": "Hover-to-enlarge for an image grid: one reusable fixed-position preview that flips away from the viewport edge and never takes the pointer. Shared by the character builder's art gallery and the Token Art Manager's image browser, which cannot scale a tile in place because their grids scroll.",
     "scripts/importer/tables/patron-items.mjs": "Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill.",
-    "scripts/importer/hex/hex-commit.mjs": "Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite."
+    "scripts/importer/hex/hex-commit.mjs": "Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite.",
+    "scripts/importer/hex/hex-summary.mjs": "Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure.",
+    "scripts/importer/hex/hex-dataset.mjs": "Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure.",
+    "scripts/importer/hex/hex-handoff.mjs": "Crawl entry → dataset; hands it to Extras when its builder exists, else downloads JSON."
   }
 }

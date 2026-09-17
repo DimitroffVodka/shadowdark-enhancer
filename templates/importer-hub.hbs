@@ -664,6 +664,21 @@
   </section>
   {{/if}}
 
+  {{!-- ── Hex crawl hand-off (after a hex-key commit) ──────────────────── --}}
+  {{#if importData.hexCrawlDone}}
+  <section class="sde-hub-import-section">
+    <div class="sde-hub-import-sechead">
+      <span class="sde-hub-import-sectitle"><i class="fas fa-map-location-dot"></i> Hex pages filed: {{importData.hexCrawlDone.title}}</span>
+      <button type="button" data-action="hubHexDataset" data-uuid="{{importData.hexCrawlDone.uuid}}" class="sde-import-primary sde-hub-import-secbtn">
+        {{#if importData.hexViaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}
+      </button>
+    </div>
+    <p class="sde-hub-import-srcnote">
+      {{#if importData.hexViaExtras}}Builds the hex crawl scene in Shadowdark Extras from the filed pages and keyed rows.{{else}}Saves this crawl as a JSON dataset (keyed hexes, terrain, networks) for Shadowdark Extras or another world. It is built from your own book text; nothing ships with the module.{{/if}}
+    </p>
+  </section>
+  {{/if}}
+
   {{!-- ── Hex key preview ──────────────────────────────────────────────── --}}
   {{#if importData.hasHexes}}
   <section class="sde-hub-import-section">
@@ -683,6 +698,12 @@
       One journal page per hex, filed under <strong>{{#if importData.source}}{{importData.source}}{{else}}Custom{{/if}}</strong>
       in the Journals pack. References to other hexes in this paste become links; re-pasting the same crawl updates its pages.
     </p>
+    {{#if importData.hexSummaryCount}}
+    <p class="sde-hub-import-srcnote">
+      <i class="fas fa-table-list"></i> {{importData.hexSummaryCount}} keyed summary rows (number, region, terrain, name) will be filed on the entry for the Extras hand-off.
+    </p>
+    {{/if}}
+    {{#if importData.hexes.length}}
     <div class="sde-import-preview">
       <table class="sde-import-hexes">
         <thead><tr><th>Hex</th><th>Name</th><th>Lines</th><th></th></tr></thead>
@@ -696,6 +717,7 @@
         </tbody>
       </table>
     </div>
+    {{/if}}
   </section>
   {{/if}}
 

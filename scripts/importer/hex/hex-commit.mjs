@@ -74,6 +74,23 @@ export function hexPagePayload(draft, hexKeySet) {
   };
 }
 
+/**
+ * Pure: merge keyed summary rows by number; incoming rows win, the parser's
+ * line numbers are dropped, output sorted by number.
+ * @param {object[]} existing
+ * @param {object[]} incoming
+ * @returns {object[]}
+ */
+export function mergeKeyedRows(existing, incoming) {
+  const byNum = new Map();
+  for (const r of [...(existing ?? []), ...(incoming ?? [])]) {
+    if (!r?.num) continue;
+    const { line: _line, ...rest } = r;
+    byNum.set(String(parseInt(r.num, 10)), rest);
+  }
+  return [...byNum.entries()].sort((a, b) => Number(a[0]) - Number(b[0])).map(([, r]) => r);
+}
+
 /** The hex key a page carries, or null. Works on documents and plain index rows. */
 function pageHexKey(page) {
   return page?.getFlag?.(MODULE_ID, HEX_FLAG)?.key ?? page?.flags?.[MODULE_ID]?.[HEX_FLAG]?.key ?? null;
@@ -101,13 +118,14 @@ async function ensureCrawlEntry(pack, { title, source, folder }) {
 /**
  * Commit hex drafts as pages. GM-gated like every other commit.
  * @param {object[]} drafts   hex-parser drafts
- * @param {{source?:string, crawlTitle?:string}} [opts]
- * @returns {Promise<{entryUuid:string|null, pages:Map<string,string>, created:string[], updated:string[], collisions:string[]}>}
+ * @param {{source?:string, crawlTitle?:string, keyed?:object[]}} [opts]  keyed = hex-summary rows to file on the entry
+ * @returns {Promise<{entryUuid:string|null, title:string, pages:Map<string,string>, created:string[], updated:string[], collisions:string[], keyed:number}>}
  */
-export async function commitHexDrafts(drafts, { source = "", crawlTitle = "" } = {}) {
-  const report = { entryUuid: null, pages: new Map(), created: [], updated: [], collisions: [] };
+export async function commitHexDrafts(drafts, { source = "", crawlTitle = "", keyed = [] } = {}) {
+  const report = { entryUuid: null, title: "", pages: new Map(), created: [], updated: [], collisions: [], keyed: 0 };
   if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can create hex pages."); return report; }
-  if (!drafts?.length) return report;
+  drafts = drafts ?? [];
+  if (!drafts.length && !keyed?.length) return report;
 
   const packs = await ensureSuite();
   const pack = packs?.journal;
@@ -116,6 +134,16 @@ export async function commitHexDrafts(drafts, { source = "", crawlTitle = "" } =
   const title = String(crawlTitle ?? "").trim() || defaultCrawlTitle(source);
   const entry = await ensureCrawlEntry(pack, { title, source, folder });
   if (!entry) { ui.notifications?.error("Hex pages: the journal entry could not be created."); return report; }
+  report.title = title;
+
+  // Keyed summary rows ride on the entry flag, merged by number, so a later
+  // hand-off or the tagger rebuilds the dataset without re-pasting the table.
+  if (keyed?.length) {
+    const flag = entry.getFlag(MODULE_ID, HEX_FLAG) ?? {};
+    const merged = mergeKeyedRows(flag.keyed ?? [], keyed);
+    await entry.update({ [`flags.${MODULE_ID}.${HEX_FLAG}`]: { ...flag, keyed: merged } });
+    report.keyed = merged.length;
+  }
 
   const existingByKey = new Map();
   for (const p of entry.pages) { const k = pageHexKey(p); if (k) existingByKey.set(k, p.id); }
