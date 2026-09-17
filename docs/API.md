@@ -16,7 +16,7 @@ and Forge & Loot features.
 [`charBuilder`](#charbuilder--guided-character-creation) ·
 [`actors`](#actors--western-reaches-boats)
 
-**API version:** `1.4.0` (semver — additive changes bump the minor version,
+**API version:** `1.5.0` (semver — additive changes bump the minor version,
 breaking changes the major; check `apiVersion` before relying on newer keys).
 
 ## Discovery
@@ -864,6 +864,20 @@ list, so a headless caller sees the same gaps the window shows.
 
 ---
 
+## `hexMaps` — hex map tagging and the Extras dataset
+
+Added in 1.5.0. Nothing from a published map ships with the module; every call
+works on the GM's own scene image and book text.
+
+| Call | Who | What |
+|---|---|---|
+| `hexMaps.openTagger()` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). Lazy. |
+| `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, overlays } }`. |
+| `hexMaps.handoff(entryOrDataset)` | GM | Hand a dataset (or a filed crawl JournalEntry, converted first) to Extras' `hex.buildHexcrawl` when it exists, else download it as JSON. Returns `{ via: "extras" \| "download" \| "none", ... }`. |
+
+The dataset carries published hex numbers only (`num`, column-major: 1403 is
+column 14, row 03); never a column and row pair.
+
 ## Stability notes
 
 - Everything documented here is public surface; undocumented internals
@@ -875,6 +889,7 @@ list, so a headless caller sees the same gaps the window shows.
   already shipped — documenting them is **not** an additive API change and does
   not bump `apiVersion`.
 - `1.3.0` adds `loot.resolve` and `loot.generated.{identity,plan,reconcile}`.
+- `1.5.0` adds the `hexMaps` namespace (Hex Tagger, dataset builder, hand-off).
 - `1.4.0` adds the shared `forgeLoot.open()` preview shell. Generator rules and
   document writes remain behind the later NPC/Rival adapter implementations.
   The version policy is additive: new namespaces bump the minor version; breaking

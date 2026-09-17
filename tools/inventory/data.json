@@ -655,6 +655,10 @@
     "scripts/importer/hex/hex-commit.mjs": "Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite.",
     "scripts/importer/hex/hex-summary.mjs": "Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure.",
     "scripts/importer/hex/hex-dataset.mjs": "Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure.",
-    "scripts/importer/hex/hex-handoff.mjs": "Crawl entry → dataset; hands it to Extras when its builder exists, else downloads JSON."
+    "scripts/importer/hex/hex-handoff.mjs": "Crawl entry → dataset; hands it to Extras when its builder exists, else downloads JSON.",
+    "scripts/hex-map/geometry.mjs": "Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure.",
+    "scripts/hex-map/tag-store.mjs": "The tagger's scene-flag store: compact tag strings, sheet selection (random/keyed/review), dataset tags. Pure.",
+    "scripts/hex-map/sampler.mjs": "Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite.",
+    "scripts/hex-map/hex-tagger-app.mjs": "Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off."
   }
 }

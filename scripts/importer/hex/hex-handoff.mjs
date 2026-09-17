@@ -25,7 +25,7 @@ export function extrasHexApi() {
  * @param {JournalEntry} entry
  * @returns {object} dataset (hex-dataset.mjs)
  */
-export function datasetFromEntry(entry) {
+export function datasetFromEntry(entry, { tags = {}, gridHint } = {}) {
   const flag = entry?.getFlag?.(MODULE_ID, HEX_FLAG) ?? {};
   const drafts = [];
   for (const p of entry?.pages?.contents ?? []) {
@@ -33,7 +33,7 @@ export function datasetFromEntry(entry) {
     if (!f?.key) continue;
     drafts.push({ hexId: f.num, key: f.key, name: String(p.name ?? "").replace(/^\d{3,4}\s*/, ""), html: p.text?.content ?? "" });
   }
-  return buildHexDataset({ name: flag.crawl ?? entry?.name ?? "", source: flag.source ?? "", drafts, summaryRows: flag.keyed ?? [] });
+  return buildHexDataset({ name: flag.crawl ?? entry?.name ?? "", source: flag.source ?? "", drafts, summaryRows: flag.keyed ?? [], tags, gridHint });
 }
 
 const slug = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "hexcrawl";

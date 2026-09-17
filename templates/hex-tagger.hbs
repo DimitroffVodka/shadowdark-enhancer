@@ -1,0 +1,76 @@
+<div class="sde-hxt">
+  <header class="sde-hxt-head">
+    <div class="sde-hxt-title">
+      <strong>{{sceneName}}</strong>
+      {{#if sampled}}<span class="sde-hxt-stat">{{numberedCount}} numbered of {{cellCount}} cells · {{summary.tagged}} tagged ({{summary.gm}} by hand{{#if summary.auto}}, {{summary.auto}} auto{{/if}}) · {{summary.untagged}} to go</span>{{/if}}
+    </div>
+    <div class="sde-hxt-actions">
+      <button type="button" data-action="hxtSample" class="sde-import-primary"><i class="fas fa-crop-simple"></i> {{#if sampled}}Re-sample{{else}}Sample scene{{/if}}</button>
+      {{#if origin}}
+      <label>Sheet <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
+      <label>Crawl <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
+      <button type="button" data-action="hxtNextSheet" class="sde-import-secondary"><i class="fas fa-forward"></i> Next sheet</button>
+      <button type="button" data-action="hxtBuildDataset" class="sde-import-primary">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}</button>
+      <button type="button" data-action="hxtClearTags" class="sde-import-secondary" title="Remove every tag and the anchor from this scene"><i class="fas fa-eraser"></i> Clear</button>
+      {{/if}}
+    </div>
+  </header>
+
+  {{#if error}}<p class="sde-hxt-error"><i class="fas fa-triangle-exclamation"></i> {{error}}</p>{{/if}}
+
+  {{#unless sampled}}
+  <p class="sde-hxt-note">Open the hex-map scene, align its grid to the map with Foundry's grid tool (set background scale Y separately for stretched prints), then <strong>Sample scene</strong>. Nothing is uploaded; cells are read from the image in your browser.</p>
+  {{/unless}}
+
+  {{#if origin}}
+  <p class="sde-hxt-note">
+    <i class="fas fa-anchor"></i> Anchor: hex <strong>{{originText}}</strong>.
+    Map size <input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="cols" class="sde-hxt-small"> ×
+    <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="rows" class="sde-hxt-small"> cells
+    <button type="button" data-action="hxtSetBounds" class="sde-import-secondary sde-hxt-inline">Apply</button>
+    <span class="sde-hxt-muted">Cells past the map's columns or rows (margins, legend) are skipped.</span>
+  </p>
+  {{/if}}
+
+  {{#if needsOrigin}}
+  <p class="sde-hxt-note">
+    <i class="fas fa-anchor"></i> Read the printed hex number off any thumbnail below and type it in that cell, then <strong>Set</strong>. Every other cell is numbered from it.
+    Lowered columns: <select data-hxt-shifted><option value="odd" selected>odd (1, 3, 5…)</option><option value="even">even (0, 2, 4…)</option></select>
+  </p>
+  {{/if}}
+
+  <div class="sde-hxt-sheet">
+    {{#each sheet as |c|}}
+    <div class="sde-hxt-cell{{#if c.keyed}} keyed{{/if}}">
+      <img src="{{c.thumb}}" alt="" width="96" height="96">
+      {{#if c.align}}
+      <div class="sde-hxt-fields">
+        <span class="sde-hxt-muted">grid {{c.i}},{{c.j}}</span>
+        <input type="text" data-hxt-number data-i="{{c.i}}" data-j="{{c.j}}" placeholder="number" maxlength="4" class="sde-hxt-num">
+        <button type="button" data-action="hxtSetNumber" data-i="{{c.i}}" data-j="{{c.j}}" class="sde-import-secondary sde-hxt-inline">Set</button>
+      </div>
+      {{else}}
+      <div class="sde-hxt-fields">
+        <span class="sde-hxt-label">{{c.label}}{{#if c.keyed}} <i class="fas fa-star" title="Keyed hex"></i>{{/if}}{{#if c.source}} <span class="sde-hxt-muted">{{c.source}}</span>{{/if}}</span>
+        <select data-hxt-terrain data-num="{{c.num}}">
+          <option value="">(untagged)</option>
+          {{#each c.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+        </select>
+        <span class="sde-hxt-overlays">
+          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="river" {{#if c.overlays.river}}checked{{/if}}> river</label>
+          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="path" {{#if c.overlays.path}}checked{{/if}}> path</label>
+          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="coast" {{#if c.overlays.coast}}checked{{/if}}> coast</label>
+        </span>
+      </div>
+      {{/if}}
+    </div>
+    {{/each}}
+  </div>
+
+  {{#if hasSheet}}{{#unless needsOrigin}}
+  <footer class="sde-hxt-foot">
+    <button type="button" data-action="hxtApplySheet" class="sde-import-primary"><i class="fas fa-check"></i> Apply sheet</button>
+    <button type="button" data-action="hxtNextSheet" class="sde-import-secondary">Skip</button>
+  </footer>
+  {{/unless}}{{/if}}
+</div>

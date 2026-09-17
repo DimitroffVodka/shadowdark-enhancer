@@ -16,6 +16,14 @@
   **Send to Extras** once Shadowdark Extras exposes its hexcrawl builder):
   the crawl's keyed hexes, terrain regions and river/road networks as one JSON
   dataset, built from your own book text. Phase 1 of the hex-map plan (#169).
+- **Hex Tagger.** Importer Hub → Tools → **Hex tagger** (or
+  `game.shadowdarkEnhancer.hexMaps.openTagger()`) opens a contact sheet over
+  the active hex scene's background: 40 cells at a time with a terrain select
+  and river/path/coast boxes. One anchor cell whose printed number you read off
+  its thumbnail numbers the whole map, so the scene's grid parity never has to
+  match the print. Tags are stored on the scene and fold into the dataset with
+  the filed crawl's keyed hexes. Flat-top column grids only for now. Phase 2 of
+  the hex-map plan (#169); API 1.5.0 adds the `hexMaps` namespace.
 
 ## [0.17.3] — 2026-09-16
 
