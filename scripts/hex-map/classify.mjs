@@ -60,15 +60,31 @@ export const DEFAULT_THRESHOLDS = {
  * verified sea hexes (leave-one-out 1-NN): the square scores 90.8%, the hexagon
  * 93.6%, and the arctic-sea/ocean confusions fall from 72 to 48.
  *
- * `shrink` is 1 — the hexagon itself, edge to edge. Cropping tighter starts
- * eating the glyph: 0.94 → 92.8%, 0.86 (the constant that was already here, and
- * unused) → 92.4%, 0.74 → 91.8%, 0.64 → 90.0%.
+ * `shrink` is 0.88 — INSIDE the hexagon, not on its edge. An offline harness
+ * said the full hexagon was best and that was wrong; measured through the
+ * module's own first-run benchmark, averaged over four clusterings:
+ *
+ *   square (no mask)   446 wrong        the state before any of this
+ *   hexagon 1.00       347 wrong        the edge still carries the neighbours
+ *   hexagon 0.90       249
+ *   hexagon 0.88       229 wrong, best water at 96.3%   ← shipped
+ *   hexagon 0.84       231
+ *   hexagon 0.82       228, but water falls to 94.3%
+ *   hexagon 0.76       245 (single run)  now eating the glyph
+ *
+ * 0.82 to 0.88 are level within the noise between clusterings, so this sits
+ * mid-plateau rather than on an edge. The gap from 1.00 is not noise: every
+ * seed at the full hexagon lands at 322 or worse, every seed at 0.88 at 258 or
+ * better. The printed hex OUTLINE is shared with the six neighbours, and at the
+ * vertices their glyphs reach inside it — a hexagon drawn edge to edge still
+ * reads them.
  */
+export const FEATURE_SHRINK = 0.88;
 const HEX_MASKS = new Map();
 function hexMask(w, h) {
   const key = `${w}x${h}`;
   let mask = HEX_MASKS.get(key);
-  if (!mask) { mask = cellMasks(w, h, { shrink: 1 }).inhex; HEX_MASKS.set(key, mask); }
+  if (!mask) { mask = cellMasks(w, h, { shrink: FEATURE_SHRINK }).inhex; HEX_MASKS.set(key, mask); }
   return mask;
 }
 

@@ -289,17 +289,18 @@
   against a hard ceiling of 46% before. The margin setting now does only what it
   always visibly did — decide which hexes get a ring on the map. (#169)
 
-- **A hex is read as a hexagon, not as the square around it.** The terrain
+- **A hex is read as the inside of its hexagon, not the square around it.** The terrain
   feature block-averaged each cell's bounding box, and a hexagon fills only 75%
   of its box — so a quarter of every cell's description was its six
   neighbours' ink: their glyphs, their printed numbers. The mask to cut that
   out was already in the file and only the overlay path had ever used it.
   Measured on a 4768-hex verified map, simulating a first run both ways: whole
-  map 91.4% to 92.6%, and the water (the worst confusion on the map, arctic sea
-  against ocean) 81.8% to 84.7%. On leave-one-out over the sea hexes alone the
-  feature goes 90.8% to 93.6% and the arctic-sea/ocean confusions fall from 72
-  to 48. The mask is the full hexagon, edge to edge: cropping tighter eats the
-  glyph and scores worse. (#169)
+  map 91.4% to 92.6%, and the water 81.8% to 84.7%. Measured again through the
+  module's own first-run benchmark and averaged over four clusterings, the mask
+  is drawn a little INSIDE the hexagon rather than on its edge — 446 errors with
+  no mask, 347 at the full hexagon, **229 at 0.88** — because the printed
+  outline is shared with the six neighbours and at the vertices their glyphs
+  reach inside it. (#169)
 
 - **The module notices when your browser is running an old build.** Foundry
   serves module scripts from unchanging URLs, so after an update a browser can
