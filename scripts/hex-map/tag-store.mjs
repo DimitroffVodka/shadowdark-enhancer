@@ -111,3 +111,49 @@ export function summarize(state, total) {
   for (const c of state.cells.values()) { if (c.source === "auto") auto++; else gm++; }
   return { total, tagged: gm + auto, gm, auto, untagged: Math.max(0, total - gm - auto) };
 }
+
+/**
+ * Side door in (Phase 4): rows from a CSV (classify.mjs parseTruthCsv) or from
+ * rowsFromJson. A row is { num, tags, source?, margin?, review? }; the first
+ * non-overlay tag is the terrain, so "river;forest" and "forest;river" agree,
+ * and a row of overlays only ("river" for a cell that is all water) keeps its
+ * first tag as the terrain, the same rule compareTags applies to a truth CSV
+ * (167 of the Western Reaches table's 4768 rows are like that). Imported rows
+ * replace the cell; `origin` is taken only when the store has none (it is tied
+ * to the scene's grid). Returns the number of cells written.
+ */
+export function importTags(state, rows, { origin = null } = {}) {
+  let n = 0;
+  for (const r of rows ?? []) {
+    const num = parseInt(r?.num, 10);
+    const tags = (r?.tags ?? []).map((t) => String(t).trim().toLowerCase().replace(/\s+/g, "_")).filter(Boolean);
+    const terrain = tags.find((t) => !OVERLAYS.includes(t)) ?? tags[0];
+    if (!Number.isInteger(num) || num < 0 || !terrain) continue;
+    const cell = { terrain, overlays: tags.filter((t) => OVERLAYS.includes(t) && t !== terrain), source: r.source === "auto" ? "auto" : "gm", review: !!r.review };
+    if (Number.isFinite(r.margin)) cell.margin = Number(r.margin);
+    state.cells.set(String(num), cell);
+    n++;
+  }
+  if (origin && !state.origin) state.origin = origin;
+  return n;
+}
+
+/**
+ * Rows from a JSON side door: the tag flag itself (exported by the tagger) or
+ * an Extras dataset (regions → terrain, networks → river/path, keyed hexes'
+ * terrain). Dataset regions carry biome keys, which come back as free-text
+ * terrain; the flag round-trips exactly.
+ * @returns {{rows:object[], origin:object|null}}
+ */
+export function rowsFromJson(obj) {
+  if (obj?.cells && typeof obj.cells === "object" && !Array.isArray(obj.cells)) {
+    const s = decodeTags(obj);
+    return { origin: s.origin, rows: [...s.cells].map(([num, c]) => ({ num, tags: [c.terrain, ...c.overlays], source: c.source, margin: c.margin, review: c.review })) };
+  }
+  const byNum = new Map();
+  const add = (num, tag) => { const k = String(parseInt(num, 10)); if (k === "NaN" || !tag) return; if (!byNum.has(k)) byNum.set(k, []); byNum.get(k).push(tag); };
+  for (const r of obj?.terrain?.regions ?? []) for (const n of r.hexes ?? []) add(n, r.biome);
+  for (const h of obj?.hexes ?? []) add(h.num, h.terrain);
+  for (const [net, overlay] of [["river", "river"], ["road", "path"]]) for (const n of obj?.networks?.[net] ?? []) add(n, overlay);
+  return { origin: null, rows: [...byNum].map(([num, tags]) => ({ num, tags, source: "gm" })) };
+}

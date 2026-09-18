@@ -29,6 +29,15 @@
   river or path from the ink left after subtracting that terrain's stamp.
   Unsure cells go to the Review queue, keyed hexes are left to the book's text,
   and hand-drawn maps get a warning. Phase 3 of the hex-map plan (#169).
+- **Hex tag side doors and the reference tile.** The Hex Tagger gains
+  **Import** (a CSV with `hex_id` and `tags` columns, or a JSON exported by the
+  tagger or a hexcrawl dataset), **Export** (the scene's tags as JSON) and
+  **Reference tile**, which puts the map image on another hex-columns scene as
+  a hidden, locked, half-transparent tile scaled so the print's hex field
+  covers that scene's first columns × rows cells, for tracing rivers and roads
+  over painted terrain. **Send to Extras** places the tile on the built scene
+  by itself once Extras exposes its builder. Phase 4 of the hex-map plan
+  (#169).
 
 ## [0.17.3] — 2026-09-16
 

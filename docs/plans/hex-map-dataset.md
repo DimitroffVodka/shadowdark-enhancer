@@ -7,7 +7,7 @@ Consumer side: [shadowdark-extras#141](https://github.com/DimitroffVodka/shadowd
 (Hexer JSON as a second producer). Probe numbers and dead ends are in the project
 worklog entries of 2026-09-17.
 
-Status: Phases 0 to 3 implemented 2026-09-17 (branch hex-map/phase-0; flat-top column grids only); Phase 4 not started. Written 2026-09-17.
+Status: Phases 0 to 3 implemented 2026-09-17 and merged (#170); Phase 4 implemented 2026-09-18 (branch hex-map/phase-4; flat-top column grids only). Written 2026-09-17.
 
 ---
 
@@ -478,7 +478,8 @@ Western Reaches map. Result goes in the worklog, not the repo.
 export function referenceTilePlacement(imageRect, cellBoxImage, cellBoxScene)
   // pure: { x, y, width, height } so the image's hex-field rectangle maps onto the scene's cell box
 export async function placeReferenceTile(scene, src, placement)
-  // TileDocument: texture.src, hidden: true, locked: true, alpha: 0.5, sort: -1
+  // TileDocument: texture.src, hidden: true, locked: true, alpha: 0.5, sort: 1e6
+  // (as built: sorted ABOVE Extras' painted tiles, which sort by centre y; under them it could not be traced)
 ```
 
 `cellBoxImage` comes from the sampler's geometry (the pixel rectangle covering

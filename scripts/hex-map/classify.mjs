@@ -244,6 +244,7 @@ export function parseTruthCsv(text) {
   if (!lines.length) return [];
   const header = lines[0].split(",").map((s) => s.trim().replace(/^"|"$/g, ""));
   const iNum = header.indexOf("hex_id"), iTags = header.indexOf("terrain_tags") >= 0 ? header.indexOf("terrain_tags") : header.indexOf("tags");
+  const iSrc = header.indexOf("source");
   if (iNum < 0 || iTags < 0) return [];
   const out = [];
   for (const line of lines.slice(1)) {
@@ -253,7 +254,9 @@ export function parseTruthCsv(text) {
     cols.push(cur);
     const num = parseInt(cols[iNum], 10);
     if (!Number.isInteger(num)) continue;
-    out.push({ num, tags: String(cols[iTags] ?? "").split(";").map((t) => t.trim()).filter(Boolean) });
+    const row = { num, tags: String(cols[iTags] ?? "").split(";").map((t) => t.trim()).filter(Boolean) };
+    if (iSrc >= 0 && cols[iSrc]?.trim()) row.source = cols[iSrc].trim();
+    out.push(row);
   }
   return out;
 }
