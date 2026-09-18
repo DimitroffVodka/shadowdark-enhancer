@@ -88,14 +88,27 @@ export function nextSheet(state, { nums, size = 40, mode = "random", keyed = new
 /**
  * Apply a sheet's answers. `answers` = { num: { terrain, overlays } }; an empty
  * terrain clears the cell. GM answers always carry source "gm".
+ *
+ * Returns what each answer replaced, so a caller can record the GM's verdict on
+ * the classifier before it is overwritten (tag-corrections.mjs). Every answer
+ * is a transition, including the ones that change nothing: leaving a guess
+ * alone is the verdict "this one is right".
+ * @returns {Array<{num:string, before:object|null, after:object|null}>}
  */
 export function applySheet(state, answers) {
+  const transitions = [];
   for (const [num, a] of Object.entries(answers ?? {})) {
     const key = String(parseInt(num, 10));
-    if (!a?.terrain) { state.cells.delete(key); continue; }
-    state.cells.set(key, { terrain: a.terrain, overlays: (a.overlays ?? []).filter((t) => OVERLAYS.includes(t)), source: "gm" });
+    const before = state.cells.get(key) ?? null;
+    let after = null;
+    if (!a?.terrain) state.cells.delete(key);
+    else {
+      after = { terrain: a.terrain, overlays: (a.overlays ?? []).filter((t) => OVERLAYS.includes(t)), source: "gm" };
+      state.cells.set(key, after);
+    }
+    transitions.push({ num: key, before, after });
   }
-  return state;
+  return transitions;
 }
 
 /** Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, overlays } }. */

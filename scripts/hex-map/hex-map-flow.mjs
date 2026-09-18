@@ -73,7 +73,7 @@ async function confirmLattice({ preview, full, file, lat, imageW, corners: suppo
     <div class="sde-hexmap-confirm">
       <div class="sde-hexmap-overview" id="sde-hexmap-preview" title="Click for the full image in a new tab"></div>
       <div class="sde-hexmap-side">
-        <p>Found a hex grid of <strong>${lat.cols} × ${lat.rows}</strong> cells, ${esc(lat.lowered)} columns lowered${short ? ` (those end one row short, at ${lat.rowsLowered})` : ""}, hexes ${Math.round(lat.pitchX / 0.75)} × ${Math.round(lat.pitchY)} px.</p>
+        <p>Found a hex grid of <strong>${lat.cols} × ${lat.rows}</strong> cells, ${esc(lat.lowered)} columns lowered${short ? ` (those end one row short, at ${lat.rowsLowered}; the other columns' first row is taken as the frame the column labels sit in)` : ""}, hexes ${Math.round(lat.pitchX / 0.75)} × ${Math.round(lat.pitchY)} px.</p>
         ${verdict}
         <p class="hint">Each crop is a corner of the print at full size with the detected hex outlined in blue. Drag the window edge to enlarge; click the overview for the full image.</p>
         <div class="sde-hexmap-corners" id="sde-hexmap-corners"></div>
@@ -179,6 +179,12 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
   const state = emptyState();
   const bounds = { cols, rows };
   if (rowsLowered && rowsLowered !== rows) bounds.rowsLowered = rowsLowered;
+  // The lowered columns ending exactly one row short means the frame clips the
+  // field at both ends: their bottom half cell, and the RAISED columns' top one,
+  // which is where a print like the Western Reaches writes its column labels.
+  // That row is margin, so it is not numbered; the tagger's "top row is frame"
+  // box undoes it for a print whose first row really is map.
+  if (bounds.rowsLowered === rows - 1) bounds.firstRow = 1;
   state.origin = { i: 0, j: 0, q: cube.q, r: cube.r, num: firstNum, shifted: lat.lowered, bounds };
   const width = Math.round(imageW * kx), height = Math.round(imageH * ky);
   // The background mesh sits at the scene rect's centre with its anchor at

@@ -37,8 +37,13 @@ test("alignedSceneData puts every print cell on its Foundry cell, whichever sche
     const origin = data.flags["shadowdark-enhancer"].hexTags.origin;
     assert.deepEqual([origin.i, origin.j, origin.num, origin.shifted, origin.bounds], [0, 0, "0000", "odd", { cols: 64, rows: 75 }]);
   }
+  // Lowered columns exactly one row short = the frame clips both ends of the
+  // field, so the raised columns' first row is the margin the print writes its
+  // column labels in, and is not numbered.
   const shortData = alignedSceneData({ name: "Map", src: "x.png", ...image, lat, cols: 64, rows: 75, rowsLowered: 74, levels: true });
-  assert.deepEqual(shortData.flags["shadowdark-enhancer"].hexTags.origin.bounds, { cols: 64, rows: 75, rowsLowered: 74 }, "the lowered columns' shorter row count reaches the tagger's bounds");
+  assert.deepEqual(shortData.flags["shadowdark-enhancer"].hexTags.origin.bounds, { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 }, "the lowered columns' shorter row count and the frame-cut top row reach the tagger's bounds");
+  const twoShort = alignedSceneData({ name: "Map", src: "x.png", ...image, lat, cols: 64, rows: 75, rowsLowered: 73, levels: true });
+  assert.equal(twoShort.flags["shadowdark-enhancer"].hexTags.origin.bounds.firstRow, undefined, "two rows short is not the both-ends frame cut; leave the top row alone");
   const evenData = alignedSceneData({ name: "Map", src: "x.png", imageW: 1000, imageH: 800, lat: { ...lat, lowered: "even" }, cols: 4, rows: 3, levels: true });
   assert.equal(evenData.grid.type, 5, "even columns lowered → HEXEVENQ");
 });

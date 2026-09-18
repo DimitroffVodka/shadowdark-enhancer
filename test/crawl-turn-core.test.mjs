@@ -218,7 +218,7 @@ function combatWith(combatant, {
  * authenticated query invokes; `user`/`requester` are passed separately so
  * the tests exercise the real refuseQuery / ownership flow end to end.
  */
-async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM, oocState = null } = {}) {
+async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM, oocState = null, settings = null } = {}) {
   // crawl-strip.mjs's transitive imports touch Foundry globals at module load
   // (movement-tracker.mjs SDETokenRuler extends
   // foundry.canvas.placeables.tokens.TokenRuler), so stub them before the
@@ -238,11 +238,26 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     canvas: { placeables: { tokens: { TokenRuler: class {} } } },
   };
   globalThis.CONFIG = { queries: {} };
-  globalThis.CONST = { DOCUMENT_OWNERSHIP_LEVELS: { OWNER }, TOKEN_DISPOSITIONS: { NEUTRAL: 0 } };
+  globalThis.CONST = {
+    DOCUMENT_OWNERSHIP_LEVELS: { OWNER },
+    TOKEN_DISPOSITIONS: { NEUTRAL: 0 },
+    DICE_ROLL_MODES: { PRIVATE: "gmroll", PUBLIC: "publicroll" },
+  };
   globalThis.Hooks = { on: () => 1, once: () => 1, callAll: () => {}, call: () => true, events: {} };
   globalThis.ui = { notifications: { warn: () => {}, info: () => {}, error: () => {} } };
   globalThis.canvas = { scene: null };
   globalThis.Actor = { create: async (d) => d };
+  // The check rolls a real 1d6 through encounter-check.mjs; only the dice
+  // itself and the chat post are stubbed (a 6 never beats the threshold, so
+  // no roller opens and the game never pauses).
+  globalThis.Roll = class {
+    constructor(formula) { this.formula = formula; }
+    async evaluate() { this.total = 6; return this; }
+    async toMessage() { return null; }
+  };
+
+  const settingsStore = { ...(settings ?? {}) };
+  let EncounterCheck;
 
   globalThis.game = {
     user: responder,
@@ -254,19 +269,30 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     combat,
     actors: { get: () => null },
     // CrawlState._commit persists + nudges; the OOC relay handler drives the
-    // real wrapper, so these must exist.
-    settings: { get: () => null, set: async () => {} },
+    // real wrapper, so these must exist. `settings` seeds the world settings
+    // the tests care about; an unstubbed key reads as null, like a world that
+    // never set it, and a write lands in the same store (the frequency tests
+    // depend on the check's own anchor write round-tripping through here).
+    settings: {
+      get: (_moduleId, key) => settingsStore[key] ?? null,
+      set: (_moduleId, key, value) => { settingsStore[key] = value; },
+    },
     socket: { emit: () => {} },
     // A wrap-advance calls nextCrawlTurn, which fires the wandering-monster
-    // check — count the fires so the "one wrap = one check" contract is
-    // assertable. The anchors capture is movement-tracker's own tested
-    // domain (canvas-bound); not this harness's subject.
-    shadowdarkEnhancer: { encounter: { check: async () => { encounterChecks.push(1); } } },
+    // check when the frequency says the round is due. The check is the REAL
+    // encounter-check.mjs (dice and chat stubbed above), so the anchor write
+    // the countdown reads is part of what these tests exercise; the wrapper
+    // counts the fires here. The anchors capture is movement-tracker's own
+    // tested domain (canvas-bound); not this harness's subject.
+    shadowdarkEnhancer: {
+      encounter: { check: async () => { encounterChecks.push(1); await EncounterCheck.check(); } },
+    },
   };
   const { CrawlStrip, cardTurnState, showOocRollAll, showOocAdvance } = await import("../scripts/crawl-strip/crawl-strip.mjs");
   const { CrawlState } = await import("../scripts/crawl-strip/crawl-state.mjs");
   const { normalizeCrawlState } = await import("../scripts/crawl-strip/crawl-state-core.mjs");
   const { MovementTracker } = await import("../scripts/crawl-strip/movement-tracker.mjs");
+  ({ EncounterCheck } = await import("../scripts/encounter/encounter-check.mjs"));
   MovementTracker.captureCrawlAnchors = async () => {};
   // Reset the shared CrawlState singleton per test so OOC handler tests do
   // not leak state into each other (or into the combat-path tests).
@@ -283,6 +309,7 @@ async function gmClientHarness({ combat, advanced, responder = GM, activeGM = GM
     showOocRollAll,
     showOocAdvance,
     encounterChecks,
+    settingsStore,
     advanced: advanced ?? [],
   };
 }
@@ -832,4 +859,103 @@ test("OOC wrap in-flight lock: a racing second advance cannot double-fire the ro
   await first;
   assert.equal(CrawlState.crawlTurn, 1, "exactly ONE round advanced — not two");
   assert.equal(encounterChecks.length, 1, "exactly ONE encounter check — the lock serialized the wrap");
+});
+
+// ─── Encounter check frequency (issue #171) ─────────────────────────────────
+//
+// The automatic check is gated by the world's `encounterCheckFrequency`: unset
+// (a fresh world, and this harness) checks every round exactly as before, and
+// N checks N rounds after the last check — a countdown anchored to the round a
+// check last ran on (`encounterLastCheckRound`, written by the real
+// encounter-check.mjs, which these tests drive in full), never a grid of round
+// numbers. These drive the real wrapper's nextCrawlTurn — the entry point both
+// the strip's Next Round and an OOC wrap reach. The pure schedule itself is
+// pinned in crawl-state-core.test.mjs; what is proven here is that the wrapper
+// consults it, that the anchor round-trips through the check, and that exactly
+// one check fires per due round.
+
+/** Advance `rounds` crawl rounds on the GM client; return the check count after each. */
+async function advanceRounds(CrawlState, encounterChecks, rounds) {
+  const perRound = [];
+  for (let i = 0; i < rounds; i++) {
+    await CrawlState.nextCrawlTurn();
+    perRound.push(encounterChecks.length);
+  }
+  return perRound;
+}
+
+test("check frequency: unset (a fresh world) checks every crawl round, as before", async () => {
+  const { CrawlState, encounterChecks } = await gmClientHarness({ oocState: { mode: "crawl" } });
+  assert.deepEqual(await advanceRounds(CrawlState, encounterChecks, 3), [1, 2, 3],
+    "the default frequency is 1: one check per round, unchanged by #171");
+});
+
+test("check frequency 3: checks land on rounds 3 and 6, nowhere else", async () => {
+  const { CrawlState, encounterChecks, settingsStore } = await gmClientHarness({
+    oocState: { mode: "crawl" },
+    settings: { encounterCheckFrequency: 3 },
+  });
+  assert.deepEqual(await advanceRounds(CrawlState, encounterChecks, 6), [0, 0, 1, 1, 1, 2],
+    "rounds 1-2 quiet, round 3 checks, rounds 4-5 quiet, round 6 checks");
+  assert.equal(CrawlState.crawlTurn, 6, "the round counter itself advances every round regardless");
+  assert.equal(settingsStore.encounterLastCheckRound, 6,
+    "the check anchored its own round — this is what the next countdown reads");
+});
+
+test("check frequency 10: nine quiet rounds, then a check", async () => {
+  const { CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: { mode: "crawl" },
+    settings: { encounterCheckFrequency: 10 },
+  });
+  const perRound = await advanceRounds(CrawlState, encounterChecks, 10);
+  assert.deepEqual(perRound.slice(0, 9), Array(9).fill(0), "the top of the offered range stays quiet for nine rounds");
+  assert.equal(perRound[9], 1, "the tenth round checks");
+});
+
+test("check frequency: a mid-crawl change counts from the LAST CHECK, not from a grid (issue #171)", async () => {
+  // Patrick's case: round 4, last check on round 3, frequency changed 3 → 5.
+  // Multiples-of-5 would fire on round 5, two rounds after that check.
+  const { CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: { mode: "crawl", crawlTurn: 3 },
+    settings: { encounterCheckFrequency: 5, encounterLastCheckRound: 3 },
+  });
+  assert.deepEqual(await advanceRounds(CrawlState, encounterChecks, 5), [0, 0, 0, 0, 1],
+    "rounds 4-7 stay quiet; round 8 is five rounds after the round-3 check");
+  assert.equal(CrawlState.crawlTurn, 8);
+});
+
+test("check frequency: shortening it mid-crawl brings the next check forward, never sooner than the new interval", async () => {
+  const { CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: { mode: "crawl", crawlTurn: 5 },
+    settings: { encounterCheckFrequency: 2, encounterLastCheckRound: 4 },
+  });
+  assert.deepEqual(await advanceRounds(CrawlState, encounterChecks, 2), [1, 1],
+    "round 6 is two rounds after the round-4 check: due");
+});
+
+test("check frequency: an anchor left over from an earlier crawl is discarded", async () => {
+  const { CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: { mode: "crawl" },
+    settings: { encounterCheckFrequency: 3, encounterLastCheckRound: 27 },
+  });
+  assert.deepEqual(await advanceRounds(CrawlState, encounterChecks, 3), [0, 0, 1],
+    "a fresh crawl counts from its own first round, not from the old crawl's last check");
+});
+
+test("check frequency: an OOC wrap still advances the clock, but only checks when due", async () => {
+  const mine = makeActor({ id: "pc1", ownerId: PLAYER.id });
+  const mine2 = makeActor({ id: "pc2", ownerId: PLAYER.id });
+  const { oocHandle, CrawlState, encounterChecks } = await gmClientHarness({
+    oocState: {
+      mode: "crawl", members: ["pc1", "pc2"], crawlTurn: 1,
+      oocInitiative: { pc1: { roll: 10 }, pc2: { roll: 5 } }, oocTurn: "pc2",
+    },
+    settings: { encounterCheckFrequency: 3 },
+  });
+  globalThis.game.actors = { get: (id) => ({ pc1: mine, pc2: mine2 }[id] ?? null) };
+
+  const reply = await oocHandle({ action: "ooc:nextTurn" }, PLAYER);
+  assert.equal(reply.ok, true);
+  assert.equal(CrawlState.crawlTurn, 2, "the wrap advances the clock to round 2 as always");
+  assert.equal(encounterChecks.length, 0, "round 2 is not a check round at frequency 3");
 });

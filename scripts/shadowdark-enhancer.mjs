@@ -86,7 +86,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "8cc9e036722a";
+const STYLESHEET_REV = "0d24aaae7f60";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -368,6 +368,9 @@ Hooks.once("init", () => {
       setActiveTable: (uuid) => game.settings.set(MODULE_ID, "encounterTableUuid", uuid || ""),
       getThreshold: () => game.settings.get(MODULE_ID, "encounterThreshold"),
       setThreshold: (n) => game.settings.set(MODULE_ID, "encounterThreshold", n),
+      // How often the automatic crawl-round check runs (1 = every round).
+      getCheckFrequency: () => game.settings.get(MODULE_ID, "encounterCheckFrequency"),
+      setCheckFrequency: (n) => game.settings.set(MODULE_ID, "encounterCheckFrequency", n),
     },
     monsterCreator: {
       open: () => MonsterCreator.open(),
@@ -609,8 +612,16 @@ Hooks.once("init", () => {
     hexMaps: {
       // The contact-sheet tagger for the active scene (GM only). Lazy.
       openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
+      // The active scene's tags drawn on the map for review; toggles (GM only).
+      showTags: async (opts) => (await import("./hex-map/tag-overlay.mjs")).HexTagOverlay.toggle(opts),
+      // Pick a terrain once, then paint the hexes that have it wrong (GM only).
+      brush: async () => (await import("./hex-map/hex-brush-app.mjs")).HexBrushApp.open(),
       // Pure builder for the Extras dataset from drafts, keyed rows and tags.
       buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
+      // Dev check: how well does the model tell THIS map's terrains apart,
+      // judged only by the hexes the GM tagged? Run it before and after a
+      // change to the classifier or the legend. Ships no data.
+      score: async () => (await import("./hex-map/hex-tagger-app.mjs")).scoreSceneModel(),
       // Dev check: score the active scene's tags against a truth CSV
       // (hex_id + tags or terrain_tags). Ships no data; the CSV is the GM's.
       compare: async (csvText, opts) => (await import("./hex-map/hex-tagger-app.mjs")).compareSceneTags(canvas?.scene, csvText, opts),

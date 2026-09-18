@@ -125,6 +125,135 @@ apart, so name the wave cards by the water that covers most of the map and
 fix the rest by region). The rest is the Review queue's job. Hand-drawn maps
 group poorly (no two cells share a glyph) and are better tagged by sheet.
 
+## What the classifier's confidence means
+
+When the classifier tags a hex it compares it to the hexes you tagged by hand
+and picks the closest. It also notes how much closer that winner was than the
+runner-up from a *different* terrain, as a multiple: **2×** means the second
+choice was twice as far off — an easy call; **1.05×** means the two were
+nearly tied and it effectively guessed. That multiple is what the hover label
+shows (*auto 1.16*) and what the **Review queue** sorts on: the queue holds
+every automatic hex whose call was closer than the threshold, 1.3× to begin
+with, and the map overlay rings those same hexes in amber.
+
+A threshold is a trade. Raise it and more hexes are queued, including ones the
+classifier got right; lower it and you see fewer, including ones it got wrong.
+Nothing about 1.3 is special — it was a starting guess.
+
+**Classify** is the rescan: press it again after a round of corrections and
+every hex you have not touched is re-tagged from your hand tags, corrections
+and brush confirmations alike. It samples the scene first if it needs to, and
+it leaves everything you tagged yourself alone. Measured on one real map: of
+56 hexes the previous run had got wrong, a re-run from the GM's other 55
+corrections got 54 right.
+
+Once you have corrected a few dozen hexes, the tagger stops guessing and tells
+you what your own corrections say: how many you judged, how many were wrong,
+what share of those the current threshold actually caught, and the threshold
+that would have caught nine in ten — with the number of hexes each puts in the
+queue, so you can see what it costs. The button takes that threshold.
+
+If the classifier is wrong most of the time you check it, the threshold is not
+the problem and the note says so: it is working from bad examples, and your
+corrections are better ones. **Classify** again and every cell you have not
+touched is re-tagged from them.
+
+## Fixing a patch at a time: the brush
+
+Classifier mistakes come in patches — a stretch of arctic sea read as ocean,
+a band of forest read as jungle — and clicking through them one dialog at a
+time is the wrong shape for that. **Brush** in the tagger's header (or
+`game.shadowdarkEnhancer.hexMaps.brush()`) opens a small window: pick the
+terrain once, tick river, path or coast if the hexes have them, then click or
+drag across the wrong hexes on the map. They take what the brush says.
+
+The brush also **confirms**. A hex that already says what the brush says still
+takes the stroke when the classifier is the one who said it: it becomes yours,
+leaves the review queue, and is recorded as a confirmation. So a patch the
+classifier got right is cleared the same way a patch it got wrong is fixed —
+drag over both. Only a hex you have already confirmed by hand is skipped, so
+going back over ground you have done costs nothing.
+
+A whole stroke is a single change to the scene however many hexes it covers,
+and **Undo last stroke** puts every one of them back exactly as it was,
+including whether the classifier had tagged it and how confidently. The button
+says how many hexes it would put back.
+
+Every hex you paint over a classifier tag is also recorded as a correction
+(see *Reviewing the tags on the map*), so a patch of ocean that should have
+been arctic sea is exactly the evidence that moves the review threshold.
+Closing the window puts clicks back to the one-hex editor.
+
+## The frame is not the map
+
+A printed hex map is clipped by its own frame, and the two column parities are
+clipped at opposite ends: the columns that sit higher lose the top half of
+their first row, the lower ones lose the bottom half of their last. On the
+Western Reaches print that top half-row is where the column labels (000, 200,
+400 …) are printed — margin, with no terrain in it at all.
+
+The module does not number those cells. **Hex map from image** sets it when it
+finds the lowered columns ending exactly one row short, which is that same
+clip seen from the other end. If your print's first row really is map, untick
+**top row is frame** under **More** and press **Apply**; if a map you already
+tagged is asking you to tag its margin, tick it there instead — the cells stop
+being numbered and any tags they picked up are dropped, which the message
+tells you. Only automatic tags can be affected; nothing you tagged by hand
+sits in the frame.
+
+## Reviewing the tags on the map
+
+A contact sheet shows forty cells at a time; the print shows all of them at
+once. **Show tags** in the tagger's header (or
+`game.shadowdarkEnhancer.hexMaps.showTags()`) draws every numbered hex on the
+scene in its terrain's colour, with a dot for river, path or coast and an
+amber ring inside the cells the classifier was unsure of — the same cells the
+Review queue serves. A whole region tagged as the wrong thing is a stain you
+can see from the zoomed-out view; a single wrong hex is a dot in the wrong
+colour. Terrain the classifier or the legend named itself gets a fixed
+colour; terrain you typed yourself gets a colour of its own, so two invented
+words never look alike.
+
+Hovering a hex names it: the number, its tags, and whether it was tagged
+automatically and how confidently. Clicking one opens a small box — one at a
+time: clicking another hex moves the box to it rather than stacking a second
+one on top. It opens with a
+terrain dropdown and the river, path and coast boxes. The dropdown is
+alphabetical and holds every terrain the parser knows plus every word already
+used on this map, so your own legend names are in it too, and a letter jumps
+to it. **(clear this hex)** removes its tags, and
+**other…** opens a box for a word that is not in the list yet. Saving writes
+to the scene the same way the tagger does, and the map redraws at once. Tokens and map notes keep their own clicks, and dragging the
+map still pans it. Press the button again to hide the tags.
+
+The fills sit at 45% opacity over the print. If that is too much or too little
+for your map, show them from the console with your own value:
+`game.shadowdarkEnhancer.hexMaps.showTags({ alpha: 0.3 })`. It sticks until
+you reload.
+
+## The three words this uses
+
+They get mixed up easily, so, plainly:
+
+**Read the map** takes a small picture of every hex out of the scene's image,
+in your browser. That is all it does — it decides no terrain and changes no
+tag. Everything below needs those pictures, so it happens first (the buttons
+that need it will do it themselves if you have not). It takes about fifteen
+seconds on a big print and nothing is uploaded.
+
+**Legend** sorts those pictures into groups of look-alikes and shows one card
+per group with four examples from it. Name a card and every hex in that group
+takes that terrain. It is the fast way to get a whole map tagged from nothing.
+
+**Classify** tags every hex *you have not tagged yourself*, by finding
+whichever of your own hand-tagged hexes it looks most like and copying that
+terrain. Your tags are the examples it works from.
+
+So when you correct a hex — on a review sheet, in the brush, or by clicking it
+on the map — you are not classifying. You are writing the examples. Pressing
+**Classify** afterwards is what spreads them over the rest of the map, and it
+never touches a hex you tagged yourself.
+
 ## The Hex Tagger
 
 Open it from the Importer Hub's Tools row (**Hex tagger**) or with
@@ -142,7 +271,7 @@ scene**, which must:
 
 Then:
 
-1. **Sample scene.** The tagger reads every cell whose centre lies on the
+1. **Read the map.** The tagger reads every cell whose centre lies on the
    image. Nothing is stored yet.
 2. **Anchor.** The first sheet shows the top-left cells with a number box each.
    Read the printed hex number off any thumbnail, type it there and click

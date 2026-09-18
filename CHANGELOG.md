@@ -24,6 +24,81 @@
   match the print. Tags are stored on the scene and fold into the dataset with
   the filed crawl's keyed hexes. Flat-top column grids only for now. Phase 2 of
   the hex-map plan (#169); API 1.5.0 adds the `hexMaps` namespace.
+- **A table per terrain for encounter checks.** With a hex map tagged by the
+  Hex Tagger, the Encounter right-click menu gains **Tables by terrain**: one
+  roll table per terrain on the scene. The check reads the hex the party's
+  tokens stand in, rolls that terrain's table, and names the hex and terrain on
+  the chat card. Terrain with no table of its own, a scene with no tags and a
+  party off the map all fall back to the single active table, so nothing
+  changes for a game that does not use hex maps. Phase 6 of the hex-map plan
+  (#169).
+- **The Hex Tagger is the size of what it is showing.** It opened as a fixed
+  780-pixel box that was mostly empty black on any scene without a sheet up;
+  its height follows its content now (a numbered but unsampled scene is a
+  header and one line), and a full sheet scrolls inside the window rather than
+  making it taller than the screen. **More** is a proper panel under its button
+  instead of a row of buttons that broke the header apart.
+- **"Sample scene" is now "Read the map".** The word sampling was doing two
+  jobs — reading the image, and the examples the classifier learns from — and
+  only one of them is a button. The tooltips and messages say which of the
+  three steps each control is: reading the map takes a picture of every hex and
+  decides nothing, the Legend names groups of look-alikes, and Classify spreads
+  your own hand tags over everything you have not touched.
+- **Classify is where you left it.** The sampled cells are kept per scene for
+  as long as the page is open, so closing the Hex Tagger and opening it again
+  no longer hides **Legend**, **Next sheet** and **Classify** behind another
+  read of the image. **Classify** also samples the scene itself when it has to,
+  so it works from a cold open.
+- **A Legend card that holds two things now shows both.** Its pictures were the
+  members nearest the card's centre, so a card whose cells were two different
+  terrains looked like one — on a real map a card of 147 cells was 70% arctic
+  sea with every picture drawn from its ocean third, and naming it cost 111
+  wrong hexes. The pictures are now one per group *within* the card, so the
+  minority is visible and a stray cell never takes more than one of them.
+- **`hexMaps.score()`** (developer tools) measures the model against the hexes
+  you tagged yourself: leave-one-out accuracy for the classifier, and how pure
+  the Legend's cards are, naming every mixed card and the terrains its core
+  misses. It reads only your own tags and ships no data.
+- **The brush confirms as well as corrects.** A hex that already says what the
+  brush says now takes the stroke when the classifier is the one who said it:
+  it leaves the review queue and is recorded as a confirmation, so a patch the
+  classifier got right is cleared by the same drag that fixes one it got wrong.
+  **Undo last stroke** shows how many hexes it would put back (it was disabled
+  after the first render and never re-enabled, so it did nothing when pressed),
+  and the one-hex editor moves to the hex you click instead of stacking.
+- **The hex brush.** **Brush** in the Hex Tagger's header (or
+  `game.shadowdarkEnhancer.hexMaps.brush()`) sets one terrain plus river, path
+  and coast, and then clicking or dragging across the tag overlay retags whole
+  patches at once. A stroke is one change to the scene however many hexes it
+  covers, **Undo last stroke** puts them all back as they were, and every hex
+  painted over a classifier tag counts as a correction. Phase 6 of the hex-map
+  plan (#169).
+- **The print's frame is no longer tagged.** The columns that sit higher have
+  their first row cut in half by the map's frame — on prints like the Western
+  Reaches that half cell holds the column label and no terrain, and the
+  classifier was guessing at it and queueing all 32 of them for review. Those
+  cells are not numbered now: **Hex map from image** sets it, and the tagger's
+  **More** has a **top row is frame** box for a map already tagged or a print
+  whose first row really is map. Phase 6 of the hex-map plan (#169).
+- **Corrections are kept as evidence.** Every time you judge a cell the
+  classifier tagged — on a review sheet or by clicking it on the map — what it
+  guessed, its margin and whether it had been flagged are recorded on the
+  scene, and so is leaving a guess alone. The tagger reports what your own
+  corrections say: how many were wrong, what share of them the review queue
+  actually catches, and the margin that would catch 90%, with a button to take
+  it. The review margin is now a per-map setting rather than a fixed 1.3.
+- **Fixed: writing one of this module's flags could delete its others.**
+  `recursive: false` on a flag path is not scoped to that path — Foundry
+  replaces the whole namespace — so a second flag beside the hex tags destroyed
+  them. Every flag write goes through a delete-then-set helper now
+  (`scripts/shared/module-flags.mjs`).
+- **Review the tags on the map.** **Show tags** in the Hex Tagger's header (or
+  `game.shadowdarkEnhancer.hexMaps.showTags()`) draws every numbered hex on the
+  scene in its terrain's colour, a dot for river, path and coast, and an amber
+  ring inside the cells the classifier was unsure of. Hovering names a hex and
+  says how it was tagged; clicking one edits its terrain and overlays in place.
+  Tokens and notes keep their clicks and the map still pans. Phase 6 of the
+  hex-map plan (#169).
 - **Classify.** With a sheet or two tagged by hand, the Hex Tagger classifies
   every other cell on a stamped map: terrain from the nearest tagged example,
   river or path from the ink left after subtracting that terrain's stamp.
@@ -81,6 +156,18 @@
   dataset imported through the tagger's side door is expanded under the same
   numbering. Grid counts for an entry-only dataset now count from the
   contract's origin instead of one column and row too many. (#169)
+- **Encounter check frequency.** How often the crawl round rolls its automatic
+  encounter check is now yours to set. Right-click the **Encounter** button on
+  the Crawl Bar: **Check Frequency** offers **1** (every crawl round — the
+  default, unchanged) through **10**, and a check then lands that many rounds
+  after the previous one. The count is from the last check, automatic or
+  manual, so a mid-crawl change takes effect from where you stand (switch 3 to
+  5 three rounds after the last check and the next lands on round 8, not 5).
+  The header reads the current setting back (`every 3 rounds`) and each
+  number's tooltip says the same; the round counter itself advances either
+  way. The manual **Encounter Check** in the same menu still rolls whenever you
+  click it, and restarts the count. API:
+  `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
 - **The hex dataset follows Extras' stable contract.** Terrain goes out as the

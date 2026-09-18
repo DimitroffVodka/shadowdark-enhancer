@@ -17,6 +17,7 @@ import {
   advanceOocTurn,
   previousOocTurn,
   previousCrawlTurn,
+  encounterCheckDue,
   clearOocInitiative,
   hasOocRoll,
   oocOrderComplete,
@@ -263,6 +264,72 @@ test("nextCrawlTurn only advances in crawl mode", () => {
   const noop = nextCrawlTurn(off);
   assert.equal(noop.changed, false);
   assert.equal(noop.state.crawlTurn, 2);
+});
+
+// ── encounter check frequency (issue #171) ─────────────────────────────────
+
+test("encounterCheckDue: 1 (the default) checks on every advance", () => {
+  assert.equal(encounterCheckDue(1, 0, 1), true, "the first round of a crawl");
+  assert.equal(encounterCheckDue(5, 4, 1), true, "one round after the last check");
+  assert.equal(encounterCheckDue(3, 0, undefined), true, "an unset frequency reads as every round");
+});
+
+test("encounterCheckDue: an unusable frequency still checks every round", () => {
+  // The world setting is absent in a fresh world and `undefined` in every
+  // test harness — that must read as "every round", never as "never".
+  for (const bad of [undefined, null, "", "abc", 0, -3, NaN, {}]) {
+    assert.equal(encounterCheckDue(4, 3, bad), true, `frequency ${String(bad)}`);
+  }
+  assert.equal(encounterCheckDue(4), true, "no anchor and no frequency argument at all");
+});
+
+test("encounterCheckDue: N counts from the last check, not from a grid of round numbers", () => {
+  // A fresh crawl: no check yet, so the first one lands on round N.
+  assert.equal(encounterCheckDue(1, 0, 3), false);
+  assert.equal(encounterCheckDue(2, 0, 3), false);
+  assert.equal(encounterCheckDue(3, 0, 3), true, "the first check lands on round 3");
+  // After it (anchored on 3) the next is three rounds later, and only then.
+  assert.equal(encounterCheckDue(4, 3, 3), false);
+  assert.equal(encounterCheckDue(5, 3, 3), false);
+  assert.equal(encounterCheckDue(6, 3, 3), true);
+  assert.equal(encounterCheckDue(9, 6, 3), true);
+  // Round 6 already checked (anchor 6): stepping back to 5 and forward again
+  // to 6 does not fire a second check on the same round.
+  assert.equal(encounterCheckDue(6, 6, 3), false);
+});
+
+test("encounterCheckDue: a mid-crawl change takes effect from where the GM stands", () => {
+  // Round 4, last check on round 3, frequency changed 3 -> 5: multiples-of-5
+  // would fire on round 5; the countdown waits for round 8.
+  assert.equal(encounterCheckDue(5, 3, 5), false, "round 5 is only two rounds after the round-3 check");
+  assert.equal(encounterCheckDue(7, 3, 5), false);
+  assert.equal(encounterCheckDue(8, 3, 5), true, "five rounds after the last check");
+  // Shortening it is due as soon as the new, shorter interval is satisfied.
+  assert.equal(encounterCheckDue(5, 3, 2), true);
+  assert.equal(encounterCheckDue(4, 3, 2), false, "never sooner than the new interval");
+});
+
+test("encounterCheckDue: the top of the offered range (10) behaves like any other N", () => {
+  assert.equal(encounterCheckDue(9, 0, 10), false);
+  assert.equal(encounterCheckDue(10, 0, 10), true);
+  assert.equal(encounterCheckDue(19, 10, 10), false);
+  assert.equal(encounterCheckDue(20, 10, 10), true);
+});
+
+test("encounterCheckDue: an anchor from an earlier crawl is discarded", () => {
+  // The round counter restarts at 0 each crawl, so a leftover anchor sits
+  // AHEAD of the current round — it must not stall the checks forever.
+  assert.equal(encounterCheckDue(1, 27, 3), false);
+  assert.equal(encounterCheckDue(2, 27, 3), false);
+  assert.equal(encounterCheckDue(3, 27, 3), true, "a fresh crawl counts from its own first round");
+});
+
+test("encounterCheckDue: a fractional frequency is truncated, not rounded up", () => {
+  // Nothing in the UI can produce this, but a hand-written world setting can:
+  // 2.9 must mean "every 2 rounds", not "never" (round 3 % 2.9 is a fraction)
+  // and not "every 3 rounds" either.
+  assert.equal(encounterCheckDue(2, 0, 2.9), true);
+  assert.equal(encounterCheckDue(3, 2, 2.9), false);
 });
 
 // ── OoC turn pointer (issue #14 part 2) ─────────────────────────────────────

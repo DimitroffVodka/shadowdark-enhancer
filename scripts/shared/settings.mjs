@@ -266,11 +266,49 @@ export function registerSettings() {
     default: 1,
   });
 
+  // How often the AUTOMATIC wandering-monster check runs as the crawl clock
+  // advances: 1 = every crawl round (the module's original behaviour), N =
+  // N rounds after the previous check. The gate itself is `encounterCheckDue`
+  // in crawl-state-core.mjs. Set from the Crawl Bar's Encounter right-click
+  // menu (1–10), next to the threshold it shares a menu with, so — like
+  // encounterThreshold — it is deliberately not in the settings window.
+  game.settings.register(MODULE_ID, "encounterCheckFrequency", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 1,
+  });
+
+  // The crawl round the last check ran on — automatic or manual. The frequency
+  // is a COUNTDOWN from this, not a grid of round numbers, so changing it
+  // mid-crawl takes effect from where the GM stands (switch 3 to 5 three rounds
+  // after the last check and the next check is on round 8). Written by
+  // encounter-check.mjs on every check; read by the crawl clock. A count left
+  // over from an earlier crawl is discarded by the gate (rounds restart at 0).
+  game.settings.register(MODULE_ID, "encounterLastCheckRound", {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0,
+  });
+
   game.settings.register(MODULE_ID, "encounterTableUuid", {
     scope: "world",
     config: false,
     type: String,
     default: "",
+  });
+
+  // Terrain tag → RollTable uuid, for hex maps tagged by the Hex Tagger: the
+  // encounter check rolls the table for the hex the party is in and falls back
+  // to encounterTableUuid. Edited from the Crawl Bar's Encounter right-click
+  // menu (Tables by terrain), so — like the threshold — it is not in the
+  // settings window. Keys are terrainKey() words (encounter-terrain.mjs).
+  game.settings.register(MODULE_ID, "encounterTerrainTables", {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {},
   });
 
   // Maps each treasure-band id (from treasure-data.mjs TREASURE_TABLES) to a

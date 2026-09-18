@@ -6,47 +6,85 @@
     </div>
     <div class="sde-hxt-actions">
       {{#unless sampled}}
-      <button type="button" data-action="hxtSample" class="sde-import-primary"><i class="fas fa-crop-simple"></i> Sample scene</button>
+      <button type="button" data-action="hxtSample" class="{{#if primarySample}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="Read every hex of this scene's image in your browser, so the Legend and Classify have a picture of each one. Nothing is uploaded, and no terrain is decided."><i class="fas fa-crop-simple"></i> Read the map</button>
       {{/unless}}
-      {{#if origin}}
+      {{!-- Everything that needs the sampled cells stays hidden until there are some. --}}
+      {{#if sampled}}{{#if origin}}
+      <button type="button" data-action="hxtLegend" class="{{#if primaryLegend}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="Sort every hex picture into groups of look-alikes and show one card per group with four examples from it. Name a card and every hex in that group takes that terrain."><i class="fas fa-list-ul"></i> Legend</button>
       <label>Sheet <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
-      <label>Crawl <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
-      <button type="button" data-action="hxtLegend" class="sde-import-primary" title="Group every cell by its glyph and name one card per group; everything else is tagged from your answers."><i class="fas fa-list-ul"></i> Legend</button>
-      {{#if entries.length}}
-      <button type="button" data-action="hxtPinKeyed" class="sde-import-primary" title="One map note per keyed hex of the chosen crawl on this scene, each opening its journal page"><i class="fas fa-map-pin"></i> Pin keyed hexes</button>
-      {{/if}}
       <button type="button" data-action="hxtNextSheet" class="sde-import-secondary"><i class="fas fa-forward"></i> Next sheet</button>
       {{#if canClassify}}
       <label title="Higher values lower the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
-      <button type="button" data-action="hxtClassify" class="sde-import-secondary" title="Classify every cell without a hand tag from the ones you tagged; unsure cells go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
+      <button type="button" data-action="hxtClassify" class="sde-import-secondary" title="Tag every hex you have NOT tagged yourself by whichever of your own hand-tagged hexes it looks most like. Your tags are the examples, so the more you correct the better this gets. Unsure hexes go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
       {{/if}}
-      <button type="button" data-action="hxtBuildDataset" class="sde-import-primary">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}</button>
+      {{/if}}{{/if}}
+      {{!-- These read the scene's stored tags, so they work whether or not it is sampled. --}}
+      {{#if origin}}
+      <label>Crawl <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
+      {{#if entries.length}}
+      <button type="button" data-action="hxtPinKeyed" class="sde-import-secondary" title="One map note per keyed hex of the chosen crawl on this scene, each opening its journal page"><i class="fas fa-map-pin"></i> Pin keyed hexes</button>
       {{/if}}
-      {{#if sampled}}
-      <details class="sde-hxt-more">
-        <summary title="Re-sample, import, export, the reference tile and Clear">More</summary>
-        <button type="button" data-action="hxtSample" class="sde-import-secondary" title="Read the cells from the scene image again; tags are kept"><i class="fas fa-crop-simple"></i> Re-sample</button>
+      <button type="button" data-action="hxtShowTags" class="sde-import-secondary" title="Draw every tag on the map itself: a colour per terrain, dots for river, path and coast, an amber ring on the unsure automatic cells. Click a hex there to change it. Press again to hide."><i class="fas fa-eye"></i> {{#if overlayShown}}Hide tags{{else}}Show tags{{/if}}</button>
+      <button type="button" data-action="hxtBrush" class="sde-import-secondary" title="Pick a terrain once, then click or drag across the hexes that have it wrong. A whole stroke is one change, and Undo puts it back."><i class="fas fa-paintbrush"></i> Brush</button>
+      <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}</button>
+      {{/if}}
+      {{#if showMore}}
+      <button type="button" data-action="hxtMore" class="sde-import-secondary sde-hxt-more-btn" aria-expanded="{{moreOpen}}" title="Map size, re-sample, import, export, the reference tile and Clear">More</button>
+      {{/if}}
+      <span class="sde-hxt-stat" data-hxt-progress>{{progress}}</span>
+    </div>
+    {{#if showMore}}
+    <div class="sde-hxt-more-panel" {{#unless moreOpen}}hidden{{/unless}}>
+        <div class="sde-hxt-more-row">
+        {{#if sampled}}
+        <button type="button" data-action="hxtSample" class="sde-import-secondary" title="Read the pictures from the scene image again; every tag is kept"><i class="fas fa-crop-simple"></i> Read the map again</button>
+        {{/if}}
         <button type="button" data-action="hxtImport" class="sde-import-secondary" title="Import tags from a CSV (hex_id, tags) or a JSON exported here"><i class="fas fa-file-import"></i> Import</button>
         <button type="button" data-action="hxtExport" class="sde-import-secondary" title="Download this scene's tags as JSON"><i class="fas fa-file-export"></i> Export</button>
         {{#if origin}}
         <button type="button" data-action="hxtReference" class="sde-import-secondary" title="Put this map image on another hex scene as a hidden, locked tile for tracing rivers and roads"><i class="fas fa-layer-group"></i> Reference tile</button>
         <button type="button" data-action="hxtClearTags" class="sde-import-secondary" title="Remove every tag and the anchor from this scene"><i class="fas fa-eraser"></i> Clear</button>
         {{/if}}
-      </details>
+        </div>
+        {{#if origin}}
+        <div class="sde-hxt-more-row">
+        <span class="sde-hxt-muted"><i class="fas fa-anchor"></i> hex <strong>{{originText}}</strong></span>
+        <label>Map size <input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="cols" class="sde-hxt-small"></label>
+        <label>× <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="rows" class="sde-hxt-small"></label>
+        <label title="The columns that sit higher have their first row cut in half by the print's frame. On maps like the Western Reaches that half cell is the margin the column labels are printed in, not map."><input type="checkbox" data-hxt-skip-top {{#if skipTopRow}}checked{{/if}}> top row is frame</label>
+        <button type="button" data-action="hxtSetBounds" class="sde-import-secondary sde-hxt-inline">Apply</button>
+        </div>
+      <p class="sde-hxt-muted">Cells past the map's columns or rows (margins, legend) are skipped.</p>
       {{/if}}
-      <span class="sde-hxt-stat" data-hxt-progress>{{progress}}</span>
     </div>
+    {{/if}}
   </header>
 
   {{#if error}}<p class="sde-hxt-error"><i class="fas fa-triangle-exclamation"></i> {{error}}</p>{{/if}}
 
   {{#unless sampled}}
   {{#if origin}}
-  <p class="sde-hxt-note">This scene's grid is already aligned to the map. <strong>Sample scene</strong> reads the cells from the image in your browser, then <strong>Legend</strong> groups them by glyph so you name one card per terrain and the rest is tagged from those.</p>
+  <p class="sde-hxt-note">This scene's grid is already aligned to the map. <strong>Read the map</strong> takes a picture of every hex from the image in your browser — it decides no terrain. Then <strong>Legend</strong> sorts those pictures into groups of look-alikes and asks you to name one card per group, and <strong>Classify</strong> tags every remaining hex by whichever hex you tagged by hand it looks most like.</p>
   {{else}}
-  <p class="sde-hxt-note">Open the hex-map scene, align its grid to the map with Foundry's grid tool (set background scale Y separately for stretched prints), then <strong>Sample scene</strong>. Nothing is uploaded; cells are read from the image in your browser.</p>
+  <p class="sde-hxt-note">Open the hex-map scene, align its grid to the map with Foundry's grid tool (set background scale Y separately for stretched prints), then <strong>Read the map</strong>. Nothing is uploaded; the picture of each hex is read from the image in your browser.</p>
   {{/if}}
   {{/unless}}
+
+  {{#if report}}
+  <p class="sde-hxt-note sde-hxt-direction">
+    <i class="fas fa-chart-simple"></i> <strong>From your corrections</strong>: you have judged {{report.judged}} hexes the classifier tagged, and {{report.wrong}} of them were wrong.
+    {{#if report.retag}}
+    That is bad enough that the threshold below is not the problem — the examples it is working from are. <strong>Classify</strong> again: your {{report.wrong}} corrections become examples, and every cell you have not touched is re-tagged from them.
+    {{/if}}
+    {{#if report.wrong}}
+    <br>When it tags a hex it also says how much better its first guess was than its second — twice as good, a tenth better. The <strong>Review queue</strong> holds the hexes where that was under <strong>{{reviewMargin}}×</strong>, which is {{reviewCount}} of them, and it caught {{report.caught}}% of the mistakes you found: the rest it was confident about and still got wrong.
+    {{/if}}
+    {{#if report.suggested}}
+    Widening it to <strong>{{report.suggested}}×</strong> would have caught 90%, with {{report.suggestedCount}} hexes in the queue instead of {{reviewCount}}.
+    <button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="sde-import-secondary sde-hxt-inline">Use {{report.suggested}}×</button>
+    {{/if}}
+  </p>
+  {{/if}}
 
   {{#if origin}}{{#if sampled}}{{#unless hasLegend}}
   {{#if done}}
@@ -61,16 +99,6 @@
   <p class="sde-hxt-note sde-hxt-direction">Nothing tagged yet. <strong>Legend</strong> is the quick way: one card per glyph to name, then everything is tagged from those. The sheet below is the slow way, 40 cells at a time.</p>
   {{/if}}
   {{/unless}}{{/if}}{{/if}}
-
-  {{#if origin}}
-  <p class="sde-hxt-note">
-    <i class="fas fa-anchor"></i> Anchor: hex <strong>{{originText}}</strong>.
-    Map size <input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="cols" class="sde-hxt-small"> ×
-    <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="rows" class="sde-hxt-small"> cells
-    <button type="button" data-action="hxtSetBounds" class="sde-import-secondary sde-hxt-inline">Apply</button>
-    <span class="sde-hxt-muted">Cells past the map's columns or rows (margins, legend) are skipped.</span>
-  </p>
-  {{/if}}
 
   {{#if needsOrigin}}
   <p class="sde-hxt-note">
@@ -107,7 +135,7 @@
     <button type="button" data-action="hxtApplyLegend" class="sde-import-primary"><i class="fas fa-check"></i> Apply legend</button>
     <button type="button" data-action="hxtCancelLegend" class="sde-import-secondary">Cancel</button>
   </footer>
-  {{else}}
+  {{else if hasSheet}}
   <div class="sde-hxt-sheet">
     {{#each sheet as |c|}}
     <div class="sde-hxt-cell{{#if c.keyed}} keyed{{/if}}">

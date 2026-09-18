@@ -57,6 +57,27 @@ export function featureVector(bm, ds = 32) {
 function dist2(a, b) { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return s; }
 
 /**
+ * A phase-invariant profile was tried here and REMOVED, so it is not tried
+ * again: sorting featureVector's block means and reading them at quantiles
+ * throws the positions away and keeps how much ink and how concentrated, which
+ * is what differs between two water terrains.
+ *
+ * It separates them on its own — 1-NN on the profile alone told ocean from
+ * arctic sea on 204 hand-tagged Western Reaches cells at 99.5%, against an
+ * 82.4% majority baseline — and it still did not fix the thing it was added
+ * for. Mean Legend card purity went 98.3% to 97.9% at the shipped k of 32, and
+ * a sweep of k 32/48/64 against weights 0 and 5.66 moved the mean between 98.3
+ * and 98.9 while the WORST card got worse with more cards (70% to 52%). The
+ * mixed card is not a feature problem: 1-NN separates these terrains at 100%,
+ * and k-means still puts them in one cluster because the variation within a
+ * water terrain is bigger than the difference between two of them, and ocean
+ * is a small minority that never earns its own centroid.
+ *
+ * What was kept instead is legend.mjs cardSamples: a card that holds two things
+ * now SHOWS both, which is the only measured lever on the actual failure.
+ */
+
+/**
  * The pixels that count: inside the hex and outside the map's fixed furniture
  * (the printed label, found from every third bitmap). Shared with legend.mjs.
  * @returns {Uint8Array}
@@ -299,5 +320,79 @@ export function compareTags(cells, truth, { sources } = {}) {
     cells: n, terrainAccuracy: pct(terrainOk, n),
     river: { precision: pct(pr.river.tp, pr.river.tp + pr.river.fp), recall: pct(pr.river.tp, pr.river.tp + pr.river.fn) },
     path: { precision: pct(pr.path.tp, pr.path.tp + pr.path.fp), recall: pct(pr.path.tp, pr.path.tp + pr.path.fn) },
+  };
+}
+
+/**
+ * How well does the model tell this map's terrains apart, judged only by the
+ * hexes the GM tagged themselves?
+ *
+ * Two numbers, because they fail independently and the difference between them
+ * is the diagnosis:
+ *
+ *   • `nearest` — leave-one-out 1-NN over the hand tags. This is what Classify
+ *     does, so it says whether the FEATURE can separate the terrains at all.
+ *   • `groups` — how pure the Legend's cards are, measured against the same
+ *     hand tags. A card is one question put to the GM, so a card holding two
+ *     terrains gets one answer and mislabels the other one wholesale.
+ *
+ * Measured on the Western Reaches on 2026-09-18: nearest 99.3%, and yet one
+ * card of 147 cells was 70% arctic sea and 30% ocean with a core drawn
+ * entirely from the ocean side — 111 wrong cells from one card, invisible on
+ * its four pictures. The feature separates them locally and not globally: the
+ * variation WITHIN a water terrain (where the waves sit) is larger than the
+ * difference BETWEEN two water terrains (a few specks of ice).
+ *
+ * @param {Array<{num:number, tag:string, vec:Float32Array}>} labelled  the GM's own tags
+ * @param {Array<{members:number[], core?:number[]}>} [clusters]  the Legend's cards, if built
+ * @returns {{nearest:{judged:number, right:number, accuracy:number|null, confusion:Array<[string,number]>},
+ *   groups:{cards:number, judged:number, impure:Array<object>, meanPurity:number|null}|null}}
+ */
+export function scoreClassifier(labelled, clusters = null) {
+  const pct = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : null);
+  let right = 0;
+  const confusion = new Map();
+  for (const a of labelled) {
+    let best = null, bestD = Infinity;
+    for (const b of labelled) {
+      if (b === a) continue;
+      const d = dist2(a.vec, b.vec);
+      if (d < bestD) { bestD = d; best = b.tag; }
+    }
+    if (best === a.tag) right++;
+    else confusion.set(`${a.tag}→${best}`, (confusion.get(`${a.tag}→${best}`) ?? 0) + 1);
+  }
+  const nearest = {
+    judged: labelled.length, right, accuracy: pct(right, labelled.length),
+    confusion: [...confusion].sort((p, q) => q[1] - p[1]).slice(0, 8),
+  };
+  if (!clusters?.length) return { nearest, groups: null };
+
+  const byNum = new Map(labelled.map((l) => [l.num, l.tag]));
+  const cards = [], impure = [];
+  for (const [i, c] of clusters.entries()) {
+    const mix = new Map(), coreMix = new Map();
+    for (const n of c.members ?? []) { const t = byNum.get(n); if (t) mix.set(t, (mix.get(t) ?? 0) + 1); }
+    for (const n of c.core ?? []) { const t = byNum.get(n); if (t) coreMix.set(t, (coreMix.get(t) ?? 0) + 1); }
+    const known = [...mix.values()].reduce((a, b) => a + b, 0);
+    if (!known) continue;
+    const top = [...mix.entries()].sort((p, q) => q[1] - p[1])[0];
+    const purity = pct(top[1], known);
+    cards.push(purity);
+    // A card the GM cannot see is mixed: its core says one thing, its members another.
+    if (known >= 4 && purity < 90) {
+      impure.push({
+        card: i, size: c.size ?? c.members?.length ?? 0, judged: known, purity,
+        mix: Object.fromEntries(mix), core: Object.fromEntries(coreMix),
+        coreMisses: [...mix.keys()].filter((t) => !coreMix.has(t)),
+      });
+    }
+  }
+  return {
+    nearest,
+    groups: {
+      cards: cards.length, judged: byNum.size, impure,
+      meanPurity: cards.length ? Math.round(cards.reduce((a, b) => a + b, 0) / cards.length * 10) / 10 : null,
+    },
   };
 }

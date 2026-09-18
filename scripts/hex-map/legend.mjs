@@ -35,7 +35,7 @@ export const LEGEND_DEFAULTS = {
   core: 12,     // members nearest the centroid that become hand tags
   restarts: 3,  // k-means runs, lowest inertia kept
   iters: 12,    // Lloyd iterations per run
-  samples: 4,   // member pictures per card, spread over the typical part of the group
+  samples: 4,   // member pictures per card, one per group within the card
 };
 
 function dist2(a, b) { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return s; }
@@ -87,6 +87,65 @@ export async function kmeans(vecs, k, { iters = 12, rng = lcg(1), onProgress } =
  * @param {Partial<typeof LEGEND_DEFAULTS> & {onProgress?:(text:string)=>Promise<void>|void}} [opts]
  * @returns {Promise<{clusters: Array<{size:number, members:number[], core:number[], samples:number[]}>}>}
  */
+/**
+ * The pictures on a card: one per group WITHIN the card, not the first few by
+ * distance to its centre.
+ *
+ * A card is one question with one answer, so a card holding two things has to
+ * look like it holds two things. Picking pictures from the middle of the card
+ * guarantees the opposite: on the Western Reaches a card of 147 cells was 70%
+ * arctic sea, and every picture on it came from the ocean side, so naming it
+ * "ocean" was the only thing its pictures invited. Sub-grouping and showing a
+ * medoid of each puts an arctic-sea picture on that card.
+ *
+ * The medoid, not the outlier: a lone odd member forms its own small sub-group
+ * and is shown last or not at all, which was the complaint that moved these
+ * pictures to the middle of the card in the first place.
+ * @param {number[]} idx      indices into `vecs` of this card's members, nearest-centroid first
+ * @param {Float32Array[]} vecs
+ * @param {number[]} members  the same cells' published numbers, same order
+ * @param {number} want       how many pictures
+ * @returns {number[]}
+ */
+export function cardSamples(idx, vecs, members, want = 4) {
+  const n = Math.max(1, want);
+  if (idx.length <= n) return members.slice(0, n);
+  // Farthest-point seeding over the card, then each seed's nearest member:
+  // it finds the card's modes without a second k-means pass.
+  const seeds = [0];
+  while (seeds.length < n) {
+    let far = -1, farD = -1;
+    for (let i = 0; i < idx.length; i++) {
+      let d = Infinity;
+      for (const s of seeds) d = Math.min(d, dist2(vecs[idx[i]], vecs[idx[s]]));
+      if (d > farD) { farD = d; far = i; }
+    }
+    if (far < 0) break;
+    seeds.push(far);
+  }
+  // Each seed stands for the members closest to it; show that group's medoid,
+  // biggest group first, so one stray member never takes a picture from a mode.
+  const owned = seeds.map(() => []);
+  for (let i = 0; i < idx.length; i++) {
+    let bestS = 0, bestD = Infinity;
+    seeds.forEach((s, k) => { const d = dist2(vecs[idx[i]], vecs[idx[s]]); if (d < bestD) { bestD = d; bestS = k; } });
+    owned[bestS].push(i);
+  }
+  return owned
+    .filter((group) => group.length)
+    .sort((a, b) => b.length - a.length)
+    .map((group) => {
+      let bestI = group[0], bestSum = Infinity;
+      for (const i of group) {
+        let sum = 0;
+        for (const j of group) sum += dist2(vecs[idx[i]], vecs[idx[j]]);
+        if (sum < bestSum) { bestSum = sum; bestI = i; }
+      }
+      return members[bestI];
+    })
+    .slice(0, n);
+}
+
 export async function buildLegend(cells, opts = {}) {
   const T = { ...LEGEND_DEFAULTS, ...opts };
   const cs = (cells ?? []).filter((c) => c?.bitmap);
@@ -105,13 +164,7 @@ export async function buildLegend(cells, opts = {}) {
   const clusters = groups.filter((g) => g.length).map((g) => {
     g.sort((a, b) => a[1] - b[1]);
     const members = g.map(([i]) => cs[i].num);
-    // Pictures come from the typical part of the group (up to the 60th
-    // percentile by distance): the farthest member was shown once as a
-    // warning sign and read as "these are not the same"; odd members are the
-    // classifier's job, not the GM's.
-    const at = (f) => members[Math.round(f * (members.length - 1))];
-    const samples = [...new Set(Array.from({ length: Math.max(1, T.samples) }, (_, s) => at(T.samples > 1 ? 0.6 * s / (T.samples - 1) : 0)))];
-    return { size: members.length, members, core: members.slice(0, T.core), samples };
+    return { size: members.length, members, core: members.slice(0, T.core), samples: cardSamples(g.map(([i]) => i), vecs, members, T.samples) };
   });
   clusters.sort((a, b) => b.size - a.size);
   return { clusters };

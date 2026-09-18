@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeBitmap } from "../scripts/hex-map/bitmap.mjs";
-import { kmeans, buildLegend } from "../scripts/hex-map/legend.mjs";
+import { kmeans, buildLegend, cardSamples } from "../scripts/hex-map/legend.mjs";
 
 // The classifier test's invented glyphs on a 64×64 cell: a filled blob, a chevron, a dot grid.
 const W = 64, H = 64;
@@ -65,9 +65,7 @@ test("buildLegend groups cells by glyph, biggest first, every cell once, determi
     assert.ok(c.core.length <= 12 && c.core.every((n) => c.members.includes(n)));
     assert.deepEqual(c.core, c.members.slice(0, c.core.length), "the core is the members nearest the centroid");
     assert.ok(c.samples.length >= 1 && c.samples.length <= 4 && c.samples.every((n) => c.members.includes(n)));
-    assert.equal(c.samples[0], c.members[0], "the first picture is the medoid");
-    const lastIndex = c.members.indexOf(c.samples.at(-1));
-    assert.ok(lastIndex <= Math.round(0.6 * (c.size - 1)), `pictures come from the typical part of the group (index ${lastIndex} of ${c.size})`);
+    assert.equal(new Set(c.samples).size, c.samples.length, "no picture is shown twice");
   }
   assert.equal(seen.size, input.length, "every cell lands in a cluster");
   for (let i = 1; i < clusters.length; i++) assert.ok(clusters[i - 1].size >= clusters[i].size, "biggest first");
@@ -86,4 +84,32 @@ test("buildLegend on nothing, on one cell, and with a progress callback", async 
   await buildLegend(cells().slice(0, 12), { k: 2, restarts: 2, onProgress: (t) => { texts.push(t); } });
   assert.ok(texts.length >= 2 && texts[0].startsWith("Sorting cells by glyph… pass 1 of 2"), texts[0]);
   assert.ok(texts.some((t) => t.includes("pass 2 of 2")));
+});
+
+
+test("cardSamples: a card holding two kinds of cell shows both, and a stray member takes no picture", () => {
+  // One card, two modes: the Western Reaches' 147-cell card in miniature. The
+  // old rule — the first few by distance to the card's centre — showed four of
+  // mode A and nothing of mode B, so naming the card could not describe B.
+  const at = (x) => Float32Array.from([x, 0]);
+  const vecs = [];
+  const members = [];
+  for (let i = 0; i < 10; i++) { vecs.push(at(0 + i * 0.01)); members.push(100 + i); }   // mode A
+  for (let i = 0; i < 6; i++) { vecs.push(at(5 + i * 0.01)); members.push(200 + i); }    // mode B
+  vecs.push(at(40)); members.push(999);                                                  // one stray
+  const idx = members.map((_, i) => i);
+  const picks = cardSamples(idx, vecs, members, 4);
+  assert.equal(picks.length, 4);
+  assert.ok(picks.some((n) => n >= 100 && n < 200), "a picture from the bigger mode");
+  assert.ok(picks.some((n) => n >= 200 && n < 300), "and one from the mode that would otherwise be invisible");
+  // Forcing four pictures onto a card with two modes splits the bigger mode in
+  // two, so which picture is first depends on the spacing; what must hold is
+  // that no mode is invisible and the stray never takes more than one slot.
+  assert.equal(picks.filter((n) => n === 999).length <= 1, true, "the stray is at most one picture, never the card's story");
+  assert.equal(new Set(picks).size, picks.length, "no picture twice");
+});
+
+test("cardSamples: a card with fewer members than pictures just shows them", () => {
+  const vecs = [Float32Array.from([0]), Float32Array.from([1])];
+  assert.deepEqual(cardSamples([0, 1], vecs, [7, 8], 4), [7, 8]);
 });

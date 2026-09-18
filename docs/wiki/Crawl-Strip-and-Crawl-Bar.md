@@ -48,7 +48,7 @@ itself when there are no active members to show.
 | **Next Round** | Advances round and refills movement budgets | — |
 | **Add Tokens** | Adds selected tokens to crawl roster | **Reset Initiative** (clears roll order) |
 | **Combat** | Starts a combat encounter from current state | — |
-| **Encounter** | Opens [Encounter Roller](Random-Encounters.md) | Encounter menu (check, threshold, table) |
+| **Encounter** | Opens [Encounter Roller](Random-Encounters.md) | Encounter menu (check, threshold, frequency, table) |
 | **Forge & Loot** | Opens tools menu ([Forge & Loot](Forge-and-Loot.md), [Shop](Merchant-Shop.md), [XP](Party-XP.md), [Downtime](Downtime.md), [Renown](Renown.md)) | Same menu |
 | **Importer** | Opens [Importer Hub](Importer-Hub.md) | — |
 | **Start / End** | Starts or ends the crawl session | — |
@@ -130,8 +130,9 @@ Clicking a row selects that token; players get a pan-to control on their row.
 
 Differences from combat:
 
-- **Next round** advances the crawl round, rolls wandering encounter checks,
-  and refills movement budgets.
+- **Next round** advances the crawl round, rolls the wandering encounter check
+  when [Check Frequency](Random-Encounters.md#setting-the-frequency) says the
+  round is due, and refills movement budgets.
 - **Previous round** adjusts the round counter back without reverting rolls.
 
 ---

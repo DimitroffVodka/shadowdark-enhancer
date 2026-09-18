@@ -19,12 +19,14 @@
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
+import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
 import { cellNumber } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, OVERLAYS } from "./tag-store.mjs";
+import { FIXES_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, accuracyReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
-import { createClassifier, compareTags, parseTruthCsv } from "./classify.mjs";
+import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier } from "./classify.mjs";
 import { buildLegend } from "./legend.mjs";
 import { TERRAIN_TAGS } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
@@ -54,12 +56,50 @@ export function compareSceneTags(scene, csvText, { sources } = {}) {
   return compareTags(state.cells, parseTruthCsv(csvText), { sources });
 }
 
+/**
+ * Score the model on this scene against the GM's own tags, and on the Legend's
+ * cards when they are up. Exposed as game.shadowdarkEnhancer.hexMaps.score();
+ * developer tool, ships no data, reads only what the GM tagged.
+ *
+ * This is the loop that was missing: a correction improved the GM's scene and
+ * nothing measured whether the MODULE had got any better at the job. Run it
+ * before and after a change to classify.mjs or legend.mjs.
+ */
+export async function scoreSceneModel({ app = null } = {}) {
+  let enabled = false;
+  try { enabled = !!globalThis.game?.settings?.get?.(MODULE_ID, "hexMapsDevTools"); } catch (_err) { /* not registered yet */ }
+  if (!globalThis.game?.user?.isGM || !enabled) { globalThis.ui?.notifications?.warn("Hex map developer tools are disabled."); return null; }
+  const tagger = app ?? [...foundry.applications.instances.values()].find((a) => a.id === "sde-hex-tagger");
+  if (!tagger?._cells?.length) { ui.notifications?.warn("Open the Hex Tagger and read the map first."); return null; }
+  await tagger._ensureBitmaps();
+  const hand = [];
+  for (const [num, c] of tagger._state.cells) {
+    if (c.source === "auto" || !c.terrain) continue;
+    const bm = tagger._bitmaps.get(Number(num));
+    if (bm) hand.push({ num: Number(num), tag: c.terrain, bm });
+  }
+  if (hand.length < 10) { ui.notifications?.warn("Tag some hexes by hand first: they are the only ground truth there is."); return null; }
+  const { cellMasks } = await import("./bitmap.mjs");
+  const masks = cellMasks(hand[0].bm.w, hand[0].bm.h);
+  const keep = keepMask(hand.map((h) => h.bm), masks);
+  const labelled = hand.map((h) => {
+    const data = new Uint8Array(h.bm.data.length);
+    for (let p = 0; p < data.length; p++) data[p] = h.bm.data[p] && keep[p] ? 1 : 0;
+    return { num: h.num, tag: h.tag, vec: featureVector({ w: h.bm.w, h: h.bm.h, data }, 32) };
+  });
+  const score = scoreClassifier(labelled, tagger._legend);
+  console.log(`${MODULE_ID} | model score`, score);
+  return score;
+}
+
 export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-hex-tagger",
     classes: ["shadowdark", "sde-hex-tagger"],
     window: { title: "Hex Tagger", icon: "fa-solid fa-map-location-dot", resizable: true },
-    position: { width: 1000, height: 780 },
+    // Height follows the content: an unsampled scene is a few lines, a sheet is
+    // a sheet. A fixed 780 opened every scene as a mostly empty black box.
+    position: { width: 980, height: "auto" },
     actions: {
       hxtSample:       function (...a) { return this._onSample(...a); },
       hxtNextSheet:    function (...a) { return this._onNextSheet(...a); },
@@ -74,6 +114,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtReference:    function (...a) { return this._onReferenceTile(...a); },
       hxtLegend:       function (...a) { return this._onLegend(...a); },
       hxtPinKeyed:     function (...a) { return this._onPinKeyed(...a); },
+      hxtShowTags:     function (...a) { return this._onShowTags(...a); },
+      hxtUseMargin:    function (...a) { return this._onUseMargin(...a); },
+      hxtBrush:        function (...a) { return this._onBrush(...a); },
+      hxtMore:         function (...a) { return this._onMore(...a); },
       hxtApplyLegend:  function (...a) { return this._onApplyLegend(...a); },
       hxtCancelLegend: function () { this._legend = null; this.render(); },
     },
@@ -97,6 +141,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _onRender(context, options) {
     super._onRender(context, options);
+
     // The free-text terrain box shows only for "other…".
     for (const sel of this.element.querySelectorAll("select[data-hxt-terrain], select[data-hxt-legend]")) {
       sel.addEventListener("change", () => {
@@ -133,7 +178,28 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _legend = null;
   _autoLegend = false;
 
+  /**
+   * Sampled cells by scene id, kept for the life of the page. They come from
+   * reading the scene's image, which takes about fourteen seconds on a print
+   * this size, and nothing about them changes while the image does not — so
+   * closing the window must not throw them away.
+   * @type {Map<string, {geom:object, cells:object[], sampler:object}>}
+   */
+  static _samples = new Map();
+
+  /** Take back this scene's samples if a previous window read them. */
+  _restoreSamples() {
+    const cached = HexTaggerApp._samples.get(this._scene()?.id);
+    if (!cached || this._cells.length) return false;
+    this._geom = cached.geom; this._cells = cached.cells; this._sampler = cached.sampler;
+    this._renumber();
+    return true;
+  }
+
   _scene() { return canvas?.scene ?? null; }
+
+  /** The scene's correction log: the review margin and the evidence behind it. */
+  _log() { return decodeFixes(this._scene()?.getFlag(MODULE_ID, FIXES_FLAG)); }
 
   _loadState() {
     const scene = this._scene();
@@ -148,12 +214,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._loadState();
     this._geom = null; this._sampler = null; this._cells = [];
     this._numbered = new Map(); this._bitmaps.clear(); this._sheet = []; this._legend = null;
+    this._restoreSamples();
     return true;
   }
 
   _requireCurrentScene() {
     if (!this._syncScene()) return true;
-    ui.notifications?.warn("The active scene changed. Sample it before continuing.");
+    ui.notifications?.warn("The active scene changed. Read the map before continuing.");
     this.render();
     return false;
   }
@@ -161,11 +228,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /**
    * Replace the stored flag wholesale. setFlag would MERGE the object, so a
    * cell cleared in the app (or a dropped bounds block) would survive in the
-   * database — found on the 2026-09-17 live check. `recursive: false` makes
-   * the update overwrite the `hexTags` object instead of merging into it.
+   * database — found on the 2026-09-17 live check. replaceModuleFlag deletes
+   * the key and sets it, which replaces it without deleting the module's OTHER
+   * flags on the scene the way `recursive: false` does (module-flags.mjs).
    */
   async _saveState() {
-    await this._scene()?.update({ [`flags.${MODULE_ID}.${TAGS_FLAG}`]: encodeTags(this._state) }, { recursive: false });
+    const scene = this._scene();
+    if (scene) await replaceModuleFlag(scene, TAGS_FLAG, encodeTags(this._state));
   }
 
   _originForGeometry() {
@@ -211,6 +280,57 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     ui.notifications?.info(`Keyed hexes on "${this._scene()?.name}": ${bits.join(", ")}. Each note opens its page of "${res.journal.name}".`);
   }
 
+  /**
+   * Take the review margin the GM's own corrections suggest. Everything that
+   * asks "is this cell worth a second look" reads that number: the Review
+   * sheet, the count in the note, and the overlay's ring.
+   */
+  async _onUseMargin(event, target) {
+    if (!this._requireCurrentScene()) return;
+    const margin = Number(target?.dataset?.margin);
+    if (!Number.isFinite(margin)) return;
+    const scene = this._scene();
+    const log = this._log();
+    log.margin = margin;
+    await replaceModuleFlag(scene, FIXES_FLAG, encodeFixes(log));
+    this._mode = "review";
+    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: margin });
+    ui.notifications?.info(`Cells under a margin of ${margin.toFixed(2)} now go to the review queue.`);
+    this.render();
+  }
+
+  /**
+   * More: the rarely used half, in the normal flow under the header. A floating
+   * panel was clipped by the window's content box — the window is only as tall
+   * as its content, so there is nothing below the button to hang into. Toggling
+   * it re-measures the window instead of re-rendering the whole sheet.
+   */
+  _onMore(event, target) {
+    const panel = this.element.querySelector(".sde-hxt-more-panel");
+    if (!panel) return;
+    this._moreOpen = panel.hidden;
+    panel.hidden = !panel.hidden;
+    target?.setAttribute("aria-expanded", String(this._moreOpen));
+    target?.classList.toggle("sde-hxt-more-on", this._moreOpen);
+    this.setPosition({ height: "auto" });
+  }
+
+  /** The brush: pick a terrain once, then paint the wrong hexes on the map. */
+  async _onBrush() {
+    if (!this._requireCurrentScene()) return;
+    (await import("./hex-brush-app.mjs")).HexBrushApp.open();
+    this._overlayShown = true;
+    this.render();
+  }
+
+  /** The tags drawn on the map itself for review (tag-overlay.mjs); the button toggles. */
+  async _onShowTags() {
+    if (!this._requireCurrentScene()) return;
+    const { HexTagOverlay } = await import("./tag-overlay.mjs");
+    this._overlayShown = HexTagOverlay.toggle();
+    this.render();
+  }
+
   _keyedNumbers() {
     const e = this._entries.find((x) => x.uuid === this._entryUuid);
     if (!e) return new Set();
@@ -223,6 +343,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     this._syncScene();
     if (!this._state) this._loadState();
+    this._restoreSamples();
     if (!this._entries.length) await this._loadEntries();
     const scene = this._scene();
     const state = this._state;
@@ -276,17 +397,38 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // What to do next: nothing, once every numbered cell is tagged; the review queue is optional.
     const summary = summarize(state, total);
     let reviewCount = 0;
-    for (const n of this._numbered.keys()) { const c = state.cells.get(String(n)); if (c && c.source === "auto" && (c.review || (c.margin !== undefined && c.margin < 1.3))) reviewCount++; }
+    const reviewMargin = this._log().margin;
+    for (const n of this._numbered.keys()) { const c = state.cells.get(String(n)); if (c && c.source === "auto" && (c.review || (c.margin !== undefined && c.margin < reviewMargin))) reviewCount++; }
+    // What the GM's own corrections say about that threshold (tag-corrections.mjs).
+    const report = accuracyReport(this._log());
+    // What widening it would COST: the queue's size at the suggested margin.
+    // "Use 2.3" means nothing without "and the queue goes from 525 to 1514".
+    if (report.suggested) {
+      let n = 0;
+      for (const num of this._numbered.keys()) {
+        const c = state.cells.get(String(num));
+        if (c && c.source === "auto" && (c.review || (c.margin !== undefined && c.margin < report.suggested))) n++;
+      }
+      report.suggestedCount = n;
+    }
+    // Exactly one button is the next thing to do, and it is the only primary
+    // one on screen; the rest are there when you want them. Patrick, on the
+    // old header: "so cluttered and I honestly have no clue what it is trying
+    // to do" — six primary buttons, five of which could not act yet.
+    const done = total > 0 && summary.untagged === 0;
+    const primary = done ? "build" : (sampled && origin ? "legend" : "sample");
     return {
       legend, hasLegend: !!legend,
-      done: total > 0 && summary.untagged === 0, reviewCount, noCrawl: this._entries.length > 0 && !this._entryUuid,
+      primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
+      showMore: sampled || !!origin, moreOpen: !!this._moreOpen,
+      done, reviewCount, reviewMargin: reviewMargin.toFixed(2), report: report.judged ? report : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
       sceneName: scene?.name ?? "(no scene)", sampled, cellCount: this._cells.length, numberedCount: total,
       summary, origin, originText: origin ? `${String(origin.num).padStart(4, "0")} at grid ${origin.i},${origin.j}` : "",
-      boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "",
+      boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: origin?.bounds?.firstRow === 1,
       mode: this._mode, modes: [["random", "Untagged cells"], ["keyed", "Keyed hexes first"], ["review", "Review queue"]].map(([v, l]) => ({ value: v, label: l, selected: v === this._mode })),
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
-      overlays: OVERLAYS,
+      overlays: OVERLAYS, overlayShown: !!this._overlayShown,
       canClassify: !!origin && summarize(state, total).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
     };
   }
@@ -318,6 +460,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
     const sens = parseFloat(this.element.querySelector("input[data-hxt-sensitivity]")?.value);
     this._sensitivity = Number.isFinite(sens) && sens > 0 ? sens : 1;
+    // Sampling is a precondition of classifying, not a decision: do it rather
+    // than hide the button behind it. Patrick, with 111 corrections in hand and
+    // the note telling him to classify: "I don't see any way to run classify."
+    if (!this._cells.length && !(await this._onSample())) return;
     await this._classify();
   }
 
@@ -330,7 +476,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _classify(overlayOnly = new Set()) {
     const keyed = this._keyedNumbers();
     const gm = [...this._state.cells.entries()].filter(([num, c]) => c.source !== "auto" && !keyed.has(Number(num)));
-    if (!gm.length) { ui.notifications?.warn("Tag a sheet by hand first; those cells are the examples."); return false; }
+    if (!gm.length) { ui.notifications?.warn("Tag some hexes by hand first: your own tags are the examples Classify works from."); return false; }
     await this._ensureBitmaps();
     if (!this._requireCurrentScene()) return false;
     // Keyed hexes carry a star or settlement icon over their glyph, which the
@@ -359,10 +505,20 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     if (!this._requireCurrentScene()) return false;
     await this._saveState();
+    // The verdicts describe the run that has just been replaced: its guesses and
+    // its margins are gone, so keeping them would report the accuracy of a
+    // classifier that no longer exists — and keep advising a re-classify that
+    // has already happened. The corrections themselves are not lost; they are
+    // the hand tags this run was built from. The review margin is kept.
+    const log = this._log();
+    if (log.fixes.size || log.seen.size) {
+      const fresh = { ...emptyLog(), margin: log.margin };
+      await replaceModuleFlag(this._scene(), FIXES_FLAG, encodeFixes(fresh));
+    }
     this._setProgress("");
     this._mode = "review";
-    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review" });
-    ui.notifications?.info(`Classified ${auto} cells from ${exemplars.length} hand-tagged examples; ${review} queued for review.`);
+    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: this._log().margin });
+    ui.notifications?.info(`Tagged ${auto} hexes from your ${exemplars.length} hand-tagged examples; ${review} went to the Review queue.`);
     for (const w of clf.warnings) ui.notifications?.warn(w);
     this.render();
     return true;
@@ -377,7 +533,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
     if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
-    if (!this._numbered.size) { ui.notifications?.warn("Sample the scene first."); return; }
+    if (!this._numbered.size) { ui.notifications?.warn("Read the map first."); return; }
     await this._ensureBitmaps();
     if (!this._requireCurrentScene()) return;
     const keyed = this._keyedNumbers();
@@ -411,7 +567,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await this._saveState();
     this._legend = null;
     if (!(await this._classify(cores))) {
-      this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() });
+      this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
       this.render();
     }
   }
@@ -427,32 +583,38 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._entryUuid = root?.querySelector("select[data-hxt-entry]")?.value ?? this._entryUuid;
   }
 
+  /** @returns {Promise<boolean>} whether the scene's cells are now in hand */
   async _onSample() {
     this._syncScene();
     this._error = "";
     const geom = sceneCells(canvas);
-    if (geom.error) { this._error = geom.error; this.render(); return; }
+    if (geom.error) { this._error = geom.error; this.render(); return false; }
     try {
       const image = await sourceImage(canvas);
-      if (!this._requireCurrentScene()) return;
+      if (!this._requireCurrentScene()) return false;
       this._sampler = new CellSampler(image, geom, { size: BITMAP_SIZE });
       this._geom = geom; this._cells = geom.cells; this._bitmaps = new Map(); this._legend = null;
       if (!this._cells.length) throw new Error("No grid cells overlap the background image.");
       this._sampler.bitmap(this._cells[0]);            // tainted-canvas check: throws on a cross-origin image
     } catch (err) {
       this._error = /SecurityError|tainted|insecure/i.test(String(err)) ? "The background image is not same-origin, so its pixels cannot be read. Put the file in your Foundry data directory." : String(err?.message ?? err);
-      this._cells = []; this.render(); return;
+      this._cells = []; this.render(); return false;
     }
     this._loadState(); this._renumber();
-    if (this._state.origin) this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() });
+    // Keep them for the next time this window is opened on this scene: they are
+    // read from the image, not from the document, so a fresh instance would
+    // otherwise show no Legend and no Classify until a 14-second re-read.
+    HexTaggerApp._samples.set(this._scene()?.id, { geom, cells: this._cells, sampler: this._sampler });
+    if (this._state.origin) this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
     this.render();
+    return true;
   }
 
   async _onNextSheet() {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
-    if (!this._numbered.size) { ui.notifications?.warn("Sample the scene and set the anchor number first."); return; }
-    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() });
+    if (!this._numbered.size) { ui.notifications?.warn("Read the map and set the anchor number first."); return; }
+    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
     if (!this._sheet.length) ui.notifications?.info(this._mode === "random" ? "Every numbered cell is tagged." : "Nothing left in that mode.");
     this.render();
   }
@@ -467,10 +629,26 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const other = this.element.querySelector(`input[data-hxt-terrain-other][data-num="${num}"]`)?.value.trim();
       answers[num] = { terrain: sel.value === "__other" ? other : sel.value, overlays };
     }
-    applySheet(this._state, answers);
+    // Every cell on the sheet was looked at, so every one is a verdict on the
+    // classifier — the corrections AND the ones left alone (tag-corrections.mjs).
+    const verdicts = applySheet(this._state, answers);
     await this._saveState();
-    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() });
+    await this._recordVerdicts(verdicts);
+    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
     this.render();
+  }
+
+  /**
+   * Keep what the GM judged, before the classifier's guess is overwritten.
+   * Its own scene flag, so the tag flag's wholesale write never touches it.
+   */
+  async _recordVerdicts(transitions) {
+    const scene = this._scene();
+    if (!scene) return;
+    const log = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG));
+    const { judged } = recordEdits(log, transitions);
+    if (!judged) return;
+    await replaceModuleFlag(scene, FIXES_FLAG, encodeFixes(log));
   }
 
   /** Anchor: the GM typed the printed number of one cell on the alignment sheet. */
@@ -486,7 +664,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._state.origin = { i, j, q: cell.cube.q, r: cell.cube.r, num, shifted, bounds: this._state.origin?.bounds ?? null };
     await this._saveState();
     this._renumber();
-    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() });
+    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
     this.render();
   }
 
@@ -496,13 +674,28 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
     const cols = parseInt(this.element.querySelector("input[data-hxt-cols]")?.value, 10);
     const rows = parseInt(this.element.querySelector("input[data-hxt-rows]")?.value, 10);
+    const skipTop = !!this.element.querySelector("input[data-hxt-skip-top]")?.checked;
     // The lowered columns keep ending the same number of rows short (the image flow found that).
     const old = this._state.origin.bounds;
     const short = old?.rowsLowered && old.rows ? old.rows - old.rowsLowered : 0;
-    this._state.origin.bounds = (cols > 0 && rows > 0) ? { cols, rows, ...(short > 0 && rows > short ? { rowsLowered: rows - short } : {}) } : null;
-    await this._saveState();
+    this._state.origin.bounds = (cols > 0 && rows > 0)
+      ? { cols, rows, ...(short > 0 && rows > short ? { rowsLowered: rows - short } : {}), ...(skipTop ? { firstRow: 1 } : {}) }
+      : null;
     this._renumber();
+    // Cells that just stopped being on the map keep no tags: they are frame, and
+    // leaving them would send margin to Extras and keep serving them for review.
+    //
+    // ONLY when the scene has been sampled. Without its cells _numbered is empty,
+    // so "not numbered any more" would mean every cell on the map, and applying
+    // bounds from a freshly opened tagger would delete the lot.
+    let dropped = 0;
+    if (this._cells.length) {
+      for (const num of [...this._state.cells.keys()]) if (!this._numbered.has(Number(num))) { this._state.cells.delete(num); dropped++; }
+    }
+    await this._saveState();
     this._sheet = this._sheet.filter((n) => this._numbered.has(n));
+    if (dropped) ui.notifications?.info(`${dropped} cells are no longer on the map; their tags were dropped.`);
+    else if (!this._cells.length) ui.notifications?.info("Bounds set. Read the map to drop the tags of any hex this puts outside it.");
     this.render();
   }
 

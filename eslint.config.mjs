@@ -50,6 +50,9 @@ export default [
         fromUuid: "readonly",
         fromUuidSync: "readonly",
         renderTemplate: "readonly",
+        FormDataExtended: "readonly",
+        // Foundry ships PIXI as a global; the canvas overlays draw with it.
+        PIXI: "readonly",
         shadowdark: "readonly",
         jQuery: "readonly",
         $: "readonly",
