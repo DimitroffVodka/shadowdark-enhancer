@@ -227,6 +227,17 @@
   `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
+- **The review queue is ranked, not cut off.** It used to take every hex whose
+  margin fell under a threshold and shuffle them, so a hex four times likelier
+  to be wrong than its neighbour turned up in no particular order — and the
+  mistakes the classifier was confident about were never shown at all. Now every
+  hex it tagged is in the queue, least sure first, and the sheet says roughly how
+  many of its 40 to expect to be wrong so you know when to stop. Measured on a
+  4768-hex verified map: 200 reviewed hexes find 66 mistakes where the old
+  shuffled queue found about 40, and carrying on to 1000 finds 77% of them
+  against a hard ceiling of 46% before. The margin setting now does only what it
+  always visibly did — decide which hexes get a ring on the map. (#169)
+
 - **A hex is read as a hexagon, not as the square around it.** The terrain
   feature block-averaged each cell's bounding box, and a hexagon fills only 75%
   of its box — so a quarter of every cell's description was its six

@@ -23,7 +23,7 @@ import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
 import { cellNumber, neighbours } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, OVERLAYS } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, OVERLAYS } from "./tag-store.mjs";
 import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
@@ -592,6 +592,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
       showMore: sampled || !!origin, moreOpen: !!this._moreOpen,
       done, reviewCount, reviewMargin: reviewMargin.toFixed(2), report: report.judged ? report : null,
+      // The queue is ordered worst-first, so the only question the GM has is
+      // when to stop. This answers it: what this sheet is expected to contain.
+      sheetExpected: Math.round(sheetRisk(state, this._sheet).expected),
       baseline: baseline?.checked >= 20 ? baseline : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
       sceneName: scene?.name ?? "(no scene)", sampled, cellCount: this._cells.length, numberedCount: total,
       summary, origin, originText: origin ? `${String(origin.num).padStart(4, "0")} at grid ${origin.i},${origin.j}` : "",

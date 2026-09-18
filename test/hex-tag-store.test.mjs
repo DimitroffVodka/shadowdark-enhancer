@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson , errorRate, sheetRisk } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 
 test("encode/decode round trip keeps terrain, overlays, source and margin", () => {
@@ -33,7 +33,7 @@ test("nextSheet: random mode skips tagged cells, is deterministic with a seeded 
   assert.deepEqual(a, a.slice().sort((x, y) => x - y));
 });
 
-test("nextSheet: keyed mode serves untagged keyed cells, review mode serves low-margin auto cells", () => {
+test("nextSheet: keyed mode serves untagged keyed cells, review mode ranks every auto cell worst first", () => {
   const s = emptyState();
   s.cells.set("2", { terrain: "forest", overlays: [], source: "auto", margin: 1.1 });
   s.cells.set("4", { terrain: "forest", overlays: [], source: "auto", margin: 2.0 });
@@ -41,7 +41,39 @@ test("nextSheet: keyed mode serves untagged keyed cells, review mode serves low-
   s.cells.set("6", { terrain: "forest", overlays: [], source: "gm" });
   const nums = [1, 2, 3, 4, 5, 6];
   assert.deepEqual(nextSheet(s, { nums, mode: "keyed", keyed: new Set([1, 6]) }), [1]);
-  assert.deepEqual(nextSheet(s, { nums, mode: "review" }), [2, 5]);
+
+  // Every cell the classifier decided is in the queue — the confident ones too,
+  // because that is where the errors the old cutoff never showed were hiding.
+  assert.deepEqual(nextSheet(s, { nums, mode: "review" }), [2, 4, 5]);
+  // ...but ordered: the self-flagged one, then the thin margin, then the rest.
+  assert.deepEqual(nextSheet(s, { nums, mode: "review", size: 1 }), [5]);
+  assert.deepEqual(nextSheet(s, { nums, mode: "review", size: 2 }), [2, 5]);
+  // A hex the GM has settled is never served again.
+  assert.equal(nextSheet(s, { nums, mode: "review" }).includes(6), false);
+});
+
+test("errorRate is monotone in confidence, and zero for anything a human settled", () => {
+  const rate = (cell) => errorRate(cell);
+  const auto = (margin, extra = {}) => ({ terrain: "forest", source: "auto", margin, ...extra });
+  const bands = [1.0, 1.2, 1.4, 1.8, 2.5, 9].map((m) => rate(auto(m)));
+  for (let i = 1; i < bands.length; i++) {
+    assert.ok(bands[i] < bands[i - 1], `band ${i} must be safer than the one before it`);
+  }
+  assert.equal(rate({ terrain: "forest", source: "gm" }), 0);
+  assert.equal(rate(null), 0);
+  // Flagged by the classifier, or with no margin recorded at all: treat as worst.
+  assert.equal(rate(auto(9, { review: true })), bands[0]);
+  assert.equal(rate({ terrain: "forest", source: "auto" }), bands[0]);
+});
+
+test("sheetRisk says how many of a sheet to expect to be wrong", () => {
+  const s = emptyState();
+  s.cells.set("1", { terrain: "forest", source: "auto", margin: 1.0 });   // 0.388
+  s.cells.set("2", { terrain: "forest", source: "auto", margin: 9 });     // 0.007
+  s.cells.set("3", { terrain: "forest", source: "gm" });                  // settled
+  const { expected, cells } = sheetRisk(s, [1, 2, 3]);
+  assert.equal(cells, 3);
+  assert.ok(Math.abs(expected - 0.395) < 1e-9);
 });
 
 test("applySheet writes gm answers, clears on empty terrain, and tagsForDataset reflects it", () => {

@@ -91,11 +91,11 @@
     That is bad enough that the threshold below is not the problem — the examples it is working from are. <strong>Classify</strong> again: your {{report.wrong}} corrections become examples, and every cell you have not touched is re-tagged from them.
     {{/if}}
     {{#if report.wrong}}
-    <br>When it tags a hex it also says how much better its first guess was than its second — twice as good, a tenth better. The <strong>Review queue</strong> holds the hexes where that was under <strong>{{reviewMargin}}×</strong>, which is {{reviewCount}} of them, and it caught {{report.caught}}% of the mistakes you found: the rest it was confident about and still got wrong.
+    <br>When it tags a hex it also says how much better its first guess was than its second — twice as good, a tenth better. The <strong>Review queue</strong> now shows you every hex it tagged, <strong>least sure first</strong>, so the mistakes come to the top instead of being scattered through the list. The <strong>{{reviewMargin}}×</strong> mark below only decides which hexes get a ring on the map: {{reviewCount}} of them, holding {{report.caught}}% of the mistakes you have found so far.
     {{/if}}
     {{#if report.suggested}}
-    Widening it to <strong>{{report.suggested}}×</strong> would have caught 90%, with {{report.suggestedCount}} hexes in the queue instead of {{reviewCount}}.
-    <button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="sde-import-secondary sde-hxt-inline">Use {{report.suggested}}×</button>
+    Ringing them at <strong>{{report.suggested}}×</strong> instead would mark 90% of the mistakes, at {{report.suggestedCount}} ringed hexes rather than {{reviewCount}}. It does not change the queue, only what the map draws.
+    <button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="sde-import-secondary sde-hxt-inline">Ring at {{report.suggested}}×</button>
     {{/if}}
   </p>
   {{/if}}
@@ -104,7 +104,7 @@
   {{#if done}}
   <p class="sde-hxt-note sde-hxt-direction">
     <i class="fas fa-circle-check"></i> <strong>The map is tagged</strong>: {{summary.gm}} cells by you, {{summary.auto}} by the classifier. Nothing more is required; <strong>{{#if viaExtras}}Send to Extras{{else}}Download dataset{{/if}}</strong> is ready whenever you are.
-    {{#if reviewCount}}The classifier was least sure about {{reviewCount}} hexes — the ones where its second guess was nearly as good as its first. They are below, each already filled in with what it guessed. <strong>Change only the ones that are wrong</strong>, then press the button at the bottom: that confirms the whole sheet, the ones you changed <em>and</em> the ones you left, takes them out of this queue and records how often it was right. You never have to finish the list.{{/if}}
+    The <strong>Review queue</strong> below shows what it tagged, <strong>least sure first</strong>{{#if sheetExpected}} — expect about {{sheetExpected}} of this sheet to be wrong{{/if}}. Each is already filled in with its guess. <strong>Change only the ones that are wrong</strong>, then press the button at the bottom: that confirms the whole sheet, the ones you changed <em>and</em> the ones you left, and records how often it was right. Stop whenever the sheets stop turning up mistakes — that is the queue telling you it is done, and you never have to finish the list.
     {{#if noCrawl}}Choosing your crawl entry above and pressing <strong>Classify</strong> again leaves the keyed hexes to the book and shortens that list.{{/if}}
   </p>
   {{else if summary.tagged}}
