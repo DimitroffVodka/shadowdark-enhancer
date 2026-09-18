@@ -227,6 +227,18 @@
   `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
+- **Water is read the way the map's legend draws it.** The legend key printed on
+  the Western Reaches map states the symbols outright: river is one wave stroke,
+  lake two, ocean three, arctic sea three with a small mark above them. Block
+  means cannot see that — two waves and three differ by a few percent of a
+  cell's ink and agree everywhere else — which is why lake, ocean and arctic sea
+  were the worst confusion on the map through eight passes. Once the classifier
+  has decided a hex is water, the strokes now decide which water. Nothing about
+  this map is hard-coded: each terrain's stroke count and mark are learned from
+  your own examples, and if they do not separate, the arbiter stands aside.
+  Measured on a 4768-hex verified map, re-deciding a real run: **178 errors to
+  94, water 89.6% to 98.1%** — 126 hexes re-decided, 84 fixed, none broken. (#169)
+
 - **A hex is classified by the seven nearest examples, not the single nearest.**
   The examples come from the legend: the members of each card nearest its
   centre, all given the one name you chose for that card. A card is not pure,

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeBitmap } from "../scripts/hex-map/bitmap.mjs";
-import { featureVector, nearestExemplar, buildStamps, classifyCells, parseTruthCsv, compareTags, scaledOverlayThresholds, DEFAULT_THRESHOLDS } from "../scripts/hex-map/classify.mjs";
+import { featureVector, nearestExemplar, buildStamps, classifyCells, parseTruthCsv, compareTags, scaledOverlayThresholds, DEFAULT_THRESHOLDS, waveStrokes, buildWaterArbiter, waterFromStrokes, createClassifier } from "../scripts/hex-map/classify.mjs";
 
 // Invented glyphs on a 64×64 cell (D1): a filled blob, a chevron, a dot grid.
 const W = 64, H = 64;
@@ -143,4 +143,69 @@ test("the vote cannot bury a terrain that simply has few exemplars", () => {
     .map((e) => ({ ...e, vec: featureVector(e.bitmap) }));
   assert.equal(ex.filter((e) => e.tag === "desert").length, 2);
   assert.equal(nearestExemplar(featureVector(noisy(glyph("dots"), 8)), ex).tag, "desert");
+});
+
+// The legend key draws water as a count of wave strokes: river one, lake two,
+// ocean three, arctic sea three plus a mark above them.
+function waves(n, mark = false) {
+  const b = makeBitmap(W, H);
+  const rows = [18, 28, 38].slice(0, n);
+  for (const y of rows) for (let x = 14; x < 50; x++) for (let t = 0; t < 3; t++) b.data[(y + t) * W + x] = 1;
+  if (mark) for (let y = 6; y < 13; y++) for (let x = 30; x < 37; x++) b.data[y * W + x] = 1;
+  return b;
+}
+function waterExemplars() {
+  const out = []; let n = 1;
+  const kinds = [["river", 1, false], ["lake", 2, false], ["ocean", 3, false], ["arctic_sea", 3, true]];
+  for (const [tag, k, mark] of kinds) for (let i = 0; i < 4; i++) {
+    out.push({ num: n++, tag, overlays: [], bitmap: noisy(waves(k, mark), n * 11) });
+  }
+  return out;
+}
+
+test("waveStrokes counts the strokes a scanline crosses", () => {
+  assert.equal(waveStrokes(waves(1)), 1);
+  assert.equal(waveStrokes(waves(2)), 2);
+  assert.equal(waveStrokes(waves(3)), 3);
+  assert.equal(waveStrokes(waves(3, true)), 3, "the mark sits above the scan band");
+});
+
+test("the water arbiter learns each terrain's strokes from the exemplars", () => {
+  const arb = buildWaterArbiter(waterExemplars());
+  assert.ok(arb, "an arbiter");
+  const by = Object.fromEntries(arb.profiles.map((p) => [p.tag, p.strokes]));
+  assert.deepEqual(by, { river: 1, lake: 2, ocean: 3, arctic_sea: 3 });
+  assert.ok(arb.markGap > 0.05, "arctic sea's mark separates it from ocean");
+});
+
+test("the strokes decide which water, and the mark breaks the three-stroke tie", () => {
+  const arb = buildWaterArbiter(waterExemplars());
+  assert.equal(waterFromStrokes(noisy(waves(1), 3), arb), "river");
+  assert.equal(waterFromStrokes(noisy(waves(2), 3), arb), "lake");
+  assert.equal(waterFromStrokes(noisy(waves(3), 3), arb), "ocean");
+  assert.equal(waterFromStrokes(noisy(waves(3, true), 3), arb), "arctic_sea");
+});
+
+test("fail-safe: water that is drawn identically leaves the decision alone", () => {
+  // every water terrain the same two strokes, no mark: nothing to arbitrate
+  const flat = []; let n = 1;
+  for (const tag of ["river", "lake", "ocean", "arctic_sea"]) for (let i = 0; i < 4; i++) {
+    flat.push({ num: n++, tag, overlays: [], bitmap: noisy(waves(2), n * 11) });
+  }
+  assert.equal(buildWaterArbiter(flat), null);
+
+  // and a map with too few water exemplars to learn from
+  assert.equal(buildWaterArbiter(exemplars()), null);
+});
+
+test("the arbiter only ever moves a cell between water terrains", () => {
+  const ex = [...waterExemplars(), ...exemplars()];
+  const clf = createClassifier({ exemplars: ex, allBitmaps: ex.map((e) => e.bitmap) });
+  assert.ok(clf.water, "the arbiter is live");
+  // a land cell is untouched by it
+  const land = clf.classify({ num: 800, bitmap: noisy(glyph("blob"), 5) });
+  assert.equal(land.water, null);
+  assert.equal(land.terrain, "forest");
+  // and a two-stroke cell reads as lake however the block means leaned
+  assert.equal(clf.classify({ num: 801, bitmap: noisy(waves(2), 5) }).terrain, "lake");
 });
