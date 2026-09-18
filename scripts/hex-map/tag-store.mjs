@@ -230,7 +230,7 @@ export function tagsForDataset(state) {
   const out = {};
   for (const [num, c] of state.cells) if (c?.terrain) out[String(num).padStart(3, "0")] = {
     terrain: c.terrain,
-    overlays: [...new Set([...(c.overlays ?? []), ...(OVERLAYS.includes(c.terrain) ? [c.terrain] : [])])],
+    overlays: [...new Set(c.overlays ?? [])],
   };
   return out;
 }

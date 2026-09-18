@@ -289,6 +289,16 @@
   against a hard ceiling of 46% before. The margin setting now does only what it
   always visibly did — decide which hexes get a ring on the map. (#169)
 
+- **Every tagged hex now travels to Shadowdark Extras with its own terrain
+  word.** The dataset only ever carried a record for a hex that had a *name*,
+  so a map tagged by the Hex Tagger and never keyed sent none at all — terrain
+  reached Extras only as region lists, and those are painted from a much coarser
+  vocabulary. Measured on a real hand-off, Extras paints arctic sea, lake and
+  river all as ocean, salt flat as desert, jungle as forest and canyon as hills.
+  Extras' own hex record has a per-hex `terrain` field and never required a
+  name; we now fill it, so the hex you open in Extras says **arctic sea**
+  whatever the art under it turns out to be. (#169)
+
 - **What you answered on the legend is written down.** Everything the module
   recorded was an output — what the classifier guessed, what you corrected. The
   input was never kept, so when a run came out badly there was no way to tell a

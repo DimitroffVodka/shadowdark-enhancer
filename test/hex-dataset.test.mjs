@@ -100,10 +100,26 @@ test("underscored tags go out as the printed words Extras' label table knows", (
 });
 
 test("validation names the contract breaches", () => {
-  const bad = { hexes: [{ num: "0101", name: "x" }, { num: 5, name: "" }, { num: 5, name: "y", col: 0 }], terrain: { regions: [{ biome: "", hexes: ["a"] }] }, networks: { river: [1.5] }, grid: {} };
+  const bad = { hexes: [{ num: "0101", name: "x" }, { num: 5 }, { num: 5, name: "y", col: 0 }], terrain: { regions: [{ biome: "", hexes: ["a"] }] }, networks: { river: [1.5] }, grid: {} };
   const { ok, errors } = validateHexDataset(bad);
   assert.equal(ok, false);
-  for (const needle of ["not an integer", "has no name", "duplicate hex num 5", "col/row", "without a biome", "non-integer hex", "grid cols/rows"]) {
+  for (const needle of ["not an integer", "carries nothing", "duplicate hex num 5", "col/row", "without a biome", "non-integer hex", "grid cols/rows"]) {
     assert.ok(errors.some((e) => e.includes(needle)), `expected an error mentioning ${needle}`);
   }
+});
+
+test("a tagged hex travels with the book's own terrain word, named or not", () => {
+  // Extras' record accepts terrain per hex; the painted tile comes from the
+  // regions and its biome vocabulary is far coarser, so this is the only place
+  // "arctic sea" survives as itself.
+  const ds = buildHexDataset({
+    tags: { "0101": { terrain: "arctic_sea" }, "0102": { terrain: "salt_flat" }, "0103": { terrain: "forest", overlays: ["river"] } },
+  });
+  const by = Object.fromEntries(ds.hexes.map((h) => [h.num, h]));
+  assert.deepEqual(by[101], { num: 101, terrain: "arctic sea" });
+  assert.deepEqual(by[102], { num: 102, terrain: "salt flat" });
+  assert.deepEqual(by[103], { num: 103, terrain: "forest" }, "an overlay is a network, never a hex field");
+  assert.equal(ds.hexes.length, 3, "every tagged hex, not only the keyed ones");
+  assert.deepEqual(ds.networks.river, [103]);
+  assert.equal(validateHexDataset(ds).ok, true);
 });

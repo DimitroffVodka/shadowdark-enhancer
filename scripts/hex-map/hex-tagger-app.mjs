@@ -1018,15 +1018,11 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (Object.values(tags).some((t) => t.overlays?.includes("coast"))) {
       ui.notifications?.warn("Coast tags stay on the scene; this dataset format exports river and road networks only.");
     }
-    const referenceSrc = this._scene()?.background?.src;
     // The painted scene must not share the print scene's name.
     const res = await handoffDataset(dataset, { sceneName: entry ? dataset.name : `${dataset.name} (painted)` });
     const n = Object.keys(tags).length;
     if (res.via === "extras") ui.notifications?.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
     else if (res.via === "download") ui.notifications?.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
-    // The builder's summary names the scene it painted; put the print on it for tracing.
-    const built = res.via === "extras" ? game.scenes?.get(res.summary?.sceneId) : null;
-    if (built && b?.cols) await this._placeReferenceOn(built, referenceSrc).catch((err) => console.warn(`${MODULE_ID} | reference tile`, err));
   }
 
   /** Side door in: a CSV (hex_id, tags or terrain_tags, source) or a JSON (the exported tag flag, or a dataset). */

@@ -106,8 +106,9 @@ test("importTags: first non-overlay tag is the terrain, sources normalised, orig
   assert.deepEqual(s.cells.get("203"), { terrain: "salt_flat", overlays: ["path"], source: "auto", review: true, margin: 1.1 });
   assert.equal(s.cells.get("305").source, "gm");
   assert.deepEqual(s.cells.get("400"), { terrain: "river", overlays: [], source: "gm", review: false });
-  assert.deepEqual(tagsForDataset(s)["400"], { terrain: "river", overlays: ["river"] });
-  assert.deepEqual(tagsForDataset(s)["402"], { terrain: "path", overlays: ["path"] });
+  assert.deepEqual(tagsForDataset(s)["400"], { terrain: "river", overlays: [] },
+    "a river terrain tile is not a river running through another terrain");
+  assert.deepEqual(tagsForDataset(s)["402"], { terrain: "path", overlays: [] });
   assert.equal(s.cells.has("401"), false);
   assert.equal(s.origin.num, "0000");
   importTags(s, [], { origin: { num: "9999" } });

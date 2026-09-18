@@ -117,7 +117,7 @@ test("reference placement requires geometry from a current sample", async () => 
   }
 });
 
-test("automatic placement keeps the source image when Extras views the built scene", async () => {
+test("building in Extras leaves the reference image off the painted scene", async () => {
   const previous = { foundry: globalThis.foundry, game: globalThis.game, canvas: globalThis.canvas, ui: globalThis.ui };
   let created;
   const source = { id: "source", name: "Source", background: { src: "maps/source.jpg" } };
@@ -144,7 +144,7 @@ test("automatic placement keeps the source image when Extras views the built sce
       _entries: [], _entryUuid: "", _mode: "random", element: null,
     });
     await app._onBuildDataset();
-    assert.equal(created.texture.src, "maps/source.jpg");
+    assert.equal(created, undefined);
   } finally {
     Object.assign(globalThis, previous);
   }

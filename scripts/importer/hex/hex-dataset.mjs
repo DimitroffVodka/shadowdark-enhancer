@@ -103,17 +103,31 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     for (const o of h.overlays ?? []) networks[OVERLAY_TO_NETWORK[o]].push(h.num);
   }
   const counts = [...regions.entries()].sort((a, b) => (b[1].length - a[1].length) || a[0].localeCompare(b[0]));
-  // Only the fields Extras' builder accepts (it rejects any other key). The
-  // book's settlement marker has no field there, so it stays on the crawl
-  // entry's keyed rows; an empty terrain is omitted so the region's stands.
-  const hexes = [...byNum.values()].filter((h) => h.name).sort((a, b) => a.num - b.num).map((h) => {
-    const out = { num: h.num, name: h.name };
-    const word = terrainWord(h.terrain);
-    if (word) out.terrain = word;
-    if (h.desc) out.desc = h.desc;
-    if (h.zone) out.zone = h.zone;
-    return out;
-  });
+  // Only the fields Extras' builder accepts (it rejects any other key: see
+  // RECORD_FIELDS in its HexcrawlBuilderSD).
+  //
+  // A record is emitted for every hex we know ANYTHING about, not only the
+  // keyed ones. `terrain` is a per-hex string there, and it is the only place
+  // the book's own word survives: the painted tile comes from terrain.regions,
+  // whose biome vocabulary is much coarser than the book's — measured on a real
+  // hand-off, Extras paints arctic sea, lake and river all as ocean, salt flat
+  // as desert, jungle as forest and canyon as hills. Sending the word per hex
+  // costs one short record and keeps "arctic sea" on the hex the GM opens,
+  // whatever the art under it ends up being.
+  //
+  // The book's settlement marker still has no field of its own; it stays on the
+  // crawl entry's keyed rows.
+  const hexes = [...byNum.values()]
+    .filter((h) => h.name || h.terrain || h.desc || h.zone)
+    .sort((a, b) => a.num - b.num).map((h) => {
+      const out = { num: h.num };
+      if (h.name) out.name = h.name;
+      const word = terrainWord(h.terrain);
+      if (word) out.terrain = word;
+      if (h.desc) out.desc = h.desc;
+      if (h.zone) out.zone = h.zone;
+      return out;
+    });
 
   const origin = gridHint?.origin === 0 || gridHint?.origin === 1 ? gridHint.origin : ((minCol === 0 || minRow === 0) ? 0 : 1);
   const grid = {
@@ -149,7 +163,9 @@ export function validateHexDataset(ds) {
     if (!isNum(h.num)) errors.push(`hex num not an integer: ${JSON.stringify(h.num)}`);
     else if (seen.has(h.num)) errors.push(`duplicate hex num ${h.num}`);
     seen.add(h.num);
-    if (!h.name) errors.push(`hex ${h.num} has no name`);
+    // A name is not required: Extras does not ask for one, and a hex that
+    // carries only its terrain is the ordinary case on a tagged map.
+    if (!h.name && !h.terrain && !h.desc && !h.zone) errors.push(`hex ${h.num} carries nothing`);
     if ("col" in h || "row" in h) errors.push(`hex ${h.num} carries col/row — numbers only at the boundary`);
   }
   for (const r of ds.terrain?.regions ?? []) {
