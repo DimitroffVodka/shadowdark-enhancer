@@ -47,6 +47,7 @@ Tools you use in prep between sessions.
 | Page | What it covers |
 |---|---|
 | [Importer Hub](Importer-Hub.md) | The front door: paste from your own PDF, preview, commit into suite compendiums |
+| [Hex Maps](Hex-Maps.md) | Tag a hex-map scene's terrain from a contact sheet and hand the dataset to Shadowdark Extras |
 | [Class & Spell Importers](Class-and-Spell-Importers.md) | Dedicated workspaces for complex class and spell statblocks |
 | [Table Import & Shapes](Table-Import-and-Shapes.md) | How PDF tables parse deterministically and how to add parsing recipes |
 | [Monster Creator](Monster-Creator.md) | Author a Shadowdark monster or NPC from scratch, or remix an existing statblock |

@@ -39,6 +39,8 @@
   "SDE.settings.encountersMenu.name": "Encounters",
   "SDE.settings.encountersMenu.hint": "What happens when an encounter check hits.",
   "SDE.settings.encountersMenu.label": "Configure",
+  "SDE.settings.hexMapsDevTools.name": "Hex map developer tools",
+  "SDE.settings.hexMapsDevTools.hint": "Enable the GM-only CSV comparison check for hex-map classification.",
   "SDE.settings.pcAutomationMenu.duelist": "Duelist",
   "SDE.settings.pcAutomationMenu.delver": "Delver",
   "SDE.settings.pcAutomationMenu.renown": "Renown",

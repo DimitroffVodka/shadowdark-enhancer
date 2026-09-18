@@ -22,6 +22,7 @@ import { summarizeStructuralWarnings, isInformationalWarning } from "./tables/ta
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
+import { extrasHexApi } from "./hex/hex-handoff.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import {
   SOURCES as DOWNTIME_SOURCES,
@@ -73,6 +74,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitMonsters:      function (...args) { return this._onHubCommitMonsters(...args); },
       hubCommitItems:         function (...args) { return this._onHubCommitItems(...args); },
       hubCommitSpells:        function (...args) { return this._onHubCommitSpells(...args); },
+      hubCommitHexes:         function (...args) { return this._onHubCommitHexes(...args); },
+      hubHexDataset:          function (...args) { return this._onHubHexDataset(...args); },
+      // Tools → Hex tagger: the contact-sheet tagger for the active hex scene. Lazy.
+      hubOpenHexTagger:       async function () { (await import("../hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(); },
       hubCommitTables:        function (...args) { return this._onHubCommitTables(...args); },
       hubCommitBoats:         function (...args) { return this._onHubCommitBoats(...args); },
       hubCommitDowntime:      function (...args) { return this._onHubCommitDowntime(...args); },
@@ -161,6 +166,14 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _importTables = [];
   /** Boat parse results: [{ draft }] (Western Reaches boats) */
   _importBoats = [];
+  /** Hex-key parse results: hex-parser drafts [{ hexId, key, name, bodyLines, warnings }] */
+  _importHexes = [];
+  /** Crawl title prefill for the hex-key journal entry (detectCrawlTitle on parse). */
+  _importHexTitle = "";
+  /** Keyed summary rows (hex-summary) parsed alongside the drafts; filed on the entry at commit. */
+  _importHexSummary = [];
+  /** The crawl entry the last hex commit produced: { uuid, title } — drives the hand-off strip. */
+  _lastHexCrawl = null;
   /** Compound-generator parse results: ParsedTable[] with isCompound + compound.columns */
   _importGenerators = [];
   /** Skipped blocks (from segmenter + parser): [{ name, reason }] */
@@ -481,6 +494,11 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hasSpells   = importSpellCards.length > 0;
     const hasTables   = this._importTables.length > 0;
     const hasBoats    = importBoatCards.length > 0;
+    const importHexCards = this._importHexes.map((d) => ({
+      num: d.hexId, name: d.name, lines: d.bodyLines?.length ?? 0,
+      warnings: d.warnings ?? [], warn: (d.warnings?.length ?? 0) > 0,
+    }));
+    const hasHexes    = importHexCards.length > 0 || this._importHexSummary.length > 0;
     const hasGenerators = importGenerators.length > 0;
     // Cartesian and Compound share one preview; the wording has to follow the
     // parse that produced it, not the section it lives in.
@@ -605,9 +623,15 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       spells: importSpellCards,
       tables: this._importTables,
       boats: importBoatCards,
+      hexes: importHexCards,
+      hexCount: importHexCards.length + this._importHexSummary.length,
+      hexTitle: this._importHexTitle,
+      hexSummaryCount: this._importHexSummary.length,
+      hexCrawlDone: this._lastHexCrawl,
+      hexViaExtras: !!extrasHexApi(),
       generators: importGenerators,
       skipped: this._importSkipped,
-      hasMonsters, hasItems, hasSpells, hasTables, hasBoats, hasGenerators, showImportAll,
+      hasMonsters, hasItems, hasSpells, hasTables, hasBoats, hasHexes, hasGenerators, showImportAll,
       downtime, hasDowntime: !!downtime,
       chars: this._importChar.map((p) => {
             const strip = (h) => String(h ?? "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();

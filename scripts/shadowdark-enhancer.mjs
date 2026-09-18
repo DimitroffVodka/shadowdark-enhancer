@@ -86,7 +86,7 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "734e8ce0cd8d";
+const STYLESHEET_REV = "84b89cfcca68";
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -302,8 +302,8 @@ Hooks.once("init", () => {
   // game.modules.get(MODULE_ID).api on ready; consumers should listen for
   // the "shadowdarkEnhancer.ready" hook. Reference: docs/API.md.
   game.shadowdarkEnhancer = {
-    // 1.4.0 — additive: Forge & Loot preview shell namespace (G4).
-    apiVersion: "1.4.0",
+    // 1.5.0 — additive: hexMaps namespace (hex tagger, dataset, hand-off).
+    apiVersion: "1.5.0",
     // Guided, ordered Character Builder — a replacement for the system's
     // random generator. `open({ level0?, actor? })` renders the wizard.
     charBuilder: {
@@ -601,6 +601,25 @@ Hooks.once("init", () => {
       // Award a bout's fame; routes through Renown.award, so it is logged there.
       awardFame: async (args) =>
         (await import("./pit-fighting/pit-fighting-app.mjs")).PitFighting.awardFame(args),
+    },
+    // 1.5.0 — additive: hex maps. The Hex Tagger reads the active hex scene's
+    // background cell by cell and stores the GM's terrain tags on the scene;
+    // datasets go to Shadowdark Extras' hexcrawl builder or download as JSON.
+    // Nothing from a published map ships with the module (docs/plans/hex-map-dataset.md).
+    hexMaps: {
+      // The contact-sheet tagger for the active scene (GM only). Lazy.
+      openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
+      // Pure builder for the Extras dataset from drafts, keyed rows and tags.
+      buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
+      // Dev check: score the active scene's tags against a truth CSV
+      // (hex_id + tags or terrain_tags). Ships no data; the CSV is the GM's.
+      compare: async (csvText, opts) => (await import("./hex-map/hex-tagger-app.mjs")).compareSceneTags(canvas?.scene, csvText, opts),
+      // Dataset from a filed crawl entry (journals pack), then hand-off or download.
+      handoff: async (entryOrDataset) => {
+        const h = await import("./importer/hex/hex-handoff.mjs");
+        const ds = entryOrDataset?.pages ? h.datasetFromEntry(entryOrDataset) : entryOrDataset;
+        return h.handoffDataset(ds);
+      },
     },
   };
 });

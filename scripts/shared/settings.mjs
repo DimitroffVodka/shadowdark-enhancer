@@ -513,6 +513,16 @@ export function registerSettings() {
     default: {},
   });
 
+  // Developer-only hex-map CSV comparison; hidden from the normal settings UI.
+  game.settings.register(MODULE_ID, "hexMapsDevTools", {
+    name: "SDE.settings.hexMapsDevTools.name",
+    hint: "SDE.settings.hexMapsDevTools.hint",
+    scope: "client",
+    config: false,
+    type: Boolean,
+    default: false,
+  });
+
   // Feature pop-outs (Configure Settings → this module). Every setting listed
   // in SETTING_GROUPS is registered with `config: false` — here or in its
   // feature file — and rendered inside its group's window instead.

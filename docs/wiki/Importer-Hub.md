@@ -142,6 +142,29 @@ tables in sequence).
   standard item import shares a name with an existing generated monster spell,
   *Replace* is automatically downgraded to *Keep both* with an explanatory
   warning.
+- **Hex keys:** A pasted hex key (numbered entries such as `1403 Serengal`,
+  three or more in a run) shows a **Hex key** strip with its own **Create hex
+  pages** button. It files one journal page per hex into the Journals pack
+  under your source, inside a journal entry named after the crawl. The name is
+  prefilled from the heading above the first hex; edit it before committing.
+  References to other hexes in the same paste (`hex 1403`, `(1403)`) become
+  links. Re-pasting the same crawl updates its pages in place and never deletes
+  pages that are missing from the new paste. Hex keys are not part of Commit
+  All.
+- **Keyed summary table:** The keyed-location table some books print ahead of
+  the entries (one line per hex: number, region, terrain, name) is recognised
+  in the same paste or on its own. Its rows are kept out of the page parser and
+  filed on the crawl's journal entry at commit, where they carry each hex's
+  region, terrain and settlement size. When grabbing that table from a PDF,
+  pick **Single column** in the extractor: **Auto-detect** sees the wide table
+  as two columns and separates the names from their rows.
+- **Hex crawl hand-off:** After a hex-key commit the hub shows **Hex pages
+  filed** with a **Download dataset** button, or **Send to Extras** when
+  Shadowdark Extras exposes its hexcrawl builder. Either way the module builds
+  one dataset from the filed pages and keyed rows: the keyed hexes with their
+  descriptions, terrain regions, and river and road hex lists, using published
+  hex numbers only. The download is a JSON file built from your own book text;
+  nothing ships with the module.
 
 ---
 
@@ -191,6 +214,8 @@ currently in your world packs.
 ## Tools menu & Source PDFs
 
 ![The Tools dropdown](images/tools-dropdown.png)
+
+**Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and overlays, then hand the result to Shadowdark Extras or download it.
 
 Open the **Tools** dropdown to manage PDFs and world backups:
 

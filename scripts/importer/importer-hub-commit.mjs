@@ -14,6 +14,9 @@ import { MAGIC_SET_DEFS, matchBundleTables } from "../magic-forge/magic-table-ru
 import { resolveSpellClass, ClassIndex } from "./char-content/class-index.mjs";
 import { MonsterImporter } from "./monsters/monster-importer.mjs";
 import { BoatImporter } from "./boats/boat-importer.mjs";
+import { commitHexDrafts } from "./hex/hex-commit.mjs";
+import { datasetFromEntry, handoffDataset } from "./hex/hex-handoff.mjs";
+import { validateHexDataset } from "./hex/hex-dataset.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { installMethods } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
@@ -248,6 +251,55 @@ class HubCommitMethods {
     this._importBoats = [];
     this._invalidateManageTree?.();
     this.render();
+  }
+
+  /**
+   * Commit: hex-key drafts → JournalEntry pages in the sde-journal pack, one
+   * entry per crawl inside the source folder (hex-commit.mjs). GM-gated like
+   * every commit. Deliberately NOT part of Commit All: a hex key is a whole
+   * crawl the GM files on purpose, and its entry name is read from the strip.
+   */
+  async _onHubCommitHexes() {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can create hex pages."); return; }
+    if (!this._importHexes.length && !this._importHexSummary.length) { ui.notifications.warn("No hex pages to create."); return; }
+    const source = this._importSource.trim();
+    const titleInput = this.element?.querySelector?.("input[data-hex-title]");
+    const crawlTitle = String(titleInput?.value ?? this._importHexTitle ?? "").trim();
+    const report = await commitHexDrafts(this._importHexes, { source, crawlTitle, keyed: this._importHexSummary });
+    const bits = [];
+    if (report.created.length) bits.push(`${report.created.length} created`);
+    if (report.updated.length) bits.push(`${report.updated.length} updated`);
+    if (report.keyed) bits.push(`${report.keyed} keyed rows on file`);
+    if (report.collisions.length) bits.push(`${report.collisions.length} duplicate id${report.collisions.length === 1 ? "" : "s"} skipped`);
+    ui.notifications.info(`Hex pages: ${bits.join(", ") || "nothing to do"} → Journals${source ? ` / ${source}` : ""}.`);
+    if (report.entryUuid) {
+      this._importHexes = []; this._importHexTitle = ""; this._importHexSummary = [];
+      this._lastHexCrawl = { uuid: report.entryUuid, title: report.title };
+    }
+    this._invalidateManageTree?.();
+    this.render();
+  }
+
+  /**
+   * Hand-off: rebuild the Extras dataset from a committed crawl entry (pages
+   * plus the keyed rows on its flag) and send it to Shadowdark Extras when its
+   * builder entry point exists, else download it as JSON (hex-handoff.mjs).
+   */
+  async _onHubHexDataset(event, target) {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can export a hex crawl."); return; }
+    const uuid = target?.dataset?.uuid || this._lastHexCrawl?.uuid;
+    const entry = uuid ? await fromUuid(uuid) : null;
+    if (!entry) { ui.notifications.warn("That hex crawl entry is gone — import it again first."); return; }
+    const dataset = datasetFromEntry(entry);
+    const check = validateHexDataset(dataset);
+    if (!check.ok) {
+      console.warn(`${MODULE_ID} | hex dataset failed its contract check`, check.errors);
+      ui.notifications.error(`Hex dataset failed its contract check: ${check.errors[0]}`);
+      return;
+    }
+    const res = await handoffDataset(dataset);
+    if (res.via === "extras") ui.notifications.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes).`);
+    else if (res.via === "download") ui.notifications.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes).`);
   }
 
   /**

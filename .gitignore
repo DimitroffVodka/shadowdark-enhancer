@@ -59,13 +59,15 @@ storage/
 # Playwright MCP scratch output
 .playwright-mcp/
 
-# docs/ tracks only the published manual (wiki/), API.md, and the generated
-# FILE-INVENTORY.md. Internal audits, review reports, sweep dumps, the promo
-# plan and superpowers plans/specs stay local — never tracked, never shipped.
+# docs/ tracks only the published manual (wiki/), API.md, the generated
+# FILE-INVENTORY.md, and implementation plans under plans/. Internal audits,
+# review reports, sweep dumps, the promo plan and superpowers plans/specs stay
+# local — never tracked, never shipped.
 docs/*
 !docs/wiki/
 !docs/API.md
 !docs/FILE-INVENTORY.md
+!docs/plans/
 
 # Hermes agent working data — batch JSON, research notes, scratch previews.
 # Kept locally, never published: it is how the art and spell maps were built,

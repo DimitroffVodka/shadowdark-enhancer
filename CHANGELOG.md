@@ -1,5 +1,35 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- **Hex key pages.** A pasted hex key (numbered entries such as `1403 Serengal`,
+  three or more in a run) now shows a **Hex key** strip in the Importer Hub.
+  **Create hex pages** files one journal page per hex into the Journals pack
+  under your source, in a journal entry named after the crawl. References to
+  other hexes in the same paste become links; re-pasting the same crawl updates
+  its pages in place. Phase 0 of the hex-map plan (#169).
+- **Keyed summary rows and the Extras hand-off.** A pasted keyed-location
+  table (number, region, terrain, name) is recognised alongside the hex
+  entries, kept out of the page parser, and filed on the crawl's journal
+  entry at commit. After a commit the hub offers **Download dataset** (or
+  **Send to Extras** once Shadowdark Extras exposes its hexcrawl builder):
+  the crawl's keyed hexes, terrain regions and river/road networks as one JSON
+  dataset, built from your own book text. Phase 1 of the hex-map plan (#169).
+- **Hex Tagger.** Importer Hub → Tools → **Hex tagger** (or
+  `game.shadowdarkEnhancer.hexMaps.openTagger()`) opens a contact sheet over
+  the active hex scene's background: 40 cells at a time with a terrain select
+  and river/path/coast boxes. One anchor cell whose printed number you read off
+  its thumbnail numbers the whole map, so the scene's grid parity never has to
+  match the print. Tags are stored on the scene and fold into the dataset with
+  the filed crawl's keyed hexes. Flat-top column grids only for now. Phase 2 of
+  the hex-map plan (#169); API 1.5.0 adds the `hexMaps` namespace.
+- **Classify.** With a sheet or two tagged by hand, the Hex Tagger classifies
+  every other cell on a stamped map: terrain from the nearest tagged example,
+  river or path from the ink left after subtracting that terrain's stamp.
+  Unsure cells go to the Review queue, keyed hexes are left to the book's text,
+  and hand-drawn maps get a warning. Phase 3 of the hex-map plan (#169).
+
 ## [0.17.3] — 2026-09-16
 
 ### Changed
