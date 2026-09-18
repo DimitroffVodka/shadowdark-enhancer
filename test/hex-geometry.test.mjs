@@ -47,6 +47,17 @@ test("cellNumber: bounds drop cells past the map's columns or rows, negative cel
   assert.equal(cellNumber({ q: -1, r: 0 }, origin).num, null);
 });
 
+test("cellNumber: rowsLowered ends the lowered columns one row short, the other parity keeps its last row", () => {
+  for (const shifted of ["odd", "even"]) {
+    const origin = { cube: { q: 0, r: 0 }, num: "000", shifted, bounds: { cols: 4, rows: 3, rowsLowered: 2 } };
+    const at = (col, row) => cellNumber(offsetToCube(col, row, shifted), origin).num;
+    const lowered = shifted === "odd" ? 1 : 0, raised = 1 - lowered;
+    assert.equal(at(raised, 2), raised * 100 + 2, `${shifted}: raised column keeps row 2`);
+    assert.equal(at(lowered, 2), null, `${shifted}: lowered column has no row 2`);
+    assert.equal(at(lowered, 1), lowered * 100 + 1);
+  }
+});
+
 test("neighbours: six cells, odd columns lowered", () => {
   const n = neighbours(1, 1, "odd").map((c) => `${c.col},${c.row}`).sort();
   assert.deepEqual(n, ["0,1", "0,2", "1,0", "1,2", "2,1", "2,2"]);

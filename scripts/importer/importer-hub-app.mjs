@@ -76,6 +76,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitSpells:        function (...args) { return this._onHubCommitSpells(...args); },
       hubCommitHexes:         function (...args) { return this._onHubCommitHexes(...args); },
       hubHexDataset:          function (...args) { return this._onHubHexDataset(...args); },
+      hubPinHexes:            function (...args) { return this._onHubPinHexes(...args); },
       // Tools → Hex tagger: the contact-sheet tagger for the active hex scene. Lazy.
       hubOpenHexTagger:       async function () { (await import("../hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(); },
       hubHexMap:              async function () { (await import("../hex-map/hex-map-flow.mjs")).startHexMapFlow(); },
@@ -629,6 +630,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hexTitle: this._importHexTitle,
       hexSummaryCount: this._importHexSummary.length,
       hexCrawlDone: this._lastHexCrawl,
+      // The viewed scene takes pins when it is numbered (Hex map from image, or the tagger's anchor).
+      hexPinScene: globalThis.canvas?.scene?.getFlag?.(MODULE_ID, "hexTags")?.origin ? canvas.scene.name : null,
       hexViaExtras: !!extrasHexApi(),
       generators: importGenerators,
       skipped: this._importSkipped,

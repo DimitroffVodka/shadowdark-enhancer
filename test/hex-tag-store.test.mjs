@@ -118,5 +118,8 @@ test("rowsFromJson: the tag flag round-trips, a dataset yields regions, keyed te
 
   const allDefault = rowsFromJson({ grid: { cols: 2, rows: 2 }, terrain: { default: "water", regions: [] }, hexes: [] });
   assert.equal(allDefault.rows.length, 4, "an all-default dataset is importable");
+  assert.deepEqual(allDefault.rows.map((r) => r.num).sort(), ["101", "102", "201", "202"], "the contract numbers from 1 by default");
+  const fromZero = rowsFromJson({ grid: { cols: 2, rows: 3, origin: 0, rowsLowered: 2 }, terrain: { default: "water", regions: [] }, hexes: [] });
+  assert.deepEqual(fromZero.rows.map((r) => r.num).sort(), ["0", "1", "100", "101", "2"], "origin 0 starts at hex 0000; the lowered (odd) column ends a row short");
   assert.deepEqual(rowsFromJson({ foo: 1 }).rows, []);
 });

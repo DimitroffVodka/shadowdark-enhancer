@@ -46,6 +46,41 @@
   scene whose grid sits on the print, and opens the Hex Tagger with the
   anchor and map size set. Replaces the hand alignment, anchor and map-size
   steps for printed maps. (#169)
+- **The legend.** The Hex Tagger's **Legend** button (pressed for you after
+  **Hex map from image**) groups every cell by its glyph and shows one card
+  per group, biggest first, with a few member pictures and a terrain select.
+  Name the pictures you recognise, skip the rest, and **Apply legend** tags
+  the core of each named group by hand and classifies everything else from
+  those, so the first sheets of hand tagging are gone: on the Western Reaches
+  print, 32 cards instead of 120 sheets. The detector also reports when a
+  print's lowered columns end one row short (the Western Reaches does), so
+  the half cells under the frame that hold the column labels are no longer
+  served for tagging. The **Hex grid found** window is resizable, keeps the
+  print at full height beside the fields, checks the four corners itself by
+  the detector's rules and says whether the grid landed (naming the corner
+  when it did not), shows those corners at print resolution with the detected
+  hex outlined as the proof, and opens the full image in a new tab on a
+  click. Legend cards carry river, path and coast boxes for a
+  card whose every picture shows one. Once the map is tagged the tagger says
+  so and that review is optional; the rarely used buttons sit under
+  **More**. (#169)
+- **Keyed locations on the map.** After **Create hex pages**, the Importer
+  Hub offers **Pin on [scene]** for the hex scene you are viewing, and the
+  Hex Tagger's header has **Pin keyed hexes**: one map note per keyed hex on
+  its printed hex, labelled with the page name, a house, city or castle for
+  settlements from the keyed table, opening the hex's journal page. The
+  crawl's journal is copied into the world for that (Foundry notes cannot
+  point at compendium pages), ids kept and cross-links rewritten; pinning
+  again moves the notes instead of adding more. The Hex Maps page now leads
+  with this three-step flow: the print as the scene, the keyed locations on
+  it, and the terrain as the optional third step. (#169)
+- **Maps numbered from 0 reach Extras.** The dataset carries `grid.origin: 0`
+  when the map's own first column and row are 0 (the Western Reaches: hex
+  0000 exists) and `grid.rowsLowered` when the lowered columns end a row
+  short, per Extras' updated contract (shadowdark-extras#145); a compact
+  dataset imported through the tagger's side door is expanded under the same
+  numbering. Grid counts for an entry-only dataset now count from the
+  contract's origin instead of one column and row too many. (#169)
 
 ### Changed
 - **The hex dataset follows Extras' stable contract.** Terrain goes out as the

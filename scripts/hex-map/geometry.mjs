@@ -51,7 +51,9 @@ export function originOffset(origin) {
 /**
  * Number a cell from its Foundry cube and the origin.
  * @param {{q:number, r:number}} cube          Foundry cube of the cell
- * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even", bounds?:{cols:number, rows:number}}} origin
+ * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even", bounds?:{cols:number, rows:number, rowsLowered?:number}}} origin
+ *   bounds.rowsLowered: the lowered columns' own row count when it differs (one short on a
+ *   print whose frame cuts the other parity's first row in half, like the Western Reaches)
  * @returns {{ col:number, row:number, num:number|null }} num is null outside the map's bounds
  */
 export function cellNumber(cube, origin) {
@@ -63,7 +65,11 @@ export function cellNumber(cube, origin) {
   const { col, row } = cubeToOffset(c, shifted);
   let num = numberFor(col, row);
   const b = origin.bounds;
-  if (num !== null && b && ((b.cols && col >= b.cols) || (b.rows && row >= b.rows))) num = null;
+  if (num !== null && b) {
+    const lowered = shifted === "odd" ? col % 2 === 1 : col % 2 === 0;
+    const rows = (lowered && b.rowsLowered) || b.rows;
+    if ((b.cols && col >= b.cols) || (rows && row >= rows)) num = null;
+  }
   return { col, row, num };
 }
 

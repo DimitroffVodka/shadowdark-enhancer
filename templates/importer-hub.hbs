@@ -677,12 +677,18 @@
   <section class="sde-hub-import-section">
     <div class="sde-hub-import-sechead">
       <span class="sde-hub-import-sectitle"><i class="fas fa-map-location-dot"></i> Hex pages filed: {{importData.hexCrawlDone.title}}</span>
-      <button type="button" data-action="hubHexDataset" data-uuid="{{importData.hexCrawlDone.uuid}}" class="sde-import-primary sde-hub-import-secbtn">
+      {{#if importData.hexPinScene}}
+      <button type="button" data-action="hubPinHexes" data-uuid="{{importData.hexCrawlDone.uuid}}" class="sde-import-primary sde-hub-import-secbtn" title="One map note per keyed hex on the scene you are viewing, each opening its page">
+        <i class="fas fa-map-pin"></i> Pin on {{importData.hexPinScene}}
+      </button>
+      {{/if}}
+      <button type="button" data-action="hubHexDataset" data-uuid="{{importData.hexCrawlDone.uuid}}" class="sde-import-secondary sde-hub-import-secbtn">
         {{#if importData.hexViaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}
       </button>
     </div>
     <p class="sde-hub-import-srcnote">
-      {{#if importData.hexViaExtras}}Builds the hex crawl scene in Shadowdark Extras from the filed pages and keyed rows.{{else}}Saves this crawl as a JSON dataset (keyed hexes, terrain, networks) for Shadowdark Extras or another world. It is built from your own book text; nothing ships with the module.{{/if}}
+      {{#if importData.hexPinScene}}<strong>Pin</strong> puts the keyed locations on your map scene as notes that open their pages (the crawl's journal is copied into the world for that). {{else}}To put the keyed locations on a map, view the scene made by <strong>Hex map from image</strong> and come back here. {{/if}}
+      {{#if importData.hexViaExtras}}<strong>Send to Extras</strong> builds a painted hex crawl scene in Shadowdark Extras from the filed pages and keyed rows instead.{{else}}<strong>Download dataset</strong> saves this crawl as JSON (keyed hexes, terrain, networks) for Shadowdark Extras or another world; it is built from your own book text.{{/if}}
     </p>
   </section>
   {{/if}}

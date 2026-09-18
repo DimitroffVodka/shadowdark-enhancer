@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { detectLattice, latticeCentre, rowPitch, columnPitch } from "../scripts/hex-map/lattice.mjs";
+import { detectLattice, latticeCentre, rowPitch, columnPitch, cornerSupport } from "../scripts/hex-map/lattice.mjs";
 
 // Invented prints: a field of flat-top hex outlines drawn 1 px wide into an
 // ink bitmap, with margins, per-cell glyph noise, and (in one case) a legend
@@ -24,11 +24,14 @@ function hexOutline(ink, w, h, cx, cy, rx, ry) {
   for (let e = 0; e < 6; e++) { const [ax, ay] = v[e], [bx, by] = v[(e + 1) % 6]; line(ink, w, h, cx + ax, cy + ay, cx + bx, cy + by); }
 }
 
-function print({ w, h, lat, cols, rows, seed = 7, legend = false, cutTop = false }) {
+function print({ w, h, lat, cols, rows, seed = 7, legend = false, cutTop = false, shortLowered = false }) {
   const ink = new Uint8Array(w * h);
   let s = seed >>> 0; const rnd = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
   const rx = lat.pitchX / 1.5, ry = lat.pitchY / 2;
-  for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
+  const isLowered = (c) => (c % 2 === 1) === (lat.lowered === "odd");
+  // shortLowered: a rectangular frame, so the lowered columns end one row short and a
+  // printed column label sits where their phantom half cell would be (the WR print's "700").
+  for (let c = 0; c < cols; c++) for (let r = 0; r < rows - (shortLowered && isLowered(c) ? 1 : 0); r++) {
     const { u, v } = latticeCentre(lat, c, r);
     // cutTop: the frame cuts the raised parity's first row at its centre line, as the
     // Western Reaches print does: only the lower three edges and the lower half's glyphs exist.
@@ -39,6 +42,11 @@ function print({ w, h, lat, cols, rows, seed = 7, legend = false, cutTop = false
     for (let k = 0; k < 4; k++) { const gx = u + (rnd() - 0.5) * rx, gy = v + (half ? rnd() * 0.5 : (rnd() - 0.5)) * ry; line(ink, w, h, gx, gy, gx + rnd() * 6, gy + rnd() * 4); }
   }
   if (legend) for (let k = 0; k < 3; k++) hexOutline(ink, w, h, w - 40, 40 + k * 2.2 * ry, rx, ry);
+  if (shortLowered) for (let c = 0; c < cols; c++) {
+    if (!isLowered(c)) continue;
+    const { u, v } = latticeCentre(lat, c, rows - 1);
+    for (let k = 0; k < 3; k++) line(ink, w, h, u - 7, v - ry * 0.5 + k * 2, u + 7, v - ry * 0.5 + k * 2);
+  }
   return ink;
 }
 
@@ -85,6 +93,30 @@ test("a first row cut in half by the frame still counts, a phantom row past it d
   const ink = print({ w: 480, h: 420, lat, cols: 12, rows: 9, cutTop: true, seed: 11 });
   const d = detectLattice(ink, 480, 420);
   assert.ok(d, "detected");
-  assert.deepEqual([d.cols, d.rows, d.lowered], [12, 9, "odd"]);
+  assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered], [12, 9, 9, "odd"]);
+  assert.ok(Math.abs(d.y0 - 52) < 1, `row 0 is the half cell: y0 ${d.y0}`);
+});
+
+test("cornerSupport: every corner of a detected lattice sits on an outline, a lattice off by one row does not", () => {
+  const lat = { x0: 61, y0: 52, pitchX: 30, pitchY: 34, lowered: "odd" };
+  const ink = print({ w: 480, h: 420, lat, cols: 12, rows: 9, cutTop: true, shortLowered: true, seed: 5 });
+  const d = detectLattice(ink, 480, 420);
+  const s = cornerSupport(ink, 480, 420, d);
+  assert.equal(s.length, 4);
+  assert.ok(s.every((c) => c.ok), `corners ${s.map((c) => c.support.toFixed(2))}`);
+  assert.ok(s[0].support < 0.7 && s[0].ok, "the top-left corner is the frame-cut half cell and still passes");
+  assert.ok(s.slice(1).every((c) => c.support >= 0.7), "the other corners are full cells");
+  const off = cornerSupport(ink, 480, 420, { ...d, rows: d.rows + 1, rowsLowered: d.rowsLowered + 1 });
+  assert.ok(!off[2].ok && !off[3].ok, `bottom corners past the print: ${off.map((c) => c.support.toFixed(2))}`);
+  const shifted = cornerSupport(ink, 480, 420, { ...d, x0: d.x0 + d.pitchX / 2 });
+  assert.ok(shifted.some((c) => !c.ok), `a lattice half a column off fails a corner: ${shifted.map((c) => c.support.toFixed(2))}`);
+});
+
+test("the lowered columns end one row short inside a rectangular frame, label ink under them or not", () => {
+  const lat = { x0: 61, y0: 52, pitchX: 30, pitchY: 34, lowered: "odd" };
+  const ink = print({ w: 480, h: 420, lat, cols: 12, rows: 9, cutTop: true, shortLowered: true, seed: 5 });
+  const d = detectLattice(ink, 480, 420);
+  assert.ok(d, "detected");
+  assert.deepEqual([d.cols, d.rows, d.rowsLowered, d.lowered], [12, 9, 8, "odd"]);
   assert.ok(Math.abs(d.y0 - 52) < 1, `row 0 is the half cell: y0 ${d.y0}`);
 });

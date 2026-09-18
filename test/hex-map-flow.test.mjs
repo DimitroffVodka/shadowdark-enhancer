@@ -37,6 +37,8 @@ test("alignedSceneData puts every print cell on its Foundry cell, whichever sche
     const origin = data.flags["shadowdark-enhancer"].hexTags.origin;
     assert.deepEqual([origin.i, origin.j, origin.num, origin.shifted, origin.bounds], [0, 0, "0000", "odd", { cols: 64, rows: 75 }]);
   }
+  const shortData = alignedSceneData({ name: "Map", src: "x.png", ...image, lat, cols: 64, rows: 75, rowsLowered: 74, levels: true });
+  assert.deepEqual(shortData.flags["shadowdark-enhancer"].hexTags.origin.bounds, { cols: 64, rows: 75, rowsLowered: 74 }, "the lowered columns' shorter row count reaches the tagger's bounds");
   const evenData = alignedSceneData({ name: "Map", src: "x.png", imageW: 1000, imageH: 800, lat: { ...lat, lowered: "even" }, cols: 4, rows: 3, levels: true });
   assert.equal(evenData.grid.type, 5, "even columns lowered → HEXEVENQ");
 });

@@ -250,21 +250,20 @@ export function columnRuns(ink, w, h, pitchX, pitchY, phase, { minSupport = 0.7,
     }
     cols.push({ c, run: bestRun, r0, r1 });
   }
-  // The frame: where the full cells of at least 30% of the columns start and end.
+  // The top frame: where the full cells of at least 30% of the columns start.
+  // Half cells count at the top only, where the numbering starts (the Western
+  // Reaches' row 0 in the even columns is such a half cell). A half cell past
+  // the other parity's last full row is a phantom: on the WR print those 32
+  // cells hold the printed column labels ("700" under column 7), ink enough
+  // to pass an inner-half test, and the author's table has no rows for them.
   const withRun = cols.filter((k) => k.run);
   if (!withRun.length) return cols.map(({ c, run }) => ({ c, run }));
   const frameTop = -reachedBy(withRun.map((k) => -(cy(k.c, k.run.start) - ry)), 0.3);
-  const frameBottom = reachedBy(withRun.map((k) => cy(k.c, k.run.start + k.run.len - 1) + ry), 0.3);
   const tol = 0.1 * pitchY;
-  const isHalf = (x, y, facing) => {
-    if (outlineSupport(ink, w, h, x, y, pts) < halfSupport) return false;
-    const inside = facing === "bottom" ? y >= frameTop - tol : y <= frameBottom + tol;
-    return inside && interiorInk(ink, w, h, x, y, R, ry, facing) >= minInterior;
-  };
+  const isHalf = (x, y) => outlineSupport(ink, w, h, x, y, pts) >= halfSupport && y >= frameTop - tol && interiorInk(ink, w, h, x, y, R, ry, "bottom") >= minInterior;
   for (const k of cols) {
     const run = k.run; if (!run) continue;
-    if (run.start - 1 >= k.r0 && isHalf(cx(k.c), cy(k.c, run.start - 1), "bottom")) { run.start--; run.len++; }
-    if (run.start + run.len <= k.r1 && isHalf(cx(k.c), cy(k.c, run.start + run.len), "top")) run.len++;
+    if (run.start - 1 >= k.r0 && isHalf(cx(k.c), cy(k.c, run.start - 1))) { run.start--; run.len++; }
   }
   return cols.map(({ c, run }) => ({ c, run }));
 }
@@ -307,9 +306,13 @@ export function latticeField(ink, w, h, pitchX, pitchY, phase, opts = {}) {
   const startOf = (p) => { const tops = fcols.filter((k) => parity(k) === p).map((k) => -k.run.start); return tops.length ? -reachedBy(tops, 0.3) : null; };
   const endOf = (p) => { const ends = fcols.filter((k) => parity(k) === p).map((k) => k.run.start + k.run.len); return ends.length ? reachedBy(ends, 0.3) : null; };
   const rowStart = startOf(0), otherStart = startOf(1);
-  const rows = Math.max(endOf(0) - rowStart, otherStart === null ? 0 : endOf(1) - otherStart);
+  const rowsFirst = endOf(0) - rowStart, rowsOther = otherStart === null ? 0 : endOf(1) - otherStart;
+  const rows = Math.max(rowsFirst, rowsOther);
   const secondTop = otherStart === null ? cy(firstC, rowStart) + pitchY / 2 : cy(firstC + 1, otherStart);
   const lowered = secondTop > cy(firstC, rowStart) ? "odd" : "even";
+  // The lowered columns end one row short when the frame cuts the other
+  // parity's first row in half (their last row would be the phantom half cell).
+  const rowsLowered = (lowered === "odd" ? rowsOther : rowsFirst) || rows;
   let x0 = cx(firstC), y0 = cy(firstC, rowStart);
   let px = pitchX, py = pitchY;
   // Refinement: the best shift of a band of cells at each edge, then a linear fit.
@@ -342,13 +345,15 @@ export function latticeField(ink, w, h, pitchX, pitchY, phase, opts = {}) {
     const dpy = (bottom - top) / (nR - 2);
     py += dpy; y0 += top - 1 * dpy;
   }
-  return { x0, y0, pitchX: px, pitchY: py, cols: nC, rows: nR, lowered };
+  return { x0, y0, pitchX: px, pitchY: py, cols: nC, rows: nR, rowsLowered, lowered };
 }
 
 /**
- * Detect the hex lattice on an ink bitmap.
+ * Detect the hex lattice on an ink bitmap. `rows` is the taller parity's row
+ * count and `rowsLowered` the lowered columns' own (one short on the Western
+ * Reaches print: 75 and 74).
  * @param {Uint8Array} ink  0/1 per pixel, row-major
- * @returns {{pitchX:number, pitchY:number, x0:number, y0:number, cols:number, rows:number, lowered:"odd"|"even", score:number}|null}
+ * @returns {{pitchX:number, pitchY:number, x0:number, y0:number, cols:number, rows:number, rowsLowered:number, lowered:"odd"|"even", score:number}|null}
  */
 export function detectLattice(ink, w, h, opts = {}) {
   const rp = rowPitch(ink, w, h, opts.row);
@@ -359,6 +364,34 @@ export function detectLattice(ink, w, h, opts = {}) {
   const field = latticeField(ink, w, h, cp.pitchX, rp.pitchY, phase, opts.field);
   if (!field) return null;
   return { ...field, score: Math.min(rp.score, cp.score) };
+}
+
+/**
+ * The four corner cells of a detected lattice checked against the ink it was
+ * detected from, by the detector's own rules: a full cell has at least 0.7 of
+ * its outline inked; a top corner may instead be a frame-cut half cell, 0.3
+ * of the outline with its lower half inked. No single threshold works: on
+ * the Western Reaches print the true top-left half cell scores 0.35 while
+ * the phantom below the last row scores 0.37 and lattices shifted by a
+ * quarter to half a cell score 0.23 to 0.53 at the bottom corners, so every
+ * wrong lattice measured fails a bottom corner and the true one passes all
+ * four. The confirmation window turns this into its verdict, so the GM is
+ * told rather than asked.
+ * @param {Uint8Array} ink
+ * @param {{x0:number,y0:number,pitchX:number,pitchY:number,cols:number,rows:number,rowsLowered?:number,lowered:"odd"|"even"}} lat  in the ink's pixels
+ * @returns {{support:number, ok:boolean}[]} top left, top right, bottom left, bottom right
+ */
+export function cornerSupport(ink, w, h, lat, { minSupport = 0.7, halfSupport = 0.3, minInterior = 0.01 } = {}) {
+  const R = lat.pitchX / 1.5, ry = lat.pitchY / 2;
+  const pts = outlinePoints(R, ry, 60);
+  const rowsIn = (col) => ((col % 2 === 1) === (lat.lowered === "odd") ? (lat.rowsLowered || lat.rows) : lat.rows);
+  const last = lat.cols - 1;
+  return [[0, 0, true], [last, 0, true], [0, rowsIn(0) - 1, false], [last, rowsIn(last) - 1, false]].map(([col, row, top]) => {
+    const p = latticeCentre(lat, col, row);
+    const support = outlineSupport(ink, w, h, p.u, p.v, pts);
+    const half = top && support >= halfSupport && interiorInk(ink, w, h, p.u, p.v, R, ry, "bottom") >= minInterior;
+    return { support, ok: support >= minSupport || half };
+  });
 }
 
 /**

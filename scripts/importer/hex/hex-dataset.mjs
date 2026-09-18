@@ -11,7 +11,11 @@
  *
  * Numbering convention carried inside `grid` for the consumer: the leading
  * digits are the column, the last two the row (`hexIdKey`), so 1403 is column
- * 14, row 03 and `grid.cols`/`grid.rows` count those axes.
+ * 14, row 03 and `grid.cols`/`grid.rows` count those axes. `grid.origin` is
+ * 0 for a map that numbers its own first column and row 0 (the Western
+ * Reaches: hex 0000 exists) and is omitted for the contract's default of 1
+ * (shadowdark-extras#145). `grid.rowsLowered` goes out only when the lowered
+ * columns end one row short of the others.
  */
 
 import { hexIdKey, buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.mjs";
@@ -50,7 +54,8 @@ export function hexNum(id) {
  * @param {object[]} [args.drafts]       hex-parser drafts; a draft may carry `html` (already built page HTML) instead of bodyLines
  * @param {object[]} [args.summaryRows]  hex-summary rows
  * @param {Object<string,{terrain?:string, overlays?:string[]}>} [args.tags]  per published number (string or int keys)
- * @param {{cols:number, rows:number}} [args.gridHint]
+ * @param {{cols:number, rows:number, origin?:0|1, rowsLowered?:number}} [args.gridHint]  the map's size and numbering
+ *   origin as the tagger knows them; without a hint the origin is 0 when any hex sits in column 0 or row 0
  * @returns {object} dataset
  */
 export function buildHexDataset({ name = "", source = "", drafts = [], summaryRows = [], tags = {}, gridHint } = {}) {
@@ -88,10 +93,11 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
 
   // Terrain regions and networks.
   const regions = new Map(); const networks = { river: [], road: [] };
-  let maxCol = -1, maxRow = -1;
+  let maxCol = -1, maxRow = -1, minCol = Infinity, minRow = Infinity;
   for (const h of byNum.values()) {
     const [c, r] = hexKeyForNum(h.num).split(",").map(Number);
     maxCol = Math.max(maxCol, c); maxRow = Math.max(maxRow, r);
+    minCol = Math.min(minCol, c); minRow = Math.min(minRow, r);
     const word = terrainWord(h.terrain);
     if (word) { if (!regions.has(word)) regions.set(word, []); regions.get(word).push(h.num); }
     for (const o of h.overlays ?? []) networks[OVERLAY_TO_NETWORK[o]].push(h.num);
@@ -109,13 +115,17 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     return out;
   });
 
+  const origin = gridHint?.origin === 0 || gridHint?.origin === 1 ? gridHint.origin : ((minCol === 0 || minRow === 0) ? 0 : 1);
+  const grid = {
+    cols: gridHint?.cols ?? Math.max(1, maxCol + 1 - origin), rows: gridHint?.rows ?? Math.max(1, maxRow + 1 - origin),
+    distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
+  };
+  if (origin === 0) grid.origin = 0;
+  if (Number.isInteger(gridHint?.rowsLowered) && gridHint.rowsLowered !== grid.rows) grid.rowsLowered = gridHint.rowsLowered;
   return {
     version: DATASET_VERSION,
     name, source,
-    grid: {
-      cols: gridHint?.cols ?? (maxCol + 1), rows: gridHint?.rows ?? (maxRow + 1),
-      distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
-    },
+    grid,
     terrain: {
       default: counts[0]?.[0] ?? "forest",
       regions: counts.map(([biome, nums]) => ({ biome, hexes: nums.sort((a, b) => a - b) })),
@@ -148,5 +158,8 @@ export function validateHexDataset(ds) {
   }
   for (const kind of ["river", "road"]) for (const n of ds.networks?.[kind] ?? []) if (!isNum(n)) errors.push(`network ${kind} has a non-integer hex`);
   if (!isNum(ds.grid?.cols) || !isNum(ds.grid?.rows)) errors.push("grid cols/rows missing");
+  const g = ds.grid ?? {};
+  if (g.origin !== undefined && g.origin !== 0 && g.origin !== 1) errors.push("grid.origin must be 0 or 1");
+  if (g.rowsLowered !== undefined && !(Number.isInteger(g.rowsLowered) && (g.rowsLowered === g.rows || g.rowsLowered === g.rows - 1))) errors.push("grid.rowsLowered must be rows or rows - 1");
   return { ok: errors.length === 0, errors };
 }

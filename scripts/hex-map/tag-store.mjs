@@ -158,12 +158,20 @@ export function rowsFromJson(obj) {
   for (const r of obj?.terrain?.regions ?? []) for (const n of r.hexes ?? []) add(n, r.biome);
   for (const h of obj?.hexes ?? []) add(h.num, h.terrain);
   for (const [net, overlay] of [["river", "river"], ["road", "path"]]) for (const n of obj?.networks?.[net] ?? []) add(n, overlay);
+  // A compact dataset paints every cell of the grid with terrain.default:
+  // expand it under the contract's numbering (origin 1 unless the dataset
+  // says 0; the lowered columns, odd physical ones, may end a row short).
   const { cols, rows } = obj?.grid ?? {};
+  const origin = obj?.grid?.origin === 0 ? 0 : 1;
+  const rowsLowered = Number.isInteger(obj?.grid?.rowsLowered) ? obj.grid.rowsLowered : rows;
   const fallback = obj?.terrain?.default;
   if (fallback && Number.isInteger(cols) && cols > 0 && Number.isInteger(rows) && rows > 0) {
-    for (let col = 1; col <= cols; col++) for (let row = 1; row <= rows; row++) {
-      const tags = byNum.get(String(col * 100 + row)) ?? [];
-      if (!tags.some((t) => !OVERLAYS.includes(String(t).trim().toLowerCase()))) add(col * 100 + row, fallback);
+    for (let col = origin; col < cols + origin; col++) {
+      const last = ((col - origin) % 2 === 1 ? rowsLowered : rows) + origin;
+      for (let row = origin; row < last; row++) {
+        const tags = byNum.get(String(col * 100 + row)) ?? [];
+        if (!tags.some((t) => !OVERLAYS.includes(String(t).trim().toLowerCase()))) add(col * 100 + row, fallback);
+      }
     }
   }
   return { origin: null, rows: [...byNum].map(([num, tags]) => ({ num, tags, source: "gm" })) };

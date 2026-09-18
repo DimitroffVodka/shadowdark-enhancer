@@ -57,6 +57,19 @@ export function featureVector(bm, ds = 32) {
 function dist2(a, b) { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return s; }
 
 /**
+ * The pixels that count: inside the hex and outside the map's fixed furniture
+ * (the printed label, found from every third bitmap). Shared with legend.mjs.
+ * @returns {Uint8Array}
+ */
+export function keepMask(bitmaps, masks) {
+  const pool = bitmaps.filter((_, i) => i % 3 === 0);
+  const label = labelZone(pool.length ? pool : bitmaps, masks);
+  const keep = new Uint8Array(masks.w * masks.h);
+  for (let p = 0; p < keep.length; p++) keep[p] = masks.inhex[p] && !label.data[p] ? 1 : 0;
+  return keep;
+}
+
+/**
  * 1-NN with a margin: the ratio of the nearest OTHER tag's distance to the
  * nearest distance. 1.0 means a coin flip; large means sure.
  * @param {Float32Array} vec
@@ -186,10 +199,7 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   const px = scaledOverlayThresholds(area, T);
   const minPiece = Math.max(2, Math.round(T.minPiece * area));
   const masks = cellMasks(w, h);
-  const pool = (allBitmaps?.length ? allBitmaps : ex.map((e) => e.bitmap)).filter((_, i) => i % 3 === 0);
-  const label = labelZone(pool.length ? pool : ex.map((e) => e.bitmap), masks);
-  const keep = new Uint8Array(area);
-  for (let p = 0; p < area; p++) keep[p] = masks.inhex[p] && !label.data[p] ? 1 : 0;
+  const keep = keepMask(allBitmaps?.length ? allBitmaps : ex.map((e) => e.bitmap), masks);
   const vecs = ex.map((e) => ({ ...e, vec: featureVector(e.bitmap) }));
   const { stamps, counts, coverage: cov } = buildStamps(vecs, T);
   for (const [tag, n] of counts) if (n < T.minExemplars) warnings.push(`${tag}: only ${n} tagged cell${n === 1 ? "" : "s"}, needs ${T.minExemplars} for overlay detection`);

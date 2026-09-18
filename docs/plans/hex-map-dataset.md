@@ -512,8 +512,72 @@ front half for printed maps:
   print cell (0,0) is Foundry (0,0); Foundry 14 keeps the image on
   `levels[0]`, 13 on `background` → both emitted by schema. Tagger flag with
   anchor and bounds written at create; tagger opened.
-- Still to do in this phase: cluster the cells by glyph and show one picture
-  per cluster to name (the legend), replacing the 40-cell sheets.
+- `hex-map/legend.mjs` (pure): the cells grouped by glyph with k-means++
+  over the classifier's masked features at 24 × 24 (16 lost lake and salt
+  flat, 32 lost lava), k = 32, three restarts keeping the lowest inertia
+  (one seed in five fused two terrains; those runs had the highest inertia).
+  One card per group, biggest first, four member pictures at distance
+  quantiles, the twelve nearest the centroid as the core. Apply legend =
+  cores as GM tags, then the Phase 3 classifier over the rest (cores get
+  their overlays from it too). Measured on the WR print against the author's
+  table: cluster majority = truth for 96% of the unkeyed cells; the mixed
+  groups are the keyed hexes' icons. Merging cards by centroid distance was
+  tried and rejected: overlay-heavy groups have wide radii, and any threshold
+  that merged the duplicate wave cards merged forest into mountain first.
+  Farthest-first seeding was rejected too (outliers took the seeds; the ocean
+  got no card). The image flow opens the tagger straight onto the legend.
+- Phantom cells: half cells count at the top of a column only. The 32 cells
+  at row 74 of the WR's odd columns hold the printed column labels, ink enough
+  for the old symmetric inner-half test; the detector now reports
+  `rowsLowered` and the tagger's bounds carry it.
+
+## 9c. Phase 6 — the print is the map (added 2026-09-18)
+
+Patrick's re-statement of what most GMs want: the map that came with the PDF
+as their scene, the book's keyed locations on it as journal notes, and the
+hex terrain available to encounters. Extras' painted hexcrawl is a bonus. The
+flow, in his words:
+
+1. Ask for the map; find the hex grid; make a scene with a working grid
+   (Phase 5, done).
+2. Ask for the keyed-location data; the PDF goes through the importer
+   (Phase 0 and 1 parse it; the hub's PDF extractor pulls the pages). New:
+   **pins** — the crawl's journal deployed into the world with stable ids
+   (Foundry notes cannot point at compendium pages) and one Note per keyed
+   page at its hex centre, labelled with the page name, settlement icon by
+   the summary row's feature. `hex-map/hex-pins.mjs`, reached from the
+   tagger (Pin keyed hexes) and from the hub after Create hex pages.
+3. Optionally, the legend and classifier for the terrain of every other hex
+   (Phase 5, done).
+
+Then the two things the flow lacked:
+
+- **Review on the map.** A tag overlay on the scene: a translucent fill per
+  terrain over every numbered hex, marks for river and path, the number and
+  tags on hover, click to change a cell's tags in place. Wrong cells are
+  visible at a glance instead of served one sheet at a time.
+  `hex-map/tag-overlay.mjs`, toggled from the tagger header.
+- **Terrain for encounters.** The encounter check knows nothing of terrain.
+  With tags on the scene, the module can read the terrain of the hex a
+  token stands in. Proposed: a roll table per terrain, chosen once in the
+  Encounter menu; the check uses the table for the party token's hex and
+  names the hex and terrain on the chat card; the single active table stays
+  the fallback. Awaiting Patrick's yes.
+
+Extras: its stable contract numbers columns and rows from 1
+(`HexcrawlBuilderSD` line 202 in 6.15.0); the Western Reaches numbers from 0,
+so Send to Extras is rejected whole for this print. The fix is a
+`grid.origin: 0 | 1` option on the Extras side; the emitter then sends the
+map's first number's origin. Filed with the full contract, acceptance check
+and the optional `grid.rowsLowered`, as
+[shadowdark-extras#145](https://github.com/DimitroffVodka/shadowdark-extras/issues/145).
+Extras implemented both the same day (its commit 4403996b on
+`feat/road-river-network-authoring`); the emitter sends `origin` from the
+map's numbering (0 when a numbered cell sits in column 0 or row 0) and
+`rowsLowered` when it differs, the validator accepts both, and the side
+door's compact expansion follows them. Anything this module needs from
+Extras goes through an issue there from now on, complete in one go:
+Patrick's rule after one round trip too many.
 
 ## 10. Cross-cutting
 

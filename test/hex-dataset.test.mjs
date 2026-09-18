@@ -47,6 +47,21 @@ test("drafts and rows merge by number; rows give zone, terrain and feature, draf
   assert.equal("feature" in h[203], false);
 });
 
+test("grid.origin 0 for a map numbered from 0, rowsLowered only when it differs, both checked by the validator (shadowdark-extras#145)", () => {
+  const zero = buildHexDataset({ tags: { "0000": { terrain: "arctic_sea" }, "6374": { terrain: "forest" } } });
+  assert.equal(zero.grid.origin, 0, "hex 0000 exists, so the numbering starts at 0");
+  assert.deepEqual([zero.grid.cols, zero.grid.rows], [64, 75]);
+  assert.deepEqual(validateHexDataset(zero), { ok: true, errors: [] });
+  const hinted = buildHexDataset({ tags: { "0505": { terrain: "swamp" } }, gridHint: { cols: 64, rows: 75, rowsLowered: 74, origin: 0 } });
+  assert.deepEqual([hinted.grid.cols, hinted.grid.rows, hinted.grid.rowsLowered, hinted.grid.origin], [64, 75, 74, 0]);
+  assert.deepEqual(validateHexDataset(hinted), { ok: true, errors: [] });
+  const same = buildHexDataset({ tags: { "0505": { terrain: "swamp" } }, gridHint: { cols: 10, rows: 10, rowsLowered: 10, origin: 1 } });
+  assert.equal("rowsLowered" in same.grid, false, "equal to rows: not sent");
+  assert.equal("origin" in same.grid, false);
+  const bad = validateHexDataset({ hexes: [], grid: { cols: 3, rows: 3, origin: 2, rowsLowered: 1 } });
+  assert.deepEqual(bad.errors, ["grid.origin must be 0 or 1", "grid.rowsLowered must be rows or rows - 1"]);
+});
+
 test("terrain regions, networks and grid come out in numbers only", () => {
   const ds = buildHexDataset({ drafts: DRAFTS, summaryRows: ROWS, tags: { "0304": { terrain: "mountain", overlays: ["path"] }, 102: { terrain: "swamp" } } });
   assert.deepEqual(ds.terrain.regions, [
@@ -56,8 +71,10 @@ test("terrain regions, networks and grid come out in numbers only", () => {
   ], "the book's words, not biome keys: Extras maps them");
   assert.equal(ds.terrain.default, "forest");
   assert.deepEqual(ds.networks, { river: [102], road: [304] });   // row overlay + tag overlay, path → road
-  assert.deepEqual([ds.grid.cols, ds.grid.rows], [4, 5]);
+  assert.deepEqual([ds.grid.cols, ds.grid.rows], [3, 4], "columns 1..3 and rows 1..4 under the contract's default origin");
   assert.equal("numbering" in ds.grid, false, "only the contract's grid keys");
+  assert.equal("origin" in ds.grid, false, "the default origin is not sent");
+  assert.equal("rowsLowered" in ds.grid, false);
   assert.equal(JSON.stringify(ds).includes('"col"'), false);
   assert.deepEqual(validateHexDataset(ds), { ok: true, errors: [] });
 });
@@ -69,8 +86,8 @@ test("zero-padded leading-column IDs survive numeric normalization", () => {
   } });
   assert.deepEqual(ds.grid, {
     cols: 1, rows: 2, distance: 6, units: "mi", landscape: false,
-    flipX: false, flipY: false,
-  });
+    flipX: false, flipY: false, origin: 0,
+  }, "hexes in column 0 mean the map numbers from 0");
   assert.deepEqual(ds.terrain.regions, [
     { biome: "forest", hexes: [0] },
     { biome: "grassland", hexes: [1] },
