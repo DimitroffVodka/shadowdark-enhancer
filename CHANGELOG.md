@@ -289,6 +289,14 @@
   against a hard ceiling of 46% before. The margin setting now does only what it
   always visibly did — decide which hexes get a ring on the map. (#169)
 
+- **The pictures you name a card from show the hex and nothing else.** They were
+  square crops drawn with a 20% margin of the surrounding map, so every picture
+  carried the neighbours' glyphs and their printed numbers — measured across 20
+  cells, **42% of the ink in a card picture was other hexes**. They are now
+  clipped to the same hexagon the classifier reads, so what you judge and what
+  it groups by are the same thing. A card named from a neighbour's tree is
+  exactly how a legend core ends up mislabelled. (#169)
+
 - **A hex is read as the inside of its hexagon, not the square around it.** The terrain
   feature block-averaged each cell's bounding box, and a hexagon fills only 75%
   of its box — so a quarter of every cell's description was its six

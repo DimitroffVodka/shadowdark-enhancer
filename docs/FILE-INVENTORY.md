@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-949 tracked files · ~159,100 lines of code/markup across scripts+templates+styles+test.
+949 tracked files · ~159,200 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -66,7 +66,7 @@
 | `hex-map/lattice.mjs` | 407 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement. Pure. |
 | `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |
 | `hex-map/reference-tile.mjs` | 119 | Hidden reference tile: places the tagged print on a painted hex scene so its hex field covers the first cols × rows cells; two-rectangle placement, non-uniform scale, create-once-then-update. |
-| `hex-map/sampler.mjs` | 121 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite. |
+| `hex-map/sampler.mjs` | 145 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite. |
 | `hex-map/tag-corrections.mjs` | 252 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
 | `hex-map/tag-overlay.mjs` | 407 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
 | `hex-map/tag-store.mjs` | 305 | The tagger's scene-flag store: compact tag strings, sheet selection (random/keyed/review), dataset tags. Pure. |
