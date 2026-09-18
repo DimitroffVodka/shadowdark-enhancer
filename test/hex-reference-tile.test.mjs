@@ -90,3 +90,62 @@ test("placeReferenceTile creates a hidden locked tile once, then updates it", as
   assert.equal(calls[1][1].texture.anchorX, 0);
   assert.equal(calls.filter((c) => c[0] === "create").length, 1);
 });
+
+async function taggerClass() {
+  globalThis.foundry = {
+    applications: { api: { ApplicationV2: class {}, HandlebarsApplicationMixin: (Base) => class extends Base {}, DialogV2: {} } },
+    utils: { escapeHTML: (s) => s },
+  };
+  return (await import("../scripts/hex-map/hex-tagger-app.mjs")).HexTaggerApp;
+}
+
+test("reference placement requires geometry from a current sample", async () => {
+  const previous = { foundry: globalThis.foundry, ui: globalThis.ui };
+  const warnings = [];
+  globalThis.ui = { notifications: { warn: (message) => warnings.push(message) } };
+  try {
+    const HexTaggerApp = await taggerClass();
+    const app = Object.create(HexTaggerApp.prototype);
+    app._state = { origin: { bounds: { cols: 1, rows: 1 } } };
+    app._geom = null;
+    app._numbered = new Map();
+    assert.equal(await app._placeReferenceOn({ name: "Target" }, "maps/source.jpg"), null);
+    assert.match(warnings[0], /Sample the scene/);
+  } finally {
+    globalThis.foundry = previous.foundry;
+    globalThis.ui = previous.ui;
+  }
+});
+
+test("automatic placement keeps the source image when Extras views the built scene", async () => {
+  const previous = { foundry: globalThis.foundry, game: globalThis.game, canvas: globalThis.canvas, ui: globalThis.ui };
+  let created;
+  const source = { id: "source", name: "Source", background: { src: "maps/source.jpg" } };
+  const target = {
+    ...fakeScene({ sizeX: 10, sizeY: 10, pad: { x: 0, y: 0 } }),
+    id: "target", name: "Target", background: {}, tiles: [],
+    async createEmbeddedDocuments(_type, [data]) { created = data; return [{ id: "reference", ...data }]; },
+  };
+  globalThis.canvas = { scene: source };
+  globalThis.ui = { notifications: { info() {}, warn() {}, error() {} } };
+  globalThis.game = {
+    user: { isGM: true },
+    scenes: { get: (id) => id === target.id ? target : null },
+    shadowdarkExtras: { hex: { async buildHexcrawl() { globalThis.canvas.scene = target; return { sceneId: target.id }; } } },
+  };
+  try {
+    const HexTaggerApp = await taggerClass();
+    const app = Object.create(HexTaggerApp.prototype);
+    Object.assign(app, {
+      _state: { origin: { bounds: { cols: 1, rows: 1 }, shifted: "odd" }, cells: new Map([["101", { terrain: "forest", overlays: [], source: "gm" }]]) },
+      _stateSceneId: source.id,
+      _geom: { cellW: 10, cellH: 10, transform: { texW: 100, texH: 100 } },
+      _numbered: new Map([[101, { u: 10, v: 10 }]]),
+      _entries: [], _entryUuid: "", _mode: "random", element: null,
+    });
+    await app._onBuildDataset();
+    assert.equal(created.texture.src, "maps/source.jpg");
+  } finally {
+    Object.assign(globalThis, previous);
+  }
+});

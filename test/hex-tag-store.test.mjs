@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson } from "../scripts/hex-map/tag-store.mjs";
+import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
 
 test("encode/decode round trip keeps terrain, overlays, source and margin", () => {
   const s = emptyState();
@@ -63,14 +64,17 @@ test("importTags: first non-overlay tag is the terrain, sources normalised, orig
     { num: 203, tags: ["salt flat", "path"], source: "auto", margin: 1.1, review: true },
     { num: 305, tags: ["forest"], source: "llm" },                // unknown source → gm
     { num: 400, tags: ["river"] },                                // overlays only: the first is the terrain
+    { num: 402, tags: ["path"] },
     { num: 401, tags: [] },
     { num: "x", tags: ["forest"] },
   ], { origin: { i: 0, j: 0, q: 0, r: 0, num: "0000", shifted: "odd", bounds: null } });
-  assert.equal(n, 4);
+  assert.equal(n, 5);
   assert.deepEqual(s.cells.get("101"), { terrain: "forest", overlays: ["river"], source: "gm", review: false });
   assert.deepEqual(s.cells.get("203"), { terrain: "salt_flat", overlays: ["path"], source: "auto", review: true, margin: 1.1 });
   assert.equal(s.cells.get("305").source, "gm");
   assert.deepEqual(s.cells.get("400"), { terrain: "river", overlays: [], source: "gm", review: false });
+  assert.deepEqual(tagsForDataset(s)["400"], { terrain: "river", overlays: ["river"] });
+  assert.deepEqual(tagsForDataset(s)["402"], { terrain: "path", overlays: ["path"] });
   assert.equal(s.cells.has("401"), false);
   assert.equal(s.origin.num, "0000");
   importTags(s, [], { origin: { num: "9999" } });
@@ -91,7 +95,11 @@ test("rowsFromJson: the tag flag round-trips, a dataset yields regions, keyed te
 
   const ds = {
     version: 1, grid: { cols: 4, rows: 3 },
-    terrain: { default: "forest", regions: [{ biome: "mountains", hexes: [201, 202] }] },
+    terrain: { default: "plains", regions: [
+      { biome: "mountains", hexes: [201, 202] },
+      { biome: "hills", hexes: [301] },
+      { biome: "water", hexes: [302] },
+    ] },
     hexes: [{ num: 202, name: "Peak", terrain: "mountain" }, { num: 303, name: "Fen", terrain: "swamp" }],
     networks: { river: [201, 303], road: [202] },
   };
@@ -101,5 +109,14 @@ test("rowsFromJson: the tag flag round-trips, a dataset yields regions, keyed te
   assert.deepEqual(t.cells.get("201"), { terrain: "mountains", overlays: ["river"], source: "gm", review: false });
   assert.deepEqual(t.cells.get("202"), { terrain: "mountains", overlays: ["path"], source: "gm", review: false }, "region biome wins over the keyed word, road becomes path");
   assert.deepEqual(t.cells.get("303"), { terrain: "swamp", overlays: ["river"], source: "gm", review: false });
+  assert.equal(t.cells.get("101").terrain, "plains");
+  assert.equal(t.cells.size, 12, "terrain.default expands across the declared grid");
+  const rebuilt = buildHexDataset({ tags: tagsForDataset(t), gridHint: ds.grid });
+  assert.equal(rebuilt.terrain.default, "plains");
+  assert.deepEqual(new Set(rebuilt.terrain.regions.map((r) => r.biome)), new Set(["hills", "mountains", "plains", "swamp", "water"]));
+  assert.deepEqual(rebuilt.networks, { river: [201, 303], road: [202] });
+
+  const allDefault = rowsFromJson({ grid: { cols: 2, rows: 2 }, terrain: { default: "water", regions: [] }, hexes: [] });
+  assert.equal(allDefault.rows.length, 4, "an all-default dataset is importable");
   assert.deepEqual(rowsFromJson({ foo: 1 }).rows, []);
 });

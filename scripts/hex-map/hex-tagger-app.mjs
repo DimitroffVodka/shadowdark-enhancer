@@ -379,13 +379,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (Object.values(tags).some((t) => t.overlays?.includes("coast"))) {
       ui.notifications?.warn("Coast tags stay on the scene; this dataset format exports river and road networks only.");
     }
+    const referenceSrc = this._scene()?.background?.src;
     const res = await handoffDataset(dataset);
     const n = Object.keys(tags).length;
     if (res.via === "extras") ui.notifications?.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
     else if (res.via === "download") ui.notifications?.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
     // The builder's summary names the scene it painted; put the print on it for tracing.
     const built = res.via === "extras" ? game.scenes?.get(res.summary?.sceneId) : null;
-    if (built && b?.cols) await this._placeReferenceOn(built).catch((err) => console.warn(`${MODULE_ID} | reference tile`, err));
+    if (built && b?.cols) await this._placeReferenceOn(built, referenceSrc).catch((err) => console.warn(`${MODULE_ID} | reference tile`, err));
   }
 
   /** Side door in: a CSV (hex_id, tags or terrain_tags, source) or a JSON (the exported tag flag, or a dataset). */
@@ -433,19 +434,21 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Image-pixel box of the numbered cells: the print's hex field. */
   _imageCellBox() {
+    if (!this._geom) return null;
     return cellBoxOf([...this._numbered.values()].map((c) => ({ x: c.u, y: c.v })), this._geom.cellW, this._geom.cellH);
   }
 
   /** Put this scene's print on `target` so the hex field covers its first cols × rows cells. */
-  async _placeReferenceOn(target) {
+  async _placeReferenceOn(target, src = this._scene()?.background?.src) {
     const b = this._state.origin?.bounds;
     const imageBox = this._imageCellBox();
     if (!b?.cols || !imageBox) { ui.notifications?.warn("Sample the scene, set the anchor and the map size first."); return null; }
+    if (!src) { ui.notifications?.warn("The source scene has no map background to place."); return null; }
     const sceneBox = gridCellBox(target, b.cols, b.rows);
     if (!sceneBox) { ui.notifications?.warn(`"${target.name}" has no hexagonal columns grid.`); return null; }
     const tf = this._geom.transform;
     const placement = referenceTilePlacement({ x: 0, y: 0, w: tf.texW, h: tf.texH }, imageBox, sceneBox);
-    const tile = await placeReferenceTile(target, this._scene().background.src, placement);
+    const tile = await placeReferenceTile(target, src, placement);
     const shifted = this._state.origin.shifted ?? "odd", lowered = loweredColumns(target);
     if (lowered !== shifted) ui.notifications?.warn(`"${target.name}" lowers its ${lowered} columns but the map lowers its ${shifted} ones; set its grid to Hexagonal Columns (${shifted}) so the hexes line up.`);
     ui.notifications?.info(`Reference tile placed on "${target.name}", hidden and locked. Delete it when tracing is done: hidden tiles still reach player clients with the image's URL.`);

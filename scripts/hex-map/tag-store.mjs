@@ -101,7 +101,10 @@ export function applySheet(state, answers) {
 /** Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, overlays } }. */
 export function tagsForDataset(state) {
   const out = {};
-  for (const [num, c] of state.cells) if (c?.terrain) out[String(num).padStart(3, "0")] = { terrain: c.terrain, overlays: c.overlays ?? [] };
+  for (const [num, c] of state.cells) if (c?.terrain) out[String(num).padStart(3, "0")] = {
+    terrain: c.terrain,
+    overlays: [...new Set([...(c.overlays ?? []), ...(OVERLAYS.includes(c.terrain) ? [c.terrain] : [])])],
+  };
   return out;
 }
 
@@ -155,5 +158,13 @@ export function rowsFromJson(obj) {
   for (const r of obj?.terrain?.regions ?? []) for (const n of r.hexes ?? []) add(n, r.biome);
   for (const h of obj?.hexes ?? []) add(h.num, h.terrain);
   for (const [net, overlay] of [["river", "river"], ["road", "path"]]) for (const n of obj?.networks?.[net] ?? []) add(n, overlay);
+  const { cols, rows } = obj?.grid ?? {};
+  const fallback = obj?.terrain?.default;
+  if (fallback && Number.isInteger(cols) && cols > 0 && Number.isInteger(rows) && rows > 0) {
+    for (let col = 1; col <= cols; col++) for (let row = 1; row <= rows; row++) {
+      const tags = byNum.get(String(col * 100 + row)) ?? [];
+      if (!tags.some((t) => !OVERLAYS.includes(String(t).trim().toLowerCase()))) add(col * 100 + row, fallback);
+    }
+  }
   return { origin: null, rows: [...byNum].map(([num, tags]) => ({ num, tags, source: "gm" })) };
 }
