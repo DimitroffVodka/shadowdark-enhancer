@@ -236,8 +236,11 @@
   has decided a hex is water, the strokes now decide which water. Nothing about
   this map is hard-coded: each terrain's stroke count and mark are learned from
   your own examples, and if they do not separate, the arbiter stands aside.
-  Measured on a 4768-hex verified map, re-deciding a real run: **178 errors to
-  94, water 89.6% to 98.1%** — 126 hexes re-decided, 84 fixed, none broken. (#169)
+  Measured on a 4768-hex verified map two ways: re-deciding a real run offline,
+  178 errors to 94 and water 89.6% to 98.1%, 126 hexes moved with 84 fixed and
+  none broken; and through the module's own first-run benchmark, where turning
+  it off costs **35 errors** and drops water from **96.7% to 93.7%**. It is the
+  largest single gain in the classifier. (#169)
 
 - **A hex is classified by the seven nearest examples, not the single nearest.**
   The examples come from the legend: the members of each card nearest its
@@ -248,10 +251,13 @@
   ones**. Nothing at runtime can tell which examples are wrong; there is no
   answer key. But a wrong example is outnumbered by the correct ones around it,
   so a vote survives what one nearest neighbour cannot: errors fall from
-  167/144/149 to 143/131/143 across three clusterings, about a tenth of
-  everything still wrong. Each terrain is judged on the share of the votes it
-  could have cast, so a terrain with two examples is not buried by one with
-  forty. The confidence figure behind the review queue is unchanged. (#169)
+  167/144/149 to 143/131/143 across three clusterings in an offline harness.
+  Measured through the module's own first-run benchmark, however, it changes
+  nothing at all — 263 errors either way — so it is kept as insurance against
+  mislabelled examples rather than for a gain anyone should quote. Each terrain
+  is judged on the share of the votes it could have cast, so a terrain with two
+  examples is not buried by one with forty. The confidence figure behind the
+  review queue is unchanged. (#169)
 
 - **The neighbour pass no longer drowns the coast.** Smoothing lets a hex be
   overruled by its neighbours, which is right almost everywhere and wrong at a

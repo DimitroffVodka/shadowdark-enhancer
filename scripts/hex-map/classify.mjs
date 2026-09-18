@@ -116,9 +116,11 @@ export function featureVector(bm, ds = 32) {
  * draws its water some other way calibrates to that instead — and if the
  * exemplars do not separate, the arbiter stands aside.
  *
- * Measured on a 4768-hex verified map, re-deciding a real run's water calls:
- * 178 errors to 94, water 89.6% to 98.1%, 126 cells re-decided, 84 fixed and
- * NONE broken.
+ * Measured two ways on the same 4768-hex verified map. Re-deciding a real
+ * run's water calls offline: 178 errors to 94, water 89.6% to 98.1%, 126 cells
+ * moved, 84 fixed and none broken. Through the module's own benchmarkFirstRun,
+ * which is the number that counts: switching it off costs 35 errors and takes
+ * water from 96.7% to 93.7%. The largest single gain in the classifier.
  */
 export const WET = ["river", "lake", "ocean", "arctic_sea"];
 export const WATER_ARBITER = {
@@ -308,9 +310,14 @@ export function nearestExemplar(vec, exemplars, { runOff = null, profile = null,
   //
   // But a wrong exemplar is outnumbered. Its neighbours in feature space are
   // overwhelmingly cells of the terrain it actually depicts, so a vote survives
-  // what a single nearest neighbour cannot. Measured over three clusterings:
-  // 167/144/149 errors at k=1 against 143/131/143 at k=7 — about nine percent
-  // of everything still wrong, and in the same direction every time.
+  // what a single nearest neighbour cannot. Measured over three clusterings in
+  // an offline harness: 167/144/149 errors at k=1 against 143/131/143 at k=7.
+  //
+  // HOWEVER — measured through the module's own benchmarkFirstRun on the same
+  // map, switching this off changes NOTHING: 263 errors either way, to the hex.
+  // The harness gain did not survive contact with the real pipeline. It earns
+  // its place only as insurance against exemplar noise that benchmark does not
+  // reproduce; do not quote a gain for it, and delete it if it ever costs.
   //
   // The margin above is deliberately untouched: it is still the per-terrain
   // distance ratio, so the review queue's bands (tag-store.mjs) still mean what
@@ -761,7 +768,8 @@ export function smoothTerrain(cells, neighboursOf, { need = SMOOTH_NEED, maxMarg
     // cells and BREAKS 5 by drowning coastal forest and mountain (land wrongly
     // in water 7 -> 12); with this clause it fixes the same 13 and breaks none
     // (202 errors -> 197, land-in-water stays at 7). Water accuracy is
-    // identical either way: the whole effect is on land.
+    // identical either way: the whole effect is on land. Through the module's
+    // own benchmarkFirstRun, switching this off costs 9 errors.
     if (WATER.includes(top[0]) && !WATER.includes(cell.terrain)) continue;
     changes.push({ num, from: cell.terrain, to: top[0] });
   }
