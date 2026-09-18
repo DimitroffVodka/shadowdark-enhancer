@@ -24,7 +24,7 @@ import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
 import { cellNumber, neighbours } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, sheetRisk, OVERLAYS } from "./tag-store.mjs";
-import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
+import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, recordLegend, legendReport, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
 import { buildLegend } from "./legend.mjs";
@@ -603,6 +603,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const n of this._numbered.keys()) { const c = state.cells.get(String(n)); if (c && c.source === "auto" && (c.review || (c.margin !== undefined && c.margin < reviewMargin))) reviewCount++; }
     // What the GM's own corrections say about that threshold (tag-corrections.mjs).
     const report = accuracyReport(this._log());
+    // What was answered on the legend, so the record is visible rather than
+    // buried in a flag: it is the input half of "how did this map go".
+    const legendLog = legendReport(this._log());
     // And how the module's own first scan of this map is holding up against the
     // hexes the GM has checked since.
     const baseline = this._scene() ? baselineReport(decodeBaseline(this._scene().getFlag(MODULE_ID, BASELINE_FLAG)), state.cells) : null;
@@ -627,6 +630,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
       showMore: sampled || !!origin, moreOpen: !!this._moreOpen,
       done, reviewCount, reviewMargin: reviewMargin.toFixed(2), report: report.judged ? report : null,
+      legendLog,
       // The queue is ordered worst-first, so the only question the GM has is
       // when to stop. This answers it: what this sheet is expected to contain.
       sheetExpected: Math.round(sheetRisk(state, this._sheet).expected),
@@ -809,6 +813,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // literally: open that card up so its hexes can be answered individually,
     // applying nothing this pass so no answer is acted on while it is in question.
     if (splits.length) { this._expandCards(splits); return; }
+    // What was ANSWERED, written down before anything acts on it. Everything
+    // else in the log records what the classifier did; this records what it was
+    // told, which is the half that was missing when a run came out badly.
+    const answered = this._legend.map((c) => ({
+      size: c.size, core: (c.core ?? []).length, opened: !!c.expand,
+      name: c.chosen === SPLIT ? "" : (c.chosen ?? ""),
+    }));
+    this._legendAnswered = answered;
     // A mis-named card is the most expensive mistake on this screen, and the
     // cards can check each other: one named jungle should look like the other
     // jungle cards.
@@ -843,6 +855,17 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (!ok) return;
     }
     applySheet(this._state, answers);
+    // Persist the answers beside the corrections, and freeze a baseline if this
+    // map has never had one: a scene that is only ever legended used to leave no
+    // record of what the module managed at all.
+    try {
+      const scene = this._scene();
+      if (scene && this._legendAnswered) {
+        const log = decodeFixes(scene.getFlag(MODULE_ID, FIXES_FLAG));
+        recordLegend(log, this._legendAnswered);
+        await replaceModuleFlag(scene, FIXES_FLAG, encodeFixes(log));
+      }
+    } catch (err) { console.warn(`${MODULE_ID} | could not record the legend`, err); }
     await this._saveState();
     this._legend = null;
     if (!(await this._classify(cores))) {

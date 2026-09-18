@@ -85,6 +85,11 @@
   {{/if}}
 
   {{#if report}}
+  {{#if legendLog}}
+  <p class="sde-hxt-note sde-hxt-direction">
+    <i class="fas fa-clipboard-list"></i> <strong>On the record</strong>: the legend you applied had {{legendLog.cards}} cards covering {{legendLog.hexes}} hexes — you named <strong>{{legendLog.named}}</strong>{{#if legendLog.skipped}}, left {{legendLog.skipped}} to the classifier{{/if}}{{#if legendLog.opened}} and opened {{legendLog.opened}} up hex by hex{{/if}}. That is kept with the scene, so a run that goes wrong can be traced to what it was told rather than guessed at.
+  </p>
+  {{/if}}
   <p class="sde-hxt-note sde-hxt-direction">
     <i class="fas fa-chart-simple"></i> <strong>From your corrections</strong>: you have judged {{report.judged}} hexes the classifier tagged, and {{report.wrong}} of them were wrong.
     {{#if report.retag}}

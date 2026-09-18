@@ -289,6 +289,16 @@
   against a hard ceiling of 46% before. The margin setting now does only what it
   always visibly did — decide which hexes get a ring on the map. (#169)
 
+- **What you answered on the legend is written down.** Everything the module
+  recorded was an output — what the classifier guessed, what you corrected. The
+  input was never kept, so when a run came out badly there was no way to tell a
+  bad classifier from a card you had called the wrong thing, and finding one
+  meant forensics on a run that was already dead. Applying a legend now records
+  each card's size, the name you gave it and whether you opened it up, beside
+  the corrections on the scene, and the tagger says so on screen. The last five
+  passes are kept; older ones fall away so the record cannot grow without
+  bound. (#169)
+
 - **"These are not all the same" now lets you answer the hexes there and then.**
   It used to break the card into four smaller cards and ask again, so nothing
   was applied and you went round once more. Choosing it now opens that card up

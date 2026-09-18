@@ -51,7 +51,64 @@ export function bandMargin(key) {
 }
 
 export function emptyLog() {
-  return { version: FIXES_VERSION, margin: DEFAULT_REVIEW_MARGIN, fixes: new Map(), seen: new Map() };
+  return { version: FIXES_VERSION, margin: DEFAULT_REVIEW_MARGIN, fixes: new Map(), seen: new Map(), legend: [] };
+}
+
+/**
+ * What the GM answered on the legend, kept because it is an INPUT and the rest
+ * of this file only records outputs.
+ *
+ * Patrick: "How can we really track results if nothing is being recorded." He
+ * was right. Every hex the classifier places comes from a card the GM named,
+ * and nothing wrote down what those names were — so when a run came out badly
+ * there was no way to tell a bad classifier from a card called the wrong thing.
+ * On 2026-09-18 one card named desert-as-jungle cost 358 hexes and it took
+ * forensics on a dead run to find it.
+ *
+ * One line per card: how big it was, what it was called, whether it was opened
+ * up. That is enough to answer, later, which card a correction came from —
+ * a card producing far more corrections than its share is a card named wrong.
+ */
+export function recordLegend(log, cards, { at = Date.now() } = {}) {
+  const pass = (cards ?? []).map((c) => ({
+    size: c.size ?? 0,
+    name: c.name ?? "",
+    opened: !!c.opened,
+    core: c.core ?? 0,
+  }));
+  log.legend = [...(log.legend ?? []), { at, cards: pass }];
+  return pass.length;
+}
+
+/**
+ * Which named card each correction landed in, for the most recent legend pass.
+ * A card whose share of the corrections far exceeds its share of the hexes is
+ * the one to look at first.
+ */
+export function legendReport(log, cardOf = null) {
+  const pass = (log?.legend ?? []).at(-1);
+  if (!pass?.cards?.length) return null;
+  const named = pass.cards.filter((c) => c.name).length;
+  const out = {
+    at: pass.at, cards: pass.cards.length, named,
+    skipped: pass.cards.length - named,
+    opened: pass.cards.filter((c) => c.opened).length,
+    hexes: pass.cards.reduce((a, c) => a + c.size, 0),
+  };
+  if (!cardOf || !log?.fixes?.size) return out;
+  const blame = new Map();
+  for (const [num] of log.fixes) {
+    const i = cardOf(num);
+    if (i === null || i === undefined) continue;
+    blame.set(i, (blame.get(i) ?? 0) + 1);
+  }
+  out.worst = [...blame.entries()]
+    .map(([i, wrong]) => ({ name: pass.cards[i]?.name ?? "(gone)", size: pass.cards[i]?.size ?? 0, wrong }))
+    .filter((c) => c.size)
+    .map((c) => ({ ...c, rate: +(c.wrong / c.size * 100).toFixed(1) }))
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 5);
+  return out;
 }
 
 /** Flag object → log. Tolerates a missing or foreign flag. */
@@ -67,6 +124,9 @@ export function decodeFixes(flag) {
     const margin = Number(review ? tail.slice(0, -1) : tail);
     log.fixes.set(String(parseInt(num, 10)), { was, now, margin: Number.isFinite(margin) ? margin : undefined, review });
   }
+  log.legend = Array.isArray(flag.legend)
+    ? flag.legend.filter((p) => p && Array.isArray(p.cards)).map((p) => ({ at: Number(p.at) || 0, cards: p.cards }))
+    : [];
   for (const [band, raw] of Object.entries(flag.seen ?? {})) {
     const [bad, total] = String(raw).split("/").map(Number);
     if (!Number.isFinite(total) || total <= 0) continue;
@@ -80,7 +140,10 @@ export function encodeFixes(log) {
   const fixes = {}, seen = {};
   for (const [num, f] of log.fixes) fixes[num] = `${f.was}>${f.now}|${Number.isFinite(f.margin) ? f.margin.toFixed(2) : "0.00"}${f.review ? "?" : ""}`;
   for (const [band, s] of log.seen) seen[band] = `${s.bad}/${s.total}`;
-  return { version: FIXES_VERSION, margin: log.margin ?? DEFAULT_REVIEW_MARGIN, fixes, seen };
+  // Only the last few passes: a GM who re-runs the legend twenty times should
+  // not grow the flag without bound, and the recent ones are the useful ones.
+  const legend = (log.legend ?? []).slice(-5);
+  return { version: FIXES_VERSION, margin: log.margin ?? DEFAULT_REVIEW_MARGIN, fixes, seen, legend };
 }
 
 /** Two cells agree when the terrain and the overlays both do. */

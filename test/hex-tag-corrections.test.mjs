@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyLog, decodeFixes, encodeFixes, recordEdits, withdrawEdits, accuracyReport, bandOf, bandMargin, sameTags } from "../scripts/hex-map/tag-corrections.mjs";
+import { emptyLog, decodeFixes, encodeFixes, recordEdits, withdrawEdits, accuracyReport, bandOf, bandMargin, sameTags , recordLegend, legendReport } from "../scripts/hex-map/tag-corrections.mjs";
 
 const auto = (terrain, margin, extra = {}) => ({ terrain, overlays: [], source: "auto", margin, review: false, ...extra });
 const gm = (terrain, overlays = []) => ({ terrain, overlays, source: "gm" });
@@ -132,4 +132,45 @@ test("accuracyReport: says re-classify, not re-threshold, when the examples are 
   const few = emptyLog();
   recordEdits(few, [{ num: 990, before: auto("ocean", 1.1), after: gm("arctic_sea") }]);
   assert.equal(accuracyReport(few).retag, false, "one correction is not evidence of anything");
+});
+
+test("the legend's answers are recorded, and survive the round trip to a flag", () => {
+  const log = emptyLog();
+  assert.equal(legendReport(log), null, "nothing applied yet, nothing to report");
+
+  const n = recordLegend(log, [
+    { size: 228, core: 40, name: "arctic_sea", opened: false },
+    { size: 147, core: 40, name: "forest", opened: false },
+    { size: 61, core: 40, name: "", opened: true },
+    { size: 12, core: 12, name: "", opened: false },
+  ], { at: 1000 });
+  assert.equal(n, 4);
+
+  const back = decodeFixes(encodeFixes(log));
+  const r = legendReport(back);
+  assert.deepEqual(
+    { cards: r.cards, named: r.named, skipped: r.skipped, opened: r.opened, hexes: r.hexes },
+    { cards: 4, named: 2, skipped: 2, opened: 1, hexes: 448 },
+  );
+});
+
+test("the legend record keeps the recent passes and not every pass ever", () => {
+  const log = emptyLog();
+  for (let i = 0; i < 9; i++) recordLegend(log, [{ size: i + 1, name: `pass${i}` }], { at: i });
+  const back = decodeFixes(encodeFixes(log));
+  assert.equal(back.legend.length, 5, "a GM who re-runs the legend all night must not grow the flag");
+  assert.equal(legendReport(back).cards, 1);
+  assert.equal(back.legend.at(-1).cards[0].name, "pass8", "the latest pass is the one kept");
+});
+
+test("a card producing far more corrections than its share is named as the suspect", () => {
+  const log = emptyLog();
+  recordLegend(log, [{ size: 100, name: "desert" }, { size: 100, name: "jungle" }]);
+  // twelve corrections in card 1, one in card 0
+  for (let i = 0; i < 12; i++) log.fixes.set(String(100 + i), { was: "jungle", now: "desert" });
+  log.fixes.set("900", { was: "desert", now: "forest" });
+  const cardOf = (num) => (Number(num) >= 900 ? 0 : 1);
+  const r = legendReport(log, cardOf);
+  assert.equal(r.worst[0].name, "jungle");
+  assert.equal(r.worst[0].wrong, 12);
 });
