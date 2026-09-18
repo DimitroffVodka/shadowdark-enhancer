@@ -127,6 +127,24 @@
   </p>
   <div class="sde-hxt-sheet sde-hxt-legend">
     {{#each legend as |g|}}
+    {{#if g.expand}}
+    <div class="sde-hxt-cell sde-hxt-opened">
+      <span class="sde-hxt-label">{{g.size}} cells — answer these {{g.picks.length}} one by one; the rest go to the classifier</span>
+      <div class="sde-hxt-picks">
+        {{#each g.picks as |p|}}
+        <div class="sde-hxt-pick">
+          <img src="{{p.thumb}}" alt="" width="72" height="72">
+          <span class="sde-hxt-label">{{p.num}}</span>
+          <select data-hxt-pick data-idx="{{../g.idx}}" data-num="{{p.num}}">
+            <option value="">(skip)</option>
+            {{#each p.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+          </select>
+          <input type="text" data-hxt-pick-other data-num="{{p.num}}" value="{{p.other}}" placeholder="other terrain" aria-label="Other terrain" {{#unless p.other}}hidden{{/unless}}>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+    {{else}}
     <div class="sde-hxt-cell">
       <div class="sde-hxt-thumbs">{{#each g.thumbs as |t|}}<img src="{{t}}" alt="" width="72" height="72">{{/each}}</div>
       <div class="sde-hxt-fields">
@@ -138,6 +156,7 @@
         <input type="text" data-hxt-legend-other data-idx="{{g.idx}}" value="{{g.terrainOther}}" placeholder="other terrain" aria-label="Other terrain" {{#unless g.terrainOther}}hidden{{/unless}}>
       </div>
     </div>
+    {{/if}}
     {{/each}}
   </div>
   <footer class="sde-hxt-foot">

@@ -40,6 +40,8 @@ export const TAGS_FLAG = "hexTags";
 export const SHEET_SIZE = 40;
 /** Legend answer meaning "these pictures are not one thing": break the card up and ask again. */
 export const SPLIT = "__split";
+/** How many of an opened card's hexes to put in front of the GM. */
+export const EXPAND_PICKS = 8;
 /**
  * Not a terrain: a hex the book keys. Its star or castle marker is what the
  * classifier would otherwise read as a river, and naming it here keeps those
@@ -222,11 +224,13 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     super._onRender(context, options);
 
     // The free-text terrain box shows only for "other…".
-    for (const sel of this.element.querySelectorAll("select[data-hxt-terrain], select[data-hxt-legend]")) {
+    for (const sel of this.element.querySelectorAll("select[data-hxt-terrain], select[data-hxt-legend], select[data-hxt-pick]")) {
       sel.addEventListener("change", () => {
-        const inp = sel.dataset.num !== undefined
-          ? this.element.querySelector(`input[data-hxt-terrain-other][data-num="${sel.dataset.num}"]`)
-          : this.element.querySelector(`input[data-hxt-legend-other][data-idx="${sel.dataset.idx}"]`);
+        const inp = sel.hasAttribute("data-hxt-pick")
+          ? this.element.querySelector(`input[data-hxt-pick-other][data-num="${sel.dataset.num}"]`)
+          : sel.dataset.num !== undefined
+            ? this.element.querySelector(`input[data-hxt-terrain-other][data-num="${sel.dataset.num}"]`)
+            : this.element.querySelector(`input[data-hxt-legend-other][data-idx="${sel.dataset.idx}"]`);
         if (!inp) return;
         inp.hidden = sel.value !== "__other";
         if (!inp.hidden) inp.focus();
@@ -399,21 +403,39 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * The card's cells are the only ones re-sorted, so the rest of the legend and
    * every answer already given stay exactly as they are.
    */
-  async _splitCards(indices) {
-    const { buildLegend } = await import("./legend.mjs");
-    const out = [];
-    let made = 0;
+  /**
+   * "These are not all the same" opens the card up instead of re-clustering it.
+   *
+   * It used to break the card into four smaller ones and ask again, which meant
+   * another round of naming before anything was applied. Patrick: "I should be
+   * able to tag what each of the hexes are right then instead of waiting for
+   * some kind of other review." So the card now shows a spread of its own hexes,
+   * each with its own answer, and those answers are hand tags on exactly those
+   * hexes — the rest of the card is left to the classifier, which is what a
+   * genuinely mixed card should get anyway.
+   *
+   * The spread is taken across the card's members rather than off the top:
+   * members come nearest-the-centre first, so the first eight would all look
+   * alike and show none of the mixing that made the GM say so.
+   */
+  _expandCards(indices) {
+    let opened = 0;
     for (const [idx, card] of this._legend.entries()) {
-      if (!indices.includes(idx)) { out.push(card); continue; }
-      const cells = card.members.map((n) => ({ num: n, bitmap: this._bitmaps.get(n) })).filter((c) => c.bitmap);
-      const parts = cells.length >= 4 ? (await buildLegend(cells, { k: 4 })).clusters : [];
-      if (parts.length < 2) { card.chosen = ""; out.push(card); continue; }
-      for (const p of parts) out.push({ ...p, split: true });
-      made += parts.length;
+      if (!indices.includes(idx)) continue;
+      const members = card.members ?? [];
+      if (members.length < 2) { card.chosen = ""; continue; }
+      const want = Math.min(EXPAND_PICKS, members.length);
+      const step = members.length / want;
+      const picks = [];
+      for (let i = 0; i < want; i++) {
+        const n = members[Math.min(members.length - 1, Math.floor(i * step))];
+        if (!picks.includes(n)) picks.push(n);
+      }
+      card.expand = true; card.picks = picks; card.chosen = SPLIT;
+      opened++;
     }
-    if (!made) { ui.notifications?.warn("That card will not break down any further; name it or leave it (skip)."); }
-    else ui.notifications?.info(`Split into ${made} cards. Name the new ones; your other answers are kept.`);
-    this._legend = out;
+    if (!opened) ui.notifications?.warn("That card has nothing to open up; name it or leave it (skip).");
+    else ui.notifications?.info("Tag these hexes one by one. The rest of the card is left to the classifier; your other answers are kept.");
     this.render();
   }
 
@@ -554,8 +576,21 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const majority = cl.chosen ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "");
       const terrainOther = majority && majority !== SPLIT && !terrainValues.includes(majority) ? majority : "";
       const selected = terrainOther ? "__other" : majority;
+      const pickOptions = (num) => {
+        const was = cl.picked?.[num] ?? state.cells.get(String(num))?.terrain ?? "";
+        const isOther = was && !terrainValues.includes(was);
+        return [...terrainOptions, { value: "__other", label: "other…" }]
+          .map((o) => ({ ...o, selected: o.value === (isOther ? "__other" : was) }));
+      };
       return {
         idx, size: cl.size, terrainOther, split: cl.split ? cl.split : null,
+        expand: !!cl.expand,
+        picks: cl.expand ? (cl.picks ?? []).map((num) => {
+          const c = this._numbered.get(num);
+          const was = cl.picked?.[num] ?? "";
+          return c ? { num, thumb: this._thumb(c), terrainOptions: pickOptions(num),
+                       other: terrainValues.includes(was) ? "" : was } : null;
+        }).filter(Boolean) : [],
         thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? this._thumb(c) : ""; }).filter(Boolean),
         terrainOptions: [...terrainOptions, { value: "__other", label: "other…" }, { value: SPLIT, label: "these are not all the same" }]
           .map((o) => ({ ...o, selected: o.value === selected })),
@@ -759,10 +794,21 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // stamped its dozen core cells with whatever the pictures happened to show.
       for (const n of card.core) { answers[n] = { terrain, overlays: [] }; cores.add(n); }
     }
+    // An opened card's hexes are answered one at a time, and each answer is a
+    // hand tag on that hex alone.
+    for (const sel of this.element.querySelectorAll("select[data-hxt-pick]")) {
+      const num = Number(sel.dataset.num);
+      const other = this.element.querySelector(`input[data-hxt-pick-other][data-num="${num}"]`)?.value.trim();
+      const terrain = sel.value === "__other" ? other : sel.value;
+      const card = this._legend[Number(sel.dataset.idx)];
+      if (card) (card.picked ??= {})[num] = sel.value === "__other" ? (other || "") : sel.value;
+      if (!terrain || terrain === SPLIT) continue;
+      answers[num] = { terrain, overlays: [] }; cores.add(num);
+    }
     // "These are not all the same" is the one thing only the GM can see. Take it
-    // literally: break that card into its parts and ask again, applying nothing
-    // this pass so no answer is acted on while a card is still in question.
-    if (splits.length) { await this._splitCards(splits); return; }
+    // literally: open that card up so its hexes can be answered individually,
+    // applying nothing this pass so no answer is acted on while it is in question.
+    if (splits.length) { this._expandCards(splits); return; }
     // A mis-named card is the most expensive mistake on this screen, and the
     // cards can check each other: one named jungle should look like the other
     // jungle cards.

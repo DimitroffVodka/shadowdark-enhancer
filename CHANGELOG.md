@@ -289,6 +289,15 @@
   against a hard ceiling of 46% before. The margin setting now does only what it
   always visibly did — decide which hexes get a ring on the map. (#169)
 
+- **"These are not all the same" now lets you answer the hexes there and then.**
+  It used to break the card into four smaller cards and ask again, so nothing
+  was applied and you went round once more. Choosing it now opens that card up
+  in place, showing eight of its hexes spread across the card — not the eight
+  nearest its centre, which all look alike — each with its own answer. What you
+  tag becomes a hand tag on that hex alone, and the rest of the card is left to
+  the classifier, which is what a genuinely mixed card should get. Every other
+  card's answer is kept. (#169)
+
 - **The pictures you name a card from show the hex and nothing else.** They were
   square crops drawn with a 20% margin of the surrounding map, so every picture
   carried the neighbours' glyphs and their printed numbers — measured across 20
