@@ -659,6 +659,8 @@
     "scripts/hex-map/geometry.mjs": "Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure.",
     "scripts/hex-map/tag-store.mjs": "The tagger's scene-flag store: compact tag strings, sheet selection (random/keyed/review), dataset tags. Pure.",
     "scripts/hex-map/sampler.mjs": "Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite.",
-    "scripts/hex-map/hex-tagger-app.mjs": "Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off."
+    "scripts/hex-map/hex-tagger-app.mjs": "Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off.",
+    "scripts/hex-map/bitmap.mjs": "0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure.",
+    "scripts/hex-map/classify.mjs": "Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure."
   }
 }

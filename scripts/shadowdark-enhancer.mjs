@@ -611,6 +611,9 @@ Hooks.once("init", () => {
       openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
       // Pure builder for the Extras dataset from drafts, keyed rows and tags.
       buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
+      // Dev check: score the active scene's tags against a truth CSV
+      // (hex_id + tags or terrain_tags). Ships no data; the CSV is the GM's.
+      compare: async (csvText, opts) => (await import("./hex-map/hex-tagger-app.mjs")).compareSceneTags(canvas?.scene, csvText, opts),
       // Dataset from a filed crawl entry (journals pack), then hand-off or download.
       handoff: async (entryOrDataset) => {
         const h = await import("./importer/hex/hex-handoff.mjs");

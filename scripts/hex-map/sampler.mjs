@@ -82,27 +82,30 @@ export class CellSampler {
   /**
    * @param {CanvasImageSource} image
    * @param {{cellW:number, cellH:number}} geom
-   * @param {{size?:number, threshold?:number}} [opts]  size = classification bitmap edge, threshold = grey level below which a pixel is ink
+   * @param {{size?:number, threshold?:number}} [opts]  size = classification bitmap WIDTH (the height keeps
+   *   the cell's aspect, so the classifier's area-based calibration holds), threshold = grey level below which a pixel is ink
    */
-  constructor(image, geom, { size = 32, threshold = 110 } = {}) {
-    this.image = image; this.geom = geom; this.size = size; this.threshold = threshold;
+  constructor(image, geom, { size = 96, threshold = 110 } = {}) {
+    this.image = image; this.geom = geom; this.threshold = threshold;
+    this.w = size;
+    this.h = Math.max(8, Math.round(size * geom.cellH / geom.cellW));
     this.canvas = document.createElement("canvas");
-    this.canvas.width = size; this.canvas.height = size;
+    this.canvas.width = this.w; this.canvas.height = this.h;
     this.ctx = this.canvas.getContext("2d", { willReadFrequently: true });
   }
 
-  /** 0/1 ink bitmap of the cell's bounding box, `size` × `size`. Throws on a tainted (cross-origin) image. */
+  /** 0/1 ink bitmap of the cell's bounding box, w × h with the cell's aspect. Throws on a tainted (cross-origin) image. */
   bitmap(cell) {
-    const { cellW, cellH } = this.geom, s = this.size, ctx = this.ctx;
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, s, s);
-    ctx.drawImage(this.image, cell.u - cellW / 2, cell.v - cellH / 2, cellW, cellH, 0, 0, s, s);
-    const data = ctx.getImageData(0, 0, s, s).data;
-    const out = new Uint8Array(s * s);
-    for (let p = 0; p < s * s; p++) {
+    const { cellW, cellH } = this.geom, w = this.w, h = this.h, ctx = this.ctx;
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(this.image, cell.u - cellW / 2, cell.v - cellH / 2, cellW, cellH, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    const out = new Uint8Array(w * h);
+    for (let p = 0; p < w * h; p++) {
       const g = (data[p * 4] * 299 + data[p * 4 + 1] * 587 + data[p * 4 + 2] * 114) / 1000;
       out[p] = g < this.threshold ? 1 : 0;
     }
-    return { w: s, h: s, data: out };
+    return { w, h, data: out };
   }
 
   /** PNG data URL of the cell plus a margin of its neighbours, for the contact sheet. */

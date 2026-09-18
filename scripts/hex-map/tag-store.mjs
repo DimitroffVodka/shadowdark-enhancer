@@ -8,8 +8,10 @@
  *     origin: { i, j, q, r, num: "000", shifted: "odd", bounds: { cols: 64, rows: 75 } } | null,
  *     cells: { "1403": "forest;river|gm", "1404": "forest|auto:1.42" } }
  *
- * A cell value is `tags|source[:margin]`: the first tag is the terrain, the
- * rest are overlays (river, path, coast). Numbers are published numbers as
+ * A cell value is `tags|source[:margin][?]`: the first tag is the terrain, the
+ * rest are overlays (river, path, coast); a trailing `?` marks an automatic
+ * result the classifier flagged for review (unclear overlay or missing stamp)
+ * beyond what the margin alone says. Numbers are published numbers as
  * decimal strings without leading zeros. ponytail: the flag re-sends the whole
  * object on every write; move to a flagged journal page (as Extras' hexData)
  * if a map ever exceeds about 10 000 cells.
@@ -31,10 +33,11 @@ export function decodeTags(flag) {
     const [tagPart, srcPart = ""] = String(raw).split("|");
     const tags = tagPart.split(";").map((t) => t.trim()).filter(Boolean);
     if (!tags.length) continue;
-    const [source, margin] = srcPart.split(":");
+    const review = srcPart.endsWith("?");
+    const [source, margin] = (review ? srcPart.slice(0, -1) : srcPart).split(":");
     state.cells.set(String(parseInt(num, 10)), {
       terrain: tags[0], overlays: tags.slice(1).filter((t) => OVERLAYS.includes(t)),
-      source: source || "gm", margin: margin !== undefined ? Number(margin) : undefined,
+      source: source || "gm", margin: margin !== undefined ? Number(margin) : undefined, review,
     });
   }
   return state;
@@ -47,7 +50,7 @@ export function encodeTags(state) {
     if (!c?.terrain) continue;
     const tags = [c.terrain, ...(c.overlays ?? [])].join(";");
     const src = c.margin !== undefined ? `${c.source ?? "gm"}:${Number(c.margin).toFixed(2)}` : (c.source ?? "gm");
-    cells[num] = `${tags}|${src}`;
+    cells[num] = `${tags}|${src}${c.review ? "?" : ""}`;
   }
   return { version: STORE_VERSION, origin: state.origin ?? null, cells };
 }
@@ -74,7 +77,7 @@ export function nextSheet(state, { nums, size = 40, mode = "random", keyed = new
   const tagged = (n) => state.cells.get(String(n));
   let pool;
   if (mode === "keyed") pool = nums.filter((n) => keyed.has(n) && !tagged(n));
-  else if (mode === "review") pool = nums.filter((n) => { const c = tagged(n); return c && c.source === "auto" && c.margin !== undefined && c.margin < reviewMargin; });
+  else if (mode === "review") pool = nums.filter((n) => { const c = tagged(n); return c && c.source === "auto" && (c.review || (c.margin !== undefined && c.margin < reviewMargin)); });
   else pool = nums.filter((n) => !tagged(n));
   // Fisher–Yates on a copy, then take the first `size`.
   const a = pool.slice();

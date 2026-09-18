@@ -57,6 +57,37 @@ Then:
 Tags live on the scene under the module's flags and survive reloads;
 **Clear** removes them and the anchor. Re-sampling never touches tags.
 
+## Classify (stamped maps)
+
+Once a sheet or two is tagged by hand, **Classify** fills in the rest. It only
+works well on maps whose terrain icons are stamped, the same pixels in every
+cell, like the Western Reaches print; hand-drawn maps get a warning and are
+better tagged by hand (they are small).
+
+- Your tagged cells are the examples. Each untagged cell takes the terrain of
+  the example it most resembles.
+- The terrain's stamp is then subtracted from the cell and whatever ink is left
+  decides the overlay: one long stroke reaching two edges is a **river**, a
+  chain of short marks is a **path**. Coast is never guessed; tick it by hand.
+- Cells the classifier is unsure about, a close call between two terrains or an
+  unclear overlay, go to the **Review queue**. Tag those sheets and every answer
+  becomes a new example for the next Classify. Keyed hexes are never classified;
+  their terrain comes from the book's text.
+- **Sensitivity** scales the overlay thresholds: raise it if paths and rivers
+  are missed, lower it if plain cells pick up overlays.
+
+Measured in Foundry on the Western Reaches map against a hand-verified table,
+with half the map tagged and the other half classified: terrain 96%, rivers
+85% precision and 88% recall, paths 77% and 87%; about one cell in nine lands
+in the review queue. Choose the crawl entry before classifying: keyed hexes
+carry a star or settlement icon that reads as a river, and only the entry
+tells the tagger which cells those are.
+
+For your own check, `game.shadowdarkEnhancer.hexMaps.compare(csvText)` scores
+the active scene's tags against a CSV with `hex_id` and `tags` (or
+`terrain_tags`) columns and returns terrain accuracy plus river and path
+precision and recall.
+
 ## The dataset
 
 ```js

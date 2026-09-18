@@ -13,6 +13,11 @@
       <button type="button" data-action="hxtBuildDataset" class="sde-import-primary">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}</button>
       <button type="button" data-action="hxtClearTags" class="sde-import-secondary" title="Remove every tag and the anchor from this scene"><i class="fas fa-eraser"></i> Clear</button>
       {{/if}}
+      {{#if canClassify}}
+      <label title="Scales the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
+      <button type="button" data-action="hxtClassify" class="sde-import-primary" title="Classify every cell without a hand tag from the ones you tagged; unsure cells go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
+      {{/if}}
+      <span class="sde-hxt-stat" data-hxt-progress>{{progress}}</span>
     </div>
   </header>
 
@@ -51,7 +56,7 @@
       </div>
       {{else}}
       <div class="sde-hxt-fields">
-        <span class="sde-hxt-label">{{c.label}}{{#if c.keyed}} <i class="fas fa-star" title="Keyed hex"></i>{{/if}}{{#if c.source}} <span class="sde-hxt-muted">{{c.source}}</span>{{/if}}</span>
+        <span class="sde-hxt-label">{{c.label}}{{#if c.keyed}} <i class="fas fa-star" title="Keyed hex"></i>{{/if}}{{#if c.source}} <span class="sde-hxt-muted">{{c.source}}{{#if c.margin}} {{c.margin}}{{/if}}{{#if c.review}} <i class="fas fa-circle-question" title="Flagged for review"></i>{{/if}}</span>{{/if}}</span>
         <select data-hxt-terrain data-num="{{c.num}}">
           <option value="">(untagged)</option>
           {{#each c.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}

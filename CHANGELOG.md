@@ -24,6 +24,11 @@
   match the print. Tags are stored on the scene and fold into the dataset with
   the filed crawl's keyed hexes. Flat-top column grids only for now. Phase 2 of
   the hex-map plan (#169); API 1.5.0 adds the `hexMaps` namespace.
+- **Classify.** With a sheet or two tagged by hand, the Hex Tagger classifies
+  every other cell on a stamped map: terrain from the nearest tagged example,
+  river or path from the ink left after subtracting that terrain's stamp.
+  Unsure cells go to the Review queue, keyed hexes are left to the book's text,
+  and hand-drawn maps get a warning. Phase 3 of the hex-map plan (#169).
 
 ## [0.17.3] — 2026-09-16
 

@@ -16,6 +16,7 @@ import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
 import { cellNumber } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, OVERLAYS } from "./tag-store.mjs";
+import { createClassifier, compareTags, parseTruthCsv } from "./classify.mjs";
 import { TERRAIN_TAGS } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { datasetFromEntry, handoffDataset, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
@@ -26,6 +27,17 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** Scene flag key holding the tag store. */
 export const TAGS_FLAG = "hexTags";
 export const SHEET_SIZE = 40;
+/** Cell bitmap width for classification (height follows the cell's aspect); the calibration cell was 95×87. */
+export const BITMAP_SIZE = 96;
+
+/**
+ * Dev check: score a scene's tags against a truth CSV (see classify.mjs).
+ * Exposed as game.shadowdarkEnhancer.hexMaps.compare; ships no data.
+ */
+export function compareSceneTags(scene, csvText, { sources } = {}) {
+  const state = decodeTags(scene?.getFlag(MODULE_ID, TAGS_FLAG));
+  return compareTags(state.cells, parseTruthCsv(csvText), { sources });
+}
 
 export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
@@ -41,6 +53,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtSetBounds:    function (...a) { return this._onSetBounds(...a); },
       hxtBuildDataset: function (...a) { return this._onBuildDataset(...a); },
       hxtClearTags:    function (...a) { return this._onClearTags(...a); },
+      hxtClassify:     function (...a) { return this._onClassify(...a); },
     },
   };
 
@@ -67,6 +80,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _entryUuid = "";
   _entries = [];
   _error = "";
+  /** @type {Map<number, {w:number,h:number,data:Uint8Array}>} published number → cell bitmap, filled on Classify */
+  _bitmaps = new Map();
+  _sensitivity = 1;
+  _progress = "";
 
   _scene() { return canvas?.scene ?? null; }
 
@@ -139,6 +156,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         return {
           num, label: String(num).padStart(4, "0"), i: c?.i, j: c?.j, thumb: c ? this._thumb(c) : "",
           terrain: t?.terrain ?? "", source: t?.source ?? "", keyed: keyed.has(num),
+          margin: t?.margin !== undefined ? Number(t.margin).toFixed(2) : "", review: !!t?.review,
           overlays: Object.fromEntries(OVERLAYS.map((o) => [o, !!t?.overlays?.includes(o)])),
           terrainOptions: terrainOptions.map((o) => ({ ...o, selected: o.value === (t?.terrain ?? "") })),
         };
@@ -152,7 +170,67 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
       overlays: OVERLAYS,
+      canClassify: !!origin && summarize(state, total).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
     };
+  }
+
+  _setProgress(text) {
+    this._progress = text;
+    const el = this.element?.querySelector("[data-hxt-progress]");
+    if (el) el.textContent = text;
+  }
+
+  /** Cell bitmaps for every numbered cell, read once and kept until re-sampling. */
+  async _ensureBitmaps() {
+    let k = 0; const total = this._numbered.size;
+    for (const [num, cell] of this._numbered) {
+      if (this._bitmaps.has(num)) continue;
+      this._bitmaps.set(num, this._sampler.bitmap(cell));
+      if (++k % 200 === 0) { this._setProgress(`Reading cells ${k} of ${total}…`); await new Promise((r) => setTimeout(r, 0)); }
+    }
+    this._setProgress("");
+  }
+
+  /**
+   * Classify every cell without a hand tag from the hand-tagged ones; unsure
+   * results are marked for the Review queue. Keyed hexes are left alone.
+   */
+  async _onClassify() {
+    this._readHeader();
+    if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
+    const gm = [...this._state.cells.entries()].filter(([, c]) => c.source !== "auto");
+    if (!gm.length) { ui.notifications?.warn("Tag a sheet by hand first; those cells are the examples."); return; }
+    const sens = parseFloat(this.element.querySelector("input[data-hxt-sensitivity]")?.value);
+    this._sensitivity = Number.isFinite(sens) && sens > 0 ? sens : 1;
+    await this._ensureBitmaps();
+    const keyed = this._keyedNumbers();
+    // Keyed hexes carry a star or settlement icon over their glyph, which the
+    // residual reads as a river (120 of 144 on the live check). Their terrain
+    // comes from the book's text, so they must be left out — and that needs the
+    // crawl entry to be chosen.
+    if (!keyed.size && this._entries.length) ui.notifications?.warn("No crawl chosen: keyed hexes will be classified too, and their icons read as rivers. Pick the crawl entry and classify again to leave them to the book.");
+    const exemplars = gm.map(([num, c]) => ({ num: Number(num), tag: c.terrain, overlays: c.overlays ?? [], bitmap: this._bitmaps.get(Number(num)) })).filter((e) => e.bitmap);
+    const cells = [...this._numbered.keys()]
+      .filter((n) => !keyed.has(n) && (this._state.cells.get(String(n))?.source ?? "auto") === "auto")
+      .map((n) => ({ num: n, bitmap: this._bitmaps.get(n) })).filter((c) => c.bitmap);
+    this._setProgress(`Preparing ${exemplars.length} examples…`); await new Promise((r) => setTimeout(r, 0));
+    const clf = createClassifier({ exemplars, allBitmaps: [...this._bitmaps.values()], thresholds: { sensitivity: this._sensitivity } });
+    if (!clf.ready) { for (const w of clf.warnings) ui.notifications?.warn(w); this._setProgress(""); return; }
+    let done = 0, review = 0;
+    for (const c of cells) {
+      const r = clf.classify(c);
+      this._state.cells.set(String(c.num), { terrain: r.terrain, overlays: r.overlays, source: "auto", margin: Number.isFinite(r.margin) ? Math.min(r.margin, 99) : 99, review: r.ambiguous });
+      if (r.ambiguous) review++;
+      // Yield so the browser (and Foundry's socket heartbeat) keeps breathing on big maps.
+      if (++done % 100 === 0) { this._setProgress(`Classifying ${done} of ${cells.length}…`); await new Promise((r) => setTimeout(r, 0)); }
+    }
+    await this._saveState();
+    this._setProgress("");
+    this._mode = "review";
+    this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review" });
+    ui.notifications?.info(`Classified ${cells.length} cells from ${exemplars.length} hand-tagged examples; ${review} queued for review.`);
+    for (const w of clf.warnings) ui.notifications?.warn(w);
+    this.render();
   }
 
   _thumb(cell) {
@@ -172,8 +250,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (geom.error) { this._error = geom.error; this.render(); return; }
     try {
       const image = await sourceImage(canvas);
-      this._sampler = new CellSampler(image, geom);
-      this._geom = geom; this._cells = geom.cells;
+      this._sampler = new CellSampler(image, geom, { size: BITMAP_SIZE });
+      this._geom = geom; this._cells = geom.cells; this._bitmaps = new Map();
       this._sampler.bitmap(this._cells[0]);            // tainted-canvas check: throws on a cross-origin image
     } catch (err) {
       this._error = /SecurityError|tainted|insecure/i.test(String(err)) ? "The background image is not same-origin, so its pixels cannot be read. Put the file in your Foundry data directory." : String(err?.message ?? err);

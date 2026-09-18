@@ -11,8 +11,11 @@ test("encode/decode round trip keeps terrain, overlays, source and margin", () =
   assert.deepEqual(flag.cells, { "1403": "forest;river|gm", "101": "swamp|auto:1.42" });
   const back = decodeTags(flag);
   assert.deepEqual(back.origin, s.origin);
-  assert.deepEqual(back.cells.get("1403"), { terrain: "forest", overlays: ["river"], source: "gm", margin: undefined });
-  assert.deepEqual(back.cells.get("101"), { terrain: "swamp", overlays: [], source: "auto", margin: 1.42 });
+  assert.deepEqual(back.cells.get("1403"), { terrain: "forest", overlays: ["river"], source: "gm", margin: undefined, review: false });
+  assert.deepEqual(back.cells.get("101"), { terrain: "swamp", overlays: [], source: "auto", margin: 1.42, review: false });
+  s.cells.set("202", { terrain: "forest", overlays: ["path"], source: "auto", margin: 2.5, review: true });
+  assert.equal(encodeTags(s).cells["202"], "forest;path|auto:2.50?");
+  assert.equal(decodeTags(encodeTags(s)).cells.get("202").review, true);
   assert.equal(decodeTags(undefined).cells.size, 0);
   assert.equal(decodeTags({ cells: { "0203": "forest;road|gm" } }).cells.get("203").overlays.length, 0, "unknown overlays are dropped");
 });
@@ -33,10 +36,11 @@ test("nextSheet: keyed mode serves untagged keyed cells, review mode serves low-
   const s = emptyState();
   s.cells.set("2", { terrain: "forest", overlays: [], source: "auto", margin: 1.1 });
   s.cells.set("4", { terrain: "forest", overlays: [], source: "auto", margin: 2.0 });
+  s.cells.set("5", { terrain: "forest", overlays: ["path"], source: "auto", margin: 2.0, review: true });
   s.cells.set("6", { terrain: "forest", overlays: [], source: "gm" });
   const nums = [1, 2, 3, 4, 5, 6];
   assert.deepEqual(nextSheet(s, { nums, mode: "keyed", keyed: new Set([1, 6]) }), [1]);
-  assert.deepEqual(nextSheet(s, { nums, mode: "review" }), [2]);
+  assert.deepEqual(nextSheet(s, { nums, mode: "review" }), [2, 5]);
 });
 
 test("applySheet writes gm answers, clears on empty terrain, and tagsForDataset reflects it", () => {
