@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-949 tracked files · ~158,800 lines of code/markup across scripts+templates+styles+test.
+949 tracked files · ~158,900 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -56,7 +56,7 @@
 | `taunt/taunt-core.mjs` | 118 | Pure Duelist Taunt rules: round+turn as one ordinal, the "end of your NEXT turn" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit). |
 | `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
-| `hex-map/classify.mjs` | 581 | Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
+| `hex-map/classify.mjs` | 640 | Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
 | `hex-map/geometry.mjs` | 94 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
 | `hex-map/hex-brush-app.mjs` | 123 | The hex brush: a small window that sets one terrain plus overlays, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
 | `hex-map/hex-map-flow.mjs` | 253 | Hex map from an image: file dialog, lattice detection, confirmation preview, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |

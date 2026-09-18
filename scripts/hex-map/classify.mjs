@@ -156,11 +156,22 @@ export function keepMask(bitmaps, masks) {
  * @param {Float32Array} vec
  * @param {Array<{tag:string, vec:Float32Array}>} exemplars
  */
-export function nearestExemplar(vec, exemplars, { runOff = null, profile = null } = {}) {
+export function nearestExemplar(vec, exemplars, { runOff = null, profile = null, vote = VOTE_K } = {}) {
   const distances = new Map();
+  const tagCounts = new Map();
+  // The k nearest exemplars overall, kept as (distance, tag) in order. Small k,
+  // so an insertion sort over an array of k beats a heap and allocates nothing.
+  const near = [];
   for (const e of exemplars) {
     const d = dist2(vec, e.vec);
     if (d < (distances.get(e.tag) ?? Infinity)) distances.set(e.tag, d);
+    tagCounts.set(e.tag, (tagCounts.get(e.tag) ?? 0) + 1);
+    if (near.length < vote || d < near[near.length - 1].d) {
+      let i = near.length;
+      while (i > 0 && near[i - 1].d > d) { near[i] = near[i - 1]; i--; }
+      near[i] = { d, tag: e.tag };
+      if (near.length > vote) near.length = vote;
+    }
   }
   let best = null, bestD = Infinity, other = null, otherD = Infinity;
   for (const [tag, d] of distances) {
@@ -168,6 +179,46 @@ export function nearestExemplar(vec, exemplars, { runOff = null, profile = null 
     else if (d < otherD) { other = tag; otherD = d; }
   }
   const margin = bestD === 0 ? Infinity : otherD / bestD;
+  // Ask the k nearest, not the single nearest.
+  //
+  // The exemplars are not clean. They are the members of a legend card nearest
+  // its centre, all given the one name the GM chose for that card, and a card
+  // is not pure: measured on a verified map, 180 of 1678 core exemplars (10.7%)
+  // carry the wrong name, and 135 of the 225 errors on the remaining cells —
+  // SIXTY PERCENT — were cells whose nearest exemplar was one of those.
+  // Nothing at runtime can see which ones are wrong; there is no answer key.
+  //
+  // But a wrong exemplar is outnumbered. Its neighbours in feature space are
+  // overwhelmingly cells of the terrain it actually depicts, so a vote survives
+  // what a single nearest neighbour cannot. Measured over three clusterings:
+  // 167/144/149 errors at k=1 against 143/131/143 at k=7 — about nine percent
+  // of everything still wrong, and in the same direction every time.
+  //
+  // The margin above is deliberately untouched: it is still the per-terrain
+  // distance ratio, so the review queue's bands (tag-store.mjs) still mean what
+  // they were calibrated to mean.
+  if (vote > 1 && near.length) {
+    const tally = new Map();
+    for (const n of near) tally.set(n.tag, (tally.get(n.tag) ?? 0) + 1);
+    // Count each terrain's share of the votes it COULD have cast, not its raw
+    // count. A terrain with two exemplars can never put more than two in the
+    // list, and comparing its 2 against a common terrain's 5 buries it — which
+    // is exactly what happened to a two-exemplar desert in the suite. Measured
+    // three ways on the verified map (raw count, the two nearest terrains only,
+    // and this): 143/131/143 errors, identical. So take the form that cannot
+    // lose a rare terrain, since it costs nothing.
+    let winner = null, top = 0;
+    for (const [tag, count] of tally) {
+      const share = count / Math.min(vote, tagCounts.get(tag) ?? count);
+      // Ties go to whichever tied terrain is nearest: `near` is in distance
+      // order, so the first to reach the best share wins.
+      if (share > top) { top = share; winner = tag; }
+    }
+    if (winner && winner !== best) {
+      other = best; otherD = bestD;
+      best = winner; bestD = distances.get(winner) ?? bestD;
+    }
+  }
   // A close call between two terrains is decided again, between those two
   // ALONE, on a feature that tells them apart where the positional one cannot.
   // Mixed into every comparison the same feature is worth nothing (measured:
@@ -517,6 +568,14 @@ export function bestSensitivity(sweep, overlay = "river") {
 }
 
 /** A hex needs this many of its six neighbours to agree before they overrule it. */
+/**
+ * How many exemplars vote on a cell. See nearestExemplar for why it is not 1.
+ * Measured mean errors over three clusterings: k=1 153.3, k=3 149, k=5 140.7,
+ * k=7 139.0, k=9 138.0. Past seven the curve is flat and a rare terrain with
+ * few exemplars starts being outvoted by a common neighbour, so it stops here.
+ */
+export const VOTE_K = 7;
+
 export const SMOOTH_NEED = 5;
 /**
  * Off, measured. Refusing to overrule a hex the classifier was confident about

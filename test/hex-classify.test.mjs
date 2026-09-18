@@ -119,3 +119,28 @@ test("featureVector reads the hexagon, not the square: corner ink is a neighbour
   for (let y = h / 2 - 3; y < h / 2 + 3; y++) for (let x = w / 2 - 3; x < w / 2 + 3; x++) centre.data[y * w + x] = 1;
   assert.ok(featureVector(centre).reduce((a, b) => a + b, 0) > 0, "centre ink must reach the feature");
 });
+
+test("a mislabelled exemplar is outvoted, not believed", () => {
+  // The exemplars a real run learns from are legend-card members, all given the
+  // card's one name — and on a verified map 10.7% of them carry the wrong one.
+  // Here one blob is filed under mountain, and the query is nearly a copy of it,
+  // so the single nearest exemplar is the poisoned one.
+  const poison = { num: 99, tag: "mountain", overlays: [], bitmap: noisy(glyph("blob"), 1234) };
+  const ex = [...exemplars(), poison].map((e) => ({ ...e, vec: featureVector(e.bitmap) }));
+  // The query IS the poisoned cell, so the single nearest exemplar is certainly
+  // it — the case where 1-NN has no chance at all.
+  const query = featureVector(poison.bitmap);
+
+  assert.equal(nearestExemplar(query, ex, { vote: 1 }).tag, "mountain", "1-NN believes the bad label");
+  assert.equal(nearestExemplar(query, ex).tag, "forest", "the vote overrules it");
+});
+
+test("the vote cannot bury a terrain that simply has few exemplars", () => {
+  // Two desert exemplars against four of everything else: raw vote counting
+  // loses desert every time, so each terrain is judged on the share of the
+  // votes it could have cast.
+  const ex = exemplars().filter((e) => e.tag !== "desert" || e.num % 2)
+    .map((e) => ({ ...e, vec: featureVector(e.bitmap) }));
+  assert.equal(ex.filter((e) => e.tag === "desert").length, 2);
+  assert.equal(nearestExemplar(featureVector(noisy(glyph("dots"), 8)), ex).tag, "desert");
+});

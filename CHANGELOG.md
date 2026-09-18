@@ -227,6 +227,20 @@
   `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
+- **A hex is classified by the seven nearest examples, not the single nearest.**
+  The examples come from the legend: the members of each card nearest its
+  centre, all given the one name you chose for that card. A card is not pure,
+  so some of those names are wrong — measured on a hand-verified map, **180 of
+  1678 (10.7%)**, and **135 of the 225 errors on the remaining hexes, 60% of
+  them, were hexes whose single nearest example was one of the mislabelled
+  ones**. Nothing at runtime can tell which examples are wrong; there is no
+  answer key. But a wrong example is outnumbered by the correct ones around it,
+  so a vote survives what one nearest neighbour cannot: errors fall from
+  167/144/149 to 143/131/143 across three clusterings, about a tenth of
+  everything still wrong. Each terrain is judged on the share of the votes it
+  could have cast, so a terrain with two examples is not buried by one with
+  forty. The confidence figure behind the review queue is unchanged. (#169)
+
 - **The neighbour pass no longer drowns the coast.** Smoothing lets a hex be
   overruled by its neighbours, which is right almost everywhere and wrong at a
   shoreline: a sea hex has five or six sea neighbours, so the coastal forest
