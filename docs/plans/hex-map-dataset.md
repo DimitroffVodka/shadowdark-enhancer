@@ -91,12 +91,12 @@ merges that pdf.js column extraction should avoid; verify in Phase 1.
   grid: { cols: 64, rows: 75, distance: 6, units: "mi",
           landscape: false, flipX: false, flipY: false },
   terrain: {
-    default: "forest",                // canonical Extras biome key
+    default: "forest",                // as built: the book's terrain WORD; Extras maps it to a biome (its Developer API)
     regions: [ { biome: "mountains", hexes: [1341, 1041, ...] }, ... ]
   },
   hexes: [
     { num: 4541, name: "Serengal", terrain: "ocean", desc: "<p>...</p>",
-      zone: "Kyzian Steppes", icon: "", feature: "keyed_location" },   // feature: keyed_location|village|town|city|city_state
+      zone: "Kyzian Steppes" },   // as built: no icon/feature — Extras' builder rejects unknown hex keys; the settlement marker stays on the crawl entry
     ...
   ],
   networks: { river: [1246, 1247, ...], road: [4649, 4749, ...] }

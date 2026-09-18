@@ -36,23 +36,28 @@ test("drafts and rows merge by number; rows give zone, terrain and feature, draf
   const ds = buildHexDataset({ name: "Test", source: "Test", drafts: DRAFTS, summaryRows: ROWS });
   assert.equal(ds.hexes.length, 3);
   const h = Object.fromEntries(ds.hexes.map((x) => [x.num, x]));
-  assert.deepEqual([h[101].name, h[101].zone, h[101].terrain, h[101].feature], ["The Shattered Mill", "Grey Reach, The", "forest", "keyed_location"]);
+  assert.deepEqual([h[101].name, h[101].zone, h[101].terrain], ["The Shattered Mill", "Grey Reach, The", "forest"]);
   assert.match(h[101].desc, /^<p>A ruined watermill/);
   assert.match(h[101].desc, /hex 0203\./);           // placeholder degraded to its label, no @@HEX
   assert.doesNotMatch(h[101].desc, /@@HEX/);
-  assert.deepEqual([h[203].feature, h[203].name], ["village", "Fen of Sighs"]);
+  assert.equal(h[203].name, "Fen of Sighs");
+  // Extras' builder rejects any hex key outside its record fields; the settlement marker has none.
+  const allowed = new Set(["num", "name", "terrain", "desc", "zone"]);
+  for (const x of ds.hexes) for (const k of Object.keys(x)) assert.ok(allowed.has(k), `unexpected hex field ${k}`);
+  assert.equal("feature" in h[203], false);
 });
 
 test("terrain regions, networks and grid come out in numbers only", () => {
   const ds = buildHexDataset({ drafts: DRAFTS, summaryRows: ROWS, tags: { "0304": { terrain: "mountain", overlays: ["path"] }, 102: { terrain: "swamp" } } });
   assert.deepEqual(ds.terrain.regions, [
     { biome: "forest", hexes: [101, 102] },
-    { biome: "mountains", hexes: [304] },
+    { biome: "mountain", hexes: [304] },
     { biome: "swamp", hexes: [203] },
-  ]);
+  ], "the book's words, not biome keys: Extras maps them");
   assert.equal(ds.terrain.default, "forest");
   assert.deepEqual(ds.networks, { river: [102], road: [304] });   // row overlay + tag overlay, path → road
-  assert.deepEqual([ds.grid.cols, ds.grid.rows, ds.grid.numbering], [4, 5, "column-major"]);
+  assert.deepEqual([ds.grid.cols, ds.grid.rows], [4, 5]);
+  assert.equal("numbering" in ds.grid, false, "only the contract's grid keys");
   assert.equal(JSON.stringify(ds).includes('"col"'), false);
   assert.deepEqual(validateHexDataset(ds), { ok: true, errors: [] });
 });
@@ -64,12 +69,17 @@ test("zero-padded leading-column IDs survive numeric normalization", () => {
   } });
   assert.deepEqual(ds.grid, {
     cols: 1, rows: 2, distance: 6, units: "mi", landscape: false,
-    flipX: false, flipY: false, numbering: "column-major",
+    flipX: false, flipY: false,
   });
   assert.deepEqual(ds.terrain.regions, [
     { biome: "forest", hexes: [0] },
-    { biome: "plains", hexes: [1] },
+    { biome: "grassland", hexes: [1] },
   ]);
+});
+
+test("underscored tags go out as the printed words Extras' label table knows", () => {
+  const ds = buildHexDataset({ tags: { "0101": { terrain: "salt_flat" }, "0102": { terrain: "Deep_Tunnels" }, "0103": { terrain: "arctic_sea" } } });
+  assert.deepEqual(ds.terrain.regions.map((r) => r.biome), ["arctic sea", "deep tunnels", "salt flat"]);
 });
 
 test("validation names the contract breaches", () => {

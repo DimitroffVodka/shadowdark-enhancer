@@ -39,6 +39,13 @@
   by itself once Extras exposes its builder. Phase 4 of the hex-map plan
   (#169).
 
+### Changed
+- **The hex dataset follows Extras' stable contract.** Terrain goes out as the
+  book's word (`salt flat`, not a biome key: Extras maps it to a painted biome
+  and keeps the label), hexes carry only `num`, `name`, `terrain`, `desc` and
+  `zone`, and the grid block has no extra keys. The settlement marker from a
+  summary table stays on the crawl entry. (#169)
+
 ## [0.17.3] — 2026-09-16
 
 ### Changed

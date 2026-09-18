@@ -128,9 +128,9 @@ the image's URL.
 ```js
 {
   version: 1, name, source,
-  grid: { cols, rows, distance: 6, units: "mi", landscape: false, flipX: false, flipY: false, numbering: "column-major" },
-  terrain: { default: "forest", regions: [ { biome: "mountains", hexes: [1341, ...] } ] },
-  hexes:   [ { num: 4541, name, terrain, desc, zone, icon: "", feature } ],
+  grid: { cols, rows, distance: 6, units: "mi", landscape: false, flipX: false, flipY: false },
+  terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1341, ...] } ] },
+  hexes:   [ { num: 4541, name, terrain, desc, zone } ],
   networks: { river: [1246, ...], road: [4649, ...] }
 }
 ```
@@ -142,7 +142,11 @@ numbering; `grid.landscape: false` is not a transposition instruction. A direct
 Extras hand-off is enabled only when the compatible
 `game.shadowdarkExtras.hex.buildHexcrawl` contract is present (the current
 safe path is the download until that contract lands). The book's **path** tag
-becomes Extras' **road** network.
+becomes Extras' **road** network. Terrain goes out as the book's word
+(`salt flat`, `deep tunnels`); Extras keeps that label on the hex record and
+chooses the painted biome itself. The summary table's settlement marker has
+no field in Extras' contract, so it stays on the crawl entry in the Journals
+pack.
 
 ## Troubleshooting
 
