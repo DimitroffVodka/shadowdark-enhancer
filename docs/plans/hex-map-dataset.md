@@ -490,6 +490,31 @@ their file URL; delete the tile when tracing is done.
 
 ---
 
+## 9b. Phase 5 — hex map from image (added 2026-09-18)
+
+Patrick's verdict on the Phase 2 flow: too many hand steps (scene, grid
+alignment with a separate Y scale, anchor, map size). Phase 5 replaces the
+front half for printed maps:
+
+- `hex-map/ink.mjs`: whole-image ink at a working width of 5000 px, threshold
+  from the paper's brightness (the WR outlines are light grey, median 191/255).
+- `hex-map/lattice.mjs` (pure): row pitch from the autocorrelation of long
+  horizontal runs (peaks at h/2), column pitch from the ink's self-correlation
+  at the lattice vector, phase by folding the long-run pixels into a two-column
+  cell and re-ranking the half-period shifts by six-edge outline support (glyph
+  baselines mimic edges half a row off), the field from per-column outline runs
+  with frame-cut half cells, pitches refined from edge bands. Measured on the
+  WR print vs grid.json: pitches within 0.01 px, origin within 0.4 px, far
+  corner within 0.6 px at half scale; 64 × 75, odd lowered.
+- `hex-map/hex-map-flow.mjs`: file dialog → detect → confirm over a thumbnail
+  → FilePicker upload into `worlds/<id>/hex-maps` → scene sized so the image,
+  filling it, has Foundry's pitches (grid size = round(pitchY)), anchored so
+  print cell (0,0) is Foundry (0,0); Foundry 14 keeps the image on
+  `levels[0]`, 13 on `background` → both emitted by schema. Tagger flag with
+  anchor and bounds written at create; tagger opened.
+- Still to do in this phase: cluster the cells by glyph and show one picture
+  per cluster to name (the legend), replacing the 40-cell sheets.
+
 ## 10. Cross-cutting
 
 - **Settings.** None in Phases 0 to 2. Phase 3 adds one client setting

@@ -662,6 +662,9 @@
     "scripts/hex-map/hex-tagger-app.mjs": "Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off.",
     "scripts/hex-map/bitmap.mjs": "0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure.",
     "scripts/hex-map/classify.mjs": "Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure.",
-    "scripts/hex-map/reference-tile.mjs": "Hidden reference tile: places the tagged print on a painted hex scene so its hex field covers the first cols × rows cells; two-rectangle placement, non-uniform scale, create-once-then-update."
+    "scripts/hex-map/reference-tile.mjs": "Hidden reference tile: places the tagged print on a painted hex scene so its hex field covers the first cols × rows cells; two-rectangle placement, non-uniform scale, create-once-then-update.",
+    "scripts/hex-map/lattice.mjs": "Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement. Pure.",
+    "scripts/hex-map/ink.mjs": "Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound.",
+    "scripts/hex-map/hex-map-flow.mjs": "Hex map from an image: file dialog, lattice detection, confirmation preview, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened ready."
   }
 }

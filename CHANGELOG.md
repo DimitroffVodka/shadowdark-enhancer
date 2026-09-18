@@ -39,6 +39,14 @@
   by itself once Extras exposes its builder. Phase 4 of the hex-map plan
   (#169).
 
+- **Hex map from image.** Importer Hub → Tools → **Hex map from image**: pick
+  the map file and the module finds the printed hex grid on its own (pitch,
+  origin, lowered columns, columns × rows), shows it over a thumbnail to
+  confirm, copies the image into the world's `hex-maps` folder, creates a
+  scene whose grid sits on the print, and opens the Hex Tagger with the
+  anchor and map size set. Replaces the hand alignment, anchor and map-size
+  steps for printed maps. (#169)
+
 ### Changed
 - **The hex dataset follows Extras' stable contract.** Terrain goes out as the
   book's word (`salt flat`, not a biome key: Extras maps it to a painted biome

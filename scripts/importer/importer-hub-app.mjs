@@ -78,6 +78,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubHexDataset:          function (...args) { return this._onHubHexDataset(...args); },
       // Tools → Hex tagger: the contact-sheet tagger for the active hex scene. Lazy.
       hubOpenHexTagger:       async function () { (await import("../hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(); },
+      hubHexMap:              async function () { (await import("../hex-map/hex-map-flow.mjs")).startHexMapFlow(); },
       hubCommitTables:        function (...args) { return this._onHubCommitTables(...args); },
       hubCommitBoats:         function (...args) { return this._onHubCommitBoats(...args); },
       hubCommitDowntime:      function (...args) { return this._onHubCommitDowntime(...args); },

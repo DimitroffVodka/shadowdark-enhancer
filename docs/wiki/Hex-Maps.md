@@ -17,6 +17,29 @@ its own:
 Everything is built from your own book text and your own map image in your
 browser. Nothing is uploaded, and nothing from a book ships with the module.
 
+## Hex map from image
+
+The short way. Importer Hub → Tools → **Hex map from image**, pick the map
+file, and the module does the setup itself:
+
+1. It reads the image in your browser and finds the printed hex grid on its
+   own: column and row pitch, where the first cell sits, which columns are
+   lowered, and how many columns and rows the map has. Margins and the legend
+   are left out; a first row the frame cuts in half still counts.
+2. It shows the result over a thumbnail, dots on the cell centres and the four
+   corner hexes outlined, with the counts, the lowered parity and the top-left
+   cell's number to confirm or correct.
+3. It copies the image into the world's `hex-maps` folder, creates a scene
+   whose hex grid sits on the print (the image is stretched to Foundry's hex
+   proportions, so a print with tall hexes lands on a regular grid), stores
+   the anchor and map size, and opens the Hex Tagger on it, ready for
+   **Sample scene**.
+
+On the Western Reaches print the grid is found within a pixel of the
+hand-calibrated geometry in about five seconds on a laptop. Prints with a
+faint or hand-drawn grid get a message instead; those are set up the old way
+below.
+
 ## The Hex Tagger
 
 Open it from the Importer Hub's Tools row (**Hex tagger**) or with
@@ -157,6 +180,9 @@ pack.
 - **Numbers are off by one row in every other column** — the anchor was set
   with the wrong **Lowered columns** choice. Clear and set it again.
 - **Cells over the legend or margins keep appearing** — set the map size.
+- **"No hex grid found on this image"** — the detector needs printed hex
+  outlines running across the map; a hand-drawn or very faint grid is set up
+  by hand with the tagger instead.
 - **"Nothing to import"** — the CSV needs `hex_id` and `tags` (or
   `terrain_tags`) header cells; the JSON must be a tagger export or a dataset.
 - **The reference tile's hexes sit half a cell off in every other column** —

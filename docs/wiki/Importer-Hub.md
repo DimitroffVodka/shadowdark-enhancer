@@ -215,6 +215,8 @@ currently in your world packs.
 
 ![The Tools dropdown](images/tools-dropdown.png)
 
+**Hex map from image** takes a map image, finds its hex grid on its own, creates the aligned scene and opens the tagger on it ([Hex Maps](Hex-Maps.md)).
+
 **Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and overlays, then hand the result to Shadowdark Extras or download it.
 
 Open the **Tools** dropdown to manage PDFs and world backups:
