@@ -74,7 +74,11 @@ export function recordLegend(log, cards, { at = Date.now() } = {}) {
     size: c.size ?? 0,
     name: c.name ?? "",
     opened: !!c.opened,
-    core: c.core ?? 0,
+    // The card's CORE hexes, not all its members. A card named wrong has its
+    // core wrong by definition — those are the hexes its name was written onto —
+    // so they are the ones whose later correction convicts it, and there are
+    // forty of them against a card's two hundred members.
+    core: (c.core ?? []).map(Number).filter(Number.isFinite),
   }));
   log.legend = [...(log.legend ?? []), { at, cards: pass }];
   return pass.length;
@@ -95,19 +99,37 @@ export function legendReport(log, cardOf = null) {
     opened: pass.cards.filter((c) => c.opened).length,
     hexes: pass.cards.reduce((a, c) => a + c.size, 0),
   };
-  if (!cardOf || !log?.fixes?.size) return out;
+  if (!log?.fixes?.size) return out;
+  // A hex to the card whose core it was in: the stored cores if they are there,
+  // otherwise whatever the caller can work out.
+  let owner = cardOf;
+  if (!owner) {
+    const byHex = new Map();
+    pass.cards.forEach((c, i) => { for (const n of c.core ?? []) byHex.set(String(n), i); });
+    if (!byHex.size) return out;
+    owner = (num) => byHex.get(String(num));
+  }
   const blame = new Map();
-  for (const [num] of log.fixes) {
-    const i = cardOf(num);
+  for (const [num, f] of log.fixes) {
+    const i = owner(num);
     if (i === null || i === undefined) continue;
+    // Only a real change convicts a card; confirming a hex is evidence FOR it.
+    if (f?.was && f?.now && f.was === f.now) continue;
     blame.set(i, (blame.get(i) ?? 0) + 1);
   }
   out.worst = [...blame.entries()]
-    .map(([i, wrong]) => ({ name: pass.cards[i]?.name ?? "(gone)", size: pass.cards[i]?.size ?? 0, wrong }))
-    .filter((c) => c.size)
-    .map((c) => ({ ...c, rate: +(c.wrong / c.size * 100).toFixed(1) }))
-    .sort((a, b) => b.rate - a.rate)
+    .map(([i, wrong]) => {
+      const c = pass.cards[i];
+      const of = (c?.core?.length ?? 0) || c?.size || 0;
+      return { name: c?.name ?? "(gone)", size: c?.size ?? 0, core: of, wrong };
+    })
+    .filter((c) => c.core)
+    .map((c) => ({ ...c, rate: +(c.wrong / c.core * 100).toFixed(1) }))
+    .sort((a, b) => b.rate - a.rate || b.wrong - a.wrong)
     .slice(0, 5);
+  // A card whose own core the GM has had to correct heavily is a card named
+  // wrong: its name was written straight onto those hexes.
+  out.suspect = out.worst.find((c) => c.name && c.wrong >= 3 && c.rate >= 25) ?? null;
   return out;
 }
 

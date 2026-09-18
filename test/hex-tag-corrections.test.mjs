@@ -138,11 +138,12 @@ test("the legend's answers are recorded, and survive the round trip to a flag", 
   const log = emptyLog();
   assert.equal(legendReport(log), null, "nothing applied yet, nothing to report");
 
+  const core = (from, n) => Array.from({ length: n }, (_, i) => from + i);
   const n = recordLegend(log, [
-    { size: 228, core: 40, name: "arctic_sea", opened: false },
-    { size: 147, core: 40, name: "forest", opened: false },
-    { size: 61, core: 40, name: "", opened: true },
-    { size: 12, core: 12, name: "", opened: false },
+    { size: 228, core: core(1000, 40), name: "arctic_sea", opened: false },
+    { size: 147, core: core(2000, 40), name: "forest", opened: false },
+    { size: 61, core: core(3000, 40), name: "", opened: true },
+    { size: 12, core: core(4000, 12), name: "", opened: false },
   ], { at: 1000 });
   assert.equal(n, 4);
 
@@ -163,14 +164,23 @@ test("the legend record keeps the recent passes and not every pass ever", () => 
   assert.equal(back.legend.at(-1).cards[0].name, "pass8", "the latest pass is the one kept");
 });
 
-test("a card producing far more corrections than its share is named as the suspect", () => {
+test("a card whose own core the GM keeps correcting is named as the suspect", () => {
   const log = emptyLog();
-  recordLegend(log, [{ size: 100, name: "desert" }, { size: 100, name: "jungle" }]);
-  // twelve corrections in card 1, one in card 0
+  const a = Array.from({ length: 40 }, (_, i) => 900 + i);      // named right
+  const b = Array.from({ length: 40 }, (_, i) => 100 + i);      // named wrong
+  recordLegend(log, [{ size: 100, name: "desert", core: a }, { size: 100, name: "jungle", core: b }]);
   for (let i = 0; i < 12; i++) log.fixes.set(String(100 + i), { was: "jungle", now: "desert" });
   log.fixes.set("900", { was: "desert", now: "forest" });
-  const cardOf = (num) => (Number(num) >= 900 ? 0 : 1);
-  const r = legendReport(log, cardOf);
+
+  // no callback needed: the cores are in the record
+  const r = legendReport(decodeFixes(encodeFixes(log)));
   assert.equal(r.worst[0].name, "jungle");
   assert.equal(r.worst[0].wrong, 12);
+  assert.equal(r.suspect.name, "jungle", "a quarter of its own core corrected");
+
+  // confirming a hex is evidence FOR a card, never against it
+  const clean = emptyLog();
+  recordLegend(clean, [{ size: 100, name: "forest", core: a }]);
+  for (const n of a.slice(0, 20)) clean.fixes.set(String(n), { was: "forest", now: "forest" });
+  assert.equal(legendReport(clean).suspect, null);
 });

@@ -88,6 +88,9 @@
   {{#if legendLog}}
   <p class="sde-hxt-note sde-hxt-direction">
     <i class="fas fa-clipboard-list"></i> <strong>On the record</strong>: the legend you applied had {{legendLog.cards}} cards covering {{legendLog.hexes}} hexes — you named <strong>{{legendLog.named}}</strong>{{#if legendLog.skipped}}, left {{legendLog.skipped}} to the classifier{{/if}}{{#if legendLog.opened}} and opened {{legendLog.opened}} up hex by hex{{/if}}. That is kept with the scene, so a run that goes wrong can be traced to what it was told rather than guessed at.
+    {{#if legendLog.suspect}}
+    <br><strong>The card you called {{legendLog.suspect.name}} looks named wrong</strong>: you have corrected {{legendLog.suspect.wrong}} of its own {{legendLog.suspect.core}} example hexes ({{legendLog.suspect.rate}}%). Its name went straight onto those, and onto the {{legendLog.suspect.size}} hexes classified from them. <strong>Legend</strong> again and give that card a different answer, or fix it with the <strong>Brush</strong>.
+    {{/if}}
   </p>
   {{/if}}
   <p class="sde-hxt-note sde-hxt-direction">

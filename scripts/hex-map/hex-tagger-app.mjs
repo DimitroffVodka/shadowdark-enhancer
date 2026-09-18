@@ -817,7 +817,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // else in the log records what the classifier did; this records what it was
     // told, which is the half that was missing when a run came out badly.
     const answered = this._legend.map((c) => ({
-      size: c.size, core: (c.core ?? []).length, opened: !!c.expand,
+      size: c.size, core: c.core ?? [], opened: !!c.expand,
       name: c.chosen === SPLIT ? "" : (c.chosen ?? ""),
     }));
     this._legendAnswered = answered;

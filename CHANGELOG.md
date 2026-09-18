@@ -297,7 +297,13 @@
   each card's size, the name you gave it and whether you opened it up, beside
   the corrections on the scene, and the tagger says so on screen. The last five
   passes are kept; older ones fall away so the record cannot grow without
-  bound. (#169)
+  bound.
+
+  Each card's own example hexes are kept with it, so a correction can be traced
+  back to the card that named it. A card whose examples you keep correcting is a
+  card named wrong — its name was written straight onto those hexes and onto
+  everything classified from them — and the tagger now says which one, instead
+  of leaving you to find it by hand after the run is over. (#169)
 
 - **"These are not all the same" now lets you answer the hexes there and then.**
   It used to break the card into four smaller cards and ask again, so nothing
