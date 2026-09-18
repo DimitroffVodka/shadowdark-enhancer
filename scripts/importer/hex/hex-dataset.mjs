@@ -21,14 +21,13 @@ export const DATASET_VERSION = 1;
 /** Overlay tags become networks, not terrain. The book's "path" is Extras' road. */
 export const OVERLAY_TO_NETWORK = { river: "river", path: "road" };
 
-/** Generic tag → the biome keys the Extras tile set actually accepts. */
-export const TERRAIN_TO_BIOME = Object.freeze({
-  arctic_sea: "water", ocean: "water", lake: "water", coast: "water",
-  river: "water", mountain: "mountains", volcano: "mountains", lava: "mountains",
-  canyon: "hills", forest: "forest", jungle: "forest", grassland: "plains",
-  swamp: "swamp", desert: "plains", salt_flat: "plains", path: "plains",
-  deep_tunnels: "hills",
-});
+/**
+ * Terrain goes out as the book's word ("salt flat", "deep tunnels"), never a
+ * biome key: Extras' stable contract keeps the label on the record and maps it
+ * to a painted biome itself (its Developer API, "Terrain labels versus painted
+ * biomes"). Tags carry underscores; the contract's table has spaces.
+ */
+export const terrainWord = (t) => String(t ?? "").trim().toLowerCase().replace(/_/g, " ");
 
 const paddedHexId = (id) => {
   const s = String(id ?? "").trim();
@@ -36,8 +35,6 @@ const paddedHexId = (id) => {
 };
 
 const hexKeyForNum = (num) => hexIdKey(String(num).padStart(3, "0"));
-
-const biomeForTerrain = (terrain) => TERRAIN_TO_BIOME[String(terrain ?? "").trim().toLowerCase()] ?? "forest";
 
 /** Published number as an integer ("0101" → 101), or null. */
 export function hexNum(id) {
@@ -95,17 +92,22 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
   for (const h of byNum.values()) {
     const [c, r] = hexKeyForNum(h.num).split(",").map(Number);
     maxCol = Math.max(maxCol, c); maxRow = Math.max(maxRow, r);
-    if (h.terrain) {
-      const biome = biomeForTerrain(h.terrain);
-      if (!regions.has(biome)) regions.set(biome, []);
-      regions.get(biome).push(h.num);
-    }
+    const word = terrainWord(h.terrain);
+    if (word) { if (!regions.has(word)) regions.set(word, []); regions.get(word).push(h.num); }
     for (const o of h.overlays ?? []) networks[OVERLAY_TO_NETWORK[o]].push(h.num);
   }
   const counts = [...regions.entries()].sort((a, b) => (b[1].length - a[1].length) || a[0].localeCompare(b[0]));
-  const hexes = [...byNum.values()].filter((h) => h.name).sort((a, b) => a.num - b.num).map((h) => ({
-    num: h.num, name: h.name, terrain: h.terrain ?? "", desc: h.desc ?? "", zone: h.zone ?? "", icon: "", feature: h.feature ?? "keyed_location",
-  }));
+  // Only the fields Extras' builder accepts (it rejects any other key). The
+  // book's settlement marker has no field there, so it stays on the crawl
+  // entry's keyed rows; an empty terrain is omitted so the region's stands.
+  const hexes = [...byNum.values()].filter((h) => h.name).sort((a, b) => a.num - b.num).map((h) => {
+    const out = { num: h.num, name: h.name };
+    const word = terrainWord(h.terrain);
+    if (word) out.terrain = word;
+    if (h.desc) out.desc = h.desc;
+    if (h.zone) out.zone = h.zone;
+    return out;
+  });
 
   return {
     version: DATASET_VERSION,
@@ -113,7 +115,6 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     grid: {
       cols: gridHint?.cols ?? (maxCol + 1), rows: gridHint?.rows ?? (maxRow + 1),
       distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
-      numbering: "column-major",   // leading digits = column, last two = row
     },
     terrain: {
       default: counts[0]?.[0] ?? "forest",

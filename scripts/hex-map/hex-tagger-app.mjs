@@ -9,13 +9,18 @@
  * the scene's grid parity. "Build dataset" folds the tags into the Extras
  * dataset, on top of a filed crawl entry when one is chosen, and hands it over
  * or downloads it (hex-handoff.mjs). Phase 2 of docs/plans/hex-map-dataset.md.
+ * Phase 4 adds the side doors (Import a CSV or JSON of tags, Export the tag
+ * flag) and the hidden reference tile: the print placed on the painted scene,
+ * automatically after an Extras hand-off (the builder's summary carries the
+ * scene id) or by hand on any hex-columns scene (reference-tile.mjs).
  */
 
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
 import { cellNumber } from "./geometry.mjs";
-import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, OVERLAYS } from "./tag-store.mjs";
+import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, OVERLAYS } from "./tag-store.mjs";
+import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv } from "./classify.mjs";
 import { TERRAIN_TAGS } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
@@ -60,6 +65,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtBuildDataset: function (...a) { return this._onBuildDataset(...a); },
       hxtClearTags:    function (...a) { return this._onClearTags(...a); },
       hxtClassify:     function (...a) { return this._onClassify(...a); },
+      hxtImport:       function (...a) { return this._onImport(...a); },
+      hxtExport:       function (...a) { return this._onExport(...a); },
+      hxtReference:    function (...a) { return this._onReferenceTile(...a); },
     },
   };
 
@@ -371,10 +379,103 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (Object.values(tags).some((t) => t.overlays?.includes("coast"))) {
       ui.notifications?.warn("Coast tags stay on the scene; this dataset format exports river and road networks only.");
     }
+    const referenceSrc = this._scene()?.background?.src;
     const res = await handoffDataset(dataset);
     const n = Object.keys(tags).length;
     if (res.via === "extras") ui.notifications?.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
     else if (res.via === "download") ui.notifications?.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
+    // The builder's summary names the scene it painted; put the print on it for tracing.
+    const built = res.via === "extras" ? game.scenes?.get(res.summary?.sceneId) : null;
+    if (built && b?.cols) await this._placeReferenceOn(built, referenceSrc).catch((err) => console.warn(`${MODULE_ID} | reference tile`, err));
+  }
+
+  /** Side door in: a CSV (hex_id, tags or terrain_tags, source) or a JSON (the exported tag flag, or a dataset). */
+  async _onImport() {
+    if (!this._requireCurrentScene()) return;
+    const file = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Import hex tags" },
+      content: `<p>A CSV with <code>hex_id</code> and <code>tags</code> columns (semicolon-separated, <code>source</code> optional), or a JSON exported by this tagger or a hexcrawl dataset. Imported rows replace the cell's tags.</p>
+        <input type="file" name="hex-tags-file" accept=".csv,.json,text/csv,application/json">`,
+      buttons: [
+        { action: "load", label: "Import", default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("input[name='hex-tags-file']")?.files?.[0] ?? null },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!file || file === "cancel") return;
+    let text;
+    try { text = await file.text(); } catch (err) { ui.notifications?.error(`Could not read ${file.name}: ${err.message}`); return; }
+    let rows, origin = null;
+    if (/^\s*[{[]/.test(text)) {
+      let obj;
+      try { obj = JSON.parse(text); } catch (_e) { ui.notifications?.error(`${file.name} is not valid JSON.`); return; }
+      ({ rows, origin } = rowsFromJson(obj));
+    } else {
+      rows = parseTruthCsv(text);
+    }
+    if (!rows.length) { ui.notifications?.warn(`Nothing to import from ${file.name}: no hex_id/tags columns, tag flag or dataset found.`); return; }
+    if (!this._requireCurrentScene()) return;
+    const n = importTags(this._state, rows, { origin });
+    await this._saveState();
+    this._renumber();
+    this._sheet = this._numbered.size ? nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() }) : [];
+    ui.notifications?.info(`Imported ${n} tagged cells from ${file.name}.`);
+    this.render();
+  }
+
+  /** Side door out: the raw tag flag as JSON (re-importable here; the dataset is Build dataset's job). */
+  _onExport() {
+    if (!this._requireCurrentScene()) return;
+    const scene = this._scene();
+    if (!this._state.cells.size) { ui.notifications?.warn("No tags to export yet."); return; }
+    const save = foundry.utils?.saveDataToFile ?? globalThis.saveDataToFile;
+    save(JSON.stringify(encodeTags(this._state), null, 2), "text/json", `${(scene?.name ?? "hex-map").slugify()}-hex-tags.json`);
+  }
+
+  /** Image-pixel box of the numbered cells: the print's hex field. */
+  _imageCellBox() {
+    if (!this._geom) return null;
+    return cellBoxOf([...this._numbered.values()].map((c) => ({ x: c.u, y: c.v })), this._geom.cellW, this._geom.cellH);
+  }
+
+  /** Put this scene's print on `target` so the hex field covers its first cols × rows cells. */
+  async _placeReferenceOn(target, src = this._scene()?.background?.src) {
+    const b = this._state.origin?.bounds;
+    const imageBox = this._imageCellBox();
+    if (!b?.cols || !imageBox) { ui.notifications?.warn("Sample the scene, set the anchor and the map size first."); return null; }
+    if (!src) { ui.notifications?.warn("The source scene has no map background to place."); return null; }
+    const sceneBox = gridCellBox(target, b.cols, b.rows);
+    if (!sceneBox) { ui.notifications?.warn(`"${target.name}" has no hexagonal columns grid.`); return null; }
+    const tf = this._geom.transform;
+    const placement = referenceTilePlacement({ x: 0, y: 0, w: tf.texW, h: tf.texH }, imageBox, sceneBox);
+    const tile = await placeReferenceTile(target, src, placement);
+    const shifted = this._state.origin.shifted ?? "odd", lowered = loweredColumns(target);
+    if (lowered !== shifted) ui.notifications?.warn(`"${target.name}" lowers its ${lowered} columns but the map lowers its ${shifted} ones; set its grid to Hexagonal Columns (${shifted}) so the hexes line up.`);
+    ui.notifications?.info(`Reference tile placed on "${target.name}", hidden and locked. Delete it when tracing is done: hidden tiles still reach player clients with the image's URL.`);
+    return tile;
+  }
+
+  /** By hand: pick any other hex-columns scene (the one Extras built from the downloaded dataset, say). */
+  async _onReferenceTile() {
+    if (!this._requireCurrentScene()) return;
+    const here = this._scene();
+    const targets = game.scenes.filter((s) => s.id !== here?.id && s.grid?.isHexagonal && s.grid.columns).sort((a, b) => a.name.localeCompare(b.name));
+    if (!targets.length) { ui.notifications?.warn("No other scene with a hexagonal columns grid to place the print on."); return; }
+    const options = targets.map((s) => `<option value="${s.id}">${foundry.utils.escapeHTML(s.name)}</option>`).join("");
+    const id = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Reference tile" },
+      content: `<p>Place this scene's map image on another scene as a hidden, locked, half-transparent tile, scaled so its hex field covers that scene's first ${this._state.origin?.bounds?.cols ?? "?"} × ${this._state.origin?.bounds?.rows ?? "?"} cells.</p>
+        <label>Scene <select name="hex-ref-target">${options}</select></label>`,
+      buttons: [
+        { action: "place", label: "Place", default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("select[name='hex-ref-target']")?.value ?? null },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!id || id === "cancel") return;
+    if (!this._requireCurrentScene()) return;
+    const target = game.scenes.get(id);
+    if (target) await this._placeReferenceOn(target);
   }
 
   async _onClearTags() {

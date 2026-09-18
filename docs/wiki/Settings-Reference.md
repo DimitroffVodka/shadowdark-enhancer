@@ -192,11 +192,18 @@ main settings menu:
 | **Loot picker tables** | *(empty)* | Loot Setup window |
 | **Magic forge table overrides** | *(empty)* | Magic Item Forge |
 | **Token art priority / overrides / picks** | *(empty)* | Monster Art manager |
+| **Hex map developer tools** (`hexMapsDevTools`, per client) | `false` | Script only; unlocks `game.shadowdarkEnhancer.hexMaps.compare` for the GM (see [Hex Maps](Hex-Maps.md)) |
 
 To update encounter sources via script:
 
 ```js
 game.settings.set("shadowdark-enhancer", "encounterSources", ["world", "shadowdark.monsters"]);
+```
+
+To enable the hex-map comparison check on your own client:
+
+```js
+game.settings.set("shadowdark-enhancer", "hexMapsDevTools", true);
 ```
 
 ---

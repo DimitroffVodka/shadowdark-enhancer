@@ -86,6 +86,7 @@ test("parseTruthCsv and compareTags", () => {
   const csv = 'hex_id,column,row,region,terrain_tags\n0101,1,1,"Reach, The",forest;river\n0102,1,2,"Reach, The",forest\n0203,2,3,Fen,swamp;path\n';
   const truth = parseTruthCsv(csv);
   assert.deepEqual(truth, [{ num: 101, tags: ["forest", "river"] }, { num: 102, tags: ["forest"] }, { num: 203, tags: ["swamp", "path"] }]);
+  assert.deepEqual(parseTruthCsv("hex_id,tags,source\n0101,forest,auto\n0102,swamp,\n"), [{ num: 101, tags: ["forest"], source: "auto" }, { num: 102, tags: ["swamp"] }], "the side-door source column is optional per row");
   const cells = new Map([
     ["101", { terrain: "forest", overlays: ["river"], source: "auto" }],
     ["102", { terrain: "forest", overlays: ["path"], source: "auto" }],

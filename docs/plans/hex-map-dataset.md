@@ -7,7 +7,7 @@ Consumer side: [shadowdark-extras#141](https://github.com/DimitroffVodka/shadowd
 (Hexer JSON as a second producer). Probe numbers and dead ends are in the project
 worklog entries of 2026-09-17.
 
-Status: Phases 0 to 3 implemented 2026-09-17 (branch hex-map/phase-0; flat-top column grids only); Phase 4 not started. Written 2026-09-17.
+Status: Phases 0 to 3 implemented 2026-09-17 and merged (#170); Phase 4 implemented 2026-09-18 (branch hex-map/phase-4; flat-top column grids only). Written 2026-09-17.
 
 ---
 
@@ -91,12 +91,12 @@ merges that pdf.js column extraction should avoid; verify in Phase 1.
   grid: { cols: 64, rows: 75, distance: 6, units: "mi",
           landscape: false, flipX: false, flipY: false },
   terrain: {
-    default: "forest",                // canonical Extras biome key
+    default: "forest",                // as built: the book's terrain WORD; Extras maps it to a biome (its Developer API)
     regions: [ { biome: "mountains", hexes: [1341, 1041, ...] }, ... ]
   },
   hexes: [
     { num: 4541, name: "Serengal", terrain: "ocean", desc: "<p>...</p>",
-      zone: "Kyzian Steppes", icon: "", feature: "keyed_location" },   // feature: keyed_location|village|town|city|city_state
+      zone: "Kyzian Steppes" },   // as built: no icon/feature — Extras' builder rejects unknown hex keys; the settlement marker stays on the crawl entry
     ...
   ],
   networks: { river: [1246, 1247, ...], road: [4649, 4749, ...] }
@@ -478,7 +478,8 @@ Western Reaches map. Result goes in the worklog, not the repo.
 export function referenceTilePlacement(imageRect, cellBoxImage, cellBoxScene)
   // pure: { x, y, width, height } so the image's hex-field rectangle maps onto the scene's cell box
 export async function placeReferenceTile(scene, src, placement)
-  // TileDocument: texture.src, hidden: true, locked: true, alpha: 0.5, sort: -1
+  // TileDocument: texture.src, hidden: true, locked: true, alpha: 0.5, sort: 1e6
+  // (as built: sorted ABOVE Extras' painted tiles, which sort by centre y; under them it could not be traced)
 ```
 
 `cellBoxImage` comes from the sampler's geometry (the pixel rectangle covering

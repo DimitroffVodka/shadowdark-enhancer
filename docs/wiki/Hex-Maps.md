@@ -90,14 +90,47 @@ CSV with `hex_id` and `tags` (or `terrain_tags`) columns and returns terrain
 accuracy plus river and path precision and recall; players and disabled
 developer tools receive no result.
 
+## Import, export and the reference tile
+
+Three more buttons sit in the tagger's header once the scene is sampled.
+
+- **Import** reads a file of tags into the scene: a CSV with `hex_id` and
+  `tags` (or `terrain_tags`) columns, semicolon-separated, with an optional
+  `source` column (`gm` or `auto`); or a JSON, either one exported here or a
+  hexcrawl dataset (its regions, keyed hexes and networks become tags). The
+  first tag that is not river, path or coast is the terrain; a row of
+  overlays only, such as a hex that is all river, keeps its first tag as the
+  terrain. Imported rows replace the cell's tags; other cells are untouched.
+  If the JSON carries an anchor and the scene has none, the anchor is taken
+  too. A table you built outside Foundry goes in this way and never ships
+  with the module.
+- **Export** downloads the scene's tags as JSON, the same shape the scene
+  flag holds, so a tagging session can be backed up or moved to another
+  world and imported there. The dataset itself comes from **Build dataset**.
+- **Reference tile** puts this scene's map image on another hex-columns scene
+  as one hidden, locked, half-transparent tile, scaled so the print's hex field
+  covers that scene's first columns × rows cells (the map size you set). The
+  width and height scale separately, so a stretched print lands on a regular
+  grid. Pick the scene Shadowdark Extras painted from your dataset and trace
+  rivers and roads over it; when Extras exposes its hexcrawl builder, **Send
+  to Extras** places the tile on the new scene by itself. Placing it again
+  moves the same tile rather than adding another. The tile sits above the
+  painted terrain, so it stays visible; if the target lowers the wrong
+  columns (odd where the map lowers even, or the reverse) the tagger says so
+  and the scene's grid type needs changing.
+
+Delete the reference tile when tracing is done. Hidden tiles are not drawn
+for players, but Foundry still sends every client the tile's data, including
+the image's URL.
+
 ## The dataset
 
 ```js
 {
   version: 1, name, source,
-  grid: { cols, rows, distance: 6, units: "mi", landscape: false, flipX: false, flipY: false, numbering: "column-major" },
-  terrain: { default: "forest", regions: [ { biome: "mountains", hexes: [1341, ...] } ] },
-  hexes:   [ { num: 4541, name, terrain, desc, zone, icon: "", feature } ],
+  grid: { cols, rows, distance: 6, units: "mi", landscape: false, flipX: false, flipY: false },
+  terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1341, ...] } ] },
+  hexes:   [ { num: 4541, name, terrain, desc, zone } ],
   networks: { river: [1246, ...], road: [4649, ...] }
 }
 ```
@@ -109,7 +142,11 @@ numbering; `grid.landscape: false` is not a transposition instruction. A direct
 Extras hand-off is enabled only when the compatible
 `game.shadowdarkExtras.hex.buildHexcrawl` contract is present (the current
 safe path is the download until that contract lands). The book's **path** tag
-becomes Extras' **road** network.
+becomes Extras' **road** network. Terrain goes out as the book's word
+(`salt flat`, `deep tunnels`); Extras keeps that label on the hex record and
+chooses the painted biome itself. The summary table's settlement marker has
+no field in Extras' contract, so it stays on the crawl entry in the Journals
+pack.
 
 ## Troubleshooting
 
@@ -120,3 +157,10 @@ becomes Extras' **road** network.
 - **Numbers are off by one row in every other column** — the anchor was set
   with the wrong **Lowered columns** choice. Clear and set it again.
 - **Cells over the legend or margins keep appearing** — set the map size.
+- **"Nothing to import"** — the CSV needs `hex_id` and `tags` (or
+  `terrain_tags`) header cells; the JSON must be a tagger export or a dataset.
+- **The reference tile's hexes sit half a cell off in every other column** —
+  the target scene lowers the other parity of columns; set its grid to
+  Hexagonal Columns of the parity the tagger names.
+- **The reference tile is missing on the target** — the tagger needs the map
+  size set, and the target scene a hexagonal columns grid.
