@@ -564,7 +564,18 @@ export function smoothTerrain(cells, neighboursOf, { need = SMOOTH_NEED, maxMarg
       if (other) votes.set(other, (votes.get(other) ?? 0) + 1);
     }
     const top = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
-    if (top && top[1] >= need && top[0] !== cell.terrain) changes.push({ num, from: cell.terrain, to: top[0] });
+    if (!top || top[1] < need || top[0] === cell.terrain) continue;
+    // Never vote land INTO the sea. Water regions are large and uniform, so at
+    // a coastline a sea cell has five or six sea neighbours and the land cell
+    // facing it has two or three of its own kind — the vote is decided by the
+    // shape of the coast, not by evidence about the cell. Measured on the
+    // verified map, one pass over a real run: unguarded smoothing FIXES 13
+    // cells and BREAKS 5 by drowning coastal forest and mountain (land wrongly
+    // in water 7 -> 12); with this clause it fixes the same 13 and breaks none
+    // (202 errors -> 197, land-in-water stays at 7). Water accuracy is
+    // identical either way: the whole effect is on land.
+    if (WATER.includes(top[0]) && !WATER.includes(cell.terrain)) continue;
+    changes.push({ num, from: cell.terrain, to: top[0] });
   }
   return changes;
 }

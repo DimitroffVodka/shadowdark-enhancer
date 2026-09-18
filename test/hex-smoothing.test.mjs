@@ -45,3 +45,35 @@ test("smoothTerrain: the thresholds are what was measured, and they are adjustab
   // Nothing can reach seven of six, so nothing changes.
   assert.deepEqual(smoothTerrain(cells, nbOf, { need: 7 }), []);
 });
+
+test("smoothing never votes land into the sea, but still fixes sea and land alike", () => {
+  // A coastal forest hex with five sea neighbours: the vote is decided by the
+  // shape of the coast, not by anything about the cell, so it must be refused.
+  const cells = new Map();
+  const put = (col, row, terrain, source = "auto") => cells.set(String(col * 100 + row), { terrain, source });
+  put(3, 3, "forest");
+  for (const nb of neighbours(3, 3, "odd")) put(nb.col, nb.row, "ocean");
+  const drowned = smoothTerrain(cells, (n) => neighbours(Math.floor(n / 100), n % 100, "odd"))
+    .filter((c) => c.num === "303");
+  assert.deepEqual(drowned, [], "a land hex must not be voted into the sea");
+
+  // The guard is one-directional: a sea hex surrounded by land still moves,
+  // and land surrounded by other land still moves.
+  const wet = new Map();
+  wet.set("303", { terrain: "ocean", source: "auto" });
+  for (const nb of neighbours(3, 3, "odd")) wet.set(String(nb.col * 100 + nb.row), { terrain: "forest", source: "auto" });
+  assert.deepEqual(
+    smoothTerrain(wet, (n) => neighbours(Math.floor(n / 100), n % 100, "odd")).filter((c) => c.num === "303"),
+    [{ num: "303", from: "ocean", to: "forest" }],
+    "sea surrounded by land is still corrected",
+  );
+
+  const dry = new Map();
+  dry.set("303", { terrain: "swamp", source: "auto" });
+  for (const nb of neighbours(3, 3, "odd")) dry.set(String(nb.col * 100 + nb.row), { terrain: "forest", source: "auto" });
+  assert.equal(
+    smoothTerrain(dry, (n) => neighbours(Math.floor(n / 100), n % 100, "odd")).find((c) => c.num === "303")?.to,
+    "forest",
+    "land to land is untouched by the guard",
+  );
+});

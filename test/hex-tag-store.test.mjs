@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson , errorRate, sheetRisk } from "../scripts/hex-map/tag-store.mjs";
+import { emptyState, decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, lcg, importTags, rowsFromJson , errorRate, sheetRisk, strandedRiver, STRANDED_RIVER_RATE, REVIEW_BANDS } from "../scripts/hex-map/tag-store.mjs";
 import { buildHexDataset } from "../scripts/importer/hex/hex-dataset.mjs";
+import { neighbours } from "../scripts/hex-map/geometry.mjs";
 
 test("encode/decode round trip keeps terrain, overlays, source and margin", () => {
   const s = emptyState();
@@ -154,4 +155,41 @@ test("rowsFromJson: the tag flag round-trips, a dataset yields regions, keyed te
   const fromZero = rowsFromJson({ grid: { cols: 2, rows: 3, origin: 0, rowsLowered: 2 }, terrain: { default: "water", regions: [] }, hexes: [] });
   assert.deepEqual(fromZero.rows.map((r) => r.num).sort(), ["0", "1", "100", "101", "2"], "origin 0 starts at hex 0000; the lowered (odd) column ends a row short");
   assert.deepEqual(rowsFromJson({ foo: 1 }).rows, []);
+});
+
+test("a river hex with nothing wet beside it goes to the top of the queue", () => {
+  const s = emptyState();
+  s.origin = { shifted: "odd" };
+  const put = (num, terrain, source = "auto", extra = {}) =>
+    s.cells.set(String(num), { terrain, overlays: [], source, ...extra });
+
+  // 303: called river, every neighbour dry. 19 of 19 such hexes on the
+  // verified map were desert.
+  put(303, "river", "auto", { margin: 9 });
+  for (const nb of neighbours(3, 3, "odd")) put(nb.col * 100 + nb.row, "desert");
+  assert.equal(strandedRiver(s, 303), true);
+  // Confident by margin, top of the queue anyway: where it sits beats how it looked.
+  assert.equal(errorRate(s.cells.get("303"), { stranded: true }), STRANDED_RIVER_RATE);
+  assert.ok(STRANDED_RIVER_RATE > REVIEW_BANDS[0].rate);
+
+  // One wet neighbour of any kind and it is an ordinary river.
+  const wet = neighbours(3, 3, "odd")[0];
+  put(wet.col * 100 + wet.row, "lake");
+  assert.equal(strandedRiver(s, 303), false);
+  s.cells.set(String(wet.col * 100 + wet.row), { terrain: "forest", overlays: ["river"], source: "auto" });
+  assert.equal(strandedRiver(s, 303), false, "a river running through forest still counts as wet");
+
+  // Only the classifier's own guesses; a hex the GM called river is settled.
+  put(303, "river", "gm");
+  assert.equal(strandedRiver(s, 303), false);
+});
+
+test("the review queue serves a stranded river before every thin margin", () => {
+  const s = emptyState();
+  s.origin = { shifted: "odd" };
+  s.cells.set("303", { terrain: "river", overlays: [], source: "auto", margin: 9 });
+  for (const nb of neighbours(3, 3, "odd")) s.cells.set(String(nb.col * 100 + nb.row), { terrain: "desert", overlays: [], source: "auto", margin: 9 });
+  s.cells.set("5000", { terrain: "forest", overlays: [], source: "auto", margin: 1.01 });
+  const nums = [...s.cells.keys()].map(Number);
+  assert.deepEqual(nextSheet(s, { nums, mode: "review", size: 1 }), [303]);
 });

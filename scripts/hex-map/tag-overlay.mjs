@@ -22,7 +22,7 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
-import { decodeTags, encodeTags, applySheet, OVERLAYS } from "./tag-store.mjs";
+import { decodeTags, encodeTags, applySheet, strandedRiver, OVERLAYS } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 
@@ -88,19 +88,26 @@ export function terrainColor(terrain) {
   return SPARE_COLORS[h % SPARE_COLORS.length];
 }
 
-/** True when a cell is one the classifier was unsure about (the review pool). */
-export function needsReview(cell, margin = DEFAULT_REVIEW_MARGIN) {
+/**
+ * True when a cell is one the classifier was unsure about (the review pool).
+ * `stranded` is the one thing a margin cannot say: a river hex with no wet
+ * neighbour is wrong regardless of how confident the glyph looked.
+ */
+export function needsReview(cell, margin = DEFAULT_REVIEW_MARGIN, stranded = false) {
   if (!cell || cell.source !== "auto") return false;
-  return !!cell.review || (cell.margin !== undefined && cell.margin < margin);
+  return stranded || !!cell.review || (cell.margin !== undefined && cell.margin < margin);
 }
 
 /** Hover text for a cell: "1403 — forest, river (auto 1.42, review)". */
-export function cellLabel(num, cell, margin = DEFAULT_REVIEW_MARGIN) {
+export function cellLabel(num, cell, margin = DEFAULT_REVIEW_MARGIN, stranded = false) {
   if (!cell) return `${num} — not tagged`;
   const tags = [cell.terrain, ...(cell.overlays ?? [])].join(", ");
   const notes = [];
   if (cell.source === "auto") notes.push(cell.margin !== undefined ? `auto ${Number(cell.margin).toFixed(2)}` : "auto");
-  if (needsReview(cell, margin)) notes.push("review");
+  // Say WHY it is ringed. An amber ring the GM cannot explain is a ring they
+  // learn to ignore.
+  if (stranded) notes.push("river with nothing wet beside it");
+  else if (needsReview(cell, margin)) notes.push("review");
   return `${num} — ${tags}${notes.length ? ` (${notes.join(", ")})` : ""}`;
 }
 
@@ -232,7 +239,7 @@ export class HexTagOverlay {
       g.beginFill(terrainColor(cell.terrain), HexTagOverlay.fillAlpha);
       g.drawPolygon(shape.map((p) => new PIXI.Point(p.x + at.x, p.y + at.y)));
       g.endFill();
-      if (needsReview(cell, this.reviewMargin)) {
+      if (needsReview(cell, this.reviewMargin, strandedRiver(this.state, num))) {
         g.lineStyle({ width: Math.max(2, dot * 0.6), color: REVIEW_COLOR, alpha: 0.95 });
         g.drawPolygon(shape.map((p) => new PIXI.Point(p.x * REVIEW_INSET + at.x, p.y * REVIEW_INSET + at.y)));
         g.lineStyle({ width: 0, alpha: 0 });
@@ -278,7 +285,7 @@ export class HexTagOverlay {
     const point = event.getLocalPosition(this.container);
     const num = this.numberAt(point);
     if (num === null) { this.label.visible = false; return; }
-    this.label.text = cellLabel(num, this.state.cells.get(String(num)), this.reviewMargin);
+    this.label.text = cellLabel(num, this.state.cells.get(String(num)), this.reviewMargin, strandedRiver(this.state, num));
     const at = this.cells.get(num);
     this.label.position.set(at.x, at.y);
     this.label.scale.set(1 / canvas.stage.scale.x);

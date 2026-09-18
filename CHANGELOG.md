@@ -227,6 +227,25 @@
   `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
+- **The neighbour pass no longer drowns the coast.** Smoothing lets a hex be
+  overruled by its neighbours, which is right almost everywhere and wrong at a
+  shoreline: a sea hex has five or six sea neighbours, so the coastal forest
+  facing it loses a vote decided by the shape of the coast rather than by
+  anything about the hex. It now refuses to move land into water, one direction
+  only — sea surrounded by land is still corrected. Measured on a 4768-hex
+  verified map: the same 13 fixes, five fewer breakages, and land wrongly left
+  sitting in the sea stops rising. Water accuracy is unchanged either way; the
+  whole effect is on land. (#169)
+
+- **A river with nothing wet beside it is flagged for review.** Rivers are
+  chains — a real one touches another river, a lake, a coast or the sea. A lone
+  river hex is the classifier reading desert stipple and a printed hex number as
+  a watercourse. Those hexes now ring on the map and go to the head of the review
+  queue ahead of every thin margin, and the hover says why. On the verified map
+  this catches **19 of 19** such hexes, every one of them desert, and rings no
+  correct river. It only ever asks: on a map where a river chain really is one
+  hex long, the ring costs a glance and a wrong demotion would cost the hex. (#169)
+
 - **The review queue is ranked, not cut off.** It used to take every hex whose
   margin fell under a threshold and shuffle them, so a hex four times likelier
   to be wrong than its neighbour turned up in no particular order — and the

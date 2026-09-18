@@ -17,6 +17,8 @@
  * if a map ever exceeds about 10 000 cells.
  */
 
+import { neighbours } from "./geometry.mjs";
+
 export const STORE_VERSION = 1;
 export const OVERLAYS = ["river", "path", "coast"];
 
@@ -76,6 +78,46 @@ export function lcg(seed = 1) {
  * ORDER the queue, never to decide anything, so being off by a few points
  * costs nothing; being monotone is the whole job.
  */
+/**
+ * A hex called river with no wet neighbour is not a river.
+ *
+ * Rivers are chains: every real river hex on a printed map touches another
+ * river, a lake, a coast or the sea. A lone one is the classifier reading
+ * desert stipple and a printed hex number as a watercourse. Measured on the
+ * verified map: of 174 hexes classified river, **19 had no wet neighbour and
+ * all 19 were wrong — every one of them desert**. No correct river was caught.
+ *
+ * It only ever rings the hex. A river chain on some other print could be one
+ * hex long where the map crops it, and demoting the terrain would break that
+ * map to tidy up this one; asking the GM costs nothing either way.
+ */
+const WET = new Set(["river", "coast", "ocean", "lake", "arctic_sea"]);
+
+/**
+ * @param {object} state  the tag store
+ * @param {number|string} num
+ * @returns {boolean}
+ */
+export function strandedRiver(state, num) {
+  const cell = state?.cells?.get(String(num));
+  if (cell?.terrain !== "river" || cell.source !== "auto") return false;
+  const n = Number(num);
+  if (!Number.isFinite(n)) return false;
+  for (const nb of neighbours(Math.floor(n / 100), n % 100, state.origin?.shifted ?? "odd")) {
+    const other = state.cells.get(String(nb.col * 100 + nb.row));
+    if (!other) continue;
+    if (WET.has(other.terrain) || (other.overlays ?? []).includes("river")) return false;
+  }
+  return true;
+}
+
+/**
+ * How often a stranded river turns out to be wrong. Measured at 19 of 19, but
+ * that is one map and nineteen hexes, so it sits just below certainty — high
+ * enough to reach the top of the queue, not so high it claims to be a fact.
+ */
+export const STRANDED_RIVER_RATE = 0.9;
+
 export const REVIEW_BANDS = [
   { under: 1.1, rate: 0.388 },
   { under: 1.3, rate: 0.219 },
@@ -92,8 +134,11 @@ export const REVIEW_BANDS = [
  * @param {object|null} cell
  * @returns {number}
  */
-export function errorRate(cell) {
+export function errorRate(cell, { stranded = false } = {}) {
   if (!cell?.terrain || cell.source !== "auto") return 0;
+  // A stranded river outranks every margin band: the margin describes how the
+  // glyph looked, and this describes where the hex sits.
+  if (stranded) return STRANDED_RIVER_RATE;
   if (cell.review || cell.margin === undefined) return REVIEW_BANDS[0].rate;
   return REVIEW_BANDS.find((b) => cell.margin < b.under)?.rate ?? REVIEW_BANDS.at(-1).rate;
 }
@@ -101,7 +146,7 @@ export function errorRate(cell) {
 /** The chance a sheet holds at least one mistake, and how many to expect. */
 export function sheetRisk(state, sheet = []) {
   let expected = 0;
-  for (const n of sheet) expected += errorRate(state.cells.get(String(n)));
+  for (const n of sheet) expected += errorRate(state.cells.get(String(n)), { stranded: strandedRiver(state, n) });
   return { expected, cells: sheet.length };
 }
 
@@ -135,11 +180,11 @@ export function nextSheet(state, { nums, size = 40, mode = "random", keyed = new
   const tagged = (n) => state.cells.get(String(n));
   if (mode === "review") {
     return nums
-      .map((n) => ({ n, cell: tagged(n) }))
-      .filter((e) => errorRate(e.cell) > 0)
-      // Riskiest band first; inside a band the thinner margin first, so the
-      // order is total and a redraw of the same state gives the same sheet.
-      .sort((a, b) => errorRate(b.cell) - errorRate(a.cell)
+      .map((n) => { const cell = tagged(n); return { n, cell, rate: errorRate(cell, { stranded: strandedRiver(state, n) }) }; })
+      .filter((e) => e.rate > 0)
+      // Riskiest first; inside a band the thinner margin first, so the order is
+      // total and a redraw of the same state gives the same sheet.
+      .sort((a, b) => b.rate - a.rate
         || (a.cell.margin ?? 0) - (b.cell.margin ?? 0)
         || a.n - b.n)
       .slice(0, size).map((e) => e.n)
