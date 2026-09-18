@@ -125,6 +125,100 @@ apart, so name the wave cards by the water that covers most of the map and
 fix the rest by region). The rest is the Review queue's job. Hand-drawn maps
 group poorly (no two cells share a glyph) and are better tagged by sheet.
 
+## Another go at the same map
+
+Every hex you tag by hand is an example, and those examples used to die with
+the scene: a second attempt at the same print started from nothing and you
+re-did work you had already done.
+
+**More → Start from a map you have done** takes every hand tag from another
+scene of the same print and brings it in here as a hand tag. Hexes you have
+already tagged on this scene are left alone, and hexes the other map has that
+this one does not are skipped. Then press **Classify**: your carried-over tags
+are its examples, so the more of the map you have ever corrected, the less
+there is left to correct.
+
+Hexes are matched by their printed number, so this is for another attempt at
+the *same* print — on a different map those numbers mean something else.
+
+## When a card's name looks wrong
+
+Naming a card is one answer for every hex in it, so it is the most expensive
+thing on that screen to get wrong — and the easiest, because the cards are
+small pictures and two terrains can share a glyph family. On one real run a
+390-cell desert card was named jungle: 358 wrong hexes, a quarter of every
+error on that map, from one click.
+
+So the cards check each other. A card named jungle should look like the other
+cards you named jungle; if it instead looks eight times more like the cards you
+named desert, **Apply legend** says so and offers to take you back before
+anything is written.
+
+It knows nothing about jungles. It only knows that a name should be used
+consistently, which needs no model and no truth. It catches the obvious,
+expensive slip; it will not catch naming an ocean card arctic sea, because
+those two look alike by construction — which is exactly why they are hard for
+you as well.
+
+## The review sheet
+
+After a classify, the sheet shows the hexes the classifier was least sure of,
+each one **already filled in with what it guessed**. There is nothing to type
+on a hex it got right: change the ones that are wrong, leave the rest, and
+press **Confirm these N**. That accepts the whole sheet — the ones you changed
+and the ones you left — takes them out of the review queue, and records how
+often it was right, which is what the accuracy report is built from.
+
+**Show me others** brings a different N and confirms nothing. You never have to
+finish the list; the map is already tagged, and every sheet you do is a bonus.
+
+Beside the terrain words the list also holds what the book keys rather than
+what the ground is: **village**, **town**, **city**, **city state** and
+**keyed location**. Naming a hex one of those keeps it out of the terrains,
+where its star or castle marker would otherwise read as a river.
+
+## What the scan got right on its own
+
+The first time a map is classified, what the module made of it is written down
+and never touched again — only the hexes it *guessed*, not the ones your legend
+cards named. Every correction after that changes the working tags, so without
+that snapshot there is no way to ask how much it had right before anybody
+helped.
+
+The answer is not available on the day it is taken; it needs your review to
+score against. So review at your own pace, and the tagger reports as you go:
+
+> **The initial scan, scored by you**: of the 431 hexes you have checked so
+> far, it had 402 right — 93.3%.
+
+That is what the map would have been worth to somebody who corrected nothing,
+and it is the number a change to the module has to move. It is per map, so a
+second print gets its own, and the two together are worth far more than either
+alone.
+
+## How the module gets better at maps it has never seen
+
+Nothing from your map ships with the module — no tags, no pictures, no tables.
+What ships is code, and code is improved by being measured against a map
+somebody has already verified.
+
+**Verify one map by hand.** Then, with developer tools on and the tagger open
+on it, `game.shadowdarkEnhancer.hexMaps.benchmark()` plays out a whole first
+run on it as if you had never tagged anything: it clusters the hexes, names
+every card from what its cells actually are, classifies the rest from those
+cards, runs the neighbour pass, and scores the result against your verified
+tags. Your tags are the answer key and never an example.
+
+That single number — what a first-time user would get — is what any change to
+the clustering, the feature, the thresholds or the smoothing has to move. On
+the Western Reaches it is what moved the shipped legend from 32 cards of 12
+cells to 48 of 40 (92.3% to 93.9%), and what showed that two promising feature
+changes were worth nothing.
+
+If you verify a second map, run it there too. A change that helps one print and
+hurts another is not an improvement, and only a benchmark on more than one map
+can tell you which you have.
+
 ## What the classifier's confidence means
 
 When the classifier tags a hex it compares it to the hexes you tagged by hand
@@ -242,8 +336,14 @@ that need it will do it themselves if you have not). It takes about fifteen
 seconds on a big print and nothing is uploaded.
 
 **Legend** sorts those pictures into groups of look-alikes and shows one card
-per group with four examples from it. Name a card and every hex in that group
-takes that terrain. It is the fast way to get a whole map tagged from nothing.
+per group, with a picture of each kind of cell in that group. Name a card and
+every hex in that group takes that terrain. It is the fast way to get a whole
+map tagged from nothing.
+
+Name what the pictures have in common. A card showing a mountain, a mountain
+with a river and a mountain with a road is a *mountain* card: rivers, paths and
+coasts are found cell by cell afterwards, so the boxes beside the name are only
+for a card where **every** picture has one.
 
 **Classify** tags every hex *you have not tagged yourself*, by finding
 whichever of your own hand-tagged hexes it looks most like and copying that

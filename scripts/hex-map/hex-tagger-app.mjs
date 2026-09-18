@@ -22,13 +22,13 @@ import { MODULE_ID } from "../shared/module-id.mjs";
 import { replaceModuleFlag } from "../shared/module-flags.mjs";
 import { findSuitePack } from "../shared/compendium-suite.mjs";
 import { sceneCells, sourceImage, CellSampler } from "./sampler.mjs";
-import { cellNumber } from "./geometry.mjs";
+import { cellNumber, neighbours } from "./geometry.mjs";
 import { decodeTags, encodeTags, nextSheet, applySheet, tagsForDataset, summarize, importTags, rowsFromJson, OVERLAYS } from "./tag-store.mjs";
-import { FIXES_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, accuracyReport } from "./tag-corrections.mjs";
+import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEdits, accuracyReport, encodeBaseline, decodeBaseline, baselineReport } from "./tag-corrections.mjs";
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
-import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier } from "./classify.mjs";
+import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
 import { buildLegend } from "./legend.mjs";
-import { TERRAIN_TAGS } from "../importer/hex/hex-summary.mjs";
+import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { datasetFromEntry, handoffDataset, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum } from "../importer/hex/hex-dataset.mjs";
@@ -38,6 +38,15 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** Scene flag key holding the tag store. */
 export const TAGS_FLAG = "hexTags";
 export const SHEET_SIZE = 40;
+/** Legend answer meaning "these pictures are not one thing": break the card up and ask again. */
+export const SPLIT = "__split";
+/**
+ * Not a terrain: a hex the book keys. Its star or castle marker is what the
+ * classifier would otherwise read as a river, and naming it here keeps those
+ * cells out of the terrain classes; the crawl entry's pages say what is there.
+ * The same word hex-pins.mjs uses for the icon of a keyed hex with no settlement.
+ */
+export const KEYED_TERRAIN = "keyed_location";
 /** Cell bitmap width for classification (height follows the cell's aspect); the calibration cell was 95×87. */
 export const BITMAP_SIZE = 96;
 
@@ -92,6 +101,75 @@ export async function scoreSceneModel({ app = null } = {}) {
   return score;
 }
 
+/**
+ * What a FIRST-TIME user would get on this map, with no tags of their own.
+ *
+ * This is the only measurement that answers "is the module better than it was",
+ * as opposed to "is this scene better than it was". It simulates the whole
+ * first run on a map the GM has already verified: cluster the cells, name every
+ * card from what its core really is (a user who names every card correctly),
+ * classify everything else from those cores, run the neighbour pass, and score
+ * the lot against the verified tags. No tag of the GM's is used as an example —
+ * only as the answer key.
+ *
+ * So: verify one map by hand, then change the clustering, the feature, the
+ * thresholds or the smoothing and run this again. If the number goes up, every
+ * user's first run got better, and nothing about the map ships with the module.
+ *
+ * On the Western Reaches it moved 92.3% → 93.9% when the legend's card count
+ * and core size were calibrated against it (LEGEND_DEFAULTS).
+ *
+ * @param {{k?:number, core?:number, ds?:number, sensitivity?:number, need?:number}} [opts]
+ *   overrides for a sweep; omit to measure what currently ships
+ */
+export async function benchmarkFirstRun(opts = {}) {
+  let enabled = false;
+  try { enabled = !!globalThis.game?.settings?.get?.(MODULE_ID, "hexMapsDevTools"); } catch (_err) { /* not registered */ }
+  if (!globalThis.game?.user?.isGM || !enabled) { ui.notifications?.warn("Hex map developer tools are disabled."); return null; }
+  const app = [...foundry.applications.instances.values()].find((a) => a.id === "sde-hex-tagger");
+  if (!app?._state?.origin) { ui.notifications?.warn("Open the Hex Tagger on a verified map first."); return null; }
+  const truth = new Map();
+  for (const [num, c] of app._state.cells) if (c.terrain && c.source !== "auto") truth.set(num, c.terrain);
+  if (truth.size < 200) { ui.notifications?.warn("This needs a map you have verified by hand: at least 200 hexes tagged yourself."); return null; }
+  if (!app._cells.length && !(await app._onSample())) return null;
+  await app._ensureBitmaps();
+  const { buildLegend } = await import("./legend.mjs");
+  const cells = [...app._numbered.keys()].map((n) => ({ num: n, bitmap: app._bitmaps.get(n) })).filter((c) => c.bitmap);
+  const { clusters } = await buildLegend(cells, { k: opts.k, core: opts.core, ds: opts.ds });
+  const state = new Map(), exemplars = [];
+  for (const card of clusters) {
+    const votes = new Map();
+    for (const n of card.core) { const k = truth.get(String(n)); if (k) votes.set(k, (votes.get(k) ?? 0) + 1); }
+    const name = [...votes.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (!name) continue;
+    for (const n of card.core) {
+      state.set(String(n), { terrain: name, source: "gm" });
+      const bitmap = app._bitmaps.get(n);
+      if (bitmap) exemplars.push({ num: n, tag: name, overlays: [], bitmap });
+    }
+  }
+  const thresholds = { sensitivity: opts.sensitivity ?? 1 };
+  if (opts.runOff !== undefined) thresholds.runOff = opts.runOff;
+  const clf = createClassifier({ exemplars, allBitmaps: [...app._bitmaps.values()], thresholds });
+  if (!clf.ready) { ui.notifications?.error(clf.warnings[0] ?? "The classifier could not start."); return null; }
+  let n = 0, runOffs = 0;
+  for (const c of cells) {
+    if (state.has(String(c.num))) continue;
+    const r = clf.classify(c);
+    if (r.runOff) runOffs++;
+    state.set(String(c.num), { terrain: r.terrain, overlays: r.overlays, source: "auto", margin: Number.isFinite(r.margin) ? Math.min(r.margin, 99) : 99, review: r.ambiguous });
+    if (++n % 700 === 0) await new Promise((z) => setTimeout(z, 0));
+  }
+  const pct = (m) => { let j = 0, ok = 0; for (const [num, want] of truth) { const got = m.get(num)?.terrain; if (!got) continue; j++; if (got === want) ok++; } return j ? Math.round(ok / j * 1000) / 10 : null; };
+  const before = pct(state);
+  const shifted = app._state.origin?.shifted ?? "odd";
+  const fixes = smoothTerrain(state, (num) => neighbours(Math.floor(num / 100), num % 100, shifted), { need: opts.need });
+  for (const f of fixes) state.get(f.num).terrain = f.to;
+  const result = { judged: truth.size, cards: clusters.length, exemplars: exemplars.length, beforeSmoothing: before, afterSmoothing: pct(state), smoothed: fixes.length, runOffs };
+  console.log(`${MODULE_ID} | first-run benchmark`, opts, result);
+  return result;
+}
+
 export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-hex-tagger",
@@ -118,6 +196,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtUseMargin:    function (...a) { return this._onUseMargin(...a); },
       hxtBrush:        function (...a) { return this._onBrush(...a); },
       hxtMore:         function (...a) { return this._onMore(...a); },
+      hxtLearnFrom:    function (...a) { return this._onLearnFrom(...a); },
       hxtApplyLegend:  function (...a) { return this._onApplyLegend(...a); },
       hxtCancelLegend: function () { this._legend = null; this.render(); },
     },
@@ -315,6 +394,88 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.setPosition({ height: "auto" });
   }
 
+  /**
+   * Replace each named card with its own parts, as a legend of that card alone.
+   * The card's cells are the only ones re-sorted, so the rest of the legend and
+   * every answer already given stay exactly as they are.
+   */
+  async _splitCards(indices) {
+    const { buildLegend } = await import("./legend.mjs");
+    const out = [];
+    let made = 0;
+    for (const [idx, card] of this._legend.entries()) {
+      if (!indices.includes(idx)) { out.push(card); continue; }
+      const cells = card.members.map((n) => ({ num: n, bitmap: this._bitmaps.get(n) })).filter((c) => c.bitmap);
+      const parts = cells.length >= 4 ? (await buildLegend(cells, { k: 4 })).clusters : [];
+      if (parts.length < 2) { card.chosen = ""; out.push(card); continue; }
+      for (const p of parts) out.push({ ...p, split: true });
+      made += parts.length;
+    }
+    if (!made) { ui.notifications?.warn("That card will not break down any further; name it or leave it (skip)."); }
+    else ui.notifications?.info(`Split into ${made} cards. Name the new ones; your other answers are kept.`);
+    this._legend = out;
+    this.render();
+  }
+
+  /**
+   * Take every hex the GM tagged by hand on ANOTHER scene of the same print and
+   * bring it in as hand tags here.
+   *
+   * This is the feedback loop that was missing. A correction used to improve one
+   * scene and die with it: a second go at the same map started from nothing and
+   * the GM re-did work they had already done. Hand tags are exactly the
+   * classifier's examples, so carrying them across is the whole of "the next
+   * take starts better prepared" — the more maps you correct, the less there is
+   * to correct.
+   *
+   * Printed numbers are the key, so this only makes sense between scenes of the
+   * SAME print; the dialog says so. Hand tags already here are never overwritten.
+   */
+  async _onLearnFrom() {
+    if (!this._requireCurrentScene()) return;
+    const here = this._scene();
+    const sources = game.scenes.contents
+      .filter((s) => s.id !== here?.id)
+      .map((s) => {
+        const state = decodeTags(s.getFlag(MODULE_ID, TAGS_FLAG));
+        let gm = 0;
+        for (const c of state.cells.values()) if (c.source !== "auto" && c.terrain) gm++;
+        return { id: s.id, name: s.name, gm, state };
+      })
+      .filter((s) => s.gm > 0)
+      .sort((a, b) => b.gm - a.gm);
+    if (!sources.length) { ui.notifications?.warn("No other scene has hexes you tagged by hand."); return; }
+    const esc = foundry.utils.escapeHTML;
+    const chosen = await foundry.applications.api.DialogV2.prompt({
+      window: { title: "Start from a map you have already done", icon: "fa-solid fa-graduation-cap" },
+      position: { width: 460 },
+      content: `<form class="standard-form">
+        <div class="form-group"><label>Take the hand tags from</label><div class="form-fields">
+          <select name="scene">${sources.map((s) => `<option value="${s.id}">${esc(s.name)} — ${s.gm} by hand</option>`).join("")}</select>
+        </div></div>
+        <p class="hint">Every hex you tagged yourself there is copied here as a hand tag, and becomes an example for <strong>Classify</strong>. Hexes you have already tagged here are left alone. Hexes are matched by their printed number, so this is for another go at the <em>same</em> print — on a different map the numbers mean something else.</p>
+      </form>`,
+      ok: { label: "Bring them over", callback: (_e, button) => new FormDataExtended(button.form).object.scene },
+      rejectClose: false,
+    });
+    if (!chosen) return;
+    const from = sources.find((s) => s.id === chosen);
+    let added = 0, kept = 0;
+    for (const [num, cell] of from.state.cells) {
+      if (cell.source === "auto" || !cell.terrain) continue;
+      if (this._numbered.size && !this._numbered.has(Number(num))) continue;   // not on this map
+      const mine = this._state.cells.get(num);
+      if (mine && mine.source !== "auto") { kept++; continue; }
+      this._state.cells.set(num, { terrain: cell.terrain, overlays: [...(cell.overlays ?? [])], source: "gm" });
+      added++;
+    }
+    if (!added) { ui.notifications?.warn(`Nothing to bring over from "${from.name}": every hex it has, you have already tagged here.`); return; }
+    await this._saveState();
+    this._renumber();
+    ui.notifications?.info(`${added} hexes brought over from "${from.name}"${kept ? `, ${kept} of your own left alone` : ""}. Press Classify to spread them over the rest.`);
+    this.render();
+  }
+
   /** The brush: pick a terrain once, then paint the wrong hexes on the map. */
   async _onBrush() {
     if (!this._requireCurrentScene()) return;
@@ -350,7 +511,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const total = this._numbered.size;
     const origin = state.origin;
     const sampled = this._cells.length > 0;
-    const terrainValues = Object.values(TERRAIN_TAGS);
+    // The printed terrain words, plus the things a hex can be that are not
+    // terrain at all: the book's settlement sizes and a keyed location. The map
+    // draws those as their own symbols, so they get their own cards, and having
+    // to invent a word for them through "other…" is how "Keyed Location" ended
+    // up as a free-text terrain on the first map that met them.
+    const terrainValues = [...Object.values(TERRAIN_TAGS), ...Object.values(SETTLEMENTS), KEYED_TERRAIN];
     const terrainOptions = terrainValues.map((t) => ({ value: t, label: t.replace(/_/g, " ") }));
 
     // The sheet: with no origin, an alignment sheet of the first cells (top-left
@@ -379,19 +545,20 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The legend's cards: a few member pictures each, the select pre-filled
     // with what most of its members are tagged already (a re-run after fixes).
     const legend = this._legend?.map((cl, idx) => {
-      const counts = new Map(), overlayCounts = Object.fromEntries(OVERLAYS.map((o) => [o, 0]));
+      const counts = new Map();
       for (const n of cl.members) {
         const t = state.cells.get(String(n)); if (!t?.terrain) continue;
         counts.set(t.terrain, (counts.get(t.terrain) ?? 0) + 1);
-        for (const o of t.overlays ?? []) if (o in overlayCounts) overlayCounts[o]++;
       }
-      const majority = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
-      const terrainOther = majority && !terrainValues.includes(majority) ? majority : "";
+      // A choice already made survives a split of some OTHER card.
+      const majority = cl.chosen ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "");
+      const terrainOther = majority && majority !== SPLIT && !terrainValues.includes(majority) ? majority : "";
+      const selected = terrainOther ? "__other" : majority;
       return {
-        idx, size: cl.size, terrainOther,
-        overlays: Object.fromEntries(OVERLAYS.map((o) => [o, overlayCounts[o] * 2 > cl.size])),
+        idx, size: cl.size, terrainOther, split: cl.split ? cl.split : null,
         thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? this._thumb(c) : ""; }).filter(Boolean),
-        terrainOptions: [...terrainOptions, { value: "__other", label: "other…" }].map((o) => ({ ...o, selected: o.value === (terrainOther ? "__other" : majority) })),
+        terrainOptions: [...terrainOptions, { value: "__other", label: "other…" }, { value: SPLIT, label: "these are not all the same" }]
+          .map((o) => ({ ...o, selected: o.value === selected })),
       };
     }) ?? null;
     // What to do next: nothing, once every numbered cell is tagged; the review queue is optional.
@@ -401,6 +568,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const n of this._numbered.keys()) { const c = state.cells.get(String(n)); if (c && c.source === "auto" && (c.review || (c.margin !== undefined && c.margin < reviewMargin))) reviewCount++; }
     // What the GM's own corrections say about that threshold (tag-corrections.mjs).
     const report = accuracyReport(this._log());
+    // And how the module's own first scan of this map is holding up against the
+    // hexes the GM has checked since.
+    const baseline = this._scene() ? baselineReport(decodeBaseline(this._scene().getFlag(MODULE_ID, BASELINE_FLAG)), state.cells) : null;
     // What widening it would COST: the queue's size at the suggested margin.
     // "Use 2.3" means nothing without "and the queue goes from 525 to 1514".
     if (report.suggested) {
@@ -421,7 +591,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       legend, hasLegend: !!legend,
       primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
       showMore: sampled || !!origin, moreOpen: !!this._moreOpen,
-      done, reviewCount, reviewMargin: reviewMargin.toFixed(2), report: report.judged ? report : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
+      done, reviewCount, reviewMargin: reviewMargin.toFixed(2), report: report.judged ? report : null,
+      baseline: baseline?.checked >= 20 ? baseline : null, noCrawl: this._entries.length > 0 && !this._entryUuid,
       sceneName: scene?.name ?? "(no scene)", sampled, cellCount: this._cells.length, numberedCount: total,
       summary, origin, originText: origin ? `${String(origin.num).padStart(4, "0")} at grid ${origin.i},${origin.j}` : "",
       boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: origin?.bounds?.firstRow === 1,
@@ -429,7 +600,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
       overlays: OVERLAYS, overlayShown: !!this._overlayShown,
-      canClassify: !!origin && summarize(state, total).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
+      canClassify: !!origin && summarize(state, this._numbered.size || state.cells.size).gm > 0, sensitivity: this._sensitivity, progress: this._progress,
     };
   }
 
@@ -504,7 +675,22 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       if (++done % 100 === 0) { this._setProgress(`Classifying ${done} of ${cells.length}…`); await new Promise((r) => setTimeout(r, 0)); }
     }
     if (!this._requireCurrentScene()) return false;
+    // Let the map correct the cells: a guess its neighbours all disagree with is
+    // almost certainly wrong, and nothing about a single hex can see that.
+    const shifted = this._state.origin?.shifted ?? "odd";
+    const fixes = smoothTerrain(this._state.cells, (n) => neighbours(Math.floor(n / 100), n % 100, shifted));
+    for (const f of fixes) {
+      const cell = this._state.cells.get(f.num);
+      if (cell) this._state.cells.set(f.num, { ...cell, terrain: f.to });
+    }
     await this._saveState();
+    // The first scan of a map is written down once and never again: it is the
+    // only record of what the module made of it unaided, and every correction
+    // from here overwrites the working tags.
+    const scene = this._scene();
+    if (scene && !scene.getFlag(MODULE_ID, BASELINE_FLAG)) {
+      await replaceModuleFlag(scene, BASELINE_FLAG, encodeBaseline(this._state.cells, { from: "classify" }));
+    }
     // The verdicts describe the run that has just been replaced: its guesses and
     // its margins are gone, so keeping them would report the accuracy of a
     // classifier that no longer exists — and keep advising a re-classify that
@@ -518,7 +704,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._setProgress("");
     this._mode = "review";
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: this._log().margin });
-    ui.notifications?.info(`Tagged ${auto} hexes from your ${exemplars.length} hand-tagged examples; ${review} went to the Review queue.`);
+    ui.notifications?.info(`Tagged ${auto} hexes from your ${exemplars.length} hand-tagged examples; ${fixes.length} then corrected by their neighbours; ${review} went to the Review queue.`);
     for (const w of clf.warnings) ui.notifications?.warn(w);
     this.render();
     return true;
@@ -533,7 +719,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
     if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
-    if (!this._numbered.size) { ui.notifications?.warn("Read the map first."); return; }
+    // Reads the map itself when it has to, like Classify. A reload empties the
+    // in-page pictures, and a Legend hidden behind that is a Legend the GM
+    // cannot get back to — which is exactly how Patrick lost his cards.
+    if (!this._numbered.size && !(await this._onSample())) return;
     await this._ensureBitmaps();
     if (!this._requireCurrentScene()) return;
     const keyed = this._keyedNumbers();
@@ -553,16 +742,57 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onApplyLegend() {
     if (!this._requireCurrentScene() || !this._legend) return;
     this._readHeader();
-    const answers = {}, cores = new Set();
+    const answers = {}, cores = new Set(), splits = [];
     for (const sel of this.element.querySelectorAll("select[data-hxt-legend]")) {
       const idx = Number(sel.dataset.idx), card = this._legend[idx];
+      if (!card) continue;
       const other = this.element.querySelector(`input[data-hxt-legend-other][data-idx="${idx}"]`)?.value.trim();
       const terrain = sel.value === "__other" ? other : sel.value;
-      if (!terrain || !card) continue;
-      const overlays = [...this.element.querySelectorAll(`input[data-hxt-legend-overlay][data-idx="${idx}"]:checked`)].map((i) => i.value);
-      for (const n of card.core) { answers[n] = { terrain, overlays }; if (!overlays.length) cores.add(n); }
+      card.chosen = sel.value === "__other" ? (other || "") : sel.value;    // survives a re-render
+      if (terrain === SPLIT) { splits.push(idx); continue; }
+      if (!terrain) continue;
+      // No overlays here: a card is a terrain. Rivers, paths and coasts are
+      // found cell by cell by the classifier, and ticking them on a card only
+      // stamped its dozen core cells with whatever the pictures happened to show.
+      for (const n of card.core) { answers[n] = { terrain, overlays: [] }; cores.add(n); }
     }
-    if (!cores.size) { ui.notifications?.warn("Name at least one picture, or Cancel."); return; }
+    // "These are not all the same" is the one thing only the GM can see. Take it
+    // literally: break that card into its parts and ask again, applying nothing
+    // this pass so no answer is acted on while a card is still in question.
+    if (splits.length) { await this._splitCards(splits); return; }
+    // A mis-named card is the most expensive mistake on this screen, and the
+    // cards can check each other: one named jungle should look like the other
+    // jungle cards.
+    const { suspectCardNames } = await import("./legend.mjs");
+    const suspects = suspectCardNames(this._legend.map((c, idx) => ({ idx, name: c.chosen, size: c.size, centroid: c.centroid })));
+    if (suspects.length) {
+      const esc = foundry.utils.escapeHTML;
+      const ok = await foundry.applications.api.DialogV2.confirm({
+        window: { title: "A card may be named wrong" },
+        content: `<p>These cards do not look like the other cards you gave the same name to — each one looks more like a card you named something else:</p>
+          <ul>${suspects.map((sp) => `<li>the card of <strong>${sp.size}</strong> hexes you called <strong>${esc(sp.name)}</strong> looks ${sp.times}× more like <strong>${esc(sp.looksLike)}</strong></li>`).join("")}</ul>
+          <p>Naming a card is one answer for every hex in it, so one wrong name is hundreds of wrong hexes. Go back and look at its pictures, or apply anyway if you are sure.</p>`,
+        yes: { label: "Apply anyway" }, no: { label: "Go back and look" }, rejectClose: false, modal: true,
+      });
+      if (!ok) return;
+    }
+    if (!cores.size) { ui.notifications?.warn("Name at least one card, or Cancel."); return; }
+    // A big card left unnamed is the expensive mistake and it is silent: its
+    // cells are guessed from the OTHER cards, so a whole terrain with no card
+    // named for it lands on whatever looks closest. On the Western Reaches a
+    // card of 165 cells that was 100% river went unnamed, and 149 of those
+    // hexes came back as desert.
+    const named = new Set(this._legend.filter((c) => c.chosen && c.chosen !== SPLIT).map((c) => c));
+    const big = this._legend.filter((c) => !named.has(c) && c.size >= Math.max(20, Math.round(this._numbered.size * 0.01)));
+    if (big.length) {
+      const ok = await foundry.applications.api.DialogV2.confirm({
+        window: { title: "Cards left unnamed" },
+        content: `<p>${big.length} ${big.length === 1 ? "card is" : "cards are"} unnamed, covering ${big.reduce((a, c) => a + c.size, 0)} hexes (the largest is ${Math.max(...big.map((c) => c.size))}).</p>
+          <p>Unnamed hexes are not left alone: they are guessed from the cards you <em>did</em> name, so a card that is its own thing — a river with no terrain under it, a band of ice — comes back as whatever looks nearest. Name it, or say it is a keyed location, unless you mean the classifier to guess.</p>`,
+        yes: { label: "Apply anyway" }, no: { label: "Go back" }, rejectClose: false, modal: true,
+      });
+      if (!ok) return;
+    }
     applySheet(this._state, answers);
     await this._saveState();
     this._legend = null;

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { scoreClassifier } from "../scripts/hex-map/classify.mjs";
+import { scoreClassifier, nearestExemplar } from "../scripts/hex-map/classify.mjs";
 
 /** A labelled point whose vector is a spike at `at`, so distance is predictable. */
 const pt = (num, tag, at) => {
@@ -50,4 +50,26 @@ test("scoreClassifier: a card too small to judge is not called impure", () => {
   const labelled = [pt(1, "ocean", 0), pt(2, "forest", 4), pt(3, "forest", 4)];
   const { groups } = scoreClassifier(labelled, [{ size: 9, members: [1, 2], core: [1] }]);
   assert.equal(groups.impure.length, 0, "two judged cells is not evidence of a mixed card");
+});
+
+test("nearestExemplar: a tied call goes to a run-off on the second feature, a clear one does not", () => {
+  const v = (a, b) => Float32Array.from([a, b]);
+  // Positionally, "ocean" is a hair closer; on the profile, "arctic_sea" is.
+  const exemplars = [
+    { tag: "ocean", vec: v(0, 0), profile: v(9, 0) },
+    { tag: "arctic_sea", vec: v(1.02, 0), profile: v(0, 0) },
+  ];
+  // Not sitting exactly on an exemplar: a distance of zero makes the margin
+  // infinite, which is a clear win by definition and never goes to a run-off.
+  const cell = v(0.5, 0), profile = v(0, 0);
+  assert.equal(nearestExemplar(cell, exemplars).tag, "ocean", "with no run-off the positional answer stands");
+  const run = nearestExemplar(cell, exemplars, { runOff: 1.3, profile });
+  assert.equal(run.tag, "arctic_sea", "a tied call is decided on the feature that can tell them apart");
+  assert.equal(run.runOff, "ocean→arctic_sea", "and it says it changed its mind");
+  // A clear win is never revisited, whatever the profile says.
+  const clear = [
+    { tag: "ocean", vec: v(0, 0), profile: v(9, 0) },
+    { tag: "arctic_sea", vec: v(50, 0), profile: v(0, 0) },
+  ];
+  assert.equal(nearestExemplar(cell, clear, { runOff: 1.3, profile }).tag, "ocean");
 });

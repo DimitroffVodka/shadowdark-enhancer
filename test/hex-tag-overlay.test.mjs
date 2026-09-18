@@ -51,5 +51,7 @@ test("terrainOptions: every printed terrain plus the scene's own words, alphabet
   assert.equal(labels.filter((l) => l === "Keyed Location").length, 1, "the scene's own word appears once");
   assert.ok(opts.some((o) => o.value === "arctic_sea" && o.label === "arctic sea"), "underscores are spaces in the label, not the value");
   for (const t of Object.values(TERRAIN_TAGS)) assert.ok(opts.some((o) => o.value === t), `${t} is missing`);
-  assert.equal(terrainOptions().length, Object.values(TERRAIN_TAGS).length, "no scene: the printed terrain alone");
+  const extras = ["village", "town", "city", "city_state", "keyed_location"];
+  assert.equal(terrainOptions().length, Object.values(TERRAIN_TAGS).length + extras.length, "the printed terrain, plus what the book keys");
+  for (const e of extras) assert.ok(terrainOptions().some((o) => o.value === e), `${e} must be sayable without inventing a word for it`);
 });

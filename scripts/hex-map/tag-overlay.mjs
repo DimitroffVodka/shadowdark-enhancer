@@ -24,7 +24,7 @@ import { sceneCells } from "./sampler.mjs";
 import { cellNumber, foundryOffsetToCube } from "./geometry.mjs";
 import { decodeTags, encodeTags, applySheet, OVERLAYS } from "./tag-store.mjs";
 import { FIXES_FLAG, DEFAULT_REVIEW_MARGIN, decodeFixes, encodeFixes, recordEdits, withdrawEdits, sameTags } from "./tag-corrections.mjs";
-import { TERRAIN_TAGS } from "../importer/hex/hex-summary.mjs";
+import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
 
 /** Scene flag key holding the tag store (hex-tagger-app.mjs owns it; the literal avoids an import cycle). */
 const TAGS_FLAG = "hexTags";
@@ -115,7 +115,7 @@ export const OTHER = "__other";
  * @param {Map<string, {terrain?:string}>} cells  the store's cells
  */
 export function terrainOptions(cells = new Map()) {
-  const used = new Set(Object.values(TERRAIN_TAGS));
+  const used = new Set([...Object.values(TERRAIN_TAGS), ...Object.values(SETTLEMENTS), "keyed_location"]);
   for (const c of cells.values()) if (c?.terrain) used.add(c.terrain);
   return [...used]
     .map((t) => ({ value: t, label: t.replace(/_/g, " ") }))

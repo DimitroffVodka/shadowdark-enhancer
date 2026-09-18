@@ -32,6 +32,16 @@ export const DEFAULT_THRESHOLDS = {
   inkLow: 20 / CAL_AREA, inkHigh: 60 / CAL_AREA,        // ambiguous band → review
   strokeLow: 40 / CAL_AREA, strokeHigh: 100 / CAL_AREA, // ambiguous band → review
   margin: 1.3,                // nearest-exemplar margin below this → review
+  // Below this margin the first two terrains are close enough that the
+  // positional feature is not deciding much, so the two of them are compared
+  // again on shapeProfile alone. Above it, the winner is left to stand.
+  //
+  // Measured on a hand-verified map (hexMaps.benchmark, first run, after the
+  // neighbour pass): off 94.1%, 1.3 → 94.4%, 1.6 → 94.1%, 2 → 93.8%, 3 → 93.6%,
+  // flipping 0, 79, 126, 160 and 178 hexes. Only a genuinely tied call is worth
+  // a second opinion; ask the profile any wider and it starts overruling
+  // decisions the positional feature was making correctly.
+  runOff: 1.3,
   // stampDilate is in pixels at the calibration width (95 px): cells sit ±2 px
   // off their stamp, and one pixel of slack leaves glyph edges as residual ink
   // that reads as a path (live check 2026-09-18: path precision 41% at 1, see worklog).
@@ -39,16 +49,49 @@ export const DEFAULT_THRESHOLDS = {
   maxShift: 3,                // per-cell registration of the stamp, in pixels at the calibration width
 };
 
-/** Block-mean downsample to ds×ds as a feature vector. */
+/**
+ * The hexagon inside a cell's bounding box, by cell size. A hexagon fills only
+ * 75% of the box it is drawn in, so the corners of a cell bitmap belong to the
+ * SIX NEIGHBOURS — their waves, their trees, their printed numbers.
+ *
+ * Patrick, looking at a cell crop on 2026-09-18: "It should only be the hex and
+ * nothing else." He was right, and the mask to do it was already in the file;
+ * nothing but the overlay path had ever called it. Measured on his 1130
+ * verified sea hexes (leave-one-out 1-NN): the square scores 90.8%, the hexagon
+ * 93.6%, and the arctic-sea/ocean confusions fall from 72 to 48.
+ *
+ * `shrink` is 1 — the hexagon itself, edge to edge. Cropping tighter starts
+ * eating the glyph: 0.94 → 92.8%, 0.86 (the constant that was already here, and
+ * unused) → 92.4%, 0.74 → 91.8%, 0.64 → 90.0%.
+ */
+const HEX_MASKS = new Map();
+function hexMask(w, h) {
+  const key = `${w}x${h}`;
+  let mask = HEX_MASKS.get(key);
+  if (!mask) { mask = cellMasks(w, h, { shrink: 1 }).inhex; HEX_MASKS.set(key, mask); }
+  return mask;
+}
+
+/**
+ * Block-mean downsample to ds×ds as a feature vector, over the hexagon only.
+ *
+ * The block denominator stays the whole block, corners included, so a corner
+ * block reads as near-empty rather than being dropped — every cell is measured
+ * on the same grid whatever its size.
+ */
 export function featureVector(bm, ds = 32) {
   const { w, h, data } = bm;
+  const keep = hexMask(w, h);
   const out = new Float32Array(ds * ds);
   const kx = w / ds, ky = h / ds;
   for (let y = 0; y < ds; y++) for (let x = 0; x < ds; x++) {
     const x0 = Math.floor(x * kx), x1 = Math.max(x0 + 1, Math.floor((x + 1) * kx));
     const y0 = Math.floor(y * ky), y1 = Math.max(y0 + 1, Math.floor((y + 1) * ky));
     let s = 0, n = 0;
-    for (let yy = y0; yy < y1 && yy < h; yy++) for (let xx = x0; xx < x1 && xx < w; xx++) { s += data[yy * w + xx]; n++; }
+    for (let yy = y0; yy < y1 && yy < h; yy++) for (let xx = x0; xx < x1 && xx < w; xx++) {
+      const p = yy * w + xx;
+      s += data[p] && keep[p] ? 1 : 0; n++;
+    }
     out[y * ds + x] = n ? s / n : 0;
   }
   return out;
@@ -57,8 +100,25 @@ export function featureVector(bm, ds = 32) {
 function dist2(a, b) { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return s; }
 
 /**
- * A phase-invariant profile was tried here and REMOVED, so it is not tried
- * again: sorting featureVector's block means and reading them at quantiles
+ * What a cell CONTAINS, with no regard for where it is: featureVector's block
+ * means sorted, then read at `bins` evenly spaced quantiles. Two hexes of the
+ * same terrain whose glyphs sit differently look far apart to the positional
+ * feature and identical to this one.
+ *
+ * It is NOT part of the main comparison — see the note below for the
+ * measurements — but it is what decides a run-off between two terrains that
+ * the positional feature has called nearly tied.
+ */
+export function shapeProfile(bm, bins = 32, ds = 32) {
+  const v = Array.from(featureVector(bm, ds)).sort((a, b) => b - a);
+  const out = new Float32Array(bins);
+  for (let i = 0; i < bins; i++) out[i] = v[Math.min(v.length - 1, Math.round(i * (v.length - 1) / (bins - 1)))];
+  return out;
+}
+
+/**
+ * A phase-invariant profile was tried in the main comparison and REMOVED, so it
+ * is not tried there again: sorting featureVector's block means and reading them at quantiles
  * throws the positions away and keeps how much ink and how concentrated, which
  * is what differs between two water terrains.
  *
@@ -96,18 +156,35 @@ export function keepMask(bitmaps, masks) {
  * @param {Float32Array} vec
  * @param {Array<{tag:string, vec:Float32Array}>} exemplars
  */
-export function nearestExemplar(vec, exemplars) {
+export function nearestExemplar(vec, exemplars, { runOff = null, profile = null } = {}) {
   const distances = new Map();
   for (const e of exemplars) {
     const d = dist2(vec, e.vec);
     if (d < (distances.get(e.tag) ?? Infinity)) distances.set(e.tag, d);
   }
-  let best = null, bestD = Infinity, other = Infinity;
+  let best = null, bestD = Infinity, other = null, otherD = Infinity;
   for (const [tag, d] of distances) {
-    if (d < bestD) { other = bestD; bestD = d; best = tag; }
-    else if (d < other) other = d;
+    if (d < bestD) { other = best; otherD = bestD; bestD = d; best = tag; }
+    else if (d < otherD) { other = tag; otherD = d; }
   }
-  const margin = bestD === 0 ? Infinity : other / bestD;
+  const margin = bestD === 0 ? Infinity : otherD / bestD;
+  // A close call between two terrains is decided again, between those two
+  // ALONE, on a feature that tells them apart where the positional one cannot.
+  // Mixed into every comparison the same feature is worth nothing (measured:
+  // 90.8% to 90.9%); asked only when the first two answers are nearly tied, it
+  // is being used where it is strong instead of everywhere it is weak.
+  if (runOff && profile && other && margin < runOff && best !== other) {
+    let bestP = Infinity, otherP = Infinity;
+    for (const e of exemplars) {
+      if (e.tag !== best && e.tag !== other) continue;
+      if (!e.profile) continue;
+      const d = dist2(profile, e.profile);
+      if (e.tag === best) bestP = Math.min(bestP, d); else otherP = Math.min(otherP, d);
+    }
+    if (Number.isFinite(bestP) && Number.isFinite(otherP) && otherP < bestP) {
+      return { tag: other, distance: Math.sqrt(otherD), margin, runOff: `${best}→${other}` };
+    }
+  }
   return { tag: best, distance: Math.sqrt(bestD), margin };
 }
 
@@ -221,7 +298,7 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   const minPiece = Math.max(2, Math.round(T.minPiece * area));
   const masks = cellMasks(w, h);
   const keep = keepMask(allBitmaps?.length ? allBitmaps : ex.map((e) => e.bitmap), masks);
-  const vecs = ex.map((e) => ({ ...e, vec: featureVector(e.bitmap) }));
+  const vecs = ex.map((e) => ({ ...e, vec: featureVector(e.bitmap), profile: shapeProfile(and(e.bitmap, keep)) }));
   const { stamps, counts, coverage: cov } = buildStamps(vecs, T);
   for (const [tag, n] of counts) if (n < T.minExemplars) warnings.push(`${tag}: only ${n} tagged cell${n === 1 ? "" : "s"}, needs ${T.minExemplars} for overlay detection`);
   const weak = [...cov.entries()].filter(([, c]) => c < 0.5).map(([t]) => t);
@@ -229,7 +306,7 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
 
   const classify = (c) => {
     const vec = featureVector(c.bitmap);
-    const nn = nearestExemplar(vec, vecs);
+    const nn = nearestExemplar(vec, vecs, { runOff: T.runOff, profile: shapeProfile(and(c.bitmap, keep)) });
     let overlays = [], ambiguous = nn.margin < T.margin, reason = ambiguous ? "close call between terrains" : "";
     if (!BARE.includes(nn.tag)) {
       const stamp = stamps.get(nn.tag);
@@ -243,7 +320,7 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
         if (o.ambiguous) { ambiguous = true; reason = reason || "overlay unclear"; }
       }
     }
-    return { terrain: nn.tag, overlays, margin: nn.margin, ambiguous, reason };
+    return { terrain: nn.tag, overlays, margin: nn.margin, ambiguous, reason, runOff: nn.runOff ?? null };
   };
   return { classify, warnings, stampCoverage: Object.fromEntries(cov), ready: true };
 }
@@ -395,4 +472,99 @@ export function scoreClassifier(labelled, clusters = null) {
       meanPurity: cards.length ? Math.round(cards.reduce((a, b) => a + b, 0) / cards.length * 10) / 10 : null,
     },
   };
+}
+
+/**
+ * Precision and recall per overlay, given what the classifier said against what
+ * the GM says. The two numbers have to be reported together: a threshold that
+ * finds every river also paints rivers on half the map, and one that never
+ * paints a false river finds almost none.
+ *
+ * Only cells where the truth carries a TERRAIN are worth scoring. A cell whose
+ * terrain IS "river" — a river crossing otherwise empty paper, 167 of them on
+ * the Western Reaches — has no terrain stamp to subtract, so counting it as an
+ * overlay the classifier failed to find measures nothing. That mistake is how a
+ * live check reported 34% river recall against a shipped constant calibrated at
+ * 86%.
+ * @param {Array<{want:string[], got:string[]}>} rows
+ */
+export function overlayScore(rows) {
+  const pct = (a, b) => (b ? Math.round((a / b) * 1000) / 10 : null);
+  const out = {};
+  for (const o of BARE) {
+    let tp = 0, fp = 0, fn = 0;
+    for (const r of rows) {
+      const want = !!r.want?.includes(o), got = !!r.got?.includes(o);
+      if (want && got) tp++;
+      else if (got) fp++;
+      else if (want) fn++;
+    }
+    out[o] = {
+      inTruth: tp + fn, found: tp, falsely: fp, missed: fn,
+      precision: pct(tp, tp + fp), recall: pct(tp, tp + fn),
+      f1: (tp + fp + fn) ? Math.round((2 * tp / (2 * tp + fp + fn)) * 1000) / 10 : null,
+    };
+  }
+  return out;
+}
+
+/** The sensitivity that scores best on `overlay`, and the whole sweep behind it. */
+export function bestSensitivity(sweep, overlay = "river") {
+  const scored = sweep.filter((s) => s.score?.[overlay]?.f1 !== null);
+  if (!scored.length) return { best: null, sweep };
+  const best = scored.reduce((a, b) => (b.score[overlay].f1 > a.score[overlay].f1 ? b : a));
+  return { best: best.sensitivity, bestF1: best.score[overlay].f1, sweep };
+}
+
+/** A hex needs this many of its six neighbours to agree before they overrule it. */
+export const SMOOTH_NEED = 5;
+/**
+ * Off, measured. Refusing to overrule a hex the classifier was confident about
+ * sounds obviously right and is not: on a real run it cut the whole benefit of
+ * the pass (90.0% back to 88.1%, against 88.1% unsmoothed) while barely moving
+ * the confusion it was meant to protect (193 wrong swamps to 188). The margin
+ * does not track correctness on this print — the GM's own corrections ran up to
+ * margin 3.0 — so gating on it only switches the pass off. Left as a parameter
+ * because a print whose margins mean more would want it.
+ */
+export const SMOOTH_MAX_MARGIN = null;
+
+/**
+ * Terrain comes in regions, and the classifier does not know that: it judges
+ * every hex alone, so its mistakes are single cells sitting inside a patch that
+ * disagrees with them. A hex whose neighbours nearly all say something else is
+ * almost certainly wrong, whatever its own picture looked like.
+ *
+ * This is the one thing that moved the needle. Per-cell matching is near its
+ * limit: leave-one-out 1-NN on 992 hand-tagged Western Reaches cells is 90.8%,
+ * and adding a stroke-orientation feature that genuinely separates swamp from
+ * grassland (20.2 long horizontal strokes against 10.6) changed it to 90.9%.
+ * Neighbour agreement took a real run from 87.4% to 89.4% — 149 hexes changed,
+ * 91 of them right — because it uses information no single cell carries.
+ *
+ * Five of six, one pass, both measured: four over-smooths (88.6%), six is
+ * meeker (89.2%), and a second pass gives nothing back (89.3%). Hand tags are
+ * never touched; only the classifier's own guesses are open to their neighbours.
+ *
+ * @param {Map<string, {terrain:string, source?:string}>} cells  the tag store's cells
+ * @param {(num:number) => Array<{col:number,row:number}>} neighboursOf
+ * @param {{need?:number}} [opts]
+ * @returns {Array<{num:string, from:string, to:string}>} the changes to make
+ */
+export function smoothTerrain(cells, neighboursOf, { need = SMOOTH_NEED, maxMargin = SMOOTH_MAX_MARGIN } = {}) {
+  const changes = [];
+  for (const [num, cell] of cells) {
+    if (cell?.source !== "auto" || !cell.terrain) continue;
+    // Optional, and off by default: see SMOOTH_MAX_MARGIN for why confidence
+    // turned out to be the wrong thing to defer to.
+    if (maxMargin !== null && Number.isFinite(cell.margin) && cell.margin >= maxMargin) continue;
+    const votes = new Map();
+    for (const nb of neighboursOf(Number(num))) {
+      const other = cells.get(String(nb.col * 100 + nb.row))?.terrain;
+      if (other) votes.set(other, (votes.get(other) ?? 0) + 1);
+    }
+    const top = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
+    if (top && top[1] >= need && top[0] !== cell.terrain) changes.push({ num, from: cell.terrain, to: top[0] });
+  }
+  return changes;
 }

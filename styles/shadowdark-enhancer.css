@@ -10474,7 +10474,8 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-num { width: 5rem; }
 .sde-hxt-overlays { display: flex; gap: 6px; flex-wrap: wrap; }
 .sde-hxt-overlays label { display: inline-flex; gap: 2px; align-items: center; }
-.sde-hxt-foot { display: flex; gap: 6px; justify-content: flex-end; }
+.sde-hxt-foot { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+.sde-hxt-foot .sde-hxt-muted { margin-right: auto; }
 
 /* ── Hex map from image: the confirmation window (scripts/hex-map/hex-map-flow.mjs) ── */
 .sde-hexmap-dialog .window-content { display: flex; flex-direction: column; }

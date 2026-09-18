@@ -8,14 +8,20 @@
       {{#unless sampled}}
       <button type="button" data-action="hxtSample" class="{{#if primarySample}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="Read every hex of this scene's image in your browser, so the Legend and Classify have a picture of each one. Nothing is uploaded, and no terrain is decided."><i class="fas fa-crop-simple"></i> Read the map</button>
       {{/unless}}
-      {{!-- Everything that needs the sampled cells stays hidden until there are some. --}}
+      {{!-- Legend and Classify read the map themselves when they have to, so a
+            reload never hides them: they are offered whenever the scene is
+            numbered. Only the controls that work ON the pictures wait. --}}
+      {{#if origin}}
+      <button type="button" data-action="hxtLegend" class="{{#if primaryLegend}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="Sort every hex picture into groups of look-alikes and show one card per group. Reads the map first if it needs to."><i class="fas fa-list-ul"></i> Legend</button>
+      {{#if canClassify}}
+      <button type="button" data-action="hxtClassify" class="sde-import-secondary" title="Tag every hex you have NOT tagged yourself by whichever of your own hand-tagged hexes it looks most like. Reads the map first if it needs to. Unsure hexes go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
+      {{/if}}
+      {{/if}}
       {{#if sampled}}{{#if origin}}
-      <button type="button" data-action="hxtLegend" class="{{#if primaryLegend}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="Sort every hex picture into groups of look-alikes and show one card per group with four examples from it. Name a card and every hex in that group takes that terrain."><i class="fas fa-list-ul"></i> Legend</button>
       <label>Sheet <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
       <button type="button" data-action="hxtNextSheet" class="sde-import-secondary"><i class="fas fa-forward"></i> Next sheet</button>
       {{#if canClassify}}
       <label title="Higher values lower the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
-      <button type="button" data-action="hxtClassify" class="sde-import-secondary" title="Tag every hex you have NOT tagged yourself by whichever of your own hand-tagged hexes it looks most like. Your tags are the examples, so the more you correct the better this gets. Unsure hexes go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
       {{/if}}
       {{/if}}{{/if}}
       {{!-- These read the scene's stored tags, so they work whether or not it is sampled. --}}
@@ -39,6 +45,7 @@
         {{#if sampled}}
         <button type="button" data-action="hxtSample" class="sde-import-secondary" title="Read the pictures from the scene image again; every tag is kept"><i class="fas fa-crop-simple"></i> Read the map again</button>
         {{/if}}
+        <button type="button" data-action="hxtLearnFrom" class="sde-import-secondary" title="Bring in every hex you tagged by hand on another go at this same print, as examples for Classify. Your tags here are left alone."><i class="fas fa-graduation-cap"></i> Start from a map you have done</button>
         <button type="button" data-action="hxtImport" class="sde-import-secondary" title="Import tags from a CSV (hex_id, tags) or a JSON exported here"><i class="fas fa-file-import"></i> Import</button>
         <button type="button" data-action="hxtExport" class="sde-import-secondary" title="Download this scene's tags as JSON"><i class="fas fa-file-export"></i> Export</button>
         {{#if origin}}
@@ -70,6 +77,13 @@
   {{/if}}
   {{/unless}}
 
+  {{#if baseline}}
+  <p class="sde-hxt-note sde-hxt-direction">
+    <i class="fas fa-flag-checkered"></i> <strong>The initial scan, scored by you</strong>: of the {{baseline.checked}} hexes you have checked so far, it had {{baseline.right}} right — <strong>{{baseline.accuracy}}%</strong>. That is what this map would have been worth to somebody who never corrected anything, and it is the number a change to the module has to move.
+    {{#if baseline.worst}}Its worst confusions on what you have checked: {{#each baseline.worst as |w|}}{{#unless @first}}, {{/unless}}{{lookup w 1}}× {{lookup w 0}}{{/each}}.{{/if}}
+  </p>
+  {{/if}}
+
   {{#if report}}
   <p class="sde-hxt-note sde-hxt-direction">
     <i class="fas fa-chart-simple"></i> <strong>From your corrections</strong>: you have judged {{report.judged}} hexes the classifier tagged, and {{report.wrong}} of them were wrong.
@@ -90,13 +104,13 @@
   {{#if done}}
   <p class="sde-hxt-note sde-hxt-direction">
     <i class="fas fa-circle-check"></i> <strong>The map is tagged</strong>: {{summary.gm}} cells by you, {{summary.auto}} by the classifier. Nothing more is required; <strong>{{#if viaExtras}}Send to Extras{{else}}Download dataset{{/if}}</strong> is ready whenever you are.
-    {{#if reviewCount}}The classifier was unsure about {{reviewCount}} cells. They are below, pre-filled with its guess, for as much checking as you care to do: fix what is wrong, <strong>Apply sheet</strong>, and stop whenever you like.{{/if}}
+    {{#if reviewCount}}The classifier was least sure about {{reviewCount}} hexes — the ones where its second guess was nearly as good as its first. They are below, each already filled in with what it guessed. <strong>Change only the ones that are wrong</strong>, then press the button at the bottom: that confirms the whole sheet, the ones you changed <em>and</em> the ones you left, takes them out of this queue and records how often it was right. You never have to finish the list.{{/if}}
     {{#if noCrawl}}Choosing your crawl entry above and pressing <strong>Classify</strong> again leaves the keyed hexes to the book and shortens that list.{{/if}}
   </p>
   {{else if summary.tagged}}
-  <p class="sde-hxt-note sde-hxt-direction">{{summary.untagged}} cells still untagged. <strong>Legend</strong> names them all at once, one card per glyph; <strong>Classify</strong> tags them from the {{summary.gm}} you tagged by hand; the sheet below tags them 40 at a time.</p>
+  <p class="sde-hxt-note sde-hxt-direction">{{summary.untagged}} cells still untagged. <strong>Legend</strong> names them all at once, one card per glyph; <strong>Classify</strong> tags them from the {{summary.gm}} you tagged by hand; the sheet below tags them {{sheet.length}} at a time.</p>
   {{else}}
-  <p class="sde-hxt-note sde-hxt-direction">Nothing tagged yet. <strong>Legend</strong> is the quick way: one card per glyph to name, then everything is tagged from those. The sheet below is the slow way, 40 cells at a time.</p>
+  <p class="sde-hxt-note sde-hxt-direction">Nothing tagged yet. <strong>Legend</strong> is the quick way: one card per glyph to name, then everything is tagged from those. The sheet below is the slow way, {{sheet.length}} cells at a time.</p>
   {{/if}}
   {{/unless}}{{/if}}{{/if}}
 
@@ -109,24 +123,19 @@
 
   {{#if hasLegend}}
   <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-list-ul"></i> Each card is one group of look-alike cells, biggest first, four typical members pictured. Pick the terrain the pictures show. Leave <strong>(skip)</strong> on a card you cannot name: star and castle markers are keyed hexes, and the book names those. The same glyph may get two cards; name both. <strong>Apply legend</strong> then tags the whole map from your answers.
+    <i class="fas fa-list-ul"></i> Each card is one group of look-alike cells, biggest first, with a picture of each kind of cell in it. <strong>Name what the pictures have in common</strong> — a mountain, a mountain with a river and a mountain with a road are all one answer: mountain. A river, path or coast <em>crossing</em> a terrain is not asked here — the classifier finds those cell by cell — but a hex that is <strong>only</strong> a river, with no terrain under it, is a <strong>river</strong> card and must be named one, or its hexes have nowhere to go. Cards of map symbols have their own names: <strong>village</strong>, <strong>town</strong>, <strong>city</strong>, <strong>city state</strong> and <strong>keyed location</strong> for the star markers, which keeps them out of the terrains and leaves them to the book. If the pictures are genuinely different things, choose <strong>these are not all the same</strong> and that card alone is broken into smaller ones to name; every other answer is kept. <strong>(skip)</strong> leaves a card to the classifier. The same thing often gets several cards; name them all, then <strong>Apply legend</strong>.
   </p>
   <div class="sde-hxt-sheet sde-hxt-legend">
     {{#each legend as |g|}}
     <div class="sde-hxt-cell">
       <div class="sde-hxt-thumbs">{{#each g.thumbs as |t|}}<img src="{{t}}" alt="" width="72" height="72">{{/each}}</div>
       <div class="sde-hxt-fields">
-        <span class="sde-hxt-label">{{g.size}} cells</span>
+        <span class="sde-hxt-label">{{g.size}} cells{{#if g.split}} <span class="sde-hxt-muted">(from a split)</span>{{/if}}</span>
         <select data-hxt-legend data-idx="{{g.idx}}">
           <option value="">(skip)</option>
           {{#each g.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
         </select>
         <input type="text" data-hxt-legend-other data-idx="{{g.idx}}" value="{{g.terrainOther}}" placeholder="other terrain" aria-label="Other terrain" {{#unless g.terrainOther}}hidden{{/unless}}>
-        <span class="sde-hxt-overlays" title="Tick only when every picture on the card shows it; otherwise the classifier finds rivers and paths cell by cell.">
-          <label><input type="checkbox" data-hxt-legend-overlay data-idx="{{g.idx}}" value="river" {{#if g.overlays.river}}checked{{/if}}> river</label>
-          <label><input type="checkbox" data-hxt-legend-overlay data-idx="{{g.idx}}" value="path" {{#if g.overlays.path}}checked{{/if}}> path</label>
-          <label><input type="checkbox" data-hxt-legend-overlay data-idx="{{g.idx}}" value="coast" {{#if g.overlays.coast}}checked{{/if}}> coast</label>
-        </span>
       </div>
     </div>
     {{/each}}
@@ -167,8 +176,9 @@
 
   {{#if hasSheet}}{{#unless needsOrigin}}
   <footer class="sde-hxt-foot">
-    <button type="button" data-action="hxtApplySheet" class="sde-import-primary"><i class="fas fa-check"></i> Apply sheet</button>
-    <button type="button" data-action="hxtNextSheet" class="sde-import-secondary">Skip</button>
+    <span class="sde-hxt-muted">Leaving a hex alone says the classifier got it right.</span>
+    <button type="button" data-action="hxtApplySheet" class="sde-import-primary" title="Accepts every hex on this sheet as it now reads — the ones you changed and the ones you left — and takes them out of the review queue."><i class="fas fa-check"></i> Confirm these {{sheet.length}}</button>
+    <button type="button" data-action="hxtNextSheet" class="sde-import-secondary" title="A different {{sheet.length}} hexes. Nothing on this sheet is confirmed or changed.">Show me others</button>
   </footer>
   {{/unless}}{{/if}}
   {{/if}}

@@ -29,10 +29,32 @@ import { cellMasks, and } from "./bitmap.mjs";
 import { featureVector, keepMask } from "./classify.mjs";
 import { lcg } from "./tag-store.mjs";
 
+/**
+ * Calibrated against a hand-verified map, not chosen. The measurement is a
+ * simulated FIRST run — cluster, name every card from its core, classify the
+ * rest, smooth — scored on 4736 hexes of the Western Reaches, which is the only
+ * thing that says whether a change helps somebody who has never used this
+ * before. Re-run it with hexMaps.benchmark() after touching any of these.
+ *
+ *   cards  core   exemplars   before smoothing   after
+ *     32     12         350              89.6%   92.3%   ← was shipped
+ *     32     40        1041              90.7%   92.5%
+ *     48     24         996              92.1%   93.7%
+ *     48     40        1574              92.6%   93.9%   ← is shipped
+ *     64     24        1198              92.5%   93.8%
+ *     64     40        1842              93.0%   93.7%
+ *
+ * Past 48 cards the score stops moving and the GM is answering 16 more
+ * questions for nothing. A bigger core costs the GM nothing at all — the card
+ * is still one question — so it is set where the gain flattens.
+ */
+/** How many times closer another name must look before a card is questioned. */
+export const SUSPECT_RATIO = 8;
+
 export const LEGEND_DEFAULTS = {
-  k: 32,        // cards at most; fewer on small maps (one per six cells)
+  k: 48,        // cards at most; fewer on small maps (one per six cells)
   ds: 24,       // feature grid; coarser than the classifier's 32 for shift tolerance (measured best of 16/24/32)
-  core: 12,     // members nearest the centroid that become hand tags
+  core: 40,     // members nearest the centroid that become hand tags
   restarts: 3,  // k-means runs, lowest inertia kept
   iters: 12,    // Lloyd iterations per run
   samples: 4,   // member pictures per card, one per group within the card
@@ -147,7 +169,11 @@ export function cardSamples(idx, vecs, members, want = 4) {
 }
 
 export async function buildLegend(cells, opts = {}) {
-  const T = { ...LEGEND_DEFAULTS, ...opts };
+  // Spreading opts directly lets an explicit `undefined` — which is what any
+  // caller passing { k: opts.k } sends when opts is empty — overwrite a default
+  // with nothing, and k of undefined makes zero clusters. Only real values win.
+  const T = { ...LEGEND_DEFAULTS };
+  for (const [key, value] of Object.entries(opts)) if (value !== undefined) T[key] = value;
   const cs = (cells ?? []).filter((c) => c?.bitmap);
   if (!cs.length) return { clusters: [] };
   const { w, h } = cs[0].bitmap;
@@ -164,8 +190,61 @@ export async function buildLegend(cells, opts = {}) {
   const clusters = groups.filter((g) => g.length).map((g) => {
     g.sort((a, b) => a[1] - b[1]);
     const members = g.map(([i]) => cs[i].num);
-    return { size: members.length, members, core: members.slice(0, T.core), samples: cardSamples(g.map(([i]) => i), vecs, members, T.samples) };
+    return { size: members.length, members, core: members.slice(0, T.core), samples: cardSamples(g.map(([i]) => i), vecs, members, T.samples), centroid: best.centroids[best.assign[g[0][0]]] };
   });
   clusters.sort((a, b) => b.size - a.size);
   return { clusters };
+}
+
+
+/**
+ * Cards whose name looks wrong, judged only against the other cards.
+ *
+ * Naming a card is one answer for hundreds of hexes, so it is the most
+ * expensive thing on the screen to get wrong and the easiest: the cards are
+ * small pictures and two terrains can share a glyph family. On the Western
+ * Reaches a 390-cell desert card was named jungle and took 358 hexes with it —
+ * a quarter of every error on that map, from one click.
+ *
+ * Nothing here knows what a jungle is. It knows that a card named jungle should
+ * look like the OTHER cards named jungle, and this one looks far more like the
+ * cards named desert. That needs no labels, no truth and no model — only the
+ * names just given.
+ *
+ * Judged only for names used on more than one card: a terrain with a single
+ * card has nothing to be consistent with.
+ *
+ * Eight times closer, measured. On a correctly named map of 48 cards, a ratio
+ * of 2 cries wolf four times, 4 twice, 6 once and 8 not at all; the real slip —
+ * a 390-cell desert card called jungle — shows at 53x, an order of magnitude
+ * clear of every honest card. So the bar is set where the false alarms stop,
+ * and it still catches the mistake that matters by a wide margin.
+ *
+ * What it will NOT catch: naming an ocean card arctic sea. Those two look alike
+ * by construction, which is why they are hard for the GM in the first place,
+ * and no threshold here separates them without flagging honest cards. This
+ * catches the expensive, obvious slip, not the subtle one.
+ *
+ * @param {Array<{idx:number, name:string, size:number, centroid:Float32Array}>} cards
+ * @param {{ratio?:number}} [opts]  how many times closer the other name must be
+ * @returns {Array<{idx:number, name:string, size:number, looksLike:string, times:number}>}
+ */
+export function suspectCardNames(cards, { ratio = SUSPECT_RATIO } = {}) {
+  const named = cards.filter((c) => c?.name && c.centroid);
+  const count = new Map();
+  for (const c of named) count.set(c.name, (count.get(c.name) ?? 0) + 1);
+  const out = [];
+  for (const c of named) {
+    if ((count.get(c.name) ?? 0) < 2) continue;
+    let sameD = Infinity, otherD = Infinity, other = null;
+    for (const o of named) {
+      if (o === c) continue;
+      const d = dist2(c.centroid, o.centroid);
+      if (o.name === c.name) sameD = Math.min(sameD, d);
+      else if (d < otherD) { otherD = d; other = o; }
+    }
+    if (!other || !Number.isFinite(sameD) || !(otherD * ratio < sameD)) continue;
+    out.push({ idx: c.idx, name: c.name, size: c.size, looksLike: other.name, times: Math.round(sameD / otherD * 10) / 10 });
+  }
+  return out.sort((a, b) => b.size - a.size);
 }

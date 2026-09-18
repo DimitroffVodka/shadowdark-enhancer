@@ -71,11 +71,12 @@ async function confirmLattice({ preview, full, file, lat, imageW, corners: suppo
     : `<p><i class="fas fa-circle-check"></i> Checked: the grid lands on a printed hex at all four corners. Nothing to do here but <strong>Create scene</strong>; the crops below are the proof.</p>`;
   const content = `
     <div class="sde-hexmap-confirm">
-      <div class="sde-hexmap-overview" id="sde-hexmap-preview" title="Click for the full image in a new tab"></div>
+      <div class="sde-hexmap-overview" id="sde-hexmap-preview" title="Open the print on its own, with no marks on it"></div>
       <div class="sde-hexmap-side">
+        <p><strong>Check the four crops, then press Create scene.</strong> Each one is a corner of your print at full size: if the blue outline sits on a printed hex in all four, the grid is right and there is nothing else to do here. If it does not, correct the columns and rows below and they redraw.</p>
         <p>Found a hex grid of <strong>${lat.cols} × ${lat.rows}</strong> cells, ${esc(lat.lowered)} columns lowered${short ? ` (those end one row short, at ${lat.rowsLowered}; the other columns' first row is taken as the frame the column labels sit in)` : ""}, hexes ${Math.round(lat.pitchX / 0.75)} × ${Math.round(lat.pitchY)} px.</p>
         ${verdict}
-        <p class="hint">Each crop is a corner of the print at full size with the detected hex outlined in blue. Drag the window edge to enlarge; click the overview for the full image.</p>
+        <p class="hint">Every blue mark is a hex the detector found: an outline on the corner hexes, and a dot at the centre of every fortieth cell across the overview, which is why most hexes there carry no dot. Nothing on this screen marks a fault. Drag the window edge to enlarge; clicking the overview opens your print on its own, with no marks on it.</p>
         <div class="sde-hexmap-corners" id="sde-hexmap-corners"></div>
         <div class="form-group"><label>Columns × rows</label><div class="form-fields">
           <input type="number" name="cols" value="${lat.cols}" min="1" max="99"> ×
@@ -96,7 +97,10 @@ async function confirmLattice({ preview, full, file, lat, imageW, corners: suppo
     slot.replaceChildren(c);
     const ctx = c.getContext("2d");
     ctx.drawImage(preview, 0, 0);
-    ctx.fillStyle = "rgba(220, 30, 30, 0.9)";
+    // Same blue as the outlined corners, because these mean the same thing:
+    // here is a hex the detector found. They were red, and a red mark on a map
+    // reads as a fault — Patrick took them for hexes the module had got wrong.
+    ctx.fillStyle = "rgba(30, 90, 220, 0.85)";
     const step = Math.max(1, Math.round(Math.max(lat.cols, lat.rows) / 40));
     for (let col = 0; col < lat.cols; col += step) for (let row = 0; row < rowsIn(col); row += step) {
       const p = latticeCentre(lat, col, row);
@@ -116,7 +120,7 @@ async function confirmLattice({ preview, full, file, lat, imageW, corners: suppo
       const cx = cc.getContext("2d");
       cx.fillStyle = "#fff"; cx.fillRect(0, 0, px, px);
       cx.drawImage(full, x0, y0, side, side, 0, 0, px, px);
-      cx.fillStyle = "rgba(220, 30, 30, 0.9)";
+      cx.fillStyle = "rgba(30, 90, 220, 0.85)";
       for (let dc = -1; dc <= 1; dc++) for (let dr = -1; dr <= 1; dr++) {
         const nc = col + dc, nr = row + dr;
         if ((dc || dr) && nc >= 0 && nc < lat.cols && nr >= 0 && nr < rowsIn(nc)) { const q = latticeCentre(lat, nc, nr); cx.beginPath(); cx.arc((q.u - x0) * kk, (q.v - y0) * kk, 3, 0, Math.PI * 2); cx.fill(); }

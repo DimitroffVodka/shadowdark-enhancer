@@ -182,3 +182,71 @@ export function accuracyReport(log, { margin = log?.margin ?? DEFAULT_REVIEW_MAR
   const retag = wrong >= 20 && accuracy !== null && accuracy < 50;
   return { judged, wrong, accuracy, caught, suggested, retag, bands };
 }
+
+/** Scene flag holding what the module alone made of the map, before any review. */
+export const BASELINE_FLAG = "hexBaseline";
+
+/**
+ * The initial scan, frozen.
+ *
+ * Once the map has been classified, what the module produced on its own is
+ * written down and never touched again. Every correction after that overwrites
+ * the working tags, so without this there is no way to ask the only question
+ * that matters for the module itself: how much of this did it get right before
+ * anybody helped it?
+ *
+ * Patrick, asking for exactly this: "we load the image, it does initial scan,
+ * but before I make any manual review, we get those values. As the base value
+ * from the initial scan."
+ *
+ * The answer is not available on the day it is recorded — it needs the GM's
+ * review to score against — which is why it has to be kept rather than
+ * computed. Verify a map at leisure and the baseline says, retrospectively,
+ * what a first-time user got on it.
+ */
+export function encodeBaseline(cells, { at = Date.now(), from = "classify" } = {}) {
+  const out = {};
+  // Only the hexes the module GUESSED. A cell the GM had already answered — a
+  // legend card's core carries the name they gave it — is not the module's work
+  // and would score itself right by construction: the first cut of this counted
+  // 1485 of them and reported 98.5%.
+  for (const [num, c] of cells) if (c?.terrain && c.source === "auto") out[num] = [c.terrain, ...(c.overlays ?? [])].join(";");
+  return { version: FIXES_VERSION, at, from, cells: out };
+}
+
+/** Flag object → { at, from, cells: Map<num, {terrain, overlays}> }. */
+export function decodeBaseline(flag) {
+  const cells = new Map();
+  if (!flag || typeof flag !== "object") return { at: null, from: null, cells };
+  for (const [num, raw] of Object.entries(flag.cells ?? {})) {
+    const tags = String(raw).split(";").filter(Boolean);
+    if (tags.length) cells.set(String(parseInt(num, 10)), { terrain: tags[0], overlays: tags.slice(1) });
+  }
+  return { at: flag.at ?? null, from: flag.from ?? null, cells };
+}
+
+/**
+ * How the initial scan did, judged by whatever the GM has checked since.
+ *
+ * Only hexes the GM has tagged by hand count: those are the ones with an
+ * answer. A hex nobody has looked at says nothing about anybody.
+ * @param {{cells:Map<string,{terrain:string}>}} baseline
+ * @param {Map<string, {terrain:string, source?:string}>} current  the tag store's cells
+ */
+export function baselineReport(baseline, current) {
+  let checked = 0, right = 0;
+  const confusion = new Map();
+  for (const [num, cell] of current) {
+    if (cell?.source === "auto" || !cell?.terrain) continue;
+    const was = baseline.cells.get(num)?.terrain;
+    if (!was) continue;
+    checked++;
+    if (was === cell.terrain) right++;
+    else confusion.set(`${cell.terrain} → ${was}`, (confusion.get(`${cell.terrain} → ${was}`) ?? 0) + 1);
+  }
+  return {
+    checked, right, at: baseline.at, from: baseline.from,
+    accuracy: checked ? Math.round((right / checked) * 1000) / 10 : null,
+    worst: [...confusion].sort((a, b) => b[1] - a[1]).slice(0, 6),
+  };
+}

@@ -49,6 +49,63 @@
   no longer hides **Legend**, **Next sheet** and **Classify** behind another
   read of the image. **Classify** also samples the scene itself when it has to,
   so it works from a cold open.
+- **The initial scan is kept and scored.** The first classification of a map is
+  written down as it was — only the hexes the module guessed, not the ones your
+  legend cards named — and never overwritten. As you review, the tagger reports
+  how much of it was right: what that map would have been worth to somebody who
+  corrected nothing.
+- **The Legend checks its own names.** A card that looks far more like the
+  cards you gave a different name to is questioned before Apply writes
+  anything — a card named jungle should look like your other jungle cards. The
+  bar is set where false alarms stopped on a correctly named map, and the slip
+  it was built for showed at 53 times over.
+- **A run-off when two terrains are tied.** When the nearest-example match and
+  the runner-up are within 1.3× of each other, those two alone are compared
+  again on a feature that ignores where the ink sits — which is what tells
+  ocean from arctic sea. Worth a third of a point on a verified map; wider
+  thresholds measured worse, because a second opinion is only useful where the
+  first one was a coin toss.
+- **A better first run, measured.** The Legend's card count and core size were
+  calibrated against a hand-verified map by simulating a whole first run — no
+  tags of the user's, just the module and its 48 answers — which took that map
+  from 92.3% to 93.9%. The new `hexMaps.benchmark()` (developer tools) is that
+  measurement, so any future change to the clustering, the feature or the
+  thresholds can be judged on what a first-time user would actually get.
+- **Classify ends with a neighbour pass.** Terrain comes in regions and the
+  classifier judges each hex alone, so its mistakes are lone cells inside
+  patches that disagree with them. A hex whose five of six neighbours agree on
+  something else now takes their answer; hand tags are never overruled. Worth
+  about two points on every map, including one nobody has ever tagged.
+- **Your corrections carry to the next attempt.** **More → Start from a map you
+  have done** brings every hand tag from another scene of the same print into
+  this one as hand tags, leaving anything you have already tagged here alone.
+  They then become Classify's examples, so a second go at a map starts from
+  everything you decided the first time instead of from nothing.
+- **Legend and Classify are always reachable.** Both read the map themselves
+  when they need to, so they no longer vanish from the header after a reload,
+  when the in-page pictures are gone. Only the controls that work on those
+  pictures — the sheet and the sensitivity — wait for them.
+- **The review sheet says what it wants.** Its button is **Confirm these N**
+  now, not "Apply sheet": it accepts every hex on the sheet, the ones you
+  changed and the ones you left, which is how you tell the module it got one
+  right. **Show me others** confirms nothing.
+- **The things the book keys are in the terrain list**: village, town, city,
+  city state and keyed location, on the Legend's cards and on every hex. They
+  had to be typed as free text before.
+- **A Legend card can be told it is wrong.** "These are not all the same"
+  breaks that one card into smaller ones to name, keeping every other answer.
+  The river, path and coast boxes are gone from the cards — the classifier
+  finds those cell by cell, and ticking them only stamped a dozen cells with
+  whatever the pictures happened to show.
+- **The grid-found screen says what its marks mean.** The dots on the overview
+  are hex centres the detector found, one per fortieth cell — they were red,
+  which reads as a fault. They are the same blue as the corner outlines now,
+  the screen leads with what to do, and it says that clicking the overview
+  opens the print on its own with no marks on it.
+- **The Legend says what to name.** A card whose pictures differ — a mountain,
+  a mountain with a river, a mountain with a road — is named for what they have
+  in common, and the river/path/coast boxes are only for a card where every
+  picture has one.
 - **A Legend card that holds two things now shows both.** Its pictures were the
   members nearest the card's centre, so a card whose cells were two different
   terrains looked like one — on a real map a card of 147 cells was 70% arctic
@@ -170,6 +227,29 @@
   `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
 
 ### Changed
+- **A hex is read as a hexagon, not as the square around it.** The terrain
+  feature block-averaged each cell's bounding box, and a hexagon fills only 75%
+  of its box — so a quarter of every cell's description was its six
+  neighbours' ink: their glyphs, their printed numbers. The mask to cut that
+  out was already in the file and only the overlay path had ever used it.
+  Measured on a 4768-hex verified map, simulating a first run both ways: whole
+  map 91.4% to 92.6%, and the water (the worst confusion on the map, arctic sea
+  against ocean) 81.8% to 84.7%. On leave-one-out over the sea hexes alone the
+  feature goes 90.8% to 93.6% and the arctic-sea/ocean confusions fall from 72
+  to 48. The mask is the full hexagon, edge to edge: cropping tighter eats the
+  glyph and scores worse. (#169)
+
+- **The module notices when your browser is running an old build.** Foundry
+  serves module scripts from unchanging URLs, so after an update a browser can
+  keep running the previous version's code indefinitely — no error, nothing in
+  the UI, just fixes that appear not to have worked. Each build now carries a
+  content hash of its scripts in two places: inside the bundle (cacheable) and
+  in `module.json` (fetched fresh). When a GM loads a world and the two differ,
+  the module says so and offers **Reload now**, which replaces the cached copy
+  of every installed script — including the lazily-loaded ones a plain reload
+  would leave stale — before reloading. `npm run inventory` stamps the hash and
+  `npm run inventory:check` fails a commit that forgot to. (#169)
+
 - **The hex dataset follows Extras' stable contract.** Terrain goes out as the
   book's word (`salt flat`, not a biome key: Extras maps it to a painted biome
   and keeps the label), hexes carry only `num`, `name`, `terrain`, `desc` and

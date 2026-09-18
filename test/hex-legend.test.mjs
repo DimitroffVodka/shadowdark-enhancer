@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeBitmap } from "../scripts/hex-map/bitmap.mjs";
-import { kmeans, buildLegend, cardSamples } from "../scripts/hex-map/legend.mjs";
+import { kmeans, buildLegend, cardSamples, LEGEND_DEFAULTS } from "../scripts/hex-map/legend.mjs";
 
 // The classifier test's invented glyphs on a 64×64 cell: a filled blob, a chevron, a dot grid.
 const W = 64, H = 64;
@@ -62,7 +62,7 @@ test("buildLegend groups cells by glyph, biggest first, every cell once, determi
     const kinds = new Set(c.members.map(kindOf));
     assert.equal(kinds.size, 1, `cluster of ${c.size} mixes glyphs: ${[...kinds]}`);
     for (const n of c.members) { assert.ok(!seen.has(n), `cell ${n} in two clusters`); seen.add(n); }
-    assert.ok(c.core.length <= 12 && c.core.every((n) => c.members.includes(n)));
+    assert.ok(c.core.length <= LEGEND_DEFAULTS.core && c.core.every((n) => c.members.includes(n)));
     assert.deepEqual(c.core, c.members.slice(0, c.core.length), "the core is the members nearest the centroid");
     assert.ok(c.samples.length >= 1 && c.samples.length <= 4 && c.samples.every((n) => c.members.includes(n)));
     assert.equal(new Set(c.samples).size, c.samples.length, "no picture is shown twice");
@@ -79,7 +79,11 @@ test("buildLegend on nothing, on one cell, and with a progress callback", async 
   assert.deepEqual(await buildLegend([]), { clusters: [] });
   assert.deepEqual(await buildLegend([{ num: 1 }, { num: 2, bitmap: null }]), { clusters: [] }, "cells without a bitmap are skipped");
   const one = await buildLegend([{ num: 7, bitmap: glyph("blob") }]);
-  assert.deepEqual(one.clusters, [{ size: 1, members: [7], core: [7], samples: [7] }]);
+  // A card now carries its centroid too, so the cards can check each other's names.
+  assert.equal(one.clusters.length, 1);
+  const { centroid, ...rest } = one.clusters[0];
+  assert.deepEqual(rest, { size: 1, members: [7], core: [7], samples: [7] });
+  assert.ok(centroid?.length > 0, "and the centroid is there to compare against");
   const texts = [];
   await buildLegend(cells().slice(0, 12), { k: 2, restarts: 2, onProgress: (t) => { texts.push(t); } });
   assert.ok(texts.length >= 2 && texts[0].startsWith("Sorting cells by glyph… pass 1 of 2"), texts[0]);
@@ -112,4 +116,22 @@ test("cardSamples: a card holding two kinds of cell shows both, and a stray memb
 test("cardSamples: a card with fewer members than pictures just shows them", () => {
   const vecs = [Float32Array.from([0]), Float32Array.from([1])];
   assert.deepEqual(cardSamples([0, 1], vecs, [7, 8], 4), [7, 8]);
+});
+
+
+test("the legend's defaults are the calibrated ones, not a guess", () => {
+  // Measured on a hand-verified map as a simulated first run (see
+  // LEGEND_DEFAULTS): 32/12 scored 92.3%, 48/40 scores 93.9%, and 64 cards buy
+  // nothing while costing the GM sixteen more questions.
+  assert.equal(LEGEND_DEFAULTS.k, 48);
+  assert.equal(LEGEND_DEFAULTS.core, 40);
+});
+
+test("buildLegend: an option passed as undefined does not wipe out its default", async () => {
+  // { k: opts.k } with an empty opts sends k: undefined, which used to spread
+  // over the default and make zero clusters — the benchmark hit it on its
+  // first run with no overrides.
+  const { clusters } = await buildLegend(cells(), { k: undefined, core: undefined, ds: undefined });
+  assert.ok(clusters.length > 0, "the defaults survive an undefined override");
+  assert.ok(clusters.every((c) => c.members.length > 0));
 });

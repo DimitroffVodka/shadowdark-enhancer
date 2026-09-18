@@ -99,3 +99,23 @@ test("parseTruthCsv and compareTags", () => {
   assert.deepEqual(all.path, { precision: 0, recall: 0 });
   assert.equal(compareTags(cells, truth, { sources: ["auto"] }).cells, 2);
 });
+
+test("featureVector reads the hexagon, not the square: corner ink is a neighbour's", () => {
+  const w = 40, h = 36;
+  const corner = { w, h, data: new Uint8Array(w * h) };
+  // Ink only in the four corners of the box — outside the hexagon, so it
+  // belongs to the neighbouring cells and must not describe this one.
+  for (const [x, y] of [[0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1]]) {
+    for (let dy = 0; dy < 4; dy++) for (let dx = 0; dx < 4; dx++) {
+      corner.data[Math.min(h - 1, Math.max(0, y + (y ? -dy : dy))) * w
+        + Math.min(w - 1, Math.max(0, x + (x ? -dx : dx)))] = 1;
+    }
+  }
+  const v = featureVector(corner);
+  assert.equal(v.reduce((a, b) => a + b, 0), 0, "corner ink must not reach the feature");
+
+  // Ink at the centre is this cell's own and must survive.
+  const centre = { w, h, data: new Uint8Array(w * h) };
+  for (let y = h / 2 - 3; y < h / 2 + 3; y++) for (let x = w / 2 - 3; x < w / 2 + 3; x++) centre.data[y * w + x] = 1;
+  assert.ok(featureVector(centre).reduce((a, b) => a + b, 0) > 0, "centre ink must reach the feature");
+});
