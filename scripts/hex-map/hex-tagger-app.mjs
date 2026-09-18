@@ -35,6 +35,12 @@ export const BITMAP_SIZE = 96;
  * Exposed as game.shadowdarkEnhancer.hexMaps.compare; ships no data.
  */
 export function compareSceneTags(scene, csvText, { sources } = {}) {
+  let enabled = false;
+  try { enabled = !!globalThis.game?.settings?.get?.(MODULE_ID, "hexMapsDevTools"); } catch (_err) { /* setting not registered yet */ }
+  if (!globalThis.game?.user?.isGM || !enabled) {
+    globalThis.ui?.notifications?.warn("Hex map developer tools are disabled.");
+    return null;
+  }
   const state = decodeTags(scene?.getFlag(MODULE_ID, TAGS_FLAG));
   return compareTags(state.cells, parseTruthCsv(csvText), { sources });
 }
@@ -75,6 +81,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** @type {Map<number, object>} published number → cell */
   _numbered = new Map();
   _state = null;
+  _stateSceneId = undefined;
   _sheet = [];
   _mode = "random";
   _entryUuid = "";
@@ -87,7 +94,28 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _scene() { return canvas?.scene ?? null; }
 
-  _loadState() { this._state = decodeTags(this._scene()?.getFlag(MODULE_ID, TAGS_FLAG)); }
+  _loadState() {
+    const scene = this._scene();
+    this._state = decodeTags(scene?.getFlag(MODULE_ID, TAGS_FLAG));
+    this._stateSceneId = scene?.id ?? null;
+  }
+
+  /** Drop in-memory samples when the active scene changes under the open app. */
+  _syncScene() {
+    const id = this._scene()?.id ?? null;
+    if (this._stateSceneId === undefined || id === this._stateSceneId) return false;
+    this._loadState();
+    this._geom = null; this._sampler = null; this._cells = [];
+    this._numbered = new Map(); this._bitmaps.clear(); this._sheet = [];
+    return true;
+  }
+
+  _requireCurrentScene() {
+    if (!this._syncScene()) return true;
+    ui.notifications?.warn("The active scene changed. Sample it before continuing.");
+    this.render();
+    return false;
+  }
 
   /**
    * Replace the stored flag wholesale. setFlag would MERGE the object, so a
@@ -133,6 +161,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _prepareContext() {
+    this._syncScene();
     if (!this._state) this._loadState();
     if (!this._entries.length) await this._loadEntries();
     const scene = this._scene();
@@ -140,7 +169,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const total = this._numbered.size;
     const origin = state.origin;
     const sampled = this._cells.length > 0;
-    const terrainOptions = Object.values(TERRAIN_TAGS).map((t) => ({ value: t, label: t.replace(/_/g, " ") }));
+    const terrainValues = Object.values(TERRAIN_TAGS);
+    const terrainOptions = terrainValues.map((t) => ({ value: t, label: t.replace(/_/g, " ") }));
 
     // The sheet: with no origin, an alignment sheet of the first cells (top-left
     // first) each with a "this hex is number" box; with an origin, the tagging sheet.
@@ -153,12 +183,15 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const keyed = this._keyedNumbers();
       sheet = this._sheet.map((num) => {
         const c = this._numbered.get(num); const t = state.cells.get(String(num));
+        const terrainOther = t?.terrain && !terrainValues.includes(t.terrain) ? t.terrain : "";
         return {
           num, label: String(num).padStart(4, "0"), i: c?.i, j: c?.j, thumb: c ? this._thumb(c) : "",
           terrain: t?.terrain ?? "", source: t?.source ?? "", keyed: keyed.has(num),
           margin: t?.margin !== undefined ? Number(t.margin).toFixed(2) : "", review: !!t?.review,
           overlays: Object.fromEntries(OVERLAYS.map((o) => [o, !!t?.overlays?.includes(o)])),
-          terrainOptions: terrainOptions.map((o) => ({ ...o, selected: o.value === (t?.terrain ?? "") })),
+          terrainOther,
+          terrainOptions: [...terrainOptions, { value: "__other", label: "other…", selected: !!terrainOther }]
+            .map((o) => ({ ...o, selected: o.value === (terrainOther ? "__other" : (t?.terrain ?? "")) })),
         };
       });
     }
@@ -196,14 +229,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * results are marked for the Review queue. Keyed hexes are left alone.
    */
   async _onClassify() {
+    if (!this._requireCurrentScene()) return;
     this._readHeader();
     if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
-    const gm = [...this._state.cells.entries()].filter(([, c]) => c.source !== "auto");
+    const keyed = this._keyedNumbers();
+    const gm = [...this._state.cells.entries()].filter(([num, c]) => c.source !== "auto" && !keyed.has(Number(num)));
     if (!gm.length) { ui.notifications?.warn("Tag a sheet by hand first; those cells are the examples."); return; }
     const sens = parseFloat(this.element.querySelector("input[data-hxt-sensitivity]")?.value);
     this._sensitivity = Number.isFinite(sens) && sens > 0 ? sens : 1;
     await this._ensureBitmaps();
-    const keyed = this._keyedNumbers();
+    if (!this._requireCurrentScene()) return;
     // Keyed hexes carry a star or settlement icon over their glyph, which the
     // residual reads as a river (120 of 144 on the live check). Their terrain
     // comes from the book's text, so they must be left out — and that needs the
@@ -224,6 +259,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       // Yield so the browser (and Foundry's socket heartbeat) keeps breathing on big maps.
       if (++done % 100 === 0) { this._setProgress(`Classifying ${done} of ${cells.length}…`); await new Promise((r) => setTimeout(r, 0)); }
     }
+    if (!this._requireCurrentScene()) return;
     await this._saveState();
     this._setProgress("");
     this._mode = "review";
@@ -245,13 +281,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onSample() {
+    this._syncScene();
     this._error = "";
     const geom = sceneCells(canvas);
     if (geom.error) { this._error = geom.error; this.render(); return; }
     try {
       const image = await sourceImage(canvas);
+      if (!this._requireCurrentScene()) return;
       this._sampler = new CellSampler(image, geom, { size: BITMAP_SIZE });
       this._geom = geom; this._cells = geom.cells; this._bitmaps = new Map();
+      if (!this._cells.length) throw new Error("No grid cells overlap the background image.");
       this._sampler.bitmap(this._cells[0]);            // tainted-canvas check: throws on a cross-origin image
     } catch (err) {
       this._error = /SecurityError|tainted|insecure/i.test(String(err)) ? "The background image is not same-origin, so its pixels cannot be read. Put the file in your Foundry data directory." : String(err?.message ?? err);
@@ -263,6 +302,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onNextSheet() {
+    if (!this._requireCurrentScene()) return;
     this._readHeader();
     if (!this._numbered.size) { ui.notifications?.warn("Sample the scene and set the anchor number first."); return; }
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() });
@@ -271,12 +311,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onApplySheet() {
+    if (!this._requireCurrentScene()) return;
     this._readHeader();
     const answers = {};
     for (const sel of this.element.querySelectorAll("select[data-hxt-terrain]")) {
       const num = sel.dataset.num;
       const overlays = [...this.element.querySelectorAll(`input[data-hxt-overlay][data-num="${num}"]:checked`)].map((i) => i.value);
-      answers[num] = { terrain: sel.value, overlays };
+      const other = this.element.querySelector(`input[data-hxt-terrain-other][data-num="${num}"]`)?.value.trim();
+      answers[num] = { terrain: sel.value === "__other" ? other : sel.value, overlays };
     }
     applySheet(this._state, answers);
     await this._saveState();
@@ -286,6 +328,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Anchor: the GM typed the printed number of one cell on the alignment sheet. */
   async _onSetNumber(event, target) {
+    if (!this._requireCurrentScene()) return;
     const i = Number(target.dataset.i), j = Number(target.dataset.j);
     const input = this.element.querySelector(`input[data-hxt-number][data-i="${i}"][data-j="${j}"]`);
     const num = String(input?.value ?? "").trim();
@@ -302,6 +345,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   /** Map size in cells, so cells past the hex field (margins, legend) are skipped. */
   async _onSetBounds() {
+    if (!this._requireCurrentScene()) return;
     if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
     const cols = parseInt(this.element.querySelector("input[data-hxt-cols]")?.value, 10);
     const rows = parseInt(this.element.querySelector("input[data-hxt-rows]")?.value, 10);
@@ -313,6 +357,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onBuildDataset() {
+    if (!this._requireCurrentScene()) return;
     this._readHeader();
     if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
     const tags = tagsForDataset(this._state);
@@ -323,6 +368,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       : buildHexDataset({ name: this._scene()?.name ?? "Hex map", source: "", tags, gridHint });
     const check = validateHexDataset(dataset);
     if (!check.ok) { ui.notifications?.error(`Hex dataset failed its contract check: ${check.errors[0]}`); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return; }
+    if (Object.values(tags).some((t) => t.overlays?.includes("coast"))) {
+      ui.notifications?.warn("Coast tags stay on the scene; this dataset format exports river and road networks only.");
+    }
     const res = await handoffDataset(dataset);
     const n = Object.keys(tags).length;
     if (res.via === "extras") ui.notifications?.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
@@ -330,14 +378,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   }
 
   async _onClearTags() {
+    if (!this._requireCurrentScene()) return;
     const ok = await foundry.applications.api.DialogV2.confirm({
       window: { title: "Clear hex tags" },
       content: `<p>Remove every tag and the anchor from <strong>${foundry.utils.escapeHTML(this._scene()?.name ?? "")}</strong>? The map image and grid are untouched.</p>`,
       rejectClose: false,
     }).catch(() => false);
     if (!ok) return;
+    if (!this._requireCurrentScene()) return;
     await this._scene()?.unsetFlag(MODULE_ID, TAGS_FLAG);
-    this._loadState(); this._renumber(); this._sheet = [];
+    this._loadState(); this._bitmaps.clear(); this._renumber(); this._sheet = [];
     this.render();
   }
 }

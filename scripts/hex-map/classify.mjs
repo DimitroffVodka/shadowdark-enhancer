@@ -63,15 +63,16 @@ function dist2(a, b) { let s = 0; for (let i = 0; i < a.length; i++) { const d =
  * @param {Array<{tag:string, vec:Float32Array}>} exemplars
  */
 export function nearestExemplar(vec, exemplars) {
-  let best = null, bestD = Infinity, other = Infinity;
+  const distances = new Map();
   for (const e of exemplars) {
     const d = dist2(vec, e.vec);
-    if (d < bestD) { if (best && e.tag !== best) other = Math.min(other, bestD); bestD = d; best = e.tag; }
-    else if (e.tag !== best && d < other) other = d;
+    if (d < (distances.get(e.tag) ?? Infinity)) distances.set(e.tag, d);
   }
-  // `other` may still hold a distance for a tag equal to `best` from before best changed; recompute cleanly.
-  other = Infinity;
-  for (const e of exemplars) if (e.tag !== best) { const d = dist2(vec, e.vec); if (d < other) other = d; }
+  let best = null, bestD = Infinity, other = Infinity;
+  for (const [tag, d] of distances) {
+    if (d < bestD) { other = bestD; bestD = d; best = tag; }
+    else if (d < other) other = d;
+  }
   const margin = bestD === 0 ? Infinity : other / bestD;
   return { tag: best, distance: Math.sqrt(bestD), margin };
 }
@@ -154,6 +155,16 @@ export function classifyOverlay(feat, px) {
   return { overlay: stroke ? "stroke" : "path", ambiguous };
 }
 
+/** Pixel thresholds for the user-facing sensitivity control. Higher sensitivity lowers the bar. */
+export function scaledOverlayThresholds(area, T = DEFAULT_THRESHOLDS) {
+  const sensitivity = Number(T.sensitivity) > 0 ? Number(T.sensitivity) : 1;
+  return {
+    ink: T.ink * area / sensitivity, stroke: T.stroke * area / sensitivity,
+    inkLow: T.inkLow * area / sensitivity, inkHigh: T.inkHigh * area / sensitivity,
+    strokeLow: T.strokeLow * area / sensitivity, strokeHigh: T.strokeHigh * area / sensitivity,
+  };
+}
+
 /**
  * Prepare a classifier from the GM's exemplars: feature vectors, stamps, the
  * label zone and the pixel thresholds. `classify(cell)` is then cheap enough
@@ -172,11 +183,7 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   if (!ex.length) return { classify: () => null, warnings: ["No exemplars: tag a sheet by hand first."], stampCoverage: {}, ready: false };
   const { w, h } = ex[0].bitmap;
   const area = w * h;
-  const px = {
-    ink: T.ink * area * T.sensitivity, stroke: T.stroke * area * T.sensitivity,
-    inkLow: T.inkLow * area * T.sensitivity, inkHigh: T.inkHigh * area * T.sensitivity,
-    strokeLow: T.strokeLow * area * T.sensitivity, strokeHigh: T.strokeHigh * area * T.sensitivity,
-  };
+  const px = scaledOverlayThresholds(area, T);
   const minPiece = Math.max(2, Math.round(T.minPiece * area));
   const masks = cellMasks(w, h);
   const pool = (allBitmaps?.length ? allBitmaps : ex.map((e) => e.bitmap)).filter((_, i) => i % 3 === 0);

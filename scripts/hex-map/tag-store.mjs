@@ -101,7 +101,7 @@ export function applySheet(state, answers) {
 /** Tags in the shape hex-dataset's buildHexDataset takes: { num: { terrain, overlays } }. */
 export function tagsForDataset(state) {
   const out = {};
-  for (const [num, c] of state.cells) if (c?.terrain) out[num] = { terrain: c.terrain, overlays: c.overlays ?? [] };
+  for (const [num, c] of state.cells) if (c?.terrain) out[String(num).padStart(3, "0")] = { terrain: c.terrain, overlays: c.overlays ?? [] };
   return out;
 }
 

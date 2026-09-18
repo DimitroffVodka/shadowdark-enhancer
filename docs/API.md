@@ -873,7 +873,7 @@ works on the GM's own scene image and book text.
 |---|---|---|
 | `hexMaps.openTagger()` | GM | Open the Hex Tagger on the active hex scene (see the wiki page *Hex Maps*). Lazy. |
 | `hexMaps.buildDataset({ name, source, drafts, summaryRows, tags, gridHint })` | any | Pure builder for the Shadowdark Extras hexcrawl dataset. `tags` is `{ [num]: { terrain, overlays } }`. |
-| `hexMaps.compare(csvText, { sources })` | GM | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
+| `hexMaps.compare(csvText, { sources })` | GM + `hexMapsDevTools` | Score the active scene's tags against a truth CSV (`hex_id` plus `tags` or `terrain_tags`); returns terrain accuracy and river/path precision and recall. Dev check, ships no data. |
 | `hexMaps.handoff(entryOrDataset)` | GM | Hand a dataset (or a filed crawl JournalEntry, converted first) to Extras' `hex.buildHexcrawl` when it exists, else download it as JSON. Returns `{ via: "extras" \| "download" \| "none", ... }`. |
 
 The dataset carries published hex numbers only (`num`, column-major: 1403 is

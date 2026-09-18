@@ -624,6 +624,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       tables: this._importTables,
       boats: importBoatCards,
       hexes: importHexCards,
+      hexCount: importHexCards.length + this._importHexSummary.length,
       hexTitle: this._importHexTitle,
       hexSummaryCount: this._importHexSummary.length,
       hexCrawlDone: this._lastHexCrawl,

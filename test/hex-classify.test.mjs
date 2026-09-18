@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { makeBitmap } from "../scripts/hex-map/bitmap.mjs";
-import { featureVector, nearestExemplar, buildStamps, classifyCells, parseTruthCsv, compareTags, DEFAULT_THRESHOLDS } from "../scripts/hex-map/classify.mjs";
+import { featureVector, nearestExemplar, buildStamps, classifyCells, parseTruthCsv, compareTags, scaledOverlayThresholds, DEFAULT_THRESHOLDS } from "../scripts/hex-map/classify.mjs";
 
 // Invented glyphs on a 64×64 cell (D1): a filled blob, a chevron, a dot grid.
 const W = 64, H = 64;
@@ -41,6 +41,13 @@ test("nearestExemplar picks the right glyph with a clear margin", () => {
   const nn = nearestExemplar(featureVector(noisy(glyph("chevron"), 99)), ex);
   assert.equal(nn.tag, "mountain");
   assert.ok(nn.margin > DEFAULT_THRESHOLDS.margin, `margin ${nn.margin}`);
+});
+
+test("higher sensitivity lowers overlay thresholds", () => {
+  const normal = scaledOverlayThresholds(100, { ...DEFAULT_THRESHOLDS, sensitivity: 1 });
+  const high = scaledOverlayThresholds(100, { ...DEFAULT_THRESHOLDS, sensitivity: 2 });
+  assert.equal(high.ink, normal.ink / 2);
+  assert.equal(high.stroke, normal.stroke / 2);
 });
 
 test("buildStamps makes one stamp per terrain from at least three exemplars and reports coverage", () => {

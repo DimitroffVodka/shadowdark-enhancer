@@ -50,5 +50,7 @@ test("applySheet writes gm answers, clears on empty terrain, and tagsForDataset 
   applySheet(s, { "102": { terrain: "" } });
   assert.equal(s.cells.has("102"), false);
   assert.deepEqual(tagsForDataset(s), { "101": { terrain: "forest", overlays: ["river"] } });
-  assert.deepEqual(summarize(s, 10), { total: 10, tagged: 1, gm: 1, auto: 0, untagged: 9 });
+  s.cells.set("0", { terrain: "forest", overlays: [] });
+  assert.equal(tagsForDataset(s)["000"].terrain, "forest");
+  assert.deepEqual(summarize(s, 10), { total: 10, tagged: 2, gm: 2, auto: 0, untagged: 8 });
 });

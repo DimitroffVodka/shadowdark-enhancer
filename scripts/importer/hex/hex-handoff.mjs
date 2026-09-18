@@ -13,7 +13,11 @@ import { MODULE_ID } from "../../shared/module-id.mjs";
 import { HEX_FLAG } from "./hex-commit.mjs";
 import { buildHexDataset } from "./hex-dataset.mjs";
 
-/** Extras' hex API when it carries the builder entry point, else null. */
+/**
+ * Extras' compatible hex API when it mounts the agreed namespace, else null.
+ * The raw module.api builder is intentionally not used here until #141 pins the
+ * published-number coordinate contract; downloading remains the safe fallback.
+ */
 export function extrasHexApi() {
   const api = globalThis.game?.shadowdarkExtras?.hex;
   return typeof api?.buildHexcrawl === "function" ? api : null;
@@ -38,23 +42,39 @@ export function datasetFromEntry(entry, { tags = {}, gridHint } = {}) {
 
 const slug = (s) => String(s ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "hexcrawl";
 
-/**
- * Hand a dataset to Extras, or download it. GM-gated by the callers.
- * @param {object} dataset
- * @returns {Promise<{via:"extras", summary:object}|{via:"download", filename:string}|{via:"none"}>}
- */
-export async function handoffDataset(dataset) {
-  const api = extrasHexApi();
-  if (api) {
-    const summary = await api.buildHexcrawl(dataset);
-    return { via: "extras", summary };
-  }
-  const save = foundry.utils?.saveDataToFile ?? globalThis.saveDataToFile;
+function downloadDataset(dataset) {
+  const save = globalThis.foundry?.utils?.saveDataToFile ?? globalThis.saveDataToFile;
   if (typeof save !== "function") {
-    ui.notifications?.error("saveDataToFile unavailable — cannot download the hex dataset.");
+    globalThis.ui?.notifications?.error("saveDataToFile unavailable — cannot download the hex dataset.");
     return { via: "none" };
   }
   const filename = `${slug(dataset.name)}-hexcrawl.json`;
   save(JSON.stringify(dataset, null, 2), "text/json", filename);
   return { via: "download", filename };
+}
+
+/**
+ * Hand a dataset to Extras, or download it. The guard lives here as well as in
+ * the UI callers because this function is a documented public macro surface.
+ * @param {object} dataset
+ * @returns {Promise<{via:"extras", summary:object}|{via:"download", filename:string, reason?:string}|{via:"none", reason?:string}>}
+ */
+export async function handoffDataset(dataset) {
+  if (!globalThis.game?.user?.isGM) {
+    globalThis.ui?.notifications?.warn("Only a GM can hand off hex datasets.");
+    return { via: "none", reason: "not-gm" };
+  }
+  const api = extrasHexApi();
+  if (api) {
+    try {
+      const summary = await api.buildHexcrawl(dataset);
+      return { via: "extras", summary };
+    } catch (err) {
+      console.error(`${MODULE_ID} | hex dataset hand-off failed`, err);
+      globalThis.ui?.notifications?.error("Shadowdark Extras could not build this hex dataset; downloading the JSON instead.");
+      const fallback = downloadDataset(dataset);
+      return fallback.via === "download" ? { ...fallback, reason: "extras-error" } : fallback;
+    }
+  }
+  return downloadDataset(dataset);
 }

@@ -83,10 +83,12 @@ in the review queue. Choose the crawl entry before classifying: keyed hexes
 carry a star or settlement icon that reads as a river, and only the entry
 tells the tagger which cells those are.
 
-For your own check, `game.shadowdarkEnhancer.hexMaps.compare(csvText)` scores
-the active scene's tags against a CSV with `hex_id` and `tags` (or
-`terrain_tags`) columns and returns terrain accuracy plus river and path
-precision and recall.
+For your own check, a GM can call
+`game.shadowdarkEnhancer.hexMaps.compare(csvText)` after enabling the hidden
+client setting `hexMapsDevTools`. It scores the active scene's tags against a
+CSV with `hex_id` and `tags` (or `terrain_tags`) columns and returns terrain
+accuracy plus river and path precision and recall; players and disabled
+developer tools receive no result.
 
 ## The dataset
 
@@ -94,7 +96,7 @@ precision and recall.
 {
   version: 1, name, source,
   grid: { cols, rows, distance: 6, units: "mi", landscape: false, flipX: false, flipY: false, numbering: "column-major" },
-  terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1341, ...] } ] },
+  terrain: { default: "forest", regions: [ { biome: "mountains", hexes: [1341, ...] } ] },
   hexes:   [ { num: 4541, name, terrain, desc, zone, icon: "", feature } ],
   networks: { river: [1246, ...], road: [4649, ...] }
 }
@@ -102,9 +104,12 @@ precision and recall.
 
 `num` is the published hex number as an integer: the leading digits are the
 column, the last two the row, so 1403 is column 14, row 03. Column and row
-never appear as fields; Extras reads the digits the other way round and
-transposes, and passing a pair between the modules lands on transposed cells.
-The book's **path** tag becomes Extras' **road** network.
+never appear as fields. The downloaded JSON preserves this column-major
+numbering; `grid.landscape: false` is not a transposition instruction. A direct
+Extras hand-off is enabled only when the compatible
+`game.shadowdarkExtras.hex.buildHexcrawl` contract is present (the current
+safe path is the download until that contract lands). The book's **path** tag
+becomes Extras' **road** network.
 
 ## Troubleshooting
 

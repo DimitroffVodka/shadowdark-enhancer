@@ -45,9 +45,12 @@ file, tags on a scene. Extras is detected by namespace, mirroring the renown
 delegation in the other direction. No `relationships.requires` change.
 
 **Hex numbers only at the boundary.** `hexIdKey` reads `1403` as column 14, row 03.
-The Extras builder reads the digits the other way and transposes with
-`grid.landscape`. Same cell, opposite names. The dataset carries `num`; it never
-carries a column and row pair.
+The dataset carries `num`; it never carries a column and row pair. The emitted
+JSON keeps this column-major numbering with `landscape: false`. The current
+Extras `module.api` builder interprets the digits in the opposite order, so the
+enhancer deliberately does not call that raw API; the compatible
+`game.shadowdarkExtras.hex.buildHexcrawl` namespace and its coordinate fixture
+must land first (SDX #141). Until then, download remains the safe hand-off.
 
 **Measured on the Western Reaches A0 map** (9933×14043 JPG, 64×75 hexes, 4768 cells,
 against a hand-verified table, unkeyed cells, column-parity split):
@@ -88,8 +91,8 @@ merges that pdf.js column extraction should avoid; verify in Phase 1.
   grid: { cols: 64, rows: 75, distance: 6, units: "mi",
           landscape: false, flipX: false, flipY: false },
   terrain: {
-    default: "forest",                // biome key; Extras maps our terrain words to its biomes
-    regions: [ { biome: "mountain", hexes: [1341, 1041, ...] }, ... ]
+    default: "forest",                // canonical Extras biome key
+    regions: [ { biome: "mountains", hexes: [1341, 1041, ...] }, ... ]
   },
   hexes: [
     { num: 4541, name: "Serengal", terrain: "ocean", desc: "<p>...</p>",
@@ -100,7 +103,8 @@ merges that pdf.js column extraction should avoid; verify in Phase 1.
 }
 ```
 
-`terrain.regions` lists every tagged or classified cell by terrain word. `hexes` is
+`terrain.regions` lists every tagged or classified cell by canonical Extras biome
+key (`mountains`, `plains`, `hills`, `forest`, `swamp`, or `water`). `hexes` is
 the keyed set. `networks` are hex-number lists; the book's `path` tag maps to
 `road`. `icon` is left empty; Extras picks by `feature` when it wants to.
 
@@ -265,26 +269,27 @@ export const DATASET_VERSION = 1;
 
 Rules: index drafts and rows by `num`; a hex present in either becomes a `hexes`
 entry (name from the row when present, else the draft; `desc` from the draft body
-via the page HTML builder; `zone` and `terrain` from the row). `grid.cols/rows` =
+via the page HTML builder; `zone` and `terrain` from the row). Terrain words are
+normalized to Extras biome keys for `terrain.regions`; `grid.cols/rows` =
 max column and row seen across drafts, rows and tags, plus one, unless `gridHint`
 is given. `terrain.regions` from tagged cells (3.3) and from keyed rows;
-`networks` from overlay tags. `terrain.default` = most frequent terrain word.
+`networks` from overlay tags. `terrain.default` = most frequent canonical biome.
 Validation: `validateHexDataset(ds)` returns `{ ok, errors }`, checking numbers only,
 no duplicate `num`, terrain words non-empty.
 
 ### 6.3 `hex/hex-handoff.mjs` (Foundry)
 
 ```js
-export function extrasHexApi()          // game.shadowdarkExtras?.hex?.buildHexcrawl ? api : null
+export function extrasHexApi()          // compatible game.shadowdarkExtras?.hex?.buildHexcrawl ? api : null
 export async function handoffDataset(dataset, { referenceTile } = {})
   // -> { via: "extras", sceneId } | { via: "download", filename }
 ```
 
 Download uses `foundry.utils.saveDataToFile` exactly as `exportBundle` does, GM
-gated, filename `<name>-hexcrawl.json`. With Extras present, call the entry point
-and, if `referenceTile` is set, place it (Phase 4). The hub gets a "Send to Extras"
-button when the API exists and "Download dataset" otherwise; both appear on the Hex
-key strip after commit and in the tagger app.
+gated, filename `<name>-hexcrawl.json`. With the compatible namespace present,
+call the entry point and, if `referenceTile` is set, place it (Phase 4). The hub
+gets a "Send to Extras" button when that API exists and "Download dataset"
+otherwise; both appear on the Hex key strip after commit and in the tagger app.
 
 ### Tests
 `test/hex-summary.test.mjs`: rows with one and two terrains, settlement digits,
@@ -436,7 +441,8 @@ stroke 60, minPiece 6, ambiguous ink 20 to 60, ambiguous stroke 40 to 100, margi
 1.3, downsample 30, sector radius 0.62. Store them as fractions of cell area and of
 the circumradius so a different export scales. One object, one `ponytail:` comment
 naming the calibration image. The app exposes only "sensitivity" as a single slider
-that scales `ink` and `stroke` together; everything else stays fixed.
+that scales `ink` and `stroke` together; higher values lower those thresholds,
+making faint overlays more likely. Everything else stays fixed.
 
 ### 8.4 Exemplars
 The GM's tagged cells are the exemplars. Minimum to run: three cells per terrain

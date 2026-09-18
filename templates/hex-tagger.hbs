@@ -14,7 +14,7 @@
       <button type="button" data-action="hxtClearTags" class="sde-import-secondary" title="Remove every tag and the anchor from this scene"><i class="fas fa-eraser"></i> Clear</button>
       {{/if}}
       {{#if canClassify}}
-      <label title="Scales the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
+      <label title="Higher values lower the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
       <button type="button" data-action="hxtClassify" class="sde-import-primary" title="Classify every cell without a hand tag from the ones you tagged; unsure cells go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
       {{/if}}
       <span class="sde-hxt-stat" data-hxt-progress>{{progress}}</span>
@@ -61,10 +61,11 @@
           <option value="">(untagged)</option>
           {{#each c.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
         </select>
+        <input type="text" data-hxt-terrain-other data-num="{{c.num}}" value="{{c.terrainOther}}" placeholder="other terrain" aria-label="Other terrain">
         <span class="sde-hxt-overlays">
           <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="river" {{#if c.overlays.river}}checked{{/if}}> river</label>
           <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="path" {{#if c.overlays.path}}checked{{/if}}> path</label>
-          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="coast" {{#if c.overlays.coast}}checked{{/if}}> coast</label>
+          <label title="Saved on this scene; not included in dataset networks yet."><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="coast" {{#if c.overlays.coast}}checked{{/if}}> coast</label>
         </span>
       </div>
       {{/if}}

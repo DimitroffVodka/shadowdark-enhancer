@@ -26,6 +26,9 @@ const DRAFTS = hexcrawlRecognizer.parse(hexcrawlRecognizer.claim([
 test("hexNum: published number as an integer under the column-major rule", () => {
   assert.equal(hexNum("0101"), 101);
   assert.equal(hexNum("1403"), 1403);
+  assert.equal(hexNum("000"), 0);
+  assert.equal(hexNum("001"), 1);
+  assert.equal(hexNum(1), 1);
   assert.equal(hexNum("12"), null);
 });
 
@@ -44,7 +47,7 @@ test("terrain regions, networks and grid come out in numbers only", () => {
   const ds = buildHexDataset({ drafts: DRAFTS, summaryRows: ROWS, tags: { "0304": { terrain: "mountain", overlays: ["path"] }, 102: { terrain: "swamp" } } });
   assert.deepEqual(ds.terrain.regions, [
     { biome: "forest", hexes: [101, 102] },
-    { biome: "mountain", hexes: [304] },
+    { biome: "mountains", hexes: [304] },
     { biome: "swamp", hexes: [203] },
   ]);
   assert.equal(ds.terrain.default, "forest");
@@ -52,6 +55,21 @@ test("terrain regions, networks and grid come out in numbers only", () => {
   assert.deepEqual([ds.grid.cols, ds.grid.rows, ds.grid.numbering], [4, 5, "column-major"]);
   assert.equal(JSON.stringify(ds).includes('"col"'), false);
   assert.deepEqual(validateHexDataset(ds), { ok: true, errors: [] });
+});
+
+test("zero-padded leading-column IDs survive numeric normalization", () => {
+  const ds = buildHexDataset({ tags: {
+    "000": { terrain: "forest" },
+    "001": { terrain: "grassland" },
+  } });
+  assert.deepEqual(ds.grid, {
+    cols: 1, rows: 2, distance: 6, units: "mi", landscape: false,
+    flipX: false, flipY: false, numbering: "column-major",
+  });
+  assert.deepEqual(ds.terrain.regions, [
+    { biome: "forest", hexes: [0] },
+    { biome: "plains", hexes: [1] },
+  ]);
 });
 
 test("validation names the contract breaches", () => {

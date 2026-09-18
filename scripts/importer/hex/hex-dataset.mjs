@@ -5,8 +5,9 @@
  * (shadowdark-extras#141), from any mix of: hexcrawl drafts (hex-parser),
  * keyed summary rows (hex-summary), and per-hex tags from the tagger
  * (Phase 2). Hex numbers only at the boundary: `num` is the published number
- * as an integer; column and row never appear (the two modules read the digits
- * in opposite directions — see docs/plans/hex-map-dataset.md §2).
+ * as an integer; column and row never appear. The emitted file stays
+ * column-major until the compatible Extras contract lands (see
+ * docs/plans/hex-map-dataset.md §2).
  *
  * Numbering convention carried inside `grid` for the consumer: the leading
  * digits are the column, the last two the row (`hexIdKey`), so 1403 is column
@@ -20,11 +21,29 @@ export const DATASET_VERSION = 1;
 /** Overlay tags become networks, not terrain. The book's "path" is Extras' road. */
 export const OVERLAY_TO_NETWORK = { river: "river", path: "road" };
 
+/** Generic tag → the biome keys the Extras tile set actually accepts. */
+export const TERRAIN_TO_BIOME = Object.freeze({
+  arctic_sea: "water", ocean: "water", lake: "water", coast: "water",
+  river: "water", mountain: "mountains", volcano: "mountains", lava: "mountains",
+  canyon: "hills", forest: "forest", jungle: "forest", grassland: "plains",
+  swamp: "swamp", desert: "plains", salt_flat: "plains", path: "plains",
+  deep_tunnels: "hills",
+});
+
+const paddedHexId = (id) => {
+  const s = String(id ?? "").trim();
+  return typeof id === "number" && /^\d{1,2}$/.test(s) ? s.padStart(3, "0") : s;
+};
+
+const hexKeyForNum = (num) => hexIdKey(String(num).padStart(3, "0"));
+
+const biomeForTerrain = (terrain) => TERRAIN_TO_BIOME[String(terrain ?? "").trim().toLowerCase()] ?? "forest";
+
 /** Published number as an integer ("0101" → 101), or null. */
 export function hexNum(id) {
-  const key = hexIdKey(id);
+  const key = hexIdKey(paddedHexId(id));
   if (key === null) return null;
-  return parseInt(String(id), 10);
+  return parseInt(paddedHexId(id), 10);
 }
 
 /**
@@ -74,9 +93,13 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
   const regions = new Map(); const networks = { river: [], road: [] };
   let maxCol = -1, maxRow = -1;
   for (const h of byNum.values()) {
-    const [c, r] = hexIdKey(String(h.num)).split(",").map(Number);
+    const [c, r] = hexKeyForNum(h.num).split(",").map(Number);
     maxCol = Math.max(maxCol, c); maxRow = Math.max(maxRow, r);
-    if (h.terrain) { if (!regions.has(h.terrain)) regions.set(h.terrain, []); regions.get(h.terrain).push(h.num); }
+    if (h.terrain) {
+      const biome = biomeForTerrain(h.terrain);
+      if (!regions.has(biome)) regions.set(biome, []);
+      regions.get(biome).push(h.num);
+    }
     for (const o of h.overlays ?? []) networks[OVERLAY_TO_NETWORK[o]].push(h.num);
   }
   const counts = [...regions.entries()].sort((a, b) => (b[1].length - a[1].length) || a[0].localeCompare(b[0]));
