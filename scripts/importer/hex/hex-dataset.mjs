@@ -15,7 +15,8 @@
  * 0 for a map that numbers its own first column and row 0 (the Western
  * Reaches: hex 0000 exists) and is omitted for the contract's default of 1
  * (shadowdark-extras#145). `grid.rowsLowered` goes out only when the lowered
- * columns end one row short of the others.
+ * columns end one row short of the others. `grid.firstRow` preserves a clipped
+ * top half-cell when the raised columns begin one row after the map's origin.
  */
 
 import { hexIdKey, buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.mjs";
@@ -54,7 +55,7 @@ export function hexNum(id) {
  * @param {object[]} [args.drafts]       hex-parser drafts; a draft may carry `html` (already built page HTML) instead of bodyLines
  * @param {object[]} [args.summaryRows]  hex-summary rows
  * @param {Object<string,{terrain?:string, overlays?:string[]}>} [args.tags]  per published number (string or int keys)
- * @param {{cols:number, rows:number, origin?:0|1, rowsLowered?:number}} [args.gridHint]  the map's size and numbering
+ * @param {{cols:number, rows:number, origin?:0|1, firstRow?:number, rowsLowered?:number}} [args.gridHint]  the map's size and numbering
  *   origin as the tagger knows them; without a hint the origin is 0 when any hex sits in column 0 or row 0
  * @returns {object} dataset
  */
@@ -135,6 +136,7 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
   };
   if (origin === 0) grid.origin = 0;
+  if (Number.isInteger(gridHint?.firstRow) && gridHint.firstRow !== origin) grid.firstRow = gridHint.firstRow;
   if (Number.isInteger(gridHint?.rowsLowered) && gridHint.rowsLowered !== grid.rows) grid.rowsLowered = gridHint.rowsLowered;
   return {
     version: DATASET_VERSION,
@@ -176,6 +178,8 @@ export function validateHexDataset(ds) {
   if (!isNum(ds.grid?.cols) || !isNum(ds.grid?.rows)) errors.push("grid cols/rows missing");
   const g = ds.grid ?? {};
   if (g.origin !== undefined && g.origin !== 0 && g.origin !== 1) errors.push("grid.origin must be 0 or 1");
+  const origin = g.origin ?? 1;
+  if (g.firstRow !== undefined && ![origin, origin + 1].includes(g.firstRow)) errors.push("grid.firstRow must be origin or origin + 1");
   if (g.rowsLowered !== undefined && !(Number.isInteger(g.rowsLowered) && (g.rowsLowered === g.rows || g.rowsLowered === g.rows - 1))) errors.push("grid.rowsLowered must be rows or rows - 1");
   return { ok: errors.length === 0, errors };
 }

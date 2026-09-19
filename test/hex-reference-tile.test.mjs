@@ -119,7 +119,7 @@ test("reference placement requires geometry from a current sample", async () => 
 
 test("building in Extras leaves the reference image off the painted scene", async () => {
   const previous = { foundry: globalThis.foundry, game: globalThis.game, canvas: globalThis.canvas, ui: globalThis.ui };
-  let created;
+  let created; let built;
   const source = { id: "source", name: "Source", background: { src: "maps/source.jpg" } };
   const target = {
     ...fakeScene({ sizeX: 10, sizeY: 10, pad: { x: 0, y: 0 } }),
@@ -131,20 +131,21 @@ test("building in Extras leaves the reference image off the painted scene", asyn
   globalThis.game = {
     user: { isGM: true },
     scenes: { get: (id) => id === target.id ? target : null },
-    shadowdarkExtras: { hex: { async buildHexcrawl() { globalThis.canvas.scene = target; return { sceneId: target.id }; } } },
+    shadowdarkExtras: { hex: { async buildHexcrawl(dataset) { built = dataset; globalThis.canvas.scene = target; return { sceneId: target.id }; } } },
   };
   try {
     const HexTaggerApp = await taggerClass();
     const app = Object.create(HexTaggerApp.prototype);
     Object.assign(app, {
-      _state: { origin: { bounds: { cols: 1, rows: 1 }, shifted: "odd" }, cells: new Map([["101", { terrain: "forest", overlays: [], source: "gm" }]]) },
+      _state: { origin: { bounds: { cols: 1, rows: 2, firstRow: 1 }, shifted: "odd" }, cells: new Map([["001", { terrain: "forest", overlays: [], source: "gm" }]]) },
       _stateSceneId: source.id,
       _geom: { cellW: 10, cellH: 10, transform: { texW: 100, texH: 100 } },
-      _numbered: new Map([[101, { u: 10, v: 10 }]]),
+      _numbered: new Map([[1, { u: 10, v: 10, col: 0, row: 1 }]]),
       _entries: [], _entryUuid: "", _mode: "random", element: null,
     });
     await app._onBuildDataset();
     assert.equal(created, undefined);
+    assert.equal(built.grid.firstRow, 1, "the source map's clipped first row reaches Extras");
   } finally {
     Object.assign(globalThis, previous);
   }

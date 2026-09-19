@@ -1009,7 +1009,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const b = this._state.origin.bounds;
     // The map's own numbering origin: 0 when a numbered cell sits in column 0 or row 0 (hex 0000 exists).
     const numberingOrigin = [...this._numbered.values()].some((c) => c.col === 0 || c.row === 0) ? 0 : 1;
-    const gridHint = b?.cols ? { cols: b.cols, rows: b.rows, rowsLowered: b.rowsLowered, origin: numberingOrigin } : { origin: numberingOrigin };
+    const gridHint = b?.cols ? { cols: b.cols, rows: b.rows, firstRow: b.firstRow, rowsLowered: b.rowsLowered, origin: numberingOrigin } : { origin: numberingOrigin };
     const entry = this._entries.find((e) => e.uuid === this._entryUuid)?.doc ?? null;
     const dataset = entry ? datasetFromEntry(entry, { tags, gridHint })
       : buildHexDataset({ name: this._scene()?.name ?? "Hex map", source: "", tags, gridHint });
