@@ -113,6 +113,7 @@ await api.encounter.check();          // run an encounter check
 api.encounter.openRoller();           // roller window
 api.encounter.setActiveTable(uuid);   // bind the active encounter table
 api.encounter.getThreshold(); api.encounter.setThreshold(3);
+api.encounter.getCheckFrequency(); api.encounter.setCheckFrequency(3); // automatic crawl-round check: every 3 rounds, counted from the last check
 ```
 
 ## `loot`

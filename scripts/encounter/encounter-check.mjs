@@ -6,6 +6,7 @@
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { CrawlState } from "../crawl-strip/crawl-state.mjs";
 import { SessionRecap } from "../session-recap/session-recap.mjs";
+import { partyHex, pickTable, TERRAIN_TABLES } from "./encounter-terrain.mjs";
 
 // v13/v14 namespaced renderTemplate (the global `renderTemplate` still
 // works but emits deprecation warnings).
@@ -21,12 +22,26 @@ export const EncounterCheck = {
     const threshold = game.settings.get(MODULE_ID, "encounterThreshold");
     const roll = await new Roll("1d6").evaluate();
     const hit = roll.total <= threshold;
+    // On a tagged hex map the party's hex names itself on the card and picks
+    // the table; everywhere else this is null and nothing below changes.
+    const hex = partyHex();
 
-    await this._postToChat(roll, threshold, hit);
+    await this._postToChat(roll, threshold, hit, hex);
+
+    const crawlRound = CrawlState.mode === "crawl" ? CrawlState.crawlTurn : null;
 
     // Record the check in the session recap (self-guards on an active session).
-    const clockLabel = CrawlState.mode === "crawl" ? `Round ${CrawlState.crawlTurn}` : null;
-    SessionRecap.logEncounterCheck({ roll: roll.total, threshold, hit, clockLabel });
+    SessionRecap.logEncounterCheck({
+      roll: roll.total, threshold, hit,
+      clockLabel: crawlRound === null ? null : `Round ${crawlRound}`,
+    });
+
+    // Anchor the frequency countdown to the round this check ran on, so the
+    // next automatic check is N rounds after THIS one (a manual check counts
+    // too). Only in crawl mode: outside it there is no round to anchor.
+    if (crawlRound !== null) {
+      await game.settings.set(MODULE_ID, "encounterLastCheckRound", crawlRound);
+    }
 
     if (hit) {
       if (game.settings.get(MODULE_ID, "pauseOnEncounter")) {
@@ -36,12 +51,17 @@ export const EncounterCheck = {
       // Open roller on tables tab
       const roller = await game.shadowdarkEnhancer.encounter.openRoller("tables");
 
-      // Auto-roll if configured and table set
+      // Auto-roll if configured and table set. The party's terrain chooses the
+      // table when one is mapped for it; otherwise the single active table.
       const autoRoll = game.settings.get(MODULE_ID, "autoRollActiveTable");
-      const tableUuid = game.settings.get(MODULE_ID, "encounterTableUuid");
+      const tableUuid = pickTable(
+        game.settings.get(MODULE_ID, TERRAIN_TABLES),
+        hex?.terrain,
+        game.settings.get(MODULE_ID, "encounterTableUuid"),
+      );
       if (autoRoll && tableUuid) {
         // Short delay to let window render
-        setTimeout(() => roller.rollActiveTable(), 200);
+        setTimeout(() => roller.rollActiveTable(tableUuid), 200);
       }
     }
 
@@ -57,15 +77,19 @@ export const EncounterCheck = {
    *
    * @private
    */
-  async _postToChat(roll, threshold, hit) {
+  async _postToChat(roll, threshold, hit, hex = null) {
     const gmOnly = game.settings.get(MODULE_ID, "encounterRollGMOnly");
     const flavor = hit
       ? `🎲 Encounter Check — encounter occurs (threshold ${threshold}-in-6)`
       : `🎲 Encounter Check — the dungeon is quiet (threshold ${threshold}-in-6)`;
+    // "Hex 3723 · forest, river" when the party stands on a tagged hex map.
+    const where = hex
+      ? [`Hex ${hex.num}`, [hex.terrain, ...(hex.overlays ?? [])].filter(Boolean).join(", ").replace(/_/g, " ")].filter(Boolean).join(" · ")
+      : "";
 
     const content = await renderTemplate(
       "modules/shadowdark-enhancer/templates/chat/encounter-check.hbs",
-      { roll, hit, threshold, flavor },
+      { roll, hit, threshold, flavor, where },
     );
 
     await roll.toMessage(

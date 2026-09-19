@@ -1,0 +1,29 @@
+<div class="sde-hxb">
+  <div class="form-group">
+    <label>{{localize "SDE.hexMap.brush.terrain"}}</label>
+    <div class="form-fields">
+      <select data-hxb data-hxb-terrain>
+        <option value="">{{localize "SDE.hexMap.label.none"}}</option>
+        {{#each terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
+        <option value="{{other}}">{{localize "SDE.hexMap.label.otherOption"}}</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group">
+    <div class="form-fields">
+      <input type="text" data-hxb data-hxb-other placeholder="{{localize 'SDE.hexMap.brush.ownWord'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" hidden>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>{{localize "SDE.hexMap.brush.onTheHex"}}</label>
+    <div class="form-fields sde-hxb-overlays">
+      {{#each overlays as |o|}}
+      <label><input type="checkbox" data-hxb data-hxb-overlay value="{{o.value}}" {{#if o.checked}}checked{{/if}}> {{o.value}}</label>
+      {{/each}}
+    </div>
+  </div>
+  <p class="sde-hxb-hint" data-hxb-hint></p>
+  <footer class="sde-hxb-foot">
+    <button type="button" data-action="hxbUndo" class="sde-import-secondary"><i class="fas fa-rotate-left"></i> {{localize "SDE.hexMap.btn.undoStroke"}}<span data-hxb-undo-count></span></button>
+  </footer>
+</div>

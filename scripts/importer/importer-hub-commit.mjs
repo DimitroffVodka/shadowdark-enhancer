@@ -280,6 +280,21 @@ class HubCommitMethods {
     this.render();
   }
 
+  /** Pins: the filed crawl's keyed hexes as map notes on the viewed scene (hex-pins.mjs). */
+  async _onHubPinHexes(event, target) {
+    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can pin keyed hexes."); return; }
+    const uuid = target?.dataset?.uuid || this._lastHexCrawl?.uuid;
+    const entry = uuid ? await fromUuid(uuid) : null;
+    if (!entry) { ui.notifications.warn("That hex crawl entry is gone — import it again first."); return; }
+    const { pinCrawlOnActiveScene } = await import("../hex-map/hex-pins.mjs");
+    const res = await pinCrawlOnActiveScene(entry).catch((err) => { console.error(`${MODULE_ID} | pin keyed hexes`, err); ui.notifications.error(`Pinning failed: ${err.message}`); return null; });
+    if (!res) return;
+    const bits = [`${res.created} pinned`];
+    if (res.moved) bits.push(`${res.moved} moved`);
+    if (res.missing.length) bits.push(`${res.missing.length} not on this map (${res.missing.slice(0, 5).map((n) => String(n).padStart(4, "0")).join(", ")}${res.missing.length > 5 ? "…" : ""})`);
+    ui.notifications.info(`Keyed hexes on "${canvas.scene?.name}": ${bits.join(", ")}. Notes open the pages of "${res.journal.name}" in your Journal sidebar.`);
+  }
+
   /**
    * Hand-off: rebuild the Extras dataset from a committed crawl entry (pages
    * plus the keyed rows on its flag) and send it to Shadowdark Extras when its

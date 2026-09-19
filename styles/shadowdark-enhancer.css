@@ -5682,6 +5682,44 @@ body.theme-light .sde-hub-monsters-row td {
   text-align: center;
 }
 
+/* Encounter check frequency (issue #171) — one chip per choice. Ten radio
+   rows would make this menu three times its height, so the choices ride in a
+   compact number row instead. The active chip borrows the gold-gradient
+   button language used everywhere else in the bar. */
+.sde-menu-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 12px 6px;
+}
+.sde-menu-number {
+  min-width: 22px;
+  padding: 2px 5px;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--sde-bar-text);
+  background: transparent;
+  background-image: none;
+  border: 1px solid var(--sde-bar-border);
+  border-radius: 0;
+  box-shadow: none;
+  text-shadow: none;
+  cursor: pointer;
+}
+.sde-menu-number:hover {
+  border-color: var(--sde-bar-accent);
+  color: var(--sde-bar-accent);
+  background: var(--sde-bar-bg-hover);
+}
+.sde-menu-number.active {
+  background: linear-gradient(135deg, var(--sde-bar-accent-dim) 0%, var(--sde-bar-accent-dark) 100%);
+  border-color: var(--sde-bar-accent);
+  color: var(--sde-bar-on-accent);
+  font-weight: 700;
+}
+
 .sde-menu-table {
   cursor: default;
   font-size: 12px;
@@ -5722,6 +5760,12 @@ body.theme-light .sde-hub-monsters-row td {
 .sde-roll-total {
   font-size: 24px;
   font-weight: 800;
+}
+/* Where the party stood: hex number and terrain, on a tagged hex map only. */
+.sde-card-where {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 2px;
 }
 .sde-roll-total.hit { color: var(--sde-bar-hit); }
 .sde-roll-total.miss { color: var(--sde-bar-text-muted); }
@@ -10404,9 +10448,11 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 
 /* ── Hex Tagger (scripts/hex-map/hex-tagger-app.mjs) ─────────────────────── */
 .sde-hex-tagger .window-content { display: flex; flex-direction: column; gap: 6px; }
-.sde-hxt { display: flex; flex-direction: column; gap: 6px; min-height: 0; flex: 1; }
-.sde-hxt-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; align-items: center; }
-.sde-hxt-title { display: flex; flex-direction: column; gap: 2px; }
+/* The window is sized by its content (position height "auto"), so an unsampled
+   scene is a header and a line of guidance, not a screenful of black. */
+.sde-hxt { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.sde-hxt-head { display: flex; flex-direction: column; gap: 4px; }
+.sde-hxt-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .sde-hxt-stat, .sde-hxt-muted { font-size: 0.78rem; opacity: 0.8; }
 .sde-hxt-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .sde-hxt-actions label { display: inline-flex; gap: 4px; align-items: center; font-size: 0.85rem; }
@@ -10414,13 +10460,68 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-error { margin: 0; padding: 6px 8px; border-left: 3px solid #e08a8a; font-size: 0.85rem; }
 .sde-hxt-small { width: 4.2rem; }
 .sde-hxt-inline { padding: 1px 8px; font-size: 0.8rem; }
-.sde-hxt-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; overflow: auto; flex: 1; min-height: 0; padding: 2px; }
+/* Grows with the sheet, but a full sheet must not make a window taller than the screen. */
+.sde-hxt-sheet:empty { display: none; }
+.sde-hxt-sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; overflow: auto; min-height: 0; max-height: 58vh; padding: 2px; }
 .sde-hxt-cell { display: flex; flex-direction: column; gap: 4px; padding: 4px; border: 1px solid rgba(128, 128, 128, 0.35); border-radius: 4px; }
 .sde-hxt-cell.keyed { border-color: #d3af63; }
 .sde-hxt-cell img { width: 96px; height: 96px; align-self: center; border: 1px solid rgba(0, 0, 0, 0.4); background: #fff; }
+.sde-hxt-legend { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.sde-hxt-thumbs { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; }
+.sde-hxt-cell .sde-hxt-thumbs img { width: 72px; height: 72px; }
 .sde-hxt-fields { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; }
 .sde-hxt-label { font-weight: bold; }
 .sde-hxt-num { width: 5rem; }
 .sde-hxt-overlays { display: flex; gap: 6px; flex-wrap: wrap; }
 .sde-hxt-overlays label { display: inline-flex; gap: 2px; align-items: center; }
-.sde-hxt-foot { display: flex; gap: 6px; justify-content: flex-end; }
+.sde-hxt-foot { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+.sde-hxt-foot .sde-hxt-muted { margin-right: auto; }
+
+/* ── Hex map from image: the confirmation window (scripts/hex-map/hex-map-flow.mjs) ── */
+.sde-hexmap-dialog .window-content { display: flex; flex-direction: column; }
+.sde-hexmap-dialog form.dialog-form { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.sde-hexmap-dialog .dialog-content { flex: 1; min-height: 0; display: flex; }
+.sde-hexmap-confirm { display: flex; gap: 12px; flex: 1; min-height: 0; min-width: 0; }
+.sde-hexmap-overview { flex: 1; min-width: 0; min-height: 0; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; }
+.sde-hexmap-overview canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; border: 1px solid #888; background: #fff; cursor: zoom-in; }
+.sde-hexmap-side { flex: none; width: 340px; display: flex; flex-direction: column; gap: 8px; overflow: auto; }
+.sde-hexmap-side p { margin: 0; }
+.sde-hexmap-corners { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sde-hexmap-corners figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sde-hexmap-corners canvas { width: 100%; height: auto; border: 1px solid #888; background: #fff; }
+.sde-hexmap-corners figcaption { font-size: 0.75rem; opacity: 0.8; }
+.sde-hexmap-side .form-group { margin: 0; }
+.sde-hexmap-side input[type="number"] { width: 5rem; }
+.sde-hexmap-side input[name="firstNum"] { width: 6rem; }
+.sde-hexmap-side .sde-hexmap-warn { padding: 6px 8px; border-left: 3px solid #e08a8a; }
+/* "More" sits in the normal flow and the window grows for it. It was an
+   absolutely positioned popover, which the window's content box simply clipped:
+   the window is only as tall as its content, so a panel hanging below the
+   button had nothing to hang into. Nothing positioned, nothing to clip. */
+.sde-hxt-more-btn[aria-expanded="true"], .sde-hxt-more-btn.sde-hxt-more-on { border-color: #d3af63; }
+.sde-hxt-more-panel {
+  display: flex; flex-direction: column; gap: 6px;
+  margin-top: 4px; padding: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 4px;
+  background: rgba(0, 0, 0, 0.25);
+}
+.sde-hxt-more-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sde-hxt-more-row label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 0.85rem; }
+.sde-hxt-more-panel .sde-hxt-muted { margin: 0; }
+.sde-hxt-direction { border-left: 3px solid #d3af63; padding: 6px 8px; }
+/* The hex brush: a small window that stays open over the map while painting. */
+.sde-hxb { display: flex; flex-direction: column; gap: 6px; }
+.sde-hxb .sde-hxb-overlays { display: flex; flex-wrap: wrap; gap: 8px; }
+.sde-hxb .sde-hxb-overlays label { display: inline-flex; align-items: center; gap: 4px; }
+.sde-hxb-hint { margin: 0; font-size: 0.85rem; opacity: 0.8; min-height: 2.2em; }
+.sde-hxb-foot { display: flex; justify-content: flex-end; }
+
+/* Hex Tagger: a legend card opened up, one answer per hex. */
+.sde-hxt-opened { grid-column: 1 / -1; }
+.sde-hxt-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 6px; margin-top: 4px; }
+.sde-hxt-pick { display: flex; flex-direction: column; gap: 2px; align-items: stretch; }
+.sde-hxt-pick img { align-self: center; background: #fff; border-radius: 3px; }
+.sde-hxt-pick select, .sde-hxt-pick input { width: 100%; font-size: 11px; }
+
+/* Hex map: what the grid confirmation can and cannot change. */
+.sde-hexmap-scope { border-left: 3px solid var(--color-border-highlight, #a88); padding-left: 8px; }

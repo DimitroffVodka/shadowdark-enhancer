@@ -24,7 +24,7 @@ import { buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.m
 /** Flag key under `flags.shadowdark-enhancer` on the entry and its pages. */
 export const HEX_FLAG = "hex";
 
-/** Page name: number first so the pages sort by hex ("1403 Serengal"). */
+/** Page name: number first so the pages sort by hex ("1403 Thornmere"). */
 export function hexPageName(draft) {
   return [draft?.hexId, draft?.name].map((s) => String(s ?? "").trim()).filter(Boolean).join(" ");
 }

@@ -11,7 +11,12 @@
  *
  * Numbering convention carried inside `grid` for the consumer: the leading
  * digits are the column, the last two the row (`hexIdKey`), so 1403 is column
- * 14, row 03 and `grid.cols`/`grid.rows` count those axes.
+ * 14, row 03 and `grid.cols`/`grid.rows` count those axes. `grid.origin` is
+ * 0 for a map that numbers its own first column and row 0 (the Western
+ * Reaches: hex 0000 exists) and is omitted for the contract's default of 1
+ * (shadowdark-extras#145). `grid.rowsLowered` goes out only when the lowered
+ * columns end one row short of the others. `grid.firstRow` preserves a clipped
+ * top half-cell when the raised columns begin one row after the map's origin.
  */
 
 import { hexIdKey, buildHexPageHtml, rewriteHexPlaceholders } from "../tables/hex-parser.mjs";
@@ -28,6 +33,46 @@ export const OVERLAY_TO_NETWORK = { river: "river", path: "road" };
  * biomes"). Tags carry underscores; the contract's table has spaces.
  */
 export const terrainWord = (t) => String(t ?? "").trim().toLowerCase().replace(/_/g, " ");
+
+/** Where Extras' art lives. Assignment manifests name files relative to it. */
+export const EXTRAS_ASSETS = "modules/shadowdark-extras/assets/";
+
+/**
+ * A GM's own tile-art manifest, normalised.
+ *
+ * The map's art is curated by hand outside this module — which hex gets which
+ * painted tile, and which centre icon sits on top — and that curation is the
+ * GM's, not ours: no manifest, and nothing from any book, ships here. This only
+ * has to be able to READ one, in either shape the curation tends to arrive in:
+ *
+ *   { "643": { base_hex: "Hexes/Specials/goblinhole.webp", overlay_asset: "" } }
+ *   [ { "Hex #": 643, "Base Hex": "...", "Overlay Asset": "..." } ]
+ *
+ * Ids that are not published hex numbers are dropped, not coerced. A manifest
+ * can legitimately carry rows for a place that has no coordinates on this map
+ * (an underworld level keyed M104, say); coercing those onto the surface grid
+ * would paint a tile somewhere arbitrary.
+ *
+ * @param {object|object[]} manifest
+ * @returns {Object<number, {art:string, icon?:string}>} by published number
+ */
+export function assignmentsFromManifest(manifest) {
+  const rows = Array.isArray(manifest)
+    ? manifest
+    : Object.entries(manifest ?? {}).map(([id, v]) => ({ ...v, _id: id }));
+  const out = {};
+  for (const r of rows) {
+    if (!r || typeof r !== "object") continue;
+    const num = hexNum(r._id ?? r.hex_id ?? r["Hex #"] ?? r.num);
+    if (num === null) continue;
+    const base = String(r.art ?? r.base_hex ?? r["Base Hex"] ?? "").trim();
+    if (!base) continue;
+    const icon = String(r.icon ?? r.overlay_asset ?? r["Overlay Asset"] ?? "").trim();
+    const full = (p) => (p.startsWith("modules/") ? p : EXTRAS_ASSETS + p);
+    out[num] = icon ? { art: full(base), icon: full(icon) } : { art: full(base) };
+  }
+  return out;
+}
 
 const paddedHexId = (id) => {
   const s = String(id ?? "").trim();
@@ -50,10 +95,12 @@ export function hexNum(id) {
  * @param {object[]} [args.drafts]       hex-parser drafts; a draft may carry `html` (already built page HTML) instead of bodyLines
  * @param {object[]} [args.summaryRows]  hex-summary rows
  * @param {Object<string,{terrain?:string, overlays?:string[]}>} [args.tags]  per published number (string or int keys)
- * @param {{cols:number, rows:number}} [args.gridHint]
+ * @param {Object<string|number,{art:string, icon?:string}>} [args.assignments]  per-hex tile art (assignmentsFromManifest)
+ * @param {{cols:number, rows:number, origin?:0|1, firstRow?:number, rowsLowered?:number}} [args.gridHint]  the map's size and numbering
+ *   origin as the tagger knows them; without a hint the origin is 0 when any hex sits in column 0 or row 0
  * @returns {object} dataset
  */
-export function buildHexDataset({ name = "", source = "", drafts = [], summaryRows = [], tags = {}, gridHint } = {}) {
+export function buildHexDataset({ name = "", source = "", drafts = [], summaryRows = [], tags = {}, assignments = {}, gridHint } = {}) {
   const byNum = new Map();
   const slot = (num) => { if (!byNum.has(num)) byNum.set(num, { num }); return byNum.get(num); };
 
@@ -86,36 +133,69 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     for (const o of t.overlays ?? []) if (OVERLAY_TO_NETWORK[o]) (h.overlays ??= new Set()).add(o);
   }
 
+  // Curated art, last: it names a file and says nothing about terrain, so it
+  // neither creates nor changes a hex's own answer. Extras strips both fields
+  // before the record is written — they are for the paint pass only.
+  for (const [k, a] of Object.entries(assignments ?? {})) {
+    const num = hexNum(k);
+    if (num === null || !a?.art) continue;
+    const h = slot(num);
+    h.art = a.art;
+    if (a.icon) h.icon = a.icon;
+  }
+
   // Terrain regions and networks.
   const regions = new Map(); const networks = { river: [], road: [] };
-  let maxCol = -1, maxRow = -1;
+  let maxCol = -1, maxRow = -1, minCol = Infinity, minRow = Infinity;
   for (const h of byNum.values()) {
     const [c, r] = hexKeyForNum(h.num).split(",").map(Number);
     maxCol = Math.max(maxCol, c); maxRow = Math.max(maxRow, r);
+    minCol = Math.min(minCol, c); minRow = Math.min(minRow, r);
     const word = terrainWord(h.terrain);
     if (word) { if (!regions.has(word)) regions.set(word, []); regions.get(word).push(h.num); }
     for (const o of h.overlays ?? []) networks[OVERLAY_TO_NETWORK[o]].push(h.num);
   }
   const counts = [...regions.entries()].sort((a, b) => (b[1].length - a[1].length) || a[0].localeCompare(b[0]));
-  // Only the fields Extras' builder accepts (it rejects any other key). The
-  // book's settlement marker has no field there, so it stays on the crawl
-  // entry's keyed rows; an empty terrain is omitted so the region's stands.
-  const hexes = [...byNum.values()].filter((h) => h.name).sort((a, b) => a.num - b.num).map((h) => {
-    const out = { num: h.num, name: h.name };
-    const word = terrainWord(h.terrain);
-    if (word) out.terrain = word;
-    if (h.desc) out.desc = h.desc;
-    if (h.zone) out.zone = h.zone;
-    return out;
-  });
+  // Only the fields Extras' builder accepts (it rejects any other key: see
+  // RECORD_FIELDS in its HexcrawlBuilderSD).
+  //
+  // A record is emitted for every hex we know ANYTHING about, not only the
+  // keyed ones. `terrain` is a per-hex string there, and it is the only place
+  // the book's own word survives: the painted tile comes from terrain.regions,
+  // whose biome vocabulary is much coarser than the book's — measured on a real
+  // hand-off, Extras paints arctic sea, lake and river all as ocean, salt flat
+  // as desert, jungle as forest and canyon as hills. Sending the word per hex
+  // costs one short record and keeps "arctic sea" on the hex the GM opens,
+  // whatever the art under it ends up being.
+  //
+  // The book's settlement marker still has no field of its own; it stays on the
+  // crawl entry's keyed rows.
+  const hexes = [...byNum.values()]
+    .filter((h) => h.name || h.terrain || h.desc || h.zone || h.art)
+    .sort((a, b) => a.num - b.num).map((h) => {
+      const out = { num: h.num };
+      if (h.name) out.name = h.name;
+      const word = terrainWord(h.terrain);
+      if (word) out.terrain = word;
+      if (h.desc) out.desc = h.desc;
+      if (h.zone) out.zone = h.zone;
+      if (h.art) out.art = h.art;
+      if (h.icon) out.icon = h.icon;
+      return out;
+    });
 
+  const origin = gridHint?.origin === 0 || gridHint?.origin === 1 ? gridHint.origin : ((minCol === 0 || minRow === 0) ? 0 : 1);
+  const grid = {
+    cols: gridHint?.cols ?? Math.max(1, maxCol + 1 - origin), rows: gridHint?.rows ?? Math.max(1, maxRow + 1 - origin),
+    distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
+  };
+  if (origin === 0) grid.origin = 0;
+  if (Number.isInteger(gridHint?.firstRow) && gridHint.firstRow !== origin) grid.firstRow = gridHint.firstRow;
+  if (Number.isInteger(gridHint?.rowsLowered) && gridHint.rowsLowered !== grid.rows) grid.rowsLowered = gridHint.rowsLowered;
   return {
     version: DATASET_VERSION,
     name, source,
-    grid: {
-      cols: gridHint?.cols ?? (maxCol + 1), rows: gridHint?.rows ?? (maxRow + 1),
-      distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
-    },
+    grid,
     terrain: {
       default: counts[0]?.[0] ?? "forest",
       regions: counts.map(([biome, nums]) => ({ biome, hexes: nums.sort((a, b) => a - b) })),
@@ -139,7 +219,12 @@ export function validateHexDataset(ds) {
     if (!isNum(h.num)) errors.push(`hex num not an integer: ${JSON.stringify(h.num)}`);
     else if (seen.has(h.num)) errors.push(`duplicate hex num ${h.num}`);
     seen.add(h.num);
-    if (!h.name) errors.push(`hex ${h.num} has no name`);
+    // A name is not required: Extras does not ask for one, and a hex that
+    // carries only its terrain is the ordinary case on a tagged map.
+    if (!h.name && !h.terrain && !h.desc && !h.zone && !h.art) errors.push(`hex ${h.num} carries nothing`);
+    for (const key of ["art", "icon"]) {
+      if (key in h && typeof h[key] !== "string") errors.push(`hex ${h.num} ${key} must be text`);
+    }
     if ("col" in h || "row" in h) errors.push(`hex ${h.num} carries col/row — numbers only at the boundary`);
   }
   for (const r of ds.terrain?.regions ?? []) {
@@ -148,5 +233,10 @@ export function validateHexDataset(ds) {
   }
   for (const kind of ["river", "road"]) for (const n of ds.networks?.[kind] ?? []) if (!isNum(n)) errors.push(`network ${kind} has a non-integer hex`);
   if (!isNum(ds.grid?.cols) || !isNum(ds.grid?.rows)) errors.push("grid cols/rows missing");
+  const g = ds.grid ?? {};
+  if (g.origin !== undefined && g.origin !== 0 && g.origin !== 1) errors.push("grid.origin must be 0 or 1");
+  const origin = g.origin ?? 1;
+  if (g.firstRow !== undefined && ![origin, origin + 1].includes(g.firstRow)) errors.push("grid.firstRow must be origin or origin + 1");
+  if (g.rowsLowered !== undefined && !(Number.isInteger(g.rowsLowered) && (g.rowsLowered === g.rows || g.rowsLowered === g.rows - 1))) errors.push("grid.rowsLowered must be rows or rows - 1");
   return { ok: errors.length === 0, errors };
 }

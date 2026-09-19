@@ -36,13 +36,14 @@ export function backgroundTransform(canvasRef = globalThis.canvas) {
 /**
  * Every grid cell whose centre lies inside the background image.
  * @returns {{error:string}|{cells:object[], transform:object, cellW:number, cellH:number, even:boolean}}
+ *   `error` is a translation key, not a sentence: whoever shows it localises it.
  */
 export function sceneCells(canvasRef = globalThis.canvas) {
   const grid = canvasRef?.grid, scene = canvasRef?.scene;
-  if (!scene || !grid?.isHexagonal) return { error: "The active scene does not use a hexagonal grid." };
-  if (!grid.columns) return { error: "Only flat-top column hex grids are supported in this version; this scene uses pointy-top rows." };
+  if (!scene || !grid?.isHexagonal) return { error: "SDE.hexMap.error.notHex" };
+  if (!grid.columns) return { error: "SDE.hexMap.error.pointyTop" };
   const transform = backgroundTransform(canvasRef);
-  if (!transform) return { error: "The active scene has no background image, or it has not finished loading." };
+  if (!transform) return { error: "SDE.hexMap.error.noBackground" };
   const r = scene.dimensions.sceneRect;
   const tl = grid.getOffset({ x: r.x, y: r.y });
   const br = grid.getOffset({ x: r.x + r.width, y: r.y + r.height });
@@ -109,12 +110,36 @@ export class CellSampler {
   }
 
   /** PNG data URL of the cell plus a margin of its neighbours, for the contact sheet. */
-  thumbnail(cell, px = 96, margin = 0.2) {
+  /**
+   * The cell as a picture, clipped to the hexagon the classifier reads.
+   *
+   * It used to draw a 20% margin of the surrounding map, which put the
+   * neighbours' glyphs and their printed numbers in every picture. Patrick,
+   * looking at a legend card: "we didn't change the 4 boxes." He names a card
+   * from these four pictures and the classifier groups cells by what is inside
+   * the hexagon; showing him more than that asks him to judge one thing while
+   * the module judges another, and a card named from a neighbour's tree is
+   * exactly how a core ends up mislabelled.
+   *
+   * `shrink` matches classify.mjs's FEATURE_SHRINK: the same hexagon, drawn a
+   * little inside the printed outline because the outline is shared.
+   */
+  thumbnail(cell, px = 96, { margin = 0, shrink = 0.88 } = {}) {
     const { cellW, cellH } = this.geom;
     const c = document.createElement("canvas"); c.width = px; c.height = px;
     const ctx = c.getContext("2d");
     const w = cellW * (1 + 2 * margin), h = cellH * (1 + 2 * margin);
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, px, px);
+    if (shrink) {
+      // the flat-top hexagon of cellMasks(..., { shrink }).inhex, as a path:
+      // vertices at (±s, 0) and (±s/2, ±s) in the cell's own -1..1 frame
+      const s = shrink, half = px / 2;
+      const at = (x, y) => [half * (1 + x / (1 + 2 * margin)), half * (1 + y / (1 + 2 * margin))];
+      ctx.beginPath();
+      [[s, 0], [s / 2, -s], [-s / 2, -s], [-s, 0], [-s / 2, s], [s / 2, s]]
+        .forEach(([x, y], i) => { const [px2, py] = at(x, y); i ? ctx.lineTo(px2, py) : ctx.moveTo(px2, py); });
+      ctx.closePath(); ctx.clip();
+    }
     ctx.drawImage(this.image, cell.u - w / 2, cell.v - h / 2, w, h, 0, 0, px, px);
     return c.toDataURL("image/png");
   }

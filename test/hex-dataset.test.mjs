@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { hexcrawlRecognizer } from "../scripts/importer/tables/hex-parser.mjs";
 import { parseHexSummaryRows } from "../scripts/importer/hex/hex-summary.mjs";
-import { buildHexDataset, validateHexDataset, hexNum } from "../scripts/importer/hex/hex-dataset.mjs";
+import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../scripts/importer/hex/hex-dataset.mjs";
 
 // All fixture text is invented (D1) — no book content.
 
@@ -47,6 +47,21 @@ test("drafts and rows merge by number; rows give zone, terrain and feature, draf
   assert.equal("feature" in h[203], false);
 });
 
+test("grid origin and clipped staggered edges survive the handoff and are validated", () => {
+  const zero = buildHexDataset({ tags: { "0000": { terrain: "arctic_sea" }, "6374": { terrain: "forest" } } });
+  assert.equal(zero.grid.origin, 0, "hex 0000 exists, so the numbering starts at 0");
+  assert.deepEqual([zero.grid.cols, zero.grid.rows], [64, 75]);
+  assert.deepEqual(validateHexDataset(zero), { ok: true, errors: [] });
+  const hinted = buildHexDataset({ tags: { "0505": { terrain: "swamp" } }, gridHint: { cols: 64, rows: 75, firstRow: 1, rowsLowered: 74, origin: 0 } });
+  assert.deepEqual([hinted.grid.cols, hinted.grid.rows, hinted.grid.firstRow, hinted.grid.rowsLowered, hinted.grid.origin], [64, 75, 1, 74, 0]);
+  assert.deepEqual(validateHexDataset(hinted), { ok: true, errors: [] });
+  const same = buildHexDataset({ tags: { "0505": { terrain: "swamp" } }, gridHint: { cols: 10, rows: 10, rowsLowered: 10, origin: 1 } });
+  assert.equal("rowsLowered" in same.grid, false, "equal to rows: not sent");
+  assert.equal("origin" in same.grid, false);
+  const bad = validateHexDataset({ hexes: [], grid: { cols: 3, rows: 3, origin: 0, firstRow: 2, rowsLowered: 1 } });
+  assert.deepEqual(bad.errors, ["grid.firstRow must be origin or origin + 1", "grid.rowsLowered must be rows or rows - 1"]);
+});
+
 test("terrain regions, networks and grid come out in numbers only", () => {
   const ds = buildHexDataset({ drafts: DRAFTS, summaryRows: ROWS, tags: { "0304": { terrain: "mountain", overlays: ["path"] }, 102: { terrain: "swamp" } } });
   assert.deepEqual(ds.terrain.regions, [
@@ -56,8 +71,10 @@ test("terrain regions, networks and grid come out in numbers only", () => {
   ], "the book's words, not biome keys: Extras maps them");
   assert.equal(ds.terrain.default, "forest");
   assert.deepEqual(ds.networks, { river: [102], road: [304] });   // row overlay + tag overlay, path → road
-  assert.deepEqual([ds.grid.cols, ds.grid.rows], [4, 5]);
+  assert.deepEqual([ds.grid.cols, ds.grid.rows], [3, 4], "columns 1..3 and rows 1..4 under the contract's default origin");
   assert.equal("numbering" in ds.grid, false, "only the contract's grid keys");
+  assert.equal("origin" in ds.grid, false, "the default origin is not sent");
+  assert.equal("rowsLowered" in ds.grid, false);
   assert.equal(JSON.stringify(ds).includes('"col"'), false);
   assert.deepEqual(validateHexDataset(ds), { ok: true, errors: [] });
 });
@@ -69,8 +86,8 @@ test("zero-padded leading-column IDs survive numeric normalization", () => {
   } });
   assert.deepEqual(ds.grid, {
     cols: 1, rows: 2, distance: 6, units: "mi", landscape: false,
-    flipX: false, flipY: false,
-  });
+    flipX: false, flipY: false, origin: 0,
+  }, "hexes in column 0 mean the map numbers from 0");
   assert.deepEqual(ds.terrain.regions, [
     { biome: "forest", hexes: [0] },
     { biome: "grassland", hexes: [1] },
@@ -83,10 +100,82 @@ test("underscored tags go out as the printed words Extras' label table knows", (
 });
 
 test("validation names the contract breaches", () => {
-  const bad = { hexes: [{ num: "0101", name: "x" }, { num: 5, name: "" }, { num: 5, name: "y", col: 0 }], terrain: { regions: [{ biome: "", hexes: ["a"] }] }, networks: { river: [1.5] }, grid: {} };
+  const bad = { hexes: [{ num: "0101", name: "x" }, { num: 5 }, { num: 5, name: "y", col: 0 }], terrain: { regions: [{ biome: "", hexes: ["a"] }] }, networks: { river: [1.5] }, grid: {} };
   const { ok, errors } = validateHexDataset(bad);
   assert.equal(ok, false);
-  for (const needle of ["not an integer", "has no name", "duplicate hex num 5", "col/row", "without a biome", "non-integer hex", "grid cols/rows"]) {
+  for (const needle of ["not an integer", "carries nothing", "duplicate hex num 5", "col/row", "without a biome", "non-integer hex", "grid cols/rows"]) {
     assert.ok(errors.some((e) => e.includes(needle)), `expected an error mentioning ${needle}`);
   }
+});
+
+test("a tagged hex travels with the book's own terrain word, named or not", () => {
+  // Extras' record accepts terrain per hex; the painted tile comes from the
+  // regions and its biome vocabulary is far coarser, so this is the only place
+  // "arctic sea" survives as itself.
+  const ds = buildHexDataset({
+    tags: { "0101": { terrain: "arctic_sea" }, "0102": { terrain: "salt_flat" }, "0103": { terrain: "forest", overlays: ["river"] } },
+  });
+  const by = Object.fromEntries(ds.hexes.map((h) => [h.num, h]));
+  assert.deepEqual(by[101], { num: 101, terrain: "arctic sea" });
+  assert.deepEqual(by[102], { num: 102, terrain: "salt flat" });
+  assert.deepEqual(by[103], { num: 103, terrain: "forest" }, "an overlay is a network, never a hex field");
+  assert.equal(ds.hexes.length, 3, "every tagged hex, not only the keyed ones");
+  assert.deepEqual(ds.networks.river, [103]);
+  assert.equal(validateHexDataset(ds).ok, true);
+});
+
+// ── curated tile art ────────────────────────────────────────────────────────
+// Fixtures are invented: no book content, no real manifest, no real file names.
+
+const MANIFEST = {
+  302: { hex_id: "302", base_hex: "Hexes/Specials/watchtower.webp", overlay_asset: "symbols/Symbols/Icon - Star.webp" },
+  415: { hex_id: "415", base_hex: "Hexes/Vegetation/Hex - Forest.webp", overlay_asset: "" },
+  907: { hex_id: "907", base_hex: "Hexes/Specials/watchtower.webp", overlay_asset: "" },
+  M104: { hex_id: "M104", base_hex: "Hexes/Specials/stair.webp", overlay_asset: "" },
+};
+
+test("a manifest becomes art and icon; an overlay-less row carries art alone", () => {
+  const a = assignmentsFromManifest(MANIFEST);
+  assert.deepEqual(a[302], { art: "modules/shadowdark-extras/assets/Hexes/Specials/watchtower.webp",
+                             icon: "modules/shadowdark-extras/assets/symbols/Symbols/Icon - Star.webp" });
+  assert.deepEqual(a[415], { art: "modules/shadowdark-extras/assets/Hexes/Vegetation/Hex - Forest.webp" });
+  assert.ok(!("icon" in a[415]));
+});
+
+test("ids that are not hex numbers are dropped, never coerced onto the grid", () => {
+  const a = assignmentsFromManifest(MANIFEST);
+  assert.deepEqual(Object.keys(a).sort(), ["302", "415", "907"]);
+});
+
+test("the same art on two hexes is kept on both", () => {
+  const ds = buildHexDataset({ assignments: assignmentsFromManifest(MANIFEST) });
+  const art = Object.fromEntries(ds.hexes.map((h) => [h.num, h.art]));
+  assert.equal(art[302], art[907]);
+  assert.equal(ds.hexes.length, 3);
+});
+
+test("art rides along without touching terrain or the river network", () => {
+  const plain = buildHexDataset({ tags: { 302: { terrain: "forest", overlays: ["river"] }, 415: { terrain: "desert" } } });
+  const withArt = buildHexDataset({ tags: { 302: { terrain: "forest", overlays: ["river"] }, 415: { terrain: "desert" } },
+                                    assignments: assignmentsFromManifest(MANIFEST) });
+  assert.deepEqual(withArt.terrain, plain.terrain);
+  assert.deepEqual(withArt.networks, plain.networks);
+  assert.equal(withArt.hexes.find((h) => h.num === 302).terrain, "forest");
+});
+
+test("a CSV-shaped manifest reads the same as the JSON one", () => {
+  const rows = [{ "Hex #": 302, "Base Hex": "Hexes/Specials/watchtower.webp", "Overlay Asset": "symbols/Symbols/Icon - Star.webp" }];
+  assert.deepEqual(assignmentsFromManifest(rows)[302], assignmentsFromManifest(MANIFEST)[302]);
+});
+
+test("a path already under modules/ is left as it is", () => {
+  const a = assignmentsFromManifest({ 302: { base_hex: "modules/shadowdark-extras/assets/Hexes/x.webp" } });
+  assert.equal(a[302].art, "modules/shadowdark-extras/assets/Hexes/x.webp");
+});
+
+test("the contract check wants art and icon to be text, and nothing else new", () => {
+  const ds = buildHexDataset({ assignments: assignmentsFromManifest(MANIFEST) });
+  assert.equal(validateHexDataset(ds).ok, true);
+  ds.hexes[0].art = 7;
+  assert.match(validateHexDataset(ds).errors.join(" "), /art must be text/);
 });

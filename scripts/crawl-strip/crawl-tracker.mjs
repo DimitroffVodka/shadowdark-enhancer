@@ -201,7 +201,8 @@ export class CrawlTrackerTab extends HandlebarsApplicationMixin(
   /**
    * Next round — the crawl bar's Next Round, which is a round of the crawl
    * clock rather than of the initiative order: it refills movement budgets and
-   * runs the wandering-monster check. GM-only, and deliberately available
+   * runs the wandering-monster check when the crawl round is due (the GM's
+   * check frequency). GM-only, and deliberately available
    * before anyone has rolled, exactly as on the bar.
    */
   async _onNextRound(_event, target) {

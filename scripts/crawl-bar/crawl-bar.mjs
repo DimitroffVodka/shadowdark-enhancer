@@ -14,6 +14,14 @@ import { CrawlStrip }      from "../crawl-strip/crawl-strip.mjs";
 
 const BAR_ID = "shadowdark-enhancer-bar";
 
+// How often the AUTOMATIC crawl-round encounter check runs (issue #171):
+// 1 = every round, then every 2 … 10. The gate itself (`encounterCheckDue`)
+// accepts any value ≥ 1; the ten choices are a menu bound, not a state rule.
+const CHECK_FREQUENCY_CHOICES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+/** "every round" / "every 3 rounds" — the header's reading of the setting. */
+const frequencyLabel = (n) => (n === 1 ? "every round" : `every ${n} rounds`);
+
 export const CrawlBar = {
 
   _el: null,
@@ -354,12 +362,16 @@ export const CrawlBar = {
     if (!game.user.isGM) return;
 
     const threshold = game.shadowdarkEnhancer.encounter.getThreshold();
+    const frequency = game.shadowdarkEnhancer.encounter.getCheckFrequency();
     const tableUuid = game.settings.get(MODULE_ID, "encounterTableUuid");
     const tableName = tableUuid ? (fromUuidSync(tableUuid)?.name ?? "(deleted table)") : "(none)";
+    const terrainCount = Object.keys(game.settings.get(MODULE_ID, "encounterTerrainTables") ?? {}).length;
 
     const menu = document.createElement("div");
     menu.id = "sde-encounter-context-menu";
     menu.className = "sde-bar-context-menu";
+    // Interpolated values are module settings (two numbers), a fixed list of
+    // frequency choices, and the active table's document name.
     menu.innerHTML = `
       <div class="sde-menu-item sde-menu-btn" data-action="check" role="menuitem" tabindex="0">
         <i class="fas fa-dice-d6"></i> Encounter Check
@@ -372,9 +384,19 @@ export const CrawlBar = {
         </div>
       `).join("")}
       <div class="sde-menu-divider"></div>
+      <div class="sde-menu-header">Check Frequency (current: ${frequencyLabel(frequency)})</div>
+      <div class="sde-menu-numbers" role="group" aria-label="Encounter check frequency">
+        ${CHECK_FREQUENCY_CHOICES.map(n => `
+          <button type="button" class="sde-menu-number ${n === frequency ? "active" : ""}" data-action="setFrequency" data-value="${n}" aria-pressed="${n === frequency}" title="${frequencyLabel(n)} — counted from the last check">${n}</button>
+        `).join("")}
+      </div>
+      <div class="sde-menu-divider"></div>
       <div class="sde-menu-item sde-menu-table">
         Active Table: <span class="sde-table-name">${tableName}</span>
         ${tableUuid ? `<i class="fas fa-times sde-clear-table" data-action="clearTable" title="Clear active table" role="button" tabindex="0" aria-label="Clear active table"></i>` : ""}
+      </div>
+      <div class="sde-menu-item sde-menu-btn" data-action="terrainTables" role="menuitem" tabindex="0" title="On a tagged hex map, roll a different table per terrain; the check uses the hex the party is in.">
+        <i class="fas fa-mountain-sun"></i> Tables by terrain${terrainCount ? ` (${terrainCount})` : ""}
       </div>
     `;
 
@@ -410,6 +432,20 @@ export const CrawlBar = {
         const val = parseInt(target.dataset.value);
         await game.shadowdarkEnhancer.encounter.setThreshold(val);
         menu.remove();
+      } else if (action === "setFrequency") {
+        const val = parseInt(target.dataset.value, 10);
+        // Guarded: these are real <button>s, so Enter/Space can reach this
+        // handler twice (the menu's keydown shim clicks it, then the browser's
+        // native activation does) — a second write of the same value is a
+        // pointless world broadcast.
+        if (val !== game.shadowdarkEnhancer.encounter.getCheckFrequency()) {
+          await game.shadowdarkEnhancer.encounter.setCheckFrequency(val);
+        }
+        menu.remove();
+      } else if (action === "terrainTables") {
+        menu.remove();
+        const { openTerrainTables } = await import("../encounter/encounter-terrain.mjs");
+        await openTerrainTables();
       } else if (action === "clearTable") {
         await game.shadowdarkEnhancer.encounter.setActiveTable(null);
         ui.notifications.info("Active encounter table cleared.");

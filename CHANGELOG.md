@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
-- **Hex key pages.** A pasted hex key (numbered entries such as `1403 Serengal`,
+- **Hex key pages.** A pasted hex key (numbered entries such as `1403 Thornmere`,
   three or more in a run) now shows a **Hex key** strip in the Importer Hub.
   **Create hex pages** files one journal page per hex into the Journals pack
   under your source, in a journal entry named after the crawl. References to
@@ -24,6 +24,138 @@
   match the print. Tags are stored on the scene and fold into the dataset with
   the filed crawl's keyed hexes. Flat-top column grids only for now. Phase 2 of
   the hex-map plan (#169); API 1.5.0 adds the `hexMaps` namespace.
+- **A table per terrain for encounter checks.** With a hex map tagged by the
+  Hex Tagger, the Encounter right-click menu gains **Tables by terrain**: one
+  roll table per terrain on the scene. The check reads the hex the party's
+  tokens stand in, rolls that terrain's table, and names the hex and terrain on
+  the chat card. Terrain with no table of its own, a scene with no tags and a
+  party off the map all fall back to the single active table, so nothing
+  changes for a game that does not use hex maps. Phase 6 of the hex-map plan
+  (#169).
+- **The Hex Tagger is the size of what it is showing.** It opened as a fixed
+  780-pixel box that was mostly empty black on any scene without a sheet up;
+  its height follows its content now (a numbered but unsampled scene is a
+  header and one line), and a full sheet scrolls inside the window rather than
+  making it taller than the screen. **More** is a proper panel under its button
+  instead of a row of buttons that broke the header apart.
+- **"Sample scene" is now "Read the map".** The word sampling was doing two
+  jobs — reading the image, and the examples the classifier learns from — and
+  only one of them is a button. The tooltips and messages say which of the
+  three steps each control is: reading the map takes a picture of every hex and
+  decides nothing, the Legend names groups of look-alikes, and Classify spreads
+  your own hand tags over everything you have not touched.
+- **Classify is where you left it.** The sampled cells are kept per scene for
+  as long as the page is open, so closing the Hex Tagger and opening it again
+  no longer hides **Legend**, **Next sheet** and **Classify** behind another
+  read of the image. **Classify** also samples the scene itself when it has to,
+  so it works from a cold open.
+- **The initial scan is kept and scored.** The first classification of a map is
+  written down as it was — only the hexes the module guessed, not the ones your
+  legend cards named — and never overwritten. As you review, the tagger reports
+  how much of it was right: what that map would have been worth to somebody who
+  corrected nothing.
+- **The Legend checks its own names.** A card that looks far more like the
+  cards you gave a different name to is questioned before Apply writes
+  anything — a card named jungle should look like your other jungle cards. The
+  bar is set where false alarms stopped on a correctly named map, and the slip
+  it was built for showed at 53 times over.
+- **A run-off when two terrains are tied.** When the nearest-example match and
+  the runner-up are within 1.3× of each other, those two alone are compared
+  again on a feature that ignores where the ink sits — which is what tells
+  ocean from arctic sea. Worth a third of a point on a verified map; wider
+  thresholds measured worse, because a second opinion is only useful where the
+  first one was a coin toss.
+- **A better first run, measured.** The Legend's card count and core size were
+  calibrated against a hand-verified map by simulating a whole first run — no
+  tags of the user's, just the module and its 48 answers — which took that map
+  from 92.3% to 93.9%. The new `hexMaps.benchmark()` (developer tools) is that
+  measurement, so any future change to the clustering, the feature or the
+  thresholds can be judged on what a first-time user would actually get.
+- **Classify ends with a neighbour pass.** Terrain comes in regions and the
+  classifier judges each hex alone, so its mistakes are lone cells inside
+  patches that disagree with them. A hex whose five of six neighbours agree on
+  something else now takes their answer; hand tags are never overruled. Worth
+  about two points on every map, including one nobody has ever tagged.
+- **Your corrections carry to the next attempt.** **More → Start from a map you
+  have done** brings every hand tag from another scene of the same print into
+  this one as hand tags, leaving anything you have already tagged here alone.
+  They then become Classify's examples, so a second go at a map starts from
+  everything you decided the first time instead of from nothing.
+- **Legend and Classify are always reachable.** Both read the map themselves
+  when they need to, so they no longer vanish from the header after a reload,
+  when the in-page pictures are gone. Only the controls that work on those
+  pictures — the sheet and the sensitivity — wait for them.
+- **The review sheet says what it wants.** Its button is **Confirm these N**
+  now, not "Apply sheet": it accepts every hex on the sheet, the ones you
+  changed and the ones you left, which is how you tell the module it got one
+  right. **Show me others** confirms nothing.
+- **The things the book keys are in the terrain list**: village, town, city,
+  city state and keyed location, on the Legend's cards and on every hex. They
+  had to be typed as free text before.
+- **A Legend card can be told it is wrong.** "These are not all the same"
+  breaks that one card into smaller ones to name, keeping every other answer.
+  The river, path and coast boxes are gone from the cards — the classifier
+  finds those cell by cell, and ticking them only stamped a dozen cells with
+  whatever the pictures happened to show.
+- **The grid-found screen says what its marks mean.** The dots on the overview
+  are hex centres the detector found, one per fortieth cell — they were red,
+  which reads as a fault. They are the same blue as the corner outlines now,
+  the screen leads with what to do, and it says that clicking the overview
+  opens the print on its own with no marks on it.
+- **The Legend says what to name.** A card whose pictures differ — a mountain,
+  a mountain with a river, a mountain with a road — is named for what they have
+  in common, and the river/path/coast boxes are only for a card where every
+  picture has one.
+- **A Legend card that holds two things now shows both.** Its pictures were the
+  members nearest the card's centre, so a card whose cells were two different
+  terrains looked like one — on a real map a card of 147 cells was 70% arctic
+  sea with every picture drawn from its ocean third, and naming it cost 111
+  wrong hexes. The pictures are now one per group *within* the card, so the
+  minority is visible and a stray cell never takes more than one of them.
+- **`hexMaps.score()`** (developer tools) measures the model against the hexes
+  you tagged yourself: leave-one-out accuracy for the classifier, and how pure
+  the Legend's cards are, naming every mixed card and the terrains its core
+  misses. It reads only your own tags and ships no data.
+- **The brush confirms as well as corrects.** A hex that already says what the
+  brush says now takes the stroke when the classifier is the one who said it:
+  it leaves the review queue and is recorded as a confirmation, so a patch the
+  classifier got right is cleared by the same drag that fixes one it got wrong.
+  **Undo last stroke** shows how many hexes it would put back (it was disabled
+  after the first render and never re-enabled, so it did nothing when pressed),
+  and the one-hex editor moves to the hex you click instead of stacking.
+- **The hex brush.** **Brush** in the Hex Tagger's header (or
+  `game.shadowdarkEnhancer.hexMaps.brush()`) sets one terrain plus river, path
+  and coast, and then clicking or dragging across the tag overlay retags whole
+  patches at once. A stroke is one change to the scene however many hexes it
+  covers, **Undo last stroke** puts them all back as they were, and every hex
+  painted over a classifier tag counts as a correction. Phase 6 of the hex-map
+  plan (#169).
+- **The print's frame is no longer tagged.** The columns that sit higher have
+  their first row cut in half by the map's frame — on prints like the Western
+  Reaches that half cell holds the column label and no terrain, and the
+  classifier was guessing at it and queueing all 32 of them for review. Those
+  cells are not numbered now: **Hex map from image** sets it, and the tagger's
+  **More** has a **top row is frame** box for a map already tagged or a print
+  whose first row really is map. Phase 6 of the hex-map plan (#169).
+- **Corrections are kept as evidence.** Every time you judge a cell the
+  classifier tagged — on a review sheet or by clicking it on the map — what it
+  guessed, its margin and whether it had been flagged are recorded on the
+  scene, and so is leaving a guess alone. The tagger reports what your own
+  corrections say: how many were wrong, what share of them the review queue
+  actually catches, and the margin that would catch 90%, with a button to take
+  it. The review margin is now a per-map setting rather than a fixed 1.3.
+- **Fixed: writing one of this module's flags could delete its others.**
+  `recursive: false` on a flag path is not scoped to that path — Foundry
+  replaces the whole namespace — so a second flag beside the hex tags destroyed
+  them. Every flag write goes through a delete-then-set helper now
+  (`scripts/shared/module-flags.mjs`).
+- **Review the tags on the map.** **Show tags** in the Hex Tagger's header (or
+  `game.shadowdarkEnhancer.hexMaps.showTags()`) draws every numbered hex on the
+  scene in its terrain's colour, a dot for river, path and coast, and an amber
+  ring inside the cells the classifier was unsure of. Hovering names a hex and
+  says how it was tagged; clicking one edits its terrain and overlays in place.
+  Tokens and notes keep their clicks and the map still pans. Phase 6 of the
+  hex-map plan (#169).
 - **Classify.** With a sheet or two tagged by hand, the Hex Tagger classifies
   every other cell on a stamped map: terrain from the nearest tagged example,
   river or path from the ink left after subtracting that terrain's stamp.
@@ -39,7 +171,203 @@
   by itself once Extras exposes its builder. Phase 4 of the hex-map plan
   (#169).
 
+- **Hex map from image.** Importer Hub → Tools → **Hex map from image**: pick
+  the map file and the module finds the printed hex grid on its own (pitch,
+  origin, lowered columns, columns × rows), shows it over a thumbnail to
+  confirm, copies the image into the world's `hex-maps` folder, creates a
+  scene whose grid sits on the print, and opens the Hex Tagger with the
+  anchor and map size set. Replaces the hand alignment, anchor and map-size
+  steps for printed maps. (#169)
+- **The legend.** The Hex Tagger's **Legend** button (pressed for you after
+  **Hex map from image**) groups every cell by its glyph and shows one card
+  per group, biggest first, with a few member pictures and a terrain select.
+  Name the pictures you recognise, skip the rest, and **Apply legend** tags
+  the core of each named group by hand and classifies everything else from
+  those, so the first sheets of hand tagging are gone: on the Western Reaches
+  print, 32 cards instead of 120 sheets. The detector also reports when a
+  print's lowered columns end one row short (the Western Reaches does), so
+  the half cells under the frame that hold the column labels are no longer
+  served for tagging. The **Hex grid found** window is resizable, keeps the
+  print at full height beside the fields, checks the four corners itself by
+  the detector's rules and says whether the grid landed (naming the corner
+  when it did not), shows those corners at print resolution with the detected
+  hex outlined as the proof, and opens the full image in a new tab on a
+  click. Legend cards carry river, path and coast boxes for a
+  card whose every picture shows one. Once the map is tagged the tagger says
+  so and that review is optional; the rarely used buttons sit under
+  **More**. (#169)
+- **Keyed locations on the map.** After **Create hex pages**, the Importer
+  Hub offers **Pin on [scene]** for the hex scene you are viewing, and the
+  Hex Tagger's header has **Pin keyed hexes**: one map note per keyed hex on
+  its printed hex, labelled with the page name, a house, city or castle for
+  settlements from the keyed table, opening the hex's journal page. The
+  crawl's journal is copied into the world for that (Foundry notes cannot
+  point at compendium pages), ids kept and cross-links rewritten; pinning
+  again moves the notes instead of adding more. The Hex Maps page now leads
+  with this three-step flow: the print as the scene, the keyed locations on
+  it, and the terrain as the optional third step. (#169)
+- **Maps numbered from 0 reach Extras.** The dataset carries `grid.origin: 0`
+  when the map's own first column and row are 0 (the Western Reaches: hex
+  0000 exists) and `grid.rowsLowered` when the lowered columns end a row
+  short, per Extras' updated contract (shadowdark-extras#145); a compact
+  dataset imported through the tagger's side door is expanded under the same
+  numbering. Grid counts for an entry-only dataset now count from the
+  contract's origin instead of one column and row too many. (#169)
+- **Encounter check frequency.** How often the crawl round rolls its automatic
+  encounter check is now yours to set. Right-click the **Encounter** button on
+  the Crawl Bar: **Check Frequency** offers **1** (every crawl round — the
+  default, unchanged) through **10**, and a check then lands that many rounds
+  after the previous one. The count is from the last check, automatic or
+  manual, so a mid-crawl change takes effect from where you stand (switch 3 to
+  5 three rounds after the last check and the next lands on round 8, not 5).
+  The header reads the current setting back (`every 3 rounds`) and each
+  number's tooltip says the same; the round counter itself advances either
+  way. The manual **Encounter Check** in the same menu still rolls whenever you
+  click it, and restarts the count. API:
+  `api.encounter.getCheckFrequency()` / `setCheckFrequency(n)`. (#171)
+
 ### Changed
+- **Water is read the way the map's legend draws it.** The legend key printed on
+  the Western Reaches map states the symbols outright: river is one wave stroke,
+  lake two, ocean three, arctic sea three with a small mark above them. Block
+  means cannot see that — two waves and three differ by a few percent of a
+  cell's ink and agree everywhere else — which is why lake, ocean and arctic sea
+  were the worst confusion on the map through eight passes. Once the classifier
+  has decided a hex is water, the strokes now decide which water. Nothing about
+  this map is hard-coded: each terrain's stroke count and mark are learned from
+  your own examples, and if they do not separate, the arbiter stands aside.
+  Measured on a 4768-hex verified map two ways: re-deciding a real run offline,
+  178 errors to 94 and water 89.6% to 98.1%, 126 hexes moved with 84 fixed and
+  none broken; and through the module's own first-run benchmark, where turning
+  it off costs **35 errors** and drops water from **96.7% to 93.7%**. It is the
+  largest single gain in the classifier. (#169)
+
+- **A hex is classified by the seven nearest examples, not the single nearest.**
+  The examples come from the legend: the members of each card nearest its
+  centre, all given the one name you chose for that card. A card is not pure,
+  so some of those names are wrong — measured on a hand-verified map, **180 of
+  1678 (10.7%)**, and **135 of the 225 errors on the remaining hexes, 60% of
+  them, were hexes whose single nearest example was one of the mislabelled
+  ones**. Nothing at runtime can tell which examples are wrong; there is no
+  answer key. But a wrong example is outnumbered by the correct ones around it,
+  so a vote survives what one nearest neighbour cannot: errors fall from
+  167/144/149 to 143/131/143 across three clusterings in an offline harness.
+  Measured through the module's own first-run benchmark, however, it changes
+  nothing at all — 263 errors either way — so it is kept as insurance against
+  mislabelled examples rather than for a gain anyone should quote. Each terrain
+  is judged on the share of the votes it could have cast, so a terrain with two
+  examples is not buried by one with forty. The confidence figure behind the
+  review queue is unchanged. (#169)
+
+- **The neighbour pass no longer drowns the coast.** Smoothing lets a hex be
+  overruled by its neighbours, which is right almost everywhere and wrong at a
+  shoreline: a sea hex has five or six sea neighbours, so the coastal forest
+  facing it loses a vote decided by the shape of the coast rather than by
+  anything about the hex. It now refuses to move land into water, one direction
+  only — sea surrounded by land is still corrected. Measured on a 4768-hex
+  verified map: the same 13 fixes, five fewer breakages, and land wrongly left
+  sitting in the sea stops rising. Water accuracy is unchanged either way; the
+  whole effect is on land. (#169)
+
+- **A river with nothing wet beside it is flagged for review.** Rivers are
+  chains — a real one touches another river, a lake, a coast or the sea. A lone
+  river hex is the classifier reading desert stipple and a printed hex number as
+  a watercourse. Those hexes now ring on the map and go to the head of the review
+  queue ahead of every thin margin, and the hover says why. On the verified map
+  this catches **19 of 19** such hexes, every one of them desert, and rings no
+  correct river. It only ever asks: on a map where a river chain really is one
+  hex long, the ring costs a glance and a wrong demotion would cost the hex. (#169)
+
+- **The review queue is ranked, not cut off.** It used to take every hex whose
+  margin fell under a threshold and shuffle them, so a hex four times likelier
+  to be wrong than its neighbour turned up in no particular order — and the
+  mistakes the classifier was confident about were never shown at all. Now every
+  hex it tagged is in the queue, least sure first, and the sheet says roughly how
+  many of its 40 to expect to be wrong so you know when to stop. Measured on a
+  4768-hex verified map: 200 reviewed hexes find 66 mistakes where the old
+  shuffled queue found about 40, and carrying on to 1000 finds 77% of them
+  against a hard ceiling of 46% before. The margin setting now does only what it
+  always visibly did — decide which hexes get a ring on the map. (#169)
+
+- **Every tagged hex now travels to Shadowdark Extras with its own terrain
+  word.** The dataset only ever carried a record for a hex that had a *name*,
+  so a map tagged by the Hex Tagger and never keyed sent none at all — terrain
+  reached Extras only as region lists, and those are painted from a much coarser
+  vocabulary. Measured on a real hand-off, Extras paints arctic sea, lake and
+  river all as ocean, salt flat as desert, jungle as forest and canyon as hills.
+  Extras' own hex record has a per-hex `terrain` field and never required a
+  name; we now fill it, so the hex you open in Extras says **arctic sea**
+  whatever the art under it turns out to be. (#169)
+
+- **The Hex Tagger only offers what you can actually use.** Every control was
+  on screen from the first moment, including the ones that had nothing to work
+  on — a fresh map showed **Send to Extras** with nothing to send, **Brush** and
+  **Show tags** with nothing tagged, and a **Hex key** picker with no book text
+  imported. On a newly numbered map the toolbar is now three things: **Legend**,
+  the sheet picker, and **More**. Each of the rest appears when it can do
+  something: Classify once you have tagged a hex by hand, the sheet picker while
+  there are hexes to tag or automatic ones to check, tags/brush/send once
+  anything is tagged, the hex key once you have imported one. Sensitivity was a
+  tuning knob standing among the steps, and has moved behind More. (#169)
+
+- **What you answered on the legend is written down.** Everything the module
+  recorded was an output — what the classifier guessed, what you corrected. The
+  input was never kept, so when a run came out badly there was no way to tell a
+  bad classifier from a card you had called the wrong thing, and finding one
+  meant forensics on a run that was already dead. Applying a legend now records
+  each card's size, the name you gave it and whether you opened it up, beside
+  the corrections on the scene, and the tagger says so on screen. The last five
+  passes are kept; older ones fall away so the record cannot grow without
+  bound.
+
+  Each card's own example hexes are kept with it, so a correction can be traced
+  back to the card that named it. A card whose examples you keep correcting is a
+  card named wrong — its name was written straight onto those hexes and onto
+  everything classified from them — and the tagger now says which one, instead
+  of leaving you to find it by hand after the run is over. (#169)
+
+- **"These are not all the same" now lets you answer the hexes there and then.**
+  It used to break the card into four smaller cards and ask again, so nothing
+  was applied and you went round once more. Choosing it opens that card the
+  moment you pick it — no Apply, no second pass. It opens up
+  in place, showing eight of its hexes spread across the card — not the eight
+  nearest its centre, which all look alike — each with its own answer. What you
+  tag becomes a hand tag on that hex alone, and the rest of the card is left to
+  the classifier, which is what a genuinely mixed card should get. Every other
+  card's answer is kept. (#169)
+
+- **The pictures you name a card from show the hex and nothing else.** They were
+  square crops drawn with a 20% margin of the surrounding map, so every picture
+  carried the neighbours' glyphs and their printed numbers — measured across 20
+  cells, **42% of the ink in a card picture was other hexes**. They are now
+  clipped to the same hexagon the classifier reads, so what you judge and what
+  it groups by are the same thing. A card named from a neighbour's tree is
+  exactly how a legend core ends up mislabelled. (#169)
+
+- **A hex is read as the inside of its hexagon, not the square around it.** The terrain
+  feature block-averaged each cell's bounding box, and a hexagon fills only 75%
+  of its box — so a quarter of every cell's description was its six
+  neighbours' ink: their glyphs, their printed numbers. The mask to cut that
+  out was already in the file and only the overlay path had ever used it.
+  Measured on a 4768-hex verified map, simulating a first run both ways: whole
+  map 91.4% to 92.6%, and the water 81.8% to 84.7%. Measured again through the
+  module's own first-run benchmark and averaged over four clusterings, the mask
+  is drawn a little INSIDE the hexagon rather than on its edge — 446 errors with
+  no mask, 347 at the full hexagon, **229 at 0.88** — because the printed
+  outline is shared with the six neighbours and at the vertices their glyphs
+  reach inside it. (#169)
+
+- **The module notices when your browser is running an old build.** Foundry
+  serves module scripts from unchanging URLs, so after an update a browser can
+  keep running the previous version's code indefinitely — no error, nothing in
+  the UI, just fixes that appear not to have worked. Each build now carries a
+  content hash of its scripts in two places: inside the bundle (cacheable) and
+  in `module.json` (fetched fresh). When a GM loads a world and the two differ,
+  the module says so and offers **Reload now**, which replaces the cached copy
+  of every installed script — including the lazily-loaded ones a plain reload
+  would leave stale — before reloading. `npm run inventory` stamps the hash and
+  `npm run inventory:check` fails a commit that forgot to. (#169)
+
 - **The hex dataset follows Extras' stable contract.** Terrain goes out as the
   book's word (`salt flat`, not a biome key: Extras maps it to a painted biome
   and keeps the label), hexes carry only `num`, `name`, `terrain`, `desc` and
