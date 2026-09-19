@@ -665,7 +665,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sceneName: scene?.name ?? "(no scene)", sampled, cellCount: this._cells.length, numberedCount: total,
       summary, origin, originText: origin ? `${String(origin.num).padStart(4, "0")} at grid ${origin.i},${origin.j}` : "",
       boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: origin?.bounds?.firstRow === 1,
-      mode: this._mode, modes: [["random", "Untagged cells"], ["keyed", "Keyed hexes first"], ["review", "Review queue"]].map(([v, l]) => ({ value: v, label: l, selected: v === this._mode })),
+      mode: this._mode, modes: [["random", "Hexes with no tag yet"], ["keyed", "Hexes the book keys"], ["review", "Most likely wrong"]].map(([v, l]) => ({ value: v, label: l, selected: v === this._mode })),
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
       overlays: OVERLAYS, overlayShown: !!this._overlayShown,

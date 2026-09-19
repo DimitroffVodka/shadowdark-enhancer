@@ -73,15 +73,16 @@ async function confirmLattice({ preview, full, file, lat, imageW, corners: suppo
     <div class="sde-hexmap-confirm">
       <div class="sde-hexmap-overview" id="sde-hexmap-preview" title="Open the print on its own, with no marks on it"></div>
       <div class="sde-hexmap-side">
-        <p><strong>Check the four crops, then press Create scene.</strong> Each one is a corner of your print at full size: if the blue outline sits on a printed hex in all four, the grid is right and there is nothing else to do here. If it does not, correct the columns and rows below and they redraw.</p>
-        <p>Found a hex grid of <strong>${lat.cols} × ${lat.rows}</strong> cells, ${esc(lat.lowered)} columns lowered${short ? ` (those end one row short, at ${lat.rowsLowered}; the other columns' first row is taken as the frame the column labels sit in)` : ""}, hexes ${Math.round(lat.pitchX / 0.75)} × ${Math.round(lat.pitchY)} px.</p>
+        <p><strong>Check the four crops.</strong> The blue hex should sit on a printed one.</p>
+        <p><strong>${lat.cols} × ${lat.rows}</strong> flat-top hexes, ${Math.round(lat.pitchX / 0.75)} × ${Math.round(lat.pitchY)} px, <strong>${esc(lat.lowered)}</strong> columns half a hex lower${short ? ` and one row shorter (${lat.rowsLowered})` : ""}.</p>
+        <p class="hint">The three boxes below are all you can change. Where the grid sits and how big it is were measured off the print — if the blue is not on a hex at all, cancel rather than fiddle. Pointy-top maps are not supported.</p>
         ${verdict}
         <p class="hint">Every blue mark is a hex the detector found: an outline on the corner hexes, and a dot at the centre of every fortieth cell across the overview, which is why most hexes there carry no dot. Nothing on this screen marks a fault. Drag the window edge to enlarge; clicking the overview opens your print on its own, with no marks on it.</p>
         <div class="sde-hexmap-corners" id="sde-hexmap-corners"></div>
         <div class="form-group"><label>Columns × rows</label><div class="form-fields">
           <input type="number" name="cols" value="${lat.cols}" min="1" max="99"> ×
           <input type="number" name="rows" value="${lat.rows}" min="1" max="99"></div></div>
-        <div class="form-group"><label>Lowered columns</label><select name="lowered"><option value="odd" ${lat.lowered === "odd" ? "selected" : ""}>odd (1, 3, 5…)</option><option value="even" ${lat.lowered === "even" ? "selected" : ""}>even (0, 2, 4…)</option></select></div>
+        <div class="form-group"><label>Which columns sit lower</label><select name="lowered"><option value="odd" ${lat.lowered === "odd" ? "selected" : ""}>odd (1, 3, 5…)</option><option value="even" ${lat.lowered === "even" ? "selected" : ""}>even (0, 2, 4…)</option></select></div>
         <div class="form-group"><label>Top-left hex is number</label><input type="text" name="firstNum" value="0000" maxlength="4"><p class="hint">The printed number of the top-left cell; every other cell is numbered from it.</p></div>
       </div>
     </div>`;

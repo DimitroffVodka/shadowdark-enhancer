@@ -18,7 +18,7 @@
       {{/if}}
       {{/if}}
       {{#if sampled}}{{#if origin}}
-      <label>Sheet <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
+      <label title="Which hexes the grid below shows you">Show <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
       <button type="button" data-action="hxtNextSheet" class="sde-import-secondary"><i class="fas fa-forward"></i> Next sheet</button>
       {{#if canClassify}}
       <label title="Higher values lower the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
@@ -26,7 +26,7 @@
       {{/if}}{{/if}}
       {{!-- These read the scene's stored tags, so they work whether or not it is sampled. --}}
       {{#if origin}}
-      <label>Crawl <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
+      <label title="The journal entry of book text for this map's keyed hexes, if you have imported one">Hex key <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
       {{#if entries.length}}
       <button type="button" data-action="hxtPinKeyed" class="sde-import-secondary" title="One map note per keyed hex of the chosen crawl on this scene, each opening its journal page"><i class="fas fa-map-pin"></i> Pin keyed hexes</button>
       {{/if}}
@@ -35,7 +35,7 @@
       <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}</button>
       {{/if}}
       {{#if showMore}}
-      <button type="button" data-action="hxtMore" class="sde-import-secondary sde-hxt-more-btn" aria-expanded="{{moreOpen}}" title="Map size, re-sample, import, export, the reference tile and Clear">More</button>
+      <button type="button" data-action="hxtMore" class="sde-import-secondary sde-hxt-more-btn" aria-expanded="{{moreOpen}}" title="Map size, read the image again, import, export, reference tile, clear">More</button>
       {{/if}}
       <span class="sde-hxt-stat" data-hxt-progress>{{progress}}</span>
     </div>
@@ -131,7 +131,8 @@
 
   {{#if hasLegend}}
   <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-list-ul"></i> Each card is one group of look-alike cells, biggest first, with a picture of each kind of cell in it. <strong>Name what the pictures have in common</strong> — a mountain, a mountain with a river and a mountain with a road are all one answer: mountain. A river, path or coast <em>crossing</em> a terrain is not asked here — the classifier finds those cell by cell — but a hex that is <strong>only</strong> a river, with no terrain under it, is a <strong>river</strong> card and must be named one, or its hexes have nowhere to go. Cards of map symbols have their own names: <strong>village</strong>, <strong>town</strong>, <strong>city</strong>, <strong>city state</strong> and <strong>keyed location</strong> for the star markers, which keeps them out of the terrains and leaves them to the book. If the pictures are genuinely different things, choose <strong>these are not all the same</strong> and that card alone is broken into smaller ones to name; every other answer is kept. <strong>(skip)</strong> leaves a card to the classifier. The same thing often gets several cards; name them all, then <strong>Apply legend</strong>.
+    <i class="fas fa-list-ul"></i> <strong>Name what the pictures have in common.</strong> A mountain with a river across it is still <strong>mountain</strong> — rivers and roads are found separately. Use <strong>village</strong>, <strong>town</strong>, <strong>city</strong>, <strong>city state</strong> or <strong>keyed location</strong> for the marker symbols.
+    <br><strong>(skip)</strong> leaves a card to the classifier. <strong>these are not all the same</strong> opens it up hex by hex.
   </p>
   <div class="sde-hxt-sheet sde-hxt-legend">
     {{#each legend as |g|}}

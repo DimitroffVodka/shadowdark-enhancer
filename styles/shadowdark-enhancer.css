@@ -10522,3 +10522,6 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-pick { display: flex; flex-direction: column; gap: 2px; align-items: stretch; }
 .sde-hxt-pick img { align-self: center; background: #fff; border-radius: 3px; }
 .sde-hxt-pick select, .sde-hxt-pick input { width: 100%; font-size: 11px; }
+
+/* Hex map: what the grid confirmation can and cannot change. */
+.sde-hexmap-scope { border-left: 3px solid var(--color-border-highlight, #a88); padding-left: 8px; }
