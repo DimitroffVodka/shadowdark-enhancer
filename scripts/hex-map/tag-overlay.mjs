@@ -125,7 +125,7 @@ export function terrainOptions(cells = new Map()) {
   const used = new Set([...Object.values(TERRAIN_TAGS), ...Object.values(SETTLEMENTS), "keyed_location"]);
   for (const c of cells.values()) if (c?.terrain) used.add(c.terrain);
   return [...used]
-    .map((t) => ({ value: t, label: t.replace(/_/g, " ") }))
+    .map((tag) => ({ value: tag, label: tag.replace(/_/g, " ") }))
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 

@@ -80,50 +80,39 @@
   {{/if}}
   {{/unless}}
 
+  {{!-- Facts, one line each. The GM reads this window while working in it;
+        a paragraph of explanation here is a paragraph they scroll past. --}}
   {{#if baseline}}
-  <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-flag-checkered"></i> {{{localize "SDE.hexMap.note.baseline" checked=baseline.checked right=baseline.right accuracy=baseline.accuracy}}}
-    {{#if baseline.worst}}{{localize "SDE.hexMap.note.baselineWorst"}} {{#each baseline.worst as |w|}}{{#unless @first}}, {{/unless}}{{lookup w 1}}× {{lookup w 0}}{{/each}}.{{/if}}
+  <p class="sde-hxt-note sde-hxt-facts">
+    <i class="fas fa-flag-checkered"></i> {{localize "SDE.hexMap.fact.baseline" right=baseline.right checked=baseline.checked accuracy=baseline.accuracy}}{{#if baseline.worst}} {{localize "SDE.hexMap.fact.worst"}} {{#each baseline.worst as |w|}}{{#unless @first}}, {{/unless}}{{lookup w 1}}× {{lookup w 0}}{{/each}}{{/if}}
+  </p>
+  {{/if}}
+
+  {{#if legendLog}}
+  <p class="sde-hxt-note sde-hxt-facts">
+    <i class="fas fa-clipboard-list"></i> {{localize "SDE.hexMap.fact.legend" cards=legendLog.cards named=legendLog.named skipped=legendLog.skipped opened=legendLog.opened}}
+    {{#if legendLog.suspect}}<br><strong>{{localize "SDE.hexMap.fact.suspect" name=legendLog.suspect.name wrong=legendLog.suspect.wrong core=legendLog.suspect.core size=legendLog.suspect.size}}</strong>{{/if}}
   </p>
   {{/if}}
 
   {{#if report}}
-  {{#if legendLog}}
-  <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-clipboard-list"></i> {{{localize "SDE.hexMap.note.legendLog" cards=legendLog.cards hexes=legendLog.hexes named=legendLog.named}}}{{#if legendLog.skipped}}{{localize "SDE.hexMap.note.legendLogSkipped" n=legendLog.skipped}}{{/if}}{{#if legendLog.opened}}{{localize "SDE.hexMap.note.legendLogOpened" n=legendLog.opened}}{{/if}}. {{localize "SDE.hexMap.note.legendLogKept"}}
-    {{#if legendLog.suspect}}
-    <br>{{{localize "SDE.hexMap.note.suspect" name=legendLog.suspect.name wrong=legendLog.suspect.wrong core=legendLog.suspect.core rate=legendLog.suspect.rate size=legendLog.suspect.size}}}
-    {{/if}}
-  </p>
-  {{/if}}
-  <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-chart-simple"></i> {{{localize "SDE.hexMap.note.corrections" judged=report.judged wrong=report.wrong}}}
-    {{#if report.retag}}
-    {{{localize "SDE.hexMap.note.retag" wrong=report.wrong}}}
-    {{/if}}
-    {{#if report.wrong}}
-    <br>{{{localize "SDE.hexMap.note.margin" margin=reviewMargin ringed=reviewCount caught=report.caught}}}
-    {{/if}}
+  <p class="sde-hxt-note sde-hxt-facts">
+    <i class="fas fa-chart-simple"></i> {{localize "SDE.hexMap.fact.corrections" wrong=report.wrong judged=report.judged}}{{#if report.wrong}} {{localize "SDE.hexMap.fact.ring" margin=reviewMargin ringed=reviewCount caught=report.caught}}{{/if}}
+    {{#if report.retag}}<br><strong>{{localize "SDE.hexMap.fact.retag"}}</strong>{{/if}}
     {{#if report.suggested}}
-    {{{localize "SDE.hexMap.note.suggested" suggested=report.suggested count=report.suggestedCount ringed=reviewCount}}}
     <button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="sde-import-secondary sde-hxt-inline">{{localize "SDE.hexMap.btn.ringAt" suggested=report.suggested}}</button>
+    <span class="sde-hxt-muted">{{localize "SDE.hexMap.fact.suggested" count=report.suggestedCount}}</span>
     {{/if}}
   </p>
   {{/if}}
 
-  {{#if origin}}{{#if sampled}}{{#unless hasLegend}}
-  {{#if done}}
-  <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-circle-check"></i> {{{localize "SDE.hexMap.note.done" gm=summary.gm auto=summary.auto}}} {{#if viaExtras}}{{{localize "SDE.hexMap.note.doneReady" action=(localize "SDE.hexMap.btn.sendExtras")}}}{{else}}{{{localize "SDE.hexMap.note.doneReady" action=(localize "SDE.hexMap.btn.download")}}}{{/if}}
-    {{{localize "SDE.hexMap.note.queueLead"}}}{{#if sheetExpected}}{{localize "SDE.hexMap.note.queueExpect" n=sheetExpected}}{{/if}}. {{{localize "SDE.hexMap.note.queueHow"}}}
-    {{#if noCrawl}}{{{localize "SDE.hexMap.note.noCrawl"}}}{{/if}}
-  </p>
-  {{else if summary.tagged}}
-  <p class="sde-hxt-note sde-hxt-direction">{{{localize "SDE.hexMap.note.some" untagged=summary.untagged gm=summary.gm sheet=sheet.length}}}</p>
+  {{#if origin}}{{#if sampled}}{{#unless hasLegend}}{{#unless done}}
+  {{#if summary.tagged}}
+  <p class="sde-hxt-note sde-hxt-facts">{{localize "SDE.hexMap.fact.some" untagged=summary.untagged}}</p>
   {{else}}
-  <p class="sde-hxt-note sde-hxt-direction">{{{localize "SDE.hexMap.note.none" sheet=sheet.length}}}</p>
+  <p class="sde-hxt-note sde-hxt-facts">{{localize "SDE.hexMap.fact.none"}}</p>
   {{/if}}
-  {{/unless}}{{/if}}{{/if}}
+  {{/unless}}{{/unless}}{{/if}}{{/if}}
 
   {{#if needsOrigin}}
   <p class="sde-hxt-note">

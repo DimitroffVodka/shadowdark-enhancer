@@ -434,7 +434,7 @@ class HubBatchMethods {
     const seed = String(seedName ?? "").trim().toLowerCase();
     return this._importText
       .split("\n")
-      .some((line) => { const t = line.trim(); return t && t.toLowerCase() !== seed; });
+      .some((line) => { const text = line.trim(); return text && text.toLowerCase() !== seed; });
   }
 
   /** How many drafts are sitting in the preview right now. */

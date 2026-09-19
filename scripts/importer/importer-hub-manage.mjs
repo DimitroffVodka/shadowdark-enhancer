@@ -166,13 +166,13 @@ class HubManageMethods {
       const pos = this._manageSearchCursor ?? input.value.length;
       try { input.setSelectionRange(pos, pos); } catch (_) { /* unsupported on some inputs */ }
     }
-    let t = null;
+    let timer = null;
     input.addEventListener("input", (ev) => {
       this._manageSearchFocused = true;
       this._manageSearchCursor = ev.target.selectionStart;
       this._manageSearch = ev.target.value;
-      clearTimeout(t);
-      t = setTimeout(() => this.render(), 150);
+      clearTimeout(timer);
+      timer = setTimeout(() => this.render(), 150);
     });
     input.addEventListener("blur", () => { if (input.isConnected) this._manageSearchFocused = false; });
   }

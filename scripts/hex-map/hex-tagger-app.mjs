@@ -625,7 +625,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // to invent a word for them through "other…" is how "Keyed Location" ended
     // up as a free-text terrain on the first map that met them.
     const terrainValues = [...Object.values(TERRAIN_TAGS), ...Object.values(SETTLEMENTS), KEYED_TERRAIN];
-    const terrainOptions = terrainValues.map((t) => ({ value: t, label: t.replace(/_/g, " ") }));
+    const terrainOptions = terrainValues.map((v) => ({ value: v, label: v.replace(/_/g, " ") }));
 
     // The sheet: with no origin, an alignment sheet of the first cells (top-left
     // first) each with a "this hex is number" box; with an origin, the tagging sheet.
@@ -637,16 +637,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     } else if (sampled) {
       const keyed = this._keyedNumbers();
       sheet = this._sheet.map((num) => {
-        const c = this._numbered.get(num); const t = state.cells.get(String(num));
-        const terrainOther = t?.terrain && !terrainValues.includes(t.terrain) ? t.terrain : "";
+        const c = this._numbered.get(num); const cell = state.cells.get(String(num));
+        const terrainOther = cell?.terrain && !terrainValues.includes(cell.terrain) ? cell.terrain : "";
         return {
           num, label: String(num).padStart(4, "0"), i: c?.i, j: c?.j, thumb: c ? this._thumb(c) : "",
-          terrain: t?.terrain ?? "", source: t?.source ?? "", keyed: keyed.has(num),
-          margin: t?.margin !== undefined ? Number(t.margin).toFixed(2) : "", review: !!t?.review,
-          overlays: Object.fromEntries(OVERLAYS.map((o) => [o, !!t?.overlays?.includes(o)])),
+          terrain: cell?.terrain ?? "", source: cell?.source ?? "", keyed: keyed.has(num),
+          margin: cell?.margin !== undefined ? Number(cell.margin).toFixed(2) : "", review: !!cell?.review,
+          overlays: Object.fromEntries(OVERLAYS.map((o) => [o, !!cell?.overlays?.includes(o)])),
           terrainOther,
           terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption"), selected: !!terrainOther }]
-            .map((o) => ({ ...o, selected: o.value === (terrainOther ? "__other" : (t?.terrain ?? "")) })),
+            .map((o) => ({ ...o, selected: o.value === (terrainOther ? "__other" : (cell?.terrain ?? "")) })),
         };
       });
     }
@@ -655,8 +655,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const legend = this._legend?.map((cl, idx) => {
       const counts = new Map();
       for (const n of cl.members) {
-        const t = state.cells.get(String(n)); if (!t?.terrain) continue;
-        counts.set(t.terrain, (counts.get(t.terrain) ?? 0) + 1);
+        const cell = state.cells.get(String(n)); if (!cell?.terrain) continue;
+        counts.set(cell.terrain, (counts.get(cell.terrain) ?? 0) + 1);
       }
       // A choice already made survives a split of some OTHER card.
       const majority = cl.chosen ?? ([...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "");
@@ -1118,7 +1118,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       : buildHexDataset({ name: this._scene()?.name ?? t("SDE.hexMap.app.defaultName"), source: "", tags, assignments, gridHint });
     const check = validateHexDataset(dataset);
     if (!check.ok) { ui.notifications?.error(t("SDE.hexMap.notify.datasetInvalid", { error: check.errors[0] })); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return; }
-    if (Object.values(tags).some((t) => t.overlays?.includes("coast"))) {
+    if (Object.values(tags).some((tag) => tag.overlays?.includes("coast"))) {
       ui.notifications?.warn(t("SDE.hexMap.notify.coastStays"));
     }
     // The painted scene must not share the print scene's name.

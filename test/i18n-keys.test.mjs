@@ -58,3 +58,26 @@ for (const [prefix, sources] of Object.entries(FEATURES)) {
     assert.deepEqual(wrong, []);
   });
 }
+
+/**
+ * The translator is called `t`, and `t` is a tempting name for a tag, a table
+ * or a timer. A local one shadows it, and the call then throws "t is not a
+ * function" at render time — which looks to the GM like the button doing
+ * nothing at all. That shipped once; this is what stops it shipping twice.
+ */
+test("no file that has the translator also declares a local t", () => {
+  const files = [...dir("scripts/hex-map"), ...dir("scripts/importer", /^importer-hub.*\.mjs$/)];
+  const bad = [];
+  for (const file of files) {
+    const src = readFileSync(file, "utf8");
+    // Files that reach the translator as `t` — either their own or the shared one.
+    if (!/\bt\(\s*["'`]SDE\./.test(src)) continue;
+    for (const m of src.matchAll(/\b(?:const|let|var)\s+t\s*=(?!\s*\(key)/g)) {
+      bad.push(`${file}: ${src.slice(m.index, m.index + 40).split("\n")[0]}`);
+    }
+    for (const m of src.matchAll(/\((?:[^()]*,\s*)?t\s*(?:,[^()]*)?\)\s*=>/g)) {
+      bad.push(`${file}: arrow parameter t — ${m[0]}`);
+    }
+  }
+  assert.deepEqual(bad, []);
+});

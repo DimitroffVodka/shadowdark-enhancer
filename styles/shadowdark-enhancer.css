@@ -10509,6 +10509,8 @@ body.theme-light .sde-parry-note { color: #2e6b2e; }
 .sde-hxt-more-row label { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 0.85rem; }
 .sde-hxt-more-panel .sde-hxt-muted { margin: 0; }
 .sde-hxt-direction { border-left: 3px solid #d3af63; padding: 6px 8px; }
+/* One line of facts, not a paragraph: keep it compact and out of the way. */
+.sde-hxt-facts { border-left: 3px solid #d3af63; padding: 3px 8px; margin: 2px 0; font-size: 0.9em; line-height: 1.35; }
 /* The hex brush: a small window that stays open over the map while painting. */
 .sde-hxb { display: flex; flex-direction: column; gap: 6px; }
 .sde-hxb .sde-hxb-overlays { display: flex; flex-wrap: wrap; gap: 8px; }

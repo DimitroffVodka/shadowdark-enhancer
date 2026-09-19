@@ -528,7 +528,7 @@ class HubCommitMethods {
       return 0;
     }
     const done = new Set(matched);
-    this._importTables = this._importTables.filter((t) => !done.has(t));
+    this._importTables = this._importTables.filter((draft) => !done.has(draft));
     this._importSeed = null;
     for (const doc of [...result.created, ...result.replaced]) await this._registerCharBuilderTable(doc);
     this._invalidateCharCache();

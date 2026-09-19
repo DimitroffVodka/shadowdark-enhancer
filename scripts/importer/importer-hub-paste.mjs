@@ -71,12 +71,12 @@ class HubPasteMethods {
       const pos = this._importTextCursor ?? ta.value.length;
       try { ta.setSelectionRange(pos, pos); } catch (_) {}
     }
-    let t = null;
+    let timer = null;
     ta.addEventListener("input", (ev) => {
       this._importTextFocused = true;
       this._importTextCursor = ev.target.selectionStart;
-      clearTimeout(t);
-      t = setTimeout(() => { this._importText = ev.target.value; }, 200);
+      clearTimeout(timer);
+      timer = setTimeout(() => { this._importText = ev.target.value; }, 200);
     });
     ta.addEventListener("blur", () => { this._importTextFocused = false; this._importText = ta.value; });
   }
@@ -1076,7 +1076,7 @@ class HubPasteMethods {
         // Skipped review list instead of vanishing.
         const dropped = [];
         items = parseGear(text, this._importItemSubtype,
-          { onDrop: (t, reason) => dropped.push({ name: String(t).slice(0, 80), reason }) });
+          { onDrop: (dropName, reason) => dropped.push({ name: String(dropName).slice(0, 80), reason }) });
         await resolveGearPropertiesAll(items);
         skipped = dropped;
       } else {
@@ -1136,7 +1136,7 @@ class HubPasteMethods {
       if (nameTables.length) {
         keep = nameTables[0];
       } else {
-        keep = tables.find((t) => t.name && t.name.toLowerCase() === want.toLowerCase())
+        keep = tables.find((tbl) => tbl.name && tbl.name.toLowerCase() === want.toLowerCase())
           ?? tables.reduce((a, b) => ((b.rows?.length ?? 0) > (a.rows?.length ?? 0) ? b : a));
       }
       // A background bundle's d100 list spans several PDF pages joined by blank
@@ -1371,11 +1371,11 @@ class HubPasteMethods {
         this._importText, seed.columns, seed.widths, provenance,
       );
       this._importGenerators = [];
-      split.forEach((t, i) => {
-        t.name = `${seed.name} - ${seed.columns[i]}`;
-        if (seed.folderLabel) { t.category = CUSTOM_ID; t.customLabel = seed.folderLabel; }
-        if (folderPath.length) t.folderPath = folderPath;
-        t.manifestId = columnManifestId(seed.manifestId, seed.columns[i]);
+      split.forEach((part, i) => {
+        part.name = `${seed.name} - ${seed.columns[i]}`;
+        if (seed.folderLabel) { part.category = CUSTOM_ID; part.customLabel = seed.folderLabel; }
+        if (folderPath.length) part.folderPath = folderPath;
+        part.manifestId = columnManifestId(seed.manifestId, seed.columns[i]);
       });
       this._importTables = split;
       return;
