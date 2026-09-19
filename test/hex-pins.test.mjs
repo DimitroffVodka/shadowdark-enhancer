@@ -6,7 +6,7 @@ const numbered = new Map([[1403, { x: 100.4, y: 200.6 }], [505, { x: 50, y: 60 }
 
 test("planPins: one note per keyed page at its hex centre, icon by feature, missing hexes reported", () => {
   const pages = [
-    { id: "p1", num: "1403", name: "1403 Serengal", feature: "town" },
+    { id: "p1", num: "1403", name: "1403 Thornmere", feature: "town" },
     { id: "p2", num: "0505", name: "0505 Old tower" },
     { id: "p3", num: "9999", name: "9999 Off the map", feature: "village" },
     { id: "p4", num: "", name: "Preface" },
@@ -16,14 +16,14 @@ test("planPins: one note per keyed page at its hex centre, icon by feature, miss
   assert.deepEqual(missing, [9999]);
   assert.equal(create.length, 2);
   const [a, b] = create;
-  assert.deepEqual([a.entryId, a.pageId, a.x, a.y, a.text], ["J1", "p1", 100, 201, "1403 Serengal"]);
+  assert.deepEqual([a.entryId, a.pageId, a.x, a.y, a.text], ["J1", "p1", 100, 201, "1403 Thornmere"]);
   assert.equal(a.texture.src, PIN_ICONS.town);
   assert.equal(b.texture.src, PIN_ICONS.keyed_location, "no feature → keyed location icon");
   assert.deepEqual(a.flags["shadowdark-enhancer"].hexPin, { num: 1403 });
 });
 
 test("planPins: existing pins are moved, not duplicated", () => {
-  const pages = [{ id: "p1", num: 1403, name: "1403 Serengal" }, { id: "p5", num: 6373, name: "6373 Cliff" }];
+  const pages = [{ id: "p1", num: 1403, name: "1403 Thornmere" }, { id: "p5", num: 6373, name: "6373 Cliff" }];
   const { create, update } = planPins(pages, numbered, [{ id: "n1", num: 1403 }], { entryId: "J1", iconSize: 52 });
   assert.equal(update.length, 1);
   assert.deepEqual([update[0]._id, update[0].pageId, update[0].iconSize], ["n1", "p1", 52]);

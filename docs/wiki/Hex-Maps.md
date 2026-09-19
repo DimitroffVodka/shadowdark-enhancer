@@ -470,9 +470,9 @@ the image's URL.
   grid: { cols, rows, distance: 6, units: "mi", landscape: false, flipX: false, flipY: false,
           origin: 0,        // only for a map that numbers its first column and row 0
           rowsLowered: 74 },// only when the lowered columns end one row short
-  terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1341, ...] } ] },
-  hexes:   [ { num: 4541, name, terrain, desc, zone } ],
-  networks: { river: [1246, ...], road: [4649, ...] }
+  terrain: { default: "forest", regions: [ { biome: "mountain", hexes: [1346, ...] } ] },
+  hexes:   [ { num: 4546, name, terrain, desc, zone } ],
+  networks: { river: [1251, ...], road: [4654, ...] }
 }
 ```
 

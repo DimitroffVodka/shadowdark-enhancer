@@ -3,7 +3,7 @@
 ## [Unreleased]
 
 ### Added
-- **Hex key pages.** A pasted hex key (numbered entries such as `1403 Serengal`,
+- **Hex key pages.** A pasted hex key (numbered entries such as `1403 Thornmere`,
   three or more in a run) now shows a **Hex key** strip in the Importer Hub.
   **Create hex pages** files one journal page per hex into the Journals pack
   under your source, in a journal entry named after the crawl. References to

@@ -92,14 +92,14 @@ merges that pdf.js column extraction should avoid; verify in Phase 1.
           landscape: false, flipX: false, flipY: false },
   terrain: {
     default: "forest",                // as built: the book's terrain WORD; Extras maps it to a biome (its Developer API)
-    regions: [ { biome: "mountains", hexes: [1341, 1041, ...] }, ... ]
+    regions: [ { biome: "mountains", hexes: [1346, 1041, ...] }, ... ]
   },
   hexes: [
-    { num: 4541, name: "Serengal", terrain: "ocean", desc: "<p>...</p>",
-      zone: "Kyzian Steppes" },   // as built: no icon/feature — Extras' builder rejects unknown hex keys; the settlement marker stays on the crawl entry
+    { num: 4546, name: "Thornmere", terrain: "ocean", desc: "<p>...</p>",
+      zone: "Ember Steppes" },   // as built: no icon/feature — Extras' builder rejects unknown hex keys; the settlement marker stays on the crawl entry
     ...
   ],
-  networks: { river: [1246, 1247, ...], road: [4649, 4749, ...] }
+  networks: { river: [1251, 1247, ...], road: [4654, 4749, ...] }
 }
 ```
 
@@ -210,7 +210,7 @@ export async function commitHexDrafts(drafts, { sourceKey, crawlTitle })
   Flow: `ensureSuite()`, `findSuitePack("journal")`, `ensureSourceFolder(pack,
   sourceKey)`; one JournalEntry per crawl title inside the source folder, flagged
   `hex: { source, crawl }`; one `JournalEntryPage` (type text) per draft, named
-  `"1403 Serengal"`, flagged `hex: { num, key }`, HTML from
+  `"1403 Thornmere"`, flagged `hex: { num, key }`, HTML from
   `buildHexPageHtml(draft, hexKeySet)` through `cleanImportHtml`. Pass 2: with the
   created page uuids, rewrite every page's HTML once with `rewriteHexPlaceholders`.
   Re-import: `planHexCommit` matches on the `hex.key` flag and updates in place;
@@ -299,8 +299,8 @@ precedence, grid sizing, numbers-only assertion (`1403` appears as `1403`, never
 
 ### Live check
 Grab pp. 68 to 70 through the hub's "Grab text" with the WR PDF registered and
-confirm the row count is 270 and the three previously merged entries (1246, 3472,
-4649) parse. Record the result in the worklog either way.
+confirm the row count is 270 and the three previously merged entries (1251, 3472,
+4654) parse. Record the result in the worklog either way.
 
 ### Release point A
 Hex pages plus dataset download. Useful with or without Extras.

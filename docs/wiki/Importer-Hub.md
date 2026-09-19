@@ -142,7 +142,7 @@ tables in sequence).
   standard item import shares a name with an existing generated monster spell,
   *Replace* is automatically downgraded to *Keep both* with an explanatory
   warning.
-- **Hex keys:** A pasted hex key (numbered entries such as `1403 Serengal`,
+- **Hex keys:** A pasted hex key (numbered entries such as `1403 Thornmere`,
   three or more in a run) shows a **Hex key** strip with its own **Create hex
   pages** button. It files one journal page per hex into the Journals pack
   under your source, inside a journal entry named after the crawl. The name is

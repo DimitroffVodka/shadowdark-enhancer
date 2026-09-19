@@ -6,12 +6,12 @@ import { parseHexSummaryRows, splitSummaryRows, rowCandidates, splitName, rowTag
 
 const TABLE = [
   "Keyed Locations",
-  "216   Grey Reach, The   Arctic sea      Puffin Rock",
-  "353   Tallow Jungle     Jungle          Low Ford2",
-  "1246  Tallow Jungle     Jungle, path    Bone Choir*",
-  "1108  Isles of Varn     Forest          Forest Shrine",
-  "407   Isles of Varn     Mountain        Dwarfhold3†",
-  "933   Grey Reach, The   Coast           Old Light",
+  "211   Grey Reach, The   Arctic sea      Puffin Rock",
+  "358   Tallow Jungle     Jungle          Low Ford2",
+  "1251  Tallow Jungle     Jungle, path    Bone Choir*",
+  "1113  Isles of Varn     Forest          Forest Shrine",
+  "412   Isles of Varn     Mountain        Dwarfhold3†",
+  "938   Grey Reach, The   Coast           Coldwatch",
   "",
   "1403 The Mountain Pass",
   "A single heading in prose must not be claimed as a row.",
@@ -20,26 +20,26 @@ const TABLE = [
 test("rows split on the terrain run; zone and name survive terrain words inside them", () => {
   const { rows } = parseHexSummaryRows(TABLE);
   const by = Object.fromEntries(rows.map((r) => [r.num, r]));
-  assert.deepEqual(Object.keys(by).sort(), ["1108", "1246", "216", "353", "407", "933"]);
-  assert.deepEqual([by["216"].zone, by["216"].terrain, by["216"].name], ["Grey Reach, The", ["arctic_sea"], "Puffin Rock"]);
-  assert.deepEqual([by["1246"].zone, by["1246"].terrain, by["1246"].name], ["Tallow Jungle", ["jungle", "path"], "Bone Choir"]);
-  assert.deepEqual([by["1108"].zone, by["1108"].terrain, by["1108"].name], ["Isles of Varn", ["forest"], "Forest Shrine"]);
-  assert.equal(by["216"].key, "2,16");
+  assert.deepEqual(Object.keys(by).sort(), ["1113", "1251", "211", "358", "412", "938"]);
+  assert.deepEqual([by["211"].zone, by["211"].terrain, by["211"].name], ["Grey Reach, The", ["arctic_sea"], "Puffin Rock"]);
+  assert.deepEqual([by["1251"].zone, by["1251"].terrain, by["1251"].name], ["Tallow Jungle", ["jungle", "path"], "Bone Choir"]);
+  assert.deepEqual([by["1113"].zone, by["1113"].terrain, by["1113"].name], ["Isles of Varn", ["forest"], "Forest Shrine"]);
+  assert.equal(by["211"].key, "2,11");
 });
 
 test("settlement digits and markers come off the name", () => {
   const { rows } = parseHexSummaryRows(TABLE);
   const by = Object.fromEntries(rows.map((r) => [r.num, r]));
-  assert.deepEqual([by["353"].name, by["353"].feature, by["353"].markers], ["Low Ford", "town", ""]);
-  assert.deepEqual([by["407"].name, by["407"].feature, by["407"].markers], ["Dwarfhold", "city", "†"]);
-  assert.deepEqual([by["1246"].feature, by["1246"].markers], ["keyed_location", "*"]);
+  assert.deepEqual([by["358"].name, by["358"].feature, by["358"].markers], ["Low Ford", "town", ""]);
+  assert.deepEqual([by["412"].name, by["412"].feature, by["412"].markers], ["Dwarfhold", "city", "†"]);
+  assert.deepEqual([by["1251"].feature, by["1251"].markers], ["keyed_location", "*"]);
   assert.deepEqual(splitName("Bone Choir*3†"), { name: "Bone Choir", feature: "city", markers: "*†" });
 });
 
 test("a lone row-shaped heading outside a run is never a row", () => {
   const { rows } = parseHexSummaryRows(TABLE);
   assert.ok(!rows.some((r) => r.num === "1403"));
-  const two = ["216 Grey Reach, The Arctic sea Puffin Rock", "353 Tallow Jungle Jungle Low Ford2"].join("\n");
+  const two = ["211 Grey Reach, The Arctic sea Puffin Rock", "358 Tallow Jungle Jungle Low Ford2"].join("\n");
   assert.equal(parseHexSummaryRows(two).rows.length, 0, `runs shorter than ${MIN_RUN} claim nothing`);
 });
 
@@ -59,16 +59,16 @@ test("splitSummaryRows removes the row lines and keeps everything else", () => {
 
 test("a keyed row becomes the tag the map wants: the feature, plus the book's river or path", () => {
   const { rows } = parseHexSummaryRows([
-    "1246  Tallow Jungle    Jungle, path   Bone Choir*",
-    "353   Tallow Jungle    Jungle         Low Ford2",
-    "216   Grey Reach, The  Arctic sea     Puffin Rock",
+    "1251  Tallow Jungle    Jungle, path   Bone Choir*",
+    "358   Tallow Jungle    Jungle         Low Ford2",
+    "211   Grey Reach, The  Arctic sea     Puffin Rock",
     "418   Grey Reach, The  Mountain, river  High Gate3",
   ].join("\n"));
   assert.equal(rows.length, 4);
   assert.deepEqual(rows.map((r) => [r.num, rowTag(r)]), [
-    ["1246", { terrain: "keyed_location", overlays: ["path"] }],
-    ["353", { terrain: "town", overlays: [] }],
-    ["216", { terrain: "keyed_location", overlays: [] }],
+    ["1251", { terrain: "keyed_location", overlays: ["path"] }],
+    ["358", { terrain: "town", overlays: [] }],
+    ["211", { terrain: "keyed_location", overlays: [] }],
     ["418", { terrain: "city", overlays: ["river"] }],
   ]);
 });
