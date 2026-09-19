@@ -7,6 +7,20 @@
  */
 
 
+/**
+ * One string from `languages/en.json`.
+ *
+ * Not `game.i18n` at every call site: these modules are imported by the node
+ * suites, which stub a `game` with no `i18n` on it, and a UI string is never
+ * worth throwing over. Falls back to the key, which is what Foundry shows for
+ * a missing translation anyway.
+ */
+export const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /** Common source labels offered as datalist suggestions. */
 export const SOURCE_SUGGESTIONS = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6", "Western Reaches"];
 

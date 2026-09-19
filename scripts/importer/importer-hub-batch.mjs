@@ -27,7 +27,7 @@
  *     dropped. The end-of-run report is the deliverable, not the toasts.
  */
 
-import { installMethods } from "./importer-hub-shared.mjs";
+import { installMethods, t } from "./importer-hub-shared.mjs";
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
@@ -57,15 +57,15 @@ class HubBatchMethods {
    * absent = the whole tree.
    */
   async _onBatchImport(event, target) {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import."); return; }
-    if (this._batchState) { ui.notifications.warn("A batch import is already running."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnly")); return; }
+    if (this._batchState) { ui.notifications.warn(t("SDE.importer.batch.alreadyRunning")); return; }
 
     const rootId = target?.dataset?.nodeId || null;
-    const scopeLabel = rootId ? (target?.dataset?.label || "this folder") : "your whole library";
+    const scopeLabel = rootId ? (target?.dataset?.label || t("SDE.importer.batch.thisFolder")) : t("SDE.importer.batch.wholeLibrary");
     // Claim the run NOW. Both the census below and the confirm dialog are
     // awaited, and the tree stays clickable through them — without this a
     // second click would plan and run the same entries in parallel.
-    this._batchState = { total: 0, done: 0, cancelled: false, label: scopeLabel, current: "Planning…" };
+    this._batchState = { total: 0, done: 0, cancelled: false, label: scopeLabel, current: t("SDE.importer.batch.planning") };
     let plan;
     try {
       // The tree is the plan's input, so it must exist even when the GM clicked
@@ -76,8 +76,8 @@ class HubBatchMethods {
       });
       if (!plan.jobs.length) {
         const why = plan.blocked.length
-          ? `Nothing can run unattended here — ${plan.blocked.length} row${plan.blocked.length === 1 ? "" : "s"} need${plan.blocked.length === 1 ? "s" : ""} a source PDF or a hand paste.`
-          : "Nothing left to import here — every row is already in your library.";
+          ? t(plan.blocked.length === 1 ? "SDE.importer.batch.noneRunnableOne" : "SDE.importer.batch.noneRunnableMany", { n: plan.blocked.length })
+          : t("SDE.importer.batch.nothingLeft");
         ui.notifications.info(why);
         if (plan.blocked.length) await this._batchReportDialog(summarizeBatch([], plan.blocked), scopeLabel);
         return;
@@ -95,7 +95,7 @@ class HubBatchMethods {
   _onBatchCancel() {
     if (!this._batchState) return;
     this._batchState.cancelled = true;
-    ui.notifications.info("Stopping after the current entry…");
+    ui.notifications.info(t("SDE.importer.batch.stopping"));
     this.render();
   }
 
@@ -218,10 +218,11 @@ class HubBatchMethods {
       && Array.isArray(result.entries));
     const entryTotal = mountBulk ? summary.entries - summary.blocked : summary.jobs;
     ui.notifications.info(
-      `Batch import: ${summary.documents} document${summary.documents === 1 ? "" : "s"} created across `
-      + `${summary.created} of ${entryTotal} entr${entryTotal === 1 ? "y" : "ies"}`
-      + `${summary.failed ? `, ${summary.failed} failed` : ""}`
-      + `${summary.blocked ? `, ${summary.blocked} skipped` : ""}.`);
+      t(summary.documents === 1 ? "SDE.importer.batch.doneOne" : "SDE.importer.batch.doneMany", { docs: summary.documents })
+      + t(entryTotal === 1 ? "SDE.importer.batch.acrossOne" : "SDE.importer.batch.acrossMany",
+        { created: summary.created, total: entryTotal })
+      + (summary.failed ? t("SDE.importer.batch.doneFailed", { n: summary.failed }) : "")
+      + (summary.blocked ? t("SDE.importer.batch.doneSkipped", { n: summary.blocked }) : "") + ".");
     await this._batchReportDialog(summary, scopeLabel);
   }
 
@@ -641,22 +642,18 @@ class HubBatchMethods {
       `<li><strong>${n}</strong> ${esc(routeLabel[route] ?? route)}</li>`).join("");
     const covered = plan.jobs.reduce((a, j) => a + j.covers.length, 0);
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Import everything" },
+      window: { title: t("SDE.importer.batch.confirmTitle") },
       position: { width: 520 },
       content: `
-        <p>Import <strong>${plan.jobs.length}</strong> entr${plan.jobs.length === 1 ? "y" : "ies"} from
-           ${esc(scopeLabel)}, covering <strong>${covered}</strong> of the
-           ${plan.lockedCount} row${plan.lockedCount === 1 ? "" : "s"} still locked:</p>
+        <p>${t(plan.jobs.length === 1 ? "SDE.importer.batch.confirmLeadOne" : "SDE.importer.batch.confirmLeadMany",
+          { jobs: plan.jobs.length, scope: esc(scopeLabel), covered, locked: plan.lockedCount })}</p>
         <ul style="margin:.3em 0">${rows}</ul>
-        ${plan.blocked.length ? `<p><i class="fas fa-circle-info"></i> ${plan.blocked.length} row${plan.blocked.length === 1 ? "" : "s"} can't run unattended (no linked PDF, no page cite, or a hand-paste entry). They're listed in the report at the end.</p>` : ""}
+        ${plan.blocked.length ? `<p><i class="fas fa-circle-info"></i> ${t(plan.blocked.length === 1 ? "SDE.importer.batch.blockedOne" : "SDE.importer.batch.blockedMany", { n: plan.blocked.length })}</p>` : ""}
         <p style="color:var(--sde-bar-text-muted,#9a9a9a);font-size:.85em">
-          Each entry runs the same unlock → grab → parse → create you'd click by hand, reading
-          from your own uploaded books. Anything already in your library is kept as it is —
-          nothing is replaced or deleted — and anything that fails a quality check is left for
-          you to review. You can stop the run at any point.</p>`,
+          ${t("SDE.importer.batch.confirmNote")}</p>`,
       buttons: [
-        { action: "run", label: `Import ${plan.jobs.length}`, icon: "fa-solid fa-file-import", default: true },
-        { action: "cancel", label: "Cancel", icon: "fa-solid fa-xmark" },
+        { action: "run", label: t("SDE.importer.batch.runLabel", { n: plan.jobs.length }), icon: "fa-solid fa-file-import", default: true },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fa-solid fa-xmark" },
       ],
       rejectClose: false,
     }).catch(() => "cancel");
@@ -666,11 +663,11 @@ class HubBatchMethods {
   /** End-of-run report: one line per entry, grouped by what happened to it. */
   async _batchReportDialog(summary, scopeLabel) {
     const groups = [
-      { status: "created",   title: "Imported",              icon: "fa-circle-check" },
-      { status: "nothing",   title: "Nothing to import",     icon: "fa-circle-minus" },
-      { status: "failed",    title: "Needs your attention",  icon: "fa-triangle-exclamation" },
-      { status: "cancelled", title: "Not run (cancelled)",   icon: "fa-ban" },
-      { status: "blocked",   title: "Import these by hand",  icon: "fa-hand" },
+      { status: "created",   title: t("SDE.importer.report.created"),   icon: "fa-circle-check" },
+      { status: "nothing",   title: t("SDE.importer.report.nothing"),   icon: "fa-circle-minus" },
+      { status: "failed",    title: t("SDE.importer.report.failed"),    icon: "fa-triangle-exclamation" },
+      { status: "cancelled", title: t("SDE.importer.report.cancelled"), icon: "fa-ban" },
+      { status: "blocked",   title: t("SDE.importer.report.blocked"),   icon: "fa-hand" },
     ];
     const body = groups.map((g) => {
       const lines = summary.lines.filter((l) => l.status === g.status);
@@ -681,13 +678,13 @@ class HubBatchMethods {
               <ul style="margin:0 0 .2em 1.1em">${items}</ul>`;
     }).join("");
     await foundry.applications.api.DialogV2.wait({
-      window: { title: "Batch import report" },
+      window: { title: t("SDE.importer.report.title") },
       position: { width: 620, height: 620 },
       content: `
-        <p>${summary.documents} document${summary.documents === 1 ? "" : "s"} created from
-           ${esc(scopeLabel)}.</p>
-        <div style="max-height:440px;overflow:auto">${body || "<p>Nothing to report.</p>"}</div>`,
-      buttons: [{ action: "ok", label: "Close", default: true }],
+        <p>${t(summary.documents === 1 ? "SDE.importer.report.leadOne" : "SDE.importer.report.leadMany",
+          { docs: summary.documents, scope: esc(scopeLabel) })}</p>
+        <div style="max-height:440px;overflow:auto">${body || `<p>${t("SDE.importer.report.empty")}</p>`}</div>`,
+      buttons: [{ action: "ok", label: t("SDE.importer.btn.close"), default: true }],
       rejectClose: false,
     }).catch(() => null);
   }

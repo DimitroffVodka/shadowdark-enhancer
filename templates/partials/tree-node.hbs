@@ -10,9 +10,9 @@
     <i class="fas {{node.icon}} sde-mtree-icon"></i>
     <span class="sde-mtree-label">{{node.label}}</span>
     <span class="sde-mtree-chips">
-      <span class="sde-mtree-chip unlocked" title="Present in this world / the suite">
+      <span class="sde-mtree-chip unlocked" title="{{localize 'SDE.importer.tree.presentTip'}}">
         <i class="fas fa-circle-check"></i> {{node.have}}</span>
-      <span class="sde-mtree-chip locked{{#if node.locked}} has{{/if}}" title="Not yet imported — paste from your own book to import">
+      <span class="sde-mtree-chip locked{{#if node.locked}} has{{/if}}" title="{{localize 'SDE.importer.tree.lockedTip'}}">
         <i class="fas fa-file-import"></i> {{node.locked}}</span>
     </span>
   </div>
@@ -29,8 +29,8 @@
       <button type="button" class="sde-mtree-unlock sde-mtree-batchbtn"
               data-action="batchImport" data-node-id="{{node.id}}" data-label="{{node.label}}"
               {{#if @root.batch}}disabled{{/if}}
-              title="Import everything still locked in “{{node.label}}” — grabs, parses and creates each entry from your own uploaded books">
-        <i class="fas fa-wand-magic-sparkles"></i> Import all {{node.runnable}} in {{node.label}}
+              title="{{localize 'SDE.importer.tree.batchNodeTip' label=node.label}}">
+        <i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.importer.tree.batchNode" n=node.runnable label=node.label}}
       </button>
     </p>
     {{/if}}
@@ -38,8 +38,8 @@
     <p class="sde-mtree-batchrow">
       <button type="button" class="sde-mtree-unlock sde-mtree-batchbtn"
               data-action="patronFillDescription" data-node-id="{{node.id}}"
-              title="Read each imported patron's page from your linked Western Reaches PDF and fill in every Patron Item in “{{node.label}}” that has no description yet">
-        <i class="fas fa-file-lines"></i> Fill all {{node.fillable}} descriptions in {{node.label}}
+              title="{{localize 'SDE.importer.tree.fillAllTip' label=node.label}}">
+        <i class="fas fa-file-lines"></i> {{localize "SDE.importer.tree.fillAll" n=node.fillable label=node.label}}
       </button>
     </p>
     {{/if}}
@@ -54,18 +54,18 @@
       {{#each node.entries as |e|}}
       <li class="sde-mtree-entry {{#if e.present}}is-present{{else}}is-locked{{/if}}"
           {{#if e.present}}data-name="{{e.name}}" data-type="{{e.type}}" data-src="{{e.src}}"
-          title="Double-click to open “{{e.name}}”"{{/if}}>
+          title="{{localize 'SDE.importer.tree.openTip' name=e.name}}"{{/if}}>
         <i class="fas {{#if e.present}}fa-circle-check{{else}}fa-file-import{{/if}} sde-mtree-entry-mark"></i>
         <span class="sde-mtree-entry-name">{{e.name}}</span>
-        {{#if e.pages}}<span class="sde-mtree-entry-pg" title="Page in the source book">{{#if e.src}}{{e.src}} {{/if}}pg {{e.pages}}{{#if e.pagesAlt}} or {{e.pagesAlt}}{{/if}}</span>{{/if}}
+        {{#if e.pages}}<span class="sde-mtree-entry-pg" title="{{localize 'SDE.importer.tree.pageTip'}}">{{#if e.src}}{{e.src}} {{/if}}{{localize "SDE.importer.tree.page" pages=e.pages}}{{#if e.pagesAlt}}{{localize "SDE.importer.tree.pageAlt" alt=e.pagesAlt}}{{/if}}</span>{{/if}}
         {{#if e.present}}
-        <span class="sde-mtree-entry-tag">{{#if e.countNote}}{{e.countNote}}{{else}}imported{{/if}}</span>
+        <span class="sde-mtree-entry-tag">{{#if e.countNote}}{{e.countNote}}{{else}}{{localize "SDE.importer.tree.imported"}}{{/if}}</span>
         {{!-- A Western Reaches patron imported before its description was
               captured: fill it from the linked PDF. Gone once filled. --}}
         {{#if e.fillDesc}}
           <button type="button" class="sde-mtree-unlock" data-action="patronFillDescription" data-name="{{e.name}}"
-                  title="Read this patron's page from your linked Western Reaches PDF and fill in the Patron Item's description">
-            <i class="fas fa-file-lines"></i> Fill description
+                  title="{{localize 'SDE.importer.tree.fillOneTip'}}">
+            <i class="fas fa-file-lines"></i> {{localize "SDE.importer.tree.fillOne"}}
           </button>
         {{/if}}
         {{else}}
@@ -75,8 +75,8 @@
           <button type="button" class="sde-mtree-unlock"
                   data-action="{{e.seedAction}}" data-name="{{e.name}}"
                   data-type="{{e.type}}" data-src="{{e.src}}" data-pages="{{e.pages}}" data-list-key="{{e.listKey}}" data-content-id="{{e.contentId}}" data-manifest-id="{{e.manifestId}}"
-                  title="Import “{{e.name}}” — opens the importer (paste from your own book)">
-            <i class="fas fa-file-import"></i> {{#if e.importLabel}}{{e.importLabel}}{{else}}Import{{/if}}
+                  title="{{localize 'SDE.importer.tree.importTip' name=e.name}}">
+            <i class="fas fa-file-import"></i> {{#if e.importLabel}}{{e.importLabel}}{{else}}{{localize "SDE.importer.btn.import"}}{{/if}}
           </button>
         {{/if}}
       </li>

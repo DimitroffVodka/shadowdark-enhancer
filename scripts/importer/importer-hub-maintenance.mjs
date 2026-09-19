@@ -17,6 +17,7 @@
  */
 
 import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
+import { t } from "./importer-hub-shared.mjs";
 
 /** Export the entire suite as one JSON bundle download (REQ-25, A-04). */
 export async function exportSuiteBundle(_app) {
@@ -27,7 +28,7 @@ export async function exportSuiteBundle(_app) {
     bundle = await exportBundle();
   } catch (err) {
     console.error("shadowdark-enhancer | bundle export: unexpected error:", err);
-    ui.notifications?.error("Bundle export failed — see the console for details.");
+    ui.notifications?.error(t("SDE.importer.bundle.exportFailed"));
     return;
   }
   if (!bundle) return;
@@ -35,9 +36,9 @@ export async function exportSuiteBundle(_app) {
   const parts = Object.entries(s)
     .filter(([, v]) => v && typeof v === "object" && v.docs)
     .map(([k, v]) => `${k} ${v.docs}`);
-  const warn = bundle.warnings.length ? ` · ${bundle.warnings.length} unresolved ref(s) — see console` : "";
+  const warn = bundle.warnings.length ? t("SDE.importer.bundle.unresolved", { n: bundle.warnings.length }) : "";
   if (bundle.warnings.length) console.warn("shadowdark-enhancer | bundle warnings:", bundle.warnings);
-  ui.notifications?.info(`Bundle exported: ${parts.join(" · ")}${warn}.`);
+  ui.notifications?.info(t("SDE.importer.bundle.exported", { parts: parts.join(" · "), warn }));
 }
 
 /**
@@ -50,18 +51,18 @@ export async function importSuiteBundle(app) {
 
   // File picker dialog.
   const picked = await foundry.applications.api.DialogV2.wait({
-    window: { title: "Import Bundle" },
-    content: `<p>Select a Shadowdark Enhancer bundle (.json):</p>
+    window: { title: t("SDE.importer.bundle.title") },
+    content: `<p>${t("SDE.importer.bundle.pick")}</p>
       <input type="file" name="bundle-file" accept=".json,application/json">`,
     buttons: [
       {
-        action: "load", label: "Load", default: true,
+        action: "load", label: t("SDE.importer.btn.load"), default: true,
         callback: (ev, button, dialog) => {
           const el = (dialog.element ?? dialog)?.querySelector?.("input[name='bundle-file']");
           return el?.files?.[0] ?? null;
         },
       },
-      { action: "cancel", label: "Cancel" },
+      { action: "cancel", label: t("SDE.importer.btn.cancel") },
     ],
     rejectClose: false,
   }).catch(() => null);
@@ -71,28 +72,31 @@ export async function importSuiteBundle(app) {
   try {
     bundle = JSON.parse(await picked.text());
   } catch {
-    ui.notifications?.error("That file is not valid JSON.");
+    ui.notifications?.error(t("SDE.importer.bundle.badJson"));
     return;
   }
   const check = validateBundle(bundle);
   if (!check.ok) {
-    ui.notifications?.error(`Not a valid bundle: ${check.errors.join("; ")}.`);
+    ui.notifications?.error(t("SDE.importer.bundle.invalid", { errors: check.errors.join("; ") }));
     return;
   }
 
   // Per-pack summary confirm before touching anything.
   const rows = Object.entries(bundle.packs)
-    .map(([k, p]) => `<li>${foundry.utils.escapeHTML(k)}: ${p.docs.length} doc(s), ${p.folders.length} folder(s)</li>`)
+    .map(([k, p]) => `<li>${t("SDE.importer.bundle.packRow", { pack: foundry.utils.escapeHTML(k), docs: p.docs.length, folders: p.folders.length })}</li>`)
     .join("");
   const choice = await foundry.applications.api.DialogV2.wait({
-    window: { title: "Import Bundle" },
-    content: `<p>Bundle from world <strong>${foundry.utils.escapeHTML(bundle.world ?? "?")}</strong>
-      (module v${foundry.utils.escapeHTML(bundle.moduleVersion ?? "?")}, exported ${foundry.utils.escapeHTML((bundle.exported ?? "").slice(0, 10))}):</p>
+    window: { title: t("SDE.importer.bundle.title") },
+    content: `<p>${t("SDE.importer.bundle.from", {
+      world: foundry.utils.escapeHTML(bundle.world ?? "?"),
+      version: foundry.utils.escapeHTML(bundle.moduleVersion ?? "?"),
+      exported: foundry.utils.escapeHTML((bundle.exported ?? "").slice(0, 10)),
+    })}</p>
       <ul>${rows}</ul>
-      <p>Documents already in your packs (same id) are skipped — nothing is overwritten or deleted.</p>`,
+      <p>${t("SDE.importer.bundle.skipNote")}</p>`,
     buttons: [
-      { action: "import", label: "Import", default: true },
-      { action: "cancel", label: "Cancel" },
+      { action: "import", label: t("SDE.importer.btn.import"), default: true },
+      { action: "cancel", label: t("SDE.importer.btn.cancel") },
     ],
     rejectClose: false,
   }).catch(() => "cancel");
@@ -103,20 +107,20 @@ export async function importSuiteBundle(app) {
     report = await applyBundle(bundle);
   } catch (err) {
     console.error("shadowdark-enhancer | bundle import: unexpected error:", err);
-    ui.notifications?.error("Bundle import failed — see the console for details.");
+    ui.notifications?.error(t("SDE.importer.bundle.importFailed"));
     return;
   }
   if (!report) return;
   if (!report.ok) {
-    ui.notifications?.error(`Bundle rejected: ${report.errors.join("; ")}.`);
+    ui.notifications?.error(t("SDE.importer.bundle.rejected", { errors: report.errors.join("; ") }));
     return;
   }
   const summary = [
-    `${report.created} created`,
-    `${report.skippedExisting} already present (skipped)`,
-    report.failures ? `${report.failures} failure(s) — see console` : "",
+    t("SDE.importer.bundle.created", { n: report.created }),
+    t("SDE.importer.bundle.skipped", { n: report.skippedExisting }),
+    report.failures ? t("SDE.importer.bundle.failures", { n: report.failures }) : "",
   ].filter(Boolean).join(" · ");
-  ui.notifications?.info(`Bundle import complete: ${summary}.`);
+  ui.notifications?.info(t("SDE.importer.bundle.importDone", { summary }));
   app.render();
 }
 
@@ -131,7 +135,7 @@ export async function importSuiteBundle(app) {
 const NEW_BOOK = "__new";
 
 export async function manageSourcePdfs(app) {
-  if (!game.user?.isGM) { ui.notifications.warn("Only a GM can manage source PDFs."); return; }
+  if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyPdfs")); return; }
   const { listSourcePdfs, uploadSourcePdf, sourcePdfBookHref, customSourceKey, sourceLabel } =
     await import("./source-pdf-registry.mjs");
 
@@ -142,42 +146,39 @@ export async function manageSourcePdfs(app) {
     // A verified upload, the shared default path (HEAD-checked), or a default
     // that points at nothing on this deployment. (review 2026-07-12 #5)
     const note = r.origin === "fallback"
-      ? (r.linked ? " (default path)" : " (default path — file not found; upload your copy)")
+      ? t(r.linked ? "SDE.importer.srcpdf.defaultPath" : "SDE.importer.srcpdf.defaultMissing")
       : "";
     // `data-src` + the open hint only on rows that actually resolve to a file.
     const open = r.linked
-      ? ` data-src="${foundry.utils.escapeHTML(r.src)}" title="Double-click to open this book"`
+      ? ` data-src="${foundry.utils.escapeHTML(r.src)}" title="${t("SDE.importer.srcpdf.openTip")}"`
       : "";
     return `<li class="sde-srcpdf-row ${r.linked ? "linked" : "missing"}"${open}><i class="fas ${icon}"></i>
       <strong>${foundry.utils.escapeHTML(r.label)}</strong>
       <span class="sde-srcpdf-file">${file}${note}</span></li>`;
   }).join("");
   const options = rows.map((r) =>
-    `<option value="${foundry.utils.escapeHTML(r.src)}">${foundry.utils.escapeHTML(r.label)}${r.linked ? " (replace)" : ""}</option>`).join("")
+    `<option value="${foundry.utils.escapeHTML(r.src)}">${foundry.utils.escapeHTML(r.label)}${r.linked ? t("SDE.importer.srcpdf.replace") : ""}</option>`).join("")
     // Anything that isn't a Shadowdark book — third-party adventures, homebrew.
-    + `<option value="${NEW_BOOK}">➕ Another book…</option>`;
+    + `<option value="${NEW_BOOK}">${t("SDE.importer.srcpdf.anotherBook")}</option>`;
 
   const picked = await foundry.applications.api.DialogV2.wait({
     // Without a width DialogV2 sizes to content, and the intro paragraph is one
     // long line — the dialog came out nearly as wide as the screen.
-    window: { title: "Source PDFs", icon: "fas fa-file-pdf", resizable: true },
+    window: { title: t("SDE.importer.srcpdf.title"), icon: "fas fa-file-pdf", resizable: true },
     position: { width: 620 },
     content: `
-      <p>Upload your own PDFs of the Shadowdark books. Each is linked to a source so the
-      importer's <em>Open PDF</em> buttons jump straight to the cited page. Files go to
-      <code>assets/</code> on this server, where every world finds them — nothing leaves
-      your machine.</p>
+      <p>${t("SDE.importer.srcpdf.lead")}</p>
       <p class="sde-srcpdf-tip"><i class="fas fa-hand-pointer"></i>
-      <strong>Double-click a linked book</strong> to open it in Foundry's PDF viewer.</p>
+      ${t("SDE.importer.srcpdf.tip")}</p>
       <ul class="sde-srcpdf-list">${statusList}</ul>
       <div class="sde-srcpdf-upload">
-        <label>Book <select name="src">${options}</select></label>
-        <input type="text" name="newlabel" placeholder="Name this book" class="sde-srcpdf-newlabel" hidden>
+        <label>${t("SDE.importer.downtime.book")} <select name="src">${options}</select></label>
+        <input type="text" name="newlabel" placeholder="${t("SDE.importer.srcpdf.namePlaceholder")}" class="sde-srcpdf-newlabel" hidden>
         <input type="file" name="pdf" accept="application/pdf,.pdf">
       </div>`,
     buttons: [
       {
-        action: "upload", label: "Upload & link", default: true,
+        action: "upload", label: t("SDE.importer.srcpdf.upload"), default: true,
         callback: (ev, button, dialog) => {
           const root = dialog.element ?? dialog;
           const src = root.querySelector("select[name='src']")?.value;
@@ -186,7 +187,7 @@ export async function manageSourcePdfs(app) {
           return file ? { src, file, newLabel } : null;
         },
       },
-      { action: "close", label: "Done" },
+      { action: "close", label: t("SDE.importer.btn.done") },
     ],
     rejectClose: false,
     // Double-click a linked row to just read the book — the Open-PDF buttons
@@ -204,7 +205,7 @@ export async function manageSourcePdfs(app) {
         li.addEventListener("dblclick", () => {
           const src = li.dataset.src;
           const href = sourcePdfBookHref(src);
-          if (!href) { ui.notifications.warn("That book's PDF couldn't be found."); return; }
+          if (!href) { ui.notifications.warn(t("SDE.importer.srcpdf.notFound")); return; }
           app._showSourcePdf(href, sourceLabel(src));
         });
       });
@@ -213,7 +214,7 @@ export async function manageSourcePdfs(app) {
 
   if (!picked || picked === "close" || !picked.file) return;
   if (picked.file.type && picked.file.type !== "application/pdf") {
-    ui.notifications.warn("That doesn't look like a PDF file.");
+    ui.notifications.warn(t("SDE.importer.srcpdf.notPdf"));
     return manageSourcePdfs(app);
   }
 
@@ -224,17 +225,17 @@ export async function manageSourcePdfs(app) {
     label = picked.newLabel;
     src = customSourceKey(label);
     if (!src) {
-      ui.notifications.warn("Give the book a name before uploading it.");
+      ui.notifications.warn(t("SDE.importer.srcpdf.needName"));
       return manageSourcePdfs(app);
     }
   }
 
   try {
     const path = await uploadSourcePdf(src, picked.file, label);
-    ui.notifications.info(`Linked ${label || CHAR_SOURCES[src]?.label || src} → ${path.split("/").pop()}.`);
+    ui.notifications.info(t("SDE.importer.srcpdf.linked", { book: label || CHAR_SOURCES[src]?.label || src, file: path.split("/").pop() }));
   } catch (err) {
     console.error("[SDE] source PDF upload failed", err);
-    ui.notifications.error("Upload failed — see console.");
+    ui.notifications.error(t("SDE.importer.srcpdf.uploadFailed"));
     return;
   }
   app._invalidateManageTree?.();   // the new link changes what the tree can run

@@ -17,7 +17,7 @@ import { buildManageTree } from "./manage-tree.mjs";
 import { planBatch } from "./batch-import.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
-import { installMethods } from "./importer-hub-shared.mjs";
+import { installMethods, t } from "./importer-hub-shared.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { charSourceKey } from "../shared/source-keys.mjs";
 import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
@@ -138,7 +138,7 @@ class HubManageMethods {
         if (doc) return doc.sheet.render(true);
       }
     }
-    ui.notifications.warn(`Couldn't find “${name}” — it may have been renamed or deleted since the census ran.`);
+    ui.notifications.warn(t("SDE.importer.notify.notFound", { name }));
   }
 
   /** Double-click an imported row to open it. Wired per render (the tree is
@@ -392,7 +392,7 @@ class HubManageMethods {
    * call cullDuplicates on confirm, invalidate cache, re-render. (D-06)
    */
   async _onMonsterCullGroup(event, target) {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can cull duplicates."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyCull")); return; }
 
     const groupKey = target.dataset.groupKey ?? "";
     if (!groupKey) return;
@@ -400,7 +400,7 @@ class HubManageMethods {
     // Find the group in the cache
     const groups = this._monstersCache?.duplicateGroups ?? [];
     const group = groups.find((g) => g.key === groupKey);
-    if (!group) { ui.notifications.warn("Duplicate group not found — refresh the Monsters tab."); return; }
+    if (!group) { ui.notifications.warn(t("SDE.importer.cull.noGroupMonsters")); return; }
 
     // Read the keeper from the checked radio inside this group's CARD. The
     // button itself also carries data-group-key, and closest() matches from
@@ -410,30 +410,30 @@ class HubManageMethods {
     const card = target.closest(".sde-hub-monsters-dup-card");
     const checkedRadio = card?.querySelector("input[type='radio']:checked");
     const keepUuid = checkedRadio?.value ?? "";
-    if (!keepUuid) { ui.notifications.warn("Select a keeper before culling."); return; }
+    if (!keepUuid) { ui.notifications.warn(t("SDE.importer.cull.pickKeeper")); return; }
 
     const dropMembers = group.members.filter((m) => m.uuid !== keepUuid);
-    if (!dropMembers.length) { ui.notifications.info("Nothing to cull — only one member selected as keeper."); return; }
+    if (!dropMembers.length) { ui.notifications.info(t("SDE.importer.cull.nothingToCull")); return; }
 
     // Build confirmation dialog listing exactly what will be deleted
     const keepMember = group.members.find((m) => m.uuid === keepUuid);
     const keepLabel  = foundry.utils.escapeHTML(keepMember?.name ?? keepUuid);
-    const dropList   = dropMembers.map((m) => `<li>${foundry.utils.escapeHTML(m.name)} <em>(${m.source || "unknown source"})</em></li>`).join("");
+    const dropList   = dropMembers.map((m) => `<li>${foundry.utils.escapeHTML(m.name)} <em>(${m.source || t("SDE.importer.cull.unknownSource")})</em></li>`).join("");
 
     const content = `
-      <p>Keep: <strong>${keepLabel}</strong></p>
-      <p>Delete these pack copies:</p>
+      <p>${t("SDE.importer.cull.keep", { name: keepLabel })}</p>
+      <p>${t("SDE.importer.cull.deleteThese")}</p>
       <ul style="margin:.3em 0">${dropList}</ul>
       <p style="color:var(--sde-bar-text-muted,#9a9a9a);font-size:.85em">
-        Only pack copies in sde-actors are deleted. World actors and _Backup docs are never touched.
+        ${t("SDE.importer.cull.actorsNote")}
       </p>`;
 
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Cull Duplicate Monsters" },
+      window: { title: t("SDE.importer.cull.titleMonsters") },
       content,
       buttons: [
-        { action: "cull",   label: "Delete copies", default: true },
-        { action: "cancel", label: "Cancel" },
+        { action: "cull",   label: t("SDE.importer.cull.deleteCopies"), default: true },
+        { action: "cancel", label: t("SDE.importer.btn.cancel") },
       ],
       rejectClose: false,
     }).catch(() => "cancel");
@@ -444,10 +444,10 @@ class HubManageMethods {
     const tally = await cullDuplicates(keepUuid, dropUuids);
 
     const parts = [];
-    if (tally.deleted)  parts.push(`${tally.deleted} deleted`);
-    if (tally.skipped)  parts.push(`${tally.skipped} skipped`);
-    if (tally.failed)   parts.push(`${tally.failed} failed (see console)`);
-    ui.notifications.info(`Cull complete: ${parts.join(", ") || "nothing done"}.`);
+    if (tally.deleted)  parts.push(t("SDE.importer.cull.deleted", { n: tally.deleted }));
+    if (tally.skipped)  parts.push(t("SDE.importer.cull.skipped", { n: tally.skipped }));
+    if (tally.failed)   parts.push(t("SDE.importer.cull.failed", { n: tally.failed }));
+    ui.notifications.info(t("SDE.importer.cull.done", { parts: parts.join(", ") || t("SDE.importer.cull.nothingDone") }));
 
     this._invalidateMonstersCache();
     this.render();
@@ -585,7 +585,7 @@ class HubManageMethods {
         }
       } catch (err) {
         console.error("Shadowdark Enhancer | class unlock extraction failed", err);
-        ui.notifications.error(`Couldn't pull the “${name}” writeup from the source PDF — paste it by hand, or see the console.`);
+        ui.notifications.error(t("SDE.importer.pdf.writeupFailed", { name }));
       }
       return;
     }
@@ -610,7 +610,7 @@ class HubManageMethods {
         await app._onGrabDesc();
       } catch (err) {
         console.error("Shadowdark Enhancer | gear unlock extraction failed", err);
-        ui.notifications.error(`Couldn't pull the ${type.toLowerCase()} tables from the source PDF — paste them by hand, or see the console.`);
+        ui.notifications.error(t("SDE.importer.pdf.tablesFailed", { type: type.toLowerCase() }));
       }
       return;
     }
@@ -816,8 +816,8 @@ class HubManageMethods {
     if (!href) return;
     const seed = this._importSeed;
     const title = seed?.name
-      ? `${seed.name}${seed.page ? ` — p.${seed.page}` : ""}`
-      : "Source PDF";
+      ? `${seed.name}${seed.page ? t("SDE.importer.pdf.atPage", { page: seed.page }) : ""}`
+      : t("SDE.importer.pdf.sourcePdf");
     this._showSourcePdf(href, title);
   }
 
@@ -832,7 +832,7 @@ class HubManageMethods {
     const seed = this._importSeed;
     const target = seed ? sourcePdfTarget(seed.src, seed.page) : null;
     if (!target) {
-      ui.notifications.warn("No source PDF is linked for this entry, or it has no page cite. Use “Source PDFs” to upload the book.");
+      ui.notifications.warn(t("SDE.importer.pdf.noneLinkedEntry"));
       return;
     }
     // Preserve any live edits in the box before we append to it. Optional on
@@ -914,14 +914,14 @@ class HubManageMethods {
         result = await extractPdfText(target.file, { pages: pass.pages, columns: pass.columns });
       } catch (err) {
         console.error("Shadowdark Enhancer | PDF text extraction failed", err);
-        ui.notifications.error(`Couldn't read text from that PDF page — ${err?.message || err} (details in the console).`);
+        ui.notifications.error(t("SDE.importer.pdf.readPageFailed", { error: err?.message || err }));
         return;
       }
       if (result.text) chunks.push(result.text);
       notifyGutterWarnings(result);
     }
     if (!chunks.length) {
-      ui.notifications.warn(`Page ${target.page} has no selectable text (likely a scanned or art page).`);
+      ui.notifications.warn(t("SDE.importer.pdf.pageNoText", { page: target.page }));
       return;
     }
     const grabbed = chunks.join("\n\n");
@@ -934,10 +934,10 @@ class HubManageMethods {
     const pageCount = new Set(passes.flatMap((p) => p.pages)).size;
     ui.notifications.info(
       pageCount === 1 && passes.length > 1
-        ? `Pulled page ${target.page} in ${passes.length} column modes — the box holds it once per mode. Review, then Parse.`
+        ? t("SDE.importer.pdf.pulledModes", { page: target.page, modes: passes.length })
         : pageCount > 1
-          ? `Pulled ${pageCount} pages into the paste box — review, then Parse.`
-          : `Pulled page ${target.page} into the paste box — review, then Parse.`);
+          ? t("SDE.importer.pdf.pulledPages", { n: pageCount })
+          : t("SDE.importer.pdf.pulledPage", { page: target.page }));
   }
 
   /**
@@ -968,7 +968,7 @@ class HubManageMethods {
     const { listSourcePdfs } = await import("./source-pdf-registry.mjs");
     const rows = (await listSourcePdfs()).filter((r) => r.linked && r.file);
     if (!rows.length) {
-      ui.notifications.warn("No source PDFs are linked yet. Use “Source PDFs” to upload your books first.");
+      ui.notifications.warn(t("SDE.importer.pdf.noneLinked"));
       return;
     }
     const defaultSrc = this._defaultExtractSrc();
@@ -976,31 +976,30 @@ class HubManageMethods {
       .map((r) => `<option value="${r.src}"${r.src === defaultSrc ? " selected" : ""}>${foundry.utils.escapeHTML(r.label)}</option>`)
       .join("");
     const picked = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Extract text from PDF", icon: "fas fa-file-pdf" },
+      window: { title: t("SDE.importer.extract.title"), icon: "fas fa-file-pdf" },
       content: `
-        <p>Pull clean, reading-ordered text out of one of your uploaded books
-        using Foundry's built-in PDF engine — nothing is uploaded.</p>
+        <p>${t("SDE.importer.extract.lead")}</p>
         <div style="display:grid;grid-template-columns:auto 1fr;gap:0.4rem 0.6rem;align-items:center;">
-          <label for="sde-xpdf-src"><strong>Book</strong></label>
+          <label for="sde-xpdf-src"><strong>${t("SDE.importer.downtime.book")}</strong></label>
           <select id="sde-xpdf-src" name="src">${options}</select>
-          <label for="sde-xpdf-pages"><strong>Pages</strong></label>
-          <input id="sde-xpdf-pages" name="pages" type="text" placeholder="e.g. 34 or 34-36 or 12,16,20-22">
-          <label for="sde-xpdf-cols"><strong>Columns</strong></label>
+          <label for="sde-xpdf-pages"><strong>${t("SDE.importer.extract.pages")}</strong></label>
+          <input id="sde-xpdf-pages" name="pages" type="text" placeholder="${t("SDE.importer.extract.pagesPlaceholder")}">
+          <label for="sde-xpdf-cols"><strong>${t("SDE.importer.extract.columns")}</strong></label>
           <select id="sde-xpdf-cols" name="cols">
-            <option value="auto" selected>Auto-detect</option>
-            <option value="1">Single column</option>
-            <option value="2">Two columns</option>
+            <option value="auto" selected>${t("SDE.importer.extract.auto")}</option>
+            <option value="1">${t("SDE.importer.extract.single")}</option>
+            <option value="2">${t("SDE.importer.extract.two")}</option>
           </select>
         </div>
-        <p class="notes">These are the book's own PDF page numbers (including cover/credits), not the printed page. Auto-detect handles two-column spell/table pages; force Single/Two if a page comes out jumbled. <strong>A wide equipment table (Item · Cost · Quantity · Slot) reads best as Single column</strong> — Auto-detect scrambles its columns into a jumble.</p>`,
+        <p class="notes">${t("SDE.importer.extract.notes")}</p>`,
       buttons: [
-        { action: "extract", label: "Extract", icon: "fas fa-file-pdf", default: true,
+        { action: "extract", label: t("SDE.importer.extract.extract"), icon: "fas fa-file-pdf", default: true,
           callback: (event, button) => ({
             src: button.form.elements.src.value,
             pages: button.form.elements.pages.value,
             cols: button.form.elements.cols.value,
           }) },
-        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
       ],
       rejectClose: false,
     }).catch(() => null);
@@ -1008,7 +1007,7 @@ class HubManageMethods {
 
     const { resolveSourcePdf } = await import("./source-pdf-registry.mjs");
     const file = resolveSourcePdf(picked.src);
-    if (!file) { ui.notifications.warn("That book isn't linked to a PDF."); return; }
+    if (!file) { ui.notifications.warn(t("SDE.importer.pdf.bookNotLinked")); return; }
 
     const { extractPdfText, parsePageRange, notifyGutterWarnings } = await import("./pdf-text-extract.mjs");
     let result;
@@ -1016,17 +1015,17 @@ class HubManageMethods {
       const doc = await extractPdfText(file, { pages: [1] });   // cheap open to learn page count
       const pages = parsePageRange(picked.pages, doc.numPages);
       if (!pages.length) {
-        ui.notifications.warn("Enter at least one valid page number.");
+        ui.notifications.warn(t("SDE.importer.pdf.needPage"));
         return;
       }
       result = await extractPdfText(file, { pages, columns: picked.cols });
     } catch (err) {
       console.error("Shadowdark Enhancer | PDF text extraction failed", err);
-      ui.notifications.error(`Couldn't read text from that PDF — ${err?.message || err} (details in the console).`);
+      ui.notifications.error(t("SDE.importer.pdf.readFailed", { error: err?.message || err }));
       return;
     }
     if (!result.text) {
-      ui.notifications.warn("Those pages have no selectable text (likely scanned or art pages).");
+      ui.notifications.warn(t("SDE.importer.pdf.pagesNoText"));
       return;
     }
     const ta = this.element.querySelector("textarea[data-import-text]");
@@ -1039,8 +1038,8 @@ class HubManageMethods {
     }
     this.render();
     const empties = result.pages.filter((p) => p.empty).map((p) => p.page);
-    const emptyNote = empties.length ? ` (${empties.length} page${empties.length > 1 ? "s" : ""} had no text: ${empties.join(", ")})` : "";
-    ui.notifications.info(`Extracted ${result.pages.length - empties.length} page(s) into the paste box${emptyNote} — review, then Parse.`);
+    const emptyNote = empties.length ? t("SDE.importer.pdf.emptyNote", { n: empties.length, pages: empties.join(", ") }) : "";
+    ui.notifications.info(t("SDE.importer.pdf.extracted", { n: result.pages.length - empties.length, note: emptyNote }));
     notifyGutterWarnings(result);
   }
 
@@ -1049,39 +1048,39 @@ class HubManageMethods {
    * DialogV2, delete the other pack copies (D-06). Mirrors _onMonsterCullGroup.
    */
   async _onItemCullGroup(event, target) {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can cull duplicates."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnlyCull")); return; }
 
     const groupKey = target.dataset.groupKey ?? "";
     if (!groupKey) return;
     const groups = this._itemsCache?.duplicateGroups ?? [];
     const group = groups.find((g) => g.key === groupKey);
-    if (!group) { ui.notifications.warn("Duplicate group not found — refresh the Items tab."); return; }
+    if (!group) { ui.notifications.warn(t("SDE.importer.cull.noGroupItems")); return; }
 
     const card = target.closest(".sde-hub-monsters-dup-card");
     const checkedRadio = card?.querySelector("input[type='radio']:checked");
     const keepUuid = checkedRadio?.value ?? "";
-    if (!keepUuid) { ui.notifications.warn("Select a keeper before culling."); return; }
+    if (!keepUuid) { ui.notifications.warn(t("SDE.importer.cull.pickKeeper")); return; }
 
     const dropMembers = group.members.filter((m) => m.uuid !== keepUuid);
-    if (!dropMembers.length) { ui.notifications.info("Nothing to cull — only one member selected as keeper."); return; }
+    if (!dropMembers.length) { ui.notifications.info(t("SDE.importer.cull.nothingToCull")); return; }
 
     const keepMember = group.members.find((m) => m.uuid === keepUuid);
     const keepLabel  = foundry.utils.escapeHTML(keepMember?.name ?? keepUuid);
-    const dropList   = dropMembers.map((m) => `<li>${foundry.utils.escapeHTML(m.name)} <em>(${m.source || "unknown source"})</em></li>`).join("");
+    const dropList   = dropMembers.map((m) => `<li>${foundry.utils.escapeHTML(m.name)} <em>(${m.source || t("SDE.importer.cull.unknownSource")})</em></li>`).join("");
     const content = `
-      <p>Keep: <strong>${keepLabel}</strong></p>
-      <p>Delete these pack copies:</p>
+      <p>${t("SDE.importer.cull.keep", { name: keepLabel })}</p>
+      <p>${t("SDE.importer.cull.deleteThese")}</p>
       <ul style="margin:.3em 0">${dropList}</ul>
       <p style="color:var(--sde-bar-text-muted,#9a9a9a);font-size:.85em">
-        Only pack copies in sde-items are deleted. World items and _Backup docs are never touched.
+        ${t("SDE.importer.cull.itemsNote")}
       </p>`;
 
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Cull Duplicate Items" },
+      window: { title: t("SDE.importer.cull.titleItems") },
       content,
       buttons: [
-        { action: "cull",   label: "Delete copies", default: true },
-        { action: "cancel", label: "Cancel" },
+        { action: "cull",   label: t("SDE.importer.cull.deleteCopies"), default: true },
+        { action: "cancel", label: t("SDE.importer.btn.cancel") },
       ],
       rejectClose: false,
     }).catch(() => "cancel");
@@ -1089,10 +1088,10 @@ class HubManageMethods {
 
     const tally = await cullItemDuplicates(keepUuid, dropMembers.map((m) => m.uuid));
     const parts = [];
-    if (tally.deleted) parts.push(`${tally.deleted} deleted`);
-    if (tally.skipped) parts.push(`${tally.skipped} skipped`);
-    if (tally.failed)  parts.push(`${tally.failed} failed (see console)`);
-    ui.notifications.info(`Cull complete: ${parts.join(", ") || "nothing done"}.`);
+    if (tally.deleted) parts.push(t("SDE.importer.cull.deleted", { n: tally.deleted }));
+    if (tally.skipped) parts.push(t("SDE.importer.cull.skipped", { n: tally.skipped }));
+    if (tally.failed)  parts.push(t("SDE.importer.cull.failed", { n: tally.failed }));
+    ui.notifications.info(t("SDE.importer.cull.done", { parts: parts.join(", ") || t("SDE.importer.cull.nothingDone") }));
 
     this._invalidateItemsCache();
     this.render();
