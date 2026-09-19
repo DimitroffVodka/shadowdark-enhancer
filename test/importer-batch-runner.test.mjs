@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ROUTE } from "../scripts/importer/batch-import.mjs";
@@ -23,11 +24,24 @@ function hub(state = {}) {
   });
 }
 
+/**
+ * The toasts are assembled from `languages/en.json`, so the stub resolves
+ * against the real file: these tests are about the sentence the GM reads —
+ * the singular/plural and the denominators — not about which key produced it.
+ */
+const EN = JSON.parse(readFileSync("languages/en.json", "utf8"));
+const i18n = {
+  localize: (key) => EN[key] ?? key,
+  format: (key, data) => String(EN[key] ?? key).replace(/\{(\w+)\}/g, (m, k) => (k in data ? String(data[k]) : m)),
+};
+
 async function runBatchForToast(job, result, blocked = []) {
   const previousUi = globalThis.ui;
+  const previousGame = globalThis.game;
   const messages = [];
   const reports = [];
   globalThis.ui = { notifications: { info: (message) => messages.push(message) } };
+  globalThis.game = { ...(previousGame ?? {}), i18n };
   const h = hub();
   h.render = async () => {};
   h._batchCaptureNotifications = () => () => {};
@@ -41,6 +55,8 @@ async function runBatchForToast(job, result, blocked = []) {
   } finally {
     if (previousUi === undefined) delete globalThis.ui;
     else globalThis.ui = previousUi;
+    if (previousGame === undefined) delete globalThis.game;
+    else globalThis.game = previousGame;
   }
 }
 

@@ -24,7 +24,7 @@ import { spellRecognizer } from "./spells/spell-parser.mjs";
 import { parseCharContent, expandNamePartTables, normalizeTwoColumnRanges, CHAR_SOURCES, sourcedTableName } from "./char-content/char-content-manifest.mjs";
 import { revalidateTalentBandWarnings } from "./char-content/class-parser.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { installMethods } from "./importer-hub-shared.mjs";
+import { installMethods, t } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
 import { parseDowntimeText, looksLikeDowntimePage } from "../downtime/downtime-parser.mjs";
 import { SOURCES as DOWNTIME_SOURCES, SOURCE_SLUGS as DOWNTIME_SLUGS } from "../downtime/downtime-skeleton.mjs";
@@ -620,22 +620,21 @@ class HubPasteMethods {
   async _onHubParseCompound() {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
-    if (!this._importText.trim()) { ui.notifications.warn("Paste a table first, then click Compound."); return; }
+    if (!this._importText.trim()) { ui.notifications.warn(t("SDE.importer.parse.needTableCompound")); return; }
 
     const spec = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Compound Generator", icon: "fas fa-dice-d6" },
+      window: { title: t("SDE.importer.compound.title"), icon: "fas fa-dice-d6" },
       content: `
-        <p>Roll <strong>every column once</strong> and combine the results in order
-        (result 1 + result 2 + … = final).</p>
+        <p>${t("SDE.importer.compound.lead")}</p>
         <p style="display:flex;align-items:center;gap:0.5rem;">
-          <label for="sde-compound-spec"><strong>Dice</strong></label>
-          <input id="sde-compound-spec" name="spec" type="text" value="3d6" placeholder="e.g. 3d6 or 2d10" style="flex:1;">
+          <label for="sde-compound-spec"><strong>${t("SDE.importer.compound.dice")}</strong></label>
+          <input id="sde-compound-spec" name="spec" type="text" value="3d6" placeholder="${t("SDE.importer.compound.dicePlaceholder")}" style="flex:1;">
         </p>
-        <p class="notes"><code>3d6</code> = 3 columns, each rolled on a d6 (6 rows). Leave blank to auto-detect from the paste.</p>`,
+        <p class="notes">${t("SDE.importer.compound.notes")}</p>`,
       buttons: [
-        { action: "parse", label: "Parse as compound", icon: "fas fa-dice-d6", default: true,
+        { action: "parse", label: t("SDE.importer.compound.parse"), icon: "fas fa-dice-d6", default: true,
           callback: (event, button) => button.form.elements.spec.value },
-        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
       ],
       rejectClose: false,
     }).catch(() => null);
@@ -655,22 +654,21 @@ class HubPasteMethods {
   async _onHubParseCartesian() {
     const ta = this.element.querySelector("textarea[data-import-text]");
     if (ta) this._importText = ta.value;
-    if (!this._importText.trim()) { ui.notifications.warn("Paste a table first, then click Cartesian."); return; }
+    if (!this._importText.trim()) { ui.notifications.warn(t("SDE.importer.parse.needTableCartesian")); return; }
 
     const spec = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Cartesian Table", icon: "fas fa-table-cells" },
+      window: { title: t("SDE.importer.cartesian.title"), icon: "fas fa-table-cells" },
       content: `
-        <p>Spell out <strong>every combination</strong> of the columns into one long,
-        fully-visible table (no hidden roll-each-column logic).</p>
+        <p>${t("SDE.importer.cartesian.lead")}</p>
         <p style="display:flex;align-items:center;gap:0.5rem;">
-          <label for="sde-cartesian-spec"><strong>Dice</strong></label>
-          <input id="sde-cartesian-spec" name="spec" type="text" value="3d6" placeholder="e.g. 3d6 or 2d10" style="flex:1;">
+          <label for="sde-cartesian-spec"><strong>${t("SDE.importer.compound.dice")}</strong></label>
+          <input id="sde-cartesian-spec" name="spec" type="text" value="3d6" placeholder="${t("SDE.importer.compound.dicePlaceholder")}" style="flex:1;">
         </p>
-        <p class="notes"><code>3d6</code> = 3 columns each with 6 rows → a 216-row table. Insert <code>|</code> between columns in your paste to set the splits yourself. Over 25,000 rows is blocked — use Compound for those.</p>`,
+        <p class="notes">${t("SDE.importer.cartesian.notes")}</p>`,
       buttons: [
-        { action: "parse", label: "Expand to Cartesian", icon: "fas fa-table-cells", default: true,
+        { action: "parse", label: t("SDE.importer.cartesian.parse"), icon: "fas fa-table-cells", default: true,
           callback: (event, button) => button.form.elements.spec.value },
-        { action: "cancel", label: "Cancel", icon: "fas fa-xmark" },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fas fa-xmark" },
       ],
       rejectClose: false,
     }).catch(() => null);
@@ -710,7 +708,7 @@ class HubPasteMethods {
       // we don't display. Matches the Compound/Cartesian guard convention.
       if (!text.trim()) {
         this._downtimeParse = null;
-        ui.notifications.warn(`Paste the ${DOWNTIME_SOURCES[slug].label} downtime pages (pg ${DOWNTIME_SOURCES[slug].pages}) first, then click Parse.`);
+        ui.notifications.warn(t("SDE.importer.parse.needDowntime", { book: DOWNTIME_SOURCES[slug].label, pages: DOWNTIME_SOURCES[slug].pages }));
         this.render();
         return;
       }
@@ -721,11 +719,11 @@ class HubPasteMethods {
         this._downtimeParse = parseDowntimeText(text, { source: slug });
       } catch (err) {
         console.error(`${MODULE_ID} | downtime parse failed`, err);
-        ui.notifications.error("Couldn't parse that downtime page — see the console.");
+        ui.notifications.error(t("SDE.importer.parse.downtimeFailed"));
         this._downtimeParse = null;
       }
       if (this._downtimeParse && !Object.keys(this._downtimeParse.filled).length) {
-        ui.notifications.warn(`Nothing matched — paste the ${DOWNTIME_SOURCES[slug].label} downtime pages (${DOWNTIME_SOURCES[slug].pages}), headers and DC lines included.`);
+        ui.notifications.warn(t("SDE.importer.parse.downtimeNoMatch", { book: DOWNTIME_SOURCES[slug].label, pages: DOWNTIME_SOURCES[slug].pages }));
       }
       this.render();
       return;
@@ -749,10 +747,10 @@ class HubPasteMethods {
       this._shapeFailNote = null;
       const dropped = parsedAll.length - this._importTables.length;
       if (dropped > 0) {
-        ui.notifications.info(`Collapsed ${dropped} duplicate table pass${dropped === 1 ? "" : "es"} the PDF grab emitted.`);
+        ui.notifications.info(t(dropped === 1 ? "SDE.importer.parse.collapsedOne" : "SDE.importer.parse.collapsedMany", { n: dropped }));
       }
       if (!this._importTables.length) {
-        ui.notifications.warn("No tables found on the pasted page — check that the whole Core page was grabbed.");
+        ui.notifications.warn(t("SDE.importer.parse.noTables"));
       }
       this.render();
       return;
@@ -768,7 +766,7 @@ class HubPasteMethods {
       this._importTables = []; this._importGenerators = []; this._importChar = [];
       this._importSkipped = []; this._shapeFailNote = null;
       if (!this._importBoats.length) {
-        ui.notifications.warn("No boats found — paste the Western Reaches p118 BOATS table (Name/Cost/Speed/AC/HP/Gear Slots/Properties).");
+        ui.notifications.warn(t("SDE.importer.parse.noBoats"));
       }
       this.render();
       return;
@@ -865,12 +863,13 @@ class HubPasteMethods {
             : "no statblock (AC…LV) found in the extracted pages",
         });
         ui.notifications.warn(drafts.length
-          ? `"${want}" wasn't among the ${drafts.length} statblock${drafts.length === 1 ? "" : "s"} on the pasted pages — check the heading spelling, or re-grab WR pg ${pages}.`
-          : `No mount statblocks found — paste the Western Reaches mounts pages (pg ${pages}), stat lines (AC…LV) included.`);
+          ? t("SDE.importer.parse.mountNotFound", { name: want, n: drafts.length, pages })
+          : t("SDE.importer.parse.noMounts", { pages }));
       } else if (matchedNames.size < requestedNames.length) {
         const missing = requestedNames.filter((name) => !matchedNames.has(name));
         ui.notifications.warn(
-          `${missing.length} requested mount${missing.length === 1 ? "" : "s"} wasn't found among the statblocks on the pasted pages: ${missing.join(", ")}.`);
+          t(missing.length === 1 ? "SDE.importer.parse.mountsMissingOne" : "SDE.importer.parse.mountsMissingMany",
+            { n: missing.length, names: missing.join(", ") }));
       }
       this.render();
       return;
@@ -922,13 +921,13 @@ class HubPasteMethods {
             }
             if (bucket.missing?.length) {
               const total = bucket.missing.length + this._importTables.length + this._importGenerators.length;
-              ui.notifications.warn(`${bucket.missing.length} of ${total} tables in this unlock weren't found — see Skipped.`);
+              ui.notifications.warn(t("SDE.importer.parse.tablesMissing", { n: bucket.missing.length, total }));
             }
           } else {
             this._applyImportSeed();
           }
           if (!this._importGenerators.length && !this._importTables.length) {
-            ui.notifications.warn("Shape parse produced nothing — check the pasted section.");
+            ui.notifications.warn(t("SDE.importer.parse.shapeEmpty"));
           }
           this.render();
           return;
@@ -953,7 +952,7 @@ class HubPasteMethods {
           this._importChar = []; this._importSkipped = [];
           this._applyImportSeed();
           if (!this._importGenerators.length && !this._importTables.length) {
-            ui.notifications.warn("Shape parse produced nothing — check the pasted section.");
+            ui.notifications.warn(t("SDE.importer.parse.shapeEmpty"));
           }
           this.render();
           return;
@@ -969,7 +968,7 @@ class HubPasteMethods {
       this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!this._importGenerators.length) {
-        ui.notifications.warn("No compound generator recognized — need a die header (e.g. d6) and 2+ column labels (e.g. Detail 1, Detail 2…).");
+        ui.notifications.warn(t("SDE.importer.parse.noCompound"));
       }
       this.render();
       return;
@@ -986,7 +985,7 @@ class HubPasteMethods {
         const product = cols.reduce((a, c) =>
           a * Math.max(1, (c.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0)), cols.length ? 1 : 0);
         if (product > CARTESIAN_CAP) {
-          ui.notifications.warn(`"${g.name || "table"}" would be ${product.toLocaleString()} rows (over ${CARTESIAN_CAP.toLocaleString()}) — use the Compound button for that one.`);
+          ui.notifications.warn(t("SDE.importer.parse.cartesianTooBig", { name: g.name || t("SDE.importer.parse.aTable"), rows: product.toLocaleString(), cap: CARTESIAN_CAP.toLocaleString() }));
           continue;
         }
         g.expand = "cartesian";
@@ -996,7 +995,7 @@ class HubPasteMethods {
       this._importMonsters = []; this._importItems = []; this._importSpells = []; this._importBoats = []; this._importHexes = []; this._importHexSummary = [];
       this._importTables = []; this._importChar = []; this._importSkipped = [];
       if (!kept.length) {
-        ui.notifications.warn("Nothing to expand — need a die header (e.g. d6) and 2+ columns (insert | between them), and ≤ 25,000 total rows.");
+        ui.notifications.warn(t("SDE.importer.parse.nothingToExpand"));
       }
       this.render();
       return;
@@ -1042,7 +1041,7 @@ class HubPasteMethods {
         this._importHexes = [];
         this._importHexSummary = [];
         this._downtimeParse = null;
-        ui.notifications.warn('That looks like a downtime page. Set Importing to "Downtime" and pick the book, then Parse again.');
+        ui.notifications.warn(t("SDE.importer.parse.looksLikeDowntime"));
         this.render();
         return;
       }
@@ -1269,7 +1268,7 @@ class HubPasteMethods {
     await this._linkLootTables();
 
     if (!monsters.length && !items.length && !spells.length && !tables.length && !hexes.length && !hexSummary.length && !this._importChar.length) {
-      ui.notifications.warn("Nothing recognized — try a different import type or review the Skipped section.");
+      ui.notifications.warn(t("SDE.importer.parse.nothingRecognized"));
     }
     this.render();
   }
@@ -1527,7 +1526,7 @@ class HubPasteMethods {
     const ci = Number(target.closest("[data-col-idx]")?.dataset.colIdx);
     if (!g || !Number.isFinite(ci)) return;
     const cols = this._genColumns(g);
-    if (cols.length <= 1) { ui.notifications.warn("A generator needs at least one column."); return; }
+    if (cols.length <= 1) { ui.notifications.warn(t("SDE.importer.parse.needColumn")); return; }
     cols.splice(ci, 1);
     this.render();
   }

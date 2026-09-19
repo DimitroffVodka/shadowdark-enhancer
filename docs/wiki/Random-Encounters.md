@@ -14,7 +14,12 @@ creatures standing on the map.
 Right-click the **Encounter** button on the [Crawl Bar](Crawl-Strip-and-Crawl-Bar.md)
 and choose **Encounter Check**.
 
-![The Encounter right-click menu: the check, the threshold options, and the active table](images/encounter-menu.png)
+The same check also runs **by itself as the crawl clock advances** — the *Next
+round* button and the round an out-of-combat turn wrap rolls over. How often is
+yours to set — see [Setting the frequency](#setting-the-frequency); the menu
+entry above is for rolling one off-schedule.
+
+![The Encounter right-click menu: the check, the threshold options, the check frequency, and the active table](images/encounter-menu.png)
 
 It rolls `1d6` and **hits on a result at or below the threshold**. The roll is
 attached to the chat message as a real Foundry `Roll`, so Dice So Nice animates
@@ -26,6 +31,34 @@ it, the result is inspectable, and it persists in the log.
 
 Same right-click menu. Choose **1 in 6** through **5 in 6**. `1 in 6` is the
 Shadowdark RAW default and is labelled as such.
+
+### Setting the frequency
+
+Same right-click menu, one block below the threshold. **Check Frequency** sets
+how often the automatic check runs:
+
+| Frequency | The automatic check runs |
+|---|---|
+| **1** (default) | on every crawl round — the module's original behaviour |
+| **2** | 2 rounds after the previous check |
+| **3** | 3 rounds after the previous check |
+| **4 … 10** | that many rounds after the previous check |
+
+The count is from the **last check** — automatic or manual, whichever rolled
+most recently — not from a fixed set of round numbers. So changing it mid-crawl
+takes effect from where you stand: three rounds after the last check, switching
+**3** to **5** owes five rounds and the next check lands on round 8, not on
+round 5 just because 5 divides 5.
+
+The header reads the current setting back (`current: every 3 rounds`), and each
+number's tooltip says the same. A new crawl counts from its own first round
+whatever the previous crawl's last check was, and the count never comes due
+sooner than the interval you picked.
+
+The round counter itself advances every round either way; only the check is
+skipped on the quiet rounds. **Encounter Check** at the top of the same menu
+always rolls immediately, whatever the frequency is set to — and that roll
+restarts the count.
 
 ### What happens on a hit
 
@@ -52,6 +85,23 @@ The roller needs to know which table to draw from. Set it either way:
 
 The current active table is shown at the bottom of the Encounter right-click
 menu, with an **×** to clear it.
+
+### A table per terrain
+
+On a hex map tagged with the Hex Tagger (see *Hex Maps*), the scene already
+knows what every hex is, so the check can roll the right table for where the
+party is standing. **Tables by terrain** in the Encounter right-click menu
+lists every terrain on the scene you are viewing, most hexes first, with a
+roll table to pick for each — your world's tables and this module's Roll
+Tables compendium. Terrain you leave at **(none)** falls back to the active
+table, and so does everything else: a scene with no tags, a party off the map,
+or a hex with no terrain.
+
+The party's hex is the token you have selected when you have one, and
+otherwise the hex most of the player characters' tokens stand in. The check's
+chat card names it — *Hex 1210 · arctic sea* — so a check nobody expected is
+traceable to the hex it came from. The mapping is per world and lives beside
+the active table; the menu item shows how many terrains are mapped.
 
 ---
 

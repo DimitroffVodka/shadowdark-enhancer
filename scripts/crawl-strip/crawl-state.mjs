@@ -13,6 +13,7 @@ import {
   clearMembers    as _clearMembers,
   nextCrawlTurn   as _nextCrawlTurn,
   previousCrawlTurn as _previousCrawlTurn,
+  encounterCheckDue as _encounterCheckDue,
   previousOocTurn   as _previousOocTurn,
   setOocInitiative   as _setOocInitiative,
   ensureOocTurn      as _ensureOocTurn,
@@ -280,12 +281,23 @@ export const CrawlState = {
     if (!changed) return;
     if (!await this._commit(state)) return;
     await MovementTracker.captureCrawlAnchors();
-    // Every crawl turn triggers a wandering-monster check. nextCrawlTurn is
-    // GM-gated and each advance is a single user-initiated click, so exactly
-    // one check fires per turn (no per-connected-GM race). The check reads its
-    // own 1d6-vs-encounterThreshold default; the API hop mirrors the manual
-    // "check" menu action and avoids a crawl-state ↔ encounter-check import cycle.
-    await game.shadowdarkEnhancer.encounter.check();
+    // Advancing the clock is unconditional; whether it also rolls the
+    // wandering-monster check depends on the GM's `encounterCheckFrequency`
+    // setting — 1 (every round, the default) or N, which checks N rounds after
+    // the last one (the count is anchored to the last check, not to a grid of
+    // round numbers, so a mid-crawl change applies from where the GM stands).
+    // The gate is the pure `encounterCheckDue` (crawl-state-core).
+    // nextCrawlTurn is GM-gated and each advance is a single user-initiated
+    // click, so at most one check fires per round (no per-connected-GM race).
+    // The check reads its own 1d6-vs-encounterThreshold default; the API hop
+    // mirrors the manual "check" menu action and avoids a
+    // crawl-state ↔ encounter-check import cycle. It also writes the round it
+    // ran on, which is what the next round's gate counts from.
+    const every = game.settings.get(MODULE_ID, "encounterCheckFrequency");
+    const lastCheckRound = game.settings.get(MODULE_ID, "encounterLastCheckRound");
+    if (_encounterCheckDue(state.crawlTurn, lastCheckRound, every)) {
+      await game.shadowdarkEnhancer.encounter.check();
+    }
   },
 
   /**
@@ -328,10 +340,11 @@ export const CrawlState = {
    * the order wraps — or a single-member order cycles), the crawl clock
    * advances one ROUND as part of the same GM-side action: nextCrawlTurn
    * captures fresh movement anchors and fires the wandering-monster check
-   * (the Shadowdark behaviour the user asked for). One wrap = one round =
-   * one check: the caller holds the "ooc" advance lock for the whole call,
-   * so a racing second advance (relayed player or GM-local) is refused
-   * mid-flight and cannot double-fire.
+   * when the GM's `encounterCheckFrequency` frequency says the round is due (the
+   * Shadowdark behaviour the user asked for). One wrap = one round: the caller
+   * holds the "ooc" advance lock for the whole call, so a racing second
+   * advance (relayed player or GM-local) is refused mid-flight and cannot
+   * double-fire.
    */
   async advanceOocTurn() {
     if (!game.user.isGM) return;

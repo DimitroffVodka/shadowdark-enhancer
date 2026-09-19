@@ -5,9 +5,9 @@
  * one line per keyed hex with the number, the region, the terrain word(s) and
  * the name. With the module's own PDF text grab the row arrives as one line:
  *
- *   216   Grey Reach, The   Arctic sea      Puffin Rock
- *   1246  Tallow Jungle     Jungle, path    Bone Choir*
- *   353   Tallow Jungle     Jungle          Low Ford2
+ *   211   Grey Reach, The   Arctic sea      Puffin Rock
+ *   1251  Tallow Jungle     Jungle, path    Bone Choir*
+ *   358   Tallow Jungle     Jungle          Low Ford2
  *
  * The terrain words are the split point, so no region list ever ships (D1):
  * the zone is whatever sits between the number and the terrain run, the name
@@ -74,7 +74,7 @@ export function rowCandidates(rest) {
 }
 
 /** "Low Ford2" → { name: "Low Ford", feature: "town", markers: "" }; "Bone Choir*3†" → city, "*†".
- *  Markers sit on either side of the digit in print ("Reme*3", "Dvergheim3†"). */
+ *  Markers sit on either side of the digit in print ("Stonebeck*3", "Harrowmoot3†"). */
 export function splitName(raw) {
   const m = String(raw ?? "").trim().match(/^(.*?)\s*([*†]*)([1-4])?([*†]*)$/);
   const digit = m?.[3];
@@ -136,3 +136,30 @@ export function splitSummaryRows(text) {
   const remainder = String(text ?? "").replace(/\r\n?/g, "\n").split("\n").filter((_, i) => !lines.has(i)).join("\n");
   return { rows, remainder };
 }
+
+/**
+ * A keyed summary row as a map tag: the book's own answer for that hex.
+ *
+ * The print already says what every keyed hex is AND whether a river or a path
+ * runs through it — "1251  Tallow Jungle  Jungle, path  Bone Choir" is a keyed
+ * location on a path. Read off the page it is exact; read off the picture it is
+ * a small icon over terrain stipple, which is why the scanner got 55 of Take
+ * 10's 76 remaining errors on keyed hexes and found 4 of their 19 paths.
+ *
+ * The terrain of the tag is the FEATURE (keyed_location, village, town, city,
+ * city_state) — that is what the map is showing there and what the GM tags by
+ * hand. The book's underlying terrain word is not lost: it travels separately
+ * into the dataset, where Extras wants it.
+ *
+ * @param {{terrain?:string[], feature?:string}} row
+ * @returns {{terrain:string, overlays:string[]}|null}
+ */
+export function rowTag(row) {
+  const terrain = row?.feature;
+  if (!terrain) return null;
+  const overlays = (row.terrain ?? []).slice(1).filter((t) => OVERLAY_TAGS.includes(t));
+  return { terrain, overlays };
+}
+
+/** Overlay tags a keyed row can carry beside its terrain. Matches the tag store's OVERLAYS. */
+export const OVERLAY_TAGS = ["river", "path", "coast"];

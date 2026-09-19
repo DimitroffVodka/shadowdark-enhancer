@@ -142,7 +142,7 @@ tables in sequence).
   standard item import shares a name with an existing generated monster spell,
   *Replace* is automatically downgraded to *Keep both* with an explanatory
   warning.
-- **Hex keys:** A pasted hex key (numbered entries such as `1403 Serengal`,
+- **Hex keys:** A pasted hex key (numbered entries such as `1403 Thornmere`,
   three or more in a run) shows a **Hex key** strip with its own **Create hex
   pages** button. It files one journal page per hex into the Journals pack
   under your source, inside a journal entry named after the crawl. The name is
@@ -214,6 +214,8 @@ currently in your world packs.
 ## Tools menu & Source PDFs
 
 ![The Tools dropdown](images/tools-dropdown.png)
+
+**Hex map from image** takes a map image, finds its hex grid on its own, creates the aligned scene and opens the tagger on it ([Hex Maps](Hex-Maps.md)).
 
 **Hex tagger** opens the [Hex Tagger](Hex-Maps.md) for the active scene: a contact sheet over your hex-map image where you tag terrain and overlays, then hand the result to Shadowdark Extras or download it.
 

@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-925 tracked files · ~154,000 lines of code/markup across scripts+templates+styles+test.
+952 tracked files · ~160,100 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -46,7 +46,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `shadowdark-enhancer.mjs` | 904 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
+| `shadowdark-enhancer.mjs` | 1021 | **Entry point** (module.json esmodules). Registers hooks, settings, sheets, actor sub-types, the public `game.shadowdarkEnhancer` API, and wires every sub-system. |
 | `luck-reroll/luck-reroll.mjs` | 171 | Wraps the system's `_onReroll` to enforce nat-1 prevention and log Luck rerolls to the session recap. |
 | `spell-mishap/spell-mishap.mjs` | 270 | Nat-1 spellcasting failures auto-roll the class's mishap table (wizard / witch / necromancer sets); divine casters are exempt. |
 | `scavenger/scavenger-core.mjs` | 171 | Pure Delver Scavenger rules: the 5-6 success range and Master Scavenger's widening (floored at 3-6), what counts as expending a consumable's last use (a 1→0 decrement or a delete at quantity 1 — never a stack deleted whole), and which single client rolls. |
@@ -56,12 +56,20 @@
 | `taunt/taunt-core.mjs` | 118 | Pure Duelist Taunt rules: round+turn as one ordinal, the "end of your NEXT turn" expiry comparison, advantage/disadvantage cancelling, and what arms the talent (a miss — including a parried hit). |
 | `taunt/taunt.mjs` | 249 | Arms Taunt when an enemy misses its holder, sets `mainRoll.advantage` on attacks back at that enemy via `SD-Player-Attack` (with the reason printed on the roll card), and expires it when the holder's next turn ends. |
 | `hex-map/bitmap.mjs` | 145 | 0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure. |
-| `hex-map/classify.mjs` | 293 | Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
-| `hex-map/geometry.mjs` | 82 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
-| `hex-map/hex-tagger-app.mjs` | 494 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/classify.mjs` | 885 | Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure. |
+| `hex-map/geometry.mjs` | 94 | Hex numbering by cube difference from one anchor cell; printed offset ↔ cube under the map's column-shift rule. Pure. |
+| `hex-map/hex-brush-app.mjs` | 130 | The hex brush: a small window that sets one terrain plus overlays, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back. |
+| `hex-map/hex-map-flow.mjs` | 262 | Hex map from an image: file dialog, lattice detection, confirmation preview, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend. |
+| `hex-map/hex-pins.mjs` | 126 | Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run. |
+| `hex-map/hex-tagger-app.mjs` | 1285 | Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off. |
+| `hex-map/ink.mjs` | 62 | Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound. |
+| `hex-map/lattice.mjs` | 407 | Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement. Pure. |
+| `hex-map/legend.mjs` | 250 | The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure. |
 | `hex-map/reference-tile.mjs` | 119 | Hidden reference tile: places the tagged print on a painted hex scene so its hex field covers the first cols × rows cells; two-rectangle placement, non-uniform scale, create-once-then-update. |
-| `hex-map/sampler.mjs` | 121 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite. |
-| `hex-map/tag-store.mjs` | 170 | The tagger's scene-flag store: compact tag strings, sheet selection (random/keyed/review), dataset tags. Pure. |
+| `hex-map/sampler.mjs` | 146 | Reads the active scene's background per hex cell (one drawImage each) for bitmaps and thumbnails; scene→image transform from the drawn sprite. |
+| `hex-map/tag-corrections.mjs` | 337 | What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure. |
+| `hex-map/tag-overlay.mjs` | 414 | The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write. |
+| `hex-map/tag-store.mjs` | 305 | The tagger's scene-flag store: compact tag strings, sheet selection (random/keyed/review), dataset tags. Pure. |
 
 ### 3.2 `scripts/shared/` — cross-feature infrastructure
 
@@ -78,7 +86,7 @@
 | `curated-icon-maps/sea-wolf-plunder-icons.mjs` | 38 | The N3 §5.1/D4 Sea Wolf Plunder map: exactly 20 CS3 p68 source-qualified item phrases and reviewed native Foundry `icons/**.webp` paths, keyed without each row's terminal gp price. |
 | `curated-icon-maps/weapon-icons.mjs` | 47 | N3's 37 reviewed Foundry-native weapon icons, keyed by source-agnostic normalized final Item name and registered through the A4 discovery seam. |
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
-| `settings.mjs` | 535 | All `game.settings.register` calls + migration-safe defaults. |
+| `settings.mjs` | 573 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 87 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
 | `compendium-suite.mjs` | 454 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
@@ -94,7 +102,7 @@
 | `curated-icon-maps/spell-icons.mjs` | 102 | Reviewed Foundry-native icons for the 77 imported spells that all shared one generic casting hand, keyed by spell name and chosen from each spell's description. Defined, not registered: resolved through a spell-only registry so a spell never inherits an item map's art. |
 | `generated-items.mjs` | 647 | Stable identity and replace-always reconciliation for generated managed Items (A7/#57-#59) — the PRODUCER half of the boundary `art-provenance.mjs` defined and left unowned. The invariant is structural and both halves are required: a document is replace-always iff it lives in `world.shadowdark-enhancer--items` AND carries `flags[MODULE_ID].generated === true`. Neither is inferred — not from an image path, a name, a folder, or another pipeline's bookkeeping — and `planGeneratedItems` refuses outright for any other pack rather than reconciling something it has no authority over, which is what stands between an authoritative rerun and editing the system gear compendium. Identity is `flags[MODULE_ID].generatedItem = {id, source, key, fingerprint}` where `id` is FNV-1a/32 over `<canonical source>:<normalized name>`: derived from the definition, so it is identical on every machine and stable across a rerun that changes art, price or prose, and deliberately NOT the world-local document id, the image path (the thing A3 was written to stop reading) or a fuzzy name (the thing #58 was about). Reconciliation indexes on `id` but writes only when the stored canonical `key` also matches; a hash/key mismatch is an `identity-collision` refusal, not a wrong-target update. `name` appears only in the REFUSAL path, where a name already held by a document we do not own — since A1 that can be a generated Monster Spell, whose `monsterSpell.generated` marker means PRESERVE, the opposite thing — is reported, never taken over. Replace-always but not write-always: a rerun is `unchanged` only when the definition has not moved since we last wrote it AND no declared field has been edited since, so hand edits including art are replaced while an idle rerun writes nothing. The two-witness test is what makes a hand edit visible, and the stored document is PROJECTED onto the declared shape recursively — including non-empty ActiveEffects — before comparison so Foundry's own DataModel defaults and embedded ids are not read as an edit. `folder` is excluded — placement is the GM's. Updates carry forward undeclared top-level third-party flag namespaces through both replacement branches. Pure above the divider; the applier below reports create/update/missing-target failures, while a failed recreate deletion remains a visible duplicate requiring GM cleanup (retryable, not transactional). |
 | `hover-peek.mjs` | 94 | Hover-to-enlarge for an image grid: one reusable fixed-position preview that flips away from the viewport edge and never takes the pointer. Shared by the character builder's art gallery and the Token Art Manager's image browser, which cannot scale a tile in place because their grids scroll. |
-| `module-flags.mjs` | 126 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
+| `module-flags.mjs` | 153 | What this module owns on a document's flags, and what survives a wholesale replacement (pure). `replaceDocument` updates with `recursive: false`, which is right for `system` and wrong for `flags`: a creation payload knows only the bookkeeping ITS pipeline stamps, so replacing the object outright deletes every other pipeline's — including `monsterSpell.libraryId`, the only handle the Monster Spell planner has on a generated spell, whose loss makes the next refresh create a duplicate (A8/#93). `preservedModuleFlags` re-merges this module's namespace only: keys the payload declares win, keys it never mentions survive, and other packages' namespaces are left exactly as the payload states them. `replacementFlags` then answers the two replace branches SEPARATELY, because they are not symmetric — an update keeps the document, so a payload declaring no flags correctly omits the key and the stored object is never touched, while a recreate DELETES the original and must therefore carry those blocks itself or lose them (the defect that quietly recreated a Monster Spell without its `libraryId` on any forced fallback or type mismatch). Also carries `isGeneratedMonsterSpell`, read from the library's own `monsterSpell.generated` marker and never from the A7/D6 `flags[MODULE_ID].generated` replace-always marker — the two contracts share the managed Items pack and mean opposite things. Foundry-free, node-tested. |
 | `property-note.mjs` | 194 | Stamps and preserves the "no core Shadowdark property" note on imported gear (pure). Also owns which description survives a REPLACE: the GM's own text beats importer output, and importer output is the empty placeholder, the note alone, or — since A8 — a description that merely echoes the document's name, which is exactly what `buildItemData`'s Spell path writes when a paste brings no prose. |
 | `setting-groups.mjs` | 102 | Feature groups for Configure Settings — which settings and nested editors each pop-out shows, in display order. Pure data; the docs-contract test imports it. |
 | `settings-group-menu.mjs` | 155 | The per-feature settings pop-out (ApplicationV2): builds a DataField per setting the way SettingsConfig does, renders nested editor buttons, saves on submit, and mints one registerMenu class per group. |
@@ -104,10 +112,10 @@
 | File | Lines | Description |
 |---|---:|---|
 | `crawl-strip.mjs` | 1661 | The core feature: the top strip. Plain DOM (`#shadowdark-enhancer-strip`), not ApplicationV2. |
-| `crawl-state.mjs` | 443 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
-| `crawl-state-core.mjs` | 321 | Pure reducer/normalizer behind crawl-state. Node-testable. |
+| `crawl-state.mjs` | 456 | Foundry-coupled state singleton — persistence, sockets, hook emission. |
+| `crawl-state-core.mjs` | 347 | Pure reducer/normalizer behind crawl-state. Node-testable. |
 | `crawl-lights-core.mjs` | 93 | Pure light-source logic for the strip's flame badges. |
-| `crawl-tracker.mjs` | 340 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
+| `crawl-tracker.mjs` | 341 | The out-of-combat tracker as a real sidebar tab (`AbstractSidebarTab`), registered into `Sidebar.TABS` + `CONFIG.ui` beside Combat. Hidden unless a crawl is running; carries the roll-all / advance / reset controls. |
 | `crawl-tracker-core.mjs` | 138 | Pure view model for the tracker tab: `buildTrackerRows()` (rolled first, unrolled last, holder flagged), `showOocReset()`, and `parseInitiativeInput()` — which treats a blanked box as "no change" rather than the initiative of 0 that `Number("")` yields. Node-testable. |
 | `initiative-manager.mjs` | 133 | Combat/initiative state machine glue for the strip. |
 | `hidden-sync.mjs` | 66 | Bidirectional `token.hidden` ↔ `combatant.hidden` sync, GM-only. |
@@ -123,19 +131,20 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `crawl-bar.mjs` | 631 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
+| `crawl-bar.mjs` | 667 | GM-only persistent bottom bar above the macro bar (mode toggles, tools, launchers). |
 
 ### 3.5 `scripts/encounter/` — the Encounter Roller
 
 | File | Lines | Description |
 |---|---:|---|
 | `encounter-roller-app.mjs` | 1431 | The Encounter Roller shell + tabs (Roll Tables / Build / Browse / Creator). |
-| `encounter-check.mjs` | 80 | The d6 random-encounter check + chat post. |
+| `encounter-check.mjs` | 104 | The d6 random-encounter check + chat post. |
 | `encounter-result.mjs` | 41 | Distance / Activity / Reaction RAW lookups. |
 | `encounter-build.mjs` | 285 | Build-a-table data layer (slots, die formats, save to RollTable). |
 | `encounter-browse.mjs` | 217 | Browse-NPCs data layer (sources, loading, cache, filter/sort). |
 | `npc-index.mjs` | 260 | NPC actors → compact browse row model. |
 | `encounter-sources.mjs` | 56 | Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll). |
+| `encounter-terrain.mjs` | 132 | Terrain for encounter checks: the hex the party's tokens stand in on a tagged hex scene, the terrain→RollTable mapping and its dialog, and the fallback to the single active table. |
 
 ### 3.6 `scripts/monster-creator/`
 
@@ -220,13 +229,13 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `importer-hub-app.mjs` | 932 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1566 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
-| `importer-hub-commit.mjs` | 923 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 1103 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
-| `importer-hub-batch.mjs` | 699 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
-| `importer-hub-shared.mjs` | 92 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
-| `importer-hub-maintenance.mjs` | 243 | Tools-menu bodies (bundle export/import, source-PDF library). |
+| `importer-hub-app.mjs` | 939 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
+| `importer-hub-paste.mjs` | 1565 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-commit.mjs` | 930 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-manage.mjs` | 1102 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-batch.mjs` | 696 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
+| `importer-hub-shared.mjs` | 106 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
+| `importer-hub-maintenance.mjs` | 244 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
 | `manage-tree.mjs` | 628 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
@@ -289,9 +298,9 @@
 | `boats/siege-parser.mjs` | 438 | Parses the WR p119 siege-weapons table → Weapon drafts + ammunition (pure). |
 | `boats/siege-importer.mjs` | 44 | Materializes Blast/Exploding Property items for the siege weapons in `sde-items`. |
 | `hex/hex-commit.mjs` | 192 | Hex-key drafts → JournalEntry pages in sde-journal (one entry per crawl, one page per hex); pure planner + two-pass link rewrite. |
-| `hex/hex-dataset.mjs` | 152 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure. |
-| `hex/hex-handoff.mjs` | 80 | Crawl entry → dataset; hands it to Extras when its builder exists, else downloads JSON. |
-| `hex/hex-summary.mjs` | 138 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
+| `hex/hex-dataset.mjs` | 242 | Drafts + summary rows + tags → the Shadowdark Extras hexcrawl dataset (numbers only at the boundary). Pure. |
+| `hex/hex-handoff.mjs` | 82 | Crawl entry → dataset; hands it to Extras when its builder exists, else downloads JSON. |
+| `hex/hex-summary.mjs` | 165 | Keyed hex summary rows (number, region, terrain, name) → structured rows; zone/terrain split decided by the table. Pure. |
 | `items/record-boundary.mjs` | 210 | Where one pasted description record ends and the next begins. Pure. |
 | `tables/patron-items.mjs` | 223 | Patron Items for the imported WR boon tables (#167): find-or-create in `patrons-and-deities`, plus the ready-time rename/link backfill. |
 

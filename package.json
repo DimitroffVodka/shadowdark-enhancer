@@ -8,8 +8,8 @@
     "test": "node --test test/*.test.mjs",
     "lint": "eslint scripts test --max-warnings 0",
     "lint:fix": "eslint scripts test --fix",
-    "inventory": "node tools/inventory/generate.mjs",
-    "inventory:check": "node tools/inventory/generate.mjs --check",
+    "inventory": "node tools/inventory/generate.mjs && node tools/build-rev.mjs",
+    "inventory:check": "node tools/inventory/generate.mjs --check && node tools/build-rev.mjs --check",
     "wiki:sync": "node tools/sync-wiki.mjs",
     "wiki:check": "node tools/sync-wiki.mjs --check"
   },

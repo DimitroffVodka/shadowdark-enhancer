@@ -51,7 +51,14 @@ export function originOffset(origin) {
 /**
  * Number a cell from its Foundry cube and the origin.
  * @param {{q:number, r:number}} cube          Foundry cube of the cell
- * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even", bounds?:{cols:number, rows:number}}} origin
+ * @param {{cube:{q:number,r:number}, num:string|number, shifted?:"odd"|"even", bounds?:{cols:number, rows:number, rowsLowered?:number, firstRow?:number}}} origin
+ *   bounds.rowsLowered: the lowered columns' own row count when it differs (one short on a
+ *   print whose frame cuts them off at the bottom, like the Western Reaches)
+ *   bounds.firstRow: the first row the RAISED columns actually have. Those columns sit half
+ *   a cell higher, so a frame that cuts the field cuts their first row in half — on the
+ *   Western Reaches that half cell is where the print writes its column labels, all margin
+ *   and no map. Numbering it asks the GM to tag the frame. Default 0; the lowered columns
+ *   always start at 0, since it is the other end of them the frame takes.
  * @returns {{ col:number, row:number, num:number|null }} num is null outside the map's bounds
  */
 export function cellNumber(cube, origin) {
@@ -63,7 +70,12 @@ export function cellNumber(cube, origin) {
   const { col, row } = cubeToOffset(c, shifted);
   let num = numberFor(col, row);
   const b = origin.bounds;
-  if (num !== null && b && ((b.cols && col >= b.cols) || (b.rows && row >= b.rows))) num = null;
+  if (num !== null && b) {
+    const lowered = shifted === "odd" ? col % 2 === 1 : col % 2 === 0;
+    const rows = (lowered && b.rowsLowered) || b.rows;
+    const first = lowered ? 0 : (b.firstRow ?? 0);
+    if ((b.cols && col >= b.cols) || (rows && row >= rows) || row < first) num = null;
+  }
   return { col, row, num };
 }
 

@@ -30,7 +30,7 @@ import {
   EXPECTED_SLOT_COUNT as DOWNTIME_SLOT_COUNT,
 } from "../downtime/downtime-skeleton.mjs";
 import { slotLabel as downtimeSlotLabel, warningLines } from "../downtime/downtime-warnings.mjs";
-import { SOURCE_SUGGESTIONS, BOOK_SOURCES, FORMAT_EXAMPLES, flaggedRowNames, warnFields } from "./importer-hub-shared.mjs";
+import { SOURCE_SUGGESTIONS, BOOK_SOURCES, FORMAT_EXAMPLES, flaggedRowNames, warnFields, t as tr } from "./importer-hub-shared.mjs";
 import { installHubPaste } from "./importer-hub-paste.mjs";
 import { installHubCommit } from "./importer-hub-commit.mjs";
 import { installHubManage } from "./importer-hub-manage.mjs";
@@ -42,7 +42,7 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-importer-hub",
-    window: { title: "Importer", icon: "fas fa-file-import", resizable: true },
+    window: { title: "SDE.importer.app.title", icon: "fas fa-file-import", resizable: true },
     position: { width: 860, height: 780 },
     actions: {
       // Parse / clear
@@ -76,8 +76,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hubCommitSpells:        function (...args) { return this._onHubCommitSpells(...args); },
       hubCommitHexes:         function (...args) { return this._onHubCommitHexes(...args); },
       hubHexDataset:          function (...args) { return this._onHubHexDataset(...args); },
+      hubPinHexes:            function (...args) { return this._onHubPinHexes(...args); },
       // Tools → Hex tagger: the contact-sheet tagger for the active hex scene. Lazy.
       hubOpenHexTagger:       async function () { (await import("../hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(); },
+      hubHexMap:              async function () { (await import("../hex-map/hex-map-flow.mjs")).startHexMapFlow(); },
       hubCommitTables:        function (...args) { return this._onHubCommitTables(...args); },
       hubCommitBoats:         function (...args) { return this._onHubCommitBoats(...args); },
       hubCommitDowntime:      function (...args) { return this._onHubCommitDowntime(...args); },
@@ -424,7 +426,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const categoryOptions = [
       ...CATEGORIES.map(c => ({ id: c.id, label: c.label })),
       ...customFolders,
-      { id: CUSTOM_ID, label: "Custom…" },
+      { id: CUSTOM_ID, label: tr("SDE.importer.folder.custom") },
     ];
     // The Source field's datalist also lists existing top-level folders (the
     // canonical buckets + any the GM created) so a custom folder reappears
@@ -436,10 +438,10 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // extra option so it still shows.
     const curSource = this._importSource ?? "";
     const sourceOptions = [
-      { value: "", label: "— none —", selected: !curSource },
+      { value: "", label: tr("SDE.importer.source.noneDash"), selected: !curSource },
       ...BOOK_SOURCES.map((b) => ({ value: b, label: b, selected: b === curSource })),
       ...(curSource && !BOOK_SOURCES.includes(curSource)
-        ? [{ value: curSource, label: `${curSource} (custom)`, selected: true }] : []),
+        ? [{ value: curSource, label: tr("SDE.importer.source.customValue", { value: curSource }), selected: true }] : []),
     ];
 
     // Compound generators → row-major grid for the editable preview.
@@ -591,22 +593,24 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       importType: t,
       formatExample: FORMAT_EXAMPLES[t] ?? FORMAT_EXAMPLES.auto,
       typeGroups: [
-        { group: "Paste & parse here", options: [
-          { value: "auto",       label: "Auto-detect" },
-          { value: "monsters",   label: "Monsters" },
-          { value: "items",      label: "Items" },
-          { value: "tables",     label: "Tables" },
-          { value: "boats",      label: "Boats" },
-          { value: "backgrounds", label: "Backgrounds" },
-          { value: "talents",    label: "Talents" },
-          { value: "ancestries", label: "Ancestry" },
-          { value: "generators", label: "Compound generator" },
-          { value: "cartesian",  label: "Cartesian table" },
-          { value: "downtime",   label: "Downtime" },
+        { group: tr("SDE.importer.type.groupPaste"), options: [
+          // Spelled out rather than built from the value, so every key stays
+          // greppable and test/i18n-keys.test.mjs can account for it.
+          { value: "auto",        label: tr("SDE.importer.type.auto") },
+          { value: "monsters",    label: tr("SDE.importer.type.monsters") },
+          { value: "items",       label: tr("SDE.importer.type.items") },
+          { value: "tables",      label: tr("SDE.importer.type.tables") },
+          { value: "boats",       label: tr("SDE.importer.type.boats") },
+          { value: "backgrounds", label: tr("SDE.importer.type.backgrounds") },
+          { value: "talents",     label: tr("SDE.importer.type.talents") },
+          { value: "ancestries",  label: tr("SDE.importer.type.ancestries") },
+          { value: "generators",  label: tr("SDE.importer.type.generators") },
+          { value: "cartesian",   label: tr("SDE.importer.type.cartesian") },
+          { value: "downtime",    label: tr("SDE.importer.type.downtime") },
         ] },
-        { group: "Guided workspaces", options: [
-          { value: "__spells",  label: "Spells…" },
-          { value: "__classes", label: "Classes…" },
+        { group: tr("SDE.importer.type.groupGuided"), options: [
+          { value: "__spells",  label: tr("SDE.importer.type.spells") },
+          { value: "__classes", label: tr("SDE.importer.type.classes") },
         ] },
       ].map(g => ({ ...g, options: g.options.map(o => ({ ...o, selected: o.value === t })) })),
       showItemSubtype: t === "items" || t === "auto",
@@ -614,7 +618,7 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       genSpec: this._importGenSpec,
       itemSubtype: this._importItemSubtype,
       itemSubtypeOptions: [
-        { value: "auto", label: "Auto (by name)" },
+        { value: "auto", label: tr("SDE.importer.type.autoByName") },
         ...["Basic", "Weapon", "Armor", "Potion", "Scroll", "Wand"].map(v => ({ value: v, label: v })),
       ].map(o => ({ ...o, selected: o.value === this._importItemSubtype })),
       // Previews
@@ -628,6 +632,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hexTitle: this._importHexTitle,
       hexSummaryCount: this._importHexSummary.length,
       hexCrawlDone: this._lastHexCrawl,
+      // The viewed scene takes pins when it is numbered (Hex map from image, or the tagger's anchor).
+      hexPinScene: globalThis.canvas?.scene?.getFlag?.(MODULE_ID, "hexTags")?.origin ? canvas.scene.name : null,
       hexViaExtras: !!extrasHexApi(),
       generators: importGenerators,
       skipped: this._importSkipped,
@@ -741,8 +747,8 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
           }),
       hasChar: this._importChar.length > 0,
       charsCount: this._importChar.length,
-      charsTitle: "Character content",
-      charsCommitLabel: "Create in Items",
+      charsTitle: tr("SDE.importer.chars.title"),
+      charsCommitLabel: tr("SDE.importer.chars.commit"),
       skippedCount: this._importSkipped.length,
       monstersCount: importMonsterCards.length,
       itemsCount: this._importItems.length,
@@ -759,15 +765,16 @@ export class ImporterHubApp extends HandlebarsApplicationMixin(ApplicationV2) {
       alignments: ["L", "N", "C"],
       moveOptions,
       spellAbilities: [
-        { value: "", label: "— none —" },
-        { value: "int", label: "INT" },
-        { value: "wis", label: "WIS" },
-        { value: "cha", label: "CHA" },
+        { value: "", label: tr("SDE.importer.source.noneDash") },
+        { value: "int", label: tr("SDE.importer.abil.int") },
+        { value: "wis", label: tr("SDE.importer.abil.wis") },
+        { value: "cha", label: tr("SDE.importer.abil.cha") },
       ],
       attackTypes: ["NPC Attack", "NPC Special Attack"],
       abilityKeys: [
-        { key: "str", label: "STR" }, { key: "dex", label: "DEX" }, { key: "con", label: "CON" },
-        { key: "int", label: "INT" }, { key: "wis", label: "WIS" }, { key: "cha", label: "CHA" },
+        { key: "str", label: tr("SDE.importer.abil.str") }, { key: "dex", label: tr("SDE.importer.abil.dex") },
+        { key: "con", label: tr("SDE.importer.abil.con") }, { key: "int", label: tr("SDE.importer.abil.int") },
+        { key: "wis", label: tr("SDE.importer.abil.wis") }, { key: "cha", label: tr("SDE.importer.abil.cha") },
       ],
     };
 

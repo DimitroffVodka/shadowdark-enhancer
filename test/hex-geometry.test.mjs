@@ -47,9 +47,41 @@ test("cellNumber: bounds drop cells past the map's columns or rows, negative cel
   assert.equal(cellNumber({ q: -1, r: 0 }, origin).num, null);
 });
 
+test("cellNumber: rowsLowered ends the lowered columns one row short, the other parity keeps its last row", () => {
+  for (const shifted of ["odd", "even"]) {
+    const origin = { cube: { q: 0, r: 0 }, num: "000", shifted, bounds: { cols: 4, rows: 3, rowsLowered: 2 } };
+    const at = (col, row) => cellNumber(offsetToCube(col, row, shifted), origin).num;
+    const lowered = shifted === "odd" ? 1 : 0, raised = 1 - lowered;
+    assert.equal(at(raised, 2), raised * 100 + 2, `${shifted}: raised column keeps row 2`);
+    assert.equal(at(lowered, 2), null, `${shifted}: lowered column has no row 2`);
+    assert.equal(at(lowered, 1), lowered * 100 + 1);
+  }
+});
+
 test("neighbours: six cells, odd columns lowered", () => {
   const n = neighbours(1, 1, "odd").map((c) => `${c.col},${c.row}`).sort();
   assert.deepEqual(n, ["0,1", "0,2", "1,0", "1,2", "2,1", "2,2"]);
   const m = neighbours(2, 1, "odd").map((c) => `${c.col},${c.row}`).sort();
   assert.deepEqual(m, ["1,0", "1,1", "2,0", "2,2", "3,0", "3,1"]);
+});
+
+test("cellNumber: the raised columns' frame-cut first row is not numbered", () => {
+  // The Western Reaches: odd columns lowered, 64 × 75, the lowered ones one row
+  // short at the bottom, and the raised ones' row 0 is the half cell in the top
+  // frame where the print writes its column labels.
+  const origin = { cube: { q: 0, r: 0 }, num: "0001", shifted: "odd", bounds: { cols: 64, rows: 75, rowsLowered: 74, firstRow: 1 } };
+  const at = (col, row) => cellNumber(offsetToCube(col, row, "odd"), { ...origin, cube: offsetToCube(0, 1, "odd") }).num;
+  assert.equal(at(0, 0), null, "column 0 is raised: its row 0 is frame, not map");
+  assert.equal(at(2, 0), null);
+  assert.equal(at(0, 1), 1, "and its first real hex is row 1");
+  assert.equal(at(1, 0), 100, "the lowered columns keep their row 0 — the frame takes their other end");
+  assert.equal(at(1, 73), 173);
+  assert.equal(at(1, 74), null, "rowsLowered still cuts the lowered columns at the bottom");
+  assert.equal(at(0, 74), 74, "the raised columns still reach the last row");
+});
+
+test("cellNumber: firstRow defaults to 0, so a print without a cut row is unchanged", () => {
+  const origin = { cube: { q: 0, r: 0 }, num: "0000", shifted: "odd", bounds: { cols: 4, rows: 4 } };
+  assert.equal(cellNumber(offsetToCube(0, 0, "odd"), origin).num, 0);
+  assert.equal(cellNumber(offsetToCube(2, 0, "odd"), origin).num, 200);
 });

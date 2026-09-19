@@ -18,7 +18,7 @@ import { commitHexDrafts } from "./hex/hex-commit.mjs";
 import { datasetFromEntry, handoffDataset } from "./hex/hex-handoff.mjs";
 import { validateHexDataset } from "./hex/hex-dataset.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
-import { installMethods } from "./importer-hub-shared.mjs";
+import { installMethods, t } from "./importer-hub-shared.mjs";
 import { ImporterHubApp } from "./importer-hub-app.mjs";
 import { buildUnlockRecord, readStored } from "../downtime/downtime-core.mjs";
 import {
@@ -40,12 +40,12 @@ class HubCommitMethods {
       if (this._batchAuto) return this._batchAuto.conflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Monster Already Exists" },
-        content: `<p>A monster named <strong>${safe}</strong> is already in the imported-monsters compendium. What would you like to do?</p>`,
+        window: { title: t("SDE.importer.conflict.monsterTitle") },
+        content: `<p>${t("SDE.importer.conflict.monster", { name: safe })}</p>`,
         buttons: [
-          { action: "rename",  label: "Import as Copy", default: true },
-          { action: "replace", label: "Replace Existing" },
-          { action: "skip",    label: "Skip" },
+          { action: "rename",  label: t("SDE.importer.conflict.importCopy"), default: true },
+          { action: "replace", label: t("SDE.importer.conflict.replace") },
+          { action: "skip",    label: t("SDE.importer.conflict.skip") },
         ],
         rejectClose: false,
       }).catch(() => "skip");
@@ -61,12 +61,12 @@ class HubCommitMethods {
       if (this._batchAuto) return this._batchAuto.tableConflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Table Already Exists" },
-        content: `<p>A table named <strong>${safe}</strong> already exists. What would you like to do?</p>`,
+        window: { title: t("SDE.importer.conflict.tableTitle") },
+        content: `<p>${t("SDE.importer.conflict.table", { name: safe })}</p>`,
         buttons: [
-          { action: "rename",  label: "Create as Copy", default: true },
-          { action: "replace", label: "Replace Existing" },
-          { action: "cancel",  label: "Cancel" },
+          { action: "rename",  label: t("SDE.importer.conflict.createCopy"), default: true },
+          { action: "replace", label: t("SDE.importer.conflict.replace") },
+          { action: "cancel",  label: t("SDE.importer.btn.cancel") },
         ],
         rejectClose: false,
       }).catch(() => "cancel");
@@ -80,12 +80,12 @@ class HubCommitMethods {
       if (this._batchAuto) return this._batchAuto.conflict;
       const safe = foundry.utils.escapeHTML(name);
       const choice = await foundry.applications.api.DialogV2.wait({
-        window: { title: "Item Already Exists" },
-        content: `<p>An item named <strong>${safe}</strong> is already in the imported-items compendium. What would you like to do?</p>`,
+        window: { title: t("SDE.importer.conflict.itemTitle") },
+        content: `<p>${t("SDE.importer.conflict.item", { name: safe })}</p>`,
         buttons: [
-          { action: "rename",  label: "Keep both", default: true },
-          { action: "replace", label: "Replace Existing" },
-          { action: "skip",    label: "Skip" },
+          { action: "rename",  label: t("SDE.importer.conflict.keepBoth"), default: true },
+          { action: "replace", label: t("SDE.importer.conflict.replace") },
+          { action: "skip",    label: t("SDE.importer.conflict.skip") },
         ],
         rejectClose: false,
       }).catch(() => "skip");
@@ -147,8 +147,8 @@ class HubCommitMethods {
 
   /** Commit: create all pending items into sde-items. GM-gated. */
   async _onHubCommitItems() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import items."); return; }
-    if (!this._importItems.length) { ui.notifications.warn("No items to import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.items")); return; }
+    if (!this._importItems.length) { ui.notifications.warn(t("SDE.importer.empty.items")); return; }
 
     const source = this._importSource.trim();
     const drafts = this._importItems.map((p) => p.draft);
@@ -169,7 +169,7 @@ class HubCommitMethods {
     const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
     if (!result) return;
 
-    ui.notifications.info(`Items: ${ImporterHubApp._commitSummary(result)} → sde-items${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(t("SDE.importer.done.items", { summary: ImporterHubApp._commitSummary(result), source: source ? ` / ${source}` : "" }));
     this._importItems = [];
     this._invalidateItemsCache();
     this.render();
@@ -193,21 +193,21 @@ class HubCommitMethods {
     const { ItemImporter } = await import("./items/item-importer.mjs");
     const result = await ItemImporter.createItems(drafts, { source, onConflict: this._itemConflictDialog() });
     if (unresolved.length) {
-      ui.notifications.warn(`Spells: ${unresolved.length} imported without a class link (${unresolved.slice(0, 3).join(", ")}${unresolved.length > 3 ? "…" : ""}).`);
+      ui.notifications.warn(t("SDE.importer.done.spellsUnlinked", { n: unresolved.length, names: unresolved.slice(0, 3).join(", ") + (unresolved.length > 3 ? "…" : "") }));
     }
     return result;
   }
 
   /** Commit: create all pending spells into sde-items. GM-gated. */
   async _onHubCommitSpells() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import spells."); return; }
-    if (!this._importSpells.length) { ui.notifications.warn("No spells to import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.spells")); return; }
+    if (!this._importSpells.length) { ui.notifications.warn(t("SDE.importer.empty.spells")); return; }
 
     const source = this._importSource.trim();
     const result = await this._commitSpells(source);
     if (!result) return;
 
-    ui.notifications.info(`Spells: ${ImporterHubApp._commitSummary(result)} → sde-items${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(t("SDE.importer.done.spells", { summary: ImporterHubApp._commitSummary(result), source: source ? ` / ${source}` : "" }));
     this._importSpells = [];
     this._invalidateItemsCache();
     this.render();
@@ -215,8 +215,8 @@ class HubCommitMethods {
 
   /** Commit: create all pending monsters into sde-actors. GM-gated. */
   async _onHubCommitMonsters() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import monsters."); return; }
-    if (!this._importMonsters.length) { ui.notifications.warn("No monsters to import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.monsters")); return; }
+    if (!this._importMonsters.length) { ui.notifications.warn(t("SDE.importer.empty.monsters")); return; }
 
     const source = this._importSource.trim();
     const drafts = this._importMonsters.map((p) => p.draft);
@@ -230,7 +230,7 @@ class HubCommitMethods {
     }
     if (!result) return;
 
-    ui.notifications.info(`${isMount ? "Mounts" : "Monsters"}: ${ImporterHubApp._commitSummary(result)} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(t(isMount ? "SDE.importer.done.mounts" : "SDE.importer.done.monsters", { summary: ImporterHubApp._commitSummary(result), pack: MonsterImporter.PACK_LABEL, source: source ? ` / ${source}` : "" }));
     this._importMonsters = [];
     this._invalidateMonstersCache();
     this.render();
@@ -239,15 +239,15 @@ class HubCommitMethods {
 
   /** Commit: create all pending boats into the sde-actors compendium. GM-gated. */
   async _onHubCommitBoats() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import boats."); return; }
-    if (!this._importBoats.length) { ui.notifications.warn("No boats to import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.boats")); return; }
+    if (!this._importBoats.length) { ui.notifications.warn(t("SDE.importer.empty.boats")); return; }
     const source = this._importSource.trim();
     const drafts = this._importBoats.map((p) => p.draft);
     const report = await BoatImporter.createBoats(drafts, { source });
     const bits = [];
     if (report.created.length) bits.push(`${report.created.length} created`);
     if (report.skipped.length) bits.push(`${report.skipped.length} already present`);
-    ui.notifications.info(`Boats: ${bits.join(", ") || "nothing to do"} → ${MonsterImporter.PACK_LABEL}${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(t("SDE.importer.done.boats", { bits: bits.join(", ") || t("SDE.importer.done.nothingToDo"), pack: MonsterImporter.PACK_LABEL, source: source ? ` / ${source}` : "" }));
     this._importBoats = [];
     this._invalidateManageTree?.();
     this.render();
@@ -260,8 +260,8 @@ class HubCommitMethods {
    * crawl the GM files on purpose, and its entry name is read from the strip.
    */
   async _onHubCommitHexes() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can create hex pages."); return; }
-    if (!this._importHexes.length && !this._importHexSummary.length) { ui.notifications.warn("No hex pages to create."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.hexes")); return; }
+    if (!this._importHexes.length && !this._importHexSummary.length) { ui.notifications.warn(t("SDE.importer.empty.hexes")); return; }
     const source = this._importSource.trim();
     const titleInput = this.element?.querySelector?.("input[data-hex-title]");
     const crawlTitle = String(titleInput?.value ?? this._importHexTitle ?? "").trim();
@@ -271,7 +271,7 @@ class HubCommitMethods {
     if (report.updated.length) bits.push(`${report.updated.length} updated`);
     if (report.keyed) bits.push(`${report.keyed} keyed rows on file`);
     if (report.collisions.length) bits.push(`${report.collisions.length} duplicate id${report.collisions.length === 1 ? "" : "s"} skipped`);
-    ui.notifications.info(`Hex pages: ${bits.join(", ") || "nothing to do"} → Journals${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(t("SDE.importer.done.hexes", { bits: bits.join(", ") || t("SDE.importer.done.nothingToDo"), source: source ? ` / ${source}` : "" }));
     if (report.entryUuid) {
       this._importHexes = []; this._importHexTitle = ""; this._importHexSummary = [];
       this._lastHexCrawl = { uuid: report.entryUuid, title: report.title };
@@ -280,26 +280,41 @@ class HubCommitMethods {
     this.render();
   }
 
+  /** Pins: the filed crawl's keyed hexes as map notes on the viewed scene (hex-pins.mjs). */
+  async _onHubPinHexes(event, target) {
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.pin")); return; }
+    const uuid = target?.dataset?.uuid || this._lastHexCrawl?.uuid;
+    const entry = uuid ? await fromUuid(uuid) : null;
+    if (!entry) { ui.notifications.warn(t("SDE.importer.empty.crawlGone")); return; }
+    const { pinCrawlOnActiveScene } = await import("../hex-map/hex-pins.mjs");
+    const res = await pinCrawlOnActiveScene(entry).catch((err) => { console.error(`${MODULE_ID} | pin keyed hexes`, err); ui.notifications.error(t("SDE.importer.done.pinFailed", { error: err.message })); return null; });
+    if (!res) return;
+    const bits = [`${res.created} pinned`];
+    if (res.moved) bits.push(`${res.moved} moved`);
+    if (res.missing.length) bits.push(`${res.missing.length} not on this map (${res.missing.slice(0, 5).map((n) => String(n).padStart(4, "0")).join(", ")}${res.missing.length > 5 ? "…" : ""})`);
+    ui.notifications.info(t("SDE.importer.done.pinned", { scene: canvas.scene?.name, bits: bits.join(", "), journal: res.journal.name }));
+  }
+
   /**
    * Hand-off: rebuild the Extras dataset from a committed crawl entry (pages
    * plus the keyed rows on its flag) and send it to Shadowdark Extras when its
    * builder entry point exists, else download it as JSON (hex-handoff.mjs).
    */
   async _onHubHexDataset(event, target) {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can export a hex crawl."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.hexExport")); return; }
     const uuid = target?.dataset?.uuid || this._lastHexCrawl?.uuid;
     const entry = uuid ? await fromUuid(uuid) : null;
-    if (!entry) { ui.notifications.warn("That hex crawl entry is gone — import it again first."); return; }
+    if (!entry) { ui.notifications.warn(t("SDE.importer.empty.crawlGone")); return; }
     const dataset = datasetFromEntry(entry);
     const check = validateHexDataset(dataset);
     if (!check.ok) {
       console.warn(`${MODULE_ID} | hex dataset failed its contract check`, check.errors);
-      ui.notifications.error(`Hex dataset failed its contract check: ${check.errors[0]}`);
+      ui.notifications.error(t("SDE.importer.done.datasetInvalid", { error: check.errors[0] }));
       return;
     }
     const res = await handoffDataset(dataset);
-    if (res.via === "extras") ui.notifications.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes).`);
-    else if (res.via === "download") ui.notifications.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes).`);
+    if (res.via === "extras") ui.notifications.info(t("SDE.importer.done.sentExtras", { name: dataset.name, n: dataset.hexes.length }));
+    else if (res.via === "download") ui.notifications.info(t("SDE.importer.done.downloaded", { file: res.filename, n: dataset.hexes.length }));
   }
 
   /**
@@ -315,12 +330,12 @@ class HubCommitMethods {
     if (this._batchAuto) return this._batchAuto.downtimeDowngrade === "replace" ? "replace" : "cancel";
     const safe = foundry.utils.escapeHTML(label);
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Downtime Already Unlocked" },
-      content: `<p><strong>${safe}</strong> already has <strong>${existingCount}</strong> of ${DOWNTIME_SLOT_COUNT} outcomes unlocked, but this paste matched only <strong>${newCount}</strong>.</p>`
-        + `<p>Replacing swaps the stored text for the smaller set — the ${existingCount - newCount} outcome${existingCount - newCount === 1 ? "" : "s"} not in this paste would lock again.</p>`,
+      window: { title: t("SDE.importer.conflict.downtimeTitle") },
+      content: `<p>${t("SDE.importer.conflict.downtime", { book: safe, existing: existingCount, total: DOWNTIME_SLOT_COUNT, matched: newCount })}</p>`
+        + `<p>${t(existingCount - newCount === 1 ? "SDE.importer.conflict.downtimeRelockOne" : "SDE.importer.conflict.downtimeRelockMany", { n: existingCount - newCount })}</p>`,
       buttons: [
-        { action: "cancel", label: "Keep Existing", icon: "fa-solid fa-shield", default: true },
-        { action: "replace", label: "Replace Anyway", icon: "fa-solid fa-triangle-exclamation" },
+        { action: "cancel", label: t("SDE.importer.conflict.keepExisting"), icon: "fa-solid fa-shield", default: true },
+        { action: "replace", label: t("SDE.importer.conflict.replaceAnyway"), icon: "fa-solid fa-triangle-exclamation" },
       ],
       rejectClose: false,
     }).catch(() => "cancel");
@@ -338,14 +353,14 @@ class HubCommitMethods {
    * (downtime-app.mjs `_onFirstRender`), so nothing reaches into that app.
    */
   async _onHubCommitDowntime() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can unlock downtime outcomes."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.downtime")); return; }
     const parse = this._downtimeParse;
-    if (!parse) { ui.notifications.warn("Parse a downtime page first."); return; }
+    if (!parse) { ui.notifications.warn(t("SDE.importer.empty.downtime")); return; }
     const slug = DOWNTIME_SOURCES[this._downtimeSource] ? this._downtimeSource : DOWNTIME_SLUGS[0];
     const label = DOWNTIME_SOURCES[slug].label;
     const filledCount = Object.keys(parse.filled ?? {}).length;
     if (!filledCount) {
-      ui.notifications.warn(`Nothing matched the ${label} downtime pages — check the book selection and re-paste.`);
+      ui.notifications.warn(t("SDE.importer.done.downtimeNoMatch", { book: label }));
       return;
     }
     // Merge, never replace: unlocking one book must leave the other's text alone.
@@ -360,7 +375,7 @@ class HubCommitMethods {
     if (priorCount > filledCount) {
       const choice = await this._downtimeDowngradeDialog(label, priorCount, filledCount);
       if (choice !== "replace") {
-        ui.notifications.info(`Kept the existing ${label} downtime unlock (${priorCount} of ${DOWNTIME_SLOT_COUNT}).`);
+        ui.notifications.info(t("SDE.importer.done.downtimeKept", { book: label, prior: priorCount, total: DOWNTIME_SLOT_COUNT }));
         return;
       }
     }
@@ -369,12 +384,12 @@ class HubCommitMethods {
       record = buildUnlockRecord(parse, { unlockedAt: new Date().toISOString() });
     } catch (err) {
       console.error(`${MODULE_ID} | downtime: buildUnlockRecord failed`, err);
-      ui.notifications.error("Couldn't build the downtime unlock record — see the console.");
+      ui.notifications.error(t("SDE.importer.done.downtimeFailed"));
       return;
     }
     content[slug] = record;
     await game.settings.set(MODULE_ID, "downtimeContent", content);
-    ui.notifications.info(`Downtime (${label}): ${filledCount} of ${DOWNTIME_SLOT_COUNT} entries unlocked.`);
+    ui.notifications.info(t("SDE.importer.done.downtime", { book: label, filled: filledCount, total: DOWNTIME_SLOT_COUNT }));
     this._downtimeParse = null;
     this._invalidateManageTree?.();
     this.render();
@@ -391,15 +406,16 @@ class HubCommitMethods {
     if (this._batchAuto) return this._batchAuto.quality;
     const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const items = flagged.map(({ draft, blockers }) =>
-      `<li><strong>${esc(draft.name ?? "(untitled)")}</strong><ul style="margin:0.2em 0 0.4em 1.1em;">${blockers.map((b) => `<li>${esc(b.message)}</li>`).join("")}</ul></li>`).join("");
+      `<li><strong>${esc(draft.name ?? t("SDE.importer.quality.untitled"))}</strong><ul style="margin:0.2em 0 0.4em 1.1em;">${blockers.map((b) => `<li>${esc(b.message)}</li>`).join("")}</ul></li>`).join("");
     const choice = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Import quality check" },
+      window: { title: t("SDE.importer.quality.title") },
       position: { width: 480 },
-      content: `<p><strong>${flagged.length}</strong> ${esc(kindLabel)}${flagged.length === 1 ? "" : "s"} failed the quality check and would import broken:</p><ul>${items}</ul><p>“Commit clean only” imports the rest and keeps these in the preview for fixing.</p>`,
+      content: `<p>${t(flagged.length === 1 ? "SDE.importer.quality.leadOne" : "SDE.importer.quality.leadMany",
+        { n: flagged.length, kind: esc(kindLabel) })}</p><ul>${items}</ul><p>${t("SDE.importer.quality.cleanNote")}</p>`,
       buttons: [
-        { action: "commit-clean", label: "Commit clean only", icon: "fa-solid fa-filter", default: true },
-        { action: "commit-all", label: "Commit anyway", icon: "fa-solid fa-triangle-exclamation" },
-        { action: "cancel", label: "Cancel", icon: "fa-solid fa-xmark" },
+        { action: "commit-clean", label: t("SDE.importer.quality.commitClean"), icon: "fa-solid fa-filter", default: true },
+        { action: "commit-all", label: t("SDE.importer.quality.commitAll"), icon: "fa-solid fa-triangle-exclamation" },
+        { action: "cancel", label: t("SDE.importer.btn.cancel"), icon: "fa-solid fa-xmark" },
       ],
       rejectClose: false,
     });
@@ -433,10 +449,7 @@ class HubCommitMethods {
     if (!isLiveMatrix) return false;
     const { ok, errors } = TableImporter.validateMatrixCommit(seed, this._importTables);
     if (ok) return false;
-    ui.notifications.error(
-      `Can't create the “${seed.name}” matrix: it must import as ${seed.columns.length} complete, valid child tables. ` +
-      `${errors[0]} Fix the paste and re-parse — nothing was created.`,
-    );
+    ui.notifications.error(t("SDE.importer.bundleErr.matrix", { name: seed.name, n: seed.columns.length, first: errors[0] }));
     return true;
   }
 
@@ -479,11 +492,8 @@ class HubCommitMethods {
     const descriptors = this._importTables.map((d) => ImporterHubApp._magicDraftDescriptor(d));
     const res = matchBundleTables(def, descriptors);
     if (!res.ok) {
-      const first = res.errors?.[0]?.message ?? "The set is incomplete.";
-      ui.notifications.error(
-        `Can't create the “${def.label}” set: it must import as ${def.children.length} complete, valid, ` +
-        `non-duplicate tables. ${first} Fix the paste and re-parse — nothing was created.`,
-      );
+      const first = res.errors?.[0]?.message ?? t("SDE.importer.bundleErr.incomplete");
+      ui.notifications.error(t("SDE.importer.bundleErr.set", { label: def.label, n: def.children.length, first }));
       return "refuse";
     }
     // Bundle isolation: keep ONLY the matched child drafts (stamp identity);
@@ -510,13 +520,10 @@ class HubCommitMethods {
     const result = await TableImporter.commitTableBundle(matched, { onConflict: this._tableConflictDialog() });
     if (!result?.ok) {
       const reason = result?.reason;
-      const msg = reason === "cancelled"
-        ? `“${def.label}” import cancelled at a conflict — nothing was created.`
-        : reason === "invalid"
-          ? `“${def.label}” blocked — one or more tables failed validation. Nothing created.`
-          : reason === "write-failed"
-            ? `“${def.label}” failed to persist and was rolled back — nothing created.`
-            : `“${def.label}” could not be imported — nothing created.`;
+      const msg = t(reason === "cancelled" ? "SDE.importer.bundleErr.cancelled"
+        : reason === "invalid" ? "SDE.importer.bundleErr.invalid"
+          : reason === "write-failed" ? "SDE.importer.bundleErr.writeFailed"
+            : "SDE.importer.bundleErr.other", { label: def.label });
       (reason === "cancelled" ? ui.notifications.info : ui.notifications.error)(msg);
       return 0;
     }
@@ -527,13 +534,13 @@ class HubCommitMethods {
     this._invalidateCharCache();
     this._announceContentUnlocked();
     const n = result.created.length + result.replaced.length;
-    ui.notifications.info(`Set “${def.label}” imported: ${n} table${n === 1 ? "" : "s"} → sde-tables.`);
+    ui.notifications.info(t(n === 1 ? "SDE.importer.done.setOne" : "SDE.importer.done.setMany", { label: def.label, n }));
     return n;
   }
 
   async _onHubCommitTables() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import tables."); return; }
-    if (!this._importTables.length) { ui.notifications.warn("No tables to import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.tables")); return; }
+    if (!this._importTables.length) { ui.notifications.warn(t("SDE.importer.empty.tables")); return; }
     if (this._matrixCommitRefused()) { this.render(); return; }
     // Magic base-recipe bundle → dedicated ATOMIC path (isolated, all-or-nothing).
     const bundlePlan = this._magicBundlePlan();
@@ -567,7 +574,7 @@ class HubCommitMethods {
         await this._registerCharBuilderTable(table);
       }
     }
-    ui.notifications.info(`Tables: ${created} created${gate.skip.size ? `; ${gate.skip.size} kept in the preview (quality check)` : ""} → sde-tables.`);
+    ui.notifications.info(t("SDE.importer.done.tables", { created, kept: gate.skip.size ? t("SDE.importer.done.keptInPreview", { n: gate.skip.size }) : "" }));
     if (this._importSeed?._charSeed && !this._importTables.length) this._importSeed = null;
     this._invalidateCharCache();
     if (created) this._announceContentUnlocked();
@@ -579,8 +586,8 @@ class HubCommitMethods {
    * carrying the compound flag). Same conflict dialog as regular tables.
    */
   async _onHubCommitGenerators() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import tables."); return; }
-    if (!this._importGenerators.length) { ui.notifications.warn("No generators to import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.tables")); return; }
+    if (!this._importGenerators.length) { ui.notifications.warn(t("SDE.importer.empty.generators")); return; }
 
     const gate = await this._gateTableDrafts("generator", this._importGenerators);
     if (!gate) return;
@@ -597,7 +604,7 @@ class HubCommitMethods {
         this._importGenerators = this._importGenerators.filter(x => x !== g);
       }
     }
-    ui.notifications.info(`Generators: ${created} created${gate.skip.size ? `; ${gate.skip.size} kept in the preview (quality check)` : ""} → sde-tables. Roll from the table sheet to combine columns.`);
+    ui.notifications.info(t("SDE.importer.done.generators", { created, kept: gate.skip.size ? t("SDE.importer.done.keptInPreview", { n: gate.skip.size }) : "" }));
     // Compound grids (Traps/Hazards, name generators) land as sde-tables just
     // like plain tables — drop the char + Manage-tree caches so the census
     // re-scans and their Unlock buttons clear (parity with _onHubCommitTables).
@@ -624,13 +631,13 @@ class HubCommitMethods {
 
   /** Commit: create all monsters, items, then tables in one action. GM-gated. */
   async _onHubCommitAll() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.notify.gmOnly")); return; }
 
     const hasMonsters = this._importMonsters.length > 0;
     const hasItems    = this._importItems.length > 0;
     const hasSpells   = this._importSpells.length > 0;
     const hasTables   = this._importTables.length > 0;
-    if (!hasMonsters && !hasItems && !hasSpells && !hasTables) { ui.notifications.warn("Nothing to import."); return; }
+    if (!hasMonsters && !hasItems && !hasSpells && !hasTables) { ui.notifications.warn(t("SDE.importer.empty.anything")); return; }
 
     const parts = [];
     const source = this._importSource.trim();
@@ -694,7 +701,7 @@ class HubCommitMethods {
       // A live selected-matrix seed is all-or-nothing (see _matrixCommitRefused):
       // refuse the whole tables portion rather than committing a partial matrix.
       if (this._matrixCommitRefused()) {
-        ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`);
+        ui.notifications.info(t("SDE.importer.done.stoppedAtTables", { parts: parts.join("; ") || t("SDE.importer.done.nothingCommitted") }));
         this.render();
         return;
       }
@@ -702,7 +709,7 @@ class HubCommitMethods {
       // Commit Tables). Refuse stops; success commits ONLY the matched children.
       const bundlePlan = this._magicBundlePlan();
       if (bundlePlan === "refuse") {
-        ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`);
+        ui.notifications.info(t("SDE.importer.done.stoppedAtTables", { parts: parts.join("; ") || t("SDE.importer.done.nothingCommitted") }));
         this.render();
         return;
       }
@@ -712,19 +719,19 @@ class HubCommitMethods {
         const n = await this._commitMagicBundle(bundlePlan);
         if (n > 0) {
           parts.push(`tables: ${n} created (bundle)`);
-          ui.notifications.info(`Import complete — ${parts.join("; ")}.`);
+          ui.notifications.info(t("SDE.importer.done.complete", { parts: parts.join("; ") }));
         } else {
           // Bundle failed/cancelled: do NOT claim a tables entry, do NOT say
           // "Import complete", and do NOT announce an unlock for the zero result
           // — but still surface any earlier commits (monsters/items/spells).
           if (parts.length) this._announceContentUnlocked();
-          ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`);
+          ui.notifications.info(t("SDE.importer.done.stoppedAtTables", { parts: parts.join("; ") || t("SDE.importer.done.nothingCommitted") }));
         }
         this.render();
         return;
       }
       const gate = await this._gateTableDrafts("table", this._importTables);
-      if (!gate) { ui.notifications.info(`Import stopped at tables — ${parts.join("; ") || "nothing committed yet"}.`); this.render(); return; }
+      if (!gate) { ui.notifications.info(t("SDE.importer.done.stoppedAtTables", { parts: parts.join("; ") || t("SDE.importer.done.nothingCommitted") })); this.render(); return; }
       const onConflict = this._tableConflictDialog();
       let created = 0;
       for (const tbl of [...this._importTables]) {
@@ -740,7 +747,7 @@ class HubCommitMethods {
       parts.push(`tables: ${created} created${gate.skip.size ? `, ${gate.skip.size} blocked` : ""}`);
     }
 
-    ui.notifications.info(`Import complete — ${parts.join("; ")}.`);
+    ui.notifications.info(t("SDE.importer.done.complete", { parts: parts.join("; ") }));
     if (parts.length) this._announceContentUnlocked();
     this.render();
   }
@@ -763,8 +770,8 @@ class HubCommitMethods {
   }
   /** Commit parsed Background/Talent/Class drafts into sde-items. GM-gated. */
   async _onHubCommitChar() {
-    if (!game.user?.isGM) { ui.notifications.warn("Only a GM can import content."); return; }
-    if (!this._importChar.length) { ui.notifications.warn("No character content to import."); return; }
+    if (!game.user?.isGM) { ui.notifications.warn(t("SDE.importer.gm.charContent")); return; }
+    if (!this._importChar.length) { ui.notifications.warn(t("SDE.importer.empty.charContent")); return; }
     const bgBundle = this._importSeed?._bgBundle;
 
     const source = this._importSource.trim();
@@ -813,7 +820,7 @@ class HubCommitMethods {
         }
         if (rep.warnings.length) {
           console.warn(`${MODULE_ID} | class import "${p.draft.name}" — review notes:\n- ${rep.warnings.join("\n- ")}`);
-          ui.notifications.warn(`"${p.draft.name}" imported with ${rep.warnings.length} review note(s) — see the console (F12).`);
+          ui.notifications.warn(t("SDE.importer.done.classNotes", { name: p.draft.name, n: rep.warnings.length }));
         }
       }
     }
@@ -825,7 +832,7 @@ class HubCommitMethods {
       const { mergeClassSupplement } = await import("./char-content/class-unit-importer.mjs");
       for (const p of suppDrafts) {
         if (!p.draft.attachTo) {
-          ui.notifications.warn(`"${p.draft.name}" — pick a class to attach these tables to first.`);
+          ui.notifications.warn(t("SDE.importer.done.pickClass", { name: p.draft.name }));
           continue;
         }
         let rep = await mergeClassSupplement(p.draft.attachTo, p.draft.classSupplement, { source, sourceTitle });
@@ -839,7 +846,7 @@ class HubCommitMethods {
         parts.push(`tables → "${target?.name ?? "class"}": ${rep.created.length} created, ${rep.updated.length} updated, ${rep.reused.length} reused`);
         if (rep.warnings.length) {
           console.warn(`${MODULE_ID} | class supplement → "${target?.name ?? p.draft.attachTo}" — review notes:\n- ${rep.warnings.join("\n- ")}`);
-          ui.notifications.warn(`Class tables merged with ${rep.warnings.length} review note(s) — see the console (F12).`);
+          ui.notifications.warn(t("SDE.importer.done.mergeNotes", { n: rep.warnings.length }));
         }
       }
     }
@@ -860,7 +867,7 @@ class HubCommitMethods {
       if (result.replaced.length) parts.push(`${result.replaced.length} replaced`);
       if (result.skipped.length) parts.push(`${result.skipped.length} skipped`);
     }
-    ui.notifications.info(`Character content: ${parts.join("; ")} → suite packs${source ? ` / ${source}` : ""}.`);
+    ui.notifications.info(t("SDE.importer.done.charContent", { parts: parts.join("; "), source: source ? ` / ${source}` : "" }));
     // Keep supplement drafts the user never assigned a target — everything
     // committed (units, plain items, attached supplements) is cleared.
     this._importChar = this._importChar.filter((p) => p.draft.classSupplement && !p.draft.attachTo);

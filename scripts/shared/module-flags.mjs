@@ -23,6 +23,7 @@
  * as the payload states them; this module does not speak for them.
  *
  * Exports:
+ *   replaceModuleFlag(doc, key, value) — replace ONE of our flags, wholesale
  *   moduleFlags(document)            — this module's flag block, or {}
  *   preservedModuleFlags(payloadFlags, existingFlags) — the merge rule
  *   replacementFlags(payloadFlags, existingFlags) — what each branch writes
@@ -32,6 +33,32 @@
 import { MODULE_ID } from "./module-id.mjs";
 
 const isObject = (value) => !!value && typeof value === "object" && !Array.isArray(value);
+
+/**
+ * Replace ONE of this module's flag objects on a document, wholesale, without
+ * touching our other flags on it.
+ *
+ * `document.update({ "flags.<module>.<key>": value }, { recursive: false })` is
+ * the obvious way and it is a data-loss bug: `recursive: false` is not scoped to
+ * the path, so the non-recursive merge replaces the whole
+ * `flags.<module>` OBJECT with `{ <key>: value }` and every sibling flag is
+ * deleted. That is how the hex tagger's 4768 tags were destroyed on 2026-09-18
+ * by a write to a second flag beside them — it had been safe only for as long as
+ * `hexTags` was the module's single flag on a scene.
+ *
+ * Deleting the key first and setting it after is the pattern that both replaces
+ * the object (no merged-in leftovers from the old value) and leaves siblings
+ * alone. It has to be two updates: a delete and a set of the same key in ONE
+ * update merge instead of replacing.
+ *
+ * @param {object} document  any Foundry document
+ * @param {string} key       the flag key inside this module's namespace
+ * @param {object} value     the new value, written whole
+ */
+export async function replaceModuleFlag(document, key, value) {
+  await document.update({ [`flags.${MODULE_ID}.-=${key}`]: null });
+  return document.update({ [`flags.${MODULE_ID}.${key}`]: value });
+}
 
 /**
  * This module's own flag block on a document or creation payload.

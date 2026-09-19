@@ -173,8 +173,9 @@ See [Movement Budgets](Movement-Budgets.md).
 | **Pause game on encounter** | on | Automatically pauses game when an encounter check hits. |
 | **Auto-roll active table on hit** | on | Draws from active encounter table automatically on a hit. |
 
-> **The encounter threshold is set on the Crawl Bar.** Right-click **Encounter**
-> on the bar to adjust it. See [Random Encounters](Random-Encounters.md).
+> **The encounter threshold and check frequency are set on the Crawl Bar.**
+> Right-click **Encounter** on the bar to adjust either. See
+> [Random Encounters](Random-Encounters.md).
 
 ## Settings edited elsewhere
 
@@ -186,6 +187,7 @@ main settings menu:
 | **Merchant Sell Ratio (%)** | `50` | Merchant Shop window |
 | **Merchant Shop Name** | `The Merchant` | Merchant Shop window |
 | **Encounter threshold** | `1` | Crawl Bar → right-click **Encounter** |
+| **Encounter check frequency** | `1` (every crawl round) | Crawl Bar → right-click **Encounter** → **Check Frequency** — counted from the last check, so a mid-crawl change applies from where you stand |
 | **Active encounter table** | *(none)* | Crawl Bar → drag table onto **Encounter** |
 | **Encounter sources** | `["world", "shadowdark.bestiary"]` | Scripting API (use `shadowdark.monsters` on 4.x) |
 | **Loot tier tables** | *(empty)* | Loot Generator → **Set up loot tables** |

@@ -86,7 +86,107 @@ import { initRivalClassTable } from "./forge-loot/rival-class-table-adapter.mjs"
 // templates, producing unstyled block-flow UI. Keep the manifest stylesheet as
 // the startup fallback, then layer a content-addressed copy above it. The layout
 // contract test requires this revision to change whenever the CSS file changes.
-const STYLESHEET_REV = "84b89cfcca68";
+const STYLESHEET_REV = "2c3c7466a375";
+
+// The same problem for the SCRIPTS, which cannot be solved the same way: their
+// URLs come from the manifest, which Foundry validates as real package paths,
+// so there is nowhere to hang a `?v=`. A browser holding an old copy therefore
+// keeps running it after an update, silently — no error, nothing in the UI. On
+// 2026-09-18 that cost a whole map-classification pass: the tab was running a
+// previous build's classifier defaults while the files on disk had newer ones,
+// and the only symptom was "the results are still bad".
+//
+// So: stamp one content hash in two places and let the running code compare
+// them. This constant ships INSIDE the bundle (cacheable, therefore possibly
+// stale); module.json carries the same hash and is fetched fresh at runtime. A
+// mismatch is a stale cache by construction — it cannot be anything else. Both
+// stamps are written by `npm run inventory` and gated by `inventory:check`.
+const BUILD_REV = "ec97203e21f2";
+
+/**
+ * Tell the user when their browser is running an old build of this module, and
+ * offer the reload that actually fixes it.
+ *
+ * A plain reload is not enough on its own: the script URLs have not changed, so
+ * the cache serves the same stale bytes again. Re-fetching each one with
+ * `cache: "reload"` replaces the cache entry first, so the reload that follows
+ * gets the new code.
+ */
+/**
+ * Every script URL this module ships, walked from the installed files.
+ *
+ * Not `performance.getEntriesByType("resource")`: that lists only what the page
+ * has loaded so far, which on a fresh tab is a fraction of the module. The
+ * files it misses are the lazily-imported ones — and those are the ones that
+ * hurt, because a stale copy sits in the cache until the feature is opened and
+ * then loads old code with everything else new (a stale `hex-map/legend.mjs`
+ * silently ran a previous build's classifier defaults on 2026-09-18).
+ *
+ * Falls back to the resource timeline if browsing is unavailable — a partial
+ * refresh beats none.
+ */
+async function moduleScriptUrls() {
+  const root = `modules/${MODULE_ID}/scripts`;
+  const out = [];
+  try {
+    const browse = foundry.applications.apps.FilePicker.implementation.browse;
+    const queue = [root];
+    while (queue.length) {
+      const dir = queue.shift();
+      const res = await browse("data", dir, { extensions: [".mjs", ".js"] });
+      out.push(...(res.files ?? []).filter((f) => /\.m?js$/.test(f)));
+      queue.push(...(res.dirs ?? []));
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | could not list module scripts; refreshing only what is loaded`, err);
+    return [...new Set(performance.getEntriesByType("resource")
+      .map((e) => e.name)
+      .filter((u) => u.includes(`/modules/${MODULE_ID}/`) && /\.m?js(\?|$)/.test(u)))];
+  }
+  return out;
+}
+
+async function checkBuildRev() {
+  try {
+    // Cache-busted by query AND by no-store: the query alone is enough for the
+    // HTTP cache, but a service worker may answer the request from its own.
+    const res = await fetch(`modules/${MODULE_ID}/module.json?v=${Date.now()}`, { cache: "no-store" });
+    if (!res.ok) return;
+    const onDisk = (await res.json())?.flags?.buildRev;
+    // No stamp on disk means an unstamped build (a working tree mid-edit); that
+    // is not evidence of staleness, so say nothing.
+    if (!onDisk || onDisk === BUILD_REV) return;
+
+    console.warn(`${MODULE_ID} | stale scripts: running ${BUILD_REV}, ${onDisk} is installed.`);
+    const reload = await foundry.applications.api.DialogV2.confirm({
+      window: { title: "Shadowdark Enhancer is running an old build" },
+      content:
+        "<p>Your browser is serving a cached copy of this module's code, so you are running an "
+        + "older version than the one installed. Fixes and improvements you are expecting will be missing.</p>"
+        + `<p>Reload to pick up the current build? <em>(cached ${BUILD_REV}, installed ${onDisk})</em></p>`,
+      yes: { label: "Reload now", icon: "fa-solid fa-rotate" },
+      no: { label: "Keep going" },
+      // Closing the window is "keep going", not an error to swallow below.
+      rejectClose: false,
+      modal: true,
+    });
+    if (!reload) return;
+
+    // The service worker keeps its own copy, which a reload would serve back.
+    try {
+      for (const r of (await navigator.serviceWorker?.getRegistrations()) ?? []) await r.unregister();
+      for (const k of (await globalThis.caches?.keys()) ?? []) await globalThis.caches.delete(k);
+    } catch { /* not available in every context; the refetch below still helps */ }
+
+    for (const url of await moduleScriptUrls()) {
+      await fetch(url, { cache: "reload" }).catch(() => {});
+    }
+    location.reload();
+  } catch (err) {
+    // Never let a cache check stop the module from loading.
+    console.warn(`${MODULE_ID} | could not check the build revision`, err);
+  }
+}
 
 function ensureFreshStylesheet() {
   const id = `${MODULE_ID}-fresh-stylesheet`;
@@ -151,6 +251,8 @@ Hooks.once("i18nInit", () => {
 
 Hooks.once("init", () => {
   ensureFreshStylesheet();
+  // After `ready`, so the warning lands on a built UI rather than the load screen.
+  Hooks.once("ready", () => { if (game.user?.isGM) checkBuildRev(); });
   console.log(`${MODULE_ID} | init`);
   // Keep the derived Rival class table in step with class imports.  The
   // listener is GM-gated and debounced; ClassIndex.invalidate() itself stays a
@@ -368,6 +470,9 @@ Hooks.once("init", () => {
       setActiveTable: (uuid) => game.settings.set(MODULE_ID, "encounterTableUuid", uuid || ""),
       getThreshold: () => game.settings.get(MODULE_ID, "encounterThreshold"),
       setThreshold: (n) => game.settings.set(MODULE_ID, "encounterThreshold", n),
+      // How often the automatic crawl-round check runs (1 = every round).
+      getCheckFrequency: () => game.settings.get(MODULE_ID, "encounterCheckFrequency"),
+      setCheckFrequency: (n) => game.settings.set(MODULE_ID, "encounterCheckFrequency", n),
     },
     monsterCreator: {
       open: () => MonsterCreator.open(),
@@ -609,8 +714,20 @@ Hooks.once("init", () => {
     hexMaps: {
       // The contact-sheet tagger for the active scene (GM only). Lazy.
       openTagger: async () => (await import("./hex-map/hex-tagger-app.mjs")).HexTaggerApp.open(),
+      // The active scene's tags drawn on the map for review; toggles (GM only).
+      showTags: async (opts) => (await import("./hex-map/tag-overlay.mjs")).HexTagOverlay.toggle(opts),
+      // Pick a terrain once, then paint the hexes that have it wrong (GM only).
+      brush: async () => (await import("./hex-map/hex-brush-app.mjs")).HexBrushApp.open(),
       // Pure builder for the Extras dataset from drafts, keyed rows and tags.
       buildDataset: async (args) => (await import("./importer/hex/hex-dataset.mjs")).buildHexDataset(args),
+      // Dev check: what a first-time user would get on a map you have verified,
+      // with no tags of their own. The one number that says whether a change to
+      // the module helps somebody who has never used it. Ships no data.
+      benchmark: async (opts) => (await import("./hex-map/hex-tagger-app.mjs")).benchmarkFirstRun(opts),
+      // Dev check: how well does the model tell THIS map's terrains apart,
+      // judged only by the hexes the GM tagged? Run it before and after a
+      // change to the classifier or the legend. Ships no data.
+      score: async () => (await import("./hex-map/hex-tagger-app.mjs")).scoreSceneModel(),
       // Dev check: score the active scene's tags against a truth CSV
       // (hex_id + tags or terrain_tags). Ships no data; the CSV is the GM's.
       compare: async (csvText, opts) => (await import("./hex-map/hex-tagger-app.mjs")).compareSceneTags(canvas?.scene, csvText, opts),

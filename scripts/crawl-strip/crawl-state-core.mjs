@@ -221,14 +221,39 @@ export function nextCrawlTurn(state) {
  * tracker's Previous Round). Floors at 0 and no-ops there.
  *
  * Deliberately counter-shaped rather than a true undo: the forward move also
- * refills movement budgets and rolls a wandering-monster check, and neither
- * un-happens. Stepping back re-runs neither, so the number matches the table's
- * count of rounds without inventing a rewind the rest of the module cannot
- * honour.
+ * refills movement budgets and rolls a wandering-monster check (on the GM's
+ * `encounterCheckFrequency` schedule), and neither un-happens. Stepping back
+ * re-runs neither, so the number matches the table's count of rounds without
+ * inventing a rewind the rest of the module cannot honour.
  */
 export function previousCrawlTurn(state) {
   if (state.mode !== "crawl" || state.crawlTurn <= 0) return { state, changed: false };
   return { state: { ...state, crawlTurn: state.crawlTurn - 1 }, changed: true };
+}
+
+/**
+ * Is the automatic wandering-monster check due on this crawl round?
+ *
+ * The schedule is a countdown from the LAST check, not a fixed set of round
+ * numbers: the check fires once at least `every` rounds have passed since the
+ * round a check last ran on (`lastCheckRound`, written by encounter-check.mjs
+ * on every check, automatic or manual). So a mid-crawl change takes effect from
+ * where the GM stands — three rounds after the last check, switching 3 to 5
+ * owes five rounds and lands on round 8, rather than on round 5 merely because
+ * 5 divides 5.
+ *
+ * The anchor is a round number of the CURRENT crawl: a count left over from an
+ * earlier crawl (the round counter restarts at 0) is ahead of `round` and gets
+ * discarded, so a fresh crawl counts from its own first round. `every` unset or
+ * below 1 reads as 1, which fires on every advance — the module's original
+ * behaviour, and what a world that never touches the setting gets.
+ */
+export function encounterCheckDue(round, lastCheckRound = 0, every = 1) {
+  const n = Math.trunc(Number(every));
+  const interval = Number.isFinite(n) && n > 1 ? n : 1;
+  let last = Math.trunc(Number(lastCheckRound));
+  if (!Number.isFinite(last) || last < 0 || last > round) last = 0;
+  return round - last >= interval;
 }
 
 /**
@@ -297,9 +322,10 @@ export function ensureOocTurn(state) {
  * a full cycle — the pointer moved past the LAST member back to the first,
  * or a single-member order cycled back to itself (that is a complete cycle
  * every time: the member's turn ends and the round rolls over). The
- * Foundry-coupled wrapper advances the crawl round on this flag (one wrap =
- * one round = one encounter check). Advancing from a NULL pointer (no holder
- * yet) merely ESTABLISHES the turn at the top — nothing completed, no wrap.
+ * Foundry-coupled wrapper advances the crawl round on this flag and fires the
+ * wandering-monster check when `encounterCheckDue` says the new round is due.
+ * Advancing from a NULL pointer (no holder yet) merely ESTABLISHES the turn
+ * at the top — nothing completed, no wrap.
  */
 export function advanceOocTurn(state) {
   if (state.mode !== "crawl") return { state, changed: false, wrapped: false };

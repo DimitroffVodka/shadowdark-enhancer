@@ -188,7 +188,8 @@
       "scripts/encounter/encounter-build.mjs",
       "scripts/encounter/encounter-browse.mjs",
       "scripts/encounter/npc-index.mjs",
-      "scripts/encounter/encounter-sources.mjs"
+      "scripts/encounter/encounter-sources.mjs",
+      "scripts/encounter/encounter-terrain.mjs"
     ],
     "3.6": [
       "scripts/monster-creator/encounter-creator.mjs",
@@ -573,6 +574,7 @@
     "scripts/monster-art/token-art-manager-app.mjs": "GM window to review/apply matches.",
     "scripts/monster-art/token-art-manager-state.mjs": "Normalizes the persistent Token Art Manager state and named Browse folders.",
     "scripts/pdf-export/pdf-sheet-export.mjs": "\"Export to PDF\" header button; fills the bundled form-fillable sheet from SD data-model getters.",
+    "scripts/encounter/encounter-terrain.mjs": "Terrain for encounter checks: the hex the party's tokens stand in on a tagged hex scene, the terrain\u2192RollTable mapping and its dialog, and the fallback to the single active table.",
     "scripts/encounter/encounter-sources.mjs": "Pure, node-testable core for the Encounter Roller's source list (which tables/monsters feed a roll).",
     "scripts/monster-creator/level-guidelines-app.mjs": "GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like.",
     "scripts/monster-creator/level-guidelines.mjs": "Pure, node-testable monster level-guideline math (isotonic-smoothed medians over the system's 244 monsters).",
@@ -662,6 +664,14 @@
     "scripts/hex-map/hex-tagger-app.mjs": "Hex Tagger AppV2: contact sheet over the active hex scene, anchor numbering, tags on the scene flag, dataset hand-off.",
     "scripts/hex-map/bitmap.mjs": "0/1 cell bitmaps: dilate, 8-connected components, majority stamps, hex masks, residual features, label zone. Pure.",
     "scripts/hex-map/classify.mjs": "Nearest-exemplar terrain + stamp-subtraction overlay classifier with a review queue; truth-CSV comparison for the dev check. Pure.",
-    "scripts/hex-map/reference-tile.mjs": "Hidden reference tile: places the tagged print on a painted hex scene so its hex field covers the first cols × rows cells; two-rectangle placement, non-uniform scale, create-once-then-update."
+    "scripts/hex-map/reference-tile.mjs": "Hidden reference tile: places the tagged print on a painted hex scene so its hex field covers the first cols × rows cells; two-rectangle placement, non-uniform scale, create-once-then-update.",
+    "scripts/hex-map/lattice.mjs": "Hex lattice detection from a map's ink: row and column pitch by autocorrelation, phase by folding long horizontal runs, the hex field by outline support with frame-cut half cells, edge-band pitch refinement. Pure.",
+    "scripts/hex-map/ink.mjs": "Whole-image 0/1 ink bitmap at a working scale, one browser resize then strip reads; ink threshold from the paper's brightness. Browser-bound.",
+    "scripts/hex-map/hex-map-flow.mjs": "Hex map from an image: file dialog, lattice detection, confirmation preview, upload into the world folder, an aligned scene (stretch to Foundry's pitches, offset to cell 0,0), tagger opened on its legend.",
+    "scripts/hex-map/hex-pins.mjs": "Keyed hexes as map notes: deploys the crawl journal into the world with stable ids (links rewritten), plans one Note per keyed page at its hex centre (pure planner), moves existing pins on re-run.",
+    "scripts/hex-map/hex-brush-app.mjs": "The hex brush: a small window that sets one terrain plus overlays, so clicking or dragging across the tag overlay retags whole patches; a stroke is one scene write and Undo puts it back.",
+    "scripts/hex-map/tag-corrections.mjs": "What the GM judged about the classifier, kept on the scene: per-cell corrections (was, now, margin, whether it was flagged) and wrong/judged counts per margin band, plus the scene's review margin and the report that says what it catches. Pure.",
+    "scripts/hex-map/tag-overlay.mjs": "The tag overlay: every numbered hex drawn on the map in its terrain colour, dots for river/path/coast, an amber ring on unsure automatic cells; hover names a hex, a click edits it through the same scene-flag write.",
+    "scripts/hex-map/legend.mjs": "The legend: cells grouped by glyph with k-means++ over masked cell features (restarts, lowest inertia kept), one card per group with sample members and a core that becomes the hand tags. Pure."
   }
 }

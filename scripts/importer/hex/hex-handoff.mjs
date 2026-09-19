@@ -57,9 +57,11 @@ function downloadDataset(dataset) {
  * Hand a dataset to Extras, or download it. The guard lives here as well as in
  * the UI callers because this function is a documented public macro surface.
  * @param {object} dataset
+ * @param {{sceneName?:string}} [opts]  builder options passed through (the tagger names the painted
+ *   scene after the print scene plus a suffix, so the two are told apart in the sidebar)
  * @returns {Promise<{via:"extras", summary:object}|{via:"download", filename:string, reason?:string}|{via:"none", reason?:string}>}
  */
-export async function handoffDataset(dataset) {
+export async function handoffDataset(dataset, opts = {}) {
   if (!globalThis.game?.user?.isGM) {
     globalThis.ui?.notifications?.warn("Only a GM can hand off hex datasets.");
     return { via: "none", reason: "not-gm" };
@@ -67,7 +69,7 @@ export async function handoffDataset(dataset) {
   const api = extrasHexApi();
   if (api) {
     try {
-      const summary = await api.buildHexcrawl(dataset);
+      const summary = await api.buildHexcrawl(dataset, opts.sceneName ? { sceneName: opts.sceneName } : undefined);
       return { via: "extras", summary };
     } catch (err) {
       console.error(`${MODULE_ID} | hex dataset hand-off failed`, err);
