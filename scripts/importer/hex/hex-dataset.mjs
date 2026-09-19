@@ -34,6 +34,46 @@ export const OVERLAY_TO_NETWORK = { river: "river", path: "road" };
  */
 export const terrainWord = (t) => String(t ?? "").trim().toLowerCase().replace(/_/g, " ");
 
+/** Where Extras' art lives. Assignment manifests name files relative to it. */
+export const EXTRAS_ASSETS = "modules/shadowdark-extras/assets/";
+
+/**
+ * A GM's own tile-art manifest, normalised.
+ *
+ * The map's art is curated by hand outside this module — which hex gets which
+ * painted tile, and which centre icon sits on top — and that curation is the
+ * GM's, not ours: no manifest, and nothing from any book, ships here. This only
+ * has to be able to READ one, in either shape the curation tends to arrive in:
+ *
+ *   { "643": { base_hex: "Hexes/Specials/goblinhole.webp", overlay_asset: "" } }
+ *   [ { "Hex #": 643, "Base Hex": "...", "Overlay Asset": "..." } ]
+ *
+ * Ids that are not published hex numbers are dropped, not coerced. A manifest
+ * can legitimately carry rows for a place that has no coordinates on this map
+ * (an underworld level keyed M104, say); coercing those onto the surface grid
+ * would paint a tile somewhere arbitrary.
+ *
+ * @param {object|object[]} manifest
+ * @returns {Object<number, {art:string, icon?:string}>} by published number
+ */
+export function assignmentsFromManifest(manifest) {
+  const rows = Array.isArray(manifest)
+    ? manifest
+    : Object.entries(manifest ?? {}).map(([id, v]) => ({ ...v, _id: id }));
+  const out = {};
+  for (const r of rows) {
+    if (!r || typeof r !== "object") continue;
+    const num = hexNum(r._id ?? r.hex_id ?? r["Hex #"] ?? r.num);
+    if (num === null) continue;
+    const base = String(r.art ?? r.base_hex ?? r["Base Hex"] ?? "").trim();
+    if (!base) continue;
+    const icon = String(r.icon ?? r.overlay_asset ?? r["Overlay Asset"] ?? "").trim();
+    const full = (p) => (p.startsWith("modules/") ? p : EXTRAS_ASSETS + p);
+    out[num] = icon ? { art: full(base), icon: full(icon) } : { art: full(base) };
+  }
+  return out;
+}
+
 const paddedHexId = (id) => {
   const s = String(id ?? "").trim();
   return typeof id === "number" && /^\d{1,2}$/.test(s) ? s.padStart(3, "0") : s;
@@ -55,11 +95,12 @@ export function hexNum(id) {
  * @param {object[]} [args.drafts]       hex-parser drafts; a draft may carry `html` (already built page HTML) instead of bodyLines
  * @param {object[]} [args.summaryRows]  hex-summary rows
  * @param {Object<string,{terrain?:string, overlays?:string[]}>} [args.tags]  per published number (string or int keys)
+ * @param {Object<string|number,{art:string, icon?:string}>} [args.assignments]  per-hex tile art (assignmentsFromManifest)
  * @param {{cols:number, rows:number, origin?:0|1, firstRow?:number, rowsLowered?:number}} [args.gridHint]  the map's size and numbering
  *   origin as the tagger knows them; without a hint the origin is 0 when any hex sits in column 0 or row 0
  * @returns {object} dataset
  */
-export function buildHexDataset({ name = "", source = "", drafts = [], summaryRows = [], tags = {}, gridHint } = {}) {
+export function buildHexDataset({ name = "", source = "", drafts = [], summaryRows = [], tags = {}, assignments = {}, gridHint } = {}) {
   const byNum = new Map();
   const slot = (num) => { if (!byNum.has(num)) byNum.set(num, { num }); return byNum.get(num); };
 
@@ -92,6 +133,17 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
     for (const o of t.overlays ?? []) if (OVERLAY_TO_NETWORK[o]) (h.overlays ??= new Set()).add(o);
   }
 
+  // Curated art, last: it names a file and says nothing about terrain, so it
+  // neither creates nor changes a hex's own answer. Extras strips both fields
+  // before the record is written — they are for the paint pass only.
+  for (const [k, a] of Object.entries(assignments ?? {})) {
+    const num = hexNum(k);
+    if (num === null || !a?.art) continue;
+    const h = slot(num);
+    h.art = a.art;
+    if (a.icon) h.icon = a.icon;
+  }
+
   // Terrain regions and networks.
   const regions = new Map(); const networks = { river: [], road: [] };
   let maxCol = -1, maxRow = -1, minCol = Infinity, minRow = Infinity;
@@ -119,7 +171,7 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
   // The book's settlement marker still has no field of its own; it stays on the
   // crawl entry's keyed rows.
   const hexes = [...byNum.values()]
-    .filter((h) => h.name || h.terrain || h.desc || h.zone)
+    .filter((h) => h.name || h.terrain || h.desc || h.zone || h.art)
     .sort((a, b) => a.num - b.num).map((h) => {
       const out = { num: h.num };
       if (h.name) out.name = h.name;
@@ -127,6 +179,8 @@ export function buildHexDataset({ name = "", source = "", drafts = [], summaryRo
       if (word) out.terrain = word;
       if (h.desc) out.desc = h.desc;
       if (h.zone) out.zone = h.zone;
+      if (h.art) out.art = h.art;
+      if (h.icon) out.icon = h.icon;
       return out;
     });
 
@@ -167,7 +221,10 @@ export function validateHexDataset(ds) {
     seen.add(h.num);
     // A name is not required: Extras does not ask for one, and a hex that
     // carries only its terrain is the ordinary case on a tagged map.
-    if (!h.name && !h.terrain && !h.desc && !h.zone) errors.push(`hex ${h.num} carries nothing`);
+    if (!h.name && !h.terrain && !h.desc && !h.zone && !h.art) errors.push(`hex ${h.num} carries nothing`);
+    for (const key of ["art", "icon"]) {
+      if (key in h && typeof h[key] !== "string") errors.push(`hex ${h.num} ${key} must be text`);
+    }
     if ("col" in h || "row" in h) errors.push(`hex ${h.num} carries col/row — numbers only at the boundary`);
   }
   for (const r of ds.terrain?.regions ?? []) {

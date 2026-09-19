@@ -31,12 +31,14 @@ import { buildLegend } from "./legend.mjs";
 import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { datasetFromEntry, handoffDataset, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
-import { buildHexDataset, validateHexDataset, hexNum } from "../importer/hex/hex-dataset.mjs";
+import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../importer/hex/hex-dataset.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
 /** Scene flag key holding the tag store. */
 export const TAGS_FLAG = "hexTags";
+/** The GM's own tile-art manifest for this map. Read at hand-off; never shipped. */
+export const ART_FLAG = "hexArt";
 export const SHEET_SIZE = 40;
 /** Legend answer meaning "these pictures are not one thing": break the card up and ask again. */
 export const SPLIT = "__split";
@@ -191,6 +193,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hxtClassify:     function (...a) { return this._onClassify(...a); },
       hxtImport:       function (...a) { return this._onImport(...a); },
       hxtExport:       function (...a) { return this._onExport(...a); },
+      hxtArt:          function (...a) { return this._onArtManifest(...a); },
       hxtReference:    function (...a) { return this._onReferenceTile(...a); },
       hxtLegend:       function (...a) { return this._onLegend(...a); },
       hxtPinKeyed:     function (...a) { return this._onPinKeyed(...a); },
@@ -704,6 +707,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       hasTags: summary.tagged > 0,               // tags to draw, paint over or send
       canSheet: summary.untagged > 0 || summary.auto > 0,   // hexes to tag or to check
       hasKey: this._entries.length > 0,          // a book text to attach
+      artCount: Object.keys(this._artAssignments()).length,
       done, reviewCount, reviewMargin: reviewMargin.toFixed(2), report: report.judged ? report : null,
       legendLog,
       // The queue is ordered worst-first, so the only question the GM has is
@@ -1094,8 +1098,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const numberingOrigin = [...this._numbered.values()].some((c) => c.col === 0 || c.row === 0) ? 0 : 1;
     const gridHint = b?.cols ? { cols: b.cols, rows: b.rows, firstRow: b.firstRow, rowsLowered: b.rowsLowered, origin: numberingOrigin } : { origin: numberingOrigin };
     const entry = this._entries.find((e) => e.uuid === this._entryUuid)?.doc ?? null;
-    const dataset = entry ? datasetFromEntry(entry, { tags, gridHint })
-      : buildHexDataset({ name: this._scene()?.name ?? "Hex map", source: "", tags, gridHint });
+    const assignments = this._artAssignments();
+    const dataset = entry ? datasetFromEntry(entry, { tags, gridHint, assignments })
+      : buildHexDataset({ name: this._scene()?.name ?? "Hex map", source: "", tags, assignments, gridHint });
     const check = validateHexDataset(dataset);
     if (!check.ok) { ui.notifications?.error(`Hex dataset failed its contract check: ${check.errors[0]}`); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return; }
     if (Object.values(tags).some((t) => t.overlays?.includes("coast"))) {
@@ -1104,8 +1109,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The painted scene must not share the print scene's name.
     const res = await handoffDataset(dataset, { sceneName: entry ? dataset.name : `${dataset.name} (painted)` });
     const n = Object.keys(tags).length;
-    if (res.via === "extras") ui.notifications?.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
-    else if (res.via === "download") ui.notifications?.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes, ${n} tagged cells).`);
+    const painted = dataset.hexes.filter((h) => h.art).length;
+    const art = painted ? `, ${painted} with your own tile art` : "";
+    if (res.via === "extras") ui.notifications?.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes, ${n} tagged cells${art}).`);
+    else if (res.via === "download") ui.notifications?.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes, ${n} tagged cells${art}).`);
   }
 
   /** Side door in: a CSV (hex_id, tags or terrain_tags, source) or a JSON (the exported tag flag, or a dataset). */
@@ -1140,6 +1147,56 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._sheet = this._numbered.size ? nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() }) : [];
     ui.notifications?.info(`Imported ${n} tagged cells from ${file.name}.`);
     this.render();
+  }
+
+  /**
+   * Load the GM's own tile-art manifest for this map.
+   *
+   * Which hex gets which painted tile is curated by hand outside this module,
+   * and it stays the GM's: the file is read, normalised and kept on the scene,
+   * and nothing from it ships here. It travels with the dataset at hand-off and
+   * Extras drops it again before writing the hex records — it paints, and that
+   * is all it does.
+   */
+  async _onArtManifest() {
+    if (!this._requireCurrentScene()) return;
+    const file = await foundry.applications.api.DialogV2.wait({
+      window: { title: "Tile art for this map" },
+      content: `<p>A JSON manifest saying which tile each hex is painted with: hex number to <code>base_hex</code>, and <code>overlay_asset</code> for a centre icon. Paths are relative to Shadowdark Extras' <code>assets/</code>.</p>
+        <p>Rows whose id is not a hex number on this map are skipped.</p>
+        <input type="file" name="hex-art-file" accept=".json,application/json">`,
+      buttons: [
+        { action: "load", label: "Load", default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("input[name='hex-art-file']")?.files?.[0] ?? null },
+        { action: "clear", label: "Forget the one I loaded" },
+        { action: "cancel", label: "Cancel" },
+      ],
+      rejectClose: false,
+    }).catch(() => null);
+    if (!file || file === "cancel") return;
+    const scene = this._scene();
+    if (!scene) return;
+    if (file === "clear") {
+      await replaceModuleFlag(scene, ART_FLAG, null);
+      ui.notifications?.info("Tile art forgotten; hexes will be painted from their terrain.");
+      this.render();
+      return;
+    }
+    let obj;
+    try { obj = JSON.parse(await file.text()); }
+    catch (err) { ui.notifications?.error(`Could not read ${file.name}: ${err.message}`); return; }
+    const assignments = assignmentsFromManifest(obj);
+    const kept = Object.keys(assignments).length;
+    if (!kept) { ui.notifications?.warn(`Nothing usable in ${file.name}: no rows with a hex number and a tile.`); return; }
+    const total = Array.isArray(obj) ? obj.length : Object.keys(obj ?? {}).length;
+    await replaceModuleFlag(scene, ART_FLAG, assignments);
+    const icons = Object.values(assignments).filter((a) => a.icon).length;
+    ui.notifications?.info(`${kept} of ${total} rows kept${total > kept ? ` (${total - kept} are not hexes on this map)` : ""}, ${icons} with a centre icon.`);
+    this.render();
+  }
+
+  /** The tile art loaded for this scene, if any. */
+  _artAssignments() {
+    return this._scene()?.getFlag?.(MODULE_ID, ART_FLAG) ?? {};
   }
 
   /** Side door out: the raw tag flag as JSON (re-importable here; the dataset is Build dataset's job). */

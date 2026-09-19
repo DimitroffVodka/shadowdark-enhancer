@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { hexcrawlRecognizer } from "../scripts/importer/tables/hex-parser.mjs";
 import { parseHexSummaryRows } from "../scripts/importer/hex/hex-summary.mjs";
-import { buildHexDataset, validateHexDataset, hexNum } from "../scripts/importer/hex/hex-dataset.mjs";
+import { buildHexDataset, validateHexDataset, hexNum, assignmentsFromManifest } from "../scripts/importer/hex/hex-dataset.mjs";
 
 // All fixture text is invented (D1) — no book content.
 
@@ -122,4 +122,60 @@ test("a tagged hex travels with the book's own terrain word, named or not", () =
   assert.equal(ds.hexes.length, 3, "every tagged hex, not only the keyed ones");
   assert.deepEqual(ds.networks.river, [103]);
   assert.equal(validateHexDataset(ds).ok, true);
+});
+
+// ── curated tile art ────────────────────────────────────────────────────────
+// Fixtures are invented: no book content, no real manifest, no real file names.
+
+const MANIFEST = {
+  302: { hex_id: "302", base_hex: "Hexes/Specials/watchtower.webp", overlay_asset: "symbols/Symbols/Icon - Star.webp" },
+  415: { hex_id: "415", base_hex: "Hexes/Vegetation/Hex - Forest.webp", overlay_asset: "" },
+  907: { hex_id: "907", base_hex: "Hexes/Specials/watchtower.webp", overlay_asset: "" },
+  M104: { hex_id: "M104", base_hex: "Hexes/Specials/stair.webp", overlay_asset: "" },
+};
+
+test("a manifest becomes art and icon; an overlay-less row carries art alone", () => {
+  const a = assignmentsFromManifest(MANIFEST);
+  assert.deepEqual(a[302], { art: "modules/shadowdark-extras/assets/Hexes/Specials/watchtower.webp",
+                             icon: "modules/shadowdark-extras/assets/symbols/Symbols/Icon - Star.webp" });
+  assert.deepEqual(a[415], { art: "modules/shadowdark-extras/assets/Hexes/Vegetation/Hex - Forest.webp" });
+  assert.ok(!("icon" in a[415]));
+});
+
+test("ids that are not hex numbers are dropped, never coerced onto the grid", () => {
+  const a = assignmentsFromManifest(MANIFEST);
+  assert.deepEqual(Object.keys(a).sort(), ["302", "415", "907"]);
+});
+
+test("the same art on two hexes is kept on both", () => {
+  const ds = buildHexDataset({ assignments: assignmentsFromManifest(MANIFEST) });
+  const art = Object.fromEntries(ds.hexes.map((h) => [h.num, h.art]));
+  assert.equal(art[302], art[907]);
+  assert.equal(ds.hexes.length, 3);
+});
+
+test("art rides along without touching terrain or the river network", () => {
+  const plain = buildHexDataset({ tags: { 302: { terrain: "forest", overlays: ["river"] }, 415: { terrain: "desert" } } });
+  const withArt = buildHexDataset({ tags: { 302: { terrain: "forest", overlays: ["river"] }, 415: { terrain: "desert" } },
+                                    assignments: assignmentsFromManifest(MANIFEST) });
+  assert.deepEqual(withArt.terrain, plain.terrain);
+  assert.deepEqual(withArt.networks, plain.networks);
+  assert.equal(withArt.hexes.find((h) => h.num === 302).terrain, "forest");
+});
+
+test("a CSV-shaped manifest reads the same as the JSON one", () => {
+  const rows = [{ "Hex #": 302, "Base Hex": "Hexes/Specials/watchtower.webp", "Overlay Asset": "symbols/Symbols/Icon - Star.webp" }];
+  assert.deepEqual(assignmentsFromManifest(rows)[302], assignmentsFromManifest(MANIFEST)[302]);
+});
+
+test("a path already under modules/ is left as it is", () => {
+  const a = assignmentsFromManifest({ 302: { base_hex: "modules/shadowdark-extras/assets/Hexes/x.webp" } });
+  assert.equal(a[302].art, "modules/shadowdark-extras/assets/Hexes/x.webp");
+});
+
+test("the contract check wants art and icon to be text, and nothing else new", () => {
+  const ds = buildHexDataset({ assignments: assignmentsFromManifest(MANIFEST) });
+  assert.equal(validateHexDataset(ds).ok, true);
+  ds.hexes[0].art = 7;
+  assert.match(validateHexDataset(ds).errors.join(" "), /art must be text/);
 });
