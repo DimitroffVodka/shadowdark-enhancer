@@ -317,7 +317,8 @@
 
 - **"These are not all the same" now lets you answer the hexes there and then.**
   It used to break the card into four smaller cards and ask again, so nothing
-  was applied and you went round once more. Choosing it now opens that card up
+  was applied and you went round once more. Choosing it opens that card the
+  moment you pick it — no Apply, no second pass. It opens up
   in place, showing eight of its hexes spread across the card — not the eight
   nearest its centre, which all look alike — each with its own answer. What you
   tag becomes a hand tag on that hex alone, and the rest of the card is left to

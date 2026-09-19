@@ -226,6 +226,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The free-text terrain box shows only for "other…".
     for (const sel of this.element.querySelectorAll("select[data-hxt-terrain], select[data-hxt-legend], select[data-hxt-pick]")) {
       sel.addEventListener("change", () => {
+        // "These are not all the same" opens the card THERE AND THEN. It used
+        // to wait for Apply legend, which is the round trip the answer exists
+        // to avoid: Patrick, choosing it, "I thought when I selected these are
+        // not the same it was supposed to allow me to fix it".
+        if (sel.hasAttribute("data-hxt-legend") && sel.value === SPLIT) {
+          const idx = Number(sel.dataset.idx);
+          this._readLegendAnswers();
+          this._expandCards([idx]);
+          return;
+        }
         const inp = sel.hasAttribute("data-hxt-pick")
           ? this.element.querySelector(`input[data-hxt-pick-other][data-num="${sel.dataset.num}"]`)
           : sel.dataset.num !== undefined
@@ -418,6 +428,23 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * members come nearest-the-centre first, so the first eight would all look
    * alike and show none of the mixing that made the GM say so.
    */
+  /** Remember what every card's select currently says, so a re-render keeps it. */
+  _readLegendAnswers() {
+    for (const sel of this.element.querySelectorAll("select[data-hxt-legend]")) {
+      const card = this._legend?.[Number(sel.dataset.idx)];
+      if (!card) continue;
+      const other = this.element.querySelector(`input[data-hxt-legend-other][data-idx="${sel.dataset.idx}"]`)?.value.trim();
+      card.chosen = sel.value === "__other" ? (other || "") : sel.value;
+    }
+    for (const sel of this.element.querySelectorAll("select[data-hxt-pick]")) {
+      const card = this._legend?.[Number(sel.dataset.idx)];
+      if (!card) continue;
+      const num = Number(sel.dataset.num);
+      const other = this.element.querySelector(`input[data-hxt-pick-other][data-num="${num}"]`)?.value.trim();
+      (card.picked ??= {})[num] = sel.value === "__other" ? (other || "") : sel.value;
+    }
+  }
+
   _expandCards(indices) {
     let opened = 0;
     for (const [idx, card] of this._legend.entries()) {
