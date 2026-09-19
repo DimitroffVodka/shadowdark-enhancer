@@ -146,7 +146,7 @@
         <div class="sde-hxt-pick">
           <img src="{{p.thumb}}" alt="" width="72" height="72">
           <span class="sde-hxt-label">{{p.num}}</span>
-          <select data-hxt-pick data-idx="{{../g.idx}}" data-num="{{p.num}}">
+          <select data-hxt-pick data-idx="{{g.idx}}" data-num="{{p.num}}">
             <option value="">(skip)</option>
             {{#each p.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
           </select>

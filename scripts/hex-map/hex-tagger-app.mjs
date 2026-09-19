@@ -241,6 +241,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           : sel.dataset.num !== undefined
             ? this.element.querySelector(`input[data-hxt-terrain-other][data-num="${sel.dataset.num}"]`)
             : this.element.querySelector(`input[data-hxt-legend-other][data-idx="${sel.dataset.idx}"]`);
+        // Every legend answer is written down as it is given, not only when
+        // something else forces it: a re-render from any direction used to take
+        // the unread ones with it.
+        if (sel.hasAttribute("data-hxt-legend") || sel.hasAttribute("data-hxt-pick")) this._readLegendAnswers();
         if (!inp) return;
         inp.hidden = sel.value !== "__other";
         if (!inp.hidden) inp.focus();
@@ -876,8 +880,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // named for it lands on whatever looks closest. On the Western Reaches a
     // card of 165 cells that was 100% river went unnamed, and 149 of those
     // hexes came back as desert.
-    const named = new Set(this._legend.filter((c) => c.chosen && c.chosen !== SPLIT).map((c) => c));
-    const big = this._legend.filter((c) => !named.has(c) && c.size >= Math.max(20, Math.round(this._numbered.size * 0.01)));
+    // An OPENED card is not unnamed: the GM answered its hexes one by one and
+    // meant the rest to be guessed. Warning about it is the false alarm Patrick
+    // hit — "Got a pop up about 1 being unnamed but I reviewed twice and they
+    // were all named."
+    const handled = (c) => (c.chosen && c.chosen !== SPLIT) || c.expand;
+    const big = this._legend.filter((c) => !handled(c) && c.size >= Math.max(20, Math.round(this._numbered.size * 0.01)));
     if (big.length) {
       const ok = await foundry.applications.api.DialogV2.confirm({
         window: { title: "Cards left unnamed" },
