@@ -189,6 +189,91 @@ export function markInk(bitmap, S = WATER_ARBITER) {
 const median = (v) => { const a = [...v].sort((x, y) => x - y); return a[a.length >> 1]; };
 
 /**
+ * The printed markers — a keyed location's big outlined star, a settlement's
+ * houses — and what separates them from everything else.
+ *
+ * `on` is where the marker's cells nearly all have ink and ordinary cells
+ * nearly none; `off` is the reverse, the terrain stipple a marker cell covers
+ * up. Scoring a cell as (ink on `on`) minus (ink on `off`) therefore rewards
+ * the glyph and punishes the terrain still showing through, which is what makes
+ * it work on top of any terrain.
+ *
+ * `minGap` is the guard that keeps this honest. A marker only counts if its
+ * own examples all score clear of the 99th percentile of ordinary cells by
+ * that much. On the Western Reaches the star clears by 0.77-0.86 and the
+ * settlements by 0.63-0.85, but a village's single hut clears by only 0.31-0.40
+ * — and left unguarded it drags 600+ forest cells in with it, because a hut and
+ * a tree are the same few strokes. Measured, not assumed.
+ */
+export const MARKER_ARBITER = { on: 0.55, off: 0.25, minEach: 3, background: 300, minGap: 0.5, quantile: 0.99 };
+
+/** Tags that are a printed marker rather than terrain. */
+export const MARKERS = ["keyed_location", "city_state", "city", "town", "village"];
+
+const inkOn = (bitmap, px) => { let n = 0; for (const p of px) n += bitmap.data[p] ? 1 : 0; return px.length ? n / px.length : 0; };
+
+/** Score a cell against one marker template: glyph ink minus terrain ink. */
+export function markerScore(bitmap, tpl) {
+  return inkOn(bitmap, tpl.on) - inkOn(bitmap, tpl.off);
+}
+
+/**
+ * Build a template per marker from the exemplars, keeping only the ones that
+ * separate cleanly from ordinary cells.
+ * @param {Array<{tag:string, bitmap:object}>} exemplars
+ * @returns {{templates: Array<{tag:string, on:number[], off:number[], cut:number, gap:number}>}|null}
+ */
+export function buildMarkerArbiter(exemplars, S = MARKER_ARBITER) {
+  const ex = (exemplars ?? []).filter((e) => e?.tag && e.bitmap);
+  const plain = ex.filter((e) => !MARKERS.includes(e.tag));
+  if (plain.length < S.minEach) return null;
+  const { w, h } = plain[0].bitmap, n = w * h;
+  const bg = new Float32Array(n);
+  for (const e of plain) for (let p = 0; p < n; p++) bg[p] += e.bitmap.data[p];
+  for (let p = 0; p < n; p++) bg[p] /= plain.length;
+
+  const templates = [];
+  for (const tag of MARKERS) {
+    const mine = ex.filter((e) => e.tag === tag);
+    if (mine.length < S.minEach) continue;
+    const mean = new Float32Array(n);
+    for (const e of mine) for (let p = 0; p < n; p++) mean[p] += e.bitmap.data[p];
+    const on = [], off = [];
+    for (let p = 0; p < n; p++) {
+      const d = mean[p] / mine.length - bg[p];
+      if (d > S.on) on.push(p);
+      else if (d < -S.off) off.push(p);
+    }
+    if (!on.length || !off.length) continue;
+    const tpl = { tag, on, off };
+    const mineScores = mine.map((e) => markerScore(e.bitmap, tpl));
+    const bgScores = plain.map((e) => markerScore(e.bitmap, tpl)).sort((a, b) => a - b);
+    const high = bgScores[Math.min(bgScores.length - 1, Math.floor(bgScores.length * S.quantile))];
+    const gap = Math.min(...mineScores) - high;
+    if (gap < S.minGap) continue;
+    // Halfway between what the markers score and what ordinary cells score.
+    const bgMean = bgScores.reduce((a, b) => a + b, 0) / bgScores.length;
+    const mineMean = mineScores.reduce((a, b) => a + b, 0) / mineScores.length;
+    templates.push({ ...tpl, cut: (mineMean + bgMean) / 2, gap });
+  }
+  return templates.length ? { templates } : null;
+}
+
+/**
+ * Which marker this cell carries, or null. The best-clearing template wins, so
+ * a star and a town never argue over the same cell.
+ */
+export function markerFromTemplate(bitmap, arb) {
+  if (!arb) return null;
+  let best = null, bestOver = 0;
+  for (const t of arb.templates) {
+    const over = markerScore(bitmap, t) - t.cut;
+    if (over > bestOver) { bestOver = over; best = t.tag; }
+  }
+  return best;
+}
+
+/**
  * Learn each water terrain's stroke count and mark level from the exemplars.
  * Returns null when there is nothing to learn from, or when every water
  * terrain looks the same — in which case the pixel feature keeps the decision.
@@ -499,12 +584,18 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
   // The water family is settled by the wave strokes the legend draws, not by
   // block means: see WATER_ARBITER. Built once from the same exemplars.
   const water = buildWaterArbiter(ex);
+  // A printed marker outranks the block means, which cannot see it: the star is
+  // a few hundred pixels among a thousand feature dimensions, so a keyed hex in
+  // the desert reads as desert. Take 10: 55 of its 76 remaining errors.
+  const marker = buildMarkerArbiter(ex);
   const classify = (c) => {
     const vec = featureVector(c.bitmap);
     const nn = nearestExemplar(vec, vecs, { runOff: T.runOff, profile: shapeProfile(and(c.bitmap, keep)) });
     // Once the cell is known to be water, the strokes say WHICH water.
     let terrain = nn.tag, waterCall = null;
-    if (water && WET.includes(terrain)) {
+    const mark = markerFromTemplate(c.bitmap, marker);
+    if (mark) terrain = mark;
+    if (!mark && water && WET.includes(terrain)) {
       const picked = waterFromStrokes(c.bitmap, water);
       if (picked && picked !== terrain) waterCall = { from: terrain, to: picked };
       if (picked) terrain = picked;
@@ -522,10 +613,11 @@ export function createClassifier({ exemplars, allBitmaps, thresholds = {} }) {
         if (o.ambiguous) { ambiguous = true; reason = reason || "overlay unclear"; }
       }
     }
-    return { terrain, overlays, margin: nn.margin, ambiguous, reason, runOff: nn.runOff ?? null, water: waterCall };
+    return { terrain, overlays, margin: nn.margin, ambiguous, reason, runOff: nn.runOff ?? null, water: waterCall, marker: mark ?? null };
   };
   return { classify, warnings, stampCoverage: Object.fromEntries(cov), ready: true,
-    water: water ? { profiles: water.profiles, markGap: water.markGap } : null };
+    water: water ? { profiles: water.profiles, markGap: water.markGap } : null,
+    markers: marker ? marker.templates.map((t) => ({ tag: t.tag, gap: Number(t.gap.toFixed(3)) })) : null };
 }
 
 /**

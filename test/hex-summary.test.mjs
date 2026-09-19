@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseHexSummaryRows, splitSummaryRows, rowCandidates, splitName, MIN_RUN } from "../scripts/importer/hex/hex-summary.mjs";
+import { parseHexSummaryRows, splitSummaryRows, rowCandidates, splitName, rowTag, MIN_RUN } from "../scripts/importer/hex/hex-summary.mjs";
 
 // All fixture text is invented (D1) — no book content.
 
@@ -55,4 +55,25 @@ test("splitSummaryRows removes the row lines and keeps everything else", () => {
   assert.match(remainder, /Keyed Locations/);
   assert.match(remainder, /1403 The Mountain Pass/);
   assert.doesNotMatch(remainder, /Puffin Rock/);
+});
+
+test("a keyed row becomes the tag the map wants: the feature, plus the book's river or path", () => {
+  const { rows } = parseHexSummaryRows([
+    "1246  Tallow Jungle    Jungle, path   Bone Choir*",
+    "353   Tallow Jungle    Jungle         Low Ford2",
+    "216   Grey Reach, The  Arctic sea     Puffin Rock",
+    "418   Grey Reach, The  Mountain, river  High Gate3",
+  ].join("\n"));
+  assert.equal(rows.length, 4);
+  assert.deepEqual(rows.map((r) => [r.num, rowTag(r)]), [
+    ["1246", { terrain: "keyed_location", overlays: ["path"] }],
+    ["353", { terrain: "town", overlays: [] }],
+    ["216", { terrain: "keyed_location", overlays: [] }],
+    ["418", { terrain: "city", overlays: ["river"] }],
+  ]);
+});
+
+test("a row with no feature is not a tag", () => {
+  assert.equal(rowTag({ terrain: ["jungle", "path"] }), null);
+  assert.equal(rowTag(null), null);
 });

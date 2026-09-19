@@ -28,7 +28,7 @@ import { FIXES_FLAG, BASELINE_FLAG, emptyLog, decodeFixes, encodeFixes, recordEd
 import { cellBoxOf, referenceTilePlacement, gridCellBox, loweredColumns, placeReferenceTile } from "./reference-tile.mjs";
 import { createClassifier, compareTags, parseTruthCsv, featureVector, keepMask, scoreClassifier, smoothTerrain } from "./classify.mjs";
 import { buildLegend } from "./legend.mjs";
-import { TERRAIN_TAGS, SETTLEMENTS } from "../importer/hex/hex-summary.mjs";
+import { TERRAIN_TAGS, SETTLEMENTS, rowTag } from "../importer/hex/hex-summary.mjs";
 import { HEX_FLAG } from "../importer/hex/hex-commit.mjs";
 import { datasetFromEntry, handoffDataset, extrasHexApi } from "../importer/hex/hex-handoff.mjs";
 import { buildHexDataset, validateHexDataset, hexNum } from "../importer/hex/hex-dataset.mjs";
@@ -545,6 +545,44 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this.render();
   }
 
+  /**
+   * The book's own answer for every keyed hex of the chosen crawl.
+   *
+   * The keyed summary prints the number, the terrain AND any river or path
+   * ("1246  Tallow Jungle  Jungle, path  Bone Choir"), so these hexes never
+   * needed guessing from the picture at all. Patrick: "an obvious answer for
+   * keyed locations is we just scrape them from the pdf... the main thing with
+   * keyed locations is rivers and paths."
+   *
+   * @returns {Map<number, {terrain:string, overlays:string[]}>}
+   */
+  _keyedFromBook() {
+    const e = this._entries.find((x) => x.uuid === this._entryUuid);
+    const out = new Map();
+    if (!e) return out;
+    for (const r of e.doc.getFlag(MODULE_ID, HEX_FLAG)?.keyed ?? []) {
+      const n = hexNum(r.num), tag = rowTag(r);
+      if (n !== null && tag) out.set(n, tag);
+    }
+    return out;
+  }
+
+  /**
+   * Write those answers onto the map, once, without ever overwriting the GM.
+   * @returns {number} how many hexes the book answered that were not answered already
+   */
+  _applyBookKey() {
+    let n = 0;
+    for (const [num, tag] of this._keyedFromBook()) {
+      const key = String(num);
+      const had = this._state.cells.get(key);
+      if (had?.source && had.source !== "auto" && had.terrain) continue;   // the GM's word wins
+      this._state.cells.set(key, { terrain: tag.terrain, overlays: [...tag.overlays], source: "gm" });
+      n++;
+    }
+    return n;
+  }
+
   _keyedNumbers() {
     const e = this._entries.find((x) => x.uuid === this._entryUuid);
     if (!e) return new Set();
@@ -725,6 +763,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    */
   async _classify(overlayOnly = new Set()) {
     const keyed = this._keyedNumbers();
+    // The book answers its own keyed hexes, terrain and overlays both, so they
+    // are tagged from the page before anything is guessed from the picture.
+    const fromBook = this._applyBookKey();
+    if (fromBook) ui.notifications?.info(`${fromBook} keyed ${fromBook === 1 ? "hex" : "hexes"} tagged from the book.`);
     const gm = [...this._state.cells.entries()].filter(([num, c]) => c.source !== "auto" && !keyed.has(Number(num)));
     if (!gm.length) { ui.notifications?.warn("Tag some hexes by hand first: your own tags are the examples Classify works from."); return false; }
     await this._ensureBitmaps();
@@ -733,7 +775,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // residual reads as a river (120 of 144 on the live check). Their terrain
     // comes from the book's text, so they must be left out — and that needs the
     // crawl entry to be chosen.
-    if (!keyed.size && this._entries.length) ui.notifications?.warn("No crawl chosen: keyed hexes will be classified too, and their icons read as rivers. Pick the crawl entry and classify again to leave them to the book.");
+    if (!keyed.size && this._entries.length) ui.notifications?.warn("No hex key chosen: keyed hexes will be guessed from the picture, and their icons read as rivers. Pick the hex key in the header and classify again to take them from the book instead.");
     const exemplars = gm.map(([num, c]) => ({ num: Number(num), tag: c.terrain, overlays: c.overlays ?? [], bitmap: this._bitmaps.get(Number(num)) })).filter((e) => e.bitmap);
     const cells = [...this._numbered.keys()]
       .filter((n) => !keyed.has(n) && (overlayOnly.has(n) || (this._state.cells.get(String(n))?.source ?? "auto") === "auto"))
