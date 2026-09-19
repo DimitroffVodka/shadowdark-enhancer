@@ -33,19 +33,26 @@ const WORK_WIDTH = 5000;
 
 const esc = (s) => foundry.utils.escapeHTML(String(s ?? ""));
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 /** The file picker dialog. @returns {Promise<{file:File, name:string}|null>} */
 async function pickFile() {
   const picked = await foundry.applications.api.DialogV2.wait({
-    window: { title: "Hex map from image" },
-    content: `<p>Pick the map image. It is read in your browser; the hex grid is found on its own, and the image is then copied into this world's folder as the scene background.</p>
-      <div class="form-group"><label>Map image</label><input type="file" name="hex-map-image" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></div>
-      <div class="form-group"><label>Scene name</label><input type="text" name="hex-map-name" placeholder="(the file's name)"></div>`,
+    window: { title: t("SDE.hexMap.flow.pickTitle") },
+    content: `<p>${t("SDE.hexMap.flow.pickHint")}</p>
+      <div class="form-group"><label>${t("SDE.hexMap.flow.mapImage")}</label><input type="file" name="hex-map-image" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"></div>
+      <div class="form-group"><label>${t("SDE.hexMap.flow.sceneName")}</label><input type="text" name="hex-map-name" placeholder="${t("SDE.hexMap.flow.sceneNamePlaceholder")}"></div>`,
     buttons: [
-      { action: "read", label: "Read the map", default: true, callback: (ev, button, dialog) => {
+      { action: "read", label: t("SDE.hexMap.btn.read"), default: true, callback: (ev, button, dialog) => {
         const root = dialog.element ?? dialog;
         return { file: root.querySelector?.("input[name='hex-map-image']")?.files?.[0] ?? null, name: root.querySelector?.("input[name='hex-map-name']")?.value.trim() ?? "" };
       } },
-      { action: "cancel", label: "Cancel" },
+      { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
     ],
     rejectClose: false,
   }).catch(() => null);
@@ -63,27 +70,28 @@ async function pickFile() {
 async function confirmLattice({ preview, full, file, lat, imageW, corners: support = [] }) {
   const pw = preview.width, ph = preview.height, k = pw / imageW;
   const short = lat.rowsLowered && lat.rowsLowered !== lat.rows;
-  const labels = ["top left", "top right", "bottom left", "bottom right"];
+  const labels = ["SDE.hexMap.corner.topLeft", "SDE.hexMap.corner.topRight",
+    "SDE.hexMap.corner.bottomLeft", "SDE.hexMap.corner.bottomRight"].map((k) => t(k));
   const found = labels.map((_, i) => support[i]?.ok ?? true);
   const missed = labels.filter((_, i) => !found[i]);
   const verdict = missed.length
-    ? `<p class="sde-hexmap-warn"><i class="fas fa-triangle-exclamation"></i> No printed hex outline where the grid puts its ${esc(missed.join(" and "))} corner${missed.length > 1 ? "s" : ""}. Compare the crops below; correct the counts if a row or column is off by one, or cancel and set the scene up by hand.</p>`
-    : `<p><i class="fas fa-circle-check"></i> Checked: the grid lands on a printed hex at all four corners. Nothing to do here but <strong>Create scene</strong>; the crops below are the proof.</p>`;
+    ? `<p class="sde-hexmap-warn"><i class="fas fa-triangle-exclamation"></i> ${t(missed.length > 1 ? "SDE.hexMap.flow.cornersMissedMany" : "SDE.hexMap.flow.cornersMissedOne", { corners: esc(missed.join(" and ")) })}</p>`
+    : `<p><i class="fas fa-circle-check"></i> ${t("SDE.hexMap.flow.cornersOk")}</p>`;
   const content = `
     <div class="sde-hexmap-confirm">
-      <div class="sde-hexmap-overview" id="sde-hexmap-preview" title="Open the print on its own, with no marks on it"></div>
+      <div class="sde-hexmap-overview" id="sde-hexmap-preview" title="${t('SDE.hexMap.flow.openPrint')}"></div>
       <div class="sde-hexmap-side">
-        <p><strong>Check the four crops.</strong> The blue hex should sit on a printed one.</p>
-        <p><strong>${lat.cols} × ${lat.rows}</strong> flat-top hexes, ${Math.round(lat.pitchX / 0.75)} × ${Math.round(lat.pitchY)} px, <strong>${esc(lat.lowered)}</strong> columns half a hex lower${short ? ` and one row shorter (${lat.rowsLowered})` : ""}.</p>
-        <p class="hint">The three boxes below are all you can change. Where the grid sits and how big it is were measured off the print — if the blue is not on a hex at all, cancel rather than fiddle. Pointy-top maps are not supported.</p>
+        <p>${t("SDE.hexMap.flow.checkCrops")}</p>
+        <p>${t("SDE.hexMap.flow.found", { cols: lat.cols, rows: lat.rows, px: Math.round(lat.pitchX / 0.75), py: Math.round(lat.pitchY), lowered: esc(lat.lowered) })}${short ? t("SDE.hexMap.flow.foundShort", { rows: lat.rowsLowered }) : ""}.</p>
+        <p class="hint">${t("SDE.hexMap.flow.onlyThree")}</p>
         ${verdict}
-        <p class="hint">Every blue mark is a hex the detector found: an outline on the corner hexes, and a dot at the centre of every fortieth cell across the overview, which is why most hexes there carry no dot. Nothing on this screen marks a fault. Drag the window edge to enlarge; clicking the overview opens your print on its own, with no marks on it.</p>
+        <p class="hint">${t("SDE.hexMap.flow.marks")}</p>
         <div class="sde-hexmap-corners" id="sde-hexmap-corners"></div>
-        <div class="form-group"><label>Columns × rows</label><div class="form-fields">
+        <div class="form-group"><label>${t("SDE.hexMap.flow.colsRows")}</label><div class="form-fields">
           <input type="number" name="cols" value="${lat.cols}" min="1" max="99"> ×
           <input type="number" name="rows" value="${lat.rows}" min="1" max="99"></div></div>
-        <div class="form-group"><label>Which columns sit lower</label><select name="lowered"><option value="odd" ${lat.lowered === "odd" ? "selected" : ""}>odd (1, 3, 5…)</option><option value="even" ${lat.lowered === "even" ? "selected" : ""}>even (0, 2, 4…)</option></select></div>
-        <div class="form-group"><label>Top-left hex is number</label><input type="text" name="firstNum" value="0000" maxlength="4"><p class="hint">The printed number of the top-left cell; every other cell is numbered from it.</p></div>
+        <div class="form-group"><label>${t("SDE.hexMap.flow.whichLower")}</label><select name="lowered"><option value="odd" ${lat.lowered === "odd" ? "selected" : ""}>${t("SDE.hexMap.label.loweredOdd")}</option><option value="even" ${lat.lowered === "even" ? "selected" : ""}>${t("SDE.hexMap.label.loweredEven")}</option></select></div>
+        <div class="form-group"><label>${t("SDE.hexMap.flow.firstNum")}</label><input type="text" name="firstNum" value="0000" maxlength="4"><p class="hint">${t("SDE.hexMap.flow.firstNumHint")}</p></div>
       </div>
     </div>`;
   const R = lat.pitchX / 1.5, ry = lat.pitchY / 2;
@@ -134,22 +142,22 @@ async function confirmLattice({ preview, full, file, lat, imageW, corners: suppo
     }
   };
   const answer = await foundry.applications.api.DialogV2.wait({
-    window: { title: "Hex grid found", resizable: true },
+    window: { title: t("SDE.hexMap.flow.gridFound"), resizable: true },
     classes: ["sde-hexmap-dialog"],
     position: { width: Math.min(1100, (globalThis.innerWidth ?? 1200) - 80), height: Math.min(820, (globalThis.innerHeight ?? 900) - 60) },
     content,
     render: (ev, dialog) => draw(dialog.element ?? dialog),
     buttons: [
-      { action: "create", label: "Create scene", default: true, callback: (ev, button, dialog) => {
+      { action: "create", label: t("SDE.hexMap.btn.createScene"), default: true, callback: (ev, button, dialog) => {
         const root = dialog.element ?? dialog, q = (n) => root.querySelector?.(`[name='${n}']`)?.value;
         return { cols: parseInt(q("cols"), 10), rows: parseInt(q("rows"), 10), lowered: q("lowered") === "even" ? "even" : "odd", firstNum: String(q("firstNum") ?? "0000").trim() || "0000" };
       } },
-      { action: "cancel", label: "Cancel" },
+      { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
     ],
     rejectClose: false,
   }).catch(() => null);
   if (!answer || answer === "cancel") return null;
-  if (!(answer.cols > 0 && answer.rows > 0) || !/^\d{3,4}$/.test(answer.firstNum)) { ui.notifications?.warn("Columns and rows must be positive and the first number 3 or 4 digits."); return null; }
+  if (!(answer.cols > 0 && answer.rows > 0) || !/^\d{3,4}$/.test(answer.firstNum)) { ui.notifications?.warn(t("SDE.hexMap.notify.badCounts")); return null; }
   // A corrected row count moves the lowered columns' end with it.
   if (short) answer.rowsLowered = Math.max(1, lat.rowsLowered + answer.rows - lat.rows);
   return answer;
@@ -210,7 +218,7 @@ export function alignedSceneData({ name, src, imageW, imageH, lat, firstNum = "0
 
 /** The whole flow, GM only. @returns {Promise<Scene|null>} */
 export async function startHexMapFlow() {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can set up hex maps."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlySetup")); return null; }
   const picked = await pickFile();
   if (!picked) return null;
   const { file, name } = picked;
@@ -218,16 +226,16 @@ export async function startHexMapFlow() {
   try {
     full = await createImageBitmap(file);
   } catch (err) {
-    ui.notifications?.error(`Could not read ${file.name} as an image: ${err.message}`); return null;
+    ui.notifications?.error(t("SDE.hexMap.notify.notAnImage", { file: file.name, error: err.message })); return null;
   }
   const imageW = full.width, imageH = full.height;
   const scale = Math.min(1, WORK_WIDTH / imageW);
-  ui.notifications?.info(`Reading ${file.name} (${imageW} × ${imageH})… this takes a few seconds.`);
+  ui.notifications?.info(t("SDE.hexMap.notify.readingImage", { file: file.name, w: imageW, h: imageH }));
   try {
     working = scale < 1 ? await createImageBitmap(full, { resizeWidth: Math.round(imageW * scale), resizeHeight: Math.round(imageH * scale), resizeQuality: "medium" }) : full;
     const { ink, w, h } = await imageInk(working, { scale: 1, onProgress: () => new Promise((r) => setTimeout(r, 0)) });
     const det = detectLattice(ink, w, h);
-    if (!det) { ui.notifications?.error("No hex grid found on this image. Hand-drawn or faint grids can be tagged the old way: make a scene, align it, and open the Hex tagger."); return null; }
+    if (!det) { ui.notifications?.error(t("SDE.hexMap.notify.noGrid")); return null; }
     const s = w / imageW;
     const lat = { x0: det.x0 / s, y0: det.y0 / s, pitchX: det.pitchX / s, pitchY: det.pitchY / s, cols: det.cols, rows: det.rows, rowsLowered: det.rowsLowered, lowered: det.lowered };
     // The overview: up to 1200 px on the long side, scaled by CSS to the window; the corners are cut from the full image.
@@ -240,13 +248,13 @@ export async function startHexMapFlow() {
     const src = await uploadMap(file);
     const data = alignedSceneData({ name, src, imageW, imageH, lat: { ...lat, lowered: answer.lowered }, firstNum: answer.firstNum, cols: answer.cols, rows: answer.rows, rowsLowered: answer.rowsLowered });
     const scene = await Scene.create(data);
-    ui.notifications?.info(`Scene "${scene.name}" created: ${answer.cols} × ${answer.rows} hexes on a ${data.grid.size} px grid. Opening the tagger on its legend.`);
+    ui.notifications?.info(t("SDE.hexMap.notify.sceneCreated", { name: scene.name, cols: answer.cols, rows: answer.rows, size: data.grid.size }));
     await scene.view();
     (await import("./hex-tagger-app.mjs")).HexTaggerApp.open({ legend: true });
     return scene;
   } catch (err) {
     console.error(`${MODULE_ID} | hex map from image`, err);
-    ui.notifications?.error(`Hex map setup failed: ${err.message}`);
+    ui.notifications?.error(t("SDE.hexMap.notify.setupFailed", { error: err.message }));
     return null;
   } finally {
     working?.close?.(); if (working !== full) full?.close?.();

@@ -133,6 +133,13 @@ export function terrainOptions(cells = new Map()) {
  * The overlay on the active scene. One instance; toggled from the tagger's
  * header or game.shadowdarkEnhancer.hexMaps.showTags().
  */
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 export class HexTagOverlay {
   /** @type {HexTagOverlay|null} */
   static current = null;
@@ -144,12 +151,12 @@ export class HexTagOverlay {
   static toggle({ alpha } = {}) {
     if (alpha !== undefined) HexTagOverlay.fillAlpha = Number(alpha);
     if (HexTagOverlay.current) { HexTagOverlay.current.hide(); return false; }
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can review hex tags."); return false; }
+    if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlyReview")); return false; }
     const scene = canvas?.scene;
     const flag = scene?.getFlag(MODULE_ID, TAGS_FLAG);
-    if (!flag?.origin) { ui.notifications?.warn("This scene has no hex numbering yet: set it up with Hex map from image, or sample it in the tagger and set the anchor."); return false; }
+    if (!flag?.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.noNumbering")); return false; }
     const geom = sceneCells(canvas);
-    if (geom.error) { ui.notifications?.warn(geom.error); return false; }
+    if (geom.error) { ui.notifications?.warn(t(geom.error)); return false; }
     const o = flag.origin;
     const overlay = new HexTagOverlay(scene, geom, { cube: { q: o.q, r: o.r }, num: o.num, shifted: o.shifted ?? "odd", bounds: o.bounds });
     overlay.show();
@@ -212,7 +219,7 @@ export class HexTagOverlay {
       this.draw();
     })]);
     this._hooks.push(["canvasTearDown", Hooks.on("canvasTearDown", () => this.hide())]);
-    ui.notifications?.info("Hex tags shown on the map. Click a hex to change its tags; the button hides them again.");
+    ui.notifications?.info(t("SDE.hexMap.notify.overlayShown"));
   }
 
   hide() {
@@ -334,7 +341,7 @@ export class HexTagOverlay {
     const bits = [];
     if (changed) bits.push(`${changed} changed to ${word}`);
     if (confirmed) bits.push(`${confirmed} confirmed as ${word}`);
-    ui.notifications?.info(`${painted.size} ${painted.size === 1 ? "hex" : "hexes"}: ${bits.join(", ")}.`);
+    ui.notifications?.info(t(painted.size === 1 ? "SDE.hexMap.brush.paintedOne" : "SDE.hexMap.brush.paintedMany", { n: painted.size, tags: bits.join(", ") }));
     // The brush window shows what Undo would put back, so tell it.
     Hooks.callAll(`${MODULE_ID}.hexStroke`, this);
     return painted.size;
@@ -365,20 +372,20 @@ export class HexTagOverlay {
     const options = terrainOptions(this.state.cells);
     const esc = foundry.utils.escapeHTML;
     const content = `<form class="standard-form">
-      <div class="form-group"><label>Terrain</label><div class="form-fields">
+      <div class="form-group"><label>${t("SDE.hexMap.brush.terrain")}</label><div class="form-fields">
         <select name="terrain" autofocus>
-          <option value="">(clear this hex)</option>
+          <option value="">${t("SDE.hexMap.label.clearHex")}</option>
           ${options.map((o) => `<option value="${esc(o.value)}" ${o.value === cell?.terrain ? "selected" : ""}>${esc(o.label)}</option>`).join("")}
-          <option value="${OTHER}">other…</option>
+          <option value="${OTHER}">${t("SDE.hexMap.label.otherOption")}</option>
         </select>
-        <input type="text" name="other" placeholder="a word of your own" hidden>
+        <input type="text" name="other" placeholder="${t('SDE.hexMap.brush.ownWord')}" hidden>
       </div></div>
-      <div class="form-group"><label>On the hex</label><div class="form-fields">
+      <div class="form-group"><label>${t("SDE.hexMap.brush.onTheHex")}</label><div class="form-fields">
         ${OVERLAYS.map((o) => `<label class="checkbox"><input type="checkbox" name="${o}" ${cell?.overlays?.includes(o) ? "checked" : ""}> ${o}</label>`).join("")}
       </div></div>
     </form>`;
     const answer = await foundry.applications.api.DialogV2.prompt({
-      window: { title: `Hex ${num}`, icon: "fa-solid fa-hexagon" },
+      window: { title: t("SDE.hexMap.edit.title", { num }), icon: "fa-solid fa-hexagon" },
       content,
       // The free-text box appears only for "other…", as it does in the tagger.
       render: (_event, dialog) => {
@@ -390,7 +397,7 @@ export class HexTagOverlay {
           if (!other.hidden) other.focus();
         });
       },
-      ok: { label: "Save", callback: (_event, button) => new FormDataExtended(button.form).object },
+      ok: { label: t("SDE.hexMap.btn.save"), callback: (_event, button) => new FormDataExtended(button.form).object },
       rejectClose: false,
     });
     this._editor = null;

@@ -2,39 +2,39 @@
   <header class="sde-hxt-head">
     <div class="sde-hxt-title">
       <strong>{{sceneName}}</strong>
-      {{#if sampled}}<span class="sde-hxt-stat">{{numberedCount}} numbered of {{cellCount}} cells · {{summary.tagged}} tagged ({{summary.gm}} by hand{{#if summary.auto}}, {{summary.auto}} auto{{/if}}) · {{summary.untagged}} to go</span>{{/if}}
+      {{#if sampled}}<span class="sde-hxt-stat">{{localize "SDE.hexMap.stat.numbered" numbered=numberedCount cells=cellCount}} · {{localize "SDE.hexMap.stat.tagged" tagged=summary.tagged gm=summary.gm}}{{#if summary.auto}}{{localize "SDE.hexMap.stat.auto" auto=summary.auto}}{{/if}}) · {{localize "SDE.hexMap.stat.toGo" n=summary.untagged}}</span>{{/if}}
     </div>
     <div class="sde-hxt-actions">
       {{#unless sampled}}
-      <button type="button" data-action="hxtSample" class="{{#if primarySample}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="Read every hex of this scene's image in your browser, so the Legend and Classify have a picture of each one. Nothing is uploaded, and no terrain is decided."><i class="fas fa-crop-simple"></i> Read the map</button>
+      <button type="button" data-action="hxtSample" class="{{#if primarySample}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="{{localize 'SDE.hexMap.tip.read'}}"><i class="fas fa-crop-simple"></i> {{localize "SDE.hexMap.btn.read"}}</button>
       {{/unless}}
       {{!-- Legend and Classify read the map themselves when they have to, so a
             reload never hides them: they are offered whenever the scene is
             numbered. Only the controls that work ON the pictures wait. --}}
       {{#if origin}}
-      <button type="button" data-action="hxtLegend" class="{{#if primaryLegend}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="Sort every hex picture into groups of look-alikes and show one card per group. Reads the map first if it needs to."><i class="fas fa-list-ul"></i> Legend</button>
+      <button type="button" data-action="hxtLegend" class="{{#if primaryLegend}}sde-import-primary{{else}}sde-import-secondary{{/if}}" title="{{localize 'SDE.hexMap.tip.legend'}}"><i class="fas fa-list-ul"></i> {{localize "SDE.hexMap.btn.legend"}}</button>
       {{#if canClassify}}
-      <button type="button" data-action="hxtClassify" class="sde-import-secondary" title="Tag every hex you have NOT tagged yourself by whichever of your own hand-tagged hexes it looks most like. Reads the map first if it needs to. Unsure hexes go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
+      <button type="button" data-action="hxtClassify" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.classify'}}"><i class="fas fa-wand-magic-sparkles"></i> {{localize "SDE.hexMap.btn.classify"}}</button>
       {{/if}}
       {{/if}}
       {{#if sampled}}{{#if origin}}{{#if canSheet}}
-      <label title="Which hexes the grid below shows you">Show <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
-      <button type="button" data-action="hxtNextSheet" class="sde-import-secondary"><i class="fas fa-forward"></i> Next sheet</button>
+      <label title="{{localize 'SDE.hexMap.tip.show'}}">{{localize "SDE.hexMap.label.show"}} <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
+      <button type="button" data-action="hxtNextSheet" class="sde-import-secondary"><i class="fas fa-forward"></i> {{localize "SDE.hexMap.btn.nextSheet"}}</button>
       {{/if}}{{/if}}{{/if}}
       {{!-- These read the scene's stored tags, so they work whether or not it is sampled. --}}
       {{#if origin}}
       {{#if hasKey}}
-      <label title="The journal entry of book text for this map's keyed hexes">Hex key <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
-      <button type="button" data-action="hxtPinKeyed" class="sde-import-secondary" title="One map note per keyed hex of the chosen book text on this scene, each opening its journal page"><i class="fas fa-map-pin"></i> Pin keyed hexes</button>
+      <label title="{{localize 'SDE.hexMap.tip.hexKey'}}">{{localize "SDE.hexMap.label.hexKey"}} <select data-hxt-entry><option value="">{{localize "SDE.hexMap.label.none"}}</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
+      <button type="button" data-action="hxtPinKeyed" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.pinKeyed'}}"><i class="fas fa-map-pin"></i> {{localize "SDE.hexMap.btn.pinKeyed"}}</button>
       {{/if}}
       {{#if hasTags}}
-      <button type="button" data-action="hxtShowTags" class="sde-import-secondary" title="Draw every tag on the map itself: a colour per terrain, dots for river, path and coast, an amber ring on the unsure automatic cells. Click a hex there to change it. Press again to hide."><i class="fas fa-eye"></i> {{#if overlayShown}}Hide tags{{else}}Show tags{{/if}}</button>
-      <button type="button" data-action="hxtBrush" class="sde-import-secondary" title="Pick a terrain once, then click or drag across the hexes that have it wrong. A whole stroke is one change, and Undo puts it back."><i class="fas fa-paintbrush"></i> Brush</button>
-      <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}</button>
+      <button type="button" data-action="hxtShowTags" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.showTags'}}"><i class="fas fa-eye"></i> {{#if overlayShown}}{{localize "SDE.hexMap.btn.hideTags"}}{{else}}{{localize "SDE.hexMap.btn.showTags"}}{{/if}}</button>
+      <button type="button" data-action="hxtBrush" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.brush'}}"><i class="fas fa-paintbrush"></i> {{localize "SDE.hexMap.btn.brush"}}</button>
+      <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> {{localize "SDE.hexMap.btn.sendExtras"}}{{else}}<i class="fas fa-download"></i> {{localize "SDE.hexMap.btn.download"}}{{/if}}</button>
       {{/if}}
       {{/if}}
       {{#if showMore}}
-      <button type="button" data-action="hxtMore" class="sde-import-secondary sde-hxt-more-btn" aria-expanded="{{moreOpen}}" title="Map size, read the image again, import, export, reference tile, clear">More</button>
+      <button type="button" data-action="hxtMore" class="sde-import-secondary sde-hxt-more-btn" aria-expanded="{{moreOpen}}" title="{{localize 'SDE.hexMap.tip.more'}}">{{localize "SDE.hexMap.btn.more"}}</button>
       {{/if}}
       <span class="sde-hxt-stat" data-hxt-progress>{{progress}}</span>
     </div>
@@ -42,29 +42,29 @@
     <div class="sde-hxt-more-panel" {{#unless moreOpen}}hidden{{/unless}}>
         <div class="sde-hxt-more-row">
         {{#if sampled}}
-        <button type="button" data-action="hxtSample" class="sde-import-secondary" title="Read the pictures from the scene image again; every tag is kept"><i class="fas fa-crop-simple"></i> Read the map again</button>
+        <button type="button" data-action="hxtSample" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.readAgain'}}"><i class="fas fa-crop-simple"></i> {{localize "SDE.hexMap.btn.readAgain"}}</button>
         {{/if}}
-        <button type="button" data-action="hxtLearnFrom" class="sde-import-secondary" title="Bring in every hex you tagged by hand on another go at this same print, as examples for Classify. Your tags here are left alone."><i class="fas fa-graduation-cap"></i> Start from a map you have done</button>
-        <button type="button" data-action="hxtImport" class="sde-import-secondary" title="Import tags from a CSV (hex_id, tags) or a JSON exported here"><i class="fas fa-file-import"></i> Import</button>
-        <button type="button" data-action="hxtExport" class="sde-import-secondary" title="Download this scene's tags as JSON"><i class="fas fa-file-export"></i> Export</button>
-        <button type="button" data-action="hxtArt" class="sde-import-secondary" title="Load your own manifest of which tile paints each hex"><i class="fas fa-palette"></i> Tile art{{#if artCount}} ({{artCount}}){{/if}}</button>
+        <button type="button" data-action="hxtLearnFrom" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.learnFrom'}}"><i class="fas fa-graduation-cap"></i> {{localize "SDE.hexMap.btn.learnFrom"}}</button>
+        <button type="button" data-action="hxtImport" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.import'}}"><i class="fas fa-file-import"></i> {{localize "SDE.hexMap.btn.import"}}</button>
+        <button type="button" data-action="hxtExport" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.export'}}"><i class="fas fa-file-export"></i> {{localize "SDE.hexMap.btn.export"}}</button>
+        <button type="button" data-action="hxtArt" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.art'}}"><i class="fas fa-palette"></i> {{localize "SDE.hexMap.btn.art"}}{{#if artCount}} ({{artCount}}){{/if}}</button>
         {{#if origin}}
-        <button type="button" data-action="hxtReference" class="sde-import-secondary" title="Put this map image on another hex scene as a hidden, locked tile for tracing rivers and roads"><i class="fas fa-layer-group"></i> Reference tile</button>
-        <button type="button" data-action="hxtClearTags" class="sde-import-secondary" title="Remove every tag and the anchor from this scene"><i class="fas fa-eraser"></i> Clear</button>
+        <button type="button" data-action="hxtReference" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.reference'}}"><i class="fas fa-layer-group"></i> {{localize "SDE.hexMap.btn.reference"}}</button>
+        <button type="button" data-action="hxtClearTags" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.clear'}}"><i class="fas fa-eraser"></i> {{localize "SDE.hexMap.btn.clear"}}</button>
         {{/if}}
         </div>
         {{#if origin}}
         <div class="sde-hxt-more-row">
-        <span class="sde-hxt-muted"><i class="fas fa-anchor"></i> hex <strong>{{originText}}</strong></span>
-        <label>Map size <input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="cols" class="sde-hxt-small"></label>
-        <label>× <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="rows" class="sde-hxt-small"></label>
-        <label title="The columns that sit higher have their first row cut in half by the print's frame. On maps like the Western Reaches that half cell is the margin the column labels are printed in, not map."><input type="checkbox" data-hxt-skip-top {{#if skipTopRow}}checked{{/if}}> top row is frame</label>
+        <span class="sde-hxt-muted"><i class="fas fa-anchor"></i> {{localize "SDE.hexMap.label.hex"}} <strong>{{originText}}</strong></span>
+        <label>{{localize "SDE.hexMap.label.mapSize"}} <input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.cols'}}" class="sde-hxt-small"></label>
+        <label>× <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="{{localize 'SDE.hexMap.label.rows'}}" class="sde-hxt-small"></label>
+        <label title="{{localize 'SDE.hexMap.tip.skipTop'}}"><input type="checkbox" data-hxt-skip-top {{#if skipTopRow}}checked{{/if}}> {{localize "SDE.hexMap.label.skipTop"}}</label>
         {{#if canClassify}}
-        <label title="Higher values lower the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
+        <label title="{{localize 'SDE.hexMap.tip.sensitivity'}}">{{localize "SDE.hexMap.label.sensitivity"}} <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
         {{/if}}
-        <button type="button" data-action="hxtSetBounds" class="sde-import-secondary sde-hxt-inline">Apply</button>
+        <button type="button" data-action="hxtSetBounds" class="sde-import-secondary sde-hxt-inline">{{localize "SDE.hexMap.btn.apply"}}</button>
         </div>
-      <p class="sde-hxt-muted">Cells past the map's columns or rows (margins, legend) are skipped.</p>
+      <p class="sde-hxt-muted">{{localize "SDE.hexMap.note.skipped"}}</p>
       {{/if}}
     </div>
     {{/if}}
@@ -74,39 +74,39 @@
 
   {{#unless sampled}}
   {{#if origin}}
-  <p class="sde-hxt-note">This scene's grid is already aligned to the map. <strong>Read the map</strong> takes a picture of every hex from the image in your browser — it decides no terrain. Then <strong>Legend</strong> sorts those pictures into groups of look-alikes and asks you to name one card per group, and <strong>Classify</strong> tags every remaining hex by whichever hex you tagged by hand it looks most like.</p>
+  <p class="sde-hxt-note">{{{localize "SDE.hexMap.note.aligned"}}}</p>
   {{else}}
-  <p class="sde-hxt-note">Open the hex-map scene, align its grid to the map with Foundry's grid tool (set background scale Y separately for stretched prints), then <strong>Read the map</strong>. Nothing is uploaded; the picture of each hex is read from the image in your browser.</p>
+  <p class="sde-hxt-note">{{{localize "SDE.hexMap.note.align"}}}</p>
   {{/if}}
   {{/unless}}
 
   {{#if baseline}}
   <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-flag-checkered"></i> <strong>The initial scan, scored by you</strong>: of the {{baseline.checked}} hexes you have checked so far, it had {{baseline.right}} right — <strong>{{baseline.accuracy}}%</strong>. That is what this map would have been worth to somebody who never corrected anything, and it is the number a change to the module has to move.
-    {{#if baseline.worst}}Its worst confusions on what you have checked: {{#each baseline.worst as |w|}}{{#unless @first}}, {{/unless}}{{lookup w 1}}× {{lookup w 0}}{{/each}}.{{/if}}
+    <i class="fas fa-flag-checkered"></i> {{{localize "SDE.hexMap.note.baseline" checked=baseline.checked right=baseline.right accuracy=baseline.accuracy}}}
+    {{#if baseline.worst}}{{localize "SDE.hexMap.note.baselineWorst"}} {{#each baseline.worst as |w|}}{{#unless @first}}, {{/unless}}{{lookup w 1}}× {{lookup w 0}}{{/each}}.{{/if}}
   </p>
   {{/if}}
 
   {{#if report}}
   {{#if legendLog}}
   <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-clipboard-list"></i> <strong>On the record</strong>: the legend you applied had {{legendLog.cards}} cards covering {{legendLog.hexes}} hexes — you named <strong>{{legendLog.named}}</strong>{{#if legendLog.skipped}}, left {{legendLog.skipped}} to the classifier{{/if}}{{#if legendLog.opened}} and opened {{legendLog.opened}} up hex by hex{{/if}}. That is kept with the scene, so a run that goes wrong can be traced to what it was told rather than guessed at.
+    <i class="fas fa-clipboard-list"></i> {{{localize "SDE.hexMap.note.legendLog" cards=legendLog.cards hexes=legendLog.hexes named=legendLog.named}}}{{#if legendLog.skipped}}{{localize "SDE.hexMap.note.legendLogSkipped" n=legendLog.skipped}}{{/if}}{{#if legendLog.opened}}{{localize "SDE.hexMap.note.legendLogOpened" n=legendLog.opened}}{{/if}}. {{localize "SDE.hexMap.note.legendLogKept"}}
     {{#if legendLog.suspect}}
-    <br><strong>The card you called {{legendLog.suspect.name}} looks named wrong</strong>: you have corrected {{legendLog.suspect.wrong}} of its own {{legendLog.suspect.core}} example hexes ({{legendLog.suspect.rate}}%). Its name went straight onto those, and onto the {{legendLog.suspect.size}} hexes classified from them. <strong>Legend</strong> again and give that card a different answer, or fix it with the <strong>Brush</strong>.
+    <br>{{{localize "SDE.hexMap.note.suspect" name=legendLog.suspect.name wrong=legendLog.suspect.wrong core=legendLog.suspect.core rate=legendLog.suspect.rate size=legendLog.suspect.size}}}
     {{/if}}
   </p>
   {{/if}}
   <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-chart-simple"></i> <strong>From your corrections</strong>: you have judged {{report.judged}} hexes the classifier tagged, and {{report.wrong}} of them were wrong.
+    <i class="fas fa-chart-simple"></i> {{{localize "SDE.hexMap.note.corrections" judged=report.judged wrong=report.wrong}}}
     {{#if report.retag}}
-    That is bad enough that the threshold below is not the problem — the examples it is working from are. <strong>Classify</strong> again: your {{report.wrong}} corrections become examples, and every cell you have not touched is re-tagged from them.
+    {{{localize "SDE.hexMap.note.retag" wrong=report.wrong}}}
     {{/if}}
     {{#if report.wrong}}
-    <br>When it tags a hex it also says how much better its first guess was than its second — twice as good, a tenth better. The <strong>Review queue</strong> now shows you every hex it tagged, <strong>least sure first</strong>, so the mistakes come to the top instead of being scattered through the list. The <strong>{{reviewMargin}}×</strong> mark below only decides which hexes get a ring on the map: {{reviewCount}} of them, holding {{report.caught}}% of the mistakes you have found so far.
+    <br>{{{localize "SDE.hexMap.note.margin" margin=reviewMargin ringed=reviewCount caught=report.caught}}}
     {{/if}}
     {{#if report.suggested}}
-    Ringing them at <strong>{{report.suggested}}×</strong> instead would mark 90% of the mistakes, at {{report.suggestedCount}} ringed hexes rather than {{reviewCount}}. It does not change the queue, only what the map draws.
-    <button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="sde-import-secondary sde-hxt-inline">Ring at {{report.suggested}}×</button>
+    {{{localize "SDE.hexMap.note.suggested" suggested=report.suggested count=report.suggestedCount ringed=reviewCount}}}
+    <button type="button" data-action="hxtUseMargin" data-margin="{{report.suggested}}" class="sde-import-secondary sde-hxt-inline">{{localize "SDE.hexMap.btn.ringAt" suggested=report.suggested}}</button>
     {{/if}}
   </p>
   {{/if}}
@@ -114,44 +114,44 @@
   {{#if origin}}{{#if sampled}}{{#unless hasLegend}}
   {{#if done}}
   <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-circle-check"></i> <strong>The map is tagged</strong>: {{summary.gm}} cells by you, {{summary.auto}} by the classifier. Nothing more is required; <strong>{{#if viaExtras}}Send to Extras{{else}}Download dataset{{/if}}</strong> is ready whenever you are.
-    The <strong>Review queue</strong> below shows what it tagged, <strong>least sure first</strong>{{#if sheetExpected}} — expect about {{sheetExpected}} of this sheet to be wrong{{/if}}. Each is already filled in with its guess. <strong>Change only the ones that are wrong</strong>, then press the button at the bottom: that confirms the whole sheet, the ones you changed <em>and</em> the ones you left, and records how often it was right. Stop whenever the sheets stop turning up mistakes — that is the queue telling you it is done, and you never have to finish the list.
-    {{#if noCrawl}}Choosing your crawl entry above and pressing <strong>Classify</strong> again leaves the keyed hexes to the book and shortens that list.{{/if}}
+    <i class="fas fa-circle-check"></i> {{{localize "SDE.hexMap.note.done" gm=summary.gm auto=summary.auto}}} {{#if viaExtras}}{{{localize "SDE.hexMap.note.doneReady" action=(localize "SDE.hexMap.btn.sendExtras")}}}{{else}}{{{localize "SDE.hexMap.note.doneReady" action=(localize "SDE.hexMap.btn.download")}}}{{/if}}
+    {{{localize "SDE.hexMap.note.queueLead"}}}{{#if sheetExpected}}{{localize "SDE.hexMap.note.queueExpect" n=sheetExpected}}{{/if}}. {{{localize "SDE.hexMap.note.queueHow"}}}
+    {{#if noCrawl}}{{{localize "SDE.hexMap.note.noCrawl"}}}{{/if}}
   </p>
   {{else if summary.tagged}}
-  <p class="sde-hxt-note sde-hxt-direction">{{summary.untagged}} cells still untagged. <strong>Legend</strong> names them all at once, one card per glyph; <strong>Classify</strong> tags them from the {{summary.gm}} you tagged by hand; the sheet below tags them {{sheet.length}} at a time.</p>
+  <p class="sde-hxt-note sde-hxt-direction">{{{localize "SDE.hexMap.note.some" untagged=summary.untagged gm=summary.gm sheet=sheet.length}}}</p>
   {{else}}
-  <p class="sde-hxt-note sde-hxt-direction">Nothing tagged yet. <strong>Legend</strong> is the quick way: one card per glyph to name, then everything is tagged from those. The sheet below is the slow way, {{sheet.length}} cells at a time.</p>
+  <p class="sde-hxt-note sde-hxt-direction">{{{localize "SDE.hexMap.note.none" sheet=sheet.length}}}</p>
   {{/if}}
   {{/unless}}{{/if}}{{/if}}
 
   {{#if needsOrigin}}
   <p class="sde-hxt-note">
-    <i class="fas fa-anchor"></i> Read the printed hex number off any thumbnail below and type it in that cell, then <strong>Set</strong>. Every other cell is numbered from it.
-    Lowered columns: <select data-hxt-shifted><option value="odd" selected>odd (1, 3, 5…)</option><option value="even">even (0, 2, 4…)</option></select>
+    <i class="fas fa-anchor"></i> {{{localize "SDE.hexMap.note.needsOrigin"}}}
+    {{localize "SDE.hexMap.label.lowered"}} <select data-hxt-shifted><option value="odd" selected>{{localize "SDE.hexMap.label.loweredOdd"}}</option><option value="even">{{localize "SDE.hexMap.label.loweredEven"}}</option></select>
   </p>
   {{/if}}
 
   {{#if hasLegend}}
   <p class="sde-hxt-note sde-hxt-direction">
-    <i class="fas fa-list-ul"></i> <strong>Name what the pictures have in common.</strong> A mountain with a river across it is still <strong>mountain</strong> — rivers and roads are found separately. Use <strong>village</strong>, <strong>town</strong>, <strong>city</strong>, <strong>city state</strong> or <strong>keyed location</strong> for the marker symbols.
-    <br><strong>(skip)</strong> leaves a card to the classifier. <strong>these are not all the same</strong> opens it up hex by hex.
+    <i class="fas fa-list-ul"></i> {{{localize "SDE.hexMap.legend.howTo"}}}
+    <br>{{{localize "SDE.hexMap.legend.skipSplit"}}}
   </p>
   <div class="sde-hxt-sheet sde-hxt-legend">
     {{#each legend as |g|}}
     {{#if g.expand}}
     <div class="sde-hxt-cell sde-hxt-opened">
-      <span class="sde-hxt-label">{{g.size}} cells — answer these {{g.picks.length}} one by one; the rest go to the classifier</span>
+      <span class="sde-hxt-label">{{localize "SDE.hexMap.legend.opened" size=g.size picks=g.picks.length}}</span>
       <div class="sde-hxt-picks">
         {{#each g.picks as |p|}}
         <div class="sde-hxt-pick">
           <img src="{{p.thumb}}" alt="" width="72" height="72">
           <span class="sde-hxt-label">{{p.num}}</span>
           <select data-hxt-pick data-idx="{{g.idx}}" data-num="{{p.num}}">
-            <option value="">(skip)</option>
+            <option value="">{{localize "SDE.hexMap.label.skip"}}</option>
             {{#each p.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
           </select>
-          <input type="text" data-hxt-pick-other data-num="{{p.num}}" value="{{p.other}}" placeholder="other terrain" aria-label="Other terrain" {{#unless p.other}}hidden{{/unless}}>
+          <input type="text" data-hxt-pick-other data-num="{{p.num}}" value="{{p.other}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless p.other}}hidden{{/unless}}>
         </div>
         {{/each}}
       </div>
@@ -160,20 +160,20 @@
     <div class="sde-hxt-cell">
       <div class="sde-hxt-thumbs">{{#each g.thumbs as |t|}}<img src="{{t}}" alt="" width="72" height="72">{{/each}}</div>
       <div class="sde-hxt-fields">
-        <span class="sde-hxt-label">{{g.size}} cells{{#if g.split}} <span class="sde-hxt-muted">(from a split)</span>{{/if}}</span>
+        <span class="sde-hxt-label">{{localize "SDE.hexMap.legend.cardSize" size=g.size}}{{#if g.split}} <span class="sde-hxt-muted">{{localize "SDE.hexMap.legend.fromSplit"}}</span>{{/if}}</span>
         <select data-hxt-legend data-idx="{{g.idx}}">
-          <option value="">(skip)</option>
+          <option value="">{{localize "SDE.hexMap.label.skip"}}</option>
           {{#each g.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
         </select>
-        <input type="text" data-hxt-legend-other data-idx="{{g.idx}}" value="{{g.terrainOther}}" placeholder="other terrain" aria-label="Other terrain" {{#unless g.terrainOther}}hidden{{/unless}}>
+        <input type="text" data-hxt-legend-other data-idx="{{g.idx}}" value="{{g.terrainOther}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless g.terrainOther}}hidden{{/unless}}>
       </div>
     </div>
     {{/if}}
     {{/each}}
   </div>
   <footer class="sde-hxt-foot">
-    <button type="button" data-action="hxtApplyLegend" class="sde-import-primary"><i class="fas fa-check"></i> Apply legend</button>
-    <button type="button" data-action="hxtCancelLegend" class="sde-import-secondary">Cancel</button>
+    <button type="button" data-action="hxtApplyLegend" class="sde-import-primary"><i class="fas fa-check"></i> {{localize "SDE.hexMap.btn.applyLegend"}}</button>
+    <button type="button" data-action="hxtCancelLegend" class="sde-import-secondary">{{localize "SDE.hexMap.btn.cancel"}}</button>
   </footer>
   {{else if hasSheet}}
   <div class="sde-hxt-sheet">
@@ -182,22 +182,22 @@
       <img src="{{c.thumb}}" alt="" width="96" height="96">
       {{#if c.align}}
       <div class="sde-hxt-fields">
-        <span class="sde-hxt-muted">grid {{c.i}},{{c.j}}</span>
-        <input type="text" data-hxt-number data-i="{{c.i}}" data-j="{{c.j}}" placeholder="number" maxlength="4" class="sde-hxt-num">
-        <button type="button" data-action="hxtSetNumber" data-i="{{c.i}}" data-j="{{c.j}}" class="sde-import-secondary sde-hxt-inline">Set</button>
+        <span class="sde-hxt-muted">{{localize "SDE.hexMap.label.grid" i=c.i j=c.j}}</span>
+        <input type="text" data-hxt-number data-i="{{c.i}}" data-j="{{c.j}}" placeholder="{{localize 'SDE.hexMap.label.number'}}" maxlength="4" class="sde-hxt-num">
+        <button type="button" data-action="hxtSetNumber" data-i="{{c.i}}" data-j="{{c.j}}" class="sde-import-secondary sde-hxt-inline">{{localize "SDE.hexMap.btn.set"}}</button>
       </div>
       {{else}}
       <div class="sde-hxt-fields">
-        <span class="sde-hxt-label">{{c.label}}{{#if c.keyed}} <i class="fas fa-star" title="Keyed hex"></i>{{/if}}{{#if c.source}} <span class="sde-hxt-muted">{{c.source}}{{#if c.margin}} {{c.margin}}{{/if}}{{#if c.review}} <i class="fas fa-circle-question" title="Flagged for review"></i>{{/if}}</span>{{/if}}</span>
+        <span class="sde-hxt-label">{{c.label}}{{#if c.keyed}} <i class="fas fa-star" title="{{localize 'SDE.hexMap.tip.keyedHex'}}"></i>{{/if}}{{#if c.source}} <span class="sde-hxt-muted">{{c.source}}{{#if c.margin}} {{c.margin}}{{/if}}{{#if c.review}} <i class="fas fa-circle-question" title="{{localize 'SDE.hexMap.tip.flagged'}}"></i>{{/if}}</span>{{/if}}</span>
         <select data-hxt-terrain data-num="{{c.num}}">
-          <option value="">(untagged)</option>
+          <option value="">{{localize "SDE.hexMap.label.untagged"}}</option>
           {{#each c.terrainOptions as |o|}}<option value="{{o.value}}" {{#if o.selected}}selected{{/if}}>{{o.label}}</option>{{/each}}
         </select>
-        <input type="text" data-hxt-terrain-other data-num="{{c.num}}" value="{{c.terrainOther}}" placeholder="other terrain" aria-label="Other terrain" {{#unless c.terrainOther}}hidden{{/unless}}>
+        <input type="text" data-hxt-terrain-other data-num="{{c.num}}" value="{{c.terrainOther}}" placeholder="{{localize 'SDE.hexMap.label.otherTerrain'}}" aria-label="{{localize 'SDE.hexMap.label.otherTerrainAria'}}" {{#unless c.terrainOther}}hidden{{/unless}}>
         <span class="sde-hxt-overlays">
-          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="river" {{#if c.overlays.river}}checked{{/if}}> river</label>
-          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="path" {{#if c.overlays.path}}checked{{/if}}> path</label>
-          <label title="Saved on this scene; not included in dataset networks yet."><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="coast" {{#if c.overlays.coast}}checked{{/if}}> coast</label>
+          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="river" {{#if c.overlays.river}}checked{{/if}}> {{localize "SDE.hexMap.overlay.river"}}</label>
+          <label><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="path" {{#if c.overlays.path}}checked{{/if}}> {{localize "SDE.hexMap.overlay.path"}}</label>
+          <label title="{{localize 'SDE.hexMap.tip.coast'}}"><input type="checkbox" data-hxt-overlay data-num="{{c.num}}" value="coast" {{#if c.overlays.coast}}checked{{/if}}> {{localize "SDE.hexMap.overlay.coast"}}</label>
         </span>
       </div>
       {{/if}}
@@ -207,9 +207,9 @@
 
   {{#if hasSheet}}{{#unless needsOrigin}}
   <footer class="sde-hxt-foot">
-    <span class="sde-hxt-muted">Leaving a hex alone says the classifier got it right.</span>
-    <button type="button" data-action="hxtApplySheet" class="sde-import-primary" title="Accepts every hex on this sheet as it now reads — the ones you changed and the ones you left — and takes them out of the review queue."><i class="fas fa-check"></i> Confirm these {{sheet.length}}</button>
-    <button type="button" data-action="hxtNextSheet" class="sde-import-secondary" title="A different {{sheet.length}} hexes. Nothing on this sheet is confirmed or changed.">Show me others</button>
+    <span class="sde-hxt-muted">{{localize "SDE.hexMap.sheet.leaveAlone"}}</span>
+    <button type="button" data-action="hxtApplySheet" class="sde-import-primary" title="{{localize 'SDE.hexMap.tip.confirm'}}"><i class="fas fa-check"></i> {{localize "SDE.hexMap.btn.confirm" n=sheet.length}}</button>
+    <button type="button" data-action="hxtNextSheet" class="sde-import-secondary" title="{{localize 'SDE.hexMap.tip.others' n=sheet.length}}">{{localize "SDE.hexMap.btn.others"}}</button>
   </footer>
   {{/unless}}{{/if}}
   {{/if}}

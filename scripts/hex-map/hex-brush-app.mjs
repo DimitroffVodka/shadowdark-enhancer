@@ -26,11 +26,18 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 /** Scene flag holding the tag store (hex-tagger-app.mjs owns it). */
 const TAGS_FLAG = "hexTags";
 
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-hex-brush",
     classes: ["shadowdark", "sde-hex-brush"],
-    window: { title: "Hex Brush", icon: "fa-solid fa-paintbrush", resizable: false },
+    window: { title: "SDE.hexMap.brush.title", icon: "fa-solid fa-paintbrush", resizable: false },
     position: { width: 300, height: "auto" },
     actions: {
       hxbUndo: function (...a) { return this._onUndo(...a); },
@@ -46,7 +53,7 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * the brush paints what the overlay draws, so one without the other is no use.
    */
   static open() {
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can tag hex maps."); return null; }
+    if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnly")); return null; }
     if (!HexTagOverlay.current && !HexTagOverlay.toggle()) return null;
     const app = Object.values(foundry.applications.instances ?? {}).find?.((a) => a.id === "sde-hex-brush")
       ?? foundry.applications.instances?.get?.("sde-hex-brush");
@@ -87,8 +94,8 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const hint = root.querySelector("[data-hxb-hint]");
     if (hint) {
       hint.textContent = terrain
-        ? `Click or drag hexes to make them ${[terrain.replace(/_/g, " "), ...overlays].join(", ")}.`
-        : "Pick a terrain, then click or drag hexes on the map.";
+        ? t("SDE.hexMap.brush.hintPicked", { tags: [terrain.replace(/_/g, " "), ...overlays].join(", ") })
+        : t("SDE.hexMap.brush.hintNone");
     }
     const undo = root.querySelector("button[data-action='hxbUndo']");
     const n = overlay?.lastStroke?.size ?? 0;
@@ -115,8 +122,8 @@ export class HexBrushApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onUndo() {
     const overlay = HexTagOverlay.current;
     const n = await overlay?.undoStroke();
-    if (n) ui.notifications?.info(`Put ${n} ${n === 1 ? "hex" : "hexes"} back.`);
-    else ui.notifications?.warn("No stroke to undo: Undo puts back the last one, and only the last one.");
+    if (n) ui.notifications?.info(t(n === 1 ? "SDE.hexMap.brush.undoOne" : "SDE.hexMap.brush.undoMany", { n }));
+    else ui.notifications?.warn(t("SDE.hexMap.brush.nothingToUndo"));
     this._sync();
   }
 

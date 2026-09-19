@@ -96,13 +96,20 @@ export async function deployCrawlJournal(packEntry) {
  * @param {JournalEntry} packEntry  the crawl entry in the Journals pack
  * @returns {Promise<{created:number, moved:number, missing:number[], journal:JournalEntry}|null>}
  */
+/** One string from `languages/en.json`; the key when no i18n is mounted. */
+const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
+
 export async function pinCrawlOnActiveScene(packEntry, { iconSize } = {}) {
-  if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can pin keyed hexes."); return null; }
+  if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnlyPin")); return null; }
   const scene = canvas?.scene;
   const origin = scene?.getFlag(MODULE_ID, "hexTags")?.origin;
-  if (!origin) { ui.notifications?.warn("This scene has no hex numbering yet: set it up with Hex map from image, or sample it in the tagger and set the anchor."); return null; }
+  if (!origin) { ui.notifications?.warn(t("SDE.hexMap.notify.noNumbering")); return null; }
   const geom = sceneCells(canvas);
-  if (geom.error) { ui.notifications?.warn(geom.error); return null; }
+  if (geom.error) { ui.notifications?.warn(t(geom.error)); return null; }
   const numbered = new Map();
   const o = { cube: { q: origin.q, r: origin.r }, num: origin.num, shifted: origin.shifted ?? "odd", bounds: origin.bounds };
   for (const c of geom.cells) { const n = cellNumber(c.cube, o); if (n.num !== null) numbered.set(n.num, { x: c.x, y: c.y }); }

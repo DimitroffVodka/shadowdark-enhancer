@@ -110,7 +110,9 @@ test("reference placement requires geometry from a current sample", async () => 
     app._geom = null;
     app._numbered = new Map();
     assert.equal(await app._placeReferenceOn({ name: "Target" }, "maps/source.jpg"), null);
-    assert.match(warnings[0], /Sample the scene/);
+    // The app warns with the key when no i18n is mounted; en.json holds the
+    // English, and test/hex-i18n.test.mjs is what proves the key resolves.
+    assert.equal(warnings[0], "SDE.hexMap.notify.sampleFirst");
   } finally {
     globalThis.foundry = previous.foundry;
     globalThis.ui = previous.ui;

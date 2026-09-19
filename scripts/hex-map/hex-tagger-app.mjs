@@ -39,6 +39,20 @@ const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 export const TAGS_FLAG = "hexTags";
 /** The GM's own tile-art manifest for this map. Read at hand-off; never shipped. */
 export const ART_FLAG = "hexArt";
+
+/**
+ * One string, from `languages/en.json`.
+ *
+ * Not `game.i18n.localize` at every call site: this module is imported by the
+ * node suites, which stub a `game` with no `i18n` on it, and a UI string is
+ * never worth throwing over. Falls back to the key, which is what Foundry shows
+ * for a missing translation anyway.
+ */
+const t = (key, data) => {
+  const i18n = globalThis.game?.i18n;
+  if (!i18n) return key;
+  return data ? i18n.format(key, data) : i18n.localize(key);
+};
 export const SHEET_SIZE = 40;
 /** Legend answer meaning "these pictures are not one thing": break the card up and ask again. */
 export const SPLIT = "__split";
@@ -62,7 +76,7 @@ export function compareSceneTags(scene, csvText, { sources } = {}) {
   let enabled = false;
   try { enabled = !!globalThis.game?.settings?.get?.(MODULE_ID, "hexMapsDevTools"); } catch (_err) { /* setting not registered yet */ }
   if (!globalThis.game?.user?.isGM || !enabled) {
-    globalThis.ui?.notifications?.warn("Hex map developer tools are disabled.");
+    globalThis.ui?.notifications?.warn(t("SDE.hexMap.dev.disabled"));
     return null;
   }
   const state = decodeTags(scene?.getFlag(MODULE_ID, TAGS_FLAG));
@@ -81,9 +95,9 @@ export function compareSceneTags(scene, csvText, { sources } = {}) {
 export async function scoreSceneModel({ app = null } = {}) {
   let enabled = false;
   try { enabled = !!globalThis.game?.settings?.get?.(MODULE_ID, "hexMapsDevTools"); } catch (_err) { /* not registered yet */ }
-  if (!globalThis.game?.user?.isGM || !enabled) { globalThis.ui?.notifications?.warn("Hex map developer tools are disabled."); return null; }
+  if (!globalThis.game?.user?.isGM || !enabled) { globalThis.ui?.notifications?.warn(t("SDE.hexMap.dev.disabled")); return null; }
   const tagger = app ?? [...foundry.applications.instances.values()].find((a) => a.id === "sde-hex-tagger");
-  if (!tagger?._cells?.length) { ui.notifications?.warn("Open the Hex Tagger and read the map first."); return null; }
+  if (!tagger?._cells?.length) { ui.notifications?.warn(t("SDE.hexMap.dev.openFirst")); return null; }
   await tagger._ensureBitmaps();
   const hand = [];
   for (const [num, c] of tagger._state.cells) {
@@ -91,7 +105,7 @@ export async function scoreSceneModel({ app = null } = {}) {
     const bm = tagger._bitmaps.get(Number(num));
     if (bm) hand.push({ num: Number(num), tag: c.terrain, bm });
   }
-  if (hand.length < 10) { ui.notifications?.warn("Tag some hexes by hand first: they are the only ground truth there is."); return null; }
+  if (hand.length < 10) { ui.notifications?.warn(t("SDE.hexMap.dev.tagFirst")); return null; }
   const { cellMasks } = await import("./bitmap.mjs");
   const masks = cellMasks(hand[0].bm.w, hand[0].bm.h);
   const keep = keepMask(hand.map((h) => h.bm), masks);
@@ -129,12 +143,12 @@ export async function scoreSceneModel({ app = null } = {}) {
 export async function benchmarkFirstRun(opts = {}) {
   let enabled = false;
   try { enabled = !!globalThis.game?.settings?.get?.(MODULE_ID, "hexMapsDevTools"); } catch (_err) { /* not registered */ }
-  if (!globalThis.game?.user?.isGM || !enabled) { ui.notifications?.warn("Hex map developer tools are disabled."); return null; }
+  if (!globalThis.game?.user?.isGM || !enabled) { ui.notifications?.warn(t("SDE.hexMap.dev.disabled")); return null; }
   const app = [...foundry.applications.instances.values()].find((a) => a.id === "sde-hex-tagger");
-  if (!app?._state?.origin) { ui.notifications?.warn("Open the Hex Tagger on a verified map first."); return null; }
+  if (!app?._state?.origin) { ui.notifications?.warn(t("SDE.hexMap.dev.verifiedFirst")); return null; }
   const truth = new Map();
   for (const [num, c] of app._state.cells) if (c.terrain && c.source !== "auto") truth.set(num, c.terrain);
-  if (truth.size < 200) { ui.notifications?.warn("This needs a map you have verified by hand: at least 200 hexes tagged yourself."); return null; }
+  if (truth.size < 200) { ui.notifications?.warn(t("SDE.hexMap.dev.needVerified")); return null; }
   if (!app._cells.length && !(await app._onSample())) return null;
   await app._ensureBitmaps();
   const { buildLegend } = await import("./legend.mjs");
@@ -155,7 +169,7 @@ export async function benchmarkFirstRun(opts = {}) {
   const thresholds = { sensitivity: opts.sensitivity ?? 1 };
   if (opts.runOff !== undefined) thresholds.runOff = opts.runOff;
   const clf = createClassifier({ exemplars, allBitmaps: [...app._bitmaps.values()], thresholds });
-  if (!clf.ready) { ui.notifications?.error(clf.warnings[0] ?? "The classifier could not start."); return null; }
+  if (!clf.ready) { ui.notifications?.error(clf.warnings[0] ?? t("SDE.hexMap.dev.noClassifier")); return null; }
   let n = 0, runOffs = 0;
   for (const c of cells) {
     if (state.has(String(c.num))) continue;
@@ -178,7 +192,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: "sde-hex-tagger",
     classes: ["shadowdark", "sde-hex-tagger"],
-    window: { title: "Hex Tagger", icon: "fa-solid fa-map-location-dot", resizable: true },
+    window: { title: "SDE.hexMap.app.title", icon: "fa-solid fa-map-location-dot", resizable: true },
     // Height follows the content: an unsampled scene is a few lines, a sheet is
     // a sheet. A fixed 780 opened every scene as a mostly empty black box.
     position: { width: 980, height: "auto" },
@@ -216,7 +230,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * `legend` samples the scene and opens the legend at once (the image flow).
    */
   static open({ legend = false } = {}) {
-    if (!game.user?.isGM) { ui.notifications?.warn("Only a GM can tag hex maps."); return null; }
+    if (!game.user?.isGM) { ui.notifications?.warn(t("SDE.hexMap.notify.gmOnly")); return null; }
     const app = new HexTaggerApp();
     app._autoLegend = legend;
     app.render(true);
@@ -320,7 +334,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   _requireCurrentScene() {
     if (!this._syncScene()) return true;
-    ui.notifications?.warn("The active scene changed. Read the map before continuing.");
+    ui.notifications?.warn(t("SDE.hexMap.notify.sceneChanged"));
     this.render();
     return false;
   }
@@ -368,16 +382,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
     const entry = this._entries.find((e) => e.uuid === this._entryUuid)?.doc;
-    if (!entry) { ui.notifications?.warn("Choose the crawl entry (the hex pages filed by the importer) in the header first."); return; }
+    if (!entry) { ui.notifications?.warn(t("SDE.hexMap.notify.chooseCrawl")); return; }
     const { pinCrawlOnActiveScene } = await import("./hex-pins.mjs");
-    this._setProgress("Pinning keyed hexes…");
-    const res = await pinCrawlOnActiveScene(entry).catch((err) => { console.error(`${MODULE_ID} | pin keyed hexes`, err); ui.notifications?.error(`Pinning failed: ${err.message}`); return null; });
+    this._setProgress(t("SDE.hexMap.progress.pinning"));
+    const res = await pinCrawlOnActiveScene(entry).catch((err) => { console.error(`${MODULE_ID} | pin keyed hexes`, err); ui.notifications?.error(t("SDE.hexMap.notify.pinFailed", { error: err.message })); return null; });
     this._setProgress("");
     if (!res) return;
     const bits = [`${res.created} pinned`];
     if (res.moved) bits.push(`${res.moved} moved`);
     if (res.missing.length) bits.push(`${res.missing.length} not on this map`);
-    ui.notifications?.info(`Keyed hexes on "${this._scene()?.name}": ${bits.join(", ")}. Each note opens its page of "${res.journal.name}".`);
+    ui.notifications?.info(t("SDE.hexMap.notify.pinned", { scene: this._scene()?.name, bits: bits.join(", "), journal: res.journal.name }));
   }
 
   /**
@@ -395,7 +409,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await replaceModuleFlag(scene, FIXES_FLAG, encodeFixes(log));
     this._mode = "review";
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: margin });
-    ui.notifications?.info(`Cells under a margin of ${margin.toFixed(2)} now go to the review queue.`);
+    ui.notifications?.info(t("SDE.hexMap.notify.marginSet", { margin: margin.toFixed(2) }));
     this.render();
   }
 
@@ -468,8 +482,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       card.expand = true; card.picks = picks; card.chosen = SPLIT;
       opened++;
     }
-    if (!opened) ui.notifications?.warn("That card has nothing to open up; name it or leave it (skip).");
-    else ui.notifications?.info("Tag these hexes one by one. The rest of the card is left to the classifier; your other answers are kept.");
+    if (!opened) ui.notifications?.warn(t("SDE.hexMap.notify.nothingToOpen"));
+    else ui.notifications?.info(t("SDE.hexMap.notify.opened"));
     this.render();
   }
 
@@ -500,18 +514,18 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       })
       .filter((s) => s.gm > 0)
       .sort((a, b) => b.gm - a.gm);
-    if (!sources.length) { ui.notifications?.warn("No other scene has hexes you tagged by hand."); return; }
+    if (!sources.length) { ui.notifications?.warn(t("SDE.hexMap.notify.noOtherScene")); return; }
     const esc = foundry.utils.escapeHTML;
     const chosen = await foundry.applications.api.DialogV2.prompt({
-      window: { title: "Start from a map you have already done", icon: "fa-solid fa-graduation-cap" },
+      window: { title: t("SDE.hexMap.learn.title"), icon: "fa-solid fa-graduation-cap" },
       position: { width: 460 },
       content: `<form class="standard-form">
-        <div class="form-group"><label>Take the hand tags from</label><div class="form-fields">
-          <select name="scene">${sources.map((s) => `<option value="${s.id}">${esc(s.name)} — ${s.gm} by hand</option>`).join("")}</select>
+        <div class="form-group"><label>${t("SDE.hexMap.learn.from")}</label><div class="form-fields">
+          <select name="scene">${sources.map((s) => `<option value="${s.id}">${t("SDE.hexMap.learn.option", { name: esc(s.name), gm: s.gm })}</option>`).join("")}</select>
         </div></div>
-        <p class="hint">Every hex you tagged yourself there is copied here as a hand tag, and becomes an example for <strong>Classify</strong>. Hexes you have already tagged here are left alone. Hexes are matched by their printed number, so this is for another go at the <em>same</em> print — on a different map the numbers mean something else.</p>
+        <p class="hint">${t("SDE.hexMap.learn.hint")}</p>
       </form>`,
-      ok: { label: "Bring them over", callback: (_e, button) => new FormDataExtended(button.form).object.scene },
+      ok: { label: t("SDE.hexMap.learn.ok"), callback: (_e, button) => new FormDataExtended(button.form).object.scene },
       rejectClose: false,
     });
     if (!chosen) return;
@@ -525,10 +539,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       this._state.cells.set(num, { terrain: cell.terrain, overlays: [...(cell.overlays ?? [])], source: "gm" });
       added++;
     }
-    if (!added) { ui.notifications?.warn(`Nothing to bring over from "${from.name}": every hex it has, you have already tagged here.`); return; }
+    if (!added) { ui.notifications?.warn(t("SDE.hexMap.notify.learnNothing", { from: from.name })); return; }
     await this._saveState();
     this._renumber();
-    ui.notifications?.info(`${added} hexes brought over from "${from.name}"${kept ? `, ${kept} of your own left alone` : ""}. Press Classify to spread them over the rest.`);
+    ui.notifications?.info(t("SDE.hexMap.notify.learnDone", { added, from: from.name, kept: kept ? t("SDE.hexMap.notify.learnKept", { kept }) : "" }));
     this.render();
   }
 
@@ -631,7 +645,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
           margin: t?.margin !== undefined ? Number(t.margin).toFixed(2) : "", review: !!t?.review,
           overlays: Object.fromEntries(OVERLAYS.map((o) => [o, !!t?.overlays?.includes(o)])),
           terrainOther,
-          terrainOptions: [...terrainOptions, { value: "__other", label: "other…", selected: !!terrainOther }]
+          terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption"), selected: !!terrainOther }]
             .map((o) => ({ ...o, selected: o.value === (terrainOther ? "__other" : (t?.terrain ?? "")) })),
         };
       });
@@ -651,7 +665,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       const pickOptions = (num) => {
         const was = cl.picked?.[num] ?? state.cells.get(String(num))?.terrain ?? "";
         const isOther = was && !terrainValues.includes(was);
-        return [...terrainOptions, { value: "__other", label: "other…" }]
+        return [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }]
           .map((o) => ({ ...o, selected: o.value === (isOther ? "__other" : was) }));
       };
       return {
@@ -664,7 +678,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
                        other: terrainValues.includes(was) ? "" : was } : null;
         }).filter(Boolean) : [],
         thumbs: cl.samples.map((n) => { const c = this._numbered.get(n); return c ? this._thumb(c) : ""; }).filter(Boolean),
-        terrainOptions: [...terrainOptions, { value: "__other", label: "other…" }, { value: SPLIT, label: "these are not all the same" }]
+        terrainOptions: [...terrainOptions, { value: "__other", label: t("SDE.hexMap.label.otherOption") }, { value: SPLIT, label: t("SDE.hexMap.label.notAllSame") }]
           .map((o) => ({ ...o, selected: o.value === selected })),
       };
     }) ?? null;
@@ -717,7 +731,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       sceneName: scene?.name ?? "(no scene)", sampled, cellCount: this._cells.length, numberedCount: total,
       summary, origin, originText: origin ? `${String(origin.num).padStart(4, "0")} at grid ${origin.i},${origin.j}` : "",
       boundsCols: origin?.bounds?.cols ?? "", boundsRows: origin?.bounds?.rows ?? "", skipTopRow: origin?.bounds?.firstRow === 1,
-      mode: this._mode, modes: [["random", "Hexes with no tag yet"], ["keyed", "Hexes the book keys"], ["review", "Most likely wrong"]].map(([v, l]) => ({ value: v, label: l, selected: v === this._mode })),
+      mode: this._mode, modes: [["random", "SDE.hexMap.mode.random"], ["keyed", "SDE.hexMap.mode.keyed"], ["review", "SDE.hexMap.mode.review"]]
+        .map(([v, k]) => ({ value: v, label: t(k), selected: v === this._mode })),
       entries: this._entries.map((e) => ({ uuid: e.uuid, name: e.name, selected: e.uuid === this._entryUuid })),
       sheet, hasSheet: sheet.length > 0, needsOrigin: sampled && !origin, viaExtras: !!extrasHexApi(), error: this._error,
       overlays: OVERLAYS, overlayShown: !!this._overlayShown,
@@ -737,7 +752,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     for (const [num, cell] of this._numbered) {
       if (this._bitmaps.has(num)) continue;
       this._bitmaps.set(num, this._sampler.bitmap(cell));
-      if (++k % 200 === 0) { this._setProgress(`Reading cells ${k} of ${total}…`); await new Promise((r) => setTimeout(r, 0)); }
+      if (++k % 200 === 0) { this._setProgress(t("SDE.hexMap.progress.reading", { k, total })); await new Promise((r) => setTimeout(r, 0)); }
     }
     this._setProgress("");
   }
@@ -749,7 +764,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onClassify() {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
-    if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
+    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return; }
     const sens = parseFloat(this.element.querySelector("input[data-hxt-sensitivity]")?.value);
     this._sensitivity = Number.isFinite(sens) && sens > 0 ? sens : 1;
     // Sampling is a precondition of classifying, not a decision: do it rather
@@ -770,21 +785,21 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     // The book answers its own keyed hexes, terrain and overlays both, so they
     // are tagged from the page before anything is guessed from the picture.
     const fromBook = this._applyBookKey();
-    if (fromBook) ui.notifications?.info(`${fromBook} keyed ${fromBook === 1 ? "hex" : "hexes"} tagged from the book.`);
+    if (fromBook) ui.notifications?.info(t(fromBook === 1 ? "SDE.hexMap.notify.bookOne" : "SDE.hexMap.notify.bookMany", { n: fromBook }));
     const gm = [...this._state.cells.entries()].filter(([num, c]) => c.source !== "auto" && !keyed.has(Number(num)));
-    if (!gm.length) { ui.notifications?.warn("Tag some hexes by hand first: your own tags are the examples Classify works from."); return false; }
+    if (!gm.length) { ui.notifications?.warn(t("SDE.hexMap.notify.classifyNeedsTags")); return false; }
     await this._ensureBitmaps();
     if (!this._requireCurrentScene()) return false;
     // Keyed hexes carry a star or settlement icon over their glyph, which the
     // residual reads as a river (120 of 144 on the live check). Their terrain
     // comes from the book's text, so they must be left out — and that needs the
     // crawl entry to be chosen.
-    if (!keyed.size && this._entries.length) ui.notifications?.warn("No hex key chosen: keyed hexes will be guessed from the picture, and their icons read as rivers. Pick the hex key in the header and classify again to take them from the book instead.");
+    if (!keyed.size && this._entries.length) ui.notifications?.warn(t("SDE.hexMap.notify.noHexKey"));
     const exemplars = gm.map(([num, c]) => ({ num: Number(num), tag: c.terrain, overlays: c.overlays ?? [], bitmap: this._bitmaps.get(Number(num)) })).filter((e) => e.bitmap);
     const cells = [...this._numbered.keys()]
       .filter((n) => !keyed.has(n) && (overlayOnly.has(n) || (this._state.cells.get(String(n))?.source ?? "auto") === "auto"))
       .map((n) => ({ num: n, bitmap: this._bitmaps.get(n) })).filter((c) => c.bitmap);
-    this._setProgress(`Preparing ${exemplars.length} examples…`); await new Promise((r) => setTimeout(r, 0));
+    this._setProgress(t("SDE.hexMap.progress.preparing", { n: exemplars.length })); await new Promise((r) => setTimeout(r, 0));
     const clf = createClassifier({ exemplars, allBitmaps: [...this._bitmaps.values()], thresholds: { sensitivity: this._sensitivity } });
     if (!clf.ready) { for (const w of clf.warnings) ui.notifications?.warn(w); this._setProgress(""); return false; }
     let done = 0, auto = 0, review = 0;
@@ -797,7 +812,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
         auto++; if (r.ambiguous) review++;
       }
       // Yield so the browser (and Foundry's socket heartbeat) keeps breathing on big maps.
-      if (++done % 100 === 0) { this._setProgress(`Classifying ${done} of ${cells.length}…`); await new Promise((r) => setTimeout(r, 0)); }
+      if (++done % 100 === 0) { this._setProgress(t("SDE.hexMap.progress.classifying", { done, total: cells.length })); await new Promise((r) => setTimeout(r, 0)); }
     }
     if (!this._requireCurrentScene()) return false;
     // Let the map correct the cells: a guess its neighbours all disagree with is
@@ -829,7 +844,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._setProgress("");
     this._mode = "review";
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: "review", reviewMargin: this._log().margin });
-    ui.notifications?.info(`Tagged ${auto} hexes from your ${exemplars.length} hand-tagged examples; ${fixes.length} then corrected by their neighbours; ${review} went to the Review queue.`);
+    ui.notifications?.info(t("SDE.hexMap.notify.classified", { auto, examples: exemplars.length, fixes: fixes.length, review }));
     for (const w of clf.warnings) ui.notifications?.warn(w);
     this.render();
     return true;
@@ -843,7 +858,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onLegend() {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
-    if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
+    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return; }
     // Reads the map itself when it has to, like Classify. A reload empties the
     // in-page pictures, and a Legend hidden behind that is a Legend the GM
     // cannot get back to — which is exactly how Patrick lost his cards.
@@ -912,15 +927,15 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (suspects.length) {
       const esc = foundry.utils.escapeHTML;
       const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "A card may be named wrong" },
-        content: `<p>These cards do not look like the other cards you gave the same name to — each one looks more like a card you named something else:</p>
-          <ul>${suspects.map((sp) => `<li>the card of <strong>${sp.size}</strong> hexes you called <strong>${esc(sp.name)}</strong> looks ${sp.times}× more like <strong>${esc(sp.looksLike)}</strong></li>`).join("")}</ul>
-          <p>Naming a card is one answer for every hex in it, so one wrong name is hundreds of wrong hexes. Go back and look at its pictures, or apply anyway if you are sure.</p>`,
-        yes: { label: "Apply anyway" }, no: { label: "Go back and look" }, rejectClose: false, modal: true,
+        window: { title: t("SDE.hexMap.suspect.title") },
+        content: `<p>${t("SDE.hexMap.suspect.lead")}</p>
+          <ul>${suspects.map((sp) => `<li>${t("SDE.hexMap.suspect.row", { size: sp.size, name: esc(sp.name), times: sp.times, looksLike: esc(sp.looksLike) })}</li>`).join("")}</ul>
+          <p>${t("SDE.hexMap.suspect.why")}</p>`,
+        yes: { label: t("SDE.hexMap.btn.applyAnyway") }, no: { label: t("SDE.hexMap.btn.goBackLook") }, rejectClose: false, modal: true,
       });
       if (!ok) return;
     }
-    if (!cores.size) { ui.notifications?.warn("Name at least one card, or Cancel."); return; }
+    if (!cores.size) { ui.notifications?.warn(t("SDE.hexMap.notify.nameOneCard")); return; }
     // A big card left unnamed is the expensive mistake and it is silent: its
     // cells are guessed from the OTHER cards, so a whole terrain with no card
     // named for it lands on whatever looks closest. On the Western Reaches a
@@ -934,10 +949,10 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const big = this._legend.filter((c) => !handled(c) && c.size >= Math.max(20, Math.round(this._numbered.size * 0.01)));
     if (big.length) {
       const ok = await foundry.applications.api.DialogV2.confirm({
-        window: { title: "Cards left unnamed" },
-        content: `<p>${big.length} ${big.length === 1 ? "card is" : "cards are"} unnamed, covering ${big.reduce((a, c) => a + c.size, 0)} hexes (the largest is ${Math.max(...big.map((c) => c.size))}).</p>
-          <p>Unnamed hexes are not left alone: they are guessed from the cards you <em>did</em> name, so a card that is its own thing — a river with no terrain under it, a band of ice — comes back as whatever looks nearest. Name it, or say it is a keyed location, unless you mean the classifier to guess.</p>`,
-        yes: { label: "Apply anyway" }, no: { label: "Go back" }, rejectClose: false, modal: true,
+        window: { title: t("SDE.hexMap.unnamed.title") },
+        content: `<p>${t(big.length === 1 ? "SDE.hexMap.unnamed.one" : "SDE.hexMap.unnamed.many", { cards: big.length, hexes: big.reduce((a, c) => a + c.size, 0), largest: Math.max(...big.map((c) => c.size)) })}</p>
+          <p>${t("SDE.hexMap.unnamed.why")}</p>`,
+        yes: { label: t("SDE.hexMap.btn.applyAnyway") }, no: { label: t("SDE.hexMap.btn.goBack") }, rejectClose: false, modal: true,
       });
       if (!ok) return;
     }
@@ -977,16 +992,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     this._syncScene();
     this._error = "";
     const geom = sceneCells(canvas);
-    if (geom.error) { this._error = geom.error; this.render(); return false; }
+    if (geom.error) { this._error = t(geom.error); this.render(); return false; }
     try {
       const image = await sourceImage(canvas);
       if (!this._requireCurrentScene()) return false;
       this._sampler = new CellSampler(image, geom, { size: BITMAP_SIZE });
       this._geom = geom; this._cells = geom.cells; this._bitmaps = new Map(); this._legend = null;
-      if (!this._cells.length) throw new Error("No grid cells overlap the background image.");
+      if (!this._cells.length) throw new Error(t("SDE.hexMap.error.noCells"));
       this._sampler.bitmap(this._cells[0]);            // tainted-canvas check: throws on a cross-origin image
     } catch (err) {
-      this._error = /SecurityError|tainted|insecure/i.test(String(err)) ? "The background image is not same-origin, so its pixels cannot be read. Put the file in your Foundry data directory." : String(err?.message ?? err);
+      this._error = /SecurityError|tainted|insecure/i.test(String(err)) ? t("SDE.hexMap.error.tainted") : String(err?.message ?? err);
       this._cells = []; this.render(); return false;
     }
     this._loadState(); this._renumber();
@@ -1002,9 +1017,9 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onNextSheet() {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
-    if (!this._numbered.size) { ui.notifications?.warn("Read the map and set the anchor number first."); return; }
+    if (!this._numbered.size) { ui.notifications?.warn(t("SDE.hexMap.notify.readAndAnchor")); return; }
     this._sheet = nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers(), reviewMargin: this._log().margin });
-    if (!this._sheet.length) ui.notifications?.info(this._mode === "random" ? "Every numbered cell is tagged." : "Nothing left in that mode.");
+    if (!this._sheet.length) ui.notifications?.info(this._mode === "random" ? t("SDE.hexMap.notify.allTagged") : t("SDE.hexMap.notify.noneInMode"));
     this.render();
   }
 
@@ -1046,7 +1061,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const i = Number(target.dataset.i), j = Number(target.dataset.j);
     const input = this.element.querySelector(`input[data-hxt-number][data-i="${i}"][data-j="${j}"]`);
     const num = String(input?.value ?? "").trim();
-    if (!/^\d{3,4}$/.test(num)) { ui.notifications?.warn("Type the printed hex number (3 or 4 digits, e.g. 0000 or 1403)."); return; }
+    if (!/^\d{3,4}$/.test(num)) { ui.notifications?.warn(t("SDE.hexMap.notify.typeNumber")); return; }
     const cell = this._cells.find((c) => c.i === i && c.j === j);
     if (!cell) return;
     const shifted = this.element.querySelector("select[data-hxt-shifted]")?.value === "even" ? "even" : "odd";
@@ -1060,7 +1075,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   /** Map size in cells, so cells past the hex field (margins, legend) are skipped. */
   async _onSetBounds() {
     if (!this._requireCurrentScene()) return;
-    if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
+    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return; }
     const cols = parseInt(this.element.querySelector("input[data-hxt-cols]")?.value, 10);
     const rows = parseInt(this.element.querySelector("input[data-hxt-rows]")?.value, 10);
     const skipTop = !!this.element.querySelector("input[data-hxt-skip-top]")?.checked;
@@ -1083,15 +1098,15 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     await this._saveState();
     this._sheet = this._sheet.filter((n) => this._numbered.has(n));
-    if (dropped) ui.notifications?.info(`${dropped} cells are no longer on the map; their tags were dropped.`);
-    else if (!this._cells.length) ui.notifications?.info("Bounds set. Read the map to drop the tags of any hex this puts outside it.");
+    if (dropped) ui.notifications?.info(t("SDE.hexMap.notify.dropped", { n: dropped }));
+    else if (!this._cells.length) ui.notifications?.info(t("SDE.hexMap.notify.boundsSet"));
     this.render();
   }
 
   async _onBuildDataset() {
     if (!this._requireCurrentScene()) return;
     this._readHeader();
-    if (!this._state.origin) { ui.notifications?.warn("Set the anchor number first."); return; }
+    if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return; }
     const tags = tagsForDataset(this._state);
     const b = this._state.origin.bounds;
     // The map's own numbering origin: 0 when a numbered cell sits in column 0 or row 0 (hex 0000 exists).
@@ -1100,52 +1115,52 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const entry = this._entries.find((e) => e.uuid === this._entryUuid)?.doc ?? null;
     const assignments = this._artAssignments();
     const dataset = entry ? datasetFromEntry(entry, { tags, gridHint, assignments })
-      : buildHexDataset({ name: this._scene()?.name ?? "Hex map", source: "", tags, assignments, gridHint });
+      : buildHexDataset({ name: this._scene()?.name ?? t("SDE.hexMap.app.defaultName"), source: "", tags, assignments, gridHint });
     const check = validateHexDataset(dataset);
-    if (!check.ok) { ui.notifications?.error(`Hex dataset failed its contract check: ${check.errors[0]}`); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return; }
+    if (!check.ok) { ui.notifications?.error(t("SDE.hexMap.notify.datasetInvalid", { error: check.errors[0] })); console.warn(`${MODULE_ID} | hex dataset`, check.errors); return; }
     if (Object.values(tags).some((t) => t.overlays?.includes("coast"))) {
-      ui.notifications?.warn("Coast tags stay on the scene; this dataset format exports river and road networks only.");
+      ui.notifications?.warn(t("SDE.hexMap.notify.coastStays"));
     }
     // The painted scene must not share the print scene's name.
     const res = await handoffDataset(dataset, { sceneName: entry ? dataset.name : `${dataset.name} (painted)` });
     const n = Object.keys(tags).length;
     const painted = dataset.hexes.filter((h) => h.art).length;
-    const art = painted ? `, ${painted} with your own tile art` : "";
-    if (res.via === "extras") ui.notifications?.info(`Sent "${dataset.name}" to Shadowdark Extras (${dataset.hexes.length} keyed hexes, ${n} tagged cells${art}).`);
-    else if (res.via === "download") ui.notifications?.info(`Downloaded ${res.filename} (${dataset.hexes.length} keyed hexes, ${n} tagged cells${art}).`);
+    const art = painted ? t("SDE.hexMap.notify.withArt", { n: painted }) : "";
+    if (res.via === "extras") ui.notifications?.info(t("SDE.hexMap.notify.sent", { name: dataset.name, hexes: dataset.hexes.length, cells: n, art }));
+    else if (res.via === "download") ui.notifications?.info(t("SDE.hexMap.notify.downloaded", { file: res.filename, hexes: dataset.hexes.length, cells: n, art }));
   }
 
   /** Side door in: a CSV (hex_id, tags or terrain_tags, source) or a JSON (the exported tag flag, or a dataset). */
   async _onImport() {
     if (!this._requireCurrentScene()) return;
     const file = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Import hex tags" },
-      content: `<p>A CSV with <code>hex_id</code> and <code>tags</code> columns (semicolon-separated, <code>source</code> optional), or a JSON exported by this tagger or a hexcrawl dataset. Imported rows replace the cell's tags.</p>
+      window: { title: t("SDE.hexMap.import.title") },
+      content: `<p>${t("SDE.hexMap.import.hint")}</p>
         <input type="file" name="hex-tags-file" accept=".csv,.json,text/csv,application/json">`,
       buttons: [
-        { action: "load", label: "Import", default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("input[name='hex-tags-file']")?.files?.[0] ?? null },
-        { action: "cancel", label: "Cancel" },
+        { action: "load", label: t("SDE.hexMap.btn.import"), default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("input[name='hex-tags-file']")?.files?.[0] ?? null },
+        { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
       ],
       rejectClose: false,
     }).catch(() => null);
     if (!file || file === "cancel") return;
     let text;
-    try { text = await file.text(); } catch (err) { ui.notifications?.error(`Could not read ${file.name}: ${err.message}`); return; }
+    try { text = await file.text(); } catch (err) { ui.notifications?.error(t("SDE.hexMap.notify.readFailed", { file: file.name, error: err.message })); return; }
     let rows, origin = null;
     if (/^\s*[{[]/.test(text)) {
       let obj;
-      try { obj = JSON.parse(text); } catch (_e) { ui.notifications?.error(`${file.name} is not valid JSON.`); return; }
+      try { obj = JSON.parse(text); } catch (_e) { ui.notifications?.error(t("SDE.hexMap.notify.badJson", { file: file.name })); return; }
       ({ rows, origin } = rowsFromJson(obj));
     } else {
       rows = parseTruthCsv(text);
     }
-    if (!rows.length) { ui.notifications?.warn(`Nothing to import from ${file.name}: no hex_id/tags columns, tag flag or dataset found.`); return; }
+    if (!rows.length) { ui.notifications?.warn(t("SDE.hexMap.notify.importEmpty", { file: file.name })); return; }
     if (!this._requireCurrentScene()) return;
     const n = importTags(this._state, rows, { origin });
     await this._saveState();
     this._renumber();
     this._sheet = this._numbered.size ? nextSheet(this._state, { nums: [...this._numbered.keys()], size: SHEET_SIZE, mode: this._mode, keyed: this._keyedNumbers() }) : [];
-    ui.notifications?.info(`Imported ${n} tagged cells from ${file.name}.`);
+    ui.notifications?.info(t("SDE.hexMap.notify.imported", { n, file: file.name }));
     this.render();
   }
 
@@ -1161,14 +1176,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onArtManifest() {
     if (!this._requireCurrentScene()) return;
     const file = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Tile art for this map" },
-      content: `<p>A JSON manifest saying which tile each hex is painted with: hex number to <code>base_hex</code>, and <code>overlay_asset</code> for a centre icon. Paths are relative to Shadowdark Extras' <code>assets/</code>.</p>
-        <p>Rows whose id is not a hex number on this map are skipped.</p>
+      window: { title: t("SDE.hexMap.art.title") },
+      content: `<p>${t("SDE.hexMap.art.hint")}</p>
+        <p>${t("SDE.hexMap.art.skipped")}</p>
         <input type="file" name="hex-art-file" accept=".json,application/json">`,
       buttons: [
-        { action: "load", label: "Load", default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("input[name='hex-art-file']")?.files?.[0] ?? null },
-        { action: "clear", label: "Forget the one I loaded" },
-        { action: "cancel", label: "Cancel" },
+        { action: "load", label: t("SDE.hexMap.btn.load"), default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("input[name='hex-art-file']")?.files?.[0] ?? null },
+        { action: "clear", label: t("SDE.hexMap.btn.forgetArt") },
+        { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
       ],
       rejectClose: false,
     }).catch(() => null);
@@ -1177,20 +1192,20 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!scene) return;
     if (file === "clear") {
       await replaceModuleFlag(scene, ART_FLAG, null);
-      ui.notifications?.info("Tile art forgotten; hexes will be painted from their terrain.");
+      ui.notifications?.info(t("SDE.hexMap.notify.artForgotten"));
       this.render();
       return;
     }
     let obj;
     try { obj = JSON.parse(await file.text()); }
-    catch (err) { ui.notifications?.error(`Could not read ${file.name}: ${err.message}`); return; }
+    catch (err) { ui.notifications?.error(t("SDE.hexMap.notify.readFailed", { file: file.name, error: err.message })); return; }
     const assignments = assignmentsFromManifest(obj);
     const kept = Object.keys(assignments).length;
-    if (!kept) { ui.notifications?.warn(`Nothing usable in ${file.name}: no rows with a hex number and a tile.`); return; }
+    if (!kept) { ui.notifications?.warn(t("SDE.hexMap.notify.artEmpty", { file: file.name })); return; }
     const total = Array.isArray(obj) ? obj.length : Object.keys(obj ?? {}).length;
     await replaceModuleFlag(scene, ART_FLAG, assignments);
     const icons = Object.values(assignments).filter((a) => a.icon).length;
-    ui.notifications?.info(`${kept} of ${total} rows kept${total > kept ? ` (${total - kept} are not hexes on this map)` : ""}, ${icons} with a centre icon.`);
+    ui.notifications?.info(t("SDE.hexMap.notify.artLoaded", { kept, total, icons, skipped: total > kept ? t("SDE.hexMap.notify.artSkipped", { n: total - kept }) : "" }));
     this.render();
   }
 
@@ -1203,7 +1218,7 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   _onExport() {
     if (!this._requireCurrentScene()) return;
     const scene = this._scene();
-    if (!this._state.cells.size) { ui.notifications?.warn("No tags to export yet."); return; }
+    if (!this._state.cells.size) { ui.notifications?.warn(t("SDE.hexMap.notify.noTagsToExport")); return; }
     const save = foundry.utils?.saveDataToFile ?? globalThis.saveDataToFile;
     save(JSON.stringify(encodeTags(this._state), null, 2), "text/json", `${(scene?.name ?? "hex-map").slugify()}-hex-tags.json`);
   }
@@ -1218,16 +1233,16 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _placeReferenceOn(target, src = this._scene()?.background?.src) {
     const b = this._state.origin?.bounds;
     const imageBox = this._imageCellBox();
-    if (!b?.cols || !imageBox) { ui.notifications?.warn("Sample the scene, set the anchor and the map size first."); return null; }
-    if (!src) { ui.notifications?.warn("The source scene has no map background to place."); return null; }
+    if (!b?.cols || !imageBox) { ui.notifications?.warn(t("SDE.hexMap.notify.sampleFirst")); return null; }
+    if (!src) { ui.notifications?.warn(t("SDE.hexMap.notify.noBackground")); return null; }
     const sceneBox = gridCellBox(target, b.cols, b.rows);
-    if (!sceneBox) { ui.notifications?.warn(`"${target.name}" has no hexagonal columns grid.`); return null; }
+    if (!sceneBox) { ui.notifications?.warn(t("SDE.hexMap.notify.noHexGrid", { name: target.name })); return null; }
     const tf = this._geom.transform;
     const placement = referenceTilePlacement({ x: 0, y: 0, w: tf.texW, h: tf.texH }, imageBox, sceneBox);
     const tile = await placeReferenceTile(target, src, placement);
     const shifted = this._state.origin.shifted ?? "odd", lowered = loweredColumns(target);
-    if (lowered !== shifted) ui.notifications?.warn(`"${target.name}" lowers its ${lowered} columns but the map lowers its ${shifted} ones; set its grid to Hexagonal Columns (${shifted}) so the hexes line up.`);
-    ui.notifications?.info(`Reference tile placed on "${target.name}", hidden and locked. Delete it when tracing is done: hidden tiles still reach player clients with the image's URL.`);
+    if (lowered !== shifted) ui.notifications?.warn(t("SDE.hexMap.notify.parityMismatch", { name: target.name, lowered, shifted }));
+    ui.notifications?.info(t("SDE.hexMap.notify.referencePlaced", { name: target.name }));
     return tile;
   }
 
@@ -1236,15 +1251,15 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._requireCurrentScene()) return;
     const here = this._scene();
     const targets = game.scenes.filter((s) => s.id !== here?.id && s.grid?.isHexagonal && s.grid.columns).sort((a, b) => a.name.localeCompare(b.name));
-    if (!targets.length) { ui.notifications?.warn("No other scene with a hexagonal columns grid to place the print on."); return; }
+    if (!targets.length) { ui.notifications?.warn(t("SDE.hexMap.notify.noTargetScene")); return; }
     const options = targets.map((s) => `<option value="${s.id}">${foundry.utils.escapeHTML(s.name)}</option>`).join("");
     const id = await foundry.applications.api.DialogV2.wait({
-      window: { title: "Reference tile" },
-      content: `<p>Place this scene's map image on another scene as a hidden, locked, half-transparent tile, scaled so its hex field covers that scene's first ${this._state.origin?.bounds?.cols ?? "?"} × ${this._state.origin?.bounds?.rows ?? "?"} cells.</p>
-        <label>Scene <select name="hex-ref-target">${options}</select></label>`,
+      window: { title: t("SDE.hexMap.btn.reference") },
+      content: `<p>${t("SDE.hexMap.reference.hint", { cols: this._state.origin?.bounds?.cols ?? "?", rows: this._state.origin?.bounds?.rows ?? "?" })}</p>
+        <label>${t("SDE.hexMap.reference.scene")} <select name="hex-ref-target">${options}</select></label>`,
       buttons: [
-        { action: "place", label: "Place", default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("select[name='hex-ref-target']")?.value ?? null },
-        { action: "cancel", label: "Cancel" },
+        { action: "place", label: t("SDE.hexMap.btn.place"), default: true, callback: (ev, button, dialog) => (dialog.element ?? dialog)?.querySelector?.("select[name='hex-ref-target']")?.value ?? null },
+        { action: "cancel", label: t("SDE.hexMap.btn.cancel") },
       ],
       rejectClose: false,
     }).catch(() => null);
@@ -1257,8 +1272,8 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
   async _onClearTags() {
     if (!this._requireCurrentScene()) return;
     const ok = await foundry.applications.api.DialogV2.confirm({
-      window: { title: "Clear hex tags" },
-      content: `<p>Remove every tag and the anchor from <strong>${foundry.utils.escapeHTML(this._scene()?.name ?? "")}</strong>? The map image and grid are untouched.</p>`,
+      window: { title: t("SDE.hexMap.clear.title") },
+      content: `<p>${t("SDE.hexMap.clear.confirm", { scene: foundry.utils.escapeHTML(this._scene()?.name ?? "") })}</p>`,
       rejectClose: false,
     }).catch(() => false);
     if (!ok) return;

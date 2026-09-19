@@ -36,13 +36,14 @@ export function backgroundTransform(canvasRef = globalThis.canvas) {
 /**
  * Every grid cell whose centre lies inside the background image.
  * @returns {{error:string}|{cells:object[], transform:object, cellW:number, cellH:number, even:boolean}}
+ *   `error` is a translation key, not a sentence: whoever shows it localises it.
  */
 export function sceneCells(canvasRef = globalThis.canvas) {
   const grid = canvasRef?.grid, scene = canvasRef?.scene;
-  if (!scene || !grid?.isHexagonal) return { error: "The active scene does not use a hexagonal grid." };
-  if (!grid.columns) return { error: "Only flat-top column hex grids are supported in this version; this scene uses pointy-top rows." };
+  if (!scene || !grid?.isHexagonal) return { error: "SDE.hexMap.error.notHex" };
+  if (!grid.columns) return { error: "SDE.hexMap.error.pointyTop" };
   const transform = backgroundTransform(canvasRef);
-  if (!transform) return { error: "The active scene has no background image, or it has not finished loading." };
+  if (!transform) return { error: "SDE.hexMap.error.noBackground" };
   const r = scene.dimensions.sceneRect;
   const tl = grid.getOffset({ x: r.x, y: r.y });
   const br = grid.getOffset({ x: r.x + r.width, y: r.y + r.height });
