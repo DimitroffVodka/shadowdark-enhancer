@@ -17,22 +17,21 @@
       <button type="button" data-action="hxtClassify" class="sde-import-secondary" title="Tag every hex you have NOT tagged yourself by whichever of your own hand-tagged hexes it looks most like. Reads the map first if it needs to. Unsure hexes go to the Review queue."><i class="fas fa-wand-magic-sparkles"></i> Classify</button>
       {{/if}}
       {{/if}}
-      {{#if sampled}}{{#if origin}}
+      {{#if sampled}}{{#if origin}}{{#if canSheet}}
       <label title="Which hexes the grid below shows you">Show <select data-hxt-mode>{{#each modes as |m|}}<option value="{{m.value}}" {{#if m.selected}}selected{{/if}}>{{m.label}}</option>{{/each}}</select></label>
       <button type="button" data-action="hxtNextSheet" class="sde-import-secondary"><i class="fas fa-forward"></i> Next sheet</button>
-      {{#if canClassify}}
-      <label title="Higher values lower the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
-      {{/if}}
-      {{/if}}{{/if}}
+      {{/if}}{{/if}}{{/if}}
       {{!-- These read the scene's stored tags, so they work whether or not it is sampled. --}}
       {{#if origin}}
-      <label title="The journal entry of book text for this map's keyed hexes, if you have imported one">Hex key <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
-      {{#if entries.length}}
-      <button type="button" data-action="hxtPinKeyed" class="sde-import-secondary" title="One map note per keyed hex of the chosen crawl on this scene, each opening its journal page"><i class="fas fa-map-pin"></i> Pin keyed hexes</button>
+      {{#if hasKey}}
+      <label title="The journal entry of book text for this map's keyed hexes">Hex key <select data-hxt-entry><option value="">(none)</option>{{#each entries as |e|}}<option value="{{e.uuid}}" {{#if e.selected}}selected{{/if}}>{{e.name}}</option>{{/each}}</select></label>
+      <button type="button" data-action="hxtPinKeyed" class="sde-import-secondary" title="One map note per keyed hex of the chosen book text on this scene, each opening its journal page"><i class="fas fa-map-pin"></i> Pin keyed hexes</button>
       {{/if}}
+      {{#if hasTags}}
       <button type="button" data-action="hxtShowTags" class="sde-import-secondary" title="Draw every tag on the map itself: a colour per terrain, dots for river, path and coast, an amber ring on the unsure automatic cells. Click a hex there to change it. Press again to hide."><i class="fas fa-eye"></i> {{#if overlayShown}}Hide tags{{else}}Show tags{{/if}}</button>
       <button type="button" data-action="hxtBrush" class="sde-import-secondary" title="Pick a terrain once, then click or drag across the hexes that have it wrong. A whole stroke is one change, and Undo puts it back."><i class="fas fa-paintbrush"></i> Brush</button>
       <button type="button" data-action="hxtBuildDataset" class="{{#if primaryBuild}}sde-import-primary{{else}}sde-import-secondary{{/if}}">{{#if viaExtras}}<i class="fas fa-paper-plane"></i> Send to Extras{{else}}<i class="fas fa-download"></i> Download dataset{{/if}}</button>
+      {{/if}}
       {{/if}}
       {{#if showMore}}
       <button type="button" data-action="hxtMore" class="sde-import-secondary sde-hxt-more-btn" aria-expanded="{{moreOpen}}" title="Map size, read the image again, import, export, reference tile, clear">More</button>
@@ -59,6 +58,9 @@
         <label>Map size <input type="number" data-hxt-cols value="{{boundsCols}}" min="1" max="99" placeholder="cols" class="sde-hxt-small"></label>
         <label>× <input type="number" data-hxt-rows value="{{boundsRows}}" min="1" max="99" placeholder="rows" class="sde-hxt-small"></label>
         <label title="The columns that sit higher have their first row cut in half by the print's frame. On maps like the Western Reaches that half cell is the margin the column labels are printed in, not map."><input type="checkbox" data-hxt-skip-top {{#if skipTopRow}}checked{{/if}}> top row is frame</label>
+        {{#if canClassify}}
+        <label title="Higher values lower the overlay thresholds: raise it if paths and rivers are missed, lower it if plain cells pick up overlays.">Sensitivity <input type="number" data-hxt-sensitivity value="{{sensitivity}}" min="0.3" max="3" step="0.1" class="sde-hxt-small"></label>
+        {{/if}}
         <button type="button" data-action="hxtSetBounds" class="sde-import-secondary sde-hxt-inline">Apply</button>
         </div>
       <p class="sde-hxt-muted">Cells past the map's columns or rows (margins, legend) are skipped.</p>

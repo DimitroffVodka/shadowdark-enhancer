@@ -299,6 +299,17 @@
   name; we now fill it, so the hex you open in Extras says **arctic sea**
   whatever the art under it turns out to be. (#169)
 
+- **The Hex Tagger only offers what you can actually use.** Every control was
+  on screen from the first moment, including the ones that had nothing to work
+  on — a fresh map showed **Send to Extras** with nothing to send, **Brush** and
+  **Show tags** with nothing tagged, and a **Hex key** picker with no book text
+  imported. On a newly numbered map the toolbar is now three things: **Legend**,
+  the sheet picker, and **More**. Each of the rest appears when it can do
+  something: Classify once you have tagged a hex by hand, the sheet picker while
+  there are hexes to tag or automatic ones to check, tags/brush/send once
+  anything is tagged, the hex key once you have imported one. Sensitivity was a
+  tuning knob standing among the steps, and has moved behind More. (#169)
+
 - **What you answered on the legend is written down.** Everything the module
   recorded was an output — what the classifier guessed, what you corrected. The
   input was never kept, so when a run came out badly there was no way to tell a

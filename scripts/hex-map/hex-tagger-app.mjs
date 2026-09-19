@@ -656,6 +656,12 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
       legend, hasLegend: !!legend,
       primarySample: primary === "sample", primaryLegend: primary === "legend", primaryBuild: primary === "build",
       showMore: sampled || !!origin, moreOpen: !!this._moreOpen,
+      // A control appears when it can do something and not before. Patrick, on
+      // a scene with nothing tagged yet: "Half this shit I don't even know what
+      // it does." Most of it could not have done anything for him at that point.
+      hasTags: summary.tagged > 0,               // tags to draw, paint over or send
+      canSheet: summary.untagged > 0 || summary.auto > 0,   // hexes to tag or to check
+      hasKey: this._entries.length > 0,          // a book text to attach
       done, reviewCount, reviewMargin: reviewMargin.toFixed(2), report: report.judged ? report : null,
       legendLog,
       // The queue is ordered worst-first, so the only question the GM has is
