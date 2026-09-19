@@ -179,3 +179,22 @@ test("the contract check wants art and icon to be text, and nothing else new", (
   ds.hexes[0].art = 7;
   assert.match(validateHexDataset(ds).errors.join(" "), /art must be text/);
 });
+
+test("a grid that contradicts its own hexes is caught here, not by the consumer", () => {
+  // Hexes numbered from 0 under a 1-based grid: the consumer rejects the very
+  // first one ("hex 1 is outside the published grid") and builds nothing.
+  const tags = { "001": { terrain: "forest" }, "0102": { terrain: "forest" } };
+  const bad = buildHexDataset({ tags, gridHint: { cols: 4, rows: 4, origin: 1 } });
+  assert.match(validateHexDataset(bad).errors.join(" "), /outside the 4×4 grid \(origin 1\)/);
+  // Left to work it out from the hexes it is emitting, it cannot disagree.
+  assert.equal(validateHexDataset(buildHexDataset({ tags, gridHint: { cols: 4, rows: 4 } })).ok, true);
+});
+
+test("a clipped top row and a short lowered column are honoured, not just cols × rows", () => {
+  // origin 0 stated outright: a single-hex fixture would otherwise move it.
+  const grid = { cols: 4, rows: 4, origin: 0, firstRow: 1, rowsLowered: 3 };
+  const check = (id) => validateHexDataset(buildHexDataset({ tags: { [id]: { terrain: "forest" } }, gridHint: grid }));
+  assert.match(check("000").errors.join(" "), /outside/, "raised column 0 has no row 0 — that half cell is the frame");
+  assert.match(check("0103").errors.join(" "), /outside/, "lowered column 1 stops one row short");
+  for (const id of ["001", "0100", "0102"]) assert.equal(check(id).ok, true, `${id} is on the map`);
+});

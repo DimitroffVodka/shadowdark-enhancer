@@ -233,6 +233,30 @@ export function validateHexDataset(ds) {
   }
   for (const kind of ["river", "road"]) for (const n of ds.networks?.[kind] ?? []) if (!isNum(n)) errors.push(`network ${kind} has a non-integer hex`);
   if (!isNum(ds.grid?.cols) || !isNum(ds.grid?.rows)) errors.push("grid cols/rows missing");
+  // Every hex must sit inside the grid we declare, because the consumer checks
+  // exactly that and refuses the whole build over the first one that does not.
+  // The grid used to be described from the tagger's in-memory sample while the
+  // hexes came from the saved tags, so the two could disagree and the first we
+  // heard of it was Extras throwing. Checked here, it names the real problem.
+  if (isNum(ds.grid?.cols) && isNum(ds.grid?.rows)) {
+    const g = ds.grid, org = g.origin ?? 1, first = g.firstRow ?? org, lowered = g.rowsLowered ?? g.rows;
+    const outside = [];
+    for (const h of ds.hexes ?? []) {
+      if (!isNum(h.num)) continue;
+      const [c, r] = hexKeyForNum(h.num).split(",").map(Number);
+      // Lowered columns (odd, as the consumer counts them from the origin) keep
+      // their top cell and lose their bottom one; raised columns the reverse.
+      const low = (c - org) % 2 === 1;
+      const ok = c >= org && c < g.cols + org
+        && r >= (low ? org : first) && r < g.rows + org
+        && !(low && r >= lowered + org);
+      if (!ok) outside.push(h.num);
+    }
+    if (outside.length) {
+      errors.push(`${outside.length} hex${outside.length === 1 ? "" : "es"} outside the ${g.cols}×${g.rows} grid`
+        + ` (origin ${org}${g.firstRow !== undefined ? `, first row ${g.firstRow}` : ""}): ${outside.slice(0, 5).join(", ")}`);
+    }
+  }
   const g = ds.grid ?? {};
   if (g.origin !== undefined && g.origin !== 0 && g.origin !== 1) errors.push("grid.origin must be 0 or 1");
   const origin = g.origin ?? 1;

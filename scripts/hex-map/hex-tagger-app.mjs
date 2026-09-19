@@ -1109,9 +1109,14 @@ export class HexTaggerApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!this._state.origin) { ui.notifications?.warn(t("SDE.hexMap.notify.setAnchor")); return; }
     const tags = tagsForDataset(this._state);
     const b = this._state.origin.bounds;
-    // The map's own numbering origin: 0 when a numbered cell sits in column 0 or row 0 (hex 0000 exists).
-    const numberingOrigin = [...this._numbered.values()].some((c) => c.col === 0 || c.row === 0) ? 0 : 1;
-    const gridHint = b?.cols ? { cols: b.cols, rows: b.rows, firstRow: b.firstRow, rowsLowered: b.rowsLowered, origin: numberingOrigin } : { origin: numberingOrigin };
+    // The numbering origin is NOT taken from the in-memory sample. It used to
+    // be — "does any sampled cell sit in column 0 or row 0" — and the sample is
+    // dropped on a reload while the tags are not. Sending the dataset without
+    // re-reading the map therefore produced `origin: 1` over hexes numbered
+    // from 0, and Extras rejected the first one: "hex 1 is outside the
+    // published grid". buildHexDataset works it out from the hexes it is about
+    // to emit, which cannot disagree with them.
+    const gridHint = b?.cols ? { cols: b.cols, rows: b.rows, firstRow: b.firstRow, rowsLowered: b.rowsLowered } : undefined;
     const entry = this._entries.find((e) => e.uuid === this._entryUuid)?.doc ?? null;
     const assignments = this._artAssignments();
     const dataset = entry ? datasetFromEntry(entry, { tags, gridHint, assignments })
