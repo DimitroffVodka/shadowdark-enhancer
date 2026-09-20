@@ -92,6 +92,43 @@ export const CREATURE_TYPE_MAP = Object.freeze({
   "WR:moose": "Animal",
   "WR:pegasus": "Celestial",
   "WR:worg": "Monstrosity",
+  // Game Master's Guide to the Western Reaches. Only the 33 monsters the GM
+  // Guide introduces are listed: the other 57 it prints are Cursed Scroll
+  // reprints whose reviewed type is already recorded above, and E3's name
+  // fallback finds those without a second copy of the decision here.
+  "GMWR:adept": "Humanoid",
+  "GMWR:badgerling": "Humanoid",
+  "GMWR:bard": "Humanoid",
+  "GMWR:captain": "Humanoid",
+  "GMWR:crabling": "Humanoid",
+  "GMWR:dai oni": "Fiend",
+  "GMWR:deep orc": "Humanoid",
+  "GMWR:dwarf": "Humanoid",
+  "GMWR:elder sister": "Humanoid",
+  "GMWR:fey knight": "Humanoid",
+  "GMWR:green knight": "Humanoid",
+  "GMWR:hag, swamp": "Fey",
+  "GMWR:half-orc": "Humanoid",
+  "GMWR:halfling": "Humanoid",
+  "GMWR:hell toad": "Animal",
+  "GMWR:hero": "Humanoid",
+  "GMWR:knight of st. ydris": "Humanoid",
+  "GMWR:kyzian": "Humanoid",
+  "GMWR:little sister": "Humanoid",
+  "GMWR:marsh fog": "Elemental",
+  "GMWR:monk": "Humanoid",
+  "GMWR:moon dragon": "Dragon",
+  "GMWR:necromancer": "Humanoid",
+  "GMWR:ranger": "Humanoid",
+  "GMWR:red knight": "Humanoid",
+  "GMWR:rookie": "Humanoid",
+  "GMWR:scout": "Humanoid",
+  "GMWR:sister marjory": "Humanoid",
+  "GMWR:swashbuckler": "Humanoid",
+  "GMWR:thunderbird": "Monstrosity",
+  "GMWR:tiger": "Animal",
+  "GMWR:wendigo": "Fiend",
+  "GMWR:witch": "Humanoid",
 });
 
 export default CREATURE_TYPE_MAP;

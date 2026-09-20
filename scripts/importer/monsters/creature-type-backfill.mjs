@@ -65,10 +65,41 @@ export function creatureTypeKey(actor) {
 /** Alias named for callers that prefer lookup terminology. */
 export const creatureTypeMapKey = creatureTypeKey;
 
+/**
+ * Resolve a source-scoped key against N4's map, falling back to the same NAME
+ * under another source when every source that records it AGREES.
+ *
+ * Books reprint each other's bestiaries: the GM Guide to the Western Reaches
+ * prints 90 monsters of which 57 are Cursed Scroll reprints already reviewed
+ * here under a CS key. Copying those decisions per book is a tax that grows
+ * with every reprint, and a copy is a second place for them to drift.
+ *
+ * The agreement guard preserves the reason the keys are source-scoped at all:
+ * a name two sources type DIFFERENTLY stays unresolved — the same outcome as
+ * an absent key, so E3 writes nothing and the GM decides — rather than this
+ * picking whichever entry happened to be declared first. (No name in the map
+ * disagrees with itself today; the guard is for the one that eventually will.)
+ *
+ * @param {string|null} key  `${source}:${name}`, from `creatureTypeKey`
+ * @param {object} [map]
+ * @returns {string|null}
+ */
+export function lookupCreatureType(key, map = CREATURE_TYPE_MAP) {
+  if (!key) return null;
+  if (map[key]) return map[key];
+  const name = key.slice(key.indexOf(":") + 1);
+  let agreed = null;
+  for (const [candidate, type] of Object.entries(map)) {
+    if (candidate.slice(candidate.indexOf(":") + 1) !== name) continue;
+    if (agreed && agreed !== type) return null;
+    agreed = type;
+  }
+  return agreed;
+}
+
 /** Return N4's reviewed type for an Actor, or null when source/name is absent. */
 export function reviewedCreatureType(actor, map = CREATURE_TYPE_MAP) {
-  const key = creatureTypeKey(actor);
-  return key ? (map[key] ?? null) : null;
+  return lookupCreatureType(creatureTypeKey(actor), map);
 }
 
 /**
@@ -130,7 +161,7 @@ export function transformCreatureType(
   } = {},
 ) {
   const key = creatureTypeKey(actor);
-  const type = key ? (map[key] ?? null) : null;
+  const type = lookupCreatureType(key, map);
   if (!type) {
     onMissingMap?.(outcomeOf(actor, key));
     return null;

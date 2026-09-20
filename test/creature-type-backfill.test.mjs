@@ -20,6 +20,7 @@ import {
   hasCreatureTypeFlag,
   resolveSdxRuntimeMap,
   reviewedCreatureType,
+  lookupCreatureType,
   runCreatureTypeBackfill,
   transformCreatureType,
 } from "../scripts/importer/monsters/creature-type-backfill.mjs";
@@ -123,14 +124,17 @@ function makeGame({ actors = [], stamp = "", sdxMap, sdxActive = false } = {}) {
 const silent = { error() {}, warn() {} };
 
 test("N4 map is source-scoped, complete, and uses supported title-case values", () => {
-  assert.equal(Object.keys(CREATURE_TYPE_MAP).length, 79);
+  // 79 through the Cursed Scrolls and Western Reaches, plus the 33 monsters the
+  // GM Guide introduces. Its other 57 are reprints and are deliberately NOT
+  // re-keyed here — they resolve through the agreed-name fallback below.
+  assert.equal(Object.keys(CREATURE_TYPE_MAP).length, 112);
   assert.equal(CREATURE_TYPE_MAP["CS1:bogthorn"], "Plant");
   assert.equal(CREATURE_TYPE_MAP["CS1:hexling"], "Undead");
   assert.equal(CREATURE_TYPE_MAP["CS1:mugdulblub"], "Ooze");
   assert.equal(CREATURE_TYPE_MAP["CS3:the scourge"], undefined);
   assert.equal(CREATURE_TYPE_MAP["CS2:the scourge"], "Dragon");
   assert.equal(CREATURE_TYPE_MAP["WR:pony"], "Animal");
-  assert.equal(CREATURE_TYPE_MAP.bogthorn, undefined, "bare-name fallback is forbidden");
+  assert.equal(CREATURE_TYPE_MAP.bogthorn, undefined, "the DATA stays source-scoped; only the lookup falls back");
 
   const supported = new Set([
     "Aberration", "Animal", "Celestial", "Construct", "Dinosaur", "Dragon",
@@ -138,7 +142,7 @@ test("N4 map is source-scoped, complete, and uses supported title-case values", 
     "Plant", "Undead",
   ]);
   for (const [key, type] of Object.entries(CREATURE_TYPE_MAP)) {
-    assert.match(key, /^(CS[1-5]|WR):[a-z0-9][a-z0-9 ,'-]*$/);
+    assert.match(key, /^(CS[1-5]|WR|GMWR):[a-z0-9][a-z0-9 ,.'-]*$/);
     assert.ok(supported.has(type), `${key} has an unsupported type ${type}`);
   }
 });
@@ -281,4 +285,39 @@ test("startup and settings wiring remain lazy and consumer-owned", async () => {
   assert.match(startup, /runCreatureTypeBackfill\(\{ game \}\)/);
   assert.doesNotMatch(startup, /import .*creature-type-backfill/);
   assert.deepEqual(CREATURE_TYPE_ACTOR_TYPES, ["NPC", "Mount", "shadowdark-enhancer.mount"]);
+});
+
+// Books reprint each other's bestiaries: 57 of the GM Guide's 90 monsters are
+// Cursed Scroll reprints already reviewed under a CS key, so only the 33 it
+// introduces are listed for GMWR. A source miss falls back to the name — but
+// only while every source that records that name agrees, which is what keeps
+// the keys meaningfully source-scoped.
+test("a source miss falls back to an agreed name, and refuses a disagreement", () => {
+  const map = {
+    "CS2:canyon ape": "Animal",
+    "CS2:scrag": "Monstrosity",
+    "WR:scrag": "Monstrosity",
+    "CS1:bogthorn": "Plant",
+    "CS4:bogthorn": "Monstrosity",
+  };
+  // Reprinted under a source with no key of its own.
+  assert.equal(lookupCreatureType("GMWR:canyon ape", map), "Animal");
+  // Two sources, same verdict — still resolvable.
+  assert.equal(lookupCreatureType("GMWR:scrag", map), "Monstrosity");
+  // Two sources that disagree resolve to nothing, exactly like an absent key,
+  // so E3 writes no flag and the GM decides.
+  assert.equal(lookupCreatureType("GMWR:bogthorn", map), null);
+  // An exact key always wins over the scan.
+  assert.equal(lookupCreatureType("CS1:bogthorn", map), "Plant");
+  assert.equal(lookupCreatureType("GMWR:nothing here", map), null);
+  assert.equal(lookupCreatureType(null, map), null);
+});
+
+test("every monster the GM Guide prints resolves to a reviewed type", () => {
+  // The 33 it introduces are keyed directly; the reprints ride the fallback.
+  assert.equal(reviewedCreatureType(actorDouble({ id: "a", name: "Adept", source: "GMWR" })), "Humanoid");
+  assert.equal(reviewedCreatureType(actorDouble({ id: "h", name: "Hag, Swamp", source: "GMWR" })), "Fey");
+  assert.equal(reviewedCreatureType(actorDouble({ id: "k", name: "Knight of St. Ydris", source: "GMWR" })), "Humanoid");
+  assert.equal(reviewedCreatureType(actorDouble({ id: "v", name: "Valkyrie", source: "GMWR" })), "Celestial");
+  assert.equal(reviewedCreatureType(actorDouble({ id: "s", name: "Siruul", source: "GMWR" })), "Humanoid");
 });
