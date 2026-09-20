@@ -1,7 +1,7 @@
 # Shadowdark Enhancer — File Inventory
 
 <!-- inventory:stats:start -->
-952 tracked files · ~160,100 lines of code/markup across scripts+templates+styles+test.
+957 tracked files · ~163,300 lines of code/markup across scripts+templates+styles+test.
 `v0.17.3` in both `module.json` and `package.json`.
 <!-- inventory:stats:end -->
 **Layout reflects the 2026-07-21 feature-folder reorganization (v0.11.0 cycle).**
@@ -76,7 +76,7 @@
 | File | Lines | Description |
 |---|---:|---|
 | `module-id.mjs` | 8 | Single source of truth for the module ID (highest fan-in file: 58 importers). |
-| `source-keys.mjs` | 71 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
+| `source-keys.mjs` | 81 | One canonical key per source book (core/cs1-6/wr) across every spelling. |
 | `curated-icons.mjs` | 477 | The one curated-icon resolver (A4), pure and Foundry-free. Six issue paths want a reviewed Foundry-native icon for an item this module imported or generated; rather than each growing its own name matching (as `core-monster-spell-icons.mjs` did for Monster Spells), they share this. TWO KEY SPACES, and the split is structural rather than stylistic: weapons, armor and basic gear key on `normalize(name)` alone, because `defaultItemImg` — the module's single automatic art-choice channel — cannot know which book a draft came from (source is a commit-time batch option threaded through `createItems`, reaching the document only afterwards as a flag), so a source-qualified gear key would be unresolvable at the one place gear art is chosen; treasure keys are `<sourceId>:<normalize(name)>` via `sourceKey`, because its names are book prose two Cursed Scrolls could both print. Map keys are DERIVED from display names, never hand-written beside them — the reviewed source spec drifted exactly that way — and map construction is TOTAL: a duplicate key, blank name or path that is not a native `icons/**.webp` drops that row into `problems` and leaves the item on its fallback, because throwing at load would take the module down over an icon. `auditCuratedIconRegistry` aggregates those for the test gate. Registration is BY IMPORT (`registerCuratedIconMap`) so the tickets owning the rows never edit one shared list. `isCuratedApplyTarget` is a `world.` allowlist, not a denylist: `LootLinker` resolves rows system-pack-first by design, so a plunder row's uuid routinely points into `shadowdark.gear`, and a materializer applying art to whatever it just resolved would edit the base system compendium. Unmatched returns null — never a guess, because a wrong curated icon looks deliberate. |
 | `curated-icon-maps/index.mjs` | 78 | Discovery point for the curated-icon maps (A4). Each reviewed map lives beside this file as its own module, publishes itself with `registerCuratedIconMap` at import time, and becomes reachable when this index side-effect-imports it. Loaded once from the module entry point so every consumer sees the same registry regardless of load order. A ticket adding a map creates ONE file and appends ONE import line, so two tickets never collide on a shared array literal. Carries the worked example and the four invariants the audit enforces: native `icons/**.webp` paths, keys derived from display names, bare-space names globally distinct across the weapon/armor/gear maps, and treasure rows qualified by book. The D1 weapon, D2 armor, D3 Basic Gear, D4 Sea Wolf Plunder, D5 Dead Bandit Loot, and D6 Diabolical Treasure maps are the active production registrations; an uncovered category remains on null lookup and its prior fallback/provenance behaviour. |
 | `curated-icon-maps/armor-icons.mjs` | 26 | The reviewed N3 armor map (D2): nine canonical armor names plus four deliberate mithral source-spelling aliases, registered through A4's bare normalized-name key space. Each alias shares its canonical armor's Foundry-native icon; category tests audit all 13 accepted rows against the real public/icons inventory and exercise A3 upgrade/preservation provenance. |
@@ -88,7 +88,7 @@
 | `attack-card.mjs` | 107 | Reading a Shadowdark attack card — was it an attack at all (a targeted spell is not), did it land, who was it aimed at, who swung. Shared by Parry and Taunt so the two can never disagree about the target (they once did, silently). |
 | `settings.mjs` | 573 | All `game.settings.register` calls + migration-safe defaults. |
 | `icons.mjs` | 87 | Centralized icon registry — FontAwesome snippets and vendored SVG references. |
-| `compendium-suite.mjs` | 454 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
+| `compendium-suite.mjs` | 459 | Find-or-create layer for managed world packs, ownership, sidebar folders, and source folders. |
 | `loading-dialog-guard.mjs` | 112 | Guards the system's leaked `LoadingSD` spinner when `ItemSheetSD.getData` throws. |
 | `art-utils.mjs` | 164 | Portrait/token image resolution across world + compendium sources. |
 | `coins.mjs` | 105 | Pure Shadowdark currency math (10cp=1sp, 10sp=1gp). |
@@ -164,7 +164,7 @@
 | `monster-spell-update-gate.mjs` | 255 | The automatic Monster Spell startup worker: legacy consolidation every activation, Core + managed Enhancer Actors refresh once per module version, active GM checked at fire time, version stamp advanced only after a complete successful refresh, and the refresh deferred with a warning while a failed consolidation leaves content in the retired pack. |
 | `spell-index.mjs` | 249 | Lightweight Spell index (compendium indices, not documents). |
 | `npc-moves.mjs` | 16 | Canonical NPC movement keys with a pre-config fallback. |
-| `npc-statblock.mjs` | 125 | Builds the formatted `system.notes` statblock HTML. |
+| `npc-statblock.mjs` | 143 | Builds the formatted `system.notes` statblock HTML. |
 | `level-guidelines-app.mjs` | 220 | GM-facing editor for the per-level monster guidelines — what a level-N monster's stats should look like. |
 | `level-guidelines.mjs` | 502 | Pure, node-testable monster level-guideline math (isotonic-smoothed medians over the system's 244 monsters). |
 | `quick-adjust-app.mjs` | 463 | Quick stat-adjust dialog — lightweight AC/HP/level/attack swaps on an existing monster (not a generated effect). |
@@ -230,21 +230,21 @@
 | File | Lines | Description |
 |---|---:|---|
 | `importer-hub-app.mjs` | 939 | **The single front door (shell).** ApplicationV2 lifecycle, singleton, instance fields/caches, `_prepareContext`; installs the three method packs below onto the class (split 2026-07-22). |
-| `importer-hub-paste.mjs` | 1565 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
-| `importer-hub-commit.mjs` | 930 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
-| `importer-hub-manage.mjs` | 1102 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
-| `importer-hub-batch.mjs` | 696 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
-| `importer-hub-shared.mjs` | 106 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
+| `importer-hub-paste.mjs` | 1576 | Paste box, type selector, parse dispatch, per-type preview field/row wiring. |
+| `importer-hub-commit.mjs` | 951 | Conflict dialogs, quality gates, magic-bundle plan, all per-type commit flows. |
+| `importer-hub-manage.mjs` | 1122 | Manage strip: censuses + caches, manage tree, gap/seed/cull, source-PDF grab/extract. |
+| `importer-hub-batch.mjs` | 711 | Batch “Import everything” runner: seeds, grabs, parses and commits each planned entry unattended. |
+| `importer-hub-shared.mjs` | 109 | Hub-shared constants/helpers + `installMethods` (the split's descriptor copier). |
 | `importer-hub-maintenance.mjs` | 244 | Tools-menu bodies (bundle export/import, source-PDF library). |
 | `dump-segmenter.mjs` | 307 | Routes a mixed dump through the recognizer registry: hexcrawl → spell → monster → item → table. |
 | `bundle-io.mjs` | 406 | Whole-suite export/import as one JSON; validates, skips existing, never overwrites. |
-| `manage-tree.mjs` | 628 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
+| `manage-tree.mjs` | 687 | Composes the folder/sub-folder unlock-review tree the Manage strip renders. |
 | `batch-import.mjs` | 262 | Pure batch planner: locked tree rows → deduped import jobs, routes, and the run report. |
-| `pdf-text-extract.mjs` | 724 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
+| `pdf-text-extract.mjs` | 832 | Clean reading-ordered PDF text via Foundry's bundled PDF.js; column-aware gutter detection. |
 | `pdf-text-utils.mjs` | 157 | Shared PDF-text helpers + the HTML-safety contract. |
 | `source-pdf-registry.mjs` | 300 | Content source → the user's own uploaded PDF, for page deep-links. |
 | `source-pdf-viewer.mjs` | 66 | Singleton ApplicationV2 embedding Foundry's PDF.js viewer at a given page. |
-| `char-content/char-content-manifest.mjs` | 1547 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
+| `char-content/char-content-manifest.mjs` | 1794 | Metadata-only manifest of CS4–6 + WR char-builder content (names/types/sources, no rules text) + `parseCharContent` + census. |
 | `char-content/class-parser.mjs` | 1100 | Class section → structured unit (writeup, talents, tables, spellcasting). Pure. |
 | `char-content/class-importer-app.mjs` | 789 | Purpose-built single-view class workspace. |
 | `char-content/class-unit-importer.mjs` | 1448 | Class unit → real documents in dependency order. |
@@ -254,10 +254,10 @@
 | `char-content/language-resolver.mjs` | 16 | Language names → system UUIDs. |
 | `spells/spell-parser.mjs` | 290 | Spell blocks → Spell drafts. Pure. |
 | `spells/spell-importer-app.mjs` | 465 | Spell workspace organized by class / tier / alignment. |
-| `tables/table-importer.mjs` | 3432 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
-| `tables/table-shapes.mjs` | 590 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
-| `tables/table-hub.mjs` | 297 | Reconciles the shipped manifest against the live world (system / imported / missing). |
-| `tables/table-hub-app.mjs` | 541 | "Set up ALL tables" window — dashboard + import view. |
+| `tables/table-importer.mjs` | 3608 | Roll-table text → structure. The big one; includes `repairSharedStartRanges`. |
+| `tables/table-shapes.mjs` | 795 | Per-unlock deterministic table SHAPE recipes (prayer/grid/lookup/reflow kinds). |
+| `tables/table-hub.mjs` | 448 | Reconciles the shipped manifest against the live world (system / imported / missing). |
+| `tables/table-hub-app.mjs` | 596 | "Set up ALL tables" window — dashboard + import view. |
 | `tables/table-registry.mjs` | 206 | Parses live tables into `{source, page, displayName, subCategory}` and groups them. |
 | `tables/table-seed-map.mjs` | 240 | Generated table-name → group-id seed map. |
 | `tables/table-structure-seeds.mjs` | 2106 | Structure-only seeds (formulas, folders, flags, chain links). |
@@ -267,16 +267,16 @@
 | `tables/core-table-groups.mjs` | 277 | Core Rulebook table groups (`section: "gameplay"` vs roll tables) for the Manage tree. |
 | `tables/compound-table.mjs` | 93 | Mad-libs generator roll behaviour. |
 | `tables/hex-parser.mjs` | 340 | Hex-key dumps → per-hex draft journal pages. Pure. |
-| `monsters/statblock-parser.mjs` | 516 | Monster statblock dump → draft objects. Pure. |
+| `monsters/statblock-parser.mjs` | 550 | Monster statblock dump → draft objects. Pure. |
 | `monsters/monster-importer.mjs` | 232 | Drafts → NPC actors in `sde-actors`. |
 | `monsters/monster-importer-app.mjs` | 394 | Paste dump → per-monster preview/edit grid → create. |
-| `monsters/monster-census.mjs` | 154 | Pure have/gap/duplicate helpers. |
+| `monsters/monster-census.mjs` | 241 | Pure have/gap/duplicate helpers. |
 | `monsters/monster-census-live.mjs` | 462 | Foundry-bound adapter reading `sde-actors`/`sde-tables`. |
 | `monsters/monster-backfill.mjs` | 511 | Idempotent upgrade of pre-fidelity-fix imports; auto-runs once per module version. |
 | `monsters/managed-actor-backfill.mjs` | 305 | Reusable active-GM, version-gated backfill lifecycle over the managed Actors pack; consumers supply the missing-only transform. |
 | `monsters/monster-text-backfill.mjs` | 187 | E2 missing-only monster-context `[[request]]` and inline-roll backfill over managed NPC Actor text; owns its consumer version gate. |
-| `monsters/creature-type-map-data.mjs` | 97 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
-| `monsters/creature-type-backfill.mjs` | 239 | E3 missing-only N4 creature-type flags over managed NPC/Mount Actors, with optional SDX runtime-map gap mirroring and outcome counts. |
+| `monsters/creature-type-map-data.mjs` | 134 | N4 reviewed source/name-scoped creature taxonomy map for managed imported Actors. |
+| `monsters/creature-type-backfill.mjs` | 270 | E3 missing-only N4 creature-type flags over managed NPC/Mount Actors, with optional SDX runtime-map gap mirroring and outcome counts. |
 | `monsters/actor-migration.mjs` | 380 | World-side imported actors → the managed `sde-actors` pack. |
 | `monsters/monster-linker.mjs` | 146 | Table encounter text → clickable `@UUID` monster links. |
 | `monsters/monster-pack.mjs` | 48 | Shared pack-identity leaf so importer and linker agree. |
@@ -289,8 +289,8 @@
 | `items/item-builder-gear.mjs` | 298 | Pure stage-①/③ logic for the Item Builder. |
 | `items/item-census-live.mjs` | 200 | Items census adapter (same shape as monsters). |
 | `items/shikashi-icons.mjs` | 235 | Item name → bundled Shikashi icon matcher (284 icons). |
-| `tables/table-manifest.mjs` | 235 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
-| `tables/table-manifest-data.mjs` | 335 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
+| `tables/table-manifest.mjs` | 293 | Table manifest logic — the registry of catalogued tables (id, name, source, page) that drives the Manage-tree census. |
+| `tables/table-manifest-data.mjs` | 499 | The `TABLE_MANIFEST` data array — every catalogued table's metadata (names/sources/pages; no rules text). |
 | `boats/mount-parser.mjs` | 55 | Names-only WR mount manifest + selection of the requested mount from parsed statblock drafts. |
 | `boats/mount-importer.mjs` | 149 | Mount drafts → `shadowdark-enhancer.mount` actors in `sde-actors`, reusing the monster import pipeline. |
 | `boats/boat-parser.mjs` | 155 | Parses the WR p118 boats table → boat actor drafts (pure); names-only manifest. |
@@ -348,7 +348,7 @@
 
 | File | Lines | Description |
 |---|---:|---|
-| `imported-monster-art.mjs` | 693 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
+| `imported-monster-art.mjs` | 830 | N6's exact source-aware curated art map and F4's Foundry-free pick-state planner; missing rows stay available to Browse. |
 | `monster-token-art.mjs` | 725 | Applies licensed art to monsters **by path reference**, never bundled. |
 | `token-art-catalog.mjs` | 1104 | Name→art matching catalog. |
 | `token-art-manager-app.mjs` | 704 | GM window to review/apply matches. |

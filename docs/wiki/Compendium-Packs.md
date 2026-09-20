@@ -172,7 +172,7 @@ source book:
 | You type | Folder |
 |---|---|
 | `cs1` … `cs6`, or `Cursed Scroll 1` … `6` | `CS1` … `CS6` |
-| `pgwr`, `gmgwr`, `wr`, `Western Reaches` | `Western Reaches` |
+| `pgwr`, `gmgwr`, `gmwr`, `wr`, `Western Reaches`, `Western Reaches GM Guide` | `Western Reaches` |
 | `core`, `Core Rulebook` | `CORE` |
 | *(blank)* or `custom` | `Custom` |
 | anything else | Upper-cased |

@@ -39,7 +39,20 @@ correct parsing recipe, enriches internal `@UUID` links, assigns curated
 icons, and files documents into organized world compendiums.
 
 - **Content printed across books** (such as spells reprinted in *Western
-  Reaches*) can be imported from whichever PDF you own.
+  Reaches*) can be imported from whichever PDF you own. A reprint is one row,
+  not two: it shows the page in each book that prints it, grabs from whichever
+  book you have linked, and counts as imported no matter which one you used.
+  A table you imported from *Cursed Scroll 1* already satisfies the GM Guide's
+  row for it, and a monster imported from either book satisfies both
+  bestiaries.
+- **Only genuine reprints are linked, and only after checking.** Where two
+  books print the same table under the same name but changed the text, they
+  stay separate rows: the *Cursed Scroll 6* and *Western Reaches* carousing
+  tables are re-skinned for their setting ("the Duke" becomes "a noble"), and
+  the Player's Guide rewrote three of the Pit Fighter's five talents. The GM
+  Guide's Djurum rumors ARE linked to *Cursed Scroll 2*'s, but only three of
+  the ten lines survived the rewrite — importing from the zine gives you the
+  older list.
 - **Content the base Shadowdark system already ships** (core spells, basic
   bestiary, core gear) is skipped so you never get duplicates.
 
@@ -225,7 +238,13 @@ Open the **Tools** dropdown to manage PDFs and world backups:
 
 ![The Source PDFs library](images/source-pdf.png)
 
-Register uploaded PDF files for Core, Western Reaches, and Cursed Scrolls 1–6.
+Register uploaded PDF files for Core, both Western Reaches guides, and Cursed
+Scrolls 1–6.
+
+The **Game Master's Guide to the Western Reaches** is its own book row, separate
+from the Player's Guide, because it is its own PDF. Its printed page numbers
+match its PDF pages, and either printing works — the standard one or the
+"Horizontal Pages" edition, which marks 39 of its pages as rotated.
 
 - **Deep links:** Import buttons jump directly to cited book pages in Foundry's
   PDF viewer.

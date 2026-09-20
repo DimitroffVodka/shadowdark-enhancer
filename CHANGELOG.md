@@ -3,6 +3,93 @@
 ## [Unreleased]
 
 ### Added
+- **The Game Master's Guide to the Western Reaches.** The book is now its own
+  source (Tools → Source PDFs), with **103 rows** covering its roll tables:
+  every region's rumors, encounter-zone and encounter grids and points of
+  interest, the six terrain d100s, Rumors in the Reaches, the Trouble in…
+  tables, Tal-Yool and the City of Masks, all 21 trainer benefit tables, and
+  Wendel Types. A grid row imports as one table per printed column, so one
+  press gives you the whole page — 198 tables from the 103 rows. Its bestiary
+  (pp. 284–309, 90 statblocks) imports as its own Monsters row.
+- **Reprints import from whichever book you own.** Content printed in two books
+  is one row carrying both citations: it grabs from whichever PDF is linked and
+  counts as imported whichever book it came from. A dual-source class no longer
+  demands the Western Reaches PDF when you only own the zine. Verified pair by
+  pair against the books — tables that merely look alike (the two carousing
+  sets, Pit Fighter's talents) stay separate, because their text differs.
+- **Curated token art now follows a reprint.** The two Western Reaches volumes
+  inherit the reviewed art of the Cursed Scroll that first printed a creature,
+  when every reviewed row for that name agrees on the image: 56 of the GM
+  Guide's 90 monsters, plus the Player's Guide's donkey, silver camel and the
+  two scrags, which had none.
+- **Token art for the GM Guide's own monsters.** Twelve creatures that print in
+  the Game Master's Guide first — nothing to inherit — now ship reviewed art:
+  Badgerling, Crabling, Elder Sister, Hag Swamp, Hell Toad, Knight of St. Ydris,
+  Kyzian, Little Sister, Marsh Fog, Sister Marjory, Swashbuckler and
+  Thunderbird. Each was picked from the statblock rather than the name, which is
+  why automatic matching had left them blank: a Badgerling is a halfling in a
+  badger-skin cloak, a Kyzian a horse-riding steppe archer, a Crabling an
+  amphibious humanoid. Stone Shaman, Death Slug and Wendel stay deliberately
+  unpicked — no installed pack has art that is honestly theirs.
+
+- **Reviewed creature types follow a reprint too.** A creature the GM Guide
+  reprints takes the type already reviewed under the Cursed Scroll that printed
+  it first, as long as every book recording that name agrees; where two books
+  disagreed it stays unset and you decide. Only the 33 creatures the GM Guide
+  introduces needed a type of their own.
+### Fixed
+- **Grid cells no longer borrow their neighbour's text.** Where a printed grid
+  set two cells barely more than a word-space apart, the grab read the boundary
+  as an ordinary space and the two cells came through welded — the Djurum
+  Desert's `Purple worm` / `The Scourge*` and Morzomotha's `People + Beast` /
+  `People + horror` both split in the wrong place. The row still covered every
+  die face and raised no warning, so nothing that counts rows could see it.
+  Boundaries are now read from the PDF's own item positions. This repairs the
+  same two rows in Cursed Scroll 2 and Cursed Scroll 5, which print them too.
+- **Footnote markers no longer end up inside a result.** The region encounter
+  grids key cells to a footnote, and the marker was read as part of the text —
+  54 cells across 48 tables imported as `Aquatic1`, `Beast1`, `Land1`, which is
+  neither the printed result nor the name of a routed encounter category. The
+  Master Hex Key's settlement sizes, which look identical, are kept.
+- **The Roll Tables catalogue can see what the Manage tree imported.** Manage
+  names every table `<Book> - <Name>`, and the catalogue's name matching never
+  knew that convention: a Western Reaches table kept its prefix and missed its
+  row, and a Cursed Scroll one normalized to nothing at all. Every Manage
+  import read "missing" there no matter how often it had been run.
+- **A grid row in the catalogue is judged by its columns.** A grid imports as
+  one table per printed column, so nothing is ever named after the row itself.
+  The catalogue listed all 35 GM Guide grids (and Cursed Scroll 3's Nord Names)
+  as missing forever, and importing one from there renamed its first column to
+  the grid and left the rest with no book and no folder, filed under Custom.
+  They now read imported when every column is present, partial when some are,
+  and an import from either surface produces the same tables.
+- **Sideways pages import correctly.** 39 pages of the GM Guide — every
+  region's encounter grids and points of interest, Tal-Yool and the City of
+  Masks — draw their text rotated, and the grab read them as stacked
+  gibberish. It now reads them upright, in either printing of the book. This
+  also repairs about 25 pages in the books you already own, most of them in
+  Cursed Scroll 4.
+- **A group heading no longer welds onto the monster beneath it.** Imports
+  produced "Sisters of St. Sofia Little Sister" and, in books that already
+  shipped, "Basilisk Cultists Stone Shaman" (CS4) and welded names in the Core
+  bestiary. The heading is skipped and the monster keeps its own name.
+- **An imported statblock keeps the book's own "or".** A creature that attacks
+  "1 shortsword +1 (1d6) **or** 1 spell +4" imported with an "and" — two attacks
+  where the book offers a choice of one, which is a rules error rather than a
+  wording one. It hit 35 of the GM Guide's 90 monsters and every earlier import
+  from a book that offers a choice. A statblock re-saved from the Monster
+  Creator still flattens to "and"; the Shadowdark NPC schema has nowhere to keep
+  the connector.
+- **A bestiary row no longer re-runs forever.** Whether a book's monsters are
+  present is now judged by name across every source, so a creature imported
+  from one book satisfies the other book's row instead of leaving it
+  permanently short and re-importing every time.
+- **The batch no longer reports skipped documents as created.** A run over a
+  full library said "90 created" while creating nothing; it now says what it
+  skipped, on monsters, mounts, items, spells and boats alike.
+- **A page footnote or page number no longer becomes a table row.** Lines such
+  as `54 *New monsters, pg. 283` collided with a real face and broke the
+  two-page d100 encounter tables.
 - **Hex key pages.** A pasted hex key (numbered entries such as `1403 Thornmere`,
   three or more in a run) now shows a **Hex key** strip in the Importer Hub.
   **Create hex pages** files one journal page per hex into the Journals pack
