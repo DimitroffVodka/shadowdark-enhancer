@@ -2593,6 +2593,38 @@ export function parseByShape(text, shape, { name = "" } = {}) {
 }
 
 /** Public (pure): build a RollTable.create payload from a ParsedTable. */
+/**
+ * Drop a printed row key that leaked into every row's text.
+ *
+ * Some book tables carry their own number column INSIDE the row text because
+ * the caption gives no die to index on — the GM Guide's "d40 NPCs in the City
+ * of Masks" (p281) keys its forty rows 10-49, because the book has you roll d4
+ * for the tens and d10 for the ones. Foundry rolls the table's own 1d40 and
+ * shows ranges 1-40, so the printed key can never agree with the result the
+ * player sees; it reads as a number that correlates with nothing.
+ *
+ * Only strips when the keys PROVE they are a key column: at least four rows,
+ * every one of them prefixed, and the numbers running consecutively. Content
+ * that merely starts with a digit ("15 years in donjon") cannot satisfy that,
+ * so this can never eat a real row. Pure.
+ *
+ * @param {Array<{text?: string}>} rows
+ * @returns {Array<object>} rows, keys removed, or the input untouched
+ */
+export function stripPrintedRowKeys(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  if (list.length < 4) return list;
+  const KEY = /^\s*(\d{1,3})\s*[:.]\s+/;
+  const keys = [];
+  for (const r of list) {
+    const m = KEY.exec(String(r?.text ?? ""));
+    if (!m) return list;
+    keys.push(Number(m[1]));
+  }
+  for (let i = 1; i < keys.length; i++) if (keys[i] !== keys[i - 1] + 1) return list;
+  return list.map((r) => ({ ...r, text: String(r.text ?? "").replace(KEY, "") }));
+}
+
 export function buildTableData(pt) {
   const TEXT = (typeof CONST !== "undefined" && CONST?.TABLE_RESULT_TYPES?.TEXT != null)
     ? CONST.TABLE_RESULT_TYPES.TEXT
@@ -2675,7 +2707,7 @@ export function buildTableData(pt) {
   }
   const maxRange = (pt.rows ?? []).reduce((m, r) => Math.max(m, r.max), 0);
   const formula = (pt.formula ?? "").trim() || `1d${Math.max(1, maxRange)}`;
-  const results = (pt.rows ?? []).map(r => {
+  const results = stripPrintedRowKeys(pt.rows ?? []).map(r => {
     let resultText = r.text ?? "";
     // Loot linking: embed a clickable @UUID on the matched noun. String
     // replace touches only the first occurrence; if the GM edited the text

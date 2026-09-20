@@ -5,7 +5,7 @@
 // user's own uploaded PDFs, not in this repo.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseByShape, buildTableData, parseTables } from "../scripts/importer/tables/table-importer.mjs";
+import { parseByShape, buildTableData, parseTables, stripPrintedRowKeys } from "../scripts/importer/tables/table-importer.mjs";
 import { shapeForName, TABLE_SHAPES } from "../scripts/importer/tables/table-shapes.mjs";
 import { resolveTableFolderPath } from "../scripts/importer/tables/table-folders.mjs";
 import { hasTable, sourcedTableName } from "../scripts/importer/char-content/char-content-manifest.mjs";
@@ -619,4 +619,36 @@ test("grid shape: narrow columns with a blank cell don't re-learn drift", () => 
   assert.equal(at(1, 2), "");        // blank stays blank
   assert.equal(at(2, 2), "Cora");    // NOT pulled left into Bbbb
   assert.equal(at(3, 2), "Dain");
+});
+
+// The GM Guide's "d40 NPCs in the City of Masks" (p281) keys its rows 10-49,
+// because the book has you roll d4 for the tens and d10 for the ones. Foundry
+// rolls the table's own 1d40 and shows ranges 1-40, so that key can never agree
+// with what the player rolled.
+test("a printed row key is stripped only when it proves to be a key column", () => {
+  const rows = (...texts) => texts.map((text, i) => ({ min: i + 1, max: i + 1, text }));
+  const textOf = (rs) => stripPrintedRowKeys(rs).map((r) => r.text);
+
+  assert.deepEqual(
+    textOf(rows("10: Ratvort Bingle, rich", "11: Mistress Savoy, elderly",
+      "12: Amril Tovin, baker", "13: Lethrin Masiope, elf")),
+    ["Ratvort Bingle, rich", "Mistress Savoy, elderly", "Amril Tovin, baker", "Lethrin Masiope, elf"],
+  );
+  // Content that merely begins with a digit cannot satisfy the proof.
+  const prose = rows("15 years in donjon", "20 gp for the job", "3 days later", "9 lives left");
+  assert.deepEqual(textOf(prose), prose.map((r) => r.text));
+  // A gap in the numbering means it is not a key column.
+  const gapped = rows("10: alpha", "12: beta", "13: gamma", "14: delta");
+  assert.deepEqual(textOf(gapped), gapped.map((r) => r.text));
+  // One unprefixed row is enough to leave every row alone.
+  const partial = rows("10: alpha", "beta", "12: gamma", "13: delta");
+  assert.deepEqual(textOf(partial), partial.map((r) => r.text));
+  // Too few rows to be evidence of anything.
+  const tiny = rows("1: a", "2: b");
+  assert.deepEqual(textOf(tiny), tiny.map((r) => r.text));
+
+  // The rows keep their ranges — only the text changes.
+  const kept = stripPrintedRowKeys(rows("7. one", "8. two", "9. three", "10. four"));
+  assert.deepEqual(kept.map((r) => [r.min, r.max]), [[1, 1], [2, 2], [3, 3], [4, 4]]);
+  assert.deepEqual(kept.map((r) => r.text), ["one", "two", "three", "four"]);
 });
