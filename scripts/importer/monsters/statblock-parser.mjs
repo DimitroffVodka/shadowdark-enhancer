@@ -92,22 +92,45 @@ export function splitStatblocks(rawText) {
   // glues into it (visible in the preview grid, GM-correctable) — far less
   // destructive than the old behavior, which dropped half the name AND
   // orphaned the other half as a skipped block.
-  const blocks = [];
-  let cur = null;
+  //
+  // ONE exception, because that trade-off is not correctable when the header is
+  // a GROUP the book prints over its first sub-entry: "SISTERS OF ST. SOFIA"
+  // above "LITTLE SISTER" (GM Guide), "BASILISK CULTISTS" above "STONE SHAMAN"
+  // (CS4), "GOBLINS"/"DINOSAURS" in the core bestiary. Welding gives a monster
+  // named "Sisters Of St. Sofia Little Sister" that no book row can ever
+  // reconcile. A group heading's head noun is PLURAL and a wrapped name's first
+  // half is not — the only signal a bare text paste carries — so a plural bare
+  // line directly above a REAL statblock stays its own block and falls through
+  // to the skip list, exactly like the "VOID CREATURES" / "WENDEL TYPES"
+  // headings CS4/CS5 already skip (those carry lore lines, so they never reach
+  // this branch at all).
+  const isGroupHeading = (name) => /(?<!['’])S\b/.test(name);
+
+  const raw = [];
   for (const line of lines) {
-    if (isNameLine(line)) {
-      if (cur && !cur.lines.length) {
-        cur.name = cur.name.endsWith("-") ? cur.name + line.trim() : `${cur.name} ${line.trim()}`;
-        continue;
-      }
-      if (cur) blocks.push(cur);
-      cur = { name: line.trim(), lines: [] };
-    } else if (cur) {
-      cur.lines.push(line);
-    }
-    // lines before the first name line are preamble → ignored
+    if (isNameLine(line)) raw.push({ name: line.trim(), lines: [] });
+    else raw.at(-1)?.lines.push(line);   // lines before the first name line are preamble → ignored
   }
-  if (cur) blocks.push(cur);
+  // Statted BEFORE any merge: a merge only prepends to the name, and the AC/LV
+  // anchors live in the lines, so this verdict is stable either way.
+  for (const b of raw) {
+    b.stat = b.lines.some((l) => STAT_AC.test(l)) &&
+             !!([b.name, ...b.lines].join(" ").match(STAT_LV));
+  }
+
+  const blocks = [];
+  for (const b of raw) {
+    const prev = blocks.at(-1);
+    if (prev && !prev.lines.length) {
+      if (b.stat && isGroupHeading(prev.name)) {
+        prev.heading = true;                       // a group heading, not half a name
+      } else {
+        b.name = prev.name.endsWith("-") ? prev.name + b.name : `${prev.name} ${b.name}`;
+        blocks.pop();
+      }
+    }
+    blocks.push(b);
+  }
 
   const monsters = [];
   const skipped = [];
@@ -125,16 +148,17 @@ export function splitStatblocks(rawText) {
 
   let prevWasMonster = false;
   for (const b of blocks) {
-    const hasStat = b.lines.some((l) => STAT_AC.test(l)) &&
-                    [b.name, ...b.lines].join(" ").match(STAT_LV);
-    if (hasStat) {
+    if (b.stat) {
       monsters.push([b.name, ...b.lines].join("\n"));
       prevWasMonster = true;
       continue;
     }
     const blockText = [b.name, ...b.lines].join("\n");
     const captionWords = b.name.trim().split(/\s+/).length;
-    const looksLikeFeatureCaption = prevWasMonster &&
+    // `heading` is a group title the block below it answers to — never the
+    // previous monster's feature caption, which is what a bare ALL-CAPS line
+    // after a statblock otherwise is.
+    const looksLikeFeatureCaption = prevWasMonster && !b.heading &&
       captionWords <= 4 && !/\d/.test(b.name) &&
       b.lines.filter((l) => l.trim()).length <= 6 &&
       !baitsOtherRecognizer(blockText);

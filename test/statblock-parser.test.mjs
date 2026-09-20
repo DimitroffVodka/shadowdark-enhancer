@@ -156,6 +156,40 @@ test("splitStatblocks rejoins a hyphen-wrapped ALL-CAPS name", () => {
   assert.equal(parseStatblock(monsters[0]).draft.name, "Shield-Bearer");
 });
 
+// A GROUP heading printed over its first sub-entry is not half a wrapped name.
+// The GM Guide prints "SISTERS OF ST. SOFIA" above a "LITTLE SISTER" statblock
+// (CS4 does the same with "BASILISK CULTISTS" over "STONE SHAMAN"), and the
+// wrap merge welded them into "Sisters Of St. Sofia Little Sister" — a monster
+// no book row could ever reconcile. The plural head noun is the signal.
+test("splitStatblocks keeps a plural group heading off its first sub-entry", () => {
+  const { monsters, skipped } = splitStatblocks([
+    "SISTERS OF ST. SOFIA",
+    "LITTLE SISTER",
+    "AC 13, HP 10, ATK 1 flail +2 (1d10), MV near,",
+    "S +1, D +0, C +1, I +0, W +2, Ch +1, AL L, LV 2",
+  ].join("\n"));
+  assert.equal(monsters.length, 1);
+  assert.equal(parseStatblock(monsters[0]).draft.name, "Little Sister");
+  // The heading itself is skipped like any other section header, NOT absorbed
+  // as the previous monster's feature caption.
+  assert.deepEqual(skipped.map((s) => s.name), ["SISTERS OF ST. SOFIA"]);
+});
+
+test("a group heading after a monster is skipped, not read as its feature", () => {
+  const { monsters, skipped } = splitStatblocks([
+    "FROG KING",
+    "AC 12, HP 9, ATK 1 bite +2 (1d6), MV near, S +1, D +1, C +0, I -1, W +0, Ch +1, AL C, LV 2",
+    "BASILISK CULTISTS",
+    "STONE SHAMAN",
+    "AC 14, HP 18, ATK 1 staff +3 (1d6), MV near,",
+    "S +2, D +0, C +1, I +1, W +2, Ch +0, AL C, LV 4",
+  ].join("\n"));
+  assert.deepEqual(
+    monsters.map((chunk) => parseStatblock(chunk).draft.name),
+    ["Frog King", "Stone Shaman"]);
+  assert.deepEqual(skipped.map((s) => s.name), ["BASILISK CULTISTS"]);
+});
+
 // Core-book statblocks separate a damage die from its rider with a COMMA as
 // well as a "+" — the Azer's "(1d10, ignites flammables)" and the Salamander's
 // "(1d6, ignites flammables)". Splitting on "+" alone failed the dice test and

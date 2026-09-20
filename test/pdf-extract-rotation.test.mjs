@@ -172,3 +172,30 @@ test("a settlement size digit set in the cell's own size survives (Master Hex Ke
 test("a die face is a bare digit too, and stands clear of the first cell", () => {
   assert.equal(padded([cell(18.7, 5.9, "2", 10), cell(85.1, 23.0, "Land", 9)]).split(/\s{2,}/)[0], "2");
 });
+
+/**
+ * A centred section title printed ACROSS both columns, with its lore paragraph
+ * below it in the left column and the group's first statted entry on the right
+ * — the GM Guide's "SISTERS OF ST. SOFIA" (p302) and "VOID CREATURES" spreads.
+ *
+ * Geometry measured off the book: page 419.5 wide, the title spanning x
+ * 135.3–282.0, so it CENTRES at 208.6 against a gutter near 207. Split by
+ * centre, the title files with the right column and sorts below the entire left
+ * column — which orphans the lore under it, and splitStatblocks then welds that
+ * paragraph onto the last monster of the previous page (Siruul came out of the
+ * live import carrying the Sisters' lore; Valkyrie carried the Void Creatures').
+ */
+const LORE_ROWS = [520, 505, 490, 475, 460, 445];
+test("a full-width centred title stays above its own column, not under it", () => {
+  const its = [
+    { str: "SISTERS OF ST. SOFIA", width: 146.7, height: 16, transform: [16, 0, 0, 16, 135.3, 540] },
+    ...LORE_ROWS.map((y, i) => upright(36.1, y, `lore-${i}`, 158)),
+    ...LORE_ROWS.map((y, i) => upright(218, y, `entry-${i}`, 158)),
+  ];
+  const { gutter, lines } = layoutPageItems(its, W, "auto");
+  assert.ok(gutter != null && gutter < 208.6,
+    `the title's centre must fall on the far side of the gutter (got ${gutter})`);
+  assert.equal(lines[0], "SISTERS OF ST. SOFIA");
+  assert.equal(lines[1], "lore-0", "the lore follows its own title, not the columns");
+  assert.equal(lines[LORE_ROWS.length + 1], "entry-0");
+});

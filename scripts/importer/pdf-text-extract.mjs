@@ -591,6 +591,29 @@ function _isFullWidthHeading(it, W, medianHeight) {
 }
 
 /**
+ * Split items into [left, right] at the gutter.
+ *
+ * By item CENTRE — except a full-width centred heading, which goes LEFT, where
+ * a full-width element starts and where the reader's eye goes first. Such a
+ * heading straddles the gutter, so its centre is a coin flip: GM Guide p302
+ * prints "SISTERS OF ST. SOFIA" across x 135–282 with the gutter at ~207, so it
+ * centres at 208.6 — two points into the RIGHT column. Filed right, the heading
+ * sorts below the whole left column, orphaning the lore paragraph printed under
+ * it: with no ALL-CAPS name above it any more, that paragraph welds onto the
+ * last monster of the PREVIOUS page (Siruul inherited the Sisters' lore, and
+ * Valkyrie the Void Creatures'). Sending the heading left keeps it above its
+ * own lore, where splitStatblocks reads the pair as a section header and skips
+ * it.
+ */
+function splitColumns(its, W, gutter) {
+  const heights = its.map((i) => i.height || 0).filter((h) => h > 0).sort((a, b) => a - b);
+  const medianHeight = heights[Math.floor(heights.length / 2)] || 8;
+  const isLeft = (i) => _isFullWidthHeading(i, W, medianHeight) ||
+    i.transform[4] + i.width / 2 < gutter;
+  return [its.filter(isLeft), its.filter((i) => !isLeft(i))];
+}
+
+/**
  * Find a full-width lower band on a page whose upper region is two-column.
  * Some bestiary pages switch layout mid-page: two monster columns above, then
  * one full-width monster below. A single page-wide gutter cuts that lower
@@ -628,10 +651,7 @@ function layoutPageItems(its, W, mode) {
     if (band) {
       const upper = its.filter((i) => i.transform[5] > band.boundaryY);
       const lower = its.filter((i) => i.transform[5] <= band.boundaryY);
-      const cols = [
-        upper.filter((i) => i.transform[4] + i.width / 2 < band.gutter),
-        upper.filter((i) => i.transform[4] + i.width / 2 >= band.gutter),
-      ];
+      const cols = splitColumns(upper, W, band.gutter);
       return {
         gutter: band.gutter,
         lines: [...cols.flatMap((c) => columnLines(c)), ...columnLines(lower)],
@@ -640,12 +660,7 @@ function layoutPageItems(its, W, mode) {
   }
 
   const gutter = detectGutter(its, W, mode);
-  const cols = gutter == null
-    ? [its]
-    : [
-        its.filter((i) => i.transform[4] + i.width / 2 < gutter),
-        its.filter((i) => i.transform[4] + i.width / 2 >= gutter),
-      ];
+  const cols = gutter == null ? [its] : splitColumns(its, W, gutter);
   return { gutter, lines: cols.flatMap((c) => columnLines(c, mode === "layout")) };
 }
 
