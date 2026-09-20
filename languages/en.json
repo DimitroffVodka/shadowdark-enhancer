@@ -1135,6 +1135,7 @@
   "SDE.importer.parse.mountsMissingMany": "{n} requested mounts weren't found among the statblocks on the pasted pages: {names}.",
   "SDE.importer.parse.tablesMissing": "{n} of {total} tables in this unlock weren't found — see Skipped.",
   "SDE.importer.parse.shapeEmpty": "Shape parse produced nothing — check the pasted section.",
+  "SDE.importer.parse.shapeMismatch": "“{name}” has a known layout that the pasted text doesn't match. Use “Grab text” to pull the page from the linked PDF, or paste the rows with their column spacing intact — anything below is a best-effort guess.",
   "SDE.importer.parse.noCompound": "No compound generator recognized — need a die header (e.g. d6) and 2+ column labels (e.g. Detail 1, Detail 2…).",
   "SDE.importer.parse.cartesianTooBig": "\"{name}\" would be {rows} rows (over {cap}) — use the Compound button for that one.",
   "SDE.importer.parse.aTable": "table",

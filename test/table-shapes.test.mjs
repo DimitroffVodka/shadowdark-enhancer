@@ -31,6 +31,59 @@ test("prayer shape reconstructs 3 columns incl. merges + a wrapped row", () => {
   assert.equal(g.warnings.length, 0);
 });
 
+// A prayer page copied out of a PDF VIEWER loses the column x-positions the
+// layout parser reads: every face arrives glued onto one line. Reported by a GM
+// who could not import any of the eight gods (2026-09-20) — before the reflow
+// fallback the shape returned null and the generic parser shredded the page
+// into six single-word tables.
+const PRAYER_REFLOWED = [
+  "PRAYER GENERATOR",
+  "d4 Detail 1 Detail 2 Detail 3",
+  "1 Alpha uno, beta shall gamma delta!",
+  "2 Epsilon dos, zeta shall theta iota!",
+  "3 Kappa lambda, nu xi will omicron pi rho!",
+  "4 Sigma cuatro, tau upsilon will phi chi psi!",
+].join("\n");
+
+test("prayer shape rebuilds a reflowed paste that kept no column spacing", () => {
+  const g = parseByShape(PRAYER_REFLOWED, PRAYER, { name: "T" }).generators[0];
+  assert.deepEqual(g.columns[0].rows.map((r) => r.text), ["Alpha uno,", "Epsilon dos,", "Kappa lambda,", "Sigma cuatro,"]);
+  assert.deepEqual(g.columns[1].rows.map((r) => r.text), ["beta shall", "zeta shall", "nu xi will", "tau upsilon will"]);
+  assert.deepEqual(g.columns[2].rows.map((r) => r.text), ["gamma delta!", "theta iota!", "omicron pi rho!", "phi chi psi!"]);
+  // Rebuilt from punctuation, not geometry — the GM has to be told to check it.
+  assert.match(g.warnings.join(" "), /no column spacing/i);
+});
+
+test("prayer reflow re-glues rows the paste wrapped mid-cell", () => {
+  const wrapped = PRAYER_REFLOWED.replace("beta shall gamma", "beta shall\ngamma");
+  const g = parseByShape(wrapped, PRAYER, { name: "T" }).generators[0];
+  assert.equal(g.columns[2].rows[0].text, "gamma delta!");
+});
+
+test("prayer reflow accepts a hand-typed '|' paste", () => {
+  const piped = [
+    "d4 | Detail 1 | Detail 2 | Detail 3",
+    "1 | Alpha uno, | beta shall | gamma delta!",
+    "2 | Epsilon dos, | zeta shall | theta iota!",
+    "3 | Kappa lambda, | nu xi will | omicron pi rho!",
+    "4 | Sigma cuatro, | tau upsilon will | phi chi psi!",
+  ].join("\n");
+  const g = parseByShape(piped, PRAYER, { name: "T" }).generators[0];
+  assert.deepEqual(g.columns[1].rows.map((r) => r.text), ["beta shall", "zeta shall", "nu xi will", "tau upsilon will"]);
+});
+
+test("prayer reflow refuses a column-major paste rather than committing half a prayer", () => {
+  // All of Detail 1, then all of Detail 2, then all of Detail 3 — unsplittable
+  // by the row terminators, and a wrong guess here commits 216 nonsense rows.
+  const colMajor = [
+    "d4 Detail 1 Detail 2 Detail 3",
+    "Alpha uno, Epsilon dos, Kappa lambda, Sigma cuatro,",
+    "beta shall zeta shall nu xi will tau upsilon will",
+    "gamma delta! theta iota! omicron pi rho! phi chi psi!",
+  ].join("\n");
+  assert.equal(parseByShape(colMajor, PRAYER, { name: "T" }), null);
+});
+
 test("prayer cartesian rows read as a sentence — honor the space separator, not ' | '", () => {
   // Regression: the cartesian-expand path hardcoded " | " even though prayers
   // configure a single-space separator, so expanded rows came out as

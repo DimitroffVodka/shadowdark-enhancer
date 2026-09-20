@@ -52,6 +52,31 @@ sit next to each other. The `banded` parser groups lines so each entry is
 centered on its die roll, matching how the page was typeset. It also parses
 bands (`2-4`, `14+`) accurately.
 
+### `prayer` — the eight deity generators, and what to paste
+
+A god's prayer page is not a list of prayers. It is a three-column sentence
+generator: you roll `3d6` — one d6 per column — and read the three cells as one
+prayer ("*Beneath Her verdant boughs, our strength shall never fail!*"). The
+importer commits it as a single table that rolls all three columns at once and
+posts the finished sentence, and the character sheet's prayer icon rolls it from
+the Deity heading.
+
+Two paste formats work:
+
+- **Grab text** from the linked PDF — the recommended route. It extracts in
+  layout mode, so the page's own column positions come through and each cell is
+  read exactly where it sits.
+- **A paste with each row on one line** — what you get copying out of a PDF
+  viewer. The three cells are rebuilt from the row itself (Detail 1 ends at the
+  first comma, Detail 3 begins after the last *shall*/*will*), and a `|` typed
+  between the cells is honored too. The table imports with a warning: check the
+  three cells of each row against the book before you commit.
+
+What cannot be read is a **column-major** copy — all six Detail 1 cells, then
+all six Detail 2, then all six Detail 3 — because nothing in the text says where
+one row ends. That paste is refused rather than committed half-read; re-copy the
+page row by row, or use **Grab text**.
+
 ### `suite` — one unlock, multiple tables
 
 A `suite` recipe lists individual tables as `{ name, shape }` and parses each

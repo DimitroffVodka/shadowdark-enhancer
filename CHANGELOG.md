@@ -38,6 +38,22 @@
   disagreed it stays unset and you decide. Only the 33 creatures the GM Guide
   introduces needed a type of their own.
 ### Fixed
+- **The god prayer generators refused every hand-typed paste.** The eight
+  Western Reaches prayer tables were reconstructed from the column positions on
+  the page, which only survive a **Grab text** pull from a linked PDF — text
+  copied out of a PDF viewer arrives with each row glued onto one line, so the
+  shape found nothing and the generic parser shredded the page into six
+  single-word tables. A paste with no column spacing left is now rebuilt from
+  the rows themselves (Detail 1 ends at the first comma, Detail 3 after the last
+  "shall"/"will"), and a `|` typed between the cells works too. The rebuilt
+  table carries a warning to check it against the book, and a paste that genuinely
+  cannot be split — every Detail 1, then every Detail 2, then every Detail 3 —
+  is still refused rather than committed half-read.
+- **A shape that didn't match the paste failed in silence.** The Hub only showed
+  its "verify this before Create" blocker when the fallback parse still produced
+  a table to hang it on, so a total miss looked like nothing happening. It now
+  says so, and says what to do: pull the page with **Grab text**, or paste the
+  rows with their spacing intact.
 - **A book's own row numbers no longer sit in front of every result.** The GM
   Guide's *d40 NPCs in the City of Masks* (p281) keys its forty rows 10-49,
   because the book has you roll d4 for the tens and d10 for the ones. Foundry
