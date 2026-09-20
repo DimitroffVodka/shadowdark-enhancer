@@ -11,9 +11,9 @@
 
 import { gatherCensus, gatherDuplicates, cullDuplicates } from "./monsters/monster-census-live.mjs";
 import { gatherItemCensus, gatherItemDuplicates, cullItemDuplicates } from "./items/item-census-live.mjs";
-import { CHAR_SOURCES, BACKGROUND_TABLES, tableNameMatches, nameVariants } from "./char-content/char-content-manifest.mjs";
+import { CHAR_SOURCES, BACKGROUND_TABLES, tableNameMatches, nameVariants, citesForTable } from "./char-content/char-content-manifest.mjs";
 import { listSourcePdfs, sourcePdfHref, sourcePdfTarget } from "./source-pdf-registry.mjs";
-import { buildManageTree } from "./manage-tree.mjs";
+import { buildManageTree, firstLinkedCite } from "./manage-tree.mjs";
 import { planBatch } from "./batch-import.mjs";
 import { contentIdForName } from "./tables/table-shapes.mjs";
 import { findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
@@ -107,12 +107,19 @@ class HubManageMethods {
     // Cursed Scroll #6's table. Core's copy is bare-named and only the flag
     // finds it.
     const flagOf = (d) => d?.getFlag?.(MODULE_ID, "source") ?? d?.flags?.[MODULE_ID]?.source ?? null;
+    // A reprint is one row with several citations, and the census counts a copy
+    // from ANY of the books that print it — so the opener has to look for all of
+    // them too, or a row the tree calls imported opens nothing. Single-source
+    // rows get exactly one cite, which is the lookup this always did.
+    const cites = isTable ? citesForTable(src || undefined, name) : [];
     const matches = (d) => {
       const cname = d?.name ?? "";
       if (!isTable) return nameVariants(cname).some((v) => want.has(v));
       const flag = flagOf(d);
-      if (src && flag && charSourceKey(flag) === src && tableNameMatches(cname, name)) return true;
-      return tableNameMatches(cname, name, src || undefined);
+      return cites.some((cite) => cite.names.some((want) => {
+        if (cite.src && flag && charSourceKey(flag) === cite.src && tableNameMatches(cname, want)) return true;
+        return tableNameMatches(cname, want, cite.src || undefined);
+      }));
     };
 
     // Which collections to try, in order. Not every leaf stamps a type (boats
@@ -634,6 +641,19 @@ class HubManageMethods {
    */
   async _seedGenericUnlock({ name, src = "", type = "Table", contentId = null, page = null, manifestId = null } = {}) {
     if (!name) return;
+    // A table printed in more than one book is grabbed from whichever printing
+    // this world has linked — a GM who owns Western Reaches but not Cursed
+    // Scroll 1 can still unlock the Diabolical Mishap tables, and vice versa.
+    // The row keeps its own NAME (that is what the mishap roller and the census
+    // look the table up by) but takes the other book's page AND its own parsing
+    // recipe, because the two printings set the die column differently. Nothing
+    // changes for a single-source row: its only cite is the one it came with.
+    const cite = firstLinkedCite(citesForTable(src, name, page));
+    if (cite && cite.src !== src) {
+      contentId = contentIdForName(name, cite.src) || contentId;
+      src = cite.src;
+      page = cite.page ?? page;
+    }
     const manifest = manifestId ? findById(manifestId) : null;
     const importName = manifest ? importNameFor(manifest) : null;
     const seedName = importName || name;

@@ -1063,6 +1063,7 @@
   "SDE.importer.batch.blockedMany": "{n} rows can't run unattended (no linked PDF, no page cite, or a hand-paste entry). They're listed in the report at the end.",
   "SDE.importer.batch.confirmNote": "Each entry runs the same unlock → grab → parse → create you'd click by hand, reading from your own uploaded books. Anything already in your library is kept as it is — nothing is replaced or deleted — and anything that fails a quality check is left for you to review. You can stop the run at any point.",
   "SDE.importer.batch.runLabel": "Import {n}",
+  "SDE.importer.batch.noBookLinked": "no linked PDF for {books} — upload one under Source PDFs, then run this again",
   "SDE.importer.report.created": "Imported",
   "SDE.importer.report.nothing": "Nothing to import",
   "SDE.importer.report.failed": "Needs your attention",

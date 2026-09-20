@@ -28,6 +28,7 @@
  *     systemUuid:  string|null,    // Compendium UUID if the system ships it
  *     rows:        number|null,    // fingerprint — expected result count
  *     hash:        string|null,    // fingerprint — optional one-way content hash
+ *     alsoIn?:     Array<{source, page, name, id}>,  // other printings — see citesOf()
  *   }
  */
 
@@ -95,9 +96,66 @@ export function columnManifestId(entryId, column) {
   return `${entryId}:${columnSlug(column)}`;
 }
 
-/** All entries for a given source id ("core", "cs1", …). */
+/**
+ * Every printing of this table: the row's own cite first, then each `alsoIn`.
+ *
+ * Western Reaches reprints Cursed Scroll tables verbatim, so one table is
+ * printed in two books, at two page numbers, under two names. The catalog shows
+ * ONE row for it (the WR one) and that row answers for every book it appears
+ * in — the GM who owns only the Cursed Scroll imports from their own PDF, and
+ * the copy they committed long ago under the CS id still counts as present.
+ *
+ * A cite is what the rest of the hub matches, filters, searches and seeds from:
+ *   id   — the manifestId a world table may already be flagged with
+ *   name — the name THAT book prints (the name probe and the shape lookup both
+ *          key on it)
+ *   page — that book's page, for that book's PDF
+ *
+ * GM Guide (`gmgwr`) rows arrive in a later wave and hook in here: a GM Guide
+ * reprint is one more `alsoIn` cite on the row that already exists, never a
+ * second catalog row.
+ *
+ * @param {object} entry a TABLE_MANIFEST entry
+ * @returns {Array<{src:string, page:number|string, name:string, id:string}>}
+ */
+export function citesOf(entry) {
+  if (!entry) return [];
+  const own = { src: entry.source, page: entry.page, name: entry.name, id: entry.id };
+  return [own, ...(entry.alsoIn ?? []).map(a => ({
+    src: a.source ?? entry.source,
+    page: a.page ?? entry.page,
+    name: a.name ?? entry.name,
+    id: a.id ?? entry.id,
+  }))];
+}
+
+let _aliased = null;
+/**
+ * Ids claimed by another row's `alsoIn` — the reprint twins.
+ *
+ * They stay in TABLE_MANIFEST (findById has to keep resolving them: other
+ * modules key on ids, and existing worlds hold their manifestId flag) but they
+ * must not appear as catalog rows of their own, or the same table shows twice
+ * and importing one leaves the other reading "missing" forever. Same shape as
+ * the `wizardTwin` suppression in manage-tree.mjs.
+ */
+export function aliasedIds() {
+  if (!_aliased) {
+    _aliased = new Set(
+      TABLE_MANIFEST.flatMap(e => (e.alsoIn ?? []).map(a => a.id).filter(Boolean)),
+    );
+  }
+  return _aliased;
+}
+
+/** The manifest as the CATALOG shows it: one row per table, reprint twins dropped. */
+export function catalogEntries() {
+  return TABLE_MANIFEST.filter(e => !aliasedIds().has(e.id));
+}
+
+/** All catalog entries printed in a given source book ("core", "cs1", …). */
 export function bySource(source) {
-  return TABLE_MANIFEST.filter(e => e.source === source);
+  return catalogEntries().filter(e => citesOf(e).some(c => c.src === source));
 }
 
 /** All entries in a given top-level category. */
@@ -110,9 +168,9 @@ export function findById(id) {
   return TABLE_MANIFEST.find(e => e.id === id) ?? null;
 }
 
-/** Distinct source ids, in first-seen order. */
+/** Distinct source ids, in first-seen order — counting every printing of a row. */
 export function sources() {
-  return [...new Set(TABLE_MANIFEST.map(e => e.source))];
+  return [...new Set(catalogEntries().flatMap(e => citesOf(e).map(c => c.src)))];
 }
 
 /**

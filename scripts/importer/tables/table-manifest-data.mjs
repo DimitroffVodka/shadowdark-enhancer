@@ -282,6 +282,19 @@ export const TABLE_MANIFEST = [
   // ── Western Reaches (Player's Guide) — HAND-CURATED from the PDF scrape (DRAFT) ──
   // Name/trinket tables, class talents, backgrounds/secrets, spell mishaps, carousing.
   // systemUuid:null (not yet built as RollTables); hash:null (no census fingerprint).
+  //
+  // `alsoIn` — THE SAME TABLE, REPRINTED. Western Reaches reprints Cursed Scroll
+  // tables verbatim. A GM who owns only the Cursed Scroll must still be able to
+  // import one, and the copy they already committed under the CS id must still
+  // count as present — so one catalog row survives (the WR one) and lists the
+  // other printings. The CS row stays in TABLE_MANIFEST (findById keeps
+  // resolving it for other modules and for worlds that hold its flag) but is
+  // suppressed from the catalog: see citesOf() / catalogEntries() in
+  // table-manifest.mjs.
+  //
+  // A pair is merged ONLY after both printings were diffed row by row against
+  // the real PDFs. A shared `systemUuid` is NOT evidence of sameness — see the
+  // Pit Fighter note below, which is the counter-example.
   {"id":"pgwr-ancestry-population","name":"Ancestry (Population)","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Ancestry","page":14,"die":"d100","systemUuid":null,"rows":8,"hash":null},
   {"id":"pgwr-dwarf-names","name":"Dwarf Names","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Names","page":18,"die":"d100","systemUuid":null,"rows":100,"hash":null},
   {"id":"pgwr-dwarf-trinket","name":"Dwarf Trinket","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Trinkets","page":18,"die":"d100","systemUuid":null,"rows":50,"hash":null},
@@ -299,35 +312,55 @@ export const TABLE_MANIFEST = [
   {"id":"pgwr-human-trinket","name":"Human Trinket","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Trinkets","page":31,"die":"d100","systemUuid":null,"rows":50,"hash":null},
   {"id":"pgwr-kobold-names","name":"Kobold Names","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Names","page":32,"die":"d100","systemUuid":null,"rows":100,"hash":null},
   {"id":"pgwr-kobold-trinket","name":"Kobold Trinket","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Trinkets","page":33,"die":"d100","systemUuid":null,"rows":50,"hash":null},
-  {"id":"pgwr-bard-talents","name":"Class Talents: Bard","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":34,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.ZzffJkaIfmdPzdE7","rows":24,"hash":null},
-  {"id":"pgwr-basilisk-warrior-talents","name":"Class Talents: Basilisk Warrior","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":37,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.khLpCbi8HThFjy9a","rows":15,"hash":null},
-  {"id":"pgwr-delver-talents","name":"Class Talents: Delver","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":38,"die":"2d6","systemUuid":null,"rows":9,"hash":null},
-  {"id":"pgwr-desert-rider-talents","name":"Class Talents: Desert Rider","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":41,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.vwwDlzGjfaiM0R4S","rows":16,"hash":null},
-  {"id":"pgwr-duelist-talents","name":"Class Talents: Duelist","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":42,"die":"2d6","systemUuid":null,"rows":9,"hash":null},
+  {"id":"pgwr-bard-talents","name":"Class Talents: Bard","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":34,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.ZzffJkaIfmdPzdE7","rows":24,"hash":null,"alsoIn":[{"source":"cs6","page":12,"name":"Bard Talents","id":"cs6-bard-talents"}]},
+  {"id":"pgwr-basilisk-warrior-talents","name":"Class Talents: Basilisk Warrior","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":37,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.khLpCbi8HThFjy9a","rows":15,"hash":null,"alsoIn":[{"source":"cs4","page":11,"name":"Basilisk Warrior Talents","id":"cs4-basilisk-warrior-talents"}]},
+  {"id":"pgwr-delver-talents","name":"Class Talents: Delver","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":38,"die":"2d6","systemUuid":null,"rows":5,"hash":null,"alsoIn":[{"source":"cs5","page":10,"name":"Delver Talents","id":"cs5-delver-talents"}]},
+  {"id":"pgwr-desert-rider-talents","name":"Class Talents: Desert Rider","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":41,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.vwwDlzGjfaiM0R4S","rows":16,"hash":null,"alsoIn":[{"source":"cs2","page":10,"name":"Desert Rider Talents","id":"cs2-class-talents-desert-rider"}]},
+  {"id":"pgwr-duelist-talents","name":"Class Talents: Duelist","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":42,"die":"2d6","systemUuid":null,"rows":5,"hash":null,"alsoIn":[{"source":"cs6","page":15,"name":"Duelist Talents","id":"cs6-duelist-talents"}]},
   {"id":"pgwr-green-knight-talents","name":"Class Talents: Green Knight","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":44,"die":"2d6","systemUuid":null,"rows":10,"hash":null},
-  {"id":"pgwr-knight-of-st-ydris-talents","name":"Class Talents: Knight of St. Ydris","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":46,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.vPME2uXw5RuoKEP8","rows":17,"hash":null},
+  {"id":"pgwr-knight-of-st-ydris-talents","name":"Class Talents: Knight of St. Ydris","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":46,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.vPME2uXw5RuoKEP8","rows":17,"hash":null,"alsoIn":[{"source":"cs1","page":10,"name":"Knight of St. Ydris Talents","id":"cs1-class-talents-knight-of-st-ydris"}]},
   {"id":"pgwr-kyzian-archer-talents","name":"Class Talents: Kyzian Archer","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":49,"die":"2d6","systemUuid":null,"rows":9,"hash":null},
   {"id":"pgwr-monk-of-yag-kesh-talents","name":"Class Talents: Monk of Yag-Kesh","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":50,"die":"2d6","systemUuid":null,"rows":9,"hash":null},
   {"id":"pgwr-necromancer-talents","name":"Class Talents: Necromancer","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":52,"die":"2d6","systemUuid":null,"rows":9,"hash":null},
   {"id":"pgwr-paladin-talents","name":"Class Talents: Paladin","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":54,"die":"2d6","systemUuid":null,"rows":9,"hash":null},
+  // PIT FIGHTER IS NOT A REPRINT — do not give it an `alsoIn`. It shares
+  // systemUuid owING8sYmiI43Od0 with cs2-class-talents-pit-fighter, and that
+  // shared uuid is exactly what makes it look mergeable. It is not: three of
+  // the five printed rows were REWRITTEN for Western Reaches. CS2 pg 12 vs WR
+  // pg 57, verified against both PDFs:
+  //   3-6   "You gain +1 to melee weapon damage"        → "+1 to melee attacks and damage"
+  //   7-9   "…or +1 to melee attack"                    → "…or +3 HP"
+  //   10-11 "the HP you gain from Flourish"             → "the HP you regain from Flourish"
+  // The uuid only records that the census mapped both rows onto one system
+  // table; it says nothing about what the two books print. Two rows, one per
+  // book, is correct here.
   {"id":"pgwr-pit-fighter-talents","name":"Class Talents: Pit Fighter","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":57,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.owING8sYmiI43Od0","rows":13,"hash":null},
-  {"id":"pgwr-ranger-talents","name":"Class Talents: Ranger","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":58,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.PPsLlxyDTbhy1aRI","rows":15,"hash":null},
-  {"id":"pgwr-ras-godai-talents","name":"Class Talents: Ras-Godai","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":60,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.0vRwhfQgvAkzToHN","rows":13,"hash":null},
+  {"id":"pgwr-ranger-talents","name":"Class Talents: Ranger","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":58,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.PPsLlxyDTbhy1aRI","rows":15,"hash":null,"alsoIn":[{"source":"cs4","page":12,"name":"Ranger Talents","id":"cs4-ranger-talents"}]},
+  {"id":"pgwr-ras-godai-talents","name":"Class Talents: Ras-Godai","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":61,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.0vRwhfQgvAkzToHN","rows":13,"hash":null,"alsoIn":[{"source":"cs2","page":15,"name":"Ras-Godai Talents","id":"cs2-class-talents-ras-godai"}]},
   {"id":"pgwr-black-lotus-talents","name":"Black Lotus Talents","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":61,"die":"d12","systemUuid":null,"rows":12,"hash":null},
   {"id":"pgwr-roustabout-talents","name":"Class Talents: Roustabout","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":63,"die":"2d6","systemUuid":null,"rows":5,"hash":null},
-  {"id":"pgwr-sea-wolf-talents","name":"Class Talents: Sea Wolf","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":64,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.r87J1r4hXVNnPDUK","rows":13,"hash":null},
-  {"id":"pgwr-seer-talents","name":"Class Talents: Seer","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":66,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.XU4gJD2AK8FCeEZh","rows":13,"hash":null},
-  {"id":"pgwr-warlock-talents","name":"Class Talents: Warlock","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":69,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.xM3hghlK5nvo46Vo","rows":18,"hash":null},
-  {"id":"pgwr-witch-talents","name":"Class Talents: Witch","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":70,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.fifOKQmilp9Y45lf","rows":12,"hash":null},
-  {"id":"pgwr-wyrdling-talents","name":"Class Talents: Wyrdling","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":72,"die":"2d6","systemUuid":null,"rows":9,"hash":null},
-  {"id":"pgwr-wyrdling-corruption","name":"Wyrdling Corruption","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":73,"die":"d10","systemUuid":null,"rows":10,"hash":null},
+  {"id":"pgwr-sea-wolf-talents","name":"Class Talents: Sea Wolf","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":64,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.r87J1r4hXVNnPDUK","rows":13,"hash":null,"alsoIn":[{"source":"cs3","page":10,"name":"Sea Wolf Talents","id":"cs3-sea-wolf-talents"}]},
+  {"id":"pgwr-seer-talents","name":"Class Talents: Seer","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":66,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.XU4gJD2AK8FCeEZh","rows":13,"hash":null,"alsoIn":[{"source":"cs3","page":12,"name":"Seer Talents","id":"cs3-seer-talents"}]},
+  {"id":"pgwr-warlock-talents","name":"Class Talents: Warlock","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":69,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.xM3hghlK5nvo46Vo","rows":18,"hash":null,"alsoIn":[{"source":"cs1","page":12,"name":"Warlock Talents","id":"cs1-class-talents-warlock"}]},
+  {"id":"pgwr-witch-talents","name":"Class Talents: Witch","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":71,"die":"2d6","systemUuid":"Compendium.shadowdark.rollable-tables.RollTable.fifOKQmilp9Y45lf","rows":12,"hash":null,"alsoIn":[{"source":"cs1","page":15,"name":"Witch Talents","id":"cs1-class-talents-witch"}]},
+  {"id":"pgwr-wyrdling-talents","name":"Class Talents: Wyrdling","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":72,"die":"2d6","systemUuid":null,"rows":5,"hash":null,"alsoIn":[{"source":"cs5","page":12,"name":"Wyrdling Talents","id":"cs5-wyrdling-talents"}]},
+  {"id":"pgwr-wyrdling-corruption","name":"Wyrdling Corruption","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Class Talents","page":73,"die":"d10","systemUuid":null,"rows":10,"hash":null,"alsoIn":[{"source":"cs5","page":13,"name":"Wyrdling - Corruption","id":"cs5-wyrdling-corruption"}]},
   {"id":"pgwr-backgrounds","name":"Backgrounds","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Backgrounds","page":74,"die":"d100","systemUuid":null,"rows":96,"hash":null},
   {"id":"pgwr-secrets","name":"Secrets","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Secrets","page":78,"die":"d100","systemUuid":null,"rows":100,"hash":null},
   {"id":"pgwr-faction-generator","name":"Faction Generator","source":"pgwr","sourceLabel":"Western Reaches","category":"Character","sub":"Factions","page":91,"die":"d20","systemUuid":null,"rows":20,"hash":null},
-  {"id":"pgwr-diabolical-mishap-tier-1-3","name":"Diabolical Mishap (Tier 1-3)","source":"pgwr","sourceLabel":"Western Reaches","category":"Magic","sub":"Mishaps","page":184,"die":"d12","systemUuid":null,"rows":12,"hash":null},
-  {"id":"pgwr-diabolical-mishap-tier-4-5","name":"Diabolical Mishap (Tier 4-5)","source":"pgwr","sourceLabel":"Western Reaches","category":"Magic","sub":"Mishaps","page":185,"die":"d12","systemUuid":null,"rows":12,"hash":null},
+  {"id":"pgwr-diabolical-mishap-tier-1-3","name":"Diabolical Mishap (Tier 1-3)","source":"pgwr","sourceLabel":"Western Reaches","category":"Magic","sub":"Mishaps","page":184,"die":"d12","systemUuid":null,"rows":12,"hash":null,"alsoIn":[{"source":"cs1","page":22,"name":"Diabolical Mishap 1-3","id":"cs1-diabolical-mishap-1-3"}]},
+  {"id":"pgwr-diabolical-mishap-tier-4-5","name":"Diabolical Mishap (Tier 4-5)","source":"pgwr","sourceLabel":"Western Reaches","category":"Magic","sub":"Mishaps","page":185,"die":"d12","systemUuid":null,"rows":12,"hash":null,"alsoIn":[{"source":"cs1","page":23,"name":"Diabolical Mishap 4-5","id":"cs1-diabolical-mishap-4-5"}]},
   {"id":"pgwr-necromancer-mishap-tier-1-3","name":"Necromancer Mishap (Tier 1-3)","source":"pgwr","sourceLabel":"Western Reaches","category":"Magic","sub":"Mishaps","page":186,"die":"d12","systemUuid":null,"rows":12,"hash":null},
   {"id":"pgwr-necromancer-mishap-tier-4-5","name":"Necromancer Mishap (Tier 4-5)","source":"pgwr","sourceLabel":"Western Reaches","category":"Magic","sub":"Mishaps","page":187,"die":"d12","systemUuid":null,"rows":12,"hash":null},
+  // THE CAROUSING SUITE IS NOT A REPRINT — no `alsoIn` on any of these four.
+  // CS6 pg 28-37 and WR pg 236-245 look identical and are not. Verified against
+  // both PDFs: Benefit differs in 21 of its 100 rows and Mishap in 14, because
+  // CS6's City-of-Masks nouns were re-skinned for WR (the charnelmen become
+  // gravediggers, the Duke's donjon becomes the local jail, the Onyx Eye
+  // becomes a forgiving guard); Event's last row reads "fete in the Duke's
+  // court" vs "fete in a noble's court"; Outcome's values match but its
+  // modifier column is headed "% Modifier" vs "d100 Modifier". table-shapes.mjs
+  // already keeps a separate recipe per book for exactly these reasons.
   {"id":"pgwr-carousing-event","name":"Carousing Event","source":"pgwr","sourceLabel":"Western Reaches","category":"Gameplay","sub":"Carousing","page":236,"die":"d10","systemUuid":null,"rows":10,"hash":null},
   {"id":"pgwr-carousing-outcome","name":"Carousing Outcome","source":"pgwr","sourceLabel":"Western Reaches","category":"Gameplay","sub":"Carousing","page":237,"die":"d8","systemUuid":null,"rows":25,"hash":null},
   {"id":"pgwr-carousing-benefit","name":"Carousing Benefit","source":"pgwr","sourceLabel":"Western Reaches","category":"Gameplay","sub":"Carousing","page":238,"die":"d100","systemUuid":null,"rows":100,"hash":null},

@@ -43,6 +43,22 @@ test("importNameFor survives a junk entry", () => {
   assert.equal(importNameFor({}), "");
 });
 
+/**
+ * Reprints (`alsoIn`, see table-alt-cites.test.mjs) collapse two catalog rows
+ * into one, but they do NOT collapse two manifest entries: the suppressed twin
+ * stays in TABLE_MANIFEST, so the uniqueness computation above still sees both
+ * names and both keep the name their own book prints. The merged row must not
+ * start qualifying itself just because it absorbed a twin — that would rename
+ * every copy already imported under it.
+ */
+test("absorbing a reprint does not rename anything", () => {
+  const wr = findById("pgwr-knight-of-st-ydris-talents");
+  const cs = findById("cs1-class-talents-knight-of-st-ydris");
+  assert.equal(importNameFor(wr), "Class Talents: Knight of St. Ydris");
+  assert.equal(importNameFor(cs), "Knight of St. Ydris Talents");
+  assert.notEqual(importNameFor(wr), importNameFor(cs));
+});
+
 // ── the conflict check itself ────────────────────────────────────────────────
 
 const idx = (rows) => rows.map(r => ({ _id: r.id, name: r.name,

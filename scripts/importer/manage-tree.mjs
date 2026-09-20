@@ -40,7 +40,7 @@ import { contentIdForName } from "./tables/table-shapes.mjs";
 import { columnManifestId, findById, importNameFor, isMatrix } from "./tables/table-manifest.mjs";
 import { GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES, SYSTEM_PATRON_TABLES } from "./tables/table-folders.mjs";
 import { patronNameFromTable, patronsMissingDescription } from "./tables/patron-items.mjs";
-import { resolveSourcePdf } from "./source-pdf-registry.mjs";
+import { resolveSourcePdf, sourcePdfTarget } from "./source-pdf-registry.mjs";
 import { gatherCensus, liveActorRecords } from "./monsters/monster-census-live.mjs";
 import { liveItemRecords } from "./items/item-census-live.mjs";
 import { isCurrencyName } from "./items/item-parser.mjs";
@@ -58,6 +58,22 @@ import { SIEGE_MANIFEST } from "./boats/siege-parser.mjs";
 import { MOUNT_MANIFEST, mountNameKeys } from "./boats/mount-parser.mjs";
 
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
+
+/**
+ * The first citation of a reprinted row whose book this world can actually read
+ * — the one an Unlock should grab from. Content printed in two books is only
+ * importable from the book the GM owns, so the choice has to be made against
+ * the live PDF registry rather than by preferring one publisher's edition.
+ *
+ * `linked` is injectable so the ordering can be tested without a Foundry world.
+ *
+ * @param {Array<{src?:string, page?:string|null}>} cites  own citation first
+ * @param {(cite:object)=>boolean} [linked]
+ * @returns {object|null} the cite to grab from, or null when no book is linked
+ */
+export function firstLinkedCite(cites, linked = (c) => !!sourcePdfTarget(c?.src, c?.page)) {
+  return (cites ?? []).find((c) => c && linked(c)) ?? null;
+}
 
 /** Curated bestiary skeleton. Western Reaches creatures are represented by Mounts. */
 const MONSTER_SOURCES = ["CS1", "CS2", "CS3", "CS4", "CS5", "CS6"];
@@ -153,18 +169,29 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
   // Classes: one Unlock row per class, alphabetical. Unlocking a class is a
   // BUNDLE — it brings that class's talents, talent table, abilities and spells
   // together, so individual talents/abilities aren't separately unlockable and
-  // aren't enumerated here. A class printed in two books (Delver, Duelist,
-  // Wyrdling) prefers the Western Reaches entry (WR is the char-builder's
-  // canonical source; the deep-link opens the WR PDF) and shows the
-  // Cursed-Scroll page as an "or …" alternate.
+  // aren't enumerated here. A class printed in two books (Bard, Delver,
+  // Duelist, Wyrdling) picks the book this world can actually READ: the row
+  // used to prefer Western Reaches outright, which left a GM who owns only
+  // Cursed Scroll 5 staring at a Delver row deep-linked into a PDF they don't
+  // have and a batch run that reported it blocked. A linked book wins; with
+  // none linked (or both) the old WR-first order stands, so nothing moves for
+  // a GM who has the whole shelf. The loser stays visible as an "or …"
+  // alternate, and `cites` lets the batch name every book that would do.
   const classEntries = [...MANIFEST_CLASSES].sort((a, b) => a.localeCompare(b)).map((cls) => {
     const recs = ofType("Class").filter((e) => e.name === cls);
-    const primary = recs.find((e) => e.src === "WR") ?? recs.find((e) => e.pages) ?? recs[0];
+    // WR stays FIRST in the running order, so a GM with the whole shelf sees
+    // exactly the row they saw before; the linked check only decides between
+    // books, and only when WR is the one that isn't there.
+    const ordered = [...recs.filter((e) => e.pages && e.src === "WR"),
+      ...recs.filter((e) => e.pages && e.src !== "WR")];
+    const primary = firstLinkedCite(ordered, (e) => !!sourcePdfTarget(e.src, e.pages))
+      ?? ordered[0] ?? recs[0];
     const alt = recs.find((e) => e !== primary && e.pages);
     return {
       name: cls, present: !!primary?.present, seedAction: "charSeedPaste",
       type: "Class", src: primary?.src ?? "", pages: primary?.pages ?? "",
       pagesAlt: alt ? `${alt.src} pg ${alt.pages}` : "",
+      cites: recs.filter((e) => e.pages).map((e) => ({ src: e.src, page: e.pages, name: cls })),
     };
   });
   const classes = {
@@ -198,6 +225,9 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
   return branch("char", "Character Content", "fa-user-plus", [ancestries, backgrounds, classes, patrons]);
 }
 
+/** Pure test seam for the dual-source class rows' book choice. */
+export const _testBuildCharContent = buildCharContent;
+
 /**
  * Spells top-level branch, sub-grouped by source and — the part that matters —
  * by CASTER LIST, not a flat spell dump. Each source lists its alignment/class
@@ -213,12 +243,25 @@ function buildCharContent(charEntries, patronsNeedDesc = new Set()) {
 function buildSpells(spellListCensus, mishapsNode = null) {
   // The three Wizard-alignment lists (Druid·Neutral, Mage·Lawful,
   // Sorcerer·Chaotic) are the SAME spells in the Cursed Scrolls and in Western
-  // Reaches, and the census is source-independent — so show ONE row each,
-  // sourced from WR (the char-builder's canonical book). Drop the CS twins so
-  // the user doesn't see (and can't accidentally double-import) the duplicate.
-  const wizardTwin = (l) => l.casterClass === "Wizard" && l.source !== "WR"
-    && SPELL_LISTS.some((o) => o.source === "WR" && o.short === l.short);
-  const lists = SPELL_LISTS.filter((l) => !wizardTwin(l));
+  // Reaches, and the census is source-independent — so show ONE row each. Which
+  // printing that row points at is decided by the PDFs this world has linked,
+  // not by a fixed preference for Western Reaches: the WR row was the only one
+  // ever offered, so a GM with Cursed Scroll 4 and no Western Reaches could not
+  // import the Druid list at all. Ties (both linked, or neither) keep WR, which
+  // is what every existing library already shows.
+  const twinOf = (l) => SPELL_LISTS.filter((o) => o.casterClass === "Wizard"
+    && l.casterClass === "Wizard" && o.short === l.short);
+  // WR first in the running order (the row every existing library shows), then
+  // the Cursed Scroll twin; a linked book wins within that order, so only a
+  // world without Western Reaches sees the change.
+  const preferred = (group) => {
+    const ordered = [...group.filter((o) => o.source === "WR"), ...group.filter((o) => o.source !== "WR")];
+    return ordered.find((o) => sourcePdfTarget(o.source, o.page)) ?? ordered[0];
+  };
+  const lists = SPELL_LISTS.filter((l) => {
+    const group = twinOf(l);
+    return group.length < 2 || preferred(group) === l;
+  });
   const bySrc = new Map();
   for (const l of lists) {
     if (!bySrc.has(l.source)) bySrc.set(l.source, []);

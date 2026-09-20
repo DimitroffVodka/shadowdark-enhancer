@@ -14,7 +14,9 @@
  * The pure pieces (`normalizeName`, `statusOf`) are Foundry-free and unit-tested.
  */
 import { MODULE_ID } from "../../shared/module-id.mjs";
-import { TABLE_MANIFEST, verify, isMatrix, columnManifestId, SOURCES, sourceShort } from "./table-manifest.mjs";
+import {
+  verify, isMatrix, columnManifestId, SOURCES, sourceShort, citesOf, catalogEntries,
+} from "./table-manifest.mjs";
 import { findSuitePack } from "../../shared/compendium-suite.mjs";
 
 const SYSTEM_PACK = "shadowdark.rollable-tables";
@@ -149,32 +151,49 @@ export const TableHub = {
 
   /**
    * Find the world RollTable matching a manifest entry, or null.
+   *
    * Exact via the manifestId flag; otherwise by normalized name — but rejecting
    * candidates whose encoded source conflicts with the entry's (so a Core entry
    * won't match a Cursed Scroll table of the same name).
+   *
+   * A REPRINT counts however it was committed. Western Reaches reprints a
+   * Cursed Scroll table verbatim, so a GM may hold a copy flagged with the CS
+   * id and named the way CS prints it — years before this row existed. Every
+   * cite (see citesOf) is therefore tried: its id, its name, and its book as a
+   * source hint. Without that, merging the two rows would make an already
+   * imported table read "missing" forever.
    */
   _matchWorld(entry, { byFlag, byNorm }) {
-    const flagged = byFlag.get(entry.id);
-    if (flagged) return flagged;
+    const cites = citesOf(entry);
+    for (const c of cites) {
+      const flagged = byFlag.get(c.id);
+      if (flagged) return flagged;
+    }
+    const ids = new Set(cites.map(c => c.id));
+    const srcs = new Set(cites.map(c => c.src));
     // Try the most specific key first: "<sub> <name>" (so a Core
     // "Wizards and Thieves: Low Stakes" import matches the "Low Stakes" entry),
-    // then the bare name. Reject candidates from a conflicting source book.
+    // then the bare name — for each name this table is printed under. Reject
+    // candidates from a book that prints no such table.
     const keys = [];
-    if (entry.sub) keys.push(normalizeName(`${entry.sub} ${entry.name}`));
-    keys.push(normalizeName(entry.name));
+    for (const c of cites) {
+      if (entry.sub) keys.push(normalizeName(`${entry.sub} ${c.name}`));
+      keys.push(normalizeName(c.name));
+    }
     for (const key of keys) {
       const survivor = (byNorm.get(key) ?? []).find(t => {
         // A table stamped with a DIFFERENT manifest entry is that entry's, full
         // stop. Three books print a "Carousing Event"; without this, Core's
         // import (named bare, flagged core-carousing-event) was claimed by the
         // WR and CS6 rows too — they read "Imported → Carousing Event", and
-        // importing anyway collided with it.
+        // importing anyway collided with it. A twin id this row has absorbed is
+        // its own, though, not another entry's.
         const mid = typeof t.getFlag === "function"
           ? t.getFlag(MODULE_ID, "manifestId")
           : t.flags?.[MODULE_ID]?.manifestId;
-        if (mid && mid !== entry.id) return false;
+        if (mid && !ids.has(mid)) return false;
         const hint = worldSourceHint(t.name);
-        return hint === null || hint === entry.source;
+        return hint === null || srcs.has(hint);
       });
       if (survivor) return survivor;
     }
@@ -207,7 +226,7 @@ export const TableHub = {
     const presentFlagIds = new Set(world.byFlag.keys());
     const tree = new Map(); // category -> Map(sub -> rows[])
 
-    for (const entry of TABLE_MANIFEST) {
+    for (const entry of catalogEntries()) {
       let row;
       if (isMatrix(entry)) {
         // Multi-column matrix (e.g. NPC Names by Ancestry): "imported" only
@@ -266,9 +285,22 @@ export const TableHub = {
         : null;
       row.linkable = !!(row.isImported && row.uuid && row.linkKind);
       row.source = entry.source;
-      row.sourceShort = sourceShort(entry.source);
-      // Precomputed lowercase haystack for the hub's client-side search box.
-      row.searchKey = `${entry.category} ${row.sub || "Other"} ${row.name} ${row.sourceShort} ${row.source} p${row.page} ${row.die}`.toLowerCase();
+      // A reprint belongs to every book that prints it: `sources` drives the
+      // filter chips, and the meta line names the alternates so the GM can see
+      // at a glance that their book covers this row too. The template already
+      // renders "p{{page}} · {{die}} · {{sourceShort}}", so the alternates ride
+      // along there — "p46 · 2d6 · PG WR / p10 CS1" — with no new wording to
+      // translate.
+      row.cites = citesOf(entry).map(c => ({ ...c, short: sourceShort(c.src) }));
+      row.sources = row.cites.map(c => c.src);
+      row.sourceShort = [
+        sourceShort(entry.source),
+        ...row.cites.slice(1).map(c => `p${c.page} ${c.short}`),
+      ].join(" / ");
+      // Precomputed lowercase haystack for the hub's client-side search box —
+      // every printing's name, book and page, so either book's wording finds it.
+      row.searchKey = `${entry.category} ${row.sub || "Other"} ${row.name} ${row.die} ${
+        row.cites.map(c => `${c.name} ${c.short} ${c.src} p${c.page}`).join(" ")}`.toLowerCase();
 
       const sub = row.sub || "Other";
       if (!tree.has(entry.category)) tree.set(entry.category, new Map());
@@ -284,9 +316,13 @@ export const TableHub = {
     });
 
     // Source facets for the filter chips. Each chip's count sums the entry
-    // sources it covers (so "Western Reaches" totals both WR guides).
+    // sources it covers (so "Western Reaches" totals both WR guides). A reprint
+    // counts once per book that prints it, so absorbing a Cursed Scroll twin
+    // never empties that Scroll's chip.
     const counts = {};
-    for (const e of TABLE_MANIFEST) counts[e.source] = (counts[e.source] || 0) + 1;
+    for (const e of catalogEntries()) {
+      for (const src of new Set(citesOf(e).map(c => c.src))) counts[src] = (counts[src] || 0) + 1;
+    }
     const sourceFacets = SOURCES.map(s => ({
       id: s.id, label: s.label, match: s.match,
       count: s.match.reduce((n, sid) => n + (counts[sid] || 0), 0),

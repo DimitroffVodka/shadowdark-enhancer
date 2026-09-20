@@ -17,8 +17,11 @@ import { TableHub } from "./table-hub.mjs";
 import { TableImporter } from "./table-importer.mjs";
 import { LootLinker } from "../../loot/loot-linker.mjs";
 import { CATEGORIES, CUSTOM_ID } from "./table-categories.mjs";
-import { findById, formulaFromDie, isMatrix, columnManifestId, importNameFor } from "./table-manifest.mjs";
+import {
+  findById, formulaFromDie, isMatrix, columnManifestId, importNameFor, citesOf,
+} from "./table-manifest.mjs";
 import { charSourceKey } from "../../shared/source-keys.mjs";
+import { sourcePdfTarget } from "../source-pdf-registry.mjs";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -110,7 +113,9 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const stf = this._filter;       // status filter
     const sf = this._sourceFilter;  // source filter (facet id)
     const matches = sf ? (sourceFacets.find(f => f.id === sf)?.match ?? [sf]) : null;
-    const inSrc = (r) => !matches || matches.includes(r.source);
+    // A reprint answers to every book that prints it (r.sources), not just the
+    // book its surviving row happens to be filed under.
+    const inSrc = (r) => !matches || (r.sources ?? [r.source]).some(s => matches.includes(s));
 
     // Status counts scoped to the active source filter (so the chips stay
     // honest). Free-text search is applied CLIENT-SIDE (see _applySearchFilter)
@@ -307,22 +312,34 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Seed the in-window Import tab for a missing (or row-count-mismatched)
    * table: its name, formula, folder, source, and manifestId are pre-filled so the GM
    * only has to paste the rows. (Replaces the old cross-window bridge.)
+   *
+   * A reprint is seeded from the book the GM actually HAS. Whichever of its
+   * cites resolves to a linked PDF wins, and the page, the source and the shape
+   * name all come from that same cite — a Cursed Scroll owner must not be told
+   * to paste from a Western Reaches page they cannot open, nor have their paste
+   * parsed by the other book's recipe.
    */
   async _onImportMissing(event, target) {
     if (!game.user.isGM) return;
     const entry = findById(target?.dataset?.id);
     if (!entry) return;
+    const cites = citesOf(entry);
+    const srcOf = (c) => charSourceKey(c.src) ?? c.src ?? null;
+    const cite = cites.find(c => sourcePdfTarget(srcOf(c), c.page)) ?? cites[0];
     this._importSeed = {
       // Qualified when several books print this name, so importing WR's copy
       // can't land on Core's table (importNameFor).
       name: importNameFor(entry),
       die: entry.die,
-      page: entry.page,
+      page: cite.page,
       formula: formulaFromDie(entry.die),
       category: entry.category || null,
       folderLabel: entry.sub || entry.category || null,
       manifestId: entry.id,
-      src: charSourceKey(entry.source) ?? entry.source ?? null,
+      src: srcOf(cite),
+      // The name the CHOSEN book prints, which is what the shape registry keys
+      // on — not necessarily this row's own display name.
+      shapeName: cite.name,
       matrix: isMatrix(entry),
       columns: entry.columns ?? null,
       widths: entry.widths ?? null,
@@ -360,14 +377,22 @@ export class RollTablesApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * @returns {Promise<Array|null>} parsed tables, or null to use the generic path
    */
   async _parseByShapeIfKnown() {
-    const entry = this._importSeed?.manifestId ? findById(this._importSeed.manifestId) : null;
+    const seed = this._importSeed;
+    const entry = seed?.manifestId ? findById(seed.manifestId) : null;
     if (!entry) return null;
     const { resolveShape } = await import("./table-shapes.mjs");
     // The table catalog's source ids ("core"/"cs6"/"pgwr") and the shape
-    // registry's ("CORE"/"CS6"/"WR") are different vocabularies for one thing.
-    const SRC = { core: "CORE", cs1: "CS1", cs2: "CS2", cs3: "CS3", cs4: "CS4",
-      cs5: "CS5", cs6: "CS6", pgwr: "WR", gmgwr: "WR" };
-    const shape = resolveShape({ name: entry.name, src: SRC[entry.source] ?? entry.source });
+    // registry's ("CORE"/"CS6"/"WR") are different vocabularies for one thing,
+    // and charSourceKey is the one place that translates between them — the
+    // seed already carries its output. "gmgwr" is the GM's Guide, which is NOT
+    // "WR": mapping it there resolved its shapes against the Player's Guide and
+    // deep-linked the wrong PDF, so never re-derive this by hand.
+    //
+    // For a reprint both the name and the book come from the cite the seed
+    // chose, so a Cursed Scroll paste is read by the Cursed Scroll's recipe.
+    const src = seed.src ?? charSourceKey(entry.source) ?? entry.source;
+    const name = seed.shapeName ?? entry.name;
+    const shape = resolveShape({ name, src });
     if (!shape) return null;
     const bucket = TableImporter.parseByShape(this._importText, shape, { name: entry.name });
     const tables = bucket?.tables ?? [];

@@ -28,8 +28,9 @@
  */
 
 import { installMethods, t } from "./importer-hub-shared.mjs";
-import { CHAR_SOURCES } from "./char-content/char-content-manifest.mjs";
+import { CHAR_SOURCES, citesForTable } from "./char-content/char-content-manifest.mjs";
 import { sourcePdfTarget } from "./source-pdf-registry.mjs";
+import { firstLinkedCite } from "./manage-tree.mjs";
 import { MODULE_ID } from "../shared/module-id.mjs";
 import { ROUTE, planBatch, summarizeBatch } from "./batch-import.mjs";
 
@@ -127,12 +128,19 @@ class HubBatchMethods {
       if (!pages) return `the Item Builder has no verified page cite for ${book} ${entry?.type ?? "gear"} — build this one by hand`;
       return sourcePdfTarget(src, pages) ? true : `${book}'s PDF isn't linked — upload it under Source PDFs`;
     }
-    // Every other route grabs the row's own cited pages out of the book.
+    // Every other route grabs the row's cited pages out of the book. A reprint
+    // cites several books, and any ONE of them being linked is enough to run
+    // the row — so ask about all of them, and when none is linked name every
+    // book that would do rather than only the edition the row happens to lead
+    // with. Otherwise the report sends a GM to buy Western Reaches for a table
+    // their Cursed Scroll already prints.
     if (!entry?.pages) return "no page citation on this row — import it by hand";
-    if (!sourcePdfTarget(src, entry.pages)) {
-      return `${book}'s PDF isn't linked — upload it under Source PDFs, then run this again`;
-    }
-    return true;
+    const cites = entry?.cites?.length ? entry.cites : citesForTable(src, entry?.name, entry.pages);
+    if (firstLinkedCite(cites)) return true;
+    const books = cites.map((c) => CHAR_SOURCES[c.src]?.label || c.src || book);
+    return t("SDE.importer.batch.noBookLinked", {
+      books: books.length > 1 ? `${books.slice(0, -1).join(", ")} or ${books.at(-1)}` : books[0] || book,
+    });
   }
 
   // ── The run ────────────────────────────────────────────────────────────────

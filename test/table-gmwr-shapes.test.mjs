@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { parseByShape, parseTables, computeBlockers } from "../scripts/importer/tables/table-importer.mjs";
 import { CONTENT_ENTRIES, resolveShape, contentIdForName } from "../scripts/importer/tables/table-shapes.mjs";
 import {
-  gatherCharContentEntries, tableNameMatches, tablePagesFor,
+  CHAR_SOURCES, citesForTable, gatherCharContentEntries, tableNameMatches, tablePagesFor,
 } from "../scripts/importer/char-content/char-content-manifest.mjs";
 import {
   GAMEPLAY_TABLES, MISHAP_TABLES, PATRON_TABLES, PIT_FIGHTING_TABLES,
@@ -100,6 +100,33 @@ test("no GM Guide grid column is called a creature", () => {
       assert.doesNotMatch(m.name, /creature/i, `${e.id}: ${m.name}`);
     }
   }
+});
+
+// ── reprints ────────────────────────────────────────────────────────────────
+
+test("every GM Guide reprint cite names a book this module knows, and a page", () => {
+  const cited = gmRows.flatMap((r) => citesForTable("GMWR", r.name, r.pages).slice(1)
+    .map((c) => ({ row: r.name, ...c })));
+  assert.equal(cited.length, 16, "the sixteen measured reprints");
+  for (const c of cited) {
+    assert.ok(CHAR_SOURCES[c.src], `${c.row} cites unknown book ${c.src}`);
+    assert.match(String(c.page), /^\d{1,3}(-\d{1,3})?$/, `${c.row} cites no page in ${c.src}`);
+    assert.ok(c.names.includes(c.names[0]), "the row's own name always leads");
+  }
+});
+
+test("the three refused pairs stay unlinked", () => {
+  // Measured and rejected (wave 3): Tal-Yool's rumors are a d20 against CS4's
+  // d12, its points of interest are a 3-column matrix in CS4, and Morzomotha's
+  // Encounters were never compared at all.
+  for (const row of ["Tal-Yool Jungle Rumors", "Tal-Yool Jungle Points of Interest", "Morzomotha Encounters"]) {
+    assert.equal(citesForTable("GMWR", row).length, 1, `${row} must stay single-source`);
+  }
+});
+
+test("a Cursed Scroll copy satisfies the GM Guide row that reprints it", () => {
+  const cites = citesForTable("GMWR", "Wendel Types", "308");
+  assert.deepEqual(cites.map((c) => c.src), ["GMWR", "CS5"]);
 });
 
 test("the GM Guide is a catalogue source in its own right", () => {

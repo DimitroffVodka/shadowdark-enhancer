@@ -739,6 +739,116 @@ const TABLE_PAGES = {
   },
 };
 
+/**
+ * REPRINTS: the other books that print the same table, as `src → name → cites`.
+ * A manifest row stays a SINGLE row with a single identity (its own name, page,
+ * shape and job key); this map is the list of other places the very same table
+ * is printed, so that row can be imported from whichever book the GM actually
+ * owns, and counts as imported when a copy from ANY of them is in the world.
+ *
+ *   source — the other book's CHAR_SOURCES key
+ *   page   — the printed page IN THAT BOOK
+ *   name   — only when the other printing is catalogued under a different
+ *            name; presence has to recognise a copy imported under it
+ *
+ * A pair belongs here only once both printings have been compared page for page
+ * against the real PDFs AND the alternate page is proven to parse — a reprint
+ * that imports as scrambled rows is worse than a locked row. Two books printing
+ * a table with the SAME NAME is not enough: Cursed Scroll 6 and Western Reaches
+ * both print "Carousing Event", but WR re-skinned the setting-specific rows
+ * ("the Duke" → "a noble", "Bywater barons" → "gang of thugs"), so those are
+ * different tables to a GM at the table and stay separate rows.
+ *
+ * Wave 3 adds the GM's Guide reprints here as `{ source: "GMWR", … }` cites —
+ * a reprint needs no `MANIFEST.GMWR` / `TABLE_PAGES.GMWR` block of its own.
+ */
+const TABLE_ALSO_IN = {
+  CS1: {
+    // Western Reaches pp.184-185 reprint these two verbatim (the CS1 p22 / WR
+    // p184 pages differ by exactly one token — the page number in the footer;
+    // p23/p185 differ by one printed reword and a pull-quote). WR centres the
+    // die face against the cell instead of leading with it, so its printing has
+    // its own `wr/diabolical-mishap-*` banded recipe in table-shapes.mjs; the
+    // names below are what the Roll Tables catalogue lists WR's copies under.
+    "Diabolical Mishap 1-3": [{ source: "WR", page: "184", name: "Diabolical Mishap (Tier 1-3)" }],
+    "Diabolical Mishap 4-5": [{ source: "WR", page: "185", name: "Diabolical Mishap (Tier 4-5)" }],
+  },
+  // The GM's Guide "supplements and slightly modifies CS 1-6" (its own p7), so
+  // sixteen of its rows are reprints of a Cursed Scroll table. Each pair below
+  // was parsed from BOTH books and compared row for row / cell for cell, and
+  // each alternate page was then re-run through THIS row's shipped recipe —
+  // 16/16 produce the same table count with every face covered, which is what
+  // makes the alternate safe to grab from.
+  //
+  // The alternate NAME is the bare name that book prints ("Rumors"), which is
+  // not unique inside it: Cursed Scroll 1 prints three tables called Rumors.
+  // Presence is therefore optimistic on those — a CS1 "Rumors" in the world
+  // satisfies the Gloaming row whichever of the three it came from. That is
+  // the right way round for a reprint (the row exists to stop a GM re-importing
+  // a table they already have), and the page cite still grabs the right one.
+  //
+  // NOT reprints, deliberately absent (measured, wave 3):
+  //   • Tal-Yool Jungle Rumors (231, d20) vs CS4 pg 25 (d12) — different dice.
+  //   • Tal-Yool Jungle Points of Interest (230) vs CS4 pg 27 — CS4's is a
+  //     3-column Descriptor/Location/Feature matrix, a different table.
+  //   • Morzomotha Encounters (178) vs CS5 pg 3 — never measured.
+  GMWR: {
+    "Arctic Sea Encounters": [{ source: "CS3", page: "26-27" }],
+    "Wendel Types": [{ source: "CS5", page: "35" }],
+    "d40 NPCs in the City of Masks": [{ source: "CS6", page: "67" }],
+    "City of Masks Rumors": [{ source: "CS6", page: "48-49", name: "Rumors" }],
+    "City of Masks Day Encounters": [{ source: "CS6", page: "5", name: "Day Encounters" }],
+    "City of Masks Night Encounters": [{ source: "CS6", page: "5", name: "Night Encounters" }],
+    "Tal-Yool Jungle Special Encounters": [{ source: "CS4", page: "66", name: "Special Encounters" }],
+    "Tal-Yool Jungle Encounter Type by Terrain": [{ source: "CS4", page: "66", name: "Encounter Type by Terrain" }],
+    "Tal-Yool Jungle Day Encounters": [{ source: "CS4", page: "67", name: "Day Encounters" }],
+    "The Gloaming Rumors": [{ source: "CS1", page: "3", name: "Rumors" }],
+    "The Gloaming Encounters": [{ source: "CS1", page: "3", name: "Encounters" }],
+    // The two books head this grid's columns differently (GM Guide "Swamp",
+    // CS1 "Marsh"), so a CS1 grab fills the GM Guide's column names with CS1's
+    // column contents — same grid, same order, this book's labels.
+    "The Gloaming Encounter Zone": [{ source: "CS1", page: "3", name: "Encounter Zone" }],
+    "Isles of Andrik Rumors": [{ source: "CS3", page: "3", name: "Rumors" }],
+    "Isles of Andrik Encounters": [{ source: "CS3", page: "3", name: "Encounters" }],
+    "Morzomotha Rumors": [{ source: "CS5", page: "3", name: "Rumors" }],
+    // REWRITTEN, not reprinted: only 3 of the 10 rows survive from Cursed
+    // Scroll 2. Still worth offering — a CS2 owner gets a usable Djurum rumor
+    // table from the book they have — but it is the older list, not this one.
+    "Djurum Desert Rumors": [{ source: "CS2", page: "3", name: "Rumors" }],
+  },
+};
+
+/**
+ * Every printing of a manifest table, the row's OWN citation first.
+ *
+ * One row, several cites: presence accepts a copy matching any of them, and the
+ * importer grabs from the first whose book the GM has linked. A table only one
+ * book prints returns exactly one cite, so every caller's behaviour for those
+ * is unchanged.
+ *
+ * @param {string} [src]   the row's own CHAR_SOURCES key
+ * @param {string} name    the row's own manifest name
+ * @param {string} [page]  the row's own page cite, when the caller already has
+ *   it. Manage-tree rows take their page from several maps (gear types, boats,
+ *   bestiary spreads), so a caller that resolves the grab through these cites
+ *   must pass it — deriving it from TABLE_PAGES alone would report a boat row
+ *   as having no page and block a batch that used to run.
+ * @returns {Array<{src:string|undefined, page:string|null, names:string[]}>}
+ *   `names[0]` is always the row's own name — an unlock driven off any citation
+ *   still creates the table under it, so a copy in the OTHER book's folder is
+ *   called "<Other Book> - <row name>". The catalogue name for that printing
+ *   follows, for a copy imported through the Roll Tables hub instead.
+ */
+export function citesForTable(src, name, page) {
+  const own = { src, page: page || TABLE_PAGES[src]?.[name] || _pageFromName(name) || null, names: [name] };
+  const alts = (TABLE_ALSO_IN[src]?.[name] ?? []).map((a) => ({
+    src: a.source,
+    page: a.page ?? null,
+    names: a.name && a.name !== name ? [name, a.name] : [name],
+  }));
+  return [own, ...alts];
+}
+
 const _norm = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const _key = (type, name) => `${type}:${_norm(name)}`;
 
@@ -833,7 +943,11 @@ export const CLASS_ABILITIES = Object.fromEntries(
  * source-guided import stamps the source prefix; the Manage tree checks the bare
  * sub-table name). Used by the per-sub-table core-table presence check.
  */
-export function hasTable(tablesPresent, name) { return _tableHave(tablesPresent, name); }
+/** Is this manifest table present? `src` scopes it to one book and lets a
+ *  grid row match the per-column tables it actually creates. */
+export function hasTable(tablesPresent, name, src, tablesBySource) {
+  return _tableHave(tablesPresent, name, src, tablesBySource);
+}
 
 /**
  * Strip a legacy group-representative prefix ("Core PDF p118: Traps" → "Traps")
@@ -852,11 +966,26 @@ const _tableProbeName = (name) => stripRepPrefix(name);
  *  source-qualified "Character Names: … <Ancestry>" table exists. The source
  *  qualifier is required — a bare "Character Names: <Ancestry>" (the core
  *  system table) must NOT satisfy a WR ancestry gap. */
-function _tableHave(tablesPresent, want, src, tablesBySource) {
-  // A table stamped with this book satisfies it outright — no name guessing.
-  if (src && tablesBySource?.has(`${src}|${_norm(_tableProbeName(want))}`)) return true;
-  for (const raw of tablesPresent) if (tableNameMatches(raw, want, src)) return true;
+/** Does ONE citation of a row resolve to a table already in the world? */
+function _citeHave(tablesPresent, cite, tablesBySource) {
+  for (const want of cite.names) {
+    // A table stamped with this book satisfies it outright — no name guessing.
+    if (cite.src && tablesBySource?.has(`${cite.src}|${_norm(_tableProbeName(want))}`)) return true;
+    for (const raw of tablesPresent) if (tableNameMatches(raw, want, cite.src)) return true;
+  }
   return false;
+}
+
+/**
+ * ANY printing satisfies the row. A GM who owns only one of the books that
+ * print a reprint has imported it from that one, under that book's qualifier
+ * and that book's catalogue name — reporting the row as missing because the
+ * copy says "Western Reaches" rather than "Cursed Scroll 1" would send them to
+ * re-import a table they already have. Single-source rows have one cite, so
+ * this is the same loop it always was.
+ */
+function _tableHave(tablesPresent, want, src, tablesBySource) {
+  return citesForTable(src, want).some((cite) => _citeHave(tablesPresent, cite, tablesBySource));
 }
 
 
