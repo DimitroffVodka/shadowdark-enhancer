@@ -30,7 +30,7 @@ import {
   enrichDice,
 } from "../scripts/shared/contextual-enricher.mjs";
 import { convertDice, enrichEncounterText, MonsterLinker } from "../scripts/importer/monsters/monster-linker.mjs";
-import { isArcticSeaEncounterTable, TableEnricher } from "../scripts/importer/tables/table-enrich.mjs";
+import { isArcticSeaEncounterTable, TableEnricher, encounterZoneTargets, isEncounterZoneTable } from "../scripts/importer/tables/table-enrich.mjs";
 import { MODULE_ID } from "../scripts/shared/module-id.mjs";
 
 /** The system's own enricher pattern — copied, not imported (it lives in the system). */
@@ -442,4 +442,41 @@ test("two concurrent treasure enrichments of one table run the catalog once", as
     LootCatalog.linkTableItems = originalLink;
     if (previousGame === undefined) delete globalThis.game; else globalThis.game = previousGame;
   }
+});
+
+// ── Encounter Zone → encounter table routing ────────────────────────────────
+// A zone table is an INDEX, not content: rolling it yields a category, and the
+// GM is meant to roll that region's table for it. These names decide which.
+test("encounterZoneTargets maps a zone row to its region's encounter table", () => {
+  assert.deepEqual(
+    encounterZoneTargets("Djurum Desert Encounter Zone: Salt Flat", "Digger"),
+    ["Djurum Desert Encounters: Digger"],
+  );
+  // The GM Guide's flattened footnote daggers must not reach the lookup.
+  assert.deepEqual(
+    encounterZoneTargets("Rimespire Mountains Encounter Zone: Forest", "Fiend†"),
+    ["Rimespire Mountains Encounters: Fiend"],
+  );
+  // Morzomotha pairs two categories in one cell — that is two tables to roll.
+  assert.deepEqual(
+    encounterZoneTargets("Morzomotha Encounter Zone: Caves", "Beast + Horror"),
+    ["Morzomotha Encounters: Beast", "Morzomotha Encounters: Horror"],
+  );
+  // Tal-Yool's "Special" is a whole-region table, not a per-category one.
+  assert.deepEqual(
+    encounterZoneTargets("Tal-Yool Jungle Encounter Type: Coast", "Special"),
+    ["Tal-Yool Jungle Special Encounters"],
+  );
+  // "Encounter Type" is the same shape under a different caption.
+  assert.deepEqual(
+    encounterZoneTargets("Tal-Yool Jungle Encounter Type: River", "Aquatic"),
+    ["Tal-Yool Jungle Encounters: Aquatic"],
+  );
+
+  // Not a zone table, and empty rows, yield nothing to link.
+  assert.deepEqual(encounterZoneTargets("Bastion Mountains Rumors", "Digger"), []);
+  assert.deepEqual(encounterZoneTargets("Djurum Desert Encounters: Digger", "Goblin"), []);
+  assert.deepEqual(encounterZoneTargets("Djurum Desert Encounter Zone: Path", "   "), []);
+  assert.equal(isEncounterZoneTable("Djurum Desert Encounter Zone: Path"), true);
+  assert.equal(isEncounterZoneTable("Djurum Desert Encounters: Digger"), false);
 });
