@@ -441,6 +441,31 @@ function gutterRisks(its, W, splitX, { layoutMode = "auto" } = {}) {
   return out;
 }
 
+/**
+ * A footnote marker set as its own text item: a bare digit or dagger, SMALLER
+ * than the text it hangs off and butted straight against it with no gap.
+ *
+ * The Western Reaches region grids key their encounter cells this way, and read
+ * as plain text the marker becomes part of the result — 54 cells across 48 of
+ * the GM Guide's tables came out as "Aquatic1" / "Land1", which is both the
+ * wrong text and no longer the name of a routed encounter category.
+ *
+ * Both halves of the test carry weight, and the height test is a DIFFERENCE,
+ * not "smaller". The book sets these markers both ways — p102 hangs `[1]` at h8
+ * off `[Digger]` at h9, p228 hangs `[1]` at h10 off `[Land]` at h9 — so either
+ * gap in size marks one. What it must never touch is a number that is really
+ * part of the text, and that number is set in the SAME size as the text it
+ * follows: the Master Hex Key's settlement sizes are `[Low Town]` h10 `[2]` h10,
+ * abutting exactly like a marker, and they are data the hex import needs.
+ * Each row's die face escapes on the other half of the test — it is 40pt clear
+ * of the first cell, never abutting.
+ */
+function _isSuperscriptMarker(p, prev) {
+  if (!/^[*\u2020\u2021]?\d{1,2}$/.test(String(p.s).trim())) return false;
+  if (!(p.h && prev?.h) || p.x - (prev.x + prev.w) >= 1.5) return false;
+  return Math.abs(p.h - prev.h) > 0.01;
+}
+
 /** Group one column's items into reading-ordered text lines. */
 function columnLines(col, pad = false) {
   // `pad` (layout mode): reconstruct column x-positions as runs of spaces so a
@@ -466,19 +491,20 @@ function columnLines(col, pad = false) {
     // A y-jump greater than ~half the glyph height starts a new line.
     if (lastY === null || Math.abs(y - lastY) > (it.height || 8) * 0.5) {
       if (cur) lines.push(cur);
-      cur = { parts: [{ x: it.transform[4], w: it.width, s: it.str }] };
+      cur = { parts: [{ x: it.transform[4], w: it.width, s: it.str, h: it.height }] };
       lastY = y;
     } else {
-      cur.parts.push({ x: it.transform[4], w: it.width, s: it.str });
+      cur.parts.push({ x: it.transform[4], w: it.width, s: it.str, h: it.height });
     }
   }
   if (cur) lines.push(cur);
 
   return lines.map((ln) => {
     ln.parts.sort((a, b) => a.x - b.x);
+    const parts = ln.parts.filter((p, i) => i === 0 || !_isSuperscriptMarker(p, ln.parts[i - 1]));
     let text = "";
     let prevEnd = null;
-    for (const p of ln.parts) {
+    for (const p of parts) {
       if (prevEnd !== null) {
         const gap = p.x - prevEnd;
         if (pad) {

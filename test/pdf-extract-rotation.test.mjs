@@ -152,3 +152,23 @@ test("a padded row keeps a real word space single", () => {
   assert.equal(padded([cell(8.5, 42.3, "death of"), cell(53.5, 65.5, "The Scourge")]),
     "death of The Scourge");
 });
+
+test("a footnote marker set SMALLER than its cell is dropped (p102)", () => {
+  assert.equal(padded([cell(60.0, 31.6, "Digger", 9), cell(91.6, 3.4, "1", 8)]), "Digger");
+});
+
+test("a footnote marker set LARGER than its cell is dropped (p228)", () => {
+  // Tal-Yool hangs the same marker off the other side of the text size, which
+  // is why the test is a difference in height and not "smaller".
+  assert.equal(padded([cell(85.1, 23.0, "Land", 9), cell(108.2, 4.3, "1", 10)]), "Land");
+});
+
+test("a settlement size digit set in the cell's own size survives (Master Hex Key)", () => {
+  // Structurally identical to a marker — bare digit, abutting — and it is data
+  // the hex import reads. Matching its text's height is what saves it.
+  assert.equal(padded([cell(280.8, 51.1, "Low Town", 10), cell(331.9, 4.3, "2", 10)]), "Low Town2");
+});
+
+test("a die face is a bare digit too, and stands clear of the first cell", () => {
+  assert.equal(padded([cell(18.7, 5.9, "2", 10), cell(85.1, 23.0, "Land", 9)]).split(/\s{2,}/)[0], "2");
+});
